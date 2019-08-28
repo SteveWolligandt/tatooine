@@ -7,7 +7,19 @@ namespace tatooine::test {
 
 TEST_CASE("doublegyre", "[doublegyre]") {
   numerical::doublegyre ndg;
-  symbolic::doublegyre  adg;
+  symbolic::doublegyre  sdg;
+  for (size_t x = 0; x < 10; ++x) {
+    for (size_t y = 0; y < 10; ++y) {
+      for (size_t t = 0; t < 10; ++t) {
+        vec2 p{x / 9 * 2, y / 9};
+        auto vs = sdg(p, t);
+        auto vn = ndg(p, t);
+        for (size_t i = 0; i < 2; ++i) {
+          REQUIRE(std::abs(vs(i) - vn(i)) < 1e-5);
+        }
+      }
+    }
+  }
 
   auto test = [&](const auto& dg, const auto& x) {
     const auto v = dg(x, 0);
@@ -21,10 +33,10 @@ TEST_CASE("doublegyre", "[doublegyre]") {
   test(ndg, vec{0.5, 0.5});
   test(ndg, vec{1.5, 0.5});
   test(ndg, vec{2.0, 1.0});
-  test(adg, vec{0.0, 0.0});
-  test(adg, vec{0.5, 0.5});
-  test(adg, vec{1.5, 0.5});
-  test(adg, vec{2.0, 1.0});
+  test(sdg, vec{0.0, 0.0});
+  test(sdg, vec{0.5, 0.5});
+  test(sdg, vec{1.5, 0.5});
+  test(sdg, vec{2.0, 1.0});
 }
 
 //==============================================================================
