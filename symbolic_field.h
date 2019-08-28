@@ -10,14 +10,16 @@
 namespace tatooine::symbolic {
 //==============================================================================
 
-template <typename derived_t, typename real_t, size_t N, size_t... TensorDims>
-struct field : tatooine::field<derived_t, real_t, N, TensorDims...> {
-  using this_t   = field<derived_t, real_t, N, TensorDims...>;
-  using parent_t = tatooine::field<derived_t, real_t, N, TensorDims...>;
+template <typename real_t, size_t N, size_t... TensorDims>
+struct field : tatooine::field<field<real_t, N, TensorDims...>, real_t, N,
+                               TensorDims...> {
+  using this_t   = field<real_t, N, TensorDims...>;
+  using parent_t = tatooine::field<this_t, real_t, N, TensorDims...>;
   using typename parent_t::pos_t;
   using typename parent_t::tensor_t;
   using parent_t::num_dimensions;
   using symtensor_t = tensor<GiNaC::ex, TensorDims...>;
+
   static auto& x(size_t i) { return symbol::x(i); }
   static auto& t() { return symbol::t(); }
 
@@ -29,6 +31,11 @@ struct field : tatooine::field<derived_t, real_t, N, TensorDims...> {
   void set_expr(symtensor_t&& ex) { m_expr = std::move(ex); }
 
  public:
+  constexpr field() = default;
+  constexpr field(const symtensor_t& ex) : m_expr{ex} {}
+  constexpr field(symtensor_t&& ex) : m_expr{std::move(ex)} {}
+
+  //----------------------------------------------------------------------------
   [[nodiscard]] const auto& expr() const { return m_expr; }
 
   //----------------------------------------------------------------------------
@@ -42,6 +49,34 @@ struct field : tatooine::field<derived_t, real_t, N, TensorDims...> {
     return evaluate(_x, _t, std::make_index_sequence<num_dimensions()>{});
   }
 };
+
+//==============================================================================
+// operations
+//==============================================================================
+template <typename lhs_real_t, typename rhs_real_t, size_t N, size_t D>
+constexpr auto dot(const field<lhs_real_t, N, D>& lhs,
+                   const field<rhs_real_t, N, D>& rhs) {
+  return field<promote_t<lhs_real_t, rhs_real_t>, N>{
+      dot(lhs.expr(), rhs.expr())};
+}
+
+//------------------------------------------------------------------------------
+template <typename lhs_real_t, typename rhs_real_t, size_t N,
+          size_t... TensorDims>
+constexpr auto operator+(const field<lhs_real_t, N, TensorDims...>& lhs,
+                         const field<rhs_real_t, N, TensorDims...>& rhs) {
+  return field<promote_t<lhs_real_t, rhs_real_t>, N, TensorDims...>{lhs.expr() +
+                                                                    rhs.expr()};
+}
+
+//------------------------------------------------------------------------------
+template <typename lhs_real_t, typename rhs_real_t, size_t N,
+          size_t D0, size_t D1>
+constexpr auto operator*(const field<lhs_real_t, N, D0, D1>& lhs,
+                         const field<rhs_real_t, N, D1>& rhs) {
+  return field<promote_t<lhs_real_t, rhs_real_t>, N, D0>{lhs.expr() *
+                                                         rhs.expr()};
+}
 
 //------------------------------------------------------------------------------
 // template <typename field_t, typename real_t, size_t N>

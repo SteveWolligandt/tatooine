@@ -29,6 +29,8 @@ create_test(tensor)
 create_test(abcflow)
 create_test(doublegyre)
 create_test(derived_field)
+create_test(field_operations)
+create_test(symbolic_field)
 
 #- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 add_executable (_all main.cpp ${ALL_TEST_CPPS})

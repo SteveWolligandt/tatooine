@@ -10,9 +10,9 @@ namespace tatooine::symbolic {
 //==============================================================================
 
 template <typename real_t>
-struct doublegyre : field<doublegyre<real_t>, real_t, 2, 2> {
+struct doublegyre : field<real_t, 2, 2> {
   using this_t   = doublegyre<real_t>;
-  using parent_t = field<this_t, real_t, 2, 2>;
+  using parent_t = field<real_t, 2, 2>;
   using parent_t::t;
   using parent_t::x;
   using typename parent_t::pos_t;
