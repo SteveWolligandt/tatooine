@@ -1,7 +1,6 @@
 #ifndef TATOOINE_TENSOR_H
 #define TATOOINE_TENSOR_H
 
-#include "symbolic.h"
 #include <array>
 #include <iostream>
 #include <ostream>
@@ -9,9 +8,14 @@
 #include "crtp.h"
 #include "functional.h"
 #include "multiindexeddata.h"
+#include "symbolic.h"
 #include "type_traits.h"
 #include "utility.h"
 
+#include <lapacke.h>
+#ifdef I
+#undef I
+#endif
 //==============================================================================
 namespace tatooine {
 //==============================================================================
@@ -37,7 +41,7 @@ struct base_tensor : crtp<Tensor> {
   }
 
   template <typename F>
-  auto for_indices(F&& f) {
+  static auto for_indices(F&& f) {
     for (auto is : indices()) {
       invoke_unpacked(std::forward<F>(f), unpack(is));
     }
@@ -243,7 +247,7 @@ struct tensor : base_tensor<tensor<real_t, Dims...>, real_t, Dims...> {
     return t;
   }
 
-  //----------------------------------------------------------------------------
+  //============================================================================
   template <typename... Is, enable_if_integral<Is...>...>
   constexpr const auto& at(const Is... is) const {
     static_assert(sizeof...(Is) == num_dimensions());
@@ -260,6 +264,10 @@ struct tensor : base_tensor<tensor<real_t, Dims...>, real_t, Dims...> {
   //----------------------------------------------------------------------------
   const auto& operator[](size_t i) const { return m_data[i]; }
   auto&       operator[](size_t i) { return m_data[i]; }
+
+  //----------------------------------------------------------------------------
+  decltype(auto) data() { return m_data.data(); }
+  decltype(auto) data() const { return m_data.data(); }
 };
 
 //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -370,6 +378,83 @@ struct tensor_slice
 //==============================================================================
 // operations
 //==============================================================================
+
+template <typename tensor_t, typename real_t, size_t N>
+constexpr auto norm(const base_tensor<tensor_t, real_t, N>& t_in, unsigned p = 2) {
+  real_t n = 0;
+  for (size_t i = 0; i < N; ++i) { n += std::pow(t_in(i), p); }
+  return std::pow(n, real_t(1) / real_t(p));
+}
+//------------------------------------------------------------------------------
+template <typename tensor_t, typename real_t, size_t N>
+constexpr auto sqr_length(const base_tensor<tensor_t, real_t, N>& t_in) {
+  real_t n = 0;
+  for (size_t i = 0; i < N; ++i) { n += t_in(i) * t_in(i); }
+  return n;
+}
+//------------------------------------------------------------------------------
+template <typename tensor_t, typename real_t, size_t N>
+constexpr auto length(const base_tensor<tensor_t, real_t, N>& t_in) {
+  return std::sqrt(sqr_length(t_in));
+}
+
+//------------------------------------------------------------------------------
+template <typename tensor_t, typename real_t, size_t N>
+constexpr auto normalize(const base_tensor<tensor_t, real_t, N>& t_in) {
+  return t_in / length(t_in);
+}
+
+//------------------------------------------------------------------------------
+template <typename lhs_tensor_t, typename lhs_real_t, typename rhs_tensor_t,
+          typename rhs_real_t, size_t N>
+constexpr auto distance(const base_tensor<lhs_tensor_t, lhs_real_t, N>& lhs,
+                        const base_tensor<rhs_tensor_t, rhs_real_t, N>& rhs) {
+  return length(rhs - lhs);
+}
+
+//------------------------------------------------------------------------------
+/// sum of all components of a vector
+template <typename tensor_t, typename real_t, size_t VecDim>
+constexpr auto sum(const base_tensor<tensor_t, real_t, VecDim>& v) {
+  real_t s = 0;
+  for (size_t i = 0; i < VecDim; ++i) { s += v(i); }
+  return s;
+}
+
+//------------------------------------------------------------------------------
+template <typename lhs_tensor_t, typename lhs_real_t, typename rhs_tensor_t,
+          typename rhs_real_t, size_t N>
+constexpr auto dot(const base_tensor<lhs_tensor_t, lhs_real_t, N>& lhs,
+                   const base_tensor<rhs_tensor_t, rhs_real_t, N>& rhs) {
+  promote_t<lhs_real_t, rhs_real_t> d = 0;
+  for (size_t i = 0; i < N; ++i) { d += lhs(i) * rhs(i); }
+  return d;
+}
+
+//------------------------------------------------------------------------------
+template <typename tensor_t, typename real_t>
+constexpr auto det(const base_tensor<tensor_t, real_t, 2, 2>& m) {
+  return m(0, 0) * m(1, 1) - m(0, 1) * m(1, 0);
+}
+// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+template <typename tensor_t, typename real_t>
+constexpr auto det(const base_tensor<tensor_t, real_t, 3, 3>& m) {
+  return m(0, 0) * m(1, 1) * m(2, 2) + m(0, 1) * m(1, 2) * m(2, 0) +
+         m(0, 2) * m(1, 0) * m(2, 1) - m(2, 0) * m(1, 1) * m(0, 2) -
+         m(2, 1) * m(1, 2) * m(0, 0) - m(2, 2) * m(1, 0) * m(0, 2);
+}
+
+//------------------------------------------------------------------------------
+template <typename lhs_tensor_t, typename lhs_real_t, typename rhs_tensor_t,
+          typename rhs_real_t>
+constexpr auto cross(const base_tensor<lhs_tensor_t, lhs_real_t, 3>& lhs,
+                     const base_tensor<rhs_tensor_t, rhs_real_t, 3>& rhs) {
+  return tensor<promote_t<lhs_real_t, rhs_real_t>, 3>{
+      lhs(2) * rhs(3) - lhs(3) * lhs(2), lhs(3) * rhs(1) - lhs(1) * lhs(3),
+      lhs(1) * rhs(2) - lhs(2) * lhs(1)};
+}
+
+//------------------------------------------------------------------------------
 template <typename F, typename tensor_t, typename real_t, size_t... Dims>
 constexpr auto unary_operation(
     F&& f, const base_tensor<tensor_t, real_t, Dims...>& t_in) {
@@ -390,20 +475,10 @@ constexpr auto binary_operation(
 }
 
 //------------------------------------------------------------------------------
-template <typename lhs_tensor_t, typename lhs_real_t,
-          typename rhs_tensor_t, typename rhs_real_t, size_t N>
-constexpr auto dot(const base_tensor<lhs_tensor_t, lhs_real_t, N>& lhs,
-                   const base_tensor<rhs_tensor_t, rhs_real_t, N>& rhs) {
-  promote_t<lhs_real_t, rhs_real_t> d = 0;
-  for (size_t i = 0; i < N; ++i) { d += lhs(i) * rhs(i); }
-  return d;
-}
-
-//------------------------------------------------------------------------------
 template <typename tensor_t, typename real_t, size_t... Dims>
 constexpr auto operator-(const base_tensor<tensor_t, real_t, Dims...>& t) {
   tensor<real_t, Dims...> negated = t;
-  return negated.unary_operation([](const auto& c){return  -c;});
+  return negated.unary_operation([](const auto& c) { return -c; });
 }
 
 //------------------------------------------------------------------------------
@@ -465,9 +540,8 @@ constexpr auto operator/(
 }
 
 //------------------------------------------------------------------------------
-template <typename lhs_tensor_t, typename lhs_real_t,
-          typename rhs_tensor_t, typename rhs_real_t,
-          size_t... Dims>
+template <typename lhs_tensor_t, typename lhs_real_t, typename rhs_tensor_t,
+          typename rhs_real_t, size_t... Dims>
 constexpr auto operator-(
     const base_tensor<lhs_tensor_t, lhs_real_t, Dims...>& lhs,
     const base_tensor<rhs_tensor_t, rhs_real_t, Dims...>& rhs) {
@@ -477,8 +551,8 @@ constexpr auto operator-(
 
 //------------------------------------------------------------------------------
 /// matrix-vector-multiplication
-template <typename lhs_tensor_t, typename lhs_real_t,
-          typename rhs_tensor_t, typename rhs_real_t, size_t M, size_t N>
+template <typename lhs_tensor_t, typename lhs_real_t, typename rhs_tensor_t,
+          typename rhs_real_t, size_t M, size_t N>
 constexpr auto operator*(const base_tensor<lhs_tensor_t, lhs_real_t, M, N>& lhs,
                          const base_tensor<rhs_tensor_t, rhs_real_t, N>& rhs) {
   tensor<promote_t<lhs_real_t, rhs_real_t>, M> product;
@@ -487,6 +561,156 @@ constexpr auto operator*(const base_tensor<lhs_tensor_t, lhs_real_t, M, N>& lhs,
   }
   return product;
 }
+
+//------------------------------------------------------------------------------
+template <typename real_t, size_t m>
+auto gesv(const tensor<real_t, m, m>& A, const tensor<real_t, m>& b) {
+  auto           x = b;
+  tensor<int, m> ipiv;
+  int            nrhs = 1;
+  if constexpr (std::is_same_v<float, real_t>) {
+    LAPACKE_sgesv(LAPACK_COL_MAJOR, m, nrhs, const_cast<real_t*>(A.data()), m,
+                  ipiv.data(), const_cast<real_t*>(x.data()), m);
+  }
+  if constexpr (std::is_same_v<double, real_t>) {
+    LAPACKE_dgesv(LAPACK_COL_MAJOR, m, nrhs, const_cast<real_t*>(A.data()), m,
+                  ipiv.data(), const_cast<real_t*>(x.data()), m);
+  }
+  return x;
+}
+
+//------------------------------------------------------------------------------
+template <typename real_t, size_t m, size_t n>
+auto gesv(const tensor<real_t, m, m>& A, const tensor<real_t, m, n>& B) {
+  auto           X = B;
+  tensor<int, m> ipiv;
+  if constexpr (std::is_same_v<float, real_t>) {
+    LAPACKE_sgesv(LAPACK_COL_MAJOR, m, n, const_cast<real_t*>(A.data()), m,
+                  ipiv.data(), const_cast<real_t*>(X.data()), m);
+  }
+
+  if constexpr (std::is_same_v<double, real_t>) {
+    LAPACKE_dgesv(LAPACK_COL_MAJOR, m, n, const_cast<real_t*>(A.data()), m,
+                  ipiv.data(), const_cast<real_t*>(X.data()), m);
+  }
+
+  return X;
+}
+
+
+
+
+
+
+//------------------------------------------------------------------------------
+template <typename real_t>
+int eig_sort_compare(const real_t* lhs, const real_t* rhs) {
+  return *lhs > *rhs;
+}
+
+//------------------------------------------------------------------------------
+template <typename real_t, size_t m>
+std::pair<mat<std::complex<real_t>, m, m>, vec<std::complex<real_t>, m>> eig(
+    tensor<real_t, m, m> A) {
+  [[maybe_unused]] lapack_int info;
+  std::array<real_t, m>       wr;
+  std::array<real_t, m>       wi;
+  std::array<real_t, m * m>   vr;
+  if constexpr (std::is_same_v<double, real_t>) {
+    info = LAPACKE_dgeev(LAPACK_COL_MAJOR, 'N', 'V', m, A.data(), m, wr.data(),
+                         wi.data(), nullptr, m, vr.data(), m);
+  }
+  if constexpr (std::is_same_v<float, real_t>) {
+    info = LAPACKE_sgeev(LAPACK_COL_MAJOR, 'N', 'V', m, A.data(), m, wr.data(),
+                         wi.data(), nullptr, m, vr.data(), m);
+  }
+
+  vec<std::complex<real_t>, m> vals;
+  mat<std::complex<real_t>, m, m> vecs;
+  for (size_t i = 0; i < m; ++i) { vals[i] = {wr[i], wi[i]}; }
+  for (size_t j = 0; j < m; ++j) {
+    for (size_t i = 0; i < m; ++i) {
+      if (wi[j] == 0) {
+        vecs(i, j) = {vr[i + j * m], 0};
+      } else {
+        vecs(i, j)     = {vr[i + j * m], vr[i + (j + 1) * m]};
+        vecs(i, j + 1) = {vr[i + j * m], -vr[i + (j + 1) * m]};
+        if (i == m - 1) { ++j; }
+      }
+    }
+  }
+
+  return {std::move(vecs), std::move(vals)};
+}
+
+//------------------------------------------------------------------------------
+template <typename real_t, size_t n>
+auto eigenvalues_sym(tensor<real_t, n, n> A) {
+  vec<real_t, n>              vals;
+  [[maybe_unused]] lapack_int info;
+  if constexpr (std::is_same_v<float, real_t>) {
+    info = LAPACKE_ssyev(LAPACK_COL_MAJOR, 'N', 'U', n, A.data(), n,
+                         vals.data());
+  }
+  if constexpr (std::is_same_v<double, real_t>) {
+    info = LAPACKE_dsyev(LAPACK_COL_MAJOR, 'N', 'U', n, A.data(), n,
+                         vals.data());
+  }
+
+  return vals;
+}
+
+//------------------------------------------------------------------------------
+template <typename real_t, size_t n>
+std::pair<mat<real_t, n, n>, vec<real_t, n>> eigenvectors_sym(
+    mat<real_t, n, n> A) {
+  vec<real_t, n>              vals;
+  [[maybe_unused]] lapack_int info;
+  if constexpr (std::is_same_v<float, real_t>) {
+    info = LAPACKE_ssyev(LAPACK_COL_MAJOR, 'V', 'U', n, A.data(), n,
+                         vals.data());
+  }
+  if constexpr (std::is_same_v<double, real_t>) {
+    info = LAPACKE_dsyev(LAPACK_COL_MAJOR, 'V', 'U', n, A.data(), n,
+                         vals.data());
+  }
+
+  return {std::move(A), std::move(vals)};
+}
+
+////------------------------------------------------------------------------------
+template <typename tensor_t, typename real_t, size_t... Dims>
+auto real(const base_tensor<tensor_t, std::complex<real_t>, Dims...>& v) {
+  tensor<real_t, Dims...> real_tensor;
+  real_tensor.for_indices(
+      [&](const auto... is) { real_tensor(is...) = v(is...).real(); });
+  return real_tensor;
+}
+
+//------------------------------------------------------------------------------
+template <typename tensor_t, typename real_t, size_t... Dims>
+auto imag(const base_tensor<tensor_t, std::complex<real_t>, Dims...>& v) {
+  tensor<real_t, Dims...> imag_tensor;
+  imag_tensor.for_indices(
+      [&](const auto... is) { imag_tensor(is...) = v(is...).imag(); });
+  return imag_tensor;
+}
+
+//------------------------------------------------------------------------------
+/// for comparison
+template <typename lhs_tensor_t, typename lhs_real_t,
+          typename rhs_tensor_t, typename rhs_real_t, size_t... Dims>
+constexpr bool approx_equal(
+    const base_tensor<lhs_tensor_t, lhs_real_t, Dims...>& lhs,
+    const base_tensor<rhs_tensor_t, rhs_real_t, Dims...>& rhs,
+    promote_t<lhs_real_t, rhs_real_t>            eps = 1e-6) {
+  bool equal = true;
+  lhs.for_indices([&](const auto... is) {
+    if (std::abs(lhs(is...) - rhs(is...)) > eps) { equal = false; }
+  });
+  return true;
+}
+
 //==============================================================================
 // symbolic
 //==============================================================================
@@ -497,8 +721,8 @@ auto evtod(const base_tensor<tensor_t, GiNaC::ex, Dims...>& t_in,
   tensor<out_real_t, Dims...> t_out;
 
   t_out.for_indices([&](const auto... is) {
-    t_out(is...) =
-        symbolic::evtod<out_real_t>(t_in(is...), std::forward<Relations>(relations)...);
+    t_out(is...) = symbolic::evtod<out_real_t>(
+        t_in(is...), std::forward<Relations>(relations)...);
   });
 
   return t_out;
@@ -533,7 +757,8 @@ auto& operator<<(std::ostream& out, const base_tensor<tensor_t, real_t, N>& v) {
 }
 
 template <typename tensor_t, typename real_t, size_t M, size_t N>
-auto &operator<<(std::ostream &out, const base_tensor<tensor_t, real_t, M, N>& m) {
+auto& operator<<(std::ostream&                              out,
+                 const base_tensor<tensor_t, real_t, M, N>& m) {
   out << std::scientific;
   for (size_t j = 0; j < M; ++j) {
     out << "[ ";
@@ -548,7 +773,6 @@ auto &operator<<(std::ostream &out, const base_tensor<tensor_t, real_t, M, N>& m
   out << std::defaultfloat;
   return out;
 }
-
 
 //==============================================================================
 }  // namespace tatooine

@@ -35,7 +35,7 @@ struct derived_field : field<derived_field<field_t, real_t, N, TensorDims...>,
     pos_t offset;
     for (size_t i = 0; i < N; ++i) {
       offset(i) = m_eps;
-      derivative.template slice<N - 1>(i) =
+      derivative.template slice<sizeof...(TensorDims) - 1>(i) =
           (m_field(x + offset, t) - m_field(x - offset, t)) / (2 * m_eps);
       offset(i) = 0;
     }
@@ -55,7 +55,8 @@ template <typename real_t, size_t N, size_t... TensorDims>
 auto diff(const symbolic::field<real_t, N, TensorDims...>& f) {
   tensor<GiNaC::ex, TensorDims..., N> ex;
   for (size_t i = 0; i < N; ++i) {
-    ex.template slice<N - 1>(i) = diff(f.expr(), symbolic::symbol::x(i));
+    ex.template slice<sizeof...(TensorDims)>(i) =
+        diff(f.expr(), symbolic::symbol::x(i));
   }
   return symbolic::field<real_t, N, TensorDims..., N>{std::move(ex)};
 }

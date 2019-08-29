@@ -3,6 +3,8 @@ project(tatooine)
 set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "${CMAKE_SOURCE_DIR}/cmake/modules/")
 
 find_package(GiNaC REQUIRED)
+find_package(LAPACKE REQUIRED)
+find_package(OpenMP)
 
 # create library target
 add_library(tatooine INTERFACE)
@@ -13,12 +15,20 @@ target_include_directories(tatooine
   INTERFACE
     ${CMAKE_CURRENT_SOURCE_DIR}
     ${GINAC_INCLUDE_DIRS}
+    ${LAPACK_INCLUDE_DIR}
 )
 
 #set libs 
 target_link_libraries(tatooine
   INTERFACE
     ${GINAC_LIBRARIES}
+    ${LAPACK_LIBRARIES}
 )
+if(OpenMP_CXX_FOUND)
+  message(STATUS "omp")
+  target_link_libraries(tatooine
+    INTERFACE
+      OpenMP::OpenMP_CXX)
+endif()
 
 add_subdirectory(test)

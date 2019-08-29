@@ -1,13 +1,14 @@
 #ifndef TATOOINE_LINE_H
 #define TATOOINE_LINE_H
 
+#include <boost/range/algorithm_ext/iota.hpp>
 #include <cassert>
 #include <deque>
 #include <stdexcept>
-#include "tensor.h"
 #include "field.h"
 #include "interpolation.h"
-//#include "vtk_legacy.h"
+#include "tensor.h"
+#include "vtk_legacy.h"
 
 //==============================================================================
 namespace tatooine {
@@ -41,7 +42,7 @@ struct line  {
 
   //============================================================================
  private:
-  pos_container_t m_positions;
+  pos_container_t m_vertices;
   bool m_is_closed = false;
 
   //============================================================================
@@ -54,29 +55,31 @@ struct line  {
 
   //----------------------------------------------------------------------------
   line(const pos_container_t& data, bool is_closed = false)
-      : m_positions{data}, m_is_closed{is_closed} {}
+      : m_vertices{data}, m_is_closed{is_closed} {}
 
   //----------------------------------------------------------------------------
   line(pos_container_t&& data, bool is_closed = false)
-      : m_positions{std::move(data)}, m_is_closed{is_closed} {}
+      : m_vertices{std::move(data)}, m_is_closed{is_closed} {}
 
   //----------------------------------------------------------------------------
   line(std::initializer_list<pos_t>&& data)
-      : m_positions{std::move(data)}, m_is_closed{false} {}
+      : m_vertices{std::move(data)}, m_is_closed{false} {}
 
   //----------------------------------------------------------------------------
   //explicit line(const std::string& path) { read(path); }
 
   //----------------------------------------------------------------------------
-  auto size() const { return m_positions.size(); }
+  auto size() const { return m_vertices.size(); }
   //----------------------------------------------------------------------------
-  auto&       at(size_t i) { return m_positions[i]; }
-  const auto& at(size_t i) const { return m_positions[i]; }
+  auto&       at(size_t i) { return m_vertices[i]; }
+  const auto& at(size_t i) const { return m_vertices[i]; }
 
   //----------------------------------------------------------------------------
-  void push_back(const pos_t& p) { m_positions.push_back(p); }
+  void push_back(const pos_t& p) { m_vertices.push_back(p); }
   //----------------------------------------------------------------------------
-  void push_front(const pos_t& p) {m_positions.push_front(p); }
+  void push_front(const pos_t& p) {m_vertices.push_front(p); }
+
+  const auto& vertices() const { return m_vertices; }
 
   //----------------------------------------------------------------------------
   /// calculates tangent at point i with forward differences
@@ -185,11 +188,11 @@ struct line  {
   //}
 
   //----------------------------------------------------------------------------
-  //void write(const std::string& file);
+  void write(const std::string& file);
 
   //----------------------------------------------------------------------------
-  //static void write_line_set(const std::vector<line<real_t, N>>& line_set,
-  //                          const std::string&                  file);
+  static void write(const std::vector<line<real_t, N>>& line_set,
+                    const std::string&                  file);
 
   //----------------------------------------------------------------------------
   //void read(const std::string& file);
@@ -198,17 +201,14 @@ struct line  {
   //static auto read_line_set(const std::string& file);
 
   //----------------------------------------------------------------------------
-  //void write_vtk(const std::string& path, const std::string& title,
-  //               bool write_tangents = false) const;
+  void write_vtk(const std::string& path, const std::string& title,
+                 bool write_tangents = false) const;
 
   //----------------------------------------------------------------------------
   //void write_obj(std::ostream& out, size_t first_index = 1) const;
 
   //----------------------------------------------------------------------------
   //void write_obj(const std::string& file, size_t first_index = 1) const;
-
-  //----------------------------------------------------------------------------
-  //void write_to_vtk_legacy(const std::string& file) const;
 
   //----------------------------------------------------------------------------
   //static void write_obj(const std::vector<line>& line_set,
@@ -255,117 +255,105 @@ struct line  {
 //  if (filtered_lines.size() == 1) filtered_lines.front().set_is_closed(closed);
 //  return filtered_lines;
 //}
-//
-////------------------------------------------------------------------------------
-//template <typename real_t, std::size_t N>
-//void line<real_t, N>::write_vtk(const std::string& path,
-//                                const std::string& title,
-//                                bool               write_tangents) const {
-//  vtk::LegacyFileWriter<real_t> writer(path, vtk::POLYDATA);
-//  if (writer.is_open()) {
-//    writer.set_title(title);
-//    writer.write_header();
-//
-//    // write points
-//    std::vector<std::array<real_t, 3>> ps;
-//    ps.reserve(this->size());
-//    for (const auto& p : points()) {
-//      if constexpr (N == 3) {
-//        ps.push_back({p(0), p(1), p(2)});
-//      } else {
-//        ps.push_back({p(0), p(1), 0});
-//      }
-//    }
-//    writer.write_points(ps);
-//
-//    // write lines
-//    std::vector<std::vector<size_t>> line_seq(
-//        1, std::vector<size_t>(this->size()));
-//    boost::iota(line_seq.front(), 0);
-//    writer.write_lines(line_seq);
-//
-//    writer.write_point_data(this->size());
-//
-//    // write tangents
-//    if (write_tangents) {
-//      std::vector<std::vector<real_t>> tangents;
-//      tangents.reserve(this->size());
-//      for (size_t i = 0; i < this->size(); ++i) {
-//        const auto t = tangent_central_differences(i);
-//        tangents.push_back({t(0), t(1), t(2)});
-//      }
-//      writer.write_scalars("tangents", tangents);
-//    }
-//
-//    // write parameterization
-//    std::vector<std::vector<real_t>> parameterization;
-//    parameterization.reserve(this->size());
-//    for (const auto& t : times()) { parameterization.push_back({t}); }
-//    writer.write_scalars("time", parameterization);
-//
-//    writer.close();
-//  }
-//}
-//
-////------------------------------------------------------------------------------
-//template <typename real_t, std::size_t N>
-//void write_vtk(const std::vector<line<real_t, N>>& lines,
-//               const std::string&                  path,
-//               const std::string&                  title = "tatooine lines",
-//               bool                                write_tangents = false) {
-//  vtk::LegacyFileWriter<real_t> writer(path, vtk::POLYDATA);
-//  if (writer.is_open()) {
-//    size_t num_pts = 0;
-//    for (const auto& l : lines) num_pts += l.size();
-//    std::vector<std::array<real_t, 3>> points;
-//    std::vector<std::vector<size_t>>   line_seqs;
-//    std::vector<std::vector<real_t>>   parameterization;
-//    std::vector<std::vector<real_t>>   tangents;
-//    points.reserve(num_pts);
-//    line_seqs.reserve(lines.size());
-//    parameterization.reserve(num_pts);
-//    if (write_tangents) { tangents.reserve(num_pts); }
-//
-//    size_t cur_first = 0;
-//    for (const auto& l : lines) {
-//      // add points
-//      for (const auto& p : l.points()) {
-//        if constexpr (N == 3) {
-//          points.push_back(p);
-//        } else {
-//          points.push_back({p(0), p(1), 0});
-//        }
-//      }
-//
-//      // add parameterization
-//      for (const auto& t : l.times()) { parameterization.push_back({t}); }
-//
-//      // add tangents
-//      if (write_tangents) {
-//        for (size_t i = 0; i < l.size(); ++i) {
-//          const auto t = l.tangent_central_differences(i);
-//          tangents.push_back({t(0), t(1), t(2)});
-//        }
-//      }
-//
-//      // add lines
-//      boost::iota(line_seqs.emplace_back(l.size()), cur_first);
-//      cur_first += l.size();
-//    }
-//
-//    // write
-//    writer.set_title(title);
-//    writer.write_header();
-//    writer.write_points(points);
-//    writer.write_lines(line_seqs);
-//    writer.write_point_data(num_pts);
-//    writer.write_scalars("time", parameterization);
-//    if (write_tangents) { writer.write_scalars("tangents", tangents); }
-//    writer.close();
-//  }
-//}
-//
-////------------------------------------------------------------------------------
+
+//------------------------------------------------------------------------------
+template <typename real_t, std::size_t N>
+void line<real_t, N>::write_vtk(const std::string& path,
+                                const std::string& title,
+                                bool               write_tangents) const {
+  vtk::LegacyFileWriter<real_t> writer(path, vtk::POLYDATA);
+  if (writer.is_open()) {
+    writer.set_title(title);
+    writer.write_header();
+
+    // write points
+    std::vector<std::array<real_t, 3>> ps;
+    ps.reserve(this->size());
+    for (const auto& p : vertices()) {
+      if constexpr (N == 3) {
+        ps.push_back({p(0), p(1), p(2)});
+      } else {
+        ps.push_back({p(0), p(1), 0});
+      }
+    }
+    writer.write_points(ps);
+
+    // write lines
+    std::vector<std::vector<size_t>> line_seq(
+        1, std::vector<size_t>(this->size()));
+    boost::iota(line_seq.front(), 0);
+    writer.write_lines(line_seq);
+
+    writer.write_point_data(this->size());
+
+    // write tangents
+    if (write_tangents) {
+      std::vector<std::vector<real_t>> tangents;
+      tangents.reserve(this->size());
+      for (size_t i = 0; i < this->size(); ++i) {
+        const auto t = tangent(i);
+        tangents.push_back({t(0), t(1), t(2)});
+      }
+      writer.write_scalars("tangents", tangents);
+    }
+
+    writer.close();
+  }
+}
+
+//------------------------------------------------------------------------------
+template <typename real_t, std::size_t N>
+void write_vtk(const std::vector<line<real_t, N>>& lines,
+               const std::string&                  path,
+               const std::string&                  title = "tatooine lines",
+               bool                                write_tangents = false) {
+  vtk::LegacyFileWriter<real_t> writer(path, vtk::POLYDATA);
+  if (writer.is_open()) {
+    size_t num_pts = 0;
+    for (const auto& l : lines) num_pts += l.size();
+    std::vector<std::array<real_t, 3>> points;
+    std::vector<std::vector<size_t>>   line_seqs;
+    std::vector<std::vector<real_t>>   tangents;
+    points.reserve(num_pts);
+    line_seqs.reserve(lines.size());
+    if (write_tangents) { tangents.reserve(num_pts); }
+
+    size_t cur_first = 0;
+    for (const auto& l : lines) {
+      // add points
+      for (const auto& p : l.vertices()) {
+        if constexpr (N == 3) {
+          points.push_back({p(0), p(1), p(2)});
+        } else {
+          points.push_back({p(0), p(1), 0});
+        }
+      }
+
+      // add tangents
+      if (write_tangents) {
+        for (size_t i = 0; i < l.size(); ++i) {
+          const auto t = l.tangent(i);
+          tangents.push_back({t(0), t(1), t(2)});
+        }
+      }
+
+      // add lines
+      boost::iota(line_seqs.emplace_back(l.size()), cur_first);
+      cur_first += l.size();
+    }
+
+    // write
+    writer.set_title(title);
+    writer.write_header();
+    writer.write_points(points);
+    writer.write_lines(line_seqs);
+    writer.write_point_data(num_pts);
+    if (write_tangents) { writer.write_scalars("tangents", tangents); }
+    writer.close();
+  }
+}
+
+//------------------------------------------------------------------------------
 //template <typename real_t, std::size_t N>
 //void line<real_t, N>::write_obj(std::ostream& out, size_t first_index) const {
 //  if constexpr (N == 2)

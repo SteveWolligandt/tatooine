@@ -1,5 +1,5 @@
-#ifndef __TATOOINE_PARALLELVECTORS_H__
-#define __TATOOINE_PARALLELVECTORS_H__
+#ifndef TATOOINE_PARALLEL_VECTORS_H
+#define TATOOINE_PARALLEL_VECTORS_H
 
 #include <array>
 #include <optional>
@@ -7,31 +7,31 @@
 #include <vector>
 #include "grid.h"
 #include "line.h"
-#include "traits.h"
+#include "type_traits.h"
 
 //==============================================================================
 namespace tatooine {
 //==============================================================================
 
-template <typename v_t, typename w_t>
-class parallelvectors {
-  static_assert(is_vectorfield<v_t>());
-  static_assert(is_vectorfield<w_t>());
-  static_assert(v_t::n == 3);
-  static_assert(w_t::n == 3);
+template <typename V, typename W>
+class parallel_vectors {
+  static_assert(V::tensor_t::num_dimensions() == 1);
+  static_assert(W::tensor_t::num_dimensions() == 1);
+  static_assert(V::num_dimensions() == 3);
+  static_assert(W::num_dimensions() == 3);
 
   //============================================================================
  public:
-  using real_t  = promote_t<typename v_t::real_t, typename w_t::real_t>;
-  using this_t  = parallelvectors<v_t, w_t>;
-  using vec3    = vec<real_t, 3>;
+  using real_t  = promote_t<typename V::real_t, typename W::real_t>;
+  using this_t  = parallel_vectors<V, W>;
+  using vec3    = tensor<real_t, 3>;
   using pos_t   = vec3;
   using pairs_t = std::vector<std::vector<vec3>>;
 
   //============================================================================
  private:
-  const v_t&      m_v;
-  const w_t&      m_w;
+  const V&      m_v;
+  const W&      m_w;
   grid<3, real_t> m_grid;
 
   std::vector<std::vector<std::vector<std::vector<int>>>> m_upper_indices;
@@ -39,9 +39,9 @@ class parallelvectors {
 
   //============================================================================
  public:
-  parallelvectors(const v_t& v, const w_t& w, const grid<3, real_t>& g)
+  parallel_vectors(const V& v, const W& w, const grid<3, real_t>& g)
       : m_v{v}, m_w{w}, m_grid{g} {}
-  parallelvectors(const v_t& v, const w_t& w, const linspace<real_t>& x,
+  parallel_vectors(const V& v, const W& w, const linspace<real_t>& x,
                   const linspace<real_t>& y, const linspace<real_t>& z)
       : m_v{v}, m_w{w}, m_grid{x, y, z} {}
 
@@ -138,24 +138,24 @@ class parallelvectors {
       const vec3& v1, const vec3& w1,
       const vec3& p2, const vec3& v2,
       const vec3& w2) {
-    mat<real_t, 3, 3> V, W, M;
-    V.col(0) = v0;
-    V.col(1) = v1;
-    V.col(2) = v2;
+    mat<real_t, 3, 3> v, w, m;
+    v.col(0) = v0;
+    v.col(1) = v1;
+    v.col(2) = v2;
 
-    W.col(0) = w0;
-    W.col(1) = w1;
-    W.col(2) = w2;
+    w.col(0) = w0;
+    w.col(1) = w1;
+    w.col(2) = w2;
 
-    if (std::abs(det(V)) > 0) {
-      M = gesv(V, W);
-    } else if (std::abs(det(W)) > 0) {
-      M = gesv(W, V);
+    if (std::abs(det(v)) > 0) {
+      m = gesv(v, w);
+    } else if (std::abs(det(w)) > 0) {
+      m = gesv(w, v);
     } else {
       return {};
     }
 
-    auto [eigvecs, eigvals] = eig(M);
+    auto [eigvecs, eigvals] = eig(m);
 
     std::vector<vec3> barycentric_coords;
     for (int i = 0; i < 3; i++) {
@@ -224,17 +224,13 @@ class parallelvectors {
   }
 
   //----------------------------------------------------------------------------
-  auto operator()() { return calculate(0); }
-  auto operator()(real_t t) { return calculate(t); }
+  auto operator()(real_t t = 0) { return calculate(t); }
 
   //----------------------------------------------------------------------------
-  auto calculate() { return calculate(0); }
-
-  //----------------------------------------------------------------------------
-  auto calculate(const real_t t) {
+  auto calculate(const real_t t = 0) {
     std::vector<std::pair<vec3, vec3>> line_segments;
 #ifdef NDEBUG
-#pragma omp parallel for collapse(3)
+//#pragma omp parallel for collapse(3)
 #endif
     for (size_t iz = 0; iz < m_grid.dimension(2).size() - 1; ++iz) {
       for (size_t iy = 0; iy < m_grid.dimension(1).size() - 1; ++iy) {
@@ -418,7 +414,7 @@ class parallelvectors {
         for (size_t i = 0; i < line_strip.size() - 1; i++) {
           lines.back().push_back(line_strip[i]);
         }
-        if (line_strip.front() == line_strip.back()) {
+        if (&line_strip.front() == &line_strip.back()) {
           lines.back().set_is_closed(true);
         } else {
           lines.back().push_back(line_strip.back());
@@ -428,10 +424,6 @@ class parallelvectors {
 
     return lines;
   }
-
-  //----------------------------------------------------------------------------
-  const v_t&  V() { return m_v; }
-  const w_t&  W() { return m_w; }
 
   //----------------------------------------------------------------------------
   // const auto& grid() const { return m_grid; }
