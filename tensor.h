@@ -610,8 +610,8 @@ int eig_sort_compare(const real_t* lhs, const real_t* rhs) {
 
 //------------------------------------------------------------------------------
 template <typename real_t, size_t m>
-std::pair<mat<std::complex<real_t>, m, m>, vec<std::complex<real_t>, m>> eig(
-    tensor<real_t, m, m> A) {
+std::pair<mat<std::complex<real_t>, m, m>, vec<std::complex<real_t>, m>>
+eigenvectors(tensor<real_t, m, m> A) {
   [[maybe_unused]] lapack_int info;
   std::array<real_t, m>       wr;
   std::array<real_t, m>       wi;
@@ -708,7 +708,7 @@ constexpr bool approx_equal(
   lhs.for_indices([&](const auto... is) {
     if (std::abs(lhs(is...) - rhs(is...)) > eps) { equal = false; }
   });
-  return true;
+  return equal;
 }
 
 //==============================================================================

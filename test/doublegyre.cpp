@@ -5,7 +5,7 @@
 namespace tatooine::test {
 //==============================================================================
 
-TEST_CASE("doublegyre", "[doublegyre]") {
+TEST_CASE("doublegyre", "[doublegyre][dg][symbolic][numerical]") {
   numerical::doublegyre ndg;
   symbolic::doublegyre  sdg;
   for (size_t x = 0; x < 10; ++x) {

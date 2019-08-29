@@ -14,14 +14,13 @@ namespace tatooine {
 //==============================================================================
 
 template <typename V, typename W>
-class parallel_vectors {
+struct parallel_vectors {
   static_assert(V::tensor_t::num_dimensions() == 1);
   static_assert(W::tensor_t::num_dimensions() == 1);
   static_assert(V::num_dimensions() == 3);
   static_assert(W::num_dimensions() == 3);
 
   //============================================================================
- public:
   using real_t  = promote_t<typename V::real_t, typename W::real_t>;
   using this_t  = parallel_vectors<V, W>;
   using vec3    = tensor<real_t, 3>;
@@ -88,7 +87,7 @@ class parallel_vectors {
     // move empty vectors of left side at end
     for (unsigned int i = 0; i < pairs_left.size(); i++) {
       for (unsigned int j = 0; j < i; j++) {
-        if (pairs_left[j].size() == 0 && pairs_left[i].size() > 0){
+        if (pairs_left[j].size() == 0 && pairs_left[i].size() > 0) {
           pairs_left[j] = std::move(pairs_left[i]);
         }
       }
@@ -98,7 +97,6 @@ class parallel_vectors {
     for (int i = pairs_left.size() - 1; i >= 0; i--) {
       if (pairs_left[i].size() == 0) { pairs_left.pop_back(); }
     }
-
   }
 
   //----------------------------------------------------------------------------
@@ -112,7 +110,6 @@ class parallel_vectors {
       merged_strip.push_back({seg_it->first, seg_it->second});
       ++seg_it;
     }
-
 
     auto num_merge_steps =
         static_cast<size_t>(std::ceil(std::log2(line_segments.size())));
@@ -133,19 +130,12 @@ class parallel_vectors {
 
   //----------------------------------------------------------------------------
   std::optional<vec3> pv_on_tri(
-      const vec3& p0, const vec3& v0,
-      const vec3& w0, const vec3& p1,
-      const vec3& v1, const vec3& w1,
-      const vec3& p2, const vec3& v2,
-      const vec3& w2) {
+      const vec3& p0, const vec3& v0, const vec3& w0,
+      const vec3& p1, const vec3& v1, const vec3& w1,
+      const vec3& p2, const vec3& v2, const vec3& w2) {
     mat<real_t, 3, 3> v, w, m;
-    v.col(0) = v0;
-    v.col(1) = v1;
-    v.col(2) = v2;
-
-    w.col(0) = w0;
-    w.col(1) = w1;
-    w.col(2) = w2;
+    v.col(0) = v0; v.col(1) = v1; v.col(2) = v2;
+    w.col(0) = w0; w.col(1) = w1; w.col(2) = w2;
 
     if (std::abs(det(v)) > 0) {
       m = gesv(v, w);
@@ -155,7 +145,7 @@ class parallel_vectors {
       return {};
     }
 
-    auto [eigvecs, eigvals] = eig(m);
+    auto [eigvecs, eigvals] = eigenvectors(m);
 
     std::vector<vec3> barycentric_coords;
     for (int i = 0; i < 3; i++) {
@@ -228,6 +218,7 @@ class parallel_vectors {
 
   //----------------------------------------------------------------------------
   auto calculate(const real_t t = 0) {
+    using boost::copy;
     std::vector<std::pair<vec3, vec3>> line_segments;
 #ifdef NDEBUG
 //#pragma omp parallel for collapse(3)
@@ -316,20 +307,20 @@ class parallel_vectors {
 
             // check the tets themselves
             // 0124
-            boost::copy(check_tet(pv012, pv014, pv024, pv124),
-                        std::back_inserter(line_segments));
+            copy(check_tet(pv012, pv014, pv024, pv124),
+                 std::back_inserter(line_segments));
             // 2467
-            boost::copy(check_tet(pv246, pv247, pv267, pv467),
-                        std::back_inserter(line_segments));
+            copy(check_tet(pv246, pv247, pv267, pv467),
+                 std::back_inserter(line_segments));
             // 1457
-            boost::copy(check_tet(pv145, pv147, pv157, pv457),
-                        std::back_inserter(line_segments));
+            copy(check_tet(pv145, pv147, pv157, pv457),
+                 std::back_inserter(line_segments));
             // 1237
-            boost::copy(check_tet(pv123, pv127, pv137, pv237),
-                        std::back_inserter(line_segments));
+            copy(check_tet(pv123, pv127, pv137, pv237),
+                 std::back_inserter(line_segments));
             // 1247
-            boost::copy(check_tet(pv124, pv127, pv147, pv247),
-                        std::back_inserter(line_segments));
+            copy(check_tet(pv124, pv127, pv147, pv247),
+                 std::back_inserter(line_segments));
           } else {
             // std::cout << ix << ' ' << iy << ' ' << iz << " not turned\n";
             // check if there are parallel vectors on any of the tets triangles
@@ -384,20 +375,20 @@ class parallel_vectors {
 
             // check the tets themselves
             // 0236
-            boost::copy(check_tet(pv023, pv026, pv036, pv236),
-                        std::back_inserter(line_segments));
+            copy(check_tet(pv023, pv026, pv036, pv236),
+                 std::back_inserter(line_segments));
             // 0135
-            boost::copy(check_tet(pv013, pv015, pv035, pv135),
-                        std::back_inserter(line_segments));
+            copy(check_tet(pv013, pv015, pv035, pv135),
+                 std::back_inserter(line_segments));
             // 3567
-            boost::copy(check_tet(pv356, pv357, pv367, pv567),
-                        std::back_inserter(line_segments));
+            copy(check_tet(pv356, pv357, pv367, pv567),
+                 std::back_inserter(line_segments));
             // 0456
-            boost::copy(check_tet(pv045, pv046, pv056, pv456),
-                        std::back_inserter(line_segments));
+            copy(check_tet(pv045, pv046, pv056, pv456),
+                 std::back_inserter(line_segments));
             // 0356
-            boost::copy(check_tet(pv035, pv036, pv056, pv356),
-                        std::back_inserter(line_segments));
+            copy(check_tet(pv035, pv036, pv056, pv356),
+                 std::back_inserter(line_segments));
           }
           turned = !turned;
         }

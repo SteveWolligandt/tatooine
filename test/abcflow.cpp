@@ -5,7 +5,7 @@
 namespace tatooine::test {
 //==============================================================================
 
-TEST_CASE("abcflow", "[abcflow]") {
+TEST_CASE("abcflow", "[abcflow][abc][symbolic][numerical]") {
   symbolic::abcflow sabc;
   numerical::abcflow nabc;
   for (size_t x = 0; x < 10; ++x) {

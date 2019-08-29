@@ -6,7 +6,7 @@
 namespace tatooine::test {
 //==============================================================================
 
-TEST_CASE("tensor_slice", "[tensor]") {
+TEST_CASE("tensor_slice", "[tensor][slice]") {
   vec v{1.0, 2.0, 3.0};
   REQUIRE(v(0) == 1);
   REQUIRE(v(1) == 2);
@@ -92,14 +92,14 @@ TEST_CASE("tensor_slice", "[tensor]") {
 }
 
 //==============================================================================
-TEST_CASE("tensor_negate", "[tensor]") {
+TEST_CASE("tensor_negate", "[tensor][operation][negate]") {
   auto m     = mat4::rand();
   auto m_neg = -m;
   m.for_indices([&](const auto... is) { CHECK(m(is...) == -m_neg(is...)); });
 }
 
 //==============================================================================
-TEST_CASE("tensor_addition", "[tensor]") {
+TEST_CASE("tensor_addition", "[tensor][operation][addition]") {
   auto m0 = mat4::rand();
   auto m1 = mat4::rand();
   auto added = m0 + m1;
@@ -110,7 +110,7 @@ TEST_CASE("tensor_addition", "[tensor]") {
 }
 
 //==============================================================================
-TEST_CASE("tensor_symbolic", "[tensor]") {
+TEST_CASE("tensor_symbolic", "[tensor][symbolic]") {
   vec  v{symbolic::symbol::x(0),
          symbolic::symbol::x(0) * symbolic::symbol::x(1)};
   auto m = mat2::rand();
@@ -124,6 +124,33 @@ TEST_CASE("tensor_symbolic", "[tensor]") {
   auto vdfx1 = diff(v, symbolic::symbol::x(1));
   std::cerr << vdfx0 << '\n';
   std::cerr << vdfx1 << '\n';
+}
+
+//==============================================================================
+TEST_CASE("tensor_eigenvalue", "[tensor][eigenvalue]") {
+  const mat m{{1.0,  2.0,  3.0},
+              {4.0,  6.0,  8.0},
+              {9.0, 12.0, 15.0}};
+  const auto eps = 1e-4;
+  const auto [eigvecs, eigvals] = eigenvectors(m);
+  const auto ve = real(eigvecs);
+  const auto va = real(eigvals);
+
+  REQUIRE(va(0) == Approx(2.2874e+01).epsilon(eps));
+  REQUIRE(va(1) == Approx(-8.7434e-01).epsilon(eps));
+  REQUIRE(va(2) == Approx(2.0305e-16).epsilon(eps));
+
+  REQUIRE(ve(0,0) == Approx(0.16168).epsilon(eps));
+  REQUIRE(ve(1,0) == Approx(0.45378).epsilon(eps));
+  REQUIRE(ve(2,0) == Approx(0.87632).epsilon(eps));
+
+  REQUIRE(ve(0,1) == Approx(0.62794).epsilon(eps));
+  REQUIRE(ve(1,1) == Approx(0.40677).epsilon(eps));
+  REQUIRE(ve(2,1) == Approx(-0.66350).epsilon(eps));
+
+  REQUIRE(ve(0,2) == Approx(0.40825).epsilon(eps));
+  REQUIRE(ve(1,2) == Approx(-0.81650).epsilon(eps));
+  REQUIRE(ve(2,2) == Approx(0.40825).epsilon(eps));
 }
 
 //==============================================================================
