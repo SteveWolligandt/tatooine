@@ -32,7 +32,7 @@ struct field : crtp<derived_t> {
 
   //----------------------------------------------------------------------------
   constexpr decltype(auto) evaluate(const pos_t &x, real_t t = 0) const {
-    if (!in_domain(x, t)) { throw out_of_domain{}; }
+    //if (!in_domain(x, t)) { throw out_of_domain{}; }
     return as_derived().evaluate(x, t);
   }
 
@@ -148,6 +148,15 @@ constexpr auto operator+(const field<lhs_field_t, lhs_real_t, N, TensorDims...>&
   return make_binary_operation_field<promote_t<lhs_real_t, rhs_real_t>, N,
                                      TensorDims...>(
       lhs, rhs, [](const auto& lhs, const auto& rhs) { return lhs + rhs; });
+}
+
+//------------------------------------------------------------------------------
+template <typename lhs_field_t, typename lhs_real_t, typename rhs_field_t,
+          typename rhs_real_t, size_t N, size_t TM, size_t TN>
+constexpr auto operator*(const field<lhs_field_t, lhs_real_t, N, TM, TN>& lhs,
+                         const field<rhs_field_t, rhs_real_t, N, TN>& rhs) {
+  return make_binary_operation_field<promote_t<lhs_real_t, rhs_real_t>, N, TM>(
+      lhs, rhs, [](const auto& lhs, const auto& rhs) { return lhs * rhs; });
 }
 
 ////------------------------------------------------------------------------------
