@@ -12,21 +12,21 @@
 namespace tatooine {
 //==============================================================================
 
-template <size_t n, typename real_t>
+template <typename Real, size_t N>
 class grid;
-template <size_t n, typename real_t>
+template <typename Real, size_t N>
 struct grid_vertex_iterator;
 
 //==============================================================================
 
-template <size_t n, typename real_t>
+template <typename Real, size_t N>
 struct grid_vertex {
-  using grid_t          = grid<n, real_t>;
-  using linspace_iter_t = typename linspace<real_t>::iterator;
-  using iterator        = grid_vertex_iterator<n, real_t>;
+  using grid_t          = grid<Real, N>;
+  using linspace_iter_t = typename linspace<Real>::iterator;
+  using iterator        = grid_vertex_iterator<Real, N>;
 
   //==========================================================================
-  std::array<linspace_iter_t, n> iterators;
+  std::array<linspace_iter_t, N> iterators;
 
   //==========================================================================
   grid_vertex(const grid_vertex& other) : iterators{other.iterators} {}
@@ -43,8 +43,8 @@ struct grid_vertex {
  public:
   template <typename... pos_ts,  size_t... Is>
   grid_vertex(const grid_t& grid, pos_ts... pos)
-    : grid_vertex{grid, std::make_index_sequence<n>{}, pos...} {
-    static_assert(sizeof...(pos_ts) == n);
+    : grid_vertex{grid, std::make_index_sequence<N>{}, pos...} {
+    static_assert(sizeof...(pos_ts) == N);
     static_assert((std::is_integral_v<pos_ts> && ...));
   }
 
@@ -52,26 +52,26 @@ struct grid_vertex {
   template <typename... Its>
   grid_vertex(linspace_iter_t head_it, const Its&... tail_it)
       : iterators{head_it, tail_it...} {
-    static_assert(sizeof...(Its) == n - 1,
-                  "number of linspace iterators does not match n");
+    static_assert(sizeof...(Its) == N - 1,
+                  "number of linspace iterators does not match N");
   }
 
   //--------------------------------------------------------------------------
-  auto& operator=(const grid_vertex<n, real_t>& other) {
-    for (size_t i = 0; i < n; ++i) iterators[i] = other.iterators[i];
+  auto& operator=(const grid_vertex<Real, N>& other) {
+    for (size_t i = 0; i < N; ++i) iterators[i] = other.iterators[i];
     return *this;
   }
 
   //--------------------------------------------------------------------------
-  auto& operator=(grid_vertex<n, real_t>&& other) {
-    for (size_t i = 0; i < n; ++i) iterators[i] = other.iterators[i];
+  auto& operator=(grid_vertex<Real, N>&& other) {
+    for (size_t i = 0; i < N; ++i) iterators[i] = other.iterators[i];
     return *this;
   }
 
   //--------------------------------------------------------------------------
   auto& operator++() {
     ++iterators.front();
-    for (size_t i = 0; i < n - 1; ++i) {
+    for (size_t i = 0; i < N - 1; ++i) {
       if (iterators[i] == iterators[i].get().end()) {
         iterators[i].to_begin();
         ++iterators[i + 1];
@@ -82,7 +82,7 @@ struct grid_vertex {
 
   //--------------------------------------------------------------------------
   auto& operator--() {
-    for (size_t i = 0; i < n; ++i)
+    for (size_t i = 0; i < N; ++i)
       if (iterators[i] == iterators[i].get().begin()) {
         iterators[i].to_end();
         --iterators[i];
@@ -100,30 +100,30 @@ struct grid_vertex {
  private:
   template <size_t... Is>
   constexpr auto to_vec(std::index_sequence<Is...> /*is*/) const {
-    return tensor<real_t, n>{*iterators[Is]...};
+    return tensor<Real, N>{*iterators[Is]...};
   }
 
   template <size_t... Is>
   constexpr auto to_array(std::index_sequence<Is...> /*is*/) const {
-    return std::array<real_t, n>{*iterators[Is]...};
+    return std::array<Real, N>{*iterators[Is]...};
   }
 
   template <size_t... Is>
   constexpr auto to_indices(std::index_sequence<Is...> /*is*/) const {
-    return std::array<size_t, n>{iterators[Is].i()...};
+    return std::array<size_t, N>{iterators[Is].i()...};
   }
 
  public:
   constexpr auto to_vec() const {
-    return to_vec(std::make_index_sequence<n>());
+    return to_vec(std::make_index_sequence<N>());
   }
 
   constexpr auto to_array() const {
-    return to_array(std::make_index_sequence<n>());
+    return to_array(std::make_index_sequence<N>());
   }
 
   constexpr auto to_indices() const {
-    return to_indices(std::make_index_sequence<n>());
+    return to_indices(std::make_index_sequence<N>());
   }
 
   constexpr auto global_index() const {
@@ -141,7 +141,7 @@ struct grid_vertex {
   //--------------------------------------------------------------------------
 
   constexpr bool operator==(const grid_vertex& other) const {
-    for (size_t i = 0; i < n; ++i) {
+    for (size_t i = 0; i < N; ++i) {
       if (iterators[i] != other.iterators[i]) { return false; }
     }
     return true;
@@ -150,7 +150,7 @@ struct grid_vertex {
   //--------------------------------------------------------------------------
 
   constexpr bool operator<(const grid_vertex& other) const {
-    for (size_t i = 0; i < n; ++i) {
+    for (size_t i = 0; i < N; ++i) {
       if (iterators[i].i() < other.iterators[i].i()) return true;
       if (iterators[i].i() > other.iterators[i].i()) return false;
     }
@@ -192,15 +192,15 @@ struct grid_vertex {
 
 //==============================================================================
 
-template <size_t n, typename real_t>
+template <typename Real, size_t N>
 struct grid_vertex_iterator {
   using difference_type   = size_t;
-  using value_type        = grid_vertex<n, real_t>;
+  using value_type        = grid_vertex<Real, N>;
   using pointer           = value_type*;
   using reference         = value_type&;
   using iterator_category = std::bidirectional_iterator_tag;
 
-  grid_vertex<n, real_t> v;
+  grid_vertex<Real, N> v;
   auto&                  operator*() { return v; }
   auto&                  operator++() {
     ++v;
@@ -216,22 +216,22 @@ struct grid_vertex_iterator {
 
 //==============================================================================
 
-template <size_t n, typename real_t>
-inline auto& operator<<(std::ostream& out, const grid_vertex<n, real_t>& v) {
+template <typename Real, size_t N>
+inline auto& operator<<(std::ostream& out, const grid_vertex<Real, N>& v) {
   out << "[ ";
   for (const auto& i : v.iterators) out << i.i() << ' ';
   out << "]";
   return out;
 }
 
-template <size_t n, typename real_t>
-auto next(grid_vertex_iterator<n, real_t> it, size_t num) {
+template <typename Real, size_t N>
+auto next(grid_vertex_iterator<Real, N> it, size_t num) {
   for (size_t i = 0; i < num; ++i) ++it;
   return it;
 }
 
-template <size_t n, typename real_t>
-auto prev(grid_vertex_iterator<n, real_t> it, size_t num) {
+template <typename Real, size_t N>
+auto prev(grid_vertex_iterator<Real, N> it, size_t num) {
   for (size_t i = 0; i < num; ++i) --it;
   return it;
 }

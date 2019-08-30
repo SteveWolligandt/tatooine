@@ -1,4 +1,4 @@
-#include "../line.h"
+#include <tatooine/line.h>
 #include <catch2/catch.hpp>
 
 //==============================================================================
@@ -14,9 +14,6 @@ TEST_CASE("line", "[line]") {
   auto t0 = l.tangent(0);
   auto t1 = l.tangent(1);
   auto t2 = l.tangent(2);
-  std::cerr << t0 << '\n';
-  std::cerr << t1 << '\n';
-  std::cerr << t2 << '\n';
 }
 
 //==============================================================================

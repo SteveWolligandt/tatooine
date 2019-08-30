@@ -1,5 +1,5 @@
-#include "../spacetime.h"
-#include "../doublegyre.h"
+#include <tatooine/spacetime.h>
+#include <tatooine/doublegyre.h>
 #include <catch2/catch.hpp>
 
 //==============================================================================

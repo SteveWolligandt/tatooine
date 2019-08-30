@@ -1,5 +1,5 @@
-#ifndef TATOOINE_DERIVED_FIELD_H
-#define TATOOINE_DERIVED_FIELD_H
+#ifndef TATOOINE_DIFF_H
+#define TATOOINE_DIFF_H
 
 #include "field.h"
 #include "utility.h"

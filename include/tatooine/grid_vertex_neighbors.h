@@ -9,14 +9,14 @@
 namespace tatooine {
 //==============================================================================
 
-template <size_t n, typename real_t>
-struct grid_vertex_neighbors : subgrid<n, real_t> {
-  grid_vertex<n, real_t> center;
+template <typename Real, size_t N>
+struct grid_vertex_neighbors : subgrid<Real, N> {
+  grid_vertex<Real, N> center;
 
   //----------------------------------------------------------------------------
-  grid_vertex_neighbors(const grid_vertex<n, real_t>& c)
-      : subgrid<n, real_t>{c, c}, center(c) {
-    for (size_t i = 0; i < n; ++i) {
+  grid_vertex_neighbors(const grid_vertex<Real, N>& c)
+      : subgrid<Real, N>{c, c}, center(c) {
+    for (size_t i = 0; i < N; ++i) {
       if (this->m_begin_vertex.iterators[i] !=
           this->m_begin_vertex.iterators[i].get().begin()) {
         --this->m_begin_vertex.iterators[i];
@@ -31,20 +31,20 @@ struct grid_vertex_neighbors : subgrid<n, real_t> {
   }
 
   //----------------------------------------------------------------------------
-  struct iterator : subgrid<n, real_t>::vertex_iterator {
+  struct iterator : subgrid<Real, N>::vertex_iterator {
     auto& operator++() {
-      subgrid<n, real_t>::vertex_iterator::operator++();
+      subgrid<Real, N>::vertex_iterator::operator++();
       if (this->v == neighbors()->center) {
-        subgrid<n, real_t>::vertex_iterator::operator++();
+        subgrid<Real, N>::vertex_iterator::operator++();
       }
       return *this;
     }
 
     //--------------------------------------------------------------------------
     auto& operator--() {
-      subgrid<n, real_t>::vertex_iterator::operator--();
+      subgrid<Real, N>::vertex_iterator::operator--();
       if (this->v == neighbors()->center) {
-        subgrid<n, real_t>::vertex_iterator::operator--();
+        subgrid<Real, N>::vertex_iterator::operator--();
       }
       return *this;
     }

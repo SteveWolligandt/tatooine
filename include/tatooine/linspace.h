@@ -25,51 +25,53 @@ struct linspace {
   using const_iterator = linspace_iterator<real_t>;
 
   //============================================================================
-  real_t      min, max;
-  std::size_t resolution;
+ private:
+  real_t      m_min, m_max;
+  std::size_t m_size;
 
   //============================================================================
-  constexpr linspace(real_t _min, real_t _max, std::size_t _resolution) noexcept
-      : min{_min}, max{_max}, resolution{_resolution} {}
+ public:
+  constexpr linspace(real_t min, real_t max, std::size_t size) noexcept
+      : m_min{min}, m_max{max}, m_size{size} {}
 
   //----------------------------------------------------------------------------
   constexpr linspace(const linspace& other) noexcept
-      : min{other.min}, max{other.max}, resolution{other.resolution} {}
+      : m_min{other.m_min}, m_max{other.m_max}, m_size{other.m_size} {}
 
   //----------------------------------------------------------------------------
   template <typename other_real_t>
   constexpr linspace(const linspace<other_real_t>& other) noexcept
-      : min{static_cast<real_t>(other.min)},
-        max{static_cast<real_t>(other.max)},
-        resolution{other.resolution} {}
+      : m_min{static_cast<real_t>(other.m_min)},
+        m_max{static_cast<real_t>(other.m_max)},
+        m_size{other.m_size} {}
 
   //----------------------------------------------------------------------------
   template <typename other_real_t>
   constexpr auto& operator=(const linspace<other_real_t>& other) noexcept {
-    min        = other.min;
-    max        = other.max;
-    resolution = other.resolution;
+    m_min        = other.m_min;
+    m_max        = other.m_max;
+    m_size = other.m_size;
     return *this;
   }
 
   //============================================================================
   constexpr auto at(std::size_t i) const {
-    if (resolution <= 1) { return min; }
-    return min + offset() * i;
+    if (m_size <= 1) { return m_min; }
+    return m_min + offset() * i;
   }
   constexpr auto operator[](std::size_t i) const { return at(i); }
 
   //----------------------------------------------------------------------------
   constexpr auto begin() const { return iterator{this, 0}; }
-  constexpr auto end() const { return iterator{this, resolution}; }
+  constexpr auto end() const { return iterator{this, m_size}; }
 
   //----------------------------------------------------------------------------
-  constexpr auto size() const { return resolution; }
-  constexpr auto front() const { return min; }
-  constexpr auto back() const { return max; }
+  constexpr auto size() const { return m_size; }
+  constexpr auto front() const { return m_min; }
+  constexpr auto back() const { return m_max; }
   
   //----------------------------------------------------------------------------
-  constexpr auto offset() const { return (max - min) / (resolution - 1); }
+  constexpr auto offset() const { return (m_max - m_min) / (m_size - 1); }
 };  // class linspace
 
 //==============================================================================
@@ -175,7 +177,7 @@ inline auto& advance(linspace_iterator<real_t>& l, long n = 1) {
 //------------------------------------------------------------------------------
 template <typename real_t>
 auto& operator<<(std::ostream& out, const linspace<real_t>& l) {
-  out << "[" << l.min << ".. " << l.resolution << " .." << l.max << "]";
+  out << "[" << l.m_min << ".. " << l.m_size << " .." << l.m_max << "]";
   return out;
 }
 

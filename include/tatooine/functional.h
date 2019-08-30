@@ -7,6 +7,13 @@
 namespace tatooine {
 //==============================================================================
 
+/// maps unary function f to all single parameters of parameter pack ts
+template <typename... Ts, typename F>
+void map(F&& f, Ts&&... ts) {
+  (f(std::forward<Ts>(ts)), ...);
+}
+
+//==============================================================================
 /// binds first arguments of f (either all or only partially)
 template <typename F, typename... Args>
 constexpr auto bind(F&& f, Args&&... args) {

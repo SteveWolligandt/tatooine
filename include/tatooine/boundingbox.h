@@ -10,11 +10,14 @@
 namespace tatooine {
 //==============================================================================
 
-template <size_t n, typename real_t>
+template <typename Real, size_t N>
 struct boundingbox {
   //============================================================================
-  using this_t = boundingbox<n, real_t>;
-  using pos_t  = tensor<real_t, n>;
+  using real_t = Real;
+  using this_t = boundingbox<Real, N>;
+  using pos_t  = vec<Real, N>;
+
+  static constexpr auto num_dimensions() { return N; }
 
   //============================================================================
   pos_t min;
@@ -29,14 +32,14 @@ struct boundingbox {
   ~boundingbox()                                                 = default;
 
   //----------------------------------------------------------------------------
-  template <typename real_t0, typename real_t1>
-  constexpr boundingbox(tensor<real_t0, n>&& _min, tensor<real_t1, n>&& _max) noexcept
+  template <typename Real0, typename Real1>
+  constexpr boundingbox(tensor<Real0, N>&& _min, tensor<Real1, N>&& _max) noexcept
       : min{std::move(_min)}, max{std::move(_max)} {}
 
   //----------------------------------------------------------------------------
-  template <typename real_t0, typename real_t1>
-  constexpr boundingbox(const tensor<real_t0, n>& _min,
-                        const tensor<real_t1, n>& _max) noexcept
+  template <typename Real0, typename Real1>
+  constexpr boundingbox(const tensor<Real0, N>& _min,
+                        const tensor<Real1, N>& _max) noexcept
       : min{_min}, max{_max} {}
 
   //============================================================================
@@ -49,18 +52,18 @@ struct boundingbox {
 
   //----------------------------------------------------------------------------
   constexpr auto reset() {
-    for (size_t i = 0; i < n; ++i) {
-      min(i) = std::numeric_limits<real_t>::max();
-      max(i) = -std::numeric_limits<real_t>::max();
+    for (size_t i = 0; i < N; ++i) {
+      min(i) = std::numeric_limits<Real>::max();
+      max(i) = -std::numeric_limits<Real>::max();
     }
   }
 
   //----------------------------------------------------------------------------
-  constexpr auto center() const { return (max + min) * real_t(0.5); }
+  constexpr auto center() const { return (max + min) * Real(0.5); }
 
   //----------------------------------------------------------------------------
   constexpr auto is_inside(const pos_t& p) const {
-    for (size_t i = 0; i < n; ++i) {
+    for (size_t i = 0; i < N; ++i) {
       if (p[i] < min[i] || max[i] < p[i]) { return false; }
     }
     return true;
@@ -70,7 +73,7 @@ struct boundingbox {
   template <typename random_engine_t>
   auto random_point(random_engine_t&& random_engine) {
     pos_t p;
-    for (size_t i = 0; i < n; ++i) {
+    for (size_t i = 0; i < N; ++i) {
       std::uniform_real_distribution distribution{min(i), max(i)};
       p(i) = distribution(random_engine);
     }
@@ -81,22 +84,22 @@ struct boundingbox {
 //==============================================================================
 // deduction guides
 //==============================================================================
-template <typename real_t0, typename real_t1, size_t n>
-boundingbox(const tensor<real_t0, n>&, const tensor<real_t1, n>&)
-    ->boundingbox<n, promote_t<real_t0, real_t1>>;
+template <typename Real0, typename Real1, size_t N>
+boundingbox(const tensor<Real0, N>&, const tensor<Real1, N>&)
+    ->boundingbox<promote_t<Real0, Real1>, N>;
 
 //------------------------------------------------------------------------------
-template <typename real_t0, typename real_t1, size_t n>
-boundingbox(tensor<real_t0, n>&&, tensor<real_t1, n> &&)
-    ->boundingbox<n, promote_t<real_t0, real_t1>>;
+template <typename Real0, typename Real1, size_t N>
+boundingbox(tensor<Real0, N>&&, tensor<Real1, N> &&)
+    ->boundingbox<promote_t<Real0, Real1>, N>;
 
 //==============================================================================
 // ostream output
 //==============================================================================
-template <typename real_t, size_t n>
-auto& operator<<(std::ostream& out, const boundingbox<n, real_t>& bb) {
+template <typename Real, size_t N>
+auto& operator<<(std::ostream& out, const boundingbox<Real, N>& bb) {
   out << std::scientific;
-  for (size_t i = 0; i < n; ++i) {
+  for (size_t i = 0; i < N; ++i) {
     out << "[ ";
     if (bb.min(i) >= 0) { out << ' '; }
     out << bb.min(i) << " .. ";

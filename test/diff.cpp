@@ -1,5 +1,5 @@
-#include "../derived_field.h"
-#include "../doublegyre.h"
+#include <tatooine/diff.h>
+#include <tatooine/doublegyre.h>
 #include <catch2/catch.hpp>
 
 //==============================================================================

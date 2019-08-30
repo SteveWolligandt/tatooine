@@ -13,10 +13,10 @@
 namespace tatooine {
 //==============================================================================
 
-template <size_t n, typename real_t>
+template <typename Real, size_t N>
 struct grid_edge
-    : public std::pair<grid_vertex<n, real_t>, grid_vertex<n, real_t>> {
-  using vertex_t = grid_vertex<n, real_t>;
+    : public std::pair<grid_vertex<Real, N>, grid_vertex<Real, N>> {
+  using vertex_t = grid_vertex<Real, N>;
   using parent_t = std::pair<vertex_t, vertex_t>;
 
   //============================================================================
@@ -55,13 +55,13 @@ struct grid_edge
 
   //----------------------------------------------------------------------------
   bool operator<(const grid_edge& other) const {
-    for (size_t i = 0; i < n; ++i) {
+    for (size_t i = 0; i < N; ++i) {
       if (this->first.iterators[i].i() < other.first.iterators[i].i())
         return true;
       if (this->first.iterators[i].i() > other.first.iterators[i].i())
         return false;
     }
-    for (size_t i = 0; i < n; ++i) {
+    for (size_t i = 0; i < N; ++i) {
       if (this->second.iterators[i].i() < other.second.iterators[i].i())
         return true;
       if (this->second.iterators[i].i() > other.second.iterators[i].i())
@@ -77,11 +77,11 @@ struct grid_edge
 
   //----------------------------------------------------------------------------
   bool operator>(const grid_edge& other) const {
-    for (size_t i = 0; i < n; ++i) {
+    for (size_t i = 0; i < N; ++i) {
       if (this->first.iterators[i].i > other.first.iterators[i].i) return true;
       if (this->first.iterators[i].i < other.first.iterators[i].i) return false;
     }
-    for (size_t i = 0; i < n; ++i) {
+    for (size_t i = 0; i < N; ++i) {
       if (this->second.iterators[i].i > other.second.iterators[i].i)
         return true;
       if (this->second.iterators[i].i < other.second.iterators[i].i)
@@ -103,8 +103,8 @@ struct grid_edge
 
 //==============================================================================
 
-template <size_t n, typename real_t>
-inline auto& operator<<(std::ostream& out, const grid_edge<n, real_t>& e) {
+template <typename Real, size_t N>
+inline auto& operator<<(std::ostream& out, const grid_edge<Real, N>& e) {
   out << e.first << " - " << e.second;
   return out;
 }

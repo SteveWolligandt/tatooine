@@ -1,5 +1,5 @@
-#ifndef GRID_SUBGRID_H
-#define GRID_SUBGRID_H
+#ifndef TATOOINE_SUBGRID_H
+#define TATOOINE_SUBGRID_H
 
 #include <cstddef>
 #include <functional>
@@ -9,15 +9,15 @@
 namespace tatooine {
 //==============================================================================
 
-template <size_t n, typename real_t>
+template <typename Real, size_t N>
 struct subgrid {
-  subgrid(const grid_vertex<n, real_t>& begin,
-          const grid_vertex<n, real_t>& end)
+  subgrid(const grid_vertex<Real, N>& begin,
+          const grid_vertex<Real, N>& end)
       : m_begin_vertex(begin), m_end_vertex(end) {}
 
   //------------------------------------------------------------------------
 
-  grid_vertex<n, real_t> m_begin_vertex, m_end_vertex;
+  grid_vertex<Real, N> m_begin_vertex, m_end_vertex;
 
   //------------------------------------------------------------------------
 
@@ -39,16 +39,16 @@ struct subgrid {
 
 //==============================================================================
 
-template <size_t n, typename real_t>
-struct subgrid<n, real_t>::vertex_iterator {
-  grid_vertex<n, real_t> v;
-  subgrid<n, real_t>*    m_subgrid;
+template <typename Real, size_t N>
+struct subgrid<Real, N>::vertex_iterator {
+  grid_vertex<Real, N> v;
+  subgrid<Real, N>*    m_subgrid;
 
   //----------------------------------------------------------------------------
 
   auto& operator++() {
     ++v.iterators.front();
-    for (size_t i = 0; i < n - 1; ++i)
+    for (size_t i = 0; i < N - 1; ++i)
       if (v.iterators[i] == m_subgrid->m_end_vertex.iterators[i]) {
         v.iterators[i] = m_subgrid->m_begin_vertex.iterators[i];
         ++v.iterators[i + 1];
@@ -59,7 +59,7 @@ struct subgrid<n, real_t>::vertex_iterator {
   //----------------------------------------------------------------------------
 
   auto& operator--() {
-    for (size_t i = 0; i < n; ++i)
+    for (size_t i = 0; i < N; ++i)
       if (v.iterators[i] == m_subgrid->begin_vertex.iterators[i]) {
         v.iterators[i] = m_subgrid->end_vertex.iterators[i];
         --v.iterators[i];

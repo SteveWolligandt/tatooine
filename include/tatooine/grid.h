@@ -19,14 +19,14 @@
 namespace tatooine {
 //==============================================================================
 
-template <size_t n, typename real_t = double>
+template <typename Real, size_t N>
 class grid {
  public:
-  using this_t        = grid<n, real_t>;
-  using linspace_t    = linspace<real_t>;
+  using this_t        = grid<Real, N>;
+  using linspace_t    = linspace<Real>;
   using linspace_it_t = typename linspace_t::iterator;
-  using vertex_t      = grid_vertex<n, real_t>;
-  using edge_t        = grid_edge<n, real_t>;
+  using vertex_t      = grid_vertex<Real, N>;
+  using edge_t        = grid_edge<Real, N>;
   using edge_pair     = std::pair<edge_t, edge_t>;
   using edge_seq_t    = std::vector<edge_t>;
   using vertex_seq_t  = std::vector<vertex_t>;
@@ -35,7 +35,7 @@ class grid {
 
   //============================================================================
  private:
-  std::array<linspace_t, n> m_dimensions;
+  std::array<linspace_t, N> m_dimensions;
 
   //============================================================================
  public:
@@ -46,34 +46,34 @@ class grid {
       : m_dimensions{std::move(other.m_dimensions)} {}
 
   //----------------------------------------------------------------------------
-  template <typename other_real_t, size_t... Is>
-  constexpr grid(const grid<n, other_real_t>& other,
+  template <typename OtherReal, size_t... Is>
+  constexpr grid(const grid<OtherReal, N>& other,
                  std::index_sequence<Is...> /*is*/)
       : m_dimensions{other.dimension(Is)...} {}
-  template <typename other_real_t>
-  constexpr grid(const grid<n, other_real_t>& other)
-      : grid(other, std::make_index_sequence<n>{}) {}
+  template <typename OtherReal>
+  constexpr grid(const grid<OtherReal, N>& other)
+      : grid(other, std::make_index_sequence<N>{}) {}
 
   //----------------------------------------------------------------------------
-  template <typename... real_ts>
-  constexpr grid(const linspace<real_ts>&... linspaces)
+  template <typename... Reals>
+  constexpr grid(const linspace<Reals>&... linspaces)
       : m_dimensions{linspace_t{linspaces}...} {
-    static_assert(sizeof...(real_ts) == n,
+    static_assert(sizeof...(Reals) == N,
                   "number of linspaces does not match number of dimensions");
   }
 
   //----------------------------------------------------------------------------
-  template <typename other_real_t, size_t... Is>
-  constexpr grid(const boundingbox<n, other_real_t>& bb,
-                 const std::array<size_t, n>&        res,
+  template <typename OtherReal, size_t... Is>
+  constexpr grid(const boundingbox<OtherReal, N>& bb,
+                 const std::array<size_t, N>&        res,
                  std::index_sequence<Is...> /*is*/)
       : m_dimensions{
-            linspace_t{real_t(bb.min(Is)), real_t(bb.max(Is)), res[Is]}...} {}
+            linspace_t{Real(bb.min(Is)), Real(bb.max(Is)), res[Is]}...} {}
   //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-  template <typename other_real_t>
-  constexpr grid(const boundingbox<n, other_real_t>& bb,
-                 const std::array<size_t, n>&        res)
-      : grid{bb, res, std::make_index_sequence<n>{}} {}
+  template <typename OtherReal>
+  constexpr grid(const boundingbox<OtherReal, N>& bb,
+                 const std::array<size_t, N>&        res)
+      : grid{bb, res, std::make_index_sequence<N>{}} {}
 
   //----------------------------------------------------------------------------
   ~grid() = default;
@@ -91,9 +91,9 @@ class grid {
   }
 
   //----------------------------------------------------------------------------
-  template <typename other_real_t>
-  constexpr auto& operator=(const grid<n, other_real_t>& other) {
-    for (size_t i = 0; i < n; ++i) { m_dimensions[i] = other.dimension(i); }
+  template <typename OtherReal>
+  constexpr auto& operator=(const grid<OtherReal, N>& other) {
+    for (size_t i = 0; i < N; ++i) { m_dimensions[i] = other.dimension(i); }
     return *this;
   }
 
@@ -107,76 +107,76 @@ class grid {
 
   //----------------------------------------------------------------------------
   constexpr auto boundingbox() const {
-    return boundingbox(std::make_index_sequence<n>{});
+    return boundingbox(std::make_index_sequence<N>{});
   }
 
   //----------------------------------------------------------------------------
   template <size_t... Is>
   constexpr auto boundingbox(std::index_sequence<Is...> /*is*/) const {
-    static_assert(sizeof...(Is) == n);
+    static_assert(sizeof...(Is) == N);
     return tatooine::boundingbox{tensor{m_dimensions[Is].min...},
                                  tensor{m_dimensions[Is].max...}};
   }
 
   //----------------------------------------------------------------------------
-  constexpr auto resolution() const {
-    return resolution(std::make_index_sequence<n>{});
+  constexpr auto size() const {
+    return size(std::make_index_sequence<N>{});
   }
 
   //----------------------------------------------------------------------------
   template <size_t... Is>
-  constexpr auto resolution(std::index_sequence<Is...> /*is*/) const {
-    static_assert(sizeof...(Is) == n);
-    return std::array{m_dimensions[Is].resolution...};
+  constexpr auto size(std::index_sequence<Is...> /*is*/) const {
+    static_assert(sizeof...(Is) == N);
+    return std::array{m_dimensions[Is].size()...};
   }
 
   //----------------------------------------------------------------------------
-  constexpr auto resolution(size_t i) const { return dimension(i).resolution; }
+  constexpr auto size(size_t i) const { return dimension(i).size(); }
 
   //----------------------------------------------------------------------------
-  template <size_t... Is, typename... real_ts,
-            typename = std::enable_if_t<(std::is_arithmetic_v<real_ts> && ...)>>
+  template <size_t... Is, typename... Reals,
+            typename = std::enable_if_t<(std::is_arithmetic_v<Reals> && ...)>>
   constexpr auto in_domain(std::index_sequence<Is...> /*is*/,
-                           real_ts... xs) const {
-    static_assert(sizeof...(real_ts) == n,
+                           Reals... xs) const {
+    static_assert(sizeof...(Reals) == N,
                   "number of components does not match number of dimensions");
-    static_assert(sizeof...(Is) == n,
+    static_assert(sizeof...(Is) == N,
                   "number of indices does not match number of dimensions");
-    return ((m_dimensions[Is].min <= xs && xs <= m_dimensions[Is].max) && ...);
+    return ((m_dimensions[Is].front() <= xs && xs <= m_dimensions[Is].back()) && ...);
   }
 
   //----------------------------------------------------------------------------
-  template <typename... real_ts,
-            typename = std::enable_if_t<(std::is_arithmetic_v<real_ts> && ...)>>
-  constexpr auto in_domain(real_ts... xs) const {
-    static_assert(sizeof...(real_ts) == n,
+  template <typename... Reals,
+            typename = std::enable_if_t<(std::is_arithmetic_v<Reals> && ...)>>
+  constexpr auto in_domain(Reals... xs) const {
+    static_assert(sizeof...(Reals) == N,
                   "number of components does not match number of dimensions");
-    return in_domain(std::make_index_sequence<n>{},
-                     std::forward<real_ts>(xs)...);
+    return in_domain(std::make_index_sequence<N>{},
+                     std::forward<Reals>(xs)...);
   }
 
   //----------------------------------------------------------------------------
   template <size_t... Is>
-  constexpr auto in_domain(const std::array<real_t, n>& x,
+  constexpr auto in_domain(const std::array<Real, N>& x,
                            std::index_sequence<Is...> /*is*/) const {
     return in_domain(x[Is]...);
   }
 
   //----------------------------------------------------------------------------
-  constexpr auto in_domain(const std::array<real_t, n>& x) const {
-    return in_domain(x, std::make_index_sequence<n>{});
+  constexpr auto in_domain(const std::array<Real, N>& x) const {
+    return in_domain(x, std::make_index_sequence<N>{});
   }
 
   //----------------------------------------------------------------------------
   constexpr auto num_points() const {
-    return num_points(std::make_index_sequence<n>{});
+    return num_points(std::make_index_sequence<N>{});
   }
 
   //----------------------------------------------------------------------------
   template <size_t... Is>
   constexpr auto num_points(std::index_sequence<Is...> /*is*/) const {
-    static_assert(sizeof...(Is) == n);
-    return (m_dimensions[Is].resolution * ...);
+    static_assert(sizeof...(Is) == N);
+    return (m_dimensions[Is].size() * ...);
   }
 
   //----------------------------------------------------------------------------
@@ -186,7 +186,7 @@ class grid {
   }
 
   //----------------------------------------------------------------------------
-  auto front_vertex() { return front_vertex(std::make_index_sequence<n>()); }
+  auto front_vertex() { return front_vertex(std::make_index_sequence<N>()); }
 
   //----------------------------------------------------------------------------
   template <size_t... Is>
@@ -195,19 +195,19 @@ class grid {
   }
 
   //----------------------------------------------------------------------------
-  auto back_vertex() { return back_vertex(std::make_index_sequence<n>()); }
+  auto back_vertex() { return back_vertex(std::make_index_sequence<N>()); }
 
   //----------------------------------------------------------------------------
   template <typename... Is>
   auto at(Is... is) const {
-    static_assert(sizeof...(Is) == n);
+    static_assert(sizeof...(Is) == N);
     return grid_vertex(*this, is...);
   }
 
   //----------------------------------------------------------------------------
   constexpr auto num_vertices() const {
     size_t num = 1;
-    for (const auto& dim : m_dimensions) { num *= dim.resolution; }
+    for (const auto& dim : m_dimensions) { num *= dim.size(); }
     return num;
   }
 
@@ -220,7 +220,7 @@ class grid {
 
  public:
   constexpr auto vertex_begin() const {
-    return vertex_begin(std::make_index_sequence<n>{});
+    return vertex_begin(std::make_index_sequence<N>{});
   }
 
  private:
@@ -234,7 +234,7 @@ class grid {
  public:
   //----------------------------------------------------------------------------
   constexpr auto vertex_end() const {
-    return vertex_end(std::make_index_sequence<n - 1>());
+    return vertex_end(std::make_index_sequence<N - 1>());
   }
 
   //----------------------------------------------------------------------------
@@ -242,17 +242,17 @@ class grid {
 
   //----------------------------------------------------------------------------
   auto vertices(const vertex_t& v) const {
-    return grid_vertex_neighbors<n, real_t>(v);
+    return grid_vertex_neighbors<Real, N>(v);
   }
 
   //----------------------------------------------------------------------------
   auto edges(const vertex_t& v) const {
-    return grid_vertex_edges<n, real_t>(v);
+    return grid_vertex_edges<Real, N>(v);
   }
 
   //----------------------------------------------------------------------------
   auto sub(const vertex_t& begin_vertex, const vertex_t& end_vertex) const {
-    return subgrid<n, real_t>(this, begin_vertex, end_vertex);
+    return subgrid<Real, N>(this, begin_vertex, end_vertex);
   }
 
   //----------------------------------------------------------------------------
@@ -342,33 +342,33 @@ class grid {
                                RandEng& eng) const {
     return vertex_t{linspace_it_t{
         &m_dimensions[Is],
-        random_uniform<size_t>(0, m_dimensions[Is].resolution - 1, eng)}...};
+        random_uniform<size_t>(0, m_dimensions[Is].size() - 1, eng)}...};
   }
 
  public:
   //----------------------------------------------------------------------------
   template <typename RandEng>
   vertex_t random_vertex(RandEng& eng) {
-    return random_vertex(std::make_index_sequence<n>(), eng);
+    return random_vertex(std::make_index_sequence<N>(), eng);
   }
 
   //----------------------------------------------------------------------------
   template <typename RandEng>
-  auto random_vertex_neighbor_gaussian(const vertex_t& v, const real_t _stddev,
+  auto random_vertex_neighbor_gaussian(const vertex_t& v, const Real _stddev,
                                        RandEng& eng) {
     auto neighbor = v;
     bool ok       = false;
     auto stddev   = _stddev;
     do {
       ok = true;
-      for (size_t i = 0; i < n; ++i) {
-        auto r = random_normal<real_t>(
-            0, std::min<real_t>(stddev, neighbor[i].linspace().resolution / 2),
+      for (size_t i = 0; i < N; ++i) {
+        auto r = random_normal<Real>(
+            0, std::min<Real>(stddev, neighbor[i].linspace().size() / 2),
             eng);
         // stddev -= r;
         neighbor[i].i() += static_cast<size_t>(r);
         if (neighbor[i].i() < 0 ||
-            neighbor[i].i() >= neighbor[i].linspace().resolution) {
+            neighbor[i].i() >= neighbor[i].linspace().size()) {
           ok       = false;
           neighbor = v;
           stddev   = _stddev;
@@ -382,7 +382,7 @@ class grid {
   //----------------------------------------------------------------------------
   template <typename RandEng = std ::mt19937_64>
   auto random_vertex_seq_neighbor_gaussian(const vertex_seq_t& seq,
-                                           real_t stddev, RandEng& eng) {
+                                           Real stddev, RandEng& eng) {
     return random_vertex_neighbor_gaussian(
         seq[random_uniform<size_t>(0, seq.size() - 1, eng)], stddev, eng);
   }
@@ -390,7 +390,7 @@ class grid {
   //----------------------------------------------------------------------------
   template <typename RandEng = std ::mt19937_64>
   auto random_vertex_sequence(size_t len, const vertex_seq_t& base_seq,
-                              real_t stddev, RandEng& eng) {
+                              Real stddev, RandEng& eng) {
     vertex_seq_t seq;
     do {
       // start vertex
@@ -457,7 +457,7 @@ class grid {
   //----------------------------------------------------------------------------
   /// \param min_angle angle in radians
   template <typename RandEng>
-  auto random_straight_vertex_sequence(size_t len, real_t min_angle,
+  auto random_straight_vertex_sequence(size_t len, Real min_angle,
                                        RandEng& eng) {
     using namespace boost;
     using namespace adaptors;
@@ -623,7 +623,7 @@ class grid {
   /// total edge sequence length; diagonal edge length corresponds straight
   /// edge length
   template <typename RandEng>
-  auto mutate_seq_straight(const vertex_seq_t& seq, real_t min_angle,
+  auto mutate_seq_straight(const vertex_seq_t& seq, Real min_angle,
                            RandEng& eng) {
     using namespace boost;
     using namespace adaptors;
@@ -823,38 +823,36 @@ class grid {
   }
 
   //----------------------------------------------------------------------------
-  template <typename other_real_t, size_t... Is>
-  auto add_dimension(const linspace<other_real_t>& additional_dimension,
+  template <typename OtherReal, size_t... Is>
+  auto add_dimension(const linspace<OtherReal>& additional_dimension,
                      std::index_sequence<Is...> /*is*/) const {
-    return grid<n + 1, real_t>{m_dimensions[Is]..., additional_dimension};
+    return grid<Real, N + 1>{m_dimensions[Is]..., additional_dimension};
   }
 
   //----------------------------------------------------------------------------
-  template <typename other_real_t>
-  auto add_dimension(const linspace<other_real_t>& additional_dimension) const {
-    return add_dimension(additional_dimension, std::make_index_sequence<n>{});
+  template <typename OtherReal>
+  auto add_dimension(const linspace<OtherReal>& additional_dimension) const {
+    return add_dimension(additional_dimension, std::make_index_sequence<N>{});
   }
 };
 
-//==============================================================================
-template <typename... real_ts>
-grid(const linspace<real_ts>&...)
-    ->grid<sizeof...(real_ts), promote_t<real_ts...>>;
-
-//------------------------------------------------------------------------------
-template <size_t n, typename real_t, size_t... Is>
-grid(const boundingbox<n, real_t>& bb, const std::array<size_t, n>& res,
+//~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+template <typename... Reals>
+grid(const linspace<Reals>&...)
+    ->grid<promote_t<Reals...>, sizeof...(Reals)>;
+// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+template <typename Real, size_t N, size_t... Is>
+grid(const boundingbox<Real, N>& bb, const std::array<size_t, N>& res,
      std::index_sequence<Is...>)
-    ->grid<n, real_t>;
-
-//------------------------------------------------------------------------------
-template <size_t n, typename real_t>
-grid(const boundingbox<n, real_t>& bb, const std::array<size_t, n>& res)
-    ->grid<n, real_t>;
+    ->grid<Real, N>;
+// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+template <typename Real, size_t N>
+grid(const boundingbox<Real, N>& bb, const std::array<size_t, N>& res)
+    ->grid<Real, N>;
 
 //==============================================================================
-template <size_t n, typename real_t>
-struct grid<n, real_t>::vertex_container {
+template <typename Real, size_t N>
+struct grid<Real, N>::vertex_container {
   const grid* g;
   auto        begin() const { return g->vertex_begin(); }
   auto        end() const { return g->vertex_end(); }
@@ -862,16 +860,16 @@ struct grid<n, real_t>::vertex_container {
 };
 
 //------------------------------------------------------------------------------
-template <size_t n, typename real_t>
-auto operator+(const grid<n, real_t>&  grid,
-               const linspace<real_t>& additional_dimension) {
+template <typename Real, size_t N>
+auto operator+(const grid<Real, N>&  grid,
+               const linspace<Real>& additional_dimension) {
   return grid.add_dimension(additional_dimension);
 }
 
 //------------------------------------------------------------------------------
-template <size_t n, typename real_t>
-auto operator+(const linspace<real_t>& additional_dimension,
-               const grid<n, real_t>&  grid) {
+template <typename Real, size_t N>
+auto operator+(const linspace<Real>& additional_dimension,
+               const grid<Real, N>&  grid) {
   return grid.add_dimension(additional_dimension);
 }
 

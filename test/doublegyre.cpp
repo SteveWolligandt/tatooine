@@ -1,4 +1,4 @@
-#include "../doublegyre.h"
+#include <tatooine/doublegyre.h>
 #include <catch2/catch.hpp>
 
 //==============================================================================

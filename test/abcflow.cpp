@@ -1,4 +1,4 @@
-#include "../abcflow.h"
+#include <tatooine/abcflow.h>
 #include <catch2/catch.hpp>
 
 //==============================================================================

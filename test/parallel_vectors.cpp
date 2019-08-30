@@ -1,9 +1,9 @@
 #include <catch2/catch.hpp>
 
-#include "../parallel_vectors.h"
-#include "../derived_field.h"
-#include "../doublegyre.h"
-#include "../spacetime.h"
+#include <tatooine/parallel_vectors.h>
+#include <tatooine/diff.h>
+#include <tatooine/doublegyre.h>
+#include <tatooine/spacetime.h>
 
 //==============================================================================
 namespace tatooine::test {

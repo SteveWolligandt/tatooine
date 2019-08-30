@@ -1,5 +1,5 @@
-#include "../tensor.h"
-#include "../symbolic.h"
+#include <tatooine/tensor.h>
+#include <tatooine/symbolic.h>
 #include <catch2/catch.hpp>
 
 //==============================================================================
@@ -9,14 +9,19 @@ namespace tatooine::test {
 TEST_CASE("tensor_initializers", "[tensor][initializers]") {
   SECTION("constructors") {
     auto m3z = mat3::zeros();
+    m3z.for_indices([&m3z](const auto... is) { CHECK(m3z(is...) == 0); });
     auto m3o = mat3::ones();
+    m3o.for_indices([&m3o](const auto... is) { CHECK(m3o(is...) == 1); });
     auto m3ru = mat3::randu();
     auto m3rn = mat3::randn();
   }
-  SECTION("factories") {
+  SECTION("factory functions") {
     mat3 m3z{zeros};
+    m3z.for_indices([&m3z](const auto... is) { CHECK(m3z(is...) == 0); });
     mat3 m3o{ones};
+    m3o.for_indices([&m3o](const auto... is) { CHECK(m3o(is...) == 1); });
     mat3 m3f{fill{3}};
+    m3f.for_indices([&m3f](const auto... is) { CHECK(m3f(is...) == 3); });
     mat3 m3ru{random_uniform{}};
     mat3 m3rn{random_normal{}};
   }
@@ -122,7 +127,6 @@ TEST_CASE("tensor_addition", "[tensor][operation][addition]") {
   m0.for_indices([&](const auto... is) {
     CHECK((added(is...) == m0(is...) + m1(is...)));
   });
-  std::cerr << added << '\n';
 }
 
 //==============================================================================
@@ -130,16 +134,8 @@ TEST_CASE("tensor_symbolic", "[tensor][symbolic]") {
   vec  v{symbolic::symbol::x(0),
          symbolic::symbol::x(0) * symbolic::symbol::x(1)};
   auto m = mat2::randu();
-  std::cerr << v << '\n';
-  std::cerr << dot(v, vec{3, 2}) << '\n';
-  std::cerr << m * v << '\n';
-  std::cerr << evtod(v, symbolic::symbol::x(0) == 2,
-                     symbolic::symbol::x(1) == 3)
-            << '\n';
   auto vdfx0 = diff(v, symbolic::symbol::x(0));
   auto vdfx1 = diff(v, symbolic::symbol::x(1));
-  std::cerr << vdfx0 << '\n';
-  std::cerr << vdfx1 << '\n';
 }
 
 //==============================================================================

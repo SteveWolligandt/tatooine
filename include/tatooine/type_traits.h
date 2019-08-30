@@ -7,7 +7,19 @@
 //==============================================================================
 namespace tatooine {
 //==============================================================================
+template <typename T>
+struct num_components;
+// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+template <typename T>
+static constexpr size_t num_components_v = num_components<T>::value;
+// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+template <>
+struct num_components<double> : std::integral_constant<size_t, 1> {};
+// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+template <>
+struct num_components<float> : std::integral_constant<size_t, 1> {};
 
+//==============================================================================
 template <typename... Ts>
 using enable_if_integral =
     typename std::enable_if_t<(std::is_integral_v<Ts> && ...)>;

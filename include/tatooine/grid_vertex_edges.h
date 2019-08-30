@@ -11,14 +11,14 @@
 namespace tatooine {
 //==============================================================================
 
-template <size_t n, typename real_t>
-struct grid_vertex_edges : grid_vertex_neighbors<n, real_t> {
-  grid_vertex_edges(const grid_vertex<n, real_t>& center)
-      : grid_vertex_neighbors<n, real_t>(center) {}
+template <typename Real, size_t N>
+struct grid_vertex_edges : grid_vertex_neighbors<Real, N> {
+  grid_vertex_edges(const grid_vertex<Real, N>& center)
+      : grid_vertex_neighbors<Real, N>(center) {}
 
   //----------------------------------------------------------------------------
 
-  struct iterator : grid_vertex_neighbors<n, real_t>::iterator {
+  struct iterator : grid_vertex_neighbors<Real, N>::iterator {
     auto operator*() {
       if (edges()->center == this->v) {
         std::cout << "[ ";
@@ -33,7 +33,7 @@ struct grid_vertex_edges : grid_vertex_neighbors<n, real_t> {
         }
         std::cout << "]\n";
       }
-      return grid_edge<n, real_t>(edges()->center, this->v);
+      return grid_edge<Real, N>(edges()->center, this->v);
     }
     auto edges() {
       return reinterpret_cast<grid_vertex_edges*>(this->m_subgrid);
