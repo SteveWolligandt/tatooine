@@ -6,6 +6,22 @@
 namespace tatooine::test {
 //==============================================================================
 
+TEST_CASE("tensor_initializers", "[tensor][initializers]") {
+  SECTION("constructors") {
+    auto m3z = mat3::zeros();
+    auto m3o = mat3::ones();
+    auto m3ru = mat3::randu();
+    auto m3rn = mat3::randn();
+  }
+  SECTION("factories") {
+    mat3 m3z{zeros};
+    mat3 m3o{ones};
+    mat3 m3f{fill{3}};
+    mat3 m3ru{random_uniform{}};
+    mat3 m3rn{random_normal{}};
+  }
+}
+
 TEST_CASE("tensor_slice", "[tensor][slice]") {
   vec v{1.0, 2.0, 3.0};
   REQUIRE(v(0) == 1);
@@ -93,15 +109,15 @@ TEST_CASE("tensor_slice", "[tensor][slice]") {
 
 //==============================================================================
 TEST_CASE("tensor_negate", "[tensor][operation][negate]") {
-  auto m     = mat4::rand();
+  auto m     = mat4::randu();
   auto m_neg = -m;
   m.for_indices([&](const auto... is) { CHECK(m(is...) == -m_neg(is...)); });
 }
 
 //==============================================================================
 TEST_CASE("tensor_addition", "[tensor][operation][addition]") {
-  auto m0 = mat4::rand();
-  auto m1 = mat4::rand();
+  auto m0 = mat4::randu();
+  auto m1 = mat4::randu();
   auto added = m0 + m1;
   m0.for_indices([&](const auto... is) {
     CHECK((added(is...) == m0(is...) + m1(is...)));
@@ -113,7 +129,7 @@ TEST_CASE("tensor_addition", "[tensor][operation][addition]") {
 TEST_CASE("tensor_symbolic", "[tensor][symbolic]") {
   vec  v{symbolic::symbol::x(0),
          symbolic::symbol::x(0) * symbolic::symbol::x(1)};
-  auto m = mat2::rand();
+  auto m = mat2::randu();
   std::cerr << v << '\n';
   std::cerr << dot(v, vec{3, 2}) << '\n';
   std::cerr << m * v << '\n';

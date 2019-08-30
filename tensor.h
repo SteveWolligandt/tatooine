@@ -4,7 +4,7 @@
 #include <array>
 #include <iostream>
 #include <ostream>
-#include <random>
+#include "random.h"
 #include "crtp.h"
 #include "functional.h"
 #include "multiindexeddata.h"
@@ -20,6 +20,20 @@
 namespace tatooine {
 //==============================================================================
 
+template <typename real_t>
+struct fill {
+  real_t value;
+};
+template <typename real_t>
+fill(real_t) ->fill<real_t>;
+
+struct zeros_t {};
+static constexpr inline zeros_t zeros;
+
+struct ones_t {};
+static constexpr inline ones_t ones;
+
+
 template <typename tensor_t, typename real_t, size_t FixedDim, size_t... Dims>
 struct tensor_slice;
 
@@ -30,16 +44,16 @@ struct base_tensor : crtp<Tensor> {
   using tensor_t = Tensor;
   using this_t   = base_tensor<tensor_t, Real, Dims...>;
   using parent_t = crtp<tensor_t>;
+  using parent_t::as_derived;
+
+  //============================================================================
   static constexpr auto   dimensions() { return std::array{Dims...}; }
   static constexpr auto   dimension(size_t i) { return dimensions()[i]; }
   static constexpr size_t num_dimensions() { return sizeof...(Dims); }
   static constexpr size_t num_components() { return (Dims * ...); }
-
-  using parent_t::as_derived;
   static constexpr auto indices(){
     return multi_index{std::array{std::pair<size_t, size_t>{0, Dims - 1}...}};
   }
-
   template <typename F>
   static auto for_indices(F&& f) {
     for (auto is : indices()) {
@@ -65,7 +79,7 @@ struct base_tensor : crtp<Tensor> {
     return *this;
   }
 
-  //----------------------------------------------------------------------------
+  //============================================================================
   template <typename F>
   auto& unary_operation(F&& f) {
     for_indices([this, &f](const auto... is) { at(is...) = f(at(is...)); });
@@ -182,11 +196,14 @@ struct tensor : base_tensor<tensor<real_t, Dims...>, real_t, Dims...> {
   constexpr tensor(tensor&& other)      = default;
   constexpr tensor& operator=(const tensor& other) = default;
   constexpr tensor& operator=(tensor&& other) = default;
+  constexpr ~tensor()                         = default;
 
   //============================================================================
+  private:
   constexpr tensor(real_t initial)
       : m_data{make_array<real_t, num_components()>(initial)} {}
 
+  public:
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
   /// vector initialization
   template <typename... Ts, size_t _n = num_dimensions(),
@@ -215,6 +232,32 @@ struct tensor : base_tensor<tensor<real_t, Dims...>, real_t, Dims...> {
     (insert_row(rows), ...);
   }
 
+  //----------------------------------------------------------------------------
+  template <typename _real_t = real_t,
+            std::enable_if_t<std::is_arithmetic_v<_real_t>>...>
+  constexpr tensor(zeros_t /*zeros*/) : tensor{0} {}
+  // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+  template <typename _real_t = real_t,
+            std::enable_if_t<std::is_arithmetic_v<_real_t>>...>
+  constexpr tensor(ones_t /*ones*/) : tensor{1} {}
+  // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+  template <typename fill_real_t, typename _real_t = real_t,
+            std::enable_if_t<std::is_arithmetic_v<_real_t>>...>
+  constexpr tensor(fill<fill_real_t> f)
+      : tensor{static_cast<real_t>(f.value)} {}
+  // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+  template <typename Engine, typename RandomReal, typename _real_t = real_t,
+            std::enable_if_t<std::is_arithmetic_v<RandomReal>>...>
+  constexpr tensor(random_uniform<Engine, RandomReal>&& rand) : tensor{} {
+    this->unary_operation([&](const auto& /*c*/) { return rand.get(); });
+  }
+  // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+  template <typename Engine, typename RandomReal, typename _real_t = real_t,
+            std::enable_if_t<std::is_arithmetic_v<_real_t>>...>
+  constexpr tensor(random_normal<Engine, RandomReal>&& rand) : tensor{} {
+    this->unary_operation([&](const auto& /*c*/) { return rand.get(); });
+  }
+
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
   template <typename other_tensor_t, typename other_real_t>
   constexpr tensor(
@@ -232,19 +275,30 @@ struct tensor : base_tensor<tensor<real_t, Dims...>, real_t, Dims...> {
 
   //----------------------------------------------------------------------------
   template <typename RandomEngine = std::mt19937_64>
-  static constexpr auto rand(real_t min = 0, real_t max = 1,
-                             RandomEngine&& eng = RandomEngine{
-                                 std::random_device{}()}) {
-    auto dist = [&]() {
-      if constexpr (std::is_floating_point_v<real_t>) {
-        return std::uniform_real_distribution<real_t>{min, max};
-      } else if constexpr (std::is_integral_v<real_t>) {
-        return std::uniform_int_distribution<real_t>{min, max};
-      }
-    }();
-    this_t t;
-    t.unary_operation([&](const auto& /*c*/) { return dist(eng); });
-    return t;
+  static constexpr auto ones() {
+    return this_t{0};
+  }
+
+  //----------------------------------------------------------------------------
+  template <typename RandomEngine = std::mt19937_64>
+  static constexpr auto zeros() {
+    return this_t{1};
+  }
+
+  //----------------------------------------------------------------------------
+  template <typename RandomEngine = std::mt19937_64>
+  static constexpr auto randu(real_t min = 0, real_t max = 1,
+                              RandomEngine&& eng = RandomEngine{
+                                  std::random_device{}()}) {
+    return this_t{random_uniform{eng, min, max}};
+  }
+
+  //----------------------------------------------------------------------------
+  template <typename RandomEngine = std::mt19937_64>
+  static constexpr auto randn(real_t mean = 0, real_t stddev = 1,
+                              RandomEngine&& eng = RandomEngine{
+                                  std::random_device{}()}) {
+    return this_t{random_normal{eng, mean, stddev}};
   }
 
   //============================================================================
