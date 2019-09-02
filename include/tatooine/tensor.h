@@ -861,6 +861,51 @@ struct internal_data_type<base_tensor<Tensor, Real, Dims...>> {
 };
 
 //==============================================================================
+template <typename Tensor, typename Real, size_t N>
+struct unpack<base_tensor<Tensor, Real, N>> {
+  static constexpr size_t n = N;
+  base_tensor<Tensor, Real, N>&       container;
+
+  //----------------------------------------------------------------------------
+  constexpr unpack(base_tensor<Tensor, Real, N>& c) : container{c} {}
+
+  //----------------------------------------------------------------------------
+  template <size_t I>
+  constexpr auto& get() {
+    return container(I);
+  }
+
+  //----------------------------------------------------------------------------
+  template <size_t I>
+  constexpr const auto& get() const {
+    return container(I);
+  }
+};
+//~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+template <typename Tensor, typename Real, size_t N>
+unpack(base_tensor<Tensor, Real, N>& c)->unpack<base_tensor<Tensor, Real, N>>;
+
+//==============================================================================
+template <typename Tensor, typename Real, size_t N>
+struct unpack<const base_tensor<Tensor, Real, N>> {
+  static constexpr size_t n = N;
+  const base_tensor<Tensor, Real, N>& container;
+
+  //----------------------------------------------------------------------------
+  constexpr unpack(const base_tensor<Tensor, Real, N>& c) : container{c} {}
+
+  //----------------------------------------------------------------------------
+  template <size_t I>
+  constexpr const auto& get() const {
+    return container(I);
+  }
+};
+//~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+template <typename Tensor, typename Real, size_t N>
+unpack(const base_tensor<Tensor, Real, N>& c)
+    ->unpack<const base_tensor<Tensor, Real, N>>;
+
+//==============================================================================
 template <typename Real, size_t N>
 struct unpack<tensor<Real, N>> {
   static constexpr size_t n = N;

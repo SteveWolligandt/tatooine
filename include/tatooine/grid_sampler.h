@@ -183,8 +183,11 @@ struct base_grid_sampler : crtp<Derived>, grid<Real, N> {
                   "number of coordinates does not match number of dimensions");
     return sample(std::forward<Xs>(xs)...);
   }
-  //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+  // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
   auto operator()(const std::array<Real, N>& xs) const { return sample(xs); }
+  // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+  template <typename Tensor, typename TensorReal>
+  auto operator()(const base_tensor<Tensor, TensorReal, N>& xs) const { return sample(xs); }
 
   //----------------------------------------------------------------------------
   /// sampling by interpolating using HeadInterpolator and
@@ -204,15 +207,14 @@ struct base_grid_sampler : crtp<Derived>, grid<Real, N> {
         begin() + i, begin() + i + 1, begin(), end(), t,
         std::forward<Xs>(xs)...);
   }
-  //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-  template <size_t... Is>
-  auto sample(const std::array<Real, N>& xs,
-              std::index_sequence<Is...> /*is*/) const {
-    return sample(xs[Is]...);
-  }
-  //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+  // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
   auto sample(const std::array<Real, N>& xs) const {
-    return sample(xs, std::make_index_sequence<N>{});
+    return invoke_unpacked([&xs](const auto... xs) { return sample(xs...); }, unpack(xs));
+  }
+  // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+  template <typename Tensor, typename TensorReal>
+  auto sample(const base_tensor<Tensor, TensorReal, N>& xs) const {
+    return invoke_unpacked([&xs](const auto... xs) { return sample(xs...); }, unpack(xs));
   }
 
   //----------------------------------------------------------------------------
@@ -936,7 +938,7 @@ auto resample(const grid_sampler<Real, N, Data, Interpolators...>& sampler,
 }
 
 //==============================================================================
-/// resamples a field
+/// resamples a time step of a field
 template <template <typename> typename... Interpolators, typename Field,
           typename FieldReal, size_t N, size_t... TensorDims, typename GridReal,
           typename TimeReal>
@@ -946,18 +948,24 @@ auto resample(const field<Field, FieldReal, N, TensorDims...>& f,
   static_assert(sizeof...(Interpolators) == N,
                 "number of interpolators does not match number of dimensions");
   using tensor_t = typename field<Field, FieldReal, N, TensorDims...>::tensor_t;
+  using real_t   = promote_t<FieldReal, GridReal>;
 
   sampled_field<
-      grid_sampler<GridReal, N, typename Field::tensor_t, Interpolators...>,
-      FieldReal, N, TensorDims...>
+      grid_sampler<real_t, N, typename Field::tensor_t, Interpolators...>,
+      real_t, N, TensorDims...>
       field{g};
 
   auto& data = field.sampler().data();
 
   for (auto v : g.vertices()) {
-    auto indices = v.to_indices();
+    auto indices     = v.to_indices();
+    auto spatial_pos = v.to_vec();
+    std::cerr << "indices: " << indices << '\n';
+    std::cerr << "pos: " << spatial_pos << '\n';
     try {
-      data(indices) = f(v.to_vec(), t);
+      std::cerr << f(spatial_pos, t) << '\n'; 
+      data(indices) = f(spatial_pos, t);
+      std::cerr << data(indices) << '\n'; 
     } catch (std::exception& /*e*/) {
       data(indices) = tensor_t{fill{0.0 / 0.0}};
     }
@@ -966,8 +974,18 @@ auto resample(const field<Field, FieldReal, N, TensorDims...>& f,
   return field;
 }
 
+//------------------------------------------------------------------------------
+/// resamples a time step of a field
+template <template <typename> typename... Interpolators, typename Field,
+          typename FieldReal, size_t N, size_t... TensorDims,
+          typename... LinspaceReals, typename TimeReal>
+auto resample(const field<Field, FieldReal, N, TensorDims...>& f,
+              const linspace<LinspaceReals>&... linspaces, TimeReal t) {
+  return resample(f, grid(linspaces...), t);
+}
+
 //==============================================================================
-/// resamples a field
+/// resamples multiple time steps of a field
 template <template <typename> typename... Interpolators, typename Field,
           typename FieldReal, size_t N, typename GridReal, typename TimeReal,
           size_t... TensorDims>
@@ -998,6 +1016,17 @@ auto resample(const field<Field, FieldReal, N, TensorDims...>& f,
   }
 
   return field;
+}
+
+//------------------------------------------------------------------------------
+/// resamples a time step of a field
+template <template <typename> typename... Interpolators, typename Field,
+          typename FieldReal, size_t N, size_t... TensorDims,
+          typename... LinspaceReals, typename TimeReal>
+auto resample(const field<Field, FieldReal, N, TensorDims...>& f,
+              const linspace<LinspaceReals>&... linspaces,
+              const linspace<TimeReal>& ts) {
+  return resample( f, grid(linspaces...), ts);
 }
 
 //==============================================================================

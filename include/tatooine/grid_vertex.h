@@ -110,7 +110,7 @@ struct grid_vertex {
 
   template <size_t... Is>
   constexpr auto to_indices(std::index_sequence<Is...> /*is*/) const {
-    return std::array<size_t, N>{iterators[Is].i()...};
+    return vec{iterators[Is].i()...};
   }
 
  public:

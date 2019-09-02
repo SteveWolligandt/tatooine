@@ -224,6 +224,7 @@ struct chunked_data {
   T& operator()(Indices&&... indices) {
     return at(std::forward<Indices>(indices)...);
   }
+  // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
   template <typename... Indices,
             typename = std::enable_if_t<
                 (std::is_integral_v<std::decay_t<Indices>> && ...)>,
@@ -233,6 +234,20 @@ struct chunked_data {
     size_t gi = m_chunk_structure.global_idx((indices / ChunkRes)...);
     if (!m_chunks[gi]) { m_chunks[gi] = std::make_unique<chunk_t>(); }
     return m_chunks[gi]->at((indices % ChunkRes)...);
+  }
+
+  //----------------------------------------------------------------------------
+  template <typename Tensor, typename S,
+            typename = std::enable_if_t<std::is_integral_v<S>>>
+  decltype(auto) at(const base_tensor<Tensor, S, N>& indices) {
+    return invoke_unpacked([this](const auto... is) { return at(is...); },
+                           unpack(indices));
+  }
+  //----------------------------------------------------------------------------
+  template <typename Tensor, typename S,
+            typename = std::enable_if_t<std::is_integral_v<S>>>
+  decltype(auto) operator()(const base_tensor<Tensor, S, N>& indices) {
+    return at(indices);
   }
 
   //----------------------------------------------------------------------------
