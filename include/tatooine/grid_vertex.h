@@ -72,7 +72,7 @@ struct grid_vertex {
   auto& operator++() {
     ++iterators.front();
     for (size_t i = 0; i < N - 1; ++i) {
-      if (iterators[i] == iterators[i].get().end()) {
+      if (iterators[i] == iterators[i].linspace().end()) {
         iterators[i].to_begin();
         ++iterators[i + 1];
       }
@@ -83,7 +83,7 @@ struct grid_vertex {
   //--------------------------------------------------------------------------
   auto& operator--() {
     for (size_t i = 0; i < N; ++i)
-      if (iterators[i] == iterators[i].get().begin()) {
+      if (iterators[i] == iterators[i].linspace().begin()) {
         iterators[i].to_end();
         --iterators[i];
       } else {
@@ -99,8 +99,8 @@ struct grid_vertex {
   //--------------------------------------------------------------------------
  private:
   template <size_t... Is>
-  constexpr auto to_vec(std::index_sequence<Is...> /*is*/) const {
-    return tensor<Real, N>{*iterators[Is]...};
+  constexpr auto pos(std::index_sequence<Is...> /*is*/) const {
+    return vec{(*iterators[Is])...};
   }
 
   template <size_t... Is>
@@ -109,21 +109,21 @@ struct grid_vertex {
   }
 
   template <size_t... Is>
-  constexpr auto to_indices(std::index_sequence<Is...> /*is*/) const {
+  constexpr auto indices(std::index_sequence<Is...> /*is*/) const {
     return vec{iterators[Is].i()...};
   }
 
  public:
-  constexpr auto to_vec() const {
-    return to_vec(std::make_index_sequence<N>());
+  constexpr auto pos() const {
+    return pos(std::make_index_sequence<N>());
   }
 
   constexpr auto to_array() const {
     return to_array(std::make_index_sequence<N>());
   }
 
-  constexpr auto to_indices() const {
-    return to_indices(std::make_index_sequence<N>());
+  constexpr auto indices() const {
+    return indices(std::make_index_sequence<N>());
   }
 
   constexpr auto global_index() const {
@@ -131,12 +131,10 @@ struct grid_vertex {
     size_t factor = 1;
     for (const auto& it : iterators) {
       idx += factor * it.i();
-      factor *= it.get().size();
+      factor *= it.linspace().size();
     }
     return idx;
   }
-
-  constexpr auto operator*() const { return to_vec(); }
 
   //--------------------------------------------------------------------------
 

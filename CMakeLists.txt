@@ -5,7 +5,8 @@ set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "${CMAKE_SOURCE_DIR}/cmake/modules/")
 #- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 find_package(GiNaC REQUIRED)
 find_package(LAPACKE REQUIRED)
-find_package(OpenMP)
+find_package(OpenMP REQUIRED)
+find_package(vcode REQUIRED)
 
 #- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 # create library target
@@ -20,6 +21,7 @@ target_include_directories(tatooine
     ${CMAKE_CURRENT_SOURCE_DIR}/single_include
     ${GINAC_INCLUDE_DIRS}
     ${LAPACK_INCLUDE_DIR}
+    ${vcode_DIR}/../..
 )
 
 #- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -

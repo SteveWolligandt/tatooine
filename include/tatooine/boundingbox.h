@@ -3,8 +3,8 @@
 
 #include <limits>
 #include <ostream>
-#include "type_traits.h"
 #include "tensor.h"
+#include "type_traits.h"
 
 //==============================================================================
 namespace tatooine {
@@ -24,16 +24,17 @@ struct boundingbox {
   pos_t max;
 
   //============================================================================
-  constexpr boundingbox()                                        = default;
-  constexpr boundingbox(const boundingbox& other)                = default;
-  constexpr boundingbox(boundingbox&& other)           noexcept  = default;
-  constexpr boundingbox& operator=(const boundingbox& other)     = default;
+  constexpr boundingbox()                             = default;
+  constexpr boundingbox(const boundingbox& other)     = default;
+  constexpr boundingbox(boundingbox&& other) noexcept = default;
+  constexpr boundingbox& operator=(const boundingbox& other) = default;
   constexpr boundingbox& operator=(boundingbox&& other) noexcept = default;
   ~boundingbox()                                                 = default;
 
   //----------------------------------------------------------------------------
   template <typename Real0, typename Real1>
-  constexpr boundingbox(tensor<Real0, N>&& _min, tensor<Real1, N>&& _max) noexcept
+  constexpr boundingbox(tensor<Real0, N>&& _min,
+                        tensor<Real1, N>&& _max) noexcept
       : min{std::move(_min)}, max{std::move(_max)} {}
 
   //----------------------------------------------------------------------------

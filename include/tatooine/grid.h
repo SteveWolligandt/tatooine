@@ -114,8 +114,8 @@ class grid {
   template <size_t... Is>
   constexpr auto boundingbox(std::index_sequence<Is...> /*is*/) const {
     static_assert(sizeof...(Is) == N);
-    return tatooine::boundingbox{tensor{m_dimensions[Is].min...},
-                                 tensor{m_dimensions[Is].max...}};
+    return tatooine::boundingbox{vec{m_dimensions[Is].front()...},
+                                 vec{m_dimensions[Is].back()...}};
   }
 
   //----------------------------------------------------------------------------

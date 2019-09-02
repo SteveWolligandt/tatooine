@@ -5,7 +5,6 @@
 #include <cassert>
 #include <deque>
 #include <stdexcept>
-#include "field.h"
 #include "interpolation.h"
 #include "tensor.h"
 #include "vtk_legacy.h"
@@ -33,17 +32,21 @@ struct line  {
 
   //============================================================================
   using real_t   = Real;
-  using vec_t    = tensor<real_t, N>;
+  using vec_t    = tensor<Real, N>;
   using pos_t    = vec_t;
-  using vec3     = tensor<real_t, 3>;
-  using mat3     = tensor<real_t, 3, 3>;
-  using this_t   = line<real_t, N>;
+  using vec3     = tensor<Real, 3>;
+  using mat3     = tensor<Real, 3, 3>;
+  using this_t   = line<Real, N>;
   using pos_container_t = std::deque<pos_t>;
 
   //============================================================================
  private:
   pos_container_t m_vertices;
   bool m_is_closed = false;
+
+ protected:
+  auto&       vertices() { return m_vertices; }
+  const auto& vertices() const { return m_vertices; }
 
   //============================================================================
  public:
@@ -66,20 +69,28 @@ struct line  {
       : m_vertices{std::move(data)}, m_is_closed{false} {}
 
   //----------------------------------------------------------------------------
-  //explicit line(const std::string& path) { read(path); }
+  explicit line(const std::string& path) { read(path); }
 
   //----------------------------------------------------------------------------
   auto size() const { return m_vertices.size(); }
+  //----------------------------------------------------------------------------
+  auto empty() const { return m_vertices.empty(); }
   //----------------------------------------------------------------------------
   auto&       at(size_t i) { return m_vertices[i]; }
   const auto& at(size_t i) const { return m_vertices[i]; }
 
   //----------------------------------------------------------------------------
+  const auto& front() const { return m_vertices.front(); }
+  auto& front() { return m_vertices.front(); }
+
+  //----------------------------------------------------------------------------
+  const auto& back() const { return m_vertices.back(); }
+  auto& back() { return m_vertices.back(); }
+
+  //----------------------------------------------------------------------------
   void push_back(const pos_t& p) { m_vertices.push_back(p); }
   //----------------------------------------------------------------------------
   void push_front(const pos_t& p) {m_vertices.push_front(p); }
-
-  const auto& vertices() const { return m_vertices; }
 
   //----------------------------------------------------------------------------
   /// calculates tangent at point i with forward differences
@@ -119,42 +130,10 @@ struct line  {
     return tangent(i, central);
   }
 
-  //----------------------------------------------------------------------------
-  /// computes tangent assuming the line is a quadratic curve
-  //auto tangent(const size_t i, quadratic_t [>q<]) const {
-  //  assert(this->size() > 1);
-  //  // start or end point
-  //  if (!is_closed()) {
-  //    if (i == 0) { return at(1) - at(0); }
-  //    if (i == this->size() - 1) { return at(i) - at(i - 1); }
-  //  }
-  //
-  //  // point in between
-  //  // const auto& x0 = at(std::abs((i - 1) % this->size()));
-  //  const auto& x0 = at(i - 1);
-  //  const auto& x1 = at(i);
-  //  const auto& x2 = at(i + 1);
-  //  // const auto& x2 = at((i + 1) % this->size());
-  //  const auto t =
-  //      (time_at(i) - time_at(i - 1)) / (time_at(i + 1) - time_at(i - 1));
-  //
-  //  // for each component fit a quadratic curve through the neighbor points and
-  //  // the point itself and compute the derivative
-  //  vec_t tangent;
-  //  const mat3 A{0, t * t, 1, 0, t, 1, 1, 1, 1};
-  //  std::cout << A << '\n';
-  //  for (size_t j = 0; j < N; ++j) {
-  //    vec3 b{x0(j), x1(j), x2(j)};
-  //    auto coeffs = gesv(A, b);
-  //
-  //    tangent(j) = 2 * coeffs(0) * t + coeffs(1);
-  //  }
-  //  return tangent;
-  //}
 
   //----------------------------------------------------------------------------
   auto length() {
-    real_t len = 0;
+    Real len = 0;
     for (size_t i = 0; i < this->size() - 1; ++i) {
       len += norm(at(i) - at(i + 1));
     }
@@ -170,7 +149,7 @@ struct line  {
   ////----------------------------------------------------------------------------
   ///// filters the line and returns a vector of lines
   //template <typename Pred>
-  //std::vector<line<real_t, N>> filter(Pred&& pred) const;
+  //std::vector<line<Real, N>> filter(Pred&& pred) const;
   //
   ////----------------------------------------------------------------------------
   ///// filters out all points where the eigenvalue of the jacobian is not real
@@ -191,45 +170,23 @@ struct line  {
   void write(const std::string& file);
 
   //----------------------------------------------------------------------------
-  static void write(const std::vector<line<real_t, N>>& line_set,
+  static void write(const std::vector<line<Real, N>>& line_set,
                     const std::string&                  file);
 
   //----------------------------------------------------------------------------
-  //void read(const std::string& file);
+  void read(const std::string& file);
 
   //----------------------------------------------------------------------------
-  //static auto read_line_set(const std::string& file);
-
-  //----------------------------------------------------------------------------
-  void write_vtk(const std::string& path, const std::string& title,
-                 bool write_tangents = false) const;
-
-  //----------------------------------------------------------------------------
-  //void write_obj(std::ostream& out, size_t first_index = 1) const;
-
-  //----------------------------------------------------------------------------
-  //void write_obj(const std::string& file, size_t first_index = 1) const;
-
-  //----------------------------------------------------------------------------
-  //static void write_obj(const std::vector<line>& line_set,
-  //                      const std::string&       file);
-
-  //----------------------------------------------------------------------------
-  //auto& print(std::ostream& out) const {
-  //  for (const auto [x, t] : *this) {
-  //    out << "[";
-  //    for (const auto& c : x) out << c << ' ';
-  //    out << ", " << t << "]\n";
-  //  }
-  //  return out;
-  //}
+  void write_vtk(const std::string& path,
+                 const std::string& title          = "tatooine line",
+                 bool               write_tangents = false) const;
 };
 
 //==============================================================================
-//template <typename real_t, std::size_t N>
+//template <typename Real, size_t N>
 //template <typename Pred>
-//std::vector<line<real_t, N>> line<real_t, N>::filter(Pred&& pred) const {
-//  std::vector<line<real_t, N>> filtered_lines;
+//std::vector<line<Real, N>> line<Real, N>::filter(Pred&& pred) const {
+//  std::vector<line<Real, N>> filtered_lines;
 //  bool                         need_new_strip = true;
 //
 //  size_t i      = 0;
@@ -257,17 +214,16 @@ struct line  {
 //}
 
 //------------------------------------------------------------------------------
-template <typename real_t, std::size_t N>
-void line<real_t, N>::write_vtk(const std::string& path,
-                                const std::string& title,
-                                bool               write_tangents) const {
-  vtk::LegacyFileWriter<real_t> writer(path, vtk::POLYDATA);
+template <typename Real, size_t N>
+void line<Real, N>::write_vtk(const std::string& path, const std::string& title,
+                              bool write_tangents) const {
+  vtk::LegacyFileWriter<Real> writer(path, vtk::POLYDATA);
   if (writer.is_open()) {
     writer.set_title(title);
     writer.write_header();
 
     // write points
-    std::vector<std::array<real_t, 3>> ps;
+    std::vector<std::array<Real, 3>> ps;
     ps.reserve(this->size());
     for (const auto& p : vertices()) {
       if constexpr (N == 3) {
@@ -288,7 +244,7 @@ void line<real_t, N>::write_vtk(const std::string& path,
 
     // write tangents
     if (write_tangents) {
-      std::vector<std::vector<real_t>> tangents;
+      std::vector<std::vector<Real>> tangents;
       tangents.reserve(this->size());
       for (size_t i = 0; i < this->size(); ++i) {
         const auto t = tangent(i);
@@ -302,18 +258,18 @@ void line<real_t, N>::write_vtk(const std::string& path,
 }
 
 //------------------------------------------------------------------------------
-template <typename real_t, std::size_t N>
-void write_vtk(const std::vector<line<real_t, N>>& lines,
+template <typename Real, size_t N>
+void write_vtk(const std::vector<line<Real, N>>& lines,
                const std::string&                  path,
                const std::string&                  title = "tatooine lines",
                bool                                write_tangents = false) {
-  vtk::LegacyFileWriter<real_t> writer(path, vtk::POLYDATA);
+  vtk::LegacyFileWriter<Real> writer(path, vtk::POLYDATA);
   if (writer.is_open()) {
     size_t num_pts = 0;
     for (const auto& l : lines) num_pts += l.size();
-    std::vector<std::array<real_t, 3>> points;
+    std::vector<std::array<Real, 3>> points;
     std::vector<std::vector<size_t>>   line_seqs;
-    std::vector<std::vector<real_t>>   tangents;
+    std::vector<std::vector<Real>>   tangents;
     points.reserve(num_pts);
     line_seqs.reserve(lines.size());
     if (write_tangents) { tangents.reserve(num_pts); }
@@ -353,196 +309,235 @@ void write_vtk(const std::vector<line<real_t, N>>& lines,
   }
 }
 
-//------------------------------------------------------------------------------
-//template <typename real_t, std::size_t N>
-//void line<real_t, N>::write_obj(std::ostream& out, size_t first_index) const {
-//  if constexpr (N == 2)
-//    for (const auto x : points())
-//      out << "v " << std::setprecision(20) << x(0) << " "
-//          << std::setprecision(20) << x(1) << " 0\n";
-//  else
-//    for (const auto x : points()) out << "v " << x.t();
-//  out << '\n';
-//  for (size_t i = 0; i < this->size() - 1; i++)
-//    out << "l " << first_index + i << " " << first_index + i + 1 << '\n';
-//  if (is_closed())
-//    out << "l " << first_index + this->size() - 1 << " " << first_index << '\n';
-//  out << '\n';
-//}
-//
-////------------------------------------------------------------------------------
-//template <typename real_t, std::size_t n>
-//void line<real_t, N>::write_obj(const std::string& path,
-//                                size_t [>first_index<]) const {
-//  std::fstream fout(path, std::fstream::out);
-//
-//  if (fout.is_open()) {
-//    write_obj(fout);
-//    fout.close();
-//  } else
-//    throw std::runtime_error("Could not open file " + path);
-//}
-
-//------------------------------------------------------------------------------
-//template <typename real_t, std::size_t N>
-//void line<real_t, N>::write_to_vtk_legacy(const std::string& path) const {
-//  vtk::LegacyFileWriter<real_t> writer(path, vtk::POLYDATA);
-//  if (writer.is_open()) {
-//    writer.set_title("line");
-//    writer.write_header();
-//
-//    // write points
-//    std::vector<std::array<real_t, 3>> ps;
-//    for (const auto& p : points())
-//      if constexpr (N == 3)
-//        ps.push_back({p(0), p(1), p(2)});
-//      else
-//        ps.push_back({p(0), p(1), 0});
-//    writer.write_points(ps);
-//
-//    // write lines
-//    std::vector<std::vector<size_t>> lines;
-//    lines.emplace_back(ps.size());
-//    std::iota(begin(lines.back()), end(lines.back()), 0);
-//    writer.write_lines(lines);
-//    writer.close();
-//  }
-//}
-
-//------------------------------------------------------------------------------
-//template <typename real_t, std::size_t N>
-//void line<real_t, N>::write_obj(const std::vector<line>& line_set,
-//                                const std::string&       path) {
-//  std::fstream fout(path, std::fstream::out);
-//  if (fout.is_open()) {
-//    std::size_t i           = 0;
-//    size_t      first_index = 1;
-//    for (const auto& line : line_set) {
-//      fout << "o line" << std::to_string(i) << '\n';
-//      i++;
-//      line.write_obj(fout, first_index);
-//      first_index += line.size();
-//    }
-//    fout.close();
-//  } else
-//    throw std::runtime_error("Could not open file " + path);
-//}
-
 //==============================================================================
-template <typename real_t, size_t N>
-struct parameteized_line : line<real_t, N> {
-  using this_t = parameteized_line<real_t, N>;
-  using parent_t = line<real_t, N>;
+template <typename Real, size_t N>
+struct parameterized_line : line<Real, N> {
+  using this_t   = parameterized_line<Real, N>;
+  using parent_t = line<Real, N>;
+  using typename parent_t::empty_exception;
+  using typename parent_t::vec_t;
   using typename parent_t::pos_t;
   struct time_not_found : std::exception {};
-  private:
-  std::vector<real_t> m_parameterization;
+
+  using parent_t::at;
+  using parent_t::size;
+  using parent_t::vertices;
+  using parent_t::tangent;
+
+ private:
+  std::deque<Real> m_parameterization;
+
+ public:
+  parameterized_line()                                         = default;
+  parameterized_line(const parameterized_line&)                = default;
+  parameterized_line(parameterized_line&&) noexcept            = default;
+  parameterized_line& operator=(const parameterized_line&)     = default;
+  parameterized_line& operator=(parameterized_line&&) noexcept = default;
+  //----------------------------------------------------------------------------
+  std::pair<pos_t&, Real&> front() {
+    return {vertices().front(), m_parameterization.front()};
+  }
+  // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+  std::pair<const pos_t&, const Real&> front() const {
+    return {vertices().front(), m_parameterization.front()};
+  }
+
+  //----------------------------------------------------------------------------
+  std::pair<pos_t&, Real&> back() {
+    return {vertices().back(), m_parameterization.back()};
+  }
+  // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+  std::pair<const pos_t&, const Real&> back() const {
+    return {vertices().back(), m_parameterization.back()};
+  }
+
+  //----------------------------------------------------------------------------
+  auto& front_position() { return vertices().front(); }
+  const auto& front_position() const { return vertices().front(); }
+
+  //----------------------------------------------------------------------------
+  auto& back_position() { return vertices().back(); }
+  const auto& back_position() const { return vertices().back(); }
+
+  //----------------------------------------------------------------------------
+  auto& front_parameterization() { return m_parameterization.front(); }
+  const auto& front_parameterization() const { return m_parameterization.front(); }
+
+  //----------------------------------------------------------------------------
+  auto& back_parameterization() { return m_parameterization.back(); }
+  const auto& back_parameterization() const { return m_parameterization.back(); }
+
+  //----------------------------------------------------------------------------
+  void push_back(const pos_t& p, Real t) {
+    parent_t::push_back(p);
+    m_parameterization.push_back(t);
+  }
+
+  //----------------------------------------------------------------------------
+  void push_front(const pos_t& p, Real t) {
+    parent_t::push_front(p);
+    m_parameterization.push_front(t);
+  }
+
+  //----------------------------------------------------------------------------
+  auto  param_at(size_t i) const { return m_parameterization[i]; }
+  auto& param_at(size_t i) { return m_parameterization[i]; }
 
   //----------------------------------------------------------------------------
   /// sample the line via interpolation
   template <template <typename>
             typename interpolator_t = interpolation::hermite>
-  auto sample(real_t t) const {
-//    if (this->empty()) throw empty_exception{};
-//
-//    const auto min_time = std::min(front_time(), back_time());
-//    const auto max_time = std::max(front_time(), back_time());
-//    if (std::abs(t - min_time) < 1e-6)
-//      t = min_time;
-//    else if (std::abs(t - max_time) < 1e-6)
-//      t = max_time;
-//    // calculate two points t is in between
-//    const_iterator_point lower_it_point = begin_point(),
-//                         upper_it_point = begin_point();
-//    const_iterator_time lower_it_time   = begin_time(),
-//                        upper_it_time   = begin_time();
-//    bool found                          = false;
-//    for (size_t i = 0; i < this->size() - 1; i++) {
-//      if ((time_at(i) <= t && t <= time_at(i + 1)) ||
-//          (time_at(i + 1) <= t && t <= time_at(i))) {
-//        lower_it_time = const_iterator_time(i, this);
-//        upper_it_time = const_iterator_time(i + 1, this);
-//
-//        lower_it_point = const_iterator_point(i, this);
-//        upper_it_point = const_iterator_point(i + 1, this);
-//        found          = true;
-//        break;
-//      }
-//    }
-//    if (!found) { throw time_not_found{}; }
-//    // interpolate
-//    interpolator_t<vec_t, real_t> interp;
-//    real_t factor = (t - *lower_it_time) / (*upper_it_time - *lower_it_time);
-//    auto   s = interp.interpolate(lower_it_point, upper_it_point, begin_point(),
-//                                end_point(), factor);
-//
-    //return s;
+  auto sample(Real t) const {
+    if (this->empty()) { throw empty_exception{}; }
+
+    const auto min_time =
+        std::min(m_parameterization.front(), m_parameterization.back());
+    const auto max_time =
+        std::max(m_parameterization.front(), m_parameterization.back());
+
+    if (std::abs(t - min_time) < 1e-6) {
+      t = min_time;
+    } else if (std::abs(t - max_time) < 1e-6) {
+      t = max_time;
+    }
+
+    // calculate two points t is in between
+    size_t left  = std::numeric_limits<size_t>::max();
+    bool   found = false;
+    for (size_t i = 0; i < size() - 1; i++) {
+      if ((param_at(i) <= t && t <= param_at(i + 1)) ||
+          (param_at(i + 1) <= t && t <= param_at(i))) {
+        left  = i;
+        found = true;
+        break;
+      }
+    }
+    if (!found) { throw time_not_found{}; }
+    // interpolate
+    Real factor = (t - m_parameterization[left]) /
+                    (m_parameterization[left + 1] - m_parameterization[left]);
+    interpolator_t<Real> interp;
+    return interp.interpolate_iter(next(begin(vertices()), left),
+                                   next(begin(vertices()), left + 1),
+                                   begin(vertices()),
+                                   end(vertices()), factor);
   }
-  //----------------------------------------------------------------------------
+  // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
   template <template <typename>
             typename interpolator_t = interpolation::hermite>
-  auto operator()(const real_t t) const {
+  auto operator()(const Real t) const {
     return sample<interpolator_t>(t);
   }
-  ////----------------------------------------------------------------------------
-  template <template <typename>
-            typename interpolator_t = interpolation::hermite>
-  auto refine(size_t level) const {
-  //  line<real_t, N> refined_line;
-  //  for (size_t j = 0; j < this->size() - 1; ++j) {
-  //    for (size_t i = 0; i < level; ++i) {
-  //      const auto& t         = time((*this)[j]);
-  //      const auto  time_span = time((*this)[j + 1]) - t;
-  //      real_t      step      = time_span / real_t(level);
-  //      refined_line.push_back(this->sample<interpolator_t>(t + i * step),
-  //                             t + i * step);
-  //    }
-  //  }
-  //  refined_line.push_back(point(this->back()), time(this->back()));
-  //  return refined_line;
-  }
   
-  //----------------------------------------------------------------------------
-  void uniform_parameterization(real_t t0 = 0) {
-    //time_at(0) = t0;
-    //for (size_t i = 1; i < this->size(); ++i) {
-    //  time_at(i) = time_at(i - 1) + 1;
-    //}
+  //============================================================================
+  void uniform_parameterization(Real t0 = 0) {
+     param_at(0) = t0;
+     for (size_t i = 1; i < this->size(); ++i) {
+      param_at(i) = param_at(i - 1) + 1;
+    }
+  }
+  // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+  void chordal_parameterization(Real t0 = 0) {
+     param_at(0) = t0;
+     for (size_t i = 1; i < this->size(); ++i) {
+      param_at(i) = param_at(i - 1) + distance(at(i), at(i - 1));
+    }
+  }
+  // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+  void centripetal_parameterization(Real t0 = 0) {
+    param_at(0) = t0;
+    for (size_t i = 1; i < this->size(); ++i) {
+      param_at(i) = param_at(i - 1) + std::sqrt(distance(at(i), at(i - 1)));
+    }
   }
 
   //----------------------------------------------------------------------------
-  void chordal_parameterization(real_t t0 = 0) {
-    //time_at(0) = t0;
-    //for (size_t i = 1; i < this->size(); ++i) {
-    //  time_at(i) = time_at(i - 1) + distance(at(i), at(i - 1));
-    //}
+  /// computes tangent assuming the line is a quadratic curve
+  auto tangent(const size_t i, quadratic_t /*q*/) const {
+    assert(this->size() > 1);
+    // start or end point
+    if (!this->is_closed()) {
+      if (i == 0) { return at(1) - at(0); }
+      if (i == this->size() - 1) { return at(i) - at(i - 1); }
+    }
+
+    // point in between
+    // const auto& x0 = at(std::abs((i - 1) % this->size()));
+    const auto& x0 = at(i - 1);
+    const auto& x1 = at(i);
+    const auto& x2 = at(i + 1);
+    // const auto& x2 = at((i + 1) % this->size());
+    const auto t =
+        (param_at(i) - param_at(i - 1)) / (param_at(i + 1) - param_at(i - 1));
+
+    // for each component fit a quadratic curve through the neighbor points and
+    // the point itself and compute the derivative
+    vec_t tangent;
+    const mat3 A{
+      {  0.0,   0.0,   1.0},
+      {t * t,     t,   1.0},
+      {  1.0,   1.0,   1.0}};
+    for (size_t j = 0; j < N; ++j) {
+      vec3 b{x0(j), x1(j), x2(j)};
+      auto coeffs = gesv(A, b);
+
+      tangent(j) = 2 * coeffs(0) * t + coeffs(1);
+    }
+    return tangent;
   }
 
-  //----------------------------------------------------------------------------
-  void centripetal_parameterization(real_t t0 = 0) {
-    //time_at(0) = t0;
-    //for (size_t i = 1; i < this->size(); ++i) {
-    //  time_at(i) = time_at(i - 1) + std::sqrt(dist(at(i), at(i - 1)));
-    //}
+  //------------------------------------------------------------------------------
+  void write_vtk(const std::string& path,
+                 const std::string& title = "tatooine parameterized line",
+                 bool               write_tangents = false) const {
+    vtk::LegacyFileWriter<Real> writer(path, vtk::POLYDATA);
+    if (writer.is_open()) {
+      writer.set_title(title);
+      writer.write_header();
+
+      // write points
+      std::vector<std::array<Real, 3>> ps;
+      ps.reserve(this->size());
+      for (const auto& p : vertices()) {
+        if constexpr (N == 3) {
+          ps.push_back({p(0), p(1), p(2)});
+        } else {
+          ps.push_back({p(0), p(1), 0});
+        }
+      }
+      writer.write_points(ps);
+
+      // write lines
+      std::vector<std::vector<size_t>> line_seq(
+          1, std::vector<size_t>(this->size()));
+      boost::iota(line_seq.front(), 0);
+      writer.write_lines(line_seq);
+
+      writer.write_point_data(this->size());
+
+      // write tangents
+      if (write_tangents) {
+        std::vector<std::vector<Real>> tangents;
+        tangents.reserve(this->size());
+        for (size_t i = 0; i < this->size(); ++i) {
+          const auto t = tangent(i);
+          tangents.push_back({t(0), t(1), t(2)});
+        }
+        writer.write_scalars("tangents", tangents);
+      }
+
+      // write parameterization
+      std::vector<std::vector<Real>> parameterization;
+      parameterization.reserve(this->size());
+      for (auto t : m_parameterization) {
+        parameterization.push_back({t});
+      }
+      writer.write_scalars("parameterization", parameterization);
+
+      writer.close();
+    }
   }
 };
-
-//------------------------------------------------------------------------------
-template <typename real_t, std::size_t N>
-inline auto& operator<<(std::ostream& out, line<real_t, N>& line) {
-  return line.print(out);
-}
-
-//==============================================================================
-/// \defgroup lineiterators line Iterators
-/// \{
-//==============================================================================
-template <typename T>
-struct is_line : std::false_type {};
-
-//------------------------------------------------------------------------------
-template <typename real_t, std::size_t N>
-struct is_line<line<real_t, N>> : std::true_type {};
 
 //==============================================================================
 }  // namespace tatooine

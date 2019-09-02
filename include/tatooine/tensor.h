@@ -171,7 +171,16 @@ struct base_tensor : crtp<Tensor> {
     return static_multidimension<Dims...>::global_idx(is...);
   }
 
-
+  //----------------------------------------------------------------------------
+  template <typename OtherTensor, typename OtherReal>
+  bool operator<(
+      const base_tensor<OtherTensor, OtherReal, Dims...>& other) const {
+    bool smaller = true;
+    for_indices([&](const auto... is) {
+      if (at(is...) >= other(is...)) { smaller = false; }
+    });
+    return smaller;
+  }
 };
 
 //==============================================================================
@@ -207,16 +216,18 @@ struct tensor : base_tensor<tensor<Real, Dims...>, Real, Dims...> {
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
   /// vector initialization
   template <typename... Ts, size_t _n = num_dimensions(),
-            std::enable_if_t<_n == 1>...>
+            std::enable_if_t<_n == 1>...,
+            enable_if_arithmetic_or_symbolic<Ts...>...>
   constexpr tensor(const Ts... ts) : m_data{static_cast<Real>(ts)...} {
     static_assert(sizeof...(Ts) == parent_t::dimension(0));
   }
 
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
   /// matrix initialization
-  template <typename... row_ts, size_t _n = num_dimensions(),
-            std::enable_if_t<_n == 2>...>
-  constexpr tensor(row_ts(&&... rows)[parent_t::dimension(1)])
+  template <typename... Rows, size_t _n = num_dimensions(),
+            std::enable_if_t<_n == 2>...,
+            enable_if_arithmetic_or_symbolic<Rows...>...>
+  constexpr tensor(Rows(&&... rows)[parent_t::dimension(1)])
       : m_data{make_array<Real, num_components()>()} {
     static_assert(
         sizeof...(rows) == parent_t::dimension(0),
@@ -233,28 +244,25 @@ struct tensor : base_tensor<tensor<Real, Dims...>, Real, Dims...> {
   }
 
   //----------------------------------------------------------------------------
-  template <typename _real_t = Real,
-            std::enable_if_t<std::is_arithmetic_v<_real_t>>...>
-  constexpr tensor(zeros_t /*zeros*/) : tensor{0} {}
+  template <typename _real_t = Real, enable_if_arithmetic<_real_t>...>
+  constexpr tensor(zeros_t /*zeros*/) : tensor{Real(0)} {}
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-  template <typename _real_t = Real,
-            std::enable_if_t<std::is_arithmetic_v<_real_t>>...>
-  constexpr tensor(ones_t /*ones*/) : tensor{1} {}
+  template <typename _real_t = Real, enable_if_arithmetic<_real_t>...>
+  constexpr tensor(ones_t /*ones*/) : tensor{Real(1)} {}
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
   template <typename fill_real_t, typename _real_t = Real,
-            std::enable_if_t<std::is_arithmetic_v<_real_t>>...>
-  constexpr tensor(fill<fill_real_t> f)
-      : tensor{static_cast<Real>(f.value)} {}
+            enable_if_arithmetic<_real_t>...>
+  constexpr tensor(fill<fill_real_t> f) : tensor{static_cast<Real>(f.value)} {}
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-  template <typename Engine, typename RandomReal, typename _real_t = Real,
-            std::enable_if_t<std::is_arithmetic_v<RandomReal>>...>
-  constexpr tensor(random_uniform<Engine, RandomReal>&& rand) : tensor{} {
+  template <typename RandomReal, typename Engine, typename _real_t = Real,
+            enable_if_arithmetic<RandomReal>...>
+  constexpr tensor(random_uniform<RandomReal, Engine>&& rand) : tensor{} {
     this->unary_operation([&](const auto& /*c*/) { return rand.get(); });
   }
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-  template <typename Engine, typename RandomReal, typename _real_t = Real,
-            std::enable_if_t<std::is_arithmetic_v<_real_t>>...>
-  constexpr tensor(random_normal<Engine, RandomReal>&& rand) : tensor{} {
+  template <typename RandomReal, typename Engine, typename _real_t = Real,
+            enable_if_arithmetic<_real_t>...>
+  constexpr tensor(random_normal<RandomReal, Engine>&& rand) : tensor{} {
     this->unary_operation([&](const auto& /*c*/) { return rand.get(); });
   }
 
@@ -457,10 +465,10 @@ constexpr auto normalize(const base_tensor<tensor_t, Real, N>& t_in) {
 }
 
 //------------------------------------------------------------------------------
-template <typename lhs_tensor_t, typename lhs_real_t, typename rhs_tensor_t,
-          typename rhs_real_t, size_t N>
-constexpr auto distance(const base_tensor<lhs_tensor_t, lhs_real_t, N>& lhs,
-                        const base_tensor<rhs_tensor_t, rhs_real_t, N>& rhs) {
+template <typename LhsTensor, typename LhsReal, typename RhsTensor,
+          typename RhsReal, size_t N>
+constexpr auto distance(const base_tensor<LhsTensor, LhsReal, N>& lhs,
+                        const base_tensor<RhsTensor, RhsReal, N>& rhs) {
   return length(rhs - lhs);
 }
 
@@ -474,11 +482,11 @@ constexpr auto sum(const base_tensor<tensor_t, Real, VecDim>& v) {
 }
 
 //------------------------------------------------------------------------------
-template <typename lhs_tensor_t, typename lhs_real_t, typename rhs_tensor_t,
-          typename rhs_real_t, size_t N>
-constexpr auto dot(const base_tensor<lhs_tensor_t, lhs_real_t, N>& lhs,
-                   const base_tensor<rhs_tensor_t, rhs_real_t, N>& rhs) {
-  promote_t<lhs_real_t, rhs_real_t> d = 0;
+template <typename LhsTensor, typename LhsReal, typename RhsTensor,
+          typename RhsReal, size_t N>
+constexpr auto dot(const base_tensor<LhsTensor, LhsReal, N>& lhs,
+                   const base_tensor<RhsTensor, RhsReal, N>& rhs) {
+  promote_t<LhsReal, RhsReal> d = 0;
   for (size_t i = 0; i < N; ++i) { d += lhs(i) * rhs(i); }
   return d;
 }
@@ -497,11 +505,11 @@ constexpr auto det(const base_tensor<tensor_t, Real, 3, 3>& m) {
 }
 
 //------------------------------------------------------------------------------
-template <typename lhs_tensor_t, typename lhs_real_t, typename rhs_tensor_t,
-          typename rhs_real_t>
-constexpr auto cross(const base_tensor<lhs_tensor_t, lhs_real_t, 3>& lhs,
-                     const base_tensor<rhs_tensor_t, rhs_real_t, 3>& rhs) {
-  return tensor<promote_t<lhs_real_t, rhs_real_t>, 3>{
+template <typename LhsTensor, typename LhsReal, typename RhsTensor,
+          typename RhsReal>
+constexpr auto cross(const base_tensor<LhsTensor, LhsReal, 3>& lhs,
+                     const base_tensor<RhsTensor, RhsReal, 3>& rhs) {
+  return tensor<promote_t<LhsReal, RhsReal>, 3>{
       lhs(2) * rhs(3) - lhs(3) * lhs(2), lhs(3) * rhs(1) - lhs(1) * lhs(3),
       lhs(1) * rhs(2) - lhs(2) * lhs(1)};
 }
@@ -515,13 +523,13 @@ constexpr auto unary_operation(
   return t_out.unary_operation(std::forward<F>(f));
 }
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-template <typename F, typename lhs_tensor_t, typename lhs_real_t,
-          typename rhs_tensor_t, typename rhs_real_t, size_t... Dims>
+template <typename F, typename LhsTensor, typename LhsReal,
+          typename RhsTensor, typename RhsReal, size_t... Dims>
 constexpr auto binary_operation(
-    F&& f, const base_tensor<lhs_tensor_t, lhs_real_t, Dims...>& lhs,
-    const base_tensor<rhs_tensor_t, rhs_real_t, Dims...>& rhs) {
+    F&& f, const base_tensor<LhsTensor, LhsReal, Dims...>& lhs,
+    const base_tensor<RhsTensor, RhsReal, Dims...>& rhs) {
   using out_real_t =
-      typename std::result_of<decltype(f)(lhs_real_t, rhs_real_t)>::type;
+      typename std::result_of<decltype(f)(LhsReal, RhsReal)>::type;
   tensor<out_real_t, Dims...> t_out = lhs;
   return t_out.binary_operation(std::forward<F>(f), rhs);
 }
@@ -534,12 +542,40 @@ constexpr auto operator-(const base_tensor<tensor_t, Real, Dims...>& t) {
 }
 
 //------------------------------------------------------------------------------
-template <typename lhs_tensor_t, typename lhs_real_t, typename rhs_tensor_t,
-          typename rhs_real_t, size_t... Dims>
+template <typename LhsTensor, typename LhsReal, typename RhsReal,
+          size_t... Dims, enable_if_arithmetic<RhsReal>...>
+constexpr auto operator+(const base_tensor<LhsTensor, LhsReal, Dims...>& lhs,
+                         RhsReal scalar) {
+  return unary_operation([scalar](const auto& c) { return c + scalar; }, lhs);
+}
+
+//------------------------------------------------------------------------------
+template <typename LhsTensor, typename LhsReal, typename RhsTensor,
+          typename RhsReal, size_t... Dims>
+constexpr auto operator*(
+    const base_tensor<LhsTensor, LhsReal, Dims...>& lhs,
+    const base_tensor<RhsTensor, RhsReal, Dims...>& rhs) {
+  return binary_operation(std::multiplies<promote_t<LhsReal, RhsReal>>{}, lhs,
+                          rhs);
+}
+
+//------------------------------------------------------------------------------
+template <typename LhsTensor, typename LhsReal, typename RhsTensor,
+          typename RhsReal, size_t... Dims>
+constexpr auto operator/(
+    const base_tensor<LhsTensor, LhsReal, Dims...>& lhs,
+    const base_tensor<RhsTensor, RhsReal, Dims...>& rhs) {
+  return binary_operation(std::divides<promote_t<LhsReal, RhsReal>>{}, lhs,
+                          rhs);
+}
+
+//------------------------------------------------------------------------------
+template <typename LhsTensor, typename LhsReal, typename RhsTensor,
+          typename RhsReal, size_t... Dims>
 constexpr auto operator+(
-    const base_tensor<lhs_tensor_t, lhs_real_t, Dims...>& lhs,
-    const base_tensor<rhs_tensor_t, rhs_real_t, Dims...>& rhs) {
-  return binary_operation(std::plus<promote_t<lhs_real_t, rhs_real_t>>{}, lhs,
+    const base_tensor<LhsTensor, LhsReal, Dims...>& lhs,
+    const base_tensor<RhsTensor, RhsReal, Dims...>& rhs) {
+  return binary_operation(std::plus<promote_t<LhsReal, RhsReal>>{}, lhs,
                           rhs);
 }
 
@@ -592,22 +628,22 @@ constexpr auto operator/(
 }
 
 //------------------------------------------------------------------------------
-template <typename lhs_tensor_t, typename lhs_real_t, typename rhs_tensor_t,
-          typename rhs_real_t, size_t... Dims>
+template <typename LhsTensor, typename LhsReal, typename RhsTensor,
+          typename RhsReal, size_t... Dims>
 constexpr auto operator-(
-    const base_tensor<lhs_tensor_t, lhs_real_t, Dims...>& lhs,
-    const base_tensor<rhs_tensor_t, rhs_real_t, Dims...>& rhs) {
-  return binary_operation(std::minus<promote_t<lhs_real_t, rhs_real_t>>{}, lhs,
+    const base_tensor<LhsTensor, LhsReal, Dims...>& lhs,
+    const base_tensor<RhsTensor, RhsReal, Dims...>& rhs) {
+  return binary_operation(std::minus<promote_t<LhsReal, RhsReal>>{}, lhs,
                           rhs);
 }
 
 //------------------------------------------------------------------------------
 /// matrix-vector-multiplication
-template <typename lhs_tensor_t, typename lhs_real_t, typename rhs_tensor_t,
-          typename rhs_real_t, size_t M, size_t N>
-constexpr auto operator*(const base_tensor<lhs_tensor_t, lhs_real_t, M, N>& lhs,
-                         const base_tensor<rhs_tensor_t, rhs_real_t, N>& rhs) {
-  tensor<promote_t<lhs_real_t, rhs_real_t>, M> product;
+template <typename LhsTensor, typename LhsReal, typename RhsTensor,
+          typename RhsReal, size_t M, size_t N>
+constexpr auto operator*(const base_tensor<LhsTensor, LhsReal, M, N>& lhs,
+                         const base_tensor<RhsTensor, RhsReal, N>& rhs) {
+  tensor<promote_t<LhsReal, RhsReal>, M> product;
   for (size_t i = 0; i < M; ++i) {
     product(i) = dot(lhs.template slice<0>(i), rhs);
   }
@@ -750,12 +786,12 @@ auto imag(const base_tensor<tensor_t, std::complex<Real>, Dims...>& v) {
 
 //------------------------------------------------------------------------------
 /// for comparison
-template <typename lhs_tensor_t, typename lhs_real_t,
-          typename rhs_tensor_t, typename rhs_real_t, size_t... Dims>
+template <typename LhsTensor, typename LhsReal,
+          typename RhsTensor, typename RhsReal, size_t... Dims>
 constexpr bool approx_equal(
-    const base_tensor<lhs_tensor_t, lhs_real_t, Dims...>& lhs,
-    const base_tensor<rhs_tensor_t, rhs_real_t, Dims...>& rhs,
-    promote_t<lhs_real_t, rhs_real_t>            eps = 1e-6) {
+    const base_tensor<LhsTensor, LhsReal, Dims...>& lhs,
+    const base_tensor<RhsTensor, RhsReal, Dims...>& rhs,
+    promote_t<LhsReal, RhsReal>            eps = 1e-6) {
   bool equal = true;
   lhs.for_indices([&](const auto... is) {
     if (std::abs(lhs(is...) - rhs(is...)) > eps) { equal = false; }

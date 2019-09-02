@@ -2,11 +2,10 @@
 #define TATOOINE_RANDOM_H
 
 #include <random>
-
 #include "type_traits.h"
 
 //==============================================================================
-template <typename Engine, typename Real>
+template <typename Real, typename Engine = std::mt19937_64>
 struct random_uniform {
   using engine_t = Engine;
   using real_t   = Real;
@@ -50,19 +49,20 @@ struct random_uniform {
   //============================================================================
  public:
   auto get() { return distribution(engine); }
+  auto operator()() { return get(); }
 };
 
 //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-random_uniform()->random_uniform<std::mt19937_64, double>;
+random_uniform()->random_uniform<double, std::mt19937_64>;
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 template <typename Engine>
-random_uniform(Engine &&)->random_uniform<Engine, double>;
+random_uniform(Engine &&)->random_uniform<double, Engine>;
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 template <typename Real>
-random_uniform(Real min, Real max)->random_uniform<std::mt19937_64, Real>;
+random_uniform(Real min, Real max)->random_uniform<Real, std::mt19937_64>;
 
 //==============================================================================
-template <typename Engine, typename Real>
+template <typename Real, typename Engine = std::mt19937_64>
 struct random_normal {
   using engine_t = Engine;
   using real_t = Real;
@@ -103,16 +103,17 @@ struct random_normal {
   //============================================================================
  public:
   auto get() { return distribution(engine); }
+  auto operator()() { return get(); }
 };
 
 //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-random_normal()->random_normal<std::mt19937_64, double>;
+random_normal()->random_normal<double, std::mt19937_64>;
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 template <typename Engine>
-random_normal(Engine &&)->random_normal<Engine, double>;
+random_normal(Engine &&)->random_normal<double, Engine>;
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 template <typename Real>
-random_normal(Real mean, Real stddev)->random_normal<std::mt19937_64, Real>;
+random_normal(Real mean, Real stddev)->random_normal<Real, std::mt19937_64>;
 
 //==============================================================================
 template <typename Iterator, typename RandomEngine>

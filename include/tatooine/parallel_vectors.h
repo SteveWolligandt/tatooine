@@ -29,19 +29,19 @@ struct parallel_vectors {
 
   //============================================================================
  private:
-  const V&      m_v;
-  const W&      m_w;
-  grid<3, real_t> m_grid;
+  const V&        m_v;
+  const W&        m_w;
+  grid<real_t, 3> m_grid;
 
   std::vector<std::vector<std::vector<std::vector<int>>>> m_upper_indices;
   std::vector<std::vector<std::vector<std::vector<int>>>> m_lower_indices;
 
   //============================================================================
  public:
-  parallel_vectors(const V& v, const W& w, const grid<3, real_t>& g)
+  parallel_vectors(const V& v, const W& w, const grid<real_t, 3>& g)
       : m_v{v}, m_w{w}, m_grid{g} {}
   parallel_vectors(const V& v, const W& w, const linspace<real_t>& x,
-                  const linspace<real_t>& y, const linspace<real_t>& z)
+                   const linspace<real_t>& y, const linspace<real_t>& z)
       : m_v{v}, m_w{w}, m_grid{x, y, z} {}
 
   //----------------------------------------------------------------------------
@@ -129,13 +129,17 @@ struct parallel_vectors {
   }
 
   //----------------------------------------------------------------------------
-  std::optional<vec3> pv_on_tri(
-      const vec3& p0, const vec3& v0, const vec3& w0,
-      const vec3& p1, const vec3& v1, const vec3& w1,
-      const vec3& p2, const vec3& v2, const vec3& w2) {
+  std::optional<vec3> pv_on_tri(const vec3& p0, const vec3& v0, const vec3& w0,
+                                const vec3& p1, const vec3& v1, const vec3& w1,
+                                const vec3& p2, const vec3& v2,
+                                const vec3& w2) {
     mat<real_t, 3, 3> v, w, m;
-    v.col(0) = v0; v.col(1) = v1; v.col(2) = v2;
-    w.col(0) = w0; w.col(1) = w1; w.col(2) = w2;
+    v.col(0) = v0;
+    v.col(1) = v1;
+    v.col(2) = v2;
+    w.col(0) = w0;
+    w.col(1) = w1;
+    w.col(2) = w2;
 
     if (std::abs(det(v)) > 0) {
       m = gesv(v, w);
@@ -152,11 +156,9 @@ struct parallel_vectors {
       if ((std::abs(eigvecs(0, i).imag()) <= 0 &&
            std::abs(eigvecs(1, i).imag()) <= 0 &&
            std::abs(eigvecs(2, i).imag()) <= 0) &&
-          ((eigvecs(0, i).real() <= 0 &&
-            eigvecs(1, i).real() <= 0 &&
+          ((eigvecs(0, i).real() <= 0 && eigvecs(1, i).real() <= 0 &&
             eigvecs(2, i).real() <= 0) ||
-           (eigvecs(0, i).real() >= 0 &&
-            eigvecs(1, i).real() >= 0 &&
+           (eigvecs(0, i).real() >= 0 && eigvecs(1, i).real() >= 0 &&
             eigvecs(2, i).real() >= 0))) {
         const auto bc = real(eigvecs.col(i)) / sum(real(eigvecs.col(i)));
         barycentric_coords.push_back(bc);
@@ -226,13 +228,13 @@ struct parallel_vectors {
     for (size_t iz = 0; iz < m_grid.dimension(2).size() - 1; ++iz) {
       for (size_t iy = 0; iy < m_grid.dimension(1).size() - 1; ++iy) {
         for (size_t ix = 0; ix < m_grid.dimension(0).size() - 1; ++ix) {
-          const auto&       x      = m_grid.dimension(0)[ix];
-          const auto&       next_x = m_grid.dimension(0)[ix + 1];
-          const auto&       y      = m_grid.dimension(1)[iy];
-          const auto&       next_y = m_grid.dimension(1)[iy + 1];
-          const auto&       z      = m_grid.dimension(2)[iz];
-          const auto&       next_z = m_grid.dimension(2)[iz + 1];
-          std::array p{
+          const auto& x      = m_grid.dimension(0)[ix];
+          const auto& next_x = m_grid.dimension(0)[ix + 1];
+          const auto& y      = m_grid.dimension(1)[iy];
+          const auto& next_y = m_grid.dimension(1)[iy + 1];
+          const auto& z      = m_grid.dimension(2)[iz];
+          const auto& next_z = m_grid.dimension(2)[iz + 1];
+          std::array  p{
               vec{x, y, z},           vec{next_x, y, z},
               vec{x, next_y, z},      vec{next_x, next_y, z},
               vec{x, y, next_z},      vec{next_x, y, next_z},
@@ -256,54 +258,38 @@ struct parallel_vectors {
           if (zodd) { turned = !turned; }
           if (turned) {
             // check if there are parallel vectors on any of the tet's triangles
-            auto pv012 = pv_on_tri(p[0], v[0], w[0],
-                                   p[1], v[1], w[1],
-                                   p[2], v[2], w[2]);
-            auto pv014 = pv_on_tri(p[0], v[0], w[0],
-                                   p[1], v[1], w[1],
-                                   p[4], v[4], w[4]);
-            auto pv024 = pv_on_tri(p[0], v[0], w[0],
-                                   p[2], v[2], w[2],
-                                   p[4], v[4], w[4]);
-            auto pv124 = pv_on_tri(p[1], v[1], w[1],
-                                   p[2], v[2], w[2],
-                                   p[4], v[4], w[4]);
-            auto pv246 = pv_on_tri(p[2], v[2], w[2],
-                                   p[4], v[4], w[4],
-                                   p[6], v[6], w[6]);
-            auto pv247 = pv_on_tri(p[2], v[2], w[2],
-                                   p[4], v[4], w[4],
-                                   p[7], v[7], w[7]);
-            auto pv267 = pv_on_tri(p[2], v[2], w[2],
-                                   p[6], v[6], w[6],
-                                   p[7], v[7], w[7]);
-            auto pv467 = pv_on_tri(p[4], v[4], w[4],
-                                   p[6], v[6], w[6],
-                                   p[7], v[7], w[7]);
-            auto pv145 = pv_on_tri(p[1], v[1], w[1],
-                                   p[4], v[4], w[4],
-                                   p[5], v[5], w[5]);
-            auto pv147 = pv_on_tri(p[1], v[1], w[1],
-                                   p[4], v[4], w[4],
-                                   p[7], v[7], w[7]);
-            auto pv157 = pv_on_tri(p[1], v[1], w[1],
-                                   p[5], v[5], w[5],
-                                   p[7], v[7], w[7]);
-            auto pv457 = pv_on_tri(p[4], v[4], w[4],
-                                   p[5], v[5], w[5],
-                                   p[7], v[7], w[7]);
-            auto pv123 = pv_on_tri(p[1], v[1], w[1],
-                                   p[2], v[2], w[2],
-                                   p[3], v[3], w[3]);
-            auto pv127 = pv_on_tri(p[1], v[1], w[1],
-                                   p[2], v[2], w[2],
-                                   p[7], v[7], w[7]);
-            auto pv137 = pv_on_tri(p[1], v[1], w[1],
-                                   p[3], v[3], w[3],
-                                   p[7], v[7], w[7]);
-            auto pv237 = pv_on_tri(p[2], v[2], w[2],
-                                   p[3], v[3], w[3],
-                                   p[7], v[7], w[7]);
+            auto pv012 =
+                pv_on_tri(p[0], v[0], w[0], p[1], v[1], w[1], p[2], v[2], w[2]);
+            auto pv014 =
+                pv_on_tri(p[0], v[0], w[0], p[1], v[1], w[1], p[4], v[4], w[4]);
+            auto pv024 =
+                pv_on_tri(p[0], v[0], w[0], p[2], v[2], w[2], p[4], v[4], w[4]);
+            auto pv124 =
+                pv_on_tri(p[1], v[1], w[1], p[2], v[2], w[2], p[4], v[4], w[4]);
+            auto pv246 =
+                pv_on_tri(p[2], v[2], w[2], p[4], v[4], w[4], p[6], v[6], w[6]);
+            auto pv247 =
+                pv_on_tri(p[2], v[2], w[2], p[4], v[4], w[4], p[7], v[7], w[7]);
+            auto pv267 =
+                pv_on_tri(p[2], v[2], w[2], p[6], v[6], w[6], p[7], v[7], w[7]);
+            auto pv467 =
+                pv_on_tri(p[4], v[4], w[4], p[6], v[6], w[6], p[7], v[7], w[7]);
+            auto pv145 =
+                pv_on_tri(p[1], v[1], w[1], p[4], v[4], w[4], p[5], v[5], w[5]);
+            auto pv147 =
+                pv_on_tri(p[1], v[1], w[1], p[4], v[4], w[4], p[7], v[7], w[7]);
+            auto pv157 =
+                pv_on_tri(p[1], v[1], w[1], p[5], v[5], w[5], p[7], v[7], w[7]);
+            auto pv457 =
+                pv_on_tri(p[4], v[4], w[4], p[5], v[5], w[5], p[7], v[7], w[7]);
+            auto pv123 =
+                pv_on_tri(p[1], v[1], w[1], p[2], v[2], w[2], p[3], v[3], w[3]);
+            auto pv127 =
+                pv_on_tri(p[1], v[1], w[1], p[2], v[2], w[2], p[7], v[7], w[7]);
+            auto pv137 =
+                pv_on_tri(p[1], v[1], w[1], p[3], v[3], w[3], p[7], v[7], w[7]);
+            auto pv237 =
+                pv_on_tri(p[2], v[2], w[2], p[3], v[3], w[3], p[7], v[7], w[7]);
 
             // check the tets themselves
             // 0124
@@ -324,54 +310,38 @@ struct parallel_vectors {
           } else {
             // std::cout << ix << ' ' << iy << ' ' << iz << " not turned\n";
             // check if there are parallel vectors on any of the tets triangles
-            auto pv023 = pv_on_tri(p[0], v[0], w[0],
-                                   p[2], v[2], w[2],
-                                   p[3], v[3], w[3]);
-            auto pv026 = pv_on_tri(p[0], v[0], w[0],
-                                   p[2], v[2], w[2],
-                                   p[6], v[6], w[6]);
-            auto pv036 = pv_on_tri(p[0], v[0], w[0],
-                                   p[3], v[3], w[3],
-                                   p[6], v[6], w[6]);
-            auto pv236 = pv_on_tri(p[2], v[2], w[2],
-                                   p[3], v[3], w[3],
-                                   p[6], v[6], w[6]);
-            auto pv013 = pv_on_tri(p[0], v[0], w[0],
-                                   p[1], v[1], w[1],
-                                   p[3], v[3], w[3]);
-            auto pv015 = pv_on_tri(p[0], v[0], w[0],
-                                   p[1], v[1], w[1],
-                                   p[5], v[5], w[5]);
-            auto pv035 = pv_on_tri(p[0], v[0], w[0],
-                                   p[3], v[3], w[3],
-                                   p[5], v[5], w[5]);
-            auto pv135 = pv_on_tri(p[1], v[1], w[1],
-                                   p[3], v[3], w[3],
-                                   p[5], v[5], w[5]);
-            auto pv356 = pv_on_tri(p[3], v[3], w[3],
-                                   p[5], v[5], w[5],
-                                   p[6], v[6], w[6]);
-            auto pv357 = pv_on_tri(p[3], v[3], w[3],
-                                   p[5], v[5], w[5],
-                                   p[7], v[7], w[7]);
-            auto pv367 = pv_on_tri(p[3], v[3], w[3],
-                                   p[6], v[6], w[6],
-                                   p[7], v[7], w[7]);
-            auto pv567 = pv_on_tri(p[5], v[5], w[5],
-                                   p[6], v[6], w[6],
-                                   p[7], v[7], w[7]);
-            auto pv045 = pv_on_tri(p[0], v[0], w[0],
-                                   p[4], v[4], w[4],
-                                   p[5], v[5], w[5]);
-            auto pv046 = pv_on_tri(p[0], v[0], w[0],
-                                   p[4], v[4], w[4],
-                                   p[6], v[6], w[6]);
-            auto pv056 = pv_on_tri(p[0], v[0], w[0],
-                                   p[5], v[5], w[5],
-                                   p[6], v[6], w[6]);
-            auto pv456 = pv_on_tri(p[4], v[4], w[4],
-                                   p[5], v[5], w[5],
-                                   p[6], v[6], w[6]);
+            auto pv023 =
+                pv_on_tri(p[0], v[0], w[0], p[2], v[2], w[2], p[3], v[3], w[3]);
+            auto pv026 =
+                pv_on_tri(p[0], v[0], w[0], p[2], v[2], w[2], p[6], v[6], w[6]);
+            auto pv036 =
+                pv_on_tri(p[0], v[0], w[0], p[3], v[3], w[3], p[6], v[6], w[6]);
+            auto pv236 =
+                pv_on_tri(p[2], v[2], w[2], p[3], v[3], w[3], p[6], v[6], w[6]);
+            auto pv013 =
+                pv_on_tri(p[0], v[0], w[0], p[1], v[1], w[1], p[3], v[3], w[3]);
+            auto pv015 =
+                pv_on_tri(p[0], v[0], w[0], p[1], v[1], w[1], p[5], v[5], w[5]);
+            auto pv035 =
+                pv_on_tri(p[0], v[0], w[0], p[3], v[3], w[3], p[5], v[5], w[5]);
+            auto pv135 =
+                pv_on_tri(p[1], v[1], w[1], p[3], v[3], w[3], p[5], v[5], w[5]);
+            auto pv356 =
+                pv_on_tri(p[3], v[3], w[3], p[5], v[5], w[5], p[6], v[6], w[6]);
+            auto pv357 =
+                pv_on_tri(p[3], v[3], w[3], p[5], v[5], w[5], p[7], v[7], w[7]);
+            auto pv367 =
+                pv_on_tri(p[3], v[3], w[3], p[6], v[6], w[6], p[7], v[7], w[7]);
+            auto pv567 =
+                pv_on_tri(p[5], v[5], w[5], p[6], v[6], w[6], p[7], v[7], w[7]);
+            auto pv045 =
+                pv_on_tri(p[0], v[0], w[0], p[4], v[4], w[4], p[5], v[5], w[5]);
+            auto pv046 =
+                pv_on_tri(p[0], v[0], w[0], p[4], v[4], w[4], p[6], v[6], w[6]);
+            auto pv056 =
+                pv_on_tri(p[0], v[0], w[0], p[5], v[5], w[5], p[6], v[6], w[6]);
+            auto pv456 =
+                pv_on_tri(p[4], v[4], w[4], p[5], v[5], w[5], p[6], v[6], w[6]);
 
             // check the tets themselves
             // 0236
@@ -394,7 +364,7 @@ struct parallel_vectors {
         }
       }
     }
-    
+
     // merge single line segments to line strips with a divide and conquer
     std::vector<line<real_t, 3>> lines;
     if (!line_segments.empty()) {
@@ -421,9 +391,9 @@ struct parallel_vectors {
   // auto&       grid() { return m_grid; }
 
   //----------------------------------------------------------------------------
-  auto        min() const { return m_grid.min; }
-  auto        max() const { return m_grid.max; }
-  auto        res() const { return m_grid.resolution(); }
+  auto min() const { return m_grid.min; }
+  auto max() const { return m_grid.max; }
+  auto res() const { return m_grid.resolution(); }
 };
 
 //==============================================================================

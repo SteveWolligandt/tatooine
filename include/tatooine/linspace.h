@@ -107,7 +107,7 @@ struct linspace_iterator
 
   //============================================================================
  private:
-  const linspace<real_t>* m_lin;
+  const tatooine::linspace<real_t>* m_lin;
   std::size_t             m_i;
 
   //============================================================================
@@ -132,7 +132,7 @@ struct linspace_iterator
   auto i() const { return m_i; }
 
   //----------------------------------------------------------------------------
-  const auto& get() const { return *m_lin; }
+  const auto& linspace() const { return *m_lin; }
 
   //============================================================================
  private:
@@ -154,13 +154,13 @@ struct linspace_iterator
 //==============================================================================
 template <typename real_t>
 auto next(const linspace_iterator<real_t>& l, std::size_t diff = 1) {
-  return linspace_iterator<real_t>{&l.get(), l.i() + diff};
+  return linspace_iterator<real_t>{&l.linspace(), l.i() + diff};
 }
 
 //------------------------------------------------------------------------------
 template <typename real_t>
 auto prev(const linspace_iterator<real_t>& l, std::size_t diff = 1) {
-  return linspace_iterator<real_t>{&l.get(), l.i() - diff};
+  return linspace_iterator<real_t>{&l.linspace(), l.i() - diff};
 }
 
 //------------------------------------------------------------------------------
@@ -177,7 +177,7 @@ inline auto& advance(linspace_iterator<real_t>& l, long n = 1) {
 //------------------------------------------------------------------------------
 template <typename real_t>
 auto& operator<<(std::ostream& out, const linspace<real_t>& l) {
-  out << "[" << l.m_min << ".. " << l.m_size << " .." << l.m_max << "]";
+  out << "[" << l[0] << ", " << l[1] << ", ... , " << l.back() << "]";
   return out;
 }
 

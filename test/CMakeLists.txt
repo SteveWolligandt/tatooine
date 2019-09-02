@@ -25,9 +25,10 @@ macro(create_test NAME)
 endmacro()
 
 #- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-create_test(tensor)
-create_test(abcflow)
 create_test(doublegyre)
+create_test(abcflow)
+create_test(tensor)
+create_test(integration)
 create_test(diff)
 create_test(field_operations)
 create_test(symbolic_field)
@@ -35,6 +36,7 @@ create_test(line)
 create_test(parallel_vectors)
 create_test(spacetime)
 create_test(grid_sampler)
+create_test(chunked_data)
 
 #- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 add_executable (_all main.cpp ${ALL_TEST_CPPS})

@@ -113,28 +113,30 @@ struct multi_index_iterator {
   constexpr auto operator*() const { return m_status; }
 };
 
-//==============================================================================
+//~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 template <typename... Ts>
 multi_index(const std::pair<Ts, Ts>&... ranges)->multi_index<sizeof...(Ts)>;
+// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 template <typename... Ts>
 multi_index(Ts const (&... ranges)[2])->multi_index<sizeof...(Ts)>;
 
-template <size_t... Resolution>
+//==============================================================================
+template <size_t... Sizes>
 struct static_multidimension {
-  static constexpr size_t N        = sizeof...(Resolution);
-  static constexpr size_t num_data = (Resolution * ...);
-  static constexpr auto   resolution() { return std::array{Resolution...}; }
+  static constexpr size_t N        = sizeof...(Sizes);
+  static constexpr size_t num_data = (Sizes * ...);
+  static constexpr auto   size() { return std::array{Sizes...}; }
   template <size_t i>
-  static constexpr auto resolution() {
-    return temp_helper::getval<i, size_t, Resolution...>;
+  static constexpr auto size() {
+    return temp_helper::getval<i, size_t, Sizes...>;
   }
 
   //----------------------------------------------------------------------------
   template <typename... Indices, size_t... Is>
   static constexpr bool in_range(Indices&&... indices) {
-    static_assert(sizeof...(Indices) == sizeof...(Resolution),
+    static_assert(sizeof...(Indices) == sizeof...(Sizes),
                   "number of indices does not match number of dimensions");
-    return ((indices >= 0) && ...) && ((indices < Resolution) && ...);
+    return ((indices >= 0) && ...) && ((static_cast<size_t>(indices) < Sizes) && ...);
   }
 
   //----------------------------------------------------------------------------
@@ -161,7 +163,7 @@ struct static_multidimension {
     static_assert(
         (std::is_integral_v<std::decay_t<Indices>> && ...),
         "static_multi_indexed::global_idx() only takes integral types");
-    static_assert(sizeof...(Indices) == sizeof...(Resolution),
+    static_assert(sizeof...(Indices) == sizeof...(Sizes),
                   "number of indices does not match number of dimensions");
     size_t multiplier = 1;
     size_t gi         = 0;
@@ -170,7 +172,7 @@ struct static_multidimension {
           gi += i.first * multiplier;
           multiplier *= i.second;
         },
-        std::pair{indices, Resolution}...);
+        std::pair{indices, Sizes}...);
     return gi;
   }
 
@@ -188,18 +190,18 @@ struct static_multidimension {
 
   //----------------------------------------------------------------------------
   static constexpr auto multi_index(size_t gi) {
-    constexpr std::array resolution{Resolution...};
+    auto s = size();
     auto                 is = make_array<size_t, N>();
     size_t               multiplier =
-        std::accumulate(begin(resolution), std::prev(end(resolution)),
+        std::accumulate(begin(s), std::prev(end(s)),
                         size_t(1), std::multiplies<size_t>{});
 
-    auto res_it = std::prev(end(resolution), 2);
+    auto res_it = std::prev(end(s), 2);
     for (size_t j = 0; j < N; ++j, --res_it) {
       size_t i = N - 1 - j;
       is[i]    = gi / multiplier;
       gi -= is[i] * multiplier;
-      if (res_it >= begin(resolution)) { multiplier /= *res_it; }
+      if (res_it >= begin(s)) { multiplier /= *res_it; }
     }
 
     return is;
@@ -209,30 +211,30 @@ struct static_multidimension {
 //==============================================================================
 template <size_t N>
 struct dynamic_multidimension {
-  std::array<size_t, N> m_resolution;
+  std::array<size_t, N> m_size;
 
   //----------------------------------------------------------------------------
-  const auto& resolution() const { return m_resolution; }
-  auto        resolution(const size_t i) const { return m_resolution[i]; }
+  const auto& size() const { return m_size; }
+  auto        size(const size_t i) const { return m_size[i]; }
 
   constexpr size_t num_data() const {
-    return std::accumulate(begin(m_resolution), end(m_resolution), size_t(1),
+    return std::accumulate(begin(m_size), end(m_size), size_t(1),
                            std::multiplies<size_t>{});
   }
 
   //----------------------------------------------------------------------------
-  template <typename... Resolution,
+  template <typename... Sizes,
             typename = std::enable_if_t<
-                (std::is_integral_v<std::decay_t<Resolution>> && ...)>,
-            typename = std::enable_if_t<sizeof...(Resolution) == N>>
-  void resize(Resolution&&... resolution) {
-    m_resolution = {static_cast<size_t>(resolution)...};
+                (std::is_integral_v<std::decay_t<Sizes>> && ...)>,
+            typename = std::enable_if_t<sizeof...(Sizes) == N>>
+  void resize(Sizes&&... sizes) {
+    m_size = {static_cast<size_t>(sizes)...};
   }
-  void resize(std::array<size_t, N>&& resolution) {
-    m_resolution = std::move(resolution);
+  void resize(std::array<size_t, N>&& sizes) {
+    m_size = std::move(sizes);
   }
-  void resize(const std::array<size_t, N>& resolution) {
-    m_resolution = resolution;
+  void resize(const std::array<size_t, N>& sizes) {
+    m_size = sizes;
   }
 
   //----------------------------------------------------------------------------
@@ -243,7 +245,7 @@ struct dynamic_multidimension {
                           Indices&&... indices) const {
     static_assert(sizeof...(Indices) == N,
                   "number of indices does not match number of dimensions");
-    return ((static_cast<size_t>(indices) < m_resolution[Is]) && ...);
+    return ((static_cast<size_t>(indices) < m_size[Is]) && ...);
   }
 
   //----------------------------------------------------------------------------
@@ -281,7 +283,7 @@ struct dynamic_multidimension {
                   "number of indices does not match number of dimensions");
     size_t multiplier = 1;
     size_t gi         = 0;
-    auto   res_it     = begin(m_resolution);
+    auto   res_it     = begin(m_size);
     map(
         [&](size_t i) {
           gi += i * multiplier;
@@ -308,15 +310,15 @@ struct dynamic_multidimension {
   constexpr auto multi_index(size_t gi) const {
     auto   is = make_array<size_t, N>();
     size_t multiplier =
-        std::accumulate(begin(m_resolution), std::prev(end(m_resolution)),
+        std::accumulate(begin(m_size), std::prev(end(m_size)),
                         size_t(1), std::multiplies<size_t>{});
 
-    auto res_it = std::prev(end(m_resolution), 2);
+    auto res_it = std::prev(end(m_size), 2);
     for (size_t j = 0; j < N; ++j, --res_it) {
       size_t i = N - 1 - j;
       is[i]    = gi / multiplier;
       gi -= is[i] * multiplier;
-      if (res_it >= begin(m_resolution)) { multiplier /= *res_it; }
+      if (res_it >= begin(m_size)) { multiplier /= *res_it; }
     }
 
     return is;

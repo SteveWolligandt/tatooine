@@ -27,6 +27,42 @@ TEST_CASE("tensor_initializers", "[tensor][initializers]") {
   }
 }
 
+
+//==============================================================================
+TEST_CASE("tensor_assignment", "[tensor][assignment]") {
+  vec v{1.0, 2.0, 3.0};
+
+  mat m{{1.0,  2.0,  3.0},
+        {4.0,  5.0,  7.0},
+        {8.0,  9.0, 10.0}};
+
+  v(1) = 4.0;
+  CHECK(approx_equal(v, vec{1.0, 4.0, 3.0}, 1e-6));
+
+  m.row(1) = v;
+  CHECK(m(1, 0) == v(0));
+  CHECK(m(1, 1) == v(1));
+  CHECK(m(1, 2) == v(2));
+
+  m.col(2) = v;
+  CHECK(m(0, 2) == v(0));
+  CHECK(m(1, 2) == v(1));
+  CHECK(m(2, 2) == v(2));
+
+  vec v2{10.0, 11.0, 12.0};
+  vec v3{20, 21, 22};
+  v = v2;
+  CHECK(v(0) == v2(0));
+  CHECK(v(1) == v2(1));
+  CHECK(v(2) == v2(2));
+
+  v2 = v3;
+  CHECK(v2(0) == v3(0));
+  CHECK(v2(1) == v3(1));
+  CHECK(v2(2) == v3(2));
+}
+
+//==============================================================================
 TEST_CASE("tensor_slice", "[tensor][slice]") {
   vec v{1.0, 2.0, 3.0};
   REQUIRE(v(0) == 1);
@@ -150,7 +186,7 @@ TEST_CASE("tensor_eigenvalue", "[tensor][eigenvalue]") {
 
   REQUIRE(va(0) == Approx(2.2874e+01).epsilon(eps));
   REQUIRE(va(1) == Approx(-8.7434e-01).epsilon(eps));
-  REQUIRE(va(2) == Approx(2.0305e-16).epsilon(eps));
+  REQUIRE(va(2) == Approx(2.0305e-16).margin(eps));
 
   REQUIRE(ve(0,0) == Approx(0.16168).epsilon(eps));
   REQUIRE(ve(1,0) == Approx(0.45378).epsilon(eps));
