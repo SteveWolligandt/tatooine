@@ -27,26 +27,23 @@ static constexpr inline quadratic_t quadratic;
 
 //==============================================================================
 template <typename Real, size_t N>
-struct line  {
+struct line {
   struct empty_exception : std::exception {};
 
   //============================================================================
-  using real_t   = Real;
-  using vec_t    = tensor<Real, N>;
-  using pos_t    = vec_t;
-  using vec3     = tensor<Real, 3>;
-  using mat3     = tensor<Real, 3, 3>;
-  using this_t   = line<Real, N>;
+  using real_t          = Real;
+  using vec_t           = tensor<Real, N>;
+  using pos_t           = vec_t;
+  using vec3            = tensor<Real, 3>;
+  using mat3            = tensor<Real, 3, 3>;
+  using this_t          = line<Real, N>;
   using pos_container_t = std::deque<pos_t>;
 
   //============================================================================
  private:
   pos_container_t m_vertices;
-  bool m_is_closed = false;
+  bool            m_is_closed = false;
 
- protected:
-  auto&       vertices() { return m_vertices; }
-  const auto& vertices() const { return m_vertices; }
 
   //============================================================================
  public:
@@ -72,39 +69,39 @@ struct line  {
   explicit line(const std::string& path) { read(path); }
 
   //----------------------------------------------------------------------------
+  const auto& vertices() const { return m_vertices; }
+  auto&       vertices() { return m_vertices; }
+  //----------------------------------------------------------------------------
   auto size() const { return m_vertices.size(); }
   //----------------------------------------------------------------------------
   auto empty() const { return m_vertices.empty(); }
   //----------------------------------------------------------------------------
   auto&       at(size_t i) { return m_vertices[i]; }
   const auto& at(size_t i) const { return m_vertices[i]; }
-
+  //----------------------------------------------------------------------------
+  const auto& operator[](size_t i) const { return m_vertices.at(i); }
+  auto&       operator[](size_t i) { return m_vertices.at(i); }
   //----------------------------------------------------------------------------
   const auto& front() const { return m_vertices.front(); }
-  auto& front() { return m_vertices.front(); }
-
+  auto&       front() { return m_vertices.front(); }
   //----------------------------------------------------------------------------
   const auto& back() const { return m_vertices.back(); }
-  auto& back() { return m_vertices.back(); }
-
+  auto&       back() { return m_vertices.back(); }
   //----------------------------------------------------------------------------
   void push_back(const pos_t& p) { m_vertices.push_back(p); }
   //----------------------------------------------------------------------------
-  void push_front(const pos_t& p) {m_vertices.push_front(p); }
-
+  void push_front(const pos_t& p) { m_vertices.push_front(p); }
   //----------------------------------------------------------------------------
   /// calculates tangent at point i with forward differences
   auto tangent(const size_t i, forward_t /*fw*/) const {
     assert(size() > 1);
-    if (i == this->size() - 1) {
-      return normalize(at(i) - at(i - 1));
-    }
+    if (i == this->size() - 1) { return normalize(at(i) - at(i - 1)); }
     return normalize(at(i + 1) - at(i));
   }
 
   //----------------------------------------------------------------------------
   /// calculates tangent at point i with backward differences
-  auto tangent(const size_t i, backward_t /*bw*/) const  {
+  auto tangent(const size_t i, backward_t /*bw*/) const {
     assert(size() > 1);
     if (i == 0) { return normalize(at(i + 1) - at(i)); }
     return normalize(at(i) - at(i - 1));
@@ -112,15 +109,12 @@ struct line  {
 
   //----------------------------------------------------------------------------
   /// calculates tangent at point i with central differences
-  auto tangent(const size_t i, central_t /*c*/) const  {
+  auto tangent(const size_t i, central_t /*c*/) const {
     assert(size() > 1);
-    if (i == 0) { return normalize(at(i+1) - at(i)) ; }
-    if (i == this->size() - 1) {
-      return normalize(at(i) - at(i - 1));
-    }
+    if (i == 0) { return normalize(at(i + 1) - at(i)); }
+    if (i == this->size() - 1) { return normalize(at(i) - at(i - 1)); }
     return (at(i + 1) - at(i - 1)) /
-           (distance(at(i - 1), at(i)) +
-            distance(at(i), at(i + 1)));
+           (distance(at(i - 1), at(i)) + distance(at(i), at(i + 1)));
   }
 
   //----------------------------------------------------------------------------
@@ -129,7 +123,6 @@ struct line  {
     if (i == size() - 1 && !is_closed()) { return tangent(i, backward); }
     return tangent(i, central);
   }
-
 
   //----------------------------------------------------------------------------
   auto length() {
@@ -148,13 +141,13 @@ struct line  {
 
   ////----------------------------------------------------------------------------
   ///// filters the line and returns a vector of lines
-  //template <typename Pred>
-  //std::vector<line<Real, N>> filter(Pred&& pred) const;
+  // template <typename Pred>
+  // std::vector<line<Real, N>> filter(Pred&& pred) const;
   //
   ////----------------------------------------------------------------------------
   ///// filters out all points where the eigenvalue of the jacobian is not real
-  //template <typename vf_t>
-  //auto filter_only_real_eig_vals(const vf_t& vf) const {
+  // template <typename vf_t>
+  // auto filter_only_real_eig_vals(const vf_t& vf) const {
   //  jacobian j{vf};
   //
   //  return filter([&](auto x, auto t, auto) {
@@ -171,7 +164,7 @@ struct line  {
 
   //----------------------------------------------------------------------------
   static void write(const std::vector<line<Real, N>>& line_set,
-                    const std::string&                  file);
+                    const std::string&                file);
 
   //----------------------------------------------------------------------------
   void read(const std::string& file);
@@ -183,9 +176,9 @@ struct line  {
 };
 
 //==============================================================================
-//template <typename Real, size_t N>
-//template <typename Pred>
-//std::vector<line<Real, N>> line<Real, N>::filter(Pred&& pred) const {
+// template <typename Real, size_t N>
+// template <typename Pred>
+// std::vector<line<Real, N>> line<Real, N>::filter(Pred&& pred) const {
 //  std::vector<line<Real, N>> filtered_lines;
 //  bool                         need_new_strip = true;
 //
@@ -209,8 +202,8 @@ struct line  {
 //
 //  if (!filtered_lines.empty() && filtered_lines.back().size() <= 1)
 //    filtered_lines.pop_back();
-//  if (filtered_lines.size() == 1) filtered_lines.front().set_is_closed(closed);
-//  return filtered_lines;
+//  if (filtered_lines.size() == 1)
+//  filtered_lines.front().set_is_closed(closed); return filtered_lines;
 //}
 
 //------------------------------------------------------------------------------
@@ -259,16 +252,15 @@ void line<Real, N>::write_vtk(const std::string& path, const std::string& title,
 
 //------------------------------------------------------------------------------
 template <typename Real, size_t N>
-void write_vtk(const std::vector<line<Real, N>>& lines,
-               const std::string&                  path,
-               const std::string&                  title = "tatooine lines",
-               bool                                write_tangents = false) {
+void write_vtk(const std::vector<line<Real, N>>& lines, const std::string& path,
+               const std::string& title          = "tatooine lines",
+               bool               write_tangents = false) {
   vtk::LegacyFileWriter<Real> writer(path, vtk::POLYDATA);
   if (writer.is_open()) {
     size_t num_pts = 0;
     for (const auto& l : lines) num_pts += l.size();
     std::vector<std::array<Real, 3>> points;
-    std::vector<std::vector<size_t>>   line_seqs;
+    std::vector<std::vector<size_t>> line_seqs;
     std::vector<std::vector<Real>>   tangents;
     points.reserve(num_pts);
     line_seqs.reserve(lines.size());
@@ -328,11 +320,18 @@ struct parameterized_line : line<Real, N> {
   std::deque<Real> m_parameterization;
 
  public:
-  parameterized_line()                                         = default;
-  parameterized_line(const parameterized_line&)                = default;
-  parameterized_line(parameterized_line&&) noexcept            = default;
-  parameterized_line& operator=(const parameterized_line&)     = default;
+  parameterized_line()                              = default;
+  parameterized_line(const parameterized_line&)     = default;
+  parameterized_line(parameterized_line&&) noexcept = default;
+  parameterized_line& operator=(const parameterized_line&) = default;
   parameterized_line& operator=(parameterized_line&&) noexcept = default;
+  //----------------------------------------------------------------------------
+  parameterized_line(std::initializer_list<std::pair<pos_t, Real>>&& data) {
+    for (auto& [pos, param] : data) { push_back(pos, param); }
+  }
+  //----------------------------------------------------------------------------
+  const auto& parameterization() const { return m_parameterization; }
+  auto&       parameterization() { return m_parameterization; }
   //----------------------------------------------------------------------------
   std::pair<pos_t&, Real&> front() {
     return {vertices().front(), m_parameterization.front()};
@@ -352,20 +351,50 @@ struct parameterized_line : line<Real, N> {
   }
 
   //----------------------------------------------------------------------------
-  auto& front_position() { return vertices().front(); }
+  std::pair<const pos_t&, const Real&> at(size_t i) const {
+    return {vertices().at(i), m_parameterization.at(i)};
+  }
+  // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+  std::pair<pos_t&, Real&> at(size_t i) {
+    return {vertices().at(i), m_parameterization.at(i)};
+  }
+  //----------------------------------------------------------------------------
+  std::pair<const pos_t&, const Real&> operator[](size_t i) const {
+    return {vertices().at(i), m_parameterization.at(i)};
+  }
+  // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+  std::pair<pos_t&, Real&> operator[](size_t i) {
+    return {vertices().at(i), m_parameterization.at(i)};
+  }
+
+  //----------------------------------------------------------------------------
+  auto&       position_at(size_t i) { return vertices().at(i); }
+  const auto& position_at(size_t i) const { return vertices().at(i); }
+
+  //----------------------------------------------------------------------------
+  auto&       front_position() { return vertices().front(); }
   const auto& front_position() const { return vertices().front(); }
 
   //----------------------------------------------------------------------------
-  auto& back_position() { return vertices().back(); }
+  auto&       back_position() { return vertices().back(); }
   const auto& back_position() const { return vertices().back(); }
 
   //----------------------------------------------------------------------------
-  auto& front_parameterization() { return m_parameterization.front(); }
-  const auto& front_parameterization() const { return m_parameterization.front(); }
+  auto&       parameterization_at(size_t i) { return m_parameterization.at(i); }
+  const auto& parameterization_at(size_t i) const {
+    return m_parameterization.at(i);
+  }
+  //----------------------------------------------------------------------------
+  auto&       front_parameterization() { return m_parameterization.front(); }
+  const auto& front_parameterization() const {
+    return m_parameterization.front();
+  }
 
   //----------------------------------------------------------------------------
-  auto& back_parameterization() { return m_parameterization.back(); }
-  const auto& back_parameterization() const { return m_parameterization.back(); }
+  auto&       back_parameterization() { return m_parameterization.back(); }
+  const auto& back_parameterization() const {
+    return m_parameterization.back();
+  }
 
   //----------------------------------------------------------------------------
   void push_back(const pos_t& p, Real t) {
@@ -378,10 +407,6 @@ struct parameterized_line : line<Real, N> {
     parent_t::push_front(p);
     m_parameterization.push_front(t);
   }
-
-  //----------------------------------------------------------------------------
-  auto  param_at(size_t i) const { return m_parameterization[i]; }
-  auto& param_at(size_t i) { return m_parameterization[i]; }
 
   //----------------------------------------------------------------------------
   /// sample the line via interpolation
@@ -405,8 +430,8 @@ struct parameterized_line : line<Real, N> {
     size_t left  = std::numeric_limits<size_t>::max();
     bool   found = false;
     for (size_t i = 0; i < size() - 1; i++) {
-      if ((param_at(i) <= t && t <= param_at(i + 1)) ||
-          (param_at(i + 1) <= t && t <= param_at(i))) {
+      if ((parameterization_at(i) <= t && t <= parameterization_at(i + 1)) ||
+          (parameterization_at(i + 1) <= t && t <= parameterization_at(i))) {
         left  = i;
         found = true;
         break;
@@ -415,12 +440,11 @@ struct parameterized_line : line<Real, N> {
     if (!found) { throw time_not_found{}; }
     // interpolate
     Real factor = (t - m_parameterization[left]) /
-                    (m_parameterization[left + 1] - m_parameterization[left]);
+                  (m_parameterization[left + 1] - m_parameterization[left]);
     interpolator_t<Real> interp;
     return interp.interpolate_iter(next(begin(vertices()), left),
                                    next(begin(vertices()), left + 1),
-                                   begin(vertices()),
-                                   end(vertices()), factor);
+                                   begin(vertices()), end(vertices()), factor);
   }
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
   template <template <typename>
@@ -428,26 +452,29 @@ struct parameterized_line : line<Real, N> {
   auto operator()(const Real t) const {
     return sample<interpolator_t>(t);
   }
-  
+
   //============================================================================
   void uniform_parameterization(Real t0 = 0) {
-     param_at(0) = t0;
-     for (size_t i = 1; i < this->size(); ++i) {
-      param_at(i) = param_at(i - 1) + 1;
+    parameterization_at(0) = t0;
+    for (size_t i = 1; i < this->size(); ++i) {
+      parameterization_at(i) = parameterization_at(i - 1) + 1;
     }
   }
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
   void chordal_parameterization(Real t0 = 0) {
-     param_at(0) = t0;
-     for (size_t i = 1; i < this->size(); ++i) {
-      param_at(i) = param_at(i - 1) + distance(at(i), at(i - 1));
+    parameterization_at(0) = t0;
+    for (size_t i = 1; i < this->size(); ++i) {
+      parameterization_at(i) = parameterization_at(i - 1) +
+                               distance(position_at(i), position_at(i - 1));
     }
   }
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
   void centripetal_parameterization(Real t0 = 0) {
-    param_at(0) = t0;
+    parameterization_at(0) = t0;
     for (size_t i = 1; i < this->size(); ++i) {
-      param_at(i) = param_at(i - 1) + std::sqrt(distance(at(i), at(i - 1)));
+      parameterization_at(i) =
+          parameterization_at(i - 1) +
+          std::sqrt(distance(position_at(i), position_at(i - 1)));
     }
   }
 
@@ -467,16 +494,13 @@ struct parameterized_line : line<Real, N> {
     const auto& x1 = at(i);
     const auto& x2 = at(i + 1);
     // const auto& x2 = at((i + 1) % this->size());
-    const auto t =
-        (param_at(i) - param_at(i - 1)) / (param_at(i + 1) - param_at(i - 1));
+    const auto t = (parameterization_at(i) - parameterization_at(i - 1)) /
+                   (parameterization_at(i + 1) - parameterization_at(i - 1));
 
     // for each component fit a quadratic curve through the neighbor points and
     // the point itself and compute the derivative
-    vec_t tangent;
-    const mat3 A{
-      {  0.0,   0.0,   1.0},
-      {t * t,     t,   1.0},
-      {  1.0,   1.0,   1.0}};
+    vec_t      tangent;
+    const mat3 A{{0.0, 0.0, 1.0}, {t * t, t, 1.0}, {1.0, 1.0, 1.0}};
     for (size_t j = 0; j < N; ++j) {
       vec3 b{x0(j), x1(j), x2(j)};
       auto coeffs = gesv(A, b);
@@ -529,9 +553,7 @@ struct parameterized_line : line<Real, N> {
       // write parameterization
       std::vector<std::vector<Real>> parameterization;
       parameterization.reserve(this->size());
-      for (auto t : m_parameterization) {
-        parameterization.push_back({t});
-      }
+      for (auto t : m_parameterization) { parameterization.push_back({t}); }
       writer.write_scalars("parameterization", parameterization);
 
       writer.close();

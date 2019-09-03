@@ -37,6 +37,11 @@ create_test(parallel_vectors)
 create_test(spacetime)
 create_test(grid_sampler)
 create_test(chunked_data)
+create_test(pointset)
+create_test(edgeset)
+create_test(mesh)
+create_test(streamsurface)
+create_test(parameterized_surface)
 
 #- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 add_executable (_all main.cpp ${ALL_TEST_CPPS})

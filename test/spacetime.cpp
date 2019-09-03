@@ -1,4 +1,4 @@
-#include <tatooine/spacetime.h>
+#include <tatooine/spacetime_field.h>
 #include <tatooine/doublegyre.h>
 #include <catch2/catch.hpp>
 
@@ -6,9 +6,9 @@
 namespace tatooine::test {
 //==============================================================================
 
-TEST_CASE("spacetime_numerical_doublegyre", "[spacetime]") {
+TEST_CASE("spacetime_field_numerical_doublegyre", "[spacetime_field]") {
   numerical::doublegyre dg;
-  spacetime stdg{dg};
+  spacetime_field stdg{dg};
   auto      dg_vel   = dg({0.3, 0.3}, 1);
   auto      stdg_vel = stdg({0.3, 0.3, 1.0});
   REQUIRE(dg_vel(0) == stdg_vel(0));
@@ -17,9 +17,9 @@ TEST_CASE("spacetime_numerical_doublegyre", "[spacetime]") {
 }
 
 //==============================================================================
-TEST_CASE("spacetime_symbolic_doublegyre", "[spacetime]") {
+TEST_CASE("spacetime_symbolic_doublegyre", "[spacetime_field]") {
   symbolic::doublegyre dg;
-  spacetime stdg{dg};
+  spacetime_field stdg{dg};
   auto      dg_vel   = dg({0.3, 0.3}, 1);
   auto      stdg_vel = stdg({0.3, 0.3, 1.0});
   REQUIRE(dg_vel(0) == stdg_vel(0));

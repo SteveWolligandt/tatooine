@@ -15,6 +15,26 @@ TEST_CASE("line", "[line]") {
   auto t1 = l.tangent(1);
   auto t2 = l.tangent(2);
 }
+//==============================================================================
+TEST_CASE("line_parameterized_initialization",
+          "[line][parameterization][initialization]") {
+  parameterized_line<double, 2> l{{{1, 2}, 0}, {{2, 3}, 1}, {{3, 4}, 2}};
+  auto [x0, t0] = l[0];
+  auto [x1, t1] = l[1];
+  auto [x2, t2] = l[2];
+  REQUIRE(x0(0) == 1);
+  REQUIRE(x0(1) == 2);
+  REQUIRE(t0 == 0);
+
+  REQUIRE(x1(0) == 2);
+  REQUIRE(x1(1) == 3);
+  REQUIRE(t1 == 1);
+
+  REQUIRE(x2(0) == 3);
+  REQUIRE(x2(1) == 4);
+  REQUIRE(t2 == 2);
+}
+
 
 //==============================================================================
 TEST_CASE("line_sampling_linear", "[line][parameterization][linear]") {
