@@ -170,17 +170,6 @@ struct base_tensor : crtp<Tensor> {
     static_assert(sizeof...(Is) == num_dimensions());
     return static_multidimension<Dims...>::global_idx(is...);
   }
-
-  //----------------------------------------------------------------------------
-  template <typename OtherTensor, typename OtherReal>
-  bool operator<(
-      const base_tensor<OtherTensor, OtherReal, Dims...>& other) const {
-    bool smaller = true;
-    for_indices([&](const auto... is) {
-      if (at(is...) >= other(is...)) { smaller = false; }
-    });
-    return smaller;
-  }
 };
 
 //==============================================================================
@@ -328,6 +317,18 @@ struct tensor : base_tensor<tensor<Real, Dims...>, Real, Dims...> {
   //----------------------------------------------------------------------------
   decltype(auto) data() { return m_data.data(); }
   decltype(auto) data() const { return m_data.data(); }
+
+  //----------------------------------------------------------------------------
+  template <typename OtherReal>
+  bool operator==(const tensor<OtherReal, Dims...>& other) const {
+    return m_data == other.m_data;
+  }
+
+  //----------------------------------------------------------------------------
+  template <typename OtherReal>
+  bool operator<(const tensor<OtherReal, Dims...>& other) const {
+    return m_data < other.m_data;
+  }
 };
 
 //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~

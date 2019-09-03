@@ -651,7 +651,6 @@ class mesh : public edgeset<Real, N> {
           points.push_back({p(0), p(1), 0});
         }
       }
-      std::cerr << "write points\n";
       writer.write_points(points);
 
       // write faces

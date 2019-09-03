@@ -45,9 +45,6 @@ struct cache : std::map<key_t, value_t> {
   void set_max_memory_usage(uint64_t s) { m_max_memory_usage = s; }
 
   //============================================================================
-  /// \defgroup at_overwrites at overwrites
-  /// \{
-  //----------------------------------------------------------------------------
   value_t& at(const key_t& key) {
     auto [it, suc] = try_emplace(key);
     return it->second;
@@ -58,11 +55,8 @@ struct cache : std::map<key_t, value_t> {
     auto [it, suc] = try_emplace(key);
     return it->second;
   }
-  /// \}
 
   //============================================================================
-  /// \defgroup insert_overwrites insert overwrites
-  /// \{
   std::pair<iterator, bool> insert(const value_type& value) {
     auto insert_result = parent_t::insert(value);
     enqueue(insert_result);
@@ -92,7 +86,7 @@ struct cache : std::map<key_t, value_t> {
   }
 
   //----------------------------------------------------------------------------
-  template <class P>
+  template <typename P>
   auto insert(const_iterator hint, P&& value) {
     auto insert_result = parent_t::insert(hint, std::forward<P>(value));
     enqueue(insert_result);
@@ -100,7 +94,7 @@ struct cache : std::map<key_t, value_t> {
   }
 
   //----------------------------------------------------------------------------
-  template <class InputIt>
+  template <typename InputIt>
   void insert(InputIt first, InputIt last) = delete;
 
   //----------------------------------------------------------------------------
@@ -108,11 +102,8 @@ struct cache : std::map<key_t, value_t> {
     auto insert_result = parent_t::insert(ilist);
     enqueue(insert_result);
   }
-  /// \}
 
   //============================================================================
-  /// \defgroup erase_overwrites erase overwrites
-  /// \{
   auto erase(const_iterator position) {
     remove_from_queue(position);
     auto it = parent_t::erase(position);
@@ -131,35 +122,31 @@ struct cache : std::map<key_t, value_t> {
     remove_from_queue(find(key));
     return parent_t::erase(key);
   }
-  /// \}
 
   //============================================================================
-  /// \defgroup emplace_overwrites emplace overwrites
-  /// \{
-  template <class... Args>
+  template <typename... Args>
   auto try_emplace(const key_type& key, Args&&... args) {
     auto res = parent_t::try_emplace(key, std::forward<Args>(args)...);
     auto& [it, new_key] = res;
-    if (new_key) enqueue(it);
+    if (new_key) { enqueue(it); }
     // else         refresh(it);
     return res;
   }
 
   //----------------------------------------------------------------------------
-  template <class... Args>
+  template <typename... Args>
   auto try_emplace(key_type&& key, Args&&... args) {
     auto res =
         parent_t::try_emplace(std::move(key), std::forward<Args>(args)...);
     auto& [it, new_key] = res;
-    if (new_key) enqueue(it);
+    if (new_key) { enqueue(it); }
     // else         refresh(it);
     return res;
   }
 
   //----------------------------------------------------------------------------
-  template <class... Args>
+  template <typename... Args>
   std::pair<iterator, bool> emplace(Args&&... args) = delete;
-  /// \}
 
   std::optional<const_iterator> has_key(const key_type& key) {
     if (auto iter = find(key); iter != this->end()) return iter;

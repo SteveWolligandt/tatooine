@@ -42,6 +42,7 @@ create_test(edgeset)
 create_test(mesh)
 create_test(streamsurface)
 create_test(parameterized_surface)
+create_test(cache)
 
 #- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 add_executable (_all main.cpp ${ALL_TEST_CPPS})

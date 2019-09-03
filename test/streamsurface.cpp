@@ -7,6 +7,19 @@
 namespace tatooine::test {
 //==============================================================================
 
+TEST_CASE("streamsurface_simple_spacetime_doublegyre",
+          "[streamsurface][simple][numerical][doublegyre][spacetime_field]") {
+  numerical::doublegyre dg;
+  spacetime_field       dgst{dg};
+  streamsurface         ssf{dgst, 0,
+                    parameterized_line<double, 3>{{{0.1, 0.2, 0.0}, 0.0},
+                                                  {{0.5, 0.9, 0.0}, 0.5},
+                                                  {{0.9, 0.2, 0.0}, 1.0}}};
+  ssf.discretize<simple_discretization>(10ul, 0.1, -20.0, 20.0)
+      .write_vtk("streamsurface_dg_simple.vtk");
+}
+
+//==============================================================================
 TEST_CASE("streamsurface_hultquist_spacetime_doublegyre",
           "[streamsurface][hultquist][numerical][doublegyre][spacetime_field]") {
   numerical::doublegyre dg;
@@ -15,7 +28,8 @@ TEST_CASE("streamsurface_hultquist_spacetime_doublegyre",
                     parameterized_line<double, 3>{{{0.1, 0.2, 0.0}, 0.0},
                                                   {{0.5, 0.9, 0.0}, 0.5},
                                                   {{0.9, 0.2, 0.0}, 1.0}}};
-  ssf.discretize(20, 0.05, -5, 5).write_vtk("streamsurface.vtk");
+  ssf.discretize<hultquist_discretization>(10ul, 0.1, -20.0, 20.0)
+      .write_vtk("streamsurface_dg_hultquist.vtk");
 }
 
 ////==============================================================================

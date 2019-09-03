@@ -202,5 +202,21 @@ TEST_CASE("tensor_eigenvalue", "[tensor][eigenvalue]") {
 }
 
 //==============================================================================
+TEST_CASE("tensor_compare", "[tensor][compare]") {
+  vec v1{0.1, 0.1};
+  vec v2{0.2, 0.2};
+  REQUIRE(v1 < v2);
+  REQUIRE_FALSE(v1 < v1);
+  REQUIRE(v1 == v1);
+  REQUIRE_FALSE(v2 < v2);
+  REQUIRE(v2 == v2);
+  REQUIRE_FALSE(v2 < v1);
+
+  REQUIRE(std::pair{0.0, vec{0.1, 0.1}} < std::pair{0.0, vec{0.2, 0.2}});
+  REQUIRE(std::array{0.1, 0.1, 0.0} < std::array{0.2, 0.2, 0.0});
+  REQUIRE(vec{0.1, 0.1, 0.0} < vec{0.2, 0.2, 0.0});
+}
+
+//==============================================================================
 }  // namespace tatooine::test
 //==============================================================================
