@@ -223,9 +223,10 @@ struct tensor : base_tensor<tensor<Real, Dims...>, Real, Dims...> {
         "number of given rows does not match specified number of rows");
 
     // lambda inserting row into data block
-    auto insert_row = [r = 0UL, this](const auto& row_data) mutable {
-      size_t c = 0;
-      for (auto v : row_data) { at(r, c++) = static_cast<Real>(v); }
+    auto insert_row = [r = 0UL, this](const auto& row) mutable {
+      for (size_t c = 0; c < dimension(1); ++c) {
+        at(r, c) = static_cast<Real>(row[c]);
+      }
       ++r;
     };
 

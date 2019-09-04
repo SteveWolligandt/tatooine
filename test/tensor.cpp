@@ -6,6 +6,11 @@
 namespace tatooine::test {
 //==============================================================================
 
+TEST_CASE("tensor_print_matrix", "[tensor][print][matrix]") {
+  std::cerr << mat<int, 3, 3>{random_uniform{0, 9}} << '\n';
+}
+
+//==============================================================================
 TEST_CASE("tensor_initializers", "[tensor][initializers]") {
   SECTION("constructors") {
     auto m3z = mat3::zeros();
