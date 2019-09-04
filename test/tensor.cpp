@@ -6,6 +6,44 @@
 namespace tatooine::test {
 //==============================================================================
 
+TEST_CASE("tensor_ginac_matrix_conversion",
+          "[tensor][symbolic][conversion][matrix]") {
+  using namespace symbolic;
+  SECTION("to ginac") {
+    mat  m{{symbol::x(0), symbol::x(1)},
+          {symbol::x(1) * symbol::t(), GiNaC::ex{symbol::x(0)}}};
+    auto mg = to_ginac_matrix(m);
+    for (size_t r = 0; r < m.dimension(0); ++r) {
+      for (size_t c = 0; c < m.dimension(1); ++c) {
+        REQUIRE(mg(r, c) == m(r, c));
+      }
+    }
+  }
+  SECTION("to tensor") {
+    GiNaC::matrix m{{symbol::x(0), symbol::x(1)},
+                    {symbol::x(1) * symbol::t(), GiNaC::ex{symbol::x(0)}}};
+    auto          t = to_mat<2, 2>(m);
+    for (size_t r = 0; r < m.rows(); ++r) {
+      for (size_t c = 0; c < m.cols(); ++c) {
+        REQUIRE(t(r, c) == m(r, c));
+      }
+    }
+  }
+}
+
+TEST_CASE("tensor_symbolic_inverse", "[tensor][symbolic][inverse][matrix]") {
+  using namespace symbolic;
+  mat m{{symbol::x(0), symbol::x(1)},
+        {symbol::x(1) * symbol::t(), GiNaC::ex{symbol::x(0)}}};
+  auto inv = (inverse(m));
+  auto eye = m * inv;
+  expand(eye);
+  //eval(eye);
+  //normal(eye);
+  std::cerr << eye << '\n';
+}
+
+//==============================================================================
 TEST_CASE("tensor_print_matrix", "[tensor][print][matrix]") {
   std::cerr << mat<int, 3, 3>{random_uniform{0, 9}} << '\n';
 }
@@ -17,8 +55,8 @@ TEST_CASE("tensor_initializers", "[tensor][initializers]") {
     m3z.for_indices([&m3z](const auto... is) { CHECK(m3z(is...) == 0); });
     auto m3o = mat3::ones();
     m3o.for_indices([&m3o](const auto... is) { CHECK(m3o(is...) == 1); });
-    auto m3ru = mat3::randu();
-    auto m3rn = mat3::randn();
+    [[maybe_unused]] auto m3ru = mat3::randu();
+    [[maybe_unused]] auto m3rn = mat3::randn();
   }
   SECTION("factory functions") {
     mat3 m3z{zeros};

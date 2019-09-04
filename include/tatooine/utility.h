@@ -110,14 +110,14 @@ constexpr auto extract(Ts&&... ts) {
 //==============================================================================
 /// returns demangled typename
 template <typename T>
-constexpr inline std::string type_name(T&& /*t*/) {
+inline std::string type_name(T&& /*t*/) {
   return boost::core::demangle(typeid(T).name());
 }
 
 //------------------------------------------------------------------------------
 /// returns demangled typename
 template <typename T>
-constexpr inline std::string type_name() {
+inline std::string type_name() {
   return boost::core::demangle(typeid(T).name());
 }
 //==============================================================================

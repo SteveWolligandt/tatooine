@@ -37,3 +37,7 @@ endif()
 
 #- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 add_subdirectory(test)
+
+#- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+# This makes the project importable from the build directory
+export(TARGETS tatooine FILE tatooineConfig.cmake)

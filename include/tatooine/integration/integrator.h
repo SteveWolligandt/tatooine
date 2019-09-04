@@ -45,9 +45,6 @@ struct integrator : crtp<Derived> {
   template <typename vf_t>
   const auto &integrate(const vf_t &vf, const pos_t &y0, Real t0,
                         Real tau) const {
-    std::cerr << "dasdsa\n";
-    std::cerr << y0 << '\n';
-    std::cerr << t0 << '\n';
     auto [it, new_streamline] = m_cache.try_emplace({t0, y0});
     auto &integral            = it->second;
 
@@ -56,7 +53,6 @@ struct integrator : crtp<Derived> {
 
     // integral not yet integrated
     if (new_streamline || integral.empty()) {
-      std::cerr << "new streamline\n";
       integral = integrate_uncached(vf, y0, t0, tau, backward_on_border,
                                     forward_on_border);
     }
@@ -173,7 +169,6 @@ struct integrator : crtp<Derived> {
 
     Real tau_rest = t0 + tau - integral.front_parameterization();
     auto cont     = calc_backward(vf, integral, y0, t0, tau_rest);
-    assert(cont.size() + integral.size() <= cont.max_size());
     if (!integral.empty() &&
         integral.front_parameterization() > t0 + tau_rest) {
       backward_on_border = true;

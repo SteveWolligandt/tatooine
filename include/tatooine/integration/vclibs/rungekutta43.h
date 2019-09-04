@@ -91,6 +91,10 @@ struct rungekutta43 : integrator<Real, N, rungekutta43<Real, N>> {
   rungekutta43()
       : m_options{AbsTol = 1e-4, RelTol = 1e-4, InitialStep = 0,
                   MaxStep = 0.01} {}
+  rungekutta43(const rungekutta43&)            = default;
+  rungekutta43(rungekutta43&&)                 = default;
+  rungekutta43& operator=(const rungekutta43&) = default;
+  rungekutta43& operator=(rungekutta43&&)      = default;
   //----------------------------------------------------------------------------
   template <typename... Options>
   rungekutta43(Options&&... options)

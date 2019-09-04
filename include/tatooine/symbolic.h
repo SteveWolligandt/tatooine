@@ -7,13 +7,8 @@
 namespace tatooine::symbolic {
 //==============================================================================
 
-#define sym(sym)                    \
-  static auto& sym() {              \
-    static GiNaC::symbol sym{#sym}; \
-    return sym;                     \
-  }
 
-#define symarr(sym)                                                        \
+#define sym(sym)                                                        \
   template <size_t... Is>                                                  \
   static auto& sym(size_t idx, std::index_sequence<Is...> /*is*/) {        \
     static std::array sym_arr{                                             \
@@ -23,11 +18,15 @@ namespace tatooine::symbolic {
   }                                                                        \
   static auto& sym(size_t idx) {                                           \
     return sym(idx, std::make_index_sequence<num_pos_symbols>{});          \
+  }                                                                        \
+  static auto& sym() {                                                     \
+    static GiNaC::symbol sym{#sym};                                        \
+    return sym;                                                            \
   }
 
 struct symbol {
   static constexpr size_t num_pos_symbols = 100;
-  sym(i) sym(j) sym(k) sym(x) sym(y) sym(z) sym(t) symarr(x)
+  sym(i) sym(j) sym(k) sym(x) sym(y) sym(z) sym(t)
 };
 #undef sym
 #undef symarr

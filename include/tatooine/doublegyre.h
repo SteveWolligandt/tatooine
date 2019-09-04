@@ -20,7 +20,7 @@ struct doublegyre : field<real_t, 2, 2> {
   using typename parent_t::tensor_t;
 
   doublegyre(const GiNaC::ex& eps   = GiNaC::numeric{1, 4},
-             const GiNaC::ex& omega = 2 * GiNaC::Pi / 10,
+             const GiNaC::ex& omega = 2 * GiNaC::Pi * GiNaC::numeric{1, 10},
              const GiNaC::ex& A     = GiNaC::numeric{1, 10}) {
     using GiNaC::Pi;
     auto a = eps * sin(omega * t());

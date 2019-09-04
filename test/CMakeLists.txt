@@ -26,6 +26,8 @@ endmacro()
 
 #- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 create_test(doublegyre)
+create_test(newdoublegyre)
+create_test(sinuscosinus)
 create_test(abcflow)
 create_test(tensor)
 create_test(integration)
@@ -43,6 +45,7 @@ create_test(mesh)
 create_test(streamsurface)
 create_test(parameterized_surface)
 create_test(cache)
+create_test(newton_raphson)
 
 #- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 add_executable (_all main.cpp ${ALL_TEST_CPPS})
