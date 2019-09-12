@@ -11,10 +11,14 @@ TEST_CASE("streamsurface_simple_spacetime_doublegyre",
           "[streamsurface][simple][numerical][doublegyre][spacetime_field]") {
   numerical::doublegyre dg;
   spacetime_field       dgst{dg};
-  streamsurface         ssf{dgst, 0,
-                    parameterized_line<double, 3>{{{0.1, 0.2, 0.0}, 0.0},
-                                                  {{0.5, 0.9, 0.0}, 0.5},
-                                                  {{0.9, 0.2, 0.0}, 1.0}}};
+  streamsurface         ssf{dgst,
+                    0,
+                    parameterized_line<double, 3>{{vec{0.1, 0.2, 0.0}, 0.0},
+                                                  {vec{0.5, 0.9, 0.0}, 0.5},
+                                                  {vec{0.9, 0.2, 0.0}, 1.0}},
+                    integration::vclibs::rungekutta43<double, 3>{},
+                    interpolation::linear<double>{},
+                    interpolation::linear<double>{}};
   ssf.discretize<simple_discretization>(10ul, 0.1, -20.0, 20.0)
       .write_vtk("streamsurface_dg_simple.vtk");
 }
@@ -27,7 +31,10 @@ TEST_CASE("streamsurface_hultquist_spacetime_doublegyre",
   streamsurface         ssf{dgst, 0,
                     parameterized_line<double, 3>{{{0.1, 0.2, 0.0}, 0.0},
                                                   {{0.5, 0.9, 0.0}, 0.5},
-                                                  {{0.9, 0.2, 0.0}, 1.0}}};
+                                                  {{0.9, 0.2, 0.0}, 1.0}},
+                    integration::vclibs::rungekutta43<double, 3>{},
+                    interpolation::linear<double>{},
+                    interpolation::linear<double>{}};
   ssf.discretize<hultquist_discretization>(10ul, 0.1, -20.0, 20.0)
       .write_vtk("streamsurface_dg_hultquist.vtk");
 }

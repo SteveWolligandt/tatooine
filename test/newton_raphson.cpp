@@ -16,7 +16,7 @@ struct xy_field : symbolic::field<double, 2, 2> {
   using typename parent_t::symtensor_t;
   using typename parent_t::tensor_t;
 
-  xy_field() { this->set_expr(symtensor_t{GiNaC::ex{x(0)}, GiNaC::ex{x(1)}}); }
+  xy_field() { this->set_expr(vec{GiNaC::ex{x(0)}, GiNaC::ex{x(1)}}); }
 };
 
 //==============================================================================

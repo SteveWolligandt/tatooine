@@ -32,10 +32,10 @@ struct line {
 
   //============================================================================
   using real_t          = Real;
-  using vec_t           = tensor<Real, N>;
+  using vec_t           = vec<Real, N>;
   using pos_t           = vec_t;
-  using vec3            = tensor<Real, 3>;
-  using mat3            = tensor<Real, 3, 3>;
+  using vec3            = vec<Real, 3>;
+  using mat3            = mat<Real, 3, 3>;
   using this_t          = line<Real, N>;
   using pos_container_t = std::deque<pos_t>;
 

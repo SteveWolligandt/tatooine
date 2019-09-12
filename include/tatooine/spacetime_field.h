@@ -66,10 +66,11 @@ struct spacetime_field<symbolic::field<Real, N - 1, VecDim - 1>, Real, N,
   using typename parent_t::tensor_t;
 
   //============================================================================
-  spacetime_field(const symbolic::field<Real, N - 1, VecDim - 1>& f) {
+  spacetime_field(const field<symbolic::field<Real, N - 1, VecDim - 1>, Real,
+                              N - 1, VecDim - 1>& f) {
     symtensor_t ex;
     for (size_t i = 0; i < N - 1; ++i) {
-      ex(i) = symbolic::ev(f.expr()(i),
+      ex(i) = symbolic::ev(f.as_derived().expr()(i),
                            symbolic::symbol::t() == symbolic::symbol::x(N - 1));
     }
     ex(N - 1) = 1;

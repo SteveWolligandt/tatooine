@@ -129,17 +129,13 @@ struct parallel_vectors {
   }
 
   //----------------------------------------------------------------------------
-  std::optional<vec3> pv_on_tri(const vec3& p0, const vec3& v0, const vec3& w0,
-                                const vec3& p1, const vec3& v1, const vec3& w1,
-                                const vec3& p2, const vec3& v2,
-                                const vec3& w2) {
+  std::optional<vec3> pv_on_tri(
+      const vec3& p0, const vec3& v0, const vec3& w0,
+      const vec3& p1, const vec3& v1, const vec3& w1,
+      const vec3& p2, const vec3& v2, const vec3& w2) {
     mat<real_t, 3, 3> v, w, m;
-    v.col(0) = v0;
-    v.col(1) = v1;
-    v.col(2) = v2;
-    w.col(0) = w0;
-    w.col(1) = w1;
-    w.col(2) = w2;
+    v.col(0) = v0; v.col(1) = v1; v.col(2) = v2;
+    w.col(0) = w0; w.col(1) = w1; w.col(2) = w2;
 
     if (std::abs(det(v)) > 0) {
       m = gesv(v, w);
@@ -169,25 +165,29 @@ struct parallel_vectors {
       return {};
 
     } else if (barycentric_coords.size() == 1) {
-      return barycentric_coords.front()(0) * p0 +
-             barycentric_coords.front()(1) * p1 +
-             barycentric_coords.front()(2) * p2;
+      auto pos = barycentric_coords.front()(0) * p0 +
+                 barycentric_coords.front()(1) * p1 +
+                 barycentric_coords.front()(2) * p2;
+      //if (std::abs(pos(0) * pos(0) + pos(1) * pos(1) - 9) < 1e-1) { return {}; }
+      return pos;
 
     } else {
-      // // check if all found barycentric coordinates are the same
-      // const real_t      eps = 1e-5;
-      // for (unsigned int i = 1; i < barycentric_coords.size(); i++) {
-      //   for (unsigned int j = 0; j < i; j++) {
-      //     if (!approx_equal(barycentric_coords[i], barycentric_coords[j],
-      //                       eps)) {
-      //       return {};
-      //     }
-      //   }
-      // }
+      // check if all found barycentric coordinates are the same
+      //const real_t      eps = 1e-5;
+      //for (unsigned int i = 1; i < barycentric_coords.size(); i++) {
+      //  for (unsigned int j = 0; j < i; j++) {
+      //    if (!approx_equal(barycentric_coords[i], barycentric_coords[j],
+      //                      eps)) {
+      //      return {};
+      //    }
+      //  }
+      //}
+      const auto pos = barycentric_coords.front()(0) * p0 +
+                       barycentric_coords.front()(1) * p1 +
+                       barycentric_coords.front()(2) * p2;
+      return pos;
 
-      return barycentric_coords.front()(0) * p0 +
-             barycentric_coords.front()(1) * p1 +
-             barycentric_coords.front()(2) * p2;
+      //return {};
     }
   }
 
@@ -223,7 +223,7 @@ struct parallel_vectors {
     using boost::copy;
     std::vector<std::pair<vec3, vec3>> line_segments;
 #ifdef NDEBUG
-//#pragma omp parallel for collapse(3)
+#pragma omp parallel for collapse(3)
 #endif
     for (size_t iz = 0; iz < m_grid.dimension(2).size() - 1; ++iz) {
       for (size_t iy = 0; iy < m_grid.dimension(1).size() - 1; ++iy) {

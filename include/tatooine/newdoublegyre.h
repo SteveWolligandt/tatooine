@@ -34,8 +34,8 @@ struct newdoublegyre : field<Real, 2, 2> {
     auto           f     = a * x(0) * x(0) + b * x(0);
     auto           df    = 2 * a * x(0) + b;
 
-    this->set_expr(symtensor_t{-Pi * A * sin(Pi * f) * cos(Pi * x(1)),
-                                Pi * A * cos(Pi * f) * sin(Pi * x(1)) * df});
+    this->set_expr(vec{-Pi * A * sin(Pi * f) * cos(Pi * x(1)),
+                        Pi * A * cos(Pi * f) * sin(Pi * x(1)) * df});
   }
 
   //----------------------------------------------------------------------------
@@ -98,16 +98,17 @@ newdoublegyre() -> newdoublegyre<double>;
 //==============================================================================
 }  // namespace tatooine::analytical
 //==============================================================================
+
 //==============================================================================
 namespace tatooine::numerical {
 //==============================================================================
-//! Double Gyre dataset
 template <typename Real>
 struct newdoublegyre : field<newdoublegyre<Real>,Real, 2, 2> {
   using this_t   = newdoublegyre<Real>;
   using parent_t = field<this_t, Real, 2, 2>;
   using typename parent_t::pos_t;
   using typename parent_t::tensor_t;
+
 
   //============================================================================
   static constexpr Real pi      = M_PI;
@@ -125,7 +126,7 @@ struct newdoublegyre : field<newdoublegyre<Real>,Real, 2, 2> {
     const Real f  = a * x(0) * x(0) + b * x(0);
     const Real df = 2 * a * x(0) + b;
 
-    return {-pi * A * std::sin(pi * f) * std::cos(pi * x(1)),
+    return vec{-pi * A * std::sin(pi * f) * std::cos(pi * x(1)),
              pi * A * std::cos(pi * f) * std::sin(pi * x(1)) * df};
   }
 
@@ -165,26 +166,25 @@ struct newdoublegyre : field<newdoublegyre<Real>,Real, 2, 2> {
   }
 
   //----------------------------------------------------------------------------
-  constexpr Real bifurcationline(Real t) const {
-    return c * std::sin(pi / 5 * t + d) + 1;
-  }
+  struct bifurcationline_t {
+    auto at(Real t) const {
+      return vec<Real, 2>{c * std::sin(pi / 5 * t + d) + 1, 0};
+    }
+    auto operator()(Real t) const { return at(t); }
+  };
+  // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+  constexpr auto bifurcationline() const { return bifurcationline_t{}; }
 
   //----------------------------------------------------------------------------
-  constexpr auto bifurcationline(const linspace<Real>& domain) const {
-    parameterized_line<Real, 2> c;
-    for (auto t : domain) {
-      c.push_back({bifurcationline_pos(t), 0}, t);
+  struct bifurcationline_spacetime_t {
+    auto at(Real t) const {
+      return vec<Real, 3>{c * std::sin(pi / 5 * t + d) + 1, 0, t};
     }
-    return c;
-  }
-
-  //----------------------------------------------------------------------------
-  constexpr auto bifurcationline_spacetime(const linspace<Real>& domain) const {
-    parameterized_line<Real, 3> c;
-    for (auto t : domain) {
-      c.push_back({bifurcationline_pos(t), 0, t}, t);
-    }
-    return c;
+    auto operator()(Real t) const { return at(t); }
+  };
+  // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+  constexpr auto bifurcationline_spacetime() const {
+    return bifurcationline_spacetime_t{};
   }
 };
 

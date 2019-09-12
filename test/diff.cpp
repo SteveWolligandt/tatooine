@@ -45,9 +45,7 @@ TEST_CASE("derived_field_symbolic_doublegyre",
 TEST_CASE("derived_field_linear_field", "[derived_field][symbolic]") {
   auto& x0 = symbolic::symbol::x(0);
   auto& x1 = symbolic::symbol::x(1);
-  symbolic::field<double, 2, 2> f{
-      {x0 * x1 * 2,
-       x1 * 3}};
+  symbolic::field<double, 2, 2> f{vec{x0 * x1 * 2, x1 * 3}};
   auto df = diff(f);
   REQUIRE(df.expr()(0,0) == GiNaC::diff(f.expr()(0), x0));
   REQUIRE(df.expr()(1,0) == GiNaC::diff(f.expr()(1), x0));

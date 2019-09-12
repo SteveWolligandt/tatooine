@@ -23,9 +23,9 @@ struct abcflow : field<real_t, 3, 3> {
  public:
   constexpr abcflow(const real_t a = 1, const real_t b = 1,
                     const real_t c = 1) {
-    this->set_expr({a * sin(symbol::x(2)) + c * cos(symbol::x(1)),
-                    b * sin(symbol::x(0)) + a * cos(symbol::x(2)),
-                    c * sin(symbol::x(1)) + b * cos(symbol::x(0))});
+    this->set_expr(vec{a * sin(symbol::x(2)) + c * cos(symbol::x(1)),
+                       b * sin(symbol::x(0)) + a * cos(symbol::x(2)),
+                       c * sin(symbol::x(1)) + b * cos(symbol::x(0))});
   }
   constexpr abcflow(const abcflow& other)            = default;
   constexpr abcflow(abcflow&& other)                 = default;
@@ -67,9 +67,9 @@ struct abcflow : field<abcflow<real_t>, real_t, 3, 3> {
 
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
   constexpr tensor_t evaluate(const pos_t& x, real_t) const {
-    return {m_a * std::sin(x(2)) + m_c * std::cos(x(1)),
-            m_b * std::sin(x(0)) + m_a * std::cos(x(2)),
-            m_c * std::sin(x(1)) + m_b * std::cos(x(0))};
+    return vec{m_a * std::sin(x(2)) + m_c * std::cos(x(1)),
+               m_b * std::sin(x(0)) + m_a * std::cos(x(2)),
+               m_c * std::sin(x(1)) + m_b * std::cos(x(0))};
   }
 };
 

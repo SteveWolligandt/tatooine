@@ -71,18 +71,30 @@ struct promote<T0, T1, T2, Ts...> {
 template <typename... Ts>
 using enable_if_integral =
     typename std::enable_if_t<(std::is_integral_v<Ts> && ...)>;
+template <typename... Ts>
+using enable_if_not_integral =
+    typename std::enable_if_t<(!std::is_integral_v<Ts> && ...)>;
 //------------------------------------------------------------------------------
 template <typename... Ts>
 using enable_if_floating_point =
     typename std::enable_if_t<(std::is_floating_point_v<Ts> && ...)>;
+template <typename... Ts>
+using enable_if_not_floating_point =
+    typename std::enable_if_t<(!std::is_floating_point_v<Ts> && ...)>;
 //------------------------------------------------------------------------------
 template <typename... Ts>
 using enable_if_arithmetic =
     typename std::enable_if_t<(std::is_arithmetic_v<Ts> && ...)>;
+template <typename... Ts>
+using enable_if_not_arithmetic =
+    typename std::enable_if_t<(!std::is_arithmetic_v<Ts> && ...)>;
 //------------------------------------------------------------------------------
 template <typename... Ts>
 using enable_if_symbolic =
     typename std::enable_if_t<(is_symbolic_v<Ts> && ...)>;
+template <typename... Ts>
+using enable_if_not_symbolic =
+    typename std::enable_if_t<(!is_symbolic_v<Ts> && ...)>;
 //------------------------------------------------------------------------------
 template <typename... Ts>
 using enable_if_arithmetic_or_symbolic =

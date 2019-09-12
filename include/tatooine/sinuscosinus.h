@@ -20,7 +20,7 @@ struct cosinussinus : field<real_t, 2, 2> {
   using typename parent_t::tensor_t;
 
   cosinussinus() {
-    this->set_expr(symtensor_t{GiNaC::ex{cos(t())}, GiNaC::ex{sin(t())}});
+    this->set_expr(vec{GiNaC::ex{cos(t())}, GiNaC::ex{sin(t())}});
   }
 };
 
@@ -36,7 +36,7 @@ struct sinuscosinus : field<real_t, 2, 2> {
   using typename parent_t::tensor_t;
 
   sinuscosinus() {
-    this->set_expr(symtensor_t{GiNaC::ex{sin(t())}, GiNaC::ex{cos(t())}});
+    this->set_expr(vec{GiNaC::ex{sin(t())}, GiNaC::ex{cos(t())}});
   }
 };
 

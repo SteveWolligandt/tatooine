@@ -18,7 +18,7 @@ struct field : crtp<Derived> {
   using real_t   = Real;
   using this_t   = field<Derived, Real, N, TensorDims...>;
   using parent_t = crtp<Derived>;
-  using pos_t    = tensor<Real, N>;
+  using pos_t    = vec<Real, N>;
   using tensor_t = std::conditional_t<sizeof...(TensorDims) == 0, Real,
                                       tensor<Real, TensorDims...>>;
   static constexpr auto num_dimensions() { return N; }

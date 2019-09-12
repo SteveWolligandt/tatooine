@@ -7,9 +7,9 @@ namespace tatooine::test {
 
 TEST_CASE("line", "[line]") {
   line<double, 2> l;
-  l.push_back({0,0});
-  l.push_back({1,1});
-  l.push_back({2,0});
+  l.push_back(vec{0,0});
+  l.push_back(vec{1,1});
+  l.push_back(vec{2,0});
 
   auto t0 = l.tangent(0);
   auto t1 = l.tangent(1);
@@ -18,7 +18,7 @@ TEST_CASE("line", "[line]") {
 //==============================================================================
 TEST_CASE("line_parameterized_initialization",
           "[line][parameterization][initialization]") {
-  parameterized_line<double, 2> l{{{1, 2}, 0}, {{2, 3}, 1}, {{3, 4}, 2}};
+  parameterized_line<double, 2> l{{vec{1, 2}, 0}, {vec{2, 3}, 1}, {vec{3, 4}, 2}};
   auto [x0, t0] = l[0];
   auto [x1, t1] = l[1];
   auto [x2, t2] = l[2];

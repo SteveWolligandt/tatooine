@@ -101,4 +101,38 @@ constexpr auto operator*(const field<LhsReal, N, D0, D1>& lhs,
 }  // namespace tatooine::symbolic
 //==============================================================================
 
+//==============================================================================
+namespace tatooine {
+//==============================================================================
+
+template <typename T>
+struct is_symbolic_field_impl : std::false_type {};
+
+template <typename Real, size_t N, size_t... TensorDims>
+struct is_symbolic_field_impl<
+    field<symbolic::field<Real, N, TensorDims...>, Real, N, TensorDims...>>
+    : std::true_type {};
+
+template <typename Real, size_t N, size_t... TensorDims>
+struct is_symbolic_field_impl<symbolic::field<Real, N, TensorDims...>>
+    : std::true_type {};
+
+template <typename T>
+static constexpr inline auto is_symbolic_field_v = is_symbolic<T>::value;
+
+template <typename T>
+static constexpr auto is_symbolic_field(T&&) {
+  return false;
+}
+
+template <typename Real, size_t N, size_t... TensorDims>
+static constexpr auto is_symbolic_field(
+    const field<symbolic::field<Real, N, TensorDims...>, Real, N,
+                TensorDims...>&) {
+  return true;
+}
+
+//==============================================================================
+}  // namespace tatooine
+//==============================================================================
 #endif
