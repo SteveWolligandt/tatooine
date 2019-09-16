@@ -70,8 +70,8 @@ struct doublegyre : field<doublegyre<Real>, Real, 2, 2> {
     Real f  = a * x(0) * x(0) + b * x(0);
     Real df = 2 * a * x(0) + b;
 
-    return vec{-pi * A * std::sin(pi * f) * std::cos(pi * x(1)),
-               pi * A * std::cos(pi * f) * std::sin(pi * x(1)) * df};
+    return {-pi * A * std::sin(pi * f) * std::cos(pi * x(1)),
+             pi * A * std::cos(pi * f) * std::sin(pi * x(1)) * df};
   }
 
   //----------------------------------------------------------------------------

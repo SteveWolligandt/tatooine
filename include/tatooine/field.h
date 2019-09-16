@@ -13,6 +13,26 @@ struct out_of_domain : std::runtime_error {
   out_of_domain() : std::runtime_error{""} {}
 };
 
+//==============================================================================
+template <typename Real, size_t... Dims>
+struct tensor_type_impl {
+  using type = tensor<Real, Dims...>;
+};
+// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+template <typename Real, size_t N>
+struct tensor_type_impl<Real, N> {
+  using type = vec<Real, N>;
+};
+// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+template <typename Real, size_t M, size_t N>
+struct tensor_type_impl<Real, M, N> {
+  using type = mat<Real, M, N>;
+};
+// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+template <typename Real, size_t... Dims>
+using tensor_type = typename tensor_type_impl<Real, Dims...>::type;
+
+//==============================================================================
 template <typename Derived, typename Real, size_t N, size_t... TensorDims>
 struct field : crtp<Derived> {
   using real_t   = Real;
@@ -20,7 +40,7 @@ struct field : crtp<Derived> {
   using parent_t = crtp<Derived>;
   using pos_t    = vec<Real, N>;
   using tensor_t = std::conditional_t<sizeof...(TensorDims) == 0, Real,
-                                      tensor<Real, TensorDims...>>;
+                                      tensor_type<Real, TensorDims...>>;
   static constexpr auto num_dimensions() { return N; }
   static constexpr auto num_tensor_dimensions() {
     return sizeof...(TensorDims);
@@ -34,12 +54,12 @@ struct field : crtp<Derived> {
   using parent_t::as_derived;
 
   //============================================================================
-  constexpr decltype(auto) operator()(const pos_t& x, Real t = 0) const {
+  constexpr tensor_t operator()(const pos_t& x, Real t = 0) const {
     return evaluate(x, t);
   }
 
   //----------------------------------------------------------------------------
-  constexpr decltype(auto) evaluate(const pos_t& x, Real t = 0) const {
+  constexpr tensor_t evaluate(const pos_t& x, Real t = 0) const {
     // if (!in_domain(x, t)) { throw out_of_domain{}; }
     return as_derived().evaluate(x, t);
   }

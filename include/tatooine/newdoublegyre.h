@@ -174,6 +174,8 @@ struct newdoublegyre : field<newdoublegyre<Real>,Real, 2, 2> {
   };
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
   constexpr auto bifurcationline() const { return bifurcationline_t{}; }
+  // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+  constexpr auto bifurcationline(Real t) const { return bifurcationline_t{}(t); }
 
   //----------------------------------------------------------------------------
   struct bifurcationline_spacetime_t {

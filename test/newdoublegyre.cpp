@@ -6,14 +6,14 @@
 namespace tatooine::test {
 //==============================================================================
 
-TEST_CASE("newdoublegyre_bifurcationline", "[newdoublegyre][ndg][bifurcationline]") {
-  numerical::newdoublegyre ndg;
-  symbolic::newdoublegyre  sdg;
-
-  for (auto t : linspace{0.0, 10.0, 100}) {
-    REQUIRE(sdg.bifurcationline(t) == Approx(ndg.bifurcationline(t)));
-  }
-}
+//TEST_CASE("newdoublegyre_bifurcationline", "[newdoublegyre][ndg][bifurcationline]") {
+//  numerical::newdoublegyre ndg;
+//  symbolic::newdoublegyre  sdg;
+//
+//  for (auto t : linspace{0.0, 10.0, 100}) {
+//    REQUIRE(sdg.bifurcationline(t) == Approx(ndg.bifurcationline(t)));
+//  }
+//}
 
 //==============================================================================
 TEST_CASE("newdoublegyre_timeoffset", "[newdoublegyre][ndg][timeoffset]") {

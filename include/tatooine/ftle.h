@@ -1,26 +1,27 @@
 #ifndef TATOOINE_FTLE_H
 #define TATOOINE_FTLE_H
 
-#include "field.h"
+#include "flowmap.h"
 
 //==============================================================================
 namespace tatooine {
 //==============================================================================
 
-template <typename field_t, typename real_t, size_t N>
-struct ftle : field<ftle<field_t, real_t, N>, real_t, N, N> {
-  using this_t   = ftle<field_t, real_t, N>;
-  using parent_t = field<ftle<field_t, real_t, N>, real_t, N, N>;
+template <typename V>
+struct ftle : field<ftle<V>, typename V::real_t, V::num_dimensions()> {
+  using real_t = V::real_t;
+  using this_t   = ftle<V>;
+  using parent_t = field<this_t, Real, N, N>;
   using typename parent_t::pos_t;
   using typename parent_t::tensor_t;
 
-  field_t m_field;
-  vec<real_t, n> m_eps;
+  V m_v;
+  vec<Real, n> m_eps;
 
-  ftle(const field<field_t, real_t, N, N>& f, real_t eps = 1e-6)
-      : m_field{f}, m_eps{eps} {
+  ftle(const field<V, Real, N, N>& v, Real eps = 1e-6)
+      : m_v{v}, m_eps{fill{eps}} {
     pos_t offset;
-    mat<real_t, n, n> gradient;
+    mat<Real, n, n> gradient;
 
     for (size_t i = 0; i < n; i++) {
       offset(i)       = m_eps(i);
@@ -32,7 +33,7 @@ struct ftle : field<ftle<field_t, real_t, N>, real_t, N, N> {
 
     auto   A       = transpose(gradient) * gradient;
     auto   eigvals = eigenvalues_sym(A);
-    real_t max_eig = std::max(std::abs(min(eigvals)), max(eigvals));
+    Real max_eig = std::max(std::abs(min(eigvals)), max(eigvals));
     auto   v       = std::log(std::sqrt(max_eig)) / std::abs(tau());
     if (std::isnan(v) || std::isinf(v)) {
       for (size_t i = 0; i < n; i++) {
@@ -43,12 +44,12 @@ struct ftle : field<ftle<field_t, real_t, N>, real_t, N, N> {
     return v;
   }
 
-  tensor_t evaluate(const pos_t& x, real_t x) const {
+  tensor_t evaluate(const pos_t& x, Real x) const {
   
   }
 
   //----------------------------------------------------------------------------
-  constexpr bool in_domain(const pos_t& x, real_t) const {
+  constexpr bool in_domain(const pos_t& x, Real) const {
     m_field.in_domain(x, t);
   }
 };
