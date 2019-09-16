@@ -26,6 +26,8 @@ endmacro()
 
 #- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 create_test(doublegyre)
+create_test(ftle)
+create_test(flowmap)
 create_test(newdoublegyre)
 create_test(sinuscosinus)
 create_test(abcflow)

@@ -2,62 +2,72 @@
 #define TATOOINE_FTLE_H
 
 #include "flowmap.h"
+#include "diff.h"
 
 //==============================================================================
 namespace tatooine {
 //==============================================================================
 
-template <typename V>
-struct ftle : field<ftle<V>, typename V::real_t, V::num_dimensions()> {
-  using real_t = V::real_t;
-  using this_t   = ftle<V>;
-  using parent_t = field<this_t, Real, N, N>;
+template <typename V, template <typename, size_t> typename Integrator>
+struct ftle : field<ftle<V, Integrator>, typename V::real_t, V::num_dimensions()> {
+  using real_t       = typename V::real_t;
+  using integrator_t = Integrator<real_t, V::num_dimensions()>;
+  using this_t       = ftle<V, Integrator>;
+  using parent_t     = field<this_t, real_t, V::num_dimensions()>;
   using typename parent_t::pos_t;
   using typename parent_t::tensor_t;
+  using flowmap_gradient_t =
+      decltype(diff(flowmap{std::declval<V>(), std::declval<integrator_t>(),
+                            std::declval<real_t>()}));
 
-  V m_v;
-  vec<Real, n> m_eps;
+  //============================================================================
+  private:
+  flowmap_gradient_t m_flowmap_gradient;
 
-  ftle(const field<V, Real, N, N>& v, Real eps = 1e-6)
-      : m_v{v}, m_eps{fill{eps}} {
-    pos_t offset;
-    mat<Real, n, n> gradient;
+  //============================================================================
+  public:
+   template <typename FieldReal, size_t N, typename TauReal>
+   ftle(const field<V, FieldReal, N, N>& v, const integrator_t& integrator,
+        TauReal tau)
+       : m_flowmap_gradient{diff(flowmap{v, integrator, tau})} {}
 
-    for (size_t i = 0; i < n; i++) {
-      offset(i)       = m_eps(i);
-      const auto fw   = m_flowmap(x + offset, t0);
-      const auto bw   = m_flowmap(x - offset, t0);
-      gradient.col(i) = (fw - bw) / (m_eps(i) * 2);
-      offset(i) = 0;
-    }
+   tensor_t evaluate(const pos_t& x, real_t t) const {
+     auto   g       = m_flowmap_gradient(x, t);
+     auto   eigvals = eigenvalues_sym(transpose(g) * g);
+     real_t max_eig =
+         std::max(std::abs(min(eigvals)), max(eigvals));
+     //auto   [eigvals, eigvecs] = eigenvectors(transpose(g) * g);
+     //real_t max_eig =
+     //    std::max(std::abs(min(real(eigvals))), max(real(eigvals)));
+     return std::log(std::sqrt(max_eig)) / std::abs(tau());
+   }
 
-    auto   A       = transpose(gradient) * gradient;
-    auto   eigvals = eigenvalues_sym(A);
-    Real max_eig = std::max(std::abs(min(eigvals)), max(eigvals));
-    auto   v       = std::log(std::sqrt(max_eig)) / std::abs(tau());
-    if (std::isnan(v) || std::isinf(v)) {
-      for (size_t i = 0; i < n; i++) {
-        offset(i) = m_eps(i);
-        offset(i) = 0;
-      }
-    }
-    return v;
-  }
-
-  tensor_t evaluate(const pos_t& x, Real x) const {
-  
+   //---------------------------------------------------------------------------
+   constexpr bool in_domain(const pos_t& x, real_t t) const {
+     return m_flowmap_gradient.in_domain(x, t);
   }
 
   //----------------------------------------------------------------------------
-  constexpr bool in_domain(const pos_t& x, Real) const {
-    m_field.in_domain(x, t);
+  auto& flowmap_gradient() { return m_flowmap_gradient; }
+  const auto& flowmap_gradient() const { return m_flowmap_gradient; }
+
+  //----------------------------------------------------------------------------
+  auto  tau() const { return m_flowmap_gradient.internal_field().tau(); }
+  auto& tau() { return m_flowmap_gradient.internal_field().tau(); }
+  void set_tau(real_t tau) { m_flowmap_gradient.internal_field().set_tau(tau); }
+
+  //----------------------------------------------------------------------------
+  auto  eps() const { return m_flowmap_gradient.internal_field().eps(); }
+  auto& eps() { return m_flowmap_gradient.internal_field().eps(); }
+  auto  eps(size_t i) const {
+    return m_flowmap_gradient.internal_field().eps(i);
   }
+  auto& eps(size_t i) { return m_flowmap_gradient.internal_field().eps(i); }
+  void set_eps(real_t eps) { m_flowmap_gradient.internal_field().set_eps(eps); }
 };
 
-doublegyre()->doublegyre<double>;
-
 //==============================================================================
-}  // namespace tatooine::symbolic
+}  // namespace tatooine
 //==============================================================================
 
 #endif

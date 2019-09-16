@@ -261,5 +261,37 @@ TEST_CASE("tensor_compare", "[tensor][compare]") {
 }
 
 //==============================================================================
+TEST_CASE("tensor_complex", "[tensor][complex][view]") {
+  vec<std::complex<double>, 3> v{std::complex<double>{1, 2},
+                                 std::complex<double>{2, 3},
+                                 std::complex<double>{3, 4}};
+  auto                         imag_v = imag(v);
+  for (size_t i = 0; i < v.dimension(0); ++i) {
+    REQUIRE(v(i).imag() == imag_v(i));
+  }
+  auto real_v = real(v);
+  for (size_t i = 0; i < v.dimension(0); ++i) {
+    REQUIRE(v(i).real() == real_v(i));
+  }
+  std::max(std::abs(min(real(v))), max(real(v)));
+}
+
+//==============================================================================
+TEST_CASE("tensor_matrix_transpose", "[tensor][matrix][mat][transpose][view]") {
+  auto A = mat<double, 2, 3>::randu();
+  auto At = transpose(A);
+  auto& A2 = transpose(At);
+
+  REQUIRE(&A == &A2);
+
+  REQUIRE(A.dimension(0) == At.dimension(1));
+  REQUIRE(A.dimension(1) == At.dimension(0));
+
+  for (size_t i = 0; i < 2; ++i) {
+    for (size_t j = 0; j < 3; ++j) { REQUIRE(A(i, j) == At(j, i)); }
+  }
+}
+
+//==============================================================================
 }  // namespace tatooine::test
 //==============================================================================

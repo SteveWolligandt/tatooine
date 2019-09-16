@@ -5,7 +5,7 @@
 #include <array>
 #include <boost/range/algorithm.hpp>
 #include <cmath>
-//#include <png++/png.hpp>
+#include <png++/png.hpp>
 #include <random>
 #include <vector>
 #include "amira_file.h"
@@ -691,54 +691,52 @@ struct grid_sampler
   }
 
   //----------------------------------------------------------------------------
-  // template <size_t _n = N>
-  // void write_png(const std::string& filepath) {
-  //  static_assert(_n == 2,
-  //                "cannot write sampler of dimenion other than 2 to png");
-  //
-  //  if constexpr (std::is_same_v<Data, Real>) {
-  //    png::image<png::rgb_pixel> image(dimension(0).size(),
-  //                                     dimension(1).size());
-  //    for (unsigned int y = 0; y < image.get_height(); ++y) {
-  //      for (png::uint_32 x = 0; x < image.get_width(); ++x) {
-  //        unsigned int idx = x + dimension(0).size() * y;
-  //
-  //        image[image.get_height() - 1 - y][x].red =
-  //            std::max<Real>(0, std::min<Real>(1, m_data[idx])) * 255;
-  //        image[image.get_height() - 1 - y][x].green =
-  //            std::max<Real>(0, std::min<Real>(1, m_data[idx])) * 255;
-  //        image[image.get_height() - 1 - y][x].blue =
-  //            std::max<Real>(0, std::min<Real>(1, m_data[idx])) * 255;
-  //      }
-  //    }
-  //    image.write(filepath);
-  //
-  //  } else if constexpr (std::is_same_v<Data, vec<Real, 4>>) {
-  //    png::image<png::rgba_pixel> image(dimension(0).size(),
-  //                                      dimension(1).size());
-  //    for (unsigned int y = 0; y < image.get_height(); ++y) {
-  //      for (png::uint_32 x = 0; x < image.get_width(); ++x) {
-  //        unsigned int idx = x + dimension(0).size() * y;
-  //
-  //        image[image.get_height() - 1 - y][x].red =
-  //            std::max<Real>(0, std::min<Real>(1, m_data[idx * 4 + 0])) *
-  //            255;
-  //        image[image.get_height() - 1 - y][x].green =
-  //            std::max<Real>(0, std::min<Real>(1, m_data[idx * 4 + 1])) *
-  //            255;
-  //        image[image.get_height() - 1 - y][x].blue =
-  //            std::max<Real>(0, std::min<Real>(1, m_data[idx * 4 + 2])) *
-  //            255;
-  //        image[image.get_height() - 1 - y][x].alpha =
-  //            std::max<Real>(0, std::min<Real>(1, m_data[idx * 4 + 3])) *
-  //            255;
-  //      }
-  //    }
-  //    image.write(filepath);
-  //  } else {
-  //    reg_grid_write_png_type_assert<Data>();
-  //  }
-  //}
+   template <size_t _n = N>
+   void write_png(const std::string& filepath) {
+    static_assert(_n == 2,
+                  "cannot write sampler of dimenion other than 2 to png");
+
+    if constexpr (std::is_same_v<Data, Real>) {
+      png::image<png::rgb_pixel> image(dimension(0).size(),
+                                       dimension(1).size());
+      for (unsigned int y = 0; y < image.get_height(); ++y) {
+        for (png::uint_32 x = 0; x < image.get_width(); ++x) {
+          unsigned int idx = x + dimension(0).size() * y;
+
+          image[image.get_height() - 1 - y][x].red =
+              std::max<Real>(0, std::min<Real>(1, m_data[idx])) * 255;
+          image[image.get_height() - 1 - y][x].green =
+              std::max<Real>(0, std::min<Real>(1, m_data[idx])) * 255;
+          image[image.get_height() - 1 - y][x].blue =
+              std::max<Real>(0, std::min<Real>(1, m_data[idx])) * 255;
+        }
+      }
+      image.write(filepath);
+
+    } else if constexpr (std::is_same_v<Data, vec<Real, 4>>) {
+      png::image<png::rgba_pixel> image(dimension(0).size(),
+                                        dimension(1).size());
+      for (unsigned int y = 0; y < image.get_height(); ++y) {
+        for (png::uint_32 x = 0; x < image.get_width(); ++x) {
+          unsigned int idx = x + dimension(0).size() * y;
+
+          image[image.get_height() - 1 - y][x].red =
+              std::max<Real>(0, std::min<Real>(1, m_data[idx * 4 + 0])) *
+              255;
+          image[image.get_height() - 1 - y][x].green =
+              std::max<Real>(0, std::min<Real>(1, m_data[idx * 4 + 1])) *
+              255;
+          image[image.get_height() - 1 - y][x].blue =
+              std::max<Real>(0, std::min<Real>(1, m_data[idx * 4 + 2])) *
+              255;
+          image[image.get_height() - 1 - y][x].alpha =
+              std::max<Real>(0, std::min<Real>(1, m_data[idx * 4 + 3])) *
+              255;
+        }
+      }
+      image.write(filepath);
+    }
+   }
 };
 
 //==============================================================================

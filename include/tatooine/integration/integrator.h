@@ -41,6 +41,11 @@ struct integrator : crtp<Derived> {
   }
 
  public:
+  integrator() = default;
+  integrator(const integrator&) = default;
+  integrator(integrator &&) noexcept = default;
+  integrator& operator=(const integrator&) = default;
+  integrator& operator=(integrator &&) noexcept = default;
   //----------------------------------------------------------------------------
   template <typename vf_t>
   const auto &integrate(const vf_t &vf, const pos_t &y0, Real t0,

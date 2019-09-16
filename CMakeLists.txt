@@ -7,6 +7,8 @@ find_package(GiNaC REQUIRED)
 find_package(LAPACKE REQUIRED)
 find_package(OpenMP REQUIRED)
 find_package(vcode REQUIRED)
+find_package(PNG REQUIRED)
+find_package(PNG++ REQUIRED)
 
 #- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 # create library target
@@ -22,6 +24,8 @@ target_include_directories(tatooine
     ${GINAC_INCLUDE_DIRS}
     ${LAPACK_INCLUDE_DIR}
     ${vcode_DIR}/../..
+    ${PNG_INCLUDE_DIRS}
+    ${PNG++_INCLUDE_DIRS}
 )
 
 #- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -30,6 +34,8 @@ target_link_libraries(tatooine
   INTERFACE
     ${GINAC_LIBRARIES}
     ${LAPACK_LIBRARIES}
+    ${PNG_LIBRARIES}
+    ${PNG++_LIBRARIES}
 )
 if(OpenMP_CXX_FOUND)
   target_link_libraries(tatooine INTERFACE OpenMP::OpenMP_CXX)

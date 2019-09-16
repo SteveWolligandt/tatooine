@@ -32,12 +32,13 @@ struct cache : std::map<key_t, value_t> {
   //----------------------------------------------------------------------------
   cache(uint64_t max_cache_size   = std::numeric_limits<uint64_t>::max(),
         uint64_t max_memory_usage = std::numeric_limits<uint64_t>::max())
-      : m_max_cache_size{max_cache_size},
+      : parent_t{}, m_max_cache_size{max_cache_size},
         m_max_memory_usage{max_memory_usage} {}
 
   //----------------------------------------------------------------------------
-  cache(const cache& other) = delete;
-  cache(cache&& other)      = delete;
+  cache(const cache& other)
+      : m_max_cache_size{other.m_max_cache_size},
+        m_max_memory_usage{other.m_max_memory_usage} {}
 
   auto max_cache_size() const { return m_max_cache_size; }
   auto max_memory_usage() const { return m_max_memory_usage; }

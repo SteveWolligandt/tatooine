@@ -105,28 +105,28 @@ struct base_tensor : crtp<Tensor> {
 
   //----------------------------------------------------------------------------
   template <typename... Is, enable_if_integral<Is...>...>
-  constexpr const auto& at(const Is... is) const {
+  constexpr const decltype(auto) at(const Is... is) const {
     static_assert(sizeof...(Is) == num_dimensions());
     return as_derived().at(is...);
   }
 
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
   template <typename... Is, enable_if_integral<Is...>...>
-  constexpr auto& at(const Is... is) {
+  constexpr decltype(auto) at(const Is... is) {
     static_assert(sizeof...(Is) == num_dimensions());
     return as_derived().at(is...);
   }
 
   //----------------------------------------------------------------------------
   template <typename... Is, enable_if_integral<Is...>...>
-  constexpr const auto& operator()(const Is... is) const {
+  constexpr const decltype(auto) operator()(const Is... is) const {
     static_assert(sizeof...(Is) == num_dimensions());
     return at(is...);
   }
 
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
   template <typename... Is, enable_if_integral<Is...>...>
-  constexpr auto& operator()(const Is... is) {
+  constexpr decltype(auto) operator()(const Is... is) {
     static_assert(sizeof...(Is) == num_dimensions());
     return at(is...);
   }
@@ -347,7 +347,7 @@ struct vec : tensor<Real, n> {
   using parent_t = tensor<Real, n>;
   using parent_t::parent_t;
 
-  template <typename... Ts, enable_if_arithmetic_or_symbolic<Ts...>...>
+  template <typename... Ts, enable_if_arithmetic_complex_or_symbolic<Ts...>...>
   constexpr vec(const Ts... ts) {
     static_assert(sizeof...(Ts) == parent_t::dimension(0));
     this->m_data = {static_cast<Real>(ts)...};
@@ -414,72 +414,27 @@ using mat2 = mat<double, 2, 2>;
 using mat3 = mat<double, 3, 3>;
 using mat4 = mat<double, 4, 4>;
 
-//==============================================================================
-template <typename Tensor, typename Real, size_t FixedDim, size_t... Dims>
-struct tensor_slice : base_tensor<tensor_slice<Tensor, Real, FixedDim, Dims...>,
-                                  Real, Dims...> {
-  using tensor_t          = Tensor;
-  using this_t            = tensor_slice<Tensor, Real, FixedDim, Dims...>;
-  using parent_t          = base_tensor<this_t, Real, Dims...>;
-  using parent_t::operator=;
-  using parent_t::num_components;
-  using parent_t::num_dimensions;
-
-  //============================================================================
- private:
-  Tensor* m_tensor;
-  size_t  m_fixed_index;
-
-  //============================================================================
- public:
-  constexpr tensor_slice(Tensor* tensor, size_t fixed_index)
-      : m_tensor{tensor}, m_fixed_index{fixed_index} {}
-
-  //----------------------------------------------------------------------------
-  template <typename... Is, enable_if_integral<Is...>...>
-  constexpr const auto& at(const Is... is) const {
-    if constexpr (FixedDim == 0) {
-      return m_tensor->at(m_fixed_index, is...);
-
-    } else if constexpr (FixedDim == num_dimensions()) {
-      return m_tensor->at(is..., m_fixed_index);
-
-    } else {
-      auto at_ = [this](const auto... is) -> decltype(auto) {
-        return m_tensor->at(is...);
-      };
-      return invoke_unpacked(
-          at_, unpack(extract<0, FixedDim - 1>(is...)), m_fixed_index,
-          unpack(extract<FixedDim, num_dimensions() - 1>(is...)));
-    };
-  }
-
-  // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-  template <typename... Is, enable_if_integral<Is...>...,
-            typename _tensor_t = Tensor,
-            std::enable_if_t<!std::is_const_v<_tensor_t>>...>
-  constexpr auto& at(const Is... is) {
-    if constexpr (FixedDim == 0) {
-      return m_tensor->at(m_fixed_index, is...);
-
-    } else if constexpr (FixedDim == num_dimensions()) {
-      return m_tensor->at(is..., m_fixed_index);
-
-    } else {
-      auto at_ = [this](const auto... is) -> decltype(auto) {
-        return m_tensor->at(is...);
-      };
-      return invoke_unpacked(
-          at_, unpack(extract<0, FixedDim - 1>(is...)), m_fixed_index,
-          unpack(extract<FixedDim, num_dimensions() - 1>(is...)));
-    };
-  }
-};
 
 //==============================================================================
 // operations
 //==============================================================================
 
+template <typename Tensor, typename Real, size_t... Dims>
+constexpr Real min(const base_tensor<Tensor, Real, Dims...>& t) {
+  Real m = std::numeric_limits<Real>::max();
+  t.for_indices([&](const auto... is) { m = std::min(m, t(is...)); });
+  return m;
+}
+
+//------------------------------------------------------------------------------
+template <typename Tensor, typename Real, size_t... Dims>
+constexpr Real max(const base_tensor<Tensor, Real, Dims...>& t) {
+  Real m = -std::numeric_limits<Real>::max();
+  t.for_indices([&](const auto... is) { m = std::max(m, t(is...)); });
+  return m;
+}
+
+//------------------------------------------------------------------------------
 template <typename Tensor, typename Real, size_t N>
 constexpr Real norm(const base_tensor<Tensor, Real, N>& t_in, unsigned p = 2) {
   Real n = 0;
@@ -822,24 +777,6 @@ std::pair<mat<Real, n, n>, vec<Real, n>> eigenvectors_sym(mat<Real, n, n> A) {
   return {std::move(A), std::move(vals)};
 }
 
-////------------------------------------------------------------------------------
-template <typename Tensor, typename Real, size_t... Dims>
-auto real(const base_tensor<Tensor, std::complex<Real>, Dims...>& v) {
-  tensor<Real, Dims...> real_tensor;
-  real_tensor.for_indices(
-      [&](const auto... is) { real_tensor(is...) = v(is...).real(); });
-  return real_tensor;
-}
-
-//------------------------------------------------------------------------------
-template <typename Tensor, typename Real, size_t... Dims>
-auto imag(const base_tensor<Tensor, std::complex<Real>, Dims...>& v) {
-  tensor<Real, Dims...> imag_tensor;
-  imag_tensor.for_indices(
-      [&](const auto... is) { imag_tensor(is...) = v(is...).imag(); });
-  return imag_tensor;
-}
-
 //------------------------------------------------------------------------------
 /// for comparison
 template <typename LhsTensor, typename LhsReal, typename RhsTensor,
@@ -852,6 +789,351 @@ constexpr bool approx_equal(const base_tensor<LhsTensor, LhsReal, Dims...>& lhs,
     if (std::abs(lhs(is...) - rhs(is...)) > eps) { equal = false; }
   });
   return equal;
+}
+
+//==============================================================================
+// views
+//==============================================================================
+template <typename Tensor, typename Real, size_t FixedDim, size_t... Dims>
+struct tensor_slice : base_tensor<tensor_slice<Tensor, Real, FixedDim, Dims...>,
+                                  Real, Dims...> {
+  using tensor_t          = Tensor;
+  using this_t            = tensor_slice<Tensor, Real, FixedDim, Dims...>;
+  using parent_t          = base_tensor<this_t, Real, Dims...>;
+  using parent_t::operator=;
+  using parent_t::num_components;
+  using parent_t::num_dimensions;
+
+  //============================================================================
+ private:
+  Tensor* m_tensor;
+  size_t  m_fixed_index;
+
+  //============================================================================
+ public:
+  constexpr tensor_slice(Tensor* tensor, size_t fixed_index)
+      : m_tensor{tensor}, m_fixed_index{fixed_index} {}
+
+  //----------------------------------------------------------------------------
+  template <typename... Is, enable_if_integral<Is...>...>
+  constexpr const auto& at(const Is... is) const {
+    if constexpr (FixedDim == 0) {
+      return m_tensor->at(m_fixed_index, is...);
+
+    } else if constexpr (FixedDim == num_dimensions()) {
+      return m_tensor->at(is..., m_fixed_index);
+
+    } else {
+      auto at_ = [this](const auto... is) -> decltype(auto) {
+        return m_tensor->at(is...);
+      };
+      return invoke_unpacked(
+          at_, unpack(extract<0, FixedDim - 1>(is...)), m_fixed_index,
+          unpack(extract<FixedDim, num_dimensions() - 1>(is...)));
+    };
+  }
+
+  // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+  template <typename... Is, enable_if_integral<Is...>...,
+            typename _tensor_t = Tensor,
+            std::enable_if_t<!std::is_const_v<_tensor_t>>...>
+  constexpr auto& at(const Is... is) {
+    if constexpr (FixedDim == 0) {
+      return m_tensor->at(m_fixed_index, is...);
+
+    } else if constexpr (FixedDim == num_dimensions()) {
+      return m_tensor->at(is..., m_fixed_index);
+
+    } else {
+      auto at_ = [this](const auto... is) -> decltype(auto) {
+        return m_tensor->at(is...);
+      };
+      return invoke_unpacked(
+          at_, unpack(extract<0, FixedDim - 1>(is...)), m_fixed_index,
+          unpack(extract<FixedDim, num_dimensions() - 1>(is...)));
+    };
+  }
+};
+
+//==============================================================================
+template <typename Tensor, typename Real, size_t... Dims>
+struct const_imag_complex_tensor
+    : base_tensor<const_imag_complex_tensor<Tensor, Real, Dims...>, Real,
+                  Dims...> {
+  using this_t = const_imag_complex_tensor<Tensor, Real, Dims...>;
+  using parent_t = base_tensor<this_t, Real, Dims...>;
+  using parent_t::num_dimensions;
+
+  //============================================================================
+ private:
+  const Tensor& m_internal_tensor;
+
+  //============================================================================
+ public:
+  constexpr const_imag_complex_tensor(
+      const base_tensor<Tensor, std::complex<Real>, Dims...>& internal_tensor)
+      : m_internal_tensor{internal_tensor.as_derived()} {}
+
+  //----------------------------------------------------------------------------
+  template <typename... Indices, enable_if_integral<Indices...>...>
+  constexpr decltype(auto) operator()(const Indices... indices) const {
+    static_assert(sizeof...(Indices) == num_dimensions());
+    return m_internal_tensor(indices...).imag();
+  }
+  // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+  template <typename... Indices, enable_if_integral<Indices...>...>
+  constexpr decltype(auto) at(const Indices... indices) const {
+    static_assert(sizeof...(Indices) == num_dimensions());
+    return m_internal_tensor(indices...).imag();
+  }
+
+  //----------------------------------------------------------------------------
+  const auto& internal_tensor() const { return m_internal_tensor; }
+};
+
+//==============================================================================
+template <typename Tensor, typename Real, size_t... Dims>
+struct imag_complex_tensor
+    : base_tensor<imag_complex_tensor<Tensor, Real, Dims...>, Real, Dims...> {
+  using this_t = imag_complex_tensor<Tensor, Real, Dims...>;
+  using parent_t = base_tensor<this_t, Real, Dims...>;
+  using parent_t::num_dimensions;
+  //============================================================================
+ private:
+  Tensor& m_internal_tensor;
+
+  //============================================================================
+ public:
+  constexpr imag_complex_tensor(
+      base_tensor<Tensor, std::complex<Real>, Dims...>& internal_tensor)
+      : m_internal_tensor{internal_tensor.as_derived()} {}
+
+  //----------------------------------------------------------------------------
+  template <typename... Indices, enable_if_integral<Indices...>...>
+  constexpr decltype(auto) operator()(const Indices... indices) const {
+    static_assert(sizeof...(Indices) == num_dimensions());
+    return m_internal_tensor(indices...).imag();
+  }
+  // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+  template <typename... Indices, enable_if_integral<Indices...>...>
+  constexpr decltype(auto) operator()(const Indices... indices) {
+    static_assert(sizeof...(Indices) == num_dimensions());
+    return m_internal_tensor(indices...).imag();
+  }
+  //----------------------------------------------------------------------------
+  template <typename... Indices, enable_if_integral<Indices...>...>
+  constexpr decltype(auto) at(const Indices... indices) const {
+    static_assert(sizeof...(Indices) == num_dimensions());
+    return m_internal_tensor(indices...).imag();
+  }
+  // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+  template <typename... Indices, enable_if_integral<Indices...>...>
+  constexpr decltype(auto) at(const Indices... indices) {
+    static_assert(sizeof...(Indices) == num_dimensions());
+    return m_internal_tensor(indices...).imag();
+  }
+
+  //----------------------------------------------------------------------------
+  auto&       internal_tensor() { return m_internal_tensor; }
+  const auto& internal_tensor() const { return m_internal_tensor; }
+};
+
+//------------------------------------------------------------------------------
+template <typename Tensor, typename Real, size_t... Dims>
+auto imag(const base_tensor<Tensor, std::complex<Real>, Dims...>& tensor) {
+  return const_imag_complex_tensor{tensor.as_derived()};
+}
+// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+template <typename Tensor, typename Real, size_t... Dims>
+auto imag(base_tensor<Tensor, std::complex<Real>, Dims...>& tensor) {
+  return imag_complex_tensor{tensor.as_derived()};
+}
+
+//==============================================================================
+template <typename Tensor, typename Real, size_t... Dims>
+struct const_real_complex_tensor
+    : base_tensor<const_real_complex_tensor<Tensor, Real, Dims...>, Real,
+                  Dims...> {
+  using this_t = const_real_complex_tensor<Tensor, Real, Dims...>;
+  using parent_t = base_tensor<this_t, Real, Dims...>;
+  using parent_t::num_dimensions;
+  //============================================================================
+ private:
+  const Tensor& m_internal_tensor;
+
+  //============================================================================
+ public:
+  const_real_complex_tensor(
+      const base_tensor<Tensor, std::complex<Real>, Dims...>& internal_tensor)
+      : m_internal_tensor{internal_tensor.as_derived()} {}
+
+  //----------------------------------------------------------------------------
+  template <typename... Indices, enable_if_integral<Indices...>...>
+  constexpr decltype(auto) operator()(const Indices... indices) const {
+    static_assert(sizeof...(Indices) == num_dimensions());
+    return m_internal_tensor(indices...).real();
+  }
+  // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+  template <typename... Indices, enable_if_integral<Indices...>...>
+  constexpr decltype(auto) at(const Indices... indices) const {
+    static_assert(sizeof...(Indices) == num_dimensions());
+    return m_internal_tensor(indices...).real();
+  }
+
+  //----------------------------------------------------------------------------
+  const auto& internal_tensor() const { return m_internal_tensor; }
+};
+
+//==============================================================================
+template <typename Tensor, typename Real, size_t... Dims>
+struct real_complex_tensor
+    : base_tensor<real_complex_tensor<Tensor, Real, Dims...>, Real, Dims...> {
+  using this_t = real_complex_tensor<Tensor, Real, Dims...>;
+  using parent_t = base_tensor<this_t, Real, Dims...>;
+  using parent_t::num_dimensions;
+  //============================================================================
+ private:
+  Tensor& m_internal_tensor;
+
+  //============================================================================
+ public:
+  real_complex_tensor(
+      base_tensor<Tensor, std::complex<Real>, Dims...>& internal_tensor)
+      : m_internal_tensor{internal_tensor.as_derived()} {}
+
+  //----------------------------------------------------------------------------
+  template <typename... Indices, enable_if_integral<Indices...>...>
+  constexpr decltype(auto) operator()(const Indices... indices) const {
+    static_assert(sizeof...(Indices) == num_dimensions());
+    return m_internal_tensor(indices...).real();
+  }
+  // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+  template <typename... Indices, enable_if_integral<Indices...>...>
+  constexpr decltype(auto) operator()(const Indices... indices) {
+    static_assert(sizeof...(Indices) == num_dimensions());
+    return m_internal_tensor(indices...).real();
+  }
+  //----------------------------------------------------------------------------
+  template <typename... Indices, enable_if_integral<Indices...>...>
+  constexpr decltype(auto) at(const Indices... indices) const {
+    static_assert(sizeof...(Indices) == num_dimensions());
+    return m_internal_tensor(indices...).real();
+  }
+  // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+  template <typename... Indices, enable_if_integral<Indices...>...>
+  constexpr decltype(auto) at(const Indices... indices) {
+    static_assert(sizeof...(Indices) == num_dimensions());
+    return m_internal_tensor(indices...).real();
+  }
+
+  //----------------------------------------------------------------------------
+  auto&       internal_tensor() { return m_internal_tensor; }
+  const auto& internal_tensor() const { return m_internal_tensor; }
+};
+
+//------------------------------------------------------------------------------
+template <typename Tensor, typename Real, size_t... Dims>
+auto real(const base_tensor<Tensor, Real, Dims...>& matrix) {
+  return const_real_complex_tensor{matrix.as_derived()};
+}
+// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+template <typename Tensor, typename Real, size_t... Dims>
+auto real(base_tensor<Tensor, Real, Dims...>& matrix) {
+  return real_complex_tensor{matrix.as_derived()};
+}
+//==============================================================================
+template <typename Matrix, size_t M, size_t N>
+struct const_transposed_matrix
+    : base_tensor<const_transposed_matrix<Matrix, M, N>,
+                  typename Matrix::real_t, M, N> {
+  //============================================================================
+ private:
+  const Matrix& m_internal_matrix;
+
+  //============================================================================
+ public:
+  const_transposed_matrix(
+      const base_tensor<Matrix, typename Matrix::real_t, N, M>& internal_matrix)
+      : m_internal_matrix{internal_matrix.as_derived()} {}
+
+  //----------------------------------------------------------------------------
+  constexpr const auto& operator()(const size_t r, const size_t c) const {
+    return m_internal_matrix(c, r);
+  }
+  // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+  constexpr const auto& at(const size_t r, const size_t c) const {
+    return m_internal_matrix(c, r);
+  }
+
+  //----------------------------------------------------------------------------
+  const auto& internal_matrix() const { return m_internal_matrix; }
+};
+
+//==============================================================================
+template <typename Matrix, size_t M, size_t N>
+struct transposed_matrix
+    : base_tensor<transposed_matrix<Matrix, M, N>, typename Matrix::real_t, M, N> {
+  //============================================================================
+ private:
+  Matrix& m_internal_matrix;
+
+  //============================================================================
+ public:
+  transposed_matrix(
+      base_tensor<Matrix, typename Matrix::real_t, N, M>& internal_matrix)
+      : m_internal_matrix{internal_matrix.as_derived()} {}
+
+  //----------------------------------------------------------------------------
+  constexpr const auto& operator()(const size_t r, const size_t c) const {
+    return m_internal_matrix(c, r);
+  }
+  // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+  constexpr auto& operator()(const size_t r, const size_t c) {
+    return m_internal_matrix(c, r);
+  }
+  //----------------------------------------------------------------------------
+  constexpr const auto& at(const size_t r, const size_t c) const {
+    return m_internal_matrix(c, r);
+  }
+  // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+  constexpr auto& at(const size_t r, const size_t c) {
+    return m_internal_matrix(c, r);
+  }
+
+  //----------------------------------------------------------------------------
+  auto&       internal_matrix() { return m_internal_matrix; }
+  const auto& internal_matrix() const { return m_internal_matrix; }
+};
+
+//------------------------------------------------------------------------------
+template <typename Matrix, typename Real, size_t M, size_t N>
+auto transpose(const base_tensor<Matrix, Real, M, N>& matrix) {
+  return const_transposed_matrix{matrix.as_derived()};
+}
+
+// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+template <typename Matrix, typename Real, size_t M, size_t N>
+auto transpose(base_tensor<Matrix, Real, M, N>& matrix) {
+  return transposed_matrix{matrix.as_derived()};
+}
+
+//------------------------------------------------------------------------------
+template <typename Matrix, typename Real, size_t M, size_t N>
+auto& transpose(base_tensor<transposed_matrix<Matrix, M, N>, Real, M, N>&
+                    transposed_matrix) {
+  return transposed_matrix.as_derived().internal_matrix();
+}
+// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+template <typename Matrix, typename Real, size_t M, size_t N>
+const auto& transpose(const base_tensor<transposed_matrix<Matrix, M, N>, Real,
+                                        M, N>& transposed_matrix) {
+  return transposed_matrix.as_derived().internal_matrix();
+}
+// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+template <typename Matrix, typename Real, size_t M, size_t N>
+const auto& transpose(const base_tensor<const_transposed_matrix<Matrix, M, N>,
+                                        Real, M, N>& transposed_matrix) {
+  return transposed_matrix.as_derived().internal_matrix();
 }
 
 //==============================================================================

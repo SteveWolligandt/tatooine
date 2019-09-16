@@ -8,6 +8,17 @@
 //==============================================================================
 namespace tatooine {
 //==============================================================================
+
+template <typename T>
+struct is_complex : std::false_type {};
+// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+template <typename T>
+struct is_complex<std::complex<T>> : std::true_type {};
+// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+template <typename T>
+static constexpr auto is_complex_v = is_complex<T>::value;
+
+//==============================================================================
 template <typename T>
 struct num_components;
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -41,13 +52,13 @@ static constexpr auto is_arithmetic_or_symbolic_v =
 
 //==============================================================================
 template <typename T>
-struct is_complex : std::false_type {};
+struct is_arithmetic_complex_or_symbolic
+    : std::integral_constant<bool, std::is_arithmetic_v<T> || is_complex_v<T> ||
+                                       is_symbolic_v<T>> {};
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 template <typename T>
-struct is_complex<std::complex<T>> : std::true_type {};
-// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-template <typename T>
-static constexpr auto is_complex_v = is_complex<T>::value;
+static constexpr auto is_arithmetic_complex_or_symbolic_v =
+    is_arithmetic_complex_or_symbolic<T>::value;
 
 //==============================================================================
 template <typename... Ts>
@@ -99,6 +110,10 @@ using enable_if_not_symbolic =
 template <typename... Ts>
 using enable_if_arithmetic_or_symbolic =
     typename std::enable_if_t<(is_arithmetic_or_symbolic_v<Ts> && ...)>;
+//------------------------------------------------------------------------------
+template <typename... Ts>
+using enable_if_arithmetic_complex_or_symbolic =
+    typename std::enable_if_t<(is_arithmetic_complex_or_symbolic_v<Ts> && ...)>;
 
 //==============================================================================
 #define make_sfinae_test(name, method)                                     \
