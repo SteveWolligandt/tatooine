@@ -224,12 +224,17 @@ TEST_CASE("tensor_eigenvalue", "[tensor][eigenvalue]") {
               {9.0, 12.0, 15.0}};
   const auto eps = 1e-4;
   const auto [eigvecs, eigvals] = eigenvectors(m);
+  const auto eigvals2 = eigenvalues(m);
   const auto ve = real(eigvecs);
   const auto va = real(eigvals);
+  const auto va2 = real(eigvals2);
 
   REQUIRE(va(0) == Approx(2.2874e+01).epsilon(eps));
   REQUIRE(va(1) == Approx(-8.7434e-01).epsilon(eps));
   REQUIRE(va(2) == Approx(2.0305e-16).margin(eps));
+  REQUIRE(va2(0) == Approx(2.2874e+01).epsilon(eps));
+  REQUIRE(va2(1) == Approx(-8.7434e-01).epsilon(eps));
+  REQUIRE(va2(2) == Approx(2.0305e-16).margin(eps));
 
   REQUIRE(ve(0,0) == Approx(0.16168).epsilon(eps));
   REQUIRE(ve(1,0) == Approx(0.45378).epsilon(eps));

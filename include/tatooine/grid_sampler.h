@@ -210,12 +210,12 @@ struct base_grid_sampler : crtp<Derived>, grid<Real, N> {
   }
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
   auto sample(const std::array<Real, N>& pos) const {
-    return invoke_unpacked([&pos](const auto... xs) { return sample(xs...); }, unpack(pos));
+    return invoke_unpacked([&pos, this](const auto... xs) { return sample(xs...); }, unpack(pos));
   }
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
   template <typename Tensor, typename TensorReal>
   auto sample(const base_tensor<Tensor, TensorReal, N>& pos) const {
-    return invoke_unpacked([&pos](const auto... xs) {
+    return invoke_unpacked([&pos, this](const auto... xs) {
         return sample(xs...); }, unpack(pos));
   }
 
@@ -503,27 +503,26 @@ struct grid_sampler
   }
 
   //============================================================================
-  //   template <typename _data_t = Data,
-  //             typename = std::enable_if_t<std::is_same_v<_data_t, Real>>>
-  //   auto min_value() {
-  //     return *std::min_element(begin(m_data), end(m_data));
-  //   }
-  //
-  //   //----------------------------------------------------------------------------
-  //   template <typename _data_t = Data,
-  //             typename = std::enable_if_t<std::is_same_v<_data_t, Real>>>
-  //   auto max_value() {
-  //     return *std::max_element(begin(m_data), end(m_data));
-  //   }
-  //
-  //   //----------------------------------------------------------------------------
-  //   template <typename _data_t = Data,
-  //             typename = std::enable_if_t<std::is_same_v<_data_t, Real>>>
-  //   auto minmax_value() {
-  //     auto [min_it, max_it] = std::minmax_element(begin(m_data),
-  //     end(m_data)); return std::pair{*min_it, *max_it};
-  //   }
-  //
+  template <typename _Data = Data, enable_if_arithmetic<_Data>...>
+  auto min_value() {
+    return m_data.min_value();
+  }
+  //----------------------------------------------------------------------------
+  template <typename _Data = Data, enable_if_arithmetic<_Data>...>
+  auto max_value() {
+    return m_data.max_value();
+  }
+  //----------------------------------------------------------------------------
+  template <typename _Data = Data, enable_if_arithmetic<_Data>...>
+  auto minmax_value() {
+    return m_data.minmax_value();
+  }
+  //----------------------------------------------------------------------------
+  template <typename _Data = Data, enable_if_arithmetic<_Data>...>
+  auto normalize() {
+    return m_data.normalize();
+  }
+
   //   //----------------------------------------------------------------------------
   //   template <typename OtherReal, size_t _n = N, typename _data_t =
   //   Data,
@@ -546,23 +545,7 @@ struct grid_sampler
   //       }
   //     return copy;
   //   }
-  //
-  //   //----------------------------------------------------------------------------
-  //   void remap(Real small, Real large) {
-  //     if constexpr (std::is_same_v<Real, Data>)
-  //       boost::transform(m_data, begin(m_data), [small, large](auto d) {
-  //         return (d - small) / (large - small);
-  //       });
-  //   }
-  //
-  //   //----------------------------------------------------------------------------
-  //   void remap() {
-  //     if constexpr (std::is_same_v<Real, Data>) {
-  //       auto [min, max] = minmax_value();
-  //       remap(min, max);
-  //     }
-  //   }
-  //
+
   //----------------------------------------------------------------------------
   template <typename random_engine_t = std::mt19937, typename _Data = Data,
             typename = std::enable_if_t<std::is_arithmetic_v<_Data>>>

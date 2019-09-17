@@ -1,19 +1,65 @@
-#include <tatooine/integration/vclibs/rungekutta43.h>
+#include <tatooine/counterexample_sadlo.h>
+#include <tatooine/doublegyre.h>
 #include <tatooine/ftle.h>
 #include <tatooine/grid_sampler.h>
-#include <tatooine/doublegyre.h>
+#include <tatooine/integration/boost/rungekutta4.h>
+#include <tatooine/integration/boost/rungekuttacashkarp54.h>
+#include <tatooine/integration/boost/rungekuttadopri5.h>
+#include <tatooine/integration/boost/rungekuttafehlberg78.h>
+#include <tatooine/integration/vclibs/rungekutta43.h>
+#include <tatooine/linspace.h>
 #include <catch2/catch.hpp>
 
 //==============================================================================
 namespace tatooine::test {
 //==============================================================================
 
-TEST_CASE("ftle", "[ftle][doublegyre][dg]") {
-  numerical::doublegyre dg;
-  ftle dg_ftle{dg, integration::vclibs::rungekutta43<double, 2>{}, 10};
-  auto dg_ftle_grid = resample<interpolation::linear, interpolation::linear>(
-      dg_ftle, grid{linspace{0.0, 2.0, 200}, linspace{0.0, 1.0, 100}}, 0);
-  dg_ftle_grid.sampler().write_png("dg_ftle.png");
+template <typename V, typename Grid, typename T0, typename Tau, typename Integrator>
+void ftle_test(const V&, const Grid&, T0, Tau, const Integrator&,
+               const std::string&);
+//using Integrator = integration::vclibs::rungekutta43<double, 2>;
+//using Integrator = integration::boost::rungekuttafehlberg78<double, 2>;
+using Integrator = integration::boost::rungekutta4<double, 2>;
+//using Integrator = integration::boost::rungekuttadopri5<double, 2>;
+//using Integrator = integration::boost::rungekuttacashkarp54<double, 2>;
+
+//==============================================================================
+TEST_CASE("ftle_doublegyre", "[ftle][doublegyre][dg]") {
+  numerical::doublegyre v;
+  grid sample_grid{linspace{0.0, 2.0, 1000}, linspace{0.0, 1.0, 500}};
+  double t0 = 0, tau = 10;
+  ftle_test(v, sample_grid, t0, tau, Integrator{},
+            "dg_ftle_" + std::to_string(t0) + "_" + std::to_string(tau));
+}
+
+//==============================================================================
+TEST_CASE("ftle_counterexample_sadlo", "[ftle][counterexample_sadlo]") {
+  numerical::counterexample_sadlo v;
+  grid   sample_grid{linspace{-5.0, 5.0, 500}, linspace{-5.0, 5.0, 500}};
+  double tau = 2;
+  for (auto t0 : linspace(0.0, 10.0, 101)) {
+    ftle_test(v, sample_grid, t0, tau, Integrator{},
+              "counterexample_sadlo_ftle_" + std::to_string(t0) + "_" +
+                  std::to_string(tau));
+  }
+}
+
+//==============================================================================
+template <typename V, typename Grid, typename T0, typename Tau,
+          typename Integrator>
+void ftle_test(const V& v, const Grid& sample_grid, T0 t0, Tau tau,
+               const Integrator& integrator, const std::string& path) {
+  ftle v_ftle{v, integrator, tau};
+  v_ftle.set_eps(
+      vec{(sample_grid.dimension(0).back() - sample_grid.dimension(0).front()) /
+              static_cast<double>(sample_grid.dimension(0).size()),
+          (sample_grid.dimension(1).back() - sample_grid.dimension(1).front()) /
+              static_cast<double>(sample_grid.dimension(1).size())});
+  auto ftle_grid = resample<interpolation::linear, interpolation::linear>(
+      v_ftle, sample_grid, t0);
+  ftle_grid.sampler().write_png(path + ".png");
+  ftle_grid.sampler().normalize();
+  ftle_grid.sampler().write_png(path + "_normalized.png");
 }
 
 //==============================================================================

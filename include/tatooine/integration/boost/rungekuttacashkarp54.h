@@ -1,35 +1,34 @@
-#ifndef __TATOOINE_BOOST_RKCK54_INTEGRATOR_H__
-#define __TATOOINE_BOOST_RKCK54_INTEGRATOR_H__
+#ifndef TATOOINE_BOOST_RKCK54_INTEGRATOR_H
+#define TATOOINE_BOOST_RKCK54_INTEGRATOR_H
 
 #include <boost/numeric/odeint.hpp>
-#include "../../vecmat.h"
+#include "../../tensor.h"
 #include "boostintegrator.h"
 
-#include "../../concept_defines.h"
 
 //==============================================================================
 namespace tatooine::integration::boost {
 //==============================================================================
 
-template <typename real_t, std::size_t n>
+template <typename Real, size_t N>
 struct rkck54_type {
   using stepper_t =
-      ::boost::numeric::odeint::runge_kutta_cash_karp54<Vec<real_t, n>>;
+      ::boost::numeric::odeint::runge_kutta_cash_karp54<vec<Real, N>>;
   using t = ::boost::numeric::odeint::controlled_runge_kutta<stepper_t>;
 };
 
 //------------------------------------------------------------------------------
-template <std::size_t n, typename real_t>
+template <typename Real, size_t N>
 struct rungekuttacashkarp54
-    : BoostIntegrator<n, real_t, typename rkck54_type<real_t, n>::t> {
-  rungekuttacashkarp54(real_t initial_stepsize         = 0.01,
-                       real_t absolute_error_tolerance = 1e-10,
-                       real_t relative_error_tolerance = 1e-6, real_t a_x = 1,
-                       real_t a_dxdt = 1)
-      : BoostIntegrator<n, real_t, typename rkck54_type<real_t, n>::t>(
-            typename rkck54_type<real_t, n>::t(
+    : integrator<Real, N, typename rkck54_type<Real, N>::t> {
+  rungekuttacashkarp54(Real initial_stepsize         = 0.1,
+                       Real absolute_error_tolerance = 1e-4,
+                       Real relative_error_tolerance = 1e-4, Real a_x = 1,
+                       Real a_dxdt = 1)
+      : integrator<Real, N, typename rkck54_type<Real, N>::t>(
+            typename rkck54_type<Real, N>::t(
                 ::boost::numeric::odeint::default_error_checker<
-                    real_t, ::boost::numeric::odeint::range_algebra,
+                    Real, ::boost::numeric::odeint::range_algebra,
                     ::boost::numeric::odeint::default_operations>(
                     absolute_error_tolerance, relative_error_tolerance, a_x,
                     a_dxdt)),
@@ -40,5 +39,4 @@ struct rungekuttacashkarp54
 }  // namespace tatooine::integration::boost
 //==============================================================================
 
-#include "../../concept_undefs.h"
 #endif

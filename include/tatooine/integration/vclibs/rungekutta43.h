@@ -7,8 +7,8 @@
 
 //==============================================================================
 template <typename Real, size_t N>
-struct VC::odeint::vector_operations_t<tatooine::tensor<Real, N>> {
-  using vec_t = tatooine::tensor<Real, N>;
+struct VC::odeint::vector_operations_t<tatooine::vec<Real, N>> {
+  using vec_t = tatooine::vec<Real, N>;
 
   //----------------------------------------------------------------------------
   static constexpr bool isfinitenorm(const vec_t& v) {
@@ -25,37 +25,19 @@ struct VC::odeint::vector_operations_t<tatooine::tensor<Real, N>> {
   }
 
   //----------------------------------------------------------------------------
-  static constexpr Real norm1(const vec_t& x) {
-    Real norm = 0;
-    for (size_t i = 0; i < N; ++i) {
-      norm += std::abs(x(i));
-    }
-    return norm;
-  }
-
+  static constexpr Real norm1(const vec_t& x) { return tatooine::norm1(x); }
   //----------------------------------------------------------------------------
-  static constexpr Real norminf(const vec_t& x) {
-    Real norm = -std::numeric_limits<Real>::max();
-    for (size_t i = 0; i < N; ++i) {
-      norm = std::max(norm, std::abs(x(i)));
-    }
-    return norm;
-  }
-
+  static constexpr Real norminf(const vec_t& x) { return norm_inf(x); }
   //----------------------------------------------------------------------------
   static constexpr auto abs(vec_t v) {
-    for (size_t i = 0; i < N; ++i) {
-      v(i) = std::abs(v(i));
-    }
+    for (size_t i = 0; i < N; ++i) { v(i) = std::abs(v(i)); }
     return v;
   }
 
   //----------------------------------------------------------------------------
   static constexpr auto max(const vec_t& x, const vec_t& y) {
     vec_t v;
-    for (size_t i = 0; i < N; ++i) {
-      v(i) = std::max(x(i), y(i));
-    }
+    for (size_t i = 0; i < N; ++i) { v(i) = std::max(x(i), y(i)); }
     return v;
   }
 };
@@ -71,7 +53,7 @@ struct rungekutta43 : integrator<Real, N, rungekutta43<Real, N>> {
   using parent_t   = integrator<Real, N, this_t>;
   using integral_t = typename parent_t::integral_t;
   using pos_t      = typename parent_t::pos_t;
-  using ode_t      = VC::odeint::ode_t<2, Real, tensor<Real, N>, false>;
+  using ode_t      = VC::odeint::ode_t<2, Real, vec<Real, N>, false>;
   using options_t  = typename ode_t::options_t;
 
   static constexpr auto RK43        = VC::odeint::RK43;
@@ -90,7 +72,7 @@ struct rungekutta43 : integrator<Real, N, rungekutta43<Real, N>> {
  public:
   rungekutta43()
       : m_options{AbsTol = 1e-4, RelTol = 1e-4, InitialStep = 0,
-                  MaxStep = 0.01} {}
+                  MaxStep = 0.1} {}
   rungekutta43(const rungekutta43& other) : parent_t{other} {}
   rungekutta43(rungekutta43&& other) noexcept : parent_t{std::move(other)} {}
   //----------------------------------------------------------------------------
@@ -104,8 +86,8 @@ struct rungekutta43 : integrator<Real, N, rungekutta43<Real, N>> {
 
   //----------------------------------------------------------------------------
   template <typename vf_t>
-  auto& calc_forward(const vf_t& vf, integral_t& integral, const pos_t& y0, Real t0,
-             Real tau) const {
+  auto& calc_forward(const vf_t& vf, integral_t& integral, const pos_t& y0,
+                     Real t0, Real tau) const {
     // do not start integration if y0,t0 is not in domain of vectorfield
     if (!vf.in_domain(y0, t0)) { return integral; }
 
@@ -130,8 +112,8 @@ struct rungekutta43 : integrator<Real, N, rungekutta43<Real, N>> {
 
   //----------------------------------------------------------------------------
   template <typename vf_t>
-  auto& calc_backward(const vf_t& vf, integral_t& integral, const pos_t& y0, Real t0,
-             Real tau) const {
+  auto& calc_backward(const vf_t& vf, integral_t& integral, const pos_t& y0,
+                      Real t0, Real tau) const {
     // do not start integration if y0,t0 is not in domain of vectorfield
     if (!vf.in_domain(y0, t0)) { return integral; }
 

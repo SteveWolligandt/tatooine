@@ -40,10 +40,11 @@ struct tensor_slice;
 //------------------------------------------------------------------------------
 template <typename Tensor, typename Real, size_t... Dims>
 struct base_tensor : crtp<Tensor> {
-  using real_t   = Real;
-  using tensor_t = Tensor;
-  using this_t   = base_tensor<Tensor, Real, Dims...>;
-  using parent_t = crtp<Tensor>;
+  using value_type = Real;
+  using real_t     = Real;
+  using tensor_t   = Tensor;
+  using this_t     = base_tensor<Tensor, Real, Dims...>;
+  using parent_t   = crtp<Tensor>;
   using parent_t::as_derived;
 
   //============================================================================
@@ -105,7 +106,7 @@ struct base_tensor : crtp<Tensor> {
 
   //----------------------------------------------------------------------------
   template <typename... Is, enable_if_integral<Is...>...>
-  constexpr const decltype(auto) at(const Is... is) const {
+  constexpr decltype(auto) at(const Is... is) const {
     static_assert(sizeof...(Is) == num_dimensions());
     return as_derived().at(is...);
   }
@@ -119,7 +120,7 @@ struct base_tensor : crtp<Tensor> {
 
   //----------------------------------------------------------------------------
   template <typename... Is, enable_if_integral<Is...>...>
-  constexpr const decltype(auto) operator()(const Is... is) const {
+  constexpr decltype(auto) operator()(const Is... is) const {
     static_assert(sizeof...(Is) == num_dimensions());
     return at(is...);
   }
@@ -225,10 +226,11 @@ struct tensor : base_tensor<tensor<Real, Dims...>, Real, Dims...> {
   using parent_t::dimension;
   using parent_t::num_components;
   using parent_t::num_dimensions;
+  using data_container_t = std::array<Real, num_components()>;
 
   //============================================================================
  protected:
-  std::array<Real, num_components()> m_data;
+   data_container_t m_data;
 
   //============================================================================
  public:
@@ -319,9 +321,26 @@ struct tensor : base_tensor<tensor<Real, Dims...>, Real, Dims...> {
   const auto& operator[](size_t i) const { return m_data[i]; }
   auto&       operator[](size_t i) { return m_data[i]; }
 
+
   //----------------------------------------------------------------------------
   decltype(auto) data() { return m_data.data(); }
   decltype(auto) data() const { return m_data.data(); }
+
+  //----------------------------------------------------------------------------
+  template <size_t NumDims = num_dimensions(), std::enable_if_t<NumDims == 1>...>
+  auto begin() { return std::begin(m_data); }
+  template <size_t NumDims = num_dimensions(), std::enable_if_t<NumDims == 1>...>
+  auto begin() const { return std::begin(m_data); }
+  template <size_t NumDims = num_dimensions(), std::enable_if_t<NumDims == 1>...>
+  auto cbegin() { return std::cbegin(m_data); }
+
+  //----------------------------------------------------------------------------
+  template <size_t NumDims = num_dimensions(), std::enable_if_t<NumDims == 1>...>
+  auto end() { return std::end(m_data); }
+  template <size_t NumDims = num_dimensions(), std::enable_if_t<NumDims == 1>...>
+  auto end() const { return std::end(m_data); }
+  template <size_t NumDims = num_dimensions(), std::enable_if_t<NumDims == 1>...>
+  auto cend() { return std::cend(m_data); }
 
   //----------------------------------------------------------------------------
   template <typename OtherReal>
@@ -346,6 +365,9 @@ template <typename Real, size_t n>
 struct vec : tensor<Real, n> {
   using parent_t = tensor<Real, n>;
   using parent_t::parent_t;
+
+  using iterator       = typename parent_t::data_container_t::iterator;
+  using const_iterator = typename parent_t::data_container_t::const_iterator;
 
   template <typename... Ts, enable_if_arithmetic_complex_or_symbolic<Ts...>...>
   constexpr vec(const Ts... ts) {
@@ -433,13 +455,26 @@ constexpr Real max(const base_tensor<Tensor, Real, Dims...>& t) {
   t.for_indices([&](const auto... is) { m = std::max(m, t(is...)); });
   return m;
 }
-
 //------------------------------------------------------------------------------
 template <typename Tensor, typename Real, size_t N>
-constexpr Real norm(const base_tensor<Tensor, Real, N>& t_in, unsigned p = 2) {
+constexpr Real norm(const base_tensor<Tensor, Real, N>& t, unsigned p = 2) {
   Real n = 0;
-  for (size_t i = 0; i < N; ++i) { n += std::pow(t_in(i), p); }
+  for (size_t i = 0; i < N; ++i) { n += std::pow(t(i), p); }
   return std::pow(n, Real(1) / Real(p));
+}
+//------------------------------------------------------------------------------
+template <typename Tensor, typename Real, size_t N>
+constexpr Real norm_inf(const base_tensor<Tensor, Real, N>& t) {
+  Real norm = -std::numeric_limits<Real>::max();
+  for (size_t i = 0; i < N; ++i) { norm = std::max(norm, std::abs(t(i))); }
+  return norm;
+}
+//------------------------------------------------------------------------------
+template <typename Tensor, typename Real, size_t N>
+constexpr Real norm1(const base_tensor<Tensor, Real, N>& t) {
+  Real norm = 0;
+  for (size_t i = 0; i < N; ++i) { norm += std::abs(t(i)); }
+  return norm;
 }
 //------------------------------------------------------------------------------
 template <typename Tensor, typename Real, size_t N>
@@ -706,6 +741,26 @@ auto gesv(const tensor<Real, m, m>& A, const tensor<Real, m, n>& B) {
   }
 
   return X;
+}
+
+//------------------------------------------------------------------------------
+template <typename Real, size_t m>
+vec<std::complex<Real>, m> eigenvalues(tensor<Real, m, m> A) {
+  [[maybe_unused]] lapack_int info;
+  std::array<Real, m>         wr;
+  std::array<Real, m>         wi;
+  if constexpr (std::is_same_v<double, Real>) {
+    info = LAPACKE_dgeev(LAPACK_COL_MAJOR, 'N', 'N', m, A.data(), m, wr.data(),
+                         wi.data(), nullptr, m, nullptr, m);
+  }
+  if constexpr (std::is_same_v<float, Real>) {
+    info = LAPACKE_sgeev(LAPACK_COL_MAJOR, 'N', 'N', m, A.data(), m, wr.data(),
+                         wi.data(), nullptr, m, nullptr, m);
+  }
+
+  vec<std::complex<Real>, m> vals;
+  for (size_t i = 0; i < m; ++i) { vals[i] = {wr[i], wi[i]}; }
+  return vals;
 }
 
 //------------------------------------------------------------------------------
@@ -1033,13 +1088,13 @@ struct real_complex_tensor
 
 //------------------------------------------------------------------------------
 template <typename Tensor, typename Real, size_t... Dims>
-auto real(const base_tensor<Tensor, Real, Dims...>& matrix) {
-  return const_real_complex_tensor{matrix.as_derived()};
+auto real(const base_tensor<Tensor, Real, Dims...>& t) {
+  return const_real_complex_tensor{t.as_derived()};
 }
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 template <typename Tensor, typename Real, size_t... Dims>
-auto real(base_tensor<Tensor, Real, Dims...>& matrix) {
-  return real_complex_tensor{matrix.as_derived()};
+auto real(base_tensor<Tensor, Real, Dims...>& t) {
+  return real_complex_tensor{t.as_derived()};
 }
 //==============================================================================
 template <typename Matrix, size_t M, size_t N>

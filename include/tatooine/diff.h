@@ -18,6 +18,7 @@ struct derived_field : field<derived_field<Field, TensorDims...>, typename Field
   using parent_t::num_dimensions;
   using typename parent_t::real_t;
   using typename parent_t::pos_t;
+  using vec_t = vec<real_t, num_dimensions()>;
   using typename parent_t::tensor_t;
 
   static_assert(Field::tensor_t::num_dimensions() + 1 ==
@@ -25,8 +26,8 @@ struct derived_field : field<derived_field<Field, TensorDims...>, typename Field
 
   //============================================================================
  private:
-  const Field& m_internal_field;
-  const vec<real_t, num_dimensions()> m_eps;
+  Field m_internal_field;
+  vec_t m_eps;
 
   //============================================================================
  public:
@@ -59,9 +60,10 @@ struct derived_field : field<derived_field<Field, TensorDims...>, typename Field
   const auto& internal_field() const { return m_internal_field; }
 
   //----------------------------------------------------------------------------
-  void  set_eps(const vec<real_t, num_dimensions()>& eps) { m_eps = eps; }
-  void  set_eps(vec<real_t, num_dimensions()>&& eps) { m_eps = std::move(eps); }
-  auto& eps() { return m_eps; }
+  void        set_eps(const vec_t& eps) { m_eps = eps; }
+  void        set_eps(vec_t&& eps) { m_eps = std::move(eps); }
+  void        set_eps(real_t eps) { m_eps = vec_t{fill{eps}}; }
+  auto&       eps() { return m_eps; }
   const auto& eps() const { return m_eps; }
   auto&       eps(size_t i) { return m_eps(i); }
   auto        eps(size_t i) const { return m_eps(i); }

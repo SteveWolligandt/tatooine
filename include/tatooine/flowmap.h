@@ -41,11 +41,22 @@ struct flowmap : field<flowmap<V, Integrator>, typename V::real_t,
   }
   //----------------------------------------------------------------------------
   constexpr tensor_t operator()(const pos_t& x, real_t t0, real_t tau) const {
-    evaluate(x, t0, tau);
+    return evaluate(x, t0, tau);
   }
   //----------------------------------------------------------------------------
   constexpr tensor_t evaluate(const pos_t& x, real_t t) const {
-    return m_integrator->integrate(m_vectorfield, x, t, m_tau)(m_tau);
+    auto integral =
+        m_integrator->integrate_uncached(m_vectorfield, x, t, m_tau);
+    if (integral.empty()) {
+      std::cerr <<"empty!!! " << x << '\n';
+      return x;
+    }
+    if (m_tau > 0) {
+      std::cerr << "back " << integral.back_position() << '\n';
+      return integral.back_position();
+    }
+    std::cerr << integral.front_position() << '\n';
+    return integral.front_position();
   }
 
   //============================================================================

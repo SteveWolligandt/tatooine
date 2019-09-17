@@ -1,34 +1,29 @@
-#ifndef __TATOOINE_RK4_INTEGRATOR_H__
-#define __TATOOINE_RK4_INTEGRATOR_H__
+#ifndef TATOOINE_BOOST_RK4_INTEGRATOR_H
+#define TATOOINE_BOOST_RK4_INTEGRATOR_H
 
 #include "boostintegrator.h"
-
-#include "../../concept_defines.h"
 
 //==============================================================================
 namespace tatooine::integration::boost {
 //==============================================================================
 
-template <typename real_t, size_t n>
+template <typename Real, size_t N>
 struct rk4_helper {
-  using type = ::boost::numeric::odeint::runge_kutta4<Vec<real_t, n>>;
+  using type = ::boost::numeric::odeint::runge_kutta4<vec<Real, N>>;
 };
-template <typename real_t, size_t n>
-using rk4_t = typename rk4_helper<real_t, n>::type;
+template <typename Real, size_t N>
+using rk4_t = typename rk4_helper<Real, N>::type;
 
 //==============================================================================
 
-template <size_t n, typename real_t>
-struct rungekutta4
-    : BoostIntegrator<n, real_t, rk4_t<real_t, n>> {
-  rungekutta4(real_t stepsize = 0.01)
-      : BoostIntegrator<n, real_t, rk4_t<real_t, n>>{rk4_t<real_t, n>{},
-                                                     stepsize} {}
+template <typename Real, size_t N>
+struct rungekutta4 : integrator<Real, N, rk4_t<Real, N>> {
+  rungekutta4(Real stepsize = 0.1)
+      : integrator<Real, N, rk4_t<Real, N>>{rk4_t<Real, N>{}, stepsize} {}
 };
 
 //==============================================================================
 }  // namespace tatooine::integration::boost
 //==============================================================================
 
-#include "../../concept_undefs.h"
 #endif

@@ -49,9 +49,9 @@ struct line {
  public:
   line()                      = default;
   line(const line& other)     = default;
-  line(line&& other) noexcept = default;
+  //line(line&& other) noexcept = default;
   line& operator=(const line& other) = default;
-  line& operator=(line&& other) noexcept = default;
+  //line& operator=(line&& other) noexcept = default;
 
   //----------------------------------------------------------------------------
   line(const pos_container_t& data, bool is_closed = false)
@@ -322,9 +322,9 @@ struct parameterized_line : line<Real, N> {
  public:
   parameterized_line()                              = default;
   parameterized_line(const parameterized_line&)     = default;
-  parameterized_line(parameterized_line&&) noexcept = default;
+  //parameterized_line(parameterized_line&&) noexcept = default;
   parameterized_line& operator=(const parameterized_line&) = default;
-  parameterized_line& operator=(parameterized_line&&) noexcept = default;
+  //parameterized_line& operator=(parameterized_line&&) noexcept = default;
   //----------------------------------------------------------------------------
   parameterized_line(std::initializer_list<std::pair<pos_t, Real>>&& data) {
     for (auto& [pos, param] : data) { push_back(pos, param); }

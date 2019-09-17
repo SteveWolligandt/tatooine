@@ -21,14 +21,16 @@ namespace tatooine {
 //==============================================================================
 template <typename T, size_t... Sizes>
 struct chunk : static_multidimension<Sizes...> {
-  using parent_t                 = static_multidimension<Sizes...>;
-  using data_t                   = std::vector<T>;
-  using iterator                 = typename data_t::iterator;
-  using const_iterator           = typename data_t::const_iterator;
-  static constexpr auto num_data = parent_t::num_data;
-  data_t                m_data;
+  using parent_t         = static_multidimension<Sizes...>;
+  using data_container_t = std::vector<T>;
+  using iterator         = typename data_container_t::iterator;
+  using const_iterator   = typename data_container_t::const_iterator;
+  static constexpr auto num_data() { return parent_t::num_data; }
+  static constexpr auto sizes() { return std::array{Sizes...}; }
 
-  chunk() : m_data(num_data) {}
+  data_container_t m_data;
+
+  chunk() : m_data(num_data()) {}
 
   chunk(const chunk&) = default;
   chunk(chunk&&)      = default;
@@ -63,12 +65,12 @@ struct chunk : static_multidimension<Sizes...> {
   }
 
   //----------------------------------------------------------------------------
-  auto begin() { return begin(m_data); }
-  auto begin() const { return begin(m_data); }
+  auto begin() { return std::begin(m_data); }
+  auto begin() const { return std::begin(m_data); }
 
   //----------------------------------------------------------------------------
-  auto end() { return end(m_data); }
-  auto end() const { return end(m_data); }
+  auto end() { return std::end(m_data); }
+  auto end() const { return std::end(m_data); }
 
   //----------------------------------------------------------------------------
   template <typename RandomEngine = std::mt19937_64, typename _T = T,
@@ -86,6 +88,33 @@ struct chunk : static_multidimension<Sizes...> {
     boost::generate(m_data, [&random_engine, &distribution] {
       return distribution(random_engine);
     });
+  }
+
+  template <typename _T = T, enable_if_arithmetic<_T>...>
+  auto min_element() {
+    return std::min_element(begin(), end());
+  }
+  template <typename _T = T, enable_if_arithmetic<_T>...>
+  auto min_element() const {
+    return std::min_element(begin(), end());
+  }
+
+
+  template <typename _T = T, enable_if_arithmetic<_T>...>
+  auto max_element() {
+    return std::max_element(begin(), end());
+  }
+  template <typename _T = T, enable_if_arithmetic<_T>...>
+  auto max_element() const {
+    return std::max_element(begin(), end());
+  }
+  template <typename _T = T, enable_if_arithmetic<_T>...>
+  auto minmax_element() {
+    return std::minmax_element(begin(), end());
+  }
+  template <typename _T = T, enable_if_arithmetic<_T>...>
+  auto minmax_element() const {
+    return std::minmax_element(begin(), end());
   }
 };
 
@@ -350,6 +379,51 @@ struct chunked_data {
     for (auto& chunk : m_chunks) {
       if (!chunk) { chunk = std::make_unique<chunk_t>(); }
       chunk->randu(min, max, std::forward<RandomEngine>(random_engine));
+    }
+  }
+
+  template <typename _T = T, enable_if_arithmetic<_T>...>
+  auto min_value() const {
+    T min = std::numeric_limits<T>::max();
+    for (const auto& chunk:m_chunks) {if (chunk) { min = std::min(min, *chunk->min_element());}}
+    return min;
+  }
+
+  template <typename _T = T, enable_if_arithmetic<_T>...>
+  auto max_value() const {
+    T max = -std::numeric_limits<T>::max();
+    for (const auto& chunk:m_chunks) {if (chunk) { max = std::max(max, *chunk->max_element());}}
+    return max;
+  }
+
+  template <typename _T = T, enable_if_arithmetic<_T>...>
+  auto minmax_value() const {
+    std::pair minmax{std::numeric_limits<T>::max(),
+                     -std::numeric_limits<T>::max()};
+    auto& [min, max] = minmax;
+    for (const auto& chunk : m_chunks) {
+      if (chunk) {
+        auto [chunkmin, chunkmax] = chunk->minmax_element();
+         if (!std::isinf(*chunkmin) && !std::isnan(*chunkmin)) {
+          min = std::min(min, *chunkmin);
+        }
+        if (!std::isinf(*chunkmax) && !std::isnan(*chunkmax)) {
+          max = std::max(max, *chunkmax);
+        }
+      }
+    }
+    return minmax;
+  }
+
+  template <typename _T = T, enable_if_arithmetic<_T>...>
+  void normalize() {
+    auto [min, max] = minmax_value();
+    auto normalizer = 1.0 / (max - min);
+
+    for (const auto& chunk : m_chunks) {
+      if (chunk) {
+        for (auto& val : *chunk) { val = (val - min) * normalizer; }
+      }
     }
   }
 };
