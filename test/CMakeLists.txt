@@ -26,6 +26,7 @@ endmacro()
 
 #- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 create_test(doublegyre)
+create_test(curve_to_streamline)
 create_test(ftle)
 create_test(flowmap)
 create_test(newdoublegyre)

@@ -5,15 +5,31 @@
 namespace tatooine::test {
 //==============================================================================
 
-TEST_CASE("line", "[line]") {
+TEST_CASE("line_push_back", "[line][push_back]") {
   line<double, 2> l;
-  l.push_back(vec{0,0});
-  l.push_back(vec{1,1});
-  l.push_back(vec{2,0});
-
-  auto t0 = l.tangent(0);
-  auto t1 = l.tangent(1);
-  auto t2 = l.tangent(2);
+  l.push_back({0,0});
+  l.push_back({1,1});
+  l.push_back({2,0});
+  REQUIRE(approx_equal(l.vertex_at(0), vec{0, 0}, 0));
+  REQUIRE(approx_equal(l.vertex_at(1), vec{1, 1}, 0));
+  REQUIRE(approx_equal(l.vertex_at(2), vec{2, 0}, 0));
+}
+//==============================================================================
+TEST_CASE("line_initializer_list", "[line][initializer_list]") {
+  line<double, 2> l{{0, 0}, {1, 1}, {2, 0}};
+  REQUIRE(approx_equal(l.vertex_at(0), vec{0, 0}, 0));
+  REQUIRE(approx_equal(l.vertex_at(1), vec{1, 1}, 0));
+  REQUIRE(approx_equal(l.vertex_at(2), vec{2, 0}, 0));
+}
+//==============================================================================
+TEST_CASE("line_push_front", "[line][push_front]") {
+  line<double, 2> l;
+  l.push_front({0,0});
+  l.push_front({1,1});
+  l.push_front({2,0});
+  REQUIRE(approx_equal(l.vertex_at(2), vec{0, 0}, 0));
+  REQUIRE(approx_equal(l.vertex_at(1), vec{1, 1}, 0));
+  REQUIRE(approx_equal(l.vertex_at(0), vec{2, 0}, 0));
 }
 //==============================================================================
 TEST_CASE("line_parameterized_initialization",

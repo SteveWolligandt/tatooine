@@ -189,7 +189,7 @@ struct base_tensor : crtp<Tensor> {
   //----------------------------------------------------------------------------
   template <typename OtherTensor, typename OtherReal>
   auto& operator-=(const base_tensor<OtherTensor, OtherReal, Dims...>& other) {
-    for_indices([&](const auto... is) { at(is...) += other(is...); });
+    for_indices([&](const auto... is) { at(is...) -= other(is...); });
     return *this;
   }
 
@@ -441,6 +441,57 @@ using mat4 = mat<double, 4, 4>;
 // operations
 //==============================================================================
 
+/// Returns the cosine of the angle of two normalized vectors.
+template <typename Tensor0, typename Tensor1, typename Real0, typename Real1,
+          size_t N>
+constexpr auto cos_angle(const base_tensor<Tensor0, Real0, N>& v0,
+                         const base_tensor<Tensor1, Real1, N>& v1) {
+  return dot(normalize(v0), normalize(v1));
+}
+
+//------------------------------------------------------------------------------
+/// Returns the angle of two normalized vectors.
+template <typename Tensor0, typename Tensor1, typename Real0, typename Real1,
+          size_t N>
+auto angle(const base_tensor<Tensor0, Real0, N>& v0,
+           const base_tensor<Tensor1, Real1, N>& v1) {
+  return std::acos(cos_angle(v0, v1));
+}
+//------------------------------------------------------------------------------
+/// Returns the angle of two normalized vectors.
+template <typename Tensor0, typename Tensor1, typename Real0, typename Real1,
+          size_t N>
+auto min_angle(const base_tensor<Tensor0, Real0, N>& v0,
+               const base_tensor<Tensor1, Real1, N>& v1) {
+  return std::min(angle(v0, v1), angle(v0, -v1));
+}
+//------------------------------------------------------------------------------
+/// Returns the angle of two normalized vectors.
+template <typename Tensor0, typename Tensor1, typename Real0, typename Real1,
+          size_t N>
+auto max_angle(const base_tensor<Tensor0, Real0, N>& v0,
+               const base_tensor<Tensor1, Real1, N>& v1) {
+  return std::max(angle(v0, v1), angle(v0, -v1));
+}
+//------------------------------------------------------------------------------
+/// Returns the cosine of the angle three points.
+template <typename Tensor0, typename Tensor1, typename Tensor2,
+          typename Real0, typename Real1, typename Real2, size_t N>
+constexpr auto cos_angle(const base_tensor<Tensor0, Real0, N>& v0,
+                         const base_tensor<Tensor1, Real1, N>& v1,
+                         const base_tensor<Tensor2, Real2, N>& v2) {
+  return cos_angle(normalize(v0 - v1), normalize(v2 - v1));
+}
+//------------------------------------------------------------------------------
+/// Returns the cosine of the angle three points.
+template <typename Tensor0, typename Tensor1, typename Tensor2, typename Real0,
+          typename Real1, typename Real2, size_t N>
+auto angle(const base_tensor<Tensor0, Real0, N>& v0,
+                     const base_tensor<Tensor1, Real1, N>& v1,
+                     const base_tensor<Tensor2, Real2, N>& v2) {
+  return std::acos(cos_angle(v0, v1, v2));
+}
+//------------------------------------------------------------------------------
 template <typename Tensor, typename Real, size_t... Dims>
 constexpr Real min(const base_tensor<Tensor, Real, Dims...>& t) {
   Real m = std::numeric_limits<Real>::max();
@@ -540,9 +591,9 @@ template <typename LhsTensor, typename LhsReal, typename RhsTensor,
           typename RhsReal>
 constexpr auto cross(const base_tensor<LhsTensor, LhsReal, 3>& lhs,
                      const base_tensor<RhsTensor, RhsReal, 3>& rhs) {
-  return vec<promote_t<LhsReal, RhsReal>, 3>{lhs(2) * rhs(3) - lhs(3) * lhs(2),
-                                             lhs(3) * rhs(1) - lhs(1) * lhs(3),
-                                             lhs(1) * rhs(2) - lhs(2) * lhs(1)};
+  return vec<promote_t<LhsReal, RhsReal>, 3>{lhs(1) * rhs(2) - lhs(2) * rhs(1),
+                                             lhs(2) * rhs(0) - lhs(0) * rhs(2),
+                                             lhs(0) * rhs(1) - lhs(1) * rhs(0)};
 }
 
 //------------------------------------------------------------------------------

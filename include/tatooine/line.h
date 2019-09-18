@@ -76,17 +76,26 @@ struct line {
   //----------------------------------------------------------------------------
   auto empty() const { return m_vertices.empty(); }
   //----------------------------------------------------------------------------
-  auto&       at(size_t i) { return m_vertices[i]; }
-  const auto& at(size_t i) const { return m_vertices[i]; }
-  //----------------------------------------------------------------------------
   const auto& operator[](size_t i) const { return m_vertices.at(i); }
-  auto&       operator[](size_t i) { return m_vertices.at(i); }
+  auto&       operator[](size_t i) { return m_vertices.vertex_at(i); }
   //----------------------------------------------------------------------------
   const auto& front() const { return m_vertices.front(); }
   auto&       front() { return m_vertices.front(); }
   //----------------------------------------------------------------------------
   const auto& back() const { return m_vertices.back(); }
   auto&       back() { return m_vertices.back(); }
+  //----------------------------------------------------------------------------
+  auto&       at(size_t i) { return m_vertices[i]; }
+  const auto& at(size_t i) const { return m_vertices[i]; }
+  //----------------------------------------------------------------------------
+  const auto& vertex_front() const { return m_vertices.front(); }
+  auto&       vertex_front() { return m_vertices.front(); }
+  //----------------------------------------------------------------------------
+  const auto& vertex_back() const { return m_vertices.back(); }
+  auto&       vertex_back() { return m_vertices.back(); }
+  //----------------------------------------------------------------------------
+  auto&       vertex_at(size_t i) { return m_vertices[i]; }
+  const auto& vertex_at(size_t i) const { return m_vertices[i]; }
   //----------------------------------------------------------------------------
   void push_back(const pos_t& p) { m_vertices.push_back(p); }
   //----------------------------------------------------------------------------
@@ -95,26 +104,26 @@ struct line {
   /// calculates tangent at point i with forward differences
   auto tangent(const size_t i, forward_t /*fw*/) const {
     assert(size() > 1);
-    if (i == this->size() - 1) { return normalize(at(i) - at(i - 1)); }
-    return normalize(at(i + 1) - at(i));
+    if (i == this->size() - 1) { return normalize(vertex_at(i) - vertex_at(i - 1)); }
+    return normalize(vertex_at(i + 1) - vertex_at(i));
   }
 
   //----------------------------------------------------------------------------
   /// calculates tangent at point i with backward differences
   auto tangent(const size_t i, backward_t /*bw*/) const {
     assert(size() > 1);
-    if (i == 0) { return normalize(at(i + 1) - at(i)); }
-    return normalize(at(i) - at(i - 1));
+    if (i == 0) { return normalize(vertex_at(i + 1) - vertex_at(i)); }
+    return normalize(vertex_at(i) - vertex_at(i - 1));
   }
 
   //----------------------------------------------------------------------------
   /// calculates tangent at point i with central differences
   auto tangent(const size_t i, central_t /*c*/) const {
     assert(size() > 1);
-    if (i == 0) { return normalize(at(i + 1) - at(i)); }
-    if (i == this->size() - 1) { return normalize(at(i) - at(i - 1)); }
-    return (at(i + 1) - at(i - 1)) /
-           (distance(at(i - 1), at(i)) + distance(at(i), at(i + 1)));
+    if (i == 0) { return normalize(vertex_at(i + 1) - vertex_at(i)); }
+    if (i == this->size() - 1) { return normalize(vertex_at(i) - vertex_at(i - 1)); }
+    return (vertex_at(i + 1) - vertex_at(i - 1)) /
+           (distance(vertex_at(i - 1), vertex_at(i)) + distance(vertex_at(i), vertex_at(i + 1)));
   }
 
   //----------------------------------------------------------------------------
@@ -128,7 +137,7 @@ struct line {
   auto length() {
     Real len = 0;
     for (size_t i = 0; i < this->size() - 1; ++i) {
-      len += norm(at(i) - at(i + 1));
+      len += norm(vertex_at(i) - vertex_at(i + 1));
     }
     return len;
   }
@@ -311,9 +320,9 @@ struct parameterized_line : line<Real, N> {
   using typename parent_t::pos_t;
   struct time_not_found : std::exception {};
 
-  using parent_t::at;
   using parent_t::size;
   using parent_t::vertices;
+  using parent_t::vertex_at;
   using parent_t::tangent;
 
  private:
@@ -352,32 +361,20 @@ struct parameterized_line : line<Real, N> {
 
   //----------------------------------------------------------------------------
   std::pair<const pos_t&, const Real&> at(size_t i) const {
-    return {vertices().at(i), m_parameterization.at(i)};
+    return {vertex_at(i), parameterization_at(i)};
   }
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
   std::pair<pos_t&, Real&> at(size_t i) {
-    return {vertices().at(i), m_parameterization.at(i)};
+    return {vertex_at(i), parameterization_at(i)};
   }
   //----------------------------------------------------------------------------
   std::pair<const pos_t&, const Real&> operator[](size_t i) const {
-    return {vertices().at(i), m_parameterization.at(i)};
+    return {vertex_at(i), parameterization_at(i)};
   }
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
   std::pair<pos_t&, Real&> operator[](size_t i) {
-    return {vertices().at(i), m_parameterization.at(i)};
+    return {vertex_at(i), parameterization_at(i)};
   }
-
-  //----------------------------------------------------------------------------
-  auto&       position_at(size_t i) { return vertices().at(i); }
-  const auto& position_at(size_t i) const { return vertices().at(i); }
-
-  //----------------------------------------------------------------------------
-  auto&       front_position() { return vertices().front(); }
-  const auto& front_position() const { return vertices().front(); }
-
-  //----------------------------------------------------------------------------
-  auto&       back_position() { return vertices().back(); }
-  const auto& back_position() const { return vertices().back(); }
 
   //----------------------------------------------------------------------------
   auto&       parameterization_at(size_t i) { return m_parameterization.at(i); }
@@ -465,7 +462,7 @@ struct parameterized_line : line<Real, N> {
     parameterization_at(0) = t0;
     for (size_t i = 1; i < this->size(); ++i) {
       parameterization_at(i) = parameterization_at(i - 1) +
-                               distance(position_at(i), position_at(i - 1));
+                               distance(vertex_at(i), vertex_at(i - 1));
     }
   }
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -474,7 +471,7 @@ struct parameterized_line : line<Real, N> {
     for (size_t i = 1; i < this->size(); ++i) {
       parameterization_at(i) =
           parameterization_at(i - 1) +
-          std::sqrt(distance(position_at(i), position_at(i - 1)));
+          std::sqrt(distance(vertex_at(i), vertex_at(i - 1)));
     }
   }
 
