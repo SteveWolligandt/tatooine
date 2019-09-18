@@ -88,48 +88,72 @@ struct line {
   auto&       at(size_t i) { return m_vertices[i]; }
   const auto& at(size_t i) const { return m_vertices[i]; }
   //----------------------------------------------------------------------------
-  const auto& vertex_front() const { return m_vertices.front(); }
-  auto&       vertex_front() { return m_vertices.front(); }
+  const auto& front_vertex() const { return m_vertices.front(); }
+  auto&       front_vertex() { return m_vertices.front(); }
   //----------------------------------------------------------------------------
-  const auto& vertex_back() const { return m_vertices.back(); }
-  auto&       vertex_back() { return m_vertices.back(); }
+  const auto& back_vertex() const { return m_vertices.back(); }
+  auto&       back_vertex() { return m_vertices.back(); }
   //----------------------------------------------------------------------------
   auto&       vertex_at(size_t i) { return m_vertices[i]; }
   const auto& vertex_at(size_t i) const { return m_vertices[i]; }
   //----------------------------------------------------------------------------
   void push_back(const pos_t& p) { m_vertices.push_back(p); }
+  void pop_back() { m_vertices.pop_back(); }
   //----------------------------------------------------------------------------
   void push_front(const pos_t& p) { m_vertices.push_front(p); }
+  void pop_front() { m_vertices.pop_front(); }
   //----------------------------------------------------------------------------
   /// calculates tangent at point i with forward differences
   auto tangent(const size_t i, forward_t /*fw*/) const {
     assert(size() > 1);
-    if (i == this->size() - 1) { return normalize(vertex_at(i) - vertex_at(i - 1)); }
-    return normalize(vertex_at(i + 1) - vertex_at(i));
+    if (is_closed()) {
+      if (i == size() - 1) {
+        return (front_vertex() - vertex_at(i)) /
+               distance(front_vertex(), vertex_at(i));
+      }
+    }
+    return (vertex_at(i + 1) - vertex_at(i)) /
+           distance(vertex_at(i), vertex_at(i + 1));
   }
 
   //----------------------------------------------------------------------------
   /// calculates tangent at point i with backward differences
   auto tangent(const size_t i, backward_t /*bw*/) const {
     assert(size() > 1);
-    if (i == 0) { return normalize(vertex_at(i + 1) - vertex_at(i)); }
-    return normalize(vertex_at(i) - vertex_at(i - 1));
+    if (is_closed()) {
+      if (i == 0) {
+        return (vertex_at(i) - back_vertex()) /
+               distance(back_vertex(), vertex_at(i));
+      }
+    }
+    return (vertex_at(i) - vertex_at(i - 1)) /
+           distance(vertex_at(i), vertex_at(i - 1));
   }
 
   //----------------------------------------------------------------------------
   /// calculates tangent at point i with central differences
   auto tangent(const size_t i, central_t /*c*/) const {
-    assert(size() > 1);
-    if (i == 0) { return normalize(vertex_at(i + 1) - vertex_at(i)); }
-    if (i == this->size() - 1) { return normalize(vertex_at(i) - vertex_at(i - 1)); }
+    if (is_closed()) {
+      if (i == 0) {
+        return (vertex_at(i+1) - back_vertex()) /
+               (distance(back_vertex(), vertex_at(i)) +
+                distance(vertex_at(i), vertex_at(i+1)));
+      } else if (i == size() - 1) {
+        return (front_vertex() - vertex_at(i - 1)) /
+               (distance(vertex_at(i - 1), vertex_at(i)) +
+                distance(vertex_at(i), front_vertex()));
+      }
+    }
     return (vertex_at(i + 1) - vertex_at(i - 1)) /
-           (distance(vertex_at(i - 1), vertex_at(i)) + distance(vertex_at(i), vertex_at(i + 1)));
+           (distance(vertex_at(i - 1), vertex_at(i)) +
+            distance(vertex_at(i), vertex_at(i + 1)));
   }
 
   //----------------------------------------------------------------------------
   auto tangent(const size_t i) const {
-    if (i == 0 && !is_closed()) { return tangent(i, forward); }
-    if (i == size() - 1 && !is_closed()) { return tangent(i, backward); }
+    if (is_closed()) { return tangent(i, central); }
+    if (i == 0) { return tangent(i, forward); }
+    if (i == size() - 1) { return tangent(i, backward); }
     return tangent(i, central);
   }
 
@@ -240,6 +264,7 @@ void line<Real, N>::write_vtk(const std::string& path, const std::string& title,
     std::vector<std::vector<size_t>> line_seq(
         1, std::vector<size_t>(this->size()));
     boost::iota(line_seq.front(), 0);
+    if (this->is_closed()) { line_seq.front().push_back(0); }
     writer.write_lines(line_seq);
 
     writer.write_point_data(this->size());
@@ -398,11 +423,21 @@ struct parameterized_line : line<Real, N> {
     parent_t::push_back(p);
     m_parameterization.push_back(t);
   }
+  //----------------------------------------------------------------------------
+  void pop_back() {
+    parent_t::pop_back();
+    m_parameterization.pop_back();
+  }
 
   //----------------------------------------------------------------------------
   void push_front(const pos_t& p, Real t) {
     parent_t::push_front(p);
     m_parameterization.push_front(t);
+  }
+  //----------------------------------------------------------------------------
+  void pop_front() {
+    parent_t::pop_front();
+    m_parameterization.pop_front();
   }
 
   //----------------------------------------------------------------------------

@@ -51,17 +51,8 @@ struct curve_to_streamline {
   //----------------------------------------------------------------------------
   template <typename Line>
   void calc_tangents(const Line& line) {
-    // for (unsigned int i = 0; i < line.size(); i++) {
-    //  tangents[i] = normalize(line.tangent(i));
-    //}
-    for (unsigned int i = 0; i < line.size(); i++) {
-      if (i == 0) {
-        tangents[i] = line.vertex_at(i + 1) - line.vertex_at(i);
-      } else if (i == line.size() - 1) {
-        tangents[i] = line.vertex_at(i) - line.vertex_at(i - 1);
-      } else {
-        tangents[i] = line.vertex_at(i + 1) - line.vertex_at(i - 1);
-      }
+     for (unsigned int i = 0; i < line.size(); i++) {
+      tangents[i] = line.tangent(i);
     }
   }
 
@@ -69,9 +60,9 @@ struct curve_to_streamline {
   void calc_plane_basis() {
     for (size_t i = 0; i < tangents.size(); i++) {
       const auto& t = tangents[i];
-      vec3        aux_vec{0, 1, 0};
+      vec3        aux_vec{1, 0, 0};
       auto        tn = normalize(t);
-      if (approx_equal(aux_vec, tn, 1e-10)) { aux_vec = {1, 0, 0}; }
+      if (approx_equal(aux_vec, tn, 1e-10)) { aux_vec = {0, 1, 0}; }
       if (approx_equal(aux_vec, tn, 1e-10)) { aux_vec = {0, 0, 1}; }
       while (approx_equal(aux_vec, tn, 1e-10)) {
         aux_vec = normalize(vec3::randu());
@@ -85,11 +76,15 @@ struct curve_to_streamline {
   template <typename Line>
   void redistribute_points(Line& line) const {
     auto         redistributed_points = line.vertices();
-    const size_t start_idx            = (line.is_closed() ? 0 : 1);
-    const size_t end_idx = (line.is_closed() ? line.size() : (line.size() - 1));
+    const size_t start_idx            = line.is_closed() ? 0 : 1;
+    const size_t end_idx = line.is_closed() ? line.size() : (line.size() - 1);
 
     for (size_t i = start_idx; i < end_idx; ++i) {
-      const auto center = (line.vertex_at(i + 1) + line.vertex_at(i - 1)) * 0.5;
+      const auto center =
+          ((i == line.size() - 1 ? line.front_vertex()
+                                 : line.vertex_at(i + 1)) +
+           (i == 0 ? line.back_vertex() : line.vertex_at(i - 1))) *
+          0.5;
       const auto& t     = tangents[i];
       auto correction   = t * (dot(center - line.vertex_at(i), t) / dot(t, t));
       redistributed_points[i] += correction;
