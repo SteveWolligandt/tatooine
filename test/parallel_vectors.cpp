@@ -65,8 +65,8 @@ TEST_CASE("parallel_vectors_numerical_doublegyre_acceleration",
           "[parallel_vectors][pv][numerical][doublegyre][dg][spacetime_field]"
           "[differentiate][acceleration]") {
   write_vtk(
-      pv_acceleration(numerical::doublegyre{}, linspace{1e-3, 2.0 - 1e-3, 81},
-                      linspace{-1e-4, 1e-3, 11}, linspace{-10.0, 20.0, 401}),
+      pv_acceleration(numerical::doublegyre{}, linspace{1e-3, 2.0 - 1e-3, 201},
+                      linspace{-1e-4, 1e-3, 101}, linspace{-10.0, 20.0, 401}),
       "numerical_spacetime_doublegyre_pv_lines_acceleration.vtk");
 }
 
