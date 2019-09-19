@@ -237,8 +237,14 @@ struct tensor : base_tensor<tensor<Real, Dims...>, Real, Dims...> {
   constexpr tensor() : m_data{make_array<Real, num_components()>()} {}
   constexpr tensor(const tensor& other) = default;
   constexpr tensor& operator=(const tensor& other) = default;
-  constexpr tensor(tensor&& other) noexcept = default;
-  constexpr tensor& operator=(tensor&& other) noexcept = default;
+
+  template <typename Real_ = Real, enable_if_arithmetic_or_complex<Real_>...>
+  constexpr tensor(tensor&& other) noexcept : m_data{std::move(other.m_data)}{}
+  template <typename Real_ = Real, enable_if_arithmetic_or_complex<Real_>...>
+  constexpr tensor& operator=(tensor&& other) noexcept {
+    m_data = std::move(other.m_data);
+    return *this;
+  }
   ~tensor()                                            = default;
 
   //============================================================================
@@ -375,11 +381,17 @@ struct vec : tensor<Real, n> {
     this->m_data = {static_cast<Real>(ts)...};
   }
 
-  constexpr vec(const vec&)     = default;
-  constexpr vec(vec&&) noexcept = default;
+  constexpr vec(const vec&) = default;
   constexpr vec& operator=(const vec&) = default;
-  constexpr vec& operator=(vec&&) noexcept = default;
-  ~vec()                                   = default;
+  ~vec()                               = default;
+
+  template <typename Real_ = Real, enable_if_arithmetic_or_complex<Real_>...>
+  constexpr vec(vec&& other) noexcept : parent_t{std::move(other)} {}
+  template <typename Real_ = Real, enable_if_arithmetic_or_complex<Real_>...>
+  constexpr vec& operator=(vec&& other) noexcept {
+    parent_t::operator=(std::move(other));
+    return *this;
+  }
 };
 
 //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -398,10 +410,15 @@ struct mat : tensor<Real, M, N> {
   using parent_t::parent_t;
 
   constexpr mat(const mat&)     = default;
-  constexpr mat(mat&&) noexcept = default;
   constexpr mat& operator=(const mat&) = default;
-  constexpr mat& operator=(mat&&) noexcept = default;
   ~mat()                                   = default;
+  template <typename Real_ = Real, enable_if_arithmetic_or_complex<Real_>...>
+  constexpr mat(mat&& other) noexcept : parent_t{std::move(other)} {}
+  template <typename Real_ = Real, enable_if_arithmetic_or_complex<Real_>...>
+  constexpr mat& operator=(mat&& other) noexcept {
+    parent_t::operator=(std::move(other));
+    return *this;
+  }
 
   template <typename... Rows, enable_if_arithmetic_or_symbolic<Rows...>...>
   constexpr mat(Rows(&&... rows)[parent_t::dimension(1)]) {

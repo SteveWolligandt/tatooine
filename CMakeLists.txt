@@ -43,6 +43,7 @@ endif()
 
 #- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 add_subdirectory(test)
+add_subdirectory(misc)
 
 #- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 # This makes the project importable from the build directory

@@ -42,6 +42,16 @@ static constexpr auto is_symbolic_v = is_symbolic<T>::value;
 
 //==============================================================================
 template <typename T>
+struct is_arithmetic_or_complex
+    : std::integral_constant<bool,
+                             std::is_arithmetic_v<T> || is_complex_v<T>> {};
+// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+template <typename T>
+static constexpr auto is_arithmetic_or_complex_v =
+    is_arithmetic_or_complex<T>::value;
+
+//==============================================================================
+template <typename T>
 struct is_arithmetic_or_symbolic
     : std::integral_constant<bool,
                              std::is_arithmetic_v<T> || is_symbolic_v<T>> {};
@@ -106,6 +116,10 @@ using enable_if_symbolic =
 template <typename... Ts>
 using enable_if_not_symbolic =
     typename std::enable_if_t<(!is_symbolic_v<Ts> && ...)>;
+//------------------------------------------------------------------------------
+template <typename... Ts>
+using enable_if_arithmetic_or_complex =
+    typename std::enable_if_t<(is_arithmetic_or_complex_v<Ts> && ...)>;
 //------------------------------------------------------------------------------
 template <typename... Ts>
 using enable_if_arithmetic_or_symbolic =

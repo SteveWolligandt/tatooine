@@ -234,7 +234,7 @@ inline CellType str_to_cell_type(const std::string &cell_type) {
     return UNKNOWN_CELL_TYPE;
 }
 
-struct LegacyFileListener {
+struct legacy_file_listener {
   // header data
   virtual void on_version(unsigned short /*major*/, unsigned short /*minor*/) {}
   virtual void on_title(const std::string &) {}
@@ -255,12 +255,12 @@ struct LegacyFileListener {
   virtual void on_z_coordinates(const std::vector<double> & /*zs*/) {}
 
   // index data
-  virtual void on_cells(const std::vector<int> &) {}
+  virtual void on_cells(const std::vector<std::vector<int>> &) {}
   virtual void on_cell_types(const std::vector<CellType> &) {}
-  virtual void on_vertices(const std::vector<int> &) {}
-  virtual void on_lines(const std::vector<int> &) {}
-  virtual void on_polygons(const std::vector<int> &) {}
-  virtual void on_triangle_strips(const std::vector<int> &) {}
+  virtual void on_vertices(const std::vector<std::vector<int>> &) {}
+  virtual void on_lines(const std::vector<std::vector<int>> &) {}
+  virtual void on_polygons(const std::vector<std::vector<int>> &) {}
+  virtual void on_triangle_strips(const std::vector<std::vector<int>> &) {}
 
   // cell- / pointdata
   virtual void on_vectors(const std::string & /*name*/,
@@ -311,33 +311,29 @@ struct LegacyFileListener {
   ) {}
 };
 
-class LegacyFile {
- public:
-  std::vector<LegacyFileListener *> m_listeners;
+class legacy_file {
+  std::vector<legacy_file_listener *> m_listeners;
 
-  void add_listener(LegacyFileListener &listener) {
+ public:
+  void add_listener(legacy_file_listener &listener) {
     m_listeners.push_back(&listener);
   }
 
   //---------------------------------------------------------------------------
-
-  LegacyFile(const std::string &path) : m_path(path) {}
+  legacy_file(const std::string &path) : m_path(path) {}
 
   //---------------------------------------------------------------------------
-
   void read() {
     read_header();
     read_data();
   }
 
   //---------------------------------------------------------------------------
-
   void        set_path(const std::string &path) { m_path = path; }
   void        set_path(std::string &&path) { m_path = std::move(path); }
   const auto &path() const { return m_path; }
 
   //---------------------------------------------------------------------------
-
  private:
   inline void read_header();
   inline void read_data();
@@ -356,10 +352,10 @@ class LegacyFile {
   inline void read_cell_types_ascii(std::ifstream &file, const size_t &n);
   inline void read_cell_types_binary(std::ifstream &file, const size_t &n);
 
-  inline std::vector<int> read_indices(std::ifstream &file);
-  inline std::vector<int> read_indices_ascii(std::ifstream &file,
+  inline std::vector<std::vector<int>> read_indices(std::ifstream &file);
+  inline std::vector<std::vector<int>> read_indices_ascii(std::ifstream &file,
                                              const size_t n, const size_t size);
-  inline std::vector<int> read_indices_binary(std::ifstream &file,
+  inline std::vector<std::vector<int>> read_indices_binary(std::ifstream &file,
                                               const size_t   n,
                                               const size_t   size);
 
@@ -461,23 +457,23 @@ class LegacyFile {
   // index data
   void read_cells(std::ifstream &file) {
     auto i = read_indices(file);
-    for (auto l : m_listeners) l->on_cells(i);
+    for (auto l : m_listeners) { l->on_cells(i); }
   }
   void read_vertices(std::ifstream &file) {
     auto i = read_indices(file);
-    for (auto l : m_listeners) l->on_vertices(i);
+    for (auto l : m_listeners) { l->on_vertices(i); }
   }
   void read_lines(std::ifstream &file) {
     auto i = read_indices(file);
-    for (auto l : m_listeners) l->on_lines(i);
+    for (auto l : m_listeners) { l->on_lines(i); }
   }
   void read_polygons(std::ifstream &file) {
     auto i = read_indices(file);
-    for (auto l : m_listeners) l->on_polygons(i);
+    for (auto l : m_listeners) { l->on_polygons(i); }
   }
   void read_triangle_strips(std::ifstream &file) {
     auto i = read_indices(file);
-    for (auto l : m_listeners) l->on_triangle_strips(i);
+    for (auto l : m_listeners) { l->on_triangle_strips(i); }
   }
 
   //----------------------------------------------------------------------------
@@ -638,7 +634,7 @@ class LegacyFile {
 
 //-----------------------------------------------------------------------------------------------
 
-void LegacyFile::read_header() {
+void legacy_file::read_header() {
   std::ifstream file(m_path, std::ifstream::binary);
   if (file.is_open()) {
     // read part1 # vtk DataFile Version x.x
@@ -671,12 +667,12 @@ void LegacyFile::read_header() {
     m_begin_of_data = file.tellg();
     file.close();
   } else
-    throw std::runtime_error("[vtk::LegacyFile] could not open file " + m_path);
+    throw std::runtime_error("[vtk::legacy_file] could not open file " + m_path);
 }
 
 //-----------------------------------------------------------------------------
 
-void LegacyFile::read_data() {
+void legacy_file::read_data() {
   std::ifstream file(m_path, std::ifstream::binary);
   if (file.is_open()) {
     file.seekg(m_begin_of_data, file.beg);
@@ -685,43 +681,43 @@ void LegacyFile::read_data() {
     while (!file.eof()) {
       keyword = vtk::read_word(file, buffer);
       if (!keyword.empty()) {
-        if (keyword == "POINTS")
+        if (keyword == "POINTS") {
           read_points(file);
 
-        else if (keyword == "LINES")
+        } else if (keyword == "LINES") {
           read_lines(file);
 
-        else if (keyword == "VERTICES")
+        } else if (keyword == "VERTICES") {
           read_vertices(file);
 
-        else if (keyword == "POLYGONS")
+        } else if (keyword == "POLYGONS") {
           read_polygons(file);
 
-        else if (keyword == "CELLS")
+        } else if (keyword == "CELLS") {
           read_cells(file);
 
-        else if (keyword == "CELL_TYPES")
+        } else if (keyword == "CELL_TYPES") {
           read_cell_types(file);
 
-        else if (keyword == "DIMENSIONS")
+        } else if (keyword == "DIMENSIONS") {
           read_dimensions(file);
 
-        else if (keyword == "ORIGIN")
+        } else if (keyword == "ORIGIN") {
           read_origin(file);
 
-        else if (keyword == "SPACING")
+        } else if (keyword == "SPACING") {
           read_spacing(file);
 
-        else if (keyword == "X_COORDINATES")
+        } else if (keyword == "X_COORDINATES") {
           read_x_coordinates(file);
 
-        else if (keyword == "Y_COORDINATES")
+        } else if (keyword == "Y_COORDINATES") {
           read_y_coordinates(file);
 
-        else if (keyword == "Z_COORDINATES")
+        } else if (keyword == "Z_COORDINATES") {
           read_z_coordinates(file);
 
-        else if (keyword == "POINT_DATA") {
+        } else if (keyword == "POINT_DATA") {
           m_data_size = size_t(parse<int>(vtk::read_word(file, buffer)));
           m_data      = POINT_DATA;
           for (auto l : m_listeners) l->on_point_data(m_data_size);
@@ -730,36 +726,36 @@ void LegacyFile::read_data() {
           m_data_size = size_t(parse<int>(vtk::read_word(file, buffer)));
           m_data      = POINT_DATA;
           for (auto l : m_listeners) l->on_cell_data(m_data_size);
-        }
 
-        else if (keyword == "SCALARS")
+        } else if (keyword == "SCALARS") {
           read_scalars(file);
 
-        else if (keyword == "VECTORS")
+        } else if (keyword == "VECTORS") {
           read_vectors(file);
 
-        else if (keyword == "NORMALS")
+        } else if (keyword == "NORMALS") {
           read_normals(file);
 
-        else if (keyword == "TEXTURE_COORDINATES")
+        } else if (keyword == "TEXTURE_COORDINATES") {
           read_texture_coordinates(file);
 
-        else if (keyword == "FIELD")
+        } else if (keyword == "FIELD") {
           read_field(file);
 
-        else
-          std::cerr << "[tatooine::vtk::LegacyFile] unknown keyword: "
+        } else {
+          std::cerr << "[tatooine::vtk::legacy_file] unknown keyword: "
                     << keyword << '\n';
+        }
       }
     }
   } else
     throw std::runtime_error(
-        "[tatooine::vtk::LegacyFile] could not open file " + m_path);
+        "[tatooine::vtk::legacy_file] could not open file " + m_path);
 }
 
 //------------------------------------------------------------------------------
 
-void LegacyFile::read_spacing(std::ifstream &file) {
+void legacy_file::read_spacing(std::ifstream &file) {
   std::array spacing{parse<double>(vtk::read_word(file, buffer)),
                      parse<double>(vtk::read_word(file, buffer)),
                      parse<double>(vtk::read_word(file, buffer))};
@@ -768,7 +764,7 @@ void LegacyFile::read_spacing(std::ifstream &file) {
 
 //------------------------------------------------------------------------------
 
-void LegacyFile::read_dimensions(std::ifstream &file) {
+void legacy_file::read_dimensions(std::ifstream &file) {
   std::array dims{parse<size_t>(vtk::read_word(file, buffer)),
                   parse<size_t>(vtk::read_word(file, buffer)),
                   parse<size_t>(vtk::read_word(file, buffer))};
@@ -777,7 +773,7 @@ void LegacyFile::read_dimensions(std::ifstream &file) {
 
 //------------------------------------------------------------------------------
 
-void LegacyFile::read_origin(std::ifstream &file) {
+void legacy_file::read_origin(std::ifstream &file) {
   std::array origin{parse<double>(vtk::read_word(file, buffer)),
                     parse<double>(vtk::read_word(file, buffer)),
                     parse<double>(vtk::read_word(file, buffer))};
@@ -786,7 +782,7 @@ void LegacyFile::read_origin(std::ifstream &file) {
 
 //-----------------------------------------------------------------------------------------------
 
-void LegacyFile::read_points(std::ifstream &file) {
+void legacy_file::read_points(std::ifstream &file) {
   auto num_points_str = vtk::read_word(file, buffer);
   auto n              = parse<size_t>(num_points_str);
   auto datatype_str   = vtk::read_word(file, buffer);
@@ -807,7 +803,7 @@ void LegacyFile::read_points(std::ifstream &file) {
 //------------------------------------------------------------------------------
 
 template <typename real_t>
-void LegacyFile::read_points_ascii(std::ifstream &file, const size_t &n) {
+void legacy_file::read_points_ascii(std::ifstream &file, const size_t &n) {
   std::vector<std::array<real_t, 3>> points;
   for (size_t i = 0; i < n; i++)
     points.push_back(
@@ -821,18 +817,18 @@ void LegacyFile::read_points_ascii(std::ifstream &file, const size_t &n) {
 //-----------------------------------------------------------------------------
 
 template <typename real_t>
-void LegacyFile::read_points_binary(std::ifstream &file, const size_t &n) {
-  // std::vector<std::array<real_t, 3>> points(n);
-  // file.read((char *)points.data(), sizeof(real_t) * 3 * n);
-  // swap_endianess(reinterpret_cast<real_t *>(points.data()), n * 3);
-  // for (auto l : m_listeners) l->on_points(points);
-  // consume_trailing_break(file);
-  file.ignore(sizeof(real_t) * 3 * n + 1);
+void legacy_file::read_points_binary(std::ifstream &file, const size_t &n) {
+   std::vector<std::array<real_t, 3>> points(n);
+   file.read((char *)points.data(), sizeof(real_t) * 3 * n);
+   swap_endianess(reinterpret_cast<real_t *>(points.data()), n * 3);
+   for (auto l : m_listeners) l->on_points(points);
+   consume_trailing_break(file);
+  //file.ignore(sizeof(real_t) * 3 * n + 1);
 }
 
 //-----------------------------------------------------------------------------------------------
 
-void LegacyFile::read_cell_types(std::ifstream &file) {
+void legacy_file::read_cell_types(std::ifstream &file) {
   auto num_cell_types_str = vtk::read_word(file, buffer);
   auto num_cell_types     = parse<size_t>(num_cell_types_str);
 
@@ -844,7 +840,7 @@ void LegacyFile::read_cell_types(std::ifstream &file) {
 
 //-----------------------------------------------------------------------------------------------
 
-void LegacyFile::read_cell_types_ascii(std::ifstream &file,
+void legacy_file::read_cell_types_ascii(std::ifstream &file,
                                        const size_t & num_cell_types) {
   std::vector<CellType> cell_types;
   std::string           cell_type_str;
@@ -857,7 +853,7 @@ void LegacyFile::read_cell_types_ascii(std::ifstream &file,
 
 //-----------------------------------------------------------------------------
 
-void LegacyFile::read_cell_types_binary(std::ifstream &file,
+void legacy_file::read_cell_types_binary(std::ifstream &file,
                                         const size_t & num_cell_types) {
   std::vector<CellType> cell_types(num_cell_types);
   file.read((char *)cell_types.data(), sizeof(int) * num_cell_types);
@@ -868,7 +864,7 @@ void LegacyFile::read_cell_types_binary(std::ifstream &file,
 
 //-----------------------------------------------------------------------------------------------
 
-std::vector<int> LegacyFile::read_indices(std::ifstream &file) {
+std::vector<std::vector<int>> legacy_file::read_indices(std::ifstream &file) {
   auto num_indices_str = vtk::read_word(file, buffer);
   auto size_str        = vtk::read_word(file, buffer);
 
@@ -883,33 +879,40 @@ std::vector<int> LegacyFile::read_indices(std::ifstream &file) {
 
 //-----------------------------------------------------------------------------
 
-std::vector<int> LegacyFile::read_indices_ascii(std::ifstream &file,
+std::vector<std::vector<int>> legacy_file::read_indices_ascii(std::ifstream &/*file*/,
                                                 const size_t /* num_indices*/,
-                                                const size_t size) {
-  std::vector<int> indices;
-  indices.reserve(size);
-  std::string val_str;
-  for (size_t i = 0; i < size; i++)
-    indices.push_back(parse<size_t>(vtk::read_word(file, buffer)));
+                                                const size_t /*size*/) {
+  std::vector<std::vector<int>> indices;
+  //indices.reserve(size);
+  //std::string val_str;
+  //for (size_t i = 0; i < size; i++)
+  //  indices.push_back(parse<size_t>(vtk::read_word(file, buffer)));
   return indices;
 }
 
 //-----------------------------------------------------------------------------
-
-std::vector<int> LegacyFile::read_indices_binary(std::ifstream &file,
-                                                 const size_t /*num_indices*/,
+std::vector<std::vector<int>> legacy_file::read_indices_binary(std::ifstream &file,
+                                                 const size_t num_indices,
                                                  const size_t size) {
-  std::vector<int> indices(size);
-  file.read((char *)indices.data(), sizeof(int) * size);
-  swap_endianess(indices);
+  std::vector<int> data(size);
+  file.read((char *)data.data(), sizeof(int) * size);
   consume_trailing_break(file);
+  swap_endianess(data);
+
+  std::vector<std::vector<int>> indices(num_indices);
+  auto cur_pos = begin(data);
+  for (auto& index_list : indices) {
+    index_list.reserve(*cur_pos++);
+    std::copy(cur_pos, next(cur_pos, *prev(cur_pos)),
+              std::back_inserter(index_list));
+    advance(cur_pos, *prev(cur_pos));
+  }
   return indices;
 }
 
 //-----------------------------------------------------------------------------------------------
-
 template <typename real_t, unsigned int n>
-std::vector<std::array<real_t, n>> LegacyFile::read_data(std::ifstream &file) {
+std::vector<std::array<real_t, n>> legacy_file::read_data(std::ifstream &file) {
   if (m_format == ASCII)
     return read_data_ascii<real_t, n>(file);
   else
@@ -919,7 +922,7 @@ std::vector<std::array<real_t, n>> LegacyFile::read_data(std::ifstream &file) {
 //-----------------------------------------------------------------------------
 
 template <typename real_t, unsigned int n>
-std::vector<std::array<real_t, n>> LegacyFile::read_data_ascii(std::ifstream &file) {
+std::vector<std::array<real_t, n>> legacy_file::read_data_ascii(std::ifstream &file) {
   std::vector<std::array<real_t, n>> data(m_data_size);
   for (size_t i = 0; i < m_data_size; i++)
     for (size_t j = 0; j < n; j++)
@@ -930,7 +933,7 @@ std::vector<std::array<real_t, n>> LegacyFile::read_data_ascii(std::ifstream &fi
 //-----------------------------------------------------------------------------
 
 template <typename real_t, unsigned int n>
-std::vector<std::array<real_t, n>> LegacyFile::read_data_binary(std::ifstream &file) {
+std::vector<std::array<real_t, n>> legacy_file::read_data_binary(std::ifstream &file) {
   std::vector<std::array<real_t, n>> data(m_data_size);
   file.read((char *)data.data(), sizeof(real_t) * m_data_size * n);
   swap_endianess(reinterpret_cast<real_t *>(data.data()), n * m_data_size);
@@ -940,7 +943,7 @@ std::vector<std::array<real_t, n>> LegacyFile::read_data_binary(std::ifstream &f
 //-----------------------------------------------------------------------------------------------
 
 template <typename real_t>
-std::vector<real_t> LegacyFile::read_coordinates_ascii(std::ifstream &file,
+std::vector<real_t> legacy_file::read_coordinates_ascii(std::ifstream &file,
                                                        const size_t   n) {
   std::vector<real_t> coordinates(n);
   for (size_t i = 0; i < n; i++)
@@ -951,7 +954,7 @@ std::vector<real_t> LegacyFile::read_coordinates_ascii(std::ifstream &file,
 //-----------------------------------------------------------------------------
 
 template <typename real_t>
-std::vector<real_t> LegacyFile::read_coordinates_binary(std::ifstream &file,
+std::vector<real_t> legacy_file::read_coordinates_binary(std::ifstream &file,
                                                         const size_t   n) {
   std::vector<real_t> coordinates(n);
   file.read((char *)coordinates.data(), sizeof(real_t) * n);
@@ -962,7 +965,7 @@ std::vector<real_t> LegacyFile::read_coordinates_binary(std::ifstream &file,
 
 //-----------------------------------------------------------------------------
 
-void LegacyFile::read_scalars(std::ifstream &file) {
+void legacy_file::read_scalars(std::ifstream &file) {
   auto [name, type, num_comps, lookup_table] = read_scalars_header(file);
   if (m_format == ASCII) {
     if (type == "float")
@@ -980,7 +983,7 @@ void LegacyFile::read_scalars(std::ifstream &file) {
 //-----------------------------------------------------------------------------
 
 template <typename real_t>
-void LegacyFile::read_scalars_ascii(std::ifstream &    file,
+void legacy_file::read_scalars_ascii(std::ifstream &    file,
                                     const std::string &name,
                                     const std::string &lookup_table,
                                     const size_t       num_comps) {
@@ -996,7 +999,7 @@ void LegacyFile::read_scalars_ascii(std::ifstream &    file,
 //-----------------------------------------------------------------------------
 
 template <typename real_t>
-void LegacyFile::read_scalars_binary(std::ifstream &    file,
+void legacy_file::read_scalars_binary(std::ifstream &    file,
                                      const std::string &name,
                                      const std::string &lookup_table,
                                      const size_t       num_comps) {

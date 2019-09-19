@@ -120,6 +120,23 @@ template <typename T>
 inline std::string type_name() {
   return boost::core::demangle(typeid(T).name());
 }
+
+//==============================================================================
+inline constexpr auto debug_mode() {
+#ifndef NDEBUG
+  return true;
+#else
+  return false;
+#endif
+}
+// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+inline constexpr auto release_mode() {
+#ifdef NDEBUG
+  return true;
+#else
+  return false;
+#endif
+}
 //==============================================================================
 }  // namespace tatooine
 //==============================================================================

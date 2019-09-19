@@ -66,12 +66,14 @@ struct counterexample_sadlo
   }
 
   struct bifurcationline_t{
-    vec<Real, 2> at(Real t) const {return {std::cos(t), std::sin(t)};}
+    vec<Real, 2> at(Real t) const { return {3 * std::cos(t), 3 * std::sin(t)}; }
     auto         operator()(Real t) const { return at(t); }
   };
 
-  struct bifurcationline_spacetime_t{
-    vec<Real, 3> at(Real t) const {return {std::cos(t), std::sin(t), t};}
+  struct bifurcationline_spacetime_t {
+    vec<Real, 3> at(Real t) const {
+      return {3 * std::cos(t), 3 * std::sin(t), t};
+    }
     auto         operator()(Real t) const { return at(t); }
   };
 
