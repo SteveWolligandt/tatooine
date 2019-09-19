@@ -31,6 +31,7 @@ TEST_CASE("tensor_ginac_matrix_conversion",
   }
 }
 
+//==============================================================================
 TEST_CASE("tensor_symbolic_inverse", "[tensor][symbolic][inverse][matrix]") {
   using namespace symbolic;
   mat m{{symbol::x(0), symbol::x(1)},

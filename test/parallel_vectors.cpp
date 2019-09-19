@@ -17,12 +17,22 @@ auto pv_acceleration(const field<Field, Real, 2, 2>& v, linspace<Real> x,
   spacetime_field stv{v};
   auto            grad_stv = diff(stv);
   auto            sta      = grad_stv * stv;
-  if constexpr (is_symbolic_field(v)) {
+  if constexpr (is_symbolic_field_v<Field>) {
     std::cerr << v.as_derived().expr() << "\n\n";
     std::cerr << sta.expr() << '\n';
   }
   parallel_vectors pv{stv, sta, x, y, z};
-  return pv(0, std::forward<Preds>(preds)...);
+  std::thread watcher([&](){
+      auto p = pv.progress();
+      while(p < 1) {
+        std::cerr << p << "                             \r";
+        std::this_thread::sleep_for(std::chrono::milliseconds{500});
+        p = pv.progress();
+      }
+      });
+  auto             ls = pv(0, std::forward<Preds>(preds)...);
+  watcher.join();
+  return ls;
 }
 //------------------------------------------------------------------------------
 template <typename Field, typename Real, typename... Preds>
@@ -37,7 +47,17 @@ auto pv_jerk(const field<Field, Real, 2, 2>& v, linspace<Real> x,
     std::cerr << stb.as_derived().expr() << '\n';
   }
   parallel_vectors pv{stv, stb, x, y, z};
-  return pv(0, std::forward<Preds>(preds)...);
+  std::thread watcher([&](){
+      auto p = pv.progress();
+      while(p < 1) {
+        std::cerr << p << "                             \r";
+        std::this_thread::sleep_for(std::chrono::milliseconds{500});
+        p = pv.progress();
+      }
+      });
+  auto             ls = pv(0, std::forward<Preds>(preds)...);
+  watcher.join();
+  return ls;
 }
 
 //==============================================================================
