@@ -25,7 +25,7 @@ auto pv_acceleration(const field<Field, Real, 2, 2>& v, linspace<Real> x,
   std::thread watcher([&](){
       auto p = pv.progress();
       while(p < 1) {
-        std::cerr << p << "                             \r";
+        std::cerr << p * 100 << "%                             \r";
         std::this_thread::sleep_for(std::chrono::milliseconds{500});
         p = pv.progress();
       }
@@ -50,7 +50,7 @@ auto pv_jerk(const field<Field, Real, 2, 2>& v, linspace<Real> x,
   std::thread watcher([&](){
       auto p = pv.progress();
       while(p < 1) {
-        std::cerr << p << "                             \r";
+        std::cerr << p*100 << "%                             \r";
         std::this_thread::sleep_for(std::chrono::milliseconds{500});
         p = pv.progress();
       }
@@ -145,26 +145,15 @@ TEST_CASE(
     "parallel_vectors_numerical_counterexample_sadlo_acceleration",
     "[parallel_vectors][pv][numerical][counterexample_sadlo][spacetime_field]"
     "[differentiate][acceleration]") {
-  auto pv_lines = pv_acceleration(
-      numerical::counterexample_sadlo{}, linspace{-5.0 + 1e-3, 5.0 - 1e-4, 401},
-      linspace{-5.0 + 1e-4, 5.0 - 1e-3, 401}, linspace{-10.0, 10.0, 401},
-      [](const auto& x) {
-        return std::abs(3 - std::sqrt((x(0) * x(0) + x(1) * x(1)))) > 1e-3;
-      });
   write_vtk(
-      pv_lines,
+      pv_acceleration(
+          numerical::counterexample_sadlo{},
+          linspace{-5.0 + 1e-3, 5.0 - 1e-4, 401},
+          linspace{-5.0 + 1e-4, 5.0 - 1e-3, 401}, linspace{-10.0, 10.0, 401},
+          [](const auto& x) {
+            return std::abs(3 - std::sqrt((x(0) * x(0) + x(1) * x(1)))) > 1e-3;
+          }),
       "numerical_spacetime_counterexample_sadlo_pv_lines_acceleration.vtk");
-  // std::vector<size_t> to_delete;
-  // for (size_t i = 0; i < pv_lines.size(); ++i) {
-  //  if (pv_lines[i].length() < 2) { to_delete.push_back(i); }
-  //}
-  // for (auto i : to_delete) {
-  //  pv_lines.erase(begin(pv_lines) + i);
-  //  for (auto& i2 : to_delete) { --i2; }
-  //}
-  // write_vtk(
-  //    pv_lines,
-  //    "symbolic_spacetime_counterexample_sadlo_pv_lines_acceleration.vtk");
 }
 
 //==============================================================================
@@ -172,11 +161,15 @@ TEST_CASE(
     "parallel_vectors_numerical_counterexample_sadlo_jerk",
     "[parallel_vectors][pv][numerical][counterexample_sadlo][spacetime_field]"
     "[differentiate][jerk]") {
-  write_vtk(pv_jerk(numerical::counterexample_sadlo{},
-                    linspace{-5.0 + 1e-3, 5.0 - 1e-4, 151},
-                    linspace{-5.0 + 1e-4, 5.0 - 1e-3, 151},
-                    linspace{-10.0, 10.0, 401}),
-            "numerical_spacetime_counterexample_sadlo_pv_lines_jerk.vtk");
+  write_vtk(
+      pv_jerk(
+          numerical::counterexample_sadlo{},
+          linspace{-5.0 + 1e-3, 5.0 - 1e-4, 151},
+          linspace{-5.0 + 1e-4, 5.0 - 1e-3, 151}, linspace{-10.0, 10.0, 401},
+          [](const auto& x) {
+            return std::abs(3 - std::sqrt((x(0) * x(0) + x(1) * x(1)))) > 1e-3;
+          }),
+      "numerical_spacetime_counterexample_sadlo_pv_lines_jerk.vtk");
 }
 
 //==============================================================================
@@ -185,10 +178,13 @@ TEST_CASE(
     "[parallel_vectors][pv][symbolic][counterexample_sadlo][spacetime_field]"
     "[differentiate][acceleration]") {
   write_vtk(
-      pv_acceleration(symbolic::counterexample_sadlo{},
-                      linspace{-5.0 + 1e-3, 5.0 - 1e-4, 151},
-                      linspace{-5.0 + 1e-4, 5.0 - 1e-3, 151},
-                      linspace{-10.0, 10.0, 401}),
+      pv_acceleration(
+          symbolic::counterexample_sadlo{},
+          linspace{-5.0 + 1e-3, 5.0 - 1e-4, 151},
+          linspace{-5.0 + 1e-4, 5.0 - 1e-3, 151}, linspace{-10.0, 10.0, 401},
+          [](const auto& x) {
+            return std::abs(3 - std::sqrt((x(0) * x(0) + x(1) * x(1)))) > 1e-3;
+          }),
       "symbolic_spacetime_counterexample_sadlo_pv_lines_acceleration.vtk");
 }
 
@@ -200,7 +196,11 @@ TEST_CASE(
   write_vtk(
       pv_jerk(symbolic::counterexample_sadlo{},
               linspace{-3.0 + 1e-3, 3.0 - 1e-4, 101},
-              linspace{-3.0 + 1e-4, 3.0 - 1e-3, 101}, linspace{-5.0, 5.0, 201}),
+              linspace{-3.0 + 1e-4, 3.0 - 1e-3, 101}, linspace{-5.0, 5.0, 201},
+              [](const auto& x) {
+                return std::abs(3 - std::sqrt((x(0) * x(0) + x(1) * x(1)))) >
+                       1e-3;
+              }),
       "symbolic_spacetime_counterexample_sadlo_pv_lines_jerk.vtk");
 }
 
