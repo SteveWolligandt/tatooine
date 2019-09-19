@@ -222,12 +222,13 @@ struct parallel_vectors {
   auto calculate(const real_t t = 0) {
     using boost::copy;
     std::vector<std::pair<vec3, vec3>> line_segments;
-#ifdef NDEBUG
-#pragma omp parallel for collapse(3)
-#endif
+//#ifdef NDEBUG
+//#pragma omp parallel for collapse(3)
+//#endif
     for (size_t iz = 0; iz < m_grid.dimension(2).size() - 1; ++iz) {
       for (size_t iy = 0; iy < m_grid.dimension(1).size() - 1; ++iy) {
         for (size_t ix = 0; ix < m_grid.dimension(0).size() - 1; ++ix) {
+          std::cerr << ix << ' ' << iy << ' ' << iz << '\n';
           const auto& x      = m_grid.dimension(0)[ix];
           const auto& next_x = m_grid.dimension(0)[ix + 1];
           const auto& y      = m_grid.dimension(1)[iy];
@@ -376,7 +377,7 @@ struct parallel_vectors {
           lines.back().push_back(line_strip[i]);
         }
         if (&line_strip.front() == &line_strip.back()) {
-          lines.back().set_is_closed(true);
+          lines.back().set_closed(true);
         } else {
           lines.back().push_back(line_strip.back());
         }

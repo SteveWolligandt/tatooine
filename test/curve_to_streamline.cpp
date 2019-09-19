@@ -116,8 +116,8 @@ TEST_CASE("curve_to_streamline_orbit",
   }
   l0.pop_back();
   l1.pop_back();
-  l0.set_is_closed(true);
-  l1.set_is_closed(true);
+  l0.set_closed(true);
+  l1.set_closed(true);
 
   curve_to_streamline c2s0, c2s1;
   const double initial_stepsize = 0.01;

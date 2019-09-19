@@ -144,12 +144,23 @@ TEST_CASE(
     "parallel_vectors_symbolic_counterexample_sadlo_acceleration",
     "[parallel_vectors][pv][symbolic][counterexample_sadlo][spacetime_field]"
     "[differentiate][acceleration]") {
+  auto pv_lines = pv_acceleration(
+      symbolic::counterexample_sadlo{}, linspace{-3.0 + 1e-3, 3.0 - 1e-4, 51},
+      linspace{-3.0 + 1e-4, 3.0 - 1e-3, 51}, linspace{-5.0, 5.0, 101});
   write_vtk(
-      pv_acceleration(symbolic::counterexample_sadlo{},
-                      linspace{-3.0 + 1e-3, 3.0 - 1e-4, 101},
-                      linspace{-3.0 + 1e-4, 3.0 - 1e-3, 101},
-                      linspace{-5.0, 5.0, 201}),
+      pv_lines,
       "symbolic_spacetime_counterexample_sadlo_pv_lines_acceleration.vtk");
+  //std::vector<size_t> to_delete;
+  //for (size_t i = 0; i < pv_lines.size(); ++i) {
+  //  if (pv_lines[i].length() < 2) { to_delete.push_back(i); }
+  //}
+  //for (auto i : to_delete) {
+  //  pv_lines.erase(begin(pv_lines) + i);
+  //  for (auto& i2 : to_delete) { --i2; }
+  //}
+  //write_vtk(
+  //    pv_lines,
+  //    "symbolic_spacetime_counterexample_sadlo_pv_lines_acceleration.vtk");
 }
 
 //==============================================================================

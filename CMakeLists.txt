@@ -22,7 +22,7 @@ target_include_directories(tatooine
     ${CMAKE_CURRENT_SOURCE_DIR}/include
     ${CMAKE_CURRENT_SOURCE_DIR}/single_include
     ${GINAC_INCLUDE_DIRS}
-    ${LAPACK_INCLUDE_DIR}
+    ${LAPACKE_INCLUDE_DIR}
     ${vcode_DIR}/../..
     ${PNG_INCLUDE_DIRS}
     ${PNG++_INCLUDE_DIRS}
@@ -33,7 +33,7 @@ target_include_directories(tatooine
 target_link_libraries(tatooine
   INTERFACE
     ${GINAC_LIBRARIES}
-    ${LAPACK_LIBRARIES}
+    ${LAPACKE_LIBRARIES}
     ${PNG_LIBRARIES}
     ${PNG++_LIBRARIES}
 )
