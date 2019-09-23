@@ -70,17 +70,17 @@ using back_t = typename back<Ts...>::type;
 
 //==============================================================================
 template <typename T, size_t... Is>
-auto make_array(const T& t, std::index_sequence<Is...> /*is*/) {
+constexpr auto make_array(const T& t, std::index_sequence<Is...> /*is*/) {
   return std::array<T, sizeof...(Is)>{((void)Is, t)...};
 }
 //------------------------------------------------------------------------------
 template <typename T, size_t N>
-auto make_array() {
+constexpr auto make_array() {
   return make_array<T>(T{}, std::make_index_sequence<N>{});
 }
 //------------------------------------------------------------------------------
 template <typename T, size_t N>
-auto make_array(const T& t) {
+constexpr auto make_array(const T& t) {
   return make_array<T>(t, std::make_index_sequence<N>{});
 }
 

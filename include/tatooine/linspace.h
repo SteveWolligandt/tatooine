@@ -41,16 +41,16 @@ struct linspace {
   //----------------------------------------------------------------------------
   template <typename other_real_t>
   constexpr linspace(const linspace<other_real_t>& other) noexcept
-      : m_min{static_cast<real_t>(other.m_min)},
-        m_max{static_cast<real_t>(other.m_max)},
-        m_size{other.m_size} {}
+      : m_min{static_cast<real_t>(other.front())},
+        m_max{static_cast<real_t>(other.back())},
+        m_size{other.size()} {}
 
   //----------------------------------------------------------------------------
   template <typename other_real_t>
   constexpr auto& operator=(const linspace<other_real_t>& other) noexcept {
-    m_min        = other.m_min;
-    m_max        = other.m_max;
-    m_size = other.m_size;
+    m_min        = other.front();
+    m_max        = other.back();
+    m_size = other.size();
     return *this;
   }
 

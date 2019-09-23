@@ -365,8 +365,8 @@ struct chunked_data {
 
   //----------------------------------------------------------------------------
   auto unchunk() {
-    std::vector<T> data(size());
-    for (size_t i = 0; i < size(); ++i) { data[i] = (*this)[i]; }
+    std::vector<T> data(num_data());
+    for (size_t i = 0; i < num_data(); ++i) { data[i] = (*this)[i]; }
     return data;
   }
 

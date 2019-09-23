@@ -15,5 +15,13 @@ macro(create_executable NAME)
 endmacro()
 
 #- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-create_executable(pv_counterexample_sadlo)
-create_executable(counterexample_sadlo_lcs_groundtruth_export)
+create_executable(doublegyre_criticalpointpath_export)
+create_executable(newdoublegyre_criticalpointpath_export)
+create_executable(newdoublegyre_bifurcationline_export)
+create_executable(counterexample_sadlo_bifurcationline_export)
+
+create_executable(counterexample_sadlo_pv_to_streamline)
+create_executable(doublegyre_pv_to_streamline)
+create_executable(doublegyre_criticalpointpath_to_streamline)
+create_executable(newdoublegyre_pv_to_streamline)
+create_executable(newdoublegyre_criticalpointpath_to_streamline)

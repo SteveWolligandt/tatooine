@@ -608,7 +608,7 @@ struct grid_sampler
   template <size_t... Is>
   void read_vtk(const std::string& filename,
                 std::index_sequence<Is...> /*is*/) {
-    struct listener_t : vtk::LegacyFileListener {
+    struct listener_t : vtk::legacy_file_listener {
       std::array<size_t, 3>            dims;
       std::array<Real, 3>              origin, spacing;
       std::vector<std::array<Real, 3>> data;
@@ -645,7 +645,7 @@ struct grid_sampler
       }
     } listener;
 
-    vtk::LegacyFile file(filename);
+    vtk::legacy_file file(filename);
     file.add_listener(listener);
     file.read();
 

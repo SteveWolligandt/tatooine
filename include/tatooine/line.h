@@ -1,6 +1,7 @@
 #ifndef TATOOINE_LINE_H
 #define TATOOINE_LINE_H
 
+#include <boost/range/adaptor/reversed.hpp>
 #include <boost/range/algorithm_ext/iota.hpp>
 #include <cassert>
 #include <deque>
@@ -39,6 +40,8 @@ struct line {
   using this_t          = line<Real, N>;
   using pos_container_t = std::deque<pos_t>;
 
+  static constexpr auto num_dimensions() noexcept { return N; }
+
   //============================================================================
  private:
   pos_container_t m_vertices;
@@ -64,9 +67,6 @@ struct line {
   //----------------------------------------------------------------------------
   line(std::initializer_list<pos_t>&& data)
       : m_vertices{std::move(data)}, m_is_closed{false} {}
-
-  //----------------------------------------------------------------------------
-  explicit line(const std::string& path) { read(path); }
 
   //----------------------------------------------------------------------------
   const auto& vertices() const { return m_vertices; }
@@ -198,12 +198,38 @@ struct line {
                     const std::string&                file);
 
   //----------------------------------------------------------------------------
-  void read(const std::string& file);
-
-  //----------------------------------------------------------------------------
   void write_vtk(const std::string& path,
                  const std::string& title          = "tatooine line",
                  bool               write_tangents = false) const;
+
+  //----------------------------------------------------------------------------
+  template <size_t N_ = N, std::enable_if_t<N_ == 3>...>
+  static auto read_vtk(const std::string& filepath) {
+    struct reader : vtk::legacy_file_listener {
+      std::vector<std::array<Real, 3>> points;
+      std::vector<std::vector<int>>      lines;
+
+      void on_points(
+          const std::vector<std::array<Real, 3>>& points_) override {
+        points = points_;
+      }
+      void on_lines(const std::vector<std::vector<int>>& lines_) override {
+        lines = lines_;
+      }
+    } listener;
+
+    vtk::legacy_file file{filepath};
+    file.add_listener(listener);
+    file.read();
+
+    std::list<line<Real, 3>> lines;
+    const auto&                vs = listener.points;
+    for (const auto& line : listener.lines) {
+      auto& pv_line = lines.emplace_back();
+      for (auto i : line) { pv_line.push_back({vs[i][0], vs[i][1], vs[i][2]}); }
+    }
+    return lines;
+  }
 };
 
 //==============================================================================
@@ -241,7 +267,7 @@ struct line {
 template <typename Real, size_t N>
 void line<Real, N>::write_vtk(const std::string& path, const std::string& title,
                               bool write_tangents) const {
-  vtk::LegacyFileWriter<Real> writer(path, vtk::POLYDATA);
+  vtk::legacy_file_writer writer(path, vtk::POLYDATA);
   if (writer.is_open()) {
     writer.set_title(title);
     writer.write_header();
@@ -282,38 +308,27 @@ void line<Real, N>::write_vtk(const std::string& path, const std::string& title,
   }
 }
 
-//------------------------------------------------------------------------------
-template <typename Real, size_t N>
-void write_vtk(const std::vector<line<Real, N>>& lines, const std::string& path,
-               const std::string& title          = "tatooine lines",
-               bool               write_tangents = false) {
-  vtk::LegacyFileWriter<Real> writer(path, vtk::POLYDATA);
+namespace detail {
+template <typename LineCont>
+void write_line_container_to_vtk(const LineCont& lines, const std::string& path,
+                                 const std::string& title) {
+  vtk::legacy_file_writer writer(path, vtk::POLYDATA);
   if (writer.is_open()) {
     size_t num_pts = 0;
     for (const auto& l : lines) num_pts += l.size();
-    std::vector<std::array<Real, 3>> points;
+    std::vector<std::array<typename LineCont::value_type::real_t, 3>> points;
     std::vector<std::vector<size_t>> line_seqs;
-    std::vector<std::vector<Real>>   tangents;
     points.reserve(num_pts);
     line_seqs.reserve(lines.size());
-    if (write_tangents) { tangents.reserve(num_pts); }
 
     size_t cur_first = 0;
     for (const auto& l : lines) {
       // add points
       for (const auto& p : l.vertices()) {
-        if constexpr (N == 3) {
+        if constexpr (LineCont::value_type::num_dimensions() == 3) {
           points.push_back({p(0), p(1), p(2)});
         } else {
           points.push_back({p(0), p(1), 0});
-        }
-      }
-
-      // add tangents
-      if (write_tangents) {
-        for (size_t i = 0; i < l.size(); ++i) {
-          const auto t = l.tangent(i);
-          tangents.push_back({t(0), t(1), t(2)});
         }
       }
 
@@ -329,9 +344,134 @@ void write_vtk(const std::vector<line<Real, N>>& lines, const std::string& path,
     writer.write_points(points);
     writer.write_lines(line_seqs);
     writer.write_point_data(num_pts);
-    if (write_tangents) { writer.write_scalars("tangents", tangents); }
     writer.close();
   }
+}
+
+//------------------------------------------------------------------------------
+template <typename Lines, typename MaxDist/*, typename MinAngle*/>
+auto merge_line_container(Lines lines, MaxDist max_dist/*, MinAngle min_angle*/) {
+  using line_t = typename std::decay_t<Lines>::value_type;
+  std::list<line_t> merged;
+  merged.emplace_back(std::move(lines.back()));
+  lines.pop_back();
+
+  while (!lines.empty()) {
+    auto min_d = std::numeric_limits<typename line_t::real_t>::max();
+    auto best_it           = std::end(lines);
+    bool merged_take_front = false;
+    bool it_take_front     = false;
+    for (auto it = std::begin(lines); it != std::end(lines); ++it) {
+      if (const auto d = tatooine::distance(merged.back().front_vertex(),
+                                            it->front_vertex());
+          d < min_d && d < max_dist) {
+        min_d             = d;
+        best_it           = it;
+        merged_take_front = true;
+        it_take_front     = true;
+      }
+      if (const auto d = tatooine::distance(merged.back().back_vertex(),
+                                            it->front_vertex());
+          d < min_d && d < max_dist) {
+        min_d             = d;
+        best_it           = it;
+        merged_take_front = false;
+        it_take_front     = true;
+      }
+      if (const auto d = tatooine::distance(merged.back().front_vertex(),
+                                            it->back_vertex());
+          d < min_d && d < max_dist) {
+        min_d             = d;
+        best_it           = it;
+        merged_take_front = true;
+        it_take_front     = false;
+      }
+      if (const auto d = tatooine::distance(merged.back().back_vertex(),
+                                            it->back_vertex());
+          d < min_d && d < max_dist) {
+        min_d             = d;
+        best_it           = it;
+        merged_take_front = false;
+        it_take_front     = false;
+      }
+    }
+
+    if (best_it != end(lines)) {
+      if (merged_take_front) {
+        if (it_take_front) {
+          for (const auto& v : best_it->vertices()) {
+            merged.back().push_front(v);
+          }
+        } else {
+          for (const auto& v :
+               best_it->vertices() | boost::adaptors::reversed) {
+            merged.back().push_front(v);
+          }
+        }
+      } else {
+        if (it_take_front) {
+          for (const auto& v : best_it->vertices()) {
+            merged.back().push_back(v);
+          }
+        } else {
+          for (const auto& v :
+               best_it->vertices() | boost::adaptors::reversed) {
+            merged.back().push_back(v);
+          }
+        }
+      }
+      lines.erase(best_it);
+    } else {
+      merged.emplace_back(std::move(lines.back()));
+      lines.pop_back();
+    }
+  }
+
+  return merged;
+}
+
+//------------------------------------------------------------------------------
+template <typename Lines, typename Real>
+auto filter_length(Lines lines, Real length) {
+  for (auto it = begin(lines); it != end(lines);) {
+    auto l = it->length();
+    ++it;
+    if (l < length) { lines.erase(prev(it)); }
+  }
+  return lines;
+}
+}
+//------------------------------------------------------------------------------
+template <typename Real, size_t N>
+void write_vtk(const std::vector<line<Real, N>>& lines, const std::string& path,
+               const std::string& title = "tatooine lines") {
+  detail::write_line_container_to_vtk(lines, path, title);
+}
+// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+template <typename Real, size_t N>
+void write_vtk(const std::list<line<Real, N>>& lines, const std::string& path,
+               const std::string& title = "tatooine lines") {
+  detail::write_line_container_to_vtk(lines, path, title);
+}
+//------------------------------------------------------------------------------
+template <typename Real, size_t N, typename MaxDist>
+auto merge(const std::vector<line<Real, N>>& lines, MaxDist max_dist) {
+  return detail::merge_line_container(lines, max_dist);
+}
+// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+template <typename Real, size_t N, typename MaxDist>
+auto merge(const std::list<line<Real, N>>& lines, MaxDist max_dist) {
+  return detail::merge_line_container(lines, max_dist);
+}
+//------------------------------------------------------------------------------
+template <typename Real, size_t N, typename MaxDist>
+auto filter_length(const std::vector<line<Real, N>>& lines, MaxDist max_dist) {
+  return detail::filter_length(lines, max_dist);
+}
+// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+template <typename Real, size_t N, typename MaxDist>
+auto filter_length(const std::list<line<Real, N>>& lines, MaxDist max_dist) {
+  return detail::filter_length(lines, max_dist);
 }
 
 //==============================================================================
@@ -545,7 +685,7 @@ struct parameterized_line : line<Real, N> {
   void write_vtk(const std::string& path,
                  const std::string& title = "tatooine parameterized line",
                  bool               write_tangents = false) const {
-    vtk::LegacyFileWriter<Real> writer(path, vtk::POLYDATA);
+    vtk::legacy_file_writer writer(path, vtk::POLYDATA);
     if (writer.is_open()) {
       writer.set_title(title);
       writer.write_header();
