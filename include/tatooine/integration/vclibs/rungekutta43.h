@@ -102,7 +102,7 @@ struct rungekutta43 : integrator<Real, N, rungekutta43<Real, N>> {
         dy, ode_t::Output >> ode_t::sink([&integral](auto t, const auto& y) {
               bool use = true;
               if (!integral.empty() &&
-                  distance(integral.back_position(), y) < 1e-6) {
+                  distance(integral.back_vertex(), y) < 1e-6) {
                 use = false;
               }
               if (use) { integral.push_back(y, t); }
@@ -128,7 +128,7 @@ struct rungekutta43 : integrator<Real, N, rungekutta43<Real, N>> {
         dy, ode_t::Output >> ode_t::sink([&integral](auto t, const auto& y) {
               bool use = true;
               if (!integral.empty() &&
-                  distance(integral.back_position(), y) < 1e-6) {
+                  distance(integral.back_vertex(), y) < 1e-6) {
                 use = false;
               }
               if (use) { integral.push_front(y, t); }

@@ -1,13 +1,22 @@
-#ifndef TATOOINE_MISC_CURVE_TO_STREAMLINE_PROGRESS_H
-#define TATOOINE_MISC_CURVE_TO_STREAMLINE_PROGRESS_H
+#ifndef TATOOINE_MISC_BIFURCATIONLINE_PROGRESS_H
+#define TATOOINE_MISC_BIFURCATIONLINE_PROGRESS_H
 
-namespace tatooine::misc::curve_to_streamline {
+#include <tatooine/line.h>
+#include "write_step.h"
+#include <tatooine/curve_to_streamline.h>
+#include <filesystem>
+#include <string>
+
+//==============================================================================
+namespace tatooine::misc::bifurcationline {
+//==============================================================================
+
 template <typename V, typename Lines>
-void progress(V&& v, Lines&& lines, const std::string& name) {
+void progress(V&& v, Lines&& lines, const std::string& name, size_t vertex_inc) {
   size_t cnt = 0;
   for (auto& l_ : lines) {
     line<double, 3> l;
-    for (size_t i = 0; i < l_.size(); i+= 20){
+    for (size_t i = 0; i < l_.size(); i+= vertex_inc){
       l.push_back(l_.vertex_at(i));
     }
     curve_to_streamline c2s;
@@ -31,6 +40,9 @@ void progress(V&& v, Lines&& lines, const std::string& name) {
     ++cnt;
   }
 }
+
+//==============================================================================
 }  // namespace tatooine::misc::curve_to_streamline
+//==============================================================================
 
 #endif

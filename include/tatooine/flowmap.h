@@ -48,15 +48,12 @@ struct flowmap : field<flowmap<V, Integrator>, typename V::real_t,
     auto integral =
         m_integrator->integrate_uncached(m_vectorfield, x, t, m_tau);
     if (integral.empty()) {
-      std::cerr <<"empty!!! " << x << '\n';
       return x;
     }
     if (m_tau > 0) {
-      std::cerr << "back " << integral.back_position() << '\n';
-      return integral.back_position();
+      return integral.back_vertex();
     }
-    std::cerr << integral.front_position() << '\n';
-    return integral.front_position();
+    return integral.front_vertex();
   }
 
   //============================================================================

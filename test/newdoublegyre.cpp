@@ -1,5 +1,6 @@
 #include <tatooine/newdoublegyre.h>
 #include <tatooine/linspace.h>
+#include <tatooine/grid_sampler.h>
 #include <catch2/catch.hpp>
 
 //==============================================================================
@@ -14,6 +15,15 @@ namespace tatooine::test {
 //    REQUIRE(sdg.bifurcationline(t) == Approx(ndg.bifurcationline(t)));
 //  }
 //}
+
+//==============================================================================
+TEST_CASE("newdoublegyre_vtk_export", "[newdoublegyre][ndg][vtk]") {
+  numerical::newdoublegyre ndg;
+  resample<interpolation::linear, interpolation::linear>(
+      ndg, grid(linspace(0.0, 2.0, 201), linspace(0.0, 1.0, 101)), 0)
+      .sampler()
+      .write_vtk("newdoublegyre.vtk");
+}
 
 //==============================================================================
 TEST_CASE("newdoublegyre_timeoffset", "[newdoublegyre][ndg][timeoffset]") {

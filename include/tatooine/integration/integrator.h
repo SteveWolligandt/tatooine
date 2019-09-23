@@ -165,7 +165,7 @@ struct integrator : crtp<Derived> {
   auto &continue_forward(const V &v, integral_t &integral, const Real tau,
                          bool &forward_on_border) const {
     const Real & t0 = integral.back_parameterization();
-    const pos_t &y0 = integral.back_position();
+    const pos_t &y0 = integral.back_vertex();
 
     Real tau_rest = t0 + tau - integral.back_parameterization();
     calc_forward(v, integral, y0, t0, tau_rest);
@@ -181,7 +181,7 @@ struct integrator : crtp<Derived> {
   auto &continue_backward(const V &v, integral_t &integral, Real tau,
                           bool &backward_on_border) const {
     const Real & t0 = integral.front_parameterization();
-    const pos_t &y0 = integral.front_position();
+    const pos_t &y0 = integral.front_vertex();
 
     Real tau_rest = t0 + tau - integral.front_parameterization();
     auto cont     = calc_backward(v, integral, y0, t0, tau_rest);

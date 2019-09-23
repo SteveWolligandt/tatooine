@@ -673,6 +673,105 @@ struct grid_sampler
     m_data = std::move(casted_data);
   }
 
+  //============================================================================
+ private:
+  void write_vtk_1(const std::string& filepath) {
+    vtk::legacy_file_writer writer(filepath, vtk::STRUCTURED_POINTS);
+    if (writer.is_open()) {
+      writer.set_title("tatooine grid sampler");
+      writer.write_header();
+
+      writer.write_dimensions(dimension(0).size(), 1, 1);
+      writer.write_origin(dimension(0).front(), 0, 0);
+      writer.write_spacing(dimension(0).spacing(), 0, 0);
+      writer.write_point_data(dimension(0).size());
+
+      // write data
+      std::vector<std::vector<double>> field_data;
+      field_data.reserve(dimension(0).size());
+      for (auto v : this->vertices()) {
+        const auto& d = m_data(v.indices());
+        field_data.emplace_back();
+        if constexpr (!std::is_arithmetic_v<Data>) {
+          for (const auto& c : d) { field_data.back().push_back(c); }
+        } else {
+          field_data.back().push_back(d);
+        }
+      }
+      writer.write_scalars("field_data", field_data);
+      writer.close();
+    }
+  }
+  //============================================================================
+  void write_vtk_2(const std::string& filepath) {
+    vtk::legacy_file_writer writer(filepath, vtk::STRUCTURED_POINTS);
+    if (writer.is_open()) {
+      writer.set_title("tatooine grid sampler");
+      writer.write_header();
+
+      writer.write_dimensions(dimension(0).size(), dimension(1).size(), 1);
+      writer.write_origin(dimension(0).front(), dimension(1).front(), 0);
+      writer.write_spacing(dimension(0).spacing(), dimension(1).spacing(), 0);
+      writer.write_point_data(dimension(0).size() * dimension(1).size());
+
+      // write data
+      std::vector<std::vector<double>> field_data;
+      field_data.reserve(dimension(0).size() * dimension(1).size());
+      for (auto v : this->vertices()) {
+        const auto& d = m_data(v.indices());
+        field_data.emplace_back();
+        if constexpr (!std::is_arithmetic_v<Data>) {
+          for (const auto& c : d) { field_data.back().push_back(c); }
+        } else {
+          field_data.back().push_back(d);
+        }
+      }
+      writer.write_scalars("field_data", field_data);
+      writer.close();
+    }
+  }
+  //============================================================================
+  void write_vtk_3(const std::string& filepath) {
+    vtk::legacy_file_writer writer(filepath, vtk::STRUCTURED_POINTS);
+    if (writer.is_open()) {
+      writer.set_title("tatooine grid sampler");
+      writer.write_header();
+
+      writer.write_dimensions(dimension(0).size(), dimension(1).size(),
+                              dimension(2).size());
+      writer.write_origin(dimension(0).front(), dimension(1).front(),
+                          dimension(2).front());
+      writer.write_spacing(dimension(0).spacing(), dimension(1).spacing(),
+                           dimension(1).spacing());
+      writer.write_point_data(dimension(0).size() * dimension(1).size() *
+                              dimension(2).size());
+
+      // write data
+      std::vector<std::vector<double>> field_data;
+      field_data.reserve(dimension(0).size() *
+                         dimension(1).size() *
+                         dimension(2).size());
+      for (auto v : this->vertices()) {
+        const auto& d = m_data(v.indices());
+        field_data.emplace_back();
+        if constexpr (!std::is_arithmetic_v<Data>) {
+          for (const auto& c : d) { field_data.back().push_back(c); }
+        } else {
+          field_data.back().push_back(d);
+        }
+      }
+      writer.write_scalars("field_data", field_data);
+      writer.close();
+    }
+  }
+  //----------------------------------------------------------------------------
+ public:
+  void write_vtk(const std::string& filepath) {
+    if constexpr (N == 1) { write_vtk_1(filepath); }
+    if constexpr (N == 2) { write_vtk_2(filepath); }
+    if constexpr (N == 3) { write_vtk_3(filepath); }
+   }
+
   //----------------------------------------------------------------------------
    template <size_t _n = N>
    void write_png(const std::string& filepath) {

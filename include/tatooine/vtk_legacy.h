@@ -1032,27 +1032,27 @@ class legacy_file_writer {
   //---------------------------------------------------------------------------
 
  private:
-  void write_indices(const std::string &                     keyword,
+  inline void write_indices(const std::string &                     keyword,
                      const std::vector<std::vector<size_t>> &indices);
   template <typename Real, size_t N>
   void write_data(const std::string &keyword, const std::string &name,
                   const std::vector<std::array<Real, N>> &data);
 
  public:
-  void write_header();
+  inline void write_header();
   template <typename Real>
   void write_points(const std::vector<std::array<Real, 3>> &points);
-  void write_cells(const std::vector<std::vector<size_t>> &cells);
-  void write_cell_types(const std::vector<CellType> &cell_types);
+  inline void write_cells(const std::vector<std::vector<size_t>> &cells);
+  inline void write_cell_types(const std::vector<CellType> &cell_types);
 
-  void write_vertices(const std::vector<std::vector<size_t>> &vertices);
-  void write_lines(const std::vector<std::vector<size_t>> &lines);
-  void write_polygons(const std::vector<std::vector<size_t>> &polygons);
-  void write_triangle_strips(
+  inline void write_vertices(const std::vector<std::vector<size_t>> &vertices);
+  inline void write_lines(const std::vector<std::vector<size_t>> &lines);
+  inline void write_polygons(const std::vector<std::vector<size_t>> &polygons);
+  inline void write_triangle_strips(
       const std::vector<std::vector<size_t>> &triangle_strips);
 
-  void write_point_data(size_t i);
-  void write_cell_data(size_t i);
+  inline void write_point_data(size_t i);
+  inline void write_cell_data(size_t i);
   template <typename Real>
   void write_normals(const std::string &                 name,
                      std::vector<std::array<Real, 3>> &normals);
@@ -1075,9 +1075,25 @@ class legacy_file_writer {
                      const std::vector<std::vector<Data>> &data,
                      const std::string &lookup_table_name = "default");
 
+  void write_dimensions(size_t dimx, size_t dimy, size_t dimz) {
+    vtk::write_binary(m_file, "\nDIMENSIONS " + std::to_string(dimx) + ' ' +
+                                  std::to_string(dimy) + ' ' +
+                                  std::to_string(dimz) + '\n');
+  }
+  void write_origin(double orgx, double orgy, double orgz) {
+    vtk::write_binary(m_file, "\nORIGIN " + std::to_string(orgx) + ' ' +
+                                  std::to_string(orgy) + ' ' +
+                                  std::to_string(orgz) + '\n');
+  }
+  void write_spacing(double spax, double spay, double spaz) {
+    vtk::write_binary(m_file, "\nSPACING " + std::to_string(spax) + ' ' +
+                                  std::to_string(spay) + ' ' +
+                                  std::to_string(spaz) + '\n');
+  }
+
   //---------------------------------------------------------------------------
 
-  void set_version(const unsigned short major_version,
+  inline void set_version(const unsigned short major_version,
                    const unsigned short minor_version) {
     set_major_version(major_version);
     set_minor_version(minor_version);

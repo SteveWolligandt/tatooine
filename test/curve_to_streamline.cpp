@@ -13,7 +13,7 @@ namespace tatooine::test {
 template <typename V, typename T0, typename C2S, typename Line>
 void write_step(const V& v, T0 t0, const Line& line, const C2S& c2s,
                 const std::string& path) {
-  vtk::LegacyFileWriter<double> writer(path, vtk::POLYDATA);
+  vtk::legacy_file_writer writer(path, vtk::POLYDATA);
   if (writer.is_open()) {
     writer.set_title("foo");
     writer.write_header();

@@ -391,7 +391,7 @@ struct pointset {
   template <typename = std::enable_if_t<N == 3 || N == 2>>
   void write_vtk(const std::string& path,
                  const std::string& title = "Tatooine pointset") {
-    vtk::LegacyFileWriter<Real> writer(path, vtk::POLYDATA);
+    vtk::legacy_file_writer writer(path, vtk::POLYDATA);
     if (writer.is_open()) {
       writer.set_title(title);
       writer.write_header();

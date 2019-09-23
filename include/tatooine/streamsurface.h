@@ -193,27 +193,27 @@ struct streamsurface {
   }
 };
 
-//~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-template <typename VectorField, typename Real, size_t N, typename T0Real,
-          typename GridReal, typename... Args>
-streamsurface(const field<VectorField, Real, N, N>& vf, T0Real t0,
-              const parameterized_line<Real, N>& seedcurve, Args&&... args)
-    ->streamsurface<TATOOINE_DEFAULT_INTEGRATOR, interpolation::hermite,
-                    interpolation::linear, VectorField, Real, N>;
-// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-template <typename VectorField, typename Real, size_t N, typename T0Real,
-          typename GridReal, typename... Args>
-streamsurface(const field<VectorField, Real, N, N>& vf, T0Real t0,
-              parameterized_line<Real, N>&& seedcurve, Args&&... args)
-    ->streamsurface<TATOOINE_DEFAULT_INTEGRATOR, interpolation::hermite,
-                    interpolation::linear, VectorField, Real, N>;
-// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-template <typename VectorField, typename Real, size_t N, typename T0Real,
-          typename GridReal, typename... Args>
-streamsurface(const field<VectorField, Real, N, N>&, T0Real,
-              const grid_edge<GridReal, N>&, Args&&... args)
-    ->streamsurface<TATOOINE_DEFAULT_INTEGRATOR, interpolation::linear,
-                    interpolation::linear, VectorField, Real, N>;
+////~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+//template <typename VectorField, typename Real, size_t N, typename T0Real,
+//          typename GridReal, typename... Args>
+//streamsurface(const field<VectorField, Real, N, N>& vf, T0Real t0,
+//              const parameterized_line<Real, N>& seedcurve, Args&&... args)
+//    ->streamsurface<TATOOINE_DEFAULT_INTEGRATOR, interpolation::hermite,
+//                    interpolation::linear, VectorField, Real, N>;
+//// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+//template <typename VectorField, typename Real, size_t N, typename T0Real,
+//          typename GridReal, typename... Args>
+//streamsurface(const field<VectorField, Real, N, N>& vf, T0Real t0,
+//              parameterized_line<Real, N>&& seedcurve, Args&&... args)
+//    ->streamsurface<TATOOINE_DEFAULT_INTEGRATOR, interpolation::hermite,
+//                    interpolation::linear, VectorField, Real, N>;
+//// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+//template <typename VectorField, typename Real, size_t N, typename T0Real,
+//          typename GridReal, typename... Args>
+//streamsurface(const field<VectorField, Real, N, N>&, T0Real,
+//              const grid_edge<GridReal, N>&, Args&&... args)
+//    ->streamsurface<TATOOINE_DEFAULT_INTEGRATOR, interpolation::linear,
+//                    interpolation::linear, VectorField, Real, N>;
 
 //==============================================================================
 template <template <typename, size_t> typename Integrator,

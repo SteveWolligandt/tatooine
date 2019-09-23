@@ -1,5 +1,6 @@
 #include <tatooine/counterexample_sadlo.h>
 #include <tatooine/doublegyre.h>
+#include <tatooine/newdoublegyre.h>
 #include <tatooine/ftle.h>
 #include <tatooine/grid_sampler.h>
 #include <tatooine/integration/boost/rungekutta4.h>
@@ -31,17 +32,24 @@ TEST_CASE("ftle_doublegyre", "[ftle][doublegyre][dg]") {
   ftle_test(v, sample_grid, t0, tau, Integrator{},
             "dg_ftle_" + std::to_string(t0) + "_" + std::to_string(tau));
 }
+//==============================================================================
+TEST_CASE("ftle_newdoublegyre", "[ftle][newdoublegyre][ndg]") {
+  numerical::newdoublegyre v;
+  grid sample_grid{linspace{0.0, 2.0, 1000}, linspace{-1.0, 1.0, 1000}};
+  double t0 = 0, tau = 10;
+  ftle_test(v, sample_grid, t0, tau, Integrator{},
+            "ndg_ftle_" + std::to_string(t0) + "_" + std::to_string(tau));
+}
 
 //==============================================================================
 TEST_CASE("ftle_counterexample_sadlo", "[ftle][counterexample_sadlo]") {
   numerical::counterexample_sadlo v;
-  grid   sample_grid{linspace{-5.0, 5.0, 500}, linspace{-5.0, 5.0, 500}};
-  double tau = 2;
-  for (auto t0 : linspace(0.0, 10.0, 101)) {
-    ftle_test(v, sample_grid, t0, tau, Integrator{},
-              "counterexample_sadlo_ftle_" + std::to_string(t0) + "_" +
-                  std::to_string(tau));
-  }
+  grid   sample_grid{linspace{-3.0, 3.0, 2000}, linspace{-3.0, 3.0, 2000}};
+  double tau = 10;
+  double t0  = 0;
+  ftle_test(v, sample_grid, t0, tau, Integrator{},
+            "counterexample_sadlo_ftle_" + std::to_string(t0) + "_" +
+                std::to_string(tau));
 }
 
 //==============================================================================
@@ -57,9 +65,7 @@ void ftle_test(const V& v, const Grid& sample_grid, T0 t0, Tau tau,
               static_cast<double>(sample_grid.dimension(1).size())});
   auto ftle_grid = resample<interpolation::linear, interpolation::linear>(
       v_ftle, sample_grid, t0);
-  ftle_grid.sampler().write_png(path + ".png");
-  ftle_grid.sampler().normalize();
-  ftle_grid.sampler().write_png(path + "_normalized.png");
+  ftle_grid.sampler().write_vtk(path + ".vtk");
 }
 
 //==============================================================================

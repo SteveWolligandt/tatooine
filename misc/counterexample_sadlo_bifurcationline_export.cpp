@@ -7,9 +7,9 @@ int main (int argc, char** argv) {
   tatooine::numerical::counterexample_sadlo v;
   auto                                      b = v.bifurcationline_spacetime();
 
-  double tmin = 0;
+  double tmin = -10;
   double tmax = 10;
-  size_t n    = 100;
+  size_t n    = 200;
   std::string out_path = "counterexample_sadlo_bifurcationline.vtk";
   tatooine::line<double, 3> l;
 

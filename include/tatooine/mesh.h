@@ -636,7 +636,7 @@ class mesh : public edgeset<Real, N> {
   template <size_t _N = N, typename = std::enable_if_t<_N == 2 || _N == 3>>
   void write_vtk(const std::string& path,
                  const std::string& title = "tatooine mesh") const {
-    vtk::LegacyFileWriter<Real> writer(path, vtk::POLYDATA);
+    vtk::legacy_file_writer writer(path, vtk::POLYDATA);
     if (writer.is_open()) {
       writer.set_title(title);
       writer.write_header();

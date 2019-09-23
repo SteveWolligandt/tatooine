@@ -57,7 +57,7 @@ struct linspace {
   //============================================================================
   constexpr auto at(std::size_t i) const {
     if (m_size <= 1) { return m_min; }
-    return m_min + offset() * i;
+    return m_min + spacing() * i;
   }
   constexpr auto operator[](std::size_t i) const { return at(i); }
 
@@ -71,7 +71,7 @@ struct linspace {
   constexpr auto back() const { return m_max; }
   
   //----------------------------------------------------------------------------
-  constexpr auto offset() const { return (m_max - m_min) / (m_size - 1); }
+  constexpr auto spacing() const { return (m_max - m_min) / (m_size - 1); }
 };  // class linspace
 
 //==============================================================================
