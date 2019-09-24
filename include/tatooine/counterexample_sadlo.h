@@ -30,6 +30,10 @@ struct counterexample_sadlo : field<Real, 2, 2> {
                        r * (GiNaC::numeric{1, 2} * x(1) -
                             GiNaC::numeric{1, 2} * sin(t()) + cos(t()))});
   }
+
+  constexpr bool in_domain(const pos_t& x, Real /*t*/) const {
+    return length(x) <= 3;
+  }
 };
 
 counterexample_sadlo()->counterexample_sadlo<double>;
@@ -79,6 +83,10 @@ struct counterexample_sadlo
 
   auto bifurcationline() const { return bifurcationline_t{};}
   auto bifurcationline_spacetime() const { return bifurcationline_spacetime_t{};}
+
+  constexpr bool in_domain(const pos_t& x, Real /*t*/) const {
+    return length(x) <= 3;
+  }
 };
 
 counterexample_sadlo()->counterexample_sadlo<double>;

@@ -977,7 +977,7 @@ auto resample(const field<Field, FieldReal, N, TensorDims...>& f,
   for (auto v : g.vertices()) {
     auto is = v.indices();
     try {
-      data(is) = f(v.pos(), t);
+      data(is) = f(v.position(), t);
     } catch (std::exception& /*e*/) {
       if constexpr (std::is_arithmetic_v<tensor_t>) {
         data(is) = 0.0 / 0.0;

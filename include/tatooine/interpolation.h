@@ -72,6 +72,15 @@ struct hermite {
   template <typename iter>
   static constexpr auto interpolate_iter(iter A, iter B, iter begin, iter end,
                                          real_t t) {
+    if (A == B) {
+      return *A;
+    }
+    if (t == 0) {
+      return *A;
+    }
+    if (t == 1) {
+      return *B;
+    }
     const auto left  = *A;
     const auto right = *B;
 

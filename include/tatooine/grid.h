@@ -29,7 +29,7 @@ class grid {
   using edge_t        = grid_edge<Real, N>;
   using edge_pair     = std::pair<edge_t, edge_t>;
   using edge_seq_t    = std::vector<edge_t>;
-  using vertex_seq_t  = std::vector<vertex_t>;
+  using vertex_seq_t  = std::deque<vertex_t>;
 
   struct vertex_container;
 
@@ -619,15 +619,16 @@ class grid {
   }
 
   //----------------------------------------------------------------------------
-  /// changes one random vertex to another random position on the grid keeping
-  /// total edge sequence length; diagonal edge length corresponds straight
-  /// edge length
+  /// picks one random vertex and changes either its left or right side
   template <typename RandEng>
   auto mutate_seq_straight(const vertex_seq_t& seq, Real min_angle,
-                           RandEng& eng) {
+                           size_t max_size_change, RandEng& eng) {
     using namespace boost;
     using namespace adaptors;
 
+    std::uniform_int_distribution size_change_dist{-static_cast<int>(max_size_change),
+                                  static_cast<int>(max_size_change)};
+    auto size_change = size_change_dist(eng);
     vertex_seq_t mseq;
     bool         done = false;
     while (!done) {
@@ -638,9 +639,12 @@ class grid {
       // rearrange left side
       if ((coin_side == HEADS && v_it != begin(mseq)) ||
           (coin_side == TAILS && v_it == prev(end(mseq)))) {
-        // move all predecessing vertices to randomly chosen vertex
+        auto left_length = distance(begin(meq), v_it);
+        auto new_left_length =
+            static_cast<size_t>(std::max<int>(0, left_size + change));
+        // move all preceeding vertices to randomly chosen vertex
         for (auto it = begin(mseq); it != v_it; ++it) { *it = *v_it; }
-        // for all predecessing vertices find a new one that keeps the line
+        // for all preceeding vertices find a new one that keeps the line
         // straight using min_angle
         while (v_it != begin(mseq)) {
           --v_it;
@@ -678,7 +682,7 @@ class grid {
       } else {
         // move all succeeding vertices to randomly chosen vertex
         for (auto it = next(v_it); it != end(mseq); ++it) { *it = *v_it; }
-        // for all predecessing vertices find a new one that keeps the line
+        // for all preceeding vertices find a new one that keeps the line
         // straight using min_angle
         ++v_it;
         while (v_it != end(mseq)) {

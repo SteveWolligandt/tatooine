@@ -8,6 +8,7 @@
 #include <stdexcept>
 #include "interpolation.h"
 #include "tensor.h"
+#include "linspace.h"
 #include "vtk_legacy.h"
 
 //==============================================================================
@@ -51,9 +52,9 @@ struct line {
  public:
   line()                      = default;
   line(const line& other)     = default;
-  line(line&& other) noexcept = default;
+  line(line&& other) = default;
   line& operator=(const line& other) = default;
-  line& operator=(line&& other) noexcept = default;
+  line& operator=(line&& other) = default;
 
   //----------------------------------------------------------------------------
   line(const pos_container_t& data, bool is_closed = false)
@@ -97,9 +98,11 @@ struct line {
   const auto& vertex_at(size_t i) const { return m_vertices[i]; }
   //----------------------------------------------------------------------------
   void push_back(const pos_t& p) { m_vertices.push_back(p); }
+  void push_back(pos_t&& p) { m_vertices.emplace_back(std::move(p)); }
   void pop_back() { m_vertices.pop_back(); }
   //----------------------------------------------------------------------------
   void push_front(const pos_t& p) { m_vertices.push_front(p); }
+  void push_front(pos_t&& p) { m_vertices.emplace_front(std::move(p)); }
   void pop_front() { m_vertices.pop_front(); }
   //----------------------------------------------------------------------------
   /// calculates tangent at point i with forward differences
@@ -494,9 +497,9 @@ struct parameterized_line : line<Real, N> {
  public:
   parameterized_line()                              = default;
   parameterized_line(const parameterized_line&)     = default;
-  parameterized_line(parameterized_line&&) noexcept = default;
+  parameterized_line(parameterized_line&&)          = default;
   parameterized_line& operator=(const parameterized_line&) = default;
-  parameterized_line& operator=(parameterized_line&&) noexcept = default;
+  parameterized_line& operator=(parameterized_line&&) = default;
   //----------------------------------------------------------------------------
   parameterized_line(std::initializer_list<std::pair<pos_t, Real>>&& data) {
     for (auto& [pos, param] : data) {
@@ -565,7 +568,7 @@ struct parameterized_line : line<Real, N> {
   }
   //----------------------------------------------------------------------------
   void push_back(pos_t&& p, Real t) {
-    parent_t::emplace_back(std::move(p));
+    parent_t::push_back(std::move(p));
     m_parameterization.push_back(t);
   }
   //----------------------------------------------------------------------------
@@ -581,7 +584,7 @@ struct parameterized_line : line<Real, N> {
   }
   //----------------------------------------------------------------------------
   void push_front(pos_t&& p, Real t) {
-    parent_t::emplace_front(std::move(p));
+    parent_t::push_front(std::move(p));
     m_parameterization.push_front(t);
   }
   //----------------------------------------------------------------------------
@@ -593,46 +596,46 @@ struct parameterized_line : line<Real, N> {
   //----------------------------------------------------------------------------
   /// sample the line via interpolation
   template <template <typename>
-            typename interpolator_t = interpolation::hermite>
+            typename Interpolator = interpolation::hermite>
   auto sample(Real t) const {
     if (this->empty()) { throw empty_exception{}; }
 
-    const auto min_time =
-        std::min(m_parameterization.front(), m_parameterization.back());
-    const auto max_time =
-        std::max(m_parameterization.front(), m_parameterization.back());
-
-    if (std::abs(t - min_time) < 1e-6) {
-      t = min_time;
-    } else if (std::abs(t - max_time) < 1e-6) {
-      t = max_time;
+    if (t < front_parameterization() || t > back_parameterization()) {
+      throw time_not_found{};
     }
 
-    // calculate two points t is in between
-    size_t left  = std::numeric_limits<size_t>::max();
-    bool   found = false;
-    for (size_t i = 0; i < size() - 1; i++) {
-      if ((parameterization_at(i) <= t && t <= parameterization_at(i + 1)) ||
-          (parameterization_at(i + 1) <= t && t <= parameterization_at(i))) {
-        left  = i;
-        found = true;
-        break;
+    // find the two points t is in between
+    size_t left = 0, right = size() - 1;
+    while (right - left > 1) {
+      size_t center = (left + right) / 2;
+      if (t < parameterization_at(center)) {
+        right = center;
+      } else {
+        left = center;
       }
     }
-    if (!found) { throw time_not_found{}; }
+
     // interpolate
-    Real factor = (t - m_parameterization[left]) /
-                  (m_parameterization[left + 1] - m_parameterization[left]);
-    interpolator_t<Real> interp;
+    Real factor = (t - parameterization_at(left)) /
+                  (parameterization_at(right) - parameterization_at(left));
+    Interpolator<Real> interp;
     return interp.interpolate_iter(next(begin(vertices()), left),
-                                   next(begin(vertices()), left + 1),
+                                   next(begin(vertices()), right),
                                    begin(vertices()), end(vertices()), factor);
   }
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
   template <template <typename>
-            typename interpolator_t = interpolation::hermite>
+            typename Interpolator = interpolation::hermite>
   auto operator()(const Real t) const {
-    return sample<interpolator_t>(t);
+    return sample<Interpolator>(t);
+  }
+  // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+  template <template <typename>
+            typename Interpolator = interpolation::hermite>
+  auto resample(const linspace<Real>& ts) const {
+    this_t resampled;
+    for (auto t : ts) { resampled.push_back(sample<Interpolator>(t), t); }
+    return resampled;
   }
 
   //============================================================================

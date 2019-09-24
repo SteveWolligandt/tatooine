@@ -36,8 +36,8 @@ TEST_CASE("ftle_doublegyre", "[ftle][doublegyre][dg]") {
 TEST_CASE("ftle_newdoublegyre", "[ftle][newdoublegyre][ndg]") {
   numerical::newdoublegyre v;
   grid sample_grid{linspace{0.0, 2.0, 1000}, linspace{-1.0, 1.0, 1000}};
-  for (auto tau : std::array{-20, 20}) {
-    for (auto t0 : linspace(-10.0, 10.0, 21)) {
+  for (auto t0 : linspace(1.0, 3.0, 3)) {
+    for (auto tau : std::array{-20, 20}) {
       ftle_test(v, sample_grid, t0, tau, Integrator{},
                 "ndg_ftle_" + std::to_string(tau) + "_" + std::to_string(t0));
     }

@@ -1,5 +1,6 @@
 #include <tatooine/newdoublegyre.h>
 #include <tatooine/doublegyre.h>
+#include <tatooine/counterexample_sadlo.h>
 #include <tatooine/grid_sampler.h>
 #include <tatooine/interpolation.h>
 #include <tatooine/linspace.h>
@@ -115,6 +116,9 @@ int main(int /*argc*/, const char** argv) {
     tatooine::misc::gpulic::lic<tatooine::numerical::sinuscosinus<double>>(
         "sinuscosinus",
         grid{linspace{-2.0f, 2.0f, 2000}, linspace{-2.0f, 2.0f, 2000}}, ts);
+  } else if (vf == "counterexamplesadlo") {
+    tatooine::misc::gpulic::lic<tatooine::numerical::counterexample_sadlo<double>>(
+        "counterexample_sadlo",
+        grid{linspace{-3.1f, 3.1f, 2000}, linspace{-3.1f, 3.1f, 2000}}, ts);
   }
 }
-

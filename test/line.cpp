@@ -7,9 +7,9 @@ namespace tatooine::test {
 
 TEST_CASE("line_push_back", "[line][push_back]") {
   line<double, 2> l;
-  l.push_back({0,0});
-  l.push_back({1,1});
-  l.push_back({2,0});
+  l.push_back({0, 0});
+  l.push_back({1, 1});
+  l.push_back({2, 0});
   REQUIRE(approx_equal(l.vertex_at(0), vec{0, 0}, 0));
   REQUIRE(approx_equal(l.vertex_at(1), vec{1, 1}, 0));
   REQUIRE(approx_equal(l.vertex_at(2), vec{2, 0}, 0));
@@ -24,9 +24,9 @@ TEST_CASE("line_initializer_list", "[line][initializer_list]") {
 //==============================================================================
 TEST_CASE("line_push_front", "[line][push_front]") {
   line<double, 2> l;
-  l.push_front({0,0});
-  l.push_front({1,1});
-  l.push_front({2,0});
+  l.push_front({0, 0});
+  l.push_front({1, 1});
+  l.push_front({2, 0});
   REQUIRE(approx_equal(l.vertex_at(2), vec{0, 0}, 0));
   REQUIRE(approx_equal(l.vertex_at(1), vec{1, 1}, 0));
   REQUIRE(approx_equal(l.vertex_at(0), vec{2, 0}, 0));
@@ -34,7 +34,8 @@ TEST_CASE("line_push_front", "[line][push_front]") {
 //==============================================================================
 TEST_CASE("line_parameterized_initialization",
           "[line][parameterization][initialization]") {
-  parameterized_line<double, 2> l{{vec{1, 2}, 0}, {vec{2, 3}, 1}, {vec{3, 4}, 2}};
+  parameterized_line<double, 2> l{
+      {vec{1, 2}, 0}, {vec{2, 3}, 1}, {vec{3, 4}, 2}};
   auto [x0, t0] = l[0];
   auto [x1, t1] = l[1];
   auto [x2, t2] = l[2];
@@ -51,44 +52,70 @@ TEST_CASE("line_parameterized_initialization",
   REQUIRE(t2 == 2);
 }
 
-
 //==============================================================================
-TEST_CASE("line_sampling_linear", "[line][parameterization][linear]") {
-  vec v0{0.0,0.0};
-  vec v1{1.0,1.0};
-  vec v2{2.0,0.0};
+TEST_CASE("line_sampling_linear",
+          "[line][parameterization][linear][sampling]") {
+  vec                           v0{0.1, 0.2};
+  vec                           v1{0.5, 0.9};
+  vec                           v2{0.9, 0.2};
   parameterized_line<double, 2> l;
   l.push_back(v0, 0);
-  l.push_back(v1, 1);
-  l.push_back(v2, 2);
+  l.push_back(v1, 0.5);
+  l.push_back(v2, 1);
 
   REQUIRE(approx_equal(l.sample<interpolation::linear>(0), v0));
-  REQUIRE(approx_equal(l.sample<interpolation::linear>(1), v1));
-  REQUIRE(approx_equal(l.sample<interpolation::linear>(2), v2));
+  REQUIRE(approx_equal(l.sample<interpolation::linear>(0.5), v1));
+  REQUIRE(approx_equal(l.sample<interpolation::linear>(1), v2));
 
-  REQUIRE(approx_equal(l.sample<interpolation::linear>(0.1),
+  REQUIRE(approx_equal(l.sample<interpolation::linear>(0.1/2),
                        (v0 * 0.9 + v1 * 0.1)));
-  REQUIRE(approx_equal(l.sample<interpolation::linear>(0.9),
+  REQUIRE(approx_equal(l.sample<interpolation::linear>(0.9/2),
                        (v0 * 0.1 + v1 * 0.9)));
-  REQUIRE(approx_equal(l.sample<interpolation::linear>(1.1),
+  REQUIRE(approx_equal(l.sample<interpolation::linear>(1.1/2),
                        (v1 * 0.9 + v2 * 0.1)));
-  REQUIRE(approx_equal(l.sample<interpolation::linear>(1.9),
+  REQUIRE(approx_equal(l.sample<interpolation::linear>(1.9/2),
                        (v1 * 0.1 + v2 * 0.9)));
+  REQUIRE_NOTHROW(l.sample<interpolation::linear>(0.3));
+  REQUIRE_NOTHROW(l.sample<interpolation::linear>(0.7));
+  REQUIRE_THROWS(l.sample<interpolation::linear>(-0.01));
+  REQUIRE_THROWS(l.sample<interpolation::linear>(1.01));
 }
 
 //==============================================================================
-TEST_CASE("line_sampling_hermite", "[line][parameterization][hermite]") {
-  vec v0{0.0,0.0};
-  vec v1{1.0,1.0};
-  vec v2{2.0,0.0};
+TEST_CASE("line_sampling_hermite",
+          "[line][parameterization][hermite][sampling]") {
+  vec                           v0{0.0, 0.0};
+  vec                           v1{1.0, 1.0};
+  vec                           v2{2.0, 0.0};
   parameterized_line<double, 2> l;
   l.push_back(v0, 0);
   l.push_back(v1, 1);
   l.push_back(v2, 2);
 
-  REQUIRE(approx_equal(l(0), v0));
-  REQUIRE(approx_equal(l(1), v1));
-  REQUIRE(approx_equal(l(2), v2));
+  REQUIRE(approx_equal(l.sample<interpolation::hermite>(0), v0));
+  REQUIRE(approx_equal(l.sample<interpolation::hermite>(1), v1));
+  REQUIRE(approx_equal(l.sample<interpolation::hermite>(2), v2));
+  REQUIRE_NOTHROW(l.sample<interpolation::hermite>(0.5));
+  REQUIRE_NOTHROW(l.sample<interpolation::hermite>(1.5));
+  REQUIRE_THROWS(l.sample<interpolation::hermite>(-0.01));
+  REQUIRE_THROWS(l.sample<interpolation::hermite>(2.01));
+}
+
+//==============================================================================
+TEST_CASE("line_paramaterization_resample",
+          "[line][parameterization][resample]") {
+  vec                           v0{0.1, 0.2};
+  vec                           v1{0.5, 0.9};
+  vec                           v2{0.9, 0.2};
+  parameterized_line<double, 2> l;
+  l.push_back(v0, 0);
+  l.push_back(v1, 1);
+  l.push_back(v2, 2);
+
+  l.resample<interpolation::linear>(linspace(0.0, 2.0, 101))
+      .write_vtk("resampled_line_linear.vtk");
+  l.resample<interpolation::hermite>(linspace(0.0, 2.0, 101))
+      .write_vtk("resampled_line_hermite.vtk");
 }
 
 //==============================================================================
@@ -120,15 +147,17 @@ TEST_CASE("line_paramaterization_chordal",
 //==============================================================================
 TEST_CASE("line_paramaterization_centripetal",
           "[line][parameterization][centripetal]") {
-  vec v0{0.0,0.0};
-  vec v1{1.0,1.0};
-  vec v2{2.0,0.0};
+  vec                           v0{0.0, 0.0};
+  vec                           v1{1.0, 1.0};
+  vec                           v2{2.0, 0.0};
   parameterized_line<double, 2> l;
   l.push_back(v0, 0);
   l.push_back(v1, 0);
   l.push_back(v2, 0);
   l.centripetal_parameterization();
 }
+
+
 
 //==============================================================================
 }  // namespace tatooine::test
