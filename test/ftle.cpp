@@ -36,20 +36,25 @@ TEST_CASE("ftle_doublegyre", "[ftle][doublegyre][dg]") {
 TEST_CASE("ftle_newdoublegyre", "[ftle][newdoublegyre][ndg]") {
   numerical::newdoublegyre v;
   grid sample_grid{linspace{0.0, 2.0, 1000}, linspace{-1.0, 1.0, 1000}};
-  double t0 = 0, tau = 10;
-  ftle_test(v, sample_grid, t0, tau, Integrator{},
-            "ndg_ftle_" + std::to_string(t0) + "_" + std::to_string(tau));
+  for (auto tau : std::array{-20, 20}) {
+    for (auto t0 : linspace(-10.0, 10.0, 21)) {
+      ftle_test(v, sample_grid, t0, tau, Integrator{},
+                "ndg_ftle_" + std::to_string(tau) + "_" + std::to_string(t0));
+    }
+  }
 }
 
 //==============================================================================
 TEST_CASE("ftle_counterexample_sadlo", "[ftle][counterexample_sadlo]") {
   numerical::counterexample_sadlo v;
-  grid   sample_grid{linspace{-3.0, 3.0, 2000}, linspace{-3.0, 3.0, 2000}};
-  double tau = 10;
-  double t0  = 0;
-  ftle_test(v, sample_grid, t0, tau, Integrator{},
-            "counterexample_sadlo_ftle_" + std::to_string(t0) + "_" +
-                std::to_string(tau));
+  grid sample_grid{linspace{-3.0, 3.0, 2000}, linspace{-3.0, 3.0, 2000}};
+  for (auto tau : std::array{-20, 20}) {
+    for (auto t0 : linspace(-10.0, 10.0, 21)) {
+      ftle_test(v, sample_grid, t0, tau, Integrator{},
+                "counterexample_sadlo_ftle_" + std::to_string(tau) + "_" +
+                    std::to_string(t0));
+    }
+  }
 }
 
 //==============================================================================

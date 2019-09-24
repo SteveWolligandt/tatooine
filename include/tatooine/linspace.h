@@ -27,11 +27,11 @@ struct linspace {
   //============================================================================
  private:
   real_t      m_min, m_max;
-  std::size_t m_size;
+  size_t m_size;
 
   //============================================================================
  public:
-  constexpr linspace(real_t min, real_t max, std::size_t size) noexcept
+  constexpr linspace(real_t min, real_t max, size_t size) noexcept
       : m_min{min}, m_max{max}, m_size{size} {}
 
   //----------------------------------------------------------------------------
@@ -55,11 +55,11 @@ struct linspace {
   }
 
   //============================================================================
-  constexpr auto at(std::size_t i) const {
+  constexpr auto at(size_t i) const {
     if (m_size <= 1) { return m_min; }
     return m_min + spacing() * i;
   }
-  constexpr auto operator[](std::size_t i) const { return at(i); }
+  constexpr auto operator[](size_t i) const { return at(i); }
 
   //----------------------------------------------------------------------------
   constexpr auto begin() const { return iterator{this, 0}; }
@@ -76,7 +76,7 @@ struct linspace {
 
 //==============================================================================
 template <typename real_t>
-linspace(real_t, real_t, std::size_t)->linspace<real_t>;
+linspace(real_t, real_t, size_t)->linspace<real_t>;
 
 //------------------------------------------------------------------------------
 template <typename real_t>
@@ -108,11 +108,11 @@ struct linspace_iterator
   //============================================================================
  private:
   const tatooine::linspace<real_t>* m_lin;
-  std::size_t             m_i;
+  size_t             m_i;
 
   //============================================================================
  public:
-  linspace_iterator(const linspace<real_t>* _lin, std::size_t _i)
+  linspace_iterator(const linspace<real_t>* _lin, size_t _i)
       : m_lin{_lin}, m_i{_i} {}
   linspace_iterator(const linspace_iterator& other)
       : m_lin{other.m_lin}, m_i{other.m_i} {}
@@ -153,13 +153,13 @@ struct linspace_iterator
 
 //==============================================================================
 template <typename real_t>
-auto next(const linspace_iterator<real_t>& l, std::size_t diff = 1) {
+auto next(const linspace_iterator<real_t>& l, size_t diff = 1) {
   return linspace_iterator<real_t>{&l.linspace(), l.i() + diff};
 }
 
 //------------------------------------------------------------------------------
 template <typename real_t>
-auto prev(const linspace_iterator<real_t>& l, std::size_t diff = 1) {
+auto prev(const linspace_iterator<real_t>& l, size_t diff = 1) {
   return linspace_iterator<real_t>{&l.linspace(), l.i() - diff};
 }
 
