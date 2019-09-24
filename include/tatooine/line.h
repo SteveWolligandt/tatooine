@@ -47,7 +47,6 @@ struct line {
   pos_container_t m_vertices;
   bool            m_is_closed = false;
 
-
   //============================================================================
  public:
   line()                      = default;
@@ -500,7 +499,9 @@ struct parameterized_line : line<Real, N> {
   parameterized_line& operator=(parameterized_line&&) noexcept = default;
   //----------------------------------------------------------------------------
   parameterized_line(std::initializer_list<std::pair<pos_t, Real>>&& data) {
-    for (auto& [pos, param] : data) { push_back(pos, param); }
+    for (auto& [pos, param] : data) {
+      push_back(std::move(pos), std::move(param));
+    }
   }
   //----------------------------------------------------------------------------
   const auto& parameterization() const { return m_parameterization; }
@@ -563,6 +564,11 @@ struct parameterized_line : line<Real, N> {
     m_parameterization.push_back(t);
   }
   //----------------------------------------------------------------------------
+  void push_back(pos_t&& p, Real t) {
+    parent_t::emplace_back(std::move(p));
+    m_parameterization.push_back(t);
+  }
+  //----------------------------------------------------------------------------
   void pop_back() {
     parent_t::pop_back();
     m_parameterization.pop_back();
@@ -571,6 +577,11 @@ struct parameterized_line : line<Real, N> {
   //----------------------------------------------------------------------------
   void push_front(const pos_t& p, Real t) {
     parent_t::push_front(p);
+    m_parameterization.push_front(t);
+  }
+  //----------------------------------------------------------------------------
+  void push_front(pos_t&& p, Real t) {
+    parent_t::emplace_front(std::move(p));
     m_parameterization.push_front(t);
   }
   //----------------------------------------------------------------------------

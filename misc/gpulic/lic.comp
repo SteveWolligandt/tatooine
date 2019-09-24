@@ -1,0 +1,97 @@
+#version 450
+
+layout(location = 0) uniform sampler2D vector_tex;
+layout(location = 1) uniform sampler2D noise_tex;
+layout(binding = 0, rgba32f) uniform image2D lic_tex;
+
+uniform uint num_steps;
+uniform vec2 bounding_min;
+uniform vec2 bounding_max;
+
+//------------------------------------------------------------------------------
+vec2 domain_pos_to_tex_pos(const vec2 x, const vec2 bounding_range) {
+  return (x - bounding_min) / bounding_range;
+}
+
+//------------------------------------------------------------------------------
+vec2 tex_pos_to_domain_pos(const vec2 x, const vec2 bounding_range) {
+  return x * bounding_range + bounding_min;
+}
+
+//------------------------------------------------------------------------------
+vec3 sample_vf(const vec2 x, const vec2 bounding_range) {
+  if (x.x < bounding_min.x || x.x > bounding_max.x ||
+      x.y < bounding_min.y || x.y > bounding_max.y)
+    return vec3(0,0,0);
+  const vec2 tex_pos = domain_pos_to_tex_pos(x, bounding_range);
+  vec2 v = texture(vector_tex, tex_pos).xy;
+  if (isnan(v.x) || isnan(v.y)) return vec3(0,0,0);
+  return vec3(normalize(v.xy), 1);
+}
+
+//------------------------------------------------------------------------------
+vec3 rk4_step(const vec2 y0, const float h, const vec2 bounding_range) {
+  const vec3 k1 = h * sample_vf(y0, bounding_range);
+  if (k1.z == 0) return vec3(0,0,0);
+  const vec3 k2 = h * sample_vf(y0 + k1.xy/2, bounding_range);
+  if (k2.z == 0) return vec3(0,0,0);
+  const vec3 k3 = h * sample_vf(y0 + k2.xy/2, bounding_range);
+  if (k3.z == 0) return vec3(0,0,0);
+  const vec3 k4 = h * sample_vf(y0 + k3.xy, bounding_range);
+  if (k4.z == 0) return vec3(0,0,0);
+  return vec3(y0 + (k1.xy + 2*k2.xy + 2*k3.xy + k4.xy) / 6, 1);
+}
+
+//------------------------------------------------------------------------------
+vec2 convolve(const vec2 y0, const float h, const vec2 bounding_range) {
+  vec2 y = y0;
+  float acc = 0;
+  uint cnt = 0;
+  for (uint i = 0; i < num_steps; ++i) {
+    const vec3 maybe_y = rk4_step(y, h, bounding_range);
+    if (maybe_y.z == 0) break;
+    y = maybe_y.xy;
+
+    vec2 y_tex = domain_pos_to_tex_pos(y, bounding_range);
+    ivec2 y_tex_int = ivec2(y_tex * (imageSize(lic_tex) - 1));
+    if (y_tex.x < 0 || y_tex.x > 1 ||
+        y_tex.y < 0 || y_tex.y > 1)
+      break;
+
+    acc += texture(noise_tex, y_tex).x;
+    ++cnt;
+  }
+
+  return vec2(acc, cnt);
+}
+
+//------------------------------------------------------------------------------
+layout (local_size_x = 16, local_size_y = 16) in;
+void main() {
+  const vec2 bounding_range = bounding_max - bounding_min;
+  const vec2 bounding_range_inv = 1.0 / bounding_range;
+
+  const ivec2 pos = ivec2(gl_GlobalInvocationID.xy);
+  if (pos.x >= imageSize(lic_tex).x || pos.y >= imageSize(lic_tex).y)
+    return;
+
+  const vec2 tex_pos = vec2(pos) / (vec2(imageSize(lic_tex) - 1));
+  const vec2 domain_pos = tex_pos_to_domain_pos(tex_pos, bounding_range);
+
+  if (sample_vf(domain_pos, bounding_range).z == 0) {
+    imageStore(lic_tex, pos, vec4(0));
+    return;
+  }
+
+  const float h = (bounding_max.x - bounding_min.x) / float(imageSize(lic_tex).x);
+  const vec2 fw_conv = convolve(domain_pos, h, bounding_range);
+  const vec2 bw_conv = convolve(domain_pos, -h, bounding_range);
+
+  float lic_val =
+    (texture(noise_tex, tex_pos).x + fw_conv.x + bw_conv.x) /
+    (1 + fw_conv.y + bw_conv.y);
+
+  lic_val = clamp((lic_val - 0.45) / 0.1 + 0.3, 0, 1);
+  imageStore(lic_tex, pos, vec4(vec3(lic_val), 1));
+  return;
+}

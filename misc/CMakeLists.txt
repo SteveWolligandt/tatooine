@@ -16,33 +16,10 @@ endmacro()
 
 #===============================================================================
 create_executable(newdoublegyre_criticalpointpath_export)
-
-#- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-add_executable(newdoublegyre_bifurcationline_export
-  newdoublegyre_bifurcationline_export.cpp)
-target_link_libraries(newdoublegyre_bifurcationline_export
-  PUBLIC tatooine)
-target_compile_features(newdoublegyre_bifurcationline_export PUBLIC cxx_std_17)
-target_compile_options(newdoublegyre_bifurcationline_export PRIVATE
-  -Wall -Wextra -pedantic -Wno-missing-braces -Wno-unused-lambda-capture)
-
-#- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-add_executable(doublegyre_criticalpointpath_export
-  doublegyre_criticalpointpath_export.cpp)
-target_link_libraries(doublegyre_criticalpointpath_export
-  PUBLIC tatooine)
-target_compile_features(doublegyre_criticalpointpath_export PUBLIC cxx_std_17)
-target_compile_options(doublegyre_criticalpointpath_export PRIVATE
-  -Wall -Wextra -pedantic -Wno-missing-braces -Wno-unused-lambda-capture)
-
-#- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-add_executable(counterexample_sadlo_bifurcationline_export
-  counterexample_sadlo_bifurcationline_export.cpp)
-target_link_libraries(counterexample_sadlo_bifurcationline_export
-  PUBLIC tatooine)
-target_compile_features(counterexample_sadlo_bifurcationline_export PUBLIC cxx_std_17)
-target_compile_options(counterexample_sadlo_bifurcationline_export PRIVATE
-  -Wall -Wextra -pedantic -Wno-missing-braces -Wno-unused-lambda-capture)
+create_executable(newdoublegyre_bifurcationline_export)
+create_executable(doublegyre_criticalpointpath_export)
+create_executable(counterexample_sadlo_bifurcationline_export)
 
 #===============================================================================
 add_subdirectory(bifurcationline)
+add_subdirectory(gpulic)
