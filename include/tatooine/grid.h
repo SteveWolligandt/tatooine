@@ -471,12 +471,12 @@ class grid {
         auto neighbors = free_neighbors(seq.back(), seq);
         if (i > 0) {
           // remove vertices that dont keep the vertex sequence straight
-          const auto left_vertex   = prev(seq.end(), 2)->to_vec();
-          const auto center_vertex = prev(seq.end())->to_vec();
+          const auto left_vertex   = prev(seq.end(), 2)->position();
+          const auto center_vertex = prev(seq.end())->position();
           const auto last_dir      = normalize(left_vertex - center_vertex);
 
           auto angle_straight = [&](const auto& right_vertex) {
-            return min_angle < angle(last_dir, normalize(right_vertex.to_vec() -
+            return min_angle < angle(last_dir, normalize(right_vertex.position() -
                                                          center_vertex));
           };
 
@@ -653,14 +653,14 @@ class grid {
             *v_it = *neighbor_it;
 
           } else {
-            const auto center_vertex = next(v_it)->to_vec();
-            const auto right_vertex  = next(v_it, 2)->to_vec();
+            const auto center_vertex = next(v_it)->position();
+            const auto right_vertex  = next(v_it, 2)->position();
             const auto last_dir      = normalize(right_vertex - center_vertex);
 
             auto angle_straight = [&](const auto& left_vertex) {
               return min_angle <
                      angle(last_dir,
-                           normalize(left_vertex.to_vec() - center_vertex));
+                           normalize(left_vertex.position() - center_vertex));
             };
 
             auto filtered_neighbors = neighbors | filtered(angle_straight);
@@ -690,14 +690,14 @@ class grid {
             }
             *v_it = *neighbor_it;
           } else {
-            const auto center_vertex = prev(v_it)->to_vec();
-            const auto left_vertex   = prev(v_it, 2)->to_vec();
+            const auto center_vertex = prev(v_it)->position();
+            const auto left_vertex   = prev(v_it, 2)->position();
             const auto last_dir      = normalize(left_vertex - center_vertex);
 
             auto angle_straight = [&](const auto& right_vertex) {
               return min_angle <
                      angle(last_dir,
-                           normalize(right_vertex.to_vec() - center_vertex));
+                           normalize(right_vertex.position() - center_vertex));
             };
 
             auto filtered_neighbors = neighbors | filtered(angle_straight);

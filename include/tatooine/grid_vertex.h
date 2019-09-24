@@ -99,7 +99,7 @@ struct grid_vertex {
   //--------------------------------------------------------------------------
  private:
   template <size_t... Is>
-  constexpr auto pos(std::index_sequence<Is...> /*is*/) const {
+  constexpr auto position(std::index_sequence<Is...> /*is*/) const {
     return vec{(*iterators[Is])...};
   }
 
@@ -114,8 +114,8 @@ struct grid_vertex {
   }
 
  public:
-  constexpr auto pos() const {
-    return pos(std::make_index_sequence<N>());
+  constexpr auto position() const {
+    return position(std::make_index_sequence<N>());
   }
 
   constexpr auto to_array() const {
