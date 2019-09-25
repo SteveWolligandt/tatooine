@@ -119,8 +119,8 @@ random_normal(Real mean, Real stddev)->random_normal<Real, std::mt19937_64>;
 template <typename Iterator, typename RandomEngine>
 auto random_elem(Iterator begin, Iterator end, RandomEngine& eng) {
   if (begin == end) { return end; }
-  auto size = static_cast<size_t>(distance(begin, end) - 1);
-  std::uniform_int_distribution<size_t> rand{0, size};
+  const auto size = static_cast<size_t>(distance(begin, end));
+  std::uniform_int_distribution<size_t> rand{0, size - 1};
   return next(begin, rand(eng));
 }
 

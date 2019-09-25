@@ -25,6 +25,8 @@ macro(create_test NAME)
 endmacro()
 
 #- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+create_test(algorithm)
+create_test(grid)
 create_test(doublegyre)
 create_test(curve_to_streamline)
 create_test(ftle)
