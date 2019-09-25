@@ -304,8 +304,8 @@ class grid {
     std::set<vertex_t> free_vertices;
     std::copy_if(
         vertices(v).begin(), vertices(v).end(),
-        std::inserter(free_vertices, free_vertices.end()),
-        [&](const auto& vn) { return boost::find(seq, vn) == seq.end(); });
+        std::inserter(free_vertices, end(free_vertices)),
+        [&](const auto& vn) { return boost::find(seq, vn) == end(seq); });
     return free_vertices;
   }
 
@@ -622,156 +622,140 @@ class grid {
   template <typename RandEng>
   void mutate_seq_straight_prev_at(
       vertex_seq_t& seq, typename vertex_seq_t::iterator it,
-      Real min_angle, int size_change, RandEng& eng) {
+      Real min_angle, const size_t new_prev_size, RandEng& eng) {
     using namespace boost;
     using namespace adaptors;
 
-    auto left_size = distance(begin(seq), it);
-    auto new_left_size =
-        static_cast<size_t>(std::max<int>(0, left_size + size_change));
-    resize_prev_list(seq, it, new_left_size);
+    resize_prev_list(seq, it, new_prev_size);
+    for (auto i = begin(seq); i != it; ++i) {
+      *i = *it;
+    }
 
     // for all preceeding vertices find a new one that keeps the line
     // straight using min_angle
     while (it != begin(seq)) {
+      const auto neighbors = free_neighbors(*it, seq);
       --it;
-      auto neighbors = free_neighbors(*it, seq);
-      if (it == next(begin(seq))) {
+      if (next(it) == prev(end(seq))) {
         auto neighbor_it = random_elem(neighbors, eng);
-        if (neighbor_it == end(neighbors)) { break; }
+        if (neighbor_it == end(neighbors)) {
+          seq.erase(begin(seq), next(it));
+          break;
+        }
         *it = *neighbor_it;
 
       } else {
         const auto center_vertex = next(it)->position();
         const auto right_vertex  = next(it, 2)->position();
-        const auto last_dir      = normalize(right_vertex - center_vertex);
 
         auto angle_straight = [&](const auto& left_vertex) {
-          return min_angle < angle(last_dir, normalize(left_vertex.position() -
-                                                       center_vertex));
+          auto alpha =
+              angle(left_vertex.position(), center_vertex, right_vertex) * 180 /
+              M_PI;
+          return alpha >
+                 min_angle;
         };
 
         auto filtered_neighbors = neighbors | filtered(angle_straight);
         auto neighbor_it        = random_elem(filtered_neighbors, eng);
-        if (neighbor_it == end(filtered_neighbors)) { break; }
+        if (neighbor_it == end(filtered_neighbors)) {
+          seq.erase(begin(seq), next(it));
+          break;
+        }
         *it = *neighbor_it;
       }
     }
   }
+
   //----------------------------------------------------------------------------
   /// picks one random vertex and changes either its left or right side
-  //template <typename RandEng>
-  //auto mutate_seq_straight(const vertex_seq_t& seq, Real min_angle,
-  //                         size_t max_size_change, RandEng& eng) {
-  //  using namespace boost;
-  //  using namespace adaptors;
-  //
-  //  std::uniform_int_distribution size_change_dist{
-  //      -static_cast<int>(max_size_change), static_cast<int>(max_size_change)};
-  //  auto         size_change = size_change_dist(eng);
-  //  vertex_seq_t mseq;
-  //  bool         done = false;
-  //  while (!done) {
-  //    mseq      = seq;
-  //    auto v_it = random_elem(mseq, eng);
-  //
-  //    const auto coin_side = flip_coin(eng);
-  //    // rearrange left side
-  //    if ((coin_side == HEADS && v_it != begin(mseq)) ||
-  //        (coin_side == TAILS && v_it == prev(end(mseq)))) {
-  //
-  //
-  //      auto left_size = distance(begin(seq), v_it);
-  //      auto new_left_size =
-  //          static_cast<size_t>(std::max<int>(0, left_size + size_change));
-  //      if (size_change > 0) {
-  //        for (size_t i = 0; i < static_cast<size_t>(size_change); ++i) {
-  //          seq.emplace_front();
-  //        }
-  //      } else if (size_change < 0) {
-  //        seq.erase(begin(seq), next(begin(seq), left_size - new_left_size));
-  //      }
-  //
-  //      // move all preceeding vertices to randomly chosen vertex
-  //      std::generate(begin(mseq), end(v_it), [&v_it]() { return *v_it });
-  //
-  //      // for all preceeding vertices find a new one that keeps the line
-  //      // straight using min_angle
-  //      while (v_it != begin(mseq)) {
-  //        --v_it;
-  //        auto neighbors = free_neighbors(*next(v_it), mseq);
-  //        if (v_it == prev(end(mseq), 2)) {
-  //          auto neighbor_it = random_elem(neighbors, eng);
-  //          if (neighbor_it == end(neighbors)) { break; }
-  //          *v_it = *neighbor_it;
-  //
-  //        } else {
-  //          const auto center_vertex = next(v_it)->position();
-  //          const auto right_vertex  = next(v_it, 2)->position();
-  //          const auto last_dir      = normalize(right_vertex - center_vertex);
-  //
-  //          auto angle_straight = [&](const auto& left_vertex) {
-  //            return min_angle <
-  //                   angle(last_dir,
-  //                         normalize(left_vertex.position() - center_vertex));
-  //          };
-  //
-  //          auto filtered_neighbors = neighbors | filtered(angle_straight);
-  //          auto neighbor_it        = random_elem(filtered_neighbors, eng);
-  //          if (neighbor_it == end(filtered_neighbors)) { break; }
-  //          *v_it = *neighbor_it;
-  //        }
-  //      }
-  //      if (v_it == begin(mseq)) { done = true; }
-  //
-  //    } else {
-  //
-  //      auto right_size = distance(next(v_it), end(seq));
-  //      auto new_right_size = static_cast<size_t>(std::max<int>(0, right_size + size_change));
-  //      if (size_change > 0) {
-  //        for (size_t i = 0; i < static_cast<size_t>(size_change); ++i) {
-  //            seq.emplace_back();
-  //        }
-  //      } else if (size_change < 0) {
-  //        seq.erase(prev(end(seq), right_size-new_right_size), end(seq));
-  //      }
-  //
-  //      // move all succeeding vertices to randomly chosen vertex
-  //      std::generate(next(v_it), end(mseq), [&v_it](){return *v_it});
-  //
-  //      // for all preceeding vertices find a new one that keeps the line
-  //      // straight using min_angle
-  //      ++v_it;
-  //      while (v_it != end(mseq)) {
-  //        auto neighbors = free_neighbors(*prev(v_it), mseq);
-  //        if (v_it == next(begin(mseq))) {
-  //          auto neighbor_it = random_elem(neighbors, eng);
-  //          if (neighbor_it == end(neighbors)) { break; }
-  //          *v_it = *neighbor_it;
-  //        } else {
-  //          const auto center_vertex = prev(v_it)->position();
-  //          const auto left_vertex   = prev(v_it, 2)->position();
-  //          const auto last_dir      = normalize(left_vertex - center_vertex);
-  //
-  //          auto angle_straight = [&](const auto& right_vertex) {
-  //            return min_angle <
-  //                   angle(last_dir,
-  //                         normalize(right_vertex.position() - center_vertex));
-  //          };
-  //
-  //          auto filtered_neighbors = neighbors | filtered(angle_straight);
-  //          auto neighbor_it        = random_elem(filtered_neighbors, eng);
-  //          if (neighbor_it == end(filtered_neighbors)) { break; }
-  //          *v_it = *neighbor_it;
-  //        }
-  //        ++v_it;
-  //      }
-  //      if (v_it == end(mseq)) { done = true; }
-  //    }
-  //  }
-  //
-  //  return mseq;
-  //}
+  template <typename RandEng>
+  void mutate_seq_straight_next_at(vertex_seq_t&                   seq,
+                                   typename vertex_seq_t::iterator it,
+                                   Real min_angle, const size_t new_next_size,
+                                   RandEng& eng) {
+    using namespace boost;
+    using namespace adaptors;
+
+    resize_next_list(seq, it, new_next_size);
+    for (auto i = next(it); i != end(seq); ++i) { *i = *it; }
+
+    // for all preceeding vertices find a new one that keeps the line
+    // straight using min_angle
+    ++it;
+    while (it != end(seq)) {
+      const auto neighbors = free_neighbors(*it, seq);
+      if (it == begin(seq)) {
+        auto neighbor_it = random_elem(neighbors, eng);
+        if (neighbor_it == end(neighbors)) {
+          seq.erase(it, end(seq));
+          break;
+        }
+        *it = *neighbor_it;
+
+      } else {
+        const auto center_vertex = prev(it)->position();
+        const auto left_vertex   = prev(it, 2)->position();
+
+        auto angle_straight = [&](const auto& right_vertex) {
+          auto alpha =
+              angle(left_vertex, center_vertex, right_vertex.position()) * 180 /
+              M_PI;
+          return alpha > min_angle;
+        };
+
+        auto filtered_neighbors = neighbors | filtered(angle_straight);
+        auto neighbor_it        = random_elem(filtered_neighbors, eng);
+        if (neighbor_it == end(filtered_neighbors)) {
+          seq.erase(it, end(seq));
+          break;
+        }
+        *it = *neighbor_it;
+      }
+      ++it;
+    }
+  }
+  //----------------------------------------------------------------------------
+  /// picks one random vertex and changes either its left or right side
+  template <typename RandEng>
+  auto& mutate_seq_straight(vertex_seq_t&                   seq,
+                            typename vertex_seq_t::iterator v_it,
+                            Real min_angle, size_t max_size_change,
+                            RandEng& eng) {
+    using namespace boost;
+    using namespace adaptors;
+
+    std::uniform_int_distribution size_change_dist{
+        -static_cast<int>(max_size_change), static_cast<int>(max_size_change)};
+    auto size_change = size_change_dist(eng);
+
+    const auto coin_side = flip_coin(eng);
+    // rearrange left side
+    if ((coin_side == HEADS && v_it != begin(seq)) ||
+        (coin_side == TAILS && v_it == prev(end(seq)))) {
+      auto left_size = distance(begin(seq), v_it);
+      auto new_left_size =
+          static_cast<size_t>(std::max<int>(0, left_size + size_change));
+      mutate_seq_straight_prev_at(seq, v_it, min_angle, new_left_size, eng);
+
+    } else {
+      auto right_size = distance(next(v_it), end(seq));
+      auto new_right_size =
+          static_cast<size_t>(std::max<int>(0, right_size + size_change));
+      mutate_seq_straight_next_at(seq, v_it, min_angle, new_right_size, eng);
+    }
+
+    return seq;
+  }
+  //----------------------------------------------------------------------------
+  /// picks one random vertex and changes either its left or right side
+  template <typename RandEng>
+  auto mutate_seq_straight(const vertex_seq_t& seq, Real min_angle,
+                           size_t max_size_change, RandEng& eng) {
+    auto mseq = seq;
+    return mutate_seq_straight(mseq, random_elem(mseq, eng), min_angle,
+                               max_size_change, eng);
+  }
 
   //----------------------------------------------------------------------------
   /// changes one random vertex to another random position on the grid keeping

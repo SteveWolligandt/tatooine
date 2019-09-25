@@ -32,7 +32,7 @@ decltype(auto) resize_next_list(Range& range, RangeIt pos,
       static_cast<int>(new_next_size) - static_cast<int>(next_size);
   if (size_change > 0) {
     for (std::size_t i = 0; i < static_cast<std::size_t>(size_change); ++i) {
-      range.emplace_back();
+      range.emplace_back(range.back());
     }
   } else if (size_change < 0) {
     range.erase(prev(end(range), next_size - new_next_size), end(range));
