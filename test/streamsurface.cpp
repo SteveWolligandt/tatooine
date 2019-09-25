@@ -49,7 +49,7 @@ TEST_CASE(
   boussinesq      v;
   streamsurface   ssf{spacetime_field{v},
                     0,
-                    {{{-0.3, 0.5, 10.0}, 0.0}, {{0.3, 0.5, 0.0}, 1}},
+                    {{{-0.1, 1.5, 10.0}, 0.0}, {{0.1, 1.5, 10.0}, 1}},
                     integration::vclibs::rungekutta43<double, 3>{},
                     interpolation::linear<double>{},
                     interpolation::hermite<double>{}};
