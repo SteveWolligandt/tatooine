@@ -493,7 +493,7 @@ struct grid_sampler
   void resize(const std::vector<Data>& data, const grid<OtherReal, N>& domain,
               std::index_sequence<Is...> /*is*/) {
     parent_t::operator=(domain);
-    m_data.resize(domain.resolution(Is)...);
+    m_data.resize(domain.dimension(Is).size()...);
     m_data = data;
   }
   //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~

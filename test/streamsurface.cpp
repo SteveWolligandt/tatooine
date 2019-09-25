@@ -1,6 +1,7 @@
 #include <tatooine/integration/vclibs/rungekutta43.h>
 #include <tatooine/streamsurface.h>
 #include <tatooine/doublegyre.h>
+#include <tatooine/boussinesq.h>
 #include <tatooine/spacetime_field.h>
 #include <catch2/catch.hpp>
 
@@ -11,10 +12,10 @@ namespace tatooine::test {
 TEST_CASE(
     "streamsurface_simple_spacetime_doublegyre",
     "[streamsurface][simple][numerical][doublegyre][dg][spacetime_field]") {
-  numerical::doublegyre dg;
-  spacetime_field       dgst{dg};
+  numerical::doublegyre v;
+  spacetime_field       vst{v};
   streamsurface         ssf{
-      dgst,
+      vst,
       0,
       {{{0.1, 0.2, 0.0}, 0.0}, {{0.5, 0.9, 0.0}, 0.5}, {{0.9, 0.2, 0.0}, 1.0}},
       integration::vclibs::rungekutta43<double, 3>{},
@@ -28,10 +29,10 @@ TEST_CASE(
 TEST_CASE(
     "streamsurface_hultquist_spacetime_doublegyre",
     "[streamsurface][hultquist][numerical][doublegyre][dg][spacetime_field]") {
-  numerical::doublegyre dg;
-  spacetime_field       dgst{dg};
+  numerical::doublegyre v;
+  spacetime_field       vst{v};
   streamsurface         ssf{
-      dgst,
+      vst,
       0,
       {{{0.1, 0.2, 0.0}, 0.0}, {{0.5, 0.9, 0.0}, 0.5}, {{0.9, 0.2, 0.0}, 1.0}},
       integration::vclibs::rungekutta43<double, 3>{},
@@ -39,6 +40,21 @@ TEST_CASE(
       interpolation::hermite<double>{}};
   ssf.discretize<hultquist_discretization>(10ul, 0.1, -20.0, 20.0)
       .write_vtk("streamsurface_dg_hultquist.vtk");
+}
+
+//==============================================================================
+TEST_CASE(
+    "streamsurface_hultquist_spacetime_boussinesq",
+    "[streamsurface][hultquist][boussinesq][spacetime_field]") {
+  boussinesq      v;
+  streamsurface   ssf{spacetime_field{v},
+                    0,
+                    {{{-0.3, 0.5, 10.0}, 0.0}, {{0.3, 0.5, 0.0}, 1}},
+                    integration::vclibs::rungekutta43<double, 3>{},
+                    interpolation::linear<double>{},
+                    interpolation::hermite<double>{}};
+  ssf.discretize<hultquist_discretization>(10ul, 0.1, 0.0, 9.0)
+      .write_vtk("streamsurface_boussinesq_hultquist.vtk");
 }
 
 ////==============================================================================

@@ -422,14 +422,14 @@ class grid {
       seq.push_back(start_v);
       auto v = seq.back();
 
-      for (size_t i = 0; i < len-1; ++i) {
+      for (size_t i = 0; i < len - 1; ++i) {
         auto neighbors = free_neighbors(v, seq);
         if (neighbors.empty()) { break; }
         v = *next(neighbors.begin(),
                   random_uniform<size_t>(0, neighbors.size() - 1, eng));
         seq.push_back(v);
       }
-    } while (seq.size() == len);
+    } while (seq.size() != len);
 
     return seq;
   }
@@ -472,11 +472,11 @@ class grid {
           // remove vertices that dont keep the vertex sequence straight
           const auto left_vertex   = prev(seq.end(), 2)->position();
           const auto center_vertex = prev(seq.end())->position();
-          const auto last_dir      = normalize(left_vertex - center_vertex);
 
           auto angle_straight = [&](const auto& right_vertex) {
-            return min_angle < angle(last_dir, normalize(right_vertex.position() -
-                                                         center_vertex));
+            return min_angle <
+                   angle(left_vertex, center_vertex, right_vertex.position()) *
+                       180 / M_PI;
           };
 
           auto filtered_neighbors = neighbors | filtered(angle_straight);
@@ -685,7 +685,7 @@ class grid {
     ++it;
     while (it != end(seq)) {
       const auto neighbors = free_neighbors(*it, seq);
-      if (it == begin(seq)) {
+      if (prev(it) == begin(seq)) {
         auto neighbor_it = random_elem(neighbors, eng);
         if (neighbor_it == end(neighbors)) {
           seq.erase(it, end(seq));
