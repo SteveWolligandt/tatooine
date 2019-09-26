@@ -3,6 +3,7 @@
 
 #include <memory>
 #include "field.h"
+#include "geometry/primitive.h"
 
 //==============================================================================
 namespace tatooine {
@@ -18,6 +19,7 @@ struct sampled_field : field<sampled_field<Sampler, Real, N, TensorDims...>,
 
   //============================================================================
   std::shared_ptr<Sampler> m_sampler;
+  std::vector<std::unique_ptr<geometry::primitive<Real, N>>> m_obstacles;
 
   //============================================================================
   sampled_field(const Sampler& _sampler)
@@ -49,22 +51,38 @@ struct sampled_field : field<sampled_field<Sampler, Real, N, TensorDims...>,
   }
 
   //----------------------------------------------------------------------------
-  constexpr decltype(auto) in_domain(const pos_t&            x,
+  constexpr decltype(auto) in_domain(const pos_t&          x,
                                      [[maybe_unused]] Real t) const {
-    if constexpr (Sampler::num_dimensions() == N) {
-      return invoke_unpacked(
-          [&](const auto... xs) { return m_sampler->in_domain(xs...); },
-          unpack(x));
-    } else {
-      return invoke_unpacked(
-          [&](const auto... xs) { return m_sampler->in_domain(xs..., t); },
-          unpack(x));
+    auto on_grid = [&] {
+      if constexpr (Sampler::num_dimensions() == N) {
+        return invoke_unpacked(
+            [&](const auto... xs) { return m_sampler->in_domain(xs...); },
+            unpack(x));
+      } else {
+        return invoke_unpacked(
+            [&](const auto... xs) { return m_sampler->in_domain(xs..., t); },
+            unpack(x));
+      }
+    }();
+
+    if (!on_grid) { return false; }
+    for (const auto& obstacle : m_obstacles) {
+      if (obstacle->is_inside(x)) { return false; }
     }
+    return true;
   }
 
   //----------------------------------------------------------------------------
-  auto&       sampler() { return *m_sampler; }
+  auto&       sampler() {
+  return *m_sampler;
+}
   const auto& sampler() const { return *m_sampler; }
+
+  //----------------------------------------------------------------------------
+  template <typename Obstacle>
+  auto& add_obstacle(const Obstacle& obstacle) {
+    m_obstacles.push_back(std::make_unique<Obstacle>(obstacle));
+  }
 };
 
 //==============================================================================

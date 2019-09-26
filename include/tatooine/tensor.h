@@ -324,8 +324,8 @@ struct tensor : base_tensor<tensor<Real, Dims...>, Real, Dims...> {
   }
 
   //----------------------------------------------------------------------------
-  const auto& operator[](size_t i) const { return m_data[i]; }
-  auto&       operator[](size_t i) { return m_data[i]; }
+  constexpr const auto& operator[](size_t i) const { return m_data[i]; }
+  constexpr auto&       operator[](size_t i) { return m_data[i]; }
 
 
   //----------------------------------------------------------------------------
