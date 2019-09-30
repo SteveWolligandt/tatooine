@@ -497,7 +497,7 @@ template <typename Tensor0, typename Tensor1, typename Tensor2,
 constexpr auto cos_angle(const base_tensor<Tensor0, Real0, N>& v0,
                          const base_tensor<Tensor1, Real1, N>& v1,
                          const base_tensor<Tensor2, Real2, N>& v2) {
-  return cos_angle(normalize(v0 - v1), normalize(v2 - v1));
+  return cos_angle(v0 - v1, v2 - v1);
 }
 //------------------------------------------------------------------------------
 /// Returns the cosine of the angle three points.
@@ -586,7 +586,8 @@ template <typename LhsTensor, typename LhsReal, typename RhsTensor,
 constexpr auto dot(const base_tensor<LhsTensor, LhsReal, N>& lhs,
                    const base_tensor<RhsTensor, RhsReal, N>& rhs) {
   promote_t<LhsReal, RhsReal> d = 0;
-  for (size_t i = 0; i < N; ++i) { d += lhs(i) * rhs(i); }
+  for (size_t i = 0; i < N; ++i) {
+    d += lhs(i) * rhs(i); }
   return d;
 }
 

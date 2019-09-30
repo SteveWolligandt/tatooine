@@ -66,14 +66,14 @@ class grid {
   //----------------------------------------------------------------------------
   template <typename OtherReal, size_t... Is>
   constexpr grid(const boundingbox<OtherReal, N>& bb,
-                 const std::array<size_t, N>&        res,
+                 const std::array<size_t, N>&     res,
                  std::index_sequence<Is...> /*is*/)
       : m_dimensions{
             linspace_t{Real(bb.min(Is)), Real(bb.max(Is)), res[Is]}...} {}
   //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
   template <typename OtherReal>
   constexpr grid(const boundingbox<OtherReal, N>& bb,
-                 const std::array<size_t, N>&        res)
+                 const std::array<size_t, N>&     res)
       : grid{bb, res, std::make_index_sequence<N>{}} {}
 
   //----------------------------------------------------------------------------
@@ -120,9 +120,7 @@ class grid {
   }
 
   //----------------------------------------------------------------------------
-  constexpr auto size() const {
-    return size(std::make_index_sequence<N>{});
-  }
+  constexpr auto size() const { return size(std::make_index_sequence<N>{}); }
 
   //----------------------------------------------------------------------------
   template <size_t... Is>
@@ -143,7 +141,8 @@ class grid {
                   "number of components does not match number of dimensions");
     static_assert(sizeof...(Is) == N,
                   "number of indices does not match number of dimensions");
-    return ((m_dimensions[Is].front() <= xs && xs <= m_dimensions[Is].back()) && ...);
+    return ((m_dimensions[Is].front() <= xs && xs <= m_dimensions[Is].back()) &&
+            ...);
   }
 
   //----------------------------------------------------------------------------
@@ -152,8 +151,7 @@ class grid {
   constexpr auto in_domain(Reals... xs) const {
     static_assert(sizeof...(Reals) == N,
                   "number of components does not match number of dimensions");
-    return in_domain(std::make_index_sequence<N>{},
-                     std::forward<Reals>(xs)...);
+    return in_domain(std::make_index_sequence<N>{}, std::forward<Reals>(xs)...);
   }
 
   //----------------------------------------------------------------------------
@@ -247,9 +245,7 @@ class grid {
   }
 
   //----------------------------------------------------------------------------
-  auto edges(const vertex_t& v) const {
-    return grid_vertex_edges<Real, N>(v);
-  }
+  auto edges(const vertex_t& v) const { return grid_vertex_edges<Real, N>(v); }
 
   //----------------------------------------------------------------------------
   auto sub(const vertex_t& begin_vertex, const vertex_t& end_vertex) const {
@@ -364,8 +360,7 @@ class grid {
       ok = true;
       for (size_t i = 0; i < N; ++i) {
         auto r = random_normal<Real>(
-            0, std::min<Real>(stddev, neighbor[i].linspace().size() / 2),
-            eng);
+            0, std::min<Real>(stddev, neighbor[i].linspace().size() / 2), eng);
         // stddev -= r;
         neighbor[i].i() += static_cast<size_t>(r);
         if (neighbor[i].i() < 0 ||
@@ -382,8 +377,8 @@ class grid {
 
   //----------------------------------------------------------------------------
   template <typename RandEng = std ::mt19937_64>
-  auto random_vertex_seq_neighbor_gaussian(const vertex_seq_t& seq,
-                                           Real stddev, RandEng& eng) {
+  auto random_vertex_seq_neighbor_gaussian(const vertex_seq_t& seq, Real stddev,
+                                           RandEng& eng) {
     return random_vertex_neighbor_gaussian(
         seq[random_uniform<size_t>(0, seq.size() - 1, eng)], stddev, eng);
   }
@@ -420,14 +415,13 @@ class grid {
     do {
       seq.clear();
       seq.push_back(start_v);
-      auto v = seq.back();
+      auto v = prev(end(seq));
 
       for (size_t i = 0; i < len - 1; ++i) {
-        auto neighbors = free_neighbors(v, seq);
+        auto neighbors = free_neighbors(*v, seq);
         if (neighbors.empty()) { break; }
-        v = *next(neighbors.begin(),
-                  random_uniform<size_t>(0, neighbors.size() - 1, eng));
-        seq.push_back(v);
+        v = random_elem(neighbors);
+        seq.push_back(*v);
       }
     } while (seq.size() != len);
 
@@ -466,7 +460,7 @@ class grid {
       seq.clear();
       seq.push_back(random_vertex(eng));
 
-      for (size_t i = 0; i < len; ++i) {
+      for (size_t i = 0; i < len-1; ++i) {
         auto neighbors = free_neighbors(seq.back(), seq);
         if (i > 0) {
           // remove vertices that dont keep the vertex sequence straight
@@ -485,13 +479,12 @@ class grid {
           seq.push_back(*neighbor);
 
         } else {
-          if (neighbors.empty()) { break; }
-          seq.push_back(
-              *next(begin(neighbors),
-                    random_uniform<size_t>(0, neighbors.size() - 1, eng)));
+          auto neighbor = random_elem(neighbors, eng);
+          if (neighbor == end(neighbors)) { break; }
+          seq.push_back(*neighbor);
         }
       }
-    } while (seq.size() == len);
+    } while (seq.size() != len);
 
     return seq;
   }
@@ -620,16 +613,16 @@ class grid {
   //----------------------------------------------------------------------------
   /// picks one random vertex and changes either its left or right side
   template <typename RandEng>
-  void mutate_seq_straight_prev_at(
-      vertex_seq_t& seq, typename vertex_seq_t::iterator it,
-      Real min_angle, const size_t new_prev_size, RandEng& eng) {
+  std::optional<vertex_seq_t> mutate_seq_straight_prev_at(
+      const vertex_seq_t& original_seq, const size_t begin_idx, Real min_angle,
+      const size_t new_prev_size, RandEng& eng) {
     using namespace boost;
     using namespace adaptors;
 
+    auto seq = original_seq;
+    auto it  = next(begin(seq), begin_idx);
     resize_prev_list(seq, it, new_prev_size);
-    for (auto i = begin(seq); i != it; ++i) {
-      *i = *it;
-    }
+    for (auto i = begin(seq); i != it; ++i) { *i = *it; }
 
     // for all preceeding vertices find a new one that keeps the line
     // straight using min_angle
@@ -638,10 +631,7 @@ class grid {
       --it;
       if (next(it) == prev(end(seq))) {
         auto neighbor_it = random_elem(neighbors, eng);
-        if (neighbor_it == end(neighbors)) {
-          seq.erase(begin(seq), next(it));
-          break;
-        }
+        if (neighbor_it == end(neighbors)) { return {}; }
         *it = *neighbor_it;
 
       } else {
@@ -649,34 +639,31 @@ class grid {
         const auto right_vertex  = next(it, 2)->position();
 
         auto angle_straight = [&](const auto& left_vertex) {
-          auto alpha =
-              angle(left_vertex.position(), center_vertex, right_vertex) * 180 /
-              M_PI;
-          return alpha >
-                 min_angle;
+          auto lv    = left_vertex.position();
+          auto alpha = angle(lv, center_vertex, right_vertex) * 180 / M_PI;
+          return alpha > min_angle;
         };
 
         auto filtered_neighbors = neighbors | filtered(angle_straight);
         auto neighbor_it        = random_elem(filtered_neighbors, eng);
-        if (neighbor_it == end(filtered_neighbors)) {
-          seq.erase(begin(seq), next(it));
-          break;
-        }
+        if (neighbor_it == end(filtered_neighbors)) { return {}; }
         *it = *neighbor_it;
       }
     }
+    return seq;
   }
 
   //----------------------------------------------------------------------------
   /// picks one random vertex and changes either its left or right side
   template <typename RandEng>
-  void mutate_seq_straight_next_at(vertex_seq_t&                   seq,
-                                   typename vertex_seq_t::iterator it,
-                                   Real min_angle, const size_t new_next_size,
-                                   RandEng& eng) {
+  std::optional<vertex_seq_t> mutate_seq_straight_next_at(
+      const vertex_seq_t& original_seq, const size_t begin_idx, Real min_angle,
+      const size_t new_next_size, RandEng& eng) {
     using namespace boost;
     using namespace adaptors;
 
+    auto seq = original_seq;
+    auto it  = next(begin(seq), begin_idx);
     resize_next_list(seq, it, new_next_size);
     for (auto i = next(it); i != end(seq); ++i) { *i = *it; }
 
@@ -684,13 +671,10 @@ class grid {
     // straight using min_angle
     ++it;
     while (it != end(seq)) {
-      const auto neighbors = free_neighbors(*it, seq);
+      const auto neighbors = free_neighbors(*prev(it), seq);
       if (prev(it) == begin(seq)) {
         auto neighbor_it = random_elem(neighbors, eng);
-        if (neighbor_it == end(neighbors)) {
-          seq.erase(it, end(seq));
-          break;
-        }
+        if (neighbor_it == end(neighbors)) { return {}; }
         *it = *neighbor_it;
 
       } else {
@@ -706,55 +690,67 @@ class grid {
 
         auto filtered_neighbors = neighbors | filtered(angle_straight);
         auto neighbor_it        = random_elem(filtered_neighbors, eng);
-        if (neighbor_it == end(filtered_neighbors)) {
-          seq.erase(it, end(seq));
-          break;
-        }
+        if (neighbor_it == end(filtered_neighbors)) { return {}; }
         *it = *neighbor_it;
       }
       ++it;
     }
+    return seq;
   }
   //----------------------------------------------------------------------------
   /// picks one random vertex and changes either its left or right side
   template <typename RandEng>
-  auto& mutate_seq_straight(vertex_seq_t&                   seq,
-                            typename vertex_seq_t::iterator v_it,
-                            Real min_angle, size_t max_size_change,
-                            RandEng& eng) {
+  auto mutate_seq_straight(const vertex_seq_t& seq, const size_t begin_idx,
+                           Real min_angle, size_t max_size_change,
+                           RandEng& eng) {
     using namespace boost;
     using namespace adaptors;
 
-    std::uniform_int_distribution size_change_dist{
-        -static_cast<int>(max_size_change), static_cast<int>(max_size_change)};
-    auto size_change = size_change_dist(eng);
+    vertex_seq_t new_seq;
+    bool         done = false;
+    while (!done) {
+      std::uniform_int_distribution size_change_dist{
+          -static_cast<int>(max_size_change),
+          static_cast<int>(max_size_change)};
+      auto size_change = size_change_dist(eng);
 
-    const auto coin_side = flip_coin(eng);
-    // rearrange left side
-    if ((coin_side == HEADS && v_it != begin(seq)) ||
-        (coin_side == TAILS && v_it == prev(end(seq)))) {
-      auto left_size = distance(begin(seq), v_it);
-      auto new_left_size =
-          static_cast<size_t>(std::max<int>(0, left_size + size_change));
-      mutate_seq_straight_prev_at(seq, v_it, min_angle, new_left_size, eng);
+      const auto coin_side = flip_coin(eng);
+      // rearrange left side
+      if ((coin_side == HEADS && begin_idx != 0) ||
+          (coin_side == TAILS && begin_idx == seq.size())) {
+        auto left_size = begin_idx - 1;
+        auto new_left_size =
+            static_cast<size_t>(std::max<int>(0, left_size + size_change));
+        auto new_seq_opt = mutate_seq_straight_prev_at(
+            seq, begin_idx, min_angle, new_left_size, eng);
+        if (new_seq_opt) {
+          done    = true;
+          new_seq = std::move(*new_seq_opt);
+        }
 
-    } else {
-      auto right_size = distance(next(v_it), end(seq));
-      auto new_right_size =
-          static_cast<size_t>(std::max<int>(0, right_size + size_change));
-      mutate_seq_straight_next_at(seq, v_it, min_angle, new_right_size, eng);
+      } else {
+        auto right_size = seq.size() - begin_idx - 1;
+        auto new_right_size =
+            static_cast<size_t>(std::max<int>(0, right_size + size_change));
+        auto new_seq_opt = mutate_seq_straight_next_at(
+            seq, begin_idx, min_angle, new_right_size, eng);
+        if (new_seq_opt) {
+          done    = true;
+          new_seq = std::move(*new_seq_opt);
+        }
+      }
     }
 
-    return seq;
+    return new_seq;
   }
   //----------------------------------------------------------------------------
   /// picks one random vertex and changes either its left or right side
   template <typename RandEng>
   auto mutate_seq_straight(const vertex_seq_t& seq, Real min_angle,
                            size_t max_size_change, RandEng& eng) {
-    auto mseq = seq;
-    return mutate_seq_straight(mseq, random_elem(mseq, eng), min_angle,
-                               max_size_change, eng);
+    return mutate_seq_straight(seq,
+                               random_uniform<size_t>(0, seq.size() - 1, eng),
+                               min_angle, max_size_change, eng);
   }
 
   //----------------------------------------------------------------------------
@@ -877,8 +873,7 @@ class grid {
 
 //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 template <typename... Reals>
-grid(const linspace<Reals>&...)
-    ->grid<promote_t<Reals...>, sizeof...(Reals)>;
+grid(const linspace<Reals>&...)->grid<promote_t<Reals...>, sizeof...(Reals)>;
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 template <typename Real, size_t N, size_t... Is>
 grid(const boundingbox<Real, N>& bb, const std::array<size_t, N>& res,

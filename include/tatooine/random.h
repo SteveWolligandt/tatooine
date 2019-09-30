@@ -5,14 +5,17 @@
 #include "type_traits.h"
 
 //==============================================================================
-template <typename Real, typename Engine = std::mt19937_64>
+namespace tatooine {
+//==============================================================================
+
+template <typename T, typename Engine = std::mt19937_64>
 struct random_uniform {
   using engine_t = Engine;
-  using real_t   = Real;
+  using real_t   = T;
   using distribution_t =
-      std::conditional_t<std::is_floating_point_v<Real>,
-                         std::uniform_real_distribution<Real>,
-                         std::uniform_int_distribution<Real>>;
+      std::conditional_t<std::is_floating_point_v<T>,
+                         std::uniform_real_distribution<T>,
+                         std::uniform_int_distribution<T>>;
 
   //============================================================================
   random_uniform() : engine{std::random_device{}()}, distribution{0, 1} {}
@@ -23,22 +26,29 @@ struct random_uniform {
 
   //----------------------------------------------------------------------------
   random_uniform(const Engine& _engine) : engine{_engine}, distribution{0, 1} {}
-  // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-  random_uniform(Engine&& _engine) : engine{std::move(_engine)}, distribution{0, 1} {}
-  // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-  random_uniform(Real min, Real max)
+  // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+  // -
+  random_uniform(Engine&& _engine)
+      : engine{std::move(_engine)}, distribution{0, 1} {}
+  // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+  // -
+  random_uniform(T min, T max)
       : engine{std::random_device{}()}, distribution{min, max} {}
-  // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-  random_uniform(const Engine& _engine, Real min, Real max)
+  // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+  // -
+  random_uniform(const Engine& _engine, T min, T max)
       : engine{_engine}, distribution{min, max} {}
-  // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-  random_uniform(Engine&& _engine, Real min, Real max)
+  // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+  // -
+  random_uniform(Engine&& _engine, T min, T max)
       : engine{std::move(_engine)}, distribution{min, max} {}
-  // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-  random_uniform(Real min, Real max, const Engine& _engine)
+  // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+  // -
+  random_uniform(T min, T max, const Engine& _engine)
       : engine{_engine}, distribution{min, max} {}
-  // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-  random_uniform(Real min, Real max, Engine&& _engine)
+  // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+  // -
+  random_uniform(T min, T max, Engine&& _engine)
       : engine{std::move(_engine)}, distribution{min, max} {}
 
   //============================================================================
@@ -50,23 +60,30 @@ struct random_uniform {
  public:
   auto get() { return distribution(engine); }
   auto operator()() { return get(); }
+
+  template <typename OtherEngine>
+  auto get(OtherEngine& e) { return distribution(e); }
+  template <typename OtherEngine>
+  auto operator()(OtherEngine& e) { return get(e); }
 };
 
 //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 random_uniform()->random_uniform<double, std::mt19937_64>;
-// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+// -
 template <typename Engine>
 random_uniform(Engine &&)->random_uniform<double, Engine>;
-// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-template <typename Real>
-random_uniform(Real min, Real max)->random_uniform<Real, std::mt19937_64>;
+// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+// -
+template <typename T>
+random_uniform(T min, T max)->random_uniform<T, std::mt19937_64>;
 
 //==============================================================================
-template <typename Real, typename Engine = std::mt19937_64>
+template <typename T, typename Engine = std::mt19937_64>
 struct random_normal {
-  using engine_t = Engine;
-  using real_t = Real;
-  using distribution_t = std::normal_distribution<Real>;
+  using engine_t       = Engine;
+  using real_t         = T;
+  using distribution_t = std::normal_distribution<T>;
 
   //============================================================================
   random_normal() : engine{std::random_device{}()}, distribution{0, 1} {}
@@ -77,22 +94,29 @@ struct random_normal {
 
   //----------------------------------------------------------------------------
   random_normal(const Engine& _engine) : engine{_engine}, distribution{0, 1} {}
-  // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-  random_normal(Engine&& _engine) : engine{std::move(_engine)}, distribution{0, 1} {}
-  // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-  random_normal(Real mean, Real stddev)
+  // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+  // -
+  random_normal(Engine&& _engine)
+      : engine{std::move(_engine)}, distribution{0, 1} {}
+  // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+  // -
+  random_normal(T mean, T stddev)
       : engine{std::random_device{}()}, distribution{mean, stddev} {}
-  // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-  random_normal(const Engine& _engine, Real mean, Real stddev)
+  // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+  // -
+  random_normal(const Engine& _engine, T mean, T stddev)
       : engine{_engine}, distribution{mean, stddev} {}
-  // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-  random_normal(Engine&& _engine, Real mean, Real stddev)
+  // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+  // -
+  random_normal(Engine&& _engine, T mean, T stddev)
       : engine{std::move(_engine)}, distribution{mean, stddev} {}
-  // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-  random_normal(Real mean, Real stddev, const Engine& _engine)
+  // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+  // -
+  random_normal(T mean, T stddev, const Engine& _engine)
       : engine{_engine}, distribution{mean, stddev} {}
-  // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-  random_normal(Real mean, Real stddev, Engine&& _engine)
+  // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+  // -
+  random_normal(T mean, T stddev, Engine&& _engine)
       : engine{std::move(_engine)}, distribution{mean, stddev} {}
 
   //============================================================================
@@ -108,12 +132,14 @@ struct random_normal {
 
 //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 random_normal()->random_normal<double, std::mt19937_64>;
-// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+// -
 template <typename Engine>
 random_normal(Engine &&)->random_normal<double, Engine>;
-// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-template <typename Real>
-random_normal(Real mean, Real stddev)->random_normal<Real, std::mt19937_64>;
+// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+// -
+template <typename T>
+random_normal(T mean, T stddev)->random_normal<T, std::mt19937_64>;
 
 //==============================================================================
 template <typename Iterator, typename RandomEngine>
@@ -134,8 +160,11 @@ auto random_elem(Range&& range, RandomEngine& eng) {
 enum coin { HEADS, TAILS };
 template <typename RandomEngine>
 auto flip_coin(RandomEngine&& eng) {
-  std::uniform_int_distribution coin{0,1};
+  std::uniform_int_distribution coin{0, 1};
   return coin(eng) == 0 ? HEADS : TAILS;
 }
+//==============================================================================
+}  // namespace tatooine
+//==============================================================================
 
 #endif
