@@ -72,7 +72,7 @@ struct line {
   const auto& vertices() const { return m_vertices; }
   auto&       vertices() { return m_vertices; }
   //----------------------------------------------------------------------------
-  auto size() const { return m_vertices.size(); }
+  auto num_vertices() const { return m_vertices.size(); }
   //----------------------------------------------------------------------------
   auto empty() const { return m_vertices.empty(); }
   //----------------------------------------------------------------------------
@@ -107,9 +107,9 @@ struct line {
   //----------------------------------------------------------------------------
   /// calculates tangent at point i with forward differences
   auto tangent(const size_t i, forward_t /*fw*/) const {
-    assert(size() > 1);
+    assert(num_vertices() > 1);
     if (is_closed()) {
-      if (i == size() - 1) {
+      if (i == num_vertices() - 1) {
         return (front_vertex() - vertex_at(i)) /
                distance(front_vertex(), vertex_at(i));
       }
@@ -121,7 +121,7 @@ struct line {
   //----------------------------------------------------------------------------
   /// calculates tangent at point i with backward differences
   auto tangent(const size_t i, backward_t /*bw*/) const {
-    assert(size() > 1);
+    assert(num_vertices() > 1);
     if (is_closed()) {
       if (i == 0) {
         return (vertex_at(i) - back_vertex()) /
@@ -140,7 +140,7 @@ struct line {
         return (vertex_at(i+1) - back_vertex()) /
                (distance(back_vertex(), vertex_at(i)) +
                 distance(vertex_at(i), vertex_at(i+1)));
-      } else if (i == size() - 1) {
+      } else if (i == num_vertices() - 1) {
         return (front_vertex() - vertex_at(i - 1)) /
                (distance(vertex_at(i - 1), vertex_at(i)) +
                 distance(vertex_at(i), front_vertex()));
@@ -155,14 +155,14 @@ struct line {
   auto tangent(const size_t i) const {
     if (is_closed()) { return tangent(i, central); }
     if (i == 0) { return tangent(i, forward); }
-    if (i == size() - 1) { return tangent(i, backward); }
+    if (i == num_vertices() - 1) { return tangent(i, backward); }
     return tangent(i, central);
   }
 
   //----------------------------------------------------------------------------
   auto length() {
     Real len = 0;
-    for (size_t i = 0; i < this->size() - 1; ++i) {
+    for (size_t i = 0; i < this->num_vertices() - 1; ++i) {
       len += norm(vertex_at(i) - vertex_at(i + 1));
     }
     return len;
@@ -253,15 +253,15 @@ struct line {
 //    } else {
 //      closed         = false;
 //      need_new_strip = true;
-//      if (!filtered_lines.empty() && filtered_lines.back().size() <= 1)
+//      if (!filtered_lines.empty() && filtered_lines.back().num_vertices() <= 1)
 //        filtered_lines.pop_back();
 //    }
 //    i++;
 //  }
 //
-//  if (!filtered_lines.empty() && filtered_lines.back().size() <= 1)
+//  if (!filtered_lines.empty() && filtered_lines.back().num_vertices() <= 1)
 //    filtered_lines.pop_back();
-//  if (filtered_lines.size() == 1)
+//  if (filtered_lines.num_vertices() == 1)
 //  filtered_lines.front().set_is_closed(closed); return filtered_lines;
 //}
 
@@ -276,7 +276,7 @@ void line<Real, N>::write_vtk(const std::string& path, const std::string& title,
 
     // write points
     std::vector<std::array<Real, 3>> ps;
-    ps.reserve(this->size());
+    ps.reserve(this->num_vertices());
     for (const auto& p : vertices()) {
       if constexpr (N == 3) {
         ps.push_back({p(0), p(1), p(2)});
@@ -288,18 +288,18 @@ void line<Real, N>::write_vtk(const std::string& path, const std::string& title,
 
     // write lines
     std::vector<std::vector<size_t>> line_seq(
-        1, std::vector<size_t>(this->size()));
+        1, std::vector<size_t>(this->num_vertices()));
     boost::iota(line_seq.front(), 0);
     if (this->is_closed()) { line_seq.front().push_back(0); }
     writer.write_lines(line_seq);
 
-    writer.write_point_data(this->size());
+    writer.write_point_data(this->num_vertices());
 
     // write tangents
     if (write_tangents) {
       std::vector<std::vector<Real>> tangents;
-      tangents.reserve(this->size());
-      for (size_t i = 0; i < this->size(); ++i) {
+      tangents.reserve(this->num_vertices());
+      for (size_t i = 0; i < this->num_vertices(); ++i) {
         const auto t = tangent(i);
         tangents.push_back({t(0), t(1), t(2)});
       }
@@ -317,7 +317,7 @@ void write_line_container_to_vtk(const LineCont& lines, const std::string& path,
   vtk::legacy_file_writer writer(path, vtk::POLYDATA);
   if (writer.is_open()) {
     size_t num_pts = 0;
-    for (const auto& l : lines) num_pts += l.size();
+    for (const auto& l : lines) num_pts += l.num_vertices();
     std::vector<std::array<typename LineCont::value_type::real_t, 3>> points;
     std::vector<std::vector<size_t>> line_seqs;
     points.reserve(num_pts);
@@ -335,9 +335,9 @@ void write_line_container_to_vtk(const LineCont& lines, const std::string& path,
       }
 
       // add lines
-      boost::iota(line_seqs.emplace_back(l.size()), cur_first);
+      boost::iota(line_seqs.emplace_back(l.num_vertices()), cur_first);
       if (l.is_closed()) { line_seqs.back().push_back(cur_first); }
-      cur_first += l.size();
+      cur_first += l.num_vertices();
     }
 
     // write
@@ -486,7 +486,7 @@ struct parameterized_line : line<Real, N> {
   using typename parent_t::pos_t;
   struct time_not_found : std::exception {};
 
-  using parent_t::size;
+  using parent_t::num_vertices;
   using parent_t::vertices;
   using parent_t::vertex_at;
   using parent_t::tangent;
@@ -605,7 +605,7 @@ struct parameterized_line : line<Real, N> {
     }
 
     // find the two points t is in between
-    size_t left = 0, right = size() - 1;
+    size_t left = 0, right = num_vertices() - 1;
     while (right - left > 1) {
       size_t center = (left + right) / 2;
       if (t < parameterization_at(center)) {
@@ -641,14 +641,14 @@ struct parameterized_line : line<Real, N> {
   //============================================================================
   void uniform_parameterization(Real t0 = 0) {
     parameterization_at(0) = t0;
-    for (size_t i = 1; i < this->size(); ++i) {
+    for (size_t i = 1; i < this->num_vertices(); ++i) {
       parameterization_at(i) = parameterization_at(i - 1) + 1;
     }
   }
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
   void chordal_parameterization(Real t0 = 0) {
     parameterization_at(0) = t0;
-    for (size_t i = 1; i < this->size(); ++i) {
+    for (size_t i = 1; i < this->num_vertices(); ++i) {
       parameterization_at(i) = parameterization_at(i - 1) +
                                distance(vertex_at(i), vertex_at(i - 1));
     }
@@ -656,7 +656,7 @@ struct parameterized_line : line<Real, N> {
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
   void centripetal_parameterization(Real t0 = 0) {
     parameterization_at(0) = t0;
-    for (size_t i = 1; i < this->size(); ++i) {
+    for (size_t i = 1; i < this->num_vertices(); ++i) {
       parameterization_at(i) =
           parameterization_at(i - 1) +
           std::sqrt(distance(vertex_at(i), vertex_at(i - 1)));
@@ -666,19 +666,19 @@ struct parameterized_line : line<Real, N> {
   //----------------------------------------------------------------------------
   /// computes tangent assuming the line is a quadratic curve
   auto tangent(const size_t i, quadratic_t /*q*/) const {
-    assert(this->size() > 1);
+    assert(this->num_vertices() > 1);
     // start or end point
     if (!this->is_closed()) {
       if (i == 0) { return at(1) - at(0); }
-      if (i == this->size() - 1) { return at(i) - at(i - 1); }
+      if (i == this->num_vertices() - 1) { return at(i) - at(i - 1); }
     }
 
     // point in between
-    // const auto& x0 = at(std::abs((i - 1) % this->size()));
+    // const auto& x0 = at(std::abs((i - 1) % this->num_vertices()));
     const auto& x0 = at(i - 1);
     const auto& x1 = at(i);
     const auto& x2 = at(i + 1);
-    // const auto& x2 = at((i + 1) % this->size());
+    // const auto& x2 = at((i + 1) % this->num_vertices());
     const auto t = (parameterization_at(i) - parameterization_at(i - 1)) /
                    (parameterization_at(i + 1) - parameterization_at(i - 1));
 
@@ -706,7 +706,7 @@ struct parameterized_line : line<Real, N> {
 
       // write points
       std::vector<std::array<Real, 3>> ps;
-      ps.reserve(this->size());
+      ps.reserve(this->num_vertices());
       for (const auto& p : vertices()) {
         if constexpr (N == 3) {
           ps.push_back({p(0), p(1), p(2)});
@@ -718,17 +718,17 @@ struct parameterized_line : line<Real, N> {
 
       // write lines
       std::vector<std::vector<size_t>> line_seq(
-          1, std::vector<size_t>(this->size()));
+          1, std::vector<size_t>(this->num_vertices()));
       boost::iota(line_seq.front(), 0);
       writer.write_lines(line_seq);
 
-      writer.write_point_data(this->size());
+      writer.write_point_data(this->num_vertices());
 
       // write tangents
       if (write_tangents) {
         std::vector<std::vector<Real>> tangents;
-        tangents.reserve(this->size());
-        for (size_t i = 0; i < this->size(); ++i) {
+        tangents.reserve(this->num_vertices());
+        for (size_t i = 0; i < this->num_vertices(); ++i) {
           const auto t = tangent(i);
           tangents.push_back({t(0), t(1), t(2)});
         }
@@ -737,7 +737,7 @@ struct parameterized_line : line<Real, N> {
 
       // write parameterization
       std::vector<std::vector<Real>> parameterization;
-      parameterization.reserve(this->size());
+      parameterization.reserve(this->num_vertices());
       for (auto t : m_parameterization) { parameterization.push_back({t}); }
       writer.write_scalars("parameterization", parameterization);
 

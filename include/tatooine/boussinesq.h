@@ -24,7 +24,7 @@ struct boussinesq : field<boussinesq, double, 2, 2> {
   static constexpr vec            center{0.0, -0.4};
   static constexpr real_t         radius = 0.07;
 
-  boussinesq() : sampler("/home/steve/vectorfield_datasets/boussinesq.am") {}
+  boussinesq(const std::string& filepath) : sampler(filepath) {}
 
   tensor_t evaluate(const pos_t& x, real_t t) const {
     return sampler(x(0), x(1), t);

@@ -15,6 +15,7 @@ macro(create_executable NAME)
 endmacro()
 
 #===============================================================================
+create_executable(pathlines_for_thomas)
 create_executable(newdoublegyre_criticalpointpath_export)
 create_executable(newdoublegyre_bifurcationline_export)
 create_executable(doublegyre_criticalpointpath_export)
