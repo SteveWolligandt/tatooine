@@ -137,7 +137,7 @@ struct create_chunk_type {
 };
 
 //==============================================================================
-template <typename T, size_t N, size_t ChunkRes = 8>
+template <typename T, size_t N, size_t ChunkRes = 128>
 struct chunked_data {
   //============================================================================
   using this_t    = chunked_data<T, N, ChunkRes>;

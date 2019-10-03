@@ -86,12 +86,12 @@ int main() {
                                boundingbox{vec{-1.0, -1.0}, vec{8.1164, 1.5}},
                                num_pathlines, 5, 5, num_samples, "cavity.thomas");
 
-  // rbc v1{
-  //    "/home/steve/vectorfield_datasets/"RBC/binary"};
-  // generate_and_write_pathlines(v1,
-  //                             boundingbox{vec{0.00390625, 0.00390625},
-  //                             vec{3.99609375, 0.99609375}}, num_pathlines,
-  //                             2000, 20, num_samples, "rbc.thomas");
+  rbc v1{
+     "/home/steve/vectorfield_datasets/RBC/binary"};
+  generate_and_write_pathlines(v1,
+                              boundingbox{vec{0.00390625, 0.00390625},
+                              vec{3.99609375, 0.99609375}}, num_pathlines,
+                              2000, 20, num_samples, "rbc.thomas");
 
   boussinesq v2{"/home/steve/vectorfield_datasets/boussinesq.am"};
   generate_and_write_pathlines(v2,
