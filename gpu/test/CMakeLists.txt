@@ -18,7 +18,8 @@ macro(create_test NAME)
   set(ALL_TEST_CPPS ${ALL_TEST_CPPS} ${NAME}.cpp)
   add_executable (${NAME} ${NAME}.cpp main.cpp)
   target_link_libraries(${NAME} tatooine tatooine_gpu Catch2::Catch2)
-  target_compile_features(${NAME} PUBLIC cxx_std_17)
+  target_include_directories(${NAME} PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/../private_include)
+  target_compile_features(${NAME} PUBLIC cxx_std_14)
   target_compile_options(${NAME} PRIVATE
     -Wall -Wextra -pedantic -Wno-missing-braces -Wno-unused-lambda-capture)
   catch_discover_tests(${NAME})
@@ -26,6 +27,8 @@ endmacro()
 
 #- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 create_test(add)
+create_test(global_buffer)
+create_test(texture_buffer)
 
 #- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 add_executable (_allgpu main.cpp ${ALL_TEST_CPPS})

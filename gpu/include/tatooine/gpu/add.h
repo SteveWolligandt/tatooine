@@ -7,11 +7,12 @@ namespace tatooine {
 namespace gpu {
 //==============================================================================
 
-void add (std::vector<float>&, const std::vector<float>&);
+std::vector<float> add(const std::vector<float>&, const std::vector<float>&,
+                       const int block_size = 256);
 
 //==============================================================================
-} // namespace gpu
-} // namespace tatooine
+}  // namespace gpu
+}  // namespace tatooine
 //==============================================================================
 
 #endif

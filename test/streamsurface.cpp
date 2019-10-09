@@ -1,6 +1,7 @@
 #include <tatooine/integration/vclibs/rungekutta43.h>
 #include <tatooine/streamsurface.h>
 #include <tatooine/doublegyre.h>
+#include <tatooine/sinuscosinus.h>
 #include <tatooine/boussinesq.h>
 #include <tatooine/spacetime_field.h>
 #include <catch2/catch.hpp>
@@ -21,10 +22,9 @@ TEST_CASE(
       integration::vclibs::rungekutta43<double, 3>{},
       interpolation::linear<double>{},
       interpolation::hermite<double>{}};
-  ssf.discretize<simple_discretization>(5ul, 1.0, 0.0, 1)
+  ssf.discretize<simple_discretization>(5ul, 1.0, 0.0, 1.0)
       .write_vtk("streamsurface_dg_simple.vtk");
 }
-
 //==============================================================================
 TEST_CASE(
     "streamsurface_hultquist_spacetime_doublegyre",
@@ -41,20 +41,33 @@ TEST_CASE(
   ssf.discretize<hultquist_discretization>(10ul, 0.1, -20.0, 20.0)
       .write_vtk("streamsurface_dg_hultquist.vtk");
 }
-
 //==============================================================================
 TEST_CASE(
-    "streamsurface_hultquist_spacetime_boussinesq",
-    "[streamsurface][hultquist][boussinesq][spacetime_field]") {
-  boussinesq      v;
-  streamsurface   ssf{spacetime_field{v},
-                    0,
-                    {{{-0.1, 1.5, 10.0}, 0.0}, {{0.1, 1.5, 10.0}, 1}},
-                    integration::vclibs::rungekutta43<double, 3>{},
+    "streamsurface_simple_sinuscosinus",
+    "[streamsurface][simple][numerical][sinuscosinus][sc]") {
+  numerical::sinuscosinus v;
+  streamsurface           ssf{v,
+                    0.0,
+                    {{{0.0, 0.0}, 0.0}, {{1.0, 0.0}, 1.0}},
+                    integration::vclibs::rungekutta43<double, 2>{},
                     interpolation::linear<double>{},
-                    interpolation::hermite<double>{}};
-  ssf.discretize<hultquist_discretization>(10ul, 0.1, 0.0, 9.0)
-      .write_vtk("streamsurface_boussinesq_hultquist.vtk");
+                    interpolation::linear<double>{}};
+  ssf.discretize<simple_discretization>(2ul, 0.01, -M_PI, M_PI)
+      .write_vtk("streamsurface_sc_simple.vtk");
+}
+//==============================================================================
+TEST_CASE(
+    "streamsurface_hultquist_sinuscosinus",
+    "[streamsurface][hultquist][numerical][sinuscosinus][sc]") {
+  numerical::sinuscosinus v;
+  streamsurface           ssf{v,
+                    0.0,
+                    {{{0.0, 0.0}, 0.0}, {{1.0, 0.0}, 1.0}},
+                    integration::vclibs::rungekutta43<double, 2>{},
+                    interpolation::linear<double>{},
+                    interpolation::linear<double>{}};
+  ssf.discretize<hultquist_discretization>(2ul, 0.01, -M_PI, M_PI)
+      .write_vtk("streamsurface_sc_hultquist.vtk");
 }
 
 ////==============================================================================

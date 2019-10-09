@@ -1,17 +1,18 @@
-#include <tatooine/gpu/add.h>
-#include <catch2/catch.hpp>
+#ifndef TATOOINE_GPU_CUDA_RUNGEKUTTA4_H
+#define TATOOINE_GPU_CUDA_RUNGEKUTTA4_H
 
 //==============================================================================
-namespace tatooine::gpu::test {
+namespace tatooine {
+namespace gpu {
 //==============================================================================
 
-TEST_CASE("add", "[gpu][add]") {
-  std::vector v1{1.0f, 2.0f}, v2{3.0f, 5.0f};
-  auto v3 = add(v1, v2);
-  REQUIRE(v3[0] == v1[0] + v2[0]);
-  REQUIRE(v3[1] == v1[1] + v2[1]);
+__host__ vec2 rungekutta4_step_2(vec) {
+  
 }
 
 //==============================================================================
-}  // namespace tatooine::gpu::test
+}  // namespace gpu
+}  // namespace tatooine
 //==============================================================================
+
+#endif

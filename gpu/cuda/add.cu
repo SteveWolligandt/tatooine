@@ -1,3 +1,4 @@
+#include <tatooine/cuda/global_buffer.h>
 #include <tatooine/gpu/add.h>
 #include <cassert>
 
@@ -6,34 +7,24 @@ namespace tatooine {
 namespace gpu {
 //==============================================================================
 
-__global__
-void global_add(int n, float *x, float *y) {
-  int index = threadIdx.x;
+__global__ void add_kernel(int n, float *x, float *y, float *z) {
+  int index  = threadIdx.x;
   int stride = blockDim.x;
-  for (int i = index; i < n; i+=stride) {
-    x[i] = x[i] + y[i];
-  }
+  for (int i = index; i < n; i += stride) { z[i] = x[i] + y[i]; }
 }
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-void add(std::vector<float>& x, const std::vector<float>& y) {
+std::vector<float> add(const std::vector<float> &x, const std::vector<float> &y,
+                       const int block_size) {
   assert(x.size() == y.size());
-  float *d_x=nullptr, *d_y=nullptr;
-  const size_t size = x.size() * sizeof(float);
-  cudaMalloc((void**)&d_x, size);
-  cudaMalloc((void**)&d_y, size);
-  cudaMemcpy(d_x, x.data(), size, cudaMemcpyHostToDevice);
-  cudaMemcpy(d_y, y.data(), size, cudaMemcpyHostToDevice);
-
-  const int blockSize = 256;
-  const int numBlocks = (x.size() + blockSize - 1) / blockSize;
-  global_add<<<numBlocks, blockSize>>>(x.size(), d_x, d_y);
+  cuda::global_buffer<float> d_x{x}, d_y{y}, d_z{x.size()};
+  const int            num_blocks = (x.size() + block_size - 1) / block_size;
+  add_kernel<<<num_blocks, block_size>>>(x.size(), d_x.device_ptr(),
+                                         d_y.device_ptr(), d_z.device_ptr());
   cudaDeviceSynchronize();
-  cudaMemcpy(&x[0], d_x, size, cudaMemcpyDeviceToHost);
-  cudaFree(d_x);
-  cudaFree(d_y);
+  return d_z.download();
 }
 
 //==============================================================================
-} // namespace gpu
-} // namespace tatooine
-//==============================================================================
+}  // namespace gpu
+}  // namespace tatooine
+//===================================data.data()===========================================

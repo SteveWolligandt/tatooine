@@ -16,13 +16,18 @@ function(CUDA_CONVERT_FLAGS EXISTING_TARGET)
   endif()
 endfunction()
 
-add_library(tatooine_gpu SHARED ${CMAKE_CURRENT_SOURCE_DIR}/cuda/add.cu)
+file(GLOB CUDA_SOURCES cuda/*.cu)
+add_library(tatooine_gpu SHARED ${CUDA_SOURCES})
 set_target_properties(tatooine_gpu
   PROPERTIES
     CUDA_SEPERABLE_COMPILATION ON)
 target_include_directories(tatooine_gpu
   PUBLIC
     ${CMAKE_CURRENT_SOURCE_DIR}/include
+)
+target_include_directories(tatooine_gpu
+  PRIVATE
+    ${CMAKE_CURRENT_SOURCE_DIR}/private_include
 )
 
 add_subdirectory(test)

@@ -1,4 +1,4 @@
-#include <tatooine/gpu/add.h>
+#include <tatooine/cuda/global_buffer.h>
 #include <catch2/catch.hpp>
 
 //==============================================================================

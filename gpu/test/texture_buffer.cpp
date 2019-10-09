@@ -1,4 +1,4 @@
-#include <tatooine/gpu/add.h>
+#include <tatooine/cuda/texture_buffer.h>
 #include <catch2/catch.hpp>
 
 //==============================================================================
