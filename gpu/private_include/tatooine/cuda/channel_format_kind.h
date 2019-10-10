@@ -21,38 +21,38 @@ struct channel_format_kind_impl<double> {
 };
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 template <>
-struct channel_format_kind_impl<std::uint8> {
+struct channel_format_kind_impl<std::uint8_t> {
   static constexpr auto value = cudaChannelFormatKindUnsigned;
 };
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 template <>
-struct channel_format_kind_impl<std::uint16> {
+struct channel_format_kind_impl<std::uint16_t> {
   static constexpr auto value = cudaChannelFormatKindUnsigned;
 };
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 template <>
-struct channel_format_kind_impl<std::uint32> {
+struct channel_format_kind_impl<std::uint32_t> {
   static constexpr auto value = cudaChannelFormatKindUnsigned;
 };
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 template <>
-struct channel_format_kind_impl<std::int8> {
+struct channel_format_kind_impl<std::int8_t> {
   static constexpr auto value = cudaChannelFormatKindSigned;
 };
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 template <>
-struct channel_format_kind_impl<std::int16> {
+struct channel_format_kind_impl<std::int16_t> {
   static constexpr auto value = cudaChannelFormatKindSigned;
 };
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 template <>
-struct channel_format_kind_impl<std::int32> {
+struct channel_format_kind_impl<std::int32_t> {
   static constexpr auto value = cudaChannelFormatKindSigned;
 };
 //------------------------------------------------------------------------------
 template <typename T>
 constexpr auto channel_format_kind() {
-  return channel_format_kind_impl<T>::value();
+  return channel_format_kind_impl<T>::value;
 }
 //==============================================================================
 }  // namespace cuda

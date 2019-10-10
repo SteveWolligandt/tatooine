@@ -15,13 +15,22 @@ include(Catch)
 #- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 set(ALL_TEST_CPPS main.cpp)
 macro(create_test NAME)
-  set(ALL_TEST_CPPS ${ALL_TEST_CPPS} ${NAME}.cpp)
-  add_executable (${NAME} ${NAME}.cpp main.cpp)
-  target_link_libraries(${NAME} tatooine tatooine_gpu Catch2::Catch2)
+  if(EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/${NAME}.cpp")
+    add_executable (${NAME} ${NAME}.cpp main.cpp)
+    set(ALL_TEST_CPPS ${ALL_TEST_CPPS} ${NAME}.cpp)
+    target_link_libraries(${NAME} tatooine tatooine_gpu Catch2::Catch2)
+    target_compile_features(${NAME} PUBLIC cxx_std_17)
+    target_compile_options(${NAME} PRIVATE
+      -Wall -Wextra -pedantic -Wno-missing-braces -Wno-unused-lambda-capture)
+  else()
+    add_executable (${NAME} ${NAME}.cu main.cu)
+    target_link_libraries(${NAME} tatooine_gpu Catch2::Catch2)
+    target_compile_features(${NAME} PUBLIC cxx_std_14)
+    #target_compile_options(${NAME} PRIVATE
+    #  -Wall -Wextra -pedantic -Wno-missing-braces -Wno-unused-lambda-capture)
+    CUDA_CONVERT_FLAGS(${NAME})
+  endif()
   target_include_directories(${NAME} PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/../private_include)
-  target_compile_features(${NAME} PUBLIC cxx_std_14)
-  target_compile_options(${NAME} PRIVATE
-    -Wall -Wextra -pedantic -Wno-missing-braces -Wno-unused-lambda-capture)
   catch_discover_tests(${NAME})
 endmacro()
 

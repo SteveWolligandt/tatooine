@@ -58,6 +58,13 @@ class global_buffer {
     cudaMemcpy(m_device_ptr, host_data.data(), bs, cudaMemcpyHostToDevice);
   }
   //----------------------------------------------------------------------------
+  global_buffer(const std::initializer_list<T>& l) : m_size{l.size()} {
+    std::vector<T> host_data(begin(l), end(l));
+    const auto bs = num_bytes();
+    malloc(bs);
+    cudaMemcpy(m_device_ptr, host_data.data(), bs, cudaMemcpyHostToDevice);
+  }
+  //----------------------------------------------------------------------------
   template <size_t N>
   global_buffer(const std::array<T, N>& host_data) : m_size{N} {
     const auto bs = num_bytes();

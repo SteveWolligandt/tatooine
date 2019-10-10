@@ -2,7 +2,9 @@
 #define TATOOINE_GPU_CUDA_TEXTURE_BUFFER_H
 
 #include <tatooine/cxx14_type_traits.h>
+#include <algorithm>
 #include <array>
+#include <cassert>
 #include <numeric>
 #include <vector>
 #include "functions.h"
@@ -12,59 +14,77 @@ namespace tatooine {
 namespace cuda {
 //==============================================================================
 
-template <typename T, size_t NumChannels>
+template <typename T, size_t NumChannels, size_t NumDimensions>
 class texture_buffer {
  public:
   using type = T;
+  static constexpr auto num_dimensions() { return NumDimensions; }
   static constexpr auto num_channels() { return NumChannels; }
   //============================================================================
  private:
-  cudaTextureObject_t             m_texture = 0;
-  std::array<size_t, NumChannels> m_resolution;
+  cudaTextureObject_t               m_device_ptr = 0;
+  std::array<size_t, NumDimensions> m_resolution;
   //============================================================================
  public:
   template <typename... Resolution,
-            cxx14::enable_if_arithmetic<Resolution...>...>
+            cxx14::enable_if_arithmetic<Resolution...> = true>
   texture_buffer(const std::vector<T>& host_data, Resolution... resolution)
-      : m_resolution{static_cast<size_t>(resolution)...},
-        m_global_buffer{num_texels()} {
-    static_assert(sizeof...(Resolution) == NumChannels);
-    assert(host_data.size() == num_texels());
+      : m_resolution{static_cast<size_t>(resolution)...} {
+    static_assert(sizeof...(Resolution) == NumDimensions);
+    assert(host_data.size() == num_texels() * NumChannels);
 
-    auto cuArray = malloc_array(resolution...);
-    cudaMemcpyToArray(cuArray, 0, 0, host_data.data(), num_bytes(),
-                      cudaMemcpyHostToDevice);
+    auto cuArray = malloc_array<T, NumChannels>(num_texels());
+    cuda::memcpy_to_array(cuArray, 0, 0,
+                          static_cast<const void*>(host_data.data()), 0,
+                          resolution_bytes(), cudaMemcpyHostToDevice);
 
     // specify texture
-    cudaResourceDesc resDesc;
-    memset(&resDesc, 0, sizeof(resDesc));
-    resDesc.resType         = cudaResourceTypeArray;
-    resDesc.res.array.array = cuArray;
+    cudaResourceDesc res_desc;
+    memset(&res_desc, 0, sizeof(res_desc));
+    res_desc.resType         = cudaResourceTypeArray;
+    res_desc.res.array.array = cuArray;
 
     // specify texture object parameters
-    cudaTextureDesc texDesc;
-    memset(&texDesc, 0, sizeof(texDesc));
-    for (size_t i = 0; i < NumChannels; ++i) {
-      texDesc.addressMode[i] = cudaAddressModeWrap;
+    cudaTextureDesc tex_desc;
+    memset(&tex_desc, 0, sizeof(tex_desc));
+    for (size_t i = 0; i < NumDimensions; ++i) {
+      tex_desc.addressMode[i] = cudaAddressModeWrap;
     }
-    texDesc.filterMode       = cudaFilterModeLinear;
-    texDesc.readMode         = cudaReadModeElementType;
-    texDesc.normalizedCoords = 1;
+    tex_desc.filterMode       = cudaFilterModeLinear;
+    tex_desc.readMode         = cudaReadModeElementType;
+    tex_desc.normalizedCoords = 1;
 
-    cudaCreateTextureObject(&m_texture, &res_desc, &tex_desc, nullptr);
+    cudaCreateTextureObject(&m_device_ptr, &res_desc, &tex_desc, nullptr);
     cudaFreeArray(cuArray);
   }
 
   //----------------------------------------------------------------------------
-  ~texture_buffer() { cudaDestroyTextureObject(texObj); }
+  ~texture_buffer() { cudaDestroyTextureObject(m_device_ptr); }
 
   //============================================================================
  public:
   constexpr auto num_texels() {
-    return std::accumulate(begin(res_arr), end(res_arr), size_t(0));
+    return std::accumulate(begin(m_resolution), end(m_resolution), size_t(0));
   }
   //----------------------------------------------------------------------------
   constexpr auto num_bytes() { return num_texels() * sizeof(T); }
+  //----------------------------------------------------------------------------
+  constexpr auto device_ptr() const { return m_device_ptr; }
+  //----------------------------------------------------------------------------
+  constexpr auto resolution() const { return m_resolution; }
+  //----------------------------------------------------------------------------
+  constexpr auto resolution(size_t i) const { return m_resolution[i]; }
+  //----------------------------------------------------------------------------
+  constexpr auto resolution_bytes() const {
+    auto resb = m_resolution;
+    std::transform(begin(resb), end(resb), begin(resb),
+                   [](auto r) { return r * sizeof(T) * 8; });
+    return resb;
+  }
+  //----------------------------------------------------------------------------
+  constexpr auto resolution_bytes(size_t i) const {
+    return m_resolution[i] * sizeof(T) * 8;
+  }
 };
 
 //==============================================================================
