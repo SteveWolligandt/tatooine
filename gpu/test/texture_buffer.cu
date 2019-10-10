@@ -1,7 +1,7 @@
-#include <iostream>
-#include <tatooine/cuda/texture_buffer.h>
 #include <tatooine/cuda/global_buffer.h>
+#include <tatooine/cuda/texture_buffer.h>
 #include <catch2/catch.hpp>
+#include <iostream>
 
 //==============================================================================
 namespace tatooine {
@@ -9,32 +9,41 @@ namespace gpu {
 namespace test {
 //==============================================================================
 
-__global__ void test_kernel0(float* out, cudaTextureObject_t tex, int width, int height) {
-  const int i = blockIdx.x * blockDim.x + threadIdx.x;
-  const int j = blockIdx.y * blockDim.y + threadIdx.y;
-  const float u = float(i) / (width-1);
-  const float v = float(j) / (height-1);
-  const int idx = i + j*width;
-  out[idx] = tex2D<float>(tex, u, v);
+__global__ void test_kernel0(cudaTextureObject_t tex, float *out, size_t  width,
+                             size_t  height) {
+  const size_t x = blockIdx.x * blockDim.x + threadIdx.x;
+  const size_t y = blockIdx.y * blockDim.y + threadIdx.y;
+  if (x < width && y < height) {
+    // calculate normalized texture coordinates
+    const float u            = x / float(width - 1);
+    const float v            = y / float(height - 1);
+    out[y * width + x] = tex2D<float>(tex, u, v);
+  }
 }
-
+//~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 TEST_CASE("cuda_texture_buffer_upload_download_vector",
           "[cuda][texture_buffer][upload][download][vector]") {
-  const std::vector<float>       texdata{1, 2, 3, 4};
-  cuda::texture_buffer<float, 1, 2> tex(texdata, 2, 2);
-  cuda::global_buffer<float> fetched(texdata.size());
-  test_kernel0<<<dim3(2, 2), dim3(1, 1)>>>(fetched.device_ptr(),
-                                           tex.device_ptr(), 2, 2);
-  for (auto x : fetched.download()) { std::cerr << x << ' '; }
-  std::cerr << '\n';
-  auto download = fetched.download();
-  for (size_t i = 0; i < texdata.size(); ++i) {
-    REQUIRE(download[i] == texdata[i]);
+  const size_t                      width = 10, height = 10;
+  const float                       val = 5.0f;
+  const std::vector<float>          h_tex(width * height, val);
+  cuda::texture_buffer<float, 1, 2> d_tex(h_tex, width, height);
+  cuda::global_buffer<float>        d_out(width * height);
+
+  const dim3 dimBlock(16, 16);
+  const dim3 dimGrid(width / dimBlock.x + 1, height / dimBlock.y + 1);
+  test_kernel0<<<dimBlock, dimGrid>>>(d_tex.device_ptr(), d_out.device_ptr(),
+                                      width, height);
+  cudaDeviceSynchronize();
+
+  const auto h_out = d_out.download();
+  for (size_t i = 0; i < h_tex.size(); ++i) {
+    INFO("i = " << i);
+    CHECK(h_out[i] == h_tex[i]);
   }
 }
 
 //==============================================================================
-}  // namespace tatooine
-}  // namespace gpu
 }  // namespace test
+}  // namespace gpu
+}  // namespace tatooine
 //==============================================================================

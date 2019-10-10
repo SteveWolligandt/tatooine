@@ -1,6 +1,7 @@
 #ifndef TATOOINE_GPU_CUDA_FUNCTIONS_H
 #define TATOOINE_GPU_CUDA_FUNCTIONS_H
 
+#include <array>
 #include "channel_format_description.h"
 
 //==============================================================================
@@ -23,12 +24,13 @@ void malloc_array(cudaArray_t array, size_t width) {
                   1, cudaArrayDefault);
 }
 //------------------------------------------------------------------------------
-
 template <typename T, size_t NumChannels>
 auto malloc_array(size_t width, size_t height) {
   cudaArray_t array;
-  auto       desc = channel_format_description<T, NumChannels>();
-  cudaMallocArray(&array, &desc, width, height, cudaArrayDefault);
+  //auto       desc = channel_format_description<T, NumChannels>();
+  cudaChannelFormatDesc desc =
+      cudaCreateChannelDesc(32, 0, 0, 0, cudaChannelFormatKindFloat);
+  cudaMallocArray(&array, &desc, width, height);
   return array;
 }
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -53,18 +55,14 @@ void malloc_array(cudaArray_t array, size_t width, size_t height, size_t depth) 
 }
 
 //==============================================================================
+template <typename T>
 void memcpy_to_array(cudaArray_t dst, size_t wOffset, size_t hOffset,
-                     const void* src, size_t spitch, size_t width,
+                     const T* src, size_t spitch, size_t width,
                      size_t height, cudaMemcpyKind kind) {
-  cudaMemcpy2DToArray(dst, wOffset, hOffset, src, spitch, width, height, kind);
-}
-// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-void memcpy_to_array(cudaArray_t dst, size_t wOffset, size_t hOffset,
-                     const void* src, size_t spitch,
-                     std::array<size_t, 2> resolution_in_bytes,
-                     cudaMemcpyKind        kind) {
-  cudaMemcpy2DToArray(dst, wOffset, hOffset, src, spitch,
-                      resolution_in_bytes[0], resolution_in_bytes[1], kind);
+  // cudaMemcpy2DToArray(dst, wOffset, hOffset, src, 0,
+  //                     width * sizeof(T), height * sizeof(T), kind);
+  cudaMemcpyToArray(dst, 0, 0, (const void*)src, width * height * sizeof(T),
+                    cudaMemcpyHostToDevice);
 }
 //==============================================================================
 }  // namespace cuda

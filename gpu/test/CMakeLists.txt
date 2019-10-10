@@ -13,37 +13,39 @@ include(CTest)
 include(Catch)
 
 #- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-set(ALL_TEST_CPPS main.cpp)
+set(ALL_TEST_CPPS main.cu)
 macro(create_test NAME)
   if(EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/${NAME}.cpp")
-    add_executable (${NAME} ${NAME}.cpp main.cpp)
+    add_executable (${NAME} ${NAME}.cpp main.cu)
     set(ALL_TEST_CPPS ${ALL_TEST_CPPS} ${NAME}.cpp)
-    target_link_libraries(${NAME} tatooine tatooine_gpu Catch2::Catch2)
-    target_compile_features(${NAME} PUBLIC cxx_std_17)
-    target_compile_options(${NAME} PRIVATE
-      -Wall -Wextra -pedantic -Wno-missing-braces -Wno-unused-lambda-capture)
   else()
     add_executable (${NAME} ${NAME}.cu main.cu)
-    target_link_libraries(${NAME} tatooine_gpu Catch2::Catch2)
-    target_compile_features(${NAME} PUBLIC cxx_std_14)
+    set(ALL_TEST_CPPS ${ALL_TEST_CPPS} ${NAME}.cu)
     #target_compile_options(${NAME} PRIVATE
-    #  -Wall -Wextra -pedantic -Wno-missing-braces -Wno-unused-lambda-capture)
-    CUDA_CONVERT_FLAGS(${NAME})
+    #  --compiler-options -Wall -Wextra -pedantic -Wno-missing-braces -Wno-unused-lambda-capture)
   endif()
-  target_include_directories(${NAME} PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/../private_include)
+  target_link_libraries(${NAME} tatooine_gpu Catch2::Catch2)
+  target_compile_features(${NAME} PUBLIC cxx_std_14)
+  target_include_directories(${NAME}
+   PRIVATE
+    ${CMAKE_CURRENT_SOURCE_DIR}/../../include
+    ${CMAKE_CURRENT_SOURCE_DIR}/../private_include)
   catch_discover_tests(${NAME})
 endmacro()
 
 #- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 create_test(add)
+create_test(array)
 create_test(global_buffer)
 create_test(texture_buffer)
+create_test(field_to_tex)
 
 #- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-add_executable (_allgpu main.cpp ${ALL_TEST_CPPS})
-target_link_libraries(_allgpu tatooine Catch2::Catch2)
-target_compile_options(_allgpu PRIVATE -Wall -Wextra -pedantic
-  -Wno-missing-braces -Wno-unused-lambda-capture)
-add_custom_command(TARGET _allgpu POST_BUILD
-                   WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}
-                   COMMAND mv _allgpu all)
+#add_executable (_allgpu ${ALL_TEST_CPPS})
+#target_link_libraries(_allgpu tatooine Catch2::Catch2)
+#target_compile_options(_allgpu PRIVATE -Wall -Wextra -pedantic
+#  -Wno-missing-braces -Wno-unused-lambda-capture)
+#CUDA_CONVERT_FLAGS(${NAME})
+#add_custom_command(TARGET _allgpu POST_BUILD
+#                   WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}
+#                   COMMAND mv _allgpu all)
