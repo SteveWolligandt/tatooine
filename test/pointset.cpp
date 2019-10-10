@@ -12,10 +12,8 @@ TEST_CASE_METHOD((pointset<double, 3>), "pointset", "[pointset]") {
   prop1[v0]   = 123;
   prop1[v1]   = 246;
   for (size_t i = 0; i < 8; ++i) { insert_vertex(1, 2, 3); }
-  auto&                  prop2 = add_vertex_property<double>("prop2", 2);
-  [[maybe_unused]] auto& prop3 =
-      add_vertex_property<vec<double, 3>>("prop3", {1, 0, 2});
-  write_vtk("pointset.vtk");
+  auto& prop2 = add_vertex_property<double>("prop2", 2);
+  auto& prop3 = add_vertex_property<vec<double, 3>>("prop3", {1, 0, 2});
 
   REQUIRE(num_vertices() == 10);
   REQUIRE(prop1.size() == 10);
@@ -25,12 +23,25 @@ TEST_CASE_METHOD((pointset<double, 3>), "pointset", "[pointset]") {
   REQUIRE(prop2.size() == 10);
   for (auto v : vertices()) { REQUIRE(prop2[v] == 2); }
 
+  REQUIRE(prop3.size() == 10);
+  for (auto v : vertices()) {
+    REQUIRE(approx_equal(prop3[v], vec{1, 0, 2}, 0));
+  }
+
   remove(v1);
+  size_t cnt = 0;
+  for (auto v : vertices()) {
+    REQUIRE(v != v1);
+    std::cerr << v.i << '\n';
+    ++cnt;
+  }
+  REQUIRE(cnt == 9);
   tidy_up();
 
   REQUIRE(num_vertices() == 9);
   REQUIRE(prop1.size() == 9);
   REQUIRE(prop2.size() == 9);
+  REQUIRE(prop3.size() == 9);
   REQUIRE(prop1[v0] == 123);
   REQUIRE(prop1[v1] == 0);
   for (auto v : vertices()) REQUIRE(prop2[v] == 2);

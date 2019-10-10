@@ -1,6 +1,7 @@
 #include <tatooine/integration/vclibs/rungekutta43.h>
 #include <tatooine/streamsurface.h>
 #include <tatooine/doublegyre.h>
+#include <tatooine/modified_doublegyre.h>
 #include <tatooine/boussinesq.h>
 #include <tatooine/spacetime_field.h>
 #include <catch2/catch.hpp>
@@ -42,19 +43,47 @@ TEST_CASE(
       .write_vtk("streamsurface_dg_hultquist.vtk");
 }
 
+////==============================================================================
+//TEST_CASE(
+//    "streamsurface_hultquist_spacetime_boussinesq",
+//    "[streamsurface][hultquist][boussinesq][spacetime_field]") {
+//  boussinesq      v;
+//  streamsurface   ssf{spacetime_field{v},
+//                    0,
+//                    {{{-0.1, 1.5, 10.0}, 0.0}, {{0.1, 1.5, 10.0}, 1}},
+//                    integration::vclibs::rungekutta43<double, 3>{},
+//                    interpolation::linear<double>{},
+//                    interpolation::hermite<double>{}};
+//  ssf.discretize<hultquist_discretization>(10ul, 0.1, 0.0, 9.0)
+//      .write_vtk("streamsurface_boussinesq_hultquist.vtk");
+//}
+
 //==============================================================================
 TEST_CASE(
-    "streamsurface_hultquist_spacetime_boussinesq",
-    "[streamsurface][hultquist][boussinesq][spacetime_field]") {
-  boussinesq      v;
-  streamsurface   ssf{spacetime_field{v},
-                    0,
-                    {{{-0.1, 1.5, 10.0}, 0.0}, {{0.1, 1.5, 10.0}, 1}},
-                    integration::vclibs::rungekutta43<double, 3>{},
-                    interpolation::linear<double>{},
-                    interpolation::hermite<double>{}};
-  ssf.discretize<hultquist_discretization>(10ul, 0.1, 0.0, 9.0)
-      .write_vtk("streamsurface_boussinesq_hultquist.vtk");
+    "streamsurface_hultquist_spacetime_modified_doublegyre",
+    "[streamsurface][hultquist][numerical][modified_doublegyre][mdg][spacetime_field]") {
+  numerical::modified_doublegyre v;
+  spacetime_field                vst{v};
+  parameterized_line<double, 3>  ht;
+  const double                   mu  = 0.01;
+  const double                   t0  = 0;
+  const double                   t1  = 20;
+  const double                   tau = 40;
+  for (auto t : linspace(t0, t1, static_cast<size_t>((t1 - t0) * 100))) {
+    auto x = v.hyperbolic_trajectory(t);
+    ht.push_back({x(0), x(1) + mu, t}, t);
+  }
+  ht.write_vtk("modified_doublegyre_hyperbolic_trajectory_0_20.vtk");
+  streamsurface                  ssf{
+      vst,
+      0,
+      ht,
+      integration::vclibs::rungekutta43<double, 3>{},
+      interpolation::linear<double>{},
+      interpolation::hermite<double>{}};
+  ssf.discretize<hultquist_discretization>(static_cast<size_t>((t1 - t0) * 5),
+                                           0.1, -tau, 0.0)
+      .write_vtk("lcs_streamsurface_modified_doublegyre_hultquist.vtk");
 }
 
 ////==============================================================================

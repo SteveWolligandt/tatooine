@@ -367,9 +367,9 @@ tensor(Rows const(&&... rows)[C])
     ->tensor<promote_t<Rows...>, sizeof...(Rows), C>;
 
 //==============================================================================
-template <typename Real, size_t n>
-struct vec : tensor<Real, n> {
-  using parent_t = tensor<Real, n>;
+template <typename Real, size_t N>
+struct vec : tensor<Real, N> {
+  using parent_t = tensor<Real, N>;
   using parent_t::parent_t;
 
   using iterator       = typename parent_t::data_container_t::iterator;
@@ -392,7 +392,25 @@ struct vec : tensor<Real, n> {
     parent_t::operator=(std::move(other));
     return *this;
   }
+
+  auto begin() { return std::begin(this->m_data); }
+  auto begin() const { return std::begin(this->m_data); }
+
+  auto end() { return std::end(this->m_data); }
+  auto end() const { return std::end(this->m_data); }
 };
+
+//~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+template <typename Real, size_t N>
+auto begin(const vec<Real, N>& v) { return v.begin(); }
+template <typename Real, size_t N>
+auto begin(vec<Real, N>& v) { return v.begin(); }
+
+//------------------------------------------------------------------------------
+template <typename Real, size_t N>
+auto end(const vec<Real, N>& v) { return v.begin(); }
+template <typename Real, size_t N>
+auto end(vec<Real, N>& v) { return v.end(); }
 
 //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 template <typename... Ts>

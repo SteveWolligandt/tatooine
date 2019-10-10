@@ -2,6 +2,9 @@
 #define TATOOINE_ALGORITHM_H
 
 #include <cstdint>
+#include <algorithm>
+#include <boost/range/algorithm.hpp>
+#include <boost/range/algorithm_ext.hpp>
 
 //==============================================================================
 namespace tatooine {
@@ -37,6 +40,12 @@ decltype(auto) resize_next_list(Range& range, RangeIt pos,
   } else if (size_change < 0) {
     range.erase(prev(end(range), next_size - new_next_size), end(range));
   }
+}
+
+//------------------------------------------------------------------------------
+template <typename Element, typename Range>
+bool contains(const Element& element, const Range& range) {
+  return boost::find(range, element) != end(range);
 }
 
 //==============================================================================

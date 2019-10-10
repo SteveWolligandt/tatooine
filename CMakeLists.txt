@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 3.10)
+cmake_minimum_required(VERSION 3.12)
 project(tatooine)
 set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "${CMAKE_SOURCE_DIR}/cmake/modules/")
 
@@ -6,6 +6,7 @@ set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "${CMAKE_SOURCE_DIR}/cmake/modules/")
 find_package(GiNaC REQUIRED)
 find_package(LAPACKE REQUIRED)
 find_package(OpenMP REQUIRED)
+find_package(yavin REQUIRED)
 find_package(vcode REQUIRED)
 find_package(PNG REQUIRED)
 find_package(PNG++ REQUIRED)
@@ -38,7 +39,10 @@ target_link_libraries(tatooine
     ${PNG++_LIBRARIES}
 )
 if(OpenMP_CXX_FOUND)
-  target_link_libraries(tatooine INTERFACE OpenMP::OpenMP_CXX)
+  target_link_libraries(tatooine
+    INTERFACE
+      OpenMP::OpenMP_CXX
+  )
 endif()
 
 #- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -47,4 +51,5 @@ add_subdirectory(misc)
 
 #- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 # This makes the project importable from the build directory
-export(TARGETS tatooine FILE tatooineConfig.cmake)
+export(TARGETS tatooine FILE tatooineConfig.cmake EXPORT_LINK_INTERFACE_LIBRARIES)
+export(PACKAGE tatooine)

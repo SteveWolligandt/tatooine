@@ -52,6 +52,7 @@ create_test(parameterized_surface)
 create_test(cache)
 create_test(newton_raphson)
 create_test(ginac_move)
+create_test(quadtree)
 
 #- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 add_executable (_all main.cpp ${ALL_TEST_CPPS})

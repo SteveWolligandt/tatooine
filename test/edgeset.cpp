@@ -1,7 +1,8 @@
+#include <tatooine/algorithm.h>
 #include <tatooine/edgeset.h>
 #include <boost/range/algorithm.hpp>
-#include <iostream>
 #include <catch2/catch.hpp>
+#include <iostream>
 
 //==============================================================================
 namespace tatooine::test {
@@ -24,7 +25,7 @@ class edgeset_test : public edgeset<double, 3> {
 };
 
 //==============================================================================
-TEST_CASE_METHOD(edgeset_test, "[edgeset] insertion", "[edgeset]") {
+TEST_CASE_METHOD(edgeset_test, "edgeset_insertion", "[edgeset][insertion]") {
   using namespace boost;
 
   REQUIRE(num_vertices() == 4);
@@ -35,112 +36,125 @@ TEST_CASE_METHOD(edgeset_test, "[edgeset] insertion", "[edgeset]") {
   REQUIRE(num_edges(v2) == 2);
   REQUIRE(num_edges(v3) == 1);
 
-  REQUIRE(find(edges(v0), e0) != edges(v0).end());
-  REQUIRE(find(edges(v0), e1) == edges(v0).end());
-  REQUIRE(find(edges(v0), e2) == edges(v0).end());
+  REQUIRE(contains(e0, edges(v0)));
+  REQUIRE_FALSE(contains(e1, edges(v0)));
+  REQUIRE_FALSE(contains(e2, edges(v0)));
 
-  REQUIRE(find(edges(v1), e0) != edges(v1).end());
-  REQUIRE(find(edges(v1), e1) != edges(v1).end());
-  REQUIRE(find(edges(v1), e2) == edges(v1).end());
+  REQUIRE(contains(e0, edges(v1)));
+  REQUIRE(contains(e1, edges(v1)));
+  REQUIRE_FALSE(contains(e2, edges(v1)));
 
-  REQUIRE(find(edges(v2), e0) == edges(v2).end());
-  REQUIRE(find(edges(v2), e1) != edges(v2).end());
-  REQUIRE(find(edges(v2), e2) != edges(v2).end());
+  REQUIRE_FALSE(contains(e0, edges(v2)));
+  REQUIRE(contains(e1, edges(v2)));
+  REQUIRE(contains(e2, edges(v2)));
 
-  REQUIRE(find(edges(v3), e0) == edges(v3).end());
-  REQUIRE(find(edges(v3), e1) == edges(v3).end());
-  REQUIRE(find(edges(v3), e2) != edges(v3).end());
+  REQUIRE_FALSE(contains(e0, edges(v3)));
+  REQUIRE_FALSE(contains(e1, edges(v3)));
+  REQUIRE(contains(e2, edges(v3)));
 }
 
 //==============================================================================
-TEST_CASE_METHOD(edgeset_test, "[edgeset] removal", "[edgeset]") {
-  using namespace boost;
-  remove(e1);
+TEST_CASE_METHOD(edgeset_test, "edgeset_edge_removal",
+                 "[edgeset][edge_removal]") {
+  //SECTION("remove without tidy") {
+  //  REQUIRE(num_vertices() == 4);
+  //  REQUIRE(num_edges() == 3);
+  //  remove(e1);
+  //  REQUIRE(num_vertices() == 4);
+  //  REQUIRE(num_edges() == 2);
+  //
+  //  REQUIRE(num_edges(v0) == 1);
+  //  REQUIRE(num_edges(v1) == 1);
+  //  REQUIRE(num_edges(v2) == 1);
+  //  REQUIRE(num_edges(v3) == 1);
+  //
+  //  REQUIRE(contains(e0, edges(v0)));
+  //  REQUIRE_FALSE(contains(e1, edges(v0)));
+  //
+  //  REQUIRE(contains(e0, edges(v1)));
+  //  REQUIRE_FALSE(contains(e1, edges(v1)));
+  //
+  //  REQUIRE_FALSE(contains(e0, edges(v2)));
+  //  REQUIRE(contains(e2, edges(v2)));
+  //
+  //  REQUIRE_FALSE(contains(e0, edges(v3)));
+  //  REQUIRE(contains(e2, edges(v3)));
+  //}
+  //
+  //// invalidates e1 and all successors
+  //// -> e1 becomes e2
+  //// -> e2 is out of bounds
+  //SECTION("remove with tidy") {
+  //  REQUIRE(num_vertices() == 4);
+  //  REQUIRE(num_edges() == 3);
+  //  remove(e1);
+  //  tidy_up();
+  //  REQUIRE(num_vertices() == 4);
+  //  REQUIRE(num_edges() == 2);
+  //
+  //  REQUIRE(num_edges(v0) == 1);
+  //  REQUIRE(num_edges(v1) == 1);
+  //  REQUIRE(num_edges(v2) == 1);
+  //  REQUIRE(num_edges(v3) == 1);
+  //
+  //  REQUIRE(contains(e0, edges(v0)));
+  //  REQUIRE_FALSE(contains(e1, edges(v0)));
+  //
+  //  REQUIRE(contains(e0, edges(v1)));
+  //  REQUIRE_FALSE(contains(e1, edges(v1)));
+  //
+  //  REQUIRE_FALSE(contains(e0, edges(v2)));
+  //  REQUIRE(contains(e1, edges(v2)));
+  //
+  //  REQUIRE_FALSE(contains(e0, edges(v3)));
+  //  REQUIRE(contains(e1, edges(v3)));
+  //}
+  //
+  //SECTION("remove twice without tidy") {
+  //  REQUIRE(num_vertices() == 4);
+  //  REQUIRE(num_edges() == 3);
+  //  remove(e0);
+  //  remove(e1);
+  //  REQUIRE(num_vertices() == 2);
+  //  REQUIRE(num_edges() == 1);
+  //
+  //  REQUIRE(num_edges(v2) == 1);
+  //  REQUIRE(num_edges(v3) == 1);
+  //
+  //  REQUIRE(contains(e2, edges(v2)));
+  //  REQUIRE(contains(e2, edges(v3)));
+  //}
 
-  SECTION("first removal before tidy up") {
-    REQUIRE(num_vertices() == 4);
-    REQUIRE(num_edges() == 2);
-
-    REQUIRE(num_edges(v0) == 1);
-    REQUIRE(num_edges(v1) == 1);
-    REQUIRE(num_edges(v2) == 1);
-    REQUIRE(num_edges(v3) == 1);
-
-    REQUIRE(find(edges(v0), e0) != edges(v0).end());
-    REQUIRE(find(edges(v0), e1) == edges(v0).end());
-
-    REQUIRE(find(edges(v1), e0) != edges(v1).end());
-    REQUIRE(find(edges(v1), e1) == edges(v1).end());
-
-    REQUIRE(find(edges(v2), e0) == edges(v2).end());
-    REQUIRE(find(edges(v2), e2) != edges(v2).end());
-
-    REQUIRE(find(edges(v3), e0) == edges(v3).end());
-    REQUIRE(find(edges(v3), e2) != edges(v3).end());
-  }
-
-  tidy_up();
-  // invalidates e1 and all successors
-  // -> e1 becomes e2
-  // -> e2 is out of bounds
-  SECTION("first removal after tidy up") {
-    REQUIRE(num_vertices() == 4);
-    REQUIRE(num_edges() == 2);
-
-    REQUIRE(num_edges(v0) == 1);
-    REQUIRE(num_edges(v1) == 1);
-    REQUIRE(num_edges(v2) == 1);
-    REQUIRE(num_edges(v3) == 1);
-
-    REQUIRE(find(edges(v0), e0) != edges(v0).end());
-    REQUIRE(find(edges(v0), e1) == edges(v0).end());
-
-    REQUIRE(find(edges(v1), e0) != edges(v1).end());
-    REQUIRE(find(edges(v1), e1) == edges(v1).end());
-
-    REQUIRE(find(edges(v2), e0) == edges(v2).end());
-    REQUIRE(find(edges(v2), e1) != edges(v2).end());
-
-    REQUIRE(find(edges(v3), e0) == edges(v3).end());
-    REQUIRE(find(edges(v3), e1) != edges(v3).end());
-  }
-
-  remove(e0);
-  SECTION("second removal before tidy") {
-    REQUIRE(num_vertices() == 2);
-    REQUIRE(num_edges() == 1);
-
-    REQUIRE(num_edges(v2) == 1);
-    REQUIRE(num_edges(v3) == 1);
-
-    REQUIRE(find(edges(v2), e1) != edges(v2).end());
-    REQUIRE(find(edges(v3), e1) != edges(v3).end());
-  }
-
-  tidy_up();
   // invalidates e0 and all successors
   // -> e0 becomes e1
   // -> e1 is out of bounds
   // deletes v0 and v1
   // -> v0 becomes v2
   // -> v1 becomes v3
-  SECTION("second removal after tidy") {
+  SECTION("remove twice with tidy") {
+    REQUIRE(num_vertices() == 4);
+    REQUIRE(num_edges() == 3);
+    remove(e0);
+    remove(e1);
+    tidy_up();
     REQUIRE(num_vertices() == 2);
     REQUIRE(num_edges() == 1);
-    REQUIRE(num_edges(v0) == 1);
-    REQUIRE(num_edges(v1) == 1);
-    REQUIRE(find(edges(v0), e0) != edges(v0).end());
-    REQUIRE(find(edges(v1), e0) != edges(v1).end());
+    REQUIRE(contains(vertex{0}, vertices()));
+    REQUIRE(contains(vertex{1}, vertices()));
+    REQUIRE(num_edges(vertex{0}) == 1);
+    REQUIRE(num_edges(vertex{1}) == 1);
+    REQUIRE(contains(edge{0}, edges(vertex{0})));
+    REQUIRE(contains(edge{0}, edges(vertex{1})));
   }
 }
 
 //==============================================================================
-TEST_CASE_METHOD(edgeset_test, "[edgeset] vertex removal", "[edgeset]") {
+TEST_CASE_METHOD(edgeset_test, "edgeset_vertex_removal",
+                 "[edgeset][vertex_removal]") {
   using namespace boost;
   remove(v1);
 
-  // SECTION("removal before tidy") {
-  REQUIRE(num_vertices() == 2);
+  REQUIRE(num_vertices() == 3);
   REQUIRE(num_edges() == 1);
 
   REQUIRE(num_edges(v0) == 0);
@@ -148,67 +162,60 @@ TEST_CASE_METHOD(edgeset_test, "[edgeset] vertex removal", "[edgeset]") {
   REQUIRE(num_edges(v2) == 1);
   REQUIRE(num_edges(v3) == 1);
 
-  REQUIRE(find(edges(v0), e0) == edges(v0).end());
-  REQUIRE(find(edges(v0), e1) == edges(v0).end());
-  REQUIRE(find(edges(v0), e2) == edges(v0).end());
+  REQUIRE_FALSE(contains(e0, edges(v0)));
+  REQUIRE_FALSE(contains(e1, edges(v0)));
+  REQUIRE_FALSE(contains(e2, edges(v0)));
 
-  REQUIRE(find(edges(v1), e0) == edges(v1).end());
-  REQUIRE(find(edges(v1), e1) == edges(v1).end());
-  REQUIRE(find(edges(v1), e2) == edges(v1).end());
+  REQUIRE_FALSE(contains(e0, edges(v1)));
+  REQUIRE_FALSE(contains(e1, edges(v1)));
+  REQUIRE_FALSE(contains(e2, edges(v1)));
 
-  REQUIRE(find(edges(v2), e0) == edges(v2).end());
-  REQUIRE(find(edges(v2), e1) == edges(v2).end());
-  REQUIRE(find(edges(v2), e2) != edges(v2).end());
+  REQUIRE_FALSE(contains(e0, edges(v2)));
+  REQUIRE_FALSE(contains(e1, edges(v2)));
+  REQUIRE(contains(e2, edges(v2)));
 
-  REQUIRE(find(edges(v3), e0) == edges(v3).end());
-  REQUIRE(find(edges(v3), e1) == edges(v3).end());
-  REQUIRE(find(edges(v3), e2) != edges(v3).end());
+  REQUIRE_FALSE(contains(e0, edges(v3)));
+  REQUIRE_FALSE(contains(e1, edges(v3)));
+  REQUIRE(contains(e2, edges(v3)));
 
   REQUIRE(at(e2)[0] == v2);
   REQUIRE(at(e2)[1] == v3);
-  // }
 
   tidy_up();
   // invalidates e1 and all successors
   // -> e1 becomes e2
   // -> e2 is out of bounds
-  // SECTION("first removal after tidy up") {
   REQUIRE(num_vertices() == 2);
   REQUIRE(num_edges() == 1);
 
   REQUIRE(num_edges(v0) == 1);
   REQUIRE(num_edges(v1) == 1);
 
-  REQUIRE(find(edges(v0), e0) != edges(v0).end());
-  REQUIRE(find(edges(v1), e0) != edges(v1).end());
+  REQUIRE(contains(e0, edges(v0)));
+  REQUIRE(contains(e0, edges(v1)));
 
   REQUIRE(at(e0)[0] == v0);
   REQUIRE(at(e0)[1] == v1);
-  // }
 
   remove(e0, false);
-  // SECTION("edge removal before tidy up") {
   REQUIRE(num_vertices() == 2);
   REQUIRE(num_edges() == 0);
 
   REQUIRE(num_edges(v0) == 0);
   REQUIRE(num_edges(v1) == 0);
 
-  REQUIRE(find(edges(v0), e0) == edges(v0).end());
-  REQUIRE(find(edges(v1), e0) == edges(v1).end());
-  // }
+  REQUIRE_FALSE(contains(e0, edges(v0)));
+  REQUIRE_FALSE(contains(e0, edges(v1)));
 
   tidy_up();
-  // SECTION("edge removal after tidy up") {
   REQUIRE(num_vertices() == 2);
   REQUIRE(num_edges() == 0);
 
   REQUIRE(num_edges(v0) == 0);
   REQUIRE(num_edges(v1) == 0);
 
-  REQUIRE(find(edges(v0), e0) == edges(v0).end());
-  REQUIRE(find(edges(v1), e0) == edges(v1).end());
-  // }
+  REQUIRE_FALSE(contains(e0, edges(v0)));
+  REQUIRE_FALSE(contains(e0, edges(v1)));
 }
 
 //==============================================================================
@@ -223,8 +230,8 @@ TEST_CASE_METHOD(edgeset_test, "[edgeset] vertex removal2", "[edgeset]") {
   REQUIRE(num_edges(v0) == 0);
   REQUIRE(num_edges(v1) == 0);
 
-  REQUIRE(find(edges(v0), e0) == edges(v0).end());
-  REQUIRE(find(edges(v1), e0) == edges(v1).end());
+  REQUIRE_FALSE(contains(e0, edges(v0)));
+  REQUIRE_FALSE(contains(e0, edges(v1)));
 }
 
 //==============================================================================

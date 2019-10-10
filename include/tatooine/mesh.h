@@ -119,25 +119,22 @@ class mesh : public edgeset<Real, N> {
   std::vector<face>                                m_invalid_faces;
   std::map<std::string, std::unique_ptr<property>> m_face_properties;
 
-  vertex_prop<std::vector<face>>* m_faces_of_vertices = nullptr;
-  edge_prop<std::vector<face>>*   m_faces_of_edges    = nullptr;
+  vertex_prop<std::vector<face>> m_faces_of_vertices;
+  edge_prop<std::vector<face>>   m_faces_of_edges;
 
-  face_prop<std::vector<edge>>* m_edges_of_faces = nullptr;
+  face_prop<std::vector<edge>> m_edges_of_faces;
 
  public:
   //============================================================================
-  constexpr mesh() { add_link_properties(); }
+  constexpr mesh() {}
 
   //----------------------------------------------------------------------------
   constexpr mesh(std::initializer_list<pos_t>&& vertices)
-      : parent_t(std::move(vertices)) {
-    add_link_properties();
-  }
+      : parent_t(std::move(vertices)) {}
 
   //----------------------------------------------------------------------------
 #ifdef USE_TRIANGLE
   mesh(const triangle::io& io) : parent_t{io} {
-    add_link_properties();
     for (int i = 0; i < io.numberoftriangles; ++i)
       insert_face(io.trianglelist[i * 3], io.trianglelist[i * 3 + 1],
                   io.trianglelist[i * 3 + 2]);
@@ -151,11 +148,13 @@ class mesh : public edgeset<Real, N> {
   mesh(const mesh& other)
       : parent_t(other),
         m_faces(other.m_faces),
-        m_invalid_faces(other.m_invalid_faces) {
+        m_invalid_faces(other.m_invalid_faces),
+        m_faces_of_vertices(other.m_faces_of_vertices),
+        m_faces_of_edges(other.m_faces_of_edges),
+        m_edges_of_faces(other.m_edges_of_faces) {
     m_face_properties.clear();
     for (const auto& [name, prop] : other.m_face_properties)
       m_face_properties[name] = prop->clone();
-    find_link_properties();
   }
 
   //----------------------------------------------------------------------------
@@ -163,8 +162,10 @@ class mesh : public edgeset<Real, N> {
       : parent_t(std::move(other)),
         m_faces(std::move(other.m_faces)),
         m_invalid_faces(std::move(other.m_invalid_faces)),
-        m_face_properties(std::move(other.m_face_properties)) {
-    find_link_properties();
+        m_face_properties(std::move(other.m_face_properties)),
+        m_faces_of_vertices(std::move(other.m_faces_of_vertices)),
+        m_faces_of_edges(std::move(other.m_faces_of_edges)),
+        m_edges_of_faces(std::move(other.m_edges_of_faces))  {
   }
 
   //----------------------------------------------------------------------------
@@ -174,44 +175,26 @@ class mesh : public edgeset<Real, N> {
     m_invalid_faces   = other.m_invalid_faces;
     for (const auto& [name, prop] : other.m_face_properties)
       m_face_properties[name] = prop->clone();
-    find_link_properties();
+    m_faces_of_vertices = other.m_faces_of_vertices;
+    m_faces_of_edges    = other.m_faces_of_edges;
+    m_edges_of_faces    = other.m_edges_of_faces;
     return *this;
   }
 
   //----------------------------------------------------------------------------
   auto& operator=(mesh&& other) {
-    parent_t::operator=(std::move(other));
-    m_faces           = std::move(other.m_faces);
-    m_invalid_faces   = std::move(other.m_invalid_faces);
-    m_face_properties = std::move(other.m_face_properties);
-    find_link_properties();
+    parent_t::operator  =(std::move(other));
+    m_faces             = std::move(other.m_faces);
+    m_invalid_faces     = std::move(other.m_invalid_faces);
+    m_face_properties   = std::move(other.m_face_properties);
+    m_faces_of_vertices = std::move(other.m_faces_of_vertices);
+    m_faces_of_edges    = std::move(other.m_faces_of_edges);
+    m_edges_of_faces    = std::move(other.m_edges_of_faces);
     return *this;
   }
 
   //============================================================================
- private:
-  void add_link_properties() {
-    m_faces_of_vertices = dynamic_cast<vertex_prop<std::vector<face>>*>(
-        &this->template add_vertex_property<std::vector<face>>("v:faces"));
-    m_faces_of_edges = dynamic_cast<edge_prop<std::vector<face>>*>(
-        &this->template add_edge_property<std::vector<face>>("e:faces"));
-
-    m_edges_of_faces = dynamic_cast<face_prop<std::vector<edge>>*>(
-        &this->template add_face_property<std::vector<edge>>("f:edges"));
-  }
-
-  //----------------------------------------------------------------------------
-  void find_link_properties() {
-    m_faces_of_vertices = dynamic_cast<vertex_prop<std::vector<face>>*>(
-        &this->template vertex_property<std::vector<face>>("v:faces"));
-    m_faces_of_edges = dynamic_cast<edge_prop<std::vector<face>>*>(
-        &this->template edge_property<std::vector<face>>("e:faces"));
-    m_edges_of_faces = dynamic_cast<face_prop<std::vector<edge>>*>(
-        &face_property<std::vector<edge>>("f:edges"));
-  }
-
  public:
-  //============================================================================
   constexpr auto&       at(face f) { return m_faces[f.i]; }
   constexpr const auto& at(face f) const { return m_faces[f.i]; }
 
@@ -344,20 +327,20 @@ class mesh : public edgeset<Real, N> {
     for (auto invalid_f : m_invalid_faces) {
       // decrease face-index of vertices whose indices are greater than an
       // invalid face index
-      for (auto& faces : *m_faces_of_vertices)
+      for (auto& faces : m_faces_of_vertices)
         for (auto& f : faces)
           if (f.i > invalid_f.i) --f.i;
 
       // decrease face-index of edges whose indices are greater than an invalid
       // face-index
-      for (auto& faces : *m_faces_of_edges)
+      for (auto& faces : m_faces_of_edges)
         for (auto& f : faces)
           if (f.i > invalid_f.i) --f.i;
     }
     // decrease edge-index of faces whose indices are greater than an invalid
     // edge-index
     for (auto invalid_e : this->m_invalid_edges)
-      for (auto& edges : *m_edges_of_faces)
+      for (auto& edges : m_edges_of_faces)
         for (auto& e : edges)
           if (e.i >= invalid_e.i) --e.i;
 
@@ -422,12 +405,12 @@ class mesh : public edgeset<Real, N> {
 
   //----------------------------------------------------------------------------
   constexpr auto faces() const { return face_container{this}; }
-  auto&          faces(vertex v) { return m_faces_of_vertices->at(v); }
-  const auto&    faces(vertex v) const { return m_faces_of_vertices->at(v); }
-  auto&          faces(edge e) { return m_faces_of_edges->at(e); }
-  const auto&    faces(edge e) const { return m_faces_of_edges->at(e); }
-  auto&          edges(face f) { return m_edges_of_faces->at(f); }
-  const auto&    edges(face f) const { return m_edges_of_faces->at(f); }
+  auto&          faces(vertex v) { return m_faces_of_vertices.at(v); }
+  const auto&    faces(vertex v) const { return m_faces_of_vertices.at(v); }
+  auto&          faces(edge e) { return m_faces_of_edges.at(e); }
+  const auto&    faces(edge e) const { return m_faces_of_edges.at(e); }
+  auto&          edges(face f) { return m_edges_of_faces.at(f); }
+  const auto&    edges(face f) const { return m_edges_of_faces.at(f); }
   auto&          vertices(face f) { return at(f); }
   const auto&    vertices(face f) const { return at(f); }
   auto           neighbor_faces(face f) const {

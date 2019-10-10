@@ -1,5 +1,5 @@
-#ifndef TATOOINE_NEWDOUBLEGYRE_H
-#define TATOOINE_NEWDOUBLEGYRE_H
+#ifndef TATOOINE_MODIFIED_DOUBLEGYRE_H
+#define TATOOINE_MODIFIED_DOUBLEGYRE_H
 
 #include <algorithm>
 #include "line.h"
@@ -11,8 +11,8 @@
 namespace tatooine::symbolic {
 //==============================================================================
 template <typename Real>
-struct newdoublegyre : field<Real, 2, 2> {
-  using this_t   = newdoublegyre<Real>;
+struct modified_doublegyre : field<Real, 2, 2> {
+  using this_t   = modified_doublegyre<Real>;
   using parent_t = field<Real, 2, 2>;
   using typename parent_t::pos_t;
   using typename parent_t::tensor_t;
@@ -24,7 +24,7 @@ struct newdoublegyre : field<Real, 2, 2> {
   static GiNaC::numeric d() { return 9.964223388; }
 
   //============================================================================
-  newdoublegyre() {
+  modified_doublegyre() {
     using GiNaC::Pi;
     GiNaC::numeric epsilon{1, 4};
     GiNaC::numeric A{1, 10};
@@ -60,20 +60,20 @@ struct newdoublegyre : field<Real, 2, 2> {
   }
 
   //----------------------------------------------------------------------------
-  static GiNaC::ex bifurcationline()  {
+  static GiNaC::ex hyperbolic_trajectory()  {
     using GiNaC::Pi;
     return c() * sin(Pi / 5 * t() + d()) + 1;
   }
 
   //----------------------------------------------------------------------------
-  static auto bifurcationline(Real time)  {
-    auto ex = bifurcationline();
+  static auto hyperbolic_trajectory(Real time)  {
+    auto ex = hyperbolic_trajectory();
     return evtod<Real>(ex, t() == time);
   }
 
   //----------------------------------------------------------------------------
-  static auto bifurcationline(const linspace<Real>& domain) {
-    auto bifu_ex = bifurcationline();
+  static auto hyperbolic_trajectory(const linspace<Real>& domain) {
+    auto bifu_ex = hyperbolic_trajectory();
     parameterized_line<Real, 2> curve;
     for (auto time : domain) {
       curve.push_back({evtod<Real>(bifu_ex, t() == time), 0}, time);
@@ -82,8 +82,8 @@ struct newdoublegyre : field<Real, 2, 2> {
   }
 
   //----------------------------------------------------------------------------
-  static auto bifurcationline_spacetime(const linspace<Real>& domain) {
-    auto bifu_ex = bifurcationline();
+  static auto hyperbolic_trajectory_spacetime(const linspace<Real>& domain) {
+    auto bifu_ex = hyperbolic_trajectory();
     parameterized_line<Real, 3> curve;
     for (auto time : domain) {
       curve.push_back({evtod<Real>(bifu_ex, t() == time), 0, time}, time);
@@ -93,7 +93,7 @@ struct newdoublegyre : field<Real, 2, 2> {
 };
 
 //==============================================================================
-newdoublegyre() -> newdoublegyre<double>;
+modified_doublegyre() -> modified_doublegyre<double>;
 
 //==============================================================================
 }  // namespace tatooine::analytical
@@ -103,8 +103,8 @@ newdoublegyre() -> newdoublegyre<double>;
 namespace tatooine::numerical {
 //==============================================================================
 template <typename Real>
-struct newdoublegyre : field<newdoublegyre<Real>,Real, 2, 2> {
-  using this_t   = newdoublegyre<Real>;
+struct modified_doublegyre : field<modified_doublegyre<Real>,Real, 2, 2> {
+  using this_t   = modified_doublegyre<Real>;
   using parent_t = field<this_t, Real, 2, 2>;
   using typename parent_t::pos_t;
   using typename parent_t::tensor_t;
@@ -131,6 +131,33 @@ struct newdoublegyre : field<newdoublegyre<Real>,Real, 2, 2> {
   }
 
   //----------------------------------------------------------------------------
+  constexpr static auto mintimeoffset(const Real t) {
+    const Real r = pi / 5 * t + d;
+
+    const Real q =
+        std::clamp<Real>((4 * pi * c * sin(r) - 4 * std::asin(2 * c * cos(r))) /
+                             (pi * (1 - cc * sin(r) * sin(r))),
+                         -1, 1);
+
+    const Real p           = 5 / pi * std::asin(q) - t;
+    Real       min_p       = p;
+    auto       closer_to_0 = [&min_p](Real p) -> Real {
+      if (std::abs(p) < std::abs(min_p)) { return p; }
+      return min_p;
+    };
+
+    for (int i = 0; i <= 1; ++i) {
+      min_p = closer_to_0(5 + i * 10 - 2 * t - p);
+      min_p = closer_to_0(5 - i * 10 - 2 * t - p);
+    }
+
+    for (int i = 1; i <= 1; ++i) {
+      min_p = closer_to_0(p + i * 10);
+      min_p = closer_to_0(p - i * 10);
+    }
+
+    return min_p;
+  }
   constexpr static auto timeoffset(const Real t) {
     const Real r = pi / 5 * t + d;
 
@@ -166,32 +193,32 @@ struct newdoublegyre : field<newdoublegyre<Real>,Real, 2, 2> {
   }
 
   //----------------------------------------------------------------------------
-  struct bifurcationline_t {
+  struct hyperbolic_trajectory_t {
     auto at(Real t) const {
       return vec<Real, 2>{c * std::sin(pi / 5 * t + d) + 1, 0};
     }
     auto operator()(Real t) const { return at(t); }
   };
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-  constexpr auto bifurcationline() const { return bifurcationline_t{}; }
+  constexpr auto hyperbolic_trajectory() const { return hyperbolic_trajectory_t{}; }
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-  constexpr auto bifurcationline(Real t) const { return bifurcationline_t{}(t); }
+  constexpr auto hyperbolic_trajectory(Real t) const { return hyperbolic_trajectory_t{}(t); }
 
   //----------------------------------------------------------------------------
-  struct bifurcationline_spacetime_t {
+  struct hyperbolic_trajectory_spacetime_t {
     auto at(Real t) const {
       return vec<Real, 3>{c * std::sin(pi / 5 * t + d) + 1, 0, t};
     }
     auto operator()(Real t) const { return at(t); }
   };
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-  constexpr auto bifurcationline_spacetime() const {
-    return bifurcationline_spacetime_t{};
+  constexpr auto hyperbolic_trajectory_spacetime() const {
+    return hyperbolic_trajectory_spacetime_t{};
   }
 };
 
 //==============================================================================
-newdoublegyre() -> newdoublegyre<double>;
+modified_doublegyre() -> modified_doublegyre<double>;
 
 //==============================================================================
 }  // namespace tatooine::analytical

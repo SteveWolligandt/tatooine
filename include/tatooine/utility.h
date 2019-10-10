@@ -137,6 +137,12 @@ inline constexpr auto release_mode() {
   return false;
 #endif
 }
+
+template <typename F, typename... Ts>
+for_each(std::tuple<Ts...>& tuple, F&& f) {
+  
+}
+
 //==============================================================================
 }  // namespace tatooine
 //==============================================================================

@@ -73,8 +73,14 @@ struct rungekutta43 : integrator<Real, N, rungekutta43<Real, N>> {
   rungekutta43()
       : m_options{AbsTol = 1e-4, RelTol = 1e-4, InitialStep = 0,
                   MaxStep = 0.1} {}
-  rungekutta43(const rungekutta43& other) : parent_t{other} {}
-  rungekutta43(rungekutta43&& other) noexcept : parent_t{std::move(other)} {}
+  rungekutta43(const rungekutta43& other)
+      : parent_t{other},
+        m_options{AbsTol = 1e-4, RelTol = 1e-4, InitialStep = 0,
+                  MaxStep = 0.1} {}
+  rungekutta43(rungekutta43&& other) noexcept
+      : parent_t{std::move(other)},
+        m_options{AbsTol = 1e-4, RelTol = 1e-4, InitialStep = 0,
+                  MaxStep = 0.1} {}
   //----------------------------------------------------------------------------
   template <typename... Options>
   rungekutta43(Options&&... options)
@@ -100,12 +106,13 @@ struct rungekutta43 : integrator<Real, N, rungekutta43<Real, N>> {
 
     stepper.integrate(
         dy, ode_t::Output >> ode_t::sink([&integral](auto t, const auto& y) {
-              bool use = true;
-              if (!integral.empty() &&
-                  distance(integral.back_vertex(), y) < 1e-6) {
-                use = false;
-              }
-              if (use) { integral.push_back(y, t); }
+              //bool use = true;
+              //if (!integral.empty() &&
+              //    distance(integral.back_vertex(), y) < 1e-6) {
+              //  use = false;
+              //}
+              //if (use) { integral.push_back(y, t); }
+              integral.push_back(y, t); 
             }));
     return integral;
   }
@@ -126,12 +133,13 @@ struct rungekutta43 : integrator<Real, N, rungekutta43<Real, N>> {
 
     stepper.integrate(
         dy, ode_t::Output >> ode_t::sink([&integral](auto t, const auto& y) {
-              bool use = true;
-              if (!integral.empty() &&
-                  distance(integral.back_vertex(), y) < 1e-6) {
-                use = false;
-              }
-              if (use) { integral.push_front(y, t); }
+              // bool use = true;
+              // if (!integral.empty() &&
+              //    distance(integral.front_vertex(), y) < 1e-6) {
+              //  use = false;
+              //}
+              // if (use) { integral.push_front(y, t); }
+              integral.push_front(y, t);
             }));
     return integral;
   }

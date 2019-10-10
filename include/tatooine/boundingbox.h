@@ -38,14 +38,14 @@ struct boundingbox {
       : min{std::move(_min)}, max{std::move(_max)} {}
 
   //----------------------------------------------------------------------------
-  template <typename Real0, typename Real1>
-  constexpr boundingbox(const tensor<Real0, N>& _min,
-                        const tensor<Real1, N>& _max) noexcept
+  template <typename Tensor0, typename Real0, typename Tensor1, typename Real1>
+  constexpr boundingbox(const base_tensor<Tensor0, Real0, N>& _min,
+                        const base_tensor<Tensor1, Real1, N>& _max) noexcept
       : min{_min}, max{_max} {}
 
   //============================================================================
   constexpr void operator+=(const pos_t& point) {
-    for (size_t i = 0; i < point.size(); ++i) {
+    for (size_t i = 0; i < point.dimension(0); ++i) {
       min(i) = std::min(min(i), point(i));
       max(i) = std::max(max(i), point(i));
     }
@@ -85,8 +85,10 @@ struct boundingbox {
 //==============================================================================
 // deduction guides
 //==============================================================================
-template <typename Real0, typename Real1, size_t N>
-boundingbox(const tensor<Real0, N>&, const tensor<Real1, N>&)
+template <typename Tensor0, typename Real0, typename Tensor1, typename Real1,
+          size_t N>
+boundingbox(const base_tensor<Tensor0, Real0, N>&,
+            const base_tensor<Tensor1, Real1, N>&)
     ->boundingbox<promote_t<Real0, Real1>, N>;
 
 //------------------------------------------------------------------------------

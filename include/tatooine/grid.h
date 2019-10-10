@@ -420,7 +420,7 @@ class grid {
       for (size_t i = 0; i < len - 1; ++i) {
         auto neighbors = free_neighbors(*v, seq);
         if (neighbors.empty()) { break; }
-        v = random_elem(neighbors);
+        v = random_elem(neighbors, eng);
         seq.push_back(*v);
       }
     } while (seq.size() != len);
