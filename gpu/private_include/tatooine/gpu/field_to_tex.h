@@ -2,7 +2,7 @@
 #define TATOOINE_GPU_FIELD_TO_TEX_H
 
 #include <tatooine/field.h>
-#include <tatooine/grid_sampler.h>
+//#include <tatooine/grid_sampler.h>
 #include <tatooine/cuda/texture_buffer.h>
 
 //==============================================================================

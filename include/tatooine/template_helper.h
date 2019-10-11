@@ -4,7 +4,8 @@
 #include <type_traits>
 
 //==============================================================================
-namespace tatooine::temp_helper {
+namespace tatooine {
+namespace temp_helper {
 //==============================================================================
 
 template <typename T, typename... Ts>
@@ -115,7 +116,8 @@ template <typename... Ts>
 static constexpr bool all_same = all_same_t<Ts...>::value;
 
 //==============================================================================
-}  // namespace tatooine::temp_helper
+}  // namespace temp_helper
+}  // namespace tatooine
 //==============================================================================
 
 #endif

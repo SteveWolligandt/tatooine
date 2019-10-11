@@ -6,6 +6,7 @@
 #include "template_helper.h"
 #include "utility.h"
 #include "functional.h"
+#include "type_traits.h"
 
 //==============================================================================
 namespace tatooine {
@@ -22,18 +23,16 @@ struct multi_index {
       : m_ranges{ranges} {}
 
   //----------------------------------------------------------------------------
-  template <typename... Ts,
-            typename = std::enable_if_t<(std::is_integral_v<Ts> && ...)>>
+  template <typename... Ts, enable_if_integral<Ts...> = true>
   constexpr multi_index(const std::pair<Ts, Ts>&... ranges)
-      : m_ranges{std::pair{static_cast<size_t>(ranges.first),
-                           static_cast<size_t>(ranges.second)}...} {}
+      : m_ranges{std::make_pair(static_cast<size_t>(ranges.first),
+                                static_cast<size_t>(ranges.second))...} {}
 
   //----------------------------------------------------------------------------
-  template <typename... Ts,
-            typename = std::enable_if_t<(std::is_integral_v<Ts> && ...)>>
+  template <typename... Ts, enable_if_integral<Ts...> = true>
   constexpr multi_index(Ts const (&... ranges)[2])
-      : m_ranges{std::pair{static_cast<size_t>(ranges[0]),
-                           static_cast<size_t>(ranges[1])}...} {}
+      : m_ranges{std::make_pair(static_cast<size_t>(ranges[0]),
+                                static_cast<size_t>(ranges[1]))...} {}
 
   //----------------------------------------------------------------------------
   constexpr auto&       operator[](size_t i) { return m_ranges[i]; }
@@ -114,18 +113,25 @@ struct multi_index_iterator {
 };
 
 //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+#if has_cxx17_support()
 template <typename... Ts>
 multi_index(const std::pair<Ts, Ts>&... ranges)->multi_index<sizeof...(Ts)>;
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 template <typename... Ts>
 multi_index(Ts const (&... ranges)[2])->multi_index<sizeof...(Ts)>;
+#endif
 
 //==============================================================================
 template <size_t... Sizes>
 struct static_multidimension {
   static constexpr size_t N        = sizeof...(Sizes);
-  static constexpr size_t num_data = (Sizes * ...);
-  static constexpr auto   size() { return std::array{Sizes...}; }
+  constexpr size_t num_data() const {
+    constexpr std::array<size_t, N> sizes{Sizes...};
+    return std::accumulate(begin(sizes), end(sizes), size_t(1),
+                           std::multiplies<size_t>{});
+  }
+  static constexpr auto size() { return std::array<size_t, N>{Sizes...}; }
+  static constexpr auto size(size_t i) { return size()[i]; }
   template <size_t i>
   static constexpr auto size() {
     return temp_helper::getval<i, size_t, Sizes...>;
@@ -136,7 +142,17 @@ struct static_multidimension {
   static constexpr bool in_range(Indices&&... indices) {
     static_assert(sizeof...(Indices) == sizeof...(Sizes),
                   "number of indices does not match number of dimensions");
+#if has_cxx17_support()
     return ((indices >= 0) && ...) && ((static_cast<size_t>(indices) < Sizes) && ...);
+#else
+    constexpr std::array<size_t, N> is{
+        static_cast<size_t>(indices)...};
+    for (size_t i = 0; i < N; ++i) {
+      if (is[i] < 0) { return false; }
+      if (is[i] >= size(i)) { return false; }
+    }
+    return true;
+#endif
   }
 
   //----------------------------------------------------------------------------
@@ -161,7 +177,7 @@ struct static_multidimension {
     }
 #endif
     static_assert(
-        (std::is_integral_v<std::decay_t<Indices>> && ...),
+        are_integral<std::decay_t<Indices>...>::value,
         "static_multi_indexed::global_idx() only takes integral types");
     static_assert(sizeof...(Indices) == sizeof...(Sizes),
                   "number of indices does not match number of dimensions");
@@ -172,7 +188,7 @@ struct static_multidimension {
           gi += i.first * multiplier;
           multiplier *= i.second;
         },
-        std::pair{indices, Sizes}...);
+        std::make_pair(indices, Sizes)...);
     return gi;
   }
 
@@ -224,9 +240,8 @@ struct dynamic_multidimension {
 
   //----------------------------------------------------------------------------
   template <typename... Sizes,
-            typename = std::enable_if_t<
-                (std::is_integral_v<std::decay_t<Sizes>> && ...)>,
-            typename = std::enable_if_t<sizeof...(Sizes) == N>>
+            enable_if_integral<std::decay_t<Sizes>...>    = true,
+            std::enable_if_t<sizeof...(Sizes) == N, bool> = true>
   void resize(Sizes&&... sizes) {
     m_size = {static_cast<size_t>(sizes)...};
   }
@@ -239,19 +254,25 @@ struct dynamic_multidimension {
 
   //----------------------------------------------------------------------------
   template <typename... Indices, size_t... Is,
-            typename = std::enable_if_t<
-                (std::is_integral_v<std::decay_t<Indices>> && ...)>>
+            enable_if_integral<std::decay_t<Indices>...> = true>
   constexpr bool in_range(std::index_sequence<Is...>,
                           Indices&&... indices) const {
     static_assert(sizeof...(Indices) == N,
                   "number of indices does not match number of dimensions");
+#if has_cxx17_support()
     return ((static_cast<size_t>(indices) < m_size[Is]) && ...);
+#else
+    constexpr std::array<size_t, N> is{indices...};
+    for (size_t i = 0; i < N; ++i) {
+      if (is[i] < size(i)) { return false; }
+    }
+    return true;
+#endif
   }
 
   //----------------------------------------------------------------------------
   template <typename... Indices,
-            typename = std::enable_if_t<
-                (std::is_integral_v<std::decay_t<Indices>> && ...)>>
+            enable_if_integral<std::decay_t<Indices>...> = true>
   constexpr auto in_range(Indices&&... indices) const {
     static_assert(sizeof...(Indices) == N,
                   "number of indices does not match number of dimensions");
@@ -273,11 +294,10 @@ struct dynamic_multidimension {
 
   //----------------------------------------------------------------------------
   template <typename... Indices,
-            typename = std::enable_if_t<
-                (std::is_integral_v<std::decay_t<Indices>> && ...)>>
+            enable_if_integral<std::decay_t<Indices>...> = true>
   constexpr auto global_idx(Indices&&... indices) const {
     assert(in_range(std::forward<Indices>(indices)...));
-    static_assert((std::is_integral_v<std::decay_t<Indices>> && ...),
+    static_assert(are_integral<std::decay_t<Indices>...>::value,
                   "chunk::global_idx() only takes integral types");
     static_assert(sizeof...(Indices) == N,
                   "number of indices does not match number of dimensions");

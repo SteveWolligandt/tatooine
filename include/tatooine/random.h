@@ -13,7 +13,7 @@ struct random_uniform {
   using engine_t = Engine;
   using real_t   = T;
   using distribution_t =
-      std::conditional_t<std::is_floating_point_v<T>,
+      std::conditional_t<std::is_floating_point<T>::value,
                          std::uniform_real_distribution<T>,
                          std::uniform_int_distribution<T>>;
 
@@ -68,15 +68,16 @@ struct random_uniform {
 };
 
 //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+#if has_cxx17_support()
 random_uniform()->random_uniform<double, std::mt19937_64>;
-// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-// -
+// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 template <typename Engine>
 random_uniform(Engine &&)->random_uniform<double, Engine>;
-// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-// -
+// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+
 template <typename T>
 random_uniform(T min, T max)->random_uniform<T, std::mt19937_64>;
+#endif
 
 //==============================================================================
 template <typename T, typename Engine = std::mt19937_64>
@@ -131,6 +132,7 @@ struct random_normal {
 };
 
 //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+#if has_cxx17_support()
 random_normal()->random_normal<double, std::mt19937_64>;
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 // -
@@ -140,6 +142,7 @@ random_normal(Engine &&)->random_normal<double, Engine>;
 // -
 template <typename T>
 random_normal(T mean, T stddev)->random_normal<T, std::mt19937_64>;
+#endif
 
 //==============================================================================
 template <typename Iterator, typename RandomEngine>
@@ -160,7 +163,7 @@ auto random_elem(Range&& range, RandomEngine& eng) {
 enum coin { HEADS, TAILS };
 template <typename RandomEngine>
 auto flip_coin(RandomEngine&& eng) {
-  std::uniform_int_distribution coin{0, 1};
+  std::uniform_int_distribution<size_t> coin{0, 1};
   return coin(eng) == 0 ? HEADS : TAILS;
 }
 //==============================================================================

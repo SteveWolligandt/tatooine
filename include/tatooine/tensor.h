@@ -25,14 +25,16 @@ template <typename Real>
 struct fill {
   Real value;
 };
+#if has_cxx17_support()
 template <typename Real>
 fill(Real)->fill<Real>;
+#endif
 
 struct zeros_t {};
-static constexpr inline zeros_t zeros;
+static constexpr zeros_t zeros;
 
 struct ones_t {};
-static constexpr inline ones_t ones;
+static constexpr ones_t ones;
 
 template <typename Tensor, typename Real, size_t FixedDim, size_t... Dims>
 struct tensor_slice;
@@ -48,12 +50,24 @@ struct base_tensor : crtp<Tensor> {
   using parent_t::as_derived;
 
   //============================================================================
-  static constexpr auto   dimensions() { return std::array{Dims...}; }
-  static constexpr auto   dimension(size_t i) { return dimensions()[i]; }
   static constexpr size_t num_dimensions() { return sizeof...(Dims); }
-  static constexpr size_t num_components() { return (Dims * ...); }
+  static constexpr size_t num_components() { 
+#if has_cxx17_support()
+    return (Dims * ...); 
+#else
+    constexpr std::array<size_t, num_dimensions()>dims{Dims...};
+    return std::accumulate(begin(dims), end(dims), size_t(1),
+                           std::multiplies<size_t>{});
+#endif
+  }
+  static constexpr auto   dimensions() {
+    return std::array<size_t, num_dimensions()>{Dims...};
+  }
+  static constexpr auto   dimension(size_t i) { return dimensions()[i]; }
   static constexpr auto   indices() {
-    return multi_index{std::array{std::pair<size_t, size_t>{0, Dims - 1}...}};
+    return multi_index<num_dimensions()>{
+        std::array<std::pair<size_t, size_t>, num_dimensions()>{
+            {0, Dims - 1}...}};
   }
   template <typename F>
   static auto for_indices(F&& f) {
@@ -105,37 +119,42 @@ struct base_tensor : crtp<Tensor> {
   }
 
   //----------------------------------------------------------------------------
-  template <typename... Is, enable_if_integral<Is...>...>
+  template <typename... Is, enable_if_integral<Is...> = true>
   constexpr decltype(auto) at(const Is... is) const {
-    static_assert(sizeof...(Is) == num_dimensions());
+    static_assert(sizeof...(Is) == num_dimensions(),
+                  "number of indices does not match number of dimensions");
     return as_derived().at(is...);
   }
 
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-  template <typename... Is, enable_if_integral<Is...>...>
+  template <typename... Is, enable_if_integral<Is...> = true>
   constexpr decltype(auto) at(const Is... is) {
-    static_assert(sizeof...(Is) == num_dimensions());
+    static_assert(sizeof...(Is) == num_dimensions(),
+                  "number of indices does not match number of dimensions");
     return as_derived().at(is...);
   }
 
   //----------------------------------------------------------------------------
-  template <typename... Is, enable_if_integral<Is...>...>
+  template <typename... Is, enable_if_integral<Is...> = true>
   constexpr decltype(auto) operator()(const Is... is) const {
-    static_assert(sizeof...(Is) == num_dimensions());
+    static_assert(sizeof...(Is) == num_dimensions(),
+                  "number of indices does not match number of dimensions");
     return at(is...);
   }
 
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-  template <typename... Is, enable_if_integral<Is...>...>
+  template <typename... Is, enable_if_integral<Is...> = true>
   constexpr decltype(auto) operator()(const Is... is) {
-    static_assert(sizeof...(Is) == num_dimensions());
+    static_assert(sizeof...(Is) == num_dimensions(),
+                  "number of indices does not match number of dimensions");
     return at(is...);
   }
 
   //----------------------------------------------------------------------------
   template <size_t FixedDim, size_t... Is>
   constexpr auto slice(size_t fixed_index, std::index_sequence<Is...>) {
-    static_assert(FixedDim < num_dimensions());
+    static_assert(FixedDim < num_dimensions(),
+                  "fixed dimensions must be in range of number of dimensions");
     return tensor_slice<
         Tensor, Real, FixedDim,
         dimension(sliced_indices<num_dimensions(), FixedDim>()[Is])...>{
@@ -144,14 +163,16 @@ struct base_tensor : crtp<Tensor> {
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
   template <size_t FixedDim>
   constexpr auto slice(size_t fixed_index) {
-    static_assert(FixedDim < num_dimensions());
+    static_assert(FixedDim < num_dimensions(),
+                  "fixed dimensions must be in range of number of dimensions");
     return slice<FixedDim>(fixed_index,
                            std::make_index_sequence<num_dimensions() - 1>{});
   }
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
   template <size_t FixedDim, size_t... Is>
   constexpr auto slice(size_t fixed_index, std::index_sequence<Is...>) const {
-    static_assert(FixedDim < num_dimensions());
+    static_assert(FixedDim < num_dimensions(),
+                  "fixed dimensions must be in range of number of dimensions");
     return tensor_slice<
         const Tensor, Real, FixedDim,
         dimension(sliced_indices<num_dimensions(), FixedDim>()[Is])...>{
@@ -160,15 +181,17 @@ struct base_tensor : crtp<Tensor> {
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
   template <size_t FixedDim>
   constexpr auto slice(size_t fixed_index) const {
-    static_assert(FixedDim < num_dimensions());
+    static_assert(FixedDim < num_dimensions(),
+                  "fixed dimensions must be in range of number of dimensions");
     return slice<FixedDim>(fixed_index,
                            std::make_index_sequence<num_dimensions() - 1>{});
   }
 
   //----------------------------------------------------------------------------
-  template <typename... Is, enable_if_integral<Is...>...>
+  template <typename... Is, enable_if_integral<Is...> = true>
   static constexpr auto array_index(const Is... is) {
-    static_assert(sizeof...(Is) == num_dimensions());
+    static_assert(sizeof...(Is) == num_dimensions(),
+                  "number of indices does not match number of dimensions");
     return static_multidimension<Dims...>::global_idx(is...);
   }
 
@@ -180,7 +203,7 @@ struct base_tensor : crtp<Tensor> {
   }
 
   //----------------------------------------------------------------------------
-  template <typename OtherReal, enable_if_arithmetic_or_symbolic<OtherReal>...>
+  template <typename OtherReal, enable_if_arithmetic_or_symbolic<OtherReal> = true>
   auto& operator+=(const OtherReal& other) {
     for_indices([&](const auto... is) { at(is...) += other; });
     return *this;
@@ -194,21 +217,21 @@ struct base_tensor : crtp<Tensor> {
   }
 
   //----------------------------------------------------------------------------
-  template <typename OtherReal, enable_if_arithmetic_or_symbolic<OtherReal>...>
+  template <typename OtherReal, enable_if_arithmetic_or_symbolic<OtherReal> = true>
   auto& operator-=(const OtherReal& other) {
     for_indices([&](const auto... is) { at(is...) -= other; });
     return *this;
   }
 
   //----------------------------------------------------------------------------
-  template <typename OtherReal, enable_if_arithmetic_or_symbolic<OtherReal>...>
+  template <typename OtherReal, enable_if_arithmetic_or_symbolic<OtherReal> = true>
   auto& operator*=(const OtherReal& other) {
     for_indices([&](const auto... is) { at(is...) *= other; });
     return *this;
   }
 
   //----------------------------------------------------------------------------
-  template <typename OtherReal, enable_if_arithmetic_or_symbolic<OtherReal>...>
+  template <typename OtherReal, enable_if_arithmetic_or_symbolic<OtherReal> = true>
   auto& operator/=(const OtherReal& other) {
     for_indices([&](const auto... is) { at(is...) /= other; });
     return *this;
@@ -238,9 +261,9 @@ struct tensor : base_tensor<tensor<Real, Dims...>, Real, Dims...> {
   constexpr tensor(const tensor& other) = default;
   constexpr tensor& operator=(const tensor& other) = default;
 
-  template <typename Real_ = Real, enable_if_arithmetic_or_complex<Real_>...>
+  template <typename Real_ = Real, enable_if_arithmetic_or_complex<Real_> = true>
   constexpr tensor(tensor&& other) noexcept : m_data{std::move(other.m_data)}{}
-  template <typename Real_ = Real, enable_if_arithmetic_or_complex<Real_>...>
+  template <typename Real_ = Real, enable_if_arithmetic_or_complex<Real_> = true>
   constexpr tensor& operator=(tensor&& other) noexcept {
     m_data = std::move(other.m_data);
     return *this;
@@ -249,25 +272,25 @@ struct tensor : base_tensor<tensor<Real, Dims...>, Real, Dims...> {
 
   //============================================================================
  public:
-  template <typename _real_t = Real, enable_if_arithmetic<_real_t>...>
-  constexpr tensor(zeros_t /*zeros*/) : tensor{fill{0}} {}
+  template <typename _real_t = Real, enable_if_arithmetic<_real_t> = true>
+  constexpr tensor(zeros_t /*zeros*/) : tensor{fill<Real>{0}} {}
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-  template <typename _real_t = Real, enable_if_arithmetic<_real_t>...>
-  constexpr tensor(ones_t /*ones*/) : tensor{fill{1}} {}
+  template <typename _real_t = Real, enable_if_arithmetic<_real_t> = true>
+  constexpr tensor(ones_t /*ones*/) : tensor{fill<Real>{1}} {}
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
   template <typename fill_real_t, typename _real_t = Real,
-            enable_if_arithmetic<_real_t>...>
+            enable_if_arithmetic<_real_t> = true>
   constexpr tensor(fill<fill_real_t> f)
       : m_data{make_array<Real, num_components()>(f.value)} {}
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
   template <typename RandomReal, typename Engine, typename _real_t = Real,
-            enable_if_arithmetic<RandomReal>...>
+            enable_if_arithmetic<RandomReal> = true>
   constexpr tensor(random_uniform<RandomReal, Engine>&& rand) : tensor{} {
     this->unary_operation([&](const auto& /*c*/) { return rand.get(); });
   }
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
   template <typename RandomReal, typename Engine, typename _real_t = Real,
-            enable_if_arithmetic<_real_t>...>
+            enable_if_arithmetic<_real_t> = true>
   constexpr tensor(random_normal<RandomReal, Engine>&& rand) : tensor{} {
     this->unary_operation([&](const auto& /*c*/) { return rand.get(); });
   }
@@ -288,17 +311,17 @@ struct tensor : base_tensor<tensor<Real, Dims...>, Real, Dims...> {
   }
 
   //----------------------------------------------------------------------------
-  static constexpr auto zeros() { return this_t{fill{0}}; }
+  static constexpr auto zeros() { return this_t{fill<Real>{0}}; }
 
   //----------------------------------------------------------------------------
-  static constexpr auto ones() { return this_t{fill{1}}; }
+  static constexpr auto ones() { return this_t{fill<Real>{1}}; }
 
   //----------------------------------------------------------------------------
   template <typename RandomEngine = std::mt19937_64>
   static constexpr auto randu(Real min = 0, Real max = 1,
                               RandomEngine&& eng = RandomEngine{
                                   std::random_device{}()}) {
-    return this_t{random_uniform{eng, min, max}};
+    return this_t{random_uniform<Real>{eng, min, max}};
   }
 
   //----------------------------------------------------------------------------
@@ -306,20 +329,22 @@ struct tensor : base_tensor<tensor<Real, Dims...>, Real, Dims...> {
   static constexpr auto randn(Real mean = 0, Real stddev = 1,
                               RandomEngine&& eng = RandomEngine{
                                   std::random_device{}()}) {
-    return this_t{random_normal{eng, mean, stddev}};
+    return this_t{random_normal<Real>{eng, mean, stddev}};
   }
 
   //============================================================================
-  template <typename... Is, enable_if_integral<Is...>...>
+  template <typename... Is, enable_if_integral<Is...> = true>
   constexpr const auto& at(const Is... is) const {
-    static_assert(sizeof...(Is) == num_dimensions());
+    static_assert(sizeof...(Is) == num_dimensions(),
+                  "number of indices does not match number of dimensions");
     return m_data[parent_t::array_index(is...)];
   }
 
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-  template <typename... Is, enable_if_integral<Is...>...>
+  template <typename... Is, enable_if_integral<Is...> = true>
   constexpr auto& at(const Is... is) {
-    static_assert(sizeof...(Is) == num_dimensions());
+    static_assert(sizeof...(Is) == num_dimensions(),
+                  "number of indices does not match number of dimensions");
     return m_data[parent_t::array_index(is...)];
   }
 
@@ -362,9 +387,11 @@ struct tensor : base_tensor<tensor<Real, Dims...>, Real, Dims...> {
 };
 
 //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+#if has_cxx17_support()
 template <size_t C, typename... Rows>
 tensor(Rows const(&&... rows)[C])
     ->tensor<promote_t<Rows...>, sizeof...(Rows), C>;
+#endif
 
 //==============================================================================
 template <typename Real, size_t n>
@@ -375,9 +402,10 @@ struct vec : tensor<Real, n> {
   using iterator       = typename parent_t::data_container_t::iterator;
   using const_iterator = typename parent_t::data_container_t::const_iterator;
 
-  template <typename... Ts, enable_if_arithmetic_complex_or_symbolic<Ts...>...>
+  template <typename... Ts, enable_if_arithmetic_complex_or_symbolic<Ts...> = true>
   constexpr vec(const Ts... ts) {
-    static_assert(sizeof...(Ts) == parent_t::dimension(0));
+    static_assert(sizeof...(Ts) == parent_t::dimension(0),
+                  "number of indices does not match number of dimensions");
     this->m_data = {static_cast<Real>(ts)...};
   }
 
@@ -385,9 +413,9 @@ struct vec : tensor<Real, n> {
   constexpr vec& operator=(const vec&) = default;
   ~vec()                               = default;
 
-  template <typename Real_ = Real, enable_if_arithmetic_or_complex<Real_>...>
+  template <typename Real_ = Real, enable_if_arithmetic_or_complex<Real_> = true>
   constexpr vec(vec&& other) noexcept : parent_t{std::move(other)} {}
-  template <typename Real_ = Real, enable_if_arithmetic_or_complex<Real_>...>
+  template <typename Real_ = Real, enable_if_arithmetic_or_complex<Real_> = true>
   constexpr vec& operator=(vec&& other) noexcept {
     parent_t::operator=(std::move(other));
     return *this;
@@ -395,8 +423,10 @@ struct vec : tensor<Real, n> {
 };
 
 //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+#if has_cxx17_support()
 template <typename... Ts>
 vec(const Ts...)->vec<promote_t<Ts...>, sizeof...(Ts)>;
+#endif
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 using vec2 = vec<double, 2>;
@@ -412,15 +442,15 @@ struct mat : tensor<Real, M, N> {
   constexpr mat(const mat&)     = default;
   constexpr mat& operator=(const mat&) = default;
   ~mat()                                   = default;
-  template <typename Real_ = Real, enable_if_arithmetic_or_complex<Real_>...>
+  template <typename Real_ = Real, enable_if_arithmetic_or_complex<Real_> = true>
   constexpr mat(mat&& other) noexcept : parent_t{std::move(other)} {}
-  template <typename Real_ = Real, enable_if_arithmetic_or_complex<Real_>...>
+  template <typename Real_ = Real, enable_if_arithmetic_or_complex<Real_> = true>
   constexpr mat& operator=(mat&& other) noexcept {
     parent_t::operator=(std::move(other));
     return *this;
   }
 
-  template <typename... Rows, enable_if_arithmetic_or_symbolic<Rows...>...>
+  template <typename... Rows, enable_if_arithmetic_or_symbolic<Rows...> = true>
   constexpr mat(Rows(&&... rows)[parent_t::dimension(1)]) {
     static_assert(
         sizeof...(rows) == parent_t::dimension(0),
@@ -434,7 +464,7 @@ struct mat : tensor<Real, M, N> {
       ++r;
     };
 
-    (insert_row(rows), ...);
+    for_each(insert_row, rows...);
   }
 
   constexpr auto row(size_t i) { return this->template slice<0>(i); }
@@ -445,8 +475,10 @@ struct mat : tensor<Real, M, N> {
 };
 
 //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+#if has_cxx17_support()
 template <size_t C, typename... Rows>
 mat(Rows const(&&... rows)[C])->mat<promote_t<Rows...>, sizeof...(Rows), C>;
+#endif
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 using mat2 = mat<double, 2, 2>;
@@ -615,44 +647,60 @@ constexpr auto cross(const base_tensor<LhsTensor, LhsReal, 3>& lhs,
 }
 
 //------------------------------------------------------------------------------
+template <typename F, typename Tensor, typename Real, size_t N>
+constexpr auto unary_operation(F&&                                 f,
+                               const base_tensor<Tensor, Real, N>& t_in) {
+  using RealOut = typename std::result_of<decltype(f)(Real)>::type;
+  vec<RealOut, N> t_out = t_in;
+  t_out.unary_operation(std::forward<F>(f));
+  return t_out;
+}
+template <typename F, typename Tensor, typename Real, size_t M, size_t N>
+constexpr auto unary_operation(F&&                                       f,
+                               const base_tensor<Tensor, Real, M,N>& t_in) {
+  using RealOut = typename std::result_of<decltype(f)(Real)>::type;
+  mat<RealOut, M, N> t_out = t_in;
+  t_out.unary_operation(std::forward<F>(f));
+  return t_out;
+}
 template <typename F, typename Tensor, typename Real, size_t... Dims>
 constexpr auto unary_operation(F&&                                       f,
                                const base_tensor<Tensor, Real, Dims...>& t_in) {
   using RealOut = typename std::result_of<decltype(f)(Real)>::type;
-  if constexpr (sizeof...(Dims) == 1) {
-    vec<RealOut, Dims...> t_out = t_in;
-    t_out.unary_operation(std::forward<F>(f));
-    return t_out;
-  } else if constexpr (sizeof...(Dims) == 2) {
-    mat<RealOut, Dims...> t_out = t_in;
-    t_out.unary_operation(std::forward<F>(f));
-    return t_out;
-  } else {
-    tensor<RealOut, Dims...> t_out = t_in;
-    t_out.unary_operation(std::forward<F>(f));
-    return t_out;
-  }
+  tensor<RealOut, Dims...> t_out = t_in;
+  t_out.unary_operation(std::forward<F>(f));
+  return t_out;
 }
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+template <typename F, typename LhsTensor, typename LhsReal, typename RhsTensor,
+          typename RhsReal, size_t N>
+constexpr auto binary_operation(
+    F&& f, const base_tensor<LhsTensor, LhsReal, N>& lhs,
+    const base_tensor<RhsTensor, RhsReal, N>& rhs) {
+  using RealOut = typename std::result_of<decltype(f)(LhsReal, RhsReal)>::type;
+  vec<RealOut, N> t_out = lhs;
+  t_out.binary_operation(std::forward<F>(f), rhs);
+  return t_out;
+}
+template <typename F, typename LhsTensor, typename LhsReal, typename RhsTensor,
+          typename RhsReal, size_t M, size_t N>
+constexpr auto binary_operation(
+    F&& f, const base_tensor<LhsTensor, LhsReal, M, N>& lhs,
+    const base_tensor<RhsTensor, RhsReal, M, N>& rhs) {
+  using RealOut = typename std::result_of<decltype(f)(LhsReal, RhsReal)>::type;
+  mat<RealOut, M, N> t_out = lhs;
+  t_out.binary_operation(std::forward<F>(f), rhs);
+  return t_out;
+}
 template <typename F, typename LhsTensor, typename LhsReal, typename RhsTensor,
           typename RhsReal, size_t... Dims>
 constexpr auto binary_operation(
     F&& f, const base_tensor<LhsTensor, LhsReal, Dims...>& lhs,
     const base_tensor<RhsTensor, RhsReal, Dims...>& rhs) {
   using RealOut = typename std::result_of<decltype(f)(LhsReal, RhsReal)>::type;
-  if constexpr (sizeof...(Dims) == 1) {
-    vec<RealOut, Dims...> t_out = lhs;
-    t_out.binary_operation(std::forward<F>(f), rhs);
-    return t_out;
-  } else if constexpr (sizeof...(Dims) == 2) {
-    mat<RealOut, Dims...> t_out = lhs;
-    t_out.binary_operation(std::forward<F>(f), rhs);
-    return t_out;
-  } else {
-    tensor<RealOut, Dims...> t_out = lhs;
-    t_out.binary_operation(std::forward<F>(f), rhs);
-    return t_out;
-  }
+  tensor<RealOut, Dims...> t_out = lhs;
+  t_out.binary_operation(std::forward<F>(f), rhs);
+  return t_out;
 }
 
 //------------------------------------------------------------------------------
@@ -663,7 +711,7 @@ constexpr auto operator-(const base_tensor<Tensor, Real, Dims...>& t) {
 
 //------------------------------------------------------------------------------
 template <typename LhsTensor, typename LhsReal, typename RhsReal,
-          size_t... Dims, enable_if_arithmetic<RhsReal>...>
+          size_t... Dims, enable_if_arithmetic<RhsReal> = true>
 constexpr auto operator+(const base_tensor<LhsTensor, LhsReal, Dims...>& lhs,
                          RhsReal scalar) {
   return unary_operation([scalar](const auto& c) { return c + scalar; }, lhs);
@@ -713,9 +761,7 @@ constexpr auto operator+(const base_tensor<LhsTensor, LhsReal, Dims...>& lhs,
 //------------------------------------------------------------------------------
 template <typename Tensor, typename tensor_real_t, typename scalar_real_t,
           size_t... Dims,
-          std::enable_if_t<std::is_arithmetic_v<scalar_real_t> ||
-                           is_complex_v<scalar_real_t> ||
-                           std::is_same_v<scalar_real_t, GiNaC::ex>>...>
+          enable_if_arithmetic_complex_or_symbolic<scalar_real_t> = true>
 constexpr auto operator*(const base_tensor<Tensor, tensor_real_t, Dims...>& t,
                          const scalar_real_t scalar) {
   return unary_operation(
@@ -724,9 +770,7 @@ constexpr auto operator*(const base_tensor<Tensor, tensor_real_t, Dims...>& t,
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 template <typename Tensor, typename tensor_real_t, typename scalar_real_t,
           size_t... Dims,
-          std::enable_if_t<std::is_arithmetic_v<scalar_real_t> ||
-                           is_complex_v<scalar_real_t> ||
-                           std::is_same_v<scalar_real_t, GiNaC::ex>>...>
+          enable_if_arithmetic_complex_or_symbolic<scalar_real_t> = true>
 constexpr auto operator*(const scalar_real_t scalar,
                          const base_tensor<Tensor, tensor_real_t, Dims...>& t) {
   return unary_operation(
@@ -736,9 +780,7 @@ constexpr auto operator*(const scalar_real_t scalar,
 //------------------------------------------------------------------------------
 template <typename Tensor, typename tensor_real_t, typename scalar_real_t,
           size_t... Dims,
-          std::enable_if_t<std::is_arithmetic_v<scalar_real_t> ||
-                           is_complex_v<scalar_real_t> ||
-                           std::is_same_v<scalar_real_t, GiNaC::ex>>...>
+          enable_if_arithmetic_complex_or_symbolic<scalar_real_t> = true>
 constexpr auto operator/(const base_tensor<Tensor, tensor_real_t, Dims...>& t,
                          const scalar_real_t scalar) {
   return unary_operation(
@@ -747,9 +789,7 @@ constexpr auto operator/(const base_tensor<Tensor, tensor_real_t, Dims...>& t,
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 template <typename Tensor, typename tensor_real_t, typename scalar_real_t,
           size_t... Dims,
-          std::enable_if_t<std::is_arithmetic_v<scalar_real_t> ||
-                           is_complex_v<scalar_real_t> ||
-                           std::is_same_v<scalar_real_t, GiNaC::ex>>...>
+          enable_if_arithmetic_complex_or_symbolic<scalar_real_t> = true>
 constexpr auto operator/(const scalar_real_t scalar,
                          const base_tensor<Tensor, tensor_real_t, Dims...>& t) {
   return unary_operation(
@@ -778,88 +818,118 @@ constexpr auto operator*(const base_tensor<LhsTensor, LhsReal, M, N>& lhs,
 }
 
 //------------------------------------------------------------------------------
-template <typename Real, size_t m>
-auto gesv(const tensor<Real, m, m>& A, const tensor<Real, m>& b) {
-  vec<Real, m> x = b;
-  vec<int, m>  ipiv;
+template <size_t N>
+auto gesv(const tensor<float, N, N>& A, const tensor<float, N>& b) {
+  vec<float, N> x = b;
+  vec<int, N>  ipiv;
   int          nrhs = 1;
-  if constexpr (std::is_same_v<float, Real>) {
-    LAPACKE_sgesv(LAPACK_COL_MAJOR, m, nrhs, const_cast<Real*>(A.data()), m,
-                  ipiv.data(), const_cast<Real*>(x.data()), m);
-  }
-  if constexpr (std::is_same_v<double, Real>) {
-    LAPACKE_dgesv(LAPACK_COL_MAJOR, m, nrhs, const_cast<Real*>(A.data()), m,
-                  ipiv.data(), const_cast<Real*>(x.data()), m);
-  }
+  LAPACKE_sgesv(LAPACK_COL_MAJOR, N, nrhs, const_cast<float*>(A.data()), N,
+                ipiv.data(), const_cast<float*>(x.data()), N);
+  return x;
+}
+//------------------------------------------------------------------------------
+template <size_t N>
+auto gesv(const tensor<double, N, N>& A, const tensor<double, N>& b) {
+  vec<double, N> x = b;
+  vec<int, N>  ipiv;
+  int          nrhs = 1;
+  LAPACKE_dgesv(LAPACK_COL_MAJOR, N, nrhs, const_cast<double*>(A.data()), N,
+                ipiv.data(), const_cast<double*>(x.data()), N);
   return x;
 }
 
 //------------------------------------------------------------------------------
-template <typename Real, size_t m, size_t n>
-auto gesv(const tensor<Real, m, m>& A, const tensor<Real, m, n>& B) {
-  mat<Real, m, n> X = B;
-  tensor<int, m>  ipiv;
-  if constexpr (std::is_same_v<float, Real>) {
-    LAPACKE_sgesv(LAPACK_COL_MAJOR, m, n, const_cast<Real*>(A.data()), m,
-                  ipiv.data(), const_cast<Real*>(X.data()), m);
-  }
-
-  if constexpr (std::is_same_v<double, Real>) {
-    LAPACKE_dgesv(LAPACK_COL_MAJOR, m, n, const_cast<Real*>(A.data()), m,
-                  ipiv.data(), const_cast<Real*>(X.data()), m);
-  }
-
+template <size_t M, size_t N>
+auto gesv(const tensor<float, M, M>& A, const tensor<float, M, N>& B) {
+  mat<float, M, N> X = B;
+  tensor<int, M>  ipiv;
+    LAPACKE_sgesv(LAPACK_COL_MAJOR, M, N, const_cast<float*>(A.data()), M,
+                  ipiv.data(), const_cast<float*>(X.data()), M);
+  return X;
+}
+template <size_t M, size_t N>
+auto gesv(const tensor<double, M, M>& A, const tensor<double, M, N>& B) {
+  mat<double, M, N> X = B;
+  tensor<int, M>  ipiv;
+    LAPACKE_dgesv(LAPACK_COL_MAJOR, M, N, const_cast<double*>(A.data()), M,
+                  ipiv.data(), const_cast<double*>(X.data()), M);
   return X;
 }
 
 //------------------------------------------------------------------------------
-template <typename Real, size_t m>
-vec<std::complex<Real>, m> eigenvalues(tensor<Real, m, m> A) {
+template <size_t N>
+vec<std::complex<float>, N> eigenvalues(tensor<float, N, N> A) {
   [[maybe_unused]] lapack_int info;
-  std::array<Real, m>         wr;
-  std::array<Real, m>         wi;
-  if constexpr (std::is_same_v<double, Real>) {
-    info = LAPACKE_dgeev(LAPACK_COL_MAJOR, 'N', 'N', m, A.data(), m, wr.data(),
-                         wi.data(), nullptr, m, nullptr, m);
-  }
-  if constexpr (std::is_same_v<float, Real>) {
-    info = LAPACKE_sgeev(LAPACK_COL_MAJOR, 'N', 'N', m, A.data(), m, wr.data(),
-                         wi.data(), nullptr, m, nullptr, m);
-  }
+  std::array<float, N>         wr;
+  std::array<float, N>         wi;
+    info = LAPACKE_sgeev(LAPACK_COL_MAJOR, 'N', 'N', N, A.data(), N, wr.data(),
+                         wi.data(), nullptr, N, nullptr, N);
 
-  vec<std::complex<Real>, m> vals;
-  for (size_t i = 0; i < m; ++i) { vals[i] = {wr[i], wi[i]}; }
+  vec<std::complex<float>, N> vals;
+  for (size_t i = 0; i < N; ++i) { vals[i] = {wr[i], wi[i]}; }
+  return vals;
+}
+template <size_t N>
+vec<std::complex<double>, N> eigenvalues(tensor<double, N, N> A) {
+  [[maybe_unused]] lapack_int info;
+  std::array<double, N>         wr;
+  std::array<double, N>         wi;
+    info = LAPACKE_dgeev(LAPACK_COL_MAJOR, 'N', 'N', N, A.data(), N, wr.data(),
+                         wi.data(), nullptr, N, nullptr, N);
+  vec<std::complex<double>, N> vals;
+  for (size_t i = 0; i < N; ++i) { vals[i] = {wr[i], wi[i]}; }
   return vals;
 }
 
 //------------------------------------------------------------------------------
-template <typename Real, size_t m>
-std::pair<mat<std::complex<Real>, m, m>, vec<std::complex<Real>, m>>
-eigenvectors(tensor<Real, m, m> A) {
+template <size_t N>
+std::pair<mat<std::complex<float>, N, N>, vec<std::complex<float>, N>>
+eigenvectors(tensor<float, N, N> A) {
   [[maybe_unused]] lapack_int info;
-  std::array<Real, m>         wr;
-  std::array<Real, m>         wi;
-  std::array<Real, m * m>     vr;
-  if constexpr (std::is_same_v<double, Real>) {
-    info = LAPACKE_dgeev(LAPACK_COL_MAJOR, 'N', 'V', m, A.data(), m, wr.data(),
-                         wi.data(), nullptr, m, vr.data(), m);
-  }
-  if constexpr (std::is_same_v<float, Real>) {
-    info = LAPACKE_sgeev(LAPACK_COL_MAJOR, 'N', 'V', m, A.data(), m, wr.data(),
-                         wi.data(), nullptr, m, vr.data(), m);
+  std::array<float, N>         wr;
+  std::array<float, N>         wi;
+  std::array<float, N * N>     vr;
+    info = LAPACKE_sgeev(LAPACK_COL_MAJOR, 'N', 'V', N, A.data(), N, wr.data(),
+                         wi.data(), nullptr, N, vr.data(), N);
+
+  vec<std::complex<float>, N>    vals;
+  mat<std::complex<float>, N, N> vecs;
+  for (size_t i = 0; i < N; ++i) { vals[i] = {wr[i], wi[i]}; }
+  for (size_t j = 0; j < N; ++j) {
+    for (size_t i = 0; i < N; ++i) {
+      if (wi[j] == 0) {
+        vecs(i, j) = {vr[i + j * N], 0};
+      } else {
+        vecs(i, j)     = {vr[i + j * N], vr[i + (j + 1) * N]};
+        vecs(i, j + 1) = {vr[i + j * N], -vr[i + (j + 1) * N]};
+        if (i == N - 1) { ++j; }
+      }
+    }
   }
 
-  vec<std::complex<Real>, m>    vals;
-  mat<std::complex<Real>, m, m> vecs;
-  for (size_t i = 0; i < m; ++i) { vals[i] = {wr[i], wi[i]}; }
-  for (size_t j = 0; j < m; ++j) {
-    for (size_t i = 0; i < m; ++i) {
+  return {std::move(vecs), std::move(vals)};
+}
+template <size_t N>
+std::pair<mat<std::complex<double>, N, N>, vec<std::complex<double>, N>>
+eigenvectors(tensor<double, N, N> A) {
+  [[maybe_unused]] lapack_int info;
+  std::array<double, N>         wr;
+  std::array<double, N>         wi;
+  std::array<double, N * N>     vr;
+  info = LAPACKE_dgeev(LAPACK_COL_MAJOR, 'N', 'V', N, A.data(), N, wr.data(),
+                       wi.data(), nullptr, N, vr.data(), N);
+
+  vec<std::complex<double>, N>    vals;
+  mat<std::complex<double>, N, N> vecs;
+  for (size_t i = 0; i < N; ++i) { vals[i] = {wr[i], wi[i]}; }
+  for (size_t j = 0; j < N; ++j) {
+    for (size_t i = 0; i < N; ++i) {
       if (wi[j] == 0) {
-        vecs(i, j) = {vr[i + j * m], 0};
+        vecs(i, j) = {vr[i + j * N], 0};
       } else {
-        vecs(i, j)     = {vr[i + j * m], vr[i + (j + 1) * m]};
-        vecs(i, j + 1) = {vr[i + j * m], -vr[i + (j + 1) * m]};
-        if (i == m - 1) { ++j; }
+        vecs(i, j)     = {vr[i + j * N], vr[i + (j + 1) * N]};
+        vecs(i, j + 1) = {vr[i + j * N], -vr[i + (j + 1) * N]};
+        if (i == N - 1) { ++j; }
       }
     }
   }
@@ -868,36 +938,36 @@ eigenvectors(tensor<Real, m, m> A) {
 }
 
 //------------------------------------------------------------------------------
-template <typename Real, size_t n>
-auto eigenvalues_sym(tensor<Real, n, n> A) {
-  vec<Real, n>                vals;
+template <size_t N>
+auto eigenvalues_sym(tensor<float, N, N> A) {
+  vec<float, N>               vals;
   [[maybe_unused]] lapack_int info;
-  if constexpr (std::is_same_v<float, Real>) {
-    info =
-        LAPACKE_ssyev(LAPACK_COL_MAJOR, 'N', 'U', n, A.data(), n, vals.data());
-  }
-  if constexpr (std::is_same_v<double, Real>) {
-    info =
-        LAPACKE_dsyev(LAPACK_COL_MAJOR, 'N', 'U', n, A.data(), n, vals.data());
-  }
+  info = LAPACKE_ssyev(LAPACK_COL_MAJOR, 'N', 'U', N, A.data(), N, vals.data());
+  return vals;
+}
+template <size_t N>
+auto eigenvalues_sym(tensor<double, N, N> A) {
+  vec<double, N>              vals;
+  [[maybe_unused]] lapack_int info;
+  info = LAPACKE_dsyev(LAPACK_COL_MAJOR, 'N', 'U', N, A.data(), N, vals.data());
 
   return vals;
 }
 
 //------------------------------------------------------------------------------
-template <typename Real, size_t n>
-std::pair<mat<Real, n, n>, vec<Real, n>> eigenvectors_sym(mat<Real, n, n> A) {
-  vec<Real, n>                vals;
+template <size_t N>
+std::pair<mat<float, N, N>, vec<float, N>> eigenvectors_sym(mat<float, N, N> A) {
+  vec<float, N>               vals;
   [[maybe_unused]] lapack_int info;
-  if constexpr (std::is_same_v<float, Real>) {
-    info =
-        LAPACKE_ssyev(LAPACK_COL_MAJOR, 'V', 'U', n, A.data(), n, vals.data());
-  }
-  if constexpr (std::is_same_v<double, Real>) {
-    info =
-        LAPACKE_dsyev(LAPACK_COL_MAJOR, 'V', 'U', n, A.data(), n, vals.data());
-  }
-
+  info = LAPACKE_ssyev(LAPACK_COL_MAJOR, 'V', 'U', N, A.data(), N, vals.data());
+  return {std::move(A), std::move(vals)};
+}
+template <size_t N>
+std::pair<mat<double, N, N>, vec<double, N>> eigenvectors_sym(
+    mat<double, N, N> A) {
+  vec<double, N>              vals;
+  [[maybe_unused]] lapack_int info;
+  info = LAPACKE_dsyev(LAPACK_COL_MAJOR, 'V', 'U', N, A.data(), N, vals.data());
   return {std::move(A), std::move(vals)};
 }
 
@@ -939,7 +1009,7 @@ struct tensor_slice : base_tensor<tensor_slice<Tensor, Real, FixedDim, Dims...>,
       : m_tensor{tensor}, m_fixed_index{fixed_index} {}
 
   //----------------------------------------------------------------------------
-  template <typename... Is, enable_if_integral<Is...>...>
+  template <typename... Is, enable_if_integral<Is...> = true>
   constexpr const auto& at(const Is... is) const {
     if constexpr (FixedDim == 0) {
       return m_tensor->at(m_fixed_index, is...);
@@ -958,7 +1028,7 @@ struct tensor_slice : base_tensor<tensor_slice<Tensor, Real, FixedDim, Dims...>,
   }
 
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-  template <typename... Is, enable_if_integral<Is...>...,
+  template <typename... Is, enable_if_integral<Is...> = true,
             typename _tensor_t = Tensor,
             std::enable_if_t<!std::is_const_v<_tensor_t>>...>
   constexpr auto& at(const Is... is) {
@@ -999,13 +1069,13 @@ struct const_imag_complex_tensor
       : m_internal_tensor{internal_tensor.as_derived()} {}
 
   //----------------------------------------------------------------------------
-  template <typename... Indices, enable_if_integral<Indices...>...>
+  template <typename... Indices, enable_if_integral<Indices...> = true>
   constexpr decltype(auto) operator()(const Indices... indices) const {
     static_assert(sizeof...(Indices) == num_dimensions());
     return m_internal_tensor(indices...).imag();
   }
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-  template <typename... Indices, enable_if_integral<Indices...>...>
+  template <typename... Indices, enable_if_integral<Indices...> = true>
   constexpr decltype(auto) at(const Indices... indices) const {
     static_assert(sizeof...(Indices) == num_dimensions());
     return m_internal_tensor(indices...).imag();
@@ -1033,25 +1103,25 @@ struct imag_complex_tensor
       : m_internal_tensor{internal_tensor.as_derived()} {}
 
   //----------------------------------------------------------------------------
-  template <typename... Indices, enable_if_integral<Indices...>...>
+  template <typename... Indices, enable_if_integral<Indices...> = true>
   constexpr decltype(auto) operator()(const Indices... indices) const {
     static_assert(sizeof...(Indices) == num_dimensions());
     return m_internal_tensor(indices...).imag();
   }
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-  template <typename... Indices, enable_if_integral<Indices...>...>
+  template <typename... Indices, enable_if_integral<Indices...> = true>
   constexpr decltype(auto) operator()(const Indices... indices) {
     static_assert(sizeof...(Indices) == num_dimensions());
     return m_internal_tensor(indices...).imag();
   }
   //----------------------------------------------------------------------------
-  template <typename... Indices, enable_if_integral<Indices...>...>
+  template <typename... Indices, enable_if_integral<Indices...> = true>
   constexpr decltype(auto) at(const Indices... indices) const {
     static_assert(sizeof...(Indices) == num_dimensions());
     return m_internal_tensor(indices...).imag();
   }
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-  template <typename... Indices, enable_if_integral<Indices...>...>
+  template <typename... Indices, enable_if_integral<Indices...> = true>
   constexpr decltype(auto) at(const Indices... indices) {
     static_assert(sizeof...(Indices) == num_dimensions());
     return m_internal_tensor(indices...).imag();
@@ -1092,13 +1162,13 @@ struct const_real_complex_tensor
       : m_internal_tensor{internal_tensor.as_derived()} {}
 
   //----------------------------------------------------------------------------
-  template <typename... Indices, enable_if_integral<Indices...>...>
+  template <typename... Indices, enable_if_integral<Indices...> = true>
   constexpr decltype(auto) operator()(const Indices... indices) const {
     static_assert(sizeof...(Indices) == num_dimensions());
     return m_internal_tensor(indices...).real();
   }
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-  template <typename... Indices, enable_if_integral<Indices...>...>
+  template <typename... Indices, enable_if_integral<Indices...> = true>
   constexpr decltype(auto) at(const Indices... indices) const {
     static_assert(sizeof...(Indices) == num_dimensions());
     return m_internal_tensor(indices...).real();
@@ -1126,25 +1196,25 @@ struct real_complex_tensor
       : m_internal_tensor{internal_tensor.as_derived()} {}
 
   //----------------------------------------------------------------------------
-  template <typename... Indices, enable_if_integral<Indices...>...>
+  template <typename... Indices, enable_if_integral<Indices...> = true>
   constexpr decltype(auto) operator()(const Indices... indices) const {
     static_assert(sizeof...(Indices) == num_dimensions());
     return m_internal_tensor(indices...).real();
   }
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-  template <typename... Indices, enable_if_integral<Indices...>...>
+  template <typename... Indices, enable_if_integral<Indices...> = true>
   constexpr decltype(auto) operator()(const Indices... indices) {
     static_assert(sizeof...(Indices) == num_dimensions());
     return m_internal_tensor(indices...).real();
   }
   //----------------------------------------------------------------------------
-  template <typename... Indices, enable_if_integral<Indices...>...>
+  template <typename... Indices, enable_if_integral<Indices...> = true>
   constexpr decltype(auto) at(const Indices... indices) const {
     static_assert(sizeof...(Indices) == num_dimensions());
     return m_internal_tensor(indices...).real();
   }
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-  template <typename... Indices, enable_if_integral<Indices...>...>
+  template <typename... Indices, enable_if_integral<Indices...> = true>
   constexpr decltype(auto) at(const Indices... indices) {
     static_assert(sizeof...(Indices) == num_dimensions());
     return m_internal_tensor(indices...).real();
