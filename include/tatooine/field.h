@@ -1,7 +1,9 @@
 #ifndef TATOOINE_FIELD_H
 #define TATOOINE_FIELD_H
 
+#include <vector>
 #include "crtp.h"
+#include "grid.h"
 #include "tensor.h"
 #include "type_traits.h"
 
@@ -50,7 +52,6 @@ struct field : crtp<Derived> {
   static constexpr auto tensor_dimension(size_t i) {
     return tensor_t::dimension(i);
   }
-  static constexpr auto has_in_domain() { return has_in_domain_v<Derived>; }
   using parent_t::as_derived;
 
   //============================================================================
@@ -60,18 +61,14 @@ struct field : crtp<Derived> {
 
   //----------------------------------------------------------------------------
   constexpr tensor_t evaluate(const pos_t& x, Real t = 0) const {
-     if (!in_domain(x, t)) { throw out_of_domain{}; }
+    if (!in_domain(x, t)) { throw out_of_domain{}; }
     return as_derived().evaluate(x, t);
   }
 
   //----------------------------------------------------------------------------
   constexpr decltype(auto) in_domain([[maybe_unused]] const pos_t& x,
                                      [[maybe_unused]] Real t = 0) const {
-    if constexpr (has_in_domain()) {
-      return as_derived().in_domain(x, t);
-    } else {
-      return true;
-    }
+    return as_derived().in_domain(x, t);
   }
 };
 
@@ -272,6 +269,31 @@ constexpr auto operator*(const field<LhsField, LhsReal, Dims...>& lhs,
 //  return product;
 //}
 
+template <typename OutReal, typename Field,
+          typename Real, size_t N, size_t... TensorDims>
+auto sample_to_raw(const field<Field, Real, N, TensorDims...>& f,
+                   const grid<Real, N>& g, Real t) {
+  std::vector<OutReal> raw_data;
+  raw_data.reserve(g.num_vertices() * Field::tensor_t::num_components());
+  for (auto v : g.vertices()) {
+    auto sample = f(v.position(), t);
+    for (size_t i = 0; i < Field::tensor_t::num_components(); ++i) {
+      raw_data.push_back(sample[i]);
+    }
+  }
+  return raw_data;
+}
+//------------------------------------------------------------------------------
+template <typename Field, typename Real, size_t N, size_t... TensorDims>
+auto sample_to_raw(const field<Field, Real, N, TensorDims...>& field,
+                   const grid<Real, N>& g, linspace<Real> ts) {
+  std::vector<typename Field::tensor_t> raw_data;
+  raw_data.reserve(g.num_vertices() * ts.size());
+  for (auto t : ts) {
+    for (auto v : g.vertices()) { raw_data.push_back(field(v.position(), t)); }
+  }
+  return raw_data;
+}
 //==============================================================================
 }  // namespace tatooine
 //==============================================================================

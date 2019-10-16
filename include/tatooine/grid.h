@@ -15,6 +15,7 @@
 #include "linspace.h"
 #include "random.h"
 #include "subgrid.h"
+#include "random.h"
 
 //==============================================================================
 namespace tatooine {
@@ -115,8 +116,9 @@ class grid {
   template <size_t... Is>
   constexpr auto boundingbox(std::index_sequence<Is...> /*is*/) const {
     static_assert(sizeof...(Is) == N);
-    return tatooine::boundingbox{vec{m_dimensions[Is].front()...},
-                                 vec{m_dimensions[Is].back()...}};
+    return tatooine::boundingbox<Real, N>{
+        vec<Real, N>{m_dimensions[Is].front()...},
+        vec<Real, N>{m_dimensions[Is].back()...}};
   }
 
   //----------------------------------------------------------------------------
@@ -126,7 +128,7 @@ class grid {
   template <size_t... Is>
   constexpr auto size(std::index_sequence<Is...> /*is*/) const {
     static_assert(sizeof...(Is) == N);
-    return std::array{m_dimensions[Is].size()...};
+    return std::array<size_t, N>{m_dimensions[Is].size()...};
   }
 
   //----------------------------------------------------------------------------
@@ -134,20 +136,28 @@ class grid {
 
   //----------------------------------------------------------------------------
   template <size_t... Is, typename... Reals,
-            typename = std::enable_if_t<(std::is_arithmetic_v<Reals> && ...)>>
+            enable_if_arithmetic<Reals...> = true>
   constexpr auto in_domain(std::index_sequence<Is...> /*is*/,
                            Reals... xs) const {
     static_assert(sizeof...(Reals) == N,
                   "number of components does not match number of dimensions");
     static_assert(sizeof...(Is) == N,
                   "number of indices does not match number of dimensions");
-    return ((m_dimensions[Is].front() <= xs && xs <= m_dimensions[Is].back()) &&
-            ...);
+#if has_cxx17_support()
+    return ((m_dimensions[Is].front() <= xs &&
+             xs <= m_dimensions[Is].back()) && ...);
+#else
+    constexpr std::array<Real, N> pos{static_cast<Real>(xs)...};
+    for (size_t i = 0; i < N; ++i) {
+      if (pos[i] < m_dimensions[i].front()) { return false; }
+      if (pos[i] > m_dimensions[i].back()) { return false; }
+    }
+    return true;
+#endif
   }
 
   //----------------------------------------------------------------------------
-  template <typename... Reals,
-            typename = std::enable_if_t<(std::is_arithmetic_v<Reals> && ...)>>
+  template <typename... Reals, enable_if_arithmetic<Reals...> = true>
   constexpr auto in_domain(Reals... xs) const {
     static_assert(sizeof...(Reals) == N,
                   "number of components does not match number of dimensions");
@@ -175,7 +185,13 @@ class grid {
   template <size_t... Is>
   constexpr auto num_points(std::index_sequence<Is...> /*is*/) const {
     static_assert(sizeof...(Is) == N);
+#if has_cxx17_support()
     return (m_dimensions[Is].size() * ...);
+#else
+    Real f = 1;
+    for (size_t i = 0; i < N; ++i) { f *= m_dimensions[i].size(); }
+    return f;
+#endif
   }
 
   //----------------------------------------------------------------------------
@@ -200,7 +216,7 @@ class grid {
   template <typename... Is>
   auto at(Is... is) const {
     static_assert(sizeof...(Is) == N);
-    return grid_vertex(*this, is...);
+    return vertex_t{*this, is...};
   }
 
   //----------------------------------------------------------------------------
@@ -316,22 +332,6 @@ class grid {
     return free_vertices;
   }
 
-  //----------------------------------------------------------------------------
-  template <typename T, typename RandEng>
-  auto random_uniform(T low, T hi, RandEng& eng) const {
-    if constexpr (std::is_floating_point_v<T>) {
-      return std::uniform_real_distribution<T>(low, hi)(eng);
-    } else {
-      return std::uniform_int_distribution<T>(low, hi)(eng);
-    }
-  }
-
-  //----------------------------------------------------------------------------
-  template <typename T, typename RandEng>
-  auto random_normal(T mean, T stddev, RandEng& eng) const {
-    return std::normal_distribution<T>(mean, stddev)(eng);
-  }
-
  private:
   //----------------------------------------------------------------------------
   template <size_t... Is, typename RandEng>
@@ -339,7 +339,7 @@ class grid {
                                RandEng& eng) const {
     return vertex_t{linspace_it_t{
         &m_dimensions[Is],
-        random_uniform<size_t>(0, m_dimensions[Is].size() - 1, eng)}...};
+        random_uniform<size_t>{}(0, m_dimensions[Is].size() - 1, eng)}...};
   }
 
  public:
@@ -359,7 +359,7 @@ class grid {
     do {
       ok = true;
       for (size_t i = 0; i < N; ++i) {
-        auto r = random_normal<Real>(
+        auto r = random_normal<Real>{}(
             0, std::min<Real>(stddev, neighbor[i].linspace().size() / 2), eng);
         // stddev -= r;
         neighbor[i].i() += static_cast<size_t>(r);
@@ -380,7 +380,7 @@ class grid {
   auto random_vertex_seq_neighbor_gaussian(const vertex_seq_t& seq, Real stddev,
                                            RandEng& eng) {
     return random_vertex_neighbor_gaussian(
-        seq[random_uniform<size_t>(0, seq.size() - 1, eng)], stddev, eng);
+        seq[random_uniform<size_t>{}(0, seq.size() - 1, eng)], stddev, eng);
   }
 
   //----------------------------------------------------------------------------
@@ -398,7 +398,7 @@ class grid {
         auto neighbors = free_neighbors(v, seq);
         if (neighbors.empty()) { break; }
         v = *next(neighbors.begin(),
-                  random_uniform<size_t>(0, neighbors.size() - 1, eng));
+                  random_uniform<size_t>{}(0, neighbors.size() - 1, eng));
         seq.push_back(v);
       }
     } while (seq.size() == len);
@@ -611,6 +611,7 @@ class grid {
   }
 
   //----------------------------------------------------------------------------
+#if has_cxx17_support()
   /// picks one random vertex and changes either its left or right side
   template <typename RandEng>
   std::optional<vertex_seq_t> mutate_seq_straight_prev_at(
@@ -749,7 +750,7 @@ class grid {
   auto mutate_seq_straight(const vertex_seq_t& seq, Real min_angle,
                            size_t max_size_change, RandEng& eng) {
     return mutate_seq_straight(seq,
-                               random_uniform<size_t>(0, seq.size() - 1, eng),
+                               random_uniform<size_t>{}(0, seq.size() - 1, eng),
                                min_angle, max_size_change, eng);
   }
 
@@ -767,10 +768,10 @@ class grid {
 
     do {
       // pick a random edge e
-      e0 = &mutated_seq[random_uniform<size_t>(0, mutated_seq.size() - 1, eng)];
+      e0 = &mutated_seq[random_uniform<size_t>{}(0, mutated_seq.size() - 1, eng)];
 
       // pick a random vertex v of e
-      v = random_uniform<size_t>(1, 2, eng) == 1 ? e0->first : e0->second;
+      v = random_uniform<size_t>{}(1, 2, eng) == 1 ? e0->first : e0->second;
       neighbors = free_neighbors(v, mutated_seq);
 
       // search for second edge that also uses v
@@ -809,7 +810,7 @@ class grid {
 
     // pick a random neighbor vertex vn of v that is not used by any other
     // edge of sequence
-    auto vn_i        = random_uniform<size_t>(0, neighbors.size() - 1, eng);
+    auto vn_i        = random_uniform<size_t>{}(0, neighbors.size() - 1, eng);
     auto neighbor_it = neighbors.begin();
     while (vn_i != 0) {
       --vn_i;
@@ -839,14 +840,15 @@ class grid {
   template <typename RandEng>
   auto permute_edge_seq(const edge_seq_t& edge_seq, RandEng& eng) {
     auto   permuted_seq = edge_seq;
-    size_t i0 = random_uniform<size_t>(0, permuted_seq.size() - 1, eng);
+    size_t i0 = random_uniform<size_t>{}(0, permuted_seq.size() - 1, eng);
     size_t i1 = 0;
     do {
-      i1 = random_uniform<size_t>(0, permuted_seq.size() - 1, eng);
+      i1 = random_uniform<size_t>{}(0, permuted_seq.size() - 1, eng);
     } while (i0 == i1);
     std::swap(permuted_seq[i0], permuted_seq[i1]);
     return permuted_seq;
   }
+#endif
 
   //----------------------------------------------------------------------------
   auto to_edge_seq(const vertex_seq_t& vertex_seq) const {
@@ -872,6 +874,7 @@ class grid {
 };
 
 //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+#if has_cxx17_support()
 template <typename... Reals>
 grid(const linspace<Reals>&...)->grid<promote_t<Reals...>, sizeof...(Reals)>;
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -883,6 +886,7 @@ grid(const boundingbox<Real, N>& bb, const std::array<size_t, N>& res,
 template <typename Real, size_t N>
 grid(const boundingbox<Real, N>& bb, const std::array<size_t, N>& res)
     ->grid<Real, N>;
+#endif
 
 //==============================================================================
 template <typename Real, size_t N>

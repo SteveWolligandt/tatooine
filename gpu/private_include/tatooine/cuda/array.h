@@ -1,12 +1,12 @@
 #ifndef TATOOINE_GPU_CUDA_ARRAY_H
 #define TATOOINE_GPU_CUDA_ARRAY_H
 
-#include <tatooine/cxx14_type_traits.h>
 #include <tatooine/cuda/functions.h>
-#include <vector>
+#include <tatooine/type_traits.h>
 #include <algorithm>
-#include <numeric>
 #include <array>
+#include <numeric>
+#include <vector>
 #include "functions.h"
 
 //==============================================================================
@@ -18,30 +18,29 @@ template <typename T, size_t NumChannels, size_t NumDimensions>
 class array {
   //============================================================================
  private:
-  cudaArray_t m_device_ptr;
+  cudaArray_t                       m_device_ptr;
   std::array<size_t, NumDimensions> m_resolution;
 
   //============================================================================
  public:
-  template <typename... Resolution,
-            cxx14::enable_if_arithmetic<Resolution...> = true>
+  template <typename... Resolution, enable_if_arithmetic<Resolution...> = true>
   array(const std::vector<T>& host_data, Resolution... resolution)
       : m_device_ptr{malloc_array<T, NumChannels>(resolution...)},
         m_resolution{static_cast<size_t>(resolution)...} {
     static_assert(sizeof...(Resolution) == NumDimensions);
-    memcpy_to_array(m_device_ptr, 0, 0,
-                    static_cast<const void*>(host_data.data()), 0,
-                    resolution..., cudaMemcpyHostToDevice);
+    cudaMemcpyToArray(
+        m_device_ptr, 0, 0, static_cast<const void*>(host_data.data()),
+        NumChannels * sizeof(T) * num_elements(), cudaMemcpyHostToDevice);
   }
   template <size_t N, typename... Resolution,
-            cxx14::enable_if_arithmetic<Resolution...> = true>
+            enable_if_arithmetic<Resolution...> = true>
   array(const std::array<T, N>& host_data, Resolution... resolution)
       : m_device_ptr{malloc_array<T, NumChannels>(resolution...)},
         m_resolution{static_cast<size_t>(resolution)...} {
     static_assert(sizeof...(Resolution) == NumDimensions);
-    cuda::memcpy_to_array(
-        m_device_ptr, 0, 0, static_cast<const void*>(host_data.data()), 0,
-        resolution..., cudaMemcpyHostToDevice);
+    cudaMemcpyToArray(
+        m_device_ptr, 0, 0, static_cast<const void*>(host_data.data()),
+        NumChannels * sizeof(T) * num_elements(), cudaMemcpyHostToDevice);
   }
 
   //----------------------------------------------------------------------------
@@ -50,9 +49,8 @@ class array {
   //============================================================================
   auto download() {
     std::vector<T> host_data(num_elements());
-    cuda::memcpy_to_array(m_device_ptr, 0, 0,
-                          static_cast<const void*>(host_data.data()), 0,
-                          resolution_bytes(), cudaMemcpyDeviceToHost);
+    memcpy_to_array(m_device_ptr, 0, 0, host_data.data(), 0, resolution_bytes(),
+                    cudaMemcpyDeviceToHost);
     return host_data;
   }
 
@@ -64,9 +62,9 @@ class array {
   }
   //----------------------------------------------------------------------------
   constexpr const auto& resolution() const { return m_resolution; }
-  constexpr auto& resolution() { return m_resolution; }
+  constexpr auto&       resolution() { return m_resolution; }
   //----------------------------------------------------------------------------
-  constexpr auto resolution(size_t i) const { return m_resolution[i]; }
+  constexpr auto  resolution(size_t i) const { return m_resolution[i]; }
   constexpr auto& resolution(size_t i) { return m_resolution[i]; }
   //----------------------------------------------------------------------------
   constexpr auto resolution_bytes() const {

@@ -1,13 +1,19 @@
 #ifndef TATOOINE_TYPE_TRAITS_H
 #define TATOOINE_TYPE_TRAITS_H
 
+#include "cxxstd.h"
+
+#if has_cxx17_support()
 #include <ginac/ginac.h>
+#endif
+
 #include <complex>
 #include <type_traits>
 
 //==============================================================================
 namespace tatooine {
 //==============================================================================
+#if has_cxx17_support()
 template <typename T>
 struct is_symbolic
     : std::integral_constant<bool, std::is_same<T, GiNaC::ex>::value ||
@@ -30,6 +36,7 @@ struct are_symbolic<T0, T1, Ts...>
 //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 template <typename... Ts>
 using enable_if_symbolic = std::enable_if_t<are_symbolic<Ts...>::value, bool>;
+#endif
 
 //==============================================================================
 template <typename... Ts>
@@ -112,6 +119,7 @@ template <typename... Ts>
 using enable_if_arithmetic_or_complex =
     typename std::enable_if_t<are_arithmetic_or_complex<Ts...>::value, bool>;
 //==============================================================================
+#if has_cxx17_support()
 template <typename... Ts>
 struct are_arithmetic_or_symbolic
     : std::integral_constant<bool, are_arithmetic<Ts...>::value ||
@@ -131,6 +139,7 @@ template <typename... Ts>
 using enable_if_arithmetic_complex_or_symbolic =
     typename std::enable_if_t<are_arithmetic_complex_or_symbolic<Ts...>::value,
                               bool>;
+#endif
 //==============================================================================
 template <typename T>
 struct num_components;

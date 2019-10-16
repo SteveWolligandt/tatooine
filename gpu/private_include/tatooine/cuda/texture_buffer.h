@@ -1,12 +1,13 @@
 #ifndef TATOOINE_GPU_CUDA_TEXTURE_BUFFER_H
 #define TATOOINE_GPU_CUDA_TEXTURE_BUFFER_H
 
-#include <tatooine/cxx14_type_traits.h>
 #include <algorithm>
 #include <array>
 #include <cassert>
+#include <iostream>
 #include <numeric>
 #include <vector>
+#include <tatooine/type_traits.h>
 #include "array.h"
 #include "functions.h"
 
@@ -29,7 +30,7 @@ class texture_buffer {
   //============================================================================
  public:
   template <typename... Resolution,
-            cxx14::enable_if_arithmetic<Resolution...> = true>
+            enable_if_arithmetic<Resolution...> = true>
   texture_buffer(const std::vector<T>& host_data, Resolution... resolution)
       : m_resolution{static_cast<size_t>(resolution)...},
         m_array{host_data, resolution...} {
@@ -40,6 +41,8 @@ class texture_buffer {
     memset(&res_desc, 0, sizeof(res_desc));
     res_desc.resType         = cudaResourceTypeArray;
     res_desc.res.array.array = m_array.device_ptr();
+    res_desc.res.width           = m_resolution[0];
+    res_desc.res.height          = m_resolution[1];
 
     cudaTextureDesc tex_desc;
     memset(&tex_desc, 0, sizeof(tex_desc));
@@ -47,9 +50,9 @@ class texture_buffer {
     for (size_t i = 0; i < NumDimensions; ++i) {
       tex_desc.addressMode[i] = cudaAddressModeClamp;
     }
-    tex_desc.filterMode       = cudaFilterModeLinear;
+    tex_desc.filterMode       = cudaFilterModePoint;
     tex_desc.readMode         = cudaReadModeElementType;
-    tex_desc.normalizedCoords = false;
+    tex_desc.normalizedCoords = true;
     cudaCreateTextureObject(&m_device_ptr, &res_desc, &tex_desc, nullptr);
   }
 
@@ -59,7 +62,8 @@ class texture_buffer {
   //============================================================================
  public:
   constexpr auto num_texels() {
-    return std::accumulate(begin(m_resolution), end(m_resolution), size_t(0));
+    return std::accumulate(begin(m_resolution), end(m_resolution), size_t(1),
+                           std::multiplies<size_t>{});
   }
   //----------------------------------------------------------------------------
   constexpr auto num_bytes() { return num_texels() * sizeof(T); }

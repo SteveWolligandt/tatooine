@@ -22,6 +22,19 @@ TEST_CASE("cuda_global_buffer_upload_download_initializer_list",
   REQUIRE(1.0f == cv1[0]);
   REQUIRE(2.0f == cv1[1]);
 }
+//==============================================================================
+__global__ void kernel(float* in, float *out, size_t size) {
+  const size_t i = blockIdx.x * blockDim.x + threadIdx.x;
+  if (i < size) { out[i] = in[i]; }
+}
+TEST_CASE("cuda_global_buffer_kernel_copy",
+          "[cuda][global_buffer][kernel]") {
+  cuda::global_buffer<float> dv_in{1,2,3,4,5};
+  cuda::global_buffer<float> dv_out(5);
+  kernel<<<5,1>>>(dv_in.device_ptr(), dv_out.device_ptr(), 5);
+  auto hv_out = dv_out.download();
+  for (size_t i = 0; i < 5; ++i) { INFO(i); REQUIRE(hv_out[i] == i+1); }
+}
 
 //==============================================================================
 }  // namespace tatooine

@@ -24,10 +24,12 @@ set_target_properties(tatooine_gpu
 target_include_directories(tatooine_gpu
   PUBLIC
     ${CMAKE_CURRENT_SOURCE_DIR}/include
+    ${GINAC_INCLUDE_DIRS}
 )
 target_include_directories(tatooine_gpu
   PRIVATE
     ${CMAKE_CURRENT_SOURCE_DIR}/private_include
 )
+#target_link_libraries(tatooine_gpu PUBLIC ${GINAC_LIBRARIES})
 
 add_subdirectory(test)

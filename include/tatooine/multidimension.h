@@ -132,23 +132,18 @@ struct static_multidimension {
   }
   static constexpr auto size() { return std::array<size_t, N>{Sizes...}; }
   static constexpr auto size(size_t i) { return size()[i]; }
-  template <size_t i>
-  static constexpr auto size() {
-    return temp_helper::getval<i, size_t, Sizes...>;
-  }
 
   //----------------------------------------------------------------------------
-  template <typename... Indices, size_t... Is>
+  template <typename... Indices>
   static constexpr bool in_range(Indices&&... indices) {
     static_assert(sizeof...(Indices) == sizeof...(Sizes),
                   "number of indices does not match number of dimensions");
 #if has_cxx17_support()
     return ((indices >= 0) && ...) && ((static_cast<size_t>(indices) < Sizes) && ...);
 #else
-    constexpr std::array<size_t, N> is{
+    const std::array<size_t, N> is{
         static_cast<size_t>(indices)...};
     for (size_t i = 0; i < N; ++i) {
-      if (is[i] < 0) { return false; }
       if (is[i] >= size(i)) { return false; }
     }
     return true;
@@ -172,8 +167,18 @@ struct static_multidimension {
   static constexpr auto global_idx(Indices&&... indices) {
 #ifndef NDEBUG
     if (!in_range(std::forward<Indices>(indices)...)) {
+#if has_cxx17_support()
       throw std::runtime_error{"indices out of bounds: [ " +
                                ((std::to_string(indices) + " ") + ...) + "]"};
+#else
+      std::string err = "indices out of bounds: [ ";
+      for (auto i : std::array<size_t, sizeof...(Indices)>{
+               static_cast<size_t>(indices)...}){
+        err += std::to_string(i) + " ";
+      }
+      err += "]";
+      throw std::runtime_error{err};
+#endif
     }
 #endif
     static_assert(
@@ -183,7 +188,7 @@ struct static_multidimension {
                   "number of indices does not match number of dimensions");
     size_t multiplier = 1;
     size_t gi         = 0;
-    map(
+    for_each(
         [&](std::pair<size_t, size_t> i) {
           gi += i.first * multiplier;
           multiplier *= i.second;

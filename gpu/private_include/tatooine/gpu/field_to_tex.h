@@ -2,25 +2,29 @@
 #define TATOOINE_GPU_FIELD_TO_TEX_H
 
 #include <tatooine/field.h>
-//#include <tatooine/grid_sampler.h>
+#include <tatooine/grid.h>
+#include <tatooine/linspace.h>
 #include <tatooine/cuda/texture_buffer.h>
 
 //==============================================================================
-namespace tatooine{
-namespace gpu{
+namespace tatooine {
+namespace gpu {
 //==============================================================================
 
-template <typename Field, typename FieldReal, typename TReal>
-auto to_tex(const field<Field, FieldReal, 2>& f, TReal t,
-            const linspace<Real>& x_domain, const linspace<Real>& y_domain) {
-  auto resampled = resample(f, grid<FieldReal, 2>{x_domain, y_domain});
-  return texture_buffer<float, 2, 2>{resampled.sampler().data().unchunk(),
-                                     x_domain.size(), y_domain.size()};
+template <typename RealOut = float, typename Field, typename FieldReal,
+          typename TReal, typename LinRealX, typename LinRealY>
+auto to_tex(const field<Field, FieldReal, 2, 2>& f,
+            const linspace<LinRealX>&            x_domain,
+            const linspace<LinRealY>& y_domain, TReal t) {
+  auto resampled =
+      sample_to_raw<RealOut>(f, grid<FieldReal, 2>{x_domain, y_domain}, t);
+  return cuda::texture_buffer<RealOut, 2, 2>{resampled, x_domain.size(),
+                                           y_domain.size()};
 }
 
 //==============================================================================
-}
-}
+}  // namespace gpu
+}  // namespace tatooine
 //==============================================================================
 
 #endif

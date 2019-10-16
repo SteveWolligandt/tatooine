@@ -41,11 +41,11 @@ struct grid_vertex {
    : iterators{linspace_iter_t{&grid.dimension(Is), std::size_t(pos)}...} {}
 
  public:
-  template <typename... pos_ts,  size_t... Is>
+  template <typename... pos_ts>
   grid_vertex(const grid_t& grid, pos_ts... pos)
     : grid_vertex{grid, std::make_index_sequence<N>{}, pos...} {
     static_assert(sizeof...(pos_ts) == N);
-    static_assert((std::is_integral_v<pos_ts> && ...));
+    static_assert(are_integral<pos_ts...>::value);
   }
 
   //--------------------------------------------------------------------------
@@ -100,7 +100,7 @@ struct grid_vertex {
  private:
   template <size_t... Is>
   constexpr auto position(std::index_sequence<Is...> /*is*/) const {
-    return vec{(*iterators[Is])...};
+    return vec<Real, N>{(*iterators[Is])...};
   }
 
   template <size_t... Is>
@@ -110,7 +110,7 @@ struct grid_vertex {
 
   template <size_t... Is>
   constexpr auto indices(std::index_sequence<Is...> /*is*/) const {
-    return vec{iterators[Is].i()...};
+    return vec<size_t, N>{iterators[Is].i()...};
   }
 
  public:

@@ -7,7 +7,8 @@
 #include "tensor.h"
 
 //==============================================================================
-namespace tatooine::symbolic {
+namespace tatooine {
+namespace symbolic {
 //==============================================================================
 
 template <typename real_t, size_t N, size_t... TensorDims>
@@ -98,7 +99,7 @@ constexpr auto operator*(const field<LhsReal, N, D0, D1>& lhs,
 }
 
 //==============================================================================
-}  // namespace tatooine::symbolic
+}  // namespace symbolic
 //==============================================================================
 
 //==============================================================================
@@ -119,17 +120,22 @@ struct is_symbolic_field_impl<symbolic::field<Real, N, TensorDims...>>
     : std::true_type {};
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 template <typename T>
-static constexpr inline auto is_symbolic_field_v = is_symbolic<T>::value;
+static constexpr auto is_symbolic_field_v = is_symbolic<T>::value;
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 template <typename T>
-constexpr auto is_symbolic_field(T&&) noexcept { return false; }
+constexpr auto is_symbolic_field(T&&) noexcept {
+  return false;
+}
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 template <typename Real, size_t N, size_t... TensorDims>
 constexpr auto is_symbolic_field(
     const field<symbolic::field<Real, N, TensorDims...>, Real, N,
-                TensorDims...>&) noexcept { return true; }
+                TensorDims...>&) noexcept {
+  return true;
+}
 
 //==============================================================================
+}  // namespace symbolic
 }  // namespace tatooine
 //==============================================================================
 #endif
