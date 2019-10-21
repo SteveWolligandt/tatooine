@@ -3,6 +3,7 @@
 
 #include <tatooine/cuda/functions.h>
 #include <tatooine/type_traits.h>
+#include <tatooine/functional.h>
 #include <algorithm>
 #include <array>
 #include <numeric>
@@ -28,9 +29,13 @@ class array {
       : m_device_ptr{malloc_array<T, NumChannels>(resolution...)},
         m_resolution{static_cast<size_t>(resolution)...} {
     static_assert(sizeof...(Resolution) == NumDimensions);
-    cudaMemcpyToArray(
+    check(cudaMemcpy2DToArray(
         m_device_ptr, 0, 0, static_cast<const void*>(host_data.data()),
-        NumChannels * sizeof(T) * num_elements(), cudaMemcpyHostToDevice);
+        m_resolution[0] * sizeof(T), m_resolution[0] * sizeof(T),
+        m_resolution[1], cudaMemcpyHostToDevice));
+
+    cudaExtent  levelToSize;
+    check(cudaArrayGetInfo(nullptr, &levelToSize, nullptr, m_device_ptr));
   }
   template <size_t N, typename... Resolution,
             enable_if_arithmetic<Resolution...> = true>
@@ -38,9 +43,9 @@ class array {
       : m_device_ptr{malloc_array<T, NumChannels>(resolution...)},
         m_resolution{static_cast<size_t>(resolution)...} {
     static_assert(sizeof...(Resolution) == NumDimensions);
-    cudaMemcpyToArray(
+    check(cudaMemcpyToArray(
         m_device_ptr, 0, 0, static_cast<const void*>(host_data.data()),
-        NumChannels * sizeof(T) * num_elements(), cudaMemcpyHostToDevice);
+        NumChannels * sizeof(T) * num_elements(), cudaMemcpyHostToDevice));
   }
 
   //----------------------------------------------------------------------------
@@ -58,7 +63,8 @@ class array {
   constexpr auto device_ptr() const { return m_device_ptr; }
   //----------------------------------------------------------------------------
   constexpr auto num_elements() {
-    return std::accumulate(begin(m_resolution), end(m_resolution), size_t(0));
+    return std::accumulate(begin(m_resolution), end(m_resolution), size_t(1),
+                           std::multiplies<size_t>{});
   }
   //----------------------------------------------------------------------------
   constexpr const auto& resolution() const { return m_resolution; }
@@ -73,7 +79,7 @@ class array {
                    [](auto r) { return r * sizeof(T) * 8; });
     return resb;
   }
-  //----------------------------------------------------------------------------
+ //----------------------------------------------------------------------------
   constexpr auto resolution_bytes(size_t i) const {
     return m_resolution[i] * sizeof(T) * 8;
   }

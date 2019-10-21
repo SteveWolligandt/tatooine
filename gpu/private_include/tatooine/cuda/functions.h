@@ -8,14 +8,16 @@
 namespace tatooine {
 namespace cuda {
 //==============================================================================
+inline void check(cudaError_t err) {
+  if (err != cudaSuccess) { throw std::runtime_error{cudaGetErrorName(err)}; }
+}
 
+//==============================================================================
 template <typename T, size_t NumChannels>
 auto malloc_array(size_t width) {
   cudaArray_t array;
   auto desc = channel_format_description<T, NumChannels>();
-  auto err = cudaMallocArray(&array, &desc, width,
-                  1, cudaArrayDefault);
-  if (err != cudaSuccess) { throw(std::runtime_error{"cuda error"}); }
+  check(cudaMallocArray(&array, &desc, width));
   return array;
 }
 //------------------------------------------------------------------------------
@@ -23,25 +25,24 @@ template <typename T, size_t NumChannels>
 auto malloc_array(size_t width, size_t height) {
   cudaArray_t array;
   auto       desc = channel_format_description<T, NumChannels>();
-  auto err = cudaMallocArray(&array, &desc, width, height);
-  if (err != cudaSuccess) { throw(std::runtime_error{"cuda error"}); }
+  check(cudaMallocArray(&array, &desc, width, height));
   return array;
 }
 //------------------------------------------------------------------------------
 template <typename T, size_t NumChannels>
 auto malloc_array(size_t width, size_t height, size_t depth) {
   cudaArray_t array;
-  auto err = cudaMalloc3DArray(&array, channel_format_description<T, NumChannels>(), width,
-                    height, depth, cudaArrayDefault);
-  if (err != cudaSuccess) { throw(std::runtime_error{"cuda error"}); }
+  check(cudaMalloc3DArray(&array, channel_format_description<T, NumChannels>(), width,
+                    height, depth, cudaArrayDefault));
   return array;
 }
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 template <typename T, size_t NumChannels>
 void malloc_array(cudaArray_t array, size_t width, size_t height, size_t depth) {
-  cudaMalloc3DArray(&array, channel_format_description<T, NumChannels>(), width,
-                    height, depth, cudaArrayDefault);
+  check(cudaMalloc3DArray(&array, channel_format_description<T, NumChannels>(), width,
+                    height, depth, cudaArrayDefault));
 }
+
 
 //==============================================================================
 }  // namespace cuda
