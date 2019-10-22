@@ -1,13 +1,17 @@
-#ifndef TATOOINE_GPU_CUDA_RUNGEKUTTA4_H
-#define TATOOINE_GPU_CUDA_RUNGEKUTTA4_H
+#ifndef TATOOINE_CUDA_SAMPLE_FIELD_H
+#define TATOOINE_CUDA_SAMPLE_FIELD_H
+
+#include <tatooine/cuda/coordinate_conversion.h>
 
 //==============================================================================
 namespace tatooine {
-namespace gpu {
+namespace cuda {
 //==============================================================================
 
-__host__ vec2 rungekutta4_step_2(vec) {
-  
+__device__ auto sample_vectorfield_steady2(cudaTextureObject_t tex, float2 pos,
+                                           float2 min, float2 max, uint2 res) {
+  const auto uv = domain_pos_to_uv(pos, min, max, res);
+  return tex2D<float2>(tex, uv.x, uv.y);
 }
 
 //==============================================================================

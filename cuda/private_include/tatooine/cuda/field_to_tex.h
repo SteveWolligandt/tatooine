@@ -1,5 +1,5 @@
-#ifndef TATOOINE_GPU_FIELD_TO_TEX_H
-#define TATOOINE_GPU_FIELD_TO_TEX_H
+#ifndef TATOOINE_CUDA_FIELD_TO_TEX_H
+#define TATOOINE_CUDA_FIELD_TO_TEX_H
 
 #include <tatooine/cuda/texture_buffer.h>
 #include <tatooine/field.h>
@@ -8,7 +8,7 @@
 
 //==============================================================================
 namespace tatooine {
-namespace gpu {
+namespace cuda {
 //==============================================================================
 
 template <typename RealOut = float, typename Field, typename FieldReal,
@@ -25,7 +25,7 @@ auto to_tex(const field<Field, FieldReal, 2, 2>& f,
 }
 
 //==============================================================================
-}  // namespace gpu
+}  // namespace cuda
 }  // namespace tatooine
 //==============================================================================
 

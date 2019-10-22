@@ -50,7 +50,7 @@ __global__ void kernel0(cudaTextureObject_t tex, float* out, uint2 resolution,
   const size_t plainIdx  = globalIdx.y * resolution.x + globalIdx.x;
   if (globalIdx.x >= resolution.x || globalIdx.y >= resolution.y) { return; }
   // calculate normalized texture coordinates
-  const auto uv = integer_pos_to_uv(globalIdx, resolution);
+  const auto uv = global_idx_to_uv(globalIdx, resolution);
 
   // transform texture coordinates
   const auto tuv = make_float2(
@@ -94,7 +94,7 @@ __global__ void kernel1(cudaTextureObject_t tex, float* out, uint2 resolution) {
   const size_t plainIdx  = globalIdx.y * resolution.x + globalIdx.x;
   if (globalIdx.x >= resolution.x || globalIdx.y >= resolution.y) { return; }
   // calculate normalized texture coordinates
-  const auto uv = integer_pos_to_uv(globalIdx, resolution);
+  const auto uv = global_idx_to_uv(globalIdx, resolution);
 
   // sample texture and assign to output array
   const auto col        = tex2D<float4>(tex, uv.x, uv.y);

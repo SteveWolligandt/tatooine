@@ -17,19 +17,15 @@ function(CUDA_CONVERT_FLAGS EXISTING_TARGET)
 endfunction()
 
 file(GLOB CUDA_SOURCES cuda/*.cu)
-add_library(tatooine_gpu SHARED ${CUDA_SOURCES})
-set_target_properties(tatooine_gpu
-  PROPERTIES
-    CUDA_SEPERABLE_COMPILATION ON)
-target_include_directories(tatooine_gpu
-  PUBLIC
-    ${CMAKE_CURRENT_SOURCE_DIR}/include
-    ${GINAC_INCLUDE_DIRS}
-)
-target_include_directories(tatooine_gpu
-  PRIVATE
-    ${CMAKE_CURRENT_SOURCE_DIR}/private_include
-)
-#target_link_libraries(tatooine_gpu PUBLIC ${GINAC_LIBRARIES})
+add_library(tatooine_cuda INTERFACE)
+
+target_include_directories(tatooine_cuda INTERFACE
+  ${CMAKE_CURRENT_SOURCE_DIR}/include
+  ${GINAC_INCLUDE_DIRS}
+  ${CMAKE_CURRENT_SOURCE_DIR}/private_include)
+
+#add_library(tatooine_gpu SHARED ${CUDA_SOURCES})
+#set_target_properties(tatooine_gpu PROPERTIES CUDA_SEPERABLE_COMPILATION ON)
+#target_link_libraries(tatooine_gpu PRIVATE tatooine_cuda)
 
 add_subdirectory(test)

@@ -24,7 +24,7 @@ macro(create_test NAME)
     #target_compile_options(${NAME} PRIVATE
     #  --compiler-options -Wall -Wextra -pedantic -Wno-missing-braces -Wno-unused-lambda-capture)
   endif()
-  target_link_libraries(${NAME} tatooine_gpu Catch2::Catch2)
+  target_link_libraries(${NAME} tatooine_cuda Catch2::Catch2)
   target_compile_features(${NAME} PUBLIC cxx_std_14)
   target_include_directories(${NAME}
    PRIVATE
@@ -39,13 +39,3 @@ create_test(array)
 create_test(global_buffer)
 create_test(texture_buffer)
 create_test(field_to_tex)
-
-#- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-#add_executable (_allgpu ${ALL_TEST_CPPS})
-#target_link_libraries(_allgpu tatooine Catch2::Catch2)
-#target_compile_options(_allgpu PRIVATE -Wall -Wextra -pedantic
-#  -Wno-missing-braces -Wno-unused-lambda-capture)
-#CUDA_CONVERT_FLAGS(${NAME})
-#add_custom_command(TARGET _allgpu POST_BUILD
-#                   WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}
-#                   COMMAND mv _allgpu all)
