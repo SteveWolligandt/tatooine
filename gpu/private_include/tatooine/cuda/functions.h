@@ -42,7 +42,25 @@ void malloc_array(cudaArray_t array, size_t width, size_t height, size_t depth) 
   check(cudaMalloc3DArray(&array, channel_format_description<T, NumChannels>(), width,
                     height, depth, cudaArrayDefault));
 }
-
+//==============================================================================
+template <typename T, size_t NumChannels>
+void memcpy_to_array(cudaArray_t dst, const std::vector<T>& src, size_t width,
+                  cudaMemcpyKind kind = cudaMemcpyHostToDevice) {
+  assert(src.size() == width * NumChannels);
+  check(cudaMemcpy2DToArray(
+      dst, 0, 0, src.data(), NumChannels * width * sizeof(T),
+      NumChannels * width * sizeof(T), 1, kind));
+}
+// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+template <typename T, size_t NumChannels>
+void memcpy_to_array(cudaArray_t dst, const std::vector<T>& src, size_t width,
+                     size_t              height,
+                     cudaMemcpyKind kind = cudaMemcpyHostToDevice) {
+  assert(src.size() == width * height * NumChannels);
+  check(cudaMemcpy2DToArray(
+      dst, 0, 0, src.data(), NumChannels * width * sizeof(T),
+      NumChannels * width * sizeof(T), height, kind));
+}
 
 //==============================================================================
 }  // namespace cuda

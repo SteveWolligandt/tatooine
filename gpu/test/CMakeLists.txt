@@ -49,8 +49,3 @@ create_test(field_to_tex)
 #add_custom_command(TARGET _allgpu POST_BUILD
 #                   WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}
 #                   COMMAND mv _allgpu all)
-
-
-add_executable (test test.cu)
-target_link_libraries(test)
-target_compile_features(test PUBLIC cxx_std_14)

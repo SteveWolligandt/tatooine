@@ -1,6 +1,8 @@
+#include <tatooine/cuda/global_buffer.h>
+#include <tatooine/cuda/coordinate_conversion.h>
 #include <tatooine/doublegyre.h>
 #include <tatooine/gpu/field_to_tex.h>
-#include <tatooine/cuda/global_buffer.h>
+
 #include <catch2/catch.hpp>
 
 //==============================================================================
@@ -8,43 +10,63 @@ namespace tatooine {
 namespace gpu {
 namespace test {
 //==============================================================================
-
-__global__ void test_kernel0(cudaTextureObject_t tex, float *out, size_t  width,
-                             size_t  height) {
-  const size_t x = blockIdx.x * blockDim.x + threadIdx.x;
-  const size_t y = blockIdx.y * blockDim.y + threadIdx.y;
-  if (x < width && y < height) {
-    // calculate normalized texture coordinates
-    const float u           = x / float(width - 1);
-    const float v           = y / float(height - 1);
-    auto        sample      = tex2D<float2>(tex, u, v);
-    size_t      global_idx  = y * width + x;
-    out[global_idx * 2]     = sample.x;
-    out[global_idx * 2 + 1] = sample.y;
-  }
+__device__ auto sample_vectorfield2(cudaTextureObject_t tex, float2 x,
+                                    float2 min, float2 max, uint2 res) {
+  float2 texpos = ((x - min) / (max - min)) * res;
+  return tex2D<float2>(tex, texpos + 0.5);
 }
-TEST_CASE("field_to_tex",
-          "[cuda][field_to_tex][dg]") {
-  numerical::doublegyre<double> v;
-  double                        t = 0;
-  linspace<double>              x_domain{0, 2, 21};
-  linspace<double>              y_domain{0, 1, 11};
+//~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+__global__ void kernel(cudaTextureObject_t tex, float *vf_out, float *pos_out,
+                       float2 min, float2 max, uint2 res) {
+  const auto globalIdx = make_uint2(blockIdx.x * blockDim.x + threadIdx.x,
+                                    blockIdx.y * blockDim.y + threadIdx.y);
+  if (globalIdx.x >= res.x || globalIdx.y >= res.y) { return; }
 
-  auto h_tex =
-      sample_to_raw<float>(v, grid<double, 2>{x_domain, y_domain}, t);
-  auto                       d_tex = to_tex<float>(v, x_domain, y_domain, t);
-  cuda::global_buffer<float> d_out(x_domain.size() * y_domain.size());
+  // sample vectorfield
+  const auto pos = global_idx_to_domain_pos(globalIdx, min, max, res);
+  const auto vf  = sample_vectorfield2();
 
-  const dim3 dimBlock(16, 16);
-  const dim3 dimGrid(x_domain.size() / dimBlock.x + 1, y_domain.size() / dimBlock.y + 1);
-  test_kernel0<<<dimBlock, dimGrid>>>(d_tex.device_ptr(), d_out.device_ptr(),
-                                      x_domain.size(), y_domain.size());
-  cudaDeviceSynchronize();
+  // sample texture and assign to output array
+  const size_t plain_idx     = globalIdx.x + globalIdx.y * res.x;
+  pos_out[gi * 2]            = pos.x;
+  pos_out[gi * 2 + 1] = pos.y;
+  vf_out[gi * 2]      = vf.x;
+  vf_out[gi * 2 + 1]  = vf.y;
+}
 
-  const auto h_out = d_out.download();
-  for (size_t i = 0; i < h_tex.size(); ++i) {
-    INFO("i = " << i);
-    REQUIRE(h_out[i] == Approx(h_tex[i]).margin(1e-6));
+TEST_CASE("field_to_tex", "[cuda][field_to_tex][dg]") {
+  // create vector field
+  const numerical::doublegyre<float> v;
+
+  // sampled vector field and upload to gpu
+  const double                        t = 0;
+  const linspace<double>              x_domain{0, 2, 201};
+  const linspace<double>              y_domain{0, 1, 101};
+  auto                       d_v = to_tex<float>(v, x_domain, y_domain, t);
+  cuda::global_buffer<float> d_vf_out(2 * x_domain.size() * y_domain.size());
+  cuda::global_buffer<float> d_pos_out(2 * x_domain.size() * y_domain.size());
+
+  // call kernel
+  const dim3 dimBlock{128, 128};
+  const dim3 dimGrid(x_domain.size() / dimBlock.x + 1,
+                     y_domain.size() / dimBlock.y + 1);
+  kernel<<<dimBlock, dimGrid>>>(
+      d_v.device_ptr(), d_vf_out.device_ptr(), d_pos_out.device_ptr(),
+      x_domain.front(), x_domain.back(), x_domain.size(), y_domain.front(),
+      y_domain.back(), y_domain.size());
+
+  // download data from gpu
+  const auto h_vf_out = d_vf_out.download();
+  const auto h_pos_out = d_pos_out.download();
+  for (size_t i = 0; i < h_pos_out.size(); i += 2) {
+    vec<float, 2> x{h_pos_out[i], h_pos_out[i + 1]};
+    vec<float, 2> v_gpu{h_vf_out[i], h_vf_out[i + 1]};
+    auto v_cpu = v(x, t);
+    INFO("Pos: " << x);
+    INFO("CPU: " << v_cpu);
+    INFO("GPU: " << v_gpu);
+    REQUIRE(v_gpu(0) == Approx(v_cpu(0)).margin(1e-3));
+    REQUIRE(v_gpu(1) == Approx(v_cpu(1)).margin(1e-3));
   }
 }
 

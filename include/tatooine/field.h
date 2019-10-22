@@ -269,10 +269,10 @@ constexpr auto operator*(const field<LhsField, LhsReal, Dims...>& lhs,
 //  return product;
 //}
 
-template <typename OutReal, typename Field,
-          typename Real, size_t N, size_t... TensorDims>
-auto sample_to_raw(const field<Field, Real, N, TensorDims...>& f,
-                   const grid<Real, N>& g, Real t) {
+template <typename OutReal, typename Field, typename FieldReal,
+          typename GridReal, typename TReal, size_t N, size_t... TensorDims>
+auto sample_to_raw(const field<Field, FieldReal, N, TensorDims...>& f,
+                   const grid<GridReal, N>& g, TReal t) {
   std::vector<OutReal> raw_data;
   raw_data.reserve(g.num_vertices() * Field::tensor_t::num_components());
   for (auto v : g.vertices()) {
@@ -284,9 +284,10 @@ auto sample_to_raw(const field<Field, Real, N, TensorDims...>& f,
   return raw_data;
 }
 //------------------------------------------------------------------------------
-template <typename Field, typename Real, size_t N, size_t... TensorDims>
-auto sample_to_raw(const field<Field, Real, N, TensorDims...>& field,
-                   const grid<Real, N>& g, linspace<Real> ts) {
+template <typename Field, typename FieldReal, typename GridReal, typename TReal,
+          size_t N, size_t... TensorDims>
+auto sample_to_raw(const field<Field, FieldReal, N, TensorDims...>& field,
+                   const grid<GridReal, N>& g, linspace<TReal> ts) {
   std::vector<typename Field::tensor_t> raw_data;
   raw_data.reserve(g.num_vertices() * ts.size());
   for (auto t : ts) {
