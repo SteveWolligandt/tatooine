@@ -1,4 +1,4 @@
-#include <tatooine/cuda/array.h>
+#include <tatooine/cuda/array.cuh>
 #include <catch2/catch.hpp>
 
 //==============================================================================

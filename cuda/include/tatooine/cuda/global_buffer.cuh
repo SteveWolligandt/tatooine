@@ -1,5 +1,5 @@
-#ifndef TATOOINE_GPU_CUDA_GLOBAL_BUFFER_H
-#define TATOOINE_GPU_CUDA_GLOBAL_BUFFER_H
+#ifndef TATOOINE_CUDA_GLOBAL_BUFFER_CUH
+#define TATOOINE_CUDA_GLOBAL_BUFFER_CUH
 
 #include <array>
 #include <vector>
@@ -33,7 +33,7 @@ class global_buffer {
   //----------------------------------------------------------------------------
   global_buffer(global_buffer<T>&& other)
       : m_device_ptr{std::exchange(other.m_device_ptr, nullptr)},
-        m_size{std::exchange(other.size(), 0)} {}
+        m_size{std::exchange<size_t, size_t>(other.m_size, 0)} {}
   //----------------------------------------------------------------------------
   auto& operator=(const global_buffer<T>& other) {
     if (m_size != other.m_size) {

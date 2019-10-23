@@ -1,14 +1,15 @@
-#ifndef TATOOINE_GPU_CUDA_ARRAY_H
-#define TATOOINE_GPU_CUDA_ARRAY_H
+#ifndef TATOOINE_CUDA_ARRAY_CUH
+#define TATOOINE_CUDA_ARRAY_CUH
 
-#include <tatooine/cuda/functions.h>
+#include <tatooine/cuda/functions.cuh>
+#include <tatooine/utility.h>
 #include <tatooine/type_traits.h>
 #include <tatooine/functional.h>
 #include <algorithm>
 #include <array>
 #include <numeric>
 #include <vector>
-#include "functions.h"
+#include "functions.cuh"
 
 //==============================================================================
 namespace tatooine {
@@ -32,6 +33,16 @@ class array {
   ~array() { cudaFreeArray(m_device_ptr); }
   //----------------------------------------------------------------------------
   constexpr auto device_ptr() const { return m_device_ptr; }
+
+  auto resolution() const {
+    cudaExtent  extent;
+    cudaArrayGetInfo(nullptr, &extent, nullptr, m_device_ptr);
+    auto res = make_array<size_t, NumDimensions>();
+    res[0]   = extent.width;
+    if (NumDimensions > 1) { res[1] = extent.height; }
+    if (NumDimensions > 2) { res[2] = extent.depth; }
+    return res;
+  }
 };
 
 //==============================================================================

@@ -1,8 +1,10 @@
-#ifndef TATOOINE_GPU_CUDA_FUNCTIONS_H
-#define TATOOINE_GPU_CUDA_FUNCTIONS_H
+#ifndef TATOOINE_CUDA_FUNCTIONS_CUH
+#define TATOOINE_CUDA_FUNCTIONS_CUH
 
 #include <array>
-#include "channel_format_description.h"
+#include <vector>
+
+#include "channel_format_description.cuh"
 
 //==============================================================================
 namespace tatooine {
@@ -16,7 +18,7 @@ inline void check(cudaError_t err) {
 template <typename T, size_t NumChannels>
 auto malloc_array(size_t width) {
   cudaArray_t array;
-  auto desc = channel_format_description<T, NumChannels>();
+  auto        desc = channel_format_description<T, NumChannels>();
   check(cudaMallocArray(&array, &desc, width));
   return array;
 }
@@ -24,42 +26,44 @@ auto malloc_array(size_t width) {
 template <typename T, size_t NumChannels>
 auto malloc_array(size_t width, size_t height) {
   cudaArray_t array;
-  auto       desc = channel_format_description<T, NumChannels>();
+  auto        desc = channel_format_description<T, NumChannels>();
   check(cudaMallocArray(&array, &desc, width, height));
   return array;
 }
 //------------------------------------------------------------------------------
 template <typename T, size_t NumChannels>
-auto malloc_array(size_t width, size_t height, size_t depth) {
+auto malloc_array(size_t w, size_t h, size_t d) {
   cudaArray_t array;
-  check(cudaMalloc3DArray(&array, channel_format_description<T, NumChannels>(), width,
-                    height, depth, cudaArrayDefault));
+  auto        desc = channel_format_description<T, NumChannels>();
+  cudaExtent  res{w, h, d};
+  check(cudaMalloc3DArray(&array, &desc, res));
   return array;
-}
-// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-template <typename T, size_t NumChannels>
-void malloc_array(cudaArray_t array, size_t width, size_t height, size_t depth) {
-  check(cudaMalloc3DArray(&array, channel_format_description<T, NumChannels>(), width,
-                    height, depth, cudaArrayDefault));
 }
 //==============================================================================
 template <typename T, size_t NumChannels>
-void memcpy_to_array(cudaArray_t dst, const std::vector<T>& src, size_t width,
-                  cudaMemcpyKind kind = cudaMemcpyHostToDevice) {
-  assert(src.size() == width * NumChannels);
+void memcpy_to_array(cudaArray_t dst, const std::vector<T>& src, size_t width) {
+  assert(src.size() == width * umChannels);
   check(cudaMemcpy2DToArray(
       dst, 0, 0, src.data(), NumChannels * width * sizeof(T),
-      NumChannels * width * sizeof(T), 1, kind));
+      NumChannels * width * sizeof(T), 1, cudaMemcpyHostToDevice));
 }
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 template <typename T, size_t NumChannels>
 void memcpy_to_array(cudaArray_t dst, const std::vector<T>& src, size_t width,
-                     size_t              height,
-                     cudaMemcpyKind kind = cudaMemcpyHostToDevice) {
+                     size_t height) {
   assert(src.size() == width * height * NumChannels);
   check(cudaMemcpy2DToArray(
       dst, 0, 0, src.data(), NumChannels * width * sizeof(T),
-      NumChannels * width * sizeof(T), height, kind));
+      NumChannels * width * sizeof(T), height, cudaMemcpyHostToDevice));
+}
+// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+template <typename T, size_t NumChannels>
+void memcpy_to_array(cudaArray_t dst, const std::vector<T>& src, size_t width,
+                     size_t height, size_t depth) {
+  assert(src.size() == width * height * depth * NumChannels);
+  check(cudaMemcpyToArray(dst, 0, 0, src.data(),
+                          width * height * depth * NumChannels * sizeof(T),
+                          cudaMemcpyHostToDevice));
 }
 
 //==============================================================================

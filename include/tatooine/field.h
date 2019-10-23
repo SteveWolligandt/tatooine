@@ -270,7 +270,8 @@ constexpr auto operator*(const field<LhsField, LhsReal, Dims...>& lhs,
 //}
 
 template <typename OutReal, typename Field, typename FieldReal,
-          typename GridReal, typename TReal, size_t N, size_t... TensorDims>
+          typename GridReal, typename TReal, size_t N, size_t... TensorDims,
+          enable_if_arithmetic<FieldReal, GridReal, TReal> = true>
 auto sample_to_raw(const field<Field, FieldReal, N, TensorDims...>& f,
                    const grid<GridReal, N>& g, TReal t) {
   std::vector<OutReal> raw_data;
@@ -284,14 +285,50 @@ auto sample_to_raw(const field<Field, FieldReal, N, TensorDims...>& f,
   return raw_data;
 }
 //------------------------------------------------------------------------------
-template <typename Field, typename FieldReal, typename GridReal, typename TReal,
+template <typename OutReal, typename Field, typename FieldReal, typename GridReal, typename TReal,
           size_t N, size_t... TensorDims>
-auto sample_to_raw(const field<Field, FieldReal, N, TensorDims...>& field,
-                   const grid<GridReal, N>& g, linspace<TReal> ts) {
+auto sample_to_raw(const field<Field, FieldReal, N, TensorDims...>& f,
+                   const grid<GridReal, N>& g, const linspace<TReal>& ts) {
+  std::vector<OutReal> raw_data;
+  raw_data.reserve(g.num_vertices() * Field::tensor_t::num_components() *
+                   ts.size());
+  for (auto t : ts) {
+    for (auto v : g.vertices()) {
+      auto sample = f(v.position(), t);
+      for (size_t i = 0; i < Field::tensor_t::num_components(); ++i) {
+        raw_data.push_back(sample[i]);
+      }
+    }
+  }
+  return raw_data;
+}
+
+//==============================================================================
+template <typename OutReal, typename Field, typename FieldReal,
+          typename GridReal, typename TReal, size_t N, size_t VecDim>
+auto sample_normalized_to_raw(const field<Field, FieldReal, N, VecDim>& f,
+                              const grid<GridReal, N>& g, TReal t) {
+  std::vector<OutReal> raw_data;
+  raw_data.reserve(g.num_vertices() * Field::tensor_t::num_components());
+  for (auto v : g.vertices()) {
+    auto sample = normalize(f(v.position(), t));
+    for (size_t i = 0; i < Field::tensor_t::num_components(); ++i) {
+      raw_data.push_back(sample[i]);
+    }
+  }
+  return raw_data;
+}
+//------------------------------------------------------------------------------
+template <typename Field, typename FieldReal, typename GridReal, typename TReal,
+          size_t N, size_t VecDim>
+auto sample_normalized_to_raw(const field<Field, FieldReal, N, VecDim>& field,
+                              const grid<GridReal, N>& g, linspace<TReal> ts) {
   std::vector<typename Field::tensor_t> raw_data;
   raw_data.reserve(g.num_vertices() * ts.size());
   for (auto t : ts) {
-    for (auto v : g.vertices()) { raw_data.push_back(field(v.position(), t)); }
+    for (auto v : g.vertices()) {
+      raw_data.push_back(normalize(field(v.position(), t)));
+    }
   }
   return raw_data;
 }

@@ -15,15 +15,8 @@ include(Catch)
 #- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 set(ALL_TEST_CPPS main.cu)
 macro(create_test NAME)
-  if(EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/${NAME}.cpp")
-    add_executable (${NAME} ${NAME}.cpp main.cu)
-    set(ALL_TEST_CPPS ${ALL_TEST_CPPS} ${NAME}.cpp)
-  else()
-    add_executable (${NAME} ${NAME}.cu main.cu)
-    set(ALL_TEST_CPPS ${ALL_TEST_CPPS} ${NAME}.cu)
-    #target_compile_options(${NAME} PRIVATE
-    #  --compiler-options -Wall -Wextra -pedantic -Wno-missing-braces -Wno-unused-lambda-capture)
-  endif()
+  add_executable (${NAME} ${NAME}.cu main.cu)
+  set(ALL_TEST_CPPS ${ALL_TEST_CPPS} ${NAME}.cu)
   target_link_libraries(${NAME} tatooine_cuda Catch2::Catch2)
   target_compile_features(${NAME} PUBLIC cxx_std_14)
   target_include_directories(${NAME}
@@ -34,8 +27,19 @@ macro(create_test NAME)
 endmacro()
 
 #- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-create_test(add)
 create_test(array)
 create_test(global_buffer)
 create_test(texture_buffer)
 create_test(field_to_tex)
+
+
+
+add_executable (cuda_lic lic.cu main.cu)
+set(ALL_TEST_CPPS ${ALL_TEST_CPPS} lic.cu)
+target_link_libraries(cuda_lic tatooine_cuda Catch2::Catch2)
+target_compile_features(cuda_lic PUBLIC cxx_std_14)
+target_include_directories(cuda_lic
+ PRIVATE
+  ${CMAKE_CURRENT_SOURCE_DIR}/../../include
+  ${CMAKE_CURRENT_SOURCE_DIR}/../private_include)
+catch_discover_tests(cuda_lic)

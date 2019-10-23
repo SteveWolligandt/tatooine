@@ -1,12 +1,15 @@
-#ifndef TATOOINE_CUDA_RUNGEKUTTA4_H
-#define TATOOINE_CUDA_RUNGEKUTTA4_H
+#ifndef TATOOINE_CUDA_RUNGEKUTTA4_CUH
+#define TATOOINE_CUDA_RUNGEKUTTA4_CUH
+
+#include <tatooine/cuda/math.h>
+#include <tatooine/cuda/sample_field.h>
 
 //==============================================================================
 namespace tatooine {
 namespace cuda {
 //==============================================================================
 
-__host__ float2 rungekutta4_step_steady2(cudaTextureObject_t tex, float2 pos, float stepwidth,
+__device__ float2 rungekutta4_step_steady2(cudaTextureObject_t tex, float2 pos, float stepwidth,
                                          float2 min, float2 max, uint2 res) {
   float2 k1 =
       stepwidth *
@@ -34,6 +37,7 @@ __host__ float2 rungekutta4_step_steady2(cudaTextureObject_t tex, float2 pos, fl
       stepped.y > max.y) {
     return make_float2(0.0f / 0.0f, 0.0f / 0.0f);
   }
+  return stepped;
 }
 
 //==============================================================================

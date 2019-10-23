@@ -1488,7 +1488,6 @@ auto& operator<<(std::ostream& out, const base_tensor<Tensor, Real, N>& v) {
 #else
     if (!is_complex<Real>::value) {
 #endif
-      if (v(i) >= 0) { out << ' '; }
     }
     out << v(i) << ' ';
   }

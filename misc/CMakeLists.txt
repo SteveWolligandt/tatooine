@@ -23,4 +23,3 @@ create_executable(counterexample_sadlo_bifurcationline_export)
 
 #===============================================================================
 add_subdirectory(bifurcationline)
-add_subdirectory(gpulic)

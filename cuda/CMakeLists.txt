@@ -20,9 +20,14 @@ file(GLOB CUDA_SOURCES cuda/*.cu)
 add_library(tatooine_cuda INTERFACE)
 
 target_include_directories(tatooine_cuda INTERFACE
+  ${PNG_INCLUDE_DIRS}
+  ${PNG++_INCLUDE_DIRS}
   ${CMAKE_CURRENT_SOURCE_DIR}/include
-  ${GINAC_INCLUDE_DIRS}
-  ${CMAKE_CURRENT_SOURCE_DIR}/private_include)
+  ${GINAC_INCLUDE_DIRS})
+
+target_link_libraries(tatooine_cuda INTERFACE
+  ${PNG_LIBRARIES}
+  ${PNG++_LIBRARIES})
 
 #add_library(tatooine_gpu SHARED ${CUDA_SOURCES})
 #set_target_properties(tatooine_gpu PROPERTIES CUDA_SEPERABLE_COMPILATION ON)

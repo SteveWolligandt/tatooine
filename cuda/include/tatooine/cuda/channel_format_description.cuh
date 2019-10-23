@@ -1,7 +1,7 @@
-#ifndef TATOOINE_GPU_CUDA_CHANNEL_FORMAT_DESCRIPTION_H
-#define TATOOINE_GPU_CUDA_CHANNEL_FORMAT_DESCRIPTION_H
+#ifndef TATOOINE_CUDA_CHANNEL_FORMAT_DESCRIPTION_CUH
+#define TATOOINE_CUDA_CHANNEL_FORMAT_DESCRIPTION_CUH
 
-#include "channel_format_kind.h"
+#include "channel_format_kind.cuh"
 
 //==============================================================================
 namespace tatooine {

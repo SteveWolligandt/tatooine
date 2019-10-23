@@ -1,6 +1,7 @@
 #ifndef TATOOINE_UTILITY_H
 #define TATOOINE_UTILITY_H
 
+#include "cxxstd.h"
 #include <array>
 #include <boost/core/demangle.hpp>
 
