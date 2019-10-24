@@ -28,11 +28,9 @@ endmacro()
 
 #- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 create_test(array)
-create_test(global_buffer)
-create_test(texture_buffer)
+create_test(buffer)
+create_test(tex)
 create_test(field_to_tex)
-
-
 
 add_executable (cuda_lic lic.cu main.cu)
 set(ALL_TEST_CPPS ${ALL_TEST_CPPS} lic.cu)

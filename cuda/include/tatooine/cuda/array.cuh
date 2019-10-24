@@ -30,7 +30,11 @@ class array {
     memcpy_to_array<T, NumChannels>(m_device_ptr, host_data, resolution...);
   }
   //----------------------------------------------------------------------------
-  ~array() { cudaFreeArray(m_device_ptr); }
+  ~array() {
+#if !defined(__CUDACC__)
+    cudaFreeArray(m_device_ptr);
+#endif
+  }
   //----------------------------------------------------------------------------
   constexpr auto device_ptr() const { return m_device_ptr; }
 

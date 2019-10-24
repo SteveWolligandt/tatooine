@@ -42,7 +42,7 @@ auto malloc_array(size_t w, size_t h, size_t d) {
 //==============================================================================
 template <typename T, size_t NumChannels>
 void memcpy_to_array(cudaArray_t dst, const std::vector<T>& src, size_t width) {
-  assert(src.size() == width * umChannels);
+  assert(src.size() == width * NumChannels);
   check(cudaMemcpy2DToArray(
       dst, 0, 0, src.data(), NumChannels * width * sizeof(T),
       NumChannels * width * sizeof(T), 1, cudaMemcpyHostToDevice));

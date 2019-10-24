@@ -1,5 +1,5 @@
-#ifndef TATOOINE_CUDA_TEXTURE_BUFFER_CUH
-#define TATOOINE_CUDA_TEXTURE_BUFFER_CUH
+#ifndef TATOOINE_CUDA_TEX_CUH
+#define TATOOINE_CUDA_TEX_CUH
 
 #include <tatooine/type_traits.h>
 
@@ -13,11 +13,26 @@
 
 #include "array.cuh"
 #include "functions.cuh"
+#include "types.cuh"
+#include "var.cuh"
 
 //==============================================================================
 namespace tatooine {
 namespace cuda {
 //==============================================================================
+
+template <typename T, size_t NumChannels, size_t NumDimensions>
+struct tex_sampler;
+
+template <typename T, size_t NumChannels>
+struct tex_sampler<T, NumChannels, 2> {
+  __device__ static auto sample(cudaTextureObject_t tex, float u, float v) {
+    return tex2D<cuda::vec<T, NumChannels>>(tex, u, v);
+  }
+  __device__ static auto sample(cudaTextureObject_t tex, float2 uv) {
+    return tex2D<cuda::vec<T, NumChannels>>(tex, uv.x, uv.y);
+  }
+};
 
 enum texture_interpolation {
   point  = cudaFilterModePoint,
@@ -32,26 +47,28 @@ enum texture_address_mode {
 };
 
 template <typename T, size_t NumChannels, size_t NumDimensions>
-class texture_buffer {
+class tex {
  public:
-  using type = T;
   static constexpr auto num_dimensions() { return NumDimensions; }
   static constexpr auto num_channels() { return NumChannels; }
   //============================================================================
  private:
-  cudaTextureObject_t                        m_device_ptr = 0;
-  cuda::array<T, NumChannels, NumDimensions> m_array;
+  cudaTextureObject_t                         m_device_ptr = 0;
+  array<T, NumChannels, NumDimensions>        m_array;
+  var<cuda::vec<unsigned int, NumDimensions>> m_resolution;
   //============================================================================
  public:
   template <typename... Resolution, enable_if_integral<Resolution...> = true>
-  texture_buffer(const std::vector<T>& host_data, Resolution... resolution)
-      : texture_buffer{host_data, true, linear, wrap, resolution...} {}
-  // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+  tex(const std::vector<T>& host_data, Resolution... resolution)
+      : tex{host_data, true, linear, wrap, resolution...} {}
+  // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+  // -
   template <typename... Resolution, enable_if_integral<Resolution...> = true>
-  texture_buffer(const std::vector<T>& host_data, bool normalized_coords,
-                 texture_interpolation interp,
-                 texture_address_mode  address_mode, Resolution... resolution)
-      : m_array{host_data, resolution...} {
+  tex(const std::vector<T>& host_data, bool normalized_coords,
+      texture_interpolation interp, texture_address_mode address_mode,
+      Resolution... resolution)
+      : m_array{host_data, resolution...},
+        m_resolution{make_vec(static_cast<unsigned int>(resolution)...)} {
 #ifndef NDEBUG
     std::array<size_t, sizeof...(resolution)> res_arr{resolution...};
     const size_t                              num_texels = std::accumulate(
@@ -71,14 +88,14 @@ class texture_buffer {
     tex_desc.readMode = cudaReadModeElementType;
     for (size_t i = 0; i < NumDimensions; ++i) {
       switch (address_mode) {
-        case clamp:  tex_desc.addressMode[i] = cudaAddressModeClamp;  break;
-        case wrap:   tex_desc.addressMode[i] = cudaAddressModeWrap;   break;
+        case clamp: tex_desc.addressMode[i] = cudaAddressModeClamp; break;
+        case wrap: tex_desc.addressMode[i] = cudaAddressModeWrap; break;
         case border: tex_desc.addressMode[i] = cudaAddressModeBorder; break;
         case mirror: tex_desc.addressMode[i] = cudaAddressModeMirror; break;
       }
     }
     switch (interp) {
-      case point:  tex_desc.filterMode = cudaFilterModePoint;  break;
+      case point: tex_desc.filterMode = cudaFilterModePoint; break;
       case linear: tex_desc.filterMode = cudaFilterModeLinear; break;
     }
     tex_desc.normalizedCoords = normalized_coords;
@@ -86,10 +103,16 @@ class texture_buffer {
   }
 
   //----------------------------------------------------------------------------
-  ~texture_buffer() { cudaDestroyTextureObject(m_device_ptr); }
+  __host__ __device__ ~tex() {
+#if !defined(__CUDACC__)
+    cudaDestroyTextureObject(m_device_ptr);
+#endif
+  }
 
   //============================================================================
  public:
+  //----------------------------------------------------------------------------
+  __device__ auto resolution() const { return *m_resolution; }
   //----------------------------------------------------------------------------
   constexpr auto device_ptr() const { return m_device_ptr; }
   //----------------------------------------------------------------------------
@@ -119,6 +142,17 @@ class texture_buffer {
       }
       image.write(filepath);
     }
+  }
+  //----------------------------------------------------------------------------
+  template <typename... Is, enable_if_arithmetic<Is...> = true>
+  __device__ auto operator()(Is... is) const {
+    static_assert(sizeof...(is) == NumDimensions);
+    return tex_sampler<T, NumChannels, NumDimensions>::sample(m_device_ptr,
+                                                              is...);
+  }
+  //----------------------------------------------------------------------------
+  __device__ auto operator()(const cuda::vec<float, NumDimensions>& uv) const {
+    return tex_sampler<T, NumChannels, NumDimensions>::sample(m_device_ptr, uv);
   }
 };
 
