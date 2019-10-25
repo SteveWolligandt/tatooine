@@ -630,8 +630,10 @@ constexpr Real length(const base_tensor<Tensor, Real, N>& t_in) {
 
 //------------------------------------------------------------------------------
 template <typename Tensor, typename Real, size_t N>
-constexpr auto normalize(const base_tensor<Tensor, Real, N>& t_in) {
-  return t_in / length(t_in);
+constexpr vec<Real, N> normalize(const base_tensor<Tensor, Real, N>& t_in) {
+  const auto l = length(t_in);
+  if (l == 0) { return vec<Real, N>::zeros(); }
+  return t_in / l;
 }
 
 //------------------------------------------------------------------------------
@@ -1093,9 +1095,9 @@ struct tensor_slice : base_tensor<tensor_slice<Tensor, Real, FixedDim, Dims...>,
 
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
   template <typename... Is, enable_if_integral<Is...> = true,
-            typename _tensor_t = Tensor,
-            std::enable_if_t<!std::is_const<_tensor_t>::value,
-                             bool >= true> constexpr auto& at(const Is... is) {
+            typename _tensor_t                                       = Tensor,
+            std::enable_if_t<!std::is_const<_tensor_t>::value, bool> = true>
+  constexpr auto& at(const Is... is) {
     if constexpr (FixedDim == 0) {
       return m_tensor->at(m_fixed_index, is...);
 

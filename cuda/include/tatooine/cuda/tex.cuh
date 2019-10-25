@@ -26,11 +26,11 @@ struct tex_sampler;
 
 template <typename T, size_t NumChannels>
 struct tex_sampler<T, NumChannels, 2> {
-  __device__ static auto sample(cudaTextureObject_t tex, float u, float v) {
-    return tex2D<cuda::vec<T, NumChannels>>(tex, u, v);
+  __device__ static auto sample(cudaTextureObject_t tex, T u, T v) {
+    return tex2D<cuda::vec_t<T, NumChannels>>(tex, u, v);
   }
-  __device__ static auto sample(cudaTextureObject_t tex, float2 uv) {
-    return tex2D<cuda::vec<T, NumChannels>>(tex, uv.x, uv.y);
+  __device__ static auto sample(cudaTextureObject_t tex, cuda::vec_t<T, 2> uv) {
+    return tex2D<cuda::vec_t<T, NumChannels>>(tex, uv.x, uv.y);
   }
 };
 
@@ -53,9 +53,9 @@ class tex {
   static constexpr auto num_channels() { return NumChannels; }
   //============================================================================
  private:
-  cudaTextureObject_t                         m_device_ptr = 0;
-  array<T, NumChannels, NumDimensions>        m_array;
-  var<cuda::vec<unsigned int, NumDimensions>> m_resolution;
+  cudaTextureObject_t                           m_device_ptr = 0;
+  array<T, NumChannels, NumDimensions>          m_array;
+  var<cuda::vec_t<unsigned int, NumDimensions>> m_resolution;
   //============================================================================
  public:
   template <typename... Resolution, enable_if_integral<Resolution...> = true>
@@ -68,7 +68,7 @@ class tex {
       texture_interpolation interp, texture_address_mode address_mode,
       Resolution... resolution)
       : m_array{host_data, resolution...},
-        m_resolution{make_vec(static_cast<unsigned int>(resolution)...)} {
+        m_resolution{make_vec<unsigned int>(resolution...)} {
 #ifndef NDEBUG
     std::array<size_t, sizeof...(resolution)> res_arr{resolution...};
     const size_t                              num_texels = std::accumulate(
@@ -104,14 +104,13 @@ class tex {
 
   //----------------------------------------------------------------------------
   __host__ __device__ ~tex() {
-#if !defined(__CUDACC__)
+#if !defined(__CUDACC__) && !defined(__CUDA_ARCH__)
     cudaDestroyTextureObject(m_device_ptr);
 #endif
   }
 
   //============================================================================
  public:
-  //----------------------------------------------------------------------------
   __device__ auto resolution() const { return *m_resolution; }
   //----------------------------------------------------------------------------
   constexpr auto device_ptr() const { return m_device_ptr; }
@@ -151,7 +150,7 @@ class tex {
                                                               is...);
   }
   //----------------------------------------------------------------------------
-  __device__ auto operator()(const cuda::vec<float, NumDimensions>& uv) const {
+  __device__ auto operator()(const cuda::vec_t<float, NumDimensions>& uv) const {
     return tex_sampler<T, NumChannels, NumDimensions>::sample(m_device_ptr, uv);
   }
 };

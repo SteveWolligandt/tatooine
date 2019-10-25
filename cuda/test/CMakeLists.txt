@@ -30,14 +30,5 @@ endmacro()
 create_test(array)
 create_test(buffer)
 create_test(tex)
-create_test(field_to_tex)
-
-add_executable (cuda_lic lic.cu main.cu)
-set(ALL_TEST_CPPS ${ALL_TEST_CPPS} lic.cu)
-target_link_libraries(cuda_lic tatooine_cuda Catch2::Catch2)
-target_compile_features(cuda_lic PUBLIC cxx_std_14)
-target_include_directories(cuda_lic
- PRIVATE
-  ${CMAKE_CURRENT_SOURCE_DIR}/../../include
-  ${CMAKE_CURRENT_SOURCE_DIR}/../private_include)
-catch_discover_tests(cuda_lic)
+create_test(field)
+create_test(lic)

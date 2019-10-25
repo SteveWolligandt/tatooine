@@ -36,7 +36,7 @@ class array {
 #endif
   }
   //----------------------------------------------------------------------------
-  constexpr auto device_ptr() const { return m_device_ptr; }
+  auto device_ptr() const { return m_device_ptr; }
 
   auto resolution() const {
     cudaExtent  extent;

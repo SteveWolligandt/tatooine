@@ -70,7 +70,7 @@ template <std::size_t i, typename T, T... Vs>
 static constexpr auto getval_v = getval_impl<i, T, Vs...>::value;
 
 template <typename T>
-constexpr T getval(const unsigned int i) {
+constexpr T getval(const unsigned int /*i*/) {
   throw T{};
 }
 template <typename T, typename T0, typename... Ts>

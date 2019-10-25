@@ -1,47 +1,51 @@
 #ifndef TATOOINE_CUDA_RUNGEKUTTA4_CUH
 #define TATOOINE_CUDA_RUNGEKUTTA4_CUH
 
-#include <tatooine/cuda/math.h>
-#include <tatooine/cuda/sample_field.h>
+#include <tatooine/cuda/math.cuh>
+#include <tatooine/cuda/sample_field.cuh>
 
 //==============================================================================
 namespace tatooine {
 namespace cuda {
 //==============================================================================
 
-__device__ float2 rungekutta4_step_steady2(cudaTextureObject_t tex, float2 pos, float stepwidth,
-                                         float2 min, float2 max, uint2 res) {
-  float2 k1 =
-      stepwidth *
-      sample_vectorfield_steady2(
-          tex, pos, min, max, res);
-  const auto x2 = make_float2(pos.x + k1.x * 0.5f, pos.y + k1.y * 0.5f);
-  if (x2.x < min.x || x2.y > max.x || x2.y < min.y || x2.y > max.y) {
-    return make_float2(0.0f / 0.0f, 0.0f / 0.0f);
+template <typename Real, size_t N>
+__device__ vec_t<Real, N> rungekutta4_step(
+    const steady_vectorfield<Real, N, N>& v, const vec_t<Real, N>& pos,
+    Real stepwidth) {
+  const auto k1 = stepwidth * v(pos);
+
+  const auto x2 = pos + k1 * 0.5f;
+  if (x2.x < v.min().x || x2.y > v.max().x || x2.y < v.min().y ||
+      x2.y > v.max().y) {
+    return make_vec<Real>(0.0f / 0.0f, 0.0f / 0.0f);
   }
-  float2 k2 = stepwidth * sample_vectorfield_steady2(tex, x2, min, max, res);
-  const auto x3 = make_float2(pos.x + k2.x * 0.5f, pos.y + k2.y * 0.5f);
-  if (x3.x < min.x || x3.y > max.x || x3.y < min.y || x3.y > max.y) {
-    return make_float2(0.0f / 0.0f, 0.0f / 0.0f);
+  const auto k2 = stepwidth * v(x2);
+
+  const auto x3 = pos + k2 * 0.5f;
+  if (x3.x < v.min().x || x3.y > v.max().x || x3.y < v.min().y ||
+      x3.y > v.max().y) {
+    return make_vec<Real>(0.0f / 0.0f, 0.0f / 0.0f);
   }
-  float2 k3 = stepwidth * sample_vectorfield_steady2(tex, x3, min, max, res);
-  const auto x4 = make_float2(pos.x + k3.x, pos.y + k3.y);
-  if (x4.x < min.x || x4.y > max.x || x4.y < min.y || x4.y > max.y) {
-    return make_float2(0.0f / 0.0f, 0.0f / 0.0f);
+  const auto k3 = stepwidth * v(x3);
+
+  const auto x4 = pos + k3;
+  if (x4.x < v.min().x || x4.y > v.max().x || x4.y < v.min().y ||
+      x4.y > v.max().y) {
+    return make_vec<Real>(0.0f / 0.0f, 0.0f / 0.0f);
   }
-  float2 k4 = stepwidth * sample_vectorfield_steady2(tex, x4, min, max, res);
-  const auto stepped =
-      make_float2(pos.x + (k1.x + 2 * k2.x + 2 * k3.x + k4.x) / 6.0f,
-                  pos.y + (k1.y + 2 * k2.y + 2 * k3.y + k4.y) / 6.0f);
-  if (stepped.x < min.x || stepped.y > max.x || stepped.y < min.y ||
-      stepped.y > max.y) {
-    return make_float2(0.0f / 0.0f, 0.0f / 0.0f);
+  const auto k4      = stepwidth * v(x4);
+
+  const auto stepped = pos + (k1 + 2 * k2 + 2 * k3 + k4) / 6.0f;
+  if (stepped.x < v.min().x || stepped.y > v.max().x || stepped.y < v.min().y ||
+      stepped.y > v.max().y) {
+    return make_vec<Real>(0.0f / 0.0f, 0.0f / 0.0f);
   }
   return stepped;
 }
 
 //==============================================================================
-}  // namespace gpu
+}  // namespace cuda
 }  // namespace tatooine
 //==============================================================================
 

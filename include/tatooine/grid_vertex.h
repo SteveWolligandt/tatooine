@@ -72,7 +72,7 @@ struct grid_vertex {
   auto& operator++() {
     ++iterators.front();
     for (size_t i = 0; i < N - 1; ++i) {
-      if (iterators[i] == iterators[i].linspace().end()) {
+      if (iterators[i] == iterators[i].end()) {
         iterators[i].to_begin();
         ++iterators[i + 1];
       }
@@ -83,7 +83,7 @@ struct grid_vertex {
   //--------------------------------------------------------------------------
   auto& operator--() {
     for (size_t i = 0; i < N; ++i)
-      if (iterators[i] == iterators[i].linspace().begin()) {
+      if (iterators[i] == iterators[i].begin()) {
         iterators[i].to_end();
         --iterators[i];
       } else {

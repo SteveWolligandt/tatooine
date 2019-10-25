@@ -134,7 +134,9 @@ struct linspace_iterator
   auto i() const { return m_i; }
 
   //----------------------------------------------------------------------------
-  const auto& linspace() const { return *m_lin; }
+  //const auto& linspace() const { return *m_lin; }
+  const auto begin() const { return m_lin->begin(); }
+  const auto end() const { return m_lin->end(); }
 
   //============================================================================
  private:

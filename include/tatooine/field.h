@@ -73,29 +73,33 @@ struct field : crtp<Derived> {
 };
 
 //==============================================================================
-// template <typename Op, typename field_t, typename Real, size_t N, size_t...
-// TensorDims> struct unary_operation_field :
-// field<unary_operation_field<field_t, Real, N, TensorDims...>> {
-//  public:
-//   using this_t   = unary_operation_field<field_t, Real, N, TensorDims...>;
-//   using parent_t = field<this_t, Real, N, TensorDims...>;
-//   using typename parent_t::pos_t;
-//   using typename parent_t::tensor_t;
-//
-//  private:
-//   field_t m_field;
-//   Op      m_operator;
-//
-//  public:
-//   template <typename _Real, size_t _N, size_t... _TensorDims>
-//   unary_operation_field(field<field_t, _Real, _N, _TensorDims...>& _field,
-//                         Op&& op)
-//       : m_field{_field}, m_operator{op} {}
-//
-//   tensor_t evaluate(const pos_t& x, Real t) {
-//     return m_operator(m_field(x, t));
-//   }
-//};
+template <typename Field, typename Real, size_t N, typename Op,
+          size_t... TensorDims>
+struct unary_operation_field
+    : field<unary_operation_field<Field, Real, N, Op, TensorDims...>, Real, N, TensorDims...> {
+ public:
+  using this_t   = unary_operation_field<Field, Real, N, Op, TensorDims...>;
+  using parent_t = field<this_t, Real, N, TensorDims...>;
+  using typename parent_t::pos_t;
+  using typename parent_t::tensor_t;
+
+ private:
+  Field m_field;
+  Op      m_operator;
+
+ public:
+  template <typename RealIn, size_t NIn, size_t... TensorDimsIn>
+  unary_operation_field(const field<Field, RealIn, NIn, TensorDimsIn...>& f, Op&& op)
+      : m_field{f.as_derived()}, m_operator{op} {}
+  //============================================================================
+  tensor_t evaluate(const pos_t& x, Real t) const {
+    return m_operator(m_field(x, t));
+  }
+  //----------------------------------------------------------------------------
+  bool in_domain(const pos_t& x, Real t) const {
+    return m_field.in_domain(x, t);
+  }
+};
 
 //==============================================================================
 template <typename LhsField, typename RhsField, typename Op, typename Real,
@@ -131,18 +135,32 @@ struct binary_operation_field
   tensor_t evaluate(const pos_t& x, Real t) const {
     return m_operator(m_lhs_field(x, t), m_rhs_field(x, t));
   }
+  //----------------------------------------------------------------------------
+  bool in_domain(const pos_t& x, Real t) const {
+    return m_lhs_field.in_domain(x, t) && m_rhs_field.in_domain(x, t);
+  }
 };
 
 //==============================================================================
 // operations
 //==============================================================================
 
+template <typename RealOut, size_t NOut, size_t... TensorDimsOut,
+          typename Field, typename Real, size_t N, size_t... TensorDims,
+          typename Op>
+constexpr auto make_unary_operation_field(
+    const field<Field, Real, N, TensorDims...>& f, Op&& op) {
+  return unary_operation_field<Field, RealOut, NOut, std::decay_t<Op>,
+                               TensorDimsOut...>{
+      f, std::forward<Op>(op)};
+}
+//------------------------------------------------------------------------------
 template <typename Real, size_t N, size_t... TensorDims, typename LhsField,
           typename LhsReal, typename RhsField, typename RhsReal,
-          size_t... lhs_tensor_dims, size_t... rhs_tensor_dims, typename Op>
+          size_t... LhsTensorDims, size_t... RhsTensorDims, typename Op>
 constexpr auto make_binary_operation_field(
-    const field<LhsField, LhsReal, N, lhs_tensor_dims...>& lhs,
-    const field<RhsField, RhsReal, N, rhs_tensor_dims...>& rhs, Op&& op) {
+    const field<LhsField, LhsReal, N, LhsTensorDims...>& lhs,
+    const field<RhsField, RhsReal, N, RhsTensorDims...>& rhs, Op&& op) {
   return binary_operation_field<LhsField, RhsField, std::decay_t<Op>, Real, N,
                                 TensorDims...>{
       lhs.as_derived(), rhs.as_derived(), std::forward<Op>(op)};
@@ -157,12 +175,20 @@ constexpr auto dot(const field<LhsField, LhsReal, N, D>& lhs,
       lhs, rhs, [](const auto& lhs, const auto& rhs) { return dot(lhs, rhs); });
 }
 
-////------------------------------------------------------------------------------
-// template <typename tensor_t, typename Real, size_t... Dims>
-// constexpr auto operator-(const base_tensor<tensor_t, Real, Dims...>& t) {
-//  tensor<Real, Dims...> negated = t;
-//  return negated.unary_operation([](const auto& c){return  -c;});
-//}
+//------------------------------------------------------------------------------
+ template <typename Field, typename Real, size_t N, size_t... TensorDims>
+ constexpr auto operator-(const field<Field, Real, N, TensorDims...>& f) {
+  return make_unary_operation_field<Real, N, TensorDims...>(
+      f, [](const auto& v) { return -v; });
+}
+
+//------------------------------------------------------------------------------
+template <typename Field, typename Real, size_t N, size_t VecDim>
+constexpr auto normalize(
+    const field<Field, Real, N, VecDim>& f) {
+  return make_unary_operation_field<Real, N, VecDim>(
+      f, [](const auto& v) { return normalize(v); });
+}
 
 //------------------------------------------------------------------------------
 template <typename LhsField, typename LhsReal, typename RhsField,
@@ -277,9 +303,16 @@ auto sample_to_raw(const field<Field, FieldReal, N, TensorDims...>& f,
   std::vector<OutReal> raw_data;
   raw_data.reserve(g.num_vertices() * Field::tensor_t::num_components());
   for (auto v : g.vertices()) {
-    auto sample = f(v.position(), t);
-    for (size_t i = 0; i < Field::tensor_t::num_components(); ++i) {
-      raw_data.push_back(sample[i]);
+    const auto x = v.position();
+    if (f.in_domain(x, t)) {
+      auto sample = f(x, t);
+      for (size_t i = 0; i < Field::tensor_t::num_components(); ++i) {
+        raw_data.push_back(sample[i]);
+      }
+    } else {
+      for (size_t i = 0; i < Field::tensor_t::num_components(); ++i) {
+        raw_data.push_back(0.0/0.0);
+      }
     }
   }
   return raw_data;
@@ -298,36 +331,6 @@ auto sample_to_raw(const field<Field, FieldReal, N, TensorDims...>& f,
       for (size_t i = 0; i < Field::tensor_t::num_components(); ++i) {
         raw_data.push_back(sample[i]);
       }
-    }
-  }
-  return raw_data;
-}
-
-//==============================================================================
-template <typename OutReal, typename Field, typename FieldReal,
-          typename GridReal, typename TReal, size_t N, size_t VecDim>
-auto sample_normalized_to_raw(const field<Field, FieldReal, N, VecDim>& f,
-                              const grid<GridReal, N>& g, TReal t) {
-  std::vector<OutReal> raw_data;
-  raw_data.reserve(g.num_vertices() * Field::tensor_t::num_components());
-  for (auto v : g.vertices()) {
-    auto sample = normalize(f(v.position(), t));
-    for (size_t i = 0; i < Field::tensor_t::num_components(); ++i) {
-      raw_data.push_back(sample[i]);
-    }
-  }
-  return raw_data;
-}
-//------------------------------------------------------------------------------
-template <typename Field, typename FieldReal, typename GridReal, typename TReal,
-          size_t N, size_t VecDim>
-auto sample_normalized_to_raw(const field<Field, FieldReal, N, VecDim>& field,
-                              const grid<GridReal, N>& g, linspace<TReal> ts) {
-  std::vector<typename Field::tensor_t> raw_data;
-  raw_data.reserve(g.num_vertices() * ts.size());
-  for (auto t : ts) {
-    for (auto v : g.vertices()) {
-      raw_data.push_back(normalize(field(v.position(), t)));
     }
   }
   return raw_data;
