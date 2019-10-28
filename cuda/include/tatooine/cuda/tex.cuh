@@ -34,6 +34,16 @@ struct tex_sampler<T, NumChannels, 2> {
   }
 };
 
+template <typename T, size_t NumChannels>
+struct tex_sampler<T, NumChannels, 3> {
+  __device__ static auto sample(cudaTextureObject_t tex, T u, T v, T w) {
+    return tex3D<cuda::vec_t<T, NumChannels>>(tex, u, v, w);
+  }
+  __device__ static auto sample(cudaTextureObject_t tex, cuda::vec_t<T, 3> uvw) {
+    return tex3D<cuda::vec_t<T, NumChannels>>(tex, uvw.x, uvw.y, uvw.z);
+  }
+};
+
 enum texture_interpolation {
   point  = cudaFilterModePoint,
   linear = cudaFilterModeLinear
@@ -104,7 +114,7 @@ class tex {
 
   //----------------------------------------------------------------------------
   __host__ __device__ ~tex() {
-#if !defined(__CUDACC__) && !defined(__CUDA_ARCH__)
+#if !defined(__CUDACC__) || !defined(__CUDA_ARCH__)
     cudaDestroyTextureObject(m_device_ptr);
 #endif
   }
@@ -117,30 +127,16 @@ class tex {
   //----------------------------------------------------------------------------
   constexpr const auto& array() const { return m_array; }
   constexpr auto&       array() { return m_array; }
-
   //----------------------------------------------------------------------------
-  template <size_t _n = NumDimensions, std::enable_if_t<_n == 2, bool> = true>
-  void write_png(const std::string& filepath) {
-    auto           res = m_array.resolution();
-    std::vector<T> data(res[0] * res[1]);
-    cudaMemcpyFromArray(&data[0], m_array.device_ptr(), 0, 0,
-                        res[0] * res[1] * sizeof(T), cudaMemcpyDeviceToHost);
-    if (NumChannels == 1) {
-      png::image<png::rgb_pixel> image(res[0].size(), res[1].size());
-      for (unsigned int y = 0; y < image.get_height(); ++y) {
-        for (png::uint_32 x = 0; x < image.get_width(); ++x) {
-          unsigned int idx = x + res[0].size() * y;
-
-          image[image.get_height() - 1 - y][x].red =
-              std::max<T>(0, std::min<T>(1, data[idx])) * 255;
-          image[image.get_height() - 1 - y][x].green =
-              std::max<T>(0, std::min<T>(1, data[idx])) * 255;
-          image[image.get_height() - 1 - y][x].blue =
-              std::max<T>(0, std::min<T>(1, data[idx])) * 255;
-        }
-      }
-      image.write(filepath);
-    }
+  template <typename... Is, enable_if_arithmetic<Is...> = true>
+  __device__ auto sample(Is... is) const {
+    static_assert(sizeof...(is) == NumDimensions);
+    return tex_sampler<T, NumChannels, NumDimensions>::sample(m_device_ptr,
+                                                              is...);
+  }
+  //----------------------------------------------------------------------------
+  __device__ auto sample(const cuda::vec_t<float, NumDimensions>& uv) const {
+    return tex_sampler<T, NumChannels, NumDimensions>::sample(m_device_ptr, uv);
   }
   //----------------------------------------------------------------------------
   template <typename... Is, enable_if_arithmetic<Is...> = true>

@@ -4,7 +4,8 @@
 //==============================================================================
 #include <cassert>
 #include <vector>
-#include "var.cuh"
+#include <tatooine/cuda/var.cuh>
+#include <tatooine/cuda/functions.cuh>
 
 //==============================================================================
 namespace tatooine {
@@ -23,10 +24,10 @@ class buffer {
   // ctors / dtor
   //============================================================================
  public:
-  buffer(size_t n) : m_size{n} { cudaMalloc(&m_device_ptr, n * sizeof(T)); }
-  buffer(const std::vector<T>& data) : m_size{data.size()} {
-    cudaMalloc(&m_device_ptr, data.size() * sizeof(T));
-    cudaMemcpy(m_device_ptr, data.data(), sizeof(T) * data.size(),
+  buffer(size_t n) : m_size{n}, m_device_ptr{malloc<T>(n)} {}
+  buffer(const std::vector<T>& data)
+      : m_size{data.size()}, m_device_ptr{malloc<T>(data.size())} {
+    memcpy(m_device_ptr, data.data(), sizeof(T) * data.size(),
                cudaMemcpyHostToDevice);
   }
   buffer(std::initializer_list<T>&& data)
@@ -34,7 +35,7 @@ class buffer {
   //----------------------------------------------------------------------------
   __host__ __device__ ~buffer() {
 #if !defined(__CUDACC__)
-    cudaFree(m_device_ptr);
+    free(m_device_ptr);
     m_device_ptr = nullptr;
 #endif
   }
@@ -55,7 +56,7 @@ class buffer {
   auto download() const {
     const auto     n = size();
     std::vector<T> data(n);
-    cudaMemcpy(&data[0], m_device_ptr, sizeof(T) * n, cudaMemcpyDeviceToHost);
+    memcpy(&data[0], m_device_ptr, sizeof(T) * n, cudaMemcpyDeviceToHost);
     return data;
   }
   //----------------------------------------------------------------------------
