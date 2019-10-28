@@ -11,7 +11,6 @@
 #include <tatooine/cuda/lic.cuh>
 #include <tatooine/cuda/math.cuh>
 #include <tatooine/cuda/rungekutta4.cuh>
-#include <tatooine/cuda/sample_field.cuh>
 
 //==============================================================================
 namespace tatooine {
@@ -34,8 +33,8 @@ __global__ void lic_kernel(steady_vectorfield<FieldReal, 2, 2> v,
   const auto   fnoiseres = make_vec<float>(noiseres.x, noiseres.y);
   const size_t plainIdx  = globalIdx.x + globalIdx.y * res.x;
 
-  const auto pos = global_idx_to_domain_pos2(globalIdx, min, max, res);
-  auto       uv  = global_idx_to_uv2(globalIdx, res);
+  const auto pos = global_idx_to_domain_pos(globalIdx, min, max, res);
+  auto       uv  = global_idx_to_uv(globalIdx, res);
   auto       scale_noise_uv = fres / fnoiseres;
   auto       uv_noise       = uv * scale_noise_uv;
   auto       lic_val        = noise_tex(uv_noise);
@@ -47,7 +46,7 @@ __global__ void lic_kernel(steady_vectorfield<FieldReal, 2, 2> v,
     pos_integrated = rungekutta4_step(v, pos_integrated, stepwidth);
 
     if (isnan(pos_integrated.x) || isnan(pos_integrated.y)) { break; }
-    uv       = domain_pos_to_uv2(pos_integrated, v.min(), v.max(), res);
+    uv       = domain_pos_to_uv(pos_integrated, v.min(), v.max(), res);
     uv_noise = uv * scale_noise_uv;
     lic_val += noise_tex(uv_noise);
     ++cnt;
@@ -59,7 +58,7 @@ __global__ void lic_kernel(steady_vectorfield<FieldReal, 2, 2> v,
     pos_integrated = rungekutta4_step(v, pos_integrated, -stepwidth);
 
     if (isnan(pos_integrated.x) || isnan(pos_integrated.y)) { break; }
-    uv       = domain_pos_to_uv2(pos_integrated, v.min(), v.max(), res);
+    uv       = domain_pos_to_uv(pos_integrated, v.min(), v.max(), res);
     uv_noise = uv * scale_noise_uv;
     lic_val += noise_tex(uv_noise);
     ++cnt;

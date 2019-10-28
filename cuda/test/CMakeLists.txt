@@ -33,3 +33,15 @@ create_test(tex)
 create_test(field)
 create_test(lic)
 create_test(pitched_memory)
+#- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+add_executable (_cuall ${ALL_TEST_CPPS})
+target_link_libraries(_cuall tatooine_cuda Catch2::Catch2)
+target_compile_features(_cuall PUBLIC cxx_std_14)
+target_include_directories(_cuall
+ PRIVATE
+  ${CMAKE_CURRENT_SOURCE_DIR}/../../include
+  ${CMAKE_CURRENT_SOURCE_DIR}/../private_include)
+catch_discover_tests(_cuall)
+add_custom_command(TARGET _cuall POST_BUILD
+                   WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}
+                   COMMAND mv _cuall all)

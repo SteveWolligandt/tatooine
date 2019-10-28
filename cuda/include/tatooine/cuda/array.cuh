@@ -55,6 +55,14 @@ class array<T, NumChannels, 2> {
     cudaArrayGetInfo(&cfd, nullptr, nullptr, m_device_ptr);
     return cfd;
   }
+  auto download() const {
+    auto e = extent();
+    std::vector<T> host_data(e.width * e.height * NumChannels);
+    cudaMemcpy2DFromArray(&host_data[0], e.width * sizeof(T) * NumChannels,
+                          m_device_ptr, 0, 0, e.width * sizeof(T), e.height,
+                          cudaMemcpyDeviceToHost);
+    return host_data;
+  }
 };
 //==============================================================================
 template <typename T, size_t NumChannels>
@@ -119,6 +127,26 @@ class array<T, NumChannels, 3> {
     cudaChannelFormatDesc cfd;
     cudaArrayGetInfo(&cfd, nullptr, nullptr, m_device_ptr);
     return cfd;
+  }
+  //----------------------------------------------------------------------------
+  auto download() const {
+    auto e = extent();
+    std::vector<T>    host_data(e.width * e.height * e.depth * NumChannels);
+    cudaMemcpy3DParms p = {0};
+    p.dstPtr.ptr        = const_cast<T*>(host_data.data());
+    p.dstPtr.pitch      = e.width * sizeof(T);
+    p.dstPtr.xsize      = e.width;
+    p.dstPtr.ysize      = e.height;
+
+    p.srcArray          = m_device_ptr;
+
+    p.extent.width      = e.width;
+    p.extent.height     = e.height;
+    p.extent.depth      = e.depth;
+
+    p.kind              = cudaMemcpyDeviceToHost;
+    memcpy3d(p);
+    return host_data;
   }
 };
 

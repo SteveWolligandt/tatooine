@@ -8,341 +8,341 @@ namespace tatooine {
 namespace cuda {
 //==============================================================================
 
-__device__ __host__ auto operator*(const uint2& lhs, unsigned int rhs) {
+inline __device__ __host__ auto operator*(const uint2& lhs, unsigned int rhs) {
   return make_vec<unsigned int>(lhs.x * rhs, lhs.y * rhs);
 }
-__device__ __host__ auto operator*(const uint3& lhs, unsigned int rhs) {
+inline __device__ __host__ auto operator*(const uint3& lhs, unsigned int rhs) {
   return make_vec<unsigned int>(lhs.x * rhs, lhs.y * rhs, lhs.z * rhs);
 }
-__device__ __host__ auto operator*(const uint4& lhs, unsigned int rhs) {
+inline __device__ __host__ auto operator*(const uint4& lhs, unsigned int rhs) {
   return make_vec<unsigned int>(lhs.x * rhs, lhs.y * rhs, lhs.z * rhs, lhs.w * rhs);
 }
-__device__ __host__ auto operator*(unsigned int lhs, const uint2& rhs) {
+inline __device__ __host__ auto operator*(unsigned int lhs, const uint2& rhs) {
   return make_vec<unsigned int>(lhs * rhs.x, lhs * rhs.y);
 }
-__device__ __host__ auto operator*(unsigned int lhs, const uint3& rhs) {
+inline __device__ __host__ auto operator*(unsigned int lhs, const uint3& rhs) {
   return make_vec<unsigned int>(lhs * rhs.x, lhs * rhs.y, lhs * rhs.z);
 }
-__device__ __host__ auto operator*(unsigned int lhs, const uint4& rhs) {
+inline __device__ __host__ auto operator*(unsigned int lhs, const uint4& rhs) {
   return make_vec<unsigned int>(lhs * rhs.x, lhs * rhs.y, lhs * rhs.z, lhs * rhs.w);
 }
-__device__ __host__ auto operator*(const int2& lhs, int rhs) {
+inline __device__ __host__ auto operator*(const int2& lhs, int rhs) {
   return make_vec<int>(lhs.x * rhs, lhs.y * rhs);
 }
-__device__ __host__ auto operator*(const int3& lhs, int rhs) {
+inline __device__ __host__ auto operator*(const int3& lhs, int rhs) {
   return make_vec<int>(lhs.x * rhs, lhs.y * rhs, lhs.z * rhs);
 }
-__device__ __host__ auto operator*(const int4& lhs, int rhs) {
+inline __device__ __host__ auto operator*(const int4& lhs, int rhs) {
   return make_vec<int>(lhs.x * rhs, lhs.y * rhs, lhs.z * rhs, lhs.w * rhs);
 }
-__device__ __host__ auto operator*(int lhs, const int2& rhs) {
+inline __device__ __host__ auto operator*(int lhs, const int2& rhs) {
   return make_vec<int>(lhs * rhs.x, lhs * rhs.y);
 }
-__device__ __host__ auto operator*(int lhs, const int3& rhs) {
+inline __device__ __host__ auto operator*(int lhs, const int3& rhs) {
   return make_vec<int>(lhs * rhs.x, lhs * rhs.y, lhs * rhs.z);
 }
-__device__ __host__ auto operator*(int lhs, const int4& rhs) {
+inline __device__ __host__ auto operator*(int lhs, const int4& rhs) {
   return make_vec<int>(lhs * rhs.x, lhs * rhs.y, lhs * rhs.z, lhs * rhs.w);
 }
-__device__ __host__ auto operator*(const float2& lhs, float rhs) {
+inline __device__ __host__ auto operator*(const float2& lhs, float rhs) {
   return make_vec<float>(lhs.x * rhs, lhs.y * rhs);
 }
-__device__ __host__ auto operator*(const float3& lhs, float rhs) {
+inline __device__ __host__ auto operator*(const float3& lhs, float rhs) {
   return make_vec<float>(lhs.x * rhs, lhs.y * rhs, lhs.z * rhs);
 }
-__device__ __host__ auto operator*(const float4& lhs, float rhs) {
+inline __device__ __host__ auto operator*(const float4& lhs, float rhs) {
   return make_vec<float>(lhs.x * rhs, lhs.y * rhs, lhs.z * rhs, lhs.w * rhs);
 }
-__device__ __host__ auto operator*(float lhs, const float2& rhs) {
+inline __device__ __host__ auto operator*(float lhs, const float2& rhs) {
   return make_vec<float>(lhs * rhs.x, lhs * rhs.y);
 }
-__device__ __host__ auto operator*(float lhs, const float3& rhs) {
+inline __device__ __host__ auto operator*(float lhs, const float3& rhs) {
   return make_vec<float>(lhs * rhs.x, lhs * rhs.y, lhs * rhs.z);
 }
-__device__ __host__ auto operator*(float lhs, const float4& rhs) {
+inline __device__ __host__ auto operator*(float lhs, const float4& rhs) {
   return make_vec<float>(lhs * rhs.x, lhs * rhs.y, lhs * rhs.z, lhs * rhs.w);
 }
 
-__device__ __host__ auto operator-(const uint2& lhs, unsigned int rhs) {
+inline __device__ __host__ auto operator-(const uint2& lhs, unsigned int rhs) {
   return make_vec<unsigned int>(lhs.x - rhs, lhs.y - rhs);
 }
-__device__ __host__ auto operator-(const uint3& lhs, unsigned int rhs) {
+inline __device__ __host__ auto operator-(const uint3& lhs, unsigned int rhs) {
   return make_vec<unsigned int>(lhs.x - rhs, lhs.y - rhs, lhs.z - rhs);
 }
-__device__ __host__ auto operator-(const uint4& lhs, unsigned int rhs) {
+inline __device__ __host__ auto operator-(const uint4& lhs, unsigned int rhs) {
   return make_vec<unsigned int>(lhs.x - rhs, lhs.y - rhs, lhs.z - rhs, lhs.w - rhs);
 }
-__device__ __host__ auto operator-(unsigned int lhs, const uint2& rhs) {
+inline __device__ __host__ auto operator-(unsigned int lhs, const uint2& rhs) {
   return make_vec<unsigned int>(lhs - rhs.x, lhs - rhs.y);
 }
-__device__ __host__ auto operator-(unsigned int lhs, const uint3& rhs) {
+inline __device__ __host__ auto operator-(unsigned int lhs, const uint3& rhs) {
   return make_vec<unsigned int>(lhs - rhs.x, lhs - rhs.y, lhs - rhs.z);
 }
-__device__ __host__ auto operator-(unsigned int lhs, const uint4& rhs) {
+inline __device__ __host__ auto operator-(unsigned int lhs, const uint4& rhs) {
   return make_vec<unsigned int>(lhs - rhs.x, lhs - rhs.y, lhs - rhs.z, lhs - rhs.w);
 }
-__device__ __host__ auto operator-(const int2& lhs, int rhs) {
+inline __device__ __host__ auto operator-(const int2& lhs, int rhs) {
   return make_vec<int>(lhs.x - rhs, lhs.y - rhs);
 }
-__device__ __host__ auto operator-(const int3& lhs, int rhs) {
+inline __device__ __host__ auto operator-(const int3& lhs, int rhs) {
   return make_vec<int>(lhs.x - rhs, lhs.y - rhs, lhs.z - rhs);
 }
-__device__ __host__ auto operator-(const int4& lhs, int rhs) {
+inline __device__ __host__ auto operator-(const int4& lhs, int rhs) {
   return make_vec<int>(lhs.x - rhs, lhs.y - rhs, lhs.z - rhs, lhs.w - rhs);
 }
-__device__ __host__ auto operator-(int lhs, const int2& rhs) {
+inline __device__ __host__ auto operator-(int lhs, const int2& rhs) {
   return make_vec<int>(lhs - rhs.x, lhs - rhs.y);
 }
-__device__ __host__ auto operator-(int lhs, const int3& rhs) {
+inline __device__ __host__ auto operator-(int lhs, const int3& rhs) {
   return make_vec<int>(lhs - rhs.x, lhs - rhs.y, lhs - rhs.z);
 }
-__device__ __host__ auto operator-(int lhs, const int4& rhs) {
+inline __device__ __host__ auto operator-(int lhs, const int4& rhs) {
   return make_vec<int>(lhs - rhs.x, lhs - rhs.y, lhs - rhs.z, lhs - rhs.w);
 }
-__device__ __host__ auto operator-(const float2& lhs, float rhs) {
+inline __device__ __host__ auto operator-(const float2& lhs, float rhs) {
   return make_vec<float>(lhs.x - rhs, lhs.y - rhs);
 }
-__device__ __host__ auto operator-(const float3& lhs, float rhs) {
+inline __device__ __host__ auto operator-(const float3& lhs, float rhs) {
   return make_vec<float>(lhs.x - rhs, lhs.y - rhs, lhs.z - rhs);
 }
-__device__ __host__ auto operator-(const float4& lhs, float rhs) {
+inline __device__ __host__ auto operator-(const float4& lhs, float rhs) {
   return make_vec<float>(lhs.x - rhs, lhs.y - rhs, lhs.z - rhs, lhs.w - rhs);
 }
-__device__ __host__ auto operator-(float lhs, const float2& rhs) {
+inline __device__ __host__ auto operator-(float lhs, const float2& rhs) {
   return make_vec<float>(lhs - rhs.x, lhs - rhs.y);
 }
-__device__ __host__ auto operator-(float lhs, const float3& rhs) {
+inline __device__ __host__ auto operator-(float lhs, const float3& rhs) {
   return make_vec<float>(lhs - rhs.x, lhs - rhs.y, lhs - rhs.z);
 }
-__device__ __host__ auto operator-(float lhs, const float4& rhs) {
+inline __device__ __host__ auto operator-(float lhs, const float4& rhs) {
   return make_vec<float>(lhs - rhs.x, lhs - rhs.y, lhs - rhs.z, lhs - rhs.w);
 }
 
-__device__ __host__ auto operator+(const uint2& lhs, unsigned int rhs) {
+inline __device__ __host__ auto operator+(const uint2& lhs, unsigned int rhs) {
   return make_vec<unsigned int>(lhs.x + rhs, lhs.y + rhs);
 }
-__device__ __host__ auto operator+(const uint3& lhs, unsigned int rhs) {
+inline __device__ __host__ auto operator+(const uint3& lhs, unsigned int rhs) {
   return make_vec<unsigned int>(lhs.x + rhs, lhs.y + rhs, lhs.z + rhs);
 }
-__device__ __host__ auto operator+(const uint4& lhs, unsigned int rhs) {
+inline __device__ __host__ auto operator+(const uint4& lhs, unsigned int rhs) {
   return make_vec<unsigned int>(lhs.x + rhs, lhs.y + rhs, lhs.z + rhs, lhs.w + rhs);
 }
-__device__ __host__ auto operator+(unsigned int lhs, const uint2& rhs) {
+inline __device__ __host__ auto operator+(unsigned int lhs, const uint2& rhs) {
   return make_vec<unsigned int>(lhs + rhs.x, lhs + rhs.y);
 }
-__device__ __host__ auto operator+(unsigned int lhs, const uint3& rhs) {
+inline __device__ __host__ auto operator+(unsigned int lhs, const uint3& rhs) {
   return make_vec<unsigned int>(lhs + rhs.x, lhs + rhs.y, lhs + rhs.z);
 }
-__device__ __host__ auto operator+(unsigned int lhs, const uint4& rhs) {
+inline __device__ __host__ auto operator+(unsigned int lhs, const uint4& rhs) {
   return make_vec<unsigned int>(lhs + rhs.x, lhs + rhs.y, lhs + rhs.z, lhs + rhs.w);
 }
-__device__ __host__ auto operator+(const int2& lhs, int rhs) {
+inline __device__ __host__ auto operator+(const int2& lhs, int rhs) {
   return make_vec<int>(lhs.x + rhs, lhs.y + rhs);
 }
-__device__ __host__ auto operator+(const int3& lhs, int rhs) {
+inline __device__ __host__ auto operator+(const int3& lhs, int rhs) {
   return make_vec<int>(lhs.x + rhs, lhs.y + rhs, lhs.z + rhs);
 }
-__device__ __host__ auto operator+(const int4& lhs, int rhs) {
+inline __device__ __host__ auto operator+(const int4& lhs, int rhs) {
   return make_vec<int>(lhs.x + rhs, lhs.y + rhs, lhs.z + rhs, lhs.w + rhs);
 }
-__device__ __host__ auto operator+(int lhs, const int2& rhs) {
+inline __device__ __host__ auto operator+(int lhs, const int2& rhs) {
   return make_vec<int>(lhs + rhs.x, lhs + rhs.y);
 }
-__device__ __host__ auto operator+(int lhs, const int3& rhs) {
+inline __device__ __host__ auto operator+(int lhs, const int3& rhs) {
   return make_vec<int>(lhs + rhs.x, lhs + rhs.y, lhs + rhs.z);
 }
-__device__ __host__ auto operator+(int lhs, const int4& rhs) {
+inline __device__ __host__ auto operator+(int lhs, const int4& rhs) {
   return make_vec<int>(lhs + rhs.x, lhs + rhs.y, lhs + rhs.z, lhs + rhs.w);
 }
-__device__ __host__ auto operator+(const float2& lhs, float rhs) {
+inline __device__ __host__ auto operator+(const float2& lhs, float rhs) {
   return make_vec<float>(lhs.x + rhs, lhs.y + rhs);
 }
-__device__ __host__ auto operator+(const float3& lhs, float rhs) {
+inline __device__ __host__ auto operator+(const float3& lhs, float rhs) {
   return make_vec<float>(lhs.x + rhs, lhs.y + rhs, lhs.z + rhs);
 }
-__device__ __host__ auto operator+(const float4& lhs, float rhs) {
+inline __device__ __host__ auto operator+(const float4& lhs, float rhs) {
   return make_vec<float>(lhs.x + rhs, lhs.y + rhs, lhs.z + rhs, lhs.w + rhs);
 }
-__device__ __host__ auto operator+(float lhs, const float2& rhs) {
+inline __device__ __host__ auto operator+(float lhs, const float2& rhs) {
   return make_vec<float>(lhs + rhs.x, lhs + rhs.y);
 }
-__device__ __host__ auto operator+(float lhs, const float3& rhs) {
+inline __device__ __host__ auto operator+(float lhs, const float3& rhs) {
   return make_vec<float>(lhs + rhs.x, lhs + rhs.y, lhs + rhs.z);
 }
-__device__ __host__ auto operator+(float lhs, const float4& rhs) {
+inline __device__ __host__ auto operator+(float lhs, const float4& rhs) {
   return make_vec<float>(lhs + rhs.x, lhs + rhs.y, lhs + rhs.z, lhs + rhs.w);
 }
 
-__device__ __host__ auto operator/(const uint2& lhs, unsigned int rhs) {
+inline __device__ __host__ auto operator/(const uint2& lhs, unsigned int rhs) {
   return make_vec<unsigned int>(lhs.x / rhs, lhs.y / rhs);
 }
-__device__ __host__ auto operator/(const uint3& lhs, unsigned int rhs) {
+inline __device__ __host__ auto operator/(const uint3& lhs, unsigned int rhs) {
   return make_vec<unsigned int>(lhs.x / rhs, lhs.y / rhs, lhs.z / rhs);
 }
-__device__ __host__ auto operator/(const uint4& lhs, unsigned int rhs) {
+inline __device__ __host__ auto operator/(const uint4& lhs, unsigned int rhs) {
   return make_vec<unsigned int>(lhs.x / rhs, lhs.y / rhs, lhs.z / rhs, lhs.w / rhs);
 }
-__device__ __host__ auto operator/(unsigned int lhs, const uint2& rhs) {
+inline __device__ __host__ auto operator/(unsigned int lhs, const uint2& rhs) {
   return make_vec<unsigned int>(lhs / rhs.x, lhs / rhs.y);
 }
-__device__ __host__ auto operator/(unsigned int lhs, const uint3& rhs) {
+inline __device__ __host__ auto operator/(unsigned int lhs, const uint3& rhs) {
   return make_vec<unsigned int>(lhs / rhs.x, lhs / rhs.y, lhs / rhs.z);
 }
-__device__ __host__ auto operator/(unsigned int lhs, const uint4& rhs) {
+inline __device__ __host__ auto operator/(unsigned int lhs, const uint4& rhs) {
   return make_vec<unsigned int>(lhs / rhs.x, lhs / rhs.y, lhs / rhs.z, lhs / rhs.w);
 }
-__device__ __host__ auto operator/(const int2& lhs, int rhs) {
+inline __device__ __host__ auto operator/(const int2& lhs, int rhs) {
   return make_vec<int>(lhs.x / rhs, lhs.y / rhs);
 }
-__device__ __host__ auto operator/(const int3& lhs, int rhs) {
+inline __device__ __host__ auto operator/(const int3& lhs, int rhs) {
   return make_vec<int>(lhs.x / rhs, lhs.y / rhs, lhs.z / rhs);
 }
-__device__ __host__ auto operator/(const int4& lhs, int rhs) {
+inline __device__ __host__ auto operator/(const int4& lhs, int rhs) {
   return make_vec<int>(lhs.x / rhs, lhs.y / rhs, lhs.z / rhs, lhs.w / rhs);
 }
-__device__ __host__ auto operator/(int lhs, const int2& rhs) {
+inline __device__ __host__ auto operator/(int lhs, const int2& rhs) {
   return make_vec<int>(lhs / rhs.x, lhs / rhs.y);
 }
-__device__ __host__ auto operator/(int lhs, const int3& rhs) {
+inline __device__ __host__ auto operator/(int lhs, const int3& rhs) {
   return make_vec<int>(lhs / rhs.x, lhs / rhs.y, lhs / rhs.z);
 }
-__device__ __host__ auto operator/(int lhs, const int4& rhs) {
+inline __device__ __host__ auto operator/(int lhs, const int4& rhs) {
   return make_vec<int>(lhs / rhs.x, lhs / rhs.y, lhs / rhs.z, lhs / rhs.w);
 }
-__device__ __host__ auto operator/(const float2& lhs, float rhs) {
+inline __device__ __host__ auto operator/(const float2& lhs, float rhs) {
   return make_vec<float>(lhs.x / rhs, lhs.y / rhs);
 }
-__device__ __host__ auto operator/(const float3& lhs, float rhs) {
+inline __device__ __host__ auto operator/(const float3& lhs, float rhs) {
   return make_vec<float>(lhs.x / rhs, lhs.y / rhs, lhs.z / rhs);
 }
-__device__ __host__ auto operator/(const float4& lhs, float rhs) {
+inline __device__ __host__ auto operator/(const float4& lhs, float rhs) {
   return make_vec<float>(lhs.x / rhs, lhs.y / rhs, lhs.z / rhs, lhs.w / rhs);
 }
-__device__ __host__ auto operator/(float lhs, const float2& rhs) {
+inline __device__ __host__ auto operator/(float lhs, const float2& rhs) {
   return make_vec<float>(lhs / rhs.x, lhs / rhs.y);
 }
-__device__ __host__ auto operator/(float lhs, const float3& rhs) {
+inline __device__ __host__ auto operator/(float lhs, const float3& rhs) {
   return make_vec<float>(lhs / rhs.x, lhs / rhs.y, lhs / rhs.z);
 }
-__device__ __host__ auto operator/(float lhs, const float4& rhs) {
+inline __device__ __host__ auto operator/(float lhs, const float4& rhs) {
   return make_vec<float>(lhs / rhs.x, lhs / rhs.y, lhs / rhs.z, lhs / rhs.w);
 }
 
-__device__ __host__ auto operator+(const int2& lhs, const int2& rhs) {
+inline __device__ __host__ auto operator+(const int2& lhs, const int2& rhs) {
   return make_vec<int>(lhs.x + rhs.x, lhs.y + rhs.y);
 }
-__device__ __host__ auto operator+(const int3& lhs, const int3& rhs) {
+inline __device__ __host__ auto operator+(const int3& lhs, const int3& rhs) {
   return make_vec<int>(lhs.x + rhs.x, lhs.y + rhs.y, lhs.z + rhs.z);
 }
-__device__ __host__ auto operator+(const int4& lhs, const int4& rhs) {
+inline __device__ __host__ auto operator+(const int4& lhs, const int4& rhs) {
   return make_vec<int>(lhs.x + rhs.x, lhs.y + rhs.y, lhs.z + rhs.z, lhs.w + rhs.w);
 }
-__device__ __host__ auto operator+(const uint2& lhs, const uint2& rhs) {
+inline __device__ __host__ auto operator+(const uint2& lhs, const uint2& rhs) {
   return make_vec<unsigned int>(lhs.x + rhs.x, lhs.y + rhs.y);
 }
-__device__ __host__ auto operator+(const uint3& lhs, const uint3& rhs) {
+inline __device__ __host__ auto operator+(const uint3& lhs, const uint3& rhs) {
   return make_vec<unsigned int>(lhs.x + rhs.x, lhs.y + rhs.y, lhs.z + rhs.z);
 }
-__device__ __host__ auto operator+(const uint4& lhs, const uint4& rhs) {
+inline __device__ __host__ auto operator+(const uint4& lhs, const uint4& rhs) {
   return make_vec<unsigned int>(lhs.x + rhs.x, lhs.y + rhs.y, lhs.z + rhs.z, lhs.w + rhs.w);
 }
-__device__ __host__ auto operator+(const float2& lhs, const float2& rhs) {
+inline __device__ __host__ auto operator+(const float2& lhs, const float2& rhs) {
   return make_vec<float>(lhs.x + rhs.x, lhs.y + rhs.y);
 }
-__device__ __host__ auto operator+(const float3& lhs, const float3& rhs) {
+inline __device__ __host__ auto operator+(const float3& lhs, const float3& rhs) {
   return make_vec<float>(lhs.x + rhs.x, lhs.y + rhs.y, lhs.z + rhs.z);
 }
-__device__ __host__ auto operator+(const float4& lhs, const float4& rhs) {
+inline __device__ __host__ auto operator+(const float4& lhs, const float4& rhs) {
   return make_vec<float>(lhs.x + rhs.x, lhs.y + rhs.y, lhs.z + rhs.z,
                      lhs.w + rhs.w);
 }
 
-__device__ __host__ auto operator*(const int2& lhs, const int2& rhs) {
+inline __device__ __host__ auto operator*(const int2& lhs, const int2& rhs) {
   return make_vec<int>(lhs.x * rhs.x, lhs.y * rhs.y);
 }
-__device__ __host__ auto operator*(const int3& lhs, const int3& rhs) {
+inline __device__ __host__ auto operator*(const int3& lhs, const int3& rhs) {
   return make_vec<int>(lhs.x * rhs.x, lhs.y * rhs.y, lhs.z * rhs.z);
 }
-__device__ __host__ auto operator*(const int4& lhs, const int4& rhs) {
+inline __device__ __host__ auto operator*(const int4& lhs, const int4& rhs) {
   return make_vec<int>(lhs.x * rhs.x, lhs.y * rhs.y, lhs.z * rhs.z, lhs.w * rhs.w);
 }
 
-__device__ __host__ auto operator*(const uint2& lhs, const uint2& rhs) {
+inline __device__ __host__ auto operator*(const uint2& lhs, const uint2& rhs) {
   return make_vec<unsigned int>(lhs.x * rhs.x, lhs.y * rhs.y);
 }
-__device__ __host__ auto operator*(const uint3& lhs, const uint3& rhs) {
+inline __device__ __host__ auto operator*(const uint3& lhs, const uint3& rhs) {
   return make_vec<unsigned int>(lhs.x * rhs.x, lhs.y * rhs.y, lhs.z * rhs.z);
 }
-__device__ __host__ auto operator*(const uint4& lhs, const uint4& rhs) {
+inline __device__ __host__ auto operator*(const uint4& lhs, const uint4& rhs) {
   return make_vec<unsigned int>(lhs.x * rhs.x, lhs.y * rhs.y, lhs.z * rhs.z, lhs.w * rhs.w);
 }
-__device__ __host__ auto operator*(const float2& lhs, const float2& rhs) {
+inline __device__ __host__ auto operator*(const float2& lhs, const float2& rhs) {
   return make_vec<float>(lhs.x * rhs.x, lhs.y * rhs.y);
 }
-__device__ __host__ auto operator*(const float3& lhs, const float3& rhs) {
+inline __device__ __host__ auto operator*(const float3& lhs, const float3& rhs) {
   return make_vec<float>(lhs.x * rhs.x, lhs.y * rhs.y, lhs.z * rhs.z);
 }
-__device__ __host__ auto operator*(const float4& lhs, const float4& rhs) {
+inline __device__ __host__ auto operator*(const float4& lhs, const float4& rhs) {
   return make_vec<float>(lhs.x * rhs.x, lhs.y * rhs.y, lhs.z * rhs.z,
                      lhs.w * rhs.w);
 }
 
-__device__ __host__ auto operator-(const int2& lhs, const int2& rhs) {
+inline __device__ __host__ auto operator-(const int2& lhs, const int2& rhs) {
   return make_vec<int>(lhs.x - rhs.x, lhs.y - rhs.y);
 }
-__device__ __host__ auto operator-(const int3& lhs, const int3& rhs) {
+inline __device__ __host__ auto operator-(const int3& lhs, const int3& rhs) {
   return make_vec<int>(lhs.x - rhs.x, lhs.y - rhs.y, lhs.z - rhs.z);
 }
-__device__ __host__ auto operator-(const int4& lhs, const int4& rhs) {
+inline __device__ __host__ auto operator-(const int4& lhs, const int4& rhs) {
   return make_vec<int>(lhs.x - rhs.x, lhs.y - rhs.y, lhs.z - rhs.z, lhs.w - rhs.w);
 }
 
-__device__ __host__ auto operator-(const uint2& lhs, const uint2& rhs) {
+inline __device__ __host__ auto operator-(const uint2& lhs, const uint2& rhs) {
   return make_vec<unsigned int>(lhs.x - rhs.x, lhs.y - rhs.y);
 }
-__device__ __host__ auto operator-(const uint3& lhs, const uint3& rhs) {
+inline __device__ __host__ auto operator-(const uint3& lhs, const uint3& rhs) {
   return make_vec<unsigned int>(lhs.x - rhs.x, lhs.y - rhs.y, lhs.z - rhs.z);
 }
-__device__ __host__ auto operator-(const uint4& lhs, const uint4& rhs) {
+inline __device__ __host__ auto operator-(const uint4& lhs, const uint4& rhs) {
   return make_vec<unsigned int>(lhs.x - rhs.x, lhs.y - rhs.y, lhs.z - rhs.z, lhs.w - rhs.w);
 }
-__device__ __host__ auto operator-(const float2& lhs, const float2& rhs) {
+inline __device__ __host__ auto operator-(const float2& lhs, const float2& rhs) {
   return make_vec<float>(lhs.x - rhs.x, lhs.y - rhs.y);
 }
-__device__ __host__ auto operator-(const float3& lhs, const float3& rhs) {
+inline __device__ __host__ auto operator-(const float3& lhs, const float3& rhs) {
   return make_vec<float>(lhs.x - rhs.x, lhs.y - rhs.y, lhs.z - rhs.z);
 }
-__device__ __host__ auto operator-(const float4& lhs, const float4& rhs) {
+inline __device__ __host__ auto operator-(const float4& lhs, const float4& rhs) {
   return make_vec<float>(lhs.x - rhs.x, lhs.y - rhs.y, lhs.z - rhs.z,
                      lhs.w - rhs.w);
 }
 
-__device__ __host__ auto operator/(const int2& lhs, const int2& rhs) {
+inline __device__ __host__ auto operator/(const int2& lhs, const int2& rhs) {
   return make_vec<int>(lhs.x / rhs.x, lhs.y / rhs.y);
 }
-__device__ __host__ auto operator/(const int3& lhs, const int3& rhs) {
+inline __device__ __host__ auto operator/(const int3& lhs, const int3& rhs) {
   return make_vec<int>(lhs.x / rhs.x, lhs.y / rhs.y, lhs.z / rhs.z);
 }
-__device__ __host__ auto operator/(const int4& lhs, const int4& rhs) {
+inline __device__ __host__ auto operator/(const int4& lhs, const int4& rhs) {
   return make_vec<int>(lhs.x / rhs.x, lhs.y / rhs.y, lhs.z / rhs.z, lhs.w / rhs.w);
 }
 
-__device__ __host__ auto operator/(const uint2& lhs, const uint2& rhs) {
+inline __device__ __host__ auto operator/(const uint2& lhs, const uint2& rhs) {
   return make_vec<unsigned int>(lhs.x / rhs.x, lhs.y / rhs.y);
 }
-__device__ __host__ auto operator/(const uint3& lhs, const uint3& rhs) {
+inline __device__ __host__ auto operator/(const uint3& lhs, const uint3& rhs) {
   return make_vec<unsigned int>(lhs.x / rhs.x, lhs.y / rhs.y, lhs.z / rhs.z);
 }
-__device__ __host__ auto operator/(const uint4& lhs, const uint4& rhs) {
+inline __device__ __host__ auto operator/(const uint4& lhs, const uint4& rhs) {
   return make_vec<unsigned int>(lhs.x / rhs.x, lhs.y / rhs.y, lhs.z / rhs.z, lhs.w / rhs.w);
 }
-__device__ __host__ auto operator/(const float2& lhs, const float2& rhs) {
+inline __device__ __host__ auto operator/(const float2& lhs, const float2& rhs) {
   return make_vec<float>(lhs.x / rhs.x, lhs.y / rhs.y);
 }
-__device__ __host__ auto operator/(const float3& lhs, const float3& rhs) {
+inline __device__ __host__ auto operator/(const float3& lhs, const float3& rhs) {
   return make_vec<float>(lhs.x / rhs.x, lhs.y / rhs.y, lhs.z / rhs.z);
 }
-__device__ __host__ auto operator/(const float4& lhs, const float4& rhs) {
+inline __device__ __host__ auto operator/(const float4& lhs, const float4& rhs) {
   return make_vec<float>(lhs.x / rhs.x, lhs.y / rhs.y, lhs.z / rhs.z,
                      lhs.w / rhs.w);
 }

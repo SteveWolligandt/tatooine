@@ -13,6 +13,11 @@ TEST_CASE("cuda_array0", "[cuda][array][upload][download][vector]") {
   auto                     res = array.resolution();
   REQUIRE(res[0] == 2);
   REQUIRE(res[1] == 2);
+  const auto downloaded = array.download();
+  REQUIRE(downloaded.size() == host_data.size());
+  for (size_t i = 0; i < host_data.size(); ++i) {
+    REQUIRE(host_data[i] == downloaded[i]);
+  }
 }
 
 TEST_CASE("cuda_array1", "[cuda][array][upload][download][vector]") {
@@ -22,6 +27,11 @@ TEST_CASE("cuda_array1", "[cuda][array][upload][download][vector]") {
   REQUIRE(res[0] == 2);
   REQUIRE(res[1] == 2);
   REQUIRE(res[2] == 2);
+  const auto downloaded = array.download();
+  REQUIRE(downloaded.size() == host_data.size());
+  for (size_t i = 0; i < host_data.size(); ++i) {
+    REQUIRE(host_data[i] == downloaded[i]);
+  }
 }
 
 //==============================================================================

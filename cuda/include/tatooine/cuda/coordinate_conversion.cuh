@@ -25,16 +25,16 @@ __device__ auto global_idx_to_uvw(const uint3& globalIdx, const uint3& res) {
       ((globalIdx.z / T(res.z - 1) * (res.z * 2 - 2)) + 1) / (T(res.z * 2)));
 }
 //------------------------------------------------------------------------------
-template <typename T, enable_if_floating_point<T> = true>
+template <typename T=float, enable_if_floating_point<T> = true>
 __device__ auto global_idx_to_domain_pos(const uint2&       globalIdx,
                                          const vec_t<T, 2>& min,
                                          const vec_t<T, 2>& max,
-                                         const vec_t<T, 2>& res) {
+                                         const uint2&       res) {
   return make_vec<T>(globalIdx.x / T(res.x - 1) * (max.x - min.x) + min.x,
                      globalIdx.y / T(res.y - 1) * (max.y - min.y) + min.y);
 }
 //------------------------------------------------------------------------------
-template <typename T, enable_if_floating_point<T> = true>
+template <typename T=float, enable_if_floating_point<T> = true>
 __device__ auto domain_pos_to_uv(const vec_t<T, 2>& domain_pos,
                                  const vec_t<T, 2>& min, const vec_t<T, 2>& max,
                                  const uint2& res) {

@@ -2,7 +2,6 @@
 #include <tatooine/cuda/buffer.cuh>
 #include <tatooine/cuda/coordinate_conversion.cuh>
 #include <tatooine/cuda/field.cuh>
-#include <tatooine/cuda/sample_field.cuh>
 
 #include <catch2/catch.hpp>
 
@@ -20,7 +19,7 @@ __global__ void kernel2_steady(steady_vectorfield<float, 2, 2> v,
   if (globalIdx.x >= res.x || globalIdx.y >= res.y) { return; }
 
   // sample vectorfield
-  const auto x = global_idx_to_domain_pos2(globalIdx, v.min(), v.max(), res);
+  const auto x = global_idx_to_domain_pos(globalIdx, v.min(), v.max(), res);
   const auto sample = v(x);
 
   // sample texture and assign to output array
@@ -38,13 +37,13 @@ TEST_CASE("field_to_tex2_steady", "[cuda][field][dg][steady]") {
   const numerical::doublegyre<float> v;
 
   // sampled vector field and upload to gpu
-  const double                 t = 0;
-  const linspace<double>       x_domain{0, 2, 21};
-  const linspace<double>       y_domain{0, 1, 11};
-  auto                         d_v = upload(v, x_domain, y_domain, t);
-  buffer<float>                d_vf_out(2 * x_domain.size() * y_domain.size());
-  buffer<float>                d_pos_out(2 * x_domain.size() * y_domain.size());
-  buffer<unsigned int>         d_idx_out(2 * x_domain.size() * y_domain.size());
+  const double           t = 0;
+  const linspace<double> x_domain{0, 2, 21};
+  const linspace<double> y_domain{0, 1, 11};
+  auto                 d_v = upload(v, grid<double, 2>{x_domain, y_domain}, t);
+  buffer<float>        d_vf_out(2 * x_domain.size() * y_domain.size());
+  buffer<float>        d_pos_out(2 * x_domain.size() * y_domain.size());
+  buffer<unsigned int> d_idx_out(2 * x_domain.size() * y_domain.size());
   // call kernel
   const dim3 num_grids{32, 32};
   const dim3 num_threads(x_domain.size() / num_grids.x + 1,

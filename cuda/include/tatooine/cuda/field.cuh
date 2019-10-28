@@ -37,7 +37,7 @@ class steady_vectorfield {
         m_max{make_vec<Real>(g.dimension(0).back(), g.dimension(1).back())} {}
   //----------------------------------------------------------------------------
   __device__ auto evaluate(const cuda::vec_t<Real, N>& x) const {
-    return m_sampler(domain_pos_to_uv2(x, min(), max(), resolution()));
+    return m_sampler(domain_pos_to_uv(x, min(), max(), resolution()));
   }
   //----------------------------------------------------------------------------
   __device__ auto operator()(const cuda::vec_t<Real, N>& x) const {

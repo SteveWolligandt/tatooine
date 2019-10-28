@@ -2,7 +2,6 @@
 #define TATOOINE_CUDA_RUNGEKUTTA4_CUH
 
 #include <tatooine/cuda/math.cuh>
-#include <tatooine/cuda/sample_field.cuh>
 
 //==============================================================================
 namespace tatooine {

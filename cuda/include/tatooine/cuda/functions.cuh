@@ -49,19 +49,19 @@ auto malloc_array3d(size_t w, size_t h, size_t d, unsigned int flags = 0) {
   return array;
 }
 //------------------------------------------------------------------------------
-auto malloc3d(cudaExtent extent) {
+inline auto malloc3d(cudaExtent extent) {
   cudaPitchedPtr pitchedDevPtr;
   check("cudaMalloc3D", cudaMalloc3D(&pitchedDevPtr, extent));
   return pitchedDevPtr;
 }
 //------------------------------------------------------------------------------
-auto array_get_info(cudaChannelFormatDesc* desc, cudaExtent* extent,
+inline auto array_get_info(cudaChannelFormatDesc* desc, cudaExtent* extent,
                     unsigned int* flags, cudaArray_t array) {
   check("cudaArrayGetInfo",
         cudaArrayGetInfo(desc, extent, flags, array));
 }
 //==============================================================================
-void memcpy(void* dst, const void* src, size_t count, cudaMemcpyKind kind) {
+inline void memcpy(void* dst, const void* src, size_t count, cudaMemcpyKind kind) {
   check("cudaMemcpy", cudaMemcpy(dst, src, count, kind));
 }
 //------------------------------------------------------------------------------
@@ -71,7 +71,7 @@ void memcpy2d(T* dst, size_t dpitch, const T* src, size_t spitch, size_t width,
   check("cudaMemcpy2D", cudaMemcpy2D(dst, dpitch, src, spitch, width, height, kind));
 }
 //------------------------------------------------------------------------------
-void memcpy3d(const cudaMemcpy3DParms& p) {
+inline void memcpy3d(const cudaMemcpy3DParms& p) {
   check("cudaMemcpy3D", cudaMemcpy3D(&p));
 }
 //==============================================================================
@@ -108,7 +108,7 @@ auto malloc_pitch(size_t width, size_t height) {
   return ret;
 }
 //==============================================================================
-void free(void* device_ptr) {
+inline void free(void* device_ptr) {
   check("cudaFree", cudaFree(device_ptr));
 }
 

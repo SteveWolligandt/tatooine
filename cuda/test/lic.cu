@@ -45,7 +45,7 @@ TEST_CASE("lic_modified_doublegyre", "[lic][mdg][modified_doublegyre]") {
 //==============================================================================
 TEST_CASE("lic_duffing_oscillator", "[lic][fdo][forced_duffing_oscillator]") {
   const numerical::forced_duffing_oscillator<double> v{};
-  for (auto t : linspace<float>(0, 2 * M_PI, 62)) {
+  for (auto t : linspace<float>(0, 2 * M_PI, 11)) {
     auto lic_tex =
         call_lic_kernel(v,
                         grid<double, 2>{linspace<double>(-2, 2, 200),
