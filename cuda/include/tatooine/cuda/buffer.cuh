@@ -3,8 +3,8 @@
 
 //==============================================================================
 #include <cassert>
+#include <iostream>
 #include <vector>
-#include <tatooine/cuda/var.cuh>
 #include <tatooine/cuda/functions.cuh>
 
 //==============================================================================
@@ -17,8 +17,8 @@ class buffer {
   // members
   //============================================================================
  private:
-  var<size_t> m_size;
-  T*          m_device_ptr = nullptr;
+  size_t m_size;
+  T*     m_device_ptr = nullptr;
 
   //============================================================================
   // ctors / dtor
@@ -32,24 +32,37 @@ class buffer {
   }
   buffer(std::initializer_list<T>&& data)
       : buffer{std::vector<T>(begin(data), end(data))} {}
+  //buffer(const buffer& other) :
+  //  m_size{other.m_size}, m_device_ptr{malloc<T>(m_size)} {
+  //  memcpy(m_device_ptr, other.m_device_ptr,
+  //         sizeof(T) * m_size, cudaMemcpyDeviceToDevice);
+  //}
   //----------------------------------------------------------------------------
   __host__ __device__ ~buffer() {
-#if !defined(__CUDACC__)
-    free(m_device_ptr);
-    m_device_ptr = nullptr;
-#endif
+//#ifndef __CUDA_ARCH__
+//    _free();
+//#endif
   }
+
+
   //============================================================================
   // methods
   //============================================================================
+ //private:
+  __host__ void _free() {
+    std::cerr << m_device_ptr << '\n';
+    free(m_device_ptr);
+    m_device_ptr = nullptr;
+  }
+
  public:
   __device__ auto& operator[](size_t i) {
-    assert(i < *m_size);
+    assert(i < m_size);
     return m_device_ptr[i];
   }
   //----------------------------------------------------------------------------
   __device__ const auto& operator[](size_t i) const {
-    assert(i < *m_size);
+    assert(i < m_size);
     return m_device_ptr[i];
   }
   //----------------------------------------------------------------------------
@@ -62,14 +75,8 @@ class buffer {
   //----------------------------------------------------------------------------
   __host__ __device__ auto device_ptr() const { return m_device_ptr; }
   __host__ __device__ size_t size() const {
-#ifdef __CUDA_ARCH__
-    return *m_size;
-#else
-    return m_size.download();
-#endif
+    return m_size;
   }
-  //----------------------------------------------------------------------------
-  const auto& device_size() const { return m_size; }
 };
 //==============================================================================
 }  // namespace cuda

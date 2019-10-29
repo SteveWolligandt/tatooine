@@ -40,8 +40,9 @@ class var {
   var(const T& ht) : m_device_ptr{host_to_device(ht)} {}
   //----------------------------------------------------------------------------
   __host__ __device__ ~var() {
-    #if !defined(__CUDACC__)
-    cudaFree(m_device_ptr);
+    #ifndef __CUDA_ARCH__
+    free(m_device_ptr);
+    m_device_ptr = nullptr;
     #endif
   }
   //============================================================================
@@ -50,16 +51,11 @@ class var {
  public:
   //----------------------------------------------------------------------------
   __device__ __host__ auto& operator=(const T& t) {
-#ifdef __CUDA_ARCH__
-    get() = t;
-#else
+    #ifdef __CUDA_ARCH__
+    *m_device_ptr = t;
+    #else
     cudaMemcpy(m_device_ptr, &t, sizeof(T), cudaMemcpyHostToDevice);
-#endif
-    return *this;
-  }
-  //----------------------------------------------------------------------------
-  __device__ auto& operator=(T&& t) {
-    *m_device_ptr = std::move(t);
+    #endif
     return *this;
   }
 

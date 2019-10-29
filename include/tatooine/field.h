@@ -2,6 +2,7 @@
 #define TATOOINE_FIELD_H
 
 #include <vector>
+
 #include "crtp.h"
 #include "grid.h"
 #include "tensor.h"
@@ -76,7 +77,8 @@ struct field : crtp<Derived> {
 template <typename Field, typename Real, size_t N, typename Op,
           size_t... TensorDims>
 struct unary_operation_field
-    : field<unary_operation_field<Field, Real, N, Op, TensorDims...>, Real, N, TensorDims...> {
+    : field<unary_operation_field<Field, Real, N, Op, TensorDims...>, Real, N,
+            TensorDims...> {
  public:
   using this_t   = unary_operation_field<Field, Real, N, Op, TensorDims...>;
   using parent_t = field<this_t, Real, N, TensorDims...>;
@@ -85,11 +87,12 @@ struct unary_operation_field
 
  private:
   Field m_field;
-  Op      m_operator;
+  Op    m_operator;
 
  public:
   template <typename RealIn, size_t NIn, size_t... TensorDimsIn>
-  unary_operation_field(const field<Field, RealIn, NIn, TensorDimsIn...>& f, Op&& op)
+  unary_operation_field(const field<Field, RealIn, NIn, TensorDimsIn...>& f,
+                        Op&&                                              op)
       : m_field{f.as_derived()}, m_operator{op} {}
   //============================================================================
   tensor_t evaluate(const pos_t& x, Real t) const {
@@ -151,8 +154,7 @@ template <typename RealOut, size_t NOut, size_t... TensorDimsOut,
 constexpr auto make_unary_operation_field(
     const field<Field, Real, N, TensorDims...>& f, Op&& op) {
   return unary_operation_field<Field, RealOut, NOut, std::decay_t<Op>,
-                               TensorDimsOut...>{
-      f, std::forward<Op>(op)};
+                               TensorDimsOut...>{f, std::forward<Op>(op)};
 }
 //------------------------------------------------------------------------------
 template <typename Real, size_t N, size_t... TensorDims, typename LhsField,
@@ -176,16 +178,15 @@ constexpr auto dot(const field<LhsField, LhsReal, N, D>& lhs,
 }
 
 //------------------------------------------------------------------------------
- template <typename Field, typename Real, size_t N, size_t... TensorDims>
- constexpr auto operator-(const field<Field, Real, N, TensorDims...>& f) {
+template <typename Field, typename Real, size_t N, size_t... TensorDims>
+constexpr auto operator-(const field<Field, Real, N, TensorDims...>& f) {
   return make_unary_operation_field<Real, N, TensorDims...>(
       f, [](const auto& v) { return -v; });
 }
 
 //------------------------------------------------------------------------------
 template <typename Field, typename Real, size_t N, size_t VecDim>
-constexpr auto normalize(
-    const field<Field, Real, N, VecDim>& f) {
+constexpr auto normalize(const field<Field, Real, N, VecDim>& f) {
   return make_unary_operation_field<Real, N, VecDim>(
       f, [](const auto& v) { return normalize(v); });
 }
@@ -299,7 +300,7 @@ template <typename OutReal, typename Field, typename FieldReal,
           typename GridReal, typename TReal, size_t N, size_t... TensorDims,
           enable_if_arithmetic<FieldReal, GridReal, TReal> = true>
 auto sample_to_raw(const field<Field, FieldReal, N, TensorDims...>& f,
-                   const grid<GridReal, N>& g, TReal t) {
+                   const grid<GridReal, N>& g, TReal t, size_t padding = 0, OutReal padval = 0) {
   std::vector<OutReal> raw_data;
   raw_data.reserve(g.num_vertices() * Field::tensor_t::num_components());
   for (auto v : g.vertices()) {
@@ -309,19 +310,22 @@ auto sample_to_raw(const field<Field, FieldReal, N, TensorDims...>& f,
       for (size_t i = 0; i < Field::tensor_t::num_components(); ++i) {
         raw_data.push_back(sample[i]);
       }
+      for (size_t i = 0; i < padding; ++i) { raw_data.push_back(padval); }
     } else {
       for (size_t i = 0; i < Field::tensor_t::num_components(); ++i) {
-        raw_data.push_back(0.0/0.0);
+        raw_data.push_back(0.0 / 0.0);
       }
+      for (size_t i = 0; i < padding; ++i) { raw_data.push_back(0.0 / 0.0); }
     }
   }
   return raw_data;
 }
 //------------------------------------------------------------------------------
-template <typename OutReal, typename Field, typename FieldReal, typename GridReal, typename TReal,
-          size_t N, size_t... TensorDims>
+template <typename OutReal, typename Field, typename FieldReal,
+          typename GridReal, typename TReal, size_t N, size_t... TensorDims>
 auto sample_to_raw(const field<Field, FieldReal, N, TensorDims...>& f,
-                   const grid<GridReal, N>& g, const linspace<TReal>& ts) {
+                   const grid<GridReal, N>& g, const linspace<TReal>& ts,
+                   size_t padding = 0, OutReal padval = 0) {
   std::vector<OutReal> raw_data;
   raw_data.reserve(g.num_vertices() * Field::tensor_t::num_components() *
                    ts.size());
@@ -331,6 +335,7 @@ auto sample_to_raw(const field<Field, FieldReal, N, TensorDims...>& f,
       for (size_t i = 0; i < Field::tensor_t::num_components(); ++i) {
         raw_data.push_back(sample[i]);
       }
+      for (size_t i = 0; i < padding; ++i) { raw_data.push_back(padval); }
     }
   }
   return raw_data;

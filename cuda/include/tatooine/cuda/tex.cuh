@@ -29,7 +29,8 @@ struct tex_sampler<T, NumChannels, 2> {
   __device__ static auto sample(cudaTextureObject_t tex, T u, T v) {
     return tex2D<cuda::vec_t<T, NumChannels>>(tex, u, v);
   }
-  __device__ static auto sample(cudaTextureObject_t tex, cuda::vec_t<T, 2> uv) {
+  __device__ static auto sample(cudaTextureObject_t      tex,
+                                const cuda::vec_t<T, 2>& uv) {
     return tex2D<cuda::vec_t<T, NumChannels>>(tex, uv.x, uv.y);
   }
 };
@@ -39,7 +40,8 @@ struct tex_sampler<T, NumChannels, 3> {
   __device__ static auto sample(cudaTextureObject_t tex, T u, T v, T w) {
     return tex3D<cuda::vec_t<T, NumChannels>>(tex, u, v, w);
   }
-  __device__ static auto sample(cudaTextureObject_t tex, cuda::vec_t<T, 3> uvw) {
+  __device__ static auto sample(cudaTextureObject_t      tex,
+                                const cuda::vec_t<T, 3>& uvw) {
     return tex3D<cuda::vec_t<T, NumChannels>>(tex, uvw.x, uvw.y, uvw.z);
   }
 };
@@ -114,9 +116,9 @@ class tex {
 
   //----------------------------------------------------------------------------
   __host__ __device__ ~tex() {
-#if !defined(__CUDACC__) || !defined(__CUDA_ARCH__)
+    #ifndef __CUDA_ARCH__
     cudaDestroyTextureObject(m_device_ptr);
-#endif
+    #endif
   }
 
   //============================================================================
@@ -146,7 +148,8 @@ class tex {
                                                               is...);
   }
   //----------------------------------------------------------------------------
-  __device__ auto operator()(const cuda::vec_t<float, NumDimensions>& uv) const {
+  __device__ auto operator()(
+      const cuda::vec_t<float, NumDimensions>& uv) const {
     return tex_sampler<T, NumChannels, NumDimensions>::sample(m_device_ptr, uv);
   }
 };

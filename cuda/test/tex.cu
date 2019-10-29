@@ -93,11 +93,11 @@ __global__ void kernel(tex<float, 4, 2> t, buffer<float> out, float theta) {
   out[plainIdx * 3 + 2] = col.z;
 }
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-TEST_CASE("cuda_tex0", "[cuda][tex][transform]") {
+TEST_CASE("cuda_tex0", "[cuda][tex][2d][rgba][transform]") {
   const size_t width = 1024, height = 1024;
   const auto   h_original =
       make_test_textureRGBA(width, height);  // creates float-rgba texture with 4
-                                         // differently colored areas
+                                             // differently colored areas
   write_ppm("untransformed.ppm", h_original, width, height, 4);
 
   // upload texture data to cudaArray
@@ -107,7 +107,7 @@ TEST_CASE("cuda_tex0", "[cuda][tex][transform]") {
   buffer<float> d_out(width * height * 3);
 
   // call kernel
-  const dim3 numthreads(256, 256);
+  const dim3 numthreads(32, 32);
   const dim3 numblocks(width / numthreads.x + 1, height / numthreads.y + 1);
   kernel<<<numthreads, numblocks>>>(d_tex, d_out, M_PI / 4);
 
@@ -132,7 +132,7 @@ __global__ void kernel(tex<float, 4, 2> t, buffer<float> out) {
   out[plainIdx * 3 + 2] = col.z;
 }
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-TEST_CASE("cuda_tex1", "[cuda][tex]") {
+TEST_CASE("cuda_tex1", "[cuda][tex][2d][rgba]") {
   const size_t width = 1024, height = 1024;
   const auto   h_tex =
       make_test_textureRGBA(width, height);  // creates float-rgba texture with 4
@@ -145,7 +145,7 @@ TEST_CASE("cuda_tex1", "[cuda][tex]") {
   buffer<float> d_out(width * height * 3);
 
   // call kernel
-  const dim3 numthreads(256, 256);
+  const dim3 numthreads(32, 32);
   const dim3 numblocks(width / numthreads.x + 1, height / numthreads.y + 1);
   kernel<<<numthreads, numblocks>>>(d_tex, d_out);
   auto h_out = d_out.download();
@@ -169,9 +169,8 @@ __global__ void kernel(tex<float, 1, 3> t, buffer<float> out) {
       globalIdx.x + globalIdx.y * res.x + globalIdx.z * res.x * res.y;
   auto uvw = global_idx_to_uvw(globalIdx, res); 
   out[plainIdx] = t(uvw);
-  //out[plainIdx] = uvw.x;
 }
-TEST_CASE("cuda_tex2", "[cuda][tex][3d]") {
+TEST_CASE("cuda_tex2", "[cuda][tex][3d][r]") {
   const size_t     width = 4, height = 4, depth = 4;
   const auto       h_tex = make_test_textureR(width, height, depth);
   tex<float, 1, 3> d_tex{h_tex, true, linear, border, width, height, depth};
@@ -188,7 +187,50 @@ TEST_CASE("cuda_tex2", "[cuda][tex][3d]") {
   auto h_out = d_out.download();
   for (size_t i = 0; i < width * height * depth; ++i) {
     INFO("i: " << i);
-    CHECK(h_tex[i] == h_out[i]);
+    REQUIRE(h_tex[i] == h_out[i]);
+  }
+}
+
+//==============================================================================
+__global__ void kernel(tex<float, 4, 3> t, buffer<float> out) {
+  const auto globalIdx = make_uint3(blockIdx.x * blockDim.x + threadIdx.x,
+                                    blockIdx.y * blockDim.y + threadIdx.y,
+                                    blockIdx.z * blockDim.z + threadIdx.z);
+  const auto res = t.resolution();
+  if (globalIdx.x >= res.x || globalIdx.y >= res.y || globalIdx.z >= res.z) {
+    return;
+  }
+  // sample texture and assign to output array
+  const size_t plainIdx =
+      globalIdx.x + globalIdx.y * res.x + globalIdx.z * res.x * res.y;
+  auto uvw = global_idx_to_uvw(globalIdx, res); 
+  auto col = t(uvw);
+  out[plainIdx*4+0] = col.x;
+  out[plainIdx*4+1] = col.y;
+  out[plainIdx*4+2] = col.z;
+  out[plainIdx*4+3] = col.w;
+  //out[plainIdx] = uvw.x;
+}
+TEST_CASE("cuda_tex3", "[cuda][tex][3d][rgba]") {
+  const size_t     width = 4, height = 4, depth = 4;
+  const auto       h_tex = make_test_textureRGBA(width, height, depth);
+  tex<float, 4, 3> d_tex{h_tex, true, linear, border, width, height, depth};
+
+  // create device memory for output of transformed texture
+  buffer<float> d_out(width * height * depth*4);
+
+  // call kernel
+  const dim3 numthreads(32, 32, 32);
+  const dim3 numblocks(width  / numthreads.x + 1,
+                       height / numthreads.y + 1,
+                       depth  / numthreads.z + 1);
+  kernel<<<numthreads, numblocks>>>(d_tex, d_out);
+  auto h_out = d_out.download();
+  for (size_t i = 0; i < width * height * depth; ++i) {
+    INFO("i: " << i);
+    for (size_t j = 0; j < 4; ++j) {
+      REQUIRE(h_tex[i * 4 + j] == h_out[i * 4 + j]);
+    }
   }
 }
 
