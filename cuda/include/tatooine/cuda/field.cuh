@@ -3,8 +3,9 @@
 
 #include <tatooine/field.h>
 #include <tatooine/grid.h>
-#include "coordinate_conversion.cuh"
-#include "tex.cuh"
+#include <tatooine/cuda/type_traits.cuh>
+#include <tatooine/cuda/coordinate_conversion.cuh>
+#include <tatooine/cuda/tex.cuh>
 
 //==============================================================================
 namespace tatooine {

@@ -1,7 +1,7 @@
 #ifndef TATOOINE_CUDA_TEX_CUH
 #define TATOOINE_CUDA_TEX_CUH
 
-#include <tatooine/type_traits.h>
+#include <tatooine/cuda/type_traits.cuh>
 
 #include <algorithm>
 #include <array>
@@ -11,10 +11,9 @@
 #include <png++/png.hpp>
 #include <vector>
 
-#include "array.cuh"
-#include "functions.cuh"
-#include "types.cuh"
-#include "var.cuh"
+#include <tatooine/cuda/array.cuh>
+#include <tatooine/cuda/functions.cuh>
+#include <tatooine/cuda/types.cuh>
 
 //==============================================================================
 namespace tatooine {
@@ -63,9 +62,9 @@ class tex {
   static constexpr auto num_channels() { return NumChannels; }
   //============================================================================
  private:
-  cudaTextureObject_t                           m_device_ptr = 0;
-  array<T, NumChannels, NumDimensions>          m_array;
-  var<cuda::vec_t<unsigned int, NumDimensions>> m_resolution;
+  cudaTextureObject_t                      m_device_ptr = 0;
+  array<T, NumChannels, NumDimensions>     m_array;
+  cuda::vec_t<unsigned int, NumDimensions> m_resolution;
   //============================================================================
  public:
   template <typename... Resolution, enable_if_integral<Resolution...> = true>
@@ -113,15 +112,15 @@ class tex {
   }
 
   //----------------------------------------------------------------------------
-  __host__ __device__ ~tex() {
-#if !defined(__CUDACC__) || !defined(__CUDA_ARCH__)
+  void free() {
+    m_array.free();
     cudaDestroyTextureObject(m_device_ptr);
-#endif
+    m_device_ptr = 0;
   }
 
   //============================================================================
  public:
-  __device__ auto resolution() const { return *m_resolution; }
+  __device__ auto resolution() const { return m_resolution; }
   //----------------------------------------------------------------------------
   constexpr auto device_ptr() const { return m_device_ptr; }
   //----------------------------------------------------------------------------
@@ -150,6 +149,15 @@ class tex {
     return tex_sampler<T, NumChannels, NumDimensions>::sample(m_device_ptr, uv);
   }
 };
+
+template <typename T, size_t NumChannels, size_t NumDimensions>
+struct is_freeable<tex<T, NumChannels, NumDimensions>> : std::true_type {};
+
+//==============================================================================
+// free functions
+//==============================================================================
+template <typename T, size_t NumChannels, size_t NumDimensions>
+void free(tex<T, NumChannels, NumDimensions>& t) { t.free(); }
 
 //==============================================================================
 }  // namespace cuda

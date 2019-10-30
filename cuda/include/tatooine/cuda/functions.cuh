@@ -3,9 +3,11 @@
 
 #include <array>
 #include <cassert>
+#include <iostream>
 #include <vector>
 
-#include "channel_format_description.cuh"
+#include <tatooine/cuda/type_traits.cuh>
+#include <tatooine/cuda/channel_format_description.cuh>
 
 //==============================================================================
 namespace tatooine {
@@ -13,8 +15,9 @@ namespace cuda {
 //==============================================================================
 inline void check(const std::string& fname, cudaError_t err) {
   if (err != cudaSuccess) {
-    throw std::runtime_error{"[" + fname + "] - " + cudaGetErrorName(err)};
+    std::cerr << "[" << fname << "] - " << cudaGetErrorName(err);
   }
+  assert(err == cudaSuccess);
 }
 //==============================================================================
 template <typename T>
@@ -110,6 +113,11 @@ auto malloc_pitch(size_t width, size_t height) {
 //==============================================================================
 inline void free(void* device_ptr) {
   check("cudaFree", cudaFree(device_ptr));
+}
+
+template <typename... Ts, enable_if_freeable<Ts...> = true>
+void free(Ts&... ts) {
+  std::array<int, sizeof...(Ts)> {(free(ts), 0)...};
 }
 
 //==============================================================================

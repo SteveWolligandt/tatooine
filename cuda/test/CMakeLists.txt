@@ -33,6 +33,7 @@ create_test(tex)
 create_test(field)
 create_test(lic)
 create_test(pitched_memory)
+create_test(destructor)
 #- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 add_executable (_cuall ${ALL_TEST_CPPS})
 target_link_libraries(_cuall tatooine_cuda Catch2::Catch2)

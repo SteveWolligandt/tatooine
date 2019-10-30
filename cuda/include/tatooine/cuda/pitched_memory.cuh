@@ -4,7 +4,8 @@
 //==============================================================================
 #include <vector>
 
-#include "functions.cuh"
+#include <tatooine/cuda/functions.cuh>
+#include <tatooine/cuda/type_traits.cuh>
 
 //==============================================================================
 namespace tatooine {
@@ -43,10 +44,8 @@ class pitched_memory<T, 2> {
              m_width * sizeof(T), m_height, cudaMemcpyHostToDevice);
   }
   //----------------------------------------------------------------------------
-  ~pitched_memory() {
-#if !defined(__CUDACC__)
-    free(m_device_ptr);
-#endif
+  void free() {
+    cuda::free(m_device_ptr);
   }
 
   //============================================================================
@@ -200,6 +199,15 @@ class pitched_memory<T, 3> {
 
   __host__ __device__ const auto device_ptr() const { return m_device_ptr; }
 };
+
+template <typename T, size_t N>
+struct is_freeable<pitched_memory<T, N>> : std::true_type {};
+
+//==============================================================================
+// free functions
+//==============================================================================
+template <typename T, size_t N>
+void free(pitched_memory<T, N>& pm) { pm.free(); }
 
 //==============================================================================
 }  // namespace cuda

@@ -15,6 +15,7 @@ TEST_CASE("pitched_memory0", "[pitched_memory][download][2d]") {
   REQUIRE(transformed_data[3] == 4);
   REQUIRE(transformed_data[4] == 5);
   REQUIRE(transformed_data[5] == 6);
+  free(buffer);
 }
 //==============================================================================
 __global__ void pitched_memory1(pitched_memory<float, 2> buffer) {
@@ -33,6 +34,7 @@ TEST_CASE("pitched_memory1", "[pitched_memory][transform][2d]") {
   REQUIRE(transformed_data[3] == 4 + 1 + 1);
   REQUIRE(transformed_data[4] == 5 + 0 + 2);
   REQUIRE(transformed_data[5] == 6 + 1 + 2);
+  free(buffer);
 }
 //==============================================================================
 TEST_CASE("pitched_memory2", "[pitched_memory][3d][download]") {
@@ -52,6 +54,7 @@ TEST_CASE("pitched_memory2", "[pitched_memory][3d][download]") {
   REQUIRE(transformed_data[9]  == 4.5f);
   REQUIRE(transformed_data[10] == 5.5f);
   REQUIRE(transformed_data[11] == 6.5f);
+  free(buffer);
 }
 //==============================================================================
 }  // namespace test

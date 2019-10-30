@@ -3,6 +3,7 @@
 
 #include <tatooine/functional.h>
 #include <tatooine/type_traits.h>
+#include <tatooine/cuda/type_traits.cuh>
 
 #include <algorithm>
 #include <array>
@@ -31,10 +32,8 @@ class array<T, NumChannels, 2> {
     memcpy_to_array<T, NumChannels>(m_device_ptr, host_data, width, height);
   }
   //----------------------------------------------------------------------------
-  ~array() {
-#if !defined(__CUDACC__)
+  void free() {
     cudaFreeArray(m_device_ptr);
-#endif
   }
   //----------------------------------------------------------------------------
   auto device_ptr() const { return m_device_ptr; }
@@ -149,6 +148,15 @@ class array<T, NumChannels, 3> {
     return host_data;
   }
 };
+
+template <typename T, size_t NumChannels, size_t NumDimensions>
+struct is_freeable<array<T, NumChannels, NumDimensions>> : std::true_type {};
+
+//==============================================================================
+// free functions
+//==============================================================================
+template <typename T, size_t NumChannels, size_t NumDimensions>
+void free(array<T, NumChannels, NumDimensions>& a) { a.free(); }
 
 //==============================================================================
 }  // namespace cuda

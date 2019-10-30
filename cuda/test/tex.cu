@@ -113,6 +113,7 @@ TEST_CASE("cuda_tex0", "[cuda][tex][transform]") {
 
   // download transformed texture data and write
   write_ppm("transformed.ppm", d_out.download(), width, height, 3);
+  free(d_tex, d_out);
 }
 
 //==============================================================================
@@ -154,6 +155,7 @@ TEST_CASE("cuda_tex1", "[cuda][tex]") {
       REQUIRE(h_tex[i * 4 + j] == h_out[i * 3 + j]);
     }
   }
+  free(d_tex, d_out);
 }
 //==============================================================================
 __global__ void kernel(tex<float, 1, 3> t, buffer<float> out) {
@@ -190,6 +192,7 @@ TEST_CASE("cuda_tex2", "[cuda][tex][3d]") {
     INFO("i: " << i);
     CHECK(h_tex[i] == h_out[i]);
   }
+  free(d_tex, d_out);
 }
 
 //==============================================================================
