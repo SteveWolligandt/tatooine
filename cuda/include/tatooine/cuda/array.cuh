@@ -35,9 +35,7 @@ class array<T, NumChannels, 2> {
     memcpy_to_array<T, NumChannels>(m_device_ptr, host_data, w, h);
   }
   //----------------------------------------------------------------------------
-  void free() {
-    cudaFreeArray(m_device_ptr);
-  }
+  void free() { free_array(m_device_ptr); }
   //----------------------------------------------------------------------------
   auto device_ptr() const { return m_device_ptr; }
   //----------------------------------------------------------------------------
@@ -76,7 +74,7 @@ class array<T, NumChannels, 3> {
  public:
   array(size_t w, size_t h, size_t d)
       : m_device_ptr{malloc_array3d<T, NumChannels>(w, h, d)} {}
-  //------------------------------------------------------------------------------
+  //----------------------------------------------------------------------------
   array(const std::vector<T>& host_data, size_t w, size_t h, size_t d)
       : m_device_ptr{malloc_array3d<T, NumChannels>(w, h, d)} {
     assert(host_data.size() == w * h * d * NumChannels);
@@ -96,24 +94,22 @@ class array<T, NumChannels, 3> {
     memcpy3d(p);
   }
   //----------------------------------------------------------------------------
-  array(const pitched_memory<T, 3>& pm)
-      : m_device_ptr{malloc_array3d<T, NumChannels>(pm.width(), pm.height(),
-                                                    pm.depth())} {
-    cudaMemcpy3DParms p = {0};
-    p.srcPtr            = pm.device_ptr();
-    p.dstArray          = m_device_ptr;
-    p.extent.width      = pm.width();
-    p.extent.height     = pm.height();
-    p.extent.depth      = pm.depth();
-
-    p.kind              = cudaMemcpyDeviceToDevice;
-    memcpy3d(p);
-  }
+  //array(const pitched_memory<T, 3>& pm)
+  //    : m_device_ptr{malloc_array3d<T, NumChannels>(pm.width(), pm.height(),
+  //                                                  pm.depth())} {
+  //  cudaMemcpy3DParms p = {0};
+  //  p.srcPtr            = pm.device_ptr();
+  //  p.dstArray          = m_device_ptr;
+  //  p.extent.width      = pm.width();
+  //  p.extent.height     = pm.height();
+  //  p.extent.depth      = pm.depth();
+  //
+  //  p.kind              = cudaMemcpyDeviceToDevice;
+  //  memcpy3d(p);
+  //}
   //----------------------------------------------------------------------------
-  __host__ __device__~array() {
-    #ifndef __CUDA_ARCH__
-    cudaFreeArray(m_device_ptr);
-    #endif
+  void free() {
+    free_array(m_device_ptr);
   }
   //----------------------------------------------------------------------------
   __host__ __device__ auto device_ptr() const { return m_device_ptr; }

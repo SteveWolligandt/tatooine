@@ -25,6 +25,7 @@ TEST_CASE("lic_doublegyre", "[lic][dg][doublegyre]") {
                         t, 100, 0.001, std::mt19937{1234});
     write_png<1>("lic_doublegyre_" + std::to_string(t) + ".png",
                  lic_tex.download(), lic_res_x, lic_res_y);
+    free(lic_tex);
   }
 }
 //==============================================================================
@@ -40,6 +41,7 @@ TEST_CASE("lic_modified_doublegyre", "[lic][mdg][modified_doublegyre]") {
                         t, 100, 0.001, std::mt19937{1234});
     write_png<1>("lic_modified_doublegyre_" + std::to_string(t) + ".png",
                  lic_tex.download(), 1000, 500);
+    free(lic_tex);
   }
 }
 //==============================================================================
@@ -55,6 +57,7 @@ TEST_CASE("lic_duffing_oscillator", "[lic][fdo][forced_duffing_oscillator]") {
                         t, 100, 0.001, std::mt19937{1234});
     write_png<1>("lic_forced_duffing_oscillator_" + std::to_string(t) + ".png",
                  lic_tex.download(), 2000, 1000);
+    free(lic_tex);
   }
 }
 //==============================================================================

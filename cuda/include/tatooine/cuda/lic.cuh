@@ -78,7 +78,7 @@ auto call_lic_kernel(const field<Field, FieldReal, 2, 2>& v,
                      const grid<PixelGridReal, 2>& pixel_grid, TReal t,
                      size_t num_samples, SReal stepwidth, RandEng&& rand_eng) {
   // sample and upload v to gpu
-  const auto cuV = upload_normalized<GPUReal>(v, vf_sample_grid, t);
+  auto cuV = upload_normalized<GPUReal>(v, vf_sample_grid, t);
 
   // generate random noise texture
   // const size_t noise_tex_x = x_domain.size(), noise_tex_y = y_domain.size();
@@ -103,7 +103,8 @@ auto call_lic_kernel(const field<Field, FieldReal, 2, 2>& v,
                   pixel_grid.dimension(1).back()),
       make_uint2(pixel_grid.dimension(0).size(),
                  pixel_grid.dimension(1).size()));
-
+  
+  free(noise_tex, cuV);
   return lic_tex;
 }
 

@@ -18,7 +18,7 @@ TEST_CASE("cuda_array0", "[cuda][array][upload][download][vector]") {
   for (size_t i = 0; i < host_data.size(); ++i) {
     REQUIRE(host_data[i] == downloaded[i]);
   }
-  array
+  free(array);
 }
 
 TEST_CASE("cuda_array1", "[cuda][array][upload][download][vector]") {
@@ -33,7 +33,7 @@ TEST_CASE("cuda_array1", "[cuda][array][upload][download][vector]") {
   for (size_t i = 0; i < host_data.size(); ++i) {
     REQUIRE(host_data[i] == downloaded[i]);
   }
-  array.free();
+  free(array);
 }
 
 //==============================================================================

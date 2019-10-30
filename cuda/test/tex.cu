@@ -109,7 +109,7 @@ TEST_CASE("cuda_tex0", "[cuda][tex][2d][rgba][transform]") {
   // call kernel
   const dim3 numthreads(32, 32);
   const dim3 numblocks(width / numthreads.x + 1, height / numthreads.y + 1);
-  kernel<<<numthreads, numblocks>>>(d_tex, d_out, M_PI / 4);
+  kernel<<<numblocks, numthreads>>>(d_tex, d_out, M_PI / 4);
 
   // download transformed texture data and write
   write_ppm("transformed.ppm", d_out.download(), width, height, 3);
@@ -133,7 +133,7 @@ __global__ void kernel(tex<float, 4, 2> t, buffer<float> out) {
   out[plainIdx * 3 + 2] = col.z;
 }
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-TEST_CASE("cuda_tex1", "[cuda][tex][2d][rgba]") {
+TEST_CASE("cuda_tex1", "[cuda][tex][2d][rgba][copy]") {
   const size_t width = 1024, height = 1024;
   const auto   h_tex =
       make_test_textureRGBA(width, height);  // creates float-rgba texture with 4
@@ -148,7 +148,7 @@ TEST_CASE("cuda_tex1", "[cuda][tex][2d][rgba]") {
   // call kernel
   const dim3 numthreads(32, 32);
   const dim3 numblocks(width / numthreads.x + 1, height / numthreads.y + 1);
-  kernel<<<numthreads, numblocks>>>(d_tex, d_out);
+  kernel<<<numblocks, numthreads>>>(d_tex, d_out);
   auto h_out = d_out.download();
   for (size_t i = 0; i < width * height; ++i) {
     for (size_t j = 0; j < 3; ++j) {
@@ -173,6 +173,8 @@ __global__ void kernel(tex<float, 1, 3> t, buffer<float> out) {
   out[plainIdx] = t(uvw);
 }
 TEST_CASE("cuda_tex2", "[cuda][tex][3d][r]") {
+  cudaDeviceProp props; 
+  cudaGetDeviceProperties(&props,0);
   const size_t     width = 4, height = 4, depth = 4;
   const auto       h_tex = make_test_textureR(width, height, depth);
   tex<float, 1, 3> d_tex{h_tex, true, linear, border, width, height, depth};
@@ -181,16 +183,18 @@ TEST_CASE("cuda_tex2", "[cuda][tex][3d][r]") {
   buffer<float> d_out(width * height * depth);
 
   // call kernel
-  const dim3 numthreads(32, 32, 32);
+  const dim3 numthreads(32, 32, 1);
+  REQUIRE(numthreads.x * numthreads.y * numthreads.z <= props.maxThreadsPerBlock);
   const dim3 numblocks(width  / numthreads.x + 1,
                        height / numthreads.y + 1,
                        depth  / numthreads.z + 1);
-  kernel<<<numthreads, numblocks>>>(d_tex, d_out);
+  kernel<<<numblocks, numthreads>>>(d_tex, d_out);
   auto h_out = d_out.download();
   for (size_t i = 0; i < width * height * depth; ++i) {
     INFO("i: " << i);
     REQUIRE(h_tex[i] == h_out[i]);
   }
+  free(d_tex, d_out);
 }
 
 //==============================================================================
@@ -211,22 +215,24 @@ __global__ void kernel(tex<float, 4, 3> t, buffer<float> out) {
   out[plainIdx*4+1] = col.y;
   out[plainIdx*4+2] = col.z;
   out[plainIdx*4+3] = col.w;
-  //out[plainIdx] = uvw.x;
 }
 TEST_CASE("cuda_tex3", "[cuda][tex][3d][rgba]") {
+ cudaDeviceProp props; 
+ cudaGetDeviceProperties(&props,0);
   const size_t     width = 4, height = 4, depth = 4;
   const auto       h_tex = make_test_textureRGBA(width, height, depth);
   tex<float, 4, 3> d_tex{h_tex, true, linear, border, width, height, depth};
 
   // create device memory for output of transformed texture
-  buffer<float> d_out(width * height * depth*4);
+  buffer<float> d_out(width * height * depth * 4);
 
   // call kernel
-  const dim3 numthreads(32, 32, 32);
+  const dim3 numthreads(32, 32, 1);
+  REQUIRE(numthreads.x * numthreads.y * numthreads.z <= props.maxThreadsPerBlock);
   const dim3 numblocks(width  / numthreads.x + 1,
                        height / numthreads.y + 1,
                        depth  / numthreads.z + 1);
-  kernel<<<numthreads, numblocks>>>(d_tex, d_out);
+  kernel<<<numblocks, numthreads>>>(d_tex, d_out);
   auto h_out = d_out.download();
   for (size_t i = 0; i < width * height * depth; ++i) {
     INFO("i: " << i);

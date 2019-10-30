@@ -71,6 +71,7 @@ TEST_CASE("field_to_tex2_steady", "[cuda][field][dg][steady]") {
     REQUIRE(((v_gpu(0) == Approx(v_cpu(0)).margin(1e-6)) &&
              (v_gpu(1) == Approx(v_cpu(1)).margin(1e-6))));
   }
+  free(d_vf_out, d_pos_out, d_idx_out, d_v);
 }
 //==============================================================================
 __global__ void kernel3_steady(steady_vectorfield<float, 3, 3> v,
@@ -153,6 +154,7 @@ TEST_CASE("field_to_tex3_steady", "[cuda][field][abc][steady]") {
              (v_gpu(1) == Approx(v_cpu(1)).margin(1e-6)) &&
              (v_gpu(2) == Approx(v_cpu(2)).margin(1e-6))));
   }
+  free(d_vf_out, d_pos_out, d_idx_out, d_v);
 }
 //==============================================================================
 __global__ void kernel2_unsteady(unsteady_vectorfield<float, 2, 2> v,
@@ -237,6 +239,7 @@ TEST_CASE("field_to_tex2_unsteady", "[cuda][field][dg][unsteady]") {
     REQUIRE(((v_gpu(0) == Approx(v_cpu(0)).margin(1e-6)) &&
              (v_gpu(1) == Approx(v_cpu(1)).margin(1e-6))));
   }
+  free(d_vf_out, d_pos_out, d_t_out, d_idx_out, d_v);
 }
 
 //==============================================================================

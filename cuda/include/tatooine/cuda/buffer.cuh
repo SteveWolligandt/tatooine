@@ -61,9 +61,7 @@ class buffer {
   //----------------------------------------------------------------------------
   __host__ __device__ auto device_ptr() const { return m_device_ptr; }
   //----------------------------------------------------------------------------
-  __host__ __device__ size_t size() const {
-    return m_size;
-  }
+  __host__ __device__ size_t size() const { return m_size; }
 };
 
 template <typename T>

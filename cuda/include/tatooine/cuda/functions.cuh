@@ -13,7 +13,7 @@
 namespace tatooine {
 namespace cuda {
 //==============================================================================
-__host__ __device__ bool on_host() {
+__host__ __device__ inline bool on_host() {
 # ifndef __CUDA_ARCH__
   return true;
 # else
@@ -21,7 +21,7 @@ __host__ __device__ bool on_host() {
 # endif
 }
 //------------------------------------------------------------------------------
-__host__ __device__ bool on_device() {
+__host__ __device__ inline bool on_device() {
 # ifndef __CUDA_ARCH__
   return false;
 # else
@@ -134,7 +134,11 @@ __host__ __device__ inline void free(void* device_ptr) {
   check("cudaFree", cudaFree(device_ptr));
 #endif
 }
-
+//------------------------------------------------------------------------------
+inline void free_array(cudaArray_t device_ptr) {
+  check("cudaFreeArray", cudaFreeArray(device_ptr));
+}
+//------------------------------------------------------------------------------
 template <typename... Ts, enable_if_freeable<Ts...> = true>
 void free(Ts&... ts) {
   std::array<int, sizeof...(Ts)> {(free(ts), 0)...};

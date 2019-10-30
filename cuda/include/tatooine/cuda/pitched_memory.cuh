@@ -132,10 +132,8 @@ class pitched_memory<T, 3> {
     memcpy3d(p);
   }
   //----------------------------------------------------------------------------
-  ~pitched_memory() {
-#if !defined(__CUDACC__)
-    free(m_device_ptr.ptr);
-#endif
+  void free() {
+    cuda::free(m_device_ptr.ptr);
   }
 
   //============================================================================
