@@ -3,6 +3,7 @@
 
 //==============================================================================
 #include <cassert>
+#include <iostream>
 #include <vector>
 #include <tatooine/cuda/functions.cuh>
 #include <tatooine/cuda/type_traits.cuh>

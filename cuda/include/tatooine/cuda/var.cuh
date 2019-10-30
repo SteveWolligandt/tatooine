@@ -42,23 +42,17 @@ class var {
   void free() {
     cuda::free(m_device_ptr);
   }
-
   //============================================================================
   // assign operator
   //============================================================================
  public:
   //----------------------------------------------------------------------------
   __device__ __host__ auto& operator=(const T& t) {
-#ifdef __CUDA_ARCH__
-    get() = t;
-#else
+    #ifdef __CUDA_ARCH__
+    *m_device_ptr = t;
+    #else
     cudaMemcpy(m_device_ptr, &t, sizeof(T), cudaMemcpyHostToDevice);
-#endif
-    return *this;
-  }
-  //----------------------------------------------------------------------------
-  __device__ auto& operator=(T&& t) {
-    *m_device_ptr = std::move(t);
+    #endif
     return *this;
   }
 

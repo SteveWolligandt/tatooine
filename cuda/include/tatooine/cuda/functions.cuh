@@ -13,6 +13,22 @@
 namespace tatooine {
 namespace cuda {
 //==============================================================================
+__host__ __device__ bool on_host() {
+# ifndef __CUDA_ARCH__
+  return true;
+# else
+  return false;
+# endif
+}
+//------------------------------------------------------------------------------
+__host__ __device__ bool on_device() {
+# ifndef __CUDA_ARCH__
+  return false;
+# else
+  return true;
+# endif
+}
+//==============================================================================
 inline void check(const std::string& fname, cudaError_t err) {
   if (err != cudaSuccess) {
     std::cerr << "[" << fname << "] - " << cudaGetErrorName(err);
@@ -111,8 +127,12 @@ auto malloc_pitch(size_t width, size_t height) {
   return ret;
 }
 //==============================================================================
-inline void free(void* device_ptr) {
+__host__ __device__ inline void free(void* device_ptr) {
+#ifdef __CUDA_ARCH__
+  cudaFree(device_ptr);
+#else
   check("cudaFree", cudaFree(device_ptr));
+#endif
 }
 
 template <typename... Ts, enable_if_freeable<Ts...> = true>
