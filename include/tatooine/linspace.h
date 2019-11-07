@@ -20,34 +20,40 @@ struct linspace_iterator;
 template <typename Real>
 struct linspace {
   //============================================================================
+  using this_t         = linspace<Real>;
   using real_t         = Real;
   using iterator       = linspace_iterator<Real>;
   using const_iterator = linspace_iterator<Real>;
 
   //============================================================================
  private:
-  Real      m_min, m_max;
+  Real   m_min, m_max;
   size_t m_size;
 
   //============================================================================
  public:
+  constexpr linspace() noexcept
+      : m_min{0}, m_max{0}, m_size{0} {}
+  //----------------------------------------------------------------------------
   constexpr linspace(Real min, Real max, size_t size) noexcept
       : m_min{min}, m_max{max}, m_size{size} {}
+  //----------------------------------------------------------------------------
+  constexpr linspace(const linspace&) = default;
+  constexpr linspace(linspace&&)      = default;
+  //----------------------------------------------------------------------------
+  constexpr this_t& operator=(const linspace<Real>&) = default;
+  constexpr this_t& operator=(linspace<Real>&&) = default;
 
   //----------------------------------------------------------------------------
-  constexpr linspace(const linspace& other) noexcept
-      : m_min{other.m_min}, m_max{other.m_max}, m_size{other.m_size} {}
-
-  //----------------------------------------------------------------------------
-  template <typename other_real_t>
-  constexpr linspace(const linspace<other_real_t>& other) noexcept
+  template <typename OtherReal>
+  constexpr linspace(const linspace<OtherReal>& other) noexcept
       : m_min{static_cast<Real>(other.front())},
         m_max{static_cast<Real>(other.back())},
         m_size{other.size()} {}
 
   //----------------------------------------------------------------------------
-  template <typename other_real_t>
-  constexpr auto& operator=(const linspace<other_real_t>& other) noexcept {
+  template <typename OtherReal>
+  constexpr auto& operator=(const linspace<OtherReal>& other) noexcept {
     m_min        = other.front();
     m_max        = other.back();
     m_size = other.size();
@@ -59,6 +65,7 @@ struct linspace {
     if (m_size <= 1) { return m_min; }
     return m_min + spacing() * i;
   }
+  //----------------------------------------------------------------------------
   constexpr auto operator[](size_t i) const { return at(i); }
 
   //----------------------------------------------------------------------------
@@ -135,8 +142,8 @@ struct linspace_iterator
 
   //----------------------------------------------------------------------------
   //const auto& linspace() const { return *m_lin; }
-  const auto begin() const { return m_lin->begin(); }
-  const auto end() const { return m_lin->end(); }
+  auto begin() const { return m_lin->begin(); }
+  auto end() const { return m_lin->end(); }
 
   //============================================================================
  private:

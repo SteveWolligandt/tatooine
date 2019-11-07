@@ -143,6 +143,18 @@ template <typename... Ts, enable_if_freeable<Ts...> = true>
 void free(Ts&... ts) {
   std::array<int, sizeof...(Ts)> {(free(ts), 0)...};
 }
+//==============================================================================
+auto get_device_properties(int device = 0) {
+  cudaDeviceProp p;
+  cudaGetDeviceProperties(&p, device);
+  return p;
+}
+//------------------------------------------------------------------------------
+auto max_threads_per_block(int device = 0) {
+  cudaDeviceProp p;
+  cudaGetDeviceProperties(&p, device);
+  return p.maxThreadsPerBlock;
+}
 
 //==============================================================================
 }  // namespace cuda
