@@ -28,6 +28,7 @@ endmacro()
 
 #- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 create_test(array)
+create_test(pathline_block)
 create_test(buffer)
 create_test(tex)
 create_test(field)

@@ -54,16 +54,16 @@ namespace tatooine::test {
 //  for (const auto& v : mseq) { std::cerr << v.position() << '\n'; }
 //}
 
-//==============================================================================
-TEST_CASE("grid_remove_dim",
-          "[grid][reduce]") {
-  grid g{linspace{0.0, 1.0, 3}, linspace{0.0, 2.0, 4}, linspace{0.0, 3.0, 5},
-         linspace{0.0, 4.0, 6}};
-  auto rg = g.remove_dimension(1, 2);
-  REQUIRE(rg.num_dimensions() == 2);
-  REQUIRE(rg.dimension(0).back() == 1.0);
-  REQUIRE(rg.dimension(1).back() == 4.0);
-}
+////==============================================================================
+//TEST_CASE("grid_remove_dim",
+//          "[grid][reduce]") {
+//  grid g{linspace{0.0, 1.0, 3}, linspace{0.0, 2.0, 4}, linspace{0.0, 3.0, 5},
+//         linspace{0.0, 4.0, 6}};
+//  auto rg = g.remove_dimension(1, 2);
+//  REQUIRE(rg.num_dimensions() == 2);
+//  REQUIRE(rg.dimension(0).back() == 1.0);
+//  REQUIRE(rg.dimension(1).back() == 4.0);
+//}
 //==============================================================================
 }  // namespace tatooine::test
 //==============================================================================

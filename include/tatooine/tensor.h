@@ -1666,6 +1666,16 @@ struct cast_tensor_real {
 template <typename CastedReal, typename Tensor>
 using cast_tensor_real_t = typename cast_tensor_real<CastedReal, Tensor>::type;
 
+template <typename NewReal, typename Real, size_t... Dims>
+auto cast(const base_tensor<Real, Dims...>& to_cast) {
+  tensor<NewReal, Dims...> casted;
+  for (size_t i = 0; i < casted.num_components(); ++i) {
+    casted[i] = static_cast<NewReal>(to_cast[i]);
+  }
+  return casted;
+}
+
+
 //==============================================================================
 }  // namespace tatooine
 //==============================================================================
