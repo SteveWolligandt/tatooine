@@ -3,8 +3,8 @@
 
 #include <cmath>
 #include "field.h"
+#if has_cxx17_support()
 #include "symbolic_field.h"
-
 //==============================================================================
 namespace tatooine::symbolic {
 //==============================================================================
@@ -38,9 +38,11 @@ abcflow()->abcflow<double>;
 //==============================================================================
 }  // namespace tatooine::symbolic
 //==============================================================================
+#endif
 
 //==============================================================================
-namespace tatooine::numerical {
+namespace tatooine {
+namespace numerical {
 //==============================================================================
 /// \brief The Arnold–Beltrami–Childress (ABC) flow is a three-dimensional
 ///        incompressible velocity field which is an exact solution of Euler's
@@ -67,16 +69,22 @@ struct abcflow : field<abcflow<real_t>, real_t, 3, 3> {
 
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
   constexpr tensor_t evaluate(const pos_t& x, real_t) const {
-    return vec{m_a * std::sin(x(2)) + m_c * std::cos(x(1)),
-               m_b * std::sin(x(0)) + m_a * std::cos(x(2)),
-               m_c * std::sin(x(1)) + m_b * std::cos(x(0))};
+    return {m_a * std::sin(x(2)) + m_c * std::cos(x(1)),
+            m_b * std::sin(x(0)) + m_a * std::cos(x(2)),
+            m_c * std::sin(x(1)) + m_b * std::cos(x(0))};
+  }
+  constexpr auto in_domain(const pos_t& /*x*/, real_t /*t*/) const {
+    return true;
   }
 };
 
+#if has_cxx17_support()
 abcflow()->abcflow<double>;
+#endif
 
 //==============================================================================
-}  // namespace tatooine::numerical
+}  // namespace numerical
+}  // namespace tatooine
 //==============================================================================
 
 #endif

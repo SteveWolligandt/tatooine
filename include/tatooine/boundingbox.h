@@ -75,7 +75,7 @@ struct boundingbox {
   auto random_point(random_engine_t&& random_engine) {
     pos_t p;
     for (size_t i = 0; i < N; ++i) {
-      std::uniform_real_distribution distribution{min(i), max(i)};
+      std::uniform_real_distribution<Real> distribution{min(i), max(i)};
       p(i) = distribution(random_engine);
     }
     return p;
@@ -85,6 +85,7 @@ struct boundingbox {
 //==============================================================================
 // deduction guides
 //==============================================================================
+#if has_cxx17_support()
 template <typename Real0, typename Real1, size_t N>
 boundingbox(const tensor<Real0, N>&, const tensor<Real1, N>&)
     ->boundingbox<promote_t<Real0, Real1>, N>;
@@ -93,6 +94,7 @@ boundingbox(const tensor<Real0, N>&, const tensor<Real1, N>&)
 template <typename Real0, typename Real1, size_t N>
 boundingbox(tensor<Real0, N>&&, tensor<Real1, N> &&)
     ->boundingbox<promote_t<Real0, Real1>, N>;
+#endif
 
 //==============================================================================
 // ostream output

@@ -3,10 +3,12 @@
 
 #include <boost/math/constants/constants.hpp>
 #include <cmath>
+#include "field.h"
+#if has_cxx17_support()
 #include "symbolic_field.h"
-
 //==============================================================================
-namespace tatooine::symbolic {
+namespace tatooine {
+namespace symbolic {
 //==============================================================================
 
 template <typename Real>
@@ -26,7 +28,7 @@ struct doublegyre : field<Real, 2, 2> {
     auto a = eps * sin(omega * t());
     auto b = 1 - 2 * a;
     auto f = a * pow(x(0), 2) + b * x(0);
-    this->set_expr(vec{
+    this->set_expr(vec<GiNaC::ex, 2>{
         -Pi * A * sin(Pi * f) * cos(Pi * x(1)),
         Pi * A * cos(Pi * f) * sin(Pi * x(1)) * f.diff(x(0))});
   }
@@ -36,15 +38,17 @@ struct doublegyre : field<Real, 2, 2> {
     return x(0) >= 0 && x(0) <= 2 && x(1) >= 0 && x(1) <= 1;
   }
 };
-
 doublegyre()->doublegyre<double>;
 
 //==============================================================================
-}  // namespace tatooine::symbolic
+}  // namespace symbolic
+}  // namespace tatooine
 //==============================================================================
+#endif
 
 //==============================================================================
-namespace tatooine::numerical {
+namespace tatooine {
+namespace numerical {
 //==============================================================================
 /// Double Gyre dataset
 template <typename Real>
@@ -75,14 +79,18 @@ struct doublegyre : field<doublegyre<Real>, Real, 2, 2> {
   }
 
   //----------------------------------------------------------------------------
-  //constexpr bool in_domain(const pos_t& x, Real) const {
-  //  return x(0) >= 0 && x(0) <= 2 && x(1) >= 0 && x(1) <= 1;
-  //}
+  constexpr bool in_domain(const pos_t& x, Real) const {
+    return x(0) >= 0 && x(0) <= 2 && x(1) >= 0 && x(1) <= 1;
+    return true;
+  }
 };
 
+#if has_cxx17_support()
 doublegyre()->doublegyre<double>;
+#endif
 
 //==============================================================================
-}  // namespace tatooine::numerical
+}  // namespace numerical
+}  // namespace tatooine
 //==============================================================================
 #endif

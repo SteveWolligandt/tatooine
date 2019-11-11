@@ -4,14 +4,14 @@
 #include <ginac/ginac.h>
 
 //==============================================================================
-namespace tatooine::symbolic {
+namespace tatooine {
+namespace symbolic {
 //==============================================================================
 
-
-#define sym(sym)                                                        \
+#define sym(sym)                                                           \
   template <size_t... Is>                                                  \
   static auto& sym(size_t idx, std::index_sequence<Is...> /*is*/) {        \
-    static std::array sym_arr{                                             \
+    static std::array<GiNaC::symbol, sizeof...(Is)> sym_arr{               \
         ((void)Is,                                                         \
          GiNaC::symbol{#sym + std::string{"_"} + std::to_string(Is)})...}; \
     return sym_arr[idx];                                                   \
@@ -52,7 +52,8 @@ auto evtod(const GiNaC::ex& expr, Relations&&... relations) {
 
 
 //==============================================================================
-}  // namespace tatooine::symbolic
+}  // namespace symbolic
+}  // namespace tatooine
 //==============================================================================
 
 #endif

@@ -42,7 +42,7 @@ struct grid_edge
   }
 
   //----------------------------------------------------------------------------
-  auto operator*() { return std::pair{*this->first, *this->second}; }
+  auto operator*() { return std::make_pair(*this->first, *this->second); }
 
   //----------------------------------------------------------------------------
   bool operator==(const grid_edge& other) const {

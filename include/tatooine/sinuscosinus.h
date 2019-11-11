@@ -64,7 +64,7 @@ struct cosinussinus : field<cosinussinus<real_t>, real_t, 2, 2> {
 
   //----------------------------------------------------------------------------
   constexpr tensor_t evaluate(const pos_t& /*x*/, real_t t) const {
-    return {std::sin(t), std::cos(t)};
+    return {std::cos(t), std::sin(t)};
   }
 };
 

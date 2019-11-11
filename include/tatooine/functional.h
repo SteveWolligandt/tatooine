@@ -2,18 +2,22 @@
 #define TATOOINE_FUNCTIONAL_H
 
 #include <functional>
+#include "cxxstd.h"
 
 //==============================================================================
 namespace tatooine {
 //==============================================================================
 
+#if has_cxx17_support()
 /// maps unary function f to all single parameters of parameter pack ts
 template <typename... Ts, typename F>
 constexpr void map(F&& f, Ts&&... ts) {
   (f(std::forward<Ts>(ts)), ...);
 }
+#endif
 
 //==============================================================================
+#if has_cxx17_support()
 /// binds first arguments of f (either all or only partially)
 template <typename F, typename... Args>
 constexpr auto bind(F&& f, Args&&... args) {
@@ -22,13 +26,14 @@ constexpr auto bind(F&& f, Args&&... args) {
                        std::forward<decltype(rest)>(rest)...);
   };
 }
+#endif
 
 //==============================================================================
+#if has_cxx17_support()
 template <typename F, typename... Params>
 constexpr decltype(auto) invoke_omitted(F&& f, Params&&... params) {
   return std::invoke(f, std::forward<Params>(params)...);
 }
-
 //------------------------------------------------------------------------------
 template <size_t i, size_t... is, typename F, typename Param,
           typename... Params>
@@ -49,8 +54,10 @@ constexpr decltype(auto) invoke_omitted(F&& f, Param&& param,
         std::forward<Params>(params)...);
   }
 }
+#endif
 
 //==============================================================================
+#if has_cxx17_support()
 template <typename Container>
 struct unpack;
 
@@ -222,6 +229,23 @@ struct unpack<const std::pair<A, B>> {
 //==============================================================================
 template <typename A, typename B>
 unpack(const std::pair<A, B>& c)->unpack<const std::pair<A, B>>;
+#endif
+
+//==============================================================================
+template <typename T, typename... Ts>
+decltype(auto) front_param(T&& head, Ts&&... /*tail*/) {
+  return std::forward<T>(head);
+}
+//==============================================================================
+template <typename T>
+decltype(auto) back_param(T&& t) {
+  return std::forward<T>(t);
+}
+//==============================================================================
+template <typename T0, typename T1, typename... Ts>
+decltype(auto) back_param(T0&& /*t0*/, T1&& t1, Ts&&... ts) {
+  return back_param(std::forward<T1>(t1), std::forward<Ts>(ts)...);
+}
 
 //==============================================================================
 }  // namespace tatooine

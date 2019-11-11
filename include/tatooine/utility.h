@@ -1,6 +1,7 @@
 #ifndef TATOOINE_UTILITY_H
 #define TATOOINE_UTILITY_H
 
+#include "cxxstd.h"
 #include <array>
 #include <boost/core/demangle.hpp>
 
@@ -29,9 +30,16 @@ using internal_data_type_t = typename internal_data_type<T>::type;
 template <size_t Omit, size_t... Is, size_t... Js>
 constexpr auto sliced_indices(std::index_sequence<Is...>,
                               std::index_sequence<Js...>) {
-  std::array indices{Is...};
+#if has_cxx17_support()
+  constexpr std::array indices{Is...};
   (++indices[Js + Omit], ...);
   return indices;
+#else
+  constexpr std::array<size_t, sizeof...(Is)> indices{Is...};
+  constexpr std::array<size_t, sizeof...(Js)> js{Js...};
+  for (auto j : js) { ++indices[j + Omit]; }
+  return indices;
+#endif
 }
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 /// creates an index sequence and removes an element from it
@@ -41,10 +49,22 @@ constexpr auto sliced_indices() {
                               std::make_index_sequence<N - Omit - 1>{});
 }
 //==============================================================================
+#if has_cxx17_support()
 template <typename F, typename... Ts>
 void for_each(F&& f, Ts&&... ts) {
   (f(std::forward<Ts>(ts)), ...);
 }
+#else
+template <typename F, typename T>
+void for_each(F&& f, T&& t) {
+  f(std::forward<T>(t));
+}
+template <typename F, typename T, typename... Ts>
+void for_each(F&& f, T&& t, Ts&&... ts) {
+  f(std::forward<T>(t));
+  for_each(f, std::forward<Ts>(ts)...);
+}
+#endif
 
 //==============================================================================
 template <typename T, typename... Ts>
@@ -90,6 +110,8 @@ constexpr auto& extract(Cont& extracted_data) {
   return extracted_data;
 }
 //------------------------------------------------------------------------------
+
+#if has_cxx17_support()
 template <size_t I, size_t Begin, size_t End, typename Cont, typename T,
           typename... Ts>
 constexpr auto& extract(Cont& extracted_data, T&& t, Ts&&... ts) {
@@ -106,6 +128,7 @@ constexpr auto extract(Ts&&... ts) {
       make_array<std::decay_t<front_t<Ts...>>, End - Begin + 1>();
   return extract<0, Begin, End>(extracted_data, std::forward<Ts>(ts)...);
 }
+#endif
 
 //==============================================================================
 /// returns demangled typename

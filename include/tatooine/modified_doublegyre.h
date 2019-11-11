@@ -1,18 +1,19 @@
-#ifndef TATOOINE_NEWDOUBLEGYRE_H
-#define TATOOINE_NEWDOUBLEGYRE_H
+#ifndef TATOOINE_MODIFIED_DOUBLEGYRE_H
+#define TATOOINE_MODIFIED_DOUBLEGYRE_H
 
 #include <algorithm>
-#include "line.h"
 #include "linspace.h"
 #include "field.h"
+
+#if has_cxx17_support()
 #include "symbolic_field.h"
 
 //==============================================================================
 namespace tatooine::symbolic {
 //==============================================================================
 template <typename Real>
-struct newdoublegyre : field<Real, 2, 2> {
-  using this_t   = newdoublegyre<Real>;
+struct modified_doublegyre : field<Real, 2, 2> {
+  using this_t   = modified_doublegyre<Real>;
   using parent_t = field<Real, 2, 2>;
   using typename parent_t::pos_t;
   using typename parent_t::tensor_t;
@@ -24,7 +25,7 @@ struct newdoublegyre : field<Real, 2, 2> {
   static GiNaC::numeric d() { return 9.964223388; }
 
   //============================================================================
-  newdoublegyre() {
+  modified_doublegyre() {
     using GiNaC::Pi;
     GiNaC::numeric epsilon{1, 4};
     GiNaC::numeric A{1, 10};
@@ -93,18 +94,19 @@ struct newdoublegyre : field<Real, 2, 2> {
 };
 
 //==============================================================================
-newdoublegyre() -> newdoublegyre<double>;
-
+modified_doublegyre() -> modified_doublegyre<double>;
 //==============================================================================
 }  // namespace tatooine::analytical
 //==============================================================================
+#endif
 
 //==============================================================================
-namespace tatooine::numerical {
+namespace tatooine {
+namespace numerical {
 //==============================================================================
 template <typename Real>
-struct newdoublegyre : field<newdoublegyre<Real>,Real, 2, 2> {
-  using this_t   = newdoublegyre<Real>;
+struct modified_doublegyre : field<modified_doublegyre<Real>,Real, 2, 2> {
+  using this_t   = modified_doublegyre<Real>;
   using parent_t = field<this_t, Real, 2, 2>;
   using typename parent_t::pos_t;
   using typename parent_t::tensor_t;
@@ -126,7 +128,7 @@ struct newdoublegyre : field<newdoublegyre<Real>,Real, 2, 2> {
     const Real f  = a * x(0) * x(0) + b * x(0);
     const Real df = 2 * a * x(0) + b;
 
-    return vec{-pi * A * std::sin(pi * f) * std::cos(pi * x(1)),
+    return {-pi * A * std::sin(pi * f) * std::cos(pi * x(1)),
              pi * A * std::cos(pi * f) * std::sin(pi * x(1)) * df};
   }
 
@@ -135,7 +137,7 @@ struct newdoublegyre : field<newdoublegyre<Real>,Real, 2, 2> {
     const Real r = pi / 5 * t + d;
 
     const Real q =
-        std::clamp<Real>((4 * pi * c * sin(r) - 4 * std::asin(2 * c * cos(r))) /
+        clamp<Real>((4 * pi * c * sin(r) - 4 * std::asin(2 * c * cos(r))) /
                              (pi * (1 - cc * sin(r) * sin(r))),
                          -1, 1);
 
@@ -191,10 +193,13 @@ struct newdoublegyre : field<newdoublegyre<Real>,Real, 2, 2> {
 };
 
 //==============================================================================
-newdoublegyre() -> newdoublegyre<double>;
+#if has_cxx17_support()
+modified_doublegyre() -> modified_doublegyre<double>;
+#endif
 
 //==============================================================================
-}  // namespace tatooine::analytical
+}  // namespace numerical
+}  // namespace tatooine
 //==============================================================================
 
 #endif

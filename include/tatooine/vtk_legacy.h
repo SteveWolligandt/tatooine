@@ -12,11 +12,13 @@
 #include <sstream>
 #include <vector>
 #include "string_conversion.h"
+#include "type_traits.h"
 #include "swap_endianess.h"
 #include "type_to_str.h"
 
 //=============================================================================
-namespace tatooine::vtk {
+namespace tatooine {
+namespace vtk {
 //=============================================================================
 
 //! reads until terminator_char was found. buffer will containg the
@@ -375,7 +377,7 @@ class legacy_file {
       vtk::read_word(file, buffer);  // consume LOOKUP_TABLE keyword
     }
     auto lookup_table_name = vtk::read_word(file, buffer);
-    return std::tuple{data_name, data_type, num_comps, lookup_table_name};
+    return std::make_tuple(data_name, data_type, num_comps, lookup_table_name);
   }
 
   inline void read_scalars(std::ifstream &file);
@@ -389,8 +391,8 @@ class legacy_file {
                                   const size_t       num_comps);
 
   auto read_data_header(std::ifstream &file) {
-    return std::pair{vtk::read_word(file, buffer),
-                     vtk::read_word(file, buffer)};
+    return std::make_pair(vtk::read_word(file, buffer),
+                     vtk::read_word(file, buffer));
   }
   template <typename Real, size_t N>
   inline std::vector<std::array<Real, N>> read_data(std::ifstream &file);
@@ -402,8 +404,8 @@ class legacy_file {
   //----------------------------------------------------------------------------
   // coordinates
   auto read_coordinates_header(std::ifstream &file) {
-    return std::pair{parse<size_t>(vtk::read_word(file, buffer)),
-                     vtk::read_word(file, buffer)};
+    return std::make_pair(parse<size_t>(vtk::read_word(file, buffer)),
+                     vtk::read_word(file, buffer));
   }
   template <typename Real>
   auto read_coordinates(std::ifstream &file, size_t n) {
@@ -421,7 +423,9 @@ class legacy_file {
                                                      size_t         n);
 
   void read_x_coordinates(std::ifstream &file) {
-    auto [n, type] = read_coordinates_header(file);
+    const auto header = read_coordinates_header(file);
+    const auto& n = header.first;
+    const auto& type = header.second;
     if (type == "float") {
       auto c = read_coordinates<float>(file, n);
       for (auto l : m_listeners) l->on_x_coordinates(c);
@@ -432,7 +436,9 @@ class legacy_file {
   }
 
   void read_y_coordinates(std::ifstream &file) {
-    auto [n, type] = read_coordinates_header(file);
+    const auto header = read_coordinates_header(file);
+    const auto& n = header.first;
+    const auto& type = header.second;
     if (type == "float") {
       auto c = read_coordinates<float>(file, n);
       for (auto l : m_listeners) l->on_y_coordinates(c);
@@ -443,7 +449,9 @@ class legacy_file {
   }
 
   void read_z_coordinates(std::ifstream &file) {
-    auto [n, type] = read_coordinates_header(file);
+    const auto header = read_coordinates_header(file);
+    const auto& n = header.first;
+    const auto& type = header.second;
     if (type == "float") {
       auto c = read_coordinates<float>(file, n);
       for (auto l : m_listeners) l->on_z_coordinates(c);
@@ -479,7 +487,9 @@ class legacy_file {
   //----------------------------------------------------------------------------
   // fixed size data
   void read_vectors(std::ifstream &file) {
-    auto [name, type] = read_data_header(file);
+    const auto header = read_data_header(file);
+    const auto& name = header.first;
+    const auto& type = header.second;
     if (type == "float") {
       auto data = read_data<float, 3>(file);
       for (auto l : m_listeners) l->on_vectors(name, data, m_data);
@@ -490,7 +500,9 @@ class legacy_file {
   }
 
   void read_normals(std::ifstream &file) {
-    auto [name, type] = read_data_header(file);
+    const auto header = read_data_header(file);
+    const auto& name = header.first;
+    const auto& type = header.second;
     if (type == "float") {
       auto data = read_data<float, 3>(file);
       for (auto l : m_listeners) l->on_normals(name, data, m_data);
@@ -501,7 +513,9 @@ class legacy_file {
   }
 
   void read_texture_coordinates(std::ifstream &file) {
-    auto [name, type] = read_data_header(file);
+    const auto header = read_data_header(file);
+    const auto& name = header.first;
+    const auto& type = header.second;
     if (type == "float") {
       auto data = read_data<float, 2>(file);
       for (auto l : m_listeners) l->on_texture_coordinates(name, data, m_data);
@@ -512,7 +526,9 @@ class legacy_file {
   }
 
   void read_tensors(std::ifstream &file) {
-    auto [name, type] = read_data_header(file);
+    const auto header = read_data_header(file);
+    const auto& name = header.first;
+    const auto& type = header.second;
     if (type == "float") {
       auto data = read_data<float, 9>(file);
       for (auto l : m_listeners) l->on_tensors(name, data, m_data);
@@ -526,9 +542,9 @@ class legacy_file {
     std::string       field_params = vtk::read_binaryline(file, buffer);
     std::stringstream field_params_stream(field_params);
 
-    return std::pair{
+    return std::make_pair(
         vtk::read_word(field_params_stream, buffer),
-        parse<size_t>(vtk::read_word(field_params_stream, buffer))};
+        parse<size_t>(vtk::read_word(field_params_stream, buffer)));
   }
 
   //----------------------------------------------------------------------------
@@ -538,18 +554,23 @@ class legacy_file {
     std::stringstream field_array_params_stream(field_array_params);
 
     // {array_name, num_components, num_tuples, datatype_str}
-    return std::tuple{
+    return std::make_tuple(
         vtk::read_word(field_array_params_stream, buffer),
         parse<size_t>(vtk::read_word(field_array_params_stream, buffer)),
         parse<size_t>(vtk::read_word(field_array_params_stream, buffer)),
-        vtk::read_word(field_array_params_stream, buffer)};
+        vtk::read_word(field_array_params_stream, buffer));
   }
 
   void read_field(std::ifstream &file) {
-    auto [field_name, num_arrays] = read_field_header(file);
+    const auto  header     = read_field_header(file);
+    const auto &field_name = header.first;
+    const auto &num_arrays = header.second;
     for (size_t i = 0; i < num_arrays; ++i) {
-      auto [field_array_name, num_comps, num_tuples, datatype_str] =
-          read_field_array_header(file);
+      const auto  header           = read_field_array_header(file);
+      const auto &field_array_name = std::get<0>(header);
+      const auto &num_comps        = std::get<1>(header);
+      const auto &num_tuples       = std::get<2>(header);
+      const auto &datatype_str     = std::get<3>(header);
 
       if (m_format == ASCII) {
         if (datatype_str == "int") {
@@ -756,32 +777,30 @@ void legacy_file::read_data() {
 //------------------------------------------------------------------------------
 
 void legacy_file::read_spacing(std::ifstream &file) {
-  std::array spacing{parse<double>(vtk::read_word(file, buffer)),
-                     parse<double>(vtk::read_word(file, buffer)),
-                     parse<double>(vtk::read_word(file, buffer))};
-  for (auto l : m_listeners) l->on_spacing(spacing[0], spacing[1], spacing[2]);
+  std::array<double, 3> spacing{parse<double>(vtk::read_word(file, buffer)),
+                                parse<double>(vtk::read_word(file, buffer)),
+                                parse<double>(vtk::read_word(file, buffer))};
+  for (auto l : m_listeners) {
+    l->on_spacing(spacing[0], spacing[1], spacing[2]);
+  }
 }
 
 //------------------------------------------------------------------------------
 
 void legacy_file::read_dimensions(std::ifstream &file) {
-  std::array dims{parse<size_t>(vtk::read_word(file, buffer)),
-                  parse<size_t>(vtk::read_word(file, buffer)),
-                  parse<size_t>(vtk::read_word(file, buffer))};
-  for (auto l : m_listeners) l->on_dimensions(dims[0], dims[1], dims[2]);
+  std::array<size_t, 3> dims{parse<size_t>(vtk::read_word(file, buffer)),
+                             parse<size_t>(vtk::read_word(file, buffer)),
+                             parse<size_t>(vtk::read_word(file, buffer))};
+  for (auto l : m_listeners) { l->on_dimensions(dims[0], dims[1], dims[2]); }
 }
-
 //------------------------------------------------------------------------------
-
 void legacy_file::read_origin(std::ifstream &file) {
-  std::array origin{parse<double>(vtk::read_word(file, buffer)),
-                    parse<double>(vtk::read_word(file, buffer)),
-                    parse<double>(vtk::read_word(file, buffer))};
-  for (auto l : m_listeners) l->on_origin(origin[0], origin[1], origin[2]);
+  std::array<double, 3> origin{parse<double>(vtk::read_word(file, buffer)),
+                               parse<double>(vtk::read_word(file, buffer)),
+                               parse<double>(vtk::read_word(file, buffer))};
+  for (auto l : m_listeners) { l->on_origin(origin[0], origin[1], origin[2]); }
 }
-
 //-----------------------------------------------------------------------------------------------
-
 void legacy_file::read_points(std::ifstream &file) {
   auto num_points_str = vtk::read_word(file, buffer);
   auto n              = parse<size_t>(num_points_str);
@@ -966,17 +985,23 @@ std::vector<Real> legacy_file::read_coordinates_binary(std::ifstream &file,
 //-----------------------------------------------------------------------------
 
 void legacy_file::read_scalars(std::ifstream &file) {
-  auto [name, type, num_comps, lookup_table] = read_scalars_header(file);
+  const auto  header       = read_scalars_header(file);
+  const auto &name         = std::get<0>(header);
+  const auto &type         = std::get<1>(header);
+  const auto &num_comps    = std::get<2>(header);
+  const auto &lookup_table = std::get<3>(header);
   if (m_format == ASCII) {
-    if (type == "float")
+    if (type == "float") {
       read_scalars_ascii<float>(file, name, lookup_table, num_comps);
-    else if (type == "double")
+    } else if (type == "double") {
       read_scalars_ascii<double>(file, name, lookup_table, num_comps);
+    }
   } else if (m_format == BINARY) {
-    if (type == "float")
+    if (type == "float") {
       read_scalars_binary<float>(file, name, lookup_table, num_comps);
-    else if (type == "double")
+    } else if (type == "double") {
       read_scalars_binary<double>(file, name, lookup_table, num_comps);
+    }
   }
 }
 
@@ -1068,9 +1093,9 @@ class legacy_file_writer {
                      std::vector<std::array<Real, 9>> &tensors);
 
   template <typename Data,
-            typename = std::enable_if_t<(std::is_same_v<Data, double> ||
-                                         std::is_same_v<Data, float> ||
-                                         std::is_same_v<Data, int>)>>
+            typename = std::enable_if_t<(std::is_same<Data, double>::value ||
+                                         std::is_same<Data, float>::value ||
+                                         std::is_same<Data, int>::value)>>
   void write_scalars(const std::string &                     name,
                      const std::vector<std::vector<Data>> &data,
                      const std::string &lookup_table_name = "default");
@@ -1312,7 +1337,8 @@ void legacy_file_writer::write_scalars(
 }
 
 //=============================================================================
-}  // namespace tatooine::vtk
+}  // namespace vtk
+}  // namespace tatooine
 //=============================================================================
 
 #endif

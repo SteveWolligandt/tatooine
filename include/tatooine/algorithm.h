@@ -39,6 +39,18 @@ decltype(auto) resize_next_list(Range& range, RangeIt pos,
   }
 }
 
+template <class T>
+constexpr const T& clamp(const T& v, const T& lo, const T& hi) {
+  assert(!(hi < lo));
+  return (v < lo) ? lo : (hi < v) ? hi : v;
+}
+
+template <class T, class Compare>
+constexpr const T& clamp(const T& v, const T& lo, const T& hi, Compare comp) {
+  assert(!comp(hi, lo));
+  return comp(v, lo) ? lo : comp(hi, v) ? hi : v;
+}
+
 //==============================================================================
 }  // namespace tatooine
 //==============================================================================

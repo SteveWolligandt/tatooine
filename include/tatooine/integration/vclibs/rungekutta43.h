@@ -46,6 +46,14 @@ struct VC::odeint::vector_operations_t<tatooine::vec<Real, N>> {
 namespace tatooine::integration::vclibs {
 //==============================================================================
 
+static constexpr inline auto RK43        = VC::odeint::RK43;
+static constexpr inline auto OutOfDomain = VC::odeint::OutOfDomain;
+static constexpr inline auto AbsTol      = VC::odeint::AbsTol;
+static constexpr inline auto RelTol      = VC::odeint::RelTol;
+static constexpr inline auto InitialStep = VC::odeint::InitialStep;
+static constexpr inline auto MaxStep     = VC::odeint::MaxStep;
+static constexpr inline auto MaxNumSteps = VC::odeint::MaxNumSteps;
+
 template <typename Real, size_t N>
 struct rungekutta43 : integrator<Real, N, rungekutta43<Real, N>> {
   //============================================================================
@@ -56,13 +64,6 @@ struct rungekutta43 : integrator<Real, N, rungekutta43<Real, N>> {
   using ode_t      = VC::odeint::ode_t<2, Real, vec<Real, N>, false>;
   using options_t  = typename ode_t::options_t;
 
-  static constexpr auto RK43        = VC::odeint::RK43;
-  static constexpr auto OutOfDomain = VC::odeint::OutOfDomain;
-  static constexpr auto AbsTol      = VC::odeint::AbsTol;
-  static constexpr auto RelTol      = VC::odeint::RelTol;
-  static constexpr auto InitialStep = VC::odeint::InitialStep;
-  static constexpr auto MaxStep     = VC::odeint::MaxStep;
-  static constexpr auto MaxNumSteps = VC::odeint::MaxNumSteps;
 
   //============================================================================
  private:
@@ -73,8 +74,14 @@ struct rungekutta43 : integrator<Real, N, rungekutta43<Real, N>> {
   rungekutta43()
       : m_options{AbsTol = 1e-4, RelTol = 1e-4, InitialStep = 0,
                   MaxStep = 0.1} {}
-  rungekutta43(const rungekutta43& other) : parent_t{other} {}
-  rungekutta43(rungekutta43&& other) noexcept : parent_t{std::move(other)} {}
+  rungekutta43(const rungekutta43& other)
+      : parent_t{other},
+        m_options{AbsTol = 1e-4, RelTol = 1e-4, InitialStep = 0,
+                  MaxStep = 0.1} {}
+  rungekutta43(rungekutta43&& other) noexcept
+      : parent_t{std::move(other)},
+        m_options{AbsTol = 1e-4, RelTol = 1e-4, InitialStep = 0,
+                  MaxStep = 0.1} {}
   //----------------------------------------------------------------------------
   template <typename... Options>
   rungekutta43(Options&&... options)
