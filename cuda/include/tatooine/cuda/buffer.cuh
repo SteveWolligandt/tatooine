@@ -19,20 +19,63 @@ class buffer {
   //============================================================================
  private:
   size_t m_size;
-  T*     m_device_ptr = nullptr;
+  T*      m_device_ptr  = nullptr;
+  size_t* m_ref_counter = nullptr;
 
   //============================================================================
   // ctors / dtor
   //============================================================================
  public:
-  buffer(size_t size) : m_size{size}, m_device_ptr{cuda::malloc<T>(size)} {}
+  buffer(size_t size)
+      : m_size{size},
+        m_device_ptr{cuda::malloc<T>(size)},
+        m_ref_counter{new size_t{}} {
+    ++(*m_ref_counter);
+  }
+  //----------------------------------------------------------------------------
+  buffer(const buffer& other)
+      : m_size{other.m_size},
+        m_device_ptr{other.m_device_ptr},
+        m_ref_counter{other.m_ref_counter} {
+    ++(*m_ref_counter);
+  }
+  //----------------------------------------------------------------------------
+  buffer(buffer&& other)
+      : m_size{std::exchange(other.m_size, 0)},
+        m_device_ptr{std::exchange(other.m_device_ptr, nullptr)},
+        m_ref_counter{std::exchange(other.m_ref_counter, nullptr)} {}
+  //----------------------------------------------------------------------------
+  buffer& operator=(const buffer& other) {
+    m_size        = other.m_size;
+    m_device_ptr  = other.m_device_ptr;
+    m_ref_counter = other.m_ref_counter;
+    ++(*m_ref_counter);
+    return *this;
+  }
+  //----------------------------------------------------------------------------
+  buffer& operator=(buffer&& other) {
+    std::swap(m_size, other.m_size);
+    std::swap(m_device_ptr, other.m_device_ptr);
+    std::swap(m_ref_counter, other.m_ref_counter);
+    return *this;
+  }
+  //----------------------------------------------------------------------------
   buffer(const std::vector<T>& data)
       : m_size{data.size()}, m_device_ptr{cuda::malloc<T>(data.size())} {
    cuda::memcpy(m_device_ptr, data.data(), sizeof(T) * data.size(),
                cudaMemcpyHostToDevice);
   }
+  //----------------------------------------------------------------------------
   buffer(std::initializer_list<T>&& data)
       : buffer{std::vector<T>(begin(data), end(data))} {}
+  //----------------------------------------------------------------------------
+  ~buffer() {
+    --(*m_ref_counter);
+    if (*m_ref_counter == 0) {
+      free();
+      delete m_ref_counter;
+    }
+  }
   //----------------------------------------------------------------------------
   void free() {
     cuda::free(m_device_ptr);

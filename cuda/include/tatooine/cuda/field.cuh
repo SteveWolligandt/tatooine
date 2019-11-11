@@ -82,8 +82,11 @@ class steady_vectorfield {
 };
 template <typename Real, size_t N, size_t VecDim>
 struct is_freeable<steady_vectorfield<Real, N, VecDim>> : std::true_type {};
+
 template <typename Real, size_t N, size_t VecDim>
-void free(steady_vectorfield<Real, N, VecDim>& f) {f.free();}
+void free(steady_vectorfield<Real, N, VecDim>& f) {
+  f.free();
+}
 
 //=============================================================================
 template <typename Real, size_t N, size_t VecDim>
@@ -149,8 +152,9 @@ class unsteady_vectorfield<Real, 2, 2> {
         domain_pos_to_uv(x, min(), max(), t, tmin(), tmax(), resolution()));
   }
   //----------------------------------------------------------------------------
-  __device__ auto operator()(const cuda::vec_t<Real, num_dimensions()>& x) const {
-    return evaluate(x);
+  __device__ auto operator()(const cuda::vec_t<Real, num_dimensions()>& x,
+                             Real t) const {
+    return evaluate(x, t);
   }
   //----------------------------------------------------------------------------
   __host__ __device__ const auto& min() const { return m_min; }

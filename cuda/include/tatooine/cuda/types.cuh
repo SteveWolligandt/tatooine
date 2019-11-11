@@ -342,6 +342,15 @@ template <typename Out, typename... Cs, enable_if_arithmetic<Cs...> = true>
 __host__ __device__ auto make_vec(Cs... cs) {
   return cuda::vec<Out, sizeof...(Cs)>::make(cs...);
 }
+template <typename Tensor, typename Real, size_t N, size_t... Is>
+__host__ auto make_vec(const base_tensor<Tensor, Real, N>& v,
+                       std::index_sequence<Is...>) {
+  return cuda::vec<Real, N>::make(v(Is)...);
+}
+template <typename Tensor, typename Real, size_t N>
+__host__ auto make_vec(const base_tensor<Tensor, Real, N>& v) {
+  return make_vec(v, std::make_index_sequence<N>{});
+}
 
 template <size_t I, typename T, size_t N>
 auto& get(vec_t<T, N>& v) {

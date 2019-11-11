@@ -1,6 +1,7 @@
 #include <catch2/catch.hpp>
 #include <boost/range/algorithm_ext/iota.hpp>
 #include <tatooine/cuda/pathline_block.cuh>
+#include <tatooine/vtk_legacy.h>
 #include <tatooine/doublegyre.h>
 
 //==============================================================================
@@ -11,16 +12,18 @@ namespace test {
 
 TEST_CASE("cuda_pathline_block1", "[dg]") {
   numerical::doublegyre<double> v;
-  grid<double, 3> block{linspace<double>{0, 2, 21},
-                        linspace<double>{0, 1, 11},
-                        linspace<double>{0, 10, 5}};
+  grid<double, 3> block{linspace<double>{0, 2, 101},
+                        linspace<double>{0, 1, 51},
+                        linspace<double>{0, 10, 11}};
 
   auto d_v = upload<float>(
       v,
-      grid<double, 2>{linspace<double>{0, 2, 101}, linspace<double>{0, 1, 51}},
-      linspace<double>{0, 10, 51});
+      grid<double, 2>{linspace<double>{0, 2, 101},
+                      linspace<double>{0, 1, 51}},
+                      linspace<double>{0, 10, 51});
 
-  auto d_pathlines = pathline_block(d_v, block, 20);
+  const size_t num_pathline_samples = 100;
+  auto d_pathlines = pathline_block(d_v, block, num_pathline_samples);
 
   auto pathlines = d_pathlines.download();
   free(d_v, d_pathlines);
@@ -37,14 +40,14 @@ TEST_CASE("cuda_pathline_block1", "[dg]") {
     for (size_t i = 0; i < block.num_vertices(); ++i) {
       // add points
       for (size_t j = 0; j < num_pathline_samples; ++j) {
-        size_t idx = i * num_pathline_samples*3;
+        size_t idx = i * num_pathline_samples * 3 + j * 3;
         points.push_back(
-            {pathlines[idx], pathlines[idx + 1], pathlines[idx + 1]});
+            {pathlines[idx], pathlines[idx + 1], pathlines[idx + 2]});
       }
 
       // add lines
-      boost::iota(line_seqs.emplace_back(l.num_vertices()), cur_first);
-      if (l.is_closed()) { line_seqs.back().push_back(cur_first); }
+      line_seqs.emplace_back(num_pathline_samples);
+      boost::iota(line_seqs.back(), cur_first);
       cur_first += num_pathline_samples;
     }
 
