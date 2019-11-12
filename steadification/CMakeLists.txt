@@ -1,3 +1,10 @@
+#===============================================================================
+if ("${CMAKE_CXX_COMPILER_ID}" STREQUAL "Clang")
+  set(CMAKE_CXX_FLAGS "-fcolor-diagnostics")
+elseif ("${CMAKE_CXX_COMPILER_ID}" STREQUAL "GNU")
+  set(CMAKE_CXX_FLAGS "-fdiagnostics-color=always")
+endif()
+#===============================================================================
 set(DATASET_DIR "/home/steve/vectorfield_datasets" CACHE PATH "Path to datasets")
 add_compile_definitions(DATASET_DIR="${DATASET_DIR}")
 

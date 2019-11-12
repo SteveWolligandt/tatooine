@@ -35,7 +35,6 @@ struct laminar : field<laminar<Real>, Real, 2, 2> {
     return true;
   }
 };
-
 //==============================================================================
 struct cavity : field<cavity, double, 2, 2> {
   using parent_t = field<cavity, double, 2, 2>;
@@ -45,21 +44,20 @@ struct cavity : field<cavity, double, 2, 2> {
 
   using grid_t = grid_sampler<double, 3, vec<real_t, 2>, interpolation::hermite,
                               interpolation::hermite, interpolation::linear>;
-  grid_t                          grid;
-  static constexpr vec<size_t, 3> res{256, 96, 100};
-  static constexpr ::tatooine::grid domain{linspace{-1.0, 8.1164, res(0)},
-                                           linspace{-1.0, 1.5, res(1)},
-                                           linspace{0.0, 10.0, res(2)}};
+  grid_t                            sampler;
+  static constexpr vec<size_t, 3>   res{256, 96, 100};
+  static constexpr grid             domain{linspace{-1.0, 8.1164, res(0)},
+                               linspace{-1.0, 1.5, res(1)},
+                               linspace{0.0, 10.0, res(2)}};
 
   cavity()
-      : grid(dataset_dir + "2DCavity/Cavity2DTimeFilter3x3x7_100_bin.am") {}
+      : sampler(dataset_dir + "2DCavity/Cavity2DTimeFilter3x3x7_100_bin.am") {}
 
   tensor_t evaluate(const pos_t& x, real_t t) const {
-    return grid(x(0), x(1), t);
+    return sampler(x(0), x(1), t);
   }
-
   bool in_domain(const pos_t& x, real_t t) const {
-    return grid.in_domain(x(0), x(1), t) && !(x(0) < -0.1 && x(1) < 0.03) &&
+    return sampler.in_domain(x(0), x(1), t) && !(x(0) < -0.1 && x(1) < 0.03) &&
            !(x(0) > 4 && x(1) < 0.03);
   }
 };
