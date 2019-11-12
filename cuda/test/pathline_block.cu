@@ -12,8 +12,8 @@ namespace test {
 
 TEST_CASE("cuda_pathline_block1", "[dg]") {
   numerical::doublegyre<double> v;
-  grid<double, 3> block{linspace<double>{0, 2, 101},
-                        linspace<double>{0, 1, 51},
+  grid<double, 3> block{linspace<double>{0, 2, 51},
+                        linspace<double>{0, 1, 26},
                         linspace<double>{0, 10, 11}};
 
   auto d_v = upload<float>(
@@ -27,7 +27,7 @@ TEST_CASE("cuda_pathline_block1", "[dg]") {
 
   auto pathlines = d_pathlines.download();
   free(d_v, d_pathlines);
-
+  
   vtk::legacy_file_writer writer("cuda_pathlines_doublegyre.vtk", vtk::POLYDATA);
   if (writer.is_open()) {
     size_t num_pts = num_pathline_samples * block.num_vertices();
@@ -40,9 +40,9 @@ TEST_CASE("cuda_pathline_block1", "[dg]") {
     for (size_t i = 0; i < block.num_vertices(); ++i) {
       // add points
       for (size_t j = 0; j < num_pathline_samples; ++j) {
-        size_t idx = i * num_pathline_samples * 3 + j * 3;
+        size_t idx = i * num_pathline_samples + j;
         points.push_back(
-            {pathlines[idx], pathlines[idx + 1], pathlines[idx + 2]});
+            {pathlines[idx].x, pathlines[idx].y, pathlines[idx].z});
       }
 
       // add lines
@@ -56,11 +56,12 @@ TEST_CASE("cuda_pathline_block1", "[dg]") {
     writer.write_header();
     writer.write_points(points);
     writer.write_lines(line_seqs);
-    writer.write_point_data(num_pts);
     writer.close();
   }
 }
 
 //==============================================================================
-}}}
+}  // namespace test
+}  // namespace cuda
+}  // namespace tatooine
 //==============================================================================

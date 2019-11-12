@@ -142,7 +142,8 @@ class unsteady_vectorfield<Real, 2, 2> {
   //----------------------------------------------------------------------------
   void free() { m_sampler.free(); }
   //----------------------------------------------------------------------------
-  __device__ auto evaluate_uv(const cuda::vec_t<Real, num_dimensions() + 1>& uvw) const {
+  __device__ auto evaluate_uv(
+      const cuda::vec_t<Real, num_dimensions() + 1>& uvw) const {
     return m_sampler(uvw);
   }
   //----------------------------------------------------------------------------

@@ -61,9 +61,11 @@ class buffer {
   }
   //----------------------------------------------------------------------------
   buffer(const std::vector<T>& data)
-      : m_size{data.size()}, m_device_ptr{cuda::malloc<T>(data.size())} {
-   cuda::memcpy(m_device_ptr, data.data(), sizeof(T) * data.size(),
-               cudaMemcpyHostToDevice);
+      : m_size{data.size()},
+        m_device_ptr{cuda::malloc<T>(data.size())},
+        m_ref_counter{new size_t{}} {
+    cuda::memcpy(m_device_ptr, data.data(), sizeof(T) * data.size(),
+                 cudaMemcpyHostToDevice);
   }
   //----------------------------------------------------------------------------
   buffer(std::initializer_list<T>&& data)
