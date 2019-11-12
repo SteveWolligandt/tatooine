@@ -83,6 +83,11 @@ struct sinuscosinus : field<sinuscosinus<real_t>, real_t, 2, 2> {
   constexpr tensor_t evaluate(const pos_t& /*x*/, real_t t) const {
     return {std::sin(t), std::cos(t)};
   }
+
+  //----------------------------------------------------------------------------
+  constexpr auto in_domain(const pos_t& /*x*/, real_t /*t*/) const {
+    return true;
+  }
 };
 
 //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~

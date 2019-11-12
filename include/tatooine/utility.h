@@ -51,7 +51,7 @@ constexpr auto sliced_indices() {
 //==============================================================================
 #if has_cxx17_support()
 template <typename F, typename... Ts>
-void for_each(F&& f, Ts&&... ts) {
+constexpr void for_each(F&& f, Ts&&... ts) {
   (f(std::forward<Ts>(ts)), ...);
 }
 #else

@@ -1,0 +1,37 @@
+#version 450
+
+uniform uint size;
+layout(binding = 1, std430) buffer weights_buffer {
+  float weights[];                   
+};
+layout(binding = 0, std430) buffer reduced_weights_buffer {
+  float reduced_weights[];                   
+};
+
+const uint group_size = 1024;
+const uint steps = uint(ceil(log2(group_size)));
+shared float shared_weights[group_size];
+
+layout (local_size_x = group_size, local_size_y = 1, local_size_z = 1) in;
+void main() {
+  uint gi = gl_GlobalInvocationID.x;
+  uint li = gl_LocalInvocationID.x;
+
+  // copy data to shared memory buffer
+  if (gi < size)
+    shared_weights[li] = weights[gi];
+  else
+    shared_weights[li] = 0;
+  memoryBarrierShared();
+
+  // reduce shared memory
+  uint stride = group_size / 2;
+  for (uint i = 0; i < steps; ++i) {
+    if (li < stride)
+      shared_weights[li] += shared_weights[li + stride];
+    stride /= 2;
+    memoryBarrierShared();
+  }
+
+  reduced_weights[gl_WorkGroupID.x] = shared_weights[0];
+}

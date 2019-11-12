@@ -362,7 +362,7 @@ class grid {
                                RandEng& eng) const {
     return vertex_t{linspace_it_t{
         &m_dimensions[Is],
-        random_uniform<size_t>{}(0, m_dimensions[Is].size() - 1, eng)}...};
+        random_uniform<size_t>{0, m_dimensions[Is].size() - 1}(eng)}...};
   }
 
  public:
@@ -773,7 +773,7 @@ class grid {
   auto mutate_seq_straight(const vertex_seq_t& seq, Real min_angle,
                            size_t max_size_change, RandEng& eng) {
     return mutate_seq_straight(seq,
-                               random_uniform<size_t>{}(0, seq.size() - 1, eng),
+                               random_uniform<size_t>{0, seq.size() - 1}(eng),
                                min_angle, max_size_change, eng);
   }
 

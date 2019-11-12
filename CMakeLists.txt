@@ -45,6 +45,7 @@ endif()
 add_subdirectory(test)
 add_subdirectory(misc)
 add_subdirectory(cuda)
+add_subdirectory(steadification)
 
 #- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 # This makes the project importable from the build directory

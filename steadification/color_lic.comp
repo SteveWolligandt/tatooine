@@ -1,0 +1,28 @@
+#version 450
+
+layout(binding = 2, rgba32f) uniform image2D lic_tex;
+layout(binding = 3, rgba8) uniform image2D tau_color_tex;
+layout(binding = 4, rgba32f) uniform image2D color_lic_tex;
+
+const ivec2 tex_size = imageSize(color_lic_tex);
+
+//------------------------------------------------------------------------------
+layout (local_size_x = 16, local_size_y = 16) in;
+void main() {
+  const ivec2 pos = ivec2(gl_GlobalInvocationID.xy);
+  if (pos.x <= 0              ||
+      pos.y <= 0              ||
+      pos.x >= tex_size.x - 1 ||
+      pos.y >= tex_size.y - 1)
+    return;
+
+  const vec4 tau_col = imageLoad(tau_color_tex, pos);
+  const vec4 lic_val = imageLoad(lic_tex, pos);
+
+  if (tau_col.w == 0) {
+    imageStore(color_lic_tex, pos, vec4(1,1,1,0));
+    return;
+  }
+  imageStore(color_lic_tex, pos, lic_val * tau_col);
+  return;
+}

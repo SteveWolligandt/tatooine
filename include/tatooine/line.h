@@ -364,7 +364,7 @@ auto merge_line_container(Lines lines, MaxDist max_dist/*, MinAngle min_angle*/)
     bool merged_take_front = false;
     bool it_take_front     = false;
     for (auto it = std::begin(lines); it != std::end(lines); ++it) {
-      if (const auto d = tatooine::distance(merged.back().front_vertex(),
+      if (const auto d = distance(merged.back().front_vertex(),
                                             it->front_vertex());
           d < min_d && d < max_dist) {
         min_d             = d;
@@ -372,7 +372,7 @@ auto merge_line_container(Lines lines, MaxDist max_dist/*, MinAngle min_angle*/)
         merged_take_front = true;
         it_take_front     = true;
       }
-      if (const auto d = tatooine::distance(merged.back().back_vertex(),
+      if (const auto d = distance(merged.back().back_vertex(),
                                             it->front_vertex());
           d < min_d && d < max_dist) {
         min_d             = d;
@@ -380,7 +380,7 @@ auto merge_line_container(Lines lines, MaxDist max_dist/*, MinAngle min_angle*/)
         merged_take_front = false;
         it_take_front     = true;
       }
-      if (const auto d = tatooine::distance(merged.back().front_vertex(),
+      if (const auto d = distance(merged.back().front_vertex(),
                                             it->back_vertex());
           d < min_d && d < max_dist) {
         min_d             = d;
@@ -388,7 +388,7 @@ auto merge_line_container(Lines lines, MaxDist max_dist/*, MinAngle min_angle*/)
         merged_take_front = true;
         it_take_front     = false;
       }
-      if (const auto d = tatooine::distance(merged.back().back_vertex(),
+      if (const auto d = distance(merged.back().back_vertex(),
                                             it->back_vertex());
           d < min_d && d < max_dist) {
         min_d             = d;

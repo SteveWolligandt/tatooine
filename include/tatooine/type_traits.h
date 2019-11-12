@@ -26,6 +26,9 @@ static constexpr auto is_symbolic_v = is_symbolic<T>::value;
 template <typename... Ts>
 struct are_symbolic;
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+template <>
+struct are_symbolic<> : std::false_type {};
+// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 template <typename T>
 struct are_symbolic<T> : std::integral_constant<bool, is_symbolic<T>::value> {};
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -41,6 +44,9 @@ using enable_if_symbolic = std::enable_if_t<are_symbolic<Ts...>::value, bool>;
 //==============================================================================
 template <typename... Ts>
 struct are_floating_point;
+// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+template <>
+struct are_floating_point<> : std::false_type {};
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 template <typename T>
 struct are_floating_point<T>
@@ -58,6 +64,9 @@ using enable_if_floating_point =
 template <typename... Ts>
 struct are_integral;
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+template <>
+struct are_integral<> : std::false_type {};
+// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 template <typename T>
 struct are_integral<T>
     : std::integral_constant<bool, std::is_integral<T>::value> {};
@@ -73,6 +82,9 @@ using enable_if_integral = std::enable_if_t<are_integral<Ts...>::value, bool>;
 
 template <typename... Ts>
 struct are_arithmetic;
+// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+template <>
+struct are_arithmetic<> : std::false_type {};
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 template <typename T>
 struct are_arithmetic<T>
@@ -96,6 +108,9 @@ struct is_complex<std::complex<T>> : std::true_type {};
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 template <typename... Ts>
 struct are_complex;
+// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+template <>
+struct are_complex<> : std::false_type {};
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 template <typename T>
 struct are_complex<T>

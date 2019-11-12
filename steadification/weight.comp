@@ -1,0 +1,64 @@
+#version 450
+
+#include "layouts.glsl"
+const uint END = 0xffffffff;
+const float MAX_FLOAT = 3.402823466e+38;
+
+uniform float bw_tau;
+uniform float fw_tau;
+
+float weight(vec2 v0, vec2 v1) {
+  const float cosalpha = dot(normalize(v0), normalize(v1));
+  return (1 - cosalpha * cosalpha)*1.5-1;
+}
+
+layout (local_size_x = 16, local_size_y = 16) in;
+void main() {
+  ivec2 pos = ivec2(gl_GlobalInvocationID.xy);
+  ivec2 size = imageSize(head_index_tex);
+  if (pos.x >= size.x || pos.y >= size.y) return;
+
+  const uint idx           = pos.x + pos.y * size.x;
+  const vec3 head_vec_data = imageLoad(head_vectors_tex, pos).xyz;
+  const vec2 head_vec      = head_vec_data.xy;
+  const bool has_head_vec  = head_vec_data.z == 1;
+  const uint head_index    = imageLoad(head_index_tex, pos).r;
+  uint       running_index = head_index;
+  uint       len           = 0;
+  //uint       front_index   = END;
+  //float      min_tau       = MAX_FLOAT;
+
+  // get length of list and front pixel
+  while (running_index != END) {
+    //if (nodes[running_index].tau < min_tau) {
+      //front_index = running_index;
+      //min_tau = nodes[running_index].tau;
+    //}
+    running_index = nodes[running_index].next;
+    ++len;
+  }
+
+  if (len == 0) {
+    weights[idx] = 0;
+  } else if (len == 1) {
+    if (has_head_vec) {
+      weights[idx] = weight(nodes[head_index].vf, head_vec);
+    } else {
+      weights[idx] = 1;
+      const float tau = nodes[head_index].tau;
+      float b = 0;
+      if (tau < 0) { b = tau / bw_tau; }
+      else { b = tau / fw_tau; }
+      weights[idx] += b * b;
+    }
+  } else if (len == 2) {
+    if (has_head_vec) {
+      weights[idx] = -2;
+    } else {
+      weights[idx] = weight(nodes[head_index].vf,
+                            nodes[nodes[head_index].next].vf);
+    }
+  } else {
+    weights[idx] = -2;
+  }
+}

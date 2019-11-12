@@ -125,10 +125,14 @@ multi_index(Ts const (&... ranges)[2])->multi_index<sizeof...(Ts)>;
 template <size_t... Sizes>
 struct static_multidimension {
   static constexpr size_t N        = sizeof...(Sizes);
-  constexpr size_t num_data() const {
+  static constexpr size_t num_data() {
+#if has_cxx17_support()
+    return (Sizes * ...);
+#else 
     constexpr std::array<size_t, N> sizes{Sizes...};
     return std::accumulate(begin(sizes), end(sizes), size_t(1),
                            std::multiplies<size_t>{});
+#endif
   }
   static constexpr auto size() { return std::array<size_t, N>{Sizes...}; }
   static constexpr auto size(size_t i) { return size()[i]; }

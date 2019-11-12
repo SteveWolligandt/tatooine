@@ -25,7 +25,7 @@ struct chunk : static_multidimension<Sizes...> {
   using data_container_t = std::vector<T>;
   using iterator         = typename data_container_t::iterator;
   using const_iterator   = typename data_container_t::const_iterator;
-  static constexpr auto num_data() { return parent_t::num_data; }
+  static constexpr auto num_data() { return parent_t::num_data(); }
   static constexpr auto sizes() { return std::array{Sizes...}; }
 
   data_container_t m_data;
@@ -204,8 +204,8 @@ struct chunked_data {
 
   //----------------------------------------------------------------------------
   chunked_data(const chunked_data& other)
-      : m_chunk_structure{other.m_chunk_structure},
-        m_data_structure{other.m_data_structure},
+      : m_data_structure{other.m_data_structure},
+        m_chunk_structure{other.m_chunk_structure},
         m_chunks(other.m_chunks.size()) {
     copy_chunks(other);
   }
@@ -351,10 +351,9 @@ struct chunked_data {
     std::vector<std::unique_ptr<chunk_t>> new_chunks(
         new_chunk_structure.num_data());
 
-    for (auto mi : tatooine::multi_index(
+    for (auto mi : multi_index(
              {size_t(0),
-              std::min<size_t>(sizes, m_chunk_structure.size(Is)) -
-                  1}...)) {
+              std::min<size_t>(sizes, m_chunk_structure.size(Is)) - 1}...)) {
       new_chunks[new_chunk_structure.global_idx(mi)] =
           std::move(m_chunks[m_chunk_structure.global_idx(mi)]);
     }

@@ -18,12 +18,12 @@ struct grid_vertex_neighbors : subgrid<Real, N> {
       : subgrid<Real, N>{c, c}, center(c) {
     for (size_t i = 0; i < N; ++i) {
       if (this->m_begin_vertex.iterators[i] !=
-          this->m_begin_vertex.iterators[i].linspace().begin()) {
+          this->m_begin_vertex.iterators[i].begin()) {
         --this->m_begin_vertex.iterators[i];
       }
       for (size_t j = 0; j < 2; ++j) {
         if (this->m_end_vertex.iterators[i] !=
-            this->m_end_vertex.iterators[i].linspace().end()) {
+            this->m_end_vertex.iterators[i].end()) {
           ++this->m_end_vertex.iterators[i];
         }
       }

@@ -117,7 +117,7 @@ struct streamsurface {
     auto step = (uv1 - uv0) / (num_samples - 1);
     Real d    = 0;
     for (size_t i = 0; i < num_samples - 1; ++i) {
-      d += tatooine::distance(
+      d += ::tatooine::distance(
           sample(uv0 + step * i, cache_bw_tau, cache_fw_tau),
           sample(uv0 + step * (i + 1), cache_bw_tau, cache_fw_tau));
     }
@@ -349,7 +349,7 @@ struct front_evolving_streamsurface_discretization
             d = this->ssf->distance(uv(*v), uv(*next(v)), 5, cache_bw_tau,
                                     cache_fw_tau);
           } catch (std::exception&) {
-            d = tatooine::distance(at(*v), at(*next(v)));
+            d = distance(at(*v), at(*next(v)));
           }
 
           bool stop = false;
@@ -378,7 +378,7 @@ struct front_evolving_streamsurface_discretization
                 d = this->ssf->distance(uv(*v), uv(*next(v)), 5, cache_bw_tau,
                                         cache_fw_tau);
               } catch (std::exception&) {
-                d = tatooine::distance(at(*v), at(*next(v)));
+                d = distance(at(*v), at(*next(v)));
               }
             } catch (std::exception&) {
               if (next(v, 2) != end(vs)) {
@@ -413,8 +413,8 @@ struct front_evolving_streamsurface_discretization
               return this->ssf->distance(uv(*v), uv(*next(v, 2)), 7,
                                          cache_bw_tau, cache_fw_tau);
             } catch (std::exception&) {
-              return tatooine::distance(at(*v), at(*next(v))) +
-                     tatooine::distance(at(*next(v)), at(*next(v, 2)));
+              return distance(at(*v), at(*next(v))) +
+                     distance(at(*next(v)), at(*next(v, 2)));
             }
           };
           while (next(v) != prev(end(vs), 2) &&
