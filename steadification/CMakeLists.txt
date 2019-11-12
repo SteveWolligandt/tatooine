@@ -37,7 +37,7 @@ copy(spatial_coverage.comp)
 set(HDF5_LIBS -lhdf5 -lhdf5_cpp -lhdf5_hl)
 
 find_package(yavin REQUIRED)
-add_executable (steadification main.cpp renderers.cpp shaders.cpp steadification.cpp datasets.cpp)
+add_executable (steadification main.cpp renderers.cpp shaders.cpp datasets.cpp)
 target_link_libraries(steadification tatooine yavin)
 target_compile_features(steadification PUBLIC cxx_std_17)
 target_compile_options(steadification PRIVATE

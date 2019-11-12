@@ -2,7 +2,9 @@
 #include <fstream>
 #include <vector>
 
-//----------------------------------------------------------------------------
+//============================================================================
+namespace tatooine {
+//============================================================================
 void rbc::read_from_binary() {
   grids.reserve(dim[2]);
   for (size_t ti = 0; ti < dim[2]; ++ti) {
@@ -15,7 +17,7 @@ void rbc::read_from_binary() {
 
     std::ifstream file(filename, std::ifstream::binary);
     if (file.is_open()) {
-      std::vector<tatooine::vec<double, 2>> data(dim[0] * dim[1]);
+      std::vector<vec<double, 2>> data(dim[0] * dim[1]);
       // std::cout << "reading: " << filename <<'\n';
       constexpr auto num_bytes = sizeof(double) * dim[0] * dim[1] * 2;
       file.read((char*)(data.data()), num_bytes);
@@ -39,8 +41,9 @@ rbc::tensor_t rbc::evaluate(const rbc::pos_t& pos, rbc::real_t t) const {
 }
 
 //==============================================================================
-//FlappingWing::vec_t FlappingWing::evaluate(const FlappingWing::pos_t& pos,
-//                                           FlappingWing::real_t       t) const {
+// FlappingWing::vec_t FlappingWing::evaluate(const FlappingWing::pos_t& pos,
+//                                           FlappingWing::real_t       t) const
+//                                           {
 //  for (size_t i = 0; i < grids.size() - 1; ++i)
 //    if (times[i] <= t && t <= times[i + 1]) {
 //      real_t f = (t - times[i]) / (times[i + 1] - times[i]);
@@ -51,13 +54,13 @@ rbc::tensor_t rbc::evaluate(const rbc::pos_t& pos, rbc::real_t t) const {
 //}
 //
 ////------------------------------------------------------------------------------
-//bool FlappingWing::in_domain(const FlappingWing::vec_t& p, real_t t) const {
+// bool FlappingWing::in_domain(const FlappingWing::vec_t& p, real_t t) const {
 //  return times.front() <= t && t <= times.back() &&
 //         grids.front().in_domain(p(0), p(1));
 //}
 //
 ////------------------------------------------------------------------------------
-//void FlappingWing::load() {
+// void FlappingWing::load() {
 //  std::cerr << "loading flapping wing dataset... ";
 //  load_times();
 //  load_data();
@@ -65,7 +68,7 @@ rbc::tensor_t rbc::evaluate(const rbc::pos_t& pos, rbc::real_t t) const {
 //}
 //
 ////------------------------------------------------------------------------------
-//void FlappingWing::load_times() {
+// void FlappingWing::load_times() {
 //  std::ifstream times_file(dataset_dir + "flapping_wing/vtk/times.txt");
 //  std::string   line;
 //  if (times_file) {
@@ -83,7 +86,7 @@ rbc::tensor_t rbc::evaluate(const rbc::pos_t& pos, rbc::real_t t) const {
 //}
 //
 ////------------------------------------------------------------------------------
-//void FlappingWing::load_data() {
+// void FlappingWing::load_data() {
 //  grids.reserve(filenames.size());
 //  create_filenames();
 //  for (size_t i = 0; i < filenames.size(); i+=100) {
@@ -97,7 +100,7 @@ rbc::tensor_t rbc::evaluate(const rbc::pos_t& pos, rbc::real_t t) const {
 //}
 //
 ////------------------------------------------------------------------------------
-//void FlappingWing::create_filenames() {
+// void FlappingWing::create_filenames() {
 //  std::string front = "flapping_wing_";
 //  std::string ext   = ".vtk";
 //
@@ -105,3 +108,6 @@ rbc::tensor_t rbc::evaluate(const rbc::pos_t& pos, rbc::real_t t) const {
 //    filenames.push_back(dataset_dir + "flapping_wing/vtk/" + front +
 //                        std::to_string(i) + ext);
 //}
+//============================================================================
+}  // namespace tatooine
+//============================================================================

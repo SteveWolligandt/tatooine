@@ -9,16 +9,18 @@
 //==============================================================================
 using namespace std::filesystem;
 using namespace std::chrono;
-
-//------------------------------------------------------------------------------
-template <typename V>
-void calc(const V& v, real_t t0, real_t btau, real_t ftau, size_t num_its, size_t seed_res,
-          real_t stepsize, real_t desired_coverage, std::string seed_str) {
+//==============================================================================
+namespace tatooine {
+//==============================================================================
+template <typename V, typename VReal, typename T0Real, typename BTauReal, typename FTauReal, typename StepsizeReal, typename CovReal>
+void calc(const field<V, VReal, 2, 2>& v, T0Real t0, BTauReal btau, FTauReal ftau,
+          size_t num_its, size_t seed_res, StepsizeReal stepsize,
+          CovReal desired_coverage, std::string seed_str) {
   using settings = settings_t<V>;
 
-  std::seed_seq seed(seed_str.begin(), seed_str.end());
-  std::mt19937_64 random_engine(seed);
-  std::string p = std::string(settings::name) + "/";
+  std::seed_seq   seed(begin(seed_str), end(seed_str));
+  std::mt19937_64 random_engine{seed};
+  auto p = std::string{settings::name} + "/";
   size_t i = 1;
   while (exists(p)) {
     p = std::string(settings::name) + "_" + std::to_string(i) + "/";
@@ -57,7 +59,7 @@ void calc(const V& v, real_t t0, real_t btau, real_t ftau, size_t num_its, size_
 
   listener.num_its = num_its;
 
-  auto [elapsed, sol] = tatooine::measure([&]() {
+  auto [elapsed, sol] = measure([&]() {
     return steadification.calc(v, num_its, settings::num_edges, p,
                                desired_coverage, random_engine, {&listener});
   });
@@ -66,7 +68,7 @@ void calc(const V& v, real_t t0, real_t btau, real_t ftau, size_t num_its, size_
     f << settings::name << "\n===\n\n";
 
     auto [h, min, s, ms, mus] =
-        tatooine::break_down_durations<hours, minutes, seconds, milliseconds,
+        break_down_durations<hours, minutes, seconds, milliseconds,
                                        microseconds>(elapsed);
     f << "h|min|s|ms|mus\n"
       << ":---:|:---:|:---:|:---:|:---:\n"
@@ -107,15 +109,15 @@ void calc(const V& v, real_t t0, real_t btau, real_t ftau, size_t num_its, size_
   }
 }
 
-template <typename V>
-void calc(const V& v, int argc, char** argv) {
-  real_t      t0               = argc > 2 ? atof(argv[2]) : 0;
-  real_t      btau             = argc > 3 ? atof(argv[3]) : -5;
-  real_t      ftau             = argc > 4 ? atof(argv[4]) : 5;
+template <typename V, typename VReal>
+void calc(const field<V, VReal, 2, 2>& v, int argc, char** argv) {
+  double      t0               = argc > 2 ? atof(argv[2]) : 0;
+  double      btau             = argc > 3 ? atof(argv[3]) : -5;
+  double      ftau             = argc > 4 ? atof(argv[4]) : 5;
   size_t      num_its          = argc > 5 ? atoi(argv[5]) : 100;
   size_t      seed_res         = argc > 6 ? atoi(argv[6]) : 3;
-  real_t      stepsize         = argc > 7 ? atof(argv[7]) : 0.2;
-  real_t      desired_coverage = argc > 8 ? atof(argv[8]) : 0.999;
+  double      stepsize         = argc > 7 ? atof(argv[7]) : 0.2;
+  double      desired_coverage = argc > 8 ? atof(argv[8]) : 0.999;
   auto        seed_str         = argc > 9 ? argv[9]       : random_string(10);
   std::cerr << "seed: " << seed_str << '\n';
 
@@ -123,25 +125,28 @@ void calc(const V& v, int argc, char** argv) {
        seed_str);
 }
 //==============================================================================
+}  // namespace tatooine
+//==============================================================================
 int main(int argc, char** argv) {
-  std::cerr << tatooine::total_memory() / 1024.0 << "MB\n";
+  using namespace tatooine;
+  std::cerr << total_memory() / 1024.0 << "MB\n";
   std::string v = argv[1];
   if (v == "dg") {
-    calc(doublegyre<real_t>{}, argc, argv);
+    calc(numerical::doublegyre<double>{}, argc, argv);
   } else if (v == "fdg") {
-    calc(fixed_time_doublegyre{}, argc, argv);
+    calc(fixed_time_field{numerical::doublegyre<double>{}, 0}, argc, argv);
   } else if (v == "sc") {
-    calc(sinuscosinus<real_t>{}, argc, argv);
+    calc(numerical::sinuscosinus<double>{}, argc, argv);
   } else if (v == "la") {
-    calc(laminar{}, argc, argv);
+    calc(laminar<double>{}, argc, argv);
   }
   // else if (v == "cy")  { calc            (cylinder{}, argc, argv); }
   // else if (v == "fw")  { calc        (FlappingWing{}, argc, argv); }
-  // else if (v == "mg")  { calc  (movinggyre<real_t>{}, argc, argv); }
+  // else if (v == "mg")  { calc  (movinggyre<double>{}, argc, argv); }
   else if (v == "rbc") {
     calc(rbc{}, argc, argv);
   } else if (v == "bou") {
-    calc(tatooine::boussinesq{dataset_dir + "/boussinesq.am"}, argc, argv);
+    calc(boussinesq{dataset_dir + "/boussinesq.am"}, argc, argv);
   } else if (v == "cav") {
     calc(cavity{}, argc, argv);
   } else {

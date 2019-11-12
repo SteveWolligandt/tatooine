@@ -9,16 +9,18 @@
 #include <tatooine/parallel_for.h>
 #include <tatooine/simulated_annealing.h>
 #include <tatooine/streamsurface.h>
+
 #include <boost/filesystem.hpp>
 #include <boost/range/adaptors.hpp>
 #include <cstdlib>
 #include <vector>
+
 #include "gpu_mem_cache.h"
 #include "linked_list_texture.h"
-#include "real_t.h"
 #include "renderers.h"
 #include "shaders.h"
 
+template <typename Real>
 class Steadification {
  public:
   struct node_t {
@@ -27,36 +29,36 @@ class Steadification {
     float        tau;
   };
 
-  using edge_t   = tatooine::grid_edge<real_t, 2>;
-  using vertex_t = tatooine::grid_vertex<real_t, 2>;
-  using grid_t   = tatooine::grid<real_t, 2>;
+  using edge_t   = tatooine::grid_edge<Real, 2>;
+  using vertex_t = tatooine::grid_vertex<Real, 2>;
+  using grid_t   = tatooine::grid<Real, 2>;
 
-  using real_vec     = std::vector<real_t>;
+  using real_vec     = std::vector<Real>;
   using edge_vec     = std::vector<edge_t>;
   using vertex_seq_t = typename grid_t::vertex_seq_t;
 
   //[vertex, backward_tau, forward_tau]
-  using solution_t = std::vector<std::tuple<vertex_t, real_t, real_t>>;
+  using solution_t = std::vector<std::tuple<vertex_t, Real, Real>>;
 
   using listener_t = tatooine::simulated_annealing_listener<float, solution_t>;
 
-  using ribbon_t     = tatooine::mesh<real_t, 2>;
+  using ribbon_t     = tatooine::mesh<Real, 2>;
   using ribbon_gpu_t = StreamsurfaceRenderer;
 
-  using ndist = std::normal_distribution<real_t>;
-  using udist = std::uniform_real_distribution<real_t>;
+  using ndist = std::normal_distribution<Real>;
+  using udist = std::uniform_real_distribution<Real>;
 
   //============================================================================
 
  public:
-  tatooine::grid<real_t, 2> grid;
+  tatooine::grid<Real, 2> grid;
 
  private:
   tatooine::vec<size_t, 2>      render_resolution;
-  const real_t                  t0;
-  const real_t                  btau, ftau;
+  const Real                    t0;
+  const Real                    btau, ftau;
   size_t                        seed_res;
-  real_t                        stepsize;
+  Real                          stepsize;
   static constexpr unsigned int reduce_work_group_size = 1024;
   size_t                        seedcurve_length;
   size_t                        num_its;
@@ -99,18 +101,144 @@ class Steadification {
 
  public:
   //============================================================================
-  Steadification(const tatooine::grid<real_t, 2>& _grid,
-                 tatooine::vec<size_t, 2> _render_resolution, real_t t0,
-                 real_t btau, real_t ftau, size_t seed_res, real_t stepsize);
+  Steadification(const tatooine::grid<Real, 2>& _grid,
+                 tatooine::vec<size_t, 2> _render_resolution, Real _t0,
+                 Real _btau, Real _ftau, size_t _seed_res, Real _stepsize)
+      : grid(_grid),
+        render_resolution(_render_resolution),
+        t0{_t0},
+        btau{_btau},
+        ftau{_ftau},
+        seed_res{_seed_res},
+        stepsize{_stepsize},
+        w("steadification", render_resolution(0), render_resolution(1)),
+        cam(grid.dimension(0).front(), grid.dimension(0).back(),
+            grid.dimension(1).front(), grid.dimension(1).back(), btau, ftau,
+            render_resolution(0), render_resolution(1)),
+        gpu_linked_list(render_resolution(0), render_resolution(1)),
+        head_vectors(render_resolution(0), render_resolution(1)),
+        weights(render_resolution(0) * render_resolution(1)),
+        streamsurface_to_linked_list_shader(gpu_linked_list.buffer_size()),
 
+        color_scale{yavin::LINEAR, yavin::CLAMP_TO_EDGE, "color_scale.png"},
+        depth{yavin::NEAREST, yavin::CLAMP_TO_EDGE, render_resolution(0),
+              render_resolution(1)},
+        vector_tex{render_resolution(0), render_resolution(1)},
+        lic_tex{render_resolution(0), render_resolution(1)},
+        noise_tex{yavin::LINEAR, yavin::REPEAT, render_resolution(0),
+                  render_resolution(1)},
+        tau_color_tex{render_resolution(0), render_resolution(1)},
+        color_lic_tex{render_resolution(0), render_resolution(1)},
+        combined_solutions_color_tex{render_resolution(0),
+                                     render_resolution(1)},
+
+        weight_show_shader(render_resolution(0), render_resolution(1)),
+        line_shader(1, 1, 0),
+        ribbon_cache(10000, tatooine::total_memory() / 2),
+        ribbon_gpu_cache(10000, tatooine::total_memory() / 2, 1 * 1024 * 1024) {
+    std::cout << "render_resolution: " << render_resolution << '\n';
+    yavin::disable_multisampling();
+    streamsurface_to_linked_list_shader.set_projection(cam.projection_matrix());
+    streamsurface_tau_shader.set_projection(cam.projection_matrix());
+    streamsurface_vectorfield_shader.set_projection(cam.projection_matrix());
+    line_shader.set_projection(cam.projection_matrix());
+    streamsurface_tau_shader.set_tau_range({btau, ftau});
+
+    head_vectors.clear(0, 0, 0, 0);
+    gpu_linked_list.bind();
+    weights.bind(1);
+    head_vectors.bind_image_texture(1);
+
+    tatooine::grid_sampler<float, 2, float, tatooine::interpolation::linear,
+                           tatooine::interpolation::linear>
+        noise(render_resolution(0), render_resolution(1));
+    noise.randu(std::mt19937_64{1234});
+    noise_tex.upload_data(noise.data().unchunk(), render_resolution(0),
+                          render_resolution(1));
+  }
   //----------------------------------------------------------------------------
-  float  weight();
-  real_t angle_error(const solution_t& sol);
-  void   show_current(const solution_t& sol);
-  void   draw_seedline(const solution_t& sol, float r, float g, float b,
-                       unsigned int width);
-  void   draw_line(float x0, float y0, float z0, float x1, float y1, float z1,
-                   float r, float g, float b, float a);
+  float weight() {
+    weight_shader.set_bw_tau(btau);
+    weight_shader.set_fw_tau(ftau);
+    weight_shader.dispatch2d(gpu_linked_list.w() / 16 + 1,
+                             gpu_linked_list.h() / 16 + 1);
+
+    auto ws = weights.download_data();
+    return std::accumulate(begin(ws), end(ws), 0.0f);
+  }
+  //----------------------------------------------------------------------------
+  Real angle_error(const Steadification::solution_t& sol) {
+    Real error{};
+    for (auto it = begin(sol); it != prev(end(sol), 2); ++it) {
+      const auto& [v0, b0, f0] = *it;
+      const auto& [v1, b1, f1] = *next(it);
+      const auto& [v2, b2, f2] = *next(it, 2);
+
+      auto p0   = v0.position();
+      auto p1   = v1.position();
+      auto p2   = v2.position();
+      auto dir0 = p0 - p1;
+      auto dir1 = p2 - p1;
+      error += (180.0 - acos(dot(dir0, dir1) / (norm(dir0) * norm(dir1))) *
+                            180.0 / M_PI) /
+               135.0;
+    }
+    return error / sol.size();
+  }
+  //------------------------------------------------------------------------------
+  void show_current(const solution_t& sol) {
+    disable_blending();
+    clear_color_depth_buffer();
+    disable_depth_test();
+    gl::clear_color(0, 0, 0, 0);
+    gl::viewport(0, 0, render_resolution(0), render_resolution(1));
+
+    weight_show_shader.bind();
+    weight_show_shader.set_t0(t0);
+    weight_show_shader.set_bw_tau(btau);
+    weight_show_shader.set_fw_tau(ftau);
+    ScreenSpaceQuad screen_space_quad;
+    screen_space_quad.draw();
+
+    enable_blending();
+    blend_func_alpha();
+    for (auto x : grid.dimension(0))
+      draw_line(x, grid.dimension(1).front(), 0, x, grid.dimension(1).back(), 0,
+                1, 1, 1, 0.2);
+
+    for (auto y : grid.dimension(1))
+      draw_line(grid.dimension(0).front(), y, 0, grid.dimension(0).back(), y, 0,
+                1, 1, 1, 0.2);
+
+    disable_blending();
+    draw_seedline(sol, 0, 0, 0, 3);
+    draw_seedline(sol, 1, 1, 1, 1);
+
+    w.swap_buffers();
+    w.poll_events();
+  }
+  //----------------------------------------------------------------------------
+  void draw_seedline(const solution_t& sol, float r, float g, float b,
+                     unsigned int width) {
+    yavin::disable_depth_test();
+    glLineWidth(width);
+    for (auto it = begin(sol); it != prev(end(sol)); ++it) {
+      const auto& [v0, b0, f0] = *it;
+      const auto& [v1, b1, f1] = *next(it);
+      auto first               = v0.position();
+      auto second              = v1.position();
+      draw_line(first(0), first(1), 0, second(0), second(1), 0, r, g, b, 1);
+    }
+    yavin::enable_depth_test();
+  }
+  //---------------------------------------------------------------------------
+  void draw_line(float x0, float y0, float z0, float x1, float y1, float z1,
+                 float r, float g, float b, float a) {
+    indexeddata<vec3> line({{x0, y0, z0}, {x1, y1, z1}}, {0, 1});
+    line_shader.bind();
+    line_shader.set_color(r, g, b, a);
+    line.draw_lines();
+  }
 
   //----------------------------------------------------------------------------
   template <typename vf_t>
@@ -236,18 +364,18 @@ class Steadification {
 
   //----------------------------------------------------------------------------
   template <typename vf_t>
-  auto ribbon_uncached(const vf_t& vf, const edge_t& e, real_t stepsize) {
+  auto ribbon_uncached(const vf_t& vf, const edge_t& e, Real stepsize) {
     using namespace VC::odeint;
-    using vec2 = tatooine::vec<real_t, 2>;
+    using vec2 = tatooine::vec<Real, 2>;
     tatooine::streamsurface ssf{
         vf,
         t0,
-        tatooine::parameterized_line<real_t, 2>{{e.first.position(), 0},
-                                                {e.second.position(), 1}},
+        tatooine::parameterized_line<Real, 2>{{e.first.position(), 0},
+                                              {e.second.position(), 1}},
         tatooine::integration::vclibs::rungekutta43<double, 2>{
             AbsTol = 1e-6, RelTol = 1e-6, InitialStep = 0, MaxStep = stepsize},
-        tatooine::interpolation::linear<real_t>{},
-        tatooine::interpolation::hermite<real_t>{}};
+        tatooine::interpolation::linear<Real>{},
+        tatooine::interpolation::hermite<Real>{}};
     ssf.integrator().cache().set_max_memory_usage(1024 * 1024 * 25);
     auto        ribbon  = ssf.discretize(seed_res, stepsize, btau, ftau);
     const auto& mesh_uv = ribbon.template vertex_property<vec2>("uv");
@@ -257,7 +385,7 @@ class Steadification {
       if (vf.in_domain(ribbon[v], t0 + mesh_uv[v](1))) {
         mesh_vf[v] = vf(ribbon[v], t0 + mesh_uv[v](1));
       } else {
-        mesh_vf[v] = tatooine::vec<real_t, 2>{0.0 / 0.0, 0.0 / 0.0};
+        mesh_vf[v] = tatooine::vec<Real, 2>{0.0 / 0.0, 0.0 / 0.0};
       }
     }
 
@@ -272,7 +400,7 @@ class Steadification {
 
   //----------------------------------------------------------------------------
   template <typename vf_t>
-  const auto& ribbon(const vf_t& vf, const edge_t& e, real_t stepsize) {
+  const auto& ribbon(const vf_t& vf, const edge_t& e, Real stepsize) {
     using namespace VC::odeint;
     if (auto found = ribbon_cache.find(e); found == ribbon_cache.end()) {
       auto            ribbon = ribbon_uncached(vf, e, stepsize);
@@ -304,7 +432,7 @@ class Steadification {
   //----------------------------------------------------------------------------
   template <typename vf_t>
   ribbon_gpu_t ribbon_gpu_uncached(const vf_t& vf, const edge_t& e,
-                                   real_t stepsize) {
+                                   Real stepsize) {
     return StreamsurfaceRenderer(ribbon_uncached(vf, e, stepsize));
   }
 
@@ -317,7 +445,7 @@ class Steadification {
   //----------------------------------------------------------------------------
   template <typename vf_t>
   const ribbon_gpu_t& ribbon_gpu(const vf_t& vf, const edge_t& e,
-                                 real_t stepsize) {
+                                 Real stepsize) {
     if (auto found = ribbon_gpu_cache.find(e); found == end(ribbon_gpu_cache)) {
       return ribbon_gpu_cache
           .try_emplace(e, StreamsurfaceRenderer(ribbon(vf, e, stepsize)))
@@ -337,10 +465,10 @@ class Steadification {
   static auto resample_taus(const solution_t& sol, size_t n) {
     real_vec interpolated_taus(n), new_taus;
     for (size_t i = 0; i < n; ++i) {
-      real_t norm_pos = real_t(i) / real_t(n - 1);
+      Real   norm_pos = Real(i) / Real(n - 1);
       auto   old_pos  = norm_pos * (sol.size() - 1);
       size_t idx      = std::floor(old_pos);
-      real_t factor   = old_pos - idx;
+      Real   factor   = old_pos - idx;
 
       interpolated_taus[i] =
           std::get<j>(sol[idx]) * (1 - factor) +
@@ -351,7 +479,7 @@ class Steadification {
 
   //------------------------------------------------------------------------
   template <typename RandEng>
-  auto change_taus(real_vec taus, real_t min, real_t max, real_t stddev,
+  auto change_taus(real_vec taus, Real min, Real max, Real stddev,
                    RandEng&& eng) {
     //
     // {  // front
@@ -392,7 +520,7 @@ class Steadification {
 
   //------------------------------------------------------------------------
   template <typename RandEng>
-  static auto random_taus(size_t num, real_t min, real_t max, real_t stddev,
+  static auto random_taus(size_t num, Real min, Real max, Real stddev,
                           RandEng&& eng) {
     auto     cur_tau = udist{min, max}(eng);
     real_vec taus;
@@ -459,7 +587,7 @@ class Steadification {
   //--------------------------------------------------------------------------
   template <typename vf_t, typename RandEng>
   auto calc(const vf_t& vf, size_t _num_its, size_t _seedcurve_length,
-            const std::string& path, real_t desired_coverage, RandEng&& eng,
+            const std::string& path, Real desired_coverage, RandEng&& eng,
             const std::vector<listener_t*>& listeners = {}) {
     size_t         num_pixels_in_domain = 0;
     tatooine::grid render_grid{
@@ -470,8 +598,8 @@ class Steadification {
     for (auto v : render_grid.vertices()) {
       if (vf.in_domain(v.position(), t0)) { ++num_pixels_in_domain; }
     }
-    std::cerr << 100.0 * real_t(num_pixels_in_domain) /
-                     real_t(render_resolution(0) * render_resolution(1))
+    std::cerr << 100.0 * Real(num_pixels_in_domain) /
+                     Real(render_resolution(0) * render_resolution(1))
               << "% of pixels in domain" << '\n';
     num_its          = _num_its;
     seedcurve_length = _seedcurve_length;
@@ -485,22 +613,22 @@ class Steadification {
 
     //--------------------------------------------------------------------------
     // temperature must be between 0 and 1
-    auto temperature = [this](real_t i) { return 1 - i / (num_its - 1); };
+    auto temperature = [this](Real i) { return 1 - i / (num_its - 1); };
 
     //--------------------------------------------------------------------------
-    auto permute = [&, this](const solution_t& old_sol, real_t temp) {
+    auto permute = [&, this](const solution_t& old_sol, Real temp) {
       auto stddev = temp;
 
       const auto global_local_border = 0.5;
       solution_t sol;
       if (temp > global_local_border) {
         // GLOBAL CHANGE
-        std::uniform_real_distribution<real_t> rand_cont{0, 1};
-        auto                                   bw_tau = udist{btau, 0}(eng);
-        auto                                   fw_tau = udist{0, ftau}(eng);
-        ndist  seq_len{real_t(seedcurve_length), real_t(2)};
-        const auto ndist_val = abs(seq_len(eng));
-        const size_t len = std::max<size_t>(1, ndist_val);
+        std::uniform_real_distribution<Real> rand_cont{0, 1};
+        auto                                 bw_tau = udist{btau, 0}(eng);
+        auto                                 fw_tau = udist{0, ftau}(eng);
+        ndist        seq_len{Real(seedcurve_length), Real(2)};
+        const auto   ndist_val = abs(seq_len(eng));
+        const size_t len       = std::max<size_t>(1, ndist_val);
 
         auto new_seq = clean_sequence(
             grid.random_straight_vertex_sequence(len, 130.0, eng));
@@ -510,18 +638,18 @@ class Steadification {
         return sol;
 
       } else {
-         // LOCAL CHANGE
+        // LOCAL CHANGE
         vertex_seq_t mutated_seq;
         boost::transform(old_sol, std::back_inserter(mutated_seq),
                          [](const auto& v) { return std::get<0>(v); });
 
         mutated_seq = grid.mutate_seq_straight(mutated_seq, 130, 5, eng);
 
-        auto clamp_positive = [this](real_t v) {
-          return std::min(std::max<real_t>(v, 0), ftau);
+        auto clamp_positive = [this](Real v) {
+          return std::min(std::max<Real>(v, 0), ftau);
         };
-        auto clamp_negative = [this](real_t v) {
-          return std::min<real_t>(std::max(v, btau), 0);
+        auto clamp_negative = [this](Real v) {
+          return std::min<Real>(std::max(v, btau), 0);
         };
         auto fw_tau =
             clamp_positive(ndist{std::get<2>(old_sol.front()), stddev}(eng));
@@ -537,7 +665,7 @@ class Steadification {
 
     auto vertex_to_tuple = [this](auto v) { return std::tuple{v, btau, ftau}; };
     size_t i             = 0;
-    real_t coverage      = 0;
+    Real   coverage      = 0;
     while (coverage < desired_coverage) {
       solution_t start_solution;
       boost::transform(
@@ -554,8 +682,8 @@ class Steadification {
       gpu_linked_list.counter()[0] = 0;
       spatial_coverage_shader.dispatch2d(render_resolution(0) / 16 + 1,
                                          render_resolution(1) / 16 + 1);
-      coverage =
-          real_t(gpu_linked_list.counter()[0]) / real_t(num_pixels_in_domain);
+      coverage = static_cast<Real>(gpu_linked_list.counter()[0]) /
+                 static_cast<Real>(num_pixels_in_domain);
       std::cerr << "coverage: " << coverage * 100 << "%" << '\n';
 
       to_lic(vf, solutions.back(), 100);

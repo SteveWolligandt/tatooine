@@ -4,20 +4,14 @@
 #include "datasets.h"
 
 //==============================================================================
-using tatooine::grid;
-using tatooine::linspace;
-using tatooine::vec;
-using tatooine::numerical::doublegyre;
-//using tatooine::numerical::movinggyre;
-using tatooine::numerical::sinuscosinus;
-
+namespace tatooine {
 //==============================================================================
-template <typename T>
+template <typename Real>
 struct settings_t;
 
 //==============================================================================
-template <>
-struct settings_t<rbc> {
+template <> struct settings_t<rbc> {
+  using real_t = typename rbc::real_t;
   static constexpr std::string_view name      = "rbc";
   static constexpr real_t           eps       = 1e-2;
   static constexpr size_t           num_edges = 5;
@@ -36,10 +30,9 @@ struct settings_t<rbc> {
 };
 
 //==============================================================================
-template <>
-struct settings_t<doublegyre<real_t>> {
+template <typename Real> struct settings_t<numerical::doublegyre<Real>> {
   static constexpr std::string_view name = "doublegyre";
-  static constexpr real_t           eps  = 1e-4;
+  static constexpr Real           eps  = 1e-4;
   static constexpr grid             domain{linspace{eps, 2 - eps, 41},
                                linspace{eps, 1 - eps, 21}};
   static constexpr vec<size_t, 2>   render_resolution{1600, 800};
@@ -47,10 +40,9 @@ struct settings_t<doublegyre<real_t>> {
 };
 
 //==============================================================================
-template <>
-struct settings_t<fixed_time_doublegyre> {
+template <typename Real> struct settings_t<fixed_time_field<numerical::doublegyre<Real>, Real, 2, 2>> {
   static constexpr std::string_view name = "fixed_time_doublegyre";
-  static constexpr real_t           eps  = 1e-4;
+  static constexpr Real           eps  = 1e-4;
   static constexpr grid             domain{linspace{eps, 2 - eps, 41},
                                linspace{eps, 1 - eps, 21}};
   static constexpr vec<size_t, 2>   render_resolution{1600, 800};
@@ -58,8 +50,7 @@ struct settings_t<fixed_time_doublegyre> {
 };
 
 //==============================================================================
-template <>
-struct settings_t<sinuscosinus<real_t>> {
+template <typename Real> struct settings_t<numerical::sinuscosinus<Real>> {
   static constexpr std::string_view name = "sinuscosinus";
   static constexpr grid             domain{linspace{-2.0, 2.0, 30},
                                linspace{-2.0, 2.0, 30}};
@@ -68,8 +59,7 @@ struct settings_t<sinuscosinus<real_t>> {
 };
 
 //==============================================================================
-template <>
-struct settings_t<laminar> {
+template <typename Real> struct settings_t<laminar<Real>> {
   static constexpr std::string_view name = "laminar";
   static constexpr grid domain{linspace{0.0, 2.0, 20}, linspace{0, 2, 20}};
   static constexpr vec<size_t, 2> render_resolution{500, 500};
@@ -77,8 +67,7 @@ struct settings_t<laminar> {
 };
 
 //==============================================================================
-//template <>
-//struct settings_t<cylinder> {
+//template <> struct settings_t<cylinder> {
 //  static constexpr std::string_view name = "cylinder";
 //  static constexpr grid domain{linspace{0.0, 559.0, cylinder::res[0] / 20},
 //                               linspace{0.0, 159.0, cylinder::res[1] / 20}};
@@ -87,29 +76,26 @@ struct settings_t<laminar> {
 //};
 
 //==============================================================================
-template <>
-struct settings_t<tatooine::boussinesq> {
+template <> struct settings_t<boussinesq> {
   static constexpr std::string_view name = "boussinesq";
   static constexpr vec<size_t, 2>   render_resolution{500, 1500};
   static constexpr size_t           num_edges = 5;
-  static constexpr real_t           eps       = 1e-4;
+  static constexpr double           eps       = 1e-4;
   //----------------------------------------------------------------------------
   static constexpr grid domain{
-      linspace{tatooine::boussinesq::domain.dimension(0).front() +
-                   1.0 / tatooine::boussinesq::res(0),
-               tatooine::boussinesq::domain.dimension(0).back() -
-                   1.0 / tatooine::boussinesq::res(0),
-               18},
-      linspace{tatooine::boussinesq::domain.dimension(1).front() +
-                   1.0 / tatooine::boussinesq::res(1),
-               tatooine::boussinesq::domain.dimension(1).back() -
-                   1.0 / tatooine::boussinesq::res(1),
-               18 * 3}};
+      linspace{
+          boussinesq::domain.dimension(0).front() + 1.0 / boussinesq::res(0),
+          boussinesq::domain.dimension(0).back() - 1.0 / boussinesq::res(0),
+          18},
+      linspace{
+          boussinesq::domain.dimension(1).front() + 1.0 / boussinesq::res(1),
+          boussinesq::domain.dimension(1).back() - 1.0 / boussinesq::res(1),
+          18 * 3}};
 };
 
 //==============================================================================
-template <>
-struct settings_t<cavity> {
+template <> struct settings_t<cavity> {
+  using real_t = typename rbc::real_t;
   static constexpr std::string_view name = "cavity";
   static constexpr vec<size_t, 2>   render_resolution{
       cavity::domain.dimension(0).size() * 5,
@@ -127,8 +113,7 @@ struct settings_t<cavity> {
 };
 
 //==============================================================================
-//template <typename real_t>
-//struct settings_t<movinggyre<real_t>> {
+//template <typename real_t> struct settings_t<movinggyre<real_t>> {
 //  static constexpr std::string_view name = "movinggyre";
 //  static constexpr real_t           eps  = 1e-4;
 //  static constexpr grid domain{linspace{0, 1, 51}, linspace{-0.5, 0.5, 51}};
@@ -137,14 +122,18 @@ struct settings_t<cavity> {
 //};
 
 //==============================================================================
-//template <>
-//struct settings_t<FlappingWing> {
+// template <> struct settings_t<FlappingWing> {
 //  static constexpr std::string_view name = "FlappingWing";
 //  static constexpr real_t           eps  = 1e-5;
-//  static constexpr grid             domain{linspace{0.0 + eps, 24.0 - eps, 26},
-//                                           linspace{0.0 + eps, 24.0 - eps, 26}};
+//  static constexpr grid             domain{linspace{0.0 + eps, 24.0 - eps,
+//  26},
+//                                           linspace{0.0 + eps, 24.0 - eps,
+//                                           26}};
 //  static constexpr vec<size_t, 2>   render_resolution{1000, 1000};
 //  static constexpr size_t           num_edges = 5;
 //};
+//==============================================================================
+}  // namespace tatooine
+//==============================================================================
 
 #endif
