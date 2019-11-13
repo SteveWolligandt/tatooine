@@ -15,8 +15,12 @@
 #include "renderers.h"
 #include "shaders.h"
 
+//==============================================================================
+namespace tatooine {
+//==============================================================================
+
 template <typename Real>
-class Steadification {
+class steadification {
  public:
   using ribbon_t     = tatooine::mesh<Real, 2>;
   using ribbon_gpu_t = StreamsurfaceRenderer;
@@ -40,12 +44,13 @@ class Steadification {
 
  public:
   //============================================================================
-  Steadification(const tatooine::boundingbox<Real, 3>& domain,
-                 tatooine::vec<size_t, 2> render_resolution, Real _t0,
-                 Real _btau, Real _ftau, size_t _seed_res, Real _stepsize)
+  steadification(const tatooine::boundingbox<Real, 3>& domain,
+                 tatooine::vec<size_t, 2> window_resolution,
+                 tatooine::vec<size_t, 2> render_resolution,
+                 size_t _seed_res, Real _stepsize)
       : m_domain{domain},
         m_render_resolution{render_resolution},
-        w("steadification", render_resolution(0), render_resolution(1)),
+        w("steadification", window_resolution(0), window_resolution(1)),
         cam(domain.min(0), domain.max(0), domain.min(1), domain.max(1), -1000,
             1000, render_resolution(0), render_resolution(1)),
 
@@ -54,7 +59,6 @@ class Steadification {
               render_resolution(1)},
         noise_tex{yavin::LINEAR, yavin::REPEAT, render_resolution(0),
                   render_resolution(1)} {
-    std::cout << "render_resolution: " << render_resolution << '\n';
     yavin::disable_multisampling();
 
     std::vector<float>    noise(render_resolution(0), render_resolution(1));
@@ -137,4 +141,7 @@ class Steadification {
 
 };
 
+//==============================================================================
+}  // namespace tatooine
+//==============================================================================
 #endif
