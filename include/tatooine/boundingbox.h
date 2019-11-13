@@ -9,7 +9,6 @@
 //==============================================================================
 namespace tatooine {
 //==============================================================================
-
 template <typename Real, size_t N>
 struct boundingbox {
   //============================================================================
@@ -18,11 +17,9 @@ struct boundingbox {
   using pos_t  = vec<Real, N>;
 
   static constexpr auto num_dimensions() { return N; }
-
   //============================================================================
   pos_t min;
   pos_t max;
-
   //============================================================================
   constexpr boundingbox()                             = default;
   constexpr boundingbox(const boundingbox& other)     = default;
@@ -30,19 +27,20 @@ struct boundingbox {
   constexpr boundingbox& operator=(const boundingbox& other) = default;
   constexpr boundingbox& operator=(boundingbox&& other) noexcept = default;
   ~boundingbox()                                                 = default;
-
   //----------------------------------------------------------------------------
   template <typename Real0, typename Real1>
-  constexpr boundingbox(tensor<Real0, N>&& _min,
-                        tensor<Real1, N>&& _max) noexcept
+  constexpr boundingbox(vec<Real0, N>&& _min,
+                        vec<Real1, N>&& _max) noexcept
       : min{std::move(_min)}, max{std::move(_max)} {}
-
   //----------------------------------------------------------------------------
   template <typename Real0, typename Real1>
-  constexpr boundingbox(const tensor<Real0, N>& _min,
-                        const tensor<Real1, N>& _max) noexcept
+  constexpr boundingbox(const vec<Real0, N>& _min, const vec<Real1, N>& _max)
       : min{_min}, max{_max} {}
-
+  //----------------------------------------------------------------------------
+  template <typename Tensor0, typename Tensor1, typename Real0, typename Real1>
+  constexpr boundingbox(const base_tensor<Tensor0, Real0, N>& _min,
+                        const base_tensor<Tensor1, Real1, N>& _max)
+      : min{_min}, max{_max} {}
   //============================================================================
   constexpr void operator+=(const pos_t& point) {
     for (size_t i = 0; i < point.size(); ++i) {
@@ -69,10 +67,9 @@ struct boundingbox {
     }
     return true;
   }
-
   //----------------------------------------------------------------------------
-  template <typename random_engine_t>
-  auto random_point(random_engine_t&& random_engine) {
+  template <typename RandomEngine>
+  auto random_point(RandomEngine& random_engine) const {
     pos_t p;
     for (size_t i = 0; i < N; ++i) {
       std::uniform_real_distribution<Real> distribution{min(i), max(i)};
@@ -81,18 +78,21 @@ struct boundingbox {
     return p;
   }
 };
-
 //==============================================================================
 // deduction guides
 //==============================================================================
 #if has_cxx17_support()
 template <typename Real0, typename Real1, size_t N>
-boundingbox(const tensor<Real0, N>&, const tensor<Real1, N>&)
+boundingbox(const vec<Real0, N>&, const vec<Real1, N>&)
     ->boundingbox<promote_t<Real0, Real1>, N>;
-
 //------------------------------------------------------------------------------
 template <typename Real0, typename Real1, size_t N>
-boundingbox(tensor<Real0, N>&&, tensor<Real1, N> &&)
+boundingbox(vec<Real0, N>&&, vec<Real1, N> &&)
+    ->boundingbox<promote_t<Real0, Real1>, N>;
+//------------------------------------------------------------------------------
+template <typename Tensor0, typename Tensor1, typename Real0, typename Real1,
+          size_t N>
+boundingbox(base_tensor<Tensor0, Real0, N>&&, base_tensor<Tensor1, Real1, N> &&)
     ->boundingbox<promote_t<Real0, Real1>, N>;
 #endif
 

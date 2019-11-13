@@ -32,15 +32,15 @@ template <> struct settings_t<rbc> {
 //==============================================================================
 template <typename Real> struct settings_t<numerical::doublegyre<Real>> {
   static constexpr std::string_view name = "doublegyre";
-  static constexpr Real           eps  = 1e-4;
-  static constexpr grid             domain{linspace{eps, 2 - eps, 41},
-                               linspace{eps, 1 - eps, 21}};
-  static constexpr vec<size_t, 2>   render_resolution{1600, 800};
-  static constexpr size_t           num_edges = 5;
+  static constexpr Real             eps  = 1e-4;
+  static constexpr boundingbox      domain{vec{eps, eps, 0},
+                                      vec{2 - eps, 1 - eps, 10}};
+  static constexpr vec<size_t, 2>   render_resolution{1000, 500};
 };
 
 //==============================================================================
-template <typename Real> struct settings_t<fixed_time_field<numerical::doublegyre<Real>, Real, 2, 2>> {
+template <typename Real>
+struct settings_t<fixed_time_field<numerical::doublegyre<Real>, Real, 2, 2>> {
   static constexpr std::string_view name = "fixed_time_doublegyre";
   static constexpr Real           eps  = 1e-4;
   static constexpr grid             domain{linspace{eps, 2 - eps, 41},

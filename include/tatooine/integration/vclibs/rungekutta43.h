@@ -46,13 +46,13 @@ struct VC::odeint::vector_operations_t<tatooine::vec<Real, N>> {
 namespace tatooine::integration::vclibs {
 //==============================================================================
 
-static constexpr inline auto RK43        = VC::odeint::RK43;
-static constexpr inline auto OutOfDomain = VC::odeint::OutOfDomain;
-static constexpr inline auto AbsTol      = VC::odeint::AbsTol;
-static constexpr inline auto RelTol      = VC::odeint::RelTol;
-static constexpr inline auto InitialStep = VC::odeint::InitialStep;
-static constexpr inline auto MaxStep     = VC::odeint::MaxStep;
-static constexpr inline auto MaxNumSteps = VC::odeint::MaxNumSteps;
+static constexpr inline auto rk43          = VC::odeint::RK43;
+static constexpr inline auto out_of_domain = VC::odeint::OutOfDomain;
+static constexpr inline auto abs_tol       = VC::odeint::AbsTol;
+static constexpr inline auto rel_tol       = VC::odeint::RelTol;
+static constexpr inline auto initial_step  = VC::odeint::InitialStep;
+static constexpr inline auto max_step      = VC::odeint::MaxStep;
+static constexpr inline auto max_num_steps = VC::odeint::MaxNumSteps;
 
 template <typename Real, size_t N>
 struct rungekutta43 : integrator<Real, N, rungekutta43<Real, N>> {
@@ -72,16 +72,16 @@ struct rungekutta43 : integrator<Real, N, rungekutta43<Real, N>> {
   //============================================================================
  public:
   rungekutta43()
-      : m_options{AbsTol = 1e-4, RelTol = 1e-4, InitialStep = 0,
-                  MaxStep = 0.1} {}
+      : m_options{abs_tol = 1e-4, rel_tol = 1e-4, initial_step = 0,
+                  max_step = 0.1} {}
   rungekutta43(const rungekutta43& other)
       : parent_t{other},
-        m_options{AbsTol = 1e-4, RelTol = 1e-4, InitialStep = 0,
-                  MaxStep = 0.1} {}
+        m_options{abs_tol = 1e-4, rel_tol = 1e-4, initial_step = 0,
+                  max_step = 0.1} {}
   rungekutta43(rungekutta43&& other) noexcept
       : parent_t{std::move(other)},
-        m_options{AbsTol = 1e-4, RelTol = 1e-4, InitialStep = 0,
-                  MaxStep = 0.1} {}
+        m_options{abs_tol = 1e-4, rel_tol = 1e-4, initial_step = 0,
+                  max_step = 0.1} {}
   //----------------------------------------------------------------------------
   template <typename... Options>
   rungekutta43(Options&&... options)
@@ -102,7 +102,7 @@ struct rungekutta43 : integrator<Real, N, rungekutta43<Real, N>> {
       if (!vf.in_domain(y, t)) return VC::odeint::OutOfDomain;
       return vf(y, t);
     };
-    auto stepper = ode_t::solver(RK43, m_options);
+    auto stepper = ode_t::solver(rk43, m_options);
     stepper.initialize(dy, t0, t0 + tau, y0);
 
     stepper.integrate(
@@ -128,7 +128,7 @@ struct rungekutta43 : integrator<Real, N, rungekutta43<Real, N>> {
       if (!vf.in_domain(y, t)) return VC::odeint::OutOfDomain;
       return vf(y, t);
     };
-    auto stepper = ode_t::solver(RK43, m_options);
+    auto stepper = ode_t::solver(rk43, m_options);
     stepper.initialize(dy, t0, t0 + tau, y0);
 
     stepper.integrate(

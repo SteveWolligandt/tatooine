@@ -11,10 +11,10 @@ namespace tatooine {
 template <typename Real, size_t N,
           template <typename> typename Interpolator =
               interpolation::linear>
-struct parameterized_surface : public mesh<Real, N> {
+struct parameterized_mesh : public mesh<Real, N> {
   using interpolator_t = Interpolator<Real>;
 
-  using this_t   = parameterized_surface<Real, N, Interpolator>;
+  using this_t   = parameterized_mesh<Real, N, Interpolator>;
   using parent_t = mesh<Real, N>;
 
   using parent_t::num_dimensions;
@@ -38,25 +38,25 @@ struct parameterized_surface : public mesh<Real, N> {
   uv_prop_t* m_uv;
 
   //============================================================================
-  parameterized_surface() : m_uv(add_uv_prop()) {}
+  parameterized_mesh() : m_uv(add_uv_prop()) {}
 
   //----------------------------------------------------------------------------
-  parameterized_surface(const parameterized_surface& other)
+  parameterized_mesh(const parameterized_mesh& other)
       : parent_t(other), m_uv(find_uv_prop()) {}
 
   //----------------------------------------------------------------------------
-  parameterized_surface(parameterized_surface&& other)
+  parameterized_mesh(parameterized_mesh&& other)
       : parent_t(std::move(other)), m_uv(find_uv_prop()) {}
 
   //----------------------------------------------------------------------------
-  auto& operator=(const parameterized_surface& other) {
+  auto& operator=(const parameterized_mesh& other) {
     parent_t::operator=(other);
     m_uv              = find_uv_prop();
     return *this;
   }
 
   //----------------------------------------------------------------------------
-  auto& operator=(parameterized_surface&& other) {
+  auto& operator=(parameterized_mesh&& other) {
     parent_t::operator=(std::move(other));
     m_uv              = find_uv_prop();
     return *this;

@@ -98,6 +98,10 @@ struct are_arithmetic<T0, T1, Ts...>
 template <typename... Ts>
 using enable_if_arithmetic =
     std::enable_if_t<are_arithmetic<Ts...>::value, bool>;
+//~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+template <typename... Ts>
+using enable_if_not_arithmetic =
+    std::enable_if_t<!are_arithmetic<Ts...>::value, bool>;
 
 //==============================================================================
 template <typename T>

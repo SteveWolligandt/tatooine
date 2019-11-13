@@ -16,7 +16,7 @@
 #include "line.h"
 #include "linspace.h"
 #include "parallel_for.h"
-#include "parameterized_surface.h"
+#include "parameterized_mesh.h"
 #include "tensor.h"
 
 //==============================================================================
@@ -143,8 +143,8 @@ struct streamsurface {
             typename... Args>
   auto discretize(Args&&... args) {
     return Discretization<Integrator, SeedcurveInterpolator,
-                          StreamlineInterpolator, V, Real, N>{
-        this, std::forward<Args>(args)...};
+                          StreamlineInterpolator, V, Real, N>(
+        this, std::forward<Args>(args)...);
   }
 
   //----------------------------------------------------------------------------
@@ -182,12 +182,12 @@ template <template <typename, size_t> typename Integrator,
           template <typename> typename StreamlineInterpolator, typename V,
           typename Real, size_t N>
 struct front_evolving_streamsurface_discretization
-    : public parameterized_surface<Real, N> {
+    : public parameterized_mesh<Real, N> {
   static constexpr auto num_dimensions() { return N; }
   using real_t = Real;
   using this_t = front_evolving_streamsurface_discretization<
       Integrator, SeedcurveInterpolator, StreamlineInterpolator, V, Real, N>;
-  using parent_t = parameterized_surface<Real, N>;
+  using parent_t = parameterized_mesh<Real, N>;
   using parent_t::at;
   using parent_t::insert_vertex;
   using parent_t::uv;

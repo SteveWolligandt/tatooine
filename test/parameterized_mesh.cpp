@@ -1,11 +1,11 @@
-#include <tatooine/parameterized_surface.h>
+#include <tatooine/parameterized_mesh.h>
 #include <catch2/catch.hpp>
 
 //==============================================================================
 namespace tatooine::test {
 //==============================================================================
 
-struct parameterized_surface_fixture : parameterized_surface<double, 3> {
+struct parameterized_surface_fixture : parameterized_mesh<double, 3> {
   parameterized_surface_fixture() {
     std::vector vs{
         insert_vertex({0, 0, 0}, {0, 0}), insert_vertex({1, 0, 1}, {1, 0}),
@@ -16,7 +16,7 @@ struct parameterized_surface_fixture : parameterized_surface<double, 3> {
   }
 };
 
-TEST_CASE_METHOD(parameterized_surface_fixture, "parameterized_surface") {
+TEST_CASE_METHOD(parameterized_surface_fixture, "parameterized_mesh") {
   SECTION("Sampling") {
     REQUIRE(sample(0, 0)(0) == 0);
     REQUIRE(sample(0, 0)(1) == 0);
@@ -44,7 +44,7 @@ TEST_CASE_METHOD(parameterized_surface_fixture, "parameterized_surface") {
     REQUIRE_THROWS(sample(0, 2));
   }
   SECTION("Copy Constructor") {
-    parameterized_surface<double, 3> other{*this};
+    parameterized_mesh<double, 3> other{*this};
     REQUIRE(other.num_vertices() == num_vertices());
     REQUIRE(sample(0, 0)(0) == other(0, 0)(0));
     REQUIRE(sample(0, 0)(1) == other(0, 0)(1));

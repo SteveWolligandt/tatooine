@@ -14,10 +14,15 @@ vert_frag_shader::vert_frag_shader(const std::string& vert,
   add_stage<fragmentshader>(frag);
   create();
   set_projection(glm::mat4{1.0f});
+  set_modelview(glm::mat4{1.0f});
 }
 //------------------------------------------------------------------------------
 void vert_frag_shader::set_projection(const glm::mat4& projection) {
   set_uniform("projection", projection);
+}
+//------------------------------------------------------------------------------
+void vert_frag_shader::set_modelview(const glm::mat4& modelview) {
+  set_uniform("modelview", modelview);
 }
 //==============================================================================
 // comp_shader
@@ -34,7 +39,8 @@ void comp_shader::dispatch2d(GLuint w, GLuint h) {
 //==============================================================================
 // v_tau_shader
 //==============================================================================
-v_tau_shader::v_tau_shader() : vert_frag_shader{"v_tau.vert", "v_tau.frag"} {}
+v_tau_shader::v_tau_shader()
+    : vert_frag_shader{"v_tau_shader.vert", "v_tau_shader.frag"} {}
 //==============================================================================
 }  // namespace tatooine
 //==============================================================================
