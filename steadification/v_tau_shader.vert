@@ -12,7 +12,7 @@ out vec2 v_frag;
 out vec2 uv_frag;
 //==============================================================================
 void main() {
-  gl_Position = projection * modelview * vec4(pos, 0, 1);
+  gl_Position = projection * vec4(pos, 0, 1);
   pos_frag    = pos;
   v_frag      = v;
   uv_frag     = uv;

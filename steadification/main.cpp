@@ -18,29 +18,27 @@ void calc(const field<V, VReal, 2, 2>& v, T0Real /*t0*/, BTauReal /*btau*/,
           FTauReal /*ftau*/, size_t /*num_its*/, size_t /*seed_res*/,
           StepsizeReal stepsize, CovReal /*desired_coverage*/,
           std::string seed_str) {
-  using settings = settings_t<V>;
 
   std::seed_seq   seed(begin(seed_str), end(seed_str));
   std::mt19937_64 randeng{seed};
-  auto p = std::string{settings::name} + "/";
+  auto p = std::string{settings<V>::name} + "/";
   size_t i = 1;
   while (exists(p)) {
-    p = std::string(settings::name) + "_" + std::to_string(i) + "/";
+    p = std::string(settings<V>::name) + "_" + std::to_string(i) + "/";
     ++i;
   }
   create_directory(p);
-  steadification s(settings::domain, settings::render_resolution,
-                   settings::render_resolution, randeng);
+  steadification s(settings<V>::domain, settings<V>::render_resolution, randeng);
 
   const parameterized_line<VReal, 3> seedcurve{
-      {settings::domain.random_point(randeng), 0},
-      {settings::domain.random_point(randeng), 1}};
+      {settings<V>::domain.random_point(randeng), 0},
+      {settings<V>::domain.random_point(randeng), 1}};
   std::cerr << seedcurve[0].first << '\n';
   std::cerr << seedcurve[1].first << '\n';
   auto rasterized = s.rasterize(v, seedcurve, stepsize);
-
 }
 
+//------------------------------------------------------------------------------
 template <typename V, typename VReal>
 void calc(const field<V, VReal, 2, 2>& v, int argc, char** argv) {
   double      t0               = argc > 2 ? atof(argv[2]) : 0;
@@ -59,7 +57,7 @@ void calc(const field<V, VReal, 2, 2>& v, int argc, char** argv) {
 //==============================================================================
 }  // namespace tatooine
 //==============================================================================
-int main(int argc, char** argv) {
+auto main(int argc, char** argv) -> int {
   using namespace tatooine;
   std::string v = argv[1];
   if (v == "dg") {

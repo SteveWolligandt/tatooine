@@ -32,12 +32,13 @@ class steadification {
   using vec3              = vec<Real, 3>;
   using ivec2             = vec<size_t, 2>;
   using ivec3             = vec<size_t, 3>;
+  using integrator_t = integration::vclibs::rungekutta43<double, 3>;
 
   struct rasterized_pathsurface {
+    yavin::tex2rg<float> pos;
     yavin::tex2rg<float> v;
     yavin::tex2rg<float> uv;
-    rasterized_pathsurface(size_t w, size_t h)
-        : v{w, h}, uv{w, h} {}
+    rasterized_pathsurface(size_t w, size_t h) : pos{w, h}, v{w, h}, uv{w, h} {}
   };
 
   //============================================================================
@@ -45,32 +46,30 @@ class steadification {
   //============================================================================
  private:
   ivec2                     m_render_resolution;
-  yavin::glfw_window        m_window;
+  yavin::context            m_context;
   yavin::orthographiccamera m_cam;
   yavin::tex2rgb<float>     m_color_scale;
   yavin::texdepth           m_depth;
   yavin::tex2r<float>       m_noise_tex;
   v_tau_shader              m_v_tau_shader;
-
-  using integrator_t = integration::vclibs::rungekutta43<double, 3>;
-  integrator_t m_integrator;
+  integrator_t              m_integrator;
 
   //============================================================================
   // ctor
   //============================================================================
  public:
   template <typename RandEng = std::mt19937_64>
-  steadification(const boundingbox<Real, 3>& domain, ivec2 window_resolution,
+  steadification(const boundingbox<Real, 3>& domain,
                  ivec2     render_resolution,
                  RandEng&& rand_eng = RandEng{std::random_device{}()})
       : m_render_resolution{render_resolution},
-        m_window{"steadification", window_resolution(0), window_resolution(1), 4, 5},
+        m_context{4, 5},
         m_cam{static_cast<float>(domain.min(0)),
               static_cast<float>(domain.max(0)),
               static_cast<float>(domain.min(1)),
               static_cast<float>(domain.max(1)),
-              -100,
-              100,
+              -100000,
+               100000,
               render_resolution(0),
               render_resolution(1)},
         m_color_scale{yavin::LINEAR, yavin::CLAMP_TO_EDGE, "color_scale.png"},
@@ -96,25 +95,23 @@ class steadification {
   template <typename V, typename VReal>
   auto rasterize(const field<V, VReal, 2, 2>&       v,
                  const parameterized_line<Real, 3>& seedcurve, Real stepsize) {
+    using namespace yavin;
     auto                   psf = gpu_pathsurface(v, seedcurve, stepsize);
     rasterized_pathsurface psf_rast{m_render_resolution(0),
-                                   m_render_resolution(1)};
-    yavin::framebuffer     fbo{psf_rast.v, psf_rast.uv, m_depth};
-    fbo.bind();
+                                    m_render_resolution(1)};
+    framebuffer     fbo{psf_rast.pos, psf_rast.v, psf_rast.uv, m_depth};
     m_v_tau_shader.bind();
-
-    yavin::gl::viewport(m_cam.viewport());
-    yavin::gl::clear_color(255, 255, 255, 255);
-    yavin::clear_color_depth_buffer();
-
     m_v_tau_shader.set_projection(m_cam.projection_matrix());
-    m_v_tau_shader.set_modelview(m_cam.view_matrix());
-    psf.draw();
 
+    gl::viewport(m_cam.viewport());
+    gl::clear_color(0,0,0,0);
+
+    fbo.bind();
+    clear_color_depth_buffer();
+    psf.draw();
+    psf_rast.pos.write_png("pos.png");
     psf_rast.v.write_png("v.png");
     psf_rast.uv.write_png("uv.png");
-    fbo.unbind();
-
     return psf_rast;
   }
   //----------------------------------------------------------------------------
@@ -122,8 +119,7 @@ class steadification {
   template <typename V, typename VReal>
   auto pathsurface(const field<V, VReal, 2, 2>&       v,
                    const parameterized_line<Real, 3>& seedcurve,
-                   Real                               stepsize) {
-    spacetime_field stv{v};
+                   Real                               stepsize) { spacetime_field stv{v};
     using namespace VC::odeint;
     streamsurface surf{stv,
                       0,
@@ -142,6 +138,7 @@ class steadification {
         psf_v[vertex] = vec{0.0 / 0.0, 0.0 / 0.0};
       }
     }
+
     return psf;
   }
   //----------------------------------------------------------------------------

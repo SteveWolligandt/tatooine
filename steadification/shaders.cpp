@@ -2,19 +2,16 @@
 
 //==============================================================================
 using namespace yavin;
-
 //==============================================================================
 namespace tatooine {
 //==============================================================================
 // vert_frag_shader
 //==============================================================================
 vert_frag_shader::vert_frag_shader(const std::string& vert,
-                               const std::string& frag) {
+                                   const std::string& frag) {
   add_stage<vertexshader>(vert);
   add_stage<fragmentshader>(frag);
   create();
-  set_projection(glm::mat4{1.0f});
-  set_modelview(glm::mat4{1.0f});
 }
 //------------------------------------------------------------------------------
 void vert_frag_shader::set_projection(const glm::mat4& projection) {
