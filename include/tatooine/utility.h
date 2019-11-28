@@ -31,7 +31,7 @@ template <size_t Omit, size_t... Is, size_t... Js>
 constexpr auto sliced_indices(std::index_sequence<Is...>,
                               std::index_sequence<Js...>) {
 #if has_cxx17_support()
-  constexpr std::array indices{Is...};
+  std::array indices{Is...};
   (++indices[Js + Omit], ...);
   return indices;
 #else

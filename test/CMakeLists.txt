@@ -25,6 +25,8 @@ macro(create_test NAME)
 endmacro()
 
 #- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+create_test(curvature_field)
+create_test(vorticity_field)
 create_test(algorithm)
 create_test(grid)
 create_test(doublegyre)

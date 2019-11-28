@@ -192,6 +192,13 @@ constexpr auto normalize(const field<Field, Real, N, VecDim>& f) {
 }
 
 //------------------------------------------------------------------------------
+template <typename Field, typename Real, size_t N, size_t VecDim>
+constexpr auto length(const field<Field, Real, N, VecDim>& f) {
+  return make_unary_operation_field<Real, N>(
+      f, [](const auto& v) { return length(v); });
+}
+
+//------------------------------------------------------------------------------
 template <typename LhsField, typename LhsReal, typename RhsField,
           typename RhsReal, size_t N, size_t... TensorDims>
 constexpr auto operator+(

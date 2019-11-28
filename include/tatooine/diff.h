@@ -56,6 +56,11 @@ struct derived_field : field<derived_field<Field, TensorDims...>, typename Field
   }
 
   //----------------------------------------------------------------------------
+  constexpr decltype(auto) in_domain(const pos_t& x, real_t t) const {
+    return m_internal_field.in_domain(x, t);
+  }
+
+  //----------------------------------------------------------------------------
   auto&       internal_field() { return m_internal_field; }
   const auto& internal_field() const { return m_internal_field; }
 

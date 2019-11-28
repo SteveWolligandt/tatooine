@@ -32,7 +32,7 @@ class steadification {
   using vec3              = vec<Real, 3>;
   using ivec2             = vec<size_t, 2>;
   using ivec3             = vec<size_t, 3>;
-  using integrator_t = integration::vclibs::rungekutta43<double, 3>;
+  using integrator_t      = integration::vclibs::rungekutta43<double, 3>;
 
   struct rasterized_pathsurface {
     yavin::tex2rg<float> pos;
@@ -59,8 +59,7 @@ class steadification {
   //============================================================================
  public:
   template <typename RandEng = std::mt19937_64>
-  steadification(const boundingbox<Real, 3>& domain,
-                 ivec2     render_resolution,
+  steadification(const boundingbox<Real, 3>& domain, ivec2 render_resolution,
                  RandEng&& rand_eng = RandEng{std::random_device{}()})
       : m_render_resolution{render_resolution},
         m_context{4, 5},
@@ -69,7 +68,7 @@ class steadification {
               static_cast<float>(domain.min(1)),
               static_cast<float>(domain.max(1)),
               -100000,
-               100000,
+              100000,
               render_resolution(0),
               render_resolution(1)},
         m_color_scale{yavin::LINEAR, yavin::CLAMP_TO_EDGE, "color_scale.png"},
@@ -99,12 +98,12 @@ class steadification {
     auto                   psf = gpu_pathsurface(v, seedcurve, stepsize);
     rasterized_pathsurface psf_rast{m_render_resolution(0),
                                     m_render_resolution(1)};
-    framebuffer     fbo{psf_rast.pos, psf_rast.v, psf_rast.uv, m_depth};
+    framebuffer            fbo{psf_rast.pos, psf_rast.v, psf_rast.uv, m_depth};
     m_v_tau_shader.bind();
     m_v_tau_shader.set_projection(m_cam.projection_matrix());
 
     gl::viewport(m_cam.viewport());
-    gl::clear_color(0,0,0,0);
+    gl::clear_color(0.0f/0.0f, 0.0f/0.0f, 0.0f/0.0f, 0);
 
     fbo.bind();
     clear_color_depth_buffer();
@@ -115,21 +114,28 @@ class steadification {
     return psf_rast;
   }
   //----------------------------------------------------------------------------
+  template <typename... Rasterizations>
+  auto rasterize(const Rasterizations... rasterizations) {
+    rasterized_pathsurface combined{m_render_resolution(0),
+                                    m_render_resolution(1)};
+  }
+  //----------------------------------------------------------------------------
   /// \param seedcurve seedcurve in space-time
   template <typename V, typename VReal>
   auto pathsurface(const field<V, VReal, 2, 2>&       v,
                    const parameterized_line<Real, 3>& seedcurve,
-                   Real                               stepsize) { spacetime_field stv{v};
+                   Real                               stepsize) {
+    spacetime_field stv{v};
     using namespace VC::odeint;
     streamsurface surf{stv,
-                      0,
-                      seedcurve,
-                      m_integrator,
-                      interpolation::linear<Real>{},
-                      interpolation::hermite<Real>{}};
+                       0,
+                       seedcurve,
+                       m_integrator,
+                       interpolation::linear<Real>{},
+                       interpolation::hermite<Real>{}};
 
-    auto        psf    = surf.discretize(2, stepsize, -10, 10);
-    auto&       psf_v  = psf.template add_vertex_property<vec2>("v");
+    auto  psf   = surf.discretize(2, stepsize, -10, 10);
+    auto& psf_v = psf.template add_vertex_property<vec2>("v");
 
     for (auto vertex : psf.vertices()) {
       if (stv.in_domain(psf[vertex], 0)) {

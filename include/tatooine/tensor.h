@@ -1694,6 +1694,24 @@ auto cast(const vec<Real, N>& to_cast) {
   return casted;
 }
 
+//==============================================================================
+template <typename T>
+struct is_tensor : std::false_type {};
+//------------------------------------------------------------------------------
+template <typename Tensor, typename Real, size_t... Dims>
+struct is_tensor<base_tensor<Tensor, Real, Dims...>> : std::true_type {};
+//------------------------------------------------------------------------------
+template <typename Real, size_t... Dims>
+struct is_tensor<tensor<Real, Dims...>> : std::true_type {};
+//------------------------------------------------------------------------------
+template <typename Real, size_t N>
+struct is_tensor<vec<Real, N>> : std::true_type {};
+//------------------------------------------------------------------------------
+template <typename Real, size_t M, size_t N>
+struct is_tensor<mat<Real, M, N>> : std::true_type {};
+//~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+template <typename T>
+static constexpr auto is_tensor_v = is_tensor<T>::value;
 
 //==============================================================================
 }  // namespace tatooine

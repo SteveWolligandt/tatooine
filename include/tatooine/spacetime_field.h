@@ -90,6 +90,11 @@ template <typename Real, size_t N, size_t VecDim>
 spacetime_field(const symbolic::field<Real, N, VecDim>&)
     ->spacetime_field<symbolic::field<Real, N, VecDim>, Real, N + 1,
                       VecDim + 1>;
+//==============================================================================
+template <typename V, typename Real, size_t N, size_t VecDim>
+auto spacetime(const field<V, Real, N, VecDim>& vf) {
+  return spacetime_field<V, Real, N + 1, VecDim + 1>{vf.as_derived()};
+}
 
 //==============================================================================
 }  // namespace tatooine
