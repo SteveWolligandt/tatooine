@@ -1,5 +1,5 @@
 #include <tatooine/doublegyre.h>
-#include <tatooine/vorticity_field.h>
+#include <tatooine/okubo_weiss_field.h>
 #include <tatooine/spacetime_field.h>
 #include <tatooine/grid_sampler.h>
 #include <catch2/catch.hpp>
@@ -7,10 +7,10 @@
 //==============================================================================
 namespace tatooine::test {
 //==============================================================================
-TEST_CASE("vorticity_field_1", "[vorticity_field][numerical][doublegyre]") {
+TEST_CASE("okubo_weiss_field_1", "[okubo_weiss_field][numerical][doublegyre]") {
   numerical::doublegyre vf;
   auto                  stvf   = spacetime(vf);
-  auto                  lvstvf = length(vorticity(stvf));
+  auto                  l2stvf = okubo_weiss(stvf);
 
   grid sample_grid{linspace{0.0,  2.0, 200},
                    linspace{0.0,  1.0, 100},
@@ -22,9 +22,9 @@ TEST_CASE("vorticity_field_1", "[vorticity_field][numerical][doublegyre]") {
       .write_vtk("doublegyre.vtk");
 
   resample<interpolation::linear, interpolation::linear, interpolation::linear>(
-      lvstvf, sample_grid, 0)
+      l2stvf, sample_grid, 0)
       .sampler()
-      .write_vtk("vorticity_length_doublegyre.vtk");
+      .write_vtk("okubo_weiss_doublegyre.vtk");
 }
 //==============================================================================
 }  // namespace tatooine::test

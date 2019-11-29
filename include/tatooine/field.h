@@ -62,7 +62,7 @@ struct field : crtp<Derived> {
 
   //----------------------------------------------------------------------------
   constexpr tensor_t evaluate(const pos_t& x, Real t = 0) const {
-    if (!in_domain(x, t)) { throw out_of_domain{}; }
+    //if (!in_domain(x, t)) { throw out_of_domain{}; }
     return as_derived().evaluate(x, t);
   }
 

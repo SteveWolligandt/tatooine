@@ -150,17 +150,16 @@ struct parallel_vectors {
     }
 
     auto [eigvecs, eigvals] = eigenvectors(m);
+    auto ieig           = imag(eigvecs);
+    auto reig           = real(eigvecs);
 
     std::vector<vec3> barycentric_coords;
     for (int i = 0; i < 3; i++) {
-      if ((std::abs(eigvecs(0, i).imag()) <= 0 &&
-           std::abs(eigvecs(1, i).imag()) <= 0 &&
-           std::abs(eigvecs(2, i).imag()) <= 0) &&
-          ((eigvecs(0, i).real() <= 0 && eigvecs(1, i).real() <= 0 &&
-            eigvecs(2, i).real() <= 0) ||
-           (eigvecs(0, i).real() >= 0 && eigvecs(1, i).real() >= 0 &&
-            eigvecs(2, i).real() >= 0))) {
-        const auto bc = real(eigvecs.col(i)) / sum(real(eigvecs.col(i)));
+      if ((std::abs(ieig(0, i)) <= 0 && std::abs(ieig(1, i)) <= 0 &&
+           std::abs(ieig(2, i)) <= 0) &&
+          ((reig(0, i) <= 0 && reig(1, i) <= 0 && reig(2, i) <= 0) ||
+           (reig(0, i) >= 0 && reig(1, i) >= 0 && reig(2, i) >= 0))) {
+        const vec3 bc = real(eigvecs.col(i)) / sum(real(eigvecs.col(i)));
         barycentric_coords.push_back(bc);
       }
     }
@@ -221,24 +220,24 @@ struct parallel_vectors {
 
   //----------------------------------------------------------------------------
   template <typename... Preds>
-  auto operator()(real_t t = 0, Preds&&... preds) {
+  auto operator()(real_t t, Preds&&... preds) {
     return calculate(t, std::forward<Preds>(preds)...);
   }
 
   //----------------------------------------------------------------------------
   template <typename... Preds>
-  auto calculate(const real_t t = 0, Preds&&... preds) {
+  auto calculate(const real_t t, Preds&&... preds) {
     m_progress = 0;
     m_num_iterations = (m_grid.dimension(0).size() - 1) *
                        (m_grid.dimension(1).size() - 1) *
                        (m_grid.dimension(2).size() - 1);
     using boost::copy;
     std::vector<std::pair<vec3, vec3>> line_segments;
-    #ifdef NDEBUG
-    omp_lock_t writelock;
-    omp_init_lock(&writelock);
-    #pragma omp parallel for collapse(3)
-    #endif
+#   ifdef NDEBUG
+    //omp_lock_t writelock;
+    //omp_init_lock(&writelock);
+//#   pragma omp parallel for collapse(3)
+#   endif
     for (size_t iz = 0; iz < m_grid.dimension(2).size() - 1; ++iz) {
       for (size_t iy = 0; iy < m_grid.dimension(1).size() - 1; ++iy) {
         for (size_t ix = 0; ix < m_grid.dimension(0).size() - 1; ++ix) {
@@ -305,7 +304,9 @@ struct parallel_vectors {
             auto pv237 = pv_on_tri(p[2], v[2], w[2], p[3], v[3], w[3], p[7],
                                    v[7], w[7], std::forward<Preds>(preds)...);
 
-            if constexpr (release_mode()) { omp_set_lock(&writelock); }
+#           ifdef NDEBUG
+            //omp_set_lock(&writelock);
+#           endif
             // check the tets themselves
             // 0124
             copy(check_tet(pv012, pv014, pv024, pv124),
@@ -322,7 +323,9 @@ struct parallel_vectors {
             // 1247
             copy(check_tet(pv124, pv127, pv147, pv247),
                  std::back_inserter(line_segments));
-            if constexpr (release_mode()) { omp_unset_lock(&writelock); }
+#           ifdef NDEBUG
+            //omp_unset_lock(&writelock);
+#           endif
           } else {
             // std::cout << ix << ' ' << iy << ' ' << iz << " not turned\n";
             // check if there are parallel vectors on any of the tets triangles
@@ -358,7 +361,9 @@ struct parallel_vectors {
                                    v[6], w[6], std::forward<Preds>(preds)...);
             auto pv456 = pv_on_tri(p[4], v[4], w[4], p[5], v[5], w[5], p[6],
                                    v[6], w[6], std::forward<Preds>(preds)...);
-            if constexpr (release_mode()) { omp_set_lock(&writelock); }
+#           ifdef NDEBUG
+            //omp_set_lock(&writelock);
+#           endif
             // check the tets themselves
             // 0236
             copy(check_tet(pv023, pv026, pv036, pv236),
@@ -375,12 +380,15 @@ struct parallel_vectors {
             // 0356
             copy(check_tet(pv035, pv036, pv056, pv356),
                  std::back_inserter(line_segments));
-            if constexpr (release_mode()) { omp_unset_lock(&writelock); }
+
+#           ifdef NDEBUG
+            //omp_unset_lock(&writelock);
+#           endif
           }
 
-          #ifdef NDEBUG
-          #pragma omp atomic
-          #endif
+#         ifdef NDEBUG
+//#         pragma omp atomic
+#         endif
           ++m_progress;
         }
       }

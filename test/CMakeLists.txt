@@ -26,7 +26,10 @@ endmacro()
 
 #- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 create_test(curvature_field)
+create_test(okubo_weiss_field)
+create_test(lambda2_field)
 create_test(vorticity_field)
+create_test(helicity_field)
 create_test(algorithm)
 create_test(grid)
 create_test(doublegyre)

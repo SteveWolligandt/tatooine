@@ -627,7 +627,37 @@ template <typename Tensor, typename Real, size_t N>
 constexpr Real length(const base_tensor<Tensor, Real, N>& t_in) {
   return std::sqrt(sqr_length(t_in));
 }
-
+//------------------------------------------------------------------------------
+struct frobenius_t{};
+static constexpr frobenius_t frobenius;
+//------------------------------------------------------------------------------
+/// squared Frobenius norm of a matrix
+template <typename Matrix, typename Real, size_t M, size_t N>
+constexpr auto sqr_norm(const base_tensor<Matrix, Real, M, N>& mat, frobenius_t) {
+  Real n = 0;
+  for (size_t j = 0; j < N; ++j) {
+    for (size_t i = 0; i < M; ++i) { n += std::abs(mat(i, j)); }
+  }
+  return n;
+}
+//------------------------------------------------------------------------------
+/// Frobenius norm of a matrix
+template <typename Matrix, typename Real, size_t M, size_t N>
+constexpr auto norm(const base_tensor<Matrix, Real, M, N>& mat, frobenius_t) {
+  return std::sqrt(sqr_norm(mat, frobenius));
+}
+//------------------------------------------------------------------------------
+/// squared Frobenius norm of a matrix
+template <typename Matrix, typename Real, size_t M, size_t N>
+constexpr auto sqr_norm(const base_tensor<Matrix, Real, M, N>& mat) {
+  return sqr_norm(mat, frobenius);
+}
+//------------------------------------------------------------------------------
+/// squared Frobenius norm of a matrix
+template <typename Matrix, typename Real, size_t M, size_t N>
+constexpr auto norm(const base_tensor<Matrix, Real, M, N>& mat) {
+  return norm(mat, frobenius);
+}
 //------------------------------------------------------------------------------
 template <typename Tensor, typename Real, size_t N>
 constexpr vec<Real, N> normalize(const base_tensor<Tensor, Real, N>& t_in) {
@@ -1294,12 +1324,12 @@ struct real_complex_tensor
 
 //------------------------------------------------------------------------------
 template <typename Tensor, typename Real, size_t... Dims>
-auto real(const base_tensor<Tensor, Real, Dims...>& t) {
+auto real(const base_tensor<Tensor, std::complex<Real>, Dims...>& t) {
   return const_real_complex_tensor<Tensor, Real, Dims...>{t.as_derived()};
 }
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 template <typename Tensor, typename Real, size_t... Dims>
-auto real(base_tensor<Tensor, Real, Dims...>& t) {
+auto real(base_tensor<Tensor, std::complex<Real>, Dims...>& t) {
   return real_complex_tensor<Tensor, Real, Dims...>{t.as_derived()};
 }
 //==============================================================================

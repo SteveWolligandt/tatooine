@@ -3,6 +3,8 @@
 
 #include <algorithm>
 #include "linspace.h"
+#include "line.h"
+#include "type_traits.h"
 #include "field.h"
 
 #if has_cxx17_support()

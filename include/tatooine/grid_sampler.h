@@ -737,13 +737,17 @@ struct grid_sampler
       writer.set_title("tatooine grid sampler");
       writer.write_header();
 
-      writer.write_dimensions(dimension(0).size(), dimension(1).size(),
+      writer.write_dimensions(dimension(0).size(),
+                              dimension(1).size(),
                               dimension(2).size());
-      writer.write_origin(dimension(0).front(), dimension(1).front(),
+      writer.write_origin(dimension(0).front(),
+                          dimension(1).front(),
                           dimension(2).front());
-      writer.write_spacing(dimension(0).spacing(), dimension(1).spacing(),
-                           dimension(1).spacing());
-      writer.write_point_data(dimension(0).size() * dimension(1).size() *
+      writer.write_spacing(dimension(0).spacing(),
+                           dimension(1).spacing(),
+                           dimension(2).spacing());
+      writer.write_point_data(dimension(0).size() *
+                              dimension(1).size() *
                               dimension(2).size());
 
       // write data

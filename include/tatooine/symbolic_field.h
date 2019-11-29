@@ -49,6 +49,7 @@ struct field : tatooine::field<field<real_t, N, TensorDims...>, real_t, N,
   tensor_t evaluate(const pos_t& _x, double _t) const {
     return evaluate(_x, _t, std::make_index_sequence<num_dimensions()>{});
   }
+  constexpr bool in_domain(const pos_t&, double) const { return true; }
 };
 
 //==============================================================================
