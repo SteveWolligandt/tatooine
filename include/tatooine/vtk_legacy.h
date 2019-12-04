@@ -1001,6 +1001,9 @@ class legacy_file_writer {
  private:
   inline void write_indices(const std::string &                     keyword,
                      const std::vector<std::vector<size_t>> &indices);
+  template <size_t N>
+  inline void write_indices(const std::string &                     keyword,
+                     const std::vector<std::array<size_t, N>> &indices);
   template <typename Real, size_t N>
   void write_data(const std::string &keyword, const std::string &name,
                   const std::vector<std::array<Real, N>> &data);
@@ -1009,12 +1012,16 @@ class legacy_file_writer {
   inline void write_header();
   template <typename Real>
   void write_points(const std::vector<std::array<Real, 3>> &points);
+  template <typename Real>
+  void        write_points(const std::vector<vec<Real, 3>> &points);
   inline void write_cells(const std::vector<std::vector<size_t>> &cells);
   inline void write_cell_types(const std::vector<CellType> &cell_types);
 
   inline void write_vertices(const std::vector<std::vector<size_t>> &vertices);
   inline void write_lines(const std::vector<std::vector<size_t>> &lines);
   inline void write_polygons(const std::vector<std::vector<size_t>> &polygons);
+  template <size_t N>
+  void write_polygons(const std::vector<std::array<size_t, N>> &polygons);
   inline void write_triangle_strips(
       const std::vector<std::vector<size_t>> &triangle_strips);
 
@@ -1041,10 +1048,53 @@ class legacy_file_writer {
             typename = std::enable_if_t<(std::is_same<Data, double>::value ||
                                          std::is_same<Data, float>::value ||
                                          std::is_same<Data, int>::value)>>
+  void write_scalars(const std::string &name, const std::vector<Data> &data,
+                     const std::string &lookup_table_name = "default");
   //----------------------------------------------------------------------------
+  template <typename Data,
+            typename = std::enable_if_t<(std::is_same<Data, double>::value ||
+                                         std::is_same<Data, float>::value ||
+                                         std::is_same<Data, int>::value)>>
   void write_scalars(const std::string &                     name,
                      const std::vector<std::vector<Data>> &data,
                      const std::string &lookup_table_name = "default");
+  //----------------------------------------------------------------------------
+  template <typename Data, size_t N,
+            typename = std::enable_if_t<(std::is_same<Data, double>::value ||
+                                         std::is_same<Data, float>::value ||
+                                         std::is_same<Data, int>::value)>>
+  void write_scalars(const std::string &                     name,
+                     const std::vector<std::array<Data, N>> &data,
+                     const std::string &lookup_table_name = "default") {
+    vtk::write_binary(m_file, "\nSCALARS " + name + ' ' +
+                                  ::tatooine::type_to_str<Data>() + ' ' +
+                                  std::to_string(N) + '\n');
+    vtk::write_binary(m_file, "\nLOOKUP_TABLE " + lookup_table_name + '\n');
+    for (const auto &arr : data)
+      for (auto& comp : arr) {
+        comp = swap_endianess(comp);
+        m_file.write((char *)(&comp), sizeof(Data));
+      }
+  }
+  //----------------------------------------------------------------------------
+  template <typename Data, size_t N,
+            typename = std::enable_if_t<(std::is_same<Data, double>::value ||
+                                         std::is_same<Data, float>::value ||
+                                         std::is_same<Data, int>::value)>>
+  void write_scalars(const std::string &              name,
+                     const std::vector<vec<Data, N>> &data,
+                     const std::string &lookup_table_name = "default") {
+    vtk::write_binary(m_file, "\nSCALARS " + name + ' ' +
+                                  ::tatooine::type_to_str<Data>() + ' ' +
+                                  std::to_string(N) + '\n');
+    vtk::write_binary(m_file, "\nLOOKUP_TABLE " + lookup_table_name + '\n');
+    Data d;
+    for (const auto& v : data)
+      for (size_t i = 0; i < N; ++i) {
+        d = swap_endianess(v(i));
+        m_file.write((char *)(&d), sizeof(Data));
+      }
+  }
   //----------------------------------------------------------------------------
   void write_dimensions(size_t dimx, size_t dimy, size_t dimz) {
     vtk::write_binary(m_file, "\nDIMENSIONS " + std::to_string(dimx) + ' ' +
@@ -1124,13 +1174,47 @@ void legacy_file_writer::write_points(
   std::vector<std::array<Real, 3>> points_swapped(points);
   swap_endianess(reinterpret_cast<Real *>(points_swapped.data()),
                  3 * points.size());
-  for (const auto &p : points_swapped)
-    for (auto c : p) m_file.write((char *)(&c), sizeof(Real));
+  for (const auto &p : points_swapped) {
+    for (auto c : p) { m_file.write((char *)(&c), sizeof(Real)); }
+  }
+}
+//------------------------------------------------------------------------------
+template <typename Real>
+void legacy_file_writer::write_points(
+    const std::vector<vec<Real, 3>> &points) {
+  vtk::write_binary(m_file, "\nPOINTS " + std::to_string(points.size()) + ' ' +
+                                ::tatooine::type_to_str<Real>() + '\n');
+  auto points_swapped = points;
+  swap_endianess(reinterpret_cast<Real *>(points_swapped.data()),
+                 3 * points.size());
+  for (const auto &p : points_swapped) {
+    for (auto c : p) { m_file.write((char *)(&c), sizeof(Real)); }
+  }
 }
 //------------------------------------------------------------------------------
 void legacy_file_writer::write_indices(
     const std::string &                     keyword,
     const std::vector<std::vector<size_t>> &indices) {
+  size_t total_number = 0;
+  for (const auto &is : indices) total_number += is.size() + 1;
+  vtk::write_binary(m_file, "\n" + keyword + " " +
+                                std::to_string(indices.size()) + ' ' +
+                                std::to_string(total_number) + '\n');
+  for (const auto &p : indices) {
+    int size = (int)p.size();
+    size     = swap_endianess(size);
+    m_file.write((char *)(&size), sizeof(int));
+    for (int i : p) {
+      i = swap_endianess(i);
+      m_file.write((char *)(&i), sizeof(int));
+    }
+  }
+}
+//------------------------------------------------------------------------------
+template <size_t N>
+void legacy_file_writer::write_indices(
+    const std::string &                       keyword,
+    const std::vector<std::array<size_t, N>> &indices) {
   size_t total_number = 0;
   for (const auto &is : indices) total_number += is.size() + 1;
   vtk::write_binary(m_file, "\n" + keyword + " " +
@@ -1194,8 +1278,14 @@ void legacy_file_writer::write_lines(
 }
 //-----------------------------------------------------------------------------
 void legacy_file_writer::write_polygons(
-    const std::vector<std::vector<size_t>> &lines) {
-  write_indices("POLYGONS", lines);
+    const std::vector<std::vector<size_t>> &polygons) {
+  write_indices("POLYGONS", polygons);
+}
+//-----------------------------------------------------------------------------
+template <size_t N>
+void legacy_file_writer::write_polygons(
+    const std::vector<std::array<size_t, N>> &polygons) {
+  write_indices("POLYGONS", polygons);
 }
 //-----------------------------------------------------------------------------
 void legacy_file_writer::write_triangle_strips(
@@ -1226,6 +1316,18 @@ template <typename Real>
 void legacy_file_writer::write_tensors(
     const std::string &name, std::vector<std::array<Real, 9>> &tensors) {
   write_data<9>("TENSORS", name, tensors);
+}
+template <typename Data, typename>
+void legacy_file_writer::write_scalars(const std::string &      name,
+                                       const std::vector<Data> &data,
+                                       const std::string &lookup_table_name) {
+  vtk::write_binary(m_file, "\nSCALARS " + name + ' ' +
+                                ::tatooine::type_to_str<Data>() + " 1\n");
+  vtk::write_binary(m_file, "\nLOOKUP_TABLE " + lookup_table_name + '\n');
+  for (auto comp : data) {
+    comp = swap_endianess(comp);
+    m_file.write((char *)(&comp), sizeof(Data));
+  }
 }
 template <typename Data, typename>
 void legacy_file_writer::write_scalars(

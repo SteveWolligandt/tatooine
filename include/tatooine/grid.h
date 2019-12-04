@@ -66,7 +66,7 @@ class grid {
                   "number of linspaces does not match number of dimensions");
   }
 
-  //------------------------------------------88888888----------------------------------
+  //----------------------------------------------------------------------------
   template <typename OtherReal, size_t... Is>
   constexpr grid(const boundingbox<OtherReal, N>& bb,
                  const std::array<size_t, N>&     res,
@@ -134,10 +134,23 @@ class grid {
     return resolution(std::make_index_sequence<N>{});
   }
   //----------------------------------------------------------------------------
+  constexpr auto spacing() const {
+    return spacing(std::make_index_sequence<N>{});
+  }
+  // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+ private:
+  template <size_t... Is>
+  constexpr auto spacing(std::index_sequence<Is...> /*is*/) const {
+    static_assert(sizeof...(Is) == N);
+    return tatooine::vec{m_dimensions[Is].spacing()...};
+  }
+  //----------------------------------------------------------------------------
+ public:
   constexpr auto boundingbox() const {
     return boundingbox(std::make_index_sequence<N>{});
   }
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+ private:
   template <size_t... Is>
   constexpr auto boundingbox(std::index_sequence<Is...> /*is*/) const {
     static_assert(sizeof...(Is) == N);
@@ -146,6 +159,7 @@ class grid {
         vec<Real, N>{m_dimensions[Is].back()...}};
   }
   //----------------------------------------------------------------------------
+ public:
   constexpr auto size() const { return size(std::make_index_sequence<N>{}); }
   //----------------------------------------------------------------------------
   template <size_t... Is>

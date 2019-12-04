@@ -25,6 +25,7 @@ macro(create_test NAME)
 endmacro()
 
 #- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+create_test(marchingcubes)
 create_test(curvature_field)
 create_test(okubo_weiss_field)
 create_test(lambda2_field)

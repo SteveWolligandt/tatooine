@@ -383,7 +383,6 @@ struct tensor : base_tensor<tensor<Real, Dims...>, Real, Dims...> {
   constexpr const auto& operator[](size_t i) const { return m_data[i]; }
   constexpr auto&       operator[](size_t i) { return m_data[i]; }
 
-
   //----------------------------------------------------------------------------
   decltype(auto) data() { return m_data.data(); }
   decltype(auto) data() const { return m_data.data(); }
@@ -450,6 +449,12 @@ struct vec : tensor<Real, n> {
 
   template <typename Real_ = Real, enable_if_arithmetic_or_complex<Real_> = true>
   constexpr vec(vec&& other) noexcept : parent_t{std::move(other)} {}
+  template <typename Real_                         = Real,
+            enable_if_arithmetic_or_complex<Real_> = true>
+  constexpr vec& operator=(const vec& other) {
+    parent_t::operator=(other);
+    return *this;
+  }
   template <typename Real_ = Real, enable_if_arithmetic_or_complex<Real_> = true>
   constexpr vec& operator=(vec&& other) noexcept {
     parent_t::operator=(std::move(other));
