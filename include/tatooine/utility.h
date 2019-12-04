@@ -141,10 +141,10 @@ auto partition_resolution(const std::array<size_t, N>& resolution,
         ceil(static_cast<double>(resolution[j]) / (max_chunk_resolution[j] - 1)));
     partitions[j] = std::vector<std::pair<size_t, size_t>>(
         num_partitions, {0, max_chunk_resolution[j]});
-    partitions[j].back().second = resolution[j] - partitions[j].back().first;
     for (size_t i = 0; i < num_partitions; ++i) {
       partitions[j][i].first = (max_chunk_resolution[j] - 1) * i;
     }
+    partitions[j].back().second = resolution[j] - partitions[j].back().first;
   }
   return partitions;
 }
