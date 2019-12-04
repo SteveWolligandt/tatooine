@@ -27,33 +27,46 @@ struct multi_array {
   multi_array& operator=(const multi_array& other) = default;
   multi_array& operator=(multi_array&& other) = default;
   //============================================================================
+  multi_array(const std::vector<size_t>& p_resolution)
+      : m_resolution{p_resolution},
+        m_data(std::accumulate(begin(p_resolution), end(p_resolution),
+                               size_t{1}, std::multiplies<size_t>{}),
+               0) {}
+  //----------------------------------------------------------------------------
   multi_array(const std::vector<hsize_t>& p_resolution)
       : m_resolution{begin(p_resolution), end(p_resolution)},
         m_data(std::accumulate(begin(p_resolution), end(p_resolution),
-                               hsize_t{1}, std::multiplies<hsize_t>{}),
+                               size_t{1}, std::multiplies<size_t>{}),
                0) {}
   //----------------------------------------------------------------------------
   template <size_t NDims>
   multi_array(const std::array<hsize_t, NDims>& p_resolution)
       : m_resolution{begin(p_resolution), end(p_resolution)},
         m_data(std::accumulate(begin(p_resolution), end(p_resolution),
-                               hsize_t{1}, std::multiplies<hsize_t>{}),
+                               size_t{1}, std::multiplies<size_t>{}),
                0) {}
   //----------------------------------------------------------------------------
   template <size_t NDims>
-  multi_array(const std::array<hsize_t, NDims>& p_resolution,
+  multi_array(const std::array<size_t, NDims>& p_resolution)
+      : m_resolution{begin(p_resolution), end(p_resolution)},
+        m_data(std::accumulate(begin(p_resolution), end(p_resolution),
+                               size_t{1}, std::multiplies<size_t>{}),
+               0) {}
+  //----------------------------------------------------------------------------
+  template <size_t NDims>
+  multi_array(const std::array<size_t, NDims>& p_resolution,
               const T&                          initial = T{})
       : m_resolution{begin(p_resolution), end(p_resolution)},
         m_data(std::accumulate(begin(p_resolution), end(p_resolution),
-                               hsize_t{1}, std::multiplies<hsize_t>{}),
+                               size_t{1}, std::multiplies<size_t>{}),
                initial) {}
   //----------------------------------------------------------------------------
-  multi_array(const std::vector<hsize_t>& p_resolution,
+  multi_array(const std::vector<size_t>& p_resolution,
               const std::vector<T>&       p_data)
       : m_resolution{begin(p_resolution), end(p_resolution)}, m_data(p_data) {}
   //----------------------------------------------------------------------------
   template <size_t NDims>
-  multi_array(const std::array<hsize_t, NDims>& p_resolution,
+  multi_array(const std::array<size_t, NDims>& p_resolution,
               const std::vector<T>&             p_data)
       : m_resolution{begin(p_resolution), end(p_resolution)}, m_data(p_data) {}
   //----------------------------------------------------------------------------
@@ -63,7 +76,7 @@ struct multi_array {
               const std::array<hsize_t, NDims>& p_resolution)
       : m_resolution{begin(p_resolution), end(p_resolution)},
         m_data(std::accumulate(begin(p_resolution), end(p_resolution),
-                               hsize_t{1}, std::multiplies<hsize_t>{})) {
+                               size_t{1}, std::multiplies<size_t>{})) {
     H5::DataSpace chunkspace(num_dimensions(), m_resolution.data());
     auto          filespace = dataset.getSpace();
     filespace.selectHyperslab(H5S_SELECT_SET, m_resolution.data(),
@@ -117,8 +130,8 @@ struct multi_array {
   const auto& operator[](size_t i) const { return m_data[i]; }
   //----------------------------------------------------------------------------
   auto number_of_elements() const {
-    return std::accumulate(begin(m_resolution), end(m_resolution), hsize_t{1},
-                           std::multiplies<hsize_t>{});
+    return std::accumulate(begin(m_resolution), end(m_resolution), size_t{1},
+                           std::multiplies<size_t>{});
   }
   //----------------------------------------------------------------------------
   auto num_dimensions() const { return m_resolution.size(); }
@@ -184,6 +197,21 @@ struct dataset {
     return mem;
   }
   //----------------------------------------------------------------------------
+  template <typename T, typename UInt0, typename UInt1, size_t NDims,
+            std::enable_if_t<std::is_integral_v<UInt0>, bool> = true,
+            std::enable_if_t<std::is_integral_v<UInt1>, bool> = true>
+  auto read_chunk(const std::array<UInt0, NDims>& p_offset,
+                  const std::array<UInt1, NDims>& p_resolution) const {
+    return multi_array<T>{
+        m_dataset,
+        std::array<hsize_t, NDims>{static_cast<hsize_t>(p_offset[0]),
+                                   static_cast<hsize_t>(p_offset[1]),
+                                   static_cast<hsize_t>(p_offset[2])},
+        std::array<hsize_t, NDims>{static_cast<hsize_t>(p_resolution[0]),
+                                   static_cast<hsize_t>(p_resolution[1]),
+                                   static_cast<hsize_t>(p_resolution[2])}};
+  }
+  //----------------------------------------------------------------------------
   template <typename T, size_t NDims>
   auto read_chunk(const std::array<hsize_t, NDims>& p_offset,
                   const std::array<hsize_t, NDims>& p_resolution) const {
@@ -215,7 +243,7 @@ struct attribute {
     return mem;
   }
   //----------------------------------------------------------------------------
-  std::vector<hsize_t> resolution() const {
+  auto resolution() const {
     auto                 dataspace = m_attr.getSpace();
     std::vector<hsize_t> dims(dataspace.getSimpleExtentNdims());
     dataspace.getSimpleExtentDims(dims.data(), nullptr);
@@ -224,8 +252,8 @@ struct attribute {
   //----------------------------------------------------------------------------
   auto number_of_elements() const {
     auto dims = resolution();
-    return std::accumulate(begin(dims), end(dims), hsize_t{1},
-                           std::multiplies<hsize_t>{});
+    return std::accumulate(begin(dims), end(dims), size_t{1},
+                           std::multiplies<size_t>{});
   }
 };
 //==============================================================================
