@@ -432,8 +432,10 @@ struct vec : tensor<Real, n> {
   using iterator       = typename parent_t::data_container_t::iterator;
   using const_iterator = typename parent_t::data_container_t::const_iterator;
 
+  constexpr vec() : parent_t{} {}
 #if has_cxx17_support()
-  template <typename... Ts, enable_if_arithmetic_complex_or_symbolic<Ts...> = true>
+  template <typename... Ts,
+            enable_if_arithmetic_complex_or_symbolic<Ts...> = true>
 #else
   template <typename... Ts, enable_if_arithmetic<Ts...> = true>
 #endif

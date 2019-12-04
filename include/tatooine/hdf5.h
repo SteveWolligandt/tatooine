@@ -30,28 +30,24 @@ struct multi_array {
   multi_array(const std::vector<size_t>& p_resolution)
       : m_resolution{p_resolution},
         m_data(std::accumulate(begin(p_resolution), end(p_resolution),
-                               size_t{1}, std::multiplies<size_t>{}),
-               0) {}
+                               size_t{1}, std::multiplies<size_t>{})) {}
   //----------------------------------------------------------------------------
   multi_array(const std::vector<hsize_t>& p_resolution)
       : m_resolution{begin(p_resolution), end(p_resolution)},
         m_data(std::accumulate(begin(p_resolution), end(p_resolution),
-                               size_t{1}, std::multiplies<size_t>{}),
-               0) {}
+                               size_t{1}, std::multiplies<size_t>{})) {}
   //----------------------------------------------------------------------------
   template <size_t NDims>
   multi_array(const std::array<hsize_t, NDims>& p_resolution)
       : m_resolution{begin(p_resolution), end(p_resolution)},
         m_data(std::accumulate(begin(p_resolution), end(p_resolution),
-                               size_t{1}, std::multiplies<size_t>{}),
-               0) {}
+                               size_t{1}, std::multiplies<size_t>{})) {}
   //----------------------------------------------------------------------------
   template <size_t NDims>
   multi_array(const std::array<size_t, NDims>& p_resolution)
       : m_resolution{begin(p_resolution), end(p_resolution)},
         m_data(std::accumulate(begin(p_resolution), end(p_resolution),
-                               size_t{1}, std::multiplies<size_t>{}),
-               0) {}
+                               size_t{1}, std::multiplies<size_t>{})) {}
   //----------------------------------------------------------------------------
   template <size_t NDims>
   multi_array(const std::array<size_t, NDims>& p_resolution,
@@ -273,15 +269,15 @@ struct group {
       : m_file{p_file}, m_group{m_file->openGroup(p_group_name)} {}
   //----------------------------------------------------------------------------
   auto attribute(const std::string& attr_name) const {
-    return tatooine::h5::attribute{m_file, m_group, attr_name};
+    return h5::attribute{m_file, m_group, attr_name};
   }
   //----------------------------------------------------------------------------
   auto attribute(const std::string_view& attr_name) const {
-    return tatooine::h5::attribute{m_file, m_group, attr_name};
+    return h5::attribute{m_file, m_group, attr_name};
   }
   //----------------------------------------------------------------------------
   auto attribute(const char* attr_name) const {
-    return tatooine::h5::attribute{m_file, m_group, attr_name};
+    return h5::attribute{m_file, m_group, attr_name};
   }
 };
 //==============================================================================
@@ -296,38 +292,39 @@ struct ifile {
       : m_file{std::make_shared<H5::H5File>(p_filepath, H5F_ACC_RDONLY)} {}
   //----------------------------------------------------------------------------
   auto dataset(const std::string& dataset_name) const {
-    return tatooine::h5::dataset(m_file, dataset_name);
+    return h5::dataset(m_file, dataset_name);
   }
   //----------------------------------------------------------------------------
   auto dataset(const std::string_view& dataset_name) const {
-    return tatooine::h5::dataset(m_file, dataset_name);
+    return h5::dataset(m_file, dataset_name);
   }
   //----------------------------------------------------------------------------
   auto dataset(const char* dataset_name) const {
-    return tatooine::h5::dataset(m_file, dataset_name);
+    return h5::dataset(m_file, dataset_name);
   }
   //----------------------------------------------------------------------------
   auto group(const std::string& group_name) const {
-    return tatooine::h5::group(m_file, group_name);
+    return h5::group(m_file, group_name);
   }
   //----------------------------------------------------------------------------
   auto group(const std::string_view& group_name) const {
-    return tatooine::h5::group(m_file, group_name);
+    return h5::group(m_file, group_name);
   }
   //----------------------------------------------------------------------------
   auto group(const char* group_name) const {
-    return tatooine::h5::group(m_file, group_name);
+    return h5::group(m_file, group_name);
   }
 };
 
 //==============================================================================
-auto interpolate(const multi_array<double>& c0,
-                 const multi_array<double>& c1, double factor) {
+template <typename T, typename FReal>
+auto interpolate(const multi_array<T>& c0, const multi_array<T>& c1,
+                 FReal factor) {
   assert(c0.num_dimensions() == c1.num_dimensions());
   for (size_t i = 0; i < c0.num_dimensions(); ++i) {
     assert(c0.resolution(i) == c1.resolution(i));
   }
-  multi_array<double> interpolated(c0.resolution());
+  multi_array<T> interpolated(c0.resolution());
 
 #ifndef NDEBUG
 #pragma omp parallel for collapse(3)
@@ -343,9 +340,10 @@ auto interpolate(const multi_array<double>& c0,
   return interpolated;
 }
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-auto interpolate(const tatooine::h5::multi_array<double>& c0,
-                 const tatooine::h5::multi_array<double>& c1,
-                 const tatooine::linspace<double>& ts, double t) {
+template <typename T, typename LinReal, typename TReal>
+auto interpolate(const tatooine::h5::multi_array<T>& c0,
+                 const tatooine::h5::multi_array<T>& c1,
+                 const tatooine::linspace<LinReal>& ts, TReal t) {
   return interpolate(c0, c1, (t - ts.front()) / (ts.back() - ts.front()));
 }
 
