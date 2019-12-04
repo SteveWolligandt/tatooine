@@ -129,7 +129,25 @@ constexpr auto extract(Ts&&... ts) {
   return extract<0, Begin, End>(extracted_data, std::forward<Ts>(ts)...);
 }
 #endif
-
+//==============================================================================
+/// partitions a resolution into chunked resolutions.
+/// borders of the partions are redundant.
+template <size_t N>
+auto partition_resolution(const std::array<size_t, N>& resolution,
+                          const std::array<size_t, N>& max_chunk_resolution) {
+  auto partitions = make_array<std::vector<std::pair<size_t, size_t>>, N>();
+  for (size_t j = 0; j < N; ++j) {
+    const auto num_partitions = static_cast<size_t>(
+        ceil(static_cast<double>(resolution[j]) / (max_chunk_resolution[j] - 1)));
+    partitions[j] = std::vector<std::pair<size_t, size_t>>(
+        num_partitions, {0, max_chunk_resolution[j]});
+    partitions[j].back().second = resolution[j] - partitions[j].back().first;
+    for (size_t i = 0; i < num_partitions; ++i) {
+      partitions[j][i].first = (max_chunk_resolution[j] - 1) * i;
+    }
+  }
+  return partitions;
+}
 //==============================================================================
 /// returns demangled typename
 template <typename T>

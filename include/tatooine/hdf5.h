@@ -19,25 +19,25 @@ namespace tatooine::h5 {
 template <typename T>
 struct multi_array {
   std::vector<hsize_t> m_resolution;
-  std::vector<T>  m_data;
+  std::vector<T>       m_data;
   //============================================================================
-  multi_array()                                    = default;
-  multi_array(const multi_array& other)            = default;
-  multi_array(multi_array&& other)                 = default;
+  multi_array()                         = default;
+  multi_array(const multi_array& other) = default;
+  multi_array(multi_array&& other)      = default;
   multi_array& operator=(const multi_array& other) = default;
-  multi_array& operator=(multi_array&& other)      = default;
+  multi_array& operator=(multi_array&& other) = default;
   //============================================================================
   multi_array(const std::vector<hsize_t>& p_resolution)
       : m_resolution{begin(p_resolution), end(p_resolution)},
-        m_data(std::accumulate(begin(p_resolution), end(p_resolution), hsize_t{1},
-                               std::multiplies<hsize_t>{}),
+        m_data(std::accumulate(begin(p_resolution), end(p_resolution),
+                               hsize_t{1}, std::multiplies<hsize_t>{}),
                0) {}
   //----------------------------------------------------------------------------
   template <size_t NDims>
   multi_array(const std::array<hsize_t, NDims>& p_resolution)
       : m_resolution{begin(p_resolution), end(p_resolution)},
-        m_data(std::accumulate(begin(p_resolution), end(p_resolution), hsize_t{1},
-                               std::multiplies<hsize_t>{}),
+        m_data(std::accumulate(begin(p_resolution), end(p_resolution),
+                               hsize_t{1}, std::multiplies<hsize_t>{}),
                0) {}
   //----------------------------------------------------------------------------
   template <size_t NDims>
@@ -49,12 +49,12 @@ struct multi_array {
                initial) {}
   //----------------------------------------------------------------------------
   multi_array(const std::vector<hsize_t>& p_resolution,
-              const std::vector<T>&  p_data)
+              const std::vector<T>&       p_data)
       : m_resolution{begin(p_resolution), end(p_resolution)}, m_data(p_data) {}
   //----------------------------------------------------------------------------
   template <size_t NDims>
   multi_array(const std::array<hsize_t, NDims>& p_resolution,
-              const std::vector<T>&        p_data)
+              const std::vector<T>&             p_data)
       : m_resolution{begin(p_resolution), end(p_resolution)}, m_data(p_data) {}
   //----------------------------------------------------------------------------
   template <size_t NDims>
@@ -62,17 +62,18 @@ struct multi_array {
               const std::array<hsize_t, NDims>& p_offset,
               const std::array<hsize_t, NDims>& p_resolution)
       : m_resolution{begin(p_resolution), end(p_resolution)},
-        m_data(std::accumulate(begin(p_resolution), end(p_resolution), hsize_t{1},
-                               std::multiplies<hsize_t>{})) {
-    H5::DataSpace chunkspace(number_of_dimensions(), m_resolution.data());
+        m_data(std::accumulate(begin(p_resolution), end(p_resolution),
+                               hsize_t{1}, std::multiplies<hsize_t>{})) {
+    H5::DataSpace chunkspace(num_dimensions(), m_resolution.data());
     auto          filespace = dataset.getSpace();
-    filespace.selectHyperslab(H5S_SELECT_SET, m_resolution.data(), p_offset.data());
+    filespace.selectHyperslab(H5S_SELECT_SET, m_resolution.data(),
+                              p_offset.data());
     dataset.read(m_data.data(), dataset.getFloatType(), chunkspace, filespace);
   }
   //----------------------------------------------------------------------------
   template <typename... Is, size_t... Cs>
   const auto& at(std::index_sequence<Cs...>, Is... p_is) const {
-    assert(sizeof...(Is) == number_of_dimensions());
+    assert(sizeof...(Is) == num_dimensions());
     std::array is{p_is...};
 
     size_t multiplier = 1;
@@ -87,7 +88,7 @@ struct multi_array {
   //----------------------------------------------------------------------------
   template <typename... Is, size_t... Cs>
   auto& at(std::index_sequence<Cs...>, Is... p_is) {
-    assert(sizeof...(Is) == number_of_dimensions());
+    assert(sizeof...(Is) == num_dimensions());
     std::array is{p_is...};
 
     size_t multiplier = 1;
@@ -102,17 +103,17 @@ struct multi_array {
   //----------------------------------------------------------------------------
   template <typename... Is>
   const auto& operator()(Is... is) const {
-    assert(sizeof...(Is) == number_of_dimensions());
+    assert(sizeof...(Is) == num_dimensions());
     return at(std::make_index_sequence<sizeof...(Is)>{}, is...);
   }
   //----------------------------------------------------------------------------
   template <typename... Is>
   auto& operator()(Is... is) {
-    assert(sizeof...(Is) == number_of_dimensions());
+    assert(sizeof...(Is) == num_dimensions());
     return at(std::make_index_sequence<sizeof...(Is)>{}, is...);
   }
   //----------------------------------------------------------------------------
-  auto& operator[](size_t i) { return m_data[i]; }
+  auto&       operator[](size_t i) { return m_data[i]; }
   const auto& operator[](size_t i) const { return m_data[i]; }
   //----------------------------------------------------------------------------
   auto number_of_elements() const {
@@ -120,15 +121,13 @@ struct multi_array {
                            std::multiplies<hsize_t>{});
   }
   //----------------------------------------------------------------------------
-  auto number_of_dimensions() const { return m_resolution.size(); }
+  auto num_dimensions() const { return m_resolution.size(); }
   //----------------------------------------------------------------------------
   const auto& resolution() const { return m_resolution; }
   //----------------------------------------------------------------------------
   auto resolution(size_t i) const { return m_resolution[i]; }
   //----------------------------------------------------------------------------
-  T* data() {
-    return m_data.data();
-  }
+  T*       data() { return m_data.data(); }
   const T* data() const { return m_data.data(); }
   void     write_vtk(const std::string& filepath, const vec<double, 3>& origin,
                      const vec<double, 3>& spacing,
@@ -163,8 +162,7 @@ struct dataset {
           const std::string_view&            p_dataset_name)
       : m_file{p_file}, m_dataset{m_file->openDataSet(p_dataset_name.data())} {}
   //----------------------------------------------------------------------------
-  dataset(const std::shared_ptr<H5::H5File>& p_file,
-          const char*            p_dataset_name)
+  dataset(const std::shared_ptr<H5::H5File>& p_file, const char* p_dataset_name)
       : m_file{p_file}, m_dataset{m_file->openDataSet(p_dataset_name)} {}
   //----------------------------------------------------------------------------
   auto resolution() const {
@@ -197,18 +195,16 @@ struct attribute {
   std::shared_ptr<H5::H5File> m_file;
   H5::Attribute               m_attr;
   //============================================================================
-  attribute(const std::shared_ptr<H5::H5File>& p_file,
-            const H5::Group& p_group,
+  attribute(const std::shared_ptr<H5::H5File>& p_file, const H5::Group& p_group,
             const std::string& p_attribute_name)
       : m_file{p_file}, m_attr{p_group.openAttribute(p_attribute_name)} {}
   //----------------------------------------------------------------------------
-  attribute(const std::shared_ptr<H5::H5File>& p_file,
-            const H5::Group& p_group,
+  attribute(const std::shared_ptr<H5::H5File>& p_file, const H5::Group& p_group,
             const std::string_view& p_attribute_name)
-      : m_file{p_file}, m_attr{p_group.openAttribute(p_attribute_name.data())} {}
+      : m_file{p_file},
+        m_attr{p_group.openAttribute(p_attribute_name.data())} {}
   //----------------------------------------------------------------------------
-  attribute(const std::shared_ptr<H5::H5File>& p_file,
-            const H5::Group& p_group,
+  attribute(const std::shared_ptr<H5::H5File>& p_file, const H5::Group& p_group,
             const char*& p_attribute_name)
       : m_file{p_file}, m_attr{p_group.openAttribute(p_attribute_name)} {}
   //----------------------------------------------------------------------------
@@ -227,7 +223,7 @@ struct attribute {
   }
   //----------------------------------------------------------------------------
   auto number_of_elements() const {
-    auto           dims   = resolution();
+    auto dims = resolution();
     return std::accumulate(begin(dims), end(dims), hsize_t{1},
                            std::multiplies<hsize_t>{});
   }
@@ -245,8 +241,7 @@ struct group {
         const std::string_view&            p_group_name)
       : m_file{p_file}, m_group{m_file->openGroup(p_group_name.data())} {}
   //----------------------------------------------------------------------------
-  group(const std::shared_ptr<H5::H5File>& p_file,
-        const char*            p_group_name)
+  group(const std::shared_ptr<H5::H5File>& p_file, const char* p_group_name)
       : m_file{p_file}, m_group{m_file->openGroup(p_group_name)} {}
   //----------------------------------------------------------------------------
   auto attribute(const std::string& attr_name) const {
@@ -296,6 +291,35 @@ struct ifile {
     return tatooine::h5::group(m_file, group_name);
   }
 };
+
+//==============================================================================
+auto interpolate(const multi_array<double>& c0,
+                 const multi_array<double>& c1, double factor) {
+  assert(c0.num_dimensions() == c1.num_dimensions());
+  for (size_t i = 0; i < c0.num_dimensions(); ++i) {
+    assert(c0.resolution(i) == c1.resolution(i));
+  }
+  multi_array<double> interpolated(c0.resolution());
+
+#ifndef NDEBUG
+#pragma omp parallel for collapse(3)
+#endif
+  for (size_t iz = 0; iz < c0.resolution(2); ++iz) {
+    for (size_t iy = 0; iy < c0.resolution(1); ++iy) {
+      for (size_t ix = 0; ix < c0.resolution(0); ++ix) {
+        interpolated(ix, iy, iz) =
+            c0(ix, iy, iz) * (1 - factor) + c1(ix, iy, iz) * factor;
+      }
+    }
+  }
+  return interpolated;
+}
+// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+auto interpolate(const tatooine::h5::multi_array<double>& c0,
+                 const tatooine::h5::multi_array<double>& c1,
+                 const tatooine::linspace<double>& ts, double t) {
+  return interpolate(c0, c1, (t - ts.front()) / (ts.back() - ts.front()));
+}
 
 //==============================================================================
 }  // namespace tatooine::h5

@@ -61,7 +61,7 @@ struct linspace {
   }
 
   //============================================================================
-  constexpr auto at(size_t i) const {
+  constexpr Real at(size_t i) const {
     if (m_size <= 1) { return m_min; }
     return m_min + spacing() * i;
   }

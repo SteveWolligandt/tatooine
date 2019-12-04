@@ -9,6 +9,8 @@ find_package(OpenMP REQUIRED)
 find_package(vcode REQUIRED)
 find_package(PNG REQUIRED)
 find_package(PNG++ REQUIRED)
+find_package(HDF5 REQUIRED)
+set(HDF5_LIBS -lhdf5 -lhdf5_cpp -lhdf5_hl)
 
 #- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 # create library target
@@ -36,6 +38,7 @@ target_link_libraries(tatooine
     ${LAPACKE_LIBRARIES}
     ${PNG_LIBRARIES}
     ${PNG++_LIBRARIES}
+    ${HDF5_LIBS}
 )
 if(OpenMP_CXX_FOUND)
   target_link_libraries(tatooine INTERFACE OpenMP::OpenMP_CXX)
@@ -50,3 +53,4 @@ add_subdirectory(steadification)
 #- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 # This makes the project importable from the build directory
 export(TARGETS tatooine FILE tatooineConfig.cmake)
+export(PACKAGE tatoine)
