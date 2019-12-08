@@ -11,6 +11,7 @@
 #include <vector>
 
 #include "tensor.h"
+#include "linspace.h"
 #include "vtk_legacy.h"
 
 //==============================================================================

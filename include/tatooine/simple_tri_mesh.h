@@ -55,6 +55,9 @@ class simple_tri_mesh {
   const auto& faces() const { return m_faces; }
   const auto& vertices() const { return m_vertices; }
   //----------------------------------------------------------------------------
+  auto num_faces() const { return m_faces.size(); }
+  auto num_vertices() const { return m_vertices.size(); }
+  //----------------------------------------------------------------------------
   template <size_t _N = N, typename = std::enable_if_t<_N == 2 || _N == 3>>
   void write_obj(const std::string& path) {
     std::ofstream fout(path);
