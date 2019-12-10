@@ -77,7 +77,7 @@ class simple_tri_mesh {
   }
   //----------------------------------------------------------------------------
   template <size_t _N = N, std::enable_if_t<_N == 3, bool> = true>
-  void write_vtk(const std::string& path,
+  bool write_vtk(const std::string& path,
                  const std::string& title = "tatooine simple_tri_mesh") const {
     vtk::legacy_file_writer writer(path, vtk::POLYDATA);
     if (writer.is_open()) {
@@ -86,6 +86,9 @@ class simple_tri_mesh {
       writer.write_points(m_vertices);
       writer.write_polygons(m_faces);
       writer.close();
+      return true;
+    } else {
+      return false;
     }
   }
 };

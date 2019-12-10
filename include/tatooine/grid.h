@@ -257,6 +257,13 @@ class grid {
   }
 
   //----------------------------------------------------------------------------
+  template <typename... Is>
+  auto operator()(Is... is) const {
+    static_assert(sizeof...(Is) == N);
+    return at(is...);
+  }
+
+  //----------------------------------------------------------------------------
   constexpr auto num_vertices() const {
     size_t num = 1;
     for (const auto& dim : m_dimensions) { num *= dim.size(); }

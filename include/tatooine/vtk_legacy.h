@@ -995,7 +995,7 @@ class legacy_file_writer {
         m_dataset_type(type),
         m_title(title) {}
 
-  auto is_open() { return m_file.is_open(); }
+  bool is_open() { return m_file.is_open(); }
   auto close() { m_file.close(); }
   //---------------------------------------------------------------------------
  private:
