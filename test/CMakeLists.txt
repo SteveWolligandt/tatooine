@@ -25,7 +25,8 @@ macro(create_test NAME)
 endmacro()
 
 #- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-create_test(multidim_index)
+create_test(multidim_resolution)
+create_test(multidim_array)
 create_test(marchingcubes)
 create_test(curvature_field)
 create_test(okubo_weiss_field)

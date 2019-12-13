@@ -160,6 +160,32 @@ using enable_if_arithmetic_complex_or_symbolic =
                               bool>;
 #endif
 //==============================================================================
+template <typename T, typename = void>
+struct is_iterator : std::false_type {};
+// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+template <typename T>
+struct is_iterator<T, std::enable_if_t<!std::is_same_v<
+                          typename std::iterator_traits<T>::value_type, void>>>
+    : std::true_type {};
+// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+template <typename... Ts>
+struct are_iterators;
+// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+template <>
+struct are_iterators<> : std::false_type {};
+// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+template <typename T>
+struct are_iterators<T>
+    : std::integral_constant<bool, is_iterator<T>::value> {};
+// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+template <typename T0, typename T1, typename... Ts>
+struct are_iterators<T0, T1, Ts...>
+    : std::integral_constant<bool, are_iterators<T0>::value &&
+                                   are_iterators<T1, Ts...>::value> {};
+//~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+template <typename... Ts>
+using enable_if_iterator = std::enable_if_t<are_iterators<Ts...>::value, bool>;
+//==============================================================================
 template <typename T>
 struct num_components;
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
