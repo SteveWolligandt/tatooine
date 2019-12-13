@@ -7,7 +7,7 @@
 #include <ostream>
 #include "crtp.h"
 #include "functional.h"
-#include "multidimension.h"
+#include "multidim_array.h"
 #include "random.h"
 #include "type_traits.h"
 #include "utility.h"
@@ -54,69 +54,56 @@ struct base_tensor : crtp<Tensor> {
   using this_t     = base_tensor<Tensor, Real, Dims...>;
   using parent_t   = crtp<Tensor>;
   using parent_t::as_derived;
+  using resolution_t = static_multidim_resolution<x_fastest, Dims...>;
 
   //============================================================================
   static constexpr size_t num_dimensions() { return sizeof...(Dims); }
-  static constexpr size_t num_components() { 
-#if has_cxx17_support()
-    return (Dims * ...); 
-#else
-    constexpr std::array<size_t, num_dimensions()>dims{Dims...};
-    auto num_comps = 1;
-    for (size_t i = 0; i < dims.size(); ++i) { num_comps *= dims[i]; }
-    return num_comps;
-#endif
+  //------------------------------------------------------------------------------
+  static constexpr auto num_components() {
+    return resolution_t::num_elements();
   }
-  static constexpr auto   dimensions() {
+  //------------------------------------------------------------------------------
+  static constexpr auto dimensions() {
     return std::array<size_t, num_dimensions()>{Dims...};
   }
+  //------------------------------------------------------------------------------
   static constexpr auto dimension(const size_t i) {
     return template_helper::getval<size_t>(i, Dims...);
   }
-  static constexpr auto   indices() {
-    return multi_index<num_dimensions()>{
-        std::array<std::pair<size_t, size_t>, num_dimensions()>{
-          std::make_pair(0, Dims - 1)...}};
-  }
-  template <typename F, size_t... Is>
-  static auto for_indices(F&& f, std::index_sequence<Is...>) {
-    for (auto is : indices()) { f(is[Is]...); }
-  }
+  //------------------------------------------------------------------------------
+  static constexpr auto indices() { return resolution_t::indices(); }
+  //------------------------------------------------------------------------------
   template <typename F>
   static auto for_indices(F&& f) {
-    return for_indices(std::forward<F>(f),
-                       std::make_index_sequence<num_dimensions()>{});
+    for (auto is : indices()) {
+      invoke_unpacked(std::forward<F>(f), unpack(is));
+    }
   }
-
   //============================================================================
   constexpr base_tensor() = default;
-
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-  template <typename other_tensor_t, typename other_real_t>
+  template <typename OtherTensor, typename OtherReal>
   constexpr base_tensor(
-      const base_tensor<other_tensor_t, other_real_t, Dims...>& other) {
+      const base_tensor<OtherTensor, OtherReal, Dims...>& other) {
     assign_other_tensor(other);
   }
-
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-  template <typename other_tensor_t, typename other_real_t>
+  template <typename OtherTensor, typename OtherReal>
   constexpr auto& operator=(
-      const base_tensor<other_tensor_t, other_real_t, Dims...>& other) {
+      const base_tensor<OtherTensor, OtherReal, Dims...>& other) {
     assign_other_tensor(other);
     return *this;
   }
-
   //============================================================================
   template <typename F>
   auto& unary_operation(F&& f) {
     for_indices([this, &f](const auto... is) { at(is...) = f(at(is...)); });
     return as_derived();
   }
-
   //----------------------------------------------------------------------------
-  template <typename F, typename other_tensor_t, typename other_real_t>
+  template <typename F, typename OtherTensor, typename OtherReal>
   decltype(auto) binary_operation(
-      F&& f, const base_tensor<other_tensor_t, other_real_t, Dims...>& other) {
+      F&& f, const base_tensor<OtherTensor, OtherReal, Dims...>& other) {
     for_indices([this, &f, &other](const auto... is) {
       at(is...) = f(at(is...), other(is...));
     });
@@ -124,9 +111,9 @@ struct base_tensor : crtp<Tensor> {
   }
 
   //----------------------------------------------------------------------------
-  template <typename other_tensor_t, typename other_real_t>
+  template <typename OtherTensor, typename OtherReal>
   constexpr void assign_other_tensor(
-      const base_tensor<other_tensor_t, other_real_t, Dims...>& other) {
+      const base_tensor<OtherTensor, OtherReal, Dims...>& other) {
     for_indices([this, &other](const auto... is) { at(is...) = other(is...); });
   }
 
@@ -206,7 +193,7 @@ struct base_tensor : crtp<Tensor> {
   static constexpr auto array_index(const Is... is) {
     static_assert(sizeof...(Is) == num_dimensions(),
                   "number of indices does not match number of dimensions");
-    return static_multidimension<Dims...>::global_idx(is...);
+    return static_multidim_resolution<x_fastest, Dims...>::plain_idx(is...);
   }
 
   //----------------------------------------------------------------------------
@@ -271,38 +258,42 @@ struct base_tensor : crtp<Tensor> {
 
 //==============================================================================
 template <typename Real, size_t... Dims>
-struct tensor : base_tensor<tensor<Real, Dims...>, Real, Dims...> {
+struct tensor : base_tensor<tensor<Real, Dims...>, Real, Dims...>,
+                static_multidim_array<Real, x_fastest, stack, Dims...> {
   //============================================================================
   using this_t   = tensor<Real, Dims...>;
-  using parent_t = base_tensor<this_t, Real, Dims...>;
-  using parent_t::parent_t;
-  using parent_t::operator=;
-  using parent_t::dimension;
-  using parent_t::num_components;
-  using parent_t::num_dimensions;
-  using data_container_t = std::array<Real, num_components()>;
-
-  //============================================================================
- protected:
-   data_container_t m_data;
+  using tensor_parent_t = base_tensor<this_t, Real, Dims...>;
+  using array_parent_t = static_multidim_array<Real, x_fastest, stack, Dims...>;
+  using tensor_parent_t::tensor_parent_t;
+  using tensor_parent_t::operator=;
+  using tensor_parent_t::dimension;
+  using tensor_parent_t::num_components;
+  using tensor_parent_t::num_dimensions;
+  using array_parent_t::at;
+  using array_parent_t::operator();
 
   //============================================================================
  public:
-  constexpr tensor() : m_data{make_array<Real, num_components()>()} {}
+  constexpr tensor() {}
   constexpr tensor(const tensor& other) = default;
   constexpr tensor& operator=(const tensor& other) = default;
 
-  template <typename Real_ = Real, enable_if_arithmetic_or_complex<Real_> = true>
-  constexpr tensor(tensor&& other) noexcept : m_data{std::move(other.m_data)}{}
+  template <typename Real_                         = Real,
+            enable_if_arithmetic_or_complex<Real_> = true>
+  constexpr tensor(tensor&& other) noexcept
+      : array_parent_t{std::move(other)} {}
   template <typename Real_ = Real, enable_if_arithmetic_or_complex<Real_> = true>
   constexpr tensor& operator=(tensor&& other) noexcept {
-    m_data = std::move(other.m_data);
+    array_parent_t::operator=(std::move(other));
     return *this;
   }
   ~tensor()                                            = default;
 
   //============================================================================
  public:
+  template <typename... Ts, size_t _N = num_dimensions(),
+            std::enable_if_t<_N == 1, bool> = true>
+  constexpr tensor(const Ts... ts) : array_parent_t{ts...} {}
   template <typename _real_t = Real, enable_if_arithmetic<_real_t> = true>
   constexpr tensor(zeros_t /*zeros*/) : tensor{fill<Real>{0}} {}
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -311,8 +302,7 @@ struct tensor : base_tensor<tensor<Real, Dims...>, Real, Dims...> {
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
   template <typename fill_real_t, typename _real_t = Real,
             enable_if_arithmetic<_real_t> = true>
-  constexpr tensor(fill<fill_real_t> f)
-      : m_data{make_array<Real, num_components()>(f.value)} {}
+  constexpr tensor(fill<fill_real_t> f) : array_parent_t{f.value} {}
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
   template <typename RandomReal, typename Engine, typename _real_t = Real,
             enable_if_arithmetic<RandomReal> = true>
@@ -325,94 +315,62 @@ struct tensor : base_tensor<tensor<Real, Dims...>, Real, Dims...> {
   constexpr tensor(random_normal<RandomReal, Engine>&& rand) : tensor{} {
     this->unary_operation([&](const auto& /*c*/) { return rand.get(); });
   }
-
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-  template <typename other_tensor_t, typename other_real_t>
+  template <typename OtherTensor, typename OtherReal>
   constexpr tensor(
-      const base_tensor<other_tensor_t, other_real_t, Dims...>& other) {
+      const base_tensor<OtherTensor, OtherReal, Dims...>& other) {
     this->assign_other_tensor(other);
   }
-
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-  template <typename other_tensor_t, typename other_real_t>
+  template <typename OtherTensor, typename OtherReal>
   constexpr auto& operator=(
-      const base_tensor<other_tensor_t, other_real_t, Dims...>& other) {
+      const base_tensor<OtherTensor, OtherReal, Dims...>& other) {
     this->assign_other_tensor(other);
     return *this;
   }
-
   //----------------------------------------------------------------------------
   static constexpr auto zeros() { return this_t{fill<Real>{0}}; }
-
   //----------------------------------------------------------------------------
   static constexpr auto ones() { return this_t{fill<Real>{1}}; }
-
   //----------------------------------------------------------------------------
-  template <typename RandomEngine = std::mt19937_64>
+  template <typename RandEng = std::mt19937_64>
   static constexpr auto randu(Real min = 0, Real max = 1,
-                              RandomEngine&& eng = RandomEngine{
-                                  std::random_device{}()}) {
-    return this_t{random_uniform<Real>{eng, min, max}};
+                              RandEng&& eng = RandEng{std::random_device{}()}) {
+    return this_t{random_uniform{min, max, std::forward<RandEng>(eng)}};
   }
 
   //----------------------------------------------------------------------------
-  template <typename RandomEngine = std::mt19937_64>
+  template <typename RandEng = std::mt19937_64>
   static constexpr auto randn(Real mean = 0, Real stddev = 1,
-                              RandomEngine&& eng = RandomEngine{
-                                  std::random_device{}()}) {
+                              RandEng&& eng = RandEng{std::random_device{}()}) {
     return this_t{random_normal<Real>{eng, mean, stddev}};
   }
 
   //============================================================================
-  template <typename... Is, enable_if_integral<Is...> = true>
-  constexpr const auto& at(const Is... is) const {
-    static_assert(sizeof...(Is) == num_dimensions(),
-                  "number of indices does not match number of dimensions");
-    return m_data[parent_t::array_index(is...)];
-  }
-
-  // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-  template <typename... Is, enable_if_integral<Is...> = true>
-  constexpr auto& at(const Is... is) {
-    static_assert(sizeof...(Is) == num_dimensions(),
-                  "number of indices does not match number of dimensions");
-    return m_data[parent_t::array_index(is...)];
-  }
-
-  //----------------------------------------------------------------------------
-  constexpr const auto& operator[](size_t i) const { return m_data[i]; }
-  constexpr auto&       operator[](size_t i) { return m_data[i]; }
-
-  //----------------------------------------------------------------------------
-  decltype(auto) data() { return m_data.data(); }
-  decltype(auto) data() const { return m_data.data(); }
-
-  //----------------------------------------------------------------------------
-  template <size_t NumDims = num_dimensions(), std::enable_if_t<NumDims == 1>...>
-  auto begin() { return std::begin(m_data); }
-  template <size_t NumDims = num_dimensions(), std::enable_if_t<NumDims == 1>...>
-  auto begin() const { return std::begin(m_data); }
-  template <size_t NumDims = num_dimensions(), std::enable_if_t<NumDims == 1>...>
-  auto cbegin() { return std::cbegin(m_data); }
-
-  //----------------------------------------------------------------------------
-  template <size_t NumDims = num_dimensions(), std::enable_if_t<NumDims == 1>...>
-  auto end() { return std::end(m_data); }
-  template <size_t NumDims = num_dimensions(), std::enable_if_t<NumDims == 1>...>
-  auto end() const { return std::end(m_data); }
-  template <size_t NumDims = num_dimensions(), std::enable_if_t<NumDims == 1>...>
-  auto cend() { return std::cend(m_data); }
+  //template <size_t NumDims = num_dimensions(), std::enable_if_t<NumDims == 1>...>
+  //auto begin() { return std::begin(m_data); }
+  //template <size_t NumDims = num_dimensions(), std::enable_if_t<NumDims == 1>...>
+  //auto begin() const { return std::begin(m_data); }
+  //template <size_t NumDims = num_dimensions(), std::enable_if_t<NumDims == 1>...>
+  //auto cbegin() { return std::cbegin(m_data); }
+  //
+  ////----------------------------------------------------------------------------
+  //template <size_t NumDims = num_dimensions(), std::enable_if_t<NumDims == 1>...>
+  //auto end() { return std::end(m_data); }
+  //template <size_t NumDims = num_dimensions(), std::enable_if_t<NumDims == 1>...>
+  //auto end() const { return std::end(m_data); }
+  //template <size_t NumDims = num_dimensions(), std::enable_if_t<NumDims == 1>...>
+  //auto cend() { return std::cend(m_data); }
 
   //----------------------------------------------------------------------------
   template <typename OtherReal>
   bool operator==(const tensor<OtherReal, Dims...>& other) const {
-    return m_data == other.m_data;
+    return this->data() == other.data();
   }
-
   //----------------------------------------------------------------------------
   template <typename OtherReal>
   bool operator<(const tensor<OtherReal, Dims...>& other) const {
-    return m_data < other.m_data;
+    return this->data() < other.data();
   }
 };
 
@@ -429,8 +387,9 @@ struct vec : tensor<Real, n> {
   using parent_t = tensor<Real, n>;
   using parent_t::parent_t;
 
-  using iterator       = typename parent_t::data_container_t::iterator;
-  using const_iterator = typename parent_t::data_container_t::const_iterator;
+  using iterator = typename parent_t::array_parent_t::container_t::iterator;
+  using const_iterator =
+      typename parent_t::array_parent_t::container_t::const_iterator;
 
   constexpr vec() : parent_t{} {}
 #if has_cxx17_support()
@@ -439,29 +398,16 @@ struct vec : tensor<Real, n> {
 #else
   template <typename... Ts, enable_if_arithmetic<Ts...> = true>
 #endif
-  constexpr vec(const Ts... ts) {
+  constexpr vec(const Ts... ts) : parent_t{ts...} {
     static_assert(sizeof...(Ts) == parent_t::dimension(0),
                   "number of indices does not match number of dimensions");
-    this->m_data = {static_cast<Real>(ts)...};
   }
-
+  //------------------------------------------------------------------------------
   constexpr vec(const vec&) = default;
+  constexpr vec(vec&& other) noexcept = default;
+  //------------------------------------------------------------------------------
   constexpr vec& operator=(const vec&) = default;
-  ~vec()                               = default;
-
-  template <typename Real_ = Real, enable_if_arithmetic_or_complex<Real_> = true>
-  constexpr vec(vec&& other) noexcept : parent_t{std::move(other)} {}
-  template <typename Real_                         = Real,
-            enable_if_arithmetic_or_complex<Real_> = true>
-  constexpr vec& operator=(const vec& other) {
-    parent_t::operator=(other);
-    return *this;
-  }
-  template <typename Real_ = Real, enable_if_arithmetic_or_complex<Real_> = true>
-  constexpr vec& operator=(vec&& other) noexcept {
-    parent_t::operator=(std::move(other));
-    return *this;
-  }
+  constexpr vec& operator=(vec&& other) noexcept = default;
 };
 
 //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -976,8 +922,8 @@ vec<std::complex<double>, N> eigenvalues(tensor<double, N, N> A) {
   [[maybe_unused]] lapack_int info;
   std::array<double, N>         wr;
   std::array<double, N>         wi;
-    info = LAPACKE_dgeev(LAPACK_COL_MAJOR, 'N', 'N', N, A.data(), N, wr.data(),
-                         wi.data(), nullptr, N, nullptr, N);
+  info = LAPACKE_dgeev(LAPACK_COL_MAJOR, 'N', 'N', N, A.data_ptr(), N,
+                       wr.data(), wi.data(), nullptr, N, nullptr, N);
   vec<std::complex<double>, N> vals;
   for (size_t i = 0; i < N; ++i) { vals[i] = {wr[i], wi[i]}; }
   return vals;
@@ -1015,11 +961,12 @@ template <size_t N>
 std::pair<mat<std::complex<double>, N, N>, vec<std::complex<double>, N>>
 eigenvectors(tensor<double, N, N> A) {
   [[maybe_unused]] lapack_int info;
-  std::array<double, N>         wr;
-  std::array<double, N>         wi;
-  std::array<double, N * N>     vr;
-  info = LAPACKE_dgeev(LAPACK_COL_MAJOR, 'N', 'V', N, A.data(), N, wr.data(),
-                       wi.data(), nullptr, N, vr.data(), N);
+  std::array<double, N>       wr;
+  std::array<double, N>       wi;
+  std::array<double, N * N>   vr;
+  info =
+      LAPACKE_dgeev(LAPACK_COL_MAJOR, 'N', 'V', N, A.data_ptr(), N,
+                    wr.data(), wi.data(), nullptr, N, vr.data(), N);
 
   vec<std::complex<double>, N>    vals;
   mat<std::complex<double>, N, N> vecs;
@@ -1044,24 +991,28 @@ template <size_t N>
 auto eigenvalues_sym(tensor<float, N, N> A) {
   vec<float, N>               vals;
   [[maybe_unused]] lapack_int info;
-  info = LAPACKE_ssyev(LAPACK_COL_MAJOR, 'N', 'U', N, A.data(), N, vals.data());
+  info = LAPACKE_ssyev(LAPACK_COL_MAJOR, 'N', 'U', N, A.data_ptr(), N,
+                       vals.data_ptr());
   return vals;
 }
 template <size_t N>
 auto eigenvalues_sym(tensor<double, N, N> A) {
   vec<double, N>              vals;
   [[maybe_unused]] lapack_int info;
-  info = LAPACKE_dsyev(LAPACK_COL_MAJOR, 'N', 'U', N, A.data(), N, vals.data());
+  info = LAPACKE_dsyev(LAPACK_COL_MAJOR, 'N', 'U', N, A.data_ptr(), N,
+                       vals.data_ptr());
 
   return vals;
 }
 
 //------------------------------------------------------------------------------
 template <size_t N>
-std::pair<mat<float, N, N>, vec<float, N>> eigenvectors_sym(mat<float, N, N> A) {
+std::pair<mat<float, N, N>, vec<float, N>> eigenvectors_sym(
+    mat<float, N, N> A) {
   vec<float, N>               vals;
   [[maybe_unused]] lapack_int info;
-  info = LAPACKE_ssyev(LAPACK_COL_MAJOR, 'V', 'U', N, A.data(), N, vals.data());
+  info = LAPACKE_ssyev(LAPACK_COL_MAJOR, 'V', 'U', N, A.data_ptr(), N,
+                       vals.data_ptr());
   return {std::move(A), std::move(vals)};
 }
 template <size_t N>
@@ -1069,14 +1020,18 @@ std::pair<mat<double, N, N>, vec<double, N>> eigenvectors_sym(
     mat<double, N, N> A) {
   vec<double, N>              vals;
   [[maybe_unused]] lapack_int info;
-  info = LAPACKE_dsyev(LAPACK_COL_MAJOR, 'V', 'U', N, A.data(), N, vals.data());
+  info = LAPACKE_dsyev(LAPACK_COL_MAJOR, 'V', 'U', N, A.data_ptr(), N,
+                       vals.data_ptr());
   return {std::move(A), std::move(vals)};
 }
 
 //------------------------------------------------------------------------------
 /// for comparison
 template <typename LhsTensor, typename LhsReal, typename RhsTensor,
-          typename RhsReal, size_t... Dims>
+          typename RhsReal, size_t... Dims,
+          std::enable_if_t<std::is_floating_point_v<LhsReal> ||
+                               std::is_floating_point_v<RhsReal>,
+                           bool> = true>
 constexpr bool approx_equal(const base_tensor<LhsTensor, LhsReal, Dims...>& lhs,
                             const base_tensor<RhsTensor, RhsReal, Dims...>& rhs,
                             promote_t<LhsReal, RhsReal> eps = 1e-6) {
@@ -1412,7 +1367,7 @@ auto transpose(const base_tensor<Matrix, Real, M, N>& matrix) {
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 template <typename Matrix, typename Real, size_t M, size_t N>
 auto transpose(base_tensor<Matrix, Real, M, N>& matrix) {
-  return transposed_matrix<Matrix, M, N>{matrix.as_derived()};
+  return transposed_matrix<Matrix, N, M>{matrix.as_derived()};
 }
 
 //------------------------------------------------------------------------------

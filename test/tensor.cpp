@@ -6,6 +6,29 @@
 namespace tatooine::test {
 //==============================================================================
 
+//==============================================================================
+TEST_CASE("tensor_initializers", "[tensor][initializers]") {
+  SECTION("constructors") {
+    auto m3z = mat3::zeros();
+    m3z.for_indices([&m3z](const auto... is) { CHECK(m3z(is...) == 0); });
+    auto m3o = mat3::ones();
+    m3o.for_indices([&m3o](const auto... is) { CHECK(m3o(is...) == 1); });
+    [[maybe_unused]] auto m3ru = mat3::randu();
+    [[maybe_unused]] auto m3rn = mat3::randn();
+  }
+  SECTION("factory functions") {
+    mat3 m3z{zeros};
+    m3z.for_indices([&m3z](const auto... is) { CHECK(m3z(is...) == 0); });
+    mat3 m3o{ones};
+    m3o.for_indices([&m3o](const auto... is) { CHECK(m3o(is...) == 1); });
+    mat3 m3f{fill{3}};
+    m3f.for_indices([&m3f](const auto... is) { CHECK(m3f(is...) == 3); });
+    mat3 m3ru{random_uniform{}};
+    mat3 m3rn{random_normal{}};
+  }
+}
+
+//==============================================================================
 TEST_CASE("tensor_ginac_matrix_conversion",
           "[tensor][symbolic][conversion][matrix]") {
   using namespace symbolic;
@@ -47,28 +70,6 @@ TEST_CASE("tensor_symbolic_inverse", "[tensor][symbolic][inverse][matrix]") {
 //==============================================================================
 TEST_CASE("tensor_print_matrix", "[tensor][print][matrix]") {
   std::cerr << mat<int, 3, 3>{random_uniform{0, 9}} << '\n';
-}
-
-//==============================================================================
-TEST_CASE("tensor_initializers", "[tensor][initializers]") {
-  SECTION("constructors") {
-    auto m3z = mat3::zeros();
-    m3z.for_indices([&m3z](const auto... is) { CHECK(m3z(is...) == 0); });
-    auto m3o = mat3::ones();
-    m3o.for_indices([&m3o](const auto... is) { CHECK(m3o(is...) == 1); });
-    [[maybe_unused]] auto m3ru = mat3::randu();
-    [[maybe_unused]] auto m3rn = mat3::randn();
-  }
-  SECTION("factory functions") {
-    mat3 m3z{zeros};
-    m3z.for_indices([&m3z](const auto... is) { CHECK(m3z(is...) == 0); });
-    mat3 m3o{ones};
-    m3o.for_indices([&m3o](const auto... is) { CHECK(m3o(is...) == 1); });
-    mat3 m3f{fill{3}};
-    m3f.for_indices([&m3f](const auto... is) { CHECK(m3f(is...) == 3); });
-    mat3 m3ru{random_uniform{}};
-    mat3 m3rn{random_normal{}};
-  }
 }
 
 
@@ -213,7 +214,7 @@ TEST_CASE("tensor_addition", "[tensor][operation][addition]") {
 TEST_CASE("tensor_symbolic", "[tensor][symbolic]") {
   vec  v{symbolic::symbol::x(0),
          symbolic::symbol::x(0) * symbolic::symbol::x(1)};
-  auto m = mat2::randu();
+  //auto m = mat2::randu();
   auto vdfx0 = diff(v, symbolic::symbol::x(0));
   auto vdfx1 = diff(v, symbolic::symbol::x(1));
 }

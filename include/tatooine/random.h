@@ -10,6 +10,8 @@ namespace tatooine {
 
 template <typename T, typename Engine = std::mt19937>
 struct random_uniform {
+  static_assert(std::is_arithmetic_v<T>);
+  //============================================================================
   using engine_t = Engine;
   using real_t   = T;
   using distribution_t =
@@ -18,6 +20,11 @@ struct random_uniform {
                          std::uniform_int_distribution<T>>;
 
   //============================================================================
+ private:
+  Engine         engine;
+  distribution_t distribution;
+  //============================================================================
+ public:
   random_uniform() : engine{std::random_device{}()}, distribution{0, 1} {}
   random_uniform(const random_uniform&)     = default;
   random_uniform(random_uniform&&) noexcept = default;
@@ -26,38 +33,17 @@ struct random_uniform {
   //----------------------------------------------------------------------------
   random_uniform(const Engine& _engine) : engine{_engine}, distribution{0, 1} {}
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-  template <enable_if_not_arithmetic<Engine> = true>
   random_uniform(Engine&& _engine)
       : engine{std::move(_engine)}, distribution{0, 1} {}
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-  template <enable_if_arithmetic<T> = true>
   random_uniform(T min, T max)
       : engine{std::random_device{}()}, distribution{min, max} {}
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-  template <enable_if_arithmetic<T> = true,
-            enable_if_not_arithmetic<Engine> = true>
-  random_uniform(const Engine& _engine, T min, T max)
-      : engine{_engine}, distribution{min, max} {}
-  // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-  template <enable_if_arithmetic<T> = true,
-            enable_if_not_arithmetic<Engine> = true>
-  random_uniform(Engine&& _engine, T min, T max)
-      : engine{std::move(_engine)}, distribution{min, max} {}
-  // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-  template <enable_if_arithmetic<T> = true,
-            enable_if_not_arithmetic<Engine> = true>
   random_uniform(T min, T max, const Engine& _engine)
       : engine{_engine}, distribution{min, max} {}
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-  template <enable_if_arithmetic<T> = true,
-            enable_if_not_arithmetic<Engine> = true>
   random_uniform(T min, T max, Engine&& _engine)
       : engine{std::move(_engine)}, distribution{min, max} {}
-
-  //============================================================================
- private:
-  Engine         engine;
-  distribution_t distribution;
 
   //============================================================================
  public:

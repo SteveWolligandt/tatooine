@@ -30,7 +30,7 @@ TEMPLATE_TEST_CASE("chunked_data_element_assignment_primitive",
 
 //==============================================================================
 TEMPLATE_TEST_CASE("chunked_data_element_assignment_vec",
-                   "[chunked_data][tensor]", int, float, double) {
+                   "[chunked_data][tensor]", float, double) {
   using T = vec<TestType, 2>;
   chunked_data<T, 2, 2> data{4, 4};
   for (size_t x = 0; x < 4; ++x) {
