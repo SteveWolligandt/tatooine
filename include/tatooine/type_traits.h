@@ -273,6 +273,10 @@ template <typename tensor_t, typename real_t, size_t N>
 struct is_vectorield<base_tensor<tensor_t, real_t, N>> : std::true_type {};
 template <typename T>
 constexpr auto is_vectorield_v = is_vectorield<T>::value;
+//==============================================================================
+template <typename F, typename... Args>
+using enable_if_invocable =
+    std::enable_if_t<std::is_invocable<F, Args...>::value, bool>;
 
 //==============================================================================
 }  // namespace tatooine
