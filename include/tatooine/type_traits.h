@@ -13,6 +13,34 @@
 //==============================================================================
 namespace tatooine {
 //==============================================================================
+template <typename T>
+struct is_unsigned_integral
+    : std::integral_constant<bool, std::is_integral<T>::value &&
+                                   std::is_unsigned<T>::value> {};
+// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+template <typename T>
+static constexpr auto is_unsigned_integral_v = is_unsigned_integral<T>::value;
+// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+template <typename... Ts>
+struct are_unsigned_integral;
+// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+template <>
+struct are_unsigned_integral<> : std::false_type {};
+// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+template <typename T>
+struct are_unsigned_integral<T>
+    : std::integral_constant<bool, is_unsigned_integral<T>::value> {};
+// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+template <typename T0, typename T1, typename... Ts>
+struct are_unsigned_integral<T0, T1, Ts...>
+    : std::integral_constant<bool,
+                             are_unsigned_integral<T0>::value &&
+                                 are_unsigned_integral<T1, Ts...>::value> {};
+//~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+template <typename... Ts>
+using enable_if_unsigned_integral =
+    std::enable_if_t<are_unsigned_integral<Ts...>::value, bool>;
+//==============================================================================
 #if has_cxx17_support()
 template <typename T>
 struct is_symbolic

@@ -52,11 +52,18 @@ struct static_multidim_resolution {
     return true;
 #endif
   }
-  // ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~
+  // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
   template <size_t N>
   static constexpr auto in_range(const std::array<size_t, N>& is) {
     return invoke_unpacked([](auto... is) { return in_range(is...); },
                            unpack(is));
+  }
+  // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+  static constexpr auto in_range(const std::vector<size_t>& is) {
+    for (size_t i = 0; i < is.size(); ++i) {
+      if (is[i] < 0 || is[i] >= resolution(i)) { return false; }
+    }
+    return true;
   }
 
   //----------------------------------------------------------------------------
@@ -82,7 +89,7 @@ struct static_multidim_resolution {
     return Indexing::plain_idx(
         std::array<size_t, num_dimensions()>{Resolution...}, is...);
   }
-  // ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~
+  // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
   template <size_t N>
   static constexpr auto plain_idx(const std::array<size_t, N>& is) {
     return invoke_unpacked([](auto... is) { return plain_idx(is...); },
@@ -218,6 +225,13 @@ class dynamic_multidim_resolution {
     return invoke_unpacked([this](auto... is) { return in_range(is...); },
                            unpack(is));
   }
+  // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+  auto in_range(const std::vector<size_t>& is) const {
+    for (size_t i = 0; i < is.size(); ++i) {
+      if (is[i] < 0 || is[i] >= size(i)) { return false; }
+    }
+    return true;
+  }
   //----------------------------------------------------------------------------
   template <typename... Is, enable_if_integral<std::decay_t<Is>...> = true>
   constexpr auto plain_idx(Is... is) const {
@@ -235,8 +249,7 @@ class dynamic_multidim_resolution {
   template <size_t N>
   constexpr auto plain_idx(const std::array<size_t, N>& is) const {
     assert(N == num_dimensions());
-    return invoke_unpacked([this](auto... is) { return plain_idx(is...); },
-                           unpack(is));
+    return Indexing::plain_idx(m_resolution, is);
   }
   //----------------------------------------------------------------------------
   constexpr auto multi_index(size_t gi) const {

@@ -3,6 +3,7 @@
 
 #include <array>
 #include <vector>
+#include <boost/range/adaptors.hpp>
 
 #include "type_traits.h"
 #include "utility.h"
@@ -21,8 +22,7 @@ struct x_fastest {
     size_t idx        = 0;
     for (auto i : is) {
       idx += i * multiplier;
-      multiplier *= *res_it;
-      ++res_it;
+      multiplier *= *(res_it++);
     }
     return idx;
   }
@@ -35,9 +35,9 @@ struct x_fastest {
     size_t idx        = 0;
     map([&](size_t i) {
           idx += i * multiplier;
-          multiplier *= *res_it;
-          ++res_it;
-        }, is...);
+          multiplier *= *(res_it++);
+        },
+        is...);
     return idx;
   }
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -105,15 +105,15 @@ struct x_fastest {
 /// dimensions grows slowest
 struct x_slowest {
  private:
-  template <typename Resolution>
-  static constexpr size_t internal_plain_idx(const Resolution& resolution,
+  template <typename ResIt>
+  static constexpr size_t internal_plain_idx(ResIt res_it,
                                              const std::vector<size_t>& is) {
     size_t multiplier = 1;
     size_t idx        = 0;
 
-    for (size_t i = 0; i < is.size(); ++i) {
-      idx += is[is.size() - 1 - i] * multiplier;
-      multiplier *= resolution[is.size() - 1 - i];
+    for (auto i : is | boost::adaptors::reversed) {
+      idx += i * multiplier;
+      multiplier *= *(res_it--);
     }
     return idx;
   }
@@ -143,10 +143,10 @@ struct x_slowest {
     return internal_plain_idx(resolution, is...);
   }
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-  static constexpr size_t plain_idx(const std::vector<size_t>& resolution,
-                                    const std::vector<size_t>& is) {
+  static size_t plain_idx(const std::vector<size_t>& resolution,
+                          const std::vector<size_t>& is) {
     assert(is.size() == resolution.size());
-    return internal_plain_idx(resolution, is);
+    return internal_plain_idx(prev(end(resolution)), is);
   }
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
   template <size_t N, typename... Is,
@@ -161,7 +161,7 @@ struct x_slowest {
   static constexpr size_t plain_idx(const std::array<size_t, N>& resolution,
                                     const std::vector<size_t>& is) {
     assert(is.size() == N);
-    return internal_plain_idx(resolution, is);
+    return internal_plain_idx(prev(end(resolution)), is);
   }
   //----------------------------------------------------------------------------
   static auto multi_index(const std::vector<size_t>& resolution,

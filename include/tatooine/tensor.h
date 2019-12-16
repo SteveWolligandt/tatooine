@@ -24,22 +24,6 @@
 //==============================================================================
 namespace tatooine {
 //==============================================================================
-
-template <typename Real>
-struct fill {
-  Real value;
-};
-#if has_cxx17_support()
-template <typename Real>
-fill(Real)->fill<Real>;
-#endif
-
-struct zeros_t {};
-static constexpr zeros_t zeros;
-
-struct ones_t {};
-static constexpr ones_t ones;
-
 #if has_cxx17_support()
 template <typename Tensor, typename Real, size_t FixedDim, size_t... Dims>
 struct tensor_slice;
@@ -293,27 +277,28 @@ struct tensor : base_tensor<tensor<Real, Dims...>, Real, Dims...>,
  public:
   template <typename... Ts, size_t _N = num_dimensions(),
             std::enable_if_t<_N == 1, bool> = true>
-  constexpr tensor(const Ts... ts) : array_parent_t{ts...} {}
-  template <typename _real_t = Real, enable_if_arithmetic<_real_t> = true>
-  constexpr tensor(zeros_t /*zeros*/) : tensor{fill<Real>{0}} {}
+  constexpr tensor(const Ts&... ts) : array_parent_t{ts...} {}
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-  template <typename _real_t = Real, enable_if_arithmetic<_real_t> = true>
-  constexpr tensor(ones_t /*ones*/) : tensor{fill<Real>{1}} {}
+  template <typename _Real = Real, enable_if_arithmetic<_Real> = true>
+  constexpr tensor(zeros_t zeros) : array_parent_t{zeros} {}
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-  template <typename fill_real_t, typename _real_t = Real,
-            enable_if_arithmetic<_real_t> = true>
-  constexpr tensor(fill<fill_real_t> f) : array_parent_t{f.value} {}
+  template <typename _Real = Real, enable_if_arithmetic<_Real> = true>
+  constexpr tensor(ones_t ones) : array_parent_t{ones} {}
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-  template <typename RandomReal, typename Engine, typename _real_t = Real,
+  template <typename FillReal, typename _Real = Real,
+            enable_if_arithmetic<_Real> = true>
+  constexpr tensor(fill<FillReal> f)
+      : array_parent_t{f} {}
+  // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+  template <typename RandomReal, typename Engine, typename _Real = Real,
             enable_if_arithmetic<RandomReal> = true>
-  constexpr tensor(random_uniform<RandomReal, Engine>&& rand) : tensor{} {
-    this->unary_operation([&](const auto& /*c*/) { return rand.get(); });
-  }
+  constexpr tensor(random_uniform<RandomReal, Engine>&& rand)
+      : array_parent_t{std::move(rand)} {}
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-  template <typename RandomReal, typename Engine, typename _real_t = Real,
-            enable_if_arithmetic<_real_t> = true>
-  constexpr tensor(random_normal<RandomReal, Engine>&& rand) : tensor{} {
-    this->unary_operation([&](const auto& /*c*/) { return rand.get(); });
+  template <typename RandomReal, typename Engine, typename _Real = Real,
+            enable_if_arithmetic<_Real> = true>
+  constexpr tensor(random_normal<RandomReal, Engine>&& rand)
+      : array_parent_t{std::move(rand)} {
   }
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
   template <typename OtherTensor, typename OtherReal>
@@ -338,30 +323,12 @@ struct tensor : base_tensor<tensor<Real, Dims...>, Real, Dims...>,
                               RandEng&& eng = RandEng{std::random_device{}()}) {
     return this_t{random_uniform{min, max, std::forward<RandEng>(eng)}};
   }
-
   //----------------------------------------------------------------------------
   template <typename RandEng = std::mt19937_64>
   static constexpr auto randn(Real mean = 0, Real stddev = 1,
                               RandEng&& eng = RandEng{std::random_device{}()}) {
     return this_t{random_normal<Real>{eng, mean, stddev}};
   }
-
-  //============================================================================
-  //template <size_t NumDims = num_dimensions(), std::enable_if_t<NumDims == 1>...>
-  //auto begin() { return std::begin(m_data); }
-  //template <size_t NumDims = num_dimensions(), std::enable_if_t<NumDims == 1>...>
-  //auto begin() const { return std::begin(m_data); }
-  //template <size_t NumDims = num_dimensions(), std::enable_if_t<NumDims == 1>...>
-  //auto cbegin() { return std::cbegin(m_data); }
-  //
-  ////----------------------------------------------------------------------------
-  //template <size_t NumDims = num_dimensions(), std::enable_if_t<NumDims == 1>...>
-  //auto end() { return std::end(m_data); }
-  //template <size_t NumDims = num_dimensions(), std::enable_if_t<NumDims == 1>...>
-  //auto end() const { return std::end(m_data); }
-  //template <size_t NumDims = num_dimensions(), std::enable_if_t<NumDims == 1>...>
-  //auto cend() { return std::cend(m_data); }
-
   //----------------------------------------------------------------------------
   template <typename OtherReal>
   bool operator==(const tensor<OtherReal, Dims...>& other) const {
@@ -371,6 +338,19 @@ struct tensor : base_tensor<tensor<Real, Dims...>, Real, Dims...>,
   template <typename OtherReal>
   bool operator<(const tensor<OtherReal, Dims...>& other) const {
     return this->data() < other.data();
+  }
+  //============================================================================
+  template <typename F>
+  auto& unary_operation(F&& f) {
+    array_parent_t::unary_operation(std::forward<F>(f));
+    return *this;
+  }
+  //----------------------------------------------------------------------------
+  template <typename F, typename OtherTensor, typename OtherReal>
+  decltype(auto) binary_operation(
+      F&& f, const base_tensor<OtherTensor, OtherReal, Dims...>& other) {
+    tensor_parent_t::binary_operation(std::forward<F>(f), other);
+    return *this;
   }
 };
 
@@ -391,17 +371,7 @@ struct vec : tensor<Real, n> {
   using const_iterator =
       typename parent_t::array_parent_t::container_t::const_iterator;
 
-  constexpr vec() : parent_t{} {}
-#if has_cxx17_support()
-  template <typename... Ts,
-            enable_if_arithmetic_complex_or_symbolic<Ts...> = true>
-#else
-  template <typename... Ts, enable_if_arithmetic<Ts...> = true>
-#endif
-  constexpr vec(const Ts... ts) : parent_t{ts...} {
-    static_assert(sizeof...(Ts) == parent_t::dimension(0),
-                  "number of indices does not match number of dimensions");
-  }
+  constexpr vec() = default;
   //------------------------------------------------------------------------------
   constexpr vec(const vec&) = default;
   constexpr vec(vec&& other) noexcept = default;

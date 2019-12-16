@@ -25,7 +25,9 @@ macro(create_test NAME)
 endmacro()
 
 #- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+create_test(parallel_multidim_for)
 create_test(multidim)
+create_test(vtk_legacy)
 create_test(multidim_resolution)
 create_test(multidim_array)
 create_test(marchingcubes)

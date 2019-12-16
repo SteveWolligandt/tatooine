@@ -1,8 +1,8 @@
 #ifndef TATOOINE_VTK_LEGACY_H
 #define TATOOINE_VTK_LEGACY_H
 
-#include <stdlib.h>
 #include <cassert>
+#include <cstdlib>
 #include <exception>
 #include <fstream>
 #include <future>
@@ -11,10 +11,12 @@
 #include <map>
 #include <sstream>
 #include <vector>
+
+#include "tensor.h"
 #include "string_conversion.h"
-#include "type_traits.h"
 #include "swap_endianess.h"
 #include "type_to_str.h"
+#include "type_traits.h"
 
 //=============================================================================
 namespace tatooine {
@@ -983,7 +985,7 @@ void legacy_file::read_scalars_binary(std::ifstream &    file,
   for (auto l : m_listeners)
     l->on_scalars(name, lookup_table, num_comps, data, m_data);
 }
-//-----------------------------------------------------------------------------------------------
+//------------------------------------------------------------------------------
 class legacy_file_writer {
  public:
   legacy_file_writer(const std::string &path, DatasetType type,

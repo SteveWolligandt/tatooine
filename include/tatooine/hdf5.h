@@ -44,7 +44,7 @@ struct dataset {
   auto read() const {
     dynamic_multidim_array<T, x_slowest> mem{resolution()};
     if constexpr (std::is_floating_point_v<T>) {
-      m_dataset.read(mem.data(), m_dataset.getFloatType());
+      m_dataset.read(mem.data_ptr(), m_dataset.getFloatType());
     }
     if constexpr (std::is_integral_v<T>) {
       m_dataset.read(mem.data(), m_dataset.getIntType());
@@ -55,7 +55,7 @@ struct dataset {
   template <typename T, size_t NDims>
   auto read_chunk(const std::array<size_t, NDims>& p_offset,
                   const std::array<size_t, NDims>& p_resolution) const {
-    dynamic_multidim<T, x_slowest> data{p_resolution};
+    dynamic_multidim_array<T, x_slowest> data{p_resolution};
     std::array<hsize_t, NDims> offset{begin(p_offset), end(p_offset)};
     std::array<hsize_t, NDims> resolution{begin(p_resolution),
                                           end(p_resolution)};
