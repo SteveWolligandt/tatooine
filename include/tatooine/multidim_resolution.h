@@ -147,6 +147,14 @@ class dynamic_multidim_resolution {
   //----------------------------------------------------------------------------
   dynamic_multidim_resolution(std::vector<size_t>&& resolution)
       : m_size(std::move(resolution)) {}
+  //----------------------------------------------------------------------------
+  template <typename UInt, enable_if_unsigned_integral<UInt> = true>
+  dynamic_multidim_resolution(const std::vector<UInt>& resolution)
+      : m_size(begin(resolution), end(resolution)) {}
+  //----------------------------------------------------------------------------
+  template <typename UInt, size_t N, enable_if_unsigned_integral<UInt> = true>
+  dynamic_multidim_resolution(const std::array<UInt, N>& resolution)
+      : m_size(begin(resolution), end(resolution)) {}
 
   //----------------------------------------------------------------------------
   // comparisons

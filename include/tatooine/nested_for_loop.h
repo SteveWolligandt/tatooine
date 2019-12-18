@@ -2,8 +2,8 @@
 #define NESTED_FOR_LOOP_H
 //==============================================================================
 #include <array>
-#include <type_traits>
-#include <utility>
+#include "type_traits.h"
+#include "utility.h"
 #ifdef _OPENMP
 #include <omp.h>
 #endif
@@ -32,9 +32,8 @@ struct nested_for_impl {
  private:
   /// recursively creates loops
   template <typename Iteration, std::size_t... Is,
-            std::enable_if_t<
-                std::is_invocable_v<Iteration, decltype(((void)Is, Int{}))...>,
-                bool> = true>
+            enable_if_invocable<Iteration,
+                                     decltype(((void)Is, Int{}))...> = true>
   constexpr auto loop(Iteration&& iteration,
                       std::index_sequence<Is...> /*unused*/) const {
     // check if Iteration either returns bool or nothing
@@ -91,9 +90,8 @@ struct nested_for_impl<Int, N, 1, ParallelIndex> {
   //----------------------------------------------------------------------------
  private:
   template <typename Iteration, std::size_t... Is,
-            std::enable_if_t<
-                std::is_invocable_v<Iteration, decltype(((void)Is, Int{}))...>,
-                bool> = true>
+            enable_if_invocable<Iteration,
+                                     decltype(((void)Is, Int{}))...> = true>
   constexpr auto loop(Iteration&& iteration,
                       std::index_sequence<Is...> /*unused*/) const {
     // check if Iteration either returns bool or nothing
@@ -147,9 +145,8 @@ struct nested_for_impl<Int, N, I, I> {
  private:
   /// recursively creates loops
   template <typename Iteration, std::size_t... Is,
-            std::enable_if_t<
-                std::is_invocable_v<Iteration, decltype(((void)Is, Int{}))...>,
-                bool> = true>
+            enable_if_invocable<Iteration,
+                                     decltype(((void)Is, Int{}))...> = true>
   auto loop(Iteration&& iteration,
             std::index_sequence<Is...> /*unused*/) const {
     // check if Iteration either returns bool or nothing
@@ -207,9 +204,8 @@ struct nested_for_impl<Int, N, 1, 1> {
   //----------------------------------------------------------------------------
  private:
   template <typename Iteration, std::size_t... Is,
-            std::enable_if_t<
-                std::is_invocable_v<Iteration, decltype(((void)Is, Int{}))...>,
-                bool> = true>
+            enable_if_invocable<Iteration,
+                                     decltype(((void)Is, Int{}))...> = true>
   auto loop(Iteration&& iteration,
             std::index_sequence<Is...> /*unused*/) const {
     // check if Iteration either returns bool or nothing
@@ -248,12 +244,11 @@ struct nested_for_impl<Int, N, 1, 1> {
 };
 #endif  // _OPENMP
 //==============================================================================
-template <std::size_t ParallelIndex, typename Int, typename Iteration,
-          typename... Ends, Int... Is,
-          std::enable_if_t<(std::is_integral_v<Ends> && ...), bool> = true,
-          std::enable_if_t<
-              std::is_invocable_v<Iteration, decltype(((void)Is, Int{}))...>,
-              bool> = true>
+template <
+    std::size_t ParallelIndex, typename Int, typename Iteration,
+    typename... Ends, Int... Is,
+    enable_if_integral<std::decay_t<Ends>...> = true,
+    enable_if_invocable<Iteration, decltype(((void)Is, Int{}))...> = true>
 constexpr auto nested_for(Iteration&& iteration,
                           std::integer_sequence<Int, Is...>, Ends&&... ends) {
   // check if Iteration either returns bool or nothing
@@ -280,7 +275,7 @@ constexpr auto nested_for(Iteration&& iteration,
 /// any state the whole nested iteration will stop. iteration must return true
 /// to continue.
 template <typename Int = std::size_t, typename Iteration, typename... Ends,
-          std::enable_if_t<(std::is_integral_v<Ends> && ...), bool> = true>
+          enable_if_integral<std::decay_t<Ends>...> = true>
 constexpr void nested_for(Iteration&& iteration, Ends&&... ends) {
   detail::nested_for<sizeof...(Ends) + 1, Int>(
       std::forward<Iteration>(iteration),
@@ -296,7 +291,7 @@ constexpr void nested_for(Iteration&& iteration, Ends&&... ends) {
 /// any state the whole nested iteration will stop. iteration must return true
 /// to continue.
 template <typename Int = std::size_t, typename Iteration, typename... Ends,
-          std::enable_if_t<(std::is_integral_v<Ends> && ...), bool> = true>
+          enable_if_integral<std::decay_t<Ends>...> = true>
 constexpr void parallel_nested_for(Iteration&& iteration, Ends&&... ends) {
 #ifdef _OPENMP
   return detail::nested_for<sizeof...(Ends) - 1, Int>(

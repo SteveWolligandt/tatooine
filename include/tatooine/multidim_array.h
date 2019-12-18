@@ -849,11 +849,13 @@ template <typename IndexingOut = x_fastest, typename T0, typename T1,
 auto interpolate(const dynamic_multidim_array<T0, Indexing0>& arr0,
                  const dynamic_multidim_array<T1, Indexing1>& arr1,
                  FReal                                        factor) {
+  if (factor == 0) { return arr0; }
+  if (factor == 1) { return arr1; }
   assert(arr0.dyn_resolution() == arr1.dyn_resolution());
   dynamic_multidim_array<promote_t<T0, T1>, IndexingOut> interpolated{arr0};
 
-  for (size_t is : interpolated.indices()) {
-    interpolated(is) = interpolated.data(is) * (1 - factor) + arr1(is) * factor;
+  for (auto is : interpolated.indices()) {
+    interpolated(is) = interpolated(is) * (1 - factor) + arr1(is) * factor;
   }
   return interpolated;
 }

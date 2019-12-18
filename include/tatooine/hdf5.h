@@ -53,19 +53,29 @@ struct dataset {
   }
   //----------------------------------------------------------------------------
   template <typename T, size_t NDims>
-  auto read_chunk(const std::array<size_t, NDims>& p_offset,
-                  const std::array<size_t, NDims>& p_resolution) const {
+  auto read_chunk(const std::array<hsize_t, NDims>& p_offset,
+                  const std::array<hsize_t, NDims>& p_resolution) const {
     dynamic_multidim_array<T, x_slowest> data{p_resolution};
-    std::array<hsize_t, NDims> offset{begin(p_offset), end(p_offset)};
-    std::array<hsize_t, NDims> resolution{begin(p_resolution),
-                                          end(p_resolution)};
 
-    H5::DataSpace chunkspace(NDims, resolution.data());
+    H5::DataSpace chunkspace(NDims, p_resolution.data());
     auto          filespace = m_dataset.getSpace();
-    filespace.selectHyperslab(H5S_SELECT_SET, resolution.data(), offset.data());
+    filespace.selectHyperslab(H5S_SELECT_SET, p_resolution.data(), p_offset.data());
     m_dataset.read(data.data_ptr(), m_dataset.getFloatType(), chunkspace,
                    filespace);
     return data;
+  }
+  //----------------------------------------------------------------------------
+  template <typename T, size_t NDims>
+  auto read_chunk(const std::array<size_t, NDims>& p_offset,
+                  const std::array<size_t, NDims>& p_resolution) const {
+    auto casted_offset = make_array<hsize_t, NDims>();
+    auto casted_resolution = make_array<hsize_t, NDims>();
+
+    for (size_t i = 0; i < NDims; ++i) {
+      casted_offset[i]     = static_cast<hsize_t>(p_offset[i]);
+      casted_resolution[i] = static_cast<hsize_t>(p_resolution[i]);
+    }
+    return read_chunk<T>(casted_offset, casted_resolution);
   }
 };
 //==============================================================================
