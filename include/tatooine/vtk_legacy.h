@@ -1190,7 +1190,9 @@ void legacy_file_writer::write_points(
   swap_endianess(reinterpret_cast<Real *>(points_swapped.data()),
                  3 * points.size());
   for (const auto &p : points_swapped) {
-    for (auto c : p) { m_file.write((char *)(&c), sizeof(Real)); }
+    for (size_t i = 0; i < 3; ++i) {
+      m_file.write((char *)(&p[i]), sizeof(Real));
+    }
   }
 }
 //------------------------------------------------------------------------------

@@ -276,7 +276,9 @@ struct tensor : base_tensor<tensor<Real, Dims...>, Real, Dims...>,
   //============================================================================
  public:
   template <typename... Ts, size_t _N = num_dimensions(),
-            std::enable_if_t<_N == 1, bool> = true>
+            size_t _Dim0 = dimension(0),
+            std::enable_if_t<_N == 1, bool> = true,
+            std::enable_if_t<_Dim0 == sizeof...(Ts), bool> = true>
   constexpr tensor(const Ts&... ts) : array_parent_t{ts...} {}
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
   template <typename _Real = Real, enable_if_arithmetic<_Real> = true>
@@ -834,43 +836,42 @@ constexpr auto operator*(const base_tensor<LhsTensor, LhsReal, M, N>& lhs,
   }
   return product;
 }
-
 //------------------------------------------------------------------------------
 template <size_t N>
 auto gesv(const tensor<float, N, N>& A, const tensor<float, N>& b) {
-  vec<float, N> x = b;
-  vec<int, N>  ipiv;
-  int          nrhs = 1;
-  LAPACKE_sgesv(LAPACK_COL_MAJOR, N, nrhs, const_cast<float*>(A.data()), N,
-                ipiv.data(), const_cast<float*>(x.data()), N);
+  vec<float, N>      x = b;
+  std::array<int, N> ipiv;
+  int                nrhs = 1;
+  LAPACKE_sgesv(LAPACK_COL_MAJOR, N, nrhs, const_cast<float*>(A.data_ptr()), N,
+                ipiv.data(), const_cast<float*>(x.data_ptr()), N);
   return x;
 }
 //------------------------------------------------------------------------------
 template <size_t N>
 auto gesv(const tensor<double, N, N>& A, const tensor<double, N>& b) {
-  vec<double, N> x = b;
-  vec<int, N>  ipiv;
-  int          nrhs = 1;
-  LAPACKE_dgesv(LAPACK_COL_MAJOR, N, nrhs, const_cast<double*>(A.data()), N,
-                ipiv.data(), const_cast<double*>(x.data()), N);
+  vec<double, N>     x = b;
+  std::array<int, N> ipiv;
+  int                nrhs = 1;
+  LAPACKE_dgesv(LAPACK_COL_MAJOR, N, nrhs, const_cast<double*>(A.data_ptr()), N,
+                ipiv.data(), const_cast<double*>(x.data_ptr()), N);
   return x;
 }
 
 //------------------------------------------------------------------------------
 template <size_t M, size_t N>
 auto gesv(const tensor<float, M, M>& A, const tensor<float, M, N>& B) {
-  mat<float, M, N> X = B;
-  tensor<int, M>  ipiv;
-    LAPACKE_sgesv(LAPACK_COL_MAJOR, M, N, const_cast<float*>(A.data()), M,
-                  ipiv.data(), const_cast<float*>(X.data()), M);
+  mat<float, M, N>   X = B;
+  std::array<int, N> ipiv;
+  LAPACKE_sgesv(LAPACK_COL_MAJOR, M, N, const_cast<float*>(A.data_ptr()), M,
+                ipiv.data(), const_cast<float*>(X.data_ptr()), M);
   return X;
 }
 template <size_t M, size_t N>
 auto gesv(const tensor<double, M, M>& A, const tensor<double, M, N>& B) {
-  mat<double, M, N> X = B;
-  tensor<int, M>  ipiv;
-    LAPACKE_dgesv(LAPACK_COL_MAJOR, M, N, const_cast<double*>(A.data()), M,
-                  ipiv.data(), const_cast<double*>(X.data()), M);
+  mat<double, M, N>  X = B;
+  std::array<int, N> ipiv;
+  LAPACKE_dgesv(LAPACK_COL_MAJOR, M, N, const_cast<double*>(A.data_ptr()), M,
+                ipiv.data(), const_cast<double*>(X.data_ptr()), M);
   return X;
 }
 
@@ -880,7 +881,7 @@ vec<std::complex<float>, N> eigenvalues(tensor<float, N, N> A) {
   [[maybe_unused]] lapack_int info;
   std::array<float, N>         wr;
   std::array<float, N>         wi;
-    info = LAPACKE_sgeev(LAPACK_COL_MAJOR, 'N', 'N', N, A.data(), N, wr.data(),
+    info = LAPACKE_sgeev(LAPACK_COL_MAJOR, 'N', 'N', N, A.data_ptr(), N, wr.data(),
                          wi.data(), nullptr, N, nullptr, N);
 
   vec<std::complex<float>, N> vals;
@@ -907,7 +908,7 @@ eigenvectors(tensor<float, N, N> A) {
   std::array<float, N>         wr;
   std::array<float, N>         wi;
   std::array<float, N * N>     vr;
-    info = LAPACKE_sgeev(LAPACK_COL_MAJOR, 'N', 'V', N, A.data(), N, wr.data(),
+    info = LAPACKE_sgeev(LAPACK_COL_MAJOR, 'N', 'V', N, A.data_ptr(), N, wr.data(),
                          wi.data(), nullptr, N, vr.data(), N);
 
   vec<std::complex<float>, N>    vals;

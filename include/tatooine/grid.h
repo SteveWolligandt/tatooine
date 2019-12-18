@@ -165,12 +165,10 @@ class grid {
   template <size_t... Is>
   constexpr auto size(std::index_sequence<Is...> /*is*/) const {
     static_assert(sizeof...(Is) == N);
-    return std::array<size_t, N>{m_dimensions[Is].size()...};
+    return vec<size_t, N>{m_dimensions[Is].size()...};
   }
-
   //----------------------------------------------------------------------------
   constexpr auto size(size_t i) const { return dimension(i).size(); }
-
   //----------------------------------------------------------------------------
   template <size_t... Is, typename... Reals,
             enable_if_arithmetic<Reals...> = true>
@@ -245,43 +243,44 @@ class grid {
   auto back_vertex(std::index_sequence<Is...> /*is*/) {
     return vertex_t{(--m_dimensions[Is].end())...};
   }
-
   //----------------------------------------------------------------------------
   auto back_vertex() { return back_vertex(std::make_index_sequence<N>()); }
-
   //----------------------------------------------------------------------------
-  template <typename... Is>
+  template <typename... Is, size_t... DIs, enable_if_integral<Is...> = true>
+  vec<Real, N> at(std::index_sequence<DIs...>, Is... is) const {
+    static_assert(sizeof...(DIs) == sizeof...(Is));
+    static_assert(sizeof...(Is) == N);
+    return {(m_dimensions[DIs][is])...};
+  }
+  //----------------------------------------------------------------------------
+  template <typename... Is, enable_if_integral<Is...> = true>
   auto at(Is... is) const {
     static_assert(sizeof...(Is) == N);
-    return vertex_t{*this, is...};
+    return at(std::make_index_sequence<N>{}, is...);
   }
-
   //----------------------------------------------------------------------------
-  template <typename... Is>
+  template <typename... Is, enable_if_integral<Is...> = true>
   auto operator()(Is... is) const {
     static_assert(sizeof...(Is) == N);
     return at(is...);
   }
-
   //----------------------------------------------------------------------------
   constexpr auto num_vertices() const {
     size_t num = 1;
     for (const auto& dim : m_dimensions) { num *= dim.size(); }
     return num;
   }
-
   //----------------------------------------------------------------------------
  private:
   template <size_t... Is>
   constexpr auto vertex_begin(std::index_sequence<Is...> /*is*/) const {
     return typename vertex_t::iterator{vertex_t(m_dimensions[Is].begin()...)};
   }
-
+  //----------------------------------------------------------------------------
  public:
   constexpr auto vertex_begin() const {
     return vertex_begin(std::make_index_sequence<N>{});
   }
-
  private:
   //----------------------------------------------------------------------------
   template <size_t... Is>
@@ -289,35 +288,28 @@ class grid {
     return typename vertex_t::iterator{
         vertex_t(m_dimensions[Is].begin()..., m_dimensions.back().end())};
   }
-
  public:
   //----------------------------------------------------------------------------
   constexpr auto vertex_end() const {
     return vertex_end(std::make_index_sequence<N - 1>());
   }
-
   //----------------------------------------------------------------------------
   auto vertices() const { return vertex_container{this}; }
-
   //----------------------------------------------------------------------------
   auto vertices(const vertex_t& v) const {
     return grid_vertex_neighbors<Real, N>(v);
   }
-
   //----------------------------------------------------------------------------
   auto edges(const vertex_t& v) const { return grid_vertex_edges<Real, N>(v); }
-
   //----------------------------------------------------------------------------
   auto sub(const vertex_t& begin_vertex, const vertex_t& end_vertex) const {
     return subgrid<Real, N>(this, begin_vertex, end_vertex);
   }
-
   //----------------------------------------------------------------------------
   /// checks if an edge e has vertex v as point
   auto contains(const vertex_t& v, const edge_t& e) {
     return v == e.first || v == e.second;
   }
-
   //----------------------------------------------------------------------------
   /// checks if an edge sequence seq has vertex v as point
   auto contains(const vertex_t& v, const edge_seq_t& seq) {
@@ -326,7 +318,6 @@ class grid {
     }
     return false;
   }
-
   //----------------------------------------------------------------------------
   /// checks if v0 and v1 are direct or diagonal neighbors
   auto are_neighbors(const vertex_t& v0, const vertex_t& v1) {
@@ -337,7 +328,6 @@ class grid {
     }
     return true;
   }
-
   //----------------------------------------------------------------------------
   /// checks if v0 and v1 are direct neighbors
   auto are_direct_neighbors(const vertex_t& v0, const vertex_t& v1) {
@@ -352,7 +342,6 @@ class grid {
     }
     return true;
   }
-
   //----------------------------------------------------------------------------
   /// returns set of vertex neighbors of v that are not already in edge
   /// sequence

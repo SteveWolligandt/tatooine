@@ -11,7 +11,6 @@ endif()
 enable_testing()
 include(CTest)
 include(Catch)
-
 #- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 set(ALL_TEST_CPPS main.cpp)
 macro(create_test NAME)
@@ -23,9 +22,8 @@ macro(create_test NAME)
     -Wall -Wextra -pedantic -Wno-missing-braces -Wno-unused-lambda-capture)
   catch_discover_tests(${NAME})
 endmacro()
-
 #- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-create_test(parallel_multidim_for)
+create_test(nested_for_loop)
 create_test(multidim)
 create_test(vtk_legacy)
 create_test(multidim_resolution)

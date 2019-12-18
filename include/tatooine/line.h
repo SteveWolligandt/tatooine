@@ -76,6 +76,8 @@ struct line {
   //----------------------------------------------------------------------------
   auto empty() const { return m_vertices.empty(); }
   //----------------------------------------------------------------------------
+  auto clear() { return m_vertices.clear(); }
+  //----------------------------------------------------------------------------
   const auto& operator[](size_t i) const { return m_vertices.at(i); }
   auto&       operator[](size_t i) { return m_vertices.vertex_at(i); }
   //----------------------------------------------------------------------------
@@ -745,6 +747,123 @@ struct parameterized_line : line<Real, N> {
     }
   }
 };
+//==============================================================================
+/// \brief      merge line strips
+template <typename Real, size_t N>
+void merge_lines(std::vector<line<Real, N>>& lines0,
+                 std::vector<line<Real, N>>& lines1) {
+  const Real eps = 1e-7;
+  // move line1 pairs to line0 pairs
+  const size_t size_before = size(lines0);
+  lines0.resize(size(lines0) + size(lines1));
+  std::move(begin(lines1), end(lines1), next(begin(lines0), size_before));
+  lines1.clear();
+
+  // merge line0 side
+  for (auto line0 = begin(lines0); line0 != end(lines0); ++line0) {
+    for (auto line1 = begin(lines0); line1 != end(lines0); ++line1) {
+      if (line0 != line1 && !line0->empty() && !line1->empty()) {
+        // [line0front, ..., LINE0BACK] -> [LINE1FRONT, ..., line1back]
+        if (approx_equal(line0->back(), line1->front(), eps)) {
+          for (size_t i = 1; i < line1->num_vertices(); ++i) {
+            line0->push_back(line1->at(i));
+          }
+          *line1 = std::move(*line0);
+          line0->clear();
+
+          // [line1front, ..., LINE1BACK] -> [LINE0FRONT, ..., line0back]
+        } else if (approx_equal(line1->back(), line0->front(), eps)) {
+          for (size_t i = 1; i < line0->num_vertices(); ++i) {
+            line1->push_back(line0->at(i));
+          }
+          line0->clear();
+
+          // [LINE1FRONT, ..., line1back] -> [LINE0FRONT, ..., line0back]
+        } else if (approx_equal(line1->front(), line0->front(), eps)) {
+          boost::reverse(line1->vertices());
+          // -> [line1back, ..., LINE1FRONT] -> [LINE0FRONT, ..., line0back]
+          for (size_t i = 1; i < line0->num_vertices(); ++i) {
+            line1->push_back(line0->at(i));
+          }
+          line0->clear();
+
+          // [line0front, ..., LINE0BACK] -> [line1front,..., LINE1BACK]
+        } else if (approx_equal(line0->back(), line1->back(), eps)) {
+          boost::reverse(line0->vertices());
+          // -> [line1front, ..., LINE1BACK] -> [LINE0BACK, ..., line0front]
+          for (size_t i = 1; i < line0->num_vertices(); ++i) {
+            line1->push_back(line0->at(i));
+          }
+          line0->clear();
+        }
+      }
+    }
+  }
+
+  // move empty vectors of line0 side at end
+  for (unsigned int i = 0; i < lines0.size(); i++) {
+    for (unsigned int j = 0; j < i; j++) {
+      if (lines0[j].empty() && !lines0[i].empty()) {
+        lines0[j] = std::move(lines0[i]);
+      }
+    }
+  }
+
+  // remove empty vectors of line0 side
+  for (int i = lines0.size() - 1; i >= 0; i--) {
+    if (lines0[i].empty()) { lines0.pop_back(); }
+  }
+}
+
+//----------------------------------------------------------------------------
+template <typename Real, size_t N>
+auto line_segments_to_line_strips(
+    const std::vector<line<Real, N>>& line_segments) {
+  std::vector<std::vector<line<Real, N>>> merged_strips(line_segments.size());
+
+  auto seg_it = begin(line_segments);
+  for (auto& merged_strip : merged_strips) {
+    merged_strip.push_back({*seg_it});
+    ++seg_it;
+  }
+
+  auto num_merge_steps =
+      static_cast<size_t>(std::ceil(std::log2(line_segments.size())));
+
+  for (size_t i = 0; i < num_merge_steps; i++) {
+    size_t offset = std::pow(2, i);
+
+    for (size_t j = 0; j < line_segments.size(); j += offset * 2) {
+      auto left  = j;
+      auto right = j + offset;
+      if (right < line_segments.size()) {
+        merge_lines(merged_strips[left], merged_strips[right]);
+      }
+    }
+  }
+  return merged_strips.front();
+}
+//------------------------------------------------------------------------------
+template <typename Real, size_t N>
+auto merge_lines(const std::vector<line<Real, N>>& lines) {
+  std::vector<line<Real, N>> merged_lines;
+  if (!lines.empty()) {
+    auto line_strips = line_segments_to_line_strips(lines);
+
+    for (const auto& line_strip : line_strips) {
+      merged_lines.emplace_back();
+      for (size_t i = 0; i < line_strip.num_vertices() - 1; i++) {
+        merged_lines.back().push_back(line_strip[i]);
+      }
+      if (&line_strip.front() == &line_strip.back()) {
+        merged_lines.back().set_closed(true);
+      } else {
+        merged_lines.back().push_back(line_strip.back());
+      }
+    }
+  }
+  return merged_lines;
+}
 
 //==============================================================================
 }  // namespace tatooine

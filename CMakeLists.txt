@@ -53,4 +53,4 @@ add_subdirectory(steadification)
 #- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 # This makes the project importable from the build directory
 export(TARGETS tatooine FILE tatooineConfig.cmake)
-export(PACKAGE tatoine)
+export(PACKAGE tatooine)
