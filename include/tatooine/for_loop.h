@@ -1,5 +1,5 @@
-#ifndef NESTED_FOR_LOOP_H
-#define NESTED_FOR_LOOP_H
+#ifndef TATOOINE_FOR_LOOP_H
+#define TATOOINE_FOR_LOOP_H
 //==============================================================================
 #include <array>
 #include "type_traits.h"
@@ -18,7 +18,7 @@ namespace detail {
 /// \tparam ParallelIndex If I and ParallelIndex are the same then the current
 ///         nested loop will be executed in parallel
 template <typename Int, std::size_t N, std::size_t I, std::size_t ParallelIndex>
-struct nested_for_impl {
+struct for_loop_impl {
   //----------------------------------------------------------------------------
   // members
   //----------------------------------------------------------------------------
@@ -46,12 +46,12 @@ struct nested_for_impl {
     for (; status[I - 1] < ends[I - 1]; ++status[I - 1]) {
       if constexpr (returns_void) {
         // if if returns nothing just create another nested loop
-        nested_for_impl<Int, N, I - 1, ParallelIndex>{
+        for_loop_impl<Int, N, I - 1, ParallelIndex>{
             status, ends}(std::forward<Iteration>(iteration));
       } else {
         // if iteration returns bool and the current nested iteration returns
         // false stop the whole nested for loop by recursively returning false
-        if (!nested_for_impl<Int, N, I - 1, ParallelIndex>{
+        if (!for_loop_impl<Int, N, I - 1, ParallelIndex>{
                 status, ends}(std::forward<Iteration>(iteration))) {
           return false;
         }
@@ -77,7 +77,7 @@ struct nested_for_impl {
 /// \tparam Int integer type for counting
 /// \tparam N number of nestings
 template <typename Int, std::size_t N, std::size_t ParallelIndex>
-struct nested_for_impl<Int, N, 1, ParallelIndex> {
+struct for_loop_impl<Int, N, 1, ParallelIndex> {
   //----------------------------------------------------------------------------
   // members
   //----------------------------------------------------------------------------
@@ -131,7 +131,7 @@ struct nested_for_impl<Int, N, 1, ParallelIndex> {
 /// \tparam N number of nestings
 /// \tparam I current nesting number counting backwards from N to 1
 template <typename Int, std::size_t N, std::size_t I>
-struct nested_for_impl<Int, N, I, I> {
+struct for_loop_impl<Int, N, I, I> {
   //----------------------------------------------------------------------------
   // members
   //----------------------------------------------------------------------------
@@ -162,12 +162,12 @@ struct nested_for_impl<Int, N, I, I> {
       status_copy[I - 1] = i;
       if constexpr (returns_void) {
         // if if returns nothing just create another nested loop
-        nested_for_impl<Int, N, I - 1, I>{
+        for_loop_impl<Int, N, I - 1, I>{
             status_copy, ends}(std::forward<Iteration>(iteration));
       } else {
         // if iteration returns bool and the current nested iteration returns
         // false stop the whole nested for loop by recursively returning false
-        const auto cont = nested_for_impl<Int, N, I - 1, I>{
+        const auto cont = for_loop_impl<Int, N, I - 1, I>{
             status_copy, ends}(std::forward<Iteration>(iteration));
         assert(cont && "cannot break in parallel loop");
       }
@@ -191,7 +191,7 @@ struct nested_for_impl<Int, N, I, I> {
 /// \tparam Int integer type for counting
 /// \tparam N number of nestings
 template <typename Int, std::size_t N>
-struct nested_for_impl<Int, N, 1, 1> {
+struct for_loop_impl<Int, N, 1, 1> {
   //----------------------------------------------------------------------------
   // members
   //----------------------------------------------------------------------------
@@ -249,7 +249,7 @@ template <
     typename... Ends, Int... Is,
     enable_if_integral<std::decay_t<Ends>...> = true,
     enable_if_invocable<Iteration, decltype(((void)Is, Int{}))...> = true>
-constexpr auto nested_for(Iteration&& iteration,
+constexpr auto for_loop(Iteration&& iteration,
                           std::integer_sequence<Int, Is...>, Ends&&... ends) {
   // check if Iteration either returns bool or nothing
   using return_type =
@@ -259,7 +259,7 @@ constexpr auto nested_for(Iteration&& iteration,
   static_assert(returns_void || returns_bool);
 
   std::array zeros{((void)Is, Int(0))...};
-  return nested_for_impl<Int, sizeof...(Ends), sizeof...(Ends),
+  return for_loop_impl<Int, sizeof...(Ends), sizeof...(Ends),
                          ParallelIndex + 1>{
       zeros, std::array{static_cast<Int>(ends)...}}(
       std::forward<Iteration>(iteration));
@@ -276,8 +276,8 @@ constexpr auto nested_for(Iteration&& iteration,
 /// to continue.
 template <typename Int = std::size_t, typename Iteration, typename... Ends,
           enable_if_integral<std::decay_t<Ends>...> = true>
-constexpr void nested_for(Iteration&& iteration, Ends&&... ends) {
-  detail::nested_for<sizeof...(Ends) + 1, Int>(
+constexpr void for_loop(Iteration&& iteration, Ends&&... ends) {
+  detail::for_loop<sizeof...(Ends) + 1, Int>(
       std::forward<Iteration>(iteration),
       std::make_integer_sequence<Int, sizeof...(Ends)>{},
       std::forward<Ends>(ends)...);
@@ -292,16 +292,16 @@ constexpr void nested_for(Iteration&& iteration, Ends&&... ends) {
 /// to continue.
 template <typename Int = std::size_t, typename Iteration, typename... Ends,
           enable_if_integral<std::decay_t<Ends>...> = true>
-constexpr void parallel_nested_for(Iteration&& iteration, Ends&&... ends) {
+constexpr void parallel_for_loop(Iteration&& iteration, Ends&&... ends) {
 #ifdef _OPENMP
-  return detail::nested_for<sizeof...(Ends) - 1, Int>(
+  return detail::for_loop<sizeof...(Ends) - 1, Int>(
       std::forward<Iteration>(iteration),
       std::make_integer_sequence<Int, sizeof...(Ends)>{},
       std::forward<Ends>(ends)...);
 #else
 #pragma message \
     "Not able to execute nested for loop in parallel because OpenMP is not available."
-  return nested_for(std::forward<Iteration>(iteration),
+  return for_loop(std::forward<Iteration>(iteration),
                     std::forward<Ends>(ends)...);
 #endif  // _OPENMP
 }

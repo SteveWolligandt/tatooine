@@ -67,7 +67,7 @@ struct static_multidim_resolution {
   //----------------------------------------------------------------------------
 #ifndef NDEBUG
   template <typename... Is, enable_if_integral<std::decay_t<Is>...> = true>
-  static auto plain_idx(Is... is) {
+  static auto plain_index(Is... is) {
     if (!in_range(std::forward<Is>(is)...)) {
       std::stringstream ss;
       ss << "is out of bounds: [ ";
@@ -80,18 +80,38 @@ struct static_multidim_resolution {
     }
 #else
   template <typename... Is, enable_if_integral<std::decay_t<Is>...> = true>
-  static constexpr auto plain_idx(Is... is) {
+  static constexpr auto plain_index(Is... is) {
 #endif
     static_assert(sizeof...(Is) == num_dimensions(),
                   "number of indices does not match number of dimensions");
-    return Indexing::plain_idx(
+    return Indexing::plain_index(
         std::array<size_t, num_dimensions()>{Resolution...}, is...);
   }
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
   template <size_t N>
-  static constexpr auto plain_idx(const std::array<size_t, N>& is) {
-    return invoke_unpacked([](auto... is) { return plain_idx(is...); },
+  static constexpr auto plain_index(const std::array<size_t, N>& is) {
+    return invoke_unpacked([](auto... is) { return plain_index(is...); },
                            unpack(is));
+  }
+  // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+  template <typename Is, enable_if_integral<Is> = true>
+  static auto plain_index(const std::vector<Is>& is) {
+#ifndef NDEBUG
+    if (!in_range(std::forward<Is>(is)...)) {
+      std::stringstream ss;
+      ss << "is out of bounds: [ ";
+      for (auto i :
+           std::array<size_t, sizeof...(Is)>{static_cast<size_t>(is)...}) {
+        ss << std::to_string(i) + " ";
+      }
+      ss << "]\n";
+      throw std::runtime_error{ss.str()};
+    }
+#endif
+    assert(is.size() == num_dimensions() &&
+           "number of indices does not match number of dimensions");
+    return Indexing::plain_index(
+        std::array<size_t, num_dimensions()>{Resolution...}, is);
   }
   //----------------------------------------------------------------------------
   static constexpr auto indices() { return static_multidim{Resolution...}; }
@@ -240,22 +260,22 @@ class dynamic_multidim_resolution {
   }
   //----------------------------------------------------------------------------
   template <typename... Is, enable_if_integral<std::decay_t<Is>...> = true>
-  constexpr auto plain_idx(Is... is) const {
+  constexpr auto plain_index(Is... is) const {
     assert(sizeof...(Is) == num_dimensions());
     assert(in_range(is...));
-    return Indexing::plain_idx(m_size, is...);
+    return Indexing::plain_index(m_size, is...);
   }
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-  constexpr auto plain_idx(const std::vector<size_t>& is) const {
+  constexpr auto plain_index(const std::vector<size_t>& is) const {
     assert(is.size() == num_dimensions());
     assert(in_range(is));
-    return Indexing::plain_idx(m_size, is);
+    return Indexing::plain_index(m_size, is);
   }
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
   template <size_t N>
-  constexpr auto plain_idx(const std::array<size_t, N>& is) const {
+  constexpr auto plain_index(const std::array<size_t, N>& is) const {
     assert(N == num_dimensions());
-    return Indexing::plain_idx(m_size, is);
+    return Indexing::plain_index(m_size, is);
   }
   //----------------------------------------------------------------------------
   constexpr auto multi_index(size_t gi) const {

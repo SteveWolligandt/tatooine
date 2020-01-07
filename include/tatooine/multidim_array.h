@@ -47,7 +47,7 @@ class static_multidim_array
   using parent_t::indices;
   using parent_t::num_dimensions;
   using parent_t::num_elements;
-  using parent_t::plain_idx;
+  using parent_t::plain_index;
   using parent_t::size;
   using container_t =
       std::conditional_t<std::is_same_v<MemLoc, stack>,
@@ -178,14 +178,14 @@ class static_multidim_array
   constexpr const auto& at(Is... is) const {
     static_assert(sizeof...(Is) == num_dimensions());
     assert(in_range(is...));
-    return m_data[plain_idx(is...)];
+    return m_data[plain_index(is...)];
   }
   //----------------------------------------------------------------------------
   template <typename... Is, enable_if_integral<Is...> = true>
   constexpr auto& at(Is... is) {
     static_assert(sizeof...(Is) == num_dimensions());
     assert(in_range(is...));
-    return m_data[plain_idx(is...)];
+    return m_data[plain_index(is...)];
   }
   //----------------------------------------------------------------------------
   template <typename UInt, enable_if_unsigned_integral<UInt> = true>
@@ -198,6 +198,18 @@ class static_multidim_array
   constexpr auto& at(const std::array<UInt, num_dimensions()>& is) {
     return invoke_unpacked(
         [&](auto... is) -> decltype(auto) { return at(is...); }, unpack(is));
+  }
+  //----------------------------------------------------------------------------
+  template <typename UInt, enable_if_unsigned_integral<UInt> = true>
+  constexpr const auto& at(const std::vector<UInt>& is) const {
+    assert(is.size() == num_dimensions());
+    m_data[plain_index(is)];
+  }
+  //----------------------------------------------------------------------------
+  template <typename UInt, enable_if_unsigned_integral<UInt> = true>
+  constexpr auto& at(const std::vector<UInt>& is) {
+    assert(is.size() == num_dimensions());
+    return m_data[plain_index(is)];
   }
   //----------------------------------------------------------------------------
   template <typename... Is, enable_if_integral<Is...> = true>
@@ -261,7 +273,7 @@ class dynamic_multidim_array : public dynamic_multidim_resolution<Indexing> {
   using parent_t::indices;
   using parent_t::num_dimensions;
   using parent_t::num_elements;
-  using parent_t::plain_idx;
+  using parent_t::plain_index;
   using parent_t::size;
   using container_t = std::vector<T>;
   //============================================================================
@@ -614,7 +626,7 @@ class dynamic_multidim_array : public dynamic_multidim_resolution<Indexing> {
   auto& at(Is... is) {
     assert(sizeof...(Is) == num_dimensions());
     assert(in_range(is...));
-    return m_data[plain_idx(is...)];
+    return m_data[plain_index(is...)];
   }
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
   // -
@@ -622,7 +634,7 @@ class dynamic_multidim_array : public dynamic_multidim_resolution<Indexing> {
   const auto& at(Is... is) const {
     assert(sizeof...(Is) == num_dimensions());
     assert(in_range(is...));
-    return m_data[plain_idx(is...)];
+    return m_data[plain_index(is...)];
   }
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
   // -
@@ -630,7 +642,7 @@ class dynamic_multidim_array : public dynamic_multidim_resolution<Indexing> {
   auto& at(const std::vector<UInt>& is) {
     assert(is.size() == num_dimensions());
     assert(in_range(is));
-    return m_data[plain_idx(is)];
+    return m_data[plain_index(is)];
   }
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
   // -
@@ -638,7 +650,7 @@ class dynamic_multidim_array : public dynamic_multidim_resolution<Indexing> {
   const auto& at(const std::vector<UInt>& is) const {
     assert(is.size() == num_dimensions());
     assert(in_range(is));
-    return m_data[plain_idx(is)];
+    return m_data[plain_index(is)];
   }
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
   // -
@@ -646,7 +658,7 @@ class dynamic_multidim_array : public dynamic_multidim_resolution<Indexing> {
   auto& at(const std::array<UInt, N>& is) {
     assert(N == num_dimensions());
     assert(in_range(is));
-    return m_data[plain_idx(is)];
+    return m_data[plain_index(is)];
   }
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
   // -
@@ -654,7 +666,7 @@ class dynamic_multidim_array : public dynamic_multidim_resolution<Indexing> {
   const auto& at(const std::array<UInt, N>& is) const {
     assert(N == num_dimensions());
     assert(in_range(is));
-    return m_data[plain_idx(is)];
+    return m_data[plain_index(is)];
   }
   //----------------------------------------------------------------------------
   template <typename... Is, enable_if_integral<Is...> = true>

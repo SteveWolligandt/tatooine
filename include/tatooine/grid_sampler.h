@@ -14,7 +14,7 @@
 #include "field.h"
 #include "grid.h"
 #include "interpolation.h"
-#include "parallel_for.h"
+#include "for_loop.h"
 #include "sampled_field.h"
 #include "type_traits.h"
 #include "vtk_legacy.h"
@@ -256,7 +256,7 @@ struct base_grid_sampler : crtp<Derived>, grid<Real, N> {
   //----------------------------------------------------------------------------
 
   auto begin() const { return iterator{this, 0}; }
-  auto end() const { return iterator{this, size().front()}; }
+  auto end() const { return iterator{this, size(0)}; }
 };
 
 //==============================================================================
