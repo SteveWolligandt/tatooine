@@ -1,5 +1,3 @@
-#include <filesystem>
-#include <tatooine/chrono.h>
 #include <fstream>
 #include "datasets.h"
 #include "settings.h"
@@ -7,7 +5,6 @@
 #include "steadification.h"
 
 //==============================================================================
-using namespace std::filesystem;
 using namespace std::chrono;
 //==============================================================================
 namespace tatooine {
@@ -21,13 +18,6 @@ void calc(const field<V, VReal, 2, 2>& v, T0Real /*t0*/, BTauReal /*btau*/,
 
   std::seed_seq   seed(begin(seed_str), end(seed_str));
   std::mt19937_64 randeng{seed};
-  auto p = std::string{settings<V>::name} + "/";
-  size_t i = 1;
-  while (exists(p)) {
-    p = std::string(settings<V>::name) + "_" + std::to_string(i) + "/";
-    ++i;
-  }
-  create_directory(p);
   steadification s(settings<V>::domain, settings<V>::render_resolution, randeng);
   //
   //const parameterized_line<VReal, 3> seedcurve{

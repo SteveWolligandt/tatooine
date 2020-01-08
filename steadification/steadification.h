@@ -1,9 +1,9 @@
 #ifndef STEADIFICATION_H
 #define STEADIFICATION_H
 
+#include <tatooine/for_loop.h>
 #include <tatooine/integration/vclibs/rungekutta43.h>
 #include <tatooine/interpolation.h>
-#include <tatooine/for_loop.h>
 #include <tatooine/random.h>
 #include <tatooine/spacetime_field.h>
 #include <tatooine/streamsurface.h>
@@ -11,6 +11,7 @@
 #include <boost/filesystem.hpp>
 #include <boost/range/adaptors.hpp>
 #include <cstdlib>
+#include <filesystem>
 #include <vector>
 
 #include "renderers.h"
@@ -165,6 +166,15 @@ class steadification {
   //============================================================================
   template <typename V, typename VReal>
   void random_domain_filling_streamsurfaces(const field<V, VReal, 2, 2>& v) {
+using namespace std::filesystem;
+    size_t dir_count = 1;
+    auto   p         = std::string{settings<V>::name} + "/";
+    while (exists(p)) {
+      p = std::string(settings<V>::name) + "_" + std::to_string(dir_count++) +
+          "/";
+    }
+    create_directory(p);
+
     static constexpr auto      domain = settings<V>::domain;
     yavin::tex2r<std::uint8_t> coverage_tex{
         yavin::NEAREST, yavin::CLAMP_TO_EDGE, m_render_resolution(0),
@@ -174,16 +184,16 @@ class steadification {
     std::vector<parameterized_line<Real, 3>> seed_curves;
     std::vector<rasterized_pathsurface>      rasterizations;
 
-    size_t i = 0;
-    while (domain_coverage(coverage_tex) < 0.9) {
+    //while (domain_coverage(coverage_tex) < 0.9) {
+    for (size_t i = 0; i < 10; ++i) {
       seed_curves.emplace_back(
           parameterized_line<Real, 3>{{domain.random_point(m_rand_eng), 0},
                                       {domain.random_point(m_rand_eng), 1}});
       //rasterizations.push_back(rasterize(v, seed_curves.back(), 0.1));
       auto rast = rasterize(v, seed_curves.back(), 0.1);
-      rast.pos.write_png("pos_" + std::to_string(i++) + ".png");
+      rast.pos.write_png(p + "pos_" + std::to_string(i) + ".png");
     }
-    coverage_tex.write_png("coverage.png");
+    coverage_tex.write_png(p + "coverage.png");
   }
 };
 //==============================================================================
