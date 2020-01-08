@@ -16,7 +16,7 @@
 #include "line.h"
 #include "linspace.h"
 #include "for_loop.h"
-#include "parameterized_mesh.h"
+#include "simple_tri_mesh.h"
 #include "tensor.h"
 
 //==============================================================================
@@ -182,18 +182,20 @@ template <template <typename, size_t> typename Integrator,
           template <typename> typename StreamlineInterpolator, typename V,
           typename Real, size_t N>
 struct front_evolving_streamsurface_discretization
-    : public parameterized_mesh<Real, N> {
+    : public simple_tri_mesh<Real, N> {
   static constexpr auto num_dimensions() { return N; }
   using real_t = Real;
   using this_t = front_evolving_streamsurface_discretization<
       Integrator, SeedcurveInterpolator, StreamlineInterpolator, V, Real, N>;
-  using parent_t = parameterized_mesh<Real, N>;
+  using parent_t = simple_tri_mesh<Real, N>;
   using parent_t::at;
   using parent_t::insert_vertex;
-  using parent_t::uv;
   using parent_t::operator[];
   using typename parent_t::face;
   using typename parent_t::vertex;
+
+  using vec2             = vec<Real, 2>;
+
   using vertex_vec_t     = std::vector<vertex>;
   using vertex_list_t    = std::list<vertex>;
   using vertex_list_it_t = typename vertex_list_t::const_iterator;
@@ -201,6 +203,8 @@ struct front_evolving_streamsurface_discretization
   using subfront_t       = std::pair<vertex_list_t, vertex_range_t>;
   using ssf_t            = streamsurface<Integrator, SeedcurveInterpolator,
                               StreamlineInterpolator, V, Real, N>;
+  using uv_t             = vec2;
+  using uv_property_t    = typename parent_t::template vertex_property_t<uv_t>;
 
   // a front is a list of lists, containing vertices and a range specifing
   // which vertices have to be triangulated from previous front
@@ -209,35 +213,40 @@ struct front_evolving_streamsurface_discretization
   //============================================================================
   ssf_t*           ssf;
   std::set<vertex> m_on_border;
+  uv_property_t*       m_uv_property;
 
   //============================================================================
-  front_evolving_streamsurface_discretization(ssf_t* _ssf) : ssf(_ssf) {}
-
+  front_evolving_streamsurface_discretization(ssf_t* _ssf)
+      : ssf{_ssf}, m_uv_property{&add_uv_prop()} {}
   //----------------------------------------------------------------------------
   front_evolving_streamsurface_discretization(const this_t& other)
-      : parent_t(other), ssf(other.ssf) {}
-
+      : parent_t{other}, ssf{other.ssf}, m_uv_property{&add_uv_prop()} {}
   //----------------------------------------------------------------------------
   front_evolving_streamsurface_discretization(this_t&& other) noexcept
-      : parent_t(std::move(other)), ssf(other.ssf) {}
-
-  //----------------------------------------------------------------------------
-  ~front_evolving_streamsurface_discretization() = default;
-
+      : parent_t(std::move(other)), ssf(other.ssf), m_uv_property{&add_uv_prop()} {}
   //----------------------------------------------------------------------------
   auto& operator=(const this_t& other) {
     parent_t::operator=(other);
     ssf               = other.ssf;
+    m_uv_property         = &uv_prop();
     return *this;
   }
-
   //----------------------------------------------------------------------------
   auto& operator=(this_t&& other) noexcept {
     parent_t::operator=(std::move(other));
     ssf               = other.ssf;
+    m_uv_property         = &uv_prop();
     return *this;
   }
-
+  //============================================================================
+ private:
+  auto& add_uv_prop() { return this->template add_vertex_property<uv_t>("uv"); }
+  //----------------------------------------------------------------------------
+ public:
+  auto& uv_prop() { return this->template vertex_property<uv_t>("uv"); }
+  //----------------------------------------------------------------------------
+  auto&       uv(vertex v) { return m_uv_property->at(v); }
+  const auto& uv(vertex v) const { return m_uv_property->at(v); }
   //----------------------------------------------------------------------------
   void triangulate_timeline(const front_t& front) {
     for (const auto& subfront : front) {
@@ -280,7 +289,6 @@ struct front_evolving_streamsurface_discretization
       }
     }
   }
-
   //--------------------------------------------------------------------------
   auto seedcurve_to_front(size_t seedline_resolution, Real cache_bw_tau,
                           Real cache_fw_tau) {
@@ -291,7 +299,8 @@ struct front_evolving_streamsurface_discretization
               this->ssf->seedcurve().template sample<SeedcurveInterpolator>(u),
               ssf->t0())) {
         vs.back().push_back(insert_vertex(
-            ssf->sample(u, 0, cache_bw_tau, cache_fw_tau), {u, 0}));
+            ssf->sample(u, 0, cache_bw_tau, cache_fw_tau)));
+        uv(vs.back().back()) = {u, 0};
       } else if (vs.back().size() > 1) {
         vs.emplace_back();
       } else {
@@ -373,7 +382,9 @@ struct front_evolving_streamsurface_discretization
             try {
               auto new_pnt =
                   this->ssf->sample(new_uv, cache_bw_tau, cache_fw_tau);
-              vs.insert(next(v), insert_vertex(new_pnt, new_uv));
+              auto new_v      = insert_vertex(new_pnt);
+              this->uv(new_v) = new_uv;
+              vs.insert(next(v), new_v);
               try {
                 d = this->ssf->distance(uv(*v), uv(*next(v)), 5, cache_bw_tau,
                                         cache_fw_tau);
@@ -622,7 +633,8 @@ struct hultquist_discretization : front_evolving_streamsurface_discretization<
         if (this->m_on_border.find(v) == end(this->m_on_border)) {
           auto new_pos = this->ssf->sample(new_uv, backward_tau, forward_tau);
           integrated_vertices.push_back(
-              {insert_vertex(new_pos, new_uv), true, false, false, v_it});
+              {insert_vertex(new_pos), true, false, false, v_it});
+          this->uv(integrated_vertices.back().v) = new_uv;
         } else {
           integrated_vertices.push_back({v, false, true, false, v_it});
         }
@@ -633,9 +645,8 @@ struct hultquist_discretization : front_evolving_streamsurface_discretization<
         if (!streamline.empty()) {
           const auto& border_point =
               step > 0 ? streamline.back() : streamline.front();
-          auto new_v =
-              insert_vertex(border_point.first,
-                            {uv(0), border_point.second - this->ssf->t0()});
+          auto new_v = insert_vertex(border_point.first);
+          this->uv(new_v)  = {uv(0), border_point.second - this->ssf->t0()};
           integrated_vertices.push_back({new_v, true, true, false, v_it});
           this->m_on_border.insert(new_v);
         }
@@ -667,14 +678,13 @@ struct hultquist_discretization : front_evolving_streamsurface_discretization<
           } catch (std::exception&) { step /= 2; }
         }
         if (found) {
+          auto new_v = insert_vertex(
+              this->ssf->sample(walking_u, fix_v, backward_tau, forward_tau));
+          this->uv(new_v) = {walking_u, fix_v};
           integrated_vertices.insert(
-              next(it),
-              {insert_vertex(this->ssf->sample(walking_u, fix_v, backward_tau,
-                                               forward_tau),
-                             {walking_u, fix_v}),
-               true, true, true,
-               next(it)->on_border ? next(it)->start_vertex
-                                   : it->start_vertex});
+              next(it), {new_v, true, true, true,
+                         next(it)->on_border ? next(it)->start_vertex
+                                             : it->start_vertex});
           ++it;
         }
       }

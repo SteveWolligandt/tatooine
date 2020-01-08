@@ -26,7 +26,7 @@ class steadification {
   // types
   //============================================================================
  public:
-  using pathsurface_t     = mesh<Real, 3>;
+  using pathsurface_t     = simple_tri_mesh<Real, 3>;
   using pathsurface_gpu_t = streamsurface_renderer;
   using vec2              = vec<Real, 2>;
   using vec3              = vec<Real, 3>;
@@ -46,7 +46,8 @@ class steadification {
   //============================================================================
  private:
   ivec2                     m_render_resolution;
-  yavin::context            m_context;
+  //yavin::glx::context       m_context;
+  yavin::glx::window        m_window;
   yavin::orthographiccamera m_cam;
   yavin::tex2rgb<float>     m_color_scale;
   yavin::texdepth           m_depth;
@@ -62,7 +63,8 @@ class steadification {
   steadification(const boundingbox<Real, 3>& domain, ivec2 render_resolution,
                  RandEng&& rand_eng = RandEng{std::random_device{}()})
       : m_render_resolution{render_resolution},
-        m_context{4, 5},
+        //m_context{4, 5},
+        m_window{"foo", 4,5},
         m_cam{static_cast<float>(domain.min(0)),
               static_cast<float>(domain.max(0)),
               static_cast<float>(domain.min(1)),

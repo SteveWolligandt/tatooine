@@ -16,7 +16,7 @@ struct streamsurface_renderer
   using typename parent_t::vbo_data_vec;
   //============================================================================
   template <typename Real>
-  streamsurface_renderer(const mesh<Real, 3>& mesh)
+  streamsurface_renderer(const simple_tri_mesh<Real, 3>& mesh)
       : indexeddata{mesh_to_vbo_data(mesh), mesh_to_ibo_data(mesh)} {}
   //----------------------------------------------------------------------------
   streamsurface_renderer(const streamsurface_renderer& other) = default;
@@ -24,7 +24,7 @@ struct streamsurface_renderer
   streamsurface_renderer(streamsurface_renderer&& other) = default;
   //============================================================================
   template <typename Real>
-  static vbo_data_vec mesh_to_vbo_data(const mesh<Real, 3>& mesh) {
+  static vbo_data_vec mesh_to_vbo_data(const simple_tri_mesh<Real, 3>& mesh) {
     using namespace boost;
     vbo_data_vec vbo_data;
     vbo_data.reserve(mesh.num_vertices());
@@ -47,7 +47,7 @@ struct streamsurface_renderer
   }
   //----------------------------------------------------------------------------
   template <typename Real>
-  static ibo_data_vec mesh_to_ibo_data(const mesh<Real, 3>& mesh) {
+  static ibo_data_vec mesh_to_ibo_data(const simple_tri_mesh<Real, 3>& mesh) {
     using namespace boost;
     using namespace adaptors;
     ibo_data_vec ibo_data;

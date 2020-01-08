@@ -41,15 +41,15 @@ void calc(const field<V, VReal, 2, 2>& v, T0Real /*t0*/, BTauReal /*btau*/,
 //------------------------------------------------------------------------------
 template <typename V, typename VReal>
 void calc(const field<V, VReal, 2, 2>& v, int argc, char** argv) {
-  double      t0               = argc > 2 ? atof(argv[2]) : 0;
-  double      btau             = argc > 3 ? atof(argv[3]) : -5;
-  double      ftau             = argc > 4 ? atof(argv[4]) : 5;
-  size_t      num_its          = argc > 5 ? atoi(argv[5]) : 100;
-  size_t      seed_res         = argc > 6 ? atoi(argv[6]) : 3;
-  double      stepsize         = argc > 7 ? atof(argv[7]) : 0.2;
-  double      desired_coverage = argc > 8 ? atof(argv[8]) : 0.999;
-  auto        seed_str         = argc > 9 ? argv[9]       : random_string(10);
-  std::cerr << "seed: " << seed_str << '\n';
+  const double t0               = argc > 2 ? atof(argv[2]) : 0;
+  const double btau             = argc > 3 ? atof(argv[3]) : -5;
+  const double ftau             = argc > 4 ? atof(argv[4]) : 5;
+  const size_t num_its          = argc > 5 ? atoi(argv[5]) : 100;
+  const size_t seed_res         = argc > 6 ? atoi(argv[6]) : 3;
+  const double stepsize         = argc > 7 ? atof(argv[7]) : 0.2;
+  const double desired_coverage = argc > 8 ? atof(argv[8]) : 0.999;
+  const auto   seed_str         = argc > 9 ? argv[9] : random_string(10);
+  if (argc <= 9) { std::cerr << "seed: " << seed_str << '\n'; }
 
   calc(v, t0, btau, ftau, num_its, seed_res, stepsize, desired_coverage,
        seed_str);
