@@ -16,8 +16,9 @@ endfunction (copy)
 configure_file(${CMAKE_CURRENT_SOURCE_DIR}/viridis_color_scale.png 
   ${CMAKE_CURRENT_BINARY_DIR}/color_scale.png COPYONLY)
 
-copy(v_tau_shader.vert)
-copy(v_tau_shader.frag)
+copy(ssf_rasterization.vert)
+copy(ssf_rasterization.frag)
+copy(domain_coverage.comp)
 
 set(HDF5_LIBS -lhdf5 -lhdf5_cpp -lhdf5_hl)
 

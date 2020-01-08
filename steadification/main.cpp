@@ -29,13 +29,14 @@ void calc(const field<V, VReal, 2, 2>& v, T0Real /*t0*/, BTauReal /*btau*/,
   }
   create_directory(p);
   steadification s(settings<V>::domain, settings<V>::render_resolution, randeng);
-
-  const parameterized_line<VReal, 3> seedcurve{
-      {settings<V>::domain.random_point(randeng), 0},
-      {settings<V>::domain.random_point(randeng), 1}};
-  std::cerr << seedcurve[0].first << '\n';
-  std::cerr << seedcurve[1].first << '\n';
-  auto rasterized = s.rasterize(v, seedcurve, stepsize);
+  //
+  //const parameterized_line<VReal, 3> seedcurve{
+  //    {settings<V>::domain.random_point(randeng), 0},
+  //    {settings<V>::domain.random_point(randeng), 1}};
+  //std::cerr << seedcurve[0].first << '\n';
+  //std::cerr << seedcurve[1].first << '\n';
+  //auto rasterized = s.rasterize(v, seedcurve, stepsize);
+  s.random_domain_filling_streamsurfaces(v);
 }
 
 //------------------------------------------------------------------------------

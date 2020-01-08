@@ -618,11 +618,17 @@ constexpr auto dot(const base_tensor<LhsTensor, LhsReal, N>& lhs,
     d += lhs(i) * rhs(i); }
   return d;
 }
-
 //------------------------------------------------------------------------------
 template <typename Tensor, typename Real>
 constexpr Real det(const base_tensor<Tensor, Real, 2, 2>& m) {
   return m(0, 0) * m(1, 1) - m(0, 1) * m(1, 0);
+}
+//------------------------------------------------------------------------------
+template <typename Tensor, typename Real>
+constexpr Real detAtA(const base_tensor<Tensor, Real, 2, 2>& m) {
+  return m(0, 0) * m(0, 0) * m(1, 1) * m(1, 1) +
+         m(0, 1) * m(0, 1) * m(1, 0) * m(1, 0) -
+         2 * m(0, 0) * m(1, 0) * m(0, 1) * m(1, 1);
 }
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 template <typename Tensor, typename Real>

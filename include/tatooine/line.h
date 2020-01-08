@@ -152,7 +152,6 @@ struct line {
            (distance(vertex_at(i - 1), vertex_at(i)) +
             distance(vertex_at(i), vertex_at(i + 1)));
   }
-
   //----------------------------------------------------------------------------
   auto tangent(const size_t i) const {
     if (is_closed()) { return tangent(i, central); }
@@ -160,7 +159,69 @@ struct line {
     if (i == num_vertices() - 1) { return tangent(i, backward); }
     return tangent(i, central);
   }
+  //----------------------------------------------------------------------------
+  auto front_tangent(const size_t i) const { return tangent(0); }
+  auto back_tangent(const size_t i) const { return tangent(num_vertices() - 1); }
+  //----------------------------------------------------------------------------
+  /// calculates second derivative at point i with forward differences
+  auto diff2(const size_t i, forward_t /*fw*/) const {
+    assert(num_vertices() > 1);
+    if (is_closed()) {
+      if (i == num_vertices() - 1) {
+        return (front_tangent() - tangent(i)) /
+               distance(front_tangent(), tangent(i));
+      }
+    }
+    return (tangent(i + 1) - tangent(i)) /
+           distance(tangent(i), tangent(i + 1));
+  }
 
+  //----------------------------------------------------------------------------
+  /// calculates second derivative at point i with backward differences
+  auto diff2(const size_t i, backward_t /*bw*/) const {
+    assert(num_vertices() > 1);
+    if (is_closed()) {
+      if (i == 0) {
+        return (tangent(i) - back_tangent()) /
+               distance(back_tangent(), tangent(i));
+      }
+    }
+    return (tangent(i) - tangent(i - 1)) /
+           distance(tangent(i), tangent(i - 1));
+  }
+
+  //----------------------------------------------------------------------------
+  /// calculates second derivative at point i with central differences
+  auto diff2(const size_t i, central_t /*c*/) const {
+    if (is_closed()) {
+      if (i == 0) {
+        return (tangent(i+1) - back_tangent()) /
+               (distance(back_tangent(), tangent(i)) +
+                distance(tangent(i), tangent(i+1)));
+      } else if (i == num_vertices() - 1) {
+        return (front_tangent() - tangent(i - 1)) /
+               (distance(tangent(i - 1), tangent(i)) +
+                distance(tangent(i), front_tangent()));
+      }
+    }
+    return (tangent(i + 1) - tangent(i - 1)) /
+           (distance(tangent(i - 1), tangent(i)) +
+            distance(tangent(i), tangent(i + 1)));
+  }
+  //----------------------------------------------------------------------------
+  auto diff2(const size_t i) const {
+    if (is_closed()) { return diff2(i, central); }
+    if (i == 0) { return diff2(i, forward); }
+    if (i == num_vertices() - 1) { return diff2(i, backward); }
+    return diff2(i, central);
+  }
+  //----------------------------------------------------------------------------
+  auto curvature(size_t i) {
+    auto d1 = tangent(i);
+    auto d2 = diff2(i);
+    auto ld1 = length(d1);
+    return std::abs(d1(0) * d2(1) - d1(1) * d2(0)) / (ld1 * ld1 * ld1);
+  }
   //----------------------------------------------------------------------------
   auto length() {
     Real len = 0;
@@ -169,11 +230,9 @@ struct line {
     }
     return len;
   }
-
   //----------------------------------------------------------------------------
   bool is_closed() const { return m_is_closed; }
   void set_closed(bool is_closed) { m_is_closed = is_closed; }
-
   ////----------------------------------------------------------------------------
   ///// filters the line and returns a vector of lines
   // template <typename Pred>
@@ -193,19 +252,15 @@ struct line {
   //    return true;
   //  });
   //}
-
   //----------------------------------------------------------------------------
   void write(const std::string& file);
-
   //----------------------------------------------------------------------------
   static void write(const std::vector<line<Real, N>>& line_set,
                     const std::string&                file);
-
   //----------------------------------------------------------------------------
   void write_vtk(const std::string& path,
                  const std::string& title          = "tatooine line",
                  bool               write_tangents = false) const;
-
   //----------------------------------------------------------------------------
   template <size_t N_ = N, std::enable_if_t<N_ == 3>...>
   static auto read_vtk(const std::string& filepath) {

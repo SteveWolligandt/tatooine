@@ -29,15 +29,21 @@ comp_shader::comp_shader(const std::string& comp) {
   create();
 }
 //------------------------------------------------------------------------------
-void comp_shader::dispatch2d(GLuint w, GLuint h) {
+void comp_shader::dispatch(GLuint w, GLuint h) {
   bind();
   gl::dispatch_compute(w, h, 1);
 }
 //==============================================================================
-// v_tau_shader
+// ssf_rasterization_shader
 //==============================================================================
-v_tau_shader::v_tau_shader()
-    : vert_frag_shader{"v_tau_shader.vert", "v_tau_shader.frag"} {}
+ssf_rasterization_shader::ssf_rasterization_shader()
+    : vert_frag_shader{"ssf_rasterization.vert",
+                       "ssf_rasterization.frag"} {}
+//==============================================================================
+// domain_coverage_shader
+//==============================================================================
+domain_coverage_shader::domain_coverage_shader()
+    : comp_shader{"domain_coverage.comp"} {}
 //==============================================================================
 }  // namespace tatooine
 //==============================================================================

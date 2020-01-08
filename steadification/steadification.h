@@ -20,7 +20,7 @@
 namespace tatooine {
 //==============================================================================
 
-template <typename Real>
+template <typename Real, typename RandEng>
 class steadification {
   //============================================================================
   // types
@@ -45,26 +45,25 @@ class steadification {
   // fields
   //============================================================================
  private:
-  ivec2                     m_render_resolution;
-  //yavin::glx::context       m_context;
-  yavin::glx::window        m_window;
-  yavin::orthographiccamera m_cam;
-  yavin::tex2rgb<float>     m_color_scale;
-  yavin::texdepth           m_depth;
-  yavin::tex2r<float>       m_noise_tex;
-  v_tau_shader              m_v_tau_shader;
-  integrator_t              m_integrator;
+  ivec2                      m_render_resolution;
+  yavin::egl::context        m_context;
+  yavin::orthographiccamera  m_cam;
+  yavin::tex2rgb<float>      m_color_scale;
+  yavin::texdepth            m_depth;
+  yavin::tex2r<float>        m_noise_tex;
+  ssf_rasterization_shader   m_ssf_rasterization_shader;
+  domain_coverage_shader     m_domain_coverage_shader;
+  integrator_t               m_integrator;
+  RandEng&                   m_rand_eng;
 
   //============================================================================
   // ctor
   //============================================================================
  public:
-  template <typename RandEng = std::mt19937_64>
   steadification(const boundingbox<Real, 3>& domain, ivec2 render_resolution,
-                 RandEng&& rand_eng = RandEng{std::random_device{}()})
+                 RandEng& rand_eng)
       : m_render_resolution{render_resolution},
-        //m_context{4, 5},
-        m_window{"foo", 4,5},
+        m_context{4, 5},
         m_cam{static_cast<float>(domain.min(0)),
               static_cast<float>(domain.max(0)),
               static_cast<float>(domain.min(1)),
@@ -78,11 +77,12 @@ class steadification {
                 render_resolution(1)},
         m_noise_tex{yavin::LINEAR, yavin::REPEAT, render_resolution(0),
                     render_resolution(1)},
-        m_v_tau_shader{},
+        m_ssf_rasterization_shader{},
         m_integrator{integration::vclibs::abs_tol      = 1e-6,
                      integration::vclibs::rel_tol      = 1e-6,
                      integration::vclibs::initial_step = 0,
-                     integration::vclibs::max_step     = 0.1} {
+                     integration::vclibs::max_step     = 0.1},
+        m_rand_eng{rand_eng} {
     yavin::disable_multisampling();
 
     std::vector<float> noise(render_resolution(0) * render_resolution(1));
@@ -101,8 +101,8 @@ class steadification {
     rasterized_pathsurface psf_rast{m_render_resolution(0),
                                     m_render_resolution(1)};
     framebuffer            fbo{psf_rast.pos, psf_rast.v, psf_rast.uv, m_depth};
-    m_v_tau_shader.bind();
-    m_v_tau_shader.set_projection(m_cam.projection_matrix());
+    m_ssf_rasterization_shader.bind();
+    m_ssf_rasterization_shader.set_projection(m_cam.projection_matrix());
 
     gl::viewport(m_cam.viewport());
     gl::clear_color(0.0f/0.0f, 0.0f/0.0f, 0.0f/0.0f, 0);
@@ -110,9 +110,6 @@ class steadification {
     fbo.bind();
     clear_color_depth_buffer();
     psf.draw();
-    psf_rast.pos.write_png("pos.png");
-    psf_rast.v.write_png("v.png");
-    psf_rast.uv.write_png("uv.png");
     return psf_rast;
   }
   //----------------------------------------------------------------------------
@@ -159,6 +156,34 @@ class steadification {
                        const parameterized_line<Real, 3>& seedcurve,
                        Real                               stepsize) {
     return gpu_pathsurface(pathsurface(v, seedcurve, stepsize));
+  }
+  //============================================================================
+  /// @return coverage of domain between 0 and 1; 1 meaning fully covered
+  double domain_coverage() {
+    return 0;
+  }
+  //============================================================================
+  template <typename V, typename VReal>
+  void random_domain_filling_streamsurfaces(const field<V, VReal, 2, 2>& v) {
+    static constexpr auto      domain = settings<V>::domain;
+    yavin::tex2r<std::uint8_t> coverage_tex{
+        yavin::NEAREST, yavin::CLAMP_TO_EDGE, m_render_resolution(0),
+        m_render_resolution(1)};
+    coverage_tex.bind_image_texture(0);
+    coverage_tex.clear(0);
+    std::vector<parameterized_line<Real, 3>> seed_curves;
+    std::vector<rasterized_pathsurface>      rasterizations;
+
+    size_t i = 0;
+    while (domain_coverage(coverage_tex) < 0.9) {
+      seed_curves.emplace_back(
+          parameterized_line<Real, 3>{{domain.random_point(m_rand_eng), 0},
+                                      {domain.random_point(m_rand_eng), 1}});
+      //rasterizations.push_back(rasterize(v, seed_curves.back(), 0.1));
+      auto rast = rasterize(v, seed_curves.back(), 0.1);
+      rast.pos.write_png("pos_" + std::to_string(i++) + ".png");
+    }
+    coverage_tex.write_png("coverage.png");
   }
 };
 //==============================================================================

@@ -16,12 +16,17 @@ struct vert_frag_shader : yavin::shader {
 //==============================================================================
 struct comp_shader : yavin::shader {
   comp_shader(const std::string& comp);
-  void dispatch2d(GLuint w, GLuint h);
+  void dispatch(GLuint w, GLuint h);
 };
 //==============================================================================
-/// renders vector field and tau in two render targets
-struct v_tau_shader : vert_frag_shader {
-  v_tau_shader();
+/// renders vector field, tau and position in three render targets
+struct ssf_rasterization_shader : vert_frag_shader {
+  ssf_rasterization_shader();
+};
+//==============================================================================
+/// renders vector field, tau and position in three render targets
+struct domain_coverage_shader : comp_shader {
+  domain_coverage_shader();
 };
 //==============================================================================
 }  // namespace tatooine
