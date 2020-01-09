@@ -26,7 +26,7 @@ void calc(const field<V, VReal, 2, 2>& v, T0Real /*t0*/, BTauReal /*btau*/,
   //std::cerr << seedcurve[0].first << '\n';
   //std::cerr << seedcurve[1].first << '\n';
   //auto rasterized = s.rasterize(v, seedcurve, stepsize);
-  s.random_domain_filling_streamsurfaces(v);
+  s.random_domain_filling_streamsurfaces(v, stepsize);
 }
 
 //------------------------------------------------------------------------------
@@ -37,7 +37,7 @@ void calc(const field<V, VReal, 2, 2>& v, int argc, char** argv) {
   const double ftau             = argc > 4 ? atof(argv[4]) : 5;
   const size_t num_its          = argc > 5 ? atoi(argv[5]) : 100;
   const size_t seed_res         = argc > 6 ? atoi(argv[6]) : 3;
-  const double stepsize         = argc > 7 ? atof(argv[7]) : 0.2;
+  const double stepsize         = argc > 7 ? atof(argv[7]) : 0.1;
   const double desired_coverage = argc > 8 ? atof(argv[8]) : 0.999;
   const auto   seed_str         = argc > 9 ? argv[9] : random_string(10);
   if (argc <= 9) { std::cerr << "seed: " << seed_str << '\n'; }
