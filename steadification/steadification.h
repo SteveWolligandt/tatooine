@@ -187,16 +187,17 @@ class steadification {
     static constexpr auto domain = settings<V>::domain;
     using namespace std::filesystem;
 
-    auto p = std::string{settings<V>::name} + "/";
-    // size_t dir_count = 1;
-    // while (exists(p)) {
-    //  p = std::string(settings<V>::name) + "_" + std::to_string(dir_count++) +
-    //      "/";
-    //}
-    if (!exists(p)) { create_directory(p); }
-    for (const auto& entry : directory_iterator(p)) {
+    auto working_dir = std::string{settings<V>::name} + "/";
+    if (!exists(working_dir)) { create_directory(working_dir); }
+    for (const auto& entry : directory_iterator(working_dir)) {
       remove(entry);
     }
+
+    // size_t dir_count = 1;
+    // while (exists(working_dir)) {
+    //  working_dir = std::string(settings<V>::name) + "_" + std::to_string(dir_count++) +
+    //      "/";
+    //}
 
     domain_coverage_tex_t domain_coverage_tex{yavin::NEAREST, yavin::REPEAT,
                                               m_render_resolution(0),
@@ -215,8 +216,8 @@ class steadification {
       // rasterizations.push_back(rasterize(v, seed_curves.back(), 0.1));
       auto rast =
           rasterize(v, seed_curves.back(), domain_coverage_tex, stepsize);
-      rast.pos.write_png(p + "pos_" + std::to_string(i++) + ".png");
-    domain_coverage_tex.write_png(p + "coverage.png");
+      rast.pos.write_png(working_dir + "pos_" + std::to_string(i++) + ".png");
+      domain_coverage_tex.write_png(working_dir + "coverage.png");
     }
   }
 };
