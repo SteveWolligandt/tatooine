@@ -220,7 +220,7 @@ struct line {
     return diff2_at(i, central);
   }
   //----------------------------------------------------------------------------
-  auto curvature(size_t i) {
+  auto curvature_at(size_t i) {
     auto d1 = tangent_at(i);
     auto d2 = diff2_at(i);
     auto ld1 = ::tatooine::length(d1);

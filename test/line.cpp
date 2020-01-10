@@ -1,4 +1,8 @@
+#include <tatooine/constant_vectorfield.h>
+#include <tatooine/doublegyre.h>
+#include <tatooine/integration/vclibs/rungekutta43.h>
 #include <tatooine/line.h>
+
 #include <catch2/catch.hpp>
 
 //==============================================================================
@@ -158,19 +162,45 @@ TEST_CASE("line_paramaterization_centripetal",
 }
 //==============================================================================
 TEST_CASE("line_curvature", "[line][curvature]") {
-  // create a closed circle
-  auto radius = GENERATE(1.0, 2.0, 3.0, 4.0);
-  const size_t    num_samples = 1000;
-  line<double, 2> circle;
-  circle.set_closed(true);
+  SECTION("circle") {
+    // create a closed circle
+    auto            radius      = GENERATE(1.0, 2.0, 3.0, 4.0);
+    const size_t    num_samples = 1000;
+    line<double, 2> circle;
+    circle.set_closed(true);
 
-  for (size_t i = 0; i < num_samples; ++i) {
-    const double angle = M_PI * 2 / static_cast<double>(num_samples) * i;
-    circle.push_back(std::cos(angle) * radius, std::sin(angle) * radius);
+    for (size_t i = 0; i < num_samples; ++i) {
+      const double angle = M_PI * 2 / static_cast<double>(num_samples) * i;
+      circle.push_back(std::cos(angle) * radius, std::sin(angle) * radius);
+    }
+
+    for (size_t i = 0; i < num_samples; ++i) {
+      REQUIRE(circle.curvature_at(i) == Approx(1 / radius).margin(1e-6));
+    }
   }
+  SECTION("streamline") {
+    SECTION("constant_vectorfield") {
+      constant_vectorfield<double, 3>              v;
+      integration::vclibs::rungekutta43<double, 3> rk43;
+      auto integral_curve = rk43.integrate(v, {0.0, 0.0, 0.0}, 0, 10);
+      for (size_t i = 0; i < integral_curve.num_vertices(); ++i) {
+        REQUIRE(integral_curve.curvature_at(i) == Approx(0).margin(1e-6));
+      }
+    }
+    SECTION("doublegyre") {
+      numerical::doublegyre                        v;
+      integration::vclibs::rungekutta43<double, 2> rk43;
+      auto integral_curve = rk43.integrate(v, {0.1, 0.1}, 0, 10);
+      double curv_add = 0;
+      for (size_t i = 0; i < integral_curve.num_vertices(); ++i) {
+        curv_add += integral_curve.curvature_at(i);
+      }
 
-  for (size_t i = 0; i < num_samples; ++i) {
-    REQUIRE(circle.curvature(i) == Approx(1 / radius).margin(1e-6));
+      std::cerr << "curvature mean doublegyre pathline x_0 = {0.1, 0.1}, t_0 = "
+                   "0, tau = 10: "
+                << curv_add / static_cast<double>(integral_curve.num_vertices())
+                << '\n';
+    }
   }
 }
 //==============================================================================
