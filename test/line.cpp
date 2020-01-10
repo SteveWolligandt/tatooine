@@ -36,6 +36,15 @@ TEST_CASE("line_push_front", "[line][push_front]") {
   REQUIRE(approx_equal(l.vertex_at(0), vec{2, 0}, 0));
 }
 //==============================================================================
+TEST_CASE("line_push_front", "[line][push_front]") {
+  line<double, 2> l;
+  l.push_front({0, 0});
+  l.push_front({1, 1});
+  l.push_front({2, 0});
+  std::vector<vec<double, 2>> tangents(3);
+  boost::copy(l.tangents(), begin(tangents));
+}
+//==============================================================================
 TEST_CASE("line_parameterized_initialization",
           "[line][parameterization][initialization]") {
   parameterized_line<double, 2> l{

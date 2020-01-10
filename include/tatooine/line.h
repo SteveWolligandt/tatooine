@@ -126,7 +126,7 @@ struct line_vertex_iterator
   auto equal(const line_vertex_iterator& other) const {
     return m_handle == other.m_handle;
   }
-  Reference dereference() const { return m_line[m_handle]; }
+  Reference dereference() { return m_line[m_handle]; }
 
  public:
   this_t next(const size_t inc = 1) const {
@@ -478,11 +478,11 @@ struct line {
   auto front_tangent() const { return tangent_at(0); }
   auto back_tangent() const { return tangent_at(num_vertices() - 1); }
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-  const auto at(tangent t) const { return tangent_at(t); }
-  const auto at(tangent t, forward_t fw) const { return tangent_at(t, fw); }
-  const auto at(tangent t, backward_t bw) const { return tangent_at(t, bw); }
-  const auto at(tangent t, central_t ce) const { return tangent_at(t, ce); }
-  const auto operator[](tangent t) const { return tangent_at(t); }
+  auto at(tangent t) const { return tangent_at(t); }
+  auto at(tangent t, forward_t fw) const { return tangent_at(t, fw); }
+  auto at(tangent t, backward_t bw) const { return tangent_at(t, bw); }
+  auto at(tangent t, central_t ce) const { return tangent_at(t, ce); }
+  auto operator[](tangent t) const { return tangent_at(t); }
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
   using tangent_iterator =
       line_vertex_iterator<Real, N, tangent, vec<Real, N>, vec<Real, N>>;
@@ -566,11 +566,11 @@ struct line {
     return second_derivative_at(i, central);
   }
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-  const auto at(diff2 d2) const { return diff_at(d2); }
-  const auto at(diff2 d2, forward_t fw) const { return diff_at(d2, fw); }
-  const auto at(diff2 d2, backward_t bw) const { return diff_at(d2, bw); }
-  const auto at(diff2 d2, central_t ce) const { return diff_at(d2, ce); }
-  const auto operator[](diff2 d2) const { return diff_at(d2); }
+  auto at(diff2 d2) const { return diff_at(d2); }
+  auto at(diff2 d2, forward_t fw) const { return diff_at(d2, fw); }
+  auto at(diff2 d2, backward_t bw) const { return diff_at(d2, bw); }
+  auto at(diff2 d2, central_t ce) const { return diff_at(d2, ce); }
+  auto operator[](diff2 d2) const { return diff_at(d2); }
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
   using diff2_iterator =
       line_vertex_iterator<Real, N, diff2, vec<Real, N>, vec<Real, N>>;
@@ -632,13 +632,11 @@ struct line {
   auto front_curvature() const { return curvature_at(0); }
   auto back_curvature() const { return curvature_at(num_vertices() - 1); }
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-  const auto at(curvature t) const { return curvature_at(t); }
-  const auto at(curvature t, forward_t fw) const { return curvature_at(t, fw); }
-  const auto at(curvature t, backward_t bw) const {
-    return curvature_at(t, bw);
-  }
-  const auto at(curvature t, central_t ce) const { return curvature_at(t, ce); }
-  const auto operator[](curvature t) const { return curvature_at(t); }
+  auto at(curvature c, forward_t fw) const { return curvature_at(c, fw); }
+  auto at(curvature c, backward_t bw) const { return curvature_at(c, bw); }
+  auto at(curvature c, central_t ce) const { return curvature_at(c, ce); }
+  auto at(curvature c) const { return curvature_at(c); }
+  auto operator[](curvature c) const { return curvature_at(c); }
   //----------------------------------------------------------------------------
   using curvature_iterator =
       line_vertex_iterator<Real, N, curvature, Real, Real>;
