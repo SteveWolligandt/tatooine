@@ -187,20 +187,19 @@ TEST_CASE("line_curvature", "[line][curvature]") {
         REQUIRE(integral_curve.curvature_at(i) == Approx(0).margin(1e-6));
       }
     }
-    SECTION("doublegyre") {
-      numerical::doublegyre                        v;
-      integration::vclibs::rungekutta43<double, 2> rk43;
-      auto integral_curve = rk43.integrate(v, {0.1, 0.1}, 0, 10);
-      double curv_add = 0;
-      for (size_t i = 0; i < integral_curve.num_vertices(); ++i) {
-        curv_add += integral_curve.curvature_at(i);
-      }
-
-      std::cerr << "curvature mean doublegyre pathline x_0 = {0.1, 0.1}, t_0 = "
-                   "0, tau = 10: "
-                << curv_add / static_cast<double>(integral_curve.num_vertices())
-                << '\n';
-    }
+    //SECTION("doublegyre") {
+    //  numerical::doublegyre                        v;
+    //  integration::vclibs::rungekutta43<double, 2> rk43;
+    //  auto integral_curve = rk43.integrate(v, {0.1, 0.1}, 0, 10);
+    //  double curv_add = 0;
+    //  for (size_t i = 0; i < integral_curve.num_vertices(); ++i) {
+    //    curv_add += integral_curve.curvature_at(i);
+    //  }
+    //  auto curv_mean = curv_add / integral_curve.num_vertices();
+    //  std::cerr << "curvature mean doublegyre pathline x_0 = {0.1, 0.1}, t_0 = "
+    //               "0, tau = 10: "
+    //            << curv_mean << '\n';
+    //}
   }
 }
 //==============================================================================
