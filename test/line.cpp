@@ -156,9 +156,23 @@ TEST_CASE("line_paramaterization_centripetal",
   l.push_back(v2, 0);
   l.centripetal_parameterization();
 }
+//==============================================================================
+TEST_CASE("line_curvature", "[line][curvature]") {
+  // create a closed circle
+  auto radius = GENERATE(1.0, 2.0, 3.0, 4.0);
+  const size_t    num_samples = 1000;
+  line<double, 2> circle;
+  circle.set_closed(true);
 
+  for (size_t i = 0; i < num_samples; ++i) {
+    const double angle = M_PI * 2 / static_cast<double>(num_samples) * i;
+    circle.push_back(std::cos(angle) * radius, std::sin(angle) * radius);
+  }
 
-
+  for (size_t i = 0; i < num_samples; ++i) {
+    REQUIRE(circle.curvature(i) == Approx(1 / radius).margin(1e-6));
+  }
+}
 //==============================================================================
 }  // namespace tatooine::test
 //==============================================================================

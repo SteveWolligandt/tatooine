@@ -3,6 +3,7 @@
 
 #include <boost/range/adaptor/reversed.hpp>
 #include <boost/range/algorithm_ext/iota.hpp>
+#include <boost/range/algorithm/reverse.hpp>
 #include <cassert>
 #include <deque>
 #include <stdexcept>
@@ -99,6 +100,11 @@ struct line {
   auto&       vertex_at(size_t i) { return m_vertices[i]; }
   const auto& vertex_at(size_t i) const { return m_vertices[i]; }
   //----------------------------------------------------------------------------
+  template <typename... Components, enable_if_arithmetic<Components...> = true,
+            std::enable_if_t<sizeof...(Components) == N, bool> = true>
+  void push_back(Components... comps) {
+    m_vertices.push_back(pos_t{static_cast<Real>(comps)...});
+  }
   void push_back(const pos_t& p) { m_vertices.push_back(p); }
   void push_back(pos_t&& p) { m_vertices.emplace_back(std::move(p)); }
   void pop_back() { m_vertices.pop_back(); }
@@ -108,12 +114,12 @@ struct line {
   void pop_front() { m_vertices.pop_front(); }
   //----------------------------------------------------------------------------
   /// calculates tangent at point i with forward differences
-  auto tangent(const size_t i, forward_t /*fw*/) const {
+  auto tangent_at(const size_t i, forward_t /*fw*/) const {
     assert(num_vertices() > 1);
     if (is_closed()) {
       if (i == num_vertices() - 1) {
-        return (front_vertex() - vertex_at(i)) /
-               distance(front_vertex(), vertex_at(i));
+        return (front_vertex() - back_vertex()) /
+               distance(front_vertex(), back_vertex());
       }
     }
     return (vertex_at(i + 1) - vertex_at(i)) /
@@ -122,12 +128,12 @@ struct line {
 
   //----------------------------------------------------------------------------
   /// calculates tangent at point i with backward differences
-  auto tangent(const size_t i, backward_t /*bw*/) const {
+  auto tangent_at(const size_t i, backward_t /*bw*/) const {
     assert(num_vertices() > 1);
     if (is_closed()) {
       if (i == 0) {
-        return (vertex_at(i) - back_vertex()) /
-               distance(back_vertex(), vertex_at(i));
+        return (front_vertex() - back_vertex()) /
+               distance(back_vertex(), front_vertex());
       }
     }
     return (vertex_at(i) - vertex_at(i - 1)) /
@@ -136,16 +142,16 @@ struct line {
 
   //----------------------------------------------------------------------------
   /// calculates tangent at point i with central differences
-  auto tangent(const size_t i, central_t /*c*/) const {
+  auto tangent_at(const size_t i, central_t /*c*/) const {
     if (is_closed()) {
       if (i == 0) {
-        return (vertex_at(i+1) - back_vertex()) /
-               (distance(back_vertex(), vertex_at(i)) +
-                distance(vertex_at(i), vertex_at(i+1)));
+        return (vertex_at(1) - back_vertex()) /
+               (distance(back_vertex(), front_vertex()) +
+                distance(front_vertex(), vertex_at(i+1)));
       } else if (i == num_vertices() - 1) {
         return (front_vertex() - vertex_at(i - 1)) /
-               (distance(vertex_at(i - 1), vertex_at(i)) +
-                distance(vertex_at(i), front_vertex()));
+               (distance(vertex_at(i - 1), back_vertex()) +
+                distance(back_vertex(), front_vertex()));
       }
     }
     return (vertex_at(i + 1) - vertex_at(i - 1)) /
@@ -153,73 +159,71 @@ struct line {
             distance(vertex_at(i), vertex_at(i + 1)));
   }
   //----------------------------------------------------------------------------
-  auto tangent(const size_t i) const {
-    if (is_closed()) { return tangent(i, central); }
-    if (i == 0) { return tangent(i, forward); }
-    if (i == num_vertices() - 1) { return tangent(i, backward); }
-    return tangent(i, central);
+  auto tangent_at(const size_t i) const {
+    if (is_closed()) { return tangent_at(i, central); }
+    if (i == 0) { return tangent_at(i, forward); }
+    if (i == num_vertices() - 1) { return tangent_at(i, backward); }
+    return tangent_at(i, central);
   }
   //----------------------------------------------------------------------------
-  auto front_tangent(const size_t i) const { return tangent(0); }
-  auto back_tangent(const size_t i) const { return tangent(num_vertices() - 1); }
+  auto front_tangent() const { return tangent_at(0); }
+  auto back_tangent() const { return tangent_at(num_vertices() - 1); }
   //----------------------------------------------------------------------------
   /// calculates second derivative at point i with forward differences
-  auto diff2(const size_t i, forward_t /*fw*/) const {
+  auto diff2_at(const size_t i, forward_t /*fw*/) const {
     assert(num_vertices() > 1);
     if (is_closed()) {
       if (i == num_vertices() - 1) {
-        return (front_tangent() - tangent(i)) /
-               distance(front_tangent(), tangent(i));
+        return (front_tangent() - back_tangent()) /
+               distance(front_vertex(), back_vertex());
       }
     }
-    return (tangent(i + 1) - tangent(i)) /
-           distance(tangent(i), tangent(i + 1));
+    return (tangent_at(i + 1) - tangent_at(i)) /
+           distance(vertex_at(i), vertex_at(i + 1));
   }
-
   //----------------------------------------------------------------------------
   /// calculates second derivative at point i with backward differences
-  auto diff2(const size_t i, backward_t /*bw*/) const {
+  auto diff2_at(const size_t i, backward_t /*bw*/) const {
     assert(num_vertices() > 1);
     if (is_closed()) {
       if (i == 0) {
-        return (tangent(i) - back_tangent()) /
-               distance(back_tangent(), tangent(i));
+        return (front_tangent() - back_tangent()) /
+               distance(back_vertex(), front_tangent());
       }
     }
-    return (tangent(i) - tangent(i - 1)) /
-           distance(tangent(i), tangent(i - 1));
+    return (tangent_at(i) - tangent_at(i - 1)) /
+           distance(vertex_at(i), vertex_at(i - 1));
   }
-
   //----------------------------------------------------------------------------
   /// calculates second derivative at point i with central differences
-  auto diff2(const size_t i, central_t /*c*/) const {
+  auto diff2_at(const size_t i, central_t /*c*/) const {
     if (is_closed()) {
       if (i == 0) {
-        return (tangent(i+1) - back_tangent()) /
-               (distance(back_tangent(), tangent(i)) +
-                distance(tangent(i), tangent(i+1)));
+        return (tangent_at(1) - back_tangent()) /
+               (distance(back_vertex(), front_vertex()) +
+                distance(front_vertex(), vertex_at(1)));
       } else if (i == num_vertices() - 1) {
-        return (front_tangent() - tangent(i - 1)) /
-               (distance(tangent(i - 1), tangent(i)) +
-                distance(tangent(i), front_tangent()));
+        return (front_tangent() - tangent_at(i - 1)) /
+               (distance(vertex_at(i - 1), back_vertex()) +
+                distance(back_vertex(), front_vertex()));
       }
     }
-    return (tangent(i + 1) - tangent(i - 1)) /
-           (distance(tangent(i - 1), tangent(i)) +
-            distance(tangent(i), tangent(i + 1)));
+    return (tangent_at(i + 1) - tangent_at(i - 1)) /
+           (distance(vertex_at(i - 1), vertex_at(i)) +
+            distance(vertex_at(i), vertex_at(i + 1)));
   }
   //----------------------------------------------------------------------------
-  auto diff2(const size_t i) const {
-    if (is_closed()) { return diff2(i, central); }
-    if (i == 0) { return diff2(i, forward); }
-    if (i == num_vertices() - 1) { return diff2(i, backward); }
-    return diff2(i, central);
+  auto diff2_at(const size_t i) const {
+    if (is_closed()) { return diff2_at(i, central); }
+    if (i == 0) { return diff2_at(i, forward); }
+    if (i == num_vertices() - 1) { return diff2_at(i, backward); }
+    return diff2_at(i, central);
   }
   //----------------------------------------------------------------------------
   auto curvature(size_t i) {
-    auto d1 = tangent(i);
-    auto d2 = diff2(i);
-    auto ld1 = length(d1);
+    auto d1 = tangent_at(i);
+    auto d2 = diff2_at(i);
+    auto ld1 = ::tatooine::length(d1);
     return std::abs(d1(0) * d2(1) - d1(1) * d2(0)) / (ld1 * ld1 * ld1);
   }
   //----------------------------------------------------------------------------
@@ -357,7 +361,7 @@ void line<Real, N>::write_vtk(const std::string& path, const std::string& title,
       std::vector<std::vector<Real>> tangents;
       tangents.reserve(this->num_vertices());
       for (size_t i = 0; i < this->num_vertices(); ++i) {
-        const auto t = tangent(i);
+        const auto t = tangent_at(i);
         tangents.push_back({t(0), t(1), t(2)});
       }
       writer.write_scalars("tangents", tangents);
@@ -406,7 +410,6 @@ void write_line_container_to_vtk(const LineCont& lines, const std::string& path,
     writer.close();
   }
 }
-
 //------------------------------------------------------------------------------
 template <typename Lines, typename MaxDist/*, typename MinAngle*/>
 auto merge_line_container(Lines lines, MaxDist max_dist/*, MinAngle min_angle*/) {
@@ -546,7 +549,7 @@ struct parameterized_line : line<Real, N> {
   using parent_t::num_vertices;
   using parent_t::vertices;
   using parent_t::vertex_at;
-  using parent_t::tangent;
+  using parent_t::tangent_at;
 
  private:
   std::deque<Real> m_parameterization;
@@ -722,7 +725,7 @@ struct parameterized_line : line<Real, N> {
 
   //----------------------------------------------------------------------------
   /// computes tangent assuming the line is a quadratic curve
-  auto tangent(const size_t i, quadratic_t /*q*/) const {
+  auto tangent_at(const size_t i, quadratic_t /*q*/) const {
     assert(this->num_vertices() > 1);
     // start or end point
     if (!this->is_closed()) {
@@ -786,7 +789,7 @@ struct parameterized_line : line<Real, N> {
         std::vector<std::vector<Real>> tangents;
         tangents.reserve(this->num_vertices());
         for (size_t i = 0; i < this->num_vertices(); ++i) {
-          const auto t = tangent(i);
+          const auto t = tangent_at(i);
           tangents.push_back({t(0), t(1), t(2)});
         }
         writer.write_scalars("tangents", tangents);
