@@ -6,11 +6,13 @@
 #include <boost/range/algorithm_ext/iota.hpp>
 #include <cassert>
 #include <deque>
+#include <map>
 #include <stdexcept>
 
 #include "handle.h"
 #include "interpolation.h"
 #include "linspace.h"
+#include "property.h"
 #include "tensor.h"
 #include "vtk_legacy.h"
 
@@ -290,12 +292,18 @@ struct line {
     static constexpr auto invalid() { return tangent{handle::invalid_idx}; }
   };
   //----------------------------------------------------------------------------
-  struct diff2 : handle {
+  struct second_derivative : handle {
     using handle::handle;
-    bool operator==(diff2 other) const { return this->i == other.i; }
-    bool operator!=(diff2 other) const { return this->i != other.i; }
-    bool operator<(diff2 other) const { return this->i < other.i; }
-    static constexpr auto invalid() { return diff2{handle::invalid_idx}; }
+    bool operator==(second_derivative other) const {
+      return this->i == other.i;
+    }
+    bool operator!=(second_derivative other) const {
+      return this->i != other.i;
+    }
+    bool operator<(second_derivative other) const { return this->i < other.i; }
+    static constexpr auto invalid() {
+      return second_derivative{handle::invalid_idx};
+    }
   };
   //----------------------------------------------------------------------------
   struct curvature : handle {
@@ -306,6 +314,11 @@ struct line {
     static constexpr auto invalid() { return curvature{handle::invalid_idx}; }
   };
 
+  template <typename T>
+  using vertex_property_t = deque_property_impl<vertex, T>;
+  using vertex_property_container_t =
+      std::map<std::string, std::unique_ptr<deque_property<vertex>>>;
+
   //============================================================================
   // static methods
   //============================================================================
@@ -313,17 +326,33 @@ struct line {
 
   //============================================================================
  private:
-  pos_container_t m_vertices;
-  bool            m_is_closed = false;
+  pos_container_t             m_vertices;
+  bool                        m_is_closed = false;
+  vertex_property_container_t m_vertex_properties;
 
   //============================================================================
  public:
-  line()                  = default;
-  line(const line& other) = default;
-  line(line&& other)      = default;
-  line& operator=(const line& other) = default;
+  line() = default;
+  // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+  line(const line& other)
+      : m_vertices{other.m_vertices}, m_is_closed{other.m_is_closed} {
+    for (auto& [name, prop] : other.m_vertex_properties) {
+      m_vertex_properties[name] = prop->clone();
+    }
+  }
+  // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+  line(line&& other) = default;
+  // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+  line& operator     =(const line& other) {
+    m_vertices  = other.m_vertices;
+    m_is_closed = other.m_is_closed;
+    m_vertex_properties.clear();
+    for (auto& [name, prop] : other.m_vertex_properties) {
+      m_vertex_properties[name] = prop->clone();
+    }
+  }
+  // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
   line& operator=(line&& other) = default;
-
   //----------------------------------------------------------------------------
   line(const pos_container_t& data, bool is_closed = false)
       : m_vertices{data}, m_is_closed{is_closed} {}
@@ -367,14 +396,17 @@ struct line {
             std::enable_if_t<sizeof...(Components) == N, bool> = true>
   auto push_back(Components... comps) {
     m_vertices.push_back(pos_t{static_cast<Real>(comps)...});
+    for (auto& [name, prop] : m_vertex_properties) { prop->push_back(); }
     return vertex{m_vertices.size() - 1};
   }
   auto push_back(const pos_t& p) {
     m_vertices.push_back(p);
+    for (auto& [name, prop] : m_vertex_properties) { prop->push_back(); }
     return vertex{m_vertices.size() - 1};
   }
   auto push_back(pos_t&& p) {
     m_vertices.emplace_back(std::move(p));
+    for (auto& [name, prop] : m_vertex_properties) { prop->push_back(); }
     return vertex{m_vertices.size() - 1};
   }
   auto pop_back() { m_vertices.pop_back(); }
@@ -383,14 +415,17 @@ struct line {
             std::enable_if_t<sizeof...(Components) == N, bool> = true>
   auto push_front(Components... comps) {
     m_vertices.push_front(pos_t{static_cast<Real>(comps)...});
+    for (auto& [name, prop] : m_vertex_properties) { prop->push_front(); }
     return vertex{0};
   }
   auto push_front(const pos_t& p) {
     m_vertices.push_front(p);
+    for (auto& [name, prop] : m_vertex_properties) { prop->push_front(); }
     return vertex{0};
   }
   auto push_front(pos_t&& p) {
     m_vertices.emplace_front(std::move(p));
+    for (auto& [name, prop] : m_vertex_properties) { prop->push_front(); }
     return vertex{0};
   }
   void pop_front() { m_vertices.pop_front(); }
@@ -415,11 +450,9 @@ struct line {
   /// calculates tangent at point i with forward differences
   auto tangent_at(const size_t i, forward_t /*fw*/) const {
     assert(num_vertices() > 1);
-    if (is_closed()) {
-      if (i == num_vertices() - 1) {
-        return (front_vertex() - back_vertex()) /
-               distance(front_vertex(), back_vertex());
-      }
+    if (is_closed() && i == num_vertices() - 1) {
+      return (front_vertex() - back_vertex()) /
+             distance(front_vertex(), back_vertex());
     }
     return (vertex_at(i + 1) - vertex_at(i)) /
            distance(vertex_at(i), vertex_at(i + 1));
@@ -434,11 +467,9 @@ struct line {
   /// calculates tangent at point i with central differences
   auto tangent_at(const size_t i, backward_t /*bw*/) const {
     assert(num_vertices() > 1);
-    if (is_closed()) {
-      if (i == 0) {
-        return (front_vertex() - back_vertex()) /
-               distance(back_vertex(), front_vertex());
-      }
+    if (is_closed() && i == 0) {
+      return (front_vertex() - back_vertex()) /
+             distance(back_vertex(), front_vertex());
     }
     return (vertex_at(i) - vertex_at(i - 1)) /
            distance(vertex_at(i), vertex_at(i - 1));
@@ -478,27 +509,28 @@ struct line {
   auto front_tangent() const { return tangent_at(0); }
   auto back_tangent() const { return tangent_at(num_vertices() - 1); }
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-  auto at(tangent t) const { return tangent_at(t); }
-  auto at(tangent t, forward_t fw) const { return tangent_at(t, fw); }
-  auto at(tangent t, backward_t bw) const { return tangent_at(t, bw); }
-  auto at(tangent t, central_t ce) const { return tangent_at(t, ce); }
-  auto operator[](tangent t) const { return tangent_at(t); }
+  auto at(tangent t) const { return tangent_at(t.i); }
+  auto at(tangent t, forward_t fw) const { return tangent_at(t.i, fw); }
+  auto at(tangent t, backward_t bw) const { return tangent_at(t.i, bw); }
+  auto at(tangent t, central_t ce) const { return tangent_at(t.i, ce); }
+  auto operator[](tangent t) const { return tangent_at(t.i); }
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
   using tangent_iterator =
-      line_vertex_iterator<Real, N, tangent, vec<Real, N>, vec<Real, N>>;
-  using const_tangent_iterator =
       const_line_vertex_iterator<Real, N, tangent, vec<Real, N>, vec<Real, N>>;
   using tangent_container =
-      line_vertex_container<Real, N, tangent, vec<Real, N>, vec<Real, N>>;
-  using const_tangent_container =
       const_line_vertex_container<Real, N, tangent, vec<Real, N>, vec<Real, N>>;
-  auto tangents() const { return const_tangent_container{*this}; }
-  auto tangents() { return tangent_container{*this}; }
+  auto tangents() const { return tangent_container{*this}; }
+  //----------------------------------------------------------------------------
+  auto& tangents_to_property() {
+    auto& tangent_prop = add_vertex_property<vec<Real, N>>("tangents");
+    boost::copy(tangents(), tangent_prop.begin());
+    return tangent_prop;
+  }
   //============================================================================
   // second derivative
   //============================================================================
   /// calculates second derivative at point i with forward differences
-  auto second_derivative_at(const diff2 d2, forward_t fw) const {
+  auto second_derivative_at(const second_derivative d2, forward_t fw) const {
     return second_derivative_at(d2.i, fw);
   }
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -516,7 +548,7 @@ struct line {
   }
   //----------------------------------------------------------------------------
   /// calculates second derivative at point i with backward differences
-  auto second_derivative_at(const diff2 d2, backward_t bw) const {
+  auto second_derivative_at(const second_derivative d2, backward_t bw) const {
     return second_derivative_at(d2.i, bw);
   }
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -534,7 +566,7 @@ struct line {
   }
   //----------------------------------------------------------------------------
   /// calculates second derivative at point d2 with central differences
-  auto second_derivative_at(const diff2 d2, central_t ce) const {
+  auto second_derivative_at(const second_derivative d2, central_t ce) const {
     return second_derivative_at(d2.i, ce);
   }
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -556,7 +588,7 @@ struct line {
             distance(vertex_at(i), vertex_at(i + 1)));
   }
   //----------------------------------------------------------------------------
-  auto second_derivative_at(const diff2 d2) const {
+  auto second_derivative_at(const second_derivative d2) const {
     return second_derivative_at(d2.i);
   }
   auto second_derivative_at(const size_t i) const {
@@ -566,22 +598,34 @@ struct line {
     return second_derivative_at(i, central);
   }
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-  auto at(diff2 d2) const { return diff_at(d2); }
-  auto at(diff2 d2, forward_t fw) const { return diff_at(d2, fw); }
-  auto at(diff2 d2, backward_t bw) const { return diff_at(d2, bw); }
-  auto at(diff2 d2, central_t ce) const { return diff_at(d2, ce); }
-  auto operator[](diff2 d2) const { return diff_at(d2); }
+  auto at(second_derivative d2) const { return second_derivative_at(d2.i); }
+  auto at(second_derivative d2, forward_t fw) const {
+    return second_derivative_at(d2.i, fw);
+  }
+  auto at(second_derivative d2, backward_t bw) const {
+    return second_derivative_at(d2.i, bw);
+  }
+  auto at(second_derivative d2, central_t ce) const {
+    return second_derivative_at(d2.i, ce);
+  }
+  auto operator[](second_derivative d2) const {
+    return second_derivative_at(d2.i);
+  }
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-  using diff2_iterator =
-      line_vertex_iterator<Real, N, diff2, vec<Real, N>, vec<Real, N>>;
-  using const_diff2_iterator =
-      const_line_vertex_iterator<Real, N, diff2, vec<Real, N>, vec<Real, N>>;
-  using diff2_container =
-      line_vertex_container<Real, N, diff2, vec<Real, N>, vec<Real, N>>;
-  using const_diff2_container =
-      const_line_vertex_container<Real, N, diff2, vec<Real, N>, vec<Real, N>>;
-  auto second_derivatives() const { return const_diff2_container{*this}; }
-  auto second_derivatives() { return diff2_container{*this}; }
+  using second_derivative_iterator =
+      const_line_vertex_iterator<Real, N, second_derivative, vec<Real, N>,
+                           vec<Real, N>>;
+  using second_derivative_container =
+      const_line_vertex_container<Real, N, second_derivative, vec<Real, N>,
+                            vec<Real, N>>;
+  auto second_derivatives() const { return second_derivative_container{*this}; }
+  //----------------------------------------------------------------------------
+  auto& second_derivatives_to_property() {
+    auto& second_derivative_prop =
+        add_vertex_property<vec<Real, N>>("second_derivatives");
+    boost::copy(second_derivatives(), second_derivative_prop.begin());
+    return second_derivative_prop;
+  }
   //============================================================================
   // curvature
   //============================================================================
@@ -632,22 +676,23 @@ struct line {
   auto front_curvature() const { return curvature_at(0); }
   auto back_curvature() const { return curvature_at(num_vertices() - 1); }
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-  auto at(curvature c, forward_t fw) const { return curvature_at(c, fw); }
-  auto at(curvature c, backward_t bw) const { return curvature_at(c, bw); }
-  auto at(curvature c, central_t ce) const { return curvature_at(c, ce); }
-  auto at(curvature c) const { return curvature_at(c); }
-  auto operator[](curvature c) const { return curvature_at(c); }
+  auto at(curvature c, forward_t fw) const { return curvature_at(c.i, fw); }
+  auto at(curvature c, backward_t bw) const { return curvature_at(c.i, bw); }
+  auto at(curvature c, central_t ce) const { return curvature_at(c.i, ce); }
+  auto at(curvature c) const { return curvature_at(c.i); }
+  auto operator[](curvature c) const { return curvature_at(c.i); }
   //----------------------------------------------------------------------------
   using curvature_iterator =
-      line_vertex_iterator<Real, N, curvature, Real, Real>;
-  using const_curvature_iterator =
       const_line_vertex_iterator<Real, N, curvature, Real, Real>;
   using curvature_container =
-      line_vertex_container<Real, N, curvature, Real, Real>;
-  using const_curvature_container =
       const_line_vertex_container<Real, N, curvature, Real, Real>;
-  auto curvatures() const { return const_curvature_container{*this}; }
-  auto curvatures() { return curvature_container{*this}; }
+  auto curvatures() const { return curvature_container{*this}; }
+  //----------------------------------------------------------------------------
+  auto& curvatures_to_property() {
+    auto& curvature_prop = add_vertex_property<Real>("curvatures");
+    boost::copy(curvatures(), curvature_prop.begin());
+    return curvature_prop;
+  }
   //============================================================================
   auto length() {
     Real len = 0;
@@ -679,14 +724,94 @@ struct line {
   //  });
   //}
   //----------------------------------------------------------------------------
+  template <typename T>
+  auto& vertex_property(const std::string& name) {
+    auto& prop = m_vertex_properties.at(name).get();
+    assert(typeid(T) == prop.type_info());
+    return *dynamic_cast<vertex_property_t<T>*>(prop);
+  }
+  //----------------------------------------------------------------------------
+  template <typename T>
+  const auto& vertex_property(const std::string& name) const {
+    const auto& prop        = m_vertex_properties.at(name).get();
+    assert(typeid(T) == prop.type_info());
+    return *dynamic_cast<const vertex_property_t<T>*>(prop);
+  }
+  //----------------------------------------------------------------------------
+  template <typename T>
+  auto& add_vertex_property(const std::string& name, const T& value = T{}) {
+    auto [it, suc] = m_vertex_properties.insert(
+        std::pair{name, std::make_unique<vertex_property_t<T>>(value)});
+    auto prop = dynamic_cast<vertex_property_t<T>*>(it->second.get());
+    prop->resize(m_vertices.size());
+    return *prop;
+  }
+  //----------------------------------------------------------------------------
   void write(const std::string& file);
   //----------------------------------------------------------------------------
   static void write(const std::vector<line<Real, N>>& line_set,
                     const std::string&                file);
   //----------------------------------------------------------------------------
   void write_vtk(const std::string& path,
-                 const std::string& title          = "tatooine line",
-                 bool               write_tangents = false) const;
+                 const std::string& title = "tatooine line") const {
+    vtk::legacy_file_writer writer(path, vtk::POLYDATA);
+    if (writer.is_open()) {
+      writer.set_title(title);
+      writer.write_header();
+
+      // write points
+      std::vector<std::array<Real, 3>> ps;
+      ps.reserve(this->num_vertices());
+      for (const auto& p : vertices()) {
+        if constexpr (N == 3) {
+          ps.push_back({p(0), p(1), p(2)});
+        } else {
+          ps.push_back({p(0), p(1), 0});
+        }
+      }
+      writer.write_points(ps);
+
+      // write lines
+      std::vector<std::vector<size_t>> line_seq(
+          1, std::vector<size_t>(this->num_vertices()));
+      boost::iota(line_seq.front(), 0);
+      if (this->is_closed()) { line_seq.front().push_back(0); }
+      writer.write_lines(line_seq);
+
+      writer.write_point_data(this->num_vertices());
+
+      for (auto& [name, prop] : m_vertex_properties) {
+        const auto& type = prop->type();
+        if (type == typeid(float)) {
+          write_prop_to_vtk<float>(writer, name, prop);
+        } else if (type == typeid(vec<float, 2>)) {
+          write_prop_to_vtk<vec<float, 2>>(writer, name, prop);
+        } else if (type == typeid(vec<float, 3>)) {
+          write_prop_to_vtk<vec<float, 3>>(writer, name, prop);
+        } else if (type == typeid(vec<float, 4>)) {
+          write_prop_to_vtk<vec<float, 4>>(writer, name, prop);
+        } else if (type == typeid(double)) {
+          write_prop_to_vtk<double>(writer, name, prop);
+        } else if (type == typeid(vec<double, 2>)) {
+          write_prop_to_vtk<vec<double, 2>>(writer, name, prop);
+        } else if (type == typeid(vec<double, 3>)) {
+          write_prop_to_vtk<vec<double, 3>>(writer, name, prop);
+        } else if (type == typeid(vec<double, 4>)) {
+          write_prop_to_vtk<vec<double, 4>>(writer, name, prop);
+        }
+      }
+      writer.close();
+    }
+  }
+  //----------------------------------------------------------------------------
+  template <typename T>
+  static void write_prop_to_vtk(
+      vtk::legacy_file_writer& writer, const std::string& name,
+      const std::unique_ptr<deque_property<vertex>>& prop) {
+    const auto& deque =
+        dynamic_cast<vertex_property_t<T>*>(prop.get())->container();
+    writer.write_scalars(name, std::vector<T>(begin(deque), end(deque)));
+  }
   //----------------------------------------------------------------------------
   template <size_t N_ = N, std::enable_if_t<N_ == 3>...>
   static auto read_vtk(const std::string& filepath) {
@@ -747,51 +872,6 @@ struct line {
 //  if (filtered_lines.num_vertices() == 1)
 //  filtered_lines.front().set_is_closed(closed); return filtered_lines;
 //}
-
-//------------------------------------------------------------------------------
-template <typename Real, size_t N>
-void line<Real, N>::write_vtk(const std::string& path, const std::string& title,
-                              bool write_tangents) const {
-  vtk::legacy_file_writer writer(path, vtk::POLYDATA);
-  if (writer.is_open()) {
-    writer.set_title(title);
-    writer.write_header();
-
-    // write points
-    std::vector<std::array<Real, 3>> ps;
-    ps.reserve(this->num_vertices());
-    for (const auto& p : vertices()) {
-      if constexpr (N == 3) {
-        ps.push_back({p(0), p(1), p(2)});
-      } else {
-        ps.push_back({p(0), p(1), 0});
-      }
-    }
-    writer.write_points(ps);
-
-    // write lines
-    std::vector<std::vector<size_t>> line_seq(
-        1, std::vector<size_t>(this->num_vertices()));
-    boost::iota(line_seq.front(), 0);
-    if (this->is_closed()) { line_seq.front().push_back(0); }
-    writer.write_lines(line_seq);
-
-    writer.write_point_data(this->num_vertices());
-
-    // write tangents
-    if (write_tangents) {
-      std::vector<std::vector<Real>> tangents;
-      tangents.reserve(this->num_vertices());
-      for (size_t i = 0; i < this->num_vertices(); ++i) {
-        const auto t = tangent_at(i);
-        tangents.push_back({t(0), t(1), t(2)});
-      }
-      writer.write_scalars("tangents", tangents);
-    }
-
-    writer.close();
-  }
-}
 
 namespace detail {
 template <typename LineCont>

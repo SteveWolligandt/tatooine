@@ -67,38 +67,35 @@ struct pointset {
   struct vertex_container {
     using iterator       = vertex_iterator;
     using const_iterator = vertex_iterator;
-
+    //==========================================================================
     const pointset* m_pointset;
-
+    //==========================================================================
     auto begin() const {
       vertex_iterator vi{vertex{0}, m_pointset};
       if (!m_pointset->is_valid(*vi)) ++vi;
       return vi;
     }
-
+    //--------------------------------------------------------------------------
     auto end() const {
       return vertex_iterator{vertex{m_pointset->m_vertices.size()}, m_pointset};
     }
   };
-
   //----------------------------------------------------------------------------
   template <typename T>
-  using vertex_property_t = property_type<vertex, T>;
-
+  using vertex_property_t = vector_property_impl<vertex, T>;
+  using vertex_property_container_t =
+      std::map<std::string, std::unique_ptr<vector_property<vertex>>>;
   //============================================================================
  protected:
   std::vector<pos_t>                                       m_vertices;
   std::vector<vertex>                                      m_invalid_vertices;
   std::map<std::string, std::unique_ptr<property<vertex>>> m_vertex_properties;
-
   //============================================================================
  public:
   pointset() = default;
-
   //----------------------------------------------------------------------------
   pointset(std::initializer_list<pos_t>&& vertices)
       : m_vertices(std::move(vertices)) {}
-
   //----------------------------------------------------------------------------
   // #ifdef USE_TRIANGLE
   //   pointset(const triangle::io& io) {
@@ -113,7 +110,6 @@ struct pointset {
   //     insert_vertex(io.pointlist[i * 3], io.pointlist[i * 3 + 1],
   //                   io.pointlist[i * 3 + 2]);
   // }
-
   //----------------------------------------------------------------------------
   pointset(const pointset& other)
       : m_vertices(other.m_vertices), m_invalid_vertices(other.m_invalid_vertices) {
@@ -121,13 +117,11 @@ struct pointset {
     for (const auto& [name, prop] : other.m_vertex_properties)
       m_vertex_properties.insert(std::pair{name, prop->clone()});
   }
-
   //----------------------------------------------------------------------------
   pointset(pointset&& other)
       : m_vertices(std::move(other.m_vertices)),
         m_invalid_vertices(std::move(other.m_invalid_vertices)),
         m_vertex_properties(std::move(other.m_vertex_properties)) {}
-
   //----------------------------------------------------------------------------
   auto& operator=(const pointset& other) {
     m_vertex_properties.clear();
@@ -137,7 +131,6 @@ struct pointset {
       m_vertex_properties[name] = prop->clone();
     return *this;
   }
-
   //----------------------------------------------------------------------------
   auto& operator=(pointset&& other) {
     m_vertex_properties = std::move(other.m_vertex_properties);

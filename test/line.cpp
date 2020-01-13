@@ -36,13 +36,44 @@ TEST_CASE("line_push_front", "[line][push_front]") {
   REQUIRE(approx_equal(l.vertex_at(0), vec{2, 0}, 0));
 }
 //==============================================================================
-TEST_CASE("line_push_front", "[line][push_front]") {
+TEST_CASE("line_tangent_container", "[line][tangents][container]") {
   line<double, 2> l;
   l.push_front({0, 0});
   l.push_front({1, 1});
   l.push_front({2, 0});
   std::vector<vec<double, 2>> tangents(3);
   boost::copy(l.tangents(), begin(tangents));
+}
+//==============================================================================
+TEST_CASE("line_second_derivative_container", "[line][second_derivative][container]") {
+  line<double, 2> l;
+  l.push_front({0, 0});
+  l.push_front({1, 1});
+  l.push_front({2, 0});
+  std::vector<vec<double, 2>> second_derivative(3);
+  boost::copy(l.second_derivatives(), begin(second_derivative));
+}
+//==============================================================================
+TEST_CASE("line_curvature_container", "[line][curvature][container]") {
+  line<double, 2> l;
+  l.push_front({0, 0});
+  l.push_front({1, 1});
+  l.push_front({2, 0});
+  std::vector<double> curvature(3);
+  boost::copy(l.curvatures(), begin(curvature));
+}
+//==============================================================================
+TEST_CASE(
+    "line_property",
+    "[line][tangent][second_derivative][curvature][property][container]") {
+  line<double, 2> l;
+  l.push_front({0, 0});
+  l.push_front({1, 1});
+  l.push_front({2, 0});
+  l.tangents_to_property();
+  l.second_derivatives_to_property();
+  l.curvatures_to_property();
+  l.write_vtk("line_property.vtk");
 }
 //==============================================================================
 TEST_CASE("line_parameterized_initialization",

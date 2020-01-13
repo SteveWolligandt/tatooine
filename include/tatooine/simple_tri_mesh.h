@@ -169,16 +169,16 @@ class simple_tri_mesh : public pointset<Real, N>{
   //----------------------------------------------------------------------------
   template <typename T>
   auto& face_property(const std::string& name) {
-    auto& fprop = m_face_properties.at(name);
-    assert(typeid(T) == fprop.type_info());
-    return fprop;
+    auto& prop = m_face_properties.at(name);
+    assert(typeid(T) == prop.type_info());
+    return *dynamic_cast<face_property_t<T>*>(prop);
   }
   //----------------------------------------------------------------------------
   template <typename T>
   const auto& face_property(const std::string& name) const {
-    const auto& fprop = m_face_properties.at(name);
-    assert(typeid(T) == fprop.type_info());
-    return fprop;
+    const auto& prop = m_face_properties.at(name);
+    assert(typeid(T) == prop.type_info());
+    return *dynamic_cast<face_property_t<T>*>(prop);
   }
   //----------------------------------------------------------------------------
   template <typename T>
