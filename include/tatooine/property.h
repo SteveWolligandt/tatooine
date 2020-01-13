@@ -94,8 +94,8 @@ struct vector_property_impl : vector_property<Handle> {
   //----------------------------------------------------------------------------
   void resize(size_t n) override { m_data.resize(n, m_value); }
   //----------------------------------------------------------------------------
-  void push_back() override { push_back(m_value); }
-  void push_back(const T& value) { push_back(value); }
+  void push_back() override { m_data.push_back(m_value); }
+  void push_back(const T& value) { m_data.push_back(value); }
   //----------------------------------------------------------------------------
   auto&       front() { return m_data.front(); }
   const auto& front() const { return m_data.front(); }

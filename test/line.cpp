@@ -146,6 +146,26 @@ TEST_CASE("line_sampling_hermite",
 }
 
 //==============================================================================
+TEST_CASE("line_paramaterization_quadratic_tangent",
+          "[line][parameterization][quadratic][tangent]") {
+  SECTION("simple") {
+    vec v0{1.0, 1.0}; double t0 = 0;
+    vec v1{3.0, 2.0}; double t1 = 3;
+    vec v2{2.0, 3.0}; double t2 = 4;
+    parameterized_line<double, 2> l{{v0, t0}, {v1, t1}, {v2, t2}};
+
+    l.tangents_to_property();
+    l.write_vtk("simple_quadratic_tangents.vtk");
+  }
+  SECTION("double gyre pathline") {
+    numerical::doublegyre                        v;
+    integration::vclibs::rungekutta43<double, 2> rk43;
+    auto   integral_curve = rk43.integrate(v, {0.1, 0.1}, 0, 10);
+    integral_curve.tangents_to_property();
+    integral_curve.write_vtk("doublegyre_quadratic_tangents.vtk");
+  }
+}
+//==============================================================================
 TEST_CASE("line_paramaterization_resample",
           "[line][parameterization][resample]") {
   vec                           v0{0.1, 0.2};
