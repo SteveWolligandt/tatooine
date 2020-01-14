@@ -151,7 +151,7 @@ class steadification {
       }
     }
 
-    return psf;
+    return std::pair{std::move(psf), std::move(surf)};
   }
   //----------------------------------------------------------------------------
   auto gpu_pathsurface(const pathsurface_t& psf) {
@@ -163,6 +163,25 @@ class steadification {
                        const parameterized_line<Real, 3>& seedcurve,
                        Real                               stepsize) {
     return gpu_pathsurface(pathsurface(v, seedcurve, stepsize));
+  }
+  //----------------------------------------------------------------------------
+  template <template <typename, size_t> typename Integrator,
+            template <typename> typename SeedcurveInterpolator,
+            template <typename> typename StreamlineInterpolator, typename V>
+  auto curvature(const pathsurface_t&                                     psf,
+                 const streamsurface<Integrator, SeedcurveInterpolator,
+                                     StreamlineInterpolator, V, Real, N>& surf) {
+    std::set<Real> us;
+    for (auto v: psf.vertices()) {
+      us.insert(psf.uv(v)(0));
+    }
+
+    Real accumulated_curvatures = 0;
+    for (auto u : us) {
+      accumulated_curvatures +=
+          surf.integrator().integrate(surf(u, 0)).integrated_curvature();
+    }
+    return accumulated_curvatures / us.size();
   }
   //============================================================================
   /// \return coverage of domain between 0 and 1; 1 meaning fully covered
