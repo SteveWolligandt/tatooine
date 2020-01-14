@@ -524,9 +524,9 @@ struct line {
   auto back_tangent() const { return tangent_at(num_vertices() - 1); }
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
   auto at(tangent_idx t) const { return tangent_at(t.i); }
-  auto at(tangent_idx t, forward_t fw) const { return tangent_at(t.i, fw); }
-  auto at(tangent_idx t, backward_t bw) const { return tangent_at(t.i, bw); }
-  auto at(tangent_idx t, central_t ce) const { return tangent_at(t.i, ce); }
+  auto at(tangent_idx t, forward_t tag) const { return tangent_at(t.i, tag); }
+  auto at(tangent_idx t, backward_t tag) const { return tangent_at(t.i, tag); }
+  auto at(tangent_idx t, central_t tag) const { return tangent_at(t.i, tag); }
   auto operator[](tangent_idx t) const { return tangent_at(t.i); }
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
   using tangent_iterator =
@@ -554,12 +554,12 @@ struct line {
   //============================================================================
   /// calculates second derivative at point i with forward differences
   auto second_derivative_at(const second_derivative_idx d2,
-                            forward_t                   fw) const {
-    return second_derivative_at(d2.i, fw);
+                            forward_t                   tag) const {
+    return second_derivative_at(d2.i, tag);
   }
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
   /// calculates second derivative at point i with forward differences
-  auto second_derivative_at(const size_t i, forward_t /*fw*/) const {
+  auto second_derivative_at(const size_t i, forward_t /*tag*/) const {
     assert(num_vertices() > 1);
     if (is_closed()) {
       if (i == num_vertices() - 1) {
@@ -573,12 +573,12 @@ struct line {
   //----------------------------------------------------------------------------
   /// calculates second derivative at point i with backward differences
   auto second_derivative_at(const second_derivative_idx d2,
-                            backward_t                  bw) const {
-    return second_derivative_at(d2.i, bw);
+                            backward_t                  tag) const {
+    return second_derivative_at(d2.i, tag);
   }
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
   /// calculates second derivative at point i with backward differences
-  auto second_derivative_at(const size_t i, backward_t /*bw*/) const {
+  auto second_derivative_at(const size_t i, backward_t /*tag*/) const {
     assert(num_vertices() > 1);
     if (is_closed()) {
       if (i == 0) {
@@ -592,12 +592,12 @@ struct line {
   //----------------------------------------------------------------------------
   /// calculates second derivative at point d2 with central differences
   auto second_derivative_at(const second_derivative_idx d2,
-                            central_t                   ce) const {
-    return second_derivative_at(d2.i, ce);
+                            central_t                   tag) const {
+    return second_derivative_at(d2.i, tag);
   }
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
   /// calculates second derivative at point i with central differences
-  auto second_derivative_at(const size_t i, central_t /*ce*/) const {
+  auto second_derivative_at(const size_t i, central_t /*tag*/) const {
     if (is_closed()) {
       if (i == 0) {
         return (tangent_at(1) - back_tangent()) /
@@ -625,14 +625,14 @@ struct line {
   }
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
   auto at(second_derivative_idx d2) const { return second_derivative_at(d2.i); }
-  auto at(second_derivative_idx d2, forward_t fw) const {
-    return second_derivative_at(d2.i, fw);
+  auto at(second_derivative_idx d2, forward_t tag) const {
+    return second_derivative_at(d2.i, tag);
   }
-  auto at(second_derivative_idx d2, backward_t bw) const {
-    return second_derivative_at(d2.i, bw);
+  auto at(second_derivative_idx d2, backward_t tag) const {
+    return second_derivative_at(d2.i, tag);
   }
-  auto at(second_derivative_idx d2, central_t ce) const {
-    return second_derivative_at(d2.i, ce);
+  auto at(second_derivative_idx d2, central_t tag) const {
+    return second_derivative_at(d2.i, tag);
   }
   auto operator[](second_derivative_idx d2) const {
     return second_derivative_at(d2.i);
@@ -655,35 +655,35 @@ struct line {
   //============================================================================
   // curvature
   //============================================================================
-  auto curvature_at(const curvature_idx c, forward_t fw) const {
-    return curvature_at(c.i, fw);
+  auto curvature_at(const curvature_idx c, forward_t tag) const {
+    return curvature_at(c.i, tag);
   }
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-  auto curvature_at(size_t i, forward_t fw) const {
-    auto d1  = tangent_at(i, fw);
-    auto d2  = second_derivative_at(i, fw);
+  auto curvature_at(size_t i, forward_t tag) const {
+    auto d1  = tangent_at(i, tag);
+    auto d2  = second_derivative_at(i, tag);
     auto ld1 = ::tatooine::length(d1);
     return std::abs(d1(0) * d2(1) - d1(1) * d2(0)) / (ld1 * ld1 * ld1);
   }
   //----------------------------------------------------------------------------
-  auto curvature_at(const curvature_idx c, backward_t bw) const {
-    return curvature_at(c.i, bw);
+  auto curvature_at(const curvature_idx c, backward_t tag) const {
+    return curvature_at(c.i, tag);
   }
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-  auto curvature_at(size_t i, backward_t bw) const {
-    auto d1  = tangent_at(i, bw);
-    auto d2  = second_derivative_at(i, bw);
+  auto curvature_at(size_t i, backward_t tag) const {
+    auto d1  = tangent_at(i, tag);
+    auto d2  = second_derivative_at(i, tag);
     auto ld1 = ::tatooine::length(d1);
     return std::abs(d1(0) * d2(1) - d1(1) * d2(0)) / (ld1 * ld1 * ld1);
   }
   //----------------------------------------------------------------------------
-  auto curvature_at(const curvature_idx c, central_t ce) const {
-    return curvature_at(c.i, ce);
+  auto curvature_at(const curvature_idx c, central_t tag) const {
+    return curvature_at(c.i, tag);
   }
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-  auto curvature_at(size_t i, central_t ce) const {
-    auto d1  = tangent_at(i, ce);
-    auto d2  = second_derivative_at(i, ce);
+  auto curvature_at(size_t i, central_t tag) const {
+    auto d1  = tangent_at(i, tag);
+    auto d2  = second_derivative_at(i, tag);
     auto ld1 = ::tatooine::length(d1);
     return std::abs(d1(0) * d2(1) - d1(1) * d2(0)) / (ld1 * ld1 * ld1);
   }
@@ -702,11 +702,11 @@ struct line {
   auto front_curvature() const { return curvature_at(0); }
   auto back_curvature() const { return curvature_at(num_vertices() - 1); }
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-  auto at(curvature_idx c, forward_t fw) const { return curvature_at(c.i, fw); }
-  auto at(curvature_idx c, backward_t bw) const {
-    return curvature_at(c.i, bw);
+  auto at(curvature_idx c, forward_t tag) const { return curvature_at(c.i, tag); }
+  auto at(curvature_idx c, backward_t tag) const {
+    return curvature_at(c.i, tag);
   }
-  auto at(curvature_idx c, central_t ce) const { return curvature_at(c.i, ce); }
+  auto at(curvature_idx c, central_t tag) const { return curvature_at(c.i, tag); }
   auto at(curvature_idx c) const { return curvature_at(c.i); }
   auto operator[](curvature_idx c) const { return curvature_at(c.i); }
   //----------------------------------------------------------------------------
@@ -1370,9 +1370,9 @@ struct parameterized_line : line<Real, N> {
   auto at(tangent_idx t, const field<V, VReal, N, N>& v) const {
     return tangent_at(t.i, v);
   }
-  auto at(tangent_idx t, forward_t fw) const { return tangent_at(t.i, fw); }
-  auto at(tangent_idx t, backward_t bw) const { return tangent_at(t.i, bw); }
-  auto at(tangent_idx t, central_t ce) const { return tangent_at(t.i, ce); }
+  auto at(tangent_idx t, forward_t tag) const { return tangent_at(t.i, tag); }
+  auto at(tangent_idx t, backward_t tag) const { return tangent_at(t.i, tag); }
+  auto at(tangent_idx t, central_t tag) const { return tangent_at(t.i, tag); }
   auto operator[](tangent_idx t) const { return tangent_at(t.i); }
   //----------------------------------------------------------------------------
   auto& tangents_to_property() {
