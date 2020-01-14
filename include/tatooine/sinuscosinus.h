@@ -9,10 +9,10 @@
 namespace tatooine::symbolic {
 //==============================================================================
 
-template <typename real_t>
-struct cosinussinus : field<real_t, 2, 2> {
-  using this_t   = cosinussinus<real_t>;
-  using parent_t = field<real_t, 2, 2>;
+template <typename Real>
+struct cosinussinus : field<Real, 2, 2> {
+  using this_t   = cosinussinus<Real>;
+  using parent_t = field<Real, 2, 2>;
   using parent_t::t;
   using parent_t::x;
   using typename parent_t::pos_t;
@@ -25,10 +25,10 @@ struct cosinussinus : field<real_t, 2, 2> {
 };
 
 //==============================================================================
-template <typename real_t>
-struct sinuscosinus : field<real_t, 2, 2> {
-  using this_t   = sinuscosinus<real_t>;
-  using parent_t = field<real_t, 2, 2>;
+template <typename Real>
+struct sinuscosinus : field<Real, 2, 2> {
+  using this_t   = sinuscosinus<Real>;
+  using parent_t = field<Real, 2, 2>;
   using parent_t::t;
   using parent_t::x;
   using typename parent_t::pos_t;
@@ -52,10 +52,10 @@ cosinussinus()->cosinussinus<double>;
 namespace tatooine::numerical {
 //==============================================================================
 
-template <typename real_t>
-struct cosinussinus : field<cosinussinus<real_t>, real_t, 2, 2> {
-  using this_t   = cosinussinus<real_t>;
-  using parent_t = field<this_t, real_t, 2, 2>;
+template <typename Real>
+struct cosinussinus : field<cosinussinus<Real>, Real, 2, 2> {
+  using this_t   = cosinussinus<Real>;
+  using parent_t = field<this_t, Real, 2, 2>;
   using typename parent_t::pos_t;
   using typename parent_t::tensor_t;
 
@@ -63,16 +63,19 @@ struct cosinussinus : field<cosinussinus<real_t>, real_t, 2, 2> {
   constexpr cosinussinus() noexcept {}
 
   //----------------------------------------------------------------------------
-  constexpr tensor_t evaluate(const pos_t& /*x*/, real_t t) const {
+  constexpr tensor_t evaluate(const pos_t& /*x*/, Real t) const {
     return {std::cos(t), std::sin(t)};
+  }
+  constexpr bool in_domain(const pos_t& /*x*/, Real /*t*/) const {
+    return true;
   }
 };
 
 //==============================================================================
-template <typename real_t>
-struct sinuscosinus : field<sinuscosinus<real_t>, real_t, 2, 2> {
-  using this_t   = sinuscosinus<real_t>;
-  using parent_t = field<this_t, real_t, 2, 2>;
+template <typename Real>
+struct sinuscosinus : field<sinuscosinus<Real>, Real, 2, 2> {
+  using this_t   = sinuscosinus<Real>;
+  using parent_t = field<this_t, Real, 2, 2>;
   using typename parent_t::pos_t;
   using typename parent_t::tensor_t;
 
@@ -80,12 +83,11 @@ struct sinuscosinus : field<sinuscosinus<real_t>, real_t, 2, 2> {
   constexpr sinuscosinus() noexcept {}
 
   //----------------------------------------------------------------------------
-  constexpr tensor_t evaluate(const pos_t& /*x*/, real_t t) const {
+  constexpr tensor_t evaluate(const pos_t& /*x*/, Real t) const {
     return {std::sin(t), std::cos(t)};
   }
-
   //----------------------------------------------------------------------------
-  constexpr auto in_domain(const pos_t& /*x*/, real_t /*t*/) const {
+  constexpr auto in_domain(const pos_t& /*x*/, Real /*t*/) const {
     return true;
   }
 };
