@@ -71,7 +71,7 @@ TEST_CASE(
   l.push_front({1, 1});
   l.push_front({2, 0});
   l.tangents_to_property();
-  l.second_derivatives_to_property();
+  l.second_derivative_to_property();
   l.curvatures_to_property();
   l.write_vtk("line_property.vtk");
 }
@@ -160,9 +160,15 @@ TEST_CASE("line_paramaterization_quadratic_tangent",
   SECTION("double gyre pathline") {
     numerical::doublegyre                        v;
     integration::vclibs::rungekutta43<double, 2> rk43;
-    auto   integral_curve = rk43.integrate(v, {0.1, 0.1}, 0, 10);
-    integral_curve.tangents_to_property();
-    integral_curve.write_vtk("doublegyre_quadratic_tangents.vtk");
+    size_t cnt=0;
+    for (auto t : linspace(0.0, 10.0, 100)) {
+      auto integral_curve = rk43.integrate(v, {0.1, 0.1}, t, t + 10);
+      integral_curve.tangents_to_property(v);
+      integral_curve.second_derivative_to_property(v);
+      integral_curve.curvature_to_property(v);
+      integral_curve.write_vtk("doublegyre_quadratic_tangents_" +
+                               std::to_string(cnt++) + ".vtk");
+    }
   }
 }
 //==============================================================================

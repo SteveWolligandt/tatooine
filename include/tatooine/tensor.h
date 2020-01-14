@@ -844,23 +844,21 @@ constexpr auto operator*(const base_tensor<LhsTensor, LhsReal, M, N>& lhs,
 }
 //------------------------------------------------------------------------------
 template <size_t N>
-auto gesv(const tensor<float, N, N>& A, const tensor<float, N>& b) {
-  vec<float, N>      x = b;
+auto gesv(tensor<float, N, N> A, tensor<float, N> b) {
   std::array<int, N> ipiv;
   int                nrhs = 1;
-  LAPACKE_sgesv(LAPACK_COL_MAJOR, N, nrhs, const_cast<float*>(A.data_ptr()), N,
-                ipiv.data(), const_cast<float*>(x.data_ptr()), N);
-  return x;
+  LAPACKE_sgesv(LAPACK_COL_MAJOR, N, nrhs, A.data_ptr(), N, ipiv.data(),
+                b.data_ptr(), N);
+  return b;
 }
 //------------------------------------------------------------------------------
 template <size_t N>
-auto gesv(const tensor<double, N, N>& A, const tensor<double, N>& b) {
-  vec<double, N>     x = b;
+auto gesv(tensor<double, N, N> A, tensor<double, N> b) {
   std::array<int, N> ipiv;
   int                nrhs = 1;
-  LAPACKE_dgesv(LAPACK_COL_MAJOR, N, nrhs, const_cast<double*>(A.data_ptr()), N,
-                ipiv.data(), const_cast<double*>(x.data_ptr()), N);
-  return x;
+  LAPACKE_dgesv(LAPACK_COL_MAJOR, N, nrhs, A.data_ptr(), N, ipiv.data(),
+                b.data_ptr(), N);
+  return b;
 }
 
 //------------------------------------------------------------------------------

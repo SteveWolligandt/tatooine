@@ -527,8 +527,14 @@ struct line {
   auto tangents() const { return tangent_container{*this}; }
   //----------------------------------------------------------------------------
   auto& tangents_to_property() {
-    auto& tangent_prop = add_vertex_property<vec<Real, N>>("tangents");
-    boost::copy(tangents(), tangent_prop.begin());
+    auto& tangent_prop = [&]() -> auto& {
+      if (!has_vertex_property("tangents")) {
+        return this->template add_vertex_property<vec<Real, N>>("tangents");
+      } else {
+        return this->template vertex_property<vec<Real, N>>("tangents");
+      }
+    }();
+    boost::copy(this->tangents(), tangent_prop.begin());
     return tangent_prop;
   }
   //============================================================================
@@ -626,9 +632,9 @@ struct line {
                             vec<Real, N>>;
   auto second_derivatives() const { return second_derivative_container{*this}; }
   //----------------------------------------------------------------------------
-  auto& second_derivatives_to_property() {
+  auto& second_derivative_to_property() {
     auto& second_derivative_prop =
-        add_vertex_property<vec<Real, N>>("second_derivatives");
+        add_vertex_property<vec<Real, N>>("second_derivative");
     boost::copy(second_derivatives(), second_derivative_prop.begin());
     return second_derivative_prop;
   }
@@ -751,6 +757,10 @@ struct line {
     auto prop = dynamic_cast<vertex_property_t<T>*>(it->second.get());
     prop->resize(m_vertices.size());
     return *prop;
+  }
+  //----------------------------------------------------------------------------
+  bool has_vertex_property(const std::string& name) const {
+    return m_vertex_properties.find(name) != end(m_vertex_properties);
   }
   //----------------------------------------------------------------------------
   void write(const std::string& file);
@@ -1056,17 +1066,21 @@ struct parameterized_line : line<Real, N> {
   using typename parent_t::empty_exception;
   using typename parent_t::pos_t;
   using typename parent_t::vec_t;
+  using typename parent_t::vertex_idx;
+  using typename parent_t::tangent_idx;
+  using typename parent_t::second_derivative_idx;
+  using typename parent_t::curvature_idx;
   struct time_not_found : std::exception {};
 
   template <typename T>
   using vertex_property_t = typename parent_t::template vertex_property_t<T>;
   using parent_t::num_vertices;
-  using parent_t::tangent_at;
-  using parent_t::vertex_at;
   using parent_t::vertices;
+  using parent_t::vertex_at;
+  using parent_t::tangent_at;
+  using parent_t::second_derivative_at;
+  using parent_t::curvature_at;
   using parent_t::operator[];
-  using typename parent_t::vertex_idx;
-  using typename parent_t::tangent_idx;
 
  private:
   vertex_property_t<Real>* m_parameterization;
@@ -1129,19 +1143,19 @@ struct parameterized_line : line<Real, N> {
   auto operator[](vertex_idx v) const { return at(v); }
   auto operator[](vertex_idx v) { return at(v); }
   //----------------------------------------------------------------------------
-  auto&       parameterization_at(size_t i) { return parameterization().at(i); }
+  auto& parameterization_at(size_t i) { return m_parameterization->at(i); }
   const auto& parameterization_at(size_t i) const {
-    return parameterization().at(i);
+    return m_parameterization->at(i);
   }
   //----------------------------------------------------------------------------
-  auto&       front_parameterization() { return parameterization().front(); }
+  auto&       front_parameterization() { return m_parameterization->front(); }
   const auto& front_parameterization() const {
-    return parameterization().front();
+    return m_parameterization->front();
   }
   //----------------------------------------------------------------------------
-  auto&       back_parameterization() { return parameterization().back(); }
+  auto&       back_parameterization() { return m_parameterization->back(); }
   const auto& back_parameterization() const {
-    return parameterization().back();
+    return m_parameterization->back();
   }
   //----------------------------------------------------------------------------
   void push_back(const pos_t& p, Real t) {
@@ -1249,32 +1263,59 @@ struct parameterized_line : line<Real, N> {
   //----------------------------------------------------------------------------
   /// computes tangent assuming the line is a quadratic curve
   auto tangent_at(const size_t i, quadratic_t /*tag*/) const {
-    assert(this->num_vertices() > 2);
-    // point in between
-    // const auto& x0 = at(std::abs((i - 1) % this->num_vertices()));
-    const auto& x0 = vertex_at(i - 1);
-    const auto& x1 = vertex_at(i);
-    const auto& x2 = vertex_at(i + 1);
-    // const auto& x2 = at((i + 1) % this->num_vertices());
-    const auto& t0 = parameterization_at(i-1);
-    const auto& t1 = parameterization_at(i);
-    const auto& t2 = parameterization_at(i+1);
+    const auto& x0 = [&]() {
+      if (i == 0) { return vertex_at(i); }
+      else if (i == num_vertices() - 1) { return vertex_at(i - 2); }
+      return vertex_at(i - 1);
+    }();
+    const auto& x1 = [&]() {
+      if (i == 0) { return vertex_at(i + 1); }
+      else if (i == num_vertices() - 1) { return vertex_at(i - 1); }
+      return vertex_at(i);
+    }();
+    const auto& x2 = [&]() {
+      if (i == 0) { return vertex_at(i + 2); }
+      else if (i == num_vertices() - 1) { return vertex_at(i); }
+      return vertex_at(i + 1);
+    }();
+    const auto& t0 = [&]() -> const auto& {
+      if (i == 0) { return parameterization_at(i); }
+      else if (i == num_vertices() - 1) { return parameterization_at(i - 2); }
+      return parameterization_at(i - 1);
+    }();
+    const auto& t1 = [&]() -> const auto& {
+      if (i == 0) { return parameterization_at(i + 1); }
+      else if (i == num_vertices() - 1) { return parameterization_at(i - 1); }
+      return parameterization_at(i);
+    }();
+    const auto& t2 = [&]() -> const auto& {
+      if (i == 0) { return parameterization_at(i + 2); }
+      else if (i == num_vertices() - 1) { return parameterization_at(i); }
+      return parameterization_at(i + 1);
+    }();
 
-    // for ea == ch component fit a quadratic curve through the neighbor points and
+    // for each dimension fit a quadratic curve through the neighbor points and
     // the point itself and compute the derivative
     vec_t          tangent;
     const mat3     A{{t0 * t0, t0, Real(1)},
                      {t1 * t1, t1, Real(1)},
                      {t2 * t2, t2, Real(1)}};
-    std::cerr << "A = \n" << A;
-    for (size_t j = 0; j < N; ++j) {
-      vec3 b{x0(j), x1(j), x2(j)};
-      std::cerr << "b = " << b << '\n';
-      auto coeffs = gesv(A, b);
-      std::cerr << "c = " << coeffs << '\n';
-      tangent(j) = 2 * coeffs(0) * t1 + coeffs(1);
+    for (size_t n = 0; n < N; ++n) {
+      vec3 b{x0(n), x1(n), x2(n)};
+      auto c     = gesv(A, b);
+      tangent(n) = 2 * c(0) * parameterization_at(i) + c(1);
     }
     return tangent;
+  }
+  //----------------------------------------------------------------------------
+  template <typename V, typename VReal>
+  auto tangent_at(const tangent_idx t, const field<V, VReal, N, N>& v) const {
+    return tangent_at(t.i, v);
+  }
+  //----------------------------------------------------------------------------
+  template <typename V, typename VReal>
+  auto tangent_at(const size_t i, const field<V, VReal, N, N>& v) const {
+    return v(vertex_at(i), parameterization_at(i));
   }
   //----------------------------------------------------------------------------
   auto tangent_at(const tangent_idx t, automatic_t tag) const {
@@ -1282,8 +1323,6 @@ struct parameterized_line : line<Real, N> {
   }
   //----------------------------------------------------------------------------
   auto tangent_at(const size_t i, automatic_t /*tag*/) const {
-    if (i == 0) { return tangent_at(i, forward); }
-    if (i == num_vertices() - 1) { return tangent_at(i, backward); }
     return tangent_at(i, quadratic);
   }
   //----------------------------------------------------------------------------
@@ -1292,17 +1331,50 @@ struct parameterized_line : line<Real, N> {
   //----------------------------------------------------------------------------
   auto front_tangent() const { return tangent_at(0); }
   auto back_tangent() const { return tangent_at(num_vertices() - 1); }
+  //----------------------------------------------------------------------------
+  template <typename V, typename VReal>
+  auto front_tangent(const field<V, VReal, N, N>& v) const {
+    return tangent_at(0, v);
+  }
+  template <typename V, typename VReal>
+  auto back_tangent(const field<V, VReal, N, N>& v) const {
+    return tangent_at(num_vertices() - 1, v);
+  }
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
   auto at(tangent_idx t) const { return tangent_at(t.i); }
+  template <typename V, typename VReal>
+  auto at(tangent_idx t, const field<V, VReal, N, N>& v) const {
+    return tangent_at(t.i, v);
+  }
   auto at(tangent_idx t, forward_t fw) const { return tangent_at(t.i, fw); }
   auto at(tangent_idx t, backward_t bw) const { return tangent_at(t.i, bw); }
   auto at(tangent_idx t, central_t ce) const { return tangent_at(t.i, ce); }
   auto operator[](tangent_idx t) const { return tangent_at(t.i); }
   //----------------------------------------------------------------------------
   auto& tangents_to_property() {
-    auto& tangent_prop =
-        this->template add_vertex_property<vec<Real, N>>("tangents");
+    auto& tangent_prop = [&]() -> auto& {
+      if (!this->has_vertex_property("tangents")) {
+        return this->template add_vertex_property<vec<Real, N>>("tangents");
+      } else {
+        return this->template vertex_property<vec<Real, N>>("tangents");
+      }
+    }();
     boost::copy(this->tangents(), tangent_prop.begin());
+    return tangent_prop;
+  }
+  //----------------------------------------------------------------------------
+  template <typename V, typename VReal>
+  auto& tangents_to_property(const field<V, VReal, N, N>& vf) {
+    auto& tangent_prop = [&]() -> auto& {
+      if (!this->has_vertex_property("tangents")) {
+        return this->template add_vertex_property<vec<Real, N>>("tangents");
+      } else {
+        return this->template vertex_property<vec<Real, N>>("tangents");
+      }
+    }();
+    for (size_t i = 0; i < num_vertices(); ++i) {
+      tangent_prop[i] = vf(vertex_at(i), parameterization_at(i));
+    }
     return tangent_prop;
   }
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -1313,6 +1385,113 @@ struct parameterized_line : line<Real, N> {
       const_line_vertex_container<this_t, Real, N, tangent_idx, vec<Real, N>,
                                   vec<Real, N>>;
   auto tangents() const { return tangent_container{*this}; }
+  /// TODO implement
+  template <typename V, typename VReal>
+  auto tangents(const field<V, VReal, N, N>& v) const {
+    throw std::runtime_error("not implemented");
+    return false;
+  }
+  //============================================================================
+  // second derivative
+  //============================================================================
+  template <typename V, typename VReal>
+  auto second_derivative_at(second_derivative_idx        i, quadratic_t /*tag*/,
+                            const field<V, VReal, N, N>& v) const {
+    return second_derivative_at(i.i, v);
+  }
+  template <typename V, typename VReal>
+  auto second_derivative_at(size_t i, quadratic_t /*tag*/, const field<V, VReal, N, N>& v) const {
+    assert(this->num_vertices() > 2);
+    const auto x0 = [&]() {
+      if (i == 0) { return tangent_at(i, v); }
+      else if (i == num_vertices() - 1) { return tangent_at(i - 2, v); }
+      return tangent_at(i - 1, v);
+    }();
+    const auto x1 = [&]() {
+      if (i == 0) { return tangent_at(i + 1, v); }
+      else if (i == num_vertices() - 1) { return tangent_at(i - 1, v); }
+      return tangent_at(i, v);
+    }();
+    const auto x2 = [&]() {
+      if (i == 0) { return tangent_at(i + 2, v); }
+      else if (i == num_vertices() - 1) { return tangent_at(i, v); }
+      return tangent_at(i + 1, v);
+    }();
+    const auto& t0 = [&]() -> const auto& {
+      if (i == 0) { return parameterization_at(i); }
+      else if (i == num_vertices() - 1) { return parameterization_at(i - 2); }
+      return parameterization_at(i - 1);
+    }();
+    const auto& t1 = [&]() -> const auto& {
+      if (i == 0) { return parameterization_at(i + 1); }
+      else if (i == num_vertices() - 1) { return parameterization_at(i - 1); }
+      return parameterization_at(i);
+    }();
+    const auto& t2 = [&]() -> const auto& {
+      if (i == 0) { return parameterization_at(i + 2); }
+      else if (i == num_vertices() - 1) { return parameterization_at(i); }
+      return parameterization_at(i + 1);
+    }();
+    const auto& t = parameterization_at(i);
+    // for each dimension fit a quadratic curve through the neighbor points and
+    // the point itself and compute the derivative
+    vec_t      dx;
+    const mat3 A{{t0 * t0, t0, Real(1)},
+                 {t1 * t1, t1, Real(1)},
+                 {t2 * t2, t2, Real(1)}};
+    for (size_t n = 0; n < N; ++n) {
+      vec3 b{x0(n), x1(n), x2(n)};
+      auto c     = gesv(A, b);
+      dx(n) = 2 * c(0) * t + c(1);
+    }
+    return dx;
+  }
+  template <typename V, typename VReal>
+  auto at(second_derivative_idx i, quadratic_t tag,
+          const field<V, VReal, N, N>& v) const {
+    return second_derivative_at(i.i,tag, v);
+  }
+  //----------------------------------------------------------------------------
+  template <typename V, typename VReal>
+  auto& second_derivative_to_property(const field<V, VReal, N, N>& v) {
+    auto& snd_der_prop = [&]() -> auto& {
+      if (!this->has_vertex_property("second_derivative")) {
+        return this->template add_vertex_property<vec<Real, N>>("second_derivative");
+      } else {
+        return this->template vertex_property<vec<Real, N>>("second_derivative");
+      }
+    }
+    ();
+    for (size_t i = 0; i < num_vertices(); ++i) {
+      snd_der_prop[i] = second_derivative_at(i, quadratic, v);
+    }
+    return snd_der_prop;
+  }
+  //============================================================================
+  // curvature
+  //============================================================================
+  template <typename V, typename VReal>
+  auto curvature_at(size_t i, const field<V, VReal, N, N>& v) const {
+    auto d1  = tangent_at(i, v);
+    auto d2  = second_derivative_at(i, quadratic, v);
+    auto ld1 = ::tatooine::length(d1);
+    return std::abs(d1(0) * d2(1) - d1(1) * d2(0)) / (ld1 * ld1 * ld1);
+  }
+  //----------------------------------------------------------------------------
+  template <typename V, typename VReal>
+  auto& curvature_to_property(const field<V, VReal, N, N>& v) {
+    auto& curv_prop = [&]() -> auto& {
+      if (!this->has_vertex_property("curvature")) {
+        return this->template add_vertex_property<Real>("curvature");
+      } else {
+        return this->template vertex_property<Real>("curvature");
+      }
+    }();
+    for (size_t i = 0; i < num_vertices(); ++i) {
+      curv_prop[i] = curvature_at(i, v);
+    }
+    return curv_prop;
+  }
 };
 //==============================================================================
 /// \brief      merge line strips
