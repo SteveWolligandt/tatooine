@@ -364,21 +364,19 @@ struct line {
     for (auto& [name, prop] : other.m_vertex_properties) {
       m_vertex_properties[name] = prop->clone();
     }
+    return *this;
   }
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
   line& operator=(line&& other) = default;
   //----------------------------------------------------------------------------
   line(const pos_container_t& data, bool is_closed = false)
       : m_vertices{data}, m_is_closed{is_closed} {}
-
   //----------------------------------------------------------------------------
   line(pos_container_t&& data, bool is_closed = false)
       : m_vertices{std::move(data)}, m_is_closed{is_closed} {}
-
   //----------------------------------------------------------------------------
   line(std::initializer_list<pos_t>&& data)
       : m_vertices{std::move(data)}, m_is_closed{false} {}
-
   //----------------------------------------------------------------------------
   auto num_vertices() const { return m_vertices.size(); }
   //----------------------------------------------------------------------------

@@ -72,8 +72,7 @@ class simple_tri_mesh : public pointset<Real, N>{
   };
   //----------------------------------------------------------------------------
   template <typename T>
-  using face_property_t = property_type<face, T>;
-
+  using face_property_t = vector_property_impl<face, T>;
   //============================================================================
  protected:
   std::vector<std::array<vertex, 3>> m_faces;
@@ -81,8 +80,8 @@ class simple_tri_mesh : public pointset<Real, N>{
 
   //============================================================================
  private:
-  std::map<std::string, std::unique_ptr<property<face>>> m_face_properties;
-
+  std::map<std::string, std::unique_ptr<vector_property<face>>>
+      m_face_properties;
  public:
   //============================================================================
   constexpr simple_tri_mesh() = default;

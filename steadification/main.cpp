@@ -53,8 +53,8 @@ auto main(int argc, char** argv) -> int {
   std::string v = argv[1];
   if (v == "dg") {
     calc(numerical::doublegyre<double>{}, argc, argv);
-  } else if (v == "fdg") {
-    calc(fixed_time_field{numerical::doublegyre<double>{}, 0}, argc, argv);
+  //} else if (v == "fdg") {
+  //  calc(fixed_time_field{numerical::doublegyre<double>{}, 0}, argc, argv);
   //} else if (v == "sc") {
   //  calc(numerical::sinuscosinus<double>{}, argc, argv);
   //} else if (v == "la") {

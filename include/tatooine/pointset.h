@@ -89,7 +89,8 @@ struct pointset {
  protected:
   std::vector<pos_t>                                       m_vertices;
   std::vector<vertex>                                      m_invalid_vertices;
-  std::map<std::string, std::unique_ptr<property<vertex>>> m_vertex_properties;
+  std::map<std::string, std::unique_ptr<vector_property<vertex>>>
+      m_vertex_properties;
   //============================================================================
  public:
   pointset() = default;
