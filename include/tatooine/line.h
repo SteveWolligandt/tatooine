@@ -716,7 +716,7 @@ struct line {
       const_line_vertex_container<this_t, Real, N, curvature_idx, Real, Real>;
   auto curvatures() const { return curvature_container{*this}; }
   //----------------------------------------------------------------------------
-  auto& curvatures_to_property() {
+  auto& curvature_to_property() {
     auto& curvature_prop = add_vertex_property<Real>("curvatures");
     boost::copy(curvatures(), curvature_prop.begin());
     return curvature_prop;
@@ -1542,6 +1542,23 @@ struct parameterized_line : line<Real, N> {
       curv_prop[i] = curvature_at(i, v);
     }
     return curv_prop;
+  }
+  //----------------------------------------------------------------------------
+  template <typename V, typename VReal>
+  auto integrated_curvature(const field<V, VReal, N, N>& v) {
+    std::vector<Real> seg_lens(num_vertices() - 1);
+    for (size_t i = 0; i < num_vertices() - 1; ++i) {
+      seg_lens[i] = distance(vertex_at(i), vertex_at(i + 1));
+    }
+    auto curvatures = curvature_to_property(v);
+    Real intcurv = 0;
+    intcurv += seg_lens.front() * curvatures.front(); 
+    intcurv += seg_lens.back() * curvatures.back(); 
+    for (size_t i = 1; i < num_vertices() - 1; ++i) {
+      intcurv += (seg_lens[i - 1] + seg_lens[i]) * curvatures.back();
+    }
+    intcurv /= boost::accumulate(seg_lens, Real(0)) * 2;
+    return intcurv;
   }
 };
 //==============================================================================

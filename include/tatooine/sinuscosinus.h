@@ -58,14 +58,17 @@ struct cosinussinus : field<cosinussinus<Real>, Real, 2, 2> {
   using parent_t = field<this_t, Real, 2, 2>;
   using typename parent_t::pos_t;
   using typename parent_t::tensor_t;
-
   //============================================================================
-  constexpr cosinussinus() noexcept {}
-
+  Real m_radius;
+  //============================================================================
+  constexpr cosinussinus(Real r = 0.5) noexcept : m_radius{r} {}
+  //----------------------------------------------------------------------------
+  void set_radius(Real r) { m_radius = r; }
   //----------------------------------------------------------------------------
   constexpr tensor_t evaluate(const pos_t& /*x*/, Real t) const {
-    return {std::cos(t), std::sin(t)};
+    return {std::cos(t) * m_radius, std::sin(t) * m_radius};
   }
+  //----------------------------------------------------------------------------
   constexpr bool in_domain(const pos_t& /*x*/, Real /*t*/) const {
     return true;
   }

@@ -2,13 +2,13 @@
 #include <tatooine/doublegyre.h>
 #include <tatooine/integration/vclibs/rungekutta43.h>
 #include <tatooine/line.h>
+#include <tatooine/sinuscosinus.h>
 
 #include <catch2/catch.hpp>
 
 //==============================================================================
 namespace tatooine::test {
 //==============================================================================
-
 TEST_CASE("line_push_back", "[line][push_back]") {
   line<double, 2> l;
   l.push_back({0, 0});
@@ -67,12 +67,12 @@ TEST_CASE(
     "line_property",
     "[line][tangent][second_derivative][curvature][property][container]") {
   line<double, 2> l;
-  l.push_front({0, 0});
-  l.push_front({1, 1});
-  l.push_front({2, 0});
+  l.push_front(0, 0);
+  l.push_front(1, 1);
+  l.push_front(2, 0);
   l.tangents_to_property();
   l.second_derivative_to_property();
-  l.curvatures_to_property();
+  l.curvature_to_property();
   l.write_vtk("line_property.vtk");
 }
 //==============================================================================
@@ -267,6 +267,24 @@ TEST_CASE("line_curvature", "[line][curvature]") {
     //            << curv_mean << '\n';
     //}
   }
+}
+//==============================================================================
+TEST_CASE("line_integrated_curvature", "[line][integrated_curvature]") {
+  auto                    radius = GENERATE(1.0, 2.0, 3.0, 4.0);
+  numerical::cosinussinus v{radius};
+  integration::vclibs::rungekutta43<double, 2> rk43;
+  auto full_circle = rk43.integrate(v, {0.0, 0.0}, 0, 2 * M_PI);
+  auto half_circle = rk43.integrate(v, {0.0, 0.0}, 0, 2 * M_PI);
+  auto full_circle_integrated_curvature = full_circle.integrated_curvature(v);
+  auto half_circle_integrated_curvature = half_circle.integrated_curvature(v);
+  //std::cerr << "full_circle_integrated_curvature: "
+  //          << full_circle_integrated_curvature << '\n';
+  //std::cerr << "half_circle_integrated_curvature: "
+  //          << half_circle_integrated_curvature << '\n';
+  INFO(full_circle_integrated_curvature);
+  INFO(half_circle_integrated_curvature);
+  REQUIRE(full_circle_integrated_curvature ==
+          Approx(half_circle_integrated_curvature).margin(1e-6));
 }
 //==============================================================================
 }  // namespace tatooine::test
