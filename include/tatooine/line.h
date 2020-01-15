@@ -1756,7 +1756,7 @@ struct parameterized_line : line<Real, N> {
     return curvature_container{*this, prefer_calc};
   }
   //----------------------------------------------------------------------------
-  auto integrated_curvature(bool update = false) {
+  [[nodiscard]] auto integrated_curvature(bool update = false) {
     std::vector<Real> seg_lens(num_vertices() - 1);
     for (size_t i = 0; i < num_vertices() - 1; ++i) {
       seg_lens[i] = distance(vertex_at(i), vertex_at(i + 1));
@@ -1772,7 +1772,7 @@ struct parameterized_line : line<Real, N> {
     return intcurv;
   }
   //----------------------------------------------------------------------------
-  auto integrated_curvature() const {
+  [[nodiscard]] auto integrated_curvature() const {
     std::vector<Real> seg_lens(num_vertices() - 1);
     for (size_t i = 0; i < num_vertices() - 1; ++i) {
       seg_lens[i] = distance(vertex_at(i), vertex_at(i + 1));

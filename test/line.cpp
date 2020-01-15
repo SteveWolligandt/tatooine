@@ -159,10 +159,9 @@ TEST_CASE("line_paramaterization_quadratic_tangent",
     numerical::doublegyre                        v;
     integration::vclibs::rungekutta43<double, 2> rk43;
     size_t cnt=0;
-    for (auto t : linspace(0.0, 10.0, 100)) {
-      auto integral_curve = rk43.integrate(v, {0.1, 0.1}, t, t + 10);
-      std::cerr << "[" << cnt << "] " << integral_curve.integrated_curvature()
-                << '\n';
+    for (auto t : linspace(0.0, 10.0, 1000)) {
+      auto integral_curve = rk43.integrate(v, {0.2, 0.2}, t, t + 40);
+      [[maybe_unused]] auto kappa_dt = integral_curve.integrated_curvature();
       integral_curve.write_vtk("doublegyre_quadratic_tangents_" +
                                std::to_string(cnt++) + ".vtk");
     }
