@@ -178,21 +178,19 @@ class steadification {
   //----------------------------------------------------------------------------
   template <template <typename, size_t> typename Integrator,
             template <typename> typename SeedcurveInterpolator,
-            template <typename> typename StreamlineInterpolator, typename V, typename VSurf>
+            template <typename> typename StreamlineInterpolator, typename VSurf>
   auto curvature(
-      const field<V, Real, 2, 2>&                              v,
       const pathsurface_t<Integrator, SeedcurveInterpolator,
                           StreamlineInterpolator, VSurf>&          mesh,
       const streamsurface<Integrator, SeedcurveInterpolator,
-                          StreamlineInterpolator, VSurf, Real, 3>& surf)const {
+                          StreamlineInterpolator, VSurf, Real, 3>& surf) const {
     std::set<Real> us;
     for (auto v : mesh.vertices()) { us.insert(mesh.uv(v)(0)); }
 
-    spacetime_field stv{v};
     Real accumulated_curvatures = 0;
     for (auto u : us) {
       accumulated_curvatures +=
-          surf.streamline_at(u, 0, 0).integrated_curvature(stv);
+          surf.streamline_at(u, 0, 0).integrated_curvature();
     }
     return accumulated_curvatures / us.size();
   }
