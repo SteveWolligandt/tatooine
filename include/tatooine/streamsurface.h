@@ -74,7 +74,6 @@ struct streamsurface {
   //----------------------------------------------------------------------------
   auto&       integrator() { return m_integrator; }
   const auto& integrator() const { return m_integrator; }
-
   //----------------------------------------------------------------------------
   const auto& streamline_at(Real u, Real cache_bw_tau,
                             Real cache_fw_tau) const {
@@ -82,7 +81,6 @@ struct streamsurface {
         m_v, m_seedcurve.template sample<SeedcurveInterpolator>(u), m_t0,
         cache_bw_tau, cache_fw_tau);
   }
-
   //----------------------------------------------------------------------------
   /// calculates position of streamsurface
   vec_t sample(Real u, Real v, Real cache_bw_tau, Real cache_fw_tau) const {

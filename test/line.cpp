@@ -70,9 +70,7 @@ TEST_CASE(
   l.push_front(0, 0);
   l.push_front(1, 1);
   l.push_front(2, 0);
-  l.tangents_to_property();
-  l.second_derivative_to_property();
-  l.curvature_to_property();
+  l.curvatures_to_property();
   l.write_vtk("line_property.vtk");
 }
 //==============================================================================
@@ -163,9 +161,7 @@ TEST_CASE("line_paramaterization_quadratic_tangent",
     size_t cnt=0;
     for (auto t : linspace(0.0, 10.0, 100)) {
       auto integral_curve = rk43.integrate(v, {0.1, 0.1}, t, t + 10);
-      integral_curve.tangents_to_property(v);
-      integral_curve.second_derivative_to_property(v);
-      integral_curve.curvature_to_property(v);
+      std::cerr << integral_curve.integrated_curvature() << '\n';
       integral_curve.write_vtk("doublegyre_quadratic_tangents_" +
                                std::to_string(cnt++) + ".vtk");
     }
@@ -275,8 +271,8 @@ TEST_CASE("line_integrated_curvature", "[line][integrated_curvature]") {
   integration::vclibs::rungekutta43<double, 2> rk43;
   auto full_circle = rk43.integrate(v, {0.0, 0.0}, 0, 2 * M_PI);
   auto half_circle = rk43.integrate(v, {0.0, 0.0}, 0, 2 * M_PI);
-  auto full_circle_integrated_curvature = full_circle.integrated_curvature(v);
-  auto half_circle_integrated_curvature = half_circle.integrated_curvature(v);
+  auto full_circle_integrated_curvature = full_circle.integrated_curvature();
+  auto half_circle_integrated_curvature = half_circle.integrated_curvature();
   //std::cerr << "full_circle_integrated_curvature: "
   //          << full_circle_integrated_curvature << '\n';
   //std::cerr << "half_circle_integrated_curvature: "

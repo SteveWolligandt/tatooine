@@ -28,7 +28,12 @@ class steadification {
   // types
   //============================================================================
  public:
-  using pathsurface_t         = simple_tri_mesh<Real, 3>;
+  template <template <typename, size_t> typename Integrator,
+            template <typename> typename SeedcurveInterpolator,
+            template <typename> typename StreamlineInterpolator, typename V>
+  using pathsurface_t =
+      hultquist_discretization<Integrator, SeedcurveInterpolator,
+                               StreamlineInterpolator, V, Real, 3>;
   using pathsurface_gpu_t     = streamsurface_renderer;
   using vec2                  = vec<Real, 2>;
   using vec3                  = vec<Real, 3>;
@@ -98,12 +103,12 @@ class steadification {
   //============================================================================
   // methods
   //============================================================================
-  template <typename V, typename VReal>
-  auto rasterize(const field<V, VReal, 2, 2>&       v,
+  template <typename V>
+  auto rasterize(const field<V, Real, 2, 2>&       v,
                  const parameterized_line<Real, 3>& seedcurve,
                  domain_coverage_tex_t& domain_coverage_tex, Real stepsize) {
     using namespace yavin;
-    auto                   psf = gpu_pathsurface(v, seedcurve, stepsize);
+    auto                   gpu_mesh = gpu_pathsurface(v, seedcurve, stepsize);
     rasterized_pathsurface psf_rast{m_render_resolution(0),
                                     m_render_resolution(1)};
     framebuffer fbo{psf_rast.pos, psf_rast.v, psf_rast.uv, domain_coverage_tex,
@@ -119,7 +124,7 @@ class steadification {
     psf_rast.v.clear(nan, nan);
     psf_rast.uv.clear(nan, nan);
     clear_depth_buffer();
-    psf.draw();
+    gpu_mesh.draw();
     return psf_rast;
   }
   //----------------------------------------------------------------------------
@@ -130,8 +135,8 @@ class steadification {
   }
   //----------------------------------------------------------------------------
   /// \param seedcurve seedcurve in space-time
-  template <typename V, typename VReal>
-  auto pathsurface(const field<V, VReal, 2, 2>&       v,
+  template <typename V>
+  auto pathsurface(const field<V, Real, 2, 2>&       v,
                    const parameterized_line<Real, 3>& seedcurve,
                    Real                               stepsize) {
     spacetime_field stv{v};
@@ -143,25 +148,29 @@ class steadification {
                        interpolation::linear<Real>{},
                        interpolation::hermite<Real>{}};
 
-    auto  psf   = surf.discretize(2, stepsize, -10, 10);
-    auto& psf_v = psf.template add_vertex_property<vec2>("v");
+    auto  mesh   = surf.discretize(2, stepsize, -10, 10);
+    auto& vprop = mesh.template add_vertex_property<vec2>("v");
 
-    for (auto vertex : psf.vertices()) {
-      if (stv.in_domain(psf[vertex], 0)) {
-        psf_v[vertex] = v(vec{psf[vertex](0), psf[vertex](1)}, psf[vertex](2));
+    for (auto vertex : mesh.vertices()) {
+      if (stv.in_domain(mesh[vertex], 0)) {
+        vprop[vertex] = v(vec{mesh[vertex](0), mesh[vertex](1)}, mesh[vertex](2));
       } else {
-        psf_v[vertex] = vec{0.0 / 0.0, 0.0 / 0.0};
+        vprop[vertex] = vec{0.0 / 0.0, 0.0 / 0.0};
       }
     }
-    return std::pair{std::move(psf), std::move(surf)};
+    return std::pair{std::move(mesh), std::move(surf)};
   }
   //----------------------------------------------------------------------------
-  auto gpu_pathsurface(const pathsurface_t& psf) {
-    return pathsurface_gpu_t{psf};
+  template <template <typename, size_t> typename Integrator,
+            template <typename> typename SeedcurveInterpolator,
+            template <typename> typename StreamlineInterpolator, typename V>
+  auto gpu_pathsurface(const pathsurface_t<Integrator, SeedcurveInterpolator,
+                                           StreamlineInterpolator, V>& mesh) {
+    return pathsurface_gpu_t{mesh};
   }
   //----------------------------------------------------------------------------
-  template <typename V, typename VReal>
-  auto gpu_pathsurface(const field<V, VReal, 2, 2>&       v,
+  template <typename V>
+  auto gpu_pathsurface(const field<V, Real, 2, 2>&       v,
                        const parameterized_line<Real, 3>& seedcurve,
                        Real                               stepsize) {
     return gpu_pathsurface(pathsurface(v, seedcurve, stepsize).first);
@@ -169,17 +178,21 @@ class steadification {
   //----------------------------------------------------------------------------
   template <template <typename, size_t> typename Integrator,
             template <typename> typename SeedcurveInterpolator,
-            template <typename> typename StreamlineInterpolator, typename V>
-  auto curvature(const pathsurface_t&                                     psf,
-                 const streamsurface<Integrator, SeedcurveInterpolator,
-                                     StreamlineInterpolator, V, Real, 2>& surf) {
+            template <typename> typename StreamlineInterpolator, typename V, typename VSurf>
+  auto curvature(
+      const field<V, Real, 2, 2>&                              v,
+      const pathsurface_t<Integrator, SeedcurveInterpolator,
+                          StreamlineInterpolator, VSurf>&          mesh,
+      const streamsurface<Integrator, SeedcurveInterpolator,
+                          StreamlineInterpolator, VSurf, Real, 3>& surf)const {
     std::set<Real> us;
-    for (auto v : psf.vertices()) { us.insert(psf.uv(v)(0)); }
+    for (auto v : mesh.vertices()) { us.insert(mesh.uv(v)(0)); }
 
+    spacetime_field stv{v};
     Real accumulated_curvatures = 0;
     for (auto u : us) {
       accumulated_curvatures +=
-          surf.integrator().integrate(surf(u, 0)).integrated_curvature();
+          surf.streamline_at(u, 0, 0).integrated_curvature(stv);
     }
     return accumulated_curvatures / us.size();
   }
@@ -199,9 +212,9 @@ class steadification {
     return ratio;
   }
   //============================================================================
-  template <typename V, typename VReal, typename Stepsize,
+  template <typename V, typename Stepsize,
             enable_if_arithmetic<Stepsize> = true>
-  void random_domain_filling_streamsurfaces(const field<V, VReal, 2, 2>& v,
+  void random_domain_filling_streamsurfaces(const field<V, Real, 2, 2>& v,
                                             Stepsize stepsize) {
     constexpr auto domain = settings<V>::domain;
     using namespace std::filesystem;
@@ -243,19 +256,17 @@ class steadification {
 
     auto x1 = x0;
     do {
-      const auto u        = rand();
-      const auto v        = rand();
-      const auto theta    = u * 2 * M_PI;
-      const auto phi      = std::acos(2 * v - 1);
-      const auto r        = std::cbrt(rand()) * (max_dist - min_dist) + min_dist;
-      const auto sinTheta = std::sin(theta);
-      const auto cosTheta = std::cos(theta);
-      const auto sinPhi   = std::sin(phi);
-      const auto cosPhi   = std::cos(phi);
-      const auto x        = r * sinPhi * cosTheta;
-      const auto y        = r * sinPhi * sinTheta;
-      const auto z        = r * cosPhi;
-      x1                  = vec{x, y, z} + x0;
+      const auto u         = rand();
+      const auto v         = rand();
+      const auto theta     = u * 2 * M_PI;
+      const auto phi       = std::acos(2 * v - 1);
+      const auto sin_theta = std::sin(theta);
+      const auto cos_theta = std::cos(theta);
+      const auto sin_phi   = std::sin(phi);
+      const auto cos_phi   = std::cos(phi);
+      const auto r = std::cbrt(rand()) * (max_dist - min_dist) + min_dist;
+      x1 = vec{r * sin_phi * cos_theta, r * sin_phi * sin_theta, r * cos_phi} +
+           x0;
     } while (!m_domain.is_inside(x1));
 
     std::cerr << "distance x0 <-> x1: " << distance(x0,x1) << '\n';

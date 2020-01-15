@@ -105,14 +105,20 @@ struct rungekutta43 : integrator<Real, N, rungekutta43<Real, N>> {
     auto stepper = ode_t::solver(rk43, m_options);
     stepper.initialize(dy, t0, t0 + tau, y0);
 
+    auto& tangents = integral.tangents_property();
     stepper.integrate(
-        dy, ode_t::Output >> ode_t::sink([&integral](auto t, const auto& y) {
+        dy, ode_t::Output >> ode_t::sink([&integral, &tangents](
+                                             auto t, const auto& y,
+                                             const auto& dy) {
               bool use = true;
               if (!integral.empty() &&
                   distance(integral.back_vertex(), y) < 1e-6) {
                 use = false;
               }
-              if (use) { integral.push_back(y, t); }
+              if (use) {
+                integral.push_back(y, t);
+                tangents.back() = dy;
+              }
             }));
     return integral;
   }
@@ -131,14 +137,20 @@ struct rungekutta43 : integrator<Real, N, rungekutta43<Real, N>> {
     auto stepper = ode_t::solver(rk43, m_options);
     stepper.initialize(dy, t0, t0 + tau, y0);
 
+    auto& tangents = integral.tangents_property();
     stepper.integrate(
-        dy, ode_t::Output >> ode_t::sink([&integral](auto t, const auto& y) {
+        dy, ode_t::Output >> ode_t::sink([&integral, &tangents](
+                                             auto t, const auto& y,
+                                             const auto& dy) {
               bool use = true;
               if (!integral.empty() &&
                   distance(integral.back_vertex(), y) < 1e-6) {
                 use = false;
               }
-              if (use) { integral.push_front(y, t); }
+              if (use) {
+                integral.push_front(y, t);
+                tangents.front() = dy;
+              }
             }));
     return integral;
   }

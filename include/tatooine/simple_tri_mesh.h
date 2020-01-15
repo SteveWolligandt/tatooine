@@ -158,7 +158,13 @@ class simple_tri_mesh : public pointset<Real, N>{
       writer.set_title(title);
       writer.write_header();
       writer.write_points(this->m_vertices);
-      writer.write_polygons(m_faces);
+
+      std::vector<std::vector<size_t>> polygons;
+      polygons.reserve(num_faces());
+      for (const auto& face : m_faces) {
+        polygons.push_back(std::vector{face[0].i, face[1].i, face[2].i});
+      }
+      writer.write_polygons(polygons);
       writer.close();
       return true;
     } else {

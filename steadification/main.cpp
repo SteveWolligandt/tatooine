@@ -19,8 +19,10 @@ void calc(const field<V, VReal, 2, 2>& v, T0Real /*t0*/, BTauReal /*btau*/,
   std::seed_seq   seed(begin(seed_str), end(seed_str));
   std::mt19937_64 randeng{seed};
   steadification s(settings<V>::domain, settings<V>::render_resolution, randeng);
-  s.random_domain_filling_streamsurfaces(v, stepsize);
-   //s.pathsurface(s.random_seedcurve(0.1));
+  //s.random_domain_filling_streamsurfaces(v, stepsize);
+  auto [mesh, surf] = s.pathsurface(v, s.random_seedcurve(0.1, 0.2), stepsize);
+  mesh.write_vtk("pathsurface.vtk");
+  std::cerr << s.curvature(v, mesh, surf) << '\n';
 }
 
 //------------------------------------------------------------------------------
