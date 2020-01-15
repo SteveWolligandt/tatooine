@@ -8,7 +8,7 @@
 namespace tatooine {
 //==============================================================================
 
-template <typename T, typename Engine = std::mt19937>
+template <typename T, typename Engine>
 struct random_uniform {
   static_assert(std::is_arithmetic_v<T>);
   //============================================================================
@@ -21,30 +21,18 @@ struct random_uniform {
 
   //============================================================================
  private:
-  Engine         engine;
+  Engine&        engine;
   distribution_t distribution;
   //============================================================================
  public:
-  random_uniform() : engine{std::random_device{}()}, distribution{0, 1} {}
+  random_uniform()                          = delete;
   random_uniform(const random_uniform&)     = default;
   random_uniform(random_uniform&&) noexcept = default;
-  random_uniform& operator=(const random_uniform&) = default;
-  random_uniform& operator=(random_uniform&&) noexcept = default;
   //----------------------------------------------------------------------------
-  random_uniform(const Engine& _engine) : engine{_engine}, distribution{0, 1} {}
+  random_uniform(Engine& _engine) : engine{_engine}, distribution{0, 1} {}
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-  random_uniform(Engine&& _engine)
-      : engine{std::move(_engine)}, distribution{0, 1} {}
-  // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-  random_uniform(T min, T max)
-      : engine{std::random_device{}()}, distribution{min, max} {}
-  // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-  random_uniform(T min, T max, const Engine& _engine)
+  random_uniform(T min, T max, Engine& _engine)
       : engine{_engine}, distribution{min, max} {}
-  // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-  random_uniform(T min, T max, Engine&& _engine)
-      : engine{std::move(_engine)}, distribution{min, max} {}
-
   //============================================================================
  public:
   auto get() { return distribution(engine); }
@@ -62,13 +50,11 @@ struct random_uniform {
 
 //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 #if has_cxx17_support()
-random_uniform()->random_uniform<double, std::mt19937_64>;
-// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 template <typename Engine>
-random_uniform(Engine &&)->random_uniform<double, Engine>;
+random_uniform(Engine &)->random_uniform<double, Engine>;
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-template <typename T>
-random_uniform(T min, T max)->random_uniform<T, std::mt19937_64>;
+template <typename T, typename Engine>
+random_uniform(T min, T max, Engine &)->random_uniform<T, Engine>;
 #endif
 
 //==============================================================================

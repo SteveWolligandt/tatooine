@@ -14,6 +14,7 @@
 #include <filesystem>
 #include <vector>
 
+#include <yavin>
 #include "renderers.h"
 #include "shaders.h"
 
@@ -48,7 +49,7 @@ class steadification {
   //============================================================================
  private:
   ivec2                     m_render_resolution;
-  yavin::egl::context       m_context;
+  yavin::context            m_context;
   yavin::orthographiccamera m_cam;
   yavin::tex2rgbf           m_color_scale;
   yavin::texdepth           m_depth;
@@ -57,6 +58,7 @@ class steadification {
   domain_coverage_shader    m_domain_coverage_shader;
   integrator_t              m_integrator;
   RandEng&                  m_rand_eng;
+  boundingbox<Real, 3>      m_domain;
 
   //============================================================================
   // ctor
@@ -84,11 +86,12 @@ class steadification {
                      integration::vclibs::rel_tol      = 1e-6,
                      integration::vclibs::initial_step = 0,
                      integration::vclibs::max_step     = 0.1},
-        m_rand_eng{rand_eng} {
+        m_rand_eng{rand_eng},
+        m_domain{domain} {
     yavin::disable_multisampling();
 
     std::vector<float> noise(render_resolution(0) * render_resolution(1));
-    random_uniform     rand{0.0f, 1.0f};
+    random_uniform<float, RandEng> rand{m_rand_eng};
     boost::generate(noise, [&] { return rand(rand_eng); });
     m_noise_tex.upload_data(noise, render_resolution(0), render_resolution(1));
   }
@@ -150,7 +153,6 @@ class steadification {
         psf_v[vertex] = vec{0.0 / 0.0, 0.0 / 0.0};
       }
     }
-
     return std::pair{std::move(psf), std::move(surf)};
   }
   //----------------------------------------------------------------------------
@@ -162,7 +164,7 @@ class steadification {
   auto gpu_pathsurface(const field<V, VReal, 2, 2>&       v,
                        const parameterized_line<Real, 3>& seedcurve,
                        Real                               stepsize) {
-    return gpu_pathsurface(pathsurface(v, seedcurve, stepsize));
+    return gpu_pathsurface(pathsurface(v, seedcurve, stepsize).first);
   }
   //----------------------------------------------------------------------------
   template <template <typename, size_t> typename Integrator,
@@ -170,11 +172,9 @@ class steadification {
             template <typename> typename StreamlineInterpolator, typename V>
   auto curvature(const pathsurface_t&                                     psf,
                  const streamsurface<Integrator, SeedcurveInterpolator,
-                                     StreamlineInterpolator, V, Real, N>& surf) {
+                                     StreamlineInterpolator, V, Real, 2>& surf) {
     std::set<Real> us;
-    for (auto v: psf.vertices()) {
-      us.insert(psf.uv(v)(0));
-    }
+    for (auto v : psf.vertices()) { us.insert(psf.uv(v)(0)); }
 
     Real accumulated_curvatures = 0;
     for (auto u : us) {
@@ -203,7 +203,7 @@ class steadification {
             enable_if_arithmetic<Stepsize> = true>
   void random_domain_filling_streamsurfaces(const field<V, VReal, 2, 2>& v,
                                             Stepsize stepsize) {
-    static constexpr auto domain = settings<V>::domain;
+    constexpr auto domain = settings<V>::domain;
     using namespace std::filesystem;
 
     auto working_dir = std::string{settings<V>::name} + "/";
@@ -227,11 +227,8 @@ class steadification {
     // std::vector<rasterized_pathsurface>      rasterizations;
 
     size_t i = 0;
-    //for (; i < 3;) {
-    while (domain_coverage() < 0.9) {
-      seed_curves.emplace_back(
-          parameterized_line<Real, 3>{{domain.random_point(m_rand_eng), 0},
-                                      {domain.random_point(m_rand_eng), 1}});
+    while (domain_coverage() < 0.99) {
+      seed_curves.emplace_back(random_seedcurve(0.1, 0.2));
       // rasterizations.push_back(rasterize(v, seed_curves.back(), 0.1));
       auto rast =
           rasterize(v, seed_curves.back(), domain_coverage_tex, stepsize);
@@ -239,6 +236,33 @@ class steadification {
       domain_coverage_tex.write_png(working_dir + "coverage.png");
     }
   }
+  //----------------------------------------------------------------------------
+  auto random_seedcurve(Real min_dist = 0,
+                        Real max_dist = std::numeric_limits<Real>::max()) {
+    const auto x0 = m_domain.random_point(m_rand_eng);
+
+    auto x1 = x0;
+    do {
+      const auto u        = rand();
+      const auto v        = rand();
+      const auto theta    = u * 2 * M_PI;
+      const auto phi      = std::acos(2 * v - 1);
+      const auto r        = std::cbrt(rand()) * (max_dist - min_dist) + min_dist;
+      const auto sinTheta = std::sin(theta);
+      const auto cosTheta = std::cos(theta);
+      const auto sinPhi   = std::sin(phi);
+      const auto cosPhi   = std::cos(phi);
+      const auto x        = r * sinPhi * cosTheta;
+      const auto y        = r * sinPhi * sinTheta;
+      const auto z        = r * cosPhi;
+      x1                  = vec{x, y, z} + x0;
+    } while (!m_domain.is_inside(x1));
+
+    std::cerr << "distance x0 <-> x1: " << distance(x0,x1) << '\n';
+    return parameterized_line<Real, 3>{{x0, 0}, {x1, 1}};
+  }
+
+  auto rand() { return random_uniform<Real, RandEng>{m_rand_eng}(); }
 };
 //==============================================================================
 }  // namespace tatooine

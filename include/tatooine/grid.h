@@ -372,7 +372,7 @@ class grid {
                                RandEng& eng) const {
     return vertex_t{linspace_it_t{
         &m_dimensions[Is],
-        random_uniform<size_t>{0, m_dimensions[Is].size() - 1}(eng)}...};
+        random_uniform<size_t, RandEng>{0, m_dimensions[Is].size() - 1, eng}()}...};
   }
 
  public:
@@ -413,7 +413,8 @@ class grid {
   auto random_vertex_seq_neighbor_gaussian(const vertex_seq_t& seq, Real stddev,
                                            RandEng& eng) {
     return random_vertex_neighbor_gaussian(
-        seq[random_uniform<size_t>{}(0, seq.size() - 1, eng)], stddev, eng);
+        seq[random_uniform<size_t, RandEng>{0, seq.size() - 1, eng}()], stddev,
+        eng);
   }
 
   //----------------------------------------------------------------------------
@@ -431,7 +432,7 @@ class grid {
         auto neighbors = free_neighbors(v, seq);
         if (neighbors.empty()) { break; }
         v = *next(neighbors.begin(),
-                  random_uniform<size_t>{}(0, neighbors.size() - 1, eng));
+                  random_uniform<size_t, RandEng>{0, neighbors.size() - 1, eng}());
         seq.push_back(v);
       }
     } while (seq.size() == len);
@@ -783,7 +784,7 @@ class grid {
   auto mutate_seq_straight(const vertex_seq_t& seq, Real min_angle,
                            size_t max_size_change, RandEng& eng) {
     return mutate_seq_straight(seq,
-                               random_uniform<size_t>{0, seq.size() - 1}(eng),
+                               random_uniform<size_t, RandEng>{0, seq.size() - 1, eng}(),
                                min_angle, max_size_change, eng);
   }
 
@@ -801,10 +802,10 @@ class grid {
 
     do {
       // pick a random edge e
-      e0 = &mutated_seq[random_uniform<size_t>{}(0, mutated_seq.size() - 1, eng)];
+      e0 = &mutated_seq[random_uniform<size_t, RandEng>{0, mutated_seq.size() - 1, eng}()];
 
       // pick a random vertex v of e
-      v = random_uniform<size_t>{}(1, 2, eng) == 1 ? e0->first : e0->second;
+      v = random_uniform<size_t, RandEng>{1, 2, eng}() == 1 ? e0->first : e0->second;
       neighbors = free_neighbors(v, mutated_seq);
 
       // search for second edge that also uses v
@@ -843,7 +844,7 @@ class grid {
 
     // pick a random neighbor vertex vn of v that is not used by any other
     // edge of sequence
-    auto vn_i        = random_uniform<size_t>{}(0, neighbors.size() - 1, eng);
+    auto vn_i        = random_uniform<size_t, RandEng>{0, neighbors.size() - 1, eng}();
     auto neighbor_it = neighbors.begin();
     while (vn_i != 0) {
       --vn_i;
@@ -873,10 +874,10 @@ class grid {
   template <typename RandEng>
   auto permute_edge_seq(const edge_seq_t& edge_seq, RandEng& eng) {
     auto   permuted_seq = edge_seq;
-    size_t i0 = random_uniform<size_t>{}(0, permuted_seq.size() - 1, eng);
+    size_t i0 = random_uniform<size_t, RandEng>{0, permuted_seq.size() - 1, eng}();
     size_t i1 = 0;
     do {
-      i1 = random_uniform<size_t>{}(0, permuted_seq.size() - 1, eng);
+      i1 = random_uniform<size_t, RandEng>{0, permuted_seq.size() - 1, eng}();
     } while (i0 == i1);
     std::swap(permuted_seq[i0], permuted_seq[i1]);
     return permuted_seq;
