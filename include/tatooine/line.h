@@ -1766,7 +1766,7 @@ struct parameterized_line : line<Real, N> {
     intcurv += seg_lens.front() * curvatures.front(); 
     intcurv += seg_lens.back() * curvatures.back(); 
     for (size_t i = 1; i < num_vertices() - 1; ++i) {
-      intcurv += (seg_lens[i - 1] + seg_lens[i]) * curvatures.back();
+      intcurv += (seg_lens[i - 1] + seg_lens[i]) * curvatures[i];
     }
     intcurv /= boost::accumulate(seg_lens, Real(0)) * 2;
     return intcurv;

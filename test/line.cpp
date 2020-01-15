@@ -161,7 +161,8 @@ TEST_CASE("line_paramaterization_quadratic_tangent",
     size_t cnt=0;
     for (auto t : linspace(0.0, 10.0, 100)) {
       auto integral_curve = rk43.integrate(v, {0.1, 0.1}, t, t + 10);
-      std::cerr << integral_curve.integrated_curvature() << '\n';
+      std::cerr << "[" << cnt << "] " << integral_curve.integrated_curvature()
+                << '\n';
       integral_curve.write_vtk("doublegyre_quadratic_tangents_" +
                                std::to_string(cnt++) + ".vtk");
     }
