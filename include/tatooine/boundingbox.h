@@ -48,7 +48,6 @@ struct boundingbox {
       max(i) = std::max(max(i), point(i));
     }
   }
-
   //----------------------------------------------------------------------------
   constexpr auto reset() {
     for (size_t i = 0; i < N; ++i) {
@@ -56,10 +55,8 @@ struct boundingbox {
       max(i) = -std::numeric_limits<Real>::max();
     }
   }
-
   //----------------------------------------------------------------------------
   constexpr auto center() const { return (max + min) * Real(0.5); }
-
   //----------------------------------------------------------------------------
   constexpr auto is_inside(const pos_t& p) const {
     for (size_t i = 0; i < N; ++i) {
