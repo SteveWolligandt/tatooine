@@ -268,7 +268,6 @@ class steadification {
            x0;
     } while (!m_domain.is_inside(x1));
 
-    std::cerr << "distance x0 <-> x1: " << distance(x0,x1) << '\n';
     return parameterized_line<Real, 3>{{x0, 0}, {x1, 1}};
   }
 
