@@ -155,17 +155,6 @@ TEST_CASE("line_paramaterization_quadratic_tangent",
     l.tangents_to_property();
     l.write_vtk("simple_quadratic_tangents.vtk");
   }
-  SECTION("double gyre pathline") {
-    numerical::doublegyre                        v;
-    integration::vclibs::rungekutta43<double, 2> rk43;
-    size_t cnt=0;
-    for (auto t : linspace(0.0, 10.0, 1000)) {
-      auto integral_curve = rk43.integrate(v, {0.2, 0.2}, t, t + 10);
-      [[maybe_unused]] auto kappa_dt = integral_curve.integrated_curvature();
-      integral_curve.write_vtk("doublegyre_quadratic_tangents_" +
-                               std::to_string(cnt++) + ".vtk");
-    }
-  }
 }
 //==============================================================================
 TEST_CASE("line_paramaterization_resample",
@@ -266,21 +255,32 @@ TEST_CASE("line_curvature", "[line][curvature]") {
 }
 //==============================================================================
 TEST_CASE("line_integrated_curvature", "[line][integrated_curvature]") {
-  auto                    radius = GENERATE(1.0, 2.0, 3.0, 4.0);
-  numerical::cosinussinus v{radius};
-  integration::vclibs::rungekutta43<double, 2> rk43;
-  auto full_circle = rk43.integrate(v, {0.0, 0.0}, 0, 2 * M_PI);
-  auto half_circle = rk43.integrate(v, {0.0, 0.0}, 0, 2 * M_PI);
-  auto full_circle_integrated_curvature = full_circle.integrated_curvature();
-  auto half_circle_integrated_curvature = half_circle.integrated_curvature();
-  //std::cerr << "full_circle_integrated_curvature: "
-  //          << full_circle_integrated_curvature << '\n';
-  //std::cerr << "half_circle_integrated_curvature: "
-  //          << half_circle_integrated_curvature << '\n';
-  INFO(full_circle_integrated_curvature);
-  INFO(half_circle_integrated_curvature);
-  REQUIRE(full_circle_integrated_curvature ==
-          Approx(half_circle_integrated_curvature).margin(1e-6));
+  SECTION("pathlines") {
+    SECTION("cosinus sinus vectorfield") {
+      auto                    radius = GENERATE(1.0, 2.0, 3.0, 4.0);
+      numerical::cosinussinus v{radius};
+      integration::vclibs::rungekutta43<double, 2> rk43;
+      auto full_circle = rk43.integrate(v, {0.0, 0.0}, 0, 2 * M_PI);
+      auto half_circle = rk43.integrate(v, {0.0, 0.0}, 0, 2 * M_PI);
+      auto kappa_dt_full = full_circle.integrated_curvature();
+      auto kappa_dt_half = half_circle.integrated_curvature();
+      CAPTURE(kappa_dt_full);
+      CAPTURE(kappa_dt_half);
+      REQUIRE(kappa_dt_full == Approx(kappa_dt_half).margin(1e-6));
+    }
+    SECTION("double gyre pathline") {
+      numerical::doublegyre                        v;
+      integration::vclibs::rungekutta43<double, 2> rk43;
+      size_t                                       cnt = 0;
+      for (auto t : linspace(0.0, 10.0, 1000)) {
+        auto integral_curve = rk43.integrate(v, {0.2, 0.2}, t, t + 10);
+        auto kappa_dt       = integral_curve.integrated_curvature();
+        CAPTURE(cnt, kappa_dt);
+        integral_curve.write_vtk("doublegyre_quadratic_tangents_" +
+                                 std::to_string(cnt++) + ".vtk");
+      }
+    }
+  }
 }
 //==============================================================================
 }  // namespace tatooine::test
