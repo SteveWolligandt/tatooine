@@ -67,10 +67,13 @@ struct streamsurface {
         m_max_u{std::max(m_seedcurve.front_parameterization(),
                          m_seedcurve.back_parameterization())},
         m_integrator{integrator} {}
-
+  // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+  streamsurface(const streamsurface& other)            = default;
+  streamsurface(streamsurface&& other)                 = default;
+  streamsurface& operator=(const streamsurface& other) = default;
+  streamsurface& operator=(streamsurface&& other)      = default;
   //============================================================================
   auto t0() const { return m_t0; }
-
   //----------------------------------------------------------------------------
   auto&       integrator() { return m_integrator; }
   const auto& integrator() const { return m_integrator; }
@@ -93,7 +96,6 @@ struct streamsurface {
           .template sample<StreamlineInterpolator>(m_t0 + v);
     } catch (std::exception&) { throw out_of_domain{}; }
   }
-
   //----------------------------------------------------------------------------
   /// calculates position of streamsurface
   vec_t sample(Real u, Real v) const {
@@ -101,7 +103,6 @@ struct streamsurface {
     if (v > 0) { return sample(u, v, 0, v); }
     return m_seedcurve.template sample<SeedcurveInterpolator>(u);
   }
-
   //----------------------------------------------------------------------------
   /// calculates position of streamsurface
   vec_t sample(const vec2& uv) const { return sample(uv(0), uv(1)); }
@@ -121,18 +122,14 @@ struct streamsurface {
     }
     return d;
   }
-
   //----------------------------------------------------------------------------
   auto operator()(Real u, Real v) const { return sample(u, v); }
   auto operator()(Real u, Real v, Real cache_bw_tau, Real cache_fw_tau) const {
     return sample(u, v, cache_bw_tau, cache_fw_tau);
   }
-
   //----------------------------------------------------------------------------
   const auto& seedcurve() const { return m_seedcurve; }
   const auto& vectorfield() const { return m_v; }
-  auto&       vectorfield() { return m_v; }
-
   //----------------------------------------------------------------------------
   template <template <template <typename, size_t> typename,
                       template <typename> typename,
@@ -144,7 +141,6 @@ struct streamsurface {
                           StreamlineInterpolator, V, Real, N>(
         this, std::forward<Args>(args)...);
   }
-
   //----------------------------------------------------------------------------
   constexpr auto min_u() const { return m_min_u; }
   constexpr auto max_u() const { return m_max_u; }

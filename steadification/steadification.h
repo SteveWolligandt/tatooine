@@ -189,8 +189,9 @@ class steadification {
 
     Real accumulated_curvatures = 0;
     for (auto u : us) {
-      accumulated_curvatures +=
-          surf.streamline_at(u, 0, 0).integrated_curvature();
+      const auto kappa = surf.streamline_at(u, 0, 0).integrated_curvature();
+      std::cerr << "u = " << u << "; kappa = " << kappa << '\n';
+      accumulated_curvatures += kappa;
     }
     return accumulated_curvatures / us.size();
   }

@@ -49,7 +49,7 @@ struct integrator : crtp<Derived> {
   //----------------------------------------------------------------------------
   template <typename V>
   const auto &integrate(const V &v, const pos_t &y0, Real t0, Real tau) const {
-    auto [it, new_streamline] = m_cache.try_emplace({t0, y0});
+    auto [it, new_streamline] = m_cache.emplace({t0, y0});
     auto &integral            = it->second;
 
     auto &[backward_on_border, forward_on_border] =
@@ -78,7 +78,7 @@ struct integrator : crtp<Derived> {
   template <typename V>
   const auto &integrate(const V &v, const pos_t &y0, Real t0, Real backward_tau,
                         Real forward_tau) const {
-    auto [it, new_streamline] = m_cache.try_emplace({t0, y0});
+    auto [it, new_streamline] = m_cache.emplace(std::pair{t0, y0});
     auto &integral            = it->second;
     assert(backward_tau <= 0);
     assert(forward_tau >= 0);

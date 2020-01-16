@@ -14,7 +14,7 @@ template <typename V, typename VReal, typename T0Real, typename BTauReal,
 void calc(const field<V, VReal, 2, 2>& v, T0Real /*t0*/, BTauReal /*btau*/,
           FTauReal /*ftau*/, size_t /*num_its*/, size_t /*seed_res*/,
           StepsizeReal stepsize, CovReal /*desired_coverage*/,
-          std::string seed_str) {
+          const std::string& seed_str) {
 
   std::seed_seq   seed(begin(seed_str), end(seed_str));
   std::mt19937_64 randeng{seed};
@@ -31,10 +31,10 @@ void calc(const field<V, VReal, 2, 2>& v, int argc, char** argv) {
   const double t0               = argc > 2 ? atof(argv[2]) : 0;
   const double btau             = argc > 3 ? atof(argv[3]) : -5;
   const double ftau             = argc > 4 ? atof(argv[4]) : 5;
-  const size_t num_its          = argc > 5 ? atoi(argv[5]) : 100;
-  const size_t seed_res         = argc > 6 ? atoi(argv[6]) : 3;
+  const size_t num_its          = argc > 5 ? atoi(argv[5]) : 5000;
+  const size_t seed_res         = argc > 6 ? atoi(argv[6]) : 2;
   const double stepsize         = argc > 7 ? atof(argv[7]) : 0.1;
-  const double desired_coverage = argc > 8 ? atof(argv[8]) : 0.999;
+  const double desired_coverage = argc > 8 ? atof(argv[8]) : 0.99;
   const auto   seed_str         = argc > 9 ? argv[9] : random_string(10);
   if (argc <= 9) { std::cerr << "seed: " << seed_str << '\n'; }
 
@@ -46,7 +46,7 @@ void calc(const field<V, VReal, 2, 2>& v, int argc, char** argv) {
 //==============================================================================
 auto main(int argc, char** argv) -> int {
   using namespace tatooine;
-  std::string v = argv[1];
+  const std::string v = argc > 1 ? argv[1] : "dg";
   if (v == "dg") {
     calc(numerical::doublegyre<double>{}, argc, argv);
   //} else if (v == "fdg") {

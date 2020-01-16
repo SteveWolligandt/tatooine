@@ -446,7 +446,7 @@ struct line {
       m_second_derivatives = &vertex_property<vec<Real, N>>("second_derivatives");
     }
     if (other.m_curvatures) {
-      m_curvatures = &vertex_property<vec<Real, N>>("curvatures");
+      m_curvatures = &vertex_property<Real>("curvatures");
     }
     return *this;
   }
