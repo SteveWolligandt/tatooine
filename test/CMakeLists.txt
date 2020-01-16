@@ -45,13 +45,13 @@ target_compile_options(unittests PRIVATE -Wall -Wextra -pedantic
 if(CMAKE_BUILD_TYPE STREQUAL "Debug")
   include(CodeCoverage)
   option(COVERAGE "compile with coverage flags" OFF)
-  if (COVERAGE AND NOT "${CMAKE_CXX_COMPILER_ID}" STREQUAL "GNU")
+  if (COVERAGE AND NOT CMAKE_COMPILER_IS_GNUCXX)
     message(STATUS
       "code coverage can only be done with g++ compiler at the moment")
   endif()
 endif()
 
-if (COVERAGE)
+if (COVERAGE AND CMAKE_COMPILER_IS_GNUCXX)
   add_executable (covbin main.cpp ${ALL_TEST_CPPS})
   target_link_libraries(covbin tatooine Catch2::Catch2 gcov)
   target_compile_options(covbin

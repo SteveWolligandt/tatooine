@@ -1536,7 +1536,7 @@ struct parameterized_line : line<Real, N> {
   }
   //----------------------------------------------------------------------------
   auto tangent_at(const tangent_idx i, bool prefer_calc = false) const {
-    return tangent_at(i.i, automatic, false);
+    return tangent_at(i.i, automatic, prefer_calc);
   }
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
   auto tangent_at(const size_t i, bool prefer_calc = false) const {
@@ -1659,13 +1659,16 @@ struct parameterized_line : line<Real, N> {
   }
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
   auto second_derivative_at(const size_t i, automatic_t /*tag*/,
-                  bool         prefer_calc = false) const {
-    if (this->m_second_derivatives && !prefer_calc) { return this->m_second_derivatives->at(i); }
+                            bool         prefer_calc = false) const {
+    if (this->m_second_derivatives && !prefer_calc) {
+      return this->m_second_derivatives->at(i);
+    }
     return second_derivative_at(i, quadratic);
   }
   //----------------------------------------------------------------------------
-  auto second_derivative_at(const second_derivative_idx i, bool prefer_calc = false) const {
-    return second_derivative_at(i.i, automatic, false);
+  auto second_derivative_at(const second_derivative_idx i,
+                            bool prefer_calc = false) const {
+    return second_derivative_at(i.i, automatic, prefer_calc);
   }
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
   auto second_derivative_at(const size_t i, bool prefer_calc = false) const {
@@ -1684,7 +1687,9 @@ struct parameterized_line : line<Real, N> {
     return second_derivative_at(i.i, prefer_calc);
   }
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-  auto operator[](second_derivative_idx i) const { return second_derivative_at(i.i); }
+  auto operator[](second_derivative_idx i) const {
+    return second_derivative_at(i.i);
+  }
   //----------------------------------------------------------------------------
   auto& second_derivatives_to_property(bool update = false) {
     if (this->m_second_derivatives != nullptr && !update) {
@@ -1715,7 +1720,9 @@ struct parameterized_line : line<Real, N> {
   }
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
   auto curvature_at(size_t i, bool prefer_calc = false) const {
-    if (this->m_curvatures && !prefer_calc) { return this->m_curvatures->at(i); }
+    if (this->m_curvatures && !prefer_calc) {
+      return this->m_curvatures->at(i);
+    }
     auto d1  = tangent_at(i);
     auto d2  = second_derivative_at(i);
     auto ld1 = ::tatooine::length(d1);

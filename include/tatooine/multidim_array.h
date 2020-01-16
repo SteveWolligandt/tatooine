@@ -806,7 +806,7 @@ template <typename MemLocOut = stack, typename IndexingOut = x_fastest,
           typename T0, typename T1, typename Indexing0, typename Indexing1,
           typename MemLoc0, typename MemLoc1, typename FReal,
           size_t... Resolution>
-constexpr auto interpolate(
+auto interpolate(
     const static_multidim_array<T0, Indexing0, MemLoc0, Resolution...>& arr0,
     const static_multidim_array<T1, Indexing1, MemLoc1, Resolution...>& arr1,
     FReal factor) {
