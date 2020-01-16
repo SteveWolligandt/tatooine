@@ -266,6 +266,7 @@ struct tensor : base_tensor<tensor<Real, Dims...>, Real, Dims...>,
             enable_if_arithmetic_or_complex<Real_> = true>
   constexpr tensor(tensor&& other) noexcept
       : array_parent_t{std::move(other)} {}
+
   template <typename Real_ = Real, enable_if_arithmetic_or_complex<Real_> = true>
   constexpr tensor& operator=(tensor&& other) noexcept {
     array_parent_t::operator=(std::move(other));
@@ -364,10 +365,17 @@ tensor(Rows const(&&... rows)[C])
 #endif
 
 //==============================================================================
-template <typename Real, size_t n>
-struct vec : tensor<Real, n> {
-  using parent_t = tensor<Real, n>;
+template <typename Real, size_t N>
+struct vec : tensor<Real, N> {
+  using parent_t = tensor<Real, N>;
   using parent_t::parent_t;
+  using parent_t::num_dimensions;
+  using parent_t::dimension;
+
+  template <typename... Ts, size_t _N = num_dimensions(),
+            size_t _Dim0 = dimension(0),
+            std::enable_if_t<_Dim0 == sizeof...(Ts), bool> = true>
+  constexpr vec(const Ts&... ts) : parent_t{ts...} {}
 
   using iterator = typename parent_t::array_parent_t::container_t::iterator;
   using const_iterator =
@@ -385,7 +393,7 @@ struct vec : tensor<Real, n> {
 //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 #if has_cxx17_support()
 template <typename... Ts>
-vec(const Ts...)->vec<promote_t<Ts...>, sizeof...(Ts)>;
+vec(const Ts&...)->vec<promote_t<Ts...>, sizeof...(Ts)>;
 #endif
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -

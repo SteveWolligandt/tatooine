@@ -47,8 +47,8 @@ struct cavity : field<cavity, double, 2, 2> {
   grid_t                            sampler;
   static constexpr vec<size_t, 3>   res{256, 96, 100};
   static constexpr grid             domain{linspace{-1.0, 8.1164, res(0)},
-                               linspace{-1.0, 1.5, res(1)},
-                               linspace{0.0, 10.0, res(2)}};
+                                           linspace{-1.0,    1.5, res(1)},
+                                           linspace{ 0.0,   10.0, res(2)}};
 
   cavity()
       : sampler(dataset_dir + "2DCavity/Cavity2DTimeFilter3x3x7_100_bin.am") {}

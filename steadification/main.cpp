@@ -22,7 +22,7 @@ void calc(const field<V, VReal, 2, 2>& v, T0Real /*t0*/, BTauReal /*btau*/,
   //s.random_domain_filling_streamsurfaces(v, stepsize);
   auto [mesh, surf] = s.pathsurface(v, s.random_seedcurve(0.1, 0.2), stepsize);
   mesh.write_vtk("pathsurface.vtk");
-  std::cerr << s.curvature(v, mesh, surf) << '\n';
+  std::cerr << s.curvature(mesh, surf) << '\n';
 }
 
 //------------------------------------------------------------------------------

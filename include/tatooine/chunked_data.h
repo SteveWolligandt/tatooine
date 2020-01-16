@@ -41,13 +41,12 @@ struct chunked_data {
   using this_t    = chunked_data<T, N, ChunkRes>;
   using chunk_t   = typename create_chunk_type<T, N, ChunkRes>::T;
   using indices_t = std::make_index_sequence<N>;
-  //============================================================================
-  static constexpr auto chunk_res = chunk_t::resolution();
-  //============================================================================
+  //----------------------------------------------------------------------------
+  static constexpr auto chunk_res = chunk_t::size();
+  //----------------------------------------------------------------------------
   dynamic_multidim_resolution<x_fastest> m_data_structure;
   dynamic_multidim_resolution<x_fastest> m_chunk_structure;
   std::vector<std::unique_ptr<chunk_t>> m_chunks;
-
  private:
   //============================================================================
   template <typename S, size_t... Is>

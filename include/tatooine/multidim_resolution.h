@@ -65,23 +65,23 @@ struct static_multidim_resolution {
   }
 
   //----------------------------------------------------------------------------
-#ifndef NDEBUG
-  template <typename... Is, enable_if_integral<std::decay_t<Is>...> = true>
-  static auto plain_index(Is... is) {
-    if (!in_range(std::forward<Is>(is)...)) {
-      std::stringstream ss;
-      ss << "is out of bounds: [ ";
-      for (auto i :
-           std::array<size_t, sizeof...(Is)>{static_cast<size_t>(is)...}) {
-        ss << std::to_string(i) + " ";
-      }
-      ss << "]\n";
-      throw std::runtime_error{ss.str()};
-    }
-#else
+//#ifndef NDEBUG
+//  template <typename... Is, enable_if_integral<std::decay_t<Is>...> = true>
+//  static auto plain_index(Is... is) {
+//    if (!in_range(std::forward<Is>(is)...)) {
+//      std::stringstream ss;
+//      ss << "is out of bounds: [ ";
+//      for (auto i :
+//           std::array<size_t, sizeof...(Is)>{static_cast<size_t>(is)...}) {
+//        ss << std::to_string(i) + " ";
+//      }
+//      ss << "]\n";
+//      throw std::runtime_error{ss.str()};
+//    }
+//#else
   template <typename... Is, enable_if_integral<std::decay_t<Is>...> = true>
   static constexpr auto plain_index(Is... is) {
-#endif
+//#endif
     static_assert(sizeof...(Is) == num_dimensions(),
                   "number of indices does not match number of dimensions");
     return Indexing::plain_index(
