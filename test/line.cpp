@@ -71,7 +71,7 @@ TEST_CASE(
   l.push_front(1, 1);
   l.push_front(2, 0);
   l.curvatures_to_property();
-  l.write_vtk("line_property.vtk");
+  //l.write_vtk("line_property.vtk");
 }
 //==============================================================================
 TEST_CASE("line_parameterized_initialization",
@@ -153,7 +153,7 @@ TEST_CASE("line_paramaterization_quadratic_tangent",
     parameterized_line<double, 2> l{{v0, t0}, {v1, t1}, {v2, t2}};
 
     l.tangents_to_property();
-    l.write_vtk("simple_quadratic_tangents.vtk");
+    //l.write_vtk("simple_quadratic_tangents.vtk");
   }
 }
 //==============================================================================
@@ -167,10 +167,10 @@ TEST_CASE("line_paramaterization_resample",
   l.push_back(v1, 1);
   l.push_back(v2, 2);
 
-  l.resample<interpolation::linear>(linspace(0.0, 2.0, 101))
-      .write_vtk("resampled_line_linear.vtk");
-  l.resample<interpolation::hermite>(linspace(0.0, 2.0, 101))
-      .write_vtk("resampled_line_hermite.vtk");
+  //l.resample<interpolation::linear>(linspace(0.0, 2.0, 101))
+  //    .write_vtk("resampled_line_linear.vtk");
+  //l.resample<interpolation::hermite>(linspace(0.0, 2.0, 101))
+  //    .write_vtk("resampled_line_hermite.vtk");
 }
 
 //==============================================================================
@@ -272,12 +272,12 @@ TEST_CASE("line_integrated_curvature", "[line][integrated_curvature]") {
       numerical::doublegyre                        v;
       integration::vclibs::rungekutta43<double, 2> rk43;
       size_t                                       cnt = 0;
-      for (auto t : linspace(0.0, 10.0, 1000)) {
+      for (auto t : linspace(0.0, 10.0, 100)) {
         auto integral_curve = rk43.integrate(v, {0.2, 0.2}, t, t + 10);
         auto kappa_dt       = integral_curve.integrated_curvature();
         CAPTURE(cnt, kappa_dt);
-        integral_curve.write_vtk("doublegyre_quadratic_tangents_" +
-                                 std::to_string(cnt++) + ".vtk");
+        //integral_curve.write_vtk("doublegyre_quadratic_tangents_" +
+        //                         std::to_string(cnt++) + ".vtk");
       }
     }
   }
