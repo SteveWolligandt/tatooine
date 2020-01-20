@@ -914,10 +914,10 @@ struct line {
     return prop;
   }
   //============================================================================
-  auto length() {
+  auto arc_length() const {
     Real len = 0;
     for (size_t i = 0; i < this->num_vertices() - 1; ++i) {
-      len += norm(vertex_at(i) - vertex_at(i + 1));
+      len += distance(vertex_at(i), vertex_at(i + 1));
     }
     return len;
   }
@@ -1207,7 +1207,7 @@ auto merge_line_container(Lines   lines,
 template <typename Lines, typename Real>
 auto filter_length(Lines lines, Real length) {
   for (auto it = begin(lines); it != end(lines);) {
-    auto l = it->length();
+    auto l = it->arc_length();
     ++it;
     if (l < length) { lines.erase(prev(it)); }
   }

@@ -46,6 +46,7 @@ endif()
 
 #- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 add_subdirectory(test)
+add_subdirectory(doc)
 add_subdirectory(misc)
 add_subdirectory(cuda)
 add_subdirectory(steadification)
@@ -55,27 +56,3 @@ add_subdirectory(steadification)
 export(TARGETS tatooine FILE tatooineConfig.cmake)
 export(PACKAGE tatooine)
 
-#- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - 
-# Doxygen
-#- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - 
-# check if Doxygen is installed
-find_package(Doxygen)
-if (DOXYGEN_FOUND)
-  # first we can indicate the documentation build as an option and set it to ON by default
-  option(BUILD_DOC "Generate documentation" OFF)
-  if (BUILD_DOC)
-    # set input and output files
-    set(DOXYGEN_IN ${CMAKE_CURRENT_SOURCE_DIR}/Doxyfile.in)
-    set(DOXYGEN_OUT ${CMAKE_CURRENT_BINARY_DIR}/doc/Doxyfile)
-
-    # request to configure the file
-    configure_file(${DOXYGEN_IN} ${DOXYGEN_OUT} @ONLY)
-
-    # note the option ALL which allows to build the docs together with the application
-    add_custom_target(doc ALL
-      COMMAND ${DOXYGEN_EXECUTABLE} ${DOXYGEN_OUT}
-      WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}
-      COMMENT "Generating API documentation with Doxygen"
-      VERBATIM)
-  endif()
-endif ()

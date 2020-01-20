@@ -186,14 +186,24 @@ class steadification {
                           StreamlineInterpolator, VSurf, Real, 3>& surf) const {
     std::set<Real> us;
     for (auto v : mesh.vertices()) { us.insert(mesh.uv(v)(0)); }
+    const auto num_integral_curves = us.size();
 
-    Real accumulated_curvatures = 0;
+    std::vector<Real> kappas, arc_lengths;
+    arc_lengths.reserve(num_integral_curves);
+    kappas.reserve(num_integral_curves);
     for (auto u : us) {
-      const auto kappa = surf.streamline_at(u, 0, 0).integrated_curvature();
-      std::cerr << "u = " << u << "; kappa = " << kappa << '\n';
-      accumulated_curvatures += kappa;
+      const auto& integral_curve = surf.streamline_at(u, 0, 0);
+      kappas.push_back(integral_curve.integrated_curvature());
+      arc_lengths.push_back(integral_curve.arc_length());
+      std::cerr << "u = " << u << "; kappa = " << kappas.back()
+                << "; arc length = " << arc_lengths.back() << '\n';
     }
-    return accumulated_curvatures / us.size();
+    const auto inv_acc_arc_lengths = 1 / acc_arc_lenghts;
+    Real       acc_kappas          = 0;
+    for (size_t i = 0; i < num_integral_curves; ++i) {
+      acc_kappas += kappas[i] * arc_lengths[i];
+    }
+    return acc_kappas / boost::accumulate(arc_lengths, Real(0));
   }
   //============================================================================
   /// \return coverage of domain between 0 and 1; 1 meaning fully covered
