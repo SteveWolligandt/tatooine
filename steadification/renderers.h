@@ -1,12 +1,12 @@
-#ifndef RENDERERS_H
-#define RENDERERS_H
+#ifndef TATOOINE_STEADIFICATION_RENDERERS_H
+#define TATOOINE_STEADIFICATION_RENDERERS_H
 
 #include <tatooine/streamsurface.h>
 
 #include <yavin>
 
 //==============================================================================
-namespace tatooine {
+namespace tatooine::steadification {
 //==============================================================================
 struct streamsurface_renderer
     : yavin::indexeddata<yavin::vec2, yavin::vec2, yavin::vec2> {
@@ -75,6 +75,6 @@ struct streamsurface_renderer
   void draw() const;
 };
 //==============================================================================
-}  // namespace tatooine
+}  // namespace tatooine::steadification
 //==============================================================================
 #endif

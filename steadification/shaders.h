@@ -1,12 +1,12 @@
-#ifndef SHADERS_H
-#define SHADERS_H
+#ifndef TATOOINE_STEADIFICATION_SHADERS_H
+#define TATOOINE_STEADIFICATION_SHADERS_H
 
 //==============================================================================
 #include <yavin>
 #include <string>
 
 //==============================================================================
-namespace tatooine {
+namespace tatooine::steadification {
 //==============================================================================
 struct vert_frag_shader : yavin::shader {
   vert_frag_shader(const std::string& vert, const std::string& frag);
@@ -29,7 +29,7 @@ struct domain_coverage_shader : comp_shader {
   domain_coverage_shader();
 };
 //==============================================================================
-}  // namespace tatooine
+}  // namespace tatooine::steadification
 //==============================================================================
 
 #endif

@@ -1,10 +1,10 @@
-#ifndef SETTINGS_H
-#define SETTINGS_H
+#ifndef TATOOINE_STEADIFICATION_SETTINGS_H
+#define TATOOINE_STEADIFICATION_SETTINGS_H
 
 #include "datasets.h"
 
 //==============================================================================
-namespace tatooine {
+namespace tatooine::steadification {
 //==============================================================================
 template <typename Real>
 struct settings;
@@ -123,7 +123,7 @@ template <> struct settings<cavity> {
 //  static constexpr size_t           num_edges = 5;
 //};
 //==============================================================================
-}  // namespace tatooine
+}  // namespace tatooine::steadification
 //==============================================================================
 
 #endif

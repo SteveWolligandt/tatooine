@@ -1,10 +1,13 @@
-#ifndef __STEADIFIED_VECTORFIELD_H__
-#define __STEADIFIED_VECTORFIELD_H__
+#ifndef TATOOINE_STEADIFICATION_STEADIFIED_VECTORFIELD_H
+#define TATOOINE_STEADIFICATION_STEADIFIED_VECTORFIELD_H
 
 #include <Tatooine/mesh.h>
 #include <Tatooine/quadtree.h>
 #include <Tatooine/vectorfield.h>
 
+//==============================================================================
+namespace tatooine::steadification {
+//==============================================================================
 template <typename real_t>
 struct steadified_vectorfield
     : tatooine::vectorfield<2, real_t, steadified_vectorfield<real_t>> {
@@ -108,5 +111,8 @@ struct steadified_vectorfield
     return {0, 0};
   }
 };
+//==============================================================================
+}  // namespace tatooine::steadification
+//==============================================================================
 
 #endif

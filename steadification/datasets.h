@@ -1,5 +1,5 @@
-#ifndef DATASETS_H
-#define DATASETS_H
+#ifndef TATOOINE_STEADIFICATION_DATASETS_H
+#define TATOOINE_STEADIFICATION_DATASETS_H
 
 //#include <H5Cpp.h>
 #include <tatooine/boussinesq.h>
@@ -15,7 +15,7 @@
 #include <utility>
 
 //==============================================================================
-namespace tatooine {
+namespace tatooine::steadification {
 //==============================================================================
 static std::string dataset_dir = DATASET_DIR + std::string("/");
 
@@ -169,7 +169,7 @@ struct rbc : field<rbc, double, 2, 2> {
 //  void load();
 //};
 //==============================================================================
-}  // namespace tatooine
+}  // namespace tatooine::steadification
 //==============================================================================
 
 #endif

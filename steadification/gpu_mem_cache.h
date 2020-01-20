@@ -1,5 +1,5 @@
-#ifndef __GPU_MEM_CACHE_H__
-#define __GPU_MEM_CACHE_H__
+#ifndef TATOOINE_STEADIFICATION_GPU_MEM_CACHE_H
+#define TATOOINE_STEADIFICATION_GPU_MEM_CACHE_H
 
 #include <tatooine/memory_usage.h>
 #include <functional>
@@ -7,6 +7,9 @@
 #include <unordered_map>
 #include <yavin>
 
+//==============================================================================
+namespace tatooine::steadification {
+//==============================================================================
 template <typename key_t, typename value_t>
 class GPUMemCache : public std::map<key_t, value_t> {
  public:
@@ -249,4 +252,7 @@ class GPUMemCache : public std::map<key_t, value_t> {
 template <typename real_t, typename key_t, typename value_t>
 using TimedGPUMemCache = GPUMemCache<real_t, GPUMemCache<key_t, value_t>>;
 
+//==============================================================================
+}  // namespace tatooine::steadification
+//==============================================================================
 #endif

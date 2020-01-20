@@ -1,11 +1,13 @@
-#ifndef RANDOMSEED_H
-#define RANDOMSEED_H
+#ifndef TATOOINE_STEADIFICATION_RANDOMSEED_H
+#define TATOOINE_STEADIFICATION_RANDOMSEED_H
 
 //==============================================================================
 #include <random>
 #include <boost/range/algorithm/generate.hpp>
 #include <string>
 
+//==============================================================================
+namespace tatooine::steadification {
 //==============================================================================
 static constexpr std::string_view alphanum = 
   "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz";
@@ -27,5 +29,8 @@ inline auto random_string(
   boost::generate(random_string, [&]{return random_char(random_engine);});
   return random_string;
 }
+//==============================================================================
+}  // namespace tatooine::steadification
+//==============================================================================
 
 #endif

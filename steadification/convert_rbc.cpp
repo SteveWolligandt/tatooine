@@ -1,5 +1,7 @@
 #include "datasets.h"
-
+//==============================================================================
+namespace tatooine::steadification {
+//==============================================================================
 struct RBC_Converter : RBC {
   void calc() {
     std::array<double, dim[0] * dim[1]> data_x, data_z;
@@ -43,7 +45,10 @@ struct RBC_Converter : RBC {
 
   }
 };
+//==============================================================================
+}  // namespace tatooine::steadification
+//==============================================================================
 
 int main () {
-  RBC_Converter conv; conv.calc();
+  tatooine::steadification::RBC_Converter conv; conv.calc();
 }

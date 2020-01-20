@@ -19,7 +19,7 @@
 #include "shaders.h"
 
 //==============================================================================
-namespace tatooine {
+namespace tatooine::steadification {
 //==============================================================================
 
 template <typename Real, typename RandEng>
@@ -119,7 +119,7 @@ class steadification {
     gl::viewport(m_cam.viewport());
 
     fbo.bind();
-    const float nan = 0.0f/ 0.0f;
+    const float nan = 0.0f / 0.0f;
     psf_rast.pos.clear(nan, nan);
     psf_rast.v.clear(nan, nan);
     psf_rast.uv.clear(nan, nan);
@@ -284,6 +284,6 @@ class steadification {
   auto rand() { return random_uniform<Real, RandEng>{m_rand_eng}(); }
 };
 //==============================================================================
-}  // namespace tatooine
+}  // namespace tatooine::steadification
 //==============================================================================
 #endif

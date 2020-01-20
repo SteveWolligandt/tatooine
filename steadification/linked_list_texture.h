@@ -4,6 +4,9 @@
 #include <yavin>
 using namespace yavin;
 
+//==============================================================================
+namespace tatooine::steadification {
+//==============================================================================
 template <typename node_t>
 class LinkedListTexture {
  public:
@@ -50,5 +53,8 @@ class LinkedListTexture {
   tex2r<unsigned int>      m_head_indices_tex;
   pixelunpackbuffer<unsigned int> m_clear_buffer;
 };
+//==============================================================================
+}  // namespace tatooine::steadification
+//==============================================================================
 
 #endif

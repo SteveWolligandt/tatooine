@@ -9,6 +9,9 @@
 
 //==============================================================================
 using namespace yavin;
+//==============================================================================
+namespace tatooine::steadification {
+//==============================================================================
 using dg_t     = tatooine::analytical::doublegyre<double>;
 using sincos_t = tatooine::analytical::sinuscosinus<double>;
 
@@ -174,9 +177,12 @@ void calc(int argc, const char** argv) {
   std::string seed_str  = argc > 3 ? argv[3] : random_string(6);
   calc<vf_t>(num_lines, seed_str);
 }
+//==============================================================================
+}  // namespace tatooine::steadification
+//==============================================================================
 
-//------------------------------------------------------------------------------
 int main(int argc, const char** argv) {
+  using namespace tatooine::steadification;
   if (!boost::filesystem::exists(std::string{pathline_dir})) {
     boost::filesystem::create_directory(std::string{pathline_dir});
   }

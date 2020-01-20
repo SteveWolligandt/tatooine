@@ -1,9 +1,8 @@
 #include "datasets.h"
 #include <fstream>
 #include <vector>
-
 //============================================================================
-namespace tatooine {
+namespace tatooine::steadification {
 //============================================================================
 void rbc::read_from_binary() {
   grids.reserve(dim[2]);

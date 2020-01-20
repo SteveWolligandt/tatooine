@@ -8,12 +8,15 @@
 #include "../../tensor.h"
 
 
+//==============================================================================
 namespace boost::numeric::odeint {
+//==============================================================================
 template <typename Real, size_t N>
 struct is_resizeable<tatooine::vec<Real, N>> {
-  typedef boost::false_type type;
-  static const bool         value = type::value;
+  using type              = boost::false_type;
+  static const bool value = type::value;
 };
+//==============================================================================
 }  // namespace boost::numeric::odeint
 //==============================================================================
 namespace tatooine::integration::boost {

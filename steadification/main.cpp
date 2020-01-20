@@ -7,7 +7,7 @@
 //==============================================================================
 using namespace std::chrono;
 //==============================================================================
-namespace tatooine {
+namespace tatooine::steadification {
 //==============================================================================
 template <typename V, typename VReal, typename T0Real, typename BTauReal,
           typename FTauReal, typename StepsizeReal, typename CovReal>
@@ -42,7 +42,7 @@ void calc(const field<V, VReal, 2, 2>& v, int argc, char** argv) {
        seed_str);
 }
 //==============================================================================
-}  // namespace tatooine
+}  // namespace tatooine::steadification
 //==============================================================================
 auto main(int argc, char** argv) -> int {
   using namespace tatooine;
