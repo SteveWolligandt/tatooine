@@ -198,7 +198,6 @@ class steadification {
       std::cerr << "u = " << u << "; kappa = " << kappas.back()
                 << "; arc length = " << arc_lengths.back() << '\n';
     }
-    const auto inv_acc_arc_lengths = 1 / acc_arc_lenghts;
     Real       acc_kappas          = 0;
     for (size_t i = 0; i < num_integral_curves; ++i) {
       acc_kappas += kappas[i] * arc_lengths[i];

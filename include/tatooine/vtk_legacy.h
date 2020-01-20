@@ -122,7 +122,7 @@ enum CellType {
 };
 
 //------------------------------------------------------------------------------
-inline std::string type_to_str(DatasetType type) {
+constexpr std::string_view type_to_str(DatasetType type) {
   switch (type) {
     default:
     case UNKNOWN_TYPE: return "UNKNOWN_TYPE";
@@ -1068,9 +1068,10 @@ class legacy_file_writer {
   void write_scalars(const std::string &                     name,
                      const std::vector<std::array<Data, N>> &data,
                      const std::string &lookup_table_name = "default") {
-    vtk::write_binary(m_file, "\nSCALARS " + name + ' ' +
-                                  ::tatooine::type_to_str<Data>() + ' ' +
-                                  std::to_string(N) + '\n');
+    std::stringstream ss;
+    ss << "\nSCALARS " << name << ' ' << tatooine::type_to_str<Data>() << ' '
+       << N << '\n';
+    vtk::write_binary(m_file, ss.str());
     vtk::write_binary(m_file, "\nLOOKUP_TABLE " + lookup_table_name + '\n');
     for (const auto &arr : data)
       for (auto& comp : arr) {
@@ -1086,12 +1087,13 @@ class legacy_file_writer {
   void write_scalars(const std::string &              name,
                      const std::vector<vec<Data, N>> &data,
                      const std::string &lookup_table_name = "default") {
-    vtk::write_binary(m_file, "\nSCALARS " + name + ' ' +
-                                  ::tatooine::type_to_str<Data>() + ' ' +
-                                  std::to_string(N) + '\n');
+    std::stringstream ss;
+    ss << "\nSCALARS " << name << ' ' << tatooine::type_to_str<Data>() << ' '
+       << N << '\n';
+    vtk::write_binary(m_file, ss.str());
     vtk::write_binary(m_file, "\nLOOKUP_TABLE " + lookup_table_name + '\n');
     Data d;
-    for (const auto& v : data)
+    for (const auto &v : data)
       for (size_t i = 0; i < N; ++i) {
         d = swap_endianess(v(i));
         m_file.write((char *)(&d), sizeof(Data));
@@ -1165,14 +1167,18 @@ void legacy_file_writer::write_header() {
 
   // write part4 STRUCTURED_POINTS | STRUCTURED_GRID | UNSTRUCTURED_GRID|
   // POLYDATA | RECTILINEAR_GRID | FIELD
-  vtk::write_binary(m_file, "DATASET " + type_to_str(m_dataset_type));
+  std::stringstream ss;
+  ss << "DATASET " << type_to_str(m_dataset_type);
+  vtk::write_binary(m_file, ss.str());
 }
 //------------------------------------------------------------------------------
 template <typename Real>
 void legacy_file_writer::write_points(
     const std::vector<std::array<Real, 3>> &points) {
-  vtk::write_binary(m_file, "\nPOINTS " + std::to_string(points.size()) + ' ' +
-                                ::tatooine::type_to_str<Real>() + '\n');
+  std::stringstream ss;
+  ss << "\nPOINTS " << points.size() << ' ' << tatooine::type_to_str<Real>()
+             << '\n';
+  vtk::write_binary(m_file, ss.str());
   std::vector<std::array<Real, 3>> points_swapped(points);
   swap_endianess(reinterpret_cast<Real *>(points_swapped.data()),
                  3 * points.size());
@@ -1184,8 +1190,10 @@ void legacy_file_writer::write_points(
 template <typename Real>
 void legacy_file_writer::write_points(
     const std::vector<vec<Real, 3>> &points) {
-  vtk::write_binary(m_file, "\nPOINTS " + std::to_string(points.size()) + ' ' +
-                                ::tatooine::type_to_str<Real>() + '\n');
+  std::stringstream ss;
+  ss << "\nPOINTS " << points.size() << ' ' << tatooine::type_to_str<Real>()
+             << '\n';
+  vtk::write_binary(m_file, ss.str());
   auto points_swapped = points;
   swap_endianess(reinterpret_cast<Real *>(points_swapped.data()),
                  3 * points.size());
@@ -1239,8 +1247,10 @@ template <typename Real, size_t N>
 void legacy_file_writer::write_data(
     const std::string &keyword, const std::string &name,
     const std::vector<std::array<Real, N>> &data) {
-  vtk::write_binary(m_file, "\n" + keyword + " " + name + ' ' +
-                                ::tatooine::type_to_str<Real>() + '\n');
+  std::stringstream ss;
+  ss << "\n"
+      << keyword << ' ' << name << ' ' << tatooine::type_to_str<Real>() << '\n';
+  vtk::write_binary(m_file, ss.str());
   for (const auto &vec : data)
     for (auto comp : vec) {
       comp = swap_endianess(comp);
@@ -1325,8 +1335,9 @@ template <typename Data, typename>
 void legacy_file_writer::write_scalars(const std::string &      name,
                                        const std::vector<Data> &data,
                                        const std::string &lookup_table_name) {
-  vtk::write_binary(m_file, "\nSCALARS " + name + ' ' +
-                                ::tatooine::type_to_str<Data>() + " 1\n");
+  std::stringstream ss;
+  ss << "\nSCALARS " << name << ' ' << tatooine::type_to_str<Data>() << " 1\n";
+  vtk::write_binary(m_file, ss.str());
   vtk::write_binary(m_file, "\nLOOKUP_TABLE " + lookup_table_name + '\n');
   for (auto comp : data) {
     comp = swap_endianess(comp);
@@ -1337,9 +1348,10 @@ template <typename Data, typename>
 void legacy_file_writer::write_scalars(
     const std::string &name, const std::vector<std::vector<Data>> &data,
     const std::string &lookup_table_name) {
-  vtk::write_binary(m_file, "\nSCALARS " + name + ' ' +
-                                ::tatooine::type_to_str<Data>() + ' ' +
-                                std::to_string(data.front().size()) + '\n');
+  std::stringstream ss;
+  ss << "\nSCALARS " << name << ' ' << tatooine::type_to_str<Data>()
+     << std::to_string(data.front().size()) + '\n';
+  vtk::write_binary(m_file, ss.str());
   vtk::write_binary(m_file, "\nLOOKUP_TABLE " + lookup_table_name + '\n');
   for (const auto &vec : data)
     for (auto comp : vec) {

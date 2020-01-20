@@ -116,7 +116,7 @@ struct streamsurface {
     auto step = (uv1 - uv0) / (num_samples - 1);
     Real d    = 0;
     for (size_t i = 0; i < num_samples - 1; ++i) {
-      d += ::tatooine::distance(
+      d += tatooine::distance(
           sample(uv0 + step * i, cache_bw_tau, cache_fw_tau),
           sample(uv0 + step * (i + 1), cache_bw_tau, cache_fw_tau));
     }

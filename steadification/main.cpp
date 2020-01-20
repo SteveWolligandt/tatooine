@@ -46,6 +46,8 @@ void calc(const field<V, VReal, 2, 2>& v, int argc, char** argv) {
 //==============================================================================
 auto main(int argc, char** argv) -> int {
   using namespace tatooine;
+  using namespace steadification;
+  using namespace numerical;
   const std::string v = argc > 1 ? argv[1] : "dg";
   if (v == "dg") {
     calc(numerical::doublegyre<double>{}, argc, argv);

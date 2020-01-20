@@ -814,7 +814,7 @@ struct line {
   auto curvature_at(size_t i, forward_t tag) const {
     auto d1  = tangent_at(i, tag);
     auto d2  = second_derivative_at(i, tag);
-    auto ld1 = ::tatooine::length(d1);
+    auto ld1 = length(d1);
     return std::abs(d1(0) * d2(1) - d1(1) * d2(0)) / (ld1 * ld1 * ld1);
   }
   //----------------------------------------------------------------------------
@@ -825,7 +825,7 @@ struct line {
   auto curvature_at(size_t i, backward_t tag) const {
     auto d1  = tangent_at(i, tag);
     auto d2  = second_derivative_at(i, tag);
-    auto ld1 = ::tatooine::length(d1);
+    auto ld1 = length(d1);
     return std::abs(d1(0) * d2(1) - d1(1) * d2(0)) / (ld1 * ld1 * ld1);
   }
   //----------------------------------------------------------------------------
@@ -836,7 +836,7 @@ struct line {
   auto curvature_at(size_t i, central_t tag) const {
     auto d1  = tangent_at(i, tag);
     auto d2  = second_derivative_at(i, tag);
-    auto ld1 = ::tatooine::length(d1);
+    auto ld1 = length(d1);
     return std::abs(d1(0) * d2(1) - d1(1) * d2(0)) / (ld1 * ld1 * ld1);
   }
   //----------------------------------------------------------------------------
@@ -1725,7 +1725,7 @@ struct parameterized_line : line<Real, N> {
     }
     auto d1  = tangent_at(i);
     auto d2  = second_derivative_at(i);
-    auto ld1 = ::tatooine::length(d1);
+    auto ld1 = length(d1);
     return std::abs(d1(0) * d2(1) - d1(1) * d2(0)) / (ld1 * ld1 * ld1);
   }
   //----------------------------------------------------------------------------

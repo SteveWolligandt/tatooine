@@ -4,9 +4,9 @@
 #include <boost/range/algorithm.hpp>
 
 //==============================================================================
-namespace tatooine {
+namespace tatooine::steadification {
 //==============================================================================
 void streamsurface_renderer::draw() const { draw_triangles(); }
 //==============================================================================
-}  // namespace tatooine
+}  // namespace tatooine::steadification
 //==============================================================================
