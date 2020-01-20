@@ -13,8 +13,9 @@
 #include <cstdlib>
 #include <filesystem>
 #include <vector>
-
 #include <yavin>
+
+#include "linked_list_texture.h"
 #include "renderers.h"
 #include "shaders.h"
 
@@ -42,12 +43,14 @@ class steadification {
   using integrator_t          = integration::vclibs::rungekutta43<double, 3>;
   using domain_coverage_tex_t = yavin::tex2rui32;
 
-  struct rasterized_pathsurface {
-    yavin::tex2rgf pos;
-    yavin::tex2rgf v;
-    yavin::tex2rgf uv;
-    rasterized_pathsurface(size_t w, size_t h) : pos{w, h}, v{w, h}, uv{w, h} {}
+  struct linked_list_node {
+    vec<float, 2> pos;
+    vec<float, 2> v;
+    vec<float, 2> uv;
+    unsigned int next;
+    std::array<float, 1> _padding;
   };
+  using rasterized_pathsurface = linked_list_texture<linked_list_node>;
 
   //============================================================================
   // members
@@ -61,6 +64,7 @@ class steadification {
   yavin::tex2rf             m_noise_tex;
   ssf_rasterization_shader  m_ssf_rasterization_shader;
   domain_coverage_shader    m_domain_coverage_shader;
+  ll_to_pos_shader          m_ll_to_pos_shader;
   integrator_t              m_integrator;
   RandEng&                  m_rand_eng;
   boundingbox<Real, 3>      m_domain;
@@ -111,28 +115,23 @@ class steadification {
     auto                   gpu_mesh = gpu_pathsurface(v, seedcurve, stepsize);
     rasterized_pathsurface psf_rast{m_render_resolution(0),
                                     m_render_resolution(1)};
-    framebuffer fbo{psf_rast.pos, psf_rast.v, psf_rast.uv, domain_coverage_tex,
-                    m_depth};
     m_ssf_rasterization_shader.bind();
     m_ssf_rasterization_shader.set_projection(m_cam.projection_matrix());
 
     gl::viewport(m_cam.viewport());
 
+    yavin::disable_depth_test();
+    framebuffer fbo{domain_coverage_tex};
     fbo.bind();
-    const float nan = 0.0f / 0.0f;
-    psf_rast.pos.clear(nan, nan);
-    psf_rast.v.clear(nan, nan);
-    psf_rast.uv.clear(nan, nan);
-    clear_depth_buffer();
     gpu_mesh.draw();
     return psf_rast;
   }
   //----------------------------------------------------------------------------
-  template <typename... Rasterizations>
-  auto rasterize(const Rasterizations... rasterizations) {
-    rasterized_pathsurface combined{m_render_resolution(0),
-                                    m_render_resolution(1)};
-  }
+  //template <typename... Rasterizations>
+  //auto rasterize(const Rasterizations... rasterizations) {
+  //  rasterized_pathsurface combined{m_render_resolution(0),
+  //                                  m_render_resolution(1)};
+  //}
   //----------------------------------------------------------------------------
   /// \param seedcurve seedcurve in space-time
   template <typename V>
@@ -279,8 +278,13 @@ class steadification {
 
     return parameterized_line<Real, 3>{{x0, 0}, {x1, 1}};
   }
-
+  //----------------------------------------------------------------------------
   auto rand() { return random_uniform<Real, RandEng>{m_rand_eng}(); }
+  //----------------------------------------------------------------------------
+  auto ll_to_pos() {
+
+    ll_to_pos_shader.dispatch(32, 32);
+  }
 };
 //==============================================================================
 }  // namespace tatooine::steadification

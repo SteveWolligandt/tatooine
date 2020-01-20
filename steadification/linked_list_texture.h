@@ -58,7 +58,7 @@ class linked_list_texture {
   void clear() {
     m_atomic_counter.to_zero();
     m_head_indices_tex.set_data(m_head_indices_clear_buffer);
-    m_length_indices_tex.set_data(m_list_length_clear_buffer);
+    m_list_length_tex.set_data(m_list_length_clear_buffer);
   }
   //----------------------------------------------------------------------------
   auto width() const { return m_w; }

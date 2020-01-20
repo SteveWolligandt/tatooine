@@ -19,6 +19,8 @@ configure_file(${CMAKE_CURRENT_SOURCE_DIR}/viridis_color_scale.png
 copy(ssf_rasterization.vert)
 copy(ssf_rasterization.frag)
 copy(domain_coverage.comp)
+copy(linked_list.glsl)
+copy(ll_to_pos_tex.comp)
 
 set(HDF5_LIBS -lhdf5 -lhdf5_cpp -lhdf5_hl)
 

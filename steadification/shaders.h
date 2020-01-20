@@ -24,9 +24,12 @@ struct ssf_rasterization_shader : vert_frag_shader {
   ssf_rasterization_shader();
 };
 //==============================================================================
-/// renders vector field, tau and position in three render targets
 struct domain_coverage_shader : comp_shader {
   domain_coverage_shader();
+};
+//==============================================================================
+struct ll_to_pos_shader : comp_shader {
+  ll_to_pos_shader();
 };
 //==============================================================================
 }  // namespace tatooine::steadification

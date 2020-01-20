@@ -1,0 +1,14 @@
+#version 450
+//==============================================================================
+#include "linked_list.glsl"
+//==============================================================================
+layout(binding = 2, rg32f)  uniform image2D position_tex;
+//==============================================================================
+layout (local_size_x = 32, local_size_y = 32) in;
+void main() {
+  const ivec2 pos = ivec2(gl_GlobalInvocationID.xy);
+  if (pos.x >= ll_tex_resolution.x ||
+      pos.y >= ll_tex_resolution.y) { return; }
+
+  imageStore(coverage_tex, pos, vec4(1, 0, 0, 0));
+}
