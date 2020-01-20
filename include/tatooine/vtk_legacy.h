@@ -22,8 +22,8 @@
 namespace tatooine {
 namespace vtk {
 //=============================================================================
-//! reads until terminator_char was found. buffer will containg the
-//! terminator_char
+/// reads until terminator_char was found. buffer will containg the
+/// terminator_char
 inline auto read_until(std::istream &stream, const char terminator_char,
                        char *buffer) {
   size_t idx = 0;
@@ -35,14 +35,14 @@ inline auto read_until(std::istream &stream, const char terminator_char,
   return std::string(buffer);
 }
 //-----------------------------------------------------------------------------
-//! reads stream until a linebreak was found. buffer will not contain the break
+/// reads stream until a linebreak was found. buffer will not contain the break
 inline auto read_binaryline(std::istream &stream, char *buffer) {
   auto str = read_until(stream, '\n', buffer);
   return str.erase(str.size() - 1, 1);
 }
 //-----------------------------------------------------------------------------
-//! reads stream until a whitespace was found and consumes any whitespace until
-//! another character was found. buffer will not contain any whitespace
+/// reads stream until a whitespace was found and consumes any whitespace until
+/// another character was found. buffer will not contain any whitespace
 inline auto read_word(std::istream &stream, char *buffer) {
   size_t idx = 0;
   do {
