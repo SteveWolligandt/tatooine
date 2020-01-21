@@ -1,5 +1,5 @@
-#ifndef STEADIFICATION_H
-#define STEADIFICATION_H
+#ifndef TATOOINE_STEADIFICATION_STEADIFICATION_H
+#define TATOOINE_STEADIFICATION_STEADIFICATION_H
 
 #include <tatooine/for_loop.h>
 #include <tatooine/integration/vclibs/rungekutta43.h>
@@ -41,14 +41,13 @@ class steadification {
   using ivec2                 = vec<size_t, 2>;
   using ivec3                 = vec<size_t, 3>;
   using integrator_t          = integration::vclibs::rungekutta43<double, 3>;
-  using domain_coverage_tex_t = yavin::tex2rui32;
+  using domain_coverage_tex_t = yavin::tex2r32ui;
 
   struct linked_list_node {
     vec<float, 2> pos;
     vec<float, 2> v;
     vec<float, 2> uv;
-    unsigned int next;
-    std::array<float, 1> _padding;
+    unsigned int  next;
   };
   using rasterized_pathsurface = linked_list_texture<linked_list_node>;
 
@@ -59,9 +58,9 @@ class steadification {
   ivec2                     m_render_resolution;
   yavin::context            m_context;
   yavin::orthographiccamera m_cam;
-  yavin::tex2rgbf           m_color_scale;
+  yavin::tex2rgb32f         m_color_scale;
   yavin::texdepth           m_depth;
-  yavin::tex2rf             m_noise_tex;
+  yavin::tex2r32f           m_noise_tex;
   ssf_rasterization_shader  m_ssf_rasterization_shader;
   domain_coverage_shader    m_domain_coverage_shader;
   ll_to_pos_shader          m_ll_to_pos_shader;
@@ -109,20 +108,35 @@ class steadification {
   //============================================================================
   template <typename V>
   auto rasterize(const field<V, Real, 2, 2>&       v,
-                 const parameterized_line<Real, 3>& seedcurve,
-                 domain_coverage_tex_t& domain_coverage_tex, Real stepsize) {
+                 const parameterized_line<Real, 3>& seedcurve, Real stepsize,
+                 domain_coverage_tex_t& domain_coverage_tex) {
+    return rasterize(pathsurface(v, seedcurve, stepsize).first, domain_coverage_tex);
+  }
+  // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+  template <template <typename, size_t> typename Integrator,
+            template <typename> typename SeedcurveInterpolator,
+            template <typename> typename StreamlineInterpolator, typename V>
+  auto rasterize(const pathsurface_t<Integrator, SeedcurveInterpolator,
+                                     StreamlineInterpolator, V>& mesh,
+                 domain_coverage_tex_t& domain_coverage_tex) {
+    return rasterize(gpu_pathsurface(mesh), domain_coverage_tex);
+  }
+  // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+  auto rasterize(const pathsurface_gpu_t& gpu_mesh,
+                 domain_coverage_tex_t& domain_coverage_tex) {
     using namespace yavin;
-    auto                   gpu_mesh = gpu_pathsurface(v, seedcurve, stepsize);
-    rasterized_pathsurface psf_rast{m_render_resolution(0),
-                                    m_render_resolution(1)};
+    static const float nan = 0.0f / 0.0f;
+    rasterized_pathsurface psf_rast{
+        m_render_resolution(0), m_render_resolution(1),
+        linked_list_node{{nan, nan}, {nan, nan}, {nan, nan}, 0xffffffff}};
     m_ssf_rasterization_shader.bind();
+    m_ssf_rasterization_shader.set_linked_list_size(psf_rast.buffer_size());
     m_ssf_rasterization_shader.set_projection(m_cam.projection_matrix());
-
     gl::viewport(m_cam.viewport());
-
     yavin::disable_depth_test();
     framebuffer fbo{domain_coverage_tex};
     fbo.bind();
+    psf_rast.bind();
     gpu_mesh.draw();
     return psf_rast;
   }
@@ -135,9 +149,9 @@ class steadification {
   //----------------------------------------------------------------------------
   /// \param seedcurve seedcurve in space-time
   template <typename V>
-  auto pathsurface(const field<V, Real, 2, 2>&       v,
-                   const parameterized_line<Real, 3>& seedcurve,
-                   Real                               stepsize) {
+  auto pathsurface(const field<V, Real, 2, 2>&        v,
+                   const parameterized_line<Real, 3>& seedcurve, Real stepsize,
+                   size_t seedres) {
     spacetime_field stv{v};
     using namespace VC::odeint;
     streamsurface surf{stv,
@@ -147,7 +161,7 @@ class steadification {
                        interpolation::linear<Real>{},
                        interpolation::hermite<Real>{}};
 
-    auto  mesh   = surf.discretize(2, stepsize, -10, 10);
+    auto  mesh  = surf.discretize(seedres, stepsize, -10, 10);
     auto& vprop = mesh.template add_vertex_property<vec2>("v");
 
     for (auto vertex : mesh.vertices()) {
@@ -281,9 +295,17 @@ class steadification {
   //----------------------------------------------------------------------------
   auto rand() { return random_uniform<Real, RandEng>{m_rand_eng}(); }
   //----------------------------------------------------------------------------
-  auto ll_to_pos() {
-
-    ll_to_pos_shader.dispatch(32, 32);
+  auto to_pos_tex(rasterized_pathsurface& r) {
+    tex2rg<float> v_tex{m_render_resolution(0), m_render_resolution(1)};
+    v_tex.bind_image_texture(2);
+    r.bind();
+    m_ll_to_pos_shader.dispatch(32, 32);
+    return v_tex;
+  }
+  //----------------------------------------------------------------------------
+  auto make_domain_coverage_tex() const {
+    return domain_coverage_tex_t{m_render_resolution(0),
+                                 m_render_resolution(1)};
   }
 };
 //==============================================================================

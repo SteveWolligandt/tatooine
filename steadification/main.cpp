@@ -12,7 +12,7 @@ namespace tatooine::steadification {
 template <typename V, typename VReal, typename T0Real, typename BTauReal,
           typename FTauReal, typename StepsizeReal, typename CovReal>
 void calc(const field<V, VReal, 2, 2>& v, T0Real /*t0*/, BTauReal /*btau*/,
-          FTauReal /*ftau*/, size_t /*num_its*/, size_t /*seed_res*/,
+          FTauReal /*ftau*/, size_t /*num_its*/, size_t seedres,
           StepsizeReal stepsize, CovReal /*desired_coverage*/,
           const std::string& seed_str) {
 
@@ -20,11 +20,13 @@ void calc(const field<V, VReal, 2, 2>& v, T0Real /*t0*/, BTauReal /*btau*/,
   std::mt19937_64 randeng{seed};
   steadification s(settings<V>::domain, settings<V>::render_resolution, randeng);
   //s.random_domain_filling_streamsurfaces(v, stepsize);
-  auto [mesh, surf] = s.pathsurface(v, s.random_seedcurve(0.1, 0.2), stepsize);
-  mesh.write_vtk("pathsurface.vtk");
-  std::cerr << s.curvature(mesh, surf) << '\n';
-}
-
+  auto [mesh, surf] =
+      s.pathsurface(v, s.random_seedcurve(0.1, 0.2), stepsize, seedres);
+  auto domcov = s.make_domain_coverage_tex();
+  auto rasterized = s.rasterize(mesh, domcov);
+  s.to_pos_tex(rasterized).write_png("pos.png");
+  domcov.write_png("domcov.png");
+} 
 //------------------------------------------------------------------------------
 template <typename V, typename VReal>
 void calc(const field<V, VReal, 2, 2>& v, int argc, char** argv) {

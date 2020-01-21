@@ -22,6 +22,7 @@ struct comp_shader : yavin::shader {
 /// renders vector field, tau and position in three render targets
 struct ssf_rasterization_shader : vert_frag_shader {
   ssf_rasterization_shader();
+  void set_linked_list_size(unsigned int n);
 };
 //==============================================================================
 struct domain_coverage_shader : comp_shader {

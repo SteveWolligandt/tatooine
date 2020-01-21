@@ -1,25 +1,26 @@
 #===============================================================================
-if ("${CMAKE_CXX_COMPILER_ID}" STREQUAL "Clang")
-  set(CMAKE_CXX_FLAGS "-fcolor-diagnostics")
-elseif ("${CMAKE_CXX_COMPILER_ID}" STREQUAL "GNU")
-  set(CMAKE_CXX_FLAGS "-fdiagnostics-color=always")
-endif()
+#if ("${CMAKE_CXX_COMPILER_ID}" STREQUAL "Clang")
+#  set(CMAKE_CXX_FLAGS "-fcolor-diagnostics")
+#elseif ("${CMAKE_CXX_COMPILER_ID}" STREQUAL "GNU")
+#  set(CMAKE_CXX_FLAGS "-fdiagnostics-color=always")
+#endif()
 #===============================================================================
 set(DATASET_DIR "/home/steve/vectorfield_datasets" CACHE PATH "Path to datasets")
 add_compile_definitions(DATASET_DIR="${DATASET_DIR}")
 
 function (copy FILE)
   configure_file(${CMAKE_CURRENT_SOURCE_DIR}/${FILE} 
-    ${CMAKE_CURRENT_BINARY_DIR}/${FILE} COPYONLY)
-endfunction (copy)
+                 ${CMAKE_CURRENT_BINARY_DIR}/${FILE} COPYONLY)
+endfunction ()
 
 configure_file(${CMAKE_CURRENT_SOURCE_DIR}/viridis_color_scale.png 
   ${CMAKE_CURRENT_BINARY_DIR}/color_scale.png COPYONLY)
 
+copy(linked_list.glsl)
+copy(dual_linked_list.glsl)
 copy(ssf_rasterization.vert)
 copy(ssf_rasterization.frag)
 copy(domain_coverage.comp)
-copy(linked_list.glsl)
 copy(ll_to_pos_tex.comp)
 
 set(HDF5_LIBS -lhdf5 -lhdf5_cpp -lhdf5_hl)

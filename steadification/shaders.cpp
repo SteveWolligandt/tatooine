@@ -39,6 +39,10 @@ void comp_shader::dispatch(GLuint w, GLuint h) {
 ssf_rasterization_shader::ssf_rasterization_shader()
     : vert_frag_shader{"ssf_rasterization.vert",
                        "ssf_rasterization.frag"} {}
+//------------------------------------------------------------------------------
+void ssf_rasterization_shader::set_linked_list_size(unsigned int n) {
+  set_uniform("ll_size", n);
+}
 
 //==============================================================================
 // domain_coverage_shader
@@ -49,7 +53,7 @@ domain_coverage_shader::domain_coverage_shader()
 //==============================================================================
 // ll_to_pos
 //==============================================================================
-ll_to_pos_shader::ll_to_pos_shader() : comp_shader{"ll_to_pos.comp"} {}
+ll_to_pos_shader::ll_to_pos_shader() : comp_shader{"ll_to_pos_tex.comp"} {}
 
 //==============================================================================
 }  // namespace tatooine
