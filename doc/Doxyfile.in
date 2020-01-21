@@ -1,0 +1,24 @@
+PROJECT_NAME           = "@CMAKE_PROJECT_NAME@"
+OUTPUT_DIRECTORY       = @CMAKE_CURRENT_BINARY_DIR@
+INPUT                  = "@PROJECT_SOURCE_DIR@/include/tatooine" "@PROJECT_SOURCE_DIR@/include/tatooine/geometry" "@PROJECT_SOURCE_DIR@/include/tatooine/integration" "@PROJECT_SOURCE_DIR@/include/tatooine/integration/boost" "@PROJECT_SOURCE_DIR@/include/tatooine/integration/vclibs" "@PROJECT_SOURCE_DIR@/steadification"
+GENERATE_LATEX         = NO
+GENERATE_HTML          = @DOXYGEN_GEN_HTML@
+HTML_OUTPUT            = @DOXYGEN_HTML_DIR@
+GENERATE_XML           = @DOXYGEN_GEN_XML@
+XML_PROGRAMLISTING     = NO
+
+EXTRACT_ALL            = YES
+EXTRACT_PRIVATE        = YES
+EXTRACT_STATIC         = YES
+
+CLASS_DIAGRAMS         = YES
+HIDE_UNDOC_RELATIONS   = NO
+HAVE_DOT               = YES
+CLASS_GRAPH            = YES
+COLLABORATION_GRAPH    = YES
+UML_LIMIT_NUM_FIELDS   = 50
+TEMPLATE_RELATIONS     = YES
+DOT_GRAPH_MAX_NODES    = 100
+MAX_DOT_GRAPH_DEPTH    = 0
+DOT_TRANSPARENT        = YES
+DOT_IMAGE_FORMAT       = svg

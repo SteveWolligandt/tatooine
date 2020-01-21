@@ -1,0 +1,24 @@
+PROJECT_NAME           = "tatooine"
+OUTPUT_DIRECTORY       = /home/steve/libs/tatooine2/doc
+INPUT                  = "/home/steve/libs/tatooine2/include/tatooine" "/home/steve/libs/tatooine2/include/tatooine/geometry" "/home/steve/libs/tatooine2/include/tatooine/integration" "/home/steve/libs/tatooine2/include/tatooine/integration/boost" "/home/steve/libs/tatooine2/include/tatooine/integration/vclibs" "/home/steve/libs/tatooine2/steadification"
+GENERATE_LATEX         = NO
+GENERATE_HTML          = YES
+HTML_OUTPUT            = /home/steve/libs/tatooine2/doc/html
+GENERATE_XML           = NO
+XML_PROGRAMLISTING     = NO
+
+EXTRACT_ALL            = YES
+EXTRACT_PRIVATE        = YES
+EXTRACT_STATIC         = YES
+
+CLASS_DIAGRAMS         = YES
+HIDE_UNDOC_RELATIONS   = NO
+HAVE_DOT               = YES
+CLASS_GRAPH            = YES
+COLLABORATION_GRAPH    = YES
+UML_LIMIT_NUM_FIELDS   = 50
+TEMPLATE_RELATIONS     = YES
+DOT_GRAPH_MAX_NODES    = 100
+MAX_DOT_GRAPH_DEPTH    = 0
+DOT_TRANSPARENT        = YES
+DOT_IMAGE_FORMAT       = svg
