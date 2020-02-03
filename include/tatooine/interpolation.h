@@ -96,9 +96,13 @@ struct hermite {
    constexpr auto evaluate(Real t) const { return m_polynomial(t); }
    constexpr auto operator()(Real t) const { return evaluate(t); }
    //----------------------------------------------------------------------------
-   const auto& polynomial() const { return m_polynomial; }
-   auto&       polynomial() { return m_polynomial; }
+   constexpr const auto& polynomial() const { return m_polynomial; }
+   constexpr auto&       polynomial() { return m_polynomial; }
 };
+//------------------------------------------------------------------------------
+constexpr auto diff(const hermite<Real>& interp) {
+  return diff(interp.polynomial());
+}
 //==============================================================================
 template <typename Real, size_t N>
 struct hermite<vec<Real, N>> {

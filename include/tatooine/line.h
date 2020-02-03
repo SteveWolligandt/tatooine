@@ -1296,33 +1296,41 @@ struct parameterized_line : line<Real, N> {
 
  public:
   parameterized_line()
-      : m_parameterization{
-            &this->template add_vertex_property<Real>("parameterization")} {}
+      : m_parameterization{&this->template add_vertex_property<Real>(
+            "parameterization")} {}
+  // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
   parameterized_line(const parameterized_line& other)
       : parent_t{other},
         m_parameterization{
-            &this->template vertex_property<Real>("parameterization")} {}
+            &this->template vertex_property<Real>("parameterization")},
+        m_interpolation_kernels{other.m_interpolation_kernels} {}
+  // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
   parameterized_line(parameterized_line&& other)
       : parent_t{std::move(other)},
         m_parameterization{
-            &this->template vertex_property<Real>("parameterization")} {}
-  auto& operator=(const parameterized_line& other) {
-    parent_t::operator=(other);
-    m_parameterization =
-        &this->template vertex_property<Real>("parameterization");
-    return *this;
-  }
-  auto& operator=(parameterized_line&& other) {
-    parent_t::operator=(std::move(other));
-    m_parameterization =
-        &this->template vertex_property<Real>("parameterization");
-    return *this;
-  }
-  //----------------------------------------------------------------------------
+            &this->template vertex_property<Real>("parameterization")},
+        m_interpolation_kernels{std::move(other.m_interpolation_kernels)} {}
+  // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
   parameterized_line(std::initializer_list<std::pair<pos_t, Real>>&& data)
       : m_parameterization{
             &this->template add_vertex_property<Real>("parameterization")} {
     for (auto& [pos, param] : data) { push_back(std::move(pos), param); }
+  }
+  // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+  auto& operator=(const parameterized_line& other) {
+    parent_t::operator=(other);
+    m_parameterization =
+        &this->template vertex_property<Real>("parameterization");
+    m_interpolation_kernels = other.m_interpolation_kernels;
+    return *this;
+  }
+  // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+  auto& operator=(parameterized_line&& other) {
+    parent_t::operator=(std::move(other));
+    m_parameterization =
+        &this->template vertex_property<Real>("parameterization");
+    m_interpolation_kernels = std::move(other.m_interpolation_kernels);
+    return *this;
   }
   //----------------------------------------------------------------------------
   const auto& parameterization() const { return *m_parameterization; }
@@ -1583,7 +1591,11 @@ struct parameterized_line : line<Real, N> {
   auto tangent_at(const size_t i, automatic_t /*tag*/,
                   bool         prefer_calc = false) const {
     if (this->m_tangents && !prefer_calc) { return this->m_tangents->at(i); }
-    return tangent_at(i, quadratic);
+    if (num_vertices() >= 3) {
+      return tangent_at(i, quadratic);
+    } else /* if (num_vertices() == 2)*/ {
+      return this->tangent_at(i, forward);
+    }
   }
   //----------------------------------------------------------------------------
   auto tangent_at(const tangent_idx i, bool prefer_calc = false) const {
