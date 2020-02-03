@@ -29,6 +29,7 @@ list(REMOVE_ITEM TESTFILES "${CMAKE_CURRENT_SOURCE_DIR}/main.cpp")
 foreach(TESTFILE ${TESTFILES})
   get_filename_component(FILENAME ${TESTFILE} NAME_WE)
   create_test(${FILENAME})
+  message(STATUS ${FILENAME})
 endforeach()
 
 #- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -

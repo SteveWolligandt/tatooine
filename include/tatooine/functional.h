@@ -10,6 +10,8 @@
 #include "map.h"
 
 //==============================================================================
+namespace tatooine {
+//==============================================================================
 template <typename T, typename... Ts>
 decltype(auto) front_param(T&& head, Ts&&... /*tail*/) {
   return std::forward<T>(head);

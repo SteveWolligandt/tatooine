@@ -2,7 +2,9 @@
 #define TATOOINE_POLYNOMIAL_H
 //==============================================================================
 #include <array>
+
 #include "make_array.h"
+#include "tensor.h"
 #include "type_traits.h"
 //==============================================================================
 namespace tatooine {
@@ -20,21 +22,21 @@ struct polynomial {
   // ctors
   //----------------------------------------------------------------------------
  public:
-  constexpr polynomial(const std::array<Real, N>& coeffs)
+  constexpr polynomial(const std::array<Real, Degrees>& coeffs)
       : m_coefficients{coeffs} {}
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-  constexpr polynomial(std::array<Real, N>&& coeffs)
+  constexpr polynomial(std::array<Real, Degrees>&& coeffs)
       : m_coefficients{std::move(coeffs)} {}
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
   template <typename... Coeffs, enable_if_arithmetic<Coeffs...> = true>
   constexpr polynomial(Coeffs... coeffs) : m_coefficients{coeffs...} {}
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
   template <typename OtherReal, enable_if_arithmetic<OtherReal> = true>
-  constexpr polynomial(const vec<OtherReal, N>& coeffs)
-      : m_coefficients{make_array<Real>(coeffs)} {}
+  constexpr polynomial(const vec<OtherReal, Degrees>& coeffs)
+      : m_coefficients{make_array<Real>(coeffs.data())} {}
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
   template <typename OtherReal, enable_if_arithmetic<OtherReal> = true>
-  constexpr polynomial(const std::array<OtherReal, N>& coeffs)
+  constexpr polynomial(const std::array<OtherReal, Degrees>& coeffs)
       : m_coefficients{make_array<Real>(coeffs)} {}
 
   //----------------------------------------------------------------------------
@@ -46,7 +48,7 @@ struct polynomial {
     Real y   = 0;
     Real acc = 1;
 
-    for (size_t i = 0; i < N; ++i) {
+    for (size_t i = 0; i < Degrees; ++i) {
       y += acc * m_coefficients[i];
       acc *= x;
     }

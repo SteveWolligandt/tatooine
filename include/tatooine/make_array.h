@@ -1,6 +1,7 @@
 #ifndef TATOOINE_MAKE_ARRAY_H
 #define TATOOINE_MAKE_ARRAY_H
-
+//==============================================================================
+#include <array>
 //==============================================================================
 namespace tatooine {
 //==============================================================================
@@ -23,12 +24,12 @@ template <typename T, size_t N>
 constexpr auto make_array(const T& t) {
   return make_array<T>(t, std::make_index_sequence<N>{});
 }
-//------------------------------------------------------------------------------
-template <typename T, size_t N>
-constexpr auto make_array(const vec<T, N>& data) {
-  return invoke_unpacked([](auto&&... data) { return make_array<T>(data...); },
-                         unpack(data));
-}
+////------------------------------------------------------------------------------
+//template <typename T, size_t N>
+//constexpr auto make_array(const vec<T, N>& data) {
+//  return invoke_unpacked([](auto&&... data) { return make_array<T>(data...); },
+//                         unpack(data));
+//}
 //------------------------------------------------------------------------------
 template <typename T, size_t N>
 constexpr auto make_array(const std::array<T, N>& data) {
