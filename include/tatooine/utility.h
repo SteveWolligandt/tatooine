@@ -2,6 +2,7 @@
 #define TATOOINE_UTILITY_H
 
 #include "cxxstd.h"
+#include "make_array.h"
 #include <array>
 #include <boost/core/demangle.hpp>
 
@@ -88,21 +89,7 @@ struct back<T, Ts...> {
 template <typename... Ts>
 using back_t = typename back<Ts...>::type;
 
-//==============================================================================
-template <typename T, size_t... Is>
-constexpr auto make_array(const T& t, std::index_sequence<Is...> /*is*/) {
-  return std::array<T, sizeof...(Is)>{((void)Is, t)...};
-}
-//------------------------------------------------------------------------------
-template <typename T, size_t N>
-constexpr auto make_array() {
-  return make_array<T>(T{}, std::make_index_sequence<N>{});
-}
-//------------------------------------------------------------------------------
-template <typename T, size_t N>
-constexpr auto make_array(const T& t) {
-  return make_array<T>(t, std::make_index_sequence<N>{});
-}
+
 
 //==============================================================================
 template <size_t I, size_t Begin, size_t End, typename Cont>

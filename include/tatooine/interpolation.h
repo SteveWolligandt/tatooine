@@ -1,5 +1,5 @@
-#ifndef __TATOOINE_INTERPOLATION_H__
-#define __TATOOINE_INTERPOLATION_H__
+#ifndef TATOOINE_INTERPOLATION_H
+#define TATOOINE_INTERPOLATION_H
 
 #include <cassert>
 #include <cmath>
@@ -9,78 +9,92 @@
 //==============================================================================
 namespace tatooine::interpolation {
 //==============================================================================
-
-template <typename real_t, typename derived_t>
+template <typename Real, typename Derived>
 struct base1 {
   /// actual nearest_neighbour interpolation
-  template <typename data_t>
-  static constexpr auto interpolate(const data_t& A, const data_t& B,
-                                    real_t t) noexcept {
-    return derived_t::interpolate(A, B, t);
+  template <typename Data>
+  static constexpr auto interpolate(const Data& A, const Data& B,
+                                    Real t) noexcept {
+    return Derived::interpolate(A, B, t);
   }
 
   /// nearest_neighbour interpolation using iterators
-  template <typename iter>
-  static constexpr auto interpolate_iter(iter A, iter B, real_t t) {
+  template <typename Iter>
+  static constexpr auto interpolate_iter(Iter A, Iter B, Real t) {
     return interpolate(*A, *B, t);
   }
 
   /// nearest_neighbour interpolation using iterators for multi-dimensional
   /// fields
-  template <typename iter, typename... Xs>
-  static constexpr auto interpolate_iter(iter A, iter B, real_t t, real_t x,
+  template <typename Iter, typename... Xs>
+  static constexpr auto interpolate_iter(Iter A, Iter B, Real t, Real x,
                                          Xs&&... xs) {
     return interpolate((*A).sample(x, std::forward<Xs>(xs)...),
                        (*B).sample(x, std::forward<Xs>(xs)...), t);
   }
 
   /// nearest_neighbour interpolation using iterators needed for regular_grid
-  template <typename iter>
-  static constexpr auto interpolate_iter(iter A, iter         B, iter /*begin*/,
-                                         iter /*end*/, real_t t) {
+  template <typename Iter>
+  static constexpr auto interpolate_iter(Iter A, Iter         B, Iter /*begin*/,
+                                         Iter /*end*/, Real t) {
     return interpolate(*A, *B, t);
   }
 
   /// nearest_neighbour interpolation using iterators for multi-dimensional
   /// fields. needed for regular_grid
-  template <typename iter, typename... Xs>
-  static constexpr auto interpolate_iter(iter A, iter         B, iter /*begin*/,
-                                         iter /*end*/, real_t t, real_t x,
+  template <typename Iter, typename... Xs>
+  static constexpr auto interpolate_iter(Iter A, Iter         B, Iter /*begin*/,
+                                         Iter /*end*/, Real t, Real x,
                                          Xs&&... xs) {
     return interpolate((*A).sample(x, std::forward<Xs>(xs)...),
                        (*B).sample(x, std::forward<Xs>(xs)...), t);
   }
 };
-
-template <typename real_t>
+//==============================================================================
+template <typename Data>
 struct hermite {
-  /// actual calculation of hermite interpolation
-  template <typename data_t>
-  static constexpr auto interpolate(const data_t& A, const data_t& B,
-                                    const data_t& C, const data_t& D,
-                                    real_t t) noexcept {
-    auto a = B;
-    auto b = (C - A) * 0.5;
-    auto c = -(D - 4.0 * C + (5.0 * B) - 2.0 * A) * 0.5;
-    auto d = (D - (3.0 * C) + (3.0 * B) - A) * 0.5;
-    return a + b * t + c * t * t + d * t * t * t;
+  //----------------------------------------------------------------------------
+  // traits
+  //----------------------------------------------------------------------------
+  public:
+  static constexpr bool needs_first_derivative = true;
+
+  //----------------------------------------------------------------------------
+  // members
+  //----------------------------------------------------------------------------
+  public:
+   Data m_fx0, m_fx1;
+   Data m_fx0dx, m_fx1dx;
+   //----------------------------------------------------------------------------
+   // ctors
+   //----------------------------------------------------------------------------
+   hermite(const Data& fx0,   const Data& fx1,
+           const Data& fx0dx, const Data& fx1dx)
+       : m_fx0{fx0}, m_fx1{fx1}, m_fx0dx{fx0dx}, m_fx1dx{fx1dx} {}
+
+   //----------------------------------------------------------------------------
+   // methods
+   //----------------------------------------------------------------------------
+   /// actual calculation of hermite interpolation
+   static constexpr auto interpolate(const Data& A, const Data& B,
+                                     const Data& C, const Data& D,
+                                     Real t) noexcept {
+     auto a = B;
+     auto b = (C - A) * 0.5;
+     auto c = -(D - 4.0 * C + (5.0 * B) - 2.0 * A) * 0.5;
+     auto d = (D - (3.0 * C) + (3.0 * B) - A) * 0.5;
+     return a + b * t + c * t * t + d * t * t * t;
   }
 
   /// hermite interpolation using iterators and border treatment from
   /// "Cubic Convolution Interpolation for Digital Image Processing" Robert G.
   /// Keys
-  template <typename iter>
-  static constexpr auto interpolate_iter(iter A, iter B, iter begin, iter end,
-                                         real_t t) {
-    if (A == B) {
-      return *A;
-    }
-    if (t == 0) {
-      return *A;
-    }
-    if (t == 1) {
-      return *B;
-    }
+  template <typename Iter>
+  static constexpr auto interpolate_iter(Iter A, Iter B, Iter begin, Iter end,
+                                         Real t) {
+    if (A == B) { return *A; }
+    if (t == 0) { return *A; }
+    if (t == 1) { return *B; }
     const auto left  = *A;
     const auto right = *B;
 
@@ -94,9 +108,9 @@ struct hermite {
   /// hermite interpolation using iterators and border treatment from
   /// "Cubic Convolution Interpolation for Digital Image Processing" Robert G.
   /// Keys for multidimensional interpolations
-  template <typename iter, typename... Xs>
-  static constexpr auto interpolate_iter(iter A, iter B, iter begin, iter end,
-                                         real_t t, real_t x, Xs&&... xs) {
+  template <typename Iter, typename... Xs>
+  static constexpr auto interpolate_iter(Iter A, Iter B, Iter begin, Iter end,
+                                         Real t, Real x, Xs&&... xs) {
     const auto left  = (*A).sample(x, std::forward<Xs>(xs)...);
     const auto right = (*B).sample(x, std::forward<Xs>(xs)...);
 
@@ -114,19 +128,19 @@ struct hermite {
 
 //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-template <typename real_t>
-struct linear : base1<real_t, linear<real_t>> {
+template <typename Real>
+struct linear : base1<Real, linear<Real>> {
   /// actual linear interpolation
-  template <typename data_t>
-  static constexpr auto interpolate(const data_t& A, const data_t& B,
-                                    real_t t) noexcept {
+  template <typename Data>
+  static constexpr auto interpolate(const Data& A, const Data& B,
+                                    Real t) noexcept {
     return (1 - t) * A + t * B;
   }
 
-  template <typename data_t>
-  static constexpr auto interpolate(const data_t& A, const data_t& B,
-                                    const data_t& C, real_t a, real_t b,
-                                    real_t c) noexcept {
+  template <typename Data>
+  static constexpr auto interpolate(const Data& A, const Data& B,
+                                    const Data& C, Real a, Real b,
+                                    Real c) noexcept {
     if (auto sum = a + b + c; std::abs(sum - 1) > 1e-6) {
       std::cout << a << " + " << b << " + " << c << " = " << sum << '\n';
       assert(false && "barycentric coordinates do not sum up to 1");
@@ -137,12 +151,12 @@ struct linear : base1<real_t, linear<real_t>> {
 
 //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-template <typename real_t>
-struct nearest_neighbour : base1<real_t, nearest_neighbour<real_t>> {
+template <typename Real>
+struct nearest_neighbour : base1<Real, nearest_neighbour<Real>> {
   /// actual nearest_neighbour interpolation
-  template <typename data_t>
-  static constexpr auto interpolate(const data_t& A, const data_t& B,
-                                    real_t t) noexcept {
+  template <typename Data>
+  static constexpr auto interpolate(const Data& A, const Data& B,
+                                    Real t) noexcept {
     return t < 0.5 ? A : B;
     // return (1 - t) * A + t * B;
   }

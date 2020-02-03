@@ -246,6 +246,8 @@ struct const_line_vertex_container {
   const auto& back() const {
     return m_line.at(Handle{m_line.num_vertices() - 1}, m_prefer_calc);
   }
+  //--------------------------------------------------------------------------
+  const auto& line() const { return m_line; }
 };
 //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 template <typename Line, typename Real, size_t N, typename Handle,
@@ -1048,6 +1050,19 @@ struct line {
     return lines;
   }
 };
+//------------------------------------------------------------------------------
+template <typename Real, size_t N>
+auto diff(const line<Real, N>& l) {
+  return l.tangents();
+}
+//------------------------------------------------------------------------------
+template <typename Real, size_t N, typename Handle, typename Value,
+          typename Reference = Value&>
+auto diff(const const_line_vertex_container<
+          line<Real, N>, Real, N, typename line<Real, N>::tangent_idx,
+          vec<Real, N>, vec<Real, N>>& tangents) {
+  return tangents.line().second_derivatives();
+}
 
 //==============================================================================
 // template <typename Real, size_t N>
@@ -1248,7 +1263,7 @@ auto filter_length(const std::list<line<Real, N>>& lines, MaxDist max_dist) {
 }
 
 //==============================================================================
-template <typename Real, size_t N>
+template <typename Real, size_t N, typename InterpolationKernel>
 struct parameterized_line : line<Real, N> {
   using this_t   = parameterized_line<Real, N>;
   using parent_t = line<Real, N>;
@@ -1272,7 +1287,8 @@ struct parameterized_line : line<Real, N> {
   using parent_t::operator[];
 
  private:
-  vertex_property_t<Real>* m_parameterization;
+  vertex_property_t<Real>*        m_parameterization;
+  std::deque<InterpolationKernel> m_interpolation_kernels;
 
  public:
   parameterized_line()
@@ -1354,31 +1370,37 @@ struct parameterized_line : line<Real, N> {
   void push_back(const pos_t& p, Real t) {
     auto i                    = parent_t::push_back(p);
     m_parameterization->at(i) = t;
+    m_interpolation_kernels.emplace_back();
   }
   //----------------------------------------------------------------------------
   void push_back(pos_t&& p, Real t) {
     auto i                    = parent_t::push_back(std::move(p));
     m_parameterization->at(i) = t;
+    m_interpolation_kernels.emplace_back();
   }
   //----------------------------------------------------------------------------
   void pop_back() {
     parent_t::pop_back();
     m_parameterization->pop_back();
+    m_interpolation_kernels.pop_back();
   }
   //----------------------------------------------------------------------------
   void push_front(const pos_t& p, Real t) {
     auto i                    = parent_t::push_front(p);
     m_parameterization->at(i) = t;
+    m_interpolation_kernels.emplace_front();
   }
   //----------------------------------------------------------------------------
   void push_front(pos_t&& p, Real t) {
     auto i                    = parent_t::push_front(std::move(p));
     m_parameterization->at(i) = t;
+    m_interpolation_kernels.emplace_front();
   }
   //----------------------------------------------------------------------------
   void pop_front() {
     parent_t::pop_front();
     m_parameterization->pop_front();
+    m_interpolation_kernels.pop_front();
   }
 
   //----------------------------------------------------------------------------
@@ -1405,10 +1427,7 @@ struct parameterized_line : line<Real, N> {
     // interpolate
     Real factor = (t - parameterization_at(left)) /
                   (parameterization_at(right) - parameterization_at(left));
-    Interpolator<Real> interp;
-    return interp.interpolate_iter(next(begin(vertices()), left),
-                                   next(begin(vertices()), right),
-                                   begin(vertices()), end(vertices()), factor);
+    return m_interpolation_kernels[left](factor);
   }
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
   template <template <typename> typename Interpolator = interpolation::hermite>
@@ -1798,6 +1817,20 @@ struct parameterized_line : line<Real, N> {
     return intcurv;
   }
 };
+//------------------------------------------------------------------------------
+template <typename Real, size_t N>
+auto diff(const parameterized_line<Real, N>& l) {
+  return l.tangents();
+}
+//------------------------------------------------------------------------------
+template <typename Real, size_t N, typename Handle, typename Value,
+          typename Reference = Value&>
+auto diff(const const_line_vertex_container<
+          parameterized_line<Real, N>, Real, N,
+          typename parameterized_line<Real, N>::tangent_idx, vec<Real, N>,
+          vec<Real, N>>& tangents) {
+  return tangents.line().second_derivatives();
+}
 //==============================================================================
 /// \brief      merge line strips
 template <typename Real, size_t N>
