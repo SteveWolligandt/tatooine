@@ -17,7 +17,7 @@ constexpr auto make_array(Data&&... data) {
 //------------------------------------------------------------------------------
 template <typename T, size_t N>
 constexpr auto make_array() {
-  return make_array<T>(T{}, std::make_index_sequence<N>{});
+  return make_array(T{}, std::make_index_sequence<N>{});
 }
 //------------------------------------------------------------------------------
 template <typename T, size_t N>

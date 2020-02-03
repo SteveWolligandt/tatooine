@@ -1263,7 +1263,9 @@ auto filter_length(const std::list<line<Real, N>>& lines, MaxDist max_dist) {
 }
 
 //==============================================================================
-template <typename Real, size_t N, typename InterpolationKernel>
+template <typename Real, size_t N,
+          template <typename> typename InterpolationKernel =
+              interpolation::hermite>
 struct parameterized_line : line<Real, N> {
   using this_t   = parameterized_line<Real, N>;
   using parent_t = line<Real, N>;
@@ -1283,12 +1285,14 @@ struct parameterized_line : line<Real, N> {
   using parent_t::second_derivative_at;
   using parent_t::tangent_at;
   using parent_t::vertex_at;
+  using parent_t::front_vertex;
+  using parent_t::back_vertex;
   using parent_t::vertices;
   using parent_t::operator[];
 
  private:
-  vertex_property_t<Real>*        m_parameterization;
-  std::deque<InterpolationKernel> m_interpolation_kernels;
+  vertex_property_t<Real>*               m_parameterization;
+  std::deque<InterpolationKernel<pos_t>> m_interpolation_kernels;
 
  public:
   parameterized_line()
@@ -1325,19 +1329,19 @@ struct parameterized_line : line<Real, N> {
   auto&       parameterization() { return *m_parameterization; }
   //----------------------------------------------------------------------------
   std::pair<pos_t&, Real&> front() {
-    return {this->front_vertex(), front_parameterization()};
+    return {front_vertex(), front_parameterization()};
   }
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
   std::pair<const pos_t&, const Real&> front() const {
-    return {this->front_vertex(), front_parameterization()};
+    return {front_vertex(), front_parameterization()};
   }
   //----------------------------------------------------------------------------
   std::pair<pos_t&, Real&> back() {
-    return {this->back_vertex(), back_parameterization()};
+    return {back_vertex(), back_parameterization()};
   }
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
   std::pair<const pos_t&, const Real&> back() const {
-    return {this->back_vertex(), back_parameterization()};
+    return {back_vertex(), back_parameterization()};
   }
 
   //----------------------------------------------------------------------------
@@ -1370,13 +1374,31 @@ struct parameterized_line : line<Real, N> {
   void push_back(const pos_t& p, Real t) {
     auto i                    = parent_t::push_back(p);
     m_parameterization->at(i) = t;
-    m_interpolation_kernels.emplace_back();
+    if (num_vertices() > 1) {
+      if constexpr (InterpolationKernel<pos_t>::needs_first_derivative) {
+        m_interpolation_kernels.emplace_back(
+            vertex_at(num_vertices() - 2), back_vertex(),
+            tangent_at(num_vertices() - 2), back_tangent());
+      } else {
+        m_interpolation_kernels.emplace_back(vertex_at(num_vertices() - 2),
+                                             back_vertex());
+      }
+    }
   }
   //----------------------------------------------------------------------------
   void push_back(pos_t&& p, Real t) {
     auto i                    = parent_t::push_back(std::move(p));
     m_parameterization->at(i) = t;
-    m_interpolation_kernels.emplace_back();
+    if (num_vertices() > 1) {
+      if constexpr (InterpolationKernel<pos_t>::needs_first_derivative) {
+        m_interpolation_kernels.emplace_back(
+            vertex_at(num_vertices() - 2), back_vertex(),
+            tangent_at(num_vertices() - 2), back_tangent());
+      } else {
+        m_interpolation_kernels.emplace_back(vertex_at(num_vertices() - 2),
+                                             back_vertex());
+      }
+    }
   }
   //----------------------------------------------------------------------------
   void pop_back() {
@@ -1388,13 +1410,27 @@ struct parameterized_line : line<Real, N> {
   void push_front(const pos_t& p, Real t) {
     auto i                    = parent_t::push_front(p);
     m_parameterization->at(i) = t;
-    m_interpolation_kernels.emplace_front();
+    if (num_vertices() > 1) {
+      if constexpr (InterpolationKernel<pos_t>::needs_first_derivative) {
+        m_interpolation_kernels.emplace_front(front_vertex(), vertex_at(1),
+                                              front_tangent(), tangent_at(1));
+      } else {
+        m_interpolation_kernels.emplace_front(front_vertex(), vertex_at(1));
+      }
+    }
   }
   //----------------------------------------------------------------------------
   void push_front(pos_t&& p, Real t) {
     auto i                    = parent_t::push_front(std::move(p));
     m_parameterization->at(i) = t;
-    m_interpolation_kernels.emplace_front();
+    if (num_vertices() > 1) {
+      if constexpr (InterpolationKernel<pos_t>::needs_first_derivative) {
+        m_interpolation_kernels.emplace_front(front_vertex(), vertex_at(1),
+                                              front_tangent(), tangent_at(1));
+      } else {
+        m_interpolation_kernels.emplace_front(front_vertex(), vertex_at(1));
+      }
+    }
   }
   //----------------------------------------------------------------------------
   void pop_front() {
@@ -1405,7 +1441,6 @@ struct parameterized_line : line<Real, N> {
 
   //----------------------------------------------------------------------------
   /// sample the line via interpolation
-  template <template <typename> typename Interpolator = interpolation::hermite>
   auto sample(Real t) const {
     if (this->empty()) { throw empty_exception{}; }
 
@@ -1423,22 +1458,19 @@ struct parameterized_line : line<Real, N> {
         left = center;
       }
     }
-
     // interpolate
-    Real factor = (t - parameterization_at(left)) /
-                  (parameterization_at(right) - parameterization_at(left));
-    return m_interpolation_kernels[left](factor);
+    return m_interpolation_kernels[left](
+        (t - parameterization_at(left)) /
+        (parameterization_at(right) - parameterization_at(left)));
   }
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-  template <template <typename> typename Interpolator = interpolation::hermite>
   auto operator()(const Real t) const {
-    return sample<Interpolator>(t);
+    return sample(t);
   }
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-  template <template <typename> typename Interpolator = interpolation::hermite>
   auto resample(const linspace<Real>& ts) const {
     this_t resampled;
-    for (auto t : ts) { resampled.push_back(sample<Interpolator>(t), t); }
+    for (auto t : ts) { resampled.push_back(sample(t), t); }
     return resampled;
   }
 

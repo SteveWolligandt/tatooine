@@ -105,22 +105,22 @@ TEST_CASE("line_sampling_linear",
   l.push_back(v1, 0.5);
   l.push_back(v2, 1);
 
-  REQUIRE(approx_equal(l.sample<interpolation::linear>(0), v0));
-  REQUIRE(approx_equal(l.sample<interpolation::linear>(0.5), v1));
-  REQUIRE(approx_equal(l.sample<interpolation::linear>(1), v2));
+  REQUIRE(approx_equal(l.sample(0), v0));
+  REQUIRE(approx_equal(l.sample(0.5), v1));
+  REQUIRE(approx_equal(l.sample(1), v2));
 
-  REQUIRE(approx_equal(l.sample<interpolation::linear>(0.1/2),
+  REQUIRE(approx_equal(l.sample(0.1/2),
                        (v0 * 0.9 + v1 * 0.1)));
-  REQUIRE(approx_equal(l.sample<interpolation::linear>(0.9/2),
+  REQUIRE(approx_equal(l.sample(0.9/2),
                        (v0 * 0.1 + v1 * 0.9)));
-  REQUIRE(approx_equal(l.sample<interpolation::linear>(1.1/2),
+  REQUIRE(approx_equal(l.sample(1.1/2),
                        (v1 * 0.9 + v2 * 0.1)));
-  REQUIRE(approx_equal(l.sample<interpolation::linear>(1.9/2),
+  REQUIRE(approx_equal(l.sample(1.9/2),
                        (v1 * 0.1 + v2 * 0.9)));
-  REQUIRE_NOTHROW(l.sample<interpolation::linear>(0.3));
-  REQUIRE_NOTHROW(l.sample<interpolation::linear>(0.7));
-  REQUIRE_THROWS(l.sample<interpolation::linear>(-0.01));
-  REQUIRE_THROWS(l.sample<interpolation::linear>(1.01));
+  REQUIRE_NOTHROW(l.sample(0.3));
+  REQUIRE_NOTHROW(l.sample(0.7));
+  REQUIRE_THROWS(l.sample(-0.01));
+  REQUIRE_THROWS(l.sample(1.01));
 }
 
 //==============================================================================
@@ -134,13 +134,13 @@ TEST_CASE("line_sampling_hermite",
   l.push_back(v1, 1);
   l.push_back(v2, 2);
 
-  REQUIRE(approx_equal(l.sample<interpolation::hermite>(0), v0));
-  REQUIRE(approx_equal(l.sample<interpolation::hermite>(1), v1));
-  REQUIRE(approx_equal(l.sample<interpolation::hermite>(2), v2));
-  REQUIRE_NOTHROW(l.sample<interpolation::hermite>(0.5));
-  REQUIRE_NOTHROW(l.sample<interpolation::hermite>(1.5));
-  REQUIRE_THROWS(l.sample<interpolation::hermite>(-0.01));
-  REQUIRE_THROWS(l.sample<interpolation::hermite>(2.01));
+  REQUIRE(approx_equal(l.sample(0), v0));
+  REQUIRE(approx_equal(l.sample(1), v1));
+  REQUIRE(approx_equal(l.sample(2), v2));
+  REQUIRE_NOTHROW(l.sample(0.5));
+  REQUIRE_NOTHROW(l.sample(1.5));
+  REQUIRE_THROWS(l.sample(-0.01));
+  REQUIRE_THROWS(l.sample(2.01));
 }
 
 //==============================================================================
@@ -155,22 +155,6 @@ TEST_CASE("line_paramaterization_quadratic_tangent",
     l.tangents_to_property();
     //l.write_vtk("simple_quadratic_tangents.vtk");
   }
-}
-//==============================================================================
-TEST_CASE("line_paramaterization_resample",
-          "[line][parameterization][resample]") {
-  vec                           v0{0.1, 0.2};
-  vec                           v1{0.5, 0.9};
-  vec                           v2{0.9, 0.2};
-  parameterized_line<double, 2> l;
-  l.push_back(v0, 0);
-  l.push_back(v1, 1);
-  l.push_back(v2, 2);
-
-  //l.resample<interpolation::linear>(linspace(0.0, 2.0, 101))
-  //    .write_vtk("resampled_line_linear.vtk");
-  //l.resample<interpolation::hermite>(linspace(0.0, 2.0, 101))
-  //    .write_vtk("resampled_line_hermite.vtk");
 }
 
 //==============================================================================
@@ -280,6 +264,17 @@ TEST_CASE("line_integrated_curvature", "[line][integrated_curvature]") {
         //                         std::to_string(cnt++) + ".vtk");
       }
     }
+  }
+}
+//==============================================================================
+TEST_CASE("line_resample", "[line][parameterization][resample]") {
+  SECTION("double gyre pathline") {
+    numerical::doublegyre                        v;
+    integration::vclibs::rungekutta43<double, 2> rk43;
+    auto integral_curve = rk43.integrate(v, {0.2, 0.2}, 0, 10);
+    integral_curve.write_vtk("original_pathline.vtk");
+    integral_curve.resample(linspace(0, 10, 100))
+        .write_vtk("resampled_pathline.vtk");
   }
 }
 //==============================================================================
