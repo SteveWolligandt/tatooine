@@ -24,32 +24,35 @@ namespace tatooine {
 //==============================================================================
 
 template <template <typename, size_t> typename Integrator,
-          template <typename> typename SeedcurveInterpolator,
-          template <typename> typename StreamlineInterpolator, typename V,
+          template <typename> typename SeedCurveInterpolator,
+          template <typename> typename IntegralCurveInterpolator, typename V,
           typename Real, size_t N>
 struct hultquist_discretization;
 
-template <template <typename, size_t> typename Integrator,
-          template <typename> typename SeedcurveInterpolator,
-          template <typename> typename StreamlineInterpolator, typename V,
+template <template <typename, size_t, template <typename> typename> typename Integrator,
+          template <typename> typename SeedCurveInterpolator,
+          template <typename> typename IntegralCurveInterpolator, typename V,
           typename Real, size_t N>
 struct streamsurface {
   static constexpr auto num_dimensions() { return N; }
   using real_t       = Real;
-  using this_t       = streamsurface<Integrator, SeedcurveInterpolator,
-                               StreamlineInterpolator, V, Real, N>;
-  using line_t       = parameterized_line<Real, N>;
+  using this_t       = streamsurface<Integrator, SeedCurveInterpolator,
+                               IntegralCurveInterpolator, V, Real, N>;
+  using integralcurve_t =
+      parameterized_line<Real, N, IntegralCurveInterpolator>;
+  using seedcurve_t =
+      parameterized_line<Real, N, SeedCurveInterpolator>;
   using vec2         = vec<Real, 2>;
   using pos_t        = vec<Real, N>;
   using vec_t        = vec<Real, N>;
-  using integrator_t = Integrator<Real, N>;
+  using integrator_t = Integrator<Real, N, IntegralCurveInterpolator>;
 
   struct out_of_domain : std::exception {};
 
  private:
   V            m_v;
   Real         m_t0;
-  line_t       m_seedcurve;
+  seedcurve_t       m_seedcurve;
   Real         m_min_u, m_max_u;
   integrator_t m_integrator;
 
@@ -57,8 +60,8 @@ struct streamsurface {
  public:
   template <typename T0Real, typename... Args>
   streamsurface(const field<V, Real, N, N>& v, T0Real t0,
-                const line_t& seedcurve, const Integrator<Real, N>& integrator,
-                SeedcurveInterpolator<Real>, StreamlineInterpolator<Real>)
+                const seedcurve_t&         seedcurve,
+                const Integrator<Real, N, IntegralCurveInterpolator>& integrator)
       : m_v{v.as_derived()},
         m_t0{static_cast<Real>(t0)},
         m_seedcurve(seedcurve),
@@ -81,7 +84,7 @@ struct streamsurface {
   const auto& streamline_at(Real u, Real cache_bw_tau,
                             Real cache_fw_tau) const {
     return m_integrator.integrate(
-        m_v, m_seedcurve.template sample<SeedcurveInterpolator>(u), m_t0,
+        m_v, m_seedcurve.template sample<SeedCurveInterpolator>(u), m_t0,
         cache_bw_tau, cache_fw_tau);
   }
   //----------------------------------------------------------------------------
@@ -89,11 +92,11 @@ struct streamsurface {
   vec_t sample(Real u, Real v, Real cache_bw_tau, Real cache_fw_tau) const {
     if (u < m_min_u || u > m_max_u) { throw out_of_domain{}; }
     if (v == 0) {
-      return m_seedcurve.template sample<SeedcurveInterpolator>(u);
+      return m_seedcurve.template sample<SeedCurveInterpolator>(u);
     }
     try {
       return streamline_at(u, cache_bw_tau, cache_fw_tau)
-          .template sample<StreamlineInterpolator>(m_t0 + v);
+          .template sample<IntegralCurveInterpolator>(m_t0 + v);
     } catch (std::exception&) { throw out_of_domain{}; }
   }
   //----------------------------------------------------------------------------
@@ -101,7 +104,7 @@ struct streamsurface {
   vec_t sample(Real u, Real v) const {
     if (v < 0) { return sample(u, v, v, 0); }
     if (v > 0) { return sample(u, v, 0, v); }
-    return m_seedcurve.template sample<SeedcurveInterpolator>(u);
+    return m_seedcurve.template sample<SeedCurveInterpolator>(u);
   }
   //----------------------------------------------------------------------------
   /// calculates position of streamsurface
@@ -131,14 +134,14 @@ struct streamsurface {
   const auto& seedcurve() const { return m_seedcurve; }
   const auto& vectorfield() const { return m_v; }
   //----------------------------------------------------------------------------
-  template <template <template <typename, size_t> typename,
+  template <template <template <typename, size_t, template<typename> typename> typename,
                       template <typename> typename,
                       template <typename> typename, typename, typename, size_t>
             typename Discretization = hultquist_discretization,
             typename... Args>
   auto discretize(Args&&... args) {
-    return Discretization<Integrator, SeedcurveInterpolator,
-                          StreamlineInterpolator, V, Real, N>(
+    return Discretization<Integrator, SeedCurveInterpolator,
+                          IntegralCurveInterpolator, V, Real, N>(
         this, std::forward<Args>(args)...);
   }
   //----------------------------------------------------------------------------
@@ -171,16 +174,17 @@ struct streamsurface {
 //                    interpolation::linear, V, Real, N>;
 
 //==============================================================================
-template <template <typename, size_t> typename Integrator,
-          template <typename> typename SeedcurveInterpolator,
-          template <typename> typename StreamlineInterpolator, typename V,
+template <template <typename, size_t, template <typename> typename>
+          typename Integrator,
+          template <typename> typename SeedCurveInterpolator,
+          template <typename> typename IntegralCurveInterpolator, typename V,
           typename Real, size_t N>
 struct front_evolving_streamsurface_discretization
     : public simple_tri_mesh<Real, N> {
   static constexpr auto num_dimensions() { return N; }
   using real_t = Real;
   using this_t = front_evolving_streamsurface_discretization<
-      Integrator, SeedcurveInterpolator, StreamlineInterpolator, V, Real, N>;
+      Integrator, SeedCurveInterpolator, IntegralCurveInterpolator, V, Real, N>;
   using parent_t = simple_tri_mesh<Real, N>;
   using parent_t::at;
   using parent_t::insert_vertex;
@@ -195,8 +199,8 @@ struct front_evolving_streamsurface_discretization
   using vertex_list_it_t = typename vertex_list_t::const_iterator;
   using vertex_range_t   = std::pair<vertex_list_it_t, vertex_list_it_t>;
   using subfront_t       = std::pair<vertex_list_t, vertex_range_t>;
-  using ssf_t            = streamsurface<Integrator, SeedcurveInterpolator,
-                              StreamlineInterpolator, V, Real, N>;
+  using ssf_t            = streamsurface<Integrator, SeedCurveInterpolator,
+                              IntegralCurveInterpolator, V, Real, N>;
   using uv_t             = vec2;
   using uv_property_t    = typename parent_t::template vertex_property_t<uv_t>;
 
@@ -290,7 +294,7 @@ struct front_evolving_streamsurface_discretization
     vs.emplace_back();
     for (auto u : linspace{ssf->min_u(), ssf->max_u(), seedline_resolution}) {
       if (this->ssf->vectorfield().in_domain(
-              this->ssf->seedcurve().template sample<SeedcurveInterpolator>(u),
+              this->ssf->seedcurve().template sample<SeedCurveInterpolator>(u),
               ssf->t0())) {
         vs.back().push_back(insert_vertex(
             ssf->sample(u, 0, cache_bw_tau, cache_fw_tau)));
@@ -436,15 +440,16 @@ struct front_evolving_streamsurface_discretization
   }
 };
 
-template <template <typename, size_t> typename Integrator,
-          template <typename> typename SeedcurveInterpolator,
-          template <typename> typename StreamlineInterpolator, typename V,
+template <template <typename, size_t, template <typename> typename>
+          typename Integrator,
+          template <typename> typename SeedCurveInterpolator,
+          template <typename> typename IntegralCurveInterpolator, typename V,
           typename Real, size_t N>
 struct simple_discretization : front_evolving_streamsurface_discretization<
-                                   Integrator, SeedcurveInterpolator,
-                                   StreamlineInterpolator, V, Real, N> {
+                                   Integrator, SeedCurveInterpolator,
+                                   IntegralCurveInterpolator, V, Real, N> {
   using parent_t = front_evolving_streamsurface_discretization<
-      Integrator, SeedcurveInterpolator, StreamlineInterpolator, V, Real, N>;
+      Integrator, SeedCurveInterpolator, IntegralCurveInterpolator, V, Real, N>;
   using front_t          = typename parent_t::front_t;
   using subfront_t       = typename parent_t::subfront_t;
   using ssf_t            = typename parent_t::ssf_t;
@@ -532,15 +537,16 @@ struct simple_discretization : front_evolving_streamsurface_discretization<
   }
 };
 //==============================================================================
-template <template <typename, size_t> typename Integrator,
-          template <typename> typename SeedcurveInterpolator,
-          template <typename> typename StreamlineInterpolator, typename V,
+template <template <typename, size_t, template <typename> typename>
+          typename Integrator,
+          template <typename> typename SeedCurveInterpolator,
+          template <typename> typename IntegralCurveInterpolator, typename V,
           typename Real, size_t N>
 struct hultquist_discretization : front_evolving_streamsurface_discretization<
-                                      Integrator, SeedcurveInterpolator,
-                                      StreamlineInterpolator, V, Real, N> {
+                                      Integrator, SeedCurveInterpolator,
+                                      IntegralCurveInterpolator, V, Real, N> {
   using parent_t = front_evolving_streamsurface_discretization<
-      Integrator, SeedcurveInterpolator, StreamlineInterpolator, V, Real, N>;
+      Integrator, SeedCurveInterpolator, IntegralCurveInterpolator, V, Real, N>;
   using front_t          = typename parent_t::front_t;
   using subfront_t       = typename parent_t::subfront_t;
   using ssf_t            = typename parent_t::ssf_t;
@@ -746,19 +752,19 @@ struct hultquist_discretization : front_evolving_streamsurface_discretization<
 
 //==============================================================================
 // template <template <typename, size_t> typename Integrator,
-//          template <typename> typename SeedcurveInterpolator,
-//          template <typename> typename StreamlineInterpolator,
+//          template <typename> typename SeedCurveInterpolator,
+//          template <typename> typename IntegralCurveInterpolator,
 //          typename V, typename Real, size_t N>
 // struct schulze_discretization
 //     : front_evolving_streamsurface_discretization<V, Integrator,
-//                                                SeedcurveInterpolator,
-//                                                StreamlineInterpolator> {
+//                                                SeedCurveInterpolator,
+//                                                IntegralCurveInterpolator> {
 // static constexpr auto num_dimensions() {
 //  return N;
 //}
 //   using parent_t          = front_evolving_streamsurface_discretization<
-//       V, Integrator, SeedcurveInterpolator,
-//       StreamlineInterpolator>;
+//       V, Integrator, SeedCurveInterpolator,
+//       IntegralCurveInterpolator>;
 //   using front_t       = typename parent_t::front_t;
 //   using subfront_t    = typename parent_t::subfront_t;
 //   using ssf_t         = typename parent_t::ssf_t;
