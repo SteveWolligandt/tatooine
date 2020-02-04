@@ -272,9 +272,19 @@ TEST_CASE("line_resample", "[line][parameterization][resample]") {
     numerical::doublegyre                        v;
     integration::vclibs::rungekutta43<double, 2> rk43;
     auto integral_curve = rk43.integrate(v, {0.2, 0.2}, 0, 10);
-    integral_curve.write_vtk("original_pathline.vtk");
-    integral_curve.resample(linspace(0, 10, 100))
-        .write_vtk("resampled_pathline.vtk");
+    integral_curve.write_vtk("original_dg_pathline.vtk");
+    size_t i = 0;
+    for (auto n : std::array{10000, 20000}) {
+      integral_curve.resample(linspace(0.0, 10.0, n))
+          .write_vtk("resampled_dg_pathline" + std::to_string(i++) + ".vtk");
+    }
+  }
+  SECTION("simple line") {
+    parameterized_line<double, 2> l{
+        {{0.0, 0.0}, 0}, {{1.0, 1.0}, 1}, {{2.0, 0.0}, 2}};
+    l.write_vtk("original_line.vtk");
+    l.resample(linspace(0.0, 2.0, 10000))
+        .write_vtk("resampled_line.vtk");
   }
 }
 //==============================================================================
