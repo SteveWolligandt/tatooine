@@ -14,6 +14,11 @@ namespace tatooine {
 template <typename Real, size_t NumDegrees>
 struct polynomial {
   //----------------------------------------------------------------------------
+  // static methods
+  //----------------------------------------------------------------------------
+ public:
+  static constexpr size_t num_degrees() { return NumDegrees; }
+  //----------------------------------------------------------------------------
   // members
   //----------------------------------------------------------------------------
  private:
@@ -31,7 +36,8 @@ struct polynomial {
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
   template <typename... Coeffs, enable_if_arithmetic<Coeffs...> = true,
             std::enable_if_t<sizeof...(Coeffs) == NumDegrees + 1, bool> = true>
-  constexpr polynomial(Coeffs... coeffs) : m_coefficients{static_cast<Real>(coeffs)...} {}
+  constexpr polynomial(Coeffs... coeffs)
+      : m_coefficients{static_cast<Real>(coeffs)...} {}
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
   template <typename OtherReal, enable_if_arithmetic<OtherReal> = true>
   constexpr polynomial(const vec<OtherReal, NumDegrees + 1>& coeffs)
@@ -70,7 +76,8 @@ struct polynomial {
   auto&       coefficients() { return m_coefficients; }
   const auto& coefficients() const { return m_coefficients; }
   //----------------------------------------------------------------------------
-  constexpr void set_coefficients(const std::array<Real, NumDegrees + 1>& coeffs) {
+  constexpr void set_coefficients(
+      const std::array<Real, NumDegrees + 1>& coeffs) {
     m_coefficients = coeffs;
   }
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -79,14 +86,33 @@ struct polynomial {
   }
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
   template <typename OtherReal, enable_if_arithmetic<OtherReal> = true>
-  constexpr void set_coefficients(const std::array<OtherReal, NumDegrees + 1>& coeffs) {
+  constexpr void set_coefficients(
+      const std::array<OtherReal, NumDegrees + 1>& coeffs) {
     m_coefficients = make_array<Real>(coeffs);
   }
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
   template <typename... Coeffs, enable_if_arithmetic<Coeffs...> = true,
             std::enable_if_t<sizeof...(Coeffs) == NumDegrees + 1, bool> = true>
   constexpr void set_coefficients(Coeffs... coeffs) {
-    m_coefficients = std::array<Real, NumDegrees + 1>{static_cast<Real>(coeffs)...};
+    m_coefficients =
+        std::array<Real, NumDegrees + 1>{static_cast<Real>(coeffs)...};
+  }
+  //----------------------------------------------------------------------------
+ private:
+  template <size_t... Is>
+  constexpr auto diff(std::index_sequence<Is...>) const {
+    return polynomial<Real, NumDegrees - 1>{
+        (m_coefficients[Is + 1] * (Is + 1))...};
+  }
+  // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+ public:
+  template <size_t... Is>
+  constexpr auto diff() const {
+    if constexpr (NumDegrees >= 1) {
+      return diff(std::make_index_sequence<NumDegrees>{});
+    } else {
+      return polynomial<Real, 0>{0};
+    }
   }
 };
 
@@ -95,7 +121,15 @@ struct polynomial {
 //------------------------------------------------------------------------------
 template <typename... Coeffs>
 polynomial(Coeffs... coeffs)
-    ->polynomial<promote_t<Coeffs...>, sizeof...(Coeffs)>;
+    ->polynomial<promote_t<Coeffs...>, sizeof...(Coeffs) - 1>;
+
+//------------------------------------------------------------------------------
+// diff
+//------------------------------------------------------------------------------
+template <typename Real, size_t NumDegrees>
+constexpr auto diff(const polynomial<Real, NumDegrees>& f) {
+  return f.diff();
+}
 
 //------------------------------------------------------------------------------
 // I/O
@@ -103,7 +137,9 @@ polynomial(Coeffs... coeffs)
 template <typename Real, size_t NumDegrees>
 auto& operator<<(std::ostream& out, const polynomial<Real, NumDegrees>& f) {
   out << f.c(0);
-  for (size_t i = 1; i < NumDegrees + 1; ++i) { out << " + " << f.c(i) << " * x^" << i; }
+  for (size_t i = 1; i < NumDegrees + 1; ++i) {
+    out << " + " << f.c(i) << " * x^" << i;
+  }
   return out;
 }
 //==============================================================================
