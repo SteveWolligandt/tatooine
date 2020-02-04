@@ -76,7 +76,7 @@ TEST_CASE(
 //==============================================================================
 TEST_CASE("line_parameterized_initialization",
           "[line][parameterization][initialization]") {
-  parameterized_line<double, 2> l{
+  parameterized_line<double, 2, interpolation::linear> l{
       {vec{1, 2}, 0}, {vec{2, 3}, 1}, {vec{3, 4}, 2}};
   auto [x0, t0] = l[0];
   auto [x1, t1] = l[1];
@@ -100,7 +100,7 @@ TEST_CASE("line_sampling_linear",
   vec                           v0{0.1, 0.2};
   vec                           v1{0.5, 0.9};
   vec                           v2{0.9, 0.2};
-  parameterized_line<double, 2> l;
+  parameterized_line<double, 2, interpolation::linear> l;
   l.push_back(v0, 0);
   l.push_back(v1, 0.5);
   l.push_back(v2, 1);
@@ -129,7 +129,7 @@ TEST_CASE("line_sampling_hermite",
   vec                           v0{0.0, 0.0};
   vec                           v1{1.0, 1.0};
   vec                           v2{2.0, 0.0};
-  parameterized_line<double, 2> l;
+  parameterized_line<double, 2, interpolation::linear> l;
   l.push_back(v0, 0);
   l.push_back(v1, 1);
   l.push_back(v2, 2);
@@ -150,7 +150,8 @@ TEST_CASE("line_paramaterization_quadratic_tangent",
     vec v0{1.0, 1.0}; double t0 = 0;
     vec v1{3.0, 2.0}; double t1 = 3;
     vec v2{2.0, 3.0}; double t2 = 4;
-    parameterized_line<double, 2> l{{v0, t0}, {v1, t1}, {v2, t2}};
+    parameterized_line<double, 2, interpolation::linear> l{
+        {v0, t0}, {v1, t1}, {v2, t2}};
 
     l.tangents_to_property();
     //l.write_vtk("simple_quadratic_tangents.vtk");
@@ -163,7 +164,7 @@ TEST_CASE("line_paramaterization_uniform",
   vec                           v0{0.0, 0.0};
   vec                           v1{1.0, 1.0};
   vec                           v2{2.0, 0.0};
-  parameterized_line<double, 2> l;
+  parameterized_line<double, 2, interpolation::linear> l;
   l.push_back(v0, 0);
   l.push_back(v1, 0);
   l.push_back(v2, 0);
@@ -176,7 +177,7 @@ TEST_CASE("line_paramaterization_chordal",
   vec                           v0{0.0, 0.0};
   vec                           v1{1.0, 1.0};
   vec                           v2{2.0, 0.0};
-  parameterized_line<double, 2> l;
+  parameterized_line<double, 2, interpolation::linear> l;
   l.push_back(v0, 0);
   l.push_back(v1, 0);
   l.push_back(v2, 0);
@@ -189,7 +190,7 @@ TEST_CASE("line_paramaterization_centripetal",
   vec                           v0{0.0, 0.0};
   vec                           v1{1.0, 1.0};
   vec                           v2{2.0, 0.0};
-  parameterized_line<double, 2> l;
+  parameterized_line<double, 2, interpolation::linear> l;
   l.push_back(v0, 0);
   l.push_back(v1, 0);
   l.push_back(v2, 0);
@@ -216,7 +217,7 @@ TEST_CASE("line_curvature", "[line][curvature]") {
   SECTION("streamline") {
     SECTION("constant_vectorfield") {
       constant_vectorfield<double, 3>              v;
-      integration::vclibs::rungekutta43<double, 3> rk43;
+      integration::vclibs::rungekutta43<double, 3, interpolation::linear> rk43;
       auto integral_curve = rk43.integrate(v, {0.0, 0.0, 0.0}, 0, 10);
       for (size_t i = 0; i < integral_curve.num_vertices(); ++i) {
         REQUIRE(integral_curve.curvature_at(i) == Approx(0).margin(1e-6));
@@ -243,7 +244,7 @@ TEST_CASE("line_integrated_curvature", "[line][integrated_curvature]") {
     SECTION("cosinus sinus vectorfield") {
       auto                    radius = GENERATE(1.0, 2.0, 3.0, 4.0);
       numerical::cosinussinus v{radius};
-      integration::vclibs::rungekutta43<double, 2> rk43;
+      integration::vclibs::rungekutta43<double, 2, interpolation::linear> rk43;
       auto full_circle = rk43.integrate(v, {0.0, 0.0}, 0, 2 * M_PI);
       auto half_circle = rk43.integrate(v, {0.0, 0.0}, 0, 2 * M_PI);
       auto kappa_dt_full = full_circle.integrated_curvature();
@@ -254,7 +255,7 @@ TEST_CASE("line_integrated_curvature", "[line][integrated_curvature]") {
     }
     SECTION("double gyre pathline") {
       numerical::doublegyre                        v;
-      integration::vclibs::rungekutta43<double, 2> rk43;
+      integration::vclibs::rungekutta43<double, 2, interpolation::hermite> rk43;
       size_t                                       cnt = 0;
       for (auto t : linspace(0.0, 10.0, 100)) {
         auto integral_curve = rk43.integrate(v, {0.2, 0.2}, t, t + 10);
@@ -270,7 +271,7 @@ TEST_CASE("line_integrated_curvature", "[line][integrated_curvature]") {
 TEST_CASE("line_resample", "[line][parameterization][resample]") {
   SECTION("double gyre pathline") {
     numerical::doublegyre                        v;
-    integration::vclibs::rungekutta43<double, 2> rk43;
+    integration::vclibs::rungekutta43<double, 2, interpolation::hermite> rk43;
     auto integral_curve = rk43.integrate(v, {0.2, 0.2}, 0, 10);
     integral_curve.write_vtk("original_dg_pathline.vtk");
     size_t i = 0;
@@ -280,11 +281,18 @@ TEST_CASE("line_resample", "[line][parameterization][resample]") {
     }
   }
   SECTION("simple line") {
-    parameterized_line<double, 2> l{
-        {{0.0, 0.0}, 0}, {{1.0, 1.0}, 1}, {{2.0, 0.0}, 2}};
-    l.write_vtk("original_line.vtk");
-    l.resample(linspace(0.0, 2.0, 10000))
-        .write_vtk("resampled_line.vtk");
+    SECTION("linear") {
+      parameterized_line<double, 2, interpolation::linear> l{
+          {{0.0, 0.0}, 0}, {{1.0, 1.0}, 1}, {{2.0, 0.0}, 2}};
+      l.write_vtk("original_line.vtk");
+      l.resample(linspace(0.0, 2.0, 10000)).write_vtk("resampled_line_linear.vtk");
+    }
+    SECTION("hermite") {
+      parameterized_line<double, 2, interpolation::hermite> l{
+          {{0.0, 0.0}, 0}, {{1.0, 1.0}, 1}, {{2.0, 0.0}, 2}};
+      l.write_vtk("original_line.vtk");
+      l.resample(linspace(0.0, 2.0, 10000)).write_vtk("resampled_line_hermite.vtk");
+    }
   }
 }
 //==============================================================================

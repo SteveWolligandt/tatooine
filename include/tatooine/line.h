@@ -1266,10 +1266,9 @@ auto filter_length(const std::list<line<Real, N>>& lines, MaxDist max_dist) {
 
 //==============================================================================
 template <typename Real, size_t N,
-          template <typename> typename InterpolationKernel =
-              interpolation::hermite>
+          template <typename> typename InterpolationKernel>
 struct parameterized_line : line<Real, N> {
-  using this_t   = parameterized_line<Real, N>;
+  using this_t   = parameterized_line<Real, N, InterpolationKernel>;
   using parent_t = line<Real, N>;
   using typename parent_t::curvature_idx;
   using typename parent_t::empty_exception;
@@ -1280,6 +1279,8 @@ struct parameterized_line : line<Real, N> {
   using typename parent_t::vertex_idx;
   struct time_not_found : std::exception {};
   using interpolation_t = InterpolationKernel<vec_t>;
+  static constexpr bool interpolation_needs_first_derivative =
+      interpolation_t::needs_first_derivative;
 
   template <typename T>
   using vertex_property_t = typename parent_t::template vertex_property_t<T>;
@@ -1388,10 +1389,12 @@ struct parameterized_line : line<Real, N> {
     auto i                    = parent_t::push_back(p);
     m_parameterization->at(i) = t;
     if (num_vertices() > 1) {
-      if constexpr (interpolation_t::needs_first_derivative) {
+      if constexpr (interpolation_needs_first_derivative) {
+        const auto h =
+            back_parameterization() - parameterization_at(num_vertices() - 2);
         m_interpolation_kernels.emplace_back(
             vertex_at(num_vertices() - 2), back_vertex(),
-            tangent_at(num_vertices() - 2), back_tangent());
+            tangent_at(num_vertices() - 2) * h, back_tangent() * h);
         if (num_vertices() >= 3) {
           update_interpolation_kernel(num_vertices() - 3);
         }
@@ -1409,10 +1412,12 @@ struct parameterized_line : line<Real, N> {
     auto i                    = parent_t::push_back(std::move(p));
     m_parameterization->at(i) = t;
     if (num_vertices() > 1) {
-      if constexpr (interpolation_t::needs_first_derivative) {
+      if constexpr (interpolation_needs_first_derivative) {
+        const auto h =
+            back_parameterization() - parameterization_at(num_vertices() - 2);
         m_interpolation_kernels.emplace_back(
             vertex_at(num_vertices() - 2), back_vertex(),
-            tangent_at(num_vertices() - 2), back_tangent());
+            tangent_at(num_vertices() - 2) * h, back_tangent() * h);
         if (num_vertices() >= 3) {
           update_interpolation_kernel(num_vertices() - 3);
         }
@@ -1436,9 +1441,11 @@ struct parameterized_line : line<Real, N> {
     auto i                    = parent_t::push_front(p);
     m_parameterization->at(i) = t;
     if (num_vertices() > 1) {
-      if constexpr (interpolation_t::needs_first_derivative) {
+      if constexpr (interpolation_needs_first_derivative) {
+        const auto h = front_parameterization() - parameterization_at(1);
         m_interpolation_kernels.emplace_front(front_vertex(), vertex_at(1),
-                                              front_tangent(), tangent_at(1));
+                                              front_tangent() * h,
+                                              tangent_at(1) * h);
         if (num_vertices() >= 3) { update_interpolation_kernel(1); }
       } else {
         m_interpolation_kernels.emplace_front(front_vertex(), vertex_at(1));
@@ -1451,9 +1458,11 @@ struct parameterized_line : line<Real, N> {
     auto i                    = parent_t::push_front(std::move(p));
     m_parameterization->at(i) = t;
     if (num_vertices() > 1) {
-      if constexpr (interpolation_t::needs_first_derivative) {
+      if constexpr (interpolation_needs_first_derivative) {
+        const auto h = front_parameterization() - parameterization_at(1);
         m_interpolation_kernels.emplace_front(front_vertex(), vertex_at(1),
-                                              front_tangent(), tangent_at(1));
+                                              front_tangent() * h,
+                                              tangent_at(1) * h);
         if (num_vertices() >= 3) { update_interpolation_kernel(1); }
       } else {
         m_interpolation_kernels.emplace_front(front_vertex(), vertex_at(1));
@@ -1475,8 +1484,15 @@ struct parameterized_line : line<Real, N> {
   }
   //----------------------------------------------------------------------------
   void update_interpolation_kernel(size_t i) {
-    m_interpolation_kernels[i] = interpolation_t{
-        vertex_at(i), vertex_at(i + 1), tangent_at(i), tangent_at(i + 1)};
+    if constexpr (interpolation_needs_first_derivative) {
+      auto h = parameterization_at(i + 1) - parameterization_at(i);
+      m_interpolation_kernels[i] =
+          interpolation_t{vertex_at(i), vertex_at(i + 1), tangent_at(i) * h,
+                          tangent_at(i + 1) * h};
+    } else {
+      m_interpolation_kernels[i] =
+          interpolation_t{vertex_at(i), vertex_at(i + 1)};
+    }
   }
   //----------------------------------------------------------------------------
   /// sample the line via interpolation
@@ -1896,16 +1912,16 @@ struct parameterized_line : line<Real, N> {
   }
 };
 //------------------------------------------------------------------------------
-template <typename Real, size_t N>
-auto diff(const parameterized_line<Real, N>& l) {
+template <typename Real, size_t N, template <typename> typename InterpolationKernel>
+auto diff(const parameterized_line<Real, N, InterpolationKernel>& l) {
   return l.tangents();
 }
 //------------------------------------------------------------------------------
-template <typename Real, size_t N, typename Handle, typename Value,
+template <typename Real, size_t N, template <typename> typename InterpolationKernel, typename Handle, typename Value,
           typename Reference = Value&>
 auto diff(const const_line_vertex_container<
-          parameterized_line<Real, N>, Real, N,
-          typename parameterized_line<Real, N>::tangent_idx, vec<Real, N>,
+          parameterized_line<Real, N, InterpolationKernel>, Real, N,
+          typename parameterized_line<Real, N, InterpolationKernel>::tangent_idx, vec<Real, N>,
           vec<Real, N>>& tangents) {
   return tangents.line().second_derivatives();
 }

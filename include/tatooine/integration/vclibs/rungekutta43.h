@@ -54,11 +54,13 @@ static constexpr inline auto initial_step  = VC::odeint::InitialStep;
 static constexpr inline auto max_step      = VC::odeint::MaxStep;
 static constexpr inline auto max_num_steps = VC::odeint::MaxNumSteps;
 
-template <typename Real, size_t N>
-struct rungekutta43 : integrator<Real, N, rungekutta43<Real, N>> {
+template <typename Real, size_t N,
+          template <typename> typename InterpolationKernel>
+struct rungekutta43
+    : integrator<Real, N, InterpolationKernel, rungekutta43<Real, N, InterpolationKernel>> {
   //============================================================================
-  using this_t     = rungekutta43<Real, N>;
-  using parent_t   = integrator<Real, N, this_t>;
+  using this_t     = rungekutta43<Real, N, InterpolationKernel>;
+  using parent_t   = integrator<Real, N, InterpolationKernel, this_t>;
   using integral_t = typename parent_t::integral_t;
   using pos_t      = typename parent_t::pos_t;
   using ode_t      = VC::odeint::ode_t<2, Real, vec<Real, N>, false>;

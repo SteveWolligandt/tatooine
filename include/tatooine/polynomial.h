@@ -28,9 +28,20 @@ struct polynomial {
   // ctors
   //----------------------------------------------------------------------------
  public:
+  constexpr polynomial()
+      : m_coefficients{make_array<Real, NumDegrees + 1>(0)} {}
+  // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+  constexpr polynomial(const polynomial& other) = default;
+  // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+  constexpr polynomial(polynomial&& other) = default;
+  // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+  constexpr polynomial& operator=(const polynomial& other) = default;
+  // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+  constexpr polynomial& operator=(polynomial&& other) = default;
+  // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
   constexpr polynomial(const std::array<Real, NumDegrees + 1>& coeffs)
       : m_coefficients{coeffs} {}
-  // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+  //----------------------------------------------------------------------------
   constexpr polynomial(std::array<Real, NumDegrees + 1>&& coeffs)
       : m_coefficients{std::move(coeffs)} {}
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -

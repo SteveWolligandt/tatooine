@@ -11,11 +11,12 @@
 namespace tatooine::integration {
 //==============================================================================
 
-template <typename Real, size_t N, typename Derived>
+template <typename Real, size_t N,
+          template <typename> typename InterpolationKernel, typename Derived>
 struct integrator : crtp<Derived> {
   using real_t     = Real;
   using parent_t   = crtp<Derived>;
-  using integral_t = parameterized_line<Real, N>;
+  using integral_t = parameterized_line<Real, N, InterpolationKernel>;
   using pos_t      = vec<Real, N>;
   using cache_t    = cache<std::pair<Real, pos_t>, integral_t>;
 
