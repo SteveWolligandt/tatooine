@@ -23,10 +23,9 @@
 namespace tatooine {
 //==============================================================================
 
-template <template <typename, size_t> typename Integrator,
-          template <typename> typename SeedCurveInterpolator,
-          template <typename> typename IntegralCurveInterpolator, typename V,
-          typename Real, size_t N>
+template <template <typename, size_t, template <typename> typename> typename,
+          template <typename> typename, template <typename> typename, typename,
+          typename, size_t>
 struct hultquist_discretization;
 
 template <template <typename, size_t, template <typename> typename> typename Integrator,
@@ -84,19 +83,16 @@ struct streamsurface {
   const auto& streamline_at(Real u, Real cache_bw_tau,
                             Real cache_fw_tau) const {
     return m_integrator.integrate(
-        m_v, m_seedcurve.template sample<SeedCurveInterpolator>(u), m_t0,
+        m_v, m_seedcurve.sample(u), m_t0,
         cache_bw_tau, cache_fw_tau);
   }
   //----------------------------------------------------------------------------
   /// calculates position of streamsurface
   vec_t sample(Real u, Real v, Real cache_bw_tau, Real cache_fw_tau) const {
     if (u < m_min_u || u > m_max_u) { throw out_of_domain{}; }
-    if (v == 0) {
-      return m_seedcurve.template sample<SeedCurveInterpolator>(u);
-    }
+    if (v == 0) { return m_seedcurve.sample(u); }
     try {
-      return streamline_at(u, cache_bw_tau, cache_fw_tau)
-          .template sample<IntegralCurveInterpolator>(m_t0 + v);
+      return streamline_at(u, cache_bw_tau, cache_fw_tau).sample(m_t0 + v);
     } catch (std::exception&) { throw out_of_domain{}; }
   }
   //----------------------------------------------------------------------------
@@ -104,7 +100,7 @@ struct streamsurface {
   vec_t sample(Real u, Real v) const {
     if (v < 0) { return sample(u, v, v, 0); }
     if (v > 0) { return sample(u, v, 0, v); }
-    return m_seedcurve.template sample<SeedCurveInterpolator>(u);
+    return m_seedcurve.sample(u);
   }
   //----------------------------------------------------------------------------
   /// calculates position of streamsurface
@@ -294,7 +290,7 @@ struct front_evolving_streamsurface_discretization
     vs.emplace_back();
     for (auto u : linspace{ssf->min_u(), ssf->max_u(), seedline_resolution}) {
       if (this->ssf->vectorfield().in_domain(
-              this->ssf->seedcurve().template sample<SeedCurveInterpolator>(u),
+              this->ssf->seedcurve().sample(u),
               ssf->t0())) {
         vs.back().push_back(insert_vertex(
             ssf->sample(u, 0, cache_bw_tau, cache_fw_tau)));
@@ -531,7 +527,7 @@ struct simple_discretization : front_evolving_streamsurface_discretization<
       const vec   new_uv{uv(0), uv(1) + step};
       auto new_pos = this->ssf->sample(new_uv, backward_tau, forward_tau);
 
-      v = insert_vertex(new_pos, new_uv);
+      v = insert_vertex(new_pos);
     }
     return new_front;
   }

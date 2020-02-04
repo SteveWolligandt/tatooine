@@ -150,14 +150,27 @@ class simple_tri_mesh : public pointset<Real, N>{
     }
   }
   //----------------------------------------------------------------------------
-  template <size_t _N = N, std::enable_if_t<_N == 3, bool> = true>
+  template <size_t _N = N, std::enable_if_t<_N == 2 || _N == 3, bool> = true>
   bool write_vtk(const std::string& path,
                  const std::string& title = "tatooine simple_tri_mesh") const {
+    using boost::copy;
+    using boost::adaptors::transformed;
     vtk::legacy_file_writer writer(path, vtk::POLYDATA);
     if (writer.is_open()) {
       writer.set_title(title);
       writer.write_header();
-      writer.write_points(this->m_vertices);
+      if constexpr (N == 2) {
+        auto three_dims = [](const vec<Real, 2>& v2) {
+          return vec<Real, 3>{v2(0), v2(1), 0};
+        };
+        std::vector<vec<Real, 3>> v3s(this->m_vertices.size());
+        auto three_dimensional = transformed(three_dims);
+        copy(this->m_vertices | three_dimensional, begin(v3s));
+        writer.write_points(v3s);
+
+      } else if constexpr (N == 3) {
+        writer.write_points(this->m_vertices);
+      }
 
       std::vector<std::vector<size_t>> polygons;
       polygons.reserve(num_faces());
