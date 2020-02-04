@@ -4,6 +4,8 @@
 #include <boost/range/adaptor/reversed.hpp>
 #include <boost/range/algorithm/reverse.hpp>
 #include <boost/range/algorithm_ext/iota.hpp>
+#include <boost/range/algorithm/copy.hpp>
+#include <boost/range/numeric.hpp>
 #include <cassert>
 #include <deque>
 #include <map>

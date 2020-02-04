@@ -372,7 +372,7 @@ struct vec : tensor<Real, N> {
   using parent_t::num_dimensions;
   using parent_t::dimension;
 
-  template <typename... Ts, size_t _N = num_dimensions(),
+  template <typename... Ts,
             size_t _Dim0 = dimension(0),
             std::enable_if_t<_Dim0 == sizeof...(Ts), bool> = true>
   constexpr vec(const Ts&... ts) : parent_t{ts...} {}

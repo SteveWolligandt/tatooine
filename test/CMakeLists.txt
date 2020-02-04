@@ -11,10 +11,10 @@ include(Catch)
 set(ALL_TEST_CPPS main.cpp)
 macro(create_test NAME)
   list(APPEND ALL_TEST_CPPS "${NAME}.cpp")
-  add_executable (${NAME} ${NAME}.cpp main.cpp)
-  target_link_libraries(${NAME} tatooine Catch2::Catch2)
-  target_compile_features(${NAME} PUBLIC cxx_std_17)
-  target_compile_options(${NAME} PRIVATE
+  add_executable (${NAME}-test ${NAME}.cpp main.cpp)
+  target_link_libraries(${NAME}-test tatooine Catch2::Catch2)
+  target_compile_features(${NAME}-test PUBLIC cxx_std_17)
+  target_compile_options(${NAME}-test PRIVATE
     -Wall -Wextra -pedantic -Wno-missing-braces -Wno-unused-lambda-capture)
 endmacro()
 #- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -26,7 +26,6 @@ list(REMOVE_ITEM TESTFILES "${CMAKE_CURRENT_SOURCE_DIR}/main.cpp")
 foreach(TESTFILE ${TESTFILES})
   get_filename_component(FILENAME ${TESTFILE} NAME_WE)
   create_test(${FILENAME})
-  message(STATUS ${FILENAME})
 endforeach()
 
 #- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
