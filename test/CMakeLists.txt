@@ -1,5 +1,3 @@
-find_package(Catch2 REQUIRED)
-#- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 if ("${CMAKE_CXX_COMPILER_ID}" STREQUAL "Clang")
   set(CMAKE_CXX_FLAGS "-fcolor-diagnostics")
 elseif ("${CMAKE_CXX_COMPILER_ID}" STREQUAL "GNU")
@@ -18,7 +16,6 @@ macro(create_test NAME)
   target_compile_features(${NAME} PUBLIC cxx_std_17)
   target_compile_options(${NAME} PRIVATE
     -Wall -Wextra -pedantic -Wno-missing-braces -Wno-unused-lambda-capture)
-  catch_discover_tests(${NAME})
 endmacro()
 #- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 # create tests from cpp files in current directory 
@@ -39,6 +36,7 @@ add_executable (unittests main.cpp ${ALL_TEST_CPPS})
 target_link_libraries(unittests tatooine Catch2::Catch2)
 target_compile_options(unittests PRIVATE -Wall -Wextra -pedantic
   -Wno-missing-braces -Wno-unused-lambda-capture)
+catch_discover_tests(unittests)
 
 #- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 # COVERAGE
