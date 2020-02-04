@@ -17,7 +17,7 @@ struct hermite {
   // traits
   //----------------------------------------------------------------------------
  public:
-  static constexpr bool   needs_first_derivative = true;
+  static constexpr bool needs_first_derivative = true;
 
   //----------------------------------------------------------------------------
   // members

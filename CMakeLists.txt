@@ -66,7 +66,7 @@ endif()
 #- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 add_subdirectory(test)
 add_subdirectory(benchmarks)
-#add_subdirectory(doc)
+add_subdirectory(doc)
 add_subdirectory(misc)
 #add_subdirectory(cuda)
 add_subdirectory(steadification)
