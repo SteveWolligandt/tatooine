@@ -9,6 +9,8 @@
 //==============================================================================
 namespace tatooine::test {
 //==============================================================================
+using interpolation::hermite;
+using interpolation::linear;
 
 TEST_CASE(
     "streamsurface_simple_spacetime_doublegyre",
@@ -18,11 +20,11 @@ TEST_CASE(
   streamsurface         ssf{
       vst,
       0,
-      parameterized_line<double, 3, interpolation::linear>{
+      parameterized_line<double, 3, hermite>{
           {{0.1, 0.2, 0.0}, 0.0},
           {{0.5, 0.9, 0.0}, 0.5},
           {{0.9, 0.2, 0.0}, 1.0}},
-      integration::vclibs::rungekutta43<double, 3, interpolation::hermite>{},
+      integration::vclibs::rungekutta43<double, 3, hermite>{},
   };
   ssf.discretize<simple_discretization>(5ul, 1.0, 0.0, 1.0)
       .write_vtk("streamsurface_dg_simple.vtk");
@@ -35,12 +37,12 @@ TEST_CASE(
   spacetime_field       vst{v};
   streamsurface         ssf{
       vst, 0,
-      parameterized_line<double, 3, interpolation::linear>{
+      parameterized_line<double, 3, hermite>{
           {{0.1, 0.2, 0.0}, 0.0},
           {{0.5, 0.9, 0.0}, 0.5},
           {{0.9, 0.2, 0.0}, 1.0}},
-      integration::vclibs::rungekutta43<double, 3, interpolation::hermite>{}};
-  ssf.discretize<hultquist_discretization>(10ul, 0.1, -20.0, 20.0)
+      integration::vclibs::rungekutta43<double, 3, hermite>{}};
+  ssf.discretize<hultquist_discretization>(20ul, 0.1, -20.0, 20.0)
       .write_vtk("streamsurface_dg_hultquist.vtk");
 }
 //==============================================================================
@@ -48,9 +50,9 @@ TEST_CASE(
     "streamsurface_simple_sinuscosinus",
     "[streamsurface][simple][numerical][sinuscosinus][sc]") {
   numerical::sinuscosinus v;
-  parameterized_line<double, 2, interpolation::linear> seed{{{0.0, 0.0}, 0.0},
+  parameterized_line<double, 2, linear> seed{{{0.0, 0.0}, 0.0},
                                                             {{1.0, 0.0}, 1.0}};
-  integration::vclibs::rungekutta43<double, 2, interpolation::linear>
+  integration::vclibs::rungekutta43<double, 2, linear>
                 integrator;
   streamsurface ssf{v, 0.0, seed, integrator};
   ssf.discretize<simple_discretization>(2ul, 0.01, -M_PI, M_PI)
@@ -61,10 +63,10 @@ TEST_CASE(
     "streamsurface_hultquist_sinuscosinus",
     "[streamsurface][hultquist][numerical][sinuscosinus][sc]") {
   numerical::sinuscosinus                              v;
-  parameterized_line<double, 2, interpolation::linear> seed{{{0.0, 0.0}, 0.0},
+  parameterized_line<double, 2, linear> seed{{{0.0, 0.0}, 0.0},
                                                             {{1.0, 0.0}, 1.0}};
 
-  integration::vclibs::rungekutta43<double, 2, interpolation::linear>
+  integration::vclibs::rungekutta43<double, 2, linear>
                 integrator;
   streamsurface ssf{v, 0.0, seed, integrator};
   ssf.discretize<hultquist_discretization>(2ul, 0.01, -M_PI, M_PI)
@@ -73,7 +75,6 @@ TEST_CASE(
 
 ////==============================================================================
 //TEST_CASE("[streamsurface] out of domain integration", "[streamsurface]") {
-//  using namespace interpolation;
 //  UnsteadyGridSamplerVF<2, double, 2, hermite, hermite, linear> testvector2c(
 //      "testvector2c.am");
 //  FixedTimeVectorfield fixed{testvector2c, 0};
@@ -93,7 +94,6 @@ TEST_CASE(
 ////==============================================================================
 //TEST_CASE("[streamsurface] unsteady out of domain integration",
 //          "[streamsurface]") {
-//  using namespace interpolation;
 //  UnsteadyGridSamplerVF<2, double, 2, hermite, hermite, linear> testvector2c(
 //      "testvector2c.am");
 //

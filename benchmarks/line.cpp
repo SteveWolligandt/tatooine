@@ -4,9 +4,9 @@
 namespace tatooine::benchmark {
 //==============================================================================
 TATBENCH(line_sampling) {
-  parameterized_line<double, 2> l{
+  parameterized_line<double, 2, interpolation::hermite> l{
       {vec{0.0, 0.0}, 0.0}, {vec{1.0, 1.0}, 1.0}, {vec{2.0, 0.0}, 2.0}};
-  linspace ts(0.0, 2.0, 10000);
+  linspace ts(0.0, 2.0, 100);
   TATBENCH_MEASURE { l.resample(ts); }
 }
 //==============================================================================
