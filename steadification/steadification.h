@@ -28,18 +28,22 @@ class steadification {
   // types
   //============================================================================
  public:
-  template <template <typename, size_t, template <typename> typename>
-            typename Integrator,
-            template <typename> typename IntegralcurveInterpolator,
-            template <typename> typename StreamlineInterpolator, typename V>
+  template <typename V, template <typename> typename SeedcurveInterpolator =
+                            interpolation::linear>
   using pathsurface_t =
-      hultquist_discretization<Integrator, IntegralcurveInterpolator,
-                               StreamlineInterpolator, V, Real, 3>;
-  using pathsurface_gpu_t     = streamsurface_renderer;
-  using vec2                  = vec<Real, 2>;
-  using vec3                  = vec<Real, 3>;
-  using ivec2                 = vec<size_t, 2>;
-  using ivec3                 = vec<size_t, 3>;
+      streamsurface<integration::vclibs::rungekutta43, SeedcurveInterpolator,
+                    interpolation::hermite, V, Real, 2>;
+  template <typename V, template <typename> typename SeedcurveInterpolator =
+                            interpolation::linear>
+  using pathsurface_discretization_t =
+      hultquist_discretization<integration::vclibs::rungekutta43,
+                               SeedcurveInterpolator, interpolation::hermite, V,
+                               Real, 2>;
+  using pathsurface_gpu_t = streamsurface_renderer;
+  using vec2              = vec<Real, 2>;
+  using vec3              = vec<Real, 3>;
+  using ivec2             = vec<size_t, 2>;
+  using ivec3             = vec<size_t, 3>;
   using integrator_t =
       integration::vclibs::rungekutta43<double, 3, interpolation::hermite>;
   using seedcurve_t = parameterized_line<double, 3, interpolation::linear>;
@@ -59,9 +63,9 @@ class steadification {
   ivec2                     m_render_resolution;
   yavin::context            m_context;
   yavin::orthographiccamera m_cam;
-  yavin::tex2rgb32f           m_color_scale;
+  yavin::tex2rgb32f         m_color_scale;
   yavin::texdepth           m_depth;
-  yavin::tex2r32f             m_noise_tex;
+  yavin::tex2r32f           m_noise_tex;
   ssf_rasterization_shader  m_ssf_rasterization_shader;
   domain_coverage_shader    m_domain_coverage_shader;
   integrator_t m_integrator;
@@ -157,13 +161,8 @@ class steadification {
     return std::pair{std::move(mesh), std::move(surf)};
   }
   //----------------------------------------------------------------------------
-  template <template <typename, size_t, template <typename> typename>
-            typename Integrator,
-            template <typename> typename IntegralcurveInterpolator,
-            template <typename> typename StreamlineInterpolator, typename V>
-  auto gpu_pathsurface(
-      const pathsurface_t<Integrator, IntegralcurveInterpolator,
-                          StreamlineInterpolator, V>& mesh) {
+  template <typename V, template <typename> typename SeedcurveInterpolator>
+  auto gpu_pathsurface(const pathsurface_discretization_t<V, SeedcurveInterpolator>& mesh) {
     return pathsurface_gpu_t{mesh};
   }
   //----------------------------------------------------------------------------
@@ -173,15 +172,10 @@ class steadification {
     return gpu_pathsurface(pathsurface(v, seedcurve, stepsize).first);
   }
   //----------------------------------------------------------------------------
-  template <template <typename, size_t, template <typename> typename>
-            typename Integrator,
-            template <typename> typename IntegralcurveInterpolator,
-            template <typename> typename StreamlineInterpolator, typename VSurf>
+  template <typename V, template <typename> typename SeedcurveInterpolator>
   auto curvature(
-      const pathsurface_t<Integrator, IntegralcurveInterpolator,
-                          StreamlineInterpolator, VSurf>&          mesh,
-      const streamsurface<Integrator, IntegralcurveInterpolator,
-                          StreamlineInterpolator, VSurf, Real, 3>& surf) const {
+      const pathsurface_discretization_t<V, SeedcurveInterpolator>& mesh,
+      const pathsurface_t<V, SeedcurveInterpolator>& surf) const {
     std::set<Real> us;
     for (auto v : mesh.vertices()) { us.insert(mesh.uv(v)(0)); }
     const auto num_integral_curves = us.size();
@@ -196,7 +190,7 @@ class steadification {
       std::cerr << "u = " << u << "; kappa = " << kappas.back()
                 << "; arc length = " << arc_lengths.back() << '\n';
     }
-    Real       acc_kappas          = 0;
+    Real acc_kappas = 0;
     for (size_t i = 0; i < num_integral_curves; ++i) {
       acc_kappas += kappas[i] * arc_lengths[i];
     }
@@ -227,13 +221,12 @@ class steadification {
 
     auto working_dir = std::string{settings<V>::name} + "/";
     if (!exists(working_dir)) { create_directory(working_dir); }
-    for (const auto& entry : directory_iterator(working_dir)) {
-      remove(entry);
-    }
+    for (const auto& entry : directory_iterator(working_dir)) { remove(entry); }
 
     // size_t dir_count = 1;
     // while (exists(working_dir)) {
-    //  working_dir = std::string(settings<V>::name) + "_" + std::to_string(dir_count++) +
+    //  working_dir = std::string(settings<V>::name) + "_" +
+    //  std::to_string(dir_count++) +
     //      "/";
     //}
 
@@ -279,6 +272,19 @@ class steadification {
   }
 
   auto rand() { return random_uniform<Real, RandEng>{m_rand_eng}(); }
+
+  template <typename V>
+  void integrate_grid_edges(const field<V, Real, 2, 2>& v,
+                            const grid<Real, 2>& domain, Real stepsize) const {
+    std::vector<pathsurface_discretization_t<V>> meshes;
+    for (size_t y = 0; domain.dimension(1).size(); ++y) {
+      for (size_t x = 0; domain.dimension(0).size() - 1; ++x) {
+        seedcurve_t   seedcurve{{domain(x, y), 0}, {domain(x + 1, y), 1}};
+        pathsurface_t surf{v, 0, seedcurve, m_integrator};
+        meshes.push_back(surf.discretize(2, stepsize, -10, 10));
+      }
+    }
+  }
 };
 //==============================================================================
 }  // namespace tatooine::steadification
