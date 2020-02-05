@@ -13,6 +13,7 @@ struct primitive {
   using real_t = Real;
   using pos_t  = vec<Real, N>;
 
+  virtual ~primitive() = default;
   virtual bool is_inside(const pos_t& x) const = 0;
 };
 

@@ -16,7 +16,7 @@ macro(create_test NAME)
   target_compile_features(${NAME}.test PUBLIC cxx_std_17)
   target_compile_options(${NAME}.test PRIVATE
     -Wall -Wextra -pedantic -Wno-missing-braces -Wno-unused-lambda-capture)
-  add_custom_target (${NAME}.test.run COMMAND ./${NAME}.test DEPENDS ${NAME}.test)
+  add_custom_target (${NAME}.test.run COMMAND ./${NAME}.test --use-colour=yes DEPENDS ${NAME}.test)
   if(CMAKE_BUILD_TYPE STREQUAL "Debug" AND (
     "${CMAKE_CXX_COMPILER_ID}" STREQUAL "GNU" OR
     "${CMAKE_CXX_COMPILER_ID}" STREQUAL "Clang"))
@@ -54,7 +54,8 @@ target_link_libraries(unittests tatooine Catch2::Catch2)
 target_compile_options(unittests PRIVATE -Wall -Wextra -pedantic
   -Wno-missing-braces -Wno-unused-lambda-capture)
 catch_discover_tests(unittests)
-add_custom_target (unittests.run COMMAND ./unittests DEPENDS unittests)
+add_custom_target (unittests.run COMMAND ./unittests --use-colour=yes DEPENDS unittests)
+add_custom_target (unittests.xml COMMAND ./unittests --reporter=xml DEPENDS unittests)
 if(CMAKE_BUILD_TYPE STREQUAL "Debug" AND (
   "${CMAKE_CXX_COMPILER_ID}" STREQUAL "GNU" OR
   "${CMAKE_CXX_COMPILER_ID}" STREQUAL "Clang"))

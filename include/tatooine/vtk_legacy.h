@@ -1100,6 +1100,26 @@ class legacy_file_writer {
       }
   }
   //----------------------------------------------------------------------------
+  template <typename Real, size_t N,
+            typename = std::enable_if_t<(std::is_same<Real, double>::value ||
+                                         std::is_same<Real, float>::value ||
+                                         std::is_same<Real, int>::value)>>
+  void write_scalars(const std::string &              name,
+                     const std::vector<tensor<Real, N>> &data,
+                     const std::string &lookup_table_name = "default") {
+    std::stringstream ss;
+    ss << "\nSCALARS " << name << ' ' << tatooine::type_to_str<Real>() << ' '
+       << N << '\n';
+    vtk::write_binary(m_file, ss.str());
+    vtk::write_binary(m_file, "\nLOOKUP_TABLE " + lookup_table_name + '\n');
+    Real d;
+    for (const auto &v : data)
+      for (size_t i = 0; i < N; ++i) {
+        d = swap_endianess(v(i));
+        m_file.write((char *)(&d), sizeof(Real));
+      }
+  }
+  //----------------------------------------------------------------------------
   void write_dimensions(size_t dimx, size_t dimy, size_t dimz) {
     vtk::write_binary(m_file, "\nDIMENSIONS " + std::to_string(dimx) + ' ' +
                                   std::to_string(dimy) + ' ' +

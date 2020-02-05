@@ -156,23 +156,23 @@ struct base_grid_sampler : crtp<Derived>, grid<Real, N> {
   /// indexing of data.
   /// if N == 1 returns actual data otherwise returns a grid_sampler_view with i
   /// as fixed index
-  const_indexing_t at(size_t i) const {
+  auto at(size_t i) const {
     if constexpr (N > 1) {
       return const_indexing_t{this, i};
     } else {
       return data(i);
     }
   }
-  const_indexing_t operator[](size_t i) const { return at(i); }
+  auto operator[](size_t i) const { return at(i); }
 
-  indexing_t at(size_t i) {
+  auto at(size_t i) {
     if constexpr (N > 1) {
       return indexing_t{this, i};
     } else {
       return data(i);
     }
   }
-  indexing_t operator[](size_t i) { return at(i); }
+  auto operator[](size_t i) { return at(i); }
 
   //----------------------------------------------------------------------------
   template <typename... Xs, typename = std::enable_if_t<(
@@ -189,24 +189,33 @@ struct base_grid_sampler : crtp<Derived>, grid<Real, N> {
   auto operator()(const base_tensor<Tensor, TensorReal, N>& xs) const {
     return sample(xs);
   }
-
   //----------------------------------------------------------------------------
   /// sampling by interpolating using HeadInterpolator and
   /// grid_iterators
   template <typename... Xs>
   auto sample(Real x, Xs&&... xs) const {
+    using interpolator = HeadInterpolator<Data>;
     static_assert(sizeof...(Xs) + 1 == N,
                   "number of coordinates does not match number of dimensions");
     x        = domain_to_global(x, 0);
     size_t i = std::floor(x);
     Real   t = x - std::floor(x);
     if (begin() + i + 1 == end()) {
-      return HeadInterpolator<Real>::template interpolate_iter(
-          begin() + i, begin() + i, begin(), end(), t, std::forward<Xs>(xs)...);
+      if constexpr (interpolator::needs_first_derivative) {
+        return interpolator::from_iterators(begin() + i, begin() + i, begin(),
+                                            end(), t, std::forward<Xs>(xs)...);
+      } else {
+        return interpolator::from_iterators(begin() + i, begin() + i, t,
+                                            std::forward<Xs>(xs)...);
+      }
     }
-    return HeadInterpolator<Real>::template interpolate_iter(
-        begin() + i, begin() + i + 1, begin(), end(), t,
-        std::forward<Xs>(xs)...);
+    if constexpr (interpolator::needs_first_derivative) {
+      return interpolator::from_iterators(begin() + i, begin() + i + 1, begin(),
+                                          end(), t, std::forward<Xs>(xs)...);
+    } else {
+      return interpolator::from_iterators(begin() + i, begin() + i + 1, t,
+                                          std::forward<Xs>(xs)...);
+    }
   }
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
   auto sample(const std::array<Real, N>& pos) const {
@@ -715,16 +724,10 @@ struct grid_sampler
       writer.write_point_data(dimension(0).size() * dimension(1).size());
 
       // write data
-      std::vector<std::vector<double>> field_data;
+      std::vector<Data> field_data;
       field_data.reserve(dimension(0).size() * dimension(1).size());
       for (auto v : this->vertices()) {
-        const auto& d = m_data(v.indices());
-        field_data.emplace_back();
-        if constexpr (!std::is_arithmetic_v<Data>) {
-          for (const auto& c : d) { field_data.back().push_back(c); }
-        } else {
-          field_data.back().push_back(d);
-        }
+        field_data.push_back(m_data(v.indices()));
       }
       writer.write_scalars("field_data", field_data);
       writer.close();
@@ -751,18 +754,12 @@ struct grid_sampler
                               dimension(2).size());
 
       // write data
-      std::vector<std::vector<double>> field_data;
+      std::vector<Data> field_data;
       field_data.reserve(dimension(0).size() *
                          dimension(1).size() *
                          dimension(2).size());
       for (auto v : this->vertices()) {
-        const auto& d = m_data(v.indices());
-        field_data.emplace_back();
-        if constexpr (!std::is_arithmetic_v<Data>) {
-          for (const auto& c : d) { field_data.back().push_back(c); }
-        } else {
-          field_data.back().push_back(d);
-        }
+        field_data.push_back(m_data(v.indices()));
       }
       writer.write_scalars("field_data", field_data);
       writer.close();
@@ -887,14 +884,10 @@ template <typename Real, size_t N, typename Data, typename Grid,
 struct grid_sampler_iterator {
   using this_t =
       grid_sampler_iterator<Real, N, Data, Grid, TailInterpolators...>;
-
   //----------------------------------------------------------------------------
-
   const Grid* m_grid;
   size_t      m_index;
-
   //----------------------------------------------------------------------------
-
   auto operator*() const { return m_grid->at(m_index); }
 
   auto& operator++() {
@@ -1018,7 +1011,7 @@ auto resample(const field<Field, FieldReal, N, TensorDims...>& f,
     for (size_t i = 0; i < N; ++i) { is(i) = v[i].i(); }
     for (auto t : ts) {
       try {
-        data(is) = f(v.pos(), t);
+        data(is) = f(v.position(), t);
       } catch (std::exception& /*e*/) {
         if constexpr (std::is_arithmetic_v<tensor_t>) {
           data(is) = 0.0 / 0.0;
