@@ -144,9 +144,8 @@ class steadification {
   template <typename V>
   auto pathsurface(const field<V, Real, 2, 2>& v, const seedcurve_t& seedcurve,
                    Real stepsize) {
-    spacetime_field stv{v};
     using namespace VC::odeint;
-    streamsurface surf{stv, 0, seedcurve, m_integrator};
+    streamsurface surf{v, 0, seedcurve, m_integrator};
 
     auto  mesh   = surf.discretize(2, stepsize, -10, 10);
     auto& vprop = mesh.template add_vertex_property<vec2>("v");
