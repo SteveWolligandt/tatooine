@@ -1497,6 +1497,13 @@ struct parameterized_line : line<Real, N> {
   //----------------------------------------------------------------------------
   /// sample the line via interpolation
   auto sample(Real t) const {
+    if (t < front_parameterization() &&
+        front_parameterization() - t < 1e-7) {
+      t = front_parameterization();
+    } else if (t > back_parameterization() &&
+               t - back_parameterization() < 1e-7) {
+      t = back_parameterization();
+    }
     if (this->empty()) { throw empty_exception{}; }
 
     if (t < front_parameterization() || t > back_parameterization()) {

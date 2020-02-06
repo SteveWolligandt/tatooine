@@ -18,6 +18,8 @@ class simple_tri_mesh : public pointset<Real, N>{
   using parent_t::at;
   using parent_t::operator[];
   using parent_t::is_valid;
+  template <typename T>
+  using vertex_property_t = typename parent_t::template vertex_property_t<T>;
   //----------------------------------------------------------------------------
   struct face : handle {
     using handle::handle;
@@ -178,6 +180,21 @@ class simple_tri_mesh : public pointset<Real, N>{
         polygons.push_back(std::vector{face[0].i, face[1].i, face[2].i});
       }
       writer.write_polygons(polygons);
+
+      // write vertex data
+      writer.write_point_data(this->num_vertices());
+      for (const auto& [name, prop] : this->m_vertex_properties) {
+        if (prop->type() == typeid(vec<Real, 4>)) {
+        } else if (prop->type() == typeid(vec<Real, 3>)) {
+        } else if (prop->type() == typeid(vec<Real, 2>)) {
+          const auto& casted_prop =
+              *dynamic_cast<const vertex_property_t<vec<Real, 2>>*>(prop.get());
+          writer.write_scalars(name, casted_prop.container());
+
+        } else if (prop->type() == typeid(Real)) {
+        }
+      }
+
       writer.close();
       return true;
     } else {

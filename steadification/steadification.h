@@ -45,8 +45,8 @@ class steadification {
   using ivec2             = vec<size_t, 2>;
   using ivec3             = vec<size_t, 3>;
   using integrator_t =
-      integration::vclibs::rungekutta43<double, 3, interpolation::hermite>;
-  using seedcurve_t = parameterized_line<double, 3, interpolation::linear>;
+      integration::vclibs::rungekutta43<double, 2, interpolation::hermite>;
+  using seedcurve_t = parameterized_line<double, 2, interpolation::linear>;
   using domain_coverage_tex_t = yavin::tex2r32ui;
 
   struct rasterized_pathsurface {
@@ -146,15 +146,15 @@ class steadification {
                    Real stepsize) {
     using namespace VC::odeint;
     streamsurface surf{v, 0, seedcurve, m_integrator};
-
     auto  mesh   = surf.discretize(2, stepsize, -10, 10);
     auto& vprop = mesh.template add_vertex_property<vec2>("v");
 
     for (auto vertex : mesh.vertices()) {
-      if (stv.in_domain(mesh[vertex], 0)) {
-        vprop[vertex] = v(vec{mesh[vertex](0), mesh[vertex](1)}, mesh[vertex](2));
+      if (v.in_domain(mesh[vertex], mesh.uv(vertex)(1) + mesh.t0())) {
+        vprop[vertex] =
+            v(vec{mesh[vertex](0), mesh[vertex](1)}, mesh.uv(vertex)(1));
       } else {
-        vprop[vertex] = vec{0.0 / 0.0, 0.0 / 0.0};
+        vprop[vertex] = vec<Real, 2>{0.0 / 0.0, 0.0 / 0.0};
       }
     }
     return std::pair{std::move(mesh), std::move(surf)};

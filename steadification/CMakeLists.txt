@@ -28,3 +28,7 @@ target_link_libraries(steadification tatooine yavin)
 target_compile_features(steadification PUBLIC cxx_std_17)
 target_compile_options(steadification PRIVATE
   -Wall -Wextra -pedantic -Wno-missing-braces -Wno-unused-lambda-capture)
+
+add_custom_target(steadification.doublegyre
+                  COMMAND ./steadification dg 0 -5 5 5000 10 0.1 0.99
+                  DEPENDS steadification)

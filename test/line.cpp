@@ -223,19 +223,19 @@ TEST_CASE("line_curvature", "[line][curvature]") {
         REQUIRE(integral_curve.curvature_at(i) == Approx(0).margin(1e-6));
       }
     }
-    //SECTION("doublegyre") {
-    //  numerical::doublegyre                        v;
-    //  integration::vclibs::rungekutta43<double, 2> rk43;
-    //  auto integral_curve = rk43.integrate(v, {0.1, 0.1}, 0, 10);
-    //  double curv_add = 0;
-    //  for (size_t i = 0; i < integral_curve.num_vertices(); ++i) {
-    //    curv_add += integral_curve.curvature_at(i);
-    //  }
-    //  auto curv_mean = curv_add / integral_curve.num_vertices();
-    //  std::cerr << "curvature mean doublegyre pathline x_0 = {0.1, 0.1}, t_0 = "
-    //               "0, tau = 10: "
-    //            << curv_mean << '\n';
-    //}
+    SECTION("doublegyre") {
+      numerical::doublegyre                        v;
+      integration::vclibs::rungekutta43<double, 2, interpolation::hermite> rk43;
+      auto integral_curve = rk43.integrate(v, {0.1, 0.1}, 0, 10);
+      double curv_add = 0;
+      for (size_t i = 0; i < integral_curve.num_vertices(); ++i) {
+        curv_add += integral_curve.curvature_at(i);
+      }
+      auto curv_mean = curv_add / integral_curve.num_vertices();
+      std::cerr << "curvature mean doublegyre pathline x_0 = {0.1, 0.1}, t_0 = "
+                   "0, tau = 10: "
+                << curv_mean << '\n';
+    }
   }
 }
 //==============================================================================
@@ -256,13 +256,14 @@ TEST_CASE("line_integrated_curvature", "[line][integrated_curvature]") {
     SECTION("double gyre pathline") {
       numerical::doublegyre                        v;
       integration::vclibs::rungekutta43<double, 2, interpolation::hermite> rk43;
-      size_t                                       cnt = 0;
-      for (auto t : linspace(0.0, 10.0, 100)) {
-        auto integral_curve = rk43.integrate(v, {0.2, 0.2}, t, t + 10);
+      size_t       cnt = 0;
+      const double tau = 10;
+      for (auto t0 : linspace(0.0, 10.0, 100)) {
+        auto integral_curve = rk43.integrate(v, {0.2, 0.2}, t0, tau);
         auto kappa_dt       = integral_curve.integrated_curvature();
+        integral_curve.write_vtk("doublegyre_pathline_with_curvature" +
+                                 std::to_string(cnt++) + ".vtk");
         CAPTURE(cnt, kappa_dt);
-        //integral_curve.write_vtk("doublegyre_quadratic_tangents_" +
-        //                         std::to_string(cnt++) + ".vtk");
       }
     }
   }

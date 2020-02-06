@@ -109,22 +109,21 @@ struct rungekutta43
 
     auto& tangents = integral.tangents_property();
     stepper.integrate(
-        dy, ode_t::Output >> ode_t::sink([&integral, &tangents](
-                                             auto t, const auto& y,
-                                             const auto& dy) {
-              bool use = true;
-              if (!integral.empty() &&
-                  distance(integral.back_vertex(), y) < 1e-6) {
-                use = false;
-              }
-              if (use) {
-                integral.push_back(y, t);
-                tangents.back() = dy;
-              }
-            }));
+        dy, ode_t::Output >>
+                ode_t::sink([&integral, &tangents](auto t, const auto& y,
+                                                        const auto& dy) {
+                  bool use = true;
+                  if (!integral.empty() &&
+                      distance(integral.back_vertex(), y) < 1e-6) {
+                    use = false;
+                  }
+                  if (use) {
+                    integral.push_back(y, t);
+                    tangents.back() = dy;
+                  }
+                }));
     return integral;
   }
-
   //----------------------------------------------------------------------------
   template <typename vf_t>
   auto& calc_backward(const vf_t& vf, integral_t& integral, const pos_t& y0,
@@ -141,19 +140,19 @@ struct rungekutta43
 
     auto& tangents = integral.tangents_property();
     stepper.integrate(
-        dy, ode_t::Output >> ode_t::sink([&integral, &tangents](
-                                             auto t, const auto& y,
-                                             const auto& dy) {
-              bool use = true;
-              if (!integral.empty() &&
-                  distance(integral.back_vertex(), y) < 1e-6) {
-                use = false;
-              }
-              if (use) {
-                integral.push_front(y, t);
-                tangents.front() = dy;
-              }
-            }));
+        dy, ode_t::Output >>
+                ode_t::sink([&integral, &tangents](auto t, const auto& y,
+                                                         const auto& dy) {
+                  bool use = true;
+                  if (!integral.empty() &&
+                      distance(integral.back_vertex(), y) < 1e-6) {
+                    use = false;
+                  }
+                  if (use) {
+                    integral.push_front(y, t);
+                    tangents.front() = dy;
+                  }
+                }));
     return integral;
   }
 };

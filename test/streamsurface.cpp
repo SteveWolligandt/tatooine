@@ -11,22 +11,122 @@ namespace tatooine::test {
 //==============================================================================
 using interpolation::hermite;
 using interpolation::linear;
+//==============================================================================
+TEST_CASE(
+    "streamsurface_spacetime_doublegyre_sampling",
+    "[streamsurface][numerical][doublegyre][dg][sample]") {
+  using integrator_t  = integration::vclibs::rungekutta43<double, 2, hermite>;
+  using seedcurve_t   = parameterized_line<double, 2, linear>;
+  numerical::doublegyre v;
+  const seedcurve_t     seedcurve{{{0.1, 0.1}, 0.0}, {{0.1, 0.9}, 1.0}};
+  streamsurface         ssf{v, -1, 1, seedcurve, integrator_t{}};
 
+  {
+    const double u = 0;
+    ssf.streamline_at(u, 0, 10);
+    REQUIRE(ssf.streamline_at(u).front_parameterization() == -1);
+    REQUIRE(ssf.streamline_at(u).back_parameterization() == Approx(9));
+    REQUIRE(approx_equal(ssf.streamline_at(u).front_vertex(), seedcurve(u)));
+    REQUIRE_FALSE(approx_equal(ssf.streamline_at(u).back_vertex(), seedcurve(u)));
+  }{
+    const double u = 1;
+    ssf.streamline_at(u, -10, 0);
+    REQUIRE(ssf.streamline_at(u).front_parameterization() == -9);
+    REQUIRE(ssf.streamline_at(u).back_parameterization() == Approx(1));
+    REQUIRE_FALSE(approx_equal(ssf.streamline_at(u).front_vertex(), seedcurve(u)));
+    REQUIRE(approx_equal(ssf.streamline_at(u).back_vertex(), seedcurve(u)));
+  }{
+    CAPTURE(ssf(0, -1));
+    CAPTURE(seedcurve(0));
+    REQUIRE(approx_equal(ssf(0, -1), seedcurve(0)));
+  }
+  {
+    CAPTURE(ssf(0.5, 0));
+    CAPTURE(seedcurve(0.5));
+    REQUIRE(approx_equal(ssf(0.5, 0), seedcurve(0.5)));
+  }
+  {
+    CAPTURE(ssf(1, 1));
+    CAPTURE(seedcurve(1));
+    REQUIRE(approx_equal(ssf(1, 1), seedcurve(1)));
+  }
+  {
+    CAPTURE(ssf(0, 0));
+    CAPTURE(seedcurve(0));
+    REQUIRE_FALSE(approx_equal(ssf(0, 0), seedcurve(0)));
+  }
+}
+//==============================================================================
+TEST_CASE(
+    "streamsurface_doublegyre_caching",
+    "[streamsurface][numerical][doublegyre][dg][caching]") {
+  using integrator_t  = integration::vclibs::rungekutta43<double, 2, hermite>;
+  using seedcurve_t   = parameterized_line<double, 2, linear>;
+  numerical::doublegyre v;
+  const seedcurve_t     seedcurve{{{0.1, 0.1}, 0.0}, {{0.1, 0.9}, 1.0}};
+  streamsurface         ssf{v, -1, 1, seedcurve, integrator_t{}};
+
+  for (auto u : linspace(0.0, 1.0, 3)) {
+    CAPTURE(u, ssf.t0(u));
+    ssf(u, ssf.t0(u), -1, 1);
+    REQUIRE(ssf.streamline_at(u, 0, 0).front_parameterization() ==
+            ssf.t0(u) - 1);
+    REQUIRE(ssf.streamline_at(u, 0, 0).back_parameterization() ==
+            ssf.t0(u) + 1);
+  }
+}
+//==============================================================================
+TEST_CASE(
+    "streamsurface_doublegyre_front_evolving",
+    "[streamsurface][numerical][doublegyre][dg][evaluate_vectorfield]") {
+  using integrator_t  = integration::vclibs::rungekutta43<double, 2, hermite>;
+  using seedcurve_t   = parameterized_line<double, 2, linear>;
+  numerical::doublegyre v;
+  const seedcurve_t     seedcurve{{{0.1, 0.5}, 0.0}, {{0.9, 0.5}, 1.0}};
+  SECTION("time zero") {
+    streamsurface ssf{v, seedcurve, integrator_t{}};
+    CHECK(approx_equal(ssf.vectorfield_at(0, 0), v(seedcurve(0), 0), 0));
+    CHECK(approx_equal(ssf.vectorfield_at(0.5, 0), v(seedcurve(0.5), 0), 0));
+    CHECK(approx_equal(ssf.vectorfield_at(1, 0), v(seedcurve(1), 0), 0));
+  }
+  SECTION("single time") {
+    streamsurface ssf{v, 1, seedcurve, integrator_t{}};
+    CHECK(approx_equal(ssf.vectorfield_at(0, 1), v(seedcurve(0), 1), 0));
+    CHECK(approx_equal(ssf.vectorfield_at(0.5, 1), v(seedcurve(0.5), 1), 0));
+    CHECK(approx_equal(ssf.vectorfield_at(1, 1), v(seedcurve(1), 1), 0));
+
+    CHECK_FALSE(approx_equal(ssf.vectorfield_at(0, 0), v(seedcurve(0), 0), 0));
+    CHECK_FALSE(approx_equal(ssf.vectorfield_at(0.5, 0), v(seedcurve(0.5), 0), 0));
+    CHECK_FALSE(approx_equal(ssf.vectorfield_at(1, 0), v(seedcurve(1), 0), 0));
+
+    CHECK_FALSE(approx_equal(ssf.vectorfield_at(0, 2), v(seedcurve(0), 2), 0));
+    CHECK_FALSE(approx_equal(ssf.vectorfield_at(0.5, 2), v(seedcurve(0.5), 2), 0));
+    CHECK_FALSE(approx_equal(ssf.vectorfield_at(1, 2), v(seedcurve(1), 2), 0));
+  }
+  SECTION("varying time") {
+    streamsurface ssf{v, -1, 1, seedcurve, integrator_t{}};
+    CHECK(approx_equal(ssf.vectorfield_at(0, -1), v(seedcurve(0), -1), 0));
+    CHECK(approx_equal(ssf.vectorfield_at(0.5, 0), v(seedcurve(0.5), 0), 0));
+    CHECK(approx_equal(ssf.vectorfield_at(1, 1), v(seedcurve(1), 1), 0));
+    CHECK(approx_equal(ssf.vectorfield_at(0, 0), v(ssf(0, 0), 0), 0));
+
+    CHECK_FALSE(approx_equal(ssf.vectorfield_at(0, 0), v(seedcurve(0), 0), 0));
+    CHECK_FALSE(approx_equal(ssf.vectorfield_at(1, 0), v(seedcurve(1), 0), 0));
+  }
+}
+//==============================================================================
 TEST_CASE(
     "streamsurface_simple_spacetime_doublegyre",
     "[streamsurface][simple][numerical][doublegyre][dg][spacetime_field]") {
   numerical::doublegyre v;
   spacetime_field       vst{v};
   streamsurface         ssf{
-      vst,
-      0,
-      parameterized_line<double, 3, hermite>{
-          {{0.1, 0.2, 0.0}, 0.0},
-          {{0.5, 0.9, 0.0}, 0.5},
-          {{0.9, 0.2, 0.0}, 1.0}},
+      vst, 0, 2,
+      parameterized_line<double, 3, linear>{{{0.1, 0.1, 0.0}, 0.0},
+                                            {{0.1, 0.9, 0.0}, 1.0}},
       integration::vclibs::rungekutta43<double, 3, hermite>{},
   };
-  ssf.discretize<simple_discretization>(5ul, 1.0, 0.0, 1.0)
+  ssf.discretize<simple_discretization>(5UL, 0.1, -10.0, 10.0)
       .write_vtk("streamsurface_dg_simple.vtk");
 }
 //==============================================================================
@@ -36,13 +136,12 @@ TEST_CASE(
   numerical::doublegyre v;
   spacetime_field       vst{v};
   streamsurface         ssf{
-      vst, 0,
-      parameterized_line<double, 3, hermite>{
-          {{0.1, 0.2, 0.0}, 0.0},
-          {{0.5, 0.9, 0.0}, 0.5},
-          {{0.9, 0.2, 0.0}, 1.0}},
+      vst, -2, 2,
+      parameterized_line<double, 3, hermite>{{{0.1, 0.2, 0.0}, 0.0},
+                                             {{0.5, 0.9, 0.0}, 0.5},
+                                             {{0.9, 0.2, 0.0}, 1.0}},
       integration::vclibs::rungekutta43<double, 3, hermite>{}};
-  ssf.discretize<hultquist_discretization>(20ul, 0.1, -20.0, 20.0)
+  ssf.discretize<hultquist_discretization>(20UL, 0.1, -20.0, 20.0)
       .write_vtk("streamsurface_dg_hultquist.vtk");
 }
 //==============================================================================
@@ -55,7 +154,7 @@ TEST_CASE(
   integration::vclibs::rungekutta43<double, 2, linear>
                 integrator;
   streamsurface ssf{v, 0.0, seed, integrator};
-  ssf.discretize<simple_discretization>(2ul, 0.01, -M_PI, M_PI)
+  ssf.discretize<simple_discretization>(2UL, 0.01, -M_PI, M_PI)
       .write_vtk("streamsurface_sc_simple.vtk");
 }
 //==============================================================================
@@ -69,7 +168,7 @@ TEST_CASE(
   integration::vclibs::rungekutta43<double, 2, linear>
                 integrator;
   streamsurface ssf{v, 0.0, seed, integrator};
-  ssf.discretize<hultquist_discretization>(2ul, 0.01, -M_PI, M_PI)
+  ssf.discretize<hultquist_discretization>(2UL, 0.01, -M_PI, M_PI)
       .write_vtk("streamsurface_sc_hultquist.vtk");
 }
 
