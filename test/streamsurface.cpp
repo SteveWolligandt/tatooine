@@ -121,12 +121,12 @@ TEST_CASE(
   numerical::doublegyre v;
   spacetime_field       vst{v};
   streamsurface         ssf{
-      vst, 0, 2,
-      parameterized_line<double, 3, linear>{{{0.1, 0.1, 0.0}, 0.0},
-                                            {{0.1, 0.9, 0.0}, 1.0}},
-      integration::vclibs::rungekutta43<double, 3, hermite>{},
-  };
-  ssf.discretize<simple_discretization>(5UL, 0.1, -10.0, 10.0)
+      vst, 
+      parameterized_line<double, 3, hermite>{{{0.1, 0.2, 0.0}, 0.0},
+                                             {{0.5, 0.9, 0.0}, 0.5},
+                                             {{0.9, 0.2, 0.0}, 1.0}},
+      integration::vclibs::rungekutta43<double, 3, hermite>{}};
+  ssf.discretize<simple_discretization>(20UL, 0.1, -20.0, 20.0)
       .write_vtk("streamsurface_dg_simple.vtk");
 }
 //==============================================================================
@@ -136,12 +136,12 @@ TEST_CASE(
   numerical::doublegyre v;
   spacetime_field       vst{v};
   streamsurface         ssf{
-      vst, -2, 2,
+      vst, 
       parameterized_line<double, 3, hermite>{{{0.1, 0.2, 0.0}, 0.0},
                                              {{0.5, 0.9, 0.0}, 0.5},
                                              {{0.9, 0.2, 0.0}, 1.0}},
       integration::vclibs::rungekutta43<double, 3, hermite>{}};
-  ssf.discretize<hultquist_discretization>(20UL, 0.1, -20.0, 20.0)
+  ssf.discretize<hultquist_discretization>(100UL, 0.1, -20.0, 20.0)
       .write_vtk("streamsurface_dg_hultquist.vtk");
 }
 //==============================================================================
@@ -150,7 +150,7 @@ TEST_CASE(
     "[streamsurface][simple][numerical][sinuscosinus][sc]") {
   numerical::sinuscosinus v;
   parameterized_line<double, 2, linear> seed{{{0.0, 0.0}, 0.0},
-                                                            {{1.0, 0.0}, 1.0}};
+                                             {{1.0, 0.0}, 1.0}};
   integration::vclibs::rungekutta43<double, 2, linear>
                 integrator;
   streamsurface ssf{v, 0.0, seed, integrator};

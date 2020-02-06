@@ -16,7 +16,7 @@ struct streamsurface_renderer
   using typename parent_t::vbo_data_vec;
   //============================================================================
   template <typename Real>
-  streamsurface_renderer(const simple_tri_mesh<Real, 3>& mesh)
+  streamsurface_renderer(const simple_tri_mesh<Real, 2>& mesh)
       : indexeddata{mesh_to_vbo_data(mesh), mesh_to_ibo_data(mesh)} {}
   //----------------------------------------------------------------------------
   streamsurface_renderer(const streamsurface_renderer& other) = default;
@@ -24,7 +24,7 @@ struct streamsurface_renderer
   streamsurface_renderer(streamsurface_renderer&& other) = default;
   //============================================================================
   template <typename Real>
-  static vbo_data_vec mesh_to_vbo_data(const simple_tri_mesh<Real, 3>& mesh) {
+  static vbo_data_vec mesh_to_vbo_data(const simple_tri_mesh<Real, 2>& mesh) {
     using namespace boost;
     vbo_data_vec vbo_data;
     vbo_data.reserve(mesh.num_vertices());
@@ -47,26 +47,16 @@ struct streamsurface_renderer
   }
   //----------------------------------------------------------------------------
   template <typename Real>
-  static ibo_data_vec mesh_to_ibo_data(const simple_tri_mesh<Real, 3>& mesh) {
+  static ibo_data_vec mesh_to_ibo_data(const simple_tri_mesh<Real, 2>& mesh) {
     using namespace boost;
     using namespace adaptors;
     ibo_data_vec ibo_data;
     auto         is_triangle = [&mesh](auto f) { return mesh[f].size() == 3; };
-    auto         is_quad     = [&mesh](auto f) { return mesh[f].size() == 4; };
     auto         get_face = [&mesh](auto f) -> const auto& { return mesh[f]; };
-
-    auto quad_to_tris = [](const auto& quad) {
-      return std::array{quad[0], quad[1], quad[2], quad[0], quad[2], quad[3]};
-    };
 
     for (const auto& vs :
          mesh.faces() | filtered(is_triangle) | transformed(get_face)) {
       copy(vs | transformed([](auto h) { return h.i; }),
-           std::back_inserter(ibo_data));
-    }
-    for (const auto& vs :
-         mesh.faces() | filtered(is_quad) | transformed(get_face)) {
-      copy(quad_to_tris(vs) | transformed([](auto h) { return h.i; }),
            std::back_inserter(ibo_data));
     }
     return ibo_data;

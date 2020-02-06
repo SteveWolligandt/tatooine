@@ -141,12 +141,14 @@ struct integrator : crtp<Derived> {
       calc_forward(v, integral, y0, t0, tau);
     }
     if (!integral.empty()) {
-      if (tau < 0 && integral.front_parameterization() > t0 + tau)
+      if (tau < 0 &&
+          std::abs(integral.front_parameterization() - (t0 + tau)) > 1e-5)
         backward_on_border = true;
-      else if (tau > 0 && integral.back_parameterization() < t0 + tau)
+      else if (tau > 0 && std::abs(integral.back_parameterization() - (t0 + tau)) > 1e-5)
         forward_on_border = true;
-    } else
+    } else {
       backward_on_border = forward_on_border = true;
+    }
     return integral;
   }
   //----------------------------------------------------------------------------
@@ -160,10 +162,12 @@ struct integrator : crtp<Derived> {
     calc_forward(v, integral, y0, t0, forward_tau);
 
     if (!integral.empty()) {
-      if (integral.front_parameterization() > t0 + backward_tau) {
+      if (std::abs(integral.front_parameterization() - (t0 + backward_tau)) >
+          1e-7) {
         backward_on_border = true;
       }
-      if (integral.back_parameterization() < t0 + forward_tau) {
+      if (std::abs(integral.back_parameterization() - (t0 + forward_tau)) >
+          1e-7) {
         forward_on_border = true;
       }
     } else {

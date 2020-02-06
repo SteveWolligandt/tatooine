@@ -443,7 +443,7 @@ struct front_evolving_streamsurface_discretization
           while (d > desired_spatial_dist * 1.5) {
             // split front if u distance to small
             Real u_dist = std::abs(uv(*v)(0) - uv(*next(v))(0));
-            if (u_dist < 1e-6) {
+            if (u_dist < 1e-10) {
               auto pred_split_it = find_best_predecessor(v, pred_range);
               // auto new_sub =
               //     front.insert(next(subfront),
@@ -707,7 +707,7 @@ struct hultquist_discretization : front_evolving_streamsurface_discretization<
     std::list<integrated_t> integrated_vertices;
     for (auto v_it = begin(subfront.first); v_it != end(subfront.first);
          ++v_it) {
-      const auto& v  = *v_it;
+      auto v  = *v_it;
       const auto& uv = parent_t::uv(v);
       const vec   new_uv{uv(0), uv(1) + step};
       try {
