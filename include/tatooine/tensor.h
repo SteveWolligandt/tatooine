@@ -770,62 +770,62 @@ constexpr auto operator+(const base_tensor<LhsTensor, LhsReal, Dims...>& lhs,
 
 //------------------------------------------------------------------------------
 #if has_cxx17_support()
-template <typename Tensor, typename tensor_real_t, typename scalar_real_t,
+template <typename Tensor, typename TensorReal, typename ScalarReal,
           size_t... Dims,
-          enable_if_arithmetic_complex_or_symbolic<scalar_real_t> = true>
+          enable_if_arithmetic_complex_or_symbolic<ScalarReal> = true>
 #else
-template <typename Tensor, typename tensor_real_t, typename scalar_real_t,
+template <typename Tensor, typename TensorReal, typename ScalarReal,
           size_t... Dims,
-          enable_if_arithmetic<scalar_real_t> = true>
+          enable_if_arithmetic<ScalarReal> = true>
 #endif
-constexpr auto operator*(const base_tensor<Tensor, tensor_real_t, Dims...>& t,
-                         const scalar_real_t scalar) {
+constexpr auto operator*(const base_tensor<Tensor, TensorReal, Dims...>& t,
+                         const ScalarReal scalar) {
   return unary_operation(
       [scalar](const auto& component) { return component * scalar; }, t);
 }
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 #if has_cxx17_support()
-template <typename Tensor, typename tensor_real_t, typename scalar_real_t,
+template <typename Tensor, typename TensorReal, typename ScalarReal,
           size_t... Dims,
-          enable_if_arithmetic_complex_or_symbolic<scalar_real_t> = true>
+          enable_if_arithmetic_complex_or_symbolic<ScalarReal> = true>
 #else
-template <typename Tensor, typename tensor_real_t, typename scalar_real_t,
+template <typename Tensor, typename TensorReal, typename ScalarReal,
           size_t... Dims,
-          enable_if_arithmetic<scalar_real_t> = true>
+          enable_if_arithmetic<ScalarReal> = true>
 #endif
-constexpr auto operator*(const scalar_real_t scalar,
-                         const base_tensor<Tensor, tensor_real_t, Dims...>& t) {
+constexpr auto operator*(const ScalarReal scalar,
+                         const base_tensor<Tensor, TensorReal, Dims...>& t) {
   return unary_operation(
       [scalar](const auto& component) { return component * scalar; }, t);
 }
 
 //------------------------------------------------------------------------------
 #if has_cxx17_support()
-template <typename Tensor, typename tensor_real_t, typename scalar_real_t,
+template <typename Tensor, typename TensorReal, typename ScalarReal,
           size_t... Dims,
-          enable_if_arithmetic_complex_or_symbolic<scalar_real_t> = true>
+          enable_if_arithmetic_complex_or_symbolic<ScalarReal> = true>
 #else
-template <typename Tensor, typename tensor_real_t, typename scalar_real_t,
+template <typename Tensor, typename TensorReal, typename ScalarReal,
           size_t... Dims,
-          enable_if_arithmetic<scalar_real_t> = true>
+          enable_if_arithmetic<ScalarReal> = true>
 #endif
-constexpr auto operator/(const base_tensor<Tensor, tensor_real_t, Dims...>& t,
-                         const scalar_real_t scalar) {
+constexpr auto operator/(const base_tensor<Tensor, TensorReal, Dims...>& t,
+                         const ScalarReal scalar) {
   return unary_operation(
       [scalar](const auto& component) { return component / scalar; }, t);
 }
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 #if has_cxx17_support()
-template <typename Tensor, typename tensor_real_t, typename scalar_real_t,
+template <typename Tensor, typename TensorReal, typename ScalarReal,
           size_t... Dims,
-          enable_if_arithmetic_complex_or_symbolic<scalar_real_t> = true>
+          enable_if_arithmetic_complex_or_symbolic<ScalarReal> = true>
 #else
-template <typename Tensor, typename tensor_real_t, typename scalar_real_t,
+template <typename Tensor, typename TensorReal, typename ScalarReal,
           size_t... Dims,
-          enable_if_arithmetic<scalar_real_t> = true>
+          enable_if_arithmetic<ScalarReal> = true>
 #endif
-constexpr auto operator/(const scalar_real_t scalar,
-                         const base_tensor<Tensor, tensor_real_t, Dims...>& t) {
+constexpr auto operator/(const ScalarReal scalar,
+                         const base_tensor<Tensor, TensorReal, Dims...>& t) {
   return unary_operation(
       [scalar](const auto& component) { return scalar / component; }, t);
 }

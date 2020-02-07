@@ -1,27 +1,25 @@
 #ifndef TATOOINE_GRID_H
 #define TATOOINE_GRID_H
-
 //==============================================================================
 #include <boost/range/adaptors.hpp>
 #include <boost/range/algorithm.hpp>
 #include <cassert>
 #include <set>
-#include "utility.h"
+
 #include "algorithm.h"
 #include "boundingbox.h"
 #include "grid_vertex.h"
 #include "grid_vertex_edges.h"
 #include "grid_vertex_neighbors.h"
+#include "index_ordering.h"
 #include "linspace.h"
 #include "random.h"
 #include "subgrid.h"
-#include "random.h"
 #include "type_traits.h"
-
+#include "utility.h"
 //==============================================================================
 namespace tatooine {
 //==============================================================================
-
 template <typename Real, size_t N>
 class grid {
  public:
@@ -161,13 +159,15 @@ class grid {
   //----------------------------------------------------------------------------
  public:
   constexpr auto size() const { return size(std::make_index_sequence<N>{}); }
-  //----------------------------------------------------------------------------
+  // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+ private:
   template <size_t... Is>
   constexpr auto size(std::index_sequence<Is...> /*is*/) const {
     static_assert(sizeof...(Is) == N);
     return vec<size_t, N>{m_dimensions[Is].size()...};
   }
   //----------------------------------------------------------------------------
+ public:
   constexpr auto size(size_t i) const { return dimension(i).size(); }
   //----------------------------------------------------------------------------
   template <size_t... Is, typename... Reals,
@@ -234,10 +234,8 @@ class grid {
   auto front_vertex(std::index_sequence<Is...> /*is*/) {
     return vertex_t{m_dimensions[Is].begin()...};
   }
-
   //----------------------------------------------------------------------------
   auto front_vertex() { return front_vertex(std::make_index_sequence<N>()); }
-
   //----------------------------------------------------------------------------
   template <size_t... Is>
   auto back_vertex(std::index_sequence<Is...> /*is*/) {
@@ -265,11 +263,76 @@ class grid {
     return at(is...);
   }
   //----------------------------------------------------------------------------
+  template <typename... Is, enable_if_integral<Is...> = true>
+  auto vertex_at(Is... is) const {
+    static_assert(sizeof...(Is) == N);
+    return vertex_t{*this, is...};
+  }
+  //----------------------------------------------------------------------------
+  template <typename Is, enable_if_integral<Is> = true>
+  auto vertex_at(const std::array<Is, N>& is) const {
+    return invoke_unpacked([&](auto... is) { return vertex_at(is...); },
+                           unpack(is));
+  }
+  //----------------------------------------------------------------------------
   constexpr auto num_vertices() const {
     size_t num = 1;
     for (const auto& dim : m_dimensions) { num *= dim.size(); }
     return num;
   }
+  //----------------------------------------------------------------------------
+  /// \return number of dimensions for one dimension dim
+  constexpr auto num_edges_in_dimension(size_t dim) const {
+    size_t n = 1;
+    for (size_t i = 0; i < N; ++i) {
+      if (i != dim) {
+        n *= size(i);
+      } else {
+        n *= size(i) - 1;
+      }
+    }
+    return n;
+  }
+  //----------------------------------------------------------------------------
+  constexpr auto num_edges_per_dimension() const {
+    auto n = make_array<size_t, N>(0);
+    for (size_t i = 0; i < N; ++i) { n[i] = num_edges_in_dimension(i); }
+    return n;
+  }
+  //----------------------------------------------------------------------------
+  /// \return number of dimensions for one dimension dim
+  constexpr auto num_straight_edges() const {
+    size_t n = 0;
+    for (size_t i = 0; i < N; ++i) { n += num_edges_in_dimension(i); }
+    return n;
+  }
+  //----------------------------------------------------------------------------
+  auto edge_at(size_t edge_idx) const {
+    auto num_edges = num_edges_per_dimension();
+
+    // determine which orientation edge_idx has
+    for (size_t i = 1; i < N; ++i) { num_edges[i] += num_edges[i - 1]; }
+    size_t which_dim = std::numeric_limits<size_t>::max();
+    for (size_t i = 0; i < N; ++i) {
+      if (edge_idx < num_edges[i]) {
+        which_dim = i;
+        if (i > 0) { edge_idx -= num_edges[i - 1]; }
+        break;
+      }
+    }
+    //determine first vertex
+    auto first_vertex = [&] {
+      // special case for dimension x
+      if (which_dim == 0) { edge_idx += edge_idx / (size(0) - 1); }
+      const auto res     = size().data();
+      const auto indices = x_fastest::multi_index(res, edge_idx);
+      return vertex_at(indices);
+    }();
+    auto second_vertex = first_vertex;
+    ++second_vertex[which_dim];
+    return edge_t{std::move(first_vertex), std::move(second_vertex)};
+  }
+
   //----------------------------------------------------------------------------
  private:
   template <size_t... Is>
