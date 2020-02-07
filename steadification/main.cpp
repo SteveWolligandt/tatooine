@@ -27,7 +27,7 @@ void calc(const field<V, VReal, 2, 2>& v, T0Real /*t0*/, BTauReal /*btau*/,
   //mesh.write_vtk("pathsurface.vtk");
   //std::cerr << s.curvature(mesh, surf) << '\n';
 
-  grid g{linspace{0.0, 2.0, 21}, linspace{0.0, 1.0, 11}};
+  grid g{linspace{0.0, 2.0, 3}, linspace{0.0, 1.0, 3}};
   s.integrate_grid_edges(v, g, stepsize);
 }
 

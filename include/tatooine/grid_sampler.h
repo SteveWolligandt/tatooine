@@ -88,16 +88,16 @@ struct base_grid_sampler : crtp<Derived>, grid<Real, N> {
   static constexpr size_t num_components = num_components_v<Data>;
   using this_t   = base_grid_sampler<Derived, Real, N, Data, HeadInterpolator,
                                    TailInterpolators...>;
-  using Grid     = grid<Real, N>;
+  using parent_t     = grid<Real, N>;
   using iterator = grid_sampler_iterator<Real, N, Data, this_t>;
   using indexing_t =
       base_grid_sampler_at_t<Real, N, Data, this_t, TailInterpolators...>;
   using const_indexing_t =
       base_grid_sampler_at_ct<Real, N, Data, this_t, TailInterpolators...>;
   using crtp<Derived>::as_derived;
-  using Grid::dimension;
-  using Grid::dimensions;
-  using Grid::size;
+  using parent_t::dimension;
+  using parent_t::dimensions;
+  using parent_t::size;
 
   //----------------------------------------------------------------------------
   struct out_of_domain : std::runtime_error {
@@ -105,30 +105,30 @@ struct base_grid_sampler : crtp<Derived>, grid<Real, N> {
   };
 
   base_grid_sampler() = default;
-  base_grid_sampler(const Grid& g) : Grid{g} {}
-  base_grid_sampler(Grid&& g) : Grid{std::move(g)} {}
+  base_grid_sampler(const parent_t& g) : parent_t{g} {}
+  base_grid_sampler(parent_t&& g) : parent_t{std::move(g)} {}
   template <typename... real_ts>
   base_grid_sampler(const linspace<real_ts>&... linspaces)
-      : Grid{linspaces...} {}
-  base_grid_sampler(const base_grid_sampler& other) : Grid{other} {}
+      : parent_t{linspaces...} {}
+  base_grid_sampler(const base_grid_sampler& other) : parent_t{other} {}
   base_grid_sampler(base_grid_sampler&& other) noexcept
-      : Grid{std::move(other)} {}
+      : parent_t{std::move(other)} {}
   auto& operator=(const base_grid_sampler& other) {
-    Grid::operator=(other);
+    parent_t::operator=(other);
     return *this;
   }
   auto& operator=(base_grid_sampler&& other) noexcept {
-    Grid::operator=(std::move(other));
+    parent_t::operator=(std::move(other));
     return *this;
   }
   template <typename OtherReal>
   auto& operator=(const grid<OtherReal, N>& other) {
-    Grid::operator=(other);
+    parent_t::operator=(other);
     return *this;
   }
   template <typename OtherReal>
   auto& operator=(grid<OtherReal, N>&& other) {
-    Grid::operator=(std::move(other));
+    parent_t::operator=(std::move(other));
     return *this;
   }
 

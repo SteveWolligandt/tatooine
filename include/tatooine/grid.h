@@ -160,7 +160,7 @@ class grid {
  public:
   constexpr auto size() const { return size(std::make_index_sequence<N>{}); }
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
- private:
+ protected:
   template <size_t... Is>
   constexpr auto size(std::index_sequence<Is...> /*is*/) const {
     static_assert(sizeof...(Is) == N);
