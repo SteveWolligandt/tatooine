@@ -18,8 +18,8 @@
 # -- Project information -----------------------------------------------------
 
 project = '@CMAKE_PROJECT_NAME@'
-copyright = '2019, Visual Computing Group'
-author = 'Visual Computing Group'
+copyright = '2020, Steve Wolligandt'
+author = 'Steve Wolligandt'
 
 
 # -- General configuration ---------------------------------------------------
