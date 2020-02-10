@@ -1,5 +1,5 @@
-Raytracer Logics
-================
+Tatooine
+========
 
 Fli Fla Flo!
 
@@ -12,6 +12,5 @@ ToDo List
    :maxdepth: 1
    :caption: Contents:
 
-   building
    .. todo_list
    api/library_root

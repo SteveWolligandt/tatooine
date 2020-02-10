@@ -43,8 +43,8 @@ exclude_patterns = ['_build', 'Thumbs.db', '.DS_Store']
 # The theme to use for HTML and HTML Help pages.  See the documentation for
 # a list of builtin themes.
 #
-html_theme = '@SPHINX_THEME@'
-html_theme_path = ['@SPHINX_THEME_DIR@']
+html_theme = '@TATOOINE_DOC_SPHINX_THEME@'
+html_theme_path = ['@TATOOINE_DOC_SPHINX_THEME_DIR@']
 #  htmlhelp_basename = 'YOUR_PROJECT_NAMEdoc'
 
 # Add any paths that contain custom static files (such as style sheets) here,

@@ -17,7 +17,7 @@ class linked_list_texture {
   atomiccounterbuffer             m_atomic_counter;
   shaderstoragebuffer<Node>       m_linked_list;
   tex2r32ui                       m_head_index_tex;
-   tex2r32ui             m_list_length_tex;
+  tex2r32ui                       m_list_length_tex;
   pixelunpackbuffer<unsigned int> m_head_index_clear_buffer;
   pixelunpackbuffer<unsigned int> m_list_length_clear_buffer;
 

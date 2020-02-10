@@ -32,9 +32,11 @@ void calc(const field<V, VReal, 2, 2>& v, T0Real /*t0*/, BTauReal /*btau*/,
   size_t cnt = 0;
   auto cov_tex = s.make_domain_coverage_tex();
   for (const auto& mesh : s.integrate_grid_edges(v, g, stepsize)) {
+#if YAVIN_HAS_PNG_SUPPORT
     s.to_pos_tex(s.rasterize(mesh, cov_tex))
         .write_png("mesh_" + std::to_string(cnt) + ".png");
     mesh.write_vtk("mesh_" + std::to_string(cnt++) + ".vtk");
+#endif
   }
 }
 

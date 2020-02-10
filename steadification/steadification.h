@@ -1,5 +1,5 @@
-#ifndef STEADIFICATION_H
-#define STEADIFICATION_H
+#ifndef STEADIFICATION_STEADIFICATION_H
+#define STEADIFICATION_STEADIFICATION_H
 
 #include <tatooine/for_loop.h>
 #include <tatooine/integration/vclibs/rungekutta43.h>
@@ -266,8 +266,10 @@ class steadification {
       const auto& [seedcurve, t0u0, t0u1] = seed_curves.back();
       auto rast =
           rasterize(v, seedcurve, t0u0, t0u1, domain_coverage_tex, stepsize);
-      rast.pos.write_png(working_dir + "pos_" + std::to_string(i++) + ".png");
-      domain_coverage_tex.write_png(working_dir + "coverage.png");
+#if YAVIN_HAS_PNG_SUPPORT
+        rast.pos.write_png(working_dir + "pos_" + std::to_string(i++) + ".png");
+        domain_coverage_tex.write_png(working_dir + "coverage.png");
+#endif
     }
   }
   //----------------------------------------------------------------------------

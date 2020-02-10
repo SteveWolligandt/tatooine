@@ -1,10 +1,11 @@
 PROJECT_NAME           = "@CMAKE_PROJECT_NAME@"
 OUTPUT_DIRECTORY       = @CMAKE_CURRENT_BINARY_DIR@
-INPUT                  = "@PROJECT_SOURCE_DIR@/include/tatooine" "@PROJECT_SOURCE_DIR@/include/tatooine/geometry" "@PROJECT_SOURCE_DIR@/include/tatooine/integration" "@PROJECT_SOURCE_DIR@/include/tatooine/integration/boost" "@PROJECT_SOURCE_DIR@/include/tatooine/integration/vclibs" "@PROJECT_SOURCE_DIR@/steadification"
+# INPUT                  = "@PROJECT_SOURCE_DIR@/include/tatooine" "@PROJECT_SOURCE_DIR@/include/tatooine/geometry" "@PROJECT_SOURCE_DIR@/include/tatooine/integration" "@PROJECT_SOURCE_DIR@/include/tatooine/integration/boost" "@PROJECT_SOURCE_DIR@/include/tatooine/integration/vclibs" "@PROJECT_SOURCE_DIR@/steadification"
+INPUT                  = "@PROJECT_SOURCE_DIR@/include/tatooine" "@PROJECT_SOURCE_DIR@/include/tatooine/geometry" "@PROJECT_SOURCE_DIR@/include/tatooine/integration" "@PROJECT_SOURCE_DIR@/include/tatooine/integration/boost" "@PROJECT_SOURCE_DIR@/include/tatooine/integration/vclibs" 
 GENERATE_LATEX         = NO
-GENERATE_HTML          = @DOXYGEN_GEN_HTML@
-HTML_OUTPUT            = @DOXYGEN_HTML_DIR@
-GENERATE_XML           = @DOXYGEN_GEN_XML@
+GENERATE_HTML          = @TATOOINE_DOC_DOXYGEN_GEN_HTML@
+HTML_OUTPUT            = @TATOOINE_DOC_DOXYGEN_HTML_DIR@
+GENERATE_XML           = @TATOOINE_DOC_DOXYGEN_GEN_XML@
 XML_PROGRAMLISTING     = NO
 
 EXTRACT_ALL            = YES
