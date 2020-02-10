@@ -59,7 +59,7 @@ ll_to_pos_shader::ll_to_pos_shader() : comp_shader{"ll_to_pos_tex.comp"} {}
 // fragment_count
 //==============================================================================
 fragment_count_shader::fragment_count_shader()
-    : comp_shader{"fragment_count.comp"} {}
+    : vert_frag_shader{"ssf_rasterization.vert", "fragment_count.frag"} {}
 
 //==============================================================================
 }  // namespace tatooine

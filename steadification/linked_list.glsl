@@ -8,6 +8,7 @@ struct node {
   vec2 v;
   vec2 uv;
   uint next;
+  float padding;
 };                          
 //------------------------------------------------------------------------------
 uniform                             uint        ll_size;

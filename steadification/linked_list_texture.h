@@ -73,13 +73,12 @@ class linked_list_texture {
   //----------------------------------------------------------------------------
   auto width() const { return m_w; }
   auto height() const { return m_h; }
+  auto buffer_size() const { return m_num_nodes; }
   //----------------------------------------------------------------------------
   const auto& buffer() const { return m_linked_list; }
   //----------------------------------------------------------------------------
   auto&       counter() { return m_atomic_counter; }
   const auto& counter() const { return m_atomic_counter; }
-  //----------------------------------------------------------------------------
-  auto buffer_size() { return m_num_nodes; }
 };
 //==============================================================================
 }  // namespace tatooine::steadification

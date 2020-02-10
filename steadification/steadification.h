@@ -14,6 +14,7 @@
 #include <filesystem>
 #include <vector>
 #include <yavin>
+#include <cmath>
 
 #include "linked_list_texture.h"
 #include "renderers.h"
@@ -55,6 +56,7 @@ class steadification {
     vec<float, 2> v;
     vec<float, 2> uv;
     unsigned int  next;
+    float         pad;
   };
   using rasterized_pathsurface = linked_list_texture<linked_list_node>;
 
@@ -136,7 +138,7 @@ class steadification {
                  domain_coverage_tex_t& domain_coverage_tex) {
     using namespace yavin;
     static const float nan = 0.0f / 0.0f;
-    const auto             num_frags = num_rendered_fragments(gpu_mesh);
+    const auto         num_frags = num_rendered_fragments(gpu_mesh);
     std::cerr << "num_frags: " << num_frags << '\n';
     rasterized_pathsurface psf_rast{
         m_render_resolution(0), m_render_resolution(1), num_frags,
@@ -144,6 +146,7 @@ class steadification {
     m_ssf_rasterization_shader.bind();
     m_ssf_rasterization_shader.set_linked_list_size(psf_rast.buffer_size());
     m_ssf_rasterization_shader.set_projection(m_cam.projection_matrix());
+    m_fragment_count_shader.set_projection(m_cam.projection_matrix());
     gl::viewport(m_cam.viewport());
     yavin::disable_depth_test();
     framebuffer fbo{domain_coverage_tex};
@@ -155,11 +158,15 @@ class steadification {
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
   size_t num_rendered_fragments(const pathsurface_gpu_t& gpu_mesh) {
     using namespace yavin;
+    tex2r32f col(m_render_resolution(0), m_render_resolution(1));
+    framebuffer fbo{col};
     atomiccounterbuffer cnt{0};
     cnt.bind(1);
+    fbo.bind();
     m_fragment_count_shader.bind();
+    disable_depth_test();
     gpu_mesh.draw();
-    return 10000;
+    return cnt[0];
   }
   //----------------------------------------------------------------------------
   /// \param seedcurve seedcurve in space-time
@@ -320,6 +327,7 @@ class steadification {
   //----------------------------------------------------------------------------
   auto to_pos_tex(const rasterized_pathsurface& r) {
     tex2rgba<float> v_tex{m_render_resolution(0), m_render_resolution(1)};
+    v_tex.clear(0,0,0,0);
     v_tex.bind_image_texture(2);
     r.bind();
     m_ll_to_pos_shader.dispatch(32, 32);

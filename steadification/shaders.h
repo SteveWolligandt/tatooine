@@ -33,7 +33,7 @@ struct ll_to_pos_shader : comp_shader {
   ll_to_pos_shader();
 };
 //==============================================================================
-struct fragment_count_shader : comp_shader {
+struct fragment_count_shader : vert_frag_shader {
   fragment_count_shader();
 };
 //==============================================================================

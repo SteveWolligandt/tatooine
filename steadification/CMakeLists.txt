@@ -17,7 +17,7 @@ configure_file(${CMAKE_CURRENT_SOURCE_DIR}/viridis_color_scale.png
   ${CMAKE_CURRENT_BINARY_DIR}/color_scale.png COPYONLY)
 
 copy(linked_list.glsl)
-copy(fragment_count.comp)
+copy(fragment_count.frag)
 copy(dual_linked_list.glsl)
 copy(ssf_rasterization.vert)
 copy(ssf_rasterization.frag)
