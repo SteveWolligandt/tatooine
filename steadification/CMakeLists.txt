@@ -10,15 +10,19 @@ add_compile_definitions(DATASET_DIR="${DATASET_DIR}")
 
 function (copy FILE)
   configure_file(${CMAKE_CURRENT_SOURCE_DIR}/${FILE} 
-    ${CMAKE_CURRENT_BINARY_DIR}/${FILE} COPYONLY)
-endfunction (copy)
+                 ${CMAKE_CURRENT_BINARY_DIR}/${FILE} COPYONLY)
+endfunction ()
 
 configure_file(${CMAKE_CURRENT_SOURCE_DIR}/viridis_color_scale.png 
   ${CMAKE_CURRENT_BINARY_DIR}/color_scale.png COPYONLY)
 
+copy(linked_list.glsl)
+copy(fragment_count.comp)
+copy(dual_linked_list.glsl)
 copy(ssf_rasterization.vert)
 copy(ssf_rasterization.frag)
 copy(domain_coverage.comp)
+copy(ll_to_pos_tex.comp)
 
 set(HDF5_LIBS -lhdf5 -lhdf5_cpp -lhdf5_hl)
 
@@ -31,4 +35,7 @@ target_compile_options(steadification PRIVATE
 
 add_custom_target(steadification.doublegyre
                   COMMAND ./steadification dg 0 -5 5 5000 10 0.1 0.99
+                  DEPENDS steadification)
+add_custom_target(steadification.doublegyre.debug
+                  COMMAND cgdb -- --args steadification dg 0 -5 5 5000 10 0.1 0.9
                   DEPENDS steadification)
