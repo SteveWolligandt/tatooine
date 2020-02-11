@@ -8,6 +8,7 @@
 #include "multidim.h"
 #include "multidim_resolution.h"
 #include "random.h"
+#include "index_ordering.h"
 //==============================================================================
 namespace tatooine {
 //==============================================================================
@@ -261,7 +262,7 @@ class static_multidim_array
 };
 
 //==============================================================================
-template <typename T, typename Indexing>
+template <typename T, typename Indexing = x_fastest>
 class dynamic_multidim_array : public dynamic_multidim_resolution<Indexing> {
   //============================================================================
   // typedefs
@@ -719,7 +720,7 @@ class dynamic_multidim_array : public dynamic_multidim_resolution<Indexing> {
   auto&       operator[](size_t i) { return m_data[i]; }
   const auto& operator[](size_t i) const { return m_data[i]; }
   //----------------------------------------------------------------------------
-  template <typename... Resolution>
+  template <typename... Resolution, enable_if_integral<Resolution...> = true>
   void resize(Resolution... resolution) {
     parent_t::resize(resolution...);
     m_data.resize(num_elements());

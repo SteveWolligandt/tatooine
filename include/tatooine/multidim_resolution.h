@@ -275,7 +275,9 @@ class dynamic_multidim_resolution {
   template <size_t N>
   constexpr auto plain_index(const std::array<size_t, N>& is) const {
     assert(N == num_dimensions());
-    return Indexing::plain_index(m_size, is);
+    return invoke_unpacked(
+        [&](auto&&... is) { return Indexing::plain_index(m_size, is...); },
+        unpack(is));
   }
   //----------------------------------------------------------------------------
   constexpr auto multi_index(size_t gi) const {

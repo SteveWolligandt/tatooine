@@ -170,6 +170,12 @@ class grid {
  public:
   constexpr auto size(size_t i) const { return dimension(i).size(); }
   //----------------------------------------------------------------------------
+  constexpr auto front(size_t i) const { return dimension(i).front(); }
+  //----------------------------------------------------------------------------
+  constexpr auto back(size_t i) const { return dimension(i).back(); }
+  //----------------------------------------------------------------------------
+  constexpr auto spacing(size_t i) const { return dimension(i).spacing(); }
+  //----------------------------------------------------------------------------
   template <size_t... Is, typename... Reals,
             enable_if_arithmetic<Reals...> = true>
   constexpr auto in_domain(std::index_sequence<Is...> /*is*/,
