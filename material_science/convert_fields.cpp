@@ -9,14 +9,18 @@
 #include <tatooine/grid.h>
 #include <tatooine/vtk_legacy.h>
 #include <tatooine/tensor.h>
+#include <filesystem>
 //==============================================================================
 static const std::array<std::string_view, 4> filenames{
     "texture_case1.txt", "texture_case2.txt", "texture_case3.txt",
     "texture_case4.txt"};
 //==============================================================================
+namespace fs = std::filesystem;
+//==============================================================================
 int main() {
   using namespace tatooine;
   for (const auto& filename : filenames) {
+
     std::map<char, dynamic_multidim_array<double>> data{
         {'x', dynamic_multidim_array<double>{}},
         {'y', dynamic_multidim_array<double>{}},
@@ -66,7 +70,10 @@ int main() {
         }
       }
       // build vtk file
-      vtk::legacy_file_writer writer(std::string{filename} + ".vtk", vtk::STRUCTURED_POINTS);
+      std::string out_filename{filename};
+      auto        dotpos       = out_filename.find_last_of(".");
+      out_filename.replace(dotpos + 1, 3, "vtk");
+      vtk::legacy_file_writer writer(out_filename, vtk::STRUCTURED_POINTS);
       if (writer.is_open()) {
         writer.set_title("material science fields");
         writer.write_header();
