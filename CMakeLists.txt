@@ -70,6 +70,7 @@ add_subdirectory(doc)
 add_subdirectory(misc)
 #add_subdirectory(cuda)
 add_subdirectory(steadification)
+add_subdirectory(material_science)
 
 #- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 # This makes the project importable from the build directory
