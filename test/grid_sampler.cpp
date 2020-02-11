@@ -5,6 +5,14 @@
 //==============================================================================
 namespace tatooine::test {
 //==============================================================================
+TEST_CASE("grid_sampler_element_assignment",
+          "[grid_sampler][element][assignment]") {
+  grid_sampler<double, 2, double, interpolation::linear, interpolation::linear>
+      g(2, 2);
+  g[0][0] = 1.0;
+  REQUIRE(g.data()[0] == 1.0);
+}
+//==============================================================================
 TEST_CASE("grid_sampler_indexing_singletime",
           "[grid_sampler][indexing][singletime]") {
   using namespace tatooine::numerical;

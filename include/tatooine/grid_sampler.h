@@ -8,13 +8,14 @@
 #include <png++/png.hpp>
 #include <random>
 #include <vector>
+
 #include "amira_file.h"
 #include "chunked_data.h"
 #include "crtp.h"
 #include "field.h"
+#include "for_loop.h"
 #include "grid.h"
 #include "interpolation.h"
-#include "for_loop.h"
 #include "sampled_field.h"
 #include "type_traits.h"
 #include "vtk_legacy.h"
@@ -53,7 +54,7 @@ template <typename Real, typename Data, typename Grid,
           template <typename> typename... Interpolators>
 struct base_grid_sampler_at<Real, 1, Data, Grid, Interpolators...> {
   using type       = std::decay_t<Data>&;
-  using const_type = const std::decay_t<Data>;
+  using const_type = std::decay_t<Data>;
 };
 
 //==============================================================================
@@ -75,11 +76,16 @@ template <typename Derived, typename Real, size_t N, typename Data,
           template <typename> typename HeadInterpolator,
           template <typename> typename... TailInterpolators>
 struct base_grid_sampler : crtp<Derived>, grid<Real, N> {
+  //----------------------------------------------------------------------------
+  // static assertions
+  //----------------------------------------------------------------------------
   static_assert(N > 0, "grid_sampler must have at least one dimension");
   static_assert(
       N == sizeof...(TailInterpolators) + 1,
       "number of interpolator kernels does not match number of dimensions");
 
+  //----------------------------------------------------------------------------
+  // typedefs
   //----------------------------------------------------------------------------
   static constexpr auto num_dimensions() { return N; }
   using real_t                           = Real;
@@ -88,7 +94,7 @@ struct base_grid_sampler : crtp<Derived>, grid<Real, N> {
   static constexpr size_t num_components = num_components_v<Data>;
   using this_t   = base_grid_sampler<Derived, Real, N, Data, HeadInterpolator,
                                    TailInterpolators...>;
-  using parent_t     = grid<Real, N>;
+  using parent_t = grid<Real, N>;
   using iterator = grid_sampler_iterator<Real, N, Data, this_t>;
   using indexing_t =
       base_grid_sampler_at_t<Real, N, Data, this_t, TailInterpolators...>;
@@ -98,12 +104,13 @@ struct base_grid_sampler : crtp<Derived>, grid<Real, N> {
   using parent_t::dimension;
   using parent_t::dimensions;
   using parent_t::size;
-
-  //----------------------------------------------------------------------------
   struct out_of_domain : std::runtime_error {
     out_of_domain(const std::string& err) : std::runtime_error{err} {}
   };
 
+  //----------------------------------------------------------------------------
+  // ctors
+  //----------------------------------------------------------------------------
   base_grid_sampler() = default;
   base_grid_sampler(const parent_t& g) : parent_t{g} {}
   base_grid_sampler(parent_t&& g) : parent_t{std::move(g)} {}
@@ -131,28 +138,36 @@ struct base_grid_sampler : crtp<Derived>, grid<Real, N> {
     parent_t::operator=(std::move(other));
     return *this;
   }
-
-  /// data at specified indices is...
-  /// CRTP-virtual method
-  template <typename... Is, typename = std::enable_if_t<
-                                (std::is_integral_v<std::decay_t<Is>> && ...)>>
-  Data& data(Is&&... is) {
-    static_assert(sizeof...(Is) == N,
-                  "number of indices is not equal to number of dimensions");
-    return as_derived().data(is...);
-  }
-
-  /// data at specified indices is...
-  /// CRTP-virtual method
-  template <typename... Is, typename = std::enable_if_t<
-                                (std::is_integral_v<std::decay_t<Is>> && ...)>>
-  Data data(Is&&... is) const {
-    static_assert(sizeof...(Is) == N,
-                  "number of indices is not equal to number of dimensions");
-    return as_derived().data(is...);
-  }
-
   //----------------------------------------------------------------------------
+  /// data at specified indices is...
+  /// CRTP-virtual method
+  template <typename... Is, enable_if_integral<Is...> = true>
+  decltype(auto) data(Is... is) {
+    static_assert(sizeof...(Is) == N,
+                  "number of indices is not equal to number of dimensions");
+    return as_derived().data(is...);
+  }
+  // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+  /// data at specified indices is...
+  /// CRTP-virtual method
+  template <typename... Is, enable_if_integral<Is...> = true>
+  Data data(Is... is) const {
+    static_assert(sizeof...(Is) == N,
+                  "number of indices is not equal to number of dimensions");
+    return as_derived().data(is...);
+  }
+  //----------------------------------------------------------------------------
+  /// indexing of data.
+  /// if N == 1 returns actual data otherwise returns a grid_sampler_view with i
+  /// as fixed index
+  decltype(auto) at(size_t i) {
+    if constexpr (N > 1) {
+      return indexing_t{this, i};
+    } else {
+      return data(i);
+    }
+  }
+  // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
   /// indexing of data.
   /// if N == 1 returns actual data otherwise returns a grid_sampler_view with i
   /// as fixed index
@@ -163,24 +178,22 @@ struct base_grid_sampler : crtp<Derived>, grid<Real, N> {
       return data(i);
     }
   }
-  auto operator[](size_t i) const { return at(i); }
-
-  auto at(size_t i) {
-    if constexpr (N > 1) {
-      return indexing_t{this, i};
-    } else {
-      return data(i);
-    }
-  }
-  auto operator[](size_t i) { return at(i); }
-
   //----------------------------------------------------------------------------
-  template <typename... Xs, typename = std::enable_if_t<(
-                                std::is_arithmetic_v<std::decay_t<Xs>> && ...)>>
-  auto operator()(Xs&&... xs) const {
+  /// indexing of data.
+  /// if N == 1 returns actual data otherwise returns a grid_sampler_view with i
+  /// as fixed index
+  decltype(auto) operator[](size_t i) { return at(i); }
+  // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+  /// indexing of data.
+  /// if N == 1 returns actual data otherwise returns a grid_sampler_view with i
+  /// as fixed index
+  auto operator[](size_t i) const { return at(i); }
+  //----------------------------------------------------------------------------
+  template <typename... Xs, enable_if_arithmetic<std::decay_t<Xs>...> = true>
+  auto operator()(Xs... xs) const {
     static_assert(sizeof...(Xs) == N,
                   "number of coordinates does not match number of dimensions");
-    return sample(std::forward<Xs>(xs)...);
+    return sample(xs...);
   }
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
   auto operator()(const std::array<Real, N>& xs) const { return sample(xs); }
@@ -192,8 +205,8 @@ struct base_grid_sampler : crtp<Derived>, grid<Real, N> {
   //----------------------------------------------------------------------------
   /// sampling by interpolating using HeadInterpolator and
   /// grid_iterators
-  template <typename... Xs>
-  auto sample(Real x, Xs&&... xs) const {
+  template <typename... Xs, enable_if_arithmetic<Xs...> = true>
+  auto sample(Real x, Xs... xs) const {
     using interpolator = HeadInterpolator<Data>;
     static_assert(sizeof...(Xs) + 1 == N,
                   "number of coordinates does not match number of dimensions");
@@ -203,35 +216,36 @@ struct base_grid_sampler : crtp<Derived>, grid<Real, N> {
     if (begin() + i + 1 == end()) {
       if constexpr (interpolator::needs_first_derivative) {
         return interpolator::from_iterators(begin() + i, begin() + i, begin(),
-                                            end(), t, std::forward<Xs>(xs)...);
+                                            end(), t, xs...);
       } else {
         return interpolator::from_iterators(begin() + i, begin() + i, t,
-                                            std::forward<Xs>(xs)...);
+                                            xs...);
       }
     }
     if constexpr (interpolator::needs_first_derivative) {
       return interpolator::from_iterators(begin() + i, begin() + i + 1, begin(),
-                                          end(), t, std::forward<Xs>(xs)...);
+                                          end(), t, xs...);
     } else {
       return interpolator::from_iterators(begin() + i, begin() + i + 1, t,
-                                          std::forward<Xs>(xs)...);
+                                          xs...);
     }
   }
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
   auto sample(const std::array<Real, N>& pos) const {
-    return invoke_unpacked([&pos, this](const auto... xs) { return sample(xs...); }, unpack(pos));
+    return invoke_unpacked(
+        [&pos, this](const auto... xs) { return sample(xs...); }, unpack(pos));
   }
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
   template <typename Tensor, typename TensorReal>
   auto sample(const base_tensor<Tensor, TensorReal, N>& pos) const {
-    return invoke_unpacked([&pos, this](const auto... xs) {
-        return sample(xs...); }, unpack(pos));
+    return invoke_unpacked(
+        [&pos, this](const auto... xs) { return sample(xs...); }, unpack(pos));
   }
 
   //----------------------------------------------------------------------------
   auto domain_to_global(Real x, size_t i) const {
-    auto converted =
-        (x - dimension(i).front()) / (dimension(i).back() - dimension(i).front());
+    auto converted = (x - dimension(i).front()) /
+                     (dimension(i).back() - dimension(i).front());
     if (converted < 0 || converted > 1) {
       throw out_of_domain{std::to_string(x) + " in dimension " +
                           std::to_string(i)};
@@ -408,23 +422,22 @@ struct grid_sampler
   //----------------------------------------------------------------------------
   template <typename... Is,
             typename = std::enable_if_t<(std::is_integral_v<Is> && ...)>>
-  decltype(auto) data(Is... is) const {
+  Data& data(Is... is) {
     static_assert(sizeof...(Is) == N,
                   "number of indices is not equal to number of dimensions");
     return m_data(is...);
   }
+  // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
   template <typename... Is,
             typename = std::enable_if_t<(std::is_integral_v<Is> && ...)>>
-  decltype(auto) data(Is... is) {
+  Data data(Is... is) const {
     static_assert(sizeof...(Is) == N,
                   "number of indices is not equal to number of dimensions");
     return m_data(is...);
   }
-
   //----------------------------------------------------------------------------
   const auto& data() const { return m_data; }
   auto&       data() { return m_data; }
-
   //============================================================================
   template <typename... Resolution,
             typename = std::enable_if_t<
@@ -556,20 +569,20 @@ struct grid_sampler
   //   }
 
   //----------------------------------------------------------------------------
-  template <typename random_engine_t = std::mt19937, typename _Data = Data,
-            typename = std::enable_if_t<std::is_arithmetic_v<_Data>>>
+  template <typename RandomEngine = std::mt19937, typename _Data = Data,
+            enable_if_arithmetic<_Data> = true>
   void randu(Real lower_boundary, Real upper_boundary,
-             random_engine_t&& random_engine = random_engine_t{
+             RandomEngine&& random_engine = RandomEngine{
                  std::random_device{}()}) {
     m_data.randu(lower_boundary, upper_boundary,
-                 std::forward<random_engine_t>(random_engine));
+                 std::forward<RandomEngine>(random_engine));
   }
   //----------------------------------------------------------------------------
-  template <typename random_engine_t = std::mt19937, typename _Data = Data,
-            typename = std::enable_if_t<std::is_arithmetic_v<_Data>>>
-  void randu(random_engine_t&& random_engine = random_engine_t{
+  template <typename RandomEngine = std::mt19937, typename _Data = Data,
+            enable_if_arithmetic<_Data> = true>
+  void randu(RandomEngine&& random_engine = RandomEngine{
                  std::random_device{}()}) {
-    randu(0, 1, std::forward<random_engine_t>(random_engine));
+    randu(0, 1, std::forward<RandomEngine>(random_engine));
   }
 
   //----------------------------------------------------------------------------
@@ -611,6 +624,71 @@ struct grid_sampler
   }
 
   //----------------------------------------------------------------------------
+  void read_vtk_scalars(const std::string& filename, const std::string& data_name) {
+    read_vtk_scalars(filename,data_name, std::make_index_sequence<N>{});
+  }
+  template <size_t... Is>
+  void read_vtk_scalars(const std::string& filename, const std::string& data_name,
+                std::index_sequence<Is...> /*is*/) {
+    struct listener_t : vtk::legacy_file_listener {
+      std::map<std::string, std::vector<Real>> scalars;
+      std::array<size_t, 3>            dims;
+      std::map<std::string, size_t>            scalars_num_comps;
+      std::array<Real, 3>              origin, spacing;
+      vtk::DatasetType                 type = vtk::UNKNOWN_TYPE;
+
+      void on_dimensions(size_t x, size_t y, size_t z) override {
+        if constexpr (N == 2) {
+          dims = {x, y};
+
+        } else if constexpr (N == 3) {
+          dims = {x, y, z};
+        }
+      }
+      void on_dataset_type(vtk::DatasetType _type) override { type = _type; }
+      void on_spacing(Real x, Real y, Real z) override { spacing = {x, y, z}; }
+      void on_origin(Real x, Real y, Real z) override { origin = {x, y, z}; }
+      void on_scalars(const std::string& data_name,
+                      const std::string& /*lookup_table_name*/,
+                      size_t num_comps, const std::vector<Real>& data,
+                      vtk::ReaderData) override {
+        scalars[data_name] = data, scalars_num_comps[data_name] = num_comps;
+      }
+    } listener;
+
+    vtk::legacy_file file(filename);
+    file.add_listener(listener);
+    file.read();
+
+    if (listener.type == vtk::STRUCTURED_POINTS) {
+      resize(linspace{
+          listener.origin[Is],
+          listener.origin[Is] + listener.spacing[Is] * (listener.dims[Is] - 1),
+          listener.dims[Is]}...);
+
+    } else {
+      throw std::runtime_error{"structured points needed"};
+    }
+    if (listener.scalars.find(data_name) == end(listener.scalars)) {
+      throw std::runtime_error{data_name + " not found"};
+    }
+    if (listener.scalars_num_comps[data_name] != num_components) {
+      throw std::runtime_error{"number of components do not match"};
+    }
+    std::vector<Data> casted_data;
+    casted_data.reserve(listener.scalars[data_name].size() /
+                        listener.scalars_num_comps[data_name]);
+    size_t      cnt       = 0;
+    const auto& data      = listener.scalars[data_name];
+    auto        num_comps = listener.scalars_num_comps[data_name];
+    for (size_t i = 0; i < data.size(); i += num_comps) {
+      casted_data.emplace_back();
+      for (size_t j = 0; j < num_comps; ++j) {
+        casted_data.back()(j) = data[cnt++];
+      }
+    }
+    m_data = std::move(casted_data);
+  }
   void read_vtk(const std::string& filename) {
     read_vtk(filename, std::make_index_sequence<N>{});
   }
@@ -623,6 +701,8 @@ struct grid_sampler
       std::vector<std::array<Real, 3>> data;
       std::array<Real, 3>              min_coord, max_coord;
       vtk::DatasetType                 type = vtk::UNKNOWN_TYPE;
+      std::map<std::string, std::vector<Real>> scalars;
+      std::map<std::string, size_t>            scalars_num_comps;
 
       void on_dataset_type(vtk::DatasetType _type) override { type = _type; }
       void on_dimensions(size_t x, size_t y, size_t z) override {
@@ -651,6 +731,13 @@ struct grid_sampler
                       const std::vector<std::array<Real, 3>>& vectors,
                       vtk::ReaderData /*data*/) override {
         data = vectors;
+      }
+
+      void on_scalars(const std::string& data_name,
+                      const std::string& /*lookup_table_name*/,
+                      size_t num_comps, const std::vector<Real>& data,
+                      vtk::ReaderData) override {
+        scalars[data_name] = data, scalars_num_comps[data_name] = num_comps;
       }
     } listener;
 
@@ -740,23 +827,18 @@ struct grid_sampler
       writer.set_title("tatooine grid sampler");
       writer.write_header();
 
-      writer.write_dimensions(dimension(0).size(),
-                              dimension(1).size(),
+      writer.write_dimensions(dimension(0).size(), dimension(1).size(),
                               dimension(2).size());
-      writer.write_origin(dimension(0).front(),
-                          dimension(1).front(),
+      writer.write_origin(dimension(0).front(), dimension(1).front(),
                           dimension(2).front());
-      writer.write_spacing(dimension(0).spacing(),
-                           dimension(1).spacing(),
+      writer.write_spacing(dimension(0).spacing(), dimension(1).spacing(),
                            dimension(2).spacing());
-      writer.write_point_data(dimension(0).size() *
-                              dimension(1).size() *
+      writer.write_point_data(dimension(0).size() * dimension(1).size() *
                               dimension(2).size());
 
       // write data
       std::vector<Data> field_data;
-      field_data.reserve(dimension(0).size() *
-                         dimension(1).size() *
+      field_data.reserve(dimension(0).size() * dimension(1).size() *
                          dimension(2).size());
       for (auto v : this->vertices()) {
         field_data.push_back(m_data(v.indices()));
@@ -771,11 +853,11 @@ struct grid_sampler
     if constexpr (N == 1) { write_vtk_1(filepath); }
     if constexpr (N == 2) { write_vtk_2(filepath); }
     if constexpr (N == 3) { write_vtk_3(filepath); }
-   }
+  }
 
   //----------------------------------------------------------------------------
-   template <size_t _n = N>
-   void write_png(const std::string& filepath) {
+  template <size_t _n = N>
+  void write_png(const std::string& filepath) {
     static_assert(_n == 2,
                   "cannot write sampler of dimenion other than 2 to png");
 
@@ -804,22 +886,18 @@ struct grid_sampler
           unsigned int idx = x + dimension(0).size() * y;
 
           image[image.get_height() - 1 - y][x].red =
-              std::max<Real>(0, std::min<Real>(1, m_data[idx * 4 + 0])) *
-              255;
+              std::max<Real>(0, std::min<Real>(1, m_data[idx * 4 + 0])) * 255;
           image[image.get_height() - 1 - y][x].green =
-              std::max<Real>(0, std::min<Real>(1, m_data[idx * 4 + 1])) *
-              255;
+              std::max<Real>(0, std::min<Real>(1, m_data[idx * 4 + 1])) * 255;
           image[image.get_height() - 1 - y][x].blue =
-              std::max<Real>(0, std::min<Real>(1, m_data[idx * 4 + 2])) *
-              255;
+              std::max<Real>(0, std::min<Real>(1, m_data[idx * 4 + 2])) * 255;
           image[image.get_height() - 1 - y][x].alpha =
-              std::max<Real>(0, std::min<Real>(1, m_data[idx * 4 + 3])) *
-              255;
+              std::max<Real>(0, std::min<Real>(1, m_data[idx * 4 + 3])) * 255;
         }
       }
       image.write(filepath);
     }
-   }
+  }
 };
 
 //==============================================================================
@@ -854,22 +932,20 @@ struct grid_sampler_view
   grid_sampler_view(top_grid_t* _top_grid, size_t _fixed_index)
       : grid_sampler_view{_top_grid, _fixed_index,
                           std::make_index_sequence<N>{}} {}
-
+  //----------------------------------------------------------------------------
   /// returns data of top grid at fixed_index and index list is...
-  template <typename T = top_grid_t,
-            typename   = std::enable_if_t<!std::is_const_v<T>>, typename... Is,
-            typename =
-                std::enable_if_t<(std::is_integral_v<std::decay_t<Is>> && ...)>>
-  Data& data(Is&&... is) {
+  template <typename T = top_grid_t, typename... Is,
+            std::enable_if_t<!std::is_const_v<T>, bool> = true,
+            enable_if_integral<Is...>                   = true>
+  Data& data(Is... is) {
     static_assert(sizeof...(Is) == N,
                   "number of indices is not equal to number of dimensions");
     return top_grid->data(fixed_index, is...);
   }
-
+  // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
   /// returns data of top grid at fixed_index and index list is...
-  template <typename... Is, typename = std::enable_if_t<
-                                (std::is_integral_v<std::decay_t<Is>> && ...)>>
-  decltype(auto) data(Is&&... is) const {
+  template <typename... Is, enable_if_integral<Is...> = true>
+  Data data(Is... is) const {
     static_assert(sizeof...(Is) == N,
                   "number of indices is not equal to number of dimensions");
     return top_grid->data(fixed_index, is...);

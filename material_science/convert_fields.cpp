@@ -9,13 +9,13 @@
 #include <tatooine/grid.h>
 #include <tatooine/vtk_legacy.h>
 #include <tatooine/tensor.h>
+#include <tatooine/interpolation.h>
+#include <tatooine/grid_sampler.h>
 #include <filesystem>
 //==============================================================================
 static const std::array<std::string_view, 4> filenames{
     "texture_case1.txt", "texture_case2.txt", "texture_case3.txt",
     "texture_case4.txt"};
-//==============================================================================
-namespace fs = std::filesystem;
 //==============================================================================
 int main() {
   using namespace tatooine;
@@ -84,15 +84,30 @@ int main() {
         writer.write_point_data(domain.size(0) * domain.size(1));
 
         // write data
-        std::vector<vec<double, 2>> field_data;
-        field_data.reserve(domain.size(0) * domain.size(1));
+        std::vector<vec<double, 2>> vector_field;
+        std::vector<vec<double, 3>> vector_field3;
+        vector_field.reserve(domain.size(0) * domain.size(1));
         for (auto v : domain.vertices()) {
-          field_data.push_back(
-              vec{data['u'](v.indices().data()), data['v'](v.indices().data())});
+          vector_field.push_back(
+              vec{data['u'](v.indices().data()),
+                  data['v'](v.indices().data())});
+          vector_field3.push_back(
+              vec{data['u'](v.indices().data()),
+                  data['v'](v.indices().data()),
+                  0});
         }
-        writer.write_scalars("field_data", field_data);
+        writer.write_scalars("vector_field", vector_field);
+        writer.write_scalars("three_dimensional_vector_field", vector_field3);
         writer.close();
       }
+      // read data back and check if everything is correct
+      using namespace interpolation;
+      grid_sampler<double, 2, vec<double, 2>, linear, linear> sampler;
+      sampler.read_vtk_scalars(out_filename, "vector_field");
+      assert(sampler.size(0) == resx);
+      assert(sampler.size(1) == resy);
+      assert(std::abs(sampler.front(0) - data['x'](0, 0)) < 1e-5);
+      assert(std::abs(sampler[0][0](0) - data['u'](0, 0)) < 1e-5);
     }
   }
 }

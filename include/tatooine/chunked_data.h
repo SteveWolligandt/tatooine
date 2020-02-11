@@ -118,7 +118,7 @@ struct chunked_data {
   //----------------------------------------------------------------------------
   template <typename Container>
   auto& operator=(const Container& container) {
-    assert(container.size() == m_data_structure.num_elements());
+    //assert(container.size() == m_data_structure.num_elements());
     size_t i = 0;
     for (const auto& d : container) { (*this)[i++] = d; }
     return *this;
@@ -177,24 +177,24 @@ struct chunked_data {
   }
   //----------------------------------------------------------------------------
   template <typename Tensor, typename S, enable_if_integral<S> = true>
-  decltype(auto) at(const base_tensor<Tensor, S, N>& indices) {
+  T& at(const base_tensor<Tensor, S, N>& indices) {
     return invoke_unpacked(
         [this](const auto... is) -> decltype(auto) { return at(is...); },
         unpack(indices));
   }
   //----------------------------------------------------------------------------
   template <typename Tensor, typename S, enable_if_integral<S> = true>
-  decltype(auto) operator()(const base_tensor<Tensor, S, N>& indices) {
+  T& operator()(const base_tensor<Tensor, S, N>& indices) {
     return at(indices);
   }
   //----------------------------------------------------------------------------
   template <typename S, enable_if_integral<S> = true>
-  decltype(auto) operator()(const std::array<S, N>& indices) {
+  T& operator()(const std::array<S, N>& indices) {
     return at(indices);
   }
   //----------------------------------------------------------------------------
   template <typename S, enable_if_integral<S> = true>
-  decltype(auto) at(const std::array<S, N>& indices) {
+  T& at(const std::array<S, N>& indices) {
     return invoke_unpacked(
         [this](const auto... is) -> decltype(auto) { return at(is...); },
         unpack(indices));

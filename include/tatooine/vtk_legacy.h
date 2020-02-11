@@ -352,6 +352,10 @@ class legacy_file {
     auto data_name    = vtk::read_word(scalar_params_stream, buffer);
     auto data_type    = vtk::read_word(scalar_params_stream, buffer);
     auto num_comp_str = vtk::read_word(scalar_params_stream, buffer);
+    consume_trailing_break(file);
+    //std::cerr << data_name << '\n';
+    //std::cerr << data_type << '\n';
+    //std::cerr << num_comp_str << '\n';
     // number of components is optional
     size_t num_comps = 1;
     if (num_comp_str.empty()) {
@@ -977,13 +981,13 @@ void legacy_file::read_scalars_binary(std::ifstream &    file,
                                      const std::string &lookup_table,
                                      const size_t       num_comps) {
   std::vector<Real> data(m_data_size * num_comps);
-
   file.read((char *)data.data(), sizeof(Real) * m_data_size * num_comps);
   swap_endianess(data);
 
   consume_trailing_break(file);
-  for (auto l : m_listeners)
+  for (auto l : m_listeners) {
     l->on_scalars(name, lookup_table, num_comps, data, m_data);
+  }
 }
 //------------------------------------------------------------------------------
 class legacy_file_writer {
