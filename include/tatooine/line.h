@@ -26,19 +26,19 @@ template <typename Real, size_t N>
 struct line;
 
 struct automatic_t {};
-static constexpr inline automatic_t automatic;
+static constexpr automatic_t automatic;
 
 struct forward_t {};
-static constexpr inline forward_t forward;
+static constexpr forward_t forward;
 
 struct backward_t {};
-static constexpr inline backward_t backward;
+static constexpr backward_t backward;
 
 struct central_t {};
-static constexpr inline central_t central;
+static constexpr central_t central;
 
 struct quadratic_t {};
-static constexpr inline quadratic_t quadratic;
+static constexpr quadratic_t quadratic;
 
 //==============================================================================
 // Iterators

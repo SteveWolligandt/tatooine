@@ -26,12 +26,15 @@ struct static_multidim_resolution {
   //----------------------------------------------------------------------------
   static constexpr size_t num_elements() {
     constexpr auto res = size();
-    return std::accumulate(begin(res), end(res), size_t(1),
-                           std::multiplies<size_t>{});
+    size_t         acc = 1;
+    for (auto r : res) { acc *= r; }
+    return acc;
   }
 #endif
   //----------------------------------------------------------------------------
-  static constexpr auto size() { return std::array{Resolution...}; }
+  static constexpr auto size() {
+    return std::array<size_t, num_dimensions()>{Resolution...};
+  }
   //----------------------------------------------------------------------------
   static constexpr auto size(size_t i) { return size()[i]; }
   //----------------------------------------------------------------------------
@@ -43,9 +46,9 @@ struct static_multidim_resolution {
     return ((is >= 0) && ...) &&
            ((static_cast<size_t>(is) < Resolution) && ...);
 #else
-    const std::array<size_t, N> is{static_cast<size_t>(is)...};
-    for (size_t i = 0; i < N; ++i) {
-      if (is[i] < 0 || is[i] >= size(i)) { return false; }
+    const std::array<size_t, num_elements()> js{static_cast<size_t>(is)...};
+    for (size_t i = 0; i < num_elements(); ++i) {
+      if (js[i] < 0 || js[i] >= size(i)) { return false; }
     }
     return true;
 #endif

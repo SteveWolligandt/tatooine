@@ -130,9 +130,11 @@ struct polynomial {
 //------------------------------------------------------------------------------
 // deduction guides
 //------------------------------------------------------------------------------
+#if has_cxx17_support()
 template <typename... Coeffs>
 polynomial(Coeffs... coeffs)
     ->polynomial<promote_t<Coeffs...>, sizeof...(Coeffs) - 1>;
+#endif
 
 //------------------------------------------------------------------------------
 // diff

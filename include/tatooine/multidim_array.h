@@ -36,7 +36,8 @@ class static_multidim_array
   //============================================================================
   // assertions
   //============================================================================
-  static_assert(std::is_same_v<MemLoc, heap> || std::is_same_v<MemLoc, stack>,
+  static_assert(std::is_same<MemLoc, heap>::value ||
+                    std::is_same<MemLoc, stack>::value,
                 "MemLoc must either be tatooine::heap or tatooine::stack");
   //============================================================================
   // typedefs
@@ -51,7 +52,7 @@ class static_multidim_array
   using parent_t::plain_index;
   using parent_t::size;
   using container_t =
-      std::conditional_t<std::is_same_v<MemLoc, stack>,
+      std::conditional_t<std::is_same<MemLoc, stack>::value,
                          std::array<T, num_elements()>, std::vector<T>>;
 
   //============================================================================
@@ -59,7 +60,7 @@ class static_multidim_array
   //============================================================================
  private:
   static constexpr auto init_data(T init = T{}) {
-    if constexpr (std::is_same_v<MemLoc, stack>) {
+    if constexpr (std::is_same<MemLoc, stack>::value) {
       return make_array<T, num_elements()>(init);
     } else {
       return std::vector(num_elements(), init);
@@ -145,12 +146,12 @@ class static_multidim_array
       : m_data(data) {}
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
   template <typename _MemLoc                                       = MemLoc,
-            std::enable_if_t<std::is_same_v<_MemLoc, stack>, bool> = true>
+            std::enable_if_t<std::is_same<_MemLoc, stack>::value, bool> = true>
   constexpr static_multidim_array(std::array<T, num_elements()>&& data)
       : m_data(std::move(data)) {}
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
   template <typename _MemLoc                                      = MemLoc,
-            std::enable_if_t<std::is_same_v<_MemLoc, heap>, bool> = true>
+            std::enable_if_t<std::is_same<_MemLoc, heap>::value, bool> = true>
   constexpr static_multidim_array(std::vector<T>&& data)
       : m_data(std::move(data)) {
     assert(num_elements() == data.size());

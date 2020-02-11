@@ -192,8 +192,9 @@ template <typename T, typename = void>
 struct is_iterator : std::false_type {};
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 template <typename T>
-struct is_iterator<T, std::enable_if_t<!std::is_same_v<
-                          typename std::iterator_traits<T>::value_type, void>>>
+struct is_iterator<
+    T, std::enable_if_t<!std::is_same<
+           typename std::iterator_traits<T>::value_type, void>::value>>
     : std::true_type {};
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 template <typename... Ts>
@@ -274,9 +275,11 @@ struct is_vectorield<base_tensor<tensor_t, real_t, N>> : std::true_type {};
 template <typename T>
 constexpr auto is_vectorield_v = is_vectorield<T>::value;
 //==============================================================================
+#if has_cxx17_support()
 template <typename F, typename... Args>
 using enable_if_invocable =
     std::enable_if_t<std::is_invocable<F, Args...>::value, bool>;
+#endif
 
 //==============================================================================
 }  // namespace tatooine

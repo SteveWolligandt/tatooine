@@ -122,6 +122,7 @@ enum CellType {
 };
 
 //------------------------------------------------------------------------------
+#if has_cxx17_support()
 constexpr std::string_view type_to_str(DatasetType type) {
   switch (type) {
     default:
@@ -134,6 +135,20 @@ constexpr std::string_view type_to_str(DatasetType type) {
     case FIELD: return "FIELD";
   }
 }
+#else
+std::string type_to_str(DatasetType type) {
+  switch (type) {
+    default:
+    case UNKNOWN_TYPE: return "UNKNOWN_TYPE";
+    case STRUCTURED_POINTS: return "STRUCTURED_POINTS";
+    case STRUCTURED_GRID: return "STRUCTURED_GRID";
+    case UNSTRUCTURED_GRID: return "UNSTRUCTURED_GRID";
+    case POLYDATA: return "POLYDATA";
+    case RECTILINEAR_GRID: return "RECTILINEAR_GRID";
+    case FIELD: return "FIELD";
+  }
+}
+#endif
 //-----------------------------------------------------------------------------
 inline DatasetType str_to_type(const std::string &type) {
   if (type == "STRUCTURED_POINTS" || type == "structured_points")

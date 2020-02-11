@@ -10,7 +10,8 @@
 #include "tensor.h"
 
 //==============================================================================
-namespace tatooine::interpolation {
+namespace tatooine {
+namespace interpolation {
 //==============================================================================
 template <typename Real>
 struct linear {
@@ -22,7 +23,7 @@ struct linear {
   using real_t                                 = Real;
   using polynomial_t                       = polynomial<Real, 1>;
   static constexpr size_t num_dimensions() { return 1; }
-  static_assert(std::is_arithmetic_v<Real>);
+  static_assert(std::is_arithmetic<Real>::value);
 
   //----------------------------------------------------------------------------
   // static members
@@ -190,7 +191,7 @@ struct hermite {
   using real_t                                 = Real;
   using polynomial_t                       = polynomial<Real, 3>;
   static constexpr size_t num_dimensions() { return 1; }
-  static_assert(std::is_arithmetic_v<Real>);
+  static_assert(std::is_arithmetic<Real>::value);
 
   //----------------------------------------------------------------------------
   // static members
@@ -412,7 +413,8 @@ struct hermite<vec<Real, N>> : hermite<tensor<Real, N>> {
 };
 
 //==============================================================================
-}  // namespace tatooine::interpolation
+}  // namespace interpolation
+}  // namespace tatooine
 //==============================================================================
 
 #endif

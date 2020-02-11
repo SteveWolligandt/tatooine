@@ -363,7 +363,6 @@ template <size_t C, typename... Rows>
 tensor(Rows const(&&... rows)[C])
     ->tensor<promote_t<Rows...>, sizeof...(Rows), C>;
 #endif
-
 //==============================================================================
 template <typename Real, size_t N>
 struct vec : tensor<Real, N> {
@@ -1012,8 +1011,8 @@ std::pair<mat<double, N, N>, vec<double, N>> eigenvectors_sym(
 /// for comparison
 template <typename LhsTensor, typename LhsReal, typename RhsTensor,
           typename RhsReal, size_t... Dims,
-          std::enable_if_t<std::is_floating_point_v<LhsReal> ||
-                               std::is_floating_point_v<RhsReal>,
+          std::enable_if_t<std::is_floating_point<LhsReal>::value ||
+                               std::is_floating_point<RhsReal>::value,
                            bool> = true>
 constexpr bool approx_equal(const base_tensor<LhsTensor, LhsReal, Dims...>& lhs,
                             const base_tensor<RhsTensor, RhsReal, Dims...>& rhs,
