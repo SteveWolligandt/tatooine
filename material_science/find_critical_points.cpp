@@ -76,7 +76,7 @@ int main() {
         v;
     v.sampler().read_vtk_scalars(std::string{filename}, "vector_field");
 
-    const vec<size_t, 2> lic_res{v.sampler().size(0) * 30, v.sampler().size(1) * 30};
+    const vec<size_t, 2> lic_res{1500, 1500};
     auto lic_tex = gpu::lic(v.sampler(), lic_res, 100, 0.00005, {256, 256});
 
     // calculate critical points
@@ -112,7 +112,7 @@ int main() {
     framebuffer fbo{lic_tex};
     fbo.bind();
     yavin::gl::viewport(cam.viewport());
-    yavin::gl::point_size(10);
+    yavin::gl::point_size(20);
     gpu_data.draw_points();
     fbo.unbind();
 
