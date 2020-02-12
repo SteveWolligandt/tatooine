@@ -1034,6 +1034,7 @@ template <template <typename> typename... Interpolators, typename Field,
           typename TimeReal>
 auto resample(const field<Field, FieldReal, N, TensorDims...>& f,
               const grid<GridReal, N>& g, TimeReal t) {
+  static_assert(sizeof...(Interpolators) > 0, "please specify interpolators");
   static_assert(N > 0, "number of dimensions must be greater than 0");
   static_assert(sizeof...(Interpolators) == N,
                 "number of interpolators does not match number of dimensions");

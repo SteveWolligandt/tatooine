@@ -13,7 +13,7 @@ set(TATOOINE_TEST_CPPS main.cpp)
 macro(create_test NAME)
   list(APPEND TATOOINE_TEST_CPPS "${NAME}.cpp")
   add_executable (${NAME}.test ${NAME}.cpp main.cpp)
-  target_link_libraries(${NAME}.test tatooine Catch2::Catch2)
+  target_link_libraries(${NAME}.test yavin tatooine Catch2::Catch2)
   target_compile_features(${NAME}.test PUBLIC cxx_std_17)
   target_compile_options(${NAME}.test PRIVATE
     -Wall -Wextra -pedantic -Wno-missing-braces -Wno-unused-lambda-capture)
@@ -57,7 +57,7 @@ endforeach()
 # create one executable with all tests
 #- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 add_executable (unittests main.cpp ${TATOOINE_TEST_CPPS})
-target_link_libraries(unittests tatooine Catch2::Catch2)
+target_link_libraries(unittests tatooine yavin Catch2::Catch2)
 target_compile_options(unittests PRIVATE -Wall -Wextra -pedantic
   -Wno-missing-braces -Wno-unused-lambda-capture)
 catch_discover_tests(unittests)
@@ -108,14 +108,14 @@ if(CMAKE_BUILD_TYPE STREQUAL "Debug" AND (
     NAME coverage.gcov.xml
     EXECUTABLE coverage.gcov DEPENDENCIES coverage.gcov)
   if ("${CMAKE_CXX_COMPILER_ID}" STREQUAL "GNU")
-    target_link_libraries(coverage.gcov tatooine Catch2::Catch2 gcov)
+    target_link_libraries(coverage.gcov yavin tatooine Catch2::Catch2 gcov)
     target_compile_options(coverage.gcov
       PRIVATE
         -Wall -Wextra -pedantic
         -fprofile-arcs -ftest-coverage -fno-inline -fno-inline-small-functions -fno-default-inline
         -Wno-missing-braces -Wno-unused-lambda-capture)
     elseif ("${CMAKE_CXX_COMPILER_ID}" STREQUAL "Clang")
-    target_link_libraries(coverage.gcov gcov tatooine Catch2::Catch2 -fprofile-instr-generate -fcoverage-mapping)
+    target_link_libraries(coverage.gcov gcov yavin tatooine Catch2::Catch2 -fprofile-instr-generate -fcoverage-mapping)
     target_compile_options(coverage.gcov
       PRIVATE
         -Wall -Wextra -pedantic
@@ -123,7 +123,7 @@ if(CMAKE_BUILD_TYPE STREQUAL "Debug" AND (
         -Wno-missing-braces -Wno-unused-lambda-capture)
     # LLVM Sanitizer
     add_executable (coverage.llvm main.cpp ${TATOOINE_TEST_CPPS})
-    target_link_libraries(coverage.llvm tatooine Catch2::Catch2 -fprofile-instr-generate -fcoverage-mapping)
+    target_link_libraries(coverage.llvm tatooine yavin Catch2::Catch2 -fprofile-instr-generate -fcoverage-mapping)
     target_compile_options(coverage.llvm
       PRIVATE
         -Wall -Wextra -pedantic

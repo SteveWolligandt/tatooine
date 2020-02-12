@@ -1,0 +1,93 @@
+#ifndef TATOOINE_GPU_LIC_H
+#define TATOOINE_GPU_LIC_H
+//==============================================================================
+#include <tatooine/random.h>
+#include <yavin/glfunctions.h>
+#include <yavin/shader.h>
+
+#include <boost/range/algorithm/generate.hpp>
+
+#include <tatooine/gpu/upload.h>
+//==============================================================================
+namespace tatooine::gpu {
+//==============================================================================
+struct lic_shader : yavin::shader {
+  static constexpr vec<size_t, 2> num_threads{32, 32};
+  //----------------------------------------------------------------------------
+  lic_shader() {
+    add_stage<yavin::computeshader>("@TATOOINE_LIC_COMP_SHADER@");
+    create();
+    set_noise_tex_bind_point(0);
+    set_v_tex_bind_point(1);
+  }
+  //----------------------------------------------------------------------------
+  void dispatch(const vec<size_t, 2>& resolution) {
+    bind();
+    auto num_blocks = resolution / num_threads + 1;
+    yavin::gl::dispatch_compute(num_blocks(0), num_blocks(1), 1);
+  }
+  void set_domain_min(GLfloat x, GLfloat y) {
+    set_uniform("domain_min", x, y);
+  }
+  void set_domain_max(GLfloat x, GLfloat y) {
+    set_uniform("domain_max", x, y);
+  }
+  void set_v_tex_res(GLuint w, GLuint h) {
+    set_uniform("v_tex_res", w, h);
+  }
+  void set_noise_tex_res(GLuint w, GLuint h) {
+    set_uniform("noise_tex_res", w, h);
+  }
+  void set_v_tex_bind_point(GLint b) {set_uniform("v_tex", b);}
+  void set_noise_tex_bind_point(GLint b) {set_uniform("noise_tex", b);}
+  void set_num_samples(GLuint n) { set_uniform("num_samples", n); }
+  void set_stepwidth(GLfloat s) { set_uniform("stepwidth", s); }
+};
+//==============================================================================
+template <typename GPUReal = float, typename V, typename Real>
+auto lic(const field<V, Real, 2, 2>& v, const grid<Real, 2>& discrete_domain,
+         Real t, const vec<size_t, 2>& lic_tex_res) {
+  using namespace yavin;
+
+  // generate noise_tex data
+  vec<size_t, 2> noise_res{128, 128};
+  //auto                                  noise_res = lic_tex_res;
+  std::mt19937            rand_eng{1234};
+  random_uniform<GPUReal, std::mt19937> rand(0, 1, rand_eng);
+  std::vector<GPUReal>                  noise_data(noise_res(0) * noise_res(1));
+  boost::generate(noise_data, [&rand] { return rand(); });
+
+  // generate textures
+  auto                   v_tex = upload(normalize(v), discrete_domain, t);
+  texture<2, GPUReal, R> noise_tex(noise_data, noise_res(0), noise_res(1));
+  yavin::texture<2, GPUReal, R> lic_tex(lic_tex_res(0), lic_tex_res(1));
+
+  lic_tex.bind_image_texture(0);
+  noise_tex.bind(0);
+  v_tex.bind(1);
+
+  lic_shader s;
+  s.set_domain_min(discrete_domain.front(0), discrete_domain.front(1));
+  s.set_domain_max(discrete_domain.back(0), discrete_domain.back(1));
+  s.set_v_tex_res(discrete_domain.size(0), discrete_domain.size(1));
+  s.set_noise_tex_res(noise_res(0), noise_res(1));
+  s.set_num_samples(200);
+  s.set_stepwidth(0.001);
+  s.dispatch(lic_tex_res);
+
+  dynamic_multidim_array<float> data(lic_tex_res(0), lic_tex_res(1));
+  lic_tex.download_data(data.data());
+  return data;
+}
+//------------------------------------------------------------------------------
+template <typename GPUReal = float, typename V, typename Real>
+auto lic(const field<V, Real, 2, 2>& v, const linspace<Real>& xres,
+         const linspace<Real>& yres, Real t, const vec<size_t, 2>& imageres) {
+  return lic(v, grid{xres, yres}, t, imageres);
+}
+
+//==============================================================================
+}  // namespace tatooine::gpu
+//==============================================================================
+
+#endif

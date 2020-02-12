@@ -13,15 +13,19 @@ if(GIT_FOUND AND EXISTS "${PROJECT_SOURCE_DIR}/.git")
                   WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
                   RESULT_VARIABLE GIT_SUBMOD_RESULT)
   if(NOT GIT_SUBMOD_RESULT EQUAL "0")
-    message(FATAL_ERROR "git submodule update --init failed with ${GIT_SUBMOD_RESULT}, please checkout submodules")
+    message(FATAL_ERROR
+      "git submodule update --init failed with ${GIT_SUBMOD_RESULT}, please checkout submodules")
   endif()
 endif()
 #- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 add_subdirectory(external/catch2)
-set(BENCHMARK_ENABLE_GTEST_TESTS OFF CACHE BOOL "Enable building the unit tests which depend on gtest")
-set(BENCHMARK_ENABLE_TESTING OFF CACHE BOOL "Enable testing of the benchmark library.")
+set(BENCHMARK_ENABLE_GTEST_TESTS OFF CACHE BOOL
+    "Enable building the unit tests which depend on gtest")
+set(BENCHMARK_ENABLE_TESTING OFF CACHE BOOL
+    "Enable testing of the benchmark library.")
 add_subdirectory(external/google-benchmark)
 #- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+find_package(yavin REQUIRED)
 find_package(GiNaC REQUIRED)
 find_package(LAPACKE REQUIRED)
 find_package(OpenMP REQUIRED)
@@ -30,6 +34,14 @@ find_package(PNG REQUIRED)
 find_package(PNG++ REQUIRED)
 find_package(HDF5 REQUIRED)
 set(HDF5_LIBS -lhdf5 -lhdf5_cpp -lhdf5_hl)
+
+#- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - 
+# configure files
+#- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - 
+set(TATOOINE_LIC_COMP_SHADER
+    ${CMAKE_CURRENT_SOURCE_DIR}/include/tatooine/gpu/lic.comp)
+configure_file("${CMAKE_CURRENT_SOURCE_DIR}/include/tatooine/gpu/lic.h.in"
+               "${CMAKE_CURRENT_BINARY_DIR}/include/tatooine/gpu/lic.h")
 
 #- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 # create library target
@@ -42,6 +54,7 @@ target_include_directories(tatooine
   INTERFACE
     ${CMAKE_CURRENT_SOURCE_DIR}/include
     ${CMAKE_CURRENT_SOURCE_DIR}/single_include
+    ${CMAKE_CURRENT_BINARY_DIR}/include
     ${GINAC_INCLUDE_DIRS}
     ${LAPACKE_INCLUDE_DIR}
     ${vcode_DIR}/../..
@@ -68,7 +81,7 @@ add_subdirectory(test)
 add_subdirectory(benchmarks)
 add_subdirectory(doc)
 add_subdirectory(misc)
-add_subdirectory(cuda)
+#add_subdirectory(cuda)
 add_subdirectory(steadification)
 add_subdirectory(material_science)
 
@@ -76,4 +89,3 @@ add_subdirectory(material_science)
 # This makes the project importable from the build directory
 export(TARGETS tatooine FILE tatooineConfig.cmake)
 export(PACKAGE tatooine)
-

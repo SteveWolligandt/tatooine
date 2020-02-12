@@ -2,13 +2,14 @@
 #define TATOOINE_MULTIDIM_ARRAY_H
 //==============================================================================
 #include <array>
+#include <png++/png.hpp>
 #include <vector>
 
+#include "index_ordering.h"
 #include "linspace.h"
 #include "multidim.h"
 #include "multidim_resolution.h"
 #include "random.h"
-#include "index_ordering.h"
 //==============================================================================
 namespace tatooine {
 //==============================================================================
@@ -883,13 +884,7 @@ auto interpolate(const dynamic_multidim_array<T0, Indexing0>& arr0,
   return interpolate<IndexingOut>(arr0, arr1,
                                   (t - ts.front()) / (ts.back() - ts.front()));
 }
-//==============================================================================
-}  // namespace tatooine
-//==============================================================================
 //#include "vtk_legacy.h"
-//==============================================================================
-// namespace tatooine {
-//==============================================================================
 // template <typename T, typename Indexing, typename MemLoc, size_t...
 // Resolution> void write_vtk(
 //    const static_multidim_array<T, Indexing, MemLoc, Resolution...>& arr,
@@ -932,8 +927,58 @@ auto interpolate(const dynamic_multidim_array<T0, Indexing0>& arr0,
 //    writer.close();
 //  }
 //}
+//
+template <typename Real, enable_if_floating_point<Real> = true>
+void write_png(const dynamic_multidim_array<Real>& arr,
+               const std::string&               filepath) {
+  if (arr.num_dimensions() != 2) {
+    throw std::runtime_error{
+        "multidim array needs 2 dimensions for writing as png."};
+  }
+
+  png::image<png::rgb_pixel> image(arr.size(0), arr.size(1));
+  for (unsigned int y = 0; y < image.get_height(); ++y) {
+    for (png::uint_32 x = 0; x < image.get_width(); ++x) {
+      unsigned int idx = x + arr.size(0) * y;
+
+      image[image.get_height() - 1 - y][x].red =
+          std::max<Real>(0, std::min<Real>(1, arr[idx])) * 255;
+      image[image.get_height() - 1 - y][x].green =
+          std::max<Real>(0, std::min<Real>(1, arr[idx])) * 255;
+      image[image.get_height() - 1 - y][x].blue =
+          std::max<Real>(0, std::min<Real>(1, arr[idx])) * 255;
+    }
+  }
+  image.write(filepath);
+}
+//// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+//template <typename Real>
+//void write_png(const dynamic_multidim_array<vec<Real, 2>>& arr,
+//               const std::string&                          filepath) {
+//  if (arr.num_dimensions() != 2) {
+//    throw std::runtime_error{
+//        "multidim array needs 2 dimensions for writing as png."};
+//  }
+//
+//  png::image<png::rgb_pixel> image(dimension(0).size(), dimension(1).size());
+//  for (unsigned int y = 0; y < image.get_height(); ++y) {
+//    for (png::uint_32 x = 0; x < image.get_width(); ++x) {
+//      unsigned int idx = x + dimension(0).size() * y;
+//
+//      image[image.get_height() - 1 - y][x].red =
+//          std::max<Real>(0, std::min<Real>(1, m_data[idx * 4 + 0])) * 255;
+//      image[image.get_height() - 1 - y][x].green =
+//          std::max<Real>(0, std::min<Real>(1, m_data[idx * 4 + 1])) * 255;
+//      image[image.get_height() - 1 - y][x].blue =
+//          std::max<Real>(0, std::min<Real>(1, m_data[idx * 4 + 2])) * 255;
+//      image[image.get_height() - 1 - y][x].alpha =
+//          std::max<Real>(0, std::min<Real>(1, m_data[idx * 4 + 3])) * 255;
+//    }
+//  }
+//  image.write(filepath);
+//}
 //==============================================================================
-// }  // namespace tatooine
+}  // namespace tatooine
 //==============================================================================
 
 #endif

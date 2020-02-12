@@ -11,10 +11,12 @@
 #include <random>
 #include <utility>
 #include <vector>
+
 #include "functional.h"
 #include "multidim_array.h"
-#include "utility.h"
+#include "tensor.h"
 #include "type_traits.h"
+#include "utility.h"
 
 //==============================================================================
 namespace tatooine {
@@ -140,7 +142,7 @@ struct chunked_data {
     assert(global_idx < m_data_structure.num_elements());
     return at(m_data_structure.multi_index(global_idx));
   }
-  const T& operator[](size_t global_idx) const {
+  T operator[](size_t global_idx) const {
     assert(global_idx < m_data_structure.num_elements());
     return at(m_data_structure.multi_index(global_idx));
   }
@@ -268,9 +270,21 @@ struct chunked_data {
     m_chunks = std::move(new_chunks);
   }
   //----------------------------------------------------------------------------
-  auto unchunk() {
+  auto unchunk() const {
     std::vector<T> data(num_elements());
     for (size_t i = 0; i < num_elements(); ++i) { data[i] = (*this)[i]; }
+    return data;
+  }
+  //----------------------------------------------------------------------------
+  template <typename _T = T, enable_if_tensor<_T> = true>
+  auto unchunk_plain() const {
+    using real_t = typename T::real_t;
+    constexpr auto n = T::num_components();
+    std::vector<real_t> data;
+    data.reserve(num_elements() * n);
+    for (size_t i = 0; i < num_elements(); ++i) {
+      for (size_t j = 0; j < n; ++j) { data.push_back((*this)[i][j]); }
+    }
     return data;
   }
   //----------------------------------------------------------------------------
