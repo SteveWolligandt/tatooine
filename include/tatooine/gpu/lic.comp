@@ -1,7 +1,7 @@
 #version 450
 //==============================================================================
 layout(local_size_x = 32, local_size_y = 32) in;
-layout(binding = 0, r32f) uniform image2D lic_tex;
+layout(binding = 0, rgba32f) uniform image2D lic_tex;
 
 uniform sampler2D noise_tex;
 uniform sampler2D v_tex;
@@ -11,7 +11,7 @@ uniform uvec2     v_tex_res;
 uniform vec2      domain_min;
 uniform vec2      domain_max;
 uniform uint      num_samples;
-uniform float     stepwidth;
+uniform float     stepsize;
 //==============================================================================
 const uvec2 lic_tex_res = uvec2(imageSize(lic_tex));
 //==============================================================================
@@ -30,8 +30,9 @@ vec2 idx_to_domain_pos(uvec2 image_pos, vec2 min, vec2 max, uvec2 res) {
 }
 //------------------------------------------------------------------------------
 vec2 v(vec2 pos) {
-  return texture(v_tex,
-                 domain_pos_to_uv(pos, domain_min, domain_max, v_tex_res)).rg;
+  return normalize(
+      texture(v_tex, domain_pos_to_uv(pos, domain_min, domain_max, v_tex_res))
+          .rg);
 }
 //------------------------------------------------------------------------------
 float noise(vec2 pos) {
@@ -44,29 +45,29 @@ float noise(vec2 pos) {
 }
 
 //------------------------------------------------------------------------------
-vec2 rungekutta4_step(vec2 pos, float stepwidth) {
-  const vec2 k1 = stepwidth * v(pos);
+vec2 rungekutta4_step(vec2 pos, float stepsize) {
+  const vec2 k1 = stepsize * v(pos);
 
   const vec2 x2 = pos + k1 / 2;
   if (x2.x < domain_min.x || x2.x > domain_max.x ||
       x2.y < domain_min.y || x2.y > domain_max.y) {
     return vec2(0.0 / 0.0, 0.0 / 0.0);
   }
-  const vec2 k2 = stepwidth * v(x2);
+  const vec2 k2 = stepsize * v(x2);
 
   const vec2 x3 = pos + k2 / 2;
   if (x3.x < domain_min.x || x3.x > domain_max.x ||
       x3.y < domain_min.y || x3.y > domain_max.y) {
     return vec2(0.0 / 0.0, 0.0 / 0.0);
   }
-  const vec2 k3 = stepwidth * v(x3);
+  const vec2 k3 = stepsize * v(x3);
 
   const vec2 x4 = pos + k3;
   if (x4.x < domain_min.x || x4.x > domain_max.x ||
       x4.y < domain_min.y || x4.y > domain_max.y) {
     return vec2(0.0 / 0.0, 0.0 / 0.0);
   }
-  const vec2 k4 = stepwidth * v(x4);
+  const vec2 k4 = stepsize * v(x4);
 
   const vec2 stepped = pos + (k1 + 2 * k2 + 2 * k3 + k4) / 6;
   if (stepped.x < domain_min.x || stepped.x > domain_max.x ||
@@ -86,32 +87,27 @@ void main() {
   // forward integration
   vec2 pos_integrated = pos;
   for (uint i = 0; i < num_samples; ++i) {
-    pos_integrated = rungekutta4_step(pos_integrated, stepwidth);
+    pos_integrated = rungekutta4_step(pos_integrated, stepsize);
     if (isnan(pos_integrated.x) || isnan(pos_integrated.y)) { break; }
     out_val += noise(pos_integrated);
     ++cnt;
   }
 
   // backward integration
-  //pos_integrated = pos;
-  //for (unsigned int i = 0; i < num_samples; ++i) {
-  //  pos_integrated = rungekutta4_step(pos_integrated, -stepwidth);
-  //
-  //  if (isnan(pos_integrated.x) || isnan(pos_integrated.y)) { break; }
-  //  uv       = domain_pos_to_uv(pos_integrated, v_tex_res.x, v_tex_res.y, res);
-  //  uv_noise = uv * scale_noise_uv;
-  //  out_val += noise_tex(uv_noise);
-  //  ++cnt;
-  //}
+  pos_integrated = pos;
+  for (uint i = 0; i < num_samples; ++i) {
+    pos_integrated = rungekutta4_step(pos_integrated, -stepsize);
+    if (isnan(pos_integrated.x) || isnan(pos_integrated.y)) { break; }
+    out_val += noise(pos_integrated);
+    ++cnt;
+  }
 
   // contrast stretch
-  out_val = (out_val / cnt) * 11.0f - 4.7f;
+  out_val /= cnt;
+  //out_val = out_val * 11.0 - 4.7;
+  out_val = out_val * 7.0 - 2.7;
   if (out_val < 0) { out_val = 0; }
   if (out_val > 1) { out_val = 1; }
-  
-  
-  //out_val = domain_pos_to_uv(pos,domain_min, domain_max, v_tex_res).x;
-  //out_val = v(pos).y;
 
-  imageStore(lic_tex, ivec2(idx), vec4(out_val, 0, 0, 0));
+  imageStore(lic_tex, ivec2(idx), vec4(out_val, out_val, out_val, 1));
 }

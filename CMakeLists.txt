@@ -66,6 +66,7 @@ target_include_directories(tatooine
 #set libs 
 target_link_libraries(tatooine
   INTERFACE
+    yavin
     ${GINAC_LIBRARIES}
     ${LAPACKE_LIBRARIES}
     ${PNG_LIBRARIES}

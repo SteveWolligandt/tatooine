@@ -1,21 +1,57 @@
 #ifndef TATOOINE_GPU_FIELD_TO_GPU_H
 #define TATOOINE_GPU_FIELD_TO_GPU_H
 //==============================================================================
-#include <yavin/texture.h>
 #include <tatooine/field.h>
 #include <tatooine/grid_sampler.h>
+#include <yavin/texture.h>
 //==============================================================================
 namespace tatooine::gpu {
 //==============================================================================
+template <typename GPUReal = float>
+auto download(const yavin::texture<2, GPUReal, yavin::R>& tex) {
+  dynamic_multidim_array<float> data(tex.width(), tex.height());
+  tex.download_data(data.data());
+  return data;
+}
+// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+template <typename GPUReal = float>
+auto download(const yavin::texture<2, GPUReal, yavin::RG>& tex) {
+  dynamic_multidim_array<vec<float, 2>> data(tex.width(), tex.height());
+  tex.download_data(data.data());
+  return data;
+}
+// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+template <typename GPUReal = float>
+auto download(const yavin::texture<2, GPUReal, yavin::RGB>& tex) {
+  dynamic_multidim_array<vec<float, 3>> data(tex.width(), tex.height());
+  tex.download_data(data.data());
+  return data;
+}
+// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+template <typename GPUReal = float>
+auto download(const yavin::texture<2, GPUReal, yavin::RGBA>& tex) {
+  dynamic_multidim_array<vec<float, 4>> data(tex.width(), tex.height());
+  tex.download_data(data.data());
+  return data;
+}
+//==============================================================================
+template <typename GPUReal = float, typename Real,
+          template <typename> typename InterpolatorX,
+          template <typename> typename InterpolatorY>
+auto upload(const grid_sampler<Real, 2, vec<Real, 2>, InterpolatorX,
+                               InterpolatorY>& sampler) {
+  using namespace yavin;
+  const std::vector<Real> data = sampler.data().unchunk_plain();
+  return texture<2, GPUReal, RG>(data, sampler.size(0), sampler.size(1));
+}
+//------------------------------------------------------------------------------
 template <typename GPUReal = float, typename Real,
           template <typename> typename InterpolatorX,
           template <typename> typename InterpolatorY>
 auto upload(const sampled_field<
             grid_sampler<Real, 2, vec<Real, 2>, InterpolatorX, InterpolatorY>,
             Real, 2, 2>& v) {
-  using namespace yavin;
-  const std::vector<Real> data = v.sampler().data().unchunk_plain();
-  return texture<2, GPUReal, RG>(data, v.sampler().size(0), v.sampler().size(1));
+  return upload<GPUReal>(v.sampler());
 }
 //------------------------------------------------------------------------------
 template <typename GPUReal = float, typename V, typename Real>
