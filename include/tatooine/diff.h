@@ -47,8 +47,19 @@ struct derived_field : field<derived_field<Field, TensorDims...>, typename Field
     pos_t offset;
     for (size_t i = 0; i < num_dimensions(); ++i) {
       offset(i) = m_eps(i);
+      auto x0   = x - offset;
+      auto x1   = x + offset;
+      auto dx   = 2 * m_eps;
+      if (!m_internal_field.in_domain(x0, t)) {
+        x0 = x;
+        dx = m_eps;
+      }
+      if (!m_internal_field.in_domain(x1, t)) {
+        x1 = x;
+        dx = m_eps;
+      }
       derivative.template slice<sizeof...(TensorDims) - 1>(i) =
-          (m_internal_field(x + offset, t) - m_internal_field(x - offset, t)) / (2 * m_eps);
+          (m_internal_field(x1, t) - m_internal_field(x0, t)) / (2 * m_eps);
       offset(i) = 0;
     }
 

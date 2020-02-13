@@ -15,8 +15,8 @@ namespace tatooine {
 //==============================================================================
 template <typename T>
 struct is_unsigned_integral
-    : std::integral_constant<bool, std::is_integral<T>::value &&
-                                   std::is_unsigned<T>::value> {};
+    : std::integral_constant<bool,
+                             std::is_integral_v<T> && std::is_unsigned_v<T>> {};
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 template <typename T>
 static constexpr auto is_unsigned_integral_v = is_unsigned_integral<T>::value;
@@ -24,29 +24,32 @@ static constexpr auto is_unsigned_integral_v = is_unsigned_integral<T>::value;
 template <typename... Ts>
 struct are_unsigned_integral;
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+template <typename... Ts>
+static constexpr auto are_unsigned_integral_v =
+    are_unsigned_integral<Ts...>::value;
+// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 template <>
 struct are_unsigned_integral<> : std::false_type {};
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 template <typename T>
 struct are_unsigned_integral<T>
-    : std::integral_constant<bool, is_unsigned_integral<T>::value> {};
+    : std::integral_constant<bool, is_unsigned_integral_v<T>> {};
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 template <typename T0, typename T1, typename... Ts>
 struct are_unsigned_integral<T0, T1, Ts...>
-    : std::integral_constant<bool,
-                             are_unsigned_integral<T0>::value &&
-                                 are_unsigned_integral<T1, Ts...>::value> {};
+    : std::integral_constant<bool, are_unsigned_integral_v<T0> &&
+                                       are_unsigned_integral_v<T1, Ts...>> {};
 //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 template <typename... Ts>
 using enable_if_unsigned_integral =
-    std::enable_if_t<are_unsigned_integral<Ts...>::value, bool>;
+    std::enable_if_t<sizeof...(Ts) == 0 || are_unsigned_integral_v<Ts...>,
+                     bool>;
 //==============================================================================
 #if has_cxx17_support()
 template <typename T>
 struct is_symbolic
-    : std::integral_constant<bool, std::is_same<T, GiNaC::ex>::value ||
-                                       std::is_same<T, GiNaC::symbol>::value> {
-};
+    : std::integral_constant<bool, std::is_same_v<T, GiNaC::ex> ||
+                                       std::is_same_v<T, GiNaC::symbol>> {};
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 template <typename T>
 static constexpr auto is_symbolic_v = is_symbolic<T>::value;
@@ -54,86 +57,102 @@ static constexpr auto is_symbolic_v = is_symbolic<T>::value;
 template <typename... Ts>
 struct are_symbolic;
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+template <typename... Ts>
+static constexpr auto are_symbolic_v = are_symbolic<Ts...>::value;
+// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 template <>
 struct are_symbolic<> : std::false_type {};
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 template <typename T>
-struct are_symbolic<T> : std::integral_constant<bool, is_symbolic<T>::value> {};
+struct are_symbolic<T> : std::integral_constant<bool, is_symbolic_v<T>> {};
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 template <typename T0, typename T1, typename... Ts>
 struct are_symbolic<T0, T1, Ts...>
-    : std::integral_constant<bool, are_symbolic<T0>::value &&
-                                       are_symbolic<T1, Ts...>::value> {};
+    : std::integral_constant<bool, are_symbolic_v<T0> &&
+                                       are_symbolic_v<T1, Ts...>> {};
 //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 template <typename... Ts>
-using enable_if_symbolic = std::enable_if_t<are_symbolic<Ts...>::value, bool>;
+using enable_if_symbolic =
+    std::enable_if_t<sizeof...(Ts) == 0 || are_symbolic_v<Ts...>, bool>;
 #endif
 
 //==============================================================================
 template <typename... Ts>
 struct are_floating_point;
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+template <typename... Ts>
+static constexpr auto are_floating_point_v = are_floating_point<Ts...>::value;
+// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 template <>
 struct are_floating_point<> : std::false_type {};
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 template <typename T>
 struct are_floating_point<T>
-    : std::integral_constant<bool, std::is_floating_point<T>::value> {};
+    : std::integral_constant<bool, std::is_floating_point_v<T>> {};
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 template <typename T0, typename T1, typename... Ts>
 struct are_floating_point<T0, T1, Ts...>
-    : std::integral_constant<bool, are_floating_point<T0>::value &&
-                                       are_floating_point<T1, Ts...>::value> {};
+    : std::integral_constant<bool, are_floating_point_v<T0> &&
+                                       are_floating_point_v<T1, Ts...>> {};
 //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 template <typename... Ts>
 using enable_if_floating_point =
-    std::enable_if_t<are_floating_point<Ts...>::value, bool>;
+    std::enable_if_t<sizeof...(Ts) == 0 || are_floating_point_v<Ts...>, bool>;
 //==============================================================================
 template <typename... Ts>
 struct are_integral;
+// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+template <typename... Ts>
+static constexpr auto are_integral_v = are_integral<Ts...>::value;
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 template <>
 struct are_integral<> : std::false_type {};
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 template <typename T>
-struct are_integral<T>
-    : std::integral_constant<bool, std::is_integral<T>::value> {};
+struct are_integral<T> : std::integral_constant<bool, std::is_integral_v<T>> {};
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 template <typename T0, typename T1, typename... Ts>
 struct are_integral<T0, T1, Ts...>
-    : std::integral_constant<bool, are_integral<T0>::value &&
-                                       are_integral<T1, Ts...>::value> {};
+    : std::integral_constant<bool, are_integral_v<T0> &&
+                                       are_integral_v<T1, Ts...>> {};
 //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 template <typename... Ts>
-using enable_if_integral = std::enable_if_t<are_integral<Ts...>::value, bool>;
+using enable_if_integral =
+    std::enable_if_t<sizeof...(Ts) == 0 || are_integral_v<Ts...>, bool>;
 //==============================================================================
 
 template <typename... Ts>
 struct are_arithmetic;
+// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+template <typename... Ts>
+static constexpr auto are_arithmetic_v = are_arithmetic<Ts...>::value;
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 template <>
 struct are_arithmetic<> : std::false_type {};
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 template <typename T>
 struct are_arithmetic<T>
-    : std::integral_constant<bool, std::is_arithmetic<T>::value> {};
+    : std::integral_constant<bool, std::is_arithmetic_v<T>> {};
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 template <typename T0, typename T1, typename... Ts>
 struct are_arithmetic<T0, T1, Ts...>
-    : std::integral_constant<bool, are_arithmetic<T0>::value &&
-                                       are_arithmetic<T1, Ts...>::value> {};
+    : std::integral_constant<bool, are_arithmetic_v<T0> &&
+                                       are_arithmetic_v<T1, Ts...>> {};
 //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 template <typename... Ts>
 using enable_if_arithmetic =
-    std::enable_if_t<are_arithmetic<Ts...>::value, bool>;
+    std::enable_if_t<sizeof...(Ts) == 0 || are_arithmetic_v<Ts...>, bool>;
 //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 template <typename... Ts>
 using enable_if_not_arithmetic =
-    std::enable_if_t<!are_arithmetic<Ts...>::value, bool>;
+    std::enable_if_t<sizeof...(Ts) == 0 || !are_arithmetic_v<Ts...>, bool>;
 
 //==============================================================================
 template <typename T>
 struct is_complex : std::false_type {};
+// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+template <typename T>
+static constexpr auto is_complex_v = is_complex<T>::value;
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 template <typename T>
 struct is_complex<std::complex<T>> : std::true_type {};
@@ -141,79 +160,100 @@ struct is_complex<std::complex<T>> : std::true_type {};
 template <typename... Ts>
 struct are_complex;
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+template <typename... Ts>
+static constexpr auto are_complex_v = are_complex<Ts...>::value;
+// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 template <>
 struct are_complex<> : std::false_type {};
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 template <typename T>
-struct are_complex<T>
-    : std::integral_constant<bool, is_complex<T>::value> {};
+struct are_complex<T> : std::integral_constant<bool, is_complex_v<T>> {};
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 template <typename T0, typename T1, typename... Ts>
 struct are_complex<T0, T1, Ts...>
-    : std::integral_constant<bool, are_complex<T0>::value &&
-                                       are_complex<T1, Ts...>::value> {};
+    : std::integral_constant<bool,
+                             are_complex_v<T0> && are_complex_v<T1, Ts...>> {};
 //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 template <typename... Ts>
-using enable_if_complex = std::enable_if_t<are_complex<Ts...>::value, bool>;
+using enable_if_complex =
+    std::enable_if_t<sizeof...(Ts) == 0 || are_complex_v<Ts...>, bool>;
 
 //==============================================================================
 template <typename... Ts>
 struct are_arithmetic_or_complex
-    : std::integral_constant<bool, are_arithmetic<Ts...>::value ||
-                                   are_complex<Ts...>::value> {};
+    : std::integral_constant<bool, are_arithmetic_v<Ts...> ||
+                                       are_complex_v<Ts...>> {};
+// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+template <typename... Ts>
+static constexpr auto are_arithmetic_or_complex_v =
+    are_arithmetic_or_complex<Ts...>::value;
 //==============================================================================
 template <typename... Ts>
-using enable_if_arithmetic_or_complex =
-    typename std::enable_if_t<are_arithmetic_or_complex<Ts...>::value, bool>;
+using enable_if_arithmetic_or_complex = typename std::enable_if_t<
+    sizeof...(Ts) == 0 || are_arithmetic_or_complex_v<Ts...>, bool>;
 //==============================================================================
 #if has_cxx17_support()
 template <typename... Ts>
 struct are_arithmetic_or_symbolic
-    : std::integral_constant<bool, are_arithmetic<Ts...>::value ||
-                                   are_symbolic<Ts...>::value> {};
+    : std::integral_constant<bool, are_arithmetic_v<Ts...> ||
+                                       are_symbolic_v<Ts...>> {};
+// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+template <typename... Ts>
+static constexpr auto are_arithmetic_or_symbolic_v =
+    are_arithmetic_or_symbolic<Ts...>::value;
 //------------------------------------------------------------------------------
 template <typename... Ts>
-using enable_if_arithmetic_or_symbolic =
-    typename std::enable_if_t<are_arithmetic_or_symbolic<Ts...>::value, bool>;
+using enable_if_arithmetic_or_symbolic = typename std::enable_if_t<
+    sizeof...(Ts) == 0 || are_arithmetic_or_symbolic_v<Ts...>, bool>;
 //==============================================================================
 template <typename... Ts>
 struct are_arithmetic_complex_or_symbolic
-    : std::integral_constant<bool, are_arithmetic<Ts...>::value ||
-                                   are_complex<Ts...>::value ||
-                                   are_symbolic<Ts...>::value> {};
+    : std::integral_constant<bool, are_arithmetic_v<Ts...> ||
+                                       are_complex_v<Ts...> ||
+                                       are_symbolic_v<Ts...>> {};
+// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+template <typename... Ts>
+static constexpr auto are_arithmetic_complex_or_symbolic_v =
+    are_arithmetic_complex_or_symbolic<Ts...>::value;
 //------------------------------------------------------------------------------
 template <typename... Ts>
-using enable_if_arithmetic_complex_or_symbolic =
-    typename std::enable_if_t<are_arithmetic_complex_or_symbolic<Ts...>::value,
-                              bool>;
+using enable_if_arithmetic_complex_or_symbolic = typename std::enable_if_t<
+    sizeof...(Ts) == 0 || are_arithmetic_complex_or_symbolic_v<Ts...>, bool>;
 #endif
 //==============================================================================
 template <typename T, typename = void>
 struct is_iterator : std::false_type {};
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 template <typename T>
-struct is_iterator<
-    T, std::enable_if_t<!std::is_same<
-           typename std::iterator_traits<T>::value_type, void>::value>>
+static constexpr auto is_iterator_v = is_iterator<T>::value;
+// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+template <typename T>
+struct is_iterator<T, std::enable_if_t<!std::is_same_v<
+                          typename std::iterator_traits<T>::value_type, void>>>
     : std::true_type {};
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 template <typename... Ts>
 struct are_iterators;
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+template <typename... Ts>
+static constexpr auto are_iterators_v = are_iterators<Ts...>::value;
+// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 template <>
 struct are_iterators<> : std::false_type {};
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 template <typename T>
-struct are_iterators<T>
-    : std::integral_constant<bool, is_iterator<T>::value> {};
+struct are_iterators<T> : std::integral_constant<bool, is_iterator<T>::value> {
+};
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 template <typename T0, typename T1, typename... Ts>
 struct are_iterators<T0, T1, Ts...>
-    : std::integral_constant<bool, are_iterators<T0>::value &&
-                                   are_iterators<T1, Ts...>::value> {};
+    : std::integral_constant<bool, sizeof...(Ts) == 0 ||
+                                       (are_iterators_v<T0> &&
+                                        are_iterators_v<T1, Ts...>)> {};
 //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 template <typename... Ts>
-using enable_if_iterator = std::enable_if_t<are_iterators<Ts...>::value, bool>;
+using enable_if_iterator =
+    std::enable_if_t<sizeof...(Ts) == 0 || are_iterators<Ts...>::value, bool>;
 //==============================================================================
 template <typename T>
 struct num_components;
@@ -275,11 +315,9 @@ struct is_vectorield<base_tensor<tensor_t, real_t, N>> : std::true_type {};
 template <typename T>
 constexpr auto is_vectorield_v = is_vectorield<T>::value;
 //==============================================================================
-#if has_cxx17_support()
 template <typename F, typename... Args>
 using enable_if_invocable =
     std::enable_if_t<std::is_invocable<F, Args...>::value, bool>;
-#endif
 
 //==============================================================================
 }  // namespace tatooine

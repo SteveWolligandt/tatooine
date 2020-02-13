@@ -205,7 +205,7 @@ struct base_grid_sampler : crtp<Derived>, grid<Real, N> {
   //----------------------------------------------------------------------------
   /// sampling by interpolating using HeadInterpolator and
   /// grid_iterators
-  template <typename... Xs, enable_if_arithmetic<Xs...> = true>
+  template <typename... Xs, enable_if_arithmetic<std::decay_t<Xs>...> = true>
   auto sample(Real x, Xs... xs) const {
     using interpolator = HeadInterpolator<Data>;
     static_assert(sizeof...(Xs) + 1 == N,

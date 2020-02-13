@@ -21,7 +21,7 @@ struct linear {
  public:
   static constexpr bool needs_first_derivative = false;
   using real_t                                 = Real;
-  using polynomial_t                       = polynomial<Real, 1>;
+  using polynomial_t                           = polynomial<Real, 1>;
   static constexpr size_t num_dimensions() { return 1; }
   static_assert(std::is_arithmetic<Real>::value);
 
@@ -29,13 +29,12 @@ struct linear {
   // static members
   //----------------------------------------------------------------------------
  public:
-  static constexpr mat<Real, 2, 2> A{{ 1,  0},
-                                     {-1,  1}};
+  static constexpr mat<Real, 2, 2> A{{1, 0}, {-1, 1}};
   //----------------------------------------------------------------------------
   // factories
   //----------------------------------------------------------------------------
   constexpr static Real interpolate_via_2_values(Real a, Real b, Real t) {
-    return a * (1-t) + b * t;
+    return a * (1 - t) + b * t;
   }
   //----------------------------------------------------------------------------
   /// hermite interpolation using iterators and border treatment from
@@ -53,8 +52,7 @@ struct linear {
   static constexpr Real from_iterators(Iterator A, Iterator B, Real t, Real x,
                                        Xs&&... xs) {
     return interpolate_via_2_values((*A).sample(x, std::forward<Xs>(xs)...),
-                       (*B).sample(x, std::forward<Xs>(xs)...), t);
-
+                                    (*B).sample(x, std::forward<Xs>(xs)...), t);
   }
 
   //----------------------------------------------------------------------------
@@ -104,8 +102,7 @@ struct linear<tensor<Real, N>> {
   // static members
   //----------------------------------------------------------------------------
  public:
-  static constexpr mat<Real, 2, 2> A{{ 1,  0},
-                                     {-1,  1}};
+  static constexpr mat<Real, 2, 2> A{{1, 0}, {-1, 1}};
   //----------------------------------------------------------------------------
   // factories
   //----------------------------------------------------------------------------
@@ -127,10 +124,9 @@ struct linear<tensor<Real, N>> {
   /// Keys for multidimensional interpolations
   template <typename Iterator, typename... Xs>
   static constexpr vec_t from_iterators(Iterator A, Iterator B, Real t, Real x,
-                                       Xs&&... xs) {
+                                        Xs&&... xs) {
     return interpolate_via_2_values((*A).sample(x, std::forward<Xs>(xs)...),
-                       (*B).sample(x, std::forward<Xs>(xs)...), t);
-
+                                    (*B).sample(x, std::forward<Xs>(xs)...), t);
   }
 
   //----------------------------------------------------------------------------
@@ -145,7 +141,7 @@ struct linear<tensor<Real, N>> {
   constexpr linear(const linear&) = default;
   constexpr linear(linear&&)      = default;
   constexpr linear& operator=(const linear&) = default;
-  constexpr linear& operator=(linear&&)      = default;
+  constexpr linear& operator=(linear&&) = default;
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
   constexpr linear(const vec_t& fx0, const vec_t& fx1)
       : m_polynomials{make_array<polynomial_t, N>(polynomial_t{0, 0})} {
@@ -189,7 +185,7 @@ struct hermite {
  public:
   static constexpr bool needs_first_derivative = true;
   using real_t                                 = Real;
-  using polynomial_t                       = polynomial<Real, 3>;
+  using polynomial_t                           = polynomial<Real, 3>;
   static constexpr size_t num_dimensions() { return 1; }
   static_assert(std::is_arithmetic<Real>::value);
 
@@ -263,11 +259,11 @@ struct hermite {
   //----------------------------------------------------------------------------
   // ctors
   //----------------------------------------------------------------------------
-  constexpr hermite()                          = default;
-  constexpr hermite(const hermite&)            = default;
-  constexpr hermite(hermite&&)                 = default;
+  constexpr hermite()               = default;
+  constexpr hermite(const hermite&) = default;
+  constexpr hermite(hermite&&)      = default;
   constexpr hermite& operator=(const hermite&) = default;
-  constexpr hermite& operator=(hermite&&)      = default;
+  constexpr hermite& operator=(hermite&&) = default;
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
   constexpr hermite(const Real& fx0, const Real& fx1, const Real& fx0dx,
                     const Real& fx1dx)
@@ -316,21 +312,20 @@ struct hermite<tensor<Real, N>> {
   // ctors
   //----------------------------------------------------------------------------
   constexpr hermite() : m_polynomials{make_array<polynomial_t, N>()} {}
-  constexpr hermite(const hermite&)            = default;
-  constexpr hermite(hermite&&)                 = default;
+  constexpr hermite(const hermite&) = default;
+  constexpr hermite(hermite&&)      = default;
   constexpr hermite& operator=(const hermite&) = default;
-  constexpr hermite& operator=(hermite&&)      = default;
+  constexpr hermite& operator=(hermite&&) = default;
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
   constexpr hermite(const vec_t& fx0, const vec_t& fx1, const vec_t& fx0dx,
                     const vec_t& fx1dx)
-      : m_polynomials{
-            make_array<polynomial_t, N>(polynomial_t{0, 0, 0, 0})} {
+      : m_polynomials{make_array<polynomial_t, N>(polynomial_t{0, 0, 0, 0})} {
     mat<Real, 4, N> B;
     B.row(0) = fx0;
     B.row(1) = fx1;
     B.row(2) = fx0dx;
     B.row(3) = fx1dx;
-    auto C = A * B;
+    auto C   = A * B;
     for (size_t i = 0; i < N; ++i) {
       m_polynomials[i].set_coefficients(C(0, i), C(1, i), C(2, i), C(3, i));
     }
@@ -339,9 +334,11 @@ struct hermite<tensor<Real, N>> {
   //----------------------------------------------------------------------------
   // factories
   //----------------------------------------------------------------------------
-  static constexpr vec_t interpolate_via_4_values(const vec_t& A, const vec_t& B,
-                                                 const vec_t& C, const vec_t& D,
-                                                 Real t) noexcept {
+  static constexpr vec_t interpolate_via_4_values(const vec_t& A,
+                                                  const vec_t& B,
+                                                  const vec_t& C,
+                                                  const vec_t& D,
+                                                  Real         t) noexcept {
     auto a = B;
     auto b = (C - A) * 0.5;
     auto c = -(D - 4.0 * C + (5.0 * B) - 2.0 * A) * 0.5;
@@ -354,7 +351,7 @@ struct hermite<tensor<Real, N>> {
   /// Keys
   template <typename Iterator>
   static constexpr vec_t from_iterators(Iterator A, Iterator B, Iterator begin,
-                                       Iterator end, Real t) {
+                                        Iterator end, Real t) {
     if (A == B) { return *A; }
     if (t == 0) { return *A; }
     if (t == 1) { return *B; }
@@ -373,8 +370,8 @@ struct hermite<tensor<Real, N>> {
   /// Keys for multidimensional interpolations
   template <typename Iterator, typename... Xs>
   static constexpr vec_t from_iterators(Iterator A, Iterator B, Iterator begin,
-                                       Iterator end, Real t, Real x,
-                                       Xs&&... xs) {
+                                        Iterator end, Real t, Real x,
+                                        Xs&&... xs) {
     const auto left  = (*A).sample(x, std::forward<Xs>(xs)...);
     const auto right = (*B).sample(x, std::forward<Xs>(xs)...);
 
