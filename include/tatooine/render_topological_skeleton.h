@@ -30,8 +30,7 @@ auto render_topological_skeleton(
         Real, 2, 2>& v,
     const integration::integrator<Real, 2, Interpolator, Integrator>&
                           integrator,
-    const vec<size_t, 2>& resolution, float point_radius,
-    const size_t lic_numsamples = 100, const Real lic_stepsize = 0.00005,
+    const vec<size_t, 2>& resolution,
     const Real tau = 100, const Real eps = 1e-7) {
   using namespace yavin;
   struct point_shader : shader {
@@ -188,7 +187,13 @@ auto render_topological_skeleton(
   gpu_line_data.setup_vao();
 
   // create lic texture
-  auto image = gpu::lic(v.sampler(), resolution, 100, lic_stepsize, {256, 256});
+  const Real pixel_size =
+      std::min((v.sampler().back(0) - v.sampler().front(0)) / resolution(0),
+               (v.sampler().back(1) - v.sampler().front(1)) / resolution(1));
+  const Real lic_stepsize = pixel_size / 4;
+  const size_t lic_num_samples = 100;
+  auto image = gpu::lic(v.sampler(), resolution, lic_num_samples, lic_stepsize,
+                        {256, 256});
   orthographiccamera cam(v.sampler().front(0), v.sampler().back(0),
                          v.sampler().front(1), v.sampler().back(1), -10, 10, 0,
                          0, resolution(0), resolution(1));
@@ -210,7 +215,7 @@ auto render_topological_skeleton(
     point_shader shader;
     shader.bind();
     shader.set_projection(cam.projection_matrix());
-    shader.set_radius(point_radius);
+    shader.set_radius(pixel_size*10);
     gpu_point_data.draw_points();
   }
   fbo.unbind();

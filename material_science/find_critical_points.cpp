@@ -24,9 +24,9 @@ int main() {
 
     integrator_t rk43{integration::vclibs::max_step     = 0.001,
                       integration::vclibs::initial_step = 0.001};
-    auto         image = render_topological_skeleton(v, rk43, {1500, 1500}, 0.003);
-    std::string out_filename{filename};
-    auto dotpos = out_filename.find_last_of(".");
+    auto         image = render_topological_skeleton(v, rk43, {1500, 1500});
+    std::string  out_filename{filename};
+    auto         dotpos = out_filename.find_last_of(".");
     out_filename.replace(dotpos, 4, "_skeleton.png");
     image.write_png(out_filename);
   }
@@ -38,7 +38,7 @@ int main() {
   //      v, grid{linspace{-0.1, 2.1, 11}, linspace{-0.1, 1.1, 11}}, t);
   //  integrator_t rk43{integration::vclibs::max_step     = 0.001,
   //                    integration::vclibs::initial_step = 0.001};
-  //  render_topological_skeleton(vd, rk43, {2000, 1000}, 0.015, 100, 0.0006)
-  //      .write_png("dg_skeleton"+std::to_string(tcnt++)+".png");
+  //  render_topological_skeleton(vd, rk43, {2000, 1000})
+  //      .write_png("dg_skeleton" + std::to_string(tcnt++) + ".png");
   //}
 }
