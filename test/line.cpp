@@ -3,6 +3,7 @@
 #include <tatooine/integration/vclibs/rungekutta43.h>
 #include <tatooine/line.h>
 #include <tatooine/sinuscosinus.h>
+#include <tatooine/interpolation.h>
 
 #include <catch2/catch.hpp>
 
@@ -291,6 +292,7 @@ TEST_CASE("line_resample", "[line][parameterization][resample]") {
     SECTION("hermite") {
       parameterized_line<double, 2, interpolation::hermite> l{
           {{0.0, 0.0}, 0}, {{1.0, 1.0}, 1}, {{2.0, 0.0}, 2}};
+      l.curvatures_to_property();
       l.write_vtk("original_line.vtk");
       l.resample(linspace(0.0, 2.0, 10000)).write_vtk("resampled_line_hermite.vtk");
     }

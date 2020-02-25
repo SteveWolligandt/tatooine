@@ -1,14 +1,14 @@
 #ifndef TATOOINE_INTERPOLATION_H
 #define TATOOINE_INTERPOLATION_H
-
+//==============================================================================
 #include <cassert>
 #include <cmath>
 #include <iostream>
 #include <utility>
 
 #include "polynomial.h"
+#include "polynomial_line.h"
 #include "tensor.h"
-
 //==============================================================================
 namespace tatooine {
 namespace interpolation {
@@ -37,17 +37,11 @@ struct linear {
     return a * (1 - t) + b * t;
   }
   //----------------------------------------------------------------------------
-  /// hermite interpolation using iterators and border treatment from
-  /// "Cubic Convolution Interpolation for Digital Image Processing" Robert G.
-  /// Keys
   template <typename Iterator>
   static constexpr Real from_iterators(Iterator A, Iterator B, Real t) {
     return interpolate_via_2_values(*A, *B, t);
   }
   //----------------------------------------------------------------------------
-  /// hermite interpolation using iterators and border treatment from
-  /// "Cubic Convolution Interpolation for Digital Image Processing" Robert G.
-  /// Keys for multidimensional interpolations
   template <typename Iterator, typename... Xs>
   static constexpr Real from_iterators(Iterator A, Iterator B, Real t, Real x,
                                        Xs&&... xs) {
@@ -71,7 +65,7 @@ struct linear {
   constexpr linear& operator=(linear&&) = default;
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
   constexpr linear(const Real& fx0, const Real& fx1)
-      : m_polynomial{0, 0, 0, 0} {
+      : m_polynomial{0, 0} {
     vec<Real, 2> b{fx0, fx1};
     m_polynomial.set_coefficients((A * b).data());
   }
@@ -95,7 +89,7 @@ struct linear<tensor<Real, N>> {
   static constexpr bool needs_first_derivative = false;
   using real_t                                 = Real;
   using vec_t                                  = vec<Real, N>;
-  using polynomial_t                           = polynomial<Real, 1>;
+  using polynomial_line_t                      = polynomial_line<Real, N, 1>;
   static constexpr size_t num_dimensions() { return N; }
 
   //----------------------------------------------------------------------------
@@ -111,17 +105,11 @@ struct linear<tensor<Real, N>> {
     return a * (1 - t) + b * t;
   }
   //----------------------------------------------------------------------------
-  /// hermite interpolation using iterators and border treatment from
-  /// "Cubic Convolution Interpolation for Digital Image Processing" Robert G.
-  /// Keys
   template <typename Iterator>
   static constexpr vec_t from_iterators(Iterator A, Iterator B, Real t) {
     return interpolate_via_2_values(*A, *B, t);
   }
   //----------------------------------------------------------------------------
-  /// hermite interpolation using iterators and border treatment from
-  /// "Cubic Convolution Interpolation for Digital Image Processing" Robert G.
-  /// Keys for multidimensional interpolations
   template <typename Iterator, typename... Xs>
   static constexpr vec_t from_iterators(Iterator A, Iterator B, Real t, Real x,
                                         Xs&&... xs) {
@@ -133,44 +121,34 @@ struct linear<tensor<Real, N>> {
   // members
   //----------------------------------------------------------------------------
  public:
-  std::array<polynomial_t, N> m_polynomials;
+  polynomial_line_t m_curve;
   //----------------------------------------------------------------------------
   // ctors
   //----------------------------------------------------------------------------
-  constexpr linear() : m_polynomials{make_array<polynomial_t, N>()} {}
+  constexpr linear()              = default;
   constexpr linear(const linear&) = default;
   constexpr linear(linear&&)      = default;
   constexpr linear& operator=(const linear&) = default;
   constexpr linear& operator=(linear&&) = default;
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-  constexpr linear(const vec_t& fx0, const vec_t& fx1)
-      : m_polynomials{make_array<polynomial_t, N>(polynomial_t{0, 0})} {
+  constexpr linear(const vec_t& fx0, const vec_t& fx1) {
     mat<Real, 2, N> B;
     B.row(0) = fx0;
     B.row(1) = fx1;
     auto C   = A * B;
     for (size_t i = 0; i < N; ++i) {
-      m_polynomials[i].set_coefficients(C(0, i), C(1, i));
+      m_curve.polynomial(i).set_coefficients(C(0, i), C(1, i));
     }
   }
 
   //----------------------------------------------------------------------------
   // methods
   //----------------------------------------------------------------------------
-  template <size_t... Is>
-  constexpr auto evaluate(Real t, std::index_sequence<Is...>) const {
-    return vec_t{m_polynomials[Is](t)...};
-  }
-  constexpr auto evaluate(Real t) const {
-    return evaluate(t, std::make_index_sequence<N>{});
-  }
+  constexpr auto evaluate(Real t) const { return m_curve(t); }
   constexpr auto operator()(Real t) const { return evaluate(t); }
   //----------------------------------------------------------------------------
-  const auto& polynomial(size_t i) const { return m_polynomials[i]; }
-  auto&       polynomial(size_t i) { return m_polynomials[i]; }
-  //----------------------------------------------------------------------------
-  const auto& polynomials() const { return m_polynomials; }
-  auto&       polynomials() { return m_polynomials; }
+  const auto& curve() const { return m_curve; }
+  auto&       curve() { return m_curve; }
 };
 template <typename Real, size_t N>
 struct linear<vec<Real, N>> : linear<tensor<Real, N>> {
@@ -291,7 +269,7 @@ struct hermite<tensor<Real, N>> {
   static constexpr bool needs_first_derivative = true;
   using real_t                                 = Real;
   using vec_t                                  = vec<Real, N>;
-  using polynomial_t                           = polynomial<Real, 3>;
+  using polynomial_line_t                      = polynomial_line<Real, N, 3>;
   static constexpr size_t num_dimensions() { return N; }
 
   //----------------------------------------------------------------------------
@@ -307,19 +285,18 @@ struct hermite<tensor<Real, N>> {
   // members
   //----------------------------------------------------------------------------
  public:
-  std::array<polynomial_t, N> m_polynomials;
+  polynomial_line_t m_curve;
   //----------------------------------------------------------------------------
   // ctors
   //----------------------------------------------------------------------------
-  constexpr hermite() : m_polynomials{make_array<polynomial_t, N>()} {}
+  constexpr hermite()               = default;
   constexpr hermite(const hermite&) = default;
   constexpr hermite(hermite&&)      = default;
   constexpr hermite& operator=(const hermite&) = default;
   constexpr hermite& operator=(hermite&&) = default;
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
   constexpr hermite(const vec_t& fx0, const vec_t& fx1, const vec_t& fx0dx,
-                    const vec_t& fx1dx)
-      : m_polynomials{make_array<polynomial_t, N>(polynomial_t{0, 0, 0, 0})} {
+                    const vec_t& fx1dx) {
     mat<Real, 4, N> B;
     B.row(0) = fx0;
     B.row(1) = fx1;
@@ -327,7 +304,8 @@ struct hermite<tensor<Real, N>> {
     B.row(3) = fx1dx;
     auto C   = A * B;
     for (size_t i = 0; i < N; ++i) {
-      m_polynomials[i].set_coefficients(C(0, i), C(1, i), C(2, i), C(3, i));
+      m_curve.polynomial(i).set_coefficients(C(0, i), C(1, i),
+                                                       C(2, i), C(3, i));
     }
   }
 
@@ -389,20 +367,11 @@ struct hermite<tensor<Real, N>> {
   //----------------------------------------------------------------------------
   // methods
   //----------------------------------------------------------------------------
-  template <size_t... Is>
-  constexpr auto evaluate(Real t, std::index_sequence<Is...>) const {
-    return vec_t{m_polynomials[Is](t)...};
-  }
-  constexpr auto evaluate(Real t) const {
-    return evaluate(t, std::make_index_sequence<N>{});
-  }
+  constexpr auto evaluate(Real t) const { return m_curve(t); }
   constexpr auto operator()(Real t) const { return evaluate(t); }
   //----------------------------------------------------------------------------
-  const auto& polynomial(size_t i) const { return m_polynomials[i]; }
-  auto&       polynomial(size_t i) { return m_polynomials[i]; }
-  //----------------------------------------------------------------------------
-  const auto& polynomials() const { return m_polynomials; }
-  auto&       polynomials() { return m_polynomials; }
+  const auto& curve() const { return m_curve; }
+  auto&       curve() { return m_curve; }
 };
 template <typename Real, size_t N>
 struct hermite<vec<Real, N>> : hermite<tensor<Real, N>> {

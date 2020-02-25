@@ -12,7 +12,6 @@
 #include <stdexcept>
 
 #include "handle.h"
-#include "interpolation.h"
 #include "linspace.h"
 #include "property.h"
 #include "tensor.h"
@@ -407,9 +406,9 @@ struct line {
  private:
   pos_container_t             m_vertices;
   bool                        m_is_closed = false;
-  vertex_property_container_t m_vertex_properties;
 
  protected:
+  vertex_property_container_t m_vertex_properties;
   vertex_property_t<vec<Real, N>>* m_tangents           = nullptr;
   vertex_property_t<vec<Real, N>>* m_second_derivatives = nullptr;
   vertex_property_t<Real>*         m_curvatures         = nullptr;
@@ -1065,7 +1064,6 @@ auto diff(const const_line_vertex_container<
           vec<Real, N>, vec<Real, N>>& tangents) {
   return tangents.line().second_derivatives();
 }
-
 //==============================================================================
 // template <typename Real, size_t N>
 // template <typename Pred>
@@ -1495,8 +1493,94 @@ struct parameterized_line : line<Real, N> {
     }
   }
   //----------------------------------------------------------------------------
+  auto binary_search_index(Real t) const {
+    if (t < front_parameterization() && front_parameterization() - t < 1e-7) {
+      t = front_parameterization();
+    } else if (t > back_parameterization() &&
+               t - back_parameterization() < 1e-7) {
+      t = back_parameterization();
+    }
+    if (this->empty()) { throw empty_exception{}; }
+
+    if (t < front_parameterization() || t > back_parameterization()) {
+      throw time_not_found{};
+    }
+
+    // find the two points t is in between
+    size_t left = 0, right = num_vertices() - 1;
+
+    while (right - left > 1) {
+      size_t center = (left + right) / 2;
+      if (t < parameterization_at(center)) {
+        right = center;
+      } else {
+        left = center;
+      }
+    }
+    return left;
+  }
+  //----------------------------------------------------------------------------
   /// sample the line via interpolation
   auto sample(Real t) const {
+    const auto left = binary_search_index(t);
+
+    // interpolate
+    const Real factor =
+        (t - parameterization_at(left)) /
+        (parameterization_at(left + 1) - parameterization_at(left));
+    assert(0 <= factor && factor <= 1);
+    return m_interpolation_kernels[left](factor);
+  }
+  // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+  auto operator()(const Real t) const {
+    return sample(t);
+  }
+  //----------------------------------------------------------------------------
+  /// sample tangents
+  auto sample_tangent(Real t) const {
+    const auto left = binary_search_index(t);
+
+    // interpolate
+    const Real factor =
+        (t - parameterization_at(left)) /
+        (parameterization_at(left + 1) - parameterization_at(left));
+    assert(0 <= factor && factor <= 1);
+    return m_interpolation_kernels[left].curve().tangent(factor);
+  }
+  //----------------------------------------------------------------------------
+  /// sample second_derivatives
+  auto sample_second_derivative(Real t) const {
+    const auto left = binary_search_index(t);
+
+    // interpolate
+    const Real factor =
+        (t - parameterization_at(left)) /
+        (parameterization_at(left + 1) - parameterization_at(left));
+    assert(0 <= factor && factor <= 1);
+    return m_interpolation_kernels[left].curve().second_derivative(factor);
+  }
+  //----------------------------------------------------------------------------
+  /// sample curvature
+  auto sample_curvature(Real t) const {
+    const auto left = binary_search_index(t);
+
+    // interpolate
+    const Real factor =
+        (t - parameterization_at(left)) /
+        (parameterization_at(left + 1) - parameterization_at(left));
+    assert(0 <= factor && factor <= 1);
+    return m_interpolation_kernels[left].curve().curvature(factor);
+  }
+  //----------------------------------------------------------------------------
+  ///// sample a line property via interpolation
+  //template <typename Prop>
+  //auto sample(Real t, const std::string& propname) const {
+  //  return sample(t, vertex_property<Prop>(propname));
+  //}
+  // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+  /// sample a line property via interpolation
+  template <typename Prop>
+  auto sample(Real t, const vertex_property_t<Prop>& prop) const {
     if (t < front_parameterization() &&
         front_parameterization() - t < 1e-7) {
       t = front_parameterization();
@@ -1523,21 +1607,79 @@ struct parameterized_line : line<Real, N> {
     }
 
     // interpolate
-    const Real factor =         (t - parameterization_at(left)) /
-        (parameterization_at(right) - parameterization_at(left));
+    const Real h      = parameterization_at(right) - parameterization_at(left);
+    const Real factor = (t - parameterization_at(left)) / h;
     assert(0 <= factor && factor <= 1);
-    return m_interpolation_kernels[left](factor);
+
+    // if constexpr (interpolation_needs_first_derivative) {
+    //  InterpolationKernel<Prop>{prop[left], prop[right], tangent_at(left) * h,
+    //                            tangent_at(right) * h}(factor);
+    //} else {
+    //  return InterpolationKernel<Prop>{prop[left], prop[right]}(factor);
+    //}
+    return prop[left] * (1 - factor) + prop[right] * factor;
   }
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-  auto operator()(const Real t) const {
-    return sample(t);
+ private:
+  template <typename Prop>
+  void resample_property(
+      const linspace<Real>& ts, this_t& resampled, const std::string& name,
+      const std::unique_ptr<deque_property<vertex_idx>>& p) const {
+    resample_property(ts, resampled, name,
+                      *dynamic_cast<const vertex_property_t<Prop>*>(p.get()));
   }
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-  auto resample(const linspace<Real>& ts) const {
-    this_t resampled;
-    for (auto t : ts) { resampled.push_back(sample(t), t); }
-    return resampled;
+  template <typename Prop>
+  void resample_property(const linspace<Real>& ts, this_t& resampled,
+                         const std::string&             name,
+                         const vertex_property_t<Prop>& prop) const {
+    auto&  resampled_prop = resampled.template add_vertex_property<Prop>(name);
+    size_t i              = 0;
+    for (auto t : ts) {
+      if constexpr (std::is_same_v<vec_t, Prop>) {
+        if (&prop == this->m_tangents) {
+          resampled_prop[i++] = sample_tangent(t);
+          continue;
+        }
+        if (&prop == this->m_second_derivatives) {
+          resampled_prop[i++] = sample_second_derivative(t);
+          continue;
+        }
+      }
+      if constexpr (std::is_same_v<Real, Prop>) {
+        if (&prop == this->m_curvatures) {
+          resampled_prop[i++] = sample_curvature(t);
+          continue;
+        }
+      }
+      resampled_prop[i++] = sample(t, prop);
+    }
   }
+  // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+  template <typename... Ts>
+  void resample_properties(const linspace<Real>& ts, this_t& resampled) const {
+    for (const auto& prop : this->m_vertex_properties) {
+      (
+          [&]() {
+            if (prop.second->type() == typeid(Ts)) {
+              resample_property<Ts>(ts, resampled, prop.first, prop.second);
+            }
+          }(),
+          ...);
+    }
+    }
+
+  public:
+   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+   auto resample(const linspace<Real>& ts) const {
+     this_t resampled;
+     for (auto t : ts) { resampled.push_back(sample(t), t); }
+     resample_properties<double, float,
+                         vec<double, 2>, vec<float, 2>,
+                         vec<double, 3>, vec<float, 3>,
+                         vec<double, 4>, vec<float, 4>>(ts, resampled);
+     return resampled;
+   }
 
   //============================================================================
   void uniform_parameterization(Real t0 = 0) {
@@ -1846,7 +1988,11 @@ struct parameterized_line : line<Real, N> {
     auto d1  = tangent_at(i);
     auto d2  = second_derivative_at(i);
     auto ld1 = length(d1);
-    return std::abs(d1(0) * d2(1) - d1(1) * d2(0)) / (ld1 * ld1 * ld1);
+    if constexpr (N == 2) {
+      return std::abs(d1(0) * d2(1) - d1(1) * d2(0)) / (ld1 * ld1 * ld1);
+    } else if constexpr (N == 3) {
+      return length(cross(d1, d2)) / (ld1 * ld1 * ld1);
+    }
   }
   //----------------------------------------------------------------------------
   auto front_curvature(bool prefer_calc = false) const {

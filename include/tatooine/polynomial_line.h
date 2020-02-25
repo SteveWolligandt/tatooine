@@ -1,0 +1,146 @@
+#ifndef TATOOINE_POLYNOMIAL_LINE_H
+#define TATOOINE_POLYNOMIAL_LINE_H
+//==============================================================================
+#include <array>
+#include "line.h"
+#include "linspace.h"
+#include "math.h"
+#include "polynomial.h"
+//==============================================================================
+namespace tatooine {
+//==============================================================================
+template <typename Real, size_t N, size_t Degree>
+class polynomial_line {
+  //----------------------------------------------------------------------------
+  // typedefs
+  //----------------------------------------------------------------------------
+ public:
+  using vec_t        = vec<Real, N>;
+  using polynomial_t = polynomial<Real, Degree>;
+
+  //----------------------------------------------------------------------------
+  // static methods
+  //----------------------------------------------------------------------------
+ public:
+  static constexpr auto num_dimensions() { return N; }
+  static constexpr auto degree() { return Degree; }
+
+  //----------------------------------------------------------------------------
+  // members
+  //----------------------------------------------------------------------------
+ private:
+  std::array<polynomial_t, N> m_polynomials;
+
+  //----------------------------------------------------------------------------
+  // ctors
+  //----------------------------------------------------------------------------
+ public:
+  constexpr polynomial_line() : m_polynomials{make_array<polynomial_t, N>()} {}
+  constexpr polynomial_line(const polynomial_line& other) = default;
+  constexpr polynomial_line(polynomial_line&& other) = default;
+  constexpr polynomial_line& operator=(const polynomial_line& other) = default;
+  constexpr polynomial_line& operator=(polynomial_line&& other) = default;
+  // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+  template <typename... Polynomials,
+            enable_if_polynomial<Polynomials...> = true>
+  constexpr polynomial_line(Polynomials&&... polynomials)
+      : m_polynomials{std::forward<Polynomials>(polynomials)...} {}
+
+  //----------------------------------------------------------------------------
+  // methods
+  //----------------------------------------------------------------------------
+ public:
+  auto&       polynomial(size_t i) { return m_polynomials[i]; }
+  const auto& polynomial(size_t i) const { return m_polynomials[i]; }
+  //----------------------------------------------------------------------------
+  auto&       polynomials() { return m_polynomials; }
+  const auto& polynomials() const { return m_polynomials; }
+  //----------------------------------------------------------------------------
+ private:
+  template <size_t... Is>
+  constexpr auto sample(Real t, std::index_sequence<Is...> /*is*/) const {
+    return vec_t{m_polynomials[Is](t)...};
+  }
+  // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+ public:
+  constexpr auto sample(Real t) const {
+    return sample(t, std::make_index_sequence<N>{});
+  }
+  // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+  constexpr auto operator()(Real t) const { return sample(t); }
+  //----------------------------------------------------------------------------
+ private:
+  template <size_t... Is>
+  constexpr auto diff(std::index_sequence<Is...> /*is*/) const {
+    return polynomial_line{diff(m_polynomials[Is])...};
+  }
+  // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+ public:
+  constexpr auto diff() const { return diff(std::make_index_sequence<N>{}); }
+  //----------------------------------------------------------------------------
+ private:
+  template <size_t... Is>
+  constexpr auto tangent(Real t, std::index_sequence<Is...> /*is*/) const {
+    return vec_t{m_polynomials[Is].diff()(t)...};
+  }
+  // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+ public:
+  constexpr auto tangent(Real t) const {
+    return tangent(t, std::make_index_sequence<N>{});
+  }
+  //----------------------------------------------------------------------------
+ private:
+  template <size_t... Is>
+  constexpr auto second_derivative(Real t,
+                                   std::index_sequence<Is...> /*is*/) const {
+    return vec_t{m_polynomials[Is].diff().diff()(t)...};
+  }
+  // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+ public:
+  constexpr auto second_derivative(Real t) const {
+    return second_derivative(t, std::make_index_sequence<N>{});
+  }
+  //----------------------------------------------------------------------------
+  constexpr auto curvature(Real t) const {
+    return curvature(tangent(t), second_derivative(t));
+  }
+  // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+  constexpr auto curvature(Real t, const vec_t& tang) const {
+    return curvature(tang, second_derivative(t));
+  }
+  // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+  constexpr auto curvature(const vec_t& tang, const vec_t& snd_der) const {
+    auto ltang = length(tang);
+    if constexpr (N == 2) {
+      return std::abs(tang(0) * snd_der(1) - tang(1) * snd_der(0)) /
+             (ltang * ltang * ltang);
+    } else if constexpr (N == 3) {
+      return length(cross(tang, snd_der)) / (ltang * ltang * ltang);
+    }
+  }
+  //----------------------------------------------------------------------------
+  template <template <typename> typename InterpolationKernel>
+  constexpr auto sample(const linspace<Real>& ts) const {
+    parameterized_line<Real, N, InterpolationKernel> sampled;
+    auto& tang = sampled.tangents_property();
+    auto& snd_der = sampled.second_derivatives_property();
+    auto& curv = sampled.curvatures_property();
+    for (auto t : ts) {
+      sampled.push_back(sample(t), t);
+      tang.back() = tangent(t);
+      snd_der.back() = second_derivative(t);
+      curv.back()    = curvature(tang.back(), snd_der.back());
+    }
+    return sampled;
+  }
+};
+//~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+template <typename... Polynomials>
+polynomial_line(Polynomials&&...)
+    ->polynomial_line<promote_t<typename Polynomials::real_t...>,
+                      sizeof...(Polynomials), max(Polynomials::degree()...)>;
+
+//==============================================================================
+}  // namespace tatooine
+//==============================================================================
+#endif
