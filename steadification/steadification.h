@@ -19,11 +19,9 @@
 #include "linked_list_texture.h"
 #include "renderers.h"
 #include "shaders.h"
-
 //==============================================================================
 namespace tatooine::steadification {
 //==============================================================================
-
 template <typename V, typename RandEng>
 class steadification {
   //============================================================================
@@ -55,8 +53,8 @@ class steadification {
     vec<float, 2> pos;
     vec<float, 2> v;
     vec<float, 2> uv;
+    float curvature;
     unsigned int  next;
-    float         pad;
   };
   using rasterized_pathsurface = linked_list_texture<linked_list_node>;
 
@@ -122,12 +120,6 @@ class steadification {
   //============================================================================
   auto rand() { return random_uniform<real_t, RandEng>{m_rand_eng}(); }  
   //----------------------------------------------------------------------------
-  auto rasterize(const field<V, real_t, 2, 2>&       v,
-                 seedcurve_t& seedcurve, real_t stepsize,
-                 domain_coverage_tex_t& domain_coverage_tex){
-    return rasterize(pathsurface(v, seedcurve, stepsize).first, domain_coverage_tex);
-  }
-  // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
   template <template <typename> typename SeedcurveInterpolator>
   auto rasterize(const pathsurface_t<SeedcurveInterpolator>& mesh,
                  domain_coverage_tex_t& domain_coverage_tex){
@@ -142,7 +134,7 @@ class steadification {
     std::cerr << "num_frags: " << num_frags << '\n';
     rasterized_pathsurface psf_rast{
         m_render_resolution(0), m_render_resolution(1), num_frags,
-        linked_list_node{{nan, nan}, {nan, nan}, {nan, nan}, 0xffffffff}};
+        linked_list_node{{nan, nan}, {nan, nan}, {nan, nan}, nan, 0xffffffff}};
     m_ssf_rasterization_shader.bind();
     m_ssf_rasterization_shader.set_linked_list_size(psf_rast.buffer_size());
     m_ssf_rasterization_shader.set_projection(m_cam.projection_matrix());
@@ -176,9 +168,13 @@ class steadification {
     streamsurface surf{m_v, t0u0, t0u1, seedcurve, m_integrator};
     auto  mesh   = surf.discretize(2, stepsize, -10, 10);
     auto& vprop = mesh.template add_vertex_property<vec2>("v");
+    auto& curvprop = mesh.template add_vertex_property<double>("curvature");
 
     for (auto vertex : mesh.vertices()) {
-      if (m_v.in_domain(mesh[vertex], mesh.uv(vertex)(1))) {
+      const auto& uv = mesh.uv(vertex);
+      const auto& integral_curve = surf.streamline_at(uv(0), 0, 0);
+      curvprop[vertex] = integral_curve.curvature(uv(1));
+      if (m_v.in_domain(mesh[vertex], uv(1))) {
         vprop[vertex] =
             m_v(vec{mesh[vertex](0), mesh[vertex](1)}, mesh.uv(vertex)(1));
       } else {
@@ -216,8 +212,6 @@ class steadification {
       const auto& integral_curve = surf.streamline_at(u, 0, 0);
       kappas.push_back(integral_curve.integrated_curvature());
       arc_lengths.push_back(integral_curve.arc_length());
-      //std::cerr << "u = " << u << "; kappa = " << kappas.back()
-      //          << "; arc length = " << arc_lengths.back() << '\n';
     }
     real_t acc_kappas = 0;
     for (size_t i = 0; i < num_integral_curves; ++i) {

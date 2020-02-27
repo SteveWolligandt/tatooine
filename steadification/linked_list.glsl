@@ -7,8 +7,8 @@ struct node {
   vec2 pos;
   vec2 v;
   vec2 uv;
+  float curvature;
   uint next;
-  float padding;
 };                          
 //------------------------------------------------------------------------------
 uniform                             uint        ll_size;
@@ -19,15 +19,16 @@ layout(binding = 0, std430)         buffer      ll_data{ node ll_nodes[]; };
 //------------------------------------------------------------------------------
 const ivec2 ll_tex_resolution = imageSize(ll_head_index_tex);
 //------------------------------------------------------------------------------
-void ll_push_back(ivec2 texpos, vec2 pos, vec2 v, vec2 uv) {
+void ll_push_back(ivec2 texpos, vec2 pos, vec2 v, vec2 uv, float curvature) {
   const uint i = atomicCounterIncrement(ll_cnt);
   if (i < ll_size) {
     const uint len = imageAtomicAdd(ll_list_length_tex, texpos, 1);
     //if (len > 2) { return; }
-    ll_nodes[i].next = imageAtomicExchange(ll_head_index_tex, texpos, i);
-    ll_nodes[i].pos  = pos;
-    ll_nodes[i].v    = v;
-    ll_nodes[i].uv   = uv;
+    ll_nodes[i].next      = imageAtomicExchange(ll_head_index_tex, texpos, i);
+    ll_nodes[i].pos       = pos;
+    ll_nodes[i].v         = v;
+    ll_nodes[i].uv        = uv;
+    ll_nodes[i].curvature = curvature;
   }
 }
 //------------------------------------------------------------------------------

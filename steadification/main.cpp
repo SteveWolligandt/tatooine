@@ -20,22 +20,24 @@ void calc(const field<V, VReal, 2, 2>& v, T0Real /*t0*/, BTauReal /*btau*/,
   std::mt19937_64 randeng{seed};
   steadification  s(v, settings<V>::domain, settings<V>::render_resolution,
                    randeng);
+  auto cov_tex = s.make_domain_coverage_tex();
 
   //s.random_domain_filling_streamsurfaces(v, stepsize);
 
-  //auto [seedcurve, t0u0, t0u1] = s.random_seedcurve(0.1, 0.2);
-  //auto [mesh, surf] = s.pathsurface(v, seedcurve, t0u0, t0u1, stepsize);
+  auto [seedcurve, t0u0, t0u1] = s.random_seedcurve(0.1, 0.2);
+  auto [mesh, surf] = s.pathsurface(seedcurve, t0u0, t0u1, stepsize);
+  auto surfrast = s.rasterize(mesh, cov_tex);
+  s.to_pos_tex(surfrast).write_png("pos.png");
   //mesh.write_vtk("pathsurface.vtk");
   //std::cerr << s.curvature(mesh, surf) << '\n';
 
-  grid g{linspace{0.0, 2.0, 3}, linspace{0.0, 1.0, 3}};
-  size_t cnt = 0;
-  auto cov_tex = s.make_domain_coverage_tex();
-  for (const auto& mesh : s.integrate_grid_edges(v, g, stepsize)) {
-    s.to_pos_tex(s.rasterize(mesh, cov_tex))
-        .write_png("mesh_" + std::to_string(cnt) + ".png");
-    mesh.write_vtk("mesh_" + std::to_string(cnt++) + ".vtk");
-  }
+  //grid g{linspace{0.0, 2.0, 3}, linspace{0.0, 1.0, 3}};
+  //size_t cnt = 0;
+  //for (const auto& mesh : s.integrate_grid_edges(v, g, stepsize)) {
+  //  s.to_pos_tex(s.rasterize(mesh, cov_tex))
+  //      .write_png("mesh_" + std::to_string(cnt) + ".png");
+  //  mesh.write_vtk("mesh_" + std::to_string(cnt++) + ".vtk");
+  //}
 }
 
 //------------------------------------------------------------------------------

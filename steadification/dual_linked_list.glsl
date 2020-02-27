@@ -7,7 +7,8 @@ struct node {
   vec2 pos;
   vec2 v;
   vec2 uv;
-  uint next, prev;
+  float curvature;
+  uint next;
 };                          
 //------------------------------------------------------------------------------
 uniform                             uint        ll_size;
@@ -24,27 +25,29 @@ layout(binding = 1, std430)         buffer      ll1_data{ node ll1_nodes[]; };
 const ivec2 ll0_tex_resolution = imageSize(ll0_head_index_tex);
 const ivec2 ll1_tex_resolution = imageSize(ll1_head_index_tex);
 //------------------------------------------------------------------------------
-void ll0_push_back(ivec2 texpos, vec2 pos, vec2 v, vec2 uv) {
+void ll0_push_back(ivec2 texpos, vec2 pos, vec2 v, vec2 uv, float curvature) {
   const uint i = atomicCounterIncrement(ll0_cnt);
   if (i < ll0_size) {
     const uint len = imageAtomicAdd(ll0_list_length_tex, texpos, 1);
-    //if (len > 2) { return; }
-    ll0_nodes[i].next = imageAtomicExchange(ll0_head_index_tex, texpos, i);
-    ll0_nodes[i].pos  = pos;
-    ll0_nodes[i].v    = v;
-    ll0_nodes[i].uv   = uv;
+    // if (len > 2) { return; }
+    ll0_nodes[i].next      = imageAtomicExchange(ll0_head_index_tex, texpos, i);
+    ll0_nodes[i].pos       = pos;
+    ll0_nodes[i].v         = v;
+    ll0_nodes[i].uv        = uv;
+    ll0_nodes[i].curvature = curvature;
   }
 }
 //------------------------------------------------------------------------------
-void ll1_push_back(ivec2 texpos, vec2 pos, vec2 v, vec2 uv) {
+void ll1_push_back(ivec2 texpos, vec2 pos, vec2 v, vec2 uv, float curvature) {
   const uint i = atomicCounterIncrement(ll1_cnt);
   if (i < ll1_size) {
     const uint len = imageAtomicAdd(ll1_list_length_tex, texpos, 1);
-    //if (len > 2) { return; }
-    ll1_nodes[i].next = imageAtomicExchange(ll1_head_index_tex, texpos, i);
-    ll1_nodes[i].pos  = pos;
-    ll1_nodes[i].v    = v;
-    ll1_nodes[i].uv   = uv;
+    // if (len > 2) { return; }
+    ll1_nodes[i].next      = imageAtomicExchange(ll1_head_index_tex, texpos, i);
+    ll1_nodes[i].pos       = pos;
+    ll1_nodes[i].v         = v;
+    ll1_nodes[i].uv        = uv;
+    ll1_nodes[i].curvature = curvature;
   }
 }
 //------------------------------------------------------------------------------

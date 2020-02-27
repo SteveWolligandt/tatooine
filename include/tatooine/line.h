@@ -335,7 +335,6 @@ auto end(line_vertex_container<Line, Real, N, Handle, Value, Reference>& it) {
 template <typename Real, size_t N>
 struct line {
   struct empty_exception : std::exception {};
-
   //============================================================================
   using real_t          = Real;
   using vec_t           = vec<Real, N>;
@@ -363,32 +362,6 @@ struct line {
     bool operator<(tangent_idx other) const { return this->i < other.i; }
     static constexpr auto invalid() { return tangent_idx{handle::invalid_idx}; }
   };
-  //----------------------------------------------------------------------------
-  struct second_derivative_idx : handle {
-    using handle::handle;
-    bool operator==(second_derivative_idx other) const {
-      return this->i == other.i;
-    }
-    bool operator!=(second_derivative_idx other) const {
-      return this->i != other.i;
-    }
-    bool operator<(second_derivative_idx other) const {
-      return this->i < other.i;
-    }
-    static constexpr auto invalid() {
-      return second_derivative_idx{handle::invalid_idx};
-    }
-  };
-  //----------------------------------------------------------------------------
-  struct curvature_idx : handle {
-    using handle::handle;
-    bool operator==(curvature_idx other) const { return this->i == other.i; }
-    bool operator!=(curvature_idx other) const { return this->i != other.i; }
-    bool operator<(curvature_idx other) const { return this->i < other.i; }
-    static constexpr auto invalid() {
-      return curvature_idx{handle::invalid_idx};
-    }
-  };
 
   template <typename T>
   using vertex_property_t = deque_property_impl<vertex_idx, T>;
@@ -410,8 +383,6 @@ struct line {
  protected:
   vertex_property_container_t m_vertex_properties;
   vertex_property_t<vec<Real, N>>* m_tangents           = nullptr;
-  vertex_property_t<vec<Real, N>>* m_second_derivatives = nullptr;
-  vertex_property_t<Real>*         m_curvatures         = nullptr;
 
   //============================================================================
  public:
@@ -424,12 +395,6 @@ struct line {
     }
     if (other.m_tangents) {
       m_tangents = &vertex_property<vec<Real, N>>("tangents");
-    }
-    if (other.m_second_derivatives) {
-      m_second_derivatives = &vertex_property<vec<Real, N>>("second_derivatives");
-    }
-    if (other.m_curvatures) {
-      m_curvatures = &vertex_property<Real>("curvatures");
     }
   }
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -444,12 +409,6 @@ struct line {
     }
     if (other.m_tangents) {
       m_tangents = &vertex_property<vec<Real, N>>("tangents");
-    }
-    if (other.m_second_derivatives) {
-      m_second_derivatives = &vertex_property<vec<Real, N>>("second_derivatives");
-    }
-    if (other.m_curvatures) {
-      m_curvatures = &vertex_property<Real>("curvatures");
     }
     return *this;
   }
@@ -660,263 +619,6 @@ struct line {
     return prop;
   }
   //============================================================================
-  // second derivative
-  //============================================================================
-  /// calculates second derivative at point i with forward differences
-  auto second_derivative_at(const second_derivative_idx i,
-                            forward_t                   tag) const {
-    return second_derivative_at(i.i, tag);
-  }
-  // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-  /// calculates second derivative at point i with forward differences
-  auto second_derivative_at(const size_t i, forward_t /*tag*/) const {
-    assert(num_vertices() > 1);
-    if (is_closed()) {
-      if (i == num_vertices() - 1) {
-        return (front_tangent() - back_tangent()) /
-               distance(front_vertex(), back_vertex());
-      }
-    }
-    return (tangent_at(i + 1) - tangent_at(i)) /
-           distance(vertex_at(i), vertex_at(i + 1));
-  }
-  //----------------------------------------------------------------------------
-  /// calculates second derivative at point i with backward differences
-  auto second_derivative_at(const second_derivative_idx i,
-                            backward_t                  tag) const {
-    return second_derivative_at(i.i, tag);
-  }
-  // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-  /// calculates second derivative at point i with backward differences
-  auto second_derivative_at(const size_t i, backward_t /*tag*/) const {
-    assert(num_vertices() > 1);
-    if (is_closed()) {
-      if (i == 0) {
-        return (front_tangent() - back_tangent()) /
-               distance(back_vertex(), front_tangent());
-      }
-    }
-    return (tangent_at(i) - tangent_at(i - 1)) /
-           distance(vertex_at(i), vertex_at(i - 1));
-  }
-  //----------------------------------------------------------------------------
-  /// calculates second derivative at point i with central differences
-  auto second_derivative_at(const second_derivative_idx i,
-                            central_t                   tag) const {
-    return second_derivative_at(i.i, tag);
-  }
-  // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-  /// calculates second derivative at point i with central differences
-  auto second_derivative_at(const size_t i, central_t /*tag*/) const {
-    if (is_closed()) {
-      if (i == 0) {
-        return (tangent_at(1) - back_tangent()) /
-               (distance(back_vertex(), front_vertex()) +
-                distance(front_vertex(), vertex_at(1)));
-      } else if (i == num_vertices() - 1) {
-        return (front_tangent() - tangent_at(i - 1)) /
-               (distance(vertex_at(i - 1), back_vertex()) +
-                distance(back_vertex(), front_vertex()));
-      }
-    }
-    return (tangent_at(i + 1) - tangent_at(i - 1)) /
-           (distance(vertex_at(i - 1), vertex_at(i)) +
-            distance(vertex_at(i), vertex_at(i + 1)));
-  }
-  //----------------------------------------------------------------------------
-  auto second_derivative_at(const second_derivative_idx i, automatic_t tag,
-                            bool prefer_calc = false) const {
-    return second_derivative_at(i.i, tag, prefer_calc);
-  }
-  // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-  auto second_derivative_at(const size_t i, automatic_t /*tag*/,
-                            bool         prefer_calc = false) const {
-    if (m_second_derivatives && !prefer_calc) {
-      return m_second_derivatives->at(i);
-    }
-    if (is_closed()) { return second_derivative_at(i, central); }
-    if (i == 0) { return second_derivative_at(i, forward); }
-    if (i == num_vertices() - 1) { return second_derivative_at(i, backward); }
-    return second_derivative_at(i, central);
-  }
-  //----------------------------------------------------------------------------
-  auto second_derivative_at(const second_derivative_idx i,
-                            bool prefer_calc = false) const {
-    return second_derivative_at(i, automatic, prefer_calc);
-  }
-  // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-  auto second_derivative_at(const size_t i, bool prefer_calc = false) const {
-    return second_derivative_at(i, automatic, prefer_calc);
-  }
-  //----------------------------------------------------------------------------
-  auto front_second_derivative(bool prefer_calc = false) {
-    return second_derivative_at(0, prefer_calc);
-  }
-  // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-  auto back_second_derivative(bool prefer_calc = false) {
-    return second_derivative_at(num_vertices() - 1, prefer_calc);
-  }
-  //----------------------------------------------------------------------------
-  auto at(second_derivative_idx i, bool prefer_calc) const {
-    return second_derivative_at(i.i, prefer_calc);
-  }
-  auto at(second_derivative_idx i, forward_t tag) const {
-    return second_derivative_at(i.i, tag);
-  }
-  auto at(second_derivative_idx i, backward_t tag) const {
-    return second_derivative_at(i.i, tag);
-  }
-  auto at(second_derivative_idx i, central_t tag) const {
-    return second_derivative_at(i.i, tag);
-  }
-  auto operator[](second_derivative_idx i) const {
-    return second_derivative_at(i.i);
-  }
-  // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-  using second_derivative_iterator =
-      const_line_vertex_iterator<this_t, Real, N, second_derivative_idx,
-                                 vec<Real, N>, vec<Real, N>>;
-  using second_derivative_container =
-      const_line_vertex_container<this_t, Real, N, second_derivative_idx,
-                                  vec<Real, N>, vec<Real, N>>;
-  auto second_derivatives(bool prefer_calc = false) const {
-    return second_derivative_container{*this, prefer_calc};
-  }
-  //----------------------------------------------------------------------------
-  auto& second_derivatives_property() {
-    if (!m_second_derivatives) {
-      m_second_derivatives =
-          &add_vertex_property<vec<Real, N>>("second_derivatives");
-    }
-    return *m_second_derivatives;
-  }
-  // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-  const auto& second_derivatives_property() const {
-    if (!m_second_derivatives) {
-      throw std::runtime_error{"no second derivative property created"};
-    }
-    return *m_second_derivatives;
-  }
-  //----------------------------------------------------------------------------
-  auto& second_derivatives_to_property(bool update = false) {
-    if (m_second_derivatives != nullptr && !update) {
-      return second_derivatives_property();
-    }
-    tangents_to_property(update);
-    auto& prop = second_derivatives_property();
-    boost::copy(second_derivatives(true), prop.begin());
-    return prop;
-  }
-  //============================================================================
-  // curvature
-  //============================================================================
-  auto curvature_at(const curvature_idx i, forward_t tag) const {
-    return curvature_at(i.i, tag);
-  }
-  // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-  auto curvature_at(size_t i, forward_t tag) const {
-    auto d1  = tangent_at(i, tag);
-    auto d2  = second_derivative_at(i, tag);
-    auto ld1 = length(d1);
-    return std::abs(d1(0) * d2(1) - d1(1) * d2(0)) / (ld1 * ld1 * ld1);
-  }
-  //----------------------------------------------------------------------------
-  auto curvature_at(const curvature_idx i, backward_t tag) const {
-    return curvature_at(i.i, tag);
-  }
-  // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-  auto curvature_at(size_t i, backward_t tag) const {
-    auto d1  = tangent_at(i, tag);
-    auto d2  = second_derivative_at(i, tag);
-    auto ld1 = length(d1);
-    return std::abs(d1(0) * d2(1) - d1(1) * d2(0)) / (ld1 * ld1 * ld1);
-  }
-  //----------------------------------------------------------------------------
-  auto curvature_at(const curvature_idx i, central_t tag) const {
-    return curvature_at(i.i, tag);
-  }
-  // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-  auto curvature_at(size_t i, central_t tag) const {
-    auto d1  = tangent_at(i, tag);
-    auto d2  = second_derivative_at(i, tag);
-    auto ld1 = length(d1);
-    return std::abs(d1(0) * d2(1) - d1(1) * d2(0)) / (ld1 * ld1 * ld1);
-  }
-  //----------------------------------------------------------------------------
-  auto curvature_at(const curvature_idx i, automatic_t tag,
-                    bool prefer_calc = false) const {
-    return curvature_at(i.i, tag, prefer_calc);
-  }
-  // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-  auto curvature_at(size_t i, automatic_t /*tag*/,
-                    bool   prefer_calc = false) const {
-    if (m_curvatures && !prefer_calc) { return m_curvatures->at(i); }
-    if (is_closed()) { return curvature_at(i, central); }
-    if (i == 0) { return curvature_at(i, forward); }
-    if (i == num_vertices() - 1) { return curvature_at(i, backward); }
-    return curvature_at(i, central);
-  }
-  //----------------------------------------------------------------------------
-  auto curvature_at(const curvature_idx i, bool prefer_calc = false) const {
-    return curvature_at(i.i, automatic, prefer_calc);
-  }
-  // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-  auto curvature_at(size_t i, bool prefer_calc = false) const {
-    return curvature_at(i, automatic, prefer_calc);
-  }
-  //----------------------------------------------------------------------------
-  auto front_curvature(bool prefer_calc = false) const {
-    return curvature_at(0, prefer_calc);
-  }
-  // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-  auto back_curvature(bool prefer_calc = false) const {
-    return curvature_at(num_vertices() - 1, prefer_calc);
-  }
-  //----------------------------------------------------------------------------
-  auto at(curvature_idx i, bool prefer_calc = false) const {
-    return curvature_at(i.i, prefer_calc);
-  }
-  auto at(curvature_idx i, forward_t tag) const {
-    return curvature_at(i.i, tag);
-  }
-  auto at(curvature_idx i, backward_t tag) const {
-    return curvature_at(i.i, tag);
-  }
-  auto at(curvature_idx i, central_t tag) const { return curvature_at(i.i, tag); }
-  auto operator[](curvature_idx i) const { return curvature_at(i.i); }
-  //----------------------------------------------------------------------------
-  using curvature_iterator =
-      const_line_vertex_iterator<this_t, Real, N, curvature_idx, Real, Real>;
-  using curvature_container =
-      const_line_vertex_container<this_t, Real, N, curvature_idx, Real, Real>;
-  auto curvatures(bool prefer_calc = false) const {
-    return curvature_container{*this, prefer_calc};
-  }
-  //----------------------------------------------------------------------------
-  auto& curvatures_property() {
-    if (!m_curvatures) {
-      m_curvatures = &add_vertex_property<Real>("curvatures");
-    }
-    return *m_curvatures;
-  }
-  // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-  const auto& curvatures_property() const {
-    if (!m_curvatures) {
-      throw std::runtime_error{"no curvature property created"};
-    }
-    return *m_curvatures;
-  }
-  //----------------------------------------------------------------------------
-  auto& curvatures_to_property(bool update = false) {
-    if (m_curvatures != nullptr && !update) {
-      return curvatures_property();
-    }
-    second_derivatives_to_property(update);
-    auto& prop = curvatures_property();
-    boost::copy(curvatures(true), prop.begin());
-    return prop;
-  }
-  //============================================================================
   auto arc_length() const {
     Real len = 0;
     for (size_t i = 0; i < this->num_vertices() - 1; ++i) {
@@ -1055,14 +757,6 @@ struct line {
 template <typename Real, size_t N>
 auto diff(const line<Real, N>& l) {
   return l.tangents();
-}
-//------------------------------------------------------------------------------
-template <typename Real, size_t N, typename Handle, typename Value,
-          typename Reference = Value&>
-auto diff(const const_line_vertex_container<
-          line<Real, N>, Real, N, typename line<Real, N>::tangent_idx,
-          vec<Real, N>, vec<Real, N>>& tangents) {
-  return tangents.line().second_derivatives();
 }
 //==============================================================================
 // template <typename Real, size_t N>
@@ -1268,10 +962,8 @@ template <typename Real, size_t N,
 struct parameterized_line : line<Real, N> {
   using this_t   = parameterized_line<Real, N, InterpolationKernel>;
   using parent_t = line<Real, N>;
-  using typename parent_t::curvature_idx;
   using typename parent_t::empty_exception;
   using typename parent_t::pos_t;
-  using typename parent_t::second_derivative_idx;
   using typename parent_t::tangent_idx;
   using typename parent_t::vec_t;
   using typename parent_t::vertex_idx;
@@ -1282,9 +974,7 @@ struct parameterized_line : line<Real, N> {
 
   template <typename T>
   using vertex_property_t = typename parent_t::template vertex_property_t<T>;
-  using parent_t::curvature_at;
   using parent_t::num_vertices;
-  using parent_t::second_derivative_at;
   using parent_t::tangent_at;
   using parent_t::vertex_at;
   using parent_t::front_vertex;
@@ -1537,7 +1227,7 @@ struct parameterized_line : line<Real, N> {
   }
   //----------------------------------------------------------------------------
   /// sample tangents
-  auto sample_tangent(Real t) const {
+  auto tangent(Real t) const {
     const auto left = binary_search_index(t);
 
     // interpolate
@@ -1549,7 +1239,7 @@ struct parameterized_line : line<Real, N> {
   }
   //----------------------------------------------------------------------------
   /// sample second_derivatives
-  auto sample_second_derivative(Real t) const {
+  auto second_derivative(Real t) const {
     const auto left = binary_search_index(t);
 
     // interpolate
@@ -1561,7 +1251,7 @@ struct parameterized_line : line<Real, N> {
   }
   //----------------------------------------------------------------------------
   /// sample curvature
-  auto sample_curvature(Real t) const {
+  auto curvature(Real t) const {
     const auto left = binary_search_index(t);
 
     // interpolate
@@ -1571,53 +1261,24 @@ struct parameterized_line : line<Real, N> {
     assert(0 <= factor && factor <= 1);
     return m_interpolation_kernels[left].curve().curvature(factor);
   }
-  //----------------------------------------------------------------------------
-  ///// sample a line property via interpolation
-  //template <typename Prop>
-  //auto sample(Real t, const std::string& propname) const {
-  //  return sample(t, vertex_property<Prop>(propname));
-  //}
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
   /// sample a line property via interpolation
   template <typename Prop>
   auto sample(Real t, const vertex_property_t<Prop>& prop) const {
-    if (t < front_parameterization() &&
-        front_parameterization() - t < 1e-7) {
-      t = front_parameterization();
-    } else if (t > back_parameterization() &&
-               t - back_parameterization() < 1e-7) {
-      t = back_parameterization();
-    }
-    if (this->empty()) { throw empty_exception{}; }
-
-    if (t < front_parameterization() || t > back_parameterization()) {
-      throw time_not_found{};
-    }
-
-    // find the two points t is in between
-    size_t left = 0, right = num_vertices() - 1;
-
-    while (right - left > 1) {
-      size_t center = (left + right) / 2;
-      if (t < parameterization_at(center)) {
-        right = center;
-      } else {
-        left = center;
-      }
-    }
+    auto left = binary_search_index(t);
 
     // interpolate
-    const Real h      = parameterization_at(right) - parameterization_at(left);
+    const Real h      = parameterization_at(left+1) - parameterization_at(left);
     const Real factor = (t - parameterization_at(left)) / h;
     assert(0 <= factor && factor <= 1);
 
     // if constexpr (interpolation_needs_first_derivative) {
-    //  InterpolationKernel<Prop>{prop[left], prop[right], tangent_at(left) * h,
-    //                            tangent_at(right) * h}(factor);
+    //  InterpolationKernel<Prop>{prop[left], prop[left+1], tangent_at(left) * h,
+    //                            tangent_at(left+1) * h}(factor);
     //} else {
-    //  return InterpolationKernel<Prop>{prop[left], prop[right]}(factor);
+    //  return InterpolationKernel<Prop>{prop[left], prop[left+1]}(factor);
     //}
-    return prop[left] * (1 - factor) + prop[right] * factor;
+    return prop[left] * (1 - factor) + prop[left+1] * factor;
   }
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
  private:
@@ -1639,16 +1300,6 @@ struct parameterized_line : line<Real, N> {
       if constexpr (std::is_same_v<vec_t, Prop>) {
         if (&prop == this->m_tangents) {
           resampled_prop[i++] = sample_tangent(t);
-          continue;
-        }
-        if (&prop == this->m_second_derivatives) {
-          resampled_prop[i++] = sample_second_derivative(t);
-          continue;
-        }
-      }
-      if constexpr (std::is_same_v<Real, Prop>) {
-        if (&prop == this->m_curvatures) {
-          resampled_prop[i++] = sample_curvature(t);
           continue;
         }
       }
@@ -1839,226 +1490,17 @@ struct parameterized_line : line<Real, N> {
   auto tangents(bool prefer_calc = false) const {
     return tangent_container{*this, prefer_calc};
   }
-  //============================================================================
-  // second derivative
-  //============================================================================
-  auto second_derivative_at(second_derivative_idx i,
-                            quadratic_t /*tag*/) const {
-    return second_derivative_at(i.i);
-  }
-  // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-  auto second_derivative_at(size_t i, quadratic_t /*tag*/) const {
-    assert(this->num_vertices() > 2);
-    const auto x0 = [&]() {
-      if (i == 0) {
-        return tangent_at(i);
-      } else if (i == num_vertices() - 1) {
-        return tangent_at(i - 2);
-      }
-      return tangent_at(i - 1);
-    }();
-    const auto x1 = [&]() {
-      if (i == 0) {
-        return tangent_at(i + 1);
-      } else if (i == num_vertices() - 1) {
-        return tangent_at(i - 1);
-      }
-      return tangent_at(i);
-    }();
-    const auto x2 = [&]() {
-      if (i == 0) {
-        return tangent_at(i + 2);
-      } else if (i == num_vertices() - 1) {
-        return tangent_at(i);
-      }
-      return tangent_at(i + 1);
-    }();
-    const auto& t0 = [&]() -> const auto& {
-      if (i == 0) {
-        return parameterization_at(i);
-      } else if (i == num_vertices() - 1) {
-        return parameterization_at(i - 2);
-      }
-      return parameterization_at(i - 1);
-    }
-    ();
-    const auto& t1 = [&]() -> const auto& {
-      if (i == 0) {
-        return parameterization_at(i + 1);
-      } else if (i == num_vertices() - 1) {
-        return parameterization_at(i - 1);
-      }
-      return parameterization_at(i);
-    }
-    ();
-    const auto& t2 = [&]() -> const auto& {
-      if (i == 0) {
-        return parameterization_at(i + 2);
-      } else if (i == num_vertices() - 1) {
-        return parameterization_at(i);
-      }
-      return parameterization_at(i + 1);
-    }
-    ();
-    const auto& t = parameterization_at(i);
-    // for each dimension fit a quadratic curve through the neighbor points and
-    // the point itself and compute the derivative
-    vec_t      dx;
-    const mat3 A{{t0 * t0, t0, Real(1)},
-                 {t1 * t1, t1, Real(1)},
-                 {t2 * t2, t2, Real(1)}};
-    for (size_t n = 0; n < N; ++n) {
-      vec3 b{x0(n), x1(n), x2(n)};
-      auto c = gesv(A, b);
-      dx(n)  = 2 * c(0) * t + c(1);
-    }
-    return dx;
-  }
   //----------------------------------------------------------------------------
-  auto second_derivative_at(const second_derivative_idx i, automatic_t tag,
-                  bool prefer_calc = false) const {
-    return second_derivative_at(i.i, tag, prefer_calc);
-  }
-  // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-  auto second_derivative_at(const size_t i, automatic_t /*tag*/,
-                            bool         prefer_calc = false) const {
-    if (this->m_second_derivatives && !prefer_calc) {
-      return this->m_second_derivatives->at(i);
-    }
-    return second_derivative_at(i, quadratic);
-  }
-  //----------------------------------------------------------------------------
-  auto second_derivative_at(const second_derivative_idx i,
-                            bool prefer_calc = false) const {
-    return second_derivative_at(i.i, automatic, prefer_calc);
-  }
-  // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-  auto second_derivative_at(const size_t i, bool prefer_calc = false) const {
-    return second_derivative_at(i, automatic, prefer_calc);
-  }
-  //----------------------------------------------------------------------------
-  auto front_second_derivative(bool prefer_calc = false) const {
-    return second_derivative_at(0, prefer_calc);
-  }
-  // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-  auto back_second_derivative(bool prefer_calc = false) const {
-    return second_derivative_at(num_vertices() - 1, prefer_calc);
-  }
-  //----------------------------------------------------------------------------
-  auto at(second_derivative_idx i, bool prefer_calc = false) const {
-    return second_derivative_at(i.i, prefer_calc);
-  }
-  // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-  auto operator[](second_derivative_idx i) const {
-    return second_derivative_at(i.i);
-  }
-  //----------------------------------------------------------------------------
-  auto& second_derivatives_to_property(bool update = false) {
-    if (this->m_second_derivatives != nullptr && !update) {
-      return this->second_derivatives_property();
-    }
-    tangents_to_property(update);
-    auto& prop = this->second_derivatives_property();
-    boost::copy(second_derivatives(true), prop.begin());
-    return prop;
-  }
-  //----------------------------------------------------------------------------
-  using second_derivative_iterator =
-      const_line_vertex_iterator<this_t, Real, N, second_derivative_idx,
-                                 vec<Real, N>, vec<Real, N>>;
-  // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-  using second_derivative_container =
-      const_line_vertex_container<this_t, Real, N, second_derivative_idx,
-                                  vec<Real, N>, vec<Real, N>>;
-  //----------------------------------------------------------------------------
-  auto second_derivatives(bool prefer_calc = false) const {
-    return second_derivative_container{*this, prefer_calc};
-  }
-  //============================================================================
-  // curvature
-  //============================================================================
-  auto curvature_at(curvature_idx i, bool prefer_calc = false) const {
-    return curvature_at(i.i, prefer_calc);
-  }
-  // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-  auto curvature_at(size_t i, bool prefer_calc = false) const {
-    if (this->m_curvatures && !prefer_calc) {
-      return this->m_curvatures->at(i);
-    }
-    auto d1  = tangent_at(i);
-    auto d2  = second_derivative_at(i);
-    auto ld1 = length(d1);
-    if constexpr (N == 2) {
-      return std::abs(d1(0) * d2(1) - d1(1) * d2(0)) / (ld1 * ld1 * ld1);
-    } else if constexpr (N == 3) {
-      return length(cross(d1, d2)) / (ld1 * ld1 * ld1);
-    }
-  }
-  //----------------------------------------------------------------------------
-  auto front_curvature(bool prefer_calc = false) const {
-    return curvature_at(0, prefer_calc);
-  }
-  // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-  auto back_curvature(bool prefer_calc = false) const {
-    return curvature_at(num_vertices() - 1, prefer_calc);
-  }
-  //----------------------------------------------------------------------------
-  auto at(curvature_idx i, bool prefer_calc = false) const {
-    return curvature_at(i.i, prefer_calc);
-  }
-  // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-  auto operator[](curvature_idx i) const { return curvature_at(i.i); }
-  //----------------------------------------------------------------------------
-  auto& curvatures_to_property(bool update = false) {
-    if (this->m_curvatures != nullptr && !update) {
-      return this->curvatures_property();
-    }
-    second_derivatives_to_property(update);
-    auto& prop = this->curvatures_property();
-    boost::copy(curvatures(true), prop.begin());
-    return prop;
-  }
-  //----------------------------------------------------------------------------
-  using curvature_iterator =
-      const_line_vertex_iterator<this_t, Real, N, curvature_idx, Real, Real>;
-  // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-  using curvature_container =
-      const_line_vertex_container<this_t, Real, N, curvature_idx, Real, Real>;
-  //----------------------------------------------------------------------------
-  auto curvatures(bool prefer_calc = false) const {
-    return curvature_container{*this, prefer_calc};
-  }
-  //----------------------------------------------------------------------------
-  [[nodiscard]] auto integrated_curvature(bool update = false) {
+  [[nodiscard]] auto integrate_property(const vertex_property_t<Real>& prop) {
     std::vector<Real> seg_lens(num_vertices() - 1);
     for (size_t i = 0; i < num_vertices() - 1; ++i) {
       seg_lens[i] = distance(vertex_at(i), vertex_at(i + 1));
     }
-    auto& curvatures = curvatures_to_property(update);
     Real intcurv = 0;
-    intcurv += seg_lens.front() * curvatures.front(); 
-    intcurv += seg_lens.back() * curvatures.back(); 
+    intcurv += seg_lens.front() * prop.front(); 
+    intcurv += seg_lens.back() * prop.back(); 
     for (size_t i = 1; i < num_vertices() - 1; ++i) {
-      intcurv += (seg_lens[i - 1] + seg_lens[i]) * curvatures[i];
-    }
-    intcurv /= boost::accumulate(seg_lens, Real(0)) * 2;
-    return intcurv;
-  }
-  //----------------------------------------------------------------------------
-  [[nodiscard]] auto integrated_curvature() const {
-    std::vector<Real> seg_lens(num_vertices() - 1);
-    for (size_t i = 0; i < num_vertices() - 1; ++i) {
-      seg_lens[i] = distance(vertex_at(i), vertex_at(i + 1));
-    }
-    std::vector<Real> curvatures (num_vertices());
-    for (size_t i = 0; i < num_vertices(); ++i) {
-      curvatures[i] = curvature_at(i);
-    }
-    Real intcurv = 0;
-    intcurv += seg_lens.front() * curvatures.front(); 
-    intcurv += seg_lens.back() * curvatures.back(); 
-    for (size_t i = 1; i < num_vertices() - 1; ++i) {
-      intcurv += (seg_lens[i - 1] + seg_lens[i]) * curvatures.back();
+      intcurv += (seg_lens[i - 1] + seg_lens[i]) * prop[i];
     }
     intcurv /= boost::accumulate(seg_lens, Real(0)) * 2;
     return intcurv;
@@ -2068,15 +1510,6 @@ struct parameterized_line : line<Real, N> {
 template <typename Real, size_t N, template <typename> typename InterpolationKernel>
 auto diff(const parameterized_line<Real, N, InterpolationKernel>& l) {
   return l.tangents();
-}
-//------------------------------------------------------------------------------
-template <typename Real, size_t N, template <typename> typename InterpolationKernel, typename Handle, typename Value,
-          typename Reference = Value&>
-auto diff(const const_line_vertex_container<
-          parameterized_line<Real, N, InterpolationKernel>, Real, N,
-          typename parameterized_line<Real, N, InterpolationKernel>::tangent_idx, vec<Real, N>,
-          vec<Real, N>>& tangents) {
-  return tangents.line().second_derivatives();
 }
 //==============================================================================
 /// \brief      merge line strips
