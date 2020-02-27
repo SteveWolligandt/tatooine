@@ -174,6 +174,8 @@ class steadification {
       const auto& uv = mesh.uv(vertex);
       const auto& integral_curve = surf.streamline_at(uv(0), 0, 0);
       curvprop[vertex] = integral_curve.curvature(uv(1));
+      std::cerr << "curvature at uv(" << uv(0) << ", " << uv(1)
+                << "): " << curvprop[vertex] << '\n';
       if (m_v.in_domain(mesh[vertex], uv(1))) {
         vprop[vertex] =
             m_v(vec{mesh[vertex](0), mesh[vertex](1)}, mesh.uv(vertex)(1));
