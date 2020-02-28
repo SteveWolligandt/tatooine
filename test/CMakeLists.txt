@@ -25,11 +25,6 @@ macro(create_test NAME)
                          COMMAND valgrind --log-file="${NAME}.test.valgrind" --tool=memcheck --leak-check=yes --show-reachable=yes --track-fds=yes ./${NAME}.test
                          DEPENDS ${NAME}.test)
     endif()
-      add_custom_target (${NAME}.test.valgrind 
-                         COMMAND echo "" > /dev/null
-                         COMMENT "Target ${BoldRed}${NAME}.test.valgrind ${ColourReset}only available in debug mode."
-                         DEPENDS ${NAME}.test)
-    else()
   endif()
   add_custom_target (${NAME}.test.callgrind
                      COMMAND valgrind --tool=callgrind --callgrind-out-file=${NAME}.test.callgrind ./${NAME}.test

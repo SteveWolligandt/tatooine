@@ -304,8 +304,8 @@ struct hermite<tensor<Real, N>> {
     B.row(3) = fx1dx;
     auto C   = A * B;
     for (size_t i = 0; i < N; ++i) {
-      m_curve.polynomial(i).set_coefficients(C(0, i), C(1, i),
-                                                       C(2, i), C(3, i));
+      m_curve.polynomial(i).set_coefficients(C(0, i), C(1, i), C(2, i),
+                                             C(3, i));
     }
   }
 

@@ -118,7 +118,7 @@ struct rungekutta43
                     use = false;
                   }
                   if (use) {
-                    integral.push_back(y, t);
+                    integral.push_back(y, t, false);
                     tangents.back() = dy;
                   }
                 }));
@@ -142,14 +142,14 @@ struct rungekutta43
     stepper.integrate(
         dy, ode_t::Output >>
                 ode_t::sink([&integral, &tangents](auto t, const auto& y,
-                                                         const auto& dy) {
+                                                   const auto& dy) {
                   bool use = true;
                   if (!integral.empty() &&
                       distance(integral.back_vertex(), y) < 1e-6) {
                     use = false;
                   }
                   if (use) {
-                    integral.push_front(y, t);
+                    integral.push_front(y, t, false);
                     tangents.front() = dy;
                   }
                 }));

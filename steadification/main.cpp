@@ -22,14 +22,12 @@ void calc(const field<V, VReal, 2, 2>& v, T0Real /*t0*/, BTauReal /*btau*/,
                    randeng);
   auto cov_tex = s.make_domain_coverage_tex();
 
-  //s.random_domain_filling_streamsurfaces(v, stepsize);
 
   auto [seedcurve, t0u0, t0u1] = s.random_seedcurve(0.1, 0.2);
   auto [mesh, surf] = s.pathsurface(seedcurve, t0u0, t0u1, stepsize);
-  auto surfrast = s.rasterize(mesh, cov_tex);
-  s.to_pos_tex(surfrast).write_png("pos.png");
-  //mesh.write_vtk("pathsurface.vtk");
-  //std::cerr << s.curvature(mesh, surf) << '\n';
+  s.to_pos_tex(s.rasterize(mesh, cov_tex)).write_png("pos.png");
+  cov_tex.write_png("coverage.png");
+  std::cerr << s.curvature(mesh, surf) << '\n';
 
   //grid g{linspace{0.0, 2.0, 3}, linspace{0.0, 1.0, 3}};
   //size_t cnt = 0;

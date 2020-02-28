@@ -6,6 +6,7 @@
 #include <type_traits>
 
 #include "make_array.h"
+#include "linspace.h"
 #include "tensor.h"
 #include "type_traits.h"
 //==============================================================================
@@ -132,7 +133,6 @@ struct polynomial {
   }
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
  public:
-  template <size_t... Is>
   constexpr auto diff() const {
     if constexpr (Degree >= 1) {
       return diff(std::make_index_sequence<Degree>{});

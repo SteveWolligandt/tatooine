@@ -377,12 +377,12 @@ struct line {
   // members
   //============================================================================
  private:
-  pos_container_t             m_vertices;
-  bool                        m_is_closed = false;
+  pos_container_t m_vertices;
+  bool            m_is_closed = false;
 
  protected:
-  vertex_property_container_t m_vertex_properties;
-  vertex_property_t<vec<Real, N>>* m_tangents           = nullptr;
+  vertex_property_container_t      m_vertex_properties;
+  vertex_property_t<vec<Real, N>>* m_tangents = nullptr;
 
   //============================================================================
  public:
@@ -591,10 +591,15 @@ struct line {
   using tangent_iterator =
       const_line_vertex_iterator<this_t, Real, N, tangent_idx, vec<Real, N>,
                                  vec<Real, N>>;
-  using tangent_container =
+  using const_tangent_container =
       const_line_vertex_container<this_t, Real, N, tangent_idx, vec<Real, N>,
                                   vec<Real, N>>;
+  using tangent_container = line_vertex_container<this_t, Real, N, tangent_idx,
+                                                  vec<Real, N>, vec<Real, N>>;
   auto tangents(bool prefer_calc = false) const {
+    return const_tangent_container{*this, prefer_calc};
+  }
+  auto tangents(bool prefer_calc = false) {
     return tangent_container{*this, prefer_calc};
   }
   //----------------------------------------------------------------------------
@@ -983,8 +988,8 @@ struct parameterized_line : line<Real, N> {
   using parent_t::operator[];
 
  private:
-  vertex_property_t<Real>*               m_parameterization;
-  std::deque<interpolation_t> m_interpolation_kernels;
+  vertex_property_t<Real>*    m_parameterization;
+  std::deque<interpolation_t> m_interpolators;
 
  public:
   parameterized_line()
@@ -995,13 +1000,13 @@ struct parameterized_line : line<Real, N> {
       : parent_t{other},
         m_parameterization{
             &this->template vertex_property<Real>("parameterization")},
-        m_interpolation_kernels{other.m_interpolation_kernels} {}
+        m_interpolators{other.m_interpolators} {}
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
   parameterized_line(parameterized_line&& other)
       : parent_t{std::move(other)},
         m_parameterization{
             &this->template vertex_property<Real>("parameterization")},
-        m_interpolation_kernels{std::move(other.m_interpolation_kernels)} {}
+        m_interpolators{std::move(other.m_interpolators)} {}
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
   parameterized_line(std::initializer_list<std::pair<pos_t, Real>>&& data)
       : m_parameterization{
@@ -1015,7 +1020,7 @@ struct parameterized_line : line<Real, N> {
     parent_t::operator=(other);
     m_parameterization =
         &this->template vertex_property<Real>("parameterization");
-    m_interpolation_kernels = other.m_interpolation_kernels;
+    m_interpolators = other.m_interpolators;
     return *this;
   }
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -1023,7 +1028,7 @@ struct parameterized_line : line<Real, N> {
     parent_t::operator=(std::move(other));
     m_parameterization =
         &this->template vertex_property<Real>("parameterization");
-    m_interpolation_kernels = std::move(other.m_interpolation_kernels);
+    m_interpolators = std::move(other.m_interpolators);
     return *this;
   }
   //----------------------------------------------------------------------------
@@ -1073,112 +1078,130 @@ struct parameterized_line : line<Real, N> {
     return m_parameterization->back();
   }
   //----------------------------------------------------------------------------
-  void push_back(const pos_t& p, Real t) {
+  auto push_back(const pos_t& p, Real t, bool auto_compute_interpolator = true) {
     auto i                    = parent_t::push_back(p);
     m_parameterization->at(i) = t;
     if (num_vertices() > 1) {
-      if constexpr (interpolation_needs_first_derivative) {
-        const auto h =
-            back_parameterization() - parameterization_at(num_vertices() - 2);
-        m_interpolation_kernels.emplace_back(
-            vertex_at(num_vertices() - 2), back_vertex(),
-            tangent_at(num_vertices() - 2) * h, back_tangent() * h);
-        if (num_vertices() >= 3) {
-          update_interpolation_kernel(num_vertices() - 3);
+      if (auto_compute_interpolator) {
+        if constexpr (interpolation_needs_first_derivative) {
+          const auto h =
+              back_parameterization() - parameterization_at(num_vertices() - 2);
+          m_interpolators.emplace_back(
+              vertex_at(num_vertices() - 2), back_vertex(),
+              tangent_at(num_vertices() - 2) * h, back_tangent() * h);
+          if (num_vertices() >= 3) {
+            update_interpolator(num_vertices() - 3);
+          }
+        } else {
+          m_interpolators.emplace_back(vertex_at(num_vertices() - 2),
+                                       vertex_at(num_vertices() - 1));
+          if (num_vertices() >= 3) {
+            update_interpolator(num_vertices() - 3);
+          }
         }
       } else {
-        m_interpolation_kernels.emplace_back(vertex_at(num_vertices() - 2),
-                                             vertex_at(num_vertices() - 1));
-        if (num_vertices() >= 3) {
-          update_interpolation_kernel(num_vertices() - 3);
-        }
+        m_interpolators.emplace_back();
       }
     }
+    return i;
   }
   //----------------------------------------------------------------------------
-  void push_back(pos_t&& p, Real t) {
+  auto push_back(pos_t&& p, Real t, bool auto_compute_interpolator = true) {
     auto i                    = parent_t::push_back(std::move(p));
     m_parameterization->at(i) = t;
     if (num_vertices() > 1) {
-      if constexpr (interpolation_needs_first_derivative) {
-        const auto h =
-            back_parameterization() - parameterization_at(num_vertices() - 2);
-        m_interpolation_kernels.emplace_back(
-            vertex_at(num_vertices() - 2), back_vertex(),
-            tangent_at(num_vertices() - 2) * h, back_tangent() * h);
-        if (num_vertices() >= 3) {
-          update_interpolation_kernel(num_vertices() - 3);
+      if (auto_compute_interpolator) {
+        if constexpr (interpolation_needs_first_derivative) {
+          const auto h =
+              back_parameterization() - parameterization_at(num_vertices() - 2);
+          m_interpolators.emplace_back(
+              vertex_at(num_vertices() - 2), back_vertex(),
+              tangent_at(num_vertices() - 2) * h, back_tangent() * h);
+          if (num_vertices() >= 3) {
+            update_interpolator(num_vertices() - 3);
+          }
+        } else {
+          m_interpolators.emplace_back(vertex_at(num_vertices() - 2),
+                                       back_vertex());
+          if (num_vertices() >= 3) {
+            update_interpolator(num_vertices() - 3);
+          }
         }
       } else {
-        m_interpolation_kernels.emplace_back(vertex_at(num_vertices() - 2),
-                                             back_vertex());
-        if (num_vertices() >= 3) {
-          update_interpolation_kernel(num_vertices() - 3);
-        }
+        m_interpolators.emplace_back();
       }
     }
+    return i;
   }
   //----------------------------------------------------------------------------
   void pop_back() {
     parent_t::pop_back();
     m_parameterization->pop_back();
-    if (num_vertices() >= 2) { m_interpolation_kernels.pop_back(); }
+    if (num_vertices() >= 2) { m_interpolators.pop_back(); }
   }
   //----------------------------------------------------------------------------
-  void push_front(const pos_t& p, Real t) {
+  auto push_front(const pos_t& p, Real t, bool auto_compute_interpolator = true) {
     auto i                    = parent_t::push_front(p);
     m_parameterization->at(i) = t;
     if (num_vertices() > 1) {
-      if constexpr (interpolation_needs_first_derivative) {
-        const auto h = front_parameterization() - parameterization_at(1);
-        m_interpolation_kernels.emplace_front(front_vertex(), vertex_at(1),
-                                              front_tangent() * h,
-                                              tangent_at(1) * h);
-        if (num_vertices() >= 3) { update_interpolation_kernel(1); }
+      if (auto_compute_interpolator) {
+        if constexpr (interpolation_needs_first_derivative) {
+          const auto h = front_parameterization() - parameterization_at(1);
+          m_interpolators.emplace_front(front_vertex(), vertex_at(1),
+                                        front_tangent() * h, tangent_at(1) * h);
+          if (num_vertices() >= 3) { update_interpolator(1); }
+        } else {
+          m_interpolators.emplace_front(front_vertex(), vertex_at(1));
+          if (num_vertices() >= 3) { update_interpolator(1); }
+        }
       } else {
-        m_interpolation_kernels.emplace_front(front_vertex(), vertex_at(1));
-        if (num_vertices() >= 3) { update_interpolation_kernel(1); }
+        m_interpolators.emplace_front();
       }
     }
+    return i;
   }
   //----------------------------------------------------------------------------
-  void push_front(pos_t&& p, Real t) {
+  auto push_front(pos_t&& p, Real t, bool auto_compute_interpolator = true) {
     auto i                    = parent_t::push_front(std::move(p));
     m_parameterization->at(i) = t;
     if (num_vertices() > 1) {
-      if constexpr (interpolation_needs_first_derivative) {
-        const auto h = front_parameterization() - parameterization_at(1);
-        m_interpolation_kernels.emplace_front(front_vertex(), vertex_at(1),
-                                              front_tangent() * h,
-                                              tangent_at(1) * h);
-        if (num_vertices() >= 3) { update_interpolation_kernel(1); }
+      if (auto_compute_interpolator) {
+        if constexpr (interpolation_needs_first_derivative) {
+          const auto h = front_parameterization() - parameterization_at(1);
+          m_interpolators.emplace_front(front_vertex(), vertex_at(1),
+                                        front_tangent() * h, tangent_at(1) * h);
+          if (num_vertices() >= 3) { update_interpolator(1); }
+        } else {
+          m_interpolators.emplace_front(front_vertex(), vertex_at(1));
+          if (num_vertices() >= 3) { update_interpolator(1); }
+        }
       } else {
-        m_interpolation_kernels.emplace_front(front_vertex(), vertex_at(1));
-        if (num_vertices() >= 3) { update_interpolation_kernel(1); }
+        m_interpolators.emplace_front();
       }
     }
+    return i;
   }
   //----------------------------------------------------------------------------
   void pop_front() {
     parent_t::pop_front();
     m_parameterization->pop_front();
-    if (num_vertices() >= 2) { m_interpolation_kernels.pop_front(); }
+    if (num_vertices() >= 2) { m_interpolators.pop_front(); }
   }
   //----------------------------------------------------------------------------
-  void update_interpolation_kernels() {
+  void update_interpolators() {
     for (size_t i = 0; i < num_vertices() - 1; ++i) {
-      update_interpolation_kernel(i);
+      update_interpolator(i);
     }
   }
   //----------------------------------------------------------------------------
-  void update_interpolation_kernel(size_t i) {
+  void update_interpolator(size_t i) {
     if constexpr (interpolation_needs_first_derivative) {
       auto h = parameterization_at(i + 1) - parameterization_at(i);
-      m_interpolation_kernels[i] =
+      m_interpolators[i] =
           interpolation_t{vertex_at(i), vertex_at(i + 1), tangent_at(i) * h,
                           tangent_at(i + 1) * h};
     } else {
-      m_interpolation_kernels[i] =
+      m_interpolators[i] =
           interpolation_t{vertex_at(i), vertex_at(i + 1)};
     }
   }
@@ -1216,10 +1239,10 @@ struct parameterized_line : line<Real, N> {
 
     // interpolate
     const Real factor =
-        (t - parameterization_at(left)) /
-        (parameterization_at(left + 1) - parameterization_at(left));
-    assert(0 <= factor && factor <= 1);
-    return m_interpolation_kernels[left](factor);
+        std::min<Real>(1, std::max<Real>(0, (t - parameterization_at(left)) /
+                                                (parameterization_at(left + 1) -
+                                                 parameterization_at(left))));
+    return m_interpolators[left](factor);
   }
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
   auto operator()(const Real t) const {
@@ -1235,7 +1258,7 @@ struct parameterized_line : line<Real, N> {
         (t - parameterization_at(left)) /
         (parameterization_at(left + 1) - parameterization_at(left));
     assert(0 <= factor && factor <= 1);
-    return m_interpolation_kernels[left].curve().tangent(factor);
+    return m_interpolators[left].curve().tangent(factor);
   }
   //----------------------------------------------------------------------------
   /// sample second_derivatives
@@ -1247,7 +1270,7 @@ struct parameterized_line : line<Real, N> {
         (t - parameterization_at(left)) /
         (parameterization_at(left + 1) - parameterization_at(left));
     assert(0 <= factor && factor <= 1);
-    return m_interpolation_kernels[left].curve().second_derivative(factor);
+    return m_interpolators[left].curve().second_derivative(factor);
   }
   //----------------------------------------------------------------------------
   /// sample curvature
@@ -1256,10 +1279,10 @@ struct parameterized_line : line<Real, N> {
 
     // interpolate
     const Real factor =
-        (t - parameterization_at(left)) /
-        (parameterization_at(left + 1) - parameterization_at(left));
-    assert(0 <= factor && factor <= 1);
-    return m_interpolation_kernels[left].curve().curvature(factor);
+        std::min<Real>(1, std::max<Real>(0, (t - parameterization_at(left)) /
+                                                (parameterization_at(left + 1) -
+                                                 parameterization_at(left))));
+    return m_interpolators[left].curve().curvature(factor);
   }
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
   /// sample a line property via interpolation
@@ -1299,7 +1322,7 @@ struct parameterized_line : line<Real, N> {
     for (auto t : ts) {
       if constexpr (std::is_same_v<vec_t, Prop>) {
         if (&prop == this->m_tangents) {
-          resampled_prop[i++] = sample_tangent(t);
+          resampled_prop[i++] = tangent(t);
           continue;
         }
       }
@@ -1355,6 +1378,14 @@ struct parameterized_line : line<Real, N> {
           parameterization_at(i - 1) +
           std::sqrt(distance(vertex_at(i), vertex_at(i - 1)));
     }
+  }
+  //----------------------------------------------------------------------------
+  auto arc_length() const {
+    Real len = 0;
+    for (size_t i = 0; i < this->num_vertices() - 1; ++i) {
+      len += m_interpolators[i].curve().arc_length(linspace<Real>{0, 1, 10});
+    }
+    return len;
   }
 
   //============================================================================
@@ -1482,28 +1513,51 @@ struct parameterized_line : line<Real, N> {
   using tangent_iterator =
       const_line_vertex_iterator<this_t, Real, N, tangent_idx, vec<Real, N>,
                                  vec<Real, N>>;
-  // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-  using tangent_container =
-      const_line_vertex_container<this_t, Real, N, tangent_idx, vec<Real, N>,
-                                  vec<Real, N>>;
-  //----------------------------------------------------------------------------
-  auto tangents(bool prefer_calc = false) const {
-    return tangent_container{*this, prefer_calc};
-  }
   //----------------------------------------------------------------------------
   [[nodiscard]] auto integrate_property(const vertex_property_t<Real>& prop) {
     std::vector<Real> seg_lens(num_vertices() - 1);
     for (size_t i = 0; i < num_vertices() - 1; ++i) {
       seg_lens[i] = distance(vertex_at(i), vertex_at(i + 1));
     }
-    Real intcurv = 0;
-    intcurv += seg_lens.front() * prop.front(); 
-    intcurv += seg_lens.back() * prop.back(); 
+    Real integral = 0;
+    integral += seg_lens.front() * prop.front(); 
+    integral += seg_lens.back() * prop.back(); 
     for (size_t i = 1; i < num_vertices() - 1; ++i) {
-      intcurv += (seg_lens[i - 1] + seg_lens[i]) * prop[i];
+      integral += (seg_lens[i - 1] + seg_lens[i]) * prop[i];
     }
-    intcurv /= boost::accumulate(seg_lens, Real(0)) * 2;
-    return intcurv;
+    integral /= boost::accumulate(seg_lens, Real(0)) * 2;
+    return integral;
+  }
+  //----------------------------------------------------------------------------
+  [[nodiscard]] auto integrate_curvature() const {
+    std::vector<Real> seg_lens(num_vertices() - 1);
+    for (size_t i = 0; i < num_vertices() - 1; ++i) {
+      seg_lens[i] =
+          m_interpolators[i].curve().arc_length(linspace<Real>{0, 1, 10});
+    }
+    Real integral = 0;
+    integral += seg_lens.front() * curvature(front_parameterization()); 
+    integral += seg_lens.back() * curvature(back_parameterization()); 
+    for (size_t i = 1; i < num_vertices() - 1; ++i) {
+      integral += (seg_lens[i - 1] + seg_lens[i]) * curvature(parameterization_at(i));
+    }
+    integral /= boost::accumulate(seg_lens, Real(0)) * 2;
+    return integral;
+  }
+  //----------------------------------------------------------------------------
+  [[nodiscard]] auto integrate_curvature(const linspace<Real>& ts) const {
+    std::vector<Real> seg_lens(ts.size()-1);
+    for (size_t i = 0; i < ts.size() - 1; ++i) {
+      seg_lens[i] = distance(at(ts[i]), vertex_at(ts[i + 1]));
+    }
+    Real integral = 0;
+    integral += seg_lens.front() * curvature(ts.front()); 
+    integral += seg_lens.back() * curvature(ts.back()); 
+    for (size_t i = 1; i < ts.size() - 1; ++i) {
+      integral += (seg_lens[i - 1] + seg_lens[i]) * curvature(ts[i]);
+    }
+    integral /= boost::accumulate(seg_lens, Real(0)) * 2;
+    return integral;
   }
 };
 //------------------------------------------------------------------------------

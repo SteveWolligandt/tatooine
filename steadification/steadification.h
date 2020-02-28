@@ -174,8 +174,8 @@ class steadification {
       const auto& uv = mesh.uv(vertex);
       const auto& integral_curve = surf.streamline_at(uv(0), 0, 0);
       curvprop[vertex] = integral_curve.curvature(uv(1));
-      std::cerr << "curvature at uv(" << uv(0) << ", " << uv(1)
-                << "): " << curvprop[vertex] << '\n';
+      //std::cerr << "curvature at uv(" << uv(0) << ", " << uv(1)
+      //          << "): " << curvprop[vertex] << '\n';
       if (m_v.in_domain(mesh[vertex], uv(1))) {
         vprop[vertex] =
             m_v(vec{mesh[vertex](0), mesh[vertex](1)}, mesh.uv(vertex)(1));
@@ -210,10 +210,14 @@ class steadification {
     std::vector<real_t> kappas, arc_lengths;
     arc_lengths.reserve(num_integral_curves);
     kappas.reserve(num_integral_curves);
+    size_t i = 0;
     for (auto u : us) {
       const auto& integral_curve = surf.streamline_at(u, 0, 0);
-      kappas.push_back(integral_curve.integrated_curvature());
+      kappas.push_back(integral_curve.integrate_curvature());
       arc_lengths.push_back(integral_curve.arc_length());
+      //std::cerr << "kappas[" << i << "] = " << kappas[i] << '\n';
+      //std::cerr << "arc_lengths[" << i << "] = " << arc_lengths[i] << '\n';
+      ++i;
     }
     real_t acc_kappas = 0;
     for (size_t i = 0; i < num_integral_curves; ++i) {
@@ -322,10 +326,9 @@ class steadification {
   }
   //----------------------------------------------------------------------------
   auto to_pos_tex(const rasterized_pathsurface& r) {
-    tex2rgba<float> v_tex{m_render_resolution(0), m_render_resolution(1)};
-    v_tex.clear(0,0,0,0);
-    v_tex.bind_image_texture(2);
+    tex2rgba32f v_tex{m_render_resolution(0), m_render_resolution(1)};
     r.bind();
+    v_tex.bind_image_texture(2);
     m_ll_to_pos_shader.dispatch(32, 32);
     return v_tex;
   }

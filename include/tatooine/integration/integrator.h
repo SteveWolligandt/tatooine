@@ -127,6 +127,7 @@ struct integrator : crtp<Derived> {
     } else {
       calc_forward(v, integral, y0, t0, tau);
     }
+    integral.update_interpolators();
     return integral;
   }
   //----------------------------------------------------------------------------
@@ -149,6 +150,7 @@ struct integrator : crtp<Derived> {
     } else {
       backward_on_border = forward_on_border = true;
     }
+    integral.update_interpolators();
     return integral;
   }
   //----------------------------------------------------------------------------
@@ -173,6 +175,7 @@ struct integrator : crtp<Derived> {
     } else {
       backward_on_border = forward_on_border = true;
     }
+    integral.update_interpolators();
     return integral;
   }
   //----------------------------------------------------------------------------
@@ -188,6 +191,7 @@ struct integrator : crtp<Derived> {
     if (!integral.empty() && integral.back_parameterization() < t0 + tau_rest) {
       forward_on_border = true;
     }
+    integral.update_interpolators();
     return integral;
   }
   //----------------------------------------------------------------------------
@@ -204,6 +208,7 @@ struct integrator : crtp<Derived> {
         integral.front_parameterization() > t0 + tau_rest) {
       backward_on_border = true;
     }
+    integral.update_interpolators();
     return integral;
   }
 

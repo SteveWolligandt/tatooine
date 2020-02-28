@@ -58,16 +58,16 @@ class polynomial_line {
   //----------------------------------------------------------------------------
  private:
   template <size_t... Is>
-  constexpr auto sample(Real t, std::index_sequence<Is...> /*is*/) const {
+  constexpr auto evaluate(Real t, std::index_sequence<Is...> /*is*/) const {
     return vec_t{m_polynomials[Is](t)...};
   }
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
  public:
-  constexpr auto sample(Real t) const {
-    return sample(t, std::make_index_sequence<N>{});
+  constexpr auto evaluate(Real t) const {
+    return evaluate(t, std::make_index_sequence<N>{});
   }
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-  constexpr auto operator()(Real t) const { return sample(t); }
+  constexpr auto operator()(Real t) const { return evaluate(t); }
   //----------------------------------------------------------------------------
  private:
   template <size_t... Is>
@@ -120,18 +120,26 @@ class polynomial_line {
   }
   //----------------------------------------------------------------------------
   template <template <typename> typename InterpolationKernel>
-  constexpr auto sample(const linspace<Real>& ts) const {
+  constexpr auto evaluate(const linspace<Real>& ts) const {
     parameterized_line<Real, N, InterpolationKernel> sampled;
     auto& tang = sampled.tangents_property();
     auto& snd_der = sampled.second_derivatives_property();
     auto& curv = sampled.curvatures_property();
     for (auto t : ts) {
-      sampled.push_back(sample(t), t);
+      sampled.push_back(evaluate(t), t);
       tang.back() = tangent(t);
       snd_der.back() = second_derivative(t);
       curv.back()    = curvature(tang.back(), snd_der.back());
     }
     return sampled;
+  }
+  //----------------------------------------------------------------------------
+  constexpr auto arc_length(const linspace<Real>& range) const {
+    Real l = 0;
+    for (size_t i = 0; i < size(range) - 1; ++i) {
+      l += distance(evaluate(range[i]), evaluate(range[i + 1]));
+    }
+    return l;
   }
 };
 //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~

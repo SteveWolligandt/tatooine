@@ -10,10 +10,13 @@ void main() {
   if (texpos.x >= ll_tex_resolution.x ||
       texpos.y >= ll_tex_resolution.y) { return; }
 
+  imageStore(position_tex, texpos, vec4(vec3(0), 0));
   const uint hi = ll_head_index(texpos);
   const uint size = ll_size_at(texpos);
   if (hi == end_index) { return; }
 
   imageStore(position_tex, texpos,
-             vec4(vec3(ll_min_tau_node(texpos).curvature)), 1);
+             vec4(vec3(
+               ll_min_tau_node(texpos).curvature
+             ),1));
 }

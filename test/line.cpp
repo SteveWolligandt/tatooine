@@ -46,35 +46,6 @@ TEST_CASE("line_tangent_container", "[line][tangents][container]") {
   boost::copy(l.tangents(), begin(tangents));
 }
 //==============================================================================
-TEST_CASE("line_second_derivative_container", "[line][second_derivative][container]") {
-  line<double, 2> l;
-  l.push_front({0, 0});
-  l.push_front({1, 1});
-  l.push_front({2, 0});
-  std::vector<vec<double, 2>> second_derivative(3);
-  boost::copy(l.second_derivatives(), begin(second_derivative));
-}
-//==============================================================================
-TEST_CASE("line_curvature_container", "[line][curvature][container]") {
-  line<double, 2> l;
-  l.push_front({0, 0});
-  l.push_front({1, 1});
-  l.push_front({2, 0});
-  std::vector<double> curvature(3);
-  boost::copy(l.curvatures(), begin(curvature));
-}
-//==============================================================================
-TEST_CASE(
-    "line_property",
-    "[line][tangent][second_derivative][curvature][property][container]") {
-  line<double, 2> l;
-  l.push_front(0, 0);
-  l.push_front(1, 1);
-  l.push_front(2, 0);
-  l.curvatures_to_property();
-  //l.write_vtk("line_property.vtk");
-}
-//==============================================================================
 TEST_CASE("line_parameterized_initialization",
           "[line][parameterization][initialization]") {
   parameterized_line<double, 2, interpolation::linear> l{
@@ -198,83 +169,15 @@ TEST_CASE("line_paramaterization_centripetal",
   l.centripetal_parameterization();
 }
 //==============================================================================
-TEST_CASE("line_curvature", "[line][curvature]") {
-  SECTION("circle") {
-    // create a closed circle
-    auto            radius      = GENERATE(1.0, 2.0, 3.0, 4.0);
-    const size_t    num_samples = 1000;
-    line<double, 2> circle;
-    circle.set_closed(true);
-
-    for (size_t i = 0; i < num_samples; ++i) {
-      const double angle = M_PI * 2 / static_cast<double>(num_samples) * i;
-      circle.push_back(std::cos(angle) * radius, std::sin(angle) * radius);
-    }
-
-    for (size_t i = 0; i < num_samples; ++i) {
-      REQUIRE(circle.curvature_at(i) == Approx(1 / radius).margin(1e-6));
-    }
-  }
-  SECTION("streamline") {
-    SECTION("constant_vectorfield") {
-      constant_vectorfield<double, 3>              v;
-      integration::vclibs::rungekutta43<double, 3, interpolation::linear> rk43;
-      auto integral_curve = rk43.integrate(v, {0.0, 0.0, 0.0}, 0, 10);
-      for (size_t i = 0; i < integral_curve.num_vertices(); ++i) {
-        REQUIRE(integral_curve.curvature_at(i) == Approx(0).margin(1e-6));
-      }
-    }
-    SECTION("doublegyre") {
-      numerical::doublegyre                        v;
-      integration::vclibs::rungekutta43<double, 2, interpolation::hermite> rk43;
-      auto integral_curve = rk43.integrate(v, {0.1, 0.1}, 0, 10);
-      double curv_add = 0;
-      for (size_t i = 0; i < integral_curve.num_vertices(); ++i) {
-        curv_add += integral_curve.curvature_at(i);
-      }
-      auto curv_mean = curv_add / integral_curve.num_vertices();
-      std::cerr << "curvature mean doublegyre pathline x_0 = {0.1, 0.1}, t_0 = "
-                   "0, tau = 10: "
-                << curv_mean << '\n';
-    }
-  }
-}
-//==============================================================================
-TEST_CASE("line_integrated_curvature", "[line][integrated_curvature]") {
-  SECTION("pathlines") {
-    SECTION("cosinus sinus vectorfield") {
-      auto                    radius = GENERATE(1.0, 2.0, 3.0, 4.0);
-      numerical::cosinussinus v{radius};
-      integration::vclibs::rungekutta43<double, 2, interpolation::linear> rk43;
-      auto full_circle = rk43.integrate(v, {0.0, 0.0}, 0, 2 * M_PI);
-      auto half_circle = rk43.integrate(v, {0.0, 0.0}, 0, 2 * M_PI);
-      auto kappa_dt_full = full_circle.integrated_curvature();
-      auto kappa_dt_half = half_circle.integrated_curvature();
-      CAPTURE(kappa_dt_full);
-      CAPTURE(kappa_dt_half);
-      REQUIRE(kappa_dt_full == Approx(kappa_dt_half).margin(1e-6));
-    }
-    SECTION("double gyre pathline") {
-      numerical::doublegyre                        v;
-      integration::vclibs::rungekutta43<double, 2, interpolation::hermite> rk43;
-      size_t       cnt = 0;
-      const double tau = 10;
-      for (auto t0 : linspace(0.0, 10.0, 100)) {
-        auto integral_curve = rk43.integrate(v, {0.2, 0.2}, t0, tau);
-        auto kappa_dt       = integral_curve.integrated_curvature();
-        integral_curve.write_vtk("doublegyre_pathline_with_curvature" +
-                                 std::to_string(cnt++) + ".vtk");
-        CAPTURE(cnt, kappa_dt);
-      }
-    }
-  }
-}
-//==============================================================================
 TEST_CASE("line_resample", "[line][parameterization][resample]") {
   SECTION("double gyre pathline") {
     numerical::doublegyre                        v;
     integration::vclibs::rungekutta43<double, 2, interpolation::hermite> rk43;
     auto integral_curve = rk43.integrate(v, {0.2, 0.2}, 0, 10);
+    auto& curvature      = integral_curve.add_vertex_property<double>("curvature");
+    for (size_t i = 0; i < integral_curve.num_vertices(); ++i) {
+      curvature[i] = integral_curve.curvature(integral_curve.parameterization_at(i));
+    }
     integral_curve.write_vtk("original_dg_pathline.vtk");
     size_t i = 0;
     for (auto n : std::array{10000, 20000}) {
@@ -292,9 +195,13 @@ TEST_CASE("line_resample", "[line][parameterization][resample]") {
     SECTION("hermite") {
       parameterized_line<double, 2, interpolation::hermite> l{
           {{0.0, 0.0}, 0}, {{1.0, 1.0}, 1}, {{2.0, 0.0}, 2}};
-      l.curvatures_to_property();
       l.write_vtk("original_line.vtk");
-      l.resample(linspace(0.0, 2.0, 10000)).write_vtk("resampled_line_hermite.vtk");
+      auto  l2        = l.resample(linspace(0.0, 2.0, 10000));
+      auto& curvature = l2.add_vertex_property<double>("curvature");
+      for (auto i = 0; i < l2.num_vertices(); ++i) {
+        curvature[i] = l2.curvature(l2.parameterization_at(i));
+      }
+      l2.write_vtk("resampled_line_hermite.vtk");
     }
   }
 }
