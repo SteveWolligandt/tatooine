@@ -1,0 +1,81 @@
+#version 450
+//==============================================================================
+#include "dual_linked_list.glsl"
+//==============================================================================
+layout(binding = 4, r32f) uniform image2D weight_tex;
+layout(binding = 2) uniform atomic_uint cnt;
+//==============================================================================
+layout(local_size_x = 32, local_size_y = 32) in;
+void main() {
+  const ivec2 texpos = ivec2(gl_GlobalInvocationID.xy);
+  if (texpos.x >= ll0_tex_resolution.x || texpos.y >= ll0_tex_resolution.y) {
+    return;
+  }
+  const uint head_index0 = ll0_head_index(texpos);
+  const uint head_index1 = ll1_head_index(texpos);
+  const uint size0       = ll0_size_at(texpos);
+  const uint size1       = ll1_size_at(texpos);
+  const uint total_size  = size0 + size1;
+  // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+  if (total_size == 0) {
+    imageStore(weight_tex, texpos, vec4(0, 0, 0, 0));
+    return;
+  }
+
+  atomicCounterIncrement(cnt);
+  // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+  if (total_size > 2) {
+    float curv_acc      = 0;
+    uint  running_index = head_index0;
+    while (running_index != end_index) {
+      curv_acc += ll0_node_at(running_index).curvature;
+      running_index = ll0_node_at(running_index).next_index;
+    }
+    running_index = head_index1;
+    while (running_index != end_index) {
+      curv_acc += ll1_node_at(running_index).curvature;
+      running_index = ll1_node_at(running_index).next_index;
+    }
+    imageStore(weight_tex, texpos,
+               vec4(curv_acc / total_size * -total_size, 0, 0, 0));
+    return;
+  }
+  // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+  if (total_size == 1) {
+    if (size1 == 0) {
+      node n = ll0_node_at(head_index0);
+      imageStore(weight_tex, texpos, vec4(n.curvature * n.uv.y + 1, 0, 0, 0));
+    } else {
+      node n = ll1_node_at(head_index1);
+      imageStore(weight_tex, texpos, vec4(n.curvature * n.uv.y + 1, 0, 0, 0));
+    }
+    return;
+  }
+  // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+  if (total_size == 2) {
+    node        n0, n1;
+    if (size1 == 0) {
+      n0 = ll0_node_at(head_index0);
+      n1 = ll0_node_at(n0.next_index);
+    } else if (size0 == 0) {
+      n0 = ll1_node_at(head_index1);
+      n1 = ll1_node_at(n0.next_index);
+    } else {
+      n0 = ll0_node_at(head_index0);
+      n1 = ll1_node_at(head_index1);
+    }
+    const float tau0 = n0.uv.y;
+    const float tau1 = n1.uv.y;
+    const float c0   = n0.curvature;
+    const float c1   = n1.curvature;
+
+    const float cosangle    = dot(normalize(n0.v), normalize(n1.v));
+    const float sinsinangle = 1 - cosangle * cosangle;
+    const float weighting   = 0.5 * sinsinangle;
+
+    imageStore(
+        weight_tex, texpos,
+        vec4(weighting * (c0 * tau0 + c0 + c1 * tau1 + c1) / 2, 0, 0, 0));
+    return;
+  }
+}

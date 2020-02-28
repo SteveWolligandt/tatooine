@@ -53,7 +53,8 @@ domain_coverage_shader::domain_coverage_shader()
 //==============================================================================
 // ll_to_pos
 //==============================================================================
-ll_to_pos_shader::ll_to_pos_shader() : comp_shader{"ll_to_pos_tex.comp"} {}
+ll_to_curvature_shader::ll_to_curvature_shader()
+    : comp_shader{"ll_to_curvature_tex.comp"} {}
 
 //==============================================================================
 // fragment_count
@@ -61,6 +62,28 @@ ll_to_pos_shader::ll_to_pos_shader() : comp_shader{"ll_to_pos_tex.comp"} {}
 fragment_count_shader::fragment_count_shader()
     : vert_frag_shader{"ssf_rasterization.vert", "fragment_count.frag"} {}
 
+//==============================================================================
+// weight_single_pathsurface
+//==============================================================================
+weight_single_pathsurface_shader::weight_single_pathsurface_shader()
+    : comp_shader{"weight_single_pathsurface.comp"} {}
+//------------------------------------------------------------------------------
+void weight_single_pathsurface_shader::set_linked_list_size(unsigned int n) {
+  set_uniform("ll_size", n);
+}
+//==============================================================================
+// weight_dual_pathsurface
+//==============================================================================
+weight_dual_pathsurface_shader::weight_dual_pathsurface_shader()
+    : comp_shader{"weight_dual_pathsurface.comp"} {}
+//------------------------------------------------------------------------------
+void weight_dual_pathsurface_shader::set_linked_list0_size(unsigned int n) {
+  set_uniform("ll0_size", n);
+}
+//------------------------------------------------------------------------------
+void weight_dual_pathsurface_shader::set_linked_list1_size(unsigned int n) {
+  set_uniform("ll1_size", n);
+}
 //==============================================================================
 }  // namespace tatooine
 //==============================================================================

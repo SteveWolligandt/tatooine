@@ -1,0 +1,58 @@
+#version 450
+//==============================================================================
+#include "linked_list.glsl"
+//==============================================================================
+layout(binding = 2, r32f) uniform image2D weight_tex;
+layout(binding = 1) uniform atomic_uint cnt;
+//==============================================================================
+layout(local_size_x = 32, local_size_y = 32) in;
+void main() {
+  const ivec2 texpos = ivec2(gl_GlobalInvocationID.xy);
+  if (texpos.x >= ll_tex_resolution.x || texpos.y >= ll_tex_resolution.y) {
+    return;
+  }
+  const uint head_index = ll_head_index(texpos);
+  const uint size       = ll_size_at(texpos);
+  // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+  if (head_index == end_index) {
+    imageStore(weight_tex, texpos, vec4(0, 0, 0, 0));
+    return;
+  }
+
+  atomicCounterIncrement(cnt);
+  // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+  if (size > 2) {
+    float curv_acc      = 0;
+    uint  running_index = head_index;
+    while (running_index != end_index) {
+      curv_acc += ll_node_at(running_index).curvature;
+      running_index = ll_node_at(running_index).next_index;
+    }
+    imageStore(weight_tex, texpos, vec4(curv_acc / size * -size, 0, 0, 0));
+    return;
+  }
+  // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+  if (size == 1) {
+    node n = ll_node_at(head_index);
+    imageStore(weight_tex, texpos, vec4(n.curvature * n.uv.y + 1, 0, 0, 0));
+    return;
+  }
+  // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+  if (size == 2) {
+    node        n0   = ll_node_at(head_index);
+    node        n1   = ll_node_at(n0.next_index);
+    const float tau0 = n0.uv.y;
+    const float tau1 = n1.uv.y;
+    const float c0   = n0.curvature;
+    const float c1   = n1.curvature;
+
+    const float cosangle    = dot(normalize(n0.v), normalize(n1.v));
+    const float sinsinangle = 1 - cosangle * cosangle;
+    const float weighting   = 0.5 * sinsinangle;
+
+    imageStore(
+        weight_tex, texpos,
+        vec4(weighting * (c0 * tau0 + c0 + c1 * tau1 + c1) / 2, 0, 0, 0));
+    return;
+  }
+}

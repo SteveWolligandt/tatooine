@@ -62,21 +62,23 @@ class steadification {
   // members
   //============================================================================
  private:
-  const V&                  m_v;
-  ivec2                     m_render_resolution;
-  yavin::context            m_context;
-  yavin::orthographiccamera m_cam;
-  yavin::tex2rgb32f         m_color_scale;
-  yavin::texdepth           m_depth;
-  yavin::tex2r32f           m_noise_tex;
-  ssf_rasterization_shader  m_ssf_rasterization_shader;
-  domain_coverage_shader    m_domain_coverage_shader;
-  ll_to_pos_shader          m_ll_to_pos_shader;
-  integrator_t              m_integrator;
-  RandEng&                  m_rand_eng;
-  boundingbox<real_t, 3>    m_domain;
-  fragment_count_shader     m_fragment_count_shader;
-  //cache<size_t, path>
+  const V&                         m_v;
+  ivec2                            m_render_resolution;
+  yavin::context                   m_context;
+  yavin::orthographiccamera        m_cam;
+  yavin::tex2rgb32f                m_color_scale;
+  yavin::texdepth                  m_depth;
+  yavin::tex2r32f                  m_noise_tex;
+  ssf_rasterization_shader         m_ssf_rasterization_shader;
+  domain_coverage_shader           m_domain_coverage_shader;
+  ll_to_curvature_shader           m_ll_to_curvature_shader;
+  weight_single_pathsurface_shader m_weight_single_pathsurface_shader;
+  weight_dual_pathsurface_shader   m_weight_dual_pathsurface_shader;
+  integrator_t                     m_integrator;
+  RandEng&                         m_rand_eng;
+  boundingbox<real_t, 3>           m_domain;
+  fragment_count_shader            m_fragment_count_shader;
+  // cache<size_t, path>
 
   //============================================================================
   // ctor
@@ -165,11 +167,11 @@ class steadification {
   }
   //----------------------------------------------------------------------------
   /// \param seedcurve seedcurve in space-time
-  auto pathsurface(const seedcurve_t& seedcurve,
-                   real_t t0u0, real_t t0u1, real_t stepsize) const {
+  auto pathsurface(const seedcurve_t& seedcurve, real_t t0u0, real_t t0u1,
+                   real_t btau, real_t ftau, size_t seed_res, real_t stepsize) const {
     using namespace VC::odeint;
     streamsurface surf{m_v, t0u0, t0u1, seedcurve, m_integrator};
-    auto  mesh   = surf.discretize(2, stepsize, -10, 10);
+    auto  mesh   = surf.discretize(seed_res, stepsize, btau, ftau);
     auto& vprop = mesh.template add_vertex_property<vec2>("v");
     auto& curvprop = mesh.template add_vertex_property<double>("curvature");
 
@@ -200,6 +202,32 @@ class steadification {
                        real_t stepsize)const {
     return gpu_pathsurface(
         pathsurface(seedcurve, t0u0, t0u1, stepsize).first);
+  }
+  //----------------------------------------------------------------------------
+  auto weight(const rasterized_pathsurface& rast) {
+    tex2r32f weight{m_render_resolution(0), m_render_resolution(1)};
+    atomiccounterbuffer cnt{0};
+    cnt.bind(1);
+    rast.bind(0,0,1,0);
+    weight.bind_image_texture(2);
+    m_weight_single_pathsurface_shader.dispatch(32, 32);
+    m_weight_single_pathsurface_shader.set_linked_list_size(rast.buffer_size());
+    auto w = boost::accumulate(weight.download_data(), float(0));
+    return w;
+  }
+  //----------------------------------------------------------------------------
+  auto weight(const rasterized_pathsurface& rast0,
+              const rasterized_pathsurface& rast1) {
+    tex2r32f            weight{m_render_resolution(0), m_render_resolution(1)};
+    atomiccounterbuffer cnt{0};
+    rast0.bind(0, 0, 1, 0);
+    rast1.bind(1, 2, 3, 1);
+    cnt.bind(2);
+    weight.bind_image_texture(4);
+    m_weight_dual_pathsurface_shader.set_linked_list0_size(rast0.buffer_size());
+    m_weight_dual_pathsurface_shader.dispatch(32, 32);
+    auto w = boost::accumulate(weight.download_data(), float(0));
+    return w;
   }
   //----------------------------------------------------------------------------
   template <template <typename> typename SeedcurveInterpolator>
@@ -328,11 +356,11 @@ class steadification {
     return meshes;
   }
   //----------------------------------------------------------------------------
-  auto to_pos_tex(const rasterized_pathsurface& r) {
+  auto to_curvature_tex(const rasterized_pathsurface& rast) {
     tex2rgba32f v_tex{m_render_resolution(0), m_render_resolution(1)};
-    r.bind();
+    rast.bind();
     v_tex.bind_image_texture(2);
-    m_ll_to_pos_shader.dispatch(32, 32);
+    m_ll_to_curvature_shader.dispatch(32, 32);
     return v_tex;
   }
   //----------------------------------------------------------------------------

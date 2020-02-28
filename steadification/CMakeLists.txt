@@ -22,7 +22,9 @@ copy(dual_linked_list.glsl)
 copy(ssf_rasterization.vert)
 copy(ssf_rasterization.frag)
 copy(domain_coverage.comp)
-copy(ll_to_pos_tex.comp)
+copy(ll_to_curvature_tex.comp)
+copy(weight_single_pathsurface.comp)
+copy(weight_dual_pathsurface.comp)
 
 set(HDF5_LIBS -lhdf5 -lhdf5_cpp -lhdf5_hl)
 
@@ -33,8 +35,8 @@ target_compile_options(steadification PRIVATE
   -Wall -Wextra -pedantic -Wno-missing-braces -Wno-unused-lambda-capture)
 
 add_custom_target(steadification.doublegyre
-                  COMMAND ./steadification dg 0 -5 5 5000 10 0.1 0.99
+                  COMMAND ./steadification dg -10 10 5000 5 0.01 0.99
                   DEPENDS steadification)
 add_custom_target(steadification.doublegyre.debug
-                  COMMAND cgdb -- --args steadification dg 0 -5 5 5000 10 0.1 0.9
+                  COMMAND cgdb -- --args steadification dg -5 5 5000 10 0.1 0.9
                   DEPENDS steadification)
