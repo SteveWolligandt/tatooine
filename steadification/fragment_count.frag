@@ -2,4 +2,6 @@
 //==============================================================================
 layout(binding = 1) uniform atomic_uint cnt;
 //==============================================================================
-void main() { atomicCounterIncrement(cnt); }
+layout(location = 0) out float smthg;
+//==============================================================================
+void main() { atomicCounterIncrement(cnt); smthg = 1;}

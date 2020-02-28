@@ -110,6 +110,7 @@ class steadification {
         m_domain{domain} {
     yavin::disable_multisampling();
 
+    m_fragment_count_shader.set_projection(m_cam.projection_matrix());
     std::vector<float> noise(render_resolution(0) * render_resolution(1));
     random_uniform<float, RandEng> rand{m_rand_eng};
     boost::generate(noise, [&] { return rand(rand_eng); });
@@ -138,7 +139,6 @@ class steadification {
     m_ssf_rasterization_shader.bind();
     m_ssf_rasterization_shader.set_linked_list_size(psf_rast.buffer_size());
     m_ssf_rasterization_shader.set_projection(m_cam.projection_matrix());
-    m_fragment_count_shader.set_projection(m_cam.projection_matrix());
     gl::viewport(m_cam.viewport());
     yavin::disable_depth_test();
     framebuffer fbo{domain_coverage_tex};
@@ -150,12 +150,15 @@ class steadification {
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
   size_t num_rendered_fragments(const pathsurface_gpu_t& gpu_mesh) {
     using namespace yavin;
-    tex2r32f col(m_render_resolution(0), m_render_resolution(1));
+    tex2r32f col{m_render_resolution(0), m_render_resolution(1)};
     framebuffer fbo{col};
+    fbo.bind();
+
     atomiccounterbuffer cnt{0};
     cnt.bind(1);
-    fbo.bind();
+
     m_fragment_count_shader.bind();
+    yavin::gl::viewport(m_cam.viewport());
     disable_depth_test();
     gpu_mesh.draw();
     return cnt[0];

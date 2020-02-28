@@ -17,6 +17,6 @@ void main() {
 
   imageStore(position_tex, texpos,
              vec4(vec3(
-               ll_min_tau_node(texpos).curvature
+               ll_min_tau_node(texpos).curvature/8
              ),1));
 }

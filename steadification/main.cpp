@@ -24,6 +24,10 @@ void calc(const field<V, VReal, 2, 2>& v, T0Real /*t0*/, BTauReal /*btau*/,
 
 
   auto [seedcurve, t0u0, t0u1] = s.random_seedcurve(0.1, 0.2);
+  std::cerr << seedcurve.vertex_at(0) << ' ' << seedcurve.parameterization_at(0)
+            << ' ' << t0u0 << '\n';
+  std::cerr << seedcurve.vertex_at(1) << ' ' << seedcurve.parameterization_at(1)
+            << ' ' << t0u1 << '\n';
   auto [mesh, surf] = s.pathsurface(seedcurve, t0u0, t0u1, stepsize);
   s.to_pos_tex(s.rasterize(mesh, cov_tex)).write_png("pos.png");
   cov_tex.write_png("coverage.png");
