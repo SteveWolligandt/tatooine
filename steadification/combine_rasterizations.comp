@@ -1,0 +1,21 @@
+#version 450
+//==============================================================================
+#include "dual_linked_list.glsl"
+//==============================================================================
+layout (local_size_x = 32, local_size_y = 32) in;
+void main() {
+  const ivec2 texpos = ivec2(gl_GlobalInvocationID.xy);
+  if (texpos.x >= ll0_tex_resolution.x ||
+      texpos.y >= ll0_tex_resolution.y) { return; }
+
+  const uint size = ll1_size_at(texpos);
+  if (size == 0) { return; }
+  const uint head_index = ll1_head_index(texpos);
+  uint running_index = head_index;
+
+  while (running_index != end_index) {
+    node n = ll1_node_at(running_index);
+    ll0_push_back(texpos, n);
+    running_index = n.next_index;
+  }
+}

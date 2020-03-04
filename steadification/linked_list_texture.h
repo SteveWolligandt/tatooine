@@ -71,6 +71,11 @@ class linked_list_texture {
     m_head_index_clear_buffer.unbind();
   }
   //----------------------------------------------------------------------------
+  void resize_buffer(size_t size) {
+    m_linked_list.resize(size);
+    m_num_nodes = size;
+  }
+  //----------------------------------------------------------------------------
   auto width() const { return m_w; }
   auto height() const { return m_h; }
   auto buffer_size() const { return m_num_nodes; }

@@ -8,8 +8,8 @@ namespace tatooine::steadification {
 //==============================================================================
 struct vert_frag_shader : yavin::shader {
   vert_frag_shader(const std::string& vert, const std::string& frag);
-  void set_projection(const glm::mat4&);
-  void set_modelview(const glm::mat4&);
+  void set_projection(const yavin::mat4&);
+  void set_modelview(const yavin::mat4&);
 };
 //==============================================================================
 struct comp_shader : yavin::shader {
@@ -42,6 +42,12 @@ struct weight_single_pathsurface_shader : comp_shader {
 //==============================================================================
 struct weight_dual_pathsurface_shader : comp_shader {
   weight_dual_pathsurface_shader();
+  void set_linked_list0_size(unsigned int n);
+  void set_linked_list1_size(unsigned int n);
+};
+//==============================================================================
+struct combine_rasterizations_shader : comp_shader {
+  combine_rasterizations_shader();
   void set_linked_list0_size(unsigned int n);
   void set_linked_list1_size(unsigned int n);
 };

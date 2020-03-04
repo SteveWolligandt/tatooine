@@ -33,6 +33,14 @@ void calc(const field<V, VReal, 2, 2>& v, BTauReal btau, FTauReal ftau,
   s.to_curvature_tex(rast0).write_png("curv0.png");
   s.to_curvature_tex(rast1).write_png("curv1.png");
 
+  std::cerr << "rast0.buffer_size(): " << rast0.buffer_size() << '\n';
+  std::cerr << "rast1.buffer_size(): " << rast1.buffer_size() << '\n';
+  std::cerr << "rast0.buffer_size() + rast1.buffer_size(): "
+            << rast0.buffer_size() + rast1.buffer_size() << '\n';
+  rast0.resize_buffer(rast0.buffer_size() + rast1.buffer_size());
+  s.combine(rast0, rast1);
+  s.to_curvature_tex(rast0).write_png("curv_combined.png");
+
   //grid g{linspace{0.0, 2.0, 3}, linspace{0.0, 1.0, 3}};
   //size_t cnt = 0;
   //for (const auto& mesh : s.integrate_grid_edges(v, g, stepsize)) {

@@ -25,6 +25,7 @@ copy(domain_coverage.comp)
 copy(ll_to_curvature_tex.comp)
 copy(weight_single_pathsurface.comp)
 copy(weight_dual_pathsurface.comp)
+copy(combine_rasterizations.comp)
 
 set(HDF5_LIBS -lhdf5 -lhdf5_cpp -lhdf5_hl)
 
