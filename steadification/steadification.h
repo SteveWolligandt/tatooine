@@ -47,7 +47,6 @@ class steadification {
   using integrator_t =
       integration::vclibs::rungekutta43<double, 2, interpolation::hermite>;
   using seedcurve_t = parameterized_line<double, 2, interpolation::linear>;
-  using domain_coverage_tex_t = yavin::tex2r32ui;
 
   struct linked_list_node {
     vec<float, 2> pos;
@@ -65,6 +64,7 @@ class steadification {
   const V&                         m_v;
   ivec2                            m_render_resolution;
   yavin::context                   m_context;
+  tex2r32f                         m_fbotex;
   yavin::orthographiccamera        m_cam;
   yavin::tex2rgb32f                m_color_scale;
   yavin::texdepth                  m_depth;
@@ -91,6 +91,7 @@ class steadification {
       : m_v{v.as_derived()},
         m_render_resolution{render_resolution},
         m_context{4, 5},
+        m_fbotex{m_render_resolution(0), m_render_resolution(1)},
         m_cam{static_cast<float>(domain.min(0)),
               static_cast<float>(domain.max(0)),
               static_cast<float>(domain.min(1)),
@@ -125,17 +126,14 @@ class steadification {
   auto rand() { return random_uniform<real_t, RandEng>{m_rand_eng}(); }
   //----------------------------------------------------------------------------
   template <template <typename> typename SeedcurveInterpolator>
-  auto rasterize(const pathsurface_t<SeedcurveInterpolator>& mesh,
-                 domain_coverage_tex_t& domain_coverage_tex) {
-    return rasterize(gpu_pathsurface(mesh), domain_coverage_tex);
+  auto rasterize(const pathsurface_t<SeedcurveInterpolator>& mesh) {
+    return rasterize(gpu_pathsurface(mesh));
   }
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-  auto rasterize(const pathsurface_gpu_t& gpu_mesh,
-                 domain_coverage_tex_t&   domain_coverage_tex) {
+  auto rasterize(const pathsurface_gpu_t& gpu_mesh) {
     using namespace yavin;
     static const float nan       = 0.0f / 0.0f;
     const auto         num_frags = num_rendered_fragments(gpu_mesh);
-    std::cerr << "num_frags: " << num_frags << '\n';
     rasterized_pathsurface psf_rast{
         m_render_resolution(0), m_render_resolution(1), num_frags,
         linked_list_node{{nan, nan}, {nan, nan}, {nan, nan}, nan, 0xffffffff}};
@@ -144,7 +142,7 @@ class steadification {
     m_ssf_rasterization_shader.set_projection(m_cam.projection_matrix());
     gl::viewport(m_cam);
     yavin::disable_depth_test();
-    framebuffer fbo{domain_coverage_tex};
+    framebuffer fbo{m_fbotex};
     fbo.bind();
     psf_rast.bind();
     gpu_mesh.draw();
@@ -153,8 +151,7 @@ class steadification {
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
   size_t num_rendered_fragments(const pathsurface_gpu_t& gpu_mesh) {
     using namespace yavin;
-    tex2r32f    col{m_render_resolution(0), m_render_resolution(1)};
-    framebuffer fbo{col};
+    framebuffer fbo{m_fbotex};
     fbo.bind();
 
     atomiccounterbuffer cnt{0};
@@ -181,8 +178,6 @@ class steadification {
       const auto& uv             = mesh.uv(vertex);
       const auto& integral_curve = surf.streamline_at(uv(0), 0, 0);
       curvprop[vertex]           = integral_curve.curvature(uv(1));
-      // std::cerr << "curvature at uv(" << uv(0) << ", " << uv(1)
-      //          << "): " << curvprop[vertex] << '\n';
       if (m_v.in_domain(mesh[vertex], uv(1))) {
         vprop[vertex] =
             m_v(vec{mesh[vertex](0), mesh[vertex](1)}, mesh.uv(vertex)(1));
@@ -248,8 +243,6 @@ class steadification {
       const auto& integral_curve = surf.streamline_at(u, 0, 0);
       kappas.push_back(integral_curve.integrate_curvature());
       arc_lengths.push_back(integral_curve.arc_length());
-      // std::cerr << "kappas[" << i << "] = " << kappas[i] << '\n';
-      // std::cerr << "arc_lengths[" << i << "] = " << arc_lengths[i] << '\n';
       ++i;
     }
     real_t acc_kappas = 0;
@@ -272,44 +265,6 @@ class steadification {
     std::cerr << "number of covered pixels: " << cps << " / " << nps << " -> "
               << ratio << '\n';
     return ratio;
-  }
-  //----------------------------------------------------------------------------
-  template <typename Stepsize, enable_if_arithmetic<Stepsize> = true>
-  void random_domain_filling_streamsurfaces(const field<V, real_t, 2, 2>& v,
-                                            Stepsize stepsize) {
-    // constexpr auto domain = settings<V>::domain;
-    using namespace std::filesystem;
-
-    auto working_dir = std::string{settings<V>::name} + "/";
-    if (!exists(working_dir)) { create_directory(working_dir); }
-    for (const auto& entry : directory_iterator(working_dir)) { remove(entry); }
-
-    // size_t dir_count = 1;
-    // while (exists(working_dir)) {
-    //  working_dir = std::string(settings<V>::name) + "_" +
-    //  std::to_string(dir_count++) +
-    //      "/";
-    //}
-
-    domain_coverage_tex_t domain_coverage_tex{yavin::NEAREST, yavin::REPEAT,
-                                              m_render_resolution(0),
-                                              m_render_resolution(1)};
-    domain_coverage_tex.bind_image_texture(0);
-    domain_coverage_tex.clear(0);
-    std::vector<std::tuple<seedcurve_t, real_t, real_t>> seed_curves;
-    // std::vector<rasterized_pathsurface>      rasterizations;
-
-    size_t i = 0;
-    while (domain_coverage() < 0.99) {
-      seed_curves.emplace_back(random_seedcurve(0.1, 0.2));
-      const auto& [seedcurve, t0u0, t0u1] = seed_curves.back();
-      auto rast =
-          rasterize(v, seedcurve, t0u0, t0u1, domain_coverage_tex, stepsize);
-#if YAVIN_HAS_PNG_SUPPORT
-      rast.pos.write_png(working_dir + "pos_" + std::to_string(i++) + ".png");
-      domain_coverage_tex.write_png(working_dir + "coverage.png");
-#endif
-    }
   }
   //----------------------------------------------------------------------------
   auto random_seedcurve(real_t min_dist = 0,
@@ -366,14 +321,10 @@ class steadification {
     return v_tex;
   }
   //----------------------------------------------------------------------------
-  auto make_domain_coverage_tex() const {
-    return domain_coverage_tex_t{m_render_resolution(0),
-                                 m_render_resolution(1)};
-  }
-  //----------------------------------------------------------------------------
   /// rast1 gets written in rast0. rast0 must have additional space to be able
   /// to hold rast1.
   void combine(rasterized_pathsurface& rast0, rasterized_pathsurface& rast1) {
+    rast0.resize_buffer(rast0.buffer_size() + rast1.buffer_size());
     rast0.bind(0, 0, 1, 0);
     m_combine_rasterizations_shader.set_linked_list0_size(rast0.buffer_size());
 
@@ -382,7 +333,6 @@ class steadification {
 
     m_combine_rasterizations_shader.dispatch(m_render_resolution(0) / 32.0 + 1,
                                              m_render_resolution(1) / 32.0 + 1);
-    std::cerr << "counter: " << rast0.counter()[0] << '\n';
   }
 };
 //==============================================================================

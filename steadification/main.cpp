@@ -18,26 +18,19 @@ void calc(const field<V, VReal, 2, 2>& v, BTauReal btau, FTauReal ftau,
   std::mt19937_64 randeng{seed};
   steadification  s(v, settings<V>::domain, settings<V>::render_resolution,
                    randeng);
-  auto cov_tex = s.make_domain_coverage_tex();
-
 
   auto [seedcurve0, t0u00, t0u10] = s.random_seedcurve(0.1, 0.2);
   auto [seedcurve1, t0u01, t0u11] = s.random_seedcurve(0.1, 0.2);
   auto [mesh0, surf0] = s.pathsurface(seedcurve0, t0u00, t0u10, btau, ftau, seed_res, stepsize);
   auto [mesh1, surf1] = s.pathsurface(seedcurve1, t0u01, t0u11, btau, ftau, seed_res, stepsize);
-  auto rast0 = s.rasterize(mesh0, cov_tex);
-  auto rast1 = s.rasterize(mesh1, cov_tex);
+  auto rast0 = s.rasterize(mesh0);
+  auto rast1 = s.rasterize(mesh1);
   std::cerr << "single weight 0: " << s.weight(rast0) << '\n';
   std::cerr << "single weight 1: " << s.weight(rast1) << '\n';
   std::cerr << "dual weight: " << s.weight(rast0, rast1) << '\n';
   s.to_curvature_tex(rast0).write_png("curv0.png");
   s.to_curvature_tex(rast1).write_png("curv1.png");
 
-  std::cerr << "rast0.buffer_size(): " << rast0.buffer_size() << '\n';
-  std::cerr << "rast1.buffer_size(): " << rast1.buffer_size() << '\n';
-  std::cerr << "rast0.buffer_size() + rast1.buffer_size(): "
-            << rast0.buffer_size() + rast1.buffer_size() << '\n';
-  rast0.resize_buffer(rast0.buffer_size() + rast1.buffer_size());
   s.combine(rast0, rast1);
   s.to_curvature_tex(rast0).write_png("curv_combined.png");
 
