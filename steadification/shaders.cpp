@@ -45,12 +45,6 @@ void ssf_rasterization_shader::set_linked_list_size(unsigned int n) {
 }
 
 //==============================================================================
-// domain_coverage_shader
-//==============================================================================
-domain_coverage_shader::domain_coverage_shader()
-    : comp_shader{"domain_coverage.comp"} {}
-
-//==============================================================================
 // ll_to_pos
 //==============================================================================
 ll_to_curvature_shader::ll_to_curvature_shader()
@@ -98,5 +92,13 @@ void combine_rasterizations_shader::set_linked_list1_size(unsigned int n) {
   set_uniform("ll1_size", n);
 }
 //==============================================================================
-}  // namespace tatooine
+// coverage
+//==============================================================================
+coverage_shader::coverage_shader() : comp_shader{"coverage.comp"} {}
+//------------------------------------------------------------------------------
+void coverage_shader::set_linked_list_size(unsigned int n) {
+  set_uniform("ll_size", n);
+}
+//==============================================================================
+}  // namespace tatooine::steadification
 //==============================================================================

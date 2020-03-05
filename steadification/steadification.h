@@ -70,7 +70,6 @@ class steadification {
   yavin::texdepth                  m_depth;
   yavin::tex2r32f                  m_noise_tex;
   ssf_rasterization_shader         m_ssf_rasterization_shader;
-  domain_coverage_shader           m_domain_coverage_shader;
   ll_to_curvature_shader           m_ll_to_curvature_shader;
   weight_single_pathsurface_shader m_weight_single_pathsurface_shader;
   weight_dual_pathsurface_shader   m_weight_dual_pathsurface_shader;
@@ -79,7 +78,7 @@ class steadification {
   boundingbox<real_t, 3>           m_domain;
   fragment_count_shader            m_fragment_count_shader;
   combine_rasterizations_shader    m_combine_rasterizations_shader;
-  // cache<size_t, path>
+  coverage_shader                  m_coverage_shader;
 
   //============================================================================
   // ctor
@@ -251,21 +250,6 @@ class steadification {
     }
     return acc_kappas / boost::accumulate(arc_lengths, real_t(0));
   }
-  //============================================================================
-  /// \return coverage of domain between 0 and 1; 1 meaning fully covered
-  auto domain_coverage() const {
-    yavin::atomiccounterbuffer covered_pixels{0};
-    covered_pixels.bind(0);
-    m_domain_coverage_shader.dispatch(m_render_resolution(0) / 32.0 + 1,
-                                      m_render_resolution(1) / 32.0 + 1);
-
-    const auto cps   = covered_pixels.front();
-    const auto nps   = m_render_resolution(0) * m_render_resolution(1);
-    const auto ratio = static_cast<double>(cps) / static_cast<double>(nps);
-    std::cerr << "number of covered pixels: " << cps << " / " << nps << " -> "
-              << ratio << '\n';
-    return ratio;
-  }
   //----------------------------------------------------------------------------
   auto random_seedcurve(real_t min_dist = 0,
                         real_t max_dist = std::numeric_limits<real_t>::max()) {
@@ -291,18 +275,14 @@ class steadification {
         x1(2)};
   }
   //----------------------------------------------------------------------------
-  auto integrate_grid_edges(const field<V, real_t, 2, 2>& v,
-                            const grid<real_t, 2>&        domain,
-                            real_t                        stepsize) const {
+  auto integrate_grid_edges(const grid<real_t, 2>& domain,
+                            real_t                 stepsize) const {
     using namespace std::filesystem;
     auto working_dir = std::string{settings<V>::name} + "/";
     if (!exists(working_dir)) { create_directory(working_dir); }
     for (const auto& entry : directory_iterator(working_dir)) { remove(entry); }
 
-    const size_t num_edges = domain.size(0) * (domain.size(1) - 1) +
-                             domain.size(1) * (domain.size(0) - 1);
-    size_t                                                           cnt = 0;
-    std::vector<pathsurface_discretization_t<interpolation::linear>> meshes;
+    std::list<pathsurface_discretization_t<interpolation::linear>>   meshes;
     for (size_t i = 0; i < domain.num_straight_edges(); ++i) {
       auto        e = domain.edge_at(i);
       seedcurve_t seedcurve{{e.first.position(), 0}, {e.second.position(), 1}};
@@ -319,6 +299,17 @@ class steadification {
     m_ll_to_curvature_shader.dispatch(m_render_resolution(0) / 32.0 + 1,
                                       m_render_resolution(1) / 32.0 + 1);
     return v_tex;
+  }
+  //----------------------------------------------------------------------------
+  auto coverage(rasterized_pathsurface& rast) {
+    atomiccounterbuffer cnt{0};
+    cnt.bind(1);
+    rast.bind(0, 0, 1, 0);
+
+    m_coverage_shader.set_linked_list_size(rast.buffer_size());
+    m_coverage_shader.dispatch(m_render_resolution(0) / 32.0 + 1,
+                               m_render_resolution(1) / 32.0 + 1);
+    return cnt.download_data()[0];
   }
   //----------------------------------------------------------------------------
   /// rast1 gets written in rast0. rast0 must have additional space to be able

@@ -23,10 +23,6 @@ struct ssf_rasterization_shader : vert_frag_shader {
   void set_linked_list_size(unsigned int n);
 };
 //==============================================================================
-struct domain_coverage_shader : comp_shader {
-  domain_coverage_shader();
-};
-//==============================================================================
 struct ll_to_curvature_shader : comp_shader {
   ll_to_curvature_shader();
 };
@@ -50,6 +46,11 @@ struct combine_rasterizations_shader : comp_shader {
   combine_rasterizations_shader();
   void set_linked_list0_size(unsigned int n);
   void set_linked_list1_size(unsigned int n);
+};
+//==============================================================================
+struct coverage_shader : comp_shader {
+  coverage_shader();
+  void set_linked_list_size(unsigned int n);
 };
 //==============================================================================
 }  // namespace tatooine::steadification

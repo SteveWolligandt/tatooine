@@ -21,11 +21,11 @@ copy(fragment_count.frag)
 copy(dual_linked_list.glsl)
 copy(ssf_rasterization.vert)
 copy(ssf_rasterization.frag)
-copy(domain_coverage.comp)
 copy(ll_to_curvature_tex.comp)
 copy(weight_single_pathsurface.comp)
 copy(weight_dual_pathsurface.comp)
 copy(combine_rasterizations.comp)
+copy(coverage.comp)
 
 set(HDF5_LIBS -lhdf5 -lhdf5_cpp -lhdf5_hl)
 

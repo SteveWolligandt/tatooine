@@ -25,14 +25,17 @@ void calc(const field<V, VReal, 2, 2>& v, BTauReal btau, FTauReal ftau,
   auto [mesh1, surf1] = s.pathsurface(seedcurve1, t0u01, t0u11, btau, ftau, seed_res, stepsize);
   auto rast0 = s.rasterize(mesh0);
   auto rast1 = s.rasterize(mesh1);
+  std::cerr << "num pixels 0: " << s.coverage(rast0) << '\n';
+  std::cerr << "num pixels 1: " << s.coverage(rast1) << '\n';
   std::cerr << "single weight 0: " << s.weight(rast0) << '\n';
   std::cerr << "single weight 1: " << s.weight(rast1) << '\n';
-  std::cerr << "dual weight: " << s.weight(rast0, rast1) << '\n';
+  std::cerr << "dual weight:     " << s.weight(rast0, rast1) << '\n';
   s.to_curvature_tex(rast0).write_png("curv0.png");
   s.to_curvature_tex(rast1).write_png("curv1.png");
 
   s.combine(rast0, rast1);
   s.to_curvature_tex(rast0).write_png("curv_combined.png");
+  std::cerr << "num pixels combined: " << s.coverage(rast0) << '\n';
 
   //grid g{linspace{0.0, 2.0, 3}, linspace{0.0, 1.0, 3}};
   //size_t cnt = 0;
