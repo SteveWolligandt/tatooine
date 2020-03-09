@@ -53,6 +53,12 @@ struct coverage_shader : comp_shader {
   void set_linked_list_size(unsigned int n);
 };
 //==============================================================================
+struct dual_coverage_shader : comp_shader {
+  dual_coverage_shader();
+  void set_linked_list0_size(unsigned int n);
+  void set_linked_list1_size(unsigned int n);
+};
+//==============================================================================
 }  // namespace tatooine::steadification
 //==============================================================================
 #endif

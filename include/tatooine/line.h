@@ -1274,7 +1274,8 @@ struct parameterized_line : line<Real, N> {
   }
   //----------------------------------------------------------------------------
   /// sample curvature
-  auto curvature(Real t) const {
+  Real curvature(Real t) const {
+    if (num_vertices() <= 1) { return -1; }
     const auto left = binary_search_index(t);
 
     // interpolate

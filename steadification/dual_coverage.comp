@@ -1,0 +1,15 @@
+#version 450
+//==============================================================================
+#include "dual_linked_list.glsl"
+//==============================================================================
+layout(local_size_x = 32, local_size_y = 32) in;
+layout(binding = 2) uniform atomic_uint cnt;
+//==============================================================================
+void main() {
+  const ivec2 texpos = ivec2(gl_GlobalInvocationID.xy);
+  if (texpos.x >= ll0_tex_resolution.x ||
+      texpos.y >= ll0_tex_resolution.y) { return; }
+  if (ll0_size_at(texpos) == 0 && ll1_size_at(texpos) > 0) {
+    atomicCounterIncrement(cnt);
+  }
+}

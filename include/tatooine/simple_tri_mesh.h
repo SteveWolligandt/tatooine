@@ -91,14 +91,14 @@ class simple_tri_mesh : public pointset<Real, N>{
  public:
   simple_tri_mesh(const simple_tri_mesh& other) : parent_t{other}, m_faces{other.m_faces} {
     for (const auto& [key, fprop] : other.m_face_properties) {
-      m_face_properties.insert(std::pair{key, fprop.clone()});
+      m_face_properties.insert(std::pair{key, fprop->clone()});
     }
   }
   simple_tri_mesh& operator=(const simple_tri_mesh& other) {
     parent_t::operator=(other);
     m_faces    = other.m_faces;
     for (const auto& [key, fprop] : other.m_face_properties) {
-      m_face_properties.insert(std::pair{key, fprop.clone()});
+      m_face_properties.insert(std::pair{key, fprop->clone()});
     }
   }
   simple_tri_mesh(simple_tri_mesh&& other) = default;

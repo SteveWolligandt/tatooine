@@ -100,5 +100,17 @@ void coverage_shader::set_linked_list_size(unsigned int n) {
   set_uniform("ll_size", n);
 }
 //==============================================================================
+// dual_coverage
+//==============================================================================
+dual_coverage_shader::dual_coverage_shader() : comp_shader{"dual_coverage.comp"} {}
+//------------------------------------------------------------------------------
+void dual_coverage_shader::set_linked_list0_size(unsigned int n) {
+  set_uniform("ll0_size", n);
+}
+//------------------------------------------------------------------------------
+void dual_coverage_shader::set_linked_list1_size(unsigned int n) {
+  set_uniform("ll1_size", n);
+}
+//==============================================================================
 }  // namespace tatooine::steadification
 //==============================================================================

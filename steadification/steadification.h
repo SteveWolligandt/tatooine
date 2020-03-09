@@ -1,6 +1,7 @@
 #ifndef STEADIFICATION_STEADIFICATION_H
 #define STEADIFICATION_STEADIFICATION_H
 
+#include <omp.h>
 #include <tatooine/for_loop.h>
 #include <tatooine/integration/vclibs/rungekutta43.h>
 #include <tatooine/interpolation.h>
@@ -49,9 +50,9 @@ class steadification {
   using seedcurve_t = parameterized_line<double, 2, interpolation::linear>;
 
   struct linked_list_node {
-    vec<float, 2> pos;
-    vec<float, 2> v;
-    vec<float, 2> uv;
+    yavin::vec<float, 2> pos;
+    yavin::vec<float, 2> v;
+    yavin::vec<float, 2> uv;
     float         curvature;
     unsigned int  next;
   };
@@ -79,6 +80,7 @@ class steadification {
   fragment_count_shader            m_fragment_count_shader;
   combine_rasterizations_shader    m_combine_rasterizations_shader;
   coverage_shader                  m_coverage_shader;
+  dual_coverage_shader             m_dual_coverage_shader;
 
   //============================================================================
   // ctor
@@ -123,6 +125,12 @@ class steadification {
   // methods
   //============================================================================
   auto rand() { return random_uniform<real_t, RandEng>{m_rand_eng}(); }
+  //----------------------------------------------------------------------------
+  template <template <typename> typename SeedcurveInterpolator>
+  auto rasterize(
+      const pathsurface_discretization_t<SeedcurveInterpolator>& mesh) {
+    return rasterize(gpu_pathsurface(mesh));
+  }
   //----------------------------------------------------------------------------
   template <template <typename> typename SeedcurveInterpolator>
   auto rasterize(const pathsurface_t<SeedcurveInterpolator>& mesh) {
@@ -275,21 +283,40 @@ class steadification {
         x1(2)};
   }
   //----------------------------------------------------------------------------
-  auto integrate_grid_edges(const grid<real_t, 2>& domain,
-                            real_t                 stepsize) const {
+  auto integrate_grid_edges(const grid<real_t, 2>& domain, real_t t0,
+                            real_t btau, real_t ftau, size_t seed_res,
+                            real_t stepsize) const {
+    std::cerr << "integrating grid edges\n";
     using namespace std::filesystem;
-    auto working_dir = std::string{settings<V>::name} + "/";
-    if (!exists(working_dir)) { create_directory(working_dir); }
-    for (const auto& entry : directory_iterator(working_dir)) { remove(entry); }
-
     std::list<pathsurface_discretization_t<interpolation::linear>>   meshes;
+    omp_lock_t writelock;
+
+    omp_init_lock(&writelock);
+#pragma omp parallel for
     for (size_t i = 0; i < domain.num_straight_edges(); ++i) {
       auto        e = domain.edge_at(i);
       seedcurve_t seedcurve{{e.first.position(), 0}, {e.second.position(), 1}};
+      const auto  mesh =
+          pathsurface(seedcurve, t0, t0, btau, ftau, seed_res, stepsize).first;
 
-      meshes.push_back(pathsurface(seedcurve, 0, 0, stepsize).first);
+      omp_set_lock(&writelock);
+      meshes.push_back(std::move(mesh));
+      omp_unset_lock(&writelock);
     }
     return meshes;
+  }
+  //----------------------------------------------------------------------------
+  template <template <typename> typename SeedcurveInterpolator>
+  auto rasterize(
+      const std::list<pathsurface_discretization_t<SeedcurveInterpolator>>&
+          meshes) {
+    std::cerr << "rasterizing meshes\n";
+    using namespace std::filesystem;
+    std::list<rasterized_pathsurface> rasts;
+    for (const auto& mesh : meshes) {
+      if (mesh.num_faces() > 0) { rasts.push_back(rasterize(mesh)); }
+    }
+    return rasts;
   }
   //----------------------------------------------------------------------------
   auto to_curvature_tex(const rasterized_pathsurface& rast) {
@@ -302,6 +329,16 @@ class steadification {
   }
   //----------------------------------------------------------------------------
   auto coverage(rasterized_pathsurface& rast) {
+    return static_cast<real_t>(num_covered_pixels(rast)) /
+           (m_render_resolution(0) * m_render_resolution(1));
+  }
+  //----------------------------------------------------------------------------
+  auto coverage(rasterized_pathsurface& rast0, rasterized_pathsurface& rast1) {
+    return static_cast<real_t>(num_covered_pixels(rast0, rast1)) /
+           (m_render_resolution(0) * m_render_resolution(1));
+  }
+  //----------------------------------------------------------------------------
+  auto num_covered_pixels(rasterized_pathsurface& rast) {
     atomiccounterbuffer cnt{0};
     cnt.bind(1);
     rast.bind(0, 0, 1, 0);
@@ -309,6 +346,21 @@ class steadification {
     m_coverage_shader.set_linked_list_size(rast.buffer_size());
     m_coverage_shader.dispatch(m_render_resolution(0) / 32.0 + 1,
                                m_render_resolution(1) / 32.0 + 1);
+    return cnt.download_data()[0];
+  }
+  //----------------------------------------------------------------------------
+  auto num_covered_pixels(rasterized_pathsurface& rast0,
+                          rasterized_pathsurface& rast1) {
+    atomiccounterbuffer cnt{0};
+    cnt.bind(2);
+    rast0.bind(0, 0, 1, 0);
+    m_dual_coverage_shader.set_linked_list0_size(rast0.buffer_size());
+
+    rast1.bind(1, 2, 3, 1);
+    m_dual_coverage_shader.set_linked_list1_size(rast1.buffer_size());
+
+    m_dual_coverage_shader.dispatch(m_render_resolution(0) / 32.0 + 1,
+                                    m_render_resolution(1) / 32.0 + 1);
     return cnt.download_data()[0];
   }
   //----------------------------------------------------------------------------
@@ -324,6 +376,60 @@ class steadification {
 
     m_combine_rasterizations_shader.dispatch(m_render_resolution(0) / 32.0 + 1,
                                              m_render_resolution(1) / 32.0 + 1);
+  }
+  //----------------------------------------------------------------------------
+  auto greedy_set_cover(const grid<real_t, 2>& domain, real_t t0,
+                        real_t btau, real_t ftau, size_t seed_res,
+                        real_t stepsize, real_t desired_coverage) {
+    return greedy_set_cover(rasterize(integrate_grid_edges(
+                                domain, t0, btau, ftau, seed_res, stepsize)),
+                            desired_coverage);
+  }
+  //----------------------------------------------------------------------------
+  auto greedy_set_cover(std::list<rasterized_pathsurface>&& subsets,
+                        real_t                              desired_coverage) {
+    static const float nan       = 0.0f / 0.0f;
+    rasterized_pathsurface covered_elements{
+        m_render_resolution(0), m_render_resolution(1), 0,
+        linked_list_node{{nan, nan}, {nan, nan}, {nan, nan}, nan, 0xffffffff}};
+
+    using namespace std::filesystem;
+    auto working_dir = std::string{settings<V>::name} + "/";
+    if (!exists(working_dir)) { create_directory(working_dir); }
+    for (const auto& entry : directory_iterator(working_dir)) { remove(entry); }
+
+    auto best_subset_it = end(subsets);
+    real_t best_weight = -std::numeric_limits<real_t>::max();
+    real_t old_best_weight = best_weight;
+    size_t cnt             = 0;
+    do {
+      if (best_subset_it != end(subsets)) { subsets.erase(best_subset_it); }
+
+      old_best_weight = best_weight;
+      best_weight = -std::numeric_limits<real_t>::max();
+      best_subset_it  = end(subsets);
+      for (auto subset_it = begin(subsets); subset_it != end(subsets);
+           ++subset_it) {
+        //const auto new_weight = weight(covered_elements, *subset_it);
+        const auto new_weight = coverage(covered_elements, *subset_it);
+        if (new_weight > best_weight) {
+          best_weight    = new_weight;
+          best_subset_it = subset_it;
+        }
+      }
+      if (best_subset_it != end(subsets)) {
+        combine(covered_elements, *best_subset_it);
+        to_curvature_tex(covered_elements)
+            .write_png(working_dir + "/" + std::to_string(cnt++) + ".png");
+        to_curvature_tex(covered_elements)
+            .write_png(working_dir + "/../current.png");
+      }
+      std::cerr << coverage(covered_elements) << '\n';
+    } while (coverage(covered_elements) < desired_coverage &&
+             //best_weight > old_best_weight &&
+             best_subset_it != end(subsets));
+
+    return covered_elements;
   }
 };
 //==============================================================================
