@@ -10,6 +10,10 @@ out vec4 out_color;
 uniform vec3  color;
 uniform float line_width;
 uniform float contour_width;
+uniform float shininess;
+uniform float ambient_factor;
+uniform float diffuse_factor;
+uniform float specular_factor;
 //------------------------------------------------------------------------------
 void main() {
   if (line_width - abs(frag_contour_parameterization) < contour_width) {
@@ -20,13 +24,12 @@ void main() {
   vec3  T         = normalize(frag_tangent);
   float LT        = dot(L, T);
   float VT        = dot(V, T);
-  float shininess = 10;
   float diffuse   = clamp(sqrt(1 - LT * LT), 0, 1);
   float specular  = clamp(pow(
       LT * VT - sqrt(1 - LT * LT) * sqrt(1 - VT * VT), shininess), 0,1);
   out_color.rgb = vec3(0);
-  out_color.rgb += 0.5 * color;
-  out_color.rgb += 0.5 * diffuse * color;
-  out_color.rgb += specular * vec3(1);
+  out_color.rgb += ambient_factor * color;
+  out_color.rgb += diffuse_factor * diffuse * color;
+  out_color.rgb += specular_factor * specular * vec3(1);
   out_color.a = 1;
 }

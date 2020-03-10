@@ -8,8 +8,8 @@
 #include <tatooine/boundingbox.h>
 template <typename F>
 struct listener : yavin::window_listener {
-  F& f;
-  listener(F _f) : f{std::forward<F>(_f)} {}
+  const F& f;
+  listener(const F& _f) : f{_f} {}
   void on_key_pressed(yavin::key k) override { f(k); }
 };
 int main() {
@@ -18,7 +18,13 @@ int main() {
   float               col[3]        = {1.0f, 0.0f, 0.0f};
   float               line_width    = 0.01f;
   float               contour_width = 0.005f;
-  gpu::line_shader    shader{col[0], col[1], col[2], line_width, contour_width};
+  float               ambient_factor = 0.5f;
+  float               diffuse_factor = 0.5f;
+  float               specular_factor = 1.0f;
+  float               shininess       = 10.0f;
+  auto                shader          = std::make_unique<gpu::line_shader>(
+      col[0], col[1], col[2], line_width, contour_width, ambient_factor,
+      diffuse_factor, specular_factor, shininess);
   using integrator_t = integration::vclibs::rungekutta43<double, 3, interpolation::linear>;
   integrator_t                        integrator;
   numerical::doublegyre               v;
@@ -29,25 +35,36 @@ int main() {
   for (size_t i = 0; i < 100; ++i) {
     lines.push_back(integrator.integrate(vst,bb.random_point(), 0, 10));
   }
-  auto key_pressed = [&](auto k) {
-    if (k == yavin::KEY_SPACE) { shader = gpu::line_shader{col[0], col[1], col[2], line_width, contour_width}; }
+  const auto key_pressed = [&](auto k) {
+    if (k == yavin::KEY_SPACE) {
+      shader = std::make_unique<gpu::line_shader>(col[0], col[1], col[2],
+                                                  line_width, contour_width);
+    }
   };
   listener l{key_pressed};
   w.add_listener(l);
 
   auto line_renderers = gpu::upload(lines);
   w.render_loop([&]() {
-    shader.set_color(col[0], col[1], col[2]);
-    shader.set_line_width(line_width);
-    shader.set_contour_width(contour_width);
     yavin::gl::clear_color(255, 255, 255, 255);
     yavin::clear_color_depth_buffer();
-    shader.bind();
-    shader.set_modelview_matrix(w.view_matrix());
-    shader.set_projection_matrix(w.projection_matrix());
+    shader->set_modelview_matrix(w.view_matrix());
+    shader->set_projection_matrix(w.projection_matrix());
+    shader->set_color(col[0], col[1], col[2]);
+    shader->set_line_width(line_width);
+    shader->set_contour_width(contour_width);
+    shader->set_ambient_factor(ambient_factor);
+    shader->set_diffuse_factor(diffuse_factor);
+    shader->set_specular_factor(specular_factor);
+    shader->set_shininess(shininess);
+    shader->bind();
     for (auto& renderer : line_renderers) { renderer.draw_lines(); }
     ImGui::SliderFloat("line width", &line_width, 0.0f, 0.1f);
     ImGui::SliderFloat("contour width", &contour_width, 0.0f, line_width);
+    ImGui::SliderFloat("ambient factor", &ambient_factor, 0.0f, 1.0f);
+    ImGui::SliderFloat("diffuse factor", &diffuse_factor, 0.0f, 1.0f);
+    ImGui::SliderFloat("specular factor", &specular_factor, 0.0f, 1.0f);
+    ImGui::SliderFloat("shininess", &shininess, 1.0f, 50.0f);
     ImGui::ColorEdit3("line color", col);
   });
 }

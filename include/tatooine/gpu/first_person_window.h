@@ -73,8 +73,6 @@ struct first_person_window : yavin::window, yavin::window_listener {
       const auto right = cross(yavin::vec3{0, 1, 0}, -m_look_at);
       m_eye += right / ms;
     }
-    std::cerr << "eye: " << m_eye << '\n';
-    std::cerr << "look_at: " << m_look_at << '\n';
     m_cam.look_at(m_eye, m_eye + m_look_at + 0.1);
   }
   //----------------------------------------------------------------------------
