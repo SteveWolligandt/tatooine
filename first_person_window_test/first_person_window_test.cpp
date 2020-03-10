@@ -1,3 +1,4 @@
+#include <tatooine/boundingbox.h>
 #include <tatooine/doublegyre.h>
 #include <tatooine/gpu/first_person_window.h>
 #include <tatooine/gpu/line_renderer.h>
@@ -5,7 +6,6 @@
 #include <tatooine/integration/vclibs/rungekutta43.h>
 #include <tatooine/interpolation.h>
 #include <tatooine/spacetime_field.h>
-#include <tatooine/boundingbox.h>
 template <typename F>
 struct key_pressed_listener : yavin::window_listener {
   const F& f;
@@ -15,6 +15,8 @@ struct key_pressed_listener : yavin::window_listener {
 int main() {
   using namespace tatooine;
   first_person_window w;
+  double              btau = -10, ftau = 10;
+  bool                show_gui        = true;
   float               col[3]          = {1.0f, 0.0f, 0.0f};
   float               line_width      = 0.01f;
   float               contour_width   = 0.005f;
@@ -24,7 +26,7 @@ int main() {
   float               shininess       = 10.0f;
   bool                animate         = false;
   float               time            = 0.0f;
-  auto                shader          = std::make_unique<gpu::line_shader>(
+  auto                shader = std::make_unique<gpu::line_shader>(
       col[0], col[1], col[2], line_width, contour_width, ambient_factor,
       diffuse_factor, specular_factor, shininess);
   using integrator_t =
@@ -36,10 +38,13 @@ int main() {
 
   std::vector<integrator_t::integral_t> lines;
   for (size_t i = 0; i < 100; ++i) {
-    lines.push_back(integrator.integrate(vst, bb.random_point(), 0, 10));
+    lines.push_back(
+        integrator.integrate(vst, bb.random_point(), 0, btau, ftau));
   }
   const auto key_pressed = [&](auto k) {
-    if (k == yavin::KEY_SPACE) {
+    if (k == yavin::KEY_F1) {
+      show_gui = !show_gui;
+    } else if (k == yavin::KEY_SPACE) {
       try {
         shader = std::make_unique<gpu::line_shader>(col[0], col[1], col[2],
                                                     line_width, contour_width);
@@ -53,12 +58,16 @@ int main() {
   w.render_loop([&](const auto& dt) {
     auto ms = static_cast<float>(
         std::chrono::duration_cast<std::chrono::milliseconds>(dt).count());
-    time += ms / 500;
-    while (time > 11) { time -= 11; }
+    if (animate) {
+      time += ms / 500;
+      while (time > ftau+1) { time = btau; }
+    } else {
+      time = btau;
+    }
     yavin::gl::clear_color(255, 255, 255, 255);
     yavin::clear_color_depth_buffer();
-      yavin::enable_blending();
-      yavin::blend_func_alpha();
+    yavin::enable_blending();
+    yavin::blend_func_alpha();
     shader->set_modelview_matrix(w.view_matrix());
     shader->set_projection_matrix(w.projection_matrix());
     shader->set_color(col[0], col[1], col[2]);
@@ -72,14 +81,18 @@ int main() {
     shader->set_time(time);
     shader->bind();
     for (auto& renderer : line_renderers) { renderer.draw_lines(); }
-    ImGui::Text(std::to_string(time).c_str());
-    ImGui::SliderFloat("line width", &line_width, 0.0f, 0.1f);
-    ImGui::SliderFloat("contour width", &contour_width, 0.0f, line_width);
-    ImGui::SliderFloat("ambient factor", &ambient_factor, 0.0f, 1.0f);
-    ImGui::SliderFloat("diffuse factor", &diffuse_factor, 0.0f, 1.0f);
-    ImGui::SliderFloat("specular factor", &specular_factor, 0.0f, 1.0f);
-    ImGui::SliderFloat("shininess", &shininess, 1.0f, 50.0f);
-    ImGui::Checkbox("animate", &animate);
-    ImGui::ColorEdit3("line color", col);
+    if (show_gui) {
+      ImGui::Begin("settings", &show_gui);
+      ImGui::SliderFloat("line width", &line_width, 0.0f, 0.1f);
+      ImGui::SliderFloat("contour width", &contour_width, 0.0f, line_width);
+      ImGui::SliderFloat("ambient factor", &ambient_factor, 0.0f, 1.0f);
+      ImGui::SliderFloat("diffuse factor", &diffuse_factor, 0.0f, 1.0f);
+      ImGui::SliderFloat("specular factor", &specular_factor, 0.0f, 1.0f);
+      ImGui::SliderFloat("shininess", &shininess, 1.0f, 50.0f);
+      ImGui::ColorEdit3("line color", col);
+      ImGui::Checkbox("animate", &animate);
+      if (animate) { ImGui::Text("time %f", time); }
+      ImGui::End();
+    }
   });
 }
