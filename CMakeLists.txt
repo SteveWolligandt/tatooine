@@ -43,11 +43,15 @@ set(TATOOINE_LIC_COMP_SHADER
 configure_file("${CMAKE_CURRENT_SOURCE_DIR}/include/tatooine/gpu/lic.h.in"
                "${CMAKE_CURRENT_BINARY_DIR}/include/tatooine/gpu/lic.h")
 
+set(TATOOINE_LINE_SHADER_VERT_PATH ${CMAKE_CURRENT_SOURCE_DIR}/include/tatooine/gpu/line.vert)
+set(TATOOINE_LINE_SHADER_GEOM_PATH ${CMAKE_CURRENT_SOURCE_DIR}/include/tatooine/gpu/line.geom)
+set(TATOOINE_LINE_SHADER_FRAG_PATH ${CMAKE_CURRENT_SOURCE_DIR}/include/tatooine/gpu/line.frag)
+configure_file("${CMAKE_CURRENT_SOURCE_DIR}/include/tatooine/gpu/line_shader.h.in"
+               "${CMAKE_CURRENT_BINARY_DIR}/include/tatooine/gpu/line_shader.h")
 #- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 # create library target
 add_library(tatooine INTERFACE)
 target_compile_features(tatooine INTERFACE cxx_std_17)
-
 #- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 # set include dirs
 target_include_directories(tatooine
@@ -82,9 +86,9 @@ add_subdirectory(test)
 add_subdirectory(benchmarks)
 add_subdirectory(doc)
 add_subdirectory(misc)
-#add_subdirectory(cuda)
 add_subdirectory(steadification)
 add_subdirectory(material_science)
+add_subdirectory(first_person_window_test)
 
 #- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 # This makes the project importable from the build directory

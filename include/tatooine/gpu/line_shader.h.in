@@ -1,0 +1,46 @@
+#ifndef TATOOINE_LINE_SHADER_H
+#define TATOOINE_LINE_SHADER_H
+//==============================================================================
+#include <string_view>
+#include <yavin/shader.h>
+//==============================================================================
+namespace tatooine::gpu {
+//==============================================================================
+struct line_shader : yavin::shader{
+  std::string_view vert_shader_path = "@TATOOINE_LINE_SHADER_VERT_PATH@";
+  std::string_view geom_shader_path = "@TATOOINE_LINE_SHADER_GEOM_PATH@";
+  std::string_view frag_shader_path = "@TATOOINE_LINE_SHADER_FRAG_PATH@";
+  //==============================================================================
+  line_shader(float r = 1, float g = 1, float b = 1, float line_width = 10,
+              float contour_width = 2) {
+    add_stage<yavin::vertexshader>(vert_shader_path.data());
+    add_stage<yavin::geometryshader>(geom_shader_path.data());
+    add_stage<yavin::fragmentshader>(frag_shader_path.data());
+    create();
+    set_color(r, g, b);
+    set_line_width(line_width);
+    set_contour_width(contour_width);
+  }
+  //------------------------------------------------------------------------------
+  void set_projection_matrix(const yavin::mat4& projection_matrix) {
+    set_uniform("projection_matrix", projection_matrix);
+  }
+  //------------------------------------------------------------------------------
+  void set_modelview_matrix(const yavin::mat4& modelview_matrix) {
+    set_uniform("modelview_matrix", modelview_matrix);
+  }
+  //------------------------------------------------------------------------------
+  void set_color(float r, float g, float b) { set_uniform("color", r, g, b); }
+  //------------------------------------------------------------------------------
+  void set_line_width(float line_width) {
+    set_uniform("line_width", line_width);
+  }
+  //------------------------------------------------------------------------------
+  void set_contour_width(float contour_width) {
+    set_uniform("contour_width", contour_width);
+  }
+};
+//==============================================================================
+}  // namespace tatooine
+//==============================================================================
+#endif

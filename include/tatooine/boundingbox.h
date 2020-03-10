@@ -65,8 +65,9 @@ struct boundingbox {
     return true;
   }
   //----------------------------------------------------------------------------
-  template <typename RandomEngine>
-  auto random_point(RandomEngine& random_engine) const {
+  template <typename RandomEngine = std::mt19937_64>
+  auto random_point(RandomEngine&& random_engine = RandomEngine{
+                        std::random_device{}()}) const {
     pos_t p;
     for (size_t i = 0; i < N; ++i) {
       std::uniform_real_distribution<Real> distribution{min(i), max(i)};
