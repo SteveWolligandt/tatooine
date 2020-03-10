@@ -48,19 +48,19 @@ struct first_person_window : yavin::window, yavin::window_listener {
     m_time = std::chrono::system_clock::now();
     while (m_run) {
       refresh();
-      update(std::chrono::system_clock::now() - m_time);
       yavin::gl::viewport(m_cam);
-      f();
+      update(std::forward<F>(f), std::chrono::system_clock::now() - m_time);
       render_imgui();
       swap_buffers();
     }
   }
   //----------------------------------------------------------------------------
-  void update(const std::chrono::duration<double>& dt) {
+  template <typename F>
+  void update(F&& f, const std::chrono::duration<double>& dt) {
     auto ms = static_cast<float>(
         std::chrono::duration_cast<std::chrono::milliseconds>(dt).count());
 
-    m_time    = std::chrono::system_clock::now();
+    m_time = std::chrono::system_clock::now();
     if (m_w_down) { m_eye += m_look_at / ms; }
     if (m_s_down) { m_eye -= m_look_at / ms; }
     if (m_q_down) { m_eye(1) += 1 / ms; }
@@ -74,6 +74,7 @@ struct first_person_window : yavin::window, yavin::window_listener {
       m_eye += right / ms;
     }
     m_cam.look_at(m_eye, m_eye + m_look_at + 0.1);
+    f(dt);
   }
   //----------------------------------------------------------------------------
   auto projection_matrix() {

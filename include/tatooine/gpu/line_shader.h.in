@@ -1,12 +1,13 @@
 #ifndef TATOOINE_LINE_SHADER_H
 #define TATOOINE_LINE_SHADER_H
 //==============================================================================
-#include <string_view>
 #include <yavin/shader.h>
+
+#include <string_view>
 //==============================================================================
 namespace tatooine::gpu {
 //==============================================================================
-struct line_shader : yavin::shader{
+struct line_shader : yavin::shader {
   std::string_view vert_shader_path = "@TATOOINE_LINE_SHADER_VERT_PATH@";
   std::string_view geom_shader_path = "@TATOOINE_LINE_SHADER_GEOM_PATH@";
   std::string_view frag_shader_path = "@TATOOINE_LINE_SHADER_FRAG_PATH@";
@@ -58,11 +59,13 @@ struct line_shader : yavin::shader{
     set_uniform("specular_factor", specular_factor);
   }
   //------------------------------------------------------------------------------
-  void set_shininess(float shininess) {
-    set_uniform("shininess", shininess);
-  }
+  void set_shininess(float shininess) { set_uniform("shininess", shininess); }
+  //------------------------------------------------------------------------------
+  void set_animate(int animate) { set_uniform("animate", animate); }
+  //------------------------------------------------------------------------------
+  void set_time(float time) { set_uniform("time", time); }
 };
 //==============================================================================
-}  // namespace tatooine
+}  // namespace tatooine::gpu
 //==============================================================================
 #endif

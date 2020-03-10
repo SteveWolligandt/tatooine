@@ -14,10 +14,24 @@ uniform float shininess;
 uniform float ambient_factor;
 uniform float diffuse_factor;
 uniform float specular_factor;
+uniform bool  animate;
+uniform float time;
+//------------------------------------------------------------------------------
+const float min_alpha = 0.05;
 //------------------------------------------------------------------------------
 void main() {
+  if (animate) {
+    if (time > frag_parameterization) {
+      out_color.a =
+          clamp((1 - abs(time - frag_parameterization)), min_alpha, 1.0);
+    } else {
+      out_color.a = min_alpha;
+    }
+  } else {
+    out_color.a = 1;
+  }
   if (line_width - abs(frag_contour_parameterization) < contour_width) {
-    out_color = vec4(vec3(0),1); return;
+    out_color.rgb = vec3(0); return;
   } 
   vec3  V         = normalize(frag_position);
   vec3  L         = V;
@@ -31,5 +45,4 @@ void main() {
   out_color.rgb += ambient_factor * color;
   out_color.rgb += diffuse_factor * diffuse * color;
   out_color.rgb += specular_factor * specular * vec3(1);
-  out_color.a = 1;
 }
