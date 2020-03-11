@@ -47,7 +47,7 @@ struct pathline_render_window : first_person_window {
   // ctor
   //----------------------------------------------------------------------------
   template <typename V, typename VReal, size_t N, typename BBReal>
-  pathline_render_window(const field<V, VReal, N, N>&  v,
+  pathline_render_window(const vectorfield<V, VReal, N, N>&  v,
                          const boundingbox<BBReal, N>& seedarea,
                          size_t num_pathlines, double _btau, double _ftau)
       : btau{_btau},

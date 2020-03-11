@@ -1,59 +1,79 @@
 #ifndef TATOOINE_STEADIFICATION_SHADERS_H
 #define TATOOINE_STEADIFICATION_SHADERS_H
 //==============================================================================
-#include <yavin>
 #include <string>
+#include <yavin>
 //==============================================================================
 namespace tatooine::steadification {
 //==============================================================================
 struct vert_frag_shader : yavin::shader {
-  vert_frag_shader(const std::string& vert, const std::string& frag);
+  vert_frag_shader(const std::string_view& vert, const std::string_view& frag);
   void set_projection(const yavin::mat4&);
   void set_modelview(const yavin::mat4&);
 };
 //==============================================================================
 struct comp_shader : yavin::shader {
-  comp_shader(const std::string& comp);
+  comp_shader(const std::string_view& comp);
   void dispatch(GLuint w, GLuint h);
 };
 //==============================================================================
 /// renders vector field, tau and position in three render targets
 struct ssf_rasterization_shader : vert_frag_shader {
+  static constexpr std::string_view vert_path =
+      "@TATOOINE_STEADIFICATION_SSF_RASTERIZATION_VERT@";
+  static constexpr std::string_view frag_path =
+      "@TATOOINE_STEADIFICATION_SSF_RASTERIZATION_FRAG@";
   ssf_rasterization_shader();
   void set_linked_list_size(unsigned int n);
 };
 //==============================================================================
 struct ll_to_curvature_shader : comp_shader {
+  static constexpr std::string_view comp_path =
+      "@TATOOINE_STEADIFICATION_LL_TO_CURV_TEX_COMP@";
   ll_to_curvature_shader();
 };
 //==============================================================================
 struct fragment_count_shader : vert_frag_shader {
+  static constexpr std::string_view vert_path =
+      "@TATOOINE_STEADIFICATION_SSF_RASTERIZATION_VERT@";
+  static constexpr std::string_view frag_path =
+      "@TATOOINE_STEADIFICATION_FRAGMENT_COUNT_FRAG@";
   fragment_count_shader();
 };
 //==============================================================================
 struct weight_single_pathsurface_shader : comp_shader {
+  static constexpr std::string_view comp_path =
+      "@TATOOINE_STEADIFICATION_WEIGHT_SINGLE_PATHSURFACE_COMP@";
   weight_single_pathsurface_shader();
   void set_linked_list_size(unsigned int n);
 };
 //==============================================================================
 struct weight_dual_pathsurface_shader : comp_shader {
+  static constexpr std::string_view comp_path =
+      "@TATOOINE_STEADIFICATION_WEIGHT_DUAL_PATHSURFACE_COMP@";
   weight_dual_pathsurface_shader();
   void set_linked_list0_size(unsigned int n);
   void set_linked_list1_size(unsigned int n);
 };
 //==============================================================================
 struct combine_rasterizations_shader : comp_shader {
+  static constexpr std::string_view comp_path =
+      "@TATOOINE_STEADIFICATION_COMBINE_RASTERIZATIONS_COMP@";
   combine_rasterizations_shader();
   void set_linked_list0_size(unsigned int n);
   void set_linked_list1_size(unsigned int n);
 };
 //==============================================================================
 struct coverage_shader : comp_shader {
+  static constexpr std::string_view comp_path =
+      "@TATOOINE_STEADIFICATION_COVERAGE_COMP@";
   coverage_shader();
   void set_linked_list_size(unsigned int n);
 };
 //==============================================================================
 struct dual_coverage_shader : comp_shader {
+  static constexpr std::string_view comp_path =
+      "@TATOOINE_STEADIFICATION_DUAL_COVERAGE_COMP@";
   dual_coverage_shader();
   void set_linked_list0_size(unsigned int n);
   void set_linked_list1_size(unsigned int n);

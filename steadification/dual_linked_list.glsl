@@ -1,15 +1,8 @@
 #ifndef LINKED_LIST
 #define LINKED_LIST
 //------------------------------------------------------------------------------
-const uint end_index = 0xffffffff;
-//------------------------------------------------------------------------------
-struct node {
-  vec2  pos;
-  vec2  v;
-  vec2  uv;
-  float curvature;
-  uint  next_index;
-};
+#include "node.glsl"
+#include "end_index.glsl"
 //------------------------------------------------------------------------------
 uniform uint ll0_size;
 uniform uint ll1_size;
@@ -30,7 +23,7 @@ layout(binding = 1, std430) buffer ll1_data {
 const ivec2 ll0_tex_resolution = imageSize(ll0_head_index_tex);
 const ivec2 ll1_tex_resolution = imageSize(ll1_head_index_tex);
 //------------------------------------------------------------------------------
-void ll0_push_back(ivec2 texpos, vec2 pos, vec2 v, vec2 uv, float curvature) {
+void ll0_push_back(ivec2 texpos, vec2 pos, vec2 v, float tau, float curvature) {
   const uint i = atomicCounterIncrement(ll0_cnt);
   if (i < ll0_size) {
     const uint len = imageAtomicAdd(ll0_list_length_tex, texpos, 1);
@@ -39,7 +32,7 @@ void ll0_push_back(ivec2 texpos, vec2 pos, vec2 v, vec2 uv, float curvature) {
         imageAtomicExchange(ll0_head_index_tex, texpos, i);
     ll0_nodes[i].pos       = pos;
     ll0_nodes[i].v         = v;
-    ll0_nodes[i].uv        = uv;
+    ll0_nodes[i].tau        = tau;
     ll0_nodes[i].curvature = curvature;
   }
 }
@@ -53,12 +46,12 @@ void ll0_push_back(ivec2 texpos, node n) {
         imageAtomicExchange(ll0_head_index_tex, texpos, i);
     ll0_nodes[i].pos       = n.pos;
     ll0_nodes[i].v         = n.v;
-    ll0_nodes[i].uv        = n.uv;
+    ll0_nodes[i].tau        = n.tau;
     ll0_nodes[i].curvature = n.curvature;
   }
 }
 //------------------------------------------------------------------------------
-void ll1_push_back(ivec2 texpos, vec2 pos, vec2 v, vec2 uv, float curvature) {
+void ll1_push_back(ivec2 texpos, vec2 pos, vec2 v, float tau, float curvature) {
   const uint i = atomicCounterIncrement(ll1_cnt);
   if (i < ll1_size) {
     const uint len = imageAtomicAdd(ll1_list_length_tex, texpos, 1);
@@ -67,7 +60,7 @@ void ll1_push_back(ivec2 texpos, vec2 pos, vec2 v, vec2 uv, float curvature) {
         imageAtomicExchange(ll1_head_index_tex, texpos, i);
     ll1_nodes[i].pos       = pos;
     ll1_nodes[i].v         = v;
-    ll1_nodes[i].uv        = uv;
+    ll1_nodes[i].tau        = tau;
     ll1_nodes[i].curvature = curvature;
   }
 }
@@ -81,7 +74,7 @@ void ll1_push_back(ivec2 texpos, node n) {
         imageAtomicExchange(ll1_head_index_tex, texpos, i);
     ll1_nodes[i].pos       = n.pos;
     ll1_nodes[i].v         = n.v;
-    ll1_nodes[i].uv        = n.uv;
+    ll1_nodes[i].tau        = n.tau;
     ll1_nodes[i].curvature = n.curvature;
   }
 }
@@ -124,8 +117,8 @@ node ll0_max_tau_node(ivec2 texpos) {
   uint       mi      = hi;
   float      max_tau = -1e10;
   while (ri != end_index) {
-    if (max_tau < ll0_node_at(ri).uv.y) {
-      max_tau = ll0_node_at(ri).uv.y;
+    if (max_tau < ll0_node_at(ri).tau) {
+      max_tau = ll0_node_at(ri).tau;
       mi      = ri;
     }
     ri = ll0_node_at(ri).next_index;
@@ -139,8 +132,8 @@ node ll1_max_tau_node(ivec2 texpos) {
   uint       mi      = hi;
   float      max_tau = -1e10;
   while (ri != end_index) {
-    if (max_tau < ll1_node_at(ri).uv.y) {
-      max_tau = ll1_node_at(ri).uv.y;
+    if (max_tau < ll1_node_at(ri).tau) {
+      max_tau = ll1_node_at(ri).tau;
       mi      = ri;
     }
     ri = ll1_node_at(ri).next_index;
@@ -154,8 +147,8 @@ node ll0_min_tau_node(ivec2 texpos) {
   uint       mi      = hi;
   float      min_tau = 1e10;
   while (ri != end_index) {
-    if (min_tau > ll0_node_at(ri).uv.y) {
-      min_tau = ll0_node_at(ri).uv.y;
+    if (min_tau > ll0_node_at(ri).tau) {
+      min_tau = ll0_node_at(ri).tau;
       mi      = ri;
     }
     ri = ll0_node_at(ri).next_index;
@@ -169,8 +162,8 @@ node ll1_min_tau_node(ivec2 texpos) {
   uint       mi      = hi;
   float      min_tau = 1e10;
   while (ri != end_index) {
-    if (min_tau > ll1_node_at(ri).uv.y) {
-      min_tau = ll1_node_at(ri).uv.y;
+    if (min_tau > ll1_node_at(ri).tau) {
+      min_tau = ll1_node_at(ri).tau;
       mi      = ri;
     }
     ri = ll1_node_at(ri).next_index;

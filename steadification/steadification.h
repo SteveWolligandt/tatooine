@@ -52,9 +52,10 @@ class steadification {
   struct linked_list_node {
     yavin::vec<float, 2> pos;
     yavin::vec<float, 2> v;
-    yavin::vec<float, 2> uv;
+    float                tau;
     float         curvature;
     unsigned int  next;
+    float pad;
   };
   using rasterized_pathsurface = linked_list_texture<linked_list_node>;
 
@@ -141,19 +142,37 @@ class steadification {
     using namespace yavin;
     static const float nan       = 0.0f / 0.0f;
     const auto         num_frags = num_rendered_fragments(gpu_mesh);
-    rasterized_pathsurface psf_rast{
+    rasterized_pathsurface rast{
         m_render_resolution(0), m_render_resolution(1), num_frags,
-        linked_list_node{{nan, nan}, {nan, nan}, {nan, nan}, nan, 0xffffffff}};
+        linked_list_node{{nan, nan}, {nan, nan}, nan, nan, 0xffffffff, 0.0f}};
     m_ssf_rasterization_shader.bind();
-    m_ssf_rasterization_shader.set_linked_list_size(psf_rast.buffer_size());
+    m_ssf_rasterization_shader.set_linked_list_size(rast.buffer_size());
     m_ssf_rasterization_shader.set_projection(m_cam.projection_matrix());
     gl::viewport(m_cam);
     yavin::disable_depth_test();
     framebuffer fbo{m_fbotex};
     fbo.bind();
-    psf_rast.bind();
+    rast.bind();
     gpu_mesh.draw();
-    return psf_rast;
+    return rast;
+  }
+  // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+  auto& rasterize(const pathsurface_gpu_t& gpu_mesh, rasterized_pathsurface& rast) {
+    using namespace yavin;
+    static const float nan       = 0.0f / 0.0f;
+    const auto         num_frags = num_rendered_fragments(gpu_mesh);
+    rast.clear();
+    if (rast.buffer().size() < num_frags) { rast.resize_buffer(num_frags); }
+    m_ssf_rasterization_shader.bind();
+    m_ssf_rasterization_shader.set_linked_list_size(rast.buffer_size());
+    m_ssf_rasterization_shader.set_projection(m_cam.projection_matrix());
+    gl::viewport(m_cam);
+    yavin::disable_depth_test();
+    framebuffer fbo{m_fbotex};
+    fbo.bind();
+    rast.bind();
+    gpu_mesh.draw();
+    return rast;
   }
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
   size_t num_rendered_fragments(const pathsurface_gpu_t& gpu_mesh) {
@@ -381,53 +400,58 @@ class steadification {
   auto greedy_set_cover(const grid<real_t, 2>& domain, real_t t0,
                         real_t btau, real_t ftau, size_t seed_res,
                         real_t stepsize, real_t desired_coverage) {
-    return greedy_set_cover(rasterize(integrate_grid_edges(
-                                domain, t0, btau, ftau, seed_res, stepsize)),
+    return greedy_set_cover(integrate_grid_edges(
+                                domain, t0, btau, ftau, seed_res, stepsize),
                             desired_coverage);
   }
   //----------------------------------------------------------------------------
-  auto greedy_set_cover(std::list<rasterized_pathsurface>&& subsets,
+  template <template <typename> typename SeedcurveInterpolator>
+  auto greedy_set_cover(std::list<pathsurface_discretization_t<SeedcurveInterpolator>>&& meshes,
                         real_t                              desired_coverage) {
     static const float nan       = 0.0f / 0.0f;
     rasterized_pathsurface covered_elements{
         m_render_resolution(0), m_render_resolution(1), 0,
-        linked_list_node{{nan, nan}, {nan, nan}, {nan, nan}, nan, 0xffffffff}};
+        linked_list_node{{nan, nan}, {nan, nan}, nan, nan, 0xffffffff, 0.0f}};
+    rasterized_pathsurface working_rast{
+        m_render_resolution(0), m_render_resolution(1), 0,
+        linked_list_node{{nan, nan}, {nan, nan}, nan, nan, 0xffffffff, 0.0f}};
 
     using namespace std::filesystem;
     auto working_dir = std::string{settings<V>::name} + "/";
     if (!exists(working_dir)) { create_directory(working_dir); }
     for (const auto& entry : directory_iterator(working_dir)) { remove(entry); }
 
-    auto best_subset_it = end(subsets);
+    auto best_mesh_it = end(meshes);
     real_t best_weight = -std::numeric_limits<real_t>::max();
     real_t old_best_weight = best_weight;
     size_t cnt             = 0;
     do {
-      if (best_subset_it != end(subsets)) { subsets.erase(best_subset_it); }
+      if (best_mesh_it != end(meshes)) { meshes.erase(best_mesh_it); }
 
       old_best_weight = best_weight;
       best_weight = -std::numeric_limits<real_t>::max();
-      best_subset_it  = end(subsets);
-      for (auto subset_it = begin(subsets); subset_it != end(subsets);
-           ++subset_it) {
-        //const auto new_weight = weight(covered_elements, *subset_it);
-        const auto new_weight = coverage(covered_elements, *subset_it);
+      best_mesh_it  = end(meshes);
+      for (auto mesh_it = begin(meshes); mesh_it != end(meshes);
+           ++mesh_it) {
+        const auto new_weight = weight(covered_elements, rasterize(*mesh_it, working_rast));
         if (new_weight > best_weight) {
           best_weight    = new_weight;
-          best_subset_it = subset_it;
+          best_mesh_it = mesh_it;
         }
       }
-      if (best_subset_it != end(subsets)) {
-        combine(covered_elements, *best_subset_it);
+      if (best_mesh_it != end(meshes)) {
+        combine(covered_elements, rasterize(*best_mesh_it, working_rast));
         to_curvature_tex(covered_elements)
             .write_png(working_dir + "/" + std::to_string(cnt++) + ".png");
         to_curvature_tex(covered_elements)
             .write_png(working_dir + "/../current.png");
       }
       std::cerr << coverage(covered_elements) << '\n';
+      std::cerr << "best_weight: " << best_weight << '\n';
+      std::cerr << "old_best_weight: " << old_best_weight << '\n';
     } while (coverage(covered_elements) < desired_coverage &&
-             //best_weight > old_best_weight &&
-             best_subset_it != end(subsets));
+             best_weight > old_best_weight &&
+             best_mesh_it != end(meshes));
 
     return covered_elements;
   }

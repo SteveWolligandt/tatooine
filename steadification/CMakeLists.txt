@@ -13,6 +13,26 @@ function (copy FILE)
                  ${CMAKE_CURRENT_BINARY_DIR}/${FILE} COPYONLY)
 endfunction ()
 
+set(TATOOINE_STEADIFICATION_SSF_RASTERIZATION_VERT
+    ${CMAKE_CURRENT_SOURCE_DIR}/ssf_rasterization.vert)
+set(TATOOINE_STEADIFICATION_SSF_RASTERIZATION_FRAG
+    ${CMAKE_CURRENT_SOURCE_DIR}/ssf_rasterization.frag)
+set(TATOOINE_STEADIFICATION_LL_TO_CURV_TEX_COMP
+    ${CMAKE_CURRENT_SOURCE_DIR}/ll_to_curvature_tex.comp)
+set(TATOOINE_STEADIFICATION_FRAGMENT_COUNT_FRAG
+    ${CMAKE_CURRENT_SOURCE_DIR}/fragment_count.frag)
+set(TATOOINE_STEADIFICATION_WEIGHT_SINGLE_PATHSURFACE_COMP
+    ${CMAKE_CURRENT_SOURCE_DIR}/weight_single_pathsurface.comp)
+set(TATOOINE_STEADIFICATION_WEIGHT_DUAL_PATHSURFACE_COMP
+    ${CMAKE_CURRENT_SOURCE_DIR}/weight_dual_pathsurface.comp)
+set(TATOOINE_STEADIFICATION_COMBINE_RASTERIZATIONS_COMP
+    ${CMAKE_CURRENT_SOURCE_DIR}/combine_rasterizations.comp)
+set(TATOOINE_STEADIFICATION_COVERAGE_COMP
+    ${CMAKE_CURRENT_SOURCE_DIR}/coverage.comp)
+set(TATOOINE_STEADIFICATION_DUAL_COVERAGE_COMP
+    ${CMAKE_CURRENT_SOURCE_DIR}/dual_coverage.comp)
+configure_file("${CMAKE_CURRENT_SOURCE_DIR}/shaders.h.in"
+               "${CMAKE_CURRENT_BINARY_DIR}/shaders.h")
 configure_file(${CMAKE_CURRENT_SOURCE_DIR}/viridis_color_scale.png 
   ${CMAKE_CURRENT_BINARY_DIR}/color_scale.png COPYONLY)
 
@@ -31,6 +51,7 @@ copy(dual_coverage.comp)
 set(HDF5_LIBS -lhdf5 -lhdf5_cpp -lhdf5_hl)
 
 add_executable (steadification main.cpp renderers.cpp shaders.cpp datasets.cpp)
+target_include_directories(steadification PRIVATE ${CMAKE_CURRENT_BINARY_DIR})
 target_link_libraries(steadification tatooine yavin)
 target_compile_features(steadification PUBLIC cxx_std_17)
 target_compile_options(steadification PRIVATE

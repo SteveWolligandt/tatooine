@@ -20,7 +20,7 @@ void calc(const field<V, VReal, 2, 2>& v, BTauReal btau, FTauReal ftau,
                    randeng);
 
   VReal eps = 1e-5;
-  grid  g{linspace{eps, 2.0 - eps, 21}, linspace{eps, 1.0 - eps, 11}};
+  grid  g{linspace{eps, 2.0 - eps, 40}, linspace{eps, 1.0 - eps, 40}};
   s.greedy_set_cover(g, 0, btau, ftau, seed_res, stepsize, desired_coverage);
 }
 

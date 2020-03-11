@@ -30,6 +30,6 @@ int main(int argc, char** argv) {
   } else if (fieldname == "abc") {
     numerical::abcflow v;
     work(argc, argv, v,
-         boundingbox<double, 3>{vec{-1.0, -1.0, -1.0}, vec{1.0, 1.0, 1.0}});
+         boundingbox<double, 3>{vec{-10.0, -10.0, -10.0}, vec{10.0, 10.0, 10.0}});
   }
 }

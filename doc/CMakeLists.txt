@@ -1,5 +1,5 @@
 find_package(Doxygen)
-find_package(Sphinx)
+find_package(Sphinx QUIET)
 if (SPHINX_FOUND)
   option(TATOOINE_DOC_USE_SPHINX "Use Sphinx to build documentation" FALSE)
 else()

@@ -52,9 +52,9 @@ namespace numerical {
 //==============================================================================
 /// Double Gyre dataset
 template <typename Real>
-struct doublegyre : field<doublegyre<Real>, Real, 2, 2> {
+struct doublegyre : vectorfield<doublegyre<Real>, Real, 2> {
   using this_t   = doublegyre<Real>;
-  using parent_t = field<this_t, Real, 2, 2>;
+  using parent_t = vectorfield<this_t, Real, 2>;
   using typename parent_t::pos_t;
   using typename parent_t::tensor_t;
 

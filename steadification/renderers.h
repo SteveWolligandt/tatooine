@@ -9,10 +9,10 @@
 namespace tatooine::steadification {
 //==============================================================================
 struct streamsurface_renderer
-    : yavin::indexeddata<yavin::vec2, yavin::vec2, yavin::vec2, yavin::scalar> {
+    : yavin::indexeddata<yavin::vec2, yavin::vec2, yavin::scalar, yavin::scalar> {
   //============================================================================
   using parent_t =
-      yavin::indexeddata<yavin::vec2, yavin::vec2, yavin::vec2, yavin::scalar>;
+      yavin::indexeddata<yavin::vec2, yavin::vec2, yavin::scalar, yavin::scalar>;
   using typename parent_t::ibo_data_vec;
   using typename parent_t::vbo_data_vec;
   //============================================================================
@@ -42,8 +42,7 @@ struct streamsurface_renderer
           return vbo_data_t{
               yavin::vec2{float(mesh[v](0)), float(mesh[v](1))},
               yavin::vec2{float(vf_prop[v](0)), float(vf_prop[v](1))},
-              yavin::vec2{float(uv_prop[v](0)), float(uv_prop[v](1))},
-              float(curvature_prop[v])};
+              float(uv_prop[v](1)), float(curvature_prop[v])};
         });
 
     return vbo_data;

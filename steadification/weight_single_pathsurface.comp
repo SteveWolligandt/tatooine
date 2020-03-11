@@ -34,15 +34,15 @@ void main() {
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
   if (size == 1) {
     node n = ll_node_at(head_index);
-    imageStore(weight_tex, texpos, vec4(n.curvature * n.uv.y + 1, 0, 0, 0));
+    imageStore(weight_tex, texpos, vec4(n.curvature * n.tau + 1, 0, 0, 0));
     return;
   }
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
   if (size == 2) {
     node        n0   = ll_node_at(head_index);
     node        n1   = ll_node_at(n0.next_index);
-    const float tau0 = n0.uv.y;
-    const float tau1 = n1.uv.y;
+    const float tau0 = n0.tau;
+    const float tau1 = n1.tau;
     const float c0   = n0.curvature;
     const float c1   = n1.curvature;
 

@@ -72,7 +72,9 @@ struct field : crtp<Derived> {
     return as_derived().in_domain(x, t);
   }
 };
-
+//==============================================================================
+template <typename V, typename Real, size_t N, size_t C = N>
+using vectorfield = field<V, Real, N, C>;
 //==============================================================================
 template <typename Field, typename Real, size_t N, typename Op,
           size_t... TensorDims>
