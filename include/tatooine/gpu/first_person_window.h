@@ -132,7 +132,7 @@ struct first_person_window : yavin::window, yavin::window_listener {
       int offset_x = x - m_mouse_pos_x;
       int offset_y = y - m_mouse_pos_y;
       m_theta -= offset_x * 0.01f;
-      m_phi += offset_y * 0.01f;
+      m_phi = std::min<float>(M_PI - 0.3f, std::max(0.3f, m_phi + offset_y * 0.01f));
       m_look_at = yavin::vec3{
           std::sin(m_phi) * std::sin(m_theta),
           std::cos(m_phi),

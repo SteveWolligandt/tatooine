@@ -16,17 +16,21 @@ int main() {
   using namespace tatooine;
   first_person_window w;
   double              btau = -10, ftau = 10;
-  bool                show_gui        = true;
-  float               col[3]          = {1.0f, 0.0f, 0.0f};
-  float               line_width      = 0.01f;
-  float               contour_width   = 0.005f;
-  float               ambient_factor  = 0.5f;
-  float               diffuse_factor  = 0.5f;
-  float               specular_factor = 1.0f;
-  float               shininess       = 10.0f;
-  bool                animate         = false;
-  float               time            = 0.0f;
-  auto                shader = std::make_unique<gpu::line_shader>(
+  bool                show_gui            = true;
+  float               col[3]              = {1.0f, 0.0f, 0.0f};
+  float               line_width          = 0.02f;
+  float               contour_width       = 0.005f;
+  float               ambient_factor      = 0.1f;
+  float               diffuse_factor      = 0.9f;
+  float               specular_factor     = 1.0f;
+  float               shininess           = 20.0f;
+  bool                animate             = false;
+  float               fade_length         = 1.0f;
+  float               general_alpha       = 1.0f;
+  float               animation_min_alpha = 0.05f;
+  float               time                = 0.0f;
+  float               speed               = 1.0f;
+  auto                shader              = std::make_unique<gpu::line_shader>(
       col[0], col[1], col[2], line_width, contour_width, ambient_factor,
       diffuse_factor, specular_factor, shininess);
   using integrator_t =
@@ -59,15 +63,21 @@ int main() {
     auto ms = static_cast<float>(
         std::chrono::duration_cast<std::chrono::milliseconds>(dt).count());
     if (animate) {
-      time += ms / 500;
-      while (time > ftau+1) { time = btau; }
+      time += speed * ms / 1000;
+      while (time > ftau + fade_length) { time = btau; }
     } else {
       time = btau;
     }
     yavin::gl::clear_color(255, 255, 255, 255);
     yavin::clear_color_depth_buffer();
-    yavin::enable_blending();
-    yavin::blend_func_alpha();
+    if (animate || general_alpha < 1) {
+      yavin::enable_blending();
+      yavin::blend_func_alpha();
+      yavin::disable_depth_test();
+    } else {
+      yavin::disable_blending();
+      yavin::enable_depth_test();
+    }
     shader->set_modelview_matrix(w.view_matrix());
     shader->set_projection_matrix(w.projection_matrix());
     shader->set_color(col[0], col[1], col[2]);
@@ -78,6 +88,9 @@ int main() {
     shader->set_specular_factor(specular_factor);
     shader->set_shininess(shininess);
     shader->set_animate(animate);
+    shader->set_general_alpha(general_alpha);
+    shader->set_animation_min_alpha(animation_min_alpha);
+    shader->set_fade_length(fade_length);
     shader->set_time(time);
     shader->bind();
     for (auto& renderer : line_renderers) { renderer.draw_lines(); }
@@ -91,7 +104,15 @@ int main() {
       ImGui::SliderFloat("shininess", &shininess, 1.0f, 50.0f);
       ImGui::ColorEdit3("line color", col);
       ImGui::Checkbox("animate", &animate);
-      if (animate) { ImGui::Text("time %f", time); }
+      if (animate) {
+        ImGui::SliderFloat("animation_min_alpha", &animation_min_alpha, 0.0f,
+                           1.0f);
+        ImGui::SliderFloat("fade_length", &fade_length, 0.1f, 10.0f);
+        ImGui::SliderFloat("speed", &speed, 0.1f, 10.0f);
+        ImGui::Text("time %f", time);
+      } else {
+        ImGui::SliderFloat("general_alpha", &general_alpha, 0.0f, 1.0f);
+      }
       ImGui::End();
     }
   });

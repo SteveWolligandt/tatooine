@@ -23,8 +23,6 @@ void main() {
   vec3 tan2mv = (modelview_matrix * vec4(geom_tangent[1], 0)).xyz;
   vec3 y1     = normalize(cross(tan1mv, p1mv));
   vec3 y2     = normalize(cross(tan2mv, p2mv));
-  vec3 x1     = normalize(cross(tan1mv, y1));
-  vec3 x2     = normalize(cross(tan2mv, y2));
   vec3 e1     = line_width * y1;
   vec3 e2     = line_width * y2;
 

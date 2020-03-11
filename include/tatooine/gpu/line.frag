@@ -15,20 +15,21 @@ uniform float ambient_factor;
 uniform float diffuse_factor;
 uniform float specular_factor;
 uniform bool  animate;
+uniform float fade_length;
 uniform float time;
-//------------------------------------------------------------------------------
-const float min_alpha = 0.05;
+uniform float general_alpha;
+uniform float animation_min_alpha;
 //------------------------------------------------------------------------------
 void main() {
   if (animate) {
     if (time > frag_parameterization) {
-      out_color.a =
-          clamp((1 - abs(time - frag_parameterization)), min_alpha, 1.0);
+      out_color.a = clamp((1 - abs(time - frag_parameterization) / fade_length),
+                          animation_min_alpha, 1.0);
     } else {
-      out_color.a = min_alpha;
+      out_color.a = animation_min_alpha;
     }
   } else {
-    out_color.a = 1;
+    out_color.a = general_alpha;
   }
   if (line_width - abs(frag_contour_parameterization) < contour_width) {
     out_color.rgb = vec3(0); return;

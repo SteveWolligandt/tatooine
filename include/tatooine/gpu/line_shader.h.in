@@ -63,6 +63,18 @@ struct line_shader : yavin::shader {
   //------------------------------------------------------------------------------
   void set_animate(int animate) { set_uniform("animate", animate); }
   //------------------------------------------------------------------------------
+  void set_animation_min_alpha(float animation_min_alpha) {
+    set_uniform("animation_min_alpha", animation_min_alpha);
+  }
+  //------------------------------------------------------------------------------
+  void set_general_alpha(float general_alpha) {
+    set_uniform("general_alpha", general_alpha);
+  }
+  //------------------------------------------------------------------------------
+  void set_fade_length(float fade_length) {
+    set_uniform("fade_length", fade_length);
+  }
+  //------------------------------------------------------------------------------
   void set_time(float time) { set_uniform("time", time); }
 };
 //==============================================================================
