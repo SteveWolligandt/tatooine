@@ -317,7 +317,7 @@ constexpr auto is_vectorield_v = is_vectorield<T>::value;
 //==============================================================================
 template <typename F, typename... Args>
 using enable_if_invocable =
-    std::enable_if_t<std::is_invocable<F, Args...>::value, bool>;
+    std::enable_if_t<std::is_invocable_v<F, Args...>, bool>;
 
 //==============================================================================
 }  // namespace tatooine

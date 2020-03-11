@@ -26,7 +26,7 @@ struct duffing_oscillator : field<duffing_oscillator<Real>, Real, 2, 2> {
 
   //----------------------------------------------------------------------------
   constexpr tensor_t evaluate(const pos_t& x, Real t) const {
-    return {x(1), -m_delta * x(1) - m_alpha.x(0) - m_beta * x(0) * x(0) * x(0)};
+    return {x(1), -m_delta * x(1) - m_alpha*x(0) - m_beta * x(0) * x(0) * x(0)};
   }
 
   //----------------------------------------------------------------------------

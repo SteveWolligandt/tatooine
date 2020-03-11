@@ -5,11 +5,36 @@
 #include <yavin/vec.h>
 #include <yavin/glwrapper.h>
 #include <yavin/window.h>
+#include <tatooine/holder.h>
 
 #include <chrono>
 #include <cmath>
 //==============================================================================
 namespace tatooine {
+//==============================================================================
+template <typename F>
+struct key_pressed_event : holder<F>, yavin::window_listener {
+  using holder<F>::holder;
+  void on_key_pressed(yavin::key k) override {this->get()(k);}
+};
+// copy when having rvalue
+template <typename T>
+key_pressed_event(T &&)->key_pressed_event<T>;
+// keep reference when having lvalue
+template <typename T>
+key_pressed_event(const T&)->key_pressed_event<const T&>;
+//==============================================================================
+template <typename F>
+struct key_released_event : holder<F>, yavin::window_listener {
+  using holder<F>::holder;
+  void on_key_pressed(yavin::key k) override {this->get()(k);}
+};
+// copy when having rvalue
+template <typename T>
+key_released_event(T &&)->key_released_event<T>;
+// keep reference when having lvalue
+template <typename T>
+key_released_event(const T&)->key_released_event<const T&>;
 //==============================================================================
 struct first_person_window : yavin::window, yavin::window_listener {
   bool         m_run;
@@ -27,6 +52,7 @@ struct first_person_window : yavin::window, yavin::window_listener {
   bool m_d_down = false;
   bool m_q_down = false;
   bool m_e_down = false;
+  std::vector<std::unique_ptr<base_holder>> m_events;
   //============================================================================
   first_person_window(GLsizei width = 800, GLsizei height = 600)
       : yavin::window{"tatooine first person window", width, height},
@@ -147,6 +173,22 @@ struct first_person_window : yavin::window, yavin::window_listener {
     m_width  = w;
     m_height = h;
     m_cam.set_projection(90, (float)(w) / (float)(h), 0.001f, 1000.0f, w, h);
+  }
+  //----------------------------------------------------------------------------
+  template <typename F>
+  void add_key_pressed_event(F&& f) {
+    m_events.push_back(
+        std::unique_ptr<base_holder>{new key_pressed_event{std::forward<F>(f)}});
+    add_listener(*dynamic_cast<yavin::window_listener*>(
+        m_events.back().get()));
+  }
+  //----------------------------------------------------------------------------
+  template <typename F>
+  void add_key_released_event(F&& f) {
+    m_events.push_back(
+        std::unique_ptr<base_holder>{new key_released_event{std::forward<F>(f)}});
+    add_listener(*dynamic_cast<yavin::window_listener*>(
+        m_events.back().get()));
   }
 };
 //==============================================================================

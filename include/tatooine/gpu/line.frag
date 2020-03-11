@@ -33,17 +33,20 @@ void main() {
   }
   if (line_width - abs(frag_contour_parameterization) < contour_width) {
     out_color.rgb = vec3(0); return;
-  } 
+  }
   vec3  V         = normalize(frag_position);
-  vec3  L         = V;
+  vec3  L         = normalize(frag_position);
   vec3  T         = normalize(frag_tangent);
   float LT        = dot(L, T);
   float VT        = dot(V, T);
-  float diffuse   = clamp(sqrt(1 - LT * LT), 0, 1);
-  float specular  = clamp(pow(
-      LT * VT - sqrt(1 - LT * LT) * sqrt(1 - VT * VT), shininess), 0,1);
+  float LN        = sqrt(1 - LT * LT);
+  float VN        = sqrt(1 - VT * VT);
+  float VR        = LT * VT - LN * VN;
+
+  float diffuse   = VN;
+  float specular  = max(0, pow(VR, shininess));
   out_color.rgb = vec3(0);
   out_color.rgb += ambient_factor * color;
   out_color.rgb += diffuse_factor * diffuse * color;
-  out_color.rgb += specular_factor * specular * vec3(1);
+  out_color.rgb += specular_factor * specular;
 }

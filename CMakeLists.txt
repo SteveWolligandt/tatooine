@@ -88,7 +88,7 @@ add_subdirectory(doc)
 add_subdirectory(misc)
 add_subdirectory(steadification)
 add_subdirectory(material_science)
-add_subdirectory(first_person_window_test)
+add_subdirectory(pathline_render_window_test)
 
 #- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 # This makes the project importable from the build directory
