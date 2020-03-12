@@ -23,7 +23,8 @@ struct pathline_render_window : first_person_window {
   //----------------------------------------------------------------------------
   double                            btau, ftau;
   bool                              show_gui;
-  float                             col[3];
+  float                             line_color[3];
+  float                             contour_color[3];
   float                             line_width;
   float                             contour_width;
   float                             ambient_factor;
@@ -31,6 +32,7 @@ struct pathline_render_window : first_person_window {
   float                             specular_factor;
   float                             shininess;
   bool                              animate;
+  bool                              play;
   float                             fade_length;
   float                             general_alpha;
   float                             animation_min_alpha;
@@ -47,13 +49,14 @@ struct pathline_render_window : first_person_window {
   // ctor
   //----------------------------------------------------------------------------
   template <typename V, typename VReal, size_t N, typename BBReal>
-  pathline_render_window(const vectorfield<V, VReal, N, N>&  v,
-                         const boundingbox<BBReal, N>& seedarea,
+  pathline_render_window(const vectorfield<V, VReal, N, N>& v,
+                         const boundingbox<BBReal, N>&      seedarea,
                          size_t num_pathlines, double _btau, double _ftau)
       : btau{_btau},
         ftau{_ftau},
         show_gui{true},
-        col{1.0f, 0.0f, 0.0f},
+        line_color{1.0f, 0.0f, 0.0f},
+        contour_color{0.0f, 0.0f, 0.0f},
         line_width{0.02f},
         contour_width{0.005f},
         ambient_factor{0.1f},
@@ -61,14 +64,16 @@ struct pathline_render_window : first_person_window {
         specular_factor{1.0f},
         shininess{20.0f},
         animate{false},
+        play{false},
         fade_length{1.0f},
         general_alpha{1.0f},
         animation_min_alpha{0.05f},
         time{0.0f},
         speed{1.0f},
         shader{std::make_unique<gpu::line_shader>(
-            col[0], col[1], col[2], line_width, contour_width, ambient_factor,
-            diffuse_factor, specular_factor, shininess)} {
+            line_color[0], line_color[1], line_color[2], contour_color[0],
+            contour_color[1], contour_color[2], line_width, contour_width,
+            ambient_factor, diffuse_factor, specular_factor, shininess)} {
     for (size_t i = 0; i < num_pathlines; ++i) {
       lines.push_back(
           integrator.integrate(v, seedarea.random_point(), 0, btau, ftau));
@@ -79,7 +84,9 @@ struct pathline_render_window : first_person_window {
       } else if (k == yavin::KEY_SPACE) {
         try {
           shader = std::make_unique<gpu::line_shader>(
-              col[0], col[1], col[2], line_width, contour_width);
+            line_color[0], line_color[1], line_color[2], contour_color[0],
+            contour_color[1], contour_color[2], line_width, contour_width,
+            ambient_factor, diffuse_factor, specular_factor, shininess);
         } catch (std::exception& e) { std::cerr << e.what() << '\n'; }
       }
     });
@@ -90,11 +97,21 @@ struct pathline_render_window : first_person_window {
 
   void start() {
     render_loop([&](const auto& dt) {
+      if (shader->files_changed()) {
+        try {
+          shader = std::make_unique<gpu::line_shader>(
+              line_color[0], line_color[1], line_color[2], contour_color[0],
+              contour_color[1], contour_color[2], line_width, contour_width,
+              ambient_factor, diffuse_factor, specular_factor, shininess);
+        } catch (std::exception& e) { std::cerr << e.what() << '\n'; }
+      }
       auto ms = static_cast<float>(
           std::chrono::duration_cast<std::chrono::milliseconds>(dt).count());
       if (animate) {
-        time += speed * ms / 1000;
-        while (time > ftau + fade_length) { time = btau; }
+        if (play) {
+          time += speed * ms / 1000;
+          while (time > ftau + fade_length) { time = btau; }
+        }
       } else {
         time = btau;
       }
@@ -117,7 +134,9 @@ struct pathline_render_window : first_person_window {
   void update_shader() {
     shader->set_modelview_matrix(view_matrix());
     shader->set_projection_matrix(projection_matrix());
-    shader->set_color(col[0], col[1], col[2]);
+    shader->set_line_color(line_color[0], line_color[1], line_color[2]);
+    shader->set_contour_color(contour_color[0], contour_color[1],
+                              contour_color[2]);
     shader->set_line_width(line_width);
     shader->set_contour_width(contour_width);
     shader->set_ambient_factor(ambient_factor);
@@ -134,19 +153,21 @@ struct pathline_render_window : first_person_window {
     if (show_gui) {
       ImGui::Begin("settings", &show_gui);
       ImGui::SliderFloat("line width", &line_width, 0.0f, 0.1f);
-      ImGui::SliderFloat("contour width", &contour_width, 0.0f, line_width);
+      ImGui::SliderFloat("contour width", &contour_width, 0.0f, line_width / 2);
       ImGui::SliderFloat("ambient factor", &ambient_factor, 0.0f, 1.0f);
       ImGui::SliderFloat("diffuse factor", &diffuse_factor, 0.0f, 1.0f);
       ImGui::SliderFloat("specular factor", &specular_factor, 0.0f, 1.0f);
       ImGui::SliderFloat("shininess", &shininess, 1.0f, 80.0f);
-      ImGui::ColorEdit3("line color", col);
+      ImGui::ColorEdit3("line color", line_color);
+      ImGui::ColorEdit3("contour color", contour_color);
       ImGui::Checkbox("animate", &animate);
       if (animate) {
+        ImGui::Checkbox("play", &play);
         ImGui::SliderFloat("animation_min_alpha", &animation_min_alpha, 0.0f,
                            1.0f);
         ImGui::SliderFloat("fade_length", &fade_length, 0.1f, 10.0f);
         ImGui::SliderFloat("speed", &speed, 0.1f, 10.0f);
-        ImGui::Text("time %f", time);
+        ImGui::SliderFloat("time", &time, btau, ftau);
       } else {
         ImGui::SliderFloat("general_alpha", &general_alpha, 0.0f, 1.0f);
       }

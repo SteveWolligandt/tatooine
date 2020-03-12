@@ -4,29 +4,54 @@
 #include <yavin/shader.h>
 
 #include <string_view>
+#include <filesystem>
 //==============================================================================
 namespace tatooine::gpu {
 //==============================================================================
 struct line_shader : yavin::shader {
-  std::string_view vert_shader_path = "@TATOOINE_LINE_SHADER_VERT_PATH@";
-  std::string_view geom_shader_path = "@TATOOINE_LINE_SHADER_GEOM_PATH@";
-  std::string_view frag_shader_path = "@TATOOINE_LINE_SHADER_FRAG_PATH@";
+  static constexpr std::string_view vert_shader_path =
+      "@TATOOINE_LINE_SHADER_VERT_PATH@";
+  static constexpr std::string_view geom_shader_path =
+      "@TATOOINE_LINE_SHADER_GEOM_PATH@";
+  static constexpr std::string_view frag_shader_path =
+      "@TATOOINE_LINE_SHADER_FRAG_PATH@";
+  const std::filesystem::file_time_type vert_last_write;
+  const std::filesystem::file_time_type geom_last_write;
+  const std::filesystem::file_time_type frag_last_write;
   //==============================================================================
-  line_shader(float r = 1, float g = 1, float b = 1, float line_width = 10,
+  line_shader(float lr = 1, float lg = 0, float lb = 0, float cr = 0,
+              float cg = 0, float cb = 0, float line_width = 10,
               float contour_width = 2, float ambient_factor = 0.5,
               float diffuse_factor = 0.5, float specular_factor = 1,
-              float shininess = 10) {
+              float shininess = 10)
+      : vert_last_write{std::filesystem::last_write_time(vert_shader_path)},
+        geom_last_write{std::filesystem::last_write_time(geom_shader_path)},
+        frag_last_write{std::filesystem::last_write_time(frag_shader_path)} {
     add_stage<yavin::vertexshader>(vert_shader_path.data());
     add_stage<yavin::geometryshader>(geom_shader_path.data());
     add_stage<yavin::fragmentshader>(frag_shader_path.data());
     create();
-    set_color(r, g, b);
+    set_line_color(lr, lg, lb);
+    set_contour_color(cr, cg, cb);
     set_line_width(line_width);
     set_contour_width(contour_width);
     set_ambient_factor(ambient_factor);
     set_diffuse_factor(diffuse_factor);
     set_specular_factor(specular_factor);
     set_shininess(shininess);
+  }
+  //------------------------------------------------------------------------------
+  bool files_changed() const {
+    if (std::filesystem::last_write_time(vert_shader_path) > vert_last_write) {
+      return true;
+    }
+    if (std::filesystem::last_write_time(geom_shader_path) > geom_last_write) {
+      return true;
+    }
+    if (std::filesystem::last_write_time(frag_shader_path) > frag_last_write) {
+      return true;
+    }
+    return false;
   }
   //------------------------------------------------------------------------------
   void set_projection_matrix(const yavin::mat4& projection_matrix) {
@@ -37,7 +62,13 @@ struct line_shader : yavin::shader {
     set_uniform("modelview_matrix", modelview_matrix);
   }
   //------------------------------------------------------------------------------
-  void set_color(float r, float g, float b) { set_uniform("color", r, g, b); }
+  void set_line_color(float r, float g, float b) {
+    set_uniform("line_color", r, g, b);
+  }
+  //------------------------------------------------------------------------------
+  void set_contour_color(float r, float g, float b) {
+    set_uniform("contour_color", r, g, b);
+  }
   //------------------------------------------------------------------------------
   void set_line_width(float line_width) {
     set_uniform("line_width", line_width);

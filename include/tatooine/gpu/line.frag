@@ -7,7 +7,8 @@ in float frag_contour_parameterization;
 //------------------------------------------------------------------------------
 out vec4 out_color;
 //------------------------------------------------------------------------------
-uniform vec3  color;
+uniform vec3  line_color;
+uniform vec3  contour_color;
 uniform float line_width;
 uniform float contour_width;
 uniform float shininess;
@@ -31,11 +32,12 @@ void main() {
   } else {
     out_color.a = general_alpha;
   }
-  if (line_width - abs(frag_contour_parameterization) < contour_width) {
-    out_color.rgb = vec3(0); return;
+  if (line_width / 2 - abs(frag_contour_parameterization) < contour_width) {
+    out_color.rgb = contour_color;
+    return;
   }
   vec3  V         = normalize(frag_position);
-  vec3  L         = normalize(frag_position);
+  vec3  L         = V;
   vec3  T         = normalize(frag_tangent);
   float LT        = dot(L, T);
   float VT        = dot(V, T);
@@ -44,9 +46,9 @@ void main() {
   float VR        = LT * VT - LN * VN;
 
   float diffuse   = VN;
-  float specular  = max(0, pow(VR, shininess));
+  float specular  = pow(max(0,-VR), shininess);
   out_color.rgb = vec3(0);
-  out_color.rgb += ambient_factor * color;
-  out_color.rgb += diffuse_factor * diffuse * color;
+  out_color.rgb += ambient_factor * line_color;
+  out_color.rgb += diffuse_factor * diffuse * line_color;
   out_color.rgb += specular_factor * specular;
 }
