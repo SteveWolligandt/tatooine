@@ -28,6 +28,27 @@ struct ssf_rasterization_shader : vert_frag_shader {
   void set_render_index(unsigned int n);
 };
 //==============================================================================
+struct lic_shader : comp_shader {
+  static constexpr std::string_view comp_path =
+      "@TATOOINE_STEADIFICATION_LIC_COMP@";
+  lic_shader();
+  void set_domain_min(GLfloat x, GLfloat y);
+  void set_domain_max(GLfloat x, GLfloat y);
+  void set_backward_tau(GLfloat btau);
+  void set_forward_tau(GLfloat ftau);
+  void set_v_tex_bind_point(GLint b);
+  void set_noise_tex_bind_point(GLint b);
+  void set_color_scale_bind_point(GLint b);
+  void set_num_samples(GLuint n);
+  void set_stepsize(GLfloat s);
+};
+//==============================================================================
+struct ll_to_v_shader : comp_shader {
+  static constexpr std::string_view comp_path =
+      "@TATOOINE_STEADIFICATION_LL_TO_V_TEX_COMP@";
+  ll_to_v_shader();
+};
+//==============================================================================
 struct ll_to_curvature_shader : comp_shader {
   static constexpr std::string_view comp_path =
       "@TATOOINE_STEADIFICATION_LL_TO_CURV_TEX_COMP@";

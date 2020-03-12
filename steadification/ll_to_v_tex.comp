@@ -1,0 +1,21 @@
+#version 450
+//==============================================================================
+#include "linked_list.glsl"
+//==============================================================================
+layout(local_size_x = 32, local_size_y = 32) in;
+layout(binding = 2, rgba32f) uniform image2D v_tex;
+//==============================================================================
+const float nan = 0.0 / 0.0;
+void main() {
+  const ivec2 texpos = ivec2(gl_GlobalInvocationID.xy);
+  if (texpos.x >= ll_tex_resolution.x || texpos.y >= ll_tex_resolution.y) {
+    return;
+  }
+  const uint hi = ll_head_index(texpos);
+  if (hi == end_index) {
+    imageStore(v_tex, texpos, vec4(nan));
+    return;
+  }
+  node n = ll_min_tau_and_index_node(texpos);
+  imageStore(v_tex, texpos, vec4(n.v, n.tau, float(n.render_index)));
+}

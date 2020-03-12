@@ -1,0 +1,143 @@
+#version 450
+//==============================================================================
+#include "linked_list.glsl"
+//==============================================================================
+layout(local_size_x = 32, local_size_y = 32) in;
+layout(binding = 0, rgba32f) uniform image2D lic_tex;
+//==============================================================================
+uniform sampler2D v_tex;
+uniform sampler2D noise_tex;
+uniform sampler2D color_scale;
+uniform vec2      domain_min;
+uniform vec2      domain_max;
+uniform float     btau;
+uniform float     ftau;
+uniform uint      num_samples;
+uniform float     stepsize;
+//==============================================================================
+const uvec2 lic_tex_res = uvec2(imageSize(lic_tex));
+const ivec2 v_tex_res = textureSize(v_tex, 0);
+const ivec2 noise_tex_res = textureSize(noise_tex, 0);
+//==============================================================================
+vec2 idx_to_uv(uvec2 image_pos, uvec2 res) {
+  // calculate normalized texture coordinates
+  return ((image_pos / vec2(res - 1) * (res * 2 - 2)) + 1) / vec2(res * 2);
+}
+//------------------------------------------------------------------------------
+vec2 domain_pos_to_uv(vec2 domain_pos, vec2 min, vec2 max, uvec2 res) {
+  const vec2 grid_pos = (domain_pos - min) / (max - min);
+  return (grid_pos * (res * 2 - 2) + 1) / (vec2(res * 2));
+}
+//------------------------------------------------------------------------------
+vec2 idx_to_domain_pos(uvec2 image_pos, vec2 min, vec2 max, uvec2 res) {
+  return image_pos / vec2(res - 1) * (max - min) + min;
+}
+//------------------------------------------------------------------------------
+vec2 v(vec2 pos) {
+  vec2 v_sample =
+      texture(v_tex, domain_pos_to_uv(pos, domain_min, domain_max, v_tex_res))
+          .rg;
+  if (isnan(v_sample.x) || isnan(v_sample.y)) {
+    return v_sample;
+  } else {
+    return normalize(v_sample);
+  }
+}
+//------------------------------------------------------------------------------
+float noise(vec2 pos) {
+  vec2 fres      = vec2(lic_tex_res);
+  vec2 fnoiseres = vec2(noise_tex_res);
+  return texture(noise_tex,
+                 domain_pos_to_uv(pos, domain_min, domain_max, noise_tex_res) *
+                     fres / fnoiseres)
+      .r;
+}
+
+//------------------------------------------------------------------------------
+vec2 rungekutta4_step(vec2 pos, float stepsize) {
+  const vec2 v1 = v(pos);
+  if (isnan(v1.x) || isnan(v1.y)) { return vec2(0.0 / 0.0, 0.0 / 0.0); }
+  const vec2 k1 = stepsize * v1;
+
+  const vec2 x2 = pos + k1 / 2;
+  if (x2.x < domain_min.x || x2.x > domain_max.x ||
+      x2.y < domain_min.y || x2.y > domain_max.y) {
+    return vec2(0.0 / 0.0, 0.0 / 0.0);
+  }
+  const vec2 v2 = v(x2);
+  if (isnan(v1.x) || isnan(v1.y)) { return vec2(0.0 / 0.0, 0.0 / 0.0); }
+  const vec2 k2 = stepsize * v2;
+
+  const vec2 x3 = pos + k2 / 2;
+  if (x3.x < domain_min.x || x3.x > domain_max.x ||
+      x3.y < domain_min.y || x3.y > domain_max.y) {
+    return vec2(0.0 / 0.0, 0.0 / 0.0);
+  }
+  const vec2 v3 = v(x3);
+  if (isnan(v1.x) || isnan(v1.y)) { return vec2(0.0 / 0.0, 0.0 / 0.0); }
+  const vec2 k3 = stepsize * v3;
+
+  const vec2 x4 = pos + k3;
+  if (x4.x < domain_min.x || x4.x > domain_max.x ||
+      x4.y < domain_min.y || x4.y > domain_max.y) {
+    return vec2(0.0 / 0.0, 0.0 / 0.0);
+  }
+  const vec2 v4 = v(x4);
+  if (isnan(v1.x) || isnan(v1.y)) { return vec2(0.0 / 0.0, 0.0 / 0.0); }
+  const vec2 k4 = stepsize * v4;
+
+  const vec2 stepped = pos + (k1 + 2 * k2 + 2 * k3 + k4) / 6;
+  if (stepped.x < domain_min.x || stepped.x > domain_max.x ||
+      stepped.y < domain_min.y || stepped.y > domain_max.y) {
+    return vec2(0.0 / 0.0, 0.0 / 0.0);
+  }
+  return stepped;
+}
+//==============================================================================
+void main() {
+  const uvec2 idx = uvec2(gl_GlobalInvocationID.xy);
+  if (idx.x >= lic_tex_res.x || idx.y >= lic_tex_res.y) { return; }
+  const vec2 pos = idx_to_domain_pos(idx, domain_min, domain_max, lic_tex_res);
+
+  vec2 v0 = v(pos);
+  if (isnan(v0.x) || isnan(v0.y)) {
+    imageStore(lic_tex, ivec2(idx), vec4(0, 0, 0, 0));
+    return;
+  }
+  float out_val = noise(pos);
+  uint  cnt     = 1;
+
+  // forward integration
+  vec2 pos_integrated = pos;
+  for (uint i = 0; i < num_samples; ++i) {
+    pos_integrated = rungekutta4_step(pos_integrated, stepsize);
+    if (isnan(pos_integrated.x) || isnan(pos_integrated.y)) { break; }
+    out_val += noise(pos_integrated);
+    ++cnt;
+  }
+
+  // backward integration
+  pos_integrated = pos;
+  for (uint i = 0; i < num_samples; ++i) {
+    pos_integrated = rungekutta4_step(pos_integrated, -stepsize);
+    if (isnan(pos_integrated.x) || isnan(pos_integrated.y)) { break; }
+    out_val += noise(pos_integrated);
+    ++cnt;
+  }
+
+  // contrast stretch
+  out_val /= cnt;
+  out_val = out_val * 11.0 - 5.0;
+  //out_val = out_val * 7.0 - 2.7;
+  if (out_val < 0) { out_val = 0; }
+  if (out_val > 1) { out_val = 1; }
+  out_val = out_val * 0.5 + 0.5;
+
+  float tau =
+      texture(v_tex, domain_pos_to_uv(pos, domain_min, domain_max, v_tex_res))
+          .b;
+  imageStore(
+      lic_tex, ivec2(idx),
+      vec4(out_val * texture(color_scale, vec2((tau - btau) / (ftau - btau), 0.5)).rgb,
+           1));
+}

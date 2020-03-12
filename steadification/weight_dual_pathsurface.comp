@@ -18,9 +18,11 @@ void main() {
   if (size1 == 1 && size0 == 0) {
     node n = ll1_node_at(ll1_head_index(texpos));
     weight = 2 * max(1, n.curvature) * max(1, n.tau);
+    atomicCounterIncrement(cnt);
   } else if (size0 == 1 && size1 == 0) {
     node n = ll0_node_at(ll0_head_index(texpos));
     weight = 2 * max(1, n.curvature) * max(1, n.tau);
+    atomicCounterIncrement(cnt);
     //} else if (size1 > 1 && size0 == 0) {
     //  weight = ll0_node_at(texpos).curvature;
     //} else if (size0 > 1 && size1 == 0) {

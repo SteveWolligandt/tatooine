@@ -48,16 +48,56 @@ void ssf_rasterization_shader::set_render_index(unsigned int render_index) {
 }
 
 //==============================================================================
-// ll_to_pos
+// lic
 //==============================================================================
-ll_to_curvature_shader::ll_to_curvature_shader()
-    : comp_shader{comp_path} {}
+lic_shader::lic_shader() : comp_shader{comp_path} {
+  set_v_tex_bind_point(0);
+  set_noise_tex_bind_point(1);
+  set_color_scale_bind_point(2);
+}
+void lic_shader::set_domain_min(GLfloat x, GLfloat y) {
+  set_uniform("domain_min", x, y);
+}
+void lic_shader::set_domain_max(GLfloat x, GLfloat y) {
+  set_uniform("domain_max", x, y);
+}
+void lic_shader::set_backward_tau(GLfloat btau) {
+  set_uniform("btau", btau);
+}
+void lic_shader::set_forward_tau(GLfloat ftau) {
+  set_uniform("ftau", ftau);
+}
+void lic_shader::set_v_tex_bind_point(GLint b) {
+  set_uniform("v_tex", b);
+}
+void lic_shader::set_noise_tex_bind_point(GLint b) {
+  set_uniform("noise_tex", b);
+}
+void lic_shader::set_color_scale_bind_point(GLint b) {
+  set_uniform("color_scale", b);
+}
+void lic_shader::set_num_samples(GLuint n) {
+  set_uniform("num_samples", n);
+}
+void lic_shader::set_stepsize(GLfloat s) {
+  set_uniform("stepsize", s);
+}
+
+//==============================================================================
+// ll_to_v
+//==============================================================================
+ll_to_v_shader::ll_to_v_shader() : comp_shader{comp_path} {}
+
+//==============================================================================
+// ll_to_curvature
+//==============================================================================
+ll_to_curvature_shader::ll_to_curvature_shader() : comp_shader{comp_path} {}
 
 //==============================================================================
 // fragment_count
 //==============================================================================
 fragment_count_shader::fragment_count_shader()
-    : vert_frag_shader{vert_path,frag_path} {}
+    : vert_frag_shader{vert_path, frag_path} {}
 
 //==============================================================================
 // weight_single_pathsurface
