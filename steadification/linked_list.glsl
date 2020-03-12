@@ -14,7 +14,8 @@ layout(binding = 0, std430) buffer ll_data {
 //------------------------------------------------------------------------------
 const ivec2 ll_tex_resolution = imageSize(ll_head_index_tex);
 //------------------------------------------------------------------------------
-void ll_push_back(ivec2 texpos, vec2 pos, vec2 v, float tau, float curvature) {
+void ll_push_back(ivec2 texpos, vec2 pos, vec2 v, float tau, float curvature,
+                  uint render_index) {
   const uint i = atomicCounterIncrement(ll_cnt);
   if (i < ll_size) {
     const uint len = imageAtomicAdd(ll_list_length_tex, texpos, 1);
@@ -22,8 +23,9 @@ void ll_push_back(ivec2 texpos, vec2 pos, vec2 v, float tau, float curvature) {
     ll_nodes[i].next_index = imageAtomicExchange(ll_head_index_tex, texpos, i);
     ll_nodes[i].pos        = pos;
     ll_nodes[i].v          = v;
-    ll_nodes[i].tau         = tau;
+    ll_nodes[i].tau        = tau;
     ll_nodes[i].curvature  = curvature;
+    ll_nodes[i].render_index = render_index;
   }
 }
 //------------------------------------------------------------------------------
@@ -69,6 +71,27 @@ node ll_min_tau_node(ivec2 texpos) {
       mi      = ri;
     }
     ri = ll_node_at(ri).next_index;
+  }
+  return ll_node_at(mi);
+}
+//------------------------------------------------------------------------------
+node ll_min_tau_and_index_node(ivec2 texpos) {
+  const uint hi        = ll_head_index(texpos);
+  uint       ri        = hi;
+  uint       mi        = hi;
+  float      min_tau   = 1e10;
+  uint       min_render_index = uint(0) -1;
+  while (ri != end_index) {
+    node n = ll_node_at(ri);
+    if (min_render_index > n.render_index) {
+      min_render_index = n.render_index;
+      min_tau          = 1e10;
+    }
+    if (min_tau > n.tau) {
+      min_tau = n.tau;
+      mi      = ri;
+    }
+    ri = n.next_index;
   }
   return ll_node_at(mi);
 }

@@ -16,5 +16,5 @@ void main() {
   if (hi == end_index) { return; }
 
   imageStore(position_tex, texpos,
-             vec4(vec3(ll_min_tau_node(texpos).curvature / 8), 1));
+             vec4(vec3(ll_min_tau_and_index_node(texpos).curvature / 8), 1));
 }

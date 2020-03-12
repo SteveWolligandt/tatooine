@@ -6,7 +6,7 @@ struct node {
   vec2  v;
   float tau;
   float curvature;
+  uint  render_index;
   uint  next_index;
-  float pad;
 };
 #endif

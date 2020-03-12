@@ -13,7 +13,7 @@ out float tau_frag;
 out float curvature_frag;
 //==============================================================================
 void main() {
-  gl_Position = projection * vec4(pos, 0, 1);
+  gl_Position    = projection * vec4(pos, 0, 1);
   pos_frag       = pos;
   v_frag         = v;
   tau_frag       = tau;

@@ -25,6 +25,7 @@ struct ssf_rasterization_shader : vert_frag_shader {
       "@TATOOINE_STEADIFICATION_SSF_RASTERIZATION_FRAG@";
   ssf_rasterization_shader();
   void set_linked_list_size(unsigned int n);
+  void set_render_index(unsigned int n);
 };
 //==============================================================================
 struct ll_to_curvature_shader : comp_shader {

@@ -42,6 +42,10 @@ ssf_rasterization_shader::ssf_rasterization_shader()
 void ssf_rasterization_shader::set_linked_list_size(unsigned int n) {
   set_uniform("ll_size", n);
 }
+//------------------------------------------------------------------------------
+void ssf_rasterization_shader::set_render_index(unsigned int render_index) {
+  set_uniform("render_index", render_index);
+}
 
 //==============================================================================
 // ll_to_pos
