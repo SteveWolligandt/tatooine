@@ -4,36 +4,46 @@
 //==============================================================================
 layout(local_size_x = 32, local_size_y = 32) in;
 layout(binding = 4, r32f) uniform image2D weight_tex;
-layout(binding = 2) uniform atomic_uint cnt;
+layout(binding = 2) uniform atomic_uint num_overall_covered_pixels;
+layout(binding = 3) uniform atomic_uint num_newly_covered_pixels;
+//==============================================================================
+uniform uint layer;
+uniform float min_btau;
+uniform float max_ftau;
 //==============================================================================
 void main() {
   const ivec2 texpos = ivec2(gl_GlobalInvocationID.xy);
   if (texpos.x >= ll0_tex_resolution.x || texpos.y >= ll0_tex_resolution.y) {
     return;
   }
-  const uint size0       = ll0_size_at(texpos);
-  const uint size1       = ll1_size_at(texpos);
+  const uint size0 = ll0_size_at(texpos, min_btau, max_ftau);
+  const uint size1 = ll1_size_at(texpos, min_btau, max_ftau);
 
   float weight = 0;
   if (size1 == 1 && size0 == 0) {
     node n = ll1_node_at(ll1_head_index(texpos));
-    weight = 2 * max(1, n.curvature) * max(1, n.tau);
-    atomicCounterIncrement(cnt);
+    if (layer == 0) {
+      weight = max(1, max(1, n.curvature) * abs(n.tau));
+    } else {
+      weight = 1;
+    }
+    atomicCounterIncrement(num_overall_covered_pixels);
+    atomicCounterIncrement(num_newly_covered_pixels);
+
   } else if (size0 == 1 && size1 == 0) {
     node n = ll0_node_at(ll0_head_index(texpos));
-    weight = 2 * max(1, n.curvature) * max(1, n.tau);
-    atomicCounterIncrement(cnt);
-    //} else if (size1 > 1 && size0 == 0) {
-    //  weight = ll0_node_at(texpos).curvature;
-    //} else if (size0 > 1 && size1 == 0) {
-    //  weight = ll0_node_at(texpos).curvature;
+    if (layer == 0) {
+      weight = max(1, max(1, n.curvature) * abs(n.tau));
+    }
+    atomicCounterIncrement(num_overall_covered_pixels);
+
   } else {
-    weight = -0.5;
+    if (layer == 0) { weight = -2.0; }
   }
   imageStore(weight_tex, texpos, vec4(weight, 0, 0, 0));
 }
 //==============================================================================
-//void main() {
+// void main() {
 //  const ivec2 texpos = ivec2(gl_GlobalInvocationID.xy);
 //  if (texpos.x >= ll0_tex_resolution.x || texpos.y >= ll0_tex_resolution.y) {
 //    return;
@@ -43,15 +53,15 @@ void main() {
 //  const uint size0       = ll0_size_at(texpos);
 //  const uint size1       = ll1_size_at(texpos);
 //  const uint total_size  = size0 + size1;
-//  // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-//  if (total_size == 0) {
+//  // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+//  - if (total_size == 0) {
 //    imageStore(weight_tex, texpos, vec4(0, 0, 0, 0));
 //    return;
 //  }
 //
-//  atomicCounterIncrement(cnt);
-//  // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-//  if (total_size > 2) {
+//  atomicCounterIncrement(num_overall_covered_pixels);
+//  // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+//  - if (total_size > 2) {
 //    float curv_acc      = 0;
 //    uint  running_index = head_index0;
 //    while (running_index != end_index) {
@@ -67,8 +77,8 @@ void main() {
 //               vec4(curv_acc / total_size * -total_size, 0, 0, 0));
 //    return;
 //  }
-//  // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-//  if (total_size == 1) {
+//  // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+//  - if (total_size == 1) {
 //    if (size1 == 0) {
 //      node n = ll0_node_at(head_index0);
 //      imageStore(weight_tex, texpos, vec4(n.curvature * n.tau + 1, 0, 0, 0));
@@ -78,8 +88,8 @@ void main() {
 //    }
 //    return;
 //  }
-//  // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-//  if (total_size == 2) {
+//  // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+//  - if (total_size == 2) {
 //    node        n0, n1;
 //    if (size1 == 0) {
 //      n0 = ll0_node_at(head_index0);

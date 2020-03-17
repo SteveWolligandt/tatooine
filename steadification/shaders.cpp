@@ -46,6 +46,10 @@ void ssf_rasterization_shader::set_linked_list_size(unsigned int n) {
 void ssf_rasterization_shader::set_render_index(unsigned int render_index) {
   set_uniform("render_index", render_index);
 }
+//------------------------------------------------------------------------------
+void ssf_rasterization_shader::set_layer(unsigned int layer) {
+  set_uniform("layer", layer);
+}
 
 //==============================================================================
 // lic
@@ -121,11 +125,31 @@ void weight_dual_pathsurface_shader::set_linked_list0_size(unsigned int n) {
 void weight_dual_pathsurface_shader::set_linked_list1_size(unsigned int n) {
   set_uniform("ll1_size", n);
 }
+//------------------------------------------------------------------------------
+void weight_dual_pathsurface_shader::set_layer(unsigned int n) {
+  set_uniform("layer", n);
+}
+//------------------------------------------------------------------------------
+void weight_dual_pathsurface_shader::set_min_btau(float min_btau) {
+  set_uniform("min_btau", min_btau);
+}
+//------------------------------------------------------------------------------
+void weight_dual_pathsurface_shader::set_max_ftau(float max_ftau) {
+  set_uniform("max_ftau", max_ftau);
+}
 //==============================================================================
 // combine_rasterizations
 //==============================================================================
 combine_rasterizations_shader::combine_rasterizations_shader()
     : comp_shader{comp_path} {}
+//------------------------------------------------------------------------------
+void combine_rasterizations_shader::set_min_btau(float min_btau) {
+  set_uniform("min_btau", min_btau);
+}
+//------------------------------------------------------------------------------
+void combine_rasterizations_shader::set_max_ftau(float max_ftau) {
+  set_uniform("max_ftau", max_ftau);
+}
 //------------------------------------------------------------------------------
 void combine_rasterizations_shader::set_linked_list0_size(unsigned int n) {
   set_uniform("ll0_size", n);

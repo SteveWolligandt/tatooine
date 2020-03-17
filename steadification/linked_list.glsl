@@ -14,18 +14,17 @@ layout(binding = 0, std430) buffer ll_data {
 //------------------------------------------------------------------------------
 const ivec2 ll_tex_resolution = imageSize(ll_head_index_tex);
 //------------------------------------------------------------------------------
-void ll_push_back(ivec2 texpos, vec2 pos, vec2 v, float tau, float curvature,
-                  uint render_index) {
+void ll_push_back(ivec2 texpos, vec2 v, float tau, float curvature,
+                  uint render_index, uint layer) {
   const uint i = atomicCounterIncrement(ll_cnt);
   if (i < ll_size) {
     const uint len = imageAtomicAdd(ll_list_length_tex, texpos, 1);
-    // if (len > 2) { return; }
     ll_nodes[i].next_index = imageAtomicExchange(ll_head_index_tex, texpos, i);
-    ll_nodes[i].pos        = pos;
     ll_nodes[i].v          = v;
     ll_nodes[i].tau        = tau;
     ll_nodes[i].curvature  = curvature;
     ll_nodes[i].render_index = render_index;
+    ll_nodes[i].layer        = layer;
   }
 }
 //------------------------------------------------------------------------------

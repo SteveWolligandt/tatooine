@@ -443,14 +443,12 @@ struct front_evolving_streamsurface_discretization
           while (d > desired_spatial_dist * 1.5) {
             // split front if u distance to small
             Real u_dist = std::abs(uv(*v)(0) - uv(*next(v))(0));
-            if (u_dist < 1e-10) {
-              auto pred_split_it = find_best_predecessor(v, pred_range);
-              // auto new_sub =
-              //     front.insert(next(subfront),
-              //                  subfront_t{{next(v), end(vs)},
-              //                             {pred_split_it,
-              //                             pred_range.second}});
-              pred_range.second = next(pred_split_it);
+            if (u_dist < 1e-6) {
+              const auto best_pred = find_best_predecessor(v, pred_range);
+              front.emplace(next(subfront),
+                            vertex_list_t{next(v), end(vs)},
+                            vertex_range_t{next(best_pred), pred_range.second});
+              pred_range.second = next(best_pred);
               vs.erase(next(v), end(vs));
               stop = true;
               break;
@@ -471,13 +469,11 @@ struct front_evolving_streamsurface_discretization
               }
             } catch (std::exception&) {
               if (next(v, 2) != end(vs)) {
-                auto pred_split_it = find_best_predecessor(v, pred_range);
-                // auto new_sub       = front.insert(
-                //     next(subfront),
-                //     subfront_t{{next(v), end(vs)},
-                //                {pred_split_it, pred_range.second}});
-                pred_range.second = next(pred_split_it);
-                vs.erase(next(v), end(vs));
+              const auto best_pred = find_best_predecessor(v, pred_range);
+              //front.emplace(next(subfront), vertex_list_t{next(v), end(vs)},
+              //              vertex_range_t{next(best_pred), pred_range.second});
+              pred_range.second = next(best_pred);
+              vs.erase(next(v), end(vs));
               }
               stop = true;
               break;

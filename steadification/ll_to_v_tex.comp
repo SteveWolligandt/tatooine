@@ -17,5 +17,5 @@ void main() {
     return;
   }
   node n = ll_min_tau_and_index_node(texpos);
-  imageStore(v_tex, texpos, vec4(n.v, n.tau, float(n.render_index)));
+  imageStore(v_tex, texpos, vec4(n.v, n.tau, float(n.layer)));
 }

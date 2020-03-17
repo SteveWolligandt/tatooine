@@ -12,8 +12,8 @@ namespace tatooine {
 template <typename F, typename... Args>
 constexpr auto bind(F&& f, Args&&... args) {
   return [&](auto&&... rest) -> decltype(auto) {
-    return std::invoke(f, std::forward<Args>(args)...,
-                       std::forward<decltype(rest)>(rest)...);
+    return f(std::forward<Args>(args)...,
+             std::forward<decltype(rest)>(rest)...);
   };
 }
 #endif

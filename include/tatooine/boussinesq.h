@@ -1,18 +1,16 @@
 #ifndef TATOOINE_BOUSSINESQ_H
 #define TATOOINE_BOUSSINESQ_H
-
+//==============================================================================
 #include "field.h"
 #include "grid_sampler.h"
-
 //==============================================================================
 namespace tatooine {
 //==============================================================================
-
 struct boussinesq : field<boussinesq, double, 2, 2> {
   using real_t = double;
   using sampler_t =
-      grid_sampler<real_t, 3, vec<real_t, 2>, interpolation::hermite,
-                   interpolation::hermite, interpolation::linear>;
+      grid_sampler<real_t, 3, vec<real_t, 2>, interpolation::linear,
+                   interpolation::linear, interpolation::linear>;
   sampler_t sampler;
   using parent_t = field<boussinesq, real_t, 2, 2>;
   using parent_t::pos_t;
@@ -24,7 +22,7 @@ struct boussinesq : field<boussinesq, double, 2, 2> {
   static constexpr vec            center{0.0, -0.4};
   static constexpr real_t         radius = 0.07;
 
-  boussinesq(const std::string& filepath) : sampler(filepath) {}
+  boussinesq(const std::string& filepath) : sampler{filepath} {}
 
   tensor_t evaluate(const pos_t& x, real_t t) const {
     return sampler(x(0), x(1), t);
@@ -39,9 +37,7 @@ struct boussinesq : field<boussinesq, double, 2, 2> {
            t <= sampler.dimension(2).back() && distance(center, x) > radius;
   }
 };
-
 //==============================================================================
 }  // namespace tatooine
 //==============================================================================
-
 #endif

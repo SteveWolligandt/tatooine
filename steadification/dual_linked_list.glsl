@@ -23,20 +23,19 @@ layout(binding = 1, std430) buffer ll1_data {
 const ivec2 ll0_tex_resolution = imageSize(ll0_head_index_tex);
 const ivec2 ll1_tex_resolution = imageSize(ll1_head_index_tex);
 //------------------------------------------------------------------------------
-void ll0_push_back(ivec2 texpos, vec2 pos, vec2 v, float tau, float curvature,
-                   uint render_index) {
+void ll0_push_back(ivec2 texpos,  vec2 v, float tau, float curvature,
+                   uint render_index, uint layer) {
   const uint i = atomicCounterIncrement(ll0_cnt);
   if (i < ll0_size) {
     const uint len = imageAtomicAdd(ll0_list_length_tex, texpos, 1);
     // if (len > 2) { return; }
     ll0_nodes[i].next_index =
         imageAtomicExchange(ll0_head_index_tex, texpos, i);
-    ll0_nodes[i].pos          = pos;
     ll0_nodes[i].v            = v;
     ll0_nodes[i].tau          = tau;
     ll0_nodes[i].curvature    = curvature;
     ll0_nodes[i].render_index = render_index;
-    ll0_nodes[i].render_index = render_index;
+    ll0_nodes[i].layer = layer;
   }
 }
 //------------------------------------------------------------------------------
@@ -47,27 +46,26 @@ void ll0_push_back(ivec2 texpos, node n) {
     // if (len > 2) { return; }
     ll0_nodes[i].next_index =
         imageAtomicExchange(ll0_head_index_tex, texpos, i);
-    ll0_nodes[i].pos          = n.pos;
     ll0_nodes[i].v            = n.v;
     ll0_nodes[i].tau          = n.tau;
     ll0_nodes[i].curvature    = n.curvature;
     ll0_nodes[i].render_index = n.render_index;
+    ll0_nodes[i].layer        = n.layer;
   }
 }
 //------------------------------------------------------------------------------
-void ll1_push_back(ivec2 texpos, vec2 pos, vec2 v, float tau, float curvature,
-                   uint render_index) {
+void ll1_push_back(ivec2 texpos, vec2 v, float tau, float curvature,
+                   uint render_index, uint layer) {
   const uint i = atomicCounterIncrement(ll1_cnt);
   if (i < ll1_size) {
     const uint len = imageAtomicAdd(ll1_list_length_tex, texpos, 1);
-    // if (len > 2) { return; }
     ll1_nodes[i].next_index =
         imageAtomicExchange(ll1_head_index_tex, texpos, i);
-    ll1_nodes[i].pos          = pos;
     ll1_nodes[i].v            = v;
     ll1_nodes[i].tau          = tau;
     ll1_nodes[i].curvature    = curvature;
     ll1_nodes[i].render_index = render_index;
+    ll1_nodes[i].layer        = layer;
   }
 }
 //------------------------------------------------------------------------------
@@ -75,23 +73,14 @@ void ll1_push_back(ivec2 texpos, node n) {
   const uint i = atomicCounterIncrement(ll1_cnt);
   if (i < ll1_size) {
     const uint len = imageAtomicAdd(ll1_list_length_tex, texpos, 1);
-    // if (len > 2) { return; }
     ll1_nodes[i].next_index =
         imageAtomicExchange(ll1_head_index_tex, texpos, i);
-    ll1_nodes[i].pos          = n.pos;
     ll1_nodes[i].v            = n.v;
     ll1_nodes[i].tau          = n.tau;
     ll1_nodes[i].curvature    = n.curvature;
     ll1_nodes[i].render_index = n.render_index;
+    ll1_nodes[i].layer        = n.layer;
   }
-}
-//------------------------------------------------------------------------------
-uint ll0_head_index(ivec2 texpos) {
-  return imageLoad(ll0_head_index_tex, texpos).r;
-}
-//------------------------------------------------------------------------------
-uint ll1_head_index(ivec2 texpos) {
-  return imageLoad(ll1_head_index_tex, texpos).r;
 }
 //------------------------------------------------------------------------------
 node ll0_node_at(uint i) {
@@ -102,12 +91,12 @@ node ll1_node_at(uint i) {
   return ll1_nodes[i];
 }
 //------------------------------------------------------------------------------
-uint ll0_size_at(ivec2 texpos) {
-  return imageLoad(ll0_list_length_tex, texpos).r;
+uint ll0_head_index(ivec2 texpos) {
+  return imageLoad(ll0_head_index_tex, texpos).r;
 }
 //------------------------------------------------------------------------------
-uint ll1_size_at(ivec2 texpos) {
-  return imageLoad(ll1_list_length_tex, texpos).r;
+uint ll1_head_index(ivec2 texpos) {
+  return imageLoad(ll1_head_index_tex, texpos).r;
 }
 //------------------------------------------------------------------------------
 node ll0_head_node(ivec2 texpos) {
@@ -116,6 +105,42 @@ node ll0_head_node(ivec2 texpos) {
 //------------------------------------------------------------------------------
 node ll1_head_node(ivec2 texpos) {
   return ll1_node_at(ll1_head_index(texpos));
+}
+//------------------------------------------------------------------------------
+uint ll0_size_at(ivec2 texpos) {
+  return imageLoad(ll0_list_length_tex, texpos).r;
+}
+//------------------------------------------------------------------------------
+uint ll0_size_at(ivec2 texpos, float min_btau, float max_ftau) {
+  uint size = 0;
+  const uint head_index = ll0_head_index(texpos);
+  uint running_index = head_index;
+  while (running_index != end_index) {
+    node n = ll0_node_at(running_index);
+    if (min_btau <= n.tau && n.tau <= max_ftau) {
+      ++size;
+    }
+    running_index = n.next_index;
+  }
+  return size;
+}
+//------------------------------------------------------------------------------
+uint ll1_size_at(ivec2 texpos, float min_btau, float max_ftau) {
+  uint size = 0;
+  const uint head_index = ll1_head_index(texpos);
+  uint running_index = head_index;
+  while (running_index != end_index) {
+    node n = ll1_node_at(running_index);
+    if (min_btau <= n.tau && n.tau <= max_ftau) {
+      ++size;
+    }
+    running_index = n.next_index;
+  }
+  return size;
+}
+//------------------------------------------------------------------------------
+uint ll1_size_at(ivec2 texpos) {
+  return imageLoad(ll1_list_length_tex, texpos).r;
 }
 //------------------------------------------------------------------------------
 node ll0_max_tau_node(ivec2 texpos) {

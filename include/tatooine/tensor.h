@@ -58,7 +58,7 @@ struct base_tensor : crtp<Tensor> {
   static constexpr auto indices() { return resolution_t::indices(); }
   //------------------------------------------------------------------------------
   template <typename F>
-  static auto for_indices(F&& f) {
+  static constexpr auto for_indices(F&& f) {
     for (auto is : indices()) {
       invoke_unpacked(std::forward<F>(f), unpack(is));
     }

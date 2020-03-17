@@ -14,7 +14,7 @@ struct unpack;
 /// All arguments are bound -> just call f
 template <typename F>
 constexpr decltype(auto) invoke_unpacked(F&& f) {
-  return std::invoke(f);
+  return f();
 }
 
 //------------------------------------------------------------------------------
