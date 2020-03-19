@@ -427,11 +427,12 @@ class steadification {
                                              m_render_resolution(1) / 32.0 + 1);
   }
   //----------------------------------------------------------------------------
-  auto greedy_set_cover(const grid<real_t, 2>& domain, const real_t u0t0,
-                        const real_t u1t0, const real_t btau, const real_t ftau,
+  auto greedy_set_cover(const grid<real_t, 2>& domain, 
+                        const real_t t0, const real_t btau, const real_t ftau,
                         const size_t seed_res, const real_t stepsize,
                         const real_t desired_coverage) {
     static const float     nan = 0.0f / 0.0f;
+    std::cerr << "creating linked list textures\n";
     rasterized_pathsurface covered_elements{
         m_render_resolution(0), m_render_resolution(1), 0,
         linked_list_node{{nan, nan}, nan, nan, nan, 0, 0, 0xffffffff}};
@@ -439,6 +440,7 @@ class steadification {
         m_render_resolution(0), m_render_resolution(1), 0,
         linked_list_node{{nan, nan}, nan, nan, nan, 0, 0, 0xffffffff}};
 
+    std::cerr << "deleting last output\n";
     using namespace std::filesystem;
     auto working_dir = std::string{settings<V>::name} + "/";
     if (!exists(working_dir)) { create_directory(working_dir); }
@@ -456,6 +458,7 @@ class steadification {
     std::mutex       mutex;
 
     // set all edges as unused
+    std::cerr << "set all edges unused\n";
     for (size_t edge_idx = 0; edge_idx < domain.num_straight_edges();
          ++edge_idx) {
       unused_edges.insert(edge_idx);
@@ -467,16 +470,26 @@ class steadification {
       best_weight     = -std::numeric_limits<real_t>::max();
       best_edge_idx   = domain.num_straight_edges();
 
-#ifdef NDEBUG
-      auto edge_idx_it = begin(unused_edges);
-      parallel_for_loop([&](auto) {
-        const auto edge_idx = *edge_idx_it++;
-#else
+//#ifdef NDEBUG
+      //auto edge_idx_it = begin(unused_edges);
+      //parallel_for_loop([&](auto) {
+      //  const auto edge_idx = *edge_idx_it++;
+//#else
       for (auto edge_idx : unused_edges) {
-#endif
-        const auto mesh = pathsurface(domain, edge_idx, u0t0, u1t0, btau, ftau,
+//#endif
+        {
+          std::lock_guard lock{mutex};
+          //std::cerr << "integrating [" << omp_get_thread_num() << "]...\n";
+          std::cerr << "integrating...";
+        }
+        const auto mesh = pathsurface(domain, edge_idx, t0, t0, btau, ftau,
                                       seed_res, stepsize)
                               .first;
+        {
+          std::lock_guard lock{mutex};
+          //std::cerr << "integrating [" << omp_get_thread_num() << "] done!\n";
+          std::cerr << " done!\n";
+        }
         {
           std::lock_guard lock{mutex};
           m_context.make_current();
@@ -489,7 +502,7 @@ class steadification {
                     num_newly_covered_pixels] =
                   weight(
                       covered_elements,
-                      rasterize(gpu_pathsurface(mesh, u0t0, u1t0), working_rast,
+                      rasterize(gpu_pathsurface(mesh, t0, t0), working_rast,
                                 render_index, layer),
                       layer, cur_min_btau, cur_max_ftau);
 
@@ -520,15 +533,15 @@ class steadification {
           }
           m_context.release();
         }
-#ifndef NDEBUG
+//#ifndef NDEBUG
       }
-#else
-      }, size(unused_edges));
-#endif
+//#else
+      //}, size(unused_edges));
+//#endif
       m_context.make_current();
       if (best_edge_idx != domain.num_straight_edges()) {
         combine(covered_elements,
-                rasterize(gpu_pathsurface(domain, best_edge_idx, u0t0, u1t0,
+                rasterize(gpu_pathsurface(domain, best_edge_idx, t0, t0,
                                           btau, ftau, seed_res, stepsize),
                           working_rast, render_index, layer),
                 best_min_btau, best_max_ftau);

@@ -8,9 +8,9 @@ using namespace std::chrono;
 //==============================================================================
 namespace tatooine::steadification {
 //==============================================================================
-template <typename V, typename VReal, typename BTauReal, typename FTauReal,
+template <typename V, typename VReal, typename T0Real, typename BTauReal, typename FTauReal,
           typename StepsizeReal, typename CovReal>
-void calc(const field<V, VReal, 2, 2>& v, BTauReal btau, FTauReal ftau,
+void calc(const field<V, VReal, 2, 2>& v,T0Real t0, BTauReal btau, FTauReal ftau,
           size_t seed_res, StepsizeReal stepsize,
           const vec<size_t, 2>& grid_res, CovReal desired_coverage,
           const std::string& seed_str) {
@@ -20,25 +20,26 @@ void calc(const field<V, VReal, 2, 2>& v, BTauReal btau, FTauReal ftau,
   steadification  s(v, dom, settings<V>::render_resolution,
                    randeng);
 
-  grid  g{linspace{dom.min(0), dom.max(0), grid_res(0)},
-          linspace{dom.min(1), dom.max(1), grid_res(1)}};
-  s.greedy_set_cover(g, 0, 0, btau, ftau, seed_res, stepsize, desired_coverage);
+  grid g{linspace{dom.min(0), dom.max(0), grid_res(0)},
+         linspace{dom.min(1), dom.max(1), grid_res(1)}};
+  s.greedy_set_cover(g, t0, btau, ftau, seed_res, stepsize, desired_coverage);
 }
 
 //------------------------------------------------------------------------------
 template <typename V, typename VReal>
 void calc(const field<V, VReal, 2, 2>& v, int argc, char** argv) {
-  const double btau             = argc > 2 ? atof(argv[2]) : -5;
-  const double ftau             = argc > 3 ? atof(argv[3]) : 5;
-  const size_t seed_res         = argc > 4 ? atoi(argv[4]) : 2;
-  const double stepsize         = argc > 5 ? atof(argv[5]) : 0.1;
-  const size_t grid_res_x       = argc > 6 ? atoi(argv[6]) : 20;
-  const size_t grid_res_y       = argc > 7 ? atoi(argv[7]) : 20;
-  const double desired_coverage = argc > 8 ? atof(argv[8]) : 0.99;
-  const auto   seed_str         = argc > 9 ? argv[9] : random_string(10);
-  if (argc <= 7) { std::cerr << "seed: " << seed_str << '\n'; }
+  const double t0               = argc > 2 ? atof(argv[2]) : 0;
+  const double btau             = argc > 3 ? atof(argv[3]) : -5;
+  const double ftau             = argc > 4 ? atof(argv[4]) : 5;
+  const size_t seed_res         = argc > 5 ? atoi(argv[5]) : 2;
+  const double stepsize         = argc > 6 ? atof(argv[6]) : 0.1;
+  const size_t grid_res_x       = argc > 7 ? atoi(argv[7]) : 20;
+  const size_t grid_res_y       = argc > 8 ? atoi(argv[8]) : 20;
+  const double desired_coverage = argc > 9 ? atof(argv[9]) : 0.99;
+  const auto   seed_str         = argc > 10 ? argv[10] : random_string(10);
+  if (argc <= 10) { std::cerr << "seed: " << seed_str << '\n'; }
 
-  calc(v, btau, ftau, seed_res, stepsize, vec{grid_res_x, grid_res_y},
+  calc(v, t0, btau, ftau, seed_res, stepsize, vec{grid_res_x, grid_res_y},
        desired_coverage, seed_str);
 }
 //==============================================================================
