@@ -141,12 +141,12 @@ void main() {
           .a;
   if (layer == 0) {
     imageStore(lic_tex, ivec2(idx),
-               vec4(out_val * texture(color_scale,
+               vec4(out_val /** 0.75 + 0.25*/ * texture(color_scale,
                                       vec2((tau - btau) / (ftau - btau), 0.5))
                                   .rgb,
-                    // vec4(out_val *
-                    //         texture(color_scale, vec2(1 - clamp(tau / 5, 0,
-                    //         1), 0.5)).rgb,
+               //vec4(out_val * texture(color_scale,
+               //                       vec2((tau - btau) / (ftau - btau), 0.5))
+               //                   .rgb,
                     1));
   } else {
     imageStore(lic_tex, ivec2(idx), vec4(vec3(out_val), 1));

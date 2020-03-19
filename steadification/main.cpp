@@ -22,7 +22,7 @@ void calc(const field<V, VReal, 2, 2>& v, BTauReal btau, FTauReal ftau,
 
   grid  g{linspace{dom.min(0), dom.max(0), grid_res(0)},
           linspace{dom.min(1), dom.max(1), grid_res(1)}};
-  s.greedy_set_cover(g, 0, btau, ftau, seed_res, stepsize, desired_coverage);
+  s.greedy_set_cover(g, 0, 0, btau, ftau, seed_res, stepsize, desired_coverage);
 }
 
 //------------------------------------------------------------------------------

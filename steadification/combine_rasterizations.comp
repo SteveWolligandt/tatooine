@@ -18,9 +18,9 @@ void main() {
 
   while (running_index != end_index) {
     node n = ll1_node_at(running_index);
-    if (n.tau >= min_btau && n.tau <= max_ftau) {
+    if (min_btau <= n.t-n.t0 && n.t-n.t0 <= max_ftau) {
       ll0_push_back(texpos, n);
-      running_index = n.next_index;
     }
+    running_index = n.next_index;
   }
 }

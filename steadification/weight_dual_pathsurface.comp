@@ -7,7 +7,7 @@ layout(binding = 4, r32f) uniform image2D weight_tex;
 layout(binding = 2) uniform atomic_uint num_overall_covered_pixels;
 layout(binding = 3) uniform atomic_uint num_newly_covered_pixels;
 //==============================================================================
-uniform uint layer;
+uniform uint  layer;
 uniform float min_btau;
 uniform float max_ftau;
 //==============================================================================
@@ -16,29 +16,69 @@ void main() {
   if (texpos.x >= ll0_tex_resolution.x || texpos.y >= ll0_tex_resolution.y) {
     return;
   }
-  const uint size0 = ll0_size_at(texpos, min_btau, max_ftau);
+  const uint size0 = ll0_size_at(texpos);
   const uint size1 = ll1_size_at(texpos, min_btau, max_ftau);
 
-  float weight = 0;
-  if (size1 == 1 && size0 == 0) {
-    node n = ll1_node_at(ll1_head_index(texpos));
-    if (layer == 0) {
-      weight = max(1, max(1, n.curvature) * abs(n.tau));
-    } else {
-      weight = 1;
-    }
+  if (size1 > 0 && size0 == 0) {
     atomicCounterIncrement(num_overall_covered_pixels);
     atomicCounterIncrement(num_newly_covered_pixels);
-
-  } else if (size0 == 1 && size1 == 0) {
-    node n = ll0_node_at(ll0_head_index(texpos));
-    if (layer == 0) {
-      weight = max(1, max(1, n.curvature) * abs(n.tau));
-    }
+  } else if (size0 > 0) {
     atomicCounterIncrement(num_overall_covered_pixels);
+  }
 
+  float weight = 0;
+  if (layer == 0) {
+    if (size1 == 1 && size0 == 0) {
+      node n = ll1_head_node(texpos);
+      weight = max(1, max(1, n.curvature) * abs(n.t - n.t0));
+
+    } else if (size0 == 1 && size1 == 0) {
+      node n = ll0_head_node(texpos);
+      weight = max(1, max(1, n.curvature) * abs(n.t - n.t0));
+
+    } else if (size0 + size1 == 2) {
+      // n0 must be node that is seen so n0 and n1 will be swapped eventually
+      node n0, n1;
+      if (size0 == 2) {
+        uint hi = ll0_head_index(texpos);
+        n0      = ll0_node_at(hi);
+        n1      = ll0_node_at(n0.next_index);
+        // render_index of nodes in ll0 can differ.
+        // n0's render_index must be smaller.
+        // if render_index0 equals render_index1 then tau0 must be greater than
+        // tau1.
+        if ((n0.render_index == n1.render_index &&
+             n0.t - n1.t0 < n1.t - n1.t0) ||
+            n0.render_index > n1.render_index) {
+          node n2 = n1;
+          n1      = n0;
+          n0      = n2;
+        }
+      } else if (size1 == 2) {
+        uint hi = ll1_head_index(texpos);
+        n0      = ll1_node_at(hi);
+        n1      = ll1_node_at(n0.next_index);
+        // render_index of nodes in ll1 cannot differ
+        // tau0 must be greater than tau1.
+        if (n0.t - n0.t0 < n1.t - n1.t0) {
+          node n2 = n1;
+          n1      = n0;
+          n0      = n2;
+        }
+      } else {
+        // render_index of n0 is smaller in any case
+        n0 = ll0_head_node(texpos);
+        n1 = ll1_head_node(texpos);
+      }
+      float cosv0v1 = dot(normalize(n0.v), normalize(n1.v));
+      weight        = max(1, max(1, n0.curvature) * abs(n0.t - n0.t0)) *
+               (1 - cosv0v1 * cosv0v1);
+    } else {
+      weight = -2 * (size0 + size1);
+      weight = -2;
+    }
   } else {
-    if (layer == 0) { weight = -2.0; }
+    if (size0 > 0 || size1 > 0) { weight = 1; }
   }
   imageStore(weight_tex, texpos, vec4(weight, 0, 0, 0));
 }
@@ -81,10 +121,12 @@ void main() {
 //  - if (total_size == 1) {
 //    if (size1 == 0) {
 //      node n = ll0_node_at(head_index0);
-//      imageStore(weight_tex, texpos, vec4(n.curvature * n.tau + 1, 0, 0, 0));
+//      imageStore(weight_tex, texpos, vec4(n.curvature * n.t - n.t0 + 1, 0, 0,
+//      0));
 //    } else {
 //      node n = ll1_node_at(head_index1);
-//      imageStore(weight_tex, texpos, vec4(n.curvature * n.tau + 1, 0, 0, 0));
+//      imageStore(weight_tex, texpos, vec4(n.curvature * n.t - n.t0 + 1, 0, 0,
+//      0));
 //    }
 //    return;
 //  }
@@ -101,8 +143,8 @@ void main() {
 //      n0 = ll0_node_at(head_index0);
 //      n1 = ll1_node_at(head_index1);
 //    }
-//    const float tau0 = n0.tau;
-//    const float tau1 = n1.tau;
+//    const float tau0 = n0.t - n0.t0;
+//    const float tau1 = n1.t - n1.t0;
 //    const float c0   = n0.curvature;
 //    const float c1   = n1.curvature;
 //

@@ -16,6 +16,6 @@ void main() {
     imageStore(v_tex, texpos, vec4(nan));
     return;
   }
-  node n = ll_min_tau_and_index_node(texpos);
-  imageStore(v_tex, texpos, vec4(n.v, n.tau, float(n.layer)));
+  node n = ll_max_tau_node(texpos);
+  imageStore(v_tex, texpos, vec4(n.v, n.t - n.t0, float(n.layer)));
 }
