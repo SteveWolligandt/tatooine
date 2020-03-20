@@ -61,13 +61,13 @@ add_custom_target (unittests.xml COMMAND ./unittests --reporter=xml DEPENDS unit
 if("${CMAKE_CXX_COMPILER_ID}" STREQUAL "GNU" OR
    "${CMAKE_CXX_COMPILER_ID}" STREQUAL "Clang")
   if(CMAKE_BUILD_TYPE STREQUAL "Debug")
-  add_custom_target (unittests.valgrind
-                     COMMAND valgrind --log-file="unittests.valgrind" --tool=memcheck --leak-check=yes --show-reachable=yes --track-fds=yes ./unittests
-                     DEPENDS unittests)
+    add_custom_target (unittests.valgrind
+                       COMMAND valgrind --log-file="unittests.valgrind" --tool=memcheck --leak-check=yes --show-reachable=yes --track-fds=yes ./unittests
+                       DEPENDS unittests)
   else()
-  add_custom_target (unittests.valgrind
-                     COMMAND echo "" > /dev/null
-                     COMMENT "Target ${BoldRed}unittest.valgrind ${ColourReset}only available in debug mode.")
+    add_custom_target (unittests.valgrind
+                       COMMAND echo "" > /dev/null
+                       COMMENT "Target ${BoldRed}unittest.valgrind ${ColourReset}only available in debug mode.")
   endif()
 endif()
 add_custom_target (unittests.callgrind

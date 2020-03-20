@@ -1,5 +1,7 @@
-#ifndef STEADIFICATION_STEADIFICATION_H
-#define STEADIFICATION_STEADIFICATION_H
+#ifndef TATOOINE_STEADIFICATION_STEADIFICATION_H
+#define TATOOINE_STEADIFICATION_STEADIFICATION_H
+#define TATOOINE_STEADIFICATION_PARALLEL
+#define TATOOINE_STEADIFICATION_ALL_TAUS
 
 #include <omp.h>
 #include <tatooine/chrono.h>
@@ -15,6 +17,7 @@
 #include <boost/range/adaptors.hpp>
 #include <cmath>
 #include <cstdlib>
+#include <execution>
 #include <filesystem>
 #include <mutex>
 #include <vector>
@@ -77,6 +80,8 @@ class steadification {
   yavin::tex2rgb32f                m_color_scale;
   yavin::texdepth                  m_depth;
   yavin::tex2r32f                  m_noise_tex;
+  yavin::tex2r32f                  m_fbotex;
+  yavin::framebuffer               m_fbo;
   ssf_rasterization_shader         m_ssf_rasterization_shader;
   lic_shader                       m_lic_shader;
   ll_to_v_shader                   m_ll_to_v_shader;
@@ -113,6 +118,8 @@ class steadification {
                 render_resolution(1)},
         m_noise_tex{yavin::LINEAR, yavin::REPEAT, render_resolution(0),
                     render_resolution(1)},
+        m_fbotex{render_resolution(0), render_resolution(1)},
+        m_fbo{m_fbotex},
         m_ssf_rasterization_shader{},
         m_rand_eng{rand_eng},
         m_domain{domain} {
@@ -142,38 +149,9 @@ class steadification {
     return rasterize(gpu_pathsurface(mesh, u0t0, u1t0), render_index, layer);
   }
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-  auto rasterize(const pathsurface_gpu_t& gpu_mesh, size_t render_index,
-                 size_t layer) {
-    using namespace yavin;
-    static const float     nan       = 0.0f / 0.0f;
-    const auto             num_frags = num_rendered_fragments(gpu_mesh);
-    rasterized_pathsurface rast{
-        m_render_resolution(0),
-        m_render_resolution(1),
-        num_frags,
-        linked_list_node{{nan, nan}, nan, nan, nan, 0, 0, 0xffffffff},
-        0,
-        0.0f,
-        0.0f};
-    m_ssf_rasterization_shader.bind();
-    m_ssf_rasterization_shader.set_linked_list_size(rast.buffer_size());
-    m_ssf_rasterization_shader.set_projection(m_cam.projection_matrix());
-    m_ssf_rasterization_shader.set_render_index(render_index);
-    m_ssf_rasterization_shader.set_layer(layer);
-    gl::viewport(m_cam);
-    yavin::disable_depth_test();
-    yavin::tex2r32f fbotex{m_render_resolution(0), m_render_resolution(1)};
-    framebuffer     fbo{fbotex};
-    fbo.bind();
-    rast.bind();
-    gpu_mesh.draw();
-    return rast;
-  }
-  // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
   auto& rasterize(const pathsurface_gpu_t& gpu_mesh,
                   rasterized_pathsurface& rast, size_t render_index,
                   size_t layer) {
-    using namespace yavin;
     const auto num_frags = num_rendered_fragments(gpu_mesh);
     rast.clear();
     if (rast.buffer().size() < num_frags) { rast.resize_buffer(num_frags); }
@@ -182,28 +160,21 @@ class steadification {
     m_ssf_rasterization_shader.set_projection(m_cam.projection_matrix());
     m_ssf_rasterization_shader.set_render_index(render_index);
     m_ssf_rasterization_shader.set_layer(layer);
-    gl::viewport(m_cam);
+    yavin::gl::viewport(m_cam);
     yavin::disable_depth_test();
-    yavin::tex2r32f fbotex{m_render_resolution(0), m_render_resolution(1)};
-    framebuffer     fbo{fbotex};
-    fbo.bind();
+    m_fbo.bind();
     rast.bind();
     gpu_mesh.draw();
     return rast;
   }
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
   size_t num_rendered_fragments(const pathsurface_gpu_t& gpu_mesh) {
-    using namespace yavin;
-    tex2r32f    fbotex{m_render_resolution(0), m_render_resolution(1)};
-    framebuffer fbo{fbotex};
-    fbo.bind();
-
-    atomiccounterbuffer cnt{0};
+    m_fbo.bind();
+    yavin::atomiccounterbuffer cnt{0};
     cnt.bind(1);
-
     m_fragment_count_shader.bind();
     yavin::gl::viewport(m_cam);
-    disable_depth_test();
+    yavin::disable_depth_test();
     gpu_mesh.draw();
     return cnt[0];
   }
@@ -271,28 +242,28 @@ class steadification {
         u0t0, u1t0);
   }
   //----------------------------------------------------------------------------
-  auto weight(const rasterized_pathsurface& rast0,
-              const rasterized_pathsurface& rast1, size_t layer1,
-              float min_btau, float max_ftau) {
-    yavin::tex2r32f weight{m_render_resolution(0), m_render_resolution(1)};
-    yavin::atomiccounterbuffer num_overall_covered_pixels{0};
-    yavin::atomiccounterbuffer num_newly_covered_pixels{0};
-    rast0.bind(0, 0, 1, 0);
-    rast1.bind(1, 2, 3, 1);
-    num_overall_covered_pixels.bind(2);
-    num_newly_covered_pixels.bind(3);
-    weight.bind_image_texture(4);
-    m_weight_dual_pathsurface_shader.set_linked_list0_size(rast0.buffer_size());
-    m_weight_dual_pathsurface_shader.set_linked_list1_size(rast1.buffer_size());
-    m_weight_dual_pathsurface_shader.set_layer(layer1);
-    m_weight_dual_pathsurface_shader.set_min_btau(min_btau);
-    m_weight_dual_pathsurface_shader.set_max_ftau(max_ftau);
-    m_weight_dual_pathsurface_shader.dispatch(
-        m_render_resolution(0) / 32.0 + 1, m_render_resolution(1) / 32.0 + 1);
-    auto w = boost::accumulate(weight.download_data(), float(0));
-    return std::tuple{w, num_overall_covered_pixels.download_data()[0],
-                      num_newly_covered_pixels.download_data()[0]};
-  }
+  //auto weight(const rasterized_pathsurface& rast0,
+  //            const rasterized_pathsurface& rast1, size_t layer1,
+  //            float min_btau, float max_ftau) {
+  //  yavin::tex2r32f weight_tex{m_render_resolution(0), m_render_resolution(1)};
+  //  yavin::atomiccounterbuffer num_overall_covered_pixels{0};
+  //  yavin::atomiccounterbuffer num_newly_covered_pixels{0};
+  //  rast0.bind(0, 0, 1, 0);
+  //  rast1.bind(1, 2, 3, 1);
+  //  num_overall_covered_pixels.bind(2);
+  //  num_newly_covered_pixels.bind(3);
+  //  weight_tex.bind_image_texture(4);
+  //  m_weight_dual_pathsurface_shader.set_linked_list0_size(rast0.buffer_size());
+  //  m_weight_dual_pathsurface_shader.set_linked_list1_size(rast1.buffer_size());
+  //  m_weight_dual_pathsurface_shader.set_layer(layer1);
+  //  m_weight_dual_pathsurface_shader.set_min_btau(min_btau);
+  //  m_weight_dual_pathsurface_shader.set_max_ftau(max_ftau);
+  //  m_weight_dual_pathsurface_shader.dispatch(
+  //      m_render_resolution(0) / 32.0 + 1, m_render_resolution(1) / 32.0 + 1);
+  //  auto w = boost::accumulate(weight_tex.download_data(), float(0));
+  //  return std::tuple{w, num_overall_covered_pixels.download_data()[0],
+  //                    num_newly_covered_pixels.download_data()[0]};
+  //}
   //----------------------------------------------------------------------------
   template <template <typename> typename SeedcurveInterpolator>
   auto curvature(
@@ -439,6 +410,12 @@ class steadification {
     rasterized_pathsurface working_rast{
         m_render_resolution(0), m_render_resolution(1), 0,
         linked_list_node{{nan, nan}, nan, nan, nan, 0, 0, 0xffffffff}};
+    yavin::atomiccounterbuffer num_overall_covered_pixels_buffer{0};
+    yavin::atomiccounterbuffer num_newly_covered_pixels_buffer{0};
+    yavin::tex2r32f weight_tex{m_render_resolution(0), m_render_resolution(1)};
+    weight_tex.bind_image_texture(4);
+    num_overall_covered_pixels_buffer.bind(2);
+    num_newly_covered_pixels_buffer.bind(3);
 
     std::cerr << "deleting last output\n";
     using namespace std::filesystem;
@@ -470,74 +447,105 @@ class steadification {
       best_weight     = -std::numeric_limits<real_t>::max();
       best_edge_idx   = domain.num_straight_edges();
 
-//#ifdef NDEBUG
-      //auto edge_idx_it = begin(unused_edges);
-      //parallel_for_loop([&](auto) {
-      //  const auto edge_idx = *edge_idx_it++;
-//#else
+
+#if defined(NDEBUG) && defined(TATOOINE_STEADIFICATION_PARALLEL)
+      auto edge_idx_it = begin(unused_edges);
+      parallel_for_loop(
+          [&](auto) {
+            const auto edge_idx = *edge_idx_it++;
+#else
       for (auto edge_idx : unused_edges) {
-//#endif
-        {
-          std::lock_guard lock{mutex};
-          //std::cerr << "integrating [" << omp_get_thread_num() << "]...\n";
-          std::cerr << "integrating...";
-        }
-        const auto mesh = pathsurface(domain, edge_idx, t0, t0, btau, ftau,
-                                      seed_res, stepsize)
-                              .first;
-        {
-          std::lock_guard lock{mutex};
-          //std::cerr << "integrating [" << omp_get_thread_num() << "] done!\n";
-          std::cerr << " done!\n";
-        }
-        {
-          std::lock_guard lock{mutex};
-          m_context.make_current();
-          //for (auto cur_max_ftau :
-          //     linspace{0.0, ftau, static_cast<size_t>(ceil(abs(ftau))) + 1}) {
-          //  for (auto cur_min_btau : linspace{
-          //           btau, 0.0, static_cast<size_t>(ceil(abs(btau))) + 1}) {
-          {{auto cur_max_ftau = ftau; auto cur_min_btau = btau;
-              auto [new_weight, num_overall_covered_pixels,
-                    num_newly_covered_pixels] =
-                  weight(
-                      covered_elements,
-                      rasterize(gpu_pathsurface(mesh, t0, t0), working_rast,
-                                render_index, layer),
-                      layer, cur_min_btau, cur_max_ftau);
+#endif
+            {
+              std::lock_guard lock{mutex};
+              std::cerr << "integrating [" << omp_get_thread_num() << "]...\n";
+            }
+            const auto mesh = pathsurface(domain, edge_idx, t0, t0, btau, ftau,
+                                          seed_res, stepsize)
+                                  .first;
+            {
+              std::lock_guard lock{mutex};
+              std::cerr << "integrating [" << omp_get_thread_num()
+                        << "] done!\n";
+            }
+            {
+              std::lock_guard lock{mutex};
+              m_context.make_current();
 
-              if (num_newly_covered_pixels > 0) {
-                //new_weight /= num_overall_covered_pixels;
+              m_weight_dual_pathsurface_shader.set_linked_list0_size(
+                  covered_elements.buffer_size());
+              m_weight_dual_pathsurface_shader.set_layer(layer);
+              rasterize(gpu_pathsurface(mesh, t0, t0), working_rast,
+                        render_index, layer);
+              covered_elements.bind(0, 0, 1, 0);
+              working_rast.bind(1, 2, 3, 1);
+                  m_weight_dual_pathsurface_shader.set_linked_list0_size(
+                      covered_elements.buffer_size());
+                  m_weight_dual_pathsurface_shader.set_linked_list1_size(
+                      working_rast.buffer_size());
+#ifdef TATOOINE_STEADIFICATION_ALL_TAUS
+              for (auto cur_max_ftau : linspace{
+                       0.0, ftau, static_cast<size_t>(ceil(abs(ftau))) + 1}) {
+                for (auto cur_min_btau : linspace{
+                         btau, 0.0, static_cast<size_t>(ceil(abs(btau))) + 1}) {
+#else
+          {
+            {
+              auto cur_max_ftau = ftau;
+              auto cur_min_btau = btau;
+#endif
+                  weight_tex.clear(0.0f);
+                  num_overall_covered_pixels_buffer[0] = 0;
+                  num_newly_covered_pixels_buffer[0]   = 0;
+                  m_weight_dual_pathsurface_shader.set_min_btau(cur_min_btau);
+                  m_weight_dual_pathsurface_shader.set_max_ftau(cur_max_ftau);
+                  m_weight_dual_pathsurface_shader.dispatch(
+                      m_render_resolution(0) / 32.0 + 1,
+                      m_render_resolution(1) / 32.0 + 1);
+                  //auto new_weight =
+                  //    boost::accumulate(weight_tex.download_data(), float(0));
+                  auto weight_tex_data = weight_tex.download_data();
+                  auto new_weight      = std::reduce(
+                      std::execution::par, begin(weight_tex_data),
+                      end(weight_tex_data), float(0), std::plus<float>{});
+                  auto num_newly_covered_pixels =
+                      num_newly_covered_pixels_buffer[0];
+                  // auto num_overall_covered_pixels =
+                  //    num_overall_covered_pixels_buffer[0];
 
-                // check if mesh's seedcurve neighbors another edge
-                const auto unused_edge = domain.edge_at(edge_idx);
-                for (const auto& used_edge_idx : used_edges) {
-                  const auto used_edge = domain.edge_at(used_edge_idx);
+                  if (num_newly_covered_pixels > 0) {
+                    // new_weight /= num_overall_covered_pixels;
 
-                  if (used_edge.first == unused_edge.first ||
-                      used_edge.first == unused_edge.second ||
-                      used_edge.second == unused_edge.first ||
-                      used_edge.second == unused_edge.second) {
-                    new_weight *= 1.2;
-                    break;
+                    // check if mesh's seedcurve neighbors another edge
+                    const auto unused_edge = domain.edge_at(edge_idx);
+                    for (const auto& used_edge_idx : used_edges) {
+                      const auto used_edge = domain.edge_at(used_edge_idx);
+
+                      if (used_edge.first == unused_edge.first ||
+                          used_edge.first == unused_edge.second ||
+                          used_edge.second == unused_edge.first ||
+                          used_edge.second == unused_edge.second) {
+                        new_weight *= 1.2;
+                        break;
+                      }
+                    }
+                    if (new_weight > best_weight) {
+                      best_weight   = new_weight;
+                      best_edge_idx = edge_idx;
+                      best_min_btau = cur_min_btau;
+                      best_max_ftau = cur_max_ftau;
+                    }
                   }
                 }
-                if (new_weight > best_weight) {
-                  best_weight   = new_weight;
-                  best_edge_idx = edge_idx;
-                  best_min_btau = cur_min_btau;
-                  best_max_ftau = cur_max_ftau;
-                }
               }
+              m_context.release();
             }
-          }
-          m_context.release();
-        }
-//#ifndef NDEBUG
+#if defined(NDEBUG) && defined(TATOOINE_STEADIFICATION_PARALLEL)
+          },
+          size(unused_edges));
+#else
       }
-//#else
-      //}, size(unused_edges));
-//#endif
+#endif
       m_context.make_current();
       if (best_edge_idx != domain.num_straight_edges()) {
         combine(covered_elements,
