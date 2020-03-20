@@ -1,7 +1,7 @@
 #ifndef TATOOINE_STEADIFICATION_STEADIFICATION_H
 #define TATOOINE_STEADIFICATION_STEADIFICATION_H
-#define TATOOINE_STEADIFICATION_PARALLEL
-#define TATOOINE_STEADIFICATION_ALL_TAUS
+//#define TATOOINE_STEADIFICATION_PARALLEL
+//#define TATOOINE_STEADIFICATION_ALL_TAUS
 
 #include <omp.h>
 #include <tatooine/chrono.h>
@@ -403,7 +403,7 @@ class steadification {
                         const size_t seed_res, const real_t stepsize,
                         const real_t desired_coverage) {
     static const float     nan = 0.0f / 0.0f;
-    std::cerr << "creating linked list textures\n";
+    //std::cerr << "creating linked list textures\n";
     rasterized_pathsurface covered_elements{
         m_render_resolution(0), m_render_resolution(1), 0,
         linked_list_node{{nan, nan}, nan, nan, nan, 0, 0, 0xffffffff}};
@@ -417,7 +417,7 @@ class steadification {
     num_overall_covered_pixels_buffer.bind(2);
     num_newly_covered_pixels_buffer.bind(3);
 
-    std::cerr << "deleting last output\n";
+    //std::cerr << "deleting last output\n";
     using namespace std::filesystem;
     auto working_dir = std::string{settings<V>::name} + "/";
     if (!exists(working_dir)) { create_directory(working_dir); }
@@ -435,7 +435,7 @@ class steadification {
     std::mutex       mutex;
 
     // set all edges as unused
-    std::cerr << "set all edges unused\n";
+    //std::cerr << "set all edges unused\n";
     for (size_t edge_idx = 0; edge_idx < domain.num_straight_edges();
          ++edge_idx) {
       unused_edges.insert(edge_idx);
@@ -458,15 +458,15 @@ class steadification {
 #endif
             {
               std::lock_guard lock{mutex};
-              std::cerr << "integrating [" << omp_get_thread_num() << "]...\n";
+              //std::cerr << "integrating [" << omp_get_thread_num() << "]...\n";
             }
             const auto mesh = pathsurface(domain, edge_idx, t0, t0, btau, ftau,
                                           seed_res, stepsize)
                                   .first;
             {
               std::lock_guard lock{mutex};
-              std::cerr << "integrating [" << omp_get_thread_num()
-                        << "] done!\n";
+              //std::cerr << "integrating [" << omp_get_thread_num()
+              //          << "] done!\n";
             }
             {
               std::lock_guard lock{mutex};
@@ -502,9 +502,9 @@ class steadification {
                   m_weight_dual_pathsurface_shader.dispatch(
                       m_render_resolution(0) / 32.0 + 1,
                       m_render_resolution(1) / 32.0 + 1);
+                  const auto weight_tex_data = weight_tex.download_data();
                   //auto new_weight =
-                  //    boost::accumulate(weight_tex.download_data(), float(0));
-                  auto weight_tex_data = weight_tex.download_data();
+                  //    boost::accumulate(weight_tex_data, float(0));
                   auto new_weight      = std::reduce(
                       std::execution::par, begin(weight_tex_data),
                       end(weight_tex_data), float(0), std::plus<float>{});
@@ -561,20 +561,20 @@ class steadification {
             .write_png(working_dir + "/../current.png");
         ++render_index;
       }
-      std::cerr << "==========\n";
-      std::cerr << "coverage: " << coverage(covered_elements) << '\n';
-      std::cerr << "best min btau: " << best_min_btau << '\n';
-      std::cerr << "best max ftau: " << best_max_ftau << '\n';
-      std::cerr << "best_weight: " << best_weight << '\n';
-      std::cerr << "old_best_weight: " << old_best_weight << '\n';
+      //std::cerr << "==========\n";
+      //std::cerr << "coverage: " << coverage(covered_elements) << '\n';
+      //std::cerr << "best min btau: " << best_min_btau << '\n';
+      //std::cerr << "best max ftau: " << best_max_ftau << '\n';
+      //std::cerr << "best_weight: " << best_weight << '\n';
+      //std::cerr << "old_best_weight: " << old_best_weight << '\n';
       if (best_weight < old_best_weight && layer == 0) {
-        std::cerr << "layer = 1\n";
+        //std::cerr << "layer = 1\n";
         layer = 1;
       }
       if (best_edge_idx != domain.num_straight_edges()) {
         unused_edges.erase(best_edge_idx);
       } else {
-        std::cerr << render_index - 1 << " bäm\n";
+        //std::cerr << render_index - 1 << " bäm\n";
       }
     } while (coverage(covered_elements) < desired_coverage &&
              best_edge_idx != domain.num_straight_edges());

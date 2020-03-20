@@ -25,6 +25,7 @@ set(BENCHMARK_ENABLE_TESTING OFF CACHE BOOL
     "Enable testing of the benchmark library.")
 add_subdirectory(external/google-benchmark)
 #- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+find_package(TBB REQUIRED)
 find_package(yavin REQUIRED)
 find_package(GiNaC REQUIRED)
 find_package(LAPACKE REQUIRED)
@@ -48,6 +49,10 @@ set(TATOOINE_LINE_SHADER_GEOM_PATH ${CMAKE_CURRENT_SOURCE_DIR}/include/tatooine/
 set(TATOOINE_LINE_SHADER_FRAG_PATH ${CMAKE_CURRENT_SOURCE_DIR}/include/tatooine/gpu/line.frag)
 configure_file("${CMAKE_CURRENT_SOURCE_DIR}/include/tatooine/gpu/line_shader.h.in"
                "${CMAKE_CURRENT_BINARY_DIR}/include/tatooine/gpu/line_shader.h")
+
+set(TATOOINE_REDUCE_TEX_SHADER_COMP_PATH ${CMAKE_CURRENT_SOURCE_DIR}/include/tatooine/gpu/reduce_tex.comp)
+configure_file("${CMAKE_CURRENT_SOURCE_DIR}/include/tatooine/gpu/reduce.h.in"
+               "${CMAKE_CURRENT_BINARY_DIR}/include/tatooine/gpu/reduce.h")
 #- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 # create library target
 add_library(tatooine INTERFACE)
@@ -71,6 +76,7 @@ target_include_directories(tatooine
 target_link_libraries(tatooine
   INTERFACE
     yavin
+    tbb
     ${GINAC_LIBRARIES}
     ${LAPACKE_LIBRARIES}
     ${PNG_LIBRARIES}
