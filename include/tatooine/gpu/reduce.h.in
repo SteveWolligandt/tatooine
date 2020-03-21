@@ -8,7 +8,7 @@ namespace tatooine::gpu {
 //==============================================================================
 struct reduce_tex_shader : yavin::shader {
   static constexpr std::string_view comp_shader_path =
-      "@TATOOINE_GPU_REDUCE_COMP_SHADER_PATH@";
+      "@TATOOINE_GPU_REDUCE_TEX_COMP_SHADER_PATH@";
   //----------------------------------------------------------------------------
   static auto& get() {
     static reduce_tex_shader singleton;
@@ -20,7 +20,7 @@ struct reduce_tex_shader : yavin::shader {
      add_stage<yavin::computeshader>(std::string{comp_shader_path});
      create();
    }
-
+  //----------------------------------------------------------------------------
   public:
    void dispatch(GLuint w, GLuint h) {
      bind();

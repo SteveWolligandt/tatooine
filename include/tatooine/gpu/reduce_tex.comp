@@ -7,8 +7,6 @@ const uvec2 res  = uvec2(imageSize(data_tex));
 const uint  size = res.x * res.y;
 //==============================================================================
 void main() {
-  
   const uvec2 idx2 = uvec2(gl_GlobalInvocationID.xy);
-  if (idx2.x >= lic_tex_res.x || idx2.y >= lic_tex_res.y) { return; }
-
+  if (idx2.x >= res.x || idx2.y >= res.y) { return; }
 }

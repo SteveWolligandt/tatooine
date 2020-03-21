@@ -50,7 +50,7 @@ set(TATOOINE_LINE_SHADER_FRAG_PATH ${CMAKE_CURRENT_SOURCE_DIR}/include/tatooine/
 configure_file("${CMAKE_CURRENT_SOURCE_DIR}/include/tatooine/gpu/line_shader.h.in"
                "${CMAKE_CURRENT_BINARY_DIR}/include/tatooine/gpu/line_shader.h")
 
-set(TATOOINE_REDUCE_TEX_SHADER_COMP_PATH ${CMAKE_CURRENT_SOURCE_DIR}/include/tatooine/gpu/reduce_tex.comp)
+set(TATOOINE_GPU_REDUCE_TEX_COMP_SHADER_PATH ${CMAKE_CURRENT_SOURCE_DIR}/include/tatooine/gpu/reduce_tex.comp)
 configure_file("${CMAKE_CURRENT_SOURCE_DIR}/include/tatooine/gpu/reduce.h.in"
                "${CMAKE_CURRENT_BINARY_DIR}/include/tatooine/gpu/reduce.h")
 #- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
