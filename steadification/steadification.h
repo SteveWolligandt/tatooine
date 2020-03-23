@@ -1,6 +1,6 @@
 #ifndef TATOOINE_STEADIFICATION_STEADIFICATION_H
 #define TATOOINE_STEADIFICATION_STEADIFICATION_H
-//#define TATOOINE_STEADIFICATION_PARALLEL
+#define TATOOINE_STEADIFICATION_PARALLEL
 //#define TATOOINE_STEADIFICATION_ALL_TAUS
 
 #include <omp.h>
@@ -10,6 +10,7 @@
 #include <tatooine/interpolation.h>
 #include <tatooine/random.h>
 #include <tatooine/spacetime_field.h>
+#include <tatooine/gpu/reduce.h>
 #include <tatooine/streamsurface.h>
 #include <yavin/linked_list_texture.h>
 
@@ -126,16 +127,13 @@ class steadification {
     yavin::disable_multisampling();
 
     m_fragment_count_shader.set_projection(m_cam.projection_matrix());
-    std::vector<float> noise(render_resolution(0) * render_resolution(1));
-    random_uniform<float, RandEng> rand{m_rand_eng};
-    boost::generate(noise, [&] { return rand(rand_eng); });
-    m_noise_tex.upload_data(noise, render_resolution(0), render_resolution(1));
+    const auto noise_data = random_uniform_vector<float>(
+        render_resolution(0) * render_resolution(1), 0.0f, 1.0f, m_rand_eng);
+    m_noise_tex.upload_data(noise_data, m_render_resolution(0), m_render_resolution(1));
   }
   //============================================================================
   // methods
   //============================================================================
-  auto rand() { return random_uniform<real_t, RandEng>{m_rand_eng}(); }
-  //----------------------------------------------------------------------------
   template <template <typename> typename SeedcurveInterpolator>
   auto rasterize(
       const pathsurface_discretization_t<SeedcurveInterpolator>& mesh,
@@ -296,23 +294,14 @@ class steadification {
     const real_t stepsize =
         (domain.dimension(0).back() - domain.dimension(0).front()) /
         (m_render_resolution(0) * 2);
-    vec<size_t, 2> noise_res = {m_render_resolution(0), m_render_resolution(1)};
-    // generate noise_tex data
-    std::mt19937                        rand_eng{1234};
-    random_uniform<float, std::mt19937> rand(0, 1, rand_eng);
-    std::vector<float>                  noise_data(noise_res(0) * noise_res(1));
-    boost::generate(noise_data, [&rand] { return rand(); });
-
     // generate textures
     auto            v_tex = to_v_tex(rast);
-    yavin::tex2r32f noise_tex(noise_data, noise_res(0), noise_res(1));
-    noise_tex.set_repeat();
     yavin::tex2rgba32f lic_tex(m_render_resolution(0) * 2,
                                m_render_resolution(1) * 2);
 
     lic_tex.bind_image_texture(0);
     v_tex.bind(0);
-    noise_tex.bind(1);
+    m_noise_tex.bind(1);
     m_color_scale.bind(2);
 
     m_lic_shader.set_domain_min(domain.front(0), domain.front(1));
@@ -502,12 +491,9 @@ class steadification {
                   m_weight_dual_pathsurface_shader.dispatch(
                       m_render_resolution(0) / 32.0 + 1,
                       m_render_resolution(1) / 32.0 + 1);
-                  const auto weight_tex_data = weight_tex.download_data();
-                  //auto new_weight =
-                  //    boost::accumulate(weight_tex_data, float(0));
-                  auto new_weight      = std::reduce(
-                      std::execution::par, begin(weight_tex_data),
-                      end(weight_tex_data), float(0), std::plus<float>{});
+
+                  auto new_weight = gpu::reduce(weight_tex);
+
                   auto num_newly_covered_pixels =
                       num_newly_covered_pixels_buffer[0];
                   // auto num_overall_covered_pixels =

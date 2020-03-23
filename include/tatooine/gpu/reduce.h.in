@@ -3,39 +3,108 @@
 //==============================================================================
 #include <yavin/shader.h>
 #include <yavin/texture.h>
+#include <yavin/shaderstoragebuffer.h>
+#include <boost/range/numeric.hpp>
+#include <thread>
+#include <chrono>
 //==============================================================================
 namespace tatooine::gpu {
 //==============================================================================
-struct reduce_tex_shader : yavin::shader {
+template <typename T>
+struct reduce_shader;
+//==============================================================================
+template <>
+struct reduce_shader<yavin::tex2r32f> : yavin::shader {
   static constexpr std::string_view comp_shader_path =
-      "@TATOOINE_GPU_REDUCE_TEX_COMP_SHADER_PATH@";
+      "@TATOOINE_GPU_REDUCE_TEX2R32F_COMP_SHADER_PATH@";
   //----------------------------------------------------------------------------
   static auto& get() {
-    static reduce_tex_shader singleton;
+    static reduce_shader singleton;
     return singleton;
   }
   //----------------------------------------------------------------------------
-  private:
-   reduce_tex_shader() {
-     add_stage<yavin::computeshader>(std::string{comp_shader_path});
-     create();
-   }
+ private:
+  reduce_shader() {
+    add_stage<yavin::computeshader>(std::string{comp_shader_path});
+    create();
+  }
   //----------------------------------------------------------------------------
-  public:
-   void dispatch(GLuint w, GLuint h) {
-     bind();
-     yavin::gl::dispatch_compute(w, h, 1);
-   }
+ public:
+  void set_resolution(GLuint w, GLuint h) {
+    set_uniform("data_tex_resolution", w, h);
+  }
 };
 //==============================================================================
-template <typename Real>
-Real reduce(yavin::tex2r<Real>& data) {
-  data.bind_image_texture(0);
-  [[maybe_unused]] auto& shader = reduce_tex_shader::get();
-  //shader.dispatch(data.width() / 32 + 1, data.height() / 32 + 1);
-  return 0;
+template <>
+struct reduce_shader<yavin::shaderstoragebuffer<float>> : yavin::shader {
+  static constexpr std::string_view comp_shader_path =
+      "@TATOOINE_GPU_REDUCE_SHADERSTORAGE_COMP_SHADER_PATH@";
+  //----------------------------------------------------------------------------
+  static auto& get() {
+    static reduce_shader singleton;
+    return singleton;
+  }
+  //----------------------------------------------------------------------------
+ private:
+  reduce_shader() {
+    add_stage<yavin::computeshader>(std::string{comp_shader_path});
+    create();
+  }
+  //----------------------------------------------------------------------------
+ public:
+  void set_data_size(GLuint size) {
+    set_uniform("data_size", size);
+  }
+};
+//==============================================================================
+inline float reduce(const yavin::shaderstoragebuffer<float>& in_buffer);
+inline float reduce(const yavin::tex2r32f& in_buffer);
+//==============================================================================
+inline float reduce(const yavin::tex2r32f& in_buffer) {
+  auto&        shader           = reduce_shader<yavin::tex2r32f>::get();
+  const size_t res_x            = in_buffer.width();
+  const size_t res_y            = in_buffer.height();
+  const size_t workgroup_size_x = 32;
+  const size_t workgroup_size_y = 32;
+  const size_t num_workgroups_x =
+      res_x / workgroup_size_x + (res_x % workgroup_size_x > 0 ? 1 : 0);
+  const size_t num_workgroups_y =
+      res_y / workgroup_size_y + (res_y % workgroup_size_y > 0 ? 1 : 0);
+  shader.set_resolution(res_x, res_y);
+  yavin::shaderstoragebuffer<float> out_buffer(num_workgroups_x * num_workgroups_y);
+  out_buffer.bind(0);
+  in_buffer.bind_image_texture(0);
+  shader.bind();
+  yavin::gl::dispatch_compute(num_workgroups_x, num_workgroups_y, 1);
+  if (num_workgroups_x * num_workgroups_y > 1) {
+    //return boost::accumulate(out_buffer.download_data(), 0.0f);
+    glMemoryBarrier(GL_SHADER_STORAGE_BARRIER_BIT);
+    return reduce(out_buffer);
+  } else {
+    return out_buffer[0];
+  }
 }
-
+//==============================================================================
+inline float reduce(const yavin::shaderstoragebuffer<float>& in_buffer) {
+  auto&        shader = reduce_shader<yavin::shaderstoragebuffer<float>>::get();
+  size_t       size   = in_buffer.size();
+  const size_t workgroup_size = 1024;
+  const size_t num_workgroups =
+      size / workgroup_size + (size % workgroup_size > 0 ? 1 : 0);
+  shader.bind();
+  shader.set_data_size(size);
+  in_buffer.bind(0);
+  yavin::shaderstoragebuffer<float> out_buffer(num_workgroups);
+  out_buffer.bind(1);
+  yavin::gl::dispatch_compute(num_workgroups, 1, 1);
+  if (num_workgroups > 1) {
+    //return boost::accumulate(out_buffer.download_data(), 0.0f);
+    glMemoryBarrier(GL_SHADER_STORAGE_BARRIER_BIT);
+    return reduce(out_buffer);
+  } else {
+    return out_buffer[0];
+  }
+}
 //==============================================================================
 }
 //==============================================================================

@@ -46,9 +46,19 @@ add_executable (steadification main.cpp renderers.cpp shaders.cpp datasets.cpp)
 target_include_directories(steadification PRIVATE ${CMAKE_CURRENT_BINARY_DIR})
 target_link_libraries(steadification tatooine yavin)
 target_compile_features(steadification PUBLIC cxx_std_17)
+target_compile_features(steadification PUBLIC cxx_std_17)
 target_compile_options(steadification PRIVATE
-  -Wall -Wextra -pedantic -Wno-missing-braces -Wno-unused-lambda-capture)
-
+  -Wall -Wextra -pedantic -Wno-missing-braces -Wno-unused-lambda-capture
+  -march=native)
+#- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+set(TATOOINE_STEADIFICATION_USE_FAST_MATH false CACHE BOOL
+    "use -ffast-math for steadification")
+option(TATOOINE_STEADIFICATION_USE_FAST_MATH
+    "use -ffast-math for steadification" OFF)
+if (TATOOINE_STEADIFICATION_USE_FAST_MATH)
+  target_compile_options(steadification PRIVATE -ffast-math)
+endif()
+#- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 add_custom_target(steadification.doublegyre
                   COMMAND ./steadification dg -5 5 2 0.01 0.99
                   DEPENDS steadification)

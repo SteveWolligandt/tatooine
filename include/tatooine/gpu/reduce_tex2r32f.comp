@@ -1,0 +1,38 @@
+#version 450
+//==============================================================================
+layout(local_size_x = 32, local_size_y = 32) in;
+layout(binding = 0, r32f) uniform image2D itex;
+layout(binding = 0, std430) buffer ob {
+  float obuf[];
+};
+//==============================================================================
+uniform uvec2 data_tex_resolution;
+//==============================================================================
+shared float sbuf[gl_WorkGroupSize.x * gl_WorkGroupSize.y];
+//==============================================================================
+void main() {
+  // index variables
+  const uint lidx =
+      gl_LocalInvocationID.x + gl_LocalInvocationID.y * gl_WorkGroupSize.x;
+  const uint  widx = gl_WorkGroupID.x + gl_WorkGroupID.y * gl_NumWorkGroups.x;
+  const ivec2 tex_idx = ivec2(gl_GlobalInvocationID.xy);
+
+  // set stride for reduction
+
+  // copy texture data to shared buffer
+  if (tex_idx.x < data_tex_resolution.x && tex_idx.y < data_tex_resolution.y) {
+    sbuf[lidx] = imageLoad(itex, tex_idx).x;
+  } else {
+    sbuf[lidx] = 0;
+  }
+  barrier();
+  // do reduction until stride is 0
+  uint stride = gl_WorkGroupSize.x * gl_WorkGroupSize.y / 2;
+  while (stride > 0) {
+    if (lidx < stride) { sbuf[lidx] += sbuf[lidx + stride]; }
+    stride /= 2;
+    barrier();
+  }
+  // store reduced data from shared buffer to output buffer
+  if (lidx == 0) { obuf[widx] = sbuf[0]; }
+}
