@@ -1,31 +1,57 @@
 #ifndef TATOOINE_GPU_REDUCE_H
 #define TATOOINE_GPU_REDUCE_H
 //==============================================================================
+#include <yavin/glwrapper.h>
 #include <yavin/shader.h>
-#include <yavin/texture.h>
 #include <yavin/shaderstoragebuffer.h>
+#include <yavin/texture.h>
+
 #include <boost/range/numeric.hpp>
-#include <thread>
 #include <chrono>
+#include <sstream>
+#include <thread>
 //==============================================================================
 namespace tatooine::gpu {
 //==============================================================================
 template <typename T>
-struct reduce_shader;
-//==============================================================================
+struct reduce_tex_shader;
+
 template <>
-struct reduce_shader<yavin::tex2r32f> : yavin::shader {
+struct reduce_tex_shader<yavin::tex2r32f> : yavin::shader {
   static constexpr std::string_view comp_shader_path =
       "@TATOOINE_GPU_REDUCE_TEX2R32F_COMP_SHADER_PATH@";
-  //----------------------------------------------------------------------------
-  static auto& get() {
-    static reduce_shader singleton;
-    return singleton;
+  static constexpr std::string_view glsl_version = "#version 430\n";
+  static auto workgroup_layout(std::stringstream& shadersourcestream, size_t x,
+                               size_t y) {
+    shadersourcestream << "layout(local_size_x = " << x
+                       << ", local_size_y = " << y << ") in;\n";
   }
   //----------------------------------------------------------------------------
- private:
-  reduce_shader() {
-    add_stage<yavin::computeshader>(std::string{comp_shader_path});
+  reduce_tex_shader(size_t workgroup_size_x, size_t workgroup_size_y) {
+    const auto max_invocations =
+        static_cast<size_t>(yavin::max_compute_work_group_invocations());
+    if (workgroup_size_x * workgroup_size_y > max_invocations) {
+      workgroup_size_x = workgroup_size_y =
+          size_t(1) << static_cast<unsigned int>(
+              floor(log2(sqrt(max_invocations))));
+      std::cerr << "a compute shader workgroup cannot have more than "
+                << max_invocations << " threads. Using layout "
+                << workgroup_size_x << " x " << workgroup_size_y << " \n";
+    }
+
+    std::stringstream shadersourcestream;
+    shadersourcestream << glsl_version;
+    workgroup_layout(shadersourcestream, workgroup_size_x, workgroup_size_y);
+    std::ifstream f{std::string{comp_shader_path}};
+    if (f.is_open()) {
+      shadersourcestream << f.rdbuf();
+      f.close();
+    } else {
+      throw std::runtime_error{"could not open file: " +
+                               std::string{comp_shader_path}};
+    }
+    add_stage<yavin::computeshader>(shadersourcestream.str(),
+                                    yavin::shaderstageparser::SOURCE);
     create();
   }
   //----------------------------------------------------------------------------
@@ -35,60 +61,82 @@ struct reduce_shader<yavin::tex2r32f> : yavin::shader {
   }
 };
 //==============================================================================
+template <typename T>
+struct reduce_buffer_shader;
 template <>
-struct reduce_shader<yavin::shaderstoragebuffer<float>> : yavin::shader {
+struct reduce_buffer_shader<yavin::shaderstoragebuffer<float>> : yavin::shader {
   static constexpr std::string_view comp_shader_path =
       "@TATOOINE_GPU_REDUCE_SHADERSTORAGE_COMP_SHADER_PATH@";
-  //----------------------------------------------------------------------------
-  static auto& get() {
-    static reduce_shader singleton;
-    return singleton;
+  static constexpr std::string_view glsl_version = "#version 430\n";
+  static auto workgroup_layout(std::stringstream& shadersourcestream,
+                               size_t             x) {
+    shadersourcestream << "layout(local_size_x = " << x << ") in;\n";
   }
   //----------------------------------------------------------------------------
- private:
-  reduce_shader() {
-    add_stage<yavin::computeshader>(std::string{comp_shader_path});
+  reduce_buffer_shader(size_t workgroup_size) {
+    const auto max_invocations =
+        static_cast<size_t>(yavin::max_compute_work_group_invocations());
+    if (workgroup_size > max_invocations) {
+      workgroup_size =
+          size_t(1) << static_cast<unsigned int>(floor(log2(max_invocations)));
+      std::cerr << "a compute shader workgroup cannot have more than "
+                << max_invocations << " threads. Using layout "
+                << workgroup_size << " \n";
+    }
+
+    std::stringstream shadersourcestream;
+    shadersourcestream << glsl_version;
+    workgroup_layout(shadersourcestream, workgroup_size);
+    std::ifstream f{std::string{comp_shader_path}};
+    if (f.is_open()) {
+      shadersourcestream << f.rdbuf();
+      f.close();
+    } else {
+      throw std::runtime_error{"could not open file: " +
+                               std::string{comp_shader_path}};
+    }
+    add_stage<yavin::computeshader>(shadersourcestream.str(),
+                                    yavin::shaderstageparser::SOURCE);
     create();
   }
   //----------------------------------------------------------------------------
  public:
-  void set_data_size(GLuint size) {
-    set_uniform("data_size", size);
-  }
+  void set_data_size(GLuint size) { set_uniform("data_size", size); }
 };
 //==============================================================================
-inline float reduce(const yavin::shaderstoragebuffer<float>& in_buffer);
-inline float reduce(const yavin::tex2r32f& in_buffer);
+inline float reduce(const yavin::shaderstoragebuffer<float>& in_buffer,
+                    const size_t           workgroup_size);
 //==============================================================================
-inline float reduce(const yavin::tex2r32f& in_buffer) {
-  auto&        shader           = reduce_shader<yavin::tex2r32f>::get();
+inline float reduce(const yavin::tex2r32f& in_buffer,
+                    const size_t           workgroup_size_x,
+                    const size_t           workgroup_size_y) {
+  reduce_tex_shader<yavin::tex2r32f> shader{workgroup_size_x, workgroup_size_x};
   const size_t res_x            = in_buffer.width();
   const size_t res_y            = in_buffer.height();
-  const size_t workgroup_size_x = 32;
-  const size_t workgroup_size_y = 32;
   const size_t num_workgroups_x =
       res_x / workgroup_size_x + (res_x % workgroup_size_x > 0 ? 1 : 0);
   const size_t num_workgroups_y =
       res_y / workgroup_size_y + (res_y % workgroup_size_y > 0 ? 1 : 0);
   shader.set_resolution(res_x, res_y);
-  yavin::shaderstoragebuffer<float> out_buffer(num_workgroups_x * num_workgroups_y);
+  yavin::shaderstoragebuffer<float> out_buffer(num_workgroups_x *
+                                               num_workgroups_y);
   out_buffer.bind(0);
   in_buffer.bind_image_texture(0);
   shader.bind();
   yavin::gl::dispatch_compute(num_workgroups_x, num_workgroups_y, 1);
   if (num_workgroups_x * num_workgroups_y > 1) {
-    //return boost::accumulate(out_buffer.download_data(), 0.0f);
-    glMemoryBarrier(GL_SHADER_STORAGE_BARRIER_BIT);
-    return reduce(out_buffer);
+    yavin::shader_storage_barrier();
+    return reduce(out_buffer, workgroup_size_x * workgroup_size_y);
   } else {
     return out_buffer[0];
   }
 }
 //==============================================================================
-inline float reduce(const yavin::shaderstoragebuffer<float>& in_buffer) {
-  auto&        shader = reduce_shader<yavin::shaderstoragebuffer<float>>::get();
-  size_t       size   = in_buffer.size();
-  const size_t workgroup_size = 1024;
+inline float reduce(const yavin::shaderstoragebuffer<float>& in_buffer,
+                    const size_t           workgroup_size) {
+  reduce_buffer_shader<yavin::shaderstoragebuffer<float>> shader(
+      workgroup_size);
+  size_t       size           = in_buffer.size();
   const size_t num_workgroups =
       size / workgroup_size + (size % workgroup_size > 0 ? 1 : 0);
   shader.bind();
@@ -98,14 +146,13 @@ inline float reduce(const yavin::shaderstoragebuffer<float>& in_buffer) {
   out_buffer.bind(1);
   yavin::gl::dispatch_compute(num_workgroups, 1, 1);
   if (num_workgroups > 1) {
-    //return boost::accumulate(out_buffer.download_data(), 0.0f);
-    glMemoryBarrier(GL_SHADER_STORAGE_BARRIER_BIT);
-    return reduce(out_buffer);
+    yavin::shader_storage_barrier();
+    return reduce(out_buffer, workgroup_size);
   } else {
     return out_buffer[0];
   }
 }
 //==============================================================================
-}
+}  // namespace tatooine::gpu
 //==============================================================================
 #endif
