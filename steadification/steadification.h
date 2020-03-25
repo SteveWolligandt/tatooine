@@ -6,11 +6,11 @@
 #include <omp.h>
 #include <tatooine/chrono.h>
 #include <tatooine/for_loop.h>
+#include <tatooine/gpu/reduce.h>
 #include <tatooine/integration/vclibs/rungekutta43.h>
 #include <tatooine/interpolation.h>
 #include <tatooine/random.h>
 #include <tatooine/spacetime_field.h>
-#include <tatooine/gpu/reduce.h>
 #include <tatooine/streamsurface.h>
 #include <yavin/linked_list_texture.h>
 
@@ -129,7 +129,8 @@ class steadification {
     m_fragment_count_shader.set_projection(m_cam.projection_matrix());
     const auto noise_data = random_uniform_vector<float>(
         render_resolution(0) * render_resolution(1), 0.0f, 1.0f, m_rand_eng);
-    m_noise_tex.upload_data(noise_data, m_render_resolution(0), m_render_resolution(1));
+    m_noise_tex.upload_data(noise_data, m_render_resolution(0),
+                            m_render_resolution(1));
   }
   //============================================================================
   // methods
@@ -223,12 +224,13 @@ class steadification {
   }
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
   auto gpu_pathsurface(const grid2_t& domain, size_t edge_idx, real_t u0t0,
-                   real_t u1t0, real_t btau, real_t ftau, size_t seed_res,
-                   real_t stepsize) const {
+                       real_t u1t0, real_t btau, real_t ftau, size_t seed_res,
+                       real_t stepsize) const {
     const auto        edge = domain.edge_at(edge_idx);
     const seedcurve_t seedcurve{{edge.first.position(), 0},
                                 {edge.second.position(), 1}};
-    return gpu_pathsurface(seedcurve, u0t0, u1t0, btau, ftau, seed_res, stepsize);
+    return gpu_pathsurface(seedcurve, u0t0, u1t0, btau, ftau, seed_res,
+                           stepsize);
   }
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
   auto gpu_pathsurface(const seedcurve_t& seedcurve, real_t u0t0, real_t u1t0,
@@ -240,16 +242,14 @@ class steadification {
         u0t0, u1t0);
   }
   //----------------------------------------------------------------------------
-  //auto weight(const rasterized_pathsurface& rast0,
+  // auto weight(const rasterized_pathsurface& rast0,
   //            const rasterized_pathsurface& rast1, size_t layer1,
   //            float min_btau, float max_ftau) {
-  //  yavin::tex2r32f weight_tex{m_render_resolution(0), m_render_resolution(1)};
-  //  yavin::atomiccounterbuffer num_overall_covered_pixels{0};
-  //  yavin::atomiccounterbuffer num_newly_covered_pixels{0};
-  //  rast0.bind(0, 0, 1, 0);
-  //  rast1.bind(1, 2, 3, 1);
-  //  num_overall_covered_pixels.bind(2);
-  //  num_newly_covered_pixels.bind(3);
+  //  yavin::tex2r32f weight_tex{m_render_resolution(0),
+  //  m_render_resolution(1)}; yavin::atomiccounterbuffer
+  //  num_overall_covered_pixels{0}; yavin::atomiccounterbuffer
+  //  num_newly_covered_pixels{0}; rast0.bind(0, 0, 1, 0); rast1.bind(1, 2, 3,
+  //  1); num_overall_covered_pixels.bind(2); num_newly_covered_pixels.bind(3);
   //  weight_tex.bind_image_texture(4);
   //  m_weight_dual_pathsurface_shader.set_linked_list0_size(rast0.buffer_size());
   //  m_weight_dual_pathsurface_shader.set_linked_list1_size(rast1.buffer_size());
@@ -295,7 +295,7 @@ class steadification {
         (domain.dimension(0).back() - domain.dimension(0).front()) /
         (m_render_resolution(0) * 2);
     // generate textures
-    auto            v_tex = to_v_tex(rast);
+    auto               v_tex = to_v_tex(rast);
     yavin::tex2rgba32f lic_tex(m_render_resolution(0) * 2,
                                m_render_resolution(1) * 2);
 
@@ -387,12 +387,12 @@ class steadification {
                                              m_render_resolution(1) / 32.0 + 1);
   }
   //----------------------------------------------------------------------------
-  auto greedy_set_cover(const grid<real_t, 2>& domain, 
-                        const real_t t0, const real_t btau, const real_t ftau,
+  auto greedy_set_cover(const grid<real_t, 2>& domain, const real_t t0,
+                        const real_t btau, const real_t ftau,
                         const size_t seed_res, const real_t stepsize,
                         const real_t desired_coverage) {
-    static const float     nan = 0.0f / 0.0f;
-    //std::cerr << "creating linked list textures\n";
+    static const float nan = 0.0f / 0.0f;
+    std::cerr << "creating linked list textures\n";
     rasterized_pathsurface covered_elements{
         m_render_resolution(0), m_render_resolution(1), 0,
         linked_list_node{{nan, nan}, nan, nan, nan, 0, 0, 0xffffffff}};
@@ -406,7 +406,7 @@ class steadification {
     num_overall_covered_pixels_buffer.bind(2);
     num_newly_covered_pixels_buffer.bind(3);
 
-    //std::cerr << "deleting last output\n";
+    std::cerr << "deleting last output\n";
     using namespace std::filesystem;
     auto working_dir = std::string{settings<V>::name} + "/";
     if (!exists(working_dir)) { create_directory(working_dir); }
@@ -421,45 +421,46 @@ class steadification {
     size_t           layer           = 0;
     std::set<size_t> unused_edges;
     std::set<size_t> used_edges;
-    std::mutex       mutex;
+#if defined(TATOOINE_STEADIFICATION_PARALLEL)
+    std::mutex mutex;
+#endif
 
     // set all edges as unused
-    //std::cerr << "set all edges unused\n";
+    std::cerr << "set all edges unused\n";
     for (size_t edge_idx = 0; edge_idx < domain.num_straight_edges();
          ++edge_idx) {
       unused_edges.insert(edge_idx);
     }
 
+    float  cov       = 0;
+    size_t iteration = 1;
+    const size_t numiterations = size(unused_edges);
+    std::cerr << "starting main loop\n";
     do {
-      m_context.release();
+      std::cerr << "\n== iteration " << iteration++ << " / " << numiterations
+                << " \n";
       old_best_weight = best_weight;
       best_weight     = -std::numeric_limits<real_t>::max();
       best_edge_idx   = domain.num_straight_edges();
 
-
-#if defined(NDEBUG) && defined(TATOOINE_STEADIFICATION_PARALLEL)
+      std::cerr << "integrating pathsurfaces...";
+#if defined(TATOOINE_STEADIFICATION_PARALLEL)
+      m_context.release();
       auto edge_idx_it = begin(unused_edges);
       parallel_for_loop(
           [&](auto) {
             const auto edge_idx = *edge_idx_it++;
-#else
-      for (auto edge_idx : unused_edges) {
+//#else
+//      for (auto edge_idx : unused_edges) {
 #endif
-            {
-              std::lock_guard lock{mutex};
-              //std::cerr << "integrating [" << omp_get_thread_num() << "]...\n";
-            }
-            const auto mesh = pathsurface(domain, edge_idx, t0, t0, btau, ftau,
-                                          seed_res, stepsize)
-                                  .first;
-            {
-              std::lock_guard lock{mutex};
-              //std::cerr << "integrating [" << omp_get_thread_num()
-              //          << "] done!\n";
-            }
-            {
-              std::lock_guard lock{mutex};
-              m_context.make_current();
+
+        const auto mesh = pathsurface(domain, edge_idx, t0, t0, btau, ftau,
+                                      seed_res, stepsize).first;
+#if defined(TATOOINE_STEADIFICATION_PARALLEL)
+        {
+          std::lock_guard lock{mutex};
+          m_context.make_current();
+#endif
 
               m_weight_dual_pathsurface_shader.set_linked_list0_size(
                   covered_elements.buffer_size());
@@ -468,21 +469,21 @@ class steadification {
                         render_index, layer);
               covered_elements.bind(0, 0, 1, 0);
               working_rast.bind(1, 2, 3, 1);
-                  m_weight_dual_pathsurface_shader.set_linked_list0_size(
-                      covered_elements.buffer_size());
-                  m_weight_dual_pathsurface_shader.set_linked_list1_size(
-                      working_rast.buffer_size());
-#ifdef TATOOINE_STEADIFICATION_ALL_TAUS
-              for (auto cur_max_ftau : linspace{
-                       0.0, ftau, static_cast<size_t>(ceil(abs(ftau))) + 1}) {
-                for (auto cur_min_btau : linspace{
-                         btau, 0.0, static_cast<size_t>(ceil(abs(btau))) + 1}) {
-#else
-          {
-            {
-              auto cur_max_ftau = ftau;
-              auto cur_min_btau = btau;
-#endif
+              m_weight_dual_pathsurface_shader.set_linked_list0_size(
+                  covered_elements.buffer_size());
+              m_weight_dual_pathsurface_shader.set_linked_list1_size(
+                  working_rast.buffer_size());
+//#ifdef TATOOINE_STEADIFICATION_ALL_TAUS
+//              for (auto cur_max_ftau : linspace{
+//                       0.0, ftau, static_cast<size_t>(ceil(abs(ftau))) + 1}) {
+//                for (auto cur_min_btau : linspace{
+//                         btau, 0.0, static_cast<size_t>(ceil(abs(btau))) + 1}) {
+//#else
+              {
+                {
+                  auto cur_max_ftau = ftau;
+                  auto cur_min_btau = btau;
+//#endif
                   weight_tex.clear(0.0f);
                   num_overall_covered_pixels_buffer[0] = 0;
                   num_newly_covered_pixels_buffer[0]   = 0;
@@ -492,7 +493,7 @@ class steadification {
                       m_render_resolution(0) / 32.0 + 1,
                       m_render_resolution(1) / 32.0 + 1);
 
-                  auto new_weight = gpu::reduce(weight_tex);
+                  auto new_weight = gpu::reduce(weight_tex, 16, 16);
 
                   auto num_newly_covered_pixels =
                       num_newly_covered_pixels_buffer[0];
@@ -524,19 +525,20 @@ class steadification {
                   }
                 }
               }
+#if !defined(TATOOINE_STEADIFICATION_PARALLEL)
               m_context.release();
             }
-#if defined(NDEBUG) && defined(TATOOINE_STEADIFICATION_PARALLEL)
           },
           size(unused_edges));
-#else
-      }
-#endif
       m_context.make_current();
+//#else
+//      }
+#endif
+      std::cerr << "done!\n";
       if (best_edge_idx != domain.num_straight_edges()) {
         combine(covered_elements,
-                rasterize(gpu_pathsurface(domain, best_edge_idx, t0, t0,
-                                          btau, ftau, seed_res, stepsize),
+                rasterize(gpu_pathsurface(domain, best_edge_idx, t0, t0, btau,
+                                          ftau, seed_res, stepsize),
                           working_rast, render_index, layer),
                 best_min_btau, best_max_ftau);
         used_edges.insert(best_edge_idx);
@@ -547,22 +549,23 @@ class steadification {
             .write_png(working_dir + "/../current.png");
         ++render_index;
       }
-      //std::cerr << "==========\n";
-      //std::cerr << "coverage: " << coverage(covered_elements) << '\n';
-      //std::cerr << "best min btau: " << best_min_btau << '\n';
-      //std::cerr << "best max ftau: " << best_max_ftau << '\n';
-      //std::cerr << "best_weight: " << best_weight << '\n';
-      //std::cerr << "old_best_weight: " << old_best_weight << '\n';
+      cov = coverage(covered_elements);
+      std::cerr << "==========\n";
+      std::cerr << "coverage: " << cov << '\n';
+      std::cerr << "best min btau: " << best_min_btau << '\n';
+      std::cerr << "best max ftau: " << best_max_ftau << '\n';
+      std::cerr << "best_weight: " << best_weight << '\n';
+      std::cerr << "old_best_weight: " << old_best_weight << '\n';
       if (best_weight < old_best_weight && layer == 0) {
-        //std::cerr << "layer = 1\n";
+        // std::cerr << "layer = 1\n";
         layer = 1;
       }
       if (best_edge_idx != domain.num_straight_edges()) {
         unused_edges.erase(best_edge_idx);
       } else {
-        //std::cerr << render_index - 1 << " bäm\n";
+        // std::cerr << render_index - 1 << " bäm\n";
       }
-    } while (coverage(covered_elements) < desired_coverage &&
+    } while (cov < desired_coverage &&
              best_edge_idx != domain.num_straight_edges());
 
     return covered_elements;

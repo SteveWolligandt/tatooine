@@ -12,17 +12,20 @@ static void buffer_reduction(::benchmark::State& state) {
   for (auto _ : state) {
     state.PauseTiming();  // Stop timers. They will not count until they are
                           // resumed.
-    const size_t             size  = state.range(1);
+    const size_t             width  = state.range(0);
+    const size_t             height  = state.range(1);
     const std::vector<float> rand_data =
-        random_uniform_vector<float>(size, 0.0f, 1.0f, eng);
+        random_uniform_vector<float>(width * height, 0.0f, 1.0f, eng);
     const yavin::shaderstoragebuffer<float> data_tex{rand_data};
     state.ResumeTiming();  // And resume timers. They are now counting again.
-    gpu::reduce(data_tex, state.range(0));
+
+    gpu::reduce(data_tex, state.range(2) * state.range(3));
   }
 }
 static void buffer_reduction_args(::benchmark::internal::Benchmark* b) {
-  for (int i = 8*8; i <= 32*32; i *= 4)
-      for (int j = 512; j <= 4096; j *= 2) b->Args({i, j});
+  for (int res = 32; res <= 1024; res *= 2) {
+    for (int w = 8; w <= 32; w *= 2) { b->Args({res, res, w, w}); }
+  }
 }
 BENCHMARK(buffer_reduction)->Apply(buffer_reduction_args);
 //==============================================================================

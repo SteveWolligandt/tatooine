@@ -21,13 +21,14 @@ static void cpu_reduction(::benchmark::State& state) {
         random_uniform_vector<float>(width * height, 0.0f, 1.0f, eng);
     const yavin::tex2r32f data_tex{rand_data, width, height};
     state.ResumeTiming();  // And resume timers. They are now counting again.
+
     auto downloaded_data = data_tex.download_data();
     std::reduce(std::execution::par, begin(downloaded_data),
                 end(downloaded_data), 0.0f);
   }
 }
 static void cpu_reduction_args(::benchmark::internal::Benchmark* b) {
-  for (int i = 32; i <= 1024; i *= 2) b->Args({i,i});
+  for (int res = 32; res <= 1024; res *= 2) { b->Args({res, res}); }
 }
 BENCHMARK(cpu_reduction)->Apply(cpu_reduction_args);
 //==============================================================================
