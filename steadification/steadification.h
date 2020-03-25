@@ -1,6 +1,6 @@
 #ifndef TATOOINE_STEADIFICATION_STEADIFICATION_H
 #define TATOOINE_STEADIFICATION_STEADIFICATION_H
-#define TATOOINE_STEADIFICATION_PARALLEL
+//#define TATOOINE_STEADIFICATION_PARALLEL
 //#define TATOOINE_STEADIFICATION_ALL_TAUS
 
 #include <omp.h>
@@ -450,8 +450,8 @@ class steadification {
       parallel_for_loop(
           [&](auto) {
             const auto edge_idx = *edge_idx_it++;
-//#else
-//      for (auto edge_idx : unused_edges) {
+#else
+      for (auto edge_idx : unused_edges) {
 #endif
 
         const auto mesh = pathsurface(domain, edge_idx, t0, t0, btau, ftau,
@@ -535,8 +535,8 @@ class steadification {
           },
           size(unused_edges));
       m_context.make_current();
-//#else
-//      }
+#else
+      }
 #endif
       std::cerr << "done!\n";
       if (best_edge_idx != domain.num_straight_edges()) {
