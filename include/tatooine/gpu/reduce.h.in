@@ -8,6 +8,8 @@
 
 #include <boost/range/numeric.hpp>
 #include <chrono>
+#include <memory>
+#include <map>
 #include <sstream>
 #include <thread>
 //==============================================================================
@@ -18,16 +20,47 @@ struct reduce_tex_shader;
 
 template <>
 struct reduce_tex_shader<yavin::tex2r32f> : yavin::shader {
+  //----------------------------------------------------------------------------
+  private:
+  //----------------------------------------------------------------------------
   static constexpr std::string_view comp_shader_path =
       "@TATOOINE_GPU_REDUCE_TEX2R32F_COMP_SHADER_PATH@";
   static constexpr std::string_view glsl_version = "#version 430\n";
-  static auto workgroup_layout(std::stringstream& shadersourcestream, size_t x,
-                               size_t y) {
-    shadersourcestream << "layout(local_size_x = " << x
-                       << ", local_size_y = " << y << ") in;\n";
+  inline static std::map<std::pair<unsigned int, unsigned int>,
+                  std::unique_ptr<reduce_tex_shader>>
+              compiled_shaders;
+  static auto workgroup_layout(std::stringstream& shadersourcestream,
+                               unsigned int       workgroup_size_x,
+                               unsigned int       workgroup_size_y) {
+    shadersourcestream << "layout(local_size_x = " << workgroup_size_x
+                       << ", local_size_y = " << workgroup_size_y << ") in;\n";
   }
+
+  public:
+  static reduce_tex_shader& get(unsigned int workgroup_size_x,
+                                unsigned int workgroup_size_y) {
+    if (auto it = compiled_shaders.find(
+            std::pair{workgroup_size_x, workgroup_size_y});
+        it == end(compiled_shaders)) {
+      return *compiled_shaders
+                  .insert(std::pair{
+                      std::pair{workgroup_size_x, workgroup_size_y},
+                      std::unique_ptr<reduce_tex_shader<yavin::tex2r32f>>{
+                          new reduce_tex_shader{workgroup_size_x,
+                                                workgroup_size_y}}})
+                  .first->second;
+    } else {
+      return *it->second;
+    }
+  }
+
   //----------------------------------------------------------------------------
-  reduce_tex_shader(size_t workgroup_size_x, size_t workgroup_size_y) {
+  virtual ~reduce_tex_shader() = default;
+
+  //----------------------------------------------------------------------------
+ private:
+  reduce_tex_shader(unsigned int workgroup_size_x,
+                    unsigned int workgroup_size_y) {
     const auto max_invocations =
         static_cast<size_t>(yavin::max_compute_work_group_invocations());
     if (workgroup_size_x * workgroup_size_y > max_invocations) {
@@ -67,12 +100,31 @@ template <>
 struct reduce_buffer_shader<yavin::shaderstoragebuffer<float>> : yavin::shader {
   static constexpr std::string_view comp_shader_path =
       "@TATOOINE_GPU_REDUCE_SHADERSTORAGE_COMP_SHADER_PATH@";
+  inline static std::map<unsigned int, std::unique_ptr<reduce_buffer_shader>>
+                                    compiled_shaders;
   static constexpr std::string_view glsl_version = "#version 430\n";
   static auto workgroup_layout(std::stringstream& shadersourcestream,
                                size_t             x) {
     shadersourcestream << "layout(local_size_x = " << x << ") in;\n";
   }
+  static reduce_buffer_shader& get(unsigned int workgroup_size) {
+    if (auto it = compiled_shaders.find(workgroup_size);
+        it == end(compiled_shaders)) {
+      return *compiled_shaders
+                  .insert(
+                      std::pair{workgroup_size,
+                                std::unique_ptr<reduce_buffer_shader<
+                                    yavin::shaderstoragebuffer<float>>>{
+                                    new reduce_buffer_shader{workgroup_size}}})
+                  .first->second;
+    } else {
+      return *it->second;
+    }
+  }
   //----------------------------------------------------------------------------
+  virtual ~reduce_buffer_shader() = default;
+  //----------------------------------------------------------------------------
+ private:
   reduce_buffer_shader(size_t workgroup_size) {
     const auto max_invocations =
         static_cast<size_t>(yavin::max_compute_work_group_invocations());
@@ -110,7 +162,8 @@ inline float reduce(const yavin::shaderstoragebuffer<float>& in_buffer,
 inline float reduce(const yavin::tex2r32f& in_buffer,
                     const size_t           workgroup_size_x,
                     const size_t           workgroup_size_y) {
-  reduce_tex_shader<yavin::tex2r32f> shader{workgroup_size_x, workgroup_size_x};
+  auto& shader = reduce_tex_shader<yavin::tex2r32f>::get(workgroup_size_x,
+                                                         workgroup_size_y);
   const size_t res_x            = in_buffer.width();
   const size_t res_y            = in_buffer.height();
   const size_t num_workgroups_x =
@@ -134,7 +187,7 @@ inline float reduce(const yavin::tex2r32f& in_buffer,
 //==============================================================================
 inline float reduce(const yavin::shaderstoragebuffer<float>& in_buffer,
                     const size_t           workgroup_size) {
-  reduce_buffer_shader<yavin::shaderstoragebuffer<float>> shader(
+  auto& shader = reduce_buffer_shader<yavin::shaderstoragebuffer<float>>::get(
       workgroup_size);
   size_t       size           = in_buffer.size();
   const size_t num_workgroups =
