@@ -6,7 +6,7 @@
 #include <omp.h>
 #include <tatooine/chrono.h>
 #include <tatooine/for_loop.h>
-#include <tatooine/gpu/reduce.h>
+//#include <tatooine/gpu/reduce.h>
 #include <tatooine/integration/vclibs/rungekutta43.h>
 #include <tatooine/interpolation.h>
 #include <tatooine/random.h>
@@ -493,7 +493,11 @@ class steadification {
                       m_render_resolution(0) / 32.0 + 1,
                       m_render_resolution(1) / 32.0 + 1);
 
-                  auto new_weight = gpu::reduce(weight_tex, 16, 16);
+                  const auto weight_data = weight_tex.download_data();
+                  auto new_weight =
+                      std::reduce(std::execution::par, begin(weight_data),
+                                  end(weight_data), 0.0f);
+                  //auto new_weight = gpu::reduce(weight_tex, 16, 16);
 
                   auto num_newly_covered_pixels =
                       num_newly_covered_pixels_buffer[0];
@@ -525,7 +529,7 @@ class steadification {
                   }
                 }
               }
-#if !defined(TATOOINE_STEADIFICATION_PARALLEL)
+#if defined(TATOOINE_STEADIFICATION_PARALLEL)
               m_context.release();
             }
           },

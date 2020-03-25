@@ -15,8 +15,6 @@ void main() {
   const uint  widx = gl_WorkGroupID.x + gl_WorkGroupID.y * gl_NumWorkGroups.x;
   const ivec2 tex_idx = ivec2(gl_GlobalInvocationID.xy);
 
-  // set stride for reduction
-
   // copy texture data to shared buffer
   if (tex_idx.x < data_tex_resolution.x && tex_idx.y < data_tex_resolution.y) {
     sbuf[lidx] = imageLoad(itex, tex_idx).x;
