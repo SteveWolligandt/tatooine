@@ -55,7 +55,6 @@ foreach(TESTFILE ${TESTFILES})
   get_filename_component(FILENAME ${TESTFILE} NAME_WE)
   create_test(${FILENAME})
 endforeach()
-
 #- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 # create one executable with all tests
 #- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
