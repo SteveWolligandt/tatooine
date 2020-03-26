@@ -1,6 +1,6 @@
 #ifndef TATOOINE_STEADIFICATION_STEADIFICATION_H
 #define TATOOINE_STEADIFICATION_STEADIFICATION_H
-//#define TATOOINE_STEADIFICATION_PARALLEL
+#define TATOOINE_STEADIFICATION_PARALLEL
 //#define TATOOINE_STEADIFICATION_ALL_TAUS
 
 #include <omp.h>
@@ -374,7 +374,17 @@ class steadification {
   /// to hold rast1.
   void combine(rasterized_pathsurface& rast0, rasterized_pathsurface& rast1,
                float min_btau, float max_ftau) {
+    std::cerr << "  resizing rast0 buffer\n";
+    std::cerr << "    rast0.buffer_size(): " << rast0.buffer_size() << '\n';
+    std::cerr << "    rast1.buffer_size(): " << rast1.buffer_size() << '\n';
+    std::cerr << "    combined size:       "
+              << rast0.buffer_size() + rast1.buffer_size() << " ...";
+    if (rast0.buffer_size() + rast1.buffer_size()) {
+      std::cerr << "size_t overflow this will crash...\n";
+    }
     rast0.resize_buffer(rast0.buffer_size() + rast1.buffer_size());
+    std::cerr << " done!\n";
+
     rast0.bind(0, 0, 1, 0);
     m_combine_rasterizations_shader.set_linked_list0_size(rast0.buffer_size());
 
@@ -383,8 +393,10 @@ class steadification {
     m_combine_rasterizations_shader.set_max_ftau(max_ftau);
     m_combine_rasterizations_shader.set_linked_list1_size(rast1.buffer_size());
 
+    std::cerr << "  running combine shader...";
     m_combine_rasterizations_shader.dispatch(m_render_resolution(0) / 32.0 + 1,
                                              m_render_resolution(1) / 32.0 + 1);
+    std::cerr << " done!\n";
   }
   //----------------------------------------------------------------------------
   auto greedy_set_cover(const grid<real_t, 2>& domain, const real_t t0,
@@ -540,17 +552,25 @@ class steadification {
 #endif
       std::cerr << "done!\n";
       if (best_edge_idx != domain.num_straight_edges()) {
+        std::cerr << "combining best pathsurface...\n";
         combine(covered_elements,
                 rasterize(gpu_pathsurface(domain, best_edge_idx, t0, t0, btau,
                                           ftau, seed_res, stepsize),
                           working_rast, render_index, layer),
                 best_min_btau, best_max_ftau);
+        std::cerr << "combining best pathsurface... done!\n";
         used_edges.insert(best_edge_idx);
+
+        std::cerr << "saving lic... ";
         to_lic_tex(domain, btau, ftau, covered_elements)
             .write_png(working_dir + "/" + std::to_string(render_index) +
                        ".png");
+        std::cerr << "done!\n";
+
+        std::cerr << "saving current lic... ";
         to_lic_tex(domain, btau, ftau, covered_elements)
             .write_png(working_dir + "/../current.png");
+        std::cerr << "done!\n";
         ++render_index;
       }
       cov = coverage(covered_elements);
