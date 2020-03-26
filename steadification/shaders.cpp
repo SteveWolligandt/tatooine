@@ -39,8 +39,8 @@ void comp_shader::dispatch(GLuint w, GLuint h) {
 ssf_rasterization_shader::ssf_rasterization_shader()
     : vert_frag_shader{vert_path, frag_path} {}
 //------------------------------------------------------------------------------
-void ssf_rasterization_shader::set_linked_list_size(unsigned int n) {
-  set_uniform("ll_size", n);
+void ssf_rasterization_shader::set_count(bool c) {
+  set_uniform("count", c);
 }
 //------------------------------------------------------------------------------
 void ssf_rasterization_shader::set_render_index(unsigned int render_index) {

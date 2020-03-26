@@ -8,6 +8,6 @@ struct node {
   float curvature;
   uint  render_index;
   uint  layer;
-  uint  next_index;
+  float pad;
 };
 #endif

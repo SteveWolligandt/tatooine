@@ -24,7 +24,7 @@ struct ssf_rasterization_shader : vert_frag_shader {
   static constexpr std::string_view frag_path =
       "@TATOOINE_STEADIFICATION_SSF_RASTERIZATION_FRAG@";
   ssf_rasterization_shader();
-  void set_linked_list_size(unsigned int n);
+  void set_count(bool);
   void set_render_index(unsigned int render_index);
   void set_layer(unsigned int l);
 };
