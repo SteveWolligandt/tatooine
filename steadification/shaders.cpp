@@ -43,6 +43,10 @@ void ssf_rasterization_shader::set_count(bool c) {
   set_uniform("count", c);
 }
 //------------------------------------------------------------------------------
+void ssf_rasterization::set_width(GLuint w) {
+  set_uniform("width", w);
+}
+//------------------------------------------------------------------------------
 void ssf_rasterization_shader::set_render_index(unsigned int render_index) {
   set_uniform("render_index", render_index);
 }
@@ -129,27 +133,11 @@ void weight_dual_pathsurface_shader::set_linked_list1_size(unsigned int n) {
 void weight_dual_pathsurface_shader::set_layer(unsigned int n) {
   set_uniform("layer", n);
 }
-//------------------------------------------------------------------------------
-void weight_dual_pathsurface_shader::set_min_btau(float min_btau) {
-  set_uniform("min_btau", min_btau);
-}
-//------------------------------------------------------------------------------
-void weight_dual_pathsurface_shader::set_max_ftau(float max_ftau) {
-  set_uniform("max_ftau", max_ftau);
-}
 //==============================================================================
 // combine_rasterizations
 //==============================================================================
 combine_rasterizations_shader::combine_rasterizations_shader()
     : comp_shader{comp_path} {}
-//------------------------------------------------------------------------------
-void combine_rasterizations_shader::set_min_btau(float min_btau) {
-  set_uniform("min_btau", min_btau);
-}
-//------------------------------------------------------------------------------
-void combine_rasterizations_shader::set_max_ftau(float max_ftau) {
-  set_uniform("max_ftau", max_ftau);
-}
 //------------------------------------------------------------------------------
 void combine_rasterizations_shader::set_linked_list0_size(unsigned int n) {
   set_uniform("ll0_size", n);

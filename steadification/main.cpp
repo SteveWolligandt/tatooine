@@ -18,20 +18,36 @@ void calc(const field<V, VReal, 2, 2>& v,T0Real t0, BTauReal btau, FTauReal ftau
   std::mt19937_64 randeng{seed};
   constexpr auto  dom = settings<V>::domain;
   steadification  s(v, dom, settings<V>::render_resolution, randeng);
-
-  auto rast = s.make_rasterization(settings<V>::render_resolution(0),
-                                   settings<V>::render_resolution(1));
   grid domain{linspace{dom.min(0), dom.max(0), grid_res(0)},
               linspace{dom.min(1), dom.max(1), grid_res(1)}};
-  auto p    = s.pathsurface(domain, domain.num_straight_edges() / 4,
+
+  auto rast0 = s.make_rasterization(settings<V>::render_resolution(0),
+                                   settings<V>::render_resolution(1));
+  auto p0    = s.pathsurface(domain, domain.num_straight_edges() / 4,
                             t0, t0, btau, ftau, seed_res, stepsize).first;
-  auto pg   = s.gpu_pathsurface(p, t0, t0);
-  s.rasterize(pg, rast, 0, 0);
-  rast.front_v.write_png("front_v.png");
-  rast.front_curvature.write_png("front_curv.png");
-  rast.back_v.write_png("back_v.png");
-  rast.back_curvature.write_png("back_curv.png");
-  rast.list_size.write_png("list_size.png");
+  auto pg0   = s.gpu_pathsurface(p0, t0, t0);
+  s.rasterize(pg0, rast0, 0, 0);
+
+  auto rast1 = s.make_rasterization(settings<V>::render_resolution(0),
+                                   settings<V>::render_resolution(1));
+  auto p1 = s.pathsurface(domain, domain.num_straight_edges() * 3 / 4, t0, t0,
+                          btau, ftau, seed_res, stepsize)
+                .first;
+  auto pg1   = s.gpu_pathsurface(p1, t0, t0);
+  s.rasterize(pg1, rast1, 0, 0);
+
+  rast0.front_v.write_png("before_front_v.png");
+  rast0.front_curvature.write_png("before_front_curv.png");
+  rast0.back_v.write_png("before_back_v.png");
+  rast0.back_curvature.write_png("before_back_curv.png");
+  rast0.list_size.write_png("before_list_size.png");
+  s.combine(rast0, rast1);
+
+  rast0.front_v.write_png("front_v.png");
+  rast0.front_curvature.write_png("front_curv.png");
+  rast0.back_v.write_png("back_v.png");
+  rast0.back_curvature.write_png("back_curv.png");
+  rast0.list_size.write_png("list_size.png");
   
   //s.greedy_set_cover(domain, t0, btau, ftau, seed_res, stepsize, desired_coverage);
 }
