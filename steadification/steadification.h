@@ -66,93 +66,51 @@ class steadification {
     GLfloat                t0;
     GLfloat                curvature;
     GLuint                 render_index;
+    GLuint                 layer;
     GLfloat                pad;
   };
-  struct rasterized_pathsurface {
-    //--------------------------------------------------------------------------
-    rasterized_pathsurface(GLsizei width, GLsizei height)
-        : front_v{width, height},
-          front_t_t0{width, height},
-          front_curvature{width, height},
-          front_renderindex_layer{width, height},
-          back_v{width, height},
-          back_t_t0{width, height},
-          back_curvature{width, height},
-          back_renderindex_layer{width, height},
-          list_size{width, height},
-          front_depth{width, height},
-          back_depth{width, height},
-          front_fbo{front_v, front_t_t0, front_curvature,
-                    front_renderindex_layer, front_depth},
-          back_fbo{back_v, back_t_t0, back_curvature, back_renderindex_layer,
-                   back_depth} {
-      list_size.clear(0);
-      front_fbo.bind();
-      yavin::clear_color_depth_buffer();
-      back_fbo.bind();
-      yavin::clear_color_depth_buffer();
-      back_depth.clear(1e5);
-    }
-    //--------------------------------------------------------------------------
-   public:
-    auto& front_framebuffer() { return front_fbo; }
-    auto& back_framebuffer() { return back_fbo; }
-    //--------------------------------------------------------------------------
-   private:
-    void bind(GLuint b0, GLuint b1, GLuint b2, GLuint b3, GLuint b4, GLuint b5,
-              GLuint b6, GLuint b7, GLuint b8) {
-      front_v.bind_image_texture(b0);
-      front_t_t0.bind_image_texture(b1);
-      front_curvature.bind_image_texture(b2);
-      front_renderindex_layer.bind_image_texture(b3);
-      back_v.bind_image_texture(b4);
-      back_t_t0.bind_image_texture(b5);
-      back_curvature.bind_image_texture(b6);
-      back_renderindex_layer.bind_image_texture(b7);
-      list_size.bind_image_texture(b8);
-    }
-
-    public:
-     void bind0() { bind(0, 1, 2, 3, 4, 5, 6, 7, 8); }
-     void bind1() { bind(9, 10, 11, 12, 13, 14, 15, 16, 17); }
-  };
-
   //============================================================================
   // members
   //============================================================================
  private:
-  const V&                  m_v;
-  ivec2                     m_render_resolution;
-  yavin::context            m_context;
-  yavin::orthographiccamera m_cam;
-  yavin::tex2rgb32f         m_color_scale;
-  yavin::texdepth           m_depth;
-  yavin::tex2r32f           m_noise_tex;
-  yavin::tex2r32f           m_fbotex;
-  yavin::framebuffer        m_fbo;
-  ssf_rasterization_shader  m_ssf_rasterization_shader;
+  const V&                           m_v;
+  ivec2                              m_render_resolution;
+  yavin::context                     m_context;
+  yavin::orthographiccamera          m_cam;
+  yavin::tex2rgb32f                  m_color_scale;
+  yavin::tex2r32f                    m_noise_tex;
+  yavin::tex2r32f                    m_fbotex;
+  yavin::framebuffer                 m_fbo;
+  ssf_rasterization_shader           m_ssf_rasterization_shader;
+  tex_rasterization_to_buffer_shader m_tex_rasterization_to_buffer_shader;
   // lic_shader                       m_lic_shader;
   // ll_to_v_shader                   m_ll_to_v_shader;
-  // ll_to_curvature_shader           m_ll_to_curvature_shader;
+   ll_to_curvature_shader           m_to_curvature_shader;
   // weight_single_pathsurface_shader m_weight_single_pathsurface_shader;
   // weight_dual_pathsurface_shader   m_weight_dual_pathsurface_shader;
   RandEng&               m_rand_eng;
   boundingbox<real_t, 2> m_domain;
   // fragment_count_shader            m_fragment_count_shader;
-   combine_rasterizations_shader    m_combine_rasterizations_shader;
+  combine_rasterizations_shader m_combine_rasterizations_shader;
   // coverage_shader                  m_coverage_shader;
   // dual_coverage_shader             m_dual_coverage_shader;
-    yavin::tex2rgba32f front_v_t_t0;
-    yavin::tex2r32f    front_curvature;
-    yavin::tex2rg32ui  front_renderindex_layer;
-    yavin::texdepth    front_depth;
-    yavin::framebuffer front_fbo;
+ public:
+  yavin::tex2rgba32f front_v_t_t0;
+  yavin::tex2r32f     front_curvature;
+  yavin::tex2rg32ui   front_renderindex_layer;
+  yavin::texdepth32ui front_depth;
+  yavin::framebuffer  front_fbo;
 
-    yavin::tex2rgba32f back_v_t_t0;
-    yavin::tex2r32f    back_curvature;
-    yavin::tex2rg32ui  back_renderindex_layer;
-    yavin::texdepth    back_depth;
-    yavin::framebuffer back_fbo;
+  yavin::tex2rgba32f  back_v_t_t0;
+  yavin::tex2r32f     back_curvature;
+  yavin::tex2rg32ui   back_renderindex_layer;
+  yavin::texdepth32ui back_depth;
+  yavin::framebuffer  back_fbo;
+
+  yavin::shaderstoragebuffer<node> result_rasterization;
+  yavin::shaderstoragebuffer<node> working_rasterization;
+  yavin::shaderstoragebuffer<std::uint32_t> result_list_size;
+  yavin::shaderstoragebuffer<std::uint32_t> working_list_size;
 
   //============================================================================
   // ctor
@@ -173,8 +131,6 @@ class steadification {
               render_resolution(0),
               render_resolution(1)},
         m_color_scale{yavin::LINEAR, yavin::CLAMP_TO_EDGE, "color_scale.png"},
-        m_depth{yavin::NEAREST, yavin::CLAMP_TO_EDGE, render_resolution(0),
-                render_resolution(1)},
         m_noise_tex{yavin::LINEAR, yavin::REPEAT, render_resolution(0),
                     render_resolution(1)},
         m_fbotex{render_resolution(0), render_resolution(1)},
@@ -194,16 +150,39 @@ class steadification {
         back_renderindex_layer{m_render_resolution(0), m_render_resolution(1)},
         back_depth{m_render_resolution(0), m_render_resolution(1)},
         back_fbo{back_v_t_t0, back_curvature, back_renderindex_layer,
-                 back_depth}
-
-  {
+                 back_depth},
+        result_rasterization(
+            2 * m_render_resolution(0) * m_render_resolution(1),
+            {{nanf, nanf}, nanf, nanf, nanf, 0, 0, nanf}),
+        working_rasterization(
+            2 * m_render_resolution(0) * m_render_resolution(1),
+            {{nanf, nanf}, nanf, nanf, nanf, 0, 0, nanf}),
+        result_list_size(m_render_resolution(0) * m_render_resolution(1), 0),
+        working_list_size(m_render_resolution(0) * m_render_resolution(1), 0) {
     yavin::disable_multisampling();
 
     m_ssf_rasterization_shader.set_projection(m_cam.projection_matrix());
+    m_ssf_rasterization_shader.set_width(m_render_resolution(0));
     const auto noise_data = random_uniform_vector<float>(
         render_resolution(0) * render_resolution(1), 0.0f, 1.0f, m_rand_eng);
     m_noise_tex.upload_data(noise_data, m_render_resolution(0),
                             m_render_resolution(1));
+
+    front_v_t_t0.bind_image_texture(0);
+    front_curvature.bind_image_texture(1);
+    front_renderindex_layer.bind_image_texture(2);
+    back_v_t_t0.bind_image_texture(3);
+    back_curvature.bind_image_texture(4);
+    back_renderindex_layer.bind_image_texture(5);
+    result_rasterization.bind(0);
+    working_rasterization.bind(1);
+    result_list_size.bind(2);
+    working_list_size.bind(3);
+    m_ssf_rasterization_shader.set_width(m_render_resolution(0));
+    m_combine_rasterizations_shader.set_resolution(m_render_resolution(0),
+                                                   m_render_resolution(1));
+    yavin::gl::viewport(m_cam);
+    yavin::enable_depth_test();
   }
   //============================================================================
   // methods
@@ -215,42 +194,46 @@ class steadification {
     return rasterize(gpu_pathsurface(mesh, u0t0, u1t0), render_index);
   }
   //----------------------------------------------------------------------------
-  auto make_rasterization(size_t w, size_t h) {
-    return rasterized_pathsurface(w, h);
-  }
-  // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
   template <template <typename> typename SeedcurveInterpolator>
   auto rasterize(const pathsurface_t<SeedcurveInterpolator>& mesh,
                  size_t render_index, size_t layer, real_t u0t0, real_t u1t0) {
     return rasterize(gpu_pathsurface(mesh, u0t0, u1t0), render_index, layer);
   }
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-  auto& rasterize(const pathsurface_gpu_t& gpu_mesh,
-                  rasterized_pathsurface& rast, size_t render_index,
+  void rasterize(const pathsurface_gpu_t& gpu_mesh, size_t render_index,
                   size_t layer) {
-
-    yavin::shaderstoragebuffer<std::uint32_t> list_size;
-
-
+    to_tex(gpu_mesh, render_index, layer);
+    to_shaderstoragebuffer();
+  }
+  //----------------------------------------------------------------------------
+  void to_tex(const pathsurface_gpu_t& gpu_mesh, size_t render_index,
+              size_t layer) {
     m_ssf_rasterization_shader.bind();
     m_ssf_rasterization_shader.set_render_index(render_index);
     m_ssf_rasterization_shader.set_layer(layer);
-    m_ssf_rasterization_shader.set_width(m_render_resolution(0));
-    yavin::gl::viewport(m_cam);
-    yavin::enable_depth_test();
 
-    list_size.bind(0);
+    yavin::shaderstorage_barrier();
+    working_list_size.upload_data(0);
+    yavin::shaderstorage_barrier();
     front_fbo.bind();
+    yavin::clear_color_depth_buffer();
     yavin::depth_func_less();
     m_ssf_rasterization_shader.set_count(true);
     gpu_mesh.draw();
 
-    back_fbo().bind();
+    back_fbo.bind();
+    yavin::clear_color_depth_buffer();
+    back_depth.clear(1e5);
     yavin::depth_func_greater();
     m_ssf_rasterization_shader.set_count(false);
     gpu_mesh.draw();
-
-    return rast;
+    yavin::shaderstorage_barrier();
+  }
+  //----------------------------------------------------------------------------
+  void to_shaderstoragebuffer() {
+    m_tex_rasterization_to_buffer_shader.dispatch(
+        m_render_resolution(0) / 32.0 + 1, m_render_resolution(1) / 32.0 + 1);
+  yavin::shaderstorage_barrier();
   }
   //----------------------------------------------------------------------------
   /// \param seedcurve seedcurve in space-time
@@ -400,14 +383,14 @@ class steadification {
   //  return v_tex;
   //}
   //----------------------------------------------------------------------------
-  // auto to_curvature_tex(const rasterized_pathsurface& rast) {
-  //  yavin::tex2rgba32f v_tex{m_render_resolution(0), m_render_resolution(1)};
-  //  rast.bind();
-  //  v_tex.bind_image_texture(2);
-  //  m_ll_to_curvature_shader.dispatch(m_render_resolution(0) / 32.0 + 1,
-  //                                    m_render_resolution(1) / 32.0 + 1);
-  //  return v_tex;
-  //}
+  auto result_rasterization_to_curvature_tex() {
+    yavin::tex2r32f curvature_tex{m_render_resolution(0),
+                                  m_render_resolution(1)};
+    curvature_tex.bind_image_texture(7);
+    m_to_curvature_shader.dispatch(m_render_resolution(0) / 32.0 + 1,
+                                   m_render_resolution(1) / 32.0 + 1);
+    return curvature_tex;
+  }
   //----------------------------------------------------------------------------
   // auto coverage(rasterized_pathsurface& rast) {
   //  return static_cast<real_t>(num_covered_pixels(rast)) /
@@ -448,211 +431,210 @@ class steadification {
   //----------------------------------------------------------------------------
   /// rast1 gets written in rast0. rast0 must have additional space to be able
   /// to hold rast1.
-   void combine(rasterized_pathsurface& rast0, rasterized_pathsurface& rast1) {
-     rast0.bind0();
-     rast1.bind1();
-     m_combine_rasterizations_shader.dispatch(
-         m_render_resolution(0) / 32.0 + 1, m_render_resolution(1) / 32.0 + 1);
-   }
-   //----------------------------------------------------------------------------
-   //  auto greedy_set_cover(const grid<real_t, 2>& domain, const real_t t0,
-   //                        const real_t btau, const real_t ftau,
-   //                        const size_t seed_res, const real_t stepsize,
-   //                        const real_t desired_coverage) {
-   //    static const float nan = 0.0f / 0.0f;
-   //    std::cerr << "creating linked list textures\n";
-   //    rasterized_pathsurface covered_elements{
-   //        m_render_resolution(0), m_render_resolution(1), 0,
-   //        linked_list_node{{nan, nan}, nan, nan, nan, 0, 0, 0xffffffff}};
-   //    rasterized_pathsurface working_rast{
-   //        m_render_resolution(0), m_render_resolution(1), 0,
-   //        linked_list_node{{nan, nan}, nan, nan, nan, 0, 0, 0xffffffff}};
-   //    yavin::atomiccounterbuffer num_overall_covered_pixels_buffer{0};
-   //    yavin::atomiccounterbuffer num_newly_covered_pixels_buffer{0};
-   //    yavin::tex2r32f weight_tex{m_render_resolution(0),
-   //    m_render_resolution(1)}; weight_tex.bind_image_texture(4);
-   //    num_overall_covered_pixels_buffer.bind(2);
-   //    num_newly_covered_pixels_buffer.bind(3);
-   //
-   //    std::cerr << "deleting last output\n";
-   //    using namespace std::filesystem;
-   //    auto working_dir = std::string{settings<V>::name} + "/";
-   //    if (!exists(working_dir)) { create_directory(working_dir); }
-   //    for (const auto& entry : directory_iterator(working_dir)) {
-   //    remove(entry); }
-   //
-   //    auto             best_edge_idx   = domain.num_straight_edges();
-   //    auto             best_weight     = -std::numeric_limits<real_t>::max();
-   //    auto             old_best_weight = best_weight;
-   //    real_t           best_min_btau   = 0;
-   //    real_t           best_max_ftau   = 0;
-   //    size_t           render_index    = 0;
-   //    size_t           layer           = 0;
-   //    std::set<size_t> unused_edges;
-   //    std::set<size_t> used_edges;
-   //#if defined(TATOOINE_STEADIFICATION_PARALLEL)
-   //    std::mutex mutex;
-   //#endif
-   //
-   //    // set all edges as unused
-   //    std::cerr << "set all edges unused\n";
-   //    for (size_t edge_idx = 0; edge_idx < domain.num_straight_edges();
-   //         ++edge_idx) {
-   //      unused_edges.insert(edge_idx);
-   //    }
-   //
-   //    float  cov       = 0;
-   //    size_t iteration = 1;
-   //    const size_t numiterations = size(unused_edges);
-   //    std::cerr << "starting main loop\n";
-   //    do {
-   //      std::cerr << "\n== iteration " << iteration++ << " / " <<
-   //      numiterations
-   //                << " \n";
-   //      old_best_weight = best_weight;
-   //      best_weight     = -std::numeric_limits<real_t>::max();
-   //      best_edge_idx   = domain.num_straight_edges();
-   //
-   //      std::cerr << "integrating pathsurfaces...";
-   //#if defined(TATOOINE_STEADIFICATION_PARALLEL)
-   //      m_context.release();
-   //      auto edge_idx_it = begin(unused_edges);
-   //      parallel_for_loop(
-   //          [&](auto) {
-   //            const auto edge_idx = *edge_idx_it++;
-   //#else
-   //      for (auto edge_idx : unused_edges) {
-   //#endif
-   //
-   //        const auto mesh = pathsurface(domain, edge_idx, t0, t0, btau, ftau,
-   //                                      seed_res, stepsize).first;
-   //#if defined(TATOOINE_STEADIFICATION_PARALLEL)
-   //        {
-   //          std::lock_guard lock{mutex};
-   //          m_context.make_current();
-   //#endif
-   //
-   //              m_weight_dual_pathsurface_shader.set_linked_list0_size(
-   //                  covered_elements.buffer_size());
-   //              m_weight_dual_pathsurface_shader.set_layer(layer);
-   //              rasterize(gpu_pathsurface(mesh, t0, t0), working_rast,
-   //                        render_index, layer);
-   //              covered_elements.bind(0, 0, 1, 0);
-   //              working_rast.bind(1, 2, 3, 1);
-   //              m_weight_dual_pathsurface_shader.set_linked_list0_size(
-   //                  covered_elements.buffer_size());
-   //              m_weight_dual_pathsurface_shader.set_linked_list1_size(
-   //                  working_rast.buffer_size());
-   ////#ifdef TATOOINE_STEADIFICATION_ALL_TAUS
-   ////              for (auto cur_max_ftau : linspace{
-   ////                       0.0, ftau, static_cast<size_t>(ceil(abs(ftau))) +
-   /// 1}) { /                for (auto cur_min_btau : linspace{ / btau, 0.0,
-   /// static_cast<size_t>(ceil(abs(btau))) + 1}) {
-   ////#else
-   //              {
-   //                {
-   //                  auto cur_max_ftau = ftau;
-   //                  auto cur_min_btau = btau;
-   ////#endif
-   //                  weight_tex.clear(0.0f);
-   //                  num_overall_covered_pixels_buffer[0] = 0;
-   //                  num_newly_covered_pixels_buffer[0]   = 0;
-   //                  m_weight_dual_pathsurface_shader.set_min_btau(cur_min_btau);
-   //                  m_weight_dual_pathsurface_shader.set_max_ftau(cur_max_ftau);
-   //                  m_weight_dual_pathsurface_shader.dispatch(
-   //                      m_render_resolution(0) / 32.0 + 1,
-   //                      m_render_resolution(1) / 32.0 + 1);
-   //
-   //                  const auto weight_data = weight_tex.download_data();
-   //                  auto new_weight =
-   //                      std::reduce(std::execution::par, begin(weight_data),
-   //                                  end(weight_data), 0.0f);
-   //                  //auto new_weight = gpu::reduce(weight_tex, 16, 16);
-   //
-   //                  auto num_newly_covered_pixels =
-   //                      num_newly_covered_pixels_buffer[0];
-   //                  // auto num_overall_covered_pixels =
-   //                  //    num_overall_covered_pixels_buffer[0];
-   //
-   //                  if (num_newly_covered_pixels > 0) {
-   //                    // new_weight /= num_overall_covered_pixels;
-   //
-   //                    // check if mesh's seedcurve neighbors another edge
-   //                    const auto unused_edge = domain.edge_at(edge_idx);
-   //                    for (const auto& used_edge_idx : used_edges) {
-   //                      const auto used_edge = domain.edge_at(used_edge_idx);
-   //
-   //                      if (used_edge.first == unused_edge.first ||
-   //                          used_edge.first == unused_edge.second ||
-   //                          used_edge.second == unused_edge.first ||
-   //                          used_edge.second == unused_edge.second) {
-   //                        new_weight *= 1.2;
-   //                        break;
-   //                      }
-   //                    }
-   //                    if (new_weight > best_weight) {
-   //                      best_weight   = new_weight;
-   //                      best_edge_idx = edge_idx;
-   //                      best_min_btau = cur_min_btau;
-   //                      best_max_ftau = cur_max_ftau;
-   //                    }
-   //                  }
-   //                }
-   //              }
-   //#if defined(TATOOINE_STEADIFICATION_PARALLEL)
-   //              m_context.release();
-   //            }
-   //          },
-   //          size(unused_edges));
-   //      m_context.make_current();
-   //#else
-   //      }
-   //#endif
-   //      std::cerr << "done!\n";
-   //      if (best_edge_idx != domain.num_straight_edges()) {
-   //        std::cerr << "combining best pathsurface...\n";
-   //        combine(covered_elements,
-   //                rasterize(gpu_pathsurface(domain, best_edge_idx, t0, t0,
-   //                btau,
-   //                                          ftau, seed_res, stepsize),
-   //                          working_rast, render_index, layer),
-   //                best_min_btau, best_max_ftau);
-   //        std::cerr << "combining best pathsurface... done!\n";
-   //        used_edges.insert(best_edge_idx);
-   //
-   //        std::cerr << "saving lic... ";
-   //        to_lic_tex(domain, btau, ftau, covered_elements)
-   //            .write_png(working_dir + "/" + std::to_string(render_index) +
-   //                       ".png");
-   //        std::cerr << "done!\n";
-   //
-   //        std::cerr << "saving current lic... ";
-   //        to_lic_tex(domain, btau, ftau, covered_elements)
-   //            .write_png(working_dir + "/../current.png");
-   //        std::cerr << "done!\n";
-   //        ++render_index;
-   //      }
-   //      cov = coverage(covered_elements);
-   //      std::cerr << "==========\n";
-   //      std::cerr << "coverage: " << cov << '\n';
-   //      std::cerr << "best min btau: " << best_min_btau << '\n';
-   //      std::cerr << "best max ftau: " << best_max_ftau << '\n';
-   //      std::cerr << "best_weight: " << best_weight << '\n';
-   //      std::cerr << "old_best_weight: " << old_best_weight << '\n';
-   //      if (best_weight < old_best_weight && layer == 0) {
-   //        // std::cerr << "layer = 1\n";
-   //        layer = 1;
-   //      }
-   //      if (best_edge_idx != domain.num_straight_edges()) {
-   //        unused_edges.erase(best_edge_idx);
-   //      } else {
-   //        // std::cerr << render_index - 1 << " bäm\n";
-   //      }
-   //    } while (cov < desired_coverage &&
-   //             best_edge_idx != domain.num_straight_edges());
-   //
-   //    return covered_elements;
-   //  }
+  void combine() {
+    m_combine_rasterizations_shader.dispatch(m_render_resolution(0) / 32.0 + 1,
+                                             m_render_resolution(1) / 32.0 + 1);
+    yavin::shaderstorage_barrier();
+  }
+  //----------------------------------------------------------------------------
+  //  auto greedy_set_cover(const grid<real_t, 2>& domain, const real_t t0,
+  //                        const real_t btau, const real_t ftau,
+  //                        const size_t seed_res, const real_t stepsize,
+  //                        const real_t desired_coverage) {
+  //    static const float nan = 0.0f / 0.0f;
+  //    std::cerr << "creating linked list textures\n";
+  //    rasterized_pathsurface covered_elements{
+  //        m_render_resolution(0), m_render_resolution(1), 0,
+  //        linked_list_node{{nan, nan}, nan, nan, nan, 0, 0, 0xffffffff}};
+  //    rasterized_pathsurface working_rast{
+  //        m_render_resolution(0), m_render_resolution(1), 0,
+  //        linked_list_node{{nan, nan}, nan, nan, nan, 0, 0, 0xffffffff}};
+  //    yavin::atomiccounterbuffer num_overall_covered_pixels_buffer{0};
+  //    yavin::atomiccounterbuffer num_newly_covered_pixels_buffer{0};
+  //    yavin::tex2r32f weight_tex{m_render_resolution(0),
+  //    m_render_resolution(1)}; weight_tex.bind_image_texture(4);
+  //    num_overall_covered_pixels_buffer.bind(2);
+  //    num_newly_covered_pixels_buffer.bind(3);
+  //
+  //    std::cerr << "deleting last output\n";
+  //    using namespace std::filesystem;
+  //    auto working_dir = std::string{settings<V>::name} + "/";
+  //    if (!exists(working_dir)) { create_directory(working_dir); }
+  //    for (const auto& entry : directory_iterator(working_dir)) {
+  //    remove(entry); }
+  //
+  //    auto             best_edge_idx   = domain.num_straight_edges();
+  //    auto             best_weight     = -std::numeric_limits<real_t>::max();
+  //    auto             old_best_weight = best_weight;
+  //    real_t           best_min_btau   = 0;
+  //    real_t           best_max_ftau   = 0;
+  //    size_t           render_index    = 0;
+  //    size_t           layer           = 0;
+  //    std::set<size_t> unused_edges;
+  //    std::set<size_t> used_edges;
+  //#if defined(TATOOINE_STEADIFICATION_PARALLEL)
+  //    std::mutex mutex;
+  //#endif
+  //
+  //    // set all edges as unused
+  //    std::cerr << "set all edges unused\n";
+  //    for (size_t edge_idx = 0; edge_idx < domain.num_straight_edges();
+  //         ++edge_idx) {
+  //      unused_edges.insert(edge_idx);
+  //    }
+  //
+  //    float  cov       = 0;
+  //    size_t iteration = 1;
+  //    const size_t numiterations = size(unused_edges);
+  //    std::cerr << "starting main loop\n";
+  //    do {
+  //      std::cerr << "\n== iteration " << iteration++ << " / " <<
+  //      numiterations
+  //                << " \n";
+  //      old_best_weight = best_weight;
+  //      best_weight     = -std::numeric_limits<real_t>::max();
+  //      best_edge_idx   = domain.num_straight_edges();
+  //
+  //      std::cerr << "integrating pathsurfaces...";
+  //#if defined(TATOOINE_STEADIFICATION_PARALLEL)
+  //      m_context.release();
+  //      auto edge_idx_it = begin(unused_edges);
+  //      parallel_for_loop(
+  //          [&](auto) {
+  //            const auto edge_idx = *edge_idx_it++;
+  //#else
+  //      for (auto edge_idx : unused_edges) {
+  //#endif
+  //
+  //        const auto mesh = pathsurface(domain, edge_idx, t0, t0, btau, ftau,
+  //                                      seed_res, stepsize).first;
+  //#if defined(TATOOINE_STEADIFICATION_PARALLEL)
+  //        {
+  //          std::lock_guard lock{mutex};
+  //          m_context.make_current();
+  //#endif
+  //
+  //              m_weight_dual_pathsurface_shader.set_linked_list0_size(
+  //                  covered_elements.buffer_size());
+  //              m_weight_dual_pathsurface_shader.set_layer(layer);
+  //              rasterize(gpu_pathsurface(mesh, t0, t0), working_rast,
+  //                        render_index, layer);
+  //              covered_elements.bind(0, 0, 1, 0);
+  //              working_rast.bind(1, 2, 3, 1);
+  //              m_weight_dual_pathsurface_shader.set_linked_list0_size(
+  //                  covered_elements.buffer_size());
+  //              m_weight_dual_pathsurface_shader.set_linked_list1_size(
+  //                  working_rast.buffer_size());
+  ////#ifdef TATOOINE_STEADIFICATION_ALL_TAUS
+  ////              for (auto cur_max_ftau : linspace{
+  ////                       0.0, ftau, static_cast<size_t>(ceil(abs(ftau))) +
+  /// 1}) { /                for (auto cur_min_btau : linspace{ / btau, 0.0,
+  /// static_cast<size_t>(ceil(abs(btau))) + 1}) {
+  ////#else
+  //              {
+  //                {
+  //                  auto cur_max_ftau = ftau;
+  //                  auto cur_min_btau = btau;
+  ////#endif
+  //                  weight_tex.clear(0.0f);
+  //                  num_overall_covered_pixels_buffer[0] = 0;
+  //                  num_newly_covered_pixels_buffer[0]   = 0;
+  //                  m_weight_dual_pathsurface_shader.set_min_btau(cur_min_btau);
+  //                  m_weight_dual_pathsurface_shader.set_max_ftau(cur_max_ftau);
+  //                  m_weight_dual_pathsurface_shader.dispatch(
+  //                      m_render_resolution(0) / 32.0 + 1,
+  //                      m_render_resolution(1) / 32.0 + 1);
+  //
+  //                  const auto weight_data = weight_tex.download_data();
+  //                  auto new_weight =
+  //                      std::reduce(std::execution::par, begin(weight_data),
+  //                                  end(weight_data), 0.0f);
+  //                  //auto new_weight = gpu::reduce(weight_tex, 16, 16);
+  //
+  //                  auto num_newly_covered_pixels =
+  //                      num_newly_covered_pixels_buffer[0];
+  //                  // auto num_overall_covered_pixels =
+  //                  //    num_overall_covered_pixels_buffer[0];
+  //
+  //                  if (num_newly_covered_pixels > 0) {
+  //                    // new_weight /= num_overall_covered_pixels;
+  //
+  //                    // check if mesh's seedcurve neighbors another edge
+  //                    const auto unused_edge = domain.edge_at(edge_idx);
+  //                    for (const auto& used_edge_idx : used_edges) {
+  //                      const auto used_edge = domain.edge_at(used_edge_idx);
+  //
+  //                      if (used_edge.first == unused_edge.first ||
+  //                          used_edge.first == unused_edge.second ||
+  //                          used_edge.second == unused_edge.first ||
+  //                          used_edge.second == unused_edge.second) {
+  //                        new_weight *= 1.2;
+  //                        break;
+  //                      }
+  //                    }
+  //                    if (new_weight > best_weight) {
+  //                      best_weight   = new_weight;
+  //                      best_edge_idx = edge_idx;
+  //                      best_min_btau = cur_min_btau;
+  //                      best_max_ftau = cur_max_ftau;
+  //                    }
+  //                  }
+  //                }
+  //              }
+  //#if defined(TATOOINE_STEADIFICATION_PARALLEL)
+  //              m_context.release();
+  //            }
+  //          },
+  //          size(unused_edges));
+  //      m_context.make_current();
+  //#else
+  //      }
+  //#endif
+  //      std::cerr << "done!\n";
+  //      if (best_edge_idx != domain.num_straight_edges()) {
+  //        std::cerr << "combining best pathsurface...\n";
+  //        combine(covered_elements,
+  //                rasterize(gpu_pathsurface(domain, best_edge_idx, t0, t0,
+  //                btau,
+  //                                          ftau, seed_res, stepsize),
+  //                          working_rast, render_index, layer),
+  //                best_min_btau, best_max_ftau);
+  //        std::cerr << "combining best pathsurface... done!\n";
+  //        used_edges.insert(best_edge_idx);
+  //
+  //        std::cerr << "saving lic... ";
+  //        to_lic_tex(domain, btau, ftau, covered_elements)
+  //            .write_png(working_dir + "/" + std::to_string(render_index) +
+  //                       ".png");
+  //        std::cerr << "done!\n";
+  //
+  //        std::cerr << "saving current lic... ";
+  //        to_lic_tex(domain, btau, ftau, covered_elements)
+  //            .write_png(working_dir + "/../current.png");
+  //        std::cerr << "done!\n";
+  //        ++render_index;
+  //      }
+  //      cov = coverage(covered_elements);
+  //      std::cerr << "==========\n";
+  //      std::cerr << "coverage: " << cov << '\n';
+  //      std::cerr << "best min btau: " << best_min_btau << '\n';
+  //      std::cerr << "best max ftau: " << best_max_ftau << '\n';
+  //      std::cerr << "best_weight: " << best_weight << '\n';
+  //      std::cerr << "old_best_weight: " << old_best_weight << '\n';
+  //      if (best_weight < old_best_weight && layer == 0) {
+  //        // std::cerr << "layer = 1\n";
+  //        layer = 1;
+  //      }
+  //      if (best_edge_idx != domain.num_straight_edges()) {
+  //        unused_edges.erase(best_edge_idx);
+  //      } else {
+  //        // std::cerr << render_index - 1 << " bäm\n";
+  //      }
+  //    } while (cov < desired_coverage &&
+  //             best_edge_idx != domain.num_straight_edges());
+  //
+  //    return covered_elements;
+  //  }
 };
 //==============================================================================
 }  // namespace tatooine::steadification

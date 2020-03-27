@@ -1,0 +1,53 @@
+#version 450
+//==============================================================================
+#include "node.glsl"
+//==============================================================================
+layout(local_size_x = 32, local_size_y = 32) in;
+//==============================================================================
+layout(binding = 0, rgba32f) uniform  image2D front_v_t_t0_tex;
+layout(binding = 1, r32f)    uniform  image2D front_curvature_tex;
+layout(binding = 2, rg32ui)  uniform uimage2D front_renderindex_layer_tex;
+layout(binding = 3, rgba32f) uniform  image2D back_v_t_t0_tex;
+layout(binding = 4, r32f)    uniform  image2D back_curvature_tex;
+layout(binding = 5, rg32ui)  uniform uimage2D back_renderindex_layer_tex;
+layout(binding = 0, std430) buffer result_rast_buffer {
+  node result_rast[];
+};
+layout(binding = 1, std430) buffer working_rast_buffer {
+  node working_rast[];
+};
+layout(binding = 2, std430) buffer result_size_buffer {
+  uint result_list_size[];
+};
+layout(binding = 3, std430) buffer working_size_buffer {
+  uint working_list_size[];
+};
+//==============================================================================
+const uvec2 resolution = uvec2(imageSize(front_v_t_t0_tex));
+//==============================================================================
+void main() {
+  const ivec2 texpos = ivec2(gl_GlobalInvocationID.xy);
+  if (texpos.x >= resolution.x || texpos.y >= resolution.y) { return; }
+  const uint fi          = (texpos.x + texpos.y * resolution.x) * 2;
+  const uint bi          = fi + 1;
+
+  vec4  v_t_t0            = imageLoad(front_v_t_t0_tex, texpos);
+  float curvature         = imageLoad(front_curvature_tex, texpos).x;
+  uvec2 renderindex_layer = imageLoad(front_renderindex_layer_tex, texpos).xy;
+  working_rast[fi].v      = v_t_t0.xy;
+  working_rast[fi].t      = v_t_t0.z;
+  working_rast[fi].t0     = v_t_t0.w;
+  working_rast[fi].curvature   = curvature;
+  working_rast[fi].renderindex = renderindex_layer.x;
+  working_rast[fi].layer       = renderindex_layer.y;
+
+  v_t_t0                     = imageLoad(back_v_t_t0_tex, texpos);
+  curvature                  = imageLoad(back_curvature_tex, texpos).x;
+  renderindex_layer          = imageLoad(back_renderindex_layer_tex, texpos).xy;
+  working_rast[bi].v         = v_t_t0.xy;
+  working_rast[bi].t         = v_t_t0.z;
+  working_rast[bi].t0        = v_t_t0.w;
+  working_rast[bi].curvature = curvature;
+  working_rast[bi].renderindex = renderindex_layer.x;
+  working_rast[bi].layer       = renderindex_layer.y;
+}

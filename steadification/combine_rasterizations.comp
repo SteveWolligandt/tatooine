@@ -1,16 +1,38 @@
 #version 450
 //==============================================================================
-#include "dual_binding.glsl"
+#include "node.glsl"
 //==============================================================================
-uniform float min_btau;
-uniform float max_ftau;
+layout(binding = 0, std430) buffer result_rast_buffer {
+  node result_rast[];
+};
+layout(binding = 1, std430) buffer working_rast_buffer {
+  node working_rast[];
+};
+layout(binding = 2, std430) buffer result_size_buffer {
+  uint result_list_size[];
+};
+layout(binding = 3, std430) buffer working_size_buffer {
+  uint working_list_size[];
+};
+//==============================================================================
+uniform uvec2 resolution;
 //==============================================================================
 layout (local_size_x = 32, local_size_y = 32) in;
 void main() {
   const ivec2 texpos = ivec2(gl_GlobalInvocationID.xy);
-  if (texpos.x >= texres.x || texpos.y >= texres.y) { return; }
+  if (texpos.x >= resolution.x || texpos.y >= resolution.y) { return; }
 
-  const uint s0 =   imageLoad(list_size0, texpos).x;
-  const uint s1 =   imageLoad(list_size1, texpos).x;
-  imageStore(list_size0, texpos, uvec4(s0 + s1, 0, 0, 0));
+  const uint li = texpos.x + texpos.y * resolution.x;
+  const uint fi = li * 2;
+  const uint bi = fi + 1;
+
+  if (working_list_size[li] > 0) {
+    if (result_list_size[li] == 0) {
+      result_rast[fi] = working_rast[fi];
+      result_rast[bi] = working_rast[bi];
+    } else if (result_list_size[li] == 0) {
+      result_rast[bi] = working_rast[fi];
+    }
+  }
+  result_list_size[li] = result_list_size[li] + working_list_size[li];
 }

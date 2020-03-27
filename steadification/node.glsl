@@ -6,7 +6,7 @@ struct node {
   float t;
   float t0;
   float curvature;
-  uint  render_index;
+  uint  renderindex;
   uint  layer;
   float pad;
 };

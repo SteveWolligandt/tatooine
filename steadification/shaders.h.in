@@ -17,17 +17,22 @@ struct comp_shader : yavin::shader {
   void dispatch(GLuint w, GLuint h);
 };
 //==============================================================================
-/// renders vector field, tau and position in three render targets
 struct ssf_rasterization_shader : vert_frag_shader {
   static constexpr std::string_view vert_path =
       "@TATOOINE_STEADIFICATION_SSF_RASTERIZATION_VERT@";
   static constexpr std::string_view frag_path =
       "@TATOOINE_STEADIFICATION_SSF_RASTERIZATION_FRAG@";
   ssf_rasterization_shader();
-  void set_count(bool);
+  void set_count(GLboolean);
   void set_width(GLuint);
-  void set_render_index(unsigned int render_index);
-  void set_layer(unsigned int l);
+  void set_render_index(GLuint render_index);
+  void set_layer(GLuint l);
+};
+//==============================================================================
+struct tex_rasterization_to_buffer_shader : comp_shader {
+  static constexpr std::string_view comp_path =
+      "@TATOOINE_STEADIFICATION_TEX_RASTERIZATION_TO_BUFFER_COMP@";
+  tex_rasterization_to_buffer_shader();
 };
 //==============================================================================
 struct lic_shader : comp_shader {
@@ -85,8 +90,7 @@ struct combine_rasterizations_shader : comp_shader {
   static constexpr std::string_view comp_path =
       "@TATOOINE_STEADIFICATION_COMBINE_RASTERIZATIONS_COMP@";
   combine_rasterizations_shader();
-  void set_linked_list0_size(unsigned int n);
-  void set_linked_list1_size(unsigned int n);
+  void set_resolution(GLuint w, GLuint h);
 };
 //==============================================================================
 struct coverage_shader : comp_shader {
