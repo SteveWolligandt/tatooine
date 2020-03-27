@@ -1,21 +1,39 @@
 #version 450
 //==============================================================================
-#include "linked_list.glsl"
+#include "node.glsl"
 //==============================================================================
 layout(local_size_x = 32, local_size_y = 32) in;
-layout(binding = 2, rgba32f) uniform image2D v_tex;
+layout(binding = 0, std430) buffer result_rast_buffer {
+  node result_rast[];
+};
+layout(binding = 1, std430) buffer working_rast_buffer {
+  node working_rast[];
+};
+layout(binding = 2, std430) buffer result_size_buffer {
+  uint result_list_size[];
+};
+layout(binding = 3, std430) buffer working_size_buffer {
+  uint working_list_size[];
+};
+layout(binding = 4, std430) buffer weight_buffer {
+  float weights[];
+};
+layout(binding = 7, rgba32f) uniform image2D v_tex;
 //==============================================================================
 const float nan = 0.0 / 0.0;
+const uvec2 resolution = uvec2(imageSize(v_tex));
+//==============================================================================
 void main() {
   const ivec2 texpos = ivec2(gl_GlobalInvocationID.xy);
-  if (texpos.x >= ll_tex_resolution.x || texpos.y >= ll_tex_resolution.y) {
+  if (texpos.x >= resolution.x || texpos.y >= resolution.y) {
     return;
   }
-  const uint hi = ll_head_index(texpos);
-  if (hi == end_index) {
+  const uint li = (texpos.x + texpos.y * resolution.x);
+  if (result_list_size[li] == 0) {
     imageStore(v_tex, texpos, vec4(nan));
-    return;
+  } else {
+    const uint fi = li * 2;
+    node n = result_rast[fi];
+    imageStore(v_tex, texpos, vec4(n.v, n.t - n.t0, float(n.layer)));
   }
-  node n = ll_max_tau_node(texpos);
-  imageStore(v_tex, texpos, vec4(n.v, n.t - n.t0, float(n.layer)));
 }

@@ -28,7 +28,8 @@ void calc(const field<V, VReal, 2, 2>& v, T0Real t0, BTauReal btau,
   s.rasterize(pg0, 0, 0);
   std::cerr << "weight = " << std::get<0>(s.weight(0)) << '\n';
   s.combine();
-  s.result_rasterization_to_curvature_tex().write_png("curvature0.png");
+  s.result_to_lic_tex(domain);
+  s.lic_tex.write_png("lic.png");
 
   //auto p1 = s.pathsurface(domain, domain.num_straight_edges() * 3 / 4, t0, t0,
   //                        btau, ftau, seed_res, stepsize)

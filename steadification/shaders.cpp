@@ -94,6 +94,9 @@ void lic_shader::set_num_samples(GLuint n) {
 void lic_shader::set_stepsize(GLfloat s) {
   set_uniform("stepsize", s);
 }
+void lic_shader::set_resolution(GLuint w, GLuint h) {
+  set_uniform("resolution", w, h);
+}
 
 //==============================================================================
 // ll_to_v
