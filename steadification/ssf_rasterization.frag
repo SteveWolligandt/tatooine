@@ -22,6 +22,8 @@ void main() {
   v_t_t0_out            = vec4(v_frag, t_frag, t0_frag);
   curvature_out         = curvature_frag;
   renderindex_layer_out = uvec2(render_index, layer);
+  if (count) {
     const uint i = uint(floor(gl_FragCoord.x) + floor(gl_FragCoord.y) * width);
     atomicAdd(working_list_size[i], 1);
+  }
 }

@@ -70,20 +70,12 @@ struct fragment_count_shader : vert_frag_shader {
   fragment_count_shader();
 };
 //==============================================================================
-struct weight_single_pathsurface_shader : comp_shader {
-  static constexpr std::string_view comp_path =
-      "@TATOOINE_STEADIFICATION_WEIGHT_SINGLE_PATHSURFACE_COMP@";
-  weight_single_pathsurface_shader();
-  void set_linked_list_size(unsigned int n);
-};
-//==============================================================================
 struct weight_dual_pathsurface_shader : comp_shader {
   static constexpr std::string_view comp_path =
       "@TATOOINE_STEADIFICATION_WEIGHT_DUAL_PATHSURFACE_COMP@";
   weight_dual_pathsurface_shader();
-  void set_linked_list0_size(unsigned int n);
-  void set_linked_list1_size(unsigned int n);
-  void set_layer(unsigned int n);
+  void set_layer(GLuint n);
+  void set_size(GLuint n);
 };
 //==============================================================================
 struct combine_rasterizations_shader : comp_shader {

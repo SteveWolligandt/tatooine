@@ -112,30 +112,17 @@ fragment_count_shader::fragment_count_shader()
     : vert_frag_shader{vert_path, frag_path} {}
 
 //==============================================================================
-// weight_single_pathsurface
-//==============================================================================
-weight_single_pathsurface_shader::weight_single_pathsurface_shader()
-    : comp_shader{comp_path} {}
-//------------------------------------------------------------------------------
-void weight_single_pathsurface_shader::set_linked_list_size(unsigned int n) {
-  set_uniform("ll_size", n);
-}
-//==============================================================================
 // weight_dual_pathsurface
 //==============================================================================
 weight_dual_pathsurface_shader::weight_dual_pathsurface_shader()
     : comp_shader{comp_path} {}
 //------------------------------------------------------------------------------
-void weight_dual_pathsurface_shader::set_linked_list0_size(unsigned int n) {
-  set_uniform("ll0_size", n);
-}
-//------------------------------------------------------------------------------
-void weight_dual_pathsurface_shader::set_linked_list1_size(unsigned int n) {
-  set_uniform("ll1_size", n);
-}
-//------------------------------------------------------------------------------
-void weight_dual_pathsurface_shader::set_layer(unsigned int n) {
+void weight_dual_pathsurface_shader::set_layer(GLuint n) {
   set_uniform("layer", n);
+}
+//------------------------------------------------------------------------------
+void weight_dual_pathsurface_shader::set_size(GLuint n) {
+  set_uniform("size", n);
 }
 //==============================================================================
 // combine_rasterizations

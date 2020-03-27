@@ -14,6 +14,9 @@ layout(binding = 2, std430) buffer result_size_buffer {
 layout(binding = 3, std430) buffer working_size_buffer {
   uint working_list_size[];
 };
+layout(binding = 4, std430) buffer weight_buffer {
+  float weights[];
+};
 layout(binding = 7, r32f) uniform image2D curvature_tex;
 //==============================================================================
 const uvec2 resolution = uvec2(imageSize(curvature_tex));
@@ -24,7 +27,12 @@ void main() {
   if (texpos.x >= resolution.x || texpos.y >= resolution.y) {
     return;
   }
-  const uint fi = (texpos.x + texpos.y * resolution.x) * 2;
+  const uint li = (texpos.x + texpos.y * resolution.x);
+  const uint fi = li * 2;
   const uint bi = fi + 1;
-  imageStore(curvature_tex, texpos, vec4(result_rast[fi].curvature));
+  //float      out_val = working_list_size[fi].curvature;
+  float      out_val = abs(weights[li]);
+  //float      out_val = result_list_size[li];
+  //out_val *= 0.1;
+  imageStore(curvature_tex, texpos, vec4(out_val));
 }

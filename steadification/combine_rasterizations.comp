@@ -14,6 +14,9 @@ layout(binding = 2, std430) buffer result_size_buffer {
 layout(binding = 3, std430) buffer working_size_buffer {
   uint working_list_size[];
 };
+layout(binding = 4, std430) buffer weight_buffer {
+  float weights[];
+};
 //==============================================================================
 uniform uvec2 resolution;
 //==============================================================================
@@ -34,5 +37,5 @@ void main() {
       result_rast[bi] = working_rast[fi];
     }
   }
-  result_list_size[li] = result_list_size[li] + working_list_size[li];
+  result_list_size[li] += working_list_size[li];
 }

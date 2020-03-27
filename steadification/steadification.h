@@ -86,8 +86,7 @@ class steadification {
   // lic_shader                       m_lic_shader;
   // ll_to_v_shader                   m_ll_to_v_shader;
    ll_to_curvature_shader           m_to_curvature_shader;
-  // weight_single_pathsurface_shader m_weight_single_pathsurface_shader;
-  // weight_dual_pathsurface_shader   m_weight_dual_pathsurface_shader;
+   weight_dual_pathsurface_shader   m_weight_dual_pathsurface_shader;
   RandEng&               m_rand_eng;
   boundingbox<real_t, 2> m_domain;
   // fragment_count_shader            m_fragment_count_shader;
@@ -107,10 +106,14 @@ class steadification {
   yavin::texdepth32ui back_depth;
   yavin::framebuffer  back_fbo;
 
-  yavin::shaderstoragebuffer<node> result_rasterization;
-  yavin::shaderstoragebuffer<node> working_rasterization;
-  yavin::shaderstoragebuffer<std::uint32_t> result_list_size;
-  yavin::shaderstoragebuffer<std::uint32_t> working_list_size;
+  yavin::shaderstoragebuffer<node>    result_rasterization;
+  yavin::shaderstoragebuffer<node>    working_rasterization;
+  yavin::shaderstoragebuffer<GLuint>  result_list_size;
+  yavin::shaderstoragebuffer<GLuint>  working_list_size;
+  yavin::shaderstoragebuffer<GLfloat> weight_buffer;
+
+  yavin::atomiccounterbuffer num_overall_covered_pixels{0};
+  yavin::atomiccounterbuffer num_newly_covered_pixels{0};
 
   //============================================================================
   // ctor
@@ -158,7 +161,10 @@ class steadification {
             2 * m_render_resolution(0) * m_render_resolution(1),
             {{nanf, nanf}, nanf, nanf, nanf, 0, 0, nanf}),
         result_list_size(m_render_resolution(0) * m_render_resolution(1), 0),
-        working_list_size(m_render_resolution(0) * m_render_resolution(1), 0) {
+        working_list_size(m_render_resolution(0) * m_render_resolution(1), 0),
+        weight_buffer(m_render_resolution(0) * m_render_resolution(1), 0),
+        num_overall_covered_pixels{0},
+        num_newly_covered_pixels{0} {
     yavin::disable_multisampling();
 
     m_ssf_rasterization_shader.set_projection(m_cam.projection_matrix());
@@ -178,9 +184,16 @@ class steadification {
     working_rasterization.bind(1);
     result_list_size.bind(2);
     working_list_size.bind(3);
+    weight_buffer.bind(4);
+
+    result_list_size.upload_data(0);
+    num_overall_covered_pixels.bind(0);
+    num_newly_covered_pixels.bind(1);
     m_ssf_rasterization_shader.set_width(m_render_resolution(0));
     m_combine_rasterizations_shader.set_resolution(m_render_resolution(0),
                                                    m_render_resolution(1));
+    m_weight_dual_pathsurface_shader.set_size(m_render_resolution(0) *
+                                              m_render_resolution(1));
     yavin::gl::viewport(m_cam);
     yavin::enable_depth_test();
   }
@@ -300,26 +313,19 @@ class steadification {
         u0t0, u1t0);
   }
   //----------------------------------------------------------------------------
-  // auto weight(const rasterized_pathsurface& rast0,
-  //            const rasterized_pathsurface& rast1, size_t layer1,
-  //            float min_btau, float max_ftau) {
-  //  yavin::tex2r32f weight_tex{m_render_resolution(0),
-  //  m_render_resolution(1)}; yavin::atomiccounterbuffer
-  //  num_overall_covered_pixels{0}; yavin::atomiccounterbuffer
-  //  num_newly_covered_pixels{0}; rast0.bind(0, 0, 1, 0); rast1.bind(1, 2, 3,
-  //  1); num_overall_covered_pixels.bind(2); num_newly_covered_pixels.bind(3);
-  //  weight_tex.bind_image_texture(4);
-  //  m_weight_dual_pathsurface_shader.set_linked_list0_size(rast0.buffer_size());
-  //  m_weight_dual_pathsurface_shader.set_linked_list1_size(rast1.buffer_size());
-  //  m_weight_dual_pathsurface_shader.set_layer(layer1);
-  //  m_weight_dual_pathsurface_shader.set_min_btau(min_btau);
-  //  m_weight_dual_pathsurface_shader.set_max_ftau(max_ftau);
-  //  m_weight_dual_pathsurface_shader.dispatch(
-  //      m_render_resolution(0) / 32.0 + 1, m_render_resolution(1) / 32.0 + 1);
-  //  auto w = boost::accumulate(weight_tex.download_data(), float(0));
-  //  return std::tuple{w, num_overall_covered_pixels.download_data()[0],
-  //                    num_newly_covered_pixels.download_data()[0]};
-  //}
+  auto weight(GLuint layer1) {
+    weight_buffer.upload_data(0.0f);
+    num_overall_covered_pixels[0] = 0;
+    num_newly_covered_pixels[0]   = 0;
+    m_weight_dual_pathsurface_shader.set_layer(layer1);
+    m_weight_dual_pathsurface_shader.bind();
+    yavin::gl::dispatch_compute(
+        m_render_resolution(0) * m_render_resolution(1) / 1024.0 + 1, 1, 1);
+
+    auto w = boost::accumulate(weight_buffer.download_data(), float(0));
+    return std::tuple{w, num_overall_covered_pixels.download_data()[0],
+                      num_newly_covered_pixels.download_data()[0]};
+  }
   //----------------------------------------------------------------------------
   template <template <typename> typename SeedcurveInterpolator>
   auto curvature(
