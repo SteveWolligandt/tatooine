@@ -33,6 +33,7 @@ void main() {
     imageStore(v_tex, texpos, vec4(nan));
   } else {
     const uint fi = li * 2;
+    const uint bi = fi + 1;
     node n = result_rast[fi];
     imageStore(v_tex, texpos, vec4(n.v, n.t - n.t0, float(n.layer)));
   }

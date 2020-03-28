@@ -48,7 +48,6 @@ struct lic_shader : comp_shader {
   void set_color_scale_bind_point(GLint b);
   void set_num_samples(GLuint n);
   void set_stepsize(GLfloat s);
-  void set_resolution(GLuint w, GLuint h);
 };
 //==============================================================================
 struct ll_to_v_shader : comp_shader {

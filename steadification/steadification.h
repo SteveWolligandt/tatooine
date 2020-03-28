@@ -156,7 +156,7 @@ class steadification {
         back_depth{m_render_resolution(0), m_render_resolution(1)},
         back_fbo{back_v_t_t0, back_curvature, back_renderindex_layer,
                  back_depth},
-        lic_tex{m_render_resolution(0), m_render_resolution(1)},
+        lic_tex{m_render_resolution(0) * 2, m_render_resolution(1) * 2},
         v_tex{m_render_resolution(0), m_render_resolution(1)},
         result_rasterization(
             2 * m_render_resolution(0) * m_render_resolution(1),
@@ -204,7 +204,6 @@ class steadification {
     m_lic_shader.set_v_tex_bind_point(0);
     m_lic_shader.set_noise_tex_bind_point(1);
     m_lic_shader.set_color_scale_bind_point(2);
-    m_lic_shader.set_resolution(m_render_resolution(0), m_render_resolution(1));
     m_weight_dual_pathsurface_shader.set_size(m_render_resolution(0) *
                                               m_render_resolution(1));
     yavin::gl::viewport(m_cam);
@@ -365,7 +364,7 @@ class steadification {
     return acc_kappas / boost::accumulate(arc_lengths, real_t(0));
   }
   //----------------------------------------------------------------------------
-  void result_to_lic_tex(const grid2_t& domain) {
+  void result_to_lic_tex(const grid2_t& domain, GLfloat btau, GLfloat ftau) {
     const size_t num_samples = 100;
     const real_t stepsize =
         (domain.dimension(0).back() - domain.dimension(0).front()) /
@@ -374,10 +373,12 @@ class steadification {
 
     m_lic_shader.set_domain_min(domain.front(0), domain.front(1));
     m_lic_shader.set_domain_max(domain.back(0), domain.back(1));
+    m_lic_shader.set_backward_tau(btau);
+    m_lic_shader.set_forward_tau(ftau);
     m_lic_shader.set_num_samples(num_samples);
     m_lic_shader.set_stepsize(stepsize);
-    m_lic_shader.dispatch(m_render_resolution(0) / 32.0 + 1,
-                          m_render_resolution(1) / 32.0 + 1);
+    m_lic_shader.dispatch(m_render_resolution(0) * 2 / 32.0 + 1,
+                          m_render_resolution(1) * 2 / 32.0 + 1);
   }
   //----------------------------------------------------------------------------
   auto result_to_v_tex() {
