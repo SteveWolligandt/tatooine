@@ -34,7 +34,12 @@ void main() {
   } else {
     const uint fi = li * 2;
     const uint bi = fi + 1;
-    node n = result_rast[fi];
-    imageStore(v_tex, texpos, vec4(n.v, n.t - n.t0, float(n.layer)));
+    node nf = result_rast[fi];
+    node nb = result_rast[bi];
+    if (abs(nf.t - nf.t0) > abs(nb.t - nb.t0)) {
+      imageStore(v_tex, texpos, vec4(nf.v, nf.t - nf.t0, float(nf.layer)));
+    } else {
+      imageStore(v_tex, texpos, vec4(nb.v, nb.t - nb.t0, float(nb.layer)));
+    }
   }
 }

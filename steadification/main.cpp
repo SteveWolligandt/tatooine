@@ -21,26 +21,26 @@ void calc(const field<V, VReal, 2, 2>& v, T0Real t0, BTauReal btau,
   grid domain{linspace{dom.min(0), dom.max(0), grid_res(0)},
               linspace{dom.min(1), dom.max(1), grid_res(1)}};
 
-  auto p0 = s.pathsurface(domain, domain.num_straight_edges() / 4, t0, t0, btau,
-                          ftau, seed_res, stepsize)
-                .first;
-  auto pg0   = s.gpu_pathsurface(p0, t0, t0);
-  s.rasterize(pg0, 0, 0);
-  s.combine();
-  s.result_to_lic_tex(domain, btau, ftau);
-  s.lic_tex.write_png("lic0.png");
+  //auto p0 = s.pathsurface(domain, domain.num_straight_edges() / 4, t0, t0, btau,
+  //                        ftau, seed_res, stepsize)
+  //              .first;
+  //auto pg0   = s.gpu_pathsurface(p0, t0, t0);
+  //s.rasterize(pg0, 0, 0);
+  //s.combine();
+  //s.result_to_lic_tex(domain, btau, ftau);
+  //s.lic_tex.write_png("lic0.png");
+  //
+  //auto p1 = s.pathsurface(domain, domain.num_straight_edges() * 3 / 4, t0, t0,
+  //                        btau, ftau, seed_res, stepsize)
+  //              .first;
+  //auto pg1   = s.gpu_pathsurface(p1, t0, t0);
+  //s.rasterize(pg1, 1, 0);
+  //s.combine();
+  //s.result_to_lic_tex(domain, btau, ftau);
+  //s.lic_tex.write_png("lic1.png");
 
-  auto p1 = s.pathsurface(domain, domain.num_straight_edges() * 3 / 4, t0, t0,
-                          btau, ftau, seed_res, stepsize)
-                .first;
-  auto pg1   = s.gpu_pathsurface(p1, t0, t0);
-  s.rasterize(pg1, 1, 0);
-  s.combine();
-  s.result_to_lic_tex(domain, btau, ftau);
-  s.lic_tex.write_png("lic1.png");
-
-  // s.greedy_set_cover(domain, t0, btau, ftau, seed_res, stepsize,
-  // desired_coverage);
+   s.greedy_set_cover(domain, t0, btau, ftau, seed_res, stepsize,
+   desired_coverage);
 }
 
 //------------------------------------------------------------------------------
