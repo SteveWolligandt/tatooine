@@ -12,7 +12,6 @@
 #include <tatooine/streamsurface.h>
 #include <yavin/linked_list_texture.h>
 
-#include <boost/filesystem.hpp>
 #include <boost/range/adaptors.hpp>
 #include <cmath>
 #include <cstdlib>
@@ -445,14 +444,15 @@ class steadification {
     std::cerr << "deleting last output\n";
     using namespace std::filesystem;
     const auto working_dir     = std::string{settings<V>::name} + "/";
-    const auto pathsurface_dir = working_dir + "pathsurfaces/";
+    const auto pathsurface_dir = working_dir + "pathsurfaces_" +
+                                 std::to_string(domain.size(0)) + "_" +
+                                 std::to_string(domain.size(1)) + "/";
     if (!exists(working_dir)) { create_directory(working_dir); }
-    for (const auto& entry : directory_iterator(pathsurface_dir)) {
-      remove(entry);
+    for (const auto& entry : directory_iterator(working_dir)) {
+      if (entry.path().extension() == "png") {
+        remove(entry);
+      }
     }
-    for (const auto& entry : directory_iterator(working_dir)) { remove(entry); }
-    create_directory(pathsurface_dir);
-
     auto             best_edge_idx   = domain.num_straight_edges();
     auto             best_weight     = -std::numeric_limits<real_t>::max();
     auto             old_best_weight = best_weight;
@@ -468,15 +468,12 @@ class steadification {
       unused_edges.insert(edge_idx);
     }
 
-    std::cerr << "integrating pathsurfaces... ";
-#if defined(TATOOINE_STEADIFICATION_PARALLEL)
-    std::mutex mutex;
-#endif
-    {
+    if (!exists(pathsurface_dir)) {
+      std::cerr << "integrating pathsurfaces... ";
+      create_directory(pathsurface_dir);
 #if defined(TATOOINE_STEADIFICATION_PARALLEL)
       auto edge_idx_it = begin(unused_edges);
-      parallel_for_loop(
-          [&](auto) {
+      parallel_for_loop([&](auto) {
         const auto edge_idx = *edge_idx_it++;
 #else
       for (auto edge_idx : unused_edges) {
@@ -486,18 +483,18 @@ class steadification {
             .first.write_vtk(pathsurface_dir + std::to_string(edge_idx) +
                              ".vtk");
 #if !defined(TATOOINE_STEADIFICATION_PARALLEL)
-                    }
+      }
 #else
-      },
-          size(unused_edges));
+      }, size(unused_edges));
 #endif
+      std::cerr << "done!\n";
+    } else {
+      std::cerr << std::string{"already integrated\n"};
     }
-    std::cerr << "done!\n";
 
-    //float        cov           = 0;
+    // float        cov           = 0;
     size_t       iteration     = 1;
     const size_t numiterations = size(unused_edges);
-    std::cerr << "starting main loop\n";
     do {
       std::cerr << "\n== iteration " << iteration++ << " / " << numiterations
                 << " \n";
@@ -510,7 +507,6 @@ class steadification {
                                         std::to_string(edge_idx) + ".vtk"};
         rasterize(gpu_pathsurface(mesh, t0, t0), render_index, layer);
         auto new_weight = weight(layer);
-        // std::cerr << "weight: " << new_weight << '\n';
         if (num_newly_covered_pixels[0] > 0) {
           // new_weight /= num_overall_covered_pixels;
 
@@ -537,33 +533,21 @@ class steadification {
         simple_tri_mesh<real_t, 2> mesh{pathsurface_dir +
                                         std::to_string(best_edge_idx) + ".vtk"};
         rasterize(gpu_pathsurface(mesh, t0, t0), render_index, layer);
-        std::cerr << "combining best pathsurface...\n";
         combine();
-        std::cerr << "combining best pathsurface... done!\n";
         used_edges.insert(best_edge_idx);
 
-        std::cerr << "saving lic... ";
         result_to_lic_tex(domain, btau, ftau);
         lic_tex.write_png(working_dir + "/" + std::to_string(render_index) +
                           ".png");
         lic_tex.write_png(working_dir + "/../current.png");
-        std::cerr << "done!\n";
 
         ++render_index;
       }
-      // cov = coverage(covered_elements);
-      std::cerr << "==========\n";
-      // std::cerr << "coverage: " << cov << '\n';
-      std::cerr << "best_weight: " << best_weight << '\n';
-      std::cerr << "old_best_weight: " << old_best_weight << '\n';
       if (best_weight < old_best_weight && layer == 0) {
-        // std::cerr << "layer = 1\n";
         layer = 1;
       }
       if (best_edge_idx != domain.num_straight_edges()) {
         unused_edges.erase(best_edge_idx);
-      } else {
-        // std::cerr << render_index - 1 << " bäm\n";
       }
     } while (/* cov < desired_coverage && */ best_edge_idx !=
              domain.num_straight_edges());
