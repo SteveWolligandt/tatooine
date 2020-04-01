@@ -735,12 +735,12 @@ struct line {
   static auto read_vtk(const std::string& filepath) {
     struct reader : vtk::legacy_file_listener {
       std::vector<std::array<Real, 3>> points;
-      std::vector<std::vector<int>>    lines;
+      std::vector<int>                 lines;
 
       void on_points(const std::vector<std::array<Real, 3>>& points_) override {
         points = points_;
       }
-      void on_lines(const std::vector<std::vector<int>>& lines_) override {
+      void on_lines(const std::vector<int>& lines_) override {
         lines = lines_;
       }
     } listener;
@@ -749,11 +749,12 @@ struct line {
     file.add_listener(listener);
     file.read();
 
-    std::list<line<Real, 3>> lines;
-    const auto&              vs = listener.points;
-    for (const auto& line : listener.lines) {
-      auto& pv_line = lines.emplace_back();
-      for (auto i : line) { pv_line.push_back({vs[i][0], vs[i][1], vs[i][2]}); }
+    std::vector<line<Real, 3>> lines;
+    const auto&                vs = listener.points;
+    for (size_t i = 0; i < listener.lines.size();) {
+      auto&       l    = lines.emplace_back();
+      const auto& size = listener.lines[i++];
+      for (; i < size; ++i) { l.push_back({vs[i][0], vs[i][1], vs[i][2]}); }
     }
     return lines;
   }

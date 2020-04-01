@@ -2,6 +2,7 @@
 #define TATOOINE_SIMPLE_TRI_MESH_H
 //==============================================================================
 #include <vector>
+#include <boost/range/algorithm/copy.hpp>
 
 #include "property.h"
 #include "vtk_legacy.h"
@@ -233,11 +234,13 @@ class simple_tri_mesh : public pointset<Real, N>{
       void on_points(const std::vector<std::array<double, 3>>& ps) override {
         for (auto& p : ps) { mesh.insert_vertex(p[0], p[1]); }
       }
-      void on_polygons(const std::vector<std::vector<int>>& ps) override {
-        for (const auto& p : ps) {
-          if (p.size() == 3) {
-            mesh.insert_face(size_t(p[0]), size_t(p[1]), size_t(p[2]));
+      void on_polygons(const std::vector<int>& ps) override {
+        for (size_t i = 0; i < ps.size();) {
+          const auto& size = ps[i++];
+          if (size == 3) {
+            mesh.insert_face(size_t(ps[i]), size_t(ps[i + 1]), size_t(ps[i + 2]));
           }
+          i += size;
         }
       }
       //void on_scalars(const std::string& data_name,

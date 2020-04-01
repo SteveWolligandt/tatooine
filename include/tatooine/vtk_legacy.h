@@ -260,12 +260,12 @@ struct legacy_file_listener {
   virtual void on_z_coordinates(const std::vector<double> & /*zs*/) {}
 
   // index data
-  virtual void on_cells(const std::vector<std::vector<int>> &) {}
+  virtual void on_cells(const std::vector<int> &) {}
   virtual void on_cell_types(const std::vector<CellType> &) {}
-  virtual void on_vertices(const std::vector<std::vector<int>> &) {}
-  virtual void on_lines(const std::vector<std::vector<int>> &) {}
-  virtual void on_polygons(const std::vector<std::vector<int>> &) {}
-  virtual void on_triangle_strips(const std::vector<std::vector<int>> &) {}
+  virtual void on_vertices(const std::vector<int> &) {}
+  virtual void on_lines(const std::vector<int> &) {}
+  virtual void on_polygons(const std::vector<int> &) {}
+  virtual void on_triangle_strips(const std::vector<int> &) {}
 
   // cell- / pointdata
   virtual void on_vectors(const std::string & /*name*/,
@@ -358,13 +358,11 @@ class legacy_file {
   inline void read_cell_types_ascii(std::ifstream &file, const size_t &n);
   inline void read_cell_types_binary(std::ifstream &file, const size_t &n);
 
-  inline std::vector<std::vector<int>> read_indices(std::ifstream &file);
-  inline std::vector<std::vector<int>> read_indices_ascii(std::ifstream &file,
-                                                          const size_t   n,
-                                                          const size_t   size);
-  inline std::vector<std::vector<int>> read_indices_binary(std::ifstream &file,
-                                                           const size_t   n,
-                                                           const size_t   size);
+  inline std::vector<int> read_indices(std::ifstream &file);
+  inline std::vector<int> read_indices_ascii(std::ifstream &file,
+                                             const size_t   size);
+  inline std::vector<int> read_indices_binary(std::ifstream &file,
+                                              const size_t   size);
 
   auto read_scalars_header(std::ifstream &file) {
     std::string       scalar_params = vtk::read_binaryline(file, buffer);
@@ -374,9 +372,6 @@ class legacy_file {
     auto data_type    = vtk::read_word(scalar_params_stream, buffer);
     auto num_comp_str = vtk::read_word(scalar_params_stream, buffer);
     consume_trailing_break(file);
-    // std::cerr << data_name << '\n';
-    // std::cerr << data_type << '\n';
-    // std::cerr << num_comp_str << '\n';
     // number of components is optional
     size_t num_comps = 1;
     if (num_comp_str.empty()) {
@@ -476,22 +471,22 @@ class legacy_file {
   }
   //----------------------------------------------------------------------------
   void read_vertices(std::ifstream &file) {
-    auto i = read_indices(file);
+    const auto i = read_indices(file);
     for (auto l : m_listeners) { l->on_vertices(i); }
   }
   //----------------------------------------------------------------------------
   void read_lines(std::ifstream &file) {
-    auto i = read_indices(file);
+    const auto i = read_indices(file);
     for (auto l : m_listeners) { l->on_lines(i); }
   }
   //----------------------------------------------------------------------------
   void read_polygons(std::ifstream &file) {
-    auto i = read_indices(file);
+    const auto i = read_indices(file);
     for (auto l : m_listeners) { l->on_polygons(i); }
   }
   //----------------------------------------------------------------------------
   void read_triangle_strips(std::ifstream &file) {
-    auto i = read_indices(file);
+    const auto i = read_indices(file);
     for (auto l : m_listeners) { l->on_triangle_strips(i); }
   }
   //----------------------------------------------------------------------------
@@ -745,9 +740,10 @@ void legacy_file::read_data() {
           read_z_coordinates(file);
 
         } else if (keyword == "POINT_DATA") {
-          m_data_size = size_t(parse<int>(vtk::read_word(file, buffer)));
+          const auto word  = vtk::read_word(file, buffer);
+          m_data_size = size_t(parse<int>(word));
           m_data      = POINT_DATA;
-          for (auto l : m_listeners) l->on_point_data(m_data_size);
+          for (auto l : m_listeners) { l->on_point_data(m_data_size); }
 
         } else if (keyword == "CELL_DATA") {
           m_data_size = size_t(parse<int>(vtk::read_word(file, buffer)));
@@ -804,9 +800,9 @@ void legacy_file::read_origin(std::ifstream &file) {
 }
 //-----------------------------------------------------------------------------------------------
 void legacy_file::read_points(std::ifstream &file) {
-  auto num_points_str = vtk::read_word(file, buffer);
-  auto n              = parse<size_t>(num_points_str);
-  auto datatype_str   = vtk::read_word(file, buffer);
+  const auto num_points_str = vtk::read_word(file, buffer);
+  const auto n              = parse<size_t>(num_points_str);
+  const auto datatype_str   = vtk::read_word(file, buffer);
 
   if (m_format == ASCII) {
     if (datatype_str == "float")
@@ -836,10 +832,12 @@ void legacy_file::read_points_ascii(std::ifstream &file, const size_t &n) {
 template <typename Real>
 void legacy_file::read_points_binary(std::ifstream &file, const size_t &n) {
   std::vector<std::array<Real, 3>> points(n);
-  file.read((char *)points.data(), sizeof(Real) * 3 * n);
-  swap_endianess(reinterpret_cast<Real *>(points.data()), n * 3);
-  for (auto l : m_listeners) l->on_points(points);
-  consume_trailing_break(file);
+  if (n > 0) {
+    file.read((char *)points.data(), sizeof(Real) * 3 * n);
+    swap_endianess(reinterpret_cast<Real *>(points.data()), n * 3);
+    for (auto l : m_listeners) l->on_points(points);
+    consume_trailing_break(file);
+  }
   // file.ignore(sizeof(Real) * 3 * n + 1);
 }
 //-----------------------------------------------------------------------------------------------
@@ -873,23 +871,23 @@ void legacy_file::read_cell_types_binary(std::ifstream &file,
   consume_trailing_break(file);
 }
 //-----------------------------------------------------------------------------------------------
-std::vector<std::vector<int>> legacy_file::read_indices(std::ifstream &file) {
-  auto num_indices_str = vtk::read_word(file, buffer);
-  auto size_str        = vtk::read_word(file, buffer);
+std::vector<int> legacy_file::read_indices(std::ifstream &file) {
+  const auto num_indices_str = vtk::read_word(file, buffer);
+  const auto size_str        = vtk::read_word(file, buffer);
 
-  auto num_indices = parse<size_t>(num_indices_str);
-  auto size        = parse<size_t>(size_str);
+  [[maybe_unused]] const auto num_indices = parse<size_t>(num_indices_str);
+  const auto                  size        = parse<size_t>(size_str);
 
-  if (m_format == ASCII)
-    return read_indices_ascii(file, num_indices, size);
-  else /*if (m_format == BINARY)*/
-    return read_indices_binary(file, num_indices, size);
+  if (m_format == ASCII) {
+    return read_indices_ascii(file, size);
+  } else /*if (m_format == BINARY)*/ {
+    return read_indices_binary(file, size);
+  }
 }
 //-----------------------------------------------------------------------------
-std::vector<std::vector<int>> legacy_file::read_indices_ascii(
-    std::ifstream & /*file*/, const size_t /* num_indices*/,
-    const size_t /*size*/) {
-  std::vector<std::vector<int>> indices;
+std::vector<int> legacy_file::read_indices_ascii(std::ifstream & /*file*/,
+                                                 const size_t /*size*/) {
+  std::vector<int> indices;
   // indices.reserve(size);
   // std::string val_str;
   // for (size_t i = 0; i < size; i++)
@@ -898,22 +896,15 @@ std::vector<std::vector<int>> legacy_file::read_indices_ascii(
 }
 
 //-----------------------------------------------------------------------------
-std::vector<std::vector<int>> legacy_file::read_indices_binary(
-    std::ifstream &file, const size_t num_indices, const size_t size) {
+std::vector<int> legacy_file::read_indices_binary(std::ifstream &file,
+                                                  const size_t   size) {
   std::vector<int> data(size);
-  file.read((char *)data.data(), sizeof(int) * size);
-  consume_trailing_break(file);
-  swap_endianess(data);
-
-  std::vector<std::vector<int>> indices(num_indices);
-  auto                          cur_pos = begin(data);
-  for (auto &index_list : indices) {
-    index_list.reserve(*cur_pos++);
-    std::copy(cur_pos, next(cur_pos, *prev(cur_pos)),
-              std::back_inserter(index_list));
-    advance(cur_pos, *prev(cur_pos));
+  if (size > 0) {
+    file.read((char *)data.data(), sizeof(int) * size);
+    swap_endianess(data);
+    consume_trailing_break(file);
   }
-  return indices;
+  return data;
 }
 //-----------------------------------------------------------------------------------------------
 template <typename Real, size_t n>
@@ -962,13 +953,9 @@ std::vector<Real> legacy_file::read_coordinates_binary(std::ifstream &file,
   consume_trailing_break(file);
   return coordinates;
 }
-//-----------------------------------------------------------------------------
+//------------------------------------------------------------------------------
 void legacy_file::read_scalars(std::ifstream &file) {
-  const auto  header       = read_scalars_header(file);
-  const auto &name         = std::get<0>(header);
-  const auto &type         = std::get<1>(header);
-  const auto &num_comps    = std::get<2>(header);
-  const auto &lookup_table = std::get<3>(header);
+  const auto &[name, type, num_comps, lookup_table] = read_scalars_header(file);
   if (m_format == ASCII) {
     if (type == "float") {
       read_scalars_ascii<float>(file, name, lookup_table, num_comps);
@@ -1003,13 +990,15 @@ void legacy_file::read_scalars_binary(std::ifstream &    file,
                                       const std::string &name,
                                       const std::string &lookup_table,
                                       const size_t       num_comps) {
-  std::vector<Real> data(m_data_size * num_comps);
-  file.read((char *)data.data(), sizeof(Real) * m_data_size * num_comps);
-  swap_endianess(data);
+  if (m_data_size > 0) {
+    std::vector<Real> data(m_data_size * num_comps);
+    file.read((char *)data.data(), sizeof(Real) * m_data_size * num_comps);
+    swap_endianess(data);
 
-  consume_trailing_break(file);
-  for (auto l : m_listeners) {
-    l->on_scalars(name, lookup_table, num_comps, data, m_data);
+    consume_trailing_break(file);
+    for (auto l : m_listeners) {
+      l->on_scalars(name, lookup_table, num_comps, data, m_data);
+    }
   }
 }
 //------------------------------------------------------------------------------
