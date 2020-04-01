@@ -437,17 +437,80 @@ class steadification {
     yavin::shaderstorage_barrier();
   }
   //----------------------------------------------------------------------------
+  auto integrate(const std::string&      working_dir,
+                 const std::set<size_t>& unused_edges,
+                 const grid<real_t, 2>& domain, const real_t t0,
+                 const real_t btau, const real_t ftau, const size_t seed_res,
+                 const real_t stepsize) {
+    const auto pathsurface_dir =
+        working_dir + "pathsurfaces_" + std::to_string(domain.size(0)) + "_" +
+        std::to_string(domain.size(1)) + "_" + std::to_string(t0) + "_" +
+        std::to_string(btau) + "_" + std::to_string(ftau) + "_" +
+        std::to_string(seed_res) + "_" + std::to_string(stepsize) + "/";
+    if (!std::filesystem::exists(pathsurface_dir)) {
+      std::filesystem::create_directory(pathsurface_dir);
+    }
+
+    std::atomic_size_t progress_counter = 0;
+    std::thread        t{[&] {
+      float progress = 0.0;
+      while (progress < 1.0) {
+        const int barWidth = 20;
+        progress = float(progress_counter) / (unused_edges.size());
+
+        std::cerr << "integrating pathsurfaces ... ";
+        int pos = barWidth * progress;
+        for (int i = 0; i < barWidth; ++i) {
+          if (i < pos)
+            std::cerr << "\u2588";
+          else if (i == pos)
+            std::cerr << "\u2592";
+          else
+            std::cerr << "\u2591";
+        }
+        std::cerr << " " << int(progress * 100.0) << " %\r";
+        std::this_thread::sleep_for(std::chrono::milliseconds{100});
+      }
+      std::cerr << "integrating pathsurfaces ... done!                       "
+                   "            \n";
+    }};
+
+#if defined(TATOOINE_STEADIFICATION_PARALLEL)
+    auto edge_idx_it = begin(unused_edges);
+      parallel_for_loop([&](auto) {
+      const auto edge_idx = *edge_idx_it++;
+#else
+    for (auto edge_idx : unused_edges) {
+#endif
+
+      const std::string filename =
+          pathsurface_dir + std::to_string(edge_idx) + ".vtk";
+      if (!std::filesystem::exists(filename)) {
+        const auto psf = pathsurface(domain, edge_idx, t0, t0, btau, ftau,
+                                     seed_res, stepsize)
+                             .first;
+        psf.write_vtk(filename);
+      }
+      progress_counter++;
+#if !defined(TATOOINE_STEADIFICATION_PARALLEL)
+      }
+#else
+    }, size(unused_edges));
+#endif
+      t.join();
+    return pathsurface_dir;
+  }
+  //----------------------------------------------------------------------------
   auto greedy_set_cover(const grid<real_t, 2>& domain, const real_t t0,
                         const real_t btau, const real_t ftau,
                         const size_t seed_res, const real_t stepsize,
-                        const real_t /*desired_coverage*/) {
+                        const real_t desired_coverage) {
     std::cerr << "deleting last output\n";
     using namespace std::filesystem;
     const auto working_dir     = std::string{settings<V>::name} + "/";
-    const auto pathsurface_dir = working_dir + "pathsurfaces_" +
-                                 std::to_string(domain.size(0)) + "_" +
-                                 std::to_string(domain.size(1)) + "/";
     if (!exists(working_dir)) { create_directory(working_dir); }
+
+
     for (const auto& entry : directory_iterator(working_dir)) {
       if (entry.path().extension() == "png") {
         remove(entry);
@@ -468,66 +531,96 @@ class steadification {
       unused_edges.insert(edge_idx);
     }
 
-    if (!exists(pathsurface_dir)) {
-      std::cerr << "integrating pathsurfaces... ";
-      create_directory(pathsurface_dir);
-#if defined(TATOOINE_STEADIFICATION_PARALLEL)
-      auto edge_idx_it = begin(unused_edges);
-      parallel_for_loop([&](auto) {
-        const auto edge_idx = *edge_idx_it++;
-#else
-      for (auto edge_idx : unused_edges) {
-#endif
+    const auto pathsurface_dir = integrate(working_dir, unused_edges, domain,
+                                           t0, btau, ftau, seed_res, stepsize);
 
-        pathsurface(domain, edge_idx, t0, t0, btau, ftau, seed_res, stepsize)
-            .first.write_vtk(pathsurface_dir + std::to_string(edge_idx) +
-                             ".vtk");
-#if !defined(TATOOINE_STEADIFICATION_PARALLEL)
-      }
-#else
-      }, size(unused_edges));
-#endif
-      std::cerr << "done!\n";
-    } else {
-      std::cerr << std::string{"already integrated\n"};
-    }
-
-    // float        cov           = 0;
     size_t       iteration     = 1;
     const size_t numiterations = size(unused_edges);
+    size_t       edge_counter  = 0;
+    bool         stop_thread   = false;
+    double       coverage      = 0;
+
+    // monitoring
+    std::thread t{[&] {
+      double prog0 = 0.0;
+      double prog1 = 0.0;
+      std::cerr << "cur it          used edges      coverage    \n";
+      while (!stop_thread) {
+        const int barWidth = 15;
+        prog0              = double(edge_counter) / (unused_edges.size());
+        prog1              = double(iteration) / (domain.num_straight_edges());
+        int pos0 = barWidth * prog0;
+        int pos1 = barWidth * prog1;
+        int pos2 = barWidth * coverage;
+        for (int i = 0; i < barWidth; ++i) {
+          if (i < pos0)
+            std::cerr << "\u2588";
+          else if (i == pos0)
+            std::cerr << "\u2592";
+          else
+            std::cerr << "\u2591";
+        }
+        std::cerr << " ";
+        for (int i = 0; i < barWidth; ++i) {
+          if (i < pos1)
+            std::cerr << "\u2588";
+          else if (i == pos1)
+            std::cerr << "\u2592";
+          else
+            std::cerr << "\u2591";
+        }
+        std::cerr << " ";
+        for (int i = 0; i < barWidth; ++i) {
+          if (i < pos2)
+            std::cerr << "\u2588";
+          else if (i == pos2)
+            std::cerr << "\u2592";
+          else
+            std::cerr << "\u2591";
+        }
+        std::cerr << "\r";
+        std::this_thread::sleep_for(std::chrono::milliseconds{100});
+      }
+      std::cerr << "\n";
+    }};
+
+    // loop
     do {
-      std::cerr << "\n== iteration " << iteration++ << " / " << numiterations
-                << " \n";
+      edge_counter = 0;
       old_best_weight = best_weight;
       best_weight     = -std::numeric_limits<real_t>::max();
       best_edge_idx   = domain.num_straight_edges();
 
       for (auto edge_idx : unused_edges) {
-        simple_tri_mesh<real_t, 2> mesh{pathsurface_dir +
-                                        std::to_string(edge_idx) + ".vtk"};
-        rasterize(gpu_pathsurface(mesh, t0, t0), render_index, layer);
-        auto new_weight = weight(layer);
-        if (num_newly_covered_pixels[0] > 0) {
-          // new_weight /= num_overall_covered_pixels;
+        const std::string filepath =
+            pathsurface_dir + std::to_string(edge_idx) + ".vtk";
+        simple_tri_mesh<real_t, 2> mesh{filepath};
+        if (mesh.num_faces() > 0) {
+          rasterize(gpu_pathsurface(mesh, t0, t0), render_index, layer);
+          auto new_weight = weight(layer);
+          if (num_newly_covered_pixels[0] > 0) {
+            // new_weight /= num_overall_covered_pixels;
 
-          // check if mesh's seedcurve neighbors another edge
-          const auto unused_edge = domain.edge_at(edge_idx);
-          for (const auto& used_edge_idx : used_edges) {
-            const auto used_edge = domain.edge_at(used_edge_idx);
+            // check if mesh's seedcurve neighbors another edge
+            const auto unused_edge = domain.edge_at(edge_idx);
+            for (const auto& used_edge_idx : used_edges) {
+              const auto used_edge = domain.edge_at(used_edge_idx);
 
-            if (used_edge.first == unused_edge.first ||
-                used_edge.first == unused_edge.second ||
-                used_edge.second == unused_edge.first ||
-                used_edge.second == unused_edge.second) {
-              new_weight *= 1.2;
-              break;
+              if (used_edge.first == unused_edge.first ||
+                  used_edge.first == unused_edge.second ||
+                  used_edge.second == unused_edge.first ||
+                  used_edge.second == unused_edge.second) {
+                new_weight *= 1.2;
+                break;
+              }
+            }
+            if (new_weight > best_weight) {
+              best_weight   = new_weight;
+              best_edge_idx = edge_idx;
             }
           }
-          if (new_weight > best_weight) {
-            best_weight   = new_weight;
-            best_edge_idx = edge_idx;
-          }
         }
+        ++edge_counter;
       }
       if (best_edge_idx != domain.num_straight_edges()) {
         simple_tri_mesh<real_t, 2> mesh{pathsurface_dir +
@@ -536,21 +629,23 @@ class steadification {
         combine();
         used_edges.insert(best_edge_idx);
 
-        result_to_lic_tex(domain, btau, ftau);
-        lic_tex.write_png(working_dir + "/" + std::to_string(render_index) +
-                          ".png");
-        lic_tex.write_png(working_dir + "/../current.png");
 
         ++render_index;
+        coverage = static_cast<double>(num_overall_covered_pixels[0]) /
+                   (m_render_resolution(0) * m_render_resolution(1));
       }
-      if (best_weight < old_best_weight && layer == 0) {
-        layer = 1;
-      }
+      //if (best_weight < old_best_weight && layer == 0) { layer = 1; }
       if (best_edge_idx != domain.num_straight_edges()) {
         unused_edges.erase(best_edge_idx);
       }
-    } while (/* cov < desired_coverage && */ best_edge_idx !=
-             domain.num_straight_edges());
+      ++iteration;
+    } while (coverage < desired_coverage &&
+             best_edge_idx != domain.num_straight_edges());
+    result_to_lic_tex(domain, btau, ftau);
+    lic_tex.write_png(std::string{settings<V>::name} + ".png");
+    stop_thread = true;
+    t.join();
+    std::cerr << '\n';
 
     return result_rasterization;
   }

@@ -53,6 +53,15 @@ target_compile_options(steadification PRIVATE
   -Wall -Wextra -pedantic -Wno-missing-braces -Wno-unused-lambda-capture
   -march=native)
 #- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+add_executable (read_vtk_test read_vtk_test.cpp)
+target_include_directories(read_vtk_test PRIVATE ${CMAKE_CURRENT_BINARY_DIR})
+target_link_libraries(read_vtk_test tatooine)
+target_compile_features(read_vtk_test PUBLIC cxx_std_17)
+target_compile_features(read_vtk_test PUBLIC cxx_std_17)
+target_compile_options(read_vtk_test PRIVATE
+  -Wall -Wextra -pedantic -Wno-missing-braces -Wno-unused-lambda-capture
+  -march=native)
+#- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 set(TATOOINE_STEADIFICATION_USE_FAST_MATH false CACHE BOOL
     "use -ffast-math for steadification")
 option(TATOOINE_STEADIFICATION_USE_FAST_MATH

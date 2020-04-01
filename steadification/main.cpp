@@ -83,7 +83,10 @@ auto main(int argc, char** argv) -> int {
     // else if (v == "rbc") {
     //  calc(rbc{}, argc, argv);
   } else if (v == "bou") {
-    calc(boussinesq{dataset_dir + "/boussinesq.am"}, argc, argv);
+    std::cerr << "reading boussinesq... ";
+    boussinesq v{dataset_dir + "/boussinesq.am"};
+    std::cerr << "done!\n";
+    calc(v, argc, argv);
     //} else if (v == "cav") {
     //  calc(cavity{}, argc, argv);
   } else {
