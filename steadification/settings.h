@@ -24,15 +24,12 @@ struct settings<fixed_time_field<numerical::doublegyre<Real>, Real, 2, 2>> {
   static constexpr boundingbox<Real, 2> domain{vec{eps, eps},
                                                vec{2 - eps, 1 - eps}};
   static constexpr vec<size_t, 2>       render_resolution{500, 250};
-  static constexpr size_t               num_edges = 5;
 };
 //==============================================================================
 template <typename Real> struct settings<numerical::sinuscosinus<Real>> {
   static constexpr std::string_view name = "sinuscosinus";
-  static constexpr grid             domain{linspace{-2.0, 2.0, 30},
-                               linspace{-2.0, 2.0, 30}};
+  static constexpr boundingbox<Real, 2> domain{vec{-2, -2}, vec{2, 2}};
   static constexpr vec<size_t, 2>   render_resolution{1000, 1000};
-  static constexpr size_t           num_edges = 5;
 };
 //==============================================================================
 template <typename Real> struct settings<laminar<Real>> {

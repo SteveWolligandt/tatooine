@@ -255,7 +255,7 @@ class steadification {
   void to_shaderstoragebuffer() {
     m_tex_rasterization_to_buffer_shader.dispatch(
         m_render_resolution(0) / 32.0 + 1, m_render_resolution(1) / 32.0 + 1);
-  yavin::shaderstorage_barrier();
+    yavin::shaderstorage_barrier();
   }
   //----------------------------------------------------------------------------
   /// \param seedcurve seedcurve in space-time
@@ -437,16 +437,15 @@ class steadification {
     yavin::shaderstorage_barrier();
   }
   //----------------------------------------------------------------------------
-  auto integrate(const std::string&      working_dir,
+  auto integrate(const std::string&      dataset_name,
                  const std::set<size_t>& unused_edges,
                  const grid<real_t, 2>& domain, const real_t t0,
                  const real_t btau, const real_t ftau, const size_t seed_res,
                  const real_t stepsize) {
-    const auto pathsurface_dir =
-        working_dir + "pathsurfaces_" + std::to_string(domain.size(0)) + "_" +
-        std::to_string(domain.size(1)) + "_" + std::to_string(t0) + "_" +
-        std::to_string(btau) + "_" + std::to_string(ftau) + "_" +
-        std::to_string(seed_res) + "_" + std::to_string(stepsize) + "/";
+    const auto pathsurface_dir = +"pathsurfaces/" + dataset_name + "/";
+    if (!std::filesystem::exists("pathsurfaces")) {
+      std::filesystem::create_directory("pathsurfaces");
+    }
     if (!std::filesystem::exists(pathsurface_dir)) {
       std::filesystem::create_directory(pathsurface_dir);
     }
@@ -454,13 +453,13 @@ class steadification {
     std::atomic_size_t progress_counter = 0;
     std::thread        t{[&] {
       float progress = 0.0;
+      const int bar_width = 10;
+      std::cerr << "integrating pathsurfaces...\n";
       while (progress < 1.0) {
-        const int barWidth = 20;
         progress = float(progress_counter) / (unused_edges.size());
 
-        std::cerr << "integrating pathsurfaces ... ";
-        int pos = barWidth * progress;
-        for (int i = 0; i < barWidth; ++i) {
+        int pos = bar_width * progress;
+        for (int i = 0; i < bar_width; ++i) {
           if (i < pos)
             std::cerr << "\u2588";
           else if (i == pos)
@@ -468,13 +467,11 @@ class steadification {
           else
             std::cerr << "\u2591";
         }
-        std::cerr << " " << int(progress * 100.0) << " %\r";
+        std::cerr << " " << int(progress * 100.0) << " %     \r";
         std::this_thread::sleep_for(std::chrono::milliseconds{100});
       }
-        std::cerr << "integrating pathsurfaces ... ";
-        int pos = barWidth * progress;
-        for (int i = 0; i < barWidth; ++i) { std::cerr << "\u2588"; }
-        std::cerr << " 100 %\n";
+        for (int i = 0; i < bar_width; ++i) { std::cerr << "\u2588"; }
+        std::cerr << "done!                  \n";
     }};
 
 #if defined(TATOOINE_STEADIFICATION_PARALLEL)
@@ -485,13 +482,37 @@ class steadification {
     for (auto edge_idx : unused_edges) {
 #endif
 
-      const std::string filename =
-          pathsurface_dir + std::to_string(edge_idx) + ".vtk";
-      if (!std::filesystem::exists(filename)) {
-        const auto psf = pathsurface(domain, edge_idx, t0, t0, btau, ftau,
-                                     seed_res, stepsize)
-                             .first;
-        psf.write_vtk(filename);
+      const std::string filename_vtk =
+          pathsurface_dir + std::to_string(domain.size(0)) + "_" +
+          std::to_string(domain.size(1)) + "_" + std::to_string(t0) + "_" +
+          std::to_string(btau) + "_" + std::to_string(ftau) + "_" +
+          std::to_string(seed_res) + "_" + std::to_string(stepsize) +
+          std::to_string(edge_idx) + ".vtk";
+      const std::string filename_buf =
+          pathsurface_dir + std::to_string(domain.size(0)) + "_" +
+          std::to_string(domain.size(1)) + "_" + std::to_string(t0) + "_" +
+          std::to_string(btau) + "_" + std::to_string(ftau) + "_" +
+          std::to_string(seed_res) + "_" + std::to_string(stepsize) +
+          std::to_string(edge_idx) + ".buf";
+      if (!std::filesystem::exists(filename_vtk) ||
+          !std::filesystem::exists(filename_buf)) {
+        simple_tri_mesh<real_t, 2> psf =
+            pathsurface(domain, edge_idx, t0, t0, btau, ftau, seed_res,
+                        stepsize)
+                .first;
+        psf.write_vtk(filename_vtk);
+
+        rasterize(gpu_pathsurface(psf, t0, t0), 0, 0);
+        auto working_rasterization_data = working_rasterization.download_data();
+        auto working_list_size_data     = working_list_size.download_data();
+        std::ofstream file{filename_buf};
+        if (file.is_open()) {
+          file.write((char*)working_rasterization_data.data(),
+                     working_rasterization_data.size() * sizeof(node));
+          file.write((char*)working_list_size_data.data(),
+                     working_list_size_data.size() * sizeof(GLuint));
+          file.close();
+        }
       }
       progress_counter++;
 #if !defined(TATOOINE_STEADIFICATION_PARALLEL)
@@ -506,10 +527,14 @@ class steadification {
   auto greedy_set_cover(const grid<real_t, 2>& domain, const real_t t0,
                         const real_t btau, const real_t ftau,
                         const size_t seed_res, const real_t stepsize,
-                        const real_t desired_coverage) {
+                        const real_t desired_coverage,
+                        const double neighbor_weight, const float penalty) {
+    m_weight_dual_pathsurface_shader.set_penalty(penalty);
     std::cerr << "deleting last output\n";
     using namespace std::filesystem;
-    const auto working_dir     = std::string{settings<V>::name} + "/";
+    const auto working_dir = std::string{settings<V>::name} + "_" +
+                             std::to_string(neighbor_weight) + "_" +
+                             std::to_string(penalty) + "/";
     if (!exists(working_dir)) { create_directory(working_dir); }
 
 
@@ -533,8 +558,9 @@ class steadification {
       unused_edges.insert(edge_idx);
     }
 
-    const auto pathsurface_dir = integrate(working_dir, unused_edges, domain,
-                                           t0, btau, ftau, seed_res, stepsize);
+    const auto pathsurface_dir =
+        integrate(std::string{settings<V>::name}, unused_edges, domain, t0,
+                  btau, ftau, seed_res, stepsize);
 
     size_t       iteration     = 1;
     const size_t numiterations = size(unused_edges);
@@ -548,13 +574,13 @@ class steadification {
       double prog1 = 0.0;
       std::cerr << "cur it          used edges      coverage    \n";
       while (!stop_thread) {
-        const int barWidth = 15;
+        const int bar_width = 15;
         prog0              = double(edge_counter) / (unused_edges.size());
         prog1              = double(iteration) / (domain.num_straight_edges());
-        int pos0 = barWidth * prog0;
-        int pos1 = barWidth * prog1;
-        int pos2 = barWidth * coverage;
-        for (int i = 0; i < barWidth; ++i) {
+        int pos0 = bar_width * prog0;
+        int pos1 = bar_width * prog1;
+        int pos2 = bar_width * coverage;
+        for (int i = 0; i < bar_width; ++i) {
           if (i < pos0)
             std::cerr << "\u2588";
           else if (i == pos0)
@@ -563,7 +589,7 @@ class steadification {
             std::cerr << "\u2591";
         }
         std::cerr << " ";
-        for (int i = 0; i < barWidth; ++i) {
+        for (int i = 0; i < bar_width; ++i) {
           if (i < pos1)
             std::cerr << "\u2588";
           else if (i == pos1)
@@ -572,7 +598,7 @@ class steadification {
             std::cerr << "\u2591";
         }
         std::cerr << " ";
-        for (int i = 0; i < barWidth; ++i) {
+        for (int i = 0; i < bar_width; ++i) {
           if (i < pos2)
             std::cerr << "\u2588";
           else if (i == pos2)
@@ -586,6 +612,10 @@ class steadification {
       std::cerr << "\n";
     }};
 
+    std::vector<node>   working_rasterization_data(m_render_resolution(0) *
+                                                 m_render_resolution(1));
+    std::vector<GLuint> working_list_size_data(m_render_resolution(0) *
+                                               m_render_resolution(1));
     // loop
     do {
       edge_counter = 0;
@@ -595,38 +625,57 @@ class steadification {
 
       for (auto edge_idx : unused_edges) {
         const std::string filepath =
-            pathsurface_dir + std::to_string(edge_idx) + ".vtk";
-        simple_tri_mesh<real_t, 2> mesh{filepath};
-        if (mesh.num_faces() > 0) {
-          rasterize(gpu_pathsurface(mesh, t0, t0), render_index, layer);
-          auto new_weight = weight(layer);
-          if (num_newly_covered_pixels[0] > 0) {
-            // new_weight /= num_overall_covered_pixels;
+            pathsurface_dir + std::to_string(domain.size(0)) + "_" +
+            std::to_string(domain.size(1)) + "_" + std::to_string(t0) + "_" +
+            std::to_string(btau) + "_" + std::to_string(ftau) + "_" +
+            std::to_string(seed_res) + "_" + std::to_string(stepsize) +
+            std::to_string(edge_idx) + ".buf";
+        // simple_tri_mesh<real_t, 2> mesh{filepath};
+        // if (mesh.num_faces() > 0) {
+        std::ifstream file{filepath};
+        if (file.is_open()) {
+          file.read((char*)working_rasterization_data.data(),
+                    working_rasterization_data.size() * sizeof(node));
+          file.read((char*)working_list_size_data.data(),
+                    working_list_size_data.size() * sizeof(GLuint));
+          file.close();
+        }
+        //rasterize(gpu_pathsurface(mesh, t0, t0), render_index, layer);
+        working_rasterization.upload_data(working_rasterization_data);
+        working_list_size.upload_data(working_list_size_data);
+        auto new_weight = weight(layer);
+        if (num_newly_covered_pixels[0] > 0) {
+          // new_weight /= num_overall_covered_pixels;
 
-            // check if mesh's seedcurve neighbors another edge
-            const auto unused_edge = domain.edge_at(edge_idx);
-            for (const auto& used_edge_idx : used_edges) {
-              const auto used_edge = domain.edge_at(used_edge_idx);
+          // check if mesh's seedcurve neighbors another edge
+          const auto unused_edge = domain.edge_at(edge_idx);
+          for (const auto& used_edge_idx : used_edges) {
+            const auto used_edge = domain.edge_at(used_edge_idx);
 
-              if (used_edge.first == unused_edge.first ||
-                  used_edge.first == unused_edge.second ||
-                  used_edge.second == unused_edge.first ||
-                  used_edge.second == unused_edge.second) {
-                new_weight *= 1.2;
-                break;
-              }
-            }
-            if (new_weight > best_weight) {
-              best_weight   = new_weight;
-              best_edge_idx = edge_idx;
+            if (used_edge.first == unused_edge.first ||
+                used_edge.first == unused_edge.second ||
+                used_edge.second == unused_edge.first ||
+                used_edge.second == unused_edge.second) {
+              new_weight *= neighbor_weight;
+              break;
             }
           }
+          if (new_weight > best_weight) {
+            best_weight   = new_weight;
+            best_edge_idx = edge_idx;
+          }
         }
+        //}
         ++edge_counter;
       }
       if (best_edge_idx != domain.num_straight_edges()) {
-        simple_tri_mesh<real_t, 2> mesh{pathsurface_dir +
-                                        std::to_string(best_edge_idx) + ".vtk"};
+        const std::string filepath =
+            pathsurface_dir + std::to_string(domain.size(0)) + "_" +
+            std::to_string(domain.size(1)) + "_" + std::to_string(t0) + "_" +
+            std::to_string(btau) + "_" + std::to_string(ftau) + "_" +
+            std::to_string(seed_res) + "_" + std::to_string(stepsize) +
+            std::to_string(best_edge_idx) + ".vtk";
+        simple_tri_mesh<real_t, 2> mesh{filepath};
         rasterize(gpu_pathsurface(mesh, t0, t0), render_index, layer);
         combine();
         used_edges.insert(best_edge_idx);
@@ -644,7 +693,9 @@ class steadification {
     } while (coverage < desired_coverage &&
              best_edge_idx != domain.num_straight_edges());
     result_to_lic_tex(domain, btau, ftau);
-    lic_tex.write_png(std::string{settings<V>::name} + ".png");
+    lic_tex.write_png(std::string{settings<V>::name} + "_" +
+                      std::to_string(neighbor_weight) + "_" +
+                      std::to_string(penalty) + ".png");
     stop_thread = true;
     t.join();
     std::cerr << '\n';

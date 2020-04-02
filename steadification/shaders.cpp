@@ -124,6 +124,10 @@ void weight_dual_pathsurface_shader::set_layer(GLuint n) {
 void weight_dual_pathsurface_shader::set_size(GLuint n) {
   set_uniform("size", n);
 }
+//------------------------------------------------------------------------------
+void weight_dual_pathsurface_shader::set_penalty(GLfloat p) {
+  set_uniform("penalty", p);
+}
 //==============================================================================
 // combine_rasterizations
 //==============================================================================
