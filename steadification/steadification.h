@@ -203,6 +203,8 @@ class steadification {
     m_lic_shader.set_color_scale_bind_point(2);
     m_weight_dual_pathsurface_shader.set_size(m_render_resolution(0) *
                                               m_render_resolution(1));
+    //working_rasterization.set_usage(yavin::DYNAMIC_COPY);
+    //working_list_size.set_usage(yavin::DYNAMIC_COPY);
     yavin::gl::viewport(m_cam);
     yavin::enable_depth_test();
   }
@@ -488,31 +490,31 @@ class steadification {
           std::to_string(btau) + "_" + std::to_string(ftau) + "_" +
           std::to_string(seed_res) + "_" + std::to_string(stepsize) +
           std::to_string(edge_idx) + ".vtk";
-      const std::string filename_buf =
-          pathsurface_dir + std::to_string(domain.size(0)) + "_" +
-          std::to_string(domain.size(1)) + "_" + std::to_string(t0) + "_" +
-          std::to_string(btau) + "_" + std::to_string(ftau) + "_" +
-          std::to_string(seed_res) + "_" + std::to_string(stepsize) +
-          std::to_string(edge_idx) + ".buf";
-      if (!std::filesystem::exists(filename_vtk) ||
-          !std::filesystem::exists(filename_buf)) {
+      //const std::string filename_buf =
+      //    pathsurface_dir + std::to_string(domain.size(0)) + "_" +
+      //    std::to_string(domain.size(1)) + "_" + std::to_string(t0) + "_" +
+      //    std::to_string(btau) + "_" + std::to_string(ftau) + "_" +
+      //    std::to_string(seed_res) + "_" + std::to_string(stepsize) +
+      //    std::to_string(edge_idx) + ".buf";
+      //if (!std::filesystem::exists(filename_vtk) ||
+      //    !std::filesystem::exists(filename_buf)) {
+      if (!std::filesystem::exists(filename_vtk)) {
         simple_tri_mesh<real_t, 2> psf =
             pathsurface(domain, edge_idx, t0, t0, btau, ftau, seed_res,
                         stepsize)
                 .first;
         psf.write_vtk(filename_vtk);
-
-        rasterize(gpu_pathsurface(psf, t0, t0), 0, 0);
-        auto working_rasterization_data = working_rasterization.download_data();
-        auto working_list_size_data     = working_list_size.download_data();
-        std::ofstream file{filename_buf};
-        if (file.is_open()) {
-          file.write((char*)working_rasterization_data.data(),
-                     working_rasterization_data.size() * sizeof(node));
-          file.write((char*)working_list_size_data.data(),
-                     working_list_size_data.size() * sizeof(GLuint));
-          file.close();
-        }
+        //rasterize(gpu_pathsurface(psf, t0, t0), 0, 0);
+        //auto working_rasterization_data = working_rasterization.download_data();
+        //auto working_list_size_data     = working_list_size.download_data();
+        //std::ofstream file{filename_buf};
+        //if (file.is_open()) {
+        //  file.write((char*)working_rasterization_data.data(),
+        //             working_rasterization_data.size() * sizeof(node));
+        //  file.write((char*)working_list_size_data.data(),
+        //             working_list_size_data.size() * sizeof(GLuint));
+        //  file.close();
+        //}
       }
       progress_counter++;
 #if !defined(TATOOINE_STEADIFICATION_PARALLEL)
@@ -562,7 +564,7 @@ class steadification {
         integrate(std::string{settings<V>::name}, unused_edges, domain, t0,
                   btau, ftau, seed_res, stepsize);
 
-    size_t       iteration     = 1;
+    size_t       iteration     = 0;
     const size_t numiterations = size(unused_edges);
     size_t       edge_counter  = 0;
     bool         stop_thread   = false;
@@ -624,48 +626,54 @@ class steadification {
       best_edge_idx   = domain.num_straight_edges();
 
       for (auto edge_idx : unused_edges) {
-        const std::string filepath =
+        const std::string filepath_vtk =
+            pathsurface_dir + std::to_string(domain.size(0)) + "_" +
+            std::to_string(domain.size(1)) + "_" + std::to_string(t0) + "_" +
+            std::to_string(btau) + "_" + std::to_string(ftau) + "_" +
+            std::to_string(seed_res) + "_" + std::to_string(stepsize) +
+            std::to_string(edge_idx) + ".vtk";
+        const std::string filepath_buf =
             pathsurface_dir + std::to_string(domain.size(0)) + "_" +
             std::to_string(domain.size(1)) + "_" + std::to_string(t0) + "_" +
             std::to_string(btau) + "_" + std::to_string(ftau) + "_" +
             std::to_string(seed_res) + "_" + std::to_string(stepsize) +
             std::to_string(edge_idx) + ".buf";
-        // simple_tri_mesh<real_t, 2> mesh{filepath};
-        // if (mesh.num_faces() > 0) {
-        std::ifstream file{filepath};
-        if (file.is_open()) {
-          file.read((char*)working_rasterization_data.data(),
-                    working_rasterization_data.size() * sizeof(node));
-          file.read((char*)working_list_size_data.data(),
-                    working_list_size_data.size() * sizeof(GLuint));
-          file.close();
-        }
-        //rasterize(gpu_pathsurface(mesh, t0, t0), render_index, layer);
-        working_rasterization.upload_data(working_rasterization_data);
-        working_list_size.upload_data(working_list_size_data);
-        auto new_weight = weight(layer);
-        if (num_newly_covered_pixels[0] > 0) {
-          // new_weight /= num_overall_covered_pixels;
+         simple_tri_mesh<real_t, 2> mesh{filepath_vtk};
+         if (mesh.num_faces() > 0) {
+           rasterize(gpu_pathsurface(mesh, t0, t0), render_index, layer);
+           //std::ifstream file{filepath_buf};
+           //if (file.is_open()) {
+           //  file.read((char*)working_rasterization_data.data(),
+           //            working_rasterization_data.size() * sizeof(node));
+           //  file.read((char*)working_list_size_data.data(),
+           //            working_list_size_data.size() * sizeof(GLuint));
+           //  file.close();
+           //}
+           // working_rasterization.upload_data(working_rasterization_data);
+           // working_list_size.upload_data(working_list_size_data);
+           auto new_weight = weight(layer);
+           if (num_newly_covered_pixels[0] > 0) {
+             // new_weight /= num_overall_covered_pixels;
 
-          // check if mesh's seedcurve neighbors another edge
-          const auto unused_edge = domain.edge_at(edge_idx);
-          for (const auto& used_edge_idx : used_edges) {
-            const auto used_edge = domain.edge_at(used_edge_idx);
+             // check if mesh's seedcurve neighbors another edge
+             const auto unused_edge = domain.edge_at(edge_idx);
+             for (const auto& used_edge_idx : used_edges) {
+               const auto used_edge = domain.edge_at(used_edge_idx);
 
-            if (used_edge.first == unused_edge.first ||
-                used_edge.first == unused_edge.second ||
-                used_edge.second == unused_edge.first ||
-                used_edge.second == unused_edge.second) {
-              new_weight *= neighbor_weight;
-              break;
-            }
-          }
-          if (new_weight > best_weight) {
-            best_weight   = new_weight;
-            best_edge_idx = edge_idx;
-          }
-        }
-        //}
+               if (used_edge.first == unused_edge.first ||
+                   used_edge.first == unused_edge.second ||
+                   used_edge.second == unused_edge.first ||
+                   used_edge.second == unused_edge.second) {
+                 new_weight *= neighbor_weight;
+                 break;
+               }
+             }
+             if (new_weight > best_weight) {
+               best_weight   = new_weight;
+               best_edge_idx = edge_idx;
+             }
+           }
+         }
         ++edge_counter;
       }
       if (best_edge_idx != domain.num_straight_edges()) {
@@ -680,10 +688,12 @@ class steadification {
         combine();
         used_edges.insert(best_edge_idx);
 
-
         ++render_index;
         coverage = static_cast<double>(num_overall_covered_pixels[0]) /
                    (m_render_resolution(0) * m_render_resolution(1));
+
+        result_to_lic_tex(domain, btau, ftau);
+        lic_tex.write_png(working_dir + std::to_string(iteration) + ".png");
       }
       //if (best_weight < old_best_weight && layer == 0) { layer = 1; }
       if (best_edge_idx != domain.num_straight_edges()) {

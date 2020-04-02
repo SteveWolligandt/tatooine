@@ -37,6 +37,8 @@ set(TATOOINE_STEADIFICATION_COVERAGE_COMP
     ${CMAKE_CURRENT_SOURCE_DIR}/coverage.comp)
 set(TATOOINE_STEADIFICATION_DUAL_COVERAGE_COMP
     ${CMAKE_CURRENT_SOURCE_DIR}/dual_coverage.comp)
+configure_file("${CMAKE_CURRENT_SOURCE_DIR}/batch.sh"
+               "${CMAKE_CURRENT_BINARY_DIR}/batch.sh")
 configure_file("${CMAKE_CURRENT_SOURCE_DIR}/shaders.h.in"
                "${CMAKE_CURRENT_BINARY_DIR}/shaders.h")
 configure_file(${CMAKE_CURRENT_SOURCE_DIR}/viridis_color_scale.png 
