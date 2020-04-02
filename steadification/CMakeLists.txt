@@ -12,6 +12,8 @@ function (copy FILE)
   configure_file(${CMAKE_CURRENT_SOURCE_DIR}/${FILE} 
                  ${CMAKE_CURRENT_BINARY_DIR}/${FILE} COPYONLY)
 endfunction ()
+configure_file(${CMAKE_CURRENT_SOURCE_DIR}/sync.sh.in
+               ${CMAKE_CURRENT_BINARY_DIR}/sync.sh)
 
 set(TATOOINE_STEADIFICATION_LIC_COMP
     ${CMAKE_CURRENT_SOURCE_DIR}/lic.comp)
@@ -69,6 +71,11 @@ option(TATOOINE_STEADIFICATION_USE_FAST_MATH
 if (TATOOINE_STEADIFICATION_USE_FAST_MATH)
   target_compile_options(steadification PRIVATE -ffast-math)
 endif()
+#- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+add_custom_target(steadification.sync
+                  COMMAND chmod +x ${CMAKE_CURRENT_BINARY_DIR}/sync.sh
+                  COMMAND ${CMAKE_CURRENT_BINARY_DIR}/sync.sh
+                  USES_TERMINAL)
 #- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 add_custom_target(steadification.doublegyre
                   COMMAND ./steadification dg -5 5 2 0.01 0.99

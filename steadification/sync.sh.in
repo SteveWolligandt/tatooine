@@ -1,0 +1,5 @@
+#!/bin/bash
+rsync -zz -av -e ssh -A -J steve@office:/home/steve/libs/tatooine2/build/steadification/boussinesq @CMAKE_CURRENT_BINARY_DIR@
+rsync -zz -av -e ssh -A -J steve@office:/home/steve/libs/tatooine2/build/steadification/doublegyre @CMAKE_CURRENT_BINARY_DIR@
+rsync -zz -av -e ssh -A -J steve@office:/home/steve/libs/tatooine2/build/steadification/boussinesq.png @CMAKE_CURRENT_BINARY_DIR@
+rsync -zz -av -e ssh -A -J steve@office:/home/steve/libs/tatooine2/build/steadification/doublegyre.png @CMAKE_CURRENT_BINARY_DIR@
