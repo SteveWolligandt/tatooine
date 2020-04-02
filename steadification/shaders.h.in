@@ -76,6 +76,7 @@ struct weight_dual_pathsurface_shader : comp_shader {
   weight_dual_pathsurface_shader();
   void set_layer(GLuint n);
   void set_size(GLuint n);
+  void set_penalty(GLfloat p);
 };
 //==============================================================================
 struct combine_rasterizations_shader : comp_shader {

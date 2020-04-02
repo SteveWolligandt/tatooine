@@ -13,6 +13,8 @@ template <typename V, typename VReal, typename T0Real, typename BTauReal,
 void calc(const field<V, VReal, 2, 2>& v, T0Real t0, BTauReal btau,
           FTauReal ftau, size_t seed_res, StepsizeReal stepsize,
           const vec<size_t, 2>& grid_res, CovReal desired_coverage,
+          const double neighbor_weight,
+          const float penalty,
           const std::string& seed_str) {
   std::seed_seq   seed(begin(seed_str), end(seed_str));
   std::mt19937_64 randeng{seed};
@@ -21,26 +23,8 @@ void calc(const field<V, VReal, 2, 2>& v, T0Real t0, BTauReal btau,
   grid domain{linspace{dom.min(0), dom.max(0), grid_res(0)},
               linspace{dom.min(1), dom.max(1), grid_res(1)}};
 
-  //auto p0 = s.pathsurface(domain, domain.num_straight_edges() / 4, t0, t0, btau,
-  //                        ftau, seed_res, stepsize)
-  //              .first;
-  //auto pg0   = s.gpu_pathsurface(p0, t0, t0);
-  //s.rasterize(pg0, 0, 0);
-  //s.combine();
-  //s.result_to_lic_tex(domain, btau, ftau);
-  //s.lic_tex.write_png("lic0.png");
-  //
-  //auto p1 = s.pathsurface(domain, domain.num_straight_edges() * 3 / 4, t0, t0,
-  //                        btau, ftau, seed_res, stepsize)
-  //              .first;
-  //auto pg1   = s.gpu_pathsurface(p1, t0, t0);
-  //s.rasterize(pg1, 1, 0);
-  //s.combine();
-  //s.result_to_lic_tex(domain, btau, ftau);
-  //s.lic_tex.write_png("lic1.png");
-
    s.greedy_set_cover(domain, t0, btau, ftau, seed_res, stepsize,
-   desired_coverage);
+   desired_coverage, neighbor_weight, penalty);
 }
 
 //------------------------------------------------------------------------------
@@ -54,11 +38,13 @@ void calc(const field<V, VReal, 2, 2>& v, int argc, char** argv) {
   const size_t grid_res_x       = argc > 7 ? atoi(argv[7]) : 20;
   const size_t grid_res_y       = argc > 8 ? atoi(argv[8]) : 20;
   const double desired_coverage = argc > 9 ? atof(argv[9]) : 0.99;
-  const auto   seed_str         = argc > 10 ? argv[10] : random_string(10);
-  if (argc <= 10) { std::cerr << "seed: " << seed_str << '\n'; }
+  const double neighbor_weight  = argc > 10 ? atof(argv[10]) : 1.2;
+  const float  penalty          = argc > 11 ? atof(argv[11]) : -2;
+  const auto   seed_str         = argc > 12 ? argv[12] : random_string(10);
+  if (argc <= 11) { std::cerr << "seed: " << seed_str << '\n'; }
 
   calc(v, t0, btau, ftau, seed_res, stepsize, vec{grid_res_x, grid_res_y},
-       desired_coverage, seed_str);
+       desired_coverage, neighbor_weight, penalty, seed_str);
 }
 //==============================================================================
 }  // namespace tatooine::steadification
@@ -72,8 +58,8 @@ auto main(int argc, char** argv) -> int {
     calc(numerical::doublegyre<double>{}, argc, argv);
   } else if (v == "fdg") {
     calc(fixed_time_field{numerical::doublegyre<double>{}, 0}, argc, argv);
-    //} else if (v == "sc") {
-    //  calc(numerical::sinuscosinus<double>{}, argc, argv);
+  } else if (v == "sc") {
+    calc(numerical::sinuscosinus<double>{}, argc, argv);
   } else if (v == "la") {
     calc(laminar<double>{}, argc, argv);
     // } else if (v == "cy")  { calc            (cylinder{}, argc, argv);

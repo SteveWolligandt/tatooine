@@ -22,6 +22,7 @@ layout(binding = 1) uniform atomic_uint num_newly_covered_pixels;
 //==============================================================================
 uniform uint layer;
 uniform uint size;
+uniform float penalty;
 //==============================================================================
 void main() {
   const uint li = gl_GlobalInvocationID.x;
@@ -66,7 +67,7 @@ void main() {
                (1 - cosv0v1 * cosv0v1);
     } else {
       //weight = -2 * (size0 + size1);
-      weight = -2;
+      weight = penalty;
     }
   } else {
     if (size0 == 0 && size1 > 0) { weight = 1; }
