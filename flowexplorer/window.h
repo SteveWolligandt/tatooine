@@ -1,5 +1,5 @@
-#ifndef TATOOINE_GPU_PATHLINE_RENDER_WINDOW_H
-#define TATOOINE_GPU_PATHLINE_RENDER_WINDOW_H
+#ifndef TATOOINE_FLOWEXPLORER_WINDOW_H
+#define TATOOINE_FLOWEXPLORER_WINDOW_H
 //==============================================================================
 #include <tatooine/boundingbox.h>
 #include <tatooine/gpu/line_shader.h>
@@ -7,12 +7,12 @@
 #include <tatooine/interpolation.h>
 #include <tatooine/spacetime_field.h>
 
-#include "first_person_window.h"
-#include "line_renderer.h"
+#include <tatooine/gpu/first_person_window.h>
+#include <tatooine/gpu/line_renderer.h>
 //==============================================================================
-namespace tatooine::gpu {
+namespace tatooine::flowexplorer {
 //==============================================================================
-struct pathline_render_window : first_person_window {
+struct window : first_person_window {
   //----------------------------------------------------------------------------
   // typedefs
   //----------------------------------------------------------------------------
@@ -49,7 +49,7 @@ struct pathline_render_window : first_person_window {
   // ctor
   //----------------------------------------------------------------------------
   template <typename V, typename VReal, size_t N, typename BBReal>
-  pathline_render_window(const vectorfield<V, VReal, N, N>& v,
+  window(const vectorfield<V, VReal, N, N>& v,
                          const boundingbox<BBReal, N>&      seedarea,
                          size_t num_pathlines, double _btau, double _ftau)
       : btau{_btau},
