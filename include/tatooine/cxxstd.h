@@ -18,258 +18,258 @@ struct _cxx20 {};
 static constexpr _cxx20 cxx20;
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-constexpr inline bool operator>=(_cxx, _cxx  ) { return true; }
-constexpr inline bool operator>=(_cxx, _cxx98) { return false; }
-constexpr inline bool operator>=(_cxx, _cxx11) { return false; }
-constexpr inline bool operator>=(_cxx, _cxx14) { return false; }
-constexpr inline bool operator>=(_cxx, _cxx17) { return false; }
-constexpr inline bool operator>=(_cxx, _cxx20) { return false; }
+constexpr inline auto operator>=(_cxx, _cxx  ) { return true; }
+constexpr inline auto operator>=(_cxx, _cxx98) { return false; }
+constexpr inline auto operator>=(_cxx, _cxx11) { return false; }
+constexpr inline auto operator>=(_cxx, _cxx14) { return false; }
+constexpr inline auto operator>=(_cxx, _cxx17) { return false; }
+constexpr inline auto operator>=(_cxx, _cxx20) { return false; }
 //  ~  ~  ~  ~  ~  ~  ~  ~  ~  ~  ~  ~  ~  ~  ~  ~  ~  ~  ~  ~  ~  ~  ~  ~  ~  ~
-constexpr inline bool operator>=(_cxx98, _cxx  ) { return true; }
-constexpr inline bool operator>=(_cxx98, _cxx98) { return true; }
-constexpr inline bool operator>=(_cxx98, _cxx11) { return false; }
-constexpr inline bool operator>=(_cxx98, _cxx14) { return false; }
-constexpr inline bool operator>=(_cxx98, _cxx17) { return false; }
-constexpr inline bool operator>=(_cxx98, _cxx20) { return false; }
+constexpr inline auto operator>=(_cxx98, _cxx  ) { return true; }
+constexpr inline auto operator>=(_cxx98, _cxx98) { return true; }
+constexpr inline auto operator>=(_cxx98, _cxx11) { return false; }
+constexpr inline auto operator>=(_cxx98, _cxx14) { return false; }
+constexpr inline auto operator>=(_cxx98, _cxx17) { return false; }
+constexpr inline auto operator>=(_cxx98, _cxx20) { return false; }
 //  ~  ~  ~  ~  ~  ~  ~  ~  ~  ~  ~  ~  ~  ~  ~  ~  ~  ~  ~  ~  ~  ~  ~  ~  ~  ~
 
-constexpr inline bool operator>=(_cxx11, _cxx  ) { return true; }
-constexpr inline bool operator>=(_cxx11, _cxx98) { return true; }
-constexpr inline bool operator>=(_cxx11, _cxx11) { return true; }
-constexpr inline bool operator>=(_cxx11, _cxx14) { return false; }
-constexpr inline bool operator>=(_cxx11, _cxx17) { return false; }
-constexpr inline bool operator>=(_cxx11, _cxx20) { return false; }
+constexpr inline auto operator>=(_cxx11, _cxx  ) { return true; }
+constexpr inline auto operator>=(_cxx11, _cxx98) { return true; }
+constexpr inline auto operator>=(_cxx11, _cxx11) { return true; }
+constexpr inline auto operator>=(_cxx11, _cxx14) { return false; }
+constexpr inline auto operator>=(_cxx11, _cxx17) { return false; }
+constexpr inline auto operator>=(_cxx11, _cxx20) { return false; }
 //  ~  ~  ~  ~  ~  ~  ~  ~  ~  ~  ~  ~  ~  ~  ~  ~  ~  ~  ~  ~  ~  ~  ~  ~  ~  ~
-constexpr inline bool operator>=(_cxx14, _cxx  ) { return true; }
-constexpr inline bool operator>=(_cxx14, _cxx98) { return true; }
-constexpr inline bool operator>=(_cxx14, _cxx11) { return true; }
-constexpr inline bool operator>=(_cxx14, _cxx14) { return true; }
-constexpr inline bool operator>=(_cxx14, _cxx17) { return false; }
-constexpr inline bool operator>=(_cxx14, _cxx20) { return false; }
+constexpr inline auto operator>=(_cxx14, _cxx  ) { return true; }
+constexpr inline auto operator>=(_cxx14, _cxx98) { return true; }
+constexpr inline auto operator>=(_cxx14, _cxx11) { return true; }
+constexpr inline auto operator>=(_cxx14, _cxx14) { return true; }
+constexpr inline auto operator>=(_cxx14, _cxx17) { return false; }
+constexpr inline auto operator>=(_cxx14, _cxx20) { return false; }
 //  ~  ~  ~  ~  ~  ~  ~  ~  ~  ~  ~  ~  ~  ~  ~  ~  ~  ~  ~  ~  ~  ~  ~  ~  ~  ~
-constexpr inline bool operator>=(_cxx17, _cxx  ) { return true; }
-constexpr inline bool operator>=(_cxx17, _cxx98) { return true; }
-constexpr inline bool operator>=(_cxx17, _cxx11) { return true; }
-constexpr inline bool operator>=(_cxx17, _cxx14) { return true; }
-constexpr inline bool operator>=(_cxx17, _cxx17) { return true; }
-constexpr inline bool operator>=(_cxx17, _cxx20) { return false; }
+constexpr inline auto operator>=(_cxx17, _cxx  ) { return true; }
+constexpr inline auto operator>=(_cxx17, _cxx98) { return true; }
+constexpr inline auto operator>=(_cxx17, _cxx11) { return true; }
+constexpr inline auto operator>=(_cxx17, _cxx14) { return true; }
+constexpr inline auto operator>=(_cxx17, _cxx17) { return true; }
+constexpr inline auto operator>=(_cxx17, _cxx20) { return false; }
 //  ~  ~  ~  ~  ~  ~  ~  ~  ~  ~  ~  ~  ~  ~  ~  ~  ~  ~  ~  ~  ~  ~  ~  ~  ~  ~
-constexpr inline bool operator>=(_cxx20, _cxx  ) { return true; }
-constexpr inline bool operator>=(_cxx20, _cxx98) { return true; }
-constexpr inline bool operator>=(_cxx20, _cxx11) { return true; }
-constexpr inline bool operator>=(_cxx20, _cxx14) { return true; }
-constexpr inline bool operator>=(_cxx20, _cxx17) { return true; }
-constexpr inline bool operator>=(_cxx20, _cxx20) { return true; }
+constexpr inline auto operator>=(_cxx20, _cxx  ) { return true; }
+constexpr inline auto operator>=(_cxx20, _cxx98) { return true; }
+constexpr inline auto operator>=(_cxx20, _cxx11) { return true; }
+constexpr inline auto operator>=(_cxx20, _cxx14) { return true; }
+constexpr inline auto operator>=(_cxx20, _cxx17) { return true; }
+constexpr inline auto operator>=(_cxx20, _cxx20) { return true; }
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-constexpr inline bool operator>(_cxx, _cxx  ) { return false; }
-constexpr inline bool operator>(_cxx, _cxx98) { return false; }
-constexpr inline bool operator>(_cxx, _cxx11) { return false; }
-constexpr inline bool operator>(_cxx, _cxx14) { return false; }
-constexpr inline bool operator>(_cxx, _cxx17) { return false; }
-constexpr inline bool operator>(_cxx, _cxx20) { return false; }
+constexpr inline auto operator>(_cxx, _cxx  ) { return false; }
+constexpr inline auto operator>(_cxx, _cxx98) { return false; }
+constexpr inline auto operator>(_cxx, _cxx11) { return false; }
+constexpr inline auto operator>(_cxx, _cxx14) { return false; }
+constexpr inline auto operator>(_cxx, _cxx17) { return false; }
+constexpr inline auto operator>(_cxx, _cxx20) { return false; }
 //  ~  ~  ~  ~  ~  ~  ~  ~  ~  ~  ~  ~  ~  ~  ~  ~  ~  ~  ~  ~  ~  ~  ~  ~  ~  ~
-constexpr inline bool operator>(_cxx98, _cxx  ) { return true; }
-constexpr inline bool operator>(_cxx98, _cxx98) { return false; }
-constexpr inline bool operator>(_cxx98, _cxx11) { return false; }
-constexpr inline bool operator>(_cxx98, _cxx14) { return false; }
-constexpr inline bool operator>(_cxx98, _cxx17) { return false; }
-constexpr inline bool operator>(_cxx98, _cxx20) { return false; }
+constexpr inline auto operator>(_cxx98, _cxx  ) { return true; }
+constexpr inline auto operator>(_cxx98, _cxx98) { return false; }
+constexpr inline auto operator>(_cxx98, _cxx11) { return false; }
+constexpr inline auto operator>(_cxx98, _cxx14) { return false; }
+constexpr inline auto operator>(_cxx98, _cxx17) { return false; }
+constexpr inline auto operator>(_cxx98, _cxx20) { return false; }
 //  ~  ~  ~  ~  ~  ~  ~  ~  ~  ~  ~  ~  ~  ~  ~  ~  ~  ~  ~  ~  ~  ~  ~  ~  ~  ~
-constexpr inline bool operator>(_cxx11, _cxx  ) { return true; }
-constexpr inline bool operator>(_cxx11, _cxx98) { return true; }
-constexpr inline bool operator>(_cxx11, _cxx11) { return false; }
-constexpr inline bool operator>(_cxx11, _cxx14) { return false; }
-constexpr inline bool operator>(_cxx11, _cxx17) { return false; }
-constexpr inline bool operator>(_cxx11, _cxx20) { return false; }
+constexpr inline auto operator>(_cxx11, _cxx  ) { return true; }
+constexpr inline auto operator>(_cxx11, _cxx98) { return true; }
+constexpr inline auto operator>(_cxx11, _cxx11) { return false; }
+constexpr inline auto operator>(_cxx11, _cxx14) { return false; }
+constexpr inline auto operator>(_cxx11, _cxx17) { return false; }
+constexpr inline auto operator>(_cxx11, _cxx20) { return false; }
 //  ~  ~  ~  ~  ~  ~  ~  ~  ~  ~  ~  ~  ~  ~  ~  ~  ~  ~  ~  ~  ~  ~  ~  ~  ~  ~
-constexpr inline bool operator>(_cxx14, _cxx  ) { return true; }
-constexpr inline bool operator>(_cxx14, _cxx98) { return true; }
-constexpr inline bool operator>(_cxx14, _cxx11) { return true; }
-constexpr inline bool operator>(_cxx14, _cxx14) { return false; }
-constexpr inline bool operator>(_cxx14, _cxx17) { return false; }
-constexpr inline bool operator>(_cxx14, _cxx20) { return false; }
+constexpr inline auto operator>(_cxx14, _cxx  ) { return true; }
+constexpr inline auto operator>(_cxx14, _cxx98) { return true; }
+constexpr inline auto operator>(_cxx14, _cxx11) { return true; }
+constexpr inline auto operator>(_cxx14, _cxx14) { return false; }
+constexpr inline auto operator>(_cxx14, _cxx17) { return false; }
+constexpr inline auto operator>(_cxx14, _cxx20) { return false; }
 //  ~  ~  ~  ~  ~  ~  ~  ~  ~  ~  ~  ~  ~  ~  ~  ~  ~  ~  ~  ~  ~  ~  ~  ~  ~  ~
-constexpr inline bool operator>(_cxx17, _cxx  ) { return true; }
-constexpr inline bool operator>(_cxx17, _cxx98) { return true; }
-constexpr inline bool operator>(_cxx17, _cxx11) { return true; }
-constexpr inline bool operator>(_cxx17, _cxx14) { return true; }
-constexpr inline bool operator>(_cxx17, _cxx17) { return false; }
-constexpr inline bool operator>(_cxx17, _cxx20) { return false; }
+constexpr inline auto operator>(_cxx17, _cxx  ) { return true; }
+constexpr inline auto operator>(_cxx17, _cxx98) { return true; }
+constexpr inline auto operator>(_cxx17, _cxx11) { return true; }
+constexpr inline auto operator>(_cxx17, _cxx14) { return true; }
+constexpr inline auto operator>(_cxx17, _cxx17) { return false; }
+constexpr inline auto operator>(_cxx17, _cxx20) { return false; }
 //  ~  ~  ~  ~  ~  ~  ~  ~  ~  ~  ~  ~  ~  ~  ~  ~  ~  ~  ~  ~  ~  ~  ~  ~  ~  ~
-constexpr inline bool operator>(_cxx20, _cxx  ) { return true; }
-constexpr inline bool operator>(_cxx20, _cxx98) { return true; }
-constexpr inline bool operator>(_cxx20, _cxx11) { return true; }
-constexpr inline bool operator>(_cxx20, _cxx14) { return true; }
-constexpr inline bool operator>(_cxx20, _cxx17) { return true; }
-constexpr inline bool operator>(_cxx20, _cxx20) { return false; }
+constexpr inline auto operator>(_cxx20, _cxx  ) { return true; }
+constexpr inline auto operator>(_cxx20, _cxx98) { return true; }
+constexpr inline auto operator>(_cxx20, _cxx11) { return true; }
+constexpr inline auto operator>(_cxx20, _cxx14) { return true; }
+constexpr inline auto operator>(_cxx20, _cxx17) { return true; }
+constexpr inline auto operator>(_cxx20, _cxx20) { return false; }
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-constexpr inline bool operator<=(_cxx, _cxx  ) { return true; }
-constexpr inline bool operator<=(_cxx, _cxx98) { return true; }
-constexpr inline bool operator<=(_cxx, _cxx11) { return true; }
-constexpr inline bool operator<=(_cxx, _cxx14) { return true; }
-constexpr inline bool operator<=(_cxx, _cxx17) { return true; }
-constexpr inline bool operator<=(_cxx, _cxx20) { return true; }
+constexpr inline auto operator<=(_cxx, _cxx  ) { return true; }
+constexpr inline auto operator<=(_cxx, _cxx98) { return true; }
+constexpr inline auto operator<=(_cxx, _cxx11) { return true; }
+constexpr inline auto operator<=(_cxx, _cxx14) { return true; }
+constexpr inline auto operator<=(_cxx, _cxx17) { return true; }
+constexpr inline auto operator<=(_cxx, _cxx20) { return true; }
 //  ~  ~  ~  ~  ~  ~  ~  ~  ~  ~  ~  ~  ~  ~  ~  ~  ~  ~  ~  ~  ~  ~  ~  ~  ~  ~
-constexpr inline bool operator<=(_cxx98, _cxx  ) { return false; }
-constexpr inline bool operator<=(_cxx98, _cxx98) { return true; }
-constexpr inline bool operator<=(_cxx98, _cxx11) { return true; }
-constexpr inline bool operator<=(_cxx98, _cxx14) { return true; }
-constexpr inline bool operator<=(_cxx98, _cxx17) { return true; }
-constexpr inline bool operator<=(_cxx98, _cxx20) { return true; }
+constexpr inline auto operator<=(_cxx98, _cxx  ) { return false; }
+constexpr inline auto operator<=(_cxx98, _cxx98) { return true; }
+constexpr inline auto operator<=(_cxx98, _cxx11) { return true; }
+constexpr inline auto operator<=(_cxx98, _cxx14) { return true; }
+constexpr inline auto operator<=(_cxx98, _cxx17) { return true; }
+constexpr inline auto operator<=(_cxx98, _cxx20) { return true; }
 //  ~  ~  ~  ~  ~  ~  ~  ~  ~  ~  ~  ~  ~  ~  ~  ~  ~  ~  ~  ~  ~  ~  ~  ~  ~  ~
-constexpr inline bool operator<=(_cxx11, _cxx  ) { return false; }
-constexpr inline bool operator<=(_cxx11, _cxx98) { return false; }
-constexpr inline bool operator<=(_cxx11, _cxx11) { return true; }
-constexpr inline bool operator<=(_cxx11, _cxx14) { return true; }
-constexpr inline bool operator<=(_cxx11, _cxx17) { return true; }
-constexpr inline bool operator<=(_cxx11, _cxx20) { return true; }
+constexpr inline auto operator<=(_cxx11, _cxx  ) { return false; }
+constexpr inline auto operator<=(_cxx11, _cxx98) { return false; }
+constexpr inline auto operator<=(_cxx11, _cxx11) { return true; }
+constexpr inline auto operator<=(_cxx11, _cxx14) { return true; }
+constexpr inline auto operator<=(_cxx11, _cxx17) { return true; }
+constexpr inline auto operator<=(_cxx11, _cxx20) { return true; }
 //  ~  ~  ~  ~  ~  ~  ~  ~  ~  ~  ~  ~  ~  ~  ~  ~  ~  ~  ~  ~  ~  ~  ~  ~  ~  ~
-constexpr inline bool operator<=(_cxx14, _cxx  ) { return false; }
-constexpr inline bool operator<=(_cxx14, _cxx98) { return false; }
-constexpr inline bool operator<=(_cxx14, _cxx11) { return false; }
-constexpr inline bool operator<=(_cxx14, _cxx14) { return true; }
-constexpr inline bool operator<=(_cxx14, _cxx17) { return true; }
-constexpr inline bool operator<=(_cxx14, _cxx20) { return true; }
+constexpr inline auto operator<=(_cxx14, _cxx  ) { return false; }
+constexpr inline auto operator<=(_cxx14, _cxx98) { return false; }
+constexpr inline auto operator<=(_cxx14, _cxx11) { return false; }
+constexpr inline auto operator<=(_cxx14, _cxx14) { return true; }
+constexpr inline auto operator<=(_cxx14, _cxx17) { return true; }
+constexpr inline auto operator<=(_cxx14, _cxx20) { return true; }
 //  ~  ~  ~  ~  ~  ~  ~  ~  ~  ~  ~  ~  ~  ~  ~  ~  ~  ~  ~  ~  ~  ~  ~  ~  ~  ~
-constexpr inline bool operator<=(_cxx17, _cxx  ) { return false; }
-constexpr inline bool operator<=(_cxx17, _cxx98) { return false; }
-constexpr inline bool operator<=(_cxx17, _cxx11) { return false; }
-constexpr inline bool operator<=(_cxx17, _cxx14) { return false; }
-constexpr inline bool operator<=(_cxx17, _cxx17) { return true; }
-constexpr inline bool operator<=(_cxx17, _cxx20) { return true; }
+constexpr inline auto operator<=(_cxx17, _cxx  ) { return false; }
+constexpr inline auto operator<=(_cxx17, _cxx98) { return false; }
+constexpr inline auto operator<=(_cxx17, _cxx11) { return false; }
+constexpr inline auto operator<=(_cxx17, _cxx14) { return false; }
+constexpr inline auto operator<=(_cxx17, _cxx17) { return true; }
+constexpr inline auto operator<=(_cxx17, _cxx20) { return true; }
 //  ~  ~  ~  ~  ~  ~  ~  ~  ~  ~  ~  ~  ~  ~  ~  ~  ~  ~  ~  ~  ~  ~  ~  ~  ~  ~
-constexpr inline bool operator<=(_cxx20, _cxx  ) { return false; }
-constexpr inline bool operator<=(_cxx20, _cxx98) { return false; }
-constexpr inline bool operator<=(_cxx20, _cxx11) { return false; }
-constexpr inline bool operator<=(_cxx20, _cxx14) { return false; }
-constexpr inline bool operator<=(_cxx20, _cxx17) { return false; }
-constexpr inline bool operator<=(_cxx20, _cxx20) { return true; }
+constexpr inline auto operator<=(_cxx20, _cxx  ) { return false; }
+constexpr inline auto operator<=(_cxx20, _cxx98) { return false; }
+constexpr inline auto operator<=(_cxx20, _cxx11) { return false; }
+constexpr inline auto operator<=(_cxx20, _cxx14) { return false; }
+constexpr inline auto operator<=(_cxx20, _cxx17) { return false; }
+constexpr inline auto operator<=(_cxx20, _cxx20) { return true; }
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-constexpr inline bool operator<(_cxx, _cxx  ) { return false; }
-constexpr inline bool operator<(_cxx, _cxx98) { return true; }
-constexpr inline bool operator<(_cxx, _cxx11) { return true; }
-constexpr inline bool operator<(_cxx, _cxx14) { return true; }
-constexpr inline bool operator<(_cxx, _cxx17) { return true; }
-constexpr inline bool operator<(_cxx, _cxx20) { return true; }
+constexpr inline auto operator<(_cxx, _cxx  ) { return false; }
+constexpr inline auto operator<(_cxx, _cxx98) { return true; }
+constexpr inline auto operator<(_cxx, _cxx11) { return true; }
+constexpr inline auto operator<(_cxx, _cxx14) { return true; }
+constexpr inline auto operator<(_cxx, _cxx17) { return true; }
+constexpr inline auto operator<(_cxx, _cxx20) { return true; }
 //  ~  ~  ~  ~  ~  ~  ~  ~  ~  ~  ~  ~  ~  ~  ~  ~  ~  ~  ~  ~  ~  ~  ~  ~  ~  ~
-constexpr inline bool operator<(_cxx98, _cxx  ) { return false; }
-constexpr inline bool operator<(_cxx98, _cxx98) { return false; }
-constexpr inline bool operator<(_cxx98, _cxx11) { return true; }
-constexpr inline bool operator<(_cxx98, _cxx14) { return true; }
-constexpr inline bool operator<(_cxx98, _cxx17) { return true; }
-constexpr inline bool operator<(_cxx98, _cxx20) { return true; }
+constexpr inline auto operator<(_cxx98, _cxx  ) { return false; }
+constexpr inline auto operator<(_cxx98, _cxx98) { return false; }
+constexpr inline auto operator<(_cxx98, _cxx11) { return true; }
+constexpr inline auto operator<(_cxx98, _cxx14) { return true; }
+constexpr inline auto operator<(_cxx98, _cxx17) { return true; }
+constexpr inline auto operator<(_cxx98, _cxx20) { return true; }
 //  ~  ~  ~  ~  ~  ~  ~  ~  ~  ~  ~  ~  ~  ~  ~  ~  ~  ~  ~  ~  ~  ~  ~  ~  ~  ~
-constexpr inline bool operator<(_cxx11, _cxx  ) { return false; }
-constexpr inline bool operator<(_cxx11, _cxx98) { return false; }
-constexpr inline bool operator<(_cxx11, _cxx11) { return false; }
-constexpr inline bool operator<(_cxx11, _cxx14) { return true; }
-constexpr inline bool operator<(_cxx11, _cxx17) { return true; }
-constexpr inline bool operator<(_cxx11, _cxx20) { return true; }
+constexpr inline auto operator<(_cxx11, _cxx  ) { return false; }
+constexpr inline auto operator<(_cxx11, _cxx98) { return false; }
+constexpr inline auto operator<(_cxx11, _cxx11) { return false; }
+constexpr inline auto operator<(_cxx11, _cxx14) { return true; }
+constexpr inline auto operator<(_cxx11, _cxx17) { return true; }
+constexpr inline auto operator<(_cxx11, _cxx20) { return true; }
 //  ~  ~  ~  ~  ~  ~  ~  ~  ~  ~  ~  ~  ~  ~  ~  ~  ~  ~  ~  ~  ~  ~  ~  ~  ~  ~
-constexpr inline bool operator<(_cxx14, _cxx  ) { return false; }
-constexpr inline bool operator<(_cxx14, _cxx98) { return false; }
-constexpr inline bool operator<(_cxx14, _cxx11) { return false; }
-constexpr inline bool operator<(_cxx14, _cxx14) { return false; }
-constexpr inline bool operator<(_cxx14, _cxx17) { return true; }
-constexpr inline bool operator<(_cxx14, _cxx20) { return true; }
+constexpr inline auto operator<(_cxx14, _cxx  ) { return false; }
+constexpr inline auto operator<(_cxx14, _cxx98) { return false; }
+constexpr inline auto operator<(_cxx14, _cxx11) { return false; }
+constexpr inline auto operator<(_cxx14, _cxx14) { return false; }
+constexpr inline auto operator<(_cxx14, _cxx17) { return true; }
+constexpr inline auto operator<(_cxx14, _cxx20) { return true; }
 //  ~  ~  ~  ~  ~  ~  ~  ~  ~  ~  ~  ~  ~  ~  ~  ~  ~  ~  ~  ~  ~  ~  ~  ~  ~  ~
-constexpr inline bool operator<(_cxx17, _cxx  ) { return false; }
-constexpr inline bool operator<(_cxx17, _cxx98) { return false; }
-constexpr inline bool operator<(_cxx17, _cxx11) { return false; }
-constexpr inline bool operator<(_cxx17, _cxx14) { return false; }
-constexpr inline bool operator<(_cxx17, _cxx17) { return false; }
-constexpr inline bool operator<(_cxx17, _cxx20) { return true; }
+constexpr inline auto operator<(_cxx17, _cxx  ) { return false; }
+constexpr inline auto operator<(_cxx17, _cxx98) { return false; }
+constexpr inline auto operator<(_cxx17, _cxx11) { return false; }
+constexpr inline auto operator<(_cxx17, _cxx14) { return false; }
+constexpr inline auto operator<(_cxx17, _cxx17) { return false; }
+constexpr inline auto operator<(_cxx17, _cxx20) { return true; }
 //  ~  ~  ~  ~  ~  ~  ~  ~  ~  ~  ~  ~  ~  ~  ~  ~  ~  ~  ~  ~  ~  ~  ~  ~  ~  ~
-constexpr inline bool operator<(_cxx20, _cxx  ) { return false; }
-constexpr inline bool operator<(_cxx20, _cxx98) { return false; }
-constexpr inline bool operator<(_cxx20, _cxx11) { return false; }
-constexpr inline bool operator<(_cxx20, _cxx14) { return false; }
-constexpr inline bool operator<(_cxx20, _cxx17) { return false; }
-constexpr inline bool operator<(_cxx20, _cxx20) { return false; }
+constexpr inline auto operator<(_cxx20, _cxx  ) { return false; }
+constexpr inline auto operator<(_cxx20, _cxx98) { return false; }
+constexpr inline auto operator<(_cxx20, _cxx11) { return false; }
+constexpr inline auto operator<(_cxx20, _cxx14) { return false; }
+constexpr inline auto operator<(_cxx20, _cxx17) { return false; }
+constexpr inline auto operator<(_cxx20, _cxx20) { return false; }
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-constexpr inline bool operator==(_cxx, _cxx  ) { return true; }
-constexpr inline bool operator==(_cxx, _cxx98) { return false; }
-constexpr inline bool operator==(_cxx, _cxx11) { return false; }
-constexpr inline bool operator==(_cxx, _cxx14) { return false; }
-constexpr inline bool operator==(_cxx, _cxx17) { return false; }
-constexpr inline bool operator==(_cxx, _cxx20) { return false; }
+constexpr inline auto operator==(_cxx, _cxx  ) { return true; }
+constexpr inline auto operator==(_cxx, _cxx98) { return false; }
+constexpr inline auto operator==(_cxx, _cxx11) { return false; }
+constexpr inline auto operator==(_cxx, _cxx14) { return false; }
+constexpr inline auto operator==(_cxx, _cxx17) { return false; }
+constexpr inline auto operator==(_cxx, _cxx20) { return false; }
 //  ~  ~  ~  ~  ~  ~  ~  ~  ~  ~  ~  ~  ~  ~  ~  ~  ~  ~  ~  ~  ~  ~  ~  ~  ~  ~
-constexpr inline bool operator==(_cxx98, _cxx  ) { return false; }
-constexpr inline bool operator==(_cxx98, _cxx98) { return true; }
-constexpr inline bool operator==(_cxx98, _cxx11) { return false; }
-constexpr inline bool operator==(_cxx98, _cxx14) { return false; }
-constexpr inline bool operator==(_cxx98, _cxx17) { return false; }
-constexpr inline bool operator==(_cxx98, _cxx20) { return false; }
+constexpr inline auto operator==(_cxx98, _cxx  ) { return false; }
+constexpr inline auto operator==(_cxx98, _cxx98) { return true; }
+constexpr inline auto operator==(_cxx98, _cxx11) { return false; }
+constexpr inline auto operator==(_cxx98, _cxx14) { return false; }
+constexpr inline auto operator==(_cxx98, _cxx17) { return false; }
+constexpr inline auto operator==(_cxx98, _cxx20) { return false; }
 //  ~  ~  ~  ~  ~  ~  ~  ~  ~  ~  ~  ~  ~  ~  ~  ~  ~  ~  ~  ~  ~  ~  ~  ~  ~  ~
-constexpr inline bool operator==(_cxx11, _cxx  ) { return false; }
-constexpr inline bool operator==(_cxx11, _cxx98) { return false; }
-constexpr inline bool operator==(_cxx11, _cxx11) { return true; }
-constexpr inline bool operator==(_cxx11, _cxx14) { return false; }
-constexpr inline bool operator==(_cxx11, _cxx17) { return false; }
-constexpr inline bool operator==(_cxx11, _cxx20) { return false; }
+constexpr inline auto operator==(_cxx11, _cxx  ) { return false; }
+constexpr inline auto operator==(_cxx11, _cxx98) { return false; }
+constexpr inline auto operator==(_cxx11, _cxx11) { return true; }
+constexpr inline auto operator==(_cxx11, _cxx14) { return false; }
+constexpr inline auto operator==(_cxx11, _cxx17) { return false; }
+constexpr inline auto operator==(_cxx11, _cxx20) { return false; }
 //  ~  ~  ~  ~  ~  ~  ~  ~  ~  ~  ~  ~  ~  ~  ~  ~  ~  ~  ~  ~  ~  ~  ~  ~  ~  ~
-constexpr inline bool operator==(_cxx14, _cxx  ) { return false; }
-constexpr inline bool operator==(_cxx14, _cxx98) { return false; }
-constexpr inline bool operator==(_cxx14, _cxx11) { return false; }
-constexpr inline bool operator==(_cxx14, _cxx14) { return true; }
-constexpr inline bool operator==(_cxx14, _cxx17) { return false; }
-constexpr inline bool operator==(_cxx14, _cxx20) { return false; }
+constexpr inline auto operator==(_cxx14, _cxx  ) { return false; }
+constexpr inline auto operator==(_cxx14, _cxx98) { return false; }
+constexpr inline auto operator==(_cxx14, _cxx11) { return false; }
+constexpr inline auto operator==(_cxx14, _cxx14) { return true; }
+constexpr inline auto operator==(_cxx14, _cxx17) { return false; }
+constexpr inline auto operator==(_cxx14, _cxx20) { return false; }
 //  ~  ~  ~  ~  ~  ~  ~  ~  ~  ~  ~  ~  ~  ~  ~  ~  ~  ~  ~  ~  ~  ~  ~  ~  ~  ~
-constexpr inline bool operator==(_cxx17, _cxx  ) { return false; }
-constexpr inline bool operator==(_cxx17, _cxx98) { return false; }
-constexpr inline bool operator==(_cxx17, _cxx11) { return false; }
-constexpr inline bool operator==(_cxx17, _cxx14) { return false; }
-constexpr inline bool operator==(_cxx17, _cxx17) { return true; }
-constexpr inline bool operator==(_cxx17, _cxx20) { return false; }
+constexpr inline auto operator==(_cxx17, _cxx  ) { return false; }
+constexpr inline auto operator==(_cxx17, _cxx98) { return false; }
+constexpr inline auto operator==(_cxx17, _cxx11) { return false; }
+constexpr inline auto operator==(_cxx17, _cxx14) { return false; }
+constexpr inline auto operator==(_cxx17, _cxx17) { return true; }
+constexpr inline auto operator==(_cxx17, _cxx20) { return false; }
 //  ~  ~  ~  ~  ~  ~  ~  ~  ~  ~  ~  ~  ~  ~  ~  ~  ~  ~  ~  ~  ~  ~  ~  ~  ~  ~
-constexpr inline bool operator==(_cxx20, _cxx  ) { return false; }
-constexpr inline bool operator==(_cxx20, _cxx98) { return false; }
-constexpr inline bool operator==(_cxx20, _cxx11) { return false; }
-constexpr inline bool operator==(_cxx20, _cxx14) { return false; }
-constexpr inline bool operator==(_cxx20, _cxx17) { return false; }
-constexpr inline bool operator==(_cxx20, _cxx20) { return true; }
+constexpr inline auto operator==(_cxx20, _cxx  ) { return false; }
+constexpr inline auto operator==(_cxx20, _cxx98) { return false; }
+constexpr inline auto operator==(_cxx20, _cxx11) { return false; }
+constexpr inline auto operator==(_cxx20, _cxx14) { return false; }
+constexpr inline auto operator==(_cxx20, _cxx17) { return false; }
+constexpr inline auto operator==(_cxx20, _cxx20) { return true; }
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-constexpr inline bool operator!=(_cxx, _cxx  ) { return false; }
-constexpr inline bool operator!=(_cxx, _cxx98) { return true; }
-constexpr inline bool operator!=(_cxx, _cxx11) { return true; }
-constexpr inline bool operator!=(_cxx, _cxx14) { return true; }
-constexpr inline bool operator!=(_cxx, _cxx17) { return true; }
-constexpr inline bool operator!=(_cxx, _cxx20) { return true; }
+constexpr inline auto operator!=(_cxx, _cxx  ) { return false; }
+constexpr inline auto operator!=(_cxx, _cxx98) { return true; }
+constexpr inline auto operator!=(_cxx, _cxx11) { return true; }
+constexpr inline auto operator!=(_cxx, _cxx14) { return true; }
+constexpr inline auto operator!=(_cxx, _cxx17) { return true; }
+constexpr inline auto operator!=(_cxx, _cxx20) { return true; }
 //  ~  ~  ~  ~  ~  ~  ~  ~  ~  ~  ~  ~  ~  ~  ~  ~  ~  ~  ~  ~  ~  ~  ~  ~  ~  ~
-constexpr inline bool operator!=(_cxx98, _cxx  ) { return true; }
-constexpr inline bool operator!=(_cxx98, _cxx98) { return false; }
-constexpr inline bool operator!=(_cxx98, _cxx11) { return true; }
-constexpr inline bool operator!=(_cxx98, _cxx14) { return true; }
-constexpr inline bool operator!=(_cxx98, _cxx17) { return true; }
-constexpr inline bool operator!=(_cxx98, _cxx20) { return true; }
+constexpr inline auto operator!=(_cxx98, _cxx  ) { return true; }
+constexpr inline auto operator!=(_cxx98, _cxx98) { return false; }
+constexpr inline auto operator!=(_cxx98, _cxx11) { return true; }
+constexpr inline auto operator!=(_cxx98, _cxx14) { return true; }
+constexpr inline auto operator!=(_cxx98, _cxx17) { return true; }
+constexpr inline auto operator!=(_cxx98, _cxx20) { return true; }
 //  ~  ~  ~  ~  ~  ~  ~  ~  ~  ~  ~  ~  ~  ~  ~  ~  ~  ~  ~  ~  ~  ~  ~  ~  ~  ~
-constexpr inline bool operator!=(_cxx11, _cxx  ) { return true; }
-constexpr inline bool operator!=(_cxx11, _cxx98) { return true; }
-constexpr inline bool operator!=(_cxx11, _cxx11) { return false; }
-constexpr inline bool operator!=(_cxx11, _cxx14) { return true; }
-constexpr inline bool operator!=(_cxx11, _cxx17) { return true; }
-constexpr inline bool operator!=(_cxx11, _cxx20) { return true; }
+constexpr inline auto operator!=(_cxx11, _cxx  ) { return true; }
+constexpr inline auto operator!=(_cxx11, _cxx98) { return true; }
+constexpr inline auto operator!=(_cxx11, _cxx11) { return false; }
+constexpr inline auto operator!=(_cxx11, _cxx14) { return true; }
+constexpr inline auto operator!=(_cxx11, _cxx17) { return true; }
+constexpr inline auto operator!=(_cxx11, _cxx20) { return true; }
 //  ~  ~  ~  ~  ~  ~  ~  ~  ~  ~  ~  ~  ~  ~  ~  ~  ~  ~  ~  ~  ~  ~  ~  ~  ~  ~
-constexpr inline bool operator!=(_cxx14, _cxx  ) { return true; }
-constexpr inline bool operator!=(_cxx14, _cxx98) { return true; }
-constexpr inline bool operator!=(_cxx14, _cxx11) { return true; }
-constexpr inline bool operator!=(_cxx14, _cxx14) { return false; }
-constexpr inline bool operator!=(_cxx14, _cxx17) { return true; }
-constexpr inline bool operator!=(_cxx14, _cxx20) { return true; }
+constexpr inline auto operator!=(_cxx14, _cxx  ) { return true; }
+constexpr inline auto operator!=(_cxx14, _cxx98) { return true; }
+constexpr inline auto operator!=(_cxx14, _cxx11) { return true; }
+constexpr inline auto operator!=(_cxx14, _cxx14) { return false; }
+constexpr inline auto operator!=(_cxx14, _cxx17) { return true; }
+constexpr inline auto operator!=(_cxx14, _cxx20) { return true; }
 //  ~  ~  ~  ~  ~  ~  ~  ~  ~  ~  ~  ~  ~  ~  ~  ~  ~  ~  ~  ~  ~  ~  ~  ~  ~  ~
-constexpr inline bool operator!=(_cxx17, _cxx  ) { return true; }
-constexpr inline bool operator!=(_cxx17, _cxx98) { return true; }
-constexpr inline bool operator!=(_cxx17, _cxx11) { return true; }
-constexpr inline bool operator!=(_cxx17, _cxx14) { return true; }
-constexpr inline bool operator!=(_cxx17, _cxx17) { return false; }
-constexpr inline bool operator!=(_cxx17, _cxx20) { return true; }
+constexpr inline auto operator!=(_cxx17, _cxx  ) { return true; }
+constexpr inline auto operator!=(_cxx17, _cxx98) { return true; }
+constexpr inline auto operator!=(_cxx17, _cxx11) { return true; }
+constexpr inline auto operator!=(_cxx17, _cxx14) { return true; }
+constexpr inline auto operator!=(_cxx17, _cxx17) { return false; }
+constexpr inline auto operator!=(_cxx17, _cxx20) { return true; }
 //  ~  ~  ~  ~  ~  ~  ~  ~  ~  ~  ~  ~  ~  ~  ~  ~  ~  ~  ~  ~  ~  ~  ~  ~  ~  ~
-constexpr inline bool operator!=(_cxx20, _cxx  ) { return true; }
-constexpr inline bool operator!=(_cxx20, _cxx98) { return true; }
-constexpr inline bool operator!=(_cxx20, _cxx11) { return true; }
-constexpr inline bool operator!=(_cxx20, _cxx14) { return true; }
-constexpr inline bool operator!=(_cxx20, _cxx17) { return true; }
-constexpr inline bool operator!=(_cxx20, _cxx20) { return false; }
+constexpr inline auto operator!=(_cxx20, _cxx  ) { return true; }
+constexpr inline auto operator!=(_cxx20, _cxx98) { return true; }
+constexpr inline auto operator!=(_cxx20, _cxx11) { return true; }
+constexpr inline auto operator!=(_cxx20, _cxx14) { return true; }
+constexpr inline auto operator!=(_cxx20, _cxx17) { return true; }
+constexpr inline auto operator!=(_cxx20, _cxx20) { return false; }
 
 //==============================================================================
 constexpr inline auto cxx_standard() {

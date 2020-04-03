@@ -13,7 +13,7 @@ struct crtp {
   }
   //----------------------------------------------------------------------------
   /// returns casted as_derived data
-  constexpr auto as_derived() const -> const Derived & {
+  [[nodiscard]] constexpr auto as_derived() const -> const Derived & {
     return static_cast<const Derived &>(*this);
   }
 };

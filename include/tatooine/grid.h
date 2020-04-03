@@ -81,16 +81,8 @@ class grid {
   ~grid() = default;
 
   //----------------------------------------------------------------------------
-  constexpr auto& operator=(const grid& other) {
-    m_dimensions = other.m_dimensions;
-    return *this;
-  }
-
-  //----------------------------------------------------------------------------
-  constexpr auto& operator=(grid&& other) noexcept {
-    m_dimensions = std::move(other.m_dimensions);
-    return *this;
-  }
+  constexpr auto operator=(const grid& other) -> grid& = default;
+  constexpr auto operator=(grid&& other) noexcept -> grid& = default;
 
   //----------------------------------------------------------------------------
   template <typename OtherReal>

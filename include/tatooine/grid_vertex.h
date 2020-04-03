@@ -47,6 +47,7 @@ struct grid_vertex {
   }
   //--------------------------------------------------------------------------
   auto operator=(const grid_vertex<Real, N>& other) -> grid_vertex& {
+    if (this == &other) { return *this; }
     for (size_t i = 0; i < N; ++i) { iterators[i] = other.iterators[i]; }
     return *this;
   }

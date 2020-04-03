@@ -22,7 +22,7 @@ struct doublegyre : vectorfield<doublegyre<Real>, Real, 2> {
   Real m_epsilon, m_omega, m_A;
   bool m_infinite_domain;
   //============================================================================
-  constexpr doublegyre(Real epsilon = 0.25, Real omega = 2 * pi * 0.1,
+  explicit constexpr doublegyre(Real epsilon = 0.25, Real omega = 2 * pi * 0.1,
                        Real A = 0.1) noexcept
       : m_epsilon{epsilon}, m_omega{omega}, m_A{A}, m_infinite_domain{false} {}
   constexpr doublegyre(const doublegyre&) = default;
@@ -30,9 +30,10 @@ struct doublegyre : vectorfield<doublegyre<Real>, Real, 2> {
   constexpr auto operator=(const doublegyre&) -> doublegyre& = default;
   constexpr auto operator=(doublegyre &&) -> doublegyre& = default;
   //----------------------------------------------------------------------------
-  virtual ~doublegyre() override = default;
+  ~doublegyre() override = default;
   //----------------------------------------------------------------------------
-  constexpr tensor_t evaluate(const pos_t& x, Real t) const final {
+  [[nodiscard]] constexpr auto evaluate(const pos_t& x, Real t) const
+      -> tensor_t final {
     Real a  = m_epsilon * sin(m_omega * t);
     Real b  = 1.0 - 2.0 * a;
     Real f  = a * x(0) * x(0) + b * x(0);
@@ -42,7 +43,8 @@ struct doublegyre : vectorfield<doublegyre<Real>, Real, 2> {
             pi * m_A * std::cos(pi * f) * std::sin(pi * x(1)) * df};
   }
   //----------------------------------------------------------------------------
-  constexpr auto in_domain(const pos_t& x, Real) const -> bool final {
+  [[nodiscard]] constexpr auto in_domain(const pos_t& x, Real) const
+      -> bool final {
     return m_infinite_domain ||
            (x(0) >= 0 && x(0) <= 2 && x(1) >= 0 && x(1) <= 1);
   }
@@ -68,9 +70,10 @@ struct doublegyre : field<Real, 2, 2> {
   using typename parent_t::symtensor_t;
   using typename parent_t::tensor_t;
 
-  doublegyre(const GiNaC::ex& eps   = GiNaC::numeric{1, 4},
-             const GiNaC::ex& omega = 2 * GiNaC::Pi * GiNaC::numeric{1, 10},
-             const GiNaC::ex& A     = GiNaC::numeric{1, 10}) {
+  explicit doublegyre(const GiNaC::ex& eps   = GiNaC::numeric{1, 4},
+                      const GiNaC::ex& omega = 2 * GiNaC::Pi *
+                                               GiNaC::numeric{1, 10},
+                      const GiNaC::ex& A = GiNaC::numeric{1, 10}) {
     using GiNaC::Pi;
     auto a = eps * sin(omega * t());
     auto b = 1 - 2 * a;
