@@ -52,8 +52,10 @@ struct linspace {
         m_max{static_cast<Real>(other.back())},
         m_size{other.size()} {}
   //----------------------------------------------------------------------------
-  constexpr this_t& operator=(const linspace<Real>&) = default;
-  constexpr this_t& operator=(linspace<Real>&&) = default;
+  constexpr auto operator=(const linspace<Real>&) -> linspace& = default;
+  constexpr auto operator=(linspace<Real> &&) -> linspace& = default;
+  //----------------------------------------------------------------------------
+  ~linspace() = default;
   //----------------------------------------------------------------------------
   template <typename OtherReal>
   constexpr auto& operator=(const linspace<OtherReal>& other) noexcept {
@@ -107,14 +109,15 @@ struct linspace_iterator
   linspace_iterator(const linspace<Real>* _lin, size_t _i)
       : m_lin{_lin}, m_i{_i} {}
   //----------------------------------------------------------------------------
-  linspace_iterator(const linspace_iterator& other)
-      : m_lin{other.m_lin}, m_i{other.m_i} {}
+  linspace_iterator(const linspace_iterator& ) = default;
+  linspace_iterator(linspace_iterator&& ) = default;
   //----------------------------------------------------------------------------
-  auto& operator=(const linspace_iterator& other) {
-    m_lin = other.m_lin;
-    m_i   = other.m_i;
-    return *this;
-  }
+  auto operator=(const linspace_iterator& other)
+      -> linspace_iterator& = default;
+  auto operator=(linspace_iterator&& other)
+      -> linspace_iterator& = default;
+  //----------------------------------------------------------------------------
+  ~linspace_iterator() = default;
 
   //============================================================================
   // methods

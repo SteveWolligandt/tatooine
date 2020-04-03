@@ -22,15 +22,10 @@ struct grid_edge
   //----------------------------------------------------------------------------
   grid_edge(grid_edge&& e) : parent_t(std::move(e)) {}
   //----------------------------------------------------------------------------
-  auto& operator=(const grid_edge& e) {
-    parent_t::operator=(e);
-    return *this;
-  }
+  auto operator=(const grid_edge& e) -> grid_edge& = default;
+  auto operator=(grid_edge&& e) -> grid_edge& = default;
   //----------------------------------------------------------------------------
-  auto& operator=(grid_edge&& e) {
-    parent_t::operator=(std::move(e));
-    return *this;
-  }
+  ~grid_edge() = default;
   //----------------------------------------------------------------------------
   auto as_position_pair() const {
     return std::pair{*this->first, *this->second};

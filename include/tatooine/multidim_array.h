@@ -99,10 +99,13 @@ class static_multidim_array
  public:
   constexpr static_multidim_array(const static_multidim_array& other) = default;
   constexpr static_multidim_array(static_multidim_array&& other)      = default;
-  constexpr static_multidim_array& operator                           =(
-      const static_multidim_array& other) = default;
-  constexpr static_multidim_array& operator=(static_multidim_array&& other) =
-      default;
+  //----------------------------------------------------------------------------
+  constexpr auto operator=(const static_multidim_array& other)
+      -> static_multidim_array& = default;
+  constexpr auto operator =(static_multidim_array&& other)
+      -> static_multidim_array& = default;
+  //----------------------------------------------------------------------------
+  ~static_multidim_array() = default;
   //----------------------------------------------------------------------------
   template <typename OtherT, typename OtherIndexing, typename OtherMemLoc>
   constexpr static_multidim_array(
@@ -461,9 +464,13 @@ class dynamic_multidim_array : public dynamic_multidim_resolution<Indexing> {
   dynamic_multidim_array()                                    = default;
   dynamic_multidim_array(const dynamic_multidim_array& other) = default;
   dynamic_multidim_array(dynamic_multidim_array&& other)      = default;
-  dynamic_multidim_array& operator=(const dynamic_multidim_array& other) =
-      default;
-  dynamic_multidim_array& operator=(dynamic_multidim_array&& other) = default;
+  //----------------------------------------------------------------------------
+  auto operator=(const dynamic_multidim_array& other)
+    -> dynamic_multidim_array& = default;
+  auto operator=(dynamic_multidim_array&& other)
+    -> dynamic_multidim_array& = default;
+  //----------------------------------------------------------------------------
+  ~dynamic_multidim_array() = default;
   //----------------------------------------------------------------------------
   template <typename OtherT, typename OtherIndexing>
   constexpr dynamic_multidim_array(

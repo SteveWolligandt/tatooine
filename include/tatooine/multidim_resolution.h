@@ -132,13 +132,18 @@ class dynamic_multidim_resolution {
   //----------------------------------------------------------------------------
  public:
   dynamic_multidim_resolution() = default;
-  dynamic_multidim_resolution(const dynamic_multidim_resolution& other) =
-      default;
-  dynamic_multidim_resolution(dynamic_multidim_resolution&& other) = default;
-  dynamic_multidim_resolution& operator                            =(
-      const dynamic_multidim_resolution& other) = default;
-  dynamic_multidim_resolution& operator=(dynamic_multidim_resolution&& other) =
-      default;
+  //----------------------------------------------------------------------------
+  dynamic_multidim_resolution(const dynamic_multidim_resolution& other)
+    = default;
+  dynamic_multidim_resolution(dynamic_multidim_resolution&& other)
+    = default;
+  //----------------------------------------------------------------------------
+  auto operator=(const dynamic_multidim_resolution& other)
+      -> dynamic_multidim_resolution& = default;
+  auto operator=(dynamic_multidim_resolution&& other)
+      -> dynamic_multidim_resolution& = default;
+  //----------------------------------------------------------------------------
+  ~dynamic_multidim_resolution() = default;
   //----------------------------------------------------------------------------
   template <typename OtherIndexing>
   dynamic_multidim_resolution(

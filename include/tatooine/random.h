@@ -30,6 +30,11 @@ struct random_uniform {
   random_uniform(const random_uniform&)     = default;
   random_uniform(random_uniform&&) noexcept = default;
   //----------------------------------------------------------------------------
+  auto operator=(const random_uniform&) noexcept ->random_uniform& = default;
+  auto operator=(random_uniform&&) noexcept -> random_uniform& = default;
+  //----------------------------------------------------------------------------
+  ~random_uniform() = default;
+  //----------------------------------------------------------------------------
   random_uniform(Engine _engine)
       : engine{_engine}, distribution{T(0), T(1)} {}
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -80,8 +85,11 @@ struct random_normal {
   random_normal() : engine{std::random_device{}()}, distribution{0, 1} {}
   random_normal(const random_normal&)     = default;
   random_normal(random_normal&&) noexcept = default;
-  random_normal& operator=(const random_normal&) = default;
-  random_normal& operator=(random_normal&&) noexcept = default;
+  //============================================================================
+  auto operator=(const random_normal&) -> random_normal& = default;
+  auto operator=(random_normal&&) noexcept -> random_normal& = default;
+  //----------------------------------------------------------------------------
+  ~random_normal() = default;
 
   //----------------------------------------------------------------------------
   random_normal(const Engine& _engine) : engine{_engine}, distribution{0, 1} {}

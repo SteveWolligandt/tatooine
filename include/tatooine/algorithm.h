@@ -39,14 +39,15 @@ decltype(auto) resize_next_list(Range& range, RangeIt pos,
   }
 }
 
-template <class T>
-constexpr const T& clamp(const T& v, const T& lo, const T& hi) {
+template <typename T>
+constexpr auto clamp(const T& v, const T& lo, const T& hi) -> const T& {
   assert(!(hi < lo));
   return (v < lo) ? lo : (hi < v) ? hi : v;
 }
 
-template <class T, class Compare>
-constexpr const T& clamp(const T& v, const T& lo, const T& hi, Compare comp) {
+template <typename T, typename Compare>
+constexpr auto clamp(const T& v, const T& lo, const T& hi, Compare comp)
+    -> const T& {
   assert(!comp(hi, lo));
   return comp(v, lo) ? lo : comp(hi, v) ? hi : v;
 }

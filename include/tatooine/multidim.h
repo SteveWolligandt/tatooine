@@ -40,7 +40,7 @@ struct static_multidim {
                                 static_cast<size_t>(ranges.second))...} {}
   //----------------------------------------------------------------------------
   template <typename... Ts, enable_if_integral<Ts...> = true>
-  constexpr static_multidim(Ts const (&... ranges)[2])
+  constexpr static_multidim(Ts const (&... ranges)[2])  // NOLINT
       : m_ranges{std::make_pair(static_cast<size_t>(ranges[0]),
                                 static_cast<size_t>(ranges[1]))...} {}
   //----------------------------------------------------------------------------
@@ -83,17 +83,26 @@ struct static_multidim {
 template <size_t N>
 struct static_multidim_iterator {
   //----------------------------------------------------------------------------
-  const static_multidim<N>  m_cont;
-  std::array<size_t, N> m_status;
+  const static_multidim<N> m_cont;
+  std::array<size_t, N>    m_status;
 
   //----------------------------------------------------------------------------
-  constexpr static_multidim_iterator(const static_multidim<N>&        c,
-                                 const std::array<size_t, N>& status)
+  constexpr static_multidim_iterator(const static_multidim<N>&    c,
+                                     const std::array<size_t, N>& status)
       : m_cont{c}, m_status{status} {}
 
   //----------------------------------------------------------------------------
-  constexpr static_multidim_iterator(const static_multidim_iterator& other)
-      : m_cont{other.m_cont}, m_status{other.m_status} {}
+  constexpr static_multidim_iterator(const static_multidim_iterator& other) =
+      default;
+  constexpr static_multidim_iterator(static_multidim_iterator&& other) =
+      default;
+  //----------------------------------------------------------------------------
+  constexpr auto operator=(const static_multidim_iterator& other)
+      -> static_multidim_iterator& = default;
+  constexpr auto operator=(static_multidim_iterator&& other)
+      -> static_multidim_iterator& = default;
+  //----------------------------------------------------------------------------
+  ~static_multidim_iterator() = default;
 
   //----------------------------------------------------------------------------
   constexpr void operator++() {
@@ -125,10 +134,12 @@ struct static_multidim_iterator {
 //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 #if has_cxx17_support()
 template <typename... Ts>
-static_multidim(const std::pair<Ts, Ts>&... ranges)->static_multidim<sizeof...(Ts)>;
+static_multidim(const std::pair<Ts, Ts>&... ranges)
+    ->static_multidim<sizeof...(Ts)>;
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 template <typename... Ts>
-static_multidim(Ts const (&... ranges)[2])->static_multidim<sizeof...(Ts)>;
+static_multidim(Ts const (&... ranges)[2])  // NOLINT
+    ->static_multidim<sizeof...(Ts)>;       // NOLINT
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 template <typename... Res>
 static_multidim(Res... res)->static_multidim<sizeof...(Res)>;
@@ -141,26 +152,27 @@ struct dynamic_multidim {
     //----------------------------------------------------------------------------
     const dynamic_multidim* m_cont;
     std::vector<size_t>     m_status;
-
     //----------------------------------------------------------------------------
-    iterator(const dynamic_multidim&    c,
-                              const std::vector<size_t>& status)
+    iterator(const dynamic_multidim& c, const std::vector<size_t>& status)
         : m_cont{&c}, m_status{status} {}
     //----------------------------------------------------------------------------
-    iterator(const dynamic_multidim& c,
-                              std::vector<size_t>&&   status)
+    iterator(const dynamic_multidim& c, std::vector<size_t>&& status)
         : m_cont{&c}, m_status{std::move(status)} {}
     //----------------------------------------------------------------------------
     iterator(const iterator& other) = default;
-    //----------------------------------------------------------------------------
     iterator(iterator&& other) = default;
-
+    //----------------------------------------------------------------------------
+    auto operator=(const iterator& other) -> iterator& = default;
+    auto operator=(iterator&& other) -> iterator& = default;
+    //----------------------------------------------------------------------------
+    ~iterator() = default;
     //----------------------------------------------------------------------------
     void operator++() {
       ++m_status.front();
       auto range_it  = m_cont->ranges().begin();
       auto status_it = m_status.begin();
-      for (; range_it != prev(m_cont->ranges().end()); ++status_it, ++range_it) {
+      for (; range_it != prev(m_cont->ranges().end());
+           ++status_it, ++range_it) {
         if (range_it->second <= *status_it) {
           *status_it = 0;
           ++(*(status_it + 1));
@@ -213,7 +225,7 @@ struct dynamic_multidim {
 
   //----------------------------------------------------------------------------
   template <typename... Ts, enable_if_integral<Ts...> = true>
-  constexpr dynamic_multidim(Ts const (&... ranges)[2])
+  constexpr dynamic_multidim(Ts const (&... ranges)[2]) // NOLINT
       : m_ranges{std::make_pair(static_cast<size_t>(ranges[0]),
                                 static_cast<size_t>(ranges[1]))...} {}
 
@@ -223,15 +235,12 @@ struct dynamic_multidim {
       : m_ranges{std::make_pair(static_cast<size_t>(0),
                                 static_cast<size_t>(res))...} {}
 
-
   //----------------------------------------------------------------------------
   auto&       operator[](size_t i) { return m_ranges[i]; }
   const auto& operator[](size_t i) const { return m_ranges[i]; }
 
   //----------------------------------------------------------------------------
-  std::vector<std::pair<size_t, size_t>>& ranges() {
-    return m_ranges;
-  }
+  std::vector<std::pair<size_t, size_t>>& ranges() { return m_ranges; }
   //----------------------------------------------------------------------------
   const std::vector<std::pair<size_t, size_t>>& ranges() const {
     return m_ranges;
@@ -242,14 +251,13 @@ struct dynamic_multidim {
   }
   //----------------------------------------------------------------------------
   auto end() {
-    std::vector<size_t>v(m_ranges.size());
+    std::vector<size_t> v(m_ranges.size());
     v.back() = m_ranges.back().second;
     return iterator{*this, std::move(v)};
   }
   //----------------------------------------------------------------------------
   size_t num_dimensions() const { return m_ranges.size(); }
 };
-
 
 //==============================================================================
 }  // namespace tatooine

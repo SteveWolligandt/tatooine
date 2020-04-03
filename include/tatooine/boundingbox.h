@@ -24,8 +24,8 @@ struct boundingbox {
   constexpr boundingbox()                             = default;
   constexpr boundingbox(const boundingbox& other)     = default;
   constexpr boundingbox(boundingbox&& other) noexcept = default;
-  constexpr boundingbox& operator=(const boundingbox& other) = default;
-  constexpr boundingbox& operator=(boundingbox&& other) noexcept = default;
+  constexpr auto operator=(const this_t& other) -> boundingbox& = default;
+  constexpr auto operator=(this_t&& other) noexcept -> boundingbox& = default;
   ~boundingbox()                                                 = default;
   //----------------------------------------------------------------------------
   template <typename Real0, typename Real1>
@@ -98,7 +98,8 @@ boundingbox(base_tensor<Tensor0, Real0, N>&&, base_tensor<Tensor1, Real1, N> &&)
 // ostream output
 //==============================================================================
 template <typename Real, size_t N>
-auto& operator<<(std::ostream& out, const boundingbox<Real, N>& bb) {
+auto operator<<(std::ostream& out, const boundingbox<Real, N>& bb)
+    -> std::ostream& {
   out << std::scientific;
   for (size_t i = 0; i < N; ++i) {
     out << "[ ";

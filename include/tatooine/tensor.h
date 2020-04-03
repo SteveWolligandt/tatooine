@@ -245,7 +245,7 @@ struct base_tensor : crtp<Tensor> {
 
 //==============================================================================
 template <typename Real, size_t... Dims>
-struct tensor : base_tensor<tensor<Real, Dims...>, Real, Dims...>,
+struct tensor : base_tensor<tensor<Real, Dims...>, Real, Dims...>,  // NOLINT
                 static_multidim_array<Real, x_fastest, stack, Dims...> {
   //============================================================================
   using this_t          = tensor<Real, Dims...>;
@@ -359,12 +359,12 @@ struct tensor : base_tensor<tensor<Real, Dims...>, Real, Dims...>,
 //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 #if has_cxx17_support()
 template <size_t C, typename... Rows>
-tensor(Rows const(&&... rows)[C])
+tensor(Rows const(&&... rows)[C]) // NOLINT
     ->tensor<promote_t<Rows...>, sizeof...(Rows), C>;
 #endif
 //==============================================================================
 template <typename Real, size_t N>
-struct vec : tensor<Real, N> {
+struct vec : tensor<Real, N> { // NOLINT
   using parent_t = tensor<Real, N>;
   using parent_t::dimension;
   using parent_t::num_dimensions;
@@ -378,13 +378,23 @@ struct vec : tensor<Real, N> {
   using const_iterator =
       typename parent_t::array_parent_t::container_t::const_iterator;
 
-  constexpr vec() = default;
-  //------------------------------------------------------------------------------
-  constexpr vec(const vec&)           = default;
-  constexpr vec(vec&& other) noexcept = default;
-  //------------------------------------------------------------------------------
-  constexpr vec& operator=(const vec&) = default;
-  constexpr vec& operator=(vec&& other) noexcept = default;
+  //----------------------------------------------------------------------------
+  constexpr vec(const vec&) = default;
+  // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+  template <typename Real_                         = Real,
+            enable_if_arithmetic_or_complex<Real_> = true>
+  constexpr vec(vec&& other) noexcept : parent_t{std::move(other)} {}
+  //----------------------------------------------------------------------------
+  constexpr auto operator=(const vec&) -> vec& = default;
+  // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+  template <typename Real_                         = Real,
+            enable_if_arithmetic_or_complex<Real_> = true>
+  constexpr auto operator=(vec&& other) noexcept -> vec& {
+    parent_t::operator=(std::move(other));
+    return *this;
+  }
+  //----------------------------------------------------------------------------
+  ~vec() = default;
 };
 
 //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -400,29 +410,29 @@ using vec4 = vec<double, 4>;
 
 //==============================================================================
 template <typename Real, size_t M, size_t N>
-struct mat : tensor<Real, M, N> {
+struct mat : tensor<Real, M, N> { // NOLINT
   using parent_t = tensor<Real, M, N>;
   using parent_t::parent_t;
 
   constexpr mat(const mat&) = default;
-  constexpr mat& operator=(const mat&) = default;
-  ~mat()                               = default;
   template <typename Real_                         = Real,
             enable_if_arithmetic_or_complex<Real_> = true>
   constexpr mat(mat&& other) noexcept : parent_t{std::move(other)} {}
+
+  constexpr auto operator=(const mat&) -> mat& = default;
   template <typename Real_                         = Real,
             enable_if_arithmetic_or_complex<Real_> = true>
-  constexpr mat& operator=(mat&& other) noexcept {
+  constexpr auto operator=(mat&& other) noexcept -> mat& {
     parent_t::operator=(std::move(other));
     return *this;
   }
+  ~mat() = default;
 
 #if has_cxx17_support()
   template <typename... Rows, enable_if_arithmetic_or_symbolic<Rows...> = true>
 #else
-  template <typename... Rows, enable_if_arithmetic<Rows...> = true>
 #endif
-  constexpr mat(Rows(&&... rows)[parent_t::dimension(1)]) {
+  constexpr mat(Rows(&&... rows)[parent_t::dimension(1)]) { // NOLINT
     static_assert(
         sizeof...(rows) == parent_t::dimension(0),
         "number of given rows does not match specified number of rows");
@@ -448,7 +458,8 @@ struct mat : tensor<Real, M, N> {
 //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 #if has_cxx17_support()
 template <size_t C, typename... Rows>
-mat(Rows const(&&... rows)[C])->mat<promote_t<Rows...>, sizeof...(Rows), C>;
+mat(Rows const(&&... rows)[C])  // NOLINT
+    ->mat<promote_t<Rows...>, sizeof...(Rows), C>;
 #endif
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -860,19 +871,19 @@ auto gesv(tensor<double, N, N> A, tensor<double, N> b) {
 
 //------------------------------------------------------------------------------
 template <size_t M, size_t N>
-auto gesv(const tensor<float, M, M>& A, const tensor<float, M, N>& B) {
-  mat<float, M, N>   X = B;
+auto gesv(tensor<float, M, M> A, const tensor<float, M, N>& B) {
+  auto   X = B;
   std::array<int, N> ipiv;
-  LAPACKE_sgesv(LAPACK_COL_MAJOR, M, N, const_cast<float*>(A.data_ptr()), M,
-                ipiv.data(), const_cast<float*>(X.data_ptr()), M);
+  LAPACKE_sgesv(LAPACK_COL_MAJOR, M, N, A.data_ptr(), M, ipiv.data(),
+                X.data_ptr(), M);
   return X;
 }
 template <size_t M, size_t N>
-auto gesv(const tensor<double, M, M>& A, const tensor<double, M, N>& B) {
-  mat<double, M, N>  X = B;
+auto gesv(tensor<double, M, M> A, const tensor<double, M, N>& B) {
+  auto               X = B;
   std::array<int, N> ipiv;
-  LAPACKE_dgesv(LAPACK_COL_MAJOR, M, N, const_cast<double*>(A.data_ptr()), M,
-                ipiv.data(), const_cast<double*>(X.data_ptr()), M);
+  LAPACKE_dgesv(LAPACK_COL_MAJOR, M, N, A.data_ptr(), M, ipiv.data(),
+                X.data_ptr(), M);
   return X;
 }
 

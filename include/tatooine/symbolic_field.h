@@ -7,8 +7,7 @@
 #include "tensor.h"
 
 //==============================================================================
-namespace tatooine {
-namespace symbolic {
+namespace tatooine::symbolic {
 //==============================================================================
 
 template <typename real_t, size_t N, size_t... TensorDims>
@@ -41,74 +40,75 @@ struct field : tatooine::field<field<real_t, N, TensorDims...>, real_t, N,
 
   //----------------------------------------------------------------------------
   template <size_t... Is>
-  tensor_t evaluate(const pos_t& _x, double _t,
-                    std::index_sequence<Is...> /*is*/) const {
+  auto evaluate(const pos_t& _x, double _t,
+                    std::index_sequence<Is...> /*is*/) const -> tensor_t {
     return evtod<real_t>(m_expr, (x(Is) == _x(Is))..., t() == _t);
   }
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-  tensor_t evaluate(const pos_t& _x, double _t) const {
+  auto evaluate(const pos_t& _x, double _t) const -> tensor_t {
     return evaluate(_x, _t, std::make_index_sequence<num_dimensions()>{});
   }
-  constexpr bool in_domain(const pos_t&, double) const { return true; }
+  constexpr auto in_domain(const pos_t& /*x*/, double /*t*/) const { return true; }
 };
 
 //==============================================================================
 // operations
 //==============================================================================
-template <typename LhsReal, typename RhsReal, size_t N, size_t D>
-constexpr auto dot(const field<LhsReal, N, D>& lhs,
-                   const field<RhsReal, N, D>& rhs) {
-  return field<promote_t<LhsReal, RhsReal>, N>{dot(lhs.expr(), rhs.expr())};
+template <typename Real0, typename Real1, size_t N, size_t D>
+constexpr auto dot(const field<Real0, N, D>& lhs,
+                   const field<Real1, N, D>& rhs) {
+  return field<promote_t<Real0, Real1>, N>{dot(lhs.expr(), rhs.expr())};
 }
 
 //------------------------------------------------------------------------------
-template <typename LhsReal, typename RhsReal, size_t N, size_t... TensorDims>
-constexpr auto operator+(const field<LhsReal, N, TensorDims...>& lhs,
-                         const field<RhsReal, N, TensorDims...>& rhs) {
-  return field<promote_t<LhsReal, RhsReal>, N, TensorDims...>{lhs.expr() +
+template <typename Real0, typename Real1, size_t N, size_t... TensorDims>
+constexpr auto operator+(const field<Real0, N, TensorDims...>& lhs,
+                         const field<Real1, N, TensorDims...>& rhs) {
+  return field<promote_t<Real0, Real1>, N, TensorDims...>{lhs.expr() +
                                                               rhs.expr()};
 }
 //------------------------------------------------------------------------------
-template <typename LhsReal, typename RhsReal, size_t N, size_t... TensorDims>
-constexpr auto operator-(const field<LhsReal, N, TensorDims...>& lhs,
-                         const field<RhsReal, N, TensorDims...>& rhs) {
-  return field<promote_t<LhsReal, RhsReal>, N, TensorDims...>{lhs.expr() -
+template <typename Real0, typename Real1, size_t N, size_t... TensorDims>
+constexpr auto operator-(const field<Real0, N, TensorDims...>& lhs,
+                         const field<Real1, N, TensorDims...>& rhs) {
+  return field<promote_t<Real0, Real1>, N, TensorDims...>{lhs.expr() -
                                                               rhs.expr()};
 }
 
 //------------------------------------------------------------------------------
-template <typename LhsReal, typename RhsReal, size_t... TensorDims>
-constexpr auto operator*(const field<LhsReal, TensorDims...>& lhs,
-                         const field<RhsReal, TensorDims...>& rhs) {
-  return field<promote_t<LhsReal, RhsReal>, TensorDims...>{lhs.expr() *
+template <typename Real0, typename Real1, size_t... TensorDims>
+constexpr auto operator*(const field<Real0, TensorDims...>& lhs,
+                         const field<Real1, TensorDims...>& rhs) {
+  return field<promote_t<Real0, Real1>, TensorDims...>{lhs.expr() *
                                                            rhs.expr()};
 }
 
 //------------------------------------------------------------------------------
-template <typename LhsReal, typename RhsReal, size_t... TensorDims>
-constexpr auto operator/(const field<LhsReal, TensorDims...>& lhs,
-                         const field<RhsReal, TensorDims...>& rhs) {
-  return field<promote_t<LhsReal, RhsReal>, TensorDims...>{lhs.expr() /
+template <typename Real0, typename Real1, size_t... TensorDims>
+constexpr auto operator/(const field<Real0, TensorDims...>& lhs,
+                         const field<Real1, TensorDims...>& rhs) {
+  return field<promote_t<Real0, Real1>, TensorDims...>{lhs.expr() /
                                                            rhs.expr()};
 }
 
 //------------------------------------------------------------------------------
-template <typename LhsReal, typename RhsReal, size_t N, size_t D0, size_t D1>
-constexpr auto operator*(const field<LhsReal, N, D0, D1>& lhs,
-                         const field<RhsReal, N, D1>&     rhs) {
-  return field<promote_t<LhsReal, RhsReal>, N, D0>{lhs.expr() * rhs.expr()};
+template <typename Real0, typename Real1, size_t N, size_t D0, size_t D1>
+constexpr auto operator*(const field<Real0, N, D0, D1>& lhs,
+                         const field<Real1, N, D1>&     rhs) {
+  return field<promote_t<Real0, Real1>, N, D0>{lhs.expr() * rhs.expr()};
 }
 
 //==============================================================================
-}  // namespace symbolic
+}  // namespace tatooine::symbolic
 //==============================================================================
-
+namespace tatooine{
+//==============================================================================
 template <typename T>
 struct is_symbolic_field_impl : std::false_type {};
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 template <typename Real, size_t N, size_t... TensorDims>
 struct is_symbolic_field_impl<
-    field<symbolic::field<Real, N, TensorDims...>, Real, N, TensorDims...>>
+    field<symbolic::field<Real, N, TensorDims...>, Real, N, TensorDims...>> 
     : std::true_type {};
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 template <typename Real, size_t N, size_t... TensorDims>

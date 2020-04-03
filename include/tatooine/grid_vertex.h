@@ -46,15 +46,17 @@ struct grid_vertex {
                   "number of linspace iterators does not match N");
   }
   //--------------------------------------------------------------------------
-  auto& operator=(const grid_vertex<Real, N>& other) {
-    for (size_t i = 0; i < N; ++i) iterators[i] = other.iterators[i];
+  auto operator=(const grid_vertex<Real, N>& other) -> grid_vertex& {
+    for (size_t i = 0; i < N; ++i) { iterators[i] = other.iterators[i]; }
     return *this;
   }
   //--------------------------------------------------------------------------
-  auto& operator=(grid_vertex<Real, N>&& other) {
-    for (size_t i = 0; i < N; ++i) iterators[i] = other.iterators[i];
+  auto operator=(grid_vertex<Real, N>&& other) -> grid_vertex& {
+    for (size_t i = 0; i < N; ++i) { iterators[i] = other.iterators[i]; }
     return *this;
   }
+  //--------------------------------------------------------------------------
+  ~grid_vertex() = default;
   //--------------------------------------------------------------------------
   auto& operator++() {
     ++iterators.front();
