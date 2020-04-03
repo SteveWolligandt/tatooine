@@ -23,16 +23,13 @@ struct settings<fixed_time_field<numerical::doublegyre<Real>, Real, 2, 2>> {
   static constexpr Real                 eps  = 1e-4;
   static constexpr boundingbox<Real, 2> domain{vec{eps, eps},
                                                vec{2 - eps, 1 - eps}};
-  static constexpr vec<size_t, 2>       render_resolution{1600, 800};
-  static constexpr size_t               num_edges = 5;
+  static constexpr vec<size_t, 2>       render_resolution{500, 250};
 };
 //==============================================================================
 template <typename Real> struct settings<numerical::sinuscosinus<Real>> {
   static constexpr std::string_view name = "sinuscosinus";
-  static constexpr grid             domain{linspace{-2.0, 2.0, 30},
-                               linspace{-2.0, 2.0, 30}};
+  static constexpr boundingbox<Real, 2> domain{vec{-2, -2}, vec{2, 2}};
   static constexpr vec<size_t, 2>   render_resolution{1000, 1000};
-  static constexpr size_t           num_edges = 5;
 };
 //==============================================================================
 template <typename Real> struct settings<laminar<Real>> {
@@ -40,6 +37,16 @@ template <typename Real> struct settings<laminar<Real>> {
   static constexpr boundingbox<Real, 2> domain{vec{0, 0}, vec{2, 2}};
   static constexpr vec<size_t, 2> render_resolution{500, 500};
   static constexpr size_t         num_edges = 5;
+};
+//==============================================================================
+template <> struct settings<boussinesq> {
+  static constexpr std::string_view name = "boussinesq";
+  static constexpr vec<size_t, 2>   render_resolution{500, 1500};
+  static constexpr double           eps       = 1e-4;
+  //----------------------------------------------------------------------------
+  static constexpr boundingbox<double, 2> domain{
+      vec{boussinesq::domain.front(0) + eps, boussinesq::domain.front(1) + eps},
+      vec{boussinesq::domain.back(0) - eps, boussinesq::domain.back(1) - eps}};
 };
 //==============================================================================
 template <> struct settings<rbc> {
@@ -68,16 +75,6 @@ template <> struct settings<rbc> {
 //  static constexpr vec<size_t, 2> render_resolution{560 * 2, 160 * 2};
 //  static constexpr size_t         num_edges = 5;
 //};
-//==============================================================================
-template <> struct settings<boussinesq> {
-  static constexpr std::string_view name = "boussinesq";
-  static constexpr vec<size_t, 2>   render_resolution{500, 1500};
-  static constexpr double           eps       = 1e-4;
-  //----------------------------------------------------------------------------
-  static constexpr boundingbox<double, 2> domain{
-      vec{boussinesq::domain.front(0) + eps, boussinesq::domain.front(1) + eps},
-      vec{boussinesq::domain.back(0) - eps, boussinesq::domain.back(1) - eps}};
-};
 //==============================================================================
 template <> struct settings<cavity> {
   using real_t = typename rbc::real_t;

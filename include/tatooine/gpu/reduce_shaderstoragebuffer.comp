@@ -1,0 +1,32 @@
+layout(binding = 0, std430) buffer ib {
+  float ibuf[];
+};
+layout(binding = 1, std430) buffer ob {
+  float obuf[];
+};
+//==============================================================================
+uniform uint data_size;
+//==============================================================================
+shared float sbuf[gl_WorkGroupSize.x];
+//==============================================================================
+void main() {
+  // index variables
+  const uint lidx = gl_LocalInvocationID.x;
+
+  // copy data to shared buffer
+  if (gl_GlobalInvocationID.x < data_size) {
+    sbuf[lidx] = ibuf[gl_GlobalInvocationID.x];
+  } else {
+    sbuf[lidx] = 0;
+  }
+  barrier();
+  // do reduction until stride is 0
+  uint stride = gl_WorkGroupSize.x / 2;
+  while (stride > 0) {
+    if (lidx < stride) { sbuf[lidx] += sbuf[lidx + stride]; }
+    barrier();
+    stride /= 2;
+  }
+  // store reduced data from shared buffer to output buffer
+  if (lidx == 0) { obuf[gl_WorkGroupID.x] = sbuf[0]; }
+}

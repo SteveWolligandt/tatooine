@@ -9,10 +9,18 @@ include(CTest)
 include(Catch)
 include(colors)
 #- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+set(TATOOINE_TEST_USE_FAST_MATH false CACHE BOOL
+    "use -ffast-math for unittests")
+option(TATOOINE_TEST_USE_FAST_MATH
+    "use -ffast-math for unittests" OFF)
+#- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 set(TATOOINE_TEST_CPPS main.cpp)
 macro(create_test NAME)
   list(APPEND TATOOINE_TEST_CPPS "${NAME}.cpp")
   add_executable (${NAME}.test ${NAME}.cpp main.cpp)
+  if (TATOOINE_TEST_USE_FAST_MATH)
+    target_compile_options(${NAME}.test PRIVATE -ffast-math)
+  endif()
   target_link_libraries(${NAME}.test tatooine Catch2::Catch2)
   target_compile_features(${NAME}.test PUBLIC cxx_std_17)
   target_compile_options(${NAME}.test PRIVATE
@@ -47,7 +55,6 @@ foreach(TESTFILE ${TESTFILES})
   get_filename_component(FILENAME ${TESTFILE} NAME_WE)
   create_test(${FILENAME})
 endforeach()
-
 #- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 # create one executable with all tests
 #- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -61,13 +68,13 @@ add_custom_target (unittests.xml COMMAND ./unittests --reporter=xml DEPENDS unit
 if("${CMAKE_CXX_COMPILER_ID}" STREQUAL "GNU" OR
    "${CMAKE_CXX_COMPILER_ID}" STREQUAL "Clang")
   if(CMAKE_BUILD_TYPE STREQUAL "Debug")
-  add_custom_target (unittests.valgrind
-                     COMMAND valgrind --log-file="unittests.valgrind" --tool=memcheck --leak-check=yes --show-reachable=yes --track-fds=yes ./unittests
-                     DEPENDS unittests)
+    add_custom_target (unittests.valgrind
+                       COMMAND valgrind --log-file="unittests.valgrind" --tool=memcheck --leak-check=yes --show-reachable=yes --track-fds=yes ./unittests
+                       DEPENDS unittests)
   else()
-  add_custom_target (unittests.valgrind
-                     COMMAND echo "" > /dev/null
-                     COMMENT "Target ${BoldRed}unittest.valgrind ${ColourReset}only available in debug mode.")
+    add_custom_target (unittests.valgrind
+                       COMMAND echo "" > /dev/null
+                       COMMENT "Target ${BoldRed}unittest.valgrind ${ColourReset}only available in debug mode.")
   endif()
 endif()
 add_custom_target (unittests.callgrind

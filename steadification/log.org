@@ -1,0 +1,8 @@
+* 19.3.2020
++ tau now calculated by t - t0
++ depth now abs(tau)
+
+* 23.3.2020
++ gpu::reduce working for yavin::tex2r32f and yavin::shaderstoragebuffer<float>
+
+* 24.3.2020

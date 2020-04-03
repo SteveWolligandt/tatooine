@@ -20,6 +20,12 @@ macro(create_benchmark NAME)
                        COMMAND valgrind --log-file="${NAME}.benchmark.valgrind" --tool=memcheck --leak-check=yes --show-reachable=yes --track-fds=yes ./${NAME}.benchmark
                        DEPENDS ${NAME}.benchmark)
   endif()
+  add_custom_target (${NAME}.benchmark.csv
+                     COMMAND ./${NAME}.benchmark --benchmark_out=${NAME}.benchmark.csv --benchmark_out_format=csv --v=0
+                     DEPENDS ${NAME}.benchmark)
+  add_custom_target (${NAME}.benchmark.json
+                     COMMAND ./${NAME}.benchmark --benchmark_out=${NAME}.benchmark.json --benchmark_out_format=json
+                     DEPENDS ${NAME}.benchmark)
   add_custom_target (${NAME}.benchmark.callgrind
                      COMMAND valgrind --tool=callgrind --callgrind-out-file=${NAME}.benchmark.callgrind ./${NAME}.benchmark
                      DEPENDS ${NAME}.benchmark)
@@ -55,6 +61,12 @@ if(CMAKE_BUILD_TYPE STREQUAL "Debug" AND (
                      COMMAND valgrind --log-file="benchmarks.valgrind" --tool=memcheck --leak-check=yes --show-reachable=yes --track-fds=yes ./benchmarks
                      DEPENDS benchmarks)
 endif()
+add_custom_target (benchmarks.csv
+                   COMMAND ./benchmarks --benchmark_out=benchmarks.csv --benchmark_out_format=csv
+                   DEPENDS benchmarks)
+add_custom_target (benchmarks.json
+                   COMMAND ./benchmarks --benchmark_out=benchmarks.json --benchmark_out_format=json
+                   DEPENDS benchmarks)
 add_custom_target (benchmarks.callgrind
                    COMMAND valgrind --tool=callgrind --callgrind-out-file=benchmarks.callgrind ./benchmarks
                    DEPENDS benchmarks)

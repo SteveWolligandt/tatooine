@@ -12,6 +12,8 @@ function (copy FILE)
   configure_file(${CMAKE_CURRENT_SOURCE_DIR}/${FILE} 
                  ${CMAKE_CURRENT_BINARY_DIR}/${FILE} COPYONLY)
 endfunction ()
+configure_file(${CMAKE_CURRENT_SOURCE_DIR}/sync.sh.in
+               ${CMAKE_CURRENT_BINARY_DIR}/sync.sh)
 
 set(TATOOINE_STEADIFICATION_LIC_COMP
     ${CMAKE_CURRENT_SOURCE_DIR}/lic.comp)
@@ -19,6 +21,8 @@ set(TATOOINE_STEADIFICATION_SSF_RASTERIZATION_VERT
     ${CMAKE_CURRENT_SOURCE_DIR}/ssf_rasterization.vert)
 set(TATOOINE_STEADIFICATION_SSF_RASTERIZATION_FRAG
     ${CMAKE_CURRENT_SOURCE_DIR}/ssf_rasterization.frag)
+set(TATOOINE_STEADIFICATION_TEX_RASTERIZATION_TO_BUFFER_COMP
+    ${CMAKE_CURRENT_SOURCE_DIR}/tex_rasterization_to_buffer.comp)
 set(TATOOINE_STEADIFICATION_LL_TO_V_TEX_COMP
     ${CMAKE_CURRENT_SOURCE_DIR}/ll_to_v_tex.comp)
 set(TATOOINE_STEADIFICATION_LL_TO_CURV_TEX_COMP
@@ -35,6 +39,8 @@ set(TATOOINE_STEADIFICATION_COVERAGE_COMP
     ${CMAKE_CURRENT_SOURCE_DIR}/coverage.comp)
 set(TATOOINE_STEADIFICATION_DUAL_COVERAGE_COMP
     ${CMAKE_CURRENT_SOURCE_DIR}/dual_coverage.comp)
+configure_file("${CMAKE_CURRENT_SOURCE_DIR}/batch.sh"
+               "${CMAKE_CURRENT_BINARY_DIR}/batch.sh")
 configure_file("${CMAKE_CURRENT_SOURCE_DIR}/shaders.h.in"
                "${CMAKE_CURRENT_BINARY_DIR}/shaders.h")
 configure_file(${CMAKE_CURRENT_SOURCE_DIR}/viridis_color_scale.png 
@@ -46,9 +52,33 @@ add_executable (steadification main.cpp renderers.cpp shaders.cpp datasets.cpp)
 target_include_directories(steadification PRIVATE ${CMAKE_CURRENT_BINARY_DIR})
 target_link_libraries(steadification tatooine yavin)
 target_compile_features(steadification PUBLIC cxx_std_17)
+target_compile_features(steadification PUBLIC cxx_std_17)
 target_compile_options(steadification PRIVATE
-  -Wall -Wextra -pedantic -Wno-missing-braces -Wno-unused-lambda-capture)
-
+  -Wall -Wextra -pedantic -Wno-missing-braces -Wno-unused-lambda-capture
+  -march=native)
+#- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+add_executable (read_vtk_test read_vtk_test.cpp)
+target_include_directories(read_vtk_test PRIVATE ${CMAKE_CURRENT_BINARY_DIR})
+target_link_libraries(read_vtk_test tatooine)
+target_compile_features(read_vtk_test PUBLIC cxx_std_17)
+target_compile_features(read_vtk_test PUBLIC cxx_std_17)
+target_compile_options(read_vtk_test PRIVATE
+  -Wall -Wextra -pedantic -Wno-missing-braces -Wno-unused-lambda-capture
+  -march=native)
+#- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+set(TATOOINE_STEADIFICATION_USE_FAST_MATH false CACHE BOOL
+    "use -ffast-math for steadification")
+option(TATOOINE_STEADIFICATION_USE_FAST_MATH
+    "use -ffast-math for steadification" OFF)
+if (TATOOINE_STEADIFICATION_USE_FAST_MATH)
+  target_compile_options(steadification PRIVATE -ffast-math)
+endif()
+#- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+add_custom_target(steadification.sync
+                  COMMAND chmod +x ${CMAKE_CURRENT_BINARY_DIR}/sync.sh
+                  COMMAND ${CMAKE_CURRENT_BINARY_DIR}/sync.sh
+                  USES_TERMINAL)
+#- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 add_custom_target(steadification.doublegyre
                   COMMAND ./steadification dg -5 5 2 0.01 0.99
                   DEPENDS steadification)

@@ -3,11 +3,11 @@
 //------------------------------------------------------------------------------
 struct node {
   vec2  v;
-  float tau;
+  float t;
+  float t0;
   float curvature;
-  uint  render_index;
+  uint  renderindex;
   uint  layer;
-  uint  next_index;
   float pad;
 };
 #endif

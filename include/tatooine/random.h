@@ -1,16 +1,16 @@
 #ifndef TATOOINE_RANDOM_H
 #define TATOOINE_RANDOM_H
-
+//==============================================================================
+#include <boost/range/algorithm/generate.hpp>
 #include <random>
-#include "type_traits.h"
 
+#include "type_traits.h"
 //==============================================================================
 namespace tatooine {
 //==============================================================================
-
-template <typename T, typename Engine>
+template <typename T, typename Engine = std::mt19937_64>
 struct random_uniform {
-  static_assert(std::is_arithmetic<T>::value);
+  static_assert(std::is_arithmetic_v<T>);
   //============================================================================
   using engine_t = Engine;
   using real_t   = T;
@@ -18,45 +18,57 @@ struct random_uniform {
       std::conditional_t<std::is_floating_point<T>::value,
                          std::uniform_real_distribution<T>,
                          std::uniform_int_distribution<T>>;
-
   //============================================================================
  private:
-  Engine&        engine;
+  Engine         engine;
   distribution_t distribution;
   //============================================================================
  public:
-  random_uniform()                          = delete;
+  random_uniform()
+      : engine{Engine{std::random_device{}()}}, distribution{T(0), T(1)} {}
+
   random_uniform(const random_uniform&)     = default;
   random_uniform(random_uniform&&) noexcept = default;
   //----------------------------------------------------------------------------
-  random_uniform(Engine& _engine) : engine{_engine}, distribution{0, 1} {}
+  random_uniform(Engine _engine)
+      : engine{_engine}, distribution{T(0), T(1)} {}
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-  random_uniform(T min, T max, Engine& _engine)
+  random_uniform(T min, T max, Engine _engine = Engine{std::random_device{}()})
       : engine{_engine}, distribution{min, max} {}
   //============================================================================
- public:
   auto get() { return distribution(engine); }
   auto operator()() { return get(); }
-
-  template <typename OtherEngine>
-  auto get(OtherEngine& e) {
-    return distribution(e);
-  }
-  template <typename OtherEngine>
-  auto operator()(OtherEngine& e) {
-    return get(e);
-  }
 };
-
 //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 #if has_cxx17_support()
-template <typename Engine>
-random_uniform(Engine &)->random_uniform<double, Engine>;
-// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-template <typename T, typename Engine>
-random_uniform(T min, T max, Engine &)->random_uniform<T, Engine>;
-#endif
+random_uniform()->random_uniform<double, std::mt19937_64>;
 
+// copy when having rvalue
+template <typename Engine>
+random_uniform(Engine &&)->random_uniform<double, Engine>;
+
+// keep reference when having lvalue
+template <typename Engine>
+random_uniform(const Engine&)->random_uniform<double, const Engine&>;
+
+// copy when having rvalue
+template <typename T, typename Engine>
+random_uniform(T min, T max, Engine &&)->random_uniform<T, Engine>;
+
+// keep reference when having lvalue
+template <typename T, typename Engine>
+random_uniform(T min, T max, const Engine&)->random_uniform<T, const Engine&>;
+#endif
+//~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+template <typename T, typename Engine = std::mt19937_64>
+auto random_uniform_vector(size_t n, T a = T(0), T b = T(1),
+                           Engine&& engine = Engine{std::random_device{}()}) {
+  random_uniform rand(a, b, std::forward<Engine>(engine));
+
+  std::vector<T> rand_data(n);
+  boost::generate(rand_data, [&] { return rand(); });
+  return rand_data;
+}
 //==============================================================================
 template <typename T, typename Engine = std::mt19937_64>
 struct random_normal {

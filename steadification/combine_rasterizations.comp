@@ -1,26 +1,41 @@
 #version 450
 //==============================================================================
-#include "dual_linked_list.glsl"
+#include "node.glsl"
 //==============================================================================
-uniform float min_btau;
-uniform float max_ftau;
+layout(binding = 0, std430) buffer result_rast_buffer {
+  node result_rast[];
+};
+layout(binding = 1, std430) buffer working_rast_buffer {
+  node working_rast[];
+};
+layout(binding = 2, std430) buffer result_size_buffer {
+  uint result_list_size[];
+};
+layout(binding = 3, std430) buffer working_size_buffer {
+  uint working_list_size[];
+};
+layout(binding = 4, std430) buffer weight_buffer {
+  float weights[];
+};
+//==============================================================================
+uniform uvec2 resolution;
 //==============================================================================
 layout (local_size_x = 32, local_size_y = 32) in;
 void main() {
   const ivec2 texpos = ivec2(gl_GlobalInvocationID.xy);
-  if (texpos.x >= ll0_tex_resolution.x ||
-      texpos.y >= ll0_tex_resolution.y) { return; }
+  if (texpos.x >= resolution.x || texpos.y >= resolution.y) { return; }
 
-  const uint size = ll1_size_at(texpos);
-  if (size == 0) { return; }
-  const uint head_index = ll1_head_index(texpos);
-  uint running_index = head_index;
+  const uint li = texpos.x + texpos.y * resolution.x;
+  const uint fi = li * 2;
+  const uint bi = fi + 1;
 
-  while (running_index != end_index) {
-    node n = ll1_node_at(running_index);
-    if (n.tau >= min_btau && n.tau <= max_ftau) {
-      ll0_push_back(texpos, n);
-      running_index = n.next_index;
+  if (working_list_size[li] > 0) {
+    if (result_list_size[li] == 0) {
+      result_rast[fi] = working_rast[fi];
+      result_rast[bi] = working_rast[bi];
+    } else if (result_list_size[li] == 0) {
+      result_rast[bi] = working_rast[fi];
     }
   }
+  result_list_size[li] += working_list_size[li];
 }

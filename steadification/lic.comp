@@ -1,9 +1,7 @@
 #version 450
 //==============================================================================
-#include "linked_list.glsl"
-//==============================================================================
 layout(local_size_x = 32, local_size_y = 32) in;
-layout(binding = 0, rgba32f) uniform image2D lic_tex;
+layout(binding = 6, rgba32f) uniform image2D lic_tex;
 //==============================================================================
 uniform sampler2D v_tex;
 uniform sampler2D noise_tex;
@@ -140,14 +138,16 @@ void main() {
       texture(v_tex, domain_pos_to_uv(pos, domain_min, domain_max, v_tex_res))
           .a;
   if (layer == 0) {
-    imageStore(lic_tex, ivec2(idx),
-               vec4(out_val * texture(color_scale,
-                                      vec2((tau - btau) / (ftau - btau), 0.5))
-                                  .rgb,
-                    // vec4(out_val *
-                    //         texture(color_scale, vec2(1 - clamp(tau / 5, 0,
-                    //         1), 0.5)).rgb,
-                    1));
+    imageStore(
+        lic_tex, ivec2(idx),
+        vec4(out_val /** 0.75 + 0.25*/ *
+                 texture(color_scale,
+                         1 - vec2((tau - btau) / (ftau - btau), 0.5))
+                     .rgb,
+              //vec4(out_val * texture(color_scale,
+              //                      1 - vec2((tau - btau) / (ftau - btau), 0.5))
+              //                  .rgb,
+             1));
   } else {
     imageStore(lic_tex, ivec2(idx), vec4(vec3(out_val), 1));
   }

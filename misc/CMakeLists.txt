@@ -7,13 +7,22 @@ endif()
 
 #===============================================================================
 macro(create_executable NAME)
-  add_executable (${NAME} ${CMAKE_CURRENT_SOURCE_DIR}/${NAME}.cpp)
+  add_executable (${NAME})
   target_link_libraries(${NAME} tatooine)
   target_compile_features(${NAME} PUBLIC cxx_std_17)
   target_compile_options(${NAME} PRIVATE
     -Wall -Wextra -pedantic -Wno-missing-braces -Wno-unused-lambda-capture)
 endmacro()
 
+#- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+# create tests from cpp files in current directory 
+file(GLOB APPFILES
+  "${CMAKE_CURRENT_SOURCE_DIR}/*.cpp"
+)
+foreach(APPFILE ${APPFILES})
+  get_filename_component(FILENAME ${APPFILE} NAME_WE)
+  create_executable(${FILENAME})
+endforeach()
 #===============================================================================
 create_executable(pathlines_for_thomas)
 create_executable(newdoublegyre_criticalpointpath_export)

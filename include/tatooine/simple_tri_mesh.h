@@ -2,6 +2,7 @@
 #define TATOOINE_SIMPLE_TRI_MESH_H
 //==============================================================================
 #include <vector>
+#include <boost/range/algorithm/copy.hpp>
 
 #include "property.h"
 #include "vtk_legacy.h"
@@ -103,6 +104,10 @@ class simple_tri_mesh : public pointset<Real, N>{
   }
   simple_tri_mesh(simple_tri_mesh&& other) = default;
   simple_tri_mesh& operator=(simple_tri_mesh&& other) = default;
+  //----------------------------------------------------------------------------
+  simple_tri_mesh(const std::string& file) {
+    read(file);
+  }
   //============================================================================
   const auto& operator[](face f) const {return m_faces[f.i];}
   auto& operator[](face f) {return m_faces[f.i];}
@@ -190,8 +195,10 @@ class simple_tri_mesh : public pointset<Real, N>{
           const auto& casted_prop =
               *dynamic_cast<const vertex_property_t<vec<Real, 2>>*>(prop.get());
           writer.write_scalars(name, casted_prop.container());
-
         } else if (prop->type() == typeid(Real)) {
+          const auto& casted_prop =
+              *dynamic_cast<const vertex_property_t<Real>*>(prop.get());
+          writer.write_scalars(name, casted_prop.container());
         }
       }
 
@@ -200,6 +207,86 @@ class simple_tri_mesh : public pointset<Real, N>{
     } else {
       return false;
     }
+  }
+  //----------------------------------------------------------------------------
+  void read(const std::string& path) {
+    auto ext = path.substr(path.find_last_of(".") + 1);
+    if constexpr (N == 2 || N == 3) {
+      if (ext == "vtk") { read_vtk(path); }
+    }
+  }
+  //----------------------------------------------------------------------------
+  template <size_t _N = N, std::enable_if_t<_N == 2 || _N == 3, bool> = true>
+  void read_vtk(const std::string& path) {
+    struct listener_t : vtk::legacy_file_listener {
+      simple_tri_mesh& mesh;
+      listener_t(simple_tri_mesh& _mesh) : mesh(_mesh) {}
+      void on_dataset_type(vtk::DatasetType t) override {
+        if (t != vtk::POLYDATA) {
+          throw std::runtime_error{
+              "[simple_tri_mesh] need polydata when reading vtk legacy"};
+        }
+      }
+
+      void on_points(const std::vector<std::array<float, 3>>& ps) override {
+        for (auto& p : ps) { mesh.insert_vertex(p[0], p[1]); }
+      }
+      void on_points(const std::vector<std::array<double, 3>>& ps) override {
+        for (auto& p : ps) { mesh.insert_vertex(p[0], p[1]); }
+      }
+      void on_polygons(const std::vector<int>& ps) override {
+        for (size_t i = 0; i < ps.size();) {
+          const auto& size = ps[i++];
+          if (size == 3) {
+            mesh.insert_face(size_t(ps[i]), size_t(ps[i + 1]), size_t(ps[i + 2]));
+          }
+          i += size;
+        }
+      }
+      //void on_scalars(const std::string& data_name,
+      //                const std::string& [>lookup_table_name<],
+      //                size_t num_comps, const std::vector<float>& scalars,
+      //                vtk::ReaderData) override {}
+      void on_scalars(const std::string& data_name,
+                      const std::string& /*lookup_table_name*/,
+                      size_t num_comps, const std::vector<double>& scalars,
+                      vtk::ReaderData data) override {
+        if (data == vtk::POINT_DATA) {
+          if (num_comps == 1) {
+            auto& prop = mesh.template add_vertex_property<double>(data_name);
+            for (size_t i = 0; i < prop.size(); ++i) { prop[i] = scalars[i]; }
+          } else if (num_comps == 2) {
+            auto& prop =
+                mesh.template add_vertex_property<vec<double, 2>>(data_name);
+
+            for (size_t i = 0; i < prop.size(); ++i) {
+              for (size_t j = 0; j < num_comps; ++j) {
+                prop[i][j] = scalars[i * num_comps + j];
+              }
+            }
+          } else if (num_comps == 3) {
+            auto& prop =
+                mesh.template add_vertex_property<vec<double, 3>>(data_name);
+            for (size_t i = 0; i < prop.size(); ++i) {
+              for (size_t j = 0; j < num_comps; ++j) {
+                prop[i][j] = scalars[i * num_comps + j];
+              }
+            }
+          } else if (num_comps == 4) {
+            auto& prop =
+                mesh.template add_vertex_property<vec<double, 4>>(data_name);
+            for (size_t i = 0; i < prop.size(); ++i) {
+              for (size_t j = 0; j < num_comps; ++j) {
+                prop[i][j] = scalars[i * num_comps + j];
+              }
+            }
+          }
+        }
+      }
+    } listener{*this};
+    vtk::legacy_file f{path};
+    f.add_listener(listener);
+    f.read();
   }
   //----------------------------------------------------------------------------
   template <typename T>

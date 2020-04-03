@@ -9,23 +9,27 @@
 namespace tatooine::steadification {
 //==============================================================================
 struct streamsurface_renderer
-    : yavin::indexeddata<yavin::vec2, yavin::vec2, yavin::scalar, yavin::scalar> {
+    : yavin::indexeddata<yavin::vec2, yavin::vec2, yavin::scalar, yavin::scalar,
+                         yavin::scalar> {
   //============================================================================
-  using parent_t =
-      yavin::indexeddata<yavin::vec2, yavin::vec2, yavin::scalar, yavin::scalar>;
+  using parent_t = yavin::indexeddata<yavin::vec2, yavin::vec2, yavin::scalar,
+                                      yavin::scalar, yavin::scalar>;
   using typename parent_t::ibo_data_vec;
   using typename parent_t::vbo_data_vec;
   //============================================================================
   template <typename Real>
-  streamsurface_renderer(const simple_tri_mesh<Real, 2>& mesh)
-      : indexeddata{mesh_to_vbo_data(mesh), mesh_to_ibo_data(mesh)} {}
+  streamsurface_renderer(const simple_tri_mesh<Real, 2>& mesh, Real u0t0,
+                         Real u1t0)
+      : indexeddata{mesh_to_vbo_data(mesh, u0t0, u1t0),
+                    mesh_to_ibo_data(mesh)} {}
   //----------------------------------------------------------------------------
   streamsurface_renderer(const streamsurface_renderer& other) = default;
   //----------------------------------------------------------------------------
   streamsurface_renderer(streamsurface_renderer&& other) = default;
   //============================================================================
   template <typename Real>
-  static vbo_data_vec mesh_to_vbo_data(const simple_tri_mesh<Real, 2>& mesh) {
+  static vbo_data_vec mesh_to_vbo_data(const simple_tri_mesh<Real, 2>& mesh,
+                                       Real u0t0, Real u1t0) {
     using namespace boost;
     vbo_data_vec vbo_data;
     vbo_data.reserve(mesh.num_vertices());
@@ -39,10 +43,12 @@ struct streamsurface_renderer
 
     boost::transform(
         mesh.vertices(), std::back_inserter(vbo_data), [&](auto v) {
+          const auto& uv = uv_prop[v];
+          const float t0 = u0t0 * (1 - uv(0)) + u1t0 * uv(0);
           return vbo_data_t{
               yavin::vec2{float(mesh[v](0)), float(mesh[v](1))},
               yavin::vec2{float(vf_prop[v](0)), float(vf_prop[v](1))},
-              float(uv_prop[v](1)), float(curvature_prop[v])};
+              float(uv(1)), t0, float(curvature_prop[v])};
         });
 
     return vbo_data;
