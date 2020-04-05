@@ -34,13 +34,13 @@ struct grid_vertex {
   //--------------------------------------------------------------------------
  public:
   template <typename... Is, enable_if_integral<Is...> = true>
-  grid_vertex(const grid_t& g, Is... is)
+  explicit grid_vertex(const grid_t& g, Is... is)
     : grid_vertex{g, std::make_index_sequence<N>{}, is...} {
     static_assert(sizeof...(Is) == N);
   }
   //--------------------------------------------------------------------------
   template <typename... Its>
-  grid_vertex(linspace_iter_t head_it, const Its&... tail_it)
+  explicit grid_vertex(linspace_iter_t head_it, const Its&... tail_it)
       : iterators{head_it, tail_it...} {
     static_assert(sizeof...(Its) == N - 1,
                   "number of linspace iterators does not match N");
@@ -59,7 +59,7 @@ struct grid_vertex {
   //--------------------------------------------------------------------------
   ~grid_vertex() = default;
   //--------------------------------------------------------------------------
-  auto& operator++() {
+  auto operator++() -> auto& {
     ++iterators.front();
     for (size_t i = 0; i < N - 1; ++i) {
       if (iterators[i] == iterators[i].end()) {
@@ -70,7 +70,7 @@ struct grid_vertex {
     return *this;
   }
   //--------------------------------------------------------------------------
-  auto& operator--() {
+  auto operator--() -> auto& {
     for (size_t i = 0; i < N; ++i)
       if (iterators[i] == iterators[i].begin()) {
         iterators[i].to_end();
@@ -81,8 +81,8 @@ struct grid_vertex {
       }
     return *this;
   }
-  auto&       operator[](size_t i) { return iterators[i]; }
-  const auto& operator[](size_t i) const { return iterators[i]; }
+  auto operator[](size_t i)       -> auto&       { return iterators[i]; }
+  auto operator[](size_t i) const -> const auto& { return iterators[i]; }
   //--------------------------------------------------------------------------
  private:
   template <size_t... Is>
@@ -123,14 +123,14 @@ struct grid_vertex {
     return idx;
   }
   //--------------------------------------------------------------------------
-  constexpr bool operator==(const grid_vertex& other) const {
+  constexpr auto operator==(const grid_vertex& other) const -> bool {
     for (size_t i = 0; i < N; ++i) {
       if (iterators[i] != other.iterators[i]) { return false; }
     }
     return true;
   }
   //--------------------------------------------------------------------------
-  constexpr bool operator<(const grid_vertex& other) const {
+  constexpr auto operator<(const grid_vertex& other) const -> bool {
     for (size_t i = 0; i < N; ++i) {
       if (iterators[i].i() < other.iterators[i].i()) return true;
       if (iterators[i].i() > other.iterators[i].i()) return false;
@@ -138,19 +138,19 @@ struct grid_vertex {
     return false;
   }
   //--------------------------------------------------------------------------
-  constexpr bool operator>(const grid_vertex& other) const {
+  constexpr auto operator>(const grid_vertex& other) const -> bool {
     return !operator<(other);
   }
   //--------------------------------------------------------------------------
-  constexpr bool operator<=(const grid_vertex& other) const {
+  constexpr auto operator<=(const grid_vertex& other) const -> bool {
     return operator==(other) || operator<(other);
   }
   //--------------------------------------------------------------------------
-  constexpr bool operator>=(const grid_vertex& other) const {
+  constexpr auto operator>=(const grid_vertex& other) const -> bool {
     return operator==(other) || operator>(other);
   }
   //--------------------------------------------------------------------------
-  constexpr bool operator!=(const grid_vertex& other) const {
+  constexpr auto operator!=(const grid_vertex& other) const -> bool {
     return !operator==(other);
   }
   //--------------------------------------------------------------------------
@@ -172,12 +172,13 @@ struct grid_vertex_iterator {
   using iterator_category = std::bidirectional_iterator_tag;
 
   grid_vertex<Real, N> v;
-  auto&                  operator*() { return v; }
-  auto&                  operator++() {
+
+  auto operator*() -> auto& { return v; }
+  auto operator++() -> auto& {
     ++v;
     return *this;
   }
-  auto& operator--() {
+  auto operator--() -> auto& {
     --v;
     return *this;
   }
@@ -188,7 +189,8 @@ struct grid_vertex_iterator {
 //==============================================================================
 
 template <typename Real, size_t N>
-inline auto& operator<<(std::ostream& out, const grid_vertex<Real, N>& v) {
+inline auto operator<<(std::ostream& out, const grid_vertex<Real, N>& v)
+    -> auto& {
   out << "[ ";
   for (const auto& i : v.iterators) out << i.i() << ' ';
   out << "]";

@@ -49,11 +49,11 @@ struct unary_operation_field
   //│ methods                                                              │
   //├──────────────────────────────────────────────────────────────────────┤
   //├╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌┤
-  tensor_t evaluate(const pos_t& x, Real t) const {
+  auto evaluate(const pos_t& x, Real t) const -> tensor_t {
     return m_op(m_v(x, t));
   }
   //├╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌┤
-  bool in_domain(const pos_t& x, Real t) const {
+  auto in_domain(const pos_t& x, Real t) const -> bool {
     return m_v.in_domain(x, t);
   }
 };

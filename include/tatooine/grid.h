@@ -53,12 +53,12 @@ class grid {
                  std::index_sequence<Is...> /*is*/)
       : m_dimensions{other.dimension(Is)...} {}
   template <typename OtherReal>
-  constexpr grid(const grid<OtherReal, N>& other)
+  explicit constexpr grid(const grid<OtherReal, N>& other)
       : grid(other, std::make_index_sequence<N>{}) {}
 
   //----------------------------------------------------------------------------
   template <typename... Reals>
-  constexpr grid(const linspace<Reals>&... linspaces)
+  explicit constexpr grid(const linspace<Reals>&... linspaces)
       : m_dimensions{linspace<Real>{linspaces}...} {
     static_assert(sizeof...(Reals) == N,
                   "number of linspaces does not match number of dimensions");
@@ -86,16 +86,18 @@ class grid {
 
   //----------------------------------------------------------------------------
   template <typename OtherReal>
-  constexpr auto& operator=(const grid<OtherReal, N>& other) {
+  constexpr auto operator=(const grid<OtherReal, N>& other) -> grid& {
     for (size_t i = 0; i < N; ++i) { m_dimensions[i] = other.dimension(i); }
     return *this;
   }
   //----------------------------------------------------------------------------
-  constexpr auto&       dimension(size_t i) { return m_dimensions[i]; }
-  constexpr const auto& dimension(size_t i) const { return m_dimensions[i]; }
+  constexpr auto dimension(size_t i) -> auto& { return m_dimensions[i]; }
+  constexpr auto dimension(size_t i) const -> const auto& {
+    return m_dimensions[i];
+  }
   //----------------------------------------------------------------------------
-  constexpr auto&       dimensions() { return m_dimensions; }
-  constexpr const auto& dimensions() const { return m_dimensions; }
+  constexpr auto dimensions() -> auto& { return m_dimensions; }
+  constexpr auto dimensions() const -> const auto& { return m_dimensions; }
   //----------------------------------------------------------------------------
   template <size_t... Is>
   constexpr auto min(std::index_sequence<Is...> /*is*/) const {
@@ -243,7 +245,7 @@ class grid {
   auto back_vertex() { return back_vertex(std::make_index_sequence<N>()); }
   //----------------------------------------------------------------------------
   template <typename... Is, size_t... DIs, enable_if_integral<Is...> = true>
-  vec<Real, N> at(std::index_sequence<DIs...>, Is... is) const {
+  auto at(std::index_sequence<DIs...>, Is... is) const -> vec<Real, N> {
     static_assert(sizeof...(DIs) == sizeof...(Is));
     static_assert(sizeof...(Is) == N);
     return {(m_dimensions[DIs][is])...};
@@ -439,7 +441,7 @@ class grid {
  public:
   //----------------------------------------------------------------------------
   template <typename RandEng>
-  vertex_t random_vertex(RandEng& eng) {
+  auto random_vertex(RandEng& eng) -> vertex_t {
     return random_vertex(std::make_index_sequence<N>(), eng);
   }
 
@@ -709,9 +711,10 @@ class grid {
 #if has_cxx17_support()
   /// picks one random vertex and changes either its left or right side
   template <typename RandEng>
-  std::optional<vertex_seq_t> mutate_seq_straight_prev_at(
-      const vertex_seq_t& original_seq, const size_t begin_idx, Real min_angle,
-      const size_t new_prev_size, RandEng& eng) {
+  auto mutate_seq_straight_prev_at(const vertex_seq_t& original_seq,
+                                   const size_t begin_idx, Real min_angle,
+                                   const size_t new_prev_size, RandEng& eng)
+      -> std::optional<vertex_seq_t> {
     using namespace boost;
     using namespace adaptors;
 
@@ -752,9 +755,10 @@ class grid {
   //----------------------------------------------------------------------------
   /// picks one random vertex and changes either its left or right side
   template <typename RandEng>
-  std::optional<vertex_seq_t> mutate_seq_straight_next_at(
-      const vertex_seq_t& original_seq, const size_t begin_idx, Real min_angle,
-      const size_t new_next_size, RandEng& eng) {
+  auto mutate_seq_straight_next_at(const vertex_seq_t& original_seq,
+                                   const size_t begin_idx, Real min_angle,
+                                   const size_t new_next_size, RandEng& eng)
+      -> std::optional<vertex_seq_t> {
     using namespace boost;
     using namespace adaptors;
 

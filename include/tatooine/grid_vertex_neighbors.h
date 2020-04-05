@@ -14,7 +14,7 @@ struct grid_vertex_neighbors : subgrid<Real, N> {
   grid_vertex<Real, N> center;
 
   //----------------------------------------------------------------------------
-  grid_vertex_neighbors(const grid_vertex<Real, N>& c)
+  explicit grid_vertex_neighbors(const grid_vertex<Real, N>& c)
       : subgrid<Real, N>{c, c}, center(c) {
     for (size_t i = 0; i < N; ++i) {
       if (this->m_begin_vertex.iterators[i] !=
@@ -32,7 +32,7 @@ struct grid_vertex_neighbors : subgrid<Real, N> {
 
   //----------------------------------------------------------------------------
   struct iterator : subgrid<Real, N>::vertex_iterator {
-    auto& operator++() {
+    auto operator++() -> auto& {
       subgrid<Real, N>::vertex_iterator::operator++();
       if (this->v == neighbors()->center) {
         subgrid<Real, N>::vertex_iterator::operator++();
@@ -41,7 +41,7 @@ struct grid_vertex_neighbors : subgrid<Real, N> {
     }
 
     //--------------------------------------------------------------------------
-    auto& operator--() {
+    auto operator--() -> auto& {
       subgrid<Real, N>::vertex_iterator::operator--();
       if (this->v == neighbors()->center) {
         subgrid<Real, N>::vertex_iterator::operator--();

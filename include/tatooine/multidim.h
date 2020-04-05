@@ -18,7 +18,7 @@ struct static_multidim {
   // static methods
   //----------------------------------------------------------------------------
  public:
-  static constexpr size_t num_dimensions() { return N; }
+  static constexpr auto num_dimensions() { return N; }
 
   //----------------------------------------------------------------------------
   // members
@@ -31,11 +31,12 @@ struct static_multidim {
   //----------------------------------------------------------------------------
  public:
   //----------------------------------------------------------------------------
-  constexpr static_multidim(std::array<std::pair<size_t, size_t>, N> ranges)
+  explicit constexpr static_multidim(
+      std::array<std::pair<size_t, size_t>, N> ranges)
       : m_ranges{ranges} {}
   //----------------------------------------------------------------------------
   template <typename... Ts, enable_if_integral<Ts...> = true>
-  constexpr static_multidim(const std::pair<Ts, Ts>&... ranges)
+  explicit constexpr static_multidim(const std::pair<Ts, Ts>&... ranges)
       : m_ranges{std::make_pair(static_cast<size_t>(ranges.first),
                                 static_cast<size_t>(ranges.second))...} {}
   //----------------------------------------------------------------------------
@@ -45,11 +46,11 @@ struct static_multidim {
                                 static_cast<size_t>(ranges[1]))...} {}
   //----------------------------------------------------------------------------
   template <typename... Res, enable_if_integral<Res...> = true>
-  constexpr static_multidim(Res... res)
+  explicit constexpr static_multidim(Res... res)
       : m_ranges{std::make_pair(static_cast<size_t>(0),
                                 static_cast<size_t>(res))...} {}
   //----------------------------------------------------------------------------
-  constexpr static_multidim(const std::array<size_t, N>& res)
+  explicit constexpr static_multidim(const std::array<size_t, N>& res)
       : m_ranges(make_array<std::pair<size_t, size_t>, N>()) {
     for (size_t i = 0; i < N; ++i) { m_ranges[i].second = res[i]; }
   }

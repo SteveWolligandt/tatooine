@@ -84,7 +84,7 @@ struct doublegyre : field<Real, 2, 2> {
   }
 
   //----------------------------------------------------------------------------
-  constexpr bool in_domain(const pos_t& x, Real) const {
+  constexpr auto in_domain(const pos_t& x, Real) const -> bool {
     return x(0) >= 0 && x(0) <= 2 && x(1) >= 0 && x(1) <= 1;
   }
 };

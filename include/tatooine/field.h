@@ -53,8 +53,9 @@ struct field  {
   //┌──────────────────────────────────────────────────────────────────────┐
   //│ virtual methods                                                      │
   //├──────────────────────────────────────────────────────────────────────┤
-  virtual auto evaluate(const pos_t& x, Real t = 0) const -> tensor_t = 0;
-  virtual auto in_domain(const pos_t&, Real) const -> bool = 0;
+  [[nodiscard]] virtual auto evaluate(const pos_t& x, Real t = 0) const
+      -> tensor_t                                                        = 0;
+  [[nodiscard]] virtual auto in_domain(const pos_t&, Real) const -> bool = 0;
   //┌──────────────────────────────────────────────────────────────────────┐
   //│ methods                                                              │
   //├──────────────────────────────────────────────────────────────────────┤
@@ -98,16 +99,17 @@ struct field : parent::field<Real, N, TensorDims...>, crtp<Derived> {
   //┌──────────────────────────────────────────────────────────────────────┐
   //│ dtor                                                                 │
   //├──────────────────────────────────────────────────────────────────────┤
-  virtual ~field() override = default;
+  ~field() override = default;
   //┌──────────────────────────────────────────────────────────────────────┐
   //│ methods                                                              │
   //├──────────────────────────────────────────────────────────────────────┤
   //├╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌┤
-  auto evaluate(const pos_t& x, Real t) const -> tensor_t override {
+  [[nodiscard]] auto evaluate(const pos_t& x, Real t) const
+      -> tensor_t override {
     return as_derived().evaluate(x, t);
   }
   //├╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌┤
-  auto in_domain(const pos_t& x, Real t) const -> bool override {
+  [[nodiscard]] auto in_domain(const pos_t& x, Real t) const -> bool override {
     return as_derived().in_domain(x, t);
   }
 }; // field
