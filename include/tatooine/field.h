@@ -40,12 +40,12 @@ struct field  {
   //├──────────────────────────────────────────────────────────────────────┤
   field() = default;
   field(const field&) = default;
-  field(field&&) = default;
+  field(field&&) noexcept = default;
   //┌──────────────────────────────────────────────────────────────────────┐
   //│ assignment operators                                                 │
   //├──────────────────────────────────────────────────────────────────────┤
   auto operator=(const field&) -> field& = default;
-  auto operator=(field &&)     -> field& = default;
+  auto operator=(field&&) noexcept -> field& = default;
   //┌──────────────────────────────────────────────────────────────────────┐
   //│ dtor                                                                 │
   //├──────────────────────────────────────────────────────────────────────┤
@@ -90,12 +90,12 @@ struct field : parent::field<Real, N, TensorDims...>, crtp<Derived> {
   //├──────────────────────────────────────────────────────────────────────┤
   field() = default;
   field(const field&) = default;
-  field(field&&) = default;
+  field(field&&) noexcept = default;
   //┌──────────────────────────────────────────────────────────────────────┐
   //│ assignment operators                                                 │
   //├──────────────────────────────────────────────────────────────────────┤
   auto operator=(const field&) -> field& = default;
-  auto operator=(field &&)     -> field& = default;
+  auto operator=(field&&) noexcept -> field& = default;
   //┌──────────────────────────────────────────────────────────────────────┐
   //│ dtor                                                                 │
   //├──────────────────────────────────────────────────────────────────────┤

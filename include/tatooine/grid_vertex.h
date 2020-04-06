@@ -25,7 +25,7 @@ struct grid_vertex {
   //==========================================================================
   grid_vertex(const grid_vertex& other) : iterators{other.iterators} {}
   //--------------------------------------------------------------------------
-  grid_vertex(grid_vertex&& other) : iterators{std::move(other.iterators)} {}
+  grid_vertex(grid_vertex&& other) noexcept : iterators{std::move(other.iterators)} {}
   //--------------------------------------------------------------------------
  private:
   template <typename... Is,  size_t... Js>
@@ -46,13 +46,12 @@ struct grid_vertex {
                   "number of linspace iterators does not match N");
   }
   //--------------------------------------------------------------------------
-  auto operator=(const grid_vertex<Real, N>& other) -> grid_vertex& {
-    if (this == &other) { return *this; }
+  auto operator=(const grid_vertex& other) -> grid_vertex& { //NOLINT
     for (size_t i = 0; i < N; ++i) { iterators[i] = other.iterators[i]; }
     return *this;
   }
   //--------------------------------------------------------------------------
-  auto operator=(grid_vertex<Real, N>&& other) -> grid_vertex& {
+  auto operator=(grid_vertex<Real, N>&& other) noexcept -> grid_vertex& {
     for (size_t i = 0; i < N; ++i) { iterators[i] = other.iterators[i]; }
     return *this;
   }
@@ -71,7 +70,7 @@ struct grid_vertex {
   }
   //--------------------------------------------------------------------------
   auto operator--() -> auto& {
-    for (size_t i = 0; i < N; ++i)
+    for (size_t i = 0; i < N; ++i) {
       if (iterators[i] == iterators[i].begin()) {
         iterators[i].to_end();
         --iterators[i];
@@ -79,6 +78,7 @@ struct grid_vertex {
         --iterators[i];
         break;
       }
+    }
     return *this;
   }
   auto operator[](size_t i)       -> auto&       { return iterators[i]; }
@@ -132,8 +132,8 @@ struct grid_vertex {
   //--------------------------------------------------------------------------
   constexpr auto operator<(const grid_vertex& other) const -> bool {
     for (size_t i = 0; i < N; ++i) {
-      if (iterators[i].i() < other.iterators[i].i()) return true;
-      if (iterators[i].i() > other.iterators[i].i()) return false;
+      if (iterators[i].i() < other.iterators[i].i()) { return true; }
+      if (iterators[i].i() > other.iterators[i].i()) { return false; }
     }
     return false;
   }
@@ -157,7 +157,7 @@ struct grid_vertex {
   auto to_string() const {
     std::string str;
     str += "[ ";
-    for (const auto& i : iterators) str += std::to_string(i.i()) + ' ';
+    for (const auto& i : iterators) { str += std::to_string(i.i()) + ' '; }
     str += "]";
     return str;
   }
@@ -192,20 +192,20 @@ template <typename Real, size_t N>
 inline auto operator<<(std::ostream& out, const grid_vertex<Real, N>& v)
     -> auto& {
   out << "[ ";
-  for (const auto& i : v.iterators) out << i.i() << ' ';
+  for (const auto& i : v.iterators) { out << i.i() << ' '; }
   out << "]";
   return out;
 }
 
 template <typename Real, size_t N>
 auto next(grid_vertex_iterator<Real, N> it, size_t num) {
-  for (size_t i = 0; i < num; ++i) ++it;
+  for (size_t i = 0; i < num; ++i) { ++it; }
   return it;
 }
 
 template <typename Real, size_t N>
 auto prev(grid_vertex_iterator<Real, N> it, size_t num) {
-  for (size_t i = 0; i < num; ++i) --it;
+  for (size_t i = 0; i < num; ++i) { --it; }
   return it;
 }
 

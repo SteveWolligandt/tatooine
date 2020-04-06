@@ -40,13 +40,9 @@ class grid {
 
   //============================================================================
  public:
-  constexpr grid() : m_dimensions{make_array<linspace_t, N>()} {}
-  constexpr grid(const grid& other) : m_dimensions{other.m_dimensions} {}
-
-  //----------------------------------------------------------------------------
-  constexpr grid(grid&& other) noexcept
-      : m_dimensions{std::move(other.m_dimensions)} {}
-
+  constexpr grid()                      = default;
+  constexpr grid(const grid& other)     = default;
+  constexpr grid(grid&& other) noexcept = default;
   //----------------------------------------------------------------------------
   template <typename OtherReal, size_t... Is>
   constexpr grid(const grid<OtherReal, N>& other,

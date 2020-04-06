@@ -20,8 +20,8 @@ struct field : tatooine::field<field<real_t, N, TensorDims...>, real_t, N,
   using typename parent_t::tensor_t;
   using symtensor_t = tensor<GiNaC::ex, TensorDims...>;
 
-  static auto& x(size_t i) { return symbol::x(i); }
-  static auto& t() { return symbol::t(); }
+  static auto x(size_t i) -> auto& { return symbol::x(i); }
+  static auto t() -> auto& { return symbol::t(); }
 
  private:
   symtensor_t m_expr;
@@ -32,12 +32,10 @@ struct field : tatooine::field<field<real_t, N, TensorDims...>, real_t, N,
 
  public:
   constexpr field() = default;
-  constexpr field(const symtensor_t& ex) : m_expr{ex} {}
-  constexpr field(symtensor_t&& ex) : m_expr{std::move(ex)} {}
-
+  explicit constexpr field(const symtensor_t& ex) : m_expr{ex} {}
+  explicit constexpr field(symtensor_t&& ex) : m_expr{std::move(ex)} {}
   //----------------------------------------------------------------------------
-  [[nodiscard]] const auto& expr() const { return m_expr; }
-
+  [[nodiscard]] auto expr() const -> const auto& { return m_expr; }
   //----------------------------------------------------------------------------
   template <size_t... Is>
   auto evaluate(const pos_t& _x, double _t,

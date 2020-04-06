@@ -44,7 +44,7 @@ struct linspace {
       : m_min{min}, m_max{max}, m_size{size} {}
   //----------------------------------------------------------------------------
   constexpr linspace(const linspace&) = default;
-  constexpr linspace(linspace&&)      = default;
+  constexpr linspace(linspace&&) noexcept = default;
   //----------------------------------------------------------------------------
   template <typename OtherReal>
   explicit constexpr linspace(const linspace<OtherReal>& other) noexcept
@@ -53,7 +53,7 @@ struct linspace {
         m_size{other.size()} {}
   //----------------------------------------------------------------------------
   constexpr auto operator=(const linspace<Real>&) -> linspace& = default;
-  constexpr auto operator=(linspace<Real> &&) -> linspace& = default;
+  constexpr auto operator=(linspace<Real> &&) noexcept -> linspace& = default;
   //----------------------------------------------------------------------------
   ~linspace() = default;
   //----------------------------------------------------------------------------
@@ -109,12 +109,12 @@ struct linspace_iterator
   linspace_iterator(const linspace<Real>* _lin, size_t _i)
       : m_lin{_lin}, m_i{_i} {}
   //----------------------------------------------------------------------------
-  linspace_iterator(const linspace_iterator& ) = default;
-  linspace_iterator(linspace_iterator&& ) = default;
+  linspace_iterator(const linspace_iterator&)     = default;
+  linspace_iterator(linspace_iterator&&) noexcept = default;
   //----------------------------------------------------------------------------
   auto operator=(const linspace_iterator& other)
       -> linspace_iterator& = default;
-  auto operator=(linspace_iterator&& other)
+  auto operator=(linspace_iterator&& other) noexcept
       -> linspace_iterator& = default;
   //----------------------------------------------------------------------------
   ~linspace_iterator() = default;

@@ -20,10 +20,10 @@ struct grid_edge
   //----------------------------------------------------------------------------
   grid_edge(const grid_edge& e) : parent_t(e) {}
   //----------------------------------------------------------------------------
-  grid_edge(grid_edge&& e) : parent_t(std::move(e)) {}
+  grid_edge(grid_edge&& e) noexcept : parent_t(std::move(e)) {}
   //----------------------------------------------------------------------------
   auto operator=(const grid_edge& e) -> grid_edge& = default;
-  auto operator=(grid_edge&& e) -> grid_edge& = default;
+  auto operator=(grid_edge&& e) noexcept -> grid_edge& = default;
   //----------------------------------------------------------------------------
   ~grid_edge() = default;
   //----------------------------------------------------------------------------
@@ -44,16 +44,20 @@ struct grid_edge
   //----------------------------------------------------------------------------
   auto operator<(const grid_edge& other) const -> bool {
     for (size_t i = 0; i < N; ++i) {
-      if (this->first.iterators[i].i() < other.first.iterators[i].i())
+      if (this->first.iterators[i].i() < other.first.iterators[i].i()) {
         return true;
-      if (this->first.iterators[i].i() > other.first.iterators[i].i())
+      }
+      if (this->first.iterators[i].i() > other.first.iterators[i].i()) {
         return false;
+      }
     }
     for (size_t i = 0; i < N; ++i) {
-      if (this->second.iterators[i].i() < other.second.iterators[i].i())
+      if (this->second.iterators[i].i() < other.second.iterators[i].i()) {
         return true;
-      if (this->second.iterators[i].i() > other.second.iterators[i].i())
+      }
+      if (this->second.iterators[i].i() > other.second.iterators[i].i()) {
         return false;
+      }
     }
     return false;
   }
@@ -64,14 +68,20 @@ struct grid_edge
   //----------------------------------------------------------------------------
   auto operator>(const grid_edge& other) const -> bool {
     for (size_t i = 0; i < N; ++i) {
-      if (this->first.iterators[i].i > other.first.iterators[i].i) return true;
-      if (this->first.iterators[i].i < other.first.iterators[i].i) return false;
+      if (this->first.iterators[i].i > other.first.iterators[i].i) {
+        return true;
+      }
+      if (this->first.iterators[i].i < other.first.iterators[i].i) {
+        return false;
+      }
     }
     for (size_t i = 0; i < N; ++i) {
-      if (this->second.iterators[i].i > other.second.iterators[i].i)
+      if (this->second.iterators[i].i > other.second.iterators[i].i) {
         return true;
-      if (this->second.iterators[i].i < other.second.iterators[i].i)
+      }
+      if (this->second.iterators[i].i < other.second.iterators[i].i) {
         return false;
+      }
     }
     return false;
   }

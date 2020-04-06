@@ -1,3 +1,12 @@
+set(TATOOINE_COMPILE_WITH_CLANG_TIDY_CHECKS false CACHE BOOL
+    "use clang-tidy checks while building")
+option(TATOOINE_COMPILE_WITH_CLANG_TIDY_CHECKS
+       "use clang-tidy checks while building" FALSE)
+set(TATOOINE_TEST_USE_FAST_MATH false CACHE BOOL
+    "use -ffast-math for unittests")
+option(TATOOINE_TEST_USE_FAST_MATH
+    "use -ffast-math for unittests" OFF)
+#- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 if ("${CMAKE_CXX_COMPILER_ID}" STREQUAL "Clang")
 list(APPEND CMAKE_CXX_FLAGS "-fcolor-diagnostics")
 elseif ("${CMAKE_CXX_COMPILER_ID}" STREQUAL "GNU")
@@ -9,8 +18,7 @@ endif()
 find_program(TATOOINE_CLANG_TIDY NAMES "clang-tidy" DOC "Path to clang-tidy executable")
 string(CONCAT TATOOINE_CLANG_TIDY_CHECKS
   "-checks="
-  "-*"
-  ",cppcoreguidelines*,"
+  ",cppcoreguidelines*"
   ",-cppcoreguidelines-pro-type-reinterpret-cast"
   ",-cppcoreguidelines-pro-bounds-pointer-arithmetic"
   ",-cppcoreguidelines-pro-bounds-constant-array-index"
@@ -18,32 +26,26 @@ string(CONCAT TATOOINE_CLANG_TIDY_CHECKS
   ",-cppcoreguidelines-macro-usage"
   ",cert*"
   ",-cert-err34-c"
-  #",hicpp"
+  ",hicpp"
   ",modernize*"
-  #",performance*"
-  #",readability*"
-  #",-readability-magic-numbers"
-  #",-readability-isolate-declaration"
-  #",-readability-static-accessed-through-instance"
+  ",performance*"
+  ",readability*"
+  ",-readability-magic-numbers"
+  ",-readability-isolate-declaration"
+  ",-readability-static-accessed-through-instance"
+  ",-readability-named-parameter"
   ",google-explicit-constructor"
-  #",-clang-analyzer-*"
   )
 if(TATOOINE_CLANG_TIDY)
   set(TATOOINE_CLANG_TIDY_CMD
     ${TATOOINE_CLANG_TIDY}
     ${TATOOINE_CLANG_TIDY_CHECKS}
     "-header-filter=tatooine")
-    #"-checks=-*,cppcoreguidelines*,-cppcoreguidelines-pro-type-reinterpret-cast,-cppcoreguidelines-pro-bounds-pointer-arithmetic,-cppcoreguidelines-avoid-magic-numbers,cert*,-cert-err34-c,hicpp,modernize*,performance*,readability*,-readability-magic-numbers,-readability-isolate-declaration,-readability-static-accessed-through-instance,google-explicit-constructor,-cppcoreguidelines-macro-usage,-clang-analyzer-*")
 endif()
 enable_testing()
 include(CTest)
 include(Catch)
 include(colors)
-#- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-set(TATOOINE_TEST_USE_FAST_MATH false CACHE BOOL
-    "use -ffast-math for unittests")
-option(TATOOINE_TEST_USE_FAST_MATH
-    "use -ffast-math for unittests" OFF)
 #- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 set(TATOOINE_TEST_CPPS main.cpp)
 macro(create_test NAME)
@@ -75,7 +77,7 @@ macro(create_test NAME)
   if (TATOOINE_TEST_USE_FAST_MATH)
     target_compile_options(${NAME}.test PRIVATE -ffast-math)
   endif()
-  if(TATOOINE_CLANG_TIDY)
+  if(TATOOINE_CLANG_TIDY AND TATOOINE_COMPILE_WITH_CLANG_TIDY_CHECKS)
     set_target_properties(${NAME}.test PROPERTIES CXX_CLANG_TIDY "${TATOOINE_CLANG_TIDY_CMD}")
   endif()
 endmacro()

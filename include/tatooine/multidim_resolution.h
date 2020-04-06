@@ -18,19 +18,8 @@ namespace tatooine {
 //==============================================================================
 template <typename Indexing, size_t... Resolution>
 struct static_multidim_resolution {
-  static constexpr size_t num_dimensions() { return sizeof...(Resolution); }
-#if has_cxx17_support()
-  //----------------------------------------------------------------------------
-  static constexpr size_t num_elements() { return (Resolution * ...); }
-#else
-  //----------------------------------------------------------------------------
-  static constexpr size_t num_elements() {
-    constexpr auto res = size();
-    size_t         acc = 1;
-    for (auto r : res) { acc *= r; }
-    return acc;
-  }
-#endif
+  static constexpr auto num_dimensions() { return sizeof...(Resolution); }
+  static constexpr auto num_elements() { return (Resolution * ...); }
   //----------------------------------------------------------------------------
   static constexpr auto size() {
     return std::array<size_t, num_dimensions()>{Resolution...};
@@ -39,19 +28,11 @@ struct static_multidim_resolution {
   static constexpr auto size(size_t i) { return size()[i]; }
   //----------------------------------------------------------------------------
   template <typename... Is, enable_if_integral<std::decay_t<Is>...> = true>
-  static constexpr bool in_range(Is... is) {
+  static constexpr auto in_range(Is... is) {
     static_assert(sizeof...(Is) == num_dimensions(),
                   "number of indices does not match number of dimensions");
-#if has_cxx17_support()
     return ((is >= 0) && ...) &&
            ((static_cast<size_t>(is) < Resolution) && ...);
-#else
-    const std::array<size_t, num_elements()> js{static_cast<size_t>(is)...};
-    for (size_t i = 0; i < num_elements(); ++i) {
-      if (js[i] < 0 || js[i] >= size(i)) { return false; }
-    }
-    return true;
-#endif
   }
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
   template <size_t N>
@@ -135,53 +116,56 @@ class dynamic_multidim_resolution {
   //----------------------------------------------------------------------------
   dynamic_multidim_resolution(const dynamic_multidim_resolution& other)
     = default;
-  dynamic_multidim_resolution(dynamic_multidim_resolution&& other)
+  dynamic_multidim_resolution(dynamic_multidim_resolution&& other) noexcept
     = default;
   //----------------------------------------------------------------------------
   auto operator=(const dynamic_multidim_resolution& other)
       -> dynamic_multidim_resolution& = default;
-  auto operator=(dynamic_multidim_resolution&& other)
+  auto operator=(dynamic_multidim_resolution&& other) noexcept
       -> dynamic_multidim_resolution& = default;
   //----------------------------------------------------------------------------
   ~dynamic_multidim_resolution() = default;
   //----------------------------------------------------------------------------
   template <typename OtherIndexing>
-  dynamic_multidim_resolution(
+  explicit dynamic_multidim_resolution(
       const dynamic_multidim_resolution<OtherIndexing>& other)
       : m_size{other.size()} {}
+
   template <typename OtherIndexing>
-  dynamic_multidim_resolution(
+  explicit dynamic_multidim_resolution(
       dynamic_multidim_resolution<OtherIndexing>&& other)
       : m_size{std::move(other.m_size)} {}
+
   template <typename OtherIndexing>
-  dynamic_multidim_resolution& operator=(
-      const dynamic_multidim_resolution& other) {
+  auto operator=(const dynamic_multidim_resolution& other)
+      -> dynamic_multidim_resolution& {
     m_size = other.m_size;
     return *this;
   }
   template <typename OtherIndexing>
-  dynamic_multidim_resolution& operator=(dynamic_multidim_resolution&& other) {
+  auto operator=(dynamic_multidim_resolution&& other)
+      -> dynamic_multidim_resolution& {
     m_size = std::move(other.m_size);
     return *this;
   }
   //----------------------------------------------------------------------------
   template <typename... Resolution,
             enable_if_integral<std::decay_t<Resolution>...> = true>
-  dynamic_multidim_resolution(Resolution... resolution)
+  explicit dynamic_multidim_resolution(Resolution... resolution)
       : m_size{static_cast<size_t>(resolution)...} {}
   //----------------------------------------------------------------------------
-  dynamic_multidim_resolution(const std::vector<size_t>& resolution)
-      : m_size(resolution) {}
+  explicit dynamic_multidim_resolution(std::vector<size_t> resolution)
+      : m_size(std::move(resolution)) {}
   //----------------------------------------------------------------------------
-  dynamic_multidim_resolution(std::vector<size_t>&& resolution)
+  explicit dynamic_multidim_resolution(std::vector<size_t>&& resolution)
       : m_size(std::move(resolution)) {}
   //----------------------------------------------------------------------------
   template <typename UInt, enable_if_unsigned_integral<UInt> = true>
-  dynamic_multidim_resolution(const std::vector<UInt>& resolution)
+  explicit dynamic_multidim_resolution(const std::vector<UInt>& resolution)
       : m_size(begin(resolution), end(resolution)) {}
   //----------------------------------------------------------------------------
   template <typename UInt, size_t N, enable_if_unsigned_integral<UInt> = true>
-  dynamic_multidim_resolution(const std::array<UInt, N>& resolution)
+  explicit dynamic_multidim_resolution(const std::array<UInt, N>& resolution)
       : m_size(begin(resolution), end(resolution)) {}
 
   //----------------------------------------------------------------------------
@@ -189,7 +173,7 @@ class dynamic_multidim_resolution {
   //----------------------------------------------------------------------------
  public:
   template <typename OtherIndexing>
-  bool operator==(
+  auto operator==(
       const dynamic_multidim_resolution<OtherIndexing>& other) const {
     if (num_dimensions() != other.num_dimensions()) { return false; }
     for (size_t i = 0; i < num_dimensions(); ++i) {
@@ -199,7 +183,7 @@ class dynamic_multidim_resolution {
   }
   //----------------------------------------------------------------------------
   template <typename OtherIndexing>
-  bool operator!=(
+  auto operator!=(
       const dynamic_multidim_resolution<OtherIndexing>& other) const {
     if (num_dimensions() == other.num_dimensions()) { return false; }
     for (size_t i = 0; i < num_dimensions(); ++i) {
@@ -212,13 +196,13 @@ class dynamic_multidim_resolution {
   // methods
   //----------------------------------------------------------------------------
  public:
-  size_t num_dimensions() const { return m_size.size(); }
+  auto num_dimensions() const { return m_size.size(); }
   //----------------------------------------------------------------------------
-  const auto& size() const { return m_size; }
+  [[nodiscard]] auto size() const -> const size_t& { return m_size; }
   /// \return size of dimensions i
   auto size(const size_t i) const { return m_size[i]; }
   //----------------------------------------------------------------------------
-  size_t num_elements() const {
+  auto num_elements() const {
     return std::accumulate(begin(m_size), end(m_size), size_t(1),
                            std::multiplies<size_t>{});
   }

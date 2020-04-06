@@ -25,10 +25,10 @@ struct doublegyre : vectorfield<doublegyre<Real>, Real, 2> {
   explicit constexpr doublegyre(Real epsilon = 0.25, Real omega = 2 * pi * 0.1,
                        Real A = 0.1) noexcept
       : m_epsilon{epsilon}, m_omega{omega}, m_A{A}, m_infinite_domain{false} {}
-  constexpr doublegyre(const doublegyre&) = default;
-  constexpr doublegyre(doublegyre&&)      = default;
+  constexpr doublegyre(const doublegyre&)     = default;
+  constexpr doublegyre(doublegyre&&) noexcept = default;
   constexpr auto operator=(const doublegyre&) -> doublegyre& = default;
-  constexpr auto operator=(doublegyre &&) -> doublegyre& = default;
+  constexpr auto operator=(doublegyre&&) noexcept -> doublegyre& = default;
   //----------------------------------------------------------------------------
   ~doublegyre() override = default;
   //----------------------------------------------------------------------------
@@ -39,8 +39,8 @@ struct doublegyre : vectorfield<doublegyre<Real>, Real, 2> {
     Real f  = a * x(0) * x(0) + b * x(0);
     Real df = 2 * a * x(0) + b;
 
-    return {-pi * m_A * std::sin(pi * f) * std::cos(pi * x(1)),
-            pi * m_A * std::cos(pi * f) * std::sin(pi * x(1)) * df};
+    return tensor_t{-pi * m_A * std::sin(pi * f) * std::cos(pi * x(1)),
+                     pi * m_A * std::cos(pi * f) * std::sin(pi * x(1)) * df};
   }
   //----------------------------------------------------------------------------
   [[nodiscard]] constexpr auto in_domain(const pos_t& x, Real) const

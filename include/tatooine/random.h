@@ -35,7 +35,7 @@ struct random_uniform {
   //----------------------------------------------------------------------------
   ~random_uniform() = default;
   //----------------------------------------------------------------------------
-  random_uniform(Engine _engine)
+  explicit random_uniform(Engine _engine)
       : engine{_engine}, distribution{T(0), T(1)} {}
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
   random_uniform(T min, T max, Engine _engine = Engine{std::random_device{}()})
@@ -92,9 +92,10 @@ struct random_normal {
   ~random_normal() = default;
 
   //----------------------------------------------------------------------------
-  random_normal(const Engine& _engine) : engine{_engine}, distribution{0, 1} {}
+  explicit random_normal(const Engine& _engine)
+      : engine{_engine}, distribution{0, 1} {}
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-  random_normal(Engine&& _engine)
+  explicit random_normal(Engine&& _engine)
       : engine{std::move(_engine)}, distribution{0, 1} {}
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
   random_normal(T mean, T stddev)

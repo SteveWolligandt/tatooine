@@ -28,7 +28,7 @@ struct unary_operation_field
   //├──────────────────────────────────────────────────────────────────────┤
  public:
   constexpr unary_operation_field(const unary_operation_field&) = default;
-  constexpr unary_operation_field(unary_operation_field&&) = default;
+  constexpr unary_operation_field(unary_operation_field&&) noexcept = default;
   template <typename V_, typename Op_>
   constexpr unary_operation_field(V_&& v, Op_&& op)
       : m_v{std::forward<V_>(v)}, m_op{std::forward<Op_>(op)} {}
@@ -38,7 +38,7 @@ struct unary_operation_field
  public:
   constexpr auto operator=(const unary_operation_field&)
     -> unary_operation_field& = default;
-  constexpr auto operator=(unary_operation_field &&)
+  constexpr auto operator=(unary_operation_field &&) noexcept
     ->unary_operation_field& = default;
   //┌──────────────────────────────────────────────────────────────────────┐
   //│ dtor                                                                 │
@@ -121,7 +121,7 @@ struct binary_operation_field
  public:
   constexpr binary_operation_field(const binary_operation_field&) = default;
   //├╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌┤
-  constexpr binary_operation_field(binary_operation_field&&) = default;
+  constexpr binary_operation_field(binary_operation_field&&) noexcept = default;
   //├╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌┤
   template <typename V0_, typename V1_, typename Op_>
   constexpr binary_operation_field(V0_&& v0, V1_&& v1, Op_&& op)
@@ -134,7 +134,7 @@ struct binary_operation_field
  public:
   constexpr auto operator=(const binary_operation_field&)
     -> binary_operation_field& = default;
-  constexpr auto operator=(binary_operation_field &&)
+  constexpr auto operator=(binary_operation_field &&) noexcept
     ->binary_operation_field& = default;
  public:
   //┌──────────────────────────────────────────────────────────────────────┐

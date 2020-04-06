@@ -55,7 +55,7 @@ struct static_multidim {
     for (size_t i = 0; i < N; ++i) { m_ranges[i].second = res[i]; }
   }
   //----------------------------------------------------------------------------
-  static_multidim(const std::vector<size_t>& res)
+  explicit static_multidim(const std::vector<size_t>& res)
       : m_ranges(make_array<std::pair<size_t, size_t>, N>()) {
     assert(res.size() == N);
     for (size_t i = 0; i < N; ++i) { m_ranges[i].second = res[i]; }
@@ -63,11 +63,13 @@ struct static_multidim {
   //----------------------------------------------------------------------------
   // methods
   //----------------------------------------------------------------------------
-  constexpr auto&       operator[](size_t i) { return m_ranges[i]; }
-  constexpr const auto& operator[](size_t i) const { return m_ranges[i]; }
+  constexpr auto operator[](size_t i) -> auto& { return m_ranges[i]; }
+  constexpr auto operator[](size_t i) const -> const auto& {
+    return m_ranges[i];
+  }
   //----------------------------------------------------------------------------
-  constexpr auto&       ranges() { return m_ranges; }
-  constexpr const auto& ranges() const { return m_ranges; }
+  constexpr auto ranges() -> auto& { return m_ranges; }
+  constexpr auto ranges() const -> const auto& { return m_ranges; }
   //----------------------------------------------------------------------------
   constexpr auto begin() {
     return static_multidim_iterator<N>{*this, make_array<size_t, N>()};
@@ -95,12 +97,12 @@ struct static_multidim_iterator {
   //----------------------------------------------------------------------------
   constexpr static_multidim_iterator(const static_multidim_iterator& other) =
       default;
-  constexpr static_multidim_iterator(static_multidim_iterator&& other) =
-      default;
+  constexpr static_multidim_iterator(
+      static_multidim_iterator&& other) noexcept = default;
   //----------------------------------------------------------------------------
   constexpr auto operator=(const static_multidim_iterator& other)
       -> static_multidim_iterator& = default;
-  constexpr auto operator=(static_multidim_iterator&& other)
+  constexpr auto operator=(static_multidim_iterator&& other) noexcept
       -> static_multidim_iterator& = default;
   //----------------------------------------------------------------------------
   ~static_multidim_iterator() = default;
@@ -154,10 +156,7 @@ struct dynamic_multidim {
     const dynamic_multidim* m_cont;
     std::vector<size_t>     m_status;
     //----------------------------------------------------------------------------
-    iterator(const dynamic_multidim& c, const std::vector<size_t>& status)
-        : m_cont{&c}, m_status{status} {}
-    //----------------------------------------------------------------------------
-    iterator(const dynamic_multidim& c, std::vector<size_t>&& status)
+    iterator(const dynamic_multidim& c, std::vector<size_t> status)
         : m_cont{&c}, m_status{std::move(status)} {}
     //----------------------------------------------------------------------------
     iterator(const iterator& other) = default;
@@ -193,34 +192,34 @@ struct dynamic_multidim {
       return !operator==(other);
     }
     //----------------------------------------------------------------------------
-    const auto& operator*() const { return m_status; }
+    auto operator*() const -> const auto& { return m_status; }
   };
 
  public:
   //----------------------------------------------------------------------------
-  dynamic_multidim(const std::vector<std::pair<size_t, size_t>>& ranges)
-      : m_ranges(ranges) {}
-  //----------------------------------------------------------------------------
-  dynamic_multidim(std::vector<std::pair<size_t, size_t>>&& ranges)
+  explicit dynamic_multidim(std::vector<std::pair<size_t, size_t>> ranges)
       : m_ranges(std::move(ranges)) {}
   //----------------------------------------------------------------------------
-  dynamic_multidim(const std::vector<size_t>& res)
+  explicit dynamic_multidim(std::vector<std::pair<size_t, size_t>>&& ranges)
+      : m_ranges(std::move(ranges)) {}
+  //----------------------------------------------------------------------------
+  explicit dynamic_multidim(const std::vector<size_t>& res)
       : m_ranges(res.size(), std::make_pair<size_t, size_t>(0, 0)) {
     for (size_t i = 0; i < res.size(); ++i) { m_ranges[i].second = res[i]; }
   }
   //----------------------------------------------------------------------------
   template <size_t N>
-  dynamic_multidim(const std::array<std::pair<size_t, size_t>, N>& ranges)
+  explicit dynamic_multidim(const std::array<std::pair<size_t, size_t>, N>& ranges)
       : m_ranges(ranges.begin(), ranges.end()) {}
   //----------------------------------------------------------------------------
   template <size_t N>
-  constexpr dynamic_multidim(const std::array<size_t, N>& res)
+  explicit constexpr dynamic_multidim(const std::array<size_t, N>& res)
       : m_ranges(N, std::make_pair<size_t, size_t>(0, 0)) {
     for (size_t i = 0; i < N; ++i) { m_ranges[i].second = res[i]; }
   }
   //----------------------------------------------------------------------------
   template <typename... Ts, enable_if_integral<Ts...> = true>
-  constexpr dynamic_multidim(const std::pair<Ts, Ts>&... ranges)
+  explicit constexpr dynamic_multidim(const std::pair<Ts, Ts>&... ranges)
       : m_ranges{std::make_pair(static_cast<size_t>(ranges.first),
                                 static_cast<size_t>(ranges.second))...} {}
 
@@ -232,18 +231,20 @@ struct dynamic_multidim {
 
   //----------------------------------------------------------------------------
   template <typename... Res, enable_if_integral<Res...> = true>
-  constexpr dynamic_multidim(Res... res)
+  explicit constexpr dynamic_multidim(Res... res)
       : m_ranges{std::make_pair(static_cast<size_t>(0),
                                 static_cast<size_t>(res))...} {}
 
   //----------------------------------------------------------------------------
-  auto&       operator[](size_t i) { return m_ranges[i]; }
-  const auto& operator[](size_t i) const { return m_ranges[i]; }
+  auto operator[](size_t i) -> auto& { return m_ranges[i]; }
+  auto operator[](size_t i) const -> const auto& { return m_ranges[i]; }
 
   //----------------------------------------------------------------------------
-  std::vector<std::pair<size_t, size_t>>& ranges() { return m_ranges; }
-  //----------------------------------------------------------------------------
-  const std::vector<std::pair<size_t, size_t>>& ranges() const {
+  [[nodiscard]] auto ranges() -> std::vector<std::pair<size_t, size_t>>& {
+    return m_ranges;
+  }
+  [[nodiscard]] auto ranges() const
+      -> const std::vector<std::pair<size_t, size_t>>& {
     return m_ranges;
   }
   //----------------------------------------------------------------------------
@@ -257,7 +258,7 @@ struct dynamic_multidim {
     return iterator{*this, std::move(v)};
   }
   //----------------------------------------------------------------------------
-  size_t num_dimensions() const { return m_ranges.size(); }
+  [[nodiscard]] auto num_dimensions() const -> size_t { return m_ranges.size(); }
 };
 
 //==============================================================================
