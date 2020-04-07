@@ -383,7 +383,7 @@ struct vec : tensor<Real, N> {  // NOLINT
     return *this;
   }
   template <typename OtherTensor, typename OtherReal>
-  constexpr vec(const base_tensor<Tensor0, Real0, N>& other){
+  constexpr vec(const base_tensor<OtherTensor, OtherReal, N>& other) {
     for (size_t i = 0; i < N; ++i) { at(i) = other(i); }
   }
   //----------------------------------------------------------------------------

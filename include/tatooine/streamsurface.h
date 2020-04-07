@@ -723,7 +723,7 @@ struct hultquist_discretization : front_evolving_streamsurface_discretization<
         if (!streamline.empty()) {
           const auto& border_point =
               step > 0 ? streamline.back() : streamline.front();
-          auto new_v = insert_vertex(border_point.first, {uv(0), border_point.second});
+          auto new_v = insert_vertex(border_point.first, uv_t{uv(0), border_point.second});
           integrated_vertices.push_back({new_v, true, true, false, v_it});
           this->m_on_border.insert(new_v);
         }
@@ -757,7 +757,7 @@ struct hultquist_discretization : front_evolving_streamsurface_discretization<
         if (found) {
           auto new_v = insert_vertex(
               this->ssf->sample(walking_u, fix_v, backward_tau, forward_tau),
-              {walking_u, fix_v });
+              uv_t{walking_u, fix_v });
           integrated_vertices.insert(
               next(it), {new_v, true, true, true,
                          next(it)->on_border ? next(it)->start_vertex

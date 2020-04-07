@@ -155,7 +155,7 @@ struct pointset {
   template <typename... Ts, enable_if_arithmetic<Ts...> = true,
             std::enable_if_t<sizeof...(Ts) == N, bool> = true>
   auto insert_vertex(Ts... ts) {
-    points().push_back({static_cast<Real>(std::forward<Ts>(ts))...});
+    points().push_back(pos_t{static_cast<Real>(std::forward<Ts>(ts))...});
     for (auto& [key, prop] : m_vertex_properties) { prop->push_back(); }
     return vertex{m_vertices.size() - 1};
   }

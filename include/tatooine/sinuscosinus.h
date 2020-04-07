@@ -65,11 +65,13 @@ struct cosinussinus : field<cosinussinus<Real>, Real, 2, 2> {
   //----------------------------------------------------------------------------
   void set_radius(Real r) { m_radius = r; }
   //----------------------------------------------------------------------------
-  constexpr tensor_t evaluate(const pos_t& /*x*/, Real t) const {
-    return {std::cos(t) * m_radius, std::sin(t) * m_radius};
+  [[nodiscard]] constexpr auto evaluate(const pos_t& /*x*/, Real t) const
+      -> tensor_t final {
+    return tensor_t{std::cos(t) * m_radius, std::sin(t) * m_radius};
   }
   //----------------------------------------------------------------------------
-  constexpr bool in_domain(const pos_t& /*x*/, Real /*t*/) const {
+  [[nodiscard]] constexpr auto in_domain(const pos_t& /*x*/, Real /*t*/) const
+      -> bool final {
     return true;
   }
 };
@@ -84,13 +86,14 @@ struct sinuscosinus : field<sinuscosinus<Real>, Real, 2, 2> {
 
   //============================================================================
   constexpr sinuscosinus() noexcept {}
-
   //----------------------------------------------------------------------------
-  constexpr tensor_t evaluate(const pos_t& /*x*/, Real t) const {
-    return {std::sin(t), std::cos(t)};
+  [[nodiscard]] constexpr auto evaluate(const pos_t& /*x*/, Real t) const
+      -> tensor_t final {
+    return tensor_t{std::sin(t), std::cos(t)};
   }
   //----------------------------------------------------------------------------
-  constexpr auto in_domain(const pos_t& /*x*/, Real /*t*/) const {
+  [[nodiscard]] constexpr auto in_domain(const pos_t& /*x*/, Real /*t*/) const
+      -> bool final {
     return true;
   }
 };

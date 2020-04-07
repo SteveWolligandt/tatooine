@@ -27,11 +27,12 @@ struct laminar : field<laminar<Real>, Real, 2, 2> {
   using typename parent_t::pos_t;
   using typename parent_t::tensor_t;
   //----------------------------------------------------------------------------
-  tensor_t evaluate(const pos_t& /*pos*/, Real /*t*/) const {
-    return {1.0 / sqrt(2.0), 1.0 / sqrt(2.0)};
+  auto evaluate(const pos_t& /*pos*/, Real /*t*/) const -> tensor_t final {
+    return tensor_t{1.0 / sqrt(2.0), 1.0 / sqrt(2.0)};
   }
   //----------------------------------------------------------------------------
-  constexpr bool in_domain(const pos_t& /*pos*/, Real /*t*/) const {
+  constexpr auto in_domain(const pos_t& /*pos*/, Real /*t*/) const
+      -> bool final {
     return true;
   }
 };

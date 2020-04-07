@@ -39,7 +39,7 @@ struct fixed_time_field : field<fixed_time_field<Field, Real, N, TensorDims...>,
     return m_field(x, m_fixed_time);
   }
   //----------------------------------------------------------------------------
-  constexpr decltype(auto) in_domain(const pos_t& x, Real /*t*/) const {
+  constexpr auto in_domain(const pos_t& x, Real /*t*/) const -> bool final {
     return m_field.in_domain(x, m_fixed_time);
   }
 };

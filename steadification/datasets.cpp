@@ -28,7 +28,7 @@ void rbc::read_from_binary() {
 }
 
 //------------------------------------------------------------------------------
-rbc::tensor_t rbc::evaluate(const rbc::pos_t& pos, rbc::real_t t) const {
+auto rbc::evaluate(const rbc::pos_t& pos, rbc::real_t t) const -> tensor_t {
   const auto& times = domain.dimension(2);
   for (size_t i = 0; i < grids.size() - 1; ++i)
     if (times[i] <= t && t <= times[i + 1]) {
@@ -36,7 +36,7 @@ rbc::tensor_t rbc::evaluate(const rbc::pos_t& pos, rbc::real_t t) const {
       return (1 - f) * grids[i](pos(0), pos(1)) +
              f * grids[i + 1](pos(0), pos(1));
     }
-  return {0,0};
+  return tensor_t{0,0};
 }
 
 //==============================================================================
