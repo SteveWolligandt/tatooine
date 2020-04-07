@@ -13,7 +13,7 @@ namespace tatooine {
 
 template <typename Real, size_t N>
 struct grid_vertex_edges : grid_vertex_neighbors<Real, N> {
-  grid_vertex_edges(const grid_vertex<Real, N>& center)
+  explicit grid_vertex_edges(const grid_vertex<Real, N>& center)
       : grid_vertex_neighbors<Real, N>(center) {}
 
   //----------------------------------------------------------------------------

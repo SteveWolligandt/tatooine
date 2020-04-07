@@ -1,26 +1,56 @@
-if ("${CMAKE_CXX_COMPILER_ID}" STREQUAL "Clang")
-  list(APPEND CMAKE_CXX_FLAGS "-fcolor-diagnostics")
-elseif ("${CMAKE_CXX_COMPILER_ID}" STREQUAL "GNU")
-  list(APPEND CMAKE_CXX_FLAGS "-fdiagnostics-color=always")
-endif()
-#- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-enable_testing()
-include(CTest)
-include(Catch)
-include(colors)
-#- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+set(TATOOINE_COMPILE_WITH_CLANG_TIDY_CHECKS false CACHE BOOL
+    "use clang-tidy checks while building")
+option(TATOOINE_COMPILE_WITH_CLANG_TIDY_CHECKS
+       "use clang-tidy checks while building" FALSE)
 set(TATOOINE_TEST_USE_FAST_MATH false CACHE BOOL
     "use -ffast-math for unittests")
 option(TATOOINE_TEST_USE_FAST_MATH
     "use -ffast-math for unittests" OFF)
 #- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+if ("${CMAKE_CXX_COMPILER_ID}" STREQUAL "Clang")
+list(APPEND CMAKE_CXX_FLAGS "-fcolor-diagnostics")
+elseif ("${CMAKE_CXX_COMPILER_ID}" STREQUAL "GNU")
+  list(APPEND CMAKE_CXX_FLAGS "-fdiagnostics-color=always")
+endif()
+#- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - 
+# clang-tidy
+#- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - 
+find_program(TATOOINE_CLANG_TIDY NAMES "clang-tidy" DOC "Path to clang-tidy executable")
+string(CONCAT TATOOINE_CLANG_TIDY_CHECKS
+  "-checks="
+  ",cppcoreguidelines*"
+  ",-cppcoreguidelines-pro-type-reinterpret-cast"
+  ",-cppcoreguidelines-pro-bounds-pointer-arithmetic"
+  ",-cppcoreguidelines-pro-bounds-constant-array-index"
+  ",-cppcoreguidelines-avoid-magic-numbers"
+  ",-cppcoreguidelines-macro-usage"
+  ",cert*"
+  ",-cert-err34-c"
+  ",hicpp"
+  ",modernize*"
+  ",performance*"
+  ",readability*"
+  ",-readability-magic-numbers"
+  ",-readability-isolate-declaration"
+  ",-readability-static-accessed-through-instance"
+  ",-readability-named-parameter"
+  ",google-explicit-constructor"
+  )
+if(TATOOINE_CLANG_TIDY)
+  set(TATOOINE_CLANG_TIDY_CMD
+    ${TATOOINE_CLANG_TIDY}
+    ${TATOOINE_CLANG_TIDY_CHECKS}
+    "-header-filter=tatooine")
+endif()
+enable_testing()
+include(CTest)
+include(Catch)
+include(colors)
+#- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 set(TATOOINE_TEST_CPPS main.cpp)
 macro(create_test NAME)
   list(APPEND TATOOINE_TEST_CPPS "${NAME}.cpp")
   add_executable (${NAME}.test ${NAME}.cpp main.cpp)
-  if (TATOOINE_TEST_USE_FAST_MATH)
-    target_compile_options(${NAME}.test PRIVATE -ffast-math)
-  endif()
   target_link_libraries(${NAME}.test tatooine Catch2::Catch2)
   target_compile_features(${NAME}.test PUBLIC cxx_std_17)
   target_compile_options(${NAME}.test PRIVATE
@@ -44,6 +74,12 @@ macro(create_test NAME)
                      COMMAND gprof2dot --format=callgrind --output=${NAME}.test.dot ${NAME}.test.callgrind
                      COMMAND dot -Tsvg ${NAME}.test.dot -o ${NAME}.test-graph.svg
                      DEPENDS ${NAME}.test.callgrind)
+  if (TATOOINE_TEST_USE_FAST_MATH)
+    target_compile_options(${NAME}.test PRIVATE -ffast-math)
+  endif()
+  if(TATOOINE_CLANG_TIDY AND TATOOINE_COMPILE_WITH_CLANG_TIDY_CHECKS)
+    set_target_properties(${NAME}.test PROPERTIES CXX_CLANG_TIDY "${TATOOINE_CLANG_TIDY_CMD}")
+  endif()
 endmacro()
 #- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 # create tests from cpp files in current directory 

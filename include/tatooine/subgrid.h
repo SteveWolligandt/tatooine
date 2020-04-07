@@ -3,6 +3,7 @@
 
 #include <cstddef>
 #include <functional>
+
 #include "grid_vertex.h"
 
 //==============================================================================
@@ -11,8 +12,7 @@ namespace tatooine {
 
 template <typename Real, size_t N>
 struct subgrid {
-  subgrid(const grid_vertex<Real, N>& begin,
-          const grid_vertex<Real, N>& end)
+  subgrid(const grid_vertex<Real, N>& begin, const grid_vertex<Real, N>& end)
       : m_begin_vertex(begin), m_end_vertex(end) {}
 
   //------------------------------------------------------------------------
@@ -34,7 +34,6 @@ struct subgrid {
     actual_end_vertex.iterators.back() = m_end_vertex.iterators.back();
     return vertex_iterator{actual_end_vertex, this};
   }
-
 };
 
 //==============================================================================
@@ -43,23 +42,20 @@ template <typename Real, size_t N>
 struct subgrid<Real, N>::vertex_iterator {
   grid_vertex<Real, N> v;
   subgrid<Real, N>*    m_subgrid;
-
   //----------------------------------------------------------------------------
-
-  auto& operator++() {
+  auto operator++() -> auto& {
     ++v.iterators.front();
-    for (size_t i = 0; i < N - 1; ++i)
+    for (size_t i = 0; i < N - 1; ++i) {
       if (v.iterators[i] == m_subgrid->m_end_vertex.iterators[i]) {
         v.iterators[i] = m_subgrid->m_begin_vertex.iterators[i];
         ++v.iterators[i + 1];
       }
+    }
     return *this;
   }
-
   //----------------------------------------------------------------------------
-
-  auto& operator--() {
-    for (size_t i = 0; i < N; ++i)
+  auto operator--() -> auto& {
+    for (size_t i = 0; i < N; ++i) {
       if (v.iterators[i] == m_subgrid->begin_vertex.iterators[i]) {
         v.iterators[i] = m_subgrid->end_vertex.iterators[i];
         --v.iterators[i];
@@ -67,14 +63,13 @@ struct subgrid<Real, N>::vertex_iterator {
         --v.iterators[i];
         break;
       }
+    }
     return *this;
   }
-
   //----------------------------------------------------------------------------
-
   auto operator*() { return v; }
-  bool operator==(const vertex_iterator& other) { return v == other.v; }
-  bool operator!=(const vertex_iterator& other) { return v != other.v; }
+  auto operator==(const vertex_iterator& other) { return v == other.v; }
+  auto operator!=(const vertex_iterator& other) { return v != other.v; }
 };
 
 //==============================================================================

@@ -10,16 +10,16 @@ namespace symbolic {
 
 #define sym(sym)                                                           \
   template <size_t... Is>                                                  \
-  static auto& sym(size_t idx, std::index_sequence<Is...> /*is*/) {        \
+  static auto sym(size_t idx, std::index_sequence<Is...> /*is*/)->auto& {  \
     static std::array<GiNaC::symbol, sizeof...(Is)> sym_arr{               \
         ((void)Is,                                                         \
          GiNaC::symbol{#sym + std::string{"_"} + std::to_string(Is)})...}; \
     return sym_arr[idx];                                                   \
   }                                                                        \
-  static auto& sym(size_t idx) {                                           \
+  static auto sym(size_t idx)->auto& {                                     \
     return sym(idx, std::make_index_sequence<num_pos_symbols>{});          \
   }                                                                        \
-  static auto& sym() {                                                     \
+  static auto sym()->auto& {                                               \
     static GiNaC::symbol sym{#sym};                                        \
     return sym;                                                            \
   }

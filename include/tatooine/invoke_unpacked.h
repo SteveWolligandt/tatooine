@@ -50,26 +50,17 @@ template <typename T, size_t N>
 struct unpack<std::array<T, N>> {
   static constexpr size_t n = N;
   std::array<T, N>&       container;
-
   //----------------------------------------------------------------------------
-  constexpr unpack(std::array<T, N>& c) : container{c} {}
-
+  explicit constexpr unpack(std::array<T, N>& c) : container{c} {}
   //----------------------------------------------------------------------------
   template <size_t I>
-  constexpr auto& get() {
-    return container[I];
-  }
-
-  //----------------------------------------------------------------------------
+  constexpr auto get() -> auto& { return container[I]; }
   template <size_t I>
-  constexpr const auto& get() const {
-    return container[I];
-  }
+  constexpr auto get() const -> const auto& { return container[I]; }
 };
 //==============================================================================
 template <typename T, size_t N>
 unpack(std::array<T, N>& c)->unpack<std::array<T, N>>;
-
 //==============================================================================
 template <typename T, size_t N>
 struct unpack<const std::array<T, N>> {
@@ -77,11 +68,11 @@ struct unpack<const std::array<T, N>> {
   const std::array<T, N>& container;
 
   //----------------------------------------------------------------------------
-  constexpr unpack(const std::array<T, N>& c) : container{c} {}
+  explicit constexpr unpack(const std::array<T, N>& c) : container{c} {}
 
   //----------------------------------------------------------------------------
   template <size_t I>
-  constexpr const auto& get() const {
+  constexpr auto get() const -> const auto& {
     return container[I];
   }
 };
@@ -94,19 +85,16 @@ template <typename... Ts>
 struct unpack<std::tuple<Ts...>> {
   static constexpr size_t n = sizeof...(Ts);
   std::tuple<Ts...>&      container;
-
   //----------------------------------------------------------------------------
-  constexpr unpack(std::tuple<Ts...>&& c) : container{c} {}
-
+  explicit constexpr unpack(std::tuple<Ts...>&& c) : container{c} {}
   //----------------------------------------------------------------------------
   template <size_t I>
-  constexpr auto& get() {
+  constexpr auto get() -> auto& {
     return std::get<I>(container);
   }
-
   //----------------------------------------------------------------------------
   template <size_t I>
-  constexpr const auto& get() const {
+  constexpr auto get() const -> const auto& {
     return std::get<I>(container);
   }
 };
@@ -119,13 +107,11 @@ template <typename... Ts>
 struct unpack<const std::tuple<Ts...>> {
   static constexpr size_t  n = sizeof...(Ts);
   const std::tuple<Ts...>& container;
-
   //----------------------------------------------------------------------------
-  constexpr unpack(std::tuple<Ts...>&& c) : container{c} {}
-
+  explicit constexpr unpack(std::tuple<Ts...>&& c) : container{c} {}
   //----------------------------------------------------------------------------
   template <size_t I>
-  constexpr const auto& get() const {
+  constexpr auto get() const -> const auto& {
     return std::get<I>(container);
   }
 };
@@ -138,23 +124,19 @@ template <typename A, typename B>
 struct unpack<std::pair<A, B>> {
   static constexpr size_t n = 2;
   std::pair<A, B>&        container;
-
   //----------------------------------------------------------------------------
-  constexpr unpack(std::pair<A, B>& c) : container{c} {}
-
+  explicit constexpr unpack(std::pair<A, B>& c) : container{c} {}
   //----------------------------------------------------------------------------
   template <size_t I>
-  constexpr auto& get() {
+  constexpr auto get() -> auto& {
     return std::get<I>(container);
   }
-
   //----------------------------------------------------------------------------
   template <size_t I>
-  constexpr const auto& get() const {
+  constexpr auto get() const -> const auto& {
     return std::get<I>(container);
   }
 };
-
 //==============================================================================
 template <typename A, typename B>
 unpack(std::pair<A, B>& c)->unpack<std::pair<A, B>>;
@@ -164,13 +146,11 @@ template <typename A, typename B>
 struct unpack<const std::pair<A, B>> {
   static constexpr size_t n = 2;
   const std::pair<A, B>&  container;
-
   //----------------------------------------------------------------------------
-  constexpr unpack(std::pair<A, B>&& c) : container{c} {}
-
+  explicit constexpr unpack(std::pair<A, B>&& c) : container{c} {}
   //----------------------------------------------------------------------------
   template <size_t I>
-  constexpr const auto& get() const {
+  constexpr auto get() const -> const auto& {
     return std::get<I>(container);
   }
 };

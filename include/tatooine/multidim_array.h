@@ -98,14 +98,18 @@ class static_multidim_array
   //============================================================================
  public:
   constexpr static_multidim_array(const static_multidim_array& other) = default;
-  constexpr static_multidim_array(static_multidim_array&& other)      = default;
-  constexpr static_multidim_array& operator                           =(
-      const static_multidim_array& other) = default;
-  constexpr static_multidim_array& operator=(static_multidim_array&& other) =
+  constexpr static_multidim_array(static_multidim_array&& other) noexcept =
       default;
   //----------------------------------------------------------------------------
+  constexpr auto operator=(const static_multidim_array& other)
+      -> static_multidim_array& = default;
+  constexpr auto operator =(static_multidim_array&& other) noexcept
+      -> static_multidim_array& = default;
+  //----------------------------------------------------------------------------
+  ~static_multidim_array() = default;
+  //----------------------------------------------------------------------------
   template <typename OtherT, typename OtherIndexing, typename OtherMemLoc>
-  constexpr static_multidim_array(
+  explicit constexpr static_multidim_array(
       const static_multidim_array<OtherT, OtherIndexing, OtherMemLoc,
                                   Resolution...>& other)
       : m_data(init_data()) {
@@ -113,9 +117,10 @@ class static_multidim_array
   }
   //----------------------------------------------------------------------------
   template <typename OtherT, typename OtherIndexing, typename OtherMemLoc>
-  constexpr static_multidim_array& operator=(
+  constexpr auto operator=(
       const static_multidim_array<OtherT, OtherIndexing, OtherMemLoc,
-                                  Resolution...>& other) {
+                                  Resolution...>& other)
+      -> static_multidim_array& {
     for (auto is : tatooine::static_multidim{Resolution...}) {
       at(is) = other(is);
     }
@@ -124,43 +129,43 @@ class static_multidim_array
   //----------------------------------------------------------------------------
   template <typename... Ts,
             std::enable_if_t<sizeof...(Ts) == num_elements(), bool> = true>
-  constexpr static_multidim_array(Ts&&... ts) : m_data{static_cast<T>(ts)...} {}
+  explicit constexpr static_multidim_array(Ts&&... ts) : m_data{static_cast<T>(ts)...} {}
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
   constexpr static_multidim_array() : m_data(init_data(T{})) {}
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
   template <typename S>
-  constexpr static_multidim_array(const fill<S>& f)
+  explicit constexpr static_multidim_array(const fill<S>& f)
       : m_data(init_data(static_cast<T>(f.value))) {}
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
   template <typename _T = T, enable_if_arithmetic<_T> = true>
-  constexpr static_multidim_array(zeros_t /*z*/) : m_data(init_data(0)) {}
+  explicit constexpr static_multidim_array(zeros_t /*z*/) : m_data(init_data(0)) {}
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
   template <typename _T = T, enable_if_arithmetic<_T> = true>
-  constexpr static_multidim_array(ones_t /*o*/) : m_data(init_data(1)) {}
+  explicit constexpr static_multidim_array(ones_t /*o*/) : m_data(init_data(1)) {}
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-  static_multidim_array(const std::vector<T>& data)
+  explicit static_multidim_array(const std::vector<T>& data)
       : m_data(begin(data), end(data)) {
     assert(data.size() == num_elements());
   }
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-  constexpr static_multidim_array(const std::array<T, num_elements()>& data)
+  explicit constexpr static_multidim_array(const std::array<T, num_elements()>& data)
       : m_data(data) {}
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
   template <typename _MemLoc                                       = MemLoc,
             std::enable_if_t<std::is_same<_MemLoc, stack>::value, bool> = true>
-  constexpr static_multidim_array(std::array<T, num_elements()>&& data)
+  explicit constexpr static_multidim_array(std::array<T, num_elements()>&& data)
       : m_data(std::move(data)) {}
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
   template <typename _MemLoc                                      = MemLoc,
             std::enable_if_t<std::is_same<_MemLoc, heap>::value, bool> = true>
-  constexpr static_multidim_array(std::vector<T>&& data)
+  explicit constexpr static_multidim_array(std::vector<T>&& data)
       : m_data(std::move(data)) {
     assert(num_elements() == data.size());
   }
   //----------------------------------------------------------------------------
   template <typename RandomReal, typename Engine, typename _T = T,
             enable_if_arithmetic<_T> = true>
-  constexpr static_multidim_array(random_uniform<RandomReal, Engine>&& rand)
+  explicit constexpr static_multidim_array(random_uniform<RandomReal, Engine>&& rand)
       : static_multidim_array{} {
     this->unary_operation(
         [&](const auto& /*c*/) { return static_cast<T>(rand.get()); });
@@ -168,7 +173,7 @@ class static_multidim_array
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
   template <typename RandomReal, typename Engine, typename _T = T,
             enable_if_arithmetic<_T> = true>
-  constexpr static_multidim_array(random_normal<RandomReal, Engine>&& rand)
+  explicit constexpr static_multidim_array(random_normal<RandomReal, Engine>&& rand)
       : static_multidim_array{} {
     this->unary_operation(
         [&](const auto& /*c*/) { return static_cast<T>(rand.get()); });
@@ -178,76 +183,84 @@ class static_multidim_array
   //============================================================================
  public:
   template <typename... Is, enable_if_integral<Is...> = true>
-  constexpr const auto& at(Is... is) const {
+  [[nodiscard]] constexpr auto at(Is... is) const -> const auto& {
     static_assert(sizeof...(Is) == num_dimensions());
     assert(in_range(is...));
     return m_data[plain_index(is...)];
   }
   //----------------------------------------------------------------------------
   template <typename... Is, enable_if_integral<Is...> = true>
-  constexpr auto& at(Is... is) {
+  constexpr auto at(Is... is) -> auto& {
     static_assert(sizeof...(Is) == num_dimensions());
     assert(in_range(is...));
     return m_data[plain_index(is...)];
   }
   //----------------------------------------------------------------------------
   template <typename UInt, enable_if_unsigned_integral<UInt> = true>
-  constexpr const auto& at(const std::array<UInt, num_dimensions()>& is) const {
+  constexpr auto at(const std::array<UInt, num_dimensions()>& is) const 
+    -> const auto& {
     return invoke_unpacked(
         [&](auto... is) -> decltype(auto) { return at(is...); }, unpack(is));
   }
   //----------------------------------------------------------------------------
   template <typename UInt, enable_if_unsigned_integral<UInt> = true>
-  constexpr auto& at(const std::array<UInt, num_dimensions()>& is) {
+  constexpr auto at(const std::array<UInt, num_dimensions()>& is) -> auto& {
     return invoke_unpacked(
         [&](auto... is) -> decltype(auto) { return at(is...); }, unpack(is));
   }
   //----------------------------------------------------------------------------
   template <typename UInt, enable_if_unsigned_integral<UInt> = true>
-  constexpr const auto& at(const std::vector<UInt>& is) const {
+  constexpr auto at(const std::vector<UInt>& is) const -> const auto& {
     assert(is.size() == num_dimensions());
     m_data[plain_index(is)];
   }
   //----------------------------------------------------------------------------
   template <typename UInt, enable_if_unsigned_integral<UInt> = true>
-  constexpr auto& at(const std::vector<UInt>& is) {
+  constexpr auto at(const std::vector<UInt>& is) -> auto& {
     assert(is.size() == num_dimensions());
     return m_data[plain_index(is)];
   }
   //----------------------------------------------------------------------------
   template <typename... Is, enable_if_integral<Is...> = true>
-  constexpr const auto& operator()(Is... is) const {
+  constexpr auto operator()(Is... is) const -> const auto& {
     static_assert(sizeof...(Is) == num_dimensions());
     assert(in_range(is...));
     return at(is...);
   }
   //----------------------------------------------------------------------------
   template <typename... Is, enable_if_integral<Is...> = true>
-  constexpr auto& operator()(Is... is) {
+  constexpr auto operator()(Is... is) -> auto& {
     static_assert(sizeof...(Is) == num_dimensions());
     assert(in_range(is...));
     return at(is...);
   }
   //----------------------------------------------------------------------------
   template <typename UInt, enable_if_unsigned_integral<UInt> = true>
-  constexpr const auto& operator()(
-      const std::array<UInt, num_dimensions()>& is) const {
+  constexpr auto operator()(const std::array<UInt, num_dimensions()>& is) const
+      -> const auto& {
     return at(is);
   }
   //----------------------------------------------------------------------------
   template <typename UInt, enable_if_unsigned_integral<UInt> = true>
-  constexpr auto& operator()(const std::array<UInt, num_dimensions()>& is) {
+  constexpr auto operator()(const std::array<UInt, num_dimensions()>& is)
+      -> auto& {
     return at(is);
   }
   //----------------------------------------------------------------------------
-  constexpr auto&       operator[](size_t i) { return m_data[i]; }
-  constexpr const auto& operator[](size_t i) const { return m_data[i]; }
+  [[nodiscard]] constexpr auto operator[](size_t i) -> auto& {
+    return m_data[i];
+  }
+  [[nodiscard]] constexpr auto operator[](size_t i) const -> const auto& {
+    return m_data[i];
+  }
   //----------------------------------------------------------------------------
-  constexpr auto&       data() { return m_data; }
-  constexpr const auto& data() const { return m_data; }
+  [[nodiscard]] constexpr auto data() -> auto& { return m_data; }
+  [[nodiscard]] constexpr auto data() const -> const auto& { return m_data; }
   //----------------------------------------------------------------------------
-  constexpr T*       data_ptr() { return m_data.data(); }
-  constexpr const T* data_ptr() const { return m_data.data(); }
+  [[nodiscard]] constexpr auto data_ptr() -> T* { return m_data.data(); }
+  [[nodiscard]] constexpr auto data_ptr() const -> const T* {
+    return m_data.data();
+  }
   //============================================================================
   template <typename F>
   constexpr void unary_operation(F&& f) {
@@ -458,15 +471,19 @@ class dynamic_multidim_array : public dynamic_multidim_resolution<Indexing> {
   // ctors
   //============================================================================
  public:
-  dynamic_multidim_array()                                    = default;
-  dynamic_multidim_array(const dynamic_multidim_array& other) = default;
-  dynamic_multidim_array(dynamic_multidim_array&& other)      = default;
-  dynamic_multidim_array& operator=(const dynamic_multidim_array& other) =
-      default;
-  dynamic_multidim_array& operator=(dynamic_multidim_array&& other) = default;
+  dynamic_multidim_array()                                        = default;
+  dynamic_multidim_array(const dynamic_multidim_array& other)     = default;
+  dynamic_multidim_array(dynamic_multidim_array&& other) noexcept = default;
+  //----------------------------------------------------------------------------
+  auto operator=(const dynamic_multidim_array& other)
+    -> dynamic_multidim_array& = default;
+  auto operator=(dynamic_multidim_array&& other) noexcept
+      -> dynamic_multidim_array& = default;
+  //----------------------------------------------------------------------------
+  ~dynamic_multidim_array() = default;
   //----------------------------------------------------------------------------
   template <typename OtherT, typename OtherIndexing>
-  constexpr dynamic_multidim_array(
+  explicit constexpr dynamic_multidim_array(
       const dynamic_multidim_array<OtherT, OtherIndexing>& other)
       : parent_t{other} {
     auto it = begin(other.data());
@@ -474,8 +491,8 @@ class dynamic_multidim_array : public dynamic_multidim_resolution<Indexing> {
   }
   //----------------------------------------------------------------------------
   template <typename OtherT, typename OtherIndexing>
-  dynamic_multidim_array& operator=(
-      const dynamic_multidim_array<OtherT, OtherIndexing>& other) {
+  auto operator=(const dynamic_multidim_array<OtherT, OtherIndexing>& other)
+      -> dynamic_multidim_array& {
     if (parent_t::operator!=(other)) { resize(other.size()); }
     parent_t::operator=(other);
     for (auto is : indices()) { at(is) = other(is); }
@@ -483,98 +500,84 @@ class dynamic_multidim_array : public dynamic_multidim_resolution<Indexing> {
   }
   //============================================================================
   template <typename... Resolution, enable_if_integral<Resolution...> = true>
-  dynamic_multidim_array(Resolution... resolution)
+  explicit dynamic_multidim_array(Resolution... resolution)
       : parent_t{resolution...}, m_data(num_elements(), T{}) {}
-  // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-  // -
+  // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
   template <typename... Resolution, typename S,
             enable_if_integral<Resolution...> = true>
-  dynamic_multidim_array(const fill<S>& f, Resolution... resolution)
+  explicit dynamic_multidim_array(const fill<S>& f, Resolution... resolution)
       : parent_t{resolution...}, m_data(num_elements(), f.value) {}
-  // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-  // -
+  // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
   template <typename... Resolution, enable_if_integral<Resolution...> = true>
-  dynamic_multidim_array(const zeros_t& /*z*/, Resolution... resolution)
+  explicit dynamic_multidim_array(const zeros_t& /*z*/,
+                                  Resolution... resolution)
       : parent_t{resolution...}, m_data(num_elements(), 0) {}
-  // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-  // -
+  // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
   template <typename... Resolution, enable_if_integral<Resolution...> = true>
-  dynamic_multidim_array(const ones_t& /*o*/, Resolution... resolution)
+  explicit dynamic_multidim_array(const ones_t& /*o*/, Resolution... resolution)
       : parent_t{resolution...}, m_data(num_elements(), 1) {}
-  // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-  // -
+  // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
   template <typename... Resolution, enable_if_integral<Resolution...> = true>
-  dynamic_multidim_array(const std::vector<T>& data, Resolution... resolution)
+  explicit dynamic_multidim_array(const std::vector<T>& data, Resolution... resolution)
       : parent_t{resolution...}, m_data(data) {}
-  // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-  // -
+  // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
   template <typename... Resolution, enable_if_integral<Resolution...> = true>
-  dynamic_multidim_array(std::vector<T>&& data, Resolution... resolution)
+  explicit dynamic_multidim_array(std::vector<T>&& data, Resolution... resolution)
       : parent_t{resolution...}, m_data(std::move(data)) {}
   //----------------------------------------------------------------------------
   template <typename UInt, enable_if_unsigned_integral<UInt> = true>
-  dynamic_multidim_array(const std::vector<UInt>& resolution)
+  explicit dynamic_multidim_array(const std::vector<UInt>& resolution)
       : parent_t{resolution}, m_data(num_elements(), T{}) {}
-  // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-  // -
+  // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
   template <typename S, typename UInt, enable_if_unsigned_integral<UInt> = true>
   dynamic_multidim_array(const fill<S>& f, const std::vector<UInt>& resolution)
       : parent_t{resolution}, m_data(num_elements(), f.value) {}
-  // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-  // -
+  // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
   template <typename UInt, enable_if_unsigned_integral<UInt> = true>
   dynamic_multidim_array(const zeros_t& /*z*/,
                          const std::vector<UInt>& resolution)
       : parent_t{resolution}, m_data(num_elements(), 0) {}
-  // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-  // -
+  // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
   template <typename UInt, enable_if_unsigned_integral<UInt> = true>
   dynamic_multidim_array(const ones_t& /*o*/,
                          const std::vector<UInt>& resolution)
       : parent_t{resolution}, m_data(num_elements(), 1) {}
-  // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-  // -
+  // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
   template <typename UInt, enable_if_unsigned_integral<UInt> = true>
   dynamic_multidim_array(const std::vector<T>&    data,
                          const std::vector<UInt>& resolution)
       : parent_t{resolution}, m_data(data) {}
-  // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-  // -
+  // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
   template <typename UInt, enable_if_unsigned_integral<UInt> = true>
   dynamic_multidim_array(std::vector<T>&&         data,
                          const std::vector<UInt>& resolution)
       : parent_t{resolution}, m_data(std::move(data)) {}
   //----------------------------------------------------------------------------
   template <size_t N, typename UInt, enable_if_unsigned_integral<UInt> = true>
-  dynamic_multidim_array(const std::array<UInt, N>& resolution)
+  explicit dynamic_multidim_array(const std::array<UInt, N>& resolution)
       : parent_t{resolution}, m_data(num_elements(), T{}) {}
-  // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-  // -
+  // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
   template <size_t N, typename S, typename UInt,
             enable_if_unsigned_integral<UInt> = true>
   dynamic_multidim_array(const fill<S>&             f,
                          const std::array<UInt, N>& resolution)
       : parent_t{resolution}, m_data(num_elements(), f.value) {}
-  // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-  // -
+  // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
   template <size_t N, typename UInt, enable_if_unsigned_integral<UInt> = true>
   dynamic_multidim_array(const zeros_t& /*z*/,
                          const std::array<UInt, N>& resolution)
       : parent_t{resolution}, m_data(num_elements(), 0) {}
-  // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-  // -
+  // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
   template <size_t N, typename UInt, enable_if_unsigned_integral<UInt> = true>
   dynamic_multidim_array(const ones_t& /*o*/,
                          const std::array<UInt, N>& resolution)
       : parent_t{resolution}, m_data(num_elements(), 1) {}
-  // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-  // -
+  // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
   template <size_t N, typename UInt, enable_if_unsigned_integral<UInt> = true>
   dynamic_multidim_array(const std::vector<T>&      data,
                          const std::array<UInt, N>& resolution)
       : parent_t{resolution}, m_data(data) {}
-  // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-  // -
+  // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
   template <size_t N, typename UInt, enable_if_unsigned_integral<UInt> = true>
   dynamic_multidim_array(std::vector<T>&&           data,
                          const std::array<UInt, N>& resolution)
@@ -589,8 +592,7 @@ class dynamic_multidim_array : public dynamic_multidim_resolution<Indexing> {
     this->unary_operation(
         [&](const auto& /*c*/) { return static_cast<T>(rand.get()); });
   }
-  // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-  // -
+  // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
   template <typename UInt, typename RandomReal, typename Engine,
             typename _T = T, enable_if_unsigned_integral<UInt> = true,
             enable_if_arithmetic<_T> = true>
@@ -600,8 +602,7 @@ class dynamic_multidim_array : public dynamic_multidim_resolution<Indexing> {
     this->unary_operation(
         [&](const auto& /*c*/) { return static_cast<T>(rand.get()); });
   }
-  // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-  // -
+  // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
   template <typename UInt, size_t N, typename RandomReal, typename Engine,
             typename _T = T, enable_if_unsigned_integral<UInt> = true,
             enable_if_arithmetic<_T> = true>
@@ -611,8 +612,7 @@ class dynamic_multidim_array : public dynamic_multidim_resolution<Indexing> {
     this->unary_operation(
         [&](const auto& /*c*/) { return static_cast<T>(rand.get()); });
   }
-  // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-  // -
+  // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
   template <typename UInt, size_t N, typename RandomReal, typename Engine,
             typename _T = T, enable_if_unsigned_integral<UInt> = true,
             enable_if_arithmetic<_T> = true>
@@ -626,134 +626,121 @@ class dynamic_multidim_array : public dynamic_multidim_resolution<Indexing> {
   // methods
   //============================================================================
   template <typename... Is, enable_if_integral<Is...> = true>
-  auto& at(Is... is) {
+  auto at(Is... is) -> auto& {
     assert(sizeof...(Is) == num_dimensions());
     assert(in_range(is...));
     return m_data[plain_index(is...)];
   }
-  // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-  // -
+  // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
   template <typename... Is, enable_if_integral<Is...> = true>
-  const auto& at(Is... is) const {
+  auto at(Is... is) const -> const auto& {
     assert(sizeof...(Is) == num_dimensions());
     assert(in_range(is...));
     return m_data[plain_index(is...)];
   }
-  // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-  // -
+  // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
   template <typename UInt, enable_if_unsigned_integral<UInt> = true>
-  auto& at(const std::vector<UInt>& is) {
+  auto at(const std::vector<UInt>& is) -> auto& {
     assert(is.size() == num_dimensions());
     assert(in_range(is));
     return m_data[plain_index(is)];
   }
-  // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-  // -
+  // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
   template <typename UInt, enable_if_unsigned_integral<UInt> = true>
-  const auto& at(const std::vector<UInt>& is) const {
+  auto at(const std::vector<UInt>& is) const -> const auto& {
     assert(is.size() == num_dimensions());
     assert(in_range(is));
     return m_data[plain_index(is)];
   }
-  // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-  // -
+  // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
   template <typename UInt, size_t N, enable_if_unsigned_integral<UInt> = true>
-  auto& at(const std::array<UInt, N>& is) {
+  auto at(const std::array<UInt, N>& is) -> auto& {
     assert(N == num_dimensions());
     assert(in_range(is));
     return m_data[plain_index(is)];
   }
-  // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-  // -
+  // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
   template <typename UInt, size_t N, enable_if_unsigned_integral<UInt> = true>
-  const auto& at(const std::array<UInt, N>& is) const {
+  auto at(const std::array<UInt, N>& is) const -> const auto& {
     assert(N == num_dimensions());
     assert(in_range(is));
     return m_data[plain_index(is)];
   }
   //----------------------------------------------------------------------------
   template <typename... Is, enable_if_integral<Is...> = true>
-  auto& operator()(Is... is) {
+  auto operator()(Is... is) -> auto& {
     assert(sizeof...(Is) == num_dimensions());
     assert(in_range(is...));
     return at(is...);
   }
-  // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-  // -
+  // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
   template <typename... Is, enable_if_integral<Is...> = true>
-  const auto& operator()(Is... is) const {
+  auto operator()(Is... is) const -> const auto& {
     assert(sizeof...(Is) == num_dimensions());
     assert(in_range(is...));
     return at(is...);
   }
-  // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-  // -
+  // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
   template <typename UInt, enable_if_unsigned_integral<UInt> = true>
-  auto& operator()(const std::vector<UInt>& is) {
+  auto operator()(const std::vector<UInt>& is) -> auto& {
     assert(is.size() == num_dimensions());
     assert(in_range(is));
     return at(is);
   }
-  // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-  // -
+  // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
   template <typename UInt, enable_if_unsigned_integral<UInt> = true>
-  const auto& operator()(const std::vector<UInt>& is) const {
+  auto operator()(const std::vector<UInt>& is) const -> const auto& {
     assert(is.size() == num_dimensions());
     assert(in_range(is));
     return at(is);
   }
-  // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-  // -
+  // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
   template <typename UInt, size_t N, enable_if_unsigned_integral<UInt> = true>
-  auto& operator()(const std::array<UInt, N>& is) {
+  auto operator()(const std::array<UInt, N>& is) -> auto& {
     assert(N == num_dimensions());
     assert(in_range(is));
     return at(is);
   }
-  // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-  // -
+  // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
   template <typename UInt, size_t N, enable_if_unsigned_integral<UInt> = true>
-  const auto& operator()(const std::array<UInt, N>& is) const {
+  auto operator()(const std::array<UInt, N>& is) const -> const auto& {
     assert(N == num_dimensions());
     assert(in_range(is));
     return at(is);
   }
   //----------------------------------------------------------------------------
-  auto&       operator[](size_t i) { return m_data[i]; }
-  const auto& operator[](size_t i) const { return m_data[i]; }
+  auto operator[](size_t i) -> auto& { return m_data[i]; }
+  auto operator[](size_t i) const -> const auto& { return m_data[i]; }
   //----------------------------------------------------------------------------
   template <typename... Resolution, enable_if_integral<Resolution...> = true>
   void resize(Resolution... resolution) {
     parent_t::resize(resolution...);
     m_data.resize(num_elements());
   }
-  // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-  // -
+  // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
   template <typename UInt, enable_if_unsigned_integral<UInt> = true>
   void resize(const std::vector<UInt>& res, const T value = T{}) {
     parent_t::resize(res);
     m_data.resize(num_elements(), value);
   }
-  // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-  // -
+  // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
   template <typename UInt, enable_if_unsigned_integral<UInt> = true>
   void resize(std::vector<UInt>&& res, const T value = T{}) {
     parent_t::resize(std::move(res));
     m_data.resize(num_elements(), value);
   }
-  // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-  // -
+  // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
   template <typename UInt, size_t N, enable_if_unsigned_integral<UInt> = true>
   void resize(const std::array<UInt, N>& res, const T value = T{}) {
     parent_t::resize(res);
     m_data.resize(num_elements(), value);
   }
   //----------------------------------------------------------------------------
-  constexpr auto&       data() { return m_data; }
-  constexpr const auto& data() const { return m_data; }
+  constexpr auto data() -> auto& { return m_data; }
+  constexpr auto data() const -> const auto& { return m_data; }
   //----------------------------------------------------------------------------
-  constexpr T*       data_ptr() { return m_data.data(); }
-  constexpr const T* data_ptr() const { return m_data.data(); }
+  constexpr auto data_ptr() -> T* { return m_data.data(); }
+  constexpr auto data_ptr() const -> const T* { return m_data.data(); }
   //============================================================================
   template <typename F>
   void unary_operation(F&& f) {

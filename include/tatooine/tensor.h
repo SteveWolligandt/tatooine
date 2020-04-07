@@ -24,6 +24,9 @@
 //==============================================================================
 namespace tatooine {
 //==============================================================================
+struct frobenius_t {};
+static constexpr frobenius_t frobenius;
+//------------------------------------------------------------------------------
 #if has_cxx17_support()
 template <typename Tensor, typename Real, size_t FixedDim, size_t... Dims>
 struct tensor_slice;
@@ -41,7 +44,7 @@ struct base_tensor : crtp<Tensor> {
   using resolution_t = static_multidim_resolution<x_fastest, Dims...>;
 
   //============================================================================
-  static constexpr size_t num_dimensions() { return sizeof...(Dims); }
+  static constexpr auto num_dimensions() { return sizeof...(Dims); }
   //------------------------------------------------------------------------------
   static constexpr auto num_components() {
     return resolution_t::num_elements();
@@ -67,40 +70,40 @@ struct base_tensor : crtp<Tensor> {
   constexpr base_tensor() = default;
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
   template <typename OtherTensor, typename OtherReal>
-  constexpr base_tensor(
+  explicit constexpr base_tensor(
       const base_tensor<OtherTensor, OtherReal, Dims...>& other) {
     assign_other_tensor(other);
   }
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
   template <typename OtherTensor, typename OtherReal>
-  constexpr auto& operator=(
-      const base_tensor<OtherTensor, OtherReal, Dims...>& other) {
+  constexpr auto operator=(
+      const base_tensor<OtherTensor, OtherReal, Dims...>& other)
+      -> base_tensor& {
     assign_other_tensor(other);
     return *this;
   }
   //============================================================================
   template <typename F>
-  auto& unary_operation(F&& f) {
+  auto unary_operation(F&& f) -> auto& {
     for_indices([this, &f](const auto... is) { at(is...) = f(at(is...)); });
     return as_derived();
   }
   //----------------------------------------------------------------------------
   template <typename F, typename OtherTensor, typename OtherReal>
-  decltype(auto) binary_operation(
-      F&& f, const base_tensor<OtherTensor, OtherReal, Dims...>& other) {
+  auto binary_operation(
+      F&& f, const base_tensor<OtherTensor, OtherReal, Dims...>& other)
+      -> decltype(auto) {
     for_indices([this, &f, &other](const auto... is) {
       at(is...) = f(at(is...), other(is...));
     });
     return as_derived();
   }
-
   //----------------------------------------------------------------------------
   template <typename OtherTensor, typename OtherReal>
   constexpr void assign_other_tensor(
       const base_tensor<OtherTensor, OtherReal, Dims...>& other) {
     for_indices([this, &other](const auto... is) { at(is...) = other(is...); });
   }
-
   //----------------------------------------------------------------------------
   template <typename... Is, enable_if_integral<Is...> = true>
   constexpr decltype(auto) at(const Is... is) const {
@@ -164,7 +167,7 @@ struct base_tensor : crtp<Tensor> {
   }
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
   template <size_t FixedDim>
-  constexpr auto slice(size_t fixed_index) const {
+  [[nodiscard]] constexpr auto slice(size_t fixed_index) const {
     static_assert(FixedDim < num_dimensions(),
                   "fixed dimensions must be in range of number of dimensions");
     return slice<FixedDim>(fixed_index,
@@ -182,70 +185,52 @@ struct base_tensor : crtp<Tensor> {
 
   //----------------------------------------------------------------------------
   template <typename OtherTensor, typename OtherReal>
-  auto& operator+=(const base_tensor<OtherTensor, OtherReal, Dims...>& other) {
+  auto operator+=(const base_tensor<OtherTensor, OtherReal, Dims...>& other)
+      -> auto& {
     for_indices([&](const auto... is) { at(is...) += other(is...); });
     return *this;
   }
 
   //----------------------------------------------------------------------------
-#if has_cxx17_support()
   template <typename OtherReal,
             enable_if_arithmetic_or_symbolic<OtherReal> = true>
-#else
-  template <typename OtherReal, enable_if_arithmetic<OtherReal> = true>
-#endif
-  auto& operator+=(const OtherReal& other) {
+  auto operator+=(const OtherReal& other) -> auto& {
     for_indices([&](const auto... is) { at(is...) += other; });
     return *this;
   }
 
   //----------------------------------------------------------------------------
   template <typename OtherTensor, typename OtherReal>
-  auto& operator-=(const base_tensor<OtherTensor, OtherReal, Dims...>& other) {
+  auto operator-=(const base_tensor<OtherTensor, OtherReal, Dims...>& other)
+      -> auto& {
     for_indices([&](const auto... is) { at(is...) -= other(is...); });
     return *this;
   }
-
   //----------------------------------------------------------------------------
-#if has_cxx17_support()
   template <typename OtherReal,
             enable_if_arithmetic_or_symbolic<OtherReal> = true>
-#else
-  template <typename OtherReal, enable_if_arithmetic<OtherReal> = true>
-#endif
-  auto& operator-=(const OtherReal& other) {
+  auto operator-=(const OtherReal& other) -> auto& {
     for_indices([&](const auto... is) { at(is...) -= other; });
     return *this;
   }
-
   //----------------------------------------------------------------------------
-#if has_cxx17_support()
   template <typename OtherReal,
             enable_if_arithmetic_or_symbolic<OtherReal> = true>
-#else
-  template <typename OtherReal, enable_if_arithmetic<OtherReal> = true>
-#endif
-  auto& operator*=(const OtherReal& other) {
+  auto operator*=(const OtherReal& other) -> auto& {
     for_indices([&](const auto... is) { at(is...) *= other; });
     return *this;
   }
-
   //----------------------------------------------------------------------------
-#if has_cxx17_support()
   template <typename OtherReal,
             enable_if_arithmetic_or_symbolic<OtherReal> = true>
-#else
-  template <typename OtherReal, enable_if_arithmetic<OtherReal> = true>
-#endif
-  auto& operator/=(const OtherReal& other) {
+  auto operator/=(const OtherReal& other) -> auto& {
     for_indices([&](const auto... is) { at(is...) /= other; });
     return *this;
   }
 };
-
 //==============================================================================
 template <typename Real, size_t... Dims>
-struct tensor : base_tensor<tensor<Real, Dims...>, Real, Dims...>,
+struct tensor : base_tensor<tensor<Real, Dims...>, Real, Dims...>,  // NOLINT
                 static_multidim_array<Real, x_fastest, stack, Dims...> {
   //============================================================================
   using this_t          = tensor<Real, Dims...>;
@@ -261,18 +246,18 @@ struct tensor : base_tensor<tensor<Real, Dims...>, Real, Dims...>,
 
   //============================================================================
  public:
-  constexpr tensor() {}
-  constexpr tensor(const tensor& other) = default;
-  constexpr tensor& operator=(const tensor& other) = default;
+  constexpr tensor()              = default;
+  constexpr tensor(const tensor&) = default;
+  constexpr auto operator=(const tensor&) -> tensor& = default;
 
   template <typename Real_                         = Real,
             enable_if_arithmetic_or_complex<Real_> = true>
-  constexpr tensor(tensor&& other) noexcept
+  explicit constexpr tensor(tensor&& other) noexcept
       : array_parent_t{std::move(other)} {}
 
   template <typename Real_                         = Real,
             enable_if_arithmetic_or_complex<Real_> = true>
-  constexpr tensor& operator=(tensor&& other) noexcept {
+  constexpr auto operator=(tensor&& other) noexcept -> tensor& {
     array_parent_t::operator=(std::move(other));
     return *this;
   }
@@ -283,36 +268,37 @@ struct tensor : base_tensor<tensor<Real, Dims...>, Real, Dims...>,
   template <typename... Ts, size_t _N = num_dimensions(),
             size_t _Dim0 = dimension(0), std::enable_if_t<_N == 1, bool> = true,
             std::enable_if_t<_Dim0 == sizeof...(Ts), bool> = true>
-  constexpr tensor(const Ts&... ts) : array_parent_t{ts...} {}
+  explicit constexpr tensor(const Ts&... ts) : array_parent_t{ts...} {}
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
   template <typename _Real = Real, enable_if_arithmetic<_Real> = true>
-  constexpr tensor(zeros_t zeros) : array_parent_t{zeros} {}
+  explicit constexpr tensor(zeros_t zeros) : array_parent_t{zeros} {}
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
   template <typename _Real = Real, enable_if_arithmetic<_Real> = true>
-  constexpr tensor(ones_t ones) : array_parent_t{ones} {}
+  explicit constexpr tensor(ones_t ones) : array_parent_t{ones} {}
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
   template <typename FillReal, typename _Real = Real,
             enable_if_arithmetic<_Real> = true>
-  constexpr tensor(fill<FillReal> f) : array_parent_t{f} {}
+  explicit constexpr tensor(fill<FillReal> f) : array_parent_t{f} {}
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
   template <typename RandomReal, typename Engine, typename _Real = Real,
             enable_if_arithmetic<RandomReal> = true>
-  constexpr tensor(random_uniform<RandomReal, Engine>&& rand)
+  explicit constexpr tensor(random_uniform<RandomReal, Engine>&& rand)
       : array_parent_t{std::move(rand)} {}
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
   template <typename RandomReal, typename Engine, typename _Real = Real,
             enable_if_arithmetic<_Real> = true>
-  constexpr tensor(random_normal<RandomReal, Engine>&& rand)
+  explicit constexpr tensor(random_normal<RandomReal, Engine>&& rand)
       : array_parent_t{std::move(rand)} {}
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
   template <typename OtherTensor, typename OtherReal>
-  constexpr tensor(const base_tensor<OtherTensor, OtherReal, Dims...>& other) {
+  explicit constexpr tensor(
+      const base_tensor<OtherTensor, OtherReal, Dims...>& other) {
     this->assign_other_tensor(other);
   }
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
   template <typename OtherTensor, typename OtherReal>
-  constexpr auto& operator=(
-      const base_tensor<OtherTensor, OtherReal, Dims...>& other) {
+  constexpr auto operator=(
+      const base_tensor<OtherTensor, OtherReal, Dims...>& other) -> tensor& {
     this->assign_other_tensor(other);
     return *this;
   }
@@ -334,24 +320,25 @@ struct tensor : base_tensor<tensor<Real, Dims...>, Real, Dims...>,
   }
   //----------------------------------------------------------------------------
   template <typename OtherReal>
-  bool operator==(const tensor<OtherReal, Dims...>& other) const {
+  auto operator==(const tensor<OtherReal, Dims...>& other) const {
     return this->data() == other.data();
   }
   //----------------------------------------------------------------------------
   template <typename OtherReal>
-  bool operator<(const tensor<OtherReal, Dims...>& other) const {
+  auto operator<(const tensor<OtherReal, Dims...>& other) const {
     return this->data() < other.data();
   }
   //============================================================================
   template <typename F>
-  auto& unary_operation(F&& f) {
+  auto unary_operation(F&& f) -> auto& {
     array_parent_t::unary_operation(std::forward<F>(f));
     return *this;
   }
   //----------------------------------------------------------------------------
   template <typename F, typename OtherTensor, typename OtherReal>
-  decltype(auto) binary_operation(
-      F&& f, const base_tensor<OtherTensor, OtherReal, Dims...>& other) {
+  auto binary_operation(
+      F&& f, const base_tensor<OtherTensor, OtherReal, Dims...>& other)
+      -> decltype(auto) {
     tensor_parent_t::binary_operation(std::forward<F>(f), other);
     return *this;
   }
@@ -359,32 +346,43 @@ struct tensor : base_tensor<tensor<Real, Dims...>, Real, Dims...>,
 //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 #if has_cxx17_support()
 template <size_t C, typename... Rows>
-tensor(Rows const(&&... rows)[C])
+tensor(Rows const(&&... rows)[C])  // NOLINT
     ->tensor<promote_t<Rows...>, sizeof...(Rows), C>;
 #endif
 //==============================================================================
 template <typename Real, size_t N>
-struct vec : tensor<Real, N> {
+struct vec : tensor<Real, N> {  // NOLINT
   using parent_t = tensor<Real, N>;
   using parent_t::dimension;
   using parent_t::num_dimensions;
   using parent_t::parent_t;
+  using parent_t::operator();
 
   template <typename... Ts, size_t _Dim0 = dimension(0),
             std::enable_if_t<_Dim0 == sizeof...(Ts), bool> = true>
-  constexpr vec(const Ts&... ts) : parent_t{ts...} {}
+  explicit constexpr vec(const Ts&... ts) : parent_t{ts...} {}
 
   using iterator = typename parent_t::array_parent_t::container_t::iterator;
   using const_iterator =
       typename parent_t::array_parent_t::container_t::const_iterator;
 
-  constexpr vec() = default;
-  //------------------------------------------------------------------------------
-  constexpr vec(const vec&)           = default;
-  constexpr vec(vec&& other) noexcept = default;
-  //------------------------------------------------------------------------------
-  constexpr vec& operator=(const vec&) = default;
-  constexpr vec& operator=(vec&& other) noexcept = default;
+  //----------------------------------------------------------------------------
+  constexpr vec(const vec&) = default;
+  // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+  template <typename Real_                         = Real,
+            enable_if_arithmetic_or_complex<Real_> = true>
+  explicit constexpr vec(vec&& other) noexcept : parent_t{std::move(other)} {}
+  //----------------------------------------------------------------------------
+  constexpr auto operator=(const vec&) -> vec& = default;
+  // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+  template <typename Real_                         = Real,
+            enable_if_arithmetic_or_complex<Real_> = true>
+  constexpr auto operator=(vec&& other) noexcept -> vec& {
+    parent_t::operator=(std::move(other));
+    return *this;
+  }
+  //----------------------------------------------------------------------------
+  ~vec() = default;
 };
 
 //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -400,29 +398,29 @@ using vec4 = vec<double, 4>;
 
 //==============================================================================
 template <typename Real, size_t M, size_t N>
-struct mat : tensor<Real, M, N> {
+struct mat : tensor<Real, M, N> {  // NOLINT
   using parent_t = tensor<Real, M, N>;
   using parent_t::parent_t;
 
   constexpr mat(const mat&) = default;
-  constexpr mat& operator=(const mat&) = default;
-  ~mat()                               = default;
   template <typename Real_                         = Real,
             enable_if_arithmetic_or_complex<Real_> = true>
-  constexpr mat(mat&& other) noexcept : parent_t{std::move(other)} {}
+  explicit constexpr mat(mat&& other) noexcept : parent_t{std::move(other)} {}
+
+  constexpr auto operator=(const mat&) -> mat& = default;
   template <typename Real_                         = Real,
             enable_if_arithmetic_or_complex<Real_> = true>
-  constexpr mat& operator=(mat&& other) noexcept {
+  constexpr auto operator=(mat&& other) noexcept -> mat& {
     parent_t::operator=(std::move(other));
     return *this;
   }
+  ~mat() = default;
 
 #if has_cxx17_support()
   template <typename... Rows, enable_if_arithmetic_or_symbolic<Rows...> = true>
 #else
-  template <typename... Rows, enable_if_arithmetic<Rows...> = true>
 #endif
-  constexpr mat(Rows(&&... rows)[parent_t::dimension(1)]) {
+  constexpr mat(Rows(&&... rows)[parent_t::dimension(1)]) {  // NOLINT
     static_assert(
         sizeof...(rows) == parent_t::dimension(0),
         "number of given rows does not match specified number of rows");
@@ -448,7 +446,8 @@ struct mat : tensor<Real, M, N> {
 //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 #if has_cxx17_support()
 template <size_t C, typename... Rows>
-mat(Rows const(&&... rows)[C])->mat<promote_t<Rows...>, sizeof...(Rows), C>;
+mat(Rows const(&&... rows)[C])  // NOLINT
+    ->mat<promote_t<Rows...>, sizeof...(Rows), C>;
 #endif
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -512,7 +511,7 @@ auto angle(const base_tensor<Tensor0, Real0, N>& v0,
 }
 //------------------------------------------------------------------------------
 template <typename Tensor, typename Real, size_t... Dims>
-constexpr Real min(const base_tensor<Tensor, Real, Dims...>& t) {
+constexpr auto min(const base_tensor<Tensor, Real, Dims...>& t) {
   Real m = std::numeric_limits<Real>::max();
   t.for_indices([&](const auto... is) { m = std::min(m, t(is...)); });
   return m;
@@ -520,47 +519,45 @@ constexpr Real min(const base_tensor<Tensor, Real, Dims...>& t) {
 
 //------------------------------------------------------------------------------
 template <typename Tensor, typename Real, size_t... Dims>
-constexpr Real max(const base_tensor<Tensor, Real, Dims...>& t) {
+constexpr auto max(const base_tensor<Tensor, Real, Dims...>& t) {
   Real m = -std::numeric_limits<Real>::max();
   t.for_indices([&](const auto... is) { m = std::max(m, t(is...)); });
   return m;
 }
 //------------------------------------------------------------------------------
 template <typename Tensor, typename Real, size_t N>
-constexpr Real norm(const base_tensor<Tensor, Real, N>& t, unsigned p = 2) {
+constexpr auto norm(const base_tensor<Tensor, Real, N>& t, unsigned p = 2)
+    -> Real {
   Real n = 0;
   for (size_t i = 0; i < N; ++i) { n += std::pow(t(i), p); }
   return std::pow(n, Real(1) / Real(p));
 }
 //------------------------------------------------------------------------------
 template <typename Tensor, typename Real, size_t N>
-constexpr Real norm_inf(const base_tensor<Tensor, Real, N>& t) {
+constexpr auto norm_inf(const base_tensor<Tensor, Real, N>& t) -> Real {
   Real norm = -std::numeric_limits<Real>::max();
   for (size_t i = 0; i < N; ++i) { norm = std::max(norm, std::abs(t(i))); }
   return norm;
 }
 //------------------------------------------------------------------------------
 template <typename Tensor, typename Real, size_t N>
-constexpr Real norm1(const base_tensor<Tensor, Real, N>& t) {
+constexpr auto norm1(const base_tensor<Tensor, Real, N>& t) {
   Real norm = 0;
   for (size_t i = 0; i < N; ++i) { norm += std::abs(t(i)); }
   return norm;
 }
 //------------------------------------------------------------------------------
 template <typename Tensor, typename Real, size_t N>
-constexpr Real sqr_length(const base_tensor<Tensor, Real, N>& t_in) {
+constexpr auto sqr_length(const base_tensor<Tensor, Real, N>& t_in) {
   Real n = 0;
   for (size_t i = 0; i < N; ++i) { n += t_in(i) * t_in(i); }
   return n;
 }
 //------------------------------------------------------------------------------
 template <typename Tensor, typename Real, size_t N>
-constexpr Real length(const base_tensor<Tensor, Real, N>& t_in) {
+constexpr auto length(const base_tensor<Tensor, Real, N>& t_in) -> Real {
   return std::sqrt(sqr_length(t_in));
 }
-//------------------------------------------------------------------------------
-struct frobenius_t {};
-static constexpr frobenius_t frobenius;
 //------------------------------------------------------------------------------
 /// squared Frobenius norm of a matrix
 template <typename Matrix, typename Real, size_t M, size_t N>
@@ -592,7 +589,8 @@ constexpr auto norm(const base_tensor<Matrix, Real, M, N>& mat) {
 }
 //------------------------------------------------------------------------------
 template <typename Tensor, typename Real, size_t N>
-constexpr vec<Real, N> normalize(const base_tensor<Tensor, Real, N>& t_in) {
+constexpr auto normalize(const base_tensor<Tensor, Real, N>& t_in)
+    -> vec<Real, N> {
   const auto l = length(t_in);
   if (l == 0) { return vec<Real, N>::zeros(); }
   return t_in / l;
@@ -609,7 +607,7 @@ constexpr auto distance(const base_tensor<LhsTensor, LhsReal, N>& lhs,
 //------------------------------------------------------------------------------
 /// sum of all components of a vector
 template <typename Tensor, typename Real, size_t VecDim>
-constexpr Real sum(const base_tensor<Tensor, Real, VecDim>& v) {
+constexpr auto sum(const base_tensor<Tensor, Real, VecDim>& v) {
   Real s = 0;
   for (size_t i = 0; i < VecDim; ++i) { s += v(i); }
   return s;
@@ -626,19 +624,19 @@ constexpr auto dot(const base_tensor<LhsTensor, LhsReal, N>& lhs,
 }
 //------------------------------------------------------------------------------
 template <typename Tensor, typename Real>
-constexpr Real det(const base_tensor<Tensor, Real, 2, 2>& m) {
+constexpr auto det(const base_tensor<Tensor, Real, 2, 2>& m) -> Real {
   return m(0, 0) * m(1, 1) - m(0, 1) * m(1, 0);
 }
 //------------------------------------------------------------------------------
 template <typename Tensor, typename Real>
-constexpr Real detAtA(const base_tensor<Tensor, Real, 2, 2>& m) {
+constexpr auto detAtA(const base_tensor<Tensor, Real, 2, 2>& m) -> Real {
   return m(0, 0) * m(0, 0) * m(1, 1) * m(1, 1) +
          m(0, 1) * m(0, 1) * m(1, 0) * m(1, 0) -
          2 * m(0, 0) * m(1, 0) * m(0, 1) * m(1, 1);
 }
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 template <typename Tensor, typename Real>
-constexpr Real det(const base_tensor<Tensor, Real, 3, 3>& m) {
+constexpr auto det(const base_tensor<Tensor, Real, 3, 3>& m) -> Real {
   return m(0, 0) * m(1, 1) * m(2, 2) + m(0, 1) * m(1, 2) * m(2, 0) +
          m(0, 2) * m(1, 0) * m(2, 1) - m(2, 0) * m(1, 1) * m(0, 2) -
          m(2, 1) * m(1, 2) * m(0, 0) - m(2, 2) * m(1, 0) * m(0, 2);
@@ -860,25 +858,25 @@ auto gesv(tensor<double, N, N> A, tensor<double, N> b) {
 
 //------------------------------------------------------------------------------
 template <size_t M, size_t N>
-auto gesv(const tensor<float, M, M>& A, const tensor<float, M, N>& B) {
-  mat<float, M, N>   X = B;
+auto gesv(tensor<float, M, M> A, const tensor<float, M, N>& B) {
+  auto               X = B;
   std::array<int, N> ipiv;
-  LAPACKE_sgesv(LAPACK_COL_MAJOR, M, N, const_cast<float*>(A.data_ptr()), M,
-                ipiv.data(), const_cast<float*>(X.data_ptr()), M);
+  LAPACKE_sgesv(LAPACK_COL_MAJOR, M, N, A.data_ptr(), M, ipiv.data(),
+                X.data_ptr(), M);
   return X;
 }
 template <size_t M, size_t N>
-auto gesv(const tensor<double, M, M>& A, const tensor<double, M, N>& B) {
-  mat<double, M, N>  X = B;
+auto gesv(tensor<double, M, M> A, const tensor<double, M, N>& B) {
+  auto               X = B;
   std::array<int, N> ipiv;
-  LAPACKE_dgesv(LAPACK_COL_MAJOR, M, N, const_cast<double*>(A.data_ptr()), M,
-                ipiv.data(), const_cast<double*>(X.data_ptr()), M);
+  LAPACKE_dgesv(LAPACK_COL_MAJOR, M, N, A.data_ptr(), M, ipiv.data(),
+                X.data_ptr(), M);
   return X;
 }
 
 //------------------------------------------------------------------------------
 template <size_t N>
-vec<std::complex<float>, N> eigenvalues(tensor<float, N, N> A) {
+auto eigenvalues(tensor<float, N, N> A) -> vec<std::complex<float>, N> {
   [[maybe_unused]] lapack_int info;
   std::array<float, N>        wr;
   std::array<float, N>        wi;
@@ -890,7 +888,7 @@ vec<std::complex<float>, N> eigenvalues(tensor<float, N, N> A) {
   return vals;
 }
 template <size_t N>
-vec<std::complex<double>, N> eigenvalues(tensor<double, N, N> A) {
+auto eigenvalues(tensor<double, N, N> A) -> vec<std::complex<double>, N> {
   [[maybe_unused]] lapack_int info;
   std::array<double, N>       wr;
   std::array<double, N>       wi;
@@ -900,11 +898,10 @@ vec<std::complex<double>, N> eigenvalues(tensor<double, N, N> A) {
   for (size_t i = 0; i < N; ++i) { vals[i] = {wr[i], wi[i]}; }
   return vals;
 }
-
 //------------------------------------------------------------------------------
 template <size_t N>
-std::pair<mat<std::complex<float>, N, N>, vec<std::complex<float>, N>>
-eigenvectors(tensor<float, N, N> A) {
+auto eigenvectors(tensor<float, N, N> A)
+    -> std::pair<mat<std::complex<float>, N, N>, vec<std::complex<float>, N>> {
   [[maybe_unused]] lapack_int info;
   std::array<float, N>        wr;
   std::array<float, N>        wi;
@@ -930,8 +927,9 @@ eigenvectors(tensor<float, N, N> A) {
   return {std::move(vecs), std::move(vals)};
 }
 template <size_t N>
-std::pair<mat<std::complex<double>, N, N>, vec<std::complex<double>, N>>
-eigenvectors(tensor<double, N, N> A) {
+auto eigenvectors(tensor<double, N, N> A)
+    -> std::pair<mat<std::complex<double>, N, N>,
+                 vec<std::complex<double>, N>> {
   [[maybe_unused]] lapack_int info;
   std::array<double, N>       wr;
   std::array<double, N>       wi;
@@ -956,7 +954,6 @@ eigenvectors(tensor<double, N, N> A) {
 
   return {std::move(vecs), std::move(vals)};
 }
-
 //------------------------------------------------------------------------------
 template <size_t N>
 auto eigenvalues_sym(tensor<float, N, N> A) {
@@ -978,8 +975,8 @@ auto eigenvalues_sym(tensor<double, N, N> A) {
 
 //------------------------------------------------------------------------------
 template <size_t N>
-std::pair<mat<float, N, N>, vec<float, N>> eigenvectors_sym(
-    mat<float, N, N> A) {
+auto eigenvectors_sym(mat<float, N, N> A)
+    -> std::pair<mat<float, N, N>, vec<float, N>> {
   vec<float, N>               vals;
   [[maybe_unused]] lapack_int info;
   info = LAPACKE_ssyev(LAPACK_COL_MAJOR, 'V', 'U', N, A.data_ptr(), N,
@@ -987,8 +984,8 @@ std::pair<mat<float, N, N>, vec<float, N>> eigenvectors_sym(
   return {std::move(A), std::move(vals)};
 }
 template <size_t N>
-std::pair<mat<double, N, N>, vec<double, N>> eigenvectors_sym(
-    mat<double, N, N> A) {
+auto eigenvectors_sym(mat<double, N, N> A)
+    -> std::pair<mat<double, N, N>, vec<double, N>> {
   vec<double, N>              vals;
   [[maybe_unused]] lapack_int info;
   info = LAPACKE_dsyev(LAPACK_COL_MAJOR, 'V', 'U', N, A.data_ptr(), N,
@@ -1003,7 +1000,7 @@ template <typename LhsTensor, typename LhsReal, typename RhsTensor,
           std::enable_if_t<std::is_floating_point<LhsReal>::value ||
                                std::is_floating_point<RhsReal>::value,
                            bool> = true>
-constexpr bool approx_equal(const base_tensor<LhsTensor, LhsReal, Dims...>& lhs,
+constexpr auto approx_equal(const base_tensor<LhsTensor, LhsReal, Dims...>& lhs,
                             const base_tensor<RhsTensor, RhsReal, Dims...>& rhs,
                             promote_t<LhsReal, RhsReal> eps = 1e-6) {
   bool equal = true;
@@ -1039,7 +1036,7 @@ struct tensor_slice : base_tensor<tensor_slice<Tensor, Real, FixedDim, Dims...>,
 
   //----------------------------------------------------------------------------
   template <typename... Is, enable_if_integral<Is...> = true>
-  constexpr const auto& at(const Is... is) const {
+  constexpr auto at(const Is... is) const -> const auto& {
     if constexpr (FixedDim == 0) {
       return m_tensor->at(m_fixed_index, is...);
 
@@ -1055,12 +1052,11 @@ struct tensor_slice : base_tensor<tensor_slice<Tensor, Real, FixedDim, Dims...>,
           unpack(extract<FixedDim, num_dimensions() - 1>(is...)));
     };
   }
-
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
   template <typename... Is, enable_if_integral<Is...> = true,
             typename _tensor_t                                       = Tensor,
             std::enable_if_t<!std::is_const<_tensor_t>::value, bool> = true>
-  constexpr auto& at(const Is... is) {
+  constexpr auto at(const Is... is) -> auto& {
     if constexpr (FixedDim == 0) {
       return m_tensor->at(m_fixed_index, is...);
 
@@ -1094,7 +1090,7 @@ struct const_imag_complex_tensor
 
   //============================================================================
  public:
-  constexpr const_imag_complex_tensor(
+  explicit constexpr const_imag_complex_tensor(
       const base_tensor<Tensor, std::complex<Real>, Dims...>& internal_tensor)
       : m_internal_tensor{internal_tensor.as_derived()} {}
 
@@ -1112,7 +1108,7 @@ struct const_imag_complex_tensor
   }
 
   //----------------------------------------------------------------------------
-  const auto& internal_tensor() const { return m_internal_tensor; }
+  auto internal_tensor() const -> const auto& { return m_internal_tensor; }
 };
 
 //==============================================================================
@@ -1128,38 +1124,38 @@ struct imag_complex_tensor
 
   //============================================================================
  public:
-  constexpr imag_complex_tensor(
+  explicit constexpr imag_complex_tensor(
       base_tensor<Tensor, std::complex<Real>, Dims...>& internal_tensor)
       : m_internal_tensor{internal_tensor.as_derived()} {}
 
   //----------------------------------------------------------------------------
   template <typename... Indices, enable_if_integral<Indices...> = true>
-  constexpr decltype(auto) operator()(const Indices... indices) const {
+  constexpr auto operator()(const Indices... indices) const -> decltype(auto) {
     static_assert(sizeof...(Indices) == num_dimensions());
     return m_internal_tensor(indices...).imag();
   }
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
   template <typename... Indices, enable_if_integral<Indices...> = true>
-  constexpr decltype(auto) operator()(const Indices... indices) {
+  constexpr auto operator()(const Indices... indices) -> decltype(auto) {
     static_assert(sizeof...(Indices) == num_dimensions());
     return m_internal_tensor(indices...).imag();
   }
   //----------------------------------------------------------------------------
   template <typename... Indices, enable_if_integral<Indices...> = true>
-  constexpr decltype(auto) at(const Indices... indices) const {
+  constexpr auto at(const Indices... indices) const -> decltype(auto) {
     static_assert(sizeof...(Indices) == num_dimensions());
     return m_internal_tensor(indices...).imag();
   }
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
   template <typename... Indices, enable_if_integral<Indices...> = true>
-  constexpr decltype(auto) at(const Indices... indices) {
+  constexpr auto at(const Indices... indices) -> decltype(auto) {
     static_assert(sizeof...(Indices) == num_dimensions());
     return m_internal_tensor(indices...).imag();
   }
 
   //----------------------------------------------------------------------------
-  auto&       internal_tensor() { return m_internal_tensor; }
-  const auto& internal_tensor() const { return m_internal_tensor; }
+  auto internal_tensor() -> auto& { return m_internal_tensor; }
+  auto internal_tensor() const -> const auto& { return m_internal_tensor; }
 };
 
 //------------------------------------------------------------------------------
@@ -1187,25 +1183,24 @@ struct const_real_complex_tensor
 
   //============================================================================
  public:
-  const_real_complex_tensor(
+  explicit const_real_complex_tensor(
       const base_tensor<Tensor, std::complex<Real>, Dims...>& internal_tensor)
       : m_internal_tensor{internal_tensor.as_derived()} {}
 
   //----------------------------------------------------------------------------
   template <typename... Indices, enable_if_integral<Indices...> = true>
-  constexpr decltype(auto) operator()(const Indices... indices) const {
+  constexpr auto operator()(const Indices... indices) const ->decltype(auto){
     static_assert(sizeof...(Indices) == num_dimensions());
     return m_internal_tensor(indices...).real();
   }
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
   template <typename... Indices, enable_if_integral<Indices...> = true>
-  constexpr decltype(auto) at(const Indices... indices) const {
+  constexpr auto at(const Indices... indices) const -> decltype(auto) {
     static_assert(sizeof...(Indices) == num_dimensions());
     return m_internal_tensor(indices...).real();
   }
-
   //----------------------------------------------------------------------------
-  const auto& internal_tensor() const { return m_internal_tensor; }
+  auto internal_tensor() const -> const auto& { return m_internal_tensor; }
 };
 
 //==============================================================================
@@ -1221,38 +1216,38 @@ struct real_complex_tensor
 
   //============================================================================
  public:
-  real_complex_tensor(
+  explicit real_complex_tensor(
       base_tensor<Tensor, std::complex<Real>, Dims...>& internal_tensor)
       : m_internal_tensor{internal_tensor.as_derived()} {}
 
   //----------------------------------------------------------------------------
   template <typename... Indices, enable_if_integral<Indices...> = true>
-  constexpr decltype(auto) operator()(const Indices... indices) const {
+  constexpr auto operator()(const Indices... indices) const -> decltype(auto) {
     static_assert(sizeof...(Indices) == num_dimensions());
     return m_internal_tensor(indices...).real();
   }
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
   template <typename... Indices, enable_if_integral<Indices...> = true>
-  constexpr decltype(auto) operator()(const Indices... indices) {
+  constexpr auto operator()(const Indices... indices) -> decltype(auto) {
     static_assert(sizeof...(Indices) == num_dimensions());
     return m_internal_tensor(indices...).real();
   }
   //----------------------------------------------------------------------------
   template <typename... Indices, enable_if_integral<Indices...> = true>
-  constexpr decltype(auto) at(const Indices... indices) const {
+  constexpr auto at(const Indices... indices) const -> decltype(auto) {
     static_assert(sizeof...(Indices) == num_dimensions());
     return m_internal_tensor(indices...).real();
   }
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
   template <typename... Indices, enable_if_integral<Indices...> = true>
-  constexpr decltype(auto) at(const Indices... indices) {
+  constexpr auto at(const Indices... indices) -> decltype(auto) {
     static_assert(sizeof...(Indices) == num_dimensions());
     return m_internal_tensor(indices...).real();
   }
 
   //----------------------------------------------------------------------------
-  auto&       internal_tensor() { return m_internal_tensor; }
-  const auto& internal_tensor() const { return m_internal_tensor; }
+  auto internal_tensor() -> auto& { return m_internal_tensor; }
+  auto internal_tensor() const -> const auto& { return m_internal_tensor; }
 };
 
 //------------------------------------------------------------------------------
@@ -1276,21 +1271,21 @@ struct const_transposed_matrix
 
   //============================================================================
  public:
-  const_transposed_matrix(
+  explicit const_transposed_matrix(
       const base_tensor<Matrix, typename Matrix::real_t, N, M>& internal_matrix)
       : m_internal_matrix{internal_matrix.as_derived()} {}
 
   //----------------------------------------------------------------------------
-  constexpr const auto& operator()(const size_t r, const size_t c) const {
+  constexpr auto operator()(const size_t r, const size_t c) const -> const
+      auto& {
     return m_internal_matrix(c, r);
   }
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-  constexpr const auto& at(const size_t r, const size_t c) const {
+  constexpr auto at(const size_t r, const size_t c) const -> const auto& {
     return m_internal_matrix(c, r);
   }
-
   //----------------------------------------------------------------------------
-  const auto& internal_matrix() const { return m_internal_matrix; }
+  auto internal_matrix() const -> const auto& { return m_internal_matrix; }
 };
 
 //==============================================================================
@@ -1303,31 +1298,32 @@ struct transposed_matrix : base_tensor<transposed_matrix<Matrix, M, N>,
 
   //============================================================================
  public:
-  transposed_matrix(
+  explicit transposed_matrix(
       base_tensor<Matrix, typename Matrix::real_t, N, M>& internal_matrix)
       : m_internal_matrix{internal_matrix.as_derived()} {}
 
   //----------------------------------------------------------------------------
-  constexpr const auto& operator()(const size_t r, const size_t c) const {
+  constexpr auto operator()(const size_t r, const size_t c) const -> const
+      auto& {
     return m_internal_matrix(c, r);
   }
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-  constexpr auto& operator()(const size_t r, const size_t c) {
+  constexpr auto operator()(const size_t r, const size_t c) -> auto& {
     return m_internal_matrix(c, r);
   }
   //----------------------------------------------------------------------------
-  constexpr const auto& at(const size_t r, const size_t c) const {
+  constexpr auto at(const size_t r, const size_t c) const -> const auto& {
     return m_internal_matrix(c, r);
   }
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-  constexpr auto& at(const size_t r, const size_t c) {
+  constexpr auto at(const size_t r, const size_t c) -> auto& {
     return m_internal_matrix(c, r);
   }
 
   //----------------------------------------------------------------------------
-  auto&       internal_matrix() { return m_internal_matrix; }
-  const auto& internal_matrix() const { return m_internal_matrix; }
-};
+  auto internal_matrix() -> auto& { return m_internal_matrix; }
+  auto internal_matrix() const -> const auto& { return m_internal_matrix; }
+}; 
 
 //------------------------------------------------------------------------------
 template <typename Matrix, typename Real, size_t M, size_t N>
@@ -1343,20 +1339,21 @@ auto transpose(base_tensor<Matrix, Real, M, N>& matrix) {
 
 //------------------------------------------------------------------------------
 template <typename Matrix, typename Real, size_t M, size_t N>
-auto& transpose(base_tensor<transposed_matrix<Matrix, M, N>, Real, M, N>&
-                    transposed_matrix) {
+auto transpose(
+    base_tensor<transposed_matrix<Matrix, M, N>, Real, M, N>& transposed_matrix)
+    -> auto& {
   return transposed_matrix.as_derived().internal_matrix();
 }
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 template <typename Matrix, typename Real, size_t M, size_t N>
-const auto& transpose(const base_tensor<transposed_matrix<Matrix, M, N>, Real,
-                                        M, N>& transposed_matrix) {
+auto transpose(const base_tensor<transposed_matrix<Matrix, M, N>, Real, M, N>&
+                   transposed_matrix) -> const auto& {
   return transposed_matrix.as_derived().internal_matrix();
 }
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 template <typename Matrix, typename Real, size_t M, size_t N>
-const auto& transpose(const base_tensor<const_transposed_matrix<Matrix, M, N>,
-                                        Real, M, N>& transposed_matrix) {
+auto transpose(const base_tensor<const_transposed_matrix<Matrix, M, N>, Real, M,
+                                 N>& transposed_matrix) -> const auto& {
   return transposed_matrix.as_derived().internal_matrix();
 }
 
@@ -1444,7 +1441,8 @@ auto inverse(const base_tensor<Tensor, GiNaC::ex, M, N>& m_in) {
 //==============================================================================
 /// printing vector
 template <typename Tensor, typename Real, size_t N>
-auto& operator<<(std::ostream& out, const base_tensor<Tensor, Real, N>& v) {
+auto operator<<(std::ostream& out, const base_tensor<Tensor, Real, N>& v)
+    -> auto& {
   out << "[ ";
   out << std::scientific;
   for (size_t i = 0; i < N; ++i) {
@@ -1462,7 +1460,8 @@ auto& operator<<(std::ostream& out, const base_tensor<Tensor, Real, N>& v) {
 }
 
 template <typename Tensor, typename Real, size_t M, size_t N>
-auto& operator<<(std::ostream& out, const base_tensor<Tensor, Real, M, N>& m) {
+auto operator<<(std::ostream& out, const base_tensor<Tensor, Real, M, N>& m)
+    -> const auto& {
   out << std::scientific;
   for (size_t j = 0; j < M; ++j) {
     out << "[ ";
@@ -1522,19 +1521,16 @@ template <typename Tensor, typename Real, size_t N>
 struct unpack<base_tensor<Tensor, Real, N>> {
   static constexpr size_t       n = N;
   base_tensor<Tensor, Real, N>& container;
-
   //----------------------------------------------------------------------------
-  constexpr unpack(base_tensor<Tensor, Real, N>& c) : container{c} {}
-
+  explicit constexpr unpack(base_tensor<Tensor, Real, N>& c) : container{c} {}
   //----------------------------------------------------------------------------
   template <size_t I>
-  constexpr auto& get() {
+  constexpr auto get() -> auto& {
     return container(I);
   }
-
   //----------------------------------------------------------------------------
   template <size_t I>
-  constexpr const auto& get() const {
+  constexpr auto get() const -> const auto& {
     return container(I);
   }
 };
@@ -1547,13 +1543,12 @@ template <typename Tensor, typename Real, size_t N>
 struct unpack<const base_tensor<Tensor, Real, N>> {
   static constexpr size_t             n = N;
   const base_tensor<Tensor, Real, N>& container;
-
   //----------------------------------------------------------------------------
-  constexpr unpack(const base_tensor<Tensor, Real, N>& c) : container{c} {}
-
+  explicit constexpr unpack(const base_tensor<Tensor, Real, N>& c)
+      : container{c} {}
   //----------------------------------------------------------------------------
   template <size_t I>
-  constexpr const auto& get() const {
+  constexpr auto get() const -> const auto& {
     return container(I);
   }
 };
@@ -1569,17 +1564,17 @@ struct unpack<tensor<Real, N>> {
   tensor<Real, N>&        container;
 
   //----------------------------------------------------------------------------
-  constexpr unpack(tensor<Real, N>& c) : container{c} {}
+  explicit constexpr unpack(tensor<Real, N>& c) : container{c} {}
 
   //----------------------------------------------------------------------------
   template <size_t I>
-  constexpr auto& get() {
+  constexpr auto get() -> auto& {
     return container[I];
   }
 
   //----------------------------------------------------------------------------
   template <size_t I>
-  constexpr const auto& get() const {
+  constexpr auto get() const -> const auto& {
     return container[I];
   }
 };
@@ -1594,11 +1589,11 @@ struct unpack<const tensor<Real, N>> {
   const tensor<Real, N>&  container;
 
   //----------------------------------------------------------------------------
-  constexpr unpack(const tensor<Real, N>& c) : container{c} {}
+  explicit constexpr unpack(const tensor<Real, N>& c) : container{c} {}
 
   //----------------------------------------------------------------------------
   template <size_t I>
-  constexpr const auto& get() const {
+  constexpr auto get() const -> const auto& {
     return container[I];
   }
 };

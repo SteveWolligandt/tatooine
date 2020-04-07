@@ -44,19 +44,21 @@ struct linspace {
       : m_min{min}, m_max{max}, m_size{size} {}
   //----------------------------------------------------------------------------
   constexpr linspace(const linspace&) = default;
-  constexpr linspace(linspace&&)      = default;
+  constexpr linspace(linspace&&) noexcept = default;
   //----------------------------------------------------------------------------
   template <typename OtherReal>
-  constexpr linspace(const linspace<OtherReal>& other) noexcept
+  explicit constexpr linspace(const linspace<OtherReal>& other) noexcept
       : m_min{static_cast<Real>(other.front())},
         m_max{static_cast<Real>(other.back())},
         m_size{other.size()} {}
   //----------------------------------------------------------------------------
-  constexpr this_t& operator=(const linspace<Real>&) = default;
-  constexpr this_t& operator=(linspace<Real>&&) = default;
+  constexpr auto operator=(const linspace<Real>&) -> linspace& = default;
+  constexpr auto operator=(linspace<Real> &&) noexcept -> linspace& = default;
+  //----------------------------------------------------------------------------
+  ~linspace() = default;
   //----------------------------------------------------------------------------
   template <typename OtherReal>
-  constexpr auto& operator=(const linspace<OtherReal>& other) noexcept {
+  constexpr auto operator=(const linspace<OtherReal>& other) noexcept -> auto& {
     m_min        = other.front();
     m_max        = other.back();
     m_size = other.size();
@@ -66,7 +68,7 @@ struct linspace {
   //============================================================================
   // methods
   //============================================================================
-  constexpr Real at(size_t i) const {
+  constexpr auto at(size_t i) const -> Real {
     if (m_size <= 1) { return m_min; }
     return m_min + spacing() * i;
   }
@@ -107,14 +109,15 @@ struct linspace_iterator
   linspace_iterator(const linspace<Real>* _lin, size_t _i)
       : m_lin{_lin}, m_i{_i} {}
   //----------------------------------------------------------------------------
-  linspace_iterator(const linspace_iterator& other)
-      : m_lin{other.m_lin}, m_i{other.m_i} {}
+  linspace_iterator(const linspace_iterator&)     = default;
+  linspace_iterator(linspace_iterator&&) noexcept = default;
   //----------------------------------------------------------------------------
-  auto& operator=(const linspace_iterator& other) {
-    m_lin = other.m_lin;
-    m_i   = other.m_i;
-    return *this;
-  }
+  auto operator=(const linspace_iterator& other)
+      -> linspace_iterator& = default;
+  auto operator=(linspace_iterator&& other) noexcept
+      -> linspace_iterator& = default;
+  //----------------------------------------------------------------------------
+  ~linspace_iterator() = default;
 
   //============================================================================
   // methods
@@ -157,8 +160,8 @@ constexpr auto end(const linspace<Real>& l) {
 }
 //------------------------------------------------------------------------------
 template <typename Real>
-constexpr long distance(const linspace_iterator<Real>& it0,
-                        const linspace_iterator<Real>& it1) {
+constexpr auto distance(const linspace_iterator<Real>& it0,
+                        const linspace_iterator<Real>& it1) -> long {
   return it1.i() - it0.i();
 }
 //------------------------------------------------------------------------------
@@ -178,7 +181,7 @@ auto prev(const linspace_iterator<Real>& l, size_t diff = 1) {
 }
 //------------------------------------------------------------------------------
 template <typename Real>
-inline auto& advance(linspace_iterator<Real>& l, long n = 1) {
+inline auto advance(linspace_iterator<Real>& l, long n = 1) -> auto& {
   if (n < 0) {
     while (n++) { --l; }
   } else {
@@ -197,7 +200,7 @@ linspace(Real, Real, size_t)->linspace<Real>;
 // I/O
 //==============================================================================
 template <typename Real>
-auto& operator<<(std::ostream& out, const linspace<Real>& l) {
+auto operator<<(std::ostream& out, const linspace<Real>& l) -> auto& {
   out << "[" << l[0] << ", " << l[1] << ", ... , " << l.back() << "]";
   return out;
 }

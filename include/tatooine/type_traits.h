@@ -289,10 +289,11 @@ struct promote<T0, T1, T2, Ts...> {
   template <typename T>                                                    \
   struct name {                                                            \
     template <typename S>                                                  \
-    static char test(decltype(&S::method));                                \
+    static auto test(decltype(&S::method)) -> char;                        \
     template <typename S>                                                  \
-    static long           test(...);                                       \
-    static constexpr bool value = sizeof(test<T>(0)) == sizeof(char);      \
+    static auto test(...) -> long;                                         \
+                                                                           \
+    static constexpr auto value = sizeof(test<T>(0)) == sizeof(char);      \
     constexpr             operator bool() const noexcept { return value; } \
     constexpr auto        operator()() const noexcept { return value; }    \
   };                                                                       \

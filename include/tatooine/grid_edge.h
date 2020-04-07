@@ -20,17 +20,12 @@ struct grid_edge
   //----------------------------------------------------------------------------
   grid_edge(const grid_edge& e) : parent_t(e) {}
   //----------------------------------------------------------------------------
-  grid_edge(grid_edge&& e) : parent_t(std::move(e)) {}
+  grid_edge(grid_edge&& e) noexcept : parent_t(std::move(e)) {}
   //----------------------------------------------------------------------------
-  auto& operator=(const grid_edge& e) {
-    parent_t::operator=(e);
-    return *this;
-  }
+  auto operator=(const grid_edge& e) -> grid_edge& = default;
+  auto operator=(grid_edge&& e) noexcept -> grid_edge& = default;
   //----------------------------------------------------------------------------
-  auto& operator=(grid_edge&& e) {
-    parent_t::operator=(std::move(e));
-    return *this;
-  }
+  ~grid_edge() = default;
   //----------------------------------------------------------------------------
   auto as_position_pair() const {
     return std::pair{*this->first, *this->second};
@@ -38,48 +33,60 @@ struct grid_edge
   //----------------------------------------------------------------------------
   auto operator*() const { return as_position_pair(); }
   //----------------------------------------------------------------------------
-  bool operator==(const grid_edge& other) const {
+  auto operator==(const grid_edge& other) const -> bool {
     return (this->first == other.second && this->second == other.first) ||
            (this->first == other.first && this->second == other.second);
   }
   //----------------------------------------------------------------------------
-  bool operator!=(const grid_edge& other) const { return !operator==(other); }
+  auto operator!=(const grid_edge& other) const -> bool {
+    return !operator==(other);
+  }
   //----------------------------------------------------------------------------
-  bool operator<(const grid_edge& other) const {
+  auto operator<(const grid_edge& other) const -> bool {
     for (size_t i = 0; i < N; ++i) {
-      if (this->first.iterators[i].i() < other.first.iterators[i].i())
+      if (this->first.iterators[i].i() < other.first.iterators[i].i()) {
         return true;
-      if (this->first.iterators[i].i() > other.first.iterators[i].i())
+      }
+      if (this->first.iterators[i].i() > other.first.iterators[i].i()) {
         return false;
+      }
     }
     for (size_t i = 0; i < N; ++i) {
-      if (this->second.iterators[i].i() < other.second.iterators[i].i())
+      if (this->second.iterators[i].i() < other.second.iterators[i].i()) {
         return true;
-      if (this->second.iterators[i].i() > other.second.iterators[i].i())
+      }
+      if (this->second.iterators[i].i() > other.second.iterators[i].i()) {
         return false;
+      }
     }
     return false;
   }
   //----------------------------------------------------------------------------
-  bool operator<=(const grid_edge& other) const {
+  auto operator<=(const grid_edge& other) const -> bool {
     return operator==(other) || operator<(other);
   }
   //----------------------------------------------------------------------------
-  bool operator>(const grid_edge& other) const {
+  auto operator>(const grid_edge& other) const -> bool {
     for (size_t i = 0; i < N; ++i) {
-      if (this->first.iterators[i].i > other.first.iterators[i].i) return true;
-      if (this->first.iterators[i].i < other.first.iterators[i].i) return false;
+      if (this->first.iterators[i].i > other.first.iterators[i].i) {
+        return true;
+      }
+      if (this->first.iterators[i].i < other.first.iterators[i].i) {
+        return false;
+      }
     }
     for (size_t i = 0; i < N; ++i) {
-      if (this->second.iterators[i].i > other.second.iterators[i].i)
+      if (this->second.iterators[i].i > other.second.iterators[i].i) {
         return true;
-      if (this->second.iterators[i].i < other.second.iterators[i].i)
+      }
+      if (this->second.iterators[i].i < other.second.iterators[i].i) {
         return false;
+      }
     }
     return false;
   }
   //----------------------------------------------------------------------------
-  bool operator>=(const grid_edge& other) const {
+  auto operator>=(const grid_edge& other) const -> bool {
     return operator==(other) || operator>(other);
   }
   //----------------------------------------------------------------------------
@@ -89,7 +96,8 @@ struct grid_edge
 };
 //==============================================================================
 template <typename Real, size_t N>
-inline auto& operator<<(std::ostream& out, const grid_edge<Real, N>& e) {
+inline auto operator<<(std::ostream& out, const grid_edge<Real, N>& e)
+    -> auto& {
   out << e.first << " - " << e.second;
   return out;
 }

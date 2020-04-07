@@ -70,18 +70,14 @@ template <std::size_t i, typename T, T... Vs>
 static constexpr auto getval_v = getval_impl<i, T, Vs...>::value;
 
 template <typename T>
-constexpr T getval(const unsigned int /*i*/) {
+constexpr auto getval(const unsigned int /*i*/) -> T {
   throw T{};
 }
 template <typename T, typename T0, typename... Ts>
-constexpr T getval(const unsigned int i, T0&& t0, Ts&&... ts) {
-  if (i == 0) {
-    return static_cast<T>(t0);
-  } else {
-    return getval<T>(i - 1, std::forward<Ts>(ts)...);
-  };
+constexpr auto getval(const unsigned int i, T0&& t0, Ts&&... ts) {
+  if (i == 0) { return static_cast<T>(t0); }
+  return getval<T>(i - 1, std::forward<Ts>(ts)...);
 }
-
 //==============================================================================
 
 template <typename... Ts>

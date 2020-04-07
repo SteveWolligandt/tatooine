@@ -123,8 +123,9 @@ struct x_slowest {
  private:
   template <typename ResIt, typename IsType, enable_if_iterator<IsType> = true,
             enable_if_iterator<std::decay_t<ResIt>> = true>
-  static constexpr size_t internal_plain_index(ResIt res_it,
-                                               const std::vector<IsType>& is) {
+  static constexpr auto internal_plain_index(ResIt                      res_it,
+                                             const std::vector<IsType>& is)
+      -> size_t {
     size_t multiplier = 1;
     size_t idx        = 0;
 
@@ -137,8 +138,8 @@ struct x_slowest {
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
   template <typename Resolution, typename... Is,
             enable_if_integral<std::decay_t<Is>...> = true>
-  static constexpr size_t internal_plain_index(const Resolution& resolution,
-                                               Is... p_is) {
+  static constexpr auto internal_plain_index(const Resolution& resolution,
+                                             Is... p_is) -> size_t {
     std::array is{p_is...};
 
     size_t multiplier = 1;
@@ -156,8 +157,8 @@ struct x_slowest {
   template <typename... Is, typename ResType,
             enable_if_integral<ResType>             = true,
             enable_if_integral<std::decay_t<Is>...> = true>
-  static constexpr size_t plain_index(const std::vector<ResType>& resolution,
-                                      Is... is) {
+  static constexpr auto plain_index(const std::vector<ResType>& resolution,
+                                    Is... is) -> size_t {
     assert(sizeof...(Is) == resolution.size());
     return internal_plain_index(resolution, is...);
   }
@@ -165,8 +166,8 @@ struct x_slowest {
   template <typename ResType, typename IsType,
             enable_if_integral<ResType> = true,
             enable_if_integral<IsType>  = true>
-  static size_t plain_index(const std::vector<ResType>& resolution,
-                            const std::vector<IsType>&  is) {
+  static auto plain_index(const std::vector<ResType>& resolution,
+                          const std::vector<IsType>&  is) -> size_t {
     assert(is.size() == resolution.size());
     return internal_plain_index(prev(end(resolution)), is);
   }
@@ -174,16 +175,16 @@ struct x_slowest {
   template <size_t N, typename ResType, typename... Is,
             enable_if_integral<ResType>             = true,
             enable_if_integral<std::decay_t<Is>...> = true>
-  static constexpr size_t plain_index(const std::array<ResType, N>& resolution,
-                                      Is... is) {
+  static constexpr auto plain_index(const std::array<ResType, N>& resolution,
+                                    Is... is) -> size_t {
     static_assert(sizeof...(Is) == N);
     return internal_plain_index(resolution, is...);
   }
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
   template <size_t N, typename ResType, typename IsType,
             enable_if_integral<ResType> = true>
-  static constexpr size_t plain_index(const std::array<ResType, N>& resolution,
-                                      const std::vector<IsType>&    is) {
+  static constexpr auto plain_index(const std::array<ResType, N>& resolution,
+                                    const std::vector<IsType>& is) -> size_t {
     assert(is.size() == N);
     return internal_plain_index(prev(end(resolution)), is);
   }
@@ -213,8 +214,8 @@ struct x_slowest {
 /// space-filling curve algorithm
 struct hilbert_curve {
   template <typename... Is, enable_if_integral<std::decay_t<Is>...> = true>
-  static constexpr size_t plain_index(const std::vector<size_t>& /*resolution*/,
-                                      Is... /*is*/) {
+  static constexpr auto plain_index(const std::vector<size_t>& /*resolution*/,
+                                      Is... /*is*/) -> size_t {
     throw std::runtime_error{
         "hilbert_curve::plain_index(const std::vector<size_t>&, Is... is) not "
         "implemented"};
@@ -222,8 +223,8 @@ struct hilbert_curve {
   }
   template <size_t N, typename... Is,
             enable_if_integral<std::decay_t<Is>...> = true>
-  static constexpr size_t plain_index(
-      const std::array<size_t, N>& /*resolution*/, Is... /*is*/) {
+  static constexpr auto plain_index(const std::array<size_t, N>& /*resolution*/,
+                                    Is... /*is*/) -> size_t {
     throw std::runtime_error{
         "hilbert_curve::plain_index(const std::array<size_t, N>&, Is... is) "
         "not "
