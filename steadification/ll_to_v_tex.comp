@@ -37,9 +37,9 @@ void main() {
     node nf = result_rast[fi];
     node nb = result_rast[bi];
     if (abs(nf.t - nf.t0) > abs(nb.t - nb.t0)) {
-      imageStore(v_tex, texpos, vec4(nf.v, nf.t - nf.t0, float(nf.layer)));
+      imageStore(v_tex, texpos, vec4(nf.v, nf.t - nf.t0, float(nf.renderindex)));
     } else {
-      imageStore(v_tex, texpos, vec4(nb.v, nb.t - nb.t0, float(nb.layer)));
+      imageStore(v_tex, texpos, vec4(nb.v, nb.t - nb.t0, float(nb.renderindex)));
     }
   }
 }

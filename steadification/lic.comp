@@ -2,6 +2,7 @@
 //==============================================================================
 layout(local_size_x = 32, local_size_y = 32) in;
 layout(binding = 6, rgba32f) uniform image2D lic_tex;
+layout(binding = 7, rgba32f) uniform image2D color_lic_tex;
 //==============================================================================
 uniform sampler2D v_tex;
 uniform sampler2D noise_tex;
@@ -31,14 +32,13 @@ vec2 idx_to_domain_pos(uvec2 image_pos, vec2 min, vec2 max, uvec2 res) {
   return image_pos / vec2(res - 1) * (max - min) + min;
 }
 //------------------------------------------------------------------------------
-vec2 v(vec2 pos) {
-  vec2 v_sample =
-      texture(v_tex, domain_pos_to_uv(pos, domain_min, domain_max, v_tex_res))
-          .rg;
+vec3 v(vec2 pos) {
+  vec4 v_sample =
+      texture(v_tex, domain_pos_to_uv(pos, domain_min, domain_max, v_tex_res));
   if (isnan(v_sample.x) || isnan(v_sample.y)) {
-    return v_sample;
+    return v_sample.xya;
   } else {
-    return normalize(v_sample);
+    return vec3(normalize(v_sample.xy), v_sample.a);
   }
 }
 //------------------------------------------------------------------------------
@@ -53,7 +53,9 @@ float noise(vec2 pos) {
 
 //------------------------------------------------------------------------------
 vec2 rungekutta4_step(vec2 pos, float stepsize) {
-  const vec2 v1 = v(pos);
+  const vec3 vri1 = v(pos);
+  const vec2 v1 = vri1.xy;
+  const float ri1 = vri1.z;
   if (isnan(v1.x) || isnan(v1.y)) { return vec2(0.0 / 0.0, 0.0 / 0.0); }
   const vec2 k1 = stepsize * v1;
 
@@ -62,8 +64,12 @@ vec2 rungekutta4_step(vec2 pos, float stepsize) {
       x2.y < domain_min.y || x2.y > domain_max.y) {
     return vec2(0.0 / 0.0, 0.0 / 0.0);
   }
-  const vec2 v2 = v(x2);
-  if (isnan(v1.x) || isnan(v1.y)) { return vec2(0.0 / 0.0, 0.0 / 0.0); }
+  const vec3 vri2 = v(x2);
+  const vec2 v2 = vri2.xy;
+  const float ri2 = vri2.z;
+  if (isnan(v2.x) || isnan(v2.y) || ri2 != ri1) {
+    return vec2(0.0 / 0.0, 0.0 / 0.0);
+  }
   const vec2 k2 = stepsize * v2;
 
   const vec2 x3 = pos + k2 / 2;
@@ -71,8 +77,12 @@ vec2 rungekutta4_step(vec2 pos, float stepsize) {
       x3.y < domain_min.y || x3.y > domain_max.y) {
     return vec2(0.0 / 0.0, 0.0 / 0.0);
   }
-  const vec2 v3 = v(x3);
-  if (isnan(v1.x) || isnan(v1.y)) { return vec2(0.0 / 0.0, 0.0 / 0.0); }
+  const vec3 vri3 = v(x3);
+  const vec2 v3 = vri3.xy;
+  const float ri3 = vri3.z;
+  if (isnan(v3.x) || isnan(v3.y) || ri3 != ri1) {
+    return vec2(0.0 / 0.0, 0.0 / 0.0);
+  }
   const vec2 k3 = stepsize * v3;
 
   const vec2 x4 = pos + k3;
@@ -80,8 +90,12 @@ vec2 rungekutta4_step(vec2 pos, float stepsize) {
       x4.y < domain_min.y || x4.y > domain_max.y) {
     return vec2(0.0 / 0.0, 0.0 / 0.0);
   }
-  const vec2 v4 = v(x4);
-  if (isnan(v1.x) || isnan(v1.y)) { return vec2(0.0 / 0.0, 0.0 / 0.0); }
+  const vec3 vri4 = v(x4);
+  const vec2 v4 = vri4.xy;
+  const float ri4 = vri4.z;
+  if (isnan(v4.x) || isnan(v4.y) || ri4 != ri1) {
+    return vec2(0.0 / 0.0, 0.0 / 0.0);
+  }
   const vec2 k4 = stepsize * v4;
 
   const vec2 stepped = pos + (k1 + 2 * k2 + 2 * k3 + k4) / 6;
@@ -97,7 +111,7 @@ void main() {
   if (idx.x >= lic_tex_res.x || idx.y >= lic_tex_res.y) { return; }
   const vec2 pos = idx_to_domain_pos(idx, domain_min, domain_max, lic_tex_res);
 
-  vec2 v0 = v(pos);
+  vec2 v0 = v(pos).xy;
   if (isnan(v0.x) || isnan(v0.y)) {
     imageStore(lic_tex, ivec2(idx), vec4(0, 0, 0, 0));
     return;
@@ -134,21 +148,11 @@ void main() {
   float tau =
       texture(v_tex, domain_pos_to_uv(pos, domain_min, domain_max, v_tex_res))
           .b;
-  float layer =
-      texture(v_tex, domain_pos_to_uv(pos, domain_min, domain_max, v_tex_res))
-          .a;
-  if (layer == 0) {
-    imageStore(
-        lic_tex, ivec2(idx),
-        vec4(out_val /** 0.75 + 0.25*/ *
-                 texture(color_scale,
-                         1 - vec2((tau - btau) / (ftau - btau), 0.5))
-                     .rgb,
-              //vec4(out_val * texture(color_scale,
-              //                      1 - vec2((tau - btau) / (ftau - btau), 0.5))
-              //                  .rgb,
-             1));
-  } else {
-    imageStore(lic_tex, ivec2(idx), vec4(vec3(out_val), 1));
-  }
+
+  imageStore(color_lic_tex, ivec2(idx),
+             vec4(out_val * texture(color_scale,
+                                    1 - vec2((tau - btau) / (ftau - btau), 0.5))
+                                .rgb,
+                  1));
+  imageStore(lic_tex, ivec2(idx), vec4(vec3(out_val), 1));
 }

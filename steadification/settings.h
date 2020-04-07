@@ -77,7 +77,7 @@ template <> struct settings<rbc> {
 //};
 //==============================================================================
 template <> struct settings<cavity> {
-  using real_t = typename rbc::real_t;
+  using real_t = typename cavity::real_t;
   static constexpr std::string_view name = "cavity";
   static constexpr vec<size_t, 2>   render_resolution{
       cavity::domain.dimension(0).size() * 5,
@@ -85,34 +85,32 @@ template <> struct settings<cavity> {
   static constexpr size_t num_edges = 5;
   static constexpr real_t eps       = 1e-4;
   //----------------------------------------------------------------------------
-  static constexpr grid domain{
-      linspace{cavity::domain.dimension(0).front() + eps,
-               cavity::domain.dimension(0).back() - eps,
-               cavity::domain.dimension(0).size() / 5},
-      linspace{cavity::domain.dimension(1).front() + eps,
-               cavity::domain.dimension(1).back() - eps,
-               cavity::domain.dimension(1).size() / 5}};
+  static constexpr boundingbox<real_t, 2> domain{
+      vec{cavity::domain.dimension(0).front() + eps,
+          cavity::domain.dimension(1).front() + eps},
+      vec{cavity::domain.dimension(0).back() - eps,
+          cavity::domain.dimension(1).back() - eps}};
 };
-//==============================================================================
-//template <typename real_t> struct settings<movinggyre<real_t>> {
-//  static constexpr std::string_view name = "movinggyre";
-//  static constexpr real_t           eps  = 1e-4;
-//  static constexpr grid domain{linspace{0, 1, 51}, linspace{-0.5, 0.5, 51}};
-//  static constexpr vec<size_t, 2> render_resolution{1000, 1000};
-//  static constexpr size_t         num_edges = 5;
-//};
-//==============================================================================
-// template <> struct settings<FlappingWing> {
-//  static constexpr std::string_view name = "FlappingWing";
-//  static constexpr real_t           eps  = 1e-5;
-//  static constexpr grid             domain{linspace{0.0 + eps, 24.0 - eps,
-//  26},
-//                                           linspace{0.0 + eps, 24.0 - eps,
-//                                           26}};
-//  static constexpr vec<size_t, 2>   render_resolution{1000, 1000};
-//  static constexpr size_t           num_edges = 5;
-//};
-//==============================================================================
+  //==============================================================================
+  // template <typename real_t> struct settings<movinggyre<real_t>> {
+  //  static constexpr std::string_view name = "movinggyre";
+  //  static constexpr real_t           eps  = 1e-4;
+  //  static constexpr grid domain{linspace{0, 1, 51}, linspace{-0.5, 0.5, 51}};
+  //  static constexpr vec<size_t, 2> render_resolution{1000, 1000};
+  //  static constexpr size_t         num_edges = 5;
+  //};
+  //==============================================================================
+  // template <> struct settings<FlappingWing> {
+  //  static constexpr std::string_view name = "FlappingWing";
+  //  static constexpr real_t           eps  = 1e-5;
+  //  static constexpr grid             domain{linspace{0.0 + eps, 24.0 - eps,
+  //  26},
+  //                                           linspace{0.0 + eps, 24.0 - eps,
+  //                                           26}};
+  //  static constexpr vec<size_t, 2>   render_resolution{1000, 1000};
+  //  static constexpr size_t           num_edges = 5;
+  //};
+  //==============================================================================
 }  // namespace tatooine::steadification
 //==============================================================================
 

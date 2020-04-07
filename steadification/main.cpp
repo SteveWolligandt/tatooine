@@ -73,8 +73,11 @@ auto main(int argc, char** argv) -> int {
     boussinesq v{dataset_dir + "/boussinesq.am"};
     std::cerr << "done!\n";
     calc(v, argc, argv);
-    //} else if (v == "cav") {
-    //  calc(cavity{}, argc, argv);
+  } else if (v == "cav") {
+    std::cerr << "reading cavity... ";
+    cavity v{};
+    std::cerr << "done!\n";
+    calc(v, argc, argv);
   } else {
     throw std::runtime_error("Dataset not recognized");
   }
