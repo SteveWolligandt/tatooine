@@ -90,7 +90,7 @@ class steadification {
   // coverage_shader                  m_coverage_shader;
   // dual_coverage_shader             m_dual_coverage_shader;
  public:
-  yavin::tex2rgba32f front_v_t_t0;
+  yavin::tex2rgba32f  front_v_t_t0;
   yavin::tex2r32f     front_curvature;
   yavin::tex2rg32ui   front_renderindex_layer;
   yavin::texdepth32ui front_depth;
@@ -134,8 +134,8 @@ class steadification {
               render_resolution(0),
               render_resolution(1)},
         m_color_scale{yavin::LINEAR, yavin::CLAMP_TO_EDGE, "color_scale.png"},
-        m_noise_tex{yavin::LINEAR, yavin::REPEAT, render_resolution(0),
-                    render_resolution(1)},
+        m_noise_tex{yavin::LINEAR, yavin::REPEAT,
+                    render_resolution(0), render_resolution(1)},
         m_fbotex{render_resolution(0), render_resolution(1)},
         m_fbo{m_fbotex},
         m_rand_eng{rand_eng},
@@ -154,8 +154,8 @@ class steadification {
         back_depth{m_render_resolution(0), m_render_resolution(1)},
         back_fbo{back_v_t_t0, back_curvature, back_renderindex_layer,
                  back_depth},
-        lic_tex{m_render_resolution(0) * 2, m_render_resolution(1) * 2},
-        color_lic_tex{m_render_resolution(0) * 2, m_render_resolution(1) * 2},
+        lic_tex{m_render_resolution(0) , m_render_resolution(1) },
+        color_lic_tex{m_render_resolution(0) , m_render_resolution(1) },
         v_tex{m_render_resolution(0), m_render_resolution(1)},
         result_rasterization(
             2 * m_render_resolution(0) * m_render_resolution(1),
@@ -365,10 +365,10 @@ class steadification {
   }
   //----------------------------------------------------------------------------
   void result_to_lic_tex(const grid2_t& domain, GLfloat btau, GLfloat ftau) {
-    const size_t num_samples = 100;
+    const size_t num_samples = 20;
     const real_t stepsize =
         (domain.dimension(0).back() - domain.dimension(0).front()) /
-        (m_render_resolution(0) * 4);
+        (m_render_resolution(0) * 2);
     result_to_v_tex();
 
     color_lic_tex.bind_image_texture(7);
@@ -380,8 +380,8 @@ class steadification {
     m_lic_shader.set_forward_tau(ftau);
     m_lic_shader.set_num_samples(num_samples);
     m_lic_shader.set_stepsize(stepsize);
-    m_lic_shader.dispatch(m_render_resolution(0) * 2 / 32.0 + 1,
-                          m_render_resolution(1) * 2 / 32.0 + 1);
+    m_lic_shader.dispatch(m_render_resolution(0)  / 32.0 + 1,
+                          m_render_resolution(1)  / 32.0 + 1);
     v_tex.bind_image_texture(7);
   }
   //----------------------------------------------------------------------------
@@ -665,13 +665,15 @@ class steadification {
              // check if mesh's seedcurve neighbors another edge
              const auto unused_edge = domain.edge_at(edge_idx);
              size_t     num_usages0 = 0, num_usages1 = 0;
-             for (const auto& used_edge_idx : used_edges) {
-               const auto used_edge = domain.edge_at(used_edge_idx);
+             for (const auto used_edge_idx : used_edges) {
+               const auto [uv0, uv1] = domain.edge_at(used_edge_idx);
 
-               if (used_edge.first == unused_edge.first ||
-                   used_edge.second == unused_edge.first) {++num_usages0;}
-               if (used_edge.first == unused_edge.second ||
-                   used_edge.second == unused_edge.second) {++num_usages1;}
+               if (uv0 == unused_edge.first || uv1 == unused_edge.first) {
+                 ++num_usages0;
+               }
+               if (uv1 == unused_edge.second || uv1 == unused_edge.second) {
+                 ++num_usages1;
+               }
              }
              if (num_usages0 > 1 || num_usages1 > 1) {
                new_weight /= neighbor_weight;

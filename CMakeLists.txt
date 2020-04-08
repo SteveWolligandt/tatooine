@@ -60,6 +60,33 @@ set(TATOOINE_GPU_REDUCE_SHADERSTORAGE_COMP_SHADER_PATH
 configure_file("${CMAKE_CURRENT_SOURCE_DIR}/include/tatooine/gpu/reduce.h.in"
                "${CMAKE_CURRENT_BINARY_DIR}/include/tatooine/gpu/reduce.h")
 #- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+# clang-tidy
+set(TATOOINE_USE_CLANG_TIDY false CACHE BOOL
+    "use clang-tidy checks while building")
+option(TATOOINE_USE_CLANG_TIDY
+       "use clang-tidy checks while building" FALSE)
+find_program(CLANG_TIDY_EXECUTABLE NAMES "clang-tidy" DOC "Path to clang-tidy executable")
+string(CONCAT TATOOINE_CLANG_TIDY_CHECKS
+  "-checks="
+  ",cppcoreguidelines*"
+  ",-cppcoreguidelines-pro-type-reinterpret-cast"
+  ",-cppcoreguidelines-pro-bounds-pointer-arithmetic"
+  ",-cppcoreguidelines-pro-bounds-constant-array-index"
+  ",-cppcoreguidelines-avoid-magic-numbers"
+  ",-cppcoreguidelines-macro-usage"
+  ",cert*"
+  ",-cert-err34-c"
+  ",hicpp"
+  ",modernize*"
+  ",performance*"
+  ",readability*"
+  ",-readability-magic-numbers"
+  ",-readability-isolate-declaration"
+  ",-readability-static-accessed-through-instance"
+  ",-readability-named-parameter"
+  ",google-explicit-constructor"
+  )
+#- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 # create library target
 add_library(tatooine INTERFACE)
 target_compile_features(tatooine INTERFACE cxx_std_17)

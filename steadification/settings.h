@@ -14,7 +14,7 @@ template <typename Real> struct settings<numerical::doublegyre<Real>> {
   static constexpr Real             eps  = 1e-4;
   static constexpr boundingbox<Real, 2> domain{vec{eps, eps},
                                                vec{2 - eps, 1 - eps}};
-  static constexpr vec<size_t, 2>   render_resolution{500, 250};
+  static constexpr vec<size_t, 2>   render_resolution{1000, 500};
 };
 //==============================================================================
 template <typename Real>

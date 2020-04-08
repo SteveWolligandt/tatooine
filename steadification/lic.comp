@@ -47,58 +47,50 @@ float noise(vec2 pos) {
   vec2 fnoiseres = vec2(noise_tex_res);
   return texture(noise_tex,
                  domain_pos_to_uv(pos, domain_min, domain_max, noise_tex_res) *
-                     fres / fnoiseres)
-      .r;
+                     fres / fnoiseres).r;
 }
 
 //------------------------------------------------------------------------------
-vec2 rungekutta4_step(vec2 pos, float stepsize) {
-  const vec3 vri1 = v(pos);
-  const vec2 v1 = vri1.xy;
-  const float ri1 = vri1.z;
-  if (isnan(v1.x) || isnan(v1.y)) { return vec2(0.0 / 0.0, 0.0 / 0.0); }
-  const vec2 k1 = stepsize * v1;
+vec2 rungekutta4_step(vec2 x1, float stepsize) {
+  const vec3  kri1 = v(x1);
+  const vec2  k1   = kri1.xy;
+  const float ri1  = kri1.z;
+  if (isnan(k1.x) || isnan(k1.y)) { return vec2(0.0 / 0.0, 0.0 / 0.0); }
 
-  const vec2 x2 = pos + k1 / 2;
+  const vec2 x2 = x1 + k1 * stepsize * 0.5;
   if (x2.x < domain_min.x || x2.x > domain_max.x ||
       x2.y < domain_min.y || x2.y > domain_max.y) {
     return vec2(0.0 / 0.0, 0.0 / 0.0);
   }
-  const vec3 vri2 = v(x2);
-  const vec2 v2 = vri2.xy;
-  const float ri2 = vri2.z;
-  if (isnan(v2.x) || isnan(v2.y) || ri2 != ri1) {
-    return vec2(0.0 / 0.0, 0.0 / 0.0);
-  }
-  const vec2 k2 = stepsize * v2;
+  const vec3  kri2 = v(x2);
+  const vec2  k2   = kri2.xy;
+  const float ri2  = kri2.z;
+  //if (ri2 != ri1) { return vec2(0.0 / 0.0, 0.0 / 0.0); }
+  if (isnan(k2.x) || isnan(k2.y)) { return vec2(0.0 / 0.0, 0.0 / 0.0); }
 
-  const vec2 x3 = pos + k2 / 2;
+  const vec2 x3 = x1 + k2 * stepsize * 0.5;
   if (x3.x < domain_min.x || x3.x > domain_max.x ||
       x3.y < domain_min.y || x3.y > domain_max.y) {
     return vec2(0.0 / 0.0, 0.0 / 0.0);
   }
-  const vec3 vri3 = v(x3);
-  const vec2 v3 = vri3.xy;
-  const float ri3 = vri3.z;
-  if (isnan(v3.x) || isnan(v3.y) || ri3 != ri1) {
-    return vec2(0.0 / 0.0, 0.0 / 0.0);
-  }
-  const vec2 k3 = stepsize * v3;
+  const vec3  kri3 = v(x3);
+  const vec2  k3   = kri3.xy;
+  const float ri3  = kri3.z;
+  //if (ri3 != ri1) { return vec2(0.0 / 0.0, 0.0 / 0.0); }
+  if (isnan(k3.x) || isnan(k3.y)) { return vec2(0.0 / 0.0, 0.0 / 0.0); }
 
-  const vec2 x4 = pos + k3;
+  const vec2 x4 = x1 + k3 * stepsize;
   if (x4.x < domain_min.x || x4.x > domain_max.x ||
       x4.y < domain_min.y || x4.y > domain_max.y) {
     return vec2(0.0 / 0.0, 0.0 / 0.0);
   }
-  const vec3 vri4 = v(x4);
-  const vec2 v4 = vri4.xy;
-  const float ri4 = vri4.z;
-  if (isnan(v4.x) || isnan(v4.y) || ri4 != ri1) {
-    return vec2(0.0 / 0.0, 0.0 / 0.0);
-  }
-  const vec2 k4 = stepsize * v4;
+  const vec3  kri4 = v(x4);
+  const vec2  k4   = kri4.xy;
+  const float ri4  = kri4.z;
+  //if (ri4 != ri1) { return vec2(0.0 / 0.0, 0.0 / 0.0); }
+  if (isnan(k4.x) || isnan(k4.y)) { return vec2(0.0 / 0.0, 0.0 / 0.0); }
 
-  const vec2 stepped = pos + (k1 + 2 * k2 + 2 * k3 + k4) / 6;
+  const vec2 stepped = x1 + (k1 + 2 * k2 + 2 * k3 + k4) * stepsize / 6.0;
   if (stepped.x < domain_min.x || stepped.x > domain_max.x ||
       stepped.y < domain_min.y || stepped.y > domain_max.y) {
     return vec2(0.0 / 0.0, 0.0 / 0.0);
@@ -118,16 +110,17 @@ void main() {
   }
   float out_val = noise(pos);
   uint  cnt     = 1;
+  vec2  pos_integrated;
 
   // forward integration
-  vec2 pos_integrated = pos;
+  pos_integrated = pos;
   for (uint i = 0; i < num_samples; ++i) {
     pos_integrated = rungekutta4_step(pos_integrated, stepsize);
     if (isnan(pos_integrated.x) || isnan(pos_integrated.y)) { break; }
     out_val += noise(pos_integrated);
     ++cnt;
   }
-
+  
   // backward integration
   pos_integrated = pos;
   for (uint i = 0; i < num_samples; ++i) {
@@ -138,12 +131,10 @@ void main() {
   }
 
   // contrast stretch
-  out_val /= cnt;
-  out_val = out_val * 15.0 - 7.0;
-  // out_val = out_val * 7.0 - 2.7;
+  out_val /= float(cnt);
+  out_val = out_val * 3 - 1;
   if (out_val < 0) { out_val = 0; }
   if (out_val > 1) { out_val = 1; }
-  out_val = out_val * 0.5 + 0.5;
 
   float tau =
       texture(v_tex, domain_pos_to_uv(pos, domain_min, domain_max, v_tex_res))

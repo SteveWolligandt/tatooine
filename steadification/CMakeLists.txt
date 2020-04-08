@@ -5,7 +5,8 @@ elseif ("${CMAKE_CXX_COMPILER_ID}" STREQUAL "GNU")
   set(CMAKE_CXX_FLAGS "-fdiagnostics-color=always")
 endif()
 #===============================================================================
-set(DATASET_DIR "/home/steve/vectorfield_datasets" CACHE PATH "Path to datasets")
+set(DATASET_DIR
+  "/home/steve/vectorfield_datasets" CACHE PATH "Path to datasets")
 add_compile_definitions(DATASET_DIR="${DATASET_DIR}")
 
 function (copy FILE)
@@ -56,6 +57,17 @@ target_compile_features(steadification PUBLIC cxx_std_17)
 target_compile_options(steadification PRIVATE
   -Wall -Wextra -pedantic -Wno-missing-braces -Wno-unused-lambda-capture
   -march=native)
+#- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+if(CLANG_TIDY_EXECUTABLE)
+  set(TATOOINE_CLANG_TIDY_CMD
+    ${CLANG_TIDY_EXECUTABLE}
+    ${TATOOINE_CLANG_TIDY_CHECKS}
+    "-header-filter=steadification")
+endif()
+if(CLANG_TIDY_EXECUTABLE AND TATOOINE_USE_CLANG_TIDY)
+  set_target_properties(
+    steadification PROPERTIES CXX_CLANG_TIDY ${TATOOINE_CLANG_TIDY_CMD})
+endif()
 #- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 add_executable (read_vtk_test read_vtk_test.cpp)
 target_include_directories(read_vtk_test PRIVATE ${CMAKE_CURRENT_BINARY_DIR})

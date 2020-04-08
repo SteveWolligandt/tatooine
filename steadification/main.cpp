@@ -56,28 +56,28 @@ auto main(int argc, char** argv) -> int {
   const std::string v = argc > 1 ? argv[1] : "dg";
   if (v == "dg") {
     calc(numerical::doublegyre<double>{}, argc, argv);
-  } else if (v == "fdg") {
-    calc(fixed_time_field{numerical::doublegyre<double>{}, 0}, argc, argv);
-  } else if (v == "sc") {
-    calc(numerical::sinuscosinus<double>{}, argc, argv);
   } else if (v == "la") {
     calc(laminar<double>{}, argc, argv);
+  //} else if (v == "fdg") {
+  //  calc(fixed_time_field{numerical::doublegyre<double>{}, 0}, argc, argv);
+  //} else if (v == "sc") {
+  //  calc(numerical::sinuscosinus<double>{}, argc, argv);
     // } else if (v == "cy")  { calc            (cylinder{}, argc, argv);
     // } else if (v == "fw")  { calc        (FlappingWing{}, argc, argv);
   //} else if (v == "mg") {
   //  calc(movinggyre<double>{}, argc, argv);
     // else if (v == "rbc") {
     //  calc(rbc{}, argc, argv);
-  } else if (v == "bou") {
-    std::cerr << "reading boussinesq... ";
-    boussinesq v{dataset_dir + "/boussinesq.am"};
-    std::cerr << "done!\n";
-    calc(v, argc, argv);
-  } else if (v == "cav") {
-    std::cerr << "reading cavity... ";
-    cavity v{};
-    std::cerr << "done!\n";
-    calc(v, argc, argv);
+  //} else if (v == "bou") {
+  //  std::cerr << "reading boussinesq... ";
+  //  boussinesq v{dataset_dir + "/boussinesq.am"};
+  //  std::cerr << "done!\n";
+  //  calc(v, argc, argv);
+  //} else if (v == "cav") {
+  //  std::cerr << "reading cavity... ";
+  //  cavity v{};
+  //  std::cerr << "done!\n";
+  //  calc(v, argc, argv);
   } else {
     throw std::runtime_error("Dataset not recognized");
   }
