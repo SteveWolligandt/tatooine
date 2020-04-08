@@ -548,18 +548,12 @@ class steadification {
                              "_ftau_" + std::to_string(ftau) +
                              "_seedres" + std::to_string(seed_res) +
                              "_stepsize" + std::to_string(stepsize) +
-                             "_cov" + std::to_string(desired_coverage) +
                              "_neighborweight" + std::to_string(neighbor_weight) +
                              "_penalty" + std::to_string(penalty) + "/";
     if (!exists(working_dir)) { create_directory(working_dir); }
     std::cerr << "result will be located in " << working_dir << '\n';
 
-
-    for (const auto& entry : directory_iterator(working_dir)) {
-      if (entry.path().extension() == "png") {
-        remove(entry);
-      }
-    }
+    for (const auto& entry : directory_iterator(working_dir)) { remove(entry); }
     auto             best_edge_idx   = domain.num_straight_edges();
     auto             best_weight     = -std::numeric_limits<real_t>::max();
     auto             old_best_weight = best_weight;
@@ -583,6 +577,8 @@ class steadification {
     size_t       edge_counter  = 0;
     bool         stop_thread   = false;
     double       coverage      = 0;
+    std::vector<float> weights;
+    std::vector<float> coverages;
 
     // monitoring
     std::thread t{[&] {
@@ -632,9 +628,10 @@ class steadification {
                                                  m_render_resolution(1));
     std::vector<GLuint> working_list_size_data(m_render_resolution(0) *
                                                m_render_resolution(1));
+
     // loop
     do {
-      edge_counter = 0;
+      edge_counter    = 0;
       old_best_weight = best_weight;
       best_weight     = -std::numeric_limits<real_t>::max();
       best_edge_idx   = domain.num_straight_edges();
@@ -652,47 +649,49 @@ class steadification {
             std::to_string(btau) + "_" + std::to_string(ftau) + "_" +
             std::to_string(seed_res) + "_" + std::to_string(stepsize) +
             std::to_string(edge_idx) + ".buf";
-         simple_tri_mesh<real_t, 2> mesh{filepath_vtk};
-         if (mesh.num_faces() > 0) {
-           rasterize(gpu_pathsurface(mesh, t0, t0), render_index, layer);
-           //std::ifstream file{filepath_buf};
-           //if (file.is_open()) {
-           //  file.read((char*)working_rasterization_data.data(),
-           //            working_rasterization_data.size() * sizeof(node));
-           //  file.read((char*)working_list_size_data.data(),
-           //            working_list_size_data.size() * sizeof(GLuint));
-           //  file.close();
-           //}
-           // working_rasterization.upload_data(working_rasterization_data);
-           // working_list_size.upload_data(working_list_size_data);
-           auto new_weight = weight(layer);
-           if (num_newly_covered_pixels[0] > 0) {
-             // new_weight /= num_overall_covered_pixels;
+        simple_tri_mesh<real_t, 2> mesh{filepath_vtk};
+        if (mesh.num_faces() > 0) {
+          rasterize(gpu_pathsurface(mesh, t0, t0), render_index, layer);
+          // std::ifstream file{filepath_buf};
+          // if (file.is_open()) {
+          //  file.read((char*)working_rasterization_data.data(),
+          //            working_rasterization_data.size() *
+          //            sizeof(node));
+          //  file.read((char*)working_list_size_data.data(),
+          //            working_list_size_data.size() *
+          //            sizeof(GLuint));
+          //  file.close();
+          //}
+          // working_rasterization.upload_data(working_rasterization_data);
+          // working_list_size.upload_data(working_list_size_data);
+          auto new_weight = weight(layer);
+          if (num_newly_covered_pixels[0] > 0) {
+            // new_weight /= num_overall_covered_pixels;
 
-             // check if mesh's seedcurve neighbors another edge
-             const auto unused_edge = domain.edge_at(edge_idx);
-             size_t     num_usages0 = 0, num_usages1 = 0;
-             for (const auto used_edge_idx : used_edges) {
-               const auto [uv0, uv1] = domain.edge_at(used_edge_idx);
+            // check if mesh's seedcurve neighbors another edge
+            const auto unused_edge = domain.edge_at(edge_idx);
+            size_t     num_usages0 = 0, num_usages1 = 0;
+            for (const auto used_edge_idx : used_edges) {
+              const auto [uv0, uv1] = domain.edge_at(used_edge_idx);
 
-               if (uv0 == unused_edge.first || uv1 == unused_edge.first) {
-                 ++num_usages0;
-               }
-               if (uv1 == unused_edge.second || uv1 == unused_edge.second) {
-                 ++num_usages1;
-               }
-             }
-             if (num_usages0 > 1 || num_usages1 > 1) {
-               new_weight /= neighbor_weight;
-             } else if (num_usages0 == 1 || num_usages1 == 1) {
-               new_weight *= neighbor_weight;
-             }
-             if (new_weight > best_weight) {
-               best_weight   = new_weight;
-               best_edge_idx = edge_idx;
-             }
-           }
-         }
+              if (uv0 == unused_edge.first || uv1 == unused_edge.first) {
+                ++num_usages0;
+              }
+              if (uv1 == unused_edge.second || uv1 == unused_edge.second) {
+                ++num_usages1;
+              }
+            }
+            if (num_usages0 > 1 || num_usages1 > 1) {
+              new_weight /= neighbor_weight;
+            } else if (num_usages0 == 1 || num_usages1 == 1) {
+              new_weight *= neighbor_weight;
+            }
+            if (new_weight > best_weight) {
+              best_weight   = new_weight;
+              best_edge_idx = edge_idx;
+            }
+          }
+        }
         ++edge_counter;
       }
       if (best_edge_idx != domain.num_straight_edges()) {
@@ -708,16 +707,18 @@ class steadification {
         used_edges.push_back(best_edge_idx);
 
         ++render_index;
-        coverage = static_cast<double>(num_overall_covered_pixels[0].download()) /
-                   (m_render_resolution(0) * m_render_resolution(1));
+        coverage =
+            static_cast<double>(num_overall_covered_pixels[0].download()) /
+            (m_render_resolution(0) * m_render_resolution(1));
+        weights.push_back(best_weight /
+                          (m_render_resolution(0) * m_render_resolution(1)));
+        coverages.push_back(coverage);
 
         std::string it_str = std::to_string(iteration);
         while (it_str.size() < 4) { it_str = '0' + it_str; }
         result_to_lic_tex(domain, btau, ftau);
-        lic_tex.write_png(working_dir + "lic_" + it_str +
-                          ".png");
-        color_lic_tex.write_png(working_dir + "lic_color_" +
-                                it_str + ".png");
+        lic_tex.write_png(working_dir + "lic_" + it_str + ".png");
+        color_lic_tex.write_png(working_dir + "lic_color_" + it_str + ".png");
         simple_tri_mesh<real_t, 2> mesh2d{
             pathsurface_dir + std::to_string(domain.size(0)) + "_" +
             std::to_string(domain.size(1)) + "_" + std::to_string(t0) + "_" +
@@ -752,13 +753,16 @@ class steadification {
 
         mesh3d.write_vtk(mesh3dpath);
       }
-      //if (best_weight < old_best_weight && layer == 0) { layer = 1; }
+      // if (best_weight < old_best_weight && layer == 0) { layer =
+      // 1; }
       if (best_edge_idx != domain.num_straight_edges()) {
         unused_edges.erase(best_edge_idx);
       }
       ++iteration;
-    } while (coverage < desired_coverage &&
-             best_edge_idx != domain.num_straight_edges());
+    }
+    while (coverage < desired_coverage &&
+           best_edge_idx != domain.num_straight_edges())
+      ;
     result_to_lic_tex(domain, btau, ftau);
     lic_tex.write_png(working_dir + "lic_final.png");
     color_lic_tex.write_png(working_dir + "lic_color_final.png");
@@ -775,18 +779,202 @@ class steadification {
     t.join();
     std::cerr << '\n';
 
-    std::string movie_command = "#/bin/bash \n";
-    movie_command += "cd " + working_dir + '\n';
-    movie_command +=
-        "ffmpeg -r 3 -start_number 0 -i lic_%04d.png -c:v libx264 -vf fps=25 "
+    std::string cmd = "#/bin/bash \n";
+    cmd += "cd " + working_dir + '\n';
+    cmd +=
+        "ffmpeg -y -r 3 -start_number 0 -i lic_%04d.png -c:v libx264 -vf fps=25 "
         "-pix_fmt yuv420p lic.mp4\n";
-    movie_command +=
-        "ffmpeg -r 3 -start_number 0 -i lic_color_%04d.png -c:v libx264 -vf "
+    cmd +=
+        "ffmpeg -y -r 3 -start_number 0 -i lic_color_%04d.png -c:v libx264 -vf "
         "fps=25 "
         "-pix_fmt yuv420p lic_color.mp4\n";
+    system(cmd.c_str());
 
-    system(movie_command.c_str());
-    return result_rasterization;
+    const std::string reportfilepath = working_dir + "report.html";
+    std::ofstream     reportfile{reportfilepath};
+    reportfile << "<!DOCTYPE html>\n"
+               << "<html><head>\n"
+               << "<meta charset=\"utf-8\">\n"
+               << "<meta name=\"viewport\" content=\"width=device-width, "
+                  "initial-scale=1, shrink-to-fit=no\">\n"
+               << "<link rel=\"stylesheet\" "
+                  "href=\"https://stackpath.bootstrapcdn.com/bootstrap/4.3.1/"
+                  "css/bootstrap.min.css\" "
+                  "integrity=\"sha384-ggOyR0iXCbMQv3Xipma34MD+dH/1fQ784/j6cY/"
+                  "iJTQUOhcWr7x9JvoRxT2MZw1T\" crossorigin=\"anonymous\">\n"
+               << "<script "
+                  "src=\"https://cdnjs.cloudflare.com/ajax/libs/Chart.js/2.5.0/"
+                  "Chart.min.js\"></script>\n"
+               << "<style type=\"text/css\" title=\"text/css\">\n"
+               << "#outerwrap {\n"
+               << "  margin:auto;\n"
+               << "  width:800px;\n"
+               << "  border:1px solid #CCCCCC;\n"
+               << "  padding 10px;\n"
+               << "}\n"
+               << "#innerwrap {\n"
+               << "  margin:10px;\n"
+               << "}\n"
+               << "</style>\n"
+
+
+        << "</head><body>\n"
+        << "<script src=\"https://code.jquery.com/jquery-3.3.1.slim.min.js\" "
+           "integrity=\"sha384-q8i/"
+           "X+965DzO0rT7abK41JStQIAqVgRVzpbzo5smXKp4YfRvH+8abtTE1Pi6jizo\" "
+           "crossorigin=\"anonymous\"></script>\n"
+        << "<script "
+           "src=\"https://cdnjs.cloudflare.com/ajax/libs/popper.js/1.14.7/umd/"
+           "popper.min.js\" "
+           "integrity=\"sha384-"
+           "UO2eT0CpHqdSJQ6hJty5KVphtPhzWj9WO1clHTMGa3JDZwrnQq4sF86dIHNDz0W1\" "
+           "crossorigin=\"anonymous\"></script>\n"
+        << "<script "
+           "src=\"https://stackpath.bootstrapcdn.com/bootstrap/4.3.1/js/"
+           "bootstrap.min.js\" "
+           "integrity=\"sha384-JjSmVgyd0p3pXB1rRibZUAYoIIy6OrQ6VrjIEaFf/"
+           "nJGzIxFDsf4x0xIM+B07jRM\" crossorigin=\"anonymous\"></script>\n"
+           << "<script src=\"https://cdn.jsdelivr.net/npm/chart.js@2.8.0\"></script>\n"
+        << "<div id=\"outerwrap\"><div id=\"innerwrap\">\n"
+        << "\n"
+        << "<table class=\"table\">\n"
+        << "<tr><th>t0</th><th>backward tau</th><th>forward tau</th><th>seed "
+           "res</th><th>stepsize</th><th>coverage</th><th>neighbor "
+           "weight</th><th>penalty</th></tr>\n"
+        << "<tr><td>" << t0 << "</td><td>" << btau << "</td><td>" << ftau
+        << "</td><td>" << seed_res << "</td><td>" << stepsize << "</td><td>"
+        << desired_coverage << "</td><td>" << neighbor_weight << "</td><td>"
+        << penalty << "</td></tr>\n"
+
+        << "</table>\n"
+        << "\n"
+        << "<table><tr>\n"
+        << "<td><img width=100% src=\"lic_final.png\"></img></td>\n"
+        << "<td><img width=100% src=\"lic_color_final.png\"></img></td>\n"
+        << "</tr></table>\n"
+        << "\n"
+        << "<table><tr>\n"
+        << "<td><video width=\"100%\" controls><source src=\"lic.mp4\" "
+           "type=\"video/mp4\"></video></td>\n"
+        << "<td><video width=\"100%\" controls><source src=\"lic_color.mp4\" "
+           "type=\"video/mp4\"></video></td>\n"
+        << "</tr></table>\n"
+        << '\n'
+        << "<div id=\"carouselExampleIndicators\" class=\"carousel\">\n"
+        << "  <ol class=\"carousel-indicators\">\n"
+        << "    <li data-target=\"#carouselExampleIndicators\" "
+           "data-slide-to=\"0\" class=\"active\"></li>\n";
+
+    for (size_t i = 1; i < used_edges.size(); ++i) {
+      reportfile << "<li data-target=\"#carouselExampleIndicators\" "
+                    "data-slide-to=\""
+                 << i << "\"></li>\n";
+    }
+
+    reportfile 
+      << "</ol>\n"
+      << "<div class=\"carousel-inner\">\n"
+      << "<div class=\"carousel-item active\">\n"
+      << "<table class=\"table\">\n"
+      << "<tr><th>iteration#</th><th>weight</th><th>coverage</th></tr>\n"
+      << "<tr><td>"<<0<<"</td><td>"<<weights[0]<<"</td><td>"<<coverages[0]<<"</td></tr>\n"
+      << "</table>\n"
+      << "  <img width=100% src=\"lic_0000.png\">\n"
+      << "</div>\n";
+      for (size_t i = 1; i < used_edges.size(); ++i) {
+        std::string itstr = std::to_string(i);
+        while (itstr.size() < 4) {itstr = '0' + itstr;}
+        reportfile
+          << "<div class=\"carousel-item\">\n"
+          << "<table class=\"table\">\n"
+          << "<tr><th>iteration#</th><th>weight</th><th>coverage</th></tr>\n"
+          << "<tr><td>"<<i<<"</td><td>"<<weights[i]<<"</td><td>"<<coverages[i]<<"</td></tr>\n"
+          << "</table>\n"
+          << "  <img width=100% src=\"lic_"<<itstr<<".png\">\n"
+          << "</div>\n";
+      }
+
+      reportfile << "</div>\n"
+                 << "<a class=\"carousel-control-prev\" "
+                    "href=\"#carouselExampleIndicators\" role=\"button\" "
+                    "data-slide=\"prev\">\n"
+                 << "<span class=\"carousel-control-prev-icon\" "
+                    "aria-hidden=\"true\"></span>\n"
+                 << "<span class=\"sr-only\">Previous</span>\n"
+                 << "</a>\n"
+                 << "<a class=\"carousel-control-next\" "
+                    "href=\"#carouselExampleIndicators\" role=\"button\" "
+                    "data-slide=\"next\">\n"
+                 << "<span class=\"carousel-control-next-icon\" "
+                    "aria-hidden=\"true\"></span>\n"
+                 << "<span class=\"sr-only\">Next</span>\n"
+                 << "</a>\n"
+                 << "</div>\n";
+
+      reportfile
+          << "<canvas id=\"weight-chart\" width=100%></canvas>\n"
+          << "<script>\n"
+          << "new Chart(document.getElementById(\"weight-chart\"), {\n"
+          << "type: 'line',\n"
+          << "data: {\n"
+          << "labels: [" << 0;
+      for (size_t i = 1; i < used_edges.size(); ++i) {
+        reportfile << ", " << i;
+      }
+      reportfile << "],\n"
+          << "datasets: [{ \n"
+          << "data: [" << weights.front();
+
+      for (size_t i = 1; i < used_edges.size(); ++i) {
+        reportfile << ", " << weights[i];
+      }
+      reportfile << "],\n"
+                 << "label: \"weights\",\n"
+                 << "borderColor: \"#3e95cd\",\n"
+                 << "fill: false\n"
+                 << "}\n"
+                 << "]\n"
+                 << "},\n"
+                 << "options: {\n"
+                 << "title: {\n"
+                 << "display: true,\n"
+                 << "text: 'weights'\n"
+                 << "}\n"
+                 << "}\n"
+                 << "});</script>\n";
+
+      reportfile
+          << "<canvas id=\"coverage-chart\" width=100%></canvas>\n"
+          << "<script>\n"
+          << "new Chart(document.getElementById(\"coverage-chart\"), {\n"
+          << "type: 'line',\n"
+          << "data: {\n"
+          << "labels: [" << 0;
+      for (size_t i = 1; i < used_edges.size(); ++i) {
+        reportfile << ", " << i;
+      }
+      reportfile << "],\n"
+          << "datasets: [{ \n"
+          << "data: [" << coverages.front();
+      for (size_t i = 1; i < used_edges.size(); ++i) {
+        reportfile << ", " << coverages[i];
+      }
+      reportfile << "],\n"
+                 << "label: \"coverage\",\n"
+                 << "borderColor: \"#3e95cd\",\n"
+                 << "fill: false\n"
+                 << "}\n"
+                 << "]\n"
+                 << "},\n"
+                 << "options: {\n"
+                 << "title: {\n"
+                 << "display: true,\n"
+                 << "text: 'coverage'\n"
+                 << "}\n"
+                 << "}\n"
+                 << "});</script>\n"
+                 << "</div></div></body></html>\n";
+      return result_rasterization;
   }
 };
   //==============================================================================
