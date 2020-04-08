@@ -542,24 +542,23 @@ class steadification {
     m_weight_dual_pathsurface_shader.set_penalty(penalty);
     std::cerr << "deleting last output\n";
     using namespace std::filesystem;
-    const auto working_dir = std::string{settings<V>::name} +
-                             "_t0_" + std::to_string(t0) +
-                             "_btau_" + std::to_string(btau) +
-                             "_ftau_" + std::to_string(ftau) +
-                             "_seedres" + std::to_string(seed_res) +
-                             "_stepsize" + std::to_string(stepsize) +
-                             "_neighborweight" + std::to_string(neighbor_weight) +
-                             "_penalty" + std::to_string(penalty) + "/";
+    const auto working_dir =
+        std::string{settings<V>::name} + "_t0_" + std::to_string(t0) +
+        "_btau_" + std::to_string(btau) + "_ftau_" + std::to_string(ftau) +
+        "_seedres" + std::to_string(seed_res) + "_stepsize" +
+        std::to_string(stepsize) + "_neighborweight" +
+        std::to_string(neighbor_weight) + "_penalty" + std::to_string(penalty) +
+        "/";
     if (!exists(working_dir)) { create_directory(working_dir); }
     std::cerr << "result will be located in " << working_dir << '\n';
 
     for (const auto& entry : directory_iterator(working_dir)) { remove(entry); }
-    auto             best_edge_idx   = domain.num_straight_edges();
-    auto             best_weight     = -std::numeric_limits<real_t>::max();
-    auto             old_best_weight = best_weight;
-    size_t           render_index    = 0;
-    size_t           layer           = 0;
-    std::set<size_t> unused_edges;
+    auto                best_edge_idx   = domain.num_straight_edges();
+    auto                best_weight     = -std::numeric_limits<real_t>::max();
+    auto                old_best_weight = best_weight;
+    size_t              render_index    = 0;
+    size_t              layer           = 0;
+    std::set<size_t>    unused_edges;
     std::vector<size_t> used_edges;
 
     // set all edges as unused
@@ -573,10 +572,10 @@ class steadification {
         integrate(std::string{settings<V>::name}, unused_edges, domain, t0,
                   btau, ftau, seed_res, stepsize);
 
-    size_t       iteration     = 0;
-    size_t       edge_counter  = 0;
-    bool         stop_thread   = false;
-    double       coverage      = 0;
+    size_t             iteration    = 0;
+    size_t             edge_counter = 0;
+    bool               stop_thread  = false;
+    double             coverage     = 0;
     std::vector<float> weights;
     std::vector<float> coverages;
 
@@ -587,11 +586,11 @@ class steadification {
       std::cerr << "cur it          used edges      coverage    \n";
       while (!stop_thread) {
         const int bar_width = 15;
-        prog0              = double(edge_counter) / (unused_edges.size());
-        prog1              = double(iteration) / (domain.num_straight_edges());
-        int pos0 = bar_width * prog0;
-        int pos1 = bar_width * prog1;
-        int pos2 = bar_width * coverage;
+        prog0               = double(edge_counter) / (unused_edges.size());
+        prog1               = double(iteration) / (domain.num_straight_edges());
+        int pos0            = bar_width * prog0;
+        int pos1            = bar_width * prog1;
+        int pos2            = bar_width * coverage;
         for (int i = 0; i < bar_width; ++i) {
           if (i < pos0)
             std::cerr << "\u2588";
@@ -759,16 +758,14 @@ class steadification {
         unused_edges.erase(best_edge_idx);
       }
       ++iteration;
-    }
-    while (coverage < desired_coverage &&
-           best_edge_idx != domain.num_straight_edges())
-      ;
+    } while (coverage < desired_coverage &&
+             best_edge_idx != domain.num_straight_edges());
     result_to_lic_tex(domain, btau, ftau);
     lic_tex.write_png(working_dir + "lic_final.png");
     color_lic_tex.write_png(working_dir + "lic_color_final.png");
     std::vector<line<real_t, 3>> lines;
-    for (auto used_edge:used_edges) {
-      auto e = domain.edge_at(used_edge);
+    for (auto used_edge : used_edges) {
+      auto e  = domain.edge_at(used_edge);
       auto v0 = e.first.position();
       auto v1 = e.second.position();
       lines.push_back(line<real_t, 3>{vec<real_t, 3>{v0(0), v0(1), t0},
@@ -782,7 +779,8 @@ class steadification {
     std::string cmd = "#/bin/bash \n";
     cmd += "cd " + working_dir + '\n';
     cmd +=
-        "ffmpeg -y -r 3 -start_number 0 -i lic_%04d.png -c:v libx264 -vf fps=25 "
+        "ffmpeg -y -r 3 -start_number 0 -i lic_%04d.png -c:v libx264 -vf "
+        "fps=25 "
         "-pix_fmt yuv420p lic.mp4\n";
     cmd +=
         "ffmpeg -y -r 3 -start_number 0 -i lic_color_%04d.png -c:v libx264 -vf "
@@ -790,34 +788,34 @@ class steadification {
         "-pix_fmt yuv420p lic_color.mp4\n";
     system(cmd.c_str());
 
+    // write report
     const std::string reportfilepath = working_dir + "report.html";
     std::ofstream     reportfile{reportfilepath};
-    reportfile << "<!DOCTYPE html>\n"
-               << "<html><head>\n"
-               << "<meta charset=\"utf-8\">\n"
-               << "<meta name=\"viewport\" content=\"width=device-width, "
-                  "initial-scale=1, shrink-to-fit=no\">\n"
-               << "<link rel=\"stylesheet\" "
-                  "href=\"https://stackpath.bootstrapcdn.com/bootstrap/4.3.1/"
-                  "css/bootstrap.min.css\" "
-                  "integrity=\"sha384-ggOyR0iXCbMQv3Xipma34MD+dH/1fQ784/j6cY/"
-                  "iJTQUOhcWr7x9JvoRxT2MZw1T\" crossorigin=\"anonymous\">\n"
-               << "<script "
-                  "src=\"https://cdnjs.cloudflare.com/ajax/libs/Chart.js/2.5.0/"
-                  "Chart.min.js\"></script>\n"
-               << "<style type=\"text/css\" title=\"text/css\">\n"
-               << "#outerwrap {\n"
-               << "  margin:auto;\n"
-               << "  width:800px;\n"
-               << "  border:1px solid #CCCCCC;\n"
-               << "  padding 10px;\n"
-               << "}\n"
-               << "#innerwrap {\n"
-               << "  margin:10px;\n"
-               << "}\n"
-               << "</style>\n"
-
-
+    reportfile
+        << "<!DOCTYPE html>\n"
+        << "<html><head>\n"
+        << "<meta charset=\"utf-8\">\n"
+        << "<meta name=\"viewport\" content=\"width=device-width, "
+           "initial-scale=1, shrink-to-fit=no\">\n"
+        << "<link rel=\"stylesheet\" "
+           "href=\"https://stackpath.bootstrapcdn.com/bootstrap/4.3.1/"
+           "css/bootstrap.min.css\" "
+           "integrity=\"sha384-ggOyR0iXCbMQv3Xipma34MD+dH/1fQ784/j6cY/"
+           "iJTQUOhcWr7x9JvoRxT2MZw1T\" crossorigin=\"anonymous\">\n"
+        << "<script "
+           "src=\"https://cdnjs.cloudflare.com/ajax/libs/Chart.js/2.5.0/"
+           "Chart.min.js\"></script>\n"
+        << "<style type=\"text/css\" title=\"text/css\">\n"
+        << "#outerwrap {\n"
+        << "  margin:auto;\n"
+        << "  width:800px;\n"
+        << "  border:1px solid #CCCCCC;\n"
+        << "  padding 10px;\n"
+        << "}\n"
+        << "#innerwrap {\n"
+        << "  margin:10px;\n"
+        << "}\n"
+        << "</style>\n"
         << "</head><body>\n"
         << "<script src=\"https://code.jquery.com/jquery-3.3.1.slim.min.js\" "
            "integrity=\"sha384-q8i/"
@@ -834,7 +832,8 @@ class steadification {
            "bootstrap.min.js\" "
            "integrity=\"sha384-JjSmVgyd0p3pXB1rRibZUAYoIIy6OrQ6VrjIEaFf/"
            "nJGzIxFDsf4x0xIM+B07jRM\" crossorigin=\"anonymous\"></script>\n"
-           << "<script src=\"https://cdn.jsdelivr.net/npm/chart.js@2.8.0\"></script>\n"
+        << "<script "
+           "src=\"https://cdn.jsdelivr.net/npm/chart.js@2.8.0\"></script>\n"
         << "<div id=\"outerwrap\"><div id=\"innerwrap\">\n"
         << "\n"
         << "<table class=\"table\">\n"
@@ -871,110 +870,103 @@ class steadification {
                  << i << "\"></li>\n";
     }
 
-    reportfile 
-      << "</ol>\n"
-      << "<div class=\"carousel-inner\">\n"
-      << "<div class=\"carousel-item active\">\n"
-      << "<table class=\"table\">\n"
-      << "<tr><th>iteration#</th><th>weight</th><th>coverage</th></tr>\n"
-      << "<tr><td>"<<0<<"</td><td>"<<weights[0]<<"</td><td>"<<coverages[0]<<"</td></tr>\n"
-      << "</table>\n"
-      << "  <img width=100% src=\"lic_0000.png\">\n"
-      << "</div>\n";
-      for (size_t i = 1; i < used_edges.size(); ++i) {
-        std::string itstr = std::to_string(i);
-        while (itstr.size() < 4) {itstr = '0' + itstr;}
-        reportfile
+    reportfile
+        << "</ol>\n"
+        << "<div class=\"carousel-inner\">\n"
+        << "<div class=\"carousel-item active\">\n"
+        << "<table class=\"table\">\n"
+        << "<tr><th>iteration#</th><th>weight</th><th>coverage</th></tr>\n"
+        << "<tr><td>" << 0 << "</td><td>" << weights[0] << "</td><td>"
+        << coverages[0] << "</td></tr>\n"
+        << "</table>\n"
+        << "  <img width=100% src=\"lic_0000.png\">\n"
+        << "</div>\n";
+    for (size_t i = 1; i < used_edges.size(); ++i) {
+      std::string itstr = std::to_string(i);
+      while (itstr.size() < 4) { itstr = '0' + itstr; }
+      reportfile
           << "<div class=\"carousel-item\">\n"
           << "<table class=\"table\">\n"
           << "<tr><th>iteration#</th><th>weight</th><th>coverage</th></tr>\n"
-          << "<tr><td>"<<i<<"</td><td>"<<weights[i]<<"</td><td>"<<coverages[i]<<"</td></tr>\n"
+          << "<tr><td>" << i << "</td><td>" << weights[i] << "</td><td>"
+          << coverages[i] << "</td></tr>\n"
           << "</table>\n"
-          << "  <img width=100% src=\"lic_"<<itstr<<".png\">\n"
+          << "  <img width=100% src=\"lic_" << itstr << ".png\">\n"
           << "</div>\n";
-      }
+    }
 
-      reportfile << "</div>\n"
-                 << "<a class=\"carousel-control-prev\" "
-                    "href=\"#carouselExampleIndicators\" role=\"button\" "
-                    "data-slide=\"prev\">\n"
-                 << "<span class=\"carousel-control-prev-icon\" "
-                    "aria-hidden=\"true\"></span>\n"
-                 << "<span class=\"sr-only\">Previous</span>\n"
-                 << "</a>\n"
-                 << "<a class=\"carousel-control-next\" "
-                    "href=\"#carouselExampleIndicators\" role=\"button\" "
-                    "data-slide=\"next\">\n"
-                 << "<span class=\"carousel-control-next-icon\" "
-                    "aria-hidden=\"true\"></span>\n"
-                 << "<span class=\"sr-only\">Next</span>\n"
-                 << "</a>\n"
-                 << "</div>\n";
+    reportfile << "</div>\n"
+               << "<a class=\"carousel-control-prev\" "
+                  "href=\"#carouselExampleIndicators\" role=\"button\" "
+                  "data-slide=\"prev\">\n"
+               << "<span class=\"carousel-control-prev-icon\" "
+                  "aria-hidden=\"true\"></span>\n"
+               << "<span class=\"sr-only\">Previous</span>\n"
+               << "</a>\n"
+               << "<a class=\"carousel-control-next\" "
+                  "href=\"#carouselExampleIndicators\" role=\"button\" "
+                  "data-slide=\"next\">\n"
+               << "<span class=\"carousel-control-next-icon\" "
+                  "aria-hidden=\"true\"></span>\n"
+               << "<span class=\"sr-only\">Next</span>\n"
+               << "</a>\n"
+               << "</div>\n";
 
-      reportfile
-          << "<canvas id=\"weight-chart\" width=100%></canvas>\n"
-          << "<script>\n"
-          << "new Chart(document.getElementById(\"weight-chart\"), {\n"
-          << "type: 'line',\n"
-          << "data: {\n"
-          << "labels: [" << 0;
-      for (size_t i = 1; i < used_edges.size(); ++i) {
-        reportfile << ", " << i;
-      }
-      reportfile << "],\n"
-          << "datasets: [{ \n"
-          << "data: [" << weights.front();
+    reportfile << "<canvas id=\"weight-chart\" width=100%></canvas>\n"
+               << "<script>\n"
+               << "new Chart(document.getElementById(\"weight-chart\"), {\n"
+               << "type: 'line', data: {\n"
+               << "labels: [" << 0;
+    for (size_t i = 1; i < used_edges.size(); ++i) { reportfile << ", " << i; }
+    reportfile << "],\n"
+               << "datasets: [{ \n"
+               << "data: [" << weights.front();
 
-      for (size_t i = 1; i < used_edges.size(); ++i) {
-        reportfile << ", " << weights[i];
-      }
-      reportfile << "],\n"
-                 << "label: \"weights\",\n"
-                 << "borderColor: \"#3e95cd\",\n"
-                 << "fill: false\n"
-                 << "}\n"
-                 << "]\n"
-                 << "},\n"
-                 << "options: {\n"
-                 << "title: {\n"
-                 << "display: true,\n"
-                 << "text: 'weights'\n"
-                 << "}\n"
-                 << "}\n"
-                 << "});</script>\n";
+    for (size_t i = 1; i < used_edges.size(); ++i) {
+      reportfile << ", " << weights[i];
+    }
+    reportfile << "],\n"
+               << "label: \"weights\",\n"
+               << "borderColor: \"#3e95cd\",\n"
+               << "fill: false\n"
+               << "}]},\n"
+               << "options: {\n"
+               << "title: {\n"
+               << "display: true,\n"
+               << "text: 'weights'\n"
+               << "}\n"
+               << "}\n"
+               << "});</script>\n";
 
-      reportfile
-          << "<canvas id=\"coverage-chart\" width=100%></canvas>\n"
-          << "<script>\n"
-          << "new Chart(document.getElementById(\"coverage-chart\"), {\n"
-          << "type: 'line',\n"
-          << "data: {\n"
-          << "labels: [" << 0;
-      for (size_t i = 1; i < used_edges.size(); ++i) {
-        reportfile << ", " << i;
-      }
-      reportfile << "],\n"
-          << "datasets: [{ \n"
-          << "data: [" << coverages.front();
-      for (size_t i = 1; i < used_edges.size(); ++i) {
-        reportfile << ", " << coverages[i];
-      }
-      reportfile << "],\n"
-                 << "label: \"coverage\",\n"
-                 << "borderColor: \"#3e95cd\",\n"
-                 << "fill: false\n"
-                 << "}\n"
-                 << "]\n"
-                 << "},\n"
-                 << "options: {\n"
-                 << "title: {\n"
-                 << "display: true,\n"
-                 << "text: 'coverage'\n"
-                 << "}\n"
-                 << "}\n"
-                 << "});</script>\n"
-                 << "</div></div></body></html>\n";
-      return result_rasterization;
+    reportfile << "<canvas id=\"coverage-chart\" width=100%></canvas>\n"
+               << "<script>\n"
+               << "new Chart(document.getElementById(\"coverage-chart\"), {\n"
+               << "type: 'line',\n"
+               << "data: {\n"
+               << "labels: [" << 0;
+    for (size_t i = 1; i < used_edges.size(); ++i) { reportfile << ", " << i; }
+    reportfile << "],\n"
+               << "datasets: [{ \n"
+               << "data: [" << coverages.front();
+    for (size_t i = 1; i < used_edges.size(); ++i) {
+      reportfile << ", " << coverages[i];
+    }
+    reportfile << "],\n"
+               << "label: \"coverage\",\n"
+               << "borderColor: \"#3e95cd\",\n"
+               << "fill: false\n"
+               << "}\n"
+               << "]\n"
+               << "},\n"
+               << "options: {\n"
+               << "title: {\n"
+               << "display: true,\n"
+               << "text: 'coverage'\n"
+               << "}\n"
+               << "}\n"
+               << "});</script>\n"
+               << "</div></div></body></html>\n";
+    return result_rasterization;
   }
 };
   //==============================================================================
