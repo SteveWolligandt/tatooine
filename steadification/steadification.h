@@ -2,6 +2,7 @@
 #define TATOOINE_STEADIFICATION_STEADIFICATION_H
 //#define TATOOINE_STEADIFICATION_PARALLEL
 
+#include <cstdlib>
 #include <tatooine/chrono.h>
 #include <tatooine/for_loop.h>
 //#include <tatooine/gpu/reduce.h>
@@ -541,9 +542,15 @@ class steadification {
     m_weight_dual_pathsurface_shader.set_penalty(penalty);
     std::cerr << "deleting last output\n";
     using namespace std::filesystem;
-    const auto working_dir = std::string{settings<V>::name} + "_" +
-                             std::to_string(neighbor_weight) + "_" +
-                             std::to_string(penalty) + "/";
+    const auto working_dir = std::string{settings<V>::name} +
+                             "_t0_" + std::to_string(t0) +
+                             "_btau_" + std::to_string(btau) +
+                             "_ftau_" + std::to_string(ftau) +
+                             "_seedres" + std::to_string(seed_res) +
+                             "_stepsize" + std::to_string(stepsize) +
+                             "_cov" + std::to_string(desired_coverage) +
+                             "_neighborweight" + std::to_string(neighbor_weight) +
+                             "_penalty" + std::to_string(penalty) + "/";
     if (!exists(working_dir)) { create_directory(working_dir); }
     std::cerr << "result will be located in " << working_dir << '\n';
 
@@ -704,11 +711,13 @@ class steadification {
         coverage = static_cast<double>(num_overall_covered_pixels[0].download()) /
                    (m_render_resolution(0) * m_render_resolution(1));
 
+        std::string it_str = std::to_string(iteration);
+        while (it_str.size() < 4) { it_str = '0' + it_str; }
         result_to_lic_tex(domain, btau, ftau);
-        lic_tex.write_png(working_dir + "lic_" + std::to_string(iteration) +
+        lic_tex.write_png(working_dir + "lic_" + it_str +
                           ".png");
         color_lic_tex.write_png(working_dir + "lic_color_" +
-                                std::to_string(iteration) + ".png");
+                                it_str + ".png");
         simple_tri_mesh<real_t, 2> mesh2d{
             pathsurface_dir + std::to_string(domain.size(0)) + "_" +
             std::to_string(domain.size(1)) + "_" + std::to_string(t0) + "_" +
@@ -717,7 +726,7 @@ class steadification {
             std::to_string(best_edge_idx) + ".vtk"};
         simple_tri_mesh<real_t, 3> mesh3d;
         const std::string          mesh3dpath =
-            working_dir + std::to_string(iteration) + ".vtk";
+            working_dir + "geometry_" + it_str + ".vtk";
         auto& uv2d_prop = mesh2d.template vertex_property<vec<real_t, 2>>("uv");
         auto& uv3d_prop =
             mesh3d.template add_vertex_property<vec<real_t, 2>>("uv");
@@ -766,6 +775,17 @@ class steadification {
     t.join();
     std::cerr << '\n';
 
+    std::string movie_command = "#/bin/bash \n";
+    movie_command += "cd " + working_dir + '\n';
+    movie_command +=
+        "ffmpeg -r 3 -start_number 0 -i lic_%04d.png -c:v libx264 -vf fps=25 "
+        "-pix_fmt yuv420p lic.mp4\n";
+    movie_command +=
+        "ffmpeg -r 3 -start_number 0 -i lic_color_%04d.png -c:v libx264 -vf "
+        "fps=25 "
+        "-pix_fmt yuv420p lic_color.mp4\n";
+
+    system(movie_command.c_str());
     return result_rasterization;
   }
 };
