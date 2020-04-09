@@ -284,27 +284,33 @@ class steadification {
                    real_t btau, real_t ftau, size_t seed_res,
                    real_t stepsize) const {
     using namespace VC::odeint;
-    integrator_t  integrator{integration::vclibs::abs_tol      = 1e-6,
+    integrator_t integrator{integration::vclibs::abs_tol      = 1e-6,
                             integration::vclibs::rel_tol      = 1e-6,
                             integration::vclibs::initial_step = 0,
                             integration::vclibs::max_step     = 0.1};
     streamsurface surf{m_v, u0t0, u1t0, seedcurve, integrator};
-    auto          mesh  = surf.discretize(seed_res, stepsize, btau, ftau);
-    auto&         vprop = mesh.template add_vertex_property<vec2>("v");
+    if (u0t0 == u1t0) {
+    simple_tri_mesh<real_t, 2> mesh =
+        surf.discretize(seed_res, stepsize, btau, ftau);
+    auto& uvprop   = mesh.template add_vertex_property<vec2>("uv");
+    auto& vprop    = mesh.template add_vertex_property<vec2>("v");
     auto& curvprop = mesh.template add_vertex_property<real_t>("curvature");
 
     for (auto vertex : mesh.vertices()) {
-      const auto& uv             = mesh.uv(vertex);
+      const auto& uv             = uvprop[vertex];
       const auto& integral_curve = surf.streamline_at(uv(0), 0, 0);
       curvprop[vertex]           = integral_curve.curvature(uv(1));
       if (m_v.in_domain(mesh[vertex], uv(1))) {
         vprop[vertex] =
-            m_v(vec{mesh[vertex](0), mesh[vertex](1)}, mesh.uv(vertex)(1));
+            m_v(vec{mesh[vertex](0), mesh[vertex](1)}, uvprop[vertex](1));
       } else {
         vprop[vertex] = vec<real_t, 2>{0.0 / 0.0, 0.0 / 0.0};
       }
     }
     return std::pair{std::move(mesh), std::move(surf)};
+    } else {
+      return std::pair{simple_tri_mesh<real_t, 2>{}, std::move(surf)};
+    }
   }
   //----------------------------------------------------------------------------
   auto gpu_pathsurface(simple_tri_mesh<real_t, 2>& mesh, real_t u0t0,
@@ -876,6 +882,7 @@ class steadification {
       << "<tr><td>"<<0<<"</td><td>"<<weights[0]<<"</td><td>"<<coverages[0]<<"</td></tr>\n"
       << "</table>\n"
       << "  <img width=100% src=\"lic_0000.png\">\n"
+      << "  <img width=100% src=\"lic_color_0000.png\">\n"
       << "</div>\n";
       for (size_t i = 1; i < used_edges.size(); ++i) {
         std::string itstr = std::to_string(i);
@@ -887,6 +894,7 @@ class steadification {
           << "<tr><td>"<<i<<"</td><td>"<<weights[i]<<"</td><td>"<<coverages[i]<<"</td></tr>\n"
           << "</table>\n"
           << "  <img width=100% src=\"lic_"<<itstr<<".png\">\n"
+          << "  <img width=100% src=\"lic_color_"<<itstr<<".png\">\n"
           << "</div>\n";
       }
 

@@ -69,6 +69,15 @@ if(CLANG_TIDY_EXECUTABLE AND TATOOINE_USE_CLANG_TIDY)
     steadification PROPERTIES CXX_CLANG_TIDY ${TATOOINE_CLANG_TIDY_CMD})
 endif()
 #- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+add_executable (integrate_grid_edge integrate_grid_edge.cpp)
+target_include_directories(integrate_grid_edge PRIVATE ${CMAKE_CURRENT_BINARY_DIR})
+target_link_libraries(integrate_grid_edge tatooine)
+target_compile_features(integrate_grid_edge PUBLIC cxx_std_17)
+target_compile_features(integrate_grid_edge PUBLIC cxx_std_17)
+target_compile_options(integrate_grid_edge PRIVATE
+  -Wall -Wextra -pedantic -Wno-missing-braces -Wno-unused-lambda-capture
+  -march=native)
+#- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 add_executable (read_vtk_test read_vtk_test.cpp)
 target_include_directories(read_vtk_test PRIVATE ${CMAKE_CURRENT_BINARY_DIR})
 target_link_libraries(read_vtk_test tatooine)

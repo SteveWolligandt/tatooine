@@ -65,6 +65,17 @@ struct boundingbox {
     return true;
   }
   //----------------------------------------------------------------------------
+  [[nodiscard]] constexpr auto add_dimension(Real min, Real max) const {
+    boundingbox<Real, N + 1> addeddim;
+    for (size_t i = 0; i < N; ++i) {
+      addeddim.min(i) = this->min(i);
+      addeddim.max(i) = this->max(i);
+    }
+    addeddim.min(N) = min;
+    addeddim.max(N) = max;
+    return addeddim;
+  }
+  //----------------------------------------------------------------------------
   template <typename RandomEngine = std::mt19937_64>
   auto random_point(RandomEngine&& random_engine = RandomEngine{
                         std::random_device{}()}) const {
