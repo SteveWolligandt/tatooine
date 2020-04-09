@@ -26,6 +26,25 @@ void calc(const field<V, VReal, 2, 2>& v, T0Real t0, BTauReal btau,
    s.greedy_set_cover(domain, t0, btau, ftau, seed_res, stepsize,
    desired_coverage, neighbor_weight, penalty);
 }
+template <typename V, typename VReal, typename U0T0Real, typename U1T0Real,
+          typename BTauReal, typename FTauReal, typename StepsizeReal,
+          typename CovReal>
+void calc(const field<V, VReal, 2, 2>& v, U0T0Real u0t0, U1T0Real u1t0,
+          BTauReal btau, FTauReal ftau, size_t seed_res, StepsizeReal stepsize,
+          const vec<size_t, 3>& grid_res, CovReal desired_coverage,
+          const double neighbor_weight, const float penalty,
+          const std::string& seed_str) {
+  std::seed_seq   seed(begin(seed_str), end(seed_str));
+  std::mt19937_64 randeng{seed};
+  constexpr auto  dom = settings<V>::domain;
+  steadification  s(v, dom, settings<V>::render_resolution, randeng);
+  grid domain{linspace{dom.min(0), dom.max(0), grid_res(0)},
+              linspace{dom.min(1), dom.max(1), grid_res(1)},
+              linspace{u0t0, u1t0, grid_res(2)}};
+
+   s.greedy_set_cover(domain, 0, btau, ftau, seed_res, stepsize,
+   desired_coverage, neighbor_weight, penalty);
+}
 
 //------------------------------------------------------------------------------
 template <typename V, typename VReal>
@@ -43,6 +62,8 @@ void calc(const field<V, VReal, 2, 2>& v, int argc, char** argv) {
   const auto   seed_str         = argc > 12 ? argv[12] : random_string(10);
   if (argc <= 11) { std::cerr << "seed: " << seed_str << '\n'; }
 
+  //calc(v, 0, 10, btau, ftau, seed_res, stepsize, vec{grid_res_x, grid_res_y, 5},
+  //     desired_coverage, neighbor_weight, penalty, seed_str);
   calc(v, t0, btau, ftau, seed_res, stepsize, vec{grid_res_x, grid_res_y},
        desired_coverage, neighbor_weight, penalty, seed_str);
 }
@@ -68,11 +89,11 @@ auto main(int argc, char** argv) -> int {
   //  calc(movinggyre<double>{}, argc, argv);
     // else if (v == "rbc") {
     //  calc(rbc{}, argc, argv);
-  //} else if (v == "bou") {
-  //  std::cerr << "reading boussinesq... ";
-  //  boussinesq v{dataset_dir + "/boussinesq.am"};
-  //  std::cerr << "done!\n";
-  //  calc(v, argc, argv);
+  } else if (v == "bou") {
+    std::cerr << "reading boussinesq... ";
+    boussinesq v{dataset_dir + "/boussinesq.am"};
+    std::cerr << "done!\n";
+    calc(v, argc, argv);
   //} else if (v == "cav") {
   //  std::cerr << "reading cavity... ";
   //  cavity v{};

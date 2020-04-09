@@ -443,7 +443,7 @@ struct front_evolving_streamsurface_discretization
           while (d > desired_spatial_dist * 1.5) {
             // split front if u distance to small
             Real u_dist = std::abs(uv(*v)(0) - uv(*next(v))(0));
-            if (u_dist < 1e-6) {
+            if (u_dist < 1e-5) {
               const auto best_pred = find_best_predecessor(v, pred_range);
               front.emplace(next(subfront),
                             vertex_list_t{next(v), end(vs)},
