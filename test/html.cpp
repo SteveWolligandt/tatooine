@@ -62,16 +62,16 @@ TEST_CASE("htmlslider", "[html][slider][image][chart]") {
       "Maria_Anna_Austria_1770_1809_young.jpg";
   html::doc doc{"slider_image_test.html"};
   doc.add_slider(
-      html::horizontal_container{
+      html::vertical_container{
           "Fürst von Meerrettich",
-          html::vertical_container{html::image{path}, html::image{path2}}},
-      html::horizontal_container{"Wie ein Fisch... also wie ein Opfer...",
+          html::horizontal_container{html::image{path}, html::image{path2}}},
+      html::vertical_container{"Wie ein Fisch... also wie ein Opfer...",
                                  html::image{path2}});
   doc.add("Foo");
   doc.add("Bar");
-  doc.add(html::horizontal_container{
-      "Bloob", html::chart{std::vector{0.0, 1.0, 3.0}, "test", "#F00FAB",
-                           std::vector<std::string>{"a", "b", "c"}}});
+  doc.add_vertical("Bloob",
+                   html::chart{std::vector{0.0, 1.0, 3.0}, "test", "#F00FAB",
+                               std::vector<std::string>{"a", "b", "c"}});
   doc.write();
 }
 //==============================================================================

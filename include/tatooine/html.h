@@ -60,30 +60,12 @@ auto to_content(const char* content) {
   return text{content};
 }
 //╞══════════════════════════════════════════════════════════════════════════╡
-struct horizontal_container : content {
-  std::string contents;
-
-  template <typename... Contents>
-  horizontal_container(Contents&&... contents_)
-      : contents{((to_content(contents_).to_string() + ' ') + ...)} {}
-
-  auto to_stream(std::ostream& stream) const -> std::ostream& override {
-    return stream << contents;
-  }
-};  // horizontal_container
-//├╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌┤
-auto operator<<(std::ostream& stream, const horizontal_container& cnt) -> std::ostream& {
-  return cnt.to_stream(stream);
-}
-//╞══════════════════════════════════════════════════════════════════════════╡
 struct vertical_container : content {
   std::string contents;
 
   template <typename... Contents>
   vertical_container(Contents&&... contents_)
-      : contents{"<table table-layout=\"fixed\" class=\"table\"><tr>\n" +
-                 (("<td>" + to_content(contents_).to_string() + "</td>") + ...) +
-                 "</tr></table>\n"} {}
+      : contents{((to_content(contents_).to_string() + ' ') + ...)} {}
 
   auto to_stream(std::ostream& stream) const -> std::ostream& override {
     return stream << contents;
@@ -91,6 +73,25 @@ struct vertical_container : content {
 };  // vertical_container
 //├╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌┤
 auto operator<<(std::ostream& stream, const vertical_container& cnt) -> std::ostream& {
+  return cnt.to_stream(stream);
+}
+//╞══════════════════════════════════════════════════════════════════════════╡
+struct horizontal_container : content {
+  std::string contents;
+
+  template <typename... Contents>
+  horizontal_container(Contents&&... contents_)
+      : contents{"<table table-layout=\"fixed\"><tr>\n" +
+                 (("<td>" + to_content(contents_).to_string() + "</td>") + ...) +
+                 "</tr></table>\n"} {}
+
+  auto to_stream(std::ostream& stream) const -> std::ostream& override {
+    return stream << contents;
+  }
+};  // horizontal_container
+//├╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌┤
+auto operator<<(std::ostream& stream, const horizontal_container& cnt)
+    -> std::ostream& {
   return cnt.to_stream(stream);
 }
 //╞══════════════════════════════════════════════════════════════════════════╡
@@ -441,6 +442,22 @@ struct doc {
    template <typename... Contents,
              std::enable_if_t<(sizeof...(Contents) > 1), bool> = true>
    void add(Contents&&... contents) {
+     use_bootstrap();
+     use_chart_js();
+     add(horizontal_container{std::forward<Contents>(contents)...});
+   }
+   //├╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌┤
+   template <typename... Contents,
+             std::enable_if_t<(sizeof...(Contents) > 1), bool> = true>
+   void add_horizontal(Contents&&... contents) {
+     use_bootstrap();
+     use_chart_js();
+     add(horizontal_container{std::forward<Contents>(contents)...});
+   }
+   //├╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌┤
+   template <typename... Contents,
+             std::enable_if_t<(sizeof...(Contents) > 1), bool> = true>
+   void add_vertical(Contents&&... contents) {
      use_bootstrap();
      use_chart_js();
      add(vertical_container{std::forward<Contents>(contents)...});
