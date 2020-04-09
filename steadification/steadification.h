@@ -49,10 +49,6 @@ class steadification {
   using vec3              = vec<real_t, 3>;
   using ivec2             = vec<size_t, 2>;
   using ivec3             = vec<size_t, 3>;
-  using grid2_t           = grid<real_t, 2>;
-  using grid3_t           = grid<real_t, 3>;
-  using grid2_edge_t      = typename grid2_t::edge_t;
-  using grid3_edge_t      = typename grid3_t::edge_t;
   using integrator_t =
       integration::vclibs::rungekutta43<real_t, 2, interpolation::hermite>;
   using seedcurve_t = parameterized_line<real_t, 2, interpolation::linear>;
@@ -264,7 +260,7 @@ class steadification {
   }
   //----------------------------------------------------------------------------
   /// \param seedcurve seedcurve in space-time
-  auto pathsurface(const grid2_t& domain, size_t edge_idx, real_t u0t0,
+  auto pathsurface(const grid<real_t, 2>& domain, size_t edge_idx, real_t u0t0,
                    real_t u1t0, real_t btau, real_t ftau, size_t seed_res,
                    real_t stepsize) const {
     const auto        edge = domain.edge_at(edge_idx);
@@ -274,55 +270,52 @@ class steadification {
   }
   //----------------------------------------------------------------------------
   /// \param seedcurve seedcurve in space-time
+  auto pathsurface(const grid<real_t, 3>& domain, size_t edge_idx, real_t btau,
+                   real_t ftau, size_t seed_res, real_t stepsize) const {
+    const auto edge = domain.edge_at(edge_idx);
+    const auto        v0   = edge.first.position();
+    const auto        v1   = edge.second.position();
+    const seedcurve_t seedcurve{{vec{v0(0), v0(1)}, 0}, {vec{v1(0), v1(1)}, 1}};
+    return pathsurface(seedcurve, v0(2), v1(2), btau, ftau, seed_res, stepsize);
+  }
+  //----------------------------------------------------------------------------
+  /// \param seedcurve seedcurve in space-time
   auto pathsurface(const seedcurve_t& seedcurve, real_t u0t0, real_t u1t0,
                    real_t btau, real_t ftau, size_t seed_res,
                    real_t stepsize) const {
     using namespace VC::odeint;
-    integrator_t  integrator{integration::vclibs::abs_tol      = 1e-6,
+    integrator_t integrator{integration::vclibs::abs_tol      = 1e-6,
                             integration::vclibs::rel_tol      = 1e-6,
                             integration::vclibs::initial_step = 0,
                             integration::vclibs::max_step     = 0.1};
     streamsurface surf{m_v, u0t0, u1t0, seedcurve, integrator};
-    auto          mesh  = surf.discretize(seed_res, stepsize, btau, ftau);
-    auto&         vprop = mesh.template add_vertex_property<vec2>("v");
+    if (u0t0 == u1t0) {
+    simple_tri_mesh<real_t, 2> mesh =
+        surf.discretize(seed_res, stepsize, btau, ftau);
+    auto& uvprop   = mesh.template add_vertex_property<vec2>("uv");
+    auto& vprop    = mesh.template add_vertex_property<vec2>("v");
     auto& curvprop = mesh.template add_vertex_property<real_t>("curvature");
 
     for (auto vertex : mesh.vertices()) {
-      const auto& uv             = mesh.uv(vertex);
+      const auto& uv             = uvprop[vertex];
       const auto& integral_curve = surf.streamline_at(uv(0), 0, 0);
       curvprop[vertex]           = integral_curve.curvature(uv(1));
       if (m_v.in_domain(mesh[vertex], uv(1))) {
         vprop[vertex] =
-            m_v(vec{mesh[vertex](0), mesh[vertex](1)}, mesh.uv(vertex)(1));
+            m_v(vec{mesh[vertex](0), mesh[vertex](1)}, uvprop[vertex](1));
       } else {
         vprop[vertex] = vec<real_t, 2>{0.0 / 0.0, 0.0 / 0.0};
       }
     }
     return std::pair{std::move(mesh), std::move(surf)};
+    } else {
+      return std::pair{simple_tri_mesh<real_t, 2>{}, std::move(surf)};
+    }
   }
   //----------------------------------------------------------------------------
   auto gpu_pathsurface(simple_tri_mesh<real_t, 2>& mesh, real_t u0t0,
                        real_t u1t0) const {
     return pathsurface_gpu_t{mesh, u0t0, u1t0};
-  }
-  // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-  auto gpu_pathsurface(const grid2_t& domain, size_t edge_idx, real_t u0t0,
-                       real_t u1t0, real_t btau, real_t ftau, size_t seed_res,
-                       real_t stepsize) const {
-    const auto        edge = domain.edge_at(edge_idx);
-    const seedcurve_t seedcurve{{edge.first.position(), 0},
-                                {edge.second.position(), 1}};
-    return gpu_pathsurface(seedcurve, u0t0, u1t0, btau, ftau, seed_res,
-                           stepsize);
-  }
-  // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-  auto gpu_pathsurface(const seedcurve_t& seedcurve, real_t u0t0, real_t u1t0,
-                       real_t btau, real_t ftau, size_t seed_res,
-                       real_t stepsize) const {
-    return gpu_pathsurface(
-        pathsurface(seedcurve, u0t0, u1t0, btau, ftau, seed_res, stepsize)
-            .first,
-        u0t0, u1t0);
   }
   //----------------------------------------------------------------------------
   auto weight(GLuint layer1) {
@@ -365,7 +358,8 @@ class steadification {
     return acc_kappas / boost::accumulate(arc_lengths, real_t(0));
   }
   //----------------------------------------------------------------------------
-  void result_to_lic_tex(const grid2_t& domain, GLfloat btau, GLfloat ftau) {
+  template <size_t N>
+  void result_to_lic_tex(const grid<real_t, N>& domain, GLfloat btau, GLfloat ftau) {
     const size_t num_samples = 20;
     const real_t stepsize =
         (domain.dimension(0).back() - domain.dimension(0).front()) /
@@ -446,9 +440,10 @@ class steadification {
     yavin::shaderstorage_barrier();
   }
   //----------------------------------------------------------------------------
+  template <size_t N>
   auto integrate(const std::string&      dataset_name,
                  const std::set<size_t>& unused_edges,
-                 const grid<real_t, 2>& domain, const real_t t0,
+                 const grid<real_t, N>& domain, const real_t t0,
                  const real_t btau, const real_t ftau, const size_t seed_res,
                  const real_t stepsize) {
     if (!std::filesystem::exists("pathsurfaces")) {
@@ -460,6 +455,7 @@ class steadification {
       std::filesystem::create_directory(pathsurface_dir);
     }
 
+    std::string filename_vtk;
     std::atomic_size_t progress_counter = 0;
     std::thread        t{[&] {
       float progress = 0.0;
@@ -477,7 +473,8 @@ class steadification {
           else
             std::cerr << "\u2591";
         }
-        std::cerr << " " << int(progress * 100.0) << " %     \r";
+        std::cerr << " " << int(progress * 100.0) << " % - " << filename_vtk
+                  << "        \r";
         std::this_thread::sleep_for(std::chrono::milliseconds{100});
       }
         for (int i = 0; i < bar_width; ++i) { std::cerr << "\u2588"; }
@@ -492,37 +489,27 @@ class steadification {
     for (auto edge_idx : unused_edges) {
 #endif
 
-      const std::string filename_vtk =
-          pathsurface_dir + std::to_string(domain.size(0)) + "_" +
-          std::to_string(domain.size(1)) + "_" + std::to_string(t0) + "_" +
-          std::to_string(btau) + "_" + std::to_string(ftau) + "_" +
-          std::to_string(seed_res) + "_" + std::to_string(stepsize) +
-          std::to_string(edge_idx) + ".vtk";
-      //const std::string filename_buf =
-      //    pathsurface_dir + std::to_string(domain.size(0)) + "_" +
-      //    std::to_string(domain.size(1)) + "_" + std::to_string(t0) + "_" +
-      //    std::to_string(btau) + "_" + std::to_string(ftau) + "_" +
-      //    std::to_string(seed_res) + "_" + std::to_string(stepsize) +
-      //    std::to_string(edge_idx) + ".buf";
-      //if (!std::filesystem::exists(filename_vtk) ||
-      //    !std::filesystem::exists(filename_buf)) {
+      filename_vtk = pathsurface_dir;
+      for (size_t i = 0; i < N; ++i) {
+        filename_vtk += std::to_string(domain.size(i)) + "_";
+      }
+      filename_vtk += std::to_string(t0) + "_" + std::to_string(btau) + "_" +
+                      std::to_string(ftau) + "_" + std::to_string(seed_res) +
+                      "_" + std::to_string(stepsize) + "_" +
+                      std::to_string(edge_idx) + ".vtk";
       if (!std::filesystem::exists(filename_vtk)) {
-        simple_tri_mesh<real_t, 2> psf =
-            pathsurface(domain, edge_idx, t0, t0, btau, ftau, seed_res,
-                        stepsize)
-                .first;
-        psf.write_vtk(filename_vtk);
-        //rasterize(gpu_pathsurface(psf, t0, t0), 0, 0);
-        //auto working_rasterization_data = working_rasterization.download_data();
-        //auto working_list_size_data     = working_list_size.download_data();
-        //std::ofstream file{filename_buf};
-        //if (file.is_open()) {
-        //  file.write((char*)working_rasterization_data.data(),
-        //             working_rasterization_data.size() * sizeof(node));
-        //  file.write((char*)working_list_size_data.data(),
-        //             working_list_size_data.size() * sizeof(GLuint));
-        //  file.close();
-        //}
+        if constexpr (N == 2) {
+          simple_tri_mesh<real_t, 2> psf =
+              pathsurface(domain, edge_idx, t0, t0, btau, ftau, seed_res,
+                          stepsize)
+                  .first;
+          psf.write_vtk(filename_vtk);
+        } else if constexpr (N == 3) {
+          simple_tri_mesh<real_t, 2> psf =
+              pathsurface(domain, edge_idx, btau, ftau, seed_res, stepsize)
+                  .first;
+          psf.write_vtk(filename_vtk);
+        }
       }
       progress_counter++;
 #if !defined(TATOOINE_STEADIFICATION_PARALLEL)
@@ -534,32 +521,49 @@ class steadification {
     return pathsurface_dir;
   }
   //----------------------------------------------------------------------------
-  auto greedy_set_cover(const grid<real_t, 2>& domain, const real_t t0,
-                        const real_t btau, const real_t ftau,
-                        const size_t seed_res, const real_t stepsize,
-                        const real_t desired_coverage,
-                        const double neighbor_weight, const float penalty) {
-    m_weight_dual_pathsurface_shader.set_penalty(penalty);
-    std::cerr << "deleting last output\n";
+  auto setup_working_dir(const real_t t0, const real_t btau, const real_t ftau,
+                         const size_t seed_res, const real_t stepsize,
+                         const double neighbor_weight, const float penalty) {
     using namespace std::filesystem;
     const auto working_dir =
         std::string{settings<V>::name} + "_t0_" + std::to_string(t0) +
         "_btau_" + std::to_string(btau) + "_ftau_" + std::to_string(ftau) +
-        "_seedres" + std::to_string(seed_res) + "_stepsize" +
-        std::to_string(stepsize) + "_neighborweight" +
-        std::to_string(neighbor_weight) + "_penalty" + std::to_string(penalty) +
-        "/";
+        "_seedres_" + std::to_string(seed_res) + "_stepsize_" +
+        std::to_string(stepsize) + "_neighborweight_" +
+        std::to_string(neighbor_weight) + "_penalty_" +
+        std::to_string(penalty) + "/";
     if (!exists(working_dir)) { create_directory(working_dir); }
     std::cerr << "result will be located in " << working_dir << '\n';
 
     for (const auto& entry : directory_iterator(working_dir)) { remove(entry); }
-    auto                best_edge_idx   = domain.num_straight_edges();
-    auto                best_weight     = -std::numeric_limits<real_t>::max();
-    auto                old_best_weight = best_weight;
-    size_t              render_index    = 0;
-    size_t              layer           = 0;
-    std::set<size_t>    unused_edges;
+    return working_dir;
+  }
+  //----------------------------------------------------------------------------
+  template <size_t N>
+  auto greedy_set_cover(const grid<real_t, N>& domain, const real_t t0,
+                        const real_t btau, const real_t ftau,
+                        const size_t seed_res, const real_t stepsize,
+                        const real_t desired_coverage,
+                        const double neighbor_weight, const float penalty) {
+    using namespace std::filesystem;
+    auto             best_edge_idx   = domain.num_straight_edges();
+    auto             best_weight     = -std::numeric_limits<real_t>::max();
+    auto             old_best_weight = best_weight;
+    size_t           render_index    = 0;
+    size_t           layer           = 0;
+    std::set<size_t> unused_edges;
     std::vector<size_t> used_edges;
+    size_t       iteration     = 0;
+    size_t       edge_counter  = 0;
+    bool         stop_thread   = false;
+    double       coverage      = 0;
+    std::vector<float> weights;
+    std::vector<float> coverages;
+
+    auto working_dir =
+        setup_working_dir(t0, btau, ftau, seed_res, stepsize,
+                          neighbor_weight, penalty);
+    m_weight_dual_pathsurface_shader.set_penalty(penalty);
 
     // set all edges as unused
     std::cerr << "set all edges unused\n";
@@ -572,13 +576,6 @@ class steadification {
         integrate(std::string{settings<V>::name}, unused_edges, domain, t0,
                   btau, ftau, seed_res, stepsize);
 
-    size_t             iteration    = 0;
-    size_t             edge_counter = 0;
-    bool               stop_thread  = false;
-    double             coverage     = 0;
-    std::vector<float> weights;
-    std::vector<float> coverages;
-
     // monitoring
     std::thread t{[&] {
       double prog0 = 0.0;
@@ -586,11 +583,11 @@ class steadification {
       std::cerr << "cur it          used edges      coverage    \n";
       while (!stop_thread) {
         const int bar_width = 15;
-        prog0               = double(edge_counter) / (unused_edges.size());
-        prog1               = double(iteration) / (domain.num_straight_edges());
-        int pos0            = bar_width * prog0;
-        int pos1            = bar_width * prog1;
-        int pos2            = bar_width * coverage;
+        prog0              = double(edge_counter) / (unused_edges.size());
+        prog1              = double(iteration) / (domain.num_straight_edges());
+        int pos0 = bar_width * prog0;
+        int pos1 = bar_width * prog1;
+        int pos2 = bar_width * coverage;
         for (int i = 0; i < bar_width; ++i) {
           if (i < pos0)
             std::cerr << "\u2588";
@@ -623,10 +620,10 @@ class steadification {
       std::cerr << "\n";
     }};
 
-    std::vector<node>   working_rasterization_data(m_render_resolution(0) *
-                                                 m_render_resolution(1));
-    std::vector<GLuint> working_list_size_data(m_render_resolution(0) *
-                                               m_render_resolution(1));
+    //std::vector<node>   working_rasterization_data(m_render_resolution(0) *
+    //                                             m_render_resolution(1));
+    //std::vector<GLuint> working_list_size_data(m_render_resolution(0) *
+    //                                           m_render_resolution(1));
 
     // loop
     do {
@@ -636,18 +633,14 @@ class steadification {
       best_edge_idx   = domain.num_straight_edges();
 
       for (auto edge_idx : unused_edges) {
-        const std::string filepath_vtk =
-            pathsurface_dir + std::to_string(domain.size(0)) + "_" +
-            std::to_string(domain.size(1)) + "_" + std::to_string(t0) + "_" +
-            std::to_string(btau) + "_" + std::to_string(ftau) + "_" +
-            std::to_string(seed_res) + "_" + std::to_string(stepsize) +
-            std::to_string(edge_idx) + ".vtk";
-        const std::string filepath_buf =
-            pathsurface_dir + std::to_string(domain.size(0)) + "_" +
-            std::to_string(domain.size(1)) + "_" + std::to_string(t0) + "_" +
-            std::to_string(btau) + "_" + std::to_string(ftau) + "_" +
-            std::to_string(seed_res) + "_" + std::to_string(stepsize) +
-            std::to_string(edge_idx) + ".buf";
+        std::string filepath_vtk = pathsurface_dir;
+        for (size_t i = 0; i < N; ++i) {
+          filepath_vtk += std::to_string(domain.size(i)) + "_";
+        }
+        filepath_vtk += std::to_string(t0) + "_" + std::to_string(btau) + "_" +
+                        std::to_string(ftau) + "_" + std::to_string(seed_res) +
+                        "_" + std::to_string(stepsize) + "_" +
+                        std::to_string(edge_idx) + ".vtk";
         simple_tri_mesh<real_t, 2> mesh{filepath_vtk};
         if (mesh.num_faces() > 0) {
           rasterize(gpu_pathsurface(mesh, t0, t0), render_index, layer);
@@ -694,12 +687,14 @@ class steadification {
         ++edge_counter;
       }
       if (best_edge_idx != domain.num_straight_edges()) {
-        const std::string filepath =
-            pathsurface_dir + std::to_string(domain.size(0)) + "_" +
-            std::to_string(domain.size(1)) + "_" + std::to_string(t0) + "_" +
-            std::to_string(btau) + "_" + std::to_string(ftau) + "_" +
-            std::to_string(seed_res) + "_" + std::to_string(stepsize) +
-            std::to_string(best_edge_idx) + ".vtk";
+        std::string filepath = pathsurface_dir;
+        for (size_t i = 0; i < N; ++i) {
+          filepath += std::to_string(domain.size(i)) + "_";
+        }
+        filepath += std::to_string(t0) + "_" + std::to_string(btau) + "_" +
+                    std::to_string(ftau) + "_" + std::to_string(seed_res) +
+                    "_" + std::to_string(stepsize) + "_" +
+                    std::to_string(best_edge_idx) + ".vtk";
         simple_tri_mesh<real_t, 2> mesh{filepath};
         rasterize(gpu_pathsurface(mesh, t0, t0), render_index, layer);
         combine();
@@ -718,15 +713,18 @@ class steadification {
         result_to_lic_tex(domain, btau, ftau);
         lic_tex.write_png(working_dir + "lic_" + it_str + ".png");
         color_lic_tex.write_png(working_dir + "lic_color_" + it_str + ".png");
-        simple_tri_mesh<real_t, 2> mesh2d{
-            pathsurface_dir + std::to_string(domain.size(0)) + "_" +
-            std::to_string(domain.size(1)) + "_" + std::to_string(t0) + "_" +
-            std::to_string(btau) + "_" + std::to_string(ftau) + "_" +
-            std::to_string(seed_res) + "_" + std::to_string(stepsize) +
-            std::to_string(best_edge_idx) + ".vtk"};
-        simple_tri_mesh<real_t, 3> mesh3d;
-        const std::string          mesh3dpath =
+        std::string mesh2dpath = pathsurface_dir;
+        for (size_t i = 0; i < N; ++i) {
+          mesh2dpath += std::to_string(domain.size(i)) + "_";
+        }
+        mesh2dpath += std::to_string(t0) + "_" + std::to_string(btau) + "_" +
+                      std::to_string(ftau) + "_" + std::to_string(seed_res) +
+                      "_" + std::to_string(stepsize) + "_" +
+                      std::to_string(best_edge_idx) + ".vtk";
+        const std::string mesh3dpath =
             working_dir + "geometry_" + it_str + ".vtk";
+        simple_tri_mesh<real_t, 2> mesh2d{mesh2dpath};
+        simple_tri_mesh<real_t, 3> mesh3d;
         auto& uv2d_prop = mesh2d.template vertex_property<vec<real_t, 2>>("uv");
         auto& uv3d_prop =
             mesh3d.template add_vertex_property<vec<real_t, 2>>("uv");
@@ -758,18 +756,24 @@ class steadification {
         unused_edges.erase(best_edge_idx);
       }
       ++iteration;
-    } while (coverage < desired_coverage &&
-             best_edge_idx != domain.num_straight_edges());
+    }
+    while (coverage < desired_coverage &&
+           best_edge_idx != domain.num_straight_edges())
+      ;
     result_to_lic_tex(domain, btau, ftau);
     lic_tex.write_png(working_dir + "lic_final.png");
     color_lic_tex.write_png(working_dir + "lic_color_final.png");
     std::vector<line<real_t, 3>> lines;
-    for (auto used_edge : used_edges) {
-      auto e  = domain.edge_at(used_edge);
+    for (auto used_edge:used_edges) {
+      auto e = domain.edge_at(used_edge);
       auto v0 = e.first.position();
       auto v1 = e.second.position();
-      lines.push_back(line<real_t, 3>{vec<real_t, 3>{v0(0), v0(1), t0},
-                                      vec<real_t, 3>{v1(0), v1(1), t0}});
+      if constexpr (N == 2) {
+        lines.push_back(line<real_t, 3>{vec<real_t, 3>{v0(0), v0(1), t0},
+                                        vec<real_t, 3>{v1(0), v1(1), t0}});
+      } else if constexpr (N == 3) {
+        lines.push_back(line<real_t, 3>{v0, v1});
+      }
     }
     write_vtk(lines, working_dir + "seeds.vtk");
     stop_thread = true;
@@ -779,8 +783,7 @@ class steadification {
     std::string cmd = "#/bin/bash \n";
     cmd += "cd " + working_dir + '\n';
     cmd +=
-        "ffmpeg -y -r 3 -start_number 0 -i lic_%04d.png -c:v libx264 -vf "
-        "fps=25 "
+        "ffmpeg -y -r 3 -start_number 0 -i lic_%04d.png -c:v libx264 -vf fps=25 "
         "-pix_fmt yuv420p lic.mp4\n";
     cmd +=
         "ffmpeg -y -r 3 -start_number 0 -i lic_color_%04d.png -c:v libx264 -vf "
@@ -788,7 +791,6 @@ class steadification {
         "-pix_fmt yuv420p lic_color.mp4\n";
     system(cmd.c_str());
 
-    // write report
     const std::string reportfilepath = working_dir + "report.html";
     std::ofstream     reportfile{reportfilepath};
     reportfile
@@ -816,6 +818,7 @@ class steadification {
         << "  margin:10px;\n"
         << "}\n"
         << "</style>\n"
+
         << "</head><body>\n"
         << "<script src=\"https://code.jquery.com/jquery-3.3.1.slim.min.js\" "
            "integrity=\"sha384-q8i/"
@@ -839,11 +842,11 @@ class steadification {
         << "<table class=\"table\">\n"
         << "<tr><th>t0</th><th>backward tau</th><th>forward tau</th><th>seed "
            "res</th><th>stepsize</th><th>coverage</th><th>neighbor "
-           "weight</th><th>penalty</th></tr>\n"
+           "weight</th><th>penalty</th><th>num_iterations</th></tr>\n"
         << "<tr><td>" << t0 << "</td><td>" << btau << "</td><td>" << ftau
         << "</td><td>" << seed_res << "</td><td>" << stepsize << "</td><td>"
         << desired_coverage << "</td><td>" << neighbor_weight << "</td><td>"
-        << penalty << "</td></tr>\n"
+        << penalty << "</td><td>" << used_edges.size() << "</td></tr>\n"
 
         << "</table>\n"
         << "\n"
@@ -870,103 +873,112 @@ class steadification {
                  << i << "\"></li>\n";
     }
 
-    reportfile
-        << "</ol>\n"
-        << "<div class=\"carousel-inner\">\n"
-        << "<div class=\"carousel-item active\">\n"
-        << "<table class=\"table\">\n"
-        << "<tr><th>iteration#</th><th>weight</th><th>coverage</th></tr>\n"
-        << "<tr><td>" << 0 << "</td><td>" << weights[0] << "</td><td>"
-        << coverages[0] << "</td></tr>\n"
-        << "</table>\n"
-        << "  <img width=100% src=\"lic_0000.png\">\n"
-        << "</div>\n";
-    for (size_t i = 1; i < used_edges.size(); ++i) {
-      std::string itstr = std::to_string(i);
-      while (itstr.size() < 4) { itstr = '0' + itstr; }
-      reportfile
+    reportfile 
+      << "</ol>\n"
+      << "<div class=\"carousel-inner\">\n"
+      << "<div class=\"carousel-item active\">\n"
+      << "<table class=\"table\">\n"
+      << "<tr><th>iteration#</th><th>weight</th><th>coverage</th></tr>\n"
+      << "<tr><td>"<<0<<"</td><td>"<<weights[0]<<"</td><td>"<<coverages[0]<<"</td></tr>\n"
+      << "</table>\n"
+      << "  <img width=100% src=\"lic_0000.png\">\n"
+      << "  <img width=100% src=\"lic_color_0000.png\">\n"
+      << "</div>\n";
+      for (size_t i = 1; i < used_edges.size(); ++i) {
+        std::string itstr = std::to_string(i);
+        while (itstr.size() < 4) {itstr = '0' + itstr;}
+        reportfile
           << "<div class=\"carousel-item\">\n"
           << "<table class=\"table\">\n"
           << "<tr><th>iteration#</th><th>weight</th><th>coverage</th></tr>\n"
-          << "<tr><td>" << i << "</td><td>" << weights[i] << "</td><td>"
-          << coverages[i] << "</td></tr>\n"
+          << "<tr><td>"<<i<<"</td><td>"<<weights[i]<<"</td><td>"<<coverages[i]<<"</td></tr>\n"
           << "</table>\n"
-          << "  <img width=100% src=\"lic_" << itstr << ".png\">\n"
+          << "  <img width=100% src=\"lic_"<<itstr<<".png\">\n"
+          << "  <img width=100% src=\"lic_color_"<<itstr<<".png\">\n"
           << "</div>\n";
-    }
+      }
 
-    reportfile << "</div>\n"
-               << "<a class=\"carousel-control-prev\" "
-                  "href=\"#carouselExampleIndicators\" role=\"button\" "
-                  "data-slide=\"prev\">\n"
-               << "<span class=\"carousel-control-prev-icon\" "
-                  "aria-hidden=\"true\"></span>\n"
-               << "<span class=\"sr-only\">Previous</span>\n"
-               << "</a>\n"
-               << "<a class=\"carousel-control-next\" "
-                  "href=\"#carouselExampleIndicators\" role=\"button\" "
-                  "data-slide=\"next\">\n"
-               << "<span class=\"carousel-control-next-icon\" "
-                  "aria-hidden=\"true\"></span>\n"
-               << "<span class=\"sr-only\">Next</span>\n"
-               << "</a>\n"
-               << "</div>\n";
+      reportfile << "</div>\n"
+                 << "<a class=\"carousel-control-prev\" "
+                    "href=\"#carouselExampleIndicators\" role=\"button\" "
+                    "data-slide=\"prev\">\n"
+                 << "<span class=\"carousel-control-prev-icon\" "
+                    "aria-hidden=\"true\"></span>\n"
+                 << "<span class=\"sr-only\">Previous</span>\n"
+                 << "</a>\n"
+                 << "<a class=\"carousel-control-next\" "
+                    "href=\"#carouselExampleIndicators\" role=\"button\" "
+                    "data-slide=\"next\">\n"
+                 << "<span class=\"carousel-control-next-icon\" "
+                    "aria-hidden=\"true\"></span>\n"
+                 << "<span class=\"sr-only\">Next</span>\n"
+                 << "</a>\n"
+                 << "</div>\n";
 
-    reportfile << "<canvas id=\"weight-chart\" width=100%></canvas>\n"
-               << "<script>\n"
-               << "new Chart(document.getElementById(\"weight-chart\"), {\n"
-               << "type: 'line', data: {\n"
-               << "labels: [" << 0;
-    for (size_t i = 1; i < used_edges.size(); ++i) { reportfile << ", " << i; }
-    reportfile << "],\n"
-               << "datasets: [{ \n"
-               << "data: [" << weights.front();
+      reportfile
+          << "<canvas id=\"weight-chart\" width=100%></canvas>\n"
+          << "<script>\n"
+          << "new Chart(document.getElementById(\"weight-chart\"), {\n"
+          << "type: 'line',\n"
+          << "data: {\n"
+          << "labels: [" << 0;
+      for (size_t i = 1; i < used_edges.size(); ++i) {
+        reportfile << ", " << i;
+      }
+      reportfile << "],\n"
+          << "datasets: [{ \n"
+          << "data: [" << weights.front();
 
-    for (size_t i = 1; i < used_edges.size(); ++i) {
-      reportfile << ", " << weights[i];
-    }
-    reportfile << "],\n"
-               << "label: \"weights\",\n"
-               << "borderColor: \"#3e95cd\",\n"
-               << "fill: false\n"
-               << "}]},\n"
-               << "options: {\n"
-               << "title: {\n"
-               << "display: true,\n"
-               << "text: 'weights'\n"
-               << "}\n"
-               << "}\n"
-               << "});</script>\n";
+      for (size_t i = 1; i < used_edges.size(); ++i) {
+        reportfile << ", " << weights[i];
+      }
+      reportfile << "],\n"
+                 << "label: \"weights\",\n"
+                 << "borderColor: \"#3e95cd\",\n"
+                 << "fill: false\n"
+                 << "}\n"
+                 << "]\n"
+                 << "},\n"
+                 << "options: {\n"
+                 << "title: {\n"
+                 << "display: true,\n"
+                 << "text: 'weights'\n"
+                 << "}\n"
+                 << "}\n"
+                 << "});</script>\n";
 
-    reportfile << "<canvas id=\"coverage-chart\" width=100%></canvas>\n"
-               << "<script>\n"
-               << "new Chart(document.getElementById(\"coverage-chart\"), {\n"
-               << "type: 'line',\n"
-               << "data: {\n"
-               << "labels: [" << 0;
-    for (size_t i = 1; i < used_edges.size(); ++i) { reportfile << ", " << i; }
-    reportfile << "],\n"
-               << "datasets: [{ \n"
-               << "data: [" << coverages.front();
-    for (size_t i = 1; i < used_edges.size(); ++i) {
-      reportfile << ", " << coverages[i];
-    }
-    reportfile << "],\n"
-               << "label: \"coverage\",\n"
-               << "borderColor: \"#3e95cd\",\n"
-               << "fill: false\n"
-               << "}\n"
-               << "]\n"
-               << "},\n"
-               << "options: {\n"
-               << "title: {\n"
-               << "display: true,\n"
-               << "text: 'coverage'\n"
-               << "}\n"
-               << "}\n"
-               << "});</script>\n"
-               << "</div></div></body></html>\n";
-    return result_rasterization;
+      reportfile
+          << "<canvas id=\"coverage-chart\" width=100%></canvas>\n"
+          << "<script>\n"
+          << "new Chart(document.getElementById(\"coverage-chart\"), {\n"
+          << "type: 'line',\n"
+          << "data: {\n"
+          << "labels: [" << 0;
+      for (size_t i = 1; i < used_edges.size(); ++i) {
+        reportfile << ", " << i;
+      }
+      reportfile << "],\n"
+          << "datasets: [{ \n"
+          << "data: [" << coverages.front();
+      for (size_t i = 1; i < used_edges.size(); ++i) {
+        reportfile << ", " << coverages[i];
+      }
+      reportfile << "],\n"
+                 << "label: \"coverage\",\n"
+                 << "borderColor: \"#FF0000\",\n"
+                 << "fill: false\n"
+                 << "}\n"
+                 << "]\n"
+                 << "},\n"
+                 << "options: {\n"
+                 << "title: {\n"
+                 << "display: true,\n"
+                 << "text: 'coverage'\n"
+                 << "}\n"
+                 << "}\n"
+                 << "});</script>\n"
+                 << "</div></div></body></html>\n";
+      return result_rasterization;
   }
 };
   //==============================================================================
