@@ -153,31 +153,55 @@ struct html {
      return stream;
    }
    //├╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌┤
+   void add_content(const std::string& content) {
+     m_contents.push_back(content);
+   }
+   //├╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌┤
    void add_stylesheet(const std::string& css) { m_stylesheets.push_back(css); }
    //├╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌┤
    void add_table(const std::vector<std::vector<std::string>>& table_data,
                   bool top_header = true, bool equal_width = true) {
      use_bootstrap();
-     std::stringstream table;
-     table << "<table ";
-     if (equal_width) { table << "table-layout=\"fixed\" "; }
-     table << "class=\"table\">\n";
+     std::stringstream stream;
+     table(stream, table_data, top_header, equal_width);
+     add_content(stream.str());
+   }
+   //├╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌┤
+   static void table(
+       std::ostream&                                stream,
+       const std::vector<std::vector<std::string>>& table_data,
+       bool top_header = true, bool equal_width = true) {
+     stream << "<table ";
+     if (equal_width) { stream << "table-layout=\"fixed\" "; }
+     stream << "class=\"table\">\n";
      if (top_header) {
-       table << "<tr>";
+       stream << "<tr>";
        for (const auto& th : table_data.front()) {
-         table << "<th>" << th << "</th>";
+         stream << "<th>" << th << "</th>";
        }
-       table << "</tr>\n";
+       stream << "</tr>\n";
      }
      for (size_t i = (top_header ? 1 : 0); i < table_data.size(); ++i) {
-       table << "<tr>";
+       stream << "<tr>";
        for (const auto& td : table_data[i]) {
-         table << "<td>" << td << "</td>";
+         stream << "<td>" << td << "</td>";
        }
-       table << "</tr>\n";
+       stream << "</tr>\n";
      }
-     table << "</table>\n";
-     m_contents.push_back(table.str());
+     stream << "</table>\n";
+   }
+   //├╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌┤
+   static std::string table(
+       const std::vector<std::vector<std::string>>& table_data,
+       bool top_header = true, bool equal_width = true) {
+     std::stringstream stream;
+     table(stream, table_data, top_header, equal_width);
+     return stream.str();
+   }
+   //├╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌┤
+   template <typename... Strings>
+   void add_side_by_side(Strings&&... strings) {
+     add_table(std::vector<std::vector<std::string>>{{strings...}});
    }
    //├╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌┤
    template <typename Real, typename Label = std::string>
@@ -186,25 +210,32 @@ struct html {
                   const std::string&        color  = "#FF0000",
                   const std::vector<Label>& labels = std::vector<Label>{}) {
      use_chart_js();
-     std::stringstream chart;
-     chart << "<canvas id=\"chart" << m_contents.size()
-           << "\" width=100%></canvas>\n"
-           << "<script>\n"
-           << "new Chart(document.getElementById(\"chart" << m_contents.size()
-           << "\"), {\n"
-           << "type: 'line',\n"
-           << "data: {\n";
+     std::stringstream stream;
+     chart(stream, data, name, color, labels);
+     add_content(stream.str());
+   }
+   //├╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌┤
+   template <typename Real, typename Label = std::string>
+   static void chart(std::ostream& stream, const std::vector<Real>& data,
+                     const std::string&        name,
+                     const std::string&        color  = "#FF0000",
+                     const std::vector<Label>& labels = std::vector<Label>{}) {
+     stream << "<canvas id=\"chart" << name << "\" width=100%></canvas>\n"
+            << "<script>\n"
+            << "new Chart(document.getElementById(\"chart" << name << "\"), {\n"
+            << "type: 'line',\n"
+            << "data: {\n";
      if (!labels.empty()) {
-       chart << "  labels: [\"" << labels.front() << "\"";
+       stream << "  labels: [\"" << labels.front() << "\"";
        for (size_t i = 1; i < labels.size(); ++i) {
-         chart << ", \"" << labels[i] << "\"";
+         stream << ", \"" << labels[i] << "\"";
        }
-       chart << "],\n";
+       stream << "],\n";
      }
-     chart << "  datasets: [{ \n"
+     stream << "  datasets: [{ \n"
            << "    data: [" << data.front();
-     for (size_t i = 1; i < data.size(); ++i) { chart << ", " << data[i]; }
-     chart << "],\n"
+     for (size_t i = 1; i < data.size(); ++i) { stream << ", " << data[i]; }
+     stream << "],\n"
            << "    label: \"" << name << "\",\n"
            << "    borderColor: \"" << color << "\",\n"
            << "    fill: false}]},\n"
@@ -215,7 +246,49 @@ struct html {
            << "    }\n"
            << "}\n"
            << "});</script>\n";
-     m_contents.push_back(chart.str());
+   }
+   //├╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌┤
+   template <typename Real, typename Label = std::string>
+   static std::string chart(const std::vector<Real>& data,
+                     const std::string&        name,
+                     const std::string&        color  = "#FF0000",
+                     const std::vector<Label>& labels = std::vector<Label>{}) {
+     std::stringstream stream;
+     chart(data, name, color, labels);
+     return stream.str();
+   }
+   //├╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌┤
+   void add_image(const std::string& path) {
+     std::stringstream stream;
+     image(stream, path);
+     add_content(stream.str());
+   }
+   //├╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌┤
+   static void image(std::ostream& stream, const std::string& path) {
+     stream << "<img width=100% src=\"" << path << "\">\n";
+   }
+   //├╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌┤
+   static auto image(const std::string& path) {
+     std::stringstream stream;
+     image(stream, path);
+     return stream.str();
+   }
+   //├╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌┤
+   void add_video(const std::string& path) {
+     std::stringstream stream;
+     video(stream, path);
+     add_content(stream.str());
+   }
+   //├╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌┤
+   static void video(std::ostream& stream, const std::string& path) {
+     stream << "<video width=\"100%\" controls><source src=\"" << path
+            << "\" type=\"video/mp4\"></video>\n";
+   }
+   //├╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌┤
+   static auto video(const std::string& path) {
+     std::stringstream stream;
+     video(stream, path);
+     return stream.str();
    }
 }; // html
 //╘══════════════════════════════════════════════════════════════════════════╛
