@@ -105,7 +105,8 @@ void main() {
 
   vec2 v0 = v(pos).xy;
   if (isnan(v0.x) || isnan(v0.y)) {
-    imageStore(lic_tex, ivec2(idx), vec4(0, 0, 0, 0));
+    imageStore(lic_tex, ivec2(idx), vec4(1, 1, 1, 0));
+    imageStore(color_lic_tex, ivec2(idx), vec4(1, 1, 1, 0));
     return;
   }
   float out_val = noise(pos);

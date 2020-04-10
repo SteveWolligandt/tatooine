@@ -70,7 +70,6 @@ class steadification {
  private:
   const V&                           m_v;
   ivec2                              m_render_resolution;
-  yavin::context                     m_context;
   yavin::orthographiccamera          m_cam;
   yavin::tex2rgb32f                  m_color_scale;
   yavin::tex2r32f                    m_noise_tex;
@@ -122,7 +121,6 @@ class steadification {
                  RandEng& rand_eng)
       : m_v{v.as_derived()},
         m_render_resolution{render_resolution},
-        m_context{4, 5},
         m_cam{static_cast<float>(domain.min(0)),
               static_cast<float>(domain.max(0)),
               static_cast<float>(domain.min(1)),
@@ -368,8 +366,8 @@ class steadification {
     result_to_v_tex();
 
     color_lic_tex.bind_image_texture(7);
-    lic_tex.clear(0, 0, 0, 0);
-    color_lic_tex.clear(0, 0, 0, 0);
+    lic_tex.clear(1, 1, 1, 0);
+    color_lic_tex.clear(1, 1, 1, 0);
     m_lic_shader.set_domain_min(domain.front(0), domain.front(1));
     m_lic_shader.set_domain_max(domain.back(0), domain.back(1));
     m_lic_shader.set_backward_tau(btau);
@@ -545,7 +543,8 @@ class steadification {
                         const real_t btau, const real_t ftau,
                         const size_t seed_res, const real_t stepsize,
                         const real_t desired_coverage,
-                        const double neighbor_weight, const float penalty) {
+                        const double neighbor_weight, const float penalty)
+      -> std::string {
     using namespace std::filesystem;
     auto             best_edge_idx   = domain.num_straight_edges();
     auto             best_weight     = -std::numeric_limits<real_t>::max();
@@ -792,7 +791,7 @@ class steadification {
         "-pix_fmt yuv420p lic_color.mp4\n";
     system(cmd.c_str());
 
-    const std::string reportfilepath = working_dir + "report.html";
+    const std::string reportfilepath = working_dir + "index.html";
     html::doc reportfile;
     std::vector<size_t> labels(used_edges.size());
     boost::iota(labels, 0);
@@ -830,7 +829,7 @@ class steadification {
 
 
     reportfile.write(reportfilepath);
-    return result_rasterization;
+    return working_dir;
   }
 };
   //==============================================================================

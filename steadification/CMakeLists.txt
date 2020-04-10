@@ -40,8 +40,6 @@ set(TATOOINE_STEADIFICATION_COVERAGE_COMP
     ${CMAKE_CURRENT_SOURCE_DIR}/coverage.comp)
 set(TATOOINE_STEADIFICATION_DUAL_COVERAGE_COMP
     ${CMAKE_CURRENT_SOURCE_DIR}/dual_coverage.comp)
-configure_file("${CMAKE_CURRENT_SOURCE_DIR}/batch.sh"
-               "${CMAKE_CURRENT_BINARY_DIR}/batch.sh")
 configure_file("${CMAKE_CURRENT_SOURCE_DIR}/shaders.h.in"
                "${CMAKE_CURRENT_BINARY_DIR}/shaders.h")
 configure_file(${CMAKE_CURRENT_SOURCE_DIR}/viridis_color_scale.png 
@@ -55,6 +53,15 @@ target_link_libraries(steadification tatooine yavin)
 target_compile_features(steadification PUBLIC cxx_std_17)
 target_compile_features(steadification PUBLIC cxx_std_17)
 target_compile_options(steadification PRIVATE
+  -Wall -Wextra -pedantic -Wno-missing-braces -Wno-unused-lambda-capture
+  -march=native)
+#- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+add_executable (steadification.batch batch.cpp renderers.cpp shaders.cpp datasets.cpp)
+target_include_directories(steadification.batch PRIVATE ${CMAKE_CURRENT_BINARY_DIR})
+target_link_libraries(steadification.batch tatooine yavin)
+target_compile_features(steadification.batch PUBLIC cxx_std_17)
+target_compile_features(steadification.batch PUBLIC cxx_std_17)
+target_compile_options(steadification.batch PRIVATE
   -Wall -Wextra -pedantic -Wno-missing-braces -Wno-unused-lambda-capture
   -march=native)
 #- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
