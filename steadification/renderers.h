@@ -20,24 +20,21 @@ struct streamsurface_renderer
   template <typename Real>
   streamsurface_renderer(const simple_tri_mesh<Real, 2>& mesh, Real u0t0,
                          Real u1t0)
-      : indexeddata{mesh_to_vbo_data(mesh, u0t0, u1t0),
-                    mesh_to_ibo_data(mesh)} {}
+      : indexeddata{to_vbo_data(mesh, u0t0, u1t0), to_ibo_data(mesh)} {}
   //----------------------------------------------------------------------------
   streamsurface_renderer(const streamsurface_renderer& other) = default;
   //----------------------------------------------------------------------------
   streamsurface_renderer(streamsurface_renderer&& other) = default;
   //============================================================================
   template <typename Real>
-  static vbo_data_vec mesh_to_vbo_data(const simple_tri_mesh<Real, 2>& mesh,
-                                       Real u0t0, Real u1t0) {
+  static vbo_data_vec to_vbo_data(const simple_tri_mesh<Real, 2>& mesh,
+                                  Real u0t0, Real u1t0) {
     using namespace boost;
     vbo_data_vec vbo_data;
     vbo_data.reserve(mesh.num_vertices());
 
-    const auto& uv_prop =
-        mesh.template vertex_property<vec<Real, 2>>("uv");
-    const auto& vf_prop =
-        mesh.template vertex_property<vec<Real, 2>>("v");
+    const auto& uv_prop = mesh.template vertex_property<vec<Real, 2>>("uv");
+    const auto& vf_prop = mesh.template vertex_property<vec<Real, 2>>("v");
     const auto& curvature_prop =
         mesh.template vertex_property<Real>("curvature");
 
@@ -55,7 +52,7 @@ struct streamsurface_renderer
   }
   //----------------------------------------------------------------------------
   template <typename Real>
-  static ibo_data_vec mesh_to_ibo_data(const simple_tri_mesh<Real, 2>& mesh) {
+  static ibo_data_vec to_ibo_data(const simple_tri_mesh<Real, 2>& mesh) {
     using namespace boost;
     using namespace adaptors;
     ibo_data_vec ibo_data;
@@ -72,6 +69,50 @@ struct streamsurface_renderer
   //----------------------------------------------------------------------------
   void draw() const;
 };
+struct line_renderer : yavin::indexeddata<yavin::vec3> {
+  //============================================================================
+  using parent_t = yavin::indexeddata<yavin::vec3>;
+  using typename parent_t::ibo_data_vec;
+  using typename parent_t::vbo_data_vec;
+  //============================================================================
+  template <typename Real>
+  line_renderer(const std::vector<line<Real, 3>>& lines)
+      : indexeddata{to_vbo_data(lines), to_ibo_data(lines)} {}
+  //----------------------------------------------------------------------------
+  line_renderer(const line_renderer& other) = default;
+  //----------------------------------------------------------------------------
+  line_renderer(line_renderer&& other) = default;
+  //============================================================================
+  template <typename Real>
+  static vbo_data_vec to_vbo_data(const std::vector<line<Real, 3>>& lines) {
+    using namespace boost;
+    vbo_data_vec vbo_data;
+
+    for (const auto& line : lines) {
+      for (const auto& v : line.vertices()) {
+        vbo_data.push_back(
+            vbo_data_t{{(float)(v(0)), (float)(v(1)), (float)(v(2))}});
+      }
+    }
+    return vbo_data;
+  }
+  //----------------------------------------------------------------------------
+  template <typename Real>
+  static ibo_data_vec to_ibo_data(const std::vector<line<Real, 3>>& lines) {
+    ibo_data_vec ibo_data;
+
+    for (const auto& line : lines) {
+      for (size_t i = 0; i < line.num_vertices() - 1; ++i) {
+        ibo_data.push_back(i);
+        ibo_data.push_back(i + 1);
+      }
+    }
+    return ibo_data;
+  }
+  //----------------------------------------------------------------------------
+  void draw() const;
+};
+//============================================================================
 //==============================================================================
 }  // namespace tatooine::steadification
 //==============================================================================

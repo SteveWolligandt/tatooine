@@ -6,7 +6,12 @@
 //==============================================================================
 namespace tatooine::steadification {
 //==============================================================================
-void streamsurface_renderer::draw() const { draw_triangles(); }
+void streamsurface_renderer::draw() const {
+  draw_triangles();
+}
+void line_renderer::draw() const {
+  draw_lines();
+}
 //==============================================================================
 }  // namespace tatooine::steadification
 //==============================================================================

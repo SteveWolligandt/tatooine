@@ -70,6 +70,17 @@ struct fragment_count_shader : vert_frag_shader {
   fragment_count_shader();
 };
 //==============================================================================
+struct seedcurve_shader : vert_frag_shader {
+  static constexpr std::string_view vert_path =
+      "@TATOOINE_STEADIFICATION_SEEDCURVE_VERT@";
+  static constexpr std::string_view frag_path =
+      "@TATOOINE_STEADIFICATION_SEEDCURVE_FRAG@";
+  seedcurve_shader();
+  void set_color_scale_bind_point(GLint b);
+  void set_min_t(GLfloat t);
+  void set_max_t(GLfloat t);
+};
+//==============================================================================
 struct weight_dual_pathsurface_shader : comp_shader {
   static constexpr std::string_view comp_path =
       "@TATOOINE_STEADIFICATION_WEIGHT_DUAL_PATHSURFACE_COMP@";

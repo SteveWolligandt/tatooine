@@ -112,6 +112,24 @@ fragment_count_shader::fragment_count_shader()
     : vert_frag_shader{vert_path, frag_path} {}
 
 //==============================================================================
+// seedcurve
+//==============================================================================
+seedcurve_shader::seedcurve_shader() : vert_frag_shader{vert_path, frag_path} {
+  set_color_scale_bind_point(2);
+  set_min_t(0);
+  set_max_t(1);
+}
+void seedcurve_shader::set_color_scale_bind_point(GLint b) {
+  set_uniform("color_scale", b);
+}
+void seedcurve_shader::set_min_t(GLfloat t) {
+  set_uniform("min_t", t);
+}
+void seedcurve_shader::set_max_t(GLfloat t) {
+  set_uniform("max_t", t);
+};
+
+//==============================================================================
 // weight_dual_pathsurface
 //==============================================================================
 weight_dual_pathsurface_shader::weight_dual_pathsurface_shader()

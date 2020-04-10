@@ -446,7 +446,7 @@ struct doc {
            << "  font-size: 1cm;\n"
            << "}\n"
            << ".textfield {\n"
-           << "  font-family: 'Cormorant Garamond', serif;\n"
+           << "  font-family: 'Roboto', sans-serif;\n"
            << "  font-size: 0.5cm;\n"
            << "}\n"
            << "</style>\n";

@@ -1,10 +1,12 @@
 #ifndef TATOOINE_CHRONO_H
 #define TATOOINE_CHRONO_H
-
+//==============================================================================
+#include <chrono>
+#include <utility>
+#include <tuple>
 //==============================================================================
 namespace tatooine {
 //==============================================================================
-
 template <typename F, typename... Param>
 auto measure(F&& f, Param&&... param) {
   using time  = std::chrono::high_resolution_clock;
@@ -22,7 +24,6 @@ auto measure(F&& f, Param&&... param) {
     return std::pair<decltype(duration), decltype(ret)>{duration, ret};
   }
 }
-
 //------------------------------------------------------------------------------
 template <typename... Durations, typename DurationIn>
 auto break_down_durations(DurationIn d) {
@@ -33,9 +34,7 @@ auto break_down_durations(DurationIn d) {
    ...);
   return retval;
 }
-
 //==============================================================================
 }  // namespace tatooine
 //==============================================================================
-
 #endif
