@@ -75,7 +75,7 @@ class steadification {
   yavin::tex2rgb32f                  m_color_scale;
   yavin::tex2r32f                    m_noise_tex;
   yavin::tex2r32f                    m_fbotex;
-  yavin::tex2rgb32f                  m_seedcurvetex;
+  yavin::tex2rgba32f                 m_seedcurvetex;
   yavin::framebuffer                 m_fbo;
   ssf_rasterization_shader           m_ssf_rasterization_shader;
   tex_rasterization_to_buffer_shader m_tex_rasterization_to_buffer_shader;
@@ -170,6 +170,7 @@ class steadification {
         num_newly_covered_pixels{0} {
     yavin::disable_multisampling();
 
+    m_seedcurve_shader.set_projection(m_cam.projection_matrix());
     m_ssf_rasterization_shader.set_projection(m_cam.projection_matrix());
     m_ssf_rasterization_shader.set_width(m_render_resolution(0));
     const auto noise_data = random_uniform_vector<float>(
@@ -541,17 +542,40 @@ class steadification {
     for (const auto& entry : directory_iterator(working_dir)) { remove(entry); }
     return working_dir;
   }
-  void render_seedcurves(const std::vector<line<real_t, 3>>& seedcurves,
+  template <size_t N>
+  void render_seedcurves(const grid<real_t, N>&              domain,
+                         const std::vector<line<real_t, 3>>& seedcurves,
                          GLfloat min_t, GLfloat max_t) {
-    std::cerr << "===============\nseedcurves\n======================\n";
+    yavin::disable_depth_test();
     yavin::framebuffer fbo{m_seedcurvetex};
-    auto               ls = line_renderer(seedcurves);
+    fbo.bind();
+    yavin::gl::clear_color(255, 255, 255, 0);
+    yavin::clear_color_buffer();
     m_seedcurve_shader.bind();
+    std::vector<line<real_t, 3>> domain_edges;
+
+    for (auto x : domain.dimension(0)) {
+      domain_edges.push_back(
+          line<real_t, 3>{vec<real_t, 3>{x, domain.dimension(1).front(), 0},
+                          vec<real_t, 3>{x, domain.dimension(1).back(), 0}});
+    }
+    for (auto y : domain.dimension(1)) {
+      domain_edges.push_back(
+          line<real_t, 3>{vec<real_t, 3>{domain.dimension(0).front(), y, 0},
+                          vec<real_t, 3>{domain.dimension(0).back(), y, 0}});
+    }
+
+    auto domain_edges_gpu = line_renderer(domain_edges);
+    m_seedcurve_shader.use_color_scale(false);
+    m_seedcurve_shader.set_color(0.8f, 0.8f, 0.8f);
+    domain_edges_gpu.draw();
+
+    auto               ls = line_renderer(seedcurves);
     m_seedcurve_shader.set_min_t(min_t);
     m_seedcurve_shader.set_max_t(max_t);
-    fbo.bind();
-    yavin::clear_color_buffer();
+    m_seedcurve_shader.use_color_scale(true);
     ls.draw();
+    yavin::enable_depth_test();
   }
   //----------------------------------------------------------------------------
   template <size_t N>
@@ -801,7 +825,7 @@ class steadification {
     std::cerr << '\n';
     std::cerr << "seedcurves!\n";
     write_vtk(seedcurves, working_dir + "seedcurves.vtk");
-    render_seedcurves(seedcurves, 0, 1);
+    render_seedcurves(domain, seedcurves, 0, 1);
     m_seedcurvetex.write_png(working_dir + "seedcurves.png");
 
     std::string cmd = "#/bin/bash \n";
@@ -822,8 +846,9 @@ class steadification {
     reportfile.add(html::chart{weights, "weight", "#3e95cd", labels});
     reportfile.add(html::chart{coverages, "coverage", "#FF0000", labels});
 
-    reportfile.add(html::image{"lic_final.png"});
-    reportfile.add(html::image{"lic_color_final.png"});
+    reportfile.add(html::heading{"Final LIC"}, html::image{"lic_final.png"});
+    reportfile.add(html::heading{"Final LIC color coded"},
+                   html::image{"lic_color_final.png"});
     reportfile.add(html::video{"lic.mp4"});
     reportfile.add(html::video{"lic_color.mp4"});
 
@@ -842,7 +867,8 @@ class steadification {
           html::image{"lic_color_" + itstr + ".png"}});
     }
     reportfile.add(lics);
-    reportfile.add(html::image{"seedcurves.png"});
+    reportfile.add(html::heading{"seedcurves color coded"},
+                   html::image{"seedcurves.png"});
     reportfile.add(html::table{
         std::vector{"t0", "btau", "ftau", "seed res", "stepsize", "coverage",
                     "neighbor weight", "penalty", "num iterations"},

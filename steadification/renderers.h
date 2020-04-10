@@ -100,12 +100,13 @@ struct line_renderer : yavin::indexeddata<yavin::vec3> {
   template <typename Real>
   static ibo_data_vec to_ibo_data(const std::vector<line<Real, 3>>& lines) {
     ibo_data_vec ibo_data;
-
+    size_t       j = 0;
     for (const auto& line : lines) {
-      for (size_t i = 0; i < line.num_vertices() - 1; ++i) {
-        ibo_data.push_back(i);
-        ibo_data.push_back(i + 1);
+      for (size_t i = 0; i < line.num_vertices() - 1; ++i, ++j) {
+        ibo_data.push_back(j);
+        ibo_data.push_back(j + 1);
       }
+      ++j;
     }
     return ibo_data;
   }

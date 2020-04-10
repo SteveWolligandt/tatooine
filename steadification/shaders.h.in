@@ -79,6 +79,8 @@ struct seedcurve_shader : vert_frag_shader {
   void set_color_scale_bind_point(GLint b);
   void set_min_t(GLfloat t);
   void set_max_t(GLfloat t);
+  void use_color_scale(GLboolean b);
+  void set_color(GLfloat r, GLfloat g, GLfloat b);
 };
 //==============================================================================
 struct weight_dual_pathsurface_shader : comp_shader {

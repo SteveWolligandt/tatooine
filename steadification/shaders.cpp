@@ -128,7 +128,12 @@ void seedcurve_shader::set_min_t(GLfloat t) {
 void seedcurve_shader::set_max_t(GLfloat t) {
   set_uniform("max_t", t);
 };
-
+void seedcurve_shader::use_color_scale(GLboolean b) {
+  set_uniform("use_color_scale", b);
+}
+void seedcurve_shader::set_color(GLfloat r, GLfloat g, GLfloat b) {
+  set_uniform("color", r, g, b);
+}
 //==============================================================================
 // weight_dual_pathsurface
 //==============================================================================
