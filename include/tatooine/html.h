@@ -5,7 +5,7 @@
 #include <iostream>
 #include <sstream>
 #include <string>
-#include <type_traits>
+#include <tatooine/type_traits.h>
 //╔════════════════════════════════════════════════════════════════════════════╗
 namespace tatooine::html {
 //├╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌┤
@@ -120,9 +120,6 @@ struct hbox : content {
     contents.push_back(html::to_string(to_content(cnt)));
   }
   auto to_stream(std::ostream& stream) const -> std::ostream& override {
-    //stream << "<table class=\"table\" table-layout=\"fixed\"><tr>\n";
-    //for (const auto& cnt : contents) { stream << "<td>" << cnt << "</td>"; }
-    //stream << "</tr></table>\n";
     stream << "<div class=\"row\">\n";
     for (const auto& cnt : contents) {
       stream << "<div style=\"float:left; padding:5px;"
@@ -173,14 +170,27 @@ struct table : content {
   using table_data_t = std::vector<std::vector<std::string>>;
 
   table_data_t table_data;
-  bool         top_header;
-  bool         equal_width;
+  bool         top_header = true;
+  bool         equal_width =true;
 
-  table(const table_data_t& table_data_, bool top_header_ = true,
-        bool equal_width_ = true)
-      : table_data{table_data_},
-        top_header{top_header_},
-        equal_width{equal_width_} {}
+  template <typename... StringVectors>
+  table(StringVectors&&... strvecs)
+      : table_data{to_strvec(std::forward<StringVectors>(strvecs))...} {}
+
+  auto to_strvec(const std::vector<std::string>& v) -> const auto& { return v; }
+  auto to_strvec(const std::vector<const char*>& v)    {
+    std::vector<std::string> c;
+    c.reserve(v.size());
+    for (const auto& t:v) {c.push_back(t);} 
+    return c;
+  }
+  template <typename Real, enable_if_arithmetic<Real> = true>
+  auto to_strvec(const std::vector<Real>& v)    {
+    std::vector<std::string> c;
+    c.reserve(v.size());
+    for (const auto& t : v) { c.push_back(std::to_string(t)); }
+    return c;
+  }
 
   auto to_stream(std::ostream& stream) const -> std::ostream& override {
     stream << "<table ";
@@ -214,6 +224,11 @@ struct slider : content {
   template <typename... Contents>
   slider(Contents&&... contents_)
       : contents{html::to_string(to_content(contents_))...} {}
+
+  template <typename... Contents>
+  void add(Contents&&... contents_) {
+    (contents.push_back(html::to_string(to_content(contents_))), ...);
+  }
 
   auto to_stream(std::ostream& stream) const -> std::ostream& override {
     stream << "<div id=\"carouselExampleIndicators\" class=\"carousel\">\n"
@@ -262,16 +277,21 @@ auto operator<<(std::ostream& stream, const slider& cnt) -> std::ostream& {
   return cnt.to_stream(stream);
 }
 //╞══════════════════════════════════════════════════════════════════════════╡
+template <typename Real, typename Label>
 struct chart : content {
-  std::vector<double>      data;
-  std::string              name;
-  std::string              color;
-  std::vector<std::string> labels;
+  std::vector<Real>  data;
+  std::string        name;
+  std::string        color;
+  std::vector<Label> labels;
 
-  chart(const std::vector<double>& data_, const std::string& name_,
-        const std::string&              color_  = "#FF0000",
-        const std::vector<std::string>& labels_ = std::vector<std::string>{})
-      : data{data_}, name{name_}, color{color_}, labels{labels_} {}
+  template <enable_if_arithmetic<Real> = true>
+  chart(const std::vector<Real>& data_, const std::string& name_,
+        const std::string&        color_  = "#FF0000",
+        const std::vector<Label>& labels_ = std::vector<std::string>{})
+      : data{begin(data_), end(data_)},
+        name{name_},
+        color{color_},
+        labels{labels_} {}
 
   auto to_stream(std::ostream& stream) const -> std::ostream& override {
     stream << "<canvas id=\"chart" << name << "\" width=100%></canvas>\n"
@@ -303,7 +323,9 @@ struct chart : content {
   }
 };  // chart
 //├╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌┤
-auto operator<<(std::ostream& stream, const chart& cnt) -> std::ostream& {
+template <typename Real, typename Label>
+auto operator<<(std::ostream& stream, const chart<Real, Label>& cnt)
+    -> std::ostream& {
   return cnt.to_stream(stream);
 }
 //╞══════════════════════════════════════════════════════════════════════════╡
@@ -508,7 +530,8 @@ struct doc {
     add_content(html::to_string(cnt));
   }
   //├╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌┤
-  void add(const chart& cnt) {
+template<typename Real, typename Label>
+  void add(const chart<Real, Label>& cnt) {
     use_chart_js();
     add_content(html::to_string(cnt));
   }

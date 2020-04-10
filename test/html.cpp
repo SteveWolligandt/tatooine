@@ -6,7 +6,7 @@ namespace tatooine::test {
 TEST_CASE("htmltable", "[html][table]") {
   const std::string outpath = "table_test.html";
   html::doc         doc;
-  doc.add(html::table{{{"a", "b"}, {"1", "2"}}, true, false});
+  doc.add(html::table{std::vector{"a", "b"}, std::vector{"1", "2"}});
   doc.write(outpath);
 }
 //==============================================================================
@@ -21,10 +21,10 @@ TEST_CASE("htmlchart", "[html][chart]") {
 TEST_CASE("htmltablechart", "[html][table][chart]") {
   const std::string outpath = "table_chart_test.html";
   html::doc doc;
-  doc.add(html::table{{{"a", "b"}, {"1", "2"}}, true, false});
+  doc.add(html::table{std::vector{"a", "b"}, std::vector{"1", "2"}});
   doc.add(html::chart{std::vector<double>{0.0, 1.0, 3.0}, "test", "#F00FAB",
                 std::vector<std::string>{"a", "b", "c"}});
-  doc.add(html::table{{{"c", "d"}, {"2", "3"}}});
+  doc.add(html::table{std::vector{"c", "d"}, std::vector{"2", "3"}});
   doc.write(outpath);
 }
 //==============================================================================
@@ -79,7 +79,9 @@ TEST_CASE("htmlslider", "[html][slider][image][chart]") {
   doc.add("Bar", "bliblablo");
   doc.add(heading{"Bloob"},
           chart{std::vector{0.0, 1.0, 3.0}, "test", "#F00FAB",
-                      std::vector<std::string>{"a", "b", "c"}});
+                      std::vector{1, 2, 3}});
+  doc.add(heading{"important data"},
+          table{std::vector{"a", "b"}, std::vector{1, 2}});
   doc.write(outpath);
 }
 //==============================================================================

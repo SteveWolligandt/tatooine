@@ -23,6 +23,7 @@
 #include <yavin>
 
 #include "renderers.h"
+#include <tatooine/html.h>
 #include "shaders.h"
 //==============================================================================
 namespace tatooine::steadification {
@@ -792,193 +793,44 @@ class steadification {
     system(cmd.c_str());
 
     const std::string reportfilepath = working_dir + "report.html";
-    std::ofstream     reportfile{reportfilepath};
-    reportfile
-        << "<!DOCTYPE html>\n"
-        << "<html><head>\n"
-        << "<meta charset=\"utf-8\">\n"
-        << "<meta name=\"viewport\" content=\"width=device-width, "
-           "initial-scale=1, shrink-to-fit=no\">\n"
-        << "<link rel=\"stylesheet\" "
-           "href=\"https://stackpath.bootstrapcdn.com/bootstrap/4.3.1/"
-           "css/bootstrap.min.css\" "
-           "integrity=\"sha384-ggOyR0iXCbMQv3Xipma34MD+dH/1fQ784/j6cY/"
-           "iJTQUOhcWr7x9JvoRxT2MZw1T\" crossorigin=\"anonymous\">\n"
-        << "<script "
-           "src=\"https://cdnjs.cloudflare.com/ajax/libs/Chart.js/2.5.0/"
-           "Chart.min.js\"></script>\n"
-        << "<style type=\"text/css\" title=\"text/css\">\n"
-        << "#outerwrap {\n"
-        << "  margin:auto;\n"
-        << "  width:800px;\n"
-        << "  border:1px solid #CCCCCC;\n"
-        << "  padding 10px;\n"
-        << "}\n"
-        << "#innerwrap {\n"
-        << "  margin:10px;\n"
-        << "}\n"
-        << "</style>\n"
+    html::doc reportfile;
+    std::vector<size_t> labels(used_edges.size());
+    boost::iota(labels, 0);
+    reportfile.add(html::chart{weights, "weight", "#3e95cd", labels});
+    reportfile.add(html::chart{coverages, "coverage", "#FF0000", labels});
 
-        << "</head><body>\n"
-        << "<script src=\"https://code.jquery.com/jquery-3.3.1.slim.min.js\" "
-           "integrity=\"sha384-q8i/"
-           "X+965DzO0rT7abK41JStQIAqVgRVzpbzo5smXKp4YfRvH+8abtTE1Pi6jizo\" "
-           "crossorigin=\"anonymous\"></script>\n"
-        << "<script "
-           "src=\"https://cdnjs.cloudflare.com/ajax/libs/popper.js/1.14.7/umd/"
-           "popper.min.js\" "
-           "integrity=\"sha384-"
-           "UO2eT0CpHqdSJQ6hJty5KVphtPhzWj9WO1clHTMGa3JDZwrnQq4sF86dIHNDz0W1\" "
-           "crossorigin=\"anonymous\"></script>\n"
-        << "<script "
-           "src=\"https://stackpath.bootstrapcdn.com/bootstrap/4.3.1/js/"
-           "bootstrap.min.js\" "
-           "integrity=\"sha384-JjSmVgyd0p3pXB1rRibZUAYoIIy6OrQ6VrjIEaFf/"
-           "nJGzIxFDsf4x0xIM+B07jRM\" crossorigin=\"anonymous\"></script>\n"
-        << "<script "
-           "src=\"https://cdn.jsdelivr.net/npm/chart.js@2.8.0\"></script>\n"
-        << "<div id=\"outerwrap\"><div id=\"innerwrap\">\n"
-        << "\n"
-        << "<table class=\"table\">\n"
-        << "<tr><th>t0</th><th>backward tau</th><th>forward tau</th><th>seed "
-           "res</th><th>stepsize</th><th>coverage</th><th>neighbor "
-           "weight</th><th>penalty</th><th>num_iterations</th></tr>\n"
-        << "<tr><td>" << t0 << "</td><td>" << btau << "</td><td>" << ftau
-        << "</td><td>" << seed_res << "</td><td>" << stepsize << "</td><td>"
-        << desired_coverage << "</td><td>" << neighbor_weight << "</td><td>"
-        << penalty << "</td><td>" << used_edges.size() << "</td></tr>\n"
+    reportfile.add(html::image{"lic_final.png"});
+    reportfile.add(html::image{"lic_color_final.png"});
+    reportfile.add(html::video{"lic.mp4"});
+    reportfile.add(html::video{"lic_color.mp4"});
 
-        << "</table>\n"
-        << "\n"
-        << "<table><tr>\n"
-        << "<td><img width=100% src=\"lic_final.png\"></img></td>\n"
-        << "<td><img width=100% src=\"lic_color_final.png\"></img></td>\n"
-        << "</tr></table>\n"
-        << "\n"
-        << "<table><tr>\n"
-        << "<td><video width=\"100%\" controls><source src=\"lic.mp4\" "
-           "type=\"video/mp4\"></video></td>\n"
-        << "<td><video width=\"100%\" controls><source src=\"lic_color.mp4\" "
-           "type=\"video/mp4\"></video></td>\n"
-        << "</tr></table>\n"
-        << '\n'
-        << "<div id=\"carouselExampleIndicators\" class=\"carousel\">\n"
-        << "  <ol class=\"carousel-indicators\">\n"
-        << "    <li data-target=\"#carouselExampleIndicators\" "
-           "data-slide-to=\"0\" class=\"active\"></li>\n";
 
-    for (size_t i = 1; i < used_edges.size(); ++i) {
-      reportfile << "<li data-target=\"#carouselExampleIndicators\" "
-                    "data-slide-to=\""
-                 << i << "\"></li>\n";
+    html::slider lics;
+    for (size_t i = 0; i < used_edges.size(); ++i) {
+      std::string itstr = std::to_string(i);
+      while (itstr.size() < 4) { itstr = '0' + itstr; }
+      lics.add(html::vbox{
+          html::table{
+              std::vector{"iteration#", "weight", "coverage"},
+              std::vector{
+                  std::to_string(i),
+                  std::to_string(weights[i]), std::to_string(coverages[i])}},
+          html::image{"lic_" + itstr + ".png"},
+          html::image{"lic_color_" + itstr + ".png"}});
     }
+    reportfile.add(lics);
+    reportfile.add(html::table{
+        std::vector{"t0", "btau", "ftau", "seed res", "stepsize", "coverage",
+                    "neighbor weight", "penalty", "num iterations"},
+        std::vector{std::to_string(t0), std::to_string(btau),
+                    std::to_string(ftau), std::to_string(seed_res),
+                    std::to_string(stepsize), std::to_string(coverage),
+                    std::to_string(neighbor_weight), std::to_string(penalty),
+                    std::to_string(used_edges.size())}});
 
-    reportfile 
-      << "</ol>\n"
-      << "<div class=\"carousel-inner\">\n"
-      << "<div class=\"carousel-item active\">\n"
-      << "<table class=\"table\">\n"
-      << "<tr><th>iteration#</th><th>weight</th><th>coverage</th></tr>\n"
-      << "<tr><td>"<<0<<"</td><td>"<<weights[0]<<"</td><td>"<<coverages[0]<<"</td></tr>\n"
-      << "</table>\n"
-      << "  <img width=100% src=\"lic_0000.png\">\n"
-      << "  <img width=100% src=\"lic_color_0000.png\">\n"
-      << "</div>\n";
-      for (size_t i = 1; i < used_edges.size(); ++i) {
-        std::string itstr = std::to_string(i);
-        while (itstr.size() < 4) {itstr = '0' + itstr;}
-        reportfile
-          << "<div class=\"carousel-item\">\n"
-          << "<table class=\"table\">\n"
-          << "<tr><th>iteration#</th><th>weight</th><th>coverage</th></tr>\n"
-          << "<tr><td>"<<i<<"</td><td>"<<weights[i]<<"</td><td>"<<coverages[i]<<"</td></tr>\n"
-          << "</table>\n"
-          << "  <img width=100% src=\"lic_"<<itstr<<".png\">\n"
-          << "  <img width=100% src=\"lic_color_"<<itstr<<".png\">\n"
-          << "</div>\n";
-      }
 
-      reportfile << "</div>\n"
-                 << "<a class=\"carousel-control-prev\" "
-                    "href=\"#carouselExampleIndicators\" role=\"button\" "
-                    "data-slide=\"prev\">\n"
-                 << "<span class=\"carousel-control-prev-icon\" "
-                    "aria-hidden=\"true\"></span>\n"
-                 << "<span class=\"sr-only\">Previous</span>\n"
-                 << "</a>\n"
-                 << "<a class=\"carousel-control-next\" "
-                    "href=\"#carouselExampleIndicators\" role=\"button\" "
-                    "data-slide=\"next\">\n"
-                 << "<span class=\"carousel-control-next-icon\" "
-                    "aria-hidden=\"true\"></span>\n"
-                 << "<span class=\"sr-only\">Next</span>\n"
-                 << "</a>\n"
-                 << "</div>\n";
-
-      reportfile
-          << "<canvas id=\"weight-chart\" width=100%></canvas>\n"
-          << "<script>\n"
-          << "new Chart(document.getElementById(\"weight-chart\"), {\n"
-          << "type: 'line',\n"
-          << "data: {\n"
-          << "labels: [" << 0;
-      for (size_t i = 1; i < used_edges.size(); ++i) {
-        reportfile << ", " << i;
-      }
-      reportfile << "],\n"
-          << "datasets: [{ \n"
-          << "data: [" << weights.front();
-
-      for (size_t i = 1; i < used_edges.size(); ++i) {
-        reportfile << ", " << weights[i];
-      }
-      reportfile << "],\n"
-                 << "label: \"weights\",\n"
-                 << "borderColor: \"#3e95cd\",\n"
-                 << "fill: false\n"
-                 << "}\n"
-                 << "]\n"
-                 << "},\n"
-                 << "options: {\n"
-                 << "title: {\n"
-                 << "display: true,\n"
-                 << "text: 'weights'\n"
-                 << "}\n"
-                 << "}\n"
-                 << "});</script>\n";
-
-      reportfile
-          << "<canvas id=\"coverage-chart\" width=100%></canvas>\n"
-          << "<script>\n"
-          << "new Chart(document.getElementById(\"coverage-chart\"), {\n"
-          << "type: 'line',\n"
-          << "data: {\n"
-          << "labels: [" << 0;
-      for (size_t i = 1; i < used_edges.size(); ++i) {
-        reportfile << ", " << i;
-      }
-      reportfile << "],\n"
-          << "datasets: [{ \n"
-          << "data: [" << coverages.front();
-      for (size_t i = 1; i < used_edges.size(); ++i) {
-        reportfile << ", " << coverages[i];
-      }
-      reportfile << "],\n"
-                 << "label: \"coverage\",\n"
-                 << "borderColor: \"#FF0000\",\n"
-                 << "fill: false\n"
-                 << "}\n"
-                 << "]\n"
-                 << "},\n"
-                 << "options: {\n"
-                 << "title: {\n"
-                 << "display: true,\n"
-                 << "text: 'coverage'\n"
-                 << "}\n"
-                 << "}\n"
-                 << "});</script>\n"
-                 << "</div></div></body></html>\n";
-      return result_rasterization;
+    reportfile.write(reportfilepath);
+    return result_rasterization;
   }
 };
   //==============================================================================
