@@ -9,6 +9,7 @@
 #include "algorithm.h"
 #include "boundingbox.h"
 #include "grid_vertex.h"
+#include "grid_edge.h"
 #include "grid_vertex_edges.h"
 #include "grid_vertex_neighbors.h"
 #include "index_ordering.h"
@@ -278,55 +279,8 @@ class grid {
   }
   //----------------------------------------------------------------------------
   /// \return number of dimensions for one dimension dim
-  constexpr auto num_edges_in_dimension(size_t dim) const {
-    size_t n = 1;
-    for (size_t i = 0; i < N; ++i) {
-      if (i != dim) {
-        n *= size(i);
-      } else {
-        n *= size(i) - 1;
-      }
-    }
-    return n;
-  }
-  //----------------------------------------------------------------------------
-  constexpr auto num_edges_per_dimension() const {
-    auto n = make_array<size_t, N>(0);
-    for (size_t i = 0; i < N; ++i) { n[i] = num_edges_in_dimension(i); }
-    return n;
-  }
-  //----------------------------------------------------------------------------
-  /// \return number of dimensions for one dimension dim
-  constexpr auto num_straight_edges() const {
-    size_t n = 0;
-    for (size_t i = 0; i < N; ++i) { n += num_edges_in_dimension(i); }
-    return n;
-  }
-  //----------------------------------------------------------------------------
-  auto edge_at(size_t edge_idx) const {
-    auto num_edges = num_edges_per_dimension();
-
-    // determine which orientation edge_idx has
-    for (size_t i = 1; i < N; ++i) { num_edges[i] += num_edges[i - 1]; }
-    size_t which_dim = std::numeric_limits<size_t>::max();
-    for (size_t i = 0; i < N; ++i) {
-      if (edge_idx < num_edges[i]) {
-        which_dim = i;
-        if (i > 0) { edge_idx -= num_edges[i - 1]; }
-        break;
-      }
-    }
-    //determine first vertex
-    auto first_vertex = [&] {
-      // special case for dimension x
-      if (which_dim == 0) { edge_idx += edge_idx / (size(0) - 1); }
-      const auto res     = size().data();
-      const auto indices = x_fastest::multi_index(res, edge_idx);
-      return vertex_at(indices);
-    }();
-    auto second_vertex = first_vertex;
-    ++second_vertex[which_dim];
-    return edge_t{std::move(first_vertex), std::move(second_vertex)};
+  constexpr auto edges() {
+    return grid_edge_container{this};
   }
 
   //----------------------------------------------------------------------------
@@ -1030,7 +984,6 @@ auto operator+(const linspace<Real>& additional_dimension,
                const grid<Real, N>&  grid) {
   return grid.add_dimension(additional_dimension);
 }
-
 //==============================================================================
 }  // namespace tatooine
 //==============================================================================

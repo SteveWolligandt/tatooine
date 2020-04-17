@@ -113,6 +113,14 @@ struct grid_vertex {
     return indices(std::make_index_sequence<N>());
   }
   //--------------------------------------------------------------------------
+  constexpr auto& index(size_t i) {
+    return iterators[i].i();
+  }
+  //--------------------------------------------------------------------------
+  constexpr auto index(size_t i) const {
+    return iterators[i].i();
+  }
+  //--------------------------------------------------------------------------
   constexpr auto global_index() const {
     size_t idx = 0;
     size_t factor = 1;
