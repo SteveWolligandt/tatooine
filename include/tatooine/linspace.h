@@ -126,7 +126,8 @@ struct linspace_iterator
   //----------------------------------------------------------------------------
   constexpr void to_end() { m_i = m_lin->size(); }
   //----------------------------------------------------------------------------
-  auto i() const { return m_i; }
+  auto& i() { return m_i; }
+  auto  i() const { return m_i; }
   //----------------------------------------------------------------------------
   auto begin() const { return m_lin->begin(); }
   auto end() const { return m_lin->end(); }

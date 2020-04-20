@@ -7,6 +7,6 @@ layout(location = 0) in vec3 pos;
 out float t_frag;
 //==============================================================================
 void main() {
-  gl_Position = projection * vec4(pos, 1);
+  gl_Position = projection * vec4(pos.xy, 0, 1);
   t_frag      = pos.z;
 }
