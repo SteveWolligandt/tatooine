@@ -101,7 +101,7 @@ struct rungekutta43
     if (!vf.in_domain(y0, t0)) { return integral; }
 
     auto dy = [&vf](Real t, const pos_t& y) -> typename ode_t::maybe_vec {
-      if (!vf.in_domain(y, t)) return VC::odeint::OutOfDomain;
+      if (!vf.in_domain(y, t)) { return VC::odeint::OutOfDomain; }
       return vf(y, t);
     };
     auto stepper = ode_t::solver(rk43, m_options);
@@ -111,7 +111,7 @@ struct rungekutta43
     stepper.integrate(
         dy, ode_t::Output >>
                 ode_t::sink([&integral, &tangents](auto t, const auto& y,
-                                                        const auto& dy) {
+                                                   const auto& dy) {
                   bool use = true;
                   if (!integral.empty() &&
                       distance(integral.back_vertex(), y) < 1e-6) {
@@ -132,7 +132,7 @@ struct rungekutta43
     if (!vf.in_domain(y0, t0)) { return integral; }
 
     auto dy = [&vf](Real t, const pos_t& y) -> typename ode_t::maybe_vec {
-      if (!vf.in_domain(y, t)) return VC::odeint::OutOfDomain;
+      if (!vf.in_domain(y, t)) { return VC::odeint::OutOfDomain; }
       return vf(y, t);
     };
     auto stepper = ode_t::solver(rk43, m_options);

@@ -41,8 +41,8 @@ struct lic_shader : comp_shader {
   lic_shader();
   void set_domain_min(GLfloat x, GLfloat y);
   void set_domain_max(GLfloat x, GLfloat y);
-  void set_backward_tau(GLfloat btau);
-  void set_forward_tau(GLfloat ftau);
+  void set_min_t(GLfloat min_t);
+  void set_max_t(GLfloat max_t);
   void set_v_tex_bind_point(GLint b);
   void set_noise_tex_bind_point(GLint b);
   void set_color_scale_bind_point(GLint b);

@@ -363,7 +363,8 @@ class steadification {
   }
   //----------------------------------------------------------------------------
   template <size_t N>
-  void result_to_lic_tex(const grid<real_t, N>& domain, GLfloat btau, GLfloat ftau) {
+  void result_to_lic_tex(const grid<real_t, N>& domain, GLfloat btau,
+                         GLfloat ftau, GLfloat t0) {
     const size_t num_samples = 20;
     const real_t stepsize =
         (domain.dimension(0).back() - domain.dimension(0).front()) /
@@ -375,8 +376,13 @@ class steadification {
     color_lic_tex.clear(1, 1, 1, 0);
     m_lic_shader.set_domain_min(domain.front(0), domain.front(1));
     m_lic_shader.set_domain_max(domain.back(0), domain.back(1));
-    m_lic_shader.set_backward_tau(btau);
-    m_lic_shader.set_forward_tau(ftau);
+    if constexpr (N == 3) {
+      m_lic_shader.set_min_t(domain.dimension(2).front());
+      m_lic_shader.set_max_t(domain.dimension(2).back());
+    } else {
+      m_lic_shader.set_min_t(btau + t0);
+      m_lic_shader.set_max_t(ftau + t0);
+    }
     m_lic_shader.set_num_samples(num_samples);
     m_lic_shader.set_stepsize(stepsize);
     m_lic_shader.dispatch(m_render_resolution(0)  / 32.0 + 1,
@@ -497,9 +503,10 @@ class steadification {
       for (size_t i = 0; i < N; ++i) {
         filename_vtk += std::to_string(domain.size(i)) + "_";
       }
-      filename_vtk += std::to_string(t0) + "_" + std::to_string(btau) + "_" +
-                      std::to_string(ftau) + "_" + std::to_string(seed_res) +
-                      "_" + std::to_string(stepsize) + "_" +
+      if constexpr (N == 2) { filename_vtk += std::to_string(t0) + "_"; }
+      filename_vtk += std::to_string(btau) + "_" + std::to_string(ftau) + "_" +
+                      std::to_string(seed_res) + "_" +
+                      std::to_string(stepsize) + "_" +
                       std::to_string(edge_idx) + ".vtk";
       if (!std::filesystem::exists(filename_vtk)) {
         if constexpr (N == 2) {
@@ -525,16 +532,38 @@ class steadification {
     return pathsurface_dir;
   }
   //----------------------------------------------------------------------------
-  auto setup_working_dir(const real_t t0, const real_t btau, const real_t ftau,
+  auto setup_working_dir(const grid<real_t, 2>& domain, const real_t t0, const real_t btau, const real_t ftau,
                          const size_t seed_res, const real_t stepsize,
                          const double neighbor_weight, const float penalty) {
     using namespace std::filesystem;
     const auto working_dir =
-        std::string{settings<V>::name} + "_t0_" + std::to_string(t0) +
-        "_btau_" + std::to_string(btau) + "_ftau_" + std::to_string(ftau) +
-        "_seedres_" + std::to_string(seed_res) + "_stepsize_" +
-        std::to_string(stepsize) + "_neighborweight_" +
-        std::to_string(neighbor_weight) + "_penalty_" +
+        std::string{settings<V>::name} + "_domainres_" +
+        std::to_string(domain.size(0)) + "_" + std::to_string(domain.size(1)) +
+        "_t0_" + std::to_string(t0) + "_btau_" + std::to_string(btau) +
+        "_ftau_" + std::to_string(ftau) + "_seedres_" +
+        std::to_string(seed_res) + "_stepsize_" + std::to_string(stepsize) +
+        "_neighborweight_" + std::to_string(neighbor_weight) + "_penalty_" +
+        std::to_string(penalty) + "/";
+    if (!exists(working_dir)) { create_directory(working_dir); }
+    std::cerr << "result will be located in " << working_dir << '\n';
+
+    for (const auto& entry : directory_iterator(working_dir)) { remove(entry); }
+    return working_dir;
+  }
+  //----------------------------------------------------------------------------
+  auto setup_working_dir(const grid<real_t, 3>& domain, const real_t u0t0, const real_t u1t0,
+                         const real_t btau, const real_t ftau,
+                         const size_t seed_res, const real_t stepsize,
+                         const double neighbor_weight, const float penalty) {
+    using namespace std::filesystem;
+    const auto working_dir =
+        std::string{settings<V>::name} + "_domainres_" +
+        std::to_string(domain.size(0)) + "_" + std::to_string(domain.size(1)) +
+        "_" + std::to_string(domain.size(2)) + "_u0t0_" + std::to_string(u0t0) +
+        "_u1t0_" + std::to_string(u1t0) + "_btau_" + std::to_string(btau) +
+        "_ftau_" + std::to_string(ftau) + "_seedres_" +
+        std::to_string(seed_res) + "_stepsize_" + std::to_string(stepsize) +
+        "_neighborweight_" + std::to_string(neighbor_weight) + "_penalty_" +
         std::to_string(penalty) + "/";
     if (!exists(working_dir)) { create_directory(working_dir); }
     std::cerr << "result will be located in " << working_dir << '\n';
@@ -574,7 +603,9 @@ class steadification {
     m_seedcurve_shader.set_min_t(min_t);
     m_seedcurve_shader.set_max_t(max_t);
     m_seedcurve_shader.use_color_scale(true);
+    yavin::gl::line_width(3);
     ls.draw();
+    yavin::gl::line_width(1);
     yavin::enable_depth_test();
   }
   //----------------------------------------------------------------------------
@@ -600,9 +631,16 @@ class steadification {
     std::vector<float> weights;
     std::vector<float> coverages;
 
-    auto working_dir =
-        setup_working_dir(t0, btau, ftau, seed_res, stepsize,
-                          neighbor_weight, penalty);
+    auto working_dir = [&] {
+      if constexpr (N == 2) {
+        return setup_working_dir(domain, t0, btau, ftau, seed_res, stepsize,
+                                 neighbor_weight, penalty);
+      } else {
+        return setup_working_dir(domain, domain.dimension(2).front(),
+                                 domain.dimension(2).back(), btau, ftau,
+                                 seed_res, stepsize, neighbor_weight, penalty);
+      }
+    }();
     m_weight_dual_pathsurface_shader.set_penalty(penalty);
 
     // set all edges as unused
@@ -756,7 +794,7 @@ class steadification {
 
           std::string it_str = std::to_string(iteration);
           while (it_str.size() < 4) { it_str = '0' + it_str; }
-          result_to_lic_tex(domain, btau, ftau);
+          result_to_lic_tex(domain, btau, ftau, t0);
           lic_tex.write_png(working_dir + "lic_" + it_str + ".png");
           color_lic_tex.write_png(working_dir + "lic_color_" + it_str + ".png");
           std::string mesh2dpath = pathsurface_dir;
@@ -805,7 +843,7 @@ class steadification {
         ++iteration;
       } while (coverage < desired_coverage &&
                best_edge_idx != domain.num_straight_edges());
-      result_to_lic_tex(domain, btau, ftau);
+      result_to_lic_tex(domain, btau, ftau, t0);
       lic_tex.write_png(working_dir + "lic_final.png");
       color_lic_tex.write_png(working_dir + "lic_color_final.png");
       for (auto used_edge : used_edges) {
@@ -825,7 +863,12 @@ class steadification {
     std::cerr << '\n';
     std::cerr << "seedcurves!\n";
     write_vtk(seedcurves, working_dir + "seedcurves.vtk");
-    render_seedcurves(domain, seedcurves, 0, 1);
+    if constexpr (N==2) {
+    render_seedcurves(domain, seedcurves, t0, t0);
+    } else {
+      render_seedcurves(domain, seedcurves, domain.dimension(2).front(),
+                        domain.dimension(2).back());
+    }
     m_seedcurvetex.write_png(working_dir + "seedcurves.png");
 
     std::string cmd = "#/bin/bash \n";

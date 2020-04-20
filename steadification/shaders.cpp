@@ -73,11 +73,11 @@ void lic_shader::set_domain_min(GLfloat x, GLfloat y) {
 void lic_shader::set_domain_max(GLfloat x, GLfloat y) {
   set_uniform("domain_max", x, y);
 }
-void lic_shader::set_backward_tau(GLfloat btau) {
-  set_uniform("btau", btau);
+void lic_shader::set_min_t(GLfloat min_t) {
+  set_uniform("min_t", min_t);
 }
-void lic_shader::set_forward_tau(GLfloat ftau) {
-  set_uniform("ftau", ftau);
+void lic_shader::set_max_t(GLfloat max_t) {
+  set_uniform("max_t", max_t);
 }
 void lic_shader::set_v_tex_bind_point(GLint b) {
   set_uniform("v_tex", b);
