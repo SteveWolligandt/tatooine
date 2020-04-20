@@ -279,7 +279,7 @@ class grid {
   }
   //----------------------------------------------------------------------------
   /// \return number of dimensions for one dimension dim
-  constexpr auto edges() {
+  constexpr auto edges() const {
     return grid_edge_container{this};
   }
 

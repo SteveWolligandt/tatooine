@@ -181,7 +181,7 @@ struct grid_vertex_iterator {
 
   grid_vertex<Real, N> v;
 
-  auto operator*() -> auto& { return v; }
+  auto operator*()const ->const auto& { return v; }
   auto operator++() -> auto& {
     ++v;
     return *this;
@@ -190,8 +190,18 @@ struct grid_vertex_iterator {
     --v;
     return *this;
   }
-  auto operator==(const grid_vertex_iterator& other) { return v == other.v; }
-  auto operator!=(const grid_vertex_iterator& other) { return v != other.v; }
+  auto operator==(const grid_vertex_iterator& other) const {
+    return v == other.v;
+  }
+  auto operator!=(const grid_vertex_iterator& other) const {
+    return v != other.v;
+  }
+  constexpr auto operator<(const grid_vertex_iterator& other) const -> bool {
+    return v < other.v;
+  }
+  constexpr auto operator>(const grid_vertex_iterator& other) const -> bool {
+    return v > other.v;
+  }
 };
 
 //==============================================================================

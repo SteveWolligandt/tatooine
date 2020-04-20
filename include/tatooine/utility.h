@@ -123,7 +123,7 @@ inline constexpr auto release_mode() {
 }
 //------------------------------------------------------------------------------
 template <typename T>
-constexpr void swap(T& t0, T& t1) {
+constexpr void tat_swap(T& t0, T& t1) {
   T tmp = std::move(t0);
   t0    = std::move(t1);
   t1    = std::move(tmp);

@@ -132,7 +132,7 @@ class grid_edge_iterator {
           if (((is != 1) || ...)) {
             dirs[i] = vec<int, N>{(2 - int(is) - 1)...};
             for (size_t j = 0; j < N / 2; ++j) {
-              swap(dirs[i](j), dirs[i][N - j - 1]);
+              tat_swap(dirs[i](j), dirs[i][N - j - 1]);
             }
             ++i;
             return true;
@@ -165,12 +165,12 @@ class grid_edge_iterator {
   static constexpr auto bases                  = calc_bases();
 
  private:
-  grid<Real, N>*                m_grid;
+  grid<Real, N>const*                m_grid;
   grid_vertex_iterator<Real, N> m_vit;
   size_t                        m_edge_idx;
 
  public:
-  explicit grid_edge_iterator(grid<Real, N>*                  g,
+  explicit grid_edge_iterator(grid<Real, N>const*                  g,
                               grid_vertex_iterator<Real, N>&& vit,
                               size_t                          edge_idx)
       : m_grid{g}, m_vit{std::move(vit)}, m_edge_idx{edge_idx} {}
@@ -184,23 +184,28 @@ class grid_edge_iterator {
     } while (!is_valid());
     return *this;
   }
-  auto operator==(const grid_edge_iterator<Real, N>& other) -> bool {
+  auto operator==(const grid_edge_iterator<Real, N>& other) const -> bool {
     return m_grid == other.m_grid && m_vit == other.m_vit &&
            m_edge_idx == other.m_edge_idx;
   }
-  auto operator!=(const grid_edge_iterator<Real, N>& other) -> bool {
+  auto operator!=(const grid_edge_iterator<Real, N>& other) const -> bool {
     return m_grid != other.m_grid || m_vit != other.m_vit ||
            m_edge_idx != other.m_edge_idx;
   }
-  auto operator*() -> grid_edge<Real, N> {
+  auto operator<(const grid_edge_iterator<Real, N>& other) const -> bool{
+    if (m_vit < other.m_vit) { return true; }
+    if (m_vit > other.m_vit) { return false; }
+    return m_edge_idx < other.m_edge_idx;
+  }
+  auto operator*() const -> grid_edge<Real, N> {
     auto v0 = *m_vit;
     for (size_t i = 0; i < N; ++i) { v0.index(i) += bases[m_edge_idx](i); }
     auto v1 = v0;
     for (size_t i = 0; i < N; ++i) { v1.index(i) += edge_dirs[m_edge_idx](i); }
     return grid_edge{std::move(v0), std::move(v1)};
   }
-  auto is_valid() -> bool {
-    auto v0 = *m_vit;
+  auto is_valid() const -> bool {
+    auto v0     = *m_vit;
     bool is_end = true;
     for (size_t i = 0; i < N; ++i) {
       if (i < N - 1) {
@@ -221,7 +226,6 @@ class grid_edge_iterator {
     auto v1 = v0;
     for (size_t i = 0; i < N; ++i) { v1.index(i) += edge_dirs[m_edge_idx](i); }
 
-
     for (size_t i = 0; i < N; ++i) {
       if (v0.index(i) >= m_grid->dimension(i).size()) { return false; }
     }
@@ -234,10 +238,10 @@ class grid_edge_iterator {
 //==============================================================================
 template <typename Real, size_t N>
 class grid_edge_container {
-  grid<Real, N>* m_grid;
+  grid<Real, N>const* m_grid;
 
  public:
-  explicit grid_edge_container(grid<Real, N>* g) : m_grid{g} {}
+  explicit grid_edge_container(grid<Real, N>const* g) : m_grid{g} {}
   auto begin() const {
     return grid_edge_iterator{m_grid, m_grid->vertex_begin(), 0};
   }
