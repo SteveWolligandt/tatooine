@@ -110,7 +110,7 @@ class polynomial_line {
   }
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
   constexpr auto curvature(const vec_t& tang, const vec_t& snd_der) const {
-    auto ltang = length(tang);
+    const auto ltang = length(tang);
     if constexpr (N == 2) {
       return std::abs(tang(0) * snd_der(1) - tang(1) * snd_der(0)) /
              (ltang * ltang * ltang);

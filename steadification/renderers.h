@@ -40,12 +40,12 @@ struct streamsurface_renderer
 
     boost::transform(
         mesh.vertices(), std::back_inserter(vbo_data), [&](auto v) {
-          const auto& uv = uv_prop[v];
-          const float t0 = u0t0 * (1 - uv(0)) + u1t0 * uv(0);
+          const auto& u = uv_prop[v](0);
+          const float t0 = u0t0 * (1 - u) + u1t0 * u;
           return vbo_data_t{
               yavin::vec2{float(mesh[v](0)), float(mesh[v](1))},
               yavin::vec2{float(vf_prop[v](0)), float(vf_prop[v](1))},
-              float(uv(1)), t0, float(curvature_prop[v])};
+              float(uv_prop[v](1)), t0, float(curvature_prop[v])};
         });
 
     return vbo_data;

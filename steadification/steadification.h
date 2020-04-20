@@ -1,6 +1,5 @@
 #ifndef TATOOINE_STEADIFICATION_STEADIFICATION_H
 #define TATOOINE_STEADIFICATION_STEADIFICATION_H
-//#define TATOOINE_STEADIFICATION_PARALLEL
 
 #include <tatooine/chrono.h>
 #include <tatooine/for_loop.h>
@@ -295,6 +294,11 @@ class steadification {
         const auto& uv             = uvprop[vertex];
         const auto& integral_curve = surf.streamline_at(uv(0), 0, 0);
         curvprop[vertex]           = integral_curve.curvature(uv(1));
+        if (std::isnan(curvprop[vertex])) {
+          std::cerr << "got nan!\n";
+          std::cerr << "tau     = " << uv(1) << '\n';
+          std::cerr << "tangent = " << integral_curve.tangent(uv(1)) << '\n';
+        }
         if (m_v.in_domain(mesh[vertex], uv(1))) {
           vprop[vertex] =
               m_v(vec{mesh[vertex](0), mesh[vertex](1)}, uvprop[vertex](1));
@@ -353,8 +357,7 @@ class steadification {
     return acc_kappas / boost::accumulate(arc_lengths, real_t(0));
   }
   //----------------------------------------------------------------------------
-  void result_to_lic_tex(const grid<real_t, 3>& domain, GLfloat btau,
-                         GLfloat ftau) {
+  void result_to_lic_tex(const grid<real_t, 3>& domain) {
     const size_t num_samples = 20;
     const real_t stepsize =
         (domain.dimension(0).back() - domain.dimension(0).front()) /
@@ -366,8 +369,8 @@ class steadification {
     color_lic_tex.clear(1, 1, 1, 0);
     m_lic_shader.set_domain_min(domain.front(0), domain.front(1));
     m_lic_shader.set_domain_max(domain.back(0), domain.back(1));
-    m_lic_shader.set_backward_tau(btau);
-    m_lic_shader.set_forward_tau(ftau);
+    m_lic_shader.set_min_t(domain.front(2));
+    m_lic_shader.set_max_t(domain.back(2));
     m_lic_shader.set_num_samples(num_samples);
     m_lic_shader.set_stepsize(stepsize);
     m_lic_shader.dispatch(m_render_resolution(0) / 32.0 + 1,
@@ -389,43 +392,6 @@ class steadification {
     v_tex.bind_image_texture(7);
     return curvature_tex;
   }
-  //----------------------------------------------------------------------------
-  // auto coverage(rasterized_pathsurface& rast) {
-  //  return static_cast<real_t>(num_covered_pixels(rast)) /
-  //         (m_render_resolution(0) * m_render_resolution(1));
-  //}
-  //----------------------------------------------------------------------------
-  // auto coverage(rasterized_pathsurface& rast0, rasterized_pathsurface& rast1)
-  // {
-  //  return static_cast<real_t>(num_covered_pixels(rast0, rast1)) /
-  //         (m_render_resolution(0) * m_render_resolution(1));
-  //}
-  //----------------------------------------------------------------------------
-  // auto num_covered_pixels(rasterized_pathsurface& rast) {
-  //  yavin::atomiccounterbuffer cnt{0};
-  //  cnt.bind(1);
-  //  rast.bind(0, 0, 1, 0);
-  //
-  //  m_coverage_shader.set_linked_list_size(rast.buffer_size());
-  //  m_coverage_shader.dispatch(m_render_resolution(0) / 32.0 + 1,
-  //                             m_render_resolution(1) / 32.0 + 1);
-  //  return cnt.download_data()[0];
-  //}
-  //----------------------------------------------------------------------------
-  // auto num_covered_pixels(rasterized_pathsurface& rast0,
-  //                        rasterized_pathsurface& rast1) {
-  //  yavin::atomiccounterbuffer cnt{0};
-  //  cnt.bind(2);
-  //  rast0.bind(0, 0, 1, 0);
-  //  m_dual_coverage_shader.set_linked_list0_size(rast0.buffer_size());
-  //
-  //  rast1.bind(1, 2, 3, 1);
-  //  m_dual_coverage_shader.set_linked_list1_size(rast1.buffer_size());
-  //
-  //  m_dual_coverage_shader.dispatch(m_render_resolution(0) / 32.0 + 1,
-  //                                  m_render_resolution(1) / 32.0 + 1);
-  //  return cnt.download_data()[0];
-  //}
   //----------------------------------------------------------------------------
   /// rast1 gets written in rast0. rast0 must have additional space to be able
   /// to hold rast1.
@@ -469,7 +435,7 @@ class steadification {
             std::cerr << "\u2591";
         }
         std::cerr << " " << int(progress * 100.0) << " % - " << filename_vtk
-                  << "        \r";
+                  << '\r';
         std::this_thread::sleep_for(std::chrono::milliseconds{100});
       }
       for (int i = 0; i < bar_width; ++i) { std::cerr << "\u2588"; }
@@ -500,18 +466,22 @@ class steadification {
     return pathsurface_dir;
   }
   //----------------------------------------------------------------------------
-  auto setup_working_dir(const real_t min_t0, const real_t max_t0,
-                         const real_t btau, const real_t ftau,
-                         const size_t seed_res, const real_t stepsize,
-                         const double neighbor_weight, const float penalty) {
+  auto setup_working_dir(const grid<real_t, 3>& domain, const real_t btau,
+                         const real_t ftau, const size_t seed_res,
+                         const real_t stepsize, const double neighbor_weight,
+                         const float penalty) {
     using namespace std::filesystem;
-    const auto working_dir =
-        std::string{settings<V>::name} + "_min_t0_" + std::to_string(min_t0) +
-        "_max_t0_" + std::to_string(max_t0) + "_btau_" + std::to_string(btau) +
-        "_ftau_" + std::to_string(ftau) + "_seedres_" +
-        std::to_string(seed_res) + "_stepsize_" + std::to_string(stepsize) +
-        "_neighborweight_" + std::to_string(neighbor_weight) + "_penalty_" +
-        std::to_string(penalty) + "/";
+    auto working_dir = std::string{settings<V>::name} + "_domain_res_";
+    for (size_t i = 0; i < 3; ++i) {
+      working_dir += std::to_string(domain.size(i)) + "_";
+    }
+
+    working_dir += "btau_" + std::to_string(btau) +
+                   "_ftau_" + std::to_string(ftau) + "_seedres_" +
+                   std::to_string(seed_res) + "_stepsize_" +
+                   std::to_string(stepsize) + "_neighborweight_" +
+                   std::to_string(neighbor_weight) + "_penalty_" +
+                   std::to_string(penalty) + "/";
     if (!exists(working_dir)) { create_directory(working_dir); }
     std::cerr << "result will be located in " << working_dir << '\n';
 
@@ -556,7 +526,7 @@ class steadification {
   //----------------------------------------------------------------------------
   auto greedy_set_cover(const grid<real_t, 3>& domain, const real_t btau,
                         const real_t ftau, const size_t seed_res,
-                        const real_t stepsize, const real_t desired_coverage,
+                        const real_t stepsize, real_t desired_coverage,
                         const double neighbor_weight, const float penalty)
       -> std::string {
     using namespace std::filesystem;
@@ -570,12 +540,29 @@ class steadification {
     size_t             edge_counter = 0;
     bool               stop_thread  = false;
     double             coverage     = 0;
-    const auto         min_t0       = domain.dimension(2).front();
-    const auto         max_t0       = domain.dimension(2).back();
+    const auto         min_t0       = domain.front(2);
+    const auto         max_t0       = domain.back(2);
     std::vector<float> weights;
     std::vector<float> coverages;
 
-    auto working_dir = setup_working_dir(min_t0, max_t0, btau, ftau, seed_res,
+    const size_t num_pixels = m_render_resolution(0) * m_render_resolution(1);
+    size_t num_pixels_in_domain = 0;
+    for (size_t y = 0; y < m_render_resolution(1); ++y) {
+      for (size_t x = 0; x < m_render_resolution(0); ++x) {
+        const real_t         xt = x / (m_render_resolution(0) - 1);
+        const real_t         yt = y / (m_render_resolution(1) - 1);
+        const vec<real_t, 2> pos{
+            (1 - xt) * domain.front(0) + xt * domain.back(0),
+            (1 - yt) * domain.front(1) + yt * domain.back(1)};
+        if (m_v.in_domain(pos, domain.front(2))) { ++num_pixels_in_domain; }
+      }
+    }
+    desired_coverage *= real_t(num_pixels_in_domain) / real_t(num_pixels);
+    std::cerr << "number of pixels in domain: "
+              << real_t(num_pixels_in_domain) / real_t(num_pixels) * 100
+              << "%\n";
+
+    auto working_dir = setup_working_dir(domain, btau, ftau, seed_res,
                                          stepsize, neighbor_weight, penalty);
     m_weight_dual_pathsurface_shader.set_penalty(penalty);
 
@@ -655,28 +642,49 @@ class steadification {
             if (num_newly_covered_pixels[0] > 0) {
               // check if mesh's seedcurve neighbors another edge
               size_t num_usages0 = 0, num_usages1 = 0;
+              bool   correct_usage0 = false, correct_usage1 = false;
               for (const auto& [used_edge_idx, used_edge_it] : used_edges) {
                 const auto [uv0, uv1] = *used_edge_it;
+                const auto used_x0    = uv0.to_array();
+                const auto used_x1    = uv1.to_array();
+                const auto new_x0     = unused_edge.first.to_array();
+                const auto new_x1     = unused_edge.second.to_array();
 
-                if (uv0 == unused_edge.first ||
-                    uv1 == unused_edge.first) {
+                if ((used_x0[0] == new_x0[0] &&
+                     used_x0[1] == new_x0[1]) ||
+                    (used_x1[0] == new_x0[0] &&
+                     used_x1[1] == new_x0[1])) {
                   ++num_usages0;
+                  if (used_x0[2] == new_x0[2] || used_x1[2] == new_x0[2]) {
+                    correct_usage0 = true;
+                  }
+
                 }
-                if (uv0 == unused_edge.second ||
-                    uv1 == unused_edge.second) {
+                if ((used_x0[0] == new_x1[0] &&
+                     used_x0[1] == new_x1[1]) ||
+                    (used_x1[0] == new_x1[0] &&
+                     used_x1[1] == new_x1[1])) {
                   ++num_usages1;
+                  if (used_x0[2] == new_x1[2] || used_x1[2] == new_x1[2]) {
+                    correct_usage1 = true;
+                  }
                 }
               }
-              if (num_usages0 > 1 || num_usages1 > 1) {
-                new_weight /= neighbor_weight;
-              } else if (num_usages0 == 1 || num_usages1 == 1) {
+              if (correct_usage0 && num_usages0 == 1) {
                 new_weight *= neighbor_weight;
+              } else {
+                new_weight /= neighbor_weight;
               }
-              if (new_weight > best_weight) {
-                best_weight = new_weight;
-                best_edge   = unused_edge_pair_it;
+              if (correct_usage1 && num_usages1 == 1) {
+                new_weight *= neighbor_weight;
+              } else {
+                new_weight /= neighbor_weight;
               }
-            }
+                if (new_weight > best_weight) {
+                  best_weight = new_weight;
+                  best_edge   = unused_edge_pair_it;
+                }
+              }
           }
           ++edge_counter;
         }
@@ -707,7 +715,7 @@ class steadification {
 
           std::string it_str = std::to_string(iteration);
           while (it_str.size() < 4) { it_str = '0' + it_str; }
-          result_to_lic_tex(domain, btau, ftau);
+          result_to_lic_tex(domain);
           lic_tex.write_png(working_dir + "lic_" + it_str + ".png");
           color_lic_tex.write_png(working_dir + "lic_color_" + it_str + ".png");
           const std::string mesh3dpath =
@@ -744,7 +752,7 @@ class steadification {
       } while (coverage < desired_coverage && best_edge != end(unused_edges));
 
       std::cerr << "done!\n";
-      result_to_lic_tex(domain, btau, ftau);
+      result_to_lic_tex(domain);
       lic_tex.write_png(working_dir + "lic_final.png");
       color_lic_tex.write_png(working_dir + "lic_color_final.png");
       for (const auto& [used_edge_idx, used_edge_it]: used_edges) {

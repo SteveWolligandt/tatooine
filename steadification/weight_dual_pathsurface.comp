@@ -43,11 +43,19 @@ void main() {
   if (layer == 0) {
     if (size1 == 1 && size0 == 0) {
       node n = working_rast[fi];
-      weight = max(1, max(1, n.curvature) * abs(n.t - n.t0));
+      if (isnan(n.curvature)) {
+        weight = 0;
+      } else {
+        weight = min(100, n.curvature) * abs(n.t - n.t0);
+      }
 
     } else if (size0 == 1 && size1 == 0) {
       node n = result_rast[fi];
-      weight = max(1, max(1, n.curvature) * abs(n.t - n.t0));
+      if (isnan(n.curvature)) {
+        weight = 0;
+      } else {
+        weight = min(10, n.curvature) * abs(n.t - n.t0);
+      }
 
     } else if (size0 + size1 == 2) {
       // n0 must be node that is seen so n0 and n1 will be swapped eventually
@@ -62,9 +70,13 @@ void main() {
          n0 = result_rast[fi];
          n1 = working_rast[fi];
       }
-      float cosv0v1 = dot(normalize(n0.v), normalize(n1.v));
-      weight        = max(1, max(1, n0.curvature) * abs(n0.t - n0.t0)) *
-               (1 - cosv0v1 * cosv0v1);
+      if (isnan(n0.curvature)) {
+        weight = 0;
+      } else {
+        float cosv0v1 = dot(normalize(n0.v), normalize(n1.v));
+        weight =
+            min(10, n0.curvature) * abs(n0.t - n0.t0) * (1 - cosv0v1 * cosv0v1);
+      }
     } else {
       //weight = -2 * (size0 + size1);
       weight = penalty;
