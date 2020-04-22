@@ -5,7 +5,6 @@
 #include <tatooine/for_loop.h>
 
 #include <cstdlib>
-//#include <tatooine/gpu/reduce.h>
 #include <tatooine/html.h>
 #include <tatooine/integration/vclibs/rungekutta43.h>
 #include <tatooine/interpolation.h>
@@ -87,8 +86,6 @@ class steadification {
   boundingbox<real_t, 2>             m_domain;
   combine_rasterizations_shader      m_combine_rasterizations_shader;
   seedcurve_shader                   m_seedcurve_shader;
-  // coverage_shader                  m_coverage_shader;
-  // dual_coverage_shader             m_dual_coverage_shader;
  public:
   yavin::tex2rgba32f  m_front_v_t_t0;
   yavin::tex2r32f     m_front_curvature;
@@ -143,17 +140,19 @@ class steadification {
 
         m_front_v_t_t0{m_render_resolution(0), m_render_resolution(1)},
         m_front_curvature{m_render_resolution(0), m_render_resolution(1)},
-        m_front_renderindex_layer{m_render_resolution(0), m_render_resolution(1)},
+        m_front_renderindex_layer{m_render_resolution(0),
+                                  m_render_resolution(1)},
         m_front_depth{m_render_resolution(0), m_render_resolution(1)},
-        m_front_fbo{m_front_v_t_t0, m_front_curvature, m_front_renderindex_layer,
-                  m_front_depth},
+        m_front_fbo{m_front_v_t_t0, m_front_curvature,
+                    m_front_renderindex_layer, m_front_depth},
 
         m_back_v_t_t0{m_render_resolution(0), m_render_resolution(1)},
         m_back_curvature{m_render_resolution(0), m_render_resolution(1)},
-        m_back_renderindex_layer{m_render_resolution(0), m_render_resolution(1)},
+        m_back_renderindex_layer{m_render_resolution(0),
+                                 m_render_resolution(1)},
         m_back_depth{m_render_resolution(0), m_render_resolution(1)},
         m_back_fbo{m_back_v_t_t0, m_back_curvature, m_back_renderindex_layer,
-                 m_back_depth},
+                   m_back_depth},
         m_lic_tex{m_render_resolution(0), m_render_resolution(1)},
         m_color_lic_tex{m_render_resolution(0), m_render_resolution(1)},
         m_v_tex{m_render_resolution(0), m_render_resolution(1)},
@@ -206,8 +205,6 @@ class steadification {
     m_lic_shader.set_color_scale_bind_point(2);
     m_weight_dual_pathsurface_shader.set_size(m_render_resolution(0) *
                                               m_render_resolution(1));
-    // m_working_rasterization.set_usage(yavin::DYNAMIC_COPY);
-    // m_working_list_size.set_usage(yavin::DYNAMIC_COPY);
     yavin::gl::viewport(m_cam);
     yavin::enable_depth_test();
   }
@@ -266,8 +263,8 @@ class steadification {
   /// \param seedcurve seedcurve in space-time
   auto pathsurface(const grid_edge<real_t, 3>& edge, real_t btau, real_t ftau,
                    size_t seed_res, real_t stepsize) const {
-    const auto        v0   = edge.first.position();
-    const auto        v1   = edge.second.position();
+    const auto        v0 = edge.first.position();
+    const auto        v1 = edge.second.position();
     const seedcurve_t seedcurve{{vec{v0(0), v0(1)}, 0}, {vec{v1(0), v1(1)}, 1}};
     return pathsurface(seedcurve, v0(2), v1(2), btau, ftau, seed_res, stepsize);
   }
@@ -277,7 +274,7 @@ class steadification {
                    real_t btau, real_t ftau, size_t seed_res,
                    real_t stepsize) const {
     using namespace VC::odeint;
-    integrator_t integrator{integration::vclibs::abs_tol      = 1e-6,
+    integrator_t  integrator{integration::vclibs::abs_tol      = 1e-6,
                             integration::vclibs::rel_tol      = 1e-6,
                             integration::vclibs::initial_step = 0,
                             integration::vclibs::max_step     = 0.1};
@@ -300,7 +297,8 @@ class steadification {
           std::cerr << "got nan!\n";
           std::cerr << "t0     = " << u0t0 << '\n';
           std::cerr << "pos     = " << integral_curve(uv(1)) << '\n';
-          std::cerr << "v       = " << m_v(integral_curve(uv(1)), uv(1)) << '\n';
+          std::cerr << "v       = " << m_v(integral_curve(uv(1)), uv(1))
+                    << '\n';
           std::cerr << "tau     = " << uv(1) << '\n';
           std::cerr << "tangent = " << integral_curve.tangent(uv(1)) << '\n';
         }
@@ -340,31 +338,6 @@ class steadification {
     }
     return -std::numeric_limits<float>::max();
     // return gpu::reduce(m_weight_buffer, 16, 16);
-  }
-  //----------------------------------------------------------------------------
-  template <template <typename> typename SeedcurveInterpolator>
-  auto curvature(
-      const pathsurface_discretization_t<SeedcurveInterpolator>& mesh,
-      const pathsurface_t<SeedcurveInterpolator>&                surf) const {
-    std::set<real_t> us;
-    for (auto v : mesh.vertices()) { us.insert(mesh.uv(v)(0)); }
-    const auto num_integral_curves = us.size();
-
-    std::vector<real_t> kappas, arc_lengths;
-    arc_lengths.reserve(num_integral_curves);
-    kappas.reserve(num_integral_curves);
-    size_t i = 0;
-    for (auto u : us) {
-      const auto& integral_curve = surf.streamline_at(u, 0, 0);
-      kappas.push_back(integral_curve.integrate_curvature());
-      arc_lengths.push_back(integral_curve.arc_length());
-      ++i;
-    }
-    real_t acc_kappas = 0;
-    for (size_t i = 0; i < num_integral_curves; ++i) {
-      acc_kappas += kappas[i] * arc_lengths[i];
-    }
-    return acc_kappas / boost::accumulate(arc_lengths, real_t(0));
   }
   //----------------------------------------------------------------------------
   void result_to_lic_tex(const grid<real_t, 3>& domain) {
@@ -453,7 +426,6 @@ class steadification {
     }};
 
     for (const auto& [edge_idx, unused_edge_it] : unused_edges) {
-
       filename_vtk = pathsurface_dir;
       for (size_t i = 0; i < 3; ++i) {
         filename_vtk += std::to_string(domain.size(i)) + "_";
@@ -471,8 +443,8 @@ class steadification {
         psf.write_vtk(filename_vtk);
       }
       progress_counter++;
-      }
-      t.join();
+    }
+    t.join();
     return pathsurface_dir;
   }
   //----------------------------------------------------------------------------
@@ -486,8 +458,8 @@ class steadification {
       working_dir += std::to_string(domain.size(i)) + "_";
     }
 
-    working_dir += "btau_" + std::to_string(btau) +
-                   "_ftau_" + std::to_string(ftau) + "_seedres_" +
+    working_dir += "btau_" + std::to_string(btau) + "_ftau_" +
+                   std::to_string(ftau) + "_seedres_" +
                    std::to_string(seed_res) + "_stepsize_" +
                    std::to_string(stepsize) + "_neighborweight_" +
                    std::to_string(neighbor_weight) + "_penalty_" +
@@ -541,9 +513,9 @@ class steadification {
                         const double neighbor_weight, const float penalty)
       -> std::string {
     using namespace std::filesystem;
-    auto   best_weight     = -std::numeric_limits<real_t>::max();
-    size_t render_index    = 0;
-    size_t layer           = 0;
+    auto   best_weight  = -std::numeric_limits<real_t>::max();
+    size_t render_index = 0;
+    size_t layer        = 0;
     std::set<std::pair<size_t, grid_edge_iterator<real_t, 3>>>    unused_edges;
     std::vector<std::pair<size_t, grid_edge_iterator<real_t, 3>>> used_edges;
     auto               best_edge    = end(unused_edges);
@@ -561,7 +533,7 @@ class steadification {
     bool   best_crossed;
 
     const size_t num_pixels = m_render_resolution(0) * m_render_resolution(1);
-    size_t num_pixels_in_domain = 0;
+    size_t       num_pixels_in_domain = 0;
     for (size_t y = 0; y < m_render_resolution(1); ++y) {
       for (size_t x = 0; x < m_render_resolution(0); ++x) {
         const real_t         xt = x / (m_render_resolution(0) - 1);
@@ -577,8 +549,8 @@ class steadification {
               << real_t(num_pixels_in_domain) / real_t(num_pixels) * 100
               << "%\n";
 
-    auto working_dir = setup_working_dir(domain, btau, ftau, seed_res,
-                                         stepsize, neighbor_weight, penalty);
+    auto working_dir = setup_working_dir(domain, btau, ftau, seed_res, stepsize,
+                                         neighbor_weight, penalty);
     m_weight_dual_pathsurface_shader.set_penalty(penalty);
 
     // set all edges as unused
@@ -633,15 +605,15 @@ class steadification {
     auto                         duration = measure([&] {
       // loop
       do {
-        edge_counter    = 0;
+        edge_counter = 0;
         best_weight = -std::numeric_limits<real_t>::max();
         best_edge   = end(unused_edges);
 
         for (auto unused_edge_pair_it = begin(unused_edges);
              unused_edge_pair_it != end(unused_edges); ++unused_edge_pair_it) {
           const auto& [edge_idx, unused_edge_it] = *unused_edge_pair_it;
-          const auto  unused_edge                = *unused_edge_it;
-          std::string filepath_vtk               = pathsurface_dir;
+          const auto  unused_edge  = *unused_edge_it;
+          std::string filepath_vtk = pathsurface_dir;
           for (size_t i = 0; i < 3; ++i) {
             filepath_vtk += std::to_string(domain.size(i)) + "_";
           }
@@ -665,8 +637,8 @@ class steadification {
                 const auto [uv0, uv1] = *used_edge_it;
                 const auto used_x0    = uv0.to_array();
                 const auto used_x1    = uv1.to_array();
-                const auto new_x0     = unused_edge.first.to_array();
-                const auto new_x1     = unused_edge.second.to_array();
+                const auto new_x0 = unused_edge.first.to_array();
+                const auto new_x1 = unused_edge.second.to_array();
                 // check if crossed
                 if (used_x0[0] != used_x1[0] && used_x0[1] != used_x1[1] &&
                     new_x0[0] != new_x1[0] && new_x0[1] != new_x1[1] &&
@@ -701,13 +673,13 @@ class steadification {
                 new_weight *= neighbor_weight;
               }
               if (new_weight > best_weight) {
-                best_weight = new_weight;
-                best_edge   = unused_edge_pair_it;
+                best_weight      = new_weight;
+                best_edge        = unused_edge_pair_it;
                 best_num_usages0 = num_usages0;
                 best_num_usages1 = num_usages1;
                 best_correct_usage0 = correct_usage0;
                 best_correct_usage1 = correct_usage1;
-                best_crossed = crossed;
+                best_crossed        = crossed;
               }
             }
           }
@@ -753,12 +725,12 @@ class steadification {
           while (it_str.size() < 4) { it_str = '0' + it_str; }
           result_to_lic_tex(domain);
           m_lic_tex.write_png(working_dir + "lic_" + it_str + ".png");
-          m_color_lic_tex.write_png(working_dir + "lic_color_" + it_str + ".png");
+          m_color_lic_tex.write_png(working_dir + "lic_color_" + it_str +
+                                    ".png");
           const std::string mesh3dpath =
               working_dir + "geometry_" + it_str + ".vtk";
           simple_tri_mesh<real_t, 3> mesh3d;
-          auto&                      uv2d_prop =
-              mesh.template vertex_property<vec<real_t, 2>>("uv");
+          auto& uv2d_prop = mesh.template vertex_property<vec<real_t, 2>>("uv");
           auto& uv3d_prop =
               mesh3d.template add_vertex_property<vec<real_t, 2>>("uv");
           auto& curv2d_prop =
@@ -791,8 +763,8 @@ class steadification {
       result_to_lic_tex(domain);
       m_lic_tex.write_png(working_dir + "lic_final.png");
       m_color_lic_tex.write_png(working_dir + "lic_color_final.png");
-      for (const auto& [used_edge_idx, used_edge_it]: used_edges) {
-        const auto [v0, v1]  = *used_edge_it;
+      for (const auto& [used_edge_idx, used_edge_it] : used_edges) {
+        const auto [v0, v1] = *used_edge_it;
         seedcurves.push_back(line<real_t, 3>{v0.position(), v1.position()});
       }
     });
@@ -802,7 +774,8 @@ class steadification {
     std::cerr << '\n';
     std::cerr << "seedcurves!\n";
     write_vtk(seedcurves, working_dir + "seedcurves.vtk");
-    render_seedcurves(domain, seedcurves, domain.dimension(2).front(), domain.dimension(2).back());
+    render_seedcurves(domain, seedcurves, domain.dimension(2).front(),
+                      domain.dimension(2).back());
     m_seedcurvetex.write_png(working_dir + "seedcurves.png");
 
     std::string cmd = "#/bin/bash \n";
