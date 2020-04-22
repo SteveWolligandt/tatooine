@@ -1,8 +1,11 @@
 #ifndef TATOOINE_INTEGRATION_VCLIBS_RK43_H
 #define TATOOINE_INTEGRATION_VCLIBS_RK43_H
 
+#include <tatooine/interpolation.h>
+
 #include <boost/range/numeric.hpp>
 #include <vcode/odeint.hh>
+
 #include "../integrator.h"
 
 //==============================================================================
@@ -55,9 +58,10 @@ static constexpr inline auto max_step      = VC::odeint::MaxStep;
 static constexpr inline auto max_num_steps = VC::odeint::MaxNumSteps;
 
 template <typename Real, size_t N,
-          template <typename> typename InterpolationKernel>
-struct rungekutta43
-    : integrator<Real, N, InterpolationKernel, rungekutta43<Real, N, InterpolationKernel>> {
+          template <typename> typename InterpolationKernel =
+              interpolation::hermite>
+struct rungekutta43 : integrator<Real, N, InterpolationKernel,
+                                 rungekutta43<Real, N, InterpolationKernel>> {
   //============================================================================
   using this_t     = rungekutta43<Real, N, InterpolationKernel>;
   using parent_t   = integrator<Real, N, InterpolationKernel, this_t>;
@@ -66,13 +70,16 @@ struct rungekutta43
   using ode_t      = VC::odeint::ode_t<2, Real, vec<Real, N>, false>;
   using options_t  = typename ode_t::options_t;
 
-
   //============================================================================
  private:
   options_t m_options;
 
   //============================================================================
  public:
+  template <typename V>
+  rungekutta43(const vectorfield<V, Real, N>&)
+      : m_options{abs_tol = 1e-4, rel_tol = 1e-4, initial_step = 0,
+                  max_step = 0.1} {}
   rungekutta43()
       : m_options{abs_tol = 1e-4, rel_tol = 1e-4, initial_step = 0,
                   max_step = 0.1} {}
@@ -85,7 +92,8 @@ struct rungekutta43
         m_options{abs_tol = 1e-4, rel_tol = 1e-4, initial_step = 0,
                   max_step = 0.1} {}
   //----------------------------------------------------------------------------
-  template <typename... Options>
+  template <typename... Options,
+            std::enable_if_t<!(is_field_v<Options> && ...), bool> = true>
   rungekutta43(Options&&... options)
       : m_options{std::forward<Options>(options)...} {}
 
@@ -94,15 +102,15 @@ struct rungekutta43
   friend parent_t;
 
   //----------------------------------------------------------------------------
-  template <typename vf_t>
-  auto& calc_forward(const vf_t& vf, integral_t& integral, const pos_t& y0,
-                     Real t0, Real tau) const {
+  template <typename V>
+  void calc_forward(const V& v, integral_t& integral, const pos_t& y0, Real t0,
+                    Real tau) const {
     // do not start integration if y0,t0 is not in domain of vectorfield
-    if (!vf.in_domain(y0, t0)) { return integral; }
+    if (!v.in_domain(y0, t0)) { return; }
 
-    auto dy = [&vf](Real t, const pos_t& y) -> typename ode_t::maybe_vec {
-      if (!vf.in_domain(y, t)) { return VC::odeint::OutOfDomain; }
-      return vf(y, t);
+    auto dy = [&v](Real t, const pos_t& y) -> typename ode_t::maybe_vec {
+      if (!v.in_domain(y, t)) { return VC::odeint::OutOfDomain; }
+      return v(y, t);
     };
     auto stepper = ode_t::solver(rk43, m_options);
     stepper.initialize(dy, t0, t0 + tau, y0);
@@ -110,30 +118,26 @@ struct rungekutta43
     auto& tangents = integral.tangents_property();
     stepper.integrate(
         dy, ode_t::Output >>
-                ode_t::sink([&integral, &tangents](auto t, const auto& y,
+                ode_t::sink([&v, &integral, &tangents](auto t, const auto& y,
                                                    const auto& dy) {
-                  bool use = true;
-                  if (!integral.empty() &&
-                      distance(integral.back_vertex(), y) < 1e-6) {
-                    use = false;
-                  }
-                  if (use) {
-                    integral.push_back(y, t, false);
-                    tangents.back() = dy;
-                  }
+                  //if (integral.num_vertices() > 0 &&
+                  //    std::abs(integral.back_parameterization() - t) < 1e-13) {
+                  //  return;
+                  //}
+                  integral.push_back(y, t, false);
+                  tangents.back() = dy;
                 }));
-    return integral;
   }
   //----------------------------------------------------------------------------
-  template <typename vf_t>
-  auto& calc_backward(const vf_t& vf, integral_t& integral, const pos_t& y0,
-                      Real t0, Real tau) const {
+  template <typename V>
+  void calc_backward(const V& v, integral_t& integral, const pos_t& y0, Real t0,
+                     Real tau) const {
     // do not start integration if y0,t0 is not in domain of vectorfield
-    if (!vf.in_domain(y0, t0)) { return integral; }
+    if (!v.in_domain(y0, t0)) { return; }
 
-    auto dy = [&vf](Real t, const pos_t& y) -> typename ode_t::maybe_vec {
-      if (!vf.in_domain(y, t)) { return VC::odeint::OutOfDomain; }
-      return vf(y, t);
+    auto dy = [&v](Real t, const pos_t& y) -> typename ode_t::maybe_vec {
+      if (!v.in_domain(y, t)) { return VC::odeint::OutOfDomain; }
+      return v(y, t);
     };
     auto stepper = ode_t::solver(rk43, m_options);
     stepper.initialize(dy, t0, t0 + tau, y0);
@@ -141,22 +145,21 @@ struct rungekutta43
     auto& tangents = integral.tangents_property();
     stepper.integrate(
         dy, ode_t::Output >>
-                ode_t::sink([&integral, &tangents](auto t, const auto& y,
-                                                   const auto& dy) {
-                  bool use = true;
-                  if (!integral.empty() &&
-                      distance(integral.back_vertex(), y) < 1e-6) {
-                    use = false;
+                ode_t::sink([&v, &integral, &tangents](auto t, const auto& y,
+                                                       const auto& dy) {
+                  if (integral.num_vertices() > 0 &&
+                      std::abs(integral.front_parameterization() - t) < 1e-13) {
+                    return;
                   }
-                  if (use) {
-                    integral.push_front(y, t, false);
-                    tangents.front() = dy;
-                  }
+                  integral.push_front(y, t, false);
+                  tangents.front() = dy;
                 }));
-    return integral;
   }
 };
 
+template <typename V, typename Real, size_t N>
+rungekutta43(const vectorfield<V, Real, N>&)
+    ->rungekutta43<Real, N, interpolation::hermite>;
 //==============================================================================
 }  // namespace tatooine::integration::vclibs
 //==============================================================================

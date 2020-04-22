@@ -9,8 +9,8 @@ auto main(int argc, char** argv) -> int {
     calc(numerical::doublegyre<double>{}, argc, argv);
   } else if (v == "la" || v == "laminar") {
     calc(laminar<double>{}, argc, argv);
-    //} else if (v == "fdg") {
-    //  calc(fixed_time_field{numerical::doublegyre<double>{}, 0}, argc, argv);
+    } else if (v == "fdg") {
+      calc(fixed_time_field{numerical::doublegyre<double>{}, 0}, argc, argv);
   } else if (v == "sc" || v == "sinuscosinus") {
     calc(numerical::sinuscosinus<double>{}, argc, argv);
     //} else if (v == "cy")  { calc            (cylinder{}, argc, argv);
@@ -26,7 +26,7 @@ auto main(int argc, char** argv) -> int {
     calc(v, argc, argv);
   } else if (v == "cav") {
     std::cerr << "reading cavity... ";
-    cavity v{};
+    cavity v;
     std::cerr << "done!\n";
     calc(v, argc, argv);
   } else {

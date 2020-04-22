@@ -421,8 +421,12 @@ struct line {
   line(pos_container_t&& data, bool is_closed = false)
       : m_vertices{std::move(data)}, m_is_closed{is_closed} {}
   //----------------------------------------------------------------------------
-  line(std::initializer_list<pos_t>&& data)
-      : m_vertices{std::move(data)}, m_is_closed{false} {}
+  template <typename... Vertices,
+            enable_if_vector<Vertices...> = true,
+            enable_if_arithmetic<typename Vertices::real_t...> = true>
+  line(Vertices&&... vertices)
+      : m_vertices{pos_t{std::forward<Vertices>(vertices)}...},
+        m_is_closed{false} {}
   //----------------------------------------------------------------------------
   auto num_vertices() const { return m_vertices.size(); }
   //----------------------------------------------------------------------------
@@ -467,6 +471,12 @@ struct line {
     for (auto& [name, prop] : m_vertex_properties) { prop->push_back(); }
     return vertex_idx{m_vertices.size() - 1};
   }
+  template <typename OtherReal>
+  auto push_back(const vec<OtherReal, N>& p) {
+    m_vertices.push_back(p);
+    for (auto& [name, prop] : m_vertex_properties) { prop->push_back(); }
+    return vertex_idx{m_vertices.size() - 1};
+  }
   auto pop_back() { m_vertices.pop_back(); }
   //----------------------------------------------------------------------------
   template <typename... Components, enable_if_arithmetic<Components...> = true,
@@ -483,6 +493,12 @@ struct line {
   }
   auto push_front(pos_t&& p) {
     m_vertices.emplace_front(std::move(p));
+    for (auto& [name, prop] : m_vertex_properties) { prop->push_front(); }
+    return vertex_idx{0};
+  }
+  template <typename OtherReal>
+  auto push_front(const vec<OtherReal, N>& p) {
+    m_vertices.push_front(p);
     for (auto& [name, prop] : m_vertex_properties) { prop->push_front(); }
     return vertex_idx{0};
   }
@@ -606,8 +622,7 @@ struct line {
   auto& tangents_property() {
     if (!m_tangents) {
       m_tangents = &add_vertex_property<vec<Real, N>>("tangents");
-    }
-    return *m_tangents;
+    } return *m_tangents;
   }
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
   const auto& tangents_property() const {
@@ -1080,8 +1095,8 @@ struct parameterized_line : line<Real, N> {
   }
   //----------------------------------------------------------------------------
   auto push_back(const pos_t& p, Real t, bool auto_compute_interpolator = true) {
-    auto i                    = parent_t::push_back(p);
-    m_parameterization->at(i) = t;
+    auto i                  = parent_t::push_back(p);
+    back_parameterization() = t;
     if (num_vertices() > 1) {
       if (auto_compute_interpolator) {
         if constexpr (interpolation_needs_first_derivative) {
@@ -1142,8 +1157,8 @@ struct parameterized_line : line<Real, N> {
   }
   //----------------------------------------------------------------------------
   auto push_front(const pos_t& p, Real t, bool auto_compute_interpolator = true) {
-    auto i                    = parent_t::push_front(p);
-    m_parameterization->at(i) = t;
+    auto i                   = parent_t::push_front(p);
+    front_parameterization() = t;
     if (num_vertices() > 1) {
       if (auto_compute_interpolator) {
         if constexpr (interpolation_needs_first_derivative) {
@@ -1189,6 +1204,12 @@ struct parameterized_line : line<Real, N> {
     if (num_vertices() >= 2) { m_interpolators.pop_front(); }
   }
   //----------------------------------------------------------------------------
+  auto interpolators() const -> const auto& { return m_interpolators; }
+  //----------------------------------------------------------------------------
+  auto interpolator_at(size_t i) const -> const auto& {
+    return m_interpolators[i];
+  }
+  //----------------------------------------------------------------------------
   void update_interpolators() {
     for (size_t i = 0; i < num_vertices() - 1; ++i) {
       update_interpolator(i);
@@ -1232,6 +1253,12 @@ struct parameterized_line : line<Real, N> {
       }
     }
     return left;
+  }
+  //----------------------------------------------------------------------------
+  /// sample the line via interpolation
+  auto interpolator(Real t) const -> const auto& {
+    const auto left = binary_search_index(t);
+    return m_interpolators[left];
   }
   //----------------------------------------------------------------------------
   /// sample the line via interpolation
@@ -1473,7 +1500,9 @@ struct parameterized_line : line<Real, N> {
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
   auto tangent_at(const size_t i, automatic_t /*tag*/,
                   bool         prefer_calc = false) const {
-    if (this->m_tangents && !prefer_calc) { return this->m_tangents->at(i); }
+    if (this->m_tangents && !prefer_calc) {
+      return this->m_tangents->at(i);
+    }
     if (num_vertices() >= 3) {
       return tangent_at(i, quadratic);
     } else /* if (num_vertices() == 2)*/ {

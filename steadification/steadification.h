@@ -282,8 +282,10 @@ class steadification {
                             integration::vclibs::initial_step = 0,
                             integration::vclibs::max_step     = 0.1};
     streamsurface surf{m_v, u0t0, u1t0, seedcurve, integrator};
-    if (seedcurve.vertex_at(0)(0) != seedcurve.vertex_at(1)(0) &&
-        seedcurve.vertex_at(0)(1) != seedcurve.vertex_at(1)(1)) {
+
+    if (u0t0 == u1t0) {
+      // if (seedcurve.vertex_at(0)(0) != seedcurve.vertex_at(1)(0) &&
+      //    seedcurve.vertex_at(0)(1) != seedcurve.vertex_at(1)(1)) {
       simple_tri_mesh<real_t, 2> mesh =
           surf.discretize(seed_res, stepsize, btau, ftau);
       auto& uvprop   = mesh.template add_vertex_property<vec2>("uv");
@@ -296,6 +298,9 @@ class steadification {
         curvprop[vertex]           = integral_curve.curvature(uv(1));
         if (std::isnan(curvprop[vertex])) {
           std::cerr << "got nan!\n";
+          std::cerr << "t0     = " << u0t0 << '\n';
+          std::cerr << "pos     = " << integral_curve(uv(1)) << '\n';
+          std::cerr << "v       = " << m_v(integral_curve(uv(1)), uv(1)) << '\n';
           std::cerr << "tau     = " << uv(1) << '\n';
           std::cerr << "tangent = " << integral_curve.tangent(uv(1)) << '\n';
         }
@@ -317,7 +322,7 @@ class steadification {
     return pathsurface_gpu_t{mesh, u0t0, u1t0};
   }
   //----------------------------------------------------------------------------
-  auto weight(GLuint layer1) {
+  auto weight(GLuint layer1) -> float {
     weight_buffer.upload_data(0.0f);
     num_overall_covered_pixels[0] = 0;
     num_newly_covered_pixels[0]   = 0;
@@ -327,8 +332,13 @@ class steadification {
         m_render_resolution(0) * m_render_resolution(1) / 1024.0 + 1, 1, 1);
 
     const auto weight_data = weight_buffer.download_data();
-    return std::reduce(std::execution::par, begin(weight_data),
-                       end(weight_data), 0.0f);
+    if (num_newly_covered_pixels[0].download() >
+        m_render_resolution(0) * m_render_resolution(1) * 0.0001) {
+      return std::reduce(std::execution::par, begin(weight_data),
+                         end(weight_data), 0.0f) /
+             num_newly_covered_pixels[0].download();
+    }
+    return -std::numeric_limits<float>::max();
     // return gpu::reduce(weight_buffer, 16, 16);
   }
   //----------------------------------------------------------------------------
@@ -516,11 +526,12 @@ class steadification {
     domain_edges_gpu.draw();
 
     auto ls = line_renderer(seedcurves);
-    std::cerr  << min_t << " - " << max_t << '\n';
     m_seedcurve_shader.set_min_t(min_t);
     m_seedcurve_shader.set_max_t(max_t);
     m_seedcurve_shader.use_color_scale(true);
+    yavin::gl::line_width(3);
     ls.draw();
+    yavin::gl::line_width(1);
     yavin::enable_depth_test();
   }
   //----------------------------------------------------------------------------
@@ -544,6 +555,10 @@ class steadification {
     const auto         max_t0       = domain.back(2);
     std::vector<float> weights;
     std::vector<float> coverages;
+
+    size_t best_num_usages0, best_num_usages1;
+    bool   best_correct_usage0, best_correct_usage1;
+    bool   best_crossed;
 
     const size_t num_pixels = m_render_resolution(0) * m_render_resolution(1);
     size_t num_pixels_in_domain = 0;
@@ -569,8 +584,10 @@ class steadification {
     // set all edges as unused
     std::cerr << "set all edges unused\n";
     size_t ec = 0;
-    for (auto e = domain.edges().begin(); e != domain.edges().end(); ++e) {
-      unused_edges.insert(std::pair{ec++, e});
+    for (auto edge_it = domain.edges().begin(); edge_it != domain.edges().end();
+         ++edge_it) {
+      const auto [v0, v1] = *edge_it;
+      if (v0[2] == v1[2]) { unused_edges.insert(std::pair{ec++, edge_it}); }
     }
 
     const auto  integration_measure  = measure([&] {
@@ -643,52 +660,71 @@ class steadification {
               // check if mesh's seedcurve neighbors another edge
               size_t num_usages0 = 0, num_usages1 = 0;
               bool   correct_usage0 = false, correct_usage1 = false;
+              bool   crossed = false;
               for (const auto& [used_edge_idx, used_edge_it] : used_edges) {
                 const auto [uv0, uv1] = *used_edge_it;
                 const auto used_x0    = uv0.to_array();
                 const auto used_x1    = uv1.to_array();
                 const auto new_x0     = unused_edge.first.to_array();
                 const auto new_x1     = unused_edge.second.to_array();
+                // check if crossed
+                if (used_x0[0] != used_x1[0] && used_x0[1] != used_x1[1] &&
+                    new_x0[0] != new_x1[0] && new_x0[1] != new_x1[1] &&
+                    min(used_x0[0], used_x1[0]) == min(new_x0[0], new_x1[0]) &&
+                    max(used_x0[0], used_x1[0]) == max(new_x0[0], new_x1[0]) &&
+                    min(used_x0[1], used_x1[1]) == min(new_x0[1], new_x1[1]) &&
+                    max(used_x0[1], used_x1[1]) == max(new_x0[1], new_x1[1])) {
+                  crossed = true;
+                  break;
+                }
 
-                if ((used_x0[0] == new_x0[0] &&
-                     used_x0[1] == new_x0[1]) ||
-                    (used_x1[0] == new_x0[0] &&
-                     used_x1[1] == new_x0[1])) {
+                if ((used_x0[0] == new_x0[0] && used_x0[1] == new_x0[1]) ||
+                    (used_x1[0] == new_x0[0] && used_x1[1] == new_x0[1])) {
                   ++num_usages0;
                   if (used_x0[2] == new_x0[2] || used_x1[2] == new_x0[2]) {
                     correct_usage0 = true;
                   }
-
                 }
-                if ((used_x0[0] == new_x1[0] &&
-                     used_x0[1] == new_x1[1]) ||
-                    (used_x1[0] == new_x1[0] &&
-                     used_x1[1] == new_x1[1])) {
+                if ((used_x0[0] == new_x1[0] && used_x0[1] == new_x1[1]) ||
+                    (used_x1[0] == new_x1[0] && used_x1[1] == new_x1[1])) {
                   ++num_usages1;
                   if (used_x0[2] == new_x1[2] || used_x1[2] == new_x1[2]) {
                     correct_usage1 = true;
                   }
                 }
               }
-              if (correct_usage0 && num_usages0 == 1) {
-                new_weight *= neighbor_weight;
-              } else {
+
+              if (crossed || num_usages0 > 1 || num_usages1 > 1) {
                 new_weight /= neighbor_weight;
-              }
-              if (correct_usage1 && num_usages1 == 1) {
+              } else if ((correct_usage0 && num_usages0 == 1) ||
+                         (correct_usage1 && num_usages1 == 1)) {
                 new_weight *= neighbor_weight;
-              } else {
-                new_weight /= neighbor_weight;
               }
-                if (new_weight > best_weight) {
-                  best_weight = new_weight;
-                  best_edge   = unused_edge_pair_it;
-                }
+              if (new_weight > best_weight) {
+                best_weight = new_weight;
+                best_edge   = unused_edge_pair_it;
+                best_num_usages0 = num_usages0;
+                best_num_usages1 = num_usages1;
+                best_correct_usage0 = correct_usage0;
+                best_correct_usage1 = correct_usage1;
+                best_crossed = crossed;
               }
+            }
           }
           ++edge_counter;
         }
         if (best_edge != end(unused_edges)) {
+          if (best_crossed) {
+            std::cerr << "crossed! " << *best_edge->second << "\n";
+          } else {
+            if (best_correct_usage0 && best_num_usages0 == 1) {
+              std::cerr << "great! " << *best_edge->second << "\n";
+            } else if (best_correct_usage1 && best_num_usages1 == 1) {
+              std::cerr << "great! " << *best_edge->second << "\n";
+            } else if (best_num_usages0 > 1 || best_num_usages1 > 1) {
+              std::cerr << "multi! " << *best_edge->second << "\n";
+            }
+          }
           std::string filepath_vtk = pathsurface_dir;
           for (size_t i = 0; i < 3; ++i) {
             filepath_vtk += std::to_string(domain.size(i)) + "_";

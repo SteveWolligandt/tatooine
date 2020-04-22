@@ -127,7 +127,7 @@ struct polynomial {
   //----------------------------------------------------------------------------
  private:
   template <size_t... Is>
-  constexpr auto diff(std::index_sequence<Is...>) const {
+  constexpr auto diff(std::index_sequence<Is...> /*seq*/) const {
     return polynomial<Real, Degree - 1>{
         (m_coefficients[Is + 1] * (Is + 1))...};
   }
@@ -139,6 +139,13 @@ struct polynomial {
     } else {
       return polynomial<Real, 0>{0};
     }
+  }
+  auto print(std::ostream& out, const std::string& x) const -> std::ostream& {
+    out << c(0);
+    for (size_t i = 1; i < Degree + 1; ++i) {
+      out << " + " << c(i) << " * " << x << "^" << i;
+    }
+    return out;
   }
 };
 
@@ -164,11 +171,7 @@ constexpr auto diff(const polynomial<Real, Degree>& f) {
 //------------------------------------------------------------------------------
 template <typename Real, size_t Degree>
 auto& operator<<(std::ostream& out, const polynomial<Real, Degree>& f) {
-  out << f.c(0);
-  for (size_t i = 1; i < Degree + 1; ++i) {
-    out << " + " << f.c(i) << " * x^" << i;
-  }
-  return out;
+  return f.print(out, "x");
 }
 //------------------------------------------------------------------------------
 // type_traits

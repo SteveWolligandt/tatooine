@@ -46,15 +46,15 @@ struct integrator : crtp<Derived> {
   //----------------------------------------------------------------------------
  private:
   template <typename V>
-  auto calc_forward(const V &v, integral_t &integral, const pos_t &y0, Real t0,
+  void calc_forward(const V &v, integral_t &integral, const pos_t &y0, Real t0,
                     Real tau) const {
-    return as_derived().calc_forward(v, integral, y0, t0, tau);
+    as_derived().calc_forward(v, integral, y0, t0, tau);
   }
   //----------------------------------------------------------------------------
   template <typename V>
-  auto calc_backward(const V &v, integral_t &integral, const pos_t &y0, Real t0,
+  void calc_backward(const V &v, integral_t &integral, const pos_t &y0, Real t0,
                      Real tau) const {
-    return as_derived().calc_backward(v, integral, y0, t0, tau);
+    as_derived().calc_backward(v, integral, y0, t0, tau);
   }
  public:
   //----------------------------------------------------------------------------
@@ -89,7 +89,7 @@ struct integrator : crtp<Derived> {
   const auto &integrate(const V &v, const pos_t &y0, Real t0, Real backward_tau,
                         Real forward_tau) const {
     auto [it, new_integral] = m_cache.emplace(std::pair{t0, y0});
-    auto &integral            = it->second;
+    auto &integral          = it->second;
     assert(backward_tau <= 0);
     assert(forward_tau >= 0);
 
@@ -203,7 +203,7 @@ struct integrator : crtp<Derived> {
     const pos_t &y0 = integral.front_vertex();
 
     Real tau_rest = t0 + tau - integral.front_parameterization();
-    auto cont     = calc_backward(v, integral, y0, t0, tau_rest);
+    calc_backward(v, integral, y0, t0, tau_rest);
     if (!integral.empty() &&
         integral.front_parameterization() > t0 + tau_rest) {
       backward_on_border = true;

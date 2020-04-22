@@ -554,9 +554,7 @@ constexpr auto norm1(const base_tensor<Tensor, Real, N>& t) {
 //------------------------------------------------------------------------------
 template <typename Tensor, typename Real, size_t N>
 constexpr auto sqr_length(const base_tensor<Tensor, Real, N>& t_in) {
-  Real n = 0;
-  for (size_t i = 0; i < N; ++i) { n += t_in(i) * t_in(i); }
-  return n;
+  return dot(t_in, t_in);
 }
 //------------------------------------------------------------------------------
 template <typename Tensor, typename Real, size_t N>

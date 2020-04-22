@@ -14,9 +14,11 @@ uniform float     max_t;
 uniform uint      num_samples;
 uniform float     stepsize;
 //==============================================================================
-const uvec2 lic_tex_res = uvec2(imageSize(lic_tex));
-const ivec2 v_tex_res = textureSize(v_tex, 0);
+const uvec2 lic_tex_res   = uvec2(imageSize(lic_tex));
+const ivec2 v_tex_res     = textureSize(v_tex, 0);
 const ivec2 noise_tex_res = textureSize(noise_tex, 0);
+const float pi            = 3.1415926535897932384626433832795;
+const float pi4           = pi / 4.0;
 //==============================================================================
 vec2 idx_to_uv(uvec2 image_pos, uvec2 res) {
   // calculate normalized texture coordinates
@@ -149,38 +151,23 @@ void main() {
            1));
   imageStore(lic_tex, idx, vec4(vec3(out_val), 1));
 
-  const vec2 uv           = vec2(idx - ivec2(1, 0)) / (vec2(lic_tex_res) - 1);
-  const float render_index = texture(v_tex, uv).w;
-  if (idx.x > 0) {
-    const vec2 uv_offset = vec2(idx + ivec2(1, 0)) / (vec2(lic_tex_res) - 1);
-    const float render_index_offset = texture(v_tex, uv_offset).w;
-    if (abs(render_index - render_index_offset) > 1.3) {
-      imageStore(color_lic_tex, idx, vec4(1, 1, 1, 1));
-      imageStore(lic_tex, idx, vec4(1, 0, 0, 1));
-    }
-  }
-  if (idx.y > 0) {
-    const vec2 uv_offset = vec2(idx + ivec2(0, 1)) / (vec2(lic_tex_res) - 1);
-    const float render_index_offset = texture(v_tex, uv_offset).w;
-    if (abs(render_index - render_index_offset) > 1.3) {
-      imageStore(color_lic_tex, idx, vec4(1, 1, 1, 1));
-      imageStore(lic_tex, idx, vec4(1, 0, 0, 1));
-    }
-  }
-  if (idx.x > 0 && idx.y > 0) {
-    const vec2 uv_offset = vec2(idx + ivec2(1, 1)) / (vec2(lic_tex_res) - 1);
-    const float render_index_offset = texture(v_tex, uv_offset).w;
-    if (abs(render_index - render_index_offset) > 1.3) {
-      imageStore(color_lic_tex, idx, vec4(1, 1, 1, 1));
-      imageStore(lic_tex, idx, vec4(1, 0, 0, 1));
-    }
-  }
-  if (idx.x > 0 && idx.y < lic_tex_res.y - 1) {
-    const vec2 uv_offset = vec2(idx + ivec2(1, -1)) / (vec2(lic_tex_res) - 1);
-    const float render_index_offset = texture(v_tex, uv_offset).w;
-    if (abs(render_index - render_index_offset) > 1.3) {
-      imageStore(color_lic_tex, idx, vec4(1, 1, 1, 1));
-      imageStore(lic_tex, idx, vec4(1, 0, 0, 1));
-    }
-  }
+  //const vec2 uv           = vec2(idx) / (vec2(lic_tex_res) - 1);
+  //const vec4 v_t_ri       = texture(v_tex, uv);
+  //const ivec2 offsets[2] =
+  //    ivec2[](ivec2(1, 0), ivec2(0, 1));
+  //for (uint i = 0; i < 2; ++i) {
+  //  const ivec2 idx_off = idx + offsets[i];
+  //  if (idx.x > 0 && idx.y > 0 &&
+  //      idx.x < lic_tex_res.x - 1 &&
+  //      idx.y < lic_tex_res.y - 1) {
+  //    const vec2 uv_offset  = vec2(idx_off) / (vec2(lic_tex_res) - 1);
+  //    const vec4 v_t_ri_off = texture(v_tex, uv_offset);
+  //    if (abs(v_t_ri.y - v_t_ri_off.y) > stepsize * 5 ||
+  //        (acos(dot(normalize(v_t_ri.xy), normalize(v_t_ri_off.xy))) > pi4 &&
+  //         abs(v_t_ri.w - v_t_ri_off.w) > 1.5)) {
+  //      imageStore(color_lic_tex, idx, vec4(1, 1, 1, 1));
+  //      imageStore(lic_tex, idx, vec4(1, 0, 0, 1));
+  //    }
+  //  }
+  //}
 }

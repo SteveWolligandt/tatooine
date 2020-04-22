@@ -91,7 +91,17 @@ struct doublegyre : field<Real, 2, 2> {
 };
 doublegyre()->doublegyre<double>;
 
+
 //==============================================================================
 }  // namespace tatooine::symbolic
+//==============================================================================
+namespace tatooine {
+//==============================================================================
+template <typename Real>
+struct is_field<numerical::doublegyre<Real>> : std::true_type {};
+template <typename Real>
+struct is_field<symbolic::doublegyre<Real>> : std::true_type {};
+//==============================================================================
+}  // namespace tatooine
 //==============================================================================
 #endif

@@ -109,8 +109,10 @@ class polynomial_line {
     return curvature(tang, second_derivative(t));
   }
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-  constexpr auto curvature(const vec_t& tang, const vec_t& snd_der) const {
+  constexpr auto curvature(const vec_t& tang, const vec_t& snd_der) const
+      -> Real {
     const auto ltang = length(tang);
+    if (abs(ltang) < 1e-10) { return 0; }
     if constexpr (N == 2) {
       return std::abs(tang(0) * snd_der(1) - tang(1) * snd_der(0)) /
              (ltang * ltang * ltang);
@@ -147,7 +149,15 @@ template <typename... Polynomials>
 polynomial_line(Polynomials&&...)
     ->polynomial_line<promote_t<typename Polynomials::real_t...>,
                       sizeof...(Polynomials), max(Polynomials::degree()...)>;
-
+//==============================================================================
+template <typename Real, size_t N, size_t Degree>
+auto operator<<(std::ostream& out, const polynomial_line<Real, N, Degree>& line)
+    -> std::ostream& {
+  out << "[(" << line.polynomial(0) << ")";
+  for (size_t i = 1; i < N; ++i) { out << ", (" << line.polynomial(i) << ")"; }
+  out << "]";
+  return out;
+}
 //==============================================================================
 }  // namespace tatooine
 //==============================================================================

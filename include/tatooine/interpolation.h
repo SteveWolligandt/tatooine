@@ -295,17 +295,37 @@ struct hermite<tensor<Real, N>> {
   constexpr hermite& operator=(const hermite&) = default;
   constexpr hermite& operator=(hermite&&) = default;
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-  constexpr hermite(const vec_t& fx0, const vec_t& fx1, const vec_t& fx0dx,
-                    const vec_t& fx1dx) {
+  constexpr hermite(const vec_t& fx0,   const vec_t& fx1,
+                    const vec_t& fx0dx, const vec_t& fx1dx) {
     mat<Real, 4, N> B;
-    B.row(0) = fx0;
-    B.row(1) = fx1;
-    B.row(2) = fx0dx;
-    B.row(3) = fx1dx;
-    auto C   = A * B;
+    B.row(0)     = fx0;
+    B.row(1)     = fx1;
+    B.row(2)     = fx0dx;
+    B.row(3)     = fx1dx;
+    const auto C = A * B;
     for (size_t i = 0; i < N; ++i) {
-      m_curve.polynomial(i).set_coefficients(C(0, i), C(1, i), C(2, i),
-                                             C(3, i));
+      m_curve.polynomial(i).set_coefficients(
+          C(0, i), C(1, i), C(2, i), C(3, i));
+    }
+    if (!approx_equal(m_curve(0), fx0)) {
+      std::cerr << m_curve(0) << '\n';
+      std::cerr << fx0 << '\n';
+      throw std::runtime_error{"blub"};
+    }
+    if (!approx_equal(m_curve(1), fx1)) {
+      std::cerr << m_curve(1) << '\n';
+      std::cerr << fx1 << '\n';
+      throw std::runtime_error{"blub"};
+    }
+    if (!approx_equal(m_curve.tangent(0), fx0dx)) {
+      std::cerr << m_curve.tangent(0) << '\n';
+      std::cerr << fx0dx << '\n';
+      throw std::runtime_error{"blub"};
+    }
+    if (!approx_equal(m_curve.tangent(1), fx1dx)) {
+      std::cerr << m_curve.tangent(1) << '\n';
+      std::cerr << fx1dx << '\n';
+      throw std::runtime_error{"blub"};
     }
   }
 
