@@ -25,6 +25,8 @@
 #include "renderers.h"
 #include "settings.h"
 #include "shaders.h"
+#include "integrate.h"
+#include "pathsurface.h"
 //==============================================================================
 namespace tatooine::steadification {
 //==============================================================================
@@ -50,9 +52,6 @@ class steadification {
   using vec3              = vec<real_t, 3>;
   using ivec2             = vec<size_t, 2>;
   using ivec3             = vec<size_t, 3>;
-  using integrator_t =
-      integration::vclibs::rungekutta43<real_t, 2, interpolation::hermite>;
-  using seedcurve_t = parameterized_line<real_t, 2, interpolation::linear>;
 
   inline static const float nanf = 0.0f / 0.0f;
   struct node {
@@ -79,8 +78,7 @@ class steadification {
   ssf_rasterization_shader           m_ssf_rasterization_shader;
   tex_rasterization_to_buffer_shader m_tex_rasterization_to_buffer_shader;
   lic_shader                         m_lic_shader;
-  ll_to_v_shader                     m_ll_to_v_shader;
-  ll_to_curvature_shader             m_to_curvature_shader;
+  ll_to_v_shader                     m_result_to_v_tex_shader;
   weight_dual_pathsurface_shader     m_weight_dual_pathsurface_shader;
   RandEng&                           m_rand_eng;
   boundingbox<real_t, 2>             m_domain;
@@ -215,13 +213,13 @@ class steadification {
   auto rasterize(
       const pathsurface_discretization_t<SeedcurveInterpolator>& mesh,
       size_t render_index, real_t u0t0, real_t u1t0) {
-    return rasterize(gpu_pathsurface(mesh, u0t0, u1t0), render_index);
+    return rasterize(pathsurface_gpu_t{mesh, u0t0, u1t0}, render_index);
   }
   //----------------------------------------------------------------------------
   template <template <typename> typename SeedcurveInterpolator>
   auto rasterize(const pathsurface_t<SeedcurveInterpolator>& mesh,
                  size_t render_index, size_t layer, real_t u0t0, real_t u1t0) {
-    return rasterize(gpu_pathsurface(mesh, u0t0, u1t0), render_index, layer);
+    return rasterize(pathsurface_gpu_t{mesh, u0t0, u1t0}, render_index, layer);
   }
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
   void rasterize(const pathsurface_gpu_t& gpu_mesh, size_t render_index,
@@ -258,66 +256,6 @@ class steadification {
     m_tex_rasterization_to_buffer_shader.dispatch(
         m_render_resolution(0) / 32.0 + 1, m_render_resolution(1) / 32.0 + 1);
     yavin::shaderstorage_barrier();
-  }
-  //----------------------------------------------------------------------------
-  /// \param seedcurve seedcurve in space-time
-  auto pathsurface(const grid_edge<real_t, 3>& edge, real_t btau, real_t ftau,
-                   size_t seed_res, real_t stepsize) const {
-    const auto        v0 = edge.first.position();
-    const auto        v1 = edge.second.position();
-    const seedcurve_t seedcurve{{vec{v0(0), v0(1)}, 0}, {vec{v1(0), v1(1)}, 1}};
-    return pathsurface(seedcurve, v0(2), v1(2), btau, ftau, seed_res, stepsize);
-  }
-  //----------------------------------------------------------------------------
-  /// \param seedcurve seedcurve in space-time
-  auto pathsurface(const seedcurve_t& seedcurve, real_t u0t0, real_t u1t0,
-                   real_t btau, real_t ftau, size_t seed_res,
-                   real_t stepsize) const {
-    using namespace VC::odeint;
-    integrator_t  integrator{integration::vclibs::abs_tol      = 1e-6,
-                            integration::vclibs::rel_tol      = 1e-6,
-                            integration::vclibs::initial_step = 0,
-                            integration::vclibs::max_step     = 0.1};
-    streamsurface surf{m_v, u0t0, u1t0, seedcurve, integrator};
-
-    if (u0t0 == u1t0) {
-      // if (seedcurve.vertex_at(0)(0) != seedcurve.vertex_at(1)(0) &&
-      //    seedcurve.vertex_at(0)(1) != seedcurve.vertex_at(1)(1)) {
-      simple_tri_mesh<real_t, 2> mesh =
-          surf.discretize(seed_res, stepsize, btau, ftau);
-      auto& uvprop   = mesh.template add_vertex_property<vec2>("uv");
-      auto& vprop    = mesh.template add_vertex_property<vec2>("v");
-      auto& curvprop = mesh.template add_vertex_property<real_t>("curvature");
-
-      for (auto vertex : mesh.vertices()) {
-        const auto& uv             = uvprop[vertex];
-        const auto& integral_curve = surf.streamline_at(uv(0), 0, 0);
-        curvprop[vertex]           = integral_curve.curvature(uv(1));
-        if (std::isnan(curvprop[vertex])) {
-          std::cerr << "got nan!\n";
-          std::cerr << "t0     = " << u0t0 << '\n';
-          std::cerr << "pos     = " << integral_curve(uv(1)) << '\n';
-          std::cerr << "v       = " << m_v(integral_curve(uv(1)), uv(1))
-                    << '\n';
-          std::cerr << "tau     = " << uv(1) << '\n';
-          std::cerr << "tangent = " << integral_curve.tangent(uv(1)) << '\n';
-        }
-        if (m_v.in_domain(mesh[vertex], uv(1))) {
-          vprop[vertex] =
-              m_v(vec{mesh[vertex](0), mesh[vertex](1)}, uvprop[vertex](1));
-        } else {
-          vprop[vertex] = vec<real_t, 2>{0.0 / 0.0, 0.0 / 0.0};
-        }
-      }
-      return std::pair{std::move(mesh), std::move(surf)};
-    } else {
-      return std::pair{simple_tri_mesh<real_t, 2>{}, std::move(surf)};
-    }
-  }
-  //----------------------------------------------------------------------------
-  auto gpu_pathsurface(simple_tri_mesh<real_t, 2>& mesh, real_t u0t0,
-                       real_t u1t0) const {
-    return pathsurface_gpu_t{mesh, u0t0, u1t0};
   }
   //----------------------------------------------------------------------------
   auto weight(GLuint layer1) -> float {
@@ -362,18 +300,8 @@ class steadification {
   }
   //----------------------------------------------------------------------------
   auto result_to_v_tex() {
-    m_ll_to_v_shader.dispatch(m_render_resolution(0) / 32.0 + 1,
-                              m_render_resolution(1) / 32.0 + 1);
-  }
-  //----------------------------------------------------------------------------
-  auto result_rasterization_to_curvature_tex() {
-    yavin::tex2r32f curvature_tex{m_render_resolution(0),
-                                  m_render_resolution(1)};
-    curvature_tex.bind_image_texture(7);
-    m_to_curvature_shader.dispatch(m_render_resolution(0) / 32.0 + 1,
-                                   m_render_resolution(1) / 32.0 + 1);
-    m_v_tex.bind_image_texture(7);
-    return curvature_tex;
+    m_result_to_v_tex_shader.dispatch(m_render_resolution(0) / 32.0 + 1,
+                                      m_render_resolution(1) / 32.0 + 1);
   }
   //----------------------------------------------------------------------------
   /// rast1 gets written in rast0. rast0 must have additional space to be able
@@ -382,70 +310,6 @@ class steadification {
     m_combine_rasterizations_shader.dispatch(m_render_resolution(0) / 32.0 + 1,
                                              m_render_resolution(1) / 32.0 + 1);
     yavin::shaderstorage_barrier();
-  }
-  //----------------------------------------------------------------------------
-  auto integrate(
-      const std::string& dataset_name,
-      const std::set<std::pair<size_t, grid_edge_iterator<real_t, 3>>>&
-                             unused_edges,
-      const grid<real_t, 3>& domain, const real_t btau, const real_t ftau,
-      const size_t seed_res, const real_t stepsize) {
-    if (!std::filesystem::exists("pathsurfaces")) {
-      std::filesystem::create_directory("pathsurfaces");
-    }
-
-    const auto pathsurface_dir = +"pathsurfaces/" + dataset_name + "/";
-    if (!std::filesystem::exists(pathsurface_dir)) {
-      std::filesystem::create_directory(pathsurface_dir);
-    }
-
-    std::string        filename_vtk;
-    std::atomic_size_t progress_counter = 0;
-    std::thread        t{[&] {
-      float     progress  = 0.0;
-      const int bar_width = 10;
-      std::cerr << "integrating pathsurfaces...\n";
-      while (progress < 1.0) {
-        progress = float(progress_counter) / (unused_edges.size());
-
-        int pos = bar_width * progress;
-        for (int i = 0; i < bar_width; ++i) {
-          if (i < pos)
-            std::cerr << "\u2588";
-          else if (i == pos)
-            std::cerr << "\u2592";
-          else
-            std::cerr << "\u2591";
-        }
-        std::cerr << " " << int(progress * 100.0) << " % - " << filename_vtk
-                  << '\r';
-        std::this_thread::sleep_for(std::chrono::milliseconds{100});
-      }
-      for (int i = 0; i < bar_width; ++i) { std::cerr << "\u2588"; }
-      std::cerr << "done!                  \n";
-    }};
-
-    for (const auto& [edge_idx, unused_edge_it] : unused_edges) {
-      filename_vtk = pathsurface_dir;
-      for (size_t i = 0; i < 3; ++i) {
-        filename_vtk += std::to_string(domain.size(i)) + "_";
-      }
-      const auto min_t0 = domain.dimension(2).front();
-      const auto max_t0 = domain.dimension(2).back();
-      filename_vtk += std::to_string(min_t0) + "_" + std::to_string(max_t0) +
-                      "_" + std::to_string(btau) + "_" + std::to_string(ftau) +
-                      "_" + std::to_string(seed_res) + "_" +
-                      std::to_string(stepsize) + "_" +
-                      std::to_string(edge_idx) + ".vtk";
-      if (!std::filesystem::exists(filename_vtk)) {
-        simple_tri_mesh<real_t, 2> psf =
-            pathsurface(*unused_edge_it, btau, ftau, seed_res, stepsize).first;
-        psf.write_vtk(filename_vtk);
-      }
-      progress_counter++;
-    }
-    t.join();
-    return pathsurface_dir;
   }
   //----------------------------------------------------------------------------
   auto setup_working_dir(const grid<real_t, 3>& domain, const real_t btau,
@@ -563,7 +427,7 @@ class steadification {
     }
 
     const auto  integration_measure  = measure([&] {
-      return integrate(std::string{settings<V>::name}, unused_edges, domain,
+      return integrate(m_v, std::string{settings<V>::name}, unused_edges, domain,
                        btau, ftau, seed_res, stepsize);
     });
     const auto& integration_duration = integration_measure.first;
@@ -624,8 +488,8 @@ class steadification {
               std::to_string(edge_idx) + ".vtk";
           simple_tri_mesh<real_t, 2> mesh{filepath_vtk};
           if (mesh.num_faces() > 0) {
-            rasterize(gpu_pathsurface(mesh, unused_edge.first.position()(2),
-                                      unused_edge.second.position()(2)),
+            rasterize(pathsurface_gpu_t{mesh, unused_edge.first.position()(2),
+                                        unused_edge.second.position()(2)},
                       render_index, layer);
             auto new_weight = weight(layer);
             if (m_num_newly_covered_pixels[0] > 0) {
@@ -708,7 +572,7 @@ class steadification {
               std::to_string(best_edge->first) + ".vtk";
           simple_tri_mesh<real_t, 2> mesh{filepath_vtk};
           auto [v0, v1] = *best_edge->second;
-          rasterize(gpu_pathsurface(mesh, v0.position()(2), v1.position()(2)),
+          rasterize(pathsurface_gpu_t{mesh, v0.position()(2), v1.position()(2)},
                     render_index, layer);
           combine();
           used_edges.push_back(*best_edge);
@@ -772,22 +636,20 @@ class steadification {
     stop_thread = true;
     t.join();
     std::cerr << '\n';
-    std::cerr << "seedcurves!\n";
+
+    // write report
     write_vtk(seedcurves, working_dir + "seedcurves.vtk");
     render_seedcurves(domain, seedcurves, domain.dimension(2).front(),
                       domain.dimension(2).back());
     m_seedcurvetex.write_png(working_dir + "seedcurves.png");
 
-    std::string cmd = "#/bin/bash \n";
-    cmd += "cd " + working_dir + '\n';
+    std::string cmd = "#/bin/bash\n";
     cmd +=
+        "cd " + working_dir + " > /dev/null\n"
         "ffmpeg -y -r 3 -start_number 0 -i lic_%04d.png -c:v libx264 -vf "
-        "fps=25 "
-        "-pix_fmt yuv420p lic.mp4\n";
-    cmd +=
+        "fps=25 -pix_fmt yuv420p lic.mp4> /dev/null\n"
         "ffmpeg -y -r 3 -start_number 0 -i lic_color_%04d.png -c:v libx264 -vf "
-        "fps=25 "
-        "-pix_fmt yuv420p lic_color.mp4\n";
+        "fps=25 -pix_fmt yuv420p lic_color.mp4> /dev/null\n";
     system(cmd.c_str());
 
     const std::string   reportfilepath = working_dir + "index.html";
