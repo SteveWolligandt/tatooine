@@ -90,30 +90,30 @@ class steadification {
   // coverage_shader                  m_coverage_shader;
   // dual_coverage_shader             m_dual_coverage_shader;
  public:
-  yavin::tex2rgba32f  front_v_t_t0;
-  yavin::tex2r32f     front_curvature;
-  yavin::tex2rg32ui   front_renderindex_layer;
-  yavin::texdepth32ui front_depth;
-  yavin::framebuffer  front_fbo;
+  yavin::tex2rgba32f  m_front_v_t_t0;
+  yavin::tex2r32f     m_front_curvature;
+  yavin::tex2rg32ui   m_front_renderindex_layer;
+  yavin::texdepth32ui m_front_depth;
+  yavin::framebuffer  m_front_fbo;
 
-  yavin::tex2rgba32f  back_v_t_t0;
-  yavin::tex2r32f     back_curvature;
-  yavin::tex2rg32ui   back_renderindex_layer;
-  yavin::texdepth32ui back_depth;
-  yavin::framebuffer  back_fbo;
+  yavin::tex2rgba32f  m_back_v_t_t0;
+  yavin::tex2r32f     m_back_curvature;
+  yavin::tex2rg32ui   m_back_renderindex_layer;
+  yavin::texdepth32ui m_back_depth;
+  yavin::framebuffer  m_back_fbo;
 
-  yavin::tex2rgba32f lic_tex;
-  yavin::tex2rgba32f color_lic_tex;
-  yavin::tex2rgba32f v_tex;
+  yavin::tex2rgba32f m_lic_tex;
+  yavin::tex2rgba32f m_color_lic_tex;
+  yavin::tex2rgba32f m_v_tex;
 
-  yavin::shaderstoragebuffer<node>    result_rasterization;
-  yavin::shaderstoragebuffer<node>    working_rasterization;
-  yavin::shaderstoragebuffer<GLuint>  result_list_size;
-  yavin::shaderstoragebuffer<GLuint>  working_list_size;
-  yavin::shaderstoragebuffer<GLfloat> weight_buffer;
+  yavin::shaderstoragebuffer<node>    m_result_rasterization;
+  yavin::shaderstoragebuffer<node>    m_working_rasterization;
+  yavin::shaderstoragebuffer<GLuint>  m_result_list_size;
+  yavin::shaderstoragebuffer<GLuint>  m_working_list_size;
+  yavin::shaderstoragebuffer<GLfloat> m_weight_buffer;
 
-  yavin::atomiccounterbuffer num_overall_covered_pixels{0};
-  yavin::atomiccounterbuffer num_newly_covered_pixels{0};
+  yavin::atomiccounterbuffer m_num_overall_covered_pixels{0};
+  yavin::atomiccounterbuffer m_num_newly_covered_pixels{0};
 
   //============================================================================
   // ctor
@@ -141,33 +141,33 @@ class steadification {
         m_rand_eng{rand_eng},
         m_domain{domain},
 
-        front_v_t_t0{m_render_resolution(0), m_render_resolution(1)},
-        front_curvature{m_render_resolution(0), m_render_resolution(1)},
-        front_renderindex_layer{m_render_resolution(0), m_render_resolution(1)},
-        front_depth{m_render_resolution(0), m_render_resolution(1)},
-        front_fbo{front_v_t_t0, front_curvature, front_renderindex_layer,
-                  front_depth},
+        m_front_v_t_t0{m_render_resolution(0), m_render_resolution(1)},
+        m_front_curvature{m_render_resolution(0), m_render_resolution(1)},
+        m_front_renderindex_layer{m_render_resolution(0), m_render_resolution(1)},
+        m_front_depth{m_render_resolution(0), m_render_resolution(1)},
+        m_front_fbo{m_front_v_t_t0, m_front_curvature, m_front_renderindex_layer,
+                  m_front_depth},
 
-        back_v_t_t0{m_render_resolution(0), m_render_resolution(1)},
-        back_curvature{m_render_resolution(0), m_render_resolution(1)},
-        back_renderindex_layer{m_render_resolution(0), m_render_resolution(1)},
-        back_depth{m_render_resolution(0), m_render_resolution(1)},
-        back_fbo{back_v_t_t0, back_curvature, back_renderindex_layer,
-                 back_depth},
-        lic_tex{m_render_resolution(0), m_render_resolution(1)},
-        color_lic_tex{m_render_resolution(0), m_render_resolution(1)},
-        v_tex{m_render_resolution(0), m_render_resolution(1)},
-        result_rasterization(
+        m_back_v_t_t0{m_render_resolution(0), m_render_resolution(1)},
+        m_back_curvature{m_render_resolution(0), m_render_resolution(1)},
+        m_back_renderindex_layer{m_render_resolution(0), m_render_resolution(1)},
+        m_back_depth{m_render_resolution(0), m_render_resolution(1)},
+        m_back_fbo{m_back_v_t_t0, m_back_curvature, m_back_renderindex_layer,
+                 m_back_depth},
+        m_lic_tex{m_render_resolution(0), m_render_resolution(1)},
+        m_color_lic_tex{m_render_resolution(0), m_render_resolution(1)},
+        m_v_tex{m_render_resolution(0), m_render_resolution(1)},
+        m_result_rasterization(
             2 * m_render_resolution(0) * m_render_resolution(1),
             {{nanf, nanf}, nanf, nanf, nanf, 0, 0, nanf}),
-        working_rasterization(
+        m_working_rasterization(
             2 * m_render_resolution(0) * m_render_resolution(1),
             {{nanf, nanf}, nanf, nanf, nanf, 0, 0, nanf}),
-        result_list_size(m_render_resolution(0) * m_render_resolution(1), 0),
-        working_list_size(m_render_resolution(0) * m_render_resolution(1), 0),
-        weight_buffer(m_render_resolution(0) * m_render_resolution(1), 0),
-        num_overall_covered_pixels{0},
-        num_newly_covered_pixels{0} {
+        m_result_list_size(m_render_resolution(0) * m_render_resolution(1), 0),
+        m_working_list_size(m_render_resolution(0) * m_render_resolution(1), 0),
+        m_weight_buffer(m_render_resolution(0) * m_render_resolution(1), 0),
+        m_num_overall_covered_pixels{0},
+        m_num_newly_covered_pixels{0} {
     yavin::disable_multisampling();
 
     m_seedcurve_shader.set_projection(m_cam.projection_matrix());
@@ -178,24 +178,24 @@ class steadification {
     m_noise_tex.upload_data(noise_data, m_render_resolution(0),
                             m_render_resolution(1));
 
-    front_v_t_t0.bind_image_texture(0);
-    front_curvature.bind_image_texture(1);
-    front_renderindex_layer.bind_image_texture(2);
-    back_v_t_t0.bind_image_texture(3);
-    back_curvature.bind_image_texture(4);
-    back_renderindex_layer.bind_image_texture(5);
-    lic_tex.bind_image_texture(6);
-    v_tex.bind_image_texture(7);
-    result_rasterization.bind(0);
-    working_rasterization.bind(1);
-    result_list_size.bind(2);
-    working_list_size.bind(3);
-    weight_buffer.bind(4);
+    m_front_v_t_t0.bind_image_texture(0);
+    m_front_curvature.bind_image_texture(1);
+    m_front_renderindex_layer.bind_image_texture(2);
+    m_back_v_t_t0.bind_image_texture(3);
+    m_back_curvature.bind_image_texture(4);
+    m_back_renderindex_layer.bind_image_texture(5);
+    m_lic_tex.bind_image_texture(6);
+    m_v_tex.bind_image_texture(7);
+    m_result_rasterization.bind(0);
+    m_working_rasterization.bind(1);
+    m_result_list_size.bind(2);
+    m_working_list_size.bind(3);
+    m_weight_buffer.bind(4);
 
-    result_list_size.upload_data(0);
-    num_overall_covered_pixels.bind(0);
-    num_newly_covered_pixels.bind(1);
-    v_tex.bind(0);
+    m_result_list_size.upload_data(0);
+    m_num_overall_covered_pixels.bind(0);
+    m_num_newly_covered_pixels.bind(1);
+    m_v_tex.bind(0);
     m_noise_tex.bind(1);
     m_color_scale.bind(2);
     m_ssf_rasterization_shader.set_width(m_render_resolution(0));
@@ -206,8 +206,8 @@ class steadification {
     m_lic_shader.set_color_scale_bind_point(2);
     m_weight_dual_pathsurface_shader.set_size(m_render_resolution(0) *
                                               m_render_resolution(1));
-    // working_rasterization.set_usage(yavin::DYNAMIC_COPY);
-    // working_list_size.set_usage(yavin::DYNAMIC_COPY);
+    // m_working_rasterization.set_usage(yavin::DYNAMIC_COPY);
+    // m_working_list_size.set_usage(yavin::DYNAMIC_COPY);
     yavin::gl::viewport(m_cam);
     yavin::enable_depth_test();
   }
@@ -240,17 +240,17 @@ class steadification {
     m_ssf_rasterization_shader.set_layer(layer);
 
     yavin::shaderstorage_barrier();
-    working_list_size.upload_data(0);
+    m_working_list_size.upload_data(0);
     yavin::shaderstorage_barrier();
-    front_fbo.bind();
+    m_front_fbo.bind();
     yavin::clear_color_depth_buffer();
     yavin::depth_func_less();
     m_ssf_rasterization_shader.set_count(true);
     gpu_mesh.draw();
 
-    back_fbo.bind();
+    m_back_fbo.bind();
     yavin::clear_color_depth_buffer();
-    back_depth.clear(1e5);
+    m_back_depth.clear(1e5);
     yavin::depth_func_greater();
     m_ssf_rasterization_shader.set_count(false);
     gpu_mesh.draw();
@@ -323,23 +323,23 @@ class steadification {
   }
   //----------------------------------------------------------------------------
   auto weight(GLuint layer1) -> float {
-    weight_buffer.upload_data(0.0f);
-    num_overall_covered_pixels[0] = 0;
-    num_newly_covered_pixels[0]   = 0;
+    m_weight_buffer.upload_data(0.0f);
+    m_num_overall_covered_pixels[0] = 0;
+    m_num_newly_covered_pixels[0]   = 0;
     m_weight_dual_pathsurface_shader.set_layer(layer1);
     m_weight_dual_pathsurface_shader.bind();
     yavin::gl::dispatch_compute(
         m_render_resolution(0) * m_render_resolution(1) / 1024.0 + 1, 1, 1);
 
-    const auto weight_data = weight_buffer.download_data();
-    if (num_newly_covered_pixels[0].download() >
+    const auto weight_data = m_weight_buffer.download_data();
+    if (m_num_newly_covered_pixels[0].download() >
         m_render_resolution(0) * m_render_resolution(1) * 0.0001) {
       return std::reduce(std::execution::par, begin(weight_data),
                          end(weight_data), 0.0f) /
-             num_newly_covered_pixels[0].download();
+             m_num_newly_covered_pixels[0].download();
     }
     return -std::numeric_limits<float>::max();
-    // return gpu::reduce(weight_buffer, 16, 16);
+    // return gpu::reduce(m_weight_buffer, 16, 16);
   }
   //----------------------------------------------------------------------------
   template <template <typename> typename SeedcurveInterpolator>
@@ -374,9 +374,9 @@ class steadification {
         (m_render_resolution(0) * 2);
     result_to_v_tex();
 
-    color_lic_tex.bind_image_texture(7);
-    lic_tex.clear(1, 1, 1, 0);
-    color_lic_tex.clear(1, 1, 1, 0);
+    m_color_lic_tex.bind_image_texture(7);
+    m_lic_tex.clear(1, 1, 1, 0);
+    m_color_lic_tex.clear(1, 1, 1, 0);
     m_lic_shader.set_domain_min(domain.front(0), domain.front(1));
     m_lic_shader.set_domain_max(domain.back(0), domain.back(1));
     m_lic_shader.set_min_t(domain.front(2));
@@ -385,7 +385,7 @@ class steadification {
     m_lic_shader.set_stepsize(stepsize);
     m_lic_shader.dispatch(m_render_resolution(0) / 32.0 + 1,
                           m_render_resolution(1) / 32.0 + 1);
-    v_tex.bind_image_texture(7);
+    m_v_tex.bind_image_texture(7);
   }
   //----------------------------------------------------------------------------
   auto result_to_v_tex() {
@@ -399,7 +399,7 @@ class steadification {
     curvature_tex.bind_image_texture(7);
     m_to_curvature_shader.dispatch(m_render_resolution(0) / 32.0 + 1,
                                    m_render_resolution(1) / 32.0 + 1);
-    v_tex.bind_image_texture(7);
+    m_v_tex.bind_image_texture(7);
     return curvature_tex;
   }
   //----------------------------------------------------------------------------
@@ -656,7 +656,7 @@ class steadification {
                                       unused_edge.second.position()(2)),
                       render_index, layer);
             auto new_weight = weight(layer);
-            if (num_newly_covered_pixels[0] > 0) {
+            if (m_num_newly_covered_pixels[0] > 0) {
               // check if mesh's seedcurve neighbors another edge
               size_t num_usages0 = 0, num_usages1 = 0;
               bool   correct_usage0 = false, correct_usage1 = false;
@@ -743,7 +743,7 @@ class steadification {
 
           ++render_index;
           coverage =
-              static_cast<double>(num_overall_covered_pixels[0].download()) /
+              static_cast<double>(m_num_overall_covered_pixels[0].download()) /
               (m_render_resolution(0) * m_render_resolution(1));
           weights.push_back(best_weight /
                             (m_render_resolution(0) * m_render_resolution(1)));
@@ -752,8 +752,8 @@ class steadification {
           std::string it_str = std::to_string(iteration);
           while (it_str.size() < 4) { it_str = '0' + it_str; }
           result_to_lic_tex(domain);
-          lic_tex.write_png(working_dir + "lic_" + it_str + ".png");
-          color_lic_tex.write_png(working_dir + "lic_color_" + it_str + ".png");
+          m_lic_tex.write_png(working_dir + "lic_" + it_str + ".png");
+          m_color_lic_tex.write_png(working_dir + "lic_color_" + it_str + ".png");
           const std::string mesh3dpath =
               working_dir + "geometry_" + it_str + ".vtk";
           simple_tri_mesh<real_t, 3> mesh3d;
@@ -789,8 +789,8 @@ class steadification {
 
       std::cerr << "done!\n";
       result_to_lic_tex(domain);
-      lic_tex.write_png(working_dir + "lic_final.png");
-      color_lic_tex.write_png(working_dir + "lic_color_final.png");
+      m_lic_tex.write_png(working_dir + "lic_final.png");
+      m_color_lic_tex.write_png(working_dir + "lic_color_final.png");
       for (const auto& [used_edge_idx, used_edge_it]: used_edges) {
         const auto [v0, v1]  = *used_edge_it;
         seedcurves.push_back(line<real_t, 3>{v0.position(), v1.position()});
