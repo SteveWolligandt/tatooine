@@ -198,7 +198,7 @@ class dynamic_multidim_resolution {
  public:
   auto num_dimensions() const { return m_size.size(); }
   //----------------------------------------------------------------------------
-  [[nodiscard]] auto size() const -> const size_t& { return m_size; }
+  [[nodiscard]] auto size() const -> const auto& { return m_size; }
   /// \return size of dimensions i
   auto size(const size_t i) const { return m_size[i]; }
   //----------------------------------------------------------------------------
