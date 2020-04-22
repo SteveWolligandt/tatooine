@@ -268,14 +268,8 @@ class steadification {
         m_render_resolution(0) * m_render_resolution(1) / 1024.0 + 1, 1, 1);
 
     const auto weight_data = m_weight_buffer.download_data();
-    if (m_num_newly_covered_pixels[0].download() >
-        m_render_resolution(0) * m_render_resolution(1) * 0.0001) {
-      return std::reduce(std::execution::par, begin(weight_data),
-                         end(weight_data), 0.0f) /
-             m_num_newly_covered_pixels[0].download();
-    }
-    return -std::numeric_limits<float>::max();
-    // return gpu::reduce(m_weight_buffer, 16, 16);
+    return std::reduce(std::execution::par, begin(weight_data),
+                       end(weight_data), 0.0f);
   }
   //----------------------------------------------------------------------------
   void result_to_lic_tex(const grid<real_t, 3>& domain) {
