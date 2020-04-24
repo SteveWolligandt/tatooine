@@ -6,7 +6,9 @@ auto main(int argc, char** argv) -> int {
   using namespace numerical;
   const std::string v = argv[1];
   if (v == "dg" || v == "doublegyre") {
-    calc(numerical::doublegyre<double>{}, argc, argv);
+    numerical::doublegyre<double> v;
+    v.set_infinite_domain(false);
+    calc(v, argc, argv);
   } else if (v == "la" || v == "laminar") {
     calc(laminar<double>{}, argc, argv);
     } else if (v == "fdg") {

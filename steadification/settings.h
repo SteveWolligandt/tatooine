@@ -11,7 +11,7 @@ struct settings;
 //==============================================================================
 template <typename Real> struct settings<numerical::doublegyre<Real>> {
   static constexpr std::string_view name = "doublegyre";
-  static constexpr Real             eps  = 1e-4;
+  static constexpr Real             eps  = 1e-3;
   static constexpr boundingbox<Real, 2> domain{vec{eps, eps},
                                                vec{2 - eps, 1 - eps}};
   static constexpr vec<size_t, 2>   render_resolution{1000, 500};
@@ -86,10 +86,8 @@ template <> struct settings<cavity> {
   static constexpr real_t eps       = 1e-4;
   //----------------------------------------------------------------------------
   static constexpr boundingbox<real_t, 2> domain{
-      vec{cavity::domain.dimension(0).front() + eps,
-          cavity::domain.dimension(1).front() + eps},
-      vec{cavity::domain.dimension(0).back() - eps,
-          cavity::domain.dimension(1).back() - eps}};
+      vec{cavity::domain.front(0) + eps, cavity::domain.front(1) + eps},
+      vec{cavity::domain.back(0) - eps, cavity::domain.back(1) - eps}};
 };
   //==============================================================================
   // template <typename real_t> struct settings<movinggyre<real_t>> {

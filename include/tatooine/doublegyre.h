@@ -45,9 +45,10 @@ struct doublegyre : vectorfield<doublegyre<Real>, Real, 2> {
   //----------------------------------------------------------------------------
   [[nodiscard]] constexpr auto in_domain(const pos_t& x, Real t) const
       -> bool final {
-    return m_infinite_domain || (0 <= x(0) && x(0) <= 2 && 
-                                 0 <= x(1) && x(1) <= 1 &&
-                                 0 <= t    && t    <= 10);
+    if (m_infinite_domain) { return true; }
+    return 0 <= x(0) && x(0) <= 2 &&
+           0 <= x(1) && x(1) <= 1 &&
+           0 <=  t   &&  t   <= 10;
   }
   //----------------------------------------------------------------------------
   constexpr void set_infinite_domain(bool v) { m_infinite_domain = v; }

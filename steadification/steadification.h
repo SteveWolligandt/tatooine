@@ -27,6 +27,7 @@
 #include "shaders.h"
 #include "integrate.h"
 #include "pathsurface.h"
+
 //==============================================================================
 namespace tatooine::steadification {
 //==============================================================================
@@ -47,11 +48,13 @@ class steadification {
       hultquist_discretization<integration::vclibs::rungekutta43,
                                SeedcurveInterpolator, interpolation::hermite, V,
                                real_t, 2>;
-  using pathsurface_gpu_t = streamsurface_renderer;
-  using vec2              = vec<real_t, 2>;
-  using vec3              = vec<real_t, 3>;
-  using ivec2             = vec<size_t, 2>;
-  using ivec3             = vec<size_t, 3>;
+  using pathsurface_gpu_t    = streamsurface_renderer;
+  using vec2                 = vec<real_t, 2>;
+  using vec3                 = vec<real_t, 3>;
+  using ivec2                = vec<size_t, 2>;
+  using ivec3                = vec<size_t, 3>;
+  using grid_t               = grid<real_t, 2>;
+  using grid_edge_iterator_t = typename grid_t::edge_iterator;
 
   inline static const float nanf = 0.0f / 0.0f;
   struct node {
@@ -79,7 +82,7 @@ class steadification {
   tex_rasterization_to_buffer_shader m_tex_rasterization_to_buffer_shader;
   lic_shader                         m_lic_shader;
   ll_to_v_shader                     m_result_to_v_tex_shader;
-  weight_dual_pathsurface_shader     m_weight_dual_pathsurface_shader;
+  weight_shader                      m_weight_shader;
   RandEng&                           m_rand_eng;
   boundingbox<real_t, 2>             m_domain;
   combine_rasterizations_shader      m_combine_rasterizations_shader;
@@ -98,6 +101,7 @@ class steadification {
   yavin::framebuffer  m_back_fbo;
 
   yavin::tex2rgba32f m_lic_tex;
+  yavin::tex2rgba32f m_curvature_lic_tex;
   yavin::tex2rgba32f m_color_lic_tex;
   yavin::tex2rgba32f m_v_tex;
 
@@ -152,6 +156,7 @@ class steadification {
         m_back_fbo{m_back_v_t_t0, m_back_curvature, m_back_renderindex_layer,
                    m_back_depth},
         m_lic_tex{m_render_resolution(0), m_render_resolution(1)},
+        m_curvature_lic_tex{m_render_resolution(0), m_render_resolution(1)},
         m_color_lic_tex{m_render_resolution(0), m_render_resolution(1)},
         m_v_tex{m_render_resolution(0), m_render_resolution(1)},
         m_result_rasterization(
@@ -201,27 +206,13 @@ class steadification {
     m_lic_shader.set_v_tex_bind_point(0);
     m_lic_shader.set_noise_tex_bind_point(1);
     m_lic_shader.set_color_scale_bind_point(2);
-    m_weight_dual_pathsurface_shader.set_size(m_render_resolution(0) *
-                                              m_render_resolution(1));
+    m_weight_shader.set_size(m_render_resolution(0) * m_render_resolution(1));
     yavin::gl::viewport(m_cam);
     yavin::enable_depth_test();
   }
   //============================================================================
   // methods
   //============================================================================
-  template <template <typename> typename SeedcurveInterpolator>
-  auto rasterize(
-      const pathsurface_discretization_t<SeedcurveInterpolator>& mesh,
-      size_t render_index, real_t u0t0, real_t u1t0) {
-    return rasterize(pathsurface_gpu_t{mesh, u0t0, u1t0}, render_index);
-  }
-  //----------------------------------------------------------------------------
-  template <template <typename> typename SeedcurveInterpolator>
-  auto rasterize(const pathsurface_t<SeedcurveInterpolator>& mesh,
-                 size_t render_index, size_t layer, real_t u0t0, real_t u1t0) {
-    return rasterize(pathsurface_gpu_t{mesh, u0t0, u1t0}, render_index, layer);
-  }
-  // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
   void rasterize(const pathsurface_gpu_t& gpu_mesh, size_t render_index,
                  size_t layer) {
     to_tex(gpu_mesh, render_index, layer);
@@ -234,68 +225,90 @@ class steadification {
     m_ssf_rasterization_shader.set_render_index(render_index);
     m_ssf_rasterization_shader.set_layer(layer);
 
-    yavin::shaderstorage_barrier();
     m_working_list_size.upload_data(0);
-    yavin::shaderstorage_barrier();
     m_front_fbo.bind();
     yavin::clear_color_depth_buffer();
     yavin::depth_func_less();
     m_ssf_rasterization_shader.set_count(true);
+    yavin::barrier();
     gpu_mesh.draw();
+    yavin::barrier();
 
     m_back_fbo.bind();
     yavin::clear_color_depth_buffer();
     m_back_depth.clear(1e5);
     yavin::depth_func_greater();
     m_ssf_rasterization_shader.set_count(false);
+    yavin::barrier();
     gpu_mesh.draw();
-    yavin::shaderstorage_barrier();
+    yavin::barrier();
   }
   //----------------------------------------------------------------------------
   void to_shaderstoragebuffer() {
+    yavin::barrier();
     m_tex_rasterization_to_buffer_shader.dispatch(
         m_render_resolution(0) / 32.0 + 1, m_render_resolution(1) / 32.0 + 1);
-    yavin::shaderstorage_barrier();
+    yavin::barrier();
   }
   //----------------------------------------------------------------------------
-  auto weight(GLuint layer1) -> float {
+  auto weight(GLboolean use_tau, bool normalize_weight) -> float {
     m_weight_buffer.upload_data(0.0f);
     m_num_overall_covered_pixels[0] = 0;
     m_num_newly_covered_pixels[0]   = 0;
-    m_weight_dual_pathsurface_shader.set_layer(layer1);
-    m_weight_dual_pathsurface_shader.bind();
+    m_weight_shader.bind();
+    m_weight_shader.use_tau(use_tau);
+    yavin::barrier();
     yavin::gl::dispatch_compute(
         m_render_resolution(0) * m_render_resolution(1) / 1024.0 + 1, 1, 1);
+    yavin::barrier();
 
     const auto weight_data = m_weight_buffer.download_data();
-    return std::reduce(std::execution::par, begin(weight_data),
-                       end(weight_data), 0.0f);
+    if (normalize_weight) {
+      auto num_newly_covered_pixels = m_num_newly_covered_pixels[0].download();
+      if (num_newly_covered_pixels >
+          m_render_resolution(0) * m_render_resolution(1) * 0.01) {
+        return std::reduce(std::execution::par, begin(weight_data),
+                           end(weight_data), 0.0f) /
+               num_newly_covered_pixels;
+      } else {
+        return -std::numeric_limits<float>::max();
+      }
+    } else {
+      return std::reduce(std::execution::par, begin(weight_data),
+                         end(weight_data), 0.0f);
+    }
   }
   //----------------------------------------------------------------------------
-  void result_to_lic_tex(const grid<real_t, 3>& domain) {
+  void result_to_lic_tex(const grid_t& domain, const real_t min_t,
+                         const real_t max_t) {
     const size_t num_samples = 20;
     const real_t stepsize =
         (domain.dimension(0).back() - domain.dimension(0).front()) /
         (m_render_resolution(0) * 2);
     result_to_v_tex();
 
+    m_curvature_lic_tex.bind_image_texture(5);
     m_color_lic_tex.bind_image_texture(7);
     m_lic_tex.clear(1, 1, 1, 0);
+    m_curvature_lic_tex.clear(1, 1, 1, 0);
     m_color_lic_tex.clear(1, 1, 1, 0);
     m_lic_shader.set_domain_min(domain.front(0), domain.front(1));
     m_lic_shader.set_domain_max(domain.back(0), domain.back(1));
-    m_lic_shader.set_min_t(domain.front(2));
-    m_lic_shader.set_max_t(domain.back(2));
+    m_lic_shader.set_min_t(min_t);
+    m_lic_shader.set_max_t(max_t);
     m_lic_shader.set_num_samples(num_samples);
     m_lic_shader.set_stepsize(stepsize);
     m_lic_shader.dispatch(m_render_resolution(0) / 32.0 + 1,
                           m_render_resolution(1) / 32.0 + 1);
     m_v_tex.bind_image_texture(7);
+    m_back_renderindex_layer.bind_image_texture(5);
   }
   //----------------------------------------------------------------------------
   auto result_to_v_tex() {
+    yavin::barrier();
     m_result_to_v_tex_shader.dispatch(m_render_resolution(0) / 32.0 + 1,
                                       m_render_resolution(1) / 32.0 + 1);
+    yavin::barrier();
   }
   //----------------------------------------------------------------------------
   /// rast1 gets written in rast0. rast0 must have additional space to be able
@@ -303,33 +316,38 @@ class steadification {
   void combine() {
     m_combine_rasterizations_shader.dispatch(m_render_resolution(0) / 32.0 + 1,
                                              m_render_resolution(1) / 32.0 + 1);
-    yavin::shaderstorage_barrier();
+    yavin::barrier();
   }
   //----------------------------------------------------------------------------
-  auto setup_working_dir(const grid<real_t, 3>& domain, const real_t btau,
+  auto setup_working_dir(const grid_t& domain, const real_t btau,
                          const real_t ftau, const size_t seed_res,
                          const real_t stepsize, const double neighbor_weight,
-                         const float penalty) {
+                         const float penalty, const float max_curvature,
+                         const bool use_tau, const bool normalize_weight) {
     using namespace std::filesystem;
     auto working_dir = std::string{settings<V>::name} + "_domain_res_";
-    for (size_t i = 0; i < 3; ++i) {
+    for (size_t i = 0; i < 2; ++i) {
       working_dir += std::to_string(domain.size(i)) + "_";
     }
 
-    working_dir += "btau_" + std::to_string(btau) + "_ftau_" +
-                   std::to_string(ftau) + "_seedres_" +
-                   std::to_string(seed_res) + "_stepsize_" +
-                   std::to_string(stepsize) + "_neighborweight_" +
-                   std::to_string(neighbor_weight) + "_penalty_" +
-                   std::to_string(penalty) + "/";
+    working_dir += "btau_" + std::to_string(btau) +
+                   "_ftau_" + std::to_string(ftau) +
+                   "_seedres_" + std::to_string(seed_res) +
+                   "_stepsize_" + std::to_string(stepsize) +
+                   "_neighborweight_" + std::to_string(neighbor_weight) +
+                   "_penalty_" + std::to_string(penalty) +
+                   "_maxcoverage_" + std::to_string(max_curvature) +
+                   "_usetau_" + (use_tau ? "true" : "false") +
+                   "_normalizeweight_" + (normalize_weight ? "true" : "false") + "/";
     if (!exists(working_dir)) { create_directory(working_dir); }
     std::cerr << "result will be located in " << working_dir << '\n';
 
     for (const auto& entry : directory_iterator(working_dir)) { remove(entry); }
     return working_dir;
   }
-  void render_seedcurves(const grid<real_t, 3>&              domain,
-                         const std::vector<line<real_t, 3>>& seedcurves,
+  void render_seedcurves(const grid_t&              domain,
+                         const std::vector<line<real_t, 2>>& seedcurves,
+                         GLfloat t0,
                          GLfloat min_t, GLfloat max_t) {
     yavin::disable_depth_test();
     yavin::framebuffer fbo{m_seedcurvetex};
@@ -358,6 +376,7 @@ class steadification {
     auto ls = line_renderer(seedcurves);
     m_seedcurve_shader.set_min_t(min_t);
     m_seedcurve_shader.set_max_t(max_t);
+    m_seedcurve_shader.set_t0(t0);
     m_seedcurve_shader.use_color_scale(true);
     yavin::gl::line_width(3);
     ls.draw();
@@ -365,37 +384,39 @@ class steadification {
     yavin::enable_depth_test();
   }
   //----------------------------------------------------------------------------
-  auto greedy_set_cover(const grid<real_t, 3>& domain, const real_t btau,
+  auto greedy_set_cover(const grid_t& domain, const real_t min_t,
+                        const real_t max_t, const real_t btau,
                         const real_t ftau, const size_t seed_res,
                         const real_t stepsize, real_t desired_coverage,
-                        const double neighbor_weight, const float penalty)
-      -> std::string {
+                        const double neighbor_weight, const float penalty,
+                        const float max_curvature, const bool use_tau,
+                        const bool normalize_weight) -> std::string {
+    using namespace std::string_literals;
     using namespace std::filesystem;
+    const real_t t0 = (min_t + max_t) * 0.5;
+    m_weight_shader.set_t_center(t0);
     auto   best_weight  = -std::numeric_limits<real_t>::max();
     size_t render_index = 0;
     size_t layer        = 0;
-    std::set<std::pair<size_t, grid_edge_iterator<real_t, 3>>>    unused_edges;
-    std::vector<std::pair<size_t, grid_edge_iterator<real_t, 3>>> used_edges;
+    std::set<std::pair<size_t, grid_edge_iterator_t>>    unused_edges;
+    std::vector<std::pair<size_t, grid_edge_iterator_t>> used_edges;
     auto               best_edge    = end(unused_edges);
     size_t             iteration    = 0;
     size_t             edge_counter = 0;
     bool               stop_thread  = false;
     double             coverage     = 0;
-    const auto         min_t0       = domain.front(2);
-    const auto         max_t0       = domain.back(2);
     std::vector<float> weights;
     std::vector<float> coverages;
 
     size_t best_num_usages0, best_num_usages1;
-    bool   best_correct_usage0, best_correct_usage1;
     bool   best_crossed;
 
     const size_t num_pixels = m_render_resolution(0) * m_render_resolution(1);
     size_t       num_pixels_in_domain = 0;
     for (size_t y = 0; y < m_render_resolution(1); ++y) {
       for (size_t x = 0; x < m_render_resolution(0); ++x) {
-        const real_t         xt = x / (m_render_resolution(0) - 1);
-        const real_t         yt = y / (m_render_resolution(1) - 1);
+        const real_t         xt = real_t(x) / real_t(m_render_resolution(0) - 1);
+        const real_t         yt = real_t(y) / real_t(m_render_resolution(1) - 1);
         const vec<real_t, 2> pos{
             (1 - xt) * domain.front(0) + xt * domain.back(0),
             (1 - yt) * domain.front(1) + yt * domain.back(1)};
@@ -407,9 +428,12 @@ class steadification {
               << real_t(num_pixels_in_domain) / real_t(num_pixels) * 100
               << "%\n";
 
-    auto working_dir = setup_working_dir(domain, btau, ftau, seed_res, stepsize,
-                                         neighbor_weight, penalty);
-    m_weight_dual_pathsurface_shader.set_penalty(penalty);
+    auto working_dir = setup_working_dir(
+        domain, btau, ftau, seed_res, stepsize, neighbor_weight, penalty,
+        max_curvature, use_tau, normalize_weight);
+    m_weight_shader.set_penalty(penalty);
+    m_lic_shader.set_max_curvature(max_curvature);
+    m_weight_shader.set_max_curvature(max_curvature);
 
     // set all edges as unused
     std::cerr << "set all edges unused\n";
@@ -421,8 +445,8 @@ class steadification {
     }
 
     const auto  integration_measure  = measure([&] {
-      return integrate(m_v, std::string{settings<V>::name}, unused_edges, domain,
-                       btau, ftau, seed_res, stepsize);
+      return integrate(m_v, std::string{settings<V>::name}, unused_edges,
+                       domain, t0, btau, ftau, seed_res, stepsize);
     });
     const auto& integration_duration = integration_measure.first;
     const auto& pathsurface_dir      = integration_measure.second;
@@ -453,13 +477,13 @@ class steadification {
           else
             std::cerr << "\u2591";
         }
-        std::cerr << "\r";
+        std::cerr << coverage << " / " << desired_coverage << '\r';
         std::this_thread::sleep_for(std::chrono::milliseconds{100});
       }
       std::cerr << "\n";
     }};
 
-    std::vector<line<real_t, 3>> seedcurves;
+    std::vector<line<real_t, 2>> seedcurves;
     auto                         duration = measure([&] {
       // loop
       do {
@@ -472,31 +496,29 @@ class steadification {
           const auto& [edge_idx, unused_edge_it] = *unused_edge_pair_it;
           const auto  unused_edge  = *unused_edge_it;
           std::string filepath_vtk = pathsurface_dir;
-          for (size_t i = 0; i < 3; ++i) {
+          for (size_t i = 0; i < 2; ++i) {
             filepath_vtk += std::to_string(domain.size(i)) + "_";
           }
-          filepath_vtk +=
-              std::to_string(min_t0) + "_" + std::to_string(max_t0) + "_" +
-              std::to_string(btau) + "_" + std::to_string(ftau) + "_" +
-              std::to_string(seed_res) + "_" + std::to_string(stepsize) + "_" +
-              std::to_string(edge_idx) + ".vtk";
+          filepath_vtk += std::to_string(t0)       + "_" +
+                          std::to_string(btau)     + "_" +
+                          std::to_string(ftau)     + "_" +
+                          std::to_string(seed_res) + "_" +
+                          std::to_string(stepsize) + "_" +
+                          std::to_string(edge_idx) + ".vtk";
           simple_tri_mesh<real_t, 2> mesh{filepath_vtk};
           if (mesh.num_faces() > 0) {
-            rasterize(pathsurface_gpu_t{mesh, unused_edge.first.position()(2),
-                                        unused_edge.second.position()(2)},
-                      render_index, layer);
-            auto new_weight = weight(layer);
+            rasterize(pathsurface_gpu_t{mesh, t0}, render_index, layer);
+            auto new_weight = weight(use_tau, normalize_weight);
             if (m_num_newly_covered_pixels[0] > 0) {
               // check if mesh's seedcurve neighbors another edge
               size_t num_usages0 = 0, num_usages1 = 0;
-              bool   correct_usage0 = false, correct_usage1 = false;
               bool   crossed = false;
               for (const auto& [used_edge_idx, used_edge_it] : used_edges) {
                 const auto [uv0, uv1] = *used_edge_it;
                 const auto used_x0    = uv0.to_array();
                 const auto used_x1    = uv1.to_array();
-                const auto new_x0 = unused_edge.first.to_array();
-                const auto new_x1 = unused_edge.second.to_array();
+                const auto new_x0     = unused_edge.first.to_array();
+                const auto new_x1     = unused_edge.second.to_array();
                 // check if crossed
                 if (used_x0[0] != used_x1[0] && used_x0[1] != used_x1[1] &&
                     new_x0[0] != new_x1[0] && new_x0[1] != new_x1[1] &&
@@ -505,69 +527,58 @@ class steadification {
                     min(used_x0[1], used_x1[1]) == min(new_x0[1], new_x1[1]) &&
                     max(used_x0[1], used_x1[1]) == max(new_x0[1], new_x1[1])) {
                   crossed = true;
-                  break;
                 }
 
                 if ((used_x0[0] == new_x0[0] && used_x0[1] == new_x0[1]) ||
                     (used_x1[0] == new_x0[0] && used_x1[1] == new_x0[1])) {
                   ++num_usages0;
-                  if (used_x0[2] == new_x0[2] || used_x1[2] == new_x0[2]) {
-                    correct_usage0 = true;
-                  }
                 }
                 if ((used_x0[0] == new_x1[0] && used_x0[1] == new_x1[1]) ||
                     (used_x1[0] == new_x1[0] && used_x1[1] == new_x1[1])) {
                   ++num_usages1;
-                  if (used_x0[2] == new_x1[2] || used_x1[2] == new_x1[2]) {
-                    correct_usage1 = true;
-                  }
                 }
               }
 
-              if (crossed || num_usages0 > 1 || num_usages1 > 1) {
-                new_weight /= neighbor_weight;
-              } else if ((correct_usage0 && num_usages0 == 1) ||
-                         (correct_usage1 && num_usages1 == 1)) {
-                new_weight *= neighbor_weight;
-              }
-              if (new_weight > best_weight) {
-                best_weight      = new_weight;
-                best_edge        = unused_edge_pair_it;
-                best_num_usages0 = num_usages0;
-                best_num_usages1 = num_usages1;
-                best_correct_usage0 = correct_usage0;
-                best_correct_usage1 = correct_usage1;
-                best_crossed        = crossed;
+              if (crossed) {
+                new_weight = -std::numeric_limits<float>::max();
+              } else {
+                if (num_usages0 > 1 || num_usages1 > 1) {
+                  new_weight *= 0.5;
+                } else if (num_usages0 == 1 || num_usages1 == 1) {
+                  new_weight *= neighbor_weight;
+                }
+                if (new_weight > best_weight) {
+                  best_weight         = new_weight;
+                  best_edge           = unused_edge_pair_it;
+                  best_num_usages0    = num_usages0;
+                  best_num_usages1    = num_usages1;
+                  best_crossed        = crossed;
+                }
               }
             }
           }
           ++edge_counter;
         }
         if (best_edge != end(unused_edges)) {
-          if (best_crossed) {
-            std::cerr << "crossed! " << *best_edge->second << "\n";
-          } else {
-            if (best_correct_usage0 && best_num_usages0 == 1) {
-              std::cerr << "great! " << *best_edge->second << "\n";
-            } else if (best_correct_usage1 && best_num_usages1 == 1) {
-              std::cerr << "great! " << *best_edge->second << "\n";
-            } else if (best_num_usages0 > 1 || best_num_usages1 > 1) {
-              std::cerr << "multi! " << *best_edge->second << "\n";
-            }
-          }
+          //if (best_crossed) {
+          //  std::cerr << "crossed! " << *best_edge->second << "\n";
+          //} else {
+          //  } else if (best_num_usages0 > 1 || best_num_usages1 > 1) {
+          //    std::cerr << "multi! " << *best_edge->second << "\n";
+          //  }
+          //}
           std::string filepath_vtk = pathsurface_dir;
-          for (size_t i = 0; i < 3; ++i) {
+          for (size_t i = 0; i < 2; ++i) {
             filepath_vtk += std::to_string(domain.size(i)) + "_";
           }
-          filepath_vtk +=
-              std::to_string(min_t0) + "_" + std::to_string(max_t0) + "_" +
-              std::to_string(btau) + "_" + std::to_string(ftau) + "_" +
-              std::to_string(seed_res) + "_" + std::to_string(stepsize) + "_" +
-              std::to_string(best_edge->first) + ".vtk";
+          filepath_vtk += std::to_string(t0)       + "_" +
+                          std::to_string(btau)     + "_" +
+                          std::to_string(ftau)     + "_" +
+                          std::to_string(seed_res) + "_" +
+                          std::to_string(stepsize) + "_" +
+                          std::to_string(best_edge->first) + ".vtk";
           simple_tri_mesh<real_t, 2> mesh{filepath_vtk};
-          auto [v0, v1] = *best_edge->second;
-          rasterize(pathsurface_gpu_t{mesh, v0.position()(2), v1.position()(2)},
-                    render_index, layer);
+          rasterize(pathsurface_gpu_t{mesh, t0}, render_index, layer);
           combine();
           used_edges.push_back(*best_edge);
 
@@ -581,9 +592,11 @@ class steadification {
 
           std::string it_str = std::to_string(iteration);
           while (it_str.size() < 4) { it_str = '0' + it_str; }
-          result_to_lic_tex(domain);
+          result_to_lic_tex(domain, min_t, max_t);
           m_lic_tex.write_png(working_dir + "lic_" + it_str + ".png");
           m_color_lic_tex.write_png(working_dir + "lic_color_" + it_str +
+                                    ".png");
+          m_curvature_lic_tex.write_png(working_dir + "lic_curvature_" + it_str +
                                     ".png");
           const std::string mesh3dpath =
               working_dir + "geometry_" + it_str + ".vtk";
@@ -618,12 +631,12 @@ class steadification {
       } while (coverage < desired_coverage && best_edge != end(unused_edges));
 
       std::cerr << "done!\n";
-      result_to_lic_tex(domain);
+      result_to_lic_tex(domain, min_t, max_t);
       m_lic_tex.write_png(working_dir + "lic_final.png");
       m_color_lic_tex.write_png(working_dir + "lic_color_final.png");
       for (const auto& [used_edge_idx, used_edge_it] : used_edges) {
         const auto [v0, v1] = *used_edge_it;
-        seedcurves.push_back(line<real_t, 3>{v0.position(), v1.position()});
+        seedcurves.push_back(line{v0.position(), v1.position()});
       }
     });
 
@@ -633,19 +646,10 @@ class steadification {
 
     // write report
     write_vtk(seedcurves, working_dir + "seedcurves.vtk");
-    render_seedcurves(domain, seedcurves, domain.dimension(2).front(),
-                      domain.dimension(2).back());
+    render_seedcurves(domain, seedcurves,t0,  min_t, max_t);
     m_seedcurvetex.write_png(working_dir + "seedcurves.png");
 
-    std::string cmd = "#/bin/bash\n";
-    cmd +=
-        "cd " + working_dir + " > /dev/null\n"
-        "ffmpeg -y -r 3 -start_number 0 -i lic_%04d.png -c:v libx264 -vf "
-        "fps=25 -pix_fmt yuv420p lic.mp4> /dev/null\n"
-        "ffmpeg -y -r 3 -start_number 0 -i lic_color_%04d.png -c:v libx264 -vf "
-        "fps=25 -pix_fmt yuv420p lic_color.mp4> /dev/null\n";
-    system(cmd.c_str());
-
+    std::cerr << "building report file... ";
     const std::string   reportfilepath = working_dir + "index.html";
     html::doc           reportfile;
     std::vector<size_t> labels(used_edges.size());
@@ -668,18 +672,22 @@ class steadification {
                       std::vector{std::to_string(i), std::to_string(weights[i]),
                                   std::to_string(coverages[i])}},
           html::image{"lic_" + itstr + ".png"},
-          html::image{"lic_color_" + itstr + ".png"}});
+          html::image{"lic_color_" + itstr + ".png"},
+          html::image{"lic_curvature_" + itstr + ".png"}});
     }
     reportfile.add(lics);
     reportfile.add(html::heading{"seedcurves color coded"},
                    html::image{"seedcurves.png"});
     reportfile.add(html::table{
         std::vector{"btau", "ftau", "seed res", "stepsize", "coverage",
-                    "neighbor weight", "penalty", "num iterations"},
+                    "neighbor weight", "penalty", "max_curvature", "use tau",
+                    "normalize_weight", "num iterations"},
         std::vector{std::to_string(btau), std::to_string(ftau),
                     std::to_string(seed_res), std::to_string(stepsize),
                     std::to_string(coverage), std::to_string(neighbor_weight),
-                    std::to_string(penalty),
+                    std::to_string(penalty), std::to_string(max_curvature),
+                    (use_tau ? "true"s : "false"s),
+                    (normalize_weight ? "true"s : "false"s),
                     std::to_string(used_edges.size())}});
     const auto [min, s, ms] =
         break_down_durations<std::chrono::minutes, std::chrono::seconds,
@@ -698,6 +706,19 @@ class steadification {
                    html::text{tstr2.str()});
 
     reportfile.write(reportfilepath);
+    std::cerr << "done!\n";
+
+    std::string cmd = "#/bin/bash\n";
+    cmd +=
+        "cd " + working_dir + " &>/dev/null\n"
+        "ffmpeg -y -r 3 -start_number 0 -i lic_%04d.png -c:v libx264 -vf "
+        "fps=25 -pix_fmt yuv420p lic.mp4 &>/dev/null\n"
+        "ffmpeg -y -r 3 -start_number 0 -i lic_color_%04d.png -c:v libx264 -vf "
+        "fps=25 -pix_fmt yuv420p lic_color.mp4 &>/dev/null\n";
+    std::cerr << "rendering movies... ";
+    system(cmd.c_str());
+    std::cerr << "done!\n";
+
     return working_dir;
   }
 };

@@ -3,6 +3,7 @@
 layout(local_size_x = 32, local_size_y = 32) in;
 layout(binding = 6, rgba32f) uniform image2D lic_tex;
 layout(binding = 7, rgba32f) uniform image2D color_lic_tex;
+layout(binding = 5, rgba32f) uniform image2D curvature_lic_tex;
 //==============================================================================
 uniform sampler2D v_tex;
 uniform sampler2D noise_tex;
@@ -13,6 +14,7 @@ uniform float     min_t;
 uniform float     max_t;
 uniform uint      num_samples;
 uniform float     stepsize;
+uniform float     max_curvature;
 //==============================================================================
 const uvec2 lic_tex_res   = uvec2(imageSize(lic_tex));
 const ivec2 v_tex_res     = textureSize(v_tex, 0);
@@ -56,7 +58,7 @@ float noise(vec2 pos) {
 vec2 rungekutta4_step(vec2 x1, float stepsize) {
   const vec3  kri1 = v(x1);
   const vec2  k1   = kri1.xy;
-  const float ri1  = kri1.z;
+  //const float ri1  = kri1.z;
   if (isnan(k1.x) || isnan(k1.y)) { return vec2(0.0 / 0.0, 0.0 / 0.0); }
 
   const vec2 x2 = x1 + k1 * stepsize * 0.5;
@@ -66,7 +68,7 @@ vec2 rungekutta4_step(vec2 x1, float stepsize) {
   }
   const vec3  kri2 = v(x2);
   const vec2  k2   = kri2.xy;
-  const float ri2  = kri2.z;
+  //const float ri2  = kri2.z;
   //if (ri2 != ri1) { return vec2(0.0 / 0.0, 0.0 / 0.0); }
   if (isnan(k2.x) || isnan(k2.y)) { return vec2(0.0 / 0.0, 0.0 / 0.0); }
 
@@ -77,7 +79,7 @@ vec2 rungekutta4_step(vec2 x1, float stepsize) {
   }
   const vec3  kri3 = v(x3);
   const vec2  k3   = kri3.xy;
-  const float ri3  = kri3.z;
+  //const float ri3  = kri3.z;
   //if (ri3 != ri1) { return vec2(0.0 / 0.0, 0.0 / 0.0); }
   if (isnan(k3.x) || isnan(k3.y)) { return vec2(0.0 / 0.0, 0.0 / 0.0); }
 
@@ -88,7 +90,7 @@ vec2 rungekutta4_step(vec2 x1, float stepsize) {
   }
   const vec3  kri4 = v(x4);
   const vec2  k4   = kri4.xy;
-  const float ri4  = kri4.z;
+  //const float ri4  = kri4.z;
   //if (ri4 != ri1) { return vec2(0.0 / 0.0, 0.0 / 0.0); }
   if (isnan(k4.x) || isnan(k4.y)) { return vec2(0.0 / 0.0, 0.0 / 0.0); }
 
@@ -139,35 +141,41 @@ void main() {
   if (out_val < 0) { out_val = 0; }
   if (out_val > 1) { out_val = 1; }
 
-  float tau =
+  vec2 t_curv =
       texture(v_tex, domain_pos_to_uv(pos, domain_min, domain_max, v_tex_res))
-          .b;
+          .zw;
 
   imageStore(
       color_lic_tex, idx,
       vec4(out_val * texture(color_scale,
-                             1 - vec2((tau - min_t) / (max_t - min_t), 0.5))
+                             1 - vec2((t_curv.x - min_t) / (max_t - min_t), 0.5))
                          .rgb,
            1));
   imageStore(lic_tex, idx, vec4(vec3(out_val), 1));
+  imageStore(
+      curvature_lic_tex, idx,
+      vec4(out_val *
+               texture(color_scale, 1 - vec2(min(max_curvature, t_curv.y) / max_curvature, 0.5)).rgb,
+           1));
 
-  //const vec2 uv           = vec2(idx) / (vec2(lic_tex_res) - 1);
-  //const vec4 v_t_ri       = texture(v_tex, uv);
-  //const ivec2 offsets[2] =
-  //    ivec2[](ivec2(1, 0), ivec2(0, 1));
-  //for (uint i = 0; i < 2; ++i) {
-  //  const ivec2 idx_off = idx + offsets[i];
-  //  if (idx.x > 0 && idx.y > 0 &&
-  //      idx.x < lic_tex_res.x - 1 &&
-  //      idx.y < lic_tex_res.y - 1) {
-  //    const vec2 uv_offset  = vec2(idx_off) / (vec2(lic_tex_res) - 1);
-  //    const vec4 v_t_ri_off = texture(v_tex, uv_offset);
-  //    if (abs(v_t_ri.y - v_t_ri_off.y) > stepsize * 5 ||
-  //        (acos(dot(normalize(v_t_ri.xy), normalize(v_t_ri_off.xy))) > pi4 &&
-  //         abs(v_t_ri.w - v_t_ri_off.w) > 1.5)) {
-  //      imageStore(color_lic_tex, idx, vec4(1, 1, 1, 1));
-  //      imageStore(lic_tex, idx, vec4(1, 0, 0, 1));
-  //    }
-  //  }
-  //}
+  const vec2 uv           = vec2(idx) / (vec2(lic_tex_res) - 1);
+  const float t       = texture(v_tex, uv).z;
+  const ivec2 offsets[4] =
+      ivec2[](ivec2(1, 0), ivec2(1, 1), ivec2(1, -1), ivec2(0, 1));
+  for (uint i = 0; i < 2; ++i) {
+    const ivec2 idx_off_pos = idx + offsets[i];
+    const ivec2 idx_off_neg = idx - offsets[i];
+    if (idx.x > 0 && idx.y > 0 &&
+        idx.x < lic_tex_res.x - 1 &&
+        idx.y < lic_tex_res.y - 1) {
+      const vec2 uv_offset_pos  = vec2(idx_off_pos) / (vec2(lic_tex_res) - 1);
+      const vec2 uv_offset_neg  = vec2(idx_off_neg) / (vec2(lic_tex_res) - 1);
+      const float t_pos = texture(v_tex, uv_offset_pos).z;
+      const float t_neg = texture(v_tex, uv_offset_neg).z;
+      if (abs(t - t_neg - (t_pos - t)) > 0.5) {
+        imageStore(color_lic_tex, idx, vec4(1, 1, 1, 1));
+        imageStore(lic_tex, idx, vec4(1, 0, 0, 1));
+      }
+    }
+  }
 }

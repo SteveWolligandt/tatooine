@@ -48,6 +48,7 @@ struct lic_shader : comp_shader {
   void set_color_scale_bind_point(GLint b);
   void set_num_samples(GLuint n);
   void set_stepsize(GLfloat s);
+  void set_max_curvature(GLfloat max_curvature);
 };
 //==============================================================================
 struct ll_to_v_shader : comp_shader {
@@ -79,17 +80,21 @@ struct seedcurve_shader : vert_frag_shader {
   void set_color_scale_bind_point(GLint b);
   void set_min_t(GLfloat t);
   void set_max_t(GLfloat t);
+  void set_t0(GLfloat t);
   void use_color_scale(GLboolean b);
   void set_color(GLfloat r, GLfloat g, GLfloat b);
 };
 //==============================================================================
-struct weight_dual_pathsurface_shader : comp_shader {
+struct weight_shader : comp_shader {
   static constexpr std::string_view comp_path =
-      "@TATOOINE_STEADIFICATION_WEIGHT_DUAL_PATHSURFACE_COMP@";
-  weight_dual_pathsurface_shader();
+      "@TATOOINE_STEADIFICATION_WEIGHT_COMP@";
+  weight_shader();
   void set_layer(GLuint n);
   void set_size(GLuint n);
-  void set_penalty(GLfloat p);
+  void set_penalty(GLfloat penalty);
+  void set_max_curvature(GLfloat max_curvature);
+  void set_t_center(GLfloat t_center);
+  void use_tau(GLboolean use_tau);
 };
 //==============================================================================
 struct combine_rasterizations_shader : comp_shader {

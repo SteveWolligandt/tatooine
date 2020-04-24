@@ -421,9 +421,10 @@ struct line {
   line(pos_container_t&& data, bool is_closed = false)
       : m_vertices{std::move(data)}, m_is_closed{is_closed} {}
   //----------------------------------------------------------------------------
-  template <typename... Vertices,
-            enable_if_vector<Vertices...> = true,
-            enable_if_arithmetic<typename Vertices::real_t...> = true>
+  template <
+      typename... Vertices, enable_if_vector<Vertices...> = true,
+      enable_if_arithmetic<typename Vertices::real_t...>               = true,
+      std::enable_if_t<((Vertices::num_components() == N) && ...), bool> = true>
   line(Vertices&&... vertices)
       : m_vertices{pos_t{std::forward<Vertices>(vertices)}...},
         m_is_closed{false} {}
@@ -774,6 +775,10 @@ struct line {
     return lines;
   }
 };
+
+template <typename... Tensors, typename... Reals, size_t N>
+    line(base_tensor<Tensors, Reals, N>&&... vertices) ->
+    line<promote_t<Reals...>, N>;
 //------------------------------------------------------------------------------
 template <typename Real, size_t N>
 auto diff(const line<Real, N>& l) {

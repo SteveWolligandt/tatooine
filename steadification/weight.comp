@@ -1,0 +1,90 @@
+#version 450
+#include "node.glsl"
+layout(local_size_x = 1024) in;
+//==============================================================================
+layout(binding = 0, std430) buffer result_rast_buffer {
+  node result_rast[];
+};
+layout(binding = 1, std430) buffer working_rast_buffer {
+  node working_rast[];
+};
+layout(binding = 2, std430) buffer result_size_buffer {
+  uint result_list_size[];
+};
+layout(binding = 3, std430) buffer working_size_buffer {
+  uint working_list_size[];
+};
+layout(binding = 4, std430) buffer weight_buffer {
+  float weights[];
+};
+layout(binding = 0) uniform atomic_uint num_overall_covered_pixels;
+layout(binding = 1) uniform atomic_uint num_newly_covered_pixels;
+//==============================================================================
+uniform uint  layer;
+uniform uint  size;
+uniform float penalty;
+uniform float max_curvature;
+uniform float t_center;
+uniform bool  use_tau;
+//==============================================================================
+void main() {
+  const uint  li            = gl_GlobalInvocationID.x;
+  if (li >= size) { return; }
+  const uint fi    = li * 2;
+  const uint bi    = fi + 1;
+  const uint size0 = result_list_size[li];
+  const uint size1 = working_list_size[li];
+
+  if (size1 > 0 && size0 == 0) {
+    atomicCounterIncrement(num_overall_covered_pixels);
+    atomicCounterIncrement(num_newly_covered_pixels);
+  } else if (size0 > 0) {
+    atomicCounterIncrement(num_overall_covered_pixels);
+  }
+
+  float weight = 0;
+  if (size0 + size1 == 0) {
+    weight = 0;
+  } else if (size0 + size1 == 1) {
+    node n;
+    if (size0 == 1) {
+      n = result_rast[fi];
+    } else /*(size1 == 1)*/ {
+      n = working_rast[fi];
+    }
+    weight = min(max_curvature, n.curvature) / max_curvature;
+    if (use_tau) { weight *= abs(n.t - t_center); }
+  } else if (size0 + size1 == 2) {
+    node n0, n1;
+    bool calc = true;
+    if (size0 == 0 && size1 == 2) {
+      n0 = working_rast[fi];
+      n1 = working_rast[bi];
+    } else if (size0 == 1 && size1 == 1) {
+      n0 = result_rast[fi];
+      n1 = working_rast[fi];
+    } else /*if (size0 == 2 && size1 == 0)*/ {
+      n0   = result_rast[fi];
+      n1   = result_rast[bi];
+      calc = false;
+    }
+    if (calc) {
+      float cosv0v1 = dot(normalize(n0.v), normalize(n1.v));
+      if (isnan(cosv0v1)) {
+        weight = 0;
+      } else {
+        weight = (1 - cosv0v1 * cosv0v1);
+      }
+      if (abs(n0.t - t_center) > (n1.t - t_center)) {
+        weight *= min(max_curvature, n0.curvature) / max_curvature;
+        if (use_tau) { weight *= abs(n0.t - t_center); }
+      } else {
+        weight *= min(max_curvature, n1.curvature) / max_curvature;
+        if (use_tau) { weight *= abs(n1.t - t_center); }
+      }
+    }
+  } else {
+    weight = penalty;
+  }
+  weights[li] = weight;
+}

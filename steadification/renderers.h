@@ -18,9 +18,8 @@ struct streamsurface_renderer
   using typename parent_t::vbo_data_vec;
   //============================================================================
   template <typename Real>
-  streamsurface_renderer(const simple_tri_mesh<Real, 2>& mesh, Real u0t0,
-                         Real u1t0)
-      : indexeddata{to_vbo_data(mesh, u0t0, u1t0), to_ibo_data(mesh)} {}
+  streamsurface_renderer(const simple_tri_mesh<Real, 2>& mesh, const Real t0)
+      : indexeddata{to_vbo_data(mesh, t0), to_ibo_data(mesh)} {}
   //----------------------------------------------------------------------------
   streamsurface_renderer(const streamsurface_renderer& other) = default;
   //----------------------------------------------------------------------------
@@ -28,7 +27,7 @@ struct streamsurface_renderer
   //============================================================================
   template <typename Real>
   static vbo_data_vec to_vbo_data(const simple_tri_mesh<Real, 2>& mesh,
-                                  Real u0t0, Real u1t0) {
+                                  const Real t0) {
     using namespace boost;
     vbo_data_vec vbo_data;
     vbo_data.reserve(mesh.num_vertices());
@@ -40,8 +39,6 @@ struct streamsurface_renderer
 
     boost::transform(
         mesh.vertices(), std::back_inserter(vbo_data), [&](auto v) {
-          const auto& u = uv_prop[v](0);
-          const float t0 = u0t0 * (1 - u) + u1t0 * u;
           return vbo_data_t{
               yavin::vec2{float(mesh[v](0)), float(mesh[v](1))},
               yavin::vec2{float(vf_prop[v](0)), float(vf_prop[v](1))},
@@ -69,36 +66,43 @@ struct streamsurface_renderer
   //----------------------------------------------------------------------------
   void draw() const;
 };
-struct line_renderer : yavin::indexeddata<yavin::vec3> {
+template <size_t N>
+struct line_renderer : yavin::indexeddata<yavin::vec<float, N>> {
   //============================================================================
-  using parent_t = yavin::indexeddata<yavin::vec3>;
+  using parent_t = yavin::indexeddata<yavin::vec<float, N>>;
   using typename parent_t::ibo_data_vec;
   using typename parent_t::vbo_data_vec;
   //============================================================================
   template <typename Real>
-  line_renderer(const std::vector<line<Real, 3>>& lines)
-      : indexeddata{to_vbo_data(lines), to_ibo_data(lines)} {}
+  line_renderer(const std::vector<line<Real, N>>& lines)
+      : yavin::indexeddata<yavin::vec<float, N>>{to_vbo_data(lines), to_ibo_data(lines)} {}
   //----------------------------------------------------------------------------
   line_renderer(const line_renderer& other) = default;
   //----------------------------------------------------------------------------
   line_renderer(line_renderer&& other) = default;
   //============================================================================
-  template <typename Real>
-  static vbo_data_vec to_vbo_data(const std::vector<line<Real, 3>>& lines) {
+  template <typename Real, size_t... Is>
+  static vbo_data_vec to_vbo_data(const std::vector<line<Real, N>>& lines,
+                                  std::index_sequence<Is...> /*seq*/) {
     using namespace boost;
     vbo_data_vec vbo_data;
 
     for (const auto& line : lines) {
       for (const auto& v : line.vertices()) {
         vbo_data.push_back(
-            vbo_data_t{{(float)(v(0)), (float)(v(1)), (float)(v(2))}});
+            typename parent_t::vbo_data_t{{static_cast<float>(v(Is))...}});
       }
     }
     return vbo_data;
   }
   //----------------------------------------------------------------------------
   template <typename Real>
-  static ibo_data_vec to_ibo_data(const std::vector<line<Real, 3>>& lines) {
+  static vbo_data_vec to_vbo_data(const std::vector<line<Real, N>>& lines) {
+    return to_vbo_data(lines, std::make_index_sequence<N>{});
+  }
+  //----------------------------------------------------------------------------
+  template <typename Real>
+  static ibo_data_vec to_ibo_data(const std::vector<line<Real, N>>& lines) {
     ibo_data_vec ibo_data;
     size_t       j = 0;
     for (const auto& line : lines) {
@@ -111,9 +115,8 @@ struct line_renderer : yavin::indexeddata<yavin::vec3> {
     return ibo_data;
   }
   //----------------------------------------------------------------------------
-  void draw() const;
+  void draw() const { this->draw_lines(); }
 };
-//============================================================================
 //==============================================================================
 }  // namespace tatooine::steadification
 //==============================================================================

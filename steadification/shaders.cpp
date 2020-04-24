@@ -94,6 +94,9 @@ void lic_shader::set_num_samples(GLuint n) {
 void lic_shader::set_stepsize(GLfloat s) {
   set_uniform("stepsize", s);
 }
+void lic_shader::set_max_curvature(GLfloat max_curvature) {
+  set_uniform("max_curvature", max_curvature);
+}
 
 //==============================================================================
 // ll_to_v
@@ -128,6 +131,9 @@ void seedcurve_shader::set_min_t(GLfloat t) {
 void seedcurve_shader::set_max_t(GLfloat t) {
   set_uniform("max_t", t);
 };
+void seedcurve_shader::set_t0(GLfloat t) {
+  set_uniform("t0", t);
+};
 void seedcurve_shader::use_color_scale(GLboolean b) {
   set_uniform("use_color_scale", b);
 }
@@ -135,21 +141,33 @@ void seedcurve_shader::set_color(GLfloat r, GLfloat g, GLfloat b) {
   set_uniform("color", r, g, b);
 }
 //==============================================================================
-// weight_dual_pathsurface
+// weight
 //==============================================================================
-weight_dual_pathsurface_shader::weight_dual_pathsurface_shader()
+weight_shader::weight_shader()
     : comp_shader{comp_path} {}
 //------------------------------------------------------------------------------
-void weight_dual_pathsurface_shader::set_layer(GLuint n) {
+void weight_shader::set_layer(GLuint n) {
   set_uniform("layer", n);
 }
 //------------------------------------------------------------------------------
-void weight_dual_pathsurface_shader::set_size(GLuint n) {
+void weight_shader::set_size(GLuint n) {
   set_uniform("size", n);
 }
 //------------------------------------------------------------------------------
-void weight_dual_pathsurface_shader::set_penalty(GLfloat p) {
-  set_uniform("penalty", p);
+void weight_shader::set_penalty(GLfloat penalty) {
+  set_uniform("penalty", penalty);
+}
+//------------------------------------------------------------------------------
+void weight_shader::set_max_curvature(GLfloat max_curvature) {
+  set_uniform("max_curvature", max_curvature);
+}
+//------------------------------------------------------------------------------
+void weight_shader::set_t_center(GLfloat t_center) {
+  set_uniform("t_center", t_center);
+}
+//------------------------------------------------------------------------------
+void weight_shader::use_tau(GLboolean use_tau) {
+  set_uniform("use_tau", use_tau);
 }
 //==============================================================================
 // combine_rasterizations
