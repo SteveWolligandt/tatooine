@@ -4,7 +4,7 @@
 namespace tatooine {
 //==============================================================================
 template <typename T>
-constexpr decltype(auto) max(T&& t0, T&& t1) {
+constexpr T max(T t0, T t1) {
   return t0 > t1 ? t0 : t1;
 }
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -14,7 +14,7 @@ constexpr decltype(auto) max(T&& t0, Ts&&... ts) {
 }
 //------------------------------------------------------------------------------
 template <typename T>
-constexpr decltype(auto) min(T&& t0, T&& t1) {
+constexpr T min(T t0, T t1) {
   return t0 < t1 ? t0 : t1;
 }
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -

@@ -80,8 +80,8 @@ template <> struct settings<cavity> {
   using real_t = typename cavity::real_t;
   static constexpr std::string_view name = "cavity";
   static constexpr vec<size_t, 2>   render_resolution{
-      cavity::domain.dimension(0).size() * 5,
-      cavity::domain.dimension(1).size() * 5};
+      cavity::domain.dimension(0).size() * 4,
+      cavity::domain.dimension(1).size() * 4};
   static constexpr size_t num_edges = 5;
   static constexpr real_t eps       = 1e-4;
   //----------------------------------------------------------------------------
