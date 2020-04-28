@@ -119,3 +119,15 @@ target_link_libraries(boussinesq_test tatooine yavin)
 target_compile_features(boussinesq_test PUBLIC cxx_std_17)
 target_compile_options(boussinesq_test PRIVATE
   -Wall -Wextra -pedantic -Wno-missing-braces -Wno-unused-lambda-capture)
+#- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+set(OpenGL_GL_PREFERENCE "GLVND")
+find_package(OpenGL REQUIRED)
+find_package(GLUT)
+add_executable(ibfv ibfv.cpp)
+target_include_directories(ibfv PUBLIC ${GLUT_INCLUDE_DIRS})
+target_link_libraries(ibfv OpenGL::OpenGL OpenGL::GLU ${GLUT_LIBRARY})
+target_compile_features(ibfv PUBLIC cxx_std_17)
+add_custom_target(ibfv.run.dg 
+                  COMMAND ./ibfv dg 0 1000 0.05
+                  WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}
+                  DEPENDS ibfv)
