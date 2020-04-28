@@ -31,8 +31,8 @@ struct dg {
 
   static constexpr std::array domain_size {domain_x[1] - domain_x[0],
                                            domain_y[1] - domain_y[0]};
-  static constexpr GLsizei width        = 2048;
-  static constexpr GLsizei height       = 1024;
+  static constexpr GLsizei width        = 1280;
+  static constexpr GLsizei height       = 640;
   static constexpr unsigned int nmesh_x = 200;
   static constexpr unsigned int nmesh_y = 100;
 
