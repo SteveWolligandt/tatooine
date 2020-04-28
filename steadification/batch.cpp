@@ -63,7 +63,7 @@ void batch_sinuscosinus(std::vector<std::string>& working_dirs,
                   const std::string&        random_seed) {
   numerical::sinuscosinus v;
   run(working_dirs, v, {{0, M_PI * 2}},  // time_range
-      {{0, M_PI, 2 * M_PI}},             // t0s
+      {{M_PI}, /*{0, M_PI, 2 * M_PI}*/}, // t0s
       {-M_PI * 2},                       // btau
       {M_PI * 2},                        // ftau
       {2},                               // seedres
@@ -84,7 +84,7 @@ void batch_boussinesq(std::vector<std::string>& working_dirs,
   boussinesq v{dataset_dir + "/boussinesq.am"};
   std::cerr << "done!\n";
   run(working_dirs, v, {{10, 20}},  // time_range
-      {{15}, {10, 15, 20}},         // t0s
+      {/*{15}, */{10, 15, 20}},         // t0s
       {-10},                        // btau
       {10},                         // ftau
       {2},                          // seedres
@@ -93,7 +93,7 @@ void batch_boussinesq(std::vector<std::string>& working_dirs,
       {0.99},                       // coverage
       {1, 1.5, 2},                  // neighbor weight
       {0},                          // penalty
-      {2, 5, 10},                   // max_curvature
+      {5, 10},                      // max_curvature
       {true},                       // use_tau
       {true, false},                // normalize_weight
       random_seed);
@@ -112,7 +112,7 @@ void batch_cavity(std::vector<std::string>& working_dirs,
       {0.1},                       // stepsize
       {{18 * 2, 5 * 2}},           // grid_res
       {0.99},                      // coverage
-      {1, 1.5, 2, 2.5, 3},         // neighbor weight
+      {1, 1.5, 2},                 // neighbor weight
       {0},                         // penalty
       {5, 10},                     // max_curvature
       {true, false},               // use_tau
@@ -127,8 +127,8 @@ auto main() -> int {
   using namespace tatooine::steadification;
   std::vector<std::string> working_dirs;
   std::string              random_seed = "abcd";
-  batch_doublegyre(working_dirs, random_seed);
-  batch_sinuscosinus(working_dirs, random_seed);
-  batch_boussinesq(working_dirs, random_seed);
   batch_cavity(working_dirs, random_seed);
+  batch_boussinesq(working_dirs, random_seed);
+  //batch_doublegyre(working_dirs, random_seed);
+  //batch_sinuscosinus(working_dirs, random_seed);
 }
