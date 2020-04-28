@@ -131,3 +131,12 @@ add_custom_target(ibfv.run.dg
                   COMMAND ./ibfv dg 0 1000 0.05
                   WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}
                   DEPENDS ibfv)
+#- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+add_executable (steadification.render_grid_edge render_grid_edge.cpp renderers.cpp shaders.cpp)
+target_include_directories(steadification.render_grid_edge PRIVATE ${CMAKE_CURRENT_BINARY_DIR})
+target_link_libraries(steadification.render_grid_edge tatooine yavin)
+target_compile_features(steadification.render_grid_edge PUBLIC cxx_std_17)
+target_compile_features(steadification.render_grid_edge PUBLIC cxx_std_17)
+target_compile_options(steadification.render_grid_edge PRIVATE
+  -Wall -Wextra -pedantic -Wno-missing-braces -Wno-unused-lambda-capture
+  -march=native)
