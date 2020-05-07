@@ -47,7 +47,7 @@ struct spacetime_field
     return t_out;
   }
   //----------------------------------------------------------------------------
-  constexpr decltype(auto) in_domain(const pos_t& x, Real /*t*/) const {
+  constexpr bool in_domain(const pos_t& x, Real /*t*/) const {
     tensor<Real, N - 1> spatial_position;
     Real                temporal_position = x(N - 1);
     for (size_t i = 0; i < N - 1; ++i) { spatial_position(i) = x(i); }

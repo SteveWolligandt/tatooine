@@ -9,12 +9,13 @@
 namespace tatooine::steadification {
 //==============================================================================
 template <typename V, typename Real>
-auto integrate(const vectorfield<V, Real, 2>& v,
-               const std::string&             dataset_name,
-               const std::set<std::pair<size_t, grid_edge_iterator<Real, 2>>>&
-                                    unused_edges,
-               const grid<Real, 2>& domain, const Real t0, const Real btau,
-               const Real ftau, const size_t seed_res, const Real stepsize) {
+auto integrate(
+    const vectorfield<V, Real, 2>& v, const std::string& dataset_name,
+    const std::set<std::tuple<size_t, grid_edge_iterator<Real, 2>, Real>>&
+                         edges,
+    const grid<Real, 2>& domain, const Real min_t, const Real max_t,
+    const Real min_btau, const Real max_ftau, const size_t seed_res,
+    const Real stepsize) {
   if (!std::filesystem::exists("pathsurfaces")) {
     std::filesystem::create_directory("pathsurfaces");
   }
@@ -24,14 +25,13 @@ auto integrate(const vectorfield<V, Real, 2>& v,
     std::filesystem::create_directory(pathsurface_dir);
   }
 
-  std::string        filename_vtk;
   std::atomic_size_t progress_counter = 0;
   std::thread        t{[&] {
     float     progress  = 0.0;
     const int bar_width = 10;
     std::cerr << "integrating pathsurfaces... ";
     while (progress < 1.0) {
-      progress = float(progress_counter) / (unused_edges.size());
+      progress = float(progress_counter) / (edges.size() );
 
       int pos = bar_width * progress;
       for (int i = 0; i < bar_width; ++i) {
@@ -49,20 +49,21 @@ auto integrate(const vectorfield<V, Real, 2>& v,
     std::cerr << "integrating pathsurfaces, done!       \n";
   }};
 
-  for (const auto& [edge_idx, unused_edge_it] : unused_edges) {
-    filename_vtk = pathsurface_dir;
+  for (const auto& [edge_idx, edge_it, t0] : edges) {
+    auto filename_vtk = pathsurface_dir;
     for (size_t i = 0; i < 2; ++i) {
       filename_vtk += std::to_string(domain.size(i)) + "_";
     }
-    filename_vtk += std::to_string(t0)       + "_" +
-                    std::to_string(btau)     + "_" +
-                    std::to_string(ftau)     + "_" +
-                    std::to_string(seed_res) + "_" +
-                    std::to_string(stepsize) + "_" +
+    const auto ftau = min(max_ftau, max_t - t0);
+    const auto btau = max(min_btau, min_t - t0);
+    filename_vtk += std::to_string(t0) + "_" + std::to_string(btau) + "_" +
+                    std::to_string(ftau) + "_" + std::to_string(seed_res) +
+                    "_" + std::to_string(stepsize) + "_" +
                     std::to_string(edge_idx) + ".vtk";
     if (!std::filesystem::exists(filename_vtk)) {
       simple_tri_mesh<Real, 2> psf =
-          pathsurface(v, *unused_edge_it, t0, btau, ftau, seed_res, stepsize).first;
+          pathsurface(v, *edge_it, t0, btau, ftau, seed_res, stepsize)
+              .first;
       psf.write_vtk(filename_vtk);
     }
     progress_counter++;
@@ -73,7 +74,7 @@ auto integrate(const vectorfield<V, Real, 2>& v,
 template <typename V, typename Real>
 auto integrate(const vectorfield<V, Real, 2>& v, const std::string& dataset_name,
                const std::set<std::pair<size_t, grid_edge_iterator<Real, 3>>>&
-                                      unused_edges,
+                                      edges,
                const grid<Real, 3>& domain, const Real btau,
                const Real ftau, const size_t seed_res,
                const Real stepsize) {
@@ -92,7 +93,7 @@ auto integrate(const vectorfield<V, Real, 2>& v, const std::string& dataset_name
     float     progress  = 0.0;
     const int bar_width = 10;
     while (progress < 1.0) {
-      progress = float(progress_counter) / (unused_edges.size());
+      progress = float(progress_counter) / (edges.size());
 
       int pos = bar_width * progress;
       std::cerr << "integrating pathsurfaces ";
@@ -111,7 +112,7 @@ auto integrate(const vectorfield<V, Real, 2>& v, const std::string& dataset_name
     std::cerr << "integrating pathsurfaces done!                  \n";
   }};
 
-  for (const auto& [edge_idx, unused_edge_it] : unused_edges) {
+  for (const auto& [edge_idx, edge_it] : edges) {
     filename_vtk = pathsurface_dir;
     for (size_t i = 0; i < 3; ++i) {
       filename_vtk += std::to_string(domain.size(i)) + "_";
@@ -125,7 +126,7 @@ auto integrate(const vectorfield<V, Real, 2>& v, const std::string& dataset_name
                     ".vtk";
     if (!std::filesystem::exists(filename_vtk)) {
       simple_tri_mesh<Real, 2> psf =
-          pathsurface(v, *unused_edge_it, btau, ftau, seed_res, stepsize).first;
+          pathsurface(v, *edge_it, btau, ftau, seed_res, stepsize).first;
       psf.write_vtk(filename_vtk);
     }
     progress_counter++;

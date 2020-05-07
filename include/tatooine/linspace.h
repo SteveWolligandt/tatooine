@@ -131,6 +131,22 @@ struct linspace_iterator
   //----------------------------------------------------------------------------
   auto begin() const { return m_lin->begin(); }
   auto end() const { return m_lin->end(); }
+  //----------------------------------------------------------------------------
+  auto operator<(const linspace_iterator& other) const -> bool {
+    return i() < other.i();
+  }
+  //----------------------------------------------------------------------------
+  auto operator<=(const linspace_iterator& other) const -> bool {
+    return i() <= other.i();
+  }
+  //----------------------------------------------------------------------------
+  auto operator>(const linspace_iterator& other) const -> bool {
+    return i() > other.i();
+  }
+  //----------------------------------------------------------------------------
+  auto operator>=(const linspace_iterator& other) const -> bool {
+    return i() >= other.i();
+  }
 
   //============================================================================
   // iterator_facade implementation

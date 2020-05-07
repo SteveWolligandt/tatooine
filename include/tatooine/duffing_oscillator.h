@@ -25,12 +25,11 @@ struct duffing_oscillator : field<duffing_oscillator<Real>, Real, 2, 2> {
       : m_delta{delta}, m_alpha{alpha}, m_beta{beta} {}
 
   //----------------------------------------------------------------------------
-  constexpr tensor_t evaluate(const pos_t& x, Real t) const {
-    return {x(1), -m_delta * x(1) - m_alpha*x(0) - m_beta * x(0) * x(0) * x(0)};
+  constexpr tensor_t evaluate(const pos_t& x, Real t) const override{
+    return tensor_t{x(1), -m_delta * x(1) - m_alpha*x(0) - m_beta * x(0) * x(0) * x(0)};
   }
-
   //----------------------------------------------------------------------------
-  constexpr bool in_domain(const pos_t& x, Real) const {
+  constexpr bool in_domain(const pos_t& x, Real) const override {
     return true;
   }
 };
@@ -53,14 +52,15 @@ struct forced_duffing_oscillator : field<forced_duffing_oscillator<Real>, Real, 
 
   //============================================================================
   constexpr forced_duffing_oscillator(Real eps = 0.25) noexcept : m_eps{eps} {}
+  ~forced_duffing_oscillator() override = default;
 
   //----------------------------------------------------------------------------
-  constexpr tensor_t evaluate(const pos_t& x, Real t) const {
+  constexpr tensor_t evaluate(const pos_t& x, Real t) const override {
     return {x(1), x(0) - x(0) * x(0) * x(0) + m_eps * std::sin(t)};
   }
 
   //----------------------------------------------------------------------------
-  constexpr bool in_domain(const pos_t& x, Real) const {
+  constexpr bool in_domain(const pos_t& x, Real) const override {
     return true;
   }
 };

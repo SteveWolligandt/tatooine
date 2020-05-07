@@ -595,7 +595,7 @@ template <typename Tensor, typename Real, size_t N>
 constexpr auto normalize(const base_tensor<Tensor, Real, N>& t_in)
     -> vec<Real, N> {
   const auto l = length(t_in);
-  if (l == 0) { return vec<Real, N>::zeros(); }
+  if (std::abs(l) < 1e-13) { return vec<Real, N>::zeros(); }
   return t_in / l;
 }
 

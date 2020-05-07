@@ -131,9 +131,6 @@ void seedcurve_shader::set_min_t(GLfloat t) {
 void seedcurve_shader::set_max_t(GLfloat t) {
   set_uniform("max_t", t);
 };
-void seedcurve_shader::set_t0(GLfloat t) {
-  set_uniform("t0", t);
-};
 void seedcurve_shader::use_color_scale(GLboolean b) {
   set_uniform("use_color_scale", b);
 }

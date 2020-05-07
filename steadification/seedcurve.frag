@@ -13,8 +13,9 @@ void main() {
     fragout.rgb =
         texture(color_scale, 1 - vec2((t0 - min_t) / (max_t - min_t), 0.5))
             .rgb;
-  fragout.a = 1;
+    fragout.a = 1;
   } else {
     fragout = color;
   }
+
 }
