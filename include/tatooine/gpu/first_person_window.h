@@ -273,19 +273,6 @@ struct first_person_window : yavin::window, yavin::window_listener {
     vec<double, 3> origin{m_eye(0), m_eye(1), m_eye(2)};
     vec<double, 3> dir = normalize(vec<double, 3>{planepos(0), planepos(1), planepos(2)} - origin);
 
-    std::cerr << x << ", " << y << '\n';
-    std::cerr << "eye:         " << m_eye << '\n';
-    std::cerr << "look at:     " << m_look_dir << '\n';
-    std::cerr << "look dir:    " << look_dir << '\n';
-    std::cerr << "right:       " << right << '\n';
-    std::cerr << "up:          " << up << '\n';
-    std::cerr << "near:        " << m_cam.near() << '\n';
-    std::cerr << "fovy:        " << m_cam.fovy() << '\n';
-    std::cerr << "width:       " << m_cam.viewport_width() << '\n';
-    std::cerr << "height:      " << m_cam.viewport_height() << '\n';
-    std::cerr << "half width:  " << plane_half_width << '\n';
-    std::cerr << "half height: " << plane_half_height << '\n';
-    std::cerr << "bottom left: " << bottom_left << '\n';
     return ray{std::move(origin), std::move(dir)};
   }
 };

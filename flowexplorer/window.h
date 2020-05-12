@@ -97,11 +97,12 @@ struct window : first_person_window {
     });
     add_button_released_event([&](auto b) {
       if (b == yavin::BUTTON_LEFT) {
-        auto r= cast_ray(mouse_x, mouse_y);
+        auto       r  = cast_ray(mouse_x, mouse_y);
         const auto x0 = r(0.5);
-        std::cerr << x0 << '\n';
-        lines.push_back(integrator.integrate(v, x0, 0, btau, ftau));
-        line_renderers.push_back(gpu::upload(lines.back()));
+        if (v.in_domain(x0, 0)) {
+          lines.push_back(integrator.integrate(v, x0, 0, btau, ftau));
+          line_renderers.push_back(gpu::upload(lines.back()));
+        }
       }
     });
 
