@@ -33,13 +33,13 @@ struct ray{
   auto&       origin() { return m_origin; }
   const auto& origin() const { return m_origin; }
   //----------------------------------------------------------------------------
-  auto&       direction() const { return m_direction; }
+  auto&       direction() { return m_direction; }
   const auto& direction() const { return m_direction; }
   //----------------------------------------------------------------------------
-  [[nodiscard]] auto operator=(Real t) const { return at(t); }
+  [[nodiscard]] auto operator()(Real t) const { return at(t); }
   [[nodiscard]] auto at(Real t) const {return m_origin + m_direction * t;}
   //----------------------------------------------------------------------------
-  void normalize() { m_direction = normalize(m_direction); }
+  void normalize() { m_direction = tatooine::normalize(m_direction); }
 };
 //==============================================================================
 }  // namespace tatooine

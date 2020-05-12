@@ -25,7 +25,7 @@ auto upload(const parameterized_line<Real, N, Interpolator>& l) {
       ypos(j) = static_cast<float>(pos(j));
       ytan(j) = static_cast<float>(tan(j));
     }
-    ypos(0) *= -1;
+    //ypos(0) *= -1;
     vbo_data.push_back({ypos, ytan, static_cast<float>(t)});
   }
   for (size_t i = 0; i < l.num_vertices() - 1; ++i) {

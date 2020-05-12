@@ -44,6 +44,7 @@ struct window : first_person_window {
       line_renderers;
 
   std::vector<integrator_t::integral_t> lines;
+  int mouse_x, mouse_y;
 
   //----------------------------------------------------------------------------
   // ctor
@@ -88,6 +89,19 @@ struct window : first_person_window {
             contour_color[1], contour_color[2], line_width, contour_width,
             ambient_factor, diffuse_factor, specular_factor, shininess);
         } catch (std::exception& e) { std::cerr << e.what() << '\n'; }
+      }
+    });
+    add_mouse_motion_event([&](int x, int y) {
+      mouse_x = x;
+      mouse_y = y;
+    });
+    add_button_released_event([&](auto b) {
+      if (b == yavin::BUTTON_LEFT) {
+        auto r= cast_ray(mouse_x, mouse_y);
+        const auto x0 = r(0.5);
+        std::cerr << x0 << '\n';
+        lines.push_back(integrator.integrate(v, x0, 0, btau, ftau));
+        line_renderers.push_back(gpu::upload(lines.back()));
       }
     });
 
