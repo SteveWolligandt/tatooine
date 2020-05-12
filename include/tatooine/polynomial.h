@@ -186,6 +186,7 @@ std::vector<Real> solve(const polynomial<Real, 1>& p) {
   if (p.c(1) == 0) { return {}; }
   return {-p.c(0) / p.c(1)};
 }
+//------------------------------------------------------------------------------
 /// solve a + bx + cxx
 template <typename Real>
 std::vector<Real> solve(const polynomial<Real, 2>& p) {
