@@ -5,14 +5,14 @@
 //==============================================================================
 namespace tatooine {
 //==============================================================================
-  template <typename Real, size_t N>
-struct ray{
+template <typename Real, size_t N>
+struct ray {
   using vec_t = vec<Real, N>;
   using pos_t = vec_t;
   //============================================================================
  private:
-   pos_t m_origin;
-   vec_t m_direction;
+  pos_t m_origin;
+  vec_t m_direction;
   //============================================================================
  public:
   ray(const ray&)     = default;
@@ -37,7 +37,7 @@ struct ray{
   const auto& direction() const { return m_direction; }
   //----------------------------------------------------------------------------
   [[nodiscard]] auto operator()(Real t) const { return at(t); }
-  [[nodiscard]] auto at(Real t) const {return m_origin + m_direction * t;}
+  [[nodiscard]] auto at(Real t) const { return m_origin + m_direction * t; }
   //----------------------------------------------------------------------------
   void normalize() { m_direction = tatooine::normalize(m_direction); }
 };

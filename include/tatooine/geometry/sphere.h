@@ -3,6 +3,7 @@
 //==============================================================================
 #include "../tensor.h"
 #include "primitive.h"
+#include "sphere_ray_intersection.h"
 //==============================================================================
 namespace tatooine::geometry {
 //==============================================================================
@@ -17,6 +18,8 @@ struct sphere : primitive<Real, N> {
   pos_t m_center;
   //============================================================================
  public:
+  sphere() : m_radius{1}, m_center{pos_t::zeros()} {}
+  explicit sphere(Real radius) : m_radius{radius}, m_center{pos_t::zeros()} {}
   sphere(Real radius, pos_t&& center)
       : m_radius{radius}, m_center{std::move(center)} {}
   sphere(Real radius, const pos_t& center)
@@ -27,8 +30,9 @@ struct sphere : primitive<Real, N> {
   sphere& operator=(const sphere&) = default;
   sphere& operator=(sphere&&) = default;
   //============================================================================
-  bool is_inside(const pos_t& x) const override {
-    return distance(center, x) <= m_radius;
+  std::optional<intersection<Real, N>> check_intersection(
+      const ray<Real, N>& r, const Real min_t = 0) const override {
+    return tatooine::geometry::check_intersection(*this, r, min_t);
   }
   //----------------------------------------------------------------------------
   auto  radius() const { return m_radius; }
