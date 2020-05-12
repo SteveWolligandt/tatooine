@@ -259,8 +259,7 @@ struct first_person_window : yavin::window, yavin::window_listener {
     auto  up                = normalize(cross(right, look_dir));
     float plane_half_width =
         std::tan(m_cam.fovy() * 0.5 * M_PI / 180) * m_cam.near();
-    float plane_half_height = float(m_cam.viewport_height()) /
-                              float(m_cam.viewport_width()) * plane_half_width;
+    float plane_half_height = m_cam.aspect() * plane_half_width;
     auto bottom_left = m_eye + look_dir * m_cam.near() -
                        right * plane_half_width - up * plane_half_height;
     auto plane_base_x =
