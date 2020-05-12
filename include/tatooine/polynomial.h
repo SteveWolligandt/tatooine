@@ -190,12 +190,12 @@ std::vector<Real> solve(const polynomial<Real, 1>& p) {
 /// solve a + bx + cxx
 template <typename Real>
 std::vector<Real> solve(const polynomial<Real, 2>& p) {
-  const auto&       a     = p.c(0);
-  const auto&       b     = p.c(1);
-  const auto&       c     = p.c(2);
+  const auto& a = p.c(0);
+  const auto& b = p.c(1);
+  const auto& c = p.c(2);
   if (c == 0) { return solve(polynomial{a, b}); }
 
-  Real              discr = b * b - 4 * c * a;
+  Real discr = b * b - 4 * c * a;
   if (discr < 0) {
     return {};
   } else if (std::abs(discr) < 1e-10) {
