@@ -140,11 +140,11 @@ struct first_person_window : yavin::window, yavin::window_listener {
     f(dt);
   }
   //----------------------------------------------------------------------------
-  auto projection_matrix() {
+  auto projection_matrix() const {
     return m_cam.projection_matrix();
   }
   //----------------------------------------------------------------------------
-  auto view_matrix() {
+  auto view_matrix() const {
     return *inverse(look_at_matrix(m_eye, m_eye + m_look_dir));
   }
   //============================================================================
@@ -209,7 +209,7 @@ struct first_person_window : yavin::window, yavin::window_listener {
   void on_resize(int w, int h) override {
     m_width  = w;
     m_height = h;
-    m_cam.set_projection(60, (float)(w) / (float)(h), 0.01f, 1000.0f, w, h);
+    m_cam.set_projection(60, (float)(w) / (float)(h), 0.1f, 1000.0f, w, h);
   }
   //----------------------------------------------------------------------------
   template <typename Event>
@@ -253,26 +253,19 @@ struct first_person_window : yavin::window, yavin::window_listener {
   }
   //----------------------------------------------------------------------------
   auto cast_ray(float x, float y) const {
-    y = m_cam.viewport_height() - y;
-    auto  look_dir          = normalize(m_look_dir);
-    auto  right             = normalize(cross(look_dir, m_up));
-    auto  up                = normalize(cross(right, look_dir));
-    float plane_half_width =
-        std::tan(m_cam.fovy() * 0.5 * M_PI / 180) * m_cam.near();
-    float plane_half_height = m_cam.aspect() * plane_half_width;
-    auto bottom_left = m_eye + look_dir * m_cam.near() -
-                       right * plane_half_width - up * plane_half_height;
-    auto plane_base_x =
-        right * 2.0f * plane_half_width / float(m_cam.viewport_width());
-    auto plane_base_y =
-        up * 2.0f * plane_half_height / float(m_cam.viewport_height());
+    // from http://antongerdelan.net/opengl/raycasting.html
+    const auto ray_eye =
+        *inverse(projection_matrix()) *
+        yavin::vec4{2 * m_mouse_pos_x / float(m_width - 1) - 1,
+                    2 * (m_height - m_mouse_pos_y - 1) / float(m_height - 1) - 1,
+                    -1, 1};
+    ray_eye(2) = -1;
+    ray_eye(3) = 0;
 
-    auto planepos = bottom_left + plane_base_x * x + plane_base_y * y;
+    const auto ray_wor = look_at_matrix(m_eye, m_eye + m_look_dir) * ray_eye;
 
-    vec<double, 3> origin{m_eye(0), m_eye(1), m_eye(2)};
-    vec<double, 3> dir = normalize(vec<double, 3>{planepos(0), planepos(1), planepos(2)} - origin);
-
-    return ray{std::move(origin), std::move(dir)};
+    return ray{vec3{m_eye(0), m_eye(1), m_eye(2)},
+               normalize(vec3{ray_wor(0), ray_wor(1), ray_wor(2)})};
   }
 };
 //==============================================================================
