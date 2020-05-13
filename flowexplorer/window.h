@@ -197,13 +197,14 @@ struct window : first_person_window {
         ImGui::SliderFloat("general_alpha", &general_alpha, 0.0f, 1.0f);
       }
 
-      for (size_t i = 0; i < size(m_renderables); ++i) {
+      size_t i = 0; 
+      for (auto& r : m_renderables) {
+        ImGui::PushID(++i);
         ImGui::BeginGroup();
-        std::string name = "Parameters" + std::to_string(i);
-        if (ImGui::CollapsingHeader(name.c_str())) {
-          m_renderables[i]->draw_ui();
-        }
+        std::string name = std::to_string(i) + " - " + r->name();
+        if (ImGui::CollapsingHeader(name.c_str())) { r->draw_ui(); }
         ImGui::EndGroup();
+        ImGui::PopID();
       }
       ImGui::End();
     }

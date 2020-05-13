@@ -13,6 +13,9 @@ void line_shader::set_modelview_matrix(const yavin::mat4& modelview) {
 void line_shader::set_projection_matrix(const yavin::mat4& projmat) {
   set_uniform("projection", projmat);
 }
+void line_shader::set_color(GLfloat r, GLfloat g, GLfloat b, GLfloat a) {
+  set_uniform("color", r, g, b, a);
+}
 //==============================================================================
 }
 //==============================================================================

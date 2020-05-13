@@ -2,8 +2,9 @@
 #define TATOOINE_FLOWEXPLORER_BOUNDINGBOX_H
 //==============================================================================
 #include <tatooine/boundingbox.h>
-#include <yavin/indexeddata.h>
 #include <yavin/imgui.h>
+#include <yavin/indexeddata.h>
+
 #include "line_shader.h"
 #include "renderable.h"
 //==============================================================================
@@ -12,13 +13,15 @@ namespace tatooine::flowexplorer {
 template <typename Real, size_t N>
 struct boundingbox : tatooine::boundingbox<Real, N>, renderable {
   using parent_t = tatooine::boundingbox<Real, N>;
-  using gpu_vec = yavin::vec<float, N>;
-  using vbo_t = yavin::vertexbuffer<gpu_vec>;
-  using parent_t::min;
+  using gpu_vec  = yavin::vec<float, N>;
+  using vbo_t    = yavin::vertexbuffer<gpu_vec>;
   using parent_t::max;
+  using parent_t::min;
   //============================================================================
   yavin::indexeddata<yavin::vec<float, N>> m_gpu_data;
-  line_shader m_shader;
+  line_shader                              m_shader;
+  int                                      m_linewidth = 1;
+  std::array<GLfloat, 4>                   m_color{0.0f, 0.0f, 0.0f, 1.0f};
   //============================================================================
   boundingbox()                       = default;
   boundingbox(const boundingbox&)     = default;
@@ -28,29 +31,42 @@ struct boundingbox : tatooine::boundingbox<Real, N>, renderable {
   //============================================================================
   template <typename Real0, typename Real1>
   constexpr boundingbox(vec<Real0, N>&& min, vec<Real1, N>&& max) noexcept
-      :parent_t{std::move(min), std::move(max)} {create_indexed_data();}
+      : parent_t{std::move(min), std::move(max)} {
+    create_indexed_data();
+  }
   //----------------------------------------------------------------------------
   template <typename Real0, typename Real1>
   constexpr boundingbox(const vec<Real0, N>& min, const vec<Real1, N>& max)
-      : parent_t{min, max} {create_indexed_data();}
+      : parent_t{min, max} {
+    create_indexed_data();
+  }
   //----------------------------------------------------------------------------
   template <typename Tensor0, typename Tensor1, typename Real0, typename Real1>
   constexpr boundingbox(const base_tensor<Tensor0, Real0, N>& min,
                         const base_tensor<Tensor1, Real1, N>& max)
-      : parent_t{min, max} {create_indexed_data();}
+      : parent_t{min, max} {
+    create_indexed_data();
+  }
   //============================================================================
-  void render(const yavin::mat4& projection_matrix, const yavin::mat4& view_matrix) override {
+  void render(const yavin::mat4& projection_matrix,
+              const yavin::mat4& view_matrix) override {
     set_vbo_data();
     m_shader.bind();
+    m_shader.set_color(m_color[0], m_color[1], m_color[2], m_color[3]);
     m_shader.set_projection_matrix(projection_matrix);
     m_shader.set_modelview_matrix(view_matrix);
+    yavin::gl::line_width(m_linewidth);
     m_gpu_data.draw_lines();
   }
   //----------------------------------------------------------------------------
   void draw_ui() override {
     ImGui::DragDouble3("min", this->min().data_ptr(), 0.1);
     ImGui::DragDouble3("max", this->max().data_ptr(), 0.1);
+    ImGui::DragInt("line size", &m_linewidth, 1, 1, 10);
+    ImGui::ColorEdit4("line color", m_color.data());
   }
+  //----------------------------------------------------------------------------
+  std::string name() const override { return "Bounding Box"; }
   //============================================================================
   void set_vbo_data() {
     auto vbomap = m_gpu_data.vertex_buffer().map();

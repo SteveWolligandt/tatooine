@@ -13,6 +13,7 @@ struct line_shader : yavin::shader {
   line_shader();
   void set_modelview_matrix(const yavin::mat4& mvmat);
   void set_projection_matrix(const yavin::mat4& projmat);
+  void set_color(GLfloat r, GLfloat g, GLfloat b, GLfloat a);
 };
 //==============================================================================
 }  // namespace tatooine::flowexplorer
