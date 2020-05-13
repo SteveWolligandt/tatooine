@@ -2,13 +2,14 @@
 #define TATOOINE_FLOWEXPLORER_WINDOW_H
 //==============================================================================
 #include <tatooine/boundingbox.h>
+#include <tatooine/gpu/first_person_window.h>
+#include <tatooine/gpu/line_renderer.h>
 #include <tatooine/gpu/line_shader.h>
 #include <tatooine/integration/vclibs/rungekutta43.h>
 #include <tatooine/interpolation.h>
 #include <tatooine/spacetime_field.h>
 
-#include <tatooine/gpu/first_person_window.h>
-#include <tatooine/gpu/line_renderer.h>
+#include "boundingbox.h"
 //==============================================================================
 namespace tatooine::flowexplorer {
 //==============================================================================
@@ -42,6 +43,7 @@ struct window : first_person_window {
   integrator_t                      integrator;
   std::vector<yavin::indexeddata<yavin::vec3, yavin::vec3, yavin::scalar>>
       line_renderers;
+  std::vector<std::unique_ptr<renderable>> m_renderables;
 
   std::vector<integrator_t::integral_t> lines;
   int mouse_x, mouse_y;
@@ -50,9 +52,9 @@ struct window : first_person_window {
   // ctor
   //----------------------------------------------------------------------------
   template <typename V, typename VReal, size_t N, typename BBReal>
-  window(const vectorfield<V, VReal, N, N>& v,
-                         const boundingbox<BBReal, N>&      seedarea,
-                         size_t num_pathlines, double _btau, double _ftau)
+  window(const vectorfield<V, VReal, N, N>&      v,
+         const tatooine::boundingbox<BBReal, N>& seedarea, size_t num_pathlines,
+         double _btau, double _ftau)
       : btau{_btau},
         ftau{_ftau},
         show_gui{true},
@@ -107,6 +109,7 @@ struct window : first_person_window {
     });
 
     line_renderers = gpu::upload(lines);
+
     start();
   }
 
@@ -143,6 +146,9 @@ struct window : first_person_window {
       update_shader();
       shader->bind();
       for (auto& renderer : line_renderers) { renderer.draw_lines(); }
+      for (auto& r : m_renderables) {
+          r->render(projection_matrix(), view_matrix());
+      }
       render_ui();
     });
   }
@@ -167,6 +173,10 @@ struct window : first_person_window {
   void render_ui() {
     if (show_gui) {
       ImGui::Begin("settings", &show_gui);
+      if (ImGui::Button("add bounding box")){
+        m_renderables.emplace_back(
+            new boundingbox{vec{-1.0, -1.0, -1.0}, vec{1.0, 1.0, 1.0}});
+      }
       ImGui::SliderFloat("line width", &line_width, 0.0f, 0.1f);
       ImGui::SliderFloat("contour width", &contour_width, 0.0f, line_width / 2);
       ImGui::SliderFloat("ambient factor", &ambient_factor, 0.0f, 1.0f);
@@ -185,6 +195,15 @@ struct window : first_person_window {
         ImGui::SliderFloat("time", &time, btau, ftau);
       } else {
         ImGui::SliderFloat("general_alpha", &general_alpha, 0.0f, 1.0f);
+      }
+
+      for (size_t i = 0; i < size(m_renderables); ++i) {
+        ImGui::BeginGroup();
+        std::string name = "Parameters" + std::to_string(i);
+        if (ImGui::CollapsingHeader(name.c_str())) {
+          m_renderables[i]->draw_ui();
+        }
+        ImGui::EndGroup();
       }
       ImGui::End();
     }

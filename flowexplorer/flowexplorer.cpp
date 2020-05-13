@@ -10,7 +10,7 @@ namespace tatooine::flowexplorer {
 //==============================================================================
 template <typename V, typename Real, size_t N>
 void work(int argc, char** argv, const field<V, Real, N, N>& v,
-          const boundingbox<Real, N>& seedarea) {
+          const tatooine::boundingbox<Real, N>& seedarea) {
   const size_t num_pathlines = argc > 2 ? atoi(argv[2]) : 100;
   const double btau          = argc > 3 ? atof(argv[3]) : -10;
   const double ftau          = argc > 4 ? atof(argv[4]) : 10;

@@ -209,7 +209,7 @@ struct first_person_window : yavin::window, yavin::window_listener {
   void on_resize(int w, int h) override {
     m_width  = w;
     m_height = h;
-    m_cam.set_projection(60, (float)(h) / (float)(w), 0.01f, 1000.0f, w, h);
+    m_cam.set_projection(60, (float)(w) / (float)(h), 0.01f, 1000.0f, w, h);
   }
   //----------------------------------------------------------------------------
   template <typename Event>
