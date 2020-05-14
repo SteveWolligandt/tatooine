@@ -19,7 +19,7 @@ struct integrator : crtp<Derived> {
   using parent_t   = crtp<Derived>;
   using integral_t = parameterized_line<Real, N, InterpolationKernel>;
   using pos_t      = vec<Real, N>;
-  using cache_t    = cache<std::pair<Real, pos_t>, integral_t>;
+  using cache_t    = tatooine::cache<std::pair<Real, pos_t>, integral_t>;
 
   using parent_t::as_derived;
 

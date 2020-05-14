@@ -1,6 +1,8 @@
 #ifndef TATOOINE_TENSOR_H
 #define TATOOINE_TENSOR_H
 
+#include <lapacke.h>
+
 #include <array>
 #include <cassert>
 #include <iostream>
@@ -13,11 +15,10 @@
 #include "type_traits.h"
 #include "utility.h"
 
-#if has_cxx17_support()
+#if TATOOINE_GINAC_AVAILABLE
 #include "symbolic.h"
 #endif
 
-#include <lapacke.h>
 #ifdef I
 #undef I
 #endif
@@ -27,10 +28,8 @@ namespace tatooine {
 struct frobenius_t {};
 static constexpr frobenius_t frobenius;
 //------------------------------------------------------------------------------
-#if has_cxx17_support()
 template <typename Tensor, typename Real, size_t FixedDim, size_t... Dims>
 struct tensor_slice;
-#endif
 
 //------------------------------------------------------------------------------
 template <typename Tensor, typename Real, size_t... Dims>
@@ -137,7 +136,6 @@ struct base_tensor : crtp<Tensor> {
   }
 
   //----------------------------------------------------------------------------
-#if has_cxx17_support()
   template <size_t FixedDim, size_t... Is>
   constexpr auto slice(size_t fixed_index, std::index_sequence<Is...>) {
     static_assert(FixedDim < num_dimensions(),
@@ -173,7 +171,6 @@ struct base_tensor : crtp<Tensor> {
     return slice<FixedDim>(fixed_index,
                            std::make_index_sequence<num_dimensions() - 1>{});
   }
-#endif
 
   //----------------------------------------------------------------------------
   template <typename... Is, enable_if_integral<Is...> = true>
@@ -192,8 +189,12 @@ struct base_tensor : crtp<Tensor> {
   }
 
   //----------------------------------------------------------------------------
+#if TATOOINE_GINAC_AVAILABLE
   template <typename OtherReal,
             enable_if_arithmetic_or_symbolic<OtherReal> = true>
+#else
+  template <typename OtherReal, enable_if_arithmetic<OtherReal> = true>
+#endif
   auto operator+=(const OtherReal& other) -> auto& {
     for_indices([&](const auto... is) { at(is...) += other; });
     return *this;
@@ -207,22 +208,34 @@ struct base_tensor : crtp<Tensor> {
     return *this;
   }
   //----------------------------------------------------------------------------
+#if TATOOINE_GINAC_AVAILABLE
   template <typename OtherReal,
             enable_if_arithmetic_or_symbolic<OtherReal> = true>
+#else
+  template <typename OtherReal, enable_if_arithmetic<OtherReal> = true>
+#endif
   auto operator-=(const OtherReal& other) -> auto& {
     for_indices([&](const auto... is) { at(is...) -= other; });
     return *this;
   }
   //----------------------------------------------------------------------------
+#if TATOOINE_GINAC_AVAILABLE
   template <typename OtherReal,
             enable_if_arithmetic_or_symbolic<OtherReal> = true>
+#else
+  template <typename OtherReal, enable_if_arithmetic<OtherReal> = true>
+#endif
   auto operator*=(const OtherReal& other) -> auto& {
     for_indices([&](const auto... is) { at(is...) *= other; });
     return *this;
   }
   //----------------------------------------------------------------------------
+#if TATOOINE_GINAC_AVAILABLE
   template <typename OtherReal,
             enable_if_arithmetic_or_symbolic<OtherReal> = true>
+#else
+  template <typename OtherReal, enable_if_arithmetic<OtherReal> = true>
+#endif
   auto operator/=(const OtherReal& other) -> auto& {
     for_indices([&](const auto... is) { at(is...) /= other; });
     return *this;
@@ -344,22 +357,20 @@ struct tensor : base_tensor<tensor<Real, Dims...>, Real, Dims...>,  // NOLINT
   }
 };
 //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-#if has_cxx17_support()
 template <size_t C, typename... Rows>
 tensor(Rows const(&&... rows)[C])  // NOLINT
     ->tensor<promote_t<Rows...>, sizeof...(Rows), C>;
-#endif
 //==============================================================================
 template <typename Real, size_t N>
 struct vec : tensor<Real, N> {  // NOLINT
   using parent_t = tensor<Real, N>;
+  using parent_t::at;
   using parent_t::dimension;
   using parent_t::num_dimensions;
   using parent_t::parent_t;
-  using parent_t::at;
   using parent_t::operator();
 
-  template <typename... Ts, size_t _Dim0 = dimension(0),
+  template <typename... Ts, size_t _Dim0 = parent_t::dimension(0),
             std::enable_if_t<_Dim0 == sizeof...(Ts), bool> = true>
   explicit constexpr vec(const Ts&... ts) : parent_t{ts...} {}
 
@@ -391,10 +402,8 @@ struct vec : tensor<Real, N> {  // NOLINT
 };
 
 //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-#if has_cxx17_support()
 template <typename... Ts>
-vec(const Ts&...)->vec<promote_t<Ts...>, sizeof...(Ts)>;
-#endif
+vec(const Ts&...) -> vec<promote_t<Ts...>, sizeof...(Ts)>;
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 using vec2 = vec<double, 2>;
@@ -421,9 +430,10 @@ struct mat : tensor<Real, M, N> {  // NOLINT
   }
   ~mat() = default;
 
-#if has_cxx17_support()
+#if TATOOINE_GINAC_AVAILABLE
   template <typename... Rows, enable_if_arithmetic_or_symbolic<Rows...> = true>
 #else
+  template <typename... Rows, enable_if_arithmetic<Rows...> = true>
 #endif
   constexpr mat(Rows(&&... rows)[parent_t::dimension(1)]) {  // NOLINT
     static_assert(
@@ -449,11 +459,9 @@ struct mat : tensor<Real, M, N> {  // NOLINT
 };
 
 //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-#if has_cxx17_support()
 template <size_t C, typename... Rows>
 mat(Rows const(&&... rows)[C])  // NOLINT
     ->mat<promote_t<Rows...>, sizeof...(Rows), C>;
-#endif
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 using mat2 = mat<double, 2, 2>;
@@ -600,8 +608,8 @@ constexpr auto normalize(const base_tensor<Tensor, Real, N>& t_in)
 }
 
 //------------------------------------------------------------------------------
-template <typename Tensor0, typename Real0, typename Tensor1,
-          typename Real1, size_t N>
+template <typename Tensor0, typename Real0, typename Tensor1, typename Real1,
+          size_t N>
 constexpr auto distance(const base_tensor<Tensor0, Real0, N>& lhs,
                         const base_tensor<Tensor1, Real1, N>& rhs) {
   return length(rhs - lhs);
@@ -617,8 +625,8 @@ constexpr auto sum(const base_tensor<Tensor, Real, VecDim>& v) {
 }
 
 //------------------------------------------------------------------------------
-template <typename Tensor0, typename Real0, typename Tensor1,
-          typename Real1, size_t N>
+template <typename Tensor0, typename Real0, typename Tensor1, typename Real1,
+          size_t N>
 constexpr auto dot(const base_tensor<Tensor0, Real0, N>& lhs,
                    const base_tensor<Tensor1, Real1, N>& rhs) {
   promote_t<Real0, Real1> d = 0;
@@ -646,13 +654,12 @@ constexpr auto det(const base_tensor<Tensor, Real, 3, 3>& m) -> Real {
 }
 
 //------------------------------------------------------------------------------
-template <typename Tensor0, typename Real0, typename Tensor1,
-          typename Real1>
+template <typename Tensor0, typename Real0, typename Tensor1, typename Real1>
 constexpr auto cross(const base_tensor<Tensor0, Real0, 3>& lhs,
                      const base_tensor<Tensor1, Real1, 3>& rhs) {
   return vec<promote_t<Real0, Real1>, 3>{lhs(1) * rhs(2) - lhs(2) * rhs(1),
-                                             lhs(2) * rhs(0) - lhs(0) * rhs(2),
-                                             lhs(0) * rhs(1) - lhs(1) * rhs(0)};
+                                         lhs(2) * rhs(0) - lhs(0) * rhs(2),
+                                         lhs(0) * rhs(1) - lhs(1) * rhs(0)};
 }
 
 //------------------------------------------------------------------------------
@@ -683,7 +690,7 @@ constexpr auto unary_operation(F&&                                       f,
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 template <typename F, typename Tensor0, typename Real0, typename Tensor1,
           typename Real1, size_t N>
-constexpr auto binary_operation(F&&                                       f,
+constexpr auto binary_operation(F&&                                   f,
                                 const base_tensor<Tensor0, Real0, N>& lhs,
                                 const base_tensor<Tensor1, Real1, N>& rhs) {
   using RealOut = typename std::result_of<decltype(f)(Real0, Real1)>::type;
@@ -693,9 +700,9 @@ constexpr auto binary_operation(F&&                                       f,
 }
 template <typename F, typename Tensor0, typename Real0, typename Tensor1,
           typename Real1, size_t M, size_t N>
-constexpr auto binary_operation(
-    F&& f, const base_tensor<Tensor0, Real0, M, N>& lhs,
-    const base_tensor<Tensor1, Real1, M, N>& rhs) {
+constexpr auto binary_operation(F&&                                      f,
+                                const base_tensor<Tensor0, Real0, M, N>& lhs,
+                                const base_tensor<Tensor1, Real1, M, N>& rhs) {
   using RealOut = typename std::result_of<decltype(f)(Real0, Real1)>::type;
   mat<RealOut, M, N> t_out = lhs;
   t_out.binary_operation(std::forward<F>(f), rhs);
@@ -719,16 +726,16 @@ constexpr auto operator-(const base_tensor<Tensor, Real, Dims...>& t) {
 }
 
 //------------------------------------------------------------------------------
-template <typename Tensor0, typename Real0, typename Real1,
-          size_t... Dims, enable_if_arithmetic<Real1> = true>
+template <typename Tensor0, typename Real0, typename Real1, size_t... Dims,
+          enable_if_arithmetic<Real1> = true>
 constexpr auto operator+(const base_tensor<Tensor0, Real0, Dims...>& lhs,
-                         Real1 scalar) {
+                         Real1                                       scalar) {
   return unary_operation([scalar](const auto& c) { return c + scalar; }, lhs);
 }
 
 //------------------------------------------------------------------------------
-template <typename Tensor0, typename Real0, typename Tensor1,
-          typename Real1, size_t M, size_t N, size_t O>
+template <typename Tensor0, typename Real0, typename Tensor1, typename Real1,
+          size_t M, size_t N, size_t O>
 constexpr auto operator*(const base_tensor<Tensor0, Real0, M, N>& lhs,
                          const base_tensor<Tensor1, Real1, N, O>& rhs) {
   mat<promote_t<Real0, Real1>, M, O> product;
@@ -741,40 +748,37 @@ constexpr auto operator*(const base_tensor<Tensor0, Real0, M, N>& lhs,
 }
 
 //------------------------------------------------------------------------------
-template <typename Tensor0, typename Real0, typename Tensor1,
-          typename Real1, size_t... Dims,
-          std::enable_if_t<(sizeof...(Dims) != 2), bool> = true>
+template <typename Tensor0, typename Real0, typename Tensor1, typename Real1,
+          size_t... Dims, std::enable_if_t<(sizeof...(Dims) != 2), bool> = true>
 constexpr auto operator*(const base_tensor<Tensor0, Real0, Dims...>& lhs,
                          const base_tensor<Tensor1, Real1, Dims...>& rhs) {
-  return binary_operation(std::multiplies<promote_t<Real0, Real1>>{}, lhs,
-                          rhs);
+  return binary_operation(std::multiplies<promote_t<Real0, Real1>>{}, lhs, rhs);
 }
 
 //------------------------------------------------------------------------------
-template <typename Tensor0, typename Real0, typename Tensor1,
-          typename Real1, size_t... Dims>
+template <typename Tensor0, typename Real0, typename Tensor1, typename Real1,
+          size_t... Dims>
 constexpr auto operator/(const base_tensor<Tensor0, Real0, Dims...>& lhs,
                          const base_tensor<Tensor1, Real1, Dims...>& rhs) {
-  return binary_operation(std::divides<promote_t<Real0, Real1>>{}, lhs,
-                          rhs);
+  return binary_operation(std::divides<promote_t<Real0, Real1>>{}, lhs, rhs);
 }
 
 //------------------------------------------------------------------------------
-template <typename Tensor0, typename Real0, typename Tensor1,
-          typename Real1, size_t... Dims>
+template <typename Tensor0, typename Real0, typename Tensor1, typename Real1,
+          size_t... Dims>
 constexpr auto operator+(const base_tensor<Tensor0, Real0, Dims...>& lhs,
                          const base_tensor<Tensor1, Real1, Dims...>& rhs) {
   return binary_operation(std::plus<promote_t<Real0, Real1>>{}, lhs, rhs);
 }
 
 //------------------------------------------------------------------------------
-#if has_cxx17_support()
+#if TATOOINE_GINAC_AVAILABLE
 template <typename Tensor, typename TensorReal, typename ScalarReal,
           size_t... Dims,
           enable_if_arithmetic_complex_or_symbolic<ScalarReal> = true>
 #else
 template <typename Tensor, typename TensorReal, typename ScalarReal,
-          size_t... Dims, enable_if_arithmetic<ScalarReal> = true>
+          size_t... Dims, enable_if_arithmetic_or_complex<ScalarReal> = true>
 #endif
 constexpr auto operator*(const base_tensor<Tensor, TensorReal, Dims...>& t,
                          const ScalarReal scalar) {
@@ -782,13 +786,13 @@ constexpr auto operator*(const base_tensor<Tensor, TensorReal, Dims...>& t,
       [scalar](const auto& component) { return component * scalar; }, t);
 }
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-#if has_cxx17_support()
+#if TATOOINE_GINAC_AVAILABLE
 template <typename Tensor, typename TensorReal, typename ScalarReal,
           size_t... Dims,
           enable_if_arithmetic_complex_or_symbolic<ScalarReal> = true>
 #else
 template <typename Tensor, typename TensorReal, typename ScalarReal,
-          size_t... Dims, enable_if_arithmetic<ScalarReal> = true>
+          size_t... Dims, enable_if_arithmetic_or_complex<ScalarReal> = true>
 #endif
 constexpr auto operator*(const ScalarReal                                scalar,
                          const base_tensor<Tensor, TensorReal, Dims...>& t) {
@@ -797,22 +801,27 @@ constexpr auto operator*(const ScalarReal                                scalar,
 }
 
 //------------------------------------------------------------------------------
+#if TATOOINE_GINAC_AVAILABLE
 template <typename Tensor, typename TensorReal, typename ScalarReal,
           size_t... Dims,
           enable_if_arithmetic_complex_or_symbolic<ScalarReal> = true>
+#else
+template <typename Tensor, typename TensorReal, typename ScalarReal,
+          size_t... Dims, enable_if_arithmetic_or_complex<ScalarReal> = true>
+#endif
 constexpr auto operator/(const base_tensor<Tensor, TensorReal, Dims...>& t,
                          const ScalarReal scalar) {
   return unary_operation(
       [scalar](const auto& component) { return component / scalar; }, t);
 }
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-#if has_cxx17_support()
+#if TATOOINE_GINAC_AVAILABLE
 template <typename Tensor, typename TensorReal, typename ScalarReal,
           size_t... Dims,
           enable_if_arithmetic_complex_or_symbolic<ScalarReal> = true>
 #else
 template <typename Tensor, typename TensorReal, typename ScalarReal,
-          size_t... Dims, enable_if_arithmetic<ScalarReal> = true>
+          size_t... Dims, enable_if_arithmetic_or_complex<ScalarReal> = true>
 #endif
 constexpr auto operator/(const ScalarReal                                scalar,
                          const base_tensor<Tensor, TensorReal, Dims...>& t) {
@@ -821,8 +830,8 @@ constexpr auto operator/(const ScalarReal                                scalar,
 }
 
 //------------------------------------------------------------------------------
-template <typename Tensor0, typename Real0, typename Tensor1,
-          typename Real1, size_t... Dims>
+template <typename Tensor0, typename Real0, typename Tensor1, typename Real1,
+          size_t... Dims>
 constexpr auto operator-(const base_tensor<Tensor0, Real0, Dims...>& lhs,
                          const base_tensor<Tensor1, Real1, Dims...>& rhs) {
   return binary_operation(std::minus<promote_t<Real0, Real1>>{}, lhs, rhs);
@@ -830,8 +839,8 @@ constexpr auto operator-(const base_tensor<Tensor0, Real0, Dims...>& lhs,
 
 //------------------------------------------------------------------------------
 /// matrix-vector-multiplication
-template <typename Tensor0, typename Real0, typename Tensor1,
-          typename Real1, size_t M, size_t N>
+template <typename Tensor0, typename Real0, typename Tensor1, typename Real1,
+          size_t M, size_t N>
 constexpr auto operator*(const base_tensor<Tensor0, Real0, M, N>& lhs,
                          const base_tensor<Tensor1, Real1, N>&    rhs) {
   vec<promote_t<Real0, Real1>, M> product;
@@ -998,8 +1007,8 @@ auto eigenvectors_sym(mat<double, N, N> A)
 
 //------------------------------------------------------------------------------
 /// for comparison
-template <typename Tensor0, typename Real0, typename Tensor1,
-          typename Real1, size_t... Dims,
+template <typename Tensor0, typename Real0, typename Tensor1, typename Real1,
+          size_t... Dims,
           std::enable_if_t<std::is_floating_point<Real0>::value ||
                                std::is_floating_point<Real1>::value,
                            bool> = true>
@@ -1016,7 +1025,6 @@ constexpr auto approx_equal(const base_tensor<Tensor0, Real0, Dims...>& lhs,
 //==============================================================================
 // views
 //==============================================================================
-#if has_cxx17_support()
 template <typename Tensor, typename Real, size_t FixedDim, size_t... Dims>
 struct tensor_slice : base_tensor<tensor_slice<Tensor, Real, FixedDim, Dims...>,
                                   Real, Dims...> {
@@ -1076,7 +1084,6 @@ struct tensor_slice : base_tensor<tensor_slice<Tensor, Real, FixedDim, Dims...>,
     };
   }
 };
-#endif
 
 //==============================================================================
 template <typename Tensor, typename Real, size_t... Dims>
@@ -1192,7 +1199,7 @@ struct const_real_complex_tensor
 
   //----------------------------------------------------------------------------
   template <typename... Indices, enable_if_integral<Indices...> = true>
-  constexpr auto operator()(const Indices... indices) const ->decltype(auto){
+  constexpr auto operator()(const Indices... indices) const -> decltype(auto) {
     static_assert(sizeof...(Indices) == num_dimensions());
     return m_internal_tensor(indices...).real();
   }
@@ -1326,7 +1333,7 @@ struct transposed_matrix : base_tensor<transposed_matrix<Matrix, M, N>,
   //----------------------------------------------------------------------------
   auto internal_matrix() -> auto& { return m_internal_matrix; }
   auto internal_matrix() const -> const auto& { return m_internal_matrix; }
-}; 
+};
 
 //------------------------------------------------------------------------------
 template <typename Matrix, typename Real, size_t M, size_t N>
@@ -1360,10 +1367,10 @@ auto transpose(const base_tensor<const_transposed_matrix<Matrix, M, N>, Real, M,
   return transposed_matrix.as_derived().internal_matrix();
 }
 
+#if TATOOINE_GINAC_AVAILABLE
 //==============================================================================
 // symbolic
 //==============================================================================
-#if has_cxx17_support()
 template <typename RealOut = double, typename Tensor, size_t... Dims,
           typename... Relations>
 auto evtod(const base_tensor<Tensor, GiNaC::ex, Dims...>& t_in,
@@ -1449,12 +1456,7 @@ auto operator<<(std::ostream& out, const base_tensor<Tensor, Real, N>& v)
   out << "[ ";
   out << std::scientific;
   for (size_t i = 0; i < N; ++i) {
-#if has_cxx17_support()
-    if constexpr (!is_complex_v<Real>) {
-#else
-    if (!is_complex_v<Real>) {
-#endif
-    }
+    if constexpr (!is_complex_v<Real>) {}
     out << v(i) << ' ';
   }
   out << "]";
@@ -1469,11 +1471,7 @@ auto operator<<(std::ostream& out, const base_tensor<Tensor, Real, M, N>& m)
   for (size_t j = 0; j < M; ++j) {
     out << "[ ";
     for (size_t i = 0; i < N; ++i) {
-#if has_cxx17_support()
       if constexpr (!is_complex_v<Real>) {
-#else
-      if (!is_complex_v<Real>) {
-#endif
         if (m(j, i) >= 0) { out << ' '; }
       }
       out << m(j, i) << ' ';
@@ -1519,7 +1517,6 @@ struct internal_data_type<base_tensor<Tensor, Real, Dims...>> {
 };
 
 //==============================================================================
-#if has_cxx17_support()
 template <typename Tensor, typename Real, size_t N>
 struct unpack<base_tensor<Tensor, Real, N>> {
   static constexpr size_t       n = N;
@@ -1539,7 +1536,7 @@ struct unpack<base_tensor<Tensor, Real, N>> {
 };
 //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 template <typename Tensor, typename Real, size_t N>
-unpack(base_tensor<Tensor, Real, N>& c)->unpack<base_tensor<Tensor, Real, N>>;
+unpack(base_tensor<Tensor, Real, N>& c) -> unpack<base_tensor<Tensor, Real, N>>;
 
 //==============================================================================
 template <typename Tensor, typename Real, size_t N>
@@ -1558,7 +1555,7 @@ struct unpack<const base_tensor<Tensor, Real, N>> {
 //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 template <typename Tensor, typename Real, size_t N>
 unpack(const base_tensor<Tensor, Real, N>& c)
-    ->unpack<const base_tensor<Tensor, Real, N>>;
+    -> unpack<const base_tensor<Tensor, Real, N>>;
 
 //==============================================================================
 template <typename Real, size_t N>
@@ -1583,7 +1580,7 @@ struct unpack<tensor<Real, N>> {
 };
 //==============================================================================
 template <typename Real, size_t N>
-unpack(tensor<Real, N>& c)->unpack<tensor<Real, N>>;
+unpack(tensor<Real, N>& c) -> unpack<tensor<Real, N>>;
 
 //==============================================================================
 template <typename Real, size_t N>
@@ -1602,8 +1599,7 @@ struct unpack<const tensor<Real, N>> {
 };
 //==============================================================================
 template <typename Real, size_t N>
-unpack(const tensor<Real, N>& c)->unpack<const tensor<Real, N>>;
-#endif
+unpack(const tensor<Real, N>& c) -> unpack<const tensor<Real, N>>;
 
 template <typename CastReal, typename Real, size_t N>
 auto cast_tensor_type_impl(const vec<Real, N>&) {

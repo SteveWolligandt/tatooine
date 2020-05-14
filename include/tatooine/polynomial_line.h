@@ -1,7 +1,10 @@
 #ifndef TATOOINE_POLYNOMIAL_LINE_H
 #define TATOOINE_POLYNOMIAL_LINE_H
 //==============================================================================
+#include <tatooine/packages.h>
+
 #include <array>
+
 #include "line.h"
 #include "linspace.h"
 #include "math.h"
@@ -16,7 +19,7 @@ class polynomial_line {
   //----------------------------------------------------------------------------
  public:
   using vec_t        = vec<Real, N>;
-  using polynomial_t = polynomial<Real, Degree>;
+  using polynomial_t = tatooine::polynomial<Real, Degree>;
 
   //----------------------------------------------------------------------------
   // static methods

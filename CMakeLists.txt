@@ -27,7 +27,7 @@ add_subdirectory(external/google-benchmark)
 #- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 find_package(TBB REQUIRED)
 find_package(yavin REQUIRED)
-find_package(GiNaC REQUIRED)
+find_package(GiNaC QUIET)
 find_package(LAPACKE REQUIRED)
 find_package(OpenMP REQUIRED)
 find_package(vcode REQUIRED)
@@ -97,7 +97,6 @@ target_include_directories(tatooine
     ${CMAKE_CURRENT_SOURCE_DIR}/include
     ${CMAKE_CURRENT_SOURCE_DIR}/single_include
     ${CMAKE_CURRENT_BINARY_DIR}/include
-    ${GINAC_INCLUDE_DIRS}
     ${LAPACKE_INCLUDE_DIR}
     ${vcode_DIR}/../..
     ${PNG_INCLUDE_DIRS}
@@ -110,15 +109,29 @@ target_link_libraries(tatooine
   INTERFACE
     yavin
     tbb
-    ${GINAC_LIBRARIES}
     ${LAPACKE_LIBRARIES}
     ${PNG_LIBRARIES}
     ${PNG++_LIBRARIES}
     ${HDF5_LIBS}
 )
-if(OpenMP_CXX_FOUND)
-  target_link_libraries(tatooine INTERFACE OpenMP::OpenMP_CXX)
+
+if (GiNaC_FOUND) 
+  set(TATOOINE_GINAC_AVAILABLE 1)
+  target_include_directories(tatooine INTERFACE ${GINAC_INCLUDE_DIRS})
+  target_link_libraries(tatooine INTERFACE ${GINAC_LIBRARIES})
+else()
+  set(TATOOINE_GINAC_AVAILABLE 0)
 endif()
+
+if(OpenMP_CXX_FOUND)
+  set(TATOOINE_OPENMP_AVAILABLE 1)
+  target_link_libraries(tatooine INTERFACE OpenMP::OpenMP_CXX)
+else()
+  set(TATOOINE_OPENMP_AVAILABLE 0)
+endif()
+
+configure_file(${CMAKE_CURRENT_SOURCE_DIR}/include/tatooine/packages.h.in
+               ${CMAKE_CURRENT_BINARY_DIR}/include/tatooine/packages.h)
 
 #- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 add_subdirectory(test)

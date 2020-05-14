@@ -5,7 +5,6 @@
 #include <cmath>
 
 #include "field.h"
-#include "symbolic_field.h"
 //==============================================================================
 namespace tatooine::numerical {
 //==============================================================================
@@ -59,6 +58,8 @@ doublegyre()->doublegyre<double>;
 }  // namespace tatooine::numerical
 //==============================================================================
 
+#if TATOOINE_GINAC_AVAILABLE
+#include "symbolic_field.h"
 //==============================================================================
 namespace tatooine::symbolic {
 //==============================================================================
@@ -96,12 +97,15 @@ doublegyre()->doublegyre<double>;
 //==============================================================================
 }  // namespace tatooine::symbolic
 //==============================================================================
+#endif
 namespace tatooine {
 //==============================================================================
 template <typename Real>
 struct is_field<numerical::doublegyre<Real>> : std::true_type {};
+#if TATOOINE_GINAC_AVAILABLE
 template <typename Real>
 struct is_field<symbolic::doublegyre<Real>> : std::true_type {};
+#endif
 //==============================================================================
 }  // namespace tatooine
 //==============================================================================
