@@ -1,7 +1,7 @@
 #ifndef TATOOINE_SYMBOLIC_H
 #define TATOOINE_SYMBOLIC_H
 #include <tatooine/packages.h>
-#if TATOOINE_GINAC_AVAILABLE_H
+#if TATOOINE_GINAC_AVAILABLE
 //==============================================================================
 #include <ginac/ginac.h>
 //==============================================================================
@@ -47,9 +47,14 @@ auto evtod(const GiNaC::ex& expr, Relations&&... relations) {
           .to_double());
 }
 //==============================================================================
+}  // namespace tatooine::symbolic
+//==============================================================================
 // type_traits
 //==============================================================================
 #include "type_traits.h"
+//==============================================================================
+namespace tatooine {
+//==============================================================================
 template <typename T>
 struct is_symbolic
     : std::integral_constant<bool, std::is_same_v<T, GiNaC::ex> ||
@@ -82,7 +87,7 @@ using enable_if_symbolic =
 template <typename... Ts>
 struct are_arithmetic_or_symbolic
     : std::integral_constant<bool, are_arithmetic_v<Ts...> ||
-                                       are_symbolic_v<Ts...>> {};
+                                   are_symbolic_v<Ts...>> {};
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 template <typename... Ts>
 static constexpr auto are_arithmetic_or_symbolic_v =
@@ -106,7 +111,7 @@ template <typename... Ts>
 using enable_if_arithmetic_complex_or_symbolic = typename std::enable_if_t<
     sizeof...(Ts) == 0 || are_arithmetic_complex_or_symbolic_v<Ts...>, bool>;
 //==============================================================================
-}  // namespace tatooine::symbolic
+}  // namespace tatooine
 //==============================================================================
 #endif
 #endif

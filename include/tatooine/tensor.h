@@ -187,7 +187,6 @@ struct base_tensor : crtp<Tensor> {
     for_indices([&](const auto... is) { at(is...) += other(is...); });
     return *this;
   }
-
   //----------------------------------------------------------------------------
 #if TATOOINE_GINAC_AVAILABLE
   template <typename OtherReal,

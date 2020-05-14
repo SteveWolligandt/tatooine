@@ -1,13 +1,8 @@
 #ifndef TATOOINE_TYPE_TRAITS_H
 #define TATOOINE_TYPE_TRAITS_H
-
-#include "cxxstd.h"
-
-#include "symbolic.h"
-
+//==============================================================================
 #include <complex>
 #include <type_traits>
-
 //==============================================================================
 namespace tatooine {
 //==============================================================================
