@@ -8,6 +8,7 @@ namespace tatooine::flowexplorer {
 struct renderable {
   virtual ~renderable()                                      = default;
   virtual void        draw_ui()                              = 0;
+  virtual void        update(const std::chrono::duration<double>& dt) {}
   virtual void        render(const yavin::mat4& projection_matrix,
                              const yavin::mat4& view_matrix) = 0;
   virtual std::string name() const                           = 0;
