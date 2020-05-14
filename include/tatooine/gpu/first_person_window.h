@@ -254,7 +254,7 @@ struct first_person_window : yavin::window, yavin::window_listener {
   //----------------------------------------------------------------------------
   auto cast_ray(float x, float y) const {
     // from http://antongerdelan.net/opengl/raycasting.html
-    const auto ray_eye =
+    auto ray_eye =
         *inverse(projection_matrix()) *
         yavin::vec4{2 * m_mouse_pos_x / float(m_width - 1) - 1,
                     2 * (m_height - m_mouse_pos_y - 1) / float(m_height - 1) - 1,
