@@ -27,7 +27,7 @@ add_subdirectory(external/google-benchmark)
 #- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 find_package(TBB REQUIRED)
 find_package(yavin REQUIRED)
-find_package(GiNaC QUIET)
+find_package(GINAC QUIET)
 find_package(LAPACKE REQUIRED)
 find_package(OpenMP REQUIRED)
 find_package(vcode REQUIRED)
@@ -97,7 +97,7 @@ target_include_directories(tatooine
     ${CMAKE_CURRENT_SOURCE_DIR}/include
     ${CMAKE_CURRENT_SOURCE_DIR}/single_include
     ${CMAKE_CURRENT_BINARY_DIR}/include
-    ${LAPACKE_INCLUDE_DIR}
+    ${LAPACKE_INCLUDES}
     ${vcode_DIR}/../..
     ${PNG_INCLUDE_DIRS}
     ${PNG++_INCLUDE_DIRS}
@@ -109,16 +109,16 @@ target_link_libraries(tatooine
   INTERFACE
     yavin
     tbb
-    ${LAPACKE_LIBRARIES}
+    ${LAPACK_LIBRARIES}
     ${PNG_LIBRARIES}
     ${PNG++_LIBRARIES}
     ${HDF5_LIBS}
 )
 
-if (GiNaC_FOUND) 
+if (GINAC_FOUND) 
   set(TATOOINE_GINAC_AVAILABLE 1)
-  target_include_directories(tatooine INTERFACE ${GINAC_INCLUDE_DIRS})
-  target_link_libraries(tatooine INTERFACE ${GINAC_LIBRARIES})
+  target_include_directories(tatooine INTERFACE ${GINAC_INCLUDE_DIR})
+  target_link_libraries(tatooine INTERFACE ${GINAC_LIBRARY})
 else()
   set(TATOOINE_GINAC_AVAILABLE 0)
 endif()
