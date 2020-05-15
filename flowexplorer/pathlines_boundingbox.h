@@ -25,6 +25,7 @@ struct pathlines_boundingbox : boundingbox<Real, N> {
   std::unique_ptr<gpu::line_shader> shader;
   std::vector<yavin::indexeddata<yavin::vec3, yavin::vec3, yavin::scalar>>
          line_renderers;
+  bool hide_box = false;
   double btau, ftau;
   int num_pathlines;
   float line_color[3];
@@ -52,9 +53,9 @@ struct pathlines_boundingbox : boundingbox<Real, N> {
             line_color[0], line_color[1], line_color[2], contour_color[0],
             contour_color[1], contour_color[2], line_width, contour_width,
             ambient_factor, diffuse_factor, specular_factor, shininess)},
-        btau{0},
+        btau{-10},
         ftau{10},
-        num_pathlines{10},
+        num_pathlines{100},
         line_color{1.0f, 0.0f, 0.0f},
         contour_color{0.0f, 0.0f, 0.0f},
         line_width{0.02f},
@@ -69,11 +70,15 @@ struct pathlines_boundingbox : boundingbox<Real, N> {
         general_alpha{1.0f},
         animation_min_alpha{0.05f},
         time{0.0f},
-        speed{1.0f} {}
+        speed{1.0f} {
+    this->m_color = {0.0f, 0.0f, 0.0f, 1.0f};
+    this->min() = -vec{0.1, 0.1, 0.1};
+    this->max() = vec{0.1, 0.1, 0.1};
+  }
   //----------------------------------------------------------------------------
   void render(const yavin::mat4& projection_matrix,
               const yavin::mat4& view_matrix) override {
-    parent_t::render(projection_matrix, view_matrix);
+    if (!hide_box) { parent_t::render(projection_matrix, view_matrix); }
     if (animate || general_alpha < 1) {
       yavin::enable_blending();
       yavin::blend_func_alpha();
@@ -102,13 +107,13 @@ struct pathlines_boundingbox : boundingbox<Real, N> {
   //----------------------------------------------------------------------------
   void draw_ui() override {
     if (ImGui::Button("integrate")) { integrate_lines(); }
-    ImGui::SameLine(200);
-    if (ImGui::Button("remove")) { line_renderers.clear(); }
-    parent_t::draw_ui();
+    ImGui::SameLine(0);
+    if (ImGui::Button("clear path lines")) { line_renderers.clear(); }
+    ImGui::Checkbox("hide box", &hide_box);
+    parent_t::draw_ui_preferences();
     ImGui::DragInt("number of path lines", &num_pathlines, 1, 10, 1000);
-    ImGui::DragDouble("backward tau", &btau, 0.1, -100, 100);
-    ImGui::DragDouble("forward tau", &ftau, 0.1, -100, 100);
-    ImGui::SliderFloat("line width", &line_width, 0.0f, 0.1f);
+    ImGui::DragDouble("backward tau", &btau, 0.1, -100, 0);
+    ImGui::DragDouble("forward tau", &ftau, 0.1, 0, 100);
     ImGui::SliderFloat("line width", &line_width, 0.0f, 0.1f);
     ImGui::SliderFloat("contour width", &contour_width, 0.0f, line_width / 2);
     ImGui::SliderFloat("ambient factor", &ambient_factor, 0.0f, 1.0f);
@@ -158,6 +163,8 @@ struct pathlines_boundingbox : boundingbox<Real, N> {
     }
     line_renderers = gpu::upload(lines);
   }
+  //----------------------------------------------------------------------------
+  std::string name() const override { return "path lines"; }
 };
 //==============================================================================
 }  // namespace tatooine::flowexplorer

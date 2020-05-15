@@ -14,7 +14,7 @@ struct window : first_person_window {
   //----------------------------------------------------------------------------
   // members
   //----------------------------------------------------------------------------
-  bool                              show_gui;
+  bool                                     show_gui;
   std::vector<std::unique_ptr<renderable>> m_renderables;
 
   int mouse_x, mouse_y;
@@ -68,9 +68,11 @@ struct window : first_person_window {
       //}
       yavin::gl::clear_color(255, 255, 255, 255);
       yavin::clear_color_depth_buffer();
-      for (auto& r : m_renderables) { r->update(dt); }
       for (auto& r : m_renderables) {
-        r->render(projection_matrix(), view_matrix());
+        if (r->is_active()) { r->update(dt); }
+      }
+      for (auto& r : m_renderables) {
+        if (r->is_active()) { r->render(projection_matrix(), view_matrix()); }
       }
       render_ui(v);
     });
@@ -93,7 +95,11 @@ struct window : first_person_window {
         ImGui::PushID(++i);
         ImGui::BeginGroup();
         const std::string name = r->name();
-        if (ImGui::CollapsingHeader(name.c_str())) { r->draw_ui(); }
+        if (ImGui::CollapsingHeader(name.c_str())) { 
+          ImGui::Checkbox("active", &r->is_active());
+          r->draw_ui();
+
+        }
         ImGui::EndGroup();
         ImGui::PopID();
       }

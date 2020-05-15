@@ -77,7 +77,7 @@ struct first_person_window : yavin::window, yavin::window_listener {
   bool         m_run;
   GLsizei m_width, m_height;
   yavin::vec3                                        m_eye, m_look_dir, m_up;
-  float                                              m_theta = 0, m_phi = M_PI/2;
+  float                                              m_theta = M_PI, m_phi = M_PI/2;
   yavin::perspectivecamera m_cam;
   std::chrono::time_point<std::chrono::system_clock> m_time =
       std::chrono::system_clock::now();

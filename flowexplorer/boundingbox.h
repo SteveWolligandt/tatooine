@@ -56,12 +56,28 @@ struct boundingbox : tatooine::boundingbox<Real, N>, renderable {
     m_shader.set_projection_matrix(projection_matrix);
     m_shader.set_modelview_matrix(view_matrix);
     yavin::gl::line_width(m_linewidth);
+    if (m_color[3] < 1) {
+      yavin::enable_blending();
+      yavin::blend_func_alpha();
+      yavin::disable_depth_test();
+    } else {
+      yavin::disable_blending();
+      yavin::enable_depth_test();
+    }
     m_gpu_data.draw_lines();
   }
   //----------------------------------------------------------------------------
   void draw_ui() override {
+    draw_ui_preferences();
+    draw_ui_render_preferences();
+  }
+  //----------------------------------------------------------------------------
+  void draw_ui_preferences() {
     ImGui::DragDouble3("min", this->min().data_ptr(), 0.1);
     ImGui::DragDouble3("max", this->max().data_ptr(), 0.1);
+  }
+  //----------------------------------------------------------------------------
+  void draw_ui_render_preferences() {
     ImGui::DragInt("line size", &m_linewidth, 1, 1, 10);
     ImGui::ColorEdit4("line color", m_color.data());
   }
