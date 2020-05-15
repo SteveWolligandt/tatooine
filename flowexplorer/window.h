@@ -6,6 +6,7 @@
 #include <tatooine/interpolation.h>
 
 #include "boundingbox.h"
+#include "grid.h"
 #include "pathlines_boundingbox.h"
 //==============================================================================
 namespace tatooine::flowexplorer {
@@ -84,6 +85,11 @@ struct window : first_person_window {
       if (ImGui::Button("add bounding box")){
         m_renderables.emplace_back(
             new boundingbox{vec{-1.0, -1.0, -1.0}, vec{1.0, 1.0, 1.0}});
+      }
+      if (ImGui::Button("add grid")){
+        m_renderables.emplace_back(new grid{linspace{-1.0, 1.0, 3},
+                                            linspace{-1.0, 1.0, 3},
+                                            linspace{-1.0, 1.0, 3}});
       }
       if (ImGui::Button("add pathline bounding box")){
         m_renderables.emplace_back(new pathlines_boundingbox{
