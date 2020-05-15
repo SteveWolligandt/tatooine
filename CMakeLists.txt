@@ -33,9 +33,13 @@ find_package(OpenMP REQUIRED)
 find_package(vcode REQUIRED)
 find_package(PNG REQUIRED)
 find_package(PNG++ REQUIRED)
-find_package(HDF5 REQUIRED)
-set(HDF5_LIBS -lhdf5 -lhdf5_cpp -lhdf5_hl)
-
+find_package(HDF5 REQUIRED CXX HL)
+set(HDF5_LIBS ${HDF5_LIBRARIES} ${HDF5_HL_LIBRARIES})
+get_cmake_property(_variableNames VARIABLES)
+list (SORT _variableNames)
+foreach (_variableName ${_variableNames})
+    message(STATUS "${_variableName}=${${_variableName}}")
+endforeach()
 #- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - 
 # configure files
 #- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - 
