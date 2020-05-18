@@ -25,8 +25,9 @@ set(BENCHMARK_ENABLE_TESTING OFF CACHE BOOL
     "Enable testing of the benchmark library.")
 add_subdirectory(external/google-benchmark)
 #- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+find_package(Boost REQUIRED)
 find_package(TBB REQUIRED)
-find_package(yavin REQUIRED)
+find_package(yavin QUIET)
 find_package(GINAC QUIET)
 find_package(LAPACKE REQUIRED)
 find_package(OpenMP REQUIRED)
@@ -106,15 +107,17 @@ target_include_directories(tatooine
 #set libs 
 target_link_libraries(tatooine
   INTERFACE
-    yavin
     tbb
     ${LAPACK_LIBRARIES}
     ${PNG_LIBRARIES}
     ${PNG++_LIBRARIES}
     ${HDF5_LIBS}
 )
+if (${YAVIN_FOUND}) 
+  target_link_libraries(tatooine INTERFACE yavin)
+endif()
 
-if (GINAC_FOUND) 
+if (${GINAC_FOUND}) 
   set(TATOOINE_GINAC_AVAILABLE 1)
   target_include_directories(tatooine INTERFACE ${GINAC_INCLUDE_DIR})
   target_link_libraries(tatooine INTERFACE ${GINAC_LIBRARY})
@@ -137,9 +140,11 @@ add_subdirectory(test)
 add_subdirectory(benchmarks)
 add_subdirectory(doc)
 #add_subdirectory(misc)
-add_subdirectory(steadification)
 add_subdirectory(material_science)
-add_subdirectory(flowexplorer)
+if (${YAVIN_FOUND}) 
+  add_subdirectory(steadification)
+  add_subdirectory(flowexplorer)
+endif()
 
 #- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 # This makes the project importable from the build directory
