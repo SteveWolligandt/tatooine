@@ -113,11 +113,6 @@ target_link_libraries(tatooine
     ${PNG++_LIBRARIES}
     ${HDF5_LIBS}
 )
-get_cmake_property(_variableNames VARIABLES)
-list (SORT _variableNames)
-foreach (_variableName ${_variableNames})
-    message(STATUS "${_variableName}=${${_variableName}}")
-endforeach()
 if (${yavin_FOUND}) 
   set(TATOOINE_YAVIN_AVAILABLE 1)
   target_link_libraries(tatooine INTERFACE yavin)
