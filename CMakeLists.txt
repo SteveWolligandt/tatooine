@@ -113,8 +113,16 @@ target_link_libraries(tatooine
     ${PNG++_LIBRARIES}
     ${HDF5_LIBS}
 )
-if (${YAVIN_FOUND}) 
+get_cmake_property(_variableNames VARIABLES)
+list (SORT _variableNames)
+foreach (_variableName ${_variableNames})
+    message(STATUS "${_variableName}=${${_variableName}}")
+endforeach()
+if (${yavin_FOUND}) 
+  set(TATOOINE_YAVIN_AVAILABLE 1)
   target_link_libraries(tatooine INTERFACE yavin)
+else()
+  set(TATOOINE_YAVIN_AVAILABLE 0)
 endif()
 
 if (${GINAC_FOUND}) 
@@ -132,6 +140,7 @@ else()
   set(TATOOINE_OPENMP_AVAILABLE 0)
 endif()
 
+
 configure_file(${CMAKE_CURRENT_SOURCE_DIR}/include/tatooine/packages.h.in
                ${CMAKE_CURRENT_BINARY_DIR}/include/tatooine/packages.h)
 
@@ -141,7 +150,7 @@ add_subdirectory(benchmarks)
 add_subdirectory(doc)
 #add_subdirectory(misc)
 add_subdirectory(material_science)
-if (${YAVIN_FOUND}) 
+if (${yavin_FOUND}) 
   add_subdirectory(steadification)
   add_subdirectory(flowexplorer)
 endif()

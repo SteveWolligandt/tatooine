@@ -1,10 +1,15 @@
 #ifndef TATOOINE_PACKAGES_H
 #define TATOOINE_PACKAGES_H
+#define TATOOINE_YAVIN_AVAILABLE @TATOOINE_YAVIN_AVAILABLE@
 #define TATOOINE_GINAC_AVAILABLE @TATOOINE_GINAC_AVAILABLE@
 #define TATOOINE_OPENMP_AVAILABLE @TATOOINE_OPENMP_AVAILABLE@
 //==============================================================================
 namespace tatooine {
 //==============================================================================
+static constexpr inline bool yavin_available() {
+  return TATOOINE_YAVIN_AVAILABLE > 0;
+}
+//------------------------------------------------------------------------------
 static constexpr inline bool ginac_available() {
   return TATOOINE_GINAC_AVAILABLE > 0;
 }
