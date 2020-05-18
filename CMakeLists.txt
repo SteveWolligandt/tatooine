@@ -29,6 +29,7 @@ find_package(Boost REQUIRED)
 find_package(TBB REQUIRED)
 find_package(yavin QUIET)
 find_package(GINAC QUIET)
+find_package(BLAS REQUIRED)
 find_package(LAPACKE REQUIRED)
 find_package(OpenMP REQUIRED)
 find_package(vcode REQUIRED)
@@ -108,6 +109,7 @@ target_include_directories(tatooine
 target_link_libraries(tatooine
   INTERFACE
     tbb
+    ${BLAS_LIBRARIES}
     ${LAPACK_LIBRARIES}
     ${PNG_LIBRARIES}
     ${PNG++_LIBRARIES}

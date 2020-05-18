@@ -3,8 +3,11 @@
 
 #include <boost/math/constants/constants.hpp>
 #include <cmath>
-#include "symbolic_field.h"
+#include "field.h"
+#include <tatooine/packages.h>
 
+#if TATOOINE_GINAC_AVAILABLE
+#include "symbolic_field.h"
 //==============================================================================
 namespace tatooine::symbolic {
 //==============================================================================
@@ -41,6 +44,7 @@ counterexample_sadlo()->counterexample_sadlo<double>;
 //==============================================================================
 }  // namespace tatooine::symbolic
 //==============================================================================
+#endif
 
 //==============================================================================
 namespace tatooine::numerical {
@@ -56,17 +60,16 @@ struct counterexample_sadlo
 
   //============================================================================
   constexpr counterexample_sadlo() noexcept {}
-
   //----------------------------------------------------------------------------
-  constexpr vec_t evaluate(const pos_t& p, Real t) const {
+  constexpr tensor_t evaluate(const pos_t& p, Real t) const {
     const Real x    = p(0);
     const Real y    = p(1);
     const Real xx   = x * x;
     const Real yy   = y * y;
     const Real xxyy = xx + yy;
     const Real r    = (-(1.0 / 80.0) * xxyy * xxyy + 81.0 / 80.0);
-    return {r * (-0.5 * x + 0.5 * std::cos(t) - std::sin(t)),
-            r * (0.5 * y - 0.5 * std::sin(t) + std::cos(t))};
+    return tensor_t{r * (-0.5 * x + 0.5 * std::cos(t) - std::sin(t)),
+                    r * (0.5 * y - 0.5 * std::sin(t) + std::cos(t))};
   }
 
   struct bifurcationline_t{

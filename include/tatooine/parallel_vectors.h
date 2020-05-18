@@ -1,7 +1,6 @@
 #ifndef TATOOINE_PARALLEL_VECTORS_H
 #define TATOOINE_PARALLEL_VECTORS_H
 
-
 #ifdef NDEBUG
 #include <mutex>
 #endif
@@ -11,7 +10,7 @@
 #include <vector>
 
 #include "field.h"
-#include "nested_for_loop.h"
+#include "for_loop.h"
 #include "grid.h"
 #include "line.h"
 #include "openblas.h"
@@ -105,7 +104,7 @@ static auto check_tet(const std::optional<vec<Real, 3>>& tri0,
   if (tris.size() == 1) {
     // std::cerr << "only 1 point\n";
   } else if (tris.size() == 2) {
-    lines.push_back({*(*tris[0]), *(*tris[1])});
+    lines.emplace_back(*(*tris[0]), *(*tris[1]));
   } else if (tris.size() == 3) {
     // std::cerr << "3 points\n";
   } else if (tris.size() == 4) {
@@ -136,10 +135,13 @@ auto calc(GetV&& getv, GetW&& getw, const grid<GridReal, 3>& g,
 
 #ifdef NDEBUG
   std::mutex mutex;
-#endif
 
   auto check_cell =
       [&line_segments, &getv, &getw, &g, &mutex, &preds...](size_t ix, size_t iy, size_t iz) {
+#else
+  auto check_cell =
+      [&line_segments, &getv, &getw, &g, &preds...](size_t ix, size_t iy, size_t iz) {
+#endif
         using boost::copy;
         std::array p{
             g(ix, iy, iz),         g(ix + 1, iy, iz),
@@ -147,22 +149,22 @@ auto calc(GetV&& getv, GetW&& getw, const grid<GridReal, 3>& g,
             g(ix, iy, iz + 1),     g(ix + 1, iy, iz + 1),
             g(ix, iy + 1, iz + 1), g(ix + 1, iy + 1, iz + 1),
         };
-        const decltype(auto) v0 = getv(ix  , iy  , iz  , p[0]);
-        const decltype(auto) v1 = getv(ix+1, iy  , iz  , p[1]);
-        const decltype(auto) v2 = getv(ix  , iy+1, iz  , p[2]);
-        const decltype(auto) v3 = getv(ix+1, iy+1, iz  , p[3]);
-        const decltype(auto) v4 = getv(ix  , iy  , iz+1, p[4]);
-        const decltype(auto) v5 = getv(ix+1, iy  , iz+1, p[5]);
-        const decltype(auto) v6 = getv(ix  , iy+1, iz+1, p[6]);
-        const decltype(auto) v7 = getv(ix+1, iy+1, iz+1, p[7]);
-        const decltype(auto) w0 = getw(ix  , iy  , iz  , p[0]);
-        const decltype(auto) w1 = getw(ix+1, iy  , iz  , p[1]);
-        const decltype(auto) w2 = getw(ix  , iy+1, iz  , p[2]);
-        const decltype(auto) w3 = getw(ix+1, iy+1, iz  , p[3]);
-        const decltype(auto) w4 = getw(ix  , iy  , iz+1, p[4]);
-        const decltype(auto) w5 = getw(ix+1, iy  , iz+1, p[5]);
-        const decltype(auto) w6 = getw(ix  , iy+1, iz+1, p[6]);
-        const decltype(auto) w7 = getw(ix+1, iy+1, iz+1, p[7]);
+        decltype(auto) v0 = getv(ix  , iy  , iz  , p[0]);
+        decltype(auto) v1 = getv(ix+1, iy  , iz  , p[1]);
+        decltype(auto) v2 = getv(ix  , iy+1, iz  , p[2]);
+        decltype(auto) v3 = getv(ix+1, iy+1, iz  , p[3]);
+        decltype(auto) v4 = getv(ix  , iy  , iz+1, p[4]);
+        decltype(auto) v5 = getv(ix+1, iy  , iz+1, p[5]);
+        decltype(auto) v6 = getv(ix  , iy+1, iz+1, p[6]);
+        decltype(auto) v7 = getv(ix+1, iy+1, iz+1, p[7]);
+        decltype(auto) w0 = getw(ix  , iy  , iz  , p[0]);
+        decltype(auto) w1 = getw(ix+1, iy  , iz  , p[1]);
+        decltype(auto) w2 = getw(ix  , iy+1, iz  , p[2]);
+        decltype(auto) w3 = getw(ix+1, iy+1, iz  , p[3]);
+        decltype(auto) w4 = getw(ix  , iy  , iz+1, p[4]);
+        decltype(auto) w5 = getw(ix+1, iy  , iz+1, p[5]);
+        decltype(auto) w6 = getw(ix  , iy+1, iz+1, p[6]);
+        decltype(auto) w7 = getw(ix+1, iy+1, iz+1, p[7]);
         if (turned(ix, iy, iz)) {
           // check if there are parallel vectors on any of the tet's triangles
           [[maybe_unused]] auto pv012 =
@@ -313,9 +315,10 @@ auto calc(GetV&& getv, GetW&& getw, const grid<GridReal, 3>& g,
         }
       };
 #ifdef NDEBUG
-  parallel_nested_for(check_cell, g.size(0) - 1, g.size(1) - 1, g.size(2) - 1);
+  tatooine::parallel_for_loop(check_cell, g.size(0) - 1, g.size(1) - 1,
+                              g.size(2) - 1);
 #else
-  nested_for(check_cell, g.size(0) - 1, g.size(1) - 1, g.size(2) - 1);
+  tatooine::for_loop(check_cell, g.size(0) - 1, g.size(1) - 1, g.size(2) - 1);
 #endif
   return merge_lines(line_segments);
 }

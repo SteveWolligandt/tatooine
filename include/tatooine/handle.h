@@ -13,7 +13,7 @@ struct handle {
   std::size_t i;
   //==========================================================================
   handle() : i{invalid_idx} {}
-  handle(std::size_t _i) : i{_i} {}
+  explicit handle(std::size_t _i) : i{_i} {}
   handle(const handle&) = default;
   handle(handle&&)      = default;
   handle& operator=(const handle&) = default;

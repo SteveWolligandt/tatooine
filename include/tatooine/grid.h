@@ -25,6 +25,8 @@ template <typename Real, size_t N>
 class grid {
  public:
   using this_t            = grid<Real, N>;
+  using vec_t             = vec<Real, N>;
+  using pos_t             = vec_t;
   using linspace_iterator = typename linspace<Real>::iterator;
   using vertex            = grid_vertex<Real, N>;
   using edge              = grid_edge<Real, N>;
@@ -243,7 +245,7 @@ class grid {
   auto at(std::index_sequence<DIs...>, Is... is) const -> vec<Real, N> {
     static_assert(sizeof...(DIs) == sizeof...(Is));
     static_assert(sizeof...(Is) == N);
-    return {(m_dimensions[DIs][is])...};
+    return pos_t{(m_dimensions[DIs][is])...};
   }
   //----------------------------------------------------------------------------
   template <typename... Is, enable_if_integral<Is...> = true>

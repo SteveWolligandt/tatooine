@@ -421,9 +421,22 @@ struct mat : tensor<Real, M, N> {  // NOLINT
   explicit constexpr mat(mat&& other) noexcept : parent_t{std::move(other)} {}
 
   constexpr auto operator=(const mat&) -> mat& = default;
+
   template <typename Real_                         = Real,
             enable_if_arithmetic_or_complex<Real_> = true>
   constexpr auto operator=(mat&& other) noexcept -> mat& {
+    parent_t::operator=(std::move(other));
+    return *this;
+  }
+  template <typename Tensor, typename TensorReal,
+            enable_if_arithmetic_or_complex<TensorReal> = true>
+  constexpr auto operator=(const base_tensor<Tensor, TensorReal, M,N>& other) noexcept -> mat& {
+    parent_t::operator=(other);
+    return *this;
+  }
+  template <typename Tensor, typename TensorReal,
+            enable_if_arithmetic_or_complex<TensorReal> = true>
+  constexpr auto operator=(base_tensor<Tensor, TensorReal, M,N>&& other) noexcept -> mat& {
     parent_t::operator=(std::move(other));
     return *this;
   }

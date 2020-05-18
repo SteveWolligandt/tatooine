@@ -1,6 +1,6 @@
 #ifndef TATOOINE_LINE_H
 #define TATOOINE_LINE_H
-
+//==============================================================================
 #include <boost/range/adaptor/reversed.hpp>
 #include <boost/range/algorithm/reverse.hpp>
 #include <boost/range/algorithm_ext/iota.hpp>
@@ -16,11 +16,9 @@
 #include "property.h"
 #include "tensor.h"
 #include "vtk_legacy.h"
-
 //==============================================================================
 namespace tatooine {
 //==============================================================================
-
 template <typename Real, size_t N>
 struct line;
 
@@ -422,9 +420,9 @@ struct line {
       : m_vertices{std::move(data)}, m_is_closed{is_closed} {}
   //----------------------------------------------------------------------------
   template <
-      typename... Vertices, enable_if_vector<Vertices...> = true,
-      enable_if_arithmetic<typename Vertices::real_t...>               = true,
-      std::enable_if_t<((Vertices::num_components() == N) && ...), bool> = true>
+      typename... Vertices, enable_if_vector<std::decay_t<Vertices>...> = true,
+      enable_if_arithmetic<typename std::decay_t<Vertices>::real_t...>               = true,
+      std::enable_if_t<((std::decay_t<Vertices>::num_components() == N) && ...), bool> = true>
   line(Vertices&&... vertices)
       : m_vertices{pos_t{std::forward<Vertices>(vertices)}...},
         m_is_closed{false} {}
@@ -1618,35 +1616,35 @@ void merge_lines(std::vector<line<Real, N>>& lines0,
     for (auto line1 = begin(lines0); line1 != end(lines0); ++line1) {
       if (line0 != line1 && !line0->empty() && !line1->empty()) {
         // [line0front, ..., LINE0BACK] -> [LINE1FRONT, ..., line1back]
-        if (approx_equal(line0->back(), line1->front(), eps)) {
+        if (approx_equal(line0->back_vertex(), line1->front_vertex(), eps)) {
           for (size_t i = 1; i < line1->num_vertices(); ++i) {
-            line0->push_back(line1->at(i));
+            line0->push_back(line1->vertex_at(i));
           }
           *line1 = std::move(*line0);
           line0->clear();
 
           // [line1front, ..., LINE1BACK] -> [LINE0FRONT, ..., line0back]
-        } else if (approx_equal(line1->back(), line0->front(), eps)) {
+        } else if (approx_equal(line1->back_vertex(), line0->front_vertex(), eps)) {
           for (size_t i = 1; i < line0->num_vertices(); ++i) {
-            line1->push_back(line0->at(i));
+            line1->push_back(line0->vertex_at(i));
           }
           line0->clear();
 
           // [LINE1FRONT, ..., line1back] -> [LINE0FRONT, ..., line0back]
-        } else if (approx_equal(line1->front(), line0->front(), eps)) {
+        } else if (approx_equal(line1->front_vertex(), line0->front_vertex(), eps)) {
           boost::reverse(line1->vertices());
           // -> [line1back, ..., LINE1FRONT] -> [LINE0FRONT, ..., line0back]
           for (size_t i = 1; i < line0->num_vertices(); ++i) {
-            line1->push_back(line0->at(i));
+            line1->push_back(line0->vertex_at(i));
           }
           line0->clear();
 
           // [line0front, ..., LINE0BACK] -> [line1front,..., LINE1BACK]
-        } else if (approx_equal(line0->back(), line1->back(), eps)) {
+        } else if (approx_equal(line0->back_vertex(), line1->back_vertex(), eps)) {
           boost::reverse(line0->vertices());
           // -> [line1front, ..., LINE1BACK] -> [LINE0BACK, ..., line0front]
           for (size_t i = 1; i < line0->num_vertices(); ++i) {
-            line1->push_back(line0->at(i));
+            line1->push_back(line0->vertex_at(i));
           }
           line0->clear();
         }
@@ -1707,12 +1705,12 @@ auto merge_lines(const std::vector<line<Real, N>>& lines) {
     for (const auto& line_strip : line_strips) {
       merged_lines.emplace_back();
       for (size_t i = 0; i < line_strip.num_vertices() - 1; i++) {
-        merged_lines.back().push_back(line_strip[i]);
+        merged_lines.back().push_back(line_strip.vertex_at(i));
       }
-      if (&line_strip.front() == &line_strip.back()) {
+      if (&line_strip.front_vertex() == &line_strip.back_vertex()) {
         merged_lines.back().set_closed(true);
       } else {
-        merged_lines.back().push_back(line_strip.back());
+        merged_lines.back().push_back(line_strip.back_vertex());
       }
     }
   }

@@ -2,9 +2,10 @@
 #define TATOOINE_FOR_LOOP_H
 //==============================================================================
 #include <array>
+#include <tatooine/packages.h>
 #include "type_traits.h"
 #include "utility.h"
-#ifdef _OPENMP
+#if TATOOINE_OPENMP_AVAILABLE
 #include <omp.h>
 #endif
 //==============================================================================
@@ -124,7 +125,7 @@ struct for_loop_impl<Int, N, 1, ParallelIndex> {
                 std::make_index_sequence<N>{});
   }
 };
-#ifdef _OPENMP
+#if TATOOINE_OPENMP_AVAILABLE
 ////==============================================================================
 /// nesting reached parallel state
 /// \tparam Int integer type for counting
@@ -242,7 +243,7 @@ struct for_loop_impl<Int, N, 1, 1> {
                 std::make_index_sequence<N>{});
   }
 };
-#endif  // _OPENMP
+#endif  // TATOOINE_OPENMP_AVAILABLE
 //==============================================================================
 template <
     std::size_t ParallelIndex, typename Int, typename Iteration,

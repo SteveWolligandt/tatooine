@@ -1,9 +1,10 @@
 #ifndef TATOOINE_DIFF_H
 #define TATOOINE_DIFF_H
 
+#include <tatooine/packages.h>
+
 #include "field.h"
 #include "utility.h"
-#include "symbolic_field.h"
 
 //==============================================================================
 namespace tatooine {
@@ -41,7 +42,7 @@ struct derived_field : field<derived_field<Field, TensorDims...>, typename Field
       : m_internal_field{f.as_derived()}, m_eps{eps} {}
 
   //----------------------------------------------------------------------------
-  auto evaluate(const pos_t& x, const real_t t) const {
+  tensor_t evaluate(const pos_t& x, const real_t t) const override {
     tensor_t derivative;
 
     pos_t offset;
@@ -67,7 +68,7 @@ struct derived_field : field<derived_field<Field, TensorDims...>, typename Field
   }
 
   //----------------------------------------------------------------------------
-  constexpr decltype(auto) in_domain(const pos_t& x, real_t t) const {
+  constexpr bool in_domain(const pos_t& x, real_t t) const override {
     return m_internal_field.in_domain(x, t);
   }
 
@@ -92,6 +93,8 @@ auto diff(const field<Field, Real, N, TensorDims...>& f) {
 }
 
 //------------------------------------------------------------------------------
+#if TATOOINE_GINAC_AVAILABLE
+#include "symbolic_field.h"
 template <typename Real, size_t N, size_t... TensorDims>
 auto diff(const symbolic::field<Real, N, TensorDims...>& f) {
   tensor<GiNaC::ex, TensorDims..., N> ex;
@@ -101,7 +104,7 @@ auto diff(const symbolic::field<Real, N, TensorDims...>& f) {
   }
   return symbolic::field<Real, N, TensorDims..., N>{std::move(ex)};
 }
-
+#endif
 //==============================================================================
 }  // namespace tatooine
 //==============================================================================

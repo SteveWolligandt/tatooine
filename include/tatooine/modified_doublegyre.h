@@ -7,9 +7,8 @@
 #include "type_traits.h"
 #include "field.h"
 
-#if has_cxx17_support()
+#if TATOOINE_GINAC_AVAILABLE
 #include "symbolic_field.h"
-
 //==============================================================================
 namespace tatooine::symbolic {
 //==============================================================================
@@ -130,8 +129,8 @@ struct modified_doublegyre : field<modified_doublegyre<Real>,Real, 2, 2> {
     const Real f  = a * x(0) * x(0) + b * x(0);
     const Real df = 2 * a * x(0) + b;
 
-    return {-pi * A * std::sin(pi * f) * std::cos(pi * x(1)),
-             pi * A * std::cos(pi * f) * std::sin(pi * x(1)) * df};
+    return tensor_t{-pi * A * std::sin(pi * f) * std::cos(pi * x(1)),
+                     pi * A * std::cos(pi * f) * std::sin(pi * x(1)) * df};
   }
 
   //----------------------------------------------------------------------------
