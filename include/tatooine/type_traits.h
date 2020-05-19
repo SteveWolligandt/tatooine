@@ -138,6 +138,19 @@ struct are_complex<T0, T1, Ts...>
 template <typename... Ts>
 using enable_if_complex =
     std::enable_if_t<sizeof...(Ts) == 0 || are_complex_v<Ts...>, bool>;
+//==============================================================================
+template <typename... Ts>
+struct are_floating_point_or_complex
+    : std::integral_constant<bool, are_floating_point_v<Ts...> ||
+                                       are_complex_v<Ts...>> {};
+// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+template <typename... Ts>
+static constexpr auto are_floating_point_or_complex_v =
+    are_floating_point_or_complex<Ts...>::value;
+// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+template <typename... Ts>
+using enable_if_floating_point_or_complex = typename std::enable_if_t<
+    sizeof...(Ts) == 0 || are_floating_point_or_complex_v<Ts...>, bool>;
 
 //==============================================================================
 template <typename... Ts>

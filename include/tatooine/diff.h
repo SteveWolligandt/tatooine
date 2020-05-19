@@ -1,11 +1,10 @@
 #ifndef TATOOINE_DIFF_H
 #define TATOOINE_DIFF_H
-
+//==============================================================================
 #include <tatooine/packages.h>
 
 #include "field.h"
 #include "utility.h"
-
 //==============================================================================
 namespace tatooine {
 //==============================================================================
@@ -33,12 +32,17 @@ struct derived_field : field<derived_field<Field, TensorDims...>, typename Field
   //============================================================================
  public:
   template <typename Real, size_t N, size_t... FieldTensorDims>
-  derived_field(const field<Field, Real, N, FieldTensorDims...>& f,
-                Real                                             eps = 1e-6)
+  derived_field(const field<Field, Real, N, FieldTensorDims...>& f, Real eps)
       : m_internal_field{f.as_derived()}, m_eps{fill{eps}} {}
+  //----------------------------------------------------------------------------
   template <typename Real, size_t N, size_t... FieldTensorDims>
   derived_field(const field<Field, Real, N, FieldTensorDims...>& f,
-                const vec<Real, num_dimensions()>&                    eps)
+                const vec_t&                                     eps)
+      : m_internal_field{f.as_derived()}, m_eps{eps} {}
+  //----------------------------------------------------------------------------
+  template <typename Real, size_t N, size_t... FieldTensorDims>
+  derived_field(const field<Field, Real, N, FieldTensorDims...>& f,
+                const vec<Real, num_dimensions()>&               eps)
       : m_internal_field{f.as_derived()}, m_eps{eps} {}
 
   //----------------------------------------------------------------------------
@@ -88,10 +92,14 @@ struct derived_field : field<derived_field<Field, TensorDims...>, typename Field
 
 //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 template <typename Field, typename Real, size_t N, size_t... TensorDims>
-auto diff(const field<Field, Real, N, TensorDims...>& f) {
-  return derived_field<Field, TensorDims..., N>{f};
+auto diff(const field<Field, Real, N, TensorDims...>& f, const Real eps) {
+  return derived_field<Field, TensorDims..., N>{f, eps};
 }
-
+//------------------------------------------------------------------------------
+template <typename Field, typename Real, size_t N, size_t... TensorDims>
+auto diff(const field<Field, Real, N, TensorDims...>& f, const vec<Real, N>& eps) {
+  return derived_field<Field, TensorDims..., N>{f, eps};
+}
 //------------------------------------------------------------------------------
 #if TATOOINE_GINAC_AVAILABLE
 #include "symbolic_field.h"

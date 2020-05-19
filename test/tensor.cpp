@@ -5,8 +5,6 @@
 //==============================================================================
 namespace tatooine::test {
 //==============================================================================
-
-//==============================================================================
 TEST_CASE("tensor_initializers", "[tensor][initializers]") {
   SECTION("constructors") {
     auto m3z = mat3::zeros();
@@ -27,46 +25,6 @@ TEST_CASE("tensor_initializers", "[tensor][initializers]") {
     mat3 m3rn{random_normal{}};
   }
 }
-
-//==============================================================================
-TEST_CASE("tensor_ginac_matrix_conversion",
-          "[tensor][symbolic][conversion][matrix]") {
-  using namespace symbolic;
-  SECTION("to ginac") {
-    mat  m{{symbol::x(0), symbol::x(1)},
-          {symbol::x(1) * symbol::t(), GiNaC::ex{symbol::x(0)}}};
-    auto mg = to_ginac_matrix(m);
-    for (size_t r = 0; r < m.dimension(0); ++r) {
-      for (size_t c = 0; c < m.dimension(1); ++c) {
-        REQUIRE(mg(r, c) == m(r, c));
-      }
-    }
-  }
-  SECTION("to tensor") {
-    GiNaC::matrix m{{symbol::x(0), symbol::x(1)},
-                    {symbol::x(1) * symbol::t(), GiNaC::ex{symbol::x(0)}}};
-    auto          t = to_mat<2, 2>(m);
-    for (size_t r = 0; r < m.rows(); ++r) {
-      for (size_t c = 0; c < m.cols(); ++c) {
-        REQUIRE(t(r, c) == m(r, c));
-      }
-    }
-  }
-}
-
-//==============================================================================
-TEST_CASE("tensor_symbolic_inverse", "[tensor][symbolic][inverse][matrix]") {
-  using namespace symbolic;
-  mat m{{symbol::x(0), symbol::x(1)},
-        {symbol::x(1) * symbol::t(), GiNaC::ex{symbol::x(0)}}};
-  auto inv = (inverse(m));
-  auto eye = m * inv;
-  expand(eye);
-  //eval(eye);
-  //normal(eye);
-  std::cerr << eye << '\n';
-}
-
 //==============================================================================
 TEST_CASE("tensor_print_matrix", "[tensor][print][matrix]") {
   std::cerr << mat<int, 3, 3>{random_uniform{0, 9}} << '\n';
@@ -116,11 +74,11 @@ TEST_CASE("tensor_slice", "[tensor][slice]") {
   REQUIRE(v.num_dimensions() == 1);
   REQUIRE(v.dimension(0) == 3);
   REQUIRE(v.num_components() == 3);
-  
+
   vec v2{1.0, 2.0};
   REQUIRE(v(0) == 1);
   REQUIRE(v(1) == 2);
-  
+
   mat m{{1.0, 2.0},
         {3.0, 4.0},
         {5.0, 6.0}};
@@ -210,14 +168,6 @@ TEST_CASE("tensor_addition", "[tensor][operation][addition]") {
   });
 }
 
-//==============================================================================
-TEST_CASE("tensor_symbolic", "[tensor][symbolic]") {
-  vec  v{symbolic::symbol::x(0),
-         symbolic::symbol::x(0) * symbolic::symbol::x(1)};
-  //auto m = mat2::randu();
-  auto vdfx0 = diff(v, symbolic::symbol::x(0));
-  auto vdfx1 = diff(v, symbolic::symbol::x(1));
-}
 
 //==============================================================================
 TEST_CASE("tensor_eigenvalue", "[tensor][eigenvalue]") {
@@ -298,7 +248,122 @@ TEST_CASE("tensor_matrix_transpose", "[tensor][matrix][mat][transpose][view]") {
     for (size_t j = 0; j < 3; ++j) { REQUIRE(A(i, j) == At(j, i)); }
   }
 }
+//==============================================================================
+TEST_CASE("tensor_abs", "[tensor][abs]") {
+  SECTION("vec") {
+    vec  x{-1, 2, -3};
+    auto ax = abs(x);
+    CAPTURE(x, ax);
+    REQUIRE(ax(0) == 1);
+    REQUIRE(ax(1) == 2);
+    REQUIRE(ax(2) == 3);
+  }
+  SECTION("mat") {
+    mat  A{{-1.79222, -7.94109,  3.67540},
+           { 2.38520,  0.82284,  8.53506},
+           {-1.37601, -6.15705, -0.71982}};
+    auto aA = abs(A);
+    CAPTURE(A, aA);
+    REQUIRE(aA(0, 0) == -A(0, 0));
+    REQUIRE(aA(1, 0) ==  A(1, 0));
+    REQUIRE(aA(2, 0) == -A(2, 0));
+    REQUIRE(aA(0, 1) == -A(0, 1));
+    REQUIRE(aA(1, 1) ==  A(1, 1));
+    REQUIRE(aA(2, 1) == -A(2, 1));
+    REQUIRE(aA(0, 2) ==  A(0, 2));
+    REQUIRE(aA(1, 2) ==  A(1, 2));
+    REQUIRE(aA(2, 2) == -A(2, 2));
+  }
+}
+TEST_CASE("tensor_sum", "[tensor][sum]") {
+  SECTION("vec") {
+    vec  x{-1, 2, -3};
+    REQUIRE(sum(x) == Approx(-1+2-3));
+  }
+  SECTION("mat") {
+    mat A{{-1.79222, -7.94109, 3.67540},
+          {2.38520, 0.82284, 8.53506},
+          {-1.37601, -6.15705, -0.71982}};
 
+    CAPTURE(A.col(0), abs(A).slice<1>(0));
+    REQUIRE(sum(A.col(0)) == Approx(-1.79222 + 2.38520 - 1.37601));
+    REQUIRE(sum(abs(A).slice<1>(0)) == Approx(1.79222 + 2.38520 + 1.37601));
+  }
+}
+//==============================================================================
+TEST_CASE("tensor_matrix_norm1",
+          "[tensor][norm1][1-norm][matrix]") {
+    mat  A{{-1.79222, -7.94109,  3.67540},
+           { 2.38520,  0.82284,  8.53506},
+           {-1.37601, -6.15705, -0.71982}};
+  REQUIRE(norm1(A) == Approx(14.921));
+}
+//==============================================================================
+TEST_CASE("tensor_gesvd", "[tensor][gesvd]") {
+  const mat A{{-1.79222, -7.94109, 3.67540},
+              {2.38520, 0.82284, 8.53506},
+              {-1.37601, -6.15705, -0.71982}};
+  const auto [U, s, VT] = gesvd(A, lapack_job::A, lapack_job::A);
+  std::cerr << U << '\n';
+  std::cerr << s << '\n';
+  std::cerr << VT << '\n';
+}
+//==============================================================================
+TEST_CASE("tensor_condition_number",
+          "[tensor][cond][condition][condition_number]") {
+  mat A{{-1.79222, -7.94109,  3.67540},
+        { 2.38520,  0.82284,  8.53506},
+        {-1.37601, -6.15705, -0.71982}};
+  CAPTURE(A);
+  REQUIRE(condition_number(A, 2) == Approx(16.64827989465566));
+}
+//==============================================================================
+#if TATOOINE_GINAC_AVAILABLE
+//==============================================================================
+TEST_CASE("tensor_symbolic", "[tensor][symbolic]") {
+  vec  v{symbolic::symbol::x(0),
+         symbolic::symbol::x(0) * symbolic::symbol::x(1)};
+  //auto m = mat2::randu();
+  auto vdfx0 = diff(v, symbolic::symbol::x(0));
+  auto vdfx1 = diff(v, symbolic::symbol::x(1));
+}
+TEST_CASE("tensor_ginac_matrix_conversion",
+          "[tensor][symbolic][conversion][matrix]") {
+  using namespace symbolic;
+  SECTION("to ginac") {
+    mat  m{{symbol::x(0), symbol::x(1)},
+          {symbol::x(1) * symbol::t(), GiNaC::ex{symbol::x(0)}}};
+    auto mg = to_ginac_matrix(m);
+    for (size_t r = 0; r < m.dimension(0); ++r) {
+      for (size_t c = 0; c < m.dimension(1); ++c) {
+        REQUIRE(mg(r, c) == m(r, c));
+      }
+    }
+  }
+  SECTION("to tensor") {
+    GiNaC::matrix m{{symbol::x(0), symbol::x(1)},
+                    {symbol::x(1) * symbol::t(), GiNaC::ex{symbol::x(0)}}};
+    auto          t = to_mat<2, 2>(m);
+    for (size_t r = 0; r < m.rows(); ++r) {
+      for (size_t c = 0; c < m.cols(); ++c) {
+        REQUIRE(t(r, c) == m(r, c));
+      }
+    }
+  }
+}
+//==============================================================================
+TEST_CASE("tensor_symbolic_inverse", "[tensor][symbolic][inverse][matrix]") {
+  using namespace symbolic;
+  mat m{{symbol::x(0), symbol::x(1)},
+        {symbol::x(1) * symbol::t(), GiNaC::ex{symbol::x(0)}}};
+  auto inv = (inverse(m));
+  auto eye = m * inv;
+  expand(eye);
+  //eval(eye);
+  //normal(eye);
+  std::cerr << eye << '\n';
+}
+#endif
 //==============================================================================
 }  // namespace tatooine::test
 //==============================================================================

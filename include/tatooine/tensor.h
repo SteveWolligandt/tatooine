@@ -14,6 +14,7 @@
 #include "random.h"
 #include "type_traits.h"
 #include "utility.h"
+#include "math.h"
 
 #if TATOOINE_GINAC_AVAILABLE
 #include "symbolic.h"
@@ -27,6 +28,9 @@ namespace tatooine {
 //==============================================================================
 struct frobenius_t {};
 static constexpr frobenius_t frobenius;
+//------------------------------------------------------------------------------
+struct eye_t {};
+static constexpr eye_t eye;
 //------------------------------------------------------------------------------
 template <typename Tensor, typename Real, size_t FixedDim, size_t... Dims>
 struct tensor_slice;
@@ -241,6 +245,139 @@ struct base_tensor : crtp<Tensor> {
   }
 };
 //==============================================================================
+template <typename Tensor, size_t... Dims>
+struct abs_tensor : base_tensor<abs_tensor<Tensor, Dims...>,
+                                typename Tensor::real_t, Dims...> {
+  //============================================================================
+ private:
+  const Tensor& m_internal_matrix;
+
+  //============================================================================
+ public:
+  constexpr explicit abs_tensor(
+      const base_tensor<Tensor, typename Tensor::real_t, Dims...>&
+          internal_matrix)
+      : m_internal_matrix{internal_matrix.as_derived()} {}
+
+  //----------------------------------------------------------------------------
+  template <typename... Is, enable_if_integral<Is...> = true>
+  constexpr auto operator()(Is... is) const {
+    static_assert(sizeof...(Is) == sizeof...(Dims));
+    return at(is...);
+  }
+  // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+  template <typename... Is, enable_if_integral<Is...> = true>
+  constexpr auto at(Is... is) const {
+    static_assert(sizeof...(Is) == sizeof...(Dims));
+    return std::abs(m_internal_matrix(is...));
+  }
+  //----------------------------------------------------------------------------
+  auto internal_matrix() const -> const auto& { return m_internal_matrix; }
+};
+//------------------------------------------------------------------------------
+template <typename Tensor, typename Real, size_t... Dims>
+constexpr auto abs(const base_tensor<Tensor, Real, Dims...>& t) {
+  return abs_tensor<Tensor, Dims...>{t.as_derived()};
+}
+//==============================================================================
+template <typename Tensor, size_t M, size_t N>
+struct const_transposed_tensor
+    : base_tensor<const_transposed_tensor<Tensor, M, N>,
+                  typename Tensor::real_t, M, N> {
+  //============================================================================
+ private:
+  const Tensor& m_internal_tensor;
+
+  //============================================================================
+ public:
+  constexpr explicit const_transposed_tensor(
+      const base_tensor<Tensor, typename Tensor::real_t, N, M>& internal_tensor)
+      : m_internal_tensor{internal_tensor.as_derived()} {}
+
+  //----------------------------------------------------------------------------
+  constexpr auto operator()(const size_t r, const size_t c) const -> const
+      auto& {
+    return m_internal_tensor(c, r);
+  }
+  // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+  constexpr auto at(const size_t r, const size_t c) const -> const auto& {
+    return m_internal_tensor(c, r);
+  }
+  //----------------------------------------------------------------------------
+  auto internal_tensor() const -> const auto& { return m_internal_tensor; }
+};
+
+//==============================================================================
+template <typename Tensor, size_t M, size_t N>
+struct transposed_tensor : base_tensor<transposed_tensor<Tensor, M, N>,
+                                       typename Tensor::real_t, M, N> {
+  //============================================================================
+ private:
+  Tensor& m_internal_tensor;
+
+  //============================================================================
+ public:
+  constexpr explicit transposed_tensor(
+      base_tensor<Tensor, typename Tensor::real_t, N, M>& internal_tensor)
+      : m_internal_tensor{internal_tensor.as_derived()} {}
+
+  //----------------------------------------------------------------------------
+  constexpr auto operator()(const size_t r, const size_t c) const -> const
+      auto& {
+    return m_internal_tensor(c, r);
+  }
+  // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+  constexpr auto operator()(const size_t r, const size_t c) -> auto& {
+    return m_internal_tensor(c, r);
+  }
+  //----------------------------------------------------------------------------
+  constexpr auto at(const size_t r, const size_t c) const -> const auto& {
+    return m_internal_tensor(c, r);
+  }
+  // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+  constexpr auto at(const size_t r, const size_t c) -> auto& {
+    return m_internal_tensor(c, r);
+  }
+
+  //----------------------------------------------------------------------------
+  auto internal_tensor() -> auto& { return m_internal_tensor; }
+  auto internal_tensor() const -> const auto& { return m_internal_tensor; }
+};
+
+//------------------------------------------------------------------------------
+template <typename Tensor, typename Real, size_t M, size_t N>
+auto transpose(const base_tensor<Tensor, Real, M, N>& tensor) {
+  return const_transposed_tensor<Tensor, M, N>{tensor.as_derived()};
+}
+
+// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+template <typename Tensor, typename Real, size_t M, size_t N>
+constexpr auto transpose(base_tensor<Tensor, Real, M, N>& tensor) {
+  return transposed_tensor<Tensor, N, M>{tensor.as_derived()};
+}
+
+//------------------------------------------------------------------------------
+template <typename Tensor, typename Real, size_t M, size_t N>
+constexpr auto transpose(
+    base_tensor<transposed_tensor<Tensor, M, N>, Real, M, N>& transposed_tensor)
+    -> auto& {
+  return transposed_tensor.as_derived().internal_tensor();
+}
+// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+template <typename Tensor, typename Real, size_t M, size_t N>
+constexpr auto transpose(const base_tensor<transposed_tensor<Tensor, M, N>,
+                                           Real, M, N>& transposed_tensor)
+    -> const auto& {
+  return transposed_tensor.as_derived().internal_tensor();
+}
+// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+template <typename Tensor, typename Real, size_t M, size_t N>
+constexpr auto transpose(
+    const base_tensor<const_transposed_tensor<Tensor, M, N>, Real, M, N>&
+        transposed_tensor) -> const auto& {
+  return transposed_tensor.as_derived().internal_tensor();
+}
+//==============================================================================
 template <typename Real, size_t... Dims>
 struct tensor : base_tensor<tensor<Real, Dims...>, Real, Dims...>,  // NOLINT
                 static_multidim_array<Real, x_fastest, stack, Dims...> {
@@ -412,35 +549,62 @@ using vec4 = vec<double, 4>;
 //==============================================================================
 template <typename Real, size_t M, size_t N>
 struct mat : tensor<Real, M, N> {  // NOLINT
+  using this_t   = mat<Real, M, N>;
   using parent_t = tensor<Real, M, N>;
   using parent_t::parent_t;
-
+  //----------------------------------------------------------------------------
   constexpr mat(const mat&) = default;
+  //----------------------------------------------------------------------------
+  template <typename Tensor, typename TensorReal
+#if TATOOINE_GINAC_AVAILABLE
+            , enable_if_arithmetic_or_complex<TensorReal> = true
+#endif
+            >
+  constexpr mat(const base_tensor<Tensor, TensorReal, M, N>& other)
+      : parent_t{other} {}
+  //----------------------------------------------------------------------------
+#if TATOOINE_GINAC_AVAILABLE
   template <typename Real_                         = Real,
             enable_if_arithmetic_or_complex<Real_> = true>
   explicit constexpr mat(mat&& other) noexcept : parent_t{std::move(other)} {}
-
+#else
+  constexpr mat(mat&& other) noexcept = default;
+#endif
+  //----------------------------------------------------------------------------
   constexpr auto operator=(const mat&) -> mat& = default;
-
+  //----------------------------------------------------------------------------
+#if TATOOINE_GINAC_AVAILABLE
   template <typename Real_                         = Real,
             enable_if_arithmetic_or_complex<Real_> = true>
   constexpr auto operator=(mat&& other) noexcept -> mat& {
     parent_t::operator=(std::move(other));
     return *this;
   }
-  template <typename Tensor, typename TensorReal,
-            enable_if_arithmetic_or_complex<TensorReal> = true>
-  constexpr auto operator=(const base_tensor<Tensor, TensorReal, M,N>& other) noexcept -> mat& {
+#else
+  constexpr auto operator=(mat&& other) noexcept -> mat& = default;
+#endif
+  //----------------------------------------------------------------------------
+  template <typename Tensor, typename TensorReal
+#if TATOOINE_GINAC_AVAILABLE
+            , enable_if_arithmetic_or_complex<TensorReal> = true
+#endif
+            >
+  constexpr auto operator=(
+      const base_tensor<Tensor, TensorReal, M, N>& other) noexcept -> mat& {
     parent_t::operator=(other);
     return *this;
   }
-  template <typename Tensor, typename TensorReal,
-            enable_if_arithmetic_or_complex<TensorReal> = true>
-  constexpr auto operator=(base_tensor<Tensor, TensorReal, M,N>&& other) noexcept -> mat& {
-    parent_t::operator=(std::move(other));
-    return *this;
+
+  //----------------------------------------------------------------------------
+  constexpr mat(eye_t /*flag*/) : parent_t{zeros} {
+    for (size_t i = 0; i < std::min(M, N); ++i) { this->at(i, i) = 1; }
   }
+  //----------------------------------------------------------------------------
   ~mat() = default;
+  //----------------------------------------------------------------------------
+  static constexpr auto eye() {
+    return this_t{tatooine::eye};
+  }
 
 #if TATOOINE_GINAC_AVAILABLE
   template <typename... Rows, enable_if_arithmetic_or_symbolic<Rows...> = true>
@@ -462,10 +626,10 @@ struct mat : tensor<Real, M, N> {  // NOLINT
 
     for_each(insert_row, rows...);
   }
-
+  //------------------------------------------------------------------------------
   constexpr auto row(size_t i) { return this->template slice<0>(i); }
   constexpr auto row(size_t i) const { return this->template slice<0>(i); }
-
+  //------------------------------------------------------------------------------
   constexpr auto col(size_t i) { return this->template slice<1>(i); }
   constexpr auto col(size_t i) const { return this->template slice<1>(i); }
 };
@@ -567,9 +731,7 @@ constexpr auto norm_inf(const base_tensor<Tensor, Real, N>& t) -> Real {
 //------------------------------------------------------------------------------
 template <typename Tensor, typename Real, size_t N>
 constexpr auto norm1(const base_tensor<Tensor, Real, N>& t) {
-  Real norm = 0;
-  for (size_t i = 0; i < N; ++i) { norm += std::abs(t(i)); }
-  return norm;
+  return sum(abs(t));
 }
 //------------------------------------------------------------------------------
 template <typename Tensor, typename Real, size_t N>
@@ -582,9 +744,9 @@ constexpr auto length(const base_tensor<Tensor, Real, N>& t_in) -> Real {
   return std::sqrt(sqr_length(t_in));
 }
 //------------------------------------------------------------------------------
-/// squared Frobenius norm of a matrix
-template <typename Matrix, typename Real, size_t M, size_t N>
-constexpr auto sqr_norm(const base_tensor<Matrix, Real, M, N>& mat,
+/// squared Frobenius norm of a rank-2 tensor
+template <typename Tensor, typename Real, size_t M, size_t N>
+constexpr auto sqr_norm(const base_tensor<Tensor, Real, M, N>& mat,
                         frobenius_t) {
   Real n = 0;
   for (size_t j = 0; j < N; ++j) {
@@ -593,21 +755,42 @@ constexpr auto sqr_norm(const base_tensor<Matrix, Real, M, N>& mat,
   return n;
 }
 //------------------------------------------------------------------------------
-/// Frobenius norm of a matrix
-template <typename Matrix, typename Real, size_t M, size_t N>
-constexpr auto norm(const base_tensor<Matrix, Real, M, N>& mat, frobenius_t) {
+/// Frobenius norm of a rank-2 tensor
+template <typename Tensor, typename Real, size_t M, size_t N>
+constexpr auto norm(const base_tensor<Tensor, Real, M, N>& mat, frobenius_t) {
   return std::sqrt(sqr_norm(mat, frobenius));
 }
 //------------------------------------------------------------------------------
-/// squared Frobenius norm of a matrix
-template <typename Matrix, typename Real, size_t M, size_t N>
-constexpr auto sqr_norm(const base_tensor<Matrix, Real, M, N>& mat) {
+/// 1-norm of a MxN Tensor
+template <typename Tensor, typename Real, size_t M, size_t N>
+constexpr auto norm1(const base_tensor<Tensor, Real, M, N>& mat) {
+  Real       max    = -std::numeric_limits<Real>::max();
+  const auto absmat = abs(mat);
+  for (size_t i = 0; i < N; ++i) {
+    max = std::max(max, sum(absmat.template slice<1>(i)));
+  }
+  return max;
+}
+//------------------------------------------------------------------------------
+/// infinity-norm of a MxN tensor
+template <typename Tensor, typename Real, size_t M, size_t N>
+constexpr auto norm_inf(const base_tensor<Tensor, Real, M, N>& mat) {
+  Real max = -std::numeric_limits<Real>::max();
+  for (size_t i = 0; i < M; ++i) {
+    max = std::max(max, sum(abs(mat.template slice<0>(i))));
+  }
+  return max;
+}
+//------------------------------------------------------------------------------
+/// squared Frobenius norm of a rank-2 tensor
+template <typename Tensor, typename Real, size_t M, size_t N>
+constexpr auto sqr_norm(const base_tensor<Tensor, Real, M, N>& mat) {
   return sqr_norm(mat, frobenius);
 }
 //------------------------------------------------------------------------------
-/// squared Frobenius norm of a matrix
-template <typename Matrix, typename Real, size_t M, size_t N>
-constexpr auto norm(const base_tensor<Matrix, Real, M, N>& mat) {
+/// squared Frobenius norm of a rank-2 tensor
+template <typename Tensor, typename Real, size_t M, size_t N>
+constexpr auto norm(const base_tensor<Tensor, Real, M, N>& mat) {
   return norm(mat, frobenius);
 }
 //------------------------------------------------------------------------------
@@ -862,6 +1045,19 @@ constexpr auto operator*(const base_tensor<Tensor0, Real0, M, N>& lhs,
   return product;
 }
 //------------------------------------------------------------------------------
+namespace lapack_job {
+//------------------------------------------------------------------------------
+struct A_t{};
+struct S_t{};
+struct O_t{};
+struct N_t{};
+static constexpr A_t A;
+static constexpr S_t S;
+static constexpr O_t O;
+static constexpr N_t N;
+//------------------------------------------------------------------------------
+}  // namespace lapack_job
+//------------------------------------------------------------------------------
 template <size_t N>
 auto gesv(tensor<float, N, N> A, tensor<float, N> b) {
   std::array<int, N> ipiv;
@@ -879,7 +1075,6 @@ auto gesv(tensor<double, N, N> A, tensor<double, N> b) {
                 b.data_ptr(), N);
   return b;
 }
-
 //------------------------------------------------------------------------------
 template <size_t M, size_t N>
 auto gesv(tensor<float, M, M> A, const tensor<float, M, N>& B) {
@@ -897,8 +1092,191 @@ auto gesv(tensor<double, M, M> A, const tensor<double, M, N>& B) {
                 X.data_ptr(), M);
   return X;
 }
-
 //------------------------------------------------------------------------------
+/// Estimates the reciprocal of the condition number of a general matrix A.
+/// http://www.netlib.org/lapack/explore-html/d7/db5/lapacke__dgecon_8c_a7c007823b949b0b118acf7e0235a6fc5.html
+/// https://www.netlib.org/lapack/explore-html/dd/d9a/group__double_g_ecomputational_ga188b8d30443d14b1a3f7f8331d87ae60.html
+template <typename Real, size_t N,
+          enable_if_floating_point_or_complex<Real> = true>
+auto gecon(const tensor<Real, N, N>& A) {
+  Real       rcond = 0;
+  const char normbase  = '1';
+  const Real norm     = norm1(A);
+  const auto info      = [&] {
+    if constexpr (std::is_same_v<double, Real>) {
+      return LAPACKE_dgecon(LAPACK_COL_MAJOR, normbase, N, A.data_ptr(), N,
+                            norm, &rcond);
+    } else if constexpr (std::is_same_v<float, Real>) {
+      return LAPACKE_sgecon(LAPACK_COL_MAJOR, normbase, N, A.data_ptr(), N,
+                            norm, &rcond);
+    } else if constexpr (std::is_same_v<std::complex<float>, Real>) {
+      return LAPACKE_cgecon(LAPACK_COL_MAJOR, normbase, N, A.data_ptr(), N,
+                            norm, &rcond);
+    } else if constexpr (std::is_same_v<std::complex<double>, Real>) {
+      return LAPACKE_zgecon(LAPACK_COL_MAJOR, normbase, N, A.data_ptr(), N,
+                            norm, &rcond);
+    } 
+  }();
+  if (info < 0) {
+    throw std::runtime_error{"[dgecon] - " + std::to_string(-info) +
+                             "-th argument is invalid"};
+  }
+  return rcond;
+}
+//------------------------------------------------------------------------------
+/// Estimates the reciprocal of the condition number of a general matrix A.
+/// http://www.netlib.org/lapack/explore-html/d1/d7e/group__double_g_esing_ga84fdf22a62b12ff364621e4713ce02f2.html
+/// http://www.netlib.org/lapack/explore-html/d0/dee/lapacke__dgesvd_8c_af31b3cb47f7cc3b9f6541303a2968c9f.html
+template <typename T, size_t M, size_t N,
+          typename JOBU, typename JOBVT,
+          enable_if_floating_point_or_complex<T> = true>
+auto gesvd(tensor<T, M, N> A, JOBU, JOBVT) {
+  vec<T, tatooine::min(M, N)> s;
+  constexpr char jobu = [&]{
+    if constexpr (std::is_same_v<lapack_job::A_t, JOBU>) {
+      return 'A';
+    } else if constexpr (std::is_same_v<lapack_job::S_t, JOBU>) {
+      return 'S';
+    } else if constexpr (std::is_same_v<lapack_job::O_t, JOBU>) {
+      return 'O';
+    } else if constexpr (std::is_same_v<lapack_job::N_t, JOBU>) {
+      return 'N';
+    } else {
+      return '\0';
+    }
+  }();
+  constexpr char jobvt = [&] {
+    if constexpr (std::is_same_v<lapack_job::A_t, JOBVT>) {
+      return 'A';
+    } else if constexpr (std::is_same_v<lapack_job::S_t, JOBVT>) {
+      return 'S';
+    } else if constexpr (std::is_same_v<lapack_job::O_t, JOBVT>) {
+      return 'O';
+    } else if constexpr (std::is_same_v<lapack_job::N_t, JOBVT>) {
+      return 'N';
+    } else {
+      return '\0';
+    }
+  }();
+
+  constexpr size_t LDU = [&] {
+    if constexpr (std::is_same_v<lapack_job::A_t, JOBU> ||
+                  std::is_same_v<lapack_job::S_t, JOBU>) {
+      return M;
+    } else {
+      return 1;
+    }
+  }();
+
+  constexpr size_t LDVT = [&] {
+    if constexpr (std::is_same_v<lapack_job::A_t, JOBVT>) {
+      return N;
+    } else if constexpr (std::is_same_v<lapack_job::S_t, JOBVT>) {
+      return tatooine::min(M, N);
+    } else {
+      return M;
+    }
+  }();
+
+  auto U = [] {
+    if constexpr (std::is_same_v<lapack_job::A_t, JOBU>) {
+      return mat<T, LDU, M>{};
+    } else if constexpr (std::is_same_v<lapack_job::S_t, JOBU>) {
+      return mat<T, LDU, tatooine::min(M, N)>{};
+    } else {
+      return nullptr;
+    }
+  }();
+  auto VT = [] {
+    if constexpr (std::is_same_v<lapack_job::A_t, JOBU>) {
+      return mat<T, LDVT, N>{};
+    } else if constexpr (std::is_same_v<lapack_job::S_t, JOBU>) {
+      return mat<T, LDVT, N>{};
+    } else {
+      return nullptr;
+    }
+  }();
+  T* U_ptr = [&U] {
+    if constexpr (std::is_same_v<lapack_job::A_t, JOBU> ||
+                  std::is_same_v<lapack_job::S_t, JOBU>) {
+      return U.data_ptr();
+    } else {
+      return nullptr;
+    }
+  }();
+  T* VT_ptr = [&VT] {
+    if constexpr (std::is_same_v<lapack_job::A_t, JOBVT> ||
+                  std::is_same_v<lapack_job::S_t, JOBVT>) {
+      return VT.data_ptr();
+    } else {
+      return nullptr;
+    }
+  }();
+  std::array<T, tatooine::min(M, N) - 1> superb;
+  const auto                                info = [&] {
+    if constexpr (std::is_same_v<double, T>) {
+      return LAPACKE_dgesvd(LAPACK_COL_MAJOR, jobu, jobvt, M, N, A.data_ptr(),
+                            N, s.data_ptr(), U_ptr, M, VT_ptr, N,
+                            superb.data());
+    } else if constexpr (std::is_same_v<float, T>) {
+      return LAPACKE_sgesvd(LAPACK_COL_MAJOR, jobu, jobvt, M, N, A.data_ptr(),
+                            N, s.data_ptr(), U_ptr, M, VT_ptr, N,
+                            superb.data());
+    } else if constexpr (std::is_same_v<std::complex<float>, T>) {
+      return LAPACKE_cgesvd(LAPACK_COL_MAJOR, jobu, jobvt, M, N, A.data_ptr(),
+                            N, s.data_ptr(), U_ptr, M, VT_ptr, N,
+                            superb.data());
+    } else if constexpr (std::is_same_v<std::complex<double>, T>) {
+      return LAPACKE_zgesvd(LAPACK_COL_MAJOR, jobu, jobvt, M, N, A.data_ptr(),
+                            N, s.data_ptr(), U_ptr, M, VT_ptr, N,
+                            superb.data());
+    }
+  }();
+  if (info < 0) {
+    throw std::runtime_error{"[gesvd] - " + std::to_string(-info) +
+                             "-th argument is invalid"};
+  } else if (info > 0) {
+    throw std::runtime_error{"[gesvd] - DBDSQR did not converge. " +
+                             std::to_string(info) +
+                             " superdiagonals of an intermediate bidiagonal "
+                             "form B did not converge to zero."};
+  }
+  if constexpr (std::is_same_v<lapack_job::N_t, JOBU>) {
+    if constexpr (std::is_same_v<lapack_job::N_t, JOBVT>) {
+      return s;
+    } else {
+      return std::tuple{s, VT};
+    }
+  } else {
+    if constexpr (std::is_same_v<lapack_job::N_t, JOBVT>) {
+      return std::tuple{U, s};
+    } else {
+      return std::tuple{U, s, VT};
+    }
+  }
+}
+//==============================================================================
+/// compute condition number
+//------------------------------------------------------------------------------
+template <typename Real, size_t N, typename P, enable_if_integral<P> = true>
+auto condition_number(const tensor<Real, N, N>& A, P p = 2) {
+  if (p == 1) {
+    return 1 / gecon(tensor{A});
+  } else if (p == 2) {
+    const auto s = singular_values(A);
+    return s(0) / s(N-1);
+  } else {
+    throw std::runtime_error {
+      "p = " + std::to_string(p) + " is no valid base. p must be either 1 or 2."
+    };
+  }
+}
+//------------------------------------------------------------------------------
+template <typename Tensor, typename T, size_t N, typename PReal>
+auto condition_number(const base_tensor<Tensor, T, N, N>& A, PReal p) {
+  return condition_number(tensor{A}, p);
+}
+//==============================================================================
 template <size_t N>
 auto eigenvalues(tensor<float, N, N> A) -> vec<std::complex<float>, N> {
   [[maybe_unused]] lapack_int info;
@@ -1016,8 +1394,27 @@ auto eigenvectors_sym(mat<double, N, N> A)
                        vals.data_ptr());
   return {std::move(A), std::move(vals)};
 }
-
+//==============================================================================
+template <typename T, size_t M, size_t N>
+auto svd(const tensor<T, M, N>& A) {
+  return gesvd(A, lapack_job::A, lapack_job::A);
+}
+// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+template <typename Tensor, typename T, size_t M, size_t N>
+auto svd(const base_tensor<Tensor, T, M, N>& A) {
+  return svd(tensor<T, M, N>{A});
+}
 //------------------------------------------------------------------------------
+template < typename T, size_t M, size_t N>
+auto singular_values(const tensor<T, M, N>& A) {
+  return gesvd(A, lapack_job::N, lapack_job::N);
+}
+// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+template <typename Tensor, typename T, size_t M, size_t N>
+auto singular_values(const base_tensor<Tensor, T, M, N>& A) {
+  return singular_values(tensor<T, M, N>{A});
+}
+//==============================================================================
 /// for comparison
 template <typename Tensor0, typename Real0, typename Tensor1, typename Real1,
           size_t... Dims,
@@ -1059,7 +1456,7 @@ struct tensor_slice : base_tensor<tensor_slice<Tensor, Real, FixedDim, Dims...>,
 
   //----------------------------------------------------------------------------
   template <typename... Is, enable_if_integral<Is...> = true>
-  constexpr auto at(const Is... is) const -> const auto& {
+  constexpr auto at(const Is... is) const -> decltype(auto) {
     if constexpr (FixedDim == 0) {
       return m_tensor->at(m_fixed_index, is...);
 
@@ -1079,7 +1476,7 @@ struct tensor_slice : base_tensor<tensor_slice<Tensor, Real, FixedDim, Dims...>,
   template <typename... Is, enable_if_integral<Is...> = true,
             typename _tensor_t                                       = Tensor,
             std::enable_if_t<!std::is_const<_tensor_t>::value, bool> = true>
-  constexpr auto at(const Is... is) -> auto& {
+  constexpr auto at(const Is... is) -> decltype(auto) {
     if constexpr (FixedDim == 0) {
       return m_tensor->at(m_fixed_index, is...);
 
@@ -1282,102 +1679,6 @@ template <typename Tensor, typename Real, size_t... Dims>
 auto real(base_tensor<Tensor, std::complex<Real>, Dims...>& t) {
   return real_complex_tensor<Tensor, Real, Dims...>{t.as_derived()};
 }
-//==============================================================================
-template <typename Matrix, size_t M, size_t N>
-struct const_transposed_matrix
-    : base_tensor<const_transposed_matrix<Matrix, M, N>,
-                  typename Matrix::real_t, M, N> {
-  //============================================================================
- private:
-  const Matrix& m_internal_matrix;
-
-  //============================================================================
- public:
-  explicit const_transposed_matrix(
-      const base_tensor<Matrix, typename Matrix::real_t, N, M>& internal_matrix)
-      : m_internal_matrix{internal_matrix.as_derived()} {}
-
-  //----------------------------------------------------------------------------
-  constexpr auto operator()(const size_t r, const size_t c) const -> const
-      auto& {
-    return m_internal_matrix(c, r);
-  }
-  // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-  constexpr auto at(const size_t r, const size_t c) const -> const auto& {
-    return m_internal_matrix(c, r);
-  }
-  //----------------------------------------------------------------------------
-  auto internal_matrix() const -> const auto& { return m_internal_matrix; }
-};
-
-//==============================================================================
-template <typename Matrix, size_t M, size_t N>
-struct transposed_matrix : base_tensor<transposed_matrix<Matrix, M, N>,
-                                       typename Matrix::real_t, M, N> {
-  //============================================================================
- private:
-  Matrix& m_internal_matrix;
-
-  //============================================================================
- public:
-  explicit transposed_matrix(
-      base_tensor<Matrix, typename Matrix::real_t, N, M>& internal_matrix)
-      : m_internal_matrix{internal_matrix.as_derived()} {}
-
-  //----------------------------------------------------------------------------
-  constexpr auto operator()(const size_t r, const size_t c) const -> const
-      auto& {
-    return m_internal_matrix(c, r);
-  }
-  // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-  constexpr auto operator()(const size_t r, const size_t c) -> auto& {
-    return m_internal_matrix(c, r);
-  }
-  //----------------------------------------------------------------------------
-  constexpr auto at(const size_t r, const size_t c) const -> const auto& {
-    return m_internal_matrix(c, r);
-  }
-  // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-  constexpr auto at(const size_t r, const size_t c) -> auto& {
-    return m_internal_matrix(c, r);
-  }
-
-  //----------------------------------------------------------------------------
-  auto internal_matrix() -> auto& { return m_internal_matrix; }
-  auto internal_matrix() const -> const auto& { return m_internal_matrix; }
-};
-
-//------------------------------------------------------------------------------
-template <typename Matrix, typename Real, size_t M, size_t N>
-auto transpose(const base_tensor<Matrix, Real, M, N>& matrix) {
-  return const_transposed_matrix<Matrix, M, N>{matrix.as_derived()};
-}
-
-// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-template <typename Matrix, typename Real, size_t M, size_t N>
-auto transpose(base_tensor<Matrix, Real, M, N>& matrix) {
-  return transposed_matrix<Matrix, N, M>{matrix.as_derived()};
-}
-
-//------------------------------------------------------------------------------
-template <typename Matrix, typename Real, size_t M, size_t N>
-auto transpose(
-    base_tensor<transposed_matrix<Matrix, M, N>, Real, M, N>& transposed_matrix)
-    -> auto& {
-  return transposed_matrix.as_derived().internal_matrix();
-}
-// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-template <typename Matrix, typename Real, size_t M, size_t N>
-auto transpose(const base_tensor<transposed_matrix<Matrix, M, N>, Real, M, N>&
-                   transposed_matrix) -> const auto& {
-  return transposed_matrix.as_derived().internal_matrix();
-}
-// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-template <typename Matrix, typename Real, size_t M, size_t N>
-auto transpose(const base_tensor<const_transposed_matrix<Matrix, M, N>, Real, M,
-                                 N>& transposed_matrix) -> const auto& {
-  return transposed_matrix.as_derived().internal_matrix();
-}
 
 #if TATOOINE_GINAC_AVAILABLE
 //==============================================================================
@@ -1478,7 +1779,7 @@ auto operator<<(std::ostream& out, const base_tensor<Tensor, Real, N>& v)
 
 template <typename Tensor, typename Real, size_t M, size_t N>
 auto operator<<(std::ostream& out, const base_tensor<Tensor, Real, M, N>& m)
-    -> const auto& {
+    -> auto& {
   out << std::scientific;
   for (size_t j = 0; j < M; ++j) {
     out << "[ ";
