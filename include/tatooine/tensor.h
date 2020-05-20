@@ -507,8 +507,9 @@ struct tensor : base_tensor<tensor<Real, Dims...>, Real, Dims...>,  // NOLINT
 
   //============================================================================
  public:
-  template <typename... Ts, size_t _N = num_dimensions(),
-            size_t _Dim0 = dimension(0), std::enable_if_t<_N == 1, bool> = true,
+  template <typename... Ts, size_t _N = tensor_parent_t::num_dimensions(),
+            size_t _Dim0                    = tensor_parent_t::dimension(0),
+            std::enable_if_t<_N == 1, bool> = true,
             std::enable_if_t<_Dim0 == sizeof...(Ts), bool> = true>
   explicit constexpr tensor(const Ts&... ts) : array_parent_t{ts...} {}
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -1293,14 +1294,14 @@ auto gesvd(tensor<T, M, N>&& A, JOBU, JOBVT) {
                   std::is_same_v<lapack_job::S_t, JOBU>) {
       return U.dimension(0);
     } else {
-      return 0;
+      return 1;
     }}();
   constexpr auto ldvt = [&VT] {
     if constexpr (std::is_same_v<lapack_job::A_t, JOBVT> ||
                   std::is_same_v<lapack_job::S_t, JOBVT>) {
       return VT.dimension(0);
     } else {
-      return 0;
+      return 1;
     }}();
   T* U_ptr = [&U] {
     if constexpr (std::is_same_v<lapack_job::A_t, JOBU> ||
@@ -1595,20 +1596,51 @@ template <typename Tensor, typename T, size_t M, size_t N>
 auto svd_right(const base_tensor<Tensor, T, M, N>& A) {
   return svd_right(A, full);
 }
+template <typename Tensor, typename T>
+constexpr auto singular_values22(const base_tensor<Tensor, T, 2, 2>& A) {
+  const auto a = A(0, 0);
+  const auto b = A(0, 1);
+  const auto c = A(1, 0);
+  const auto d = A(1, 1);
+
+  const auto aa = a * a;
+  const auto bb = b * b;
+  const auto cc = c * c;
+  const auto dd = d * d;
+  const auto s1 = aa + bb + cc + dd;
+  const auto s2 = std::sqrt((aa + bb - cc - dd) * (aa + bb - cc - dd) +
+                            4 * (a * c + b * d) * (a * c + b * d));
+  const auto sigma1  = std::sqrt((s1 + s2) / 2);
+  const auto sigma2  = std::sqrt((s1 - s2) / 2);
+  return vec{tatooine::max(sigma1, sigma2),
+             tatooine::min(sigma1, sigma2)};
+}
 //------------------------------------------------------------------------------
-template < typename T, size_t M, size_t N>
-auto singular_values(tensor<T, M, N>&& A) {
-  return gesvd(A, lapack_job::N, lapack_job::N);
+template <typename T, size_t M, size_t N>
+constexpr auto singular_values(tensor<T, M, N>&& A) {
+  if constexpr (M == 2 && N == 2) {
+    return singular_values22(A);
+  } else {
+    return gesvd(A, lapack_job::N, lapack_job::N);
+  }
 }
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 template <typename T, size_t M, size_t N>
-auto singular_values(const tensor<T, M, N>& A) {
-  return gesvd(tensor{A}, lapack_job::N, lapack_job::N);
+constexpr auto singular_values(const tensor<T, M, N>& A) {
+  if constexpr (M == 2 && N == 2) {
+    return singular_values22(A);
+  } else {
+    return gesvd(tensor{A}, lapack_job::N, lapack_job::N);
+  }
 }
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 template <typename Tensor, typename T, size_t M, size_t N>
-auto singular_values(const base_tensor<Tensor, T, M, N>& A) {
-  return singular_values(tensor{A});
+constexpr auto singular_values(const base_tensor<Tensor, T, M, N>& A) {
+  if constexpr (M == 2 && N == 2) {
+    return singular_values22(A);
+  } else {
+    return singular_values(tensor{A});
+  }
 }
 //==============================================================================
 /// for comparison
