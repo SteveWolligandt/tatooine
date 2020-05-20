@@ -250,14 +250,14 @@ struct abs_tensor : base_tensor<abs_tensor<Tensor, Dims...>,
                                 typename Tensor::real_t, Dims...> {
   //============================================================================
  private:
-  const Tensor& m_internal_matrix;
+  const Tensor& m_internal_tensor;
 
   //============================================================================
  public:
   constexpr explicit abs_tensor(
       const base_tensor<Tensor, typename Tensor::real_t, Dims...>&
-          internal_matrix)
-      : m_internal_matrix{internal_matrix.as_derived()} {}
+          internal_tensor)
+      : m_internal_tensor{internal_tensor.as_derived()} {}
 
   //----------------------------------------------------------------------------
   template <typename... Is, enable_if_integral<Is...> = true>
@@ -269,15 +269,47 @@ struct abs_tensor : base_tensor<abs_tensor<Tensor, Dims...>,
   template <typename... Is, enable_if_integral<Is...> = true>
   constexpr auto at(Is... is) const {
     static_assert(sizeof...(Is) == sizeof...(Dims));
-    return std::abs(m_internal_matrix(is...));
+    return std::abs(m_internal_tensor(is...));
   }
   //----------------------------------------------------------------------------
-  auto internal_matrix() const -> const auto& { return m_internal_matrix; }
+  auto internal_tensor() const -> const auto& { return m_internal_tensor; }
 };
 //------------------------------------------------------------------------------
 template <typename Tensor, typename Real, size_t... Dims>
 constexpr auto abs(const base_tensor<Tensor, Real, Dims...>& t) {
   return abs_tensor<Tensor, Dims...>{t.as_derived()};
+}
+//==============================================================================
+template <typename Tensor, size_t N>
+struct diag_tensor
+    : base_tensor<diag_tensor<Tensor, N>, typename Tensor::real_t, N, N> {
+  //============================================================================
+ private:
+  const Tensor& m_internal_tensor;
+
+  //============================================================================
+ public:
+  constexpr explicit diag_tensor(
+      const base_tensor<Tensor, typename Tensor::real_t, N>& internal_tensor)
+      : m_internal_tensor{internal_tensor.as_derived()} {}
+
+  //----------------------------------------------------------------------------
+  constexpr auto operator()(size_t i, size_t j) const { return at(i, j); }
+  // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+  constexpr auto at(size_t i, size_t j) const -> typename Tensor::real_t {
+    if (i == j) {
+      return m_internal_tensor(i);
+    } else {
+      return 0;
+    }
+  }
+  //----------------------------------------------------------------------------
+  auto internal_tensor() const -> const auto& { return m_internal_tensor; }
+};
+//------------------------------------------------------------------------------
+template <typename Tensor, typename Real, size_t N>
+constexpr auto diag(const base_tensor<Tensor, Real, N>& t) {
+  return diag_tensor<Tensor, N>{t.as_derived()};
 }
 //==============================================================================
 template <typename Tensor, size_t M, size_t N>
@@ -929,6 +961,7 @@ constexpr auto operator+(const base_tensor<Tensor0, Real0, Dims...>& lhs,
 }
 
 //------------------------------------------------------------------------------
+/// matrix-matrix multiplication
 template <typename Tensor0, typename Real0, typename Tensor1, typename Real1,
           size_t M, size_t N, size_t O>
 constexpr auto operator*(const base_tensor<Tensor0, Real0, M, N>& lhs,
@@ -943,9 +976,10 @@ constexpr auto operator*(const base_tensor<Tensor0, Real0, M, N>& lhs,
 }
 
 //------------------------------------------------------------------------------
+/// component-wise multiplication
 template <typename Tensor0, typename Real0, typename Tensor1, typename Real1,
           size_t... Dims, std::enable_if_t<(sizeof...(Dims) != 2), bool> = true>
-constexpr auto operator*(const base_tensor<Tensor0, Real0, Dims...>& lhs,
+constexpr auto operator%(const base_tensor<Tensor0, Real0, Dims...>& lhs,
                          const base_tensor<Tensor1, Real1, Dims...>& rhs) {
   return binary_operation(std::multiplies<promote_t<Real0, Real1>>{}, lhs, rhs);
 }
@@ -1045,6 +1079,18 @@ constexpr auto operator*(const base_tensor<Tensor0, Real0, M, N>& lhs,
   return product;
 }
 //------------------------------------------------------------------------------
+/// vector-matrix-multiplication
+template <typename Tensor0, typename Real0, typename Tensor1, typename Real1,
+          size_t M, size_t N>
+constexpr auto operator*(const base_tensor<Tensor0, Real0, M>&    lhs,
+                         const base_tensor<Tensor1, Real1, M, N>& rhs) {
+  vec<promote_t<Real0, Real1>, N> product;
+  for (size_t i = 0; i < N; ++i) {
+    product(i) = dot(lhs, rhs.template slice<1>(i));
+  }
+  return product;
+}
+//------------------------------------------------------------------------------
 namespace lapack_job {
 //------------------------------------------------------------------------------
 struct A_t{};
@@ -1115,10 +1161,12 @@ auto gecon(const tensor<Real, N, N>& A) {
     } else if constexpr (std::is_same_v<std::complex<double>, Real>) {
       return LAPACKE_zgecon(LAPACK_COL_MAJOR, normbase, N, A.data_ptr(), N,
                             norm, &rcond);
-    } 
+    } else {
+      throw std::runtime_error{"[gecon] - type not accepted"};
+    }
   }();
   if (info < 0) {
-    throw std::runtime_error{"[dgecon] - " + std::to_string(-info) +
+    throw std::runtime_error{"[gecon] - " + std::to_string(-info) +
                              "-th argument is invalid"};
   }
   return rcond;
@@ -1167,17 +1215,6 @@ auto gesvd(tensor<T, M, N> A, JOBU, JOBVT) {
       return 1;
     }
   }();
-
-  constexpr size_t LDVT = [&] {
-    if constexpr (std::is_same_v<lapack_job::A_t, JOBVT>) {
-      return N;
-    } else if constexpr (std::is_same_v<lapack_job::S_t, JOBVT>) {
-      return tatooine::min(M, N);
-    } else {
-      return M;
-    }
-  }();
-
   auto U = [] {
     if constexpr (std::is_same_v<lapack_job::A_t, JOBU>) {
       return mat<T, LDU, M>{};
@@ -1185,33 +1222,37 @@ auto gesvd(tensor<T, M, N> A, JOBU, JOBVT) {
       return mat<T, LDU, tatooine::min(M, N)>{};
     } else {
       return nullptr;
-    }
-  }();
+    }}();
+
+  constexpr size_t LDVT = [&] {
+    if constexpr (std::is_same_v<lapack_job::A_t, JOBVT>) {
+      return N;
+    } else if constexpr (std::is_same_v<lapack_job::S_t, JOBVT>) {
+      return tatooine::min(M, N);
+    } else {
+      return 1;
+    }}();
   auto VT = [] {
-    if constexpr (std::is_same_v<lapack_job::A_t, JOBU>) {
-      return mat<T, LDVT, N>{};
-    } else if constexpr (std::is_same_v<lapack_job::S_t, JOBU>) {
+    if constexpr (std::is_same_v<lapack_job::A_t, JOBU> ||
+                  std::is_same_v<lapack_job::S_t, JOBU>) {
       return mat<T, LDVT, N>{};
     } else {
       return nullptr;
-    }
-  }();
+    }}();
   T* U_ptr = [&U] {
     if constexpr (std::is_same_v<lapack_job::A_t, JOBU> ||
                   std::is_same_v<lapack_job::S_t, JOBU>) {
       return U.data_ptr();
     } else {
       return nullptr;
-    }
-  }();
+    }}();
   T* VT_ptr = [&VT] {
     if constexpr (std::is_same_v<lapack_job::A_t, JOBVT> ||
                   std::is_same_v<lapack_job::S_t, JOBVT>) {
       return VT.data_ptr();
     } else {
       return nullptr;
-    }
-  }();
+    }}();
   std::array<T, tatooine::min(M, N) - 1> superb;
   const auto                                info = [&] {
     if constexpr (std::is_same_v<double, T>) {
@@ -1230,8 +1271,7 @@ auto gesvd(tensor<T, M, N> A, JOBU, JOBVT) {
       return LAPACKE_zgesvd(LAPACK_COL_MAJOR, jobu, jobvt, M, N, A.data_ptr(),
                             N, s.data_ptr(), U_ptr, M, VT_ptr, N,
                             superb.data());
-    }
-  }();
+    }}();
   if (info < 0) {
     throw std::runtime_error{"[gesvd] - " + std::to_string(-info) +
                              "-th argument is invalid"};
@@ -1261,7 +1301,7 @@ auto gesvd(tensor<T, M, N> A, JOBU, JOBVT) {
 template <typename Real, size_t N, typename P, enable_if_integral<P> = true>
 auto condition_number(const tensor<Real, N, N>& A, P p = 2) {
   if (p == 1) {
-    return 1 / gecon(tensor{A});
+    return 1 / gecon(A);
   } else if (p == 2) {
     const auto s = singular_values(A);
     return s(0) / s(N-1);
@@ -1397,7 +1437,7 @@ auto eigenvectors_sym(mat<double, N, N> A)
 //==============================================================================
 template <typename T, size_t M, size_t N>
 auto svd(const tensor<T, M, N>& A) {
-  return gesvd(A, lapack_job::A, lapack_job::A);
+  return gesvd(A, lapack_job::S, lapack_job::S);
 }
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 template <typename Tensor, typename T, size_t M, size_t N>
@@ -1416,10 +1456,11 @@ auto singular_values(const base_tensor<Tensor, T, M, N>& A) {
 }
 //==============================================================================
 /// for comparison
-template <typename Tensor0, typename Real0, typename Tensor1, typename Real1,
+template <typename Tensor0, typename Real0,
+          typename Tensor1, typename Real1,
           size_t... Dims,
           std::enable_if_t<std::is_floating_point<Real0>::value ||
-                               std::is_floating_point<Real1>::value,
+                           std::is_floating_point<Real1>::value,
                            bool> = true>
 constexpr auto approx_equal(const base_tensor<Tensor0, Real0, Dims...>& lhs,
                             const base_tensor<Tensor1, Real1, Dims...>& rhs,

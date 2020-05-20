@@ -300,13 +300,35 @@ TEST_CASE("tensor_matrix_norm1",
 }
 //==============================================================================
 TEST_CASE("tensor_gesvd", "[tensor][gesvd]") {
-  const mat A{{-1.79222, -7.94109, 3.67540},
-              {2.38520, 0.82284, 8.53506},
-              {-1.37601, -6.15705, -0.71982}};
-  const auto [U, s, VT] = gesvd(A, lapack_job::A, lapack_job::A);
-  std::cerr << U << '\n';
-  std::cerr << s << '\n';
-  std::cerr << VT << '\n';
+  SECTION("3x3") {
+    const mat A{{-1.79222, -7.94109, 3.67540},
+                {2.38520, 0.82284, 8.53506},
+                {-1.37601, -6.15705, -0.71982}};
+    const auto [U, s, VT] = gesvd(A, lapack_job::S, lapack_job::S);
+   auto diff = U * diag(s) * VT - A;
+   REQUIRE(s(0) == Approx(1.073340050125074e+01));
+   REQUIRE(s(1) == Approx(9.148458171897648e+00));
+   REQUIRE(s(2) == Approx(6.447152840514361e-01));
+
+   diff.for_indices([&diff](auto... is) {
+     REQUIRE(diff(is...) == Approx(0).margin(1e-10));
+   });
+  }
+  SECTION("4x3") {
+    const mat A{
+        {6.405871813e+00, -4.344670595e+00, 9.471184691e+00, 5.850792157e+00},
+        {3.049605906e+00, 1.018629735e+00, 5.535464761e+00, 2.691779530e+00},
+        {9.002176872e+00, 3.332492228e-01, -2.365651229e+00, 9.458283935e+00}};
+    const auto [U, s, VT] = gesvd(A, lapack_job::S, lapack_job::S);
+    CAPTURE(A,U,s,VT);
+    auto diff             = U * diag(s) * VT - A;
+    REQUIRE(s(0) == Approx(1.733194199066472e+01));
+    REQUIRE(s(1) == Approx(9.963856829919013e+00));
+    REQUIRE(s(2) == Approx(2.932957998778161e+00));
+    // diff.for_indices([&diff](auto... is) {
+    //  REQUIRE(diff(is...) == Approx(0).margin(1e-10));
+    //});
+  }
 }
 //==============================================================================
 TEST_CASE("tensor_condition_number",
@@ -316,6 +338,7 @@ TEST_CASE("tensor_condition_number",
         {-1.37601, -6.15705, -0.71982}};
   CAPTURE(A);
   REQUIRE(condition_number(A, 2) == Approx(16.64827989465566));
+  REQUIRE(condition_number(A, 1) == Approx(26.47561499847143));
 }
 //==============================================================================
 #if TATOOINE_GINAC_AVAILABLE
