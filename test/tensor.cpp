@@ -1,4 +1,5 @@
 #include <tatooine/tensor.h>
+#include <tatooine/diff.h>
 #include <tatooine/symbolic.h>
 #include <catch2/catch.hpp>
 
@@ -299,35 +300,127 @@ TEST_CASE("tensor_matrix_norm1",
   REQUIRE(norm1(A) == Approx(14.921));
 }
 //==============================================================================
-TEST_CASE("tensor_gesvd", "[tensor][gesvd]") {
+TEST_CASE("tensor_svd", "[tensor][svd]") {
+  //----------------------------------------------------------------------------
   SECTION("3x3") {
-    const mat A{{-1.79222, -7.94109, 3.67540},
-                {2.38520, 0.82284, 8.53506},
-                {-1.37601, -6.15705, -0.71982}};
-    const auto [U, s, VT] = gesvd(A, lapack_job::S, lapack_job::S);
-   auto diff = U * diag(s) * VT - A;
-   REQUIRE(s(0) == Approx(1.073340050125074e+01));
-   REQUIRE(s(1) == Approx(9.148458171897648e+00));
-   REQUIRE(s(2) == Approx(6.447152840514361e-01));
-
-   diff.for_indices([&diff](auto... is) {
-     REQUIRE(diff(is...) == Approx(0).margin(1e-10));
-   });
+    mat A{{-1.79222, -7.94109,  3.67540},
+          { 2.38520,  0.82284,  8.53506},
+          {-1.37601, -6.15705, -0.71982}};
+    const auto [U, s, VT] = svd(A);
+    const auto S          = diag(s);
+    INFO("A =\n" << A);
+    INFO("U*S*VT =\n" << U * S * VT);
+    INFO("U*S =\n" << U * S);
+    INFO("S*VT =\n" << S * VT);
+    INFO("U =\n" << U);
+    INFO("S =\n" << S);
+    INFO("V =\n" << transpose(VT));
+    REQUIRE(approx_equal(s, vec{1.073340050125074e+01,
+                                9.148458171897648e+00,
+                                6.447152840514361e-01}));
+    REQUIRE(approx_equal(U * S * VT, A));
   }
+  //----------------------------------------------------------------------------
+  SECTION("3x4") {
+    // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+    SECTION("full") {
+      mat A{
+        {6.405871813e+00, -4.344670595e+00,  9.471184691e+00, 5.850792157e+00},
+        {3.049605906e+00,  1.018629735e+00,  5.535464761e+00, 2.691779530e+00},
+        {9.002176872e+00,  3.332492228e-01, -2.365651229e+00, 9.458283935e+00}};
+      const auto [U, s, VT] = svd(A, full);
+      const auto S          = diag_rect<3, 4>(s);
+      INFO("A =\n" << A);
+      INFO("U*S*VT =\n" << U * S * VT);
+      INFO("U =\n" << U);
+      INFO("S =\n" << S);
+      INFO("V =\n" << transpose(VT));
+      REQUIRE(approx_equal(s, vec{1.733194199066472e+01,
+                                  9.963856829919013e+00,
+                                  2.932957998778161e+00}));
+      REQUIRE(approx_equal(U * S * VT, A));
+    }
+    // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+    SECTION("economy") {
+      mat A{
+        {6.405871813e+00, -4.344670595e+00,  9.471184691e+00, 5.850792157e+00},
+        {3.049605906e+00,  1.018629735e+00,  5.535464761e+00, 2.691779530e+00},
+        {9.002176872e+00,  3.332492228e-01, -2.365651229e+00, 9.458283935e+00}};
+      const auto [U, s, VT] = svd(A, economy);
+      const auto S          = diag(s);
+      INFO("A =\n" << A);
+      INFO("U*S*VT =\n" << U * S * VT);
+      INFO("U =\n" << U);
+      INFO("S =\n" << S);
+      INFO("V =\n" << transpose(VT));
+      REQUIRE(approx_equal(s, vec{1.733194199066472e+01,
+                                  9.963856829919013e+00,
+                                  2.932957998778161e+00}));
+      REQUIRE(approx_equal(U * S * VT, A));
+    }
+  }
+  //----------------------------------------------------------------------------
   SECTION("4x3") {
-    const mat A{
+    // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+    SECTION("full") {
+      mat A{{6.405871813e+00, -4.344670595e+00, 9.471184691e+00},
+            {5.850792157e+00,  3.049605906e+00, 1.018629735e+00},
+            {5.535464761e+00,  2.691779530e+00, 9.002176872e+00},
+            {3.332492228e-01, -2.365651229e+00, 9.458283935e+00}};
+      const auto [U, s, VT] = svd(A, full);
+      const auto S          = diag_rect<4, 3>(s);
+      INFO("A =\n" << A);
+      INFO("U*S*VT =\n" << U * S * VT);
+      INFO("U =\n" << U);
+      INFO("S =\n" << S);
+      INFO("V =\n" << transpose(VT));
+      REQUIRE(approx_equal(s, vec{1.814712763774386e+01,
+                                  7.766671714721034e+00,
+                                  4.317113346117844e+00}));
+      REQUIRE(approx_equal(U * S * VT, A));
+    }
+    // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+    SECTION("economy") {
+      mat A{
+       {6.405871813e+00, -4.344670595e+00,  9.471184691e+00, 5.850792157e+00},
+       {3.049605906e+00,  1.018629735e+00,  5.535464761e+00, 2.691779530e+00},
+       {9.002176872e+00,  3.332492228e-01, -2.365651229e+00, 9.458283935e+00}};
+      const auto [U, s, VT] = svd(A, economy);
+      const auto S          = diag(s);
+      INFO("A =\n" << A);
+      INFO("U*S*VT =\n" << U * S * VT);
+      INFO("U =\n" << U);
+      INFO("S =\n" << S);
+      INFO("V =\n" << transpose(VT));
+      REQUIRE(approx_equal(s, vec{1.733194199066472e+01,
+                                  9.963856829919013e+00,
+                                  2.932957998778161e+00}));
+      REQUIRE(approx_equal(U * S * VT, A));
+    }
+  }
+  //----------------------------------------------------------------------------
+  SECTION("left") {
+    // just check if it compiles
+    mat A{{-1.79222, -7.94109,  3.67540},
+          { 2.38520,  0.82284,  8.53506},
+          { 2.38520,  0.82284,  8.53506},
+          {-1.37601, -6.15705, -0.71982}};
+    [[maybe_unused]] std::tuple<mat<double, 4, 4>, vec<double, 3>> LF =
+        svd_left(A, full);
+    [[maybe_unused]] std::tuple<mat<double, 4, 3>, vec<double, 3>> LE =
+        svd_left(A, economy);
+  }
+  //----------------------------------------------------------------------------
+  SECTION("right") {
+    // just check if it compiles
+    mat A{
         {6.405871813e+00, -4.344670595e+00, 9.471184691e+00, 5.850792157e+00},
         {3.049605906e+00, 1.018629735e+00, 5.535464761e+00, 2.691779530e+00},
         {9.002176872e+00, 3.332492228e-01, -2.365651229e+00, 9.458283935e+00}};
-    const auto [U, s, VT] = gesvd(A, lapack_job::S, lapack_job::S);
-    CAPTURE(A,U,s,VT);
-    auto diff             = U * diag(s) * VT - A;
-    REQUIRE(s(0) == Approx(1.733194199066472e+01));
-    REQUIRE(s(1) == Approx(9.963856829919013e+00));
-    REQUIRE(s(2) == Approx(2.932957998778161e+00));
-    // diff.for_indices([&diff](auto... is) {
-    //  REQUIRE(diff(is...) == Approx(0).margin(1e-10));
-    //});
+    [[maybe_unused]] std::tuple<vec<double, 3>, mat<double,4,4>> RF =
+        svd_right(A, full);
+    [[maybe_unused]] std::tuple<vec<double, 3>, mat<double,3,4>> RE =
+        svd_right(A, economy);
   }
 }
 //==============================================================================

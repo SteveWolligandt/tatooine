@@ -28,6 +28,10 @@ namespace tatooine {
 //==============================================================================
 struct frobenius_t {};
 static constexpr frobenius_t frobenius;
+struct full_t {};
+static constexpr full_t full;
+struct economy_t {};
+static constexpr economy_t economy;
 //------------------------------------------------------------------------------
 struct eye_t {};
 static constexpr eye_t eye;
@@ -280,23 +284,24 @@ constexpr auto abs(const base_tensor<Tensor, Real, Dims...>& t) {
   return abs_tensor<Tensor, Dims...>{t.as_derived()};
 }
 //==============================================================================
-template <typename Tensor, size_t N>
-struct diag_tensor
-    : base_tensor<diag_tensor<Tensor, N>, typename Tensor::real_t, N, N> {
+template <typename Tensor, size_t VecN, size_t M, size_t N>
+struct const_diag_tensor : base_tensor<const_diag_tensor<Tensor, VecN, M, N>,
+                                       typename Tensor::real_t, M, N> {
   //============================================================================
  private:
   const Tensor& m_internal_tensor;
 
   //============================================================================
  public:
-  constexpr explicit diag_tensor(
-      const base_tensor<Tensor, typename Tensor::real_t, N>& internal_tensor)
+  constexpr explicit const_diag_tensor(
+      const base_tensor<Tensor, typename Tensor::real_t, VecN>& internal_tensor)
       : m_internal_tensor{internal_tensor.as_derived()} {}
-
   //----------------------------------------------------------------------------
   constexpr auto operator()(size_t i, size_t j) const { return at(i, j); }
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
   constexpr auto at(size_t i, size_t j) const -> typename Tensor::real_t {
+    assert(i < M);
+    assert(j < N);
     if (i == j) {
       return m_internal_tensor(i);
     } else {
@@ -306,10 +311,68 @@ struct diag_tensor
   //----------------------------------------------------------------------------
   auto internal_tensor() const -> const auto& { return m_internal_tensor; }
 };
+//==============================================================================
+template <typename Tensor, size_t VecN, size_t M, size_t N>
+struct diag_tensor
+    : base_tensor<diag_tensor<Tensor, VecN, M, N>, typename Tensor::real_t, M, N> {
+  //============================================================================
+ private:
+  Tensor& m_internal_tensor;
+  typename Tensor::real_t zero=0;
+
+  //============================================================================
+ public:
+  constexpr explicit diag_tensor(
+      const base_tensor<Tensor, typename Tensor::real_t, VecN>& internal_tensor)
+      : m_internal_tensor{internal_tensor.as_derived()} {}
+
+  //----------------------------------------------------------------------------
+  constexpr auto operator()(size_t i, size_t j) const { return at(i, j); }
+  // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+  constexpr auto at(size_t i, size_t j) -> auto& {
+    assert(i < M);
+    assert(j < N);
+    zero = 0;
+    if (i == j) {
+      return m_internal_tensor(i);
+    } else {
+      return zero;
+    }
+  }
+  //----------------------------------------------------------------------------
+  constexpr auto at(size_t i, size_t j) const -> typename Tensor::real_t {
+    assert(i < M);
+    assert(j < N);
+    if (i == j) {
+      return m_internal_tensor(i);
+    } else {
+      return 0;
+    }
+  }
+  //----------------------------------------------------------------------------
+  auto internal_tensor() -> auto& { return m_internal_tensor; }
+  // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+  auto internal_tensor() const -> const auto& { return m_internal_tensor; }
+};
 //------------------------------------------------------------------------------
-template <typename Tensor, typename Real, size_t N>
-constexpr auto diag(const base_tensor<Tensor, Real, N>& t) {
-  return diag_tensor<Tensor, N>{t.as_derived()};
+template <typename Tensor, typename Real, size_t VecN>
+constexpr auto diag(const base_tensor<Tensor, Real, VecN>& t) {
+  return const_diag_tensor<Tensor, VecN, VecN, VecN>{t};
+}
+// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+template <typename Tensor, typename Real, size_t VecN>
+constexpr auto diag(base_tensor<Tensor, Real, VecN>& t) {
+  return diag_tensor<Tensor, VecN, VecN, VecN>{t};
+}
+//------------------------------------------------------------------------------
+template <size_t M, size_t N, typename Tensor, typename Real, size_t VecN>
+constexpr auto diag_rect(const base_tensor<Tensor, Real, VecN>& t) {
+  return const_diag_tensor<Tensor, VecN, M, N>{t};
+}
+// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+template <size_t M, size_t N, typename Tensor, typename Real, size_t VecN>
+constexpr auto diag_rect(base_tensor<Tensor, Real, VecN>& t) {
+  return diag_tensor<Tensor, VecN, M, N>{t};
 }
 //==============================================================================
 template <typename Tensor, size_t M, size_t N>
@@ -325,7 +388,6 @@ struct const_transposed_tensor
   constexpr explicit const_transposed_tensor(
       const base_tensor<Tensor, typename Tensor::real_t, N, M>& internal_tensor)
       : m_internal_tensor{internal_tensor.as_derived()} {}
-
   //----------------------------------------------------------------------------
   constexpr auto operator()(const size_t r, const size_t c) const -> const
       auto& {
@@ -352,7 +414,6 @@ struct transposed_tensor : base_tensor<transposed_tensor<Tensor, M, N>,
   constexpr explicit transposed_tensor(
       base_tensor<Tensor, typename Tensor::real_t, N, M>& internal_tensor)
       : m_internal_tensor{internal_tensor.as_derived()} {}
-
   //----------------------------------------------------------------------------
   constexpr auto operator()(const size_t r, const size_t c) const -> const
       auto& {
@@ -378,14 +439,14 @@ struct transposed_tensor : base_tensor<transposed_tensor<Tensor, M, N>,
 
 //------------------------------------------------------------------------------
 template <typename Tensor, typename Real, size_t M, size_t N>
-auto transpose(const base_tensor<Tensor, Real, M, N>& tensor) {
-  return const_transposed_tensor<Tensor, M, N>{tensor.as_derived()};
+auto transpose(const base_tensor<Tensor, Real, M, N>& t) {
+  return const_transposed_tensor{t};
 }
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 template <typename Tensor, typename Real, size_t M, size_t N>
-constexpr auto transpose(base_tensor<Tensor, Real, M, N>& tensor) {
-  return transposed_tensor<Tensor, N, M>{tensor.as_derived()};
+constexpr auto transpose(base_tensor<Tensor, Real, M, N>& t) {
+  return transposed_tensor<Tensor, N, M>{t};
 }
 
 //------------------------------------------------------------------------------
@@ -1178,7 +1239,10 @@ auto gecon(const tensor<Real, N, N>& A) {
 template <typename T, size_t M, size_t N,
           typename JOBU, typename JOBVT,
           enable_if_floating_point_or_complex<T> = true>
-auto gesvd(tensor<T, M, N> A, JOBU, JOBVT) {
+auto gesvd(tensor<T, M, N>&& A, JOBU, JOBVT) {
+  static_assert(!std::is_same_v<JOBU,  lapack_job::O_t> ||
+                !std::is_same_v<JOBVT, lapack_job::O_t>,
+                "either jobu or jobvt must not be O");
   vec<T, tatooine::min(M, N)> s;
   constexpr char jobu = [&]{
     if constexpr (std::is_same_v<lapack_job::A_t, JOBU>) {
@@ -1207,37 +1271,36 @@ auto gesvd(tensor<T, M, N> A, JOBU, JOBVT) {
     }
   }();
 
-  constexpr size_t LDU = [&] {
-    if constexpr (std::is_same_v<lapack_job::A_t, JOBU> ||
-                  std::is_same_v<lapack_job::S_t, JOBU>) {
-      return M;
-    } else {
-      return 1;
-    }
-  }();
   auto U = [] {
     if constexpr (std::is_same_v<lapack_job::A_t, JOBU>) {
-      return mat<T, LDU, M>{};
+      return mat<T, M, M>{};
     } else if constexpr (std::is_same_v<lapack_job::S_t, JOBU>) {
-      return mat<T, LDU, tatooine::min(M, N)>{};
+      return mat<T, M, tatooine::min(M, N)>{};
     } else {
       return nullptr;
     }}();
 
-  constexpr size_t LDVT = [&] {
-    if constexpr (std::is_same_v<lapack_job::A_t, JOBVT>) {
-      return N;
-    } else if constexpr (std::is_same_v<lapack_job::S_t, JOBVT>) {
-      return tatooine::min(M, N);
-    } else {
-      return 1;
-    }}();
   auto VT = [] {
-    if constexpr (std::is_same_v<lapack_job::A_t, JOBU> ||
-                  std::is_same_v<lapack_job::S_t, JOBU>) {
-      return mat<T, LDVT, N>{};
+    if constexpr (std::is_same_v<lapack_job::A_t, JOBVT>) {
+      return mat<T, N, N>{};
+    } else if constexpr (std::is_same_v<lapack_job::S_t, JOBVT>) {
+      return mat<T, tatooine::min(M,N), N>{};
     } else {
       return nullptr;
+    }}();
+  constexpr auto ldu = [&U] {
+    if constexpr (std::is_same_v<lapack_job::A_t, JOBU> ||
+                  std::is_same_v<lapack_job::S_t, JOBU>) {
+      return U.dimension(0);
+    } else {
+      return 0;
+    }}();
+  constexpr auto ldvt = [&VT] {
+    if constexpr (std::is_same_v<lapack_job::A_t, JOBVT> ||
+                  std::is_same_v<lapack_job::S_t, JOBVT>) {
+      return VT.dimension(0);
+    } else {
+      return 0;
     }}();
   T* U_ptr = [&U] {
     if constexpr (std::is_same_v<lapack_job::A_t, JOBU> ||
@@ -1254,24 +1317,26 @@ auto gesvd(tensor<T, M, N> A, JOBU, JOBVT) {
       return nullptr;
     }}();
   std::array<T, tatooine::min(M, N) - 1> superb;
-  const auto                                info = [&] {
+
+  const auto info = [&] {
     if constexpr (std::is_same_v<double, T>) {
       return LAPACKE_dgesvd(LAPACK_COL_MAJOR, jobu, jobvt, M, N, A.data_ptr(),
-                            N, s.data_ptr(), U_ptr, M, VT_ptr, N,
-                            superb.data());
+                            M, s.data_ptr(), U_ptr, ldu, VT_ptr,
+                            ldvt, superb.data());
     } else if constexpr (std::is_same_v<float, T>) {
       return LAPACKE_sgesvd(LAPACK_COL_MAJOR, jobu, jobvt, M, N, A.data_ptr(),
-                            N, s.data_ptr(), U_ptr, M, VT_ptr, N,
-                            superb.data());
+                            M, s.data_ptr(), U_ptr, ldu, VT_ptr,
+                            ldvt, superb.data());
     } else if constexpr (std::is_same_v<std::complex<float>, T>) {
       return LAPACKE_cgesvd(LAPACK_COL_MAJOR, jobu, jobvt, M, N, A.data_ptr(),
-                            N, s.data_ptr(), U_ptr, M, VT_ptr, N,
-                            superb.data());
+                            M, s.data_ptr(), U_ptr, ldu, VT_ptr,
+                            ldvt, superb.data());
     } else if constexpr (std::is_same_v<std::complex<double>, T>) {
       return LAPACKE_zgesvd(LAPACK_COL_MAJOR, jobu, jobvt, M, N, A.data_ptr(),
-                            N, s.data_ptr(), U_ptr, M, VT_ptr, N,
-                            superb.data());
-    }}();
+                            M, s.data_ptr(), U_ptr, ldu, VT_ptr,
+                            ldvt, superb.data());
+    }
+  }();
   if (info < 0) {
     throw std::runtime_error{"[gesvd] - " + std::to_string(-info) +
                              "-th argument is invalid"};
@@ -1436,23 +1501,114 @@ auto eigenvectors_sym(mat<double, N, N> A)
 }
 //==============================================================================
 template <typename T, size_t M, size_t N>
+auto svd(const tensor<T, M, N>& A, full_t /*tag*/) {
+  return gesvd(tensor{A}, lapack_job::A, lapack_job::A);
+}
+// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+template <typename T, size_t M, size_t N>
+auto svd(const tensor<T, M, N>& A, economy_t /*tag*/) {
+  return gesvd(tensor{A}, lapack_job::S, lapack_job::S);
+}
+// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+template <typename T, size_t M, size_t N>
 auto svd(const tensor<T, M, N>& A) {
-  return gesvd(A, lapack_job::S, lapack_job::S);
+  return svd(A, full);
+}
+// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+template <typename T, size_t M, size_t N>
+auto svd_left(const tensor<T, M, N>& A, full_t /*tag*/) {
+  return gesvd(tensor{A}, lapack_job::A, lapack_job::N);
+}
+// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+template <typename T, size_t M, size_t N>
+auto svd_left(const tensor<T, M, N>& A, economy_t /*tag*/) {
+  return gesvd(tensor{A}, lapack_job::S, lapack_job::N);
+}
+// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+template <typename T, size_t M, size_t N>
+auto svd_left(const tensor<T, M, N>& A) {
+  return svd_left(A, full);
+}
+// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+template <typename T, size_t M, size_t N>
+auto svd_right(const tensor<T, M, N>& A, full_t /*tag*/) {
+  return gesvd(tensor{A}, lapack_job::N, lapack_job::A);
+}
+// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+template <typename T, size_t M, size_t N>
+auto svd_right(const tensor<T, M, N>& A, economy_t /*tag*/) {
+  return gesvd(tensor{A}, lapack_job::N, lapack_job::S);
+}
+// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+template <typename T, size_t M, size_t N>
+auto svd_right(const tensor<T, M, N>& A) {
+  return svd_right(A, full);
+}
+// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+template <typename Tensor, typename T, size_t M, size_t N>
+auto svd(const base_tensor<Tensor, T, M, N>& A, full_t /*tag*/) {
+  tensor copy{A};
+  return gesvd(tensor{A}, lapack_job::A, lapack_job::A);
+}
+// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+template <typename Tensor, typename T, size_t M, size_t N>
+auto svd(const base_tensor<Tensor, T, M, N>& A, economy_t /*tag*/) {
+  tensor copy{A};
+  return gesvd(tensor{A}, lapack_job::S, lapack_job::S);
 }
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 template <typename Tensor, typename T, size_t M, size_t N>
 auto svd(const base_tensor<Tensor, T, M, N>& A) {
-  return svd(tensor<T, M, N>{A});
+  return svd(A, full);
+}
+// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+template <typename Tensor, typename T, size_t M, size_t N>
+auto svd_left(const base_tensor<Tensor, T, M, N>& A, full_t /*tag*/) {
+  tensor copy{A};
+  return gesvd(tensor{A}, lapack_job::A, lapack_job::N);
+}
+// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+template <typename Tensor, typename T, size_t M, size_t N>
+auto svd_left(const base_tensor<Tensor, T, M, N>& A, economy_t /*tag*/) {
+  tensor copy{A};
+  return gesvd(tensor{A}, lapack_job::S, lapack_job::N);
+}
+// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+template <typename Tensor, typename T, size_t M, size_t N>
+auto svd_left(const base_tensor<Tensor, T, M, N>& A) {
+  return svd_left(A, full);
+}
+// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+template <typename Tensor, typename T, size_t M, size_t N>
+auto svd_right(const base_tensor<Tensor, T, M, N>& A, full_t /*tag*/) {
+  tensor copy{A};
+  return gesvd(tensor{A}, lapack_job::N, lapack_job::A);
+}
+// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+template <typename Tensor, typename T, size_t M, size_t N>
+auto svd_right(const base_tensor<Tensor, T, M, N>& A, economy_t /*tag*/) {
+  tensor copy{A};
+  return gesvd(tensor{A}, lapack_job::N, lapack_job::S);
+}
+// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+template <typename Tensor, typename T, size_t M, size_t N>
+auto svd_right(const base_tensor<Tensor, T, M, N>& A) {
+  return svd_right(A, full);
 }
 //------------------------------------------------------------------------------
 template < typename T, size_t M, size_t N>
-auto singular_values(const tensor<T, M, N>& A) {
+auto singular_values(tensor<T, M, N>&& A) {
   return gesvd(A, lapack_job::N, lapack_job::N);
+}
+// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+template <typename T, size_t M, size_t N>
+auto singular_values(const tensor<T, M, N>& A) {
+  return gesvd(tensor{A}, lapack_job::N, lapack_job::N);
 }
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 template <typename Tensor, typename T, size_t M, size_t N>
 auto singular_values(const base_tensor<Tensor, T, M, N>& A) {
-  return singular_values(tensor<T, M, N>{A});
+  return singular_values(tensor{A});
 }
 //==============================================================================
 /// for comparison
