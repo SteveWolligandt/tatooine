@@ -46,7 +46,8 @@ struct derived_field : field<derived_field<Field, TensorDims...>, typename Field
       : m_internal_field{f.as_derived()}, m_eps{eps} {}
 
   //----------------------------------------------------------------------------
-  tensor_t evaluate(const pos_t& x, const real_t t) const override {
+  constexpr auto evaluate(const pos_t& x, const real_t t) const
+      -> tensor_t final {
     tensor_t derivative;
 
     pos_t offset;
@@ -70,16 +71,15 @@ struct derived_field : field<derived_field<Field, TensorDims...>, typename Field
 
     return derivative;
   }
-
   //----------------------------------------------------------------------------
-  constexpr bool in_domain(const pos_t& x, real_t t) const override {
+  constexpr auto in_domain(const pos_t& x, real_t t) const -> bool final {
     return m_internal_field.in_domain(x, t);
   }
-
   //----------------------------------------------------------------------------
-  auto&       internal_field() { return m_internal_field; }
-  const auto& internal_field() const { return m_internal_field; }
-
+  constexpr auto internal_field() -> auto& { return m_internal_field; }
+  constexpr auto internal_field() const -> const auto& {
+    return m_internal_field;
+  }
   //----------------------------------------------------------------------------
   void        set_eps(const vec_t& eps) { m_eps = eps; }
   void        set_eps(vec_t&& eps) { m_eps = std::move(eps); }

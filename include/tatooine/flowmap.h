@@ -7,18 +7,21 @@
 namespace tatooine {
 //==============================================================================
 
-template <typename V, template <typename, size_t> typename Integrator>
-struct flowmap : field<flowmap<V, Integrator>, typename V::real_t,
-                       V::num_dimensions(), V::num_dimensions()> {
-  using this_t   = flowmap<V, Integrator>;
-  using parent_t = field<this_t, typename V::real_t, V::num_dimensions(),
-                         V::num_dimensions()>;
+template <typename V,
+          template <typename, size_t, template <typename> typename>
+          typename Integrator,
+          template <typename> typename InterpolationKernel>
+struct flowmap : vectorfield<flowmap<V, Integrator, InterpolationKernel>,
+                             typename V::real_t, V::num_dimensions()> {
+  using this_t   = flowmap<V, Integrator, InterpolationKernel>;
+  using parent_t = vectorfield<this_t, typename V::real_t, V::num_dimensions()>;
   using parent_t::num_dimensions;
   using typename parent_t::pos_t;
   using typename parent_t::real_t;
   using typename parent_t::tensor_t;
   using parent_t::operator();
-  using integrator_t = Integrator<real_t, parent_t::num_dimensions()>;
+  using integrator_t =
+      Integrator<real_t, parent_t::num_dimensions(), InterpolationKernel>;
 
   //============================================================================
  private:
@@ -29,7 +32,7 @@ struct flowmap : field<flowmap<V, Integrator>, typename V::real_t,
   //============================================================================
  public:
   template <typename FieldReal, typename TauReal, size_t N>
-  constexpr flowmap(const field<V, FieldReal, N, N>& vf,
+  constexpr flowmap(const vectorfield<V, FieldReal, N>& vf,
                     const integrator_t& integrator, TauReal tau)
       : m_vectorfield{vf.as_derived()},
         m_integrator{std::make_shared<integrator_t>(integrator)},
@@ -44,27 +47,26 @@ struct flowmap : field<flowmap<V, Integrator>, typename V::real_t,
     return evaluate(x, t0, tau);
   }
   //----------------------------------------------------------------------------
-  constexpr tensor_t evaluate(const pos_t& x, real_t t) const {
-    auto integral =
-        m_integrator->integrate_uncached(m_vectorfield, x, t, m_tau);
-    if (integral.empty()) {
-      return x;
-    }
-    if (m_tau > 0) {
-      return integral.back_vertex();
-    }
-    return integral.front_vertex();
+  [[nodiscard]] constexpr auto evaluate(const pos_t& x, real_t t) const
+      -> tensor_t final {
+    if (m_tau == 0) { return x; }
+    const auto& integral = m_integrator->integrate(m_vectorfield, x, t, m_tau);
+    if (integral.empty()) { return x; }
+    return integral(m_tau);
   }
-
   //============================================================================
-  constexpr decltype(auto) in_domain(const pos_t& x, real_t t) const {
+  [[nodiscard]] constexpr auto in_domain(const pos_t& x, real_t t) const
+      -> bool final {
     return m_vectorfield.in_domain(x, t);
   }
-
   //============================================================================
   auto tau() const { return m_tau; }
-  void set_tau(const real_t tau) { m_tau = tau; }
-
+  void set_tau(const real_t tau) {
+    m_tau = tau;
+  }
+  //----------------------------------------------------------------------------
+  const auto& vectorfield() const { return m_vectorfield; }
+  auto&       vectorfield() { return m_vectorfield; }
   //----------------------------------------------------------------------------
   const auto& integrator() const { return m_integrator; }
   auto&       integrator() { return m_integrator; }

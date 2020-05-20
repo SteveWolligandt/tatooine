@@ -1,9 +1,10 @@
 #ifndef TATOOINE_AUTONOMOUS_PARTICLES
 #define TATOOINE_AUTONOMOUS_PARTICLES
 //==============================================================================
-#include "tensor.h"
-#include "diff.h"
-#include "flowmap.h"
+#include <tatooine/tensor.h>
+#include <tatooine/diff.h>
+#include <tatooine/flowmap.h>
+#include <tatooine/integration/vclibs/rungekutta43.h>
 //==============================================================================
 namespace tatooine{
 //==============================================================================
@@ -24,7 +25,7 @@ struct autonomous_particle {
   //----------------------------------------------------------------------------
  private:
   pos_t  m_x0, m_x1;
-  real_t m_t1;
+  real_t m_t0, m_t1;
   mat_t  m_flowmap_gradient;
   size_t m_level;
   real_t m_radius;
@@ -39,6 +40,7 @@ struct autonomous_particle {
                       RealRadius const radius)
       : m_x0{x0},
         m_x1{x0},
+        m_t0{static_cast<real_t>(t0)},
         m_t1{static_cast<real_t>(t0)},
         m_flowmap_gradient{mat_t::eye()},
         m_level{0},
@@ -68,29 +70,42 @@ struct autonomous_particle {
   // methods
   //----------------------------------------------------------------------------
  public:
-  template <typename V, typename VReal,
-            template <typename, size_t> typename Integrator>
-  auto evolve(field<V, VReal, N> const&         v,
-              Integrator<Real, N> const& integrator,
-              real_t const                      tau) const {
-    
-    flowmap fm{v, integrator, tau};
-    auto    fmgrad = diff(fm, 1e-6);
+  template <template <typename, size_t, template <typename> typename>
+            typename Integrator = integration::vclibs::rungekutta43,
+            template <typename>
+            typename InterpolationKernel = interpolation::hermite,
+            typename V>
+  auto split(vectorfield<V, Real, N> const& v, real_t tau_step) const {
+    using integrator_t = Integrator<Real, N, InterpolationKernel>;
 
-    this_t{x0, m_t1 + tau, fm(m_x0, m_t1),
-           m_flowmap_gradient * fmgrad(m_x0, m_t1), m_level + 1, m_radius};
-  }
-  //----------------------------------------------------------------------------
-  template <typename V, typename VReal,
-            template <typename, size_t> typename Integrator>
-  auto split(field<V, VReal, N> const&         v,
-              Integrator<Real, N> const& integrator, real_t const tau) const {
-    flowmap fm{v, integrator, tau};
-    auto    fmgrad = diff(fm, 1e-6);
+    Real         tau          = 0;
+    auto         fmgrad_field = diff(flowmap{v, integrator_t{}, tau}, m_radius);
+    auto&        fm           = fmgrad_field.internal_field();
+    Real   cond   = 0;
+    std::pair<mat<Real, N, N>, vec<Real, N>> eig;
+    auto& eigvecs = eig.first;
+    auto& eigvals = eig.second;
 
-    this_t {x0, m_t1 + tau, fm(m_x0, m_t1),
-           m_flowmap_gradient * fmgrad(m_x0, m_t1), m_level + 1, m_radius};
-    //return std::array<this_t, 3>{left, center, right};
+    typename decltype(fmgrad_field)::tensor_t fmgrad;
+    std::cerr << "tau_step = " << tau_step << "\n";
+    while (cond < 9) {
+      tau += tau_step;
+      fm.set_tau(tau);
+      std::cerr << "tau      = " << fm.tau() << '\n';
+
+      fmgrad = fmgrad_field(m_x0, m_t0);
+      eig = eigenvectors_sym(fmgrad * transpose(fmgrad));
+      cond = max(eigvals) / min(eigvals);
+      std::cerr << "cond     = " << cond << '\n';
+      if (cond > 9.05) {
+        std::cerr << "cond too high, decreasing tau_step\n";
+        cond = 0;
+        tau -= tau_step;
+        tau_step *= 0.5;
+        std::cerr << "tau_step = " << tau_step << "\n";
+      }
+      std::cerr << "=====\n";
+    }
   }
 };
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -

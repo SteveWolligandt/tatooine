@@ -1180,6 +1180,8 @@ auto getrf(tensor<T, M, N>&& A) {
     LAPACKE_zgetrf(LAPACK_COL_MAJOR, M, N, A.data_ptr(), M, p.data_ptr());
   } else if constexpr (std::is_same_v<std::complex<float>, T>) {
     LAPACKE_cgetrf(LAPACK_COL_MAJOR, M, N, A.data_ptr(), M, p.data_ptr());
+  } else {
+    throw std::runtime_error{"[tatooine::lapack::getrf] - type not accepted"};
   }
   return A;
 }
@@ -1212,7 +1214,7 @@ template <size_t N>
 auto gesv(tensor<double, N, N> A, tensor<double, N> b) {
   vec<int, N> ipiv;
   int                nrhs = 1;
-  LAPACKE_dgesv(LAPACK_COL_MAJOR, N, nrhs, A.data_ptr(), N, ipiv.data(),
+  LAPACKE_dgesv(LAPACK_COL_MAJOR, N, nrhs, A.data_ptr(), N, ipiv.data_ptr(),
                 b.data_ptr(), N);
   return b;
 }
@@ -1220,8 +1222,8 @@ auto gesv(tensor<double, N, N> A, tensor<double, N> b) {
 template <size_t M, size_t N>
 auto gesv(tensor<float, M, M> A, const tensor<float, M, N>& B) {
   auto               X = B;
-  std::array<int, N> ipiv;
-  LAPACKE_sgesv(LAPACK_COL_MAJOR, M, N, A.data_ptr(), M, ipiv.data(),
+  vec<int, N> ipiv;
+  LAPACKE_sgesv(LAPACK_COL_MAJOR, M, N, A.data_ptr(), M, ipiv.data_ptr(),
                 X.data_ptr(), M);
   return X;
 }
@@ -1246,7 +1248,7 @@ auto lange(const tensor<T, M, N>& A, const char norm) {
   } else if constexpr (std::is_same_v<std::complex<float>, T>) {
     return LAPACKE_clange(LAPACK_COL_MAJOR, norm, M, N, A.data_ptr(), M);
   } else {
-    throw std::runtime_error{"[lapack::lange] - type not accepted"};
+    throw std::runtime_error{"[tatooine::lapack::lange] - type not accepted"};
   }
 }
 //------------------------------------------------------------------------------

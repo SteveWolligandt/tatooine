@@ -572,7 +572,7 @@ struct line {
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
   auto tangent_at(const size_t i, automatic_t /*tag*/,
                   bool         prefer_calc = false) const {
-    if (m_tangents && !prefer_calc) { return m_tangents->at(i); }
+    if (m_tangents && !prefer_calc) { return m_tangents->at(vertex_idx{i}); }
     if (is_closed()) { return tangent_at(i, central); }
     if (i == 0) { return tangent_at(i, forward); }
     if (i == num_vertices() - 1) { return tangent_at(i, backward); }
@@ -1082,9 +1082,9 @@ struct parameterized_line : line<Real, N> {
   auto operator[](vertex_idx i) const { return at(i); }
   auto operator[](vertex_idx i) { return at(i); }
   //----------------------------------------------------------------------------
-  auto& parameterization_at(size_t i) { return m_parameterization->at(i); }
+  auto& parameterization_at(size_t i) { return m_parameterization->at(vertex_idx{i}); }
   const auto& parameterization_at(size_t i) const {
-    return m_parameterization->at(i);
+    return m_parameterization->at(vertex_idx{i});
   }
   //----------------------------------------------------------------------------
   auto&       front_parameterization() { return m_parameterization->front(); }
@@ -1127,7 +1127,7 @@ struct parameterized_line : line<Real, N> {
   //----------------------------------------------------------------------------
   auto push_back(pos_t&& p, Real t, bool auto_compute_interpolator = true) {
     auto i                    = parent_t::push_back(std::move(p));
-    m_parameterization->at(i) = t;
+    m_parameterization->at(vertex_idx{i}) = t;
     if (num_vertices() > 1) {
       if (auto_compute_interpolator) {
         if constexpr (interpolation_needs_first_derivative) {
@@ -1182,7 +1182,7 @@ struct parameterized_line : line<Real, N> {
   //----------------------------------------------------------------------------
   auto push_front(pos_t&& p, Real t, bool auto_compute_interpolator = true) {
     auto i                    = parent_t::push_front(std::move(p));
-    m_parameterization->at(i) = t;
+    m_parameterization->at(vertex_idx{i}) = t;
     if (num_vertices() > 1) {
       if (auto_compute_interpolator) {
         if constexpr (interpolation_needs_first_derivative) {
@@ -1490,7 +1490,7 @@ struct parameterized_line : line<Real, N> {
                  {t2 * t2, t2, Real(1)}};
     for (size_t n = 0; n < N; ++n) {
       vec3 b{x0(n), x1(n), x2(n)};
-      auto c     = gesv(A, b);
+      auto c     = lapack::gesv(A, b);
       tangent(n) = 2 * c(0) * parameterization_at(i) + c(1);
     }
     return tangent;
@@ -1504,7 +1504,7 @@ struct parameterized_line : line<Real, N> {
   auto tangent_at(const size_t i, automatic_t /*tag*/,
                   bool         prefer_calc = false) const {
     if (this->m_tangents && !prefer_calc) {
-      return this->m_tangents->at(i);
+      return this->m_tangents->at(vertex_idx{i});
     }
     if (num_vertices() >= 3) {
       return tangent_at(i, quadratic);
