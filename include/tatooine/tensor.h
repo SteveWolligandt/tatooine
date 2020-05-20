@@ -1166,6 +1166,39 @@ static constexpr N_t N;
 //------------------------------------------------------------------------------
 }  // namespace lapack_job
 //------------------------------------------------------------------------------
+namespace lapack {
+//------------------------------------------------------------------------------
+template <typename T, size_t M, size_t N,
+          enable_if_floating_point_or_complex<T> = true>
+auto getrf(tensor<T, M, N>&& A) {
+  vec<int, tatooine::min(M,N)> p;
+  if constexpr (std::is_same_v<double, T>) {
+    LAPACKE_dgetrf(LAPACK_COL_MAJOR, M, N, A.data_ptr(), M, p.data_ptr());
+  } else if constexpr (std::is_same_v<float, T>) {
+    LAPACKE_sgetrf(LAPACK_COL_MAJOR, M, N, A.data_ptr(), M, p.data_ptr());
+  } else if constexpr (std::is_same_v<std::complex<double>, T>) {
+    LAPACKE_zgetrf(LAPACK_COL_MAJOR, M, N, A.data_ptr(), M, p.data_ptr());
+  } else if constexpr (std::is_same_v<std::complex<float>, T>) {
+    LAPACKE_cgetrf(LAPACK_COL_MAJOR, M, N, A.data_ptr(), M, p.data_ptr());
+  }
+  return A;
+}
+template <typename T, size_t M, size_t N,
+          enable_if_floating_point_or_complex<T> = true>
+auto getrf(tensor<T, M, N>& A) {
+  vec<int, tatooine::min(M,N)> p;
+  if constexpr (std::is_same_v<double, T>) {
+    LAPACKE_dgetrf(LAPACK_COL_MAJOR, M, N, A.data_ptr(), M, p.data_ptr());
+  } else if constexpr (std::is_same_v<float, T>) {
+    LAPACKE_sgetrf(LAPACK_COL_MAJOR, M, N, A.data_ptr(), M, p.data_ptr());
+  } else if constexpr (std::is_same_v<std::complex<double>, T>) {
+    LAPACKE_zgetrf(LAPACK_COL_MAJOR, M, N, A.data_ptr(), M, p.data_ptr());
+  } else if constexpr (std::is_same_v<std::complex<float>, T>) {
+    LAPACKE_cgetrf(LAPACK_COL_MAJOR, M, N, A.data_ptr(), M, p.data_ptr());
+  }
+  return A;
+}
+//------------------------------------------------------------------------------
 template <size_t N>
 auto gesv(tensor<float, N, N> A, tensor<float, N> b) {
   std::array<int, N> ipiv;
@@ -1177,7 +1210,7 @@ auto gesv(tensor<float, N, N> A, tensor<float, N> b) {
 //------------------------------------------------------------------------------
 template <size_t N>
 auto gesv(tensor<double, N, N> A, tensor<double, N> b) {
-  std::array<int, N> ipiv;
+  vec<int, N> ipiv;
   int                nrhs = 1;
   LAPACKE_dgesv(LAPACK_COL_MAJOR, N, nrhs, A.data_ptr(), N, ipiv.data(),
                 b.data_ptr(), N);
@@ -1201,34 +1234,79 @@ auto gesv(tensor<double, M, M> A, const tensor<double, M, N>& B) {
   return X;
 }
 //------------------------------------------------------------------------------
+template <typename T, size_t M, size_t N,
+          enable_if_floating_point_or_complex<T> = true>
+auto lange(const tensor<T, M, N>& A, const char norm) {
+  if constexpr (std::is_same_v<double, T>) {
+    return LAPACKE_dlange(LAPACK_COL_MAJOR, norm, M, N, A.data_ptr(), M);
+  } else if constexpr (std::is_same_v<float, T>) {
+    return LAPACKE_slange(LAPACK_COL_MAJOR, norm, M, N, A.data_ptr(), M);
+  } else if constexpr (std::is_same_v<std::complex<double>, T>) {
+    return LAPACKE_zlange(LAPACK_COL_MAJOR, norm, M, N, A.data_ptr(), M);
+  } else if constexpr (std::is_same_v<std::complex<float>, T>) {
+    return LAPACKE_clange(LAPACK_COL_MAJOR, norm, M, N, A.data_ptr(), M);
+  } else {
+    throw std::runtime_error{"[lapack::lange] - type not accepted"};
+  }
+}
+//------------------------------------------------------------------------------
 /// Estimates the reciprocal of the condition number of a general matrix A.
 /// http://www.netlib.org/lapack/explore-html/d7/db5/lapacke__dgecon_8c_a7c007823b949b0b118acf7e0235a6fc5.html
 /// https://www.netlib.org/lapack/explore-html/dd/d9a/group__double_g_ecomputational_ga188b8d30443d14b1a3f7f8331d87ae60.html
-template <typename Real, size_t N,
-          enable_if_floating_point_or_complex<Real> = true>
-auto gecon(const tensor<Real, N, N>& A) {
-  Real       rcond = 0;
-  const char normbase  = '1';
-  const Real norm     = norm1(A);
-  const auto info      = [&] {
-    if constexpr (std::is_same_v<double, Real>) {
-      return LAPACKE_dgecon(LAPACK_COL_MAJOR, normbase, N, A.data_ptr(), N,
-                            norm, &rcond);
-    } else if constexpr (std::is_same_v<float, Real>) {
-      return LAPACKE_sgecon(LAPACK_COL_MAJOR, normbase, N, A.data_ptr(), N,
-                            norm, &rcond);
-    } else if constexpr (std::is_same_v<std::complex<float>, Real>) {
-      return LAPACKE_cgecon(LAPACK_COL_MAJOR, normbase, N, A.data_ptr(), N,
-                            norm, &rcond);
-    } else if constexpr (std::is_same_v<std::complex<double>, Real>) {
-      return LAPACKE_zgecon(LAPACK_COL_MAJOR, normbase, N, A.data_ptr(), N,
-                            norm, &rcond);
+template <typename T, size_t N,
+          enable_if_floating_point_or_complex<T> = true>
+auto gecon(tensor<T, N, N>&& A) {
+  T              rcond = 0;
+  constexpr char p     = '1';
+  const auto     n     = lange(A, p);
+  getrf(A);
+  const auto info = [&] {
+    if constexpr (std::is_same_v<double, T>) {
+      return LAPACKE_dgecon(LAPACK_COL_MAJOR, p, N, A.data_ptr(), N, n, &rcond);
+    } else if constexpr (std::is_same_v<float, T>) {
+      return LAPACKE_sgecon(LAPACK_COL_MAJOR, p, N, A.data_ptr(), N, n, &rcond);
+    } else if constexpr (std::is_same_v<std::complex<float>, T>) {
+      return LAPACKE_cgecon(LAPACK_COL_MAJOR, p, N, A.data_ptr(), N, n, &rcond);
+    } else if constexpr (std::is_same_v<std::complex<double>, T>) {
+      return LAPACKE_zgecon(LAPACK_COL_MAJOR, p, N, A.data_ptr(), N, n, &rcond);
     } else {
-      throw std::runtime_error{"[gecon] - type not accepted"};
+      throw std::runtime_error{"[tatooine::lapack::gecon] - type not accepted"};
     }
   }();
   if (info < 0) {
-    throw std::runtime_error{"[gecon] - " + std::to_string(-info) +
+    throw std::runtime_error{"[tatooine::lapack::gecon] - " + std::to_string(-info) +
+                             "-th argument is invalid"};
+  }
+  return rcond;
+}
+/// Estimates the reciprocal of the condition number of a general matrix A.
+/// http://www.netlib.org/lapack/explore-html/d7/db5/lapacke__dgecon_8c_a7c007823b949b0b118acf7e0235a6fc5.html
+/// https://www.netlib.org/lapack/explore-html/dd/d9a/group__double_g_ecomputational_ga188b8d30443d14b1a3f7f8331d87ae60.html
+template <typename T, size_t N,
+          enable_if_floating_point_or_complex<T> = true>
+auto gecon(tensor<T, N, N>& A) {
+  T              rcond = 0;
+  constexpr char p     = 'I';
+  getrf(A);
+  const auto     info  = [&] {
+    if constexpr (std::is_same_v<double, T>) {
+      return LAPACKE_dgecon(LAPACK_COL_MAJOR, p, N, A.data_ptr(), N,
+                            lange(A, p), &rcond);
+    } else if constexpr (std::is_same_v<float, T>) {
+      return LAPACKE_sgecon(LAPACK_COL_MAJOR, p, N, A.data_ptr(), N,
+                            lange(A, p), &rcond);
+    } else if constexpr (std::is_same_v<std::complex<float>, T>) {
+      return LAPACKE_cgecon(LAPACK_COL_MAJOR, p, N, A.data_ptr(), N,
+                            lange(A, p), &rcond);
+    } else if constexpr (std::is_same_v<std::complex<double>, T>) {
+      return LAPACKE_zgecon(LAPACK_COL_MAJOR, p, N, A.data_ptr(), N,
+                            lange(A, p), &rcond);
+    } else {
+      throw std::runtime_error{"[tatooine::lapack::gecon] - type not accepted"};
+    }
+  }();
+  if (info < 0) {
+    throw std::runtime_error{"[tatooine::lapack::gecon] - " + std::to_string(-info) +
                              "-th argument is invalid"};
   }
   return rcond;
@@ -1339,10 +1417,10 @@ auto gesvd(tensor<T, M, N>&& A, JOBU, JOBVT) {
     }
   }();
   if (info < 0) {
-    throw std::runtime_error{"[gesvd] - " + std::to_string(-info) +
+    throw std::runtime_error{"[tatooine::lapack::gesvd] - " + std::to_string(-info) +
                              "-th argument is invalid"};
   } else if (info > 0) {
-    throw std::runtime_error{"[gesvd] - DBDSQR did not converge. " +
+    throw std::runtime_error{"[tatooine::lapack::gesvd] - DBDSQR did not converge. " +
                              std::to_string(info) +
                              " superdiagonals of an intermediate bidiagonal "
                              "form B did not converge to zero."};
@@ -1361,13 +1439,14 @@ auto gesvd(tensor<T, M, N>&& A, JOBU, JOBVT) {
     }
   }
 }
-//==============================================================================
-/// compute condition number
 //------------------------------------------------------------------------------
-template <typename Real, size_t N, typename P, enable_if_integral<P> = true>
-auto condition_number(const tensor<Real, N, N>& A, P p = 2) {
+}  // namespace lapack
+//------------------------------------------------------------------------------
+/// compute condition number
+template <typename T, size_t N, typename P, enable_if_integral<P> = true>
+auto condition_number(const tensor<T, N, N>& A, P p = 2) {
   if (p == 1) {
-    return 1 / gecon(A);
+    return 1 / lapack::gecon(tensor{A});
   } else if (p == 2) {
     const auto s = singular_values(A);
     return s(0) / s(N-1);
@@ -1503,12 +1582,12 @@ auto eigenvectors_sym(mat<double, N, N> A)
 //==============================================================================
 template <typename T, size_t M, size_t N>
 auto svd(const tensor<T, M, N>& A, full_t /*tag*/) {
-  return gesvd(tensor{A}, lapack_job::A, lapack_job::A);
+  return lapack::gesvd(tensor{A}, lapack_job::A, lapack_job::A);
 }
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 template <typename T, size_t M, size_t N>
 auto svd(const tensor<T, M, N>& A, economy_t /*tag*/) {
-  return gesvd(tensor{A}, lapack_job::S, lapack_job::S);
+  return lapack::gesvd(tensor{A}, lapack_job::S, lapack_job::S);
 }
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 template <typename T, size_t M, size_t N>
@@ -1518,12 +1597,12 @@ auto svd(const tensor<T, M, N>& A) {
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 template <typename T, size_t M, size_t N>
 auto svd_left(const tensor<T, M, N>& A, full_t /*tag*/) {
-  return gesvd(tensor{A}, lapack_job::A, lapack_job::N);
+  return lapack::gesvd(tensor{A}, lapack_job::A, lapack_job::N);
 }
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 template <typename T, size_t M, size_t N>
 auto svd_left(const tensor<T, M, N>& A, economy_t /*tag*/) {
-  return gesvd(tensor{A}, lapack_job::S, lapack_job::N);
+  return lapack::gesvd(tensor{A}, lapack_job::S, lapack_job::N);
 }
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 template <typename T, size_t M, size_t N>
@@ -1533,12 +1612,12 @@ auto svd_left(const tensor<T, M, N>& A) {
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 template <typename T, size_t M, size_t N>
 auto svd_right(const tensor<T, M, N>& A, full_t /*tag*/) {
-  return gesvd(tensor{A}, lapack_job::N, lapack_job::A);
+  return lapack::gesvd(tensor{A}, lapack_job::N, lapack_job::A);
 }
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 template <typename T, size_t M, size_t N>
 auto svd_right(const tensor<T, M, N>& A, economy_t /*tag*/) {
-  return gesvd(tensor{A}, lapack_job::N, lapack_job::S);
+  return lapack::gesvd(tensor{A}, lapack_job::N, lapack_job::S);
 }
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 template <typename T, size_t M, size_t N>
@@ -1549,13 +1628,13 @@ auto svd_right(const tensor<T, M, N>& A) {
 template <typename Tensor, typename T, size_t M, size_t N>
 auto svd(const base_tensor<Tensor, T, M, N>& A, full_t /*tag*/) {
   tensor copy{A};
-  return gesvd(tensor{A}, lapack_job::A, lapack_job::A);
+  return lapack::gesvd(tensor{A}, lapack_job::A, lapack_job::A);
 }
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 template <typename Tensor, typename T, size_t M, size_t N>
 auto svd(const base_tensor<Tensor, T, M, N>& A, economy_t /*tag*/) {
   tensor copy{A};
-  return gesvd(tensor{A}, lapack_job::S, lapack_job::S);
+  return lapack::gesvd(tensor{A}, lapack_job::S, lapack_job::S);
 }
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 template <typename Tensor, typename T, size_t M, size_t N>
@@ -1565,14 +1644,12 @@ auto svd(const base_tensor<Tensor, T, M, N>& A) {
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 template <typename Tensor, typename T, size_t M, size_t N>
 auto svd_left(const base_tensor<Tensor, T, M, N>& A, full_t /*tag*/) {
-  tensor copy{A};
-  return gesvd(tensor{A}, lapack_job::A, lapack_job::N);
+  return lapack::gesvd(tensor{A}, lapack_job::A, lapack_job::N);
 }
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 template <typename Tensor, typename T, size_t M, size_t N>
 auto svd_left(const base_tensor<Tensor, T, M, N>& A, economy_t /*tag*/) {
-  tensor copy{A};
-  return gesvd(tensor{A}, lapack_job::S, lapack_job::N);
+  return lapack::gesvd(tensor{A}, lapack_job::S, lapack_job::N);
 }
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 template <typename Tensor, typename T, size_t M, size_t N>
@@ -1630,7 +1707,7 @@ constexpr auto singular_values(const tensor<T, M, N>& A) {
   if constexpr (M == 2 && N == 2) {
     return singular_values22(A);
   } else {
-    return gesvd(tensor{A}, lapack_job::N, lapack_job::N);
+    return lapack::gesvd(tensor{A}, lapack_job::N, lapack_job::N);
   }
 }
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
