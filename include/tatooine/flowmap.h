@@ -54,22 +54,24 @@ struct flowmap : vectorfield<flowmap<V, Integrator, InterpolationKernel>,
     if (integral.empty()) { return x; }
     return integral(m_tau);
   }
-  //============================================================================
+  //----------------------------------------------------------------------------
   [[nodiscard]] constexpr auto in_domain(const pos_t& x, real_t t) const
       -> bool final {
     return m_vectorfield.in_domain(x, t);
   }
   //============================================================================
   auto tau() const { return m_tau; }
-  void set_tau(const real_t tau) {
-    m_tau = tau;
-  }
   //----------------------------------------------------------------------------
-  const auto& vectorfield() const { return m_vectorfield; }
-  auto&       vectorfield() { return m_vectorfield; }
+  void set_tau(const real_t tau) { m_tau = tau; }
   //----------------------------------------------------------------------------
-  const auto& integrator() const { return m_integrator; }
-  auto&       integrator() { return m_integrator; }
+  auto vectorfield() const -> const auto& { return m_vectorfield; }
+  auto vectorfield()       -> auto&       { return m_vectorfield; }
+  //----------------------------------------------------------------------------
+  auto integrator() const -> const auto& { return *m_integrator; }
+  auto integrator()       ->       auto& { return *m_integrator; }
+  //----------------------------------------------------------------------------
+  auto shared_integrator() const -> const auto& { return m_integrator; }
+  auto shared_integrator()       ->       auto& { return m_integrator; }
 };
 
 //==============================================================================
