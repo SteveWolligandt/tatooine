@@ -5,6 +5,7 @@
 #include <tatooine/diff.h>
 #include <tatooine/flowmap.h>
 #include <tatooine/integration/vclibs/rungekutta43.h>
+#include <tatooine/spacetime_field.h>
 //==============================================================================
 namespace tatooine{
 //==============================================================================
@@ -106,6 +107,24 @@ struct autonomous_particle {
       }
       std::cerr << "=====\n";
     }
+    spacetime_field vst{v};
+      Integrator<real_t, 3, InterpolationKernel> spacetime_integrator;
+      vec stx0 {m_x0(0), m_x0(1), m_t0};
+    spacetime_integrator
+        .integrate_uncached(vst, stx0, m_t0, tau)
+        .write_vtk("autonomous_particle_center.vtk");
+    spacetime_integrator
+        .integrate_uncached(vst, stx0 - vec{m_radius, 0, 0}, m_t0, tau)
+        .write_vtk("autonomous_particle_x_backward.vtk");
+    spacetime_integrator
+        .integrate_uncached(vst, stx0 + vec{m_radius, 0, 0}, m_t0, tau)
+        .write_vtk("autonomous_particle_x_forward.vtk");
+    spacetime_integrator
+        .integrate_uncached(vst, stx0 - vec{0, m_radius, 0}, m_t0, tau)
+        .write_vtk("autonomous_particle_y_backward.vtk");
+    spacetime_integrator
+        .integrate_uncached(vst, stx0 + vec{0, m_radius, 0}, m_t0, tau)
+        .write_vtk("autonomous_particle_y_forward.vtk");
   }
 };
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -

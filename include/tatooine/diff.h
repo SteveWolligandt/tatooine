@@ -65,7 +65,7 @@ struct derived_field : field<derived_field<Field, TensorDims...>, typename Field
         dx = m_eps;
       }
       derivative.template slice<sizeof...(TensorDims) - 1>(i) =
-          (m_internal_field(x1, t) - m_internal_field(x0, t)) / (2 * m_eps);
+          (m_internal_field(x1, t) - m_internal_field(x0, t)) / dx;
       offset(i) = 0;
     }
 
