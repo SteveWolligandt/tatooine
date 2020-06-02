@@ -11,9 +11,9 @@ TEST_CASE("autonomnous_particle0", "[autonomous_particle]") {
   using boost::adaptors::transformed;
   numerical::doublegyre v;
   v.set_infinite_domain(true);
-  vec const           x0{0.1, 0.1};
+  vec const           x0{1.0, 0.3};
   double const        t0       = 0;
-  double const        t1       = 4;
+  double const        t1       = 5;
   double const        tau_step = 0.1;
   double const        radius   = 0.1;
 

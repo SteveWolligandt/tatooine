@@ -31,7 +31,7 @@ struct autonomous_particle {
   real_t m_t1, m_fromt;
   mat_t  m_flowmap_gradient;
   size_t m_level;
-  real_t m_radius;
+  real_t m_radius, m_r0;
 
   //----------------------------------------------------------------------------
   // ctors
@@ -48,11 +48,12 @@ struct autonomous_particle {
         m_fromt{ts},
         m_flowmap_gradient{mat_t::eye()},
         m_level{0},
-        m_radius{radius} {}
+        m_radius{radius},
+        m_r0{radius} {}
 
   autonomous_particle(pos_t const& x0, pos_t const& x1, pos_t const& from,
                       real_t const t1, real_t const fromt, const mat_t& flowmap_gradient,
-                      size_t const level, real_t const radius)
+                      size_t const level, real_t const radius, real_t const r0)
       : m_x0{x0},
         m_x1{x1},
         m_fromx{from},
@@ -60,7 +61,8 @@ struct autonomous_particle {
         m_fromt{fromt},
         m_flowmap_gradient{flowmap_gradient},
         m_level{level},
-        m_radius{radius} {}
+        m_radius{radius},
+        m_r0{r0} {}
   //----------------------------------------------------------------------------
  public:
   autonomous_particle(const autonomous_particle&)     = default;
@@ -113,7 +115,7 @@ struct autonomous_particle {
 
     Real         tau          = 0;
     auto         fmgrad_field = diff(flowmap{v, integrator_t{}, tau}, m_radius);
-    auto&        fm           = fmgrad_field.internal_field();
+    auto&        fm_field           = fmgrad_field.internal_field();
     Real   cond   = 1;
     std::pair<mat<Real, N, N>, vec<Real, N>> eig;
     auto const&                              eigvecs = eig.first;
@@ -123,7 +125,7 @@ struct autonomous_particle {
     while (cond < 9 && m_t1 + tau < max_t) {
       tau += tau_step;
       if (m_t1 + tau > max_t) { tau = max_t - m_t1; }
-      fm.set_tau(tau);
+      fm_field.set_tau(tau);
       fmgrad = fmgrad_field(m_x1, m_t1);
       eig = eigenvectors_sym(fmgrad * transpose(fmgrad));
 
@@ -134,23 +136,26 @@ struct autonomous_particle {
         tau_step *= 0.5;
       }
     }
-    real_t const r3       = m_radius / real_t(3);
+    //real_t const r3       = m_radius / real_t(3);
     mat_t const  fmg2fmg1 = fmgrad * m_flowmap_gradient;
-    pos_t const  x2       = fm(m_x1, m_t1);
+    pos_t const  x2       = fm_field(m_x1, m_t1);
     real_t const t2       = m_t1 + tau;
     if (cond > 9) {
-      vec_t const offset2 = twothirds * sqrt3 * eigvecs.col(1);
+      vec_t const offset2 =
+          twothirds * sqrt3 * m_radius * normalize(eigvecs.col(1));
       vec_t const offset0 = inv(fmg2fmg1) * offset2;
 
       particles.emplace_back(m_x0 - offset0, x2 - offset2, m_x1, t2, m_t1,
-                             fmg2fmg1, m_level + 1, r3);
+                             fmg2fmg1, m_level + 1,
+                             m_r0 * std::pow(1 / sqrt3, m_level), m_r0);
       particles.emplace_back(m_x0, x2, m_x1, t2, m_t1, fmg2fmg1, m_level + 1,
-                             r3);
-      particles.emplace_back(m_x0 + offset0, x2 + offset2, m_x1, t2,m_t1, fmg2fmg1,
-                             m_level + 1, r3);
+                             m_r0 * std::pow(1 / sqrt3, m_level), m_r0);
+      particles.emplace_back(m_x0 + offset0, x2 + offset2, m_x1, t2, m_t1,
+                             fmg2fmg1, m_level + 1,
+                             m_r0 * std::pow(1 / sqrt3, m_level), m_r0);
     } else {
       particles.emplace_back(m_x0, x2, m_x1, t2, m_t1, fmg2fmg1, m_level + 1,
-                             r3);
+                             m_r0 * std::pow(1 / sqrt3, m_level), m_r0);
     }
   }
 };
