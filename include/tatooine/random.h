@@ -45,7 +45,6 @@ struct random_uniform {
   auto operator()() { return get(); }
 };
 //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-#if has_cxx17_support()
 random_uniform()->random_uniform<double, std::mt19937_64>;
 
 // copy when having rvalue
@@ -63,7 +62,6 @@ random_uniform(T min, T max, Engine &&)->random_uniform<T, Engine>;
 // keep reference when having lvalue
 template <typename T, typename Engine>
 random_uniform(T min, T max, const Engine&)->random_uniform<T, const Engine&>;
-#endif
 //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 template <typename T, typename Engine = std::mt19937_64>
 auto random_uniform_vector(size_t n, T a = T(0), T b = T(1),
@@ -124,7 +122,6 @@ struct random_normal {
   auto operator()() { return get(); }
 };
 //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-#if has_cxx17_support()
 random_normal()->random_normal<double, std::mt19937_64>;
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 template <typename Engine>
@@ -132,7 +129,6 @@ random_normal(Engine &&)->random_normal<double, Engine>;
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 template <typename T>
 random_normal(T mean, T stddev)->random_normal<T, std::mt19937_64>;
-#endif
 //==============================================================================
 template <typename Iterator, typename RandomEngine>
 auto random_elem(Iterator begin, Iterator end, RandomEngine& eng) {
@@ -156,5 +152,4 @@ auto flip_coin(RandomEngine&& eng) {
 //==============================================================================
 }  // namespace tatooine
 //==============================================================================
-
 #endif

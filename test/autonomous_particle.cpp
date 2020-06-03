@@ -1,64 +1,59 @@
 #include <tatooine/autonomous_particle.h>
-
-#include <catch2/catch.hpp>
 #include <tatooine/doublegyre.h>
 #include <tatooine/vtk_legacy.h>
+
+#include <catch2/catch.hpp>
 //==============================================================================
 namespace tatooine::test {
 //==============================================================================
 TEST_CASE("autonomnous_particle0", "[autonomous_particle]") {
-  using boost::copy;
-  using boost::adaptors::transformed;
+  grid g{linspace{0.0, 2.0, 10}, linspace{0.0, 1.0, 5}};
   numerical::doublegyre v;
   v.set_infinite_domain(true);
-  vec const           x0{1.0, 0.3};
-  double const        t0       = 0;
-  double const        t1       = 5;
-  double const        tau_step = 0.1;
-  double const        radius   = 0.1;
+  double const t0       = 0;
+  double const t1       = 5;
+  double const tau_step = 0.1;
+  double const radius   = 2.0 / 10;
+  for (size_t y = 1; y < g.size(1) - 1; ++y) {
+    for (size_t x = 1; x < g.size(0) - 1; ++x) {
+      auto const x0 = g(x, y);
 
-  autonomous_particle p0{x0, t0, radius};
-  const auto particles = p0.integrate(v, tau_step, t1);
+      autonomous_particle p0{x0, t0, radius};
+      auto const          particles = p0.integrate(v, tau_step, t1);
 
-  {
-    vtk::legacy_file_writer writer{"autonomous_particle_paths_forward.vtk",
-                                   vtk::POLYDATA};
-    if (writer.is_open()) {
-      writer.write_header();
-
-      std::vector<std::vector<size_t>> lines;
-      std::vector<vec<double, 3>>      points;
-      lines.reserve(size(particles));
-      for (const auto& p : particles) {
-        points.push_back(vec{p.m_fromx(0), p.m_fromx(1), p.m_fromt});
-        points.push_back(vec{p.m_x1(0), p.m_x1(1), p.m_t1});
-        lines.push_back(std::vector{size(points) - 2, size(points) - 1});
-      }
-      writer.write_points(points);
-      writer.write_lines(lines);
-
-      writer.close();
+      write_vtk(particles, t0,
+                "autonomous_particle_paths_forward" + std::to_string(x) + "_" +
+                    std::to_string(y) + ".vtk",
+                "autonomous_particle_paths_backward" + std::to_string(x) + "_" +
+                    std::to_string(y) + ".vtk");
     }
   }
-  {
-    vtk::legacy_file_writer writer{"autonomous_particle_paths_backward.vtk",
-                                   vtk::POLYDATA};
-    if (writer.is_open()) {
-      writer.write_header();
+}
+//==============================================================================
+TEST_CASE("autonomnous_particle1", "[autonomous_particle][backward_integration]") {
+  grid g{linspace{0.0, 2.0, 10}, linspace{0.0, 1.0, 5}};
+  numerical::doublegyre v;
+  v.set_infinite_domain(true);
+  double const max_distance = 2e-1;
+  double const t0           = 0;
+  double const t1           = 5;
+  double const tau_step     = 0.1;
+  double const radius       = 2.0 / 10;
+  vec const    x0{1.0, 0.3};
 
-      std::vector<std::vector<size_t>> lines;
-      std::vector<vec<double, 3>>      points;
-      lines.reserve(size(particles));
-      for (const auto& p : particles) {
-        points.push_back(vec{p.m_x0(0), p.m_x0(1), t0});
-        points.push_back(vec{p.m_x1(0), p.m_x1(1), p.m_t1});
-        lines.push_back(std::vector{size(points) - 2, size(points) - 1});
-      }
-      writer.write_points(points);
-      writer.write_lines(lines);
+  autonomous_particle const p0{x0, t0, radius};
+  auto const                particles = p0.integrate(v, tau_step, t1);
 
-      writer.close();
-    }
+  auto integrator = p0.create_integrator();
+  for (auto const& particle:particles) {
+    auto const tau = t0-particle.t1();
+    auto const back_integration =
+        integrator.integrate_uncached(v, particle.x1(), particle.t1(), tau)
+            .front_vertex();
+    auto const distance = tatooine::distance(back_integration, particle.x1());
+    CAPTURE(particle.x1(), particle.t1(), tau, particle.level(), particle.x0(),
+            back_integration, distance);
+    CHECK(distance < max_distance);
   }
 }
 //==============================================================================

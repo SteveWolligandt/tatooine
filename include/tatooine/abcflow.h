@@ -42,9 +42,7 @@ struct abcflow : field<abcflow<real_t>, real_t, 3, 3> {
   }
 };
 
-#if has_cxx17_support()
 abcflow()->abcflow<double>;
-#endif
 
 //==============================================================================
 }  // namespace tatooine::numerical

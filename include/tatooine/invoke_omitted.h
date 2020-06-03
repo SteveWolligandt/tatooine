@@ -4,7 +4,6 @@
 //==============================================================================
 namespace tatooine {
 //==============================================================================
-#if has_cxx17_support()
 template <typename F, typename... Params>
 constexpr decltype(auto) invoke_omitted(F&& f, Params&&... params) {
   return std::invoke(f, std::forward<Params>(params)...);
@@ -29,7 +28,6 @@ constexpr decltype(auto) invoke_omitted(F&& f, Param&& param,
         std::forward<Params>(params)...);
   }
 }
-#endif
 //==============================================================================
 }  // namespace tatooine
 //==============================================================================

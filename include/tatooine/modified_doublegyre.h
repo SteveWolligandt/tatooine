@@ -192,12 +192,8 @@ struct modified_doublegyre : field<modified_doublegyre<Real>,Real, 2, 2> {
     return bifurcationline_spacetime_t{};
   }
 };
-
 //==============================================================================
-#if has_cxx17_support()
 modified_doublegyre() -> modified_doublegyre<double>;
-#endif
-
 //==============================================================================
 }  // namespace numerical
 }  // namespace tatooine

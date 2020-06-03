@@ -20,10 +20,8 @@ template <typename Real>
 struct fill {
   Real value;
 };
-#if has_cxx17_support()
 template <typename Real>
 fill(Real)->fill<Real>;
-#endif
 
 struct zeros_t {};
 static constexpr zeros_t zeros;
@@ -757,7 +755,6 @@ class dynamic_multidim_array : public dynamic_multidim_resolution<Indexing> {
 //==============================================================================
 // deduction guides
 //==============================================================================
-#if has_cxx17_support()
 template <typename T, typename Indexing>
 dynamic_multidim_array(const dynamic_multidim_array<T, Indexing>&)
     ->dynamic_multidim_array<T, Indexing>;
@@ -789,7 +786,6 @@ dynamic_multidim_array(const std::array<UInt, N>&, const std::vector<T>&)
 template <typename T, typename UInt, size_t N>
 dynamic_multidim_array(const std::array<UInt, N>&, std::vector<T> &&)
     ->dynamic_multidim_array<T, x_fastest>;
-#endif
 
 //==============================================================================
 template <typename MemLocOut = stack, typename IndexingOut = x_fastest,

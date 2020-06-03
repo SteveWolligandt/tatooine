@@ -9,6 +9,7 @@
 #include <ostream>
 
 #include "crtp.h"
+#include "invoke_unpacked.h"
 #include "functional.h"
 #include "multidim_array.h"
 #include "random.h"

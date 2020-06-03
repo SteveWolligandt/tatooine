@@ -34,9 +34,7 @@ struct duffing_oscillator : field<duffing_oscillator<Real>, Real, 2, 2> {
   }
 };
 
-#if has_cxx17_support()
 duffing_oscillator()->duffing_oscillator<double>;
-#endif
 
 //==============================================================================
 template <typename Real>
@@ -65,9 +63,7 @@ struct forced_duffing_oscillator : field<forced_duffing_oscillator<Real>, Real, 
   }
 };
 
-#if has_cxx17_support()
 forced_duffing_oscillator()->forced_duffing_oscillator<double>;
-#endif
 
 //==============================================================================
 }  // namespace numerical

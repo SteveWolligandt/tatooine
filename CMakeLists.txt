@@ -89,7 +89,7 @@ string(CONCAT TATOOINE_CLANG_TIDY_CHECKS
 #- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 # create library target
 add_library(tatooine INTERFACE)
-target_compile_features(tatooine INTERFACE cxx_std_17)
+target_compile_features(tatooine INTERFACE cxx_std_20)
 #- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 # set include dirs
 target_include_directories(tatooine

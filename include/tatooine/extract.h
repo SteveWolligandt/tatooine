@@ -6,7 +6,6 @@
 //==============================================================================
 namespace tatooine {
 //==============================================================================
-#if has_cxx17_support()
 template <size_t I, size_t Begin, size_t End, typename Cont>
 constexpr auto extract(Cont& extracted_data) -> auto& {
   return extracted_data;
@@ -28,7 +27,6 @@ constexpr auto extract(Ts&&... ts) {
       make_array<std::decay_t<front_t<Ts...>>, End - Begin + 1>();
   return extract<0, Begin, End>(extracted_data, std::forward<Ts>(ts)...);
 }
-#endif
 //==============================================================================
 }  // namespace tatooine
 //==============================================================================

@@ -135,7 +135,6 @@ struct static_multidim_iterator {
 };
 
 //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-#if has_cxx17_support()
 template <typename... Ts>
 static_multidim(const std::pair<Ts, Ts>&... ranges)
     ->static_multidim<sizeof...(Ts)>;
@@ -146,7 +145,6 @@ static_multidim(Ts const (&... ranges)[2])  // NOLINT
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 template <typename... Res>
 static_multidim(Res... res)->static_multidim<sizeof...(Res)>;
-#endif
 //==============================================================================
 struct dynamic_multidim {
  private:

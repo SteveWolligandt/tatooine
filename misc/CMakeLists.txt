@@ -9,7 +9,7 @@ endif()
 macro(create_executable NAME)
   add_executable (${NAME})
   target_link_libraries(${NAME} tatooine)
-  target_compile_features(${NAME} PUBLIC cxx_std_17)
+  target_compile_features(${NAME} PUBLIC cxx_std_20)
   target_compile_options(${NAME} PRIVATE
     -Wall -Wextra -pedantic -Wno-missing-braces -Wno-unused-lambda-capture)
 endmacro()

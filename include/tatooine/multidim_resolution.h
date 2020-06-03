@@ -282,7 +282,6 @@ class dynamic_multidim_resolution {
 //==============================================================================
 // deduction guides
 //==============================================================================
-#if has_cxx17_support()
 dynamic_multidim_resolution()->dynamic_multidim_resolution<x_fastest>;
 
 template <typename Indexing>
@@ -294,7 +293,6 @@ dynamic_multidim_resolution(dynamic_multidim_resolution<Indexing> &&)
 template <typename... Resolution>
 dynamic_multidim_resolution(Resolution...)
     ->dynamic_multidim_resolution<x_fastest>;
-#endif
 
 //==============================================================================
 }  // namespace tatooine
