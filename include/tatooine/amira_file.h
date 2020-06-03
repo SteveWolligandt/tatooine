@@ -51,8 +51,8 @@ inline auto read(const std::string& filename) {
 
   // Find the boundingbox
   boundingbox<float, 3> bb;
-  sscanf(find_and_jump(buffer, "BoundingBox"), "%g %g %g %g %g %g", &bb.min[0],
-         &bb.max[0], &bb.min[1], &bb.max[1], &bb.min[2], &bb.max[2]);
+  sscanf(find_and_jump(buffer, "BoundingBox"), "%g %g %g %g %g %g", &bb.min(0),
+         &bb.max(0), &bb.min(1), &bb.max(1), &bb.min(2), &bb.max(2));
 
   // Is it a uniform grid? We need this only for the sanity check below.
   const bool b_is_uniform = (strstr(buffer, "CoordType \"uniform\"") != NULL);
@@ -67,8 +67,8 @@ inline auto read(const std::string& filename) {
     sscanf(find_and_jump(buffer, "Lattice { float["), "%d", &num_comps);
 
   // Sanity check
-  if (dims[0] <= 0 || dims[1] <= 0 || dims[2] <= 0 || bb.min[0] > bb.max[0] ||
-      bb.min[1] > bb.max[1] || bb.min[2] > bb.max[2] || !b_is_uniform ||
+  if (dims[0] <= 0 || dims[1] <= 0 || dims[2] <= 0 || bb.min(0) > bb.max(0) ||
+      bb.min(1) > bb.max(1) || bb.min(2) > bb.max(2) || !b_is_uniform ||
       num_comps <= 0) {
     fclose(fp);
     throw std::runtime_error("something went wrong");

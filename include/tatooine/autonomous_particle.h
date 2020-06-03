@@ -29,9 +29,9 @@ struct autonomous_particle {
  private:
   pos_t  m_x0, m_x1, m_prev_pos;
   real_t m_t1, m_prev_time;
-  mat_t  m_flowmap_gradient;
+  mat_t  m_flowmap_gradient1;
   size_t m_level;
-  real_t m_cur_radius, m_start_radius;
+  real_t m_start_radius;
 
   //----------------------------------------------------------------------------
   // ctors
@@ -39,30 +39,26 @@ struct autonomous_particle {
  public:
   template <typename RealX0, typename RealTS, typename RealRadius,
             enable_if_arithmetic<RealX0, RealTS, RealRadius> = true>
-  autonomous_particle(vec<RealX0, N> const& x0, RealTS const ts,
-                      RealRadius const radius)
+  autonomous_particle(vec<RealX0, N> const& x0, RealTS const ts)
       : m_x0{x0},
         m_x1{x0},
         m_prev_pos{x0},
         m_t1{static_cast<real_t>(ts)},
         m_prev_time{ts},
-        m_flowmap_gradient{mat_t::eye()},
+        m_flowmap_gradient1{mat_t::eye()},
         m_level{0},
-        m_cur_radius{radius},
         m_start_radius{radius} {}
 
   autonomous_particle(pos_t const& x0, pos_t const& x1, pos_t const& from,
                       real_t const t1, real_t const fromt,
-                      const mat_t& flowmap_gradient, size_t const level,
-                      real_t const radius, real_t const r0)
+                      const mat_t& flowmap_gradient, size_t const level, real_t const r0)
       : m_x0{x0},
         m_x1{x1},
         m_prev_pos{from},
         m_t1{t1},
         m_prev_time{fromt},
-        m_flowmap_gradient{flowmap_gradient},
+        m_flowmap_gradient1{flowmap_gradient},
         m_level{level},
-        m_cur_radius{radius},
         m_start_radius{r0} {}
   //----------------------------------------------------------------------------
  public:
@@ -84,9 +80,9 @@ struct autonomous_particle {
   auto previous_position() const -> auto const& { return m_prev_pos; }
   auto t1() const { return m_t1; }
   auto previous_time() const { return m_prev_time; }
-  auto flowmap_gradient() const -> auto const& { return m_flowmap_gradient; }
+  auto flowmap_gradient() const -> auto const& { return m_flowmap_gradient1; }
   auto level() const { return m_level; }
-  auto current_radius() const { return m_cur_radius; }
+  auto current_radius() const { return m_start_radius * std::pow(1 / sqrt3, m_level); }
   auto start_radius() const { return m_start_radius; }
 
   //----------------------------------------------------------------------------
@@ -146,13 +142,13 @@ struct autonomous_particle {
     auto const&                              eigvecs = eig.first;
     auto const&                              eigvals = eig.second;
 
-    typename decltype(fmgrad_field)::tensor_t fmgrad;
+    typename decltype(fmgrad_field)::tensor_t flowmap_gradient2;
     while (cond < 9 && m_t1 + tau < max_t) {
       tau += tau_step;
       if (m_t1 + tau > max_t) { tau = max_t - m_t1; }
       fm_field.set_tau(tau);
-      fmgrad = fmgrad_field(m_x1, m_t1);
-      eig    = eigenvectors_sym(fmgrad * transpose(fmgrad));
+      flowmap_gradient2 = fmgrad_field(m_x1, m_t1);
+      eig    = eigenvectors_sym(flowmap_gradient2 * transpose(flowmap_gradient2));
 
       cond = eigvals(1) / eigvals(0);
       if (cond > max_cond) {
@@ -161,28 +157,25 @@ struct autonomous_particle {
         tau_step *= 0.5;
       }
     }
-    // real_t const r3       = m_cur_radius / real_t(3);
-    mat_t const  fmg2fmg1 = fmgrad * m_flowmap_gradient;
+    mat_t const  fmg2fmg1 = flowmap_gradient2 * m_flowmap_gradient1;
     pos_t const  x2       = fm_field(m_x1, m_t1);
     real_t const t2       = m_t1 + tau;
     if (cond > 9) {
       vec_t const offset2 =
           twothirds * sqrt3 * m_cur_radius * normalize(eigvecs.col(1));
       vec_t const offset0 = inv(fmg2fmg1) * offset2;
+      real_t const new_radius = m_start_radius * std::pow(1 / sqrt3, m_level);
 
       particles.emplace_back(
           m_x0 - offset0, x2 - offset2, m_x1, t2, m_t1, fmg2fmg1, m_level + 1,
           m_start_radius * std::pow(1 / sqrt3, m_level), m_start_radius);
       particles.emplace_back(m_x0, x2, m_x1, t2, m_t1, fmg2fmg1, m_level + 1,
-                             m_start_radius * std::pow(1 / sqrt3, m_level),
-                             m_start_radius);
-      particles.emplace_back(
-          m_x0 + offset0, x2 + offset2, m_x1, t2, m_t1, fmg2fmg1, m_level + 1,
-          m_start_radius * std::pow(1 / sqrt3, m_level), m_start_radius);
+                             new_radius, m_start_radius);
+      particles.emplace_back(m_x0 + offset0, x2 + offset2, m_x1, t2, m_t1,
+                             fmg2fmg1, m_level + 1, new_radius, m_start_radius);
     } else {
       particles.emplace_back(m_x0, x2, m_x1, t2, m_t1, fmg2fmg1, m_level + 1,
-                             m_start_radius * std::pow(1 / sqrt3, m_level),
-                             m_start_radius);
+                             m_cur_radius, m_start_radius);
     }
   }
 };

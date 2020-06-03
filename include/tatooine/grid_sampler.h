@@ -1103,9 +1103,14 @@ auto resample(const field<Field, FieldReal, N, TensorDims...>& f,
 
   return resampled;
 }
-
+//==============================================================================
+template <typename Real, size_t N,
+          template <typename> typename... Interpolators>
+void write_png(grid_sampler<Real, 2, Real, Interpolators...> const& sampler,
+               std::string const&                                   path) {
+  sampler.write_png(path);
+}
 //==============================================================================
 }  // namespace tatooine
 //==============================================================================
-
 #endif

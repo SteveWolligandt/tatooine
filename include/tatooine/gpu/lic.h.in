@@ -81,17 +81,21 @@ auto lic(const grid_sampler<Real, 2, vec<Real, 2>, InterpX, InterpY>& sampler,
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 template <typename GPUReal = float, typename V, typename Real>
 auto lic(const field<V, Real, 2, 2>& v, const grid<Real, 2>& discrete_domain,
-         Real t, const vec<size_t, 2>& lic_tex_res) {
+         Real t, const vec<size_t, 2>& lic_tex_res, size_t num_samples, Real stepsize,
+         vec<size_t, 2> noise_res = {128, 128}) {
   return lic<GPUReal>(resample<interpolation::linear, interpolation::linear>(
                           v, discrete_domain, t)
                           .sampler(),
-                      lic_tex_res);
+                      lic_tex_res, num_samples, stepsize, noise_res);
 }
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 template <typename GPUReal = float, typename V, typename Real>
 auto lic(const field<V, Real, 2, 2>& v, const linspace<Real>& xres,
-         const linspace<Real>& yres, Real t, const vec<size_t, 2>& imageres) {
-  return lic(v, grid{xres, yres}, t, imageres);
+         const linspace<Real>& yres, Real t, const vec<size_t, 2>& lic_tex_res,
+         size_t num_samples, Real stepsize,
+         vec<size_t, 2> noise_res = {128, 128}) {
+  return lic(v, grid{xres, yres}, t, lic_tex_res, num_samples, stepsize,
+             noise_res);
 }
 
 //==============================================================================

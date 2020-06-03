@@ -2,6 +2,7 @@
 #define TATOOINE_SAMPLED_FIELD_H
 
 #include <memory>
+
 #include "field.h"
 #include "geometry/primitive.h"
 
@@ -19,7 +20,7 @@ struct sampled_field : field<sampled_field<Sampler, Real, N, TensorDims...>,
 
   //============================================================================
   std::shared_ptr<Sampler> m_sampler;
-  std::vector<std::unique_ptr<geometry::primitive<Real, N>>> m_obstacles;
+  // std::vector<std::unique_ptr<geometry::primitive<Real, N>>> m_obstacles;
 
   //============================================================================
   sampled_field(const Sampler& _sampler)
@@ -31,14 +32,14 @@ struct sampled_field : field<sampled_field<Sampler, Real, N, TensorDims...>,
   sampled_field(Args&&... args)
       : m_sampler{std::make_shared<Sampler>(std::forward<Args>(args)...)} {}
 
-  sampled_field(const sampled_field& other)
-      : m_sampler{other.m_sampler} {}
+  sampled_field(const sampled_field& other) : m_sampler{other.m_sampler} {}
   sampled_field(sampled_field&& other)
       : m_sampler{std::move(other.m_sampler)} {}
 
   //----------------------------------------------------------------------------
-  constexpr decltype(auto) evaluate(const pos_t&            x,
-                                    [[maybe_unused]] Real t = 0) const {
+  [[nodiscard]] constexpr auto evaluate(const pos_t&          x,
+                                        [[maybe_unused]] Real t = 0) const
+      -> tensor_t final {
     if constexpr (Sampler::num_dimensions() == N) {
       return invoke_unpacked(
           [&](const auto... xs) { return m_sampler->sample(xs...); },
@@ -51,8 +52,8 @@ struct sampled_field : field<sampled_field<Sampler, Real, N, TensorDims...>,
   }
 
   //----------------------------------------------------------------------------
-  constexpr decltype(auto) in_domain(const pos_t&          x,
-                                     [[maybe_unused]] Real t) const {
+  constexpr auto in_domain(const pos_t& x, [[maybe_unused]] Real t) const
+      -> bool final {
     auto on_grid = [&] {
       if constexpr (Sampler::num_dimensions() == N) {
         return invoke_unpacked(
@@ -66,27 +67,22 @@ struct sampled_field : field<sampled_field<Sampler, Real, N, TensorDims...>,
     }();
 
     if (!on_grid) { return false; }
-    for (const auto& obstacle : m_obstacles) {
-      if (obstacle->is_inside(x)) { return false; }
-    }
+    // for (const auto& obstacle : m_obstacles) {
+    //  if (obstacle->is_inside(x)) { return false; }
+    //}
     return true;
   }
 
   //----------------------------------------------------------------------------
-  auto&       sampler() {
-  return *m_sampler;
-}
+  auto&       sampler() { return *m_sampler; }
   const auto& sampler() const { return *m_sampler; }
-
   //----------------------------------------------------------------------------
-  template <typename Obstacle>
-  auto& add_obstacle(const Obstacle& obstacle) {
-    m_obstacles.push_back(std::make_unique<Obstacle>(obstacle));
-  }
+  // template <typename Obstacle>
+  // auto& add_obstacle(const Obstacle& obstacle) {
+  //  m_obstacles.push_back(std::make_unique<Obstacle>(obstacle));
+  //}
 };
-
 //==============================================================================
 }  // namespace tatooine
 //==============================================================================
-
 #endif
