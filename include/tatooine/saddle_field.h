@@ -13,20 +13,20 @@ struct saddle_field : vectorfield<saddle_field<Real>, Real, 2> {
   using typename parent_t::tensor_t;
   //============================================================================
   constexpr saddle_field() noexcept {}
-  constexpr saddle_field(const saddle_field&)     = default;
+  constexpr saddle_field(saddle_field const&)     = default;
   constexpr saddle_field(saddle_field&&) noexcept = default;
-  constexpr auto operator=(const saddle_field&) -> saddle_field& = default;
+  constexpr auto operator=(saddle_field const&) -> saddle_field& = default;
   constexpr auto operator=(saddle_field&&) noexcept -> saddle_field& = default;
   //----------------------------------------------------------------------------
   ~saddle_field() override = default;
   //----------------------------------------------------------------------------
-  [[nodiscard]] constexpr auto evaluate(const pos_t& x, Real /*t*/) const
+  [[nodiscard]] constexpr auto evaluate(pos_t const& x, Real const /*t*/) const
       -> tensor_t final {
     return tensor_t{-x(0), x(1)};
   }
   //----------------------------------------------------------------------------
-  [[nodiscard]] constexpr auto in_domain(const pos_t& /*x*/, Real /*t*/) const
-      -> bool final {
+  [[nodiscard]] constexpr auto in_domain(pos_t const& /*x*/,
+                                         Real const /*t*/) const -> bool final {
     return true;
   }
 };
@@ -52,21 +52,22 @@ struct derived_field<numerical::saddle_field<Real>>
 
   //============================================================================
  public:
-  derived_field(const numerical::saddle_field<Real>& f)
+  derived_field(numerical::saddle_field<Real> const& f)
       : m_internal_field{f.as_derived()} {}
-
   //----------------------------------------------------------------------------
-  constexpr auto evaluate(const pos_t& /*x*/, const Real /*t*/) const
+  constexpr auto evaluate(pos_t const& /*x*/, Real const /*t*/) const
       -> tensor_t final {
-    return {{-1, 0}, {0, 1}};
+    return {{-1, 0},
+            { 0, 1}};
   }
   //----------------------------------------------------------------------------
-  constexpr auto in_domain(const pos_t& /*x*/, Real /*t*/) const -> bool final {
+  constexpr auto in_domain(pos_t const& /*x*/, Real const /*t*/) const
+      -> bool final {
     return true;
   }
   //----------------------------------------------------------------------------
   constexpr auto internal_field() -> auto& { return m_internal_field; }
-  constexpr auto internal_field() const -> const auto& {
+  constexpr auto internal_field() const -> auto const& {
     return m_internal_field;
   }
 };
