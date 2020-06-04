@@ -12,6 +12,17 @@ struct saddle_field : vectorfield<saddle_field<Real>, Real, 2> {
   using typename parent_t::pos_t;
   using typename parent_t::tensor_t;
   //============================================================================
+  struct flowmap_t {
+    auto evaluate(pos_t const& x, Real const /*t*/, Real const tau) const
+        -> pos_t {
+      return {std::exp(-tau) * x(0), std::exp(tau) * x(1)};
+    }
+    //--------------------------------------------------------------------------
+    auto operator()(pos_t const& x, Real const t, Real const tau) const {
+      return evaluate(x, t, tau);
+    }
+  };
+  //============================================================================
   constexpr saddle_field() noexcept {}
   constexpr saddle_field(saddle_field const&)     = default;
   constexpr saddle_field(saddle_field&&) noexcept = default;
@@ -29,7 +40,10 @@ struct saddle_field : vectorfield<saddle_field<Real>, Real, 2> {
                                          Real const /*t*/) const -> bool final {
     return true;
   }
+  //----------------------------------------------------------------------------
+  auto flowmap() const { return flowmap_t{}; }
 };
+//==============================================================================
 saddle_field()->saddle_field<double>;
 //==============================================================================
 }  // namespace tatooine::numerical
@@ -37,6 +51,10 @@ saddle_field()->saddle_field<double>;
 #include "diff.h"
 //==============================================================================
 namespace tatooine {
+//==============================================================================
+template <typename Real>
+struct has_analytical_flowmap<numerical::saddle_field<Real>> : std::true_type {
+};
 //==============================================================================
 template <typename Real>
 struct derived_field<numerical::saddle_field<Real>>

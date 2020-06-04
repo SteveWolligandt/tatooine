@@ -132,6 +132,16 @@ struct integrator : crtp<Derived> {
   }
   //----------------------------------------------------------------------------
   template <typename V>
+  auto integrate_uncached(const V &v, const pos_t &y0, Real t0,
+                          Real btau, Real ftau) const {
+    integral_t integral;
+    calc_backward(v, integral, y0, t0, btau);
+    calc_forward(v, integral, y0, t0, ftau);
+    integral.update_interpolators();
+    return integral;
+  }
+  //----------------------------------------------------------------------------
+  template <typename V>
   auto integrate_uncached(const V &v, const pos_t &y0, Real t0, Real tau,
                           bool &backward_on_border,
                           bool &forward_on_border) const {

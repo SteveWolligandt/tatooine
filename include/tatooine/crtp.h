@@ -13,8 +13,27 @@ struct crtp {
   }
   //----------------------------------------------------------------------------
   /// returns casted as_derived data
-  [[nodiscard]] constexpr auto as_derived() const -> const Derived & {
-    return static_cast<const Derived &>(*this);
+  [[nodiscard]] constexpr auto operator*() -> Derived & {
+    return as_derived();
+  }
+  //----------------------------------------------------------------------------
+  [[nodiscard]] constexpr auto operator->() -> Derived * {
+    return &as_derived();
+  }
+  //----------------------------------------------------------------------------
+  /// returns casted as_derived data
+  [[nodiscard]] constexpr auto as_derived() const -> Derived const & {
+    return static_cast<Derived const &>(*this);
+  }
+  //----------------------------------------------------------------------------
+  /// returns casted as_derived data
+  [[nodiscard]] constexpr auto operator*() const -> Derived const & {
+    return as_derived();
+  }
+  //----------------------------------------------------------------------------
+  /// returns casted as_derived data
+  [[nodiscard]] constexpr auto operator->() const -> Derived const * {
+    return &as_derived();
   }
 };
 //==============================================================================

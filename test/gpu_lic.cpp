@@ -1,6 +1,6 @@
 #include <tatooine/doublegyre.h>
 #include <tatooine/saddle_field.h>
-#include <tatooine/circle_field.h>
+#include <tatooine/center_field.h>
 #include <tatooine/gpu/lic.h>
 
 #include <catch2/catch.hpp>
@@ -21,11 +21,11 @@ TEST_CASE("gpu_lic_saddle", "[gpu][dg][saddle][lic]") {
       .write_png("saddle_lic.png");
 }
 //==============================================================================
-TEST_CASE("gpu_lic_circle", "[gpu][dg][circle][lic]") {
-  numerical::circle_field v;
+TEST_CASE("gpu_lic_center", "[gpu][dg][center][lic]") {
+  numerical::center_field v;
   gpu::lic(v, linspace{-1.0, 1.0, 501}, linspace{-1.0, 1.0, 501}, 0.0,
            vec<size_t, 2>{500, 500}, 20, 0.005)
-      .write_png("circle_lic.png");
+      .write_png("center_lic.png");
 }
 //==============================================================================
 }  // namespace tatooine::test

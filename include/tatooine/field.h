@@ -179,6 +179,14 @@ auto sample_to_raw(const field<V, FieldReal, N, TensorDims...>& f,
   }
   return raw_data;
 }
+template <typename V>
+struct has_analytical_flowmap : std::false_type {};
+template <typename V>
+static constexpr bool has_analytical_flowmap_v =
+    has_analytical_flowmap<V>::value;
+template <typename V, typename Real, size_t N, size_t... TensorDims>
+struct has_analytical_flowmap<field<V, Real, N, TensorDims...>>
+    : has_analytical_flowmap<V> {};
 }  // namespace tatooine
 //╚════════════════════════════════════════════════════════════════════════════╝
 #include "field_operations.h"

@@ -1,24 +1,36 @@
-#ifndef TATOOINE_CIRCLE_FIELD_H
-#define TATOOINE_CIRCLE_FIELD_H
+#ifndef TATOOINE_CENTER_FIELD_H
+#define TATOOINE_CENTER_FIELD_H
 //==============================================================================
 #include "field.h"
 //==============================================================================
 namespace tatooine::numerical {
 //==============================================================================
 template <typename Real>
-struct circle_field : vectorfield<circle_field<Real>, Real, 2> {
-  using this_t   = circle_field<Real>;
+struct center_field : vectorfield<center_field<Real>, Real, 2> {
+  using this_t   = center_field<Real>;
   using parent_t = vectorfield<this_t, Real, 2>;
   using typename parent_t::pos_t;
+  //============================================================================
+  struct flowmap_t {
+    auto evaluate(pos_t const& x, Real const /*t*/, Real const tau) const
+        -> pos_t {
+      return { std::cos(tau) * x(0) + std::sin(tau) * x(1),
+              -std::sin(tau) * x(0) + std::cos(tau) * x(1)};
+    }
+    //--------------------------------------------------------------------------
+    auto operator()(pos_t const& x, Real const t, Real const tau) const {
+      return evaluate(x, t, tau);
+    }
+  };
   using typename parent_t::tensor_t;
   //============================================================================
-  constexpr circle_field() noexcept {}
-  constexpr circle_field(circle_field const&)     = default;
-  constexpr circle_field(circle_field&&) noexcept = default;
-  constexpr auto operator=(circle_field const&) -> circle_field& = default;
-  constexpr auto operator=(circle_field&&) noexcept -> circle_field& = default;
+  constexpr center_field() noexcept {}
+  constexpr center_field(center_field const&)     = default;
+  constexpr center_field(center_field&&) noexcept = default;
+  constexpr auto operator=(center_field const&) -> center_field& = default;
+  constexpr auto operator=(center_field&&) noexcept -> center_field& = default;
   //----------------------------------------------------------------------------
-  ~circle_field() override = default;
+  ~center_field() override = default;
   //----------------------------------------------------------------------------
   [[nodiscard]] constexpr auto evaluate(pos_t const& x, Real const /*t*/) const
       -> tensor_t final {
@@ -29,8 +41,10 @@ struct circle_field : vectorfield<circle_field<Real>, Real, 2> {
                                          Real const /*t*/) const -> bool final {
     return true;
   }
+  //----------------------------------------------------------------------------
+  auto flowmap() const { return flowmap_t{}; }
 };
-circle_field()->circle_field<double>;
+center_field()->center_field<double>;
 //==============================================================================
 }  // namespace tatooine::numerical
 //==============================================================================
@@ -39,20 +53,24 @@ circle_field()->circle_field<double>;
 namespace tatooine {
 //==============================================================================
 template <typename Real>
-struct derived_field<numerical::circle_field<Real>>
-    : field<numerical::circle_field<Real>, Real, 2, 2, 2> {
-  using this_t   = derived_field<numerical::circle_field<Real>>;
+struct has_analytical_flowmap<numerical::saddle_field<Real>> : std::true_type {
+};
+//==============================================================================
+template <typename Real>
+struct derived_field<numerical::center_field<Real>>
+    : field<numerical::center_field<Real>, Real, 2, 2, 2> {
+  using this_t   = derived_field<numerical::center_field<Real>>;
   using parent_t = field<this_t, Real, 2, 2, 2>;
   using typename parent_t::pos_t;
   using typename parent_t::tensor_t;
 
   //============================================================================
  private:
-  numerical::circle_field<Real> m_internal_field;
+  numerical::center_field<Real> m_internal_field;
 
   //============================================================================
  public:
-  derived_field(numerical::circle_field<Real> const& f)
+  derived_field(numerical::center_field<Real> const& f)
       : m_internal_field{f.as_derived()} {}
   //----------------------------------------------------------------------------
   constexpr auto evaluate(pos_t const& /*x*/, Real const /*t*/) const

@@ -6,6 +6,8 @@
 #include <tatooine/integration/vclibs/rungekutta43.h>
 #include <tatooine/spacetime_field.h>
 #include <tatooine/tensor.h>
+
+#include "concepts.h"
 //==============================================================================
 namespace tatooine {
 //==============================================================================
@@ -21,45 +23,47 @@ struct autonomous_particle {
   using pos_t  = vec_t;
   using this_t = autonomous_particle<Real, N>;
 
-  static constexpr real_t max_cond = 9.01;
+  static constexpr Real max_cond = 9.01;
 
   //----------------------------------------------------------------------------
   // members
   //----------------------------------------------------------------------------
  private:
   pos_t  m_x0, m_x1, m_prev_pos;
-  real_t m_t1, m_prev_time;
+  Real   m_t1, m_prev_time;
   mat_t  m_flowmap_gradient1;
   size_t m_level;
-  real_t m_start_radius;
+  Real   m_start_radius;
 
   //----------------------------------------------------------------------------
   // ctors
   //----------------------------------------------------------------------------
  public:
-  template <typename RealX0, typename RealTS, typename RealRadius,
-            enable_if_arithmetic<RealX0, RealTS, RealRadius> = true>
-  autonomous_particle(vec<RealX0, N> const& x0, RealTS const ts)
+  template <arithmetic RealX0>
+  autonomous_particle(vec<RealX0, N> const& x0,
+                      arithmetic auto const start_time,
+                      arithmetic auto const start_radius)
       : m_x0{x0},
         m_x1{x0},
         m_prev_pos{x0},
-        m_t1{static_cast<real_t>(ts)},
-        m_prev_time{ts},
+        m_t1{static_cast<Real>(start_time)},
+        m_prev_time{static_cast<Real>(start_time)},
         m_flowmap_gradient1{mat_t::eye()},
         m_level{0},
-        m_start_radius{radius} {}
+        m_start_radius{start_radius} {}
 
-  autonomous_particle(pos_t const& x0, pos_t const& x1, pos_t const& from,
-                      real_t const t1, real_t const fromt,
-                      const mat_t& flowmap_gradient, size_t const level, real_t const r0)
+  autonomous_particle(pos_t const& x0, pos_t const& x1, pos_t const& prev_pos,
+                      Real const t1, Real const prev_time,
+                      mat_t const& flowmap_gradient, size_t const level,
+                      Real const start_radius)
       : m_x0{x0},
         m_x1{x1},
-        m_prev_pos{from},
+        m_prev_pos{prev_pos},
         m_t1{t1},
-        m_prev_time{fromt},
+        m_prev_time{prev_time},
         m_flowmap_gradient1{flowmap_gradient},
         m_level{level},
-        m_start_radius{r0} {}
+        m_start_radius{start_radius} {}
   //----------------------------------------------------------------------------
  public:
   autonomous_particle(const autonomous_particle&)     = default;
@@ -82,7 +86,10 @@ struct autonomous_particle {
   auto previous_time() const { return m_prev_time; }
   auto flowmap_gradient() const -> auto const& { return m_flowmap_gradient1; }
   auto level() const { return m_level; }
-  auto current_radius() const { return m_start_radius * std::pow(1 / sqrt3, m_level); }
+  auto current_radius() const {
+    static Real const sqrt3 = std::sqrt(Real(3));
+    return m_start_radius * std::pow(1 / sqrt3, m_level);
+  }
   auto start_radius() const { return m_start_radius; }
 
   //----------------------------------------------------------------------------
@@ -94,8 +101,8 @@ struct autonomous_particle {
             template <typename>
             typename InterpolationKernel = interpolation::hermite,
             typename V>
-  auto integrate(vectorfield<V, Real, N> const& v, real_t tau_step,
-                 real_t const max_t) const {
+  auto integrate(vectorfield<V, Real, N> const& v, Real tau_step,
+                 Real const max_t) const {
     std::vector<this_t> particles{*this};
 
     size_t n         = 0;
@@ -103,6 +110,9 @@ struct autonomous_particle {
     do {
       n                   = size(particles);
       auto const cur_size = size(particles);
+      // this is necessary because after a resize of particles the currently
+      // used adresses are not valid anymore
+      particles.reserve(size(particles) + (cur_size - start_idx) * 3);
       for (size_t i = start_idx; i < cur_size; ++i) {
         particles[i].integrate_until_split(v, tau_step, particles, max_t);
       }
@@ -125,17 +135,17 @@ struct autonomous_particle {
             template <typename>
             typename InterpolationKernel = interpolation::linear,
             typename V>
-  void integrate_until_split(vectorfield<V, Real, N> const& v, real_t tau_step,
+  void integrate_until_split(vectorfield<V, Real, N> const& v, Real tau_step,
                              std::vector<this_t>& particles,
-                             real_t const         max_t) const {
+                             Real const           max_t) const {
     if (m_t1 >= max_t) { return; }
-    static real_t const twothirds = real_t(2) / real_t(3);
-    static real_t const sqrt3     = std::sqrt(real_t(3));
+    static Real const twothirds = Real(2) / Real(3);
+    static Real const sqrt3     = std::sqrt(Real(3));
 
     Real tau          = 0;
     auto fmgrad_field = diff(
         flowmap{v, create_integrator<Integrator, InterpolationKernel>(), tau},
-        m_cur_radius);
+        current_radius());
     auto& fm_field = fmgrad_field.internal_field();
     Real  cond     = 1;
     std::pair<mat<Real, N, N>, vec<Real, N>> eig;
@@ -148,59 +158,76 @@ struct autonomous_particle {
       if (m_t1 + tau > max_t) { tau = max_t - m_t1; }
       fm_field.set_tau(tau);
       flowmap_gradient2 = fmgrad_field(m_x1, m_t1);
-      eig    = eigenvectors_sym(flowmap_gradient2 * transpose(flowmap_gradient2));
+      eig = eigenvectors_sym(flowmap_gradient2 * transpose(flowmap_gradient2));
 
       cond = eigvals(1) / eigvals(0);
-      if (cond > max_cond) {
-        cond = 0;
-        tau -= tau_step;
-        tau_step *= 0.5;
-      }
+      //if (cond > max_cond) {
+      //  cond = 0;
+      //  tau -= tau_step;
+      //  tau_step *= 0.5;
+      //}
     }
-    mat_t const  fmg2fmg1 = flowmap_gradient2 * m_flowmap_gradient1;
-    pos_t const  x2       = fm_field(m_x1, m_t1);
-    real_t const t2       = m_t1 + tau;
+    mat_t const fmg2fmg1 = flowmap_gradient2 * m_flowmap_gradient1;
+    pos_t const x2       = fm_field(m_x1, m_t1);
+    Real const  t2       = m_t1 + tau;
     if (cond > 9) {
       vec_t const offset2 =
-          twothirds * sqrt3 * m_cur_radius * normalize(eigvecs.col(1));
-      vec_t const offset0 = inv(fmg2fmg1) * offset2;
-      real_t const new_radius = m_start_radius * std::pow(1 / sqrt3, m_level);
+          twothirds * sqrt3 * current_radius() * normalize(eigvecs.col(1));
+      vec_t const offset0    = inv(fmg2fmg1) * offset2;
 
-      particles.emplace_back(
-          m_x0 - offset0, x2 - offset2, m_x1, t2, m_t1, fmg2fmg1, m_level + 1,
-          m_start_radius * std::pow(1 / sqrt3, m_level), m_start_radius);
-      particles.emplace_back(m_x0, x2, m_x1, t2, m_t1, fmg2fmg1, m_level + 1,
-                             new_radius, m_start_radius);
-      particles.emplace_back(m_x0 + offset0, x2 + offset2, m_x1, t2, m_t1,
-                             fmg2fmg1, m_level + 1, new_radius, m_start_radius);
+      particles.emplace_back(m_x0 - offset0,
+                             x2 - offset2,
+                             m_x1,
+                             t2,
+                             m_t1,
+                             fmg2fmg1,
+                             m_level + 1,
+                             m_start_radius);
+      particles.emplace_back(m_x0,
+                             x2,
+                             m_x1,
+                             t2,
+                             m_t1,
+                             fmg2fmg1,
+                             m_level + 1,
+                             m_start_radius);
+      particles.emplace_back(m_x0 + offset0,
+                             x2 + offset2,
+                             m_x1,
+                             t2,
+                             m_t1,
+                             fmg2fmg1,
+                             m_level + 1,
+                             m_start_radius);
     } else {
       particles.emplace_back(m_x0, x2, m_x1, t2, m_t1, fmg2fmg1, m_level + 1,
-                             m_cur_radius, m_start_radius);
+                             m_start_radius);
     }
   }
 };
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 template <typename RealX0, size_t N, typename RealTS, typename RealRadius>
-autonomous_particle(vec<RealX0, N> const& x0, RealTS const ts,
-                    RealRadius const radius)
+autonomous_particle(vec<RealX0, N> const& x0, RealTS const start_time,
+                    RealRadius const start_radius)
     -> autonomous_particle<promote_t<RealX0, RealTS, RealRadius>, N>;
 //==============================================================================
-template <typename Real, size_t N>
+template <std::floating_point Real, size_t N>
 void write_vtk(std::vector<autonomous_particle<Real, N>> const& particles,
-               Real const t0, std::string const& forward_path,
+               arithmetic auto const t0, std::string const& forward_path,
                std::string const& backward_path) {
-  vtk::legacy_file_writer writer_forw{backward_path, vtk::POLYDATA},
-      write_back{forward_path, vtk::POLYDATA};
+  vtk::legacy_file_writer writer_forw{forward_path, vtk::POLYDATA},
+      write_back{backward_path, vtk::POLYDATA};
   if (writer_forw.is_open()) {
     writer_forw.write_header();
 
     std::vector<std::vector<size_t>> lines;
     std::vector<vec<double, 3>>      points;
     lines.reserve(size(particles));
-    for (auto const& p : particles) {
-      points.push_back(vec{p.previous_position(0), p.previous_position(1),
-                           p.previous_time()});
-      points.push_back(vec{p.x1(0), p.x1(1), p.t1()});
+    for (auto const& particle : particles) {
+      points.push_back(vec{particle.previous_position(0),
+                           particle.previous_position(1),
+                           particle.previous_time()});
+      points.push_back(vec{particle.x1(0), particle.x1(1), particle.t1()});
       lines.push_back(std::vector{size(points) - 2, size(points) - 1});
     }
     writer_forw.write_points(points);
@@ -214,9 +241,9 @@ void write_vtk(std::vector<autonomous_particle<Real, N>> const& particles,
     std::vector<std::vector<size_t>> lines;
     std::vector<vec<double, 3>>      points;
     lines.reserve(size(particles));
-    for (auto const& p : particles) {
-      points.push_back(vec{p.x0(0), p.x0(1), t0});
-      points.push_back(vec{p.x1(0), p.x1(1), p.t1()});
+    for (auto const& particle : particles) {
+      points.push_back(vec{particle.x0(0), particle.x0(1), t0});
+      points.push_back(vec{particle.x1(0), particle.x1(1), particle.t1()});
       lines.push_back(std::vector{size(points) - 2, size(points) - 1});
     }
     write_back.write_points(points);
