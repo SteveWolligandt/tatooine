@@ -13,12 +13,14 @@ struct saddle_field : vectorfield<saddle_field<Real>, Real, 2> {
   using typename parent_t::tensor_t;
   //============================================================================
   struct flowmap_t {
-    auto evaluate(pos_t const& x, Real const /*t*/, Real const tau) const
-        -> pos_t {
+    //==========================================================================
+    constexpr auto evaluate(pos_t const& x, Real const /*t*/,
+                            Real const   tau) const -> pos_t {
       return {std::exp(-tau) * x(0), std::exp(tau) * x(1)};
     }
     //--------------------------------------------------------------------------
-    auto operator()(pos_t const& x, Real const t, Real const tau) const {
+    constexpr auto operator()(pos_t const& x, Real const t,
+                              Real const tau) const -> pos_t {
       return evaluate(x, t, tau);
     }
   };

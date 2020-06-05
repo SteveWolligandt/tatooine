@@ -1,5 +1,6 @@
 #include <tatooine/autonomous_particle.h>
 #include <tatooine/center_field.h>
+#include <tatooine/autonomous_particles_test_field.h>
 #include <tatooine/concepts.h>
 #include <tatooine/doublegyre.h>
 #include <tatooine/saddle_field.h>
@@ -116,6 +117,21 @@ TEST_CASE("autonomous_particle_saddle_backward_integration",
   numerical::saddle_field v;
   autonomous_particles_test_backward_integation_distance(
       "saddle", v, g(5, 5), g.spacing(0), 0, 2, 0.1);
+}
+//==============================================================================
+TEST_CASE("autonomous_particle_test_field_vtk",
+          "[autonomous_particle][test_field][vtk]") {
+  grid                  g{linspace{-1.0, 1.0, 11}, linspace{-1.0, 1.0, 11}};
+  numerical::test_field_field v;
+  autonomous_particle_write_vtk("test_field", v, g, 0, 5, 0.1);
+}
+//------------------------------------------------------------------------------
+TEST_CASE("autonomous_particle_test_field_backward_integration",
+          "[autonomous_particle][test_field][backward_integration]") {
+  grid g{linspace{-1.0, 1.0, 11}, linspace{-1.0, 1.0, 11}};
+  numerical::autonomous_particles_test_field v;
+  autonomous_particles_test_backward_integation_distance("test_field", v, vec{1.0, 1.0}, g.spacing(0),
+                                                         0, 5, 0.1);
 }
 //==============================================================================
 TEST_CASE("autonomous_particle_center_vtk",

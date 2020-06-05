@@ -10,19 +10,25 @@ struct center_field : vectorfield<center_field<Real>, Real, 2> {
   using this_t   = center_field<Real>;
   using parent_t = vectorfield<this_t, Real, 2>;
   using typename parent_t::pos_t;
+  using typename parent_t::tensor_t;
   //============================================================================
-  struct flowmap_t {
-    auto evaluate(pos_t const& x, Real const /*t*/, Real const tau) const
-        -> pos_t {
-      return { std::cos(tau) * x(0) + std::sin(tau) * x(1),
+  struct flowmap_t : vectorfield<flowmap_t, Real, 2> {
+    using this_t   = flowmap_t;
+    using parent_t = vectorfield<this_t, Real, 2>;
+    using typename parent_t::pos_t;
+    using typename parent_t::tensor_t;
+    //==========================================================================
+    constexpr auto evaluate(pos_t const& x, Real const /*t*/,
+                            Real const   tau) const -> pos_t {
+      return {std::cos(tau) * x(0) + std::sin(tau) * x(1),
               -std::sin(tau) * x(0) + std::cos(tau) * x(1)};
     }
     //--------------------------------------------------------------------------
-    auto operator()(pos_t const& x, Real const t, Real const tau) const {
+    constexpr auto operator()(pos_t const& x, Real const t,
+                              Real const tau) const -> pos_t {
       return evaluate(x, t, tau);
     }
   };
-  using typename parent_t::tensor_t;
   //============================================================================
   constexpr center_field() noexcept {}
   constexpr center_field(center_field const&)     = default;
@@ -53,7 +59,7 @@ center_field()->center_field<double>;
 namespace tatooine {
 //==============================================================================
 template <typename Real>
-struct has_analytical_flowmap<numerical::saddle_field<Real>> : std::true_type {
+struct has_analytical_flowmap<numerical::center_field<Real>> : std::true_type {
 };
 //==============================================================================
 template <typename Real>
