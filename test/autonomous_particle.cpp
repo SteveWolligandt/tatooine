@@ -43,18 +43,19 @@ void autonomous_particles_test_backward_integation_distance(
   autonomous_particle const p0{x0, t0, radius};
   auto const                particles = p0.integrate(v, tau_step, t1);
 
-  auto integrator = p0.create_integrator();
-  size_t i = 0;
+  auto   integrator = p0.create_integrator();
+  size_t i          = 0;
   for (auto const& particle : particles) {
     auto const total_integration_length = t0 - particle.t1();
     if (total_integration_length < 0) {
       if constexpr (has_analytical_flowmap_v<V>) {
         auto flowmap = v->flowmap();
         parameterized_line<VReal, 3, interpolation::linear> integral_curve;
-        for (auto const tau : linspace<VReal>{total_integration_length, VReal{0}, 10}) {
-          auto const x =
-              flowmap(particle.x1(), particle.t1(), tau);
-          integral_curve.push_back(vec{x(0), x(1), particle.t1()+tau}, particle.t1()+tau);
+        for (auto const tau :
+             linspace<VReal>{total_integration_length, VReal{0}, 10}) {
+          auto const x = flowmap(particle.x1(), particle.t1(), tau);
+          integral_curve.push_back(vec{x(0), x(1), particle.t1() + tau},
+                                   particle.t1() + tau);
         }
         integral_curve.write_vtk(name + "_backintegration_" +
                                  std::to_string(i++) + ".vtk");
@@ -72,12 +73,14 @@ void autonomous_particles_test_backward_integation_distance(
     }
 
     auto const back_integration =
-        integrator.integrate_uncached(v, particle.x1(), particle.t1(), total_integration_length)
+        integrator
+            .integrate_uncached(v, particle.x1(), particle.t1(),
+                                total_integration_length)
             .front_vertex();
 
     auto const distance = tatooine::distance(back_integration, particle.x0());
-    CAPTURE(particle.x1(), particle.t1(), total_integration_length, particle.level(), particle.x0(),
-            back_integration, distance);
+    CAPTURE(particle.x1(), particle.t1(), total_integration_length,
+            particle.level(), particle.x0(), back_integration, distance);
     CHECK(distance < max_distance);
   }
 }
@@ -96,38 +99,38 @@ TEST_CASE("autonomous_particle_dg_backward_integration",
   numerical::doublegyre v;
   v.set_infinite_domain(true);
 
-  autonomous_particles_test_backward_integation_distance("dg", v, g(2, 4), g.spacing(0),
-                                                         0, 5, 0.1);
+  autonomous_particles_test_backward_integation_distance(
+      "dg", v, g(2, 4), g.spacing(0), 0, 5, 0.1);
 }
 //==============================================================================
 TEST_CASE("autonomous_particle_saddle_vtk",
           "[autonomous_particle][saddle][vtk]") {
-  grid g{linspace{-1.0, 1.0, 11}, linspace{-1.0, 1.0, 11}};
+  grid                    g{linspace{-1.0, 1.0, 11}, linspace{-1.0, 1.0, 11}};
   numerical::saddle_field v;
   autonomous_particle_write_vtk("saddle", v, g, 0, 2, 0.1);
 }
 //------------------------------------------------------------------------------
 TEST_CASE("autonomous_particle_saddle_backward_integration",
           "[autonomous_particle][saddle][backward_integration]") {
-  grid g{linspace{-1.0, 1.0, 11}, linspace{-1.0, 1.0, 11}};
+  grid                    g{linspace{-1.0, 1.0, 11}, linspace{-1.0, 1.0, 11}};
   numerical::saddle_field v;
-  autonomous_particles_test_backward_integation_distance("saddle", v, g(5, 5),
-                                                         g.spacing(0), 0, 2, 0.1);
+  autonomous_particles_test_backward_integation_distance(
+      "saddle", v, g(5, 5), g.spacing(0), 0, 2, 0.1);
 }
 //==============================================================================
 TEST_CASE("autonomous_particle_center_vtk",
           "[autonomous_particle][center][vtk]") {
-  grid                  g{linspace{-1.0, 1.0, 11}, linspace{-1.0, 1.0, 11}};
+  grid                    g{linspace{-1.0, 1.0, 11}, linspace{-1.0, 1.0, 11}};
   numerical::center_field v;
   autonomous_particle_write_vtk("center", v, g, 0, 5, 0.1);
 }
 //------------------------------------------------------------------------------
 TEST_CASE("autonomous_particle_center_backward_integration",
           "[autonomous_particle][center][backward_integration]") {
-  grid g{linspace{-1.0, 1.0, 11}, linspace{-1.0, 1.0, 11}};
+  grid                    g{linspace{-1.0, 1.0, 11}, linspace{-1.0, 1.0, 11}};
   numerical::center_field v;
-  autonomous_particles_test_backward_integation_distance("center", v, vec{1.0, 1.0}, g.spacing(0),
-                                                         0, 5, 0.1);
+  autonomous_particles_test_backward_integation_distance(
+      "center", v, vec{1.0, 1.0}, g.spacing(0), 0, 5, 0.1);
 }
 //==============================================================================
 }  // namespace tatooine::test
