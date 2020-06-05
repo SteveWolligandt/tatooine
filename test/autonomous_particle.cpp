@@ -119,21 +119,6 @@ TEST_CASE("autonomous_particle_saddle_backward_integration",
       "saddle", v, g(5, 5), g.spacing(0), 0, 2, 0.1);
 }
 //==============================================================================
-TEST_CASE("autonomous_particle_test_field_vtk",
-          "[autonomous_particle][test_field][vtk]") {
-  grid                  g{linspace{-1.0, 1.0, 11}, linspace{-1.0, 1.0, 11}};
-  numerical::test_field_field v;
-  autonomous_particle_write_vtk("test_field", v, g, 0, 5, 0.1);
-}
-//------------------------------------------------------------------------------
-TEST_CASE("autonomous_particle_test_field_backward_integration",
-          "[autonomous_particle][test_field][backward_integration]") {
-  grid g{linspace{-1.0, 1.0, 11}, linspace{-1.0, 1.0, 11}};
-  numerical::autonomous_particles_test_field v;
-  autonomous_particles_test_backward_integation_distance("test_field", v, vec{1.0, 1.0}, g.spacing(0),
-                                                         0, 5, 0.1);
-}
-//==============================================================================
 TEST_CASE("autonomous_particle_center_vtk",
           "[autonomous_particle][center][vtk]") {
   grid                    g{linspace{-1.0, 1.0, 11}, linspace{-1.0, 1.0, 11}};
@@ -147,6 +132,21 @@ TEST_CASE("autonomous_particle_center_backward_integration",
   numerical::center_field v;
   autonomous_particles_test_backward_integation_distance(
       "center", v, vec{1.0, 1.0}, g.spacing(0), 0, 5, 0.1);
+}
+//==============================================================================
+TEST_CASE("autonomous_particle_test_field_vtk",
+          "[autonomous_particle][test_field][vtk]") {
+  grid                  g{linspace{-1.0, 1.0, 3}, linspace{-1.0, 1.0, 3}};
+  numerical::autonomous_particles_test_field v;
+  autonomous_particle_write_vtk("test_field", v, g, 0, 5, 0.1);
+}
+//------------------------------------------------------------------------------
+TEST_CASE("autonomous_particle_test_field_backward_integration",
+          "[autonomous_particle][test_field][backward_integration]") {
+  grid                  g{linspace{-1.0, 1.0, 3}, linspace{-1.0, 1.0, 3}};
+  numerical::autonomous_particles_test_field v;
+  autonomous_particles_test_backward_integation_distance("test_field", v, vec{1.0, 1.0}, g.spacing(0),
+                                                         0, 3, 0.1);
 }
 //==============================================================================
 }  // namespace tatooine::test

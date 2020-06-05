@@ -1,7 +1,8 @@
-#ifndef TATOOINE_INTEGRATION_INTEGRATOR_H
-#define TATOOINE_INTEGRATION_INTEGRATOR_H
+#ifndef TATOOINE_ODE_ODE_SOLVER_H
+#define TATOOINE_ODE_ODE_SOLVER_H
 //==============================================================================
 #include <cassert>
+#include <tatooine/concepts.h>
 #include <map>
 #include "../cache.h"
 #include "../field.h"
@@ -9,53 +10,70 @@
 //==============================================================================
 namespace tatooine::integration {
 //==============================================================================
-template <typename Real, size_t N,
-          template <typename> typename InterpolationKernel, typename Derived>
-struct integrator : crtp<Derived> {
+template <typename Derived>
+struct ode_solver : crtp<Derived> {
   //----------------------------------------------------------------------------
   // typedefs
   //----------------------------------------------------------------------------
-  using real_t     = Real;
   using parent_t   = crtp<Derived>;
-  using integral_t = parameterized_line<Real, N, InterpolationKernel>;
-  using pos_t      = vec<Real, N>;
-  using cache_t    = tatooine::cache<std::pair<Real, pos_t>, integral_t>;
-
   using parent_t::as_derived;
-
-  //----------------------------------------------------------------------------
-  // members
-  //----------------------------------------------------------------------------
- private:
-  mutable cache_t m_cache;
-  mutable std::map<std::pair<pos_t, Real>, std::pair<bool, bool>>
-      m_on_domain_border;
-  
-  //----------------------------------------------------------------------------
-  // ctors
-  //----------------------------------------------------------------------------
- public:
-  integrator()                                  = default;
-  integrator(const integrator &)                = default;
-  integrator(integrator &&) noexcept            = default;
-  integrator &operator=(const integrator &)     = default;
-  integrator &operator=(integrator &&) noexcept = default;
 
   //----------------------------------------------------------------------------
   // methods
   //----------------------------------------------------------------------------
  private:
-  template <typename V>
-  void calc_forward(const V &v, integral_t &integral, const pos_t &y0, Real t0,
-                    Real tau) const {
-    as_derived().calc_forward(v, integral, y0, t0, tau);
+  //----------------------------------------------------------------------------
+  template <template <typename>
+            typename InterpolationKernel = interpolation::hermite,
+            size_t N, typename V, std::floating_point VReal, typename Integral,
+            arithmetic Y0Real, arithmetic T0Real, arithmetic TauReal>
+  auto solve(const vectorfield<V, VReal, N>& v, vec<Y0Real, N>& y0,
+             T0Real t0, TauReal tau) const {
+    using real_t = promote_t<VReal, Y0Real, T0Real, TauReal>;
+    parameterized_line<real_t, N, InterpolationKernel> integral_curve;
+    integral_curve.push_back(std::move(y0), t0);
+    solve(v, integral_curve, tau);
+    return integral_curve;
   }
   //----------------------------------------------------------------------------
-  template <typename V>
-  void calc_backward(const V &v, integral_t &integral, const pos_t &y0, Real t0,
-                     Real tau) const {
-    as_derived().calc_backward(v, integral, y0, t0, tau);
+  template <template <typename>
+            typename InterpolationKernel = interpolation::hermite,
+            size_t N, typename V, std::floating_point VReal, typename Integral,
+            arithmetic Y0Real, arithmetic T0Real, arithmetic BTauReal,
+            arithmetic FTauReal>
+  auto solve(const vectorfield<V, VReal, N> &v, vec<Y0Real, N> &y0, T0Real t0,
+             TauReal btau, TauReal ftau) const {
+    auto integral_curve = solve(v, y0, t0, btau);
+    as_derived().solve(v, integral_curve, ftau);
+    return integral_curve;
   }
+  //----------------------------------------------------------------------------
+  /// Continues integration of integral.
+  /// if tau > 0 than it integrates forward and pushes new samples back
+  /// otherwise pushes samples to front.
+  template <size_t N, typename V, std::floating_point VReal, typename Integral,
+            arithmetic X0Real, arithmetic T0Real, arithmetic CurveReal,
+            template <typename> typename InterpolationKernel,
+            arithmetic TauReal>
+  void solve(
+      const vectorfield<V, VReal, N>&                        v,
+      parameterized_line<CurveReal, N, InterpolationKernel>& integral_curve,
+      TauReal                                                tau) const {
+    as_derived().solve(v, integral, tau);
+  }
+  //----------------------------------------------------------------------------
+  template <size_t N, typename V, std::floating_point VReal, typename Integral,
+            arithmetic X0Real, arithmetic T0Real, arithmetic CurveReal,
+            template <typename> typename InterpolationKernel,
+            arithmetic BTauReal, arithmetic FTauReal>
+  void solve(
+      const vectorfield<V, VReal, N> &                       v,
+      parameterized_line<CurveReal, N, InterpolationKernel> &integral_curve,
+      BTauReal btau, FTauReal ftau) const {
+    as_derived().solve(v, integral, btau);
+    as_derived().solve(v, integral, ftau);
+  }
+
  public:
   //----------------------------------------------------------------------------
   template <typename V>

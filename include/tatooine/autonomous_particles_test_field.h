@@ -19,7 +19,13 @@ struct autonomous_particles_test_field
     //==========================================================================
     constexpr auto evaluate(pos_t const& x, Real const /*t*/,
                             Real const   tau) const -> pos_t {
-      return {std::exp(-tau) * x(0), std::exp(tau) * x(1)};
+      return {x(0) / std::sqrt(-std::exp(2 * tau) * x(0) * x(0) + x(0) * x(0) +
+                               std::exp(2 * tau)),
+              std::exp(-2 * tau) *
+                  std::pow(-std::exp(2 * tau) * x(0) * x(0) + x(0) * x(0) +
+                               std::exp(2 * tau),
+                           Real(3) / Real(2)) *
+                  x(1)};
     }
     //--------------------------------------------------------------------------
     constexpr auto operator()(pos_t const& x, Real const t,
@@ -27,6 +33,8 @@ struct autonomous_particles_test_field
       return evaluate(x, t, tau);
     }
   };
+  //----------------------------------------------------------------------------
+  constexpr auto flowmap() const { return flowmap_t{}; }
   //============================================================================
   constexpr autonomous_particles_test_field() noexcept {}
   constexpr autonomous_particles_test_field(
@@ -42,9 +50,7 @@ struct autonomous_particles_test_field
   //==============================================================================
   constexpr auto evaluate(pos_t const& x, Real const /*t*/) const
       -> tensor_t final {
-    return {-x(0) * (1 - x(0)) * (1 + x(0)), (1 - x(0)) * (1 + x(0)) * x(1) -
-                                                 x(0) * (1 + x(0)) * x(1) +
-                                                 x(0) * (1 - x(0)) * x(1)};
+    return {x(0) * x(0) * x(0) - x(0), (1 - 3 * x(0) * x(0)) * x(1)};
   }
   //----------------------------------------------------------------------------
   constexpr auto in_domain(pos_t const& /*x*/, Real const /*t*/) const

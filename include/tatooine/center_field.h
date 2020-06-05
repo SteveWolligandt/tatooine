@@ -12,12 +12,7 @@ struct center_field : vectorfield<center_field<Real>, Real, 2> {
   using typename parent_t::pos_t;
   using typename parent_t::tensor_t;
   //============================================================================
-  struct flowmap_t : vectorfield<flowmap_t, Real, 2> {
-    using this_t   = flowmap_t;
-    using parent_t = vectorfield<this_t, Real, 2>;
-    using typename parent_t::pos_t;
-    using typename parent_t::tensor_t;
-    //==========================================================================
+  struct flowmap_t {
     constexpr auto evaluate(pos_t const& x, Real const /*t*/,
                             Real const   tau) const -> pos_t {
       return {std::cos(tau) * x(0) + std::sin(tau) * x(1),
