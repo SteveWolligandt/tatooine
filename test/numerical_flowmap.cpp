@@ -18,6 +18,8 @@ TEST_CASE("numerical_flowmap_doublegyre",
   [[maybe_unused]] auto const xn110 = fm(vec{0.1, 0.1}, 0, 10);
   [[maybe_unused]] auto const xn115 = fm(vec{0.1, 0.1}, 0, 15);
   [[maybe_unused]] auto const xn1n5 = fm(vec{0.1, 0.1}, 0, -5);
+
+  auto fmgrad = diff(fm);
 }
 //==============================================================================
 }
