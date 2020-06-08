@@ -47,7 +47,7 @@ struct ftle_field : field<ftle_field<FlowmapGradient>, typename FlowmapGradient:
     auto const g                = m_flowmap_gradient(x, t, m_tau);
     auto const eigvals          = eigenvalues_sym(transpose(g) * g);
     auto const max_eig          = max(eigvals);
-    return std::log(std::sqrt(max_eig)) / std::abs(tau());
+    return std::log(std::sqrt(max_eig)) / std::abs(m_tau);
   }
   //----------------------------------------------------------------------------
   constexpr auto in_domain(pos_t const& /*x*/, real_t /*t*/) const -> bool final {

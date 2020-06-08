@@ -43,7 +43,6 @@ struct saddle_field_flowmap {
   //--------------------------------------------------------------------------
   constexpr auto evaluate(pos_t const& x, Real const /*t*/,
                           Real const   tau) const -> pos_t {
-        std::cerr << "anal\n";
     return {std::exp(-tau) * x(0), std::exp(tau) * x(1)};
   }
   //--------------------------------------------------------------------------
@@ -63,7 +62,7 @@ struct saddle_field_flowmap_gradient {
   constexpr auto evaluate(pos_t const& /*x*/, Real const /*t*/,
                           Real const tau) const {
     return mat<real_t, 2, 2>{{std::exp(-tau), real_t(0)},
-                             {real_t(0), std::exp(-tau)}};
+                             {real_t(0), std::exp(tau)}};
   }
   //--------------------------------------------------------------------------
   constexpr auto operator()(pos_t const& x, Real const t,
@@ -105,7 +104,6 @@ constexpr auto flowmap(numerical::saddle_field<Real> const&) {
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 template <typename Real>
 constexpr auto flowmap(vectorfield<numerical::saddle_field<Real>, Real, 2> const&) {
-  std::cerr << "flowmap\n";
   return typename numerical::saddle_field_flowmap<Real>{};
 }
 //------------------------------------------------------------------------------
