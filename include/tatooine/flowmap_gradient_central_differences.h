@@ -1,7 +1,7 @@
 #ifndef TATOOINE_FLOWMAP_GRADIENT_CENTRAL_DIFFERENCES_H
 #define TATOOINE_FLOWMAP_GRADIENT_CENTRAL_DIFFERENCES_H
 //==============================================================================
-#include "numerical_flowmap.h"
+#include "tensor.h"
 //==============================================================================
 namespace tatooine {
 //==============================================================================
@@ -69,24 +69,6 @@ flowmap_gradient_central_differences(Flowmap &&)
 template <typename Flowmap>
 flowmap_gradient_central_differences(Flowmap const&)
     -> flowmap_gradient_central_differences<const Flowmap&>;
-//==============================================================================
-template <typename V, template <typename, size_t> typename ODESolver,
-          template <typename> typename InterpolationKernel,
-          arithmetic EpsReal = typename V::real_t>
-auto diff(numerical_flowmap<V, ODESolver, InterpolationKernel> const& flowmap,
-          EpsReal epsilon = 1e-7) {
-  return flowmap_gradient_central_differences<
-      numerical_flowmap<V, ODESolver, InterpolationKernel>>{flowmap, epsilon};
-}
-//------------------------------------------------------------------------------
-template <typename V, template <typename, size_t> typename ODESolver,
-          template <typename> typename InterpolationKernel,
-          std::floating_point EpsReal>
-auto diff(numerical_flowmap<V, ODESolver, InterpolationKernel> const& flowmap,
-          vec<EpsReal, V::num_dimensions()>                           epsilon) {
-  return flowmap_gradient_central_differences<
-      numerical_flowmap<V, ODESolver, InterpolationKernel>>{flowmap, epsilon};
-}
 //==============================================================================
 }  // namespace tatooine
 //==============================================================================

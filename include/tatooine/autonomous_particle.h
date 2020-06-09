@@ -11,7 +11,7 @@
 //==============================================================================
 namespace tatooine {
 //==============================================================================
-template <typename Real, size_t N, typename Flowmap>
+template <typename Flowmap, typename Real, size_t N>
 struct autonomous_particle {
   //----------------------------------------------------------------------------
   // typedefs

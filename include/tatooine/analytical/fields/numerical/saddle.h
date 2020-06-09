@@ -2,11 +2,14 @@
 #define TATOOINE_ANALYTICAL_FIELDS_NUMERICAL_SADDLE_H
 //==============================================================================
 #include <tatooine/differentiated_field.h>
+#include <tatooine/flowmap_gradient_central_differences.h>
 #include <tatooine/field.h>
+#include <tatooine/numerical_flowmap.h>
+#include <tatooine/ode/vclibs/rungekutta43.h>
 //==============================================================================
 namespace tatooine::analytical::fields::numerical {
 //==============================================================================
-template <typename Real>
+template <std::floating_point Real>
 struct saddle : vectorfield<saddle<Real>, Real, 2> {
   using this_t   = saddle<Real>;
   using parent_t = vectorfield<this_t, Real, 2>;
@@ -51,8 +54,32 @@ struct saddle_flowmap {
     return evaluate(x, t, tau);
   }
 };
+//------------------------------------------------------------------------------
+template <
+    template <typename, size_t> typename ODESolver = ode::vclibs::rungekutta43,
+    template <typename> typename InterpolationKernel = interpolation::hermite,
+    std::floating_point Real>
+constexpr auto flowmap(
+    vectorfield<analytical::fields::numerical::saddle<Real>, Real, 2> const& v,
+    tag::numerical_t /*tag*/) {
+  return numerical_flowmap<analytical::fields::numerical::saddle<Real>,
+                           ODESolver, InterpolationKernel>{v};
+}
+// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+template <std::floating_point Real>
+constexpr auto flowmap(
+    vectorfield<analytical::fields::numerical::saddle<Real>, Real, 2> const&,
+    tag::analytical_t /*tag*/) {
+  return analytical::fields::numerical::saddle_flowmap<Real>{};
+}
+// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+template <std::floating_point Real>
+constexpr auto flowmap(vectorfield<analytical::fields::numerical::saddle<Real>,
+                                   Real, 2> const& v) {
+  return flowmap(v, tag::analytical);
+}
 //==============================================================================
-template <typename Real>
+template <std::floating_point Real>
 struct saddle_flowmap_gradient {
   using real_t = Real;
   using vec_t  = vec<Real, 2>;
@@ -70,12 +97,40 @@ struct saddle_flowmap_gradient {
     return evaluate(x, t, tau);
   }
 };
+//------------------------------------------------------------------------------
+template <std::floating_point Real>
+auto diff(analytical::fields::numerical::saddle_flowmap<Real> const&,
+          tag::analytical_t /*tag*/) {
+  return
+      typename analytical::fields::numerical::saddle_flowmap_gradient<Real>{};
+}
+// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+template <std::floating_point VReal,
+          std::floating_point EpsReal = VReal>
+auto diff(analytical::fields::numerical::saddle_flowmap<VReal> const& flowmap,
+          tag::central_t /*tag*/, EpsReal epsilon = 1e-7) {
+  return flowmap_gradient_central_differences<
+      analytical::fields::numerical::saddle_flowmap<VReal>>{flowmap, epsilon};
+}
+// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+template <std::floating_point VReal, std::floating_point EpsReal>
+constexpr auto diff(
+    analytical::fields::numerical::saddle_flowmap<VReal> const& flowmap,
+    tag::central_t /*tag*/, vec<EpsReal, 2> epsilon) {
+  return flowmap_gradient_central_differences<
+      analytical::fields::numerical::saddle_flowmap<VReal>>{flowmap, epsilon};
+}
+// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+template <std::floating_point Real>
+auto diff(analytical::fields::numerical::saddle_flowmap<Real> const& flowmap) {
+  return diff(flowmap, tag::analytical);
+}
 //==============================================================================
 }  // namespace tatooine::analytical::fields::numerical
 //==============================================================================
 namespace tatooine {
 //==============================================================================
-template <typename Real>
+template <std::floating_point Real>
 struct differentiated_field<analytical::fields::numerical::saddle<Real>, 2, 2>
     : field<analytical::fields::numerical::saddle<Real>, Real, 2, 2, 2> {
   using this_t =
@@ -96,24 +151,6 @@ struct differentiated_field<analytical::fields::numerical::saddle<Real>, 2, 2>
     return true;
   }
 };
-//==============================================================================
-template <typename Real>
-constexpr auto flowmap(analytical::fields::numerical::saddle<Real> const&) {
-  return typename analytical::fields::numerical::saddle_flowmap<Real>{};
-}
-// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-template <typename Real>
-constexpr auto flowmap(
-    vectorfield<analytical::fields::numerical::saddle<Real>, Real, 2> const&) {
-  return typename analytical::fields::numerical::saddle_flowmap<Real>{};
-}
-//------------------------------------------------------------------------------
-template <typename Real>
-constexpr auto diff(
-    analytical::fields::numerical::saddle_flowmap<Real> const&) {
-  return
-      typename analytical::fields::numerical::saddle_flowmap_gradient<Real>{};
-}
 //------------------------------------------------------------------------------
 template <typename Real>
 constexpr auto diff(analytical::fields::numerical::saddle<Real>&) {

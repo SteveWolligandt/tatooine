@@ -176,10 +176,62 @@ template <typename V, typename Real, size_t N>
 numerical_flowmap(vectorfield<V, Real, N> const&)
     -> numerical_flowmap<V, ode::vclibs::rungekutta43, interpolation::hermite>;
 //==============================================================================
-template <typename V, typename VReal, size_t N>
-auto flowmap(vectorfield<V, VReal, N> const& v) {
-  return numerical_flowmap<V, ode::vclibs::rungekutta43,
-                           interpolation::hermite>{v};
+template <
+    template <typename, size_t> typename ODESolver = ode::vclibs::rungekutta43,
+    template <typename> typename InterpolationKernel = interpolation::hermite,
+    typename V, typename Real, size_t N>
+auto flowmap(vectorfield<V, Real, N> const& v, tag::numerical_t /*tag*/) {
+  return numerical_flowmap<V, ODESolver, InterpolationKernel>{v};
+}
+// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+template <
+    template <typename, size_t> typename ODESolver = ode::vclibs::rungekutta43,
+    template <typename> typename InterpolationKernel = interpolation::hermite,
+    typename V, typename Real, size_t N>
+auto flowmap(vectorfield<V, Real, N> const& v) {
+  return numerical_flowmap<V, ODESolver, InterpolationKernel>(v);
+}
+//==============================================================================
+}  // namespace tatooine
+//==============================================================================
+#include "flowmap_gradient_central_differences.h"
+//==============================================================================
+namespace tatooine{
+//==============================================================================
+template <typename V, template <typename, size_t> typename ODESolver,
+          template <typename> typename InterpolationKernel,
+          arithmetic EpsReal = typename V::real_t>
+auto diff(numerical_flowmap<V, ODESolver, InterpolationKernel> const& flowmap,
+          tag::central_t /*tag*/,
+          EpsReal epsilon = 1e-7) {
+  return flowmap_gradient_central_differences<
+      numerical_flowmap<V, ODESolver, InterpolationKernel>>{flowmap, epsilon};
+}
+//------------------------------------------------------------------------------
+template <typename V, template <typename, size_t> typename ODESolver,
+          template <typename> typename InterpolationKernel,
+          std::floating_point EpsReal>
+auto diff(numerical_flowmap<V, ODESolver, InterpolationKernel> const& flowmap,
+          tag::central_t /*tag*/,
+          vec<EpsReal, V::num_dimensions()>                           epsilon) {
+  return flowmap_gradient_central_differences<
+      numerical_flowmap<V, ODESolver, InterpolationKernel>>{flowmap, epsilon};
+}
+//==============================================================================
+template <typename V, template <typename, size_t> typename ODESolver,
+          template <typename> typename InterpolationKernel,
+          arithmetic EpsReal = typename V::real_t>
+auto diff(numerical_flowmap<V, ODESolver, InterpolationKernel> const& flowmap,
+          EpsReal epsilon = 1e-7) {
+  return diff(flowmap, tag::central, epsilon);
+}
+//------------------------------------------------------------------------------
+template <typename V, template <typename, size_t> typename ODESolver,
+          template <typename> typename InterpolationKernel,
+          std::floating_point EpsReal>
+auto diff(numerical_flowmap<V, ODESolver, InterpolationKernel> const& flowmap,
+          vec<EpsReal, V::num_dimensions()>                           epsilon) {
+  return diff(flowmap, tag::central, epsilon);
 }
 //==============================================================================
 }  // namespace tatooine
