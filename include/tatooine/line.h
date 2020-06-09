@@ -2,9 +2,9 @@
 #define TATOOINE_LINE_H
 //==============================================================================
 #include <boost/range/adaptor/reversed.hpp>
+#include <boost/range/algorithm/copy.hpp>
 #include <boost/range/algorithm/reverse.hpp>
 #include <boost/range/algorithm_ext/iota.hpp>
-#include <boost/range/algorithm/copy.hpp>
 #include <boost/range/numeric.hpp>
 #include <cassert>
 #include <deque>
@@ -14,6 +14,7 @@
 #include "handle.h"
 #include "linspace.h"
 #include "property.h"
+#include "tags.h"
 #include "tensor.h"
 #include "vtk_legacy.h"
 //==============================================================================
@@ -21,22 +22,6 @@ namespace tatooine {
 //==============================================================================
 template <typename Real, size_t N>
 struct line;
-
-struct automatic_t {};
-static constexpr automatic_t automatic;
-
-struct forward_t {};
-static constexpr forward_t forward;
-
-struct backward_t {};
-static constexpr backward_t backward;
-
-struct central_t {};
-static constexpr central_t central;
-
-struct quadratic_t {};
-static constexpr quadratic_t quadratic;
-
 //==============================================================================
 // Iterators
 //==============================================================================
@@ -509,12 +494,12 @@ struct line {
   // tangent
   //============================================================================
   /// calculates tangent at point t with backward differences
-  auto tangent_at(const tangent_idx i, forward_t tag) const {
+  auto tangent_at(const tangent_idx i, tag::forward_t tag) const {
     return tangent_at(i.i, tag);
   }
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
   /// calculates tangent at point i with forward differences
-  auto tangent_at(const size_t i, forward_t /*tag*/) const {
+  auto tangent_at(const size_t i, tag::forward_t /*tag*/) const {
     assert(num_vertices() > 1);
     if (is_closed() && i == num_vertices() - 1) {
       return (front_vertex() - back_vertex()) /
@@ -526,12 +511,12 @@ struct line {
 
   //----------------------------------------------------------------------------
   /// calculates tangent at point t with backward differences
-  auto tangent_at(const tangent_idx i, backward_t tag) const {
+  auto tangent_at(const tangent_idx i, tag::backward_t tag) const {
     return tangent_at(i.i, tag);
   }
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
   /// calculates tangent at point i with central differences
-  auto tangent_at(const size_t i, backward_t /*tag*/) const {
+  auto tangent_at(const size_t i, tag::backward_t /*tag*/) const {
     assert(num_vertices() > 1);
     if (is_closed() && i == 0) {
       return (front_vertex() - back_vertex()) /
@@ -543,12 +528,12 @@ struct line {
 
   //----------------------------------------------------------------------------
   /// calculates tangent at point i with central differences
-  auto tangent_at(const tangent_idx i, central_t tag) const {
+  auto tangent_at(const tangent_idx i, tag::central_t tag) const {
     return tangent_at(i.i, tag);
   }
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
   /// calculates tangent at point i with central differences
-  auto tangent_at(const size_t i, central_t /*tag*/) const {
+  auto tangent_at(const size_t i, tag::central_t /*tag*/) const {
     if (is_closed()) {
       if (i == 0) {
         return (vertex_at(1) - back_vertex()) /
@@ -565,26 +550,26 @@ struct line {
             distance(vertex_at(i), vertex_at(i + 1)));
   }
   //----------------------------------------------------------------------------
-  auto tangent_at(const tangent_idx i, automatic_t tag,
+  auto tangent_at(const tangent_idx i, tag::automatic_t tag,
                   bool prefer_calc = false) const {
     return tangent_at(i.i, tag, prefer_calc);
   }
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-  auto tangent_at(const size_t i, automatic_t /*tag*/,
+  auto tangent_at(const size_t i, tag::automatic_t /*tag*/,
                   bool         prefer_calc = false) const {
     if (m_tangents && !prefer_calc) { return m_tangents->at(vertex_idx{i}); }
-    if (is_closed()) { return tangent_at(i, central); }
-    if (i == 0) { return tangent_at(i, forward); }
-    if (i == num_vertices() - 1) { return tangent_at(i, backward); }
-    return tangent_at(i, central);
+    if (is_closed()) { return tangent_at(i, tag::central); }
+    if (i == 0) { return tangent_at(i, tag::forward); }
+    if (i == num_vertices() - 1) { return tangent_at(i, tag::backward); }
+    return tangent_at(i, tag::central);
   }
   //----------------------------------------------------------------------------
   auto tangent_at(const tangent_idx i, bool prefer_calc = false) const {
-    return tangent_at(i, automatic, prefer_calc);
+    return tangent_at(i, tag::automatic, prefer_calc);
   }
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
   auto tangent_at(const size_t i, bool prefer_calc = false) const {
-    return tangent_at(i, automatic, prefer_calc);
+    return tangent_at(i, tag::automatic, prefer_calc);
   }
   //----------------------------------------------------------------------------
   auto front_tangent(bool prefer_calc = false) const {
@@ -598,9 +583,9 @@ struct line {
   auto at(tangent_idx i, bool prefer_calc = false) const {
     return tangent_at(i.i, prefer_calc);
   }
-  auto at(tangent_idx i, forward_t tag) const { return tangent_at(i.i, tag); }
-  auto at(tangent_idx i, backward_t tag) const { return tangent_at(i.i, tag); }
-  auto at(tangent_idx i, central_t tag) const { return tangent_at(i.i, tag); }
+  auto at(tangent_idx i, tag::forward_t tag) const { return tangent_at(i.i, tag); }
+  auto at(tangent_idx i, tag::backward_t tag) const { return tangent_at(i.i, tag); }
+  auto at(tangent_idx i, tag::central_t tag) const { return tangent_at(i.i, tag); }
   auto operator[](tangent_idx i) const { return tangent_at(i.i); }
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
   using tangent_iterator =
@@ -1424,12 +1409,12 @@ struct parameterized_line : line<Real, N> {
   // tangents
   //============================================================================
   /// computes tangent assuming the line is a quadratic curve
-  auto tangent_at(const tangent_idx i, quadratic_t tag) const {
+  auto tangent_at(const tangent_idx i, tag::quadratic_t tag) const {
     return tangent_at(i.i, tag);
   }
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
   /// computes tangent assuming the line is a quadratic curve
-  auto tangent_at(const size_t i, quadratic_t /*tag*/) const {
+  auto tangent_at(const size_t i, tag::quadratic_t /*tag*/) const {
     const auto& x0 = [&]() {
       if (i == 0) {
         return vertex_at(i);
@@ -1496,29 +1481,29 @@ struct parameterized_line : line<Real, N> {
     return tangent;
   }
   //----------------------------------------------------------------------------
-  auto tangent_at(const tangent_idx i, automatic_t tag,
+  auto tangent_at(const tangent_idx i, tag::automatic_t tag,
                   bool prefer_calc = false) const {
     return tangent_at(i.i, tag, prefer_calc);
   }
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-  auto tangent_at(const size_t i, automatic_t /*tag*/,
+  auto tangent_at(const size_t i, tag::automatic_t /*tag*/,
                   bool         prefer_calc = false) const {
     if (this->m_tangents && !prefer_calc) {
       return this->m_tangents->at(vertex_idx{i});
     }
     if (num_vertices() >= 3) {
-      return tangent_at(i, quadratic);
+      return tangent_at(i, tag::quadratic);
     } else /* if (num_vertices() == 2)*/ {
-      return this->tangent_at(i, forward);
+      return this->tangent_at(i, tag::forward);
     }
   }
   //----------------------------------------------------------------------------
   auto tangent_at(const tangent_idx i, bool prefer_calc = false) const {
-    return tangent_at(i.i, automatic, prefer_calc);
+    return tangent_at(i.i, tag::automatic, prefer_calc);
   }
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
   auto tangent_at(const size_t i, bool prefer_calc = false) const {
-    return tangent_at(i, automatic, prefer_calc);
+    return tangent_at(i, tag::automatic, prefer_calc);
   }
   //----------------------------------------------------------------------------
   auto front_tangent(bool prefer_calc = false) const {

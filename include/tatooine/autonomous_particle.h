@@ -11,7 +11,7 @@
 //==============================================================================
 namespace tatooine {
 //==============================================================================
-template <typename Real, size_t N>
+template <typename Real, size_t N, typename Flowmap>
 struct autonomous_particle {
   //----------------------------------------------------------------------------
   // typedefs
@@ -29,6 +29,7 @@ struct autonomous_particle {
   // members
   //----------------------------------------------------------------------------
  private:
+  Flowmap m_flowmap;
   pos_t  m_x0, m_x1, m_prev_pos;
   Real   m_t1, m_prev_time;
   mat_t  m_flowmap_gradient1;
@@ -39,11 +40,12 @@ struct autonomous_particle {
   // ctors
   //----------------------------------------------------------------------------
  public:
-  template <arithmetic RealX0>
-  autonomous_particle(vec<RealX0, N> const& x0,
+  template <typename _Flowmap, arithmetic RealX0>
+  autonomous_particle(_Flowmap&& flowmap, vec<RealX0, N> const& x0,
                       arithmetic auto const start_time,
                       arithmetic auto const start_radius)
-      : m_x0{x0},
+      : m_flowmap{std::forward<_Forward>(flowmap)},
+        m_x0{x0},
         m_x1{x0},
         m_prev_pos{x0},
         m_t1{static_cast<Real>(start_time)},
@@ -51,12 +53,13 @@ struct autonomous_particle {
         m_flowmap_gradient1{mat_t::eye()},
         m_level{0},
         m_start_radius{start_radius} {}
-
-  autonomous_particle(pos_t const& x0, pos_t const& x1, pos_t const& prev_pos,
-                      Real const t1, Real const prev_time,
-                      mat_t const& flowmap_gradient, size_t const level,
-                      Real const start_radius)
-      : m_x0{x0},
+  //----------------------------------------------------------------------------
+  autonomous_particle(const Flowmap& flowmap, pos_t const& x0, pos_t const& x1,
+                      pos_t const& prev_pos, Real const t1,
+                      Real const prev_time, mat_t const& flowmap_gradient,
+                      size_t const level, Real const start_radius)
+      : m_flowmap{flowmap},
+        m_x0{x0},
         m_x1{x1},
         m_prev_pos{prev_pos},
         m_t1{t1},
@@ -69,9 +72,10 @@ struct autonomous_particle {
   autonomous_particle(const autonomous_particle&)     = default;
   autonomous_particle(autonomous_particle&&) noexcept = default;
   //----------------------------------------------------------------------------
-  auto operator=(const autonomous_particle&) -> autonomous_particle& = default;
-  auto operator               =(autonomous_particle&&) noexcept
-      -> autonomous_particle& = default;
+  auto operator=(const autonomous_particle&)
+    -> autonomous_particle& = default;
+  auto operator=(autonomous_particle&&) noexcept
+    -> autonomous_particle& = default;
 
   //----------------------------------------------------------------------------
   // getter
@@ -96,12 +100,7 @@ struct autonomous_particle {
   // methods
   //----------------------------------------------------------------------------
  public:
-  template <template <typename, size_t, template <typename> typename>
-            typename Integrator = integration::vclibs::rungekutta43,
-            template <typename>
-            typename InterpolationKernel = interpolation::hermite,
-            typename V>
-  auto integrate(vectorfield<V, Real, N> const& v, Real tau_step,
+  auto integrate(Real tau_step,
                  Real const max_t) const {
     std::vector<this_t> particles{*this};
 
@@ -114,28 +113,14 @@ struct autonomous_particle {
       // used adresses are not valid anymore
       particles.reserve(size(particles) + (cur_size - start_idx) * 3);
       for (size_t i = start_idx; i < cur_size; ++i) {
-        particles[i].integrate_until_split(v, tau_step, particles, max_t);
+        particles[i].integrate_until_split(tau_step, particles, max_t);
       }
       start_idx = cur_size;
     } while (n != size(particles));
     return particles;
   }
   //----------------------------------------------------------------------------
-  template <template <typename, size_t, template <typename> typename>
-            typename Integrator = integration::vclibs::rungekutta43,
-            template <typename>
-            typename InterpolationKernel = interpolation::linear>
-  auto create_integrator() const {
-    using integrator_t = Integrator<Real, N, InterpolationKernel>;
-    return integrator_t{};
-  }
-  //----------------------------------------------------------------------------
-  template <template <typename, size_t, template <typename> typename>
-            typename Integrator = integration::vclibs::rungekutta43,
-            template <typename>
-            typename InterpolationKernel = interpolation::linear,
-            typename V>
-  void integrate_until_split(vectorfield<V, Real, N> const& v, Real tau_step,
+  void integrate_until_split(Real tau_step,
                              std::vector<this_t>& particles,
                              Real const           max_t) const {
     if (m_t1 >= max_t) { return; }
@@ -144,8 +129,6 @@ struct autonomous_particle {
 
     Real tau          = 0;
     auto fmgrad_field = diff(
-        flowmap{v, create_integrator<Integrator, InterpolationKernel>(), tau},
-        current_radius());
     auto& fm_field = fmgrad_field.internal_field();
     Real  cond     = 1;
     std::pair<mat<Real, N, N>, vec<Real, N>> eig;
@@ -206,10 +189,20 @@ struct autonomous_particle {
   }
 };
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-template <typename RealX0, size_t N, typename RealTS, typename RealRadius>
-autonomous_particle(vec<RealX0, N> const& x0, RealTS const start_time,
-                    RealRadius const start_radius)
-    -> autonomous_particle<promote_t<RealX0, RealTS, RealRadius>, N>;
+template <typename _Flowmap, arithmetic RealX0, size_t N,
+          arithmetic RealStartTime, arithmetic RealStartRadius>
+autonomous_particle(const Flowmap& flowmap, vec<RealX0, N> const& x0,
+                    RealStartTime const, RealStartRadios const)
+    -> autonomous_particle<
+        const Flowmap&, promote_t<RealX0, RealStartTime, RealStartRadius>, N>;
+// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+template <typename _Flowmap, arithmetic RealX0, size_t N,
+          arithmetic RealStartTime, arithmetic RealStartRadius>
+autonomous_particle(Flowmap&& flowmap, vec<RealX0, N> const& x0,
+                    RealStartTime const, RealStartRadios const)
+    -> autonomous_particle<std::decay_t<Flowmap>,
+                           promote_t<RealX0, RealStartTime, RealStartRadius>,
+                           N>;
 //==============================================================================
 template <std::floating_point Real, size_t N>
 void write_vtk(std::vector<autonomous_particle<Real, N>> const& particles,

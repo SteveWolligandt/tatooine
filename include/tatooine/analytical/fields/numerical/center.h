@@ -1,9 +1,9 @@
-#ifndef TATOOINE_CENTER_FIELD_H
-#define TATOOINE_CENTER_FIELD_H
+#ifndef TATOOINE_ANALYTICAL_FIELDS_NUMERICAL_CENTER_FIELD_H
+#define TATOOINE_ANALYTICAL_FIELDS_NUMERICAL_CENTER_FIELD_H
 //==============================================================================
-#include "field.h"
+#include <tatooine/field.h>
 //==============================================================================
-namespace tatooine::numerical {
+namespace tatooine::analytical::fields::numerical {
 //==============================================================================
 template <typename Real>
 struct center_field : vectorfield<center_field<Real>, Real, 2> {
@@ -47,7 +47,7 @@ struct center_field : vectorfield<center_field<Real>, Real, 2> {
 };
 center_field()->center_field<double>;
 //==============================================================================
-}  // namespace tatooine::numerical
+}  // namespace tatooine::analytical::fields::numerical
 //==============================================================================
 #include "diff.h"
 //==============================================================================

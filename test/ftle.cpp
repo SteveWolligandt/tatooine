@@ -1,20 +1,21 @@
-#include <tatooine/counterexample_sadlo.h>
-#include <tatooine/saddle_field.h>
-#include <tatooine/doublegyre.h>
+#include <tatooine/analytical/fields/numerical/counterexample_sadlo.h>
+#include <tatooine/analytical/fields/numerical/doublegyre.h>
+#include <tatooine/analytical/fields/numerical/modified_doublegyre.h>
+#include <tatooine/analytical/fields/numerical/saddle.h>
 #include <tatooine/ftle_field.h>
 #include <tatooine/grid_sampler.h>
 #include <tatooine/linspace.h>
-#include <tatooine/modified_doublegyre.h>
 
 #include <catch2/catch.hpp>
 //==============================================================================
 namespace tatooine::test {
 //==============================================================================
+using namespace tatooine::analytical::fields::numerical;
 template <typename V, typename Grid, typename T0, typename Tau>
 void ftle_test(V const&, Grid const&, T0, Tau, std::string const&);
 //==============================================================================
 TEST_CASE("ftle_doublegyre", "[ftle][doublegyre][dg]") {
-  numerical::doublegyre v;
+  doublegyre v;
   grid   sample_grid{linspace{0.0, 2.0, 200}, linspace{0.0, 1.0, 100}};
   double t0 = 0, tau = 10;
   ftle_test(v, sample_grid, t0, tau,
@@ -22,7 +23,7 @@ TEST_CASE("ftle_doublegyre", "[ftle][doublegyre][dg]") {
 }
 //==============================================================================
 TEST_CASE("ftle_modified_doublegyre", "[ftle][modified_doublegyre][mdg]") {
-  numerical::modified_doublegyre v;
+  modified_doublegyre v;
   grid sample_grid{linspace{0.0, 2.0, 200}, linspace{-1.0, 1.0, 100}};
   for (auto t0 : linspace(1.0, 3.0, 3)) {
     for (auto tau : std::array{-20, 20}) {
@@ -33,15 +34,15 @@ TEST_CASE("ftle_modified_doublegyre", "[ftle][modified_doublegyre][mdg]") {
 }
 //==============================================================================
 TEST_CASE("ftle_counterexample_sadlo", "[ftle][counterexample_sadlo]") {
-  numerical::counterexample_sadlo v;
+  counterexample_sadlo v;
   grid sample_grid{linspace{-3.0, 3.0, 200}, linspace{-3.0, 3.0, 200}};
   ftle_test(v, sample_grid, 0.0, 10.0,
             "ftle_counterexample_sadlo_ftle_tau_" + std::to_string(10.0) + "_t0_" +
                 std::to_string(0.0));
 }
 //==============================================================================
-TEST_CASE("ftle_saddle_field", "[ftle][saddle]") {
-  numerical::saddle_field v;
+TEST_CASE("ftle_saddle", "[ftle][saddle]") {
+  saddle v;
   grid sample_grid{linspace{-1.0, 1.0, 200}, linspace{-1.0, 1.0, 200}};
   auto const t0 = 0;
   auto const tau = 10;

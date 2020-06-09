@@ -4,6 +4,7 @@
 #include "exceptions.h"
 #include "field.h"
 #include "interpolation.h"
+#include "tags.h"
 #include "ode/vclibs/rungekutta43.h"
 //==============================================================================
 namespace tatooine {
@@ -169,6 +170,7 @@ struct numerical_flowmap {
   auto ode_solver() const -> auto const& { return *m_ode_solver; }
   auto ode_solver() -> auto& { return *m_ode_solver; }
 };
+
 //==============================================================================
 template <typename V, typename Real, size_t N>
 numerical_flowmap(vectorfield<V, Real, N> const&)
@@ -178,88 +180,6 @@ template <typename V, typename VReal, size_t N>
 auto flowmap(vectorfield<V, VReal, N> const& v) {
   return numerical_flowmap<V, ode::vclibs::rungekutta43,
                            interpolation::hermite>{v};
-}
-//==============================================================================
-template <typename Flowmap>
-struct flowmap_gradient_central_differences {
-  //============================================================================
- public:
-  using flowmap_t = std::decay_t<Flowmap>;
-  using this_t =
-      flowmap_gradient_central_differences<flowmap_t>;
-  using real_t    = typename flowmap_t::real_t;
-  static constexpr auto num_dimensions() { return flowmap_t::num_dimensions(); }
-  using vec_t      = typename flowmap_t::vec_t;
-  using pos_t      = typename flowmap_t::pos_t;
-  using mat_t      = mat<real_t, num_dimensions(), num_dimensions()>;
-  using gradient_t = mat_t;
-
-  //============================================================================
- private:
-  Flowmap m_flowmap;
-  vec_t   m_epsilon;
-
-  //============================================================================
- public:
-  template <typename _Flowmap>
-  flowmap_gradient_central_differences(_Flowmap flowmap, real_t const epsilon)
-      : m_flowmap{std::forward<_Flowmap>(flowmap)}, m_epsilon{fill{epsilon}} {}
-  //----------------------------------------------------------------------------
-  template <typename _Flowmap>
-  flowmap_gradient_central_differences(Flowmap flowmap, vec_t const& epsilon)
-      : m_flowmap{std::forward<_Flowmap>(flowmap)}, m_epsilon{epsilon} {}
-  //============================================================================
-  auto evaluate(pos_t const& y0, real_t const t0, real_t const tau) const {
-    gradient_t derivative;
-
-    auto offset = pos_t::zeros();
-    for (size_t i = 0; i < num_dimensions(); ++i) {
-      offset(i)              = m_epsilon(i);
-      auto const dx          = 2 * m_epsilon(i);
-      derivative.col(i) =
-          (m_flowmap(y0 + offset, t0, tau) - m_flowmap(y0 - offset, t0, tau)) /
-          dx;
-      offset(i) = 0;
-    }
-    return derivative;
-  }
-  // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-  auto operator()(pos_t const& y0, real_t const t0, real_t const tau) const {
-    return evaluate(y0, t0, tau);
-  }
-  //----------------------------------------------------------------------------
-  auto epsilon() const -> const auto& { return m_epsilon; }
-  auto epsilon() -> auto& { return m_epsilon; }
-  auto epsilon(size_t i) const { return m_epsilon(i); }
-  auto epsilon(size_t i) -> auto& { return m_epsilon(i); }
-  void set_epsilon(const vec_t& epsilon) { m_epsilon = epsilon; }
-  void set_epsilon(vec_t&& epsilon) { m_epsilon = std::move(epsilon); }
-};
-// copy when having rvalue
-template <typename Flowmap>
-flowmap_gradient_central_differences(Flowmap &&)->flowmap_gradient_central_differences<Flowmap>;
-
-// keep reference when having lvalue
-template <typename Flowmap>
-flowmap_gradient_central_differences(Flowmap const&)
-    -> flowmap_gradient_central_differences<const Flowmap&>;
-//==============================================================================
-template <typename V, template <typename, size_t> typename ODESolver,
-          template <typename> typename InterpolationKernel,
-          arithmetic EpsReal = typename V::real_t>
-auto diff(numerical_flowmap<V, ODESolver, InterpolationKernel> const& flowmap,
-          EpsReal epsilon = 1e-7) {
-  return flowmap_gradient_central_differences<
-      numerical_flowmap<V, ODESolver, InterpolationKernel>>{flowmap, epsilon};
-}
-//------------------------------------------------------------------------------
-template <typename V, template <typename, size_t> typename ODESolver,
-          template <typename> typename InterpolationKernel,
-          std::floating_point EpsReal>
-auto diff(numerical_flowmap<V, ODESolver, InterpolationKernel> const& flowmap,
-          vec<EpsReal, V::num_dimensions()>                           epsilon) {
-  return flowmap_gradient_central_differences<
-      numerical_flowmap<V, ODESolver, InterpolationKernel>>{flowmap, epsilon};
 }
 //==============================================================================
 }  // namespace tatooine

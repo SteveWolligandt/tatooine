@@ -9,6 +9,7 @@
 #include <ostream>
 
 #include "crtp.h"
+#include "tags.h"
 #include "invoke_unpacked.h"
 #include "functional.h"
 #include "multidim_array.h"
@@ -27,19 +28,8 @@
 //==============================================================================
 namespace tatooine {
 //==============================================================================
-struct frobenius_t {};
-static constexpr frobenius_t frobenius;
-struct full_t {};
-static constexpr full_t full;
-struct economy_t {};
-static constexpr economy_t economy;
-//------------------------------------------------------------------------------
-struct eye_t {};
-static constexpr eye_t eye;
-//------------------------------------------------------------------------------
 template <typename Tensor, typename Real, size_t FixedDim, size_t... Dims>
 struct tensor_slice;
-
 //------------------------------------------------------------------------------
 template <typename Tensor, typename Real, size_t... Dims>
 struct base_tensor : crtp<Tensor> {
@@ -52,14 +42,14 @@ struct base_tensor : crtp<Tensor> {
   using resolution_t = static_multidim_resolution<x_fastest, Dims...>;
 
   //============================================================================
-  static constexpr auto num_dimensions() { return sizeof...(Dims); }
+  static constexpr auto rank() { return sizeof...(Dims); }
   //------------------------------------------------------------------------------
   static constexpr auto num_components() {
     return resolution_t::num_elements();
   }
   //------------------------------------------------------------------------------
   static constexpr auto dimensions() {
-    return std::array<size_t, num_dimensions()>{Dims...};
+    return std::array<size_t, rank()>{Dims...};
   }
   //------------------------------------------------------------------------------
   static constexpr auto dimension(const size_t i) {
@@ -115,7 +105,7 @@ struct base_tensor : crtp<Tensor> {
   //----------------------------------------------------------------------------
   template <typename... Is, enable_if_integral<Is...> = true>
   constexpr decltype(auto) at(const Is... is) const {
-    static_assert(sizeof...(Is) == num_dimensions(),
+    static_assert(sizeof...(Is) == rank(),
                   "number of indices does not match number of dimensions");
     return as_derived().at(is...);
   }
@@ -123,7 +113,7 @@ struct base_tensor : crtp<Tensor> {
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
   template <typename... Is, enable_if_integral<Is...> = true>
   constexpr decltype(auto) at(const Is... is) {
-    static_assert(sizeof...(Is) == num_dimensions(),
+    static_assert(sizeof...(Is) == rank(),
                   "number of indices does not match number of dimensions");
     return as_derived().at(is...);
   }
@@ -131,7 +121,7 @@ struct base_tensor : crtp<Tensor> {
   //----------------------------------------------------------------------------
   template <typename... Is, enable_if_integral<Is...> = true>
   constexpr decltype(auto) operator()(const Is... is) const {
-    static_assert(sizeof...(Is) == num_dimensions(),
+    static_assert(sizeof...(Is) == rank(),
                   "number of indices does not match number of dimensions");
     return at(is...);
   }
@@ -139,7 +129,7 @@ struct base_tensor : crtp<Tensor> {
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
   template <typename... Is, enable_if_integral<Is...> = true>
   constexpr decltype(auto) operator()(const Is... is) {
-    static_assert(sizeof...(Is) == num_dimensions(),
+    static_assert(sizeof...(Is) == rank(),
                   "number of indices does not match number of dimensions");
     return at(is...);
   }
@@ -147,44 +137,44 @@ struct base_tensor : crtp<Tensor> {
   //----------------------------------------------------------------------------
   template <size_t FixedDim, size_t... Is>
   constexpr auto slice(size_t fixed_index, std::index_sequence<Is...>) {
-    static_assert(FixedDim < num_dimensions(),
+    static_assert(FixedDim < rank(),
                   "fixed dimensions must be in range of number of dimensions");
     return tensor_slice<
         Tensor, Real, FixedDim,
-        dimension(sliced_indices<num_dimensions(), FixedDim>()[Is])...>{
+        dimension(sliced_indices<rank(), FixedDim>()[Is])...>{
         &as_derived(), fixed_index};
   }
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
   template <size_t FixedDim>
   constexpr auto slice(size_t fixed_index) {
-    static_assert(FixedDim < num_dimensions(),
+    static_assert(FixedDim < rank(),
                   "fixed dimensions must be in range of number of dimensions");
     return slice<FixedDim>(fixed_index,
-                           std::make_index_sequence<num_dimensions() - 1>{});
+                           std::make_index_sequence<rank() - 1>{});
   }
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
   template <size_t FixedDim, size_t... Is>
   constexpr auto slice(size_t fixed_index, std::index_sequence<Is...>) const {
-    static_assert(FixedDim < num_dimensions(),
+    static_assert(FixedDim < rank(),
                   "fixed dimensions must be in range of number of dimensions");
     return tensor_slice<
         const Tensor, Real, FixedDim,
-        dimension(sliced_indices<num_dimensions(), FixedDim>()[Is])...>{
+        dimension(sliced_indices<rank(), FixedDim>()[Is])...>{
         &as_derived(), fixed_index};
   }
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
   template <size_t FixedDim>
   [[nodiscard]] constexpr auto slice(size_t fixed_index) const {
-    static_assert(FixedDim < num_dimensions(),
+    static_assert(FixedDim < rank(),
                   "fixed dimensions must be in range of number of dimensions");
     return slice<FixedDim>(fixed_index,
-                           std::make_index_sequence<num_dimensions() - 1>{});
+                           std::make_index_sequence<rank() - 1>{});
   }
 
   //----------------------------------------------------------------------------
   template <typename... Is, enable_if_integral<Is...> = true>
   static constexpr auto array_index(const Is... is) {
-    static_assert(sizeof...(Is) == num_dimensions(),
+    static_assert(sizeof...(Is) == rank(),
                   "number of indices does not match number of dimensions");
     return static_multidim_resolution<x_fastest, Dims...>::plain_idx(is...);
   }
@@ -474,17 +464,17 @@ constexpr auto transpose(
 //==============================================================================
 template <typename Real, size_t... Dims>
 struct tensor : base_tensor<tensor<Real, Dims...>, Real, Dims...>,  // NOLINT
-                static_multidim_array<Real, x_fastest, stack, Dims...> {
+                static_multidim_array<Real, x_fastest, tag::stack, Dims...> {
   //============================================================================
   using this_t          = tensor<Real, Dims...>;
   using tensor_parent_t = base_tensor<this_t, Real, Dims...>;
-  using array_parent_t = static_multidim_array<Real, x_fastest, stack, Dims...>;
+  using array_parent_t = static_multidim_array<Real, x_fastest, tag::stack, Dims...>;
   using tensor_parent_t::tensor_parent_t;
   using tensor_parent_t::operator=;
   using array_parent_t::at;
   using tensor_parent_t::dimension;
   using tensor_parent_t::num_components;
-  using tensor_parent_t::num_dimensions;
+  using tensor_parent_t::rank;
   using array_parent_t::operator();
 
   //============================================================================
@@ -508,21 +498,21 @@ struct tensor : base_tensor<tensor<Real, Dims...>, Real, Dims...>,  // NOLINT
 
   //============================================================================
  public:
-  template <typename... Ts, size_t _N = tensor_parent_t::num_dimensions(),
+  template <typename... Ts, size_t _N = rank(),
             size_t _Dim0                    = tensor_parent_t::dimension(0),
             std::enable_if_t<_N == 1, bool> = true,
             std::enable_if_t<_Dim0 == sizeof...(Ts), bool> = true>
   explicit constexpr tensor(const Ts&... ts) : array_parent_t{ts...} {}
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
   template <typename _Real = Real, enable_if_arithmetic<_Real> = true>
-  explicit constexpr tensor(zeros_t zeros) : array_parent_t{zeros} {}
+  explicit constexpr tensor(tag::zeros_t zeros) : array_parent_t{zeros} {}
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
   template <typename _Real = Real, enable_if_arithmetic<_Real> = true>
-  explicit constexpr tensor(ones_t ones) : array_parent_t{ones} {}
+  explicit constexpr tensor(tag::ones_t ones) : array_parent_t{ones} {}
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
   template <typename FillReal, typename _Real = Real,
             enable_if_arithmetic<_Real> = true>
-  explicit constexpr tensor(fill<FillReal> f) : array_parent_t{f} {}
+  explicit constexpr tensor(tag::fill<FillReal> f) : array_parent_t{f} {}
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
   template <typename RandomReal, typename Engine, typename _Real = Real,
             enable_if_arithmetic<RandomReal> = true>
@@ -547,9 +537,9 @@ struct tensor : base_tensor<tensor<Real, Dims...>, Real, Dims...>,  // NOLINT
     return *this;
   }
   //----------------------------------------------------------------------------
-  static constexpr auto zeros() { return this_t{fill<Real>{0}}; }
+  static constexpr auto zeros() { return this_t{tag::fill<Real>{0}}; }
   //----------------------------------------------------------------------------
-  static constexpr auto ones() { return this_t{fill<Real>{1}}; }
+  static constexpr auto ones() { return this_t{tag::fill<Real>{1}}; }
   //----------------------------------------------------------------------------
   template <typename RandEng = std::mt19937_64>
   static constexpr auto randu(Real min = 0, Real max = 1,
@@ -597,7 +587,7 @@ struct vec : tensor<Real, N> {  // NOLINT
   using parent_t = tensor<Real, N>;
   using parent_t::at;
   using parent_t::dimension;
-  using parent_t::num_dimensions;
+  using parent_t::rank;
   using parent_t::parent_t;
   using parent_t::operator();
 
@@ -691,14 +681,14 @@ struct mat : tensor<Real, M, N> {  // NOLINT
   }
 
   //----------------------------------------------------------------------------
-  constexpr mat(eye_t /*flag*/) : parent_t{zeros} {
+  constexpr mat(tag::eye_t /*flag*/) : parent_t{tag::zeros} {
     for (size_t i = 0; i < std::min(M, N); ++i) { this->at(i, i) = 1; }
   }
   //----------------------------------------------------------------------------
   ~mat() = default;
   //----------------------------------------------------------------------------
   static constexpr auto eye() {
-    return this_t{tatooine::eye};
+    return this_t{tag::eye};
   }
 
 #if TATOOINE_GINAC_AVAILABLE
@@ -1032,7 +1022,7 @@ constexpr auto length(const base_tensor<Tensor, Real, N>& t_in) -> Real {
 /// squared Frobenius norm of a rank-2 tensor
 template <typename Tensor, typename Real, size_t M, size_t N>
 constexpr auto sqr_norm(const base_tensor<Tensor, Real, M, N>& mat,
-                        frobenius_t) {
+                        tag::frobenius_t) {
   Real n = 0;
   for (size_t j = 0; j < N; ++j) {
     for (size_t i = 0; i < M; ++i) { n += std::abs(mat(i, j)); }
@@ -1042,8 +1032,8 @@ constexpr auto sqr_norm(const base_tensor<Tensor, Real, M, N>& mat,
 //------------------------------------------------------------------------------
 /// Frobenius norm of a rank-2 tensor
 template <typename Tensor, typename Real, size_t M, size_t N>
-constexpr auto norm(const base_tensor<Tensor, Real, M, N>& mat, frobenius_t) {
-  return std::sqrt(sqr_norm(mat, frobenius));
+constexpr auto norm(const base_tensor<Tensor, Real, M, N>& mat, tag::frobenius_t) {
+  return std::sqrt(sqr_norm(mat, tag::frobenius));
 }
 //------------------------------------------------------------------------------
 /// 1-norm of a MxN Tensor
@@ -1070,13 +1060,13 @@ constexpr auto norm_inf(const base_tensor<Tensor, Real, M, N>& mat) {
 /// squared Frobenius norm of a rank-2 tensor
 template <typename Tensor, typename Real, size_t M, size_t N>
 constexpr auto sqr_norm(const base_tensor<Tensor, Real, M, N>& mat) {
-  return sqr_norm(mat, frobenius);
+  return sqr_norm(mat, tag::frobenius);
 }
 //------------------------------------------------------------------------------
 /// squared Frobenius norm of a rank-2 tensor
 template <typename Tensor, typename Real, size_t M, size_t N>
 constexpr auto norm(const base_tensor<Tensor, Real, M, N>& mat) {
-  return norm(mat, frobenius);
+  return norm(mat, tag::frobenius);
 }
 //------------------------------------------------------------------------------
 template <typename Tensor, typename Real, size_t N>
@@ -1774,97 +1764,97 @@ auto eigenvectors_sym(mat<double, N, N> A)
 }
 //==============================================================================
 template <typename T, size_t M, size_t N>
-auto svd(const tensor<T, M, N>& A, full_t /*tag*/) {
+auto svd(const tensor<T, M, N>& A, tag::full_t /*tag*/) {
   return lapack::gesvd(tensor{A}, lapack_job::A, lapack_job::A);
 }
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 template <typename T, size_t M, size_t N>
-auto svd(const tensor<T, M, N>& A, economy_t /*tag*/) {
+auto svd(const tensor<T, M, N>& A, tag::economy_t /*tag*/) {
   return lapack::gesvd(tensor{A}, lapack_job::S, lapack_job::S);
 }
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 template <typename T, size_t M, size_t N>
 auto svd(const tensor<T, M, N>& A) {
-  return svd(A, full);
+  return svd(A, tag::full);
 }
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 template <typename T, size_t M, size_t N>
-auto svd_left(const tensor<T, M, N>& A, full_t /*tag*/) {
+auto svd_left(const tensor<T, M, N>& A, tag::full_t /*tag*/) {
   return lapack::gesvd(tensor{A}, lapack_job::A, lapack_job::N);
 }
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 template <typename T, size_t M, size_t N>
-auto svd_left(const tensor<T, M, N>& A, economy_t /*tag*/) {
+auto svd_left(const tensor<T, M, N>& A, tag::economy_t /*tag*/) {
   return lapack::gesvd(tensor{A}, lapack_job::S, lapack_job::N);
 }
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 template <typename T, size_t M, size_t N>
 auto svd_left(const tensor<T, M, N>& A) {
-  return svd_left(A, full);
+  return svd_left(A, tag::full);
 }
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 template <typename T, size_t M, size_t N>
-auto svd_right(const tensor<T, M, N>& A, full_t /*tag*/) {
+auto svd_right(const tensor<T, M, N>& A, tag::full_t /*tag*/) {
   return lapack::gesvd(tensor{A}, lapack_job::N, lapack_job::A);
 }
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 template <typename T, size_t M, size_t N>
-auto svd_right(const tensor<T, M, N>& A, economy_t /*tag*/) {
+auto svd_right(const tensor<T, M, N>& A, tag::economy_t /*tag*/) {
   return lapack::gesvd(tensor{A}, lapack_job::N, lapack_job::S);
 }
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 template <typename T, size_t M, size_t N>
 auto svd_right(const tensor<T, M, N>& A) {
-  return svd_right(A, full);
+  return svd_right(A, tag::full);
 }
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 template <typename Tensor, typename T, size_t M, size_t N>
-auto svd(const base_tensor<Tensor, T, M, N>& A, full_t /*tag*/) {
+auto svd(const base_tensor<Tensor, T, M, N>& A, tag::full_t /*tag*/) {
   tensor copy{A};
   return lapack::gesvd(tensor{A}, lapack_job::A, lapack_job::A);
 }
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 template <typename Tensor, typename T, size_t M, size_t N>
-auto svd(const base_tensor<Tensor, T, M, N>& A, economy_t /*tag*/) {
+auto svd(const base_tensor<Tensor, T, M, N>& A, tag::economy_t /*tag*/) {
   tensor copy{A};
   return lapack::gesvd(tensor{A}, lapack_job::S, lapack_job::S);
 }
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 template <typename Tensor, typename T, size_t M, size_t N>
 auto svd(const base_tensor<Tensor, T, M, N>& A) {
-  return svd(A, full);
+  return svd(A, tag::full);
 }
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 template <typename Tensor, typename T, size_t M, size_t N>
-auto svd_left(const base_tensor<Tensor, T, M, N>& A, full_t /*tag*/) {
+auto svd_left(const base_tensor<Tensor, T, M, N>& A, tag::full_t /*tag*/) {
   return lapack::gesvd(tensor{A}, lapack_job::A, lapack_job::N);
 }
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 template <typename Tensor, typename T, size_t M, size_t N>
-auto svd_left(const base_tensor<Tensor, T, M, N>& A, economy_t /*tag*/) {
+auto svd_left(const base_tensor<Tensor, T, M, N>& A, tag::economy_t /*tag*/) {
   return lapack::gesvd(tensor{A}, lapack_job::S, lapack_job::N);
 }
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 template <typename Tensor, typename T, size_t M, size_t N>
 auto svd_left(const base_tensor<Tensor, T, M, N>& A) {
-  return svd_left(A, full);
+  return svd_left(A, tag::full);
 }
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 template <typename Tensor, typename T, size_t M, size_t N>
-auto svd_right(const base_tensor<Tensor, T, M, N>& A, full_t /*tag*/) {
+auto svd_right(const base_tensor<Tensor, T, M, N>& A, tag::full_t /*tag*/) {
   tensor copy{A};
   return gesvd(tensor{A}, lapack_job::N, lapack_job::A);
 }
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 template <typename Tensor, typename T, size_t M, size_t N>
-auto svd_right(const base_tensor<Tensor, T, M, N>& A, economy_t /*tag*/) {
+auto svd_right(const base_tensor<Tensor, T, M, N>& A, tag::economy_t /*tag*/) {
   tensor copy{A};
   return gesvd(tensor{A}, lapack_job::N, lapack_job::S);
 }
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 template <typename Tensor, typename T, size_t M, size_t N>
 auto svd_right(const base_tensor<Tensor, T, M, N>& A) {
-  return svd_right(A, full);
+  return svd_right(A, tag::full);
 }
 template <typename Tensor, typename T>
 constexpr auto singular_values22(const base_tensor<Tensor, T, 2, 2>& A) {
@@ -1941,7 +1931,7 @@ struct tensor_slice : base_tensor<tensor_slice<Tensor, Real, FixedDim, Dims...>,
   using parent_t          = base_tensor<this_t, Real, Dims...>;
   using parent_t::operator=;
   using parent_t::num_components;
-  using parent_t::num_dimensions;
+  using parent_t::rank;
 
   //============================================================================
  private:
@@ -1959,7 +1949,7 @@ struct tensor_slice : base_tensor<tensor_slice<Tensor, Real, FixedDim, Dims...>,
     if constexpr (FixedDim == 0) {
       return m_tensor->at(m_fixed_index, is...);
 
-    } else if constexpr (FixedDim == num_dimensions()) {
+    } else if constexpr (FixedDim == rank()) {
       return m_tensor->at(is..., m_fixed_index);
 
     } else {
@@ -1968,7 +1958,7 @@ struct tensor_slice : base_tensor<tensor_slice<Tensor, Real, FixedDim, Dims...>,
       };
       return invoke_unpacked(
           at_, unpack(extract<0, FixedDim - 1>(is...)), m_fixed_index,
-          unpack(extract<FixedDim, num_dimensions() - 1>(is...)));
+          unpack(extract<FixedDim, rank() - 1>(is...)));
     };
   }
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -1979,7 +1969,7 @@ struct tensor_slice : base_tensor<tensor_slice<Tensor, Real, FixedDim, Dims...>,
     if constexpr (FixedDim == 0) {
       return m_tensor->at(m_fixed_index, is...);
 
-    } else if constexpr (FixedDim == num_dimensions()) {
+    } else if constexpr (FixedDim == rank()) {
       return m_tensor->at(is..., m_fixed_index);
 
     } else {
@@ -1988,7 +1978,7 @@ struct tensor_slice : base_tensor<tensor_slice<Tensor, Real, FixedDim, Dims...>,
       };
       return invoke_unpacked(
           at_, unpack(extract<0, FixedDim - 1>(is...)), m_fixed_index,
-          unpack(extract<FixedDim, num_dimensions() - 1>(is...)));
+          unpack(extract<FixedDim, rank() - 1>(is...)));
     };
   }
 };
@@ -2000,7 +1990,7 @@ struct const_imag_complex_tensor
                   Dims...> {
   using this_t   = const_imag_complex_tensor<Tensor, Real, Dims...>;
   using parent_t = base_tensor<this_t, Real, Dims...>;
-  using parent_t::num_dimensions;
+  using parent_t::rank;
 
   //============================================================================
  private:
@@ -2015,13 +2005,13 @@ struct const_imag_complex_tensor
   //----------------------------------------------------------------------------
   template <typename... Indices, enable_if_integral<Indices...> = true>
   constexpr decltype(auto) operator()(const Indices... indices) const {
-    static_assert(sizeof...(Indices) == num_dimensions());
+    static_assert(sizeof...(Indices) == rank());
     return m_internal_tensor(indices...).imag();
   }
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
   template <typename... Indices, enable_if_integral<Indices...> = true>
   constexpr decltype(auto) at(const Indices... indices) const {
-    static_assert(sizeof...(Indices) == num_dimensions());
+    static_assert(sizeof...(Indices) == rank());
     return m_internal_tensor(indices...).imag();
   }
 
@@ -2035,7 +2025,7 @@ struct imag_complex_tensor
     : base_tensor<imag_complex_tensor<Tensor, Real, Dims...>, Real, Dims...> {
   using this_t   = imag_complex_tensor<Tensor, Real, Dims...>;
   using parent_t = base_tensor<this_t, Real, Dims...>;
-  using parent_t::num_dimensions;
+  using parent_t::rank;
   //============================================================================
  private:
   Tensor& m_internal_tensor;
@@ -2049,25 +2039,25 @@ struct imag_complex_tensor
   //----------------------------------------------------------------------------
   template <typename... Indices, enable_if_integral<Indices...> = true>
   constexpr auto operator()(const Indices... indices) const -> decltype(auto) {
-    static_assert(sizeof...(Indices) == num_dimensions());
+    static_assert(sizeof...(Indices) == rank());
     return m_internal_tensor(indices...).imag();
   }
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
   template <typename... Indices, enable_if_integral<Indices...> = true>
   constexpr auto operator()(const Indices... indices) -> decltype(auto) {
-    static_assert(sizeof...(Indices) == num_dimensions());
+    static_assert(sizeof...(Indices) == rank());
     return m_internal_tensor(indices...).imag();
   }
   //----------------------------------------------------------------------------
   template <typename... Indices, enable_if_integral<Indices...> = true>
   constexpr auto at(const Indices... indices) const -> decltype(auto) {
-    static_assert(sizeof...(Indices) == num_dimensions());
+    static_assert(sizeof...(Indices) == rank());
     return m_internal_tensor(indices...).imag();
   }
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
   template <typename... Indices, enable_if_integral<Indices...> = true>
   constexpr auto at(const Indices... indices) -> decltype(auto) {
-    static_assert(sizeof...(Indices) == num_dimensions());
+    static_assert(sizeof...(Indices) == rank());
     return m_internal_tensor(indices...).imag();
   }
 
@@ -2094,7 +2084,7 @@ struct const_real_complex_tensor
                   Dims...> {
   using this_t   = const_real_complex_tensor<Tensor, Real, Dims...>;
   using parent_t = base_tensor<this_t, Real, Dims...>;
-  using parent_t::num_dimensions;
+  using parent_t::rank;
   //============================================================================
  private:
   const Tensor& m_internal_tensor;
@@ -2108,13 +2098,13 @@ struct const_real_complex_tensor
   //----------------------------------------------------------------------------
   template <typename... Indices, enable_if_integral<Indices...> = true>
   constexpr auto operator()(const Indices... indices) const -> decltype(auto) {
-    static_assert(sizeof...(Indices) == num_dimensions());
+    static_assert(sizeof...(Indices) == rank());
     return m_internal_tensor(indices...).real();
   }
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
   template <typename... Indices, enable_if_integral<Indices...> = true>
   constexpr auto at(const Indices... indices) const -> decltype(auto) {
-    static_assert(sizeof...(Indices) == num_dimensions());
+    static_assert(sizeof...(Indices) == rank());
     return m_internal_tensor(indices...).real();
   }
   //----------------------------------------------------------------------------
@@ -2127,7 +2117,7 @@ struct real_complex_tensor
     : base_tensor<real_complex_tensor<Tensor, Real, Dims...>, Real, Dims...> {
   using this_t   = real_complex_tensor<Tensor, Real, Dims...>;
   using parent_t = base_tensor<this_t, Real, Dims...>;
-  using parent_t::num_dimensions;
+  using parent_t::rank;
   //============================================================================
  private:
   Tensor& m_internal_tensor;
@@ -2141,25 +2131,25 @@ struct real_complex_tensor
   //----------------------------------------------------------------------------
   template <typename... Indices, enable_if_integral<Indices...> = true>
   constexpr auto operator()(const Indices... indices) const -> decltype(auto) {
-    static_assert(sizeof...(Indices) == num_dimensions());
+    static_assert(sizeof...(Indices) == rank());
     return m_internal_tensor(indices...).real();
   }
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
   template <typename... Indices, enable_if_integral<Indices...> = true>
   constexpr auto operator()(const Indices... indices) -> decltype(auto) {
-    static_assert(sizeof...(Indices) == num_dimensions());
+    static_assert(sizeof...(Indices) == rank());
     return m_internal_tensor(indices...).real();
   }
   //----------------------------------------------------------------------------
   template <typename... Indices, enable_if_integral<Indices...> = true>
   constexpr auto at(const Indices... indices) const -> decltype(auto) {
-    static_assert(sizeof...(Indices) == num_dimensions());
+    static_assert(sizeof...(Indices) == rank());
     return m_internal_tensor(indices...).real();
   }
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
   template <typename... Indices, enable_if_integral<Indices...> = true>
   constexpr auto at(const Indices... indices) -> decltype(auto) {
-    static_assert(sizeof...(Indices) == num_dimensions());
+    static_assert(sizeof...(Indices) == rank());
     return m_internal_tensor(indices...).real();
   }
 

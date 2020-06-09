@@ -32,7 +32,7 @@ struct differentiated_field
   template <typename Real, size_t N, size_t... FieldTensorDims>
   differentiated_field(const field<Field, Real, N, FieldTensorDims...>& f,
                        Real                                             eps)
-      : m_internal_field{f.as_derived()}, m_eps{fill{eps}} {}
+      : m_internal_field{f.as_derived()}, m_eps{tag::fill{eps}} {}
   //----------------------------------------------------------------------------
   template <typename Real, size_t N, size_t... FieldTensorDims>
   differentiated_field(const field<Field, Real, N, FieldTensorDims...>& f,
@@ -81,7 +81,7 @@ struct differentiated_field
   //----------------------------------------------------------------------------
   void        set_eps(const vec_t& eps) { m_eps = eps; }
   void        set_eps(vec_t&& eps) { m_eps = std::move(eps); }
-  void        set_eps(real_t eps) { m_eps = vec_t{fill{eps}}; }
+  void        set_eps(real_t eps) { m_eps = vec_t{tag::fill{eps}}; }
   auto&       eps() { return m_eps; }
   const auto& eps() const { return m_eps; }
   auto&       eps(size_t i) { return m_eps(i); }

@@ -10,24 +10,10 @@
 #include "multidim.h"
 #include "multidim_resolution.h"
 #include "random.h"
+#include "tags.h"
 //==============================================================================
 namespace tatooine {
 //==============================================================================
-struct heap {};
-struct stack {};
-
-template <typename Real>
-struct fill {
-  Real value;
-};
-template <typename Real>
-fill(Real)->fill<Real>;
-
-struct zeros_t {};
-static constexpr zeros_t zeros;
-
-struct ones_t {};
-static constexpr ones_t ones;
 
 template <typename T, typename Indexing, typename MemLoc, size_t... Resolution>
 class static_multidim_array
@@ -35,9 +21,10 @@ class static_multidim_array
   //============================================================================
   // assertions
   //============================================================================
-  static_assert(std::is_same<MemLoc, heap>::value ||
-                    std::is_same<MemLoc, stack>::value,
-                "MemLoc must either be tatooine::heap or tatooine::stack");
+  static_assert(
+      std::is_same<MemLoc, tag::heap>::value ||
+          std::is_same<MemLoc, tag::stack>::value,
+      "MemLoc must either be tatooine::tag::heap or tatooine::tag::stack");
   //============================================================================
   // typedefs
   //============================================================================
@@ -51,7 +38,7 @@ class static_multidim_array
   using parent_t::plain_index;
   using parent_t::size;
   using container_t =
-      std::conditional_t<std::is_same<MemLoc, stack>::value,
+      std::conditional_t<std::is_same<MemLoc, tag::stack>::value,
                          std::array<T, num_elements()>, std::vector<T>>;
 
   //============================================================================
@@ -59,7 +46,7 @@ class static_multidim_array
   //============================================================================
  private:
   static constexpr auto init_data(T init = T{}) {
-    if constexpr (std::is_same<MemLoc, stack>::value) {
+    if constexpr (std::is_same<MemLoc, tag::stack>::value) {
       return make_array<T, num_elements()>(init);
     } else {
       return std::vector(num_elements(), init);
@@ -74,9 +61,9 @@ class static_multidim_array
   // factories
   //============================================================================
  public:
-  static constexpr auto zeros() { return this_t{tatooine::zeros}; }
+  static constexpr auto zeros() { return this_t{tag::zeros}; }
   //------------------------------------------------------------------------------
-  static constexpr auto ones() { return this_t{tatooine::ones}; }
+  static constexpr auto ones() { return this_t{tag::ones}; }
   //------------------------------------------------------------------------------
   template <typename RandEng = std::mt19937_64, typename _T = T,
             enable_if_arithmetic<_T> = true>
@@ -99,9 +86,9 @@ class static_multidim_array
   constexpr static_multidim_array(static_multidim_array&& other) noexcept =
       default;
   //----------------------------------------------------------------------------
-  constexpr auto operator=(const static_multidim_array& other)
+  constexpr auto operator       =(const static_multidim_array& other)
       -> static_multidim_array& = default;
-  constexpr auto operator =(static_multidim_array&& other) noexcept
+  constexpr auto operator       =(static_multidim_array&& other) noexcept
       -> static_multidim_array& = default;
   //----------------------------------------------------------------------------
   ~static_multidim_array() = default;
@@ -127,35 +114,41 @@ class static_multidim_array
   //----------------------------------------------------------------------------
   template <typename... Ts,
             std::enable_if_t<sizeof...(Ts) == num_elements(), bool> = true>
-  explicit constexpr static_multidim_array(Ts&&... ts) : m_data{static_cast<T>(ts)...} {}
+  explicit constexpr static_multidim_array(Ts&&... ts)
+      : m_data{static_cast<T>(ts)...} {}
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
   constexpr static_multidim_array() : m_data(init_data(T{})) {}
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
   template <typename S>
-  explicit constexpr static_multidim_array(const fill<S>& f)
+  explicit constexpr static_multidim_array(const tag::fill<S>& f)
       : m_data(init_data(static_cast<T>(f.value))) {}
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
   template <typename _T = T, enable_if_arithmetic<_T> = true>
-  explicit constexpr static_multidim_array(zeros_t /*z*/) : m_data(init_data(0)) {}
+  explicit constexpr static_multidim_array(tag::zeros_t /*z*/)
+      : m_data(init_data(0)) {}
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
   template <typename _T = T, enable_if_arithmetic<_T> = true>
-  explicit constexpr static_multidim_array(ones_t /*o*/) : m_data(init_data(1)) {}
+  explicit constexpr static_multidim_array(tag::ones_t /*o*/)
+      : m_data(init_data(1)) {}
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
   explicit static_multidim_array(const std::vector<T>& data)
       : m_data(begin(data), end(data)) {
     assert(data.size() == num_elements());
   }
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-  explicit constexpr static_multidim_array(const std::array<T, num_elements()>& data)
+  explicit constexpr static_multidim_array(
+      const std::array<T, num_elements()>& data)
       : m_data(data) {}
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-  template <typename _MemLoc                                       = MemLoc,
-            std::enable_if_t<std::is_same<_MemLoc, stack>::value, bool> = true>
+  template <
+      typename _MemLoc                                                 = MemLoc,
+      std::enable_if_t<std::is_same<_MemLoc, tag::stack>::value, bool> = true>
   explicit constexpr static_multidim_array(std::array<T, num_elements()>&& data)
       : m_data(std::move(data)) {}
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-  template <typename _MemLoc                                      = MemLoc,
-            std::enable_if_t<std::is_same<_MemLoc, heap>::value, bool> = true>
+  template <
+      typename _MemLoc                                                = MemLoc,
+      std::enable_if_t<std::is_same<_MemLoc, tag::heap>::value, bool> = true>
   explicit constexpr static_multidim_array(std::vector<T>&& data)
       : m_data(std::move(data)) {
     assert(num_elements() == data.size());
@@ -163,7 +156,8 @@ class static_multidim_array
   //----------------------------------------------------------------------------
   template <typename RandomReal, typename Engine, typename _T = T,
             enable_if_arithmetic<_T> = true>
-  explicit constexpr static_multidim_array(random_uniform<RandomReal, Engine>&& rand)
+  explicit constexpr static_multidim_array(
+      random_uniform<RandomReal, Engine>&& rand)
       : static_multidim_array{} {
     this->unary_operation(
         [&](const auto& /*c*/) { return static_cast<T>(rand.get()); });
@@ -171,7 +165,8 @@ class static_multidim_array
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
   template <typename RandomReal, typename Engine, typename _T = T,
             enable_if_arithmetic<_T> = true>
-  explicit constexpr static_multidim_array(random_normal<RandomReal, Engine>&& rand)
+  explicit constexpr static_multidim_array(
+      random_normal<RandomReal, Engine>&& rand)
       : static_multidim_array{} {
     this->unary_operation(
         [&](const auto& /*c*/) { return static_cast<T>(rand.get()); });
@@ -195,8 +190,8 @@ class static_multidim_array
   }
   //----------------------------------------------------------------------------
   template <typename UInt, enable_if_unsigned_integral<UInt> = true>
-  constexpr auto at(const std::array<UInt, num_dimensions()>& is) const 
-    -> const auto& {
+  constexpr auto at(const std::array<UInt, num_dimensions()>& is) const -> const
+      auto& {
     return invoke_unpacked(
         [&](auto... is) -> decltype(auto) { return at(is...); }, unpack(is));
   }
@@ -299,32 +294,32 @@ class dynamic_multidim_array : public dynamic_multidim_resolution<Indexing> {
   //============================================================================
   template <typename... Resolution, enable_if_integral<Resolution...> = true>
   static auto zeros(Resolution... resolution) {
-    return this_t{tatooine::zeros, resolution...};
+    return this_t{tag::zeros, resolution...};
   }
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
   template <typename UInt, enable_if_unsigned_integral<UInt> = true>
   static auto zeros(const std::vector<UInt>& resolution) {
-    return this_t{tatooine::zeros, resolution};
+    return this_t{tag::zeros, resolution};
   }
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
   template <size_t N, typename UInt, enable_if_unsigned_integral<UInt> = true>
   static auto zeros(const std::array<UInt, N>& resolution) {
-    return this_t{tatooine::zeros, resolution};
+    return this_t{tag::zeros, resolution};
   }
   //------------------------------------------------------------------------------
   template <typename... Resolution, enable_if_integral<Resolution...> = true>
   static auto ones(Resolution... resolution) {
-    return this_t{tatooine::ones, resolution...};
+    return this_t{tag::ones, resolution...};
   }
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
   template <typename UInt, enable_if_unsigned_integral<UInt> = true>
   static auto ones(const std::vector<UInt>& resolution) {
-    return this_t{tatooine::ones, resolution};
+    return this_t{tag::ones, resolution};
   }
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
   template <size_t N, typename UInt, enable_if_unsigned_integral<UInt> = true>
   static auto ones(const std::array<UInt, N>& resolution) {
-    return this_t{tatooine::ones, resolution};
+    return this_t{tag::ones, resolution};
   }
   //------------------------------------------------------------------------------
   // template <typename UInt, typename RandEng = std::mt19937_64,
@@ -473,9 +468,9 @@ class dynamic_multidim_array : public dynamic_multidim_resolution<Indexing> {
   dynamic_multidim_array(const dynamic_multidim_array& other)     = default;
   dynamic_multidim_array(dynamic_multidim_array&& other) noexcept = default;
   //----------------------------------------------------------------------------
-  auto operator=(const dynamic_multidim_array& other)
-    -> dynamic_multidim_array& = default;
-  auto operator=(dynamic_multidim_array&& other) noexcept
+  auto operator                  =(const dynamic_multidim_array& other)
+      -> dynamic_multidim_array& = default;
+  auto operator                  =(dynamic_multidim_array&& other) noexcept
       -> dynamic_multidim_array& = default;
   //----------------------------------------------------------------------------
   ~dynamic_multidim_array() = default;
@@ -503,24 +498,28 @@ class dynamic_multidim_array : public dynamic_multidim_resolution<Indexing> {
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
   template <typename... Resolution, typename S,
             enable_if_integral<Resolution...> = true>
-  explicit dynamic_multidim_array(const fill<S>& f, Resolution... resolution)
+  explicit dynamic_multidim_array(const tag::fill<S>& f,
+                                  Resolution... resolution)
       : parent_t{resolution...}, m_data(num_elements(), f.value) {}
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
   template <typename... Resolution, enable_if_integral<Resolution...> = true>
-  explicit dynamic_multidim_array(const zeros_t& /*z*/,
+  explicit dynamic_multidim_array(const tag::zeros_t& /*z*/,
                                   Resolution... resolution)
       : parent_t{resolution...}, m_data(num_elements(), 0) {}
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
   template <typename... Resolution, enable_if_integral<Resolution...> = true>
-  explicit dynamic_multidim_array(const ones_t& /*o*/, Resolution... resolution)
+  explicit dynamic_multidim_array(const tag::ones_t& /*o*/,
+                                  Resolution... resolution)
       : parent_t{resolution...}, m_data(num_elements(), 1) {}
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
   template <typename... Resolution, enable_if_integral<Resolution...> = true>
-  explicit dynamic_multidim_array(const std::vector<T>& data, Resolution... resolution)
+  explicit dynamic_multidim_array(const std::vector<T>& data,
+                                  Resolution... resolution)
       : parent_t{resolution...}, m_data(data) {}
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
   template <typename... Resolution, enable_if_integral<Resolution...> = true>
-  explicit dynamic_multidim_array(std::vector<T>&& data, Resolution... resolution)
+  explicit dynamic_multidim_array(std::vector<T>&& data,
+                                  Resolution... resolution)
       : parent_t{resolution...}, m_data(std::move(data)) {}
   //----------------------------------------------------------------------------
   template <typename UInt, enable_if_unsigned_integral<UInt> = true>
@@ -528,16 +527,17 @@ class dynamic_multidim_array : public dynamic_multidim_resolution<Indexing> {
       : parent_t{resolution}, m_data(num_elements(), T{}) {}
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
   template <typename S, typename UInt, enable_if_unsigned_integral<UInt> = true>
-  dynamic_multidim_array(const fill<S>& f, const std::vector<UInt>& resolution)
+  dynamic_multidim_array(const tag::fill<S>&      f,
+                         const std::vector<UInt>& resolution)
       : parent_t{resolution}, m_data(num_elements(), f.value) {}
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
   template <typename UInt, enable_if_unsigned_integral<UInt> = true>
-  dynamic_multidim_array(const zeros_t& /*z*/,
+  dynamic_multidim_array(const tag::zeros_t& /*z*/,
                          const std::vector<UInt>& resolution)
       : parent_t{resolution}, m_data(num_elements(), 0) {}
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
   template <typename UInt, enable_if_unsigned_integral<UInt> = true>
-  dynamic_multidim_array(const ones_t& /*o*/,
+  dynamic_multidim_array(const tag::ones_t& /*o*/,
                          const std::vector<UInt>& resolution)
       : parent_t{resolution}, m_data(num_elements(), 1) {}
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -557,17 +557,17 @@ class dynamic_multidim_array : public dynamic_multidim_resolution<Indexing> {
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
   template <size_t N, typename S, typename UInt,
             enable_if_unsigned_integral<UInt> = true>
-  dynamic_multidim_array(const fill<S>&             f,
+  dynamic_multidim_array(const tag::fill<S>&        f,
                          const std::array<UInt, N>& resolution)
       : parent_t{resolution}, m_data(num_elements(), f.value) {}
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
   template <size_t N, typename UInt, enable_if_unsigned_integral<UInt> = true>
-  dynamic_multidim_array(const zeros_t& /*z*/,
+  dynamic_multidim_array(const tag::zeros_t& /*z*/,
                          const std::array<UInt, N>& resolution)
       : parent_t{resolution}, m_data(num_elements(), 0) {}
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
   template <size_t N, typename UInt, enable_if_unsigned_integral<UInt> = true>
-  dynamic_multidim_array(const ones_t& /*o*/,
+  dynamic_multidim_array(const tag::ones_t& /*o*/,
                          const std::array<UInt, N>& resolution)
       : parent_t{resolution}, m_data(num_elements(), 1) {}
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -757,38 +757,38 @@ class dynamic_multidim_array : public dynamic_multidim_resolution<Indexing> {
 //==============================================================================
 template <typename T, typename Indexing>
 dynamic_multidim_array(const dynamic_multidim_array<T, Indexing>&)
-    ->dynamic_multidim_array<T, Indexing>;
+    -> dynamic_multidim_array<T, Indexing>;
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 template <typename T, typename Indexing>
 dynamic_multidim_array(dynamic_multidim_array<T, Indexing> &&)
-    ->dynamic_multidim_array<T, Indexing>;
+    -> dynamic_multidim_array<T, Indexing>;
 //----------------------------------------------------------------------------
 template <typename T, typename UInt>
 dynamic_multidim_array(const std::vector<UInt>&, const T& initial)
-    ->dynamic_multidim_array<T, x_fastest>;
+    -> dynamic_multidim_array<T, x_fastest>;
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 template <typename T, typename UInt>
 dynamic_multidim_array(const std::vector<UInt>&, const std::vector<T>&)
-    ->dynamic_multidim_array<T, x_fastest>;
+    -> dynamic_multidim_array<T, x_fastest>;
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 template <typename T, typename UInt>
 dynamic_multidim_array(const std::vector<UInt>&, std::vector<T> &&)
-    ->dynamic_multidim_array<T, x_fastest>;
+    -> dynamic_multidim_array<T, x_fastest>;
 //----------------------------------------------------------------------------
 template <typename T, typename UInt, size_t N>
 dynamic_multidim_array(const std::array<UInt, N>&, const T& initial)
-    ->dynamic_multidim_array<T, x_fastest>;
+    -> dynamic_multidim_array<T, x_fastest>;
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 template <typename T, typename UInt, size_t N>
 dynamic_multidim_array(const std::array<UInt, N>&, const std::vector<T>&)
-    ->dynamic_multidim_array<T, x_fastest>;
+    -> dynamic_multidim_array<T, x_fastest>;
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 template <typename T, typename UInt, size_t N>
 dynamic_multidim_array(const std::array<UInt, N>&, std::vector<T> &&)
-    ->dynamic_multidim_array<T, x_fastest>;
+    -> dynamic_multidim_array<T, x_fastest>;
 
 //==============================================================================
-template <typename MemLocOut = stack, typename IndexingOut = x_fastest,
+template <typename MemLocOut = tag::stack, typename IndexingOut = x_fastest,
           typename T0, typename T1, typename Indexing0, typename Indexing1,
           typename MemLoc0, typename MemLoc1, typename FReal,
           size_t... Resolution>
@@ -830,7 +830,7 @@ auto interpolate(
   return interpolated;
 }
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-template <typename MemLocOut = stack, typename IndexingOut = x_fastest,
+template <typename MemLocOut = tag::stack, typename IndexingOut = x_fastest,
           typename T0, typename T1, typename Indexing0, typename Indexing1,
           typename MemLoc0, typename MemLoc1, typename LinReal, typename TReal,
           size_t... Resolution>
@@ -913,7 +913,7 @@ auto interpolate(const dynamic_multidim_array<T0, Indexing0>& arr0,
 //
 template <typename Real, enable_if_floating_point<Real> = true>
 void write_png(const dynamic_multidim_array<Real>& arr,
-               const std::string&               filepath) {
+               const std::string&                  filepath) {
   if (arr.num_dimensions() != 2) {
     throw std::runtime_error{
         "multidim array needs 2 dimensions for writing as png."};
@@ -934,9 +934,10 @@ void write_png(const dynamic_multidim_array<Real>& arr,
   }
   image.write(filepath);
 }
-//// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-//template <typename Real>
-//void write_png(const dynamic_multidim_array<vec<Real, 2>>& arr,
+//// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+///-
+// template <typename Real>
+// void write_png(const dynamic_multidim_array<vec<Real, 2>>& arr,
 //               const std::string&                          filepath) {
 //  if (arr.num_dimensions() != 2) {
 //    throw std::runtime_error{
