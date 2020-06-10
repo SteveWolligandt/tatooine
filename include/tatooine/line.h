@@ -1251,6 +1251,13 @@ struct parameterized_line : line<Real, N> {
   //----------------------------------------------------------------------------
   /// sample the line via interpolation
   auto sample(Real t) const {
+    if (num_vertices() == 1) {
+      if (t == front_parameterization()) {
+        return front_vertex();
+      } else {
+        throw time_not_found{};
+      }
+    }
     const auto left = binary_search_index(t);
 
     // interpolate
@@ -1267,6 +1274,13 @@ struct parameterized_line : line<Real, N> {
   //----------------------------------------------------------------------------
   /// sample tangents
   auto tangent(Real t) const {
+    if (num_vertices() == 1) {
+      if (t == front_parameterization()) {
+        return front_tangent();
+      } else {
+        throw time_not_found{};
+      }
+    }
     const auto left = binary_search_index(t);
 
     // interpolate
@@ -1318,7 +1332,7 @@ struct parameterized_line : line<Real, N> {
     //} else {
     //  return InterpolationKernel<Prop>{prop[left], prop[left+1]}(factor);
     //}
-    return prop[left] * (1 - factor) + prop[left+1] * factor;
+    return prop[vertex_idx{left}] * (1 - factor) + prop[vertex_idx{left+1}] * factor;
   }
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
  private:
@@ -1339,11 +1353,11 @@ struct parameterized_line : line<Real, N> {
     for (auto t : ts) {
       if constexpr (std::is_same_v<vec_t, Prop>) {
         if (&prop == this->m_tangents) {
-          resampled_prop[i++] = tangent(t);
+          resampled_prop[vertex_idx{i++}] = tangent(t);
           continue;
         }
       }
-      resampled_prop[i++] = sample(t, prop);
+      resampled_prop[vertex_idx{i++}] = sample(t, prop);
     }
   }
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -1542,7 +1556,7 @@ struct parameterized_line : line<Real, N> {
     integral += seg_lens.front() * prop.front(); 
     integral += seg_lens.back() * prop.back(); 
     for (size_t i = 1; i < num_vertices() - 1; ++i) {
-      integral += (seg_lens[i - 1] + seg_lens[i]) * prop[i];
+      integral += (seg_lens[i - 1] + seg_lens[i]) * prop[vertex_idx{i}];
     }
     integral /= boost::accumulate(seg_lens, Real(0)) * 2;
     return integral;
@@ -1579,6 +1593,22 @@ struct parameterized_line : line<Real, N> {
     return integral;
   }
 };
+//------------------------------------------------------------------------------
+template <typename Real, size_t N,
+          template <typename> typename InterpolationKernel>
+void write_vtk(
+    const std::vector<parameterized_line<Real, N, InterpolationKernel>>& lines,
+    const std::string& path, const std::string& title = "tatooine lines") {
+  detail::write_line_container_to_vtk(lines, path, title);
+}
+// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+template <typename Real, size_t N,
+          template <typename> typename InterpolationKernel>
+void write_vtk(
+    const std::list<parameterized_line<Real, N, InterpolationKernel>>& lines,
+    const std::string& path, const std::string& title = "tatooine lines") {
+  detail::write_line_container_to_vtk(lines, path, title);
+}
 //------------------------------------------------------------------------------
 template <typename Real, size_t N, template <typename> typename InterpolationKernel>
 auto diff(const parameterized_line<Real, N, InterpolationKernel>& l) {

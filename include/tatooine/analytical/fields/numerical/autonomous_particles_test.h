@@ -43,7 +43,7 @@ struct autonomous_particles_test
 //==============================================================================
 autonomous_particles_test()->autonomous_particles_test<double>;
 //==============================================================================
-template <typename Real>
+template <std::floating_point Real>
 struct autonomous_particles_test_flowmap {
   using real_t = Real;
   using vec_t  = vec<real_t, 2>;
@@ -52,13 +52,12 @@ struct autonomous_particles_test_flowmap {
   //----------------------------------------------------------------------------
   constexpr auto evaluate(pos_t const& x, real_t const /*t*/,
                           real_t const   tau) const -> pos_t {
-    return {x(0) / std::sqrt(-std::exp(2 * tau) * x(0) * x(0) + x(0) * x(0) +
-                             std::exp(2 * tau)),
-            std::exp(-2 * tau) *
-                std::pow(-std::exp(2 * tau) * x(0) * x(0) + x(0) * x(0) +
-                             std::exp(2 * tau),
-                         real_t(3) / real_t(2)) *
-                x(1)};
+    auto const a = std::exp(2 * tau);
+    auto const b = std::exp(-2 * tau);
+    auto const c = std::sqrt((1 - a) * x(0) * x(0) + a);
+    return {x(0) / c, -b * c * ((a - 1) * x(0) * x(0) - a) * x(1)
+
+    };
   }
   //----------------------------------------------------------------------------
   constexpr auto operator()(pos_t const& x, real_t const t, real_t const tau) const
@@ -72,27 +71,22 @@ template <
     template <typename> typename InterpolationKernel = interpolation::hermite,
     std::floating_point Real>
 constexpr auto flowmap(
-    vectorfield<analytical::fields::numerical::autonomous_particles_test<Real>,
-                Real, 2> const& v,
+    vectorfield<autonomous_particles_test<Real>, Real, 2> const& v,
     tag::numerical_t /*tag*/) {
-  return numerical_flowmap<
-      analytical::fields::numerical::autonomous_particles_test<Real>, ODESolver,
-      InterpolationKernel>{v};
+  return numerical_flowmap<autonomous_particles_test<Real>, ODESolver,
+                           InterpolationKernel>{v};
 }
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 template <std::floating_point Real>
 constexpr auto flowmap(
-    vectorfield<analytical::fields::numerical::autonomous_particles_test<Real>,
-                Real, 2> const&,
+    vectorfield<autonomous_particles_test<Real>, Real, 2> const&,
     tag::analytical_t /*tag*/) {
-  return analytical::fields::numerical::autonomous_particles_test_flowmap<
-      Real>{};
+  return autonomous_particles_test_flowmap<Real>{};
 }
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 template <std::floating_point Real>
 constexpr auto flowmap(
-    vectorfield<analytical::fields::numerical::autonomous_particles_test<Real>,
-                Real, 2> const& v) {
+    vectorfield<autonomous_particles_test<Real>, Real, 2> const& v) {
   return flowmap(v, tag::analytical);
 }
 //==============================================================================
@@ -123,34 +117,27 @@ struct autonomous_particles_test_flowmap_gradient {
 };
 //------------------------------------------------------------------------------
 template <std::floating_point Real>
-auto diff(analytical::fields::numerical::autonomous_particles_test_flowmap<
-              Real> const&,
+auto diff(autonomous_particles_test_flowmap<Real> const&,
           tag::analytical_t /*tag*/) {
-  return typename analytical::fields::numerical::
-      autonomous_particles_test_flowmap_gradient<Real>{};
+  return autonomous_particles_test_flowmap_gradient<Real>{};
 }
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 template <std::floating_point VReal, std::floating_point EpsReal = VReal>
-auto diff(analytical::fields::numerical::autonomous_particles_test_flowmap<
-              VReal> const& flowmap,
+auto diff(autonomous_particles_test_flowmap<VReal> const& flowmap,
           tag::central_t /*tag*/, EpsReal epsilon = 1e-7) {
   return flowmap_gradient_central_differences<
-      analytical::fields::numerical::autonomous_particles_test_flowmap<VReal>>{
-      flowmap, epsilon};
+      autonomous_particles_test_flowmap<VReal>>{flowmap, epsilon};
 }
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 template <std::floating_point VReal, std::floating_point EpsReal>
-constexpr auto diff(analytical::fields::numerical::
-                        autonomous_particles_test_flowmap<VReal> const& flowmap,
+constexpr auto diff(autonomous_particles_test_flowmap<VReal> const& flowmap,
                     tag::central_t /*tag*/, vec<EpsReal, 2> epsilon) {
   return flowmap_gradient_central_differences<
-      analytical::fields::numerical::autonomous_particles_test_flowmap<VReal>>{
-      flowmap, epsilon};
+      autonomous_particles_test_flowmap<VReal>>{flowmap, epsilon};
 }
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 template <std::floating_point Real>
-auto diff(analytical::fields::numerical::autonomous_particles_test_flowmap<
-          Real> const& flowmap) {
+auto diff(autonomous_particles_test_flowmap<Real> const& flowmap) {
   return diff(flowmap, tag::analytical);
 }
 //==============================================================================
@@ -174,7 +161,7 @@ struct differentiated_field<
  public:
   constexpr auto evaluate(pos_t const& x, real_t const /*t*/) const
       -> tensor_t final {
-    return {{3 * x(0) * x(0) - 1, 0},
+    return {{3 * x(0) * x(0) - 1, 0                  },
             {-6 * x(0) * x(1)   , 1 - 3 * x(0) * x(0)}};
   }
   //----------------------------------------------------------------------------
@@ -184,14 +171,14 @@ struct differentiated_field<
   }
 };
 //------------------------------------------------------------------------------
-template <typename Real>
+template <std::floating_point Real>
 constexpr auto diff(
     analytical::fields::numerical::autonomous_particles_test<Real>&) {
   return differentiated_field<
       analytical::fields::numerical::autonomous_particles_test<Real>, 2, 2>{};
 }
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-template <typename Real>
+template <std::floating_point Real>
 constexpr auto diff(
     vectorfield<analytical::fields::numerical::autonomous_particles_test<Real>,
                 Real, 2> const&) {

@@ -36,10 +36,8 @@ struct doublegyre : field<Real, 2, 2> {
   }
 };
 doublegyre()->doublegyre<double>;
-
-
 //==============================================================================
-}  // namespace tatooine::symbolic
+}  // namespace tatooine::analytical::fields::symbolic
 //==============================================================================
 namespace tatooine {
 //==============================================================================

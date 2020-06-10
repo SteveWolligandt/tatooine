@@ -38,41 +38,42 @@ void autonomous_particle_write_vtk(std::string const&              name,
 template <typename V, std::floating_point VReal, std::floating_point X0Real>
 void autonomous_particles_test_backward_integation_distance(
     std::string const& name, vectorfield<V, VReal, 2> const& v,
-    vec<X0Real, 2> const& x0, std::floating_point auto const radius,
+    std::vector<vec<X0Real, 2>> const& x0s, std::floating_point auto const radius,
     arithmetic auto t0, arithmetic auto t1, arithmetic auto tau_step) {
-  double const max_distance = 1e-10;
-
-  autonomous_particle const p0{v, x0, t0, radius};
-  auto const                particles = p0.integrate(tau_step, t1);
-
-  size_t i          = 0;
-  for (auto const& particle : particles) {
-    auto const total_integration_length = t0 - particle.t1();
-    if (total_integration_length < 0) {
-        parameterized_line<VReal, 3, interpolation::linear> integral_curve;
+  double const              max_distance = 1e-10;
+  std::vector<parameterized_line<VReal, 3, interpolation::linear>> integral_curves;
+  for (auto const& x0 : x0s) {
+    autonomous_particle const p0{v, x0, t0, radius};
+    for (auto const& particle : p0.integrate(tau_step, t1)) {
+      auto const total_integration_length = t0 - particle.t1();
+      if (total_integration_length <= t0 - t1 + 1e-4) {
+        auto& integral_curve = integral_curves.emplace_back();
         for (auto const tau :
              linspace<VReal>{total_integration_length, VReal{0}, 10}) {
-          auto const x = p0.get_flowmap()(particle.x1(), particle.t1(), tau);
+          auto const x =
+              particle.get_flowmap()(particle.x1(), particle.t1(), tau);
           integral_curve.push_back(vec{x(0), x(1), particle.t1() + tau},
                                    particle.t1() + tau);
         }
-        integral_curve.write_vtk(name + "_backintegration_" +
-                                 std::to_string(i++) + ".vtk");
+      }
+
+      auto const back_integration = particle.get_flowmap()(
+          particle.x1(), particle.t1(), total_integration_length);
+
+      auto const distance = tatooine::distance(back_integration, particle.x0());
+      CAPTURE(particle.x1(), particle.t1(), total_integration_length,
+              particle.level(), particle.x0(), back_integration, distance);
+      CHECK(distance < max_distance);
     }
-
-    auto const back_integration = p0.get_flowmap()(particle.x1(), particle.t1(),
-                                total_integration_length);
-
-    auto const distance = tatooine::distance(back_integration, particle.x0());
-    CAPTURE(particle.x1(), particle.t1(), total_integration_length,
-            particle.level(), particle.x0(), back_integration, distance);
-    CHECK(distance < max_distance);
   }
+
+  write_vtk(integral_curves,
+            name + "_backintegration_.vtk");
 }
 //==============================================================================
 TEST_CASE("autonomous_particle_dg_vtk",
           "[autonomous_particle][dg][doublegyre][vtk]") {
-  grid                  g{linspace{0.0, 2.0, 11}, linspace{0.0, 1.0, 6}};
+  grid const g{linspace{0.0, 2.0, 11}, linspace{0.0, 1.0, 6}};
   doublegyre v;
   v.set_infinite_domain(true);
   autonomous_particle_write_vtk("dg", v, g, 0, 5, 0.1);
@@ -80,57 +81,60 @@ TEST_CASE("autonomous_particle_dg_vtk",
 //------------------------------------------------------------------------------
 TEST_CASE("autonomous_particle_dg_backward_integration",
           "[autonomous_particle][dg][doublegyre][backward_integration]") {
-  grid const            g{linspace{0.0, 2.0, 11}, linspace{0.0, 1.0, 6}};
+  grid const g{linspace{0.0, 2.0, 11}, linspace{0.0, 1.0, 6}};
   doublegyre v;
   v.set_infinite_domain(true);
 
+  std::vector<vec<double, 2>> x0s;
+  for (size_t y = 1; y < g.size(1) - 1; ++y) {
+    for (size_t x = 1; x < g.size(0) - 1; ++x) { x0s.push_back(g(x, y)); }
+  }
   autonomous_particles_test_backward_integation_distance(
-      "dg", v, g(2, 4), g.spacing(0), 0, 5, 0.1);
+      "dg", v, x0s, g.spacing(0), 0, 5, 0.1);
 }
 //==============================================================================
 TEST_CASE("autonomous_particle_saddle_vtk",
           "[autonomous_particle][saddle][vtk]") {
-  grid                    g{linspace{-1.0, 1.0, 11}, linspace{-1.0, 1.0, 11}};
-  saddle v;
-  autonomous_particle_write_vtk("saddle", v, g, 0, 2, 0.1);
+  grid const g{linspace{-1.0, 1.0, 11}, linspace{-1.0, 1.0, 11}};
+  autonomous_particle_write_vtk("saddle", saddle{}, g, 0, 2, 0.1);
 }
 //------------------------------------------------------------------------------
 TEST_CASE("autonomous_particle_saddle_backward_integration",
           "[autonomous_particle][saddle][backward_integration]") {
-  grid                    g{linspace{-1.0, 1.0, 11}, linspace{-1.0, 1.0, 11}};
-  saddle v;
+  grid const g{linspace{-1.0, 1.0, 11}, linspace{-1.0, 1.0, 11}};
   autonomous_particles_test_backward_integation_distance(
-      "saddle", v, g(5, 5), g.spacing(0), 0, 2, 0.1);
+      "saddle", saddle{}, std::vector{g(5, 5)}, g.spacing(0), 0, 2, 0.1);
 }
 //==============================================================================
 TEST_CASE("autonomous_particle_center_vtk",
           "[autonomous_particle][center][vtk]") {
-  grid                    g{linspace{-1.0, 1.0, 11}, linspace{-1.0, 1.0, 11}};
-  center v;
-  autonomous_particle_write_vtk("center", v, g, 0, 5, 0.1);
+  grid const g{linspace{-1.0, 1.0, 11}, linspace{-1.0, 1.0, 11}};
+  autonomous_particle_write_vtk("center", center{}, g, 0, 5, 0.1);
 }
 //------------------------------------------------------------------------------
 TEST_CASE("autonomous_particle_center_backward_integration",
           "[autonomous_particle][center][backward_integration]") {
-  grid                    g{linspace{-1.0, 1.0, 11}, linspace{-1.0, 1.0, 11}};
-  center v;
+  grid const g{linspace{-1.0, 1.0, 11}, linspace{-1.0, 1.0, 11}};
   autonomous_particles_test_backward_integation_distance(
-      "center", v, vec{1.0, 1.0}, g.spacing(0), 0, 5, 0.1);
+      "center", center{}, std::vector{g(5,5)}, g.spacing(0), 0, 5, 0.1);
 }
 //==============================================================================
 TEST_CASE("autonomous_particle_test_field_vtk",
           "[autonomous_particle][test_field][vtk]") {
-  grid                  g{linspace{-1.0, 1.0, 3}, linspace{-1.0, 1.0, 3}};
-  autonomous_particles_test v;
-  autonomous_particle_write_vtk("test_field", v, g, 0, 5, 0.1);
+  grid const g{linspace{-1.0, 1.0, 3}, linspace{-1.0, 1.0, 3}};
+  autonomous_particle_write_vtk("test_field", autonomous_particles_test{}, g, 0,
+                                5, 0.1);
 }
 //------------------------------------------------------------------------------
 TEST_CASE("autonomous_particle_test_field_backward_integration",
           "[autonomous_particle][test_field][backward_integration]") {
-  grid                  g{linspace{-1.0, 1.0, 3}, linspace{-1.0, 1.0, 3}};
-  autonomous_particles_test v;
-  autonomous_particles_test_backward_integation_distance("test_field", v, vec{1.0, 1.0}, g.spacing(0),
-                                                         0, 3, 0.1);
+  grid const g{linspace{-1.0, 1.0, 3}, linspace{-1.0, 1.0, 3}};
+  std::vector<vec<double, 2>> x0s;
+  for (size_t y = 1; y < g.size(1) - 1; ++y) {
+    for (size_t x = 1; x < g.size(0) - 1; ++x) { x0s.push_back(g(x, y)); }
+  }
+  autonomous_particles_test_backward_integation_distance(
+      "test_field", autonomous_particles_test{}, x0s, g.spacing(0), 0, 3, 0.1);
 }
 //==============================================================================
 }  // namespace tatooine::test

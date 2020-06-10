@@ -41,13 +41,25 @@ struct numerical_flowmap {
   //============================================================================
   [[nodiscard]] constexpr auto evaluate(pos_t const& y0, real_t const t0,
                                         real_t tau) const -> pos_t {
+    constexpr real_t security_eps = 1e-7;
     if (tau == 0) { return y0; }
     auto const& integral_curve = cached_curve(y0, t0, tau);
-    if ((tau < 0 && t0 + tau < integral_curve.front_parameterization()) ||
-        (tau > 0 && t0 + tau > integral_curve.back_parameterization())) {
-      throw out_of_domain_error{};
+    auto        t              = t0 + tau;
+    if (tau < 0 && t < integral_curve.front_parameterization()) {
+      if (t + security_eps < integral_curve.front_parameterization()) {
+        t = integral_curve.front_parameterization();
+      } else {
+        throw out_of_domain_error{};
+      }
     }
-    return integral_curve(t0 + tau);
+    if (tau > 0 && t > integral_curve.back_parameterization()) {
+      if (t - security_eps < integral_curve.back_parameterization()) {
+        t = integral_curve.back_parameterization();
+      } else {
+        throw out_of_domain_error{};
+      }
+    }
+    return integral_curve(t);
   }
   //----------------------------------------------------------------------------
   [[nodiscard]] constexpr auto operator()(pos_t const& y0, real_t const t0,

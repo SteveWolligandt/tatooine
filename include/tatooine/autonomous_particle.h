@@ -9,7 +9,7 @@
 //==============================================================================
 namespace tatooine {
 //==============================================================================
-template <flowmap_c<2> Flowmap>
+template <fixed_dims_flowmap_c<2> Flowmap>
 struct autonomous_particle {
   //----------------------------------------------------------------------------
   // typedefs
@@ -189,12 +189,12 @@ autonomous_particle(const vectorfield<V, VReal, 2>& v,
                     arithmetic auto const)
     -> autonomous_particle<decltype(flowmap(v))>;
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-template <flowmap_c<2> Flowmap, arithmetic RealX0, size_t N>
+template <fixed_dims_flowmap_c<2> Flowmap, arithmetic RealX0, size_t N>
 autonomous_particle(const Flowmap& flowmap, vec<RealX0, N> const&,
                     arithmetic auto const, arithmetic auto const)
     -> autonomous_particle<Flowmap>;
 //==============================================================================
-template <flowmap_c<2> Flowmap>
+template <fixed_dims_flowmap_c<2> Flowmap>
 void write_vtk(std::vector<autonomous_particle<Flowmap>> const& particles,
                arithmetic auto const t0, std::string const& forward_path,
                std::string const& backward_path) {

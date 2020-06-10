@@ -75,12 +75,11 @@ concept field_c =
     }                                       &&
     sizeof...(Is) == Tensor::rank();
 //-----------------------------------------------------------------------------
-template <typename Flowmap, size_t i>
+template <typename Flowmap>
 concept flowmap_c =
   has_defined_real_t<Flowmap> &&
   has_defined_pos_t<Flowmap>&&
   has_static_num_dimensions_method<Flowmap> &&
-  Flowmap::num_dimensions() == i &&
   requires(Flowmap const flowmap,
            typename Flowmap::pos_t const& x,
            typename Flowmap::real_t const t,
@@ -90,6 +89,11 @@ concept flowmap_c =
     { flowmap.evaluate(x, t, tau) }
       -> std::convertible_to<typename Flowmap::pos_t>;
   };
+// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+template <typename Flowmap, size_t N>
+concept fixed_dims_flowmap_c =
+  flowmap_c<Flowmap> &&
+  Flowmap::num_dimensions() == N;
 //==============================================================================
 }  // namespace tatooine
 //==============================================================================

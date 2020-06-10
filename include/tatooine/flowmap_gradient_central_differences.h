@@ -1,11 +1,12 @@
 #ifndef TATOOINE_FLOWMAP_GRADIENT_CENTRAL_DIFFERENCES_H
 #define TATOOINE_FLOWMAP_GRADIENT_CENTRAL_DIFFERENCES_H
 //==============================================================================
-#include "tensor.h"
+#include <tatooine/tensor.h>
+#include <tatooine/concepts.h>
 //==============================================================================
 namespace tatooine {
 //==============================================================================
-template <typename Flowmap>
+template <flowmap_c Flowmap>
 struct flowmap_gradient_central_differences {
   //============================================================================
  public:
@@ -25,12 +26,12 @@ struct flowmap_gradient_central_differences {
 
   //============================================================================
  public:
-  template <typename _Flowmap>
+  template <fixed_dims_flowmap_c<num_dimensions()> _Flowmap>
   flowmap_gradient_central_differences(_Flowmap flowmap, real_t const epsilon)
       : m_flowmap{std::forward<_Flowmap>(flowmap)},
         m_epsilon{tag::fill{epsilon}} {}
   //----------------------------------------------------------------------------
-  template <typename _Flowmap>
+  template <fixed_dims_flowmap_c<num_dimensions()> _Flowmap>
   flowmap_gradient_central_differences(Flowmap flowmap, vec_t const& epsilon)
       : m_flowmap{std::forward<_Flowmap>(flowmap)}, m_epsilon{epsilon} {}
   //============================================================================
@@ -61,16 +62,16 @@ struct flowmap_gradient_central_differences {
   void set_epsilon(vec_t&& epsilon) { m_epsilon = std::move(epsilon); }
 };
 // copy when having rvalue
-template <typename Flowmap>
+template <flowmap_c Flowmap>
 flowmap_gradient_central_differences(Flowmap &&)
     -> flowmap_gradient_central_differences<Flowmap>;
 
 // keep reference when having lvalue
-template <typename Flowmap>
+template <flowmap_c Flowmap>
 flowmap_gradient_central_differences(Flowmap const&)
     -> flowmap_gradient_central_differences<const Flowmap&>;
 //==============================================================================
-template <typename Flowmap>
+template <flowmap_c Flowmap>
 constexpr bool is_flowmap_gradient_central_differences(
     const flowmap_gradient_central_differences<Flowmap>&) {
   return true;
