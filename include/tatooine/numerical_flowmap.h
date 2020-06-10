@@ -38,7 +38,7 @@ struct numerical_flowmap {
   constexpr numerical_flowmap(vectorfield<V, VReal, N> const& v,
                               ode_solver_t const&             ode_solver)
       : m_v{v.as_derived()}, m_ode_solver{ode_solver} {}
-  //----------------------------------------------------------------------------
+  //============================================================================
   [[nodiscard]] constexpr auto evaluate(pos_t const& y0, real_t const t0,
                                         real_t tau) const -> pos_t {
     if (tau == 0) { return y0; }

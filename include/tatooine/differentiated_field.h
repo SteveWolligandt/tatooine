@@ -98,19 +98,6 @@ auto diff(const field<Field, Real, N, TensorDims...>& f,
           const vec<Real, N>&                         eps) {
   return differentiated_field<Field, TensorDims..., N>{f, eps};
 }
-//------------------------------------------------------------------------------
-#if TATOOINE_GINAC_AVAILABLE
-#include "symbolic_field.h"
-template <typename Real, size_t N, size_t... TensorDims>
-auto diff(const symbolic::field<Real, N, TensorDims...>& f) {
-  tensor<GiNaC::ex, TensorDims..., N> ex;
-  for (size_t i = 0; i < N; ++i) {
-    ex.template slice<sizeof...(TensorDims)>(i) =
-        diff(f.expr(), symbolic::symbol::x(i));
-  }
-  return symbolic::field<Real, N, TensorDims..., N>{std::move(ex)};
-}
-#endif
 //==============================================================================
 }  // namespace tatooine
 //==============================================================================

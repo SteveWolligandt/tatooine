@@ -13,6 +13,7 @@ struct autonomous_particles_test
     : vectorfield<autonomous_particles_test<Real>, Real, 2> {
   using this_t   = autonomous_particles_test<Real>;
   using parent_t = vectorfield<this_t, Real, 2>;
+  using typename parent_t::real_t;
   using typename parent_t::pos_t;
   using typename parent_t::tensor_t;
   //============================================================================
@@ -28,14 +29,14 @@ struct autonomous_particles_test
   //----------------------------------------------------------------------------
   ~autonomous_particles_test() override = default;
   //----------------------------------------------------------------------------
-  [[nodiscard]] constexpr auto evaluate(pos_t const& x, Real const /*t*/) const
+  [[nodiscard]] constexpr auto evaluate(pos_t const& x, real_t const /*t*/) const
       -> tensor_t final {
     return {x(0) * x(0) * x(0) - x(0),
             (1 - 3 * x(0) * x(0)) * x(1)};
   }
   //----------------------------------------------------------------------------
   [[nodiscard]] constexpr auto in_domain(pos_t const& /*x*/,
-                                         Real const /*t*/) const -> bool final {
+                                         real_t const /*t*/) const -> bool final {
     return true;
   }
 };
@@ -45,22 +46,22 @@ autonomous_particles_test()->autonomous_particles_test<double>;
 template <typename Real>
 struct autonomous_particles_test_flowmap {
   using real_t = Real;
-  using vec_t  = vec<Real, 2>;
+  using vec_t  = vec<real_t, 2>;
   using pos_t  = vec_t;
   static constexpr auto num_dimensions() { return 2; }
   //----------------------------------------------------------------------------
-  constexpr auto evaluate(pos_t const& x, Real const /*t*/,
-                          Real const   tau) const -> pos_t {
+  constexpr auto evaluate(pos_t const& x, real_t const /*t*/,
+                          real_t const   tau) const -> pos_t {
     return {x(0) / std::sqrt(-std::exp(2 * tau) * x(0) * x(0) + x(0) * x(0) +
                              std::exp(2 * tau)),
             std::exp(-2 * tau) *
                 std::pow(-std::exp(2 * tau) * x(0) * x(0) + x(0) * x(0) +
                              std::exp(2 * tau),
-                         Real(3) / Real(2)) *
+                         real_t(3) / real_t(2)) *
                 x(1)};
   }
   //----------------------------------------------------------------------------
-  constexpr auto operator()(pos_t const& x, Real const t, Real const tau) const
+  constexpr auto operator()(pos_t const& x, real_t const t, real_t const tau) const
       -> pos_t {
     return evaluate(x, t, tau);
   }
@@ -97,25 +98,26 @@ constexpr auto flowmap(
 //==============================================================================
 template <std::floating_point Real>
 struct autonomous_particles_test_flowmap_gradient {
-  using real_t = Real;
-  using vec_t  = vec<Real, 2>;
-  using pos_t  = vec_t;
+  using real_t     = Real;
+  using vec_t      = vec<real_t, 2>;
+  using pos_t      = vec_t;
+  using mat_t      = mat<real_t, 2, 2>;
+  using gradient_t = mat_t;
   static constexpr auto num_dimensions() { return 2; }
   //----------------------------------------------------------------------------
-  constexpr auto evaluate(pos_t const& x, Real const /*t*/,
-                          Real const   tau) const {
-    constexpr auto a = std::exp(2 * tau);
-    constexpr auto b = std::exp(-2 * tau);
-    constexpr auto c = std::sqrt(-a * x(0) * x(0) + x(0) * x(0) + a);
-    constexpr auto d =
-        std::pow((-a * x(0) * x(0) + x(0) * x(0) + a), Real(3) / Real(2));
-    return mat<real_t, 2, 2>{
-        {1 / c - (x(0) * (2 * x(0) - 2 * a * x(0))) / (2 * d), 0},
-        {(3 * b * (2 * x(0) - 2 * a * x(0)) * c * x(1)) / 2, b * d}};
+  constexpr auto evaluate(pos_t const& x, real_t const /*t*/,
+                          real_t const   tau) const -> gradient_t {
+    auto const a = std::exp(2 * tau);
+    auto const b = std::exp(-2 * tau);
+    auto const c = std::sqrt(-a * x(0) * x(0) + x(0) * x(0) + a);
+    auto const d =
+        std::pow((-a * x(0) * x(0) + x(0) * x(0) + a), real_t(3) / real_t(2));
+    return {{1 / c - (x(0) * (2 * x(0) - 2 * a * x(0))) / (2 * d), real_t(0)},
+            {(3 * b * (2 * x(0) - 2 * a * x(0)) * c * x(1)) / 2  , b * d}};
   }
   //----------------------------------------------------------------------------
   constexpr auto operator()(pos_t const& x, Real const t,
-                            Real const tau) const {
+                            real_t const tau) const {
     return evaluate(x, t, tau);
   }
 };
@@ -164,18 +166,19 @@ struct differentiated_field<
   using this_t = differentiated_field<
       analytical::fields::numerical::autonomous_particles_test<Real>>;
   using parent_t = field<this_t, Real, 2, 2, 2>;
+  using typename parent_t::real_t;
   using typename parent_t::pos_t;
   using typename parent_t::tensor_t;
 
   //============================================================================
  public:
-  constexpr auto evaluate(pos_t const& x, Real const /*t*/) const
+  constexpr auto evaluate(pos_t const& x, real_t const /*t*/) const
       -> tensor_t final {
     return {{3 * x(0) * x(0) - 1, 0},
             {-6 * x(0) * x(1)   , 1 - 3 * x(0) * x(0)}};
   }
   //----------------------------------------------------------------------------
-  constexpr auto in_domain(pos_t const& /*x*/, Real const /*t*/) const
+  constexpr auto in_domain(pos_t const& /*x*/, real_t const /*t*/) const
       -> bool final {
     return true;
   }

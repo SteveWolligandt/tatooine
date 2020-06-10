@@ -70,6 +70,17 @@ template <typename Flowmap>
 flowmap_gradient_central_differences(Flowmap const&)
     -> flowmap_gradient_central_differences<const Flowmap&>;
 //==============================================================================
+template <typename Flowmap>
+constexpr bool is_flowmap_gradient_central_differences(
+    const flowmap_gradient_central_differences<Flowmap>&) {
+  return true;
+}
+// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+template <typename AnyOther>
+constexpr bool is_flowmap_gradient_central_differences(AnyOther&&) {
+  return false;
+}
+//==============================================================================
 }  // namespace tatooine
 //==============================================================================
 #endif

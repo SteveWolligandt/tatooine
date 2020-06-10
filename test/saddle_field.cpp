@@ -2,15 +2,23 @@
 #include <tatooine/flowmap_gradient_central_differences.h>
 #include <catch2/catch.hpp>
 //==============================================================================
-namespace tatooine::analytical::fields::numerical::test {
+namespace tatooine::test {
 //==============================================================================
 TEST_CASE("saddle_field_flowmap","[saddle][flowmap]") {
-  saddle v;
+  analytical::fields::numerical::saddle v;
   [[maybe_unused]] auto fma   = flowmap(v, tag::analytical);
   [[maybe_unused]] auto fmaga = diff(fma, tag::analytical);
   [[maybe_unused]] auto fmagc = diff(fma, tag::central);
   [[maybe_unused]] auto fmn   = flowmap(v, tag::numerical);
   [[maybe_unused]] auto fmngc = diff(fmn, tag::central);
+  REQUIRE(
+      std::is_same_v<decltype(fma),
+                     analytical::fields::numerical::saddle_flowmap<double>>);
+  REQUIRE(
+      std::is_same_v<decltype(fmn),
+                     numerical_flowmap<
+                         analytical::fields::numerical::saddle<double>,
+                         ode::vclibs::rungekutta43, interpolation::hermite>>);
 }
 //==============================================================================
 }  // namespace tatooine::analytical::fields::test

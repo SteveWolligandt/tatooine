@@ -22,11 +22,10 @@ struct invocable_with_n_types {
 //==============================================================================
 template <typename F, std::size_t N>
 struct invocable_with_n_integrals
-    : invocable_with_n_types<
-          F, N, bool, char, unsigned char, char8_t, unsigned char8_t, char16_t,
-          unsigned char16_t, char32_t, unsigned char32_t, wchar_t,
-          unsigned wchar_t, short, unsigned short, int, unsigned int, long,
-          unsigned long, long long, unsigned long long> {};
+    : invocable_with_n_types<F, N, bool, char, unsigned char, char8_t, char16_t,
+                             char32_t, wchar_t, short, unsigned short, int,
+                             unsigned int, long, unsigned long, long long,
+                             unsigned long long> {};
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 template <typename F, std::size_t N>
 static constexpr bool invocable_with_n_integrals_v =

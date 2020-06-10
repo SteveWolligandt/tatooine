@@ -182,4 +182,6 @@ auto sample_to_raw(const field<V, FieldReal, N, TensorDims...>& f,
 }  // namespace tatooine
 //╚════════════════════════════════════════════════════════════════════════════╝
 #include "field_operations.h"
+#include "differentiated_field.h"
+#include "numerical_flowmap.h"
 #endif
