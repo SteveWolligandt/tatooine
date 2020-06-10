@@ -1,11 +1,13 @@
-#include <tatooine/analytical/fields/numerical/saddle.h>
+#include <tatooine/analytical/fields/numerical/autonomous_particles_test.h>
 #include <tatooine/flowmap_gradient_central_differences.h>
+
 #include <catch2/catch.hpp>
 //==============================================================================
 namespace tatooine::analytical::fields::numerical::test {
 //==============================================================================
-TEST_CASE("saddle_field_flowmap","[saddle][flowmap]") {
-  saddle v;
+TEST_CASE("autonomous_particles_test_field_flowmap",
+          "[autonomous_particles_test][flowmap]") {
+  autonomous_particles_test v;
   [[maybe_unused]] auto fma   = flowmap(v, tag::analytical);
   [[maybe_unused]] auto fmaga = diff(fma, tag::analytical);
   [[maybe_unused]] auto fmagc = diff(fma, tag::central);
@@ -13,5 +15,5 @@ TEST_CASE("saddle_field_flowmap","[saddle][flowmap]") {
   [[maybe_unused]] auto fmngc = diff(fmn, tag::central);
 }
 //==============================================================================
-}  // namespace tatooine::analytical::fields::test
+}  // namespace tatooine::analytical::fields::numerical::test
 //==============================================================================
