@@ -131,6 +131,8 @@ if (${GINAC_FOUND})
   else()
     set(TATOOINE_GINAC_AVAILABLE 0)
   endif()
+else()
+  set(TATOOINE_GINAC_AVAILABLE 0)
 endif()
 
 if(OpenMP_CXX_FOUND)
