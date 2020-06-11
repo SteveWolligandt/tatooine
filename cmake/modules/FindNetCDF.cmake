@@ -5,10 +5,6 @@
 #  NETCDF_LIBRARIES   - Link these libraries when using NetCDF
 #  NETCDF_FOUND       - True if NetCDF found including required interfaces (see below)
 #
-# Your package can require certain interfaces to be FOUND by setting these
-#
-#  NETCDF_CXX         - require the C++ interface and link the C++ library
-#
 # The following are not for general use and are included in
 # NETCDF_LIBRARIES if the corresponding option above is set.
 #
@@ -16,10 +12,8 @@
 #  NETCDF_LIBRARIES_CXX         - C++ interface, if available
 #
 # Normal usage would be:
-#  set (NETCDF_CXX "YES")
 #  find_package (NetCDF REQUIRED)
-#  target_link_libraries (uses_cxx_interface ${NETCDF_LIBRARIES} ${NETCDF_LIBRARIES_CXX})
-#  target_link_libraries (only_uses_c_interface ${NETCDF_LIBRARIES_C})
+#  target_link_libraries (uses_netcdf ${NETCDF_LIBRARIES})
 
 if (NETCDF_INCLUDES AND NETCDF_LIBRARIES)
   # Already in cache, be silent
