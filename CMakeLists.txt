@@ -35,6 +35,8 @@ find_package(vcode REQUIRED)
 find_package(PNG REQUIRED)
 find_package(PNG++ REQUIRED)
 find_package(HDF5 REQUIRED CXX HL)
+set (NETCDF_CXX "YES")
+find_package(NetCDF REQUIRED)
 set(HDF5_LIBS ${HDF5_LIBRARIES} ${HDF5_HL_LIBRARIES})
 #- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - 
 # configure files
@@ -97,6 +99,7 @@ target_include_directories(tatooine
     ${CMAKE_CURRENT_SOURCE_DIR}/include
     ${CMAKE_CURRENT_SOURCE_DIR}/single_include
     ${CMAKE_CURRENT_BINARY_DIR}/include
+    ${NETCDF_INCLUDES}
     ${LAPACKE_INCLUDES}
     ${vcode_DIR}/../..
     ${PNG_INCLUDE_DIRS}
@@ -113,6 +116,7 @@ target_link_libraries(tatooine
     ${PNG_LIBRARIES}
     ${PNG++_LIBRARIES}
     ${HDF5_LIBS}
+    ${NETCDF_LIBRARIES}
 )
 if (${yavin_FOUND}) 
   set(TATOOINE_YAVIN_AVAILABLE 1)
