@@ -73,15 +73,15 @@ void autonomous_particles_test_backward_integation_distance(
 //==============================================================================
 TEST_CASE("autonomous_particle_dg_vtk",
           "[autonomous_particle][dg][doublegyre][vtk]") {
-  grid const g{linspace{0.0, 2.0, 11}, linspace{0.0, 1.0, 6}};
+  grid const g{linspace{0.0, 2.0, 21}, linspace{0.0, 1.0, 11}};
   doublegyre v;
   v.set_infinite_domain(true);
-  autonomous_particle_write_vtk("dg", v, g, 0, 5, 0.1);
+  autonomous_particle_write_vtk("dg", v, g, 0, 10, 0.1);
 }
 //------------------------------------------------------------------------------
 TEST_CASE("autonomous_particle_dg_backward_integration",
           "[autonomous_particle][dg][doublegyre][backward_integration]") {
-  grid const g{linspace{0.0, 2.0, 11}, linspace{0.0, 1.0, 6}};
+  grid const g{linspace{0.0, 2.0, 21}, linspace{0.0, 1.0, 11}};
   doublegyre v;
   v.set_infinite_domain(true);
 
@@ -90,7 +90,7 @@ TEST_CASE("autonomous_particle_dg_backward_integration",
     for (size_t x = 1; x < g.size(0) - 1; ++x) { x0s.push_back(g(x, y)); }
   }
   autonomous_particles_test_backward_integation_distance(
-      "dg", v, x0s, g.spacing(0), 0, 5, 0.1);
+      "dg", v, x0s, g.spacing(0), 0, 10, 0.1);
 }
 //==============================================================================
 TEST_CASE("autonomous_particle_saddle_vtk",
