@@ -1,5 +1,4 @@
 #include <tatooine/tensor.h>
-#include <tatooine/diff.h>
 #include <tatooine/symbolic.h>
 #include <catch2/catch.hpp>
 
@@ -16,11 +15,11 @@ TEST_CASE("tensor_initializers", "[tensor][initializers]") {
     [[maybe_unused]] auto m3rn = mat3::randn();
   }
   SECTION("factory functions") {
-    mat3 m3z{zeros};
+    mat3 m3z{tag::zeros};
     m3z.for_indices([&m3z](const auto... is) { CHECK(m3z(is...) == 0); });
-    mat3 m3o{ones};
+    mat3 m3o{tag::ones};
     m3o.for_indices([&m3o](const auto... is) { CHECK(m3o(is...) == 1); });
-    mat3 m3f{fill{3}};
+    mat3 m3f{tag::fill{3}};
     m3f.for_indices([&m3f](const auto... is) { CHECK(m3f(is...) == 3); });
     mat3 m3ru{random_uniform{}};
     mat3 m3rn{random_normal{}};
@@ -72,7 +71,7 @@ TEST_CASE("tensor_slice", "[tensor][slice]") {
   REQUIRE(v(0) == 1);
   REQUIRE(v(1) == 2);
   REQUIRE(v(2) == 3);
-  REQUIRE(v.num_dimensions() == 1);
+  REQUIRE(v.rank() == 1);
   REQUIRE(v.dimension(0) == 3);
   REQUIRE(v.num_components() == 3);
 
@@ -86,7 +85,7 @@ TEST_CASE("tensor_slice", "[tensor][slice]") {
   REQUIRE(m(0,0) == 1); REQUIRE(m(0,1) == 2);
   REQUIRE(m(1,0) == 3); REQUIRE(m(1,1) == 4);
   REQUIRE(m(2,0) == 5); REQUIRE(m(2,1) == 6);
-  REQUIRE(m.num_dimensions() == 2);
+  REQUIRE(m.rank() == 2);
   REQUIRE(m.dimension(0) == 3);
   REQUIRE(m.dimension(1) == 2);
   REQUIRE(m.num_components() == 6);
@@ -95,7 +94,7 @@ TEST_CASE("tensor_slice", "[tensor][slice]") {
   REQUIRE(c0(0) == 1);
   REQUIRE(c0(1) == 3);
   REQUIRE(c0(2) == 5);
-  REQUIRE(c0.num_dimensions() == 1);
+  REQUIRE(c0.rank() == 1);
   REQUIRE(c0.dimension(0) == 3);
   REQUIRE(c0.num_components() == 3);
 
@@ -103,28 +102,28 @@ TEST_CASE("tensor_slice", "[tensor][slice]") {
   REQUIRE(c1(0) == 2);
   REQUIRE(c1(1) == 4);
   REQUIRE(c1(2) == 6);
-  REQUIRE(c1.num_dimensions() == 1);
+  REQUIRE(c1.rank() == 1);
   REQUIRE(c1.dimension(0) == 3);
   REQUIRE(c1.num_components() == 3);
 
   auto r0 = m.row(0);
   REQUIRE(r0(0) == 1);
   REQUIRE(r0(1) == 2);
-  REQUIRE(r0.num_dimensions() == 1);
+  REQUIRE(r0.rank() == 1);
   REQUIRE(r0.dimension(0) == 2);
   REQUIRE(r0.num_components() == 2);
 
   auto r1 = m.row(1);
   REQUIRE(r1(0) == 3);
   REQUIRE(r1(1) == 4);
-  REQUIRE(r1.num_dimensions() == 1);
+  REQUIRE(r1.rank() == 1);
   REQUIRE(r1.dimension(0) == 2);
   REQUIRE(r1.num_components() == 2);
 
   auto r2 = m.row(2);
   REQUIRE(r2(0) == 5);
   REQUIRE(r2(1) == 6);
-  REQUIRE(r2.num_dimensions() == 1);
+  REQUIRE(r2.rank() == 1);
   REQUIRE(r2.dimension(0) == 2);
   REQUIRE(r2.num_components() == 2);
 
@@ -133,7 +132,7 @@ TEST_CASE("tensor_slice", "[tensor][slice]") {
   REQUIRE(prod(0) == (1 * 1 + 2 * 2));
   REQUIRE(prod(1) == (1 * 3 + 2 * 4));
   REQUIRE(prod(2) == (1 * 5 + 2 * 6));
-  REQUIRE(prod.num_dimensions() == 1);
+  REQUIRE(prod.rank() == 1);
   REQUIRE(prod.dimension(0) == 3);
   REQUIRE(prod.num_components() == 3);
 
@@ -337,7 +336,7 @@ TEST_CASE("tensor_svd", "[tensor][svd]") {
         {6.405871813e+00, -4.344670595e+00,  9.471184691e+00, 5.850792157e+00},
         {3.049605906e+00,  1.018629735e+00,  5.535464761e+00, 2.691779530e+00},
         {9.002176872e+00,  3.332492228e-01, -2.365651229e+00, 9.458283935e+00}};
-      const auto [U, s, VT] = svd(A, full);
+      const auto [U, s, VT] = svd(A, tag::full);
       const auto S          = diag_rect<3, 4>(s);
       INFO("A =\n" << A);
       INFO("U*S*VT =\n" << U * S * VT);
@@ -355,7 +354,7 @@ TEST_CASE("tensor_svd", "[tensor][svd]") {
         {6.405871813e+00, -4.344670595e+00,  9.471184691e+00, 5.850792157e+00},
         {3.049605906e+00,  1.018629735e+00,  5.535464761e+00, 2.691779530e+00},
         {9.002176872e+00,  3.332492228e-01, -2.365651229e+00, 9.458283935e+00}};
-      const auto [U, s, VT] = svd(A, economy);
+      const auto [U, s, VT] = svd(A, tag::economy);
       const auto S          = diag(s);
       INFO("A =\n" << A);
       INFO("U*S*VT =\n" << U * S * VT);
@@ -376,7 +375,7 @@ TEST_CASE("tensor_svd", "[tensor][svd]") {
             {5.850792157e+00,  3.049605906e+00, 1.018629735e+00},
             {5.535464761e+00,  2.691779530e+00, 9.002176872e+00},
             {3.332492228e-01, -2.365651229e+00, 9.458283935e+00}};
-      const auto [U, s, VT] = svd(A, full);
+      const auto [U, s, VT] = svd(A, tag::full);
       const auto S          = diag_rect<4, 3>(s);
       INFO("A =\n" << A);
       INFO("U*S*VT =\n" << U * S * VT);
@@ -394,7 +393,7 @@ TEST_CASE("tensor_svd", "[tensor][svd]") {
        {6.405871813e+00, -4.344670595e+00,  9.471184691e+00, 5.850792157e+00},
        {3.049605906e+00,  1.018629735e+00,  5.535464761e+00, 2.691779530e+00},
        {9.002176872e+00,  3.332492228e-01, -2.365651229e+00, 9.458283935e+00}};
-      const auto [U, s, VT] = svd(A, economy);
+      const auto [U, s, VT] = svd(A, tag::economy);
       const auto S          = diag(s);
       INFO("A =\n" << A);
       INFO("U*S*VT =\n" << U * S * VT);
@@ -415,9 +414,9 @@ TEST_CASE("tensor_svd", "[tensor][svd]") {
           { 2.38520,  0.82284,  8.53506},
           {-1.37601, -6.15705, -0.71982}};
     [[maybe_unused]] std::tuple<mat<double, 4, 4>, vec<double, 3>> LF =
-        svd_left(A, full);
+        svd_left(A, tag::full);
     [[maybe_unused]] std::tuple<mat<double, 4, 3>, vec<double, 3>> LE =
-        svd_left(A, economy);
+        svd_left(A, tag::economy);
   }
   //----------------------------------------------------------------------------
   SECTION("right") {
@@ -427,9 +426,9 @@ TEST_CASE("tensor_svd", "[tensor][svd]") {
         {3.049605906e+00, 1.018629735e+00, 5.535464761e+00, 2.691779530e+00},
         {9.002176872e+00, 3.332492228e-01, -2.365651229e+00, 9.458283935e+00}};
     [[maybe_unused]] std::tuple<vec<double, 3>, mat<double,4,4>> RF =
-        svd_right(A, full);
+        svd_right(A, tag::full);
     [[maybe_unused]] std::tuple<vec<double, 3>, mat<double,3,4>> RE =
-        svd_right(A, economy);
+        svd_right(A, tag::economy);
   }
 }
 //==============================================================================
