@@ -9,28 +9,71 @@ namespace tatooine {
 // typedefs
 //==============================================================================
 template <typename T>
-concept arithmetic = std::is_arithmetic_v<T>;
-//-----------------------------------------------------------------------------
+concept integral = std::integral<T>;
+//------------------------------------------------------------------------------
+template <typename T>
+concept floating_point = std::floating_point<T>;
+//------------------------------------------------------------------------------
+template <typename T>
+concept arithmetic = integral<T> || floating_point<T>;
+//------------------------------------------------------------------------------
+template <typename From, typename To>
+concept convertible_to = std::convertible_to<From, To>;
+//------------------------------------------------------------------------------
+template <typename From>
+concept convertible_to_floating_point =
+  convertible_to<From, float> ||
+  convertible_to<From, double> ||
+  convertible_to<From, long double>;
+//------------------------------------------------------------------------------
+template <typename From>
+concept convertible_to_integral =
+  convertible_to<From, bool> ||
+  convertible_to<From, char> ||
+  convertible_to<From, unsigned char> ||
+  convertible_to<From, char8_t> ||
+  convertible_to<From, char16_t> ||
+  convertible_to<From, char32_t> ||
+  convertible_to<From, wchar_t> ||
+  convertible_to<From, short> ||
+  convertible_to<From, unsigned short> ||
+  convertible_to<From, int> ||
+  convertible_to<From, unsigned int> ||
+  convertible_to<From, long> ||
+  convertible_to<From, unsigned long> ||
+  convertible_to<From, long long> ||
+  convertible_to<From, unsigned long long>;
+//------------------------------------------------------------------------------
+template <typename T>
+concept indexable_space =
+  requires (T const t, std::size_t i) {
+    { t[i] } -> convertible_to_floating_point;
+  } &&
+  requires (T const t) {
+    { t.size() } -> convertible_to_integral;
+    { size(t)  } -> convertible_to_integral;
+  };
+//------------------------------------------------------------------------------
 template <typename T>
 concept has_defined_real_t = requires {
   typename T::real_t;
 };
-//-----------------------------------------------------------------------------
+//------------------------------------------------------------------------------
 template <typename T>
 concept has_defined_this_t = requires {
   typename T::this_t;
 };
-//-----------------------------------------------------------------------------
+//------------------------------------------------------------------------------
 template <typename T>
 concept has_defined_parent_t = requires {
   typename T::parent_t;
 };
-//-----------------------------------------------------------------------------
+//------------------------------------------------------------------------------
 template <typename T>
 concept has_defined_tensor_t = requires {
   typename T::tensor_t;
 };
-//-----------------------------------------------------------------------------
+//------------------------------------------------------------------------------
 template <typename T>
 concept has_defined_pos_t = requires {
   typename T::pos_t;
