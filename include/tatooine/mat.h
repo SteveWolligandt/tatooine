@@ -1,5 +1,5 @@
-#ifndef TATOOINE_TENSOR_MAT_H
-#define TATOOINE_TENSOR_MAT_H
+#ifndef TATOOINE_MAT_H
+#define TATOOINE_MAT_H
 //==============================================================================
 #include <tatooine/tensor.h>
 //==============================================================================

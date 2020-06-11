@@ -1,5 +1,5 @@
-#ifndef TATOOINE_TENSOR_VEC_H
-#define TATOOINE_TENSOR_VEC_H
+#ifndef TATOOINE_VEC_H
+#define TATOOINE_VEC_H
 //==============================================================================
 #include <tatooine/tensor.h>
 //==============================================================================
@@ -10,7 +10,6 @@ struct vec : tensor<Real, N> {  // NOLINT
   using parent_t = tensor<Real, N>;
   using parent_t::at;
   using parent_t::dimension;
-  using parent_t::rank;
   using parent_t::parent_t;
   using parent_t::operator();
 

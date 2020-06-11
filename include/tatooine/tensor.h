@@ -133,8 +133,8 @@ tensor(Rows const(&&... rows)[C])  // NOLINT
 //==============================================================================
 }  // namespace tatooine
 //==============================================================================
-#include <tatooine/tensor_vec.h>
-#include <tatooine/tensor_mat.h>
+#include <tatooine/vec.h>
+#include <tatooine/mat.h>
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 #include <tatooine/tensor_cast.h>
 #include <tatooine/tensor_lapack_utility.h>
