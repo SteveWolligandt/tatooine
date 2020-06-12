@@ -12,7 +12,7 @@
 //==============================================================================
 namespace tatooine {
 //==============================================================================
-template <typename Real, size_t N>
+template <indexable_space... IndexableSpaces>
 class grid;
 template <typename Real, size_t N>
 class grid_edge_container;

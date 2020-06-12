@@ -3,6 +3,7 @@
 //==============================================================================
 #include <array>
 #include <tatooine/packages.h>
+#include <tatooine/concepts.h>
 #include "type_traits.h"
 #include "utility.h"
 #if TATOOINE_OPENMP_AVAILABLE
@@ -32,9 +33,9 @@ struct for_loop_impl {
   //----------------------------------------------------------------------------
  private:
   /// recursively creates loops
-  template <typename Iteration, std::size_t... Is,
-            enable_if_invocable<Iteration,
-                                     decltype(((void)Is, Int{}))...> = true>
+  template <
+      std::size_t... Is,
+      regular_invocable<decltype(((void)Is, Int{}))...> Iteration>
   constexpr auto loop(Iteration&& iteration,
                       std::index_sequence<Is...> /*unused*/) const {
     // check if Iteration either returns bool or nothing
@@ -90,9 +91,8 @@ struct for_loop_impl<Int, N, 1, ParallelIndex> {
   // methods
   //----------------------------------------------------------------------------
  private:
-  template <typename Iteration, std::size_t... Is,
-            enable_if_invocable<Iteration,
-                                     decltype(((void)Is, Int{}))...> = true>
+  template <std::size_t... Is,
+            regular_invocable<decltype(((void)Is, Int{}))...> Iteration>
   constexpr auto loop(Iteration&& iteration,
                       std::index_sequence<Is...> /*unused*/) const {
     // check if Iteration either returns bool or nothing
@@ -145,9 +145,8 @@ struct for_loop_impl<Int, N, I, I> {
   //----------------------------------------------------------------------------
  private:
   /// recursively creates loops
-  template <typename Iteration, std::size_t... Is,
-            enable_if_invocable<Iteration,
-                                     decltype(((void)Is, Int{}))...> = true>
+  template <std::size_t... Is,
+            regular_invocable<decltype(((void)Is, Int{}))...> Iteration>
   auto loop(Iteration&& iteration,
             std::index_sequence<Is...> /*unused*/) const {
     // check if Iteration either returns bool or nothing
@@ -204,9 +203,8 @@ struct for_loop_impl<Int, N, 1, 1> {
   // methods
   //----------------------------------------------------------------------------
  private:
-  template <typename Iteration, std::size_t... Is,
-            enable_if_invocable<Iteration,
-                                     decltype(((void)Is, Int{}))...> = true>
+  template <std::size_t... Is,
+            regular_invocable<decltype(((void)Is, Int{}))...> Iteration>
   auto loop(Iteration&& iteration,
             std::index_sequence<Is...> /*unused*/) const {
     // check if Iteration either returns bool or nothing
@@ -245,13 +243,11 @@ struct for_loop_impl<Int, N, 1, 1> {
 };
 #endif  // TATOOINE_OPENMP_AVAILABLE
 //==============================================================================
-template <
-    std::size_t ParallelIndex, typename Int, typename Iteration,
-    typename... Ends, Int... Is,
-    enable_if_integral<std::decay_t<Ends>...> = true,
-    enable_if_invocable<Iteration, decltype(((void)Is, Int{}))...> = true>
+template <std::size_t ParallelIndex, typename Int, Int... Is,
+          regular_invocable<decltype(((void)Is, Int{}))...> Iteration>
 constexpr auto for_loop(Iteration&& iteration,
-                          std::integer_sequence<Int, Is...>, Ends&&... ends) {
+                        std::integer_sequence<Int, Is...>,
+                        integral auto const... ends) {
   // check if Iteration either returns bool or nothing
   using return_type =
       std::invoke_result_t<Iteration, decltype(((void)Is, Int{}))...>;
@@ -260,7 +256,7 @@ constexpr auto for_loop(Iteration&& iteration,
   static_assert(returns_void || returns_bool);
 
   std::array zeros{((void)Is, Int(0))...};
-  return for_loop_impl<Int, sizeof...(Ends), sizeof...(Ends),
+  return for_loop_impl<Int, sizeof...(ends), sizeof...(ends),
                          ParallelIndex + 1>{
       zeros, std::array{static_cast<Int>(ends)...}}(
       std::forward<Iteration>(iteration));
@@ -275,13 +271,12 @@ constexpr auto for_loop(Iteration&& iteration,
 /// iteration must either return bool or nothing. If iteration returns false in
 /// any state the whole nested iteration will stop. iteration must return true
 /// to continue.
-template <typename Int = std::size_t, typename Iteration, typename... Ends,
-          enable_if_integral<std::decay_t<Ends>...> = true>
-constexpr void for_loop(Iteration&& iteration, Ends&&... ends) {
-  detail::for_loop<sizeof...(Ends) + 1, Int>(
+template <typename Int = std::size_t, typename Iteration>
+constexpr void for_loop(Iteration&& iteration, integral auto const... ends) {
+  detail::for_loop<sizeof...(ends) + 1, Int>(
       std::forward<Iteration>(iteration),
-      std::make_integer_sequence<Int, sizeof...(Ends)>{},
-      std::forward<Ends>(ends)...);
+      std::make_integer_sequence<Int, sizeof...(ends)>{},
+      ends...);
 }
 //------------------------------------------------------------------------------
 /// \brief Use this function for creating a parallel nested loop.
@@ -291,19 +286,17 @@ constexpr void for_loop(Iteration&& iteration, Ends&&... ends) {
 /// iteration must either return bool or nothing. If iteration returns false in
 /// any state the whole nested iteration will stop. iteration must return true
 /// to continue.
-template <typename Int = std::size_t, typename Iteration, typename... Ends,
-          enable_if_integral<std::decay_t<Ends>...> = true>
-constexpr void parallel_for_loop(Iteration&& iteration, Ends&&... ends) {
+template <typename Int = std::size_t, typename Iteration>
+constexpr void parallel_for_loop(Iteration&& iteration,
+                                 integral auto const... ends) {
 #ifdef _OPENMP
-  return detail::for_loop<sizeof...(Ends) - 1, Int>(
+  return detail::for_loop<sizeof...(ends) - 1, Int>(
       std::forward<Iteration>(iteration),
-      std::make_integer_sequence<Int, sizeof...(Ends)>{},
-      std::forward<Ends>(ends)...);
+      std::make_integer_sequence<Int, sizeof...(ends)>{}, ends...);
 #else
 #pragma message \
     "Not able to execute nested for loop in parallel because OpenMP is not available."
-  return for_loop(std::forward<Iteration>(iteration),
-                    std::forward<Ends>(ends)...);
+  return for_loop(std::forward<Iteration>(iteration), ends...);
 #endif  // _OPENMP
 }
 //==============================================================================

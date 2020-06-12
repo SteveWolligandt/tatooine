@@ -1,452 +1,426 @@
 #ifndef TATOOINE_GRID_H
 #define TATOOINE_GRID_H
 //==============================================================================
+#include <tatooine/algorithm.h>
+#include <tatooine/boundingbox.h>
+#include <tatooine/concepts.h>
+//#include <tatooine/grid_edge.h>
+#include <tatooine/grid_vertex_iterator.h>
+//#include <tatooine/grid_vertex_edges.h>
+//#include <tatooine/grid_vertex_neighbors.h>
+#include <tatooine/index_ordering.h>
+#include <tatooine/linspace.h>
+#include <tatooine/random.h>
+//#include <tatooine/subgrid.h>
+#include <tatooine/utility.h>
+
 #include <boost/range/adaptors.hpp>
 #include <boost/range/algorithm.hpp>
 #include <cassert>
 #include <set>
-
-#include "algorithm.h"
-#include "boundingbox.h"
-#include "grid_edge.h"
-#include "grid_vertex.h"
-#include "grid_vertex_edges.h"
-#include "grid_vertex_neighbors.h"
-#include "index_ordering.h"
-#include "linspace.h"
-#include "random.h"
-#include "subgrid.h"
-#include "type_traits.h"
-#include "utility.h"
+#include <tuple>
 //==============================================================================
 namespace tatooine {
 //==============================================================================
-template <typename Real, size_t N>
+template <indexable_space... Dimensions>
 class grid {
  public:
-  using this_t            = grid<Real, N>;
-  using vec_t             = vec<Real, N>;
-  using pos_t             = vec_t;
-  using linspace_iterator = typename linspace<Real>::iterator;
-  using vertex            = grid_vertex<Real, N>;
-  using edge              = grid_edge<Real, N>;
-  using vertex_iterator   = grid_vertex_iterator<Real, N>;
-  using edge_iterator     = grid_edge_iterator<Real, N>;
+  static constexpr auto num_dimensions() { return sizeof...(Dimensions); }
+  using this_t          = grid<Dimensions...>;
+  using real_t          = promote_t<typename Dimensions::value_type...>;
+  using vec_t           = vec<real_t, num_dimensions()>;
+  using pos_t           = vec_t;
+  using vertex_iterator = grid_vertex_iterator<Dimensions...>;
+  // using edge            = grid_edge<real_t, num_dimensions()>;
+  // using edge_iterator   = grid_edge_iterator<real_t, num_dimensions()>;
+  using seq_t = std::make_index_sequence<num_dimensions()>;
 
   struct vertex_container;
 
   //============================================================================
  private:
-  std::array<linspace<Real>, N> m_dimensions;
+  std::tuple<std::decay_t<Dimensions>...> m_dimensions;
 
   //============================================================================
  public:
   constexpr grid()                      = default;
-  constexpr grid(const grid& other)     = default;
+  constexpr grid(grid const& other)     = default;
   constexpr grid(grid&& other) noexcept = default;
   //----------------------------------------------------------------------------
-  template <typename OtherReal, size_t... Is>
-  constexpr grid(const grid<OtherReal, N>& other,
-                 std::index_sequence<Is...> /*is*/)
-      : m_dimensions{other.dimension(Is)...} {}
-  template <typename OtherReal>
-  explicit constexpr grid(const grid<OtherReal, N>& other)
-      : grid(other, std::make_index_sequence<N>{}) {}
+  // template <typename OtherReal, size_t... Is>
+  // constexpr grid(grid<OtherReal, num_dimensions()> const& other,
+  //               std::index_sequence<Is...> [>is<])
+  //    : m_dimensions{other.dimension(Is)...} {}
+  // template <typename OtherReal>
+  // explicit constexpr grid(grid<OtherReal, num_dimensions()> const& other)
+  //    : grid(other, seq_t{}) {}
 
   //----------------------------------------------------------------------------
-  template <typename... Reals>
-  explicit constexpr grid(const linspace<Reals>&... linspaces)
-      : m_dimensions{linspace<Real>{linspaces}...} {
-    static_assert(sizeof...(Reals) == N,
-                  "number of linspaces does not match number of dimensions");
+  template <indexable_space... _Dimensions>
+  explicit constexpr grid(_Dimensions&&... dimensions)
+      : m_dimensions{std::forward<Dimensions>(dimensions)...} {
+    static_assert(sizeof...(Dimensions) == num_dimensions(),
+                  "number of given dimensions does not match number of "
+                  "specified dimensions");
   }
 
   //----------------------------------------------------------------------------
-  template <typename OtherReal, size_t... Is>
-  constexpr grid(const boundingbox<OtherReal, N>& bb,
-                 const std::array<size_t, N>&     res,
+  template <typename Real, size_t... Is>
+  constexpr grid(boundingbox<Real, num_dimensions()> const&  bb,
+                 std::array<size_t, num_dimensions()> const& res,
                  std::index_sequence<Is...> /*is*/)
-      : m_dimensions{
-            linspace<Real>{Real(bb.min(Is)), Real(bb.max(Is)), res[Is]}...} {}
+      : m_dimensions{linspace<real_t>{real_t(bb.min(Is)), real_t(bb.max(Is)),
+                                      res[Is]}...} {}
   //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-  template <typename OtherReal>
-  constexpr grid(const boundingbox<OtherReal, N>& bb,
-                 const std::array<size_t, N>&     res)
-      : grid{bb, res, std::make_index_sequence<N>{}} {}
-
+  template <typename Real>
+  constexpr grid(boundingbox<Real, num_dimensions()> const&  bb,
+                 std::array<size_t, num_dimensions()> const& res)
+      : grid{bb, res, seq_t{}} {}
   //----------------------------------------------------------------------------
   ~grid() = default;
-
-  //----------------------------------------------------------------------------
-  constexpr auto operator=(const grid& other) -> grid& = default;
+  //============================================================================
+  constexpr auto operator=(grid const& other) -> grid& = default;
   constexpr auto operator=(grid&& other) noexcept -> grid& = default;
 
   //----------------------------------------------------------------------------
-  template <typename OtherReal>
-  constexpr auto operator=(const grid<OtherReal, N>& other) -> grid& {
-    for (size_t i = 0; i < N; ++i) { m_dimensions[i] = other.dimension(i); }
-    return *this;
-  }
+  // template <typename Real>
+  // constexpr auto operator=(grid<Real, num_dimensions()>const& other) ->
+  // grid& {
+  //  for (size_t i = 0; i < num_dimensions(); ++i) { m_dimensions[i] =
+  //  other.dimension(i); } return *this;
+  //}
   //----------------------------------------------------------------------------
-  constexpr auto dimension(size_t i) -> auto& { return m_dimensions[i]; }
-  constexpr auto dimension(size_t i) const -> const auto& {
-    return m_dimensions[i];
+  template <size_t i>
+  constexpr auto dimension() -> auto& {
+    return std::get<i>(m_dimensions);
+  }
+  // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+  template <size_t i>
+  constexpr auto dimension() const -> auto const& {
+    return std::get<i>(m_dimensions);
   }
   //----------------------------------------------------------------------------
   constexpr auto dimensions() -> auto& { return m_dimensions; }
-  constexpr auto dimensions() const -> const auto& { return m_dimensions; }
+  // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+  constexpr auto dimensions() const -> auto const& { return m_dimensions; }
+  //----------------------------------------------------------------------------
+  constexpr auto front_dimension() -> auto& {
+    return std::get<0>(m_dimensions);
+  }
+  // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+  constexpr auto front_dimension() const -> auto const& {
+    return std::get<0>(m_dimensions);
+  }
   //----------------------------------------------------------------------------
   template <size_t... Is>
   constexpr auto min(std::index_sequence<Is...> /*is*/) const {
-    return vec<Real, N> {m_dimensions[Is].front()...};
+    return vec<real_t, num_dimensions()>{static_cast<real_t>(front<Is>())...};
   }
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-  constexpr auto min() const {
-    return min(std::make_index_sequence<N>{});
-  }
+  constexpr auto min() const { return min(seq_t{}); }
   //----------------------------------------------------------------------------
   template <size_t... Is>
   constexpr auto max(std::index_sequence<Is...> /*is*/) const {
-    return vec<Real, N> {m_dimensions[Is].back()...};
+    return vec<real_t, num_dimensions()>{static_cast<real_t>(back<Is>())...};
   }
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-  constexpr auto max() const {
-    return max(std::make_index_sequence<N>{});
-  }
+  constexpr auto max() const { return max(seq_t{}); }
   //----------------------------------------------------------------------------
   template <size_t... Is>
   constexpr auto resolution(std::index_sequence<Is...> /*is*/) const {
-    return vec<size_t, N> {m_dimensions[Is].size()...};
+    return vec<size_t, num_dimensions()>{size<Is>()...};
   }
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-  constexpr auto resolution() const {
-    return resolution(std::make_index_sequence<N>{});
-  }
-  //----------------------------------------------------------------------------
-  constexpr auto spacing() const {
-    return spacing(std::make_index_sequence<N>{});
-  }
-  // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
- private:
-  template <size_t... Is>
-  constexpr auto spacing(std::index_sequence<Is...> /*is*/) const {
-    static_assert(sizeof...(Is) == N);
-    return tatooine::vec{m_dimensions[Is].spacing()...};
-  }
+  constexpr auto resolution() const { return resolution(seq_t{}); }
   //----------------------------------------------------------------------------
  public:
-  constexpr auto boundingbox() const {
-    return boundingbox(std::make_index_sequence<N>{});
-  }
+  constexpr auto boundingbox() const { return boundingbox(seq_t{}); }
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
  private:
   template <size_t... Is>
   constexpr auto boundingbox(std::index_sequence<Is...> /*is*/) const {
-    static_assert(sizeof...(Is) == N);
-    return tatooine::boundingbox<Real, N>{
-        vec<Real, N>{m_dimensions[Is].front()...},
-        vec<Real, N>{m_dimensions[Is].back()...}};
+    static_assert(sizeof...(Is) == num_dimensions());
+    return tatooine::boundingbox<real_t, num_dimensions()>{
+        vec<real_t, num_dimensions()>{static_cast<real_t>(front<Is>())...},
+        vec<real_t, num_dimensions()>{static_cast<real_t>(back<Is>())...}};
   }
   //----------------------------------------------------------------------------
  public:
-  constexpr auto size() const { return size(std::make_index_sequence<N>{}); }
+  constexpr auto size() const { return size(seq_t{}); }
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
  protected:
   template <size_t... Is>
   constexpr auto size(std::index_sequence<Is...> /*is*/) const {
-    static_assert(sizeof...(Is) == N);
-    return vec<size_t, N>{m_dimensions[Is].size()...};
+    static_assert(sizeof...(Is) == num_dimensions());
+    return vec<size_t, num_dimensions()>{size<Is>()...};
   }
   //----------------------------------------------------------------------------
  public:
-  constexpr auto size(size_t i) const { return dimension(i).size(); }
+  template <size_t I>
+  constexpr auto size() const {
+    return size(dimension<I>());
+  }
   //----------------------------------------------------------------------------
-  constexpr auto front(size_t i) const { return dimension(i).front(); }
+  template <size_t I>
+  constexpr auto front() const {
+    return dimension<I>().front();
+  }
   //----------------------------------------------------------------------------
-  constexpr auto back(size_t i) const { return dimension(i).back(); }
+  template <size_t I>
+  constexpr auto back() const {
+    return dimension<I>().back();
+  }
   //----------------------------------------------------------------------------
-  constexpr auto spacing(size_t i) const { return dimension(i).spacing(); }
-  //----------------------------------------------------------------------------
-  template <size_t... Is, typename... Reals,
-            enable_if_arithmetic<Reals...> = true>
+  template <size_t... Is>
   constexpr auto in_domain(std::index_sequence<Is...> /*is*/,
-                           Reals... xs) const {
-    static_assert(sizeof...(Reals) == N,
+                           real_number auto const... xs) const {
+    static_assert(sizeof...(xs) == num_dimensions(),
                   "number of components does not match number of dimensions");
-    static_assert(sizeof...(Is) == N,
+    static_assert(sizeof...(Is) == num_dimensions(),
                   "number of indices does not match number of dimensions");
-    return ((m_dimensions[Is].front() <= xs &&
-             xs <= m_dimensions[Is].back()) && ...);
+    return ((std::get<Is>(m_dimensions).front() <= xs &&
+             xs <= std::get<Is>(m_dimensions).back()) &&
+            ...);
   }
 
   //----------------------------------------------------------------------------
-  template <typename... Reals, enable_if_arithmetic<Reals...> = true>
-  constexpr auto in_domain(Reals... xs) const {
-    static_assert(sizeof...(Reals) == N,
+  constexpr auto in_domain(real_number auto const... xs) const {
+    static_assert(sizeof...(xs) == num_dimensions(),
                   "number of components does not match number of dimensions");
-    return in_domain(std::make_index_sequence<N>{}, std::forward<Reals>(xs)...);
+    return in_domain(seq_t{}, xs...);
   }
 
   //----------------------------------------------------------------------------
   template <size_t... Is>
-  constexpr auto in_domain(const std::array<Real, N>& x,
+  constexpr auto in_domain(std::array<real_t, num_dimensions()> const& x,
                            std::index_sequence<Is...> /*is*/) const {
     return in_domain(x[Is]...);
   }
 
   //----------------------------------------------------------------------------
-  constexpr auto in_domain(const std::array<Real, N>& x) const {
-    return in_domain(x, std::make_index_sequence<N>{});
+  constexpr auto in_domain(
+      std::array<real_t, num_dimensions()> const& x) const {
+    return in_domain(x, seq_t{});
   }
-
   //----------------------------------------------------------------------------
-  constexpr auto num_points() const {
-    return num_points(std::make_index_sequence<N>{});
+  template <size_t... DIs>
+  auto vertex_at(std::index_sequence<DIs...>, integral auto const... is) const
+      -> vec<real_t, num_dimensions()> {
+    static_assert(sizeof...(DIs) == sizeof...(is));
+    static_assert(sizeof...(is) == num_dimensions());
+    return pos_t{static_cast<real_t>((std::get<DIs>(m_dimensions)[is]))...};
   }
-
+  //----------------------------------------------------------------------------
+  auto vertex_at(integral auto const... is) const {
+    static_assert(sizeof...(is) == num_dimensions());
+    return vertex_at(seq_t{}, is...);
+  }
+  //----------------------------------------------------------------------------
+  auto operator()(integral auto const... is) const {
+    static_assert(sizeof...(is) == num_dimensions());
+    return vertex_at(is...);
+  }
   //----------------------------------------------------------------------------
   template <size_t... Is>
-  constexpr auto num_points(std::index_sequence<Is...> /*is*/) const {
-    static_assert(sizeof...(Is) == N);
-    return (m_dimensions[Is].size() * ...);
+  constexpr auto num_vertices(std::index_sequence<Is...> /*seq*/) const {
+    return (size<Is>() * ...);
   }
-
-  //----------------------------------------------------------------------------
-  template <size_t... Is>
-  auto front_vertex(std::index_sequence<Is...> /*is*/) {
-    return vertex{m_dimensions[Is].begin()...};
-  }
-  //----------------------------------------------------------------------------
-  auto front_vertex() { return front_vertex(std::make_index_sequence<N>()); }
-  //----------------------------------------------------------------------------
-  template <size_t... Is>
-  auto back_vertex(std::index_sequence<Is...> /*is*/) {
-    return vertex{(--m_dimensions[Is].end())...};
-  }
-  //----------------------------------------------------------------------------
-  auto back_vertex() { return back_vertex(std::make_index_sequence<N>()); }
-  //----------------------------------------------------------------------------
-  template <typename... Is, size_t... DIs, enable_if_integral<Is...> = true>
-  auto at(std::index_sequence<DIs...>, Is... is) const -> vec<Real, N> {
-    static_assert(sizeof...(DIs) == sizeof...(Is));
-    static_assert(sizeof...(Is) == N);
-    return pos_t{(m_dimensions[DIs][is])...};
-  }
-  //----------------------------------------------------------------------------
-  template <typename... Is, enable_if_integral<Is...> = true>
-  auto at(Is... is) const {
-    static_assert(sizeof...(Is) == N);
-    return at(std::make_index_sequence<N>{}, is...);
-  }
-  //----------------------------------------------------------------------------
-  template <typename... Is, enable_if_integral<Is...> = true>
-  auto operator()(Is... is) const {
-    static_assert(sizeof...(Is) == N);
-    return at(is...);
-  }
-  //----------------------------------------------------------------------------
-  template <typename... Is, enable_if_integral<Is...> = true>
-  auto vertex_at(Is... is) const {
-    static_assert(sizeof...(Is) == N);
-    return vertex{*this, is...};
-  }
-  //----------------------------------------------------------------------------
-  template <typename Is, enable_if_integral<Is> = true>
-  auto vertex_at(const std::array<Is, N>& is) const {
-    return invoke_unpacked([&](auto... is) { return vertex_at(is...); },
-                           unpack(is));
-  }
-  //----------------------------------------------------------------------------
-  constexpr auto num_vertices() const {
-    size_t num = 1;
-    for (const auto& dim : m_dimensions) { num *= dim.size(); }
-    return num;
-  }
+  // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+  constexpr auto num_vertices() const { return num_vertices(seq_t{}); }
   //----------------------------------------------------------------------------
   /// \return number of dimensions for one dimension dim
-  constexpr auto edges() const {
-    return grid_edge_container{this};
-  }
+  // constexpr auto edges() const { return grid_edge_container{this}; }
 
   //----------------------------------------------------------------------------
  private:
   template <size_t... Is>
   constexpr auto vertex_begin(std::index_sequence<Is...> /*is*/) const {
-    return typename vertex::iterator{vertex(m_dimensions[Is].begin()...)};
+    return vertex_iterator{this, std::array{((void)Is, size_t(0))...}};
   }
   //----------------------------------------------------------------------------
  public:
-  constexpr auto vertex_begin() const {
-    return vertex_begin(std::make_index_sequence<N>{});
-  }
- private:
+  constexpr auto vertex_begin() const { return vertex_begin(seq_t{}); }
   //----------------------------------------------------------------------------
+ private:
   template <size_t... Is>
   constexpr auto vertex_end(std::index_sequence<Is...> /*is*/) const {
-    return typename vertex::iterator{
-        vertex(m_dimensions[Is].begin()..., m_dimensions.back().end())};
+    return vertex_iterator{
+        this, vertex_iterator{this, std::array{((void)Is, size_t(0))...,
+                                               size<num_dimensions() - 1>()}}};
   }
- public:
   //----------------------------------------------------------------------------
+ public:
   constexpr auto vertex_end() const {
-    return vertex_end(std::make_index_sequence<N - 1>());
+    return vertex_end(std::make_index_sequence<num_dimensions() - 1>());
   }
   //----------------------------------------------------------------------------
   auto vertices() const { return vertex_container{this}; }
   //----------------------------------------------------------------------------
-  auto vertices(const vertex& v) const {
-    return grid_vertex_neighbors<Real, N>(v);
-  }
+  //auto neighbors(vertex const& v) const {
+  //  return grid_vertex_neighbors<real_t, num_dimensions()>(v);
+  //}
   //----------------------------------------------------------------------------
-  auto edges(const vertex& v) const { return grid_vertex_edges<Real, N>(v); }
-  //----------------------------------------------------------------------------
-  auto sub(const vertex& begin_vertex, const vertex& end_vertex) const {
-    return subgrid<Real, N>(this, begin_vertex, end_vertex);
-  }
-  //----------------------------------------------------------------------------
-  /// checks if an edge e has vertex v as point
-  auto contains(const vertex& v, const edge& e) {
-    return v == e.first || v == e.second;
-  }
+  // auto edges(vertex const& v) const { return grid_vertex_edges<real_t,
+  // num_dimensions()>(v); }
+  ////----------------------------------------------------------------------------
+  // auto sub(vertex const& begin_vertex, vertex const& end_vertex) const {
+  //  return subgrid<real_t, num_dimensions()>(this, begin_vertex, end_vertex);
+  //}
+  ////----------------------------------------------------------------------------
+  ///// checks if an edge e has vertex v as point
+  // auto contains(vertex const& v, edge const& e) {
+  //  return v == e.first || v == e.second;
+  //}
   //----------------------------------------------------------------------------
   /// checks if v0 and v1 are direct or diagonal neighbors
-  auto are_neighbors(const vertex& v0, const vertex& v1) {
-    auto v0_it = begin(v0.iterators);
-    auto v1_it = begin(v1.iterators);
-    for (; v0_it != end(v0.iterators); ++v0_it, ++v1_it) {
-      if (distance(*v0_it, *v1_it) > 1) { return false; }
-    }
-    return true;
-  }
+  //auto are_neighbors(vertex const& v0, vertex const& v1) {
+  //  auto v0_it = begin(v0.iterators);
+  //  auto v1_it = begin(v1.iterators);
+  //  for (; v0_it != end(v0.iterators); ++v0_it, ++v1_it) {
+  //    if (distance(*v0_it, *v1_it) > 1) { return false; }
+  //  }
+  //  return true;
+  //}
   //----------------------------------------------------------------------------
   /// checks if v0 and v1 are direct neighbors
-  auto are_direct_neighbors(const vertex& v0, const vertex& v1) {
-    bool off   = false;
-    auto v0_it = begin(v0.iterators);
-    auto v1_it = begin(v1.iterators);
-    for (; v0_it != end(v0.iterators); ++v0_it, ++v1_it) {
-      auto dist = std::abs(distance(*v0_it, *v1_it));
-      if (dist > 1) { return false; }
-      if (dist == 1 && !off) { off = true; }
-      if (dist == 1 && off) { return false; }
-    }
-    return true;
-  }
+  //auto are_direct_neighbors(vertex const& v0, vertex const& v1) {
+  //  bool off   = false;
+  //  auto v0_it = begin(v0.iterators);
+  //  auto v1_it = begin(v1.iterators);
+  //  for (; v0_it != end(v0.iterators); ++v0_it, ++v1_it) {
+  //    auto dist = std::abs(distance(*v0_it, *v1_it));
+  //    if (dist > 1) { return false; }
+  //    if (dist == 1 && !off) { off = true; }
+  //    if (dist == 1 && off) { return false; }
+  //  }
+  //  return true;
+  //}
+
+  //----------------------------------------------------------------------------
  private:
-  //----------------------------------------------------------------------------
-  template <size_t... Is, typename RandEng>
-  constexpr auto random_vertex(std::index_sequence<Is...> /*is*/,
-                               RandEng& eng) const {
-    return vertex{linspace_iterator{
-        &m_dimensions[Is],
-        random_uniform<size_t, RandEng>{0, m_dimensions[Is].size() - 1, eng}()}...};
-  }
+  //template <size_t... Is, typename RandEng>
+  //constexpr auto random_vertex(std::index_sequence<Is...> [>is<],
+  //                             RandEng& eng) const {
+  //  return vertex{linspace_iterator{
+  //      &std::get<Is>(m_dimensions),
+  //      random_uniform<size_t, RandEng>{0, size(std::get<Is>(m_dimensions)) - 1,
+  //                                      eng}()}...};
+  //}
 
+  //----------------------------------------------------------------------------
  public:
-  //----------------------------------------------------------------------------
-  template <typename RandEng>
-  auto random_vertex(RandEng& eng) -> vertex {
-    return random_vertex(std::make_index_sequence<N>(), eng);
-  }
+  //template <typename RandEng>
+  //auto random_vertex(RandEng& eng) -> vertex {
+  //  return random_vertex(seq_t{}, eng);
+  //}
 
   //----------------------------------------------------------------------------
-  template <typename RandEng>
-  auto random_vertex_neighbor_gaussian(const vertex& v, const Real _stddev,
-                                       RandEng& eng) {
-    auto neighbor = v;
-    bool ok       = false;
-    auto stddev   = _stddev;
-    do {
-      ok = true;
-      for (size_t i = 0; i < N; ++i) {
-        auto r = random_normal<Real>{}(
-            0, std::min<Real>(stddev, neighbor[i].linspace().size() / 2), eng);
-        // stddev -= r;
-        neighbor[i].i() += static_cast<size_t>(r);
-        if (neighbor[i].i() < 0 ||
-            neighbor[i].i() >= neighbor[i].linspace().size()) {
-          ok       = false;
-          neighbor = v;
-          stddev   = _stddev;
-          break;
-        }
-      }
-    } while (!ok);
-    return neighbor;
-  }
+  //template <typename RandEng>
+  //auto random_vertex_neighbor_gaussian(vertex const& v, real_t const _stddev,
+  //                                     RandEng& eng) {
+  //  auto neighbor = v;
+  //  bool ok       = false;
+  //  auto stddev   = _stddev;
+  //  do {
+  //    ok = true;
+  //    for (size_t i = 0; i < num_dimensions(); ++i) {
+  //      auto r = random_normal<real_t>{}(
+  //          0, std::min<real_t>(stddev, neighbor[i].linspace().size() / 2),
+  //          eng);
+  //      // stddev -= r;
+  //      neighbor[i].i() += static_cast<size_t>(r);
+  //      if (neighbor[i].i() < 0 ||
+  //          neighbor[i].i() >= neighbor[i].linspace().size()) {
+  //        ok       = false;
+  //        neighbor = v;
+  //        stddev   = _stddev;
+  //        break;
+  //      }
+  //    }
+  //  } while (!ok);
+  //  return neighbor;
+  //}
   //----------------------------------------------------------------------------
-  template <typename OtherReal, size_t... Is>
-  auto add_dimension(const linspace<OtherReal>& additional_dimension,
+  template <indexable_space AdditionalDimension, size_t... Is>
+  auto add_dimension(AdditionalDimension&& additional_dimension,
                      std::index_sequence<Is...> /*is*/) const {
-    return grid<Real, N + 1>{m_dimensions[Is]..., additional_dimension};
+    return grid<Dimensions..., std::decay_t<AdditionalDimension>>{
+        dimension<Is>()...,
+        std::forward<AdditionalDimension>(additional_dimension)};
+  }
+  // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+  template <indexable_space AdditionalDimension>
+  auto add_dimension(indexable_space auto&& additional_dimension) const {
+    return add_dimension(
+        std::forward<AdditionalDimension>(additional_dimension), seq_t{});
   }
 
-  //----------------------------------------------------------------------------
-  template <typename OtherReal>
-  auto add_dimension(const linspace<OtherReal>& additional_dimension) const {
-    return add_dimension(additional_dimension, std::make_index_sequence<N>{});
-  }
-
- // //----------------------------------------------------------------------------
- // private:
- //  template <size_t ReducedN>
- //  auto& remove_dimension(grid<Real, ReducedN>& reduced, size_t [>i<]) const {
- //    return reduced;
- //  }
- // // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
- //  template <size_t ReducedN, typename... Omits,
- //            enable_if_integral<Omits...> = true>
- //  auto& remove_dimension(grid<Real, ReducedN>& reduced, size_t i, size_t omit,
- //                        Omits... omits) const {
- //    if (i != omit) {
- //      reduced.dimension(i) = m_dimensions[i];
- //      ++i;
- //    }
- //    return remove_dimension<ReducedN, Omits...>(reduced, i, omits...);
- //  }
- // // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
- //public:
- // template <typename... Omits, enable_if_integral<Omits...> = true>
- // auto remove_dimension(Omits... omits) const {
- //   grid<Real, N - sizeof...(Omits)> reduced;
- //   return remove_dimension(reduced, 0, omits...);
- // }
+  // //----------------------------------------------------------------------------
+  // private:
+  //  template <size_t ReducedN>
+  //  auto& remove_dimension(grid<real_t, ReducedN>& reduced, size_t [>i<])
+  //  const {
+  //    return reduced;
+  //  }
+  // // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+  // - -
+  //  template <size_t ReducedN, integral... Omits>
+  //  auto& remove_dimension(grid<real_t, ReducedN>& reduced, size_t i, size_t
+  //  omit,
+  //                        Omits... omits) const {
+  //    if (i != omit) {
+  //      reduced.dimension(i) = m_dimensions[i];
+  //      ++i;
+  //    }
+  //    return remove_dimension<ReducedN, Omits...>(reduced, i, omits...);
+  //  }
+  // // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+  // - -
+  // public:
+  // template <integral... Omits>
+  // auto remove_dimension(Omits... omits) const {
+  //   grid<real_t, num_dimensions() - sizeof...(Omits)> reduced;
+  //   return remove_dimension(reduced, 0, omits...);
+  // }
 };
 
 //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-template <typename... Reals>
-grid(const linspace<Reals>&...)->grid<promote_t<Reals...>, sizeof...(Reals)>;
+template <indexable_space... Dimensions>
+grid(Dimensions&&...) -> grid<std::decay_t<Dimensions>...>;
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 template <typename Real, size_t N, size_t... Is>
-grid(const boundingbox<Real, N>& bb, const std::array<size_t, N>& res,
+grid(boundingbox<Real, N> const& bb,  std::array<size_t, N> const& res,
      std::index_sequence<Is...>)
-    ->grid<Real, N>;
+    -> grid<decltype(((void)Is, std::declval<linspace<Real>()>))...>;
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-template <typename Real, size_t N>
-grid(const boundingbox<Real, N>& bb, const std::array<size_t, N>& res)
-    ->grid<Real, N>;
+//template <typename Real, size_t num_dimensions()>
+//grid(boundingbox<Real, num_dimensions()> const& bb,
+//     std::array<size_t, num_dimensions()> const&  res)
+//    -> grid<Real, num_dimensions()>;
 
 //==============================================================================
-template <typename Real, size_t N>
-struct grid<Real, N>::vertex_container {
-  const grid* g;
+template <indexable_space... Dimensions>
+struct grid<Dimensions...>::vertex_container {
+  grid const* const g;
   auto        begin() const { return g->vertex_begin(); }
   auto        end() const { return g->vertex_end(); }
   auto        size() const { return g->num_vertices(); }
 };
 
 //------------------------------------------------------------------------------
-template <typename Real, size_t N>
-auto operator+(const grid<Real, N>&  grid,
-               const linspace<Real>& additional_dimension) {
-  return grid.add_dimension(additional_dimension);
+template <indexable_space... Dimensions, indexable_space AdditionalDimension>
+auto operator+(
+    grid<Dimensions...> const& grid,
+    AdditionalDimension&& additional_dimension) {
+  return grid.add_dimension(
+      std::forward<AdditionalDimension>(additional_dimension));
 }
-
-//------------------------------------------------------------------------------
-template <typename Real, size_t N>
-auto operator+(const linspace<Real>& additional_dimension,
-               const grid<Real, N>&  grid) {
-  return grid.add_dimension(additional_dimension);
+// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+template <indexable_space... Dimensions, indexable_space AdditionalDimension>
+auto operator+(AdditionalDimension&& additional_dimension,
+               grid<Dimensions...> const&            grid) {
+  return grid.add_dimension(
+      std::forward<AdditionalDimension>(additional_dimension));
 }
 //==============================================================================
 }  // namespace tatooine

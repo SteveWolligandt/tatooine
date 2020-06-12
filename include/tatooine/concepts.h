@@ -7,6 +7,14 @@
 //==============================================================================
 namespace tatooine {
 //==============================================================================
+// iterators
+//==============================================================================
+template <typename T>
+concept forward_iterator = std::forward_iterator<T>;
+//------------------------------------------------------------------------------
+template <typename T>
+concept bidirectional_iterator = std::bidirectional_iterator<T>;
+//==============================================================================
 // typedefs
 //==============================================================================
 template <typename T>
@@ -55,23 +63,13 @@ concept convertible_to_integral =
   convertible_to<From, unsigned long long>;
 //------------------------------------------------------------------------------
 template <typename T>
-concept indexable = requires(T const t, std::size_t i) {
-  {t[i]};
+concept has_defined_real_t = requires {
+  typename T::real_t;
 };
 //------------------------------------------------------------------------------
 template <typename T>
-concept indexable_space =
-  requires (T const t, std::size_t i) {
-    { t[i] } -> convertible_to_floating_point;
-  } &&
-  requires (T const t) {
-    { t.size() } -> convertible_to_integral;
-    { size(t)  } -> convertible_to_integral;
-  };
-//------------------------------------------------------------------------------
-template <typename T>
-concept has_defined_real_t = requires {
-  typename T::real_t;
+concept has_defined_iterator = requires {
+  typename T::iterator;
 };
 //------------------------------------------------------------------------------
 template <typename T>
@@ -94,8 +92,40 @@ concept has_defined_pos_t = requires {
   typename T::pos_t;
 };
 //==============================================================================
+// indexable
+//==============================================================================
+template <typename T>
+concept indexable = requires(T const t, std::size_t i) {
+  { t[i] };
+  { t.at(i) };
+};
+//------------------------------------------------------------------------------
+template <typename T>
+concept indexable_space =
+  has_defined_iterator<std::decay_t<T>>;
+  //requires (T const t, std::size_t i) {
+  //  { t[i] } -> convertible_to_floating_point;
+  //  { t.at(i) } -> convertible_to_floating_point;
+  //} &&
+  //requires (T const t) {
+  //  { t.size() } -> convertible_to_integral;
+  //  { size(t)  } -> convertible_to_integral;
+  //  { t.front()  } -> convertible_to_floating_point;
+  //  { t.back()  } -> convertible_to_floating_point;
+  //  { t.begin()  } -> forward_iterator;
+  //  { begin(t)  } -> forward_iterator;
+  //  { t.end()  } -> forward_iterator;
+  //  { end(t)  } -> forward_iterator;
+  //};
+//==============================================================================
 // methods
 //==============================================================================
+template <typename F, typename... Args>
+concept invocable = std::invocable<F, Args...>;
+//-----------------------------------------------------------------------------
+template <typename F, typename... Args>
+concept regular_invocable = std::regular_invocable<F, Args...>;
+//-----------------------------------------------------------------------------
 template <typename T>
 concept has_static_num_dimensions_method = requires {
   { T::num_dimensions() } -> std::convertible_to<std::size_t>;

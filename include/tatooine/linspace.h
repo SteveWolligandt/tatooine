@@ -12,17 +12,18 @@ namespace tatooine {
 //============================================================================
 // forward declarations
 //============================================================================
-template <typename Real>
+template <real_number Real>
 struct linspace_iterator;
 
 //============================================================================
-template <typename Real>
+template <real_number Real>
 struct linspace {
   //============================================================================
   // typedefs
   //============================================================================
   using this_t         = linspace<Real>;
   using real_t         = Real;
+  using value_type     = Real;
   using iterator       = linspace_iterator<Real>;
   using const_iterator = linspace_iterator<Real>;
 
@@ -37,30 +38,29 @@ struct linspace {
   // ctors
   //============================================================================
  public:
-  constexpr linspace() noexcept
-      : m_min{0}, m_max{0}, m_size{0} {}
+  constexpr linspace() noexcept : m_min{0}, m_max{0}, m_size{0} {}
   //----------------------------------------------------------------------------
   constexpr linspace(Real min, Real max, size_t size) noexcept
       : m_min{min}, m_max{max}, m_size{size} {}
   //----------------------------------------------------------------------------
-  constexpr linspace(const linspace&) = default;
+  constexpr linspace(linspace const&)     = default;
   constexpr linspace(linspace&&) noexcept = default;
   //----------------------------------------------------------------------------
   template <typename OtherReal>
-  explicit constexpr linspace(const linspace<OtherReal>& other) noexcept
+  explicit constexpr linspace(linspace<OtherReal> const& other) noexcept
       : m_min{static_cast<Real>(other.front())},
         m_max{static_cast<Real>(other.back())},
         m_size{other.size()} {}
   //----------------------------------------------------------------------------
-  constexpr auto operator=(const linspace<Real>&) -> linspace& = default;
-  constexpr auto operator=(linspace<Real> &&) noexcept -> linspace& = default;
+  constexpr auto operator=(linspace<Real> const&) -> linspace& = default;
+  constexpr auto operator=(linspace<Real>&&) noexcept -> linspace& = default;
   //----------------------------------------------------------------------------
   ~linspace() = default;
   //----------------------------------------------------------------------------
   template <typename OtherReal>
-  constexpr auto operator=(const linspace<OtherReal>& other) noexcept -> auto& {
-    m_min        = other.front();
-    m_max        = other.back();
+  constexpr auto operator=(linspace<OtherReal> const& other) noexcept -> auto& {
+    m_min  = other.front();
+    m_max  = other.back();
     m_size = other.size();
     return *this;
   }
@@ -83,10 +83,10 @@ struct linspace {
   constexpr auto back() const { return m_max; }
   //----------------------------------------------------------------------------
   constexpr auto spacing() const { return (m_max - m_min) / (m_size - 1); }
-}; 
+};
 
 //==============================================================================
-template <typename Real>
+template <real_number Real>
 struct linspace_iterator
     : boost::iterator_facade<linspace_iterator<Real>, Real,
                              boost::bidirectional_traversal_tag, Real> {
@@ -99,22 +99,22 @@ struct linspace_iterator
   // members
   //============================================================================
  private:
-  const linspace<Real>* m_lin;
-  size_t             m_i;
+  linspace<Real> const* const m_lin;
+  size_t                      m_i;
 
   //============================================================================
   // ctors
   //============================================================================
  public:
-  linspace_iterator(const linspace<Real>* _lin, size_t _i)
+  linspace_iterator(linspace<Real> const* const _lin, size_t _i)
       : m_lin{_lin}, m_i{_i} {}
   //----------------------------------------------------------------------------
-  linspace_iterator(const linspace_iterator&)     = default;
+  linspace_iterator(linspace_iterator const&)     = default;
   linspace_iterator(linspace_iterator&&) noexcept = default;
   //----------------------------------------------------------------------------
-  auto operator=(const linspace_iterator& other)
+  auto operator             =(linspace_iterator const& other)
       -> linspace_iterator& = default;
-  auto operator=(linspace_iterator&& other) noexcept
+  auto operator             =(linspace_iterator&& other) noexcept
       -> linspace_iterator& = default;
   //----------------------------------------------------------------------------
   ~linspace_iterator() = default;
@@ -122,30 +122,24 @@ struct linspace_iterator
   //============================================================================
   // methods
   //============================================================================
-  constexpr void to_begin() { m_i = 0; }
-  //----------------------------------------------------------------------------
-  constexpr void to_end() { m_i = m_lin->size(); }
-  //----------------------------------------------------------------------------
-  auto& i() { return m_i; }
-  auto  i() const { return m_i; }
-  //----------------------------------------------------------------------------
-  auto begin() const { return m_lin->begin(); }
-  auto end() const { return m_lin->end(); }
-  //----------------------------------------------------------------------------
-  auto operator<(const linspace_iterator& other) const -> bool {
-    return i() < other.i();
+  auto operator<(linspace_iterator const& other) const -> bool {
+    return m_i < other.m_i;
   }
   //----------------------------------------------------------------------------
-  auto operator<=(const linspace_iterator& other) const -> bool {
-    return i() <= other.i();
+  auto operator<=(linspace_iterator const& other) const -> bool {
+    return m_i <= other.m_i;
   }
   //----------------------------------------------------------------------------
-  auto operator>(const linspace_iterator& other) const -> bool {
-    return i() > other.i();
+  auto operator>(linspace_iterator const& other) const -> bool {
+    return m_i > other.m_i;
   }
   //----------------------------------------------------------------------------
-  auto operator>=(const linspace_iterator& other) const -> bool {
-    return i() >= other.i();
+  auto operator>=(linspace_iterator const& other) const -> bool {
+    return m_i >= other.m_i;
+  }
+  //----------------------------------------------------------------------------
+  auto distance(linspace_iterator const& other) const {
+    return m_i - other.m_i;
   }
 
   //============================================================================
@@ -158,7 +152,7 @@ struct linspace_iterator
   //----------------------------------------------------------------------------
   void decrement() { --m_i; }
   //----------------------------------------------------------------------------
-  auto equal(const linspace_iterator& other) const { return m_i == other.m_i; }
+  auto equal(linspace_iterator const& other) const { return m_i == other.m_i; }
   //----------------------------------------------------------------------------
   auto dereference() const { return m_lin->at(m_i); }
 };
@@ -166,38 +160,38 @@ struct linspace_iterator
 //==============================================================================
 // free functions
 //==============================================================================
-template <typename Real>
-constexpr auto begin(const linspace<Real>& l) {
+template <real_number Real>
+constexpr auto begin(linspace<Real> const& l) {
   return l.begin();
 }
 //------------------------------------------------------------------------------
-template <typename Real>
-constexpr auto end(const linspace<Real>& l) {
+template <real_number Real>
+constexpr auto end(linspace<Real> const& l) {
   return l.end();
 }
 //------------------------------------------------------------------------------
-template <typename Real>
-constexpr auto distance(const linspace_iterator<Real>& it0,
-                        const linspace_iterator<Real>& it1) -> long {
-  return it1.i() - it0.i();
+template <real_number Real>
+constexpr auto distance(linspace_iterator<Real> const& it0,
+                        linspace_iterator<Real> const& it1) {
+  return it0.distance(it1);
 }
 //------------------------------------------------------------------------------
-template <typename Real>
-auto size(const linspace<Real>& l) {
+template <real_number Real>
+auto size(linspace<Real> const& l) {
   return l.size();
 }
 //------------------------------------------------------------------------------
-template <typename Real>
-auto next(const linspace_iterator<Real>& l, size_t diff = 1) {
-  return linspace_iterator<Real>{&l.linspace(), l.i() + diff};
+template <real_number Real>
+auto next(linspace_iterator<Real> const& l, size_t diff = 1) {
+  return linspace_iterator<Real>{&l.linspace(), l.m_i + diff};
 }
 //------------------------------------------------------------------------------
-template <typename Real>
-auto prev(const linspace_iterator<Real>& l, size_t diff = 1) {
-  return linspace_iterator<Real>{&l.linspace(), l.i() - diff};
+template <real_number Real>
+auto prev(linspace_iterator<Real> const& l, size_t diff = 1) {
+  return linspace_iterator<Real>{&l.linspace(), l.m_i - diff};
 }
 //------------------------------------------------------------------------------
-template <typename Real>
+template <real_number Real>
 inline auto advance(linspace_iterator<Real>& l, long n = 1) -> auto& {
   if (n < 0) {
     while (n++) { --l; }
@@ -210,19 +204,18 @@ inline auto advance(linspace_iterator<Real>& l, long n = 1) -> auto& {
 //==============================================================================
 // deduction guides
 //==============================================================================
-template <typename Real>
-linspace(Real, Real, size_t)->linspace<Real>;
+template <real_number Real0, real_number Real1>
+linspace(Real0, Real1, size_t) -> linspace<promote_t<Real0, Real1>>;
 
 //==============================================================================
 // I/O
 //==============================================================================
-template <typename Real>
-auto operator<<(std::ostream& out, const linspace<Real>& l) -> auto& {
+template <real_number Real>
+auto operator<<(std::ostream& out, linspace<Real> const& l) -> auto& {
   out << "[" << l[0] << ", " << l[1] << ", ... , " << l.back() << "]";
   return out;
 }
 //============================================================================
 }  // namespace tatooine
 //============================================================================
-
 #endif

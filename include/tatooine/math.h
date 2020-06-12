@@ -26,8 +26,8 @@ constexpr T min(T&& t0, Ts&&... ts) {
 }
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 constexpr auto ipow(integral auto const base, integral auto const exp) {
-  decltype(base) p = 1;
-  for (decltype(exp) i = 0; i < exp; ++i) { p *= base; }
+  std::decay_t<decltype(base)> p = 1;
+  for (std::decay_t<decltype(exp)> i = 0; i < exp; ++i) { p *= base; }
   return p;
 }
 //==============================================================================
