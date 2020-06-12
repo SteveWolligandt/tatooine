@@ -5,12 +5,12 @@
 //==============================================================================
 namespace tatooine {
 //==============================================================================
-template <typename Tensor, typename Real, size_t FixedDim, size_t... Dims>
-struct tensor_slice : base_tensor<tensor_slice<Tensor, Real, FixedDim, Dims...>,
-                                  Real, Dims...> {
+template <typename Tensor, real_or_complex_number T, size_t FixedDim, size_t... Dims>
+struct tensor_slice : base_tensor<tensor_slice<Tensor, T, FixedDim, Dims...>,
+                                  T, Dims...> {
   using tensor_t          = Tensor;
-  using this_t            = tensor_slice<Tensor, Real, FixedDim, Dims...>;
-  using parent_t          = base_tensor<this_t, Real, Dims...>;
+  using this_t            = tensor_slice<Tensor, T, FixedDim, Dims...>;
+  using parent_t          = base_tensor<this_t, T, Dims...>;
   using parent_t::operator=;
   using parent_t::num_components;
   using parent_t::rank;
@@ -26,8 +26,7 @@ struct tensor_slice : base_tensor<tensor_slice<Tensor, Real, FixedDim, Dims...>,
       : m_tensor{tensor}, m_fixed_index{fixed_index} {}
 
   //----------------------------------------------------------------------------
-  template <typename... Is, enable_if_integral<Is...> = true>
-  constexpr auto at(const Is... is) const -> decltype(auto) {
+  constexpr auto at(integral auto const... is) const -> decltype(auto) {
     if constexpr (FixedDim == 0) {
       return m_tensor->at(m_fixed_index, is...);
 
@@ -38,16 +37,15 @@ struct tensor_slice : base_tensor<tensor_slice<Tensor, Real, FixedDim, Dims...>,
       auto at_ = [this](const auto... is) -> decltype(auto) {
         return m_tensor->at(is...);
       };
-      return invoke_unpacked(
-          at_, unpack(extract<0, FixedDim - 1>(is...)), m_fixed_index,
-          unpack(extract<FixedDim, rank() - 1>(is...)));
+      return invoke_unpacked(at_, unpack(extract<0, FixedDim - 1>(is...)),
+                             m_fixed_index,
+                             unpack(extract<FixedDim, rank() - 1>(is...)));
     };
   }
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-  template <typename... Is, enable_if_integral<Is...> = true,
-            typename _tensor_t                                       = Tensor,
-            std::enable_if_t<!std::is_const<_tensor_t>::value, bool> = true>
-  constexpr auto at(const Is... is) -> decltype(auto) {
+  template <typename _Tensor                                       = Tensor,
+            std::enable_if_t<!std::is_const<_Tensor>::value, bool> = true>
+  constexpr auto at(integral auto const... is) -> decltype(auto) {
     if constexpr (FixedDim == 0) {
       return m_tensor->at(m_fixed_index, is...);
 
@@ -58,13 +56,13 @@ struct tensor_slice : base_tensor<tensor_slice<Tensor, Real, FixedDim, Dims...>,
       auto at_ = [this](const auto... is) -> decltype(auto) {
         return m_tensor->at(is...);
       };
-      return invoke_unpacked(
-          at_, unpack(extract<0, FixedDim - 1>(is...)), m_fixed_index,
-          unpack(extract<FixedDim, rank() - 1>(is...)));
+      return invoke_unpacked(at_, unpack(extract<0, FixedDim - 1>(is...)),
+                             m_fixed_index,
+                             unpack(extract<FixedDim, rank() - 1>(is...)));
     };
   }
 };
 //==============================================================================
-}
+}  // namespace tatooine
 //==============================================================================
 #endif

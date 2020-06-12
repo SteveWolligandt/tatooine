@@ -7,7 +7,7 @@ namespace tatooine {
 //==============================================================================
 template <typename Tensor, size_t VecN, size_t M, size_t N>
 struct const_diag_tensor : base_tensor<const_diag_tensor<Tensor, VecN, M, N>,
-                                       typename Tensor::real_t, M, N> {
+                                       typename Tensor::value_type, M, N> {
   //============================================================================
  private:
   const Tensor& m_internal_tensor;
@@ -15,12 +15,13 @@ struct const_diag_tensor : base_tensor<const_diag_tensor<Tensor, VecN, M, N>,
   //============================================================================
  public:
   constexpr explicit const_diag_tensor(
-      const base_tensor<Tensor, typename Tensor::real_t, VecN>& internal_tensor)
+      const base_tensor<Tensor, typename Tensor::value_type, VecN>&
+          internal_tensor)
       : m_internal_tensor{internal_tensor.as_derived()} {}
   //----------------------------------------------------------------------------
   constexpr auto operator()(size_t i, size_t j) const { return at(i, j); }
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-  constexpr auto at(size_t i, size_t j) const -> typename Tensor::real_t {
+  constexpr auto at(size_t i, size_t j) const -> typename Tensor::value_type {
     assert(i < M);
     assert(j < N);
     if (i == j) {
@@ -34,17 +35,18 @@ struct const_diag_tensor : base_tensor<const_diag_tensor<Tensor, VecN, M, N>,
 };
 //==============================================================================
 template <typename Tensor, size_t VecN, size_t M, size_t N>
-struct diag_tensor
-    : base_tensor<diag_tensor<Tensor, VecN, M, N>, typename Tensor::real_t, M, N> {
+struct diag_tensor : base_tensor<diag_tensor<Tensor, VecN, M, N>,
+                                 typename Tensor::value_type, M, N> {
   //============================================================================
  private:
-  Tensor& m_internal_tensor;
-  typename Tensor::real_t zero=0;
+  Tensor&                     m_internal_tensor;
+  typename Tensor::value_type zero = 0;
 
   //============================================================================
  public:
   constexpr explicit diag_tensor(
-      const base_tensor<Tensor, typename Tensor::real_t, VecN>& internal_tensor)
+      const base_tensor<Tensor, typename Tensor::value_type, VecN>&
+          internal_tensor)
       : m_internal_tensor{internal_tensor.as_derived()} {}
 
   //----------------------------------------------------------------------------
@@ -61,7 +63,7 @@ struct diag_tensor
     }
   }
   //----------------------------------------------------------------------------
-  constexpr auto at(size_t i, size_t j) const -> typename Tensor::real_t {
+  constexpr auto at(size_t i, size_t j) const -> typename Tensor::value_type {
     assert(i < M);
     assert(j < N);
     if (i == j) {
@@ -96,6 +98,6 @@ constexpr auto diag_rect(base_tensor<Tensor, Real, VecN>& t) {
   return diag_tensor<Tensor, VecN, M, N>{t};
 }
 //==============================================================================
-}
+}  // namespace tatooine
 //==============================================================================
 #endif

@@ -25,12 +25,9 @@ constexpr T min(T&& t0, Ts&&... ts) {
   return tatooine::min(t0, tatooine::min(std::forward<Ts>(ts)...));
 }
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-template <typename Base, typename Exp, enable_if_integral<Base> = true,
-          enable_if_integral<Exp> = true>
-constexpr auto ipow(Base base, Exp exp) {
-  using IntOut = Base;
-  IntOut p     = 1;
-  for (Exp i = 0; i < exp; ++i) { p *= base; }
+constexpr auto ipow(integral auto const base, integral auto const exp) {
+  decltype(base) p = 1;
+  for (decltype(exp) i = 0; i < exp; ++i) { p *= base; }
   return p;
 }
 //==============================================================================

@@ -5,9 +5,9 @@
 //==============================================================================
 namespace tatooine {
 //==============================================================================
-template <typename Real, size_t N>
-struct vec : tensor<Real, N> {  // NOLINT
-  using parent_t = tensor<Real, N>;
+template <real_or_complex_number T, size_t N>
+struct vec : tensor<T, N> {  // NOLINT
+  using parent_t = tensor<T, N>;
   using parent_t::at;
   using parent_t::dimension;
   using parent_t::parent_t;
@@ -24,14 +24,10 @@ struct vec : tensor<Real, N> {  // NOLINT
   //----------------------------------------------------------------------------
   constexpr vec(const vec&) = default;
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-  template <typename Real_                         = Real,
-            enable_if_arithmetic_or_complex<Real_> = true>
   explicit constexpr vec(vec&& other) noexcept : parent_t{std::move(other)} {}
   //----------------------------------------------------------------------------
   constexpr auto operator=(const vec&) -> vec& = default;
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-  template <typename Real_                         = Real,
-            enable_if_arithmetic_or_complex<Real_> = true>
   constexpr auto operator=(vec&& other) noexcept -> vec& {
     parent_t::operator=(std::move(other));
     return *this;

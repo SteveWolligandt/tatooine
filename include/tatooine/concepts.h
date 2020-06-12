@@ -2,7 +2,8 @@
 #define TATOOINE_CONCPETS_H
 //==============================================================================
 #include <concepts>
-#include "invocable_with_n_types.h"
+#include <tatooine/is_complex.h>
+#include <tatooine/invocable_with_n_types.h>
 //==============================================================================
 namespace tatooine {
 //==============================================================================
@@ -12,10 +13,19 @@ template <typename T>
 concept integral = std::integral<T>;
 //------------------------------------------------------------------------------
 template <typename T>
+concept signed_integral = std::signed_integral<T>;
+//------------------------------------------------------------------------------
+template <typename T>
+concept unsigned_integral = std::unsigned_integral<T>;
+//------------------------------------------------------------------------------
+template <typename T>
 concept floating_point = std::floating_point<T>;
 //------------------------------------------------------------------------------
 template <typename T>
-concept arithmetic = integral<T> || floating_point<T>;
+concept real_number = integral<T> || floating_point<T>;
+//------------------------------------------------------------------------------
+template <typename T>
+concept real_or_complex_number = real_number<T> || is_complex_v<T>;
 //------------------------------------------------------------------------------
 template <typename From, typename To>
 concept convertible_to = std::convertible_to<From, To>;
@@ -43,6 +53,11 @@ concept convertible_to_integral =
   convertible_to<From, unsigned long> ||
   convertible_to<From, long long> ||
   convertible_to<From, unsigned long long>;
+//------------------------------------------------------------------------------
+template <typename T>
+concept indexable = requires(T const t, std::size_t i) {
+  {t[i]};
+};
 //------------------------------------------------------------------------------
 template <typename T>
 concept indexable_space =

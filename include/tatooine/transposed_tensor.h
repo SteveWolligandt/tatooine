@@ -8,7 +8,7 @@ namespace tatooine {
 template <typename Tensor, size_t M, size_t N>
 struct const_transposed_tensor
     : base_tensor<const_transposed_tensor<Tensor, M, N>,
-                  typename Tensor::real_t, M, N> {
+                  typename Tensor::value_type, M, N> {
   //============================================================================
  private:
   const Tensor& m_internal_tensor;
@@ -16,7 +16,7 @@ struct const_transposed_tensor
   //============================================================================
  public:
   constexpr explicit const_transposed_tensor(
-      const base_tensor<Tensor, typename Tensor::real_t, N, M>& internal_tensor)
+      const base_tensor<Tensor, typename Tensor::value_type, N, M>& internal_tensor)
       : m_internal_tensor{internal_tensor.as_derived()} {}
   //----------------------------------------------------------------------------
   constexpr auto operator()(const size_t r, const size_t c) const -> const
@@ -34,7 +34,7 @@ struct const_transposed_tensor
 //==============================================================================
 template <typename Tensor, size_t M, size_t N>
 struct transposed_tensor : base_tensor<transposed_tensor<Tensor, M, N>,
-                                       typename Tensor::real_t, M, N> {
+                                       typename Tensor::value_type, M, N> {
   //============================================================================
  private:
   Tensor& m_internal_tensor;
@@ -42,7 +42,7 @@ struct transposed_tensor : base_tensor<transposed_tensor<Tensor, M, N>,
   //============================================================================
  public:
   constexpr explicit transposed_tensor(
-      base_tensor<Tensor, typename Tensor::real_t, N, M>& internal_tensor)
+      base_tensor<Tensor, typename Tensor::value_type, N, M>& internal_tensor)
       : m_internal_tensor{internal_tensor.as_derived()} {}
   //----------------------------------------------------------------------------
   constexpr auto operator()(const size_t r, const size_t c) const -> const
