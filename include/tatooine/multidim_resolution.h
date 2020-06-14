@@ -220,7 +220,7 @@ class dynamic_multidim_resolution {
   }
   //----------------------------------------------------------------------------
   constexpr auto in_range(integral auto... is) const {
-    assert(sizeof...(Is) == num_dimensions());
+    assert(sizeof...(is) == num_dimensions());
     constexpr size_t            N = sizeof...(is);
     const std::array<size_t, N> arr_is{static_cast<size_t>(is)...};
     for (size_t i = 0; i < N; ++i) {

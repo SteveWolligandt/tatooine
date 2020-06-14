@@ -30,6 +30,12 @@ constexpr auto ipow(integral auto const base, integral auto const exp) {
   for (std::decay_t<decltype(exp)> i = 0; i < exp; ++i) { p *= base; }
   return p;
 }
+//------------------------------------------------------------------------------
+template <integral Int>
+constexpr Int factorial(Int const i) {
+  if (i == 0) { return 1; }
+  return factorial(i - 1) * i;
+}
 //==============================================================================
 }  // namespace tatooine
 //==============================================================================

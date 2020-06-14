@@ -1,7 +1,8 @@
 #ifndef TATOOINE_TENSOR_CAST_H
 #define TATOOINE_TENSOR_CAST_H
 //==============================================================================
-#include <tatooine/tensor.h>
+#include <tatooine/mat.h>
+#include <tatooine/vec.h>
 //==============================================================================
 namespace tatooine {
 //==============================================================================

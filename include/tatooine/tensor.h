@@ -8,8 +8,14 @@
 #include <tatooine/base_tensor.h>
 #include "utility.h"
 #include "math.h"
+#include <tatooine/transposed_tensor.h>
 //==============================================================================
 namespace tatooine {
+//==============================================================================
+template <typename Tensor, size_t M, size_t N>
+struct const_transposed_tensor;
+template <typename Tensor, size_t M, size_t N>
+struct transposed_tensor;
 //==============================================================================
 template <real_or_complex_number T, size_t... Dims>
 struct tensor : base_tensor<tensor<T, Dims...>, T, Dims...>,  // NOLINT
@@ -78,6 +84,18 @@ struct tensor : base_tensor<tensor<T, Dims...>, T, Dims...>,  // NOLINT
   template <typename OtherTensor, real_or_complex_number OtherT>
   constexpr auto operator=(
       const base_tensor<OtherTensor, OtherT, Dims...>& other) -> tensor& {
+    // Check if the same matrix is assigned transposed. If yes just swap
+    // components.
+    if constexpr (is_transposed_tensor_v<OtherTensor>) {
+      if (this == &other.as_derived().internal_tensor()) {
+        for (size_t col = 0; col < dimension(1) - 1; ++col) {
+          for (size_t row = col + 1; row < dimension(0); ++row) {
+            std::swap(at(row, col), at(col, row));
+          }
+        }
+        return *this;
+      }
+    }
     this->assign_other_tensor(other);
     return *this;
   }

@@ -9,6 +9,8 @@ template <typename Tensor, size_t M, size_t N>
 struct const_transposed_tensor
     : base_tensor<const_transposed_tensor<Tensor, M, N>,
                   typename Tensor::value_type, M, N> {
+  static_assert(Tensor::dimension(0) == N);
+  static_assert(Tensor::dimension(1) == M);
   //============================================================================
  private:
   const Tensor& m_internal_tensor;
@@ -35,6 +37,8 @@ struct const_transposed_tensor
 template <typename Tensor, size_t M, size_t N>
 struct transposed_tensor : base_tensor<transposed_tensor<Tensor, M, N>,
                                        typename Tensor::value_type, M, N> {
+  static_assert(Tensor::dimension(0) == N);
+  static_assert(Tensor::dimension(1) == M);
   //============================================================================
  private:
   Tensor& m_internal_tensor;
@@ -69,37 +73,60 @@ struct transposed_tensor : base_tensor<transposed_tensor<Tensor, M, N>,
 
 //------------------------------------------------------------------------------
 template <typename Tensor, typename Real, size_t M, size_t N>
-auto transpose(const base_tensor<Tensor, Real, M, N>& t) {
+auto transposed(const base_tensor<Tensor, Real, M, N>& t) {
   return const_transposed_tensor{t};
 }
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 template <typename Tensor, typename Real, size_t M, size_t N>
-constexpr auto transpose(base_tensor<Tensor, Real, M, N>& t) {
+constexpr auto transposed(base_tensor<Tensor, Real, M, N>& t) {
   return transposed_tensor<Tensor, N, M>{t};
 }
 
 //------------------------------------------------------------------------------
 template <typename Tensor, typename Real, size_t M, size_t N>
-constexpr auto transpose(
+constexpr auto transposed(
     base_tensor<transposed_tensor<Tensor, M, N>, Real, M, N>& transposed_tensor)
     -> auto& {
   return transposed_tensor.as_derived().internal_tensor();
 }
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 template <typename Tensor, typename Real, size_t M, size_t N>
-constexpr auto transpose(const base_tensor<transposed_tensor<Tensor, M, N>,
+constexpr auto transposed(const base_tensor<transposed_tensor<Tensor, M, N>,
                                            Real, M, N>& transposed_tensor)
     -> const auto& {
   return transposed_tensor.as_derived().internal_tensor();
 }
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 template <typename Tensor, typename Real, size_t M, size_t N>
-constexpr auto transpose(
+constexpr auto transposed(
     const base_tensor<const_transposed_tensor<Tensor, M, N>, Real, M, N>&
         transposed_tensor) -> const auto& {
   return transposed_tensor.as_derived().internal_tensor();
 }
+//==============================================================================
+template <typename T>
+struct is_transposed_tensor : std::false_type {};
+//------------------------------------------------------------------------------
+template <typename T>
+static constexpr auto is_transposed_tensor_v = is_transposed_tensor<T>::value;
+//------------------------------------------------------------------------------
+template <typename Tensor, size_t M, size_t N>
+struct is_transposed_tensor<const_transposed_tensor<Tensor, M, N>>
+    : std::true_type {};
+//------------------------------------------------------------------------------
+template <typename Tensor, size_t M, size_t N>
+struct is_transposed_tensor<transposed_tensor<Tensor, M, N>>
+    : std::true_type {};
+//------------------------------------------------------------------------------
+template <typename Tensor, typename T, size_t M, size_t N>
+struct is_transposed_tensor<
+    base_tensor<transposed_tensor<Tensor, M, N>, T, M, N>> : std::true_type {};
+//------------------------------------------------------------------------------
+template <typename Tensor, typename T, size_t M, size_t N>
+struct is_transposed_tensor<
+    base_tensor<const_transposed_tensor<Tensor, M, N>, T, M, N>>
+    : std::true_type {};
 //==============================================================================
 }  // namespace tatooine
 //==============================================================================

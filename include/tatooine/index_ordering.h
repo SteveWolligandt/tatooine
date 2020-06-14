@@ -57,7 +57,7 @@ struct x_fastest {
   template <std::integral ResType>
   static constexpr auto plain_index(const std::vector<ResType>& resolution,
                                     integral auto... is) {
-    assert(resolution.size() == sizeof...(Is));
+    assert(resolution.size() == sizeof...(is));
     return plain_index(begin(resolution), is...);
   }
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -142,7 +142,7 @@ struct x_slowest {
   template <integral ResType>
   static constexpr auto plain_index(const std::vector<ResType>& resolution,
                                     integral auto... is) -> size_t {
-    assert(sizeof...(Is) == resolution.size());
+    assert(sizeof...(is) == resolution.size());
     return internal_plain_index(resolution, is...);
   }
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
