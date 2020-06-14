@@ -78,13 +78,15 @@ struct base_tensor : crtp<Tensor> {
   template <typename OtherTensor, typename OtherReal>
   constexpr void assign_other_tensor(
       const base_tensor<OtherTensor, OtherReal, Dims...>& other) {
-    for_indices([this, &other](const auto... is) { at(is...) = other(is...); });
+    for_indices([this, &other](const auto... is) {
+      at(is...) = other(is...);
+    });
   }
   //----------------------------------------------------------------------------
   template <typename... Is, enable_if_integral<Is...> = true>
   constexpr decltype(auto) at(const Is... is) const {
     static_assert(sizeof...(Is) == rank(),
-                  "number of indices does not match number of dimensions");
+                  "number of indices does not match rank");
     return as_derived().at(is...);
   }
 
@@ -92,7 +94,7 @@ struct base_tensor : crtp<Tensor> {
   template <typename... Is, enable_if_integral<Is...> = true>
   constexpr decltype(auto) at(const Is... is) {
     static_assert(sizeof...(Is) == rank(),
-                  "number of indices does not match number of dimensions");
+                  "number of indices does not match rank");
     return as_derived().at(is...);
   }
 
@@ -100,7 +102,7 @@ struct base_tensor : crtp<Tensor> {
   template <typename... Is, enable_if_integral<Is...> = true>
   constexpr decltype(auto) operator()(const Is... is) const {
     static_assert(sizeof...(Is) == rank(),
-                  "number of indices does not match number of dimensions");
+                  "number of indices does not match rank");
     return at(is...);
   }
 
@@ -108,7 +110,7 @@ struct base_tensor : crtp<Tensor> {
   template <typename... Is, enable_if_integral<Is...> = true>
   constexpr decltype(auto) operator()(const Is... is) {
     static_assert(sizeof...(Is) == rank(),
-                  "number of indices does not match number of dimensions");
+                  "number of indices does not match rank");
     return at(is...);
   }
 

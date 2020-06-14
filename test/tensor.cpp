@@ -556,6 +556,27 @@ TEST_CASE("tensor_inverse", "[tensor][inverse]") {
   }
 }
 //==============================================================================
+TEST_CASE("tensor_vandermonde_matrix", "[tensor][matrix][vander]") {
+  auto V0 = mat3::vander(1, 2, 3);
+  for (size_t i = 0; i < 3; ++i) { REQUIRE(V0(i, 0) == 1); }
+  REQUIRE(V0(0, 1) == 1);
+  REQUIRE(V0(1, 1) == 2);
+  REQUIRE(V0(2, 1) == 3);
+  REQUIRE(V0(0, 2) == 1);
+  REQUIRE(V0(1, 2) == 4);
+  REQUIRE(V0(2, 2) == 9);
+
+  auto V1 = mat5::vander(-2,-1,0,1,2);
+  std::cerr << V1 << '\n';
+  for (size_t i = 0; i < 5; ++i) { REQUIRE(V1(i, 0) == 1); }
+  //REQUIRE(V1(0, 1) == 1);
+  //REQUIRE(V1(1, 1) == 2);
+  //REQUIRE(V1(2, 1) == 3);
+  //REQUIRE(V1(0, 2) == 1);
+  //REQUIRE(V1(1, 2) == 4);
+  //REQUIRE(V1(2, 2) == 9);
+}
+//==============================================================================
 #if TATOOINE_GINAC_AVAILABLE
 //==============================================================================
 TEST_CASE("tensor_symbolic", "[tensor][symbolic]") {

@@ -9,6 +9,8 @@ template <typename Tensor, size_t M, size_t N>
 struct const_transposed_tensor
     : base_tensor<const_transposed_tensor<Tensor, M, N>,
                   typename Tensor::real_t, M, N> {
+  static_assert(Tensor::dimension(0) == N);
+  static_assert(Tensor::dimension(1) == M);
   //============================================================================
  private:
   const Tensor& m_internal_tensor;
@@ -35,6 +37,8 @@ struct const_transposed_tensor
 template <typename Tensor, size_t M, size_t N>
 struct transposed_tensor : base_tensor<transposed_tensor<Tensor, M, N>,
                                        typename Tensor::real_t, M, N> {
+  static_assert(Tensor::dimension(0) == N);
+  static_assert(Tensor::dimension(1) == M);
   //============================================================================
  private:
   Tensor& m_internal_tensor;
