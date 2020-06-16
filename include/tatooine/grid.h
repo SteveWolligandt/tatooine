@@ -43,12 +43,27 @@ class grid {
   using vertex_container = grid_vertex_container<Dimensions...>;
   // using edge            = grid_edge<real_t, num_dimensions()>;
   // using edge_iterator   = grid_edge_iterator<real_t, num_dimensions()>;
-  using seq_t = std::make_index_sequence<num_dimensions()>;
+  using seq_t                  = std::make_index_sequence<num_dimensions()>;
+
+  using vertex_property_base_t = multidim_property<this_t, num_dimensions()>;
+  template <typename T>
+  using typed_vertex_property_t =
+      typed_multidim_property<this_t, T, num_dimensions()>;
+  using vertex_property_ptr_t  = std::unique_ptr<vertex_property_base_t>;
+  using vertex_properties_container_t =
+      std::map<std::string, vertex_property_ptr_t>;
+  template <typename T, size_t ChunkRes>
+  using chunked_vertex_property_impl_t =
+      typed_multidim_property_impl<this_t, T, num_dimensions(),
+                                   chunked_data<T, num_dimensions(), ChunkRes>>;
+  template <typename T>
+  using contiguous_vertex_property_impl_t =
+        typed_multidim_property_impl<this_t, T, num_dimensions(), dynamic_multidim_array<T>>;
 
   //============================================================================
  private:
   std::tuple<std::decay_t<Dimensions>...> m_dimensions;
-  std::map<std::string, std::unique_ptr<multidim_property<num_dimensions()>>>
+  std::map<std::string, std::unique_ptr<vertex_property_base_t>>
       m_vertex_properties;
 
   //============================================================================
@@ -410,20 +425,16 @@ class grid {
   //----------------------------------------------------------------------------
  private:
   template <typename T, size_t... Seq>
-  auto add_vertex_property(std::string const& name,
-                                   std::index_sequence<Seq...>)
-      -> typed_multidim_property<T, num_dimensions()>& {
-        using container_t = dynamic_multidim_array<T>;
-        using prop_t = typed_multidim_property_impl<T, num_dimensions(), container_t>;
+  auto add_vertex_property(std::string const& name, std::index_sequence<Seq...>)
+      -> typed_vertex_property_t<T>& {
     if (auto it = m_vertex_properties.find(name);
         it == end(m_vertex_properties)) {
-      auto [newit, new_prop] =
-          m_vertex_properties.emplace(name, new prop_t{size<Seq>()...});
-      return *dynamic_cast<typed_multidim_property<T, num_dimensions()>*>(
-          newit->second.get());
+      auto [newit, new_prop] = m_vertex_properties.emplace(
+          name,
+          new contiguous_vertex_property_impl_t<T>{*this, size<Seq>()...});
+      return *dynamic_cast<typed_vertex_property_t<T>*>(newit->second.get());
     } else {
-      return *dynamic_cast<typed_multidim_property<T, num_dimensions()>*>(
-          it->second.get());
+      return *dynamic_cast<typed_vertex_property_t<T>*>(it->second.get());
     }
   }
   //----------------------------------------------------------------------------
@@ -435,21 +446,18 @@ class grid {
   }
   //----------------------------------------------------------------------------
  private:
-  template <typename T, size_t ChunkRes = 128, size_t... Seq>
+  template <typename T, size_t ChunkRes, size_t... Seq>
   auto add_chunked_vertex_property(std::string const& name,
                                    std::index_sequence<Seq...>)
-      -> typed_multidim_property<T, num_dimensions()>& {
-        using container_t = chunked_data<T, num_dimensions(), ChunkRes>;
-        using prop_t = typed_multidim_property_impl<T, num_dimensions(), container_t>;
+      -> typed_vertex_property_t<T>& {
     if (auto it = m_vertex_properties.find(name);
         it == end(m_vertex_properties)) {
-      auto [newit, new_prop] =
-          m_vertex_properties.emplace(name, new prop_t{size<Seq>()...});
-      return *dynamic_cast<typed_multidim_property<T, num_dimensions()>*>(
-          newit->second.get());
+      auto [newit, new_prop] = m_vertex_properties.emplace(
+          name, new chunked_vertex_property_impl_t<T, ChunkRes>{
+                    *this, size<Seq>()...});
+      return *dynamic_cast<typed_vertex_property_t<T>*>(newit->second.get());
     } else {
-      return *dynamic_cast<typed_multidim_property<T, num_dimensions()>*>(
-          it->second.get());
+      return *dynamic_cast<typed_vertex_property_t<T>*>(it->second.get());
     }
   }
   //----------------------------------------------------------------------------
@@ -472,7 +480,7 @@ class grid {
                                  ") does not match specified type " +
                                  demangle<T>() + "."};
       }
-      return *dynamic_cast<typed_multidim_property<T, num_dimensions()>*>(
+      return *dynamic_cast<typed_multidim_property<this_t, T, num_dimensions()>*>(
           it->second.get());
     }
   }
