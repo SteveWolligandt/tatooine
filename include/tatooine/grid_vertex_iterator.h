@@ -29,7 +29,7 @@ struct grid_vertex_iterator {
   //============================================================================
   template <size_t... Is>
   auto dereference(std::index_sequence<Is...> /*seq*/) const {
-    return m_grid->at(m_indices[Is]...);
+    return m_grid->vertex_at(m_indices[Is]...);
   }
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
   auto dereference() const {
@@ -57,7 +57,7 @@ struct grid_vertex_iterator {
     return increment(std::make_index_sequence<num_dimensions() - 1>{});
   }
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-  auto operator++() { return increment; }
+  auto operator++() { return increment(); }
   //--------------------------------------------------------------------------
   auto operator==(const grid_vertex_iterator& other) const {
     return m_indices == other.m_indices;

@@ -13,9 +13,9 @@ struct vec : tensor<T, N> {  // NOLINT
   using parent_t::parent_t;
   using parent_t::operator();
 
-  template <typename... Ts, size_t _Dim0 = parent_t::dimension(0),
+  template <real_or_complex_number... Ts, size_t _Dim0 = parent_t::dimension(0),
             std::enable_if_t<_Dim0 == sizeof...(Ts), bool> = true>
-  constexpr vec(const Ts&... ts) : parent_t{ts...} {}
+  constexpr vec(Ts const&... ts) : parent_t{ts...} {}
 
   using iterator = typename parent_t::array_parent_t::container_t::iterator;
   using const_iterator =

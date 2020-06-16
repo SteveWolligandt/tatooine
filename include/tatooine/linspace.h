@@ -38,32 +38,33 @@ struct linspace {
   // ctors
   //============================================================================
  public:
-  constexpr linspace() noexcept : m_min{0}, m_max{0}, m_size{0} {}
+  constexpr linspace() noexcept : m_min{Real(0)}, m_max{Real(0)}, m_size{0} {}
   //----------------------------------------------------------------------------
-  constexpr linspace(Real min, Real max, size_t size) noexcept
+  constexpr linspace(real_number auto min, real_number auto max,
+                     size_t size) noexcept
       : m_min{min}, m_max{max}, m_size{size} {}
   //----------------------------------------------------------------------------
   constexpr linspace(linspace const&)     = default;
   constexpr linspace(linspace&&) noexcept = default;
   //----------------------------------------------------------------------------
-  template <typename OtherReal>
+  template <real_number OtherReal>
   explicit constexpr linspace(linspace<OtherReal> const& other) noexcept
       : m_min{static_cast<Real>(other.front())},
         m_max{static_cast<Real>(other.back())},
         m_size{other.size()} {}
   //----------------------------------------------------------------------------
-  constexpr auto operator=(linspace<Real> const&) -> linspace& = default;
-  constexpr auto operator=(linspace<Real>&&) noexcept -> linspace& = default;
+  constexpr auto operator=(linspace const&) -> linspace& = default;
+  constexpr auto operator=(linspace&&) noexcept -> linspace& = default;
   //----------------------------------------------------------------------------
-  ~linspace() = default;
-  //----------------------------------------------------------------------------
-  template <typename OtherReal>
+  template <real_number OtherReal>
   constexpr auto operator=(linspace<OtherReal> const& other) noexcept -> auto& {
     m_min  = other.front();
     m_max  = other.back();
     m_size = other.size();
     return *this;
   }
+  //----------------------------------------------------------------------------
+  ~linspace() = default;
 
   //============================================================================
   // methods
@@ -75,8 +76,8 @@ struct linspace {
   //----------------------------------------------------------------------------
   constexpr auto operator[](size_t i) const { return at(i); }
   //----------------------------------------------------------------------------
-  constexpr auto begin() const { return iterator{this, 0}; }
-  constexpr auto end() const { return iterator{this, m_size}; }
+  constexpr auto begin() const { return const_iterator{this, 0}; }
+  constexpr auto end() const { return const_iterator{this, m_size}; }
   //----------------------------------------------------------------------------
   constexpr auto size() const { return m_size; }
   constexpr auto front() const { return m_min; }
@@ -89,7 +90,7 @@ struct linspace {
 template <real_number Real>
 struct linspace_iterator
     : boost::iterator_facade<linspace_iterator<Real>, Real,
-                             boost::bidirectional_traversal_tag, Real> {
+                             std::bidirectional_iterator_tag, Real> {
   //============================================================================
   // typedefs
   //============================================================================
@@ -99,23 +100,27 @@ struct linspace_iterator
   // members
   //============================================================================
  private:
-  linspace<Real> const* const m_lin;
-  size_t                      m_i;
+  linspace<Real> const* m_lin;
+  size_t                m_i;
 
   //============================================================================
   // ctors
   //============================================================================
  public:
+  linspace_iterator() : m_lin{nullptr}, m_i{0} {}
+  //----------------------------------------------------------------------------
   linspace_iterator(linspace<Real> const* const _lin, size_t _i)
       : m_lin{_lin}, m_i{_i} {}
   //----------------------------------------------------------------------------
   linspace_iterator(linspace_iterator const&)     = default;
   linspace_iterator(linspace_iterator&&) noexcept = default;
-  //----------------------------------------------------------------------------
-  auto operator             =(linspace_iterator const& other)
-      -> linspace_iterator& = default;
-  auto operator             =(linspace_iterator&& other) noexcept
-      -> linspace_iterator& = default;
+  //============================================================================
+  // assign operators
+  //============================================================================
+  auto operator=(linspace_iterator const& other)
+    -> linspace_iterator& = default;
+  auto operator=(linspace_iterator&& other) noexcept
+    -> linspace_iterator& = default;
   //----------------------------------------------------------------------------
   ~linspace_iterator() = default;
 

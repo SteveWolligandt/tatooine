@@ -3,24 +3,31 @@
 //==============================================================================
 namespace tatooine::test {
 //==============================================================================
-TEST_CASE("grid_vertex_indexing", "[grid][grid_vertex][indexing]") {
+TEST_CASE("grid_vertex_indexing", "[grid][vertex][indexing]") {
   std::array  dim0{0, 1, 2};
   std::vector dim1{0, 1, 2};
-  linspace    dim2{0.0, 1.0, 10};
+  linspace    dim2{0.0, 1.0, 11};
   grid        g{dim0, dim1, dim2};
-  //const auto v00 = g.vertex_at(0,0);
-  //const auto v11 = g.vertex_at(1,1);
-  //const auto v42 = g.vertex_at(4,2);
-  //
-  //REQUIRE(*v00[0] == 0);
-  //REQUIRE(*v00[1] == 0);
-  //REQUIRE(approx_equal(v00.position(), vec{0.0, 0.0}));
-  //REQUIRE(*v11[0] == 1);
-  //REQUIRE(*v11[1] == 1);
-  //REQUIRE(approx_equal(v11.position(), vec{1.0, 1.0}));
-  //REQUIRE(*v42[0] == 4);
-  //REQUIRE(*v42[1] == 2);
-  //REQUIRE(approx_equal(v42.position(), vec{4.0, 2.0}));
+  auto const  v000 = g.vertices().at(0, 0, 0);
+  auto const  v111 = g.vertex_at(1, 1, 1);
+  auto const  v221 = g.vertices().at(2, 2, 1);
+
+  REQUIRE(approx_equal(v000, vec{0.0, 0.0, 0.0}));
+  REQUIRE(approx_equal(v111, vec{1.0, 1.0, 0.1}));
+  REQUIRE(approx_equal(v221, vec{2.0, 2.0, 0.1}));
+}
+//==============================================================================
+TEST_CASE("grid_vertex_iterator", "[grid][vertex][iterator]") {
+  std::array  dim0{0, 1, 2};
+  std::vector dim1{0, 1, 2};
+  linspace    dim2{0.0, 2.0, 3};
+  grid        g{dim0, dim1, dim2};
+  auto        it = begin(vertices(g));
+  REQUIRE(approx_equal(*it, g(0, 0, 0)));
+  REQUIRE(approx_equal(*next(it), g(1, 0, 0)));
+  REQUIRE(approx_equal(*next(it, 3), g(0, 1, 0)));
+  REQUIRE(approx_equal(*next(it, 9), g(0, 0, 1)));
+  REQUIRE(next(it, 27) == end(vertices(g)));
 }
 //==============================================================================
 }  // namespace tatooine::test
