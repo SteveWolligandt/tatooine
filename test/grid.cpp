@@ -50,7 +50,7 @@ TEST_CASE("grid_chunked_vertex_property", "[grid][vertex][chunked][property]") {
   REQUIRE_THROWS(g.vertex_property<float>("v"));
 
   auto&       v_prop = g.add_vertex_property<float,
-                                               interpolation::linear,
+                                               interpolation::hermite,
                                                interpolation::linear,
                                                interpolation::linear>("v");
   REQUIRE(v_prop(0, 0, 0) == 0);

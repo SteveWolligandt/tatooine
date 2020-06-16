@@ -67,6 +67,14 @@ struct typed_multidim_property : multidim_property<Owner, N> {
                   "Number of indices does not match number of dimensions.");
     return at(std::array{static_cast<size_t>(is)...});
   }
+  //----------------------------------------------------------------------------
+  virtual auto sample(typename Owner::pos_t const&x) const -> T = 0;
+  auto sample(real_number auto... xs) const -> T {
+    static_assert(
+        sizeof...(xs) == N,
+        "Number of spatial components does not match number of dimensions.");
+    return sample(typename Owner::pos_t{xs...});
+  }
 };
 //==============================================================================
 template <typename Owner, typename T, size_t N, typename Container,
@@ -127,10 +135,8 @@ struct typed_multidim_property_impl
     return at(is, std::make_index_sequence<N>{});
   }
   //----------------------------------------------------------------------------
-  auto sample(real_number auto... xs) const -> T {
-    static_assert(
-        sizeof...(xs) == N,
-        "Number of spatial components does not match number of dimensions.");
+  auto sample(typename Owner::pos_t const& x) const -> T override {
+    return T{};
   }
 };
 //==============================================================================
