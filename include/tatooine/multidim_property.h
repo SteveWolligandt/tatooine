@@ -26,11 +26,10 @@ struct multidim_property {
   virtual auto clone() const -> std::unique_ptr<this_t> = 0;
 };
 //==============================================================================
-template <typename Owner, typename T, size_t N,
-          template <typename> typename... InterpolationKernels>
+template <typename Owner, typename T, size_t N>
 struct typed_multidim_property : multidim_property<Owner, N> {
   //============================================================================
-  using this_t   = typed_multidim_property<Owner, T, N, InterpolationKernels...>;
+  using this_t   = typed_multidim_property<Owner, T, N>;
   using parent_t = multidim_property<Owner, N>;
   //============================================================================
   typed_multidim_property(Owner const& owner) : parent_t{owner} {}
@@ -71,14 +70,15 @@ struct typed_multidim_property : multidim_property<Owner, N> {
 };
 //==============================================================================
 template <typename Owner, typename T, size_t N, typename Container,
-          template <typename> typename... InterpolationKernels>
+          typename... InterpolationKernels>
 struct typed_multidim_property_impl
-    : typed_multidim_property<Owner, T, N, InterpolationKernels...> {
+    : typed_multidim_property<Owner, T, N> {
   //============================================================================
-  using this_t = typed_multidim_property_impl<Owner, T, N, Container,
+  static_assert(Owner::num_dimensions() == sizeof...(InterpolationKernels));
+  //============================================================================
+  using this_t          = typed_multidim_property_impl<Owner, T, N, Container,
                                               InterpolationKernels...>;
-  using parent_t =
-      typed_multidim_property<Owner, T, N, InterpolationKernels...>;
+  using parent_t        = typed_multidim_property<Owner, T, N>;
   using property_base_t = typename parent_t::parent_t;
   using container_t = Container;
   //============================================================================

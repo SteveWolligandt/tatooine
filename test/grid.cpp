@@ -36,7 +36,7 @@ TEST_CASE("grid_chunked_vertex_property", "[grid][vertex][chunked][property]") {
   linspace    dim2{0.0, 2.0, 3};
   grid        g{dim0, dim1, dim2};
 
-  auto&       u_prop = g.add_chunked_vertex_property<double>("u");
+  auto& u_prop = g.add_chunked_vertex_property<double>("u");
   REQUIRE(u_prop(0, 0, 0) == 0);
   u_prop(0, 0, 0) = 1;
   REQUIRE(u_prop(0, 0, 0) == 1);
@@ -49,7 +49,10 @@ TEST_CASE("grid_chunked_vertex_property", "[grid][vertex][chunked][property]") {
   REQUIRE_THROWS(g.vertex_property<float>("u"));
   REQUIRE_THROWS(g.vertex_property<float>("v"));
 
-  auto&       v_prop = g.add_vertex_property<float>("v");
+  auto&       v_prop = g.add_vertex_property<float,
+                                               interpolation::linear,
+                                               interpolation::linear,
+                                               interpolation::linear>("v");
   REQUIRE(v_prop(0, 0, 0) == 0);
   v_prop(0, 0, 0) = 1;
   REQUIRE(v_prop(0, 0, 0) == 1);

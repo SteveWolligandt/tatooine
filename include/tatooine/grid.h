@@ -7,18 +7,16 @@
 #include <tatooine/concepts.h>
 #include <tatooine/vec.h>
 
-//#include <tatooine/grid_edge.h>
+#include <tatooine/interpolation.h>
+#include <tatooine/multidim_property.h>
 #include <tatooine/chunked_data.h>
+
 #include <tatooine/grid_vertex_container.h>
 #include <tatooine/grid_vertex_iterator.h>
-#include <tatooine/multidim_property.h>
 
-//#include <tatooine/grid_vertex_edges.h>
-//#include <tatooine/grid_vertex_neighbors.h>
 #include <tatooine/index_ordering.h>
 #include <tatooine/linspace.h>
 #include <tatooine/random.h>
-//#include <tatooine/subgrid.h>
 #include <tatooine/utility.h>
 
 #include <boost/range/adaptors.hpp>
@@ -52,13 +50,16 @@ class grid {
   using vertex_property_ptr_t  = std::unique_ptr<vertex_property_base_t>;
   using vertex_properties_container_t =
       std::map<std::string, vertex_property_ptr_t>;
-  template <typename T, size_t ChunkRes>
+  template <typename T, size_t ChunkRes, typename... InterpolationKernels>
   using chunked_vertex_property_impl_t =
       typed_multidim_property_impl<this_t, T, num_dimensions(),
-                                   chunked_data<T, num_dimensions(), ChunkRes>>;
-  template <typename T>
+                                   chunked_data<T, num_dimensions(), ChunkRes>,
+                                   InterpolationKernels...>;
+  template <typename T, typename... InterpolationKernels>
   using contiguous_vertex_property_impl_t =
-        typed_multidim_property_impl<this_t, T, num_dimensions(), dynamic_multidim_array<T>>;
+      typed_multidim_property_impl<this_t, T, num_dimensions(),
+                                   dynamic_multidim_array<T>,
+                                   InterpolationKernels...>;
 
   //============================================================================
  private:
@@ -424,14 +425,26 @@ class grid {
   // }
   //----------------------------------------------------------------------------
  private:
-  template <typename T, size_t... Seq>
+  template <typename T, template <typename> typename... InterpolationKernels,
+            size_t... Seq>
   auto add_vertex_property(std::string const& name, std::index_sequence<Seq...>)
       -> typed_vertex_property_t<T>& {
     if (auto it = m_vertex_properties.find(name);
         it == end(m_vertex_properties)) {
-      auto [newit, new_prop] = m_vertex_properties.emplace(
-          name,
-          new contiguous_vertex_property_impl_t<T>{*this, size<Seq>()...});
+      auto [newit, new_prop] = [&]() {
+        if constexpr (sizeof...(InterpolationKernels) == 0) {
+          using prop_t = contiguous_vertex_property_impl_t<
+              T, decltype(((void)Seq, interpolation::linear<T>{}))...>;
+          return m_vertex_properties.emplace(name,
+                                             new prop_t{*this, size<Seq>()...});
+        } else {
+          return m_vertex_properties.emplace(
+              name,
+              new contiguous_vertex_property_impl_t<T, InterpolationKernels<T>...>{
+                  *this, size<Seq>()...});
+        }
+      }();
+
       return *dynamic_cast<typed_vertex_property_t<T>*>(newit->second.get());
     } else {
       return *dynamic_cast<typed_vertex_property_t<T>*>(it->second.get());
@@ -439,22 +452,38 @@ class grid {
   }
   //----------------------------------------------------------------------------
  public:
-  template <typename T, size_t ChunkRes = 128>
+  template <typename T, template <typename> typename ... InterpolationKernels>
   auto add_vertex_property(std::string const& name) -> auto& {
-    return add_vertex_property<T>(
+    static_assert(
+        sizeof...(InterpolationKernels) == num_dimensions() ||
+            sizeof...(InterpolationKernels) == 0,
+        "Number of interpolation kernels does not match number of dimensions.");
+    return add_vertex_property<T, InterpolationKernels...>(
         name, std::make_index_sequence<num_dimensions()>{});
   }
   //----------------------------------------------------------------------------
  private:
-  template <typename T, size_t ChunkRes, size_t... Seq>
+  template <typename T, size_t ChunkRes,
+            template <typename> typename... InterpolationKernels, size_t... Seq>
   auto add_chunked_vertex_property(std::string const& name,
                                    std::index_sequence<Seq...>)
       -> typed_vertex_property_t<T>& {
     if (auto it = m_vertex_properties.find(name);
         it == end(m_vertex_properties)) {
-      auto [newit, new_prop] = m_vertex_properties.emplace(
-          name, new chunked_vertex_property_impl_t<T, ChunkRes>{
-                    *this, size<Seq>()...});
+      auto [newit, new_prop] = [&]() {
+        if constexpr (sizeof...(InterpolationKernels) == 0) {
+          using prop_t = chunked_vertex_property_impl_t<
+              T, ChunkRes,
+              decltype(((void)Seq, interpolation::linear<T>{}))...>;
+          return m_vertex_properties.emplace(name,
+                                             new prop_t{*this, size<Seq>()...});
+        } else {
+          return m_vertex_properties.emplace(
+              name, new chunked_vertex_property_impl_t<T, ChunkRes,
+                                                       InterpolationKernels<T>...>{
+                        *this, size<Seq>()...});
+        }
+      }();
       return *dynamic_cast<typed_vertex_property_t<T>*>(newit->second.get());
     } else {
       return *dynamic_cast<typed_vertex_property_t<T>*>(it->second.get());
@@ -462,9 +491,14 @@ class grid {
   }
   //----------------------------------------------------------------------------
  public:
-  template <typename T, size_t ChunkRes = 128>
+  template <typename T, size_t ChunkRes = 128,
+            template <typename> typename... InterpolationKernels>
   auto add_chunked_vertex_property(std::string const& name) -> auto& {
-    return add_chunked_vertex_property<T, ChunkRes>(
+    static_assert(
+        sizeof...(InterpolationKernels) == num_dimensions() ||
+            sizeof...(InterpolationKernels) == 0,
+        "Number of interpolation kernels does not match number of dimensions.");
+    return add_chunked_vertex_property<T, ChunkRes, InterpolationKernels...>(
         name, std::make_index_sequence<num_dimensions()>{});
   }
   //----------------------------------------------------------------------------
