@@ -2,12 +2,17 @@
 #define TATOOINE_GRID_H
 //==============================================================================
 #include <tatooine/algorithm.h>
+#include <tatooine/utility.h>
 #include <tatooine/boundingbox.h>
 #include <tatooine/concepts.h>
 #include <tatooine/vec.h>
+
 //#include <tatooine/grid_edge.h>
-#include <tatooine/grid_vertex_iterator.h>
+#include <tatooine/chunked_data.h>
 #include <tatooine/grid_vertex_container.h>
+#include <tatooine/grid_vertex_iterator.h>
+#include <tatooine/multidim_property.h>
+
 //#include <tatooine/grid_vertex_edges.h>
 //#include <tatooine/grid_vertex_neighbors.h>
 #include <tatooine/index_ordering.h>
@@ -19,6 +24,8 @@
 #include <boost/range/adaptors.hpp>
 #include <boost/range/algorithm.hpp>
 #include <cassert>
+#include <map>
+#include <memory>
 #include <set>
 #include <tuple>
 //==============================================================================
@@ -38,10 +45,11 @@ class grid {
   // using edge_iterator   = grid_edge_iterator<real_t, num_dimensions()>;
   using seq_t = std::make_index_sequence<num_dimensions()>;
 
-
   //============================================================================
  private:
   std::tuple<std::decay_t<Dimensions>...> m_dimensions;
+  std::map<std::string, std::unique_ptr<multidim_property<num_dimensions()>>>
+      m_vertex_properties;
 
   //============================================================================
  public:
@@ -399,6 +407,75 @@ class grid {
   //   grid<real_t, num_dimensions() - sizeof...(Omits)> reduced;
   //   return remove_dimension(reduced, 0, omits...);
   // }
+  //----------------------------------------------------------------------------
+ private:
+  template <typename T, size_t... Seq>
+  auto add_vertex_property(std::string const& name,
+                                   std::index_sequence<Seq...>)
+      -> typed_multidim_property<T, num_dimensions()>& {
+        using container_t = dynamic_multidim_array<T>;
+        using prop_t = typed_multidim_property_impl<T, num_dimensions(), container_t>;
+    if (auto it = m_vertex_properties.find(name);
+        it == end(m_vertex_properties)) {
+      auto [newit, new_prop] =
+          m_vertex_properties.emplace(name, new prop_t{size<Seq>()...});
+      return *dynamic_cast<typed_multidim_property<T, num_dimensions()>*>(
+          newit->second.get());
+    } else {
+      return *dynamic_cast<typed_multidim_property<T, num_dimensions()>*>(
+          it->second.get());
+    }
+  }
+  //----------------------------------------------------------------------------
+ public:
+  template <typename T, size_t ChunkRes = 128>
+  auto add_vertex_property(std::string const& name) -> auto& {
+    return add_vertex_property<T>(
+        name, std::make_index_sequence<num_dimensions()>{});
+  }
+  //----------------------------------------------------------------------------
+ private:
+  template <typename T, size_t ChunkRes = 128, size_t... Seq>
+  auto add_chunked_vertex_property(std::string const& name,
+                                   std::index_sequence<Seq...>)
+      -> typed_multidim_property<T, num_dimensions()>& {
+        using container_t = chunked_data<T, num_dimensions(), ChunkRes>;
+        using prop_t = typed_multidim_property_impl<T, num_dimensions(), container_t>;
+    if (auto it = m_vertex_properties.find(name);
+        it == end(m_vertex_properties)) {
+      auto [newit, new_prop] =
+          m_vertex_properties.emplace(name, new prop_t{size<Seq>()...});
+      return *dynamic_cast<typed_multidim_property<T, num_dimensions()>*>(
+          newit->second.get());
+    } else {
+      return *dynamic_cast<typed_multidim_property<T, num_dimensions()>*>(
+          it->second.get());
+    }
+  }
+  //----------------------------------------------------------------------------
+ public:
+  template <typename T, size_t ChunkRes = 128>
+  auto add_chunked_vertex_property(std::string const& name) -> auto& {
+    return add_chunked_vertex_property<T, ChunkRes>(
+        name, std::make_index_sequence<num_dimensions()>{});
+  }
+  //----------------------------------------------------------------------------
+  template <typename T>
+  auto vertex_property(std::string const& name) -> auto& {
+    if (auto it = m_vertex_properties.find(name);
+        it == end(m_vertex_properties)) {
+      throw std::runtime_error{"property \"" + name + "\" not found"};
+    } else {
+      if (typeid(T) != it->second->type()) {
+        throw std::runtime_error{"type of property \"" + name + "\"(" +
+                                 demangle(it->second->type().name()) +
+                                 ") does not match specified type " +
+                                 demangle<T>() + "."};
+      }
+      return *dynamic_cast<typed_multidim_property<T, num_dimensions()>*>(
+          it->second.get());
+    }
+  }
 };
 template <indexable_space... Dimensions>
 auto vertices(grid<Dimensions...> const& g) {

@@ -1,5 +1,12 @@
 #ifndef TATOOINE_CHUNKED_DATA_H
 #define TATOOINE_CHUNKED_DATA_H
+//==============================================================================
+#include <tatooine/concepts.h>
+#include <tatooine/functional.h>
+#include <tatooine/multidim_array.h>
+#include <tatooine/tensor.h>
+#include <tatooine/type_traits.h>
+#include <tatooine/utility.h>
 
 #include <array>
 #include <boost/range/algorithm.hpp>
@@ -11,13 +18,6 @@
 #include <random>
 #include <utility>
 #include <vector>
-
-#include "functional.h"
-#include "multidim_array.h"
-#include "tensor.h"
-#include "type_traits.h"
-#include "utility.h"
-
 //==============================================================================
 namespace tatooine {
 //==============================================================================
@@ -35,7 +35,6 @@ template <typename S, size_t N, size_t R>
 struct create_chunk_type {
   using T = decltype(create_chunk<S, N, R>());
 };
-
 //==============================================================================
 template <typename T, size_t N, size_t ChunkRes = 128>
 struct chunked_data {
@@ -48,17 +47,17 @@ struct chunked_data {
   //----------------------------------------------------------------------------
   dynamic_multidim_resolution<x_fastest> m_data_structure;
   dynamic_multidim_resolution<x_fastest> m_chunk_structure;
-  std::vector<std::unique_ptr<chunk_t>> m_chunks;
+  std::vector<std::unique_ptr<chunk_t>>  m_chunks;
+
  private:
   //============================================================================
   template <typename S, size_t... Is>
-  chunked_data(const std::array<S, N>& data_sizes)
+  chunked_data(std::array<S, N> const& data_sizes)
       : m_data_structure{data_sizes},
         m_chunk_structure{static_cast<size_t>(
             std::ceil(static_cast<double>(data_sizes(Is)) / ChunkRes))...},
-        m_chunks{std::accumulate(begin(this->sizes()),
-                                 end(this->sizes()), size_t(1),
-                                 std::multiplies<size_t>{})} {}
+        m_chunks{std::accumulate(begin(this->sizes()), end(this->sizes()),
+                                 size_t(1), std::multiplies<size_t>{})} {}
 
  public:
   //----------------------------------------------------------------------------
@@ -84,23 +83,22 @@ struct chunked_data {
         m_chunks{m_chunk_structure.num_elements()} {
     assert(data.size() == (static_cast<size_t>(sizes) * ...));
     size_t i = 0;
-    for (const auto& d : data) { (*this)[i++] = d; }
+    for (auto const& d : data) { (*this)[i++] = d; }
   }
 
   //----------------------------------------------------------------------------
  private:
   template <typename S, size_t... Is>
-  chunked_data(const std::array<S, N>& sizes,
-               std::index_sequence<Is...> /*is*/)
+  chunked_data(std::array<S, N> const& sizes, std::index_sequence<Is...> /*is*/)
       : chunked_data{sizes[Is]...} {}
 
  public:
-  template <typename S, enable_if_integral<S> = true>
-  chunked_data(const std::array<S, N>& sizes)
+  template <integral S>
+  chunked_data(std::array<S, N> const& sizes)
       : chunked_data{sizes, indices_t{}} {}
 
   //----------------------------------------------------------------------------
-  chunked_data(const chunked_data& other)
+  chunked_data(chunked_data const& other)
       : m_data_structure{other.m_data_structure},
         m_chunk_structure{other.m_chunk_structure},
         m_chunks(other.m_chunks.size()) {
@@ -108,7 +106,7 @@ struct chunked_data {
   }
 
   //----------------------------------------------------------------------------
-  chunked_data& operator=(const chunked_data& other) {
+  chunked_data& operator=(chunked_data const& other) {
     m_chunk_structure = other.m_chunk_structure;
     m_data_structure  = other.m_data_structure;
     copy_chunks(other);
@@ -119,91 +117,84 @@ struct chunked_data {
   chunked_data& operator=(chunked_data&& other) = default;
   //----------------------------------------------------------------------------
   template <typename Container>
-  auto& operator=(const Container& container) {
-    //assert(container.size() == m_data_structure.num_elements());
+  auto operator=(Container const& container) -> auto& {
+    // assert(container.size() == m_data_structure.num_elements());
     size_t i = 0;
-    for (const auto& d : container) { (*this)[i++] = d; }
+    for (auto const& d : container) { (*this)[i++] = d; }
     return *this;
   }
   //----------------------------------------------------------------------------
-  void copy_chunks(const chunked_data& other) {
+  auto copy_chunks(chunked_data const& other) -> void {
     auto chunk_it = begin(m_chunks);
-    for (const auto& chunk : other.m_chunks) {
+    for (auto const& chunk : other.m_chunks) {
       if (chunk) { *(chunk_it++) = std::make_unique<chunk_t>(*chunk); }
     }
   }
   //----------------------------------------------------------------------------
-  size_t num_elements() const { return m_data_structure.num_elements(); }
+  auto num_elements() const { return m_data_structure.num_elements(); }
   //----------------------------------------------------------------------------
-  const auto& size() const { return m_data_structure.size(); }
-  auto        size(size_t i) const { return m_data_structure.size(i); }
+  auto size() const -> auto const& { return m_data_structure.size(); }
+  auto size(size_t i) const { return m_data_structure.size(i); }
   //----------------------------------------------------------------------------
-  T& operator[](size_t global_idx) {
+  auto operator[](size_t global_idx) -> T& {
     assert(global_idx < m_data_structure.num_elements());
     return at(m_data_structure.multi_index(global_idx));
   }
-  T operator[](size_t global_idx) const {
+  auto operator[](size_t global_idx) const -> T const& {
     assert(global_idx < m_data_structure.num_elements());
     return at(m_data_structure.multi_index(global_idx));
   }
   //----------------------------------------------------------------------------
-  template <typename... Indices,
-            enable_if_integral<std::decay_t<Indices>...> = true>
-  T& operator()(Indices... indices) {
-    return at(indices...);
-  }
+  auto operator()(integral auto... indices) -> T& { return at(indices...); }
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-  template <typename... Indices,
-            enable_if_integral<std::decay_t<Indices>...> = true,
-            std::enable_if_t<sizeof...(Indices) == N>...>
-  T& at(Indices... indices) {
+  template <integral... Indices, std::enable_if_t<sizeof...(Indices) == N>...>
+  auto at(Indices... indices) -> T& {
     assert(m_data_structure.in_range(indices...));
     size_t gi = m_chunk_structure.plain_index((indices / ChunkRes)...);
     if (!m_chunks[gi]) { m_chunks[gi] = std::make_unique<chunk_t>(); }
     return m_chunks[gi]->at((indices % ChunkRes)...);
   }
   //----------------------------------------------------------------------------
-  template <typename... Indices,
-            enable_if_integral<std::decay_t<Indices>...> = true>
-  T at(Indices... indices) const {
-    assert(m_data_structure.in_range(std::forward<Indices>(indices)...));
+  auto at(integral auto... indices) const -> T const& {
+    assert(m_data_structure.in_range(indices...));
     size_t gi = m_chunk_structure.plain_index((indices / ChunkRes)...);
-    if (!m_chunks[gi]) { return T{}; }
+    if (!m_chunks[gi]) {
+      static constexpr T t{};
+      return t;
+    }
     return m_chunks[gi]->at((indices % ChunkRes)...);
   }
   //----------------------------------------------------------------------------
-  template <typename... Indices,
-            enable_if_integral<std::decay_t<Indices>...> = true>
-  T operator()(Indices... indices) const {
+  auto operator()(integral auto... indices) const -> T const& {
     return at(indices...);
   }
   //----------------------------------------------------------------------------
-  template <typename Tensor, typename S, enable_if_integral<S> = true>
-  T& at(const base_tensor<Tensor, S, N>& indices) {
+  template <typename Tensor, integral S>
+  auto at(base_tensor<Tensor, S, N> const& indices) -> T& {
     return invoke_unpacked(
-        [this](const auto... is) -> decltype(auto) { return at(is...); },
+        [this](auto const... is) -> decltype(auto) { return at(is...); },
         unpack(indices));
   }
   //----------------------------------------------------------------------------
-  template <typename Tensor, typename S, enable_if_integral<S> = true>
-  T& operator()(const base_tensor<Tensor, S, N>& indices) {
+  template <typename Tensor, integral S>
+  auto operator()(base_tensor<Tensor, S, N> const& indices) -> T& {
     return at(indices);
   }
   //----------------------------------------------------------------------------
-  template <typename S, enable_if_integral<S> = true>
-  T& operator()(const std::array<S, N>& indices) {
+  template <integral S>
+  auto operator()(std::array<S, N> const& indices) -> T& {
     return at(indices);
   }
   //----------------------------------------------------------------------------
-  template <typename S, enable_if_integral<S> = true>
-  T& at(const std::array<S, N>& indices) {
+  template <integral S>
+  auto at(std::array<S, N> const& indices) -> T& {
     return invoke_unpacked(
-        [this](const auto... is) -> decltype(auto) { return at(is...); },
+        [this](auto const... is) -> decltype(auto) { return at(is...); },
         unpack(indices));
   }
   //----------------------------------------------------------------------------
-  template <typename S, enable_if_integral<S> = true>
-  T& at(const std::vector<S>& indices) {
+  template <integral S>
+  auto at(std::vector<S> const& indices) -> T& {
     assert(N == indices.size());
     assert(m_data_structure.in_range(indices));
     auto global_is = indices;
@@ -215,8 +206,8 @@ struct chunked_data {
     return m_chunks[gi]->at(local_is);
   }
   //----------------------------------------------------------------------------
-  template <typename S, enable_if_integral<S> = true>
-  auto at(const std::vector<S>& indices) const {
+  template <integral S>
+  auto at(std::vector<S> const& indices) const {
     assert(N == indices.size());
     assert(m_data_structure.in_range(indices));
     auto global_is = indices;
@@ -228,34 +219,32 @@ struct chunked_data {
     return m_chunks[gi]->at(local_is);
   }
   //----------------------------------------------------------------------------
-  template <typename S, enable_if_integral<S> = true>
-  T operator()(const std::array<S, N>& indices) const {
+  template <integral S>
+  auto operator()(std::array<S, N> const& indices) const -> T const& {
     return at(indices);
   }
 
   //----------------------------------------------------------------------------
-  template <typename S, enable_if_integral<S> = true>
-  T at(const std::array<S, N>& indices) const {
+  template <integral S>
+  auto at(std::array<S, N> const& indices) const -> T const& {
     return invoke_unpacked(
-        [this](const auto... is) -> decltype(auto) { return at(is...); },
+        [this](auto const... is) -> decltype(auto) { return at(is...); },
         unpack(indices));
   }
 
   //----------------------------------------------------------------------------
-  template <typename... Sizes, size_t... Is,
-            enable_if_integral<std::decay_t<Sizes>...>    = true,
+  template <integral... Sizes,
             std::enable_if_t<sizeof...(Sizes) == N, bool> = true>
-  void resize(Sizes&&... sizes) {
+  auto resize(Sizes... sizes) -> void {
     return resize(indices_t{}, std::forward<Sizes>(sizes)...);
   }
-
   //----------------------------------------------------------------------------
-  template <typename... Sizes, size_t... Is,
-            enable_if_integral<std::decay_t<Sizes>...>    = true,
+  template <integral... Sizes, size_t... Is,
             std::enable_if_t<sizeof...(Sizes) == N, bool> = true>
-  void resize(std::index_sequence<Is...> /*is*/, Sizes&&... sizes) {
-    dynamic_multidim_resolution<x_fastest> new_chunk_structure{static_cast<size_t>(
-        std::ceil(static_cast<double>(sizes) / ChunkRes))...};
+  auto resize(std::index_sequence<Is...> /*is*/, Sizes&&... sizes) -> void {
+    dynamic_multidim_resolution<x_fastest> new_chunk_structure{
+        static_cast<size_t>(
+            std::ceil(static_cast<double>(sizes) / ChunkRes))...};
     std::vector<std::unique_ptr<chunk_t>> new_chunks(
         new_chunk_structure.num_elements());
 
@@ -278,8 +267,8 @@ struct chunked_data {
   //----------------------------------------------------------------------------
   template <typename _T = T, enable_if_tensor<_T> = true>
   auto unchunk_plain() const {
-    using real_t = typename T::real_t;
-    constexpr auto n = T::num_components();
+    using real_t          = typename T::real_t;
+    constexpr auto      n = T::num_components();
     std::vector<real_t> data;
     data.reserve(num_elements() * n);
     for (size_t i = 0; i < num_elements(); ++i) {
@@ -290,9 +279,9 @@ struct chunked_data {
   //----------------------------------------------------------------------------
   template <typename RandomEngine = std::mt19937_64, typename _T = T,
             enable_if_arithmetic<_T>...>
-  void randu(T min = 0, T max = 1,
+  auto randu(T min = 0, T max = 1,
              RandomEngine&& random_engine = RandomEngine{
-                 std::random_device{}()}) {
+                 std::random_device{}()}) -> void {
     for (auto& chunk : m_chunks) {
       if (!chunk) { chunk = std::make_unique<chunk_t>(); }
       chunk->randu(min, max, std::forward<RandomEngine>(random_engine));
@@ -302,7 +291,7 @@ struct chunked_data {
   template <typename _T = T, enable_if_arithmetic<_T>...>
   auto min_value() const {
     T min = std::numeric_limits<T>::max();
-    for (const auto& chunk : m_chunks) {
+    for (auto const& chunk : m_chunks) {
       if (chunk) { min = std::min(min, *chunk->min_element()); }
     }
     return min;
@@ -311,7 +300,7 @@ struct chunked_data {
   template <typename _T = T, enable_if_arithmetic<_T>...>
   auto max_value() const {
     T max = -std::numeric_limits<T>::max();
-    for (const auto& chunk : m_chunks) {
+    for (auto const& chunk : m_chunks) {
       if (chunk) { max = std::max(max, *chunk->max_element()); }
     }
     return max;
@@ -322,10 +311,10 @@ struct chunked_data {
     std::pair minmax{std::numeric_limits<T>::max(),
                      -std::numeric_limits<T>::max()};
     auto& [min, max] = minmax;
-    for (const auto& chunk : m_chunks) {
+    for (auto const& chunk : m_chunks) {
       if (chunk) {
         auto [chunkmin, chunkmax] = chunk->minmax_element();
-         if (!std::isinf(*chunkmin) && !std::isnan(*chunkmin)) {
+        if (!std::isinf(*chunkmin) && !std::isnan(*chunkmin)) {
           min = std::min(min, *chunkmin);
         }
         if (!std::isinf(*chunkmax) && !std::isnan(*chunkmax)) {
@@ -337,11 +326,11 @@ struct chunked_data {
   }
 
   template <typename _T = T, enable_if_arithmetic<_T>...>
-  void normalize() {
+  auto normalize() -> void {
     auto [min, max] = minmax_value();
     auto normalizer = 1.0 / (max - min);
 
-    for (const auto& chunk : m_chunks) {
+    for (auto const& chunk : m_chunks) {
       if (chunk) {
         for (auto& val : *chunk) { val = (val - min) * normalizer; }
       }

@@ -30,5 +30,38 @@ TEST_CASE("grid_vertex_iterator", "[grid][vertex][iterator]") {
   REQUIRE(next(it, 27) == end(vertices(g)));
 }
 //==============================================================================
+TEST_CASE("grid_chunked_vertex_property", "[grid][vertex][chunked][property]") {
+  std::array  dim0{0, 1, 2};
+  std::vector dim1{0, 1, 2};
+  linspace    dim2{0.0, 2.0, 3};
+  grid        g{dim0, dim1, dim2};
+
+  auto&       u_prop = g.add_chunked_vertex_property<double>("u");
+  REQUIRE(u_prop(0, 0, 0) == 0);
+  u_prop(0, 0, 0) = 1;
+  REQUIRE(u_prop(0, 0, 0) == 1);
+
+  REQUIRE(u_prop(0, 1, 2) == 0);
+  u_prop(0, 1, 2) = 3;
+  REQUIRE(u_prop(0, 1, 2) == 3);
+
+  REQUIRE_NOTHROW(g.vertex_property<double>("u"));
+  REQUIRE_THROWS(g.vertex_property<float>("u"));
+  REQUIRE_THROWS(g.vertex_property<float>("v"));
+
+  auto&       v_prop = g.add_vertex_property<float>("v");
+  REQUIRE(v_prop(0, 0, 0) == 0);
+  v_prop(0, 0, 0) = 1;
+  REQUIRE(v_prop(0, 0, 0) == 1);
+
+  REQUIRE(v_prop(0, 1, 2) == 0);
+  v_prop(0, 1, 2) = 3;
+  REQUIRE(v_prop(0, 1, 2) == 3);
+
+  REQUIRE_NOTHROW(g.vertex_property<double>("u"));
+  REQUIRE_NOTHROW(g.vertex_property<float>("v"));
+  REQUIRE_THROWS(g.vertex_property<double>("v"));
+}
+//==============================================================================
 }  // namespace tatooine::test
 //==============================================================================

@@ -15,7 +15,6 @@
 //==============================================================================
 namespace tatooine {
 //==============================================================================
-
 template <typename T, typename Indexing, typename MemLoc, size_t... Resolution>
 class static_multidim_array
     : public static_multidim_resolution<Indexing, Resolution...> {
