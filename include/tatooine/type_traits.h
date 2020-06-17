@@ -44,6 +44,11 @@ struct promote;
 template <typename... Ts>
 using promote_t = typename promote<Ts...>::type;
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+template <typename T>
+struct promote<T> {
+  using type = std::decay_t<T>;
+};
+// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 template <typename T0, typename T1>
 struct promote<T0, T1> {
   using type =

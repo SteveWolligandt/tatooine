@@ -30,7 +30,7 @@ template <typename Real, size_t N, typename Data,
 struct grid_sampler;
 
 //==============================================================================
-template <typename Real, size_t N, typename Data, typename top_grid_t,
+template <typename Real, size_t N, typename Data, typename TopGrid,
           template <typename> typename HeadInterpolator,
           template <typename> typename... TailInterpolators>
 struct grid_sampler_view;
@@ -901,40 +901,40 @@ struct grid_sampler
 };
 
 //==============================================================================
-/// holds an object of type top_grid_t which can either be
+/// holds an object of type TopGrid which can either be
 /// grid_sampler or grid_sampler_view and a fixed index of the top
 /// grid_sampler
-template <typename Real, size_t N, typename Data, typename top_grid_t,
+template <typename Real, size_t N, typename Data, typename TopGrid,
           template <typename> typename HeadInterpolator,
           template <typename> typename... TailInterpolators>
 struct grid_sampler_view
     : base_grid_sampler<
-          grid_sampler_view<Real, N, Data, top_grid_t, HeadInterpolator,
+          grid_sampler_view<Real, N, Data, TopGrid, HeadInterpolator,
                             TailInterpolators...>,
           Real, N, Data, HeadInterpolator, TailInterpolators...> {
   using parent_t = base_grid_sampler<
-      grid_sampler_view<Real, N, Data, top_grid_t, HeadInterpolator,
+      grid_sampler_view<Real, N, Data, TopGrid, HeadInterpolator,
                         TailInterpolators...>,
       Real, N, Data, HeadInterpolator, TailInterpolators...>;
 
-  top_grid_t* top_grid;
+  TopGrid* top_grid;
   size_t      fixed_index;
 
   //----------------------------------------------------------------------------
 
   template <size_t... Is>
-  grid_sampler_view(top_grid_t* _top_grid, size_t _fixed_index,
+  grid_sampler_view(TopGrid* _top_grid, size_t _fixed_index,
                     std::index_sequence<Is...> /*is*/)
       : parent_t{_top_grid->dimension(Is + 1)...},
         top_grid{_top_grid},
         fixed_index{_fixed_index} {}
 
-  grid_sampler_view(top_grid_t* _top_grid, size_t _fixed_index)
+  grid_sampler_view(TopGrid* _top_grid, size_t _fixed_index)
       : grid_sampler_view{_top_grid, _fixed_index,
                           std::make_index_sequence<N>{}} {}
   //----------------------------------------------------------------------------
   /// returns data of top grid at fixed_index and index list is...
-  template <typename T = top_grid_t, typename... Is,
+  template <typename T = TopGrid, typename... Is,
             std::enable_if_t<!std::is_const_v<T>, bool> = true,
             enable_if_integral<Is...>                   = true>
   Data& data(Is... is) {

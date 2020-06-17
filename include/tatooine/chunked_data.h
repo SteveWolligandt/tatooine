@@ -39,7 +39,8 @@ struct create_chunk_type {
 template <typename T, size_t N, size_t ChunkRes = 128>
 struct chunked_data {
   //============================================================================
-  using this_t    = chunked_data<T, N, ChunkRes>;
+  using value_type = T;
+  using this_t     = chunked_data<T, N, ChunkRes>;
   using chunk_t   = typename create_chunk_type<T, N, ChunkRes>::T;
   using indices_t = std::make_index_sequence<N>;
   //----------------------------------------------------------------------------

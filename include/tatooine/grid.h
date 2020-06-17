@@ -1,30 +1,24 @@
 #ifndef TATOOINE_GRID_H
 #define TATOOINE_GRID_H
 //==============================================================================
-#include <tatooine/algorithm.h>
 #include <tatooine/utility.h>
 #include <tatooine/boundingbox.h>
 #include <tatooine/concepts.h>
 #include <tatooine/vec.h>
 
 #include <tatooine/interpolation.h>
-#include <tatooine/multidim_property.h>
+#include <tatooine/sampler.h>
 #include <tatooine/chunked_data.h>
 
 #include <tatooine/grid_vertex_container.h>
 #include <tatooine/grid_vertex_iterator.h>
 
-#include <tatooine/index_ordering.h>
 #include <tatooine/linspace.h>
 #include <tatooine/random.h>
 #include <tatooine/utility.h>
 
-#include <boost/range/adaptors.hpp>
-#include <boost/range/algorithm.hpp>
-#include <cassert>
 #include <map>
 #include <memory>
-#include <set>
 #include <tuple>
 //==============================================================================
 namespace tatooine {
@@ -43,23 +37,22 @@ class grid {
   // using edge_iterator   = grid_edge_iterator<real_t, num_dimensions()>;
   using seq_t                  = std::make_index_sequence<num_dimensions()>;
 
-  using vertex_property_base_t = multidim_property<this_t, num_dimensions()>;
+  using vertex_property_base_t = multidim_property<this_t>;
   template <typename T>
-  using typed_vertex_property_t =
-      typed_multidim_property<this_t, T, num_dimensions()>;
-  using vertex_property_ptr_t  = std::unique_ptr<vertex_property_base_t>;
+  using typed_vertex_property_t = typed_multidim_property<this_t, T>;
+  using vertex_property_ptr_t   = std::unique_ptr<vertex_property_base_t>;
   using vertex_properties_container_t =
       std::map<std::string, vertex_property_ptr_t>;
   template <typename T, size_t ChunkRes, typename... InterpolationKernels>
-  using chunked_vertex_property_impl_t =
-      typed_multidim_property_impl<this_t, T, num_dimensions(),
-                                   chunked_data<T, num_dimensions(), ChunkRes>,
-                                   InterpolationKernels...>;
+  using chunked_sampler_t =
+      sampler<this_t, chunked_data<T, num_dimensions(), ChunkRes>,
+              InterpolationKernels...>;
   template <typename T, typename... InterpolationKernels>
-  using contiguous_vertex_property_impl_t =
-      typed_multidim_property_impl<this_t, T, num_dimensions(),
-                                   dynamic_multidim_array<T>,
-                                   InterpolationKernels...>;
+  using contiguous_sampler_t =
+      sampler<this_t, dynamic_multidim_array<T>, InterpolationKernels...>;
+
+  template <typename T>
+  using default_interpolation_kernel_t = interpolation::linear<T>;
 
   //============================================================================
  private:
@@ -433,14 +426,14 @@ class grid {
         it == end(m_vertex_properties)) {
       auto [newit, new_prop] = [&]() {
         if constexpr (sizeof...(InterpolationKernels) == 0) {
-          using prop_t = contiguous_vertex_property_impl_t<
-              T, decltype(((void)Seq, interpolation::linear<T>{}))...>;
+          using prop_t = contiguous_sampler_t<
+              T, decltype(((void)Seq, default_interpolation_kernel_t<T>{}))...>;
           return m_vertex_properties.emplace(name,
                                              new prop_t{*this, size<Seq>()...});
         } else {
           return m_vertex_properties.emplace(
               name,
-              new contiguous_vertex_property_impl_t<T, InterpolationKernels<T>...>{
+              new contiguous_sampler_t<T, InterpolationKernels<T>...>{
                   *this, size<Seq>()...});
         }
       }();
@@ -472,16 +465,16 @@ class grid {
         it == end(m_vertex_properties)) {
       auto [newit, new_prop] = [&]() {
         if constexpr (sizeof...(InterpolationKernels) == 0) {
-          using prop_t = chunked_vertex_property_impl_t<
+          using prop_t = chunked_sampler_t<
               T, ChunkRes,
-              decltype(((void)Seq, interpolation::linear<T>{}))...>;
+              decltype(((void)Seq, default_interpolation_kernel_t<T>{}))...>;
           return m_vertex_properties.emplace(name,
                                              new prop_t{*this, size<Seq>()...});
         } else {
           return m_vertex_properties.emplace(
-              name, new chunked_vertex_property_impl_t<T, ChunkRes,
-                                                       InterpolationKernels<T>...>{
-                        *this, size<Seq>()...});
+              name,
+              new chunked_sampler_t<T, ChunkRes, InterpolationKernels<T>...>{
+                  *this, size<Seq>()...});
         }
       }();
       return *dynamic_cast<typed_vertex_property_t<T>*>(newit->second.get());
@@ -514,8 +507,7 @@ class grid {
                                  ") does not match specified type " +
                                  demangle<T>() + "."};
       }
-      return *dynamic_cast<typed_multidim_property<this_t, T, num_dimensions()>*>(
-          it->second.get());
+      return *dynamic_cast<typed_vertex_property_t<T>*>(it->second.get());
     }
   }
 };

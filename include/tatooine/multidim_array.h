@@ -29,8 +29,9 @@ class static_multidim_array
   // typedefs
   //============================================================================
  public:
-  using this_t   = static_multidim_array<T, Indexing, MemLoc, Resolution...>;
-  using parent_t = static_multidim_resolution<Indexing, Resolution...>;
+  using value_type = T;
+  using this_t     = static_multidim_array<T, Indexing, MemLoc, Resolution...>;
+  using parent_t   = static_multidim_resolution<Indexing, Resolution...>;
   using parent_t::in_range;
   using parent_t::indices;
   using parent_t::num_dimensions;
@@ -272,8 +273,9 @@ class dynamic_multidim_array : public dynamic_multidim_resolution<Indexing> {
   // typedefs
   //============================================================================
  public:
-  using this_t   = dynamic_multidim_array<T, Indexing>;
-  using parent_t = dynamic_multidim_resolution<Indexing>;
+  using value_type = T;
+  using this_t     = dynamic_multidim_array<T, Indexing>;
+  using parent_t   = dynamic_multidim_resolution<Indexing>;
   using parent_t::in_range;
   using parent_t::indices;
   using parent_t::num_dimensions;
