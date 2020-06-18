@@ -73,6 +73,12 @@ struct base_sampler : crtp<Sampler> {
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
   auto grid() const -> auto const& { return as_derived().grid(); }
   //----------------------------------------------------------------------------
+  auto position_at(integral auto... is) const {
+    static_assert(sizeof...(is) == num_dimensions(),
+                  "Number of indices does not match number of dimensions.");
+    return grid().vertex_at(is...);
+  }
+  //----------------------------------------------------------------------------
   /// data at specified indices is...
   /// CRTP-virtual method
   decltype(auto) data_at(integral auto... is) {
@@ -92,7 +98,7 @@ struct base_sampler : crtp<Sampler> {
   /// indexing of data.
   /// if num_dimensions() == 1 returns actual data otherwise returns a
   /// sampler_view with i as fixed index
-  decltype(auto) at(size_t i) {
+  auto at(size_t i) -> decltype(auto) {
     if constexpr (num_dimensions() > 1) {
       return indexing_t{this, i};
     } else {
@@ -100,16 +106,20 @@ struct base_sampler : crtp<Sampler> {
     }
   }
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+  auto operator[](size_t i) -> decltype(auto) { return at(i); }
+  // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
   /// indexing of data.
   /// if num_dimensions() == 1 returns actual data otherwise returns a
   /// sampler_view with i as fixed index
-  auto at(size_t i) const {
+  auto at(size_t i) const -> decltype(auto) {
     if constexpr (num_dimensions() > 1) {
       return const_indexing_t{this, i};
     } else {
       return data_at(i);
     }
   }
+  // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+  auto operator[](size_t i) const -> decltype(auto) { return at(i); }
   //----------------------------------------------------------------------------
   /// recursive sampling by interpolating using HeadInterpolationKernel
   constexpr auto sample(real_number auto x, real_number auto... xs) const {

@@ -131,6 +131,57 @@ TEST_CASE("grid_sample_2d_linear", "[grid][sampler][2d][linear]") {
   REQUIRE(u_prop.sample(0.41, 0.11) == Approx(5.3));
 }
 //==============================================================================
+TEST_CASE("grid_finite_differences_coefficients", "[grid][finite_differences]") {
+  std::array dim{0.0, 0.1, 0.5, 0.9, 1.0};
+  grid     g{dim};
+  using prop_value_type = double;
+
+  std::string const prop_name = "u";
+  auto&             u_prop =
+      g.add_vertex_property<prop_value_type>(prop_name);
+  auto [i0, coeffs0]= u_prop.stencil_coefficients<0, 3>(0, 1);
+  REQUIRE(i0 == 0);
+  REQUIRE(coeffs0(0) == Approx(-12.0));
+  REQUIRE(coeffs0(1) == Approx(12.5));
+  REQUIRE(coeffs0(2) == Approx(-0.5));
+  auto [i1, coeffs1] = u_prop.stencil_coefficients<0, 3>(1, 1);
+  REQUIRE(i1 == 0);
+  REQUIRE(coeffs1(0) == Approx(-8.0));
+  REQUIRE(coeffs1(1) == Approx(7.5));
+  REQUIRE(coeffs1(2) == Approx(0.5));
+  auto [i2, coeffs2] = u_prop.stencil_coefficients<0, 3>(2, 1);
+  REQUIRE(i2 == 1);
+  REQUIRE(coeffs2(0) == Approx(-5.0/4));
+  REQUIRE(coeffs2(1) == Approx(0));
+  REQUIRE(coeffs2(2) == Approx(5.0/4));
+  auto [i3, coeffs3] = u_prop.stencil_coefficients<0, 3>(3, 1);
+  REQUIRE(i3 == 2);
+  REQUIRE(coeffs3(0) == Approx(-0.5));
+  REQUIRE(coeffs3(1) == Approx(-7.5));
+  REQUIRE(coeffs3(2) == Approx(8));
+  auto [i4, coeffs4] = u_prop.stencil_coefficients<0, 3>(4, 1);
+  REQUIRE(i4 == 2);
+  REQUIRE(coeffs4(0) == Approx(0.5));
+  REQUIRE(coeffs4(1) == Approx(-12.5));
+  REQUIRE(coeffs4(2) == Approx(12));
+}
+//==============================================================================
+TEST_CASE("grid_diff", "[grid][diff]") {
+  std::array dim{0.0, 0.1, 0.5, 0.9, 1.0};
+  grid     g{dim};
+  using prop_value_type = double;
+
+  std::string const prop_name = "u";
+  auto&             u_prop =
+      g.add_vertex_property<prop_value_type>(prop_name);
+  u_prop.data_at(0) = 0;
+  u_prop.data_at(1) = 0.1;
+  u_prop.data_at(2) = 0.5;
+  u_prop.data_at(3) = 0.9;
+  u_prop.data_at(4) = 1;
+  REQUIRE(u_prop.diff<0, 3>(1,0) == Approx(1));
+}
+//==============================================================================
 //TEST_CASE("grid_sample_1d_hermite", "[grid][sampler][1d][hermite]") {
 //  linspace dim{0.0, 1.0, 11};
 //  grid     g{dim};

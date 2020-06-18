@@ -403,34 +403,6 @@ class grid {
     return add_dimension(
         std::forward<AdditionalDimension>(additional_dimension), seq_t{});
   }
-
-  // //----------------------------------------------------------------------------
-  // private:
-  //  template <size_t ReducedN>
-  //  auto& remove_dimension(grid<real_t, ReducedN>& reduced, size_t [>i<])
-  //  const {
-  //    return reduced;
-  //  }
-  // // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-  // - -
-  //  template <size_t ReducedN, integral... Omits>
-  //  auto& remove_dimension(grid<real_t, ReducedN>& reduced, size_t i, size_t
-  //  omit,
-  //                        Omits... omits) const {
-  //    if (i != omit) {
-  //      reduced.dimension(i) = m_dimensions[i];
-  //      ++i;
-  //    }
-  //    return remove_dimension<ReducedN, Omits...>(reduced, i, omits...);
-  //  }
-  // // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-  // - -
-  // public:
-  // template <integral... Omits>
-  // auto remove_dimension(Omits... omits) const {
-  //   grid<real_t, num_dimensions() - sizeof...(Omits)> reduced;
-  //   return remove_dimension(reduced, 0, omits...);
-  // }
   //----------------------------------------------------------------------------
  private:
   template <typename T, template <typename> typename... InterpolationKernels,

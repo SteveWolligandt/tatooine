@@ -1,13 +1,10 @@
-#ifndef __TATOOINE_TEMPLATE_HELPER_H__
-#define __TATOOINE_TEMPLATE_HELPER_H__
-
+#ifndef TATOOINE_TEMPLATE_HELPER_H
+#define TATOOINE_TEMPLATE_HELPER_H
+//==============================================================================
 #include <type_traits>
-
 //==============================================================================
-namespace tatooine {
-namespace template_helper {
+namespace tatooine::template_helper {
 //==============================================================================
-
 template <typename T, typename... Ts>
 struct front_t {
   using type = T;
@@ -104,9 +101,7 @@ template <typename... Ts>
 inline auto flip() {
   return flip_t<Ts...>::flip();
 }
-
 //==============================================================================
-
 template <typename... Ts>
 struct all_same_t;
 
@@ -123,10 +118,7 @@ struct all_same_t<T0, T1, Ts...> {
 
 template <typename... Ts>
 static constexpr bool all_same = all_same_t<Ts...>::value;
-
 //==============================================================================
-}  // namespace template_helper
-}  // namespace tatooine
+}  // namespace tatooine::template_helper
 //==============================================================================
-
 #endif

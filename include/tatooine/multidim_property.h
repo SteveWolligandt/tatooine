@@ -2,6 +2,7 @@
 #define TATOOINE_MULTIDIM_PROPERTY_H
 //==============================================================================
 #include <tatooine/concepts.h>
+#include <tatooine/finite_differences_coefficients.h>
 //==============================================================================
 namespace tatooine {
 //==============================================================================
@@ -68,11 +69,63 @@ struct typed_multidim_property : multidim_property<Grid> {
   }
   //----------------------------------------------------------------------------
   virtual auto sample(typename Grid::pos_t const& x) const -> T = 0;
+  // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
   auto         sample(real_number auto... xs) const -> T {
     static_assert(
         sizeof...(xs) == Grid::num_dimensions(),
         "Number of spatial components does not match number of dimensions.");
     return sample(typename Grid::pos_t{xs...});
+  }
+  //----------------------------------------------------------------------------
+  //template <floating_point Real, size_t DimIndex, size_t StencilSize>
+  //auto stencil_coefficients(linspace<Real> const& dim,
+  //                          integral auto const        i,
+  //                          integral auto const        num_diffs) {
+  //}
+  //----------------------------------------------------------------------------
+  template <size_t DimIndex, size_t StencilSize>
+  auto stencil_coefficients(indexable_space auto const& dim, size_t const i,
+            unsigned int const num_diffs) const {
+    assert(num_diffs < StencilSize &&
+           "Number of differentiations must be smaller thant stencil size");
+    assert(StencilSize <= dim.size());
+    size_t left_index  = std::max<long>(0, i - StencilSize / 2);
+    left_index         = std::min<long>(left_index, dim.size() - StencilSize);
+
+    vec<double, StencilSize> stencil;
+    for (size_t j = 0; j < StencilSize; ++j) {
+      stencil(j) = dim[left_index+j] - dim[i];
+    }
+    return std::pair{left_index,
+                     finite_differences_coefficients(num_diffs, stencil)};
+  }
+  //----------------------------------------------------------------------------
+  template <size_t DimIndex, size_t StencilSize>
+  auto stencil_coefficients(size_t const i,
+                            unsigned int const num_diffs) const {
+    return stencil_coefficients<DimIndex, StencilSize>(
+        this->grid().template dimension<DimIndex>(), i, num_diffs);
+  }
+  //----------------------------------------------------------------------------
+  template <size_t DimIndex, size_t StencilSize>
+  auto diff(unsigned int const                   num_diffs,
+            std::array<size_t, num_dimensions()> is) const -> T {
+    auto const [first_idx, coeffs] =
+        stencil_coefficients<DimIndex, StencilSize>(is[DimIndex], num_diffs);
+    value_type d{};
+    is[DimIndex] = first_idx;
+    for (size_t i = 0; i < StencilSize; ++i, ++is[DimIndex]) {
+      if (coeffs(i) != 0) { d += coeffs(i) * data_at(is); }
+    }
+    return d;
+  }
+  //----------------------------------------------------------------------------
+  template <size_t DimIndex, size_t StencilSize>
+  auto diff(unsigned int const num_diffs ,integral auto... is) const {
+    static_assert(sizeof...(is) == num_dimensions(),
+                  "Number of indices does not match number of dimensions.");
+    return diff<DimIndex, StencilSize>(num_diffs,
+                                       std::array{static_cast<size_t>(is)...});
   }
 };
 //==============================================================================
