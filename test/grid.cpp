@@ -108,7 +108,7 @@ TEST_CASE("grid_sample_1d_linear", "[grid][sampler][1d][linear]") {
   using prop_value_type = double;
 
   std::string const prop_name = "u";
-  auto&             u_prop = g.add_vertex_property<prop_value_type>(prop_name);
+  auto&             u_prop = g.add_vertex_property<prop_value_type, interpolation::linear>(prop_name);
   u_prop.data_at(4) = 5;
   u_prop.data_at(5) = 6;
   REQUIRE(u_prop.sample(0.41) == 5.1);
@@ -118,17 +118,32 @@ TEST_CASE("grid_sample_2d_linear", "[grid][sampler][2d][linear]") {
   linspace dim1{0.0, 1.0, 11};
   linspace dim2{0.0, 1.0, 11};
   grid     g{dim1, dim2};
-  using grid_t = decltype(g);
   using prop_value_type = double;
 
   std::string const prop_name = "u";
-  auto&             u_prop = g.add_chunked_vertex_property<prop_value_type>(prop_name);
-  u_prop.data_at(4,1) = 5;
-  u_prop.data_at(5,1) = 6;
-  u_prop.data_at(4,2) = 7;
-  u_prop.data_at(5,2) = 8;
+  auto&             u_prop =
+      g.add_chunked_vertex_property<prop_value_type, 16, interpolation::linear,
+                                    interpolation::linear>(prop_name);
+  u_prop.data_at(4, 1) = 5;
+  u_prop.data_at(5, 1) = 6;
+  u_prop.data_at(4, 2) = 7;
+  u_prop.data_at(5, 2) = 8;
   REQUIRE(u_prop.sample(0.41, 0.11) == Approx(5.3));
 }
+//==============================================================================
+//TEST_CASE("grid_sample_1d_hermite", "[grid][sampler][1d][hermite]") {
+//  linspace dim{0.0, 1.0, 11};
+//  grid     g{dim};
+//  using prop_value_type = double;
+//
+//  std::string const prop_name = "u";
+//  auto&             u_prop =
+//      g.add_vertex_property<prop_value_type, interpolation::hermite>(prop_name);
+//  u_prop.data_at(4) = 5;
+//  u_prop.data_at(5) = 6;
+//  REQUIRE(u_prop.sample(0.45) > 4);
+//  REQUIRE(u_prop.sample(0.45) < 5);
+//}
 //==============================================================================
 }  // namespace tatooine::test
 //==============================================================================

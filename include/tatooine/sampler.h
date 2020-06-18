@@ -132,25 +132,16 @@ struct base_sampler : crtp<Sampler> {
                   "Number of coordinates does not match number of dimensions.");
     auto const [i, t] =
         grid().template cell_index<current_dimension_index()>(x);
-    // if (begin() + i + 1 == end()) {
-    //  if constexpr (HeadInterpolationKernel::needs_first_derivative) {
-    //    // return HeadInterpolationKernel::from_iterators(begin() + i, begin()
-    //    + i,
-    //    // begin(), end(), t, xs...);
-    //  } else {
-    //    return HeadInterpolationKernel::from_iterators(begin() + i, begin() +
-    //    i, t,
-    //                                            xs...);
-    //  }
-    //}
-    // if constexpr (HeadInterpolationKernel::needs_first_derivative) {
-    //  // return HeadInterpolationKernel::from_iterators(begin() + i, begin() +
-    //  i + 1,
-    //  // begin(), end(), t, xs...);
-    //} else {
-    return HeadInterpolationKernel::from_iterators(begin() + i, begin() + i + 1,
-                                                   t, xs...);
-    //}
+    if constexpr (!HeadInterpolationKernel::needs_first_derivative) {
+      if constexpr (num_dimensions() > 1) {
+        return HeadInterpolationKernel::interpolate(at(i).sample(xs...),
+                                                    at(i + 1).sample(xs...), t);
+      } else {
+        return HeadInterpolationKernel::interpolate(at(i), at(i + 1), t);
+      }
+    } else {
+
+    }
   }
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
   template <real_number Real>

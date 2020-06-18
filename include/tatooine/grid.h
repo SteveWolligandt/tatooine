@@ -1,21 +1,17 @@
 #ifndef TATOOINE_GRID_H
 #define TATOOINE_GRID_H
 //==============================================================================
-#include <tatooine/utility.h>
 #include <tatooine/boundingbox.h>
-#include <tatooine/concepts.h>
-#include <tatooine/vec.h>
-
-#include <tatooine/interpolation.h>
-#include <tatooine/sampler.h>
 #include <tatooine/chunked_data.h>
-
+#include <tatooine/concepts.h>
 #include <tatooine/grid_vertex_container.h>
 #include <tatooine/grid_vertex_iterator.h>
-
+#include <tatooine/interpolation.h>
 #include <tatooine/linspace.h>
 #include <tatooine/random.h>
+#include <tatooine/sampler.h>
 #include <tatooine/utility.h>
+#include <tatooine/vec.h>
 
 #include <map>
 #include <memory>
@@ -36,7 +32,6 @@ class grid {
   // using edge            = grid_edge<real_t, num_dimensions()>;
   // using edge_iterator   = grid_edge_iterator<real_t, num_dimensions()>;
   using seq_t                  = std::make_index_sequence<num_dimensions()>;
-
   using vertex_property_base_t = multidim_property<this_t>;
   template <typename T>
   using typed_vertex_property_t = typed_multidim_property<this_t, T>;
@@ -59,7 +54,6 @@ class grid {
   std::tuple<std::decay_t<Dimensions>...> m_dimensions;
   std::map<std::string, std::unique_ptr<vertex_property_base_t>>
       m_vertex_properties;
-
   //============================================================================
  public:
   constexpr grid()                      = default;
@@ -70,8 +64,8 @@ class grid {
   explicit constexpr grid(_Dimensions&&... dimensions)
       : m_dimensions{std::forward<Dimensions>(dimensions)...} {
     static_assert(sizeof...(Dimensions) == num_dimensions(),
-                  "number of given dimensions does not match number of "
-                  "specified dimensions");
+                  "Number of given dimensions does not match number of "
+                  "specified dimensions.");
   }
   //----------------------------------------------------------------------------
  private:
@@ -222,7 +216,7 @@ class grid {
       auto const pos =
           (x - dim.front()) / (dim.back() - dim.front()) * (size() - 1);
       auto const quantized_pos = static_cast<size_t>(std::floor(pos));
-      return {quantized_pos, pos-quantized_pos};
+      return {quantized_pos, pos - quantized_pos};
     } else {
       // binary search
       size_t left  = 0;
@@ -249,7 +243,7 @@ class grid {
   }
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
   auto cell_index(floating_point auto... xs) const {
-    return cell_index(std::make_index_sequence<num_dimensions()>{}, xs...);
+    return cell_index(seq_t{}, xs...);
   }
   //----------------------------------------------------------------------------
  private:
@@ -453,9 +447,8 @@ class grid {
                                              new prop_t{*this, size<Seq>()...});
         } else {
           return m_vertex_properties.emplace(
-              name,
-              new contiguous_sampler_t<T, InterpolationKernels<T>...>{
-                  *this, size<Seq>()...});
+              name, new contiguous_sampler_t<T, InterpolationKernels<T>...>{
+                        *this, size<Seq>()...});
         }
       }();
 
@@ -466,14 +459,13 @@ class grid {
   }
   //----------------------------------------------------------------------------
  public:
-  template <typename T, template <typename> typename ... InterpolationKernels>
+  template <typename T, template <typename> typename... InterpolationKernels>
   auto add_vertex_property(std::string const& name) -> auto& {
     static_assert(
         sizeof...(InterpolationKernels) == num_dimensions() ||
             sizeof...(InterpolationKernels) == 0,
         "Number of interpolation kernels does not match number of dimensions.");
-    return add_vertex_property<T, InterpolationKernels...>(
-        name, std::make_index_sequence<num_dimensions()>{});
+    return add_vertex_property<T, InterpolationKernels...>(name, seq_t{});
   }
   //----------------------------------------------------------------------------
  private:
@@ -513,7 +505,7 @@ class grid {
             sizeof...(InterpolationKernels) == 0,
         "Number of interpolation kernels does not match number of dimensions.");
     return add_chunked_vertex_property<T, ChunkRes, InterpolationKernels...>(
-        name, std::make_index_sequence<num_dimensions()>{});
+        name, seq_t{});
   }
   //----------------------------------------------------------------------------
   template <typename T>
@@ -567,5 +559,4 @@ auto operator+(AdditionalDimension&&      additional_dimension,
 //==============================================================================
 }  // namespace tatooine
 //==============================================================================
-
 #endif

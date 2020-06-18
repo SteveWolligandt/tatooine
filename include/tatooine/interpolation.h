@@ -33,22 +33,9 @@ struct linear {
   //----------------------------------------------------------------------------
   // factories
   //----------------------------------------------------------------------------
-  constexpr static Real interpolate_via_2_values(Real a, Real b, Real t) {
+  constexpr static Real interpolate(Real a, Real b, Real t) {
     return a * (1 - t) + b * t;
   }
-  //----------------------------------------------------------------------------
-  template <typename Iterator>
-  static constexpr Real from_iterators(Iterator A, Iterator B, Real t) {
-    return interpolate_via_2_values(*A, *B, t);
-  }
-  //----------------------------------------------------------------------------
-  template <typename Iterator, typename... Xs>
-  static constexpr Real from_iterators(Iterator A, Iterator B, Real t, Real x,
-                                       Xs&&... xs) {
-    return interpolate_via_2_values((*A).sample(x, std::forward<Xs>(xs)...),
-                                    (*B).sample(x, std::forward<Xs>(xs)...), t);
-  }
-
   //----------------------------------------------------------------------------
   // members
   //----------------------------------------------------------------------------
@@ -100,23 +87,9 @@ struct linear<tensor<Real, N>> {
   //----------------------------------------------------------------------------
   // factories
   //----------------------------------------------------------------------------
-  constexpr static vec_t interpolate_via_2_values(const vec_t& a,
-                                                  const vec_t& b, Real t) {
+  constexpr static vec_t interpolate(const vec_t& a, const vec_t& b, Real t) {
     return a * (1 - t) + b * t;
   }
-  //----------------------------------------------------------------------------
-  template <typename Iterator>
-  static constexpr vec_t from_iterators(Iterator A, Iterator B, Real t) {
-    return interpolate_via_2_values(*A, *B, t);
-  }
-  //----------------------------------------------------------------------------
-  template <typename Iterator, typename... Xs>
-  static constexpr vec_t from_iterators(Iterator A, Iterator B, Real t, Real x,
-                                        Xs&&... xs) {
-    return interpolate_via_2_values((*A).sample(x, std::forward<Xs>(xs)...),
-                                    (*B).sample(x, std::forward<Xs>(xs)...), t);
-  }
-
   //----------------------------------------------------------------------------
   // members
   //----------------------------------------------------------------------------
@@ -178,56 +151,14 @@ struct hermite {
   //----------------------------------------------------------------------------
   // factories
   //----------------------------------------------------------------------------
-  static constexpr Real interpolate_via_4_values(const Real& A, const Real& B,
-                                                 const Real& C, const Real& D,
-                                                 Real t) noexcept {
+  static constexpr Real interpolate(const Real& A, const Real& B, const Real& C,
+                                    const Real& D, Real t) noexcept {
     auto a = B;
     auto b = (C - A) * 0.5;
     auto c = -(D - 4.0 * C + (5.0 * B) - 2.0 * A) * 0.5;
     auto d = (D - (3.0 * C) + (3.0 * B) - A) * 0.5;
     return a + b * t + c * t * t + d * t * t * t;
   }
-  //----------------------------------------------------------------------------
-  /// hermite interpolation using iterators and border treatment from
-  /// "Cubic Convolution Interpolation for Digital Image Processing" Robert G.
-  /// Keys
-  template <typename Iterator>
-  static constexpr Real from_iterators(Iterator A, Iterator B, Iterator begin,
-                                       Iterator end, Real t) {
-    if (A == B) { return *A; }
-    if (t == 0) { return *A; }
-    if (t == 1) { return *B; }
-    const auto left  = *A;
-    const auto right = *B;
-
-    const auto pre_left =
-        A == begin ? 3 * left - 3 * right + *next(B) : *prev(A);
-    const auto post_right =
-        B == prev(end) ? 3 * right - 3 * left + *prev(A) : *next(B);
-    return interpolate_via_4_values(pre_left, left, right, post_right, t);
-  }
-  //----------------------------------------------------------------------------
-  /// hermite interpolation using iterators and border treatment from
-  /// "Cubic Convolution Interpolation for Digital Image Processing" Robert G.
-  /// Keys for multidimensional interpolations
-  template <typename Iterator, typename... Xs>
-  static constexpr Real from_iterators(Iterator A, Iterator B, Iterator begin,
-                                       Iterator end, Real t, Real x,
-                                       Xs&&... xs) {
-    const auto left  = (*A).sample(x, std::forward<Xs>(xs)...);
-    const auto right = (*B).sample(x, std::forward<Xs>(xs)...);
-
-    const auto pre_left =
-        A == begin ? 3 * left - 3 * right +
-                         (*next(B)).sample(x, std::forward<Xs>(xs)...)
-                   : (*prev(A)).sample(x, std::forward<Xs>(xs)...);
-    const auto post_right =
-        B == prev(end) ? 3 * right - 3 * left +
-                             (*prev(A)).sample(x, std::forward<Xs>(xs)...)
-                       : (*next(B)).sample(x, std::forward<Xs>(xs)...);
-    return interpolate_via_4_values(pre_left, left, right, post_right, t);
-  }
-
   //----------------------------------------------------------------------------
   // members
   //----------------------------------------------------------------------------
