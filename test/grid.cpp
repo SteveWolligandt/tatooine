@@ -166,20 +166,23 @@ TEST_CASE("grid_finite_differences_coefficients", "[grid][finite_differences]") 
   REQUIRE(coeffs4(2) == Approx(12));
 }
 //==============================================================================
-TEST_CASE("grid_diff", "[grid][diff]") {
+TEST_CASE("grid_diff", "[grid][sample][1d][hermite]") {
   std::array dim{0.0, 0.1, 0.5, 0.9, 1.0};
-  grid     g{dim};
+  grid       g{dim};
   using prop_value_type = double;
 
   std::string const prop_name = "u";
   auto&             u_prop =
-      g.add_vertex_property<prop_value_type>(prop_name);
+      g.add_vertex_property<prop_value_type, interpolation::hermite>(prop_name);
   u_prop.data_at(0) = 0;
-  u_prop.data_at(1) = 0.1;
-  u_prop.data_at(2) = 0.5;
-  u_prop.data_at(3) = 0.9;
-  u_prop.data_at(4) = 1;
-  REQUIRE(u_prop.diff<0, 3>(1,0) == Approx(1));
+  u_prop.data_at(1) = 1;
+  u_prop.data_at(2) = 2;
+  u_prop.data_at(3) = 3;
+  u_prop.data_at(4) = 4;
+  for (auto const t : linspace{0.0, 1.0, 21}) {
+    std::cerr << u_prop.sample(t) << ' ';
+  }
+  std::cerr << '\n';
 }
 //==============================================================================
 //TEST_CASE("grid_sample_1d_hermite", "[grid][sampler][1d][hermite]") {

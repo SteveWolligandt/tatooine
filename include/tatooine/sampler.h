@@ -53,6 +53,12 @@ struct base_sampler : crtp<Sampler> {
   static constexpr auto num_dimensions() {
     return sizeof...(TailInterpolationKernels) + 1;
   }
+  static_assert(
+      (num_dimensions() > 1 &&
+       !HeadInterpolationKernel::needs_first_derivative) ||
+          num_dimensions() == 1,
+      "Interpolation kernels that need first derivative are currently "
+      "not supported. Sorry :(");
   //----------------------------------------------------------------------------
   // typedefs
   //----------------------------------------------------------------------------
@@ -121,6 +127,20 @@ struct base_sampler : crtp<Sampler> {
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
   auto operator[](size_t i) const -> decltype(auto) { return at(i); }
   //----------------------------------------------------------------------------
+  template <size_t DimIndex, size_t StencilSize>
+  auto diff_at(unsigned int num_diffs, integral auto const... is) -> decltype(auto) {
+    static_assert(sizeof...(is) == num_dimensions(),
+                  "Number of indices is not equal to number of dimensions.");
+    return as_derived().template diff_at<DimIndex, StencilSize>(num_diffs, is...);
+  }
+  // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+  template <size_t DimIndex, size_t StencilSize>
+  auto diff_at(unsigned int num_diffs, integral auto const... is) const -> decltype(auto) {
+    static_assert(sizeof...(is) == num_dimensions(),
+                  "Number of indices is not equal to number of dimensions.");
+    return as_derived().template diff_at<DimIndex, StencilSize>(num_diffs, is...);
+  }
+  //----------------------------------------------------------------------------
   /// recursive sampling by interpolating using HeadInterpolationKernel
   constexpr auto sample(real_number auto x, real_number auto... xs) const {
     static_assert(sizeof...(xs) + 1 == num_dimensions(),
@@ -135,7 +155,23 @@ struct base_sampler : crtp<Sampler> {
         return HeadInterpolationKernel::interpolate(at(i), at(i + 1), t);
       }
     } else {
-
+      if constexpr (num_dimensions() > 1) {
+        // TODO implement
+        // return HeadInterpolationKernel{at(i).sample(xs...),
+        //                               at(i + 1).sample(xs...),
+        //                               diff_at<current_dimension_index(),
+        //                               3>(i, .....),
+        //                               diff_at<current_dimension_index(),
+        //                               3>(i+1, .....)}(t);
+      } else {
+        auto const& dim =
+            grid().template dimension<current_dimension_index()>();
+        return HeadInterpolationKernel{
+            dim[i], dim[i + 1],
+            at(i), at(i + 1),
+            diff_at<current_dimension_index(), 3>(1, i),
+            diff_at<current_dimension_index(), 3>(1, i + 1)}(x);
+      }
     }
   }
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -230,6 +266,23 @@ struct sampler
     return data_at(is, std::make_index_sequence<num_dimensions()>{});
   }
   //----------------------------------------------------------------------------
+  template <size_t DimIndex, size_t StencilSize>
+  auto diff_at(unsigned int num_diffs, integral auto const... is) -> decltype(auto) {
+    static_assert(sizeof...(is) == num_dimensions(),
+                  "Number of indices is not equal to number of dimensions.");
+    return property_parent_t::template diff_at<DimIndex, StencilSize>(num_diffs,
+                                                                      is...);
+  }
+  // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+  template <size_t DimIndex, size_t StencilSize>
+  auto diff_at(unsigned int num_diffs, integral auto const... is) const
+      -> decltype(auto) {
+    static_assert(sizeof...(is) == num_dimensions(),
+                  "Number of indices is not equal to number of dimensions.");
+    return property_parent_t::template diff_at<DimIndex, StencilSize>(num_diffs,
+                                                                      is...);
+  }
+  //----------------------------------------------------------------------------
   auto sample(typename Grid::pos_t const& x) const -> value_type override {
     return base_sampler_parent_t::sample(x);
   }
@@ -278,6 +331,25 @@ struct sampler_view
     static_assert(sizeof...(is) == num_dimensions(),
                   "Number of indices is not equal to number of dimensions.");
     return m_top_sampler->data_at(m_fixed_index, is...);
+  }
+  //----------------------------------------------------------------------------
+  template <size_t DimIndex, size_t StencilSize,
+            typename _TopSampler                                  = TopSampler,
+            std::enable_if_t<!std::is_const_v<_TopSampler>, bool> = true>
+  auto diff_at(unsigned int num_diffs, integral auto... is) -> decltype(auto) {
+    static_assert(sizeof...(is) == num_dimensions(),
+                  "Number of indices is not equal to number of dimensions.");
+    return m_top_sampler->template diff_at<DimIndex + 1, StencilSize>(
+        num_diffs, m_fixed_index, is...);
+  }
+  // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+  template <size_t DimIndex, size_t StencilSize>
+  auto diff_at(unsigned int num_diffs, integral auto... is) const
+      -> decltype(auto) {
+    static_assert(sizeof...(is) == num_dimensions(),
+                  "Number of indices is not equal to number of dimensions.");
+    return m_top_sampler->template diff_at<DimIndex + 1, StencilSize>(
+        num_diffs, m_fixed_index, is...);
   }
 };
 //==============================================================================

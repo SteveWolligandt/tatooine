@@ -1,6 +1,7 @@
 #ifndef TATOOINE_INTERPOLATION_H
 #define TATOOINE_INTERPOLATION_H
 //==============================================================================
+#include <tatooine/concepts.h>
 #include <cassert>
 #include <cmath>
 #include <iostream>
@@ -51,9 +52,9 @@ struct linear {
   constexpr linear& operator=(const linear&) = default;
   constexpr linear& operator=(linear&&) = default;
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-  constexpr linear(const Real& fx0, const Real& fx1)
+  constexpr linear(const Real& ft0, const Real& ft1)
       : m_polynomial{0, 0} {
-    vec<Real, 2> b{fx0, fx1};
+    vec<Real, 2> b{ft0, ft1};
     m_polynomial.set_coefficients((A * b).data());
   }
 
@@ -104,10 +105,10 @@ struct linear<tensor<Real, N>> {
   constexpr linear& operator=(const linear&) = default;
   constexpr linear& operator=(linear&&) = default;
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-  constexpr linear(const vec_t& fx0, const vec_t& fx1) {
+  constexpr linear(const vec_t& ft0, const vec_t& ft1) {
     mat<Real, 2, N> B;
-    B.row(0) = fx0;
-    B.row(1) = fx1;
+    B.row(0) = ft0;
+    B.row(1) = ft1;
     auto C   = A * B;
     for (size_t i = 0; i < N; ++i) {
       m_curve.polynomial(i).set_coefficients(C(0, i), C(1, i));
@@ -128,7 +129,7 @@ struct linear<vec<Real, N>> : linear<tensor<Real, N>> {
   using linear<tensor<Real, N>>::linear;
 };
 //==============================================================================
-template <typename Real>
+template <floating_point Real>
 struct hermite {
   //----------------------------------------------------------------------------
   // traits
@@ -149,17 +150,6 @@ struct hermite {
                                      {-3,  3, -2, -1},
                                      { 2, -2,  1,  1}};
   //----------------------------------------------------------------------------
-  // factories
-  //----------------------------------------------------------------------------
-  static constexpr Real interpolate(const Real& A, const Real& B, const Real& C,
-                                    const Real& D, Real t) noexcept {
-    auto a = B;
-    auto b = (C - A) * 0.5;
-    auto c = -(D - 4.0 * C + (5.0 * B) - 2.0 * A) * 0.5;
-    auto d = (D - (3.0 * C) + (3.0 * B) - A) * 0.5;
-    return a + b * t + c * t * t + d * t * t * t;
-  }
-  //----------------------------------------------------------------------------
   // members
   //----------------------------------------------------------------------------
  public:
@@ -174,10 +164,22 @@ struct hermite {
   constexpr hermite& operator=(const hermite&) = default;
   constexpr hermite& operator=(hermite&&) = default;
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-  constexpr hermite(const Real& fx0, const Real& fx1, const Real& fx0dx,
-                    const Real& fx1dx)
+  constexpr hermite(Real const t0,   Real const t1,
+                    Real const ft0,  Real const ft1,
+                    Real const ft0dt,Real const ft1dt)
       : m_polynomial{0, 0, 0, 0} {
-    vec<Real, 4> b{fx0, fx1, fx0dx, fx1dx};
+    mat<Real, 4, 4> const A {{1.0,  t0, t0 * t0, t0 * t0 * t0},
+                             {1.0,  t1, t1 * t1, t1 * t1 * t1},
+                             {0.0, 1.0,  2 * t0,  3 * t0 * t0},
+                             {0.0, 1.0,  2 * t1,  3 * t1 * t1}};
+    vec<Real, 4> b{ft0, ft1, ft0dt, ft1dt};
+    m_polynomial.set_coefficients(solve(A, b).data());
+  }
+  // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+  constexpr hermite(const Real& ft0, const Real& ft1,
+                    const Real& ft0dt, const Real& ft1dt)
+      : m_polynomial{0, 0, 0, 0} {
+    vec<Real, 4> b{ft0, ft1, ft0dt, ft1dt};
     m_polynomial.set_coefficients((A * b).data());
   }
 
