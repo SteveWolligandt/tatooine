@@ -14,9 +14,6 @@ template <typename TopSampler, typename... InterpolationKernels>
 struct sampler_view;
 //==============================================================================
 template <typename Sampler, typename... InterpolationKernels>
-struct sampler_iterator;
-//==============================================================================
-template <typename Sampler, typename... InterpolationKernels>
 struct base_sampler_at;
 //------------------------------------------------------------------------------
 template <typename Sampler, typename InterpolationKernel0,
@@ -65,7 +62,6 @@ struct base_sampler : crtp<Sampler> {
   }
   using this_t           = base_sampler<Sampler, T, HeadInterpolationKernel,
                               TailInterpolationKernels...>;
-  using iterator         = sampler_iterator<this_t>;
   using indexing_t       = base_sampler_at_t<this_t, HeadInterpolationKernel,
                                        TailInterpolationKernels...>;
   using const_indexing_t = base_sampler_at_ct<this_t, HeadInterpolationKernel,
@@ -115,19 +111,8 @@ struct base_sampler : crtp<Sampler> {
     }
   }
   //----------------------------------------------------------------------------
-  /// indexing of data.
-  /// if num_dimensions() == 1 returns actual data otherwise returns a
-  /// sampler_view with i as fixed index
-  decltype(auto) operator[](size_t i) { return at(i); }
-  // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-  /// indexing of data.
-  /// if num_dimensions() == 1 returns actual data otherwise returns a
-  /// sampler_view with i as fixed index
-  auto operator[](size_t i) const { return at(i); }
-  //----------------------------------------------------------------------------
-  /// sampling by interpolating using HeadInterpolationKernel and
-  /// iterators
-  auto sample(real_number auto x, real_number auto... xs) const {
+  /// recursive sampling by interpolating using HeadInterpolationKernel
+  constexpr auto sample(real_number auto x, real_number auto... xs) const {
     static_assert(sizeof...(xs) + 1 == num_dimensions(),
                   "Number of coordinates does not match number of dimensions.");
     auto const [i, t] =
@@ -155,18 +140,6 @@ struct base_sampler : crtp<Sampler> {
     return invoke_unpacked(
         [&pos, this](const auto... xs) { return sample(xs...); }, unpack(pos));
   }
-  //----------------------------------------------------------------------------
-  // auto domain_to_global(real_number auto x, size_t i) const {
-  // auto converted = (x - dimension(i).front()) /
-  //                 (dimension(i).back() - dimension(i).front());
-  // if (converted < 0 || converted > 1) { throw out_of_domain{}; }
-  // return converted * (dimension(i).size() - 1);
-  //}
-  //----------------------------------------------------------------------------
-   auto begin() const { return iterator{this, 0}; }
-   auto end() const {
-     return iterator{this, grid().template size<current_dimension_index()>()};
-   }
 };
 //==============================================================================
 template <typename Grid, typename Container, typename... InterpolationKernels>
@@ -297,162 +270,6 @@ struct sampler_view
     return m_top_sampler->data_at(m_fixed_index, is...);
   }
 };
-
-//==============================================================================
-/// holds an object of type Sampler which either can be
-/// sampler or sampler_view and an index of that grid
-template <typename Sampler, typename... TailInterpolationKernels>
-struct sampler_iterator {
-  using this_t = sampler_iterator<Sampler, TailInterpolationKernels...>;
-  //----------------------------------------------------------------------------
-  const Sampler* m_sampler;
-  size_t         m_index;
-  //----------------------------------------------------------------------------
-  auto operator*() const { return m_sampler->at(m_index); }
-
-  auto& operator++() {
-    ++m_index;
-    return *this;
-  }
-
-  auto& operator--() {
-    --m_index;
-    return *this;
-  }
-
-  bool operator==(const this_t& other) const {
-    return m_sampler == other.m_sampler && m_index == other.m_index;
-  }
-
-  bool operator!=(const this_t& other) const {
-    return m_sampler != other.m_sampler || m_index != other.m_index;
-  }
-  bool operator<(const this_t& other) const { return m_index < other.m_index; }
-  bool operator>(const this_t& other) const { return m_index > other.m_index; }
-  bool operator<=(const this_t& other) const {
-    return m_index <= other.m_index;
-  }
-  bool operator>=(const this_t& other) const {
-    return m_index >= other.m_index;
-  }
-
-  auto operator+(size_t rhs) { return this_t{m_sampler, m_index + rhs}; }
-  auto operator-(size_t rhs) { return this_t{m_sampler, m_index - rhs}; }
-
-  auto& operator+=(size_t rhs) {
-    m_index += rhs;
-    return *this;
-  }
-  auto& operator-=(size_t rhs) {
-    m_index -= rhs;
-    return *this;
-  }
-};
-
-//==============================================================================
-/// next specification for sampler_iterator
-template <typename Sampler, typename... TailInterpolationKernels>
-auto next(const sampler_iterator<Sampler, TailInterpolationKernels...>& it,
-          size_t                                                        x = 1) {
-  return sampler_iterator<Sampler, TailInterpolationKernels...>{it.m_sampler,
-                                                                it.m_index + x};
-}
-//------------------------------------------------------------------------------
-/// prev specification for sampler_iterator
-template <typename Sampler, typename... TailInterpolationKernels>
-auto prev(const sampler_iterator<Sampler, TailInterpolationKernels...>& it,
-          size_t                                                        x = 1) {
-  return sampler_iterator<Sampler, TailInterpolationKernels...>{it.m_sampler,
-                                                                it.m_index - x};
-}
-//==============================================================================
-/// resamples a time step of a field
-// template <typename... InterpolationKernels, typename Field, typename
-// FieldReal,
-//          size_t N, size_t... TensorDims, typename GridReal, typename
-//          TimeReal>
-// auto resample(const field<Field, FieldReal, N, TensorDims...>& f,
-//              const grid<GridReal, N>& g, TimeReal t) {
-//  static_assert(sizeof...(InterpolationKernels) > 0, "please specify
-//  interpolators"); static_assert(N > 0, "number of dimensions must be greater
-//  than 0"); static_assert(sizeof...(InterpolationKernels) == N,
-//                "number of interpolators does not match number of
-//                dimensions");
-//  using real_t   = promote_t<FieldReal, GridReal>;
-//  using tensor_t = typename field<Field, real_t, N, TensorDims...>::tensor_t;
-//
-//  sampled_field<sampler<real_t, N, typename Field::tensor_t,
-//  InterpolationKernels...>,
-//                real_t, N, TensorDims...>
-//      resampled{g};
-//
-//  auto& data = resampled.sampler().data();
-//
-//  for (auto v : g.vertices()) {
-//    auto is = v.indices();
-//    try {
-//      data(is) = f(v.position(), t);
-//    } catch (std::exception& [>e<]) {
-//      if constexpr (std::is_arithmetic_v<tensor_t>) {
-//        data(is) = 0.0 / 0.0;
-//      } else {
-//        data(is) = tensor_t{tag::fill{0.0 / 0.0}};
-//      }
-//    }
-//  }
-//  return resampled;
-//}
-//
-////==============================================================================
-///// resamples multiple time steps of a field
-// template <template <typename> typename... InterpolationKernels, typename
-// Field,
-//          typename FieldReal, size_t N, typename GridReal, typename TimeReal,
-//          size_t... TensorDims>
-// auto resample(const field<Field, FieldReal, N, TensorDims...>& f,
-//              const grid<GridReal, N>& g, const linspace<TimeReal>& ts) {
-//  static_assert(N > 0, "number of dimensions must be greater than 0");
-//  static_assert(sizeof...(InterpolationKernels) == N + 1,
-//                "number of interpolators does not match number of
-//                dimensions");
-//  assert(ts.size() > 0);
-//  using real_t   = promote_t<FieldReal, GridReal>;
-//  using tensor_t = typename field<Field, real_t, N, TensorDims...>::tensor_t;
-//
-//  sampled_field<
-//      sampler<real_t, N + 1, tensor<real_t, TensorDims...>,
-//      InterpolationKernels...>, real_t, N, TensorDims...>
-//        resampled{g + ts};
-//  auto& data = resampled.sampler().data();
-//
-//  vec<size_t, N + 1> is{tag::zeros};
-//  for (auto v : g.vertices()) {
-//    for (size_t i = 0; i < N; ++i) { is(i) = v[i].i(); }
-//    for (auto t : ts) {
-//      try {
-//        data(is) = f(v.position(), t);
-//      } catch (std::exception& [>e<]) {
-//        if constexpr (std::is_arithmetic_v<tensor_t>) {
-//          data(is) = 0.0 / 0.0;
-//        } else {
-//          data(is) = tensor_t{tag::fill{0.0 / 0.0}};
-//        }
-//      }
-//      ++is(N);
-//    }
-//    is(N) = 0;
-//  }
-//
-//  return resampled;
-//}
-//==============================================================================
-// template <typename Real, size_t N,
-//          template <typename> typename... InterpolationKernels>
-// void write_png(sampler<Real, 2, Real, InterpolationKernels...> const&
-// sampler,
-//               std::string const&                              path) {
-//  sampler.write_png(path);
-//}
 //==============================================================================
 }  // namespace tatooine
 //==============================================================================
