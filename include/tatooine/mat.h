@@ -79,6 +79,20 @@ struct mat : tensor<T, M, N> {
   //============================================================================
   static constexpr auto eye() { return this_t{tag::eye}; }
   //----------------------------------------------------------------------------
+  template <typename Tensor>
+  static constexpr auto vander(base_tensor<Tensor, T, N> const & v) {
+    this_t V;
+    auto   factor_up_row = [row = 0ul, &V](auto x) mutable {
+      V(row, 0) = 1;
+      for (std::size_t col = 1; col < N; ++col) {
+        V(row, col) = V(row, col - 1) * x;
+      }
+      ++row;
+    };
+    for (size_t i = 0; i < N; ++i) { factor_up_row(v(i)); }
+    return V;
+  }
+  //----------------------------------------------------------------------------
   static constexpr auto vander(convertible_to<T> auto&&... xs) {
     static_assert(sizeof...(xs) == num_columns());
     this_t V;
