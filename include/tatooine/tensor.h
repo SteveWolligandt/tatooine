@@ -23,6 +23,7 @@ struct tensor : base_tensor<tensor<T, Dims...>, T, Dims...>,  // NOLINT
   //============================================================================
   using this_t          = tensor<T, Dims...>;
   using tensor_parent_t = base_tensor<this_t, T, Dims...>;
+  using typename tensor_parent_t::value_type;
   using array_parent_t = static_multidim_array<T, x_fastest, tag::stack, Dims...>;
   using tensor_parent_t::tensor_parent_t;
   using tensor_parent_t::operator=;
