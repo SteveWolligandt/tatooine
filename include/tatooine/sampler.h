@@ -7,12 +7,10 @@
 //==============================================================================
 namespace tatooine {
 //==============================================================================
-template <typename Owner, typename Container,
-          typename... InterpolationKernels>
+template <typename Grid, typename Container, typename... InterpolationKernels>
 struct sampler;
 //==============================================================================
-template <typename TopSampler,
-          typename... InterpolationKernels>
+template <typename TopSampler, typename... InterpolationKernels>
 struct sampler_view;
 //==============================================================================
 template <typename Sampler, typename... InterpolationKernels>
@@ -50,6 +48,11 @@ using base_sampler_at_ct =
 template <typename Sampler, typename T, typename HeadInterpolationKernel,
           typename... TailInterpolationKernels>
 struct base_sampler : crtp<Sampler> {
+  //----------------------------------------------------------------------------
+  static constexpr auto current_dimension_index() {
+    return Sampler::current_dimension_index();
+  }
+  //----------------------------------------------------------------------------
   static constexpr auto num_dimensions() {
     return sizeof...(TailInterpolationKernels) + 1;
   }
@@ -57,16 +60,22 @@ struct base_sampler : crtp<Sampler> {
   // typedefs
   //----------------------------------------------------------------------------
   using value_type = T;
-  static constexpr auto num_components() { return num_components_v<value_type>; }
-  using this_t     = base_sampler<Sampler, T, HeadInterpolationKernel,
+  static constexpr auto num_components() {
+    return num_components_v<value_type>;
+  }
+  using this_t           = base_sampler<Sampler, T, HeadInterpolationKernel,
                               TailInterpolationKernels...>;
-  using iterator   = sampler_iterator<this_t>;
-  using indexing_t = base_sampler_at_t<this_t, HeadInterpolationKernel,
+  using iterator         = sampler_iterator<this_t>;
+  using indexing_t       = base_sampler_at_t<this_t, HeadInterpolationKernel,
                                        TailInterpolationKernels...>;
   using const_indexing_t = base_sampler_at_ct<this_t, HeadInterpolationKernel,
                                               TailInterpolationKernels...>;
   using crtp<Sampler>::as_derived;
-
+  //----------------------------------------------------------------------------
+  /// CRTP-virtual method
+  auto grid() -> auto& { return as_derived().grid(); }
+  // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+  auto grid() const -> auto const& { return as_derived().grid(); }
   //----------------------------------------------------------------------------
   /// data at specified indices is...
   /// CRTP-virtual method
@@ -119,13 +128,10 @@ struct base_sampler : crtp<Sampler> {
   /// sampling by interpolating using HeadInterpolationKernel and
   /// iterators
   auto sample(real_number auto x, real_number auto... xs) const {
-    return value_type{};
-    // static_assert(sizeof...(Xs) + 1 == num_dimensions(),
-    //              "Number of coordinates does not match number of
-    //              dimensions.");
-    // x        = domain_to_global(x, 0);
-    // size_t i = std::floor(x);
-    // Real   t = x - std::floor(x);
+    static_assert(sizeof...(xs) + 1 == num_dimensions(),
+                  "Number of coordinates does not match number of dimensions.");
+    auto const [i, t] =
+        grid().template cell_index<current_dimension_index()>(x);
     // if (begin() + i + 1 == end()) {
     //  if constexpr (HeadInterpolationKernel::needs_first_derivative) {
     //    // return HeadInterpolationKernel::from_iterators(begin() + i, begin()
@@ -142,9 +148,8 @@ struct base_sampler : crtp<Sampler> {
     //  i + 1,
     //  // begin(), end(), t, xs...);
     //} else {
-    //  return HeadInterpolationKernel::from_iterators(begin() + i, begin() + i
-    //  + 1, t,
-    //                                          xs...);
+    return HeadInterpolationKernel::from_iterators(begin() + i, begin() + i + 1,
+                                                   t, xs...);
     //}
   }
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -167,21 +172,23 @@ struct base_sampler : crtp<Sampler> {
   // return converted * (dimension(i).size() - 1);
   //}
   //----------------------------------------------------------------------------
-  // auto begin() const { return iterator{this, 0}; }
-  // auto end() const { return iterator{this, size(0)}; }
+   auto begin() const { return iterator{this, 0}; }
+   auto end() const {
+     return iterator{this, grid().template size<current_dimension_index()>()};
+   }
 };
 //==============================================================================
-template <typename Owner, typename Container, typename... InterpolationKernels>
+template <typename Grid, typename Container, typename... InterpolationKernels>
 struct sampler
-    : typed_multidim_property<Owner, typename Container::value_type>,
-      base_sampler<sampler<Owner, Container, InterpolationKernels...>,
+    : typed_multidim_property<Grid, typename Container::value_type>,
+      base_sampler<sampler<Grid, Container, InterpolationKernels...>,
                    typename Container::value_type, InterpolationKernels...> {
   //============================================================================
-  using this_t = sampler<Owner, Container, InterpolationKernels...>;
+  using this_t = sampler<Grid, Container, InterpolationKernels...>;
 
   using property_parent_t =
-      typed_multidim_property<Owner, typename Container::value_type>;
-  using property_base_t   = typename property_parent_t::parent_t;
+      typed_multidim_property<Grid, typename Container::value_type>;
+  using property_base_t = typename property_parent_t::parent_t;
   using property_parent_t::data_at;
 
   using container_t = Container;
@@ -193,6 +200,8 @@ struct sampler
   static constexpr auto num_dimensions() {
     return property_parent_t::num_dimensions();
   }
+  //------------------------------------------------------------------------------
+  static constexpr size_t current_dimension_index() { return 0; }
   //============================================================================
   static_assert(num_dimensions() == sizeof...(InterpolationKernels));
   //============================================================================
@@ -201,8 +210,8 @@ struct sampler
   //============================================================================
  public:
   template <typename... Args>
-  sampler(Owner const& owner, Args&&... args)
-      : property_parent_t{owner}, m_container{std::forward<Args>(args)...} {}
+  sampler(Grid const& grid, Args&&... args)
+      : property_parent_t{grid}, m_container{std::forward<Args>(args)...} {}
   //----------------------------------------------------------------------------
   sampler(sampler const& other) = default;
   //----------------------------------------------------------------------------
@@ -214,6 +223,11 @@ struct sampler
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
   auto container() const -> auto const& { return m_container; }
   //----------------------------------------------------------------------------
+  /// CRTP-virtual method
+  auto grid() -> auto& { return property_parent_t::grid(); }
+  // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+  auto grid() const -> auto const& { return property_parent_t::grid(); }
+  //----------------------------------------------------------------------------
   auto clone() const -> std::unique_ptr<property_base_t> override {
     return std::unique_ptr<this_t>{new this_t{*this}};
   }
@@ -221,13 +235,13 @@ struct sampler
  private:
   template <std::size_t... Seq>
   auto data_at(std::array<std::size_t, num_dimensions()> const& is,
-          std::index_sequence<Seq...>) -> decltype(auto) {
+               std::index_sequence<Seq...>) -> decltype(auto) {
     return m_container(is[Seq]...);
   }
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
   template <std::size_t... Seq>
   auto data_at(std::array<std::size_t, num_dimensions()> const& is,
-          std::index_sequence<Seq...>) const -> decltype(auto) {
+               std::index_sequence<Seq...>) const -> decltype(auto) {
     return m_container(is[Seq]...);
   }
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -242,7 +256,7 @@ struct sampler
     return data_at(is, std::make_index_sequence<num_dimensions()>{});
   }
   //----------------------------------------------------------------------------
-  auto sample(typename Owner::pos_t const& x) const -> value_type override {
+  auto sample(typename Grid::pos_t const& x) const -> value_type override {
     return base_sampler_parent_t::sample(x);
   }
 };
@@ -261,14 +275,21 @@ struct sampler_view
   using parent_t =
       base_sampler<sampler_view<TopSampler, InterpolationKernels...>,
                    value_type, InterpolationKernels...>;
-
+  //------------------------------------------------------------------------------
+  static constexpr size_t current_dimension_index() {
+    return TopSampler::current_dimension_index() + 1;
+  }
+  //============================================================================
   TopSampler* m_top_sampler;
   size_t      m_fixed_index;
-
   //============================================================================
-  sampler_view(TopSampler* top_grid, size_t fixed_index)
-      : m_top_sampler{top_grid}, m_fixed_index{fixed_index} {}
+  sampler_view(TopSampler* top_sampler, size_t fixed_index)
+      : m_top_sampler{top_sampler}, m_fixed_index{fixed_index} {}
   //============================================================================
+  auto grid() -> auto& { return m_top_sampler->grid(); }
+  // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+  auto grid() const -> auto const& { return m_top_sampler->grid(); }
+  //----------------------------------------------------------------------------
   /// returns data of top grid at m_fixed_index and index list is...
   template <typename _TopSampler                                  = TopSampler,
             std::enable_if_t<!std::is_const_v<_TopSampler>, bool> = true>
@@ -296,7 +317,7 @@ struct sampler_iterator {
   const Sampler* m_sampler;
   size_t         m_index;
   //----------------------------------------------------------------------------
-  auto operator*() const { return m_sampler->data_at(m_index); }
+  auto operator*() const { return m_sampler->at(m_index); }
 
   auto& operator++() {
     ++m_index;
@@ -355,14 +376,15 @@ auto prev(const sampler_iterator<Sampler, TailInterpolationKernels...>& it,
 }
 //==============================================================================
 /// resamples a time step of a field
-// template <typename... InterpolationKernels, typename Field, typename FieldReal,
+// template <typename... InterpolationKernels, typename Field, typename
+// FieldReal,
 //          size_t N, size_t... TensorDims, typename GridReal, typename
 //          TimeReal>
 // auto resample(const field<Field, FieldReal, N, TensorDims...>& f,
 //              const grid<GridReal, N>& g, TimeReal t) {
-//  static_assert(sizeof...(InterpolationKernels) > 0, "please specify interpolators");
-//  static_assert(N > 0, "number of dimensions must be greater than 0");
-//  static_assert(sizeof...(InterpolationKernels) == N,
+//  static_assert(sizeof...(InterpolationKernels) > 0, "please specify
+//  interpolators"); static_assert(N > 0, "number of dimensions must be greater
+//  than 0"); static_assert(sizeof...(InterpolationKernels) == N,
 //                "number of interpolators does not match number of
 //                dimensions");
 //  using real_t   = promote_t<FieldReal, GridReal>;
@@ -392,7 +414,8 @@ auto prev(const sampler_iterator<Sampler, TailInterpolationKernels...>& it,
 //
 ////==============================================================================
 ///// resamples multiple time steps of a field
-// template <template <typename> typename... InterpolationKernels, typename Field,
+// template <template <typename> typename... InterpolationKernels, typename
+// Field,
 //          typename FieldReal, size_t N, typename GridReal, typename TimeReal,
 //          size_t... TensorDims>
 // auto resample(const field<Field, FieldReal, N, TensorDims...>& f,
@@ -406,8 +429,8 @@ auto prev(const sampler_iterator<Sampler, TailInterpolationKernels...>& it,
 //  using tensor_t = typename field<Field, real_t, N, TensorDims...>::tensor_t;
 //
 //  sampled_field<
-//      sampler<real_t, N + 1, tensor<real_t, TensorDims...>, InterpolationKernels...>,
-//      real_t, N, TensorDims...>
+//      sampler<real_t, N + 1, tensor<real_t, TensorDims...>,
+//      InterpolationKernels...>, real_t, N, TensorDims...>
 //        resampled{g + ts};
 //  auto& data = resampled.sampler().data();
 //
@@ -434,7 +457,8 @@ auto prev(const sampler_iterator<Sampler, TailInterpolationKernels...>& it,
 //==============================================================================
 // template <typename Real, size_t N,
 //          template <typename> typename... InterpolationKernels>
-// void write_png(sampler<Real, 2, Real, InterpolationKernels...> const& sampler,
+// void write_png(sampler<Real, 2, Real, InterpolationKernels...> const&
+// sampler,
 //               std::string const&                              path) {
 //  sampler.write_png(path);
 //}

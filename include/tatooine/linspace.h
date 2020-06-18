@@ -205,13 +205,23 @@ inline auto advance(linspace_iterator<Real>& l, long n = 1) -> auto& {
   }
   return l;
 }
-
 //==============================================================================
 // deduction guides
 //==============================================================================
 template <real_number Real0, real_number Real1>
 linspace(Real0, Real1, size_t) -> linspace<promote_t<Real0, Real1>>;
 
+//==============================================================================
+// type trait
+//==============================================================================
+template <typename T>
+struct is_linspace : std::false_type {};
+// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+template <real_number Real>
+struct is_linspace<linspace<Real>> : std::true_type {};
+// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+template <typename T>
+static constexpr auto is_linspace_v = is_linspace<T>::value;
 //==============================================================================
 // I/O
 //==============================================================================

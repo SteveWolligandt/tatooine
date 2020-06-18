@@ -66,15 +66,6 @@ class grid {
   constexpr grid(grid const& other)     = default;
   constexpr grid(grid&& other) noexcept = default;
   //----------------------------------------------------------------------------
-  // template <typename OtherReal, size_t... Is>
-  // constexpr grid(grid<OtherReal, num_dimensions()> const& other,
-  //               std::index_sequence<Is...> [>is<])
-  //    : m_dimensions{other.dimension(Is)...} {}
-  // template <typename OtherReal>
-  // explicit constexpr grid(grid<OtherReal, num_dimensions()> const& other)
-  //    : grid(other, seq_t{}) {}
-
-  //----------------------------------------------------------------------------
   template <indexable_space... _Dimensions>
   explicit constexpr grid(_Dimensions&&... dimensions)
       : m_dimensions{std::forward<Dimensions>(dimensions)...} {
@@ -82,7 +73,6 @@ class grid {
                   "number of given dimensions does not match number of "
                   "specified dimensions");
   }
-
   //----------------------------------------------------------------------------
  private:
   template <typename Real, size_t... Is>
@@ -91,7 +81,7 @@ class grid {
                  std::index_sequence<Is...> /*is*/)
       : m_dimensions{linspace<real_t>{real_t(bb.min(Is)), real_t(bb.max(Is)),
                                       res[Is]}...} {}
-  //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+  // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
  public:
   template <typename Real>
   constexpr grid(boundingbox<Real, num_dimensions()> const&  bb,
@@ -102,14 +92,6 @@ class grid {
   //============================================================================
   constexpr auto operator=(grid const& other) -> grid& = default;
   constexpr auto operator=(grid&& other) noexcept -> grid& = default;
-
-  //----------------------------------------------------------------------------
-  // template <typename Real>
-  // constexpr auto operator=(grid<Real, num_dimensions()>const& other) ->
-  // grid& {
-  //  for (size_t i = 0; i < num_dimensions(); ++i) { m_dimensions[i] =
-  //  other.dimension(i); } return *this;
-  //}
   //----------------------------------------------------------------------------
   template <size_t i>
   constexpr auto dimension() -> auto& {
@@ -229,6 +211,45 @@ class grid {
   constexpr auto in_domain(
       std::array<real_t, num_dimensions()> const& x) const {
     return in_domain(x, seq_t{});
+  }
+  //----------------------------------------------------------------------------
+  /// returns cell index and factor for interpolation
+  template <size_t I, floating_point Real>
+  auto cell_index(Real const x) const -> std::pair<size_t, Real> {
+    auto const& dim = dimension<I>();
+    if constexpr (is_linspace_v<decltype(dimension<I>())>) {
+      // calculate
+      auto const pos =
+          (x - dim.front()) / (dim.back() - dim.front()) * (size() - 1);
+      auto const quantized_pos = static_cast<size_t>(std::floor(pos));
+      return {quantized_pos, pos-quantized_pos};
+    } else {
+      // binary search
+      size_t left  = 0;
+      size_t right = dim.size() - 1;
+      while (right - left > 1) {
+        auto const center = (right + left) / 2;
+        if (x < dim[center]) {
+          right = center;
+        } else {
+          left = center;
+        }
+      }
+      return {left, (x - dim[left]) / (dim[left + 1] - dim[left])};
+    }
+  }
+  // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+  /// returns cell indices and factors for each dimension for interpolaton
+  template <size_t... Seq, floating_point... Reals>
+  auto cell_index(std::index_sequence<Seq...>, Reals... xs) const
+      -> std::array<std::pair<size_t, promote_t<Reals...>>, num_dimensions()> {
+    using real_t = promote_t<Reals...>;
+    return std::array{
+        cell_index<Seq, promote_t<Reals...>>(static_cast<real_t>(xs))...};
+  }
+  // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+  auto cell_index(floating_point auto... xs) const {
+    return cell_index(std::make_index_sequence<num_dimensions()>{}, xs...);
   }
   //----------------------------------------------------------------------------
  private:
