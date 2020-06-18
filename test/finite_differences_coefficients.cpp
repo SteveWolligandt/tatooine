@@ -44,7 +44,7 @@ TEST_CASE("finite_differences_central_1_5") {
 }
 //==============================================================================
 TEST_CASE("finite_differences_1_4") {
-  auto coeffs = finite_differences_coefficients(1, -2.1, -1.5, 0.0, 3.8);
+  auto coeffs = finite_differences_coefficients(1, vec{-2.1, -1.5, 0.0, 3.8});
   CAPTURE(coeffs);
   REQUIRE(coeffs.num_components() == 4);
   REQUIRE(coeffs(0) == Approx(956650.0 / 1247673.0));
