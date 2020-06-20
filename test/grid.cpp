@@ -214,12 +214,18 @@ TEST_CASE("grid_face_property", "[grid][face_property]") {
   std::vector dim1{-3.0, 0.0, 2.0, 3.0, 4.0};
   grid        g{dim0, dim1};
 
+  // add property on vertical grid edges (index = 0)
   auto& u_prop = g.add_face_property<double, 0>("u");
+  // add chunked property on horizontal grid edges (index = 1, chunk size = 128)
   auto& v_prop = g.add_chunked_face_property<double, 1, 128>("v");
+
+  // set some values
   u_prop.data_at(0, 0) = 3;
   u_prop.data_at(1, 0) = 5;
   u_prop.data_at(0, 1) = 6;
   u_prop.data_at(1, 1) = 8;
+
+  // sample in cell
   SECTION("on data points") {
     REQUIRE(u_prop.sample(-1, -1.5) == Approx(3));
     REQUIRE(u_prop.sample(1, -1.5) == Approx(5));
