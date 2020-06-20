@@ -44,5 +44,24 @@ TEST_CASE("netcdf_write_read", "[netcdf][read][write]") {
   }
 }
 //==============================================================================
+TEST_CASE("netcdf_scivis", "[netcdf][scivis][general]") {
+  std::string const file_path = "/home/steve/Downloads/MEAN/2011013100.nc";
+  file              f{file_path, netCDF::NcFile::read};
+  std::cerr << "attributes:\n";
+  for (auto const& [key, val] : f.attributes()) { std::cerr << key << '\n'; }
+  std::cerr << "dimensions:\n";
+  for (auto const& [key, val] : f.dimensions()) { std::cerr << key << '\n'; }
+  std::cerr << "groups:\n";
+  for (auto const& [key, val] : f.groups()) { std::cerr << key << '\n'; }
+  std::cerr << "variables:\n";
+  for (auto const& var : f.variables<double>()) { std::cerr << var.name() << '\n'; }
+}
+//==============================================================================
+TEST_CASE("netcdf_scivis_u", "[netcdf][scivis][u]") {
+  std::string const file_path = "/home/steve/Downloads/MEAN/2011013100.nc";
+  auto u = file{file_path, netCDF::NcFile::read}.variable<double>("u");
+  u.read_chunk({0,0,0}, {10,10,10}, );
+}
+//==============================================================================
 }  // namespace tatooine::netcdf
 //==============================================================================

@@ -17,6 +17,16 @@ TEST_CASE("grid_vertex_indexing", "[grid][vertex][indexing]") {
   REQUIRE(approx_equal(v221, vec{2.0, 2.0, 0.1}));
 }
 //==============================================================================
+TEST_CASE("grid_face_center", "[grid][face][position]") {
+  std::array  dim0{0.0, 1.0, 2.0};
+  std::vector dim1{0.0, 1.0, 2.0};
+  linspace    dim2{0.0, 1.0, 11};
+  grid        g{dim0, dim1, dim2};
+  auto const  f000 = g.face_center_at<0>(0, 0, 0);
+  CAPTURE(f000);
+  REQUIRE(approx_equal(f000, vec{0.0, 0.5, 0.05}));
+}
+//==============================================================================
 TEST_CASE("grid_vertex_iterator", "[grid][vertex][iterator]") {
   std::array  dim0{0, 1, 2};
   std::vector dim1{0, 1, 2};
@@ -86,20 +96,20 @@ TEST_CASE("grid_cell_index", "[grid][cell_index]") {
 //}
 //==============================================================================
 TEST_CASE("grid_sampler_view", "[grid][sampler][view][vertex][property]") {
-  linspace dim0{0.0, 1.0, 11};
-  linspace dim1{0.0, 1.0, 11};
-  grid     g{dim0, dim1};
-  using grid_t = decltype(g);
-  using prop_value_type = double;
-  using interpolation_kernel_t =
-      grid_t::default_interpolation_kernel_t<prop_value_type>;
-
-  std::string const prop_name = "u";
-  auto&             u_prop    = dynamic_cast<grid_t::contiguous_sampler_t<
-      prop_value_type, interpolation_kernel_t, interpolation_kernel_t>&>(
-      g.add_vertex_property<prop_value_type>(prop_name));
-  u_prop.data_at(1, 1) = 2;
-  REQUIRE(u_prop[1][1] == 2);
+  //linspace dim0{0.0, 1.0, 11};
+  //linspace dim1{0.0, 1.0, 11};
+  //grid     g{dim0, dim1};
+  //using grid_t = decltype(g);
+  //using prop_value_type = double;
+  //using interpolation_kernel_t =
+  //    grid_t::default_interpolation_kernel_t<prop_value_type>;
+  //
+  //std::string const prop_name = "u";
+  //auto&             u_prop = dynamic_cast<grid_t::contiguous_vertex_property_t<
+  //    prop_value_type, interpolation_kernel_t, interpolation_kernel_t>&>(
+  //    g.add_vertex_property<prop_value_type>(prop_name));
+  //u_prop.data_at(1, 1) = 2;
+  //REQUIRE(u_prop[1][1] == 2);
 }
 //==============================================================================
 TEST_CASE("grid_sample_1d_linear", "[grid][sampler][1d][linear]") {
@@ -122,7 +132,7 @@ TEST_CASE("grid_sample_2d_linear", "[grid][sampler][2d][linear]") {
 
   std::string const prop_name = "u";
   auto&             u_prop =
-      g.add_chunked_vertex_property<prop_value_type, 16, interpolation::linear,
+      g.add_vertex_property<prop_value_type, interpolation::linear,
                                     interpolation::linear>(prop_name);
   u_prop.data_at(4, 1) = 5;
   u_prop.data_at(5, 1) = 6;
@@ -166,24 +176,24 @@ TEST_CASE("grid_finite_differences_coefficients", "[grid][finite_differences]") 
   REQUIRE(coeffs4(2) == Approx(12));
 }
 //==============================================================================
-TEST_CASE("grid_diff", "[grid][sample][1d][hermite]") {
-  std::array dim{0.0, 0.1, 0.5, 0.9, 1.0};
-  grid       g{dim};
-  using prop_value_type = double;
-
-  std::string const prop_name = "u";
-  auto&             u_prop =
-      g.add_vertex_property<prop_value_type, interpolation::hermite>(prop_name);
-  u_prop.data_at(0) = 0;
-  u_prop.data_at(1) = 1;
-  u_prop.data_at(2) = 2;
-  u_prop.data_at(3) = 3;
-  u_prop.data_at(4) = 4;
-  for (auto const t : linspace{0.0, 1.0, 21}) {
-    std::cerr << u_prop.sample(t) << ' ';
-  }
-  std::cerr << '\n';
-}
+//TEST_CASE("grid_diff", "[grid][sample][1d][hermite]") {
+//  std::array dim{0.0, 0.1, 0.5, 0.9, 1.0};
+//  grid       g{dim};
+//  using prop_value_type = double;
+//
+//  std::string const prop_name = "u";
+//  auto&             u_prop =
+//      g.add_vertex_property<prop_value_type, interpolation::hermite>(prop_name);
+//  u_prop.data_at(0) = 0;
+//  u_prop.data_at(1) = 1;
+//  u_prop.data_at(2) = 2;
+//  u_prop.data_at(3) = 3;
+//  u_prop.data_at(4) = 4;
+//  for (auto const t : linspace{0.0, 1.0, 21}) {
+//    std::cerr << u_prop.sample(t) << ' ';
+//  }
+//  std::cerr << '\n';
+//}
 //==============================================================================
 //TEST_CASE("grid_sample_1d_hermite", "[grid][sampler][1d][hermite]") {
 //  linspace dim{0.0, 1.0, 11};
@@ -198,6 +208,43 @@ TEST_CASE("grid_diff", "[grid][sample][1d][hermite]") {
 //  REQUIRE(u_prop.sample(0.45) > 4);
 //  REQUIRE(u_prop.sample(0.45) < 5);
 //}
+//==============================================================================
+TEST_CASE("grid_face_property", "[grid][face_property]") {
+  std::array  dim0{-1.0, 1.0, 2.0, 5.0, 6.0};
+  std::vector dim1{-3.0, 0.0, 2.0, 3.0, 4.0};
+  grid        g{dim0, dim1};
+
+  auto& u_prop = g.add_face_property<double, 0>("u");
+  auto& v_prop = g.add_chunked_face_property<double, 1, 128>("v");
+  u_prop.data_at(0, 0) = 3;
+  u_prop.data_at(1, 0) = 5;
+  u_prop.data_at(0, 1) = 6;
+  u_prop.data_at(1, 1) = 8;
+  SECTION("on data points") {
+    REQUIRE(u_prop.sample(-1, -1.5) == Approx(3));
+    REQUIRE(u_prop.sample(1, -1.5) == Approx(5));
+    REQUIRE(u_prop.sample(-1, 1) == Approx(6));
+    REQUIRE(u_prop.sample(1, 1) == Approx(8));
+  }
+
+  SECTION("on x-edge") {
+    REQUIRE(u_prop.sample(0, -1.5) == Approx(4));
+    REQUIRE(u_prop.sample(0, 1) == Approx(7));
+  }
+
+  SECTION("on y-edge") {
+    REQUIRE(u_prop.sample(-1, -0.25) == Approx(4.5));
+    REQUIRE(u_prop.sample(1, -0.25) == Approx(6.5));
+  }
+
+  SECTION("center") {
+    REQUIRE(u_prop.sample(0, -0.25) == Approx(5.5));
+  }
+
+  v_prop.data_at(0, 0) = 4;
+  v_prop.data_at(1, 0) = 6;
+
+}
 //==============================================================================
 }  // namespace tatooine::test
 //==============================================================================

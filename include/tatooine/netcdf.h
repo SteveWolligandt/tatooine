@@ -9,8 +9,21 @@ namespace tatooine::netcdf {
 //==============================================================================
 template <typename T>
 auto to_nc_type();
+// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 template <>
-auto to_nc_type<int>() {return netCDF::ncInt;}
+auto to_nc_type<int>() {
+  return netCDF::ncInt;
+}
+// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+template <>
+auto to_nc_type<float>() {
+  return netCDF::ncFloat;
+}
+// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+template <>
+auto to_nc_type<double>() {
+  return netCDF::ncDouble;
+}
 //==============================================================================
 class group {};
 //==============================================================================
@@ -31,6 +44,24 @@ class variable {
     m_variable.putVar(data.data());
   }
   //----------------------------------------------------------------------------
+  auto read_chunk(std::vector<size_t> const& start_indices,
+                  std::vector<size_t>& counts) const {
+    auto n = std::accumulate(counts, std::multiplies<size_t>{}, size_t(1));
+    std::vector<T> data();
+
+    m_variable.getVar(start_indices, counts, data);
+  }
+  //----------------------------------------------------------------------------
+  auto read_chunk(std::vector<size_t> const& start_indices,
+                  std::vector<size_t>& counts, std::vector<T>& data) const {
+    m_variable.getVar(start_indices, counts, data);
+  }
+  //----------------------------------------------------------------------------
+  auto read_chunk(std::vector<size_t> const& start_indices,
+                  std::vector<size_t>& counts, T* const data) const {
+    m_variable.getVar(start_indices, counts, data);
+  }
+  //----------------------------------------------------------------------------
   auto to_vector() const {
     size_t size = 1;
     for (auto const& dim : dimensions()) { size *= dim.getSize(); }
@@ -46,6 +77,8 @@ class variable {
   auto dimension(int i) const { return m_variable.getDim(i); }
   //----------------------------------------------------------------------------
   auto dimensions() const { return m_variable.getDims(); }
+  //----------------------------------------------------------------------------
+  auto name() const { return m_variable.getName(); }
 };
 //==============================================================================
 class dimension {};
@@ -72,6 +105,34 @@ class file {
   //----------------------------------------------------------------------------
   auto add_dimension(std::string const& dimension_name, size_t const size) {
     return m_file->addDim(dimension_name, size);
+  }
+  //----------------------------------------------------------------------------
+  auto attributes() const {
+    return m_file->getAtts();
+  }
+  //----------------------------------------------------------------------------
+  auto dimensions() const {
+    return m_file->getDims();
+  }
+  //----------------------------------------------------------------------------
+  auto groups() const {
+    return m_file->getGroups();
+  }
+  //----------------------------------------------------------------------------
+  template <typename T>
+  auto variables() const {
+    std::vector<variable<T>> vars;
+    for (auto& [name, var] : m_file->getVars()) {
+      if (var.getType() == to_nc_type<T>()) {
+        vars.push_back(variable<T>{m_file, std::move(var)});
+      }
+    }
+    return vars;
+  }
+  //----------------------------------------------------------------------------
+  template <typename T>
+  auto variable(std::string const& name) const {
+    return variable<T>{m_file, m_file->getVar(name)};
   }
 };
 //==============================================================================
