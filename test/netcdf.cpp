@@ -1,4 +1,5 @@
 #include <tatooine/netcdf.h>
+#include <tatooine/for_loop.h>
 
 #include <catch2/catch.hpp>
 //==============================================================================
@@ -27,13 +28,14 @@ TEST_CASE("netcdf_write_read", "[netcdf][read][write]") {
   f_out
       .add_variable<int>(variable_name, {f_out.add_dimension(xdim_name, NX),
                                          f_out.add_dimension(ydim_name, NY)})
-      .put(data_out);
+      .write(data_out);
 
   file f_in{file_path, netCDF::NcFile::read};
   // Retrieve the variable
-  auto var = f_in.get_variable<int>(variable_name);
+  auto var = f_in.variable<int>(variable_name);
   REQUIRE(!var.is_null());
-  auto data_in = var.to_vector();
+  std::vector<int> data_in;
+  var.read(data_in);
 
   // Check the values.
   for (size_t i = 0; i < NX; ++i) {
@@ -55,12 +57,29 @@ TEST_CASE("netcdf_scivis", "[netcdf][scivis][general]") {
   for (auto const& [key, val] : f.groups()) { std::cerr << key << '\n'; }
   std::cerr << "variables:\n";
   for (auto const& var : f.variables<double>()) { std::cerr << var.name() << '\n'; }
+  auto u = file{file_path, netCDF::NcFile::read}.variable<double>("U");
+  std::cerr << "file.num_dimensions(): " << f.num_dimensions() << '\n';
+  for (auto const& [name, dim] : f.dimensions()) {
+    std::cerr << "dimension \"" << name << "\": " << dim.getSize() << '\n';
+  }
+  std::cerr << "u.num_dimensions(): " << u.num_dimensions() << '\n';
+  std::cerr << "u.dimension(0): " << u.dimension(0) << '\n';
+  std::cerr << "u.dimension(1): " << u.dimension(1) << '\n';
+  std::cerr << "u.dimension(2): " << u.dimension(2) << '\n';
+  std::cerr << "u.dimension(3): " << u.dimension(3) << '\n';
 }
 //==============================================================================
 TEST_CASE("netcdf_scivis_u", "[netcdf][scivis][u]") {
   std::string const file_path = "/home/steve/Downloads/MEAN/2011013100.nc";
-  auto u = file{file_path, netCDF::NcFile::read}.variable<double>("u");
-  u.read_chunk({0,0,0}, {10,10,10}, );
+  auto u = file{file_path, netCDF::NcFile::read}.variable<double>("U");
+  static_multidim_array<double, x_fastest, tag::stack, 10, 10, 10, 10> u_chunk;
+  u.read_chunk(u_chunk, 0, 0, 0, 0);
+
+  for_loop(
+      [&](auto const... is) {
+        if (u_chunk(is...) != 0) { std::cerr << "got non-zero.\n"; }
+      },
+      10, 10, 10, 10);
 }
 //==============================================================================
 }  // namespace tatooine::netcdf

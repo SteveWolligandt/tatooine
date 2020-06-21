@@ -2,11 +2,9 @@
 #include <tatooine/random.h>
 #include <tatooine/tensor.h>
 #include <catch2/catch.hpp>
-
 //==============================================================================
 namespace tatooine::test {
 //==============================================================================
-
 TEMPLATE_TEST_CASE("chunked_data_element_assignment_primitive",
                    "[chunked_data]", int, float, double) {
   using T = TestType;
@@ -27,7 +25,6 @@ TEMPLATE_TEST_CASE("chunked_data_element_assignment_primitive",
     }
   }
 }
-
 //==============================================================================
 TEMPLATE_TEST_CASE("chunked_data_element_assignment_vec",
                    "[chunked_data][tensor]", float, double) {
@@ -43,7 +40,6 @@ TEMPLATE_TEST_CASE("chunked_data_element_assignment_vec",
     }
   }
 }
-
 //==============================================================================
 }  // namespace tatooine::test
 //==============================================================================

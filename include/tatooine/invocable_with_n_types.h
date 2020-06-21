@@ -1,6 +1,8 @@
 #ifndef TATOOINE_INVOCABLE_WITH_N_TYPES_H
 #define TATOOINE_INVOCABLE_WITH_N_TYPES_H
 //==============================================================================
+#include <utility>
+//==============================================================================
 namespace tatooine {
 //==============================================================================
 /// For each type T in Ts it will be checked if F is invocable with n-times T.

@@ -1,6 +1,6 @@
 #ifndef TATOOINE_INDEX_ORDERING_H
 #define TATOOINE_INDEX_ORDERING_H
-
+//==============================================================================
 #include <array>
 #include <boost/range/adaptors.hpp>
 #include <numeric>
@@ -9,7 +9,6 @@
 #include "concepts.h"
 #include "type_traits.h"
 #include "utility.h"
-
 //==============================================================================
 namespace tatooine {
 //==============================================================================
