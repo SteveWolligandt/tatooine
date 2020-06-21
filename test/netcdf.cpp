@@ -71,15 +71,10 @@ TEST_CASE("netcdf_scivis", "[netcdf][scivis][general]") {
 //==============================================================================
 TEST_CASE("netcdf_scivis_u", "[netcdf][scivis][u]") {
   std::string const file_path = "/home/steve/Downloads/MEAN/2011013100.nc";
-  auto u = file{file_path, netCDF::NcFile::read}.variable<double>("U");
-  static_multidim_array<double, x_fastest, tag::stack, 10, 10, 10, 10> u_chunk;
-  u.read_chunk(u_chunk, 0, 0, 0, 0);
-
-  for_loop(
-      [&](auto const... is) {
-        if (u_chunk(is...) != 0) { std::cerr << "got non-zero.\n"; }
-      },
-      10, 10, 10, 10);
+  auto u_var = file{file_path, netCDF::NcFile::read}.variable<double>("U");
+  //chunked_data<double, 4, 10> u;
+  dynamic_multidim_array<double> u;
+  u_var.read(u);
 }
 //==============================================================================
 }  // namespace tatooine::netcdf

@@ -2,6 +2,8 @@
 #define TATOOINE_NETCDF_H
 //==============================================================================
 #include <tatooine/multidim_array.h>
+//#include <tatooine/chunked_data.h>
+#include <tatooine/multidim.h>
 
 #include <cassert>
 #include <memory>
@@ -46,13 +48,15 @@ class variable {
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
   auto write(std::vector<T> const& data) { m_variable.putVar(data.data()); }
   //----------------------------------------------------------------------------
+  template <typename Indexing>
   auto read() const {
-    dynamic_multidim_array<T> data(dimensions());
+    dynamic_multidim_array<T, Indexing> data(dimensions());
     m_variable.getVar(data.data_ptr());
     return data;
   }
   //----------------------------------------------------------------------------
-  auto read(dynamic_multidim_array<T>& data) const {
+  template <typename Indexing>
+  auto read(dynamic_multidim_array<T, Indexing>& data) const {
     if (num_dimensions() != data.num_dimensions()) {
       data.resize(dimensions());
     } else {
@@ -65,6 +69,29 @@ class variable {
     }
     m_variable.getVar(data.data_ptr());
   }
+  //----------------------------------------------------------------------------
+  //template <size_t N, size_t ChunkRes>
+  //auto read(chunked_data<T, N, ChunkRes>& data) const {
+  //  for (auto is : dynamic_multidim(data)) {
+  //    auto const plain_chunk_index = data.plain_chunk_index();
+  //    for (auto& i : is) { i *= ChunkRes; }
+  //    if (data.chunk_at(plain_chunk_index) == nullptr) {
+  //      data.create_chunk_at(plain_chunk_index);
+  //    }
+  //
+  //    read(is, data.chunk_at(plain_chunk_index));
+  //    if constexpr (std::is_arithmetic_v<T>) {
+  //      bool all_zero = true;
+  //      for (auto const& v : data.chunk_at(plain_chunk_index).data()) {
+  //        if (v != 0) {
+  //          all_zero = false;
+  //          break;
+  //        }
+  //      }
+  //      if (all_zero) { data.destroy_chunk_at(plain_chunk_index); }
+  //    }
+  //  }
+  //}
   //----------------------------------------------------------------------------
   template <typename Indexing, typename MemLoc, size_t... Resolution>
   auto read(
@@ -89,9 +116,10 @@ class variable {
     return data;
   }
   //----------------------------------------------------------------------------
+  template <typename Indexing>
   auto read_chunk(std::vector<size_t> const& start_indices,
                   std::vector<size_t> const& counts,
-                  dynamic_multidim_array<T>& data) const {
+                  dynamic_multidim_array<T, Indexing>& data) const {
     if (num_dimensions() != data.num_dimensions()) {
       data.resize(counts);
     } else {
