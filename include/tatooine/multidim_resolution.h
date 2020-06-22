@@ -238,7 +238,7 @@ class dynamic_multidim_resolution {
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
   auto in_range(const std::vector<size_t>& is) const {
     for (size_t i = 0; i < is.size(); ++i) {
-      if (is[i] < 0 || is[i] >= size(i)) { return false; }
+      if (is[i] >= size(i)) { return false; }
     }
     return true;
   }

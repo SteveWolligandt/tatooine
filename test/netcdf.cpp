@@ -47,7 +47,7 @@ TEST_CASE("netcdf_write_read", "[netcdf][read][write]") {
 }
 //==============================================================================
 TEST_CASE("netcdf_scivis", "[netcdf][scivis][general]") {
-  std::string const file_path = "/home/steve/Downloads/MEAN/2011013100.nc";
+  std::string const file_path = "2011013100.nc";
   file              f{file_path, netCDF::NcFile::read};
   std::cerr << "attributes:\n";
   for (auto const& [key, val] : f.attributes()) { std::cerr << key << '\n'; }
@@ -74,9 +74,9 @@ TEST_CASE("netcdf_scivis", "[netcdf][scivis][general]") {
 }
 //==============================================================================
 TEST_CASE("netcdf_scivis_u", "[netcdf][scivis][u]") {
-  std::string const file_path = "/home/steve/Downloads/MEAN/2011013100.nc";
+  std::string const file_path = "2011013100.nc";
   auto u_var = file{file_path, netCDF::NcFile::read}.variable<double>("U");
-  chunked_multidim_array<double> u{{0, 0, 0, 0}, {2, 2, 2, 2}};
+  chunked_multidim_array<double> u{{0, 0, 0, 0}, {10, 10, 10, 10}};
   u_var.read(u);
 }
 //==============================================================================
