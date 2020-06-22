@@ -63,17 +63,20 @@ TEST_CASE("netcdf_scivis", "[netcdf][scivis][general]") {
     std::cerr << "dimension \"" << name << "\": " << dim.getSize() << '\n';
   }
   std::cerr << "u.num_dimensions(): " << u.num_dimensions() << '\n';
-  std::cerr << "u.dimension(0): " << u.dimension(0) << '\n';
-  std::cerr << "u.dimension(1): " << u.dimension(1) << '\n';
-  std::cerr << "u.dimension(2): " << u.dimension(2) << '\n';
-  std::cerr << "u.dimension(3): " << u.dimension(3) << '\n';
+  std::cerr << "u.dimension(0): " << u.dimension_name(0) << " - "
+            << u.dimension(0) << '\n';
+  std::cerr << "u.dimension(1): " << u.dimension_name(1) << " - "
+            << u.dimension(1) << '\n';
+  std::cerr << "u.dimension(2): " << u.dimension_name(2) << " - "
+            << u.dimension(2) << '\n';
+  std::cerr << "u.dimension(3): " << u.dimension_name(3) << " - "
+            << u.dimension(3) << '\n';
 }
 //==============================================================================
 TEST_CASE("netcdf_scivis_u", "[netcdf][scivis][u]") {
   std::string const file_path = "/home/steve/Downloads/MEAN/2011013100.nc";
   auto u_var = file{file_path, netCDF::NcFile::read}.variable<double>("U");
-  chunked_multidim_array<double> u{{10, 10, 10, 10}, {10, 10, 10, 10}};
-  //dynamic_multidim_array<double> u;
+  chunked_multidim_array<double> u{{0, 0, 0, 0}, {2, 2, 2, 2}};
   u_var.read(u);
 }
 //==============================================================================

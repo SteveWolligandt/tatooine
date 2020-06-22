@@ -71,17 +71,21 @@ class variable {
   }
   //----------------------------------------------------------------------------
   auto read(chunked_multidim_array<T>& arr) const {
-    arr.resize(dimensions(), std::vector<size_t>(num_dimensions(), 10));
+    arr.resize(dimensions());
     for (auto const& chunk_indices : dynamic_multidim(arr.chunk_resolution())) {
       auto const start_indices = arr.global_indices_from_chunk_indices(chunk_indices);
+      for (auto i : start_indices) { std::cerr << i << ' '; }
+      std::cerr << '\n';
       auto const plain_chunk_index =
           arr.plain_chunk_index_from_chunk_indices(chunk_indices);
       if (arr.chunk_at_is_null(plain_chunk_index)) {
         arr.create_chunk_at(plain_chunk_index);
       }
 
+      std::cerr << "reading chunk...";
       read_chunk(start_indices, arr.internal_chunk_resolution(),
                  *arr.chunk_at(plain_chunk_index));
+      std::cerr << '\n';
       if constexpr (std::is_arithmetic_v<T>) {
         bool all_zero = true;
         for (auto const& v : arr.chunk_at(plain_chunk_index)->data()) {
@@ -92,6 +96,7 @@ class variable {
         }
         if (all_zero) {
           arr.destroy_chunk_at(plain_chunk_index);
+          std::cerr << "destroy\n";
         } else {
           std::cerr << "keep\n";
         }
@@ -171,6 +176,8 @@ class variable {
   auto num_dimensions() const { return m_variable.getDimCount(); }
   //----------------------------------------------------------------------------
   auto dimension(size_t i) const { return m_variable.getDim(i).getSize(); }
+  //----------------------------------------------------------------------------
+  auto dimension_name(size_t i) const { return m_variable.getDim(i).getName(); }
   //----------------------------------------------------------------------------
   auto dimensions() const {
     std::vector<size_t> res;
