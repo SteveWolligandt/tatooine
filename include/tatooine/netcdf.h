@@ -2,7 +2,7 @@
 #define TATOOINE_NETCDF_H
 //==============================================================================
 #include <tatooine/multidim_array.h>
-//#include <tatooine/chunked_data.h>
+#include <tatooine/chunked_multidim_array.h>
 #include <tatooine/multidim.h>
 
 #include <cassert>
@@ -44,66 +44,72 @@ class variable {
   variable(std::shared_ptr<netCDF::NcFile>& file, netCDF::NcVar&& var)
       : m_file{file}, m_variable{std::move(var)} {}
   //============================================================================
-  auto write(T const* const data) { m_variable.putVar(data); }
+  auto write(T const* const arr) { m_variable.putVar(arr); }
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-  auto write(std::vector<T> const& data) { m_variable.putVar(data.data()); }
+  auto write(std::vector<T> const& arr) { m_variable.putVar(arr.data()); }
   //----------------------------------------------------------------------------
   template <typename Indexing>
   auto read() const {
-    dynamic_multidim_array<T, Indexing> data(dimensions());
-    m_variable.getVar(data.data_ptr());
-    return data;
+    dynamic_multidim_array<T, Indexing> arr(dimensions());
+    m_variable.getVar(arr.data_ptr());
+    return arr;
   }
   //----------------------------------------------------------------------------
   template <typename Indexing>
-  auto read(dynamic_multidim_array<T, Indexing>& data) const {
-    if (num_dimensions() != data.num_dimensions()) {
-      data.resize(dimensions());
+  auto read(dynamic_multidim_array<T, Indexing>& arr) const {
+    if (num_dimensions() != arr.num_dimensions()) {
+      arr.resize(dimensions());
     } else {
       for (size_t i = 0; i < num_dimensions(); ++i) {
-        if (data.size(i) != dimension(i)) {
-          data.resize(dimensions());
+        if (arr.size(i) != dimension(i)) {
+          arr.resize(dimensions());
           break;
         }
       }
     }
-    m_variable.getVar(data.data_ptr());
+    m_variable.getVar(arr.data_ptr());
   }
   //----------------------------------------------------------------------------
-  //template <size_t N, size_t ChunkRes>
-  //auto read(chunked_data<T, N, ChunkRes>& data) const {
-  //  for (auto is : dynamic_multidim(data)) {
-  //    auto const plain_chunk_index = data.plain_chunk_index();
-  //    for (auto& i : is) { i *= ChunkRes; }
-  //    if (data.chunk_at(plain_chunk_index) == nullptr) {
-  //      data.create_chunk_at(plain_chunk_index);
-  //    }
-  //
-  //    read(is, data.chunk_at(plain_chunk_index));
-  //    if constexpr (std::is_arithmetic_v<T>) {
-  //      bool all_zero = true;
-  //      for (auto const& v : data.chunk_at(plain_chunk_index).data()) {
-  //        if (v != 0) {
-  //          all_zero = false;
-  //          break;
-  //        }
-  //      }
-  //      if (all_zero) { data.destroy_chunk_at(plain_chunk_index); }
-  //    }
-  //  }
-  //}
+  auto read(chunked_multidim_array<T>& arr) const {
+    arr.resize(dimensions(), std::vector<size_t>(num_dimensions(), 10));
+    for (auto const& chunk_indices : dynamic_multidim(arr.chunk_resolution())) {
+      auto const start_indices = arr.global_indices_from_chunk_indices(chunk_indices);
+      auto const plain_chunk_index =
+          arr.plain_chunk_index_from_chunk_indices(chunk_indices);
+      if (arr.chunk_at_is_null(plain_chunk_index)) {
+        arr.create_chunk_at(plain_chunk_index);
+      }
+
+      read_chunk(start_indices, arr.internal_chunk_resolution(),
+                 *arr.chunk_at(plain_chunk_index));
+      if constexpr (std::is_arithmetic_v<T>) {
+        bool all_zero = true;
+        for (auto const& v : arr.chunk_at(plain_chunk_index)->data()) {
+          if (v != 0) {
+            all_zero = false;
+            break;
+          }
+        }
+        if (all_zero) {
+          arr.destroy_chunk_at(plain_chunk_index);
+        } else {
+          std::cerr << "keep\n";
+        }
+      }
+    }
+  }
   //----------------------------------------------------------------------------
   template <typename Indexing, typename MemLoc, size_t... Resolution>
   auto read(
-      static_multidim_array<T, Indexing, MemLoc, Resolution...>& data) const {
+      static_multidim_array<T, Indexing, MemLoc, Resolution...>& arr) const {
     assert(sizeof...(Resolution) == num_dimensions());
     assert(std::vector{Resolution...} == dimensions());
-    m_variable.getVar(data.data_ptr());
+    m_variable.getVar(arr.data_ptr());
   }
   //----------------------------------------------------------------------------
-  auto read(std::vector<T>& data) const {
-    if (auto const n = num_components(); size(data) != n) { data.resize(n); }
-    m_variable.getVar(data.data());
+  auto read(std::vector<T>& arr) const {
+    if (auto const n = num_components(); size(arr) != n) { arr.resize(n); }
+    m_variable.getVar(arr.data());
   }
   //----------------------------------------------------------------------------
   auto read_chunk(std::vector<size_t> const& start_indices,
@@ -111,53 +117,53 @@ class variable {
     assert(size(start_indices) == size(counts));
     assert(size(start_indices) == num_dimensions());
 
-    dynamic_multidim_array<T> data(counts);
-    m_variable.getVar(start_indices, counts, data.data_ptr());
-    return data;
+    dynamic_multidim_array<T> arr(counts);
+    m_variable.getVar(start_indices, counts, arr.data_ptr());
+    return arr;
   }
   //----------------------------------------------------------------------------
   template <typename Indexing>
   auto read_chunk(std::vector<size_t> const& start_indices,
                   std::vector<size_t> const& counts,
-                  dynamic_multidim_array<T, Indexing>& data) const {
-    if (num_dimensions() != data.num_dimensions()) {
-      data.resize(counts);
+                  dynamic_multidim_array<T, Indexing>& arr) const {
+    if (num_dimensions() != arr.num_dimensions()) {
+      arr.resize(counts);
     } else {
       for (size_t i = 0; i < num_dimensions(); ++i) {
-        if (data.size(i) != dimension(i).getSize()) {
-          data.resize(counts);
+        if (arr.size(i) != dimension(i)) {
+          arr.resize(counts);
           break;
         }
       }
     }
-    m_variable.getVar(start_indices, counts, data.data_ptr());
+    m_variable.getVar(start_indices, counts, arr.data_ptr());
   }
   //----------------------------------------------------------------------------
   template <typename Indexing, typename MemLoc, size_t... Resolution>
   auto read_chunk(
-      static_multidim_array<T, Indexing, MemLoc, Resolution...>& data,
+      static_multidim_array<T, Indexing, MemLoc, Resolution...>& arr,
       integral auto const... start_indices) const {
     static_assert(sizeof...(start_indices) == sizeof...(Resolution));
     assert(sizeof...(Resolution) == num_dimensions());
     m_variable.getVar(std::vector{static_cast<size_t>(start_indices)...},
-                      std::vector{Resolution...}, data.data_ptr());
+                      std::vector{Resolution...}, arr.data_ptr());
   }
   //----------------------------------------------------------------------------
   template <typename Indexing, typename MemLoc, size_t... Resolution>
   auto read_chunk(
       std::vector<size_t> const&                                 start_indices,
-      static_multidim_array<T, Indexing, MemLoc, Resolution...>& data) const {
+      static_multidim_array<T, Indexing, MemLoc, Resolution...>& arr) const {
     m_variable.getVar(start_indices, std::vector{Resolution...},
-                      data.data_ptr());
+                      arr.data_ptr());
   }
   //----------------------------------------------------------------------------
   auto read_chunk(std::vector<size_t> const& start_indices,
                   std::vector<size_t> const& counts,
-                  std::vector<T>&            data) const {
+                  std::vector<T>&            arr) const {
     auto const n = std::accumulate(begin(counts), end(counts), size_t(1),
                                    std::multiplies<size_t>{});
-    if (size(data) != n) { data.resize(n); }
-    m_variable.getVar(start_indices, counts, data.data());
+    if (size(arr) != n) { arr.resize(n); }
+    m_variable.getVar(start_indices, counts, arr.data());
   }
   //----------------------------------------------------------------------------
   auto is_null() const { return m_variable.isNull(); }

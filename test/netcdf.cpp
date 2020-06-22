@@ -72,8 +72,8 @@ TEST_CASE("netcdf_scivis", "[netcdf][scivis][general]") {
 TEST_CASE("netcdf_scivis_u", "[netcdf][scivis][u]") {
   std::string const file_path = "/home/steve/Downloads/MEAN/2011013100.nc";
   auto u_var = file{file_path, netCDF::NcFile::read}.variable<double>("U");
-  //chunked_data<double, 4, 10> u;
-  dynamic_multidim_array<double> u;
+  chunked_multidim_array<double> u{{10, 10, 10, 10}, {10, 10, 10, 10}};
+  //dynamic_multidim_array<double> u;
   u_var.read(u);
 }
 //==============================================================================

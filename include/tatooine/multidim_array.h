@@ -35,12 +35,12 @@ class static_multidim_array
   using parent_t::in_range;
   using parent_t::indices;
   using parent_t::num_dimensions;
-  using parent_t::num_elements;
+  using parent_t::num_components;
   using parent_t::plain_index;
   using parent_t::size;
   using container_t =
       std::conditional_t<std::is_same<MemLoc, tag::stack>::value,
-                         std::array<T, num_elements()>, std::vector<T>>;
+                         std::array<T, num_components()>, std::vector<T>>;
 
   //============================================================================
   // static methods
@@ -48,9 +48,9 @@ class static_multidim_array
  private:
   static constexpr auto init_data(T init = T{}) {
     if constexpr (std::is_same<MemLoc, tag::stack>::value) {
-      return make_array<T, num_elements()>(init);
+      return make_array<T, num_components()>(init);
     } else {
-      return std::vector(num_elements(), init);
+      return std::vector(num_components(), init);
     }
   }
   //============================================================================
@@ -115,7 +115,7 @@ class static_multidim_array
   //----------------------------------------------------------------------------
   explicit constexpr static_multidim_array(convertible_to<T> auto&&... ts)
       : m_data{static_cast<T>(ts)...} {
-    static_assert(sizeof...(ts) == num_elements());
+    static_assert(sizeof...(ts) == num_components());
   }
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
   constexpr static_multidim_array() : m_data(init_data(T{})) {}
@@ -134,17 +134,17 @@ class static_multidim_array
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
   explicit static_multidim_array(const std::vector<T>& data)
       : m_data(begin(data), end(data)) {
-    assert(data.size() == num_elements());
+    assert(data.size() == num_components());
   }
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
   explicit constexpr static_multidim_array(
-      const std::array<T, num_elements()>& data)
+      const std::array<T, num_components()>& data)
       : m_data(data) {}
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
   template <
       typename _MemLoc                                                 = MemLoc,
       std::enable_if_t<std::is_same<_MemLoc, tag::stack>::value, bool> = true>
-  explicit constexpr static_multidim_array(std::array<T, num_elements()>&& data)
+  explicit constexpr static_multidim_array(std::array<T, num_components()>&& data)
       : m_data(std::move(data)) {}
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
   template <
@@ -152,7 +152,7 @@ class static_multidim_array
       std::enable_if_t<std::is_same<_MemLoc, tag::heap>::value, bool> = true>
   explicit constexpr static_multidim_array(std::vector<T>&& data)
       : m_data(std::move(data)) {
-    assert(num_elements() == data.size());
+    assert(num_components() == data.size());
   }
   ////----------------------------------------------------------------------------
   template <typename RandomReal, typename Engine, typename _T = T,
@@ -240,6 +240,7 @@ class static_multidim_array
   [[nodiscard]] constexpr auto operator[](size_t i) -> auto& {
     return m_data[i];
   }
+  // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
   [[nodiscard]] constexpr auto operator[](size_t i) const -> const auto& {
     return m_data[i];
   }
@@ -279,7 +280,7 @@ class dynamic_multidim_array : public dynamic_multidim_resolution<Indexing> {
   using parent_t::in_range;
   using parent_t::indices;
   using parent_t::num_dimensions;
-  using parent_t::num_elements;
+  using parent_t::num_components;
   using parent_t::plain_index;
   using parent_t::size;
   using container_t = std::vector<T>;
@@ -472,20 +473,20 @@ class dynamic_multidim_array : public dynamic_multidim_resolution<Indexing> {
   }
   //============================================================================
   explicit dynamic_multidim_array(integral auto... resolution)
-      : parent_t{resolution...}, m_data(num_elements(), T{}) {}
+      : parent_t{resolution...}, m_data(num_components(), T{}) {}
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
   template <typename S>
   explicit dynamic_multidim_array(const tag::fill<S>& f,
                                   integral auto... resolution)
-      : parent_t{resolution...}, m_data(num_elements(), f.value) {}
+      : parent_t{resolution...}, m_data(num_components(), f.value) {}
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
   explicit dynamic_multidim_array(const tag::zeros_t& /*z*/,
                                   integral auto... resolution)
-      : parent_t{resolution...}, m_data(num_elements(), 0) {}
+      : parent_t{resolution...}, m_data(num_components(), 0) {}
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
   explicit dynamic_multidim_array(const tag::ones_t& /*o*/,
                                   integral auto... resolution)
-      : parent_t{resolution...}, m_data(num_elements(), 1) {}
+      : parent_t{resolution...}, m_data(num_components(), 1) {}
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
   explicit dynamic_multidim_array(const std::vector<T>& data,
                                   integral auto... resolution)
@@ -497,22 +498,22 @@ class dynamic_multidim_array : public dynamic_multidim_resolution<Indexing> {
   //----------------------------------------------------------------------------
   template <unsigned_integral UInt>
   explicit dynamic_multidim_array(const std::vector<UInt>& resolution)
-      : parent_t{resolution}, m_data(num_elements(), T{}) {}
+      : parent_t{resolution}, m_data(num_components(), T{}) {}
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
   template <typename S, unsigned_integral UInt>
   dynamic_multidim_array(const tag::fill<S>&      f,
                          const std::vector<UInt>& resolution)
-      : parent_t{resolution}, m_data(num_elements(), f.value) {}
+      : parent_t{resolution}, m_data(num_components(), f.value) {}
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
   template <unsigned_integral UInt>
   dynamic_multidim_array(const tag::zeros_t& /*z*/,
                          const std::vector<UInt>& resolution)
-      : parent_t{resolution}, m_data(num_elements(), 0) {}
+      : parent_t{resolution}, m_data(num_components(), 0) {}
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
   template <unsigned_integral UInt>
   dynamic_multidim_array(const tag::ones_t& /*o*/,
                          const std::vector<UInt>& resolution)
-      : parent_t{resolution}, m_data(num_elements(), 1) {}
+      : parent_t{resolution}, m_data(num_components(), 1) {}
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
   template <unsigned_integral UInt>
   dynamic_multidim_array(const std::vector<T>&    data,
@@ -526,22 +527,22 @@ class dynamic_multidim_array : public dynamic_multidim_resolution<Indexing> {
   //----------------------------------------------------------------------------
   template <size_t N, unsigned_integral UInt>
   explicit dynamic_multidim_array(const std::array<UInt, N>& resolution)
-      : parent_t{resolution}, m_data(num_elements(), T{}) {}
+      : parent_t{resolution}, m_data(num_components(), T{}) {}
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
   template <size_t N, typename S, unsigned_integral UInt>
   dynamic_multidim_array(const tag::fill<S>&        f,
                          const std::array<UInt, N>& resolution)
-      : parent_t{resolution}, m_data(num_elements(), f.value) {}
+      : parent_t{resolution}, m_data(num_components(), f.value) {}
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
   template <size_t N, unsigned_integral UInt>
   dynamic_multidim_array(const tag::zeros_t& /*z*/,
                          const std::array<UInt, N>& resolution)
-      : parent_t{resolution}, m_data(num_elements(), 0) {}
+      : parent_t{resolution}, m_data(num_components(), 0) {}
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
   template <size_t N, unsigned_integral UInt>
   dynamic_multidim_array(const tag::ones_t& /*o*/,
                          const std::array<UInt, N>& resolution)
-      : parent_t{resolution}, m_data(num_elements(), 1) {}
+      : parent_t{resolution}, m_data(num_components(), 1) {}
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
   template <size_t N, unsigned_integral UInt>
   dynamic_multidim_array(const std::vector<T>&      data,
@@ -677,25 +678,25 @@ class dynamic_multidim_array : public dynamic_multidim_resolution<Indexing> {
   //----------------------------------------------------------------------------
   void resize(integral auto... resolution) {
     parent_t::resize(resolution...);
-    m_data.resize(num_elements());
+    m_data.resize(num_components());
   }
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
   template <unsigned_integral UInt>
   void resize(const std::vector<UInt>& res, const T value = T{}) {
     parent_t::resize(res);
-    m_data.resize(num_elements(), value);
+    m_data.resize(num_components(), value);
   }
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
   template <unsigned_integral UInt>
   void resize(std::vector<UInt>&& res, const T value = T{}) {
     parent_t::resize(std::move(res));
-    m_data.resize(num_elements(), value);
+    m_data.resize(num_components(), value);
   }
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
   template <unsigned_integral UInt, size_t N>
   void resize(const std::array<UInt, N>& res, const T value = T{}) {
     parent_t::resize(res);
-    m_data.resize(num_elements(), value);
+    m_data.resize(num_components(), value);
   }
   //----------------------------------------------------------------------------
   constexpr auto data() -> auto& { return m_data; }
@@ -847,7 +848,7 @@ auto interpolate(const dynamic_multidim_array<T0, Indexing0>& arr0,
 //    writer.write_dimensions(res[0], res[1], res[2]);
 //    writer.write_origin(origin(0), origin(1), origin(2));
 //    writer.write_spacing(spacing(0), spacing(1), spacing(2));
-//    writer.write_point_data(arr.num_elements());
+//    writer.write_point_data(arr.num_components());
 //
 //    writer.write_scalars(data_name, arr.data());
 //    writer.close();
@@ -868,7 +869,7 @@ auto interpolate(const dynamic_multidim_array<T0, Indexing0>& arr0,
 //    writer.write_dimensions(res[0], res[1], res[2]);
 //    writer.write_origin(origin(0), origin(1), origin(2));
 //    writer.write_spacing(spacing(0), spacing(1), spacing(2));
-//    writer.write_point_data(arr.num_elements());
+//    writer.write_point_data(arr.num_components());
 //
 //    writer.write_scalars(data_name, arr.data());
 //    writer.close();

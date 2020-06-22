@@ -19,7 +19,7 @@ namespace tatooine {
 template <typename Indexing, size_t... Resolution>
 struct static_multidim_resolution {
   static constexpr auto num_dimensions() { return sizeof...(Resolution); }
-  static constexpr auto num_elements() { return (Resolution * ...); }
+  static constexpr auto num_components() { return (Resolution * ...); }
   //----------------------------------------------------------------------------
   static constexpr auto size() {
     return std::array<size_t, num_dimensions()>{Resolution...};
@@ -197,7 +197,7 @@ class dynamic_multidim_resolution {
   /// \return size of dimensions i
   auto size(const size_t i) const { return m_size[i]; }
   //----------------------------------------------------------------------------
-  auto num_elements() const {
+  auto num_components() const {
     return std::accumulate(begin(m_size), end(m_size), size_t(1),
                            std::multiplies<size_t>{});
   }

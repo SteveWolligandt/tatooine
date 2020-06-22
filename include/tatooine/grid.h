@@ -2,7 +2,7 @@
 #define TATOOINE_GRID_H
 //==============================================================================
 #include <tatooine/boundingbox.h>
-#include <tatooine/chunked_data.h>
+#include <tatooine/chunked_multidim_array.h>
 #include <tatooine/concepts.h>
 #include <tatooine/grid_face_property.h>
 #include <tatooine/grid_vertex_container.h>
@@ -46,9 +46,9 @@ class grid {
   using property_container_t = std::map<std::string, property_ptr_t>;
 
   // vertex properties
-  template <typename T, size_t ChunkRes, typename... InterpolationKernels>
+  template <typename T, typename... InterpolationKernels>
   using chunked_vertex_property_t =
-      grid_vertex_property<this_t, chunked_data<T, num_dimensions(), ChunkRes>,
+      grid_vertex_property<this_t, chunked_multidim_array<T>,
                            InterpolationKernels...>;
   template <typename T, typename... InterpolationKernels>
   using contiguous_vertex_property_t =
@@ -56,11 +56,11 @@ class grid {
                            InterpolationKernels...>;
 
   // face properties
-  template <typename T, size_t FaceDimensionIndex, size_t ChunkRes,
+  template <typename T, size_t FaceDimensionIndex,
             typename... InterpolationKernels>
   using chunked_face_property_t =
-      grid_face_property<this_t, chunked_data<T, num_dimensions(), ChunkRes>,
-                         FaceDimensionIndex, InterpolationKernels...>;
+      grid_face_property<this_t, chunked_multidim_array<T>, FaceDimensionIndex,
+                         InterpolationKernels...>;
   template <typename T, size_t FaceDimensionIndex,
             typename... InterpolationKernels>
   using contiguous_face_property_t =
@@ -482,48 +482,46 @@ class grid {
         "Number of interpolation kernels does not match number of dimensions.");
     return add_vertex_property<T, InterpolationKernels...>(name, seq_t{});
   }
- // //----------------------------------------------------------------------------
- //private:
- // template <typename T, size_t ChunkRes,
- //           template <typename> typename... InterpolationKernels,
- //           size_t... DimensionIndex>
- // auto add_chunked_vertex_property(std::string const& name,
- //                                  std::index_sequence<DimensionIndex...>)
- //     -> typed_property_t<T>& {
- //   if (auto it = m_vertex_properties.find(name);
- //       it == end(m_vertex_properties)) {
- //     auto [newit, new_prop] = [&]() {
- //       if constexpr (sizeof...(InterpolationKernels) == 0) {
- //         using prop_t = chunked_vertex_property_t<
- //             T, ChunkRes,
- //             decltype(((void)DimensionIndex,
- //                       default_interpolation_kernel_t<T>{}))...>;
- //         return m_vertex_properties.emplace(
- //             name, new prop_t{*this, size<DimensionIndex>()...});
- //       } else {
- //         return m_vertex_properties.emplace(
- //             name, new chunked_vertex_property_t<T, ChunkRes,
- //                                                 InterpolationKernels<T>...>{
- //                       *this, size<DimensionIndex>()...});
- //       }
- //     }();
- //     return *dynamic_cast<typed_property_t<T>*>(newit->second.get());
- //   } else {
- //     return *dynamic_cast<typed_property_t<T>*>(it->second.get());
- //   }
- // }
- // //----------------------------------------------------------------------------
- //public:
- // template <typename T, size_t ChunkRes = 128,
- //           template <typename> typename... InterpolationKernels>
- // auto add_chunked_vertex_property(std::string const& name) -> auto& {
- //   static_assert(
- //       sizeof...(InterpolationKernels) == num_dimensions() ||
- //           sizeof...(InterpolationKernels) == 0,
- //       "Number of interpolation kernels does not match number of dimensions.");
- //   return add_chunked_vertex_property<T, ChunkRes, InterpolationKernels...>(
- //       name, seq_t{});
- // }
+  //----------------------------------------------------------------------------
+ private:
+  template <typename T, template <typename> typename... InterpolationKernels,
+            size_t... DimensionIndex>
+  auto add_chunked_vertex_property(std::string const& name,
+                                   std::index_sequence<DimensionIndex...>)
+      -> typed_property_t<T>& {
+    if (auto it = m_vertex_properties.find(name);
+        it == end(m_vertex_properties)) {
+      auto [newit, new_prop] = [&]() {
+        if constexpr (sizeof...(InterpolationKernels) == 0) {
+          using prop_t = chunked_vertex_property_t<
+              T, decltype(((void)DimensionIndex,
+                           default_interpolation_kernel_t<T>{}))...>;
+          return m_vertex_properties.emplace(
+              name, new prop_t{*this, std::vector{size<DimensionIndex>()...},
+                               std::vector<size_t>(num_dimensions(), 10)});
+        } else {
+          return m_vertex_properties.emplace(
+              name,
+              new chunked_vertex_property_t<T, InterpolationKernels<T>...>{
+                  *this, size<DimensionIndex>()...});
+        }
+      }();
+      return *dynamic_cast<typed_property_t<T>*>(newit->second.get());
+    } else {
+      return *dynamic_cast<typed_property_t<T>*>(it->second.get());
+    }
+  }
+  //----------------------------------------------------------------------------
+ public:
+  template <typename T, template <typename> typename... InterpolationKernels>
+  auto add_chunked_vertex_property(std::string const& name) -> auto& {
+    static_assert(sizeof...(InterpolationKernels) == num_dimensions() ||
+                      sizeof...(InterpolationKernels) == 0,
+                  "Number of interpolation kernels does not match number of "
+                  "dimensions.");
+    return add_chunked_vertex_property<T, InterpolationKernels...>(name,
+                                                                   seq_t{});
+  }
   //----------------------------------------------------------------------------
   template <typename T>
   auto vertex_property(std::string const& name) -> auto& {
@@ -586,8 +584,7 @@ class grid {
   }
   //----------------------------------------------------------------------------
  private:
-  template <typename T, size_t FaceDimensionIndex, size_t ChunkRes,
-            size_t... DimensionIndex,
+  template <typename T, size_t FaceDimensionIndex, size_t... DimensionIndex,
             template <typename> typename... InterpolationKernels>
   auto add_chunked_face_property(std::string const& name,
                                  std::index_sequence<DimensionIndex...>)
@@ -596,16 +593,19 @@ class grid {
       auto [newit, new_prop] = [&]() {
         if constexpr (sizeof...(InterpolationKernels) == 0) {
           using prop_t = chunked_face_property_t<
-              T, FaceDimensionIndex, ChunkRes,
+              T, FaceDimensionIndex,
               decltype(((void)DimensionIndex,
                         default_interpolation_kernel_t<T>{}))...>;
           return m_face_properties.emplace(
-              name, new prop_t{*this, (FaceDimensionIndex == DimensionIndex
-                                           ? size<DimensionIndex>()
-                                           : size<DimensionIndex>() - 1)...});
+              name,
+              new prop_t{*this,
+                         std::vector{(FaceDimensionIndex == DimensionIndex
+                                          ? size<DimensionIndex>()
+                                          : size<DimensionIndex>() - 1)...},
+                         std::vector<size_t>(num_dimensions(), 10)});
         } else {
           return m_face_properties.emplace(
-              name, new chunked_face_property_t<T, FaceDimensionIndex, ChunkRes,
+              name, new chunked_face_property_t<T, FaceDimensionIndex,
                                                 InterpolationKernels<T>...>{
                         *this, (FaceDimensionIndex == DimensionIndex
                                     ? size<DimensionIndex>()
@@ -619,13 +619,13 @@ class grid {
   }
   //----------------------------------------------------------------------------
  public:
-  template <typename T, size_t FaceDimensionIndex, size_t ChunkRes,
+  template <typename T, size_t FaceDimensionIndex,
             template <typename> typename... InterpolationKernels>
   auto add_chunked_face_property(std::string const& name) -> auto& {
     static_assert(
         FaceDimensionIndex < num_dimensions(),
         "Face dimension index must be smaller than number of dimensions.");
-    return add_chunked_face_property<T, FaceDimensionIndex, ChunkRes,
+    return add_chunked_face_property<T, FaceDimensionIndex,
                                      InterpolationKernels...>(name, seq_t{});
   }
   //----------------------------------------------------------------------------
