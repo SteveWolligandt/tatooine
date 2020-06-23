@@ -20,7 +20,7 @@ TEST_CASE("netcdf_write_read", "[netcdf][read][write]") {
   // create some data
   for (size_t j = 0; j < NY; ++j) {
     for (size_t i = 0; i < NX; ++i) {
-      size_t idx    = i + NX * j;
+        size_t idx = i + NX * j;
       data_out[idx] = idx;
     }
   }
@@ -55,18 +55,6 @@ TEST_CASE("netcdf_write_read", "[netcdf][read][write]") {
     REQUIRE(chunk(1, 1) == 5);
   }
 
-  SECTION("read full") {
-    auto data_in = var.read_chunked(std::vector<size_t>{2, 2});
-
-    // Check the values.
-    for (size_t j = 0; j < NY; ++j) {
-      for (size_t i = 0; i < NX; ++i) {
-        size_t idx = i + NX * j;
-        CAPTURE(i, j, idx);
-        REQUIRE(data_in(i, j) == data_out[idx]);
-      }
-    }
-  }
   SECTION("read chunk-wise") {
     auto data_in = var.read_chunked({2, 2});
 
