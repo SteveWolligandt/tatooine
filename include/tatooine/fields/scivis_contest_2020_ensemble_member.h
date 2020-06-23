@@ -43,6 +43,11 @@ struct scivis_contest_2020_ensemble_member
     linspace yc_axis{yc_var.read_single(0), yc_var.read_single(499), 500};
     linspace t_axis{t_ax_var.read_single(0), t_ax_var.read_single(59), 60};
     auto     z_axis = z_mit40_var.read_as_vector();
+    std::cerr << "XG: " << xg_axis << '\n';
+    std::cerr << "XC: " << xc_axis << '\n';
+    std::cerr << "YG: " << yg_axis << '\n';
+    std::cerr << "YC: " << yc_axis << '\n';
+    std::cerr << "T: " << t_axis << '\n';
 
     m_u_grid.dimension<0>() = t_axis;
     m_v_grid.dimension<0>() = t_axis;
@@ -60,11 +65,14 @@ struct scivis_contest_2020_ensemble_member
     m_v_grid.dimension<3>() = xc_axis;
     m_w_grid.dimension<3>() = xc_axis;
 
-    m_u = &m_u_grid.add_chunked_vertex_property<double>(
+    //m_u = &m_u_grid.add_chunked_vertex_property<double>("u");
+    //m_v = &m_v_grid.add_chunked_vertex_property<double>("v");
+    //m_w = &m_w_grid.add_chunked_vertex_property<double>("w");
+    m_u = &m_u_grid.add_chunked_vertex_property<double, x_slowest>(
         "u", u_var, std::vector<size_t>(4, 10));
-    m_v = &m_v_grid.add_chunked_vertex_property<double>(
+    m_v = &m_v_grid.add_chunked_vertex_property<double, x_slowest>(
         "v", v_var, std::vector<size_t>(4, 10));
-    m_w = &m_w_grid.add_chunked_vertex_property<double>(
+    m_w = &m_w_grid.add_chunked_vertex_property<double, x_slowest>(
         "w", w_var, std::vector<size_t>(4, 10));
   }
   //==============================================================================

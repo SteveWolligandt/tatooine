@@ -191,7 +191,7 @@ TEST_CASE("scivis_contest_2020_as_grid_property",
   auto z_axis = z_mit40_var.read_as_vector();
 
   grid  u_grid{t_axis, z_axis, yc_axis, xg_axis};
-  [[maybe_unused]] auto& u_prop = u_grid.add_chunked_vertex_property<double>(
+  [[maybe_unused]] auto& u_prop = u_grid.add_chunked_vertex_property<double, x_slowest>(
       "u", u_var, std::vector<size_t>(4, 10));
 }
 //==============================================================================
@@ -204,6 +204,10 @@ TEST_CASE("scivis_contest_2020_field",
   auto const      measured_vel = v(x, t);
   vec const       expected_vel{0.0477014, 0.126074, 1.16049e-06};
 
+  std::cerr << "u(23, 0, 299, 199): "<< v.m_u->data_at(23, 0, 299, 199) << '\n';
+  std::cerr << "u(24, 0, 299, 199): "<< v.m_u->data_at(24, 0, 299, 199) << '\n';
+  //std::cerr << v.m_v->data_at(23, 0, 299, 199) << '\n';
+  //std::cerr << v.m_w->data_at(23, 0, 299, 199) << '\n';
   CAPTURE(measured_vel, expected_vel);
   REQUIRE(approx_equal(measured_vel, expected_vel));
 }

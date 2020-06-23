@@ -21,17 +21,17 @@
 //==============================================================================
 namespace tatooine {
 //==============================================================================
-template <typename T>
+template <typename T, typename Indexing = x_fastest>
 struct chunked_multidim_array {
   //============================================================================
   using value_type = T;
-  using this_t     = chunked_multidim_array<T>;
-  using chunk_t    = dynamic_multidim_array<T, x_fastest>;
+  using this_t     = chunked_multidim_array<T, Indexing>;
+  using chunk_t    = dynamic_multidim_array<T, Indexing>;
   //----------------------------------------------------------------------------
-  dynamic_multidim_resolution<x_fastest> m_data_structure;
-  std::vector<size_t>                    m_internal_chunk_res;
-  dynamic_multidim_resolution<x_fastest> m_chunk_structure;
-  std::vector<std::unique_ptr<chunk_t>>  m_chunks;
+  dynamic_multidim_resolution<Indexing> m_data_structure;
+  std::vector<size_t>                   m_internal_chunk_res;
+  dynamic_multidim_resolution<Indexing> m_chunk_structure;
+  std::vector<std::unique_ptr<chunk_t>> m_chunks;
   //============================================================================
   chunked_multidim_array(chunked_multidim_array const& other)
       : m_data_structure{other.m_data_structure},

@@ -153,6 +153,9 @@ struct base_sampler : crtp<Sampler> {
     static_assert(sizeof...(xs) + 1 == num_dimensions(),
                   "Number of coordinates does not match number of dimensions.");
     auto const [i, t] = cell_index<current_dimension_index()>(x);
+    std::cerr << "current dimension: " << current_dimension_index() << '\n';
+    std::cerr << "i: " << i << '\n';
+    std::cerr << "t: " << t << '\n';
     if constexpr (!HeadInterpolationKernel::needs_first_derivative) {
       if constexpr (num_dimensions() > 1) {
         return HeadInterpolationKernel::interpolate(at(i).sample(xs...),
@@ -161,25 +164,23 @@ struct base_sampler : crtp<Sampler> {
         return HeadInterpolationKernel::interpolate(at(i), at(i + 1), t);
       }
     } else {
-      if constexpr (num_dimensions() > 1) {
-        // TODO implement
-        // return HeadInterpolationKernel{at(i).sample(xs...),
-        //                               at(i + 1).sample(xs...),
-        //                               diff_at<current_dimension_index(),
-        //                               3>(i, .....),
-        //                               diff_at<current_dimension_index(),
-        //                               3>(i+1, .....)}(t);
-      } else {
-        // auto const& dim =
-        //    grid().template dimension<current_dimension_index()>();
-        // return HeadInterpolationKernel{
-        //    dim[i],
-        //    dim[i + 1],
-        //    at(i),
-        //    at(i + 1),
-        //    diff_at<current_dimension_index(), 3>(1, i),
-        //    diff_at<current_dimension_index(), 3>(1, i + 1)}(x);
-      }
+      // TODO implement iterators that need first derivative
+      //  if constexpr (num_dimensions() > 1) {
+      //    return HeadInterpolationKernel{
+      //        at(i).sample(xs...), at(i + 1).sample(xs...),
+      //        diff_at<current_dimension_index(), 3>(i, .....),
+      //        diff_at<current_dimension_index(), 3>(i + 1, .....)}(t);
+      //  } else {
+      //    auto const& dim =
+      //        grid().template dimension<current_dimension_index()>();
+      //    return HeadInterpolationKernel{
+      //        dim[i],
+      //        dim[i + 1],
+      //        at(i),
+      //        at(i + 1),
+      //        diff_at<current_dimension_index(), 3>(1, i),
+      //        diff_at<current_dimension_index(), 3>(1, i + 1)}(x);
+      //  }
     }
   }
 };

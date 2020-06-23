@@ -227,7 +227,7 @@ static constexpr auto is_linspace_v = is_linspace<T>::value;
 //==============================================================================
 template <real_number Real>
 auto operator<<(std::ostream& out, linspace<Real> const& l) -> auto& {
-  out << "[" << l[0] << ", " << l[1] << ", ... , " << l.back() << "]";
+  out << "[" << l[0] << ", " << l[1] << ", ..., " << l.back() << "]";
   return out;
 }
 //============================================================================
