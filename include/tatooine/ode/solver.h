@@ -2,6 +2,7 @@
 #define TATOOINE_ODE_SOLVER_H
 //==============================================================================
 #include <cassert>
+#include <concepts>
 #include <tatooine/concepts.h>
 #include <map>
 #include "../cache.h"
@@ -30,8 +31,8 @@ struct solver : crtp<Derived> {
   //----------------------------------------------------------------------------
  private:
   //----------------------------------------------------------------------------
-  template <typename V, std::floating_point VReal, arithmetic Y0Real,
-            arithmetic T0Real, arithmetic TauReal,
+  template <typename V, std::floating_point VReal, real_number Y0Real,
+            real_number T0Real, real_number TauReal,
             stepper_callback_invocable<Y0Real, N> StepperCallback>
   constexpr auto solve(vectorfield<V, VReal, N> const& v, vec<Y0Real, N>& y0,
                        T0Real t0, TauReal tau,

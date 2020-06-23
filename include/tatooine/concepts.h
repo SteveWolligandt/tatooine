@@ -2,18 +2,26 @@
 #define TATOOINE_CONCPETS_H
 //==============================================================================
 #include <concepts>
+#include <ranges>
 #include <tatooine/is_complex.h>
 #include <tatooine/invocable_with_n_types.h>
 //==============================================================================
 namespace tatooine {
 //==============================================================================
-// iterators
+// ranges etc.
 //==============================================================================
 template <typename T>
 concept forward_iterator = std::forward_iterator<T>;
 //------------------------------------------------------------------------------
 template <typename T>
 concept bidirectional_iterator = std::bidirectional_iterator<T>;
+//------------------------------------------------------------------------------
+template <typename Range>
+concept range = requires(Range const r) {
+  {r.begin()};
+  {r.end()};
+};
+
 //==============================================================================
 // typedefs
 //==============================================================================
@@ -182,6 +190,13 @@ template <typename Flowmap, size_t N>
 concept fixed_dims_flowmap_c =
   flowmap_c<Flowmap> &&
   Flowmap::num_dimensions() == N;
+//==============================================================================
+// stuff
+//==============================================================================
+template <typename Reader, typename Readable>
+concept can_read = requires(Reader reader, Readable readable) {
+  reader.read(readable);
+};
 //==============================================================================
 }  // namespace tatooine
 //==============================================================================

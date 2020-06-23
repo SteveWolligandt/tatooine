@@ -33,20 +33,6 @@ struct chunked_multidim_array {
   dynamic_multidim_resolution<x_fastest> m_chunk_structure;
   std::vector<std::unique_ptr<chunk_t>>  m_chunks;
   //============================================================================
-  chunked_multidim_array(std::vector<size_t> const& resolution,
-                         std::vector<size_t> const& chunk_res) {
-    resize(resolution, chunk_res);
-  }
-  //----------------------------------------------------------------------------
-  template <typename Container>
-  chunked_multidim_array(Container&&                data,
-                         std::vector<size_t> const& resolution,
-                         std::vector<size_t> const& chunk_res) {
-    resize(resolution, chunk_res);
-    size_t i = 0;
-    for (auto const& d : data) { (*this)[i++] = d; }
-  }
-  //----------------------------------------------------------------------------
   chunked_multidim_array(chunked_multidim_array const& other)
       : m_data_structure{other.m_data_structure},
         m_internal_chunk_res{other.m_internal_chunk_res},
@@ -72,6 +58,26 @@ struct chunked_multidim_array {
     size_t i = 0;
     for (auto const& d : container) { (*this)[i++] = d; }
     return *this;
+  }
+  //----------------------------------------------------------------------------
+  chunked_multidim_array(std::vector<size_t> const& resolution,
+                         std::vector<size_t> const& chunk_res) {
+    resize(resolution, chunk_res);
+  }
+  //----------------------------------------------------------------------------
+  template <range Range>
+  chunked_multidim_array(Range&& data, std::vector<size_t> const& resolution,
+                         std::vector<size_t> const& chunk_res) {
+    resize(resolution, chunk_res);
+    size_t i = 0;
+    for (auto const& d : data) { (*this)[i++] = d; }
+  }
+  //----------------------------------------------------------------------------
+  template <can_read<this_t> Reader>
+  chunked_multidim_array(Reader&&                   reader,
+                         std::vector<size_t> const& chunk_res) {
+    m_internal_chunk_res = chunk_res;
+    reader.read(*this);
   }
   //==============================================================================
   void resize(std::vector<size_t> resolution) {

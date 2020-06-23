@@ -48,6 +48,14 @@ class variable {
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
   auto write(std::vector<T> const& arr) { m_variable.putVar(arr.data()); }
   //----------------------------------------------------------------------------
+  auto num_components() const {
+    size_t c = 1;
+    for (size_t i = 0; i < num_dimensions(); ++i) {
+      c *= dimension(i);
+    }
+    return c;
+  }
+  //----------------------------------------------------------------------------
   template <typename Indexing>
   auto read() const {
     dynamic_multidim_array<T, Indexing> arr(dimensions());
@@ -71,8 +79,15 @@ class variable {
   }
   //----------------------------------------------------------------------------
   auto read(chunked_multidim_array<T>& arr) const {
-    size_t total{0}, kept{0};
-    arr.resize(dimensions());
+    bool must_resize = arr.num_dimensions() != num_dimensions();
+    if (!must_resize) {
+     for (size_t i = 0; i < num_dimensions(); ++i) {
+       must_resize = dimension(i) != arr.size(i);
+       if (must_resize) {break;}
+     }
+    }
+    if (must_resize) { arr.resize(dimensions()); }
+
     for (auto const& chunk_indices : dynamic_multidim(arr.chunk_resolution())) {
       auto const start_indices = arr.global_indices_from_chunk_indices(chunk_indices);
       auto const plain_chunk_index =
@@ -83,7 +98,6 @@ class variable {
 
       read_chunk(start_indices, arr.internal_chunk_resolution(),
                  *arr.chunk_at(plain_chunk_index));
-      ++total;
       if constexpr (std::is_arithmetic_v<T>) {
         bool all_zero = true;
         for (auto const& v : arr.chunk_at(plain_chunk_index)->data()) {
@@ -94,13 +108,9 @@ class variable {
         }
         if (all_zero) {
           arr.destroy_chunk_at(plain_chunk_index);
-        } else {
-          ++kept;
-          std::cerr << "keep\n";
         }
       }
     }
-    std::cerr << kept << "/" << total << " kept\n";
   }
   //----------------------------------------------------------------------------
   template <typename Indexing, typename MemLoc, size_t... Resolution>
@@ -114,6 +124,27 @@ class variable {
   auto read(std::vector<T>& arr) const {
     if (auto const n = num_components(); size(arr) != n) { arr.resize(n); }
     m_variable.getVar(arr.data());
+  }
+  //----------------------------------------------------------------------------
+  auto read_as_vector() const {
+    std::vector<T> arr(num_components());
+    m_variable.getVar(arr.data());
+    return arr;
+  }
+  //----------------------------------------------------------------------------
+  auto read_single(std::vector<size_t> const& start_indices) {
+    assert(size(start_indices) == num_dimensions());
+    T t;
+    m_variable.getVar(start_indices, std::vector<size_t>(num_dimensions(), 1),
+                      &t);
+    return t;
+  }
+  //----------------------------------------------------------------------------
+  auto read_single(size_t i) {
+    assert(num_dimensions() == 1);
+    T t;
+    m_variable.getVar({i}, {1}, &t);
+    return t;
   }
   //----------------------------------------------------------------------------
   auto read_chunk(std::vector<size_t> const& start_indices,
@@ -185,12 +216,6 @@ class variable {
       res.push_back(dimension(i));
     }
     return res;
-  }
-  //----------------------------------------------------------------------------
-  auto num_components() const {
-    auto const dims = dimensions();
-    return std::accumulate(begin(dims), end(dims), size_t(1),
-                           std::multiplies<size_t>{});
   }
   //----------------------------------------------------------------------------
   auto name() const { return m_variable.getName(); }

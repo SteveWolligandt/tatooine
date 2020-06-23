@@ -24,7 +24,7 @@ struct grid_vertex_property
   //------------------------------------------------------------------------------
   auto operator=(grid_vertex_property const&)
       -> grid_vertex_property& = default;
-  auto operator=(grid_vertex_property &&)noexcept
+  auto operator                =(grid_vertex_property&&) noexcept
       -> grid_vertex_property& = default;
   //------------------------------------------------------------------------------
   template <typename... Args>

@@ -212,7 +212,7 @@ namespace tatooine{
 //==============================================================================
 template <typename V, template <typename, size_t> typename ODESolver,
           template <typename> typename InterpolationKernel,
-          arithmetic EpsReal = typename V::real_t>
+          real_number EpsReal = typename V::real_t>
 auto diff(numerical_flowmap<V, ODESolver, InterpolationKernel> const& flowmap,
           tag::central_t /*tag*/,
           EpsReal epsilon = 1e-7) {
@@ -232,7 +232,7 @@ auto diff(numerical_flowmap<V, ODESolver, InterpolationKernel> const& flowmap,
 //==============================================================================
 template <typename V, template <typename, size_t> typename ODESolver,
           template <typename> typename InterpolationKernel,
-          arithmetic EpsReal = typename V::real_t>
+          real_number EpsReal = typename V::real_t>
 auto diff(numerical_flowmap<V, ODESolver, InterpolationKernel> const& flowmap,
           EpsReal epsilon = 1e-7) {
   return diff(flowmap, tag::central, epsilon);

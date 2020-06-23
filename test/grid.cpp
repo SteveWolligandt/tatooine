@@ -249,7 +249,6 @@ TEST_CASE("grid_face_property", "[grid][face_property]") {
 
   v_prop.data_at(0, 0) = 4;
   v_prop.data_at(1, 0) = 6;
-
 }
 //==============================================================================
 }  // namespace tatooine::test
