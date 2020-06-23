@@ -14,7 +14,7 @@ TEST_CASE("netcdf_write_read", "[netcdf][read][write]") {
   std::string const variable_name = "data";
   // We are reading 2D data, a 4 x 2 grid.
   size_t constexpr NX = 4;
-  size_t constexpr NY = 2;
+  size_t constexpr NY = 4;
 
   std::vector<int> data_out(NX * NY);
   // create some data
@@ -27,8 +27,8 @@ TEST_CASE("netcdf_write_read", "[netcdf][read][write]") {
   file f_out{file_path, netCDF::NcFile::replace};
 
   f_out
-      .add_variable<int>(variable_name, {f_out.add_dimension(ydim_name, NY),
-                                         f_out.add_dimension(xdim_name, NX)})
+      .add_variable<int>(variable_name, {f_out.add_dimension(xdim_name, NX),
+                                         f_out.add_dimension(ydim_name, NY)})
       .write(data_out);
 
   file f_in{file_path, netCDF::NcFile::read};
@@ -43,7 +43,7 @@ TEST_CASE("netcdf_write_read", "[netcdf][read][write]") {
       for (size_t i = 0; i < NX; ++i) {
         size_t idx = i + NX * j;
         CAPTURE(i, j, idx);
-        REQUIRE(data_in(j, i) == data_out[idx]);
+        REQUIRE(data_in(i, j) == data_out[idx]);
       }
     }
   }
