@@ -112,10 +112,6 @@ struct chunked_multidim_array {
       integral auto const... indices) const {
     assert(sizeof...(indices) == m_chunks[plain_chunk_index]->num_dimensions());
 
-    std::cerr << "modulo: ";
-    ((std::cerr << indices % m_internal_chunk_size[Is] << ' '), ...);
-    std::cerr << '\n';
-
     return m_chunks[plain_chunk_index]->plain_index(
         (indices % m_internal_chunk_size[Is])...);
   }
@@ -291,17 +287,12 @@ struct chunked_multidim_array {
   auto operator()(integral auto... indices) -> T& { return at(indices...); }
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
   auto at(integral auto const... indices) -> T& {
-    std::cerr << "at(";
-    ((std::cerr << indices << ' '), ...);
-    std::cerr << ")\n";
     assert(sizeof...(indices) == num_dimensions());
     assert(m_data_structure.in_range(indices...));
     size_t const plain_index =
         plain_chunk_index_from_global_indices(indices...);
     size_t const plain_internal_index =
         plain_internal_chunk_index_from_global_indices(plain_index, indices...);
-    std::cerr << "plain_index: " << plain_index << '\n';
-    std::cerr << "plain_internal_index: " << plain_index << '\n';
     if (chunk_at_is_null(plain_index)) { create_chunk_at(plain_index); }
     return (*m_chunks[plain_index])[plain_internal_index];
   }

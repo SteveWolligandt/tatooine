@@ -130,37 +130,6 @@ class variable {
         }
         if (all_zero) {
           arr.destroy_chunk_at(plain_chunk_index);
-        } else {
-          //std::cerr << "======================\n";
-          //std::cerr << "plain index: " << plain_chunk_index << '\n';
-          //std::cerr << "chunk indices: ";
-          //for (auto v : chunk_indices) { std::cerr << v << ' '; }
-          //std::cerr << '\n';
-          //std::cerr << "start_indices: ";
-          //for (auto v : start_indices) { std::cerr << v << ' '; }
-          //std::cerr << '\n';
-          //std::cerr << "chunk size: ";
-          //for (auto v : arr.internal_chunk_size()) {
-          //  std::cerr << v << ' ';
-          //}
-          //std::cerr << '\n';
-          //std::cerr << "keep\n";
-          //for (auto is : dynamic_multidim(arr.internal_chunk_size())) {
-          //  auto const r =
-          //      read_single(start_indices[0] + is[0], start_indices[1] + is[1],
-          //                  start_indices[2] + is[2], start_indices[3] + is[3]);
-          //  auto const d =
-          //      arr(start_indices[0] + is[0], start_indices[1] + is[1],
-          //          start_indices[2] + is[2], start_indices[3] + is[3]);
-          //  if (r != d) {
-          //    std::cerr << "- - - - - - - - -\n";
-          //    std::cerr << "start_indices: ";
-          //    for (auto v : start_indices) { std::cerr << v << ' '; }
-          //    std::cerr << '\n';
-          //    std::cerr << "> " << r << '\n';
-          //    std::cerr << "> " << d << '\n';
-          //  }
-          //}
         }
       }
     }
