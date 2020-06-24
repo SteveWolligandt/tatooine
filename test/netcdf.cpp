@@ -1,27 +1,32 @@
 #include <tatooine/for_loop.h>
 #include <tatooine/grid.h>
-#include <tatooine/netcdf.h>
 #include <tatooine/lazy_netcdf_reader.h>
+#include <tatooine/netcdf.h>
 
 #include <catch2/catch.hpp>
 //==============================================================================
 namespace tatooine::netcdf {
 //==============================================================================
+size_t constexpr NX              = 8;
+size_t constexpr NY              = 6;
+size_t constexpr NZ              = 4;
+size_t constexpr NT              = 6;
+std::string const variable_name  = "DATA";
+std::string const xdim_name      = "X";
+std::string const ydim_name      = "Y";
+std::string const zdim_name      = "Z";
+std::string const tdim_name      = "T";
+std::string const file_path_xy   = "simple_xy.nc";
+std::string const file_path_xyz  = "simple_xyz.nc";
+std::string const file_path_xyzt = "simple_xyzt.nc";
 using namespace netCDF::exceptions;
-TEST_CASE("netcdf_write_read", "[netcdf][read][write]") {
-  std::string const file_path     = "simple_xy.nc";
-  std::string const xdim_name     = "x";
-  std::string const ydim_name     = "y";
-  std::string const variable_name = "data";
-  // We are reading 2D data, a 8 x 6 grid.
-  size_t constexpr NX = 8;
-  size_t constexpr NY = 6;
-
-  std::vector<int> data_out(NX * NY);
+auto write_simple_xy() {
+  // 2D data, a 8 x 6 grid.
+  std::vector<double> data_out(NX * NY);
   // create some data
   for (size_t j = 0; j < NY; ++j) {
     for (size_t i = 0; i < NX; ++i) {
-        size_t idx = i + NX * j;
+      size_t idx    = i + NX * j;
       data_out[idx] = idx;
     }
   }
@@ -30,14 +35,89 @@ TEST_CASE("netcdf_write_read", "[netcdf][read][write]") {
   data_out[4 + NX * 1] = 0;
   data_out[5 + NX * 1] = 0;
 
-  file f_out{file_path, netCDF::NcFile::replace};
+  file f_out{file_path_xy, netCDF::NcFile::replace};
   auto dim_x = f_out.add_dimension(xdim_name, NX);
   auto dim_y = f_out.add_dimension(ydim_name, NY);
-  f_out.add_variable<int>(variable_name, {dim_y, dim_x}).write(data_out);
+  f_out.add_variable<double>(variable_name, {dim_y, dim_x}).write(data_out);
+  return data_out;
+}
+// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+auto write_simple_xyz() {
+  // 3D data, a 8 x 6 x 4 grid.
+  std::vector<double> data_out(NX * NY * NZ);
+  // create some data
+  for (size_t k = 0; k < NZ; ++k) {
+    for (size_t j = 0; j < NY; ++j) {
+      for (size_t i = 0; i < NX; ++i) {
+        size_t idx    = i + NX * j + NX * NY * k;
+        data_out[idx] = idx;
+      }
+    }
+  }
+  data_out[4 + NX * 0 + NX * NY * 0] = 0;
+  data_out[5 + NX * 0 + NX * NY * 0] = 0;
+  data_out[4 + NX * 1 + NX * NY * 0] = 0;
+  data_out[5 + NX * 1 + NX * NY * 0] = 0;
+  data_out[4 + NX * 0 + NX * NY * 1] = 0;
+  data_out[5 + NX * 0 + NX * NY * 1] = 0;
+  data_out[4 + NX * 1 + NX * NY * 1] = 0;
+  data_out[5 + NX * 1 + NX * NY * 1] = 0;
 
-  file f_in{file_path, netCDF::NcFile::read};
+  file f_out{file_path_xyz, netCDF::NcFile::replace};
+  auto dim_x = f_out.add_dimension(xdim_name, NX);
+  auto dim_y = f_out.add_dimension(ydim_name, NY);
+  auto dim_z = f_out.add_dimension(zdim_name, NZ);
+  f_out.add_variable<double>(variable_name, {dim_z, dim_y, dim_x})
+      .write(data_out);
+  return data_out;
+}
+// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+auto write_simple_xyzt() {
+  // 4D data
+  std::vector<double> data_out(NX * NY * NZ * NT);
+  // create some data
+  for (size_t l = 0; l < NT; ++l) {
+    for (size_t k = 0; k < NZ; ++k) {
+      for (size_t j = 0; j < NY; ++j) {
+        for (size_t i = 0; i < NX; ++i) {
+          size_t idx    = i + NX * j + NX * NY * k + NX * NY * NZ * l;
+          data_out[idx] = idx;
+        }
+      }
+    }
+  }
+  data_out[4 + NX * 0 + NX * NY * 0 + NX * NY * NZ * 0] = 0;
+  data_out[5 + NX * 0 + NX * NY * 0 + NX * NY * NZ * 0] = 0;
+  data_out[4 + NX * 1 + NX * NY * 0 + NX * NY * NZ * 0] = 0;
+  data_out[5 + NX * 1 + NX * NY * 0 + NX * NY * NZ * 0] = 0;
+  data_out[4 + NX * 0 + NX * NY * 1 + NX * NY * NZ * 0] = 0;
+  data_out[5 + NX * 0 + NX * NY * 1 + NX * NY * NZ * 0] = 0;
+  data_out[4 + NX * 1 + NX * NY * 1 + NX * NY * NZ * 0] = 0;
+  data_out[5 + NX * 1 + NX * NY * 1 + NX * NY * NZ * 0] = 0;
+  data_out[4 + NX * 0 + NX * NY * 0 + NX * NY * NZ * 1] = 0;
+  data_out[5 + NX * 0 + NX * NY * 0 + NX * NY * NZ * 1] = 0;
+  data_out[4 + NX * 1 + NX * NY * 0 + NX * NY * NZ * 1] = 0;
+  data_out[5 + NX * 1 + NX * NY * 0 + NX * NY * NZ * 1] = 0;
+  data_out[4 + NX * 0 + NX * NY * 1 + NX * NY * NZ * 1] = 0;
+  data_out[5 + NX * 0 + NX * NY * 1 + NX * NY * NZ * 1] = 0;
+  data_out[4 + NX * 1 + NX * NY * 1 + NX * NY * NZ * 1] = 0;
+  data_out[5 + NX * 1 + NX * NY * 1 + NX * NY * NZ * 1] = 0;
+
+  file f_out{file_path_xyzt, netCDF::NcFile::replace};
+  auto dim_x = f_out.add_dimension(xdim_name, NX);
+  auto dim_y = f_out.add_dimension(ydim_name, NY);
+  auto dim_z = f_out.add_dimension(zdim_name, NZ);
+  auto dim_t = f_out.add_dimension(tdim_name, NT);
+  f_out.add_variable<double>(variable_name, {dim_t, dim_z, dim_y, dim_x})
+      .write(data_out);
+  return data_out;
+}
+//==============================================================================
+TEST_CASE("netcdf_write_read", "[netcdf][read][write]") {
+  auto const data_out = write_simple_xy();
+  file       f_in{file_path_xy, netCDF::NcFile::read};
   // Retrieve the variable
-  auto var = f_in.variable<int>(variable_name);
+  auto var = f_in.variable<double>(variable_name);
   REQUIRE(var.size(1) == NX);
   REQUIRE(var.size(0) == NY);
 
@@ -48,7 +128,7 @@ TEST_CASE("netcdf_write_read", "[netcdf][read][write]") {
     REQUIRE(data_in.size(0) == NX);
     REQUIRE(data_in.size(1) == NY);
     std::cerr << "full: ";
-    for (auto d: data_in.data()) std::cerr << d << ' ';
+    for (auto d : data_in.data()) std::cerr << d << ' ';
     std::cerr << '\n';
 
     // Check the values.
@@ -150,10 +230,10 @@ TEST_CASE("netcdf_write_read", "[netcdf][read][write]") {
   }
 }
 //==============================================================================
-TEST_CASE("netcdf_lazy","[netcdf][lazy]"){
-  std::string const file_path     = "simple_xy.nc";
-  std::string const variable_name = "data";
-  lazy_reader<int> cont{file_path, variable_name, std::vector<size_t>{2, 2}};
+TEST_CASE("netcdf_lazy_xy", "[netcdf][lazy][xy]") {
+  auto const          data_out = write_simple_xy();
+  lazy_reader<double> cont{file_path_xy, variable_name,
+                           std::vector<size_t>{2, 2}};
 
   REQUIRE(cont.chunk_at_is_null(0));
   REQUIRE(cont(0, 0) == 0);
@@ -168,6 +248,57 @@ TEST_CASE("netcdf_lazy","[netcdf][lazy]"){
   REQUIRE(cont.chunk_at_is_null(2));
   REQUIRE(cont(5, 0) == 0);
   REQUIRE(cont.chunk_at_is_null(2));
+}
+//==============================================================================
+TEST_CASE("netcdf_lazy_xyz", "[netcdf][lazy][xyz]") {
+  auto const          data_out = write_simple_xyz();
+  lazy_reader<double> cont{file_path_xyz, variable_name,
+                           std::vector<size_t>{2, 2, 2}};
+
+  REQUIRE(cont.chunk_at_is_null(0));
+  REQUIRE(cont(0, 0, 0) == 0);
+  REQUIRE(!cont.chunk_at_is_null(0));
+
+  REQUIRE(cont.chunk_at_is_null(1));
+  REQUIRE(cont(2, 0, 0) == 2);
+  REQUIRE(!cont.chunk_at_is_null(1));
+
+  REQUIRE(cont.chunk_at_is_null(2));
+  REQUIRE(cont(4, 0, 0) == 0);
+  REQUIRE(cont.chunk_at_is_null(2));
+  REQUIRE(cont(5, 0, 0) == 0);
+  REQUIRE(cont.chunk_at_is_null(2));
+}
+//==============================================================================
+TEST_CASE("netcdf_lazy_xyzt", "[netcdf][lazy][xyzt]") {
+  auto const          data_out = write_simple_xyzt();
+  lazy_reader<double> cont{file_path_xyzt, variable_name,
+                           std::vector<size_t>{2, 2, 2, 2}};
+
+  REQUIRE(cont.chunk_at_is_null(0));
+  REQUIRE(cont(0, 0, 0, 0) == 0);
+  REQUIRE(!cont.chunk_at_is_null(0));
+
+  REQUIRE(cont.chunk_at_is_null(1));
+  REQUIRE(cont(2, 0, 0, 0) == 2);
+  REQUIRE(!cont.chunk_at_is_null(1));
+
+  REQUIRE(cont.chunk_at_is_null(2));
+  REQUIRE(cont(4, 0, 0, 0) == 0);
+  REQUIRE(cont.chunk_at_is_null(2));
+  REQUIRE(cont(5, 0, 0, 0) == 0);
+  REQUIRE(cont.chunk_at_is_null(2));
+
+  for (int l = NT - 1; l >= 0; --l) {
+    for (int k = NZ - 1; k >= 0; --k) {
+      for (int j = NY - 1; j >= 0; --j) {
+        for (int i = NX - 1; i >= 0; --i) {
+          size_t idx = i + NX * j + NX * NY * k + NX * NY * NZ * l;
+          REQUIRE(cont(i, j, k, l) == data_out[idx]);
+        }
+      }
+    }
+  }
 }
 //==============================================================================
 }  // namespace tatooine::netcdf

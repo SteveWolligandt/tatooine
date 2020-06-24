@@ -14,8 +14,8 @@ struct scivis_contest_2020_ensemble_member
   using parent_t::pos_t;
   using parent_t::real_t;
   using parent_t::tensor_t;
-  using component_grid_t        = grid<linspace<double>, std::vector<double>,
-                                linspace<double>, linspace<double>>;
+  using component_grid_t = grid<linspace<double>, linspace<double>,
+                                std::vector<double>, linspace<double>>;
   using chunked_grid_property_t =
       typed_multidim_property<component_grid_t, double>;
   //============================================================================
@@ -50,40 +50,40 @@ struct scivis_contest_2020_ensemble_member
     std::cerr << "YC: " << yc_axis << '\n';
     std::cerr << "T: " << t_axis << '\n';
 
-    m_u_grid.dimension<0>() = t_axis;
-    m_v_grid.dimension<0>() = t_axis;
-    m_w_grid.dimension<0>() = t_axis;
+    m_u_grid.dimension<3>() = t_axis;
+    m_v_grid.dimension<3>() = t_axis;
+    m_w_grid.dimension<3>() = t_axis;
 
-    m_u_grid.dimension<1>() = z_axis;
-    m_v_grid.dimension<1>() = z_axis;
-    m_w_grid.dimension<1>() = z_axis;
+    m_u_grid.dimension<2>() = z_axis;
+    m_v_grid.dimension<2>() = z_axis;
+    m_w_grid.dimension<2>() = z_axis;
 
-    m_u_grid.dimension<2>() = yc_axis;
-    m_v_grid.dimension<2>() = yg_axis;
-    m_w_grid.dimension<2>() = yc_axis;
+    m_u_grid.dimension<1>() = yc_axis;
+    m_v_grid.dimension<1>() = yg_axis;
+    m_w_grid.dimension<1>() = yc_axis;
 
-    m_u_grid.dimension<3>() = xg_axis;
-    m_v_grid.dimension<3>() = xc_axis;
-    m_w_grid.dimension<3>() = xc_axis;
+    m_u_grid.dimension<0>() = xg_axis;
+    m_v_grid.dimension<0>() = xc_axis;
+    m_w_grid.dimension<0>() = xc_axis;
 
     m_u = &m_u_grid.add_vertex_property<netcdf::lazy_reader<double>>(
-        "u", u_var, std::vector<size_t>(4, 2));
+        "u", u_var, std::vector<size_t>(4, 5));
     m_v = &m_v_grid.add_vertex_property<netcdf::lazy_reader<double>>(
-        "v", v_var, std::vector<size_t>(4, 2));
+        "v", v_var, std::vector<size_t>(4, 5));
     m_w = &m_w_grid.add_vertex_property<netcdf::lazy_reader<double>>(
-        "w", w_var, std::vector<size_t>(4, 2));
+        "w", w_var, std::vector<size_t>(4, 5));
   }
   //==============================================================================
   auto evaluate(pos_t const& x, real_t const t) const -> tensor_t final {
-    return tensor_t{m_u->sample(t, x(2), x(1), x(0)),
-                    m_v->sample(t, x(2), x(1), x(0)),
-                    m_w->sample(t, x(2), x(1), x(0))};
+    return tensor_t{m_u->sample(x(0), x(1), x(2), t),
+                    m_v->sample(x(0), x(1), x(2), t),
+                    m_w->sample(x(0), x(1), x(2), t)};
   }
   //------------------------------------------------------------------------------
   auto in_domain(pos_t const& x, real_t const t) const -> bool final {
-    return m_u_grid.in_domain(t, x(2), x(1), x(0)) &&
-           m_v_grid.in_domain(t, x(2), x(1), x(0)) &&
-           m_w_grid.in_domain(t, x(2), x(1), x(0));
+    return m_u_grid.in_domain(x(0), x(1), x(2), t) &&
+           m_v_grid.in_domain(x(0), x(1), x(2), t) &&
+           m_w_grid.in_domain(x(0), x(1), x(2), t);
   }
 };
 //==============================================================================

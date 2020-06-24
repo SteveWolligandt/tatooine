@@ -2,6 +2,8 @@
 #include <tatooine/for_loop.h>
 #include <tatooine/grid.h>
 #include <tatooine/fields/scivis_contest_2020_ensemble_member.h>
+#include <tatooine/ode/vclibs/rungekutta43.h>
+#include <tatooine/line.h>
 
 #include <catch2/catch.hpp>
 //==============================================================================
@@ -195,17 +197,51 @@ TEST_CASE("scivis_contest_2020_field",
           "[scivis_contest_2020][field]") {
   using V = fields::scivis_contest_2020_ensemble_member;
   V               v{file_path};
-  V::pos_t const  x{38, 22, 3};
-  V::real_t const t            = 964205;
+  V::pos_t const x{38, 22, 3};
+  V::real_t const t = 964205;
+
+  std::cerr << "u(199, 299, 0, 23): "
+            <<  v.m_u->data_at(199, 299, 0, 23) << '\n';
+  std::cerr << "u(199, 299, 0, 24): "
+            <<  v.m_u->data_at(199, 299, 0, 24) << '\n';
+  
   auto const      measured_vel = v(x, t);
   vec const       expected_vel{0.0477014, 0.126074, 1.16049e-06};
-
-  std::cerr << "u(23, 0, 299, 199): "<< v.m_u->data_at(23, 0, 299, 199) << '\n';
-  std::cerr << "u(24, 0, 299, 199): "<< v.m_u->data_at(24, 0, 299, 199) << '\n';
-  //std::cerr << v.m_v->data_at(23, 0, 299, 199) << '\n';
-  //std::cerr << v.m_w->data_at(23, 0, 299, 199) << '\n';
   CAPTURE(measured_vel, expected_vel);
   REQUIRE(approx_equal(measured_vel, expected_vel));
+  
+  std::vector<parameterized_line<V::real_t, 3, interpolation::linear>> pathlines;
+  size_t const num_pathlines = 10;
+  pathlines.reserve(2 * num_pathlines);
+  ode::vclibs::rungekutta43<V::real_t, 3> solver;
+
+  auto bb = v.m_u_grid.boundingbox();
+  std::cerr << bb << '\n';
+  vec<V::real_t, 4> xt;
+  vec<V::real_t, 3> sample;
+  bool in_domain = false;
+  for (size_t i = 0; i < num_pathlines; ++i) {
+    do {
+      xt = bb.random_point();
+      in_domain = !v.in_domain(vec{xt(0), xt(1), xt(2)}, x(3));
+      if (in_domain) {
+        sample = v(vec{xt(0), xt(1), xt(2)}, x(3));
+      }
+    } while (!in_domain || sqr_length(sample) == 0);
+
+    std::cerr << "found position! (" << i << ")\n";
+    pathlines.emplace_back();
+    solver.solve(v, vec{xt(0), xt(1), xt(2)}, x(3), 1000000, [&pathlines](auto t, const auto& y) {
+      pathlines.back().push_back(y, t);
+    });
+    pathlines.emplace_back();
+    solver.solve(v, vec{xt(0), xt(1), xt(2)}, x(3), -1000000, [&pathlines](auto t, const auto& y) {
+      pathlines.back().push_back(y, t);
+    });
+  }
+  pathlines[0].write_vtk("red_sea0.vtk");
+  pathlines[1].write_vtk("red_sea1.vtk");
+  write_vtk(pathlines, "read_sea.vtk");
 }
 //==============================================================================
 }  // namespace tatooine::netcdf

@@ -28,11 +28,15 @@ struct chunked_multidim_array {
   using this_t     = chunked_multidim_array<T, Indexing>;
   using chunk_t    = dynamic_multidim_array<T, Indexing>;
   //----------------------------------------------------------------------------
-  dynamic_multidim_size<Indexing>       m_data_structure;
-  std::vector<size_t>                   m_internal_chunk_size;
-  dynamic_multidim_size<Indexing>       m_chunk_structure;
-  std::vector<std::unique_ptr<chunk_t>> m_chunks;
+ private:
+  dynamic_multidim_size<Indexing> m_data_structure;
+  std::vector<size_t>             m_internal_chunk_size;
+  dynamic_multidim_size<Indexing> m_chunk_structure;
+
+ protected:
+  mutable std::vector<std::unique_ptr<chunk_t>> m_chunks;
   //============================================================================
+ public:
   chunked_multidim_array(chunked_multidim_array const& other)
       : m_data_structure{other.m_data_structure},
         m_internal_chunk_size{other.m_internal_chunk_size},
@@ -264,6 +268,21 @@ struct chunked_multidim_array {
   }
   //----------------------------------------------------------------------------
   auto create_chunk_at(size_t const chunk_index0,
+                       integral auto const... chunk_indices) const -> const
+      auto& {
+    if constexpr (sizeof...(chunk_indices) == 0) {
+      m_chunks[chunk_index0] = std::make_unique<chunk_t>(m_internal_chunk_size);
+      return m_chunks[chunk_index0];
+    } else {
+      assert(sizeof...(chunk_indices) + 1 == num_dimensions());
+      auto const i =
+          plain_chunk_index_from_chunk_indices(chunk_index0, chunk_indices...);
+      m_chunks[i] = std::make_unique<chunk_t>(m_internal_chunk_size);
+      return m_chunks[i];
+    }
+  }
+  //----------------------------------------------------------------------------
+  auto create_chunk_at(size_t const chunk_index0,
                        integral auto const... chunk_indices) -> auto& {
     if constexpr (sizeof...(chunk_indices) == 0) {
       m_chunks[chunk_index0] = std::make_unique<chunk_t>(m_internal_chunk_size);
@@ -278,7 +297,7 @@ struct chunked_multidim_array {
   }
   //----------------------------------------------------------------------------
   auto destroy_chunk_at(size_t const chunk_index0,
-                        integral auto const... chunk_indices) {
+                        integral auto const... chunk_indices) const {
     if constexpr (sizeof...(chunk_indices) == 0) {
       m_chunks[chunk_index0].reset();
     } else {

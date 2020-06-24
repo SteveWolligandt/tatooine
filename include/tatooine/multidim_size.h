@@ -29,7 +29,7 @@ struct static_multidim_size {
   //----------------------------------------------------------------------------
   static constexpr auto in_range(integral auto... is) {
     static_assert(sizeof...(is) == num_dimensions(),
-                  "number of indices does not match number of dimensions");
+                  "Number of indices does not match number of dimensions.");
     return ((is >= 0) && ...) &&
            ((static_cast<size_t>(is) < Resolution) && ...);
   }
@@ -42,7 +42,7 @@ struct static_multidim_size {
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
   static constexpr auto in_range(const std::vector<size_t>& is) {
     for (size_t i = 0; i < is.size(); ++i) {
-      if (is[i] < 0 || is[i] >= size(i)) { return false; }
+      if (is[i] >= size(i)) { return false; }
     }
     return true;
   }
