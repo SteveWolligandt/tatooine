@@ -57,7 +57,9 @@ class variable {
   }
   //----------------------------------------------------------------------------
   auto read() const {
-    dynamic_multidim_array<T, x_fastest> arr(dimensions());
+    auto dims = dimensions();
+    std::reverse(begin(dims), end(dims));
+    dynamic_multidim_array<T, x_fastest> arr(dims);
     m_variable.getVar(arr.data_ptr());
     return arr;
   }
@@ -95,11 +97,14 @@ class variable {
     bool must_resize = arr.num_dimensions() != num_dimensions();
     if (!must_resize) {
      for (size_t i = 0; i < num_dimensions(); ++i) {
-       must_resize = dimension(i) != arr.size(i);
+       must_resize = dimension(i) != arr.size(num_dimensions() - i - 1);
        if (must_resize) {break;}
      }
     }
-    if (must_resize) { arr.resize(dimensions()); }
+    if (must_resize) {
+      auto dims = dimensions();
+      std::reverse(begin(dims), end(dims));
+      arr.resize(dims); }
 
     for (auto const& chunk_indices : dynamic_multidim(arr.chunk_size())) {
       auto  start_indices =
@@ -112,8 +117,9 @@ class variable {
       }
 
       std::reverse(begin(start_indices), end(start_indices));
-      read_chunk(start_indices, arr.internal_chunk_size(),
-                 *arr.chunk_at(plain_chunk_index));
+      auto s = arr.internal_chunk_size();
+      std::reverse(begin(s), end(s));
+      read_chunk(start_indices, s, *arr.chunk_at(plain_chunk_index));
       if constexpr (std::is_arithmetic_v<T>) {
         bool all_zero = true;
         for (auto const& v : arr.chunk_at(plain_chunk_index)->data()) {

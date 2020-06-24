@@ -12,9 +12,9 @@ TEST_CASE("netcdf_write_read", "[netcdf][read][write]") {
   std::string const xdim_name     = "x";
   std::string const ydim_name     = "y";
   std::string const variable_name = "data";
-  // We are reading 2D data, a 4 x 4 grid.
-  size_t constexpr NX = 4;
-  size_t constexpr NY = 4;
+  // We are reading 2D data, a 8 x 6 grid.
+  size_t constexpr NX = 8;
+  size_t constexpr NY = 6;
 
   std::vector<int> data_out(NX * NY);
   // create some data
@@ -25,16 +25,18 @@ TEST_CASE("netcdf_write_read", "[netcdf][read][write]") {
     }
   }
   file f_out{file_path, netCDF::NcFile::replace};
-
-  f_out
-      .add_variable<int>(variable_name, {f_out.add_dimension(xdim_name, NX),
-                                         f_out.add_dimension(ydim_name, NY)})
-      .write(data_out);
+  auto dim_x = f_out.add_dimension(xdim_name, NX);
+  auto dim_y = f_out.add_dimension(ydim_name, NY);
+  f_out.add_variable<int>(variable_name, {dim_y, dim_x}).write(data_out);
 
   file f_in{file_path, netCDF::NcFile::read};
   // Retrieve the variable
   auto var = f_in.variable<int>(variable_name);
+  REQUIRE(var.dimension(1) == NX);
+  REQUIRE(var.dimension(0) == NY);
 
+  std::cerr << var.dimension_name(0) << '\n';
+  std::cerr << var.dimension_name(1) << '\n';
   SECTION("read full") {
     auto data_in = var.read();
     std::cerr << "full: ";
@@ -59,8 +61,8 @@ TEST_CASE("netcdf_write_read", "[netcdf][read][write]") {
       std::cerr << '\n';
       REQUIRE(chunk(0, 0) == 0);
       REQUIRE(chunk(1, 0) == 1);
-      REQUIRE(chunk(0, 1) == 4);
-      REQUIRE(chunk(1, 1) == 5);
+      REQUIRE(chunk(0, 1) == 8);
+      REQUIRE(chunk(1, 1) == 9);
     }
     SECTION("2,0|2,2") {
       auto chunk =
@@ -70,8 +72,8 @@ TEST_CASE("netcdf_write_read", "[netcdf][read][write]") {
       std::cerr << '\n';
       REQUIRE(chunk(0, 0) == 2);
       REQUIRE(chunk(1, 0) == 3);
-      REQUIRE(chunk(0, 1) == 6);
-      REQUIRE(chunk(1, 1) == 7);
+      REQUIRE(chunk(0, 1) == 10);
+      REQUIRE(chunk(1, 1) == 11);
     }
     SECTION("0,2|2,2") {
       auto chunk =
@@ -79,10 +81,10 @@ TEST_CASE("netcdf_write_read", "[netcdf][read][write]") {
       std::cerr << "chunk: ";
       for (auto d : chunk.data()) std::cerr << d << ' ';
       std::cerr << '\n';
-      REQUIRE(chunk(0, 0) == 8);
-      REQUIRE(chunk(1, 0) == 9);
-      REQUIRE(chunk(0, 1) == 12);
-      REQUIRE(chunk(1, 1) == 13);
+      REQUIRE(chunk(0, 0) == 16);
+      REQUIRE(chunk(1, 0) == 17);
+      REQUIRE(chunk(0, 1) == 24);
+      REQUIRE(chunk(1, 1) == 25);
     }
     SECTION("2,2|2,2") {
       auto chunk =
@@ -90,10 +92,10 @@ TEST_CASE("netcdf_write_read", "[netcdf][read][write]") {
       std::cerr << "chunk: ";
       for (auto d : chunk.data()) std::cerr << d << ' ';
       std::cerr << '\n';
-      REQUIRE(chunk(0, 0) == 10);
-      REQUIRE(chunk(1, 0) == 11);
-      REQUIRE(chunk(0, 1) == 14);
-      REQUIRE(chunk(1, 1) == 15);
+      REQUIRE(chunk(0, 0) == 18);
+      REQUIRE(chunk(1, 0) == 19);
+      REQUIRE(chunk(0, 1) == 26);
+      REQUIRE(chunk(1, 1) == 27);
     }
     SECTION("0,0|3,2") {
       auto chunk =
@@ -104,9 +106,9 @@ TEST_CASE("netcdf_write_read", "[netcdf][read][write]") {
       REQUIRE(chunk(0, 0) == 0);
       REQUIRE(chunk(1, 0) == 1);
       REQUIRE(chunk(2, 0) == 2);
-      REQUIRE(chunk(0, 1) == 4);
-      REQUIRE(chunk(1, 1) == 5);
-      REQUIRE(chunk(2, 1) == 6);
+      REQUIRE(chunk(0, 1) == 8);
+      REQUIRE(chunk(1, 1) == 9);
+      REQUIRE(chunk(2, 1) == 10);
     }
   }
 
@@ -114,22 +116,21 @@ TEST_CASE("netcdf_write_read", "[netcdf][read][write]") {
     auto data_in = var.read_chunked({2, 2});
     REQUIRE(data_in.internal_chunk_size(0) == 2);
     REQUIRE(data_in.internal_chunk_size(1) == 2);
-    REQUIRE(data_in.size(1) == 4);
-    REQUIRE(data_in.size(0) == 4);
-    REQUIRE(data_in.size(1) == 4);
+    REQUIRE(data_in.size(0) == NX);
+    REQUIRE(data_in.size(1) == NY);
 
-      std::cerr << "chunk 0: ";
-      for (auto d : data_in.chunk_at(0)->data()) std::cerr << d << ' ';
-      std::cerr << '\n';
-      std::cerr << "chunk 1: ";
-      for (auto d : data_in.chunk_at(1)->data()) std::cerr << d << ' ';
-      std::cerr << '\n';
-      std::cerr << "chunk 2: ";
-      for (auto d : data_in.chunk_at(2)->data()) std::cerr << d << ' ';
-      std::cerr << '\n';
-      std::cerr << "chunk 3: ";
-      for (auto d : data_in.chunk_at(3)->data()) std::cerr << d << ' ';
-      std::cerr << '\n';
+    std::cerr << "chunk 0: ";
+    for (auto d : data_in.chunk_at(0)->data()) std::cerr << d << ' ';
+    std::cerr << '\n';
+    std::cerr << "chunk 1: ";
+    for (auto d : data_in.chunk_at(1)->data()) std::cerr << d << ' ';
+    std::cerr << '\n';
+    std::cerr << "chunk 2: ";
+    for (auto d : data_in.chunk_at(2)->data()) std::cerr << d << ' ';
+    std::cerr << '\n';
+    std::cerr << "chunk 3: ";
+    for (auto d : data_in.chunk_at(3)->data()) std::cerr << d << ' ';
+    std::cerr << '\n';
 
     // Check the values.
     for (size_t j = 0; j < NY; ++j) {
