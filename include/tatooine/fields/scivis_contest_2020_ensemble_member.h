@@ -87,9 +87,10 @@ struct scivis_contest_2020_ensemble_member
   }
   //------------------------------------------------------------------------------
   auto in_domain(pos_t const& x, real_t const t) const -> bool final {
-    return m_u_grid.in_domain(x(0), x(1), x(2), t) &&
-           m_v_grid.in_domain(x(0), x(1), x(2), t) &&
-           m_w_grid.in_domain(x(0), x(1), x(2), t);
+    bool const in_u = m_u_grid.in_domain(x(0), x(1), x(2), t);
+    bool const in_v = m_v_grid.in_domain(x(0), x(1), x(2), t);
+    bool const in_w = m_w_grid.in_domain(x(0), x(1), x(2), t);
+    return in_u && in_v && in_w;
   }
 };
 //==============================================================================
