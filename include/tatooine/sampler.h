@@ -68,9 +68,9 @@ struct base_sampler : crtp<Sampler> {
   static constexpr auto num_components() {
     return num_components_v<value_type>;
   }
-  using this_t           = base_sampler<Sampler, T, HeadInterpolationKernel,
+  using this_t     = base_sampler<Sampler, value_type, HeadInterpolationKernel,
                               TailInterpolationKernels...>;
-  using indexing_t       = base_sampler_at_t<this_t, HeadInterpolationKernel,
+  using indexing_t = base_sampler_at_t<this_t, HeadInterpolationKernel,
                                        TailInterpolationKernels...>;
   using const_indexing_t = base_sampler_at_ct<this_t, HeadInterpolationKernel,
                                               TailInterpolationKernels...>;
@@ -84,7 +84,7 @@ struct base_sampler : crtp<Sampler> {
   //----------------------------------------------------------------------------
   /// data at specified indices is...
   /// CRTP-virtual method
-  decltype(auto) data_at(integral auto... is) {
+  auto data_at(integral auto... is) -> value_type& {
     static_assert(sizeof...(is) == num_dimensions(),
                   "Number of indices does not match number of dimensions.");
     return as_derived().data_at(is...);
@@ -92,7 +92,7 @@ struct base_sampler : crtp<Sampler> {
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
   /// data at specified indices is...
   /// CRTP-virtual method
-  auto data_at(integral auto... is) const {
+  auto data_at(integral auto... is) const -> value_type const& {
     static_assert(sizeof...(is) == num_dimensions(),
                   "Number of indices does not match number of dimensions.");
     return as_derived().data_at(is...);
@@ -153,9 +153,6 @@ struct base_sampler : crtp<Sampler> {
     static_assert(sizeof...(xs) + 1 == num_dimensions(),
                   "Number of coordinates does not match number of dimensions.");
     auto const [i, t] = cell_index<current_dimension_index()>(x);
-    std::cerr << "current dimension: " << current_dimension_index() << '\n';
-    std::cerr << "i: " << i << '\n';
-    std::cerr << "t: " << t << '\n';
     if constexpr (!HeadInterpolationKernel::needs_first_derivative) {
       if constexpr (num_dimensions() > 1) {
         return HeadInterpolationKernel::interpolate(at(i).sample(xs...),
@@ -238,23 +235,22 @@ struct sampler
     return as_sampler_impl().template cell_index<DimensionIndex>(x);
   }
   //----------------------------------------------------------------------------
-  auto data_at(integral auto const... is) -> decltype(auto) {
+  auto data_at(integral auto const... is) -> value_type& {
     return m_container(is...);
   }
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-  auto data_at(integral auto const... is) const -> decltype(auto) {
+  auto data_at(integral auto const... is) const -> value_type const& {
     return m_container(is...);
   }
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
   template <integral Is>
-  auto data_at(std::array<Is, num_dimensions()> const& is)
-      -> decltype(auto) {
+  auto data_at(std::array<Is, num_dimensions()> const& is) -> value_type& {
     return m_container(is);
   }
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
   template <integral Is>
   auto data_at(std::array<Is, num_dimensions()> const& is) const
-      -> decltype(auto) {
+      -> value_type const& {
     return m_container(is);
   }
   //----------------------------------------------------------------------------
@@ -314,14 +310,14 @@ struct sampler_view
   /// returns data of top sampler at m_fixed_index and index list is...
   template <typename _TopSampler                                  = TopSampler,
             std::enable_if_t<!std::is_const_v<_TopSampler>, bool> = true>
-  auto data_at(integral auto... is) -> decltype(auto) {
+  auto data_at(integral auto... is) -> value_type& {
     static_assert(sizeof...(is) == num_dimensions(),
                   "Number of indices is not equal to number of dimensions.");
     return m_top_sampler->data_at(m_fixed_index, is...);
   }
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
   /// returns data of top sampler at m_fixed_index and index list is...
-  auto data_at(integral auto... is) const -> decltype(auto) {
+  auto data_at(integral auto... is) const -> value_type const& {
     static_assert(sizeof...(is) == num_dimensions(),
                   "Number of indices is not equal to number of dimensions.");
     return m_top_sampler->data_at(m_fixed_index, is...);

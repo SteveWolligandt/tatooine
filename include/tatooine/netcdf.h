@@ -1,9 +1,9 @@
 #ifndef TATOOINE_NETCDF_H
 #define TATOOINE_NETCDF_H
 //==============================================================================
-#include <tatooine/multidim_array.h>
 #include <tatooine/chunked_multidim_array.h>
 #include <tatooine/multidim.h>
+#include <tatooine/multidim_array.h>
 
 #include <cassert>
 #include <memory>
@@ -50,31 +50,29 @@ class variable {
   //----------------------------------------------------------------------------
   auto num_components() const {
     size_t c = 1;
-    for (size_t i = 0; i < num_dimensions(); ++i) {
-      c *= dimension(i);
-    }
+    for (size_t i = 0; i < num_dimensions(); ++i) { c *= size(i); }
     return c;
   }
   //----------------------------------------------------------------------------
   auto read() const {
-    auto dims = dimensions();
-    std::reverse(begin(dims), end(dims));
-    dynamic_multidim_array<T, x_fastest> arr(dims);
-    m_variable.getVar(arr.data_ptr());
+    dynamic_multidim_array<T, x_fastest> arr;
+    read(arr);
     return arr;
   }
   //----------------------------------------------------------------------------
   auto read(dynamic_multidim_array<T, x_fastest>& arr) const {
-    if (num_dimensions() != arr.num_dimensions()) {
-      arr.resize(dimensions());
-    } else {
+    bool must_resize = num_dimensions() != arr.num_dimensions();
+    if (!must_resize) {
       for (size_t i = 0; i < num_dimensions(); ++i) {
-        if (arr.size(i) != dimension(i)) {
-          arr.resize(dimensions());
-          break;
-        }
+        if (arr.size(i) != size(i)) { break; }
       }
     }
+    if (must_resize) {
+      auto s = size();
+      std::reverse(begin(s), end(s));
+      arr.resize(s);
+    }
+
     m_variable.getVar(arr.data_ptr());
   }
   //----------------------------------------------------------------------------
@@ -96,19 +94,19 @@ class variable {
   auto read(chunked_multidim_array<T, x_fastest>& arr) const {
     bool must_resize = arr.num_dimensions() != num_dimensions();
     if (!must_resize) {
-     for (size_t i = 0; i < num_dimensions(); ++i) {
-       must_resize = dimension(i) != arr.size(num_dimensions() - i - 1);
-       if (must_resize) {break;}
-     }
+      for (size_t i = 0; i < num_dimensions(); ++i) {
+        must_resize = size(i) != arr.size(num_dimensions() - i - 1);
+        if (must_resize) { break; }
+      }
     }
     if (must_resize) {
-      auto dims = dimensions();
-      std::reverse(begin(dims), end(dims));
-      arr.resize(dims); }
+      auto s = size();
+      std::reverse(begin(s), end(s));
+      arr.resize(s);
+    }
 
     for (auto const& chunk_indices : dynamic_multidim(arr.chunk_size())) {
-      auto  start_indices =
-          arr.global_indices_from_chunk_indices(chunk_indices);
+      auto start_indices = arr.global_indices_from_chunk_indices(chunk_indices);
       auto const plain_chunk_index =
           arr.plain_chunk_index_from_chunk_indices(chunk_indices);
 
@@ -128,9 +126,7 @@ class variable {
             break;
           }
         }
-        if (all_zero) {
-          arr.destroy_chunk_at(plain_chunk_index);
-        }
+        if (all_zero) { arr.destroy_chunk_at(plain_chunk_index); }
       }
     }
   }
@@ -139,7 +135,7 @@ class variable {
   auto read(
       static_multidim_array<T, x_fastest, MemLoc, Resolution...>& arr) const {
     assert(sizeof...(Resolution) == num_dimensions());
-    assert(std::vector{Resolution...} == dimensions());
+    assert(std::vector{Resolution...} == size());
     m_variable.getVar(arr.data_ptr());
   }
   //----------------------------------------------------------------------------
@@ -162,7 +158,7 @@ class variable {
     return t;
   }
   //----------------------------------------------------------------------------
-  auto read_single(integral auto ... is) const {
+  auto read_single(integral auto... is) const {
     assert(num_dimensions() == sizeof...(is));
     T t;
     m_variable.getVar({static_cast<size_t>(is)...}, {((void)is, size_t(1))...},
@@ -170,10 +166,10 @@ class variable {
     return t;
   }
   //----------------------------------------------------------------------------
-  auto read_chunk(std::vector<size_t>  start_indices,
-                  std::vector<size_t>  counts) const {
-    assert(size(start_indices) == size(counts));
-    assert(size(start_indices) == num_dimensions());
+  auto read_chunk(std::vector<size_t> start_indices,
+                  std::vector<size_t> counts) const {
+    assert(start_indices.size() == counts.size());
+    assert(start_indices.size() == num_dimensions());
 
     dynamic_multidim_array<T> arr(counts);
     std::reverse(begin(start_indices), end(start_indices));
@@ -182,14 +178,14 @@ class variable {
     return arr;
   }
   //----------------------------------------------------------------------------
-  auto read_chunk(std::vector<size_t> const& start_indices,
-                  std::vector<size_t> const& counts,
+  auto read_chunk(std::vector<size_t> const&            start_indices,
+                  std::vector<size_t> const&            counts,
                   dynamic_multidim_array<T, x_fastest>& arr) const {
     if (num_dimensions() != arr.num_dimensions()) {
       arr.resize(counts);
     } else {
       for (size_t i = 0; i < num_dimensions(); ++i) {
-        if (arr.size(i) != dimension(i)) {
+        if (arr.size(i) != size(i)) {
           arr.resize(counts);
           break;
         }
@@ -210,7 +206,7 @@ class variable {
   //----------------------------------------------------------------------------
   template <typename MemLoc, size_t... Resolution>
   auto read_chunk(
-      std::vector<size_t> const&                                 start_indices,
+      std::vector<size_t> const&                                  start_indices,
       static_multidim_array<T, x_fastest, MemLoc, Resolution...>& arr) const {
     m_variable.getVar(start_indices, std::vector{Resolution...},
                       arr.data_ptr());
@@ -227,25 +223,25 @@ class variable {
   //----------------------------------------------------------------------------
   auto is_null() const { return m_variable.isNull(); }
   //----------------------------------------------------------------------------
-  auto num_dimensions() const { return static_cast<size_t>(m_variable.getDimCount()); }
+  auto num_dimensions() const {
+    return static_cast<size_t>(m_variable.getDimCount());
+  }
   //----------------------------------------------------------------------------
-  auto dimension(size_t i) const { return m_variable.getDim(i).getSize(); }
+  auto size(size_t i) const { return m_variable.getDim(i).getSize(); }
   //----------------------------------------------------------------------------
   auto dimension_name(size_t i) const { return m_variable.getDim(i).getName(); }
   //----------------------------------------------------------------------------
-  auto dimensions() const {
+  auto size() const {
     std::vector<size_t> res;
     res.reserve(num_dimensions());
-    for (size_t i = 0; i < num_dimensions(); ++i) {
-      res.push_back(dimension(i));
-    }
+    for (size_t i = 0; i < num_dimensions(); ++i) { res.push_back(size(i)); }
     return res;
   }
   //----------------------------------------------------------------------------
   auto name() const { return m_variable.getName(); }
 };
 //==============================================================================
-class dimension {};
+class size {};
 //==============================================================================
 class file {
   mutable std::shared_ptr<netCDF::NcFile> m_file;
@@ -271,11 +267,13 @@ class file {
     return m_file->addDim(dimension_name, size);
   }
   //----------------------------------------------------------------------------
+  auto dimensions() const { return m_file->getDims(); }
+  //----------------------------------------------------------------------------
   auto attributes() const { return m_file->getAtts(); }
   //----------------------------------------------------------------------------
   auto num_dimensions() const { return m_file->getDimCount(); }
   //----------------------------------------------------------------------------
-  auto dimensions() const { return m_file->getDims(); }
+  auto size() const { return m_file->getDims(); }
   //----------------------------------------------------------------------------
   auto groups() const { return m_file->getGroups(); }
   //----------------------------------------------------------------------------

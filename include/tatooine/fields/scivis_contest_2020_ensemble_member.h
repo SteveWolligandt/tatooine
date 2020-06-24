@@ -4,6 +4,7 @@
 #include <tatooine/field.h>
 #include <tatooine/grid.h>
 #include <tatooine/netcdf.h>
+#include <tatooine/lazy_netcdf_reader.h>
 //==============================================================================
 namespace tatooine::fields {
 //==============================================================================
@@ -65,15 +66,12 @@ struct scivis_contest_2020_ensemble_member
     m_v_grid.dimension<3>() = xc_axis;
     m_w_grid.dimension<3>() = xc_axis;
 
-    //m_u = &m_u_grid.add_chunked_vertex_property<double>("u");
-    //m_v = &m_v_grid.add_chunked_vertex_property<double>("v");
-    //m_w = &m_w_grid.add_chunked_vertex_property<double>("w");
-    m_u = &m_u_grid.add_chunked_vertex_property<double, x_fastest>(
-        "u", u_var, std::vector<size_t>(4, 10));
-    m_v = &m_v_grid.add_chunked_vertex_property<double, x_fastest>(
-        "v", v_var, std::vector<size_t>(4, 10));
-    m_w = &m_w_grid.add_chunked_vertex_property<double, x_fastest>(
-        "w", w_var, std::vector<size_t>(4, 10));
+    m_u = &m_u_grid.add_vertex_property<netcdf::lazy_reader<double>>(
+        "u", u_var, std::vector<size_t>(4, 2));
+    m_v = &m_v_grid.add_vertex_property<netcdf::lazy_reader<double>>(
+        "v", v_var, std::vector<size_t>(4, 2));
+    m_w = &m_w_grid.add_vertex_property<netcdf::lazy_reader<double>>(
+        "w", w_var, std::vector<size_t>(4, 2));
   }
   //==============================================================================
   auto evaluate(pos_t const& x, real_t const t) const -> tensor_t final {

@@ -29,34 +29,34 @@ TEST_CASE("scivis_contest_2020_properties",
     std::cerr << "dimension \"" << name << "\": " << dim.getSize() << '\n';
   }
   std::cerr << "u.num_dimensions(): " << u.num_dimensions() << '\n';
-  std::cerr << "u.dimension(0): " << u.dimension_name(0) << " - "
-            << u.dimension(0) << '\n';
-  std::cerr << "u.dimension(1): " << u.dimension_name(1) << " - "
-            << u.dimension(1) << '\n';
-  std::cerr << "u.dimension(2): " << u.dimension_name(2) << " - "
-            << u.dimension(2) << '\n';
-  std::cerr << "u.dimension(3): " << u.dimension_name(3) << " - "
-            << u.dimension(3) << '\n';
+  std::cerr << "u.size(0): " << u.dimension_name(0) << " - "
+            << u.size(0) << '\n';
+  std::cerr << "u.size(1): " << u.dimension_name(1) << " - "
+            << u.size(1) << '\n';
+  std::cerr << "u.size(2): " << u.dimension_name(2) << " - "
+            << u.size(2) << '\n';
+  std::cerr << "u.size(3): " << u.dimension_name(3) << " - "
+            << u.size(3) << '\n';
 
   std::cerr << "v.num_dimensions(): " << v.num_dimensions() << '\n';
-  std::cerr << "v.dimension(0): " << v.dimension_name(0) << " - "
-            << v.dimension(0) << '\n';
-  std::cerr << "v.dimension(1): " << v.dimension_name(1) << " - "
-            << v.dimension(1) << '\n';
-  std::cerr << "v.dimension(2): " << v.dimension_name(2) << " - "
-            << v.dimension(2) << '\n';
-  std::cerr << "v.dimension(3): " << v.dimension_name(3) << " - "
-            << v.dimension(3) << '\n';
+  std::cerr << "v.size(0): " << v.dimension_name(0) << " - "
+            << v.size(0) << '\n';
+  std::cerr << "v.size(1): " << v.dimension_name(1) << " - "
+            << v.size(1) << '\n';
+  std::cerr << "v.size(2): " << v.dimension_name(2) << " - "
+            << v.size(2) << '\n';
+  std::cerr << "v.size(3): " << v.dimension_name(3) << " - "
+            << v.size(3) << '\n';
 
   std::cerr << "w.num_dimensions(): " << w.num_dimensions() << '\n';
-  std::cerr << "w.dimension(0): " << w.dimension_name(0) << " - "
-            << w.dimension(0) << '\n';
-  std::cerr << "w.dimension(1): " << w.dimension_name(1) << " - "
-            << w.dimension(1) << '\n';
-  std::cerr << "w.dimension(2): " << w.dimension_name(2) << " - "
-            << w.dimension(2) << '\n';
-  std::cerr << "w.dimension(3): " << w.dimension_name(3) << " - "
-            << w.dimension(3) << '\n';
+  std::cerr << "w.size(0): " << w.dimension_name(0) << " - "
+            << w.size(0) << '\n';
+  std::cerr << "w.size(1): " << w.dimension_name(1) << " - "
+            << w.size(1) << '\n';
+  std::cerr << "w.size(2): " << w.dimension_name(2) << " - "
+            << w.size(2) << '\n';
+  std::cerr << "w.size(3): " << w.dimension_name(3) << " - "
+            << w.size(3) << '\n';
 }
 //==============================================================================
 TEST_CASE("scivis_contest_2020_dimensions",
@@ -189,11 +189,6 @@ TEST_CASE("scivis_contest_2020_as_grid_property",
   linspace  yc_axis{yc_var.read_single(0), yc_var.read_single(499), 500};
   linspace  t_axis{t_ax_var.read_single(0), t_ax_var.read_single(59), 60};
   auto z_axis = z_mit40_var.read_as_vector();
-
-  grid  u_grid{t_axis, z_axis, yc_axis, xg_axis};
-  [[maybe_unused]] auto& u_prop =
-      u_grid.add_chunked_vertex_property<double, x_fastest>(
-          "u", u_var, std::vector<size_t>(4, 10));
 }
 //==============================================================================
 TEST_CASE("scivis_contest_2020_field",

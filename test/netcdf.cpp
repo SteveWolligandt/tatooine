@@ -1,6 +1,7 @@
 #include <tatooine/for_loop.h>
 #include <tatooine/grid.h>
 #include <tatooine/netcdf.h>
+#include <tatooine/lazy_netcdf_reader.h>
 
 #include <catch2/catch.hpp>
 //==============================================================================
@@ -24,6 +25,11 @@ TEST_CASE("netcdf_write_read", "[netcdf][read][write]") {
       data_out[idx] = idx;
     }
   }
+  data_out[4 + NX * 0] = 0;
+  data_out[5 + NX * 0] = 0;
+  data_out[4 + NX * 1] = 0;
+  data_out[5 + NX * 1] = 0;
+
   file f_out{file_path, netCDF::NcFile::replace};
   auto dim_x = f_out.add_dimension(xdim_name, NX);
   auto dim_y = f_out.add_dimension(ydim_name, NY);
@@ -32,13 +38,15 @@ TEST_CASE("netcdf_write_read", "[netcdf][read][write]") {
   file f_in{file_path, netCDF::NcFile::read};
   // Retrieve the variable
   auto var = f_in.variable<int>(variable_name);
-  REQUIRE(var.dimension(1) == NX);
-  REQUIRE(var.dimension(0) == NY);
+  REQUIRE(var.size(1) == NX);
+  REQUIRE(var.size(0) == NY);
 
   std::cerr << var.dimension_name(0) << '\n';
   std::cerr << var.dimension_name(1) << '\n';
   SECTION("read full") {
     auto data_in = var.read();
+    REQUIRE(data_in.size(0) == NX);
+    REQUIRE(data_in.size(1) == NY);
     std::cerr << "full: ";
     for (auto d: data_in.data()) std::cerr << d << ' ';
     std::cerr << '\n';
@@ -126,8 +134,7 @@ TEST_CASE("netcdf_write_read", "[netcdf][read][write]") {
     for (auto d : data_in.chunk_at(1)->data()) std::cerr << d << ' ';
     std::cerr << '\n';
     std::cerr << "chunk 2: ";
-    for (auto d : data_in.chunk_at(2)->data()) std::cerr << d << ' ';
-    std::cerr << '\n';
+    REQUIRE(data_in.chunk_at_is_null(2));
     std::cerr << "chunk 3: ";
     for (auto d : data_in.chunk_at(3)->data()) std::cerr << d << ' ';
     std::cerr << '\n';
@@ -141,6 +148,26 @@ TEST_CASE("netcdf_write_read", "[netcdf][read][write]") {
       }
     }
   }
+}
+//==============================================================================
+TEST_CASE("netcdf_lazy","[netcdf][lazy]"){
+  std::string const file_path     = "simple_xy.nc";
+  std::string const variable_name = "data";
+  lazy_reader<int> cont{file_path, variable_name, std::vector<size_t>{2, 2}};
+
+  REQUIRE(cont.chunk_at_is_null(0));
+  REQUIRE(cont(0, 0) == 0);
+  REQUIRE(!cont.chunk_at_is_null(0));
+
+  REQUIRE(cont.chunk_at_is_null(1));
+  REQUIRE(cont(2, 0) == 2);
+  REQUIRE(!cont.chunk_at_is_null(1));
+
+  REQUIRE(cont.chunk_at_is_null(2));
+  REQUIRE(cont(4, 0) == 0);
+  REQUIRE(cont.chunk_at_is_null(2));
+  REQUIRE(cont(5, 0) == 0);
+  REQUIRE(cont.chunk_at_is_null(2));
 }
 //==============================================================================
 }  // namespace tatooine::netcdf

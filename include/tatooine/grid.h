@@ -55,9 +55,10 @@ class grid {
   using chunked_vertex_property_t =
       vertex_property_t<chunked_multidim_array<T, Indexing>, InterpolationKernels...>;
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-  template <typename T, typename... InterpolationKernels>
+  template <typename T, typename Indexing, typename... InterpolationKernels>
   using contiguous_vertex_property_t =
-      vertex_property_t<dynamic_multidim_array<T>, InterpolationKernels...>;
+      vertex_property_t<dynamic_multidim_array<T, Indexing>,
+                        InterpolationKernels...>;
 
   //----------------------------------------------------------------------------
   // face properties
@@ -457,76 +458,76 @@ class grid {
   }
   //----------------------------------------------------------------------------
  private:
-  template <typename T, template <typename> typename... InterpolationKernels,
-            size_t... DimensionIndex>
+  template <typename Container,
+            template <typename> typename... InterpolationKernels,
+            size_t... DimensionIndex, typename... Args>
   auto add_vertex_property(std::string const& name,
-                           std::index_sequence<DimensionIndex...>)
-      -> typed_property_t<T>& {
+                           std::index_sequence<DimensionIndex...>,
+                           Args&&... args)
+      -> typed_property_t<typename Container::value_type>& {
+    if (auto it = m_vertex_properties.find(name);
+        it == end(m_vertex_properties)) {
+      auto [newit, new_prop] = [&]() {
+        if constexpr (sizeof...(InterpolationKernels) == 0) {
+          using prop_t = vertex_property_t<
+              Container, decltype(((void)DimensionIndex,
+                                   default_interpolation_kernel_t<
+                                       typename Container::value_type>{}))...>;
+          auto new_prop = new prop_t{*this, std::forward<Args>(args)...};
+          new_prop->container().resize(size());
+          return m_vertex_properties.emplace(name, std::unique_ptr<property_t>{new_prop});
+        } else {
+          using prop_t = vertex_property_t<
+              Container,
+              InterpolationKernels<typename Container::value_type>...>;
+          auto& new_prop = m_vertex_properties.emplace(
+              name, new prop_t{*this, std::forward<Args>(args)...});
+          new_prop.resize(size());
+          return m_vertex_properties.emplace(name, std::unique_ptr<property_t>{new_prop});
+        }
+      }();
+
+      return *dynamic_cast<typed_property_t<typename Container::value_type>*>(
+          newit->second.get());
+    } else {
+      return *dynamic_cast<typed_property_t<typename Container::value_type>*>(
+          it->second.get());
+    }
+  }
+  //----------------------------------------------------------------------------
+ public:
+  template <typename Container,
+            template <typename> typename... InterpolationKernels,
+            typename... Args>
+  auto add_vertex_property(std::string const& name, Args&&... args) -> auto& {
+    static_assert(
+        sizeof...(InterpolationKernels) == num_dimensions() ||
+            sizeof...(InterpolationKernels) == 0,
+        "Number of interpolation kernels does not match number of dimensions.");
+    return add_vertex_property<Container, InterpolationKernels...>(
+        name, seq_t{}, std::forward<Args>(args)...);
+  }
+  //----------------------------------------------------------------------------
+ private:
+  template <typename T, typename Indexing, template <typename> typename... InterpolationKernels,
+            size_t... DimensionIndex>
+  auto add_contiguous_vertex_property(std::string const& name,
+                                   std::index_sequence<DimensionIndex...>) -> typed_property_t<T>& {
     if (auto it = m_vertex_properties.find(name);
         it == end(m_vertex_properties)) {
       auto [newit, new_prop] = [&]() {
         if constexpr (sizeof...(InterpolationKernels) == 0) {
           using prop_t = contiguous_vertex_property_t<
-              T, decltype(((void)DimensionIndex,
-                           default_interpolation_kernel_t<T>{}))...>;
-          return m_vertex_properties.emplace(
-              name, new prop_t{*this, size<DimensionIndex>()...});
-        } else {
-          return m_vertex_properties.emplace(
-              name,
-              new contiguous_vertex_property_t<T, InterpolationKernels<T>...>{
-                  *this, size<DimensionIndex>()...});
-        }
-      }();
-
-      return *dynamic_cast<typed_property_t<T>*>(newit->second.get());
-    } else {
-      return *dynamic_cast<typed_property_t<T>*>(it->second.get());
-    }
-  }
-  //----------------------------------------------------------------------------
- public:
-  template <typename T, template <typename> typename... InterpolationKernels>
-  auto add_vertex_property(std::string const& name) -> auto& {
-    static_assert(
-        sizeof...(InterpolationKernels) == num_dimensions() ||
-            sizeof...(InterpolationKernels) == 0,
-        "Number of interpolation kernels does not match number of dimensions.");
-    return add_vertex_property<T, InterpolationKernels...>(name, seq_t{});
-  }
-  //----------------------------------------------------------------------------
- private:
-  template <typename T, typename Indexing, template <typename> typename... InterpolationKernels,
-            size_t... DimensionIndex, typename... Args>
-  auto add_chunked_vertex_property(std::string const& name,
-                                   std::index_sequence<DimensionIndex...>,
-                                   Args&&... args) -> typed_property_t<T>& {
-    if (auto it = m_vertex_properties.find(name);
-        it == end(m_vertex_properties)) {
-      auto [newit, new_prop] = [&]() {
-        if constexpr (sizeof...(InterpolationKernels) == 0) {
-          using prop_t = chunked_vertex_property_t<
               T, Indexing,
               decltype(((void)DimensionIndex,
                         default_interpolation_kernel_t<T>{}))...>;
-          if constexpr (sizeof...(Args) == 0) {
-            return m_vertex_properties.emplace(
-                name, new prop_t{*this, std::vector{size<DimensionIndex>()...},
-                                 std::vector<size_t>(num_dimensions(), 10)});
-          } else {
-            return m_vertex_properties.emplace(
-                name, new prop_t{*this, std::forward<Args>(args)...});
-          }
+          return m_vertex_properties.emplace(
+              name, new prop_t{*this, std::vector{size<DimensionIndex>()...}});
         } else {
-          using prop_t = chunked_vertex_property_t<T, Indexing,
+          using prop_t = contiguous_vertex_property_t<T, Indexing,
                                                    InterpolationKernels<T>...>;
-          if constexpr (sizeof...(Args) == 0) {
-            return m_vertex_properties.emplace(
-                name, new prop_t{*this, std::forward<Args>(args)...});
-          } else {
-            return m_vertex_properties.emplace(
-                name, new prop_t{*this, std::forward<Args>(args)...});
-          }
+          return m_vertex_properties.emplace(
+              name, new prop_t{*this, std::vector{size<DimensionIndex>()...}});
         }
       }();
       return *dynamic_cast<typed_property_t<T>*>(newit->second.get());
@@ -537,16 +538,60 @@ class grid {
   //----------------------------------------------------------------------------
  public:
   template <typename T, typename Indexing,
-            template <typename> typename... InterpolationKernels,
-            typename... Args>
-  auto add_chunked_vertex_property(std::string const& name, Args&&... args)
+            template <typename> typename... InterpolationKernels>
+  auto add_contiguous_vertex_property(std::string const&         name)
+      -> auto& {
+    static_assert(sizeof...(InterpolationKernels) == num_dimensions() ||
+                      sizeof...(InterpolationKernels) == 0,
+                  "Number of interpolation kernels does not match number of "
+                  "dimensions.");
+    return add_contiguous_vertex_property<T, Indexing, InterpolationKernels...>(
+        name, seq_t{});
+  }
+  //----------------------------------------------------------------------------
+ private:
+  template <typename T, typename Indexing, template <typename> typename... InterpolationKernels,
+            size_t... DimensionIndex>
+  auto add_chunked_vertex_property(std::string const& name,
+                                   std::index_sequence<DimensionIndex...>,
+                                   std::vector<size_t> const& chunk_size) -> typed_property_t<T>& {
+    if (auto it = m_vertex_properties.find(name);
+        it == end(m_vertex_properties)) {
+      auto [newit, new_prop] = [&]() {
+        if constexpr (sizeof...(InterpolationKernels) == 0) {
+          using prop_t = chunked_vertex_property_t<
+              T, Indexing,
+              decltype(((void)DimensionIndex,
+                        default_interpolation_kernel_t<T>{}))...>;
+          return m_vertex_properties.emplace(
+              name, new prop_t{*this, std::vector{size<DimensionIndex>()...},
+                               chunk_size});
+        } else {
+          using prop_t = chunked_vertex_property_t<T, Indexing,
+                                                   InterpolationKernels<T>...>;
+          return m_vertex_properties.emplace(
+              name, new prop_t{*this, std::vector{size<DimensionIndex>()...},
+                               chunk_size});
+        }
+      }();
+      return *dynamic_cast<typed_property_t<T>*>(newit->second.get());
+    } else {
+      return *dynamic_cast<typed_property_t<T>*>(it->second.get());
+    }
+  }
+  //----------------------------------------------------------------------------
+ public:
+  template <typename T, typename Indexing,
+            template <typename> typename... InterpolationKernels>
+  auto add_chunked_vertex_property(std::string const&         name,
+                                   std::vector<size_t> const& chunk_size)
       -> auto& {
     static_assert(sizeof...(InterpolationKernels) == num_dimensions() ||
                       sizeof...(InterpolationKernels) == 0,
                   "Number of interpolation kernels does not match number of "
                   "dimensions.");
     return add_chunked_vertex_property<T, Indexing, InterpolationKernels...>(
-        name, seq_t{}, std::forward<Args>(args)...);
+        name, seq_t{}, chunk_size);
   }
   //----------------------------------------------------------------------------
   template <typename T>

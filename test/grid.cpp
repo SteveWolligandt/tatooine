@@ -1,4 +1,6 @@
 #include <tatooine/grid.h>
+#include <tatooine/lazy_netcdf_reader.h>
+
 #include <catch2/catch.hpp>
 //==============================================================================
 namespace tatooine::test {
@@ -50,7 +52,7 @@ TEST_CASE("grid_cell_index", "[grid][cell_index]") {
   REQUIRE(factor0 == 0.5);
   auto const [idx1, factor1] = g.cell_index<0>(0.1);
   REQUIRE(idx1 == 0);
-  REQUIRE(factor1 == 0.1/1.2);
+  REQUIRE(factor1 == 0.1 / 1.2);
   auto const [idx2, factor2] = g.cell_index<1>(2.5);
   REQUIRE(idx2 == 2);
   REQUIRE(factor2 == 0.25);
@@ -65,7 +67,8 @@ TEST_CASE("grid_chunked_vertex_property", "[grid][vertex][chunked][property]") {
   linspace    dim2{0.0, 2.0, 3};
   grid        g{dim0, dim1, dim2};
 
-  auto& u_prop = g.add_chunked_vertex_property<double>("u");
+  auto& u_prop = g.add_chunked_vertex_property<double, x_fastest>(
+      "u", std::vector<size_t>{2, 2, 2});
   REQUIRE(u_prop.data_at(0, 0, 0) == 0);
   u_prop.data_at(0, 0, 0) = 1;
   REQUIRE(u_prop.data_at(0, 0, 0) == 1);
@@ -78,10 +81,10 @@ TEST_CASE("grid_chunked_vertex_property", "[grid][vertex][chunked][property]") {
   REQUIRE_THROWS(g.vertex_property<float>("u"));
   REQUIRE_THROWS(g.vertex_property<float>("v"));
 
-  auto&       v_prop = g.add_vertex_property<float,
-                                               interpolation::linear,
-                                               interpolation::linear,
-                                               interpolation::linear>("v");
+  auto& v_prop =
+      g.add_contiguous_vertex_property<float, x_fastest, interpolation::linear,
+                                       interpolation::linear,
+                                       interpolation::linear>("v");
   REQUIRE(v_prop.data_at(0, 0, 0) == 0);
   v_prop.data_at(0, 0, 0) = 1;
   REQUIRE(v_prop.data_at(0, 0, 0) == 1);
@@ -96,20 +99,21 @@ TEST_CASE("grid_chunked_vertex_property", "[grid][vertex][chunked][property]") {
 }
 //==============================================================================
 TEST_CASE("grid_sampler_view", "[grid][sampler][view][vertex][property]") {
-  //linspace dim0{0.0, 1.0, 11};
-  //linspace dim1{0.0, 1.0, 11};
-  //grid     g{dim0, dim1};
-  //using grid_t = decltype(g);
-  //using prop_value_type = double;
-  //using interpolation_kernel_t =
+  // linspace dim0{0.0, 1.0, 11};
+  // linspace dim1{0.0, 1.0, 11};
+  // grid     g{dim0, dim1};
+  // using grid_t = decltype(g);
+  // using prop_value_type = double;
+  // using interpolation_kernel_t =
   //    grid_t::default_interpolation_kernel_t<prop_value_type>;
   //
-  //std::string const prop_name = "u";
-  //auto&             u_prop = dynamic_cast<grid_t::contiguous_vertex_property_t<
+  // std::string const prop_name = "u";
+  // auto&             u_prop =
+  // dynamic_cast<grid_t::contiguous_vertex_property_t<
   //    prop_value_type, interpolation_kernel_t, interpolation_kernel_t>&>(
-  //    g.add_vertex_property<prop_value_type>(prop_name));
-  //u_prop.data_at(1, 1) = 2;
-  //REQUIRE(u_prop[1][1] == 2);
+  //    g.add_contiguous_vertex_property<prop_value_type>(prop_name));
+  // u_prop.data_at(1, 1) = 2;
+  // REQUIRE(u_prop[1][1] == 2);
 }
 //==============================================================================
 TEST_CASE("grid_sample_1d_linear", "[grid][sampler][1d][linear]") {
@@ -118,7 +122,9 @@ TEST_CASE("grid_sample_1d_linear", "[grid][sampler][1d][linear]") {
   using prop_value_type = double;
 
   std::string const prop_name = "u";
-  auto&             u_prop = g.add_vertex_property<prop_value_type, interpolation::linear>(prop_name);
+  auto&             u_prop =
+      g.add_contiguous_vertex_property<prop_value_type, x_fastest,
+                                       interpolation::linear>(prop_name);
   u_prop.data_at(4) = 5;
   u_prop.data_at(5) = 6;
   REQUIRE(u_prop.sample(0.41) == 5.1);
@@ -131,9 +137,9 @@ TEST_CASE("grid_sample_2d_linear", "[grid][sampler][2d][linear]") {
   using prop_value_type = double;
 
   std::string const prop_name = "u";
-  auto&             u_prop =
-      g.add_vertex_property<prop_value_type, interpolation::linear,
-                                    interpolation::linear>(prop_name);
+  auto&             u_prop    = g.add_contiguous_vertex_property<
+      prop_value_type, x_fastest, interpolation::linear, interpolation::linear>(
+      prop_name);
   u_prop.data_at(4, 1) = 5;
   u_prop.data_at(5, 1) = 6;
   u_prop.data_at(4, 2) = 7;
@@ -141,15 +147,16 @@ TEST_CASE("grid_sample_2d_linear", "[grid][sampler][2d][linear]") {
   REQUIRE(u_prop.sample(0.41, 0.11) == Approx(5.3));
 }
 //==============================================================================
-TEST_CASE("grid_finite_differences_coefficients", "[grid][finite_differences]") {
+TEST_CASE("grid_finite_differences_coefficients",
+          "[grid][finite_differences]") {
   std::array dim{0.0, 0.1, 0.5, 0.9, 1.0};
-  grid     g{dim};
+  grid       g{dim};
   using prop_value_type = double;
 
   std::string const prop_name = "u";
   auto&             u_prop =
-      g.add_vertex_property<prop_value_type>(prop_name);
-  auto [i0, coeffs0]= u_prop.stencil_coefficients<0, 3>(0, 1);
+      g.add_contiguous_vertex_property<prop_value_type, x_fastest>(prop_name);
+  auto [i0, coeffs0] = u_prop.stencil_coefficients<0, 3>(0, 1);
   REQUIRE(i0 == 0);
   REQUIRE(coeffs0(0) == Approx(-12.0));
   REQUIRE(coeffs0(1) == Approx(12.5));
@@ -161,9 +168,9 @@ TEST_CASE("grid_finite_differences_coefficients", "[grid][finite_differences]") 
   REQUIRE(coeffs1(2) == Approx(0.5));
   auto [i2, coeffs2] = u_prop.stencil_coefficients<0, 3>(2, 1);
   REQUIRE(i2 == 1);
-  REQUIRE(coeffs2(0) == Approx(-5.0/4));
+  REQUIRE(coeffs2(0) == Approx(-5.0 / 4));
   REQUIRE(coeffs2(1) == Approx(0));
-  REQUIRE(coeffs2(2) == Approx(5.0/4));
+  REQUIRE(coeffs2(2) == Approx(5.0 / 4));
   auto [i3, coeffs3] = u_prop.stencil_coefficients<0, 3>(3, 1);
   REQUIRE(i3 == 2);
   REQUIRE(coeffs3(0) == Approx(-0.5));
@@ -176,14 +183,15 @@ TEST_CASE("grid_finite_differences_coefficients", "[grid][finite_differences]") 
   REQUIRE(coeffs4(2) == Approx(12));
 }
 //==============================================================================
-//TEST_CASE("grid_diff", "[grid][sample][1d][hermite]") {
+// TEST_CASE("grid_diff", "[grid][sample][1d][hermite]") {
 //  std::array dim{0.0, 0.1, 0.5, 0.9, 1.0};
 //  grid       g{dim};
 //  using prop_value_type = double;
 //
 //  std::string const prop_name = "u";
 //  auto&             u_prop =
-//      g.add_vertex_property<prop_value_type, interpolation::hermite>(prop_name);
+//      g.add_contiguous_vertex_property<prop_value_type,x_fastest,
+//      interpolation::hermite>(prop_name);
 //  u_prop.data_at(0) = 0;
 //  u_prop.data_at(1) = 1;
 //  u_prop.data_at(2) = 2;
@@ -195,14 +203,15 @@ TEST_CASE("grid_finite_differences_coefficients", "[grid][finite_differences]") 
 //  std::cerr << '\n';
 //}
 //==============================================================================
-//TEST_CASE("grid_sample_1d_hermite", "[grid][sampler][1d][hermite]") {
+// TEST_CASE("grid_sample_1d_hermite", "[grid][sampler][1d][hermite]") {
 //  linspace dim{0.0, 1.0, 11};
 //  grid     g{dim};
 //  using prop_value_type = double;
 //
 //  std::string const prop_name = "u";
 //  auto&             u_prop =
-//      g.add_vertex_property<prop_value_type, interpolation::hermite>(prop_name);
+//      g.add_contiguous_vertex_property<prop_value_type,x_fastest,
+//      interpolation::hermite>(prop_name);
 //  u_prop.data_at(4) = 5;
 //  u_prop.data_at(5) = 6;
 //  REQUIRE(u_prop.sample(0.45) > 4);
@@ -243,12 +252,50 @@ TEST_CASE("grid_face_property", "[grid][face_property]") {
     REQUIRE(u_prop.sample(1, -0.25) == Approx(6.5));
   }
 
-  SECTION("center") {
-    REQUIRE(u_prop.sample(0, -0.25) == Approx(5.5));
-  }
+  SECTION("center") { REQUIRE(u_prop.sample(0, -0.25) == Approx(5.5)); }
 
   v_prop.data_at(0, 0) = 4;
   v_prop.data_at(1, 0) = 6;
+}
+//==============================================================================
+TEST_CASE("grid_lazy_netcdf", "[grid][lazy][netcdf]") {
+  std::string const file_path     = "simple_xy.nc";
+  std::string const xdim_name     = "x";
+  std::string const ydim_name     = "y";
+  std::string const variable_name = "data";
+  // We are reading 2D data, a 8 x 6 grid.
+  size_t constexpr NX = 8;
+  size_t constexpr NY = 6;
+
+  std::vector<double> data_out(NX * NY);
+  // create some data
+  for (size_t j = 0; j < NY; ++j) {
+    for (size_t i = 0; i < NX; ++i) {
+      size_t idx    = i + NX * j;
+      data_out[idx] = idx;
+    }
+  }
+  data_out[4 + NX * 0] = 0;
+  data_out[5 + NX * 0] = 0;
+  data_out[4 + NX * 1] = 0;
+  data_out[5 + NX * 1] = 0;
+
+  netcdf::file f_out{file_path, netCDF::NcFile::replace};
+  auto dim_x = f_out.add_dimension(xdim_name, NX);
+  auto dim_y = f_out.add_dimension(ydim_name, NY);
+  f_out.add_variable<double>(variable_name, {dim_y, dim_x}).write(data_out);
+
+  grid  g{linspace{0.0, 1.0, 8}, linspace{0.0, 1.0, 6}};
+  auto& prop = g.add_vertex_property<netcdf::lazy_reader<double>>(
+      "prop", file_path, variable_name, std::vector<size_t>{2, 2});
+
+
+  auto& prop_via_file = g.add_vertex_property<netcdf::lazy_reader<double>>(
+      "prop_via_file",
+      netcdf::file{file_path, netCDF::NcFile::read}.variable<double>(variable_name),
+      std::vector<size_t>{2, 2});
+
+  prop.sample(0.5, 0.5);
 }
 //==============================================================================
 }  // namespace tatooine::test
