@@ -56,15 +56,13 @@ class variable {
     return c;
   }
   //----------------------------------------------------------------------------
-  template <typename Indexing = x_fastest>
   auto read() const {
-    dynamic_multidim_array<T, Indexing> arr(dimensions());
+    dynamic_multidim_array<T, x_fastest> arr(dimensions());
     m_variable.getVar(arr.data_ptr());
     return arr;
   }
   //----------------------------------------------------------------------------
-  template <typename Indexing>
-  auto read(dynamic_multidim_array<T, Indexing>& arr) const {
+  auto read(dynamic_multidim_array<T, x_fastest>& arr) const {
     if (num_dimensions() != arr.num_dimensions()) {
       arr.resize(dimensions());
     } else {
@@ -78,7 +76,7 @@ class variable {
     m_variable.getVar(arr.data_ptr());
   }
   //----------------------------------------------------------------------------
-  auto read_chunked(size_t const chunk_size) const {
+  auto read_chunked(size_t const chunk_size = 10) const {
     chunked_multidim_array<T, x_fastest> arr{
         std::vector<size_t>(num_dimensions(), 0),
         std::vector<size_t>(num_dimensions(), chunk_size)};
@@ -162,9 +160,9 @@ class variable {
     }
   }
   //----------------------------------------------------------------------------
-  template <typename Indexing, typename MemLoc, size_t... Resolution>
+  template <typename MemLoc, size_t... Resolution>
   auto read(
-      static_multidim_array<T, Indexing, MemLoc, Resolution...>& arr) const {
+      static_multidim_array<T, x_fastest, MemLoc, Resolution...>& arr) const {
     assert(sizeof...(Resolution) == num_dimensions());
     assert(std::vector{Resolution...} == dimensions());
     m_variable.getVar(arr.data_ptr());
@@ -209,10 +207,9 @@ class variable {
     return arr;
   }
   //----------------------------------------------------------------------------
-  template <typename Indexing>
   auto read_chunk(std::vector<size_t> const& start_indices,
                   std::vector<size_t> const& counts,
-                  dynamic_multidim_array<T, Indexing>& arr) const {
+                  dynamic_multidim_array<T, x_fastest>& arr) const {
     if (num_dimensions() != arr.num_dimensions()) {
       arr.resize(counts);
     } else {
@@ -226,9 +223,9 @@ class variable {
     m_variable.getVar(start_indices, counts, arr.data_ptr());
   }
   //----------------------------------------------------------------------------
-  template <typename Indexing, typename MemLoc, size_t... Resolution>
+  template <typename MemLoc, size_t... Resolution>
   auto read_chunk(
-      static_multidim_array<T, Indexing, MemLoc, Resolution...>& arr,
+      static_multidim_array<T, x_fastest, MemLoc, Resolution...>& arr,
       integral auto const... start_indices) const {
     static_assert(sizeof...(start_indices) == sizeof...(Resolution));
     assert(sizeof...(Resolution) == num_dimensions());
@@ -236,10 +233,10 @@ class variable {
                       std::vector{Resolution...}, arr.data_ptr());
   }
   //----------------------------------------------------------------------------
-  template <typename Indexing, typename MemLoc, size_t... Resolution>
+  template <typename MemLoc, size_t... Resolution>
   auto read_chunk(
       std::vector<size_t> const&                                 start_indices,
-      static_multidim_array<T, Indexing, MemLoc, Resolution...>& arr) const {
+      static_multidim_array<T, x_fastest, MemLoc, Resolution...>& arr) const {
     m_variable.getVar(start_indices, std::vector{Resolution...},
                       arr.data_ptr());
   }

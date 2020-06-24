@@ -506,8 +506,9 @@ class grid {
       auto [newit, new_prop] = [&]() {
         if constexpr (sizeof...(InterpolationKernels) == 0) {
           using prop_t = chunked_vertex_property_t<
-              T,Indexing, decltype(((void)DimensionIndex,
-                           default_interpolation_kernel_t<T>{}))...>;
+              T, Indexing,
+              decltype(((void)DimensionIndex,
+                        default_interpolation_kernel_t<T>{}))...>;
           if constexpr (sizeof...(Args) == 0) {
             return m_vertex_properties.emplace(
                 name, new prop_t{*this, std::vector{size<DimensionIndex>()...},
@@ -517,8 +518,8 @@ class grid {
                 name, new prop_t{*this, std::forward<Args>(args)...});
           }
         } else {
-          using prop_t =
-              chunked_vertex_property_t<T,Indexing, InterpolationKernels<T>...>;
+          using prop_t = chunked_vertex_property_t<T, Indexing,
+                                                   InterpolationKernels<T>...>;
           if constexpr (sizeof...(Args) == 0) {
             return m_vertex_properties.emplace(
                 name, new prop_t{*this, std::forward<Args>(args)...});

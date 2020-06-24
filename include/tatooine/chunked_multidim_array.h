@@ -215,7 +215,7 @@ struct chunked_multidim_array {
   }
   //----------------------------------------------------------------------------
   auto chunk_at_is_null(size_t const chunk_index0,
-                        integral auto const... chunk_indices) {
+                        integral auto const... chunk_indices) const {
     if constexpr (sizeof...(chunk_indices) == 0) {
       return m_chunks[chunk_index0] == nullptr;
     } else {

@@ -68,11 +68,11 @@ struct scivis_contest_2020_ensemble_member
     //m_u = &m_u_grid.add_chunked_vertex_property<double>("u");
     //m_v = &m_v_grid.add_chunked_vertex_property<double>("v");
     //m_w = &m_w_grid.add_chunked_vertex_property<double>("w");
-    m_u = &m_u_grid.add_chunked_vertex_property<double, x_slowest>(
+    m_u = &m_u_grid.add_chunked_vertex_property<double, x_fastest>(
         "u", u_var, std::vector<size_t>(4, 10));
-    m_v = &m_v_grid.add_chunked_vertex_property<double, x_slowest>(
+    m_v = &m_v_grid.add_chunked_vertex_property<double, x_fastest>(
         "v", v_var, std::vector<size_t>(4, 10));
-    m_w = &m_w_grid.add_chunked_vertex_property<double, x_slowest>(
+    m_w = &m_w_grid.add_chunked_vertex_property<double, x_fastest>(
         "w", w_var, std::vector<size_t>(4, 10));
   }
   //==============================================================================

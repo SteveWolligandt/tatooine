@@ -191,8 +191,9 @@ TEST_CASE("scivis_contest_2020_as_grid_property",
   auto z_axis = z_mit40_var.read_as_vector();
 
   grid  u_grid{t_axis, z_axis, yc_axis, xg_axis};
-  [[maybe_unused]] auto& u_prop = u_grid.add_chunked_vertex_property<double, x_slowest>(
-      "u", u_var, std::vector<size_t>(4, 10));
+  [[maybe_unused]] auto& u_prop =
+      u_grid.add_chunked_vertex_property<double, x_fastest>(
+          "u", u_var, std::vector<size_t>(4, 10));
 }
 //==============================================================================
 TEST_CASE("scivis_contest_2020_field",
