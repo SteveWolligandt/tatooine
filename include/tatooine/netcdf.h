@@ -103,9 +103,9 @@ class variable {
     }
     if (must_resize) { arr.resize(dimensions()); }
 
-    for (auto const& chunk_indices : dynamic_multidim(arr.chunk_resolution())) {
-      auto const start_indices = arr.global_indices_from_chunk_indices(chunk_indices);
-
+    for (auto const& chunk_indices : dynamic_multidim(arr.chunk_size())) {
+      auto  start_indices =
+          arr.global_indices_from_chunk_indices(chunk_indices);
       auto const plain_chunk_index =
           arr.plain_chunk_index_from_chunk_indices(chunk_indices);
 
@@ -113,8 +113,9 @@ class variable {
         arr.create_chunk_at(plain_chunk_index);
       }
 
-       read_chunk(start_indices, arr.internal_chunk_resolution(),
-                *arr.chunk_at(plain_chunk_index));
+      std::reverse(begin(start_indices), end(start_indices));
+      read_chunk(start_indices, arr.internal_chunk_size(),
+                 *arr.chunk_at(plain_chunk_index));
       if constexpr (std::is_arithmetic_v<T>) {
         bool all_zero = true;
         for (auto const& v : arr.chunk_at(plain_chunk_index)->data()) {
@@ -134,13 +135,13 @@ class variable {
           //std::cerr << "start_indices: ";
           //for (auto v : start_indices) { std::cerr << v << ' '; }
           //std::cerr << '\n';
-          //std::cerr << "chunk resolution: ";
-          //for (auto v : arr.internal_chunk_resolution()) {
+          //std::cerr << "chunk size: ";
+          //for (auto v : arr.internal_chunk_size()) {
           //  std::cerr << v << ' ';
           //}
           //std::cerr << '\n';
           //std::cerr << "keep\n";
-          //for (auto is : dynamic_multidim(arr.internal_chunk_resolution())) {
+          //for (auto is : dynamic_multidim(arr.internal_chunk_size())) {
           //  auto const r =
           //      read_single(start_indices[0] + is[0], start_indices[1] + is[1],
           //                  start_indices[2] + is[2], start_indices[3] + is[3]);
@@ -196,12 +197,14 @@ class variable {
     return t;
   }
   //----------------------------------------------------------------------------
-  auto read_chunk(std::vector<size_t> const& start_indices,
-                  std::vector<size_t> const& counts) const {
+  auto read_chunk(std::vector<size_t>  start_indices,
+                  std::vector<size_t>  counts) const {
     assert(size(start_indices) == size(counts));
     assert(size(start_indices) == num_dimensions());
 
     dynamic_multidim_array<T> arr(counts);
+    std::reverse(begin(start_indices), end(start_indices));
+    std::reverse(begin(counts), end(counts));
     m_variable.getVar(start_indices, counts, arr.data_ptr());
     return arr;
   }

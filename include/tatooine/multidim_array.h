@@ -5,7 +5,7 @@
 #include <tatooine/index_ordering.h>
 #include <tatooine/linspace.h>
 #include <tatooine/multidim.h>
-#include <tatooine/multidim_resolution.h>
+#include <tatooine/multidim_size.h>
 #include <tatooine/random.h>
 #include <tatooine/tags.h>
 
@@ -17,7 +17,7 @@ namespace tatooine {
 //==============================================================================
 template <typename T, typename Indexing, typename MemLoc, size_t... Resolution>
 class static_multidim_array
-    : public static_multidim_resolution<Indexing, Resolution...> {
+    : public static_multidim_size<Indexing, Resolution...> {
   //============================================================================
   // assertions
   //============================================================================
@@ -31,7 +31,7 @@ class static_multidim_array
  public:
   using value_type = T;
   using this_t     = static_multidim_array<T, Indexing, MemLoc, Resolution...>;
-  using parent_t   = static_multidim_resolution<Indexing, Resolution...>;
+  using parent_t   = static_multidim_size<Indexing, Resolution...>;
   using parent_t::in_range;
   using parent_t::indices;
   using parent_t::num_dimensions;
@@ -238,10 +238,12 @@ class static_multidim_array
   }
   //----------------------------------------------------------------------------
   [[nodiscard]] constexpr auto operator[](size_t i) -> auto& {
+    assert(i < num_components());
     return m_data[i];
   }
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
   [[nodiscard]] constexpr auto operator[](size_t i) const -> const auto& {
+    assert(i < num_components());
     return m_data[i];
   }
   //----------------------------------------------------------------------------
@@ -269,14 +271,14 @@ class static_multidim_array
 
 //==============================================================================
 template <typename T, typename Indexing = x_fastest>
-class dynamic_multidim_array : public dynamic_multidim_resolution<Indexing> {
+class dynamic_multidim_array : public dynamic_multidim_size<Indexing> {
   //============================================================================
   // typedefs
   //============================================================================
  public:
   using value_type = T;
   using this_t     = dynamic_multidim_array<T, Indexing>;
-  using parent_t   = dynamic_multidim_resolution<Indexing>;
+  using parent_t   = dynamic_multidim_size<Indexing>;
   using parent_t::in_range;
   using parent_t::indices;
   using parent_t::num_dimensions;
@@ -291,154 +293,154 @@ class dynamic_multidim_array : public dynamic_multidim_resolution<Indexing> {
   //============================================================================
   // factories
   //============================================================================
-  static auto zeros(integral auto... resolution) {
-    return this_t{tag::zeros, resolution...};
+  static auto zeros(integral auto... size) {
+    return this_t{tag::zeros, size...};
   }
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
   template <unsigned_integral UInt>
-  static auto zeros(const std::vector<UInt>& resolution) {
-    return this_t{tag::zeros, resolution};
+  static auto zeros(const std::vector<UInt>& size) {
+    return this_t{tag::zeros, size};
   }
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
   template <unsigned_integral UInt, size_t N>
-  static auto zeros(const std::array<UInt, N>& resolution) {
-    return this_t{tag::zeros, resolution};
+  static auto zeros(const std::array<UInt, N>& size) {
+    return this_t{tag::zeros, size};
   }
   //------------------------------------------------------------------------------
-  static auto ones(integral auto... resolution) {
-    return this_t{tag::ones, resolution...};
+  static auto ones(integral auto... size) {
+    return this_t{tag::ones, size...};
   }
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
   template <unsigned_integral UInt>
-  static auto ones(const std::vector<UInt>& resolution) {
-    return this_t{tag::ones, resolution};
+  static auto ones(const std::vector<UInt>& size) {
+    return this_t{tag::ones, size};
   }
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
   template <size_t N, unsigned_integral UInt>
-  static auto ones(const std::array<UInt, N>& resolution) {
-    return this_t{tag::ones, resolution};
+  static auto ones(const std::array<UInt, N>& size) {
+    return this_t{tag::ones, size};
   }
   //------------------------------------------------------------------------------
   // template <unsigned_integral UInt, typename RandEng = std::mt19937_64>
-  // static auto randu(T min, T max, std::initializer_list<UInt>&& resolution,
+  // static auto randu(T min, T max, std::initializer_list<UInt>&& size,
   //                  RandEng&& eng = RandEng{std::random_device{}()}) {
   //  return this_t{random_uniform{min, max, std::forward<RandEng>(eng)},
-  //                std::vector<UInt>(std::move(resolution))};
+  //                std::vector<UInt>(std::move(size))};
   //}
   //// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
   ///-
   // template <unsigned_integral UInt, typename RandEng = std::mt19937_64>
-  // static auto randu(std::initializer_list<UInt>&& resolution, T min = 0, T
+  // static auto randu(std::initializer_list<UInt>&& size, T min = 0, T
   // max = 1,
   //                  RandEng&& eng = RandEng{std::random_device{}()}) {
   //  return this_t{random_uniform{min, max, std::forward<RandEng>(eng)},
-  //                std::vector<UInt>(std::move(resolution))};
+  //                std::vector<UInt>(std::move(size))};
   //}
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
   template <unsigned_integral UInt, typename RandEng = std::mt19937_64>
 
-  static auto randu(T min, T max, const std::vector<UInt>& resolution,
+  static auto randu(T min, T max, const std::vector<UInt>& size,
                     RandEng&& eng = RandEng{std::random_device{}()}) {
     return this_t{
         random_uniform<T, RandEng>{min, max, std::forward<RandEng>(eng)},
-        resolution};
+        size};
   }
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
   template <unsigned_integral UInt, typename RandEng = std::mt19937_64>
-  static auto randu(const std::vector<UInt>& resolution, T min = 0, T max = 1,
+  static auto randu(const std::vector<UInt>& size, T min = 0, T max = 1,
                     RandEng&& eng = RandEng{std::random_device{}()}) {
     return this_t{
         random_uniform<T, RandEng>{min, max, std::forward<RandEng>(eng)},
-        resolution};
+        size};
   }
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
   template <size_t N, unsigned_integral UInt, typename RandEng = std::mt19937_64>
-  static auto randu(T min, T max, const std::array<UInt, N>& resolution,
+  static auto randu(T min, T max, const std::array<UInt, N>& size,
                     RandEng&& eng = RandEng{std::random_device{}()}) {
     return this_t{
         random_uniform<T, RandEng>{min, max, std::forward<RandEng>(eng)},
-        resolution};
+        size};
   }
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
   template <size_t N, unsigned_integral UInt, typename RandEng = std::mt19937_64>
-  static auto randu(const std::array<UInt, N>& resolution, T min = 0, T max = 1,
+  static auto randu(const std::array<UInt, N>& size, T min = 0, T max = 1,
                     RandEng&& eng = RandEng{std::random_device{}()}) {
     return this_t{
         random_uniform<T, RandEng>{min, max, std::forward<RandEng>(eng)},
-        resolution};
+        size};
   }
   //----------------------------------------------------------------------------
   template <unsigned_integral UInt, typename RandEng>
   static auto rand(const random_uniform<T, RandEng>& rand,
-                   const std::vector<UInt>&          resolution) {
-    return this_t{rand, resolution};
+                   const std::vector<UInt>&          size) {
+    return this_t{rand, size};
   }
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
   template <size_t N, unsigned_integral UInt, typename RandEng>
   static auto rand(const random_uniform<T, RandEng>& rand,
-                   const std::array<UInt, N>&        resolution) {
-    return this_t{rand, resolution};
+                   const std::array<UInt, N>&        size) {
+    return this_t{rand, size};
   }
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
   template <typename RandEng>
   static auto rand(const random_uniform<T, RandEng>& rand,
-                   integral auto... resolution) {
-    return this_t{rand, std::vector{static_cast<size_t>(resolution)...}};
+                   integral auto... size) {
+    return this_t{rand, std::vector{static_cast<size_t>(size)...}};
   }
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
   template <unsigned_integral UInt, typename RandEng>
   static auto rand(random_uniform<T, RandEng>&& rand,
-                   const std::vector<UInt>&     resolution) {
-    return this_t{std::move(rand), resolution};
+                   const std::vector<UInt>&     size) {
+    return this_t{std::move(rand), size};
   }
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
   template <size_t N, unsigned_integral UInt, typename RandEng>
   static auto rand(random_uniform<T, RandEng>&& rand,
-                   const std::array<UInt, N>&   resolution) {
-    return this_t{std::move(rand), resolution};
+                   const std::array<UInt, N>&   size) {
+    return this_t{std::move(rand), size};
   }
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
   template <typename RandEng>
   static auto rand(random_uniform<T, RandEng>&& rand,
-                   integral auto... resolution) {
+                   integral auto... size) {
     return this_t{std::move(rand),
-                  std::vector{static_cast<size_t>(resolution)...}};
+                  std::vector{static_cast<size_t>(size)...}};
   }
   //----------------------------------------------------------------------------
   template <unsigned_integral UInt, typename RandEng>
   static auto rand(const random_normal<T, RandEng>& rand,
-                   const std::vector<UInt>&         resolution) {
-    return this_t{rand, resolution};
+                   const std::vector<UInt>&         size) {
+    return this_t{rand, size};
   }
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
   template <size_t N, unsigned_integral UInt, typename RandEng>
   static auto rand(const random_normal<T, RandEng>& rand,
-                   const std::array<UInt, N>&       resolution) {
-    return this_t{rand, resolution};
+                   const std::array<UInt, N>&       size) {
+    return this_t{rand, size};
   }
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
   template <typename RandEng>
   static auto rand(const random_normal<T, RandEng>& rand,
-                   integral auto... resolution) {
-    return this_t{rand, std::vector{static_cast<size_t>(resolution)...}};
+                   integral auto... size) {
+    return this_t{rand, std::vector{static_cast<size_t>(size)...}};
   }
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
   template <unsigned_integral UInt, typename RandEng>
   static auto rand(random_normal<T, RandEng>&& rand,
-                   const std::vector<UInt>&    resolution) {
-    return this_t{std::move(rand), resolution};
+                   const std::vector<UInt>&    size) {
+    return this_t{std::move(rand), size};
   }
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
   template <size_t N, unsigned_integral UInt, typename RandEng>
   static auto rand(random_normal<T, RandEng>&& rand,
-                   const std::array<UInt, N>&  resolution) {
-    return this_t{std::move(rand), resolution};
+                   const std::array<UInt, N>&  size) {
+    return this_t{std::move(rand), size};
   }
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
   template <typename RandEng>
-  static auto rand(random_normal<T, RandEng>&& rand, integral auto... resolution) {
+  static auto rand(random_normal<T, RandEng>&& rand, integral auto... size) {
     return this_t{std::move(rand),
-                  std::vector{static_cast<size_t>(resolution)...}};
+                  std::vector{static_cast<size_t>(size)...}};
   }
   //============================================================================
   // ctors
@@ -472,93 +474,93 @@ class dynamic_multidim_array : public dynamic_multidim_resolution<Indexing> {
     return *this;
   }
   //============================================================================
-  explicit dynamic_multidim_array(integral auto... resolution)
-      : parent_t{resolution...}, m_data(num_components(), T{}) {}
+  explicit dynamic_multidim_array(integral auto... size)
+      : parent_t{size...}, m_data(num_components(), T{}) {}
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
   template <typename S>
   explicit dynamic_multidim_array(const tag::fill<S>& f,
-                                  integral auto... resolution)
-      : parent_t{resolution...}, m_data(num_components(), f.value) {}
+                                  integral auto... size)
+      : parent_t{size...}, m_data(num_components(), f.value) {}
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
   explicit dynamic_multidim_array(const tag::zeros_t& /*z*/,
-                                  integral auto... resolution)
-      : parent_t{resolution...}, m_data(num_components(), 0) {}
+                                  integral auto... size)
+      : parent_t{size...}, m_data(num_components(), 0) {}
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
   explicit dynamic_multidim_array(const tag::ones_t& /*o*/,
-                                  integral auto... resolution)
-      : parent_t{resolution...}, m_data(num_components(), 1) {}
+                                  integral auto... size)
+      : parent_t{size...}, m_data(num_components(), 1) {}
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
   explicit dynamic_multidim_array(const std::vector<T>& data,
-                                  integral auto... resolution)
-      : parent_t{resolution...}, m_data(data) {}
+                                  integral auto... size)
+      : parent_t{size...}, m_data(data) {}
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
   explicit dynamic_multidim_array(std::vector<T>&& data,
-                                  integral auto... resolution)
-      : parent_t{resolution...}, m_data(std::move(data)) {}
+                                  integral auto... size)
+      : parent_t{size...}, m_data(std::move(data)) {}
   //----------------------------------------------------------------------------
   template <unsigned_integral UInt>
-  explicit dynamic_multidim_array(const std::vector<UInt>& resolution)
-      : parent_t{resolution}, m_data(num_components(), T{}) {}
+  explicit dynamic_multidim_array(const std::vector<UInt>& size)
+      : parent_t{size}, m_data(num_components(), T{}) {}
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
   template <typename S, unsigned_integral UInt>
   dynamic_multidim_array(const tag::fill<S>&      f,
-                         const std::vector<UInt>& resolution)
-      : parent_t{resolution}, m_data(num_components(), f.value) {}
+                         const std::vector<UInt>& size)
+      : parent_t{size}, m_data(num_components(), f.value) {}
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
   template <unsigned_integral UInt>
   dynamic_multidim_array(const tag::zeros_t& /*z*/,
-                         const std::vector<UInt>& resolution)
-      : parent_t{resolution}, m_data(num_components(), 0) {}
+                         const std::vector<UInt>& size)
+      : parent_t{size}, m_data(num_components(), 0) {}
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
   template <unsigned_integral UInt>
   dynamic_multidim_array(const tag::ones_t& /*o*/,
-                         const std::vector<UInt>& resolution)
-      : parent_t{resolution}, m_data(num_components(), 1) {}
+                         const std::vector<UInt>& size)
+      : parent_t{size}, m_data(num_components(), 1) {}
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
   template <unsigned_integral UInt>
   dynamic_multidim_array(const std::vector<T>&    data,
-                         const std::vector<UInt>& resolution)
-      : parent_t{resolution}, m_data(data) {}
+                         const std::vector<UInt>& size)
+      : parent_t{size}, m_data(data) {}
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
   template <unsigned_integral UInt>
   dynamic_multidim_array(std::vector<T>&&         data,
-                         const std::vector<UInt>& resolution)
-      : parent_t{resolution}, m_data(std::move(data)) {}
+                         const std::vector<UInt>& size)
+      : parent_t{size}, m_data(std::move(data)) {}
   //----------------------------------------------------------------------------
   template <size_t N, unsigned_integral UInt>
-  explicit dynamic_multidim_array(const std::array<UInt, N>& resolution)
-      : parent_t{resolution}, m_data(num_components(), T{}) {}
+  explicit dynamic_multidim_array(const std::array<UInt, N>& size)
+      : parent_t{size}, m_data(num_components(), T{}) {}
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
   template <size_t N, typename S, unsigned_integral UInt>
   dynamic_multidim_array(const tag::fill<S>&        f,
-                         const std::array<UInt, N>& resolution)
-      : parent_t{resolution}, m_data(num_components(), f.value) {}
+                         const std::array<UInt, N>& size)
+      : parent_t{size}, m_data(num_components(), f.value) {}
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
   template <size_t N, unsigned_integral UInt>
   dynamic_multidim_array(const tag::zeros_t& /*z*/,
-                         const std::array<UInt, N>& resolution)
-      : parent_t{resolution}, m_data(num_components(), 0) {}
+                         const std::array<UInt, N>& size)
+      : parent_t{size}, m_data(num_components(), 0) {}
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
   template <size_t N, unsigned_integral UInt>
   dynamic_multidim_array(const tag::ones_t& /*o*/,
-                         const std::array<UInt, N>& resolution)
-      : parent_t{resolution}, m_data(num_components(), 1) {}
+                         const std::array<UInt, N>& size)
+      : parent_t{size}, m_data(num_components(), 1) {}
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
   template <size_t N, unsigned_integral UInt>
   dynamic_multidim_array(const std::vector<T>&      data,
-                         const std::array<UInt, N>& resolution)
-      : parent_t{resolution}, m_data(data) {}
+                         const std::array<UInt, N>& size)
+      : parent_t{size}, m_data(data) {}
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
   template <size_t N, unsigned_integral UInt>
   dynamic_multidim_array(std::vector<T>&&           data,
-                         const std::array<UInt, N>& resolution)
-      : parent_t{resolution}, m_data(std::move(data)) {}
+                         const std::array<UInt, N>& size)
+      : parent_t{size}, m_data(std::move(data)) {}
   //----------------------------------------------------------------------------
   template <unsigned_integral UInt, real_number RandomReal, typename Engine,
             typename _T = T, enable_if_arithmetic<_T> = true>
   dynamic_multidim_array(const random_uniform<RandomReal, Engine>& rand,
-                         const std::vector<UInt>&                  resolution)
-      : dynamic_multidim_array{resolution} {
+                         const std::vector<UInt>&                  size)
+      : dynamic_multidim_array{size} {
     this->unary_operation(
         [&](const auto& /*c*/) { return static_cast<T>(rand.get()); });
   }
@@ -567,8 +569,8 @@ class dynamic_multidim_array : public dynamic_multidim_resolution<Indexing> {
             typename _T = T,
             enable_if_arithmetic<_T> = true>
   dynamic_multidim_array(random_uniform<RandomReal, Engine>&& rand,
-                         const std::vector<UInt>&             resolution)
-      : dynamic_multidim_array{resolution} {
+                         const std::vector<UInt>&             size)
+      : dynamic_multidim_array{size} {
     this->unary_operation(
         [&](const auto& /*c*/) { return static_cast<T>(rand.get()); });
   }
@@ -576,8 +578,8 @@ class dynamic_multidim_array : public dynamic_multidim_resolution<Indexing> {
   template <unsigned_integral UInt, size_t N, real_number RandomReal,
             typename Engine, typename _T = T, enable_if_arithmetic<_T> = true>
   dynamic_multidim_array(const random_normal<RandomReal, Engine>& rand,
-                         const std::array<UInt, N>&               resolution)
-      : dynamic_multidim_array{resolution} {
+                         const std::array<UInt, N>&               size)
+      : dynamic_multidim_array{size} {
     this->unary_operation(
         [&](const auto& /*c*/) { return static_cast<T>(rand.get()); });
   }
@@ -585,8 +587,8 @@ class dynamic_multidim_array : public dynamic_multidim_resolution<Indexing> {
   template <unsigned_integral UInt, size_t N, real_number RandomReal,
             typename Engine, typename _T = T, enable_if_arithmetic<_T> = true>
   dynamic_multidim_array(random_normal<RandomReal, Engine>&& rand,
-                         const std::array<UInt, N>&          resolution)
-      : dynamic_multidim_array{resolution} {
+                         const std::array<UInt, N>&          size)
+      : dynamic_multidim_array{size} {
     this->unary_operation(
         [&](const auto& /*c*/) { return static_cast<T>(rand.get()); });
   }
@@ -676,8 +678,8 @@ class dynamic_multidim_array : public dynamic_multidim_resolution<Indexing> {
   auto operator[](size_t i) -> auto& { return m_data[i]; }
   auto operator[](size_t i) const -> const auto& { return m_data[i]; }
   //----------------------------------------------------------------------------
-  void resize(integral auto... resolution) {
-    parent_t::resize(resolution...);
+  void resize(integral auto... size) {
+    parent_t::resize(size...);
     m_data.resize(num_components());
   }
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -814,7 +816,7 @@ auto interpolate(const dynamic_multidim_array<T0, Indexing0>& arr0,
                  FReal                                        factor) {
   if (factor == 0) { return arr0; }
   if (factor == 1) { return arr1; }
-  assert(arr0.dyn_resolution() == arr1.dyn_resolution());
+  assert(arr0.dyn_size() == arr1.dyn_size());
   dynamic_multidim_array<promote_t<T0, T1>, IndexingOut> interpolated{arr0};
 
   for (auto is : interpolated.indices()) {

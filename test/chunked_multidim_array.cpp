@@ -8,49 +8,70 @@ namespace tatooine::test {
 //==============================================================================
 TEST_CASE("chunked_multidim_array_indices",
           "[chunked_multidim_array][indices]") {
-  chunked_multidim_array<int> arr{{4, 4}, {2, 2}};
-  REQUIRE(arr.chunk_resolution()[0] == 2);
-  REQUIRE(arr.chunk_resolution()[1] == 2);
+  chunked_multidim_array<int> arr{{6, 4}, {3, 2}};
+  arr.create_all_chunks();
+  REQUIRE(arr.size(0) == 6);
+  REQUIRE(arr.size(1) == 4);
+  REQUIRE(arr.chunk_size(0) == 2);
+  REQUIRE(arr.chunk_size(1) == 2);
+  REQUIRE(arr.internal_chunk_size(0) == 3);
+  REQUIRE(arr.internal_chunk_size(1) == 2);
 
   REQUIRE(arr.plain_chunk_index_from_global_indices(0, 0) == 0);
   REQUIRE(arr.plain_chunk_index_from_global_indices(1, 0) == 0);
+  REQUIRE(arr.plain_chunk_index_from_global_indices(2, 0) == 0);
   REQUIRE(arr.plain_chunk_index_from_global_indices(0, 1) == 0);
   REQUIRE(arr.plain_chunk_index_from_global_indices(1, 1) == 0);
+  REQUIRE(arr.plain_chunk_index_from_global_indices(2, 1) == 0);
 
-  REQUIRE(arr.plain_chunk_index_from_global_indices(2, 0) == 1);
   REQUIRE(arr.plain_chunk_index_from_global_indices(3, 0) == 1);
-  REQUIRE(arr.plain_chunk_index_from_global_indices(2, 1) == 1);
+  REQUIRE(arr.plain_chunk_index_from_global_indices(4, 0) == 1);
+  REQUIRE(arr.plain_chunk_index_from_global_indices(5, 0) == 1);
   REQUIRE(arr.plain_chunk_index_from_global_indices(3, 1) == 1);
+  REQUIRE(arr.plain_chunk_index_from_global_indices(4, 1) == 1);
+  REQUIRE(arr.plain_chunk_index_from_global_indices(5, 1) == 1);
 
   REQUIRE(arr.plain_chunk_index_from_global_indices(0, 2) == 2);
   REQUIRE(arr.plain_chunk_index_from_global_indices(1, 2) == 2);
+  REQUIRE(arr.plain_chunk_index_from_global_indices(2, 2) == 2);
   REQUIRE(arr.plain_chunk_index_from_global_indices(0, 3) == 2);
   REQUIRE(arr.plain_chunk_index_from_global_indices(1, 3) == 2);
+  REQUIRE(arr.plain_chunk_index_from_global_indices(2, 3) == 2);
 
-  REQUIRE(arr.plain_chunk_index_from_global_indices(2, 2) == 3);
   REQUIRE(arr.plain_chunk_index_from_global_indices(3, 2) == 3);
-  REQUIRE(arr.plain_chunk_index_from_global_indices(2, 3) == 3);
+  REQUIRE(arr.plain_chunk_index_from_global_indices(4, 2) == 3);
+  REQUIRE(arr.plain_chunk_index_from_global_indices(5, 2) == 3);
   REQUIRE(arr.plain_chunk_index_from_global_indices(3, 3) == 3);
+  REQUIRE(arr.plain_chunk_index_from_global_indices(4, 3) == 3);
+  REQUIRE(arr.plain_chunk_index_from_global_indices(5, 3) == 3);
 
-  REQUIRE(arr.plain_internal_chunk_index_from_global_indices(0, 0) == 0);
-  REQUIRE(arr.plain_internal_chunk_index_from_global_indices(1, 0) == 1);
-  REQUIRE(arr.plain_internal_chunk_index_from_global_indices(0, 1) == 2);
-  REQUIRE(arr.plain_internal_chunk_index_from_global_indices(1, 1) == 3);
+  REQUIRE(arr.plain_internal_chunk_index_from_global_indices(0, 0, 0) == 0);
+  REQUIRE(arr.plain_internal_chunk_index_from_global_indices(0, 1, 0) == 1);
+  REQUIRE(arr.plain_internal_chunk_index_from_global_indices(0, 2, 0) == 2);
+  REQUIRE(arr.plain_internal_chunk_index_from_global_indices(0, 0, 1) == 3);
+  REQUIRE(arr.plain_internal_chunk_index_from_global_indices(0, 1, 1) == 4);
+  REQUIRE(arr.plain_internal_chunk_index_from_global_indices(0, 2, 1) == 5);
 
-  REQUIRE(arr.plain_internal_chunk_index_from_global_indices(2, 0) == 0);
-  REQUIRE(arr.plain_internal_chunk_index_from_global_indices(3, 0) == 1);
-  REQUIRE(arr.plain_internal_chunk_index_from_global_indices(2, 1) == 2);
-  REQUIRE(arr.plain_internal_chunk_index_from_global_indices(3, 1) == 3);
+  REQUIRE(arr.plain_internal_chunk_index_from_global_indices(1, 3, 0) == 0);
+  REQUIRE(arr.plain_internal_chunk_index_from_global_indices(1, 4, 0) == 1);
+  REQUIRE(arr.plain_internal_chunk_index_from_global_indices(1, 5, 0) == 2);
+  REQUIRE(arr.plain_internal_chunk_index_from_global_indices(1, 3, 1) == 3);
+  REQUIRE(arr.plain_internal_chunk_index_from_global_indices(1, 4, 1) == 4);
+  REQUIRE(arr.plain_internal_chunk_index_from_global_indices(1, 5, 1) == 5);
 
-  REQUIRE(arr.plain_internal_chunk_index_from_global_indices(0, 2) == 0);
-  REQUIRE(arr.plain_internal_chunk_index_from_global_indices(1, 2) == 1);
-  REQUIRE(arr.plain_internal_chunk_index_from_global_indices(0, 3) == 2);
-  REQUIRE(arr.plain_internal_chunk_index_from_global_indices(1, 3) == 3);
+  REQUIRE(arr.plain_internal_chunk_index_from_global_indices(2, 0, 2) == 0);
+  REQUIRE(arr.plain_internal_chunk_index_from_global_indices(2, 1, 2) == 1);
+  REQUIRE(arr.plain_internal_chunk_index_from_global_indices(2, 2, 2) == 2);
+  REQUIRE(arr.plain_internal_chunk_index_from_global_indices(2, 0, 3) == 3);
+  REQUIRE(arr.plain_internal_chunk_index_from_global_indices(2, 1, 3) == 4);
+  REQUIRE(arr.plain_internal_chunk_index_from_global_indices(2, 2, 3) == 5);
 
-  REQUIRE(arr.plain_internal_chunk_index_from_global_indices(2, 2) == 0);
-  REQUIRE(arr.plain_internal_chunk_index_from_global_indices(3, 2) == 1);
-  REQUIRE(arr.plain_internal_chunk_index_from_global_indices(2, 3) == 2);
-  REQUIRE(arr.plain_internal_chunk_index_from_global_indices(3, 3) == 3);
+  REQUIRE(arr.plain_internal_chunk_index_from_global_indices(3, 3, 2) == 0);
+  REQUIRE(arr.plain_internal_chunk_index_from_global_indices(3, 4, 2) == 1);
+  REQUIRE(arr.plain_internal_chunk_index_from_global_indices(3, 5, 2) == 2);
+  REQUIRE(arr.plain_internal_chunk_index_from_global_indices(3, 3, 3) == 3);
+  REQUIRE(arr.plain_internal_chunk_index_from_global_indices(3, 4, 3) == 4);
+  REQUIRE(arr.plain_internal_chunk_index_from_global_indices(3, 5, 3) == 5);
 }
 //==============================================================================
 TEMPLATE_TEST_CASE("chunked_multidim_array_element_assignment_primitive",

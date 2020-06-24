@@ -16,13 +16,13 @@ struct base_tensor : crtp<Tensor> {
   using this_t     = base_tensor<Tensor, T, Dims...>;
   using parent_t   = crtp<Tensor>;
   using parent_t::as_derived;
-  using resolution_t = static_multidim_resolution<x_fastest, Dims...>;
+  using multidim_size_t = static_multidim_size<x_fastest, Dims...>;
 
   //============================================================================
   static constexpr auto rank() { return sizeof...(Dims); }
   //------------------------------------------------------------------------------
   static constexpr auto num_components() {
-    return resolution_t::num_elements();
+    return multidim_size_t::num_elements();
   }
   //------------------------------------------------------------------------------
   static constexpr auto dimensions() {
@@ -33,7 +33,7 @@ struct base_tensor : crtp<Tensor> {
     return template_helper::getval<size_t>(i, Dims...);
   }
   //------------------------------------------------------------------------------
-  static constexpr auto indices() { return resolution_t::indices(); }
+  static constexpr auto indices() { return multidim_size_t::indices(); }
   //------------------------------------------------------------------------------
   template <typename F>
   static constexpr auto for_indices(F&& f) {
@@ -150,7 +150,7 @@ struct base_tensor : crtp<Tensor> {
   static constexpr auto array_index(integral auto const... is) {
     static_assert(sizeof...(is) == rank(),
                   "number of indices does not match number of dimensions");
-    return static_multidim_resolution<x_fastest, Dims...>::plain_idx(is...);
+    return static_multidim_size<x_fastest, Dims...>::plain_idx(is...);
   }
 
   //----------------------------------------------------------------------------
