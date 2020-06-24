@@ -102,6 +102,7 @@ struct rungekutta43 : solver<rungekutta43<Real, N>, Real, N> {
     if (tau == 0) { return; }
     // do not start integration if y0, t0 is not in domain of vectorfield
     if (!v.in_domain(y0, t0)) { return; }
+    std::cerr << "in domain\n";
 
     auto dy = [&v](Real t, pos_t const& y) -> typename vc_ode_t::maybe_vec {
       if (!v.in_domain(y, t)) {

@@ -25,6 +25,12 @@ struct scivis_contest_2020_ensemble_member
   chunked_grid_property_t* m_u;
   chunked_grid_property_t* m_v;
   chunked_grid_property_t* m_w;
+  linspace<double>                 xg_axis;
+  linspace<double>                 xc_axis;
+  linspace<double>                 yg_axis;
+  linspace<double>                 yc_axis;
+  linspace<double>                 t_axis;
+  std::vector<double>      z_axis;
   //============================================================================
   scivis_contest_2020_ensemble_member(std::string const& file_path) {
     auto f           = netcdf::file{file_path, netCDF::NcFile::read};
@@ -38,12 +44,12 @@ struct scivis_contest_2020_ensemble_member
     auto v_var       = f.variable<double>("V");
     auto w_var       = f.variable<double>("W");
 
-    linspace xg_axis{xg_var.read_single(0), xg_var.read_single(499), 500};
-    linspace xc_axis{xc_var.read_single(0), xc_var.read_single(499), 500};
-    linspace yg_axis{yg_var.read_single(0), yg_var.read_single(499), 500};
-    linspace yc_axis{yc_var.read_single(0), yc_var.read_single(499), 500};
-    linspace t_axis{t_ax_var.read_single(0), t_ax_var.read_single(59), 60};
-    auto     z_axis = z_mit40_var.read_as_vector();
+    xg_axis = linspace{xg_var.read_single(0), xg_var.read_single(499), 500};
+    xc_axis = linspace{xc_var.read_single(0), xc_var.read_single(499), 500};
+    yg_axis = linspace{yg_var.read_single(0), yg_var.read_single(499), 500};
+    yc_axis = linspace{yc_var.read_single(0), yc_var.read_single(499), 500};
+    t_axis  = linspace{t_ax_var.read_single(0), t_ax_var.read_single(59), 60};
+    z_axis  = z_mit40_var.read_as_vector();
     std::cerr << "XG: " << xg_axis << '\n';
     std::cerr << "XC: " << xc_axis << '\n';
     std::cerr << "YG: " << yg_axis << '\n';

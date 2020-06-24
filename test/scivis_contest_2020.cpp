@@ -1,6 +1,7 @@
 #include <tatooine/netcdf.h>
 #include <tatooine/for_loop.h>
 #include <tatooine/grid.h>
+#include <tatooine/random.h>
 #include <tatooine/fields/scivis_contest_2020_ensemble_member.h>
 #include <tatooine/ode/vclibs/rungekutta43.h>
 #include <tatooine/line.h>
@@ -196,9 +197,9 @@ TEST_CASE("scivis_contest_2020_as_grid_property",
 TEST_CASE("scivis_contest_2020_field",
           "[scivis_contest_2020][field]") {
   using V = fields::scivis_contest_2020_ensemble_member;
-  V               v{file_path};
-  V::pos_t const x{38, 22, 3};
-  V::real_t const t = 964205;
+  V         v{file_path};
+  V::pos_t  x{38, 22, 3};
+  V::real_t t = 964205;
 
   std::cerr << "u(199, 299, 0, 23): "
             <<  v.m_u->data_at(199, 299, 0, 23) << '\n';
@@ -215,29 +216,31 @@ TEST_CASE("scivis_contest_2020_field",
   pathlines.reserve(2 * num_pathlines);
   ode::vclibs::rungekutta43<V::real_t, 3> solver;
 
-  auto bb = v.m_u_grid.boundingbox();
-  std::cerr << bb << '\n';
-  vec<V::real_t, 4> xt;
   vec<V::real_t, 3> sample;
   bool in_domain = false;
   for (size_t i = 0; i < num_pathlines; ++i) {
-    do {
-      xt = bb.random_point();
-      in_domain = !v.in_domain(vec{xt(0), xt(1), xt(2)}, x(3));
-      if (in_domain) {
-        sample = v(vec{xt(0), xt(1), xt(2)}, x(3));
-      }
+   do {
+      x         = {random_uniform(v.xg_axis.front(), v.xg_axis.back())(),
+                   random_uniform(v.yg_axis.front(), v.yg_axis.back())(),
+                   random_uniform(v.z_axis.front(), v.z_axis.back())()};
+      t         = random_uniform(v.t_axis.front(), v.t_axis.back())();
+      in_domain = !v.in_domain(vec{x(0), x(1), x(2)}, t);
+      if (in_domain) { sample = v(vec{x(0), x(1), x(2)}, t); }
     } while (!in_domain || sqr_length(sample) == 0);
 
     std::cerr << "found position! (" << i << ")\n";
     pathlines.emplace_back();
-    solver.solve(v, vec{xt(0), xt(1), xt(2)}, x(3), 1000000, [&pathlines](auto t, const auto& y) {
-      pathlines.back().push_back(y, t);
-    });
+    solver.solve(v, vec{x(0), x(1), x(2)}, t, 1000000,
+                 [&pathlines](auto t, const auto& y) {
+                   std::cerr << t << '\n';
+                   pathlines.back().push_back(y, t);
+                 });
     pathlines.emplace_back();
-    solver.solve(v, vec{xt(0), xt(1), xt(2)}, x(3), -1000000, [&pathlines](auto t, const auto& y) {
-      pathlines.back().push_back(y, t);
-    });
+    solver.solve(v, vec{x(0), x(1), x(2)},t,  -1000000,
+                 [&pathlines](auto t, const auto& y) {
+                   std::cerr << t << '\n';
+                   pathlines.back().push_back(y, t);
+                 });
   }
   pathlines[0].write_vtk("red_sea0.vtk");
   pathlines[1].write_vtk("red_sea1.vtk");
