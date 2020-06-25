@@ -281,18 +281,18 @@ TEST_CASE("grid_lazy_netcdf", "[grid][lazy][netcdf]") {
   data_out[5 + NX * 1] = 0;
 
   netcdf::file f_out{file_path, netCDF::NcFile::replace};
-  auto dim_x = f_out.add_dimension(xdim_name, NX);
-  auto dim_y = f_out.add_dimension(ydim_name, NY);
+  auto         dim_x = f_out.add_dimension(xdim_name, NX);
+  auto         dim_y = f_out.add_dimension(ydim_name, NY);
   f_out.add_variable<double>(variable_name, {dim_y, dim_x}).write(data_out);
 
   grid  g{linspace{0.0, 1.0, 8}, linspace{0.0, 1.0, 6}};
   auto& prop = g.add_vertex_property<netcdf::lazy_reader<double>>(
       "prop", file_path, variable_name, std::vector<size_t>{2, 2});
 
-
   auto& prop_via_file = g.add_vertex_property<netcdf::lazy_reader<double>>(
       "prop_via_file",
-      netcdf::file{file_path, netCDF::NcFile::read}.variable<double>(variable_name),
+      netcdf::file{file_path, netCDF::NcFile::read}.variable<double>(
+          variable_name),
       std::vector<size_t>{2, 2});
 
   prop.sample(0.5, 0.5);
