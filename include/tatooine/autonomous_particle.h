@@ -99,7 +99,7 @@ struct autonomous_particle {
   auto level() const { return m_level; }
   auto current_radius() const {
     static real_t const sqrt3 = std::sqrt(real_t(3));
-    return m_start_radius * std::pow(1 / sqrt3, m_level);
+    return m_start_radius * std::pow<real_t>(1 / sqrt3, m_level);
   }
   auto start_radius() const { return m_start_radius; }
   auto get_flowmap() const -> auto const& { return m_flowmap; }
@@ -111,6 +111,7 @@ struct autonomous_particle {
  public:
   auto integrate(real_t tau_step, real_t const max_t) const {
     std::vector<this_t> particles{*this};
+    std::vector<line<real_t, num_dimensions() + 1>> ellipses;
 
     size_t n         = 0;
     size_t start_idx = 0;
@@ -121,15 +122,27 @@ struct autonomous_particle {
       // used adresses are not valid anymore
       particles.reserve(size(particles) + (cur_size - start_idx) * 3);
       for (size_t i = start_idx; i < cur_size; ++i) {
-        particles[i].integrate_until_split(tau_step, particles, max_t);
+        particles[i].integrate_until_split(tau_step, particles, ellipses,
+                                           max_t);
       }
       start_idx = cur_size;
     } while (n != size(particles));
-    return particles;
+    return std::pair{std::move(particles), std::move(ellipses)};
   }
   //----------------------------------------------------------------------------
-  void integrate_until_split(real_t tau_step, std::vector<this_t>& particles,
-                             real_t const max_t) const {
+  void integrate_until_split(
+      real_t tau_step, std::vector<this_t>& particles,
+      std::vector<line<real_t, num_dimensions() + 1>>& ellipses,
+      real_t const                                     max_t) const {
+    // add initial circle
+    auto&        ellipse = ellipses.emplace_back();
+    size_t const n       = 20;
+    auto const   r       = current_radius();
+    for (auto t : linspace{0.0, M_PI * 2, n}) {
+      ellipse.push_back(
+          vec{std::cos(t) * r + m_x1(0), std::sin(t) * r + m_x1(1), t1()});
+    }
+
     if (m_t1 >= max_t) { return; }
     static real_t const twothirds = real_t(2) / real_t(3);
     static real_t const sqrt3     = std::sqrt(real_t(3));
@@ -174,6 +187,22 @@ struct autonomous_particle {
       //                       m_start_radius);
       particles.emplace_back(m_flowmap, m_x0 + offset0, x2 + offset2, m_x1, t2, m_t1,
                              fmg2fmg1, m_level + 1, m_start_radius);
+
+      auto&        ellipse = ellipses.emplace_back();
+      size_t const n       = 20;
+      auto const   a       = eigvals(1) * r;
+      auto const   b       = eigvals(0) * r;
+      auto const alpha = angle(vec{1.0, 0.0}, eigvecs.col(1));
+      for (auto t : linspace{0.0, M_PI * 2, n}) {
+        vec p{std::cos(t) * a, std::sin(t) * b};
+
+        p = mat{{std::cos(alpha), -std::sin(alpha)},
+                {std::sin(alpha), std::cos(alpha)}} *
+            p;
+
+        p += x2;
+        ellipse.push_back(vec{p(0), p(1), t2});
+      }
     } else {
       //particles.emplace_back(m_flowmap, m_x0, x2, m_x1, t2, m_t1, fmg2fmg1, m_level + 1,
       //                       m_start_radius);
