@@ -168,15 +168,15 @@ struct autonomous_particle {
           twothirds * sqrt3 * current_radius() * normalize(eigvecs.col(1));
       vec_t const offset0 = inv(fmg2fmg1) * offset2;
 
-      particles.emplace_back(m_flowmap, m_x0 - offset0, x2 - offset2, m_x1, t2, m_t1,
-                             fmg2fmg1, m_level + 1, m_start_radius);
-      particles.emplace_back(m_flowmap, m_x0, x2, m_x1, t2, m_t1, fmg2fmg1, m_level + 1,
-                             m_start_radius);
+      //particles.emplace_back(m_flowmap, m_x0 - offset0, x2 - offset2, m_x1, t2, m_t1,
+      //                       fmg2fmg1, m_level + 1, m_start_radius);
+      //particles.emplace_back(m_flowmap, m_x0, x2, m_x1, t2, m_t1, fmg2fmg1, m_level + 1,
+      //                       m_start_radius);
       particles.emplace_back(m_flowmap, m_x0 + offset0, x2 + offset2, m_x1, t2, m_t1,
                              fmg2fmg1, m_level + 1, m_start_radius);
     } else {
-      particles.emplace_back(m_flowmap, m_x0, x2, m_x1, t2, m_t1, fmg2fmg1, m_level + 1,
-                             m_start_radius);
+      //particles.emplace_back(m_flowmap, m_x0, x2, m_x1, t2, m_t1, fmg2fmg1, m_level + 1,
+      //                       m_start_radius);
     }
   }
 };
