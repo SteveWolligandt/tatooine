@@ -1,57 +1,11 @@
-#ifndef TATOOINE_SINUSCOSINUS_H
-#define TATOOINE_SINUSCOSINUS_H
-
+#ifndef TATOOINE_ANALYTICAL_FIELDS_NUMERICAL_SINUSCOSINUS_H
+#define TATOOINE_ANALYTICAL_FIELDS_NUMERICAL_SINUSCOSINUS_H
+//==============================================================================
 #include <boost/math/constants/constants.hpp>
 #include <cmath>
-#include "symbolic_field.h"
-
 //==============================================================================
-namespace tatooine::symbolic {
+namespace tatooine::analytical::fields::numerical {
 //==============================================================================
-
-template <typename Real>
-struct cosinussinus : field<Real, 2, 2> {
-  using this_t   = cosinussinus<Real>;
-  using parent_t = field<Real, 2, 2>;
-  using parent_t::t;
-  using parent_t::x;
-  using typename parent_t::pos_t;
-  using typename parent_t::symtensor_t;
-  using typename parent_t::tensor_t;
-
-  cosinussinus() {
-    this->set_expr(vec{GiNaC::ex{cos(t())}, GiNaC::ex{sin(t())}});
-  }
-};
-
-//==============================================================================
-template <typename Real>
-struct sinuscosinus : field<Real, 2, 2> {
-  using this_t   = sinuscosinus<Real>;
-  using parent_t = field<Real, 2, 2>;
-  using parent_t::t;
-  using parent_t::x;
-  using typename parent_t::pos_t;
-  using typename parent_t::symtensor_t;
-  using typename parent_t::tensor_t;
-
-  sinuscosinus() {
-    this->set_expr(vec{GiNaC::ex{sin(t())}, GiNaC::ex{cos(t())}});
-  }
-};
-
-//~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-sinuscosinus()->sinuscosinus<double>;
-cosinussinus()->cosinussinus<double>;
-
-//==============================================================================
-}  // namespace tatooine::symbolic
-//==============================================================================
-
-//==============================================================================
-namespace tatooine::numerical {
-//==============================================================================
-
 template <typename Real>
 struct cosinussinus : field<cosinussinus<Real>, Real, 2, 2> {
   using this_t   = cosinussinus<Real>;
@@ -75,7 +29,6 @@ struct cosinussinus : field<cosinussinus<Real>, Real, 2, 2> {
     return true;
   }
 };
-
 //==============================================================================
 template <typename Real>
 struct sinuscosinus : field<sinuscosinus<Real>, Real, 2, 2> {
@@ -97,12 +50,10 @@ struct sinuscosinus : field<sinuscosinus<Real>, Real, 2, 2> {
     return true;
   }
 };
-
 //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 sinuscosinus()->sinuscosinus<double>;
 cosinussinus()->cosinussinus<double>;
-
 //==============================================================================
-}  // namespace tatooine::numerical
+}  // namespace tatooine::analytical::fields::numerical
 //==============================================================================
 #endif
