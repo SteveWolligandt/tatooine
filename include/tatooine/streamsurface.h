@@ -963,6 +963,7 @@ struct schulze_discretization : front_evolving_streamsurface_discretization<
         r(num_pnts);
     std::vector<vec<real_t, num_dimensions()>> ps(num_pnts);
 
+    // TODO: get t0 at u, not at 0
     size_t i = 0;
     for (const auto vertex : vs)
       ps[i++] = v(at(vertex), this->t0(0) + uv(vertex)(1));
