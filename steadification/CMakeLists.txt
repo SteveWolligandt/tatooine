@@ -120,6 +120,13 @@ target_compile_features(boussinesq_test PUBLIC cxx_std_17)
 target_compile_options(boussinesq_test PRIVATE
   -Wall -Wextra -pedantic -Wno-missing-braces -Wno-unused-lambda-capture)
 #- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+add_executable (random_pathlines random_pathlines.cpp datasets.cpp shaders.cpp)
+target_include_directories(random_pathlines PRIVATE ${CMAKE_CURRENT_BINARY_DIR})
+target_link_libraries(random_pathlines tatooine yavin)
+target_compile_features(random_pathlines PUBLIC cxx_std_17)
+target_compile_options(random_pathlines PRIVATE
+  -Wall -Wextra -pedantic -Wno-missing-braces -Wno-unused-lambda-capture)
+#- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 set(OpenGL_GL_PREFERENCE "GLVND")
 find_package(OpenGL REQUIRED)
 find_package(GLUT)

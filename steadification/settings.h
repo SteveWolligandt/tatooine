@@ -45,8 +45,10 @@ template <> struct settings<boussinesq> {
   static constexpr double           eps       = 1e-4;
   //----------------------------------------------------------------------------
   static constexpr boundingbox<double, 2> domain{
-      vec{boussinesq::domain.front(0) + eps, boussinesq::domain.front(1) + eps},
-      vec{boussinesq::domain.back(0) - eps, boussinesq::domain.back(1) - eps}};
+      vec{boussinesq::domain.front(0) + eps,
+          boussinesq::domain.front(1) + eps},
+      vec{boussinesq::domain.back(0) - eps,
+          boussinesq::domain.back(1) - eps}};
 };
 //==============================================================================
 template <> struct settings<rbc> {
@@ -55,13 +57,11 @@ template <> struct settings<rbc> {
   static constexpr real_t           eps       = 1e-2;
   static constexpr size_t           num_edges = 5;
   //----------------------------------------------------------------------------
-  static constexpr grid domain{
-      linspace{rbc::domain.dimension(0).front() + eps,
-               rbc::domain.dimension(0).back() - eps,
-               rbc::domain.dimension(0).size() / 8},
-      linspace{rbc::domain.dimension(1).front() + eps,
-               rbc::domain.dimension(1).back() - eps,
-               rbc::domain.dimension(1).size() / 8}};
+  static constexpr boundingbox<double, 2> domain{
+      vec{rbc::domain.dimension(0).front() + eps,
+          rbc::domain.dimension(1).front() + eps},
+      vec{rbc::domain.dimension(0).back() - eps,
+          rbc::domain.dimension(1).back() - eps}};
   //----------------------------------------------------------------------------
   static constexpr vec<size_t, 2> render_resolution{
       rbc::domain.dimension(0).size() * 4,

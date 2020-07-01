@@ -134,8 +134,8 @@ void seedcurve_shader::set_max_t(GLfloat t) {
 void seedcurve_shader::use_color_scale(GLboolean b) {
   set_uniform("use_color_scale", b);
 }
-void seedcurve_shader::set_color(GLfloat r, GLfloat g, GLfloat b) {
-  set_uniform("color", r, g, b);
+void seedcurve_shader::set_color(GLfloat r, GLfloat g, GLfloat b, GLfloat a) {
+  set_uniform("color", r, g, b, a);
 }
 //==============================================================================
 // weight

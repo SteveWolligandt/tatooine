@@ -88,22 +88,19 @@ struct rbc : field<rbc, double, 2, 2> {
   static constexpr grid       domain{linspace{0.00390625, 3.99609375, dim[0]},
                                linspace{0.00390625, 0.99609375, dim[1]},
                                linspace{2000.0, 2020.0, dim[2]}};
-
+  //============================================================================
+  std::vector<grid_t> grids;
   //============================================================================
   rbc() { read_from_binary(); }
-
   //----------------------------------------------------------------------------
   void     read_from_binary();
   tensor_t evaluate(const pos_t& pos, real_t t) const;
-
   //----------------------------------------------------------------------------
   bool in_domain(const pos_t& p, real_t t) const {
-    auto& times = domain.dimension(2);
-    return times.front() <= t && t <= times.back() &&
-           grids.front().in_domain(p(0), p(1));
+    return domain.front(0) <= p(0) && p(0) <= domain.back(0) &&
+           domain.front(1) <= p(1) && p(1) <= domain.back(1) &&
+           domain.front(2) <= t && t <= domain.back(2);
   }
-
-  std::vector<grid_t> grids;
 };
 
 //==============================================================================

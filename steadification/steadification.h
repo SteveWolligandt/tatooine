@@ -424,7 +424,7 @@ class steadification {
         const vec<real_t, 2> pos{
             (1 - xt) * domain.front(0) + xt * domain.back(0),
             (1 - yt) * domain.front(1) + yt * domain.back(1)};
-        if (m_v.in_domain(pos, domain.front(2))) { ++num_pixels_in_domain; }
+        if (m_v.in_domain(pos, min_t)) { ++num_pixels_in_domain; }
       }
     }
     desired_coverage *= real_t(num_pixels_in_domain) / real_t(num_pixels);

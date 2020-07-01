@@ -17,7 +17,7 @@ void rbc::read_from_binary() {
     std::ifstream file(filename, std::ifstream::binary);
     if (file.is_open()) {
       std::vector<vec<double, 2>> data(dim[0] * dim[1]);
-      // std::cout << "reading: " << filename <<'\n';
+       //std::cout << "reading: " << filename <<'\n';
       constexpr auto num_bytes = sizeof(double) * dim[0] * dim[1] * 2;
       file.read((char*)(data.data()), num_bytes);
       file.close();
