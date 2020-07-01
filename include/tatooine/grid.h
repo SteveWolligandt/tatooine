@@ -25,6 +25,8 @@ template <typename Real, size_t N>
 class grid {
  public:
   using this_t            = grid<Real, N>;
+  using vec_t             = vec<Real, N>;
+  using pos_t             = vec_t;
   using linspace_iterator = typename linspace<Real>::iterator;
   using vertex            = grid_vertex<Real, N>;
   using edge              = grid_edge<Real, N>;
@@ -173,17 +175,8 @@ class grid {
                   "number of components does not match number of dimensions");
     static_assert(sizeof...(Is) == N,
                   "number of indices does not match number of dimensions");
-#if has_cxx17_support()
     return ((m_dimensions[Is].front() <= xs &&
              xs <= m_dimensions[Is].back()) && ...);
-#else
-    constexpr std::array<Real, N> pos{static_cast<Real>(xs)...};
-    for (size_t i = 0; i < N; ++i) {
-      if (pos[i] < m_dimensions[i].front()) { return false; }
-      if (pos[i] > m_dimensions[i].back()) { return false; }
-    }
-    return true;
-#endif
   }
 
   //----------------------------------------------------------------------------
@@ -215,13 +208,7 @@ class grid {
   template <size_t... Is>
   constexpr auto num_points(std::index_sequence<Is...> /*is*/) const {
     static_assert(sizeof...(Is) == N);
-#if has_cxx17_support()
     return (m_dimensions[Is].size() * ...);
-#else
-    Real f = 1;
-    for (size_t i = 0; i < N; ++i) { f *= m_dimensions[i].size(); }
-    return f;
-#endif
   }
 
   //----------------------------------------------------------------------------
@@ -243,7 +230,7 @@ class grid {
   auto at(std::index_sequence<DIs...>, Is... is) const -> vec<Real, N> {
     static_assert(sizeof...(DIs) == sizeof...(Is));
     static_assert(sizeof...(Is) == N);
-    return {(m_dimensions[DIs][is])...};
+    return pos_t{(m_dimensions[DIs][is])...};
   }
   //----------------------------------------------------------------------------
   template <typename... Is, enable_if_integral<Is...> = true>
@@ -427,7 +414,6 @@ class grid {
 };
 
 //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-#if has_cxx17_support()
 template <typename... Reals>
 grid(const linspace<Reals>&...)->grid<promote_t<Reals...>, sizeof...(Reals)>;
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -439,7 +425,6 @@ grid(const boundingbox<Real, N>& bb, const std::array<size_t, N>& res,
 template <typename Real, size_t N>
 grid(const boundingbox<Real, N>& bb, const std::array<size_t, N>& res)
     ->grid<Real, N>;
-#endif
 
 //==============================================================================
 template <typename Real, size_t N>

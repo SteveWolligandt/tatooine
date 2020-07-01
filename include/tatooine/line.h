@@ -1,10 +1,10 @@
 #ifndef TATOOINE_LINE_H
 #define TATOOINE_LINE_H
-
+//==============================================================================
 #include <boost/range/adaptor/reversed.hpp>
+#include <boost/range/algorithm/copy.hpp>
 #include <boost/range/algorithm/reverse.hpp>
 #include <boost/range/algorithm_ext/iota.hpp>
-#include <boost/range/algorithm/copy.hpp>
 #include <boost/range/numeric.hpp>
 #include <cassert>
 #include <deque>
@@ -14,31 +14,14 @@
 #include "handle.h"
 #include "linspace.h"
 #include "property.h"
+#include "tags.h"
 #include "tensor.h"
 #include "vtk_legacy.h"
-
 //==============================================================================
 namespace tatooine {
 //==============================================================================
-
 template <typename Real, size_t N>
 struct line;
-
-struct automatic_t {};
-static constexpr automatic_t automatic;
-
-struct forward_t {};
-static constexpr forward_t forward;
-
-struct backward_t {};
-static constexpr backward_t backward;
-
-struct central_t {};
-static constexpr central_t central;
-
-struct quadratic_t {};
-static constexpr quadratic_t quadratic;
-
 //==============================================================================
 // Iterators
 //==============================================================================
@@ -422,9 +405,9 @@ struct line {
       : m_vertices{std::move(data)}, m_is_closed{is_closed} {}
   //----------------------------------------------------------------------------
   template <
-      typename... Vertices, enable_if_vector<Vertices...> = true,
-      enable_if_arithmetic<typename Vertices::real_t...>               = true,
-      std::enable_if_t<((Vertices::num_components() == N) && ...), bool> = true>
+      typename... Vertices, enable_if_vector<std::decay_t<Vertices>...> = true,
+      enable_if_arithmetic<typename std::decay_t<Vertices>::real_t...>               = true,
+      std::enable_if_t<((std::decay_t<Vertices>::num_components() == N) && ...), bool> = true>
   line(Vertices&&... vertices)
       : m_vertices{pos_t{std::forward<Vertices>(vertices)}...},
         m_is_closed{false} {}
@@ -511,12 +494,12 @@ struct line {
   // tangent
   //============================================================================
   /// calculates tangent at point t with backward differences
-  auto tangent_at(const tangent_idx i, forward_t tag) const {
+  auto tangent_at(const tangent_idx i, tag::forward_t tag) const {
     return tangent_at(i.i, tag);
   }
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
   /// calculates tangent at point i with forward differences
-  auto tangent_at(const size_t i, forward_t /*tag*/) const {
+  auto tangent_at(const size_t i, tag::forward_t /*tag*/) const {
     assert(num_vertices() > 1);
     if (is_closed() && i == num_vertices() - 1) {
       return (front_vertex() - back_vertex()) /
@@ -528,12 +511,12 @@ struct line {
 
   //----------------------------------------------------------------------------
   /// calculates tangent at point t with backward differences
-  auto tangent_at(const tangent_idx i, backward_t tag) const {
+  auto tangent_at(const tangent_idx i, tag::backward_t tag) const {
     return tangent_at(i.i, tag);
   }
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
   /// calculates tangent at point i with central differences
-  auto tangent_at(const size_t i, backward_t /*tag*/) const {
+  auto tangent_at(const size_t i, tag::backward_t /*tag*/) const {
     assert(num_vertices() > 1);
     if (is_closed() && i == 0) {
       return (front_vertex() - back_vertex()) /
@@ -545,12 +528,12 @@ struct line {
 
   //----------------------------------------------------------------------------
   /// calculates tangent at point i with central differences
-  auto tangent_at(const tangent_idx i, central_t tag) const {
+  auto tangent_at(const tangent_idx i, tag::central_t tag) const {
     return tangent_at(i.i, tag);
   }
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
   /// calculates tangent at point i with central differences
-  auto tangent_at(const size_t i, central_t /*tag*/) const {
+  auto tangent_at(const size_t i, tag::central_t /*tag*/) const {
     if (is_closed()) {
       if (i == 0) {
         return (vertex_at(1) - back_vertex()) /
@@ -567,26 +550,26 @@ struct line {
             distance(vertex_at(i), vertex_at(i + 1)));
   }
   //----------------------------------------------------------------------------
-  auto tangent_at(const tangent_idx i, automatic_t tag,
+  auto tangent_at(const tangent_idx i, tag::automatic_t tag,
                   bool prefer_calc = false) const {
     return tangent_at(i.i, tag, prefer_calc);
   }
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-  auto tangent_at(const size_t i, automatic_t /*tag*/,
+  auto tangent_at(const size_t i, tag::automatic_t /*tag*/,
                   bool         prefer_calc = false) const {
-    if (m_tangents && !prefer_calc) { return m_tangents->at(i); }
-    if (is_closed()) { return tangent_at(i, central); }
-    if (i == 0) { return tangent_at(i, forward); }
-    if (i == num_vertices() - 1) { return tangent_at(i, backward); }
-    return tangent_at(i, central);
+    if (m_tangents && !prefer_calc) { return m_tangents->at(vertex_idx{i}); }
+    if (is_closed()) { return tangent_at(i, tag::central); }
+    if (i == 0) { return tangent_at(i, tag::forward); }
+    if (i == num_vertices() - 1) { return tangent_at(i, tag::backward); }
+    return tangent_at(i, tag::central);
   }
   //----------------------------------------------------------------------------
   auto tangent_at(const tangent_idx i, bool prefer_calc = false) const {
-    return tangent_at(i, automatic, prefer_calc);
+    return tangent_at(i, tag::automatic, prefer_calc);
   }
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
   auto tangent_at(const size_t i, bool prefer_calc = false) const {
-    return tangent_at(i, automatic, prefer_calc);
+    return tangent_at(i, tag::automatic, prefer_calc);
   }
   //----------------------------------------------------------------------------
   auto front_tangent(bool prefer_calc = false) const {
@@ -600,9 +583,9 @@ struct line {
   auto at(tangent_idx i, bool prefer_calc = false) const {
     return tangent_at(i.i, prefer_calc);
   }
-  auto at(tangent_idx i, forward_t tag) const { return tangent_at(i.i, tag); }
-  auto at(tangent_idx i, backward_t tag) const { return tangent_at(i.i, tag); }
-  auto at(tangent_idx i, central_t tag) const { return tangent_at(i.i, tag); }
+  auto at(tangent_idx i, tag::forward_t tag) const { return tangent_at(i.i, tag); }
+  auto at(tangent_idx i, tag::backward_t tag) const { return tangent_at(i.i, tag); }
+  auto at(tangent_idx i, tag::central_t tag) const { return tangent_at(i.i, tag); }
   auto operator[](tangent_idx i) const { return tangent_at(i.i); }
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
   using tangent_iterator =
@@ -1084,9 +1067,9 @@ struct parameterized_line : line<Real, N> {
   auto operator[](vertex_idx i) const { return at(i); }
   auto operator[](vertex_idx i) { return at(i); }
   //----------------------------------------------------------------------------
-  auto& parameterization_at(size_t i) { return m_parameterization->at(i); }
+  auto& parameterization_at(size_t i) { return m_parameterization->at(vertex_idx{i}); }
   const auto& parameterization_at(size_t i) const {
-    return m_parameterization->at(i);
+    return m_parameterization->at(vertex_idx{i});
   }
   //----------------------------------------------------------------------------
   auto&       front_parameterization() { return m_parameterization->front(); }
@@ -1129,7 +1112,7 @@ struct parameterized_line : line<Real, N> {
   //----------------------------------------------------------------------------
   auto push_back(pos_t&& p, Real t, bool auto_compute_interpolator = true) {
     auto i                    = parent_t::push_back(std::move(p));
-    m_parameterization->at(i) = t;
+    m_parameterization->at(vertex_idx{i}) = t;
     if (num_vertices() > 1) {
       if (auto_compute_interpolator) {
         if constexpr (interpolation_needs_first_derivative) {
@@ -1184,7 +1167,7 @@ struct parameterized_line : line<Real, N> {
   //----------------------------------------------------------------------------
   auto push_front(pos_t&& p, Real t, bool auto_compute_interpolator = true) {
     auto i                    = parent_t::push_front(std::move(p));
-    m_parameterization->at(i) = t;
+    m_parameterization->at(vertex_idx{i}) = t;
     if (num_vertices() > 1) {
       if (auto_compute_interpolator) {
         if constexpr (interpolation_needs_first_derivative) {
@@ -1268,6 +1251,13 @@ struct parameterized_line : line<Real, N> {
   //----------------------------------------------------------------------------
   /// sample the line via interpolation
   auto sample(Real t) const {
+    if (num_vertices() == 1) {
+      if (t == front_parameterization()) {
+        return front_vertex();
+      } else {
+        throw time_not_found{};
+      }
+    }
     const auto left = binary_search_index(t);
 
     // interpolate
@@ -1284,6 +1274,13 @@ struct parameterized_line : line<Real, N> {
   //----------------------------------------------------------------------------
   /// sample tangents
   auto tangent(Real t) const {
+    if (num_vertices() == 1) {
+      if (t == front_parameterization()) {
+        return front_tangent();
+      } else {
+        throw time_not_found{};
+      }
+    }
     const auto left = binary_search_index(t);
 
     // interpolate
@@ -1335,7 +1332,7 @@ struct parameterized_line : line<Real, N> {
     //} else {
     //  return InterpolationKernel<Prop>{prop[left], prop[left+1]}(factor);
     //}
-    return prop[left] * (1 - factor) + prop[left+1] * factor;
+    return prop[vertex_idx{left}] * (1 - factor) + prop[vertex_idx{left+1}] * factor;
   }
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
  private:
@@ -1356,11 +1353,11 @@ struct parameterized_line : line<Real, N> {
     for (auto t : ts) {
       if constexpr (std::is_same_v<vec_t, Prop>) {
         if (&prop == this->m_tangents) {
-          resampled_prop[i++] = tangent(t);
+          resampled_prop[vertex_idx{i++}] = tangent(t);
           continue;
         }
       }
-      resampled_prop[i++] = sample(t, prop);
+      resampled_prop[vertex_idx{i++}] = sample(t, prop);
     }
   }
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -1426,12 +1423,12 @@ struct parameterized_line : line<Real, N> {
   // tangents
   //============================================================================
   /// computes tangent assuming the line is a quadratic curve
-  auto tangent_at(const tangent_idx i, quadratic_t tag) const {
+  auto tangent_at(const tangent_idx i, tag::quadratic_t tag) const {
     return tangent_at(i.i, tag);
   }
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
   /// computes tangent assuming the line is a quadratic curve
-  auto tangent_at(const size_t i, quadratic_t /*tag*/) const {
+  auto tangent_at(const size_t i, tag::quadratic_t /*tag*/) const {
     const auto& x0 = [&]() {
       if (i == 0) {
         return vertex_at(i);
@@ -1492,35 +1489,35 @@ struct parameterized_line : line<Real, N> {
                  {t2 * t2, t2, Real(1)}};
     for (size_t n = 0; n < N; ++n) {
       vec3 b{x0(n), x1(n), x2(n)};
-      auto c     = gesv(A, b);
+      auto c     = lapack::gesv(A, b);
       tangent(n) = 2 * c(0) * parameterization_at(i) + c(1);
     }
     return tangent;
   }
   //----------------------------------------------------------------------------
-  auto tangent_at(const tangent_idx i, automatic_t tag,
+  auto tangent_at(const tangent_idx i, tag::automatic_t tag,
                   bool prefer_calc = false) const {
     return tangent_at(i.i, tag, prefer_calc);
   }
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-  auto tangent_at(const size_t i, automatic_t /*tag*/,
+  auto tangent_at(const size_t i, tag::automatic_t /*tag*/,
                   bool         prefer_calc = false) const {
     if (this->m_tangents && !prefer_calc) {
-      return this->m_tangents->at(i);
+      return this->m_tangents->at(vertex_idx{i});
     }
     if (num_vertices() >= 3) {
-      return tangent_at(i, quadratic);
+      return tangent_at(i, tag::quadratic);
     } else /* if (num_vertices() == 2)*/ {
-      return this->tangent_at(i, forward);
+      return this->tangent_at(i, tag::forward);
     }
   }
   //----------------------------------------------------------------------------
   auto tangent_at(const tangent_idx i, bool prefer_calc = false) const {
-    return tangent_at(i.i, automatic, prefer_calc);
+    return tangent_at(i.i, tag::automatic, prefer_calc);
   }
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
   auto tangent_at(const size_t i, bool prefer_calc = false) const {
-    return tangent_at(i, automatic, prefer_calc);
+    return tangent_at(i, tag::automatic, prefer_calc);
   }
   //----------------------------------------------------------------------------
   auto front_tangent(bool prefer_calc = false) const {
@@ -1559,7 +1556,7 @@ struct parameterized_line : line<Real, N> {
     integral += seg_lens.front() * prop.front(); 
     integral += seg_lens.back() * prop.back(); 
     for (size_t i = 1; i < num_vertices() - 1; ++i) {
-      integral += (seg_lens[i - 1] + seg_lens[i]) * prop[i];
+      integral += (seg_lens[i - 1] + seg_lens[i]) * prop[vertex_idx{i}];
     }
     integral /= boost::accumulate(seg_lens, Real(0)) * 2;
     return integral;
@@ -1597,6 +1594,22 @@ struct parameterized_line : line<Real, N> {
   }
 };
 //------------------------------------------------------------------------------
+template <typename Real, size_t N,
+          template <typename> typename InterpolationKernel>
+void write_vtk(
+    const std::vector<parameterized_line<Real, N, InterpolationKernel>>& lines,
+    const std::string& path, const std::string& title = "tatooine lines") {
+  detail::write_line_container_to_vtk(lines, path, title);
+}
+// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+template <typename Real, size_t N,
+          template <typename> typename InterpolationKernel>
+void write_vtk(
+    const std::list<parameterized_line<Real, N, InterpolationKernel>>& lines,
+    const std::string& path, const std::string& title = "tatooine lines") {
+  detail::write_line_container_to_vtk(lines, path, title);
+}
+//------------------------------------------------------------------------------
 template <typename Real, size_t N, template <typename> typename InterpolationKernel>
 auto diff(const parameterized_line<Real, N, InterpolationKernel>& l) {
   return l.tangents();
@@ -1618,35 +1631,35 @@ void merge_lines(std::vector<line<Real, N>>& lines0,
     for (auto line1 = begin(lines0); line1 != end(lines0); ++line1) {
       if (line0 != line1 && !line0->empty() && !line1->empty()) {
         // [line0front, ..., LINE0BACK] -> [LINE1FRONT, ..., line1back]
-        if (approx_equal(line0->back(), line1->front(), eps)) {
+        if (approx_equal(line0->back_vertex(), line1->front_vertex(), eps)) {
           for (size_t i = 1; i < line1->num_vertices(); ++i) {
-            line0->push_back(line1->at(i));
+            line0->push_back(line1->vertex_at(i));
           }
           *line1 = std::move(*line0);
           line0->clear();
 
           // [line1front, ..., LINE1BACK] -> [LINE0FRONT, ..., line0back]
-        } else if (approx_equal(line1->back(), line0->front(), eps)) {
+        } else if (approx_equal(line1->back_vertex(), line0->front_vertex(), eps)) {
           for (size_t i = 1; i < line0->num_vertices(); ++i) {
-            line1->push_back(line0->at(i));
+            line1->push_back(line0->vertex_at(i));
           }
           line0->clear();
 
           // [LINE1FRONT, ..., line1back] -> [LINE0FRONT, ..., line0back]
-        } else if (approx_equal(line1->front(), line0->front(), eps)) {
+        } else if (approx_equal(line1->front_vertex(), line0->front_vertex(), eps)) {
           boost::reverse(line1->vertices());
           // -> [line1back, ..., LINE1FRONT] -> [LINE0FRONT, ..., line0back]
           for (size_t i = 1; i < line0->num_vertices(); ++i) {
-            line1->push_back(line0->at(i));
+            line1->push_back(line0->vertex_at(i));
           }
           line0->clear();
 
           // [line0front, ..., LINE0BACK] -> [line1front,..., LINE1BACK]
-        } else if (approx_equal(line0->back(), line1->back(), eps)) {
+        } else if (approx_equal(line0->back_vertex(), line1->back_vertex(), eps)) {
           boost::reverse(line0->vertices());
           // -> [line1front, ..., LINE1BACK] -> [LINE0BACK, ..., line0front]
           for (size_t i = 1; i < line0->num_vertices(); ++i) {
-            line1->push_back(line0->at(i));
+            line1->push_back(line0->vertex_at(i));
           }
           line0->clear();
         }
@@ -1707,20 +1720,18 @@ auto merge_lines(const std::vector<line<Real, N>>& lines) {
     for (const auto& line_strip : line_strips) {
       merged_lines.emplace_back();
       for (size_t i = 0; i < line_strip.num_vertices() - 1; i++) {
-        merged_lines.back().push_back(line_strip[i]);
+        merged_lines.back().push_back(line_strip.vertex_at(i));
       }
-      if (&line_strip.front() == &line_strip.back()) {
+      if (&line_strip.front_vertex() == &line_strip.back_vertex()) {
         merged_lines.back().set_closed(true);
       } else {
-        merged_lines.back().push_back(line_strip.back());
+        merged_lines.back().push_back(line_strip.back_vertex());
       }
     }
   }
   return merged_lines;
 }
-
 //==============================================================================
 }  // namespace tatooine
 //==============================================================================
-
 #endif

@@ -9,12 +9,8 @@
 namespace tatooine::flowexplorer {
 //==============================================================================
 template <typename V, typename Real, size_t N>
-void work(int argc, char** argv, const field<V, Real, N, N>& v,
-          const boundingbox<Real, N>& seedarea) {
-  const size_t num_pathlines = argc > 2 ? atoi(argv[2]) : 100;
-  const double btau          = argc > 3 ? atof(argv[3]) : -10;
-  const double ftau          = argc > 4 ? atof(argv[4]) : 10;
-  window       w{v, seedarea, num_pathlines, btau, ftau};
+void work(int argc, char** argv, const field<V, Real, N, N>& v) {
+  window       w{v};
 }
 //==============================================================================
 }  // namespace tatooine::flowexplorer
@@ -25,19 +21,13 @@ auto main(int argc, char** argv) -> int {
   if (fieldname == "dg") {
     numerical::doublegyre v2;
     spacetime_field       v{v2};
-    flowexplorer::work(
-        argc, argv, v,
-        boundingbox<double, 3>{vec{0.0, 0.0, 0.0}, vec{2.0, 1.0, 0.0}});
+    flowexplorer::work(argc, argv, v);
   } else if (fieldname == "duffing") {
     numerical::duffing_oscillator v2{0.5, 0.5, 0.5};
     spacetime_field               v{v2};
-    flowexplorer::work(
-        argc, argv, v,
-        boundingbox<double, 3>{vec{0.0, 0.0, 0.0}, vec{2.0, 1.0, 0.0}});
+    flowexplorer::work(argc, argv, v);
   } else if (fieldname == "abc") {
     numerical::abcflow v;
-    flowexplorer::work(
-        argc, argv, v,
-        boundingbox<double, 3>{vec{-1.0, -1.0, -1.0}, vec{1.0, 1.0, 1.0}});
+    flowexplorer::work(argc, argv, v);
   }
 }

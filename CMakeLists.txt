@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 3.15)
+cmake_minimum_required(VERSION 3.10)
 project(tatooine)
 list(APPEND CMAKE_MODULE_PATH "${CMAKE_SOURCE_DIR}/cmake/modules/")
 list(APPEND CMAKE_MODULE_PATH "${CMAKE_SOURCE_DIR}/external/catch2/contrib/")
@@ -25,17 +25,18 @@ set(BENCHMARK_ENABLE_TESTING OFF CACHE BOOL
     "Enable testing of the benchmark library.")
 add_subdirectory(external/google-benchmark)
 #- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+find_package(Boost REQUIRED)
 find_package(TBB REQUIRED)
-find_package(yavin REQUIRED)
-find_package(GiNaC REQUIRED)
+find_package(yavin QUIET)
+find_package(BLAS REQUIRED)
 find_package(LAPACKE REQUIRED)
 find_package(OpenMP REQUIRED)
 find_package(vcode REQUIRED)
 find_package(PNG REQUIRED)
 find_package(PNG++ REQUIRED)
-find_package(HDF5 REQUIRED)
-set(HDF5_LIBS -lhdf5 -lhdf5_cpp -lhdf5_hl)
-
+find_package(HDF5 REQUIRED CXX HL)
+find_package(NetCDF REQUIRED)
+set(HDF5_LIBS ${HDF5_LIBRARIES} ${HDF5_HL_LIBRARIES})
 #- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - 
 # configure files
 #- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - 
@@ -89,7 +90,7 @@ string(CONCAT TATOOINE_CLANG_TIDY_CHECKS
 #- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 # create library target
 add_library(tatooine INTERFACE)
-target_compile_features(tatooine INTERFACE cxx_std_17)
+target_compile_features(tatooine INTERFACE cxx_std_20)
 #- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 # set include dirs
 target_include_directories(tatooine
@@ -97,8 +98,8 @@ target_include_directories(tatooine
     ${CMAKE_CURRENT_SOURCE_DIR}/include
     ${CMAKE_CURRENT_SOURCE_DIR}/single_include
     ${CMAKE_CURRENT_BINARY_DIR}/include
-    ${GINAC_INCLUDE_DIRS}
-    ${LAPACKE_INCLUDE_DIR}
+    ${NETCDF_INCLUDES}
+    ${LAPACKE_INCLUDES}
     ${vcode_DIR}/../..
     ${PNG_INCLUDE_DIRS}
     ${PNG++_INCLUDE_DIRS}
@@ -108,26 +109,56 @@ target_include_directories(tatooine
 #set libs 
 target_link_libraries(tatooine
   INTERFACE
-    yavin
     tbb
-    ${GINAC_LIBRARIES}
-    ${LAPACKE_LIBRARIES}
+    ${BLAS_LIBRARIES}
+    ${LAPACK_LIBRARIES}
     ${PNG_LIBRARIES}
     ${PNG++_LIBRARIES}
     ${HDF5_LIBS}
+    ${NETCDF_LIBRARIES}
 )
-if(OpenMP_CXX_FOUND)
-  target_link_libraries(tatooine INTERFACE OpenMP::OpenMP_CXX)
+if (${yavin_FOUND}) 
+  set(TATOOINE_YAVIN_AVAILABLE 1)
+  target_link_libraries(tatooine INTERFACE yavin)
+else()
+  set(TATOOINE_YAVIN_AVAILABLE 0)
 endif()
+
+find_package(GINAC QUIET)
+if (${GINAC_FOUND}) 
+  option(TATOOINE_USE_GINAC "use GiNaC for symbolics support" FALSE)
+  if (${TATOOINE_USE_GINAC})
+    set(TATOOINE_GINAC_AVAILABLE 1)
+    target_include_directories(tatooine INTERFACE ${GINAC_INCLUDE_DIR})
+    target_link_libraries(tatooine INTERFACE ${GINAC_LIBRARY})
+  else()
+    set(TATOOINE_GINAC_AVAILABLE 0)
+  endif()
+else()
+  set(TATOOINE_GINAC_AVAILABLE 0)
+endif()
+
+if(OpenMP_CXX_FOUND)
+  set(TATOOINE_OPENMP_AVAILABLE 1)
+  target_link_libraries(tatooine INTERFACE OpenMP::OpenMP_CXX)
+else()
+  set(TATOOINE_OPENMP_AVAILABLE 0)
+endif()
+
+
+configure_file(${CMAKE_CURRENT_SOURCE_DIR}/include/tatooine/packages.h.in
+               ${CMAKE_CURRENT_BINARY_DIR}/include/tatooine/packages.h)
 
 #- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 add_subdirectory(test)
 add_subdirectory(benchmarks)
 add_subdirectory(doc)
 #add_subdirectory(misc)
-add_subdirectory(steadification)
 add_subdirectory(material_science)
-add_subdirectory(flowexplorer)
+if (${yavin_FOUND}) 
+  add_subdirectory(steadification)
+  add_subdirectory(flowexplorer)
+endif()
 
 #- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 # This makes the project importable from the build directory

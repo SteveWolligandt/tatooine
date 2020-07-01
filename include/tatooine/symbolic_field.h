@@ -1,15 +1,16 @@
 #ifndef TATOOINE_SYMBOLIC_FIELD_H
 #define TATOOINE_SYMBOLIC_FIELD_H
-
+//==============================================================================
+#include <tatooine/packages.h>
+#if TATOOINE_GINAC_AVAILABLE
+//==============================================================================
 #include "crtp.h"
 #include "field.h"
 #include "symbolic.h"
 #include "tensor.h"
-
 //==============================================================================
 namespace tatooine::symbolic {
 //==============================================================================
-
 template <typename real_t, size_t N, size_t... TensorDims>
 struct field : tatooine::field<field<real_t, N, TensorDims...>, real_t, N,
                                TensorDims...> {
@@ -95,7 +96,6 @@ constexpr auto operator*(const field<Real0, N, D0, D1>& lhs,
                          const field<Real1, N, D1>&     rhs) {
   return field<promote_t<Real0, Real1>, N, D0>{lhs.expr() * rhs.expr()};
 }
-
 //==============================================================================
 }  // namespace tatooine::symbolic
 //==============================================================================
@@ -127,8 +127,18 @@ constexpr auto is_symbolic_field(
                 TensorDims...>&) noexcept {
   return true;
 }
-
+//------------------------------------------------------------------------------
+template <typename Real, size_t N, size_t... TensorDims>
+auto diff(const symbolic::field<Real, N, TensorDims...>& f) {
+  tensor<GiNaC::ex, TensorDims..., N> ex;
+  for (size_t i = 0; i < N; ++i) {
+    ex.template slice<sizeof...(TensorDims)>(i) =
+        diff(f.expr(), symbolic::symbol::x(i));
+  }
+  return symbolic::field<Real, N, TensorDims..., N>{std::move(ex)};
+}
 //==============================================================================
 }  // namespace tatooine
 //==============================================================================
+#endif
 #endif

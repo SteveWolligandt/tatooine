@@ -415,7 +415,7 @@ struct grid_sampler
 
   //----------------------------------------------------------------------------
   // grid_sampler(const std::vector<std::string>& filenames)
-  //     : m_size(0), m_domain{vec_t{fill{0}}, vec_t{fill{1}}} {
+  //     : m_size(0), m_domain{vec_t{tag::fill{0}}, vec_t{tag::fill{1}}} {
   //   read(filenames);
   // }
 
@@ -1056,7 +1056,7 @@ auto resample(const field<Field, FieldReal, N, TensorDims...>& f,
       if constexpr (std::is_arithmetic_v<tensor_t>) {
         data(is) = 0.0 / 0.0;
       } else {
-        data(is) = tensor_t{fill{0.0 / 0.0}};
+        data(is) = tensor_t{tag::fill{0.0 / 0.0}};
       }
     }
   }
@@ -1083,7 +1083,7 @@ auto resample(const field<Field, FieldReal, N, TensorDims...>& f,
         resampled{g + ts};
   auto& data = resampled.sampler().data();
 
-  vec<size_t, N + 1> is{zeros};
+  vec<size_t, N + 1> is{tag::zeros};
   for (auto v : g.vertices()) {
     for (size_t i = 0; i < N; ++i) { is(i) = v[i].i(); }
     for (auto t : ts) {
@@ -1093,7 +1093,7 @@ auto resample(const field<Field, FieldReal, N, TensorDims...>& f,
         if constexpr (std::is_arithmetic_v<tensor_t>) {
           data(is) = 0.0 / 0.0;
         } else {
-          data(is) = tensor_t{fill{0.0 / 0.0}};
+          data(is) = tensor_t{tag::fill{0.0 / 0.0}};
         }
       }
       ++is(N);
@@ -1103,9 +1103,14 @@ auto resample(const field<Field, FieldReal, N, TensorDims...>& f,
 
   return resampled;
 }
-
+//==============================================================================
+template <typename Real, size_t N,
+          template <typename> typename... Interpolators>
+void write_png(grid_sampler<Real, 2, Real, Interpolators...> const& sampler,
+               std::string const&                                   path) {
+  sampler.write_png(path);
+}
 //==============================================================================
 }  // namespace tatooine
 //==============================================================================
-
 #endif

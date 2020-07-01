@@ -33,16 +33,9 @@ using internal_data_type_t = typename internal_data_type<T>::type;
 template <size_t Omit, size_t... Is, size_t... Js>
 constexpr auto sliced_indices(std::index_sequence<Is...>,
                               std::index_sequence<Js...>) {
-#if has_cxx17_support()
   std::array indices{Is...};
   (++indices[Js + Omit], ...);
   return indices;
-#else
-  constexpr std::array<size_t, sizeof...(Is)> indices{Is...};
-  constexpr std::array<size_t, sizeof...(Js)> js{Js...};
-  for (auto j : js) { ++indices[j + Omit]; }
-  return indices;
-#endif
 }
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 /// creates an index sequence and removes an element from it
@@ -52,22 +45,10 @@ constexpr auto sliced_indices() {
                               std::make_index_sequence<N - Omit - 1>{});
 }
 //==============================================================================
-#if has_cxx17_support()
 template <typename F, typename... Ts>
 constexpr void for_each(F&& f, Ts&&... ts) {
   (f(std::forward<Ts>(ts)), ...);
 }
-#else
-template <typename F, typename T>
-void for_each(F&& f, T&& t) {
-  f(std::forward<T>(t));
-}
-template <typename F, typename T, typename... Ts>
-void for_each(F&& f, T&& t, Ts&&... ts) {
-  f(std::forward<T>(t));
-  for_each(f, std::forward<Ts>(ts)...);
-}
-#endif
 
 
 

@@ -1,24 +1,20 @@
 #ifndef TATOOINE_GEOMETRY_PRIMITIVE_H
 #define TATOOINE_GEOMETRY_PRIMITIVE_H
-
-#include "../tensor.h"
-
+//==============================================================================
+#include <tatooine/tensor.h>
+#include <tatooine/ray_intersectable.h>
 //==============================================================================
 namespace tatooine::geometry {
 //==============================================================================
-
 template <typename Real, size_t N>
-struct primitive {
+struct primitive : ray_intersectable<Real, N> {
   static constexpr auto num_dimensions() { return N; }
   using real_t = Real;
   using pos_t  = vec<Real, N>;
-
+  //----------------------------------------------------------------------------
   virtual ~primitive() = default;
-  virtual bool is_inside(const pos_t& x) const = 0;
 };
-
 //==============================================================================
 }  // namespace tatooine::geometry
 //==============================================================================
-
 #endif

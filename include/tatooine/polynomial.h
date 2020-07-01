@@ -12,7 +12,6 @@
 //==============================================================================
 namespace tatooine {
 //==============================================================================
-
 template <typename Real, size_t Degree>
 struct polynomial {
   //----------------------------------------------------------------------------
@@ -82,12 +81,10 @@ struct polynomial {
   constexpr auto evaluate(Real x) const {
     Real y   = 0;
     Real acc = 1;
-
     for (size_t i = 0; i < Degree + 1; ++i) {
       y += acc * m_coefficients[i];
       acc *= x;
     }
-
     return y;
   }
   //----------------------------------------------------------------------------
@@ -142,8 +139,23 @@ struct polynomial {
   }
   auto print(std::ostream& out, const std::string& x) const -> std::ostream& {
     out << c(0);
-    for (size_t i = 1; i < Degree + 1; ++i) {
-      out << " + " << c(i) << " * " << x << "^" << i;
+    if (Degree >= 1) {
+      if (c(1) != 0) {
+        if (c(1) == 1) {
+          out << " + " << x;
+        } else {
+          out << " + " << c(1) << " * " << x;
+        }
+      }
+    }
+    for (size_t i = 2; i < Degree + 1; ++i) {
+      if (c(i) != 0) {
+        if (c(i) == 1) {
+          out << " + " << x << "^" << i;
+        } else {
+          out << " + " << c(i) << " * " << x << "^" << i;
+        }
+      }
     }
     return out;
   }
@@ -152,12 +164,9 @@ struct polynomial {
 //------------------------------------------------------------------------------
 // deduction guides
 //------------------------------------------------------------------------------
-#if has_cxx17_support()
 template <typename... Coeffs>
 polynomial(Coeffs... coeffs)
     ->polynomial<promote_t<Coeffs...>, sizeof...(Coeffs) - 1>;
-#endif
-
 //------------------------------------------------------------------------------
 // diff
 //------------------------------------------------------------------------------
@@ -165,7 +174,38 @@ template <typename Real, size_t Degree>
 constexpr auto diff(const polynomial<Real, Degree>& f) {
   return f.diff();
 }
+//------------------------------------------------------------------------------
+// solve
+//------------------------------------------------------------------------------
+/// solve a + bx
+template <typename Real>
+std::vector<Real> solve(const polynomial<Real, 1>& p) {
+  if (p.c(1) == 0) { return {}; }
+  return {-p.c(0) / p.c(1)};
+}
+//------------------------------------------------------------------------------
+/// solve a + bx + cxx
+template <typename Real>
+std::vector<Real> solve(const polynomial<Real, 2>& p) {
+  const auto& a = p.c(0);
+  const auto& b = p.c(1);
+  const auto& c = p.c(2);
+  if (c == 0) { return solve(polynomial{a, b}); }
 
+  Real discr = b * b - 4 * c * a;
+  if (discr < 0) {
+    return {};
+  } else if (std::abs(discr) < 1e-10) {
+    return {-b / (2 * c)};
+  }
+  std::vector<Real> solutions;
+  solutions.reserve(2);
+  Real q = (b > 0) ? -0.5 * (b + sqrt(discr)) : -0.5 * (b - sqrt(discr));
+  solutions.push_back(q / c);
+  solutions.push_back(a / q);
+  std::swap(solutions[0], solutions[1]);
+  return solutions;
+}
 //------------------------------------------------------------------------------
 // I/O
 //------------------------------------------------------------------------------
@@ -209,5 +249,4 @@ using enable_if_polynomial =
 //==============================================================================
 }  // namespace tatooine
 //==============================================================================
-
 #endif

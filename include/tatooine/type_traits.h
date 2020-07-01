@@ -1,15 +1,8 @@
 #ifndef TATOOINE_TYPE_TRAITS_H
 #define TATOOINE_TYPE_TRAITS_H
-
-#include "cxxstd.h"
-
-#if has_cxx17_support()
-#include <ginac/ginac.h>
-#endif
-
+//==============================================================================
 #include <complex>
 #include <type_traits>
-
 //==============================================================================
 namespace tatooine {
 //==============================================================================
@@ -44,38 +37,6 @@ template <typename... Ts>
 using enable_if_unsigned_integral =
     std::enable_if_t<sizeof...(Ts) == 0 || are_unsigned_integral_v<Ts...>,
                      bool>;
-//==============================================================================
-#if has_cxx17_support()
-template <typename T>
-struct is_symbolic
-    : std::integral_constant<bool, std::is_same_v<T, GiNaC::ex> ||
-                                       std::is_same_v<T, GiNaC::symbol>> {};
-// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-template <typename T>
-static constexpr auto is_symbolic_v = is_symbolic<T>::value;
-// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-template <typename... Ts>
-struct are_symbolic;
-// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-template <typename... Ts>
-static constexpr auto are_symbolic_v = are_symbolic<Ts...>::value;
-// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-template <>
-struct are_symbolic<> : std::false_type {};
-// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-template <typename T>
-struct are_symbolic<T> : std::integral_constant<bool, is_symbolic_v<T>> {};
-// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-template <typename T0, typename T1, typename... Ts>
-struct are_symbolic<T0, T1, Ts...>
-    : std::integral_constant<bool, are_symbolic_v<T0> &&
-                                       are_symbolic_v<T1, Ts...>> {};
-//~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-template <typename... Ts>
-using enable_if_symbolic =
-    std::enable_if_t<sizeof...(Ts) == 0 || are_symbolic_v<Ts...>, bool>;
-#endif
-
 //==============================================================================
 template <typename... Ts>
 struct are_floating_point;
@@ -177,6 +138,19 @@ struct are_complex<T0, T1, Ts...>
 template <typename... Ts>
 using enable_if_complex =
     std::enable_if_t<sizeof...(Ts) == 0 || are_complex_v<Ts...>, bool>;
+//==============================================================================
+template <typename... Ts>
+struct are_floating_point_or_complex
+    : std::integral_constant<bool, are_floating_point_v<Ts...> ||
+                                       are_complex_v<Ts...>> {};
+// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+template <typename... Ts>
+static constexpr auto are_floating_point_or_complex_v =
+    are_floating_point_or_complex<Ts...>::value;
+// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+template <typename... Ts>
+using enable_if_floating_point_or_complex = typename std::enable_if_t<
+    sizeof...(Ts) == 0 || are_floating_point_or_complex_v<Ts...>, bool>;
 
 //==============================================================================
 template <typename... Ts>
@@ -191,35 +165,6 @@ static constexpr auto are_arithmetic_or_complex_v =
 template <typename... Ts>
 using enable_if_arithmetic_or_complex = typename std::enable_if_t<
     sizeof...(Ts) == 0 || are_arithmetic_or_complex_v<Ts...>, bool>;
-//==============================================================================
-#if has_cxx17_support()
-template <typename... Ts>
-struct are_arithmetic_or_symbolic
-    : std::integral_constant<bool, are_arithmetic_v<Ts...> ||
-                                       are_symbolic_v<Ts...>> {};
-// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-template <typename... Ts>
-static constexpr auto are_arithmetic_or_symbolic_v =
-    are_arithmetic_or_symbolic<Ts...>::value;
-//------------------------------------------------------------------------------
-template <typename... Ts>
-using enable_if_arithmetic_or_symbolic = typename std::enable_if_t<
-    sizeof...(Ts) == 0 || are_arithmetic_or_symbolic_v<Ts...>, bool>;
-//==============================================================================
-template <typename... Ts>
-struct are_arithmetic_complex_or_symbolic
-    : std::integral_constant<bool, are_arithmetic_v<Ts...> ||
-                                       are_complex_v<Ts...> ||
-                                       are_symbolic_v<Ts...>> {};
-// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-template <typename... Ts>
-static constexpr auto are_arithmetic_complex_or_symbolic_v =
-    are_arithmetic_complex_or_symbolic<Ts...>::value;
-//------------------------------------------------------------------------------
-template <typename... Ts>
-using enable_if_arithmetic_complex_or_symbolic = typename std::enable_if_t<
-    sizeof...(Ts) == 0 || are_arithmetic_complex_or_symbolic_v<Ts...>, bool>;
-#endif
 //==============================================================================
 template <typename T, typename = void>
 struct is_iterator : std::false_type {};

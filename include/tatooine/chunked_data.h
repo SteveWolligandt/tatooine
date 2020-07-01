@@ -23,7 +23,7 @@ namespace tatooine {
 //==============================================================================
 template <typename T, size_t N, size_t R, size_t... Is>
 auto create_chunk(std::index_sequence<Is...> /*is*/) {
-  return static_multidim_array<T, x_fastest, heap, ((void)Is, R)...>{};
+  return static_multidim_array<T, x_fastest, tag::heap, ((void)Is, R)...>{};
 }
 //------------------------------------------------------------------------------
 template <typename T, size_t N, size_t R>

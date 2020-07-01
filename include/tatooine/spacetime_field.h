@@ -1,13 +1,11 @@
 #ifndef TATOOINE_SPACETIME_H
 #define TATOOINE_SPACETIME_H
-
+//==============================================================================
 #include "field.h"
-#include "symbolic_field.h"
-
+#include <tatooine/packages.h>
 //==============================================================================
 namespace tatooine {
 //==============================================================================
-
 template <typename Field, typename Real, size_t N, size_t VecDim>
 struct spacetime_field
     : field<spacetime_field<Field, Real, N, VecDim>, Real, N, VecDim> {
@@ -47,7 +45,7 @@ struct spacetime_field
     return t_out;
   }
   //----------------------------------------------------------------------------
-  constexpr decltype(auto) in_domain(const pos_t& x, Real /*t*/) const {
+  constexpr bool in_domain(const pos_t& x, Real /*t*/) const {
     tensor<Real, N - 1> spatial_position;
     Real                temporal_position = x(N - 1);
     for (size_t i = 0; i < N - 1; ++i) { spatial_position(i) = x(i); }
@@ -60,6 +58,8 @@ template <typename field_t, typename Real, size_t N, size_t VecDim>
 spacetime_field(const field<field_t, Real, N, VecDim>&)
     ->spacetime_field<field_t, Real, N + 1, VecDim + 1>;
 
+#if TATOOINE_GINAC_AVAILABLE
+#include "symbolic_field.h"
 //==============================================================================
 template <typename Real, size_t N, size_t VecDim>
 struct spacetime_field<symbolic::field<Real, N - 1, VecDim - 1>, Real, N,
@@ -90,12 +90,12 @@ template <typename Real, size_t N, size_t VecDim>
 spacetime_field(const symbolic::field<Real, N, VecDim>&)
     ->spacetime_field<symbolic::field<Real, N, VecDim>, Real, N + 1,
                       VecDim + 1>;
+#endif
 //==============================================================================
 template <typename V, typename Real, size_t N, size_t VecDim>
 auto spacetime(const field<V, Real, N, VecDim>& vf) {
   return spacetime_field<V, Real, N + 1, VecDim + 1>{vf.as_derived()};
 }
-
 //==============================================================================
 }  // namespace tatooine
 //==============================================================================

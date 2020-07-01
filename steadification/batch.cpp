@@ -45,15 +45,15 @@ void batch_doublegyre(std::vector<std::string> & working_dirs,
   numerical::doublegyre v;
   run(working_dirs, v, {{0, 10}},  // time_range
       {{5}},                       // t0s
-      {-10},                       // btau
-      {10},                        // ftau
+      {-5},                        // btau
+      {5},                         // ftau
       {2},                         // seedres
       {0.1},                       // stepsize
-      {{21, 11}},                  // grid_res
+      {{41, 21}},                  // grid_res
       {0.995},                     // coverage
-      {1, 1.5, 2},                 // neighbor weight
-      {0},                         // penalty
-      {20},                        // max_curvature
+      {1, 2, 3},                   // neighbor weight
+      {0, -1},                     // penalty
+      {5, 10, 15},                 // max_curvature
       {true},                      // use_tau
       {false},                     // normalize_weight
       random_seed);
@@ -62,84 +62,63 @@ void batch_doublegyre(std::vector<std::string> & working_dirs,
 void batch_sinuscosinus(std::vector<std::string>& working_dirs,
                   const std::string&        random_seed) {
   numerical::sinuscosinus v;
-  run(working_dirs, v, {{0, M_PI * 2}},   // time_range
-      {{M_PI}, /*{0, M_PI, 2 * M_PI}*/},  // t0s
-      {-M_PI * 2},                        // btau
-      {M_PI * 2},                         // ftau
-      {2},                                // seedres
-      {0.1},                              // stepsize
-      {{21, 21}},                         // grid_res
-      {0.995},                            // coverage
-      {2},                        // neighbor weight
-      {0},                            // penalty
-      {10},                        // max_curvature
-      {true},                             // use_tau
-      {false},                            // normalize_weight
+  run(working_dirs, v, {{0, M_PI * 2}},  // time_range
+      {{M_PI}},                          // t0s
+      {-M_PI},                           // btau
+      {M_PI},                            // ftau
+      {2},                               // seedres
+      {0.1},                             // stepsize
+      {{21, 21}},                        // grid_res
+      {0.995},                           // coverage
+      {1, 1.5, 2},                         // neighbor weight
+      {0, -1},                           // penalty
+      {5, 10, 15},                       // max_curvature
+      {true},                            // use_tau
+      {false},                           // normalize_weight
       random_seed);
 }
-//------------------------------------------------------------------------------
-void batch_boussinesq(std::vector<std::string>& working_dirs,
-                      const std::string&        random_seed) {
-  std::cerr << "reading boussinesq... ";
-  boussinesq v{dataset_dir + "/boussinesq.am"};
-  std::cerr << "done!\n";
-  run(working_dirs, v, {{10, 20}},  // time_range
-      {{15}},                       // t0s
-      {-10},                        // btau
-      {10},                         // ftau
-      {2},                          // seedres
-      {0.1},                        // stepsize
-      {{20, 60}},                   // grid_res
-      {0.995},                       // coverage
-      {1, 1.5, 2},                  // neighbor weight
-      {0},                          // penalty
-      {15},                         // max_curvature
-      {true},                       // use_tau
-      {false},                      // normalize_weight
-      random_seed);
-}
-//------------------------------------------------------------------------------
-void batch_cavity(std::vector<std::string>& working_dirs,
-                  const std::string&        random_seed) {
-  std::cerr << "reading cavity... ";
-  cavity v;
-  std::cerr << "done!\n";
-  run(working_dirs, v, {{0, 10}},  // time_range
-      {{5}},                       // t0s
-      {-10},                       // btau
-      {10},                        // ftau
-      {2},                         // seedres
-      {0.1},                       // stepsize
-      {{18 * 2, 5 * 2}},           // grid_res
-      {0.995},                      // coverage
-      {1, 1.5, 2},                 // neighbor weight
-      {0},                         // penalty
-      {15},                        // max_curvature
-      {true},                      // use_tau
-      {false},               // normalize_weight
-      random_seed);
-}
-//------------------------------------------------------------------------------
-void batch_rbc(std::vector<std::string>& working_dirs,
-                  const std::string&        random_seed) {
-  std::cerr << "reading rbc... ";
-  rbc v;
-  std::cerr << "done!\n";
-  run(working_dirs, v, {{2000, 2020}},  // time_range
-      {{2010}},                         // t0s
-      {-10},                            // btau
-      {10},                             // ftau
-      {2},                              // seedres
-      {0.1},                            // stepsize
-      {{41, 11}},                       // grid_res
-      {0.995},                          // coverage
-      {1, 1.5, 2},                      // neighbor weight
-      {0},                              // penalty
-      {5, 10, 15},                          // max_curvature
-      {true},                           // use_tau
-      {false},                          // normalize_weight
-      random_seed);
-}
+////------------------------------------------------------------------------------
+//void batch_boussinesq(std::vector<std::string>& working_dirs,
+//                      const std::string&        random_seed) {
+//  std::cerr << "reading boussinesq... ";
+//  boussinesq v{dataset_dir + "/boussinesq.am"};
+//  std::cerr << "done!\n";
+//  run(working_dirs, v, {{10, 20}},  // time_range
+//      {[>{15}, <]{10, 15, 20}},         // t0s
+//      {-10},                        // btau
+//      {10},                         // ftau
+//      {2},                          // seedres
+//      {0.1},                        // stepsize
+//      {{20, 60}},                   // grid_res
+//      {0.99},                       // coverage
+//      {1, 1.5, 2},                  // neighbor weight
+//      {0},                          // penalty
+//      {5, 10},                      // max_curvature
+//      {true},                       // use_tau
+//      {true, false},                // normalize_weight
+//      random_seed);
+//}
+////------------------------------------------------------------------------------
+//void batch_cavity(std::vector<std::string>& working_dirs,
+//                  const std::string&        random_seed) {
+//  std::cerr << "reading cavity... ";
+//  cavity v;
+//  std::cerr << "done!\n";
+//  run(working_dirs, v, {{0, 10}},  // time_range
+//      {{5}, {0, 5, 10}},           // t0s
+//      {-10},                       // btau
+//      {10},                        // ftau
+//      {2},                         // seedres
+//      {0.1},                       // stepsize
+//      {{18 * 2, 5 * 2}},           // grid_res
+//      {0.99},                      // coverage
+//      {1, 1.5, 2},                 // neighbor weight
+//      {0},                         // penalty
+//      {5, 10},                     // max_curvature
+//      {true, false},               // use_tau
+//      {true, false},               // normalize_weight
+//      random_seed);
+//}
 //==============================================================================
 }  // namespace tatooine::steadification
 //==============================================================================
@@ -148,9 +127,8 @@ auto main() -> int {
   using namespace tatooine::steadification;
   std::vector<std::string> working_dirs;
   std::string              random_seed = "abcd";
-  //batch_rbc(working_dirs, random_seed);
   //batch_cavity(working_dirs, random_seed);
   //batch_boussinesq(working_dirs, random_seed);
-  batch_doublegyre(working_dirs, random_seed);
-  //batch_sinuscosinus(working_dirs, random_seed);
+  //batch_doublegyre(working_dirs, random_seed);
+  batch_sinuscosinus(working_dirs, random_seed);
 }

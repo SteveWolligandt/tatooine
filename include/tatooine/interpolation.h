@@ -21,7 +21,7 @@ struct linear {
  public:
   static constexpr bool needs_first_derivative = false;
   using real_t                                 = Real;
-  using polynomial_t                           = polynomial<Real, 1>;
+  using polynomial_t                           = tatooine::polynomial<Real, 1>;
   static constexpr size_t num_dimensions() { return 1; }
   static_assert(std::is_arithmetic<Real>::value);
 
@@ -163,7 +163,7 @@ struct hermite {
  public:
   static constexpr bool needs_first_derivative = true;
   using real_t                                 = Real;
-  using polynomial_t                           = polynomial<Real, 3>;
+  using polynomial_t                           = tatooine::polynomial<Real, 3>;
   static constexpr size_t num_dimensions() { return 1; }
   static_assert(std::is_arithmetic<Real>::value);
 

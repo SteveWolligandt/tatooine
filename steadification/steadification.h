@@ -373,7 +373,7 @@ class steadification {
 
     auto domain_edges_gpu = line_renderer(domain_edges);
     m_seedcurve_shader.use_color_scale(false);
-    m_seedcurve_shader.set_color(0.8f, 0.8f, 0.8f);
+    m_seedcurve_shader.set_color(0.8f, 0.8f, 0.8f, 1.0f);
     domain_edges_gpu.draw();
 
     auto ls = line_renderer(seedcurves);

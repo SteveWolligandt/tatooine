@@ -6,15 +6,16 @@
 #include <yavin/glwrapper.h>
 #include <yavin/window.h>
 #include <tatooine/holder.h>
+#include <tatooine/ray.h>
 
 #include <chrono>
 #include <cmath>
 //==============================================================================
 namespace tatooine {
 //==============================================================================
-template <typename F>
-struct key_pressed_event : holder<F>, yavin::window_listener {
-  using holder<F>::holder;
+template <typename Event>
+struct key_pressed_event : holder<Event>, yavin::window_listener {
+  using holder<Event>::holder;
   void on_key_pressed(yavin::key k) override {this->get()(k);}
 };
 // copy when having rvalue
@@ -24,9 +25,9 @@ key_pressed_event(T &&)->key_pressed_event<T>;
 template <typename T>
 key_pressed_event(const T&)->key_pressed_event<const T&>;
 //==============================================================================
-template <typename F>
-struct key_released_event : holder<F>, yavin::window_listener {
-  using holder<F>::holder;
+template <typename Event>
+struct key_released_event : holder<Event>, yavin::window_listener {
+  using holder<Event>::holder;
   void on_key_pressed(yavin::key k) override {this->get()(k);}
 };
 // copy when having rvalue
@@ -36,16 +37,52 @@ key_released_event(T &&)->key_released_event<T>;
 template <typename T>
 key_released_event(const T&)->key_released_event<const T&>;
 //==============================================================================
+template <typename Event>
+struct button_pressed_event : holder<Event>, yavin::window_listener {
+  using holder<Event>::holder;
+  void on_button_pressed(yavin::button b) override {this->get()(b);}
+};
+// copy when having rvalue
+template <typename T>
+button_pressed_event(T &&)->button_pressed_event<T>;
+// keep reference when having lvalue
+template <typename T>
+button_pressed_event(const T&)->button_pressed_event<const T&>;
+//==============================================================================
+template <typename Event>
+struct button_released_event : holder<Event>, yavin::window_listener {
+  using holder<Event>::holder;
+  void on_button_released(yavin::button b) override {this->get()(b);}
+};
+// copy when having rvalue
+template <typename T>
+button_released_event(T &&)->button_released_event<T>;
+// keep reference when having lvalue
+template <typename T>
+button_released_event(const T&)->button_released_event<const T&>;
+//==============================================================================
+template <typename Event>
+struct mouse_motion_event : holder<Event>, yavin::window_listener {
+  using holder<Event>::holder;
+  void on_mouse_motion(int x, int y) override {this->get()(x, y);}
+};
+// copy when having rvalue
+template <typename T>
+mouse_motion_event(T &&)->mouse_motion_event<T>;
+// keep reference when having lvalue
+template <typename T>
+mouse_motion_event(const T&)->mouse_motion_event<const T&>;
+//==============================================================================
 struct first_person_window : yavin::window, yavin::window_listener {
   bool         m_run;
   GLsizei m_width, m_height;
-  yavin::vec3                                        m_eye, m_look_at, m_up;
-  float                                              m_theta = 0, m_phi = M_PI/2;
+  yavin::vec3                                        m_eye, m_look_dir, m_up;
+  float                                              m_theta = M_PI, m_phi = M_PI/2;
   yavin::perspectivecamera m_cam;
   std::chrono::time_point<std::chrono::system_clock> m_time =
       std::chrono::system_clock::now();
   int  m_mouse_pos_x, m_mouse_pos_y;
-  bool m_mouse_down = false;
+  bool m_middle_button_down = false;
   bool m_w_down = false;
   bool m_s_down = false;
   bool m_a_down = false;
@@ -60,22 +97,22 @@ struct first_person_window : yavin::window, yavin::window_listener {
         m_width{width},
         m_height{height},
         m_eye{0, 0, 0},
-        m_look_at{0, 0, -1},
+        m_look_dir{0, 0, -1},
         m_up{0, 1, 0},
-        m_cam{90,    (float)(width) / (float)(height), 0.001f, 1000.0f, width,
+        m_cam{60,    (float)(width) / (float)(height), 0.01f, 1000.0f, width,
               height},
         m_time{std::chrono::system_clock::now()} {
     add_listener(*this);
     yavin::enable_depth_test();
   }
   //============================================================================
-  template <typename F>
-  void render_loop(F&&f) {
+  template <typename Event>
+  void render_loop(Event&&event) {
     m_time = std::chrono::system_clock::now();
     while (m_run) {
       refresh();
       yavin::gl::viewport(m_cam);
-      update(std::forward<F>(f), std::chrono::system_clock::now() - m_time);
+      update(std::forward<Event>(event), std::chrono::system_clock::now() - m_time);
       render_imgui();
       swap_buffers();
     }
@@ -87,28 +124,28 @@ struct first_person_window : yavin::window, yavin::window_listener {
         std::chrono::duration_cast<std::chrono::milliseconds>(dt).count());
 
     m_time = std::chrono::system_clock::now();
-    if (m_w_down) { m_eye += m_look_at / ms; }
-    if (m_s_down) { m_eye -= m_look_at / ms; }
+    if (m_w_down) { m_eye += m_look_dir / ms; }
+    if (m_s_down) { m_eye -= m_look_dir / ms; }
     if (m_q_down) { m_eye(1) += 1 / ms; }
     if (m_e_down) { m_eye(1) -= 1 / ms; }
     if (m_a_down) {
-      const auto right = cross(yavin::vec3{0, 1, 0}, -m_look_at);
+      const auto right = cross(yavin::vec3{0, 1, 0}, -m_look_dir);
       m_eye -= right / ms;
     }
     if (m_d_down) {
-      const auto right = cross(yavin::vec3{0, 1, 0}, -m_look_at);
+      const auto right = cross(yavin::vec3{0, 1, 0}, -m_look_dir);
       m_eye += right / ms;
     }
-    m_cam.look_at(m_eye, m_eye + m_look_at + 0.1);
+    m_cam.look_at(m_eye, m_eye + m_look_dir + 0.1);
     f(dt);
   }
   //----------------------------------------------------------------------------
-  auto projection_matrix() {
+  auto projection_matrix() const {
     return m_cam.projection_matrix();
   }
   //----------------------------------------------------------------------------
-  auto view_matrix() {
-    return *inverse(look_at_matrix(m_eye, m_eye + m_look_at));
+  auto view_matrix() const {
+    return *inverse(look_at_matrix(m_eye, m_eye + m_look_dir));
   }
   //============================================================================
   void on_key_pressed(yavin::key k) override {
@@ -146,20 +183,20 @@ struct first_person_window : yavin::window, yavin::window_listener {
   }
   //----------------------------------------------------------------------------
   void on_button_pressed(yavin::button b) override {
-    m_mouse_down = true;
+    if (b == yavin::BUTTON_MIDDLE) { m_middle_button_down = true; }
   }
   //----------------------------------------------------------------------------
   void on_button_released(yavin::button b) override {
-    m_mouse_down = false;
+    if (b == yavin::BUTTON_MIDDLE) { m_middle_button_down = false; }
   }
   //----------------------------------------------------------------------------
   void on_mouse_motion(int x, int y) override {
-    if (m_mouse_down) {
+    if (m_middle_button_down) {
       int offset_x = x - m_mouse_pos_x;
       int offset_y = y - m_mouse_pos_y;
       m_theta -= offset_x * 0.01f;
       m_phi = std::min<float>(M_PI - 0.3f, std::max(0.3f, m_phi + offset_y * 0.01f));
-      m_look_at = yavin::vec3{
+      m_look_dir = yavin::vec3{
           std::sin(m_phi) * std::sin(m_theta),
           std::cos(m_phi),
           std::sin(m_phi) * std::cos(m_theta),
@@ -172,23 +209,63 @@ struct first_person_window : yavin::window, yavin::window_listener {
   void on_resize(int w, int h) override {
     m_width  = w;
     m_height = h;
-    m_cam.set_projection(90, (float)(w) / (float)(h), 0.001f, 1000.0f, w, h);
+    m_cam.set_projection(60, (float)(w) / (float)(h), 0.1f, 1000.0f, w, h);
   }
   //----------------------------------------------------------------------------
-  template <typename F>
-  void add_key_pressed_event(F&& f) {
+  template <typename Event>
+  void add_key_pressed_event(Event&& event) {
     m_events.push_back(
-        std::unique_ptr<base_holder>{new key_pressed_event{std::forward<F>(f)}});
+        std::unique_ptr<base_holder>{new key_pressed_event{std::forward<Event>(event)}});
     add_listener(*dynamic_cast<yavin::window_listener*>(
         m_events.back().get()));
   }
   //----------------------------------------------------------------------------
-  template <typename F>
-  void add_key_released_event(F&& f) {
+  template <typename Event>
+  void add_key_released_event(Event&& event) {
     m_events.push_back(
-        std::unique_ptr<base_holder>{new key_released_event{std::forward<F>(f)}});
+        std::unique_ptr<base_holder>{new key_released_event{std::forward<Event>(event)}});
     add_listener(*dynamic_cast<yavin::window_listener*>(
         m_events.back().get()));
+  }
+  //----------------------------------------------------------------------------
+  template <typename Event>
+  void add_button_pressed_event(Event&& event) {
+    m_events.push_back(
+        std::unique_ptr<base_holder>{new button_pressed_event{std::forward<Event>(event)}});
+    add_listener(*dynamic_cast<yavin::window_listener*>(
+        m_events.back().get()));
+  }
+  //----------------------------------------------------------------------------
+  template <typename Event>
+  void add_button_released_event(Event&& event) {
+    m_events.push_back(
+        std::unique_ptr<base_holder>{new button_released_event{std::forward<Event>(event)}});
+    add_listener(*dynamic_cast<yavin::window_listener*>(
+        m_events.back().get()));
+  }
+  //----------------------------------------------------------------------------
+  template <typename Event>
+  void add_mouse_motion_event(Event&& event) {
+    m_events.push_back(
+        std::unique_ptr<base_holder>{new mouse_motion_event{std::forward<Event>(event)}});
+    add_listener(*dynamic_cast<yavin::window_listener*>(
+        m_events.back().get()));
+  }
+  //----------------------------------------------------------------------------
+  auto cast_ray(float x, float y) const {
+    // from http://antongerdelan.net/opengl/raycasting.html
+    auto ray_eye =
+        *inverse(projection_matrix()) *
+        yavin::vec4{2 * m_mouse_pos_x / float(m_width - 1) - 1,
+                    2 * (m_height - m_mouse_pos_y - 1) / float(m_height - 1) - 1,
+                    -1, 1};
+    ray_eye(2) = -1;
+    ray_eye(3) = 0;
+
+    const auto ray_wor = look_at_matrix(m_eye, m_eye + m_look_dir) * ray_eye;
+
+    return ray{vec3{m_eye(0), m_eye(1), m_eye(2)},
+               normalize(vec3{ray_wor(0), ray_wor(1), ray_wor(2)})};
   }
 };
 //==============================================================================

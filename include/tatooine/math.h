@@ -8,9 +8,10 @@ constexpr T max(T t0, T t1) {
   return t0 > t1 ? t0 : t1;
 }
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-template <typename T, typename... Ts>
-constexpr decltype(auto) max(T&& t0, Ts&&... ts) {
-  return max(t0, max(std::forward<Ts>(ts)...));
+template <typename T, typename... Ts,
+          std::enable_if_t<(sizeof...(Ts) > 1), bool> = true>
+constexpr T max(T&& t0, Ts&&... ts) {
+  return tatooine::max(t0, tatooine::max(std::forward<Ts>(ts)...));
 }
 //------------------------------------------------------------------------------
 template <typename T>
@@ -18,9 +19,10 @@ constexpr T min(T t0, T t1) {
   return t0 < t1 ? t0 : t1;
 }
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-template <typename T, typename... Ts>
-constexpr decltype(auto) min(T&& t0, Ts&&... ts) {
-  return min(t0, min(std::forward<Ts>(ts)...));
+template <typename T, typename... Ts,
+          std::enable_if_t<(sizeof...(Ts) > 1), bool> = true>
+constexpr T min(T&& t0, Ts&&... ts) {
+  return tatooine::min(t0, tatooine::min(std::forward<Ts>(ts)...));
 }
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 template <typename Base, typename Exp, enable_if_integral<Base> = true,
