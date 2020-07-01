@@ -25,7 +25,7 @@ namespace tatooine {
 template <typename, template <typename> typename>
 struct hultquist_discretization;
 //==============================================================================
-template <typename Flowmap,
+template <flowmap_c Flowmap,
           template <typename> typename SeedcurveInterpolationKernel>
 struct streamsurface {
   using flowmap_t = std::decay_t<Flowmap>;
@@ -46,7 +46,7 @@ struct streamsurface {
 
   //----------------------------------------------------------------------------
  public:
-  template <typename _Flowmap>
+  template <flowmap_c _Flowmap>
   streamsurface(_Flowmap&& flowmap, real_number auto t0u0,
                 real_number auto t0u1, const seedcurve_t& seedcurve)
       : m_flowmap{std::forward<_Flowmap>(flowmap)},
@@ -58,7 +58,7 @@ struct streamsurface {
         m_max_u{std::max(m_seedcurve.front_parameterization(),
                          m_seedcurve.back_parameterization())} {}
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-  template <typename _Flowmap>
+  template <flowmap_c _Flowmap>
   streamsurface(_Flowmap&& flowmap, real_number auto t0,
                 const seedcurve_t& seedcurve)
       : m_flowmap{std::forward<_Flowmap>(flowmap)},
@@ -69,7 +69,7 @@ struct streamsurface {
                          m_seedcurve.back_parameterization())},
         m_max_u{std::max(m_seedcurve.front_parameterization(),
                          m_seedcurve.back_parameterization())} {}
-  template <typename _Flowmap>
+  template <flowmap_c _Flowmap>
   streamsurface(_Flowmap&& flowmap, const seedcurve_t& seedcurve)
       : m_flowmap{std::forward<_Flowmap>(flowmap)},
         m_t0_u0{static_cast<real_t>(0)},
@@ -83,7 +83,7 @@ struct streamsurface {
   streamsurface(const vectorfield<V, real_t, num_dimensions()>& v,
                 real_number auto t0u0, real_number auto t0u1,
                 const seedcurve_t& seedcurve)
-      : m_flowmap{flowmap(v)},
+      : m_flowmap{tatooine::flowmap(v)},
         m_t0_u0{static_cast<real_t>(t0u0)},
         m_t0_u1{static_cast<real_t>(t0u1)},
         m_seedcurve(seedcurve),
@@ -95,7 +95,7 @@ struct streamsurface {
   template <typename V>
   streamsurface(const vectorfield<V, real_t, num_dimensions()>& v,
                 real_number auto t0, const seedcurve_t& seedcurve)
-      : m_flowmap{flowmap(v)},
+      : m_flowmap{tatooine::flowmap(v)},
         m_t0_u0{static_cast<real_t>(t0)},
         m_t0_u1{static_cast<real_t>(t0)},
         m_seedcurve(seedcurve),
@@ -107,7 +107,7 @@ struct streamsurface {
   template <typename V>
   streamsurface(const vectorfield<V, real_t, num_dimensions()>& v,
                 const seedcurve_t& seedcurve)
-      : m_flowmap{flowmap(v)},
+      : m_flowmap{tatooine::flowmap(v)},
         m_t0_u0{real_t(0)},
         m_t0_u1{real_t(0)},
         m_seedcurve(seedcurve),
@@ -413,16 +413,16 @@ struct front_evolving_streamsurface_discretization
     vs.emplace_back();
     for (auto u : linspace{ssf->min_u(), ssf->max_u(), seedline_resolution}) {
       const auto t0u = t0(u);
-      if (this->ssf->vectorfield().in_domain(this->ssf->seedcurve().sample(u),
-                                             t0u)) {
-        const auto new_pos = ssf->sample(u, t0u);
-        const auto v       = insert_vertex(std::move(new_pos), uv_t{u, t0u});
-        vs.back().push_back(v);
-      } else if (vs.back().size() > 1) {
-        vs.emplace_back();
-      } else {
-        vs.back().clear();
-      }
+      //if (this->ssf->vectorfield().in_domain(this->ssf->seedcurve().sample(u),
+      //                                       t0u)) {
+      const auto new_pos = ssf->sample(u, t0u);
+      const auto v       = insert_vertex(std::move(new_pos), uv_t{u, t0u});
+      vs.back().push_back(v);
+      //} else if (vs.back().size() > 1) {
+      //  vs.emplace_back();
+      //} else {
+      //  vs.back().clear();
+      //}
     }
     if (vs.back().size() <= 1) { vs.pop_back(); }
     front_t front;
@@ -661,7 +661,6 @@ struct hultquist_discretization : front_evolving_streamsurface_discretization<
   using typename parent_t::vertex_list_t;
   using typename parent_t::vertex_range_t;
   using typename parent_t::vertex_vec_t;
-
   //----------------------------------------------------------------------------
   hultquist_discretization(ssf_t* ssf, size_t seedline_resolution,
                            real_t stepsize, real_t backward_tau,
@@ -670,8 +669,8 @@ struct hultquist_discretization : front_evolving_streamsurface_discretization<
     assert(forward_tau >= 0);
     assert(backward_tau <= 0);
 
-    const auto seed_front = this->seedcurve_to_front(seedline_resolution,
-                                                     backward_tau, forward_tau);
+    const auto seed_front = this->seedcurve_to_front(seedline_resolution/*,*/
+                                                     /*backward_tau, forward_tau*/);
     if (seed_front.empty()) { return; }
     real_t desired_spatial_dist =
         this->average_segment_length(seed_front.front());
@@ -684,8 +683,7 @@ struct hultquist_discretization : front_evolving_streamsurface_discretization<
         if (integrated_time - cur_stepsize < backward_tau) {
           cur_stepsize = std::abs(backward_tau - integrated_time);
         }
-        cur_front = evolve(cur_front, -cur_stepsize, desired_spatial_dist,
-                           backward_tau, 0);
+        cur_front = evolve(cur_front, -cur_stepsize, desired_spatial_dist);
         integrated_time -= cur_stepsize;
       }
     }
@@ -698,13 +696,11 @@ struct hultquist_discretization : front_evolving_streamsurface_discretization<
         if (integrated_time + cur_stepsize > forward_tau) {
           cur_stepsize = forward_tau - integrated_time;
         }
-        cur_front = evolve(cur_front, cur_stepsize, desired_spatial_dist, 0,
-                           forward_tau);
+        cur_front = evolve(cur_front, cur_stepsize, desired_spatial_dist);
         integrated_time += cur_stepsize;
       }
     }
   }
-
   //----------------------------------------------------------------------------
   hultquist_discretization(const this_t& other)     = default;
   hultquist_discretization(this_t&& other) noexcept = default;
@@ -712,8 +708,7 @@ struct hultquist_discretization : front_evolving_streamsurface_discretization<
   hultquist_discretization& operator=(this_t&& other) noexcept = default;
   ~hultquist_discretization()                                  = default;
   //============================================================================
-  auto integrate(const subfront_t& subfront, real_t step, real_t backward_tau,
-                 real_t forward_tau) {
+  auto integrate(const subfront_t& subfront, real_t step) {
     assert(step != 0);
     struct integrated_t {
       vertex           v;
@@ -730,7 +725,7 @@ struct hultquist_discretization : front_evolving_streamsurface_discretization<
       const vec   new_uv{uv(0), uv(1) + step};
       try {
         if (this->m_on_border.find(v) == end(this->m_on_border)) {
-          auto new_pos = this->ssf->sample(new_uv, backward_tau, forward_tau);
+          auto new_pos = this->ssf->sample(new_uv);
           integrated_vertices.push_back(
               {insert_vertex(new_pos, uv_t{new_uv(0), new_uv(1)}), true, false,
                false, v_it});
@@ -739,16 +734,16 @@ struct hultquist_discretization : front_evolving_streamsurface_discretization<
         }
 
       } catch (std::exception&) {
-        const auto& streamline =
-            this->ssf->streamline_at(uv(0), backward_tau, forward_tau);
-        if (!streamline.empty()) {
-          const auto& border_point =
-              step > 0 ? streamline.back() : streamline.front();
-          auto new_v = insert_vertex(border_point.first,
-                                     uv_t{uv(0), border_point.second});
-          integrated_vertices.push_back({new_v, true, true, false, v_it});
-          this->m_on_border.insert(new_v);
-        }
+        //const auto& streamline =
+        //    this->ssf->streamline_at(uv(0));
+        //if (!streamline.empty()) {
+        //  const auto& border_point =
+        //      step > 0 ? streamline.back() : streamline.front();
+        //  auto new_v = insert_vertex(border_point.first,
+        //                             uv_t{uv(0), border_point.second});
+        //  integrated_vertices.push_back({new_v, true, true, false, v_it});
+        //  this->m_on_border.insert(new_v);
+        //}
       }
     }
 
@@ -770,15 +765,14 @@ struct hultquist_discretization : front_evolving_streamsurface_discretization<
         bool found = false;
         while (std::abs(step) > 1e-10) {
           try {
-            this->ssf->sample(walking_u + step, fix_v, backward_tau,
-                              forward_tau);
+            this->ssf->sample(walking_u + step, fix_v);
             walking_u += step;
             if (!found) { found = true; }
           } catch (std::exception&) { step /= 2; }
         }
         if (found) {
           auto new_v = insert_vertex(
-              this->ssf->sample(walking_u, fix_v, backward_tau, forward_tau),
+              this->ssf->sample(walking_u, fix_v),
               uv_t{walking_u, fix_v});
           integrated_vertices.insert(
               next(it), {new_v, true, true, true,
@@ -821,21 +815,17 @@ struct hultquist_discretization : front_evolving_streamsurface_discretization<
   }
 
   //--------------------------------------------------------------------------
-  auto integrate(const front_t& front, real_t step, real_t backward_tau,
-                 real_t forward_tau) {
+  auto integrate(const front_t& front, real_t step) {
     front_t new_front;
-
     for (const auto& subfront : front) {
       if (subfront.first.size() > 1) {
-        boost::copy(integrate(subfront, step, backward_tau, forward_tau),
+        boost::copy(integrate(subfront, step),
                     std::back_inserter(new_front));
       }
     }
-
     return new_front;
   }
-
-  //--------------------------------------------------------------------------
+  //----------------------------------------------------------------------------
   auto evolve(const front_t& front, real_t step, real_t desired_spatial_dist) {
     auto integrated_front = integrate(front, step);
 
@@ -847,221 +837,219 @@ struct hultquist_discretization : front_evolving_streamsurface_discretization<
 };
 
 //==============================================================================
-// template <template <typename, size_t> typename Integrator,
-//          template <typename> typename SeedcurveInterpolationKernel,
-//          template <typename> typename IntegralcurveInterpolator,
-//          typename V>
-// struct schulze_discretization
-//     : front_evolving_streamsurface_discretization<V, Integrator,
-//                                                SeedcurveInterpolationKernel,
-//                                                IntegralcurveInterpolator> {
-// static constexpr auto num_dimensions() {
-//  return N;
-//}
-//   using parent_t          = front_evolving_streamsurface_discretization<
-//       V, Integrator, SeedcurveInterpolationKernel,
-//       IntegralcurveInterpolator>;
-//   using front_t       = typename parent_t::front_t;
-//   using subfront_t    = typename parent_t::subfront_t;
-//   using ssf_t         = typename parent_t::ssf_t;
-//   using vertex_list_t = typename parent_t::vertex_list_t;
-//   using vertex        = typename parent_t::vertex;
-//   using face          = typename parent_t::face;
-//   template <typename T>
-//   using VertexProperty = typename parent_t::template VertexProperty<T>;
-//   using parent_t::uv;
-//   using parent_t::at;
-//   using parent_t::insert_vertex;
-//
-//   VertexProperty<Real>& alpha_prop;
-//   VertexProperty<Real>& second_derivate_alpha_prop;
-//
-//   //----------------------------------------------------------------------------
-//   schulze_discretization(const ssf_t* ssf, size_t seedline_resolution,
-//                         size_t num_iterations)
-//       : parent_t(ssf),
-//         alpha_prop(this->template add_vertex_property<Real>("alpha")),
-//         second_derivate_alpha_prop(this->template
-//         add_vertex_property<Real>(
-//             "second_derivative_alpha")) {
-//     this->fronts.push_back(this->seedcurve_to_front(seedline_resolution));
-//     Real desired_spatial_dist =
-//         this->average_segment_length(this->fronts.front().front());
-//
-//     // evolve front
-//     for (size_t i = 0; i < num_iterations; ++i)
-//       forward_evolve(desired_spatial_dist);
-//   }
-//
-//   //----------------------------------------------------------------------------
-//   auto forward_evolve(Real desired_spatial_dist) {
-//     const auto& front     = this->fronts.back();
-//     auto&       new_front = this->fronts.emplace_back();
-//
-//     // integrate each subfront
-//     for (const auto& [vs, pred_range] : front) {
-//       auto alpha = optimal_stepsizes(vs);
-//       for (auto [v, i] = std::pair{begin(vs), size_t(0)};
-//            v != end(vs); ++v, ++i)
-//         alpha_prop[*v] = alpha[i];
-//       auto splitted_front_indices = detect_peaks(alpha, vs);
-//       // no rip needed
-//       if (splitted_front_indices.size() == 1 &&
-//           splitted_front_indices[0].first == 0 &&
-//           splitted_front_indices[0].second == alpha.size() - 1) {
-//         auto& vertices1 =
-//             new_front
-//                 .emplace_back(std::list<vertex>{},
-//                               std::pair{begin(vs), end(vs)})
-//                 .first;
-//
-//         size_t i = 0;
-//         for (const auto v : vs) {
-//           const auto& uv = parent_t::uv(v);
-//           vec2        new_uv{uv(0), uv(1) + alpha[i++]};
-//           auto        new_pos = this->ssf->sample(new_uv);
-//           vertices1.push_back(insert_vertex(new_pos, new_uv));
-//           alpha_prop[v] = alpha[i - 1];
-//         }
-//
-//         // rip needed
-//       } else {
-//         for (const auto& [first, last] : splitted_front_indices) {
-//           auto& [vertices1, pred_range] = new_front.emplace_back(
-//               std::list<vertex>{}, std::pair{next(begin(vs), first),
-//                                              next(begin(vs), last +
-//                                              1)});
-//
-//           size_t            i = 0;
-//           std::list<vertex> sub_front;
-//           std::copy(pred_range.first, pred_range.second,
-//           std::back_inserter(sub_front)); auto sub_alpha =
-//           optimal_stepsizes(sub_front); for (auto v = pred_range.first; v !=
-//           pred_range.second; ++v) {
-//             const auto& uv = parent_t::uv(*v);
-//             vec2        new_uv{uv(0), uv(1) + sub_alpha[i++]};
-//             auto        new_pos = this->ssf->sample(new_uv);
-//             vertices1.push_back(insert_vertex(new_pos, new_uv));
-//             alpha_prop[vertices1.back()] = sub_alpha[i - 1];
-//           }
-//         }
-//       }
-//     }
-//
-//     // triangulate
-//     std::vector<std::vector<face>> faces;
-//     for (auto& subfront : this->fronts.back()) {
-//       this->subdivide(subfront, desired_spatial_dist);
-//       this->reduce(subfront, desired_spatial_dist);
-//       faces.push_back(this->triangulate_timeline(subfront));
-//     }
-//     return faces;
-//   }
-//
-//   //----------------------------------------------------------------------------
-//   std::vector<Real> optimal_stepsizes(const vertex_list_t& vs) {
-//     const auto& v       = this->ssf->vectorfield();
-//     auto        jacobian = make_jacobian(v);
-//
-//     auto                num_pnts = vs.size();
-//     std::vector<Real> p(num_pnts - 1), q(num_pnts - 1), null(num_pnts),
-//         r(num_pnts);
-//     std::vector<vec<Real, N>> v(num_pnts);
-//
-//     size_t i = 0;
-//     for (const auto vertex : vs)
-//       v[i++] = v(at(vertex), this->t0() + uv(vertex)(1));
-//
-//     i              = 0;
-//     Real avg_len = 0;
-//     for (auto vertex = begin(vs); vertex != prev(end(vs));
-//          ++vertex, ++i) {
-//       auto tm = this->t0() + (uv(*vertex)(1) + uv(*next(vertex))(1)) *
-//       0.5; auto xm = (at(*next(vertex)) + at(*vertex)) * 0.5; auto dir =
-//       at(*next(vertex)) - at(*vertex); auto vm  = v(xm, tm); auto Jm  =
-//       jacobian(xm, tm);
-//
-//       p[i] = dot(dir * 0.5, Jm * v[i]) - dot(v[i], vm);
-//       q[i] = dot(dir * 0.5, Jm * v[i + 1]) + dot(v[i + 1], vm);
-//       r[i] = -dot(dir, vm);
-//
-//       avg_len += norm(dir);
-//     }
-//     avg_len /= num_pnts - 1;
-//     solve_qr(num_pnts - 1, &p[0], &q[0], &r[0], &null[0]);
-//
-//     // Real nrm{0};
-//     // for (auto x : null) nrm += x * x;
-//     // nrm = sqrt(nrm);
-//     // for (size_t i = 0; i < null.size(); ++i) null[i] /= nrm;
-//
-//     // count positive entries in nullspace
-//     size_t num_pos_null = 0;
-//     for (auto c : null)
-//       if (c > 0) ++num_pos_null;
-//     int k_plus_factor = (num_pos_null < null.size() / 2) ? -1 : 1;
-//
-//     for (size_t i = 0; i < r.size(); ++i) r[i] += k_plus_factor * null[i];
-//     // r[i] += (num_pnts / 10.0) * k_plus_factor * null[i];
-//
-//     // apply step width
-//     Real h = std::numeric_limits<Real>::max();
-//     for (size_t i = 0; i < num_pnts; ++i)
-//       h = std::min(h, avg_len / (std::abs(r[i]) * norm(v[i])));
-//     for (size_t i = 0; i < r.size(); ++i) r[i] *= h;
-//     // for (size_t i = 0; i < r.size(); ++i) r[i] = std::max(r[i],1e-3);
-//     return r;
-//   }
-//
-//   //----------------------------------------------------------------------------
-//   auto detect_peaks(const std::vector<Real>& alpha,
-//                     const vertex_list_t& vs, Real threshold = 100) {
-//     // calculate second derivative
-//     std::vector<Real> snd_der(alpha.size(), 0);
-//     auto                v = next(begin(vs));
-//     for (size_t i = 1; i < alpha.size() - 1; ++i, ++v) {
-//       Mat<Real, 3, 3> A{
-//           1,
-//           1,
-//           1,
-//
-//           uv(*prev(v))(0),
-//           uv(*v)(0),
-//           uv(*next(v))(0),
-//
-//           uv(*prev(v))(0) * uv(*prev(v))(0),
-//           uv(*v)(0) * uv(*v)(0),
-//           uv(*next(v))(0) * uv(*next(v))(0),
-//       };
-//       vec<Real, 3> b{alpha[i - 1], alpha[i], alpha[i + 1]};
-//       snd_der[i]                     = 2 * solve(A, b)(2);
-//       second_derivate_alpha_prop[*v] = std::abs(snd_der[i]);
-//     }
-//
-//     std::vector<std::pair<size_t, size_t>> splitted_front_indices;
-//     splitted_front_indices.emplace_back(0, alpha.size() - 1);
-//
-//     for (size_t i = 1; i < snd_der.size() - 1; ++i)
-//       if (std::abs(snd_der[i]) > threshold) {
-//         if (splitted_front_indices.back().first == i)
-//           // shift left border of split to the right
-//           ++splitted_front_indices.back().first;
-//         else {
-//           // insert new subfront
-//           splitted_front_indices.back().second = i - 1;
-//           if (splitted_front_indices.back().first ==
-//               splitted_front_indices.back().second)
-//             splitted_front_indices.pop_back();
-//
-//           splitted_front_indices.emplace_back(i + 1, alpha.size() - 1);
-//         }
-//       }
-//     if (splitted_front_indices.back().first ==
-//         splitted_front_indices.back().second)
-//       splitted_front_indices.pop_back();
-//     return splitted_front_indices;
-//   }
-// };
+template <typename Flowmap,
+          template <typename> typename SeedcurveInterpolationKernel>
+struct schulze_discretization : front_evolving_streamsurface_discretization<
+                                    Flowmap, SeedcurveInterpolationKernel> {
+  using real_t = typename Flowmap::real_t;
+  static constexpr auto num_dimensions() { return Flowmap::num_dimensions(); }
+  using parent_t =
+      front_evolving_streamsurface_discretization<Flowmap,
+                                                  SeedcurveInterpolationKernel>;
+  using typename parent_t::face;
+  using typename parent_t::front_t;
+  using typename parent_t::ssf_t;
+  using typename parent_t::subfront_t;
+  using typename parent_t::vertex;
+  using typename parent_t::vertex_list_t;
+  using typename parent_t::vertex_list_it_t;
+  template <typename T>
+  using vertex_property_t = typename parent_t::template vertex_property_t<T>;
+  using parent_t::at;
+  using parent_t::insert_vertex;
+  using parent_t::uv;
+
+  vertex_property_t<real_t>& alpha_prop;
+  vertex_property_t<real_t>& second_derivate_alpha_prop;
+
+  //----------------------------------------------------------------------------
+  schulze_discretization(ssf_t* ssf, size_t seedline_resolution,
+                         size_t num_iterations)
+      : parent_t(ssf),
+        alpha_prop(this->template add_vertex_property<real_t>("alpha")),
+        second_derivate_alpha_prop(this->template add_vertex_property<real_t>(
+            "second_derivative_alpha")) {
+    auto const initial_front = this->seedcurve_to_front(seedline_resolution);
+    real_t desired_spatial_dist =
+        this->average_segment_length(initial_front.front());
+
+    // evolve front
+    front_t cur_front = initial_front;
+    for (size_t i = 0; i < num_iterations; ++i) {
+      cur_front = evolve(cur_front, desired_spatial_dist);
+    }
+  }
+
+  //--------------------------------------------------------------------------
+  auto integrate(const subfront_t& front, real_t step) {
+    std::vector<subfront_t> new_subfronts{
+        {{}, {begin(front.first), end(front.first)}}};
+    const auto& [vs, pred_range] = front;
+    // integrate each subfront
+    auto alpha = optimal_stepsizes(vs);
+    for (auto [v, i] = std::pair{begin(vs), size_t(0)}; v != end(vs);
+         ++v, ++i) {
+      alpha_prop[*v] = alpha[i];
+    }
+    auto splitted_front_ranges = detect_peaks(alpha, vs);
+    // no rip needed
+    if (size(splitted_front_ranges) == 1 &&
+        splitted_front_ranges[0].first == begin(vs) &&
+        splitted_front_ranges[0].second == end(vs)) {
+      auto& vertices1 =
+          new_subfronts
+              .emplace_back(std::list<vertex>{}, std::pair{begin(vs), end(vs)})
+              .first;
+
+      size_t i = 0;
+      for (const auto v : vs) {
+        const auto& uv = parent_t::uv(v);
+        vec2        new_uv{uv(0), uv(1) + alpha[i++]};
+        auto        new_pos = this->ssf->sample(new_uv);
+        vertices1.push_back(insert_vertex(new_pos, new_uv));
+        alpha_prop[v] = alpha[i - 1];
+      }
+
+    } else {
+      // rip needed
+      for (const auto& range : splitted_front_ranges) {
+        auto& [vertices1, pred_range] =
+            new_subfronts.emplace_back(std::list<vertex>{}, range);
+
+        size_t            i = 0;
+        std::list<vertex> sub_front;
+        std::copy(pred_range.first, pred_range.second,
+                  std::back_inserter(sub_front));
+        auto sub_alpha = optimal_stepsizes(sub_front);
+        for (auto v = pred_range.first; v != pred_range.second; ++v) {
+          const auto& uv = parent_t::uv(*v);
+          vec2        new_uv{uv(0), uv(1) + sub_alpha[i++]};
+          auto        new_pos = this->ssf->sample(new_uv);
+          vertices1.push_back(insert_vertex(new_pos, new_uv));
+          alpha_prop[vertices1.back()] = sub_alpha[i - 1];
+        }
+      }
+    }
+    return new_subfronts;
+  }
+  //--------------------------------------------------------------------------
+  auto integrate(const front_t& front, real_t step) {
+    front_t integrated_front;
+    for (const auto& subfront : front) {
+      if (subfront.first.size() > 1) {
+        boost::copy(integrate(subfront, step),
+                    std::back_inserter(integrated_front));
+      }
+    }
+    return integrated_front;
+  }
+  //----------------------------------------------------------------------------
+  auto evolve(const front_t& front, real_t desired_spatial_dist) {
+    auto integrated_front = integrate(front, desired_spatial_dist);
+    // triangulate
+    std::vector<std::vector<face>> faces;
+    this->subdivide(integrated_front, desired_spatial_dist);
+    this->reduce(integrated_front, desired_spatial_dist);
+    this->triangulate_timeline(integrated_front);
+    return integrated_front;
+  }
+  //----------------------------------------------------------------------------
+  std::vector<real_t> optimal_stepsizes(const vertex_list_t& vs) {
+    const auto& v        = this->ssf->flowmap().vectorfield();
+    auto        jacobian = diff(v, 1e-7);
+
+    auto              num_pnts = size(vs);
+    std::vector<real_t> p(num_pnts - 1), q(num_pnts - 1), null(num_pnts),
+        r(num_pnts);
+    std::vector<vec<real_t, num_dimensions()>> ps(num_pnts);
+
+    size_t i = 0;
+    for (const auto vertex : vs)
+      ps[i++] = v(at(vertex), this->t0(0) + uv(vertex)(1));
+
+    i            = 0;
+    real_t avg_len = 0;
+    for (auto vertex = begin(vs); vertex != prev(end(vs)); ++vertex, ++i) {
+      auto tm  = this->t0(0) + (uv(*vertex)(1) + uv(*next(vertex))(1)) * 0.5;
+      auto xm  = (at(*next(vertex)) + at(*vertex)) * 0.5;
+      auto dir = at(*next(vertex)) - at(*vertex);
+      auto vm  = v(xm, tm);
+      auto Jm  = jacobian(xm, tm);
+
+      p[i] = dot(dir * 0.5, Jm * ps[i]) - dot(ps[i], vm);
+      q[i] = dot(dir * 0.5, Jm * ps[i + 1]) + dot(ps[i + 1], vm);
+      r[i] = -dot(dir, vm);
+
+      avg_len += norm(dir);
+    }
+    avg_len /= num_pnts - 1;
+    solve_qr(num_pnts - 1, &p[0], &q[0], &r[0], &null[0]);
+
+    // real_t nrm{0};
+    // for (auto x : null) nrm += x * x;
+    // nrm = sqrt(nrm);
+    // for (size_t i = 0; i < null.size(); ++i) null[i] /= nrm;
+
+    // count positive entries in nullspace
+    size_t num_pos_null = 0;
+    for (auto c : null)
+      if (c > 0) ++num_pos_null;
+    int k_plus_factor = (num_pos_null < null.size() / 2) ? -1 : 1;
+
+    for (size_t i = 0; i < r.size(); ++i) r[i] += k_plus_factor * null[i];
+    // r[i] += (num_pnts / 10.0) * k_plus_factor * null[i];
+
+    // apply step width
+    real_t h = std::numeric_limits<real_t>::max();
+    for (size_t i = 0; i < num_pnts; ++i)
+      h = std::min(h, avg_len / (std::abs(r[i]) * norm(ps[i])));
+    for (size_t i = 0; i < r.size(); ++i) r[i] *= h;
+    // for (size_t i = 0; i < r.size(); ++i) r[i] = std::max(r[i],1e-3);
+    return r;
+  }
+
+  //----------------------------------------------------------------------------
+  auto detect_peaks(const std::vector<real_t>& alpha, const vertex_list_t& vs,
+                    real_t threshold = 100) {
+    // calculate second derivative
+    std::vector<real_t> snd_der(alpha.size(), 0);
+    auto              v = next(begin(vs));
+    for (size_t i = 1; i < alpha.size() - 1; ++i, ++v) {
+      mat<real_t, 3, 3> A{
+          {real_t(1), uv(*prev(v))(0), uv(*prev(v))(0) * uv(*prev(v))(0)},
+          {real_t(1), uv(*v)(0), uv(*v)(0) * uv(*v)(0)},
+          {real_t(1), uv(*next(v))(0), uv(*next(v))(0) * uv(*next(v))(0)}};
+      vec<real_t, 3> b{alpha[i - 1], alpha[i], alpha[i + 1]};
+      snd_der[i]                     = 2 * solve(A, b)(2);
+      second_derivate_alpha_prop[*v] = std::abs(snd_der[i]);
+    }
+
+    std::vector<std::pair<vertex_list_it_t, vertex_list_it_t>> splitted_front_ranges;
+    splitted_front_ranges.emplace_back(begin(vs), end(vs));
+
+    auto v_it = next(begin(vs));
+    for (size_t i = 1; i < snd_der.size() - 1; ++i, ++v_it)
+      if (std::abs(snd_der[i]) > threshold) {
+        if (splitted_front_ranges.back().first == v_it)
+          // shift left border of split to the right
+          ++splitted_front_ranges.back().first;
+        else {
+          // insert new subfront
+          splitted_front_ranges.back().second = next(v_it);
+          if (splitted_front_ranges.back().first ==
+              splitted_front_ranges.back().second)
+            splitted_front_ranges.pop_back();
+
+          splitted_front_ranges.emplace_back(next(v_it), end(vs));
+        }
+      }
+    if (splitted_front_ranges.back().first ==
+        splitted_front_ranges.back().second) {
+      splitted_front_ranges.pop_back();
+    }
+    return splitted_front_ranges;
+  }
+};
 //==============================================================================
 }  // namespace tatooine
 //==============================================================================
