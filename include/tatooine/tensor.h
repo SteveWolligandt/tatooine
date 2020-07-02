@@ -126,10 +126,6 @@ struct tensor : base_tensor<tensor<Real, Dims...>, Real, Dims...>,  // NOLINT
     return *this;
   }
 };
-//~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-template <size_t C, typename... Rows>
-tensor(Rows const(&&... rows)[C])  // NOLINT
-    ->tensor<promote_t<Rows...>, sizeof...(Rows), C>;
 //==============================================================================
 }  // namespace tatooine
 //==============================================================================

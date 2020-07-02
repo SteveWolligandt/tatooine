@@ -1,5 +1,6 @@
 #include <tatooine/tensor.h>
 #include <tatooine/symbolic.h>
+#include <tatooine/utility.h>
 #include <catch2/catch.hpp>
 
 //==============================================================================
@@ -553,6 +554,43 @@ TEST_CASE("tensor_inverse", "[tensor][inverse]") {
       INFO("invA = \n" << invA);
       REQUIRE(approx_equal(inv(A), invA));
     }
+  }
+}
+//==============================================================================
+TEST_CASE("tensor_diag_inverse", "[tensor][diag][inverse]") {
+  vec       v{1.0, 2.0, 3.0};
+  vec const cv{1.0, 2.0, 3.0};
+  {
+    auto V = diag(v);
+    CAPTURE(type_name(V));
+    REQUIRE(std::is_reference_v<decltype(V)::tensor_t>);
+    REQUIRE_FALSE(
+        std::is_const_v<std::remove_reference_t<decltype(V)::tensor_t>>);
+
+    auto IV = inverse(V);
+    REQUIRE_FALSE(std::is_reference_v<decltype(IV)::tensor_t>);
+    REQUIRE_FALSE(std::is_const_v<decltype(IV)::tensor_t>);
+  }
+
+  {
+    auto CV = diag(cv);
+    CAPTURE(type_name(CV));
+    REQUIRE(std::is_reference_v<decltype(CV)::tensor_t>);
+    REQUIRE(std::is_const_v<std::remove_reference_t<decltype(CV)::tensor_t>>);
+
+    auto ICV = inverse(CV);
+    REQUIRE_FALSE(std::is_reference_v<decltype(ICV)::tensor_t>);
+    REQUIRE_FALSE(std::is_const_v<decltype(ICV)::tensor_t>);
+  }
+  {
+    auto MV = diag(vec{1.0, 2.0, 3.0});
+    CAPTURE(type_name(MV));
+    REQUIRE_FALSE(std::is_reference_v<decltype(MV)::tensor_t>);
+    REQUIRE_FALSE(std::is_const_v<decltype(MV)::tensor_t>);
+
+    auto IMV = inverse(MV);
+    REQUIRE_FALSE(std::is_reference_v<decltype(IMV)::tensor_t>);
+    REQUIRE_FALSE(std::is_const_v<decltype(IMV)::tensor_t>);
   }
 }
 //==============================================================================

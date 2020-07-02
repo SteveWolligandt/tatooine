@@ -5,22 +5,26 @@
 //==============================================================================
 namespace tatooine {
 //==============================================================================
-template <typename Tensor, size_t VecN, size_t M, size_t N>
-struct const_diag_tensor : base_tensor<const_diag_tensor<Tensor, VecN, M, N>,
-                                       typename Tensor::real_t, M, N> {
+template <typename Tensor, size_t M, size_t N>
+struct const_diag_tensor
+    : base_tensor<const_diag_tensor<Tensor, M, N>,
+                  typename std::decay_t<Tensor>::real_t, M, N> {
+  //============================================================================
+  using tensor_t = Tensor;
+  using real_t   = typename std::decay_t<tensor_t>::real_t;
   //============================================================================
  private:
-  const Tensor& m_internal_tensor;
+  tensor_t m_internal_tensor;
 
   //============================================================================
  public:
-  constexpr explicit const_diag_tensor(
-      const base_tensor<Tensor, typename Tensor::real_t, VecN>& internal_tensor)
-      : m_internal_tensor{internal_tensor.as_derived()} {}
+  template <typename _Tensor>
+  constexpr explicit const_diag_tensor(_Tensor&& v)
+      : m_internal_tensor{std::forward<_Tensor>(v)} {}
   //----------------------------------------------------------------------------
   constexpr auto operator()(size_t i, size_t j) const { return at(i, j); }
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-  constexpr auto at(size_t i, size_t j) const -> typename Tensor::real_t {
+  constexpr auto at(size_t i, size_t j) const -> real_t {
     assert(i < M);
     assert(j < N);
     if (i == j) {
@@ -33,20 +37,36 @@ struct const_diag_tensor : base_tensor<const_diag_tensor<Tensor, VecN, M, N>,
   auto internal_tensor() const -> const auto& { return m_internal_tensor; }
 };
 //==============================================================================
-template <typename Tensor, size_t VecN, size_t M, size_t N>
-struct diag_tensor
-    : base_tensor<diag_tensor<Tensor, VecN, M, N>, typename Tensor::real_t, M, N> {
+// deduction guides
+//==============================================================================
+template <typename Tensor>
+const_diag_tensor(Tensor const& t)
+    -> const_diag_tensor<Tensor const&,
+                         Tensor::dimension(0),
+                         Tensor::dimension(0)>;
+// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+template <typename Tensor>
+const_diag_tensor(Tensor&& t)
+    -> const_diag_tensor<Tensor,
+                         Tensor::dimension(0),
+                         Tensor::dimension(0)>;
+//==============================================================================
+template <typename Tensor, size_t M, size_t N>
+struct diag_tensor : base_tensor<diag_tensor<Tensor, M, N>,
+                                 typename std::decay_t<Tensor>::real_t, M, N> {
+  //============================================================================
+  using tensor_t = Tensor;
+  using real_t   = typename std::decay_t<tensor_t>::real_t;
   //============================================================================
  private:
-  Tensor& m_internal_tensor;
-  typename Tensor::real_t zero=0;
+  tensor_t m_internal_tensor;
+  real_t zero = 0;
 
   //============================================================================
  public:
-  constexpr explicit diag_tensor(
-      const base_tensor<Tensor, typename Tensor::real_t, VecN>& internal_tensor)
-      : m_internal_tensor{internal_tensor.as_derived()} {}
-
+  template <typename _Tensor>
+  constexpr explicit diag_tensor(_Tensor&& v)
+      : m_internal_tensor{std::forward<_Tensor>(v)} {}
   //----------------------------------------------------------------------------
   constexpr auto operator()(size_t i, size_t j) const { return at(i, j); }
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -61,7 +81,7 @@ struct diag_tensor
     }
   }
   //----------------------------------------------------------------------------
-  constexpr auto at(size_t i, size_t j) const -> typename Tensor::real_t {
+  constexpr auto at(size_t i, size_t j) const -> real_t {
     assert(i < M);
     assert(j < N);
     if (i == j) {
@@ -75,27 +95,76 @@ struct diag_tensor
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
   auto internal_tensor() const -> const auto& { return m_internal_tensor; }
 };
-//------------------------------------------------------------------------------
-template <typename Tensor, typename Real, size_t VecN>
-constexpr auto diag(const base_tensor<Tensor, Real, VecN>& t) {
-  return const_diag_tensor<Tensor, VecN, VecN, VecN>{t};
+//==============================================================================
+// deduction guides
+//==============================================================================
+template <typename Tensor>
+diag_tensor(Tensor const& t)
+    -> diag_tensor<Tensor const&,
+                   Tensor::dimension(0),
+                   Tensor::dimension(0)>;
+// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+template <typename Tensor>
+diag_tensor(Tensor& t)
+    -> diag_tensor<Tensor&,
+                   Tensor::dimension(0),
+                   Tensor::dimension(0)>;
+// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+template <typename Tensor>
+diag_tensor(Tensor&& t)
+    -> diag_tensor<std::decay_t<Tensor>,
+                   Tensor::dimension(0),
+                   Tensor::dimension(0)>;
+//==============================================================================
+template <typename Real, size_t N>
+struct vec;
+//==============================================================================
+// factory functions
+//==============================================================================
+template <typename Tensor, typename Real, size_t N>
+constexpr auto diag(base_tensor<Tensor, Real, N> const& t) {
+  return const_diag_tensor<Tensor const&, N, N>{t.as_derived()};
 }
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-template <typename Tensor, typename Real, size_t VecN>
-constexpr auto diag(base_tensor<Tensor, Real, VecN>& t) {
-  return diag_tensor<Tensor, VecN, VecN, VecN>{t};
+template <typename Tensor, typename Real, size_t N>
+constexpr auto diag(base_tensor<Tensor, Real, N>& t) {
+  return diag_tensor<Tensor&, N, N>{t.as_derived()};
+}
+// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+template <typename Tensor, typename Real, size_t N>
+constexpr auto diag(base_tensor<Tensor, Real, N>&& t) {
+  return diag_tensor<vec<Real, N>, N, N>{vec<Real, N>{std::move(t)}};
 }
 //------------------------------------------------------------------------------
 template <size_t M, size_t N, typename Tensor, typename Real, size_t VecN>
 constexpr auto diag_rect(const base_tensor<Tensor, Real, VecN>& t) {
-  return const_diag_tensor<Tensor, VecN, M, N>{t};
+  return const_diag_tensor<Tensor const&, M, N>{t.as_derived()};
 }
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 template <size_t M, size_t N, typename Tensor, typename Real, size_t VecN>
 constexpr auto diag_rect(base_tensor<Tensor, Real, VecN>& t) {
-  return diag_tensor<Tensor, VecN, M, N>{t};
+  return diag_tensor<Tensor&, M, N>{t.as_derived};
+}
+// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+template <size_t M, size_t N, typename Tensor, typename Real, size_t VecN>
+constexpr auto diag_rect(base_tensor<Tensor, Real, VecN>&& t) {
+  return diag_tensor<vec<Real, VecN>, M, N>{vec{std::move(t)}};
 }
 //==============================================================================
+// free functions
+//==============================================================================
+template <typename Tensor, size_t N>
+auto inverse(const_diag_tensor<Tensor, N, N> const& A) {
+  return diag_tensor<vec<typename std::decay_t<Tensor>::real_t, N>, N, N>{
+      1 / A.internal_tensor()};
 }
+//------------------------------------------------------------------------------
+template <typename Tensor, size_t N>
+auto inverse(diag_tensor<Tensor, N, N> const& A) {
+  return diag_tensor<vec<typename std::decay_t<Tensor>::real_t, N>, N, N>{
+      1 / A.internal_tensor()};
+}
+//==============================================================================
+}  // namespace tatooine
 //==============================================================================
 #endif
