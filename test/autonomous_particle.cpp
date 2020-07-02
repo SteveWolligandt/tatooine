@@ -12,8 +12,7 @@ namespace tatooine::test {
 //==============================================================================
 using namespace analytical::fields::numerical;
 template <typename V, std::floating_point VReal, std::floating_point GridReal>
-void autonomous_particle_write_vtk(std::string const&              name,
-                                   vectorfield<V, VReal, 2> const& v,
+void autonomous_particle_write_vtk(vectorfield<V, VReal, 2> const& v,
                                    grid<GridReal, 2> const&        g,
                                    arithmetic auto t0, arithmetic auto t1,
                                    arithmetic auto tau_step) {
@@ -24,13 +23,7 @@ void autonomous_particle_write_vtk(std::string const&              name,
       auto const x0 = g(x, y);
 
       autonomous_particle p0{v, x0, t0, radius};
-      auto const [particles, ellipses] = p0.integrate(tau_step, t1);
-
-      write_vtk(particles, t0,
-                name + "_autonomous_particle_paths_forward" +
-                    std::to_string(x) + "_" + std::to_string(y) + ".vtk",
-                name + "_autonomous_particle_paths_backward" +
-                    std::to_string(x) + "_" + std::to_string(y) + ".vtk");
+      [[maybe_unused]] auto const [particles, ellipses] = p0.integrate(tau_step, t1);
     }
   }
 }
@@ -137,7 +130,7 @@ TEST_CASE("autonomous_particle_dg_vtk",
   grid const g{linspace{0.0, 2.0, 21}, linspace{0.0, 1.0, 11}};
   doublegyre v;
   v.set_infinite_domain(true);
-  autonomous_particle_write_vtk("dg", v, g, 0, 10, 0.1);
+  autonomous_particle_write_vtk(v, g, 0, 10, 0.1);
 }
 //------------------------------------------------------------------------------
 TEST_CASE("autonomous_particle_dg_backward_integration",
@@ -160,7 +153,7 @@ TEST_CASE("autonomous_particle_dg_backward_integration",
 TEST_CASE("autonomous_particle_saddle_vtk",
           "[autonomous_particle][saddle][vtk]") {
   grid const g{linspace{-1.0, 1.0, 11}, linspace{-1.0, 1.0, 11}};
-  autonomous_particle_write_vtk("saddle", saddle{}, g, 0, 2, 0.1);
+  autonomous_particle_write_vtk(saddle{}, g, 0, 2, 0.1);
 }
 //------------------------------------------------------------------------------
 TEST_CASE("autonomous_particle_saddle_backward_integration",
@@ -173,7 +166,7 @@ TEST_CASE("autonomous_particle_saddle_backward_integration",
 TEST_CASE("autonomous_particle_center_vtk",
           "[autonomous_particle][center][vtk]") {
   grid const g{linspace{-1.0, 1.0, 11}, linspace{-1.0, 1.0, 11}};
-  autonomous_particle_write_vtk("center", center{}, g, 0, 20, 0.1);
+  autonomous_particle_write_vtk(center{}, g, 0, 20, 0.1);
 }
 //------------------------------------------------------------------------------
 TEST_CASE("autonomous_particle_center_backward_integration",
@@ -186,7 +179,7 @@ TEST_CASE("autonomous_particle_center_backward_integration",
 TEST_CASE("autonomous_particle_test_field_vtk",
           "[autonomous_particle][test_field][vtk]") {
   grid const g{linspace{-1.0, 1.0, 3}, linspace{-1.0, 1.0, 3}};
-  autonomous_particle_write_vtk("test_field", autonomous_particles_test{}, g, 0,
+  autonomous_particle_write_vtk(autonomous_particles_test{}, g, 0,
                                 5, 0.1);
 }
 //------------------------------------------------------------------------------
