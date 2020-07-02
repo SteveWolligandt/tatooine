@@ -18,6 +18,7 @@ struct const_diag_tensor
 
   //============================================================================
  public:
+  // TODO use concept
   template <typename _Tensor>
   constexpr explicit const_diag_tensor(_Tensor&& v)
       : m_internal_tensor{std::forward<_Tensor>(v)} {}
@@ -64,6 +65,7 @@ struct diag_tensor : base_tensor<diag_tensor<Tensor, M, N>,
 
   //============================================================================
  public:
+  // TODO use concept
   template <typename _Tensor>
   constexpr explicit diag_tensor(_Tensor&& v)
       : m_internal_tensor{std::forward<_Tensor>(v)} {}
