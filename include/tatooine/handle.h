@@ -1,8 +1,8 @@
 #ifndef TATOOINE_HANDLE_H
 #define TATOOINE_HANDLE_H
-
+//============================================================================
 #include <cstdint>
-
+#include <tatooine/concepts.h>
 //============================================================================
 namespace tatooine {
 //============================================================================
@@ -13,11 +13,18 @@ struct handle {
   std::size_t i;
   //==========================================================================
   handle() : i{invalid_idx} {}
-  explicit handle(std::size_t _i) : i{_i} {}
-  handle(const handle&) = default;
-  handle(handle&&)      = default;
-  handle& operator=(const handle&) = default;
-  handle& operator=(handle&&) = default;
+  template <integral Int>
+  explicit handle(Int _i) : i{static_cast<std::size_t>(_i)} {}
+  handle(const handle&)                    = default;
+  handle(handle&&)                         = default;
+  auto operator=(const handle&) -> handle& = default;
+  auto operator=(handle &&)     -> handle& = default;
+  template <integral Int>
+  auto operator=(Int i_) -> handle& {
+    i = i_;
+    return *this;
+  }
+
   //==========================================================================
   auto& operator++() {
     ++this->i;

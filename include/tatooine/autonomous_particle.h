@@ -9,6 +9,6 @@ struct autonomous_particle;
 }  // namespace tatooine
 //==============================================================================
 #include <tatooine/autonomous_particle_2d.h>
-//#include <tatooine/autonomous_particle_3d.h>
+#include <tatooine/autonomous_particle_3d.h>
 //==============================================================================
 #endif

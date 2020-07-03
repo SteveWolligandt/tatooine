@@ -557,7 +557,7 @@ TEST_CASE("tensor_inverse", "[tensor][inverse]") {
   }
 }
 //==============================================================================
-TEST_CASE("tensor_diag_inverse", "[tensor][diag][inverse]") {
+TEST_CASE("tensor_diag", "[tensor][diag]") {
   vec       v{1.0, 2.0, 3.0};
   vec const cv{1.0, 2.0, 3.0};
   {
@@ -591,6 +591,22 @@ TEST_CASE("tensor_diag_inverse", "[tensor][diag][inverse]") {
     auto IMV = inverse(MV);
     REQUIRE_FALSE(std::is_reference_v<decltype(IMV)::tensor_t>);
     REQUIRE_FALSE(std::is_const_v<decltype(IMV)::tensor_t>);
+  }
+}
+//==============================================================================
+TEST_CASE("tensor_diag_inverse", "[tensor][diag][inverse]") {
+  vec const v{1.0, 2.0, 3.0};
+  auto      V = diag(v);
+  auto IV = inverse(V);
+  for (size_t i = 0; i < 3; ++i) {
+    for (size_t j = 0; j < 3; ++j) {
+      if (i == j) {
+        REQUIRE(IV(i, j) == 1 / V(i, j));
+        REQUIRE(IV(i, j) == 1 / v(i));
+      } else {
+        REQUIRE(IV(i, j) == 0);
+      }
+    }
   }
 }
 //==============================================================================

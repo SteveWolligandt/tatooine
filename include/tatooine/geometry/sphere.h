@@ -19,7 +19,7 @@ struct sphere : primitive<Real, N> {
   pos_t m_center;
   //============================================================================
  public:
-  sphere() : m_radius{1}, m_center{pos_t::zeros()} {}
+  sphere() : m_radius{Real(0.5)}, m_center{pos_t::zeros()} {}
   explicit sphere(Real radius) : m_radius{radius}, m_center{pos_t::zeros()} {}
   sphere(Real radius, pos_t&& center)
       : m_radius{radius}, m_center{std::move(center)} {}
@@ -49,23 +49,40 @@ auto discretize(const sphere<Real, 3>& s, size_t num_subdivisions = 0) {
   using vertex  = typename mesh_t::vertex;
   const Real  X = 0.525731112119133606;
   const Real  Z = 0.850650808352039932;
-  std::vector vertices{vec{-X, 0, Z}, vec{X, 0, Z},   vec{-X, 0, -Z},
-                       vec{X, 0, -Z}, vec{0, Z, X},   vec{0, Z, -X},
-                       vec{0, -Z, X}, vec{0, -Z, -X}, vec{Z, X, 0},
-                       vec{-Z, X, 0}, vec{Z, -X, 0},  vec{-Z, -X, 0}};
-  std::vector<std::array<vertex, 3>> triangles = {
-      {0, 4, 1},  {0, 9, 4},  {9, 5, 4},  {4, 5, 8},  {4, 8, 1},
-      {8, 10, 1}, {8, 3, 10}, {5, 3, 8},  {5, 2, 3},  {2, 7, 3},
-      {7, 10, 3}, {7, 6, 10}, {7, 11, 6}, {11, 0, 6}, {0, 1, 6},
-      {6, 1, 10}, {9, 0, 11}, {9, 11, 2}, {9, 2, 5},  {7, 2, 11}};
+  std::vector vertices{vec{-X,  0,  Z}, vec{X,  0,  Z}, vec{-X,  0, -Z},
+                       vec{ X,  0, -Z}, vec{0,  Z,  X}, vec{ 0,  Z, -X},
+                       vec{ 0, -Z,  X}, vec{0, -Z, -X}, vec{ Z,  X,  0},
+                       vec{-Z,  X,  0}, vec{Z, -X,  0}, vec{-Z, -X,  0}};
+  std::vector<std::array<vertex, 3>> triangles{
+      {vertex{ 0}, vertex{ 1}, vertex{ 4}}, // {0,4,1}
+      {vertex{ 0}, vertex{ 4}, vertex{ 9}}, // {0,9,4}
+      {vertex{ 9}, vertex{ 4}, vertex{ 5}}, // {9,5,4}
+      {vertex{ 4}, vertex{ 8}, vertex{ 5}}, // {4,5,8}
+      {vertex{ 4}, vertex{ 1}, vertex{ 8}}, // {4,8,1}
+      {vertex{ 8}, vertex{ 1}, vertex{10}}, // {8,10,1}
+      {vertex{ 8}, vertex{10}, vertex{ 3}}, // {8,3,10}
+      {vertex{ 5}, vertex{ 8}, vertex{ 3}}, // {5,3,8}
+      {vertex{ 5}, vertex{ 3}, vertex{ 2}}, // {5,2,3}
+      {vertex{ 2}, vertex{ 3}, vertex{ 7}}, // {2,7,3}
+      {vertex{ 7}, vertex{ 3}, vertex{10}}, // {7,10,3}
+      {vertex{ 7}, vertex{10}, vertex{ 6}}, // {7,6,10}
+      {vertex{ 7}, vertex{ 6}, vertex{11}}, // {7,11,6}
+      {vertex{11}, vertex{ 6}, vertex{ 0}}, // {11,0,6}
+      {vertex{ 0}, vertex{ 6}, vertex{ 1}}, // {0,1,6}
+      {vertex{ 6}, vertex{10}, vertex{ 1}}, // {6,1,10}
+      {vertex{ 9}, vertex{11}, vertex{ 0}}, // {9,0,11}
+      {vertex{ 9}, vertex{ 2}, vertex{11}}, // {9,11,2}
+      {vertex{ 9}, vertex{ 5}, vertex{ 2}}, // {9,2,5}
+      {vertex{ 7}, vertex{11}, vertex{ 2}}  // {7,2,11}
 
+  }; 
   for (size_t i = 0; i < num_subdivisions; ++i) {
     std::vector<std::array<vertex, 3>> subdivided_triangles;
     using edge_t = std::pair<vertex, vertex>;
     std::map<edge_t, size_t> subdivided; //vertex index on edge
     for (auto &[v0, v1, v2] : triangles) {
       std::array edges{edge_t{v0, v1}, edge_t{v0, v2}, edge_t{v1, v2}};
-      std::array<vertex, 3> nvs{0, 0, 0};
+      std::array nvs{vertex{0}, vertex{0}, vertex{0}};
       size_t                i = 0;
       for (auto& edge : edges) {
         if (edge.first < edge.second) { std::swap(edge.first, edge.second); }
@@ -78,10 +95,10 @@ auto discretize(const sphere<Real, 3>& s, size_t num_subdivisions = 0) {
           nvs[i++] = subdivided[edge];
         }
       }
-      subdivided_triangles.emplace_back(std::array<vertex,3>{v0, nvs[0], nvs[1]});
-      subdivided_triangles.emplace_back(std::array<vertex,3>{nvs[0], v1, nvs[2]});
-      subdivided_triangles.emplace_back(std::array<vertex,3>{nvs[1], nvs[2], v2});
-      subdivided_triangles.emplace_back(std::array<vertex,3>{nvs[0], nvs[1], nvs[2]});
+      subdivided_triangles.emplace_back(std::array{v0, nvs[1], nvs[0]});
+      subdivided_triangles.emplace_back(std::array{nvs[0], nvs[2], v1});
+      subdivided_triangles.emplace_back(std::array{nvs[1], v2, nvs[2]});
+      subdivided_triangles.emplace_back(std::array{nvs[0], nvs[1], nvs[2]});
     }
     triangles = subdivided_triangles;
   }

@@ -109,8 +109,8 @@ class simple_tri_mesh : public pointset<Real, N>{
     read(file);
   }
   //============================================================================
-  const auto& operator[](face f) const {return m_faces[f.i];}
-  auto& operator[](face f) {return m_faces[f.i];}
+  const auto& operator[](face f) const { return m_faces[f.i]; }
+  auto&       operator[](face f) { return m_faces[f.i]; }
   //----------------------------------------------------------------------------
   const auto& at(face f) const {return m_faces[f.i];}
   auto& at(face f) {return m_faces[f.i];}
@@ -316,10 +316,54 @@ class simple_tri_mesh : public pointset<Real, N>{
     return boost::find(m_invalid_faces, f) == end(m_invalid_faces);
   }
 };
+namespace detail {
+template <typename MeshCont>
+void write_mesh_container_to_vtk(const MeshCont& meshes, const std::string& path,
+                                 const std::string& title) {
+  vtk::legacy_file_writer writer(path, vtk::POLYDATA);
+  if (writer.is_open()) {
+    size_t num_pts = 0;
+    size_t cur_first = 0;
+    for (auto const& m : meshes) { num_pts += m.num_vertices(); }
+    std::vector<std::array<typename MeshCont::value_type::real_t, 3>> points;
+    std::vector<std::vector<size_t>>                                  faces;
+    points.reserve(num_pts);
+    faces.reserve(meshes.size());
 
+    for (const auto& m : meshes) {
+      // add points
+      for (const auto& v : m.vertices()) {
+        points.push_back(std::array{m[v](0), m[v](1), m[v](2)});
+      }
+
+      // add faces
+      for (auto f : m.faces()) {
+        faces.emplace_back();
+        faces.back().push_back(cur_first + m[f][0].i);
+        faces.back().push_back(cur_first + m[f][1].i);
+        faces.back().push_back(cur_first + m[f][2].i);
+      }
+      cur_first += m.num_vertices();
+    }
+
+    // write
+    writer.set_title(title);
+    writer.write_header();
+    writer.write_points(points);
+    writer.write_polygons(faces);
+    //writer.write_point_data(num_pts);
+    writer.close();
+  }
+}
+}  // namespace detail
+//==============================================================================
+template <typename Real>
+void write_vtk(const std::vector<simple_tri_mesh<Real, 3>>& meshes, const std::string& path,
+               const std::string& title = "tatooine meshes") {
+  detail::write_mesh_container_to_vtk(meshes, path, title);
+}
 //==============================================================================
 }  // namespace tatooine
 //==============================================================================
-
 #endif
 

@@ -31,6 +31,7 @@ struct pointset {
   //----------------------------------------------------------------------------
   struct vertex : handle {
     using handle::handle;
+    using handle::operator=;
     bool operator==(vertex other) const { return this->i == other.i; }
     bool operator!=(vertex other) const { return this->i != other.i; }
     bool operator<(vertex other) const { return this->i < other.i; }
