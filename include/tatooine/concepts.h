@@ -2,9 +2,26 @@
 #define TATOOINE_CONCPETS_H
 //==============================================================================
 #include <concepts>
-#include "invocable_with_n_types.h"
+#include <ranges>
+#include <tatooine/is_complex.h>
+#include <tatooine/invocable_with_n_types.h>
 //==============================================================================
 namespace tatooine {
+//==============================================================================
+// ranges etc.
+//==============================================================================
+template <typename T>
+concept forward_iterator = std::forward_iterator<T>;
+//------------------------------------------------------------------------------
+template <typename T>
+concept bidirectional_iterator = std::bidirectional_iterator<T>;
+//------------------------------------------------------------------------------
+template <typename Range>
+concept range = requires(Range const r) {
+  {r.begin()};
+  {r.end()};
+};
+
 //==============================================================================
 // typedefs
 //==============================================================================
@@ -12,10 +29,19 @@ template <typename T>
 concept integral = std::integral<T>;
 //------------------------------------------------------------------------------
 template <typename T>
+concept signed_integral = std::signed_integral<T>;
+//------------------------------------------------------------------------------
+template <typename T>
+concept unsigned_integral = std::unsigned_integral<T>;
+//------------------------------------------------------------------------------
+template <typename T>
 concept floating_point = std::floating_point<T>;
 //------------------------------------------------------------------------------
 template <typename T>
-concept arithmetic = integral<T> || floating_point<T>;
+concept real_number = integral<T> || floating_point<T>;
+//------------------------------------------------------------------------------
+template <typename T>
+concept real_or_complex_number = real_number<T> || is_complex_v<T>;
 //------------------------------------------------------------------------------
 template <typename From, typename To>
 concept convertible_to = std::convertible_to<From, To>;
@@ -45,18 +71,13 @@ concept convertible_to_integral =
   convertible_to<From, unsigned long long>;
 //------------------------------------------------------------------------------
 template <typename T>
-concept indexable_space =
-  requires (T const t, std::size_t i) {
-    { t[i] } -> convertible_to_floating_point;
-  } &&
-  requires (T const t) {
-    { t.size() } -> convertible_to_integral;
-    { size(t)  } -> convertible_to_integral;
-  };
-//------------------------------------------------------------------------------
-template <typename T>
 concept has_defined_real_t = requires {
   typename T::real_t;
+};
+//------------------------------------------------------------------------------
+template <typename T>
+concept has_defined_iterator = requires {
+  typename T::iterator;
 };
 //------------------------------------------------------------------------------
 template <typename T>
@@ -79,8 +100,40 @@ concept has_defined_pos_t = requires {
   typename T::pos_t;
 };
 //==============================================================================
+// indexable
+//==============================================================================
+template <typename T>
+concept indexable = requires(T const t, std::size_t i) {
+  { t[i] };
+  { t.at(i) };
+};
+//------------------------------------------------------------------------------
+template <typename T>
+concept indexable_space =
+  has_defined_iterator<std::decay_t<T>> &&
+  requires (T const t, std::size_t i) {
+    { t[i] } -> convertible_to_floating_point;
+    { t.at(i) } -> convertible_to_floating_point;
+  } &&
+  requires (T const t) {
+    { t.size() } -> convertible_to_integral;
+    { size(t)  } -> convertible_to_integral;
+    { t.front()  } -> convertible_to_floating_point;
+    { t.back()  } -> convertible_to_floating_point;
+    { t.begin()  } -> forward_iterator;
+    { begin(t)  } -> forward_iterator;
+    { t.end()  } -> forward_iterator;
+    { end(t)  } -> forward_iterator;
+  };
+//==============================================================================
 // methods
 //==============================================================================
+template <typename F, typename... Args>
+concept invocable = std::invocable<F, Args...>;
+//-----------------------------------------------------------------------------
+template <typename F, typename... Args>
+concept regular_invocable = std::regular_invocable<F, Args...>;
+//-----------------------------------------------------------------------------
 template <typename T>
 concept has_static_num_dimensions_method = requires {
   { T::num_dimensions() } -> std::convertible_to<std::size_t>;
@@ -137,6 +190,13 @@ template <typename Flowmap, size_t N>
 concept fixed_dims_flowmap_c =
   flowmap_c<Flowmap> &&
   Flowmap::num_dimensions() == N;
+//==============================================================================
+// stuff
+//==============================================================================
+template <typename Reader, typename Readable>
+concept can_read = requires(Reader reader, Readable readable) {
+  reader.read(readable);
+};
 //==============================================================================
 }  // namespace tatooine
 //==============================================================================

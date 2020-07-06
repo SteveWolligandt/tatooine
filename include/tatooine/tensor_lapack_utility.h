@@ -6,8 +6,8 @@
 namespace tatooine {
 //==============================================================================
 /// compute condition number
-template <typename T, size_t N, typename P, enable_if_integral<P> = true>
-auto condition_number(const tensor<T, N, N>& A, P p = 2) {
+template <real_or_complex_number T, size_t N>
+auto condition_number(const tensor<T, N, N>& A, integral auto p = 2) {
   if (p == 1) {
     return 1 / lapack::gecon(tensor{A});
   } else if (p == 2) {
@@ -281,6 +281,11 @@ constexpr auto singular_values(const base_tensor<Tensor, T, M, N>& A) {
   } else {
     return singular_values(tensor{A});
   }
+}
+//------------------------------------------------------------------------------
+template <typename Real, size_t M, size_t N>
+auto solve(tensor<Real, M, N> const& A, tensor<Real, N>& b) {
+  return lapack::gesv(A, b);
 }
 //==============================================================================
 }  // namespace tatooine

@@ -237,8 +237,8 @@ TEST_CASE("tensor_complex", "[tensor][complex][view]") {
 //==============================================================================
 TEST_CASE("tensor_matrix_transpose", "[tensor][matrix][mat][transpose][view]") {
   auto A = mat<double, 2, 3>::randu();
-  auto At = transpose(A);
-  auto& A2 = transpose(At);
+  auto At = transposed(A);
+  auto& A2 = transposed(At);
 
   REQUIRE(&A == &A2);
 
@@ -323,7 +323,7 @@ TEST_CASE("tensor_svd", "[tensor][svd]") {
     INFO("S*VT =\n" << S * VT);
     INFO("U =\n" << U);
     INFO("S =\n" << S);
-    INFO("V =\n" << transpose(VT));
+    INFO("V =\n" << transposed(VT));
     REQUIRE(approx_equal(s, vec{1.073340050125074e+01,
                                 9.148458171897648e+00,
                                 6.447152840514361e-01}));
@@ -343,7 +343,7 @@ TEST_CASE("tensor_svd", "[tensor][svd]") {
       INFO("U*S*VT =\n" << U * S * VT);
       INFO("U =\n" << U);
       INFO("S =\n" << S);
-      INFO("V =\n" << transpose(VT));
+      INFO("V =\n" << transposed(VT));
       REQUIRE(approx_equal(s, vec{1.733194199066472e+01,
                                   9.963856829919013e+00,
                                   2.932957998778161e+00}));
@@ -361,7 +361,7 @@ TEST_CASE("tensor_svd", "[tensor][svd]") {
       INFO("U*S*VT =\n" << U * S * VT);
       INFO("U =\n" << U);
       INFO("S =\n" << S);
-      INFO("V =\n" << transpose(VT));
+      INFO("V =\n" << transposed(VT));
       REQUIRE(approx_equal(s, vec{1.733194199066472e+01,
                                   9.963856829919013e+00,
                                   2.932957998778161e+00}));
@@ -382,7 +382,7 @@ TEST_CASE("tensor_svd", "[tensor][svd]") {
       INFO("U*S*VT =\n" << U * S * VT);
       INFO("U =\n" << U);
       INFO("S =\n" << S);
-      INFO("V =\n" << transpose(VT));
+      INFO("V =\n" << transposed(VT));
       REQUIRE(approx_equal(s, vec{1.814712763774386e+01,
                                   7.766671714721034e+00,
                                   4.317113346117844e+00}));
@@ -400,7 +400,7 @@ TEST_CASE("tensor_svd", "[tensor][svd]") {
       INFO("U*S*VT =\n" << U * S * VT);
       INFO("U =\n" << U);
       INFO("S =\n" << S);
-      INFO("V =\n" << transpose(VT));
+      INFO("V =\n" << transposed(VT));
       REQUIRE(approx_equal(s, vec{1.733194199066472e+01,
                                   9.963856829919013e+00,
                                   2.932957998778161e+00}));
@@ -555,6 +555,27 @@ TEST_CASE("tensor_inverse", "[tensor][inverse]") {
       REQUIRE(approx_equal(inv(A), invA));
     }
   }
+}
+//==============================================================================
+TEST_CASE("tensor_vandermonde_matrix", "[tensor][matrix][vander]") {
+  auto V0 = mat3::vander(1, 2, 3);
+  for (size_t i = 0; i < 3; ++i) { REQUIRE(V0(i, 0) == 1); }
+  REQUIRE(V0(0, 1) == 1);
+  REQUIRE(V0(1, 1) == 2);
+  REQUIRE(V0(2, 1) == 3);
+  REQUIRE(V0(0, 2) == 1);
+  REQUIRE(V0(1, 2) == 4);
+  REQUIRE(V0(2, 2) == 9);
+
+  auto V1 = mat5::vander(-2,-1,0,1,2);
+  std::cerr << V1 << '\n';
+  for (size_t i = 0; i < 5; ++i) { REQUIRE(V1(i, 0) == 1); }
+  //REQUIRE(V1(0, 1) == 1);
+  //REQUIRE(V1(1, 1) == 2);
+  //REQUIRE(V1(2, 1) == 3);
+  //REQUIRE(V1(0, 2) == 1);
+  //REQUIRE(V1(1, 2) == 4);
+  //REQUIRE(V1(2, 2) == 9);
 }
 //==============================================================================
 TEST_CASE("tensor_diag", "[tensor][diag]") {

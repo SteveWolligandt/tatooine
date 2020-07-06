@@ -123,8 +123,8 @@ auto operator<<(std::ostream& out, const boundingbox<Real, N>& bb)
   out << std::scientific;
   for (size_t i = 0; i < N; ++i) {
     out << "[ ";
-    if (bb.m_min(i) >= 0) { out << ' '; }
-    out << bb.m_min(i) << " .. ";
+    if (bb.min(i) >= 0) { out << ' '; }
+    out << bb.min(i) << " .. ";
     if (bb.max(i) >= 0) { out << ' '; }
     out << bb.max(i) << " ]\n";
   }

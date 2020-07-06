@@ -131,54 +131,54 @@ struct is_field<parent::field<Real, N, TensorDims...>> : std::true_type {};
 //├╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌┤
 template <typename Derived, typename Real, size_t N, size_t... TensorDims>
 struct is_field<field<Derived, Real, N, TensorDims...>> : std::true_type {};
-//╒══════════════════════════════════════════════════════════════════════════╕
-//│ free functions                                                           │
-//╞══════════════════════════════════════════════════════════════════════════╡
-template <typename OutReal, typename V, typename FieldReal, typename GridReal,
-          typename TReal, size_t N, size_t... TensorDims,
-          enable_if_arithmetic<FieldReal, GridReal, TReal> = true>
-auto sample_to_raw(const field<V, FieldReal, N, TensorDims...>& f,
-                   const grid<GridReal, N>& g, TReal t, size_t padding = 0,
-                   OutReal padval = 0) {
-  std::vector<OutReal> raw_data;
-  raw_data.reserve(g.num_vertices() * V::tensor_t::num_components());
-  for (auto v : g.vertices()) {
-    const auto x = v.position();
-    if (f.in_domain(x, t)) {
-      auto sample = f(x, t);
-      for (size_t i = 0; i < V::tensor_t::num_components(); ++i) {
-        raw_data.push_back(sample[i]);
-      }
-      for (size_t i = 0; i < padding; ++i) { raw_data.push_back(padval); }
-    } else {
-      for (size_t i = 0; i < V::tensor_t::num_components(); ++i) {
-        raw_data.push_back(0.0 / 0.0);
-      }
-      for (size_t i = 0; i < padding; ++i) { raw_data.push_back(0.0 / 0.0); }
-    }
-  }
-  return raw_data;
-}
-//├──────────────────────────────────────────────────────────────────────────┤
-template <typename OutReal, typename V, typename FieldReal,
-          typename GridReal, typename TReal, size_t N, size_t... TensorDims>
-auto sample_to_raw(const field<V, FieldReal, N, TensorDims...>& f,
-                   const grid<GridReal, N>& g, const linspace<TReal>& ts,
-                   size_t padding = 0, OutReal padval = 0) {
-  std::vector<OutReal> raw_data;
-  raw_data.reserve(g.num_vertices() * V::tensor_t::num_components() *
-                   ts.size());
-  for (auto t : ts) {
-    for (auto v : g.vertices()) {
-      auto sample = f(v.position(), t);
-      for (size_t i = 0; i < V::tensor_t::num_components(); ++i) {
-        raw_data.push_back(sample[i]);
-      }
-      for (size_t i = 0; i < padding; ++i) { raw_data.push_back(padval); }
-    }
-  }
-  return raw_data;
-}
+////╒══════════════════════════════════════════════════════════════════════════╕
+////│ free functions                                                           │
+////╞══════════════════════════════════════════════════════════════════════════╡
+//template <typename OutReal, typename V, typename FieldReal, typename GridReal,
+//          typename TReal, size_t N, size_t... TensorDims,
+//          enable_if_arithmetic<FieldReal, GridReal, TReal> = true>
+//auto sample_to_raw(const field<V, FieldReal, N, TensorDims...>& f,
+//                   const grid<GridReal, N>& g, TReal t, size_t padding = 0,
+//                   OutReal padval = 0) {
+//  std::vector<OutReal> raw_data;
+//  raw_data.reserve(g.num_vertices() * V::tensor_t::num_components());
+//  for (auto v : g.vertices()) {
+//    const auto x = v.position();
+//    if (f.in_domain(x, t)) {
+//      auto sample = f(x, t);
+//      for (size_t i = 0; i < V::tensor_t::num_components(); ++i) {
+//        raw_data.push_back(sample[i]);
+//      }
+//      for (size_t i = 0; i < padding; ++i) { raw_data.push_back(padval); }
+//    } else {
+//      for (size_t i = 0; i < V::tensor_t::num_components(); ++i) {
+//        raw_data.push_back(0.0 / 0.0);
+//      }
+//      for (size_t i = 0; i < padding; ++i) { raw_data.push_back(0.0 / 0.0); }
+//    }
+//  }
+//  return raw_data;
+//}
+////├──────────────────────────────────────────────────────────────────────────┤
+//template <typename OutReal, typename V, typename FieldReal,
+//          typename GridReal, typename TReal, size_t N, size_t... TensorDims>
+//auto sample_to_raw(const field<V, FieldReal, N, TensorDims...>& f,
+//                   const grid<GridReal, N>& g, const linspace<TReal>& ts,
+//                   size_t padding = 0, OutReal padval = 0) {
+//  std::vector<OutReal> raw_data;
+//  raw_data.reserve(g.num_vertices() * V::tensor_t::num_components() *
+//                   ts.size());
+//  for (auto t : ts) {
+//    for (auto v : g.vertices()) {
+//      auto sample = f(v.position(), t);
+//      for (size_t i = 0; i < V::tensor_t::num_components(); ++i) {
+//        raw_data.push_back(sample[i]);
+//      }
+//      for (size_t i = 0; i < padding; ++i) { raw_data.push_back(padval); }
+//    }
+//  }
+//  return raw_data;
+//}
 }  // namespace tatooine
 //╚════════════════════════════════════════════════════════════════════════════╝
 #include "field_operations.h"

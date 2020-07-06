@@ -35,18 +35,17 @@ struct static_multidim {
       std::array<std::pair<size_t, size_t>, N> ranges)
       : m_ranges{ranges} {}
   //----------------------------------------------------------------------------
-  template <typename... Ts, enable_if_integral<Ts...> = true>
+  template <integral... Ts>
   explicit constexpr static_multidim(const std::pair<Ts, Ts>&... ranges)
       : m_ranges{std::make_pair(static_cast<size_t>(ranges.first),
                                 static_cast<size_t>(ranges.second))...} {}
   //----------------------------------------------------------------------------
-  template <typename... Ts, enable_if_integral<Ts...> = true>
+  template <integral... Ts>
   constexpr static_multidim(Ts const (&... ranges)[2])  // NOLINT
       : m_ranges{std::make_pair(static_cast<size_t>(ranges[0]),
                                 static_cast<size_t>(ranges[1]))...} {}
   //----------------------------------------------------------------------------
-  template <typename... Res, enable_if_integral<Res...> = true>
-  explicit constexpr static_multidim(Res... res)
+  explicit constexpr static_multidim(integral auto... res)
       : m_ranges{std::make_pair(static_cast<size_t>(0),
                                 static_cast<size_t>(res))...} {}
   //----------------------------------------------------------------------------
@@ -216,20 +215,19 @@ struct dynamic_multidim {
     for (size_t i = 0; i < N; ++i) { m_ranges[i].second = res[i]; }
   }
   //----------------------------------------------------------------------------
-  template <typename... Ts, enable_if_integral<Ts...> = true>
+  template <integral... Ts>
   explicit constexpr dynamic_multidim(const std::pair<Ts, Ts>&... ranges)
       : m_ranges{std::make_pair(static_cast<size_t>(ranges.first),
                                 static_cast<size_t>(ranges.second))...} {}
 
   //----------------------------------------------------------------------------
-  template <typename... Ts, enable_if_integral<Ts...> = true>
+  template <integral... Ts>
   constexpr dynamic_multidim(Ts const (&... ranges)[2]) // NOLINT
       : m_ranges{std::make_pair(static_cast<size_t>(ranges[0]),
                                 static_cast<size_t>(ranges[1]))...} {}
 
   //----------------------------------------------------------------------------
-  template <typename... Res, enable_if_integral<Res...> = true>
-  explicit constexpr dynamic_multidim(Res... res)
+  explicit constexpr dynamic_multidim(integral auto... res)
       : m_ranges{std::make_pair(static_cast<size_t>(0),
                                 static_cast<size_t>(res))...} {}
 

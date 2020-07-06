@@ -4,6 +4,7 @@
 #include <tatooine/grid.h>
 #include <yavin/imgui.h>
 #include <yavin/indexeddata.h>
+#include <tatooine/netcdf.h>
 
 #include "line_shader.h"
 #include "renderable.h"

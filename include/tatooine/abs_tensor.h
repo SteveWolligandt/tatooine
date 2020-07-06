@@ -7,7 +7,7 @@ namespace tatooine {
 //==============================================================================
 template <typename Tensor, size_t... Dims>
 struct abs_tensor : base_tensor<abs_tensor<Tensor, Dims...>,
-                                typename Tensor::real_t, Dims...> {
+                                typename Tensor::value_type, Dims...> {
   //============================================================================
  private:
   const Tensor& m_internal_tensor;
@@ -15,20 +15,18 @@ struct abs_tensor : base_tensor<abs_tensor<Tensor, Dims...>,
   //============================================================================
  public:
   constexpr explicit abs_tensor(
-      const base_tensor<Tensor, typename Tensor::real_t, Dims...>&
+      const base_tensor<Tensor, typename Tensor::value_type, Dims...>&
           internal_tensor)
       : m_internal_tensor{internal_tensor.as_derived()} {}
 
   //----------------------------------------------------------------------------
-  template <typename... Is, enable_if_integral<Is...> = true>
-  constexpr auto operator()(Is... is) const {
-    static_assert(sizeof...(Is) == sizeof...(Dims));
+  constexpr auto operator()(integral auto const... is) const {
+    static_assert(sizeof...(is) == sizeof...(Dims));
     return at(is...);
   }
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-  template <typename... Is, enable_if_integral<Is...> = true>
-  constexpr auto at(Is... is) const {
-    static_assert(sizeof...(Is) == sizeof...(Dims));
+  constexpr auto at(integral auto const... is) const {
+    static_assert(sizeof...(is) == sizeof...(Dims));
     return std::abs(m_internal_tensor(is...));
   }
   //----------------------------------------------------------------------------

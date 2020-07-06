@@ -6,24 +6,23 @@
 //==============================================================================
 namespace tatooine {
 //==============================================================================
-template <typename Tensor, typename Real, size_t FixedDim, size_t... Dims>
+template <typename Tensor, real_or_complex_number T, size_t FixedDim, size_t... Dims>
 struct tensor_slice;
 //------------------------------------------------------------------------------
-template <typename Tensor, typename Real, size_t... Dims>
+template <typename Tensor, real_or_complex_number T, size_t... Dims>
 struct base_tensor : crtp<Tensor> {
-  using value_type = Real;
-  using real_t     = Real;
+  using value_type = T;
   using tensor_t   = Tensor;
-  using this_t     = base_tensor<Tensor, Real, Dims...>;
+  using this_t     = base_tensor<Tensor, T, Dims...>;
   using parent_t   = crtp<Tensor>;
   using parent_t::as_derived;
-  using resolution_t = static_multidim_resolution<x_fastest, Dims...>;
+  using multidim_size_t = static_multidim_size<x_fastest, Dims...>;
 
   //============================================================================
   static constexpr auto rank() { return sizeof...(Dims); }
   //------------------------------------------------------------------------------
   static constexpr auto num_components() {
-    return resolution_t::num_elements();
+    return multidim_size_t::num_elements();
   }
   //------------------------------------------------------------------------------
   static constexpr auto dimensions() {
@@ -34,7 +33,7 @@ struct base_tensor : crtp<Tensor> {
     return template_helper::getval<size_t>(i, Dims...);
   }
   //------------------------------------------------------------------------------
-  static constexpr auto indices() { return resolution_t::indices(); }
+  static constexpr auto indices() { return multidim_size_t::indices(); }
   //------------------------------------------------------------------------------
   template <typename F>
   static constexpr auto for_indices(F&& f) {
@@ -45,13 +44,13 @@ struct base_tensor : crtp<Tensor> {
   //============================================================================
   constexpr base_tensor() = default;
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-  template <typename OtherTensor, typename OtherReal>
+  template <typename OtherTensor, real_or_complex_number OtherReal>
   explicit constexpr base_tensor(
       const base_tensor<OtherTensor, OtherReal, Dims...>& other) {
     assign_other_tensor(other);
   }
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-  template <typename OtherTensor, typename OtherReal>
+  template <typename OtherTensor, real_or_complex_number OtherReal>
   constexpr auto operator=(
       const base_tensor<OtherTensor, OtherReal, Dims...>& other)
       -> base_tensor& {
@@ -65,7 +64,7 @@ struct base_tensor : crtp<Tensor> {
     return as_derived();
   }
   //----------------------------------------------------------------------------
-  template <typename F, typename OtherTensor, typename OtherReal>
+  template <typename F, typename OtherTensor, real_or_complex_number OtherReal>
   auto binary_operation(
       F&& f, const base_tensor<OtherTensor, OtherReal, Dims...>& other)
       -> decltype(auto) {
@@ -75,39 +74,37 @@ struct base_tensor : crtp<Tensor> {
     return as_derived();
   }
   //----------------------------------------------------------------------------
-  template <typename OtherTensor, typename OtherReal>
+  template <typename OtherTensor, real_or_complex_number OtherReal>
   constexpr void assign_other_tensor(
       const base_tensor<OtherTensor, OtherReal, Dims...>& other) {
-    for_indices([this, &other](const auto... is) { at(is...) = other(is...); });
+    for_indices([this, &other](const auto... is) {
+      at(is...) = other(is...);
+    });
   }
   //----------------------------------------------------------------------------
-  template <typename... Is, enable_if_integral<Is...> = true>
-  constexpr decltype(auto) at(const Is... is) const {
-    static_assert(sizeof...(Is) == rank(),
+  constexpr decltype(auto) at(integral auto const... is) const {
+    static_assert(sizeof...(is) == rank(),
                   "number of indices does not match number of dimensions");
     return as_derived().at(is...);
   }
 
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-  template <typename... Is, enable_if_integral<Is...> = true>
-  constexpr decltype(auto) at(const Is... is) {
-    static_assert(sizeof...(Is) == rank(),
-                  "number of indices does not match number of dimensions");
+  constexpr decltype(auto) at(integral auto const... is) {
+    static_assert(sizeof...(is) == rank(),
+                  "number of indices does not match rank");
     return as_derived().at(is...);
   }
 
   //----------------------------------------------------------------------------
-  template <typename... Is, enable_if_integral<Is...> = true>
-  constexpr decltype(auto) operator()(const Is... is) const {
-    static_assert(sizeof...(Is) == rank(),
+  constexpr decltype(auto) operator()(integral auto const... is) const {
+    static_assert(sizeof...(is) == rank(),
                   "number of indices does not match number of dimensions");
     return at(is...);
   }
 
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-  template <typename... Is, enable_if_integral<Is...> = true>
-  constexpr decltype(auto) operator()(const Is... is) {
-    static_assert(sizeof...(Is) == rank(),
+  constexpr decltype(auto) operator()(integral auto const... is) {
+    static_assert(sizeof...(is) == rank(),
                   "number of indices does not match number of dimensions");
     return at(is...);
   }
@@ -118,7 +115,7 @@ struct base_tensor : crtp<Tensor> {
     static_assert(FixedDim < rank(),
                   "fixed dimensions must be in range of number of dimensions");
     return tensor_slice<
-        Tensor, Real, FixedDim,
+        Tensor, T, FixedDim,
         dimension(sliced_indices<rank(), FixedDim>()[Is])...>{
         &as_derived(), fixed_index};
   }
@@ -136,7 +133,7 @@ struct base_tensor : crtp<Tensor> {
     static_assert(FixedDim < rank(),
                   "fixed dimensions must be in range of number of dimensions");
     return tensor_slice<
-        const Tensor, Real, FixedDim,
+        const Tensor, T, FixedDim,
         dimension(sliced_indices<rank(), FixedDim>()[Is])...>{
         &as_derived(), fixed_index};
   }
@@ -150,69 +147,43 @@ struct base_tensor : crtp<Tensor> {
   }
 
   //----------------------------------------------------------------------------
-  template <typename... Is, enable_if_integral<Is...> = true>
-  static constexpr auto array_index(const Is... is) {
-    static_assert(sizeof...(Is) == rank(),
+  static constexpr auto array_index(integral auto const... is) {
+    static_assert(sizeof...(is) == rank(),
                   "number of indices does not match number of dimensions");
-    return static_multidim_resolution<x_fastest, Dims...>::plain_idx(is...);
+    return static_multidim_size<x_fastest, Dims...>::plain_idx(is...);
   }
 
   //----------------------------------------------------------------------------
-  template <typename OtherTensor, typename OtherReal>
+  template <typename OtherTensor, real_or_complex_number OtherReal>
   auto operator+=(const base_tensor<OtherTensor, OtherReal, Dims...>& other)
       -> auto& {
     for_indices([&](const auto... is) { at(is...) += other(is...); });
     return *this;
   }
   //----------------------------------------------------------------------------
-#if TATOOINE_GINAC_AVAILABLE
-  template <typename OtherReal,
-            enable_if_arithmetic_or_symbolic<OtherReal> = true>
-#else
-  template <typename OtherReal, enable_if_arithmetic<OtherReal> = true>
-#endif
-  auto operator+=(const OtherReal& other) -> auto& {
+  auto operator+=(real_or_complex_number auto const& other) -> auto& {
     for_indices([&](const auto... is) { at(is...) += other; });
     return *this;
   }
-
   //----------------------------------------------------------------------------
-  template <typename OtherTensor, typename OtherReal>
+  template <typename OtherTensor, real_or_complex_number OtherReal>
   auto operator-=(const base_tensor<OtherTensor, OtherReal, Dims...>& other)
       -> auto& {
     for_indices([&](const auto... is) { at(is...) -= other(is...); });
     return *this;
   }
   //----------------------------------------------------------------------------
-#if TATOOINE_GINAC_AVAILABLE
-  template <typename OtherReal,
-            enable_if_arithmetic_or_symbolic<OtherReal> = true>
-#else
-  template <typename OtherReal, enable_if_arithmetic<OtherReal> = true>
-#endif
-  auto operator-=(const OtherReal& other) -> auto& {
+  auto operator-=(real_or_complex_number auto const& other) -> auto& {
     for_indices([&](const auto... is) { at(is...) -= other; });
     return *this;
   }
   //----------------------------------------------------------------------------
-#if TATOOINE_GINAC_AVAILABLE
-  template <typename OtherReal,
-            enable_if_arithmetic_or_symbolic<OtherReal> = true>
-#else
-  template <typename OtherReal, enable_if_arithmetic<OtherReal> = true>
-#endif
-  auto operator*=(const OtherReal& other) -> auto& {
+  auto operator*=(real_or_complex_number auto const& other) -> auto& {
     for_indices([&](const auto... is) { at(is...) *= other; });
     return *this;
   }
   //----------------------------------------------------------------------------
-#if TATOOINE_GINAC_AVAILABLE
-  template <typename OtherReal,
-            enable_if_arithmetic_or_symbolic<OtherReal> = true>
-#else
-  template <typename OtherReal, enable_if_arithmetic<OtherReal> = true>
-#endif
-  auto operator/=(const OtherReal& other) -> auto& {
+  auto operator/=(real_or_complex_number auto const& other) -> auto& {
     for_indices([&](const auto... is) { at(is...) /= other; });
     return *this;
   }

@@ -163,9 +163,9 @@ struct autonomous_particle<Flowmap> {
       H.col(0) = (p_p0 - p_n0) / 2;  // h1
       H.col(1) = (p_0p - p_0n) / 2;  // h2
 
-      nabla_phi2 = H * inverse(sigma) * transpose(Q);
+      nabla_phi2 = H * inverse(sigma) * transposed(Q);
 
-      auto const HHt = H * transpose(H);
+      auto const HHt = H * transposed(H);
       eig_HHt = eigenvectors_sym(HHt);
 
       cond = eigvals_HHt(1) / eigvals_HHt(0);
@@ -186,7 +186,7 @@ struct autonomous_particle<Flowmap> {
       vec_t const offset0 = inv(fmg2fmg1) * offset2;
 
       auto const new_S =
-          eigvecs_HHt * diag(eigvals_HHt_sqrt) * transpose(eigvecs_HHt);
+          eigvecs_HHt * diag(eigvals_HHt_sqrt) * transposed(eigvecs_HHt);
       auto const half_new_S = new_S / 2;
       particles.emplace_back(m_phi, m_x0 - offset0, x2 - offset2, t2, fmg2fmg1,
                              half_new_S);
@@ -206,7 +206,7 @@ struct autonomous_particle<Flowmap> {
       //vec const eigvals_HHt_sqrt{std::sqrt(eigvals_HHt(0)),
       //                           std::sqrt(eigvals_HHt(1)),
       //                           std::sqrt(eigvals_HHt(2)) / 3};
-      //auto const new_S = eigvecs_HHt * diag(eigvals_HHt_sqrt) * transpose(eigvecs_HHt);
+      //auto const new_S = eigvecs_HHt * diag(eigvals_HHt_sqrt) * transposed(eigvecs_HHt);
       // particles.emplace_back(m_phi, m_x0, x2, m_x1, t2, m_t1, fmg2fmg1,
       //                       new_S);
     }

@@ -1,14 +1,11 @@
-#ifndef TATOOINE_INTEGRATION_VCLIBS_RK43_H
-#define TATOOINE_INTEGRATION_VCLIBS_RK43_H
-
+#ifndef TATOOINE_ODE_VCLIBS_RK43_H
+#define TATOOINE_ODE_VCLIBS_RK43_H
+//==============================================================================
 #include <tatooine/interpolation.h>
 #include <tatooine/concepts.h>
-
 #include <boost/range/numeric.hpp>
 #include <vcode/odeint.hh>
-
-#include "../solver.h"
-
+#include <tatooine/ode/solver.h>
 //==============================================================================
 template <typename Real, size_t N>
 struct VC::odeint::vector_operations_t<tatooine::vec<Real, N>> {
@@ -94,8 +91,8 @@ struct rungekutta43 : solver<rungekutta43<Real, N>, Real, N> {
   /// Continues integration of integral.
   /// if tau > 0 than it integrates forward and pushes new samples back
   /// otherwise pushes samples to front.
-  template <typename V, std::floating_point VReal, arithmetic Y0Real,
-            arithmetic T0Real, arithmetic TauReal,
+  template <typename V, std::floating_point VReal, real_number Y0Real,
+            real_number T0Real, real_number TauReal,
             stepper_callback_invocable<Real, N> StepperCallback>
   constexpr void solve(vectorfield<V, VReal, N> const& v, vec<Y0Real, N> const& y0,
              T0Real const t0, TauReal tau, StepperCallback&& callback) const {
