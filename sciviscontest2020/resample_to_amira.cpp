@@ -12,7 +12,9 @@ int main(int argc, char** argv) {
   x_domain.pop_back();
   auto y_domain = v.yc_axis;
   y_domain.pop_back();
-  linspace z_domain{v.z_axis.front(), v.z_axis.back(), v.z_axis.size() * 2};
+  size_t   zn = static_cast<size_t>((v.z_axis.back() - v.z_axis.front()) /
+                                  (v.z_axis[1] - v.z_axis[0]));
+  linspace z_domain{v.z_axis.front(), v.z_axis.back(), zn};
 
   grid  resample_grid{x_domain, y_domain, z_domain};
   auto& vel =
@@ -23,16 +25,17 @@ int main(int argc, char** argv) {
       vel.data_at(is...) = v(resample_grid.vertex_at(is...), t);
     };
     namespace fs = std::filesystem;
- 
-    fs::path p = argv[1];
-    p.replace_extension("");
-    std::cerr << p.string() << "_" << t << ".am" << '\n';
+
+    fs::path    p = argv[1];
+    std::string outpath =
+        fs::path{p.filename()}.replace_extension(std::to_string(t) + ".am");
+    std::cerr << outpath << '\n';
 
     for_loop(apply_data,
              resample_grid.size<0>(),
              resample_grid.size<1>(),
              resample_grid.size<2>());
 
-    resample_grid.write_amira(p.string(), vel);
+    resample_grid.write_amira(outpath, vel);
   }
 }
