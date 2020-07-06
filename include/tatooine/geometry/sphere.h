@@ -47,6 +47,8 @@ template <typename Real>
 auto discretize(const sphere<Real, 3>& s, size_t num_subdivisions = 0) {
   using mesh_t = simple_tri_mesh<Real, 3>;
   using vertex  = typename mesh_t::vertex;
+  // const Real  X = 0.525731112119133606;
+  // const Real  Z = 0.850650808352039932;
   const Real  X = 0.525731112119133606;
   const Real  Z = 0.850650808352039932;
   std::vector vertices{vec{-X,  0,  Z}, vec{X,  0,  Z}, vec{-X,  0, -Z},

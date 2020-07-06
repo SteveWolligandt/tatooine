@@ -28,7 +28,8 @@ struct autonomous_particle<Flowmap> {
       tensor<real_t, num_dimensions(), num_dimensions(), num_dimensions()>;
   using pos_t = vec_t;
 
-  static constexpr real_t max_cond = 9.01;
+  static constexpr real_t objective_cond = 4;
+  static constexpr real_t max_cond       = objective_cond + 0.01;
 
   //----------------------------------------------------------------------------
   // members
@@ -119,29 +120,24 @@ struct autonomous_particle<Flowmap> {
     return std::pair{std::move(particles), std::move(ellipsoids)};
   }
   //----------------------------------------------------------------------------
-  void integrate_until_split(real_t tau_step, std::vector<this_t>& particles,
-                             std::vector<simple_tri_mesh<real_t, 3>>& ellipsoids,
-                             real_t const max_t) const {
+  void integrate_until_split(
+      real_t tau_step, std::vector<this_t>& particles,
+      std::vector<simple_tri_mesh<real_t, 3>>& ellipsoids,
+      real_t const                             max_t) const {
     // add initial sphere
-    ellipsoids.push_back(discretize(geometry::sphere<real_t, 3>{}, 2));
+    ellipsoids.push_back(discretize(geometry::sphere<real_t, 3>{1}, 3));
 
-    for (auto const v: ellipsoids.back().vertices()) {
+    for (auto const v : ellipsoids.back().vertices()) {
       ellipsoids.back()[v] = m_S * ellipsoids.back()[v];
       ellipsoids.back()[v] += m_x1;
     }
 
-    size_t const n = 100;
-
     if (m_t1 >= max_t) { return; }
-    static real_t const threequarters = real_t(3) / real_t(4);
-    static real_t const sqrt2         = std::sqrt(real_t(2));
-    static real_t const sqrt3         = std::sqrt(real_t(3));
-
     real_t tau  = 0;
     real_t cond = 1;
 
     auto const [Q, lambdas] = eigenvectors_sym(m_S);
-    auto const sigma = diag(lambdas);
+    auto const sigma        = diag(lambdas);
     auto const B            = Q * sigma;
 
     // n stands for negative offset, p for positive offset
@@ -152,81 +148,33 @@ struct autonomous_particle<Flowmap> {
     auto const o_00p = B * vec_t{ 0,  0,  1};
     auto const o_00n = B * vec_t{ 0,  0, -1};
 
-    //pos_t p_nnn;
-    //pos_t p_0nn;
-    //pos_t p_pnn;
-    //pos_t p_n0n;
-    pos_t p_00n;
-    //pos_t p_p0n;
-    //pos_t p_npn;
-    //pos_t p_0pn;
-    //pos_t p_ppn;
-
-    //pos_t p_nn0;
-    pos_t p_0n0;
-    //pos_t p_pn0;
-    pos_t p_n00;
-    pos_t p_000;
-    pos_t p_p00;
-    //pos_t p_np0;
-    pos_t p_0p0;
-    //pos_t p_pp0;
-
-    //pos_t p_nnp;
-    //pos_t p_0np;
-    //pos_t p_pnp;
-    //pos_t p_n0p;
-    pos_t p_00p;
-    //pos_t p_p0p;
-    //pos_t p_npp;
-    //pos_t p_0pp;
-    //pos_t p_ppp;
+    pos_t p_p00, p_0p0, p_00p, p_n00, p_0n0, p_00n, p_000;
 
     std::pair<mat_t, vec_t> eig_HHt;
     auto&   eigvecs_HHt = eig_HHt.first;
     auto&   eigvals_HHt = eig_HHt.second;
     diff1_t H, nabla_phi2;
-    //diff2_t                      nabla_nabla_phi2;
 
-    while (cond < 9 && m_t1 + tau < max_t) {
+    while (cond < objective_cond && m_t1 + tau < max_t) {
       tau += tau_step;
       if (m_t1 + tau > max_t) { tau = max_t - m_t1; }
-
       // integrate ghost particles
-      // p_nnn = m_phi(m_x1 + o_nnn, m_t1, tau);
-      // p_0nn = m_phi(m_x1 + o_0nn, m_t1, tau);
-      // p_pnn = m_phi(m_x1 + o_pnn, m_t1, tau);
-      // p_n0n = m_phi(m_x1 + o_n0n, m_t1, tau);
-      p_00n = m_phi(m_x1 + o_00n, m_t1, tau);
-      // p_p0n = m_phi(m_x1 + o_p0n, m_t1, tau);
-      // p_npn = m_phi(m_x1 + o_npn, m_t1, tau);
-      // p_0pn = m_phi(m_x1 + o_0pn, m_t1, tau);
-      // p_ppn = m_phi(m_x1 + o_ppn, m_t1, tau);
-
-      // p_nn0 = m_phi(m_x1 + o_nn0, m_t1, tau);
-      p_0n0 = m_phi(m_x1 + o_0n0, m_t1, tau);
-      // p_pn0 = m_phi(m_x1 + o_pn0, m_t1, tau);
-      p_n00 = m_phi(m_x1 + o_n00, m_t1, tau);
       p_000 = m_phi(m_x1, m_t1, tau);
+      
       p_p00 = m_phi(m_x1 + o_p00, m_t1, tau);
-      // p_np0 = m_phi(m_x1 + o_np0, m_t1, tau);
-      p_0p0 = m_phi(m_x1 + o_0p0, m_t1, tau);
-      // p_pp0 = m_phi(m_x1 + o_pp0, m_t1, tau);
+      p_n00 = m_phi(m_x1 + o_n00, m_t1, tau);
 
-      // p_nnp = m_phi(m_x1 + o_nnp, m_t1, tau);
-      // p_0np = m_phi(m_x1 + o_0np, m_t1, tau);
-      // p_pnp = m_phi(m_x1 + o_pnp, m_t1, tau);
-      // p_n0p = m_phi(m_x1 + o_n0p, m_t1, tau);
+      p_0p0 = m_phi(m_x1 + o_0p0, m_t1, tau);
+      p_0n0 = m_phi(m_x1 + o_0n0, m_t1, tau);
+
       p_00p = m_phi(m_x1 + o_00p, m_t1, tau);
-      // p_p0p = m_phi(m_x1 + o_p0p, m_t1, tau);
-      // p_npp = m_phi(m_x1 + o_npp, m_t1, tau);
-      // p_0pp = m_phi(m_x1 + o_0pp, m_t1, tau);
-      // p_ppp = m_phi(m_x1 + o_ppp, m_t1, tau);
+      p_00n = m_phi(m_x1 + o_00n, m_t1, tau);
 
       // construct ∇φ2
       H.col(0) = (p_p00 - p_n00) / 2;  // h1
       H.col(1) = (p_0p0 - p_0n0) / 2;  // h2
       H.col(2) = (p_00p - p_00n) / 2;  // h3
+
       nabla_phi2 = H * inverse(sigma) * transpose(Q);
 
       auto const HHt = H * transpose(H);
@@ -234,8 +182,8 @@ struct autonomous_particle<Flowmap> {
 
       cond = eigvals_HHt(2) / eigvals_HHt(0);
 
-      if (cond >= 9 && cond <= max_cond){
-        ellipsoids.push_back(discretize(geometry::sphere<real_t, 3>{}, 4));
+      if (cond >= objective_cond && cond <= max_cond){
+        ellipsoids.push_back(discretize(geometry::sphere<real_t, 3>{1}, 3));
 
         for (auto const v : ellipsoids.back().vertices()) {
           ellipsoids.back()[v] = H * ellipsoids.back()[v];
@@ -250,31 +198,42 @@ struct autonomous_particle<Flowmap> {
       }
     }
     mat_t const  fmg2fmg1 = nabla_phi2 * m_nabla_phi1;
-    pos_t const  x2       = m_phi(m_x1, m_t1, tau);
     real_t const t2       = m_t1 + tau;
-    if (cond >= 9) {
+    if (cond >= objective_cond) {
+      auto [eigvecs_np2, eigvals_np2] = eigenvectors_sym(nabla_phi2);
+      std::cerr << "split at tau = " << tau << '\n';
+      std::cerr << "S:\n" << m_S << '\n';
+      std::cerr << "H:\n" << H << '\n'; 
+      std::cerr << "H*Ht:\n" << H * transpose(H) << '\n';
+      std::cerr << "eigenvalues HHt: " << eigvals_HHt << '\n';
+      std::cerr << "eigenvectors HHt: \n" << eigvecs_HHt << '\n';
+      std::cerr << "∇φ2:\n" << nabla_phi2 << '\n';
+      std::cerr << "eigenvalues ∇φ2: " << eigvals_np2 << '\n';
+      std::cerr << "eigenvectors ∇φ2: \n" << eigvecs_np2 << '\n';
       vec const eigvals_HHt_sqrt{std::sqrt(eigvals_HHt(0)),
                                  std::sqrt(eigvals_HHt(1)),
-                                 std::sqrt(eigvals_HHt(2)) / 3};
-      vec_t const offset2 = std::sqrt(eigvals_HHt(2)) * eigvecs_HHt.col(2) / 3;
+                                 std::sqrt(eigvals_HHt(2)) / 2};
+      vec_t const offset2 =
+          std::sqrt(eigvals_HHt(2)) * eigvecs_HHt.col(2) * 3 / 4;
       vec_t const offset0 = inv(fmg2fmg1) * offset2;
 
-      particles.emplace_back(
-          m_phi, m_x0 - offset0, x2 - offset2, t2, fmg2fmg1,
-          eigvecs_HHt * diag(eigvals_HHt_sqrt) * transpose(eigvecs_HHt),
-          m_level + 1);
-      particles.emplace_back(
-          m_phi, m_x0, x2, t2, fmg2fmg1,
-          eigvecs_HHt * diag(eigvals_HHt_sqrt) * transpose(eigvecs_HHt),
-          m_level + 1);
-      particles.emplace_back(
-          m_phi, m_x0 + offset0, x2 + offset2, t2, fmg2fmg1,
-          eigvecs_HHt * diag(eigvals_HHt_sqrt) * transpose(eigvecs_HHt),
-          m_level + 1);
+      auto const new_S = eigvecs_HHt * diag(eigvals_HHt_sqrt) * transpose(eigvecs_HHt);
+      auto const half_new_S = new_S / 2;
+
+      particles.emplace_back(m_phi, m_x0 - offset0, p_000 - offset2, t2,
+                             fmg2fmg1, half_new_S, m_level + 1);
+      particles.emplace_back(m_phi, m_x0, p_000, t2, fmg2fmg1, new_S,
+                             m_level + 1);
+      particles.emplace_back(m_phi, m_x0 + offset0, p_000 + offset2, t2,
+                             fmg2fmg1, half_new_S, m_level + 1);
 
     } else {
-      // particles.emplace_back(m_phi, m_x0, x2, m_x1, t2, m_t1, fmg2fmg1,
-      //                       m_current_radius);
+      //vec const eigvals_HHt_sqrt{std::sqrt(eigvals_HHt(0)),
+      //                           std::sqrt(eigvals_HHt(1)),
+      //                           std::sqrt(eigvals_HHt(2)) / 3};
+      //auto const new_S = eigvecs_HHt * diag(eigvals_HHt_sqrt) * transpose(eigvecs_HHt);
+      //particles.emplace_back(m_phi, m_x0, p_000, t2, fmg2fmg1, new_S,
+      //                       m_level + 1);
     }
   }
 };

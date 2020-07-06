@@ -100,8 +100,8 @@ constexpr auto diag_rect(base_tensor<Tensor, Real, VecN>&& t) {
 //==============================================================================
 template <typename Tensor, size_t N>
 auto inverse(diag_tensor<Tensor, N, N> const& A) {
-  return diag_tensor<vec<typename std::decay_t<Tensor>::real_t, N>, N, N>{
-      1 / A.internal_tensor()};
+  using real_t = typename std::decay_t<Tensor>::real_t;
+  return diag_tensor<vec<real_t, N>, N, N>{real_t(1) / A.internal_tensor()};
 }
 //==============================================================================
 }  // namespace tatooine

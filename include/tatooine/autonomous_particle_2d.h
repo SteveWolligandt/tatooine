@@ -24,7 +24,8 @@ struct autonomous_particle<Flowmap> {
   using mat_t  = mat<real_t, num_dimensions(), num_dimensions()>;
   using pos_t  = vec_t;
 
-  static constexpr real_t max_cond = 4.01;
+  static constexpr real_t objective_cond = 4;
+  static constexpr real_t max_cond = objective_cond + 0.01;
 
   //----------------------------------------------------------------------------
   // members
@@ -33,8 +34,8 @@ struct autonomous_particle<Flowmap> {
   flowmap_t m_phi;
   pos_t     m_x0, m_x1;
   real_t    m_t1;
-  mat_t     m_nabla_phi1;
-  real_t    m_current_radius;
+  mat_t     m_nabla_phi1, m_S;
+
 
   //----------------------------------------------------------------------------
   // ctors
@@ -56,18 +57,16 @@ struct autonomous_particle<Flowmap> {
         m_x1{x0},
         m_t1{static_cast<real_t>(start_time)},
         m_nabla_phi1{mat_t::eye()},
-        m_current_radius{current_radius} {}
+        m_S{mat_t::eye() * current_radius} {}
   //----------------------------------------------------------------------------
   autonomous_particle(flowmap_t phi, pos_t const& x0, pos_t const& x1,
-                       real_t const t1,
-                       mat_t const& nabla_phi1,
-                      real_t const current_radius)
+                      real_t const t1, mat_t const& nabla_phi1, mat_t const& S)
       : m_phi{std::move(phi)},
         m_x0{x0},
         m_x1{x1},
         m_t1{t1},
         m_nabla_phi1{nabla_phi1},
-        m_current_radius{current_radius} {}
+        m_S{S} {}
   //----------------------------------------------------------------------------
  public:
   autonomous_particle(const autonomous_particle&)     = default;
@@ -86,7 +85,7 @@ struct autonomous_particle<Flowmap> {
   auto x1(size_t i) const { return m_x1(i); }
   auto t1() const { return m_t1; }
   auto nabla_phi1() const -> auto const& { return m_nabla_phi1; }
-  auto current_radius() const { return m_current_radius; }
+  auto S() const -> auto const& { return m_S; }
   auto phi() const -> auto const& { return m_phi; }
   auto phi() -> auto& { return m_phi; }
 
@@ -122,39 +121,54 @@ struct autonomous_particle<Flowmap> {
     auto&        ellipse = ellipses.emplace_back();
     size_t const n       = 100;
     for (auto t : linspace{0.0, M_PI * 2, n}) {
-      ellipse.push_back(vec{std::cos(t) * m_current_radius + m_x1(0),
-                            std::sin(t) * m_current_radius + m_x1(1), t1()});
+      auto p = m_S * vec{std::cos(t), std::sin(t)};
+      p += m_x1;
+      ellipse.push_back(vec{p(0), p(1), m_t1});
     }
+    ellipse.push_back(ellipse.back_vertex());
 
     if (m_t1 >= max_t) { return; }
-    static real_t const threequarters = real_t(3) / real_t(4);
-    static real_t const sqrt2         = std::sqrt(real_t(2));
 
-    real_t tau       = 0;
-    auto   nabla_phi = diff(m_phi);
-    if constexpr (is_flowmap_gradient_central_differences(nabla_phi)) {
-      nabla_phi.set_epsilon(current_radius());
-    }
-    real_t                                   cond = 1;
-    typename decltype(nabla_phi)::gradient_t nabla_phi2;
-    using eig_t =
-        decltype(eigenvectors_sym(nabla_phi2 * transpose(nabla_phi2)));
-    eig_t                        eig_left;
-    [[maybe_unused]] auto const& eigvecs_left_cauchy_green = eig_left.first;
-    [[maybe_unused]] auto const& eigvals_left_cauchy_green = eig_left.second;
-    // eig_t                        eig_right;
-    //[[maybe_unused]] auto const& eigvecs_right_cauchy_green = eig_right.first;
-    //[[maybe_unused]] auto const& eigvals_right_cauchy_green =
-    // eig_right.second;
+    real_t tau              = 0;
+    real_t cond             = 1;
+    auto const [Q, lambdas] = eigenvectors_sym(m_S);
+    auto const sigma        = diag(lambdas);
+    auto const B            = Q * sigma;
+
+    // n stands for negative offset, p for positive offset
+    auto const o_p0 = B * vec_t{ 1,  0};
+    auto const o_n0 = B * vec_t{-1,  0};
+    auto const o_0p = B * vec_t{ 0,  1};
+    auto const o_0n = B * vec_t{ 0, -1};
+
+    pos_t p_p0, p_0p,  p_n0, p_0n, p_00;
+    mat_t H, nabla_phi2;
+    std::pair<mat_t, vec_t> eig_HHt;
+    auto&   eigvecs_HHt = eig_HHt.first;
+    auto&   eigvals_HHt = eig_HHt.second;
 
     while (cond < 4 && m_t1 + tau < max_t) {
       tau += tau_step;
       if (m_t1 + tau > max_t) { tau = max_t - m_t1; }
-      nabla_phi2 = nabla_phi(m_x1, m_t1, tau);
-      eig_left   = eigenvectors_sym(nabla_phi2 * transpose(nabla_phi2));
-      // eig_right  = eigenvectors_sym(transpose(nabla_phi2) * nabla_phi2);
+      // integrate ghost particles
+      p_00 = m_phi(m_x1, m_t1, tau);
+      
+      p_p0 = m_phi(m_x1 + o_p0, m_t1, tau);
+      p_n0 = m_phi(m_x1 + o_n0, m_t1, tau);
 
-      cond = eigvals_left_cauchy_green(1) / eigvals_left_cauchy_green(0);
+      p_0p = m_phi(m_x1 + o_0p, m_t1, tau);
+      p_0n = m_phi(m_x1 + o_0n, m_t1, tau);
+
+      // construct ∇φ2
+      H.col(0) = (p_p0 - p_n0) / 2;  // h1
+      H.col(1) = (p_0p - p_0n) / 2;  // h2
+
+      nabla_phi2 = H * inverse(sigma) * transpose(Q);
+
+      auto const HHt = H * transpose(H);
+      eig_HHt = eigenvectors_sym(HHt);
+
+      cond = eigvals_HHt(1) / eigvals_HHt(0);
       if (cond > max_cond) {
         cond = 0;
         tau -= tau_step;
@@ -165,35 +179,36 @@ struct autonomous_particle<Flowmap> {
     pos_t const  x2       = m_phi(m_x1, m_t1, tau);
     real_t const t2       = m_t1 + tau;
     if (cond > 4) {
-      vec_t const offset2 = threequarters * sqrt2 * m_current_radius *
-                            normalize(eigvecs_left_cauchy_green.col(1));
+      vec const   eigvals_HHt_sqrt{std::sqrt(eigvals_HHt(0)),
+                                   std::sqrt(eigvals_HHt(1)) / 2};
+      vec_t const offset2 =
+          std::sqrt(eigvals_HHt(1)) * eigvecs_HHt.col(1) * 3 / 4;
       vec_t const offset0 = inv(fmg2fmg1) * offset2;
 
+      auto const new_S =
+          eigvecs_HHt * diag(eigvals_HHt_sqrt) * transpose(eigvecs_HHt);
+      auto const half_new_S = new_S / 2;
       particles.emplace_back(m_phi, m_x0 - offset0, x2 - offset2, t2, fmg2fmg1,
-                             m_current_radius * sqrt2 / 4);
-      particles.emplace_back(m_phi, m_x0, x2, t2, fmg2fmg1,
-                             m_current_radius * sqrt2 / 2);
+                             half_new_S);
+      particles.emplace_back(m_phi, m_x0, x2, t2, fmg2fmg1, new_S);
       particles.emplace_back(m_phi, m_x0 + offset0, x2 + offset2, t2, fmg2fmg1,
-                             m_current_radius * sqrt2 / 4);
+                             half_new_S);
 
       auto& ellipse = ellipses.emplace_back();
 
-      auto const a = std::sqrt(eigvals_left_cauchy_green(1)) * m_current_radius;
-      auto const b = std::sqrt(eigvals_left_cauchy_green(0)) * m_current_radius;
-      auto const alpha = angle(vec{1.0, 0.0}, eigvecs_left_cauchy_green.col(1));
       for (auto t : linspace{0.0, M_PI * 2, n}) {
-        vec p{std::cos(t) * a, std::sin(t) * b};
-
-        p = mat{{std::cos(alpha), -std::sin(alpha)},
-                {std::sin(alpha), std::cos(alpha)}} *
-            p;
-
+        auto p = H * vec{std::cos(t), std::sin(t)};
         p += x2;
         ellipse.push_back(vec{p(0), p(1), t2});
       }
+      ellipse.push_back(ellipse.back_vertex());
     } else {
+      //vec const eigvals_HHt_sqrt{std::sqrt(eigvals_HHt(0)),
+      //                           std::sqrt(eigvals_HHt(1)),
+      //                           std::sqrt(eigvals_HHt(2)) / 3};
+      //auto const new_S = eigvecs_HHt * diag(eigvals_HHt_sqrt) * transpose(eigvecs_HHt);
       // particles.emplace_back(m_phi, m_x0, x2, m_x1, t2, m_t1, fmg2fmg1,
-      //                       m_current_radius);
+      //                       new_S);
     }
   }
 };
