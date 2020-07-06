@@ -1,14 +1,11 @@
-#ifndef TATOOINE_INTEGRATION_VCLIBS_RK43_H
-#define TATOOINE_INTEGRATION_VCLIBS_RK43_H
-
+#ifndef TATOOINE_ODE_VCLIBS_RK43_H
+#define TATOOINE_ODE_VCLIBS_RK43_H
+//==============================================================================
 #include <tatooine/interpolation.h>
 #include <tatooine/concepts.h>
-
 #include <boost/range/numeric.hpp>
 #include <vcode/odeint.hh>
-
-#include "../solver.h"
-
+#include <tatooine/ode/solver.h>
 //==============================================================================
 template <typename Real, size_t N>
 struct VC::odeint::vector_operations_t<tatooine::vec<Real, N>> {

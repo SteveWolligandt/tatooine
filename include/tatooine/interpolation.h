@@ -129,7 +129,7 @@ struct linear<vec<Real, N>> : linear<tensor<Real, N>> {
   using linear<tensor<Real, N>>::linear;
 };
 //==============================================================================
-template <floating_point Real>
+template <typename Real>
 struct hermite {
   //----------------------------------------------------------------------------
   // traits

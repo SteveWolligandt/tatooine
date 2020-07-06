@@ -1,6 +1,5 @@
-#include <tatooine/doublegyre.h>
+#include <tatooine/analytical/fields/numerical/doublegyre.h>
 #include <catch2/catch.hpp>
-
 //═════════════════════════════════════════════════════════════════════════════╗
 namespace tatooine::test {
 //═══════════════════════════════════════════════════════════════════════════╗
