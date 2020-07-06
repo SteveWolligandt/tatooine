@@ -41,17 +41,17 @@ struct autonomous_particle<Flowmap> {
   // ctors
   //----------------------------------------------------------------------------
  public:
-  template <typename V, std::floating_point VReal, arithmetic RealX0>
+  template <typename V, std::floating_point VReal, real_number RealX0>
   autonomous_particle(const vectorfield<V, VReal, 2>&      v,
                       vec<RealX0, num_dimensions()> const& x0,
-                      arithmetic auto const                start_time,
-                      arithmetic auto const                current_radius)
+                      real_number auto const                start_time,
+                      real_number auto const                current_radius)
       : autonomous_particle{flowmap(v), x0, start_time, current_radius} {}
   //----------------------------------------------------------------------------
-  template <arithmetic RealX0>
+  template <real_number RealX0>
   autonomous_particle(flowmap_t phi, vec<RealX0, num_dimensions()> const& x0,
-                      arithmetic auto const start_time,
-                      arithmetic auto const current_radius)
+                      real_number auto const start_time,
+                      real_number auto const current_radius)
       : m_phi{std::move(phi)},
         m_x0{x0},
         m_x1{x0},
@@ -215,14 +215,14 @@ struct autonomous_particle<Flowmap> {
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 // deduction guides
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-template <typename V, typename VReal, arithmetic RealX0, size_t N>
+template <typename V, typename VReal, real_number RealX0, size_t N>
 autonomous_particle(const vectorfield<V, VReal, 2>& v, vec<RealX0, N> const&,
-                    arithmetic auto const, arithmetic auto const)
+                    real_number auto const, real_number auto const)
     -> autonomous_particle<decltype(flowmap(v))>;
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-template <fixed_dims_flowmap_c<2> Flowmap, arithmetic RealX0, size_t N>
+template <fixed_dims_flowmap_c<2> Flowmap, real_number RealX0, size_t N>
 autonomous_particle(const Flowmap& flowmap, vec<RealX0, N> const&,
-                    arithmetic auto const, arithmetic auto const)
+                    real_number auto const, real_number auto const)
     -> autonomous_particle<Flowmap>;
 //==============================================================================
 }  // namespace tatooine

@@ -3,6 +3,7 @@
 //==============================================================================
 #include <algorithm>
 #include <tatooine/linspace.h>
+#include <tatooine/algorithm.h>
 #include <tatooine/line.h>
 #include <tatooine/type_traits.h>
 #include <tatooine/field.h>

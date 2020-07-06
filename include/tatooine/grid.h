@@ -23,6 +23,8 @@ namespace tatooine {
 template <indexable_space... Dimensions>
 class grid {
  public:
+  static constexpr bool is_regular =
+      (is_linspace_v<std::decay_t<Dimensions>> && ...);
   static constexpr auto num_dimensions() { return sizeof...(Dimensions); }
   using this_t = grid<Dimensions...>;
   using real_t = promote_t<typename Dimensions::value_type...>;
@@ -538,8 +540,7 @@ class grid {
  public:
   template <typename T, typename Indexing,
             template <typename> typename... InterpolationKernels>
-  auto add_contiguous_vertex_property(std::string const&         name)
-      -> auto& {
+  auto add_contiguous_vertex_property(std::string const& name) -> auto& {
     static_assert(sizeof...(InterpolationKernels) == num_dimensions() ||
                       sizeof...(InterpolationKernels) == 0,
                   "Number of interpolation kernels does not match number of "
@@ -601,9 +602,9 @@ class grid {
     } else {
       if (typeid(T) != it->second->type()) {
         throw std::runtime_error{"type of property \"" + name + "\"(" +
-                                 demangle(it->second->type().name()) +
+                                 type_name(it->second->type().name()) +
                                  ") does not match specified type " +
-                                 demangle<T>() + "."};
+                                 type_name<T>() + "."};
       }
       return *dynamic_cast<typed_property_t<T>*>(it->second.get());
     }
@@ -706,11 +707,65 @@ class grid {
     } else {
       if (typeid(T) != it->second->type()) {
         throw std::runtime_error{"type of property \"" + name + "\"(" +
-                                 demangle(it->second->type().name()) +
+                                 type_name(it->second->type().name()) +
                                  ") does not match specified type " +
-                                 demangle<T>() + "."};
+                                 type_name<T>() + "."};
       }
       return *dynamic_cast<typed_property_t<T>*>(it->second.get());
+    }
+  }
+  //----------------------------------------------------------------------------
+  void write_vtk(std::string const& file_path) const {
+    auto writer = [this, & file_path] {
+      if constexpr (is_regular) {
+        vtk::legacy_file_writer writer{file_path, vtk::STRUCTURED_POINTS};
+        writer.set_title("tatooine grid");
+        writer.write_header();
+        if constexpr (num_dimensions() == 1) {
+          writer.write_dimensions(size<0>(), 1, 1);
+          writer.write_origin(front<0>(), 0, 0);
+          writer.write_spacing(dimension<0>().spacing(), 0, 0);
+        } else if constexpr (num_dimensions() == 2) {
+          writer.write_dimensions(size<0>(), size<1>(), 1);
+          writer.write_origin(front<0>(), front<1>(), 0);
+          writer.write_spacing(dimension<0>().spacing(),
+                               dimension<1>().spacing(), 0);
+        } else if constexpr (num_dimensions() == 3) {
+          writer.write_dimensions(size<0>(), size<1>(), size<2>());
+          writer.write_origin(front<0>(), front<1>(), front<2>());
+          writer.write_spacing(dimension<0>().spacing(),
+                               dimension<1>().spacing(),
+                               dimension<2>().spacing());
+        }
+        return writer;
+      } else {
+        vtk::legacy_file_writer writer{file_path, vtk::RECTILINEAR_GRID};
+        writer.set_title("tatooine grid");
+        writer.write_header();
+        return writer;
+      }
+    }();
+    // write vertex data
+    writer.write_point_data(num_vertices());
+    for (const auto& [name, prop] : this->m_vertex_properties) {
+      if (prop->type() == typeid(double)) {
+        const auto& casted_prop =
+            *dynamic_cast<const typed_property_t<double>*>(prop.get());
+
+        std::vector<double> data;
+        auto                back_inserter = [&](auto const... is) {
+          data.push_back(casted_prop.data_at(is...));
+        };
+        if constexpr (num_dimensions() == 1) {
+          for_loop(back_inserter, size<0>());
+        } else if constexpr (num_dimensions() == 2) {
+          for_loop(back_inserter, size<0>(), size<1>());
+        } else if constexpr (num_dimensions() == 3) {
+          for_loop(back_inserter, size<0>(), size<1>(), size<2>());
+        }
+
+        writer.write_scalars(name, data);
+      }
     }
   }
 };

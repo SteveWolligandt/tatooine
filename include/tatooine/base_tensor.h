@@ -22,7 +22,7 @@ struct base_tensor : crtp<Tensor> {
   static constexpr auto rank() { return sizeof...(Dims); }
   //------------------------------------------------------------------------------
   static constexpr auto num_components() {
-    return multidim_size_t::num_elements();
+    return multidim_size_t::num_components();
   }
   //------------------------------------------------------------------------------
   static constexpr auto dimensions() {

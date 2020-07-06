@@ -3,7 +3,8 @@
 #include <tatooine/analytical/fields/numerical/modified_doublegyre.h>
 #include <tatooine/analytical/fields/numerical/saddle.h>
 #include <tatooine/ftle_field.h>
-#include <tatooine/grid_sampler.h>
+#include <tatooine/grid.h>
+#include <tatooine/for_loop.h>
 #include <tatooine/linspace.h>
 
 #include <catch2/catch.hpp>
@@ -12,10 +13,11 @@ namespace tatooine::test {
 //==============================================================================
 using namespace tatooine::analytical::fields::numerical;
 template <typename V, typename Grid, typename T0, typename Tau>
-void ftle_test(V const&, Grid const&, T0, Tau, std::string const&);
+void ftle_test(V const&, Grid&, T0, Tau, std::string const&);
 //==============================================================================
 TEST_CASE("ftle_doublegyre", "[ftle][doublegyre][dg]") {
   doublegyre v;
+  v.set_infinite_domain(true);
   grid   sample_grid{linspace{0.0, 2.0, 200}, linspace{0.0, 1.0, 100}};
   double t0 = 0, tau = 10;
   ftle_test(v, sample_grid, t0, tau,
@@ -42,32 +44,41 @@ TEST_CASE("ftle_counterexample_sadlo", "[ftle][counterexample_sadlo]") {
 }
 //==============================================================================
 TEST_CASE("ftle_saddle", "[ftle][saddle]") {
-  saddle v;
-  grid sample_grid{linspace{-1.0, 1.0, 200}, linspace{-1.0, 1.0, 200}};
-  auto const t0 = 0;
-  auto const tau = 10;
+  saddle     v;
+  grid       ftle_grid{linspace{-1.0, 1.0, 200}, linspace{-1.0, 1.0, 200}};
+  auto&      ftle_prop = ftle_grid.add_contiguous_vertex_property<double, x_fastest>("ftle");
+  auto const t0        = 0;
+  auto const tau       = 10;
 
   ftle_field f{v, tau};
-  auto ftle_grid = resample<interpolation::linear, interpolation::linear>(
-      f, sample_grid, t0);
-  ftle_grid.sampler().write_vtk("ftle_saddle_tau" + std::to_string(tau) +
-                                "_t0_" + std::to_string(t0) + ".vtk");
+  for_loop(
+      [&](auto const... is) {
+        ftle_prop.data_at(is...) = f(vec{ftle_grid.vertex_at(is...)}, t0);
+      },
+      200, 200);
+  ftle_grid.write_vtk("ftle_saddle_tau" + std::to_string(tau) + "_t0_" +
+                      std::to_string(t0) + ".vtk");
 }
 //==============================================================================
 template <typename V, typename Grid, typename T0, typename Tau>
-void ftle_test(V const& v, Grid const& sample_grid, T0 t0, Tau tau,
+void ftle_test(V const& v, Grid& ftle_grid, T0 t0, Tau tau,
                std::string const& path) {
+  auto& ftle_prop =
+      ftle_grid.template add_contiguous_vertex_property<double, x_fastest>("ftle");
   ftle_field f{v, tau};
   f.flowmap_gradient().set_epsilon(
-      vec{(sample_grid.dimension(0).back() - sample_grid.dimension(0).front()) /
-              static_cast<double>(sample_grid.dimension(0).size()),
-          (sample_grid.dimension(1).back() - sample_grid.dimension(1).front()) /
-              static_cast<double>(sample_grid.dimension(1).size())});
-  auto ftle_grid = resample<interpolation::linear, interpolation::linear>(
-      f, sample_grid, t0);
-  ftle_grid.sampler().write_vtk(path + ".vtk");
+      vec{(ftle_grid.template back<0>() - ftle_grid.template front<0>()) /
+              static_cast<double>(ftle_grid.template size<0>()),
+          (ftle_grid.template back<1>() - ftle_grid.template front<1>()) /
+              static_cast<double>(ftle_grid.template size<1>())});
+  for_loop(
+      [&](auto const... is) {
+        vec const x{ftle_grid.vertex_at(is...)};
+        ftle_prop.data_at(is...) = f(x, t0);
+      },
+      ftle_grid.template size<0>(), ftle_grid.template size<1>());
+  ftle_grid.write_vtk(path + ".vtk");
 }
-
 //==============================================================================
 }  // namespace tatooine::test
 //==============================================================================

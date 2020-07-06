@@ -2,15 +2,19 @@
 #define TATOOINE_DIAG_TENSOR_H
 //==============================================================================
 #include <tatooine/base_tensor.h>
+#include <tatooine/concepts.h>
 //==============================================================================
 namespace tatooine {
 //==============================================================================
 template <typename Tensor, size_t M, size_t N>
 struct diag_tensor : base_tensor<diag_tensor<Tensor, M, N>,
-                                 typename std::decay_t<Tensor>::real_t, M, N> {
+                                 typename std::decay_t<Tensor>::value_type, M, N> {
   //============================================================================
   using tensor_t = Tensor;
-  using real_t   = typename std::decay_t<tensor_t>::real_t;
+  using this_t   = diag_tensor<Tensor, M, N>;
+  using parent_t =
+      base_tensor<this_t, typename std::decay_t<tensor_t>::value_type, M, N>;
+  using typename parent_t::value_type;
   //============================================================================
  private:
   tensor_t m_internal_tensor;
@@ -24,7 +28,7 @@ struct diag_tensor : base_tensor<diag_tensor<Tensor, M, N>,
   //----------------------------------------------------------------------------
   constexpr auto operator()(size_t i, size_t j) const { return at(i, j); }
   //----------------------------------------------------------------------------
-  constexpr auto at(size_t i, size_t j) const -> real_t {
+  constexpr auto at(size_t i, size_t j) const -> value_type {
     assert(i < M);
     assert(j < N);
     if (i == j) { return m_internal_tensor(i); }
@@ -61,7 +65,7 @@ diag_tensor(Tensor&& t)
                    Tensor::dimension(0),
                    Tensor::dimension(0)>;
 //==============================================================================
-template <typename Real, size_t N>
+template <real_or_complex_number Real, size_t N>
 struct vec;
 //==============================================================================
 // factory functions
@@ -100,8 +104,8 @@ constexpr auto diag_rect(base_tensor<Tensor, Real, VecN>&& t) {
 //==============================================================================
 template <typename Tensor, size_t N>
 auto inverse(diag_tensor<Tensor, N, N> const& A) {
-  using real_t = typename std::decay_t<Tensor>::real_t;
-  return diag_tensor<vec<real_t, N>, N, N>{real_t(1) / A.internal_tensor()};
+  using value_type = typename std::decay_t<Tensor>::value_type;
+  return diag_tensor<vec<value_type, N>, N, N>{value_type(1) / A.internal_tensor()};
 }
 //==============================================================================
 }  // namespace tatooine

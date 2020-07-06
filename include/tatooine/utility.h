@@ -77,19 +77,19 @@ auto partition_resolution(const std::array<size_t, N>& resolution,
 //==============================================================================
 /// returns demangled typename
 template <typename T>
-inline auto demangle(T && /*t*/) -> std::string {
+inline auto type_name(T && /*t*/) -> std::string {
   return boost::core::demangle(typeid(T).name());
 }
 //------------------------------------------------------------------------------
 /// returns demangled typename
 template <typename T>
-inline auto demangle() -> std::string {
+inline auto type_name() -> std::string {
   return boost::core::demangle(typeid(T).name());
 }
 //------------------------------------------------------------------------------
 /// returns demangled typename
 template <typename T>
-inline auto demangle(std::string const& name) -> std::string {
+inline auto type_name(std::string const& name) -> std::string {
   return boost::core::demangle(name.c_str());
 }
 

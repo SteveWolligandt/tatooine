@@ -25,28 +25,28 @@ struct ftle_field : field<ftle_field<FlowmapGradient>, typename FlowmapGradient:
   //============================================================================
  public:
   template <typename V, typename VReal, size_t N>
-  constexpr ftle_field(field<V, VReal, N, N> const& v, arithmetic auto tau)
+  constexpr ftle_field(field<V, VReal, N, N> const& v, real_number auto tau)
       : m_flowmap_gradient{diff(flowmap(v))}, m_tau{static_cast<real_t>(tau)} {}
   //------------------------------------------------------------------------------
   template <typename V, typename VReal, size_t N>
-  constexpr ftle_field(field<V, VReal, N, N> const& v, arithmetic auto tau,
-                       arithmetic auto eps)
+  constexpr ftle_field(field<V, VReal, N, N> const& v, real_number auto tau,
+                       real_number auto eps)
       : m_flowmap_gradient{diff(flowmap(v), eps)},
         m_tau{static_cast<real_t>(tau)} {}
   //------------------------------------------------------------------------------
   template <typename V, typename VReal, size_t N>
-  constexpr ftle_field(field<V, VReal, N, N> const& v, arithmetic auto tau,
+  constexpr ftle_field(field<V, VReal, N, N> const& v, real_number auto tau,
                        vec_t const& eps)
       : m_flowmap_gradient{diff(flowmap(v), eps)},
         m_tau{static_cast<real_t>(tau)} {}
   //------------------------------------------------------------------------------
-  constexpr ftle_field(FlowmapGradient&& flowmap_gradient, arithmetic auto tau)
+  constexpr ftle_field(FlowmapGradient&& flowmap_gradient, real_number auto tau)
       : m_flowmap_gradient{std::forward<FlowmapGradient>(flowmap_gradient)},
         m_tau{static_cast<real_t>(tau)} {}
   //============================================================================
   auto evaluate(pos_t const& x, real_t t) const -> tensor_t final{
     auto const g                = m_flowmap_gradient(x, t, m_tau);
-    auto const eigvals          = eigenvalues_sym(transpose(g) * g);
+    auto const eigvals          = eigenvalues_sym(transposed(g) * g);
     auto const max_eig          = max(eigvals);
     return std::log(std::sqrt(max_eig)) / std::abs(m_tau);
   }
@@ -64,13 +64,13 @@ struct ftle_field : field<ftle_field<FlowmapGradient>, typename FlowmapGradient:
 };
 //==============================================================================
 template <typename V, typename Real, size_t N>
-ftle_field(field<V, Real, N, N> const& v, arithmetic auto)
+ftle_field(field<V, Real, N, N> const& v, real_number auto)
     -> ftle_field<decltype(diff(flowmap(v)))>;
 template <typename V, typename Real, size_t N>
-ftle_field(field<V, Real, N, N> const& v, arithmetic auto, arithmetic auto)
+ftle_field(field<V, Real, N, N> const& v, real_number auto, real_number auto)
     -> ftle_field<decltype(diff(flowmap(v)))>;
 template <typename V, typename Real, size_t N, typename EpsReal>
-ftle_field(field<V, Real, N, N> const& v, arithmetic auto, vec<EpsReal, N> const&)
+ftle_field(field<V, Real, N, N> const& v, real_number auto, vec<EpsReal, N> const&)
     -> ftle_field<decltype(diff(flowmap(v)))>;
 
 //==============================================================================
