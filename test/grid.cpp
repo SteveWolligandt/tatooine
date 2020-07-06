@@ -289,11 +289,12 @@ TEST_CASE("grid_lazy_netcdf", "[grid][lazy][netcdf]") {
   auto& prop = g.add_vertex_property<netcdf::lazy_reader<double>>(
       "prop", file_path, variable_name, std::vector<size_t>{2, 2});
 
-  auto& prop_via_file = g.add_vertex_property<netcdf::lazy_reader<double>>(
-      "prop_via_file",
-      netcdf::file{file_path, netCDF::NcFile::read}.variable<double>(
-          variable_name),
-      std::vector<size_t>{2, 2});
+  [[maybe_unused]] auto& prop_via_file =
+      g.add_vertex_property<netcdf::lazy_reader<double>>(
+          "prop_via_file",
+          netcdf::file{file_path, netCDF::NcFile::read}.variable<double>(
+              variable_name),
+          std::vector<size_t>{2, 2});
 
   prop.sample(0.5, 0.5);
 }

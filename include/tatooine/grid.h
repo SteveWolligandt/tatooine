@@ -4,6 +4,7 @@
 #include <tatooine/boundingbox.h>
 #include <tatooine/chunked_multidim_array.h>
 #include <tatooine/concepts.h>
+#include <tatooine/for_loop.h>
 #include <tatooine/grid_face_property.h>
 #include <tatooine/grid_vertex_container.h>
 #include <tatooine/grid_vertex_iterator.h>
@@ -742,18 +743,16 @@ class grid {
            << num_components_v<T> << "] Data } @1\n\n";
     header << "# Data section follows\n@1\n";
     auto const header_string = header.str();
-    std::cerr << header_string << '\n';
-
 
     std::vector<T> data;
-    auto           back_inserter = [&](auto const... is) {
+    data.reserve(size<0>() * size<1>() * size<2>());
+    auto back_inserter = [&](auto const... is) {
       data.push_back(prop.data_at(is...));
     };
-    //for_loop(back_inserter, size<0>(), size<1>(), size<2>());
-
-    //outfile.write((char*)header_string.c_str(),
-    //              size(header_string) * sizeof(char));
-    //outfile.write((char*)data.data(), size(data) * sizeof(T));
+    for_loop(back_inserter, size<0>(), size<1>(), size<2>());
+    outfile.write((char*)header_string.c_str(),
+                  header_string.size() * sizeof(char));
+    outfile.write((char*)data.data(), data.size() * sizeof(T));
   }
   //----------------------------------------------------------------------------
   template <size_t _N = num_dimensions(),
