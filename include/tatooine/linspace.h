@@ -14,7 +14,6 @@ namespace tatooine {
 //============================================================================
 template <real_number Real>
 struct linspace_iterator;
-
 //============================================================================
 template <real_number Real>
 struct linspace {
@@ -42,7 +41,7 @@ struct linspace {
   //----------------------------------------------------------------------------
   constexpr linspace(real_number auto min, real_number auto max,
                      size_t size) noexcept
-      : m_min{min}, m_max{max}, m_size{size} {}
+      : m_min{std::min(min, max)}, m_max{std::max(min, max)}, m_size{size} {}
   //----------------------------------------------------------------------------
   constexpr linspace(linspace const&)     = default;
   constexpr linspace(linspace&&) noexcept = default;
@@ -84,6 +83,26 @@ struct linspace {
   constexpr auto back() const { return m_max; }
   //----------------------------------------------------------------------------
   constexpr auto spacing() const { return (m_max - m_min) / (m_size - 1); }
+  //----------------------------------------------------------------------------
+  constexpr auto push_back() {
+    m_max += spacing();
+    ++m_size;
+  }
+  //----------------------------------------------------------------------------
+  constexpr auto pop_back() {
+    m_max -= spacing();
+    --m_size;
+  }
+  //----------------------------------------------------------------------------
+  constexpr auto push_front() {
+    m_min -= spacing();
+    ++m_size;
+  }
+  //----------------------------------------------------------------------------
+  constexpr auto pop_front() {
+    m_min += spacing();
+    --m_size;
+  }
 };
 
 //==============================================================================

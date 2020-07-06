@@ -9,12 +9,13 @@ namespace tatooine::netcdf {
 template <typename T>
 struct lazy_reader : chunked_multidim_array<T> {
   using value_type = T;
-  using parent_t = chunked_multidim_array<T>;
+  using parent_t   = chunked_multidim_array<T>;
   using parent_t::chunk_at;
 
  private:
   netcdf::variable<T>       m_var;
   mutable std::vector<bool> m_read;
+  mutable size_t            m_num_active_chunks;
 
  public:
   lazy_reader(std::string const& file_path, std::string const& var_name,
@@ -25,7 +26,7 @@ struct lazy_reader : chunked_multidim_array<T> {
     init(std::move(chunk_size));
   }
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-  lazy_reader(netcdf::variable<T>const& var, std::vector<size_t> chunk_size)
+  lazy_reader(netcdf::variable<T> const& var, std::vector<size_t> chunk_size)
       : chunked_multidim_array<T>{std::vector<size_t>(chunk_size.size(), 0),
                                   chunk_size},
         m_var{var} {
@@ -50,7 +51,7 @@ struct lazy_reader : chunked_multidim_array<T> {
   }
   //----------------------------------------------------------------------------
  public:
-  auto at(integral auto const... indices) -> T & {
+  auto at(integral auto const... indices) -> T& {
     assert(sizeof...(indices) == this->num_dimensions());
     assert(this->in_range(indices...));
     size_t const plain_index =
@@ -64,7 +65,14 @@ struct lazy_reader : chunked_multidim_array<T> {
           return t;
         } else {
           m_read[plain_index] = true;
+          if (m_num_active_chunks > 50) {
+            for (auto& chunk : this->m_chunks) {
+              if (chunk != nullptr) { chunk.reset(); }
+            }
+            m_num_active_chunks = 0;
+          }
           this->create_chunk_at(plain_index);
+          ++m_num_active_chunks;
           auto start_indices = this->global_indices_from_chunk_indices(
               this->chunk_indices_from_global_indices(indices...));
           std::reverse(begin(start_indices), end(start_indices));
@@ -88,7 +96,14 @@ struct lazy_reader : chunked_multidim_array<T> {
       }
     } else {
       if (this->chunk_at_is_null(plain_index)) {
+        if (m_num_active_chunks > 50) {
+          for (auto& chunk : this->m_chunks) {
+            if (chunk != nullptr) { chunk.reset(); }
+          }
+          m_num_active_chunks = 0;
+        }
         this->create_chunk_at(plain_index);
+        ++m_num_active_chunks;
         std::vector start_indices{static_cast<size_t>(indices)...};
         std::reverse(begin(start_indices), end(start_indices));
         auto s = this->internal_chunk_size();
@@ -115,7 +130,14 @@ struct lazy_reader : chunked_multidim_array<T> {
           return t;
         } else {
           m_read[plain_index] = true;
+          if (m_num_active_chunks > 50) {
+            for (auto& chunk : this->m_chunks) {
+              if (chunk != nullptr) { chunk.reset(); }
+            }
+            m_num_active_chunks = 0;
+          }
           this->create_chunk_at(plain_index);
+          ++m_num_active_chunks;
           auto start_indices = this->global_indices_from_chunk_indices(
               this->chunk_indices_from_global_indices(indices...));
           std::reverse(begin(start_indices), end(start_indices));
@@ -139,7 +161,14 @@ struct lazy_reader : chunked_multidim_array<T> {
       }
     } else {
       if (this->chunk_at_is_null(plain_index)) {
+        if (m_num_active_chunks > 50) {
+          for (auto& chunk : this->m_chunks) {
+            if (chunk != nullptr) { chunk.reset(); }
+          }
+          m_num_active_chunks = 0;
+        }
         this->create_chunk_at(plain_index);
+        ++m_num_active_chunks;
         std::vector start_indices{static_cast<size_t>(indices)...};
         std::reverse(begin(start_indices), end(start_indices));
         auto s = this->internal_chunk_size();
@@ -187,12 +216,12 @@ struct lazy_reader : chunked_multidim_array<T> {
   }
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
   template <integral Int, size_t N>
-  auto operator()(std::array<Int, N> const& is) -> T&{
+  auto operator()(std::array<Int, N> const& is) -> T& {
     return at(std::make_index_sequence<N>{}, is);
   }
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
   template <integral Int, size_t N>
-  auto operator()(std::array<Int, N> const& is) const -> T const&{
+  auto operator()(std::array<Int, N> const& is) const -> T const& {
     return at(std::make_index_sequence<N>{}, is);
   }
 };

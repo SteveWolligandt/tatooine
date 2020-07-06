@@ -313,6 +313,12 @@ struct chunked_multidim_array {
     }
   }
   //----------------------------------------------------------------------------
+  auto clear() {
+    for (auto& chunk : m_chunks) {
+      if (chunk != nullptr) { chunk.reset(); }
+    }
+  }
+  //----------------------------------------------------------------------------
   auto in_range(integral auto const... is) const {
     return m_data_structure.in_range(is...);
   }

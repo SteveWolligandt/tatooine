@@ -214,7 +214,6 @@ class grid {
                   "number of components does not match number of dimensions");
     static_assert(sizeof...(Is) == num_dimensions(),
                   "number of indices does not match number of dimensions");
-    std::array xsarr{xs...};
     return ((front<Is>() <= xs) && ...) && ((xs <= back<Is>()) && ...);
   }
   //----------------------------------------------------------------------------

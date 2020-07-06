@@ -25,11 +25,11 @@ struct scivis_contest_2020_ensemble_member
   chunked_grid_property_t* m_u;
   chunked_grid_property_t* m_v;
   chunked_grid_property_t* m_w;
-  linspace<double>                 xg_axis;
-  linspace<double>                 xc_axis;
-  linspace<double>                 yg_axis;
-  linspace<double>                 yc_axis;
-  linspace<double>                 t_axis;
+  linspace<double>         xg_axis;
+  linspace<double>         xc_axis;
+  linspace<double>         yg_axis;
+  linspace<double>         yc_axis;
+  linspace<double>         t_axis;
   std::vector<double>      z_axis;
   //============================================================================
   scivis_contest_2020_ensemble_member(std::string const& file_path) {
