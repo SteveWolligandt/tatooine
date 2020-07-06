@@ -715,6 +715,42 @@ class grid {
     }
   }
   //----------------------------------------------------------------------------
+  template <typename T, size_t _N = num_dimensions(),
+            std::enable_if_t<_N == 3, bool> = true>
+  void write_amira(std::string const& file_path,
+                   std::string const& vertex_property_name) const {
+    std::ofstream outfile{file_path, std::ofstream::binary};
+    std::stringstream header;
+
+    header << "# AmiraMesh BINARY-LITTLE-ENDIAN 2.1\n\n";
+    header << "define Lattice " << size<0>() << " " << size<1>() << " "
+           << size<2>() << "\n\n";
+    header << "Parameters {\n";
+    header << "    BoundingBox " << front<0>() << " " << back<0>() << " "
+                                 << front<1>() << " " << back<1>() << " "
+                                 << front<2>() << " " << back<2>() << ",\n";
+    header << "    CoordType \"uniform\"\n";
+    header << "}\n";
+    header << "Lattice { " << type_name<internal_type<T>>() << "["
+           << num_components<T>() << "] Data } @1\n\n";
+    header << "# Data section follows\n@1\n";
+    auto const header_string = header.string();
+
+    auto& prop = vertex_property<T>(vertex_property_name);
+
+    std::vector<T> data;
+    auto           back_inserter = [&](auto const... is) {
+      data.push_back(casted_prop.data_at(is...));
+    };
+    for_loop(back_inserter, size<0>(), size<1>(), size<2>());
+
+    outfile.write((char*)header_string.c_str(),
+                  size(header_string) * sizeof(char));
+    outfile.write((char*)data.data(), size(data) * sizeof(T));
+  }
+  //----------------------------------------------------------------------------
+  template <size_t _N = num_dimensions(),
+            std::enable_if_t<(_N == 1 || _N == 2 || _N == 3), bool> = true>
   void write_vtk(std::string const& file_path) const {
     auto writer = [this, & file_path] {
       if constexpr (is_regular) {

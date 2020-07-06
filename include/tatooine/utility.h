@@ -116,6 +116,54 @@ constexpr void tat_swap(T& t0, T& t1) {
   t0    = std::move(t1);
   t1    = std::move(tmp);
 }
+//------------------------------------------------------------------------------
+template <real_or_complex_number T>
+constexpr auto num_components(T const&){
+  return 1;
+}
+// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+template <typename Tensor, real_or_complex T, size_t... Dims>
+constexpr auto num_components(base_tensor<Tensor, T, Dims...> const&) {
+  return Tensor::num_components();
+}
+// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+template <real_or_complex T, size_t N>
+constexpr auto num_components<vec<T, N>>() {
+  return N;
+}
+// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+template <real_or_complex T, size_t M, size_t N>
+constexpr auto num_components<mat<T, M, N>>() {
+  return M * N;
+}
+//------------------------------------------------------------------------------
+template <typename T>
+struct internal_type_impl;
+
+template <typename T>
+using internal_type = typename internal_type_impl<T>::type;
+
+template <real_or_complex T>
+struct internal_type_impl<T> {
+  using type = T;
+}
+template <real_or_complex T, size_t N>
+struct internal_type_impl<vec<T, N>> {
+  using type = T;
+}
+template <real_or_complex T, size_t M, size_t N>
+struct internal_type_impl<mat<T, M, N>> {
+  using type = T;
+}
+template <real_or_complex T, size_t ... Dims>
+struct internal_type_impl<mat<T, Dims...>> {
+  using type = T;
+}
+template <real_or_complex T, size_t ... Dims>
+struct internal_type_impl<mat<T, Dims...>> {
+  using type = T;
+}
+
 //==============================================================================
 }  // namespace tatooine
 //==============================================================================
