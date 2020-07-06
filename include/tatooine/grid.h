@@ -11,7 +11,6 @@
 #include <tatooine/interpolation.h>
 #include <tatooine/linspace.h>
 #include <tatooine/random.h>
-#include <tatooine/utility.h>
 #include <tatooine/vec.h>
 
 #include <map>
@@ -719,6 +718,14 @@ class grid {
             std::enable_if_t<_N == 3, bool> = true>
   void write_amira(std::string const& file_path,
                    std::string const& vertex_property_name) const {
+    write_amira(file_path, vertex_property<T>(vertex_property_name));
+  }
+  //----------------------------------------------------------------------------
+  template <typename T, bool R = is_regular, size_t _N = num_dimensions(),
+            std::enable_if_t<R, bool> = true,
+            std::enable_if_t<_N == 3, bool>    = true>
+  void write_amira(std::string const&         file_path,
+                   typed_property_t<T> const& prop) const {
     std::ofstream outfile{file_path, std::ofstream::binary};
     std::stringstream header;
 
@@ -731,22 +738,22 @@ class grid {
                                  << front<2>() << " " << back<2>() << ",\n";
     header << "    CoordType \"uniform\"\n";
     header << "}\n";
-    header << "Lattice { " << type_name<internal_type<T>>() << "["
-           << num_components<T>() << "] Data } @1\n\n";
+    header << "Lattice { " << type_name<internal_data_type_t<T>>() << "["
+           << num_components_v<T> << "] Data } @1\n\n";
     header << "# Data section follows\n@1\n";
-    auto const header_string = header.string();
+    auto const header_string = header.str();
+    std::cerr << header_string << '\n';
 
-    auto& prop = vertex_property<T>(vertex_property_name);
 
     std::vector<T> data;
     auto           back_inserter = [&](auto const... is) {
-      data.push_back(casted_prop.data_at(is...));
+      data.push_back(prop.data_at(is...));
     };
-    for_loop(back_inserter, size<0>(), size<1>(), size<2>());
+    //for_loop(back_inserter, size<0>(), size<1>(), size<2>());
 
-    outfile.write((char*)header_string.c_str(),
-                  size(header_string) * sizeof(char));
-    outfile.write((char*)data.data(), size(data) * sizeof(T));
+    //outfile.write((char*)header_string.c_str(),
+    //              size(header_string) * sizeof(char));
+    //outfile.write((char*)data.data(), size(data) * sizeof(T));
   }
   //----------------------------------------------------------------------------
   template <size_t _N = num_dimensions(),

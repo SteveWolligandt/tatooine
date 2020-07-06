@@ -50,16 +50,20 @@ static constexpr auto is_matrix_v = is_matrix<T>::value;
 template <typename... Ts>
 using enable_if_matrix = std::enable_if_t<(is_matrix_v<Ts> && ...), bool>;
 //------------------------------------------------------------------------------
-template <typename Tensor, typename Real, size_t n>
-struct num_components<base_tensor<Tensor, Real, n>>
-    : std::integral_constant<size_t, n> {};
+template <typename Tensor, typename Real, size_t... Dims>
+struct num_components<base_tensor<Tensor, Real, Dims...>>
+    : std::integral_constant<size_t, (Dims * ...)> {};
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-template <typename Real, size_t n>
-struct num_components<tensor<Real, n>> : std::integral_constant<size_t, n> {};
+template <typename Real, size_t... Dims>
+struct num_components<tensor<Real, Dims...>>
+    : std::integral_constant<size_t, (Dims * ...)> {};
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-template <typename Real, size_t n>
-struct num_components<vec<Real, n>> : std::integral_constant<size_t, n> {};
-
+template <typename Real, size_t M, size_t N>
+struct num_components<mat<Real, M, N>> : std::integral_constant<size_t, M * N> {
+};
+// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+template <typename Real, size_t N>
+struct num_components<vec<Real, N>> : std::integral_constant<size_t, N> {};
 //==============================================================================
 template <typename Real, size_t N>
 struct internal_data_type<vec<Real, N>> {

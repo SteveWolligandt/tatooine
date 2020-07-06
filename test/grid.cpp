@@ -298,5 +298,12 @@ TEST_CASE("grid_lazy_netcdf", "[grid][lazy][netcdf]") {
   prop.sample(0.5, 0.5);
 }
 //==============================================================================
+TEST_CASE("grid_amira_write", "[grid][amira]"){
+  grid  g{linspace{0.0, 1.0, 3}, linspace{0.0, 1.0, 3}, linspace{0.0, 1.0, 3}};
+  auto& prop    = g.add_contiguous_vertex_property<vec<double, 2>, x_fastest>("bla");
+  prop.data_at(1, 1, 1) = vec{1,1};
+  g.write_amira("amira_prop.am", prop);
+}
+//==============================================================================
 }  // namespace tatooine::test
 //==============================================================================
