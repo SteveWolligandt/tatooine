@@ -738,8 +738,13 @@ class grid {
                                  << front<2>() << " " << back<2>() << ",\n";
     header << "    CoordType \"uniform\"\n";
     header << "}\n";
-    header << "Lattice { " << type_name<internal_data_type_t<T>>() << "["
-           << num_components_v<T> << "] Data } @1\n\n";
+    if constexpr (num_components_v<T> > 1) {
+      header << "Lattice { " << type_name<internal_data_type_t<T>>() << "["
+             << num_components_v<T> << "] Data } @1\n\n";
+    } else {
+      header << "Lattice { " << type_name<internal_data_type_t<T>>()
+             << " Data } @1\n\n";
+    }
     header << "# Data section follows\n@1\n";
     auto const header_string = header.str();
 
