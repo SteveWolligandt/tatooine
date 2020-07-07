@@ -56,27 +56,26 @@ auto discretize(const sphere<Real, 3>& s, size_t num_subdivisions = 0) {
                        vec{ 0, -Z,  X}, vec{0, -Z, -X}, vec{ Z,  X,  0},
                        vec{-Z,  X,  0}, vec{Z, -X,  0}, vec{-Z, -X,  0}};
   std::vector<std::array<vertex, 3>> triangles{
-      {vertex{ 0}, vertex{ 1}, vertex{ 4}}, // {0,4,1}
-      {vertex{ 0}, vertex{ 4}, vertex{ 9}}, // {0,9,4}
-      {vertex{ 9}, vertex{ 4}, vertex{ 5}}, // {9,5,4}
-      {vertex{ 4}, vertex{ 8}, vertex{ 5}}, // {4,5,8}
-      {vertex{ 4}, vertex{ 1}, vertex{ 8}}, // {4,8,1}
-      {vertex{ 8}, vertex{ 1}, vertex{10}}, // {8,10,1}
-      {vertex{ 8}, vertex{10}, vertex{ 3}}, // {8,3,10}
-      {vertex{ 5}, vertex{ 8}, vertex{ 3}}, // {5,3,8}
-      {vertex{ 5}, vertex{ 3}, vertex{ 2}}, // {5,2,3}
-      {vertex{ 2}, vertex{ 3}, vertex{ 7}}, // {2,7,3}
-      {vertex{ 7}, vertex{ 3}, vertex{10}}, // {7,10,3}
-      {vertex{ 7}, vertex{10}, vertex{ 6}}, // {7,6,10}
-      {vertex{ 7}, vertex{ 6}, vertex{11}}, // {7,11,6}
-      {vertex{11}, vertex{ 6}, vertex{ 0}}, // {11,0,6}
-      {vertex{ 0}, vertex{ 6}, vertex{ 1}}, // {0,1,6}
-      {vertex{ 6}, vertex{10}, vertex{ 1}}, // {6,1,10}
-      {vertex{ 9}, vertex{11}, vertex{ 0}}, // {9,0,11}
-      {vertex{ 9}, vertex{ 2}, vertex{11}}, // {9,11,2}
-      {vertex{ 9}, vertex{ 5}, vertex{ 2}}, // {9,2,5}
-      {vertex{ 7}, vertex{11}, vertex{ 2}}  // {7,2,11}
-
+      {vertex{ 0}, vertex{ 4}, vertex{ 1}},
+      {vertex{ 0}, vertex{ 9}, vertex{ 4}},
+      {vertex{ 9}, vertex{ 5}, vertex{ 4}},
+      {vertex{ 4}, vertex{ 5}, vertex{ 8}},
+      {vertex{ 4}, vertex{ 8}, vertex{ 1}},
+      {vertex{ 8}, vertex{10}, vertex{ 1}},
+      {vertex{ 8}, vertex{ 3}, vertex{10}},
+      {vertex{ 5}, vertex{ 3}, vertex{ 8}},
+      {vertex{ 5}, vertex{ 2}, vertex{ 3}},
+      {vertex{ 2}, vertex{ 7}, vertex{ 3}},
+      {vertex{ 7}, vertex{10}, vertex{ 3}},
+      {vertex{ 7}, vertex{ 6}, vertex{10}},
+      {vertex{ 7}, vertex{11}, vertex{ 6}},
+      {vertex{11}, vertex{ 0}, vertex{ 6}},
+      {vertex{ 0}, vertex{ 1}, vertex{ 6}},
+      {vertex{ 6}, vertex{ 1}, vertex{10}},
+      {vertex{ 9}, vertex{ 0}, vertex{11}},
+      {vertex{ 9}, vertex{11}, vertex{ 2}},
+      {vertex{ 9}, vertex{ 2}, vertex{ 5}},
+      {vertex{ 7}, vertex{ 2}, vertex{11}}
   }; 
   for (size_t i = 0; i < num_subdivisions; ++i) {
     std::vector<std::array<vertex, 3>> subdivided_triangles;

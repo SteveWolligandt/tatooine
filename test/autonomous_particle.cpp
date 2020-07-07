@@ -171,7 +171,7 @@ void autonomous_particles_test_backward_integation_distance(
 }
 //==============================================================================
 TEST_CASE("autonomous_particle_dg_backward_integration",
-          "[autonomous_particle][dg][doublegyre][backward_integration]") {
+          "[autonomous_particle][dg][2d][2D][doublegyre][backward_integration]") {
   doublegyre v;
   v.set_infinite_domain(true);
 
@@ -187,7 +187,7 @@ TEST_CASE("autonomous_particle_dg_backward_integration",
 }
 //------------------------------------------------------------------------------
 TEST_CASE("autonomous_particle_stdg_backward_integration",
-          "[autonomous_particle][stdg][spacetime][doublegyre][backward_integration]") {
+          "[autonomous_particle][stdg][dg][3d][3D][spacetime][doublegyre][backward_integration]") {
   doublegyre v;
   spacetime_field stv{v};
   v.set_infinite_domain(true);
@@ -197,7 +197,7 @@ TEST_CASE("autonomous_particle_stdg_backward_integration",
 }
 //------------------------------------------------------------------------------
 TEST_CASE("autonomous_particle_space_time_saddle_backward_integration",
-          "[autonomous_particle][saddle][spacetime][backward_integration]") {
+          "[autonomous_particle][saddle][3d][3D][spacetime][backward_integration]") {
   saddle v;
   spacetime_field stv{v};
 
@@ -206,18 +206,18 @@ TEST_CASE("autonomous_particle_space_time_saddle_backward_integration",
 }
 //==============================================================================
 TEST_CASE("autonomous_particle_saddle_backward_integration",
-          "[autonomous_particle][saddle][2D][backward_integration]") {
+          "[autonomous_particle][saddle][2D][2d][backward_integration]") {
   autonomous_particles_test_backward_integation_distance(
       "saddle", saddle{}, vec{0.0, 0.0}, 0.1, 0, 1.0, 0.1);
 }
 TEST_CASE("autonomous_particle_center_backward_integration",
-          "[autonomous_particle][center][backward_integration]") {
+          "[autonomous_particle][center][2d][2D][backward_integration]") {
   autonomous_particles_test_backward_integation_distance(
       "center", center{}, vec{0.0,0.0}, 0.01, 0, 20, 0.1);
 }
 //==============================================================================
 TEST_CASE("autonomous_particle_test_field_backward_integration",
-          "[autonomous_particle][test_field][backward_integration]") {
+          "[autonomous_particle][test_field][2d][2D][backward_integration]") {
   autonomous_particles_test_backward_integation_distance(
       "test_field", autonomous_particles_test{}, vec{0.0, 0.0}, 0.001, 0, 10,
       0.1);
