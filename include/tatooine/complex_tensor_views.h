@@ -9,7 +9,7 @@ template <typename Tensor, real_number T, size_t... Dims>
 struct const_imag_complex_tensor
     : base_tensor<const_imag_complex_tensor<Tensor, T, Dims...>, T,
                   Dims...> {
-  static_assert(std::is_same_v<Tensor::value_type, std::complex<T>>);
+  static_assert(std::is_same_v<typename Tensor::value_type, std::complex<T>>);
   using this_t   = const_imag_complex_tensor<Tensor, T, Dims...>;
   using parent_t = base_tensor<this_t, T, Dims...>;
   using parent_t::rank;

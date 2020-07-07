@@ -287,6 +287,11 @@ template <typename Real, size_t M, size_t N>
 auto solve(tensor<Real, M, N> const& A, tensor<Real, N>& b) {
   return lapack::gesv(A, b);
 }
+//------------------------------------------------------------------------------
+template <typename Real, size_t M, size_t N, size_t O>
+auto solve(tensor<Real, M, N> const& A, tensor<Real, N, O>& B) {
+  return lapack::gesv(A, B);
+}
 //==============================================================================
 }  // namespace tatooine
 //==============================================================================

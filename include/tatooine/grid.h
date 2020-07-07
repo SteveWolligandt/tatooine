@@ -95,7 +95,7 @@ class grid {
   //----------------------------------------------------------------------------
   template <indexable_space... _Dimensions>
   explicit constexpr grid(_Dimensions&&... dimensions)
-      : m_dimensions{std::forward<Dimensions>(dimensions)...} {
+      : m_dimensions{std::forward<_Dimensions>(dimensions)...} {
     static_assert(sizeof...(Dimensions) == num_dimensions(),
                   "Number of given dimensions does not match number of "
                   "specified dimensions.");
