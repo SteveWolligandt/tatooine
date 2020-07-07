@@ -209,38 +209,6 @@ TEST_CASE("scivis_contest_2020_field",
   vec const       expected_vel{0.0477014, 0.126074, 1.16049e-06};
   CAPTURE(measured_vel, expected_vel);
   REQUIRE(approx_equal(measured_vel, expected_vel));
-  
-  std::vector<parameterized_line<V::real_t, 3, interpolation::linear>> pathlines;
-  size_t const num_pathlines = 1000;
-  pathlines.reserve(2 * num_pathlines);
-  ode::vclibs::rungekutta43<V::real_t, 3> solver;
-
-  auto bb = v.m_w_grid.boundingbox();
-  vec<V::real_t, 4> xt;
-  vec<V::real_t, 3> sample;
-  bool in_domain = false;
-  for (size_t i = 0; i < num_pathlines; ++i) {
-    do {
-      xt = bb.random_point();
-      in_domain = v.in_domain(vec{xt(0), xt(1), xt(2)}, xt(3));
-      if (in_domain) {
-        sample = v(vec{xt(0), xt(1), xt(2)}, xt(3));
-      }
-    } while (!in_domain || sqr_length(sample) == 0);
-
-    std::cerr << "found position! (" << i << ")\n";
-    pathlines.emplace_back();
-    solver.solve(v, vec{xt(0), xt(1), xt(2)}, xt(3), 1000000,
-                 [&pathlines](auto t, const auto& y) {
-                   pathlines.back().push_back(y, t);
-                 });
-    pathlines.emplace_back();
-    solver.solve(v, vec{xt(0), xt(1), xt(2)}, xt(3), -1000000,
-                 [&pathlines](auto t, const auto& y) {
-                   pathlines.back().push_back(y, t);
-                 });
-  }
-  write_vtk(pathlines, "read_sea.vtk");
 }
 //==============================================================================
 }  // namespace tatooine::netcdf
