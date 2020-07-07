@@ -14,6 +14,9 @@ int main(int argc, char** argv) {
   y_domain.pop_back();
   size_t   zn = static_cast<size_t>((v.z_axis.back() - v.z_axis.front()) /
                                   (v.z_axis[1] - v.z_axis[0]));
+  zn          = v.z_axis.size() * 2;
+  std::cerr << "v.z_axis.size(): " << v.z_axis.size() << '\n';
+  std::cerr << "zn: " << zn << '\n';
   linspace z_domain{v.z_axis.front(), v.z_axis.back(), zn};
 
   grid  resample_grid{x_domain, y_domain, z_domain};
