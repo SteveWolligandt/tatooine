@@ -34,7 +34,7 @@ void autonomous_particles_test_backward_integation_distance(
              total_integration_length, VReal{0},
              static_cast<size_t>(50 * std::abs(total_integration_length))}) {
       auto const x = phi(particle.x1(), particle.t1(), tau);
-      integral_curve.push_back(vec{x(0), x(1), particle.t1() + tau},
+      integral_curve.push_back(vec{x(0), x(1), x(2)},
                                particle.t1() + tau);
     }
 
@@ -193,7 +193,7 @@ TEST_CASE("autonomous_particle_stdg_backward_integration",
   v.set_infinite_domain(true);
 
   autonomous_particles_test_backward_integation_distance(
-      "stdg", stv, vec{1.0, 0.5, 0.0}, 0.1, 0, 5, 0.1);
+      "stdg", stv, vec{1.0, 0.5, 0.0}, 0.1, 0, 2, 0.1);
 }
 //------------------------------------------------------------------------------
 TEST_CASE("autonomous_particle_space_time_saddle_backward_integration",
