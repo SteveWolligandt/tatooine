@@ -754,6 +754,26 @@ class grid {
     outfile.write((char*)data.data(), data.size() * sizeof(T));
   }
   //----------------------------------------------------------------------------
+ private:
+  template <typename T>
+  void write_prop_vtk(vtk::legacy_file_writer& writer, std::string const& name,
+             typed_property_t<T> const& prop) const {
+    std::vector<T> data;
+    auto           back_inserter = [&](auto const... is) {
+      data.push_back(prop.data_at(is...));
+    };
+    if constexpr (num_dimensions() == 1) {
+      for_loop(back_inserter, size<0>());
+    } else if constexpr (num_dimensions() == 2) {
+      for_loop(back_inserter, size<0>(), size<1>());
+    } else if constexpr (num_dimensions() == 3) {
+      for_loop(back_inserter, size<0>(), size<1>(), size<2>());
+    }
+
+    writer.write_scalars(name, data);
+  }
+
+ public:
   template <size_t _N = num_dimensions(),
             std::enable_if_t<(_N == 1 || _N == 2 || _N == 3), bool> = true>
   void write_vtk(std::string const& file_path) const {
@@ -789,23 +809,52 @@ class grid {
     // write vertex data
     writer.write_point_data(num_vertices());
     for (const auto& [name, prop] : this->m_vertex_properties) {
-      if (prop->type() == typeid(double)) {
-        const auto& casted_prop =
-            *dynamic_cast<const typed_property_t<double>*>(prop.get());
+      /*if (prop->type() == typeid(short)) {*/
+      //  write_prop_vtk(writer, name,
+      //                 *dynamic_cast<const
+      //                 typed_property_t<short>*>(prop.get()));
+      //} else if (prop->type() == typeid(unsigned short)) {
+      //  write_prop_vtk(
+      //      writer, name,
+      //      *dynamic_cast<const typed_property_t<unsigned
+      //      short>*>(prop.get()));
+      //
+      /*} else*/ if (prop->type() == typeid(int)) {
+        write_prop_vtk(writer, name,
+                       *dynamic_cast<const typed_property_t<int>*>(prop.get()));
+      //} else if (prop->type() == typeid(unsigned int)) {
+      //  write_prop_vtk(
+      //      writer, name,
+      //      *dynamic_cast<const typed_property_t<unsigned int>*>(prop.get()));
 
-        std::vector<double> data;
-        auto                back_inserter = [&](auto const... is) {
-          data.push_back(casted_prop.data_at(is...));
-        };
-        if constexpr (num_dimensions() == 1) {
-          for_loop(back_inserter, size<0>());
-        } else if constexpr (num_dimensions() == 2) {
-          for_loop(back_inserter, size<0>(), size<1>());
-        } else if constexpr (num_dimensions() == 3) {
-          for_loop(back_inserter, size<0>(), size<1>(), size<2>());
-        }
+      //} else if (prop->type() == typeid(long)) {
+      //  write_prop_vtk(writer, name,
+      //                 *dynamic_cast<const typed_property_t<long>*>(prop.get()));
+      //} else if (prop->type() == typeid(unsigned long)) {
+      //  write_prop_vtk(
+      //      writer, name,
+      //      *dynamic_cast<const typed_property_t<unsigned long>*>(prop.get()));
+      //
+      //} else if (prop->type() == typeid(long long)) {
+      //  write_prop_vtk(writer, name,
+      //                 *dynamic_cast<const typed_property_t<long long>*>(prop.get()));
+      //} else if (prop->type() == typeid(unsigned long long)) {
+      //  write_prop_vtk(
+      //      writer, name,
+      //      *dynamic_cast<const typed_property_t<unsigned long long>*>(prop.get()));
 
-        writer.write_scalars(name, data);
+      } else if (prop->type() == typeid(float)) {
+        write_prop_vtk(
+            writer, name,
+            *dynamic_cast<const typed_property_t<float>*>(prop.get()));
+      } else if (prop->type() == typeid(double)) {
+        write_prop_vtk(
+            writer, name,
+            *dynamic_cast<const typed_property_t<double>*>(prop.get()));
+      //} else if (prop->type() == typeid(long double)) {
+      //  write_prop_vtk(
+      //      writer, name,
+      //      *dynamic_cast<const typed_property_t<long double>*>(prop.get()));
       }
     }
   }
