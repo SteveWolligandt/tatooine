@@ -80,7 +80,9 @@ struct linspace {
   //----------------------------------------------------------------------------
   constexpr auto size() const { return m_size; }
   constexpr auto front() const { return m_min; }
+  constexpr auto front() -> auto& { return m_min; }
   constexpr auto back() const { return m_max; }
+  constexpr auto back() -> auto& { return m_max; }
   //----------------------------------------------------------------------------
   constexpr auto spacing() const { return (m_max - m_min) / (m_size - 1); }
   //----------------------------------------------------------------------------

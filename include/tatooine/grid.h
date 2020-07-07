@@ -809,40 +809,9 @@ class grid {
     // write vertex data
     writer.write_point_data(num_vertices());
     for (const auto& [name, prop] : this->m_vertex_properties) {
-      /*if (prop->type() == typeid(short)) {*/
-      //  write_prop_vtk(writer, name,
-      //                 *dynamic_cast<const
-      //                 typed_property_t<short>*>(prop.get()));
-      //} else if (prop->type() == typeid(unsigned short)) {
-      //  write_prop_vtk(
-      //      writer, name,
-      //      *dynamic_cast<const typed_property_t<unsigned
-      //      short>*>(prop.get()));
-      //
-      /*} else*/ if (prop->type() == typeid(int)) {
+      if (prop->type() == typeid(int)) {
         write_prop_vtk(writer, name,
                        *dynamic_cast<const typed_property_t<int>*>(prop.get()));
-      //} else if (prop->type() == typeid(unsigned int)) {
-      //  write_prop_vtk(
-      //      writer, name,
-      //      *dynamic_cast<const typed_property_t<unsigned int>*>(prop.get()));
-
-      //} else if (prop->type() == typeid(long)) {
-      //  write_prop_vtk(writer, name,
-      //                 *dynamic_cast<const typed_property_t<long>*>(prop.get()));
-      //} else if (prop->type() == typeid(unsigned long)) {
-      //  write_prop_vtk(
-      //      writer, name,
-      //      *dynamic_cast<const typed_property_t<unsigned long>*>(prop.get()));
-      //
-      //} else if (prop->type() == typeid(long long)) {
-      //  write_prop_vtk(writer, name,
-      //                 *dynamic_cast<const typed_property_t<long long>*>(prop.get()));
-      //} else if (prop->type() == typeid(unsigned long long)) {
-      //  write_prop_vtk(
-      //      writer, name,
-      //      *dynamic_cast<const typed_property_t<unsigned long long>*>(prop.get()));
-
       } else if (prop->type() == typeid(float)) {
         write_prop_vtk(
             writer, name,
@@ -851,6 +820,39 @@ class grid {
         write_prop_vtk(
             writer, name,
             *dynamic_cast<const typed_property_t<double>*>(prop.get()));
+      //} else if (prop->type() == typeid(short)) {
+      //  write_prop_vtk(
+      //      writer, name,
+      //      *dynamic_cast<const typed_property_t<short>*>(prop.get()));
+      //} else if (prop->type() == typeid(unsigned short)) {
+      //  write_prop_vtk(
+      //      writer, name,
+      //      *dynamic_cast<const typed_property_t<unsigned short>*>(prop.get()));
+      //
+      //} else if (prop->type() == typeid(unsigned int)) {
+      //  write_prop_vtk(
+      //      writer, name,
+      //      *dynamic_cast<const typed_property_t<unsigned int>*>(prop.get()));
+      //
+      //} else if (prop->type() == typeid(long)) {
+      //  write_prop_vtk(
+      //      writer, name,
+      //      *dynamic_cast<const typed_property_t<long>*>(prop.get()));
+      //} else if (prop->type() == typeid(unsigned long)) {
+      //  write_prop_vtk(
+      //      writer, name,
+      //      *dynamic_cast<const typed_property_t<unsigned long>*>(prop.get()));
+      //
+      //} else if (prop->type() == typeid(long long)) {
+      //  write_prop_vtk(
+      //      writer, name,
+      //      *dynamic_cast<const typed_property_t<long long>*>(prop.get()));
+      //} else if (prop->type() == typeid(unsigned long long)) {
+      //  write_prop_vtk(
+      //      writer, name,
+      //      *dynamic_cast<const typed_property_t<unsigned long long>*>(
+      //          prop.get()));
+      //
       //} else if (prop->type() == typeid(long double)) {
       //  write_prop_vtk(
       //      writer, name,

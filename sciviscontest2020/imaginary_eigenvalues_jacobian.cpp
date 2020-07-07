@@ -23,6 +23,8 @@ int main(int argc, char** argv) {
   g.dimension<2>().pop_front(); 
   g.dimension<0>().pop_back(); 
   g.dimension<1>().pop_back(); 
+  g.dimension<0>().pop_back(); 
+  g.dimension<1>().pop_back(); 
   g.dimension<2>().pop_back(); 
   auto J = diff(v, 1e-4);
   auto apply_imag = [&](auto const... is) {
