@@ -37,6 +37,7 @@ auto getrf(tensor<T, M, N>&& A) {
   }
   return A;
 }
+// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 template <real_or_complex_number T, size_t M, size_t N>
 auto getrf(tensor<T, M, N>& A) {
   vec<int, tatooine::min(M, N)> p;
@@ -51,7 +52,7 @@ auto getrf(tensor<T, M, N>& A) {
   }
   return A;
 }
-//------------------------------------------------------------------------------
+//==============================================================================
 template <size_t N>
 auto gesv(tensor<float, N, N> A, tensor<float, N> b) {
   std::array<int, N> ipiv;
@@ -60,7 +61,7 @@ auto gesv(tensor<float, N, N> A, tensor<float, N> b) {
                 b.data_ptr(), N);
   return b;
 }
-//------------------------------------------------------------------------------
+// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 template <size_t N>
 auto gesv(tensor<double, N, N> A, tensor<double, N> b) {
   vec<int, N> ipiv;
@@ -69,7 +70,7 @@ auto gesv(tensor<double, N, N> A, tensor<double, N> b) {
                 b.data_ptr(), N);
   return b;
 }
-//------------------------------------------------------------------------------
+// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 template <size_t M, size_t N>
 auto gesv(tensor<float, M, M> A, const tensor<float, M, N>& B) {
   auto        X = B;
@@ -78,6 +79,7 @@ auto gesv(tensor<float, M, M> A, const tensor<float, M, N>& B) {
                 X.data_ptr(), M);
   return X;
 }
+// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 template <size_t M, size_t N>
 auto gesv(tensor<double, M, M> A, const tensor<double, M, N>& B) {
   auto               X = B;
@@ -86,7 +88,7 @@ auto gesv(tensor<double, M, M> A, const tensor<double, M, N>& B) {
                 X.data_ptr(), M);
   return X;
 }
-//------------------------------------------------------------------------------
+//==============================================================================
 template <real_or_complex_number T, size_t M, size_t N>
 auto lange(const tensor<T, M, N>& A, const char norm) {
   if constexpr (std::is_same_v<double, T>) {
@@ -101,7 +103,7 @@ auto lange(const tensor<T, M, N>& A, const char norm) {
     throw std::runtime_error{"[tatooine::lapack::lange] - type not accepted"};
   }
 }
-//------------------------------------------------------------------------------
+//==============================================================================
 /// Estimates the reciprocal of the condition number of a general matrix A.
 /// http://www.netlib.org/lapack/explore-html/d7/db5/lapacke__dgecon_8c_a7c007823b949b0b118acf7e0235a6fc5.html
 /// https://www.netlib.org/lapack/explore-html/dd/d9a/group__double_g_ecomputational_ga188b8d30443d14b1a3f7f8331d87ae60.html
@@ -130,6 +132,7 @@ auto gecon(tensor<T, N, N>&& A) {
   }
   return rcond;
 }
+// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 /// Estimates the reciprocal of the condition number of a general matrix A.
 /// http://www.netlib.org/lapack/explore-html/d7/db5/lapacke__dgecon_8c_a7c007823b949b0b118acf7e0235a6fc5.html
 /// https://www.netlib.org/lapack/explore-html/dd/d9a/group__double_g_ecomputational_ga188b8d30443d14b1a3f7f8331d87ae60.html
@@ -161,7 +164,7 @@ auto gecon(tensor<T, N, N>& A) {
   }
   return rcond;
 }
-//------------------------------------------------------------------------------
+//==============================================================================
 /// Estimates the reciprocal of the condition number of a general matrix A.
 /// http://www.netlib.org/lapack/explore-html/d1/d7e/group__double_g_esing_ga84fdf22a62b12ff364621e4713ce02f2.html
 /// http://www.netlib.org/lapack/explore-html/d0/dee/lapacke__dgesvd_8c_af31b3cb47f7cc3b9f6541303a2968c9f.html
