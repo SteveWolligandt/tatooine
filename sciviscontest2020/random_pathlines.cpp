@@ -7,7 +7,7 @@ int main(int, char** argv) {
 
   std::vector<parameterized_line<V::real_t, 3, interpolation::linear>>
                pathlines;
-  size_t const num_pathlines = 1000;
+  size_t const num_pathlines = 100;
   pathlines.reserve(2 * num_pathlines);
   ode::vclibs::rungekutta43<V::real_t, 3> solver;
 
@@ -34,5 +34,5 @@ int main(int, char** argv) {
                    pathlines.back().push_back(y, t);
                  });
   }
-  write_vtk(pathlines, "read_sea_random_pathlines.vtk");
+  write_vtk(pathlines, "red_sea_random_pathlines.vtk");
 }

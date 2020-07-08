@@ -48,13 +48,16 @@ struct scivis_contest_2020_ensemble_member
     xc_axis = linspace{xc_var.read_single(0), xc_var.read_single(499), 500};
     yg_axis = linspace{yg_var.read_single(0), yg_var.read_single(499), 500};
     yc_axis = linspace{yc_var.read_single(0), yc_var.read_single(499), 500};
+
     t_axis  = linspace{t_ax_var.read_single(0), t_ax_var.read_single(59), 60};
     z_axis  = z_mit40_var.read_as_vector();
     std::cerr << "XG: " << xg_axis << '\n';
     std::cerr << "XC: " << xc_axis << '\n';
     std::cerr << "YG: " << yg_axis << '\n';
     std::cerr << "YC: " << yc_axis << '\n';
-    std::cerr << "T: " << t_axis << '\n';
+    std::cerr << "Z:  [" << z_axis[0] << ", " << z_axis[1] << ", ..., "
+              << z_axis.back() << "]" << '\n';
+    std::cerr << "T:  " << t_axis << '\n';
 
     m_u_grid.dimension<3>() = t_axis;
     m_v_grid.dimension<3>() = t_axis;
