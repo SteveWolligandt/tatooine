@@ -1,13 +1,10 @@
 #ifndef TATOOINE_LAMBDA2_FIELD_H
 #define TATOOINE_LAMBDA2_FIELD_H
-
-#include "field.h"
-#include "diff.h"
-
+//==============================================================================
+#include <tatooine/field.h>
 //==============================================================================
 namespace tatooine {
 //==============================================================================
-
 template <typename V, size_t N>
 class okubo_weiss_field
     : public field<okubo_weiss_field<V, N>, typename V::real_t, N> {
@@ -25,7 +22,7 @@ class okubo_weiss_field
   // fields
   //============================================================================
  private:
-  V m_vf;
+  V const& m_vf;
 
   //============================================================================
   // ctor
@@ -67,7 +64,7 @@ class okubo_weiss_field<V, 3>
   // fields
   //============================================================================
  private:
-  V m_vf;
+  V const& m_vf;
 
   //============================================================================
   // ctor
@@ -81,7 +78,7 @@ class okubo_weiss_field<V, 3>
   //============================================================================
  public:
   constexpr tensor_t evaluate(const pos_t& x, real_t t) const {
-    auto J = diff(m_vf)(x, t);
+    auto J = diff(m_vf, 1e-7)(x, t);
     return -(J(0, 0) * J(0, 0) +
              J(1, 1) * J(1, 1) +
              J(2, 2) * J(2, 2) +
@@ -103,5 +100,4 @@ auto okubo_weiss(const field<V, Real, N, N>& vf) {
 //==============================================================================
 }  // namespace tatooine
 //==============================================================================
-
 #endif
