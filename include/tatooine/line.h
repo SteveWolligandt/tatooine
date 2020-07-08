@@ -406,8 +406,9 @@ struct line {
   //----------------------------------------------------------------------------
   template <
       typename... Vertices, enable_if_vector<std::decay_t<Vertices>...> = true,
-      enable_if_arithmetic<typename std::decay_t<Vertices>::real_t...>               = true,
-      std::enable_if_t<((std::decay_t<Vertices>::num_components() == N) && ...), bool> = true>
+      enable_if_arithmetic<typename std::decay_t<Vertices>::real_t...> = true,
+      std::enable_if_t<((std::decay_t<Vertices>::num_components() == N) && ...),
+                       bool>                                           = true>
   line(Vertices&&... vertices)
       : m_vertices{pos_t{std::forward<Vertices>(vertices)}...},
         m_is_closed{false} {}

@@ -95,7 +95,7 @@ class grid {
   //----------------------------------------------------------------------------
   template <indexable_space... _Dimensions>
   explicit constexpr grid(_Dimensions&&... dimensions)
-      : m_dimensions{std::forward<Dimensions>(dimensions)...} {
+      : m_dimensions{std::forward<_Dimensions>(dimensions)...} {
     static_assert(sizeof...(Dimensions) == num_dimensions(),
                   "Number of given dimensions does not match number of "
                   "specified dimensions.");
@@ -738,8 +738,13 @@ class grid {
                                  << front<2>() << " " << back<2>() << ",\n";
     header << "    CoordType \"uniform\"\n";
     header << "}\n";
-    header << "Lattice { " << type_name<internal_data_type_t<T>>() << "["
-           << num_components_v<T> << "] Data } @1\n\n";
+    if constexpr (num_components_v<T> > 1) {
+      header << "Lattice { " << type_name<internal_data_type_t<T>>() << "["
+             << num_components_v<T> << "] Data } @1\n\n";
+    } else {
+      header << "Lattice { " << type_name<internal_data_type_t<T>>()
+             << " Data } @1\n\n";
+    }
     header << "# Data section follows\n@1\n";
     auto const header_string = header.str();
 

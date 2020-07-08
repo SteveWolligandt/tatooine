@@ -210,28 +210,30 @@ struct autonomous_particle<Flowmap> {
       std::cerr << "∇φ2:\n" << nabla_phi2 << '\n';
       std::cerr << "eigenvalues ∇φ2: " << eigvals_np2 << '\n';
       std::cerr << "eigenvectors ∇φ2: \n" << eigvecs_np2 << '\n';
-      vec const eigvals_HHt_sqrt{std::sqrt(eigvals_HHt(0)),
-                                 std::sqrt(eigvals_HHt(1)),
-                                 std::sqrt(eigvals_HHt(2)) / 2};
+      vec const      new_eigvals_inner{std::sqrt(eigvals_HHt(0)),
+                                  std::sqrt(eigvals_HHt(1)),
+                                  std::sqrt(eigvals_HHt(2)) / 2};
+      auto const     new_eigvals_outer = new_eigvals_inner / 2;
       vec_t const offset2 =
           std::sqrt(eigvals_HHt(2)) * eigvecs_HHt.col(2) * 3 / 4;
       vec_t const offset0 = inv(fmg2fmg1) * offset2;
 
-      auto const new_S = eigvecs_HHt * diag(eigvals_HHt_sqrt) * transposed(eigvecs_HHt);
-      auto const half_new_S = new_S / 2;
+      auto const new_S_inner = eigvecs_HHt * diag(new_eigvals_inner) * transposed(eigvecs_HHt);
+      auto const new_S_outer = eigvecs_HHt * diag(new_eigvals_outer) * transposed(eigvecs_HHt);
 
       particles.emplace_back(m_phi, m_x0 - offset0, p_000 - offset2, t2,
-                             fmg2fmg1, half_new_S, m_level + 1);
-      particles.emplace_back(m_phi, m_x0, p_000, t2, fmg2fmg1, new_S,
+                             fmg2fmg1, new_S_outer, m_level + 1);
+      particles.emplace_back(m_phi, m_x0, p_000, t2, fmg2fmg1, new_S_inner,
                              m_level + 1);
       particles.emplace_back(m_phi, m_x0 + offset0, p_000 + offset2, t2,
-                             fmg2fmg1, half_new_S, m_level + 1);
+                             fmg2fmg1, new_S_outer, m_level + 1);
 
     } else {
-      //vec const eigvals_HHt_sqrt{std::sqrt(eigvals_HHt(0)),
-      //                           std::sqrt(eigvals_HHt(1)),
-      //                           std::sqrt(eigvals_HHt(2)) / 3};
-      //auto const new_S = eigvecs_HHt * diag(eigvals_HHt_sqrt) * transposed(eigvecs_HHt);
+      //vec const  new_eigvals{std::sqrt(eigvals_HHt(0)),
+      //                      std::sqrt(eigvals_HHt(1)),
+      //                      std::sqrt(eigvals_HHt(2)) / 2};
+      //auto const new_S =
+      //    eigvecs_HHt * diag(new_eigvals) * transposed(eigvecs_HHt);
       //particles.emplace_back(m_phi, m_x0, p_000, t2, fmg2fmg1, new_S,
       //                       m_level + 1);
     }
