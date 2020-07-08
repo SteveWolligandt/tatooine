@@ -9,6 +9,16 @@
 //==============================================================================
 namespace tatooine::test {
 //==============================================================================
+TEST_CASE("parallel_vectors_pv_on_tri", "[parallel_vectors][pv][pv_on_tri]") {
+  auto x = detail::pv_on_tri(
+      vec{0.0, 0.0, 0.0}, vec{-0.5, -1.0, -0.5}, vec{-0.5, 1.0, 0.5},
+      vec{1.0, 0.0, 0.0}, vec{ 0.5, -1.0, -0.5}, vec{ 0.5, 1.0, 0.5},
+      vec{1.0, 1.0, 1.0}, vec{ 0.8,  1.0, -0.7}, vec{ 1.5, 3.0, 0.5});
+  CAPTURE(x);
+  REQUIRE(x);
+  REQUIRE(approx_equal(*x, vec{0.5, 0.0, 0.0}));
+}
+//==============================================================================
 template <typename Field, typename Real, typename... Preds>
 auto pv_acceleration(const field<Field, Real, 2, 2>& vf, linspace<Real> x,
                      linspace<Real> y, linspace<Real> z, Preds&&... preds) {
@@ -51,8 +61,8 @@ TEST_CASE("parallel_vectors_numerical_doublegyre_acceleration",
           "[parallel_vectors][pv][numerical][doublegyre][dg][spacetime_field]"
           "[differentiate][acceleration]") {
   write_vtk(
-      pv_acceleration(analytical::fields::numerical::doublegyre{}, linspace{1e-3, 2.0 - 1e-4, 61},
-                      linspace{1e-4, 1 - 1e-3, 31}, linspace{0.0, 10.0, 101}),
+      pv_acceleration(analytical::fields::numerical::doublegyre{}, linspace{1e-3, 2.0 - 1e-4, 201},
+                      linspace{1e-4, 1 - 1e-3, 101}, linspace{0.0, 10.0, 401}),
       "numerical_spacetime_doublegyre_pv_lines_acceleration.vtk");
 }
 //==============================================================================

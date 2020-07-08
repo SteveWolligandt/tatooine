@@ -2,7 +2,11 @@
 #define TATOOINE_BASE_TENSOR_H
 //==============================================================================
 #include <cassert>
-#include "crtp.h"
+#include <tatooine/concepts.h>
+#include <tatooine/crtp.h>
+#include <tatooine/index_ordering.h>
+#include <tatooine/multidim_size.h>
+#include <tatooine/template_helper.h>
 //==============================================================================
 namespace tatooine {
 //==============================================================================

@@ -284,12 +284,12 @@ constexpr auto singular_values(const base_tensor<Tensor, T, M, N>& A) {
 }
 //------------------------------------------------------------------------------
 template <typename Real, size_t M, size_t N>
-auto solve(tensor<Real, M, N> const& A, tensor<Real, N>& b) {
+auto solve(tensor<Real, M, N> const& A, tensor<Real, N> const& b) {
   return lapack::gesv(A, b);
 }
 //------------------------------------------------------------------------------
 template <typename Real, size_t M, size_t N, size_t O>
-auto solve(tensor<Real, M, N> const& A, tensor<Real, N, O>& B) {
+auto solve(tensor<Real, M, N> const& A, tensor<Real, N, O> const& B) {
   return lapack::gesv(A, B);
 }
 //==============================================================================

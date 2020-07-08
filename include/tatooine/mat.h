@@ -27,12 +27,12 @@ struct mat : tensor<T, M, N> {
   //============================================================================
   // constructors
   //============================================================================
-  constexpr mat(const mat&) = default;
+  constexpr mat(mat const&) = default;
   //----------------------------------------------------------------------------
   constexpr mat(mat&& other) noexcept = default;
   //----------------------------------------------------------------------------
   template <typename Tensor, typename TensorReal>
-  constexpr mat(const base_tensor<Tensor, TensorReal, M, N>& other)
+  constexpr mat(base_tensor<Tensor, TensorReal, M, N> const& other)
       : parent_t{other} {}
   //----------------------------------------------------------------------------
   template <real_number... Rows>
@@ -42,7 +42,7 @@ struct mat : tensor<T, M, N> {
         "number of given rows does not match specified number of rows");
 
     // lambda inserting row into data block
-    auto insert_row = [r = 0UL, this](const auto& row) mutable {
+    auto insert_row = [r = 0UL, this](auto const& row) mutable {
       for (size_t c = 0; c < parent_t::dimension(1); ++c) {
         this->at(r, c) = static_cast<T>(row[c]);
       }
@@ -59,13 +59,13 @@ struct mat : tensor<T, M, N> {
   //============================================================================
   // assign operators
   //============================================================================
-  constexpr auto operator=(const mat&) -> mat& = default;
+  constexpr auto operator=(mat const&) -> mat& = default;
   //----------------------------------------------------------------------------
   constexpr auto operator=(mat&& other) noexcept -> mat& = default;
   //----------------------------------------------------------------------------
   template <typename Tensor, typename TensorReal>
   constexpr auto operator=(
-      const base_tensor<Tensor, TensorReal, M, N>& other) noexcept -> mat& {
+      base_tensor<Tensor, TensorReal, M, N> const& other) noexcept -> mat& {
     parent_t::operator=(other);
     return *this;
   }

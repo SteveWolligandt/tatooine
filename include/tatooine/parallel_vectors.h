@@ -20,30 +20,31 @@ namespace tatooine {
 //==============================================================================
 namespace detail {
 //==============================================================================
+/// \return Position where v and w are parallel otherwise nothing.
 template <typename Real, invocable<vec<Real, 3>>... Preds>
 std::optional<vec<Real, 3>> pv_on_tri(
     vec<Real, 3> const& p0, vec<Real, 3> const& v0, vec<Real, 3> const& w0,
     vec<Real, 3> const& p1, vec<Real, 3> const& v1, vec<Real, 3> const& w1,
     vec<Real, 3> const& p2, vec<Real, 3> const& v2, vec<Real, 3> const& w2,
     Preds&&... preds) {
-  mat<Real, 3, 3> v, w, m;
-  v.col(0) = v0;
-  v.col(1) = v1;
-  v.col(2) = v2;
-  w.col(0) = w0;
-  w.col(1) = w1;
-  w.col(2) = w2;
+  mat<Real, 3, 3> V, W, M;
+  V.col(0) = v0;
+  V.col(1) = v1;
+  V.col(2) = v2;
+  W.col(0) = w0;
+  W.col(1) = w1;
+  W.col(2) = w2;
 
   openblas_set_num_threads(1);
-  if (std::abs(det(v)) > 0) {
-    m = solve(v, w);
-  } else if (std::abs(det(w)) > 0) {
-    m = solve(w, v);
+  if (std::abs(det(V)) > 0) {
+    M = solve(V, W);
+  } else if (std::abs(det(W)) > 0) {
+    M = solve(W, V);
   } else {
     return {};
   }
 
-  auto const [eigvecs, eigvals] = eigenvectors(m);
+  auto const [eigvecs, eigvals] = eigenvectors(M);
   auto const ieig               = imag(eigvecs);
   auto const reig               = real(eigvecs);
 

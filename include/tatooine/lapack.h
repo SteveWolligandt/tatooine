@@ -53,40 +53,35 @@ auto getrf(tensor<T, M, N>& A) {
   return A;
 }
 //==============================================================================
-template <size_t N>
-auto gesv(tensor<float, N, N> A, tensor<float, N> b) {
-  std::array<int, N> ipiv;
-  int                nrhs = 1;
-  LAPACKE_sgesv(LAPACK_COL_MAJOR, N, nrhs, A.data_ptr(), N, ipiv.data(),
-                b.data_ptr(), N);
-  return b;
-}
-// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-template <size_t N>
-auto gesv(tensor<double, N, N> A, tensor<double, N> b) {
+template <real_number T, size_t N>
+auto gesv(tensor<T, N, N> A, tensor<T, N> b) {
   vec<int, N> ipiv;
   int         nrhs = 1;
-  LAPACKE_dgesv(LAPACK_COL_MAJOR, N, nrhs, A.data_ptr(), N, ipiv.data_ptr(),
-                b.data_ptr(), N);
+  if constexpr (std::is_same_v<double, T>) {
+    LAPACKE_dgesv(LAPACK_COL_MAJOR, N, nrhs, A.data_ptr(), N, ipiv.data_ptr(),
+                  b.data_ptr(), N);
+  } else if constexpr (std::is_same_v<float, T>) {
+    LAPACKE_sgesv(LAPACK_COL_MAJOR, N, nrhs, A.data_ptr(), N, ipiv.data(),
+                  b.data_ptr(), N);
+  } else {
+    throw std::runtime_error{"[tatooine::lapack::gesv] - type not accepted"};
+  }
   return b;
 }
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-template <size_t M, size_t N>
-auto gesv(tensor<float, M, M> A, const tensor<float, M, N>& B) {
-  auto        X = B;
-  vec<int, N> ipiv;
-  LAPACKE_sgesv(LAPACK_COL_MAJOR, M, N, A.data_ptr(), M, ipiv.data_ptr(),
-                X.data_ptr(), M);
-  return X;
-}
-// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-template <size_t M, size_t N>
-auto gesv(tensor<double, M, M> A, const tensor<double, M, N>& B) {
-  auto               X = B;
+template <real_number T, size_t N, size_t NRHS>
+auto gesv(tensor<T, N, N> A, tensor<T, N, NRHS> B) {
   std::array<int, N> ipiv;
-  LAPACKE_dgesv(LAPACK_COL_MAJOR, M, N, A.data_ptr(), M, ipiv.data(),
-                X.data_ptr(), M);
-  return X;
+  if constexpr (std::is_same_v<double, T>) {
+    LAPACKE_dgesv(LAPACK_COL_MAJOR, N, NRHS, A.data_ptr(), N, ipiv.data(),
+                  B.data_ptr(), N);
+  } else if constexpr (std::is_same_v<float, T>) {
+    LAPACKE_sgesv(LAPACK_COL_MAJOR, N, NRHS, A.data_ptr(), N, ipiv.data_ptr(),
+                  B.data_ptr(), N);
+  } else {
+    throw std::runtime_error{"[tatooine::lapack::gesv] - type not accepted"};
+  }
+  return B;
 }
 //==============================================================================
 template <real_or_complex_number T, size_t M, size_t N>
