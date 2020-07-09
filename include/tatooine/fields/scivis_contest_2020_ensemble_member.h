@@ -93,7 +93,113 @@ struct scivis_contest_2020_ensemble_member
     bool const in_u = m_u_grid.in_domain(x(0), x(1), x(2), t);
     bool const in_v = m_v_grid.in_domain(x(0), x(1), x(2), t);
     bool const in_w = m_w_grid.in_domain(x(0), x(1), x(2), t);
-    return in_u && in_v && in_w;
+    if (!(in_u && in_v && in_w)) { return false };
+
+    auto const uis = m_u_grid.cell_index(x(0), x(1), x(2), t);
+    if (m_u->data_at(uis[0].first    , uis[1].first    ,
+                     uis[2].first    , uis[2].first)     == 0 ||
+        m_u->data_at(uis[0].first + 1, uis[1].first    ,
+                     uis[2].first    , uis[2].first)     == 0 ||
+        m_u->data_at(uis[0].first    , uis[1].first + 1,
+                     uis[2].first    , uis[2].first)     == 0 ||
+        m_u->data_at(uis[0].first + 1, uis[1].first + 1,
+                     uis[2].first    , uis[2].first)     == 0 ||
+        m_u->data_at(uis[0].first    , uis[1].first    ,
+                     uis[2].first + 1, uis[2].first)     == 0 ||
+        m_u->data_at(uis[0].first + 1, uis[1].first    ,
+                     uis[2].first + 1, uis[2].first)     == 0 ||
+        m_u->data_at(uis[0].first    , uis[1].first + 1,
+                     uis[2].first + 1, uis[2].first)     == 0 ||
+        m_u->data_at(uis[0].first + 1, uis[1].first + 1,
+                     uis[2].first + 1, uis[2].first)     == 0 ||
+        m_u->data_at(uis[0].first    , uis[1].first    ,
+                     uis[2].first    , uis[2].first + 1) == 0 ||
+        m_u->data_at(uis[0].first + 1, uis[1].first    ,
+                     uis[2].first    , uis[2].first + 1) == 0 ||
+        m_u->data_at(uis[0].first    , uis[1].first + 1,
+                     uis[2].first    , uis[2].first + 1) == 0 ||
+        m_u->data_at(uis[0].first + 1, uis[1].first + 1,
+                     uis[2].first    , uis[2].first + 1) == 0 ||
+        m_u->data_at(uis[0].first    , uis[1].first    ,
+                     uis[2].first + 1, uis[2].first + 1) == 0 ||
+        m_u->data_at(uis[0].first + 1, uis[1].first    ,
+                     uis[2].first + 1, uis[2].first + 1) == 0 ||
+        m_u->data_at(uis[0].first    , uis[1].first + 1,
+                     uis[2].first + 1, uis[2].first + 1) == 0 ||
+        m_u->data_at(uis[0].first + 1, uis[1].first + 1,
+                     uis[2].first + 1, uis[2].first + 1) == 0) {
+      return false;
+    }
+    auto const vis = m_u_grid.cell_index(x(0), x(1), x(2), t);
+    if (m_u->data_at(vis[0].first    , vis[1].first    ,
+                     vis[2].first    , vis[2].first)     == 0 ||
+        m_u->data_at(vis[0].first + 1, vis[1].first    ,
+                     vis[2].first    , vis[2].first)     == 0 ||
+        m_u->data_at(vis[0].first    , vis[1].first + 1,
+                     vis[2].first    , vis[2].first)     == 0 ||
+        m_u->data_at(vis[0].first + 1, vis[1].first + 1,
+                     vis[2].first    , vis[2].first)     == 0 ||
+        m_u->data_at(vis[0].first    , vis[1].first    ,
+                     vis[2].first + 1, vis[2].first)     == 0 ||
+        m_u->data_at(vis[0].first + 1, vis[1].first    ,
+                     vis[2].first + 1, vis[2].first)     == 0 ||
+        m_u->data_at(vis[0].first    , vis[1].first + 1,
+                     vis[2].first + 1, vis[2].first)     == 0 ||
+        m_u->data_at(vis[0].first + 1, vis[1].first + 1,
+                     vis[2].first + 1, vis[2].first)     == 0 ||
+        m_u->data_at(vis[0].first    , vis[1].first    ,
+                     vis[2].first    , vis[2].first + 1) == 0 ||
+        m_u->data_at(vis[0].first + 1, vis[1].first    ,
+                     vis[2].first    , vis[2].first + 1) == 0 ||
+        m_u->data_at(vis[0].first    , vis[1].first + 1,
+                     vis[2].first    , vis[2].first + 1) == 0 ||
+        m_u->data_at(vis[0].first + 1, vis[1].first + 1,
+                     vis[2].first    , vis[2].first + 1) == 0 ||
+        m_u->data_at(vis[0].first    , vis[1].first    ,
+                     vis[2].first + 1, vis[2].first + 1) == 0 ||
+        m_u->data_at(vis[0].first + 1, vis[1].first    ,
+                     vis[2].first + 1, vis[2].first + 1) == 0 ||
+        m_u->data_at(vis[0].first    , vis[1].first + 1,
+                     vis[2].first + 1, vis[2].first + 1) == 0 ||
+        m_u->data_at(vis[0].first + 1, vis[1].first + 1,
+                     vis[2].first + 1, vis[2].first + 1) == 0) {
+      return false;
+    }
+    auto const wis = m_w_grid.cell_index(x(0), x(1), x(2), t);
+    if (m_u->data_at(wis[0].first    , wis[1].first    ,
+                     wis[2].first    , wis[2].first)     == 0 ||
+        m_u->data_at(wis[0].first + 1, wis[1].first    ,
+                     wis[2].first    , wis[2].first)     == 0 ||
+        m_u->data_at(wis[0].first    , wis[1].first + 1,
+                     wis[2].first    , wis[2].first)     == 0 ||
+        m_u->data_at(wis[0].first + 1, wis[1].first + 1,
+                     wis[2].first    , wis[2].first)     == 0 ||
+        m_u->data_at(wis[0].first    , wis[1].first    ,
+                     wis[2].first + 1, wis[2].first)     == 0 ||
+        m_u->data_at(wis[0].first + 1, wis[1].first    ,
+                     wis[2].first + 1, wis[2].first)     == 0 ||
+        m_u->data_at(wis[0].first    , wis[1].first + 1,
+                     wis[2].first + 1, wis[2].first)     == 0 ||
+        m_u->data_at(wis[0].first + 1, wis[1].first + 1,
+                     wis[2].first + 1, wis[2].first)     == 0 ||
+        m_u->data_at(wis[0].first    , wis[1].first    ,
+                     wis[2].first    , wis[2].first + 1) == 0 ||
+        m_u->data_at(wis[0].first + 1, wis[1].first    ,
+                     wis[2].first    , wis[2].first + 1) == 0 ||
+        m_u->data_at(wis[0].first    , wis[1].first + 1,
+                     wis[2].first    , wis[2].first + 1) == 0 ||
+        m_u->data_at(wis[0].first + 1, wis[1].first + 1,
+                     wis[2].first    , wis[2].first + 1) == 0 ||
+        m_u->data_at(wis[0].first    , wis[1].first    ,
+                     wis[2].first + 1, wis[2].first + 1) == 0 ||
+        m_u->data_at(wis[0].first + 1, wis[1].first    ,
+                     wis[2].first + 1, wis[2].first + 1) == 0 ||
+        m_u->data_at(wis[0].first    , wis[1].first + 1,
+                     wis[2].first + 1, wis[2].first + 1) == 0 ||
+        m_u->data_at(wis[0].first + 1, wis[1].first + 1,
+                     wis[2].first + 1, wis[2].first + 1) == 0) {
+      return false;
+    }
   }
 };
 //==============================================================================
