@@ -13,14 +13,12 @@ int main(int, char** argv) {
 
   auto              bb = v.m_w_grid.boundingbox();
   vec<V::real_t, 4> xt;
-  vec<V::real_t, 3> sample;
   bool              in_domain = false;
   for (size_t i = 0; i < num_pathlines; ++i) {
     do {
       xt        = bb.random_point();
       in_domain = v.in_domain(vec{xt(0), xt(1), xt(2)}, xt(3));
-      if (in_domain) { sample = v(vec{xt(0), xt(1), xt(2)}, xt(3)); }
-    } while (!in_domain || sqr_length(sample) == 0);
+    } while (!in_domain );
 
     std::cerr << "found position! (" << i << ")\n";
     pathlines.emplace_back();

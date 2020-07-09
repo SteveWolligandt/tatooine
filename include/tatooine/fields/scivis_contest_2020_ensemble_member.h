@@ -93,7 +93,7 @@ struct scivis_contest_2020_ensemble_member
     bool const in_u = m_u_grid.in_domain(x(0), x(1), x(2), t);
     bool const in_v = m_v_grid.in_domain(x(0), x(1), x(2), t);
     bool const in_w = m_w_grid.in_domain(x(0), x(1), x(2), t);
-    if (!(in_u && in_v && in_w)) { return false };
+    if (!(in_u && in_v && in_w)) { return false; }
 
     auto const uis = m_u_grid.cell_index(x(0), x(1), x(2), t);
     if (m_u->data_at(uis[0].first    , uis[1].first    ,
@@ -200,6 +200,7 @@ struct scivis_contest_2020_ensemble_member
                      wis[2].first + 1, wis[2].first + 1) == 0) {
       return false;
     }
+    return true;
   }
 };
 //==============================================================================
