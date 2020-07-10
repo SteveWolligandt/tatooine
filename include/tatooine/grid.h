@@ -38,7 +38,7 @@ class grid {
   using vertex_container = grid_vertex_container<Dimensions...>;
 
   template <typename T>
-  using default_interpolation_kernel_t = interpolation::linear<T>;
+  using default_interpolation_kernel_t = interpolation::hermite<T>;
 
   // general property types
   using property_t = multidim_property<this_t>;
@@ -119,6 +119,44 @@ class grid {
   //============================================================================
   constexpr auto operator=(grid const& other) -> grid& = default;
   constexpr auto operator=(grid&& other) noexcept -> grid& = default;
+  //----------------------------------------------------------------------------
+  constexpr auto dimension(size_t const i) -> auto& {
+    switch(i) {
+      case 0: return dimension<0>();
+      case 1: return dimension<1>();
+      case 2: return dimension<2>();
+      case 3: return dimension<3>();
+      case 4: return dimension<4>();
+      case 5: return dimension<5>();
+      case 6: return dimension<6>();
+      case 7: return dimension<7>();
+      case 8: return dimension<8>();
+      case 9: return dimension<9>();
+      case 10: return dimension<10>();
+      default:
+        throw std::runtime_error{
+            "[grid::dimension] index too high for dynamic get."};
+    }
+  }
+  // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+  constexpr auto dimension(size_t i) const -> auto const& {
+    switch(i) {
+      case 0: return dimension<0>();
+      case 1: return dimension<1>();
+      case 2: return dimension<2>();
+      case 3: return dimension<3>();
+      case 4: return dimension<4>();
+      case 5: return dimension<5>();
+      case 6: return dimension<6>();
+      case 7: return dimension<7>();
+      case 8: return dimension<8>();
+      case 9: return dimension<9>();
+      case 10: return dimension<10>();
+      default:
+        throw std::runtime_error{
+            "[grid::dimension] index too high for dynamic get."};
+    }
+  }
   //----------------------------------------------------------------------------
   template <size_t i>
   constexpr auto dimension() -> auto& {

@@ -18,6 +18,7 @@ struct grid_vertex_property
               Container, InterpolationKernels...>;
   //==============================================================================
   using prop_parent_t::grid;
+  static constexpr auto num_dimensions() {return Grid::num_dimensions();}
   //==============================================================================
   grid_vertex_property(grid_vertex_property const&)     = default;
   grid_vertex_property(grid_vertex_property&&) noexcept = default;
@@ -76,11 +77,20 @@ struct grid_vertex_property
   template <size_t... Is>
   auto sample(typename Grid::pos_t const& x, std::index_sequence<Is...>) const
       -> value_type {
+        static_assert(Grid::pos_t::num_dimensions() == sizeof...(Is));
     return sampler_parent_t::sample(x(Is)...);
   }
   //----------------------------------------------------------------------------
   auto sample(typename Grid::pos_t const& x) const -> value_type override {
-    return sample(x, std::make_index_sequence<sampler_parent_t::num_dimensions()>{});
+    return sample(
+        x, std::make_index_sequence<Grid::pos_t::num_dimensions()>{});
+  }
+  //----------------------------------------------------------------------------
+  template <size_t DimIndex, size_t StencilSize>
+  auto stencil_coefficients(size_t const i,
+                            unsigned int const num_diffs) const {
+    return prop_parent_t::template stencil_coefficients<DimIndex, StencilSize>(
+        i, num_diffs);
   }
 };
 //==============================================================================

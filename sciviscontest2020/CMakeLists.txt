@@ -6,10 +6,10 @@ elseif ("${CMAKE_CXX_COMPILER_ID}" STREQUAL "GNU")
 endif()
 #===============================================================================
 macro(create_executable NAME)
-  add_executable (${NAME} ${NAME}.cpp)
-  target_link_libraries(${NAME} tatooine)
-  target_compile_features(${NAME} PUBLIC cxx_std_20)
-  target_compile_options(${NAME} PRIVATE
+  add_executable (${NAME}.sciviscontest2020 ${NAME}.cpp)
+  target_link_libraries(${NAME}.sciviscontest2020 tatooine)
+  target_compile_features(${NAME}.sciviscontest2020 PUBLIC cxx_std_20)
+  target_compile_options(${NAME}.sciviscontest2020 PRIVATE
     -Wall -Wextra -pedantic -Wno-missing-braces -Wno-unused-lambda-capture)
 endmacro()
 #- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -

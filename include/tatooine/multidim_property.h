@@ -94,7 +94,7 @@ struct typed_multidim_property : multidim_property<Grid> {
 
     vec<double, StencilSize> stencil;
     for (size_t j = 0; j < StencilSize; ++j) {
-      stencil(j) = dim[left_index+j] - dim[i];
+      stencil(j) = dim[left_index + j] - dim[i];
     }
     return std::pair{left_index,
                      finite_differences_coefficients(num_diffs, stencil)};
@@ -121,7 +121,7 @@ struct typed_multidim_property : multidim_property<Grid> {
   }
   //----------------------------------------------------------------------------
   template <size_t DimIndex, size_t StencilSize>
-  auto diff_at(unsigned int const num_diffs ,integral auto... is) const {
+  auto diff_at(unsigned int const num_diffs, integral auto... is) const {
     static_assert(sizeof...(is) == num_dimensions(),
                   "Number of indices does not match number of dimensions.");
     return diff_at<DimIndex, StencilSize>(num_diffs,

@@ -209,10 +209,10 @@ struct hermite<tensor<Real, N>> {
   // static members
   //----------------------------------------------------------------------------
  public:
-  static constexpr mat<Real, 4, 4> A{{ 1,  0,  0,  0},
-                                     { 0,  0,  1,  0},
-                                     {-3,  3, -2, -1},
-                                     { 2, -2,  1,  1}};
+  //static constexpr mat<Real, 4, 4> A{{ 1,  0,  0,  0},
+  //                                   { 0,  0,  1,  0},
+  //                                   {-3,  3, -2, -1},
+  //                                   { 2, -2,  1,  1}};
 
   //----------------------------------------------------------------------------
   // members
@@ -228,14 +228,19 @@ struct hermite<tensor<Real, N>> {
   constexpr hermite& operator=(const hermite&) = default;
   constexpr hermite& operator=(hermite&&) = default;
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-  constexpr hermite(const vec_t& fx0,   const vec_t& fx1,
+  constexpr hermite(real_t const t0, real_t const t1,
+                    const vec_t& fx0, const vec_t& fx1,
                     const vec_t& fx0dx, const vec_t& fx1dx) {
     mat<Real, 4, N> B;
     B.row(0)     = fx0;
     B.row(1)     = fx1;
     B.row(2)     = fx0dx;
     B.row(3)     = fx1dx;
-    const auto C = A * B;
+    mat<Real, 4, 4> const A {{1.0,  t0, t0 * t0, t0 * t0 * t0},
+                             {1.0,  t1, t1 * t1, t1 * t1 * t1},
+                             {0.0, 1.0,  2 * t0,  3 * t0 * t0},
+                             {0.0, 1.0,  2 * t1,  3 * t1 * t1}};
+    const auto C = solve(A,B);
     for (size_t i = 0; i < N; ++i) {
       m_curve.polynomial(i).set_coefficients(
           C(0, i), C(1, i), C(2, i), C(3, i));

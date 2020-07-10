@@ -52,15 +52,8 @@ struct base_sampler : crtp<Sampler> {
   }
   //----------------------------------------------------------------------------
   static constexpr auto num_dimensions() {
-    return sizeof...(TailInterpolationKernels) + 1;
+    return Sampler::num_dimensions();
   }
-  //----------------------------------------------------------------------------
-  static_assert(
-      (num_dimensions() > 1 &&
-       !HeadInterpolationKernel::needs_first_derivative) ||
-          num_dimensions() == 1,
-      "Interpolation kernels that need first derivative are currently "
-      "not supported. Sorry :(");
   //----------------------------------------------------------------------------
   // typedefs
   //----------------------------------------------------------------------------
@@ -75,6 +68,21 @@ struct base_sampler : crtp<Sampler> {
   using const_indexing_t = base_sampler_at_ct<this_t, HeadInterpolationKernel,
                                               TailInterpolationKernels...>;
   using crtp<Sampler>::as_derived;
+  //============================================================================
+  auto container() -> auto& { return as_derived().container(); }
+  // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+  auto container() const -> auto const& { return as_derived().container(); }
+  //----------------------------------------------------------------------------
+  auto grid() const -> auto const& {
+    return as_derived().grid();
+  }
+  //----------------------------------------------------------------------------
+  template <size_t DimIndex, size_t StencilSize>
+  auto stencil_coefficients(size_t const       i,
+                            unsigned int const num_diffs) const {
+    return as_derived().template stencil_coefficients<DimIndex, StencilSize>(
+        i, num_diffs);
+  }
   //----------------------------------------------------------------------------
   auto position_at(integral auto const... is) const {
     static_assert(sizeof...(is) == num_dimensions(),
@@ -161,23 +169,50 @@ struct base_sampler : crtp<Sampler> {
         return HeadInterpolationKernel::interpolate(at(i), at(i + 1), t);
       }
     } else {
-      // TODO implement iterators that need first derivative
-      //  if constexpr (num_dimensions() > 1) {
-      //    return HeadInterpolationKernel{
-      //        at(i).sample(xs...), at(i + 1).sample(xs...),
-      //        diff_at<current_dimension_index(), 3>(i, .....),
-      //        diff_at<current_dimension_index(), 3>(i + 1, .....)}(t);
-      //  } else {
-      //    auto const& dim =
-      //        grid().template dimension<current_dimension_index()>();
-      //    return HeadInterpolationKernel{
-      //        dim[i],
-      //        dim[i + 1],
-      //        at(i),
-      //        at(i + 1),
-      //        diff_at<current_dimension_index(), 3>(1, i),
-      //        diff_at<current_dimension_index(), 3>(1, i + 1)}(x);
-      //  }
+      auto const& dim = grid().template dimension<current_dimension_index()>();
+      if constexpr (num_dimensions() > 1) {
+        value_type dleft_dx{};
+        value_type dright_dx{};
+        //auto const [first_idx_left, coeffs_left] =
+        //    as_derived()
+        //        .template stencil_coefficients<current_dimension_index(), 3>(i,
+        //                                                                     1);
+        //auto const [first_idx_right, coeffs_right] =
+        //    as_derived()
+        //        .template stencil_coefficients<current_dimension_index(), 3>(
+        //            i + 1, 1);
+        //
+        //size_t k = 0;
+        //for (size_t j = first_idx_left; j < 3; ++j, ++k) {
+        //  if (coeffs_left(k) != 0) {
+        //    dleft_dx += coeffs_left(k) * at(j).sample(xs...);
+        //  }
+        //}
+        //k = 0;
+        //for (size_t j = first_idx_right; j < 3; ++j, ++k) {
+        //  if (coeffs_right(k) != 0) {
+        //    dright_dx += coeffs_right(k) * at(j).sample(xs...);
+        //  }
+        //}
+
+        return HeadInterpolationKernel{
+            static_cast<typename HeadInterpolationKernel::real_t>(dim[i]),
+            static_cast<typename HeadInterpolationKernel::real_t>(dim[i + 1]),
+            //at(i).sample(xs...),
+            //at(i + 1).sample(xs...),
+            dleft_dx,
+            dleft_dx,
+            dleft_dx,
+            dright_dx}(x);
+      } else {
+        return HeadInterpolationKernel{
+            static_cast<typename HeadInterpolationKernel::real_t>(dim[i]),
+            static_cast<typename HeadInterpolationKernel::real_t>(dim[i + 1]),
+            at(i),
+            at(i + 1),
+            diff_at<current_dimension_index(), 3>(1, i),
+            diff_at<current_dimension_index(), 3>(1, i + 1)}(x);
+      }
     }
   }
 };
@@ -199,7 +234,7 @@ struct sampler
   using base_sampler_parent_t =
       base_sampler<this_t, value_type, InterpolationKernels...>;
   //============================================================================
-  using base_sampler_parent_t::num_dimensions;
+  static constexpr auto num_dimensions() {return 3;}
   //============================================================================
   static_assert(num_dimensions() == sizeof...(InterpolationKernels));
   //============================================================================
@@ -272,8 +307,15 @@ struct sampler
                                                                      is...);
   }
   //----------------------------------------------------------------------------
-  constexpr auto sample(real_number auto const... xs) const {
-    return base_sampler_parent_t::sample(xs...);
+  auto grid() const -> auto const& {
+    return as_sampler_impl(). grid();
+  }
+  //----------------------------------------------------------------------------
+  template <size_t DimIndex, size_t StencilSize>
+  auto stencil_coefficients(size_t const       i,
+                            unsigned int const num_diffs) const {
+    return as_sampler_impl()
+        .template stencil_coefficients<DimIndex, StencilSize>(i, num_diffs);
   }
 };
 //==============================================================================
@@ -290,7 +332,9 @@ struct sampler_view
       base_sampler<sampler_view<TopSampler, InterpolationKernels...>,
                    value_type, InterpolationKernels...>;
   //============================================================================
-  using parent_t::num_dimensions;
+  static constexpr auto num_dimensions() {
+    return TopSampler::num_dimensions() - 1;
+  }
   //============================================================================
   static constexpr size_t current_dimension_index() {
     return TopSampler::current_dimension_index() + 1;
@@ -302,6 +346,10 @@ struct sampler_view
   sampler_view(TopSampler* top_sampler, size_t fixed_index)
       : m_top_sampler{top_sampler}, m_fixed_index{fixed_index} {}
   //============================================================================
+  auto container() -> auto& { return m_top_sampler->container(); }
+  // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+  auto container() const -> auto const& { return m_top_sampler->container(); }
+  //----------------------------------------------------------------------------
   template <size_t DimensionIndex>
   auto cell_index(real_number auto const x) const -> decltype(auto) {
     return m_top_sampler->template cell_index<DimensionIndex>(x);
@@ -340,6 +388,17 @@ struct sampler_view
                   "Number of indices is not equal to number of dimensions.");
     return m_top_sampler->template diff_at<DimIndex + 1, StencilSize>(
         num_diffs, m_fixed_index, is...);
+  }
+  //----------------------------------------------------------------------------
+  auto grid() const -> auto const& {
+    return m_top_sampler->grid();
+  }
+  //----------------------------------------------------------------------------
+  template <size_t DimIndex, size_t StencilSize>
+  auto stencil_coefficients(size_t const       i,
+                            unsigned int const num_diffs) const {
+    return m_top_sampler->template stencil_coefficients<DimIndex, StencilSize>(
+        i, num_diffs);
   }
 };
 //==============================================================================

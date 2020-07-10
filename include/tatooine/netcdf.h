@@ -39,23 +39,23 @@ template <typename T>
 class variable {
   mutable std::shared_ptr<netCDF::NcFile> m_file;
   mutable std::shared_ptr<std::mutex>     m_mutex;
-  std::string                             m_variable_name;
+  netCDF::NcVar                           m_var;
   //============================================================================
  public:
   variable(std::shared_ptr<netCDF::NcFile>& file,
-           std::shared_ptr<std::mutex>& mutex, std::string const& name)
-      : m_file{file}, m_mutex{mutex}, m_variable_name{name} {}
+           std::shared_ptr<std::mutex>& mutex, netCDF::NcVar const& var)
+      : m_file{file}, m_mutex{mutex}, m_var{var} {}
   variable(variable const& other)     = default;
   variable(variable&& other) noexcept = default;
   //============================================================================
   auto write(T const* const arr) {
     std::lock_guard lock{*m_mutex};
-    m_file->getVar(m_variable_name).putVar(arr);
+    m_var.putVar(arr);
   }
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
   auto write(std::vector<T> const& arr) {
     std::lock_guard lock{*m_mutex};
-    m_file->getVar(m_variable_name).putVar(arr.data());
+    m_var.putVar(arr.data());
   }
   //----------------------------------------------------------------------------
   auto num_components() const {
@@ -85,7 +85,7 @@ class variable {
     }
 
     std::lock_guard lock{*m_mutex};
-    m_file->getVar(m_variable_name).getVar(arr.data_ptr());
+    m_var.getVar(arr.data_ptr());
   }
   //----------------------------------------------------------------------------
   auto read_chunked(size_t const chunk_size = 10) const {
@@ -104,7 +104,7 @@ class variable {
   }
   //----------------------------------------------------------------------------
   auto read(chunked_multidim_array<T, x_fastest>& arr) const {
-    bool            must_resize = arr.num_dimensions() != num_dimensions();
+    bool must_resize = arr.num_dimensions() != num_dimensions();
     if (!must_resize) {
       for (size_t i = 0; i < num_dimensions(); ++i) {
         must_resize = size(i) != arr.size(num_dimensions() - i - 1);
@@ -149,37 +149,35 @@ class variable {
     assert(sizeof...(Resolution) == num_dimensions());
     assert(std::vector{Resolution...} == size());
     std::lock_guard lock{*m_mutex};
-    m_file->getVar(m_variable_name).getVar(arr.data_ptr());
+    m_var.getVar(arr.data_ptr());
   }
   //----------------------------------------------------------------------------
   auto read(std::vector<T>& arr) const {
     if (auto const n = num_components(); size(arr) != n) { arr.resize(n); }
     std::lock_guard lock{*m_mutex};
-    m_file->getVar(m_variable_name).getVar(arr.data());
+    m_var.getVar(arr.data());
   }
   //----------------------------------------------------------------------------
   auto read_as_vector() const {
     std::vector<T>  arr(num_components());
     std::lock_guard lock{*m_mutex};
-    m_file->getVar(m_variable_name).getVar(arr.data());
+    m_var.getVar(arr.data());
     return arr;
   }
   //----------------------------------------------------------------------------
   auto read_single(std::vector<size_t> const& start_indices) const {
     assert(size(start_indices) == num_dimensions());
-    T t;
+    T               t;
     std::lock_guard lock{*m_mutex};
-    m_file->getVar(m_variable_name)
-        .getVar(start_indices, std::vector<size_t>(num_dimensions(), 1), &t);
+    m_var.getVar(start_indices, std::vector<size_t>(num_dimensions(), 1), &t);
     return t;
   }
   //----------------------------------------------------------------------------
   auto read_single(integral auto... is) const {
     assert(num_dimensions() == sizeof...(is));
-    T t;
+    T               t;
     std::lock_guard lock{*m_mutex};
-    m_file->getVar(m_variable_name)
-        .getVar({static_cast<size_t>(is)...}, {((void)is, size_t(1))...}, &t);
+    m_var.getVar({static_cast<size_t>(is)...}, {((void)is, size_t(1))...}, &t);
     return t;
   }
   //----------------------------------------------------------------------------
@@ -192,8 +190,7 @@ class variable {
     std::reverse(begin(start_indices), end(start_indices));
     std::reverse(begin(counts), end(counts));
     std::lock_guard lock{*m_mutex};
-    m_file->getVar(m_variable_name)
-        .getVar(start_indices, counts, arr.data_ptr());
+    m_var.getVar(start_indices, counts, arr.data_ptr());
     return arr;
   }
   //----------------------------------------------------------------------------
@@ -211,8 +208,7 @@ class variable {
       }
     }
     std::lock_guard lock{*m_mutex};
-    m_file->getVar(m_variable_name)
-        .getVar(start_indices, counts, arr.data_ptr());
+    m_var.getVar(start_indices, counts, arr.data_ptr());
   }
   //----------------------------------------------------------------------------
   template <typename MemLoc, size_t... Resolution>
@@ -222,9 +218,8 @@ class variable {
     static_assert(sizeof...(start_indices) == sizeof...(Resolution));
     assert(sizeof...(Resolution) == num_dimensions());
     std::lock_guard lock{*m_mutex};
-    m_file->getVar(m_variable_name)
-        .getVar(std::vector{static_cast<size_t>(start_indices)...},
-                std::vector{Resolution...}, arr.data_ptr());
+    m_var.getVar(std::vector{static_cast<size_t>(start_indices)...},
+                 std::vector{Resolution...}, arr.data_ptr());
   }
   //----------------------------------------------------------------------------
   template <typename MemLoc, size_t... Resolution>
@@ -232,38 +227,37 @@ class variable {
       std::vector<size_t> const&                                  start_indices,
       static_multidim_array<T, x_fastest, MemLoc, Resolution...>& arr) const {
     std::lock_guard lock{*m_mutex};
-    m_file->getVar(m_variable_name)
-        .getVar(start_indices, std::vector{Resolution...}, arr.data_ptr());
+    m_var.getVar(start_indices, std::vector{Resolution...}, arr.data_ptr());
   }
   //----------------------------------------------------------------------------
   auto read_chunk(std::vector<size_t> const& start_indices,
                   std::vector<size_t> const& counts,
                   std::vector<T>&            arr) const {
-    auto const      n = std::accumulate(begin(counts), end(counts), size_t(1),
+    auto const n = std::accumulate(begin(counts), end(counts), size_t(1),
                                    std::multiplies<size_t>{});
     if (size(arr) != n) { arr.resize(n); }
     std::lock_guard lock{*m_mutex};
-    m_file->getVar(m_variable_name).getVar(start_indices, counts, arr.data());
+    m_var.getVar(start_indices, counts, arr.data());
   }
   //----------------------------------------------------------------------------
   auto is_null() const {
     std::lock_guard lock{*m_mutex};
-    return m_file->getVar(m_variable_name).isNull();
+    return m_var.isNull();
   }
   //----------------------------------------------------------------------------
   auto num_dimensions() const {
     std::lock_guard lock{*m_mutex};
-    return static_cast<size_t>(m_file->getVar(m_variable_name).getDimCount());
+    return static_cast<size_t>(m_var.getDimCount());
   }
   //----------------------------------------------------------------------------
   auto size(size_t i) const {
     std::lock_guard lock{*m_mutex};
-    return m_file->getVar(m_variable_name).getDim(i).getSize();
+    return m_var.getDim(i).getSize();
   }
   //----------------------------------------------------------------------------
   auto dimension_name(size_t i) const {
     std::lock_guard lock{*m_mutex};
-    return m_file->getVar(m_variable_name).getDim(i).getName();
+    return m_var.getDim(i).getName();
   }
   //----------------------------------------------------------------------------
   auto size() const {
@@ -275,7 +269,7 @@ class variable {
   //----------------------------------------------------------------------------
   auto name() const {
     std::lock_guard lock{*m_mutex};
-    return m_file->getVar(m_variable_name).getName();
+    return m_var.getName();
   }
 };
 //==============================================================================
@@ -283,7 +277,7 @@ class size {};
 //==============================================================================
 class file {
   mutable std::shared_ptr<netCDF::NcFile> m_file;
-  mutable std::shared_ptr<std::mutex> m_mutex;
+  mutable std::shared_ptr<std::mutex>     m_mutex;
   //============================================================================
  public:
   template <typename... Ts>
@@ -295,12 +289,12 @@ class file {
   auto add_variable(std::string const&                variable_name,
                     std::vector<netCDF::NcDim> const& dims) {
     return netcdf::variable<T>{
-        m_file, m_file->addVar(variable_name, to_nc_type<T>(), dims)};
+        m_file, m_mutex, m_file->addVar(variable_name, to_nc_type<T>(), dims)};
   }
   //----------------------------------------------------------------------------
   template <typename T>
   auto variable(std::string const& variable_name) const {
-    return netcdf::variable<T>{m_file, m_mutex, variable_name};
+    return netcdf::variable<T>{m_file, m_mutex, m_file->getVar(variable_name)};
   }
   //----------------------------------------------------------------------------
   auto add_dimension(std::string const& dimension_name, size_t const size) {
