@@ -162,56 +162,56 @@ struct base_sampler : crtp<Sampler> {
                   "Number of coordinates does not match number of dimensions.");
     auto const [i, t] = cell_index<current_dimension_index()>(x);
     if constexpr (!HeadInterpolationKernel::needs_first_derivative) {
-      if constexpr (num_dimensions() > 1) {
+      if constexpr (num_dimensions() == 1) {
+        return HeadInterpolationKernel::interpolate(at(i),
+                                                    at(i + 1), t);
+      } else {
         return HeadInterpolationKernel::interpolate(at(i).sample(xs...),
                                                     at(i + 1).sample(xs...), t);
-      } else {
-        return HeadInterpolationKernel::interpolate(at(i), at(i + 1), t);
       }
     } else {
       auto const& dim = grid().template dimension<current_dimension_index()>();
-      if constexpr (num_dimensions() > 1) {
-        value_type dleft_dx{};
-        value_type dright_dx{};
-        //auto const [first_idx_left, coeffs_left] =
-        //    as_derived()
-        //        .template stencil_coefficients<current_dimension_index(), 3>(i,
-        //                                                                     1);
-        //auto const [first_idx_right, coeffs_right] =
-        //    as_derived()
-        //        .template stencil_coefficients<current_dimension_index(), 3>(
-        //            i + 1, 1);
-        //
-        //size_t k = 0;
-        //for (size_t j = first_idx_left; j < 3; ++j, ++k) {
-        //  if (coeffs_left(k) != 0) {
-        //    dleft_dx += coeffs_left(k) * at(j).sample(xs...);
-        //  }
-        //}
-        //k = 0;
-        //for (size_t j = first_idx_right; j < 3; ++j, ++k) {
-        //  if (coeffs_right(k) != 0) {
-        //    dright_dx += coeffs_right(k) * at(j).sample(xs...);
-        //  }
-        //}
-
-        return HeadInterpolationKernel{
-            static_cast<typename HeadInterpolationKernel::real_t>(dim[i]),
-            static_cast<typename HeadInterpolationKernel::real_t>(dim[i + 1]),
-            //at(i).sample(xs...),
-            //at(i + 1).sample(xs...),
-            dleft_dx,
-            dleft_dx,
-            dleft_dx,
-            dright_dx}(x);
-      } else {
+      if constexpr (num_dimensions() == 1) {
         return HeadInterpolationKernel{
             static_cast<typename HeadInterpolationKernel::real_t>(dim[i]),
             static_cast<typename HeadInterpolationKernel::real_t>(dim[i + 1]),
             at(i),
             at(i + 1),
             diff_at<current_dimension_index(), 3>(1, i),
-            diff_at<current_dimension_index(), 3>(1, i + 1)}(x);
+            diff_at<current_dimension_index(), 3>(1, i + 1)
+        }(x);
+      } else {
+        value_type dleft_dx{};
+        value_type dright_dx{};
+        auto const [first_idx_left, coeffs_left] =
+            as_derived()
+                .template stencil_coefficients<current_dimension_index(), 3>(i,
+                                                                             1);
+        auto const [first_idx_right, coeffs_right] =
+            as_derived()
+                .template stencil_coefficients<current_dimension_index(), 3>(
+                    i + 1, 1);
+
+        size_t k = 0;
+        for (size_t j = first_idx_left; j < 3; ++j, ++k) {
+          if (coeffs_left(k) != 0) {
+            dleft_dx += coeffs_left(k) * at(j).sample(xs...);
+          }
+        }
+        k = 0;
+        for (size_t j = first_idx_right; j < 3; ++j, ++k) {
+          if (coeffs_right(k) != 0) {
+            dright_dx += coeffs_right(k) * at(j).sample(xs...);
+          }
+        }
+
+        return HeadInterpolationKernel{
+            static_cast<typename HeadInterpolationKernel::real_t>(dim[i]),
+            static_cast<typename HeadInterpolationKernel::real_t>(dim[i + 1]),
+            at(i).sample(xs...),
+            at(i + 1).sample(xs...),
+            dleft_dx,
+            dright_dx}(x);
       }
     }
   }
@@ -226,17 +226,18 @@ struct sampler
   //============================================================================
   static constexpr size_t current_dimension_index() { return 0; }
   //----------------------------------------------------------------------------
+  static constexpr auto num_dimensions() {
+    return sizeof...(InterpolationKernels);
+  }
+  //============================================================================
   using this_t = sampler<SamplerImpl, Container, InterpolationKernels...>;
 
   using container_t = Container;
   using value_type  = typename Container::value_type;
+  static_assert(std::is_floating_point_v<internal_data_type_t<value_type>>);
 
   using base_sampler_parent_t =
       base_sampler<this_t, value_type, InterpolationKernels...>;
-  //============================================================================
-  static constexpr auto num_dimensions() {return 3;}
-  //============================================================================
-  static_assert(num_dimensions() == sizeof...(InterpolationKernels));
   //============================================================================
  private:
   container_t m_container;
@@ -336,7 +337,7 @@ struct sampler_view
     return TopSampler::num_dimensions() - 1;
   }
   //============================================================================
-  static constexpr size_t current_dimension_index() {
+  static constexpr auto current_dimension_index() {
     return TopSampler::current_dimension_index() + 1;
   }
   //============================================================================
@@ -377,7 +378,7 @@ struct sampler_view
   auto diff_at(unsigned int num_diffs, integral auto... is) -> decltype(auto) {
     static_assert(sizeof...(is) == num_dimensions(),
                   "Number of indices is not equal to number of dimensions.");
-    return m_top_sampler->template diff_at<DimIndex + 1, StencilSize>(
+    return m_top_sampler->template diff_at<DimIndex, StencilSize>(
         num_diffs, m_fixed_index, is...);
   }
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -386,7 +387,7 @@ struct sampler_view
       -> decltype(auto) {
     static_assert(sizeof...(is) == num_dimensions(),
                   "Number of indices is not equal to number of dimensions.");
-    return m_top_sampler->template diff_at<DimIndex + 1, StencilSize>(
+    return m_top_sampler->template diff_at<DimIndex, StencilSize>(
         num_diffs, m_fixed_index, is...);
   }
   //----------------------------------------------------------------------------

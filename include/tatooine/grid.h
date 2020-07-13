@@ -163,9 +163,9 @@ class grid {
     return std::get<i>(m_dimensions);
   }
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-  template <size_t i>
+  template <size_t I>
   constexpr auto dimension() const -> auto const& {
-    return std::get<i>(m_dimensions);
+    return std::get<I>(m_dimensions);
   }
   //----------------------------------------------------------------------------
   constexpr auto dimensions() -> auto& { return m_dimensions; }
@@ -277,8 +277,8 @@ class grid {
   }
   //----------------------------------------------------------------------------
   /// returns cell index and factor for interpolation
-  template <size_t I, floating_point Real>
-  auto cell_index(Real const x) const -> std::pair<size_t, Real> {
+  template <size_t I>
+  auto cell_index(real_number auto const x) const -> std::pair<size_t, double> {
     auto const& dim = dimension<I>();
     if constexpr (is_linspace_v<decltype(dimension<I>())>) {
       // calculate
@@ -303,15 +303,15 @@ class grid {
   }
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
   /// returns cell indices and factors for each dimension for interpolaton
-  template <size_t... DimensionIndex, floating_point... Reals>
-  auto cell_index(std::index_sequence<DimensionIndex...>, Reals... xs) const
-      -> std::array<std::pair<size_t, promote_t<Reals...>>, num_dimensions()> {
-    using real_t = promote_t<Reals...>;
-    return std::array{cell_index<DimensionIndex, promote_t<Reals...>>(
-        static_cast<real_t>(xs))...};
+  template <size_t... DimensionIndex>
+  auto cell_index(std::index_sequence<DimensionIndex...>,
+                  real_number auto const... xs) const
+      -> std::array<std::pair<size_t, double>, num_dimensions()> {
+    return std::array{
+        cell_index<DimensionIndex>(static_cast<double>(xs))...};
   }
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-  auto cell_index(floating_point auto... xs) const {
+  auto cell_index(real_number auto const... xs) const {
     return cell_index(seq_t{}, xs...);
   }
   //----------------------------------------------------------------------------
@@ -518,9 +518,8 @@ class grid {
           using prop_t = vertex_property_t<
               Container,
               InterpolationKernels<typename Container::value_type>...>;
-          auto& new_prop = m_vertex_properties.emplace(
-              name, new prop_t{*this, std::forward<Args>(args)...});
-          new_prop.resize(size());
+          auto new_prop = new prop_t{*this, std::forward<Args>(args)...};
+          new_prop->container().resize(size());
           return m_vertex_properties.emplace(name, std::unique_ptr<property_t>{new_prop});
         }
       }();

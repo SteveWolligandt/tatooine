@@ -17,7 +17,7 @@ int main(int argc, char** argv) {
   double t = std::stod(argv[2]);
   grid   g{v.xc_axis, v.yc_axis,
            linspace{v.z_axis.front(), v.z_axis.back(), 100}};
-  auto& imag_prop = g.add_contiguous_vertex_property<int, x_fastest>("imag");
+  auto& imag_prop = g.add_contiguous_vertex_property<double, x_fastest>("imag");
   auto& lambda2_prop = g.add_contiguous_vertex_property<double, x_fastest>("lambda2");
 
   g.dimension<0>().pop_front(); 

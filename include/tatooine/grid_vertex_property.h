@@ -1,8 +1,8 @@
 #ifndef GRID_VERTEX_PROPERTY_H
 #define GRID_VERTEX_PROPERTY_H
 //==============================================================================
-#include <tatooine/sampler.h>
 #include <tatooine/multidim_property.h>
+#include <tatooine/sampler.h>
 //==============================================================================
 namespace tatooine {
 //==============================================================================
@@ -14,19 +14,19 @@ struct grid_vertex_property
   using value_type = typename Container::value_type;
   using this_t = grid_vertex_property<Grid, Container, InterpolationKernels...>;
   using prop_parent_t    = typed_multidim_property<Grid, value_type>;
-  using sampler_parent_t = sampler<this_t,
-              Container, InterpolationKernels...>;
+  using sampler_parent_t = sampler<this_t, Container, InterpolationKernels...>;
   //==============================================================================
   using prop_parent_t::grid;
-  static constexpr auto num_dimensions() {return Grid::num_dimensions();}
+  static constexpr auto num_dimensions() { return Grid::num_dimensions(); }
+  using sampler_parent_t::current_dimension_index;
   //==============================================================================
   grid_vertex_property(grid_vertex_property const&)     = default;
   grid_vertex_property(grid_vertex_property&&) noexcept = default;
   //------------------------------------------------------------------------------
   auto operator=(grid_vertex_property const&)
-      -> grid_vertex_property& = default;
-  auto operator                =(grid_vertex_property&&) noexcept
-      -> grid_vertex_property& = default;
+    -> grid_vertex_property& = default;
+  auto operator=(grid_vertex_property&&) noexcept
+    -> grid_vertex_property& = default;
   //------------------------------------------------------------------------------
   template <typename... Args>
   grid_vertex_property(Grid const& grid, Args&&... args)
@@ -44,7 +44,8 @@ struct grid_vertex_property
       -> decltype(auto) {
     static_assert(sizeof...(is) == Grid::num_dimensions(),
                   "Number of indices is not equal to number of dimensions.");
-    return prop_parent_t::template diff_at<DimIndex, StencilSize>(num_diffs, is...);
+    return prop_parent_t::template diff_at<DimIndex, StencilSize>(num_diffs,
+                                                                  is...);
   }
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
   template <size_t DimIndex, size_t StencilSize>
@@ -52,7 +53,8 @@ struct grid_vertex_property
       -> decltype(auto) {
     static_assert(sizeof...(is) == Grid::num_dimensions(),
                   "Number of indices is not equal to number of dimensions.");
-    return prop_parent_t::template diff_at<DimIndex, StencilSize>(num_diffs, is...);
+    return prop_parent_t::template diff_at<DimIndex, StencilSize>(num_diffs,
+                                                                  is...);
   }
   //----------------------------------------------------------------------------
   template <size_t DimensionIndex>
@@ -65,7 +67,7 @@ struct grid_vertex_property
   }
   //----------------------------------------------------------------------------
   auto data_at(std::array<size_t, Grid::num_dimensions()> const& is)
-      ->value_type& override {
+      -> value_type& override {
     return sampler_parent_t::data_at(is);
   }
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -77,17 +79,16 @@ struct grid_vertex_property
   template <size_t... Is>
   auto sample(typename Grid::pos_t const& x, std::index_sequence<Is...>) const
       -> value_type {
-        static_assert(Grid::pos_t::num_dimensions() == sizeof...(Is));
+    static_assert(num_dimensions() == sizeof...(Is));
     return sampler_parent_t::sample(x(Is)...);
   }
   //----------------------------------------------------------------------------
   auto sample(typename Grid::pos_t const& x) const -> value_type override {
-    return sample(
-        x, std::make_index_sequence<Grid::pos_t::num_dimensions()>{});
+    return sample(x, std::make_index_sequence<num_dimensions()>{});
   }
   //----------------------------------------------------------------------------
   template <size_t DimIndex, size_t StencilSize>
-  auto stencil_coefficients(size_t const i,
+  auto stencil_coefficients(size_t const       i,
                             unsigned int const num_diffs) const {
     return prop_parent_t::template stencil_coefficients<DimIndex, StencilSize>(
         i, num_diffs);

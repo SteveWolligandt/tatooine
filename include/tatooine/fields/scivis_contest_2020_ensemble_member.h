@@ -75,11 +75,17 @@ struct scivis_contest_2020_ensemble_member
     m_v_grid.dimension<0>() = xc_axis;
     m_w_grid.dimension<0>() = xc_axis;
 
-    m_u = &m_u_grid.add_vertex_property<netcdf::lazy_reader<double>>(
+    m_u = &m_u_grid.add_vertex_property<
+        netcdf::lazy_reader<double>, interpolation::hermite,
+        interpolation::hermite, interpolation::hermite, interpolation::linear>(
         "u", u_var, std::vector<size_t>(4, 5));
-    m_v = &m_v_grid.add_vertex_property<netcdf::lazy_reader<double>>(
+    m_v = &m_v_grid.add_vertex_property<
+        netcdf::lazy_reader<double>, interpolation::hermite,
+        interpolation::hermite, interpolation::hermite, interpolation::linear>(
         "v", v_var, std::vector<size_t>(4, 5));
-    m_w = &m_w_grid.add_vertex_property<netcdf::lazy_reader<double>>(
+    m_w = &m_w_grid.add_vertex_property<
+        netcdf::lazy_reader<double>, interpolation::hermite,
+        interpolation::hermite, interpolation::hermite, interpolation::linear>(
         "w", w_var, std::vector<size_t>(4, 5));
   }
   //==============================================================================

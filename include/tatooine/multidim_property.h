@@ -110,6 +110,7 @@ struct typed_multidim_property : multidim_property<Grid> {
   template <size_t DimIndex, size_t StencilSize>
   auto diff_at(unsigned int const                   num_diffs,
             std::array<size_t, num_dimensions()> is) const -> T {
+    static_assert(DimIndex < num_dimensions());
     auto const [first_idx, coeffs] =
         stencil_coefficients<DimIndex, StencilSize>(is[DimIndex], num_diffs);
     value_type d{};
@@ -122,6 +123,7 @@ struct typed_multidim_property : multidim_property<Grid> {
   //----------------------------------------------------------------------------
   template <size_t DimIndex, size_t StencilSize>
   auto diff_at(unsigned int const num_diffs, integral auto... is) const {
+    static_assert(DimIndex < num_dimensions());
     static_assert(sizeof...(is) == num_dimensions(),
                   "Number of indices does not match number of dimensions.");
     return diff_at<DimIndex, StencilSize>(num_diffs,

@@ -13,24 +13,14 @@
 //==============================================================================
 namespace tatooine {
 //==============================================================================
-
 template <typename T>
-struct internal_data_type;
-
-template <>
-struct internal_data_type<double> {
-  using type = double;
+struct internal_data_type {
+  using type = T;
 };
-
-template <>
-struct internal_data_type<float> {
-  using type = float;
-};
-
-//==============================================================================
+//------------------------------------------------------------------------------
 template <typename T>
 using internal_data_type_t = typename internal_data_type<T>::type;
-
+//==============================================================================
 /// creates an index_sequence and removes an element from it
 template <size_t Omit, size_t... Is, size_t... Js>
 constexpr auto sliced_indices(std::index_sequence<Is...>,
