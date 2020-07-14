@@ -18,6 +18,22 @@ constexpr auto approx_equal(const base_tensor<Tensor0, Real0, Dims...>& lhs,
   });
   return equal;
 }
+//------------------------------------------------------------------------------
+template <typename Tensor, real_number Real,
+          size_t... Dims>
+constexpr auto isnan(const base_tensor<Tensor, Real, Dims...>& t) -> bool {
+  bool p = false;
+  for_loop(
+      [&](auto const... is) {
+        if (std::isnan(t(is...))) {
+          p = true;
+          return false;
+        }
+        return true;
+      },
+      Dims...);
+  return p;
+}
 //==============================================================================
 }  // namespace tatooine
 //==============================================================================

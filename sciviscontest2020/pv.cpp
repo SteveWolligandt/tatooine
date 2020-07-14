@@ -36,6 +36,6 @@ int main(int argc, char** argv) {
   auto const pv_lines = parallel_vectors(v, a, pv_grid, t);
   fs::path    p        = argv[1];
   std::string outpath =
-      fs::path{p.filename()}.replace_extension("pvlines_" + std::to_string(t) + ".am");
+      fs::path{p.filename()}.replace_extension("pv_lines_" + std::to_string(t) + ".vtk");
   write_vtk(pv_lines, outpath);
 }
