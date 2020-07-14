@@ -5,7 +5,7 @@
 #include <tatooine/chunked_multidim_array.h>
 #include <tatooine/concepts.h>
 #include <tatooine/for_loop.h>
-#include <tatooine/grid_face_property.h>
+//#include <tatooine/grid_face_property.h>
 #include <tatooine/grid_vertex_container.h>
 #include <tatooine/grid_vertex_iterator.h>
 #include <tatooine/grid_vertex_property.h>
@@ -62,31 +62,35 @@ class grid {
       vertex_property_t<dynamic_multidim_array<T, Indexing>,
                         InterpolationKernels...>;
 
-  //----------------------------------------------------------------------------
-  // face properties
-  template <typename Container, size_t FaceDimensionIndex,
-            typename... InterpolationKernels>
-  using face_property_t =
-      grid_face_property<this_t, Container, FaceDimensionIndex,
-                         InterpolationKernels...>;
-  // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-  template <typename T, size_t FaceDimensionIndex,
-            typename... InterpolationKernels>
-  using chunked_face_property_t =
-      face_property_t<chunked_multidim_array<T>, FaceDimensionIndex,
-                      InterpolationKernels...>;
-  // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-  template <typename T, size_t FaceDimensionIndex,
-            typename... InterpolationKernels>
-  using contiguous_face_property_t =
-      face_property_t<dynamic_multidim_array<T>, FaceDimensionIndex,
-                      InterpolationKernels...>;
+  ////----------------------------------------------------------------------------
+  //// face properties
+  //template <typename Container, size_t FaceDimensionIndex,
+  //          typename... InterpolationKernels>
+  //using face_property_t =
+  //    grid_face_property<this_t, Container, FaceDimensionIndex,
+  //                       InterpolationKernels...>;
+  //// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+  //template <typename T, size_t FaceDimensionIndex,
+  //          typename... InterpolationKernels>
+  //using chunked_face_property_t =
+  //    face_property_t<chunked_multidim_array<T>, FaceDimensionIndex,
+  //                    InterpolationKernels...>;
+  //// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+  //template <typename T, size_t FaceDimensionIndex,
+  //          typename... InterpolationKernels>
+  //using contiguous_face_property_t =
+  //    face_property_t<dynamic_multidim_array<T>, FaceDimensionIndex,
+  //                    InterpolationKernels...>;
 
   //============================================================================
  private:
   dimensions_t         m_dimensions;
   property_container_t m_vertex_properties;
-  property_container_t m_face_properties;
+  //property_container_t m_face_properties;
+  std::array<std::vector<std::vector<double>>, num_dimensions()>
+      m_diff_stencil_coefficients_n1_0_p1, m_diff_stencil_coefficients_n2_n1_0,
+      m_diff_stencil_coefficients_0_p1_p2, m_diff_stencil_coefficients_0_p1,
+      m_diff_stencil_coefficients_n1_0;
   //============================================================================
  public:
   constexpr grid()                      = default;
@@ -120,51 +124,15 @@ class grid {
   constexpr auto operator=(grid const& other) -> grid& = default;
   constexpr auto operator=(grid&& other) noexcept -> grid& = default;
   //----------------------------------------------------------------------------
-  constexpr auto dimension(size_t const i) -> auto& {
-    switch(i) {
-      case 0: return dimension<0>();
-      case 1: return dimension<1>();
-      case 2: return dimension<2>();
-      case 3: return dimension<3>();
-      case 4: return dimension<4>();
-      case 5: return dimension<5>();
-      case 6: return dimension<6>();
-      case 7: return dimension<7>();
-      case 8: return dimension<8>();
-      case 9: return dimension<9>();
-      case 10: return dimension<10>();
-      default:
-        throw std::runtime_error{
-            "[grid::dimension] index too high for dynamic get."};
-    }
-  }
-  // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-  constexpr auto dimension(size_t i) const -> auto const& {
-    switch(i) {
-      case 0: return dimension<0>();
-      case 1: return dimension<1>();
-      case 2: return dimension<2>();
-      case 3: return dimension<3>();
-      case 4: return dimension<4>();
-      case 5: return dimension<5>();
-      case 6: return dimension<6>();
-      case 7: return dimension<7>();
-      case 8: return dimension<8>();
-      case 9: return dimension<9>();
-      case 10: return dimension<10>();
-      default:
-        throw std::runtime_error{
-            "[grid::dimension] index too high for dynamic get."};
-    }
-  }
-  //----------------------------------------------------------------------------
-  template <size_t i>
+  template <size_t I>
   constexpr auto dimension() -> auto& {
-    return std::get<i>(m_dimensions);
+    static_assert(I < num_dimensions());
+    return std::get<I>(m_dimensions);
   }
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
   template <size_t I>
   constexpr auto dimension() const -> auto const& {
+    static_assert(I < num_dimensions());
     return std::get<I>(m_dimensions);
   }
   //----------------------------------------------------------------------------
@@ -313,6 +281,115 @@ class grid {
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
   auto cell_index(real_number auto const... xs) const {
     return cell_index(seq_t{}, xs...);
+  }
+  //----------------------------------------------------------------------------
+  auto diff_stencil_coefficients_n1_0_p1(size_t dim_index, size_t i) const -> auto const&{
+    return m_diff_stencil_coefficients_n1_0_p1[dim_index][i];
+  }
+  // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+  auto diff_stencil_coefficients_n2_n1_0(size_t dim_index, size_t i)const -> auto const& {
+    return m_diff_stencil_coefficients_n1_0[dim_index][i];
+  }
+  // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+  auto diff_stencil_coefficients_n1_0(size_t dim_index, size_t i)const -> auto const& {
+    return m_diff_stencil_coefficients_n1_0[dim_index][i];
+  }
+  // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+  auto diff_stencil_coefficients_0_p1(size_t dim_index, size_t i)const -> auto const& {
+    return m_diff_stencil_coefficients_0_p1[dim_index][i];
+  }
+  // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+  auto diff_stencil_coefficients_0_p1_p2(size_t dim_index, size_t i)const -> auto const& {
+    return m_diff_stencil_coefficients_0_p1_p2[dim_index][i];
+  }
+  //----------------------------------------------------------------------------
+  template <size_t... Ds>
+  auto update_diff_stencil_coefficients(std::index_sequence<Ds...> /*seq*/) {
+    (update_diff_stencil_coefficients_n1_0_p1<Ds>(), ...);
+    (update_diff_stencil_coefficients_0_p1_p2<Ds>(), ...);
+    (update_diff_stencil_coefficients_n2_n1_0<Ds>(), ...);
+    (update_diff_stencil_coefficients_0_p1<Ds>(), ...);
+    (update_diff_stencil_coefficients_n1_0<Ds>(), ...);
+  }
+
+  auto update_diff_stencil_coefficients() {
+    update_diff_stencil_coefficients(
+        std::make_index_sequence<num_dimensions()>{});
+  }
+  // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+  template <size_t D>
+  auto update_diff_stencil_coefficients_n1_0_p1() {
+    auto const& dim = dimension<D>();
+    m_diff_stencil_coefficients_n1_0_p1[D].resize(dim.size());
+
+    for (size_t i = 1; i < dim.size() - 1; ++i) {
+      vec<double, 3> xs;
+      for (size_t j = 0; j < 3; ++j) { xs(j) = dim[i - 1 + j] - dim[i]; }
+      auto const cs = finite_differences_coefficients(1, xs);
+      m_diff_stencil_coefficients_n1_0_p1[D][i].reserve(3);
+      std::copy(begin(cs.data()), end(cs.data()),
+                std::back_inserter(m_diff_stencil_coefficients_n1_0_p1[D][i]));
+    }
+  }
+  // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+  template <size_t D>
+  auto update_diff_stencil_coefficients_0_p1_p2() {
+    auto const& dim = dimension<D>();
+    m_diff_stencil_coefficients_0_p1_p2[D].resize(dim.size());
+
+    for (size_t i = 0; i < dim.size() - 2; ++i) {
+      vec<double, 3> xs;
+      for (size_t j = 0; j < 3; ++j) { xs(j) = dim[i + j] - dim[i]; }
+      auto const cs = finite_differences_coefficients(1, xs);
+      m_diff_stencil_coefficients_0_p1_p2[D][i].reserve(3);
+      std::copy(begin(cs.data()), end(cs.data()),
+                std::back_inserter(m_diff_stencil_coefficients_0_p1_p2[D][i]));
+    }
+  }
+  // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+  template <size_t D>
+  auto update_diff_stencil_coefficients_n2_n1_0() {
+    auto const& dim = dimension<D>();
+    m_diff_stencil_coefficients_n2_n1_0[D].resize(dim.size());
+
+    for (size_t i = 2; i < dim.size(); ++i) {
+      vec<double, 3> xs;
+      for (size_t j = 0; j < 3; ++j) { xs(j) = dim[i - 2 + j] - dim[i]; }
+      auto const cs = finite_differences_coefficients(1, xs);
+      m_diff_stencil_coefficients_n2_n1_0[D][i].reserve(3);
+      std::copy(begin(cs.data()), end(cs.data()),
+                std::back_inserter(m_diff_stencil_coefficients_n2_n1_0[D][i]));
+    }
+  }
+  // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+  template <size_t D>
+  auto update_diff_stencil_coefficients_0_p1() {
+    auto const& dim = dimension<D>();
+    m_diff_stencil_coefficients_0_p1[D].resize(dim.size());
+
+    for (size_t i = 0; i < dim.size() - 1; ++i) {
+      vec<double, 2> xs;
+      for (size_t j = 0; j < 2; ++j) { xs(j) = dim[i + j] - dim[i]; }
+      auto const cs = finite_differences_coefficients(1, xs);
+      m_diff_stencil_coefficients_0_p1[D][i].reserve(2);
+      std::copy(begin(cs.data()), end(cs.data()),
+                std::back_inserter(m_diff_stencil_coefficients_0_p1[D][i]));
+    }
+  }
+  // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+  template <size_t D>
+  auto update_diff_stencil_coefficients_n1_0() {
+    auto const& dim = dimension<D>();
+    m_diff_stencil_coefficients_n1_0[D].resize(dim.size());
+
+    for (size_t i = 1; i < dim.size(); ++i) {
+      vec<double, 2> xs;
+      for (size_t j = 0; j < 2; ++j) { xs(j) = dim[i - 1 + j] - dim[i]; }
+      auto const cs = finite_differences_coefficients(1, xs);
+      m_diff_stencil_coefficients_n1_0[D][i].reserve(3);
+      std::copy(begin(cs.data()), end(cs.data()),
+                std::back_inserter(m_diff_stencil_coefficients_n1_0[D][i]));
+    }
   }
   //----------------------------------------------------------------------------
  private:
@@ -503,6 +580,7 @@ class grid {
                            std::index_sequence<DimensionIndex...>,
                            Args&&... args)
       -> typed_property_t<typename Container::value_type>& {
+    update_diff_stencil_coefficients();
     if (auto it = m_vertex_properties.find(name);
         it == end(m_vertex_properties)) {
       auto [newit, new_prop] = [&]() {
@@ -546,10 +624,11 @@ class grid {
   }
   //----------------------------------------------------------------------------
  private:
-  template <typename T, typename Indexing, template <typename> typename... InterpolationKernels,
+  template <typename T, typename Indexing = x_fastest, template <typename> typename... InterpolationKernels,
             size_t... DimensionIndex>
   auto add_contiguous_vertex_property(std::string const& name,
                                    std::index_sequence<DimensionIndex...>) -> typed_property_t<T>& {
+    update_diff_stencil_coefficients();
     if (auto it = m_vertex_properties.find(name);
         it == end(m_vertex_properties)) {
       auto [newit, new_prop] = [&]() {
@@ -574,7 +653,7 @@ class grid {
   }
   //----------------------------------------------------------------------------
  public:
-  template <typename T, typename Indexing,
+  template <typename T, typename Indexing = x_fastest,
             template <typename> typename... InterpolationKernels>
   auto add_contiguous_vertex_property(std::string const& name) -> auto& {
     static_assert(sizeof...(InterpolationKernels) == num_dimensions() ||
@@ -586,11 +665,12 @@ class grid {
   }
   //----------------------------------------------------------------------------
  private:
-  template <typename T, typename Indexing, template <typename> typename... InterpolationKernels,
+  template <typename T, typename Indexing = x_fastest, template <typename> typename... InterpolationKernels,
             size_t... DimensionIndex>
   auto add_chunked_vertex_property(std::string const& name,
                                    std::index_sequence<DimensionIndex...>,
                                    std::vector<size_t> const& chunk_size) -> typed_property_t<T>& {
+    update_diff_stencil_coefficients();
     if (auto it = m_vertex_properties.find(name);
         it == end(m_vertex_properties)) {
       auto [newit, new_prop] = [&]() {
@@ -617,7 +697,7 @@ class grid {
   }
   //----------------------------------------------------------------------------
  public:
-  template <typename T, typename Indexing,
+  template <typename T, typename Indexing = x_fastest,
             template <typename> typename... InterpolationKernels>
   auto add_chunked_vertex_property(std::string const&         name,
                                    std::vector<size_t> const& chunk_size)
@@ -646,110 +726,110 @@ class grid {
     }
   }
   //----------------------------------------------------------------------------
- private:
-  template <typename T, size_t FaceDimensionIndex, size_t... DimensionIndex,
-            template <typename> typename... InterpolationKernels>
-  auto add_face_property(std::string const& name,
-                         std::index_sequence<DimensionIndex...>)
-      -> typed_property_t<T>& {
-    if (auto it = m_face_properties.find(name); it == end(m_face_properties)) {
-      // Each dimension can be decremented by 1,
-      // except for the one the face is in.
-
-      auto [newit, new_prop] = [&]() {
-        if constexpr (sizeof...(InterpolationKernels) == 0) {
-          using prop_t = contiguous_face_property_t<
-              T, FaceDimensionIndex,
-              decltype(((void)DimensionIndex,
-                        default_interpolation_kernel_t<T>{}))...>;
-          return m_face_properties.emplace(
-              name, new prop_t{*this, (FaceDimensionIndex == DimensionIndex
-                                           ? size<DimensionIndex>()
-                                           : size<DimensionIndex>() - 1)...});
-        } else {
-          return m_face_properties.emplace(
-              name, new contiguous_face_property_t<T, FaceDimensionIndex,
-                                                   InterpolationKernels<T>...>{
-                        *this, (FaceDimensionIndex == DimensionIndex
-                                    ? size<DimensionIndex>()
-                                    : size<DimensionIndex>() - 1)...});
-        }
-      }();
-
-      return *dynamic_cast<typed_property_t<T>*>(newit->second.get());
-    } else {
-      return *dynamic_cast<typed_property_t<T>*>(it->second.get());
-    }
-  }
-  //----------------------------------------------------------------------------
- public:
-  template <typename T, size_t FaceDimensionIndex,
-            template <typename> typename... InterpolationKernels>
-  auto add_face_property(std::string const& name) -> auto& {
-    return add_face_property<T, FaceDimensionIndex, InterpolationKernels...>(
-        name, seq_t{});
-  }
-  //----------------------------------------------------------------------------
- private:
-  template <typename T, size_t FaceDimensionIndex, size_t... DimensionIndex,
-            template <typename> typename... InterpolationKernels>
-  auto add_chunked_face_property(std::string const& name,
-                                 std::index_sequence<DimensionIndex...>)
-      -> typed_property_t<T>& {
-    if (auto it = m_face_properties.find(name); it == end(m_face_properties)) {
-      auto [newit, new_prop] = [&]() {
-        if constexpr (sizeof...(InterpolationKernels) == 0) {
-          using prop_t = chunked_face_property_t<
-              T, FaceDimensionIndex,
-              decltype(((void)DimensionIndex,
-                        default_interpolation_kernel_t<T>{}))...>;
-          return m_face_properties.emplace(
-              name,
-              new prop_t{*this,
-                         std::vector{(FaceDimensionIndex == DimensionIndex
-                                          ? size<DimensionIndex>()
-                                          : size<DimensionIndex>() - 1)...},
-                         std::vector<size_t>(num_dimensions(), 10)});
-        } else {
-          return m_face_properties.emplace(
-              name, new chunked_face_property_t<T, FaceDimensionIndex,
-                                                InterpolationKernels<T>...>{
-                        *this, (FaceDimensionIndex == DimensionIndex
-                                    ? size<DimensionIndex>()
-                                    : size<DimensionIndex>() - 1)...});
-        }
-      }();
-      return *dynamic_cast<typed_property_t<T>*>(newit->second.get());
-    } else {
-      return *dynamic_cast<typed_property_t<T>*>(it->second.get());
-    }
-  }
-  //----------------------------------------------------------------------------
- public:
-  template <typename T, size_t FaceDimensionIndex,
-            template <typename> typename... InterpolationKernels>
-  auto add_chunked_face_property(std::string const& name) -> auto& {
-    static_assert(
-        FaceDimensionIndex < num_dimensions(),
-        "Face dimension index must be smaller than number of dimensions.");
-    return add_chunked_face_property<T, FaceDimensionIndex,
-                                     InterpolationKernels...>(name, seq_t{});
-  }
-  //----------------------------------------------------------------------------
-  template <typename T>
-  auto face_property(std::string const& name) -> auto& {
-    if (auto it = m_face_properties.find(name); it == end(m_face_properties)) {
-      throw std::runtime_error{"property \"" + name + "\" not found"};
-    } else {
-      if (typeid(T) != it->second->type()) {
-        throw std::runtime_error{"type of property \"" + name + "\"(" +
-                                 type_name(it->second->type().name()) +
-                                 ") does not match specified type " +
-                                 type_name<T>() + "."};
-      }
-      return *dynamic_cast<typed_property_t<T>*>(it->second.get());
-    }
-  }
+ //private:
+ // template <typename T, size_t FaceDimensionIndex, size_t... DimensionIndex,
+ //           template <typename> typename... InterpolationKernels>
+ // auto add_face_property(std::string const& name,
+ //                        std::index_sequence<DimensionIndex...>)
+ //     -> typed_property_t<T>& {
+ //   if (auto it = m_face_properties.find(name); it == end(m_face_properties)) {
+ //     // Each dimension can be decremented by 1,
+ //     // except for the one the face is in.
+ //
+ //     auto [newit, new_prop] = [&]() {
+ //       if constexpr (sizeof...(InterpolationKernels) == 0) {
+ //         using prop_t = contiguous_face_property_t<
+ //             T, FaceDimensionIndex,
+ //             decltype(((void)DimensionIndex,
+ //                       default_interpolation_kernel_t<T>{}))...>;
+ //         return m_face_properties.emplace(
+ //             name, new prop_t{*this, (FaceDimensionIndex == DimensionIndex
+ //                                          ? size<DimensionIndex>()
+ //                                          : size<DimensionIndex>() - 1)...});
+ //       } else {
+ //         return m_face_properties.emplace(
+ //             name, new contiguous_face_property_t<T, FaceDimensionIndex,
+ //                                                  InterpolationKernels<T>...>{
+ //                       *this, (FaceDimensionIndex == DimensionIndex
+ //                                   ? size<DimensionIndex>()
+ //                                   : size<DimensionIndex>() - 1)...});
+ //       }
+ //     }();
+ //
+ //     return *dynamic_cast<typed_property_t<T>*>(newit->second.get());
+ //   } else {
+ //     return *dynamic_cast<typed_property_t<T>*>(it->second.get());
+ //   }
+ // }
+ // //----------------------------------------------------------------------------
+ //public:
+ // template <typename T, size_t FaceDimensionIndex,
+ //           template <typename> typename... InterpolationKernels>
+ // auto add_face_property(std::string const& name) -> auto& {
+ //   return add_face_property<T, FaceDimensionIndex, InterpolationKernels...>(
+ //       name, seq_t{});
+ // }
+ // //----------------------------------------------------------------------------
+ //private:
+ // template <typename T, size_t FaceDimensionIndex, size_t... DimensionIndex,
+ //           template <typename> typename... InterpolationKernels>
+ // auto add_chunked_face_property(std::string const& name,
+ //                                std::index_sequence<DimensionIndex...>)
+ //     -> typed_property_t<T>& {
+ //   if (auto it = m_face_properties.find(name); it == end(m_face_properties)) {
+ //     auto [newit, new_prop] = [&]() {
+ //       if constexpr (sizeof...(InterpolationKernels) == 0) {
+ //         using prop_t = chunked_face_property_t<
+ //             T, FaceDimensionIndex,
+ //             decltype(((void)DimensionIndex,
+ //                       default_interpolation_kernel_t<T>{}))...>;
+ //         return m_face_properties.emplace(
+ //             name,
+ //             new prop_t{*this,
+ //                        std::vector{(FaceDimensionIndex == DimensionIndex
+ //                                         ? size<DimensionIndex>()
+ //                                         : size<DimensionIndex>() - 1)...},
+ //                        std::vector<size_t>(num_dimensions(), 10)});
+ //       } else {
+ //         return m_face_properties.emplace(
+ //             name, new chunked_face_property_t<T, FaceDimensionIndex,
+ //                                               InterpolationKernels<T>...>{
+ //                       *this, (FaceDimensionIndex == DimensionIndex
+ //                                   ? size<DimensionIndex>()
+ //                                   : size<DimensionIndex>() - 1)...});
+ //       }
+ //     }();
+ //     return *dynamic_cast<typed_property_t<T>*>(newit->second.get());
+ //   } else {
+ //     return *dynamic_cast<typed_property_t<T>*>(it->second.get());
+ //   }
+ // }
+ // //----------------------------------------------------------------------------
+ //public:
+ // template <typename T, size_t FaceDimensionIndex,
+ //           template <typename> typename... InterpolationKernels>
+ // auto add_chunked_face_property(std::string const& name) -> auto& {
+ //   static_assert(
+ //       FaceDimensionIndex < num_dimensions(),
+ //       "Face dimension index must be smaller than number of dimensions.");
+ //   return add_chunked_face_property<T, FaceDimensionIndex,
+ //                                    InterpolationKernels...>(name, seq_t{});
+ // }
+ // //----------------------------------------------------------------------------
+ // template <typename T>
+ // auto face_property(std::string const& name) -> auto& {
+ //   if (auto it = m_face_properties.find(name); it == end(m_face_properties)) {
+ //     throw std::runtime_error{"property \"" + name + "\" not found"};
+ //   } else {
+ //     if (typeid(T) != it->second->type()) {
+ //       throw std::runtime_error{"type of property \"" + name + "\"(" +
+ //                                type_name(it->second->type().name()) +
+ //                                ") does not match specified type " +
+ //                                type_name<T>() + "."};
+ //     }
+ //     return *dynamic_cast<typed_property_t<T>*>(it->second.get());
+ //   }
+ // }
   //----------------------------------------------------------------------------
   template <typename T, size_t _N = num_dimensions(),
             std::enable_if_t<_N == 3, bool> = true>

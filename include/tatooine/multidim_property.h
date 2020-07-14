@@ -42,6 +42,8 @@ struct typed_multidim_property : multidim_property<Grid> {
   using value_type = T;
   using parent_t::num_dimensions;
   //============================================================================
+  std::optional<value_type> m_out_of_domain_value;
+  //============================================================================
   typed_multidim_property(Grid const& grid) : parent_t{grid} {}
   typed_multidim_property(typed_multidim_property const&)     = default;
   typed_multidim_property(typed_multidim_property&&) noexcept = default;
@@ -68,9 +70,26 @@ struct typed_multidim_property : multidim_property<Grid> {
     return data_at(std::array{static_cast<size_t>(is)...});
   }
   //----------------------------------------------------------------------------
+  auto out_of_domain_value() const -> auto const& {
+    return m_out_of_domain_value;
+  }
+  // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+  void set_out_of_domain_value(value_type const& value) {
+    m_out_of_domain_value = value;
+  }
+  // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+  void unset_out_of_domain_value() { m_out_of_domain_value = {}; }
+  //----------------------------------------------------------------------------
   virtual auto sample(typename Grid::pos_t const& x) const -> T = 0;
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
   auto         sample(real_number auto... xs) const -> T {
+    static_assert(
+        sizeof...(xs) == Grid::num_dimensions(),
+        "Number of spatial components does not match number of dimensions.");
+    return sample(typename Grid::pos_t{xs...});
+  }
+  // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+  auto         operator()(real_number auto... xs) const -> T {
     static_assert(
         sizeof...(xs) == Grid::num_dimensions(),
         "Number of spatial components does not match number of dimensions.");

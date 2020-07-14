@@ -17,6 +17,8 @@ struct grid_vertex_property
   using sampler_parent_t = sampler<this_t, Container, InterpolationKernels...>;
   //==============================================================================
   using prop_parent_t::grid;
+  using prop_parent_t::out_of_domain_value;
+  using prop_parent_t::data_at;
   static constexpr auto num_dimensions() { return Grid::num_dimensions(); }
   using sampler_parent_t::current_dimension_index;
   //==============================================================================
