@@ -299,8 +299,8 @@ struct base_sampler : crtp<Sampler> {
        auto const dy = dim[ci + 1] - dim[ci];
        return HeadInterpolationKernel{*samples[ci - leftest_sample_index],
                                       *samples[ci - leftest_sample_index + 1],
-                                      dleft_dx / dy,
-                                      dright_dx / dy}(x);
+                                      dleft_dx * dy,
+                                      dright_dx * dy}(t);
       } else {
         std::vector<value_type> samples(right_index_right -
                                                left_index_left + 1);
@@ -408,8 +408,8 @@ struct base_sampler : crtp<Sampler> {
        auto const dy = dim[ci + 1] - dim[ci];
        return HeadInterpolationKernel{samples[ci - leftest_sample_index],
                                       samples[ci - leftest_sample_index + 1],
-                                      dleft_dx / dy,
-                                      dright_dx / dy}(x);
+                                      dleft_dx * dy,
+                                      dright_dx * dy}(t);
       }
     }
   }
