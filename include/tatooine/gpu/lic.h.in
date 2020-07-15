@@ -44,33 +44,32 @@ struct lic_shader : yavin::shader {
   void set_stepsize(GLfloat s) { set_uniform("stepsize", s); }
 };
 //==============================================================================
-template <typename GPUReal = float, typename Real,
-          template <typename> typename InterpX,
-          template <typename> typename InterpY>
-auto lic(const grid_sampler<Real, 2, vec<Real, 2>, InterpX, InterpY>& sampler,
-         const vec<size_t, 2>& lic_tex_res, size_t num_samples, Real stepsize,
-         vec<size_t, 2> noise_res = {128, 128}) {
+template <floating_point Real, typename Grid>
+auto lic(
+    const typed_multidim_property<Grid, vec<Real, 2>>& sampler,
+    const vec<size_t, 2>& lic_tex_res, size_t num_samples, Real stepsize,
+    vec<size_t, 2> noise_res = {128, 128}) {
   using namespace yavin;
 
   // generate noise_tex data
   std::mt19937            rand_eng{1234};
-  random_uniform<GPUReal, std::mt19937> rand(0, 1, rand_eng);
-  std::vector<GPUReal>                  noise_data(noise_res(0) * noise_res(1));
+  random_uniform<Real, std::mt19937> rand(0, 1, rand_eng);
+  std::vector<Real>                  noise_data(noise_res(0) * noise_res(1));
   boost::generate(noise_data, [&rand] { return rand(); });
 
   // generate textures
   auto                   v_tex = upload(sampler);
-  texture<2, GPUReal, R> noise_tex(noise_data, noise_res(0), noise_res(1));
-  yavin::texture<2, GPUReal, RGBA> lic_tex(lic_tex_res(0), lic_tex_res(1));
+  texture<2, Real, R> noise_tex(noise_data, noise_res(0), noise_res(1));
+  yavin::texture<2, Real, RGBA> lic_tex(lic_tex_res(0), lic_tex_res(1));
 
   lic_tex.bind_image_texture(0);
   noise_tex.bind(0);
   v_tex.bind(1);
 
   lic_shader s;
-  s.set_domain_min(sampler.front(0), sampler.front(1));
-  s.set_domain_max(sampler.back(0), sampler.back(1));
-  s.set_v_tex_res(sampler.size(0), sampler.size(1));
+  s.set_domain_min(sampler.grid().template front<0>(), sampler.grid().template front<1>());
+  s.set_domain_max(sampler.grid().template back<0>(), sampler.grid().template back<1>());
+  s.set_v_tex_res(sampler.grid().template size<0>(), sampler.grid().template size<1>());
   s.set_noise_tex_res(noise_res(0), noise_res(1));
   s.set_num_samples(num_samples);
   s.set_stepsize(stepsize);
@@ -79,20 +78,23 @@ auto lic(const grid_sampler<Real, 2, vec<Real, 2>, InterpX, InterpY>& sampler,
   return lic_tex;
 }
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-template <typename GPUReal = float, typename V, typename Real>
-auto lic(const field<V, Real, 2, 2>& v, const grid<Real, 2>& discrete_domain,
-         Real t, const vec<size_t, 2>& lic_tex_res, size_t num_samples, Real stepsize,
+template <typename GPUReal = float, typename V, typename VReal,
+          floating_point XReal, floating_point YReal>
+auto lic(const vectorfield<V, VReal, 2>&                   v,
+         const grid<linspace<XReal>, linspace<YReal>>& spatial_domain,
+         real_number auto t, const vec<size_t, 2>& lic_tex_res,
+         size_t num_samples, real_number auto stepsize,
          vec<size_t, 2> noise_res = {128, 128}) {
-  return lic<GPUReal>(resample<interpolation::linear, interpolation::linear>(
-                          v, discrete_domain, t)
-                          .sampler(),
-                      lic_tex_res, num_samples, stepsize, noise_res);
+  auto [g, n] = resample<GPUReal>(v, spatial_domain, t);
+  return lic<GPUReal>(g.template vertex_property<vec<GPUReal, 2>>(n), lic_tex_res,
+                      num_samples, stepsize, noise_res);
 }
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-template <typename GPUReal = float, typename V, typename Real>
-auto lic(const field<V, Real, 2, 2>& v, const linspace<Real>& xres,
-         const linspace<Real>& yres, Real t, const vec<size_t, 2>& lic_tex_res,
-         size_t num_samples, Real stepsize,
+template <typename GPUReal = float, typename V, real_number VReal,
+          real_number XReal, real_number YReal>
+auto lic(const vectorfield<V, VReal, 2>& v, const linspace<XReal>& xres,
+         const linspace<YReal>& yres, real_number auto t,
+         const vec<size_t, 2>& lic_tex_res, size_t num_samples, real_number auto stepsize,
          vec<size_t, 2> noise_res = {128, 128}) {
   return lic(v, grid{xres, yres}, t, lic_tex_res, num_samples, stepsize,
              noise_res);

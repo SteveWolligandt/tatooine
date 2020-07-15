@@ -2,7 +2,7 @@
 #define TATOOINE_GPU_FIELD_TO_GPU_H
 //==============================================================================
 #include <tatooine/field.h>
-#include <tatooine/grid_sampler.h>
+#include <tatooine/grid.h>
 #include <yavin/texture.h>
 //==============================================================================
 namespace tatooine::gpu {
@@ -35,95 +35,214 @@ auto download(const yavin::texture<2, GPUReal, yavin::RGBA>& tex) {
   return data;
 }
 //==============================================================================
-template <typename GPUReal = float, typename Real,
-          template <typename> typename InterpolatorX,
-          template <typename> typename InterpolatorY>
-auto upload(const grid_sampler<Real, 2, vec<Real, 2>, InterpolatorX,
-                               InterpolatorY>& sampler) {
+template <typename GPUReal = float, floating_point Real,
+          indexable_space XDomain>
+auto upload(const typed_multidim_property<grid<XDomain>, Real>& sampler) {
   using namespace yavin;
-  const std::vector<Real> data = sampler.data().unchunk_plain();
-  return texture<2, GPUReal, RG>(data, sampler.size(0), sampler.size(1));
+  std::vector<GPUReal> gpu_data;
+  gpu_data.reserve(sampler.grid.num_vertices());
+  sampler.grid().loop_over_vertex_indices([&](auto const... is) {
+    gpu_data.push_back(static_cast<GPUReal>(sampler.data_at(is...)));
+  });
+
+  return texture<1, GPUReal, R>(gpu_data, sampler.grid().template size<0>());
 }
 //------------------------------------------------------------------------------
-template <typename GPUReal = float, typename Real,
-          template <typename> typename InterpolatorX,
-          template <typename> typename InterpolatorY>
-auto upload(const sampled_field<
-            grid_sampler<Real, 2, vec<Real, 2>, InterpolatorX, InterpolatorY>,
-            Real, 2, 2>& v) {
-  return upload<GPUReal>(v.sampler());
-}
-//------------------------------------------------------------------------------
-template <typename GPUReal = float, typename V, typename Real>
-auto upload(const field<V, Real, 2, 2>& v, const grid<Real, 2>& discrete_domain,
-            Real t) {
-  using namespace interpolation;
-  return upload<GPUReal>(resample<linear, linear>(v, discrete_domain, t));
-}
-//------------------------------------------------------------------------------
-template <typename GPUReal = float, typename V, typename Real>
-auto upload(const field<V, Real, 2, 2>& v,
-            const linspace<Real>& xres,
-            const linspace<Real>& yres, Real t) {
-  return upload<GPUReal>(v, grid{xres, yres}, t);
-}
-//==============================================================================
-template <typename GPUReal = float, typename Real,
-          template <typename> typename InterpolatorX,
-          template <typename> typename InterpolatorY,
-          template <typename> typename InterpolatorZ>
+template <typename GPUReal = float, floating_point Real,
+          indexable_space XDomain, indexable_space YDomain>
 auto upload(
-    const sampled_field<grid_sampler<Real, 3, vec<Real, 3>, InterpolatorX,
-                                     InterpolatorY, InterpolatorZ>,
-                        Real, 2, 2>& v) {
+    const typed_multidim_property<grid<XDomain, YDomain>, Real>& sampler) {
   using namespace yavin;
-  const auto data = v.sampler().data().unchunk_plain();
-  return texture<3, GPUReal, RG>(v.sampler().size(0),
-                                 v.sampler().size(1),
-                                 v.sampler().size(2));
+  std::vector<GPUReal> gpu_data;
+  gpu_data.reserve(sampler.grid.num_vertices());
+  sampler.grid().loop_over_vertex_indices([&](auto const... is) {
+    gpu_data.push_back(static_cast<GPUReal>(sampler.data_at(is...)));
+  });
+
+  return texture<2, GPUReal, R>(gpu_data, sampler.grid().template size<0>(),
+                                sampler.grid().template size<1>());
 }
 //------------------------------------------------------------------------------
-template <typename GPUReal = float, typename V, typename Real>
-auto upload(const field<V, Real, 2, 2>& v, const grid<Real, 2>& discrete_domain,
-            linspace<Real> tres) {
-  using namespace interpolation;
-  return upload<GPUReal>(
-      resample<linear, linear, linear>(v, discrete_domain, tres));
-}
-//------------------------------------------------------------------------------
-template <typename GPUReal = float, typename V, typename Real>
-auto upload(const field<V, Real, 2, 2>& v,
-            const linspace<Real>& xres,
-            const linspace<Real>& yres, linspace<Real> tres) {
-  return upload<GPUReal>(v, grid{xres, yres}, tres);
+template <typename GPUReal = float, floating_point Real,
+          indexable_space XDomain, indexable_space YDomain,
+          indexable_space ZDomain>
+auto upload(const typed_multidim_property<grid<XDomain, YDomain, ZDomain>,
+                                          Real>& sampler) {
+  using namespace yavin;
+  std::vector<GPUReal> gpu_data;
+  gpu_data.reserve(sampler.grid.num_vertices());
+  sampler.grid().loop_over_vertex_indices([&](auto const... is) {
+    gpu_data.push_back(static_cast<GPUReal>(sampler.data_at(is...)));
+  });
+
+  return texture<3, GPUReal, R>(gpu_data, sampler.grid().template size<0>(),
+                                sampler.grid().template size<1>(),
+                                sampler.template size<2>());
 }
 //==============================================================================
-template <typename GPUReal = float, typename Real,
-          template <typename> typename InterpolatorX,
-          template <typename> typename InterpolatorY>
-auto upload(const sampled_field<grid_sampler<Real, 3, vec<Real, 3>,
-                                             InterpolatorX, InterpolatorY>,
-                                Real, 3, 3>& v) {
+template <typename GPUReal = float, floating_point Real,
+          indexable_space XDomain>
+auto upload(
+    const typed_multidim_property<grid<XDomain>, vec<Real, 2>>& sampler) {
   using namespace yavin;
-  const auto data = v.sampler().data().unchunk_plain();
-  return texture<3, GPUReal, RGB>(v.sampler().size(0), v.sampler().size(1),
-                                  v.sampler().size(2));
+  std::vector<GPUReal> gpu_data;
+  gpu_data.reserve(sampler.grid.num_vertices() * 2);
+  sampler.grid().loop_over_vertex_indices([&](auto const... is) {
+    auto const& v = sampler.data_at(is...);
+    gpu_data.push_back(static_cast<GPUReal>(v(0)));
+    gpu_data.push_back(static_cast<GPUReal>(v(1)));
+  });
+
+  return texture<1, GPUReal, RG>(gpu_data, sampler.grid().template size<0>());
 }
 //------------------------------------------------------------------------------
-template <typename GPUReal = float, typename V, typename Real>
-auto upload(const field<V, Real, 3, 3>& v, const grid<Real, 3>& discrete_domain,
-            Real t) {
-  using namespace interpolation;
-  return upload<GPUReal>(
-      resample<linear, linear, linear>(v, discrete_domain, t));
+template <typename GPUReal = float, floating_point Real,
+          indexable_space XDomain, indexable_space YDomain>
+auto upload(const typed_multidim_property<grid<XDomain, YDomain>, vec<Real, 2>>&
+                sampler) {
+  using namespace yavin;
+  std::vector<GPUReal> gpu_data;
+  gpu_data.reserve(sampler.grid().num_vertices() * 2);
+  sampler.grid().loop_over_vertex_indices([&](auto const... is) {
+    auto const& v = sampler.data_at(is...);
+    gpu_data.push_back(static_cast<GPUReal>(v(0)));
+    gpu_data.push_back(static_cast<GPUReal>(v(1)));
+  });
+
+  return texture<2, GPUReal, RG>(gpu_data, sampler.grid().template size<0>(),
+                                 sampler.grid().template size<1>());
 }
 //------------------------------------------------------------------------------
-template <typename GPUReal = float, typename V, typename Real>
-auto upload(const field<V, Real, 3, 3>& v,
-            const linspace<Real>& xres,
-            const linspace<Real>& yres,
-            const linspace<Real>& zres, Real t) {
-  return upload<GPUReal>(v, grid{xres, yres, zres}, t);
+template <typename GPUReal = float, floating_point Real,
+          indexable_space XDomain, indexable_space YDomain,
+          indexable_space ZDomain>
+auto upload(const typed_multidim_property<grid<XDomain, YDomain, ZDomain>,
+                                          vec<Real, 2>>& sampler) {
+  using namespace yavin;
+  std::vector<GPUReal> gpu_data;
+  gpu_data.reserve(sampler.grid().num_vertices() * 2);
+  sampler.grid().loop_over_vertex_indices([&](auto const... is) {
+    auto const& v = sampler.data_at(is...);
+    gpu_data.push_back(static_cast<GPUReal>(v(0)));
+    gpu_data.push_back(static_cast<GPUReal>(v(1)));
+  });
+
+  return texture<3, GPUReal, RG>(gpu_data, sampler.grid().template size<0>(),
+                                 sampler.grid().template size<1>(),
+                                 sampler.grid().template size<2>());
+}
+//==============================================================================
+template <typename GPUReal = float, floating_point Real,
+          indexable_space XDomain>
+auto upload(
+    const typed_multidim_property<grid<XDomain>, vec<Real, 3>>& sampler) {
+  using namespace yavin;
+  std::vector<GPUReal> gpu_data;
+  gpu_data.reserve(sampler.grid().num_vertices() * 3);
+  sampler.grid().loop_over_vertex_indices([&](auto const... is) {
+    auto const& v = sampler.data_at(is...);
+    gpu_data.push_back(static_cast<GPUReal>(v(0)));
+    gpu_data.push_back(static_cast<GPUReal>(v(1)));
+    gpu_data.push_back(static_cast<GPUReal>(v(2)));
+  });
+
+  return texture<1, GPUReal, RGB>(gpu_data, sampler.grid().template size<0>());
+}
+//------------------------------------------------------------------------------
+template <typename GPUReal = float, floating_point Real,
+          indexable_space XDomain, indexable_space YDomain>
+auto upload(const typed_multidim_property<grid<XDomain, YDomain>, vec<Real, 3>>&
+                sampler) {
+  using namespace yavin;
+  std::vector<GPUReal> gpu_data;
+  gpu_data.reserve(sampler.grid().num_vertices() * 3);
+  sampler.grid().loop_over_vertex_indices([&](auto const... is) {
+    auto const& v = sampler.data_at(is...);
+    gpu_data.push_back(static_cast<GPUReal>(v(0)));
+    gpu_data.push_back(static_cast<GPUReal>(v(1)));
+    gpu_data.push_back(static_cast<GPUReal>(v(2)));
+  });
+
+  return texture<2, GPUReal, RGB>(gpu_data, sampler.grid().template size<0>(),
+                                  sampler.template size<1>());
+}
+//------------------------------------------------------------------------------
+template <typename GPUReal = float, floating_point Real,
+          indexable_space XDomain, indexable_space YDomain,
+          indexable_space ZDomain>
+auto upload(const typed_multidim_property<grid<XDomain, YDomain, ZDomain>,
+                                          vec<Real, 3>>& sampler) {
+  using namespace yavin;
+  std::vector<GPUReal> gpu_data;
+  gpu_data.reserve(sampler.grid().num_vertices() * 3);
+  sampler.grid().loop_over_vertex_indices([&](auto const... is) {
+    auto const& v = sampler.data_at(is...);
+    gpu_data.push_back(static_cast<GPUReal>(v(0)));
+    gpu_data.push_back(static_cast<GPUReal>(v(1)));
+    gpu_data.push_back(static_cast<GPUReal>(v(2)));
+  });
+
+  return texture<3, GPUReal, RGB>(gpu_data, sampler.grid().template size<0>(),
+                                  sampler.grid().template size<1>(),
+                                  sampler.grid().template size<2>());
+}
+//==============================================================================
+template <typename GPUReal = float, floating_point Real,
+          indexable_space XDomain>
+auto upload(
+    const typed_multidim_property<grid<XDomain>, vec<Real, 4>>& sampler) {
+  using namespace yavin;
+  std::vector<GPUReal> gpu_data;
+  gpu_data.reserve(sampler.grid().num_vertices() * 4);
+  sampler.grid().loop_over_vertex_indices([&](auto const... is) {
+    auto const& v = sampler.data_at(is...);
+    gpu_data.push_back(static_cast<GPUReal>(v(0)));
+    gpu_data.push_back(static_cast<GPUReal>(v(1)));
+    gpu_data.push_back(static_cast<GPUReal>(v(2)));
+    gpu_data.push_back(static_cast<GPUReal>(v(3)));
+  });
+
+  return texture<1, GPUReal, RGBA>(gpu_data, sampler.grid().template size<0>());
+}
+//------------------------------------------------------------------------------
+template <typename GPUReal = float, floating_point Real,
+          indexable_space XDomain, indexable_space YDomain>
+auto upload(const typed_multidim_property<grid<XDomain, YDomain>, vec<Real, 4>>&
+                sampler) {
+  using namespace yavin;
+  std::vector<GPUReal> gpu_data;
+  gpu_data.reserve(sampler.grid().num_vertices() * 4);
+  sampler.grid().loop_over_vertex_indices([&](auto const... is) {
+    auto const& v = sampler.data_at(is...);
+    gpu_data.push_back(static_cast<GPUReal>(v(0)));
+    gpu_data.push_back(static_cast<GPUReal>(v(1)));
+    gpu_data.push_back(static_cast<GPUReal>(v(2)));
+    gpu_data.push_back(static_cast<GPUReal>(v(3)));
+  });
+
+  return texture<2, GPUReal, RGBA>(gpu_data, sampler.grid().template size<0>(),
+                                   sampler.template size<1>());
+}
+//------------------------------------------------------------------------------
+template <typename GPUReal = float, floating_point Real,
+          indexable_space XDomain, indexable_space YDomain,
+          indexable_space ZDomain>
+auto upload(const typed_multidim_property<grid<XDomain, YDomain, ZDomain>,
+                                          vec<Real, 4>>& sampler) {
+  using namespace yavin;
+  std::vector<GPUReal> gpu_data;
+  sampler.reserve(gpu_data.grid().num_vertices() * 4);
+  sampler.grid().loop_over_vertex_indices([&](auto const... is) {
+    auto const& v = sampler.data_at(is...);
+    gpu_data.push_back(static_cast<GPUReal>(v(0)));
+    gpu_data.push_back(static_cast<GPUReal>(v(1)));
+    gpu_data.push_back(static_cast<GPUReal>(v(2)));
+    gpu_data.push_back(static_cast<GPUReal>(v(3)));
+  });
+
+  return texture<3, GPUReal, RGBA>(gpu_data, sampler.grid().template size<0>(),
+                                   sampler.template size<1>(),
+                                   sampler.template size<2>());
 }
 //==============================================================================
 }  // namespace tatooine::gpu
