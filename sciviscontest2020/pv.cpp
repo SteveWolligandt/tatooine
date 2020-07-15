@@ -4,9 +4,9 @@
 //==============================================================================
 int main(int argc, char** argv) {
   using namespace tatooine;
+  namespace fs = std::filesystem;
   if (argc < 2) { throw std::runtime_error{"specify ensemble file path"}; }
 
-  namespace fs = std::filesystem;
   fields::scivis_contest_2020_ensemble_member v{argv[1]};
   auto            J = diff(v, 1e-7);
   auto            a      = J * v;
