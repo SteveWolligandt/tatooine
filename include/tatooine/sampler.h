@@ -296,7 +296,7 @@ struct base_sampler : crtp<Sampler> {
            dright_dx += coeffs_right[k] * *samples[k];
          }
        }
-       auto const dy = dim[ci + 1] - dim[ci];
+       auto const dy = 1 / dim[ci + 1] - dim[ci];
        return HeadInterpolationKernel{*samples[ci - leftest_sample_index],
                                       *samples[ci - leftest_sample_index + 1],
                                       dleft_dx * dy,
@@ -405,11 +405,10 @@ struct base_sampler : crtp<Sampler> {
            dright_dx += coeffs_right[k] * samples[k];
          }
        }
-       auto const dy = dim[ci + 1] - dim[ci];
+       auto const dy = 1 / dim[ci + 1] - dim[ci];
        return HeadInterpolationKernel{samples[ci - leftest_sample_index],
                                       samples[ci - leftest_sample_index + 1],
-                                      dleft_dx * dy,
-                                      dright_dx * dy}(t);
+                                      dleft_dx * dy, dright_dx * dy}(t);
       }
     }
   }

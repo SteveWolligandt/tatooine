@@ -1556,7 +1556,8 @@ struct parameterized_line : line<Real, N> {
     return seg_lens;
   }
   //----------------------------------------------------------------------------
-  [[nodiscard]] auto integrate_property(const vertex_property_t<Real>& prop, std::vector<Real> const& seg_lens) {
+  [[nodiscard]] auto integrate_property(const vertex_property_t<Real>& prop,
+                                        std::vector<Real> const& seg_lens) {
     Real integral = 0;
     integral += seg_lens.front() * prop.front(); 
     integral += seg_lens.back() * prop.back(); 
