@@ -302,8 +302,8 @@ struct base_sampler : crtp<Sampler> {
                                       dleft_dx * dy,
                                       dright_dx * dy}(t);
       } else {
-        std::vector<value_type> samples(right_index_right -
-                                               left_index_left + 1);
+        std::vector<value_type> samples(right_index_right - left_index_left +
+                                        1);
         {
           // get samples
           size_t j = 0;

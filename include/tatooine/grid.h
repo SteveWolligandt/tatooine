@@ -94,7 +94,22 @@ class grid {
   //============================================================================
  public:
   constexpr grid()                      = default;
-  constexpr grid(grid const& other)     = default;
+  constexpr grid(grid const& other)
+      : m_dimensions{other.m_dimensions},
+        m_diff_stencil_coefficients_n1_0_p1{
+            other.m_diff_stencil_coefficients_n1_0_p1},
+        m_diff_stencil_coefficients_n2_n1_0{
+            other.m_diff_stencil_coefficients_n2_n1_0},
+        m_diff_stencil_coefficients_0_p1_p2{
+            other.m_diff_stencil_coefficients_0_p1_p2},
+        m_diff_stencil_coefficients_0_p1{
+            other.m_diff_stencil_coefficients_0_p1},
+        m_diff_stencil_coefficients_n1_0{
+            other.m_diff_stencil_coefficients_n1_0} {
+    for (auto const& [name, prop] : other.m_vertex_properties) {
+      m_vertex_properties.emplace(name, prop->clone());
+    }
+  }
   constexpr grid(grid&& other) noexcept = default;
   //----------------------------------------------------------------------------
   template <indexable_space... _Dimensions>
@@ -469,6 +484,24 @@ class grid {
   }
   //----------------------------------------------------------------------------
   auto vertices() const { return vertex_container{*this}; }
+  //----------------------------------------------------------------------------
+ private:
+  template <
+      regular_invocable<decltype(((void)std::declval<Dimensions>(), size_t{}))...> Iteration,
+      size_t... Ds>
+  auto loop_over_vertex_indices(Iteration&& iteration, std::index_sequence<Ds...>) const -> decltype(auto) {
+    return for_loop(std::forward<Iteration>(iteration), size<Ds>()...);
+  }
+  //----------------------------------------------------------------------------
+ public:
+  template <
+      regular_invocable<decltype(((void)std::declval<Dimensions>(), size_t{}))...> Iteration,
+      size_t... Ds>
+  auto loop_over_vertex_indices(Iteration&& iteration) const -> decltype(auto) {
+    return loop_over_vertex_indices(
+        std::forward<Iteration>(iteration),
+        std::make_index_sequence<num_dimensions()>{});
+  }
   //----------------------------------------------------------------------------
   // auto neighbors(vertex const& v) const {
   //  return grid_vertex_neighbors<real_t, num_dimensions()>(v);
