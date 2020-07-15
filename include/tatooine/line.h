@@ -1548,11 +1548,15 @@ struct parameterized_line : line<Real, N> {
       const_line_vertex_iterator<this_t, Real, N, tangent_idx, vec<Real, N>,
                                  vec<Real, N>>;
   //----------------------------------------------------------------------------
-  [[nodiscard]] auto integrate_property(const vertex_property_t<Real>& prop) {
+  auto segment_lengths() const {
     std::vector<Real> seg_lens(num_vertices() - 1);
     for (size_t i = 0; i < num_vertices() - 1; ++i) {
       seg_lens[i] = distance(vertex_at(i), vertex_at(i + 1));
     }
+    return seg_lens;
+  }
+  //----------------------------------------------------------------------------
+  [[nodiscard]] auto integrate_property(const vertex_property_t<Real>& prop, std::vector<Real> const& seg_lens) {
     Real integral = 0;
     integral += seg_lens.front() * prop.front(); 
     integral += seg_lens.back() * prop.back(); 
@@ -1561,6 +1565,10 @@ struct parameterized_line : line<Real, N> {
     }
     integral /= boost::accumulate(seg_lens, Real(0)) * 2;
     return integral;
+  }
+  //----------------------------------------------------------------------------
+  [[nodiscard]] auto integrate_property(const vertex_property_t<Real>& prop) {
+    return integrate_property(prop, segment_lengths());
   }
   //----------------------------------------------------------------------------
   [[nodiscard]] auto integrate_curvature() const {
