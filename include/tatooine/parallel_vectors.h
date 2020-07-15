@@ -152,21 +152,37 @@ auto calc(GetV&& getv, GetW&& getw, grid<XDomain, YDomain, ZDomain> const& g,
         g(ix, iy + 1, iz + 1), g(ix + 1, iy + 1, iz + 1),
     };
     decltype(auto) v0 = getv(ix, iy, iz, p[0]);
+    if (isnan(v0)) { return; }
     decltype(auto) v1 = getv(ix + 1, iy, iz, p[1]);
+    if (isnan(v1)) { return; }
     decltype(auto) v2 = getv(ix, iy + 1, iz, p[2]);
+    if (isnan(v2)) { return; }
     decltype(auto) v3 = getv(ix + 1, iy + 1, iz, p[3]);
+    if (isnan(v3)) { return; }
     decltype(auto) v4 = getv(ix, iy, iz + 1, p[4]);
+    if (isnan(v4)) { return; }
     decltype(auto) v5 = getv(ix + 1, iy, iz + 1, p[5]);
+    if (isnan(v5)) { return; }
     decltype(auto) v6 = getv(ix, iy + 1, iz + 1, p[6]);
+    if (isnan(v6)) { return; }
     decltype(auto) v7 = getv(ix + 1, iy + 1, iz + 1, p[7]);
+    if (isnan(v7)) { return; }
     decltype(auto) w0 = getw(ix, iy, iz, p[0]);
+    if (isnan(w0)) { return; }
     decltype(auto) w1 = getw(ix + 1, iy, iz, p[1]);
+    if (isnan(w1)) { return; }
     decltype(auto) w2 = getw(ix, iy + 1, iz, p[2]);
+    if (isnan(w2)) { return; }
     decltype(auto) w3 = getw(ix + 1, iy + 1, iz, p[3]);
+    if (isnan(w3)) { return; }
     decltype(auto) w4 = getw(ix, iy, iz + 1, p[4]);
+    if (isnan(w4)) { return; }
     decltype(auto) w5 = getw(ix + 1, iy, iz + 1, p[5]);
+    if (isnan(w5)) { return; }
     decltype(auto) w6 = getw(ix, iy + 1, iz + 1, p[6]);
+    if (isnan(w6)) { return; }
     decltype(auto) w7 = getw(ix + 1, iy + 1, iz + 1, p[7]);
+    if (isnan(w7)) { return; }
     if (turned(ix, iy, iz)) {
       // check if there are parallel vectors on any of the tet's triangles
       [[maybe_unused]] auto pv012 =
@@ -313,10 +329,18 @@ auto parallel_vectors(field<V, VReal, 3, 3> const&           vf,
   return detail::calc<promote_t<VReal, WReal>>(
       // get v data by evaluating V field
       [&vf, t](auto /*ix*/, auto /*iy*/, auto /*iz*/, auto const& p) {
+        if (vf.in_domain(p, t)) {
+          return
+              typename std::decay_t<decltype(vf)>::tensor_t{tag::fill{VReal(0) / VReal(0)}};
+        }
         return vf(p, t);
       },
       // get w data by evaluating W field
       [&wf, t](auto /*ix*/, auto /*iy*/, auto /*iz*/, auto const& p) {
+        if (wf.in_domain(p, t)) {
+          return
+              typename std::decay_t<decltype(wf)>::tensor_t{tag::fill{WReal(0) / WReal(0)}};
+        }
         return wf(p, t);
       },
       g, std::forward<Preds>(preds)...);

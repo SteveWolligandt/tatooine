@@ -6,7 +6,6 @@ int main(int argc, char** argv) {
   using namespace tatooine;
   if (argc < 2) { throw std::runtime_error{"specify ensemble file path"}; }
 
-  using namespace tatooine;
   namespace fs = std::filesystem;
   fields::scivis_contest_2020_ensemble_member v{argv[1]};
   auto            J = diff(v, 1e-7);
@@ -25,6 +24,7 @@ int main(int argc, char** argv) {
   size_t   zn = static_cast<size_t>((v.z_axis.back() - v.z_axis.front()) /
                                     (v.z_axis[1] - v.z_axis[0]));
   zn          = v.z_axis.size() * 2;
+  zn = 100;
   linspace z_domain{v.z_axis.front(), v.z_axis.back(), zn};
   z_domain.pop_back();
   z_domain.pop_back();
@@ -36,6 +36,6 @@ int main(int argc, char** argv) {
   auto const pv_lines = parallel_vectors(v, a, pv_grid, t);
   fs::path    p        = argv[1];
   std::string outpath =
-      fs::path{p.filename()}.replace_extension("pvlines_" + std::to_string(t) + ".am");
+      fs::path{p.filename()}.replace_extension("pv_lines_" + std::to_string(t) + ".vtk");
   write_vtk(pv_lines, outpath);
 }
