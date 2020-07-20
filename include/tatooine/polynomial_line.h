@@ -115,7 +115,7 @@ class polynomial_line {
   constexpr auto curvature(const vec_t& tang, const vec_t& snd_der) const
       -> Real {
     const auto ltang = length(tang);
-    if (abs(ltang) < 1e-10) { return 0; }
+    if (std::abs(ltang) < 1e-10) { return 0; }
     if constexpr (N == 2) {
       return std::abs(tang(0) * snd_der(1) - tang(1) * snd_der(0)) /
              (ltang * ltang * ltang);

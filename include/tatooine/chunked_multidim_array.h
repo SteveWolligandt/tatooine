@@ -124,6 +124,7 @@ struct chunked_multidim_array {
   auto plain_internal_chunk_index_from_global_indices(
       size_t plain_chunk_index, std::index_sequence<Is...>,
       integral auto const... indices) const {
+    assert(m_chunks[plain_chunk_index] != nullptr);
     assert(sizeof...(indices) == m_chunks[plain_chunk_index]->num_dimensions());
 
     return m_chunks[plain_chunk_index]->plain_index(
@@ -133,6 +134,7 @@ struct chunked_multidim_array {
  public:
   auto plain_internal_chunk_index_from_global_indices(
       size_t plain_chunk_index, integral auto const... indices) const {
+    assert(m_chunks[plain_chunk_index] != nullptr);
     assert(sizeof...(indices) == m_chunks[plain_chunk_index]->num_dimensions());
     return plain_internal_chunk_index_from_global_indices(
         plain_chunk_index, std::make_index_sequence<sizeof...(indices)>{},
@@ -250,7 +252,7 @@ struct chunked_multidim_array {
     }
   }
   //----------------------------------------------------------------------------
-  auto chunk_at_is_null(size_t const chunk_index0,
+  auto chunk_at_is_null(integral auto const chunk_index0,
                         integral auto const... chunk_indices) const {
     if constexpr (sizeof...(chunk_indices) == 0) {
       return m_chunks[chunk_index0] == nullptr;

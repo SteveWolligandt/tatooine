@@ -67,12 +67,12 @@ struct lazy_reader : chunked_multidim_array<T> {
 
     static T t{};
     if constexpr (std::is_arithmetic_v<T>) {
+      std::lock_guard lock{m_mutex};
       if (this->chunk_at_is_null(plain_index)) {
         if (m_read[plain_index]) {
           t = 0;
           return t;
         } else {
-          std::lock_guard lock{m_mutex};
           m_read[plain_index] = true;
           // if (m_num_active_chunks > 50) {
           //  for (auto& chunk : this->m_chunks) {
@@ -112,7 +112,6 @@ struct lazy_reader : chunked_multidim_array<T> {
         //  }
         //  m_num_active_chunks = 0;
         //}
-        std::lock_guard lock{m_mutex};
         this->create_chunk_at(plain_index);
         ++m_num_active_chunks;
         std::vector start_indices{static_cast<size_t>(indices)...};
@@ -125,8 +124,10 @@ struct lazy_reader : chunked_multidim_array<T> {
     size_t const plain_internal_index =
         this->plain_internal_chunk_index_from_global_indices(plain_index,
                                                              indices...);
+    assert(!this->chunk_at_is_null(plain_index));
     return (*chunk_at(plain_index))[plain_internal_index];
   }
+  //----------------------------------------------------------------------------
   auto at(integral auto const... indices) const -> T const& {
     assert(sizeof...(indices) == this->num_dimensions());
     assert(this->in_range(indices...));
@@ -136,11 +137,11 @@ struct lazy_reader : chunked_multidim_array<T> {
     static T t{};
     if constexpr (std::is_arithmetic_v<T>) {
       if (this->chunk_at_is_null(plain_index)) {
+        std::lock_guard lock{m_mutex};
         if (m_read[plain_index]) {
           t = 0;
           return t;
         } else {
-          std::lock_guard lock{m_mutex};
           m_read[plain_index] = true;
           //if (m_num_active_chunks > 50) {
           //  for (auto& chunk : this->m_chunks) {
@@ -172,7 +173,6 @@ struct lazy_reader : chunked_multidim_array<T> {
         }
       } else {
         if (this->chunk_at_is_null(plain_index)) {
-          std::lock_guard lock{m_mutex};
           // if (m_num_active_chunks > 50) {
           //  for (auto& chunk : this->m_chunks) {
           //    if (chunk != nullptr) { chunk.reset(); }

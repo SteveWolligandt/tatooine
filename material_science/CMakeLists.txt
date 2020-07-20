@@ -7,7 +7,7 @@ endif()
 function (copy FILE)
   configure_file(${CMAKE_CURRENT_SOURCE_DIR}/${FILE} 
                  ${CMAKE_CURRENT_BINARY_DIR}/${FILE} COPYONLY)
-endfunction ()
+endfunction()
 #- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 copy(texture_case1.txt)
 copy(texture_case2.txt)

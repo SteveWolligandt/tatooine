@@ -151,7 +151,7 @@ configure_file(${CMAKE_CURRENT_SOURCE_DIR}/include/tatooine/packages.h.in
 
 #- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 add_subdirectory(test)
-add_subdirectory(sciviscontest2020)
+add_subdirectory(scivis_contest_2020)
 add_subdirectory(benchmarks)
 add_subdirectory(doc)
 #add_subdirectory(misc)

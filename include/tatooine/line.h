@@ -1556,52 +1556,64 @@ struct parameterized_line : line<Real, N> {
     return seg_lens;
   }
   //----------------------------------------------------------------------------
-  [[nodiscard]] auto integrate_property(const vertex_property_t<Real>& prop,
-                                        std::vector<Real> const& seg_lens) {
+  [[nodiscard]] auto integrate_property(const vertex_property_t<Real>& prop)
+      -> Real {
+    if (num_vertices() <= 1) { return 0; }
     Real integral = 0;
-    integral += seg_lens.front() * prop.front(); 
-    integral += seg_lens.back() * prop.back(); 
+    Real acc_seg_len = 0;
+    auto len_prev    = parameterization_at(1) - parameterization_at(0);
+    auto len_next    = (parameterization_at(num_vertices() - 2) -
+                        parameterization_at(num_vertices() - 1));
+    integral += len_prev * prop[vertex_idx{0}];
+    integral += len_next * prop[vertex_idx{num_vertices() - 1}];
+    acc_seg_len += len_prev;
+    acc_seg_len += len_next;
     for (size_t i = 1; i < num_vertices() - 1; ++i) {
-      integral += (seg_lens[i - 1] + seg_lens[i]) * prop[vertex_idx{i}];
+      len_next = parameterization_at(i + 1) - parameterization_at(i);
+      acc_seg_len += len_prev;
+      acc_seg_len += len_next;
+      integral += (len_prev + len_next) * prop[vertex_idx{i}];
+      len_prev = len_next;
     }
-    integral /= boost::accumulate(seg_lens, Real(0)) * 2;
+    integral /= acc_seg_len;
     return integral;
   }
-  //----------------------------------------------------------------------------
-  [[nodiscard]] auto integrate_property(const vertex_property_t<Real>& prop) {
-    return integrate_property(prop, segment_lengths());
-  }
-  //----------------------------------------------------------------------------
-  [[nodiscard]] auto integrate_curvature() const {
-    std::vector<Real> seg_lens(num_vertices() - 1);
-    for (size_t i = 0; i < num_vertices() - 1; ++i) {
-      seg_lens[i] =
-          m_interpolators[i].curve().arc_length(linspace<Real>{0, 1, 10});
-    }
-    Real integral = 0;
-    integral += seg_lens.front() * curvature(front_parameterization()); 
-    integral += seg_lens.back() * curvature(back_parameterization()); 
-    for (size_t i = 1; i < num_vertices() - 1; ++i) {
-      integral += (seg_lens[i - 1] + seg_lens[i]) * curvature(parameterization_at(i));
-    }
-    integral /= boost::accumulate(seg_lens, Real(0)) * 2;
-    return integral;
-  }
-  //----------------------------------------------------------------------------
-  [[nodiscard]] auto integrate_curvature(const linspace<Real>& ts) const {
-    std::vector<Real> seg_lens(ts.size()-1);
-    for (size_t i = 0; i < ts.size() - 1; ++i) {
-      seg_lens[i] = distance(at(ts[i]), vertex_at(ts[i + 1]));
-    }
-    Real integral = 0;
-    integral += seg_lens.front() * curvature(ts.front()); 
-    integral += seg_lens.back() * curvature(ts.back()); 
-    for (size_t i = 1; i < ts.size() - 1; ++i) {
-      integral += (seg_lens[i - 1] + seg_lens[i]) * curvature(ts[i]);
-    }
-    integral /= boost::accumulate(seg_lens, Real(0)) * 2;
-    return integral;
-  }
+  ////----------------------------------------------------------------------------
+  //[[nodiscard]] auto integrate_curvature() const -> Real {
+  //  if (num_vertices() == 0) {return 0;}
+  //  Real integral = 0;
+  //  Real acc_seg_len = 0;
+  //  auto len_prev    = distance(vertex_at(0), vertex_at(1));
+  //  auto len_next    = len_prev;
+  //  integral += len_prev * curvature(front_parameterization());
+  //  integral +=
+  //      distance(vertex_at(num_vertices() - 2), vertex_at(num_vertices() - 1)) *
+  //      curvature(back_parameterization());
+  //  for (size_t i = 1; i < num_vertices() - 1; ++i) {
+  //    len_next = distance(vertex_at(i), vertex_at(i + 1));
+  //    acc_seg_len += len_prev;
+  //    if (i == num_vertices() - 2) { acc_seg_len += len_next; }
+  //    integral += (len_prev + len_next) * curvature(parameterization_at(i));
+  //    len_prev = len_next;
+  //  }
+  //  integral /= acc_seg_len * 2;
+  //  return integral;
+  //}
+  ////----------------------------------------------------------------------------
+  //[[nodiscard]] auto integrate_curvature(const linspace<Real>& ts) const {
+  //  std::vector<Real> seg_lens(ts.size()-1);
+  //  for (size_t i = 0; i < ts.size() - 1; ++i) {
+  //    seg_lens[i] = distance(at(ts[i]), vertex_at(ts[i + 1]));
+  //  }
+  //  Real integral = 0;
+  //  integral += seg_lens.front() * curvature(ts.front());
+  //  integral += seg_lens.back() * curvature(ts.back());
+  //  for (size_t i = 1; i < ts.size() - 1; ++i) {
+  //    integral += (seg_lens[i - 1] + seg_lens[i]) * curvature(ts[i]);
+  //  }
+  //  integral /= boost::accumulate(seg_lens, Real(0)) * 2;
+  //  return integral;
+  //}
 };
 //------------------------------------------------------------------------------
 template <typename Real, size_t N,

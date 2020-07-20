@@ -8,12 +8,17 @@
 //==============================================================================
 namespace tatooine::fields {
 //==============================================================================
+template <template <typename> typename SpatialInterpolationKernel>
 struct scivis_contest_2020_ensemble_member
-    : vectorfield<scivis_contest_2020_ensemble_member, double, 3> {
-  using parent_t = vectorfield<scivis_contest_2020_ensemble_member, double, 3>;
-  using parent_t::pos_t;
-  using parent_t::real_t;
-  using parent_t::tensor_t;
+    : vectorfield<
+          scivis_contest_2020_ensemble_member<SpatialInterpolationKernel>,
+          double, 3> {
+  using this_t =
+      scivis_contest_2020_ensemble_member<SpatialInterpolationKernel>;
+  using parent_t = vectorfield<this_t, double, 3>;
+  using typename parent_t::pos_t;
+  using typename parent_t::real_t;
+  using typename parent_t::tensor_t;
   using component_grid_t = grid<linspace<double>, linspace<double>,
                                 std::vector<double>, linspace<double>>;
   using chunked_grid_property_t =
@@ -76,17 +81,17 @@ struct scivis_contest_2020_ensemble_member
     m_w_grid.dimension<0>() = xc_axis;
 
     m_u = &m_u_grid.add_vertex_property<
-        netcdf::lazy_reader<double>, interpolation::hermite,
-        interpolation::hermite, interpolation::hermite, interpolation::linear>(
-        "u", u_var, std::vector<size_t>(4, 5));
+        netcdf::lazy_reader<double>, SpatialInterpolationKernel,
+        SpatialInterpolationKernel, SpatialInterpolationKernel,
+        interpolation::linear>("u", u_var, std::vector<size_t>(4, 5));
     m_v = &m_v_grid.add_vertex_property<
-        netcdf::lazy_reader<double>, interpolation::hermite,
-        interpolation::hermite, interpolation::hermite, interpolation::linear>(
-        "v", v_var, std::vector<size_t>(4, 5));
+        netcdf::lazy_reader<double>, SpatialInterpolationKernel,
+        SpatialInterpolationKernel, SpatialInterpolationKernel,
+        interpolation::linear>("v", v_var, std::vector<size_t>(4, 5));
     m_w = &m_w_grid.add_vertex_property<
-        netcdf::lazy_reader<double>, interpolation::hermite,
-        interpolation::hermite, interpolation::hermite, interpolation::linear>(
-        "w", w_var, std::vector<size_t>(4, 5));
+        netcdf::lazy_reader<double>, SpatialInterpolationKernel,
+        SpatialInterpolationKernel, SpatialInterpolationKernel,
+        interpolation::linear>("w", w_var, std::vector<size_t>(4, 5));
   }
   //==============================================================================
   auto evaluate(pos_t const& x, real_t const t) const -> tensor_t final {
@@ -101,109 +106,112 @@ struct scivis_contest_2020_ensemble_member
     bool const in_w = m_w_grid.in_domain(x(0), x(1), x(2), t);
     if (!(in_u && in_v && in_w)) { return false; }
 
-    auto const uis = m_u_grid.cell_index(x(0), x(1), x(2), t);
-    if (m_u->data_at(uis[0].first    , uis[1].first    ,
-                     uis[2].first    , uis[2].first)     == 0 ||
-        m_u->data_at(uis[0].first + 1, uis[1].first    ,
-                     uis[2].first    , uis[2].first)     == 0 ||
-        m_u->data_at(uis[0].first    , uis[1].first + 1,
-                     uis[2].first    , uis[2].first)     == 0 ||
-        m_u->data_at(uis[0].first + 1, uis[1].first + 1,
-                     uis[2].first    , uis[2].first)     == 0 ||
-        m_u->data_at(uis[0].first    , uis[1].first    ,
-                     uis[2].first + 1, uis[2].first)     == 0 ||
-        m_u->data_at(uis[0].first + 1, uis[1].first    ,
-                     uis[2].first + 1, uis[2].first)     == 0 ||
-        m_u->data_at(uis[0].first    , uis[1].first + 1,
-                     uis[2].first + 1, uis[2].first)     == 0 ||
-        m_u->data_at(uis[0].first + 1, uis[1].first + 1,
-                     uis[2].first + 1, uis[2].first)     == 0 ||
-        m_u->data_at(uis[0].first    , uis[1].first    ,
-                     uis[2].first    , uis[2].first + 1) == 0 ||
-        m_u->data_at(uis[0].first + 1, uis[1].first    ,
-                     uis[2].first    , uis[2].first + 1) == 0 ||
-        m_u->data_at(uis[0].first    , uis[1].first + 1,
-                     uis[2].first    , uis[2].first + 1) == 0 ||
-        m_u->data_at(uis[0].first + 1, uis[1].first + 1,
-                     uis[2].first    , uis[2].first + 1) == 0 ||
-        m_u->data_at(uis[0].first    , uis[1].first    ,
-                     uis[2].first + 1, uis[2].first + 1) == 0 ||
-        m_u->data_at(uis[0].first + 1, uis[1].first    ,
-                     uis[2].first + 1, uis[2].first + 1) == 0 ||
-        m_u->data_at(uis[0].first    , uis[1].first + 1,
-                     uis[2].first + 1, uis[2].first + 1) == 0 ||
-        m_u->data_at(uis[0].first + 1, uis[1].first + 1,
-                     uis[2].first + 1, uis[2].first + 1) == 0) {
+    m_u->sample(x(0), x(1), x(2), t);
+     auto const uis = m_u_grid.cell_index(x(0), x(1), x(2), t);
+     if (m_u->data_at(uis[0].first    , uis[1].first    ,
+                      uis[2].first    , uis[2].first)     == 0 &&
+         m_u->data_at(uis[0].first + 1, uis[1].first    ,
+                      uis[2].first    , uis[2].first)     == 0 &&
+         m_u->data_at(uis[0].first    , uis[1].first + 1,
+                      uis[2].first    , uis[2].first)     == 0 &&
+         m_u->data_at(uis[0].first + 1, uis[1].first + 1,
+                      uis[2].first    , uis[2].first)     == 0 &&
+         m_u->data_at(uis[0].first    , uis[1].first    ,
+                      uis[2].first + 1, uis[2].first)     == 0 &&
+         m_u->data_at(uis[0].first + 1, uis[1].first    ,
+                      uis[2].first + 1, uis[2].first)     == 0 &&
+         m_u->data_at(uis[0].first    , uis[1].first + 1,
+                      uis[2].first + 1, uis[2].first)     == 0 &&
+         m_u->data_at(uis[0].first + 1, uis[1].first + 1,
+                      uis[2].first + 1, uis[2].first)     == 0 &&
+         m_u->data_at(uis[0].first    , uis[1].first    ,
+                      uis[2].first    , uis[2].first + 1) == 0 &&
+         m_u->data_at(uis[0].first + 1, uis[1].first    ,
+                      uis[2].first    , uis[2].first + 1) == 0 &&
+         m_u->data_at(uis[0].first    , uis[1].first + 1,
+                      uis[2].first    , uis[2].first + 1) == 0 &&
+         m_u->data_at(uis[0].first + 1, uis[1].first + 1,
+                      uis[2].first    , uis[2].first + 1) == 0 &&
+         m_u->data_at(uis[0].first    , uis[1].first    ,
+                      uis[2].first + 1, uis[2].first + 1) == 0 &&
+         m_u->data_at(uis[0].first + 1, uis[1].first    ,
+                      uis[2].first + 1, uis[2].first + 1) == 0 &&
+         m_u->data_at(uis[0].first    , uis[1].first + 1,
+                      uis[2].first + 1, uis[2].first + 1) == 0 &&
+         m_u->data_at(uis[0].first + 1, uis[1].first + 1,
+                      uis[2].first + 1, uis[2].first + 1) == 0) {
       return false;
     }
-    auto const vis = m_u_grid.cell_index(x(0), x(1), x(2), t);
-    if (m_u->data_at(vis[0].first    , vis[1].first    ,
-                     vis[2].first    , vis[2].first)     == 0 ||
-        m_u->data_at(vis[0].first + 1, vis[1].first    ,
-                     vis[2].first    , vis[2].first)     == 0 ||
-        m_u->data_at(vis[0].first    , vis[1].first + 1,
-                     vis[2].first    , vis[2].first)     == 0 ||
-        m_u->data_at(vis[0].first + 1, vis[1].first + 1,
-                     vis[2].first    , vis[2].first)     == 0 ||
-        m_u->data_at(vis[0].first    , vis[1].first    ,
-                     vis[2].first + 1, vis[2].first)     == 0 ||
-        m_u->data_at(vis[0].first + 1, vis[1].first    ,
-                     vis[2].first + 1, vis[2].first)     == 0 ||
-        m_u->data_at(vis[0].first    , vis[1].first + 1,
-                     vis[2].first + 1, vis[2].first)     == 0 ||
-        m_u->data_at(vis[0].first + 1, vis[1].first + 1,
-                     vis[2].first + 1, vis[2].first)     == 0 ||
-        m_u->data_at(vis[0].first    , vis[1].first    ,
-                     vis[2].first    , vis[2].first + 1) == 0 ||
-        m_u->data_at(vis[0].first + 1, vis[1].first    ,
-                     vis[2].first    , vis[2].first + 1) == 0 ||
-        m_u->data_at(vis[0].first    , vis[1].first + 1,
-                     vis[2].first    , vis[2].first + 1) == 0 ||
-        m_u->data_at(vis[0].first + 1, vis[1].first + 1,
-                     vis[2].first    , vis[2].first + 1) == 0 ||
-        m_u->data_at(vis[0].first    , vis[1].first    ,
-                     vis[2].first + 1, vis[2].first + 1) == 0 ||
-        m_u->data_at(vis[0].first + 1, vis[1].first    ,
-                     vis[2].first + 1, vis[2].first + 1) == 0 ||
-        m_u->data_at(vis[0].first    , vis[1].first + 1,
-                     vis[2].first + 1, vis[2].first + 1) == 0 ||
-        m_u->data_at(vis[0].first + 1, vis[1].first + 1,
-                     vis[2].first + 1, vis[2].first + 1) == 0) {
+                    m_v->sample(x(0), x(1), x(2), t);
+     auto const vis = m_u_grid.cell_index(x(0), x(1), x(2), t);
+     if (m_v->data_at(vis[0].first    , vis[1].first    ,
+                      vis[2].first    , vis[2].first)     == 0 &&
+         m_v->data_at(vis[0].first + 1, vis[1].first    ,
+                      vis[2].first    , vis[2].first)     == 0 &&
+         m_v->data_at(vis[0].first    , vis[1].first + 1,
+                      vis[2].first    , vis[2].first)     == 0 &&
+         m_v->data_at(vis[0].first + 1, vis[1].first + 1,
+                      vis[2].first    , vis[2].first)     == 0 &&
+         m_v->data_at(vis[0].first    , vis[1].first    ,
+                      vis[2].first + 1, vis[2].first)     == 0 &&
+         m_v->data_at(vis[0].first + 1, vis[1].first    ,
+                      vis[2].first + 1, vis[2].first)     == 0 &&
+         m_v->data_at(vis[0].first    , vis[1].first + 1,
+                      vis[2].first + 1, vis[2].first)     == 0 &&
+         m_v->data_at(vis[0].first + 1, vis[1].first + 1,
+                      vis[2].first + 1, vis[2].first)     == 0 &&
+         m_v->data_at(vis[0].first    , vis[1].first    ,
+                      vis[2].first    , vis[2].first + 1) == 0 &&
+         m_v->data_at(vis[0].first + 1, vis[1].first    ,
+                      vis[2].first    , vis[2].first + 1) == 0 &&
+         m_v->data_at(vis[0].first    , vis[1].first + 1,
+                      vis[2].first    , vis[2].first + 1) == 0 &&
+         m_v->data_at(vis[0].first + 1, vis[1].first + 1,
+                      vis[2].first    , vis[2].first + 1) == 0 &&
+         m_v->data_at(vis[0].first    , vis[1].first    ,
+                      vis[2].first + 1, vis[2].first + 1) == 0 &&
+         m_v->data_at(vis[0].first + 1, vis[1].first    ,
+                      vis[2].first + 1, vis[2].first + 1) == 0 &&
+         m_v->data_at(vis[0].first    , vis[1].first + 1,
+                      vis[2].first + 1, vis[2].first + 1) == 0 &&
+         m_v->data_at(vis[0].first + 1, vis[1].first + 1,
+                      vis[2].first + 1, vis[2].first + 1) == 0) {
       return false;
     }
+    m_w->sample(x(0), x(1), x(2), t);
     auto const wis = m_w_grid.cell_index(x(0), x(1), x(2), t);
-    if (m_u->data_at(wis[0].first    , wis[1].first    ,
-                     wis[2].first    , wis[2].first)     == 0 ||
-        m_u->data_at(wis[0].first + 1, wis[1].first    ,
-                     wis[2].first    , wis[2].first)     == 0 ||
-        m_u->data_at(wis[0].first    , wis[1].first + 1,
-                     wis[2].first    , wis[2].first)     == 0 ||
-        m_u->data_at(wis[0].first + 1, wis[1].first + 1,
-                     wis[2].first    , wis[2].first)     == 0 ||
-        m_u->data_at(wis[0].first    , wis[1].first    ,
-                     wis[2].first + 1, wis[2].first)     == 0 ||
-        m_u->data_at(wis[0].first + 1, wis[1].first    ,
-                     wis[2].first + 1, wis[2].first)     == 0 ||
-        m_u->data_at(wis[0].first    , wis[1].first + 1,
-                     wis[2].first + 1, wis[2].first)     == 0 ||
-        m_u->data_at(wis[0].first + 1, wis[1].first + 1,
-                     wis[2].first + 1, wis[2].first)     == 0 ||
-        m_u->data_at(wis[0].first    , wis[1].first    ,
-                     wis[2].first    , wis[2].first + 1) == 0 ||
-        m_u->data_at(wis[0].first + 1, wis[1].first    ,
-                     wis[2].first    , wis[2].first + 1) == 0 ||
-        m_u->data_at(wis[0].first    , wis[1].first + 1,
-                     wis[2].first    , wis[2].first + 1) == 0 ||
-        m_u->data_at(wis[0].first + 1, wis[1].first + 1,
-                     wis[2].first    , wis[2].first + 1) == 0 ||
-        m_u->data_at(wis[0].first    , wis[1].first    ,
-                     wis[2].first + 1, wis[2].first + 1) == 0 ||
-        m_u->data_at(wis[0].first + 1, wis[1].first    ,
-                     wis[2].first + 1, wis[2].first + 1) == 0 ||
-        m_u->data_at(wis[0].first    , wis[1].first + 1,
-                     wis[2].first + 1, wis[2].first + 1) == 0 ||
-        m_u->data_at(wis[0].first + 1, wis[1].first + 1,
-                     wis[2].first + 1, wis[2].first + 1) == 0) {
+    if (m_w->data_at(wis[0].first, wis[1].first, wis[2].first, wis[2].first) ==
+            0 &&
+        m_w->data_at(wis[0].first + 1, wis[1].first, wis[2].first,
+                     wis[2].first) == 0 &&
+        m_w->data_at(wis[0].first, wis[1].first + 1, wis[2].first,
+                     wis[2].first) == 0 &&
+        m_w->data_at(wis[0].first + 1, wis[1].first + 1, wis[2].first,
+                     wis[2].first) == 0 &&
+        m_w->data_at(wis[0].first, wis[1].first, wis[2].first + 1,
+                     wis[2].first) == 0 &&
+        m_w->data_at(wis[0].first + 1, wis[1].first, wis[2].first + 1,
+                     wis[2].first) == 0 &&
+        m_w->data_at(wis[0].first, wis[1].first + 1, wis[2].first + 1,
+                     wis[2].first) == 0 &&
+        m_w->data_at(wis[0].first + 1, wis[1].first + 1, wis[2].first + 1,
+                     wis[2].first) == 0 &&
+        m_w->data_at(wis[0].first, wis[1].first, wis[2].first,
+                     wis[2].first + 1) == 0 &&
+        m_w->data_at(wis[0].first + 1, wis[1].first, wis[2].first,
+                     wis[2].first + 1) == 0 &&
+        m_w->data_at(wis[0].first, wis[1].first + 1, wis[2].first,
+                     wis[2].first + 1) == 0 &&
+        m_w->data_at(wis[0].first + 1, wis[1].first + 1, wis[2].first,
+                     wis[2].first + 1) == 0 &&
+        m_w->data_at(wis[0].first, wis[1].first, wis[2].first + 1,
+                     wis[2].first + 1) == 0 &&
+        m_w->data_at(wis[0].first + 1, wis[1].first, wis[2].first + 1,
+                     wis[2].first + 1) == 0 &&
+        m_w->data_at(wis[0].first, wis[1].first + 1, wis[2].first + 1,
+                     wis[2].first + 1) == 0 &&
+        m_w->data_at(wis[0].first + 1, wis[1].first + 1, wis[2].first + 1,
+                     wis[2].first + 1) == 0) {
       return false;
     }
     return true;
