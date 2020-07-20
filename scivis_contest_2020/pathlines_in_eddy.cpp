@@ -121,14 +121,14 @@ void collect_pathlines_in_eddy(
               << (100 * cnt / static_cast<double>(g.num_vertices()))
               << " %    \r";
   };
-  for_loop(iteration, g.template size<0>(), g.template size<1>(),
+  parallel_for_loop(iteration, g.template size<0>(), g.template size<1>(),
                     g.template size<2>());
   std::cerr << '\n';
 }
 //------------------------------------------------------------------------------
-void collect_pathlines_in_eddy(size_t                 ensemble_index,
+void collect_pathlines_in_eddy(std::string const& filepath,
                                real_number auto const threshold) {
-  fs::path    p       = ensemble_file_paths[ensemble_index];
+  fs::path    p       = filepath;
   std::cerr << p << '\n';
   std::vector<parameterized_line<double, 3, interpolation::linear>> pathlines;
   auto g = create_grid();
@@ -143,6 +143,21 @@ void collect_pathlines_in_eddy(size_t                 ensemble_index,
 //==============================================================================
 }  // namespace tatooine::scivis_contest_2020
 //==============================================================================
-int main() {
-  tatooine::scivis_contest_2020::collect_pathlines_in_eddy(0, 0.05);
+int main(int argc, char const** argv) {
+  if (argc < 2) {
+    throw std::runtime_error{
+        "you need to specify ensemble member number or MEAN"};
+  }
+  if (argc < 3) { throw std::runtime_error{"you need to specify time"}; }
+
+  auto const ensemble_path = [&] {
+    if (std::string{argv[1]} == "MEAN" ||
+        std::string{argv[1]} == "mean" ||
+        std::string{argv[1]} == "Mean") {
+      return tatooine::scivis_contest_2020::mean_file_path;
+    }
+    return tatooine::scivis_contest_2020::ensemble_file_paths[std::stoi(
+        argv[1])];
+  }();
+  tatooine::scivis_contest_2020::collect_pathlines_in_eddy(ensemble_path, std::stoi(argv[2]));
 }

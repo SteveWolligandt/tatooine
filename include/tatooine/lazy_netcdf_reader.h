@@ -66,8 +66,8 @@ struct lazy_reader : chunked_multidim_array<T> {
         this->plain_chunk_index_from_global_indices(indices...);
 
     static T t{};
+    std::lock_guard lock{m_mutex};
     if constexpr (std::is_arithmetic_v<T>) {
-      std::lock_guard lock{m_mutex};
       if (this->chunk_at_is_null(plain_index)) {
         if (m_read[plain_index]) {
           t = 0;
@@ -124,6 +124,7 @@ struct lazy_reader : chunked_multidim_array<T> {
     size_t const plain_internal_index =
         this->plain_internal_chunk_index_from_global_indices(plain_index,
                                                              indices...);
+
     assert(!this->chunk_at_is_null(plain_index));
     return (*chunk_at(plain_index))[plain_internal_index];
   }
@@ -133,11 +134,11 @@ struct lazy_reader : chunked_multidim_array<T> {
     assert(this->in_range(indices...));
     size_t const plain_index =
         this->plain_chunk_index_from_global_indices(indices...);
+    std::lock_guard lock{m_mutex};
 
     static T t{};
     if constexpr (std::is_arithmetic_v<T>) {
       if (this->chunk_at_is_null(plain_index)) {
-        std::lock_guard lock{m_mutex};
         if (m_read[plain_index]) {
           t = 0;
           return t;
