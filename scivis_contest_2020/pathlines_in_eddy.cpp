@@ -8,7 +8,7 @@ namespace fs = std::filesystem;
 namespace tatooine::scivis_contest_2020 {
 //==============================================================================
 using V = tatooine::fields::scivis_contest_2020_ensemble_member<
-    interpolation::hermite>;
+    interpolation::linear>;
 //==============================================================================
 std::mutex pathline_mutex;
 std::mutex prog_mutex;
@@ -36,8 +36,10 @@ auto integrate_pathline(V const& v, typename V::pos_t const& x,
                         real_number auto t) {
   parameterized_line<double, 3, interpolation::linear> pathline;
 
+  double const ftau = v.t_axis.back() - t;
+  double const btau = v.t_axis.front() - t;
   ode::vclibs::rungekutta43<V::real_t, 3> solver;
-  solver.solve(v, vec{x(0), x(1), x(2)}, t, 10,
+  solver.solve(v, vec{x(0), x(1), x(2)}, t, ftau,
                [&pathline](auto t, const auto& y) {
                  if (pathline.empty()) {
                    pathline.push_back(y, t);
@@ -45,10 +47,10 @@ auto integrate_pathline(V const& v, typename V::pos_t const& x,
                    pathline.push_back(y, t);
                  }
                });
-  solver.solve(v, vec{x(0), x(1), x(2)}, t, -10,
+  solver.solve(v, vec{x(0), x(1), x(2)}, t, btau,
                [&pathline](auto t, const auto& y) {
                  if (pathline.empty()) {
-                   pathline.push_back(y, t);
+                   pathline.push_front(y, t);
                  } else if (distance(pathline.front_vertex(), y) > 1e-6) {
                    pathline.push_front(y, t);
                  }
