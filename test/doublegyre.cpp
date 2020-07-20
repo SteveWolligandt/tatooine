@@ -3,8 +3,8 @@
 //═════════════════════════════════════════════════════════════════════════════╗
 namespace tatooine::analytical::fields::test {
 //═══════════════════════════════════════════════════════════════════════════╕
-TEST_CASE("doublegyre0", "[dg][ctor]") {
-  doublegyre v;
+TEST_CASE("doublegyre", "[dg][ctor]") {
+  numerical::doublegyre v;
 }
 //═══════════════════════════════════════════════════════════════════════════╛
 }  // namespace tatooine::test

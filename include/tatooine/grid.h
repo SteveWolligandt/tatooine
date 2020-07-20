@@ -5,7 +5,6 @@
 #include <tatooine/chunked_multidim_array.h>
 #include <tatooine/concepts.h>
 #include <tatooine/for_loop.h>
-//#include <tatooine/grid_face_property.h>
 #include <tatooine/grid_vertex_container.h>
 #include <tatooine/grid_vertex_iterator.h>
 #include <tatooine/grid_vertex_property.h>
@@ -62,31 +61,11 @@ class grid {
       vertex_property_t<dynamic_multidim_array<T, Indexing>,
                         InterpolationKernels...>;
 
-  ////----------------------------------------------------------------------------
-  //// face properties
-  //template <typename Container, size_t FaceDimensionIndex,
-  //          typename... InterpolationKernels>
-  //using face_property_t =
-  //    grid_face_property<this_t, Container, FaceDimensionIndex,
-  //                       InterpolationKernels...>;
-  //// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-  //template <typename T, size_t FaceDimensionIndex,
-  //          typename... InterpolationKernels>
-  //using chunked_face_property_t =
-  //    face_property_t<chunked_multidim_array<T>, FaceDimensionIndex,
-  //                    InterpolationKernels...>;
-  //// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-  //template <typename T, size_t FaceDimensionIndex,
-  //          typename... InterpolationKernels>
-  //using contiguous_face_property_t =
-  //    face_property_t<dynamic_multidim_array<T>, FaceDimensionIndex,
-  //                    InterpolationKernels...>;
 
   //============================================================================
  private:
   dimensions_t         m_dimensions;
   property_container_t m_vertex_properties;
-  //property_container_t m_face_properties;
   std::array<std::vector<std::vector<double>>, num_dimensions()>
       m_diff_stencil_coefficients_n1_0_p1, m_diff_stencil_coefficients_n2_n1_0,
       m_diff_stencil_coefficients_0_p1_p2, m_diff_stencil_coefficients_0_p1,
@@ -94,7 +73,22 @@ class grid {
   //============================================================================
  public:
   constexpr grid()                      = default;
-  constexpr grid(grid const& other)     = default;
+  constexpr grid(grid const& other)
+      : m_dimensions{other.m_dimensions},
+        m_diff_stencil_coefficients_n1_0_p1{
+            other.m_diff_stencil_coefficients_n1_0_p1},
+        m_diff_stencil_coefficients_n2_n1_0{
+            other.m_diff_stencil_coefficients_n2_n1_0},
+        m_diff_stencil_coefficients_0_p1_p2{
+            other.m_diff_stencil_coefficients_0_p1_p2},
+        m_diff_stencil_coefficients_0_p1{
+            other.m_diff_stencil_coefficients_0_p1},
+        m_diff_stencil_coefficients_n1_0{
+            other.m_diff_stencil_coefficients_n1_0} {
+    for (auto const& [name, prop] : other.m_vertex_properties) {
+      m_vertex_properties.emplace(name, prop->clone());
+    }
+  }
   constexpr grid(grid&& other) noexcept = default;
   //----------------------------------------------------------------------------
   template <indexable_space... _Dimensions>
@@ -120,6 +114,16 @@ class grid {
       : grid{bb, res, seq_t{}} {}
   //----------------------------------------------------------------------------
   ~grid() = default;
+  //============================================================================
+ private:
+  template <size_t...Ds>
+  constexpr auto copy_without_properties(std::index_sequence<Ds...> /*seq*/) const {
+    return this_t{std::get<Ds>(m_dimensions)...};
+  }
+ public:
+  constexpr auto copy_without_properties() const {
+    return copy_without_properties(std::make_index_sequence<num_dimensions()>{});
+  }
   //============================================================================
   constexpr auto operator=(grid const& other) -> grid& = default;
   constexpr auto operator=(grid&& other) noexcept -> grid& = default;
@@ -470,6 +474,24 @@ class grid {
   //----------------------------------------------------------------------------
   auto vertices() const { return vertex_container{*this}; }
   //----------------------------------------------------------------------------
+ private:
+  template <
+      regular_invocable<decltype(((void)std::declval<Dimensions>(), size_t{}))...> Iteration,
+      size_t... Ds>
+  auto loop_over_vertex_indices(Iteration&& iteration, std::index_sequence<Ds...>) const -> decltype(auto) {
+    return for_loop(std::forward<Iteration>(iteration), size<Ds>()...);
+  }
+  //----------------------------------------------------------------------------
+ public:
+  template <
+      regular_invocable<decltype(((void)std::declval<Dimensions>(), size_t{}))...> Iteration,
+      size_t... Ds>
+  auto loop_over_vertex_indices(Iteration&& iteration) const -> decltype(auto) {
+    return loop_over_vertex_indices(
+        std::forward<Iteration>(iteration),
+        std::make_index_sequence<num_dimensions()>{});
+  }
+  //----------------------------------------------------------------------------
   // auto neighbors(vertex const& v) const {
   //  return grid_vertex_neighbors<real_t, num_dimensions()>(v);
   //}
@@ -718,118 +740,13 @@ class grid {
     } else {
       if (typeid(T) != it->second->type()) {
         throw std::runtime_error{"type of property \"" + name + "\"(" +
-                                 type_name(it->second->type().name()) +
+                                 boost::core::demangle(it->second->type().name()) +
                                  ") does not match specified type " +
                                  type_name<T>() + "."};
       }
       return *dynamic_cast<typed_property_t<T>*>(it->second.get());
     }
   }
-  //----------------------------------------------------------------------------
- //private:
- // template <typename T, size_t FaceDimensionIndex, size_t... DimensionIndex,
- //           template <typename> typename... InterpolationKernels>
- // auto add_face_property(std::string const& name,
- //                        std::index_sequence<DimensionIndex...>)
- //     -> typed_property_t<T>& {
- //   if (auto it = m_face_properties.find(name); it == end(m_face_properties)) {
- //     // Each dimension can be decremented by 1,
- //     // except for the one the face is in.
- //
- //     auto [newit, new_prop] = [&]() {
- //       if constexpr (sizeof...(InterpolationKernels) == 0) {
- //         using prop_t = contiguous_face_property_t<
- //             T, FaceDimensionIndex,
- //             decltype(((void)DimensionIndex,
- //                       default_interpolation_kernel_t<T>{}))...>;
- //         return m_face_properties.emplace(
- //             name, new prop_t{*this, (FaceDimensionIndex == DimensionIndex
- //                                          ? size<DimensionIndex>()
- //                                          : size<DimensionIndex>() - 1)...});
- //       } else {
- //         return m_face_properties.emplace(
- //             name, new contiguous_face_property_t<T, FaceDimensionIndex,
- //                                                  InterpolationKernels<T>...>{
- //                       *this, (FaceDimensionIndex == DimensionIndex
- //                                   ? size<DimensionIndex>()
- //                                   : size<DimensionIndex>() - 1)...});
- //       }
- //     }();
- //
- //     return *dynamic_cast<typed_property_t<T>*>(newit->second.get());
- //   } else {
- //     return *dynamic_cast<typed_property_t<T>*>(it->second.get());
- //   }
- // }
- // //----------------------------------------------------------------------------
- //public:
- // template <typename T, size_t FaceDimensionIndex,
- //           template <typename> typename... InterpolationKernels>
- // auto add_face_property(std::string const& name) -> auto& {
- //   return add_face_property<T, FaceDimensionIndex, InterpolationKernels...>(
- //       name, seq_t{});
- // }
- // //----------------------------------------------------------------------------
- //private:
- // template <typename T, size_t FaceDimensionIndex, size_t... DimensionIndex,
- //           template <typename> typename... InterpolationKernels>
- // auto add_chunked_face_property(std::string const& name,
- //                                std::index_sequence<DimensionIndex...>)
- //     -> typed_property_t<T>& {
- //   if (auto it = m_face_properties.find(name); it == end(m_face_properties)) {
- //     auto [newit, new_prop] = [&]() {
- //       if constexpr (sizeof...(InterpolationKernels) == 0) {
- //         using prop_t = chunked_face_property_t<
- //             T, FaceDimensionIndex,
- //             decltype(((void)DimensionIndex,
- //                       default_interpolation_kernel_t<T>{}))...>;
- //         return m_face_properties.emplace(
- //             name,
- //             new prop_t{*this,
- //                        std::vector{(FaceDimensionIndex == DimensionIndex
- //                                         ? size<DimensionIndex>()
- //                                         : size<DimensionIndex>() - 1)...},
- //                        std::vector<size_t>(num_dimensions(), 10)});
- //       } else {
- //         return m_face_properties.emplace(
- //             name, new chunked_face_property_t<T, FaceDimensionIndex,
- //                                               InterpolationKernels<T>...>{
- //                       *this, (FaceDimensionIndex == DimensionIndex
- //                                   ? size<DimensionIndex>()
- //                                   : size<DimensionIndex>() - 1)...});
- //       }
- //     }();
- //     return *dynamic_cast<typed_property_t<T>*>(newit->second.get());
- //   } else {
- //     return *dynamic_cast<typed_property_t<T>*>(it->second.get());
- //   }
- // }
- // //----------------------------------------------------------------------------
- //public:
- // template <typename T, size_t FaceDimensionIndex,
- //           template <typename> typename... InterpolationKernels>
- // auto add_chunked_face_property(std::string const& name) -> auto& {
- //   static_assert(
- //       FaceDimensionIndex < num_dimensions(),
- //       "Face dimension index must be smaller than number of dimensions.");
- //   return add_chunked_face_property<T, FaceDimensionIndex,
- //                                    InterpolationKernels...>(name, seq_t{});
- // }
- // //----------------------------------------------------------------------------
- // template <typename T>
- // auto face_property(std::string const& name) -> auto& {
- //   if (auto it = m_face_properties.find(name); it == end(m_face_properties)) {
- //     throw std::runtime_error{"property \"" + name + "\" not found"};
- //   } else {
- //     if (typeid(T) != it->second->type()) {
- //       throw std::runtime_error{"type of property \"" + name + "\"(" +
- //                                type_name(it->second->type().name()) +
- //                                ") does not match specified type " +
- //                                type_name<T>() + "."};
- //     }
- //     return *dynamic_cast<typed_property_t<T>*>(it->second.get());
- //   }
- // }
   //----------------------------------------------------------------------------
   template <typename T, size_t _N = num_dimensions(),
             std::enable_if_t<_N == 3, bool> = true>
