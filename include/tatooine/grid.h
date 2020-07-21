@@ -19,6 +19,8 @@
 //==============================================================================
 namespace tatooine {
 //==============================================================================
+/// When using GCC you have to specify Dimensions types by hand. This is a known
+/// GCC bug (80438)
 template <indexable_space... Dimensions>
 class grid {
   static_assert(sizeof...(Dimensions) > 0, "Grid needs at least one dimension.");
@@ -816,6 +818,9 @@ auto vertices(grid<Dimensions...> const& g) {
 //==============================================================================
 template <typename... Dimensions>
 grid(Dimensions&&...) -> grid<std::decay_t<Dimensions>...>;
+// additional, for g++
+template <typename Dim0, typename... Dims>
+grid(Dim0&&, Dims&&...) -> grid<std::decay_t<Dim0>, std::decay_t<Dims>...>;
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 template <typename Real, size_t N, size_t... Is>
 grid(boundingbox<Real, N> const& bb, std::array<size_t, N> const& res,
