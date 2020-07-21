@@ -5,32 +5,32 @@
 //==============================================================================
 namespace tatooine::test {
 //==============================================================================
-//TEST_CASE("grid_copy_constructor", "[grid][copy][constructor]") {
-//  std::array dim0{0, 1, 2};
-//  std::array dim1{0, 1, 2};
-//  grid       g0{dim0, dim1};
-//  auto&      prop    = g0.add_contiguous_vertex_property<double>("prop");
-//  prop.data_at(0, 0) = 100;
-//  auto  g1           = g0;
-//  auto& prop_copy    = g1.vertex_property<double>("prop");
-//  REQUIRE(prop.data_at(0, 0) == prop_copy.data_at(0, 0));
-//  prop.data_at(0, 0) = 0;
-//  REQUIRE_FALSE(prop.data_at(0, 0) == prop_copy.data_at(0, 0));
-//}
-////==============================================================================
-//TEST_CASE("grid_vertex_indexing", "[grid][vertex][indexing]") {
-//  std::array  dim0{0, 1, 2};
-//  std::vector dim1{0, 1, 2};
-//  linspace    dim2{0.0, 1.0, 11};
-//  grid        g{dim0, dim1, dim2};
-//  auto const  v000 = g.vertices().at(0, 0, 0);
-//  auto const  v111 = g.vertex_at(1, 1, 1);
-//  auto const  v221 = g.vertices().at(2, 2, 1);
-//
-//  REQUIRE(approx_equal(v000, vec{0.0, 0.0, 0.0}));
-//  REQUIRE(approx_equal(v111, vec{1.0, 1.0, 0.1}));
-//  REQUIRE(approx_equal(v221, vec{2.0, 2.0, 0.1}));
-//}
+TEST_CASE("grid_copy_constructor", "[grid][copy][constructor]") {
+  std::array dim0{0, 1, 2};
+  std::array dim1{0, 1, 2};
+  grid<decltype(dim0), decltype(dim1)>       g0{dim0, dim1};
+  auto&      prop    = g0.add_contiguous_vertex_property<double>("prop");
+  prop.data_at(0, 0) = 100;
+  auto  g1           = g0;
+  auto& prop_copy    = g1.vertex_property<double>("prop");
+  REQUIRE(prop.data_at(0, 0) == prop_copy.data_at(0, 0));
+  prop.data_at(0, 0) = 0;
+  REQUIRE_FALSE(prop.data_at(0, 0) == prop_copy.data_at(0, 0));
+}
+//==============================================================================
+TEST_CASE("grid_vertex_indexing", "[grid][vertex][indexing]") {
+  std::array  dim0{0, 1, 2};
+  std::vector dim1{0, 1, 2};
+  linspace    dim2{0.0, 1.0, 11};
+  grid        g{dim0, dim1, dim2};
+  auto const  v000 = g.vertices().at(0, 0, 0);
+  auto const  v111 = g.vertex_at(1, 1, 1);
+  auto const  v221 = g.vertices().at(2, 2, 1);
+
+  REQUIRE(approx_equal(v000, vec{0.0, 0.0, 0.0}));
+  REQUIRE(approx_equal(v111, vec{1.0, 1.0, 0.1}));
+  REQUIRE(approx_equal(v221, vec{2.0, 2.0, 0.1}));
+}
 ////==============================================================================
 //TEST_CASE("grid_face_center", "[grid][face][position]") {
 //  std::array  dim0{0.0, 1.0, 2.0};
@@ -139,37 +139,36 @@ namespace tatooine::test {
 //  REQUIRE_NOTHROW(g.vertex_property<float>("v"));
 //  REQUIRE_THROWS(g.vertex_property<double>("v"));
 //}
-//==============================================================================
-TEST_CASE("grid_sampler_out_of_domain_element",
-          "[grid][sampler][hermite][out_of_domain_value]") {
-  grid g{
-      std::array{0.0, 0.1, 1.0, 1.5}, std::array{0.0, 0.1, 1.0, 1.5}};
-  auto& dim0 = g.dimension<0>();
-  //auto& sampler = g.add_contiguous_vertex_property<double, x_fastest>("prop");
-  //sampler.set_out_of_domain_value(0);
-  //
-  //sampler.data_at(0, 0) = 1;
-  //sampler.data_at(1, 0) = 1;
-  //sampler.data_at(2, 0) = 1;
-  //sampler.data_at(3, 0) = 0;
-  //
-  //sampler.data_at(0, 1) = 1;
-  //sampler.data_at(1, 1) = 1;
-  //sampler.data_at(2, 1) = 1;
-  //sampler.data_at(3, 1) = 1;
-  //
-  //sampler.data_at(0, 2) = 1;
-  //sampler.data_at(1, 2) = 1;
-  //sampler.data_at(2, 2) = 1;
-  //sampler.data_at(3, 2) = 1;
-  //
-  //sampler.data_at(0, 3) = 0;
-  //sampler.data_at(1, 3) = 1;
-  //sampler.data_at(2, 3) = 1;
-  //sampler.data_at(3, 3) = 0;
-  //
-  //sampler(0.9, 0.9);
-}
+////==============================================================================
+//TEST_CASE("grid_sampler_out_of_domain_element",
+//          "[grid][sampler][hermite][out_of_domain_value]") {
+//  grid g{
+//      std::array{0.0, 0.1, 1.0, 1.5}, std::array{0.0, 0.1, 1.0, 1.5}};
+//  auto& sampler = g.add_contiguous_vertex_property<double, x_fastest>("prop");
+//  sampler.set_out_of_domain_value(0);
+//
+//  sampler.data_at(0, 0) = 1;
+//  sampler.data_at(1, 0) = 1;
+//  sampler.data_at(2, 0) = 1;
+//  sampler.data_at(3, 0) = 0;
+//
+//  sampler.data_at(0, 1) = 1;
+//  sampler.data_at(1, 1) = 1;
+//  sampler.data_at(2, 1) = 1;
+//  sampler.data_at(3, 1) = 1;
+//
+//  sampler.data_at(0, 2) = 1;
+//  sampler.data_at(1, 2) = 1;
+//  sampler.data_at(2, 2) = 1;
+//  sampler.data_at(3, 2) = 1;
+//
+//  sampler.data_at(0, 3) = 0;
+//  sampler.data_at(1, 3) = 1;
+//  sampler.data_at(2, 3) = 1;
+//  sampler.data_at(3, 3) = 0;
+//
+//  sampler(0.9, 0.9);
+//}
 ////==============================================================================
 //TEST_CASE("grid_sample_1d_linear", "[grid][sampler][1d][linear]") {
 //  linspace dim{0.0, 1.0, 11};
