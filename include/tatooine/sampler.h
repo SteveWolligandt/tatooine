@@ -199,57 +199,49 @@ struct base_sampler : crtp<Sampler> {
           }
        }
 
-        // modify indices so that no sample is out of domain
-       if (out_of_domain_value()) {
-         {
-           // modify left index of left sample
-           size_t i = left_index_left - leftest_sample_index;
-           while (*samples[i] == *out_of_domain_value() &&
-                  (i < right_index_left &&
-                   *samples[i + 1] == *out_of_domain_value()) &&
-                  left_index_left != right_index_left) {
-             ++left_index_left;
-             ++i;
-             // TODO right_index_left could be increased in certain cases
-           }
-         }
-         {
-           // modify right index of left sample
-           size_t i = right_index_left - leftest_sample_index;
-           while (*samples[i] == *out_of_domain_value() &&
-                  (i > left_index_left &&
-                   *samples[i - 1] == *out_of_domain_value()) &&
-                  left_index_left != right_index_left) {
-             --right_index_left;
-             --i;
-             // TODO left_index_left could be decreased in certain cases
-           }
-         }
-         {
-           // modify left index of right sample
-           size_t i = left_index_right - leftest_sample_index;
-           while (*samples[i] == *out_of_domain_value() &&
-                  (i < right_index_right &&
-                   *samples[i + 1] == *out_of_domain_value()) &&
-                  left_index_right != right_index_right) {
-             ++left_index_right;
-             ++i;
-           }
-           // TODO right_index_right could be increased in certain cases
-         }
-         {
-           // modify right index of right sample
-           size_t i = right_index_right - leftest_sample_index;
-           while (*samples[i] == *out_of_domain_value() &&
-                  (i > left_index_right &&
-                   *samples[i - 1] == *out_of_domain_value()) &&
-                  left_index_right != right_index_right) {
-             --right_index_right;
-             --i;
-             // TODO left_index_right could be decreased in certain cases
-           }
-         }
-       }
+       // modify indices so that no sample is out of domain
+       // if (out_of_domain_value()) {
+       //   {
+       //     // modify left index of left sample
+       //     size_t i = left_index_left - leftest_sample_index;
+       //     while (*samples[i] == *out_of_domain_value() &&
+       //            left_index_left != right_index_left) {
+       //       ++left_index_left;
+       //       ++i;
+       //       // TODO right_index_left could be increased in certain cases
+       //     }
+       //   }
+       //  {
+       //    // modify right index of left sample
+       //    size_t i = right_index_left - leftest_sample_index;
+       //    while (*samples[i] == *out_of_domain_value() &&
+       //           left_index_left != right_index_left) {
+       //      --right_index_left;
+       //      --i;
+       //      // TODO left_index_left could be decreased in certain cases
+       //    }
+       //  }
+       //  {
+       //    // modify left index of right sample
+       //    size_t i = left_index_right - leftest_sample_index;
+       //    while (*samples[i] == *out_of_domain_value() &&
+       //           left_index_right != right_index_right) {
+       //      ++left_index_right;
+       //      ++i;
+       //    }
+       //    // TODO right_index_right could be increased in certain cases
+       //  }
+       //  {
+       //    // modify right index of right sample
+       //    size_t i = right_index_right - leftest_sample_index;
+       //    while (*samples[i] == *out_of_domain_value() &&
+       //           left_index_right != right_index_right) {
+       //      --right_index_right;
+       //      --i;
+       //      // TODO left_index_right could be decreased in certain cases
+       //    }
+       //  }
+       //}
 
        auto const coeffs_left = [&]() {
          if (left_index_left == ci - 1 && right_index_left == ci + 1) {
@@ -325,40 +317,40 @@ struct base_sampler : crtp<Sampler> {
        }
 
         // modify indices so that no sample is out of domain
-       if (out_of_domain_value()) {
-         {
-           // modify left index of left sample
-           size_t i = left_index_left - leftest_sample_index;
-           while (samples[i++] == *out_of_domain_value() &&
-                  left_index_left != right_index_left) {
-             ++left_index_left;
-           }
-         }
-         {
-           // modify right index of left sample
-           size_t i = right_index_left - leftest_sample_index;
-           while (samples[i--] == *out_of_domain_value() &&
-                  left_index_left != right_index_left) {
-             --right_index_left;
-           }
-         }
-         {
-           // modify left index of right sample
-           size_t i = left_index_right - leftest_sample_index;
-           while (samples[i++] == *out_of_domain_value() &&
-                  left_index_right != right_index_right) {
-             ++left_index_right;
-           }
-         }
-         {
-           // modify right index of right sample
-           size_t i = right_index_right - leftest_sample_index;
-           while (samples[i--] == *out_of_domain_value() &&
-                  left_index_right != right_index_right) {
-             --right_index_right;
-           }
-         }
-       }
+       //if (out_of_domain_value()) {
+       //  {
+       //    // modify left index of left sample
+       //    size_t i = left_index_left - leftest_sample_index;
+       //    while (samples[i++] == *out_of_domain_value() &&
+       //           left_index_left != right_index_left) {
+       //      ++left_index_left;
+       //    }
+       //  }
+       //  {
+       //    // modify right index of left sample
+       //    size_t i = right_index_left - leftest_sample_index;
+       //    while (samples[i--] == *out_of_domain_value() &&
+       //           left_index_left != right_index_left) {
+       //      --right_index_left;
+       //    }
+       //  }
+       //  {
+       //    // modify left index of right sample
+       //    size_t i = left_index_right - leftest_sample_index;
+       //    while (samples[i++] == *out_of_domain_value() &&
+       //           left_index_right != right_index_right) {
+       //      ++left_index_right;
+       //    }
+       //  }
+       //  {
+       //    // modify right index of right sample
+       //    size_t i = right_index_right - leftest_sample_index;
+       //    while (samples[i--] == *out_of_domain_value() &&
+       //           left_index_right != right_index_right) {
+       //      --right_index_right;
+       //    }
+       //  }
+       //}
 
        auto const coeffs_left = [&]() {
          if (left_index_left == ci - 1 && right_index_left == ci + 1) {

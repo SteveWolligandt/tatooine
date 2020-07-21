@@ -9,14 +9,14 @@ namespace tatooine::netcdf {
 //==============================================================================
 template <typename T>
 struct lazy_reader : chunked_multidim_array<T> {
-  using value_type = T;
+  using this_t     = lazy_reader<T>;
   using parent_t   = chunked_multidim_array<T>;
+  using value_type = T;
   using parent_t::chunk_at;
 
  private:
   netcdf::variable<T>       m_var;
   mutable std::vector<bool> m_read;
-  mutable size_t            m_num_active_chunks;
   mutable std::mutex        m_mutex;
 
  public:
@@ -58,31 +58,17 @@ struct lazy_reader : chunked_multidim_array<T> {
     }
   }
   //----------------------------------------------------------------------------
- public:
-  auto at(integral auto const... indices) -> T& {
+  auto read_chunk(size_t& plain_index, integral auto const... indices) const
+      -> auto const& {
     assert(sizeof...(indices) == this->num_dimensions());
     assert(this->in_range(indices...));
-    size_t const plain_index =
-        this->plain_chunk_index_from_global_indices(indices...);
+    plain_index = this->plain_chunk_index_from_global_indices(indices...);
 
-    static T t{};
-    std::lock_guard lock{m_mutex};
     if constexpr (std::is_arithmetic_v<T>) {
       if (this->chunk_at_is_null(plain_index)) {
-        if (m_read[plain_index]) {
-          t = 0;
-          return t;
-        } else {
+        if (!m_read[plain_index]) {
           m_read[plain_index] = true;
-          // if (m_num_active_chunks > 50) {
-          //  for (auto& chunk : this->m_chunks) {
-          //    if (chunk != nullptr) { chunk.reset(); }
-          //  }
-          //  m_num_active_chunks = 0;
-          //  for (auto& r:m_read) {r = false;}
-          //}
           this->create_chunk_at(plain_index);
-          ++m_num_active_chunks;
           auto start_indices = this->global_indices_from_chunk_indices(
               this->chunk_indices_from_global_indices(indices...));
           std::reverse(begin(start_indices), end(start_indices));
@@ -90,110 +76,43 @@ struct lazy_reader : chunked_multidim_array<T> {
           std::reverse(begin(s), end(s));
           m_var.read_chunk(start_indices, s, *chunk_at(plain_index));
 
-          bool all_zero = true;
-          for (auto const& v : chunk_at(plain_index)->data()) {
-            if (v != 0) {
-              all_zero = false;
-              break;
-            }
-          }
-          if (all_zero) {
+          if (is_chunk_filled_with_zeros(plain_index)) {
             this->destroy_chunk_at(plain_index);
-            t = 0;
-            return t;
           }
         }
       }
     } else {
       if (this->chunk_at_is_null(plain_index)) {
-        //if (m_num_active_chunks > 50) {
-        //  for (auto& chunk : this->m_chunks) {
-        //    if (chunk != nullptr) { chunk.reset(); }
-        //  }
-        //  m_num_active_chunks = 0;
-        //}
         this->create_chunk_at(plain_index);
-        ++m_num_active_chunks;
         std::vector start_indices{static_cast<size_t>(indices)...};
         std::reverse(begin(start_indices), end(start_indices));
         auto s = this->internal_chunk_size();
         m_var.read_chunk(start_indices, this->internal_chunk_size());
       }
     }
-
-    size_t const plain_internal_index =
-        this->plain_internal_chunk_index_from_global_indices(plain_index,
-                                                             indices...);
-
-    assert(!this->chunk_at_is_null(plain_index));
-    return (*chunk_at(plain_index))[plain_internal_index];
+    return this->chunk_at(plain_index);
+  }
+  //----------------------------------------------------------------------------
+ public:
+  auto at(integral auto const... indices) -> T& {
+    return const_cast<T&>(static_cast<const this_t*>(this)->at(indices...));
   }
   //----------------------------------------------------------------------------
   auto at(integral auto const... indices) const -> T const& {
-    assert(sizeof...(indices) == this->num_dimensions());
-    assert(this->in_range(indices...));
-    size_t const plain_index =
-        this->plain_chunk_index_from_global_indices(indices...);
     std::lock_guard lock{m_mutex};
+    size_t      plain_index = 0;
+    auto const& chunk = read_chunk(plain_index, indices...);
 
-    static T t{};
-    if constexpr (std::is_arithmetic_v<T>) {
-      if (this->chunk_at_is_null(plain_index)) {
-        if (m_read[plain_index]) {
-          t = 0;
-          return t;
-        } else {
-          m_read[plain_index] = true;
-          //if (m_num_active_chunks > 50) {
-          //  for (auto& chunk : this->m_chunks) {
-          //    if (chunk != nullptr) { chunk.reset(); }
-          //  }
-          //  m_num_active_chunks = 0;
-          //}
-          this->create_chunk_at(plain_index);
-          ++m_num_active_chunks;
-          auto start_indices = this->global_indices_from_chunk_indices(
-              this->chunk_indices_from_global_indices(indices...));
-          std::reverse(begin(start_indices), end(start_indices));
-          auto s = this->internal_chunk_size();
-          std::reverse(begin(s), end(s));
-          m_var.read_chunk(start_indices, s, *chunk_at(plain_index));
-
-          bool all_zero = true;
-          for (auto const& v : chunk_at(plain_index)->data()) {
-            if (v != 0) {
-              all_zero = false;
-              break;
-            }
-            }
-            if (all_zero) {
-              this->destroy_chunk_at(plain_index);
-              t = 0;
-              return t;
-            }
-        }
-      } else {
-        if (this->chunk_at_is_null(plain_index)) {
-          // if (m_num_active_chunks > 50) {
-          //  for (auto& chunk : this->m_chunks) {
-          //    if (chunk != nullptr) { chunk.reset(); }
-          //  }
-          //  m_num_active_chunks = 0;
-          //}
-          this->create_chunk_at(plain_index);
-          ++m_num_active_chunks;
-          std::vector start_indices{static_cast<size_t>(indices)...};
-          std::reverse(begin(start_indices), end(start_indices));
-          auto s = this->internal_chunk_size();
-          m_var.read_chunk(start_indices, this->internal_chunk_size());
-        }
-      }
+    if (chunk != nullptr) {
+      size_t const plain_internal_index =
+          this->plain_internal_chunk_index_from_global_indices(plain_index,
+                                                               indices...);
+      return (*chunk)[plain_internal_index];
+    } else {
+      static T t{};
+      t = T{};
+      return t;
     }
-
-    size_t const plain_internal_index =
-        this->plain_internal_chunk_index_from_global_indices(plain_index,
-                                                             indices...);
-    return (*chunk_at(plain_index))[plain_internal_index];
   }
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
  private:
@@ -237,6 +156,19 @@ struct lazy_reader : chunked_multidim_array<T> {
   template <integral Int, size_t N>
   auto operator()(std::array<Int, N> const& is) const -> T const& {
     return at(std::make_index_sequence<N>{}, is);
+  }
+  //----------------------------------------------------------------------------
+  auto is_chunk_filled_with_value(size_t const plain_index, value_type const& value) const -> bool {
+    auto const& chunk_data = chunk_at(plain_index)->data();
+    for (auto const& v : chunk_data) {
+      if (v != value) { return false; }
+    }
+    return true;
+  }
+  //----------------------------------------------------------------------------
+  template <typename _T = value_type, enable_if_arithmetic<_T> = true>
+  auto is_chunk_filled_with_zeros(size_t const plain_index) const -> bool {
+    return is_chunk_filled_with_value(plain_index, 0);
   }
 };
 //==============================================================================

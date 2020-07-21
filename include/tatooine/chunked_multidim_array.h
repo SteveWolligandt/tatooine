@@ -25,8 +25,10 @@ template <typename T, typename Indexing = x_fastest>
 struct chunked_multidim_array {
   //============================================================================
   using value_type = T;
-  using this_t     = chunked_multidim_array<T, Indexing>;
-  using chunk_t    = dynamic_multidim_array<T, Indexing>;
+  using this_t            = chunked_multidim_array<T, Indexing>;
+  using chunk_t           = dynamic_multidim_array<T, Indexing>;
+  using chunk_ptr_t       = std::unique_ptr<chunk_t>;
+  using chunk_ptr_field_t = std::vector<chunk_ptr_t>;
   //----------------------------------------------------------------------------
  private:
   dynamic_multidim_size<Indexing> m_data_structure;
@@ -34,7 +36,7 @@ struct chunked_multidim_array {
   dynamic_multidim_size<Indexing> m_chunk_structure;
 
  protected:
-  mutable std::vector<std::unique_ptr<chunk_t>> m_chunks;
+  mutable chunk_ptr_field_t m_chunks;
   //============================================================================
  public:
   chunked_multidim_array(chunked_multidim_array const& other)

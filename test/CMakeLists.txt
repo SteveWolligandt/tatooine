@@ -26,8 +26,13 @@ macro(create_test NAME)
   add_executable (${NAME}.test ${NAME}.cpp main.cpp)
   target_link_libraries(${NAME}.test tatooine Catch2::Catch2)
   target_compile_features(${NAME}.test PUBLIC cxx_std_17)
+  if (CMAKE_CXX_COMPILER_ID STREQUAL "Clang")
   target_compile_options(${NAME}.test PRIVATE
     -Wall -Wextra -pedantic -Wno-missing-braces -Wno-unused-lambda-capture -ftemplate-backtrace-limit=0)
+  else()
+  target_compile_options(${NAME}.test PRIVATE
+    -Wall -Wextra -pedantic -Wno-missing-braces -ftemplate-backtrace-limit=0)
+  endif()
   add_custom_target (${NAME}.test.run COMMAND ./${NAME}.test --use-colour=yes DEPENDS ${NAME}.test)
   if("${CMAKE_CXX_COMPILER_ID}" STREQUAL "GNU" OR
      "${CMAKE_CXX_COMPILER_ID}" STREQUAL "Clang")

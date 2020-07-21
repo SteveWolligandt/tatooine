@@ -1,9 +1,9 @@
+#include <tatooine/analytical/fields/numerical/doublegyre.h>
+#include <tatooine/analytical/fields/numerical/sinuscosinus.h>
 #include <tatooine/constant_vectorfield.h>
-#include <tatooine/doublegyre.h>
-#include <tatooine/integration/vclibs/rungekutta43.h>
 #include <tatooine/interpolation.h>
 #include <tatooine/line.h>
-#include <tatooine/sinuscosinus.h>
+#include <tatooine/ode/vclibs/rungekutta43.h>
 
 #include <catch2/catch.hpp>
 //==============================================================================
@@ -49,9 +49,12 @@ TEST_CASE("line_parameterized_initialization",
           "[line][parameterization][initialization]") {
   parameterized_line<double, 2, interpolation::linear> l{
       {vec{1, 2}, 0}, {vec{2, 3}, 1}, {vec{3, 4}, 2}};
-  auto [x0, t0] = l[0];
-  auto [x1, t1] = l[1];
-  auto [x2, t2] = l[2];
+  auto const& x0 = l.vertex_at(0);
+  auto const& x1 = l.vertex_at(1);
+  auto const& x2 = l.vertex_at(2);
+  auto const& t0 = l.parameterization_at(0);
+  auto const& t1 = l.parameterization_at(1);
+  auto const& t2 = l.parameterization_at(2);
   REQUIRE(x0(0) == 1);
   REQUIRE(x0(1) == 2);
   REQUIRE(t0 == 0);
@@ -162,13 +165,19 @@ TEST_CASE("line_paramaterization_centripetal",
 }
 //==============================================================================
 TEST_CASE("line_resample", "[line][parameterization][resample]") {
+  using integral_curve_t =
+      parameterized_line<double, 2, interpolation::hermite>;
+  using vertex_idx = integral_curve_t::vertex_idx;
   SECTION("double gyre pathline") {
-    numerical::doublegyre                                                v;
-    integration::vclibs::rungekutta43<double, 2, interpolation::hermite> rk43;
-    auto  integral_curve = rk43.integrate(v, vec{0.2, 0.2}, 0, 10);
+    analytical::fields::numerical::doublegyre v;
+    ode::vclibs::rungekutta43<double, 2>      rk43;
+    integral_curve_t                          integral_curve;
+    rk43.solve(v, vec{0.2, 0.2}, 0, 10, [&](auto const t, auto const& y) {
+      integral_curve.push_back(y, t);
+    });
     auto& curvature = integral_curve.add_vertex_property<double>("curvature");
     for (size_t i = 0; i < integral_curve.num_vertices(); ++i) {
-      curvature[i] =
+      curvature[vertex_idx{i}] =
           integral_curve.curvature(integral_curve.parameterization_at(i));
     }
     integral_curve.write_vtk("original_dg_pathline.vtk");
@@ -193,7 +202,7 @@ TEST_CASE("line_resample", "[line][parameterization][resample]") {
       auto  l2        = l.resample(linspace(0.0, 2.0, 10000));
       auto& curvature = l2.add_vertex_property<double>("curvature");
       for (size_t i = 0; i < l2.num_vertices(); ++i) {
-        curvature[i] = l2.curvature(l2.parameterization_at(i));
+        curvature[vertex_idx{i}] = l2.curvature(l2.parameterization_at(i));
       }
       l2.write_vtk("resampled_line_hermite.vtk");
     }
@@ -205,42 +214,58 @@ TEST_CASE("line_curvature", "[line][parameterization][curvature]") {
   l.push_back(vec{0.0, 0.0}, 0);
   l.push_back(vec{1.0, 1.0}, 1);
   l.push_back(vec{2.0, 0.0}, 2);
-  REQUIRE(!isnan(l.curvature(0)));
-  REQUIRE(!isnan(l.curvature(1)));
-  REQUIRE(!isnan(l.curvature(2)));
-  REQUIRE(!isinf(l.curvature(0)));
-  REQUIRE(!isinf(l.curvature(1)));
-  REQUIRE(!isinf(l.curvature(2)));
+  REQUIRE(!std::isnan(l.curvature(0)));
+  REQUIRE(!std::isnan(l.curvature(1)));
+  REQUIRE(!std::isnan(l.curvature(2)));
+  REQUIRE(!std::isinf(l.curvature(0)));
+  REQUIRE(!std::isinf(l.curvature(1)));
+  REQUIRE(!std::isinf(l.curvature(2)));
 }
 //==============================================================================
 TEST_CASE("line_curvature2", "[line][parameterization][curvature1]") {
-  numerical::doublegyre dg;
-  integration::vclibs::rungekutta43<double, 2> ode;
-  auto& l = ode.integrate(dg, vec{0.1, 0.1}, 5, -6, 6);
+  using integral_curve_t =
+      parameterized_line<double, 2, interpolation::hermite>;
+  analytical::fields::numerical::doublegyre v;
+  ode::vclibs::rungekutta43<double, 2>      ode;
+  integral_curve_t                          integral_curve;
+  auto& tangents = integral_curve.tangents_property();
+  ode.solve(v, vec{0.1, 0.1}, 5, 6,
+            [&](auto const t, auto const& y, auto const& dy) {
+              integral_curve.push_back(y, t, false);
+              tangents.back() = dy;
+            });
+  ode.solve(v, vec{0.1, 0.1}, 5, -6,
+            [&](auto const t, auto const& y, auto const& dy) {
+              integral_curve.push_front(y, t, false);
+              tangents.front() = dy;
+            });
+  integral_curve.update_interpolators();
 
-  for (size_t i = 0; i < l.num_vertices(); ++i) {
+  for (size_t i = 0; i < integral_curve.num_vertices(); ++i) {
     CAPTURE(i);
-    CAPTURE(l.num_vertices());
-    CAPTURE(l.parameterization_at(i));
-    CAPTURE(l.vertex_at(i));
-    CAPTURE(l.tangent_at(i));
-    CAPTURE(dg(l.vertex_at(i), l.parameterization_at(i)));
-    REQUIRE(approx_equal(l.tangent_at(i),
-                         dg(l.vertex_at(i), l.parameterization_at(i))));
+    CAPTURE(integral_curve.num_vertices());
+    CAPTURE(integral_curve.parameterization_at(i));
+    CAPTURE(integral_curve.vertex_at(i));
+    CAPTURE(integral_curve.tangent_at(i));
+    CAPTURE(
+        v(integral_curve.vertex_at(i), integral_curve.parameterization_at(i)));
+    REQUIRE(approx_equal(
+        integral_curve.tangent_at(i),
+        v(integral_curve.vertex_at(i), integral_curve.parameterization_at(i))));
   }
-  double tfront = l.front_parameterization();
-  double tback = l.back_parameterization();
-  REQUIRE(tfront == Approx(0).margin(1e-10));
-  REQUIRE(tback == Approx(10).margin(1e-10));
+  double tfront = integral_curve.front_parameterization();
+  double tback  = integral_curve.back_parameterization();
+  REQUIRE(tfront == Approx(-1).margin(1e-10));
+  REQUIRE(tback == Approx(11).margin(1e-10));
   {
-    INFO("curve:\n" << l.interpolator(tfront).curve());
+    INFO("curve:\n" << integral_curve.interpolator(tfront).curve());
     INFO("tfront: " << tfront);
-    INFO("pos:    " << l(tfront));
-    INFO("vec:    " << dg(l(tfront), tfront));
-    INFO("tang:   " << l.tangent(tfront));
-    const auto curv = l.curvature(tfront);
-    REQUIRE(!isnan(curv));
-    REQUIRE(!isinf(curv));
+    INFO("pos:    " << integral_curve(tfront));
+    INFO("vec:    " << v(integral_curve(tfront), tfront));
+    INFO("tang:   " << integral_curve.tangent(tfront));
+    const auto curv = integral_curve.curvature(tfront);
+    REQUIRE(!std::isnan(curv));
+    REQUIRE(!std::isinf(curv));
   }
 }
 //==============================================================================

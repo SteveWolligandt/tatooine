@@ -49,6 +49,7 @@ namespace tatooine::ode::vclibs {
 
 static constexpr inline auto rk43          = VC::odeint::RK43;
 static constexpr inline auto out_of_domain = VC::odeint::OutOfDomain;
+static constexpr inline auto stopped       = VC::odeint::evstate_t::Stopped;
 static constexpr inline auto abs_tol       = VC::odeint::AbsTol;
 static constexpr inline auto rel_tol       = VC::odeint::RelTol;
 static constexpr inline auto initial_step  = VC::odeint::InitialStep;
@@ -60,8 +61,9 @@ struct rungekutta43 : solver<rungekutta43<Real, N>, Real, N> {
   //============================================================================
   using this_t   = rungekutta43<Real, N>;
   using parent_t = solver<this_t, Real, N>;
+  using typename parent_t::vec_t;
   using typename parent_t::pos_t;
-  using vc_ode_t      = VC::odeint::ode_t<N, Real, vec<Real, N>, false>;
+  using vc_ode_t      = VC::odeint::ode_t<N, Real, vec_t, false>;
   using vc_stepper_t  = typename vc_ode_t::template solver_t<
       VC::odeint::steppers::rk43_t<pos_t, Real>>;
   using vc_options_t = typename vc_ode_t::options_t;
@@ -74,7 +76,7 @@ struct rungekutta43 : solver<rungekutta43<Real, N>, Real, N> {
  public:
   constexpr rungekutta43()
       : m_stepper{vc_ode_t::solver(rk43, vc_options_t{abs_tol = 1e-4, rel_tol = 1e-4,
-                                   initial_step = 0, max_step = 0.1})} {}
+                                   initial_step = 0/*, max_step = 0.1*/})} {}
   constexpr rungekutta43(rungekutta43 const& other)     = default;
   constexpr rungekutta43(rungekutta43&& other) noexcept = default;
   constexpr auto operator=(rungekutta43 const& other)
@@ -108,10 +110,36 @@ struct rungekutta43 : solver<rungekutta43<Real, N>, Real, N> {
     };
 
     m_stepper.initialize(dy, t0, t0 + tau, y0);
-
+    auto wrapped_callback = [&] {
+      if constexpr (std::is_invocable_v<StepperCallback, Real, pos_t>) {
+        if constexpr (std::is_same_v<bool, decltype(callback(
+                                               std::declval<Real>(),
+                                               std::declval<pos_t>()))>) {
+          return [&](auto const t, auto const& y) {
+            if (!callback(t, y)) {/* m_stepper.state = stopped; */}
+          };
+        } else {
+          return [&](auto const t, auto const& y) { callback(t, y); };
+        }
+      } else if constexpr (std::is_invocable_v<StepperCallback, Real, pos_t,
+                                               vec_t>) {
+        if constexpr (std::is_same_v<bool, decltype(callback(
+                                               std::declval<Real>(),
+                                               std::declval<pos_t>(),
+                                               std::declval<vec_t>()))>) {
+          return [&](auto const t, auto const& y, auto const& dy) {
+            if (!callback(t, y, dy)) {/* m_stepper.state = stopped; */}
+          };
+        } else {
+          return [&](auto const t, auto const& y, auto const& dy) {
+            callback(t, y, dy);
+          };
+        }
+      }
+    }();
     m_stepper.integrate(
         dy, vc_ode_t::Output >>
-                vc_ode_t::sink(std::forward<StepperCallback>(callback)));
+                vc_ode_t::sink(wrapped_callback));
   }
 };
 //==============================================================================

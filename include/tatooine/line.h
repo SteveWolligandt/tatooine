@@ -406,7 +406,7 @@ struct line {
   //----------------------------------------------------------------------------
   template <
       typename... Vertices, enable_if_vector<std::decay_t<Vertices>...> = true,
-      enable_if_arithmetic<typename std::decay_t<Vertices>::real_t...> = true,
+      enable_if_arithmetic<typename std::decay_t<Vertices>::value_type...> = true,
       std::enable_if_t<((std::decay_t<Vertices>::num_components() == N) && ...),
                        bool>                                           = true>
   line(Vertices&&... vertices)

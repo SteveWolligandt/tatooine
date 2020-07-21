@@ -1,4 +1,4 @@
-#include <tatooine/fields/scivis_contest_2020_ensemble_member.h>
+#include "ensemble_member.h"
 #include "ensemble_file_paths.h"
 
 #include <filesystem>
@@ -6,8 +6,7 @@
 //==============================================================================
 namespace tatooine::scivis_contest_2020 {
 //==============================================================================
-using V = tatooine::fields::scivis_contest_2020_ensemble_member<
-    interpolation::hermite>;
+using V = ensemble_member<interpolation::hermite>;
 //==============================================================================
 std::mutex mutex;
 //==============================================================================
