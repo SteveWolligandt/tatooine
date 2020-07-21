@@ -1,6 +1,8 @@
 #ifndef TATOOINE_VTK_LEGACY_H
 #define TATOOINE_VTK_LEGACY_H
 
+#include <tatooine/concepts.h>
+
 #include <cassert>
 #include <cstdlib>
 #include <exception>
@@ -1028,6 +1030,42 @@ class legacy_file_writer {
   inline void write_triangle_strips(
       const std::vector<std::vector<size_t>> &triangle_strips);
 
+  template <real_number T>
+  void write_x_coordinates(std::vector<T> const &x_coordinates) {
+    std::stringstream ss;
+    ss << "\nX_COORDINATES " << ' ' << tatooine::type_to_str<T>() << ' '
+       << x_coordinates.size() << '\n';
+    vtk::write_binary(m_file, ss.str());
+    T d;
+    for (auto const &c : x_coordinates) {
+      d = swap_endianess(c);
+      m_file.write((char *)(&d), sizeof(T));
+    }
+  }
+  template <real_number T>
+  void write_y_coordinates(std::vector<T> const &y_coordinates) {
+    std::stringstream ss;
+    ss << "\nY_COORDINATES " << ' ' << tatooine::type_to_str<T>() << ' '
+       << y_coordinates.size() << '\n';
+    vtk::write_binary(m_file, ss.str());
+    T d;
+    for (auto const &c : y_coordinates) {
+      d = swap_endianess(c);
+      m_file.write((char *)(&d), sizeof(T));
+    }
+  }
+  template <real_number T>
+  void write_z_coordinates(std::vector<T> const &z_coordinates) {
+    std::stringstream ss;
+    ss << "\nZ_COORDINATES " << ' ' << tatooine::type_to_str<T>() << ' '
+       << z_coordinates.size() << '\n';
+    vtk::write_binary(m_file, ss.str());
+    T d;
+    for (auto const &c : z_coordinates) {
+      d = swap_endianess(c);
+      m_file.write((char *)(&d), sizeof(T));
+    }
+  }
   inline void write_point_data(size_t i);
   inline void write_cell_data(size_t i);
   template <typename Real>

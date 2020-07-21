@@ -77,18 +77,19 @@ struct ensemble_member
     m_v_grid.dimension<0>() = xc_axis;
     m_w_grid.dimension<0>() = xc_axis;
 
+    size_t const chunk_size = 10;
     m_u = &m_u_grid.add_vertex_property<
         netcdf::lazy_reader<double>, SpatialInterpolationKernel,
         SpatialInterpolationKernel, SpatialInterpolationKernel,
-        interpolation::linear>("u", u_var, std::vector<size_t>(4, 5));
+        interpolation::linear>("u", u_var, std::vector<size_t>(4, chunk_size));
     m_v = &m_v_grid.add_vertex_property<
         netcdf::lazy_reader<double>, SpatialInterpolationKernel,
         SpatialInterpolationKernel, SpatialInterpolationKernel,
-        interpolation::linear>("v", v_var, std::vector<size_t>(4, 5));
+        interpolation::linear>("v", v_var, std::vector<size_t>(4, chunk_size));
     m_w = &m_w_grid.add_vertex_property<
         netcdf::lazy_reader<double>, SpatialInterpolationKernel,
         SpatialInterpolationKernel, SpatialInterpolationKernel,
-        interpolation::linear>("w", w_var, std::vector<size_t>(4, 5));
+        interpolation::linear>("w", w_var, std::vector<size_t>(4, chunk_size));
   }
   //==============================================================================
   auto evaluate(pos_t const& x, real_t const t) const -> tensor_t final {

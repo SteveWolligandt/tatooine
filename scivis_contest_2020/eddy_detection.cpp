@@ -3,6 +3,7 @@
 #include <filesystem>
 //==============================================================================
 using namespace tatooine;
+using namespace tatooine::scivis_contest_2020;
 using V = ensemble_member<interpolation::hermite>;
 //==============================================================================
 void print_usage(char** argv);
@@ -18,9 +19,11 @@ int main(int argc, char** argv) {
     throw std::runtime_error{"specify time!"};
   }
   // setup grid and properties
-  V    v{argv[1]};
-  grid g{v.xc_axis, v.yc_axis,
-         linspace{v.z_axis.front(), v.z_axis.back(), 100}};
+  V        v{argv[1]};
+  auto     dim0 = v.xc_axis;
+  auto     dim1 = v.yc_axis;
+  linspace dim2{v.z_axis.front(), v.z_axis.back(), 100};
+  grid<decltype(dim0), decltype(dim1), decltype(dim2)> g{dim0, dim1, dim2};
   // grid g{linspace{v.xc_axis.front(), v.xc_axis.back(), v.xc_axis.size() / 4},
   //       linspace{v.yc_axis.front(), v.yc_axis.back(), v.yc_axis.size() / 4},
   //       linspace{v.z_axis.front(), v.z_axis.back(), 100}};
@@ -48,13 +51,13 @@ int main(int argc, char** argv) {
           "vorticity_magnitude");
   auto& divergence_prop =
       g.add_contiguous_vertex_property<double, x_fastest>("divergence");
-  //auto& lagrangian_vorticity_magnitude_prop =
-  //    g.add_contiguous_vertex_property<double, x_fastest>(
-  //        "lagrangian_vorticity_magnitude");
-  //auto& lagrangian_lambda2_prop =
-  //    g.add_contiguous_vertex_property<double, x_fastest>("lagrangian_lambda2");
-  //auto& lagrangian_Q_prop =
-  //    g.add_contiguous_vertex_property<double, x_fastest>("lagrangian_Q");
+  auto& lagrangian_vorticity_magnitude_prop =
+      g.add_contiguous_vertex_property<double, x_fastest>(
+          "lagrangian_vorticity_magnitude");
+  auto& lagrangian_lambda2_prop =
+      g.add_contiguous_vertex_property<double, x_fastest>("lagrangian_lambda2");
+  auto& lagrangian_Q_prop =
+      g.add_contiguous_vertex_property<double, x_fastest>("lagrangian_Q");
 
   auto apply_properties = [&](auto const... is) {
     auto const x = g.vertex_at(is...);
@@ -81,77 +84,76 @@ int main(int argc, char** argv) {
 
       // lagrangian properties
       // setup new pathline
-      // auto& pathline = add_pathline();
-      //parameterized_line<double, 3, interpolation::linear> pathline;
-      //auto&                                                vort_pathline_prop =
-      //    pathline.template add_vertex_property<double>("vorticity");
-      //auto& Q_pathline_prop =
-      //    pathline.template add_vertex_property<double>("Q");
-      //auto& lambda2_pathline_prop =
-      //    pathline.template add_vertex_property<double>("lambda2");
-      //
-      //// integrate pathline
-      //ode::vclibs::rungekutta43<V::real_t, 3> solver;
-      //solver.solve(v, vec{x(0), x(1), x(2)}, t, 10,
-      //             [&pathline](auto t, const auto& y) {
-      //               if (pathline.empty()) {
-      //                 pathline.push_back(y, t);
-      //               } else if (distance(pathline.back_vertex(), y) > 1e-6) {
-      //                 pathline.push_back(y, t);
-      //               }
-      //             });
-      //solver.solve(v, vec{x(0), x(1), x(2)}, t, -10,
-      //             [&pathline](auto t, const auto& y) {
-      //               if (pathline.empty()) {
-      //                 pathline.push_back(y, t);
-      //               } else if (distance(pathline.front_vertex(), y) > 1e-6) {
-      //                 pathline.push_front(y, t);
-      //               }
-      //             });
-      //
-      //// for each vertex of the pathline calculate properties
-      //for (size_t i = 0; i < pathline.num_vertices(); ++i) {
-      //  typename std::decay_t<decltype(pathline)>::vertex_idx vert{i};
-      //  auto const& x = pathline.vertex_at(i);
-      //  auto const& t = pathline.parameterization_at(i);
-      //  if (v.in_domain(x, t)) {
-      //    auto const Jv     = Jf(x, t);
-      //    auto const Sv     = (Jv + transposed(Jv)) / 2;
-      //    auto const Omegav = (Jv - transposed(Jv)) / 2;
-      //    auto const SSv    = Sv * Sv;
-      //    auto const OOv    = Omegav * Omegav;
-      //    auto const SSOOv  = SSv + OOv;
-      //
-      //    vec const vort{Jv(2, 1) - Jv(1, 2), Jv(0, 2) - Jv(2, 0),
-      //                   Jv(1, 0) - Jv(0, 1)};
-      //    vort_pathline_prop[vert]    = length(vort);
-      //    Q_pathline_prop[vert]       = (sqr_norm(Omegav) - sqr_norm(Sv)) / 2;
-      //    lambda2_pathline_prop[vert] = eigenvalues_sym(SSOOv)(1);
-      //  } else {
-      //    vort_pathline_prop[vert]    = 0.0 / 0.0;
-      //    Q_pathline_prop[vert]       = 0.0 / 0.0;
-      //    lambda2_pathline_prop[vert] = 0.0 / 0.0;
-      //  }
-      //}
+      parameterized_line<double, 3, interpolation::linear> pathline;
+      auto&                                                vort_pathline_prop =
+          pathline.template add_vertex_property<double>("vorticity");
+      auto& Q_pathline_prop =
+          pathline.template add_vertex_property<double>("Q");
+      auto& lambda2_pathline_prop =
+          pathline.template add_vertex_property<double>("lambda2");
+
+      // integrate pathline
+      ode::vclibs::rungekutta43<V::real_t, 3> solver;
+      solver.solve(v, vec{x(0), x(1), x(2)}, t, 10,
+                   [&pathline](auto t, const auto& y) {
+                     if (pathline.empty()) {
+                       pathline.push_back(y, t);
+                     } else if (distance(pathline.back_vertex(), y) > 1e-6) {
+                       pathline.push_back(y, t);
+                     }
+                   });
+      solver.solve(v, vec{x(0), x(1), x(2)}, t, -10,
+                   [&pathline](auto t, const auto& y) {
+                     if (pathline.empty()) {
+                       pathline.push_back(y, t);
+                     } else if (distance(pathline.front_vertex(), y) > 1e-6) {
+                       pathline.push_front(y, t);
+                     }
+                   });
+
+      // for each vertex of the pathline calculate properties
+      for (size_t i = 0; i < pathline.num_vertices(); ++i) {
+        typename std::decay_t<decltype(pathline)>::vertex_idx vert{i};
+        auto const& x = pathline.vertex_at(i);
+        auto const& t = pathline.parameterization_at(i);
+        if (v.in_domain(x, t)) {
+          auto const Jv     = Jf(x, t);
+          auto const Sv     = (Jv + transposed(Jv)) / 2;
+          auto const Omegav = (Jv - transposed(Jv)) / 2;
+          auto const SSv    = Sv * Sv;
+          auto const OOv    = Omegav * Omegav;
+          auto const SSOOv  = SSv + OOv;
+
+          vec const vort{Jv(2, 1) - Jv(1, 2), Jv(0, 2) - Jv(2, 0),
+                         Jv(1, 0) - Jv(0, 1)};
+          vort_pathline_prop[vert]    = length(vort);
+          Q_pathline_prop[vert]       = (sqr_norm(Omegav) - sqr_norm(Sv)) / 2;
+          lambda2_pathline_prop[vert] = eigenvalues_sym(SSOOv)(1);
+        } else {
+          vort_pathline_prop[vert]    = 0.0 / 0.0;
+          Q_pathline_prop[vert]       = 0.0 / 0.0;
+          lambda2_pathline_prop[vert] = 0.0 / 0.0;
+        }
+      }
 
       // set langragian properties to grid data
-      //if (!pathline.empty()) {
-      //  lagrangian_vorticity_magnitude_prop.data_at(is...) =
-      //      pathline.integrate_property(vort_pathline_prop);
-      //  lagrangian_lambda2_prop.data_at(is...) =
-      //      pathline.integrate_property(lambda2_pathline_prop);
-      //  lagrangian_Q_prop.data_at(is...) =
-      //      pathline.integrate_property(Q_pathline_prop);
-      //}
+      if (!pathline.empty()) {
+        lagrangian_vorticity_magnitude_prop.data_at(is...) =
+            pathline.integrate_property(vort_pathline_prop);
+        lagrangian_lambda2_prop.data_at(is...) =
+            pathline.integrate_property(lambda2_pathline_prop);
+        lagrangian_Q_prop.data_at(is...) =
+            pathline.integrate_property(Q_pathline_prop);
+      }
     } else {
       imag_prop.data_at(is...)                           = 0.0 / 0.0;
       lambda2_prop.data_at(is...)                        = 0.0 / 0.0;
       Q_prop.data_at(is...)                              = 0.0 / 0.0;
       vorticity_magnitude_prop.data_at(is...)            = 0.0 / 0.0;
       divergence_prop.data_at(is...)                     = 0.0 / 0.0;
-      //lagrangian_vorticity_magnitude_prop.data_at(is...) = 0.0 / 0.0;
-      //lagrangian_lambda2_prop.data_at(is...)             = 0.0 / 0.0;
-      //lagrangian_Q_prop.data_at(is...)                   = 0.0 / 0.0;
+      lagrangian_vorticity_magnitude_prop.data_at(is...) = 0.0 / 0.0;
+      lagrangian_lambda2_prop.data_at(is...)             = 0.0 / 0.0;
+      lagrangian_Q_prop.data_at(is...)                   = 0.0 / 0.0;
     }
   };
   parallel_for_loop(apply_properties, g.size<0>(), g.size<1>(), g.size<2>());
@@ -161,8 +163,8 @@ int main(int argc, char** argv) {
   std::string outpath = fs::path{p.filename()}.replace_extension(
       "eddy_detection_" + std::to_string(t) + ".vtk");
 
-  g.dimension<2>().front() *= 0.0025;
-  g.dimension<2>().back() *= 0.0025;
+  g.dimension<2>().front() *= -0.0025;
+  g.dimension<2>().back() *= -0.0025;
 
   g.write_vtk(outpath);
   // std::string outpath_pathlines = fs::path{p.filename()}.replace_extension(

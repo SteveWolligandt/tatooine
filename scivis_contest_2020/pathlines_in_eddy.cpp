@@ -25,12 +25,13 @@ auto create_grid() {
   dim0.pop_back();
 
   dim1.pop_front();
-  dim1.front() = 14;
+  //dim1.front() = 14;
   dim1.pop_back();
   dim1.pop_back();
 
   dim2.pop_back();
-  grid g{dim0, dim1, dim2};
+  grid<decltype(dim0), decltype(dim1), decltype(dim2)> g{dim0, dim1, dim2};
+  g.add_contiguous_vertex_property<double>("lagrangian_Q");
   return g;
 }
 //------------------------------------------------------------------------------
@@ -115,13 +116,13 @@ void collect_pathlines_in_eddy(
   }
 }
 //------------------------------------------------------------------------------
-template <typename Grid, typename Prop>
+template <typename Grid>
 void collect_pathlines_in_eddy(
     V const& v, real_number auto const t, real_number auto const threshold,
-    Grid const& g,
+    Grid & g,
     std::vector<parameterized_line<double, 3, interpolation::linear>>&
-          pathlines,
-    Prop& prop) {
+          pathlines) {
+  auto& prop = g.template vertex_property<double>("lagrangian_Q");
   size_t             cnt       = 0;
   auto               iteration = [&](auto const... is) {
     auto const x = g.vertex_at(is...);
@@ -146,12 +147,10 @@ void collect_pathlines_in_eddy(std::string const&     filepath,
   fs::path p = filepath;
   std::vector<parameterized_line<double, 3, interpolation::linear>> pathlines;
   auto  g = create_grid();
-  auto& prop =
-      g.add_contiguous_vertex_property<double, x_fastest>("lagrangian_Q");
 
   V          v{p};
   auto const t = (v.t_axis.back() + v.t_axis.front()) / 2;
-  collect_pathlines_in_eddy(v, t, threshold, g, pathlines, prop);
+  collect_pathlines_in_eddy(v, t, threshold, g, pathlines);
   std::string outpath_pathlines = fs::path{p.filename()}.replace_extension(
       "pathlines_in_eddy_" + std::to_string(t) + ".vtk");
   write_vtk(pathlines, outpath_pathlines);

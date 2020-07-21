@@ -175,244 +175,131 @@ struct base_sampler : crtp<Sampler> {
     } else {
       auto const& dim = grid().template dimension<current_dimension_index()>();
       // differentiate
-      value_type   dleft_dx{};
-      value_type   dright_dx{};
+      value_type dleft_dx{};
+      value_type dright_dx{};
 
-      size_t left_index_left  = ci == 0 ? 0 : ci - 1;
-      size_t right_index_left = ci == dim.size() - 1 ? dim.size() - 1 : ci + 1;
+      size_t left_index_left  = ci == 0 ? ci : ci - 1;
+      size_t right_index_left = ci + 1;
       if (left_index_left == ci) { ++right_index_left; }
-      if (right_index_left == ci) { --left_index_left; }
 
-      size_t left_index_right  = ci;
-      size_t right_index_right = ci+1 == dim.size() - 1 ? dim.size() - 1 : ci + 2;
+      size_t left_index_right = ci;
+      size_t right_index_right =
+          ci + 1 == dim.size() - 1 ? dim.size() - 1 : ci + 2;
       if (right_index_right == ci) { --left_index_right; }
       size_t const leftest_sample_index = left_index_left;
 
+      std::vector<value_type> samples(right_index_right - left_index_left + 1);
+      // get samples
       if constexpr (num_dimensions() == 1) {
-        std::vector<value_type const*> samples(right_index_right -
-                                               left_index_left + 1);
-        {
-          // get samples
-          size_t j = 0;
-          for (size_t i = left_index_left; i <= right_index_right; ++i, ++j) {
-            samples[j] = &at(i);
-          }
-       }
-
-       // modify indices so that no sample is out of domain
-       // if (out_of_domain_value()) {
-       //   {
-       //     // modify left index of left sample
-       //     size_t i = left_index_left - leftest_sample_index;
-       //     while (*samples[i] == *out_of_domain_value() &&
-       //            left_index_left != right_index_left) {
-       //       ++left_index_left;
-       //       ++i;
-       //       // TODO right_index_left could be increased in certain cases
-       //     }
-       //   }
-       //  {
-       //    // modify right index of left sample
-       //    size_t i = right_index_left - leftest_sample_index;
-       //    while (*samples[i] == *out_of_domain_value() &&
-       //           left_index_left != right_index_left) {
-       //      --right_index_left;
-       //      --i;
-       //      // TODO left_index_left could be decreased in certain cases
-       //    }
-       //  }
-       //  {
-       //    // modify left index of right sample
-       //    size_t i = left_index_right - leftest_sample_index;
-       //    while (*samples[i] == *out_of_domain_value() &&
-       //           left_index_right != right_index_right) {
-       //      ++left_index_right;
-       //      ++i;
-       //    }
-       //    // TODO right_index_right could be increased in certain cases
-       //  }
-       //  {
-       //    // modify right index of right sample
-       //    size_t i = right_index_right - leftest_sample_index;
-       //    while (*samples[i] == *out_of_domain_value() &&
-       //           left_index_right != right_index_right) {
-       //      --right_index_right;
-       //      --i;
-       //      // TODO left_index_right could be decreased in certain cases
-       //    }
-       //  }
-       //}
-
-       auto const coeffs_left = [&]() {
-         if (left_index_left == ci - 1 && right_index_left == ci + 1) {
-           return as_derived().grid().diff_stencil_coefficients_n1_0_p1(
-               current_dimension_index(), ci);
-         }
-         if (left_index_left == ci && right_index_left == ci + 2) {
-           return as_derived().grid().diff_stencil_coefficients_0_p1_p2(
-               current_dimension_index(), ci);
-         }
-         if (left_index_left == ci - 2 && right_index_left == ci) {
-           return as_derived().grid().diff_stencil_coefficients_n2_n1_0(
-               current_dimension_index(), ci);
-         }
-         if (left_index_left == ci - 1 && right_index_left == ci) {
-           return as_derived().grid().diff_stencil_coefficients_n1_0(
-               current_dimension_index(), ci);
-         }
-         if (left_index_left == ci && right_index_left == ci + 1) {
-           return as_derived().grid().diff_stencil_coefficients_0_p1(
-               current_dimension_index(), ci);
-         }
-         return std::vector<double>{};
-       }();
-       auto const coeffs_right = [&]() {
-         if (left_index_right == ci && right_index_right == ci + 2) {
-           return as_derived().grid().diff_stencil_coefficients_n1_0_p1(
-               current_dimension_index(), ci + 1);
-         }
-         if (left_index_right == ci + 1 && right_index_right == ci + 3) {
-           return as_derived().grid().diff_stencil_coefficients_0_p1_p2(
-               current_dimension_index(), ci + 1);
-         }
-         if (left_index_right == ci - 1 && right_index_right == ci + 1) {
-           return as_derived().grid().diff_stencil_coefficients_n2_n1_0(
-               current_dimension_index(), ci + 1);
-         }
-         if (left_index_right == ci && right_index_right == ci + 1) {
-           return as_derived().grid().diff_stencil_coefficients_n1_0(
-               current_dimension_index(), ci + 1);
-         }
-         if (left_index_right == ci + 1 && right_index_right == ci + 2) {
-           return as_derived().grid().diff_stencil_coefficients_0_p1(
-               current_dimension_index(), ci + 1);
-         }
-         return std::vector<double>{};
-       }();
-
-       size_t k = 0;
-       for (size_t j = left_index_left; j <= right_index_left; ++j, ++k) {
-         if (coeffs_left[k] != 0) { dleft_dx += coeffs_left[k] * *samples[k]; }
-       }
-       k = 0;
-       for (size_t j = left_index_right; j <= right_index_right; ++j, ++k) {
-         if (coeffs_right[k] != 0) {
-           dright_dx += coeffs_right[k] * *samples[k];
-         }
-       }
-       auto const dy = 1 / dim[ci + 1] - dim[ci];
-       return HeadInterpolationKernel{*samples[ci - leftest_sample_index],
-                                      *samples[ci - leftest_sample_index + 1],
-                                      dleft_dx * dy,
-                                      dright_dx * dy}(t);
+        size_t j = 0;
+        for (size_t i = left_index_left; i <= right_index_right; ++i, ++j) {
+          samples[j] = at(i);
+        }
       } else {
-        std::vector<value_type> samples(right_index_right - left_index_left +
-                                        1);
-        {
-          // get samples
-          size_t j = 0;
-          for (size_t i = left_index_left; i <= right_index_right; ++i, ++j) {
-            samples[j] = at(i).sample(xs...);
-          }
-       }
-
-        // modify indices so that no sample is out of domain
-       //if (out_of_domain_value()) {
-       //  {
-       //    // modify left index of left sample
-       //    size_t i = left_index_left - leftest_sample_index;
-       //    while (samples[i++] == *out_of_domain_value() &&
-       //           left_index_left != right_index_left) {
-       //      ++left_index_left;
-       //    }
-       //  }
-       //  {
-       //    // modify right index of left sample
-       //    size_t i = right_index_left - leftest_sample_index;
-       //    while (samples[i--] == *out_of_domain_value() &&
-       //           left_index_left != right_index_left) {
-       //      --right_index_left;
-       //    }
-       //  }
-       //  {
-       //    // modify left index of right sample
-       //    size_t i = left_index_right - leftest_sample_index;
-       //    while (samples[i++] == *out_of_domain_value() &&
-       //           left_index_right != right_index_right) {
-       //      ++left_index_right;
-       //    }
-       //  }
-       //  {
-       //    // modify right index of right sample
-       //    size_t i = right_index_right - leftest_sample_index;
-       //    while (samples[i--] == *out_of_domain_value() &&
-       //           left_index_right != right_index_right) {
-       //      --right_index_right;
-       //    }
-       //  }
-       //}
-
-       auto const coeffs_left = [&]() {
-         if (left_index_left == ci - 1 && right_index_left == ci + 1) {
-           return as_derived().grid().diff_stencil_coefficients_n1_0_p1(
-               current_dimension_index(), ci);
-         }
-         if (left_index_left == ci && right_index_left == ci + 2) {
-           return as_derived().grid().diff_stencil_coefficients_0_p1_p2(
-               current_dimension_index(), ci);
-         }
-         if (left_index_left == ci - 2 && right_index_left == ci) {
-           return as_derived().grid().diff_stencil_coefficients_n2_n1_0(
-               current_dimension_index(), ci);
-         }
-         if (left_index_left == ci - 1 && right_index_left == ci) {
-           return as_derived().grid().diff_stencil_coefficients_n1_0(
-               current_dimension_index(), ci);
-         }
-         if (left_index_left == ci && right_index_left == ci + 1) {
-           return as_derived().grid().diff_stencil_coefficients_0_p1(
-               current_dimension_index(), ci);
-         }
-         return std::vector<double>{};
-       }();
-       auto const coeffs_right = [&]() {
-         if (left_index_right == ci && right_index_right == ci + 2) {
-           return as_derived().grid().diff_stencil_coefficients_n1_0_p1(
-               current_dimension_index(), ci + 1);
-         }
-         if (left_index_right == ci + 1 && right_index_right == ci + 3) {
-           return as_derived().grid().diff_stencil_coefficients_0_p1_p2(
-               current_dimension_index(), ci + 1);
-         }
-         if (left_index_right == ci - 1 && right_index_right == ci + 1) {
-           return as_derived().grid().diff_stencil_coefficients_n2_n1_0(
-               current_dimension_index(), ci + 1);
-         }
-         if (left_index_right == ci && right_index_right == ci + 1) {
-           return as_derived().grid().diff_stencil_coefficients_n1_0(
-               current_dimension_index(), ci + 1);
-         }
-         if (left_index_right == ci + 1 && right_index_right == ci + 2) {
-           return as_derived().grid().diff_stencil_coefficients_0_p1(
-               current_dimension_index(), ci + 1);
-         }
-         return std::vector<double>{};
-       }();
-
-       size_t k = 0;
-       for (size_t j = left_index_left; j <= right_index_left; ++j, ++k) {
-         if (coeffs_left[k] != 0) { dleft_dx += coeffs_left[k] * samples[k]; }
-       }
-       k = 0;
-       for (size_t j = left_index_right; j <= right_index_right; ++j, ++k) {
-         if (coeffs_right[k] != 0) {
-           dright_dx += coeffs_right[k] * samples[k];
-         }
-       }
-       auto const dy = 1 / dim[ci + 1] - dim[ci];
-       return HeadInterpolationKernel{samples[ci - leftest_sample_index],
-                                      samples[ci - leftest_sample_index + 1],
-                                      dleft_dx * dy, dright_dx * dy}(t);
+        // get samples
+        size_t j = 0;
+        for (size_t i = left_index_left; i <= right_index_right; ++i, ++j) {
+          samples[j] = at(i).sample(xs...);
+        }
+      }
+      // modify indices so that no sample is out of domain
+      // if (out_of_domain_value()) {
+      //  {
+      //    // modify left index of left sample
+      //    size_t i = left_index_left - leftest_sample_index;
+      //    while (samples[i++] == *out_of_domain_value() &&
+      //           left_index_left != right_index_left) {
+      //      ++left_index_left;
+      //    }
+      //  }
+      //  {
+      //    // modify right index of left sample
+      //    size_t i = right_index_left - leftest_sample_index;
+      //    while (samples[i--] == *out_of_domain_value() &&
+      //           left_index_left != right_index_left) {
+      //      --right_index_left;
+      //    }
+      //  }
+      //  {
+      //    // modify left index of right sample
+      //    size_t i = left_index_right - leftest_sample_index;
+      //    while (samples[i++] == *out_of_domain_value() &&
+      //           left_index_right != right_index_right) {
+      //      ++left_index_right;
+      //    }
+      //  }
+      //  {
+      //    // modify right index of right sample
+      //    size_t i = right_index_right - leftest_sample_index;
+      //    while (samples[i--] == *out_of_domain_value() &&
+      //           left_index_right != right_index_right) {
+      //      --right_index_right;
+      //    }
+      //  }
+      //}
+      auto const coeffs_left = [&]() {
+        if (left_index_left == ci - 1 && right_index_left == ci + 1) {
+          return as_derived().grid().diff_stencil_coefficients_n1_0_p1(
+              current_dimension_index(), ci);
+        }
+        if (left_index_left == ci && right_index_left == ci + 2) {
+          return as_derived().grid().diff_stencil_coefficients_0_p1_p2(
+              current_dimension_index(), ci);
+        }
+        if (left_index_left == ci - 2 && right_index_left == ci) {
+          return as_derived().grid().diff_stencil_coefficients_n2_n1_0(
+              current_dimension_index(), ci);
+        }
+        if (left_index_left == ci - 1 && right_index_left == ci) {
+          return as_derived().grid().diff_stencil_coefficients_n1_0(
+              current_dimension_index(), ci);
+        }
+        if (left_index_left == ci && right_index_left == ci + 1) {
+          return as_derived().grid().diff_stencil_coefficients_0_p1(
+              current_dimension_index(), ci);
+        }
+        return std::vector<double>{};
+      }();
+      auto const coeffs_right = [&]() {
+        if (left_index_right == ci && right_index_right == ci + 2) {
+          return as_derived().grid().diff_stencil_coefficients_n1_0_p1(
+              current_dimension_index(), ci + 1);
+        }
+        if (left_index_right == ci + 1 && right_index_right == ci + 3) {
+          return as_derived().grid().diff_stencil_coefficients_0_p1_p2(
+              current_dimension_index(), ci + 1);
+        }
+        if (left_index_right == ci - 1 && right_index_right == ci + 1) {
+          return as_derived().grid().diff_stencil_coefficients_n2_n1_0(
+              current_dimension_index(), ci + 1);
+        }
+        if (left_index_right == ci && right_index_right == ci + 1) {
+          return as_derived().grid().diff_stencil_coefficients_n1_0(
+              current_dimension_index(), ci + 1);
+        }
+        if (left_index_right == ci + 1 && right_index_right == ci + 2) {
+          return as_derived().grid().diff_stencil_coefficients_0_p1(
+              current_dimension_index(), ci + 1);
+        }
+        return std::vector<double>{};
+      }();
+      size_t k = 0;
+      for (size_t j = left_index_left; j <= right_index_left; ++j, ++k) {
+        if (coeffs_left[k] != 0) { dleft_dx += coeffs_left[k] * samples[k]; }
+      }
+      k = 0;
+      for (size_t j = left_index_right; j <= right_index_right; ++j, ++k) {
+        if (coeffs_right[k] != 0) { dright_dx += coeffs_right[k] * samples[k]; }
+      }
+      auto const dy = dim[ci + 1] - dim[ci];
+      if constexpr (num_dimensions() == 1) {
+        return HeadInterpolationKernel{samples[ci - leftest_sample_index],
+                                       samples[ci - leftest_sample_index + 1],
+                                       dleft_dx * dy, dright_dx * dy}(t);
+      } else {
+        return HeadInterpolationKernel{samples[ci - leftest_sample_index],
+                                       samples[ci - leftest_sample_index + 1],
+                                       dleft_dx * dy, dright_dx * dy}(t);
       }
     }
   }

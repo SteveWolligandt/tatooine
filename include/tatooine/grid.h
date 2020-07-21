@@ -11,6 +11,7 @@
 #include <tatooine/interpolation.h>
 #include <tatooine/linspace.h>
 #include <tatooine/random.h>
+#include <tatooine/template_helper.h>
 #include <tatooine/vec.h>
 
 #include <map>
@@ -76,7 +77,7 @@ class grid {
       m_diff_stencil_coefficients_n1_0;
   //============================================================================
  public:
-  constexpr grid() = delete;
+  constexpr grid() = default;
   constexpr grid(grid const& other)
       : m_dimensions{other.m_dimensions},
         m_diff_stencil_coefficients_n1_0_p1{
@@ -220,13 +221,29 @@ class grid {
     return dimension<I>().size();
   }
   //----------------------------------------------------------------------------
+  template <size_t I, typename _T = template_helper::get_t<I, Dimensions...>,
+            std::enable_if_t<std::is_reference_v<_T>, bool> = true>
+  constexpr auto size() -> auto& {
+    return dimension<I>().size();
+  }
+  //----------------------------------------------------------------------------
   template <size_t I>
   constexpr auto front() const {
     return dimension<I>().front();
   }
   //----------------------------------------------------------------------------
   template <size_t I>
+  constexpr auto front() ->auto& {
+    return dimension<I>().front();
+  }
+  //----------------------------------------------------------------------------
+  template <size_t I>
   constexpr auto back() const {
+    return dimension<I>().back();
+  }
+  //----------------------------------------------------------------------------
+  template <size_t I>
+  constexpr auto back() -> auto& {
     return dimension<I>().back();
   }
   //----------------------------------------------------------------------------
@@ -676,6 +693,22 @@ class grid {
   }
   //----------------------------------------------------------------------------
   template <typename T>
+  auto vertex_property(std::string const& name) const -> auto const& {
+    if (auto it = m_vertex_properties.find(name);
+        it == end(m_vertex_properties)) {
+      throw std::runtime_error{"property \"" + name + "\" not found"};
+    } else {
+      if (typeid(T) != it->second->type()) {
+        throw std::runtime_error{
+            "type of property \"" + name + "\"(" +
+            boost::core::demangle(it->second->type().name()) +
+            ") does not match specified type " + type_name<T>() + "."};
+      }
+      return *dynamic_cast<typed_property_t<T> const*>(it->second.get());
+    }
+  }
+  //----------------------------------------------------------------------------
+  template <typename T>
   auto vertex_property(std::string const& name) -> auto& {
     if (auto it = m_vertex_properties.find(name);
         it == end(m_vertex_properties)) {
@@ -785,6 +818,28 @@ class grid {
         vtk::legacy_file_writer writer{file_path, vtk::RECTILINEAR_GRID};
         writer.set_title("tatooine grid");
         writer.write_header();
+        if constexpr (num_dimensions() == 1) {
+          writer.write_dimensions(size<0>(), 1, 1);
+          writer.write_x_coordinates(
+              std::vector<double>(begin(dimension<0>()), end(dimension<0>())));
+          writer.write_y_coordinates(std::vector<double>{0});
+          writer.write_z_coordinates(std::vector<double>{0});
+        } else if constexpr (num_dimensions() == 2) {
+          writer.write_dimensions(size<0>(), size<1>(), 1);
+          writer.write_x_coordinates(
+              std::vector<double>(begin(dimension<0>()), end(dimension<0>())));
+          writer.write_y_coordinates(
+              std::vector<double>(begin(dimension<1>()), end(dimension<1>())));
+          writer.write_z_coordinates(std::vector<double>{0});
+        } else if constexpr (num_dimensions() == 3) {
+          writer.write_dimensions(size<0>(), size<1>(), size<2>());
+          writer.write_x_coordinates(
+              std::vector<double>(begin(dimension<0>()), end(dimension<0>())));
+          writer.write_y_coordinates(
+              std::vector<double>(begin(dimension<1>()), end(dimension<1>())));
+          writer.write_z_coordinates(
+              std::vector<double>(begin(dimension<2>()), end(dimension<2>())));
+        }
         return writer;
       }
     }();

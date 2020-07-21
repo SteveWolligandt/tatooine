@@ -12,8 +12,10 @@ std::mutex mutex;
 //==============================================================================
 auto create_grid() {
   V    v{ensemble_file_paths.front()};
-  grid g{v.xc_axis, v.yc_axis,
-         linspace{v.z_axis.front(), v.z_axis.back(), 100}};
+  auto     dim0 = v.xc_axis;
+  auto     dim1 = v.yc_axis;
+  linspace dim2{v.z_axis.front(), v.z_axis.back(), 100};
+  grid<decltype(dim0), decltype(dim1), decltype(dim2)> g{dim0, dim1, dim2};
 
   g.dimension<0>().pop_front();
   g.dimension<0>().pop_back();

@@ -15,9 +15,9 @@ struct lazy_reader : chunked_multidim_array<T> {
   using parent_t::chunk_at;
 
  private:
-  netcdf::variable<T>       m_var;
-  mutable std::vector<bool> m_read;
-  mutable std::mutex        m_mutex;
+  netcdf::variable<T>             m_var;
+  mutable std::vector<bool>       m_read;
+  mutable std::vector<std::unique_ptr<std::mutex>> m_mutexes;
 
  public:
   lazy_reader(std::string const& file_path, std::string const& var_name,
@@ -45,6 +45,8 @@ struct lazy_reader : chunked_multidim_array<T> {
   lazy_reader(lazy_reader const& other) : parent_t{other}, m_var{other.m_var} {
     if constexpr (std::is_arithmetic_v<T>) {
       m_read.resize(this->num_chunks(), false);
+      m_mutexes.resize(this->num_chunks());
+      for (auto& mutex : m_mutexes) { mutex = std::make_unique<std::mutex>(); }
     }
   }
   //----------------------------------------------------------------------------
@@ -55,6 +57,8 @@ struct lazy_reader : chunked_multidim_array<T> {
     this->resize(s, chunk_size);
     if constexpr (std::is_arithmetic_v<T>) {
       m_read.resize(this->num_chunks(), false);
+      m_mutexes.resize(this->num_chunks());
+      for (auto& mutex : m_mutexes) { mutex = std::make_unique<std::mutex>(); }
     }
   }
   //----------------------------------------------------------------------------
@@ -63,6 +67,7 @@ struct lazy_reader : chunked_multidim_array<T> {
     assert(sizeof...(indices) == this->num_dimensions());
     assert(this->in_range(indices...));
     plain_index = this->plain_chunk_index_from_global_indices(indices...);
+    std::lock_guard lock{*m_mutexes[plain_index]};
 
     if constexpr (std::is_arithmetic_v<T>) {
       if (this->chunk_at_is_null(plain_index)) {
@@ -99,7 +104,6 @@ struct lazy_reader : chunked_multidim_array<T> {
   }
   //----------------------------------------------------------------------------
   auto at(integral auto const... indices) const -> T const& {
-    std::lock_guard lock{m_mutex};
     size_t      plain_index = 0;
     auto const& chunk = read_chunk(plain_index, indices...);
 

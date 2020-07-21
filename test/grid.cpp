@@ -6,10 +6,10 @@
 namespace tatooine::test {
 //==============================================================================
 TEST_CASE("grid_copy_constructor", "[grid][copy][constructor]") {
-  std::array dim0{0, 1, 2};
-  std::array dim1{0, 1, 2};
+  std::array                           dim0{0, 1, 2};
+  std::array                           dim1{0, 1, 2};
   grid<decltype(dim0), decltype(dim1)> g0{dim0, dim1};
-  auto&      prop    = g0.template add_contiguous_vertex_property<double>("prop");
+  auto& prop = g0.template add_contiguous_vertex_property<double>("prop");
 
   prop.data_at(0, 0) = 100;
   auto  g1           = g0;
@@ -20,13 +20,13 @@ TEST_CASE("grid_copy_constructor", "[grid][copy][constructor]") {
 }
 //==============================================================================
 TEST_CASE("grid_vertex_indexing", "[grid][vertex][indexing]") {
-  std::array  dim0{0, 1, 2};
-  std::vector dim1{0, 1, 2};
-  linspace    dim2{0.0, 1.0, 11};
+  std::array                                           dim0{0, 1, 2};
+  std::vector                                          dim1{0, 1, 2};
+  linspace                                             dim2{0.0, 1.0, 11};
   grid<decltype(dim0), decltype(dim1), decltype(dim2)> g{dim0, dim1, dim2};
-  auto const  v000 = g.vertices().at(0, 0, 0);
-  auto const  v111 = g.vertex_at(1, 1, 1);
-  auto const  v221 = g.vertices().at(2, 2, 1);
+  auto const v000 = g.vertices().at(0, 0, 0);
+  auto const v111 = g.vertex_at(1, 1, 1);
+  auto const v221 = g.vertices().at(2, 2, 1);
 
   REQUIRE(approx_equal(v000, vec{0.0, 0.0, 0.0}));
   REQUIRE(approx_equal(v111, vec{1.0, 1.0, 0.1}));
@@ -34,21 +34,21 @@ TEST_CASE("grid_vertex_indexing", "[grid][vertex][indexing]") {
 }
 //==============================================================================
 TEST_CASE("grid_face_center", "[grid][face][position]") {
-  std::array  dim0{0.0, 1.0, 2.0};
-  std::vector dim1{0.0, 1.0, 2.0};
-  linspace    dim2{0.0, 1.0, 11};
+  std::array                                           dim0{0.0, 1.0, 2.0};
+  std::vector                                          dim1{0.0, 1.0, 2.0};
+  linspace                                             dim2{0.0, 1.0, 11};
   grid<decltype(dim0), decltype(dim1), decltype(dim2)> g{dim0, dim1, dim2};
-  auto const  f000 = g.face_center_at<0>(0, 0, 0);
+  auto const f000 = g.face_center_at<0>(0, 0, 0);
   CAPTURE(f000);
   REQUIRE(approx_equal(f000, vec{0.0, 0.5, 0.05}));
 }
 //==============================================================================
 TEST_CASE("grid_vertex_iterator", "[grid][vertex][iterator]") {
-  std::array  dim0{0, 1, 2};
-  std::vector dim1{0, 1, 2};
-  linspace    dim2{0.0, 2.0, 3};
+  std::array                                           dim0{0, 1, 2};
+  std::vector                                          dim1{0, 1, 2};
+  linspace                                             dim2{0.0, 2.0, 3};
   grid<decltype(dim0), decltype(dim1), decltype(dim2)> g{dim0, dim1, dim2};
-  auto        it = begin(vertices(g));
+  auto                                                 it = begin(vertices(g));
   REQUIRE(approx_equal(*it, g(0, 0, 0)));
   REQUIRE(approx_equal(*next(it), g(1, 0, 0)));
   REQUIRE(approx_equal(*next(it, 3), g(0, 1, 0)));
@@ -57,10 +57,10 @@ TEST_CASE("grid_vertex_iterator", "[grid][vertex][iterator]") {
 }
 //==============================================================================
 TEST_CASE("grid_cell_index", "[grid][cell_index]") {
-  std::array  dim0{0.0, 1.2, 1.3};
-  std::vector dim1{0, 1, 2, 4};
-  linspace    dim2{0.0, 2.0, 3};
-  grid<decltype(dim0), decltype(dim1), decltype(dim2)>        g{dim0, dim1, dim2};
+  std::array                                           dim0{0.0, 1.2, 1.3};
+  std::vector                                          dim1{0, 1, 2, 4};
+  linspace                                             dim2{0.0, 2.0, 3};
+  grid<decltype(dim0), decltype(dim1), decltype(dim2)> g{dim0, dim1, dim2};
   auto const [idx0, factor0] = g.cell_index<0>(1.25);
   REQUIRE(idx0 == 1);
   REQUIRE(factor0 == 0.5);
@@ -76,9 +76,9 @@ TEST_CASE("grid_cell_index", "[grid][cell_index]") {
 }
 //==============================================================================
 TEST_CASE("grid_vertex_prop_hermite", "[grid][property][hermite]") {
-  std::array dim0{0.0, 1.0, 2.0};
-  std::array dim1{0.0, 1.0};
-  grid<decltype(dim0), decltype(dim1)>       g{dim0, dim1};
+  std::array                           dim0{0.0, 1.0, 2.0};
+  std::array                           dim1{0.0, 1.0};
+  grid<decltype(dim0), decltype(dim1)> g{dim0, dim1};
 
   auto& u =
       g.add_chunked_vertex_property<double, x_fastest, interpolation::hermite,
@@ -104,13 +104,13 @@ TEST_CASE("grid_vertex_prop_hermite", "[grid][property][hermite]") {
 }
 //==============================================================================
 TEST_CASE("grid_chunked_vertex_property", "[grid][vertex][chunked][property]") {
-  std::array  dim0{0, 1, 2};
-  std::vector dim1{0, 1, 2};
-  linspace    dim2{0.0, 2.0, 3};
+  std::array                                           dim0{0, 1, 2};
+  std::vector                                          dim1{0, 1, 2};
+  linspace                                             dim2{0.0, 2.0, 3};
   grid<decltype(dim0), decltype(dim1), decltype(dim2)> g{dim0, dim1, dim2};
 
-  auto& u_prop = g.add_chunked_vertex_property<double, x_fastest>(
-      "u", std::vector<size_t>{2, 2, 2});
+  auto& u_prop =
+      g.add_chunked_vertex_property<double>("u", std::vector<size_t>{2, 2, 2});
 
   REQUIRE(u_prop.data_at(0, 0, 0) == 0);
   u_prop.data_at(0, 0, 0) = 1;
@@ -143,10 +143,10 @@ TEST_CASE("grid_chunked_vertex_property", "[grid][vertex][chunked][property]") {
 //==============================================================================
 TEST_CASE("grid_sampler_out_of_domain_element",
           "[grid][sampler][hermite][out_of_domain_value]") {
-  std::array dim0{0.0, 0.1, 1.0, 1.5};
-  std::array dim1{0.0, 0.1, 1.0, 1.5};
+  std::array                           dim0{0.0, 0.1, 1.0, 1.5};
+  std::array                           dim1{0.0, 0.1, 1.0, 1.5};
   grid<decltype(dim0), decltype(dim1)> g{dim0, dim1};
-  auto& sampler = g.add_contiguous_vertex_property<double, x_fastest>("prop");
+  auto& sampler = g.add_contiguous_vertex_property<double>("prop");
   sampler.set_out_of_domain_value(0);
 
   sampler.data_at(0, 0) = 1;
@@ -173,8 +173,8 @@ TEST_CASE("grid_sampler_out_of_domain_element",
 }
 //==============================================================================
 TEST_CASE("grid_sample_1d_linear", "[grid][sampler][1d][linear]") {
-  linspace dim{0.0, 1.0, 11};
-  grid<decltype(dim)>    g{dim};
+  linspace            dim{0.0, 1.0, 11};
+  grid<decltype(dim)> g{dim};
   using prop_value_type = double;
 
   std::string const prop_name = "u";
@@ -205,13 +205,12 @@ TEST_CASE("grid_sample_2d_linear", "[grid][sampler][2d][linear]") {
 //==============================================================================
 TEST_CASE("grid_finite_differences_coefficients",
           "[grid][finite_differences]") {
-  std::array dim{0.0, 0.1, 0.5, 0.9, 1.0};
-  grid<decltype(dim)>       g{dim};
+  std::array          dim{0.0, 0.1, 0.5, 0.9, 1.0};
+  grid<decltype(dim)> g{dim};
   using prop_value_type = double;
 
   std::string const prop_name = "u";
-  auto&             u_prop =
-      g.add_contiguous_vertex_property<prop_value_type, x_fastest>(prop_name);
+  auto& u_prop = g.add_contiguous_vertex_property<prop_value_type>(prop_name);
   auto [i0, coeffs0] = u_prop.stencil_coefficients<0, 3>(0, 1);
   REQUIRE(i0 == 0);
   REQUIRE(coeffs0(0) == Approx(-12.0));
@@ -240,7 +239,7 @@ TEST_CASE("grid_finite_differences_coefficients",
 }
 //==============================================================================
 TEST_CASE("grid_diff", "[grid][sample][1d][hermite]") {
-  std::array dim{0.0, 0.1, 0.5, 0.9, 1.0};
+  std::array          dim{0.0, 0.1, 0.5, 0.9, 1.0};
   grid<decltype(dim)> g{dim};
   using prop_value_type = double;
 
@@ -260,7 +259,7 @@ TEST_CASE("grid_diff", "[grid][sample][1d][hermite]") {
 }
 //==============================================================================
 TEST_CASE("grid_sample_1d_hermite", "[grid][sampler][1d][hermite]") {
-  linspace dim{0.0, 1.0, 11};
+  linspace            dim{0.0, 1.0, 11};
   grid<decltype(dim)> g{dim};
   using prop_value_type = double;
 
@@ -340,8 +339,8 @@ TEST_CASE("grid_lazy_netcdf", "[grid][lazy][netcdf]") {
   auto         dim_x = f_out.add_dimension(xdim_name, NX);
   auto         dim_y = f_out.add_dimension(ydim_name, NY);
   f_out.add_variable<double>(variable_name, {dim_y, dim_x}).write(data_out);
-  linspace dim0{0.0, 1.0, 8};
-  linspace dim1{0.0, 1.0, 6};
+  linspace                             dim0{0.0, 1.0, 8};
+  linspace                             dim1{0.0, 1.0, 6};
   grid<decltype(dim0), decltype(dim1)> g{dim0, dim1};
   auto& prop = g.add_vertex_property<netcdf::lazy_reader<double>>(
       "prop", file_path, variable_name, std::vector<size_t>{2, 2});
@@ -361,8 +360,7 @@ TEST_CASE("grid_amira_write", "[grid][amira]") {
   linspace                                             dim1{0.0, 1.0, 3};
   linspace                                             dim2{0.0, 1.0, 3};
   grid<decltype(dim0), decltype(dim1), decltype(dim2)> g{dim0, dim1, dim2};
-  auto&                                                prop =
-      g.add_contiguous_vertex_property<vec<double, 2>, x_fastest>("bla");
+  auto& prop = g.add_contiguous_vertex_property<vec<double, 2>>("bla");
   prop.data_at(1, 1, 1) = vec{1, 1};
   g.write_amira("amira_prop.am", prop);
 }
