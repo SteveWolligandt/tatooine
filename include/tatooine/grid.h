@@ -532,6 +532,29 @@ class grid {
   }
   //----------------------------------------------------------------------------
  private:
+  template <regular_invocable<decltype(((void)std::declval<Dimensions>(),
+                                        size_t{}))...>
+                Iteration,
+            size_t... Ds>
+  auto parallel_loop_over_vertex_indices(Iteration&& iteration,
+                                         std::index_sequence<Ds...>) const
+      -> decltype(auto) {
+    return parallel_for_loop(std::forward<Iteration>(iteration), size<Ds>()...);
+  }
+  //----------------------------------------------------------------------------
+ public:
+  template <regular_invocable<decltype(((void)std::declval<Dimensions>(),
+                                        size_t{}))...>
+                Iteration,
+            size_t... Ds>
+  auto parallel_loop_over_vertex_indices(Iteration&& iteration) const
+      -> decltype(auto) {
+    return parallel_loop_over_vertex_indices(
+        std::forward<Iteration>(iteration),
+        std::make_index_sequence<num_dimensions()>{});
+  }
+  //----------------------------------------------------------------------------
+ private:
   template <indexable_space AdditionalDimension, size_t... Is>
   auto add_dimension(AdditionalDimension&& additional_dimension,
                      std::index_sequence<Is...> /*seq*/) const {
@@ -774,29 +797,21 @@ class grid {
   void write_prop_vtk(vtk::legacy_file_writer& writer, std::string const& name,
                       typed_property_t<T> const& prop) const {
     std::vector<T> data;
-    auto           back_inserter = [&](auto const... is) {
-      data.push_back(prop.data_at(is...));
-    };
-    if constexpr (num_dimensions() == 1) {
-      for_loop(back_inserter, size<0>());
-    } else if constexpr (num_dimensions() == 2) {
-      for_loop(back_inserter, size<0>(), size<1>());
-    } else if constexpr (num_dimensions() == 3) {
-      for_loop(back_inserter, size<0>(), size<1>(), size<2>());
-    }
-
+    loop_over_vertex_indices(
+        [&](auto const... is) { data.push_back(prop.data_at(is...)); });
     writer.write_scalars(name, data);
   }
 
  public:
   template <size_t _N = num_dimensions(),
             std::enable_if_t<(_N == 1 || _N == 2 || _N == 3), bool> = true>
-  void write_vtk(std::string const& file_path) const {
-    auto writer = [this, &file_path] {
+  void write_vtk(std::string const& file_path,
+                 std::string const& description = "tatooine grid") const {
+    auto writer = [this, &file_path, &description] {
+      vtk::legacy_file_writer writer{file_path, vtk::RECTILINEAR_GRID};
+      writer.set_title(description);
+      writer.write_header();
       if constexpr (is_regular) {
-        vtk::legacy_file_writer writer{file_path, vtk::STRUCTURED_POINTS};
-        writer.set_title("tatooine grid");
-        writer.write_header();
         if constexpr (num_dimensions() == 1) {
           writer.write_dimensions(size<0>(), 1, 1);
           writer.write_origin(front<0>(), 0, 0);
@@ -815,9 +830,6 @@ class grid {
         }
         return writer;
       } else {
-        vtk::legacy_file_writer writer{file_path, vtk::RECTILINEAR_GRID};
-        writer.set_title("tatooine grid");
-        writer.write_header();
         if constexpr (num_dimensions() == 1) {
           writer.write_dimensions(size<0>(), 1, 1);
           writer.write_x_coordinates(

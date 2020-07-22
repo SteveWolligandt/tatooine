@@ -1,9 +1,10 @@
-#include "ensemble_member.h"
-
 #include <filesystem>
 #include <mutex>
 
 #include "ensemble_file_paths.h"
+#include "ensemble_member.h"
+#include "integrate_pathline.h"
+#include "positions_in_domain.h"
 //==============================================================================
 namespace fs = std::filesystem;
 //==============================================================================
@@ -15,63 +16,25 @@ std::mutex pathline_mutex;
 std::mutex prog_mutex;
 //==============================================================================
 auto create_grid() {
-  V    v{ensemble_file_paths.front()};
+  V v{ensemble_file_paths.front()};
 
   auto dim0 = v.xc_axis;
+  dim0.size() /= 4;
   auto dim1 = v.yc_axis;
-  auto dim2 = linspace{v.z_axis.front(), v.z_axis.back(), 100};
-  dim0.pop_front();
-  dim0.pop_back();
-  dim0.pop_back();
+  dim1.size() /= 4;
+  linspace dim2{v.z_axis.front(), v.z_axis.back(), 100};
 
-  dim1.pop_front();
-  //dim1.front() = 14;
-  dim1.pop_back();
-  dim1.pop_back();
-
-  dim2.pop_back();
   grid<decltype(dim0), decltype(dim1), decltype(dim2)> g{dim0, dim1, dim2};
   g.add_contiguous_vertex_property<double>("lagrangian_Q");
   return g;
 }
 //------------------------------------------------------------------------------
-auto integrate_pathline(V const& v, typename V::pos_t const& x,
-                        real_number auto t) {
-  parameterized_line<double, 3, interpolation::linear> pathline;
-
-  double const ftau = std::min<double>(50, v.t_axis.back() - t);
-  double const btau = std::max<double>(-50, v.t_axis.front() - t);
-  ode::vclibs::rungekutta43<V::real_t, 3> solver;
-  double const eps = 1e-6;
-  //std::cerr << "ftau: " << ftau << '\n';
-  //std::cerr << "btau: " << btau << '\n';
-  //std::cerr << "x: " << x << '\n';
-  solver.solve(
-      v, x, t, ftau, [&pathline, eps](auto t, const auto& y) {
-        if (pathline.empty() || distance(pathline.back_vertex(), y) > eps) {
-          pathline.push_back(y, t);
-          return true;
-        }
-        return false;
-      });
-  solver.solve(
-      v, x, t, btau, [&pathline, eps](auto t, const auto& y) {
-        if (pathline.empty() || distance(pathline.front_vertex(), y) > eps) {
-          pathline.push_front(y, t);
-          return true;
-        }
-        return false;
-      });
-  return pathline;
-}
-//------------------------------------------------------------------------------
-template <typename Prop, typename... Is>
+template <typename... Is>
 void collect_pathlines_in_eddy(
     V const& v, typename V::pos_t const& x, real_number auto const t,
     real_number auto const threshold,
     std::vector<parameterized_line<double, 3, interpolation::linear>>&
-          pathlines,
-    Prop& prop, Is... is) {
+        pathlines) {
   auto const Jf = diff(v, 1e-8);
 
   auto  pathline      = integrate_pathline(v, x, t);
@@ -108,7 +71,6 @@ void collect_pathlines_in_eddy(
   if (pathline.num_vertices() > 1) {
     auto const lagrangian_eddy = pathline.integrate_property(pathline_prop);
 
-    prop.data_at(is...) = lagrangian_eddy;
     if (lagrangian_eddy > threshold) {
       std::lock_guard lock{pathline_mutex};
       pathlines.push_back(std::move(pathline));
@@ -116,48 +78,62 @@ void collect_pathlines_in_eddy(
   }
 }
 //------------------------------------------------------------------------------
-template <typename Grid>
 void collect_pathlines_in_eddy(
     V const& v, real_number auto const t, real_number auto const threshold,
-    Grid & g,
+    std::vector<vec<double, 3>> const& xs,
     std::vector<parameterized_line<double, 3, interpolation::linear>>&
-          pathlines) {
-  auto& prop = g.template vertex_property<double>("lagrangian_Q");
-  size_t             cnt       = 0;
-  auto               iteration = [&](auto const... is) {
-    auto const x = g.vertex_at(is...);
-    if (v.in_domain(x, t)) {
-      collect_pathlines_in_eddy(v, x, t, threshold, pathlines, prop, is...);
-    }
-    {
-      std::lock_guard lock{prog_mutex};
-      ++cnt;
-      std::cerr << (100 * cnt / static_cast<double>(g.num_vertices()))
-                << " %       \r";
-    }
-  };
+        pathlines) {
+  std::atomic_size_t cnt  = 0;
+  bool               done = false;
 
-  parallel_for_loop(iteration, g.template size<0>(), g.template size<1>(),
-                    g.template size<2>());
+  std::thread monitor{[&] {
+    while (!done) {
+      std::cerr << "  integrating pathlines... "
+                << (100 * cnt / static_cast<double>(size(xs))) << " %       \r";
+      std::this_thread::sleep_for(std::chrono::milliseconds{200});
+    }
+  }};
+
+#pragma omp parallel for schedule(dynamic, 2)
+  for (size_t i = 0; i < size(xs); ++i) {
+    collect_pathlines_in_eddy(v, xs[i], t, threshold, pathlines);
+    ++cnt;
+  }
+  done = true;
+  monitor.join();
   std::cerr << '\n';
 }
 //------------------------------------------------------------------------------
-void collect_pathlines_in_eddy(std::string const&     filepath,
+void collect_pathlines_in_eddy(char const*            ensemble_id,
                                real_number auto const threshold) {
-  fs::path p = filepath;
+  auto const ensemble_path = [&] {
+    if (std::string{ensemble_id} == "MEAN" ||
+        std::string{ensemble_id} == "Mean" ||
+        std::string{ensemble_id} == "mean") {
+      return tatooine::scivis_contest_2020::mean_file_path;
+    }
+    return tatooine::scivis_contest_2020::ensemble_file_paths[std::stoi(
+        ensemble_id)];
+  }();
+  fs::path const dir_path =
+      std::string{"pathlines_in_eddy_"} + std::string{ensemble_id};
+  if (!fs::exists(dir_path)) { fs::create_directory(dir_path); }
   std::vector<parameterized_line<double, 3, interpolation::linear>> pathlines;
-  auto  g = create_grid();
+  auto g = create_grid();
+  V    v{ensemble_path};
 
-  V          v{p};
-  auto const t = (v.t_axis.back() + v.t_axis.front()) / 2;
-  collect_pathlines_in_eddy(v, t, threshold, g, pathlines);
-  std::string outpath_pathlines = fs::path{p.filename()}.replace_extension(
-      "pathlines_in_eddy_" + std::to_string(t) + ".vtk");
-  write_vtk(pathlines, outpath_pathlines);
+  size_t ti = 0;
+  for (auto const t : v.t_axis) {
+    std::cerr << "processing time " << t << ", at index " << ti << " ...\n";
+    fs::path outpath_pathlines = dir_path;
+    outpath_pathlines /= "pathlines_in_eddy_" + std::to_string(ti++) + ".vtk";
+    if (!fs::exists(outpath_pathlines)) {
+      collect_pathlines_in_eddy(v, t, threshold,
+                                positions_in_domain(v, g).first, pathlines);
 
-  std::string outpath_scalar = fs::path{p.filename()}.replace_extension(
-      "pathlines_in_eddy_scalar" + std::to_string(t) + ".vtk");
-  g.write_vtk(outpath_scalar);
+      write_vtk(pathlines, outpath_pathlines.c_str());
+    }
+  }
 }
 //==============================================================================
 }  // namespace tatooine::scivis_contest_2020
@@ -165,17 +141,9 @@ void collect_pathlines_in_eddy(std::string const&     filepath,
 int main(int argc, char const** argv) {
   if (argc < 2) {
     throw std::runtime_error{
-        "you need to specify ensemble member number or MEAN"};
+        "You need to specify either mean or ensemble index."};
   }
-  if (argc < 3) { throw std::runtime_error{"you need to specify time"}; }
-
-  auto const ensemble_path = [&] {
-    if (std::string{argv[1]} == "MEAN" || std::string{argv[1]} == "mean" ||
-        std::string{argv[1]} == "Mean") {
-      return tatooine::scivis_contest_2020::mean_file_path;
-    }
-    return tatooine::scivis_contest_2020::ensemble_file_paths[std::stoi(
-        argv[1])];
-  }();
-  tatooine::scivis_contest_2020::collect_pathlines_in_eddy(ensemble_path, 0.05);
+  if (argc < 3) { throw std::runtime_error{"you need to specify a threshold"}; }
+  tatooine::scivis_contest_2020::collect_pathlines_in_eddy(argv[1],
+                                                           std::stoi(argv[2]));
 }

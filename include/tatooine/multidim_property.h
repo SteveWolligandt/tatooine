@@ -87,13 +87,6 @@ struct typed_multidim_property : multidim_property<Grid> {
         "Number of spatial components does not match number of dimensions.");
     return sample(typename Grid::pos_t{xs...});
   }
-  // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-  auto         operator()(real_number auto... xs) const -> T {
-    static_assert(
-        sizeof...(xs) == Grid::num_dimensions(),
-        "Number of spatial components does not match number of dimensions.");
-    return sample(typename Grid::pos_t{xs...});
-  }
   //----------------------------------------------------------------------------
   //template <floating_point Real, size_t DimIndex, size_t StencilSize>
   //auto stencil_coefficients(linspace<Real> const& dim,

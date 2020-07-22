@@ -1,5 +1,6 @@
 #include "ensemble_member.h"
 #include "ensemble_file_paths.h"
+#include "integrate_pathline.h"
 
 #include <filesystem>
 #include <mutex>
@@ -29,30 +30,6 @@ auto create_grid() {
   g.dimension<2>().pop_back();
   g.dimension<2>().pop_back();
   return g;
-}
-//------------------------------------------------------------------------------
-auto integrate_pathline(V const& v, typename V::pos_t const& x,
-                        real_number auto t) {
-  parameterized_line<double, 3, interpolation::linear> pathline;
-
-  ode::vclibs::rungekutta43<V::real_t, 3> solver;
-  solver.solve(v, vec{x(0), x(1), x(2)}, t, 10,
-               [&pathline](auto t, const auto& y) {
-                 if (pathline.empty()) {
-                   pathline.push_back(y, t);
-                 } else if (distance(pathline.back_vertex(), y) > 1e-6) {
-                   pathline.push_back(y, t);
-                 }
-               });
-  solver.solve(v, vec{x(0), x(1), x(2)}, t, -10,
-               [&pathline](auto t, const auto& y) {
-                 if (pathline.empty()) {
-                   pathline.push_back(y, t);
-                 } else if (distance(pathline.front_vertex(), y) > 1e-6) {
-                   pathline.push_front(y, t);
-                 }
-               });
-  return pathline;
 }
 //------------------------------------------------------------------------------
 template <typename UncertainEddyProp>

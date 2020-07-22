@@ -1033,8 +1033,8 @@ class legacy_file_writer {
   template <real_number T>
   void write_x_coordinates(std::vector<T> const &x_coordinates) {
     std::stringstream ss;
-    ss << "\nX_COORDINATES " << ' ' << tatooine::type_to_str<T>() << ' '
-       << x_coordinates.size() << '\n';
+    ss << "\nX_COORDINATES " << ' ' << x_coordinates.size() << ' '
+       << tatooine::type_to_str<T>() << '\n';
     vtk::write_binary(m_file, ss.str());
     T d;
     for (auto const &c : x_coordinates) {
@@ -1045,8 +1045,8 @@ class legacy_file_writer {
   template <real_number T>
   void write_y_coordinates(std::vector<T> const &y_coordinates) {
     std::stringstream ss;
-    ss << "\nY_COORDINATES " << ' ' << tatooine::type_to_str<T>() << ' '
-       << y_coordinates.size() << '\n';
+    ss << "\nY_COORDINATES " << ' ' << y_coordinates.size() << ' '
+       << tatooine::type_to_str<T>() << '\n';
     vtk::write_binary(m_file, ss.str());
     T d;
     for (auto const &c : y_coordinates) {
@@ -1057,8 +1057,8 @@ class legacy_file_writer {
   template <real_number T>
   void write_z_coordinates(std::vector<T> const &z_coordinates) {
     std::stringstream ss;
-    ss << "\nZ_COORDINATES " << ' ' << tatooine::type_to_str<T>() << ' '
-       << z_coordinates.size() << '\n';
+    ss << "\nZ_COORDINATES " << ' ' << z_coordinates.size() << ' '
+       << tatooine::type_to_str<T>() << '\n';
     vtk::write_binary(m_file, ss.str());
     T d;
     for (auto const &c : z_coordinates) {
