@@ -381,7 +381,7 @@ struct line {
     }
   }
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-  line(line&& other) = default;
+  line(line&& other) noexcept = default;
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
   line& operator=(const line& other) {
     m_vertices  = other.m_vertices;
@@ -396,7 +396,7 @@ struct line {
     return *this;
   }
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-  line& operator=(line&& other) = default;
+  line& operator=(line&& other) noexcept = default;
   //----------------------------------------------------------------------------
   line(const pos_container_t& data, bool is_closed = false)
       : m_vertices{data}, m_is_closed{is_closed} {}
@@ -1007,7 +1007,7 @@ struct parameterized_line : line<Real, N> {
             &this->template vertex_property<Real>("parameterization")},
         m_interpolators{other.m_interpolators} {}
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-  parameterized_line(parameterized_line&& other)
+  parameterized_line(parameterized_line&& other) noexcept
       : parent_t{std::move(other)},
         m_parameterization{
             &this->template vertex_property<Real>("parameterization")},
@@ -1029,7 +1029,7 @@ struct parameterized_line : line<Real, N> {
     return *this;
   }
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-  auto& operator=(parameterized_line&& other) {
+  auto& operator=(parameterized_line&& other) noexcept {
     parent_t::operator=(std::move(other));
     m_parameterization =
         &this->template vertex_property<Real>("parameterization");

@@ -3,7 +3,7 @@
 namespace tatooine::scivis_contest_2020 {
 template <typename V, typename Grid>
 auto positions_in_domain(V const& v, Grid const& g) {
-  std::cerr << "collecting positions in domain...";
+  std::cerr << "collecting positions in domain...\r";
   std::vector<typename Grid::pos_t> xs;
   std::vector<vec<size_t, 3>>       xis;
   xs.reserve(g.num_vertices() / 3);
@@ -37,7 +37,7 @@ auto positions_in_domain(V const& v, Grid const& g) {
   });
   done = true;
   monitor.join();
-  std::cerr << "collecting positions in domain... done!\n";
+  std::cerr << "collecting positions in domain... done!         \n";
   xs.shrink_to_fit();
   xis.shrink_to_fit();
   return std::pair{xs, xis};
