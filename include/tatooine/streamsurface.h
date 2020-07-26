@@ -395,12 +395,12 @@ struct front_evolving_streamsurface_discretization
 
         if (lower_edge_len < upper_edge_len) {
           new_face_indices.push_back(
-              this->insert_face(*left0, *right0, *left1));
+              this->insert_triangle(*left0, *right0, *left1));
           if (next(left0) != end0) { ++left0; }
 
         } else {
           new_face_indices.push_back(
-              this->insert_face(*left0, *right1, *left1));
+              this->insert_triangle(*left0, *right1, *left1));
 
           if (next(left1) != end1) { ++left1; }
         }
