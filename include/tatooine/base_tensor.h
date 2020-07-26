@@ -159,6 +159,15 @@ struct base_tensor : crtp<Tensor> {
 
   //----------------------------------------------------------------------------
   template <typename OtherTensor, real_or_complex_number OtherReal>
+  auto operator==(const base_tensor<OtherTensor, OtherReal, Dims...>& other) {
+    bool equal = true;
+    for_indices([&](const auto... is) {
+      if (at(is...) != other(is...)) { equal = false; }
+    });
+    return equal;
+  }
+  //----------------------------------------------------------------------------
+  template <typename OtherTensor, real_or_complex_number OtherReal>
   auto operator+=(const base_tensor<OtherTensor, OtherReal, Dims...>& other)
       -> auto& {
     for_indices([&](const auto... is) { at(is...) += other(is...); });
