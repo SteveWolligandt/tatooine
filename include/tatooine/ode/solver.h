@@ -14,6 +14,13 @@ template <typename F, typename Real, size_t N>
 concept stepper_callback_invocable =
     std::regular_invocable<F, vec<Real, N> const&, Real, vec<Real, N> const&> ||
     std::regular_invocable<F, vec<Real, N> const&, Real>;
+template <typename F, typename Real, size_t N>
+concept stepper_evaluator =
+    std::regular_invocable<F, vec<Real, N> const&, Real> &&
+    (std::is_same_v<vec<Real, N>,
+                    std::invoke_result_t<F, vec<Real, N>, Real>> ||
+     std::is_same_v<std::optional<vec<Real, N>>,
+                    std::invoke_result_t<F, vec<Real, N>, Real>>);
 //==============================================================================
 template <typename Derived, typename Real, size_t N>
 struct solver : crtp<Derived> {
@@ -36,12 +43,12 @@ struct solver : crtp<Derived> {
                        StepperCallback&& callback) const {
     as_derived().solve(v, y0, t0, tau, std::forward<StepperCallback>(callback));
   }
-  template <typename Evaluator, typename V, std::floating_point VReal, real_number Y0Real,
-            real_number T0Real, real_number TauReal,
+  // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+  template <real_number Y0Real, real_number T0Real, real_number TauReal,
+            stepper_evaluator<Y0Real, N>          Evaluator,
             stepper_callback_invocable<Y0Real, N> StepperCallback>
-  constexpr auto solve(Evaluator&& evaluator, vec<Y0Real, N>& y0,
-                       T0Real t0, TauReal tau,
-                       StepperCallback&& callback) const {
+  constexpr auto solve(Evaluator&& evaluator, vec<Y0Real, N>& y0, T0Real t0,
+                       TauReal tau, StepperCallback&& callback) const {
     as_derived().solve(std::forward<Evaluator>(evaluator), y0, t0, tau,
                        std::forward<StepperCallback>(callback));
   }

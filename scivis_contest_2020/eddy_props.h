@@ -23,13 +23,21 @@ auto eddy_props(V const& v, typename V::pos_t const& x,
   if (eulerian_Q > 0) {
     parameterized_line<double, 3, interpolation::linear> pathline;
 
-    auto evaluator = [&v, &Jf](auto const& y,
-                               auto const  t) -> std::optional<vec<double, 3>> {
-      if (!v.in_domain(y, t)) { return {}; }
-      return v(y, t);
-    };
+    using solver_t = ode::vclibs::rungekutta43<typename V::real_t, 3>;
+    solver_t solver;
+    auto     evaluator = [&v, &Jf](auto const& y, auto const t) ->
+        typename solver_t::maybe_vec {
+          if (!v.in_domain(y, t)) { return ode::vclibs::out_of_domain; }
 
-    ode::vclibs::rungekutta43<typename V::real_t, 3> solver;
+          auto const J     = Jf(y, t);
+          auto const S     = (J + transposed(J)) / 2;
+          auto const Omega = (J - transposed(J)) / 2;
+          auto const Q     = (sqr_norm(Omega) - sqr_norm(S)) / 2;
+          if (Q < 0) { return ode::vclibs::out_of_domain; }
+
+          return v(y, t);
+        };
+
     double const max_ftau = v.t_axis.back() - t;
     double const min_btau = v.t_axis.front() - t;
     double const eps      = 1e-6;
@@ -38,7 +46,7 @@ auto eddy_props(V const& v, typename V::pos_t const& x,
     auto& pathline_Q_prop = pathline.add_vertex_property<double>("Q");
     if (ftau > 0) {
       solver.solve(evaluator, x, t, ftau,
-                   [&pathline, &Jf, eps](const vec<double, 3>& y, double t) {
+                   [&pathline, &pathline_Q_prop, &Jf, eps](const vec<double, 3>& y, double t) {
                      auto const J     = Jf(y, t);
                      auto const S     = (J + transposed(J)) / 2;
                      auto const Omega = (J - transposed(J)) / 2;
@@ -61,7 +69,7 @@ auto eddy_props(V const& v, typename V::pos_t const& x,
     auto const btau = std::max<double>(-24 * 5, min_btau);
     if (btau < 0) {
       solver.solve(evaluator, x, t, btau,
-                   [&pathline, &Jf, eps](const vec<double, 3>& y, double t) {
+                   [&pathline, &pathline_Q_prop, &Jf, eps](const vec<double, 3>& y, double t) {
                      auto const J     = Jf(y, t);
                      auto const S     = (J + transposed(J)) / 2;
                      auto const Omega = (J - transposed(J)) / 2;
