@@ -8,7 +8,7 @@
 #include <tatooine/line.h>
 #include <tatooine/linspace.h>
 #include <tatooine/ode/solver.h>
-#include <tatooine/simple_tri_mesh.h>
+#include <tatooine/triangular_mesh.h>
 #include <tatooine/tensor.h>
 
 #include <algorithm>
@@ -263,7 +263,7 @@ streamsurface(Flowmap&&,
 template <typename Flowmap,
           template <typename> typename SeedcurveInterpolationKernel>
 struct front_evolving_streamsurface_discretization
-    : public simple_tri_mesh<typename Flowmap::real_t,
+    : public triangular_mesh<typename Flowmap::real_t,
                              Flowmap::num_dimensions()> {
   //============================================================================
   // typedefs
@@ -273,7 +273,7 @@ struct front_evolving_streamsurface_discretization
   using this_t =
       front_evolving_streamsurface_discretization<Flowmap,
                                                   SeedcurveInterpolationKernel>;
-  using parent_t = simple_tri_mesh<real_t, num_dimensions()>;
+  using parent_t = triangular_mesh<real_t, num_dimensions()>;
   using parent_t::at;
   using typename parent_t::pos_t;
   using parent_t::operator[];
@@ -395,12 +395,12 @@ struct front_evolving_streamsurface_discretization
 
         if (lower_edge_len < upper_edge_len) {
           new_face_indices.push_back(
-              this->insert_face(*left0, *right0, *left1));
+              this->insert_triangle(*left0, *right0, *left1));
           if (next(left0) != end0) { ++left0; }
 
         } else {
           new_face_indices.push_back(
-              this->insert_face(*left0, *right1, *left1));
+              this->insert_triangle(*left0, *right1, *left1));
 
           if (next(left1) != end1) { ++left1; }
         }
