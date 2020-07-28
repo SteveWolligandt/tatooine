@@ -67,26 +67,79 @@ struct promote<T0, T1, T2, Ts...> {
 };
 
 //==============================================================================
-#define make_sfinae_test(name, method)                                     \
-  template <typename T>                                                    \
-  struct name {                                                            \
-    template <typename S>                                                  \
-    static auto test(decltype(&S::method)) -> char;                        \
-    template <typename S>                                                  \
-    static auto test(...) -> long;                                         \
-                                                                           \
-    static constexpr auto value = sizeof(test<T>(0)) == sizeof(char);      \
-    constexpr             operator bool() const noexcept { return value; } \
-    constexpr auto        operator()() const noexcept { return value; }    \
-  };                                                                       \
-                                                                           \
-  template <typename T>                                                    \
+#define make_sfinae_test(name, method)                                         \
+  template <typename T>                                                        \
+  struct name {                                                                \
+   private:                                                                    \
+    template <typename S>                                                      \
+    static auto test(decltype(&S::method)) -> char;                            \
+    template <typename S>                                                      \
+    static auto test(...) -> long;                                             \
+                                                                               \
+   public:                                                                     \
+    static constexpr bool value =                                              \
+        sizeof(test<std::remove_reference_t<T>>(nullptr)) == sizeof(char);     \
+    constexpr operator bool() const noexcept {                                 \
+      return value;                                                            \
+    }                                                                          \
+    constexpr auto operator()() const noexcept {                               \
+      return value;                                                            \
+    }                                                                          \
+  };                                                                           \
+                                                                               \
+  template <typename T>                                                        \
+  constexpr auto name##_v = name<T> {}
+//==============================================================================
+#define make_const_sfinae_test(name, method)                                   \
+  template <typename T>                                                        \
+  struct name {                                                                \
+   private:                                                                    \
+    template <typename S>                                                      \
+    static auto test(decltype(&S::method)) -> char;                            \
+    template <typename S>                                                      \
+    static auto test(...) -> long;                                             \
+                                                                               \
+   public:                                                                     \
+    static constexpr bool value =                                              \
+        sizeof(test<std::remove_reference_t<T> const>(nullptr)) ==             \
+        sizeof(char);                                                          \
+    constexpr operator bool() const noexcept {                                 \
+      return value;                                                            \
+    }                                                                          \
+    constexpr auto operator()() const noexcept {                               \
+      return value;                                                            \
+    }                                                                          \
+  };                                                                           \
+                                                                               \
+  template <typename T>                                                        \
+  constexpr auto name##_v = name<T> {}
+//==============================================================================
+#define make_non_const_sfinae_test(name, method)                               \
+  template <typename T>                                                        \
+  struct name {                                                                \
+   private:                                                                    \
+    template <typename S>                                                      \
+    static auto test(decltype(&S::method)) -> char;                            \
+    template <typename S>                                                      \
+    static auto test(...) -> long;                                             \
+                                                                               \
+   public:                                                                     \
+    static constexpr bool value =                                              \
+        sizeof(test<std::decay_t<T>>(nullptr)) == sizeof(char);                \
+    constexpr operator bool() const noexcept {                                 \
+      return value;                                                            \
+    }                                                                          \
+    constexpr auto operator()() const noexcept {                               \
+      return value;                                                            \
+    }                                                                          \
+  };                                                                           \
+                                                                               \
+  template <typename T>                                                        \
   constexpr auto name##_v = name<T> {}
 
 //==============================================================================
-//! SFINAE test if is_domain function exists
+/// SFINAE test if is_domain function exists
 make_sfinae_test(has_in_domain, in_domain);
-#undef make_sfinae_test
 //==============================================================================
 }  // namespace tatooine
 //==============================================================================

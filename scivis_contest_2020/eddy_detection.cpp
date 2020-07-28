@@ -17,8 +17,8 @@ auto create_grid(V const& v) {
   auto dim0 = v.xc_axis;
   auto dim1 = v.yc_axis;
   auto dim2 = v.z_axis;
-  //size(dim0) /= 10;
-  //size(dim1) /= 10;
+  size(dim0) /= 5;
+  size(dim1) /= 5;
   // linspace dim2{v.z_axis.front(), v.z_axis.back(), 100};
   grid<decltype(dim0), decltype(dim1), decltype(dim2)> g{dim0, dim1, dim2};
   return g;

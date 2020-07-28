@@ -99,9 +99,9 @@ struct lazy_reader : chunked_multidim_array<T> {
   }
   //----------------------------------------------------------------------------
  public:
-  auto at(integral auto const... indices) -> T& {
-    return const_cast<T&>(static_cast<const this_t*>(this)->at(indices...));
-  }
+  //auto at(integral auto const... indices) -> T& {
+  //  return const_cast<T&>(static_cast<const this_t*>(this)->at(indices...));
+  //}
   //----------------------------------------------------------------------------
   auto at(integral auto const... indices) const -> T const& {
     size_t      plain_index = 0;
@@ -120,10 +120,10 @@ struct lazy_reader : chunked_multidim_array<T> {
   }
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
  private:
-  template <integral Int, size_t N, size_t... Is>
-  auto at(std::index_sequence<Is...>, std::array<Int, N> const& is) -> T& {
-    return at(is[Is]...);
-  }
+  //template <integral Int, size_t N, size_t... Is>
+  //auto at(std::index_sequence<Is...>, std::array<Int, N> const& is) -> T& {
+  //  return at(is[Is]...);
+  //}
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
   template <integral Int, size_t N, size_t... Is>
   auto at(std::index_sequence<Is...>, std::array<Int, N> const& is) const
@@ -132,30 +132,30 @@ struct lazy_reader : chunked_multidim_array<T> {
   }
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
  public:
-  template <integral Int, size_t N>
-  auto at(std::array<Int, N> const& is) -> T& {
-    return at(std::make_index_sequence<N>{}, is);
-  }
+  //template <integral Int, size_t N>
+  //auto at(std::array<Int, N> const& is) -> T& {
+  //  return at(std::make_index_sequence<N>{}, is);
+  //}
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
   template <integral Int, size_t N>
   auto at(std::array<Int, N> const& is) const -> T const& {
     return at(std::make_index_sequence<N>{}, is);
   }
   //----------------------------------------------------------------------------
-  auto operator()(integral auto const... indices) -> T& {
-    assert(sizeof...(indices) == this->num_dimensions());
-    return at(indices...);
-  }
+  //auto operator()(integral auto const... indices) -> T& {
+  //  assert(sizeof...(indices) == this->num_dimensions());
+  //  return at(indices...);
+  //}
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
   auto operator()(integral auto const... indices) const -> T const& {
     assert(sizeof...(indices) == this->num_dimensions());
     return at(indices...);
   }
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-  template <integral Int, size_t N>
-  auto operator()(std::array<Int, N> const& is) -> T& {
-    return at(std::make_index_sequence<N>{}, is);
-  }
+  //template <integral Int, size_t N>
+  //auto operator()(std::array<Int, N> const& is) -> T& {
+  //  return at(std::make_index_sequence<N>{}, is);
+  //}
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
   template <integral Int, size_t N>
   auto operator()(std::array<Int, N> const& is) const -> T const& {

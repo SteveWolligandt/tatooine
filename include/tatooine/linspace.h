@@ -41,7 +41,9 @@ struct linspace {
   //----------------------------------------------------------------------------
   constexpr linspace(real_number auto min, real_number auto max,
                      size_t size) noexcept
-      : m_min{std::min(min, max)}, m_max{std::max(min, max)}, m_size{size} {}
+      : m_min{std::min<Real>(min, max)},
+        m_max{std::max<Real>(min, max)},
+        m_size{size} {}
   //----------------------------------------------------------------------------
   constexpr linspace(linspace const&)     = default;
   constexpr linspace(linspace&&) noexcept = default;

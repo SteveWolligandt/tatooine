@@ -9,18 +9,20 @@ namespace tatooine {
 template <typename Grid, typename Container, typename... InterpolationKernels>
 struct grid_vertex_property
     : typed_multidim_property<Grid, typename Container::value_type>,
-      sampler<grid_vertex_property<Grid, Container, InterpolationKernels...>,
+      sampler<Grid,
               Container, InterpolationKernels...> {
   using value_type = typename Container::value_type;
   using this_t = grid_vertex_property<Grid, Container, InterpolationKernels...>;
   using prop_parent_t    = typed_multidim_property<Grid, value_type>;
-  using sampler_parent_t = sampler<this_t, Container, InterpolationKernels...>;
+  using sampler_parent_t = sampler<Grid, Container, InterpolationKernels...>;
   //==============================================================================
   using prop_parent_t::grid;
   using prop_parent_t::out_of_domain_value;
   using prop_parent_t::data_at;
   static constexpr auto num_dimensions() { return Grid::num_dimensions(); }
   using sampler_parent_t::current_dimension_index;
+  //==============================================================================
+  Grid const* m_grid;
   //==============================================================================
   grid_vertex_property(grid_vertex_property const&)     = default;
   grid_vertex_property(grid_vertex_property&&) noexcept = default;
@@ -32,50 +34,32 @@ struct grid_vertex_property
   //------------------------------------------------------------------------------
   template <typename... Args>
   grid_vertex_property(Grid const& grid, Args&&... args)
-      : prop_parent_t{grid}, sampler_parent_t{std::forward<Args>(args)...} {}
+      : prop_parent_t{grid},
+        sampler_parent_t{grid, std::forward<Args>(args)...},
+        m_grid{&grid} {}
   //==============================================================================
   auto position_at(integral auto const... is) const {
     static_assert(sizeof...(is) == Grid::num_dimensions(),
                   "Number of indices does not match number of "
                   "dimensions.");
-    return prop_parent_t::vertex_at(is...);
-  }
-  //----------------------------------------------------------------------------
-  template <size_t DimIndex, size_t StencilSize>
-  auto diff_at(unsigned int num_diffs, integral auto const... is)
-      -> decltype(auto) {
-    static_assert(sizeof...(is) == Grid::num_dimensions(),
-                  "Number of indices is not equal to number of dimensions.");
-    return prop_parent_t::template diff_at<DimIndex, StencilSize>(num_diffs,
-                                                                  is...);
-  }
-  // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-  template <size_t DimIndex, size_t StencilSize>
-  auto diff_at(unsigned int num_diffs, integral auto const... is) const
-      -> decltype(auto) {
-    static_assert(sizeof...(is) == Grid::num_dimensions(),
-                  "Number of indices is not equal to number of dimensions.");
-    return prop_parent_t::template diff_at<DimIndex, StencilSize>(num_diffs,
-                                                                  is...);
-  }
-  //----------------------------------------------------------------------------
-  template <size_t DimensionIndex>
-  auto cell_index(real_number auto const x) const -> decltype(auto) {
-    return grid().template cell_index<DimensionIndex>(x);
+    return m_grid->position_at(is...);
   }
   //----------------------------------------------------------------------------
   auto clone() const -> std::unique_ptr<multidim_property<Grid>> override {
     return std::unique_ptr<this_t>(new this_t{*this});
   }
   //----------------------------------------------------------------------------
-  auto data_at(std::array<size_t, Grid::num_dimensions()> const& is)
-      -> value_type& override {
-    return sampler_parent_t::data_at(is);
-  }
-  // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
   auto data_at(std::array<size_t, Grid::num_dimensions()> const& is) const
       -> value_type const& override {
     return sampler_parent_t::data_at(is);
+  }
+  //----------------------------------------------------------------------------
+  auto container() -> auto& {
+    return sampler_parent_t::container();
+  }
+  // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+  auto container() const -> auto const& {
+    return sampler_parent_t::container();
   }
   //----------------------------------------------------------------------------
   template <size_t... Is>
@@ -87,13 +71,6 @@ struct grid_vertex_property
   //----------------------------------------------------------------------------
   auto sample(typename Grid::pos_t const& x) const -> value_type override {
     return sample(x, std::make_index_sequence<num_dimensions()>{});
-  }
-  //----------------------------------------------------------------------------
-  template <size_t DimIndex, size_t StencilSize>
-  auto stencil_coefficients(size_t const       i,
-                            unsigned int const num_diffs) const {
-    return prop_parent_t::template stencil_coefficients<DimIndex, StencilSize>(
-        i, num_diffs);
   }
 };
 //==============================================================================
