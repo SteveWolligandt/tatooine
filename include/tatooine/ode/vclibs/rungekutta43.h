@@ -101,8 +101,7 @@ struct rungekutta43 : solver<rungekutta43<Real, N>, Real, N> {
   constexpr rungekutta43()
       : m_stepper{vc_ode_t::solver(
             rk43, vc_options_t{abs_tol = 1e-4, rel_tol = 1e-4,
-                               initial_step = 0 /*, max_step = 0.1*/})} {
-  }
+                               initial_step = 0 /*, max_step = 0.1*/})} {}
   constexpr rungekutta43(rungekutta43 const& other)     = default;
   constexpr rungekutta43(rungekutta43&& other) noexcept = default;
   constexpr auto operator=(rungekutta43 const& other)
@@ -113,8 +112,7 @@ struct rungekutta43 : solver<rungekutta43<Real, N>, Real, N> {
   template <typename... Options>
   rungekutta43(Options&&... options)
       : m_stepper{vc_ode_t::solver(
-            rk43, vc_options_t{std::forward<Options>(options)...})} {
-  }
+            rk43, vc_options_t{std::forward<Options>(options)...})} {}
   //============================================================================
   /// Continues integration of integral.
   /// if tau > 0 than it integrates forward and pushes new samples back
@@ -172,12 +170,16 @@ struct rungekutta43 : solver<rungekutta43<Real, N>, Real, N> {
     }
     // do not start integration if y0, t0 is not in domain of vectorfield
 
-    auto dy = [&evaluator](Real t, pos_t const& y) { return evaluator(y, t); };
+    auto dy = [&evaluator](Real t, pos_t const& y) {
+      return evaluator(y, t);
+    };
 
     m_stepper.initialize(dy, t0, t0 + tau, y0);
     auto wrapped_callback = [&] {
       if constexpr (!callback_takes_derivative) {
-        return [&](Real const t, pos_t const& y) { callback(y, t); };
+        return [&](Real const t, pos_t const& y) {
+          callback(y, t);
+        };
       } else {
         return [&](Real const t, pos_t const& y, vec_t const& dy) {
           callback(y, t, dy);

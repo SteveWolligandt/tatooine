@@ -1,14 +1,18 @@
-﻿BasedOnStyle: Google
+﻿---
+BasedOnStyle: Google
 AlignAfterOpenBracket: Align
+AlignConsecutiveMacros: 'true'
 AlignConsecutiveAssignments: 'true'
 AlignConsecutiveDeclarations: 'true'
-AlignEscapedNewlinesLeft: 'true'
+AlignEscapedNewlines: Right
 AlignOperands: 'true'
 AlignTrailingComments: 'true'
+AllowAllArgumentsOnNextLine: 'true'
 AllowShortBlocksOnASingleLine: 'false'
 AllowShortCaseLabelsOnASingleLine: 'false'
-AllowShortFunctionsOnASingleLine: 'Empty'
-AllowShortIfStatementsOnASingleLine: 'true'
+AllowShortFunctionsOnASingleLine: Empty
+AllowShortIfStatementsOnASingleLine: WithoutElse
+AllowShortLambdasOnASingleLine: Empty
 AllowShortLoopsOnASingleLine: 'false'
 ColumnLimit: '80'
 Cpp11BracedListStyle: 'true'
@@ -18,3 +22,5 @@ SortIncludes: 'true'
 Standard: Auto
 TabWidth: '2'
 UseTab: Never
+
+...
