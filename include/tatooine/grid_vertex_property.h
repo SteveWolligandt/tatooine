@@ -72,6 +72,11 @@ struct grid_vertex_property
   auto sample(typename Grid::pos_t const& x) const -> value_type override {
     return sample(x, std::make_index_sequence<num_dimensions()>{});
   }
+  //----------------------------------------------------------------------------
+  auto sample(real_number auto... xs) const -> value_type {
+    static_assert(num_dimensions() == sizeof...(xs));
+    return sampler_parent_t::sample(xs...);
+  }
 };
 //==============================================================================
 }  // namespace tatooine

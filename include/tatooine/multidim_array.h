@@ -450,9 +450,9 @@ class dynamic_multidim_array : public dynamic_multidim_size<Indexing> {
   dynamic_multidim_array(const dynamic_multidim_array& other)     = default;
   dynamic_multidim_array(dynamic_multidim_array&& other) noexcept = default;
   //----------------------------------------------------------------------------
-  auto operator                  =(const dynamic_multidim_array& other)
+  auto operator=(const dynamic_multidim_array& other)
       -> dynamic_multidim_array& = default;
-  auto operator                  =(dynamic_multidim_array&& other) noexcept
+  auto operator=(dynamic_multidim_array&& other) noexcept
       -> dynamic_multidim_array& = default;
   //----------------------------------------------------------------------------
   ~dynamic_multidim_array() = default;

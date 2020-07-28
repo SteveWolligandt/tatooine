@@ -9,14 +9,14 @@ TEST_CASE("grid_copy_constructor", "[grid][copy][constructor]") {
   std::array                           dim0{0, 1, 2};
   std::array                           dim1{0, 1, 2};
   grid<decltype(dim0), decltype(dim1)> g0{dim0, dim1};
-  auto& prop = g0.template add_contiguous_vertex_property<double>("prop");
+  auto& prop = g0.add_contiguous_vertex_property<double>("prop");
 
   prop.container().at(0, 0) = 100;
-  auto  g1           = g0;
-  auto& prop_copy    = g1.vertex_property<double>("prop");
-  REQUIRE(prop.container().at(0, 0) == prop_copy.container().at(0, 0));
+  auto  g1                  = g0;
+  auto& prop_copy           = g1.vertex_property<double>("prop");
+  REQUIRE(prop.data_at(0, 0) == prop_copy.data_at(0, 0));
   prop.container().at(0, 0) = 0;
-  REQUIRE_FALSE(prop.container().at(0, 0) == prop_copy.container().at(0, 0));
+  REQUIRE_FALSE(prop.data_at(0, 0) == prop_copy.data_at(0, 0));
 }
 //==============================================================================
 TEST_CASE("grid_vertex_indexing", "[grid][vertex][indexing]") {
@@ -99,7 +99,9 @@ TEST_CASE("grid_vertex_prop_hermite", "[grid][property][hermite]") {
   linspace X{0.0, 2.0, 50};
   std::cerr << "[" << X.front() << "," << u.sample(X.front(), y) << ';';
   X.pop_front();
-  for (auto x : X) { std::cerr << x << "," << u.sample(x, y) << ';'; }
+  for (auto x : X) {
+    std::cerr << x << "," << u.sample(x, y) << ';';
+  }
   std::cerr << "]\n";
 }
 //==============================================================================
@@ -203,7 +205,7 @@ TEST_CASE("grid_sample_2d_linear", "[grid][sampler][2d][linear]") {
   REQUIRE(u_prop.sample(0.41, 0.11) == Approx(5.3));
 }
 //==============================================================================
-//TEST_CASE("grid_finite_differences_coefficients",
+// TEST_CASE("grid_finite_differences_coefficients",
 //          "[grid][finite_differences]") {
 //  std::array          dim{0.0, 0.1, 0.5, 0.9, 1.0};
 //  grid<decltype(dim)> g{dim};

@@ -71,6 +71,13 @@ struct chunked_multidim_array {
     resize(size, chunk_size);
   }
   //----------------------------------------------------------------------------
+  template <size_t N>
+  chunked_multidim_array(std::array<size_t, N> const& size,
+                         std::vector<size_t> const&   chunk_size) {
+    m_internal_chunk_size = chunk_size;
+    resize(std::vector<size_t>(begin(size), end(size)));
+  }
+  //----------------------------------------------------------------------------
   template <range Range>
   chunked_multidim_array(Range&& data, std::vector<size_t> const& size,
                          std::vector<size_t> const& chunk_size) {
@@ -115,6 +122,16 @@ struct chunked_multidim_array {
   auto resize(base_tensor<Tensor, Int, N> const& v) -> void {
     assert(N == num_dimensions());
     std::vector<size_t> s(num_dimensions());
+    for (size_t i = 0; i < N; ++i) {
+      s[i] = v(i);
+    }
+    return resize(s);
+  }
+  // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+  template <typename Tensor, integral Int, size_t N>
+  auto resize(std::array<Int, N> const& v) {
+    assert(N == num_dimensions());
+    std::vector<size_t> s(begin(v), end(v));
     for (size_t i = 0; i < N; ++i) {
       s[i] = v(i);
     }
