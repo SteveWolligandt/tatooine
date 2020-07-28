@@ -6,6 +6,12 @@
 //==============================================================================
 namespace tatooine {
 //==============================================================================
+template <typename F, typename... Ts>
+using is_predicate = std::is_same<bool, std::invoke_result_t<F, Ts...>>;
+// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+template <typename F, typename... Ts>
+static constexpr inline auto is_predicate_v = is_predicate<F, Ts...>::value;
+//------------------------------------------------------------------------------
 template <typename... Ts>
 using enable_if_integral =
     std::enable_if_t<(std::is_integral_v<Ts> && ...), bool>;

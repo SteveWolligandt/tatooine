@@ -17,6 +17,8 @@ auto create_grid(V const& v) {
   auto dim0 = v.xc_axis;
   auto dim1 = v.yc_axis;
   auto dim2 = v.z_axis;
+  //size(dim0) /= 10;
+  //size(dim1) /= 10;
   // linspace dim2{v.z_axis.front(), v.z_axis.back(), 100};
   grid<decltype(dim0), decltype(dim1), decltype(dim2)> g{dim0, dim1, dim2};
   return g;
@@ -37,22 +39,28 @@ auto eddy_detection(std::string const& ensemble_id) {
   auto& eulerian_Q_prop =
       g.template add_contiguous_vertex_property<double, x_fastest>(
           "eulerian_Q");
-  auto& lagrangian_Q_prop =
-      g.template add_contiguous_vertex_property<double, x_fastest>(
-          "lagrangian_Q");
-  auto& Q_time_prop_0 =
-      g.template add_contiguous_vertex_property<double, x_fastest>("Q_time_0");
-  auto& Q_time_prop_5 =
-      g.template add_contiguous_vertex_property<double, x_fastest>("Q_time_5");
-  auto& Q_time_prop_10 =
-      g.template add_contiguous_vertex_property<double, x_fastest>("Q_time_10");
+  //auto& lagrangian_Q_prop =
+  //    g.template add_contiguous_vertex_property<double, x_fastest>(
+  //        "lagrangian_Q");
+  //auto& Q_time_prop_0 =
+  //    g.template add_contiguous_vertex_property<double, x_fastest>("Q_time_0");
+  //auto& Q_time_prop_5 =
+  //    g.template add_contiguous_vertex_property<double, x_fastest>("Q_time_5");
+  //auto& Q_time_prop_10 =
+  //    g.template add_contiguous_vertex_property<double, x_fastest>("Q_time_10");
+  //auto& finite_Q_time_prop_0_2_days =
+  //    g.template add_contiguous_vertex_property<double, x_fastest>("finite_Q_time_0_2_days");
+  auto& finite_Q_time_prop_0_5_days =
+      g.template add_contiguous_vertex_property<double, x_fastest>("finite_Q_time_0_5_days");
 
   g.parallel_loop_over_vertex_indices([&](auto const... is) {
     eulerian_Q_prop.data_at(is...)   = 0.0 / 0.0;
-    lagrangian_Q_prop.data_at(is...) = 0.0 / 0.0;
-    Q_time_prop_0.data_at(is...)     = 0.0 / 0.0;
-    Q_time_prop_5.data_at(is...)     = 0.0 / 0.0;
-    Q_time_prop_10.data_at(is...)    = 0.0 / 0.0;
+    //lagrangian_Q_prop.data_at(is...) = 0.0 / 0.0;
+    //Q_time_prop_0.data_at(is...)     = 0.0 / 0.0;
+    //Q_time_prop_5.data_at(is...)     = 0.0 / 0.0;
+    //Q_time_prop_10.data_at(is...)    = 0.0 / 0.0;
+    //finite_Q_time_prop_0_2_days.data_at(is...)     = 0.0 / 0.0;
+    finite_Q_time_prop_0_5_days.data_at(is...)     = 0.0 / 0.0;
   });
 
   auto const  P   = positions_in_domain(v, g);
@@ -61,7 +69,10 @@ auto eddy_detection(std::string const& ensemble_id) {
   for (auto& z : g.dimension<2>()) { z *= -0.0025; }
 
   size_t ti = 0;
-  for (auto t : v.t_axis) {
+  linspace times{front(v.t_axis), back(v.t_axis),
+                 (size(v.t_axis) - 1) * 12 + 1};
+  std::cerr << times << '\n';
+  for (auto t : times) {
     std::cerr << "processing time " << t << ", at index " << ti << " ...\n";
     namespace fs = std::filesystem;
     fs::path p   = "eddy_detection_" + std::string{ensemble_id} + "/";
@@ -82,16 +93,21 @@ auto eddy_detection(std::string const& ensemble_id) {
       for (size_t i = 0; i < size(xs); ++i) {
         auto const& x                                   = xs[i];
         auto const& xi                                  = xis[i];
-        auto const [eulerian_Q, lagrangian_Q, Q_time_0, Q_time_5, Q_time_10,
-                    pathline]                           = eddy_props(v, x, t);
+        auto const [eulerian_Q,
+                        //, Q_time_0,
+                        // Q_time_5, Q_time_10,
+                        // finite_Q_time_0_2_days,
+                        finite_Q_time_0_5_days]         = eddy_props(v, x, t);
 
-        auto const t_range = (pathline.back_parameterization() -
-                              pathline.front_parameterization());
         eulerian_Q_prop.data_at(xi(0), xi(1), xi(2))   = eulerian_Q;
-        lagrangian_Q_prop.data_at(xi(0), xi(1), xi(2)) = lagrangian_Q;
-        Q_time_prop_0.data_at(xi(0), xi(1), xi(2))     = Q_time_0 / t_range;
-        Q_time_prop_5.data_at(xi(0), xi(1), xi(2))     = Q_time_5 / t_range;
-        Q_time_prop_10.data_at(xi(0), xi(1), xi(2))    = Q_time_10 / t_range;
+        //lagrangian_Q_prop.data_at(xi(0), xi(1), xi(2)) = lagrangian_Q;
+        //Q_time_prop_0.data_at(xi(0), xi(1), xi(2))     = Q_time_0;
+        // Q_time_prop_5.data_at(xi(0), xi(1), xi(2))     = Q_time_5;
+        // Q_time_prop_10.data_at(xi(0), xi(1), xi(2))    = Q_time_10;
+        //finite_Q_time_prop_0_2_days.data_at(xi(0), xi(1), xi(2)) =
+        //    finite_Q_time_0_2_days;
+        finite_Q_time_prop_0_5_days.data_at(xi(0), xi(1), xi(2)) =
+            finite_Q_time_0_5_days;
         ++cnt;
       }
       done = true;

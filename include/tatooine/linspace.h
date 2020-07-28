@@ -175,13 +175,16 @@ struct linspace_iterator
  private:
   friend class boost::iterator_core_access;
   //----------------------------------------------------------------------------
-  void increment() { ++m_i; }
-  //----------------------------------------------------------------------------
-  void decrement() { --m_i; }
-  //----------------------------------------------------------------------------
   auto equal(linspace_iterator const& other) const { return m_i == other.m_i; }
   //----------------------------------------------------------------------------
   auto dereference() const { return m_lin->at(m_i); }
+ public:
+  //----------------------------------------------------------------------------
+  void increment() { ++m_i; }
+  void increment(size_t n) { m_i += n; }
+  //----------------------------------------------------------------------------
+  void decrement() { --m_i; }
+  void decrement(size_t n) { m_i -= n; }
 };
 
 //==============================================================================
@@ -209,13 +212,42 @@ auto size(linspace<Real> const& l) {
 }
 //------------------------------------------------------------------------------
 template <real_number Real>
+auto size(linspace<Real> & l) -> auto& {
+  return l.size();
+}
+//------------------------------------------------------------------------------
+template <real_number Real>
+auto front(linspace<Real> const& l) {
+  return l.front();
+}
+//------------------------------------------------------------------------------
+template <real_number Real>
+auto front(linspace<Real>& l) -> auto& {
+  return l.front();
+}
+//------------------------------------------------------------------------------
+template <real_number Real>
+auto back(linspace<Real> const& l) {
+  return l.back();
+}
+//------------------------------------------------------------------------------
+template <real_number Real>
+auto back(linspace<Real>& l) -> auto& {
+  return l.back();
+}
+//------------------------------------------------------------------------------
+template <real_number Real>
 auto next(linspace_iterator<Real> const& l, size_t diff = 1) {
-  return linspace_iterator<Real>{&l.linspace(), l.m_i + diff};
+  linspace_iterator<Real> it{l};
+  it.increment(diff);
+  return it;
 }
 //------------------------------------------------------------------------------
 template <real_number Real>
 auto prev(linspace_iterator<Real> const& l, size_t diff = 1) {
-  return linspace_iterator<Real>{&l.linspace(), l.m_i - diff};
+  linspace_iterator<Real> it{l};
+  it.decrement(diff);
+  return it;
 }
 //------------------------------------------------------------------------------
 template <real_number Real>

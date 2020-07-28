@@ -654,7 +654,7 @@ struct line {
     auto [it, suc] = m_vertex_properties.insert(
         std::pair{name, std::make_unique<vertex_property_t<T>>(value)});
     auto prop = dynamic_cast<vertex_property_t<T>*>(it->second.get());
-    prop->resize(m_vertices.size());
+    prop->resize(num_vertices());
     return *prop;
   }
   //----------------------------------------------------------------------------
@@ -1218,13 +1218,14 @@ struct parameterized_line : line<Real, N> {
   }
   //----------------------------------------------------------------------------
   auto binary_search_index(Real t) const {
+    if (this->empty()) { throw empty_exception{}; }
+
     if (t < front_parameterization() && front_parameterization() - t < 1e-7) {
       t = front_parameterization();
     } else if (t > back_parameterization() &&
                t - back_parameterization() < 1e-7) {
       t = back_parameterization();
     }
-    if (this->empty()) { throw empty_exception{}; }
 
     if (t < front_parameterization() || t > back_parameterization()) {
       throw time_not_found{};

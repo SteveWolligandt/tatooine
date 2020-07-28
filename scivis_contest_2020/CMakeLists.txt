@@ -18,7 +18,7 @@ macro(create_executable NAME)
   target_link_libraries(${NAME}.sciviscontest2020 tatooine)
   target_compile_features(${NAME}.sciviscontest2020 PUBLIC cxx_std_20)
   target_compile_options(${NAME}.sciviscontest2020 PRIVATE
-    -Wall -Wextra -pedantic -Wno-missing-braces -Wno-unused-lambda-capture)
+    -Wall -Wextra -pedantic -Wno-missing-braces -Wno-unused-lambda-capture -march=native)
 endmacro()
 #- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 # create tests from cpp files in current directory 

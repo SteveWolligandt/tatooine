@@ -5,25 +5,25 @@
 namespace tatooine {
 //==============================================================================
 template <typename T, typename... Ts>
-struct front {
+struct front_t_impl {
   using type = T;
 };
 template <typename... Ts>
-using front_t = typename front<Ts...>::type;
+using front_t = typename front_t_impl<Ts...>::type;
 
 //==============================================================================
 template <typename... T>
-struct back;
+struct back_t_impl;
 template <typename T>
-struct back<T> {
+struct back_t_impl<T> {
   using type = T;
 };
 template <typename T, typename... Ts>
-struct back<T, Ts...> {
-  using type = typename back<Ts...>::type;
+struct back_t_impl<T, Ts...> {
+  using type = typename back_t_impl<Ts...>::type;
 };
 template <typename... Ts>
-using back_t = typename back<Ts...>::type;
+using back_t = typename back_t_impl<Ts...>::type;
 
 //==============================================================================
 }  // namespace tatooine
