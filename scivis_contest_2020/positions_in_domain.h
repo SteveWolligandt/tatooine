@@ -1,18 +1,32 @@
 #ifndef TATOOINE_SCIVIS_CONTEST_2020_POSITIONS_IN_DOMAIN_H
 #define TATOOINE_SCIVIS_CONTEST_2020_POSITIONS_IN_DOMAIN_H
+//==============================================================================
+#include <array>
+#include <thread>
+//==============================================================================
 namespace tatooine::scivis_contest_2020 {
+//==============================================================================
 template <typename V, typename Grid>
 auto positions_in_domain(V const& v, Grid const& g) {
   std::cerr << "collecting positions in domain...\r";
-  std::vector<typename Grid::pos_t> xs;
-  std::vector<vec<size_t, 3>>       xis;
-  xs.reserve(g.num_vertices() / 3);
-  xis.reserve(g.num_vertices() / 3);
-  std::mutex                        xs_mutex;
-  auto const                        t = v.t_axis.front();
+  struct positions_t {
+    alignas(64) std::vector<typename Grid::pos_t> vector;
+  };
+  struct indices_t {
+    alignas(64) std::vector<vec<size_t, 3>> vector;
+  };
+  std::vector<positions_t> xss(std::thread::hardware_concurrency());
+  std::vector<indices_t>   xiss(std::thread::hardware_concurrency());
+  for (auto& xs : xss) {
+    xs.vector.reserve(g.num_vertices() / 5);
+  }
+  for (auto& xis : xiss) {
+    xis.vector.reserve(g.num_vertices() / 5);
+  }
+  auto const         t = v.t_axis.front();
   std::atomic_size_t cnt;
-  bool done = false;
-  std::thread                       monitor{[&] {
+  bool               done = false;
+  std::thread        monitor{[&] {
     while (!done) {
       std::cerr << "collecting positions in domain... "
                 << static_cast<double>(cnt) / g.num_vertices() * 100
@@ -29,18 +43,30 @@ auto positions_in_domain(V const& v, Grid const& g) {
         v.in_domain(vec{x(0), x(1) - eps, x(2)}, t) &&
         v.in_domain(vec{x(0), x(1), x(2) + eps}, t) &&
         v.in_domain(vec{x(0), x(1), x(2) - eps}, t)) {
-      std::lock_guard l{xs_mutex};
-      xs.push_back(x);
-      xis.push_back(vec<size_t, 3>{is...});
+      xss[omp_get_thread_num()].vector.push_back(x);
+      xiss[omp_get_thread_num()].vector.push_back(vec<size_t, 3>{is...});
     }
     ++cnt;
   });
   done = true;
   monitor.join();
+  for (size_t i = 1; i < size(xss); ++i) {
+    xss.front().vector.insert(end(xss.front().vector),
+                              begin(xss[i].vector),
+                              end(xss[i].vector));
+  }
+  for (size_t i = 1; i < size(xiss); ++i) {
+    xiss.front().vector.insert(end(xiss.front().vector),
+                               begin(xiss[i].vector),
+                               end(xiss[i].vector));
+  }
   std::cerr << "collecting positions in domain... done!         \n";
-  xs.shrink_to_fit();
-  xis.shrink_to_fit();
-  return std::pair{xs, xis};
+  xss.front().vector.shrink_to_fit();
+  xiss.front().vector.shrink_to_fit();
+  std::cerr << "number of points in domain: " << size(xss.front().vector) << '\n';
+  return std::pair{std::move(xss.front().vector), xiss.front().vector};
 }
+//==============================================================================
 }  // namespace tatooine::scivis_contest_2020
+//==============================================================================
 #endif

@@ -46,12 +46,15 @@ auto eddy_props(V const& v, typename V::pos_t const& x,
     auto& pathline_Q_prop = pathline.add_vertex_property<double>("Q");
     if (ftau > 0) {
       solver.solve(evaluator, x, t, ftau,
-                   [&pathline, &pathline_Q_prop, &Jf, eps](const vec<double, 3>& y, double t) {
+                   [&pathline, &pathline_Q_prop, &Jf, eps](
+                       const vec<double, 3>& y, double t) {
                      auto const J     = Jf(y, t);
                      auto const S     = (J + transposed(J)) / 2;
                      auto const Omega = (J - transposed(J)) / 2;
                      auto const Q     = (sqr_norm(Omega) - sqr_norm(S)) / 2;
-                     if (Q < 0) { return false; }
+                     if (Q < 0) {
+                       return false;
+                     }
 
                      if (pathline.empty()) {
                        pathline.push_back(y, t, false);
