@@ -33,16 +33,6 @@ TEST_CASE("grid_vertex_indexing", "[grid][vertex][indexing]") {
   REQUIRE(approx_equal(v221, vec{2.0, 2.0, 0.1}));
 }
 //==============================================================================
-TEST_CASE("grid_face_center", "[grid][face][position]") {
-  std::array                                           dim0{0.0, 1.0, 2.0};
-  std::vector                                          dim1{0.0, 1.0, 2.0};
-  linspace                                             dim2{0.0, 1.0, 11};
-  grid<decltype(dim0), decltype(dim1), decltype(dim2)> g{dim0, dim1, dim2};
-  auto const f000 = g.face_center_at<0>(0, 0, 0);
-  CAPTURE(f000);
-  REQUIRE(approx_equal(f000, vec{0.0, 0.5, 0.05}));
-}
-//==============================================================================
 TEST_CASE("grid_vertex_iterator", "[grid][vertex][iterator]") {
   std::array                                           dim0{0, 1, 2};
   std::vector                                          dim1{0, 1, 2};
