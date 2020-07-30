@@ -62,6 +62,20 @@ struct grid_vertex_property
     return sampler_parent_t::container();
   }
   //----------------------------------------------------------------------------
+  auto resize(std::vector<size_t> const& size) {
+    assert(size.size() == num_dimensions());
+    return container().resize(size);
+  }
+  // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+  auto resize(std::array<size_t, num_dimensions()> const& size) {
+    return container().resize(size);
+  }
+  // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+  auto resize(integral auto... ss) {
+    static_assert(sizeof...(ss) == num_dimensions());
+    return container().resize(ss...);
+  }
+  //----------------------------------------------------------------------------
   template <size_t... Is>
   auto sample(typename Grid::pos_t const& x, std::index_sequence<Is...>) const
       -> value_type {

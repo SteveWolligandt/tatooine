@@ -128,14 +128,10 @@ struct chunked_multidim_array {
     return resize(s);
   }
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-  template <typename Tensor, integral Int, size_t N>
+  template <integral Int, size_t N>
   auto resize(std::array<Int, N> const& v) {
     assert(N == num_dimensions());
-    std::vector<size_t> s(begin(v), end(v));
-    for (size_t i = 0; i < N; ++i) {
-      s[i] = v(i);
-    }
-    return resize(s);
+    return resize(std::vector<size_t>(begin(v), end(v)));
   }
   //----------------------------------------------------------------------------
  private:

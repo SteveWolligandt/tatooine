@@ -695,8 +695,8 @@ class dynamic_multidim_array : public dynamic_multidim_size<Indexing> {
     m_data.resize(num_components(), value);
   }
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-  template <unsigned_integral UInt, size_t N>
-  void resize(const std::array<UInt, N>& res, const T value = T{}) {
+  template <integral Int, size_t N>
+  void resize(const std::array<Int, N>& res, const T value = T{}) {
     parent_t::resize(res);
     m_data.resize(num_components(), value);
   }

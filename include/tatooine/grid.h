@@ -568,6 +568,9 @@ class grid {
         it == end(m_vertex_properties)) {
       auto       new_prop = new prop_t{*this, std::forward<Args>(args)...};
       m_vertex_properties.emplace(name, std::unique_ptr<property_t>{new_prop});
+      //if constexpr (sizeof...(Args) == 0) {
+        new_prop->resize(size());
+      //}
       return *new_prop;
     } else {
       return *dynamic_cast<prop_t*>(it->second.get());

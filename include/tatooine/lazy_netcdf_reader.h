@@ -64,6 +64,21 @@ struct lazy_reader : chunked_multidim_array<T> {
   //----------------------------------------------------------------------------
   auto read_chunk(size_t& plain_index, integral auto const... indices) const
       -> auto const& {
+#ifndef NDEBUG
+    static std::mutex m;
+    if (!this->in_range(indices...)) {
+      std::lock_guard lock{m};
+      std::cerr << "not in range: ";
+      ((std::cerr << indices << ", "), ...);
+      std::cerr << '\n';
+      std::cerr << '\n';
+      std::cerr << "size is: ";
+      for (auto s : this->size()) {
+        std::cerr << s << ", ";
+      }
+      std::cerr << '\n';
+    }
+#endif
     assert(sizeof...(indices) == this->num_dimensions());
     assert(this->in_range(indices...));
     plain_index = this->plain_chunk_index_from_global_indices(indices...);
