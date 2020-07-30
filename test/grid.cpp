@@ -307,8 +307,8 @@ TEST_CASE("grid_sample_1d_hermite", "[grid][sampler][1d][hermite]") {
 //==============================================================================
 TEST_CASE("grid_lazy_netcdf", "[grid][lazy][netcdf]") {
   std::string const file_path     = "simple_xy.nc";
-  std::string const xdim_name     = "x";
-  std::string const ydim_name     = "y";
+  std::string const dim0_name     = "x";
+  std::string const dim1_name     = "y";
   std::string const variable_name = "data";
   // We are reading 2D data, a 8 x 6 grid.
   size_t constexpr NX = 8;
@@ -326,13 +326,17 @@ TEST_CASE("grid_lazy_netcdf", "[grid][lazy][netcdf]") {
   data_out[5 + NX * 0] = 0;
   data_out[4 + NX * 1] = 0;
   data_out[5 + NX * 1] = 0;
+  linspace dim0{0.0, 1.0, NX};
+  linspace dim1{0.0, 1.0, NY};
 
   netcdf::file f_out{file_path, netCDF::NcFile::replace};
-  auto         dim_x = f_out.add_dimension(xdim_name, NX);
-  auto         dim_y = f_out.add_dimension(ydim_name, NY);
-  f_out.add_variable<double>(variable_name, {dim_y, dim_x}).write(data_out);
-  linspace                             dim0{0.0, 1.0, 8};
-  linspace                             dim1{0.0, 1.0, 6};
+  auto         dim0_netcdf = f_out.add_dimension(dim0_name, NX);
+  auto         dim1_netcdf = f_out.add_dimension(dim1_name, NY);
+  f_out.add_variable<double>(dim0_name, dim0_netcdf).write(dim0);
+  f_out.add_variable<double>(dim1_name, dim1_netcdf).write(dim1);
+  f_out.add_variable<double>(variable_name, {dim1_netcdf, dim0_netcdf})
+      .write(data_out);
+
   grid<decltype(dim0), decltype(dim1)> g{dim0, dim1};
   auto& prop = g.add_vertex_property<netcdf::lazy_reader<double>>(
       "prop", file_path, variable_name, std::vector<size_t>{2, 2});

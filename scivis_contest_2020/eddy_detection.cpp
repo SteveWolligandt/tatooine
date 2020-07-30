@@ -43,8 +43,8 @@ auto eddy_detection(std::string const& ensemble_id) {
       g.template add_contiguous_vertex_property<double, x_fastest>("finite_Q_time_0_5_days");
 
   g.parallel_loop_over_vertex_indices([&](auto const... is) {
-    eulerian_Q_prop.data_at(is...)   = 0.0 / 0.0;
-    finite_Q_time_prop_0_5_days.data_at(is...)     = 0.0 / 0.0;
+    eulerian_Q_prop.container().at(is...)             = 0.0 / 0.0;
+    finite_Q_time_prop_0_5_days.container().at(is...) = 0.0 / 0.0;
   });
 
   auto const  P   = positions_in_domain(v, g);
@@ -79,8 +79,8 @@ auto eddy_detection(std::string const& ensemble_id) {
         auto const& xi                                  = xis[i];
         auto const [eulerian_Q, finite_Q_time_0_5_days] = eddy_props(v, x, t);
 
-        eulerian_Q_prop.data_at(xi(0), xi(1), xi(2)) = eulerian_Q;
-        finite_Q_time_prop_0_5_days.data_at(xi(0), xi(1), xi(2)) =
+        eulerian_Q_prop.container().at(xi(0), xi(1), xi(2)) = eulerian_Q;
+        finite_Q_time_prop_0_5_days.container().at(xi(0), xi(1), xi(2)) =
             finite_Q_time_0_5_days;
         ++cnt;
       }

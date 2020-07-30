@@ -20,6 +20,8 @@ template <typename Range>
 concept range = requires(Range const r) {
   {r.begin()};
   {r.end()};
+  {begin(r)};
+  {end(r)};
 };
 
 //==============================================================================
