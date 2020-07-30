@@ -45,6 +45,8 @@ using base_sampler_at_ct =
 template <typename Sampler, typename T, typename HeadInterpolationKernel,
           typename... TailInterpolationKernels>
 struct base_sampler : crtp<Sampler> {
+  template <typename, typename, typename, typename...>
+  friend struct base_sampler;
   //----------------------------------------------------------------------------
   static constexpr auto current_dimension_index() {
     return Sampler::current_dimension_index();
@@ -87,10 +89,6 @@ struct base_sampler : crtp<Sampler> {
   auto grid() const -> auto const& {
     return as_derived().grid();
   }
-  //----------------------------------------------------------------------------
-  auto out_of_domain_value() const -> auto const& {
-    return as_derived().out_of_domain_value();
-  }
   ////----------------------------------------------------------------------------
   //auto stencil_coefficients(size_t const dim_index, size_t const i) const {
   //  return as_derived().stencil_coefficients(dim_index, i);
@@ -131,20 +129,19 @@ struct base_sampler : crtp<Sampler> {
     return as_derived().template cell_index<DimensionIndex>(x);
   }
   //----------------------------------------------------------------------------
+ private:
   /// recursive sampling by interpolating using HeadInterpolationKernel
-  constexpr auto sample(real_number auto const x,
-                        real_number auto const... xs) const {
-    static_assert(sizeof...(xs) + 1 == num_dimensions(),
-                  "Number of coordinates does not match number of dimensions.");
-    auto const  cit = cell_index<current_dimension_index()>(x);
-    auto const& ci  = cit.first;
-    auto const& t   = cit.second;
+  template <typename CITHead, typename... CITTail>
+  constexpr auto sample_cit(CITHead const& cit_head,
+                            CITTail const&... cit_tail) const {
+    auto const& ci  = cit_head.first;
+    auto const& t   = cit_head.second;
     if constexpr (!HeadInterpolationKernel::needs_first_derivative) {
       if constexpr (num_dimensions() == 1) {
         return HeadInterpolationKernel::interpolate(at(ci), at(ci + 1), t);
       } else {
         return HeadInterpolationKernel::interpolate(
-            at(ci).sample(xs...), at(ci + 1).sample(xs...), t);
+            at(ci).sample_cit(cit_tail...), at(ci + 1).sample_cit(cit_tail...), t);
       }
     } else {
       auto const& dim = grid().template dimension<current_dimension_index()>();
@@ -177,44 +174,9 @@ struct base_sampler : crtp<Sampler> {
         // get samples
         size_t j = 0;
         for (size_t i = left_index_left; i <= right_index_right; ++i, ++j) {
-          samples[j] = at(i).sample(xs...);
+          samples[j] = at(i).sample_cit(cit_tail...);
         }
       }
-      // modify indices so that no sample is out of domain
-      // if (out_of_domain_value()) {
-      //  {
-      //    // modify left index of left sample
-      //    size_t i = left_index_left - leftest_sample_index;
-      //    while (samples[i++] == *out_of_domain_value() &&
-      //           left_index_left != right_index_left) {
-      //      ++left_index_left;
-      //    }
-      //  }
-      //  {
-      //    // modify right index of left sample
-      //    size_t i = right_index_left - leftest_sample_index;
-      //    while (samples[i--] == *out_of_domain_value() &&
-      //           left_index_left != right_index_left) {
-      //      --right_index_left;
-      //    }
-      //  }
-      //  {
-      //    // modify left index of right sample
-      //    size_t i = left_index_right - leftest_sample_index;
-      //    while (samples[i++] == *out_of_domain_value() &&
-      //           left_index_right != right_index_right) {
-      //      ++left_index_right;
-      //    }
-      //  }
-      //  {
-      //    // modify right index of right sample
-      //    size_t i = right_index_right - leftest_sample_index;
-      //    while (samples[i--] == *out_of_domain_value() &&
-      //           left_index_right != right_index_right) {
-      //      --right_index_right;
-      //    }
-      //  }
-      //}
       auto const coeffs_left = [&]() {
         if (left_index_left == ci - 1 && right_index_left == ci + 1) {
           return as_derived().grid().diff_stencil_coefficients_n1_0_p1(
@@ -284,6 +246,17 @@ struct base_sampler : crtp<Sampler> {
                                        dleft_dx * dy, dright_dx * dy}(t);
       }
     }
+  }
+  //----------------------------------------------------------------------------
+  /// Recursive sampling by interpolating using HeadInterpolationKernel.
+  ///
+  /// This method calls sample_cit with cell indices of every position component
+  /// so that only once a binary search must be done.
+ public:
+  constexpr auto sample(real_number auto const... xs) const {
+    static_assert(sizeof...(xs) == num_dimensions(),
+                  "Number of coordinates does not match number of dimensions.");
+    return sample_cit(cell_index<current_dimension_index()>(xs)...);
   }
 };
 //==============================================================================
@@ -448,28 +421,24 @@ struct sampler_view
   sampler_view(TopSampler* top_sampler, size_t fixed_index)
       : m_top_sampler{top_sampler}, m_fixed_index{fixed_index} {}
   //============================================================================
-  auto container() -> auto& {
+  constexpr auto container() -> auto& {
     return m_top_sampler->container();
   }
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-  auto container() const -> auto const& {
+  constexpr auto container() const -> auto const& {
     return m_top_sampler->container();
   }
   //------------------------------------------------------------------------------
   /// returns data of top sampler at m_fixed_index and index list is...
-  auto data_at(integral auto... is) const -> value_type const& {
+  constexpr auto data_at(integral auto... is) const -> value_type const& {
     static_assert(sizeof...(is) == num_dimensions(),
                   "Number of indices is not equal to number of dimensions.");
     return m_top_sampler->data_at(m_fixed_index, is...);
   }
   //----------------------------------------------------------------------------
   template <size_t DimensionIndex>
-  auto cell_index(real_number auto const x) const -> decltype(auto) {
+  constexpr auto cell_index(real_number auto const x) const -> decltype(auto) {
     return m_top_sampler->template cell_index<DimensionIndex>(x);
-  }
-  //----------------------------------------------------------------------------
-  auto out_of_domain_value() const -> auto const& {
-    return m_top_sampler->out_of_domain_value();
   }
   ////----------------------------------------------------------------------------
   //template <size_t DimIndex, size_t StencilSize>

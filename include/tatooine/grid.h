@@ -284,12 +284,14 @@ class grid {
   auto cell_index(real_number auto const x) const -> std::pair<size_t, double> {
     auto const& dim = dimension<I>();
     if constexpr (is_linspace_v<decltype(dimension<I>())>) {
+      std::cerr << "linspace search\n";
       // calculate
       auto const pos =
           (x - dim.front()) / (dim.back() - dim.front()) * (size() - 1);
       auto const quantized_pos = static_cast<size_t>(std::floor(pos));
       return {quantized_pos, pos - quantized_pos};
     } else {
+      std::cerr << "binary search\n";
       // binary search
       size_t left  = 0;
       size_t right = dim.size() - 1;
