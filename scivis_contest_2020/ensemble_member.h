@@ -104,7 +104,6 @@ struct ensemble_member
     bool const in_w = m_w_grid.in_domain(x(0), x(1), x(2), t);
     if (!(in_u && in_v && in_w)) { return false; }
 
-    m_u->sample(x(0), x(1), x(2), t);
     auto const uis = m_u_grid.cell_index(x(0), x(1), x(2), t);
     if (m_u->data_at(uis[0].first, uis[1].first, uis[2].first, uis[2].first) ==
             0 ||
@@ -140,7 +139,6 @@ struct ensemble_member
                      uis[2].first + 1) == 0) {
       return false;
     }
-    m_v->sample(x(0), x(1), x(2), t);
     auto const vis = m_u_grid.cell_index(x(0), x(1), x(2), t);
     if (m_v->data_at(vis[0].first, vis[1].first, vis[2].first, vis[2].first) ==
             0 ||
@@ -176,7 +174,6 @@ struct ensemble_member
                      vis[2].first + 1) == 0) {
       return false;
     }
-    m_w->sample(x(0), x(1), x(2), t);
     auto const wis = m_u_grid.cell_index(x(0), x(1), x(2), t);
     if (m_w->data_at(wis[0].first, wis[1].first, wis[2].first, wis[2].first) ==
             0 ||
@@ -212,7 +209,6 @@ struct ensemble_member
                      wis[2].first + 1) == 0) {
       return false;
     }
-    // m_u->sample(x(0), x(1), x(2), t);
     // auto const uis = m_u_grid.cell_index(x(0), x(1), x(2), t);
     // if (m_u->data_at(uis[0].first    , uis[1].first    ,
     //                  uis[2].first    , uis[2].first)     == 0 &&
@@ -248,7 +244,6 @@ struct ensemble_member
     //                  uis[2].first + 1, uis[2].first + 1) == 0) {
     //  return false;
     //}
-    //                m_v->sample(x(0), x(1), x(2), t);
     // auto const vis = m_u_grid.cell_index(x(0), x(1), x(2), t);
     // if (m_v->data_at(vis[0].first    , vis[1].first    ,
     //                  vis[2].first    , vis[2].first)     == 0 &&
@@ -284,7 +279,6 @@ struct ensemble_member
     //                  vis[2].first + 1, vis[2].first + 1) == 0) {
     //  return false;
     //}
-    // m_w->sample(x(0), x(1), x(2), t);
     // auto const wis = m_w_grid.cell_index(x(0), x(1), x(2), t);
     // if (m_w->data_at(wis[0].first, wis[1].first, wis[2].first, wis[2].first)
     // ==
