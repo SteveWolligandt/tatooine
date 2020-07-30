@@ -99,10 +99,15 @@ struct ensemble_member
   }
   //------------------------------------------------------------------------------
   auto in_domain(pos_t const& x, real_t const t) const -> bool final {
-    bool const in_u = m_u_grid.in_domain(x(0), x(1), x(2), t);
-    bool const in_v = m_v_grid.in_domain(x(0), x(1), x(2), t);
-    bool const in_w = m_w_grid.in_domain(x(0), x(1), x(2), t);
-    if (!(in_u && in_v && in_w)) { return false; }
+    if (bool const in_u = m_u_grid.in_domain(x(0), x(1), x(2), t); !in_u) {
+      return false;
+    }
+    if (bool const in_v = m_v_grid.in_domain(x(0), x(1), x(2), t); !in_v) {
+      return false;
+    }
+    if (bool const in_w = m_w_grid.in_domain(x(0), x(1), x(2), t); !in_w) {
+      return false;
+    }
 
     auto const uis = m_u_grid.cell_index(x(0), x(1), x(2), t);
     if (m_u->data_at(uis[0].first, uis[1].first, uis[2].first, uis[2].first) ==
