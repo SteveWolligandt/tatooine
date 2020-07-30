@@ -2,6 +2,7 @@
 #define TATOOINE_NETCDF_H
 //==============================================================================
 #include <tatooine/chunked_multidim_array.h>
+#include <tatooine/concepts.h>
 #include <tatooine/multidim.h>
 #include <tatooine/multidim_array.h>
 
@@ -50,12 +51,16 @@ class variable {
   //============================================================================
   auto write(T const* const arr) {
     std::lock_guard lock{*m_mutex};
-    m_var.putVar(arr);
+    return m_var.putVar(arr);
   }
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
   auto write(std::vector<T> const& arr) {
     std::lock_guard lock{*m_mutex};
-    m_var.putVar(arr.data());
+    return m_var.putVar(arr.data());
+  }
+  // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+  auto write(range auto r) {
+    return write(std::vector(begin(r), end(r)));
   }
   //----------------------------------------------------------------------------
   auto num_components() const {
@@ -285,6 +290,13 @@ class file {
       : m_file{new netCDF::NcFile{path, std::forward<Ts>(ts)...}},
         m_mutex{std::make_shared<std::mutex>()} {}
   //============================================================================
+  template <typename T>
+  auto add_variable(std::string const&                variable_name,
+                    netCDF::NcDim const& dim) {
+    return netcdf::variable<T>{
+        m_file, m_mutex, m_file->addVar(variable_name, to_nc_type<T>(), dim)};
+  }
+  //----------------------------------------------------------------------------
   template <typename T>
   auto add_variable(std::string const&                variable_name,
                     std::vector<netCDF::NcDim> const& dims) {
