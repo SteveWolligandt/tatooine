@@ -66,13 +66,13 @@ TEST_CASE("grid_cell_index", "[grid][cell_index]") {
   REQUIRE(factor3 == 0.75);
 }
 //==============================================================================
-TEST_CASE("grid_vertex_prop_hermite", "[grid][property][hermite]") {
+TEST_CASE("grid_vertex_prop_cubic", "[grid][property][cubic]") {
   std::array                           dim0{0.0, 1.0, 2.0};
   std::array                           dim1{0.0, 1.0};
   grid<decltype(dim0), decltype(dim1)> g{dim0, dim1};
 
   auto& u =
-      g.add_chunked_vertex_property<double, x_fastest, interpolation::hermite,
+      g.add_chunked_vertex_property<double, x_fastest, interpolation::cubic,
                                     interpolation::linear>(
           "u", std::vector<size_t>{2, 2});
   u.container().at(0, 0) = 0;
@@ -131,7 +131,7 @@ TEST_CASE("grid_chunked_vertex_property", "[grid][vertex][chunked][property]") {
 }
 //==============================================================================
 TEST_CASE("grid_sampler_out_of_domain_element",
-          "[grid][sampler][hermite][out_of_domain_value]") {
+          "[grid][sampler][cubic][out_of_domain_value]") {
   std::array                           dim0{0.0, 0.1, 1.0, 1.5};
   std::array                           dim1{0.0, 0.1, 1.0, 1.5};
   grid<decltype(dim0), decltype(dim1)> g{dim0, dim1};
@@ -229,7 +229,7 @@ TEST_CASE("grid_sample_2d_linear", "[grid][sampler][2d][linear]") {
 //  REQUIRE(coeffs4(2) == Approx(12));
 //}
 //==============================================================================
-TEST_CASE("grid_diff", "[grid][sample][1d][hermite]") {
+TEST_CASE("grid_diff", "[grid][sample][1d][cubic]") {
   std::array          dim{0.0, 0.1, 0.5, 0.9, 1.0};
   grid<decltype(dim)> g{dim};
   using prop_value_type = double;
@@ -237,7 +237,7 @@ TEST_CASE("grid_diff", "[grid][sample][1d][hermite]") {
   std::string const prop_name = "u";
   auto&             u_prop =
       g.add_contiguous_vertex_property<prop_value_type, x_fastest,
-                                       interpolation::hermite>(prop_name);
+                                       interpolation::cubic>(prop_name);
   u_prop.container().at(0) = 0;
   u_prop.container().at(1) = 1;
   u_prop.container().at(2) = 2;
@@ -245,7 +245,7 @@ TEST_CASE("grid_diff", "[grid][sample][1d][hermite]") {
   u_prop.container().at(4) = 4;
 }
 //==============================================================================
-TEST_CASE("grid_sample_1d_hermite", "[grid][sampler][1d][hermite]") {
+TEST_CASE("grid_sample_1d_cubic", "[grid][sampler][1d][cubic]") {
   linspace            dim{0.0, 1.0, 11};
   grid<decltype(dim)> g{dim};
   using prop_value_type = double;
@@ -253,7 +253,7 @@ TEST_CASE("grid_sample_1d_hermite", "[grid][sampler][1d][hermite]") {
   std::string const prop_name = "u";
   auto&             u_prop =
       g.add_contiguous_vertex_property<prop_value_type, x_fastest,
-                                       interpolation::hermite>(prop_name);
+                                       interpolation::cubic>(prop_name);
   u_prop.container().at(4) = 5;
   u_prop.container().at(5) = 6;
   REQUIRE(u_prop.sample(0.45) > 5);

@@ -8,7 +8,7 @@
 //==============================================================================
 namespace tatooine::test {
 //==============================================================================
-using interpolation::hermite;
+using interpolation::cubic;
 using interpolation::linear;
 //==============================================================================
 TEST_CASE("streamsurface_spacetime_doublegyre_sampling",
@@ -49,10 +49,10 @@ TEST_CASE("streamsurface_spacetime_doublegyre_sampling",
 //  spacetime_field                           vst{v};
 //  streamsurface                             ssf{
 //      vst,
-//      parameterized_line<double, 3, hermite>{{{0.1, 0.2, 0.0}, 0.0},
+//      parameterized_line<double, 3, cubic>{{{0.1, 0.2, 0.0}, 0.0},
 //                                             {{0.5, 0.9, 0.0}, 0.5},
 //                                             {{0.9, 0.2, 0.0}, 1.0}},
-//      integration::vclibs::rungekutta43<double, 3, hermite>{}};
+//      integration::vclibs::rungekutta43<double, 3, cubic>{}};
 //  ssf.discretize<simple_discretization>(20UL, 0.1, -20.0, 20.0)
 //      .write_vtk("streamsurface_dg_simple.vtk");
 //}
@@ -63,7 +63,7 @@ TEST_CASE(
   analytical::fields::numerical::doublegyre v;
   spacetime_field                           vst{v};
   streamsurface                             ssf{
-      vst, parameterized_line<double, 3, hermite>{{{0.1, 0.2, 0.0}, 0.0},
+      vst, parameterized_line<double, 3, cubic>{{{0.1, 0.2, 0.0}, 0.0},
                                                   {{0.5, 0.9, 0.0}, 0.5},
                                                   {{0.9, 0.2, 0.0}, 1.0}}};
   ssf.discretize<hultquist_discretization>(100UL, 0.1, -20.0, 20.0)
@@ -75,7 +75,7 @@ TEST_CASE(
     "[streamsurface][schulze][numerical][doublegyre][dg][spacetime_field]") {
   analytical::fields::numerical::doublegyre v;
   streamsurface                             ssf{
-      v, parameterized_line<double, 2, hermite>{{{0.45, 0.2}, 0.0},
+      v, parameterized_line<double, 2, cubic>{{{0.45, 0.2}, 0.0},
                                                 {{0.55, 0.2}, 1.0}}};
   ssf.discretize<schulze_discretization>(10UL, 20)
       .write_vtk("streamsurface_dg_schulze.vtk");
@@ -106,7 +106,7 @@ TEST_CASE(
 //
 //////==============================================================================
 //// TEST_CASE("[streamsurface] out of domain integration", "[streamsurface]") {
-////  UnsteadyGridSamplerVF<2, double, 2, hermite, hermite, linear> testvector2c(
+////  UnsteadyGridSamplerVF<2, double, 2, cubic, cubic, linear> testvector2c(
 ////      "testvector2c.am");
 ////  FixedTimeVectorfield fixed{testvector2c, 0};
 ////
@@ -125,7 +125,7 @@ TEST_CASE(
 //////==============================================================================
 //// TEST_CASE("[streamsurface] unsteady out of domain integration",
 ////          "[streamsurface]") {
-////  UnsteadyGridSamplerVF<2, double, 2, hermite, hermite, linear> testvector2c(
+////  UnsteadyGridSamplerVF<2, double, 2, cubic, cubic, linear> testvector2c(
 ////      "testvector2c.am");
 ////
 ////  grid          g{linspace{-0.9, -0.1, 26}, linspace{0.1, 0.9, 26}};

@@ -62,7 +62,7 @@ class grid {
   using vertex_container = grid_vertex_container<Dimensions...>;
 
   template <typename T>
-  using default_interpolation_kernel_t = interpolation::hermite<T>;
+  using default_interpolation_kernel_t = interpolation::cubic<T>;
 
   // general property types
   using property_t = multidim_property<this_t>;

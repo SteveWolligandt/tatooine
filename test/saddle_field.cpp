@@ -18,7 +18,7 @@ TEST_CASE("saddle_field_flowmap","[saddle][flowmap]") {
       std::is_same_v<decltype(fmn),
                      numerical_flowmap<
                          analytical::fields::numerical::saddle<double>,
-                         ode::vclibs::rungekutta43, interpolation::hermite>>);
+                         ode::vclibs::rungekutta43, interpolation::cubic>>);
 }
 //==============================================================================
 }  // namespace tatooine::analytical::fields::test

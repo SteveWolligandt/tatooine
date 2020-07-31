@@ -143,6 +143,8 @@ struct polynomial {
       if (c(1) != 0) {
         if (c(1) == 1) {
           out << " + " << x;
+        }else if (c(1) == -1) {
+          out << " - " << x;
         } else {
           out << " + " << c(1) << " * " << x;
         }
@@ -152,6 +154,8 @@ struct polynomial {
       if (c(i) != 0) {
         if (c(i) == 1) {
           out << " + " << x << "^" << i;
+        } else if (c(i) == -1) {
+          out << " - " << x << "^" << i;
         } else {
           out << " + " << c(i) << " * " << x << "^" << i;
         }

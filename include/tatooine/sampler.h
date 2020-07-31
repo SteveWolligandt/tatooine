@@ -179,23 +179,23 @@ struct base_sampler : crtp<Sampler> {
   }
   //----------------------------------------------------------------------------
   template <typename CITHead, typename... CITTail>
-  auto sample_cit_no_first_derivative(CITHead const& cit_head,
-                                      CITTail const&... cit_tail) const {
+  auto sample_cit_zero_derivative(CITHead const& cit_head,
+                                  CITTail const&... cit_tail) const {
     auto const& cell_index           = cit_head.first;
     auto const& interpolation_factor = cit_head.second;
     if constexpr (num_dimensions() == 1) {
-      return HeadInterpolationKernel<value_type>::interpolate(
-          at(cell_index), at(cell_index + 1), interpolation_factor);
+      return HeadInterpolationKernel<value_type>{
+          at(cell_index), at(cell_index + 1)}(interpolation_factor);
     } else {
-      return HeadInterpolationKernel<value_type>::interpolate(
+      return HeadInterpolationKernel<value_type>{
           at(cell_index).sample_cit(cit_tail...),
-          at(cell_index + 1).sample_cit(cit_tail...), interpolation_factor);
+          at(cell_index + 1).sample_cit(cit_tail...)}(interpolation_factor);
     }
   }
   //----------------------------------------------------------------------------
   template <typename CITHead, typename... CITTail>
-  auto sample_cit_with_first_derivative(CITHead const& cit_head,
-                                        CITTail const&... cit_tail) const {
+  auto sample_cit_one_derivative(CITHead const& cit_head,
+                                 CITTail const&... cit_tail) const {
     auto const& cell_index           = cit_head.first;
     auto const& interpolation_factor = cit_head.second;
     auto const& dim = grid().template dimension<current_dimension_index()>();
@@ -230,25 +230,27 @@ struct base_sampler : crtp<Sampler> {
         differentiate(samples, coeffs_right, left_index_right - left_index_left,
                       right_index_right - left_index_left);
     if constexpr (num_dimensions() == 1) {
-      return HeadInterpolationKernel<value_type>{samples[cell_index - left_index_left],
-                                     samples[cell_index - left_index_left + 1],
-                                     dleft_dx * dy,
-                                     dright_dx * dy}(interpolation_factor);
+      return HeadInterpolationKernel<value_type>{
+          samples[cell_index - left_index_left],
+          samples[cell_index - left_index_left + 1], dleft_dx * dy,
+          dright_dx * dy}(interpolation_factor);
     } else {
-      return HeadInterpolationKernel<value_type>{samples[cell_index - left_index_left],
-                                     samples[cell_index - left_index_left + 1],
-                                     dleft_dx * dy,
-                                     dright_dx * dy}(interpolation_factor);
+      return HeadInterpolationKernel<value_type>{
+          samples[cell_index - left_index_left],
+          samples[cell_index - left_index_left + 1], dleft_dx * dy,
+          dright_dx * dy}(interpolation_factor);
     }
   }
   //----------------------------------------------------------------------------
   /// Decides if first derivative is needed or not.
   template <typename... CITs>
   constexpr auto sample_cit(CITs const&... cits) const {
-    if constexpr (!HeadInterpolationKernel<value_type>::needs_first_derivative) {
-      return sample_cit_no_first_derivative(cits...);
-    } else {
-      return sample_cit_with_first_derivative(cits...);
+    constexpr auto num_derivatives_needed =
+        HeadInterpolationKernel<value_type>::num_derivatives;
+    if constexpr (num_derivatives_needed == 0) {
+      return sample_cit_zero_derivative(cits...);
+    } else if constexpr (num_derivatives_needed == 1) {
+      return sample_cit_one_derivative(cits...);
     }
   }
   //----------------------------------------------------------------------------

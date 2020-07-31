@@ -979,8 +979,8 @@ struct parameterized_line : line<Real, N> {
   using typename parent_t::vertex_idx;
   struct time_not_found : std::exception {};
   using interpolation_t = InterpolationKernel<vec_t>;
-  static constexpr bool interpolation_needs_first_derivative =
-      interpolation_t::needs_first_derivative;
+  static constexpr auto num_derivatives_needed =
+      interpolation_t::num_derivatives;
 
   template <typename T>
   using vertex_property_t = typename parent_t::template vertex_property_t<T>;
@@ -1088,7 +1088,7 @@ struct parameterized_line : line<Real, N> {
     back_parameterization() = t;
     if (num_vertices() > 1) {
       if (auto_compute_interpolator) {
-        if constexpr (interpolation_needs_first_derivative) {
+        if constexpr (num_derivatives_needed == 1) {
           const auto h =
               back_parameterization() - parameterization_at(num_vertices() - 2);
           m_interpolators.emplace_back(
@@ -1116,7 +1116,7 @@ struct parameterized_line : line<Real, N> {
     m_parameterization->at(vertex_idx{i}) = t;
     if (num_vertices() > 1) {
       if (auto_compute_interpolator) {
-        if constexpr (interpolation_needs_first_derivative) {
+        if constexpr (num_derivatives_needed == 1) {
           const auto h =
               back_parameterization() - parameterization_at(num_vertices() - 2);
           m_interpolators.emplace_back(
@@ -1150,7 +1150,7 @@ struct parameterized_line : line<Real, N> {
     front_parameterization() = t;
     if (num_vertices() > 1) {
       if (auto_compute_interpolator) {
-        if constexpr (interpolation_needs_first_derivative) {
+        if constexpr (num_derivatives_needed == 1) {
           const auto h = front_parameterization() - parameterization_at(1);
           m_interpolators.emplace_front(front_vertex(), vertex_at(1),
                                         front_tangent() * h, tangent_at(1) * h);
@@ -1171,7 +1171,7 @@ struct parameterized_line : line<Real, N> {
     m_parameterization->at(vertex_idx{i}) = t;
     if (num_vertices() > 1) {
       if (auto_compute_interpolator) {
-        if constexpr (interpolation_needs_first_derivative) {
+        if constexpr (num_derivatives_needed == 1) {
           const auto h = front_parameterization() - parameterization_at(1);
           m_interpolators.emplace_front(front_vertex(), vertex_at(1),
                                         front_tangent() * h, tangent_at(1) * h);
@@ -1206,7 +1206,7 @@ struct parameterized_line : line<Real, N> {
   }
   //----------------------------------------------------------------------------
   void update_interpolator(size_t i) {
-    if constexpr (interpolation_needs_first_derivative) {
+    if constexpr (num_derivatives_needed == 1) {
       auto h = parameterization_at(i + 1) - parameterization_at(i);
       m_interpolators[i] =
           interpolation_t{vertex_at(i), vertex_at(i + 1), tangent_at(i) * h,
@@ -1328,7 +1328,7 @@ struct parameterized_line : line<Real, N> {
     const Real factor = (t - parameterization_at(left)) / h;
     assert(0 <= factor && factor <= 1);
 
-    // if constexpr (interpolation_needs_first_derivative) {
+    // if constexpr (num_derivatives_needed == 1) {
     //  InterpolationKernel<Prop>{prop[left], prop[left+1], tangent_at(left) * h,
     //                            tangent_at(left+1) * h}(factor);
     //} else {

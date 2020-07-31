@@ -68,7 +68,7 @@ struct autonomous_particles_test_flowmap {
 //------------------------------------------------------------------------------
 template <
     template <typename, size_t> typename ODESolver = ode::vclibs::rungekutta43,
-    template <typename> typename InterpolationKernel = interpolation::hermite,
+    template <typename> typename InterpolationKernel = interpolation::cubic,
     std::floating_point Real>
 constexpr auto flowmap(
     vectorfield<autonomous_particles_test<Real>, Real, 2> const& v,
