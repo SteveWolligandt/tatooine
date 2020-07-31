@@ -130,121 +130,121 @@ struct base_sampler : crtp<Sampler> {
   }
   //----------------------------------------------------------------------------
  private:
-  /// recursive sampling by interpolating using HeadInterpolationKernel
+  auto diff_stencil_coefficients(size_t const vertex_index,
+                                 size_t const left_index,
+                                 size_t const right_index) const {
+    if (left_index == vertex_index - 1 && right_index == vertex_index + 1) {
+      return grid().diff_stencil_coefficients_n1_0_p1(current_dimension_index(),
+                                                      vertex_index);
+    }
+    if (left_index == vertex_index && right_index == vertex_index + 2) {
+      return grid().diff_stencil_coefficients_0_p1_p2(current_dimension_index(),
+                                                      vertex_index);
+    }
+    if (left_index == vertex_index - 2 && right_index == vertex_index) {
+      return grid().diff_stencil_coefficients_n2_n1_0(current_dimension_index(),
+                                                      vertex_index);
+    }
+    if (left_index == vertex_index - 1 && right_index == vertex_index) {
+      return grid().diff_stencil_coefficients_n1_0(current_dimension_index(),
+                                                   vertex_index);
+    }
+    if (left_index == vertex_index && right_index == vertex_index + 1) {
+      return grid().diff_stencil_coefficients_0_p1(current_dimension_index(),
+                                                   vertex_index);
+    }
+    return std::vector<double>{};
+  }
+  //----------------------------------------------------------------------------
   template <typename CITHead, typename... CITTail>
-  constexpr auto sample_cit(CITHead const& cit_head,
-                            CITTail const&... cit_tail) const {
-    auto const& ci  = cit_head.first;
-    auto const& t   = cit_head.second;
-    if constexpr (!HeadInterpolationKernel::needs_first_derivative) {
-      if constexpr (num_dimensions() == 1) {
-        return HeadInterpolationKernel::interpolate(at(ci), at(ci + 1), t);
-      } else {
-        return HeadInterpolationKernel::interpolate(
-            at(ci).sample_cit(cit_tail...), at(ci + 1).sample_cit(cit_tail...), t);
+  auto sample_cit_no_first_derivative(CITHead const& cit_head,
+                                      CITTail const&... cit_tail) const {
+    auto const& cell_index           = cit_head.first;
+    auto const& interpolation_factor = cit_head.second;
+    if constexpr (num_dimensions() == 1) {
+      return HeadInterpolationKernel::interpolate(
+          at(cell_index), at(cell_index + 1), interpolation_factor);
+    } else {
+      return HeadInterpolationKernel::interpolate(
+          at(cell_index).sample_cit(cit_tail...),
+          at(cell_index + 1).sample_cit(cit_tail...), interpolation_factor);
+    }
+  }
+  //----------------------------------------------------------------------------
+  template <typename CITHead, typename... CITTail>
+  auto sample_cit_with_first_derivative(CITHead const& cit_head,
+                                        CITTail const&... cit_tail) const{
+    auto const& cell_index           = cit_head.first;
+    auto const& interpolation_factor = cit_head.second;
+    auto const& dim = grid().template dimension<current_dimension_index()>();
+    // differentiate
+    size_t left_index_left  = cell_index == 0 ? cell_index : cell_index - 1;
+    size_t left_index_right = cell_index;
+
+    size_t right_index_left = cell_index + 1;
+    if (left_index_left == cell_index) {
+      ++right_index_left;
+    }
+    size_t right_index_right =
+        cell_index + 1 == dim.size() - 1 ? dim.size() - 1 : cell_index + 2;
+    if (right_index_right == cell_index) {
+      --left_index_right;
+    }
+    size_t const leftest_sample_index = left_index_left;
+
+    std::vector<value_type> samples(right_index_right - left_index_left + 1);
+    // get samples
+    if constexpr (num_dimensions() == 1) {
+      size_t j = 0;
+      for (size_t i = left_index_left; i <= right_index_right; ++i, ++j) {
+        samples[j] = at(i);
       }
     } else {
-      auto const& dim = grid().template dimension<current_dimension_index()>();
-      // differentiate
-      value_type dleft_dx{};
-      value_type dright_dx{};
-
-      size_t left_index_left  = ci == 0 ? ci : ci - 1;
-      size_t right_index_left = ci + 1;
-      if (left_index_left == ci) {
-        ++right_index_left;
-      }
-
-      size_t left_index_right = ci;
-      size_t right_index_right =
-          ci + 1 == dim.size() - 1 ? dim.size() - 1 : ci + 2;
-      if (right_index_right == ci) {
-        --left_index_right;
-      }
-      size_t const leftest_sample_index = left_index_left;
-
-      std::vector<value_type> samples(right_index_right - left_index_left + 1);
       // get samples
-      if constexpr (num_dimensions() == 1) {
-        size_t j = 0;
-        for (size_t i = left_index_left; i <= right_index_right; ++i, ++j) {
-          samples[j] = at(i);
-        }
-      } else {
-        // get samples
-        size_t j = 0;
-        for (size_t i = left_index_left; i <= right_index_right; ++i, ++j) {
-          samples[j] = at(i).sample_cit(cit_tail...);
+      size_t j = 0;
+      for (size_t i = left_index_left; i <= right_index_right; ++i, ++j) {
+        samples[j] = at(i).sample_cit(cit_tail...);
+      }
+    }
+    auto const coeffs_left = diff_stencil_coefficients(
+        cell_index, left_index_left, right_index_left);
+    auto const coeffs_right = diff_stencil_coefficients(
+        cell_index + 1, left_index_right, right_index_right);
+
+    auto df_dx = [&samples](auto const& coeffs, size_t const left_index,
+                            size_t const right_index) {
+      size_t     k = 0, j = left_index;
+      value_type df_dx{};
+      for (; j <= right_index; ++j, ++k) {
+        if (coeffs[k] != 0) {
+          df_dx += coeffs[k] * samples[k];
         }
       }
-      auto const coeffs_left = [&]() {
-        if (left_index_left == ci - 1 && right_index_left == ci + 1) {
-          return as_derived().grid().diff_stencil_coefficients_n1_0_p1(
-              current_dimension_index(), ci);
-        }
-        if (left_index_left == ci && right_index_left == ci + 2) {
-          return as_derived().grid().diff_stencil_coefficients_0_p1_p2(
-              current_dimension_index(), ci);
-        }
-        if (left_index_left == ci - 2 && right_index_left == ci) {
-          return as_derived().grid().diff_stencil_coefficients_n2_n1_0(
-              current_dimension_index(), ci);
-        }
-        if (left_index_left == ci - 1 && right_index_left == ci) {
-          return as_derived().grid().diff_stencil_coefficients_n1_0(
-              current_dimension_index(), ci);
-        }
-        if (left_index_left == ci && right_index_left == ci + 1) {
-          return as_derived().grid().diff_stencil_coefficients_0_p1(
-              current_dimension_index(), ci);
-        }
-        return std::vector<double>{};
-      }();
-      auto const coeffs_right = [&]() {
-        if (left_index_right == ci && right_index_right == ci + 2) {
-          return as_derived().grid().diff_stencil_coefficients_n1_0_p1(
-              current_dimension_index(), ci + 1);
-        }
-        if (left_index_right == ci + 1 && right_index_right == ci + 3) {
-          return as_derived().grid().diff_stencil_coefficients_0_p1_p2(
-              current_dimension_index(), ci + 1);
-        }
-        if (left_index_right == ci - 1 && right_index_right == ci + 1) {
-          return as_derived().grid().diff_stencil_coefficients_n2_n1_0(
-              current_dimension_index(), ci + 1);
-        }
-        if (left_index_right == ci && right_index_right == ci + 1) {
-          return as_derived().grid().diff_stencil_coefficients_n1_0(
-              current_dimension_index(), ci + 1);
-        }
-        if (left_index_right == ci + 1 && right_index_right == ci + 2) {
-          return as_derived().grid().diff_stencil_coefficients_0_p1(
-              current_dimension_index(), ci + 1);
-        }
-        return std::vector<double>{};
-      }();
-      size_t k = 0;
-      for (size_t j = left_index_left; j <= right_index_left; ++j, ++k) {
-        if (coeffs_left[k] != 0) {
-          dleft_dx += coeffs_left[k] * samples[k];
-        }
-      }
-      k = 0;
-      for (size_t j = left_index_right; j <= right_index_right; ++j, ++k) {
-        if (coeffs_right[k] != 0) {
-          dright_dx += coeffs_right[k] * samples[k];
-        }
-      }
-      auto const dy = dim[ci + 1] - dim[ci];
-      if constexpr (num_dimensions() == 1) {
-        return HeadInterpolationKernel{samples[ci - leftest_sample_index],
-                                       samples[ci - leftest_sample_index + 1],
-                                       dleft_dx * dy, dright_dx * dy}(t);
-      } else {
-        return HeadInterpolationKernel{samples[ci - leftest_sample_index],
-                                       samples[ci - leftest_sample_index + 1],
-                                       dleft_dx * dy, dright_dx * dy}(t);
-      }
+      return df_dx;
+    };
+    auto dleft_dx = df_dx(coeffs_left, left_index_left, right_index_left);
+    auto dright_dx = df_dx(coeffs_right, left_index_right, right_index_right);
+    auto const dy = dim[cell_index + 1] - dim[cell_index];
+    if constexpr (num_dimensions() == 1) {
+      return HeadInterpolationKernel{
+          samples[cell_index - leftest_sample_index],
+          samples[cell_index - leftest_sample_index + 1], dleft_dx * dy,
+          dright_dx * dy}(interpolation_factor);
+    } else {
+      return HeadInterpolationKernel{
+          samples[cell_index - leftest_sample_index],
+          samples[cell_index - leftest_sample_index + 1], dleft_dx * dy,
+          dright_dx * dy}(interpolation_factor);
+    }
+  }
+  //----------------------------------------------------------------------------
+  /// recursive sampling by interpolating using HeadInterpolationKernel
+  template <typename... CITs>
+  constexpr auto sample_cit(CITs const&... cits) const {
+    if constexpr (!HeadInterpolationKernel::needs_first_derivative) {
+      return sample_cit_no_first_derivative(cits...);
+    } else {
+      return sample_cit_with_first_derivative(cits...);
     }
   }
   //----------------------------------------------------------------------------
