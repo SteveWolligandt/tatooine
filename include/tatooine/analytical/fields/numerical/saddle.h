@@ -100,16 +100,16 @@ auto diff(saddle_flowmap<Real> const&, tag::analytical_t /*tag*/) {
   return saddle_flowmap_gradient<Real>{};
 }
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-template <std::floating_point Real, std::floating_point Eps = Real>
+template <floating_point Real>
 auto diff(saddle_flowmap<Real> const& flowmap, tag::central_t /*tag*/,
-          Eps                         epsilon = 1e-7) {
+          Real const                  epsilon) {
   return flowmap_gradient_central_differences<saddle_flowmap<Real>>{flowmap,
                                                                     epsilon};
 }
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-template <std::floating_point Real, std::floating_point Eps>
+template <floating_point Real>
 constexpr auto diff(saddle_flowmap<Real> const& flowmap, tag::central_t /*tag*/,
-                    vec<Eps, 2>                 epsilon) {
+                    vec<Real, 2>                epsilon) {
   return flowmap_gradient_central_differences<saddle_flowmap<Real>>{flowmap,
                                                                     epsilon};
 }

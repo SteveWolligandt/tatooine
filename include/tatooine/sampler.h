@@ -7,17 +7,21 @@
 //==============================================================================
 namespace tatooine {
 //==============================================================================
-template <typename Grid, typename Container, typename... InterpolationKernels>
+template <typename Grid, typename Container,
+          template <typename> typename... InterpolationKernels>
 struct sampler;
 //==============================================================================
-template <typename TopSampler, typename... InterpolationKernels>
+template <typename TopSampler,
+          template <typename> typename... InterpolationKernels>
 struct sampler_view;
 //==============================================================================
-template <typename Sampler, typename... InterpolationKernels>
+template <typename Sampler,
+          template <typename> typename... InterpolationKernels>
 struct base_sampler_at;
 //------------------------------------------------------------------------------
-template <typename Sampler, typename InterpolationKernel0,
-          typename InterpolationKernel1, typename... TailInterpolationKernels>
+template <typename Sampler, template <typename> typename InterpolationKernel0,
+          template <typename> typename InterpolationKernel1,
+          template <typename> typename... TailInterpolationKernels>
 struct base_sampler_at<Sampler, InterpolationKernel0, InterpolationKernel1,
                        TailInterpolationKernels...> {
   using value_type =
@@ -26,26 +30,30 @@ struct base_sampler_at<Sampler, InterpolationKernel0, InterpolationKernel1,
                                         TailInterpolationKernels...>;
 };
 //------------------------------------------------------------------------------
-template <typename Sampler, typename InterpolationKernel>
+template <typename Sampler, template <typename> typename InterpolationKernel>
 struct base_sampler_at<Sampler, InterpolationKernel> {
   using value_type       = std::decay_t<typename Sampler::value_type>&;
   using const_value_type = std::decay_t<typename Sampler::value_type>;
 };
 //==============================================================================
-template <typename Sampler, typename... InterpolationKernels>
+template <typename Sampler,
+          template <typename> typename... InterpolationKernels>
 using base_sampler_at_t =
     typename base_sampler_at<Sampler, InterpolationKernels...>::value_type;
 //==============================================================================
-template <typename Sampler, typename... InterpolationKernels>
+template <typename Sampler,
+          template <typename> typename... InterpolationKernels>
 using base_sampler_at_ct =
     typename base_sampler_at<Sampler,
                              InterpolationKernels...>::const_value_type;
 //==============================================================================
 /// CRTP inheritance class for sampler and sampler_view
-template <typename Sampler, typename T, typename HeadInterpolationKernel,
-          typename... TailInterpolationKernels>
+template <typename Sampler, typename T,
+          template <typename> typename HeadInterpolationKernel,
+          template <typename> typename... TailInterpolationKernels>
 struct base_sampler : crtp<Sampler> {
-  template <typename, typename, typename, typename...>
+  template <typename, typename, template <typename> typename,
+            template <typename> typename...>
   friend struct base_sampler;
   //----------------------------------------------------------------------------
   static constexpr auto current_dimension_index() {
@@ -90,7 +98,7 @@ struct base_sampler : crtp<Sampler> {
     return as_derived().grid();
   }
   ////----------------------------------------------------------------------------
-  //auto stencil_coefficients(size_t const dim_index, size_t const i) const {
+  // auto stencil_coefficients(size_t const dim_index, size_t const i) const {
   //  return as_derived().stencil_coefficients(dim_index, i);
   //}
   //----------------------------------------------------------------------------
@@ -115,8 +123,8 @@ struct base_sampler : crtp<Sampler> {
     return at(i);
   }
   ////----------------------------------------------------------------------------
-  //template <size_t DimIndex, size_t StencilSize>
-  //auto diff_at(unsigned int num_diffs, integral auto const... is) const
+  // template <size_t DimIndex, size_t StencilSize>
+  // auto diff_at(unsigned int num_diffs, integral auto const... is) const
   //    -> decltype(auto) {
   //  static_assert(sizeof...(is) == num_dimensions(),
   //                "Number of indices is not equal to number of dimensions.");
@@ -153,7 +161,21 @@ struct base_sampler : crtp<Sampler> {
       return grid().diff_stencil_coefficients_0_p1(current_dimension_index(),
                                                    vertex_index);
     }
+    // TODO calculate actual stencil coefficients
     return std::vector<double>{};
+  }
+  //----------------------------------------------------------------------------
+  /// Calcuates derivative from samples and differential coefficients.
+  auto differentiate(std::vector<value_type> const& samples,
+                     std::vector<double> const& coeffs, size_t const left_index,
+                     size_t const right_index) const {
+    value_type df_dx{};
+    for (size_t i = left_index; i <= right_index; ++i) {
+      if (coeffs[i] != 0) {
+        df_dx += coeffs[i] * samples[i];
+      }
+    }
+    return df_dx;
   }
   //----------------------------------------------------------------------------
   template <typename CITHead, typename... CITTail>
@@ -162,10 +184,10 @@ struct base_sampler : crtp<Sampler> {
     auto const& cell_index           = cit_head.first;
     auto const& interpolation_factor = cit_head.second;
     if constexpr (num_dimensions() == 1) {
-      return HeadInterpolationKernel::interpolate(
+      return HeadInterpolationKernel<value_type>::interpolate(
           at(cell_index), at(cell_index + 1), interpolation_factor);
     } else {
-      return HeadInterpolationKernel::interpolate(
+      return HeadInterpolationKernel<value_type>::interpolate(
           at(cell_index).sample_cit(cit_tail...),
           at(cell_index + 1).sample_cit(cit_tail...), interpolation_factor);
     }
@@ -173,85 +195,68 @@ struct base_sampler : crtp<Sampler> {
   //----------------------------------------------------------------------------
   template <typename CITHead, typename... CITTail>
   auto sample_cit_with_first_derivative(CITHead const& cit_head,
-                                        CITTail const&... cit_tail) const{
+                                        CITTail const&... cit_tail) const {
     auto const& cell_index           = cit_head.first;
     auto const& interpolation_factor = cit_head.second;
     auto const& dim = grid().template dimension<current_dimension_index()>();
-    // differentiate
+    auto const  dy  = dim[cell_index + 1] - dim[cell_index];
+
     size_t left_index_left  = cell_index == 0 ? cell_index : cell_index - 1;
-    size_t left_index_right = cell_index;
+    size_t right_index_left = cell_index == 0 ? cell_index + 2 : cell_index + 1;
 
-    size_t right_index_left = cell_index + 1;
-    if (left_index_left == cell_index) {
-      ++right_index_left;
-    }
+    size_t left_index_right =
+        cell_index == dim.size() - 2 ? cell_index - 1 : cell_index;
     size_t right_index_right =
-        cell_index + 1 == dim.size() - 1 ? dim.size() - 1 : cell_index + 2;
-    if (right_index_right == cell_index) {
-      --left_index_right;
-    }
-    size_t const leftest_sample_index = left_index_left;
+        cell_index == dim.size() - 2 ? cell_index + 1 : cell_index + 2;
 
-    std::vector<value_type> samples(right_index_right - left_index_left + 1);
+    std::vector<value_type> samples;
+    samples.reserve(right_index_right - left_index_left + 1);
     // get samples
-    if constexpr (num_dimensions() == 1) {
-      size_t j = 0;
-      for (size_t i = left_index_left; i <= right_index_right; ++i, ++j) {
-        samples[j] = at(i);
-      }
-    } else {
-      // get samples
-      size_t j = 0;
-      for (size_t i = left_index_left; i <= right_index_right; ++i, ++j) {
-        samples[j] = at(i).sample_cit(cit_tail...);
+    for (size_t i = left_index_left; i <= right_index_right; ++i) {
+      if constexpr (num_dimensions() == 1) {
+        samples.push_back(at(i));
+      } else {
+        samples.push_back(at(i).sample_cit(cit_tail...));
       }
     }
     auto const coeffs_left = diff_stencil_coefficients(
         cell_index, left_index_left, right_index_left);
+    auto const dleft_dx = differentiate(samples, coeffs_left, 0,
+                                        right_index_left - left_index_left);
+
     auto const coeffs_right = diff_stencil_coefficients(
         cell_index + 1, left_index_right, right_index_right);
-
-    auto df_dx = [&samples](auto const& coeffs, size_t const left_index,
-                            size_t const right_index) {
-      size_t     k = 0, j = left_index;
-      value_type df_dx{};
-      for (; j <= right_index; ++j, ++k) {
-        if (coeffs[k] != 0) {
-          df_dx += coeffs[k] * samples[k];
-        }
-      }
-      return df_dx;
-    };
-    auto dleft_dx = df_dx(coeffs_left, left_index_left, right_index_left);
-    auto dright_dx = df_dx(coeffs_right, left_index_right, right_index_right);
-    auto const dy = dim[cell_index + 1] - dim[cell_index];
+    auto const dright_dx =
+        differentiate(samples, coeffs_right, left_index_right - left_index_left,
+                      right_index_right - left_index_left);
     if constexpr (num_dimensions() == 1) {
-      return HeadInterpolationKernel{
-          samples[cell_index - leftest_sample_index],
-          samples[cell_index - leftest_sample_index + 1], dleft_dx * dy,
-          dright_dx * dy}(interpolation_factor);
+      return HeadInterpolationKernel<value_type>{samples[cell_index - left_index_left],
+                                     samples[cell_index - left_index_left + 1],
+                                     dleft_dx * dy,
+                                     dright_dx * dy}(interpolation_factor);
     } else {
-      return HeadInterpolationKernel{
-          samples[cell_index - leftest_sample_index],
-          samples[cell_index - leftest_sample_index + 1], dleft_dx * dy,
-          dright_dx * dy}(interpolation_factor);
+      return HeadInterpolationKernel<value_type>{samples[cell_index - left_index_left],
+                                     samples[cell_index - left_index_left + 1],
+                                     dleft_dx * dy,
+                                     dright_dx * dy}(interpolation_factor);
     }
   }
   //----------------------------------------------------------------------------
-  /// recursive sampling by interpolating using HeadInterpolationKernel
+  /// Decides if first derivative is needed or not.
   template <typename... CITs>
   constexpr auto sample_cit(CITs const&... cits) const {
-    if constexpr (!HeadInterpolationKernel::needs_first_derivative) {
+    if constexpr (!HeadInterpolationKernel<value_type>::needs_first_derivative) {
       return sample_cit_no_first_derivative(cits...);
     } else {
       return sample_cit_with_first_derivative(cits...);
     }
   }
   //----------------------------------------------------------------------------
-  /// Recursive sampling by interpolating using HeadInterpolationKernel.
+  /// Recursive sampling by interpolating using interpolation kernels.
   ///
-  /// This method calls sample_cit with cell indices of every position component
-  /// so that only once a binary search must be done.
+  /// Calculates cell indices and interpolation factors of every position
+  /// component so that only once a binary search must be done and than calls
+  /// sample_cit .
  public:
   constexpr auto sample(real_number auto const... xs) const {
     static_assert(sizeof...(xs) == num_dimensions(),
@@ -260,7 +265,8 @@ struct base_sampler : crtp<Sampler> {
   }
 };
 //==============================================================================
-template <typename Grid, typename Container, typename... InterpolationKernels>
+template <typename Grid, typename Container,
+          template <typename> typename... InterpolationKernels>
 struct sampler
     : base_sampler<sampler<Grid, Container, InterpolationKernels...>,
                    typename Container::value_type, InterpolationKernels...> {
@@ -278,21 +284,7 @@ struct sampler
     return sizeof...(InterpolationKernels);
   }
   //----------------------------------------------------------------------------
- private:
-  /// checks if at method of container_t returns a reference type
-  template <size_t... Is>
-  static constexpr bool data_is_changable_(std::index_sequence<Is...> /*seq*/) {
-    return std::is_reference_v<decltype(
-        std::declval<container_t>().at(((void)Is, size_t{})...))>;
-  }
-  // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
- public:
-  static constexpr bool data_is_changeable() {
-    return data_is_changable_(std::make_index_sequence<num_dimensions()>{});
-  }
-  //============================================================================
   static_assert(std::is_floating_point_v<internal_data_type_t<value_type>>);
-
   //============================================================================
  private:
   grid_t const* m_grid;
@@ -317,22 +309,8 @@ struct sampler
     return m_container;
   }
   //----------------------------------------------------------------------------
-  template <bool _Changeable = data_is_changeable(),
-            std::enable_if_t<_Changeable == data_is_changeable(), bool> = true,
-            std::enable_if_t<_Changeable, bool>                       = true>
-  auto data_at(integral auto const... is) -> value_type& {
-    return m_container(is...);
-  }
-  // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
   auto data_at(integral auto const... is) const -> value_type const& {
     return m_container(is...);
-  }
-  // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-  template <integral Is, bool _Changeable = data_is_changeable(),
-            std::enable_if_t<_Changeable == data_is_changeable(), bool> = true,
-            std::enable_if_t<_Changeable, bool>                       = true>
-  auto data_at(std::array<Is, num_dimensions()> const& is) -> value_type& {
-    return m_container(is);
   }
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
   template <integral Is>
@@ -352,8 +330,8 @@ struct sampler
     return m_grid->template cell_index<DimensionIndex>(x);
   }
   ////----------------------------------------------------------------------------
-  //template <size_t DimIndex, size_t StencilSize, size_t... Is>
-  //auto diff_at(unsigned int const                   num_diffs,
+  // template <size_t DimIndex, size_t StencilSize, size_t... Is>
+  // auto diff_at(unsigned int const                   num_diffs,
   //             std::array<size_t, num_dimensions()> is,
   //             std::index_sequence<Is...> [>seq<]) const {
   //  static_assert(DimIndex < num_dimensions());
@@ -369,8 +347,8 @@ struct sampler
   //  return d;
   //}
   ////----------------------------------------------------------------------------
-  //template <size_t DimIndex, size_t StencilSize>
-  //auto diff_at(unsigned int const num_diffs, integral auto... is) const {
+  // template <size_t DimIndex, size_t StencilSize>
+  // auto diff_at(unsigned int const num_diffs, integral auto... is) const {
   //  static_assert(DimIndex < num_dimensions());
   //  static_assert(sizeof...(is) == num_dimensions(),
   //                "Number of indices does not match number of dimensions.");
@@ -383,8 +361,8 @@ struct sampler
     return *m_grid;
   }
   ////----------------------------------------------------------------------------
-  //template <size_t DimIndex, size_t StencilSize>
-  //auto stencil_coefficients(size_t const       i,
+  // template <size_t DimIndex, size_t StencilSize>
+  // auto stencil_coefficients(size_t const       i,
   //                          unsigned int const num_diffs) const {
   //  return m_grid->template stencil_coefficients<DimIndex, StencilSize>(
   //      i, num_diffs);
@@ -394,7 +372,8 @@ struct sampler
 /// holds an object of type TopSampler which can either be
 /// sampler or sampler_view and a fixed index of the top
 /// sampler
-template <typename TopSampler, typename... InterpolationKernels>
+template <typename TopSampler,
+          template <typename> typename... InterpolationKernels>
 struct sampler_view
     : base_sampler<sampler_view<TopSampler, InterpolationKernels...>,
                    typename TopSampler::value_type, InterpolationKernels...> {
@@ -402,7 +381,7 @@ struct sampler_view
   static constexpr auto data_is_changeable() {
     return TopSampler::data_is_changeable();
   }
-  using value_type                         = typename TopSampler::value_type;
+  using value_type = typename TopSampler::value_type;
   using parent_t =
       base_sampler<sampler_view<TopSampler, InterpolationKernels...>,
                    value_type, InterpolationKernels...>;
@@ -441,8 +420,8 @@ struct sampler_view
     return m_top_sampler->template cell_index<DimensionIndex>(x);
   }
   ////----------------------------------------------------------------------------
-  //template <size_t DimIndex, size_t StencilSize>
-  //auto diff_at(unsigned int num_diffs, integral auto... is) const
+  // template <size_t DimIndex, size_t StencilSize>
+  // auto diff_at(unsigned int num_diffs, integral auto... is) const
   //    -> decltype(auto) {
   //  static_assert(sizeof...(is) == num_dimensions(),
   //                "Number of indices is not equal to number of dimensions.");
@@ -454,7 +433,7 @@ struct sampler_view
     return m_top_sampler->grid();
   }
   ////----------------------------------------------------------------------------
-  //auto stencil_coefficients(size_t const dim_index, size_t const i) const {
+  // auto stencil_coefficients(size_t const dim_index, size_t const i) const {
   //  return m_top_sampler->stencil_coefficients(dim_index, i);
   //}
 };

@@ -176,65 +176,63 @@ class static_multidim_array
   // methods
   //============================================================================
  public:
-  [[nodiscard]] constexpr auto at(integral auto... is) const -> const auto& {
-    static_assert(sizeof...(is) == num_dimensions());
-    assert(in_range(is...));
-    return m_data[plain_index(is...)];
-  }
-  //----------------------------------------------------------------------------
-  constexpr auto at(integral auto... is) -> auto& {
-    static_assert(sizeof...(is) == num_dimensions());
-    assert(in_range(is...));
-    return m_data[plain_index(is...)];
-  }
-  //----------------------------------------------------------------------------
-  template <unsigned_integral UInt>
-  constexpr auto at(const std::array<UInt, num_dimensions()>& is) const -> const
+  [[nodiscard]] constexpr auto at(integral auto const... is) const -> const
       auto& {
-    return invoke_unpacked(
-        [&](auto... is) -> decltype(auto) { return at(is...); }, unpack(is));
-  }
-  //----------------------------------------------------------------------------
-  template <unsigned_integral UInt>
-  constexpr auto at(const std::array<UInt, num_dimensions()>& is) -> auto& {
-    return invoke_unpacked(
-        [&](auto... is) -> decltype(auto) { return at(is...); }, unpack(is));
-  }
-  //----------------------------------------------------------------------------
-  template <unsigned_integral UInt>
-  constexpr auto at(const std::vector<UInt>& is) const -> const auto& {
-    assert(is.size() == num_dimensions());
-    m_data[plain_index(is)];
-  }
-  //----------------------------------------------------------------------------
-  template <unsigned_integral UInt>
-  constexpr auto at(const std::vector<UInt>& is) -> auto& {
-    assert(is.size() == num_dimensions());
-    return m_data[plain_index(is)];
-  }
-  //----------------------------------------------------------------------------
-  constexpr auto operator()(integral auto... is) const -> const auto& {
     static_assert(sizeof...(is) == num_dimensions());
     assert(in_range(is...));
-    return at(is...);
+    return m_data[plain_index(is...)];
   }
-  //----------------------------------------------------------------------------
-  constexpr auto operator()(integral auto... is) -> auto& {
+  // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+  constexpr auto at(integral auto const... is) -> auto& {
     static_assert(sizeof...(is) == num_dimensions());
     assert(in_range(is...));
-    return at(is...);
+    return m_data[plain_index(is...)];
+  }
+  // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+  template <range IndexRange>
+  constexpr auto at(IndexRange const& index_range) const -> const auto& {
+    static_assert(std::is_integral_v<typename IndexRange::value_type>,
+                  "index range must hold integral type");
+    assert(index_range.size() == num_dimensions());
+    m_data[plain_index(index_range)];
+  }
+  // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+  template <range IndexRange>
+  constexpr auto at(IndexRange const& index_range) -> auto& {
+    static_assert(std::is_integral_v<typename IndexRange::value_type>,
+                  "index range must hold integral type");
+    assert(index_range.size() == num_dimensions());
+    return m_data[plain_index(index_range)];
   }
   //----------------------------------------------------------------------------
-  template <unsigned_integral UInt>
-  constexpr auto operator()(const std::array<UInt, num_dimensions()>& is) const
+  [[nodiscard]] constexpr auto operator()(integral auto const... is) const
       -> const auto& {
-    return at(is);
+    static_assert(sizeof...(is) == num_dimensions());
+    assert(in_range(is...));
+    return m_data[plain_index(is...)];
   }
   //----------------------------------------------------------------------------
-  template <unsigned_integral UInt>
-  constexpr auto operator()(const std::array<UInt, num_dimensions()>& is)
-      -> auto& {
-    return at(is);
+  constexpr auto operator()(integral auto const... is) -> auto& {
+    static_assert(sizeof...(is) == num_dimensions());
+    assert(in_range(is...));
+    return m_data[plain_index(is...)];
+  }
+  //----------------------------------------------------------------------------
+  template <range IndexRange>
+  constexpr auto operator()(IndexRange const& index_range) const -> const
+      auto& {
+    static_assert(std::is_integral_v<typename IndexRange::value_type>,
+                  "index range must hold integral type");
+    assert(index_range.size() == num_dimensions());
+    return m_data[plain_index(index_range)];
+  }
+  //----------------------------------------------------------------------------
+  template <range IndexRange>
+  constexpr auto operator()(IndexRange const& index_range) -> auto& {
+    static_assert(std::is_integral_v<typename IndexRange::value_type>,
+                  "index range must hold integral type");
+    assert(index_range.size() == num_dimensions());
+    m_data[plain_index(index_range)];
   }
   //----------------------------------------------------------------------------
   [[nodiscard]] constexpr auto operator[](size_t i) -> auto& {
@@ -257,7 +255,7 @@ class static_multidim_array
   //============================================================================
   template <typename F>
   constexpr void unary_operation(F&& f) {
-    for (auto is : indices()) { at(is) = f(at(is)); }
+    for (auto i : indices()) { at(i) = f(at(i)); }
   }
   //----------------------------------------------------------------------------
   template <typename F, typename OtherT, typename OtherIndexing,
@@ -265,7 +263,7 @@ class static_multidim_array
   constexpr void binary_operation(
       F&& f, const static_multidim_array<OtherT, OtherIndexing, OtherMemLoc,
                                          Resolution...>& other) {
-    for (const auto& is : indices()) { at(is) = f(at(is), other(is)); }
+    for (const auto& i : indices()) { at(i) = f(at(i), other(i)); }
   }
 };
 
@@ -470,7 +468,7 @@ class dynamic_multidim_array : public dynamic_multidim_size<Indexing> {
       -> dynamic_multidim_array& {
     if (parent_t::operator!=(other)) { resize(other.size()); }
     parent_t::operator=(other);
-    for (auto is : indices()) { at(is) = other(is); }
+    for (auto i : indices()) { at(i) = other(i); }
     return *this;
   }
   //============================================================================
@@ -595,84 +593,64 @@ class dynamic_multidim_array : public dynamic_multidim_size<Indexing> {
   //============================================================================
   // methods
   //============================================================================
-  auto at(integral auto... is) -> auto& {
+  auto at(integral auto const... is) -> auto& {
     assert(sizeof...(is) == num_dimensions());
     assert(in_range(is...));
     return m_data[plain_index(is...)];
   }
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-  auto at(integral auto... is) const -> const auto& {
+  auto at(integral auto const... is) const -> const auto& {
     assert(sizeof...(is) == num_dimensions());
     assert(in_range(is...));
     return m_data[plain_index(is...)];
   }
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-  template <unsigned_integral UInt>
-  auto at(const std::vector<UInt>& is) -> auto& {
-    assert(is.size() == num_dimensions());
-    assert(in_range(is));
-    return m_data[plain_index(is)];
+  template <range IndexRange>
+  auto at(IndexRange const& index_range) -> auto& {
+    static_assert(std::is_integral_v<typename IndexRange::value_type>,
+                  "index range must hold integral type");
+    assert(index_range.size() == num_dimensions());
+    assert(in_range(index_range));
+    return m_data[plain_index(index_range)];
   }
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-  template <unsigned_integral UInt>
-  auto at(const std::vector<UInt>& is) const -> const auto& {
-    assert(is.size() == num_dimensions());
-    assert(in_range(is));
-    return m_data[plain_index(is)];
+  template <range IndexRange>
+  auto at(IndexRange const& index_range) const -> const auto& {
+    static_assert(std::is_integral_v<typename IndexRange::value_type>,
+                  "index range must hold integral type");
+    assert(index_range.size() == num_dimensions());
+    assert(in_range(index_range));
+    return m_data[plain_index(index_range)];
   }
-  // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-  template <unsigned_integral UInt, size_t N>
-  auto at(const std::array<UInt, N>& is) -> auto& {
-    assert(N == num_dimensions());
-    assert(in_range(is));
-    return m_data[plain_index(is)];
-  }
-  // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-  template <unsigned_integral UInt, size_t N>
-  auto at(const std::array<UInt, N>& is) const -> const auto& {
-    assert(N == num_dimensions());
-    assert(in_range(is));
-    return m_data[plain_index(is)];
-  }
-  //----------------------------------------------------------------------------
-  auto operator()(integral auto... is) -> auto& {
+  //------------------------------------------------------------------------------
+  auto operator()(integral auto const... is) -> auto& {
     assert(sizeof...(is) == num_dimensions());
     assert(in_range(is...));
     return at(is...);
   }
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-  auto operator()(integral auto... is) const -> const auto& {
+  auto operator()(integral auto const... is) const -> const auto& {
     assert(sizeof...(is) == num_dimensions());
     assert(in_range(is...));
     return at(is...);
   }
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-  template <unsigned_integral UInt>
-  auto operator()(const std::vector<UInt>& is) -> auto& {
-    assert(is.size() == num_dimensions());
-    assert(in_range(is));
-    return at(is);
+  template <range IndexRange>
+  auto operator()(IndexRange const& index_range) -> auto& {
+    static_assert(std::is_integral_v<typename IndexRange::value_type>,
+                  "index range must hold integral type");
+    assert(index_range.size() == num_dimensions());
+    assert(in_range(index_range));
+    return at(index_range);
   }
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-  template <unsigned_integral UInt>
-  auto operator()(const std::vector<UInt>& is) const -> const auto& {
-    assert(is.size() == num_dimensions());
-    assert(in_range(is));
-    return at(is);
-  }
-  // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-  template <unsigned_integral UInt, size_t N>
-  auto operator()(const std::array<UInt, N>& is) -> auto& {
-    assert(N == num_dimensions());
-    assert(in_range(is));
-    return at(is);
-  }
-  // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-  template <unsigned_integral UInt, size_t N>
-  auto operator()(const std::array<UInt, N>& is) const -> const auto& {
-    assert(N == num_dimensions());
-    assert(in_range(is));
-    return at(is);
+  template <range IndexRange>
+  auto operator()(IndexRange const& index_range) const -> const auto& {
+    static_assert(std::is_integral_v<typename IndexRange::value_type>,
+                  "index range must hold integral type");
+    assert(index_range.size() == num_dimensions());
+    assert(in_range(index_range));
+    return at(index_range);
   }
   //----------------------------------------------------------------------------
   auto operator[](size_t i) -> auto& { return m_data[i]; }

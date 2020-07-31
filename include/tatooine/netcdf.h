@@ -7,6 +7,7 @@
 #include <tatooine/multidim_array.h>
 
 #include <cassert>
+#include <mutex>
 #include <memory>
 #include <netcdf>
 #include <numeric>
@@ -18,17 +19,17 @@ template <typename T>
 auto to_nc_type();
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 template <>
-auto to_nc_type<int>() {
+inline auto to_nc_type<int>() {
   return netCDF::ncInt;
 }
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 template <>
-auto to_nc_type<float>() {
+inline auto to_nc_type<float>() {
   return netCDF::ncFloat;
 }
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 template <>
-auto to_nc_type<double>() {
+inline auto to_nc_type<double>() {
   return netCDF::ncDouble;
 }
 //==============================================================================

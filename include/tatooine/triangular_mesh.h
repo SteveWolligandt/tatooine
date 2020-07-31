@@ -16,6 +16,9 @@ class triangular_mesh : public pointset<Real, N> {
   using this_t   = triangular_mesh<Real, N>;
   using parent_t = pointset<Real, N>;
   using parent_t::at;
+  using parent_t::points;
+  using parent_t::num_vertices;
+  using parent_t::vertex_properties;
   using typename parent_t::vertex_index;
   using parent_t::operator[];
   using parent_t::is_valid;
@@ -177,13 +180,13 @@ class triangular_mesh : public pointset<Real, N> {
         auto three_dims = [](vec<Real, 2> const& v2) {
           return vec<Real, 3>{v2(0), v2(1), 0};
         };
-        std::vector<vec<Real, 3>> v3s(this->m_vertices.size());
+        std::vector<vec<Real, 3>> v3s(num_vertices());
         auto                      three_dimensional = transformed(three_dims);
-        copy(this->m_vertices | three_dimensional, begin(v3s));
+        copy(points() | three_dimensional, begin(v3s));
         writer.write_points(v3s);
 
       } else if constexpr (N == 3) {
-        writer.write_points(this->m_vertices);
+        writer.write_points(points());
       }
 
       std::vector<std::vector<size_t>> polygons;
@@ -197,7 +200,7 @@ class triangular_mesh : public pointset<Real, N> {
 
       // write vertex_index data
       writer.write_point_data(this->num_vertices());
-      for (auto const& [name, prop] : this->m_vertex_properties) {
+      for (auto const& [name, prop] : vertex_properties()) {
         if (prop->type() == typeid(vec<Real, 4>)) {
         } else if (prop->type() == typeid(vec<Real, 3>)) {
         } else if (prop->type() == typeid(vec<Real, 2>)) {
@@ -332,53 +335,56 @@ class triangular_mesh : public pointset<Real, N> {
 triangular_mesh()->triangular_mesh<double, 3>;
 triangular_mesh(std::string const&)->triangular_mesh<double, 3>;
 //==============================================================================
-// namespace detail {
-// template <typename MeshCont>
-// auto write_mesh_container_to_vtk(MeshContc onst& meshes, std::string const&
-// path,
-//                                 std::string const& title) {
-//  vtk::legacy_file_writer writer(path, vtk::POLYDATA);
-//  if (writer.is_open()) {
-//    size_t num_pts = 0;
-//    size_t cur_first = 0;
-//    for (auto const& m : meshes) { num_pts += m.num_vertices(); }
-//    std::vector<std::array<typename MeshCont::value_type::real_t, 3>> points;
-//    std::vector<std::vector<size_t>> triangles; points.reserve(num_pts);
-//    triangles.reserve(meshes.size());
-//
-//    for (auto const& m : meshes) {
-//      // add points
-//      for (auto const& v : m.vertices()) {
-//        points.push_back(std::array{m[v](0), m[v](1), m[v](2)});
-//      }
-//
-//      // add triangles
-//      for (auto t : m.triangles()) {
-//        triangles.emplace_back();
-//        triangles.back().push_back(cur_first + m[t][0].i);
-//        triangles.back().push_back(cur_first + m[t][1].i);
-//        triangles.back().push_back(cur_first + m[t][2].i);
-//      }
-//      cur_first += m.num_vertices();
-//    }
-//
-//    // write
-//    writer.set_title(title);
-//    writer.write_header();
-//    writer.write_points(points);
-//    writer.write_polygons(triangles);
-//    //writer.write_point_data(num_pts);
-//    writer.close();
-//  }
-//}
-//}  // namespace detail
-////==============================================================================
-// template <typename Real>
-// auto write_vtk(std::vector<triangular_mesh<Real, 3>> const& meshes,
-// std::string const& path,
-//               std::string const& title = "tatooine meshes") {
-//  detail::write_mesh_container_to_vtk(meshes, path, title);
-//}
+namespace detail {
+template <typename MeshCont>
+auto write_mesh_container_to_vtk(MeshCont const&    meshes,
+                                 std::string const& path,
+                                 std::string const& title) {
+  vtk::legacy_file_writer writer(path, vtk::POLYDATA);
+  if (writer.is_open()) {
+    size_t num_pts   = 0;
+    size_t cur_first = 0;
+    for (auto const& m : meshes) {
+      num_pts += m.num_vertices();
+    }
+    std::vector<std::array<typename MeshCont::value_type::real_t, 3>> points;
+    std::vector<std::vector<size_t>>                                  triangles;
+    points.reserve(num_pts);
+    triangles.reserve(meshes.size());
+
+    for (auto const& m : meshes) {
+      // add points
+      for (auto const& v : m.vertices()) {
+        points.push_back(std::array{m[v](0), m[v](1), m[v](2)});
+      }
+
+      // add triangles
+      for (auto t : m.triangles()) {
+        triangles.emplace_back();
+        triangles.back().push_back(cur_first + m[t][0].i);
+        triangles.back().push_back(cur_first + m[t][1].i);
+        triangles.back().push_back(cur_first + m[t][2].i);
+      }
+      cur_first += m.num_vertices();
+    }
+
+    // write
+    writer.set_title(title);
+    writer.write_header();
+    writer.write_points(points);
+    writer.write_polygons(triangles);
+    // writer.write_point_data(num_pts);
+    writer.close();
+  }
+}
+}  // namespace detail
+//==============================================================================
+template <typename Real>
+auto write_vtk(std::vector<triangular_mesh<Real, 3>> const& meshes,
+               std::string const&                           path,
+               std::string const& title = "tatooine meshes") {
+  detail::write_mesh_container_to_vtk(meshes, path, title);
+}
 //==============================================================================
 }  // namespace tatooine
 //==============================================================================

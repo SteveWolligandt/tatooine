@@ -102,7 +102,7 @@ struct autonomous_particle<Flowmap> {
  public:
   auto integrate(real_t tau_step, real_t const max_t) const {
     std::vector<this_t> particles{*this};
-    std::vector<simple_tri_mesh<real_t, 3>> ellipsoids;
+    std::vector<triangular_mesh<real_t, 3>> ellipsoids;
 
     size_t size_before = size(particles);
     size_t start_idx   = 0;
@@ -122,7 +122,7 @@ struct autonomous_particle<Flowmap> {
   //----------------------------------------------------------------------------
   void integrate_until_split(
       real_t tau_step, std::vector<this_t>& particles,
-      std::vector<simple_tri_mesh<real_t, 3>>& ellipsoids,
+      std::vector<triangular_mesh<real_t, 3>>& ellipsoids,
       real_t const                             max_t) const {
     // add initial sphere
     ellipsoids.push_back(discretize(geometry::sphere<real_t, 3>{1}, 3));

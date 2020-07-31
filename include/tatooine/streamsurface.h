@@ -7,9 +7,10 @@
 #include <tatooine/interpolation.h>
 #include <tatooine/line.h>
 #include <tatooine/linspace.h>
+#include <tatooine/numerical_flowmap.h>
 #include <tatooine/ode/solver.h>
-#include <tatooine/triangular_mesh.h>
 #include <tatooine/tensor.h>
+#include <tatooine/triangular_mesh.h>
 
 #include <algorithm>
 #include <boost/functional.hpp>
@@ -29,7 +30,9 @@ template <flowmap_c Flowmap,
           template <typename> typename SeedcurveInterpolationKernel>
 struct streamsurface {
   using flowmap_t = std::decay_t<Flowmap>;
-  static constexpr auto num_dimensions() { return flowmap_t::num_dimensions(); }
+  static constexpr auto num_dimensions() {
+    return flowmap_t::num_dimensions();
+  }
   using real_t      = typename flowmap_t::real_t;
   using this_t      = streamsurface<Flowmap, SeedcurveInterpolationKernel>;
   using seedcurve_t = parameterized_line<real_t, num_dimensions(),
@@ -106,7 +109,7 @@ struct streamsurface {
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
   template <typename V>
   streamsurface(const vectorfield<V, real_t, num_dimensions()>& v,
-                const seedcurve_t& seedcurve)
+                const seedcurve_t&                              seedcurve)
       : m_flowmap{tatooine::flowmap(v)},
         m_t0_u0{real_t(0)},
         m_t0_u1{real_t(0)},
@@ -129,22 +132,36 @@ struct streamsurface {
            m_t0_u0;
   }
   //----------------------------------------------------------------------------
-  auto&       flowmap() { return m_flowmap; }
-  const auto& flowmap() const { return m_flowmap; }
+  auto& flowmap() {
+    return m_flowmap;
+  }
+  const auto& flowmap() const {
+    return m_flowmap;
+  }
   //----------------------------------------------------------------------------
-  const auto& seedcurve() const { return m_seedcurve; }
-  //----------------------------------------------------------------------------
-  /// calculates position of streamsurface
-  vec_t sample(real_t u, real_t v) const {
-    if (u < m_min_u || u > m_max_u) { throw out_of_domain_error{}; }
-    if (v == t0(u)) { return m_seedcurve.sample(u); }
-    try {
-      return m_flowmap(m_seedcurve.sample(u), t0(u), v);
-    } catch (std::exception&) { throw out_of_domain_error{}; }
+  const auto& seedcurve() const {
+    return m_seedcurve;
   }
   //----------------------------------------------------------------------------
   /// calculates position of streamsurface
-  vec_t sample(const vec2& uv) const { return sample(uv(0), uv(1)); }
+  vec_t sample(real_t u, real_t v) const {
+    if (u < m_min_u || u > m_max_u) {
+      throw out_of_domain_error{};
+    }
+    if (v == t0(u)) {
+      return m_seedcurve.sample(u);
+    }
+    try {
+      return m_flowmap(m_seedcurve.sample(u), t0(u), v);
+    } catch (std::exception&) {
+      throw out_of_domain_error{};
+    }
+  }
+  //----------------------------------------------------------------------------
+  /// calculates position of streamsurface
+  vec_t sample(const vec2& uv) const {
+    return sample(uv(0), uv(1));
+  }
   //----------------------------------------------------------------------------
   auto distance(const vec2& uv0, const vec2& uv1, size_t num_samples) const {
     auto   step = (uv1 - uv0) / (num_samples - 1);
@@ -156,7 +173,9 @@ struct streamsurface {
     return d;
   }
   //----------------------------------------------------------------------------
-  auto operator()(real_t u, real_t v) const { return sample(u, v); }
+  auto operator()(real_t u, real_t v) const {
+    return sample(u, v);
+  }
   //----------------------------------------------------------------------------
   template <template <typename, template <typename> typename>
             typename Discretization = hultquist_discretization,
@@ -166,8 +185,12 @@ struct streamsurface {
         this, std::forward<Args>(args)...);
   }
   //----------------------------------------------------------------------------
-  constexpr auto min_u() const { return m_min_u; }
-  constexpr auto max_u() const { return m_max_u; }
+  constexpr auto min_u() const {
+    return m_min_u;
+  }
+  constexpr auto max_u() const {
+    return m_max_u;
+  }
 };
 
 //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -268,7 +291,9 @@ struct front_evolving_streamsurface_discretization
   //============================================================================
   // typedefs
   //============================================================================
-  static constexpr auto num_dimensions() { return Flowmap::num_dimensions(); }
+  static constexpr auto num_dimensions() {
+    return Flowmap::num_dimensions();
+  }
   using real_t = typename Flowmap::real_t;
   using this_t =
       front_evolving_streamsurface_discretization<Flowmap,
@@ -277,15 +302,15 @@ struct front_evolving_streamsurface_discretization
   using parent_t::at;
   using typename parent_t::pos_t;
   using parent_t::operator[];
-  using typename parent_t::face;
-  using typename parent_t::vertex;
+  using typename parent_t::triangle_index;
+  using typename parent_t::vertex_index;
 
   using vec2          = vec<real_t, 2>;
   using uv_t          = vec2;
   using uv_property_t = typename parent_t::template vertex_property_t<uv_t>;
 
-  using vertex_vec_t     = std::vector<vertex>;
-  using vertex_list_t    = std::list<vertex>;
+  using vertex_vec_t     = std::vector<vertex_index>;
+  using vertex_list_t    = std::list<vertex_index>;
   using vertex_list_it_t = typename vertex_list_t::const_iterator;
   using vertex_range_t   = std::pair<vertex_list_it_t, vertex_list_it_t>;
   using subfront_t       = std::pair<vertex_list_t, vertex_range_t>;
@@ -298,9 +323,9 @@ struct front_evolving_streamsurface_discretization
   //============================================================================
   // members
   //============================================================================
-  ssf_t*           ssf;
-  std::set<vertex> m_on_border;
-  uv_property_t*   m_uv_property;
+  ssf_t*                 ssf;
+  std::set<vertex_index> m_on_border;
+  uv_property_t*         m_uv_property;
 
   //============================================================================
   // ctors
@@ -333,14 +358,24 @@ struct front_evolving_streamsurface_discretization
   // methods
   //============================================================================
  private:
-  auto& add_uv_prop() { return this->template add_vertex_property<uv_t>("uv"); }
-  auto& find_uv_prop() { return this->template vertex_property<uv_t>("uv"); }
+  auto& add_uv_prop() {
+    return this->template add_vertex_property<uv_t>("uv");
+  }
+  auto& find_uv_prop() {
+    return this->template vertex_property<uv_t>("uv");
+  }
   //----------------------------------------------------------------------------
  public:
-  auto&       uv(vertex v) { return m_uv_property->at(v); }
-  const auto& uv(vertex v) const { return m_uv_property->at(v); }
+  auto& uv(vertex_index v) {
+    return m_uv_property->at(v);
+  }
+  const auto& uv(vertex_index v) const {
+    return m_uv_property->at(v);
+  }
   //----------------------------------------------------------------------------
-  auto t0(real_t u) const { return ssf->t0(u); }
+  auto t0(real_t u) const {
+    return ssf->t0(u);
+  }
   //----------------------------------------------------------------------------
   auto insert_vertex(const pos_t& p, const uv_t& p_uv) {
     auto v = parent_t::insert_vertex(p);
@@ -368,13 +403,15 @@ struct front_evolving_streamsurface_discretization
   //----------------------------------------------------------------------------
   void triangulate_timeline(const front_t& front) {
     for (const auto& subfront : front) {
-      std::vector<face> new_face_indices;
-      const auto&       vs = subfront.first;
-      auto [left0, end0]   = subfront.second;
-      auto left1           = begin(vs);
-      auto end1            = end(vs);
+      std::vector<triangle_index> new_face_indices;
+      const auto&                 vs = subfront.first;
+      auto [left0, end0]             = subfront.second;
+      auto left1                     = begin(vs);
+      auto end1                      = end(vs);
 
-      if (left0 == end0) { continue; }
+      if (left0 == end0) {
+        continue;
+      }
 
       // while both lines are not fully traversed
       while (next(left0) != end0 || next(left1) != end1) {
@@ -396,13 +433,17 @@ struct front_evolving_streamsurface_discretization
         if (lower_edge_len < upper_edge_len) {
           new_face_indices.push_back(
               this->insert_triangle(*left0, *right0, *left1));
-          if (next(left0) != end0) { ++left0; }
+          if (next(left0) != end0) {
+            ++left0;
+          }
 
         } else {
           new_face_indices.push_back(
               this->insert_triangle(*left0, *right1, *left1));
 
-          if (next(left1) != end1) { ++left1; }
+          if (next(left1) != end1) {
+            ++left1;
+          }
         }
       }
     }
@@ -413,7 +454,8 @@ struct front_evolving_streamsurface_discretization
     vs.emplace_back();
     for (auto u : linspace{ssf->min_u(), ssf->max_u(), seedline_resolution}) {
       const auto t0u = t0(u);
-      //if (this->ssf->vectorfield().in_domain(this->ssf->seedcurve().sample(u),
+      // if
+      // (this->ssf->vectorfield().in_domain(this->ssf->seedcurve().sample(u),
       //                                       t0u)) {
       const auto new_pos = ssf->sample(u, t0u);
       const auto v       = insert_vertex(std::move(new_pos), uv_t{u, t0u});
@@ -424,7 +466,9 @@ struct front_evolving_streamsurface_discretization
       //  vs.back().clear();
       //}
     }
-    if (vs.back().size() <= 1) { vs.pop_back(); }
+    if (vs.back().size() <= 1) {
+      vs.pop_back();
+    }
     front_t front;
     for (auto&& vs : vs) {
       front.emplace_back(std::move(vs), std::pair{begin(vs), end(vs)});
@@ -454,7 +498,9 @@ struct front_evolving_streamsurface_discretization
             u_dist < min_u_dist) {
           min_u_dist = u_dist;
           best_it    = it;
-          if (min_u_dist == 0) { break; }
+          if (min_u_dist == 0) {
+            break;
+          }
         }
       }
       return best_it;
@@ -469,7 +515,9 @@ struct front_evolving_streamsurface_discretization
           real_t d;
           try {
             d = this->ssf->distance(uv(*v), uv(*next(v)), 5);
-          } catch (std::exception&) { d = distance(at(*v), at(*next(v))); }
+          } catch (std::exception&) {
+            d = distance(at(*v), at(*next(v)));
+          }
 
           bool stop = false;
           while (d > desired_spatial_dist * 1.5) {
@@ -492,7 +540,9 @@ struct front_evolving_streamsurface_discretization
               vs.insert(next(v), new_v);
               try {
                 d = this->ssf->distance(uv(*v), uv(*next(v)), 5);
-              } catch (std::exception&) { d = distance(at(*v), at(*next(v))); }
+              } catch (std::exception&) {
+                d = distance(at(*v), at(*next(v)));
+              }
             } catch (std::exception&) {
               if (next(v, 2) != end(vs)) {
                 const auto best_pred = find_best_predecessor(v, pred_range);
@@ -507,7 +557,9 @@ struct front_evolving_streamsurface_discretization
               break;
             }
           }
-          if (stop) { break; }
+          if (stop) {
+            break;
+          }
         }
       }
     }
@@ -518,7 +570,9 @@ struct front_evolving_streamsurface_discretization
       auto& vs = subfront.first;
       if (vs.size() >= 3) {
         for (auto v = begin(vs); v != prev(end(vs), 2); ++v) {
-          if (m_on_border.find(*v) != end(m_on_border)) { continue; }
+          if (m_on_border.find(*v) != end(m_on_border)) {
+            continue;
+          }
           auto d = [&] {
             try {
               return this->ssf->distance(uv(*v), uv(*next(v, 2)), 7);
@@ -541,9 +595,9 @@ struct front_evolving_streamsurface_discretization
   }
 };
 
-//template <typename Flowmap,
+// template <typename Flowmap,
 //          template <typename> typename SeedcurveInterpolationKernel>
-//struct simple_discretization : front_evolving_streamsurface_discretization<
+// struct simple_discretization : front_evolving_streamsurface_discretization<
 //                                   Flowmap, SeedcurveInterpolationKernel> {
 //  using real_t = typename Flowmap::real_t;
 //  static constexpr auto num_dimensions() { return Flowmap::num_dimensions(); }
@@ -555,8 +609,8 @@ struct front_evolving_streamsurface_discretization
 //  using ssf_t            = typename parent_t::ssf_t;
 //  using vertex_vec_t     = typename parent_t::vertex_vec_t;
 //  using vertex_list_t    = typename parent_t::vertex_list_t;
-//  using vertex           = typename parent_t::vertex;
-//  using face             = typename parent_t::face;
+//  using vertex_index           = typename parent_t::vertex_index;
+//  using triangle_index             = typename parent_t::triangle_index;
 //  using vertex_list_it_t = typename parent_t::vertex_list_it_t;
 //  using vertex_range_t   = typename parent_t::vertex_range_t;
 //  using parent_t::at;
@@ -573,14 +627,16 @@ struct front_evolving_streamsurface_discretization
 //      default;
 //  ~simple_discretization() = default;
 //  //============================================================================
-//  simple_discretization(ssf_t* ssf, size_t seedline_resolution, real_t stepsize,
+//  simple_discretization(ssf_t* ssf, size_t seedline_resolution, real_t
+//  stepsize,
 //                        real_t backward_tau, real_t forward_tau)
 //      : parent_t{ssf} {
 //    assert(forward_tau >= 0);
 //    assert(backward_tau <= 0);
 //
 //    const auto seed_front = this->seedcurve_to_front(seedline_resolution,
-//                                                     backward_tau, forward_tau);
+//                                                     backward_tau,
+//                                                     forward_tau);
 //    if (seed_front.empty()) { return; }
 //
 //    if (backward_tau < 0) {
@@ -651,12 +707,12 @@ struct hultquist_discretization : front_evolving_streamsurface_discretization<
   using parent_t::insert_vertex;
   using parent_t::t0;
   using parent_t::uv;
-  using typename parent_t::face;
   using typename parent_t::front_t;
   using typename parent_t::ssf_t;
   using typename parent_t::subfront_t;
+  using typename parent_t::triangle_index;
   using typename parent_t::uv_t;
-  using typename parent_t::vertex;
+  using typename parent_t::vertex_index;
   using typename parent_t::vertex_list_it_t;
   using typename parent_t::vertex_list_t;
   using typename parent_t::vertex_range_t;
@@ -669,9 +725,12 @@ struct hultquist_discretization : front_evolving_streamsurface_discretization<
     assert(forward_tau >= 0);
     assert(backward_tau <= 0);
 
-    const auto seed_front = this->seedcurve_to_front(seedline_resolution/*,*/
-                                                     /*backward_tau, forward_tau*/);
-    if (seed_front.empty()) { return; }
+    const auto seed_front =
+        this->seedcurve_to_front(seedline_resolution /*,*/
+                                 /*backward_tau, forward_tau*/);
+    if (seed_front.empty()) {
+      return;
+    }
     real_t desired_spatial_dist =
         this->average_segment_length(seed_front.front());
 
@@ -711,7 +770,7 @@ struct hultquist_discretization : front_evolving_streamsurface_discretization<
   auto integrate(const subfront_t& subfront, real_t step) {
     assert(step != 0);
     struct integrated_t {
-      vertex           v;
+      vertex_index     v;
       bool             moved, on_border, resampled;
       vertex_list_it_t start_vertex;
     };
@@ -734,9 +793,9 @@ struct hultquist_discretization : front_evolving_streamsurface_discretization<
         }
 
       } catch (std::exception&) {
-        //const auto& streamline =
+        // const auto& streamline =
         //    this->ssf->streamline_at(uv(0));
-        //if (!streamline.empty()) {
+        // if (!streamline.empty()) {
         //  const auto& border_point =
         //      step > 0 ? streamline.back() : streamline.front();
         //  auto new_v = insert_vertex(border_point.first,
@@ -761,19 +820,24 @@ struct hultquist_discretization : front_evolving_streamsurface_discretization<
         const auto dist =
             std::abs(parent_t::uv(it->v)(0) - parent_t::uv(next(it)->v)(0));
         auto step = dist / 4;
-        if (it->on_border) { step = -step; }
+        if (it->on_border) {
+          step = -step;
+        }
         bool found = false;
         while (std::abs(step) > 1e-10) {
           try {
             this->ssf->sample(walking_u + step, fix_v);
             walking_u += step;
-            if (!found) { found = true; }
-          } catch (std::exception&) { step /= 2; }
+            if (!found) {
+              found = true;
+            }
+          } catch (std::exception&) {
+            step /= 2;
+          }
         }
         if (found) {
-          auto new_v = insert_vertex(
-              this->ssf->sample(walking_u, fix_v),
-              uv_t{walking_u, fix_v});
+          auto new_v = insert_vertex(this->ssf->sample(walking_u, fix_v),
+                                     uv_t{walking_u, fix_v});
           integrated_vertices.insert(
               next(it), {new_v, true, true, true,
                          next(it)->on_border ? next(it)->start_vertex
@@ -810,7 +874,9 @@ struct hultquist_discretization : front_evolving_streamsurface_discretization<
       new_subfronts.back().first.push_back(integrated_vertices.back().v);
     }
 
-    if (new_subfronts.back().first.empty()) { new_subfronts.pop_back(); }
+    if (new_subfronts.back().first.empty()) {
+      new_subfronts.pop_back();
+    }
     return new_subfronts;
   }
 
@@ -819,8 +885,7 @@ struct hultquist_discretization : front_evolving_streamsurface_discretization<
     front_t new_front;
     for (const auto& subfront : front) {
       if (subfront.first.size() > 1) {
-        boost::copy(integrate(subfront, step),
-                    std::back_inserter(new_front));
+        boost::copy(integrate(subfront, step), std::back_inserter(new_front));
       }
     }
     return new_front;
@@ -842,17 +907,19 @@ template <typename Flowmap,
 struct schulze_discretization : front_evolving_streamsurface_discretization<
                                     Flowmap, SeedcurveInterpolationKernel> {
   using real_t = typename Flowmap::real_t;
-  static constexpr auto num_dimensions() { return Flowmap::num_dimensions(); }
+  static constexpr auto num_dimensions() {
+    return Flowmap::num_dimensions();
+  }
   using parent_t =
       front_evolving_streamsurface_discretization<Flowmap,
                                                   SeedcurveInterpolationKernel>;
-  using typename parent_t::face;
   using typename parent_t::front_t;
   using typename parent_t::ssf_t;
   using typename parent_t::subfront_t;
-  using typename parent_t::vertex;
-  using typename parent_t::vertex_list_t;
+  using typename parent_t::triangle_index;
+  using typename parent_t::vertex_index;
   using typename parent_t::vertex_list_it_t;
+  using typename parent_t::vertex_list_t;
   template <typename T>
   using vertex_property_t = typename parent_t::template vertex_property_t<T>;
   using parent_t::at;
@@ -870,7 +937,7 @@ struct schulze_discretization : front_evolving_streamsurface_discretization<
         second_derivate_alpha_prop(this->template add_vertex_property<real_t>(
             "second_derivative_alpha")) {
     auto const initial_front = this->seedcurve_to_front(seedline_resolution);
-    real_t desired_spatial_dist =
+    real_t     desired_spatial_dist =
         this->average_segment_length(initial_front.front());
 
     // evolve front
@@ -881,7 +948,7 @@ struct schulze_discretization : front_evolving_streamsurface_discretization<
   }
 
   //--------------------------------------------------------------------------
-  auto integrate(const subfront_t& front, real_t step) {
+  auto integrate(const subfront_t& front) {
     std::vector<subfront_t> new_subfronts{
         {{}, {begin(front.first), end(front.first)}}};
     const auto& [vs, pred_range] = front;
@@ -896,10 +963,10 @@ struct schulze_discretization : front_evolving_streamsurface_discretization<
     if (size(splitted_front_ranges) == 1 &&
         splitted_front_ranges[0].first == begin(vs) &&
         splitted_front_ranges[0].second == end(vs)) {
-      auto& vertices1 =
-          new_subfronts
-              .emplace_back(std::list<vertex>{}, std::pair{begin(vs), end(vs)})
-              .first;
+      auto& vertices1 = new_subfronts
+                            .emplace_back(std::list<vertex_index>{},
+                                          std::pair{begin(vs), end(vs)})
+                            .first;
 
       size_t i = 0;
       for (const auto v : vs) {
@@ -914,10 +981,10 @@ struct schulze_discretization : front_evolving_streamsurface_discretization<
       // rip needed
       for (const auto& range : splitted_front_ranges) {
         auto& [vertices1, pred_range] =
-            new_subfronts.emplace_back(std::list<vertex>{}, range);
+            new_subfronts.emplace_back(std::list<vertex_index>{}, range);
 
-        size_t            i = 0;
-        std::list<vertex> sub_front;
+        size_t                  i = 0;
+        std::list<vertex_index> sub_front;
         std::copy(pred_range.first, pred_range.second,
                   std::back_inserter(sub_front));
         auto sub_alpha = optimal_stepsizes(sub_front);
@@ -933,11 +1000,11 @@ struct schulze_discretization : front_evolving_streamsurface_discretization<
     return new_subfronts;
   }
   //--------------------------------------------------------------------------
-  auto integrate(const front_t& front, real_t step) {
+  auto integrate(const front_t& front) {
     front_t integrated_front;
     for (const auto& subfront : front) {
       if (subfront.first.size() > 1) {
-        boost::copy(integrate(subfront, step),
+        boost::copy(integrate(subfront),
                     std::back_inserter(integrated_front));
       }
     }
@@ -945,9 +1012,9 @@ struct schulze_discretization : front_evolving_streamsurface_discretization<
   }
   //----------------------------------------------------------------------------
   auto evolve(const front_t& front, real_t desired_spatial_dist) {
-    auto integrated_front = integrate(front, desired_spatial_dist);
+    auto integrated_front = integrate(front);
     // triangulate
-    std::vector<std::vector<face>> faces;
+    std::vector<std::vector<triangle_index>> faces;
     this->subdivide(integrated_front, desired_spatial_dist);
     this->reduce(integrated_front, desired_spatial_dist);
     this->triangulate_timeline(integrated_front);
@@ -958,22 +1025,24 @@ struct schulze_discretization : front_evolving_streamsurface_discretization<
     const auto& v        = this->ssf->flowmap().vectorfield();
     auto        jacobian = diff(v, 1e-7);
 
-    auto              num_pnts = size(vs);
+    auto                num_pnts = size(vs);
     std::vector<real_t> p(num_pnts - 1), q(num_pnts - 1), null(num_pnts),
         r(num_pnts);
     std::vector<vec<real_t, num_dimensions()>> ps(num_pnts);
 
     // TODO: get t0 at u, not at 0
     size_t i = 0;
-    for (const auto vertex : vs)
-      ps[i++] = v(at(vertex), this->t0(0) + uv(vertex)(1));
+    for (const auto vertex_index : vs)
+      ps[i++] = v(at(vertex_index), this->t0(0) + uv(vertex_index)(1));
 
-    i            = 0;
+    i              = 0;
     real_t avg_len = 0;
-    for (auto vertex = begin(vs); vertex != prev(end(vs)); ++vertex, ++i) {
-      auto tm  = this->t0(0) + (uv(*vertex)(1) + uv(*next(vertex))(1)) * 0.5;
-      auto xm  = (at(*next(vertex)) + at(*vertex)) * 0.5;
-      auto dir = at(*next(vertex)) - at(*vertex);
+    for (auto vertex_index = begin(vs); vertex_index != prev(end(vs));
+         ++vertex_index, ++i) {
+      auto tm = this->t0(0) +
+                (uv(*vertex_index)(1) + uv(*next(vertex_index))(1)) * 0.5;
+      auto xm  = (at(*next(vertex_index)) + at(*vertex_index)) * 0.5;
+      auto dir = at(*next(vertex_index)) - at(*vertex_index);
       auto vm  = v(xm, tm);
       auto Jm  = jacobian(xm, tm);
 
@@ -997,14 +1066,16 @@ struct schulze_discretization : front_evolving_streamsurface_discretization<
       if (c > 0) ++num_pos_null;
     int k_plus_factor = (num_pos_null < null.size() / 2) ? -1 : 1;
 
-    for (size_t i = 0; i < r.size(); ++i) r[i] += k_plus_factor * null[i];
+    for (size_t i = 0; i < r.size(); ++i)
+      r[i] += k_plus_factor * null[i];
     // r[i] += (num_pnts / 10.0) * k_plus_factor * null[i];
 
     // apply step width
     real_t h = std::numeric_limits<real_t>::max();
     for (size_t i = 0; i < num_pnts; ++i)
       h = std::min(h, avg_len / (std::abs(r[i]) * norm(ps[i])));
-    for (size_t i = 0; i < r.size(); ++i) r[i] *= h;
+    for (size_t i = 0; i < r.size(); ++i)
+      r[i] *= h;
     // for (size_t i = 0; i < r.size(); ++i) r[i] = std::max(r[i],1e-3);
     return r;
   }
@@ -1014,7 +1085,7 @@ struct schulze_discretization : front_evolving_streamsurface_discretization<
                     real_t threshold = 100) {
     // calculate second derivative
     std::vector<real_t> snd_der(alpha.size(), 0);
-    auto              v = next(begin(vs));
+    auto                v = next(begin(vs));
     for (size_t i = 1; i < alpha.size() - 1; ++i, ++v) {
       mat<real_t, 3, 3> A{
           {real_t(1), uv(*prev(v))(0), uv(*prev(v))(0) * uv(*prev(v))(0)},
@@ -1025,7 +1096,8 @@ struct schulze_discretization : front_evolving_streamsurface_discretization<
       second_derivate_alpha_prop[*v] = std::abs(snd_der[i]);
     }
 
-    std::vector<std::pair<vertex_list_it_t, vertex_list_it_t>> splitted_front_ranges;
+    std::vector<std::pair<vertex_list_it_t, vertex_list_it_t>>
+        splitted_front_ranges;
     splitted_front_ranges.emplace_back(begin(vs), end(vs));
 
     auto v_it = next(begin(vs));

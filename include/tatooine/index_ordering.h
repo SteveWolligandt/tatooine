@@ -15,90 +15,65 @@ namespace tatooine {
 /// converts multi-dimensional index to a one dimensional index where first
 /// dimensions grows fastest
 struct x_fastest {
-  template <integral IsType>
-  static constexpr auto plain_index(std::forward_iterator auto res_it,
-                                    std::vector<IsType> const& is) {
-    size_t multiplier = 1;
-    size_t idx        = 0;
-    for (auto i : is) {
-      idx += i * multiplier;
-      multiplier *= *(res_it++);
-    }
-    return idx;
-  }
-  // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-  static constexpr auto plain_index(std::forward_iterator auto res_it,
+  static constexpr auto plain_index(std::forward_iterator auto resoltion_it,
                                     integral auto... is) {
     size_t multiplier = 1;
     size_t idx        = 0;
     for_each(
         [&](auto i) {
           idx += i * multiplier;
-          multiplier *= *(res_it++);
+          multiplier *= *(resoltion_it++);
         },
         is...);
     return idx;
   }
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-  template <size_t N, integral ResType>
-  static constexpr auto plain_index(const std::array<ResType, N>& resolution,
+  static constexpr auto plain_index(std::forward_iterator auto resoltion_it,
+                                    range auto const&          indices) {
+    size_t multiplier = 1;
+    size_t idx        = 0;
+    for (auto i : indices) {
+      idx += i * multiplier;
+      multiplier *= *(resoltion_it++);
+    }
+    return idx;
+  }
+  // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+  template <range ResolutionRange>
+  static constexpr auto plain_index(ResolutionRange const& resolution_range,
                                     integral auto... is) {
-    return plain_index(begin(resolution), is...);
+    static_assert(std::is_integral_v<typename ResolutionRange::value_type>,
+                  "resolution range must hold integral type");
+    return plain_index(begin(resolution_range), is...);
   }
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-  template <size_t N, integral ResType, integral IsType>
-  static constexpr auto plain_index(const std::array<ResType, N>& resolution,
-                                    const std::vector<IsType>&    is) {
-    assert(N == is.size());
-    return plain_index(begin(resolution), is);
-  }
-  // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-  template <std::integral ResType>
-  static constexpr auto plain_index(const std::vector<ResType>& resolution,
-                                    integral auto... is) {
-    assert(resolution.size() == sizeof...(is));
-    return plain_index(begin(resolution), is...);
-  }
-  // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-  template <integral ResType, integral IsType>
-  static constexpr auto plain_index(const std::vector<ResType>& resolution,
-                                    const std::vector<IsType>&  is) {
-    assert(resolution.size() == is.size());
-    return plain_index(begin(resolution), is);
+  template <range ResolutionRange, range IndexRange>
+  static constexpr auto plain_index(ResolutionRange const& resolution_range,
+                                    IndexRange const& indices) {
+    static_assert(std::is_integral_v<typename ResolutionRange::value_type>,
+                  "resolution range must hold integral type");
+    static_assert(std::is_integral_v<typename IndexRange::value_type>,
+                  "index range must hold integral type");
+    assert(resolution_range.size() == indices.size());
+    return plain_index(begin(resolution_range), indices);
   }
   //----------------------------------------------------------------------------
-  template <std::integral ResType>
-  static auto multi_index(const std::vector<ResType>& resolution,
-                          size_t                      plain_index) {
-    std::vector<ResType> is(resolution.size());
-    size_t               multiplier =
+  template <range ResolutionRange>
+  static auto multi_index(ResolutionRange const& resolution,
+                          size_t                 plain_index) {
+    std::vector<size_t> is(resolution.size());
+    size_t              multiplier =
         std::accumulate(begin(resolution), std::prev(end(resolution)),
                         size_t(1), std::multiplies<size_t>{});
 
-    auto res_it = std::prev(end(resolution), 2);
-    for (size_t j = 0; j < resolution.size(); ++j, --res_it) {
+    auto resoltion_it = std::prev(end(resolution), 2);
+    for (size_t j = 0; j < resolution.size(); ++j, --resoltion_it) {
       size_t i = resolution.size() - 1 - j;
       is[i]    = plain_index / multiplier;
       plain_index -= is[i] * multiplier;
-      if (res_it >= begin(resolution)) { multiplier /= *res_it; }
-    }
-    return is;
-  }
-  // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-  template <size_t N, integral ResType>
-  static constexpr auto multi_index(const std::array<ResType, N>& resolution,
-                                    size_t                        plain_index) {
-    auto   is = make_array<ResType, N>();
-    size_t multiplier =
-        std::accumulate(begin(resolution), std::prev(end(resolution)),
-                        size_t(1), std::multiplies<size_t>{});
-
-    auto res_it = std::prev(end(resolution), 2);
-    for (size_t j = 0; j < N; ++j, --res_it) {
-      size_t i = N - 1 - j;
-      is[i]    = plain_index / multiplier;
-      plain_index -= is[i] * multiplier;
-      if (res_it >= begin(resolution)) { multiplier /= *res_it; }
+      if (resoltion_it >= begin(resolution)) {
+        multiplier /= *resoltion_it;
+      }
     }
     return is;
   }
@@ -109,15 +84,15 @@ struct x_fastest {
 struct x_slowest {
  private:
   template <integral IsType>
-  static constexpr auto internal_plain_index(std::forward_iterator auto res_it,
-                                             const std::vector<IsType>& is)
+  static constexpr auto internal_plain_index(
+      std::forward_iterator auto resoltion_it, const std::vector<IsType>& is)
       -> size_t {
     size_t multiplier = 1;
     size_t idx        = 0;
 
     for (auto i : is | boost::adaptors::reversed) {
       idx += i * multiplier;
-      multiplier *= *(res_it--);
+      multiplier *= *(resoltion_it--);
     }
     return idx;
   }
@@ -145,7 +120,7 @@ struct x_slowest {
     return internal_plain_index(resolution, is...);
   }
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-  template <integral ResType,integral IsType>
+  template <integral ResType, integral IsType>
   static auto plain_index(const std::vector<ResType>& resolution,
                           const std::vector<IsType>&  is) -> size_t {
     assert(is.size() == resolution.size());

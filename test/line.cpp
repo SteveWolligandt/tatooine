@@ -172,7 +172,7 @@ TEST_CASE("line_resample", "[line][parameterization][resample]") {
     analytical::fields::numerical::doublegyre v;
     ode::vclibs::rungekutta43<double, 2>      rk43;
     integral_curve_t                          integral_curve;
-    rk43.solve(v, vec{0.2, 0.2}, 0, 10, [&](auto const t, auto const& y) {
+    rk43.solve(v, vec{0.2, 0.2}, 0, 10, [&](auto const& y, auto const t) {
       integral_curve.push_back(y, t);
     });
     auto& curvature = integral_curve.add_vertex_property<double>("curvature");
@@ -230,12 +230,12 @@ TEST_CASE("line_curvature2", "[line][parameterization][curvature1]") {
   integral_curve_t                          integral_curve;
   auto& tangents = integral_curve.tangents_property();
   ode.solve(v, vec{0.1, 0.1}, 5, 6,
-            [&](auto const t, auto const& y, auto const& dy) {
+            [&]( auto const& y, auto const t,auto const& dy) {
               integral_curve.push_back(y, t, false);
               tangents.back() = dy;
             });
   ode.solve(v, vec{0.1, 0.1}, 5, -6,
-            [&](auto const t, auto const& y, auto const& dy) {
+            [&](auto const& y, auto const t,auto const& dy) {
               integral_curve.push_front(y, t, false);
               tangents.front() = dy;
             });

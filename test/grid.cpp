@@ -9,7 +9,8 @@ TEST_CASE("grid_copy_constructor", "[grid][copy][constructor]") {
   std::array                           dim0{0, 1, 2};
   std::array                           dim1{0, 1, 2};
   grid<decltype(dim0), decltype(dim1)> g0{dim0, dim1};
-  auto& prop = g0.add_contiguous_vertex_property<double>("prop");
+  auto&                                prop = g0.add_contiguous_vertex_property<
+      double, x_fastest, interpolation::linear, interpolation::linear>("prop");
 
   prop.container().at(0, 0) = 100;
   auto  g1                  = g0;
@@ -86,13 +87,6 @@ TEST_CASE("grid_vertex_prop_hermite", "[grid][property][hermite]") {
   REQUIRE(u.sample(0, y) == Approx(1));
   REQUIRE(u.sample(1, y) == Approx(4.5));
   REQUIRE(u.sample(2, y) == Approx(2.5));
-  linspace X{0.0, 2.0, 50};
-  std::cerr << "[" << X.front() << "," << u.sample(X.front(), y) << ';';
-  X.pop_front();
-  for (auto x : X) {
-    std::cerr << x << "," << u.sample(x, y) << ';';
-  }
-  std::cerr << "]\n";
 }
 //==============================================================================
 TEST_CASE("grid_chunked_vertex_property", "[grid][vertex][chunked][property]") {
@@ -102,7 +96,10 @@ TEST_CASE("grid_chunked_vertex_property", "[grid][vertex][chunked][property]") {
   grid<decltype(dim0), decltype(dim1), decltype(dim2)> g{dim0, dim1, dim2};
 
   auto& u_prop =
-      g.add_chunked_vertex_property<double>("u", std::vector<size_t>{2, 2, 2});
+      g.add_chunked_vertex_property<double, x_fastest, interpolation::linear,
+                                    interpolation::linear,
+                                    interpolation::linear>(
+          "u", std::vector<size_t>{2, 2, 2});
 
   REQUIRE(u_prop.container().at(0, 0, 0) == 0);
   u_prop.container().at(0, 0, 0) = 1;
@@ -138,7 +135,9 @@ TEST_CASE("grid_sampler_out_of_domain_element",
   std::array                           dim0{0.0, 0.1, 1.0, 1.5};
   std::array                           dim1{0.0, 0.1, 1.0, 1.5};
   grid<decltype(dim0), decltype(dim1)> g{dim0, dim1};
-  auto& sampler = g.add_contiguous_vertex_property<double>("prop");
+  auto&                                sampler =
+      g.add_contiguous_vertex_property<double, x_fastest, interpolation::linear,
+                                       interpolation::linear>("prop");
   sampler.set_out_of_domain_value(0);
 
   sampler.container().at(0, 0) = 1;
@@ -244,10 +243,6 @@ TEST_CASE("grid_diff", "[grid][sample][1d][hermite]") {
   u_prop.container().at(2) = 2;
   u_prop.container().at(3) = 3;
   u_prop.container().at(4) = 4;
-  for (auto const t : linspace{0.0, 1.0, 21}) {
-    std::cerr << u_prop.sample(t) << ' ';
-  }
-  std::cerr << '\n';
 }
 //==============================================================================
 TEST_CASE("grid_sample_1d_hermite", "[grid][sampler][1d][hermite]") {
@@ -338,11 +333,14 @@ TEST_CASE("grid_lazy_netcdf", "[grid][lazy][netcdf]") {
       .write(data_out);
 
   grid<decltype(dim0), decltype(dim1)> g{dim0, dim1};
-  auto& prop = g.add_vertex_property<netcdf::lazy_reader<double>>(
-      "prop", file_path, variable_name, std::vector<size_t>{2, 2});
+  auto&                                prop =
+      g.add_vertex_property<netcdf::lazy_reader<double>, interpolation::linear,
+                            interpolation::linear>(
+          "prop", file_path, variable_name, std::vector<size_t>{2, 2});
 
   [[maybe_unused]] auto& prop_via_file =
-      g.add_vertex_property<netcdf::lazy_reader<double>>(
+      g.add_vertex_property<netcdf::lazy_reader<double>, interpolation::linear,
+                            interpolation::linear>(
           "prop_via_file",
           netcdf::file{file_path, netCDF::NcFile::read}.variable<double>(
               variable_name),
@@ -356,7 +354,9 @@ TEST_CASE("grid_amira_write", "[grid][amira]") {
   linspace                                             dim1{0.0, 1.0, 3};
   linspace                                             dim2{0.0, 1.0, 3};
   grid<decltype(dim0), decltype(dim1), decltype(dim2)> g{dim0, dim1, dim2};
-  auto& prop = g.add_contiguous_vertex_property<vec<double, 2>>("bla");
+  auto& prop = g.add_contiguous_vertex_property<
+      vec<double, 2>, x_fastest, interpolation::linear, interpolation::linear,
+      interpolation::linear>("bla");
   prop.container().at(1, 1, 1) = vec{1, 1};
   g.write_amira("amira_prop.am", prop);
 }
