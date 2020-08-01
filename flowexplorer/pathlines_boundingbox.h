@@ -3,7 +3,7 @@
 //==============================================================================
 #include <tatooine/gpu/line_renderer.h>
 #include <tatooine/gpu/line_shader.h>
-#include <tatooine/integration/vclibs/rungekutta43.h>
+#include <tatooine/ode/vclibs/rungekutta43.h>
 
 #include "boundingbox.h"
 //==============================================================================
@@ -15,16 +15,16 @@ struct pathlines_boundingbox : boundingbox<Real, N> {
   // typedefs
   //----------------------------------------------------------------------------
   using vectorfield_t = parent::field<Real, N, N>;
-  using integrator_t =
-      integration::vclibs::rungekutta43<Real, N, interpolation::linear>;
+  using integrator_t  = ode::vclibs::rungekutta43<Real, N>;
   using parent_t = boundingbox<Real, N>;
   //----------------------------------------------------------------------------
 
   const vectorfield_t&              m_v;
-  integrator_t                      integrator;
-  std::unique_ptr<gpu::line_shader> shader;
-  std::vector<yavin::indexeddata<yavin::vec3, yavin::vec3, yavin::scalar>>
-         line_renderers;
+  integrator_t                      m_integrator;
+  std::unique_ptr<gpu::line_shader> m_shader;
+  std::vector<yavin::vertexbuffer<yavin::vec3, yavin::vec3, yavin::scalar>>
+         m_vbos;
+  std::vector<yavin::indexbuffer> m_ibos;
   bool hide_box = false;
   double btau, ftau;
   int num_pathlines;
@@ -49,7 +49,7 @@ struct pathlines_boundingbox : boundingbox<Real, N> {
                         const vec<Real1, N>& max)
       : parent_t{min, max},
         m_v{v},
-        shader{std::make_unique<gpu::line_shader>(
+        m_shader{std::make_unique<gpu::line_shader>(
             line_color[0], line_color[1], line_color[2], contour_color[0],
             contour_color[1], contour_color[2], line_width, contour_width,
             ambient_factor, diffuse_factor, specular_factor, shininess)},
@@ -88,8 +88,10 @@ struct pathlines_boundingbox : boundingbox<Real, N> {
       yavin::enable_depth_test();
     }
     update_shader(projection_matrix, view_matrix);
-    shader->bind();
-    for (auto& renderer : line_renderers) { renderer.draw_lines(); }
+    m_shader->bind();
+    for (size_t i = 0; i < m_vbos.size(); ++i) {
+      //TODO create vao and draw
+    }
   }
   //----------------------------------------------------------------------------
   void update(const std::chrono::duration<double>& dt) override {
@@ -108,7 +110,10 @@ struct pathlines_boundingbox : boundingbox<Real, N> {
   void draw_ui() override {
     if (ImGui::Button("integrate")) { integrate_lines(); }
     ImGui::SameLine(0);
-    if (ImGui::Button("clear path lines")) { line_renderers.clear(); }
+    if (ImGui::Button("clear path lines")) {
+      m_vbos.clear();
+      m_ibos.clear();
+    }
     ImGui::Checkbox("hide box", &hide_box);
     parent_t::draw_ui_preferences();
     ImGui::DragInt("number of path lines", &num_pathlines, 1, 10, 1000);
@@ -137,31 +142,75 @@ struct pathlines_boundingbox : boundingbox<Real, N> {
   //----------------------------------------------------------------------------
   void update_shader(const yavin::mat4& projection_matrix,
                      const yavin::mat4& view_matrix) {
-    shader->set_modelview_matrix(view_matrix);
-    shader->set_projection_matrix(projection_matrix);
-    shader->set_line_color(line_color[0], line_color[1], line_color[2]);
-    shader->set_contour_color(contour_color[0], contour_color[1],
+    m_shader->set_modelview_matrix(view_matrix);
+    m_shader->set_projection_matrix(projection_matrix);
+    m_shader->set_line_color(line_color[0], line_color[1], line_color[2]);
+    m_shader->set_contour_color(contour_color[0], contour_color[1],
                               contour_color[2]);
-    shader->set_line_width(line_width);
-    shader->set_contour_width(contour_width);
-    shader->set_ambient_factor(ambient_factor);
-    shader->set_diffuse_factor(diffuse_factor);
-    shader->set_specular_factor(specular_factor);
-    shader->set_shininess(shininess);
-    shader->set_animate(animate);
-    shader->set_general_alpha(general_alpha);
-    shader->set_animation_min_alpha(animation_min_alpha);
-    shader->set_fade_length(fade_length);
-    shader->set_time(time);
+    m_shader->set_line_width(line_width);
+    m_shader->set_contour_width(contour_width);
+    m_shader->set_ambient_factor(ambient_factor);
+    m_shader->set_diffuse_factor(diffuse_factor);
+    m_shader->set_specular_factor(specular_factor);
+    m_shader->set_shininess(shininess);
+    m_shader->set_animate(animate);
+    m_shader->set_general_alpha(general_alpha);
+    m_shader->set_animation_min_alpha(animation_min_alpha);
+    m_shader->set_fade_length(fade_length);
+    m_shader->set_time(time);
   }
   //----------------------------------------------------------------------------
   void integrate_lines() {
-    std::vector<typename integrator_t::integral_t> lines;
+    m_vbos.clear();
+    m_ibos.clear();
+      bool wait = true;
+      size_t i = 0;
     for (size_t i = 0; i < num_pathlines; ++i) {
-      lines.push_back(
-          integrator.integrate(m_v, this->random_point(), 0, btau, ftau));
+      auto const   x0            = this->random_point();
+      double const t0            = 0;
+      auto&        vbo_back          = m_vbos.emplace_back();
+      auto&        ibo_back          = m_ibos.emplace_back();
+      wait                       = true;
+      i                          = 0;
+      m_integrator.solve(
+          m_v, x0, t0, btau, [&](auto const& y, auto const t, auto const& dy) {
+            vbo_back.push_back(
+                yavin::vec3{static_cast<float>(y(0)), static_cast<float>(y(1)),
+                            static_cast<float>(y(2))},
+                yavin::vec3{static_cast<float>(dy(0)),
+                            static_cast<float>(dy(1)),
+                            static_cast<float>(dy(2))},
+                static_cast<float>(t));
+            if (!wait) {
+              ibo_back.push_back(i);
+              ibo_back.push_back(i + 1);
+            } else {
+              wait = false;
+            }
+            ++i;
+          });
+      wait               = true;
+      i                  = 0;
+      auto& vbo_forw = m_vbos.emplace_back();
+      auto& ibo_forw = m_ibos.emplace_back();
+      m_integrator.solve(
+          m_v, x0, t0, ftau, [&](auto const& y, auto const t, auto const& dy) {
+            vbo_forw.push_back(
+                yavin::vec3{static_cast<float>(y(0)), static_cast<float>(y(1)),
+                            static_cast<float>(y(2))},
+                yavin::vec3{static_cast<float>(dy(0)),
+                            static_cast<float>(dy(1)),
+                            static_cast<float>(dy(2))},
+                static_cast<float>(t));
+            if (!wait) {
+              ibo_forw.push_back(i);
+              ibo_forw.push_back(i + 1);
+            } else {
+              wait = false;
+            }
+            ++i;
+          });
     }
-    line_renderers = gpu::upload(lines);
   }
   //----------------------------------------------------------------------------
   std::string name() const override { return "path lines"; }

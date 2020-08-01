@@ -2,36 +2,38 @@
 #define TATOOINE_FLOWEXPLORER_GRID_H
 //==============================================================================
 #include <tatooine/grid.h>
+#include <tatooine/netcdf.h>
 #include <yavin/imgui.h>
 #include <yavin/indexeddata.h>
-#include <tatooine/netcdf.h>
 
 #include "line_shader.h"
 #include "renderable.h"
 //==============================================================================
 namespace tatooine::flowexplorer {
 //==============================================================================
-template <typename Real, size_t N>
-struct grid : tatooine::grid<Real, N>, renderable {
-  using parent_t = tatooine::grid<Real, N>;
-  using gpu_vec  = yavin::vec<float, N>;
-  using vbo_t    = yavin::vertexbuffer<gpu_vec>;
+template <indexable_space Dim0, indexable_space Dim1, indexable_space Dim2>
+struct grid : tatooine::grid<Dim0, Dim1, Dim2>, renderable {
+  using parent_t = tatooine::grid<Dim0, Dim1, Dim2>;
+  using parent_t::num_dimensions;
+  using gpu_vec = yavin::vec<float, num_dimensions()>;
+  using vbo_t   = yavin::vertexbuffer<gpu_vec>;
   using parent_t::dimension;
   //============================================================================
-  yavin::indexeddata<yavin::vec<float, N>> m_gpu_data;
-  line_shader                              m_shader;
-  int                                      m_linewidth = 1;
-  std::array<GLfloat, 4>                   m_color{0.0f, 0.0f, 0.0f, 1.0f};
+  yavin::indexeddata<yavin::vec<float, num_dimensions()>> m_gpu_data;
+  line_shader                                             m_shader;
+  int                                                     m_linewidth = 1;
+  std::array<GLfloat, 4> m_color{0.0f, 0.0f, 0.0f, 1.0f};
   //============================================================================
-  grid()                       = default;
+  grid()                = default;
   grid(const grid&)     = default;
   grid(grid&&) noexcept = default;
   grid& operator=(const grid&) = default;
   grid& operator=(grid&&) noexcept = default;
   //============================================================================
-  template <typename... Reals>
-  constexpr grid(const linspace<Reals>&... ls) noexcept
-      : parent_t{ls...} {
+  template <indexable_space _Dim0, indexable_space _Dim1, indexable_space _Dim2>
+  constexpr grid(_Dim0&& dim0, _Dim1&& dim1, _Dim2&& dim2) noexcept
+      : parent_t{std::forward<_Dim0>(dim0), std::forward<_Dim1>(dim1),
+                 std::forward<_Dim2>(dim2)} {
     create_indexed_data();
   }
   //============================================================================
@@ -60,10 +62,10 @@ struct grid : tatooine::grid<Real, N>, renderable {
   }
   //----------------------------------------------------------------------------
   void draw_ui_preferences() {
-    for (size_t i = 0; i < N; ++i) {
+    for (size_t i = 0; i < num_dimensions(); ++i) {
       ImGui::Text("dimension-%i", i);
-      //ImGui::DragDouble3("min", this->min().data_ptr(), 0.1);
-      //ImGui::DragDouble3("max", this->max().data_ptr(), 0.1);
+      // ImGui::DragDouble3("min", this->min().data_ptr(), 0.1);
+      // ImGui::DragDouble3("max", this->max().data_ptr(), 0.1);
     }
   }
   //----------------------------------------------------------------------------
@@ -72,26 +74,28 @@ struct grid : tatooine::grid<Real, N>, renderable {
     ImGui::ColorEdit4("line color", m_color.data());
   }
   //----------------------------------------------------------------------------
-  std::string name() const override { return "Grid"; }
+  std::string name() const override {
+    return "Grid";
+  }
   //============================================================================
   void set_vbo_data() {
     auto vbomap = m_gpu_data.vertex_buffer().map();
     yavin::get<0>(vbomap[0]) =
-        gpu_vec{float(this->front(0)), float(this->front(1)), float(this->front(2))};
+        gpu_vec{float(this->template front<0>()), float(this->template front<1>()), float(this->template front<2>())};
     yavin::get<0>(vbomap[1]) =
-        gpu_vec{float(this->back(0)), float(this->front(1)), float(this->front(2))};
+        gpu_vec{float(this->template back<0>()), float(this->template front<1>()), float(this->template front<2>())};
     yavin::get<0>(vbomap[2]) =
-        gpu_vec{float(this->front(0)), float(this->back(1)), float(this->front(2))};
+        gpu_vec{float(this->template front<0>()), float(this->template back<1>()), float(this->template front<2>())};
     yavin::get<0>(vbomap[3]) =
-        gpu_vec{float(this->back(0)), float(this->back(1)), float(this->front(2))};
+        gpu_vec{float(this->template back<0>()), float(this->template back<1>()), float(this->template front<2>())};
     yavin::get<0>(vbomap[4]) =
-        gpu_vec{float(this->front(0)), float(this->front(1)), float(this->back(2))};
+        gpu_vec{float(this->template front<0>()), float(this->template front<1>()), float(this->template back<2>())};
     yavin::get<0>(vbomap[5]) =
-        gpu_vec{float(this->back(0)), float(this->front(1)), float(this->back(2))};
+        gpu_vec{float(this->template back<0>()), float(this->template front<1>()), float(this->template back<2>())};
     yavin::get<0>(vbomap[6]) =
-        gpu_vec{float(this->front(0)), float(this->back(1)), float(this->back(2))};
+        gpu_vec{float(this->template front<0>()), float(this->template back<1>()), float(this->template back<2>())};
     yavin::get<0>(vbomap[7]) =
-        gpu_vec{float(this->back(0)), float(this->back(1)), float(this->back(2))};
+        gpu_vec{float(this->template back<0>()), float(this->template back<1>()), float(this->template back<2>())};
   }
   //----------------------------------------------------------------------------
   void create_indexed_data() {
@@ -106,8 +110,9 @@ struct grid : tatooine::grid<Real, N>, renderable {
 //==============================================================================
 // deduction guides
 //==============================================================================
-template <typename... Reals>
-grid(const linspace<Reals>&...) -> grid<promote_t<Reals...>, sizeof...(Reals)>;
+template <indexable_space Dim0, indexable_space Dim1, indexable_space Dim2>
+grid(Dim0&&, Dim1&&, Dim2 &&)
+    -> grid<std::decay_t<Dim0>, std::decay_t<Dim1>, std::decay_t<Dim2>>;
 //==============================================================================
 }  // namespace tatooine::flowexplorer
 //==============================================================================

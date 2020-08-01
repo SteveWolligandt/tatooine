@@ -1,10 +1,9 @@
-#include <tatooine/abcflow.h>
-#include <tatooine/doublegyre.h>
-#include <tatooine/duffing_oscillator.h>
+#include <tatooine/analytical/fields/numerical/abcflow.h>
+#include <tatooine/analytical/fields/numerical/doublegyre.h>
+#include <tatooine/analytical/fields/numerical/duffing_oscillator.h>
 #include <tatooine/spacetime_field.h>
 
 #include "window.h"
-
 //==============================================================================
 namespace tatooine::flowexplorer {
 //==============================================================================
@@ -19,15 +18,15 @@ auto main(int argc, char** argv) -> int {
   using namespace tatooine;
   const std::string fieldname = argv[1];
   if (fieldname == "dg") {
-    numerical::doublegyre v2;
+    analytical::fields::numerical::doublegyre v2;
     spacetime_field       v{v2};
     flowexplorer::work(argc, argv, v);
   } else if (fieldname == "duffing") {
-    numerical::duffing_oscillator v2{0.5, 0.5, 0.5};
+    analytical::fields::numerical::duffing_oscillator v2{0.5, 0.5, 0.5};
     spacetime_field               v{v2};
     flowexplorer::work(argc, argv, v);
   } else if (fieldname == "abc") {
-    numerical::abcflow v;
+    analytical::fields::numerical::abcflow v;
     flowexplorer::work(argc, argv, v);
   }
 }
