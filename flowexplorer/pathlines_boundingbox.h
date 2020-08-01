@@ -43,11 +43,13 @@ struct pathlines_boundingbox : boundingbox<Real, N> {
   float animation_min_alpha;
   float time;
   float speed;
+  bool m_integration_going_on = false;
+  std::unique_ptr<std::thread> m_integration_worker;
   //----------------------------------------------------------------------------
   template <typename Real0, typename Real1>
-  pathlines_boundingbox(const vectorfield_t& v, const vec<Real0, N>& min,
+  pathlines_boundingbox(struct window& w, const vectorfield_t& v, const vec<Real0, N>& min,
                         const vec<Real1, N>& max)
-      : parent_t{min, max},
+      : parent_t{w, min, max},
         m_v{v},
         m_shader{std::make_unique<gpu::line_shader>(
             line_color[0], line_color[1], line_color[2], contour_color[0],
@@ -90,7 +92,12 @@ struct pathlines_boundingbox : boundingbox<Real, N> {
     update_shader(projection_matrix, view_matrix);
     m_shader->bind();
     for (size_t i = 0; i < m_vbos.size(); ++i) {
-      //TODO create vao and draw
+      yavin::vertexarray vao;
+      vao.bind();
+      m_vbos[i].bind();
+      m_vbos[i].activate_attributes();
+      m_ibos[i].bind();
+      vao.draw_line_strip(m_ibos[i].size());
     }
   }
   //----------------------------------------------------------------------------
@@ -105,9 +112,16 @@ struct pathlines_boundingbox : boundingbox<Real, N> {
     } else {
       time = btau;
     }
+    if (m_integration_worker != nullptr && !m_integration_going_on) {
+      m_integration_worker->join();
+      m_integration_worker.reset();
+    }
   }
   //----------------------------------------------------------------------------
   void draw_ui() override {
+    if (m_integration_worker != nullptr) {
+      ImGui::PushItemFlag(ImGuiItemFlags_Disabled, true);
+    }
     if (ImGui::Button("integrate")) { integrate_lines(); }
     ImGui::SameLine(0);
     if (ImGui::Button("clear path lines")) {
@@ -161,56 +175,67 @@ struct pathlines_boundingbox : boundingbox<Real, N> {
   }
   //----------------------------------------------------------------------------
   void integrate_lines() {
-    m_vbos.clear();
-    m_ibos.clear();
-      bool wait = true;
-      size_t i = 0;
-    for (size_t i = 0; i < num_pathlines; ++i) {
-      auto const   x0            = this->random_point();
-      double const t0            = 0;
-      auto&        vbo_back          = m_vbos.emplace_back();
-      auto&        ibo_back          = m_ibos.emplace_back();
-      wait                       = true;
-      i                          = 0;
-      m_integrator.solve(
-          m_v, x0, t0, btau, [&](auto const& y, auto const t, auto const& dy) {
-            vbo_back.push_back(
-                yavin::vec3{static_cast<float>(y(0)), static_cast<float>(y(1)),
-                            static_cast<float>(y(2))},
-                yavin::vec3{static_cast<float>(dy(0)),
-                            static_cast<float>(dy(1)),
-                            static_cast<float>(dy(2))},
-                static_cast<float>(t));
-            if (!wait) {
-              ibo_back.push_back(i);
-              ibo_back.push_back(i + 1);
-            } else {
-              wait = false;
-            }
-            ++i;
-          });
-      wait               = true;
-      i                  = 0;
-      auto& vbo_forw = m_vbos.emplace_back();
-      auto& ibo_forw = m_ibos.emplace_back();
-      m_integrator.solve(
-          m_v, x0, t0, ftau, [&](auto const& y, auto const t, auto const& dy) {
-            vbo_forw.push_back(
-                yavin::vec3{static_cast<float>(y(0)), static_cast<float>(y(1)),
-                            static_cast<float>(y(2))},
-                yavin::vec3{static_cast<float>(dy(0)),
-                            static_cast<float>(dy(1)),
-                            static_cast<float>(dy(2))},
-                static_cast<float>(t));
-            if (!wait) {
-              ibo_forw.push_back(i);
-              ibo_forw.push_back(i + 1);
-            } else {
-              wait = false;
-            }
-            ++i;
-          });
+    if (m_integration_worker != nullptr) {
+      return;
     }
+    m_integration_going_on = true;
+    m_integration_worker = std::make_unique<std::thread>([this] {
+      auto ctx = this->window().create_shared_context(4, 5);
+      ctx.make_current();
+      m_vbos.clear();
+      m_ibos.clear();
+      bool   insert_segment = false;
+      size_t i              = 0;
+      for (size_t i = 0; i < num_pathlines; ++i) {
+        auto const   x0       = this->random_point();
+        double const t0       = 0;
+        auto&        vbo_back = m_vbos.emplace_back();
+        auto&        ibo_back = m_ibos.emplace_back();
+        insert_segment        = false;
+        i                     = 0;
+        m_integrator.solve(m_v, x0, t0, btau,
+                           [&](auto const& y, auto const t, auto const& dy) {
+                             vbo_back.push_back(
+                                 yavin::vec3{static_cast<float>(y(0)),
+                                             static_cast<float>(y(1)),
+                                             static_cast<float>(y(2))},
+                                 yavin::vec3{static_cast<float>(dy(0)),
+                                             static_cast<float>(dy(1)),
+                                             static_cast<float>(dy(2))},
+                                 static_cast<float>(t));
+                             if (insert_segment) {
+                               ibo_back.push_back(i);
+                               ibo_back.push_back(i + 1);
+                             } else {
+                               insert_segment = true;
+                             }
+                             ++i;
+                           });
+        insert_segment = false;
+        i              = 0;
+        auto& vbo_forw = m_vbos.emplace_back();
+        auto& ibo_forw = m_ibos.emplace_back();
+        m_integrator.solve(m_v, x0, t0, ftau,
+                           [&](auto const& y, auto const t, auto const& dy) {
+                             vbo_forw.push_back(
+                                 yavin::vec3{static_cast<float>(y(0)),
+                                             static_cast<float>(y(1)),
+                                             static_cast<float>(y(2))},
+                                 yavin::vec3{static_cast<float>(dy(0)),
+                                             static_cast<float>(dy(1)),
+                                             static_cast<float>(dy(2))},
+                                 static_cast<float>(t));
+                             if (insert_segment) {
+                               ibo_forw.push_back(i);
+                               ibo_forw.push_back(i + 1);
+                             } else {
+                               insert_segment = true;
+                             }
+                             ++i;
+                           });
+      }
+      m_integration_going_on = false;
+    });
   }
   //----------------------------------------------------------------------------
   std::string name() const override { return "path lines"; }

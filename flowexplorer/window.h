@@ -84,15 +84,15 @@ struct window : first_person_window {
       ImGui::Begin("GUI", &show_gui);
       if (ImGui::Button("add bounding box")){
         m_renderables.emplace_back(
-            new boundingbox{vec{-1.0, -1.0, -1.0}, vec{1.0, 1.0, 1.0}});
+            new boundingbox{*this, vec{-1.0, -1.0, -1.0}, vec{1.0, 1.0, 1.0}});
       }
       if (ImGui::Button("add grid")){
-        m_renderables.emplace_back(new grid{linspace{-1.0, 1.0, 3},
+        m_renderables.emplace_back(new grid{*this, linspace{-1.0, 1.0, 3},
                                             linspace{-1.0, 1.0, 3},
                                             linspace{-1.0, 1.0, 3}});
       }
       if (ImGui::Button("add pathline bounding box")){
-        m_renderables.emplace_back(new pathlines_boundingbox{
+        m_renderables.emplace_back(new pathlines_boundingbox{*this,
             v, vec{-1.0, -1.0, -1.0}, vec{1.0, 1.0, 1.0}});
       }
 

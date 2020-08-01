@@ -24,16 +24,17 @@ struct grid : tatooine::grid<Dim0, Dim1, Dim2>, renderable {
   int                                                     m_linewidth = 1;
   std::array<GLfloat, 4> m_color{0.0f, 0.0f, 0.0f, 1.0f};
   //============================================================================
-  grid()                = default;
+  grid(struct window& w) : renderable{w} {}
   grid(const grid&)     = default;
   grid(grid&&) noexcept = default;
-  grid& operator=(const grid&) = default;
-  grid& operator=(grid&&) noexcept = default;
+  auto operator=(const grid&) -> grid& = default;
+  auto operator=(grid&&) noexcept -> grid& = default;
   //============================================================================
   template <indexable_space _Dim0, indexable_space _Dim1, indexable_space _Dim2>
-  constexpr grid(_Dim0&& dim0, _Dim1&& dim1, _Dim2&& dim2) noexcept
+  constexpr grid(struct window& w, _Dim0&& dim0, _Dim1&& dim1, _Dim2&& dim2) noexcept
       : parent_t{std::forward<_Dim0>(dim0), std::forward<_Dim1>(dim1),
-                 std::forward<_Dim2>(dim2)} {
+                 std::forward<_Dim2>(dim2)},
+        renderable{w} {
     create_indexed_data();
   }
   //============================================================================
@@ -111,7 +112,7 @@ struct grid : tatooine::grid<Dim0, Dim1, Dim2>, renderable {
 // deduction guides
 //==============================================================================
 template <indexable_space Dim0, indexable_space Dim1, indexable_space Dim2>
-grid(Dim0&&, Dim1&&, Dim2 &&)
+grid(struct window&, Dim0&&, Dim1&&, Dim2 &&)
     -> grid<std::decay_t<Dim0>, std::decay_t<Dim1>, std::decay_t<Dim2>>;
 //==============================================================================
 }  // namespace tatooine::flowexplorer
