@@ -64,7 +64,7 @@ struct grid : tatooine::grid<Dim0, Dim1, Dim2>, renderable {
   //----------------------------------------------------------------------------
   void draw_ui_preferences() {
     for (size_t i = 0; i < num_dimensions(); ++i) {
-      ImGui::Text("dimension-%i", i);
+      ImGui::Text("dimension-%i", static_cast<int>(i));
       // ImGui::DragDouble3("min", this->min().data_ptr(), 0.1);
       // ImGui::DragDouble3("max", this->max().data_ptr(), 0.1);
     }

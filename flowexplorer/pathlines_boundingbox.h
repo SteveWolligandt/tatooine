@@ -45,6 +45,7 @@ struct pathlines_boundingbox : boundingbox<Real, N> {
   float speed;
   bool m_integration_going_on = false;
   std::unique_ptr<std::thread> m_integration_worker;
+  std::unique_ptr<yavin::context> m_worker_context;
   //----------------------------------------------------------------------------
   template <typename Real0, typename Real1>
   pathlines_boundingbox(struct window& w, const vectorfield_t& v, const vec<Real0, N>& min,
@@ -179,9 +180,9 @@ struct pathlines_boundingbox : boundingbox<Real, N> {
       return;
     }
     m_integration_going_on = true;
+    m_worker_context = std::make_unique<yavin::context>(3, 3, this->window());
     m_integration_worker = std::make_unique<std::thread>([this] {
-      auto ctx = this->window().create_shared_context(4, 5);
-      ctx.make_current();
+      m_worker_context->make_current();
       m_vbos.clear();
       m_ibos.clear();
       bool   insert_segment = false;
@@ -235,6 +236,7 @@ struct pathlines_boundingbox : boundingbox<Real, N> {
                            });
       }
       m_integration_going_on = false;
+      m_worker_context.reset();
     });
   }
   //----------------------------------------------------------------------------
