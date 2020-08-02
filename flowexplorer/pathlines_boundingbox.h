@@ -1,11 +1,12 @@
 #ifndef TATOOINE_FLOWEXPLORER_PATHLINES_BOUNDINGBOX_H
 #define TATOOINE_FLOWEXPLORER_PATHLINES_BOUNDINGBOX_H
 //==============================================================================
+#include <tatooine/boundingbox.h>
 #include <tatooine/gpu/line_renderer.h>
 #include <tatooine/gpu/line_shader.h>
 #include <tatooine/ode/vclibs/rungekutta43.h>
 
-#include "boundingbox.h"
+#include <mutex>
 //==============================================================================
 namespace tatooine::flowexplorer {
 //==============================================================================
@@ -22,9 +23,8 @@ struct pathlines_boundingbox : boundingbox<Real, N> {
   const vectorfield_t&              m_v;
   integrator_t                      m_integrator;
   std::unique_ptr<gpu::line_shader> m_shader;
-  std::vector<yavin::vertexbuffer<yavin::vec3, yavin::vec3, yavin::scalar>>
-         m_vbos;
-  std::vector<yavin::indexbuffer> m_ibos;
+  yavin::vertexbuffer<yavin::vec3, yavin::vec3, yavin::scalar> m_vbo;
+  yavin::indexbuffer m_ibo;
   bool hide_box = false;
   double btau, ftau;
   int num_pathlines;
@@ -46,6 +46,7 @@ struct pathlines_boundingbox : boundingbox<Real, N> {
   bool m_integration_going_on = false;
   std::unique_ptr<std::thread> m_integration_worker;
   std::unique_ptr<yavin::context> m_worker_context;
+  std::mutex m_mutex;
   //----------------------------------------------------------------------------
   template <typename Real0, typename Real1>
   pathlines_boundingbox(struct window& w, const vectorfield_t& v, const vec<Real0, N>& min,
@@ -92,13 +93,14 @@ struct pathlines_boundingbox : boundingbox<Real, N> {
     }
     update_shader(projection_matrix, view_matrix);
     m_shader->bind();
-    for (size_t i = 0; i < m_vbos.size(); ++i) {
+    {
+      std::lock_guard    lock{m_mutex};
       yavin::vertexarray vao;
       vao.bind();
-      m_vbos[i].bind();
-      m_vbos[i].activate_attributes();
-      m_ibos[i].bind();
-      vao.draw_line_strip(m_ibos[i].size());
+      m_vbo.bind();
+      m_vbo.activate_attributes();
+      m_ibo.bind();
+      vao.draw_lines(m_ibo.size());
     }
   }
   //----------------------------------------------------------------------------
@@ -125,9 +127,13 @@ struct pathlines_boundingbox : boundingbox<Real, N> {
     }
     if (ImGui::Button("integrate")) { integrate_lines(); }
     ImGui::SameLine(0);
+    if (m_integration_worker != nullptr) {
+      ImGui::PushItemFlag(ImGuiItemFlags_Disabled, true);
+    }
     if (ImGui::Button("clear path lines")) {
-      m_vbos.clear();
-      m_ibos.clear();
+      std::lock_guard lock{m_mutex};
+      m_vbo.clear();
+      m_ibo.clear();
     }
     ImGui::Checkbox("hide box", &hide_box);
     parent_t::draw_ui_preferences();
@@ -179,61 +185,41 @@ struct pathlines_boundingbox : boundingbox<Real, N> {
     if (m_integration_worker != nullptr) {
       return;
     }
+    m_worker_context = std::make_unique<yavin::context>(this->window());
     m_integration_going_on = true;
-    m_worker_context = std::make_unique<yavin::context>(3, 3, this->window());
-    m_integration_worker = std::make_unique<std::thread>([this] {
+    m_integration_worker   = std::make_unique<std::thread>([this] {
+      this->window().release();
       m_worker_context->make_current();
-      m_vbos.clear();
-      m_ibos.clear();
+      {
+        std::lock_guard lock{m_mutex};
+        m_vbo.clear();
+        m_ibo.clear();
+      }
       bool   insert_segment = false;
-      size_t i              = 0;
+      size_t index          = 0;
+      auto   callback       = [&](auto const& y, auto const t, auto const& dy) {
+        std::lock_guard lock{m_mutex};
+        m_vbo.push_back(
+            yavin::vec3{static_cast<float>(y(0)), static_cast<float>(y(1)),
+                        static_cast<float>(y(2))},
+            yavin::vec3{static_cast<float>(dy(0)), static_cast<float>(dy(1)),
+                        static_cast<float>(dy(2))},
+            static_cast<float>(t));
+        if (insert_segment) {
+          m_ibo.push_back(index - 1);
+          m_ibo.push_back(index);
+        } else {
+          insert_segment = true;
+        }
+        ++index;
+      };
       for (size_t i = 0; i < num_pathlines; ++i) {
-        auto const   x0       = this->random_point();
-        double const t0       = 0;
-        auto&        vbo_back = m_vbos.emplace_back();
-        auto&        ibo_back = m_ibos.emplace_back();
-        insert_segment        = false;
-        i                     = 0;
-        m_integrator.solve(m_v, x0, t0, btau,
-                           [&](auto const& y, auto const t, auto const& dy) {
-                             vbo_back.push_back(
-                                 yavin::vec3{static_cast<float>(y(0)),
-                                             static_cast<float>(y(1)),
-                                             static_cast<float>(y(2))},
-                                 yavin::vec3{static_cast<float>(dy(0)),
-                                             static_cast<float>(dy(1)),
-                                             static_cast<float>(dy(2))},
-                                 static_cast<float>(t));
-                             if (insert_segment) {
-                               ibo_back.push_back(i);
-                               ibo_back.push_back(i + 1);
-                             } else {
-                               insert_segment = true;
-                             }
-                             ++i;
-                           });
+        auto const   x0 = this->random_point();
+        double const t0 = 0;
+        insert_segment  = false;
+        m_integrator.solve(m_v, x0, t0, btau, callback);
         insert_segment = false;
-        i              = 0;
-        auto& vbo_forw = m_vbos.emplace_back();
-        auto& ibo_forw = m_ibos.emplace_back();
-        m_integrator.solve(m_v, x0, t0, ftau,
-                           [&](auto const& y, auto const t, auto const& dy) {
-                             vbo_forw.push_back(
-                                 yavin::vec3{static_cast<float>(y(0)),
-                                             static_cast<float>(y(1)),
-                                             static_cast<float>(y(2))},
-                                 yavin::vec3{static_cast<float>(dy(0)),
-                                             static_cast<float>(dy(1)),
-                                             static_cast<float>(dy(2))},
-                                 static_cast<float>(t));
-                             if (insert_segment) {
-                               ibo_forw.push_back(i);
-                               ibo_forw.push_back(i + 1);
-                             } else {
-                               insert_segment = true;
-                             }
-                             ++i;
-                           });
+        m_integrator.solve(m_v, x0, t0, ftau, callback);
       }
       m_integration_going_on = false;
       m_worker_context.reset();
