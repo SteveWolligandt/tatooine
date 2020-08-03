@@ -38,9 +38,9 @@ TEST_CASE("direct_volume_rendering_abc_magnitude",
           "[direct_volume_rendering][abc][magnitude]") {
   analytical::fields::numerical::abcflow                     v;
   grid<linspace<double>, linspace<double>, linspace<double>> g{
-      linspace{-10.0, 10.0, 200},
-      linspace{-10.0, 10.0, 200},
-      linspace{-10.0, 10.0, 200}};
+      linspace{-1.0, 1.0, 200},
+      linspace{-1.0, 1.0, 200},
+      linspace{-1.0, 1.0, 200}};
   auto& mag =
       g.add_contiguous_vertex_property<double, x_fastest, interpolation::linear,
                                        interpolation::linear,
@@ -53,7 +53,7 @@ TEST_CASE("direct_volume_rendering_abc_magnitude",
     max                       = std::max(mag.container().at(is...), max);
   });
   size_t const width = 1000, height = 1000;
-  perspective_camera<double> cam{vec{50, 50, 50}, vec{0.0, 0.0, 0.0}, 60, width,
+  perspective_camera<double> cam{vec{40, 50, 50}, vec{0.0, 0.0, 0.0}, 60, width,
                                  height};
   std::cerr << "max: " << max << '\n';
   auto rendered_grid = direct_volume_rendering(cam, mag, 1, max, 0.01);
