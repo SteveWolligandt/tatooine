@@ -4,9 +4,9 @@
 //==============================================================================
 namespace tatooine {
 //==============================================================================
-template <size_t NumChannels, typename T>
-void write_png(const std::string& filepath, std::vector<T> data, size_t width,
-               size_t height) {
+template <typename T>
+void write_png(std::string const& filepath, std::vector<T> const& data,
+               size_t width, size_t height) {
   png::image<png::rgb_pixel> image(width, height);
   for (unsigned int y = 0; y < image.get_height(); ++y) {
     for (png::uint_32 x = 0; x < image.get_width(); ++x) {

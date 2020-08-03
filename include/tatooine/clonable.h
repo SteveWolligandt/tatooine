@@ -4,11 +4,11 @@
 //==============================================================================
 namespace tatooine {
 //==============================================================================
-template <typename Parent, typename This>
+template <typename Base>
 struct clonable {
-  std::unique_ptr<Parent> clone() const override {
-    return std::unique_ptr<This>(new This{*this});
-  }
+  using base_t       = Base;
+  using cloned_ptr_t                 = std::unique_ptr<base_t>;
+  virtual cloned_ptr_t clone() const = 0;
 };
 //==============================================================================
 }  // namespace tatooine

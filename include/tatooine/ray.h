@@ -1,7 +1,7 @@
 #ifndef TATOOINE_RAY_H
 #define TATOOINE_RAY_H
 //==============================================================================
-#include "tensor.h"
+#include <tatooine/tensor.h>
 //==============================================================================
 namespace tatooine {
 //==============================================================================
@@ -15,31 +15,57 @@ struct ray {
   vec_t m_direction;
   //============================================================================
  public:
-  ray(const ray&)     = default;
+  ray(ray const&)     = default;
   ray(ray&&) noexcept = default;
   //----------------------------------------------------------------------------
-  ray& operator=(const ray&) = default;
+  ray& operator=(ray const&) = default;
   ray& operator=(ray&&) noexcept = default;
   //----------------------------------------------------------------------------
-  ray(const pos_t& origin, const vec_t& direction)
+  ray(pos_t const& origin, vec_t const& direction)
       : m_origin{origin}, m_direction{direction} {}
-  ray(pos_t&& origin, const vec_t& direction)
+  ray(pos_t&& origin, vec_t const& direction)
       : m_origin{std::move(origin)}, m_direction{direction} {}
-  ray(const pos_t& origin, vec_t&& direction)
+  ray(pos_t const& origin, vec_t&& direction)
       : m_origin{origin}, m_direction{std::move(direction)} {}
   ray(pos_t&& origin, vec_t&& direction)
       : m_origin{std::move(origin)}, m_direction{std::move(direction)} {}
   //============================================================================
-  auto&       origin() { return m_origin; }
-  const auto& origin() const { return m_origin; }
+  auto origin() -> auto& {
+    return m_origin;
+  }
+  auto origin() const -> auto const& {
+    return m_origin;
+  }
+  auto origin(size_t i) -> auto& {
+    return m_origin(i);
+  }
+  auto origin(size_t i) const {
+    return m_origin(i);
+  }
   //----------------------------------------------------------------------------
-  auto&       direction() { return m_direction; }
-  const auto& direction() const { return m_direction; }
+  auto direction() -> auto& {
+    return m_direction;
+  }
+  auto direction() const -> auto const& {
+    return m_direction;
+  }
+  auto direction(size_t i) -> auto& {
+    return m_direction(i);
+  }
+  auto direction(size_t i) const {
+    return m_direction(i);
+  }
   //----------------------------------------------------------------------------
-  [[nodiscard]] auto operator()(Real t) const { return at(t); }
-  [[nodiscard]] auto at(Real t) const { return m_origin + m_direction * t; }
+  [[nodiscard]] auto operator()(Real t) const {
+    return at(t);
+  }
+  [[nodiscard]] auto at(Real t) const {
+    return m_origin + m_direction * t;
+  }
   //----------------------------------------------------------------------------
-  void normalize() { m_direction = tatooine::normalize(m_direction); }
+  void normalize() {
+    m_direction = tatooine::normalize(m_direction);
+  }
 };
 //==============================================================================
 }  // namespace tatooine
