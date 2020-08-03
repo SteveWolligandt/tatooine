@@ -25,8 +25,8 @@ TEST_CASE("direct_volume_rendering_doublegyre_magnitude",
     min                       = std::min(mag.container().at(is...), min);
     max                       = std::max(mag.container().at(is...), max);
   });
-  size_t width = 200, height = 200;
-  perspective_camera<double> cam{vec{-1, 2, -3}, vec{1.0, 0.5, 0.0}, 60, width,
+  size_t width = 1000, height = 1000;
+  perspective_camera<double> cam{vec{-1, 2, -3}, vec{0.5, 0.5, 0.0}, 60, width,
                                  height};
   std::cerr << "max: " << max << '\n';
   auto rendered_grid = direct_volume_rendering(cam, mag, min, max, 0.01);

@@ -38,6 +38,10 @@ auto direct_volume_rendering(
         typename Container::value_type accumulated_color  = 0;
         auto                           cur_t   = front_intersection->t;
         typename decltype(r)::pos_t    cur_pos = r(cur_t);
+        if (!bb.is_inside(cur_pos)) {
+          cur_t += 1e-6;
+          cur_pos = r(cur_t);
+        }
 
         while (bb.is_inside(cur_pos) && 1 - accumuluated_alpha < 0.95) {
           auto const sample = prop.sample(cur_pos);
