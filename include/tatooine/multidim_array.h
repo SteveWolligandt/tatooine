@@ -631,6 +631,13 @@ class dynamic_multidim_array : public dynamic_multidim_size<Indexing> {
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
   auto operator()(integral auto const... is) const -> const auto& {
     assert(sizeof...(is) == num_dimensions());
+#ifndef NDEBUG
+  if (!in_range(is...)) {
+    std::cerr << "will now crash because indices [ ";
+    ((std::cerr << is << ' '), ...);
+    std::cerr << "] are not in range\n";
+  }
+#endif
     assert(in_range(is...));
     return at(is...);
   }

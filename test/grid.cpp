@@ -51,7 +51,9 @@ TEST_CASE("grid_cell_index", "[grid][cell_index]") {
   std::array                                           dim0{0.0, 1.2, 1.3};
   std::vector                                          dim1{0, 1, 2, 4};
   linspace                                             dim2{0.0, 2.0, 3};
-  grid<decltype(dim0), decltype(dim1), decltype(dim2)> g{dim0, dim1, dim2};
+  linspace                                             dim3{0.0, 1.0, 25};
+  grid<decltype(dim0), decltype(dim1), decltype(dim2), decltype(dim3)> g{
+      dim0, dim1, dim2, dim3};
   auto const [idx0, factor0] = g.cell_index<0>(1.25);
   REQUIRE(idx0 == 1);
   REQUIRE(factor0 == 0.5);
@@ -64,6 +66,18 @@ TEST_CASE("grid_cell_index", "[grid][cell_index]") {
   auto const [idx3, factor3] = g.cell_index<2>(1.75);
   REQUIRE(idx3 == 1);
   REQUIRE(factor3 == 0.75);
+  auto const [idx4, factor4] = g.cell_index<2>(2.0);
+  REQUIRE(idx4 == 1);
+  REQUIRE(factor4 == 1);
+  auto const [idx5, factor5] = g.cell_index<0>(1.3);
+  REQUIRE(idx5 == 1);
+  REQUIRE(factor5 == 1);
+  auto const [idx6, factor6] = g.cell_index<1>(4);
+  REQUIRE(idx6 == 2);
+  REQUIRE(factor6 == 1);
+  auto const [idx7, factor7] = g.cell_index<3>(0.97967751460911501);
+  REQUIRE(idx7 == 23);
+  //REQUIRE(factor6 == 1);
 }
 //==============================================================================
 TEST_CASE("grid_vertex_prop_cubic", "[grid][property][cubic]") {

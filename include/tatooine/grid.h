@@ -300,15 +300,20 @@ class grid {
   }
   //----------------------------------------------------------------------------
   /// returns cell index and factor for interpolation
-  template <size_t I>
+  template <size_t DimensionIndex>
   auto cell_index(real_number auto const x) const -> std::pair<size_t, double> {
-    auto const& dim = dimension<I>();
-    if constexpr (is_linspace_v<decltype(dimension<I>())>) {
+    auto const& dim = dimension<DimensionIndex>();
+    if constexpr (is_linspace_v<std::decay_t<decltype(dim)>>) {
       // calculate
-      auto const pos =
-          (x - dim.front()) / (dim.back() - dim.front()) * (size() - 1);
-      auto const quantized_pos = static_cast<size_t>(std::floor(pos));
-      return {quantized_pos, pos - quantized_pos};
+      auto pos =
+          (x - dim.front()) / (dim.back() - dim.front()) * (dim.size() - 1);
+      auto quantized_pos = static_cast<size_t>(std::floor(pos));
+      auto cell_position = pos - quantized_pos;
+      if (quantized_pos == dim.size() - 1) {
+        --quantized_pos;
+        cell_position = 1;
+      }
+      return {quantized_pos, cell_position};
     } else {
       // binary search
       size_t left  = 0;

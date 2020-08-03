@@ -103,7 +103,7 @@ struct boundingbox : ray_intersectable<Real, N> {
   // ray_intersectable overrides
   //============================================================================
   std::optional<intersection<Real, N>> check_intersection(
-      const ray<Real, N>& r, const Real = 0) const override {
+      ray<Real, N> const& r, Real const = 0) const override {
     enum Quadrant { right, left, middle };
     vec<Real, N>            coord;
     bool                    inside = true;
