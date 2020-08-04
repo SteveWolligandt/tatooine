@@ -26,12 +26,11 @@ class perspective_camera : public camera<Real> {
   //----------------------------------------------------------------------------
   // class variables
   //----------------------------------------------------------------------------
-  static constexpr vec3 up{0, 1, 0};
 
   //----------------------------------------------------------------------------
   // member variables
   //----------------------------------------------------------------------------
-  const vec3 m_eye, m_u, m_v;
+  vec3       m_eye, m_up, m_u, m_v;
   const Real m_plane_half_width, m_plane_half_height;
   const vec3 m_bottom_left;
   const vec3 m_plane_base_x, m_plane_base_y;
@@ -42,10 +41,11 @@ class perspective_camera : public camera<Real> {
   //----------------------------------------------------------------------------
   /// Constructor generates bottom left image plane pixel position and pixel
   /// offset size.
-  perspective_camera(const vec3& eye, const vec3& lookat, Real fov,
-                     size_t res_x, size_t res_y)
+  perspective_camera(const vec3& eye, const vec3& lookat, const vec3& up,
+                     Real fov, size_t res_x, size_t res_y)
       : parent_t{res_x, res_y},
         m_eye{eye},
+        m_up{up},
         m_u{cross(normalize(lookat - eye), up)},
         m_v{cross(m_u, normalize(lookat - eye))},
         m_plane_half_width{std::tan(fov * M_PI / 180)},
@@ -54,6 +54,12 @@ class perspective_camera : public camera<Real> {
                       m_v * m_plane_half_height},
         m_plane_base_x{m_u * 2 * m_plane_half_width / res_x},
         m_plane_base_y{m_v * 2 * m_plane_half_height / res_y} {}
+  //----------------------------------------------------------------------------
+  /// Constructor generates bottom left image plane pixel position and pixel
+  /// offset size.
+  perspective_camera(const vec3& eye, const vec3& lookat,  Real fov,
+                     size_t res_x, size_t res_y)
+    :perspective_camera(eye, lookat, vec3{0,1,0}, fov, res_x, res_y){}
   //----------------------------------------------------------------------------
   ~perspective_camera() override = default;
   //----------------------------------------------------------------------------

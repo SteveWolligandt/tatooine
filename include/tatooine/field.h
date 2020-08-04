@@ -117,6 +117,9 @@ struct field : parent::field<Real, N, TensorDims...>, crtp<Derived> {
 //╞══════════════════════════════════════════════════════════════════════════╡
 template <typename V, typename Real, size_t N, size_t C = N>
 using vectorfield = field<V, Real, N, C>;
+//╞══════════════════════════════════════════════════════════════════════════╡
+template <typename V, typename Real, size_t N>
+using scalarfield = field<V, Real, N>;
 //╘══════════════════════════════════════════════════════════════════════════╛
 //╒══════════════════════════════════════════════════════════════════════════╕
 //│ type traits                                                              │

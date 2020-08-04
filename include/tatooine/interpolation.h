@@ -174,8 +174,10 @@ struct cubic {
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
   constexpr cubic(const Real ft0, const Real ft1, const Real dft0_dt,
                   const Real dft1_dt)
-      : m_polynomial{ft0, dft0_dt, 3 * ft1 - 3 * ft0 - dft1_dt - 2 * dft0_dt,
-                     -2 * ft1 + 2 * ft0 + dft1_dt + dft0_dt} {}
+      : m_polynomial{ft0,
+                     dft0_dt,
+                      3 * ft1 - 3 * ft0 - dft1_dt - 2 * dft0_dt,
+                     -2 * ft1 + 2 * ft0 + dft1_dt +     dft0_dt} {}
 
   //----------------------------------------------------------------------------
   // methods
