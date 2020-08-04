@@ -71,6 +71,10 @@ struct boundingbox : ray_intersectable<Real, N> {
   //----------------------------------------------------------------------------
   constexpr auto center() const { return (m_max + m_min) * Real(0.5); }
   //----------------------------------------------------------------------------
+  constexpr auto center(size_t i) const {
+    return (m_max(i) + m_min(i)) * Real(0.5);
+  }
+  //----------------------------------------------------------------------------
   constexpr auto is_inside(const pos_t& p) const {
     for (size_t i = 0; i < N; ++i) {
       if (p(i) < m_min(i) || m_max(i) < p(i)) { return false; }

@@ -259,12 +259,6 @@ struct base_sampler : crtp<Sampler> {
                         real_number auto const... xs) const {
     return sample_cit(cell_index<Is>(xs)...);
   }
-  template <size_t... Is>
-  constexpr auto sample(std::index_sequence<Is...>/*seq*/, real_number auto const... xs) const {
-    static_assert(sizeof...(xs) == num_dimensions(),
-                  "Number of coordinates does not match number of dimensions.");
-    return sample_cit(cell_index<Is>(xs)...);
-  }
   //----------------------------------------------------------------------------
   /// Recursive sampling by interpolating using interpolation kernels.
   ///

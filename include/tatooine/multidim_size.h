@@ -157,7 +157,7 @@ class dynamic_multidim_size {
   }
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
   template <range SizeRange>
-  void resize(SizeRange const* size) {
+  void resize(SizeRange const& size) {
     m_size = std::vector(begin(size), end(size));
   }
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -

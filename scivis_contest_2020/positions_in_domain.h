@@ -54,7 +54,6 @@ auto positions_in_domain(V const& v, Grid const& g) {
     xiss.front().vector.insert(end(xiss.front().vector), begin(xiss[i].vector),
                                end(xiss[i].vector));
   }
-  std::cerr << "collecting positions in domain... done!         \n";
   xss.front().vector.shrink_to_fit();
   xiss.front().vector.shrink_to_fit();
   std::cerr << "number of points in domain: " << size(xss.front().vector)
