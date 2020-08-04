@@ -1,12 +1,13 @@
 #ifndef TATOOINE_LINSPACE_H
 #define TATOOINE_LINSPACE_H
 //============================================================================
+#include <tatooine/concepts.h>
+#include <tatooine/type_traits.h>
+
 #include <boost/iterator/iterator_facade.hpp>
 #include <cstddef>
 #include <functional>
 #include <ostream>
-
-#include "type_traits.h"
 //============================================================================
 namespace tatooine {
 //============================================================================

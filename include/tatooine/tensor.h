@@ -44,7 +44,7 @@ struct tensor : base_tensor<tensor<T, Dims...>, T, Dims...>,  // NOLINT
   ~tensor()                                                    = default;
   //============================================================================
  public:
-  template <typename... Ts, size_t _N = rank(),
+  template <typename... Ts, size_t _N = tensor_parent_t::rank(),
             size_t _Dim0                    = tensor_parent_t::dimension(0),
             std::enable_if_t<_N == 1, bool> = true,
             std::enable_if_t<_Dim0 == sizeof...(Ts), bool> = true>

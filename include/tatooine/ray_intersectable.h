@@ -1,12 +1,12 @@
 #ifndef TATOOINE_RAY_INTERSECTABLE_H
 #define TATOOINE_RAY_INTERSECTABLE_H
 //==============================================================================
-#include "ray.h"
-#include "intersection.h"
+#include <tatooine/intersection.h>
+#include <tatooine/ray.h>
 //==============================================================================
 namespace tatooine {
 //==============================================================================
-template <typename Real, size_t N>
+template <real_number Real, size_t N>
 struct ray_intersectable{
   using vec_t = vec<Real, N>;
   using pos_t = vec_t;

@@ -1,10 +1,8 @@
 #include <tatooine/abcflow.h>
 #include <catch2/catch.hpp>
-
 //==============================================================================
 namespace tatooine::test {
 //==============================================================================
-
 TEST_CASE("abcflow", "[abcflow][abc][symbolic][numerical]") {
   symbolic::abcflow sabc;
   numerical::abcflow nabc;
@@ -19,7 +17,6 @@ TEST_CASE("abcflow", "[abcflow][abc][symbolic][numerical]") {
     }
   }
 }
-
 //==============================================================================
 }  // namespace tatooine::test
 //==============================================================================

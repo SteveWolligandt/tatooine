@@ -19,13 +19,5 @@ TEST_CASE("polynomial_line", "[polynomial_line][constructor]") {
   REQUIRE(x(3) == Approx(2 + 2 * 2 * 2 * 10));
 }
 //==============================================================================
-TEST_CASE("polynomial_line_sample", "[polynomial_line][sample]") {
-  polynomial_line l{polynomial{0.0, 1.0},
-                    polynomial{0.0, 1.0},
-                    polynomial{0.0, 0.0, -1.0}};
-  l.sample<interpolation::linear>(linspace{-10.0, 10.0, 1001})
-      .write_vtk("sampled_polynomial_line.vtk");
-}
-//==============================================================================
 }  // namespace tatooine::test
 //==============================================================================

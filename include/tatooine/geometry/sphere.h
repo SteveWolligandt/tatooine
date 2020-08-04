@@ -2,7 +2,8 @@
 #define TATOOINE_GEOMETRY_SPHERE_H
 //==============================================================================
 #include <tatooine/tensor.h>
-#include <tatooine/simple_tri_mesh.h>
+#include <tatooine/triangular_mesh.h>
+
 #include "primitive.h"
 #include "sphere_ray_intersection.h"
 //==============================================================================
@@ -27,7 +28,7 @@ struct sphere : primitive<Real, N> {
       : m_radius{radius}, m_center{center} {}
   //----------------------------------------------------------------------------
   sphere(const sphere&) = default;
-  sphere(sphere&&) = default;
+  sphere(sphere&&)      = default;
   sphere& operator=(const sphere&) = default;
   sphere& operator=(sphere&&) = default;
   //============================================================================
@@ -36,60 +37,69 @@ struct sphere : primitive<Real, N> {
     return tatooine::geometry::check_intersection(*this, r, min_t);
   }
   //----------------------------------------------------------------------------
-  constexpr auto  radius() const { return m_radius; }
-  constexpr auto& radius() { return m_radius; }
+  constexpr auto radius() const {
+    return m_radius;
+  }
+  constexpr auto& radius() {
+    return m_radius;
+  }
   //----------------------------------------------------------------------------
-  constexpr const auto& center() const { return m_center; }
-  constexpr auto&       center() { return m_center; }
+  constexpr const auto& center() const {
+    return m_center;
+  }
+  constexpr auto& center() {
+    return m_center;
+  }
 };
 //------------------------------------------------------------------------------
 template <typename Real>
 auto discretize(const sphere<Real, 3>& s, size_t num_subdivisions = 0) {
-  using mesh_t = simple_tri_mesh<Real, 3>;
-  using vertex  = typename mesh_t::vertex;
+  using mesh_t       = triangular_mesh<Real, 3>;
+  using vertex_index = typename mesh_t::vertex_index;
   // const Real  X = 0.525731112119133606;
   // const Real  Z = 0.850650808352039932;
   const Real  X = 0.525731112119133606;
   const Real  Z = 0.850650808352039932;
-  std::vector vertices{vec{-X,  0,  Z}, vec{X,  0,  Z}, vec{-X,  0, -Z},
-                       vec{ X,  0, -Z}, vec{0,  Z,  X}, vec{ 0,  Z, -X},
-                       vec{ 0, -Z,  X}, vec{0, -Z, -X}, vec{ Z,  X,  0},
-                       vec{-Z,  X,  0}, vec{Z, -X,  0}, vec{-Z, -X,  0}};
-  std::vector<std::array<vertex, 3>> triangles{
-      {vertex{ 0}, vertex{ 4}, vertex{ 1}},
-      {vertex{ 0}, vertex{ 9}, vertex{ 4}},
-      {vertex{ 9}, vertex{ 5}, vertex{ 4}},
-      {vertex{ 4}, vertex{ 5}, vertex{ 8}},
-      {vertex{ 4}, vertex{ 8}, vertex{ 1}},
-      {vertex{ 8}, vertex{10}, vertex{ 1}},
-      {vertex{ 8}, vertex{ 3}, vertex{10}},
-      {vertex{ 5}, vertex{ 3}, vertex{ 8}},
-      {vertex{ 5}, vertex{ 2}, vertex{ 3}},
-      {vertex{ 2}, vertex{ 7}, vertex{ 3}},
-      {vertex{ 7}, vertex{10}, vertex{ 3}},
-      {vertex{ 7}, vertex{ 6}, vertex{10}},
-      {vertex{ 7}, vertex{11}, vertex{ 6}},
-      {vertex{11}, vertex{ 0}, vertex{ 6}},
-      {vertex{ 0}, vertex{ 1}, vertex{ 6}},
-      {vertex{ 6}, vertex{ 1}, vertex{10}},
-      {vertex{ 9}, vertex{ 0}, vertex{11}},
-      {vertex{ 9}, vertex{11}, vertex{ 2}},
-      {vertex{ 9}, vertex{ 2}, vertex{ 5}},
-      {vertex{ 7}, vertex{ 2}, vertex{11}}
-  }; 
+  std::vector vertices{vec{-X, 0, Z}, vec{X, 0, Z},   vec{-X, 0, -Z},
+                       vec{X, 0, -Z}, vec{0, Z, X},   vec{0, Z, -X},
+                       vec{0, -Z, X}, vec{0, -Z, -X}, vec{Z, X, 0},
+                       vec{-Z, X, 0}, vec{Z, -X, 0},  vec{-Z, -X, 0}};
+  std::vector<std::array<vertex_index, 3>> triangles{
+      {vertex_index{0}, vertex_index{4}, vertex_index{1}},
+      {vertex_index{0}, vertex_index{9}, vertex_index{4}},
+      {vertex_index{9}, vertex_index{5}, vertex_index{4}},
+      {vertex_index{4}, vertex_index{5}, vertex_index{8}},
+      {vertex_index{4}, vertex_index{8}, vertex_index{1}},
+      {vertex_index{8}, vertex_index{10}, vertex_index{1}},
+      {vertex_index{8}, vertex_index{3}, vertex_index{10}},
+      {vertex_index{5}, vertex_index{3}, vertex_index{8}},
+      {vertex_index{5}, vertex_index{2}, vertex_index{3}},
+      {vertex_index{2}, vertex_index{7}, vertex_index{3}},
+      {vertex_index{7}, vertex_index{10}, vertex_index{3}},
+      {vertex_index{7}, vertex_index{6}, vertex_index{10}},
+      {vertex_index{7}, vertex_index{11}, vertex_index{6}},
+      {vertex_index{11}, vertex_index{0}, vertex_index{6}},
+      {vertex_index{0}, vertex_index{1}, vertex_index{6}},
+      {vertex_index{6}, vertex_index{1}, vertex_index{10}},
+      {vertex_index{9}, vertex_index{0}, vertex_index{11}},
+      {vertex_index{9}, vertex_index{11}, vertex_index{2}},
+      {vertex_index{9}, vertex_index{2}, vertex_index{5}},
+      {vertex_index{7}, vertex_index{2}, vertex_index{11}}};
   for (size_t i = 0; i < num_subdivisions; ++i) {
-    std::vector<std::array<vertex, 3>> subdivided_triangles;
-    using edge_t = std::pair<vertex, vertex>;
-    std::map<edge_t, size_t> subdivided; //vertex index on edge
-    for (auto &[v0, v1, v2] : triangles) {
+    std::vector<std::array<vertex_index, 3>> subdivided_triangles;
+    using edge_t = std::pair<vertex_index, vertex_index>;
+    std::map<edge_t, size_t> subdivided;  // vertex_index index on edge
+    for (auto& [v0, v1, v2] : triangles) {
       std::array edges{edge_t{v0, v1}, edge_t{v0, v2}, edge_t{v1, v2}};
-      std::array nvs{vertex{0}, vertex{0}, vertex{0}};
-      size_t                i = 0;
+      std::array nvs{vertex_index{0}, vertex_index{0}, vertex_index{0}};
+      size_t     i = 0;
       for (auto& edge : edges) {
-        if (edge.first < edge.second) { std::swap(edge.first, edge.second); }
+        if (edge.first < edge.second) {
+          std::swap(edge.first, edge.second);
+        }
         if (subdivided.find(edge) == end(subdivided)) {
-          subdivided[edge]  = size(vertices);
-          nvs[i++] = size(vertices);
+          subdivided[edge] = size(vertices);
+          nvs[i++]         = size(vertices);
           vertices.push_back(normalize(
               (vertices[edge.first.i] + vertices[edge.second.i]) * 0.5));
         } else {
@@ -108,8 +118,12 @@ auto discretize(const sphere<Real, 3>& s, size_t num_subdivisions = 0) {
     v += s.center();
   }
   mesh_t m;
-  for (auto& vertex : vertices) { m.insert_vertex(std::move(vertex)); }
-  for (auto& tri : triangles) { m.insert_face(std::move(tri)); }
+  for (auto& vertex_index : vertices) {
+    m.insert_vertex(std::move(vertex_index));
+  }
+  for (auto& tri : triangles) {
+    m.insert_triangle(std::move(tri));
+  }
   return m;
 }
 //==============================================================================

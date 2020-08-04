@@ -16,6 +16,7 @@ concept stepper_callback_invocable =
     std::regular_invocable<F, vec<Real, N> const&, Real>;
 template <typename F, typename Real, size_t N>
 concept stepper_evaluator =
+    !std::is_base_of_v<parent::field<Real, N, N>, std::decay_t<F>> &&
     std::regular_invocable<F, vec<Real, N> const&, Real> &&
     (std::is_same_v<vec<Real, N>,
                     std::invoke_result_t<F, vec<Real, N>, Real>> ||

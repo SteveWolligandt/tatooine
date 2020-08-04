@@ -5,12 +5,12 @@
 namespace tatooine::test {
 //==============================================================================
 TEST_CASE("sampler_contiguous_array", "[sampler][contiguous_array]") {
-  grid g{linspace{0.0, 10.0, 11}, linspace{0.0, 10.0, 11}};
+  grid<linspace<double>, linspace<double>> g{linspace{0.0, 10.0, 11},
+                                             linspace{0.0, 10.0, 11}};
   using container_t = dynamic_multidim_array<double>;
   using grid_t = decltype(g);
-  using interpolation_kernel = interpolation::linear<double>;
-  using sampler_t =
-      sampler<grid_t, container_t, interpolation_kernel, interpolation_kernel>;
+  using sampler_t   = sampler<grid_t, container_t, interpolation::linear,
+                            interpolation::linear>;
   sampler_t s{g, 11, 11};
   s.container()(0, 0) = 1;
   s.container()(1, 0) = 3;

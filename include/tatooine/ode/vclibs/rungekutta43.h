@@ -117,10 +117,10 @@ struct rungekutta43 : solver<rungekutta43<Real, N>, Real, N> {
   /// Continues integration of integral.
   /// if tau > 0 than it integrates forward and pushes new samples back
   /// otherwise pushes samples to front.
-  template <typename V, std::floating_point VReal, real_number Y0Real,
-            real_number T0Real, real_number TauReal,
+  template <real_number VReal, real_number Y0Real, real_number T0Real,
+            real_number                         TauReal,
             stepper_callback_invocable<Real, N> StepperCallback>
-  constexpr void solve(vectorfield<V, VReal, N> const& v,
+  constexpr void solve(parent::field<VReal, N, N> const& v,
                        vec<Y0Real, N> const& y0, T0Real const t0, TauReal tau,
                        StepperCallback&& callback) const {
     // do not start integration if y0, t0 is not in domain of vectorfield
@@ -128,7 +128,7 @@ struct rungekutta43 : solver<rungekutta43<Real, N>, Real, N> {
       return;
     }
 
-    auto dy = [&v](Real y, pos_t const& t) -> maybe_vec {
+    auto dy = [&v](pos_t const& y, Real const t) -> maybe_vec {
       if (!v.in_domain(y, t)) {
         return out_of_domain;
       }
@@ -143,9 +143,6 @@ struct rungekutta43 : solver<rungekutta43<Real, N>, Real, N> {
   constexpr void solve(Evaluator&& evaluator, vec<Y0Real, N> const& y0,
                        T0Real const t0, TauReal tau,
                        StepperCallback&& callback) const {
-    constexpr auto callback_takes_derivative =
-        std::is_invocable_v<StepperCallback, pos_t, Real, vec_t>;
-
     auto dy = [&evaluator](Real t, pos_t const& y) -> maybe_vec {
       if (auto const s = evaluator(y, t); s) {
         return *s;

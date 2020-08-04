@@ -92,8 +92,8 @@ TEST_CASE("line_sampling_linear",
   REQUIRE_THROWS(l.sample(1.01));
 }
 //==============================================================================
-TEST_CASE("line_sampling_hermite",
-          "[line][parameterization][hermite][sampling]") {
+TEST_CASE("line_sampling_cubic",
+          "[line][parameterization][cubic][sampling]") {
   vec                                                  v0{0.0, 0.0};
   vec                                                  v1{1.0, 1.0};
   vec                                                  v2{2.0, 0.0};
@@ -166,13 +166,13 @@ TEST_CASE("line_paramaterization_centripetal",
 //==============================================================================
 TEST_CASE("line_resample", "[line][parameterization][resample]") {
   using integral_curve_t =
-      parameterized_line<double, 2, interpolation::hermite>;
+      parameterized_line<double, 2, interpolation::cubic>;
   using vertex_idx = integral_curve_t::vertex_idx;
   SECTION("double gyre pathline") {
     analytical::fields::numerical::doublegyre v;
     ode::vclibs::rungekutta43<double, 2>      rk43;
     integral_curve_t                          integral_curve;
-    rk43.solve(v, vec{0.2, 0.2}, 0, 10, [&](auto const t, auto const& y) {
+    rk43.solve(v, vec{0.2, 0.2}, 0, 10, [&](auto const& y, auto const t) {
       integral_curve.push_back(y, t);
     });
     auto& curvature = integral_curve.add_vertex_property<double>("curvature");
@@ -195,8 +195,8 @@ TEST_CASE("line_resample", "[line][parameterization][resample]") {
       l.resample(linspace(0.0, 2.0, 10000))
           .write_vtk("resampled_line_linear.vtk");
     }
-    SECTION("hermite") {
-      parameterized_line<double, 2, interpolation::hermite> l{
+    SECTION("cubic") {
+      parameterized_line<double, 2, interpolation::cubic> l{
           {vec{0.0, 0.0}, 0}, {vec{1.0, 1.0}, 1}, {vec{2.0, 0.0}, 2}};
       l.write_vtk("original_line.vtk");
       auto  l2        = l.resample(linspace(0.0, 2.0, 10000));
@@ -204,13 +204,13 @@ TEST_CASE("line_resample", "[line][parameterization][resample]") {
       for (size_t i = 0; i < l2.num_vertices(); ++i) {
         curvature[vertex_idx{i}] = l2.curvature(l2.parameterization_at(i));
       }
-      l2.write_vtk("resampled_line_hermite.vtk");
+      l2.write_vtk("resampled_line_cubic.vtk");
     }
   }
 }
 //==============================================================================
 TEST_CASE("line_curvature", "[line][parameterization][curvature]") {
-  parameterized_line<double, 2, interpolation::hermite> l;
+  parameterized_line<double, 2, interpolation::cubic> l;
   l.push_back(vec{0.0, 0.0}, 0);
   l.push_back(vec{1.0, 1.0}, 1);
   l.push_back(vec{2.0, 0.0}, 2);
@@ -224,18 +224,18 @@ TEST_CASE("line_curvature", "[line][parameterization][curvature]") {
 //==============================================================================
 TEST_CASE("line_curvature2", "[line][parameterization][curvature1]") {
   using integral_curve_t =
-      parameterized_line<double, 2, interpolation::hermite>;
+      parameterized_line<double, 2, interpolation::cubic>;
   analytical::fields::numerical::doublegyre v;
   ode::vclibs::rungekutta43<double, 2>      ode;
   integral_curve_t                          integral_curve;
   auto& tangents = integral_curve.tangents_property();
   ode.solve(v, vec{0.1, 0.1}, 5, 6,
-            [&](auto const t, auto const& y, auto const& dy) {
+            [&]( auto const& y, auto const t,auto const& dy) {
               integral_curve.push_back(y, t, false);
               tangents.back() = dy;
             });
   ode.solve(v, vec{0.1, 0.1}, 5, -6,
-            [&](auto const t, auto const& y, auto const& dy) {
+            [&](auto const& y, auto const t,auto const& dy) {
               integral_curve.push_front(y, t, false);
               tangents.front() = dy;
             });

@@ -23,28 +23,30 @@ struct boundingbox : tatooine::boundingbox<Real, N>, renderable {
   int                                      m_linewidth = 1;
   std::array<GLfloat, 4>                   m_color{0.0f, 0.0f, 0.0f, 1.0f};
   //============================================================================
-  boundingbox()                       = default;
+  boundingbox(struct window& w) : renderable{w} {}
   boundingbox(const boundingbox&)     = default;
   boundingbox(boundingbox&&) noexcept = default;
-  boundingbox& operator=(const boundingbox&) = default;
-  boundingbox& operator=(boundingbox&&) noexcept = default;
+  auto operator=(const boundingbox&) -> boundingbox& = default;
+  auto operator=(boundingbox&&) noexcept -> boundingbox& = default;
   //============================================================================
   template <typename Real0, typename Real1>
-  constexpr boundingbox(vec<Real0, N>&& min, vec<Real1, N>&& max) noexcept
-      : parent_t{std::move(min), std::move(max)} {
+  constexpr boundingbox(struct window& w, vec<Real0, N>&& min,
+                        vec<Real1, N>&& max) noexcept
+      : parent_t{std::move(min), std::move(max)}, renderable{w} {
     create_indexed_data();
   }
   //----------------------------------------------------------------------------
   template <typename Real0, typename Real1>
-  constexpr boundingbox(const vec<Real0, N>& min, const vec<Real1, N>& max)
-      : parent_t{min, max} {
+  constexpr boundingbox(struct window& w, const vec<Real0, N>& min,
+                        const vec<Real1, N>& max)
+      : parent_t{min, max}, renderable{w} {
     create_indexed_data();
   }
   //----------------------------------------------------------------------------
   template <typename Tensor0, typename Tensor1, typename Real0, typename Real1>
-  constexpr boundingbox(const base_tensor<Tensor0, Real0, N>& min,
+  constexpr boundingbox(struct window& w, const base_tensor<Tensor0, Real0, N>& min,
                         const base_tensor<Tensor1, Real1, N>& max)
-      : parent_t{min, max} {
+      : parent_t{min, max}, renderable{w} {
     create_indexed_data();
   }
   //============================================================================
@@ -117,16 +119,17 @@ struct boundingbox : tatooine::boundingbox<Real, N>, renderable {
 // deduction guides
 //==============================================================================
 template <typename Real0, typename Real1, size_t N>
-boundingbox(const vec<Real0, N>&, const vec<Real1, N>&)
+boundingbox(struct window&, const vec<Real0, N>&, const vec<Real1, N>&)
     -> boundingbox<promote_t<Real0, Real1>, N>;
 //------------------------------------------------------------------------------
 template <typename Real0, typename Real1, size_t N>
-boundingbox(vec<Real0, N>&&, vec<Real1, N> &&)
+boundingbox(struct window&, vec<Real0, N>&&, vec<Real1, N> &&)
     -> boundingbox<promote_t<Real0, Real1>, N>;
 //------------------------------------------------------------------------------
 template <typename Tensor0, typename Tensor1, typename Real0, typename Real1,
           size_t N>
-boundingbox(base_tensor<Tensor0, Real0, N>&&, base_tensor<Tensor1, Real1, N> &&)
+boundingbox(struct window&, base_tensor<Tensor0, Real0, N>&&,
+            base_tensor<Tensor1, Real1, N> &&)
     -> boundingbox<promote_t<Real0, Real1>, N>;
 //==============================================================================
 }  // namespace tatooine::flowexplorer

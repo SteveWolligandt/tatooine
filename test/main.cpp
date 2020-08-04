@@ -9,7 +9,7 @@
 //==============================================================================
 auto main(int argc, char** argv) -> int {
 # if TATOOINE_YAVIN_AVAILABLE
-  yavin::context ctx{4, 5};
+  yavin::context ctx;
 # endif
   return Catch::Session().run(argc, argv);
 }

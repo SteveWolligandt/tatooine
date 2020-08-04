@@ -6,11 +6,11 @@
 //==============================================================================
 namespace tatooine {
 //==============================================================================
-template <typename Grid, typename Container, typename... InterpolationKernels>
+template <typename Grid, typename Container,
+          template <typename> typename... InterpolationKernels>
 struct grid_vertex_property
     : typed_multidim_property<Grid, typename Container::value_type>,
-      sampler<Grid,
-              Container, InterpolationKernels...> {
+      sampler<Grid, Container, InterpolationKernels...> {
   using value_type = typename Container::value_type;
   using this_t = grid_vertex_property<Grid, Container, InterpolationKernels...>;
   using prop_parent_t    = typed_multidim_property<Grid, value_type>;

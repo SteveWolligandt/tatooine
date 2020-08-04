@@ -1,16 +1,18 @@
 #ifndef TATOOINE_BOUNDINGBOX_H
 #define TATOOINE_BOUNDINGBOX_H
 //==============================================================================
+#include <tatooine/concepts.h>
+#include <tatooine/ray_intersectable.h>
+#include <tatooine/tensor.h>
+#include <tatooine/type_traits.h>
+
 #include <limits>
 #include <ostream>
-
-#include "tensor.h"
-#include "type_traits.h"
 //==============================================================================
 namespace tatooine {
 //==============================================================================
-template <typename Real, size_t N>
-struct boundingbox {
+template <real_number Real, size_t N>
+struct boundingbox : ray_intersectable<Real, N> {
   //============================================================================
   using real_t = Real;
   using this_t = boundingbox<Real, N>;
@@ -96,6 +98,79 @@ struct boundingbox {
       p(i) = distribution(random_engine);
     }
     return p;
+  }
+  //============================================================================
+  // ray_intersectable overrides
+  //============================================================================
+  std::optional<intersection<Real, N>> check_intersection(
+      ray<Real, N> const& r, Real const = 0) const override {
+    enum Quadrant { right, left, middle };
+    vec<Real, N>            coord;
+    bool                    inside = true;
+    std::array<Quadrant, N> quadrant;
+    size_t                  which_plane;
+    std::array<Real, N>     max_t;
+    std::array<Real, N>     candidate_plane;
+
+    // Find candidate planes; this loop can be avoided if rays cast all from the
+    // eye(assume perpsective view)
+    for (size_t i = 0; i < N; i++)
+      if (r.origin(i) < min(i)) {
+        quadrant[i]        = left;
+        candidate_plane[i] = min(i);
+        inside             = false;
+      } else if (r.origin(i) > max(i)) {
+        quadrant[i]        = right;
+        candidate_plane[i] = max(i);
+        inside             = false;
+      } else {
+        quadrant[i] = middle;
+      }
+
+    // Ray origin inside bounding box
+    if (inside) {
+      return intersection<Real, N>{this,
+                                   r,
+                                   Real(0),
+                                   r.origin(),
+                                   vec<Real, N>::zeros(),
+                                   vec<Real, N - 1>::zeros()};
+    }
+
+    // Calculate T distances to candidate planes
+    for (size_t i = 0; i < N; i++)
+      if (quadrant[i] != middle && r.direction(i) != 0) {
+        max_t[i] = (candidate_plane[i] - r.origin(i)) / r.direction(i);
+      } else {
+        max_t[i] = -1;
+      }
+
+    // Get largest of the max_t's for final choice of intersection
+    which_plane = 0;
+    for (size_t i = 1; i < N; i++)
+      if (max_t[which_plane] < max_t[i]) {
+        which_plane = i;
+      }
+
+    // Check final candidate actually inside box
+    if (max_t[which_plane] < 0) {
+      return {};
+    }
+    for (size_t i = 0; i < N; i++)
+      if (which_plane != i) {
+        coord(i) = r.origin(i) + max_t[which_plane] * r.direction(i);
+        if (coord(i) < min(i) || coord(i) > max(i)) {
+          return {};
+        }
+      } else {
+        coord(i) = candidate_plane[i];
+      }
+    return intersection<Real, N>{this,
+                                 r,
+                                 max_t[which_plane],
+                                 coord,
+                                 vec<Real, N>::zeros(),
+                                 vec<Real, N - 1>::zeros()};
   }
 };
 //==============================================================================

@@ -32,7 +32,7 @@ struct flowmap_gradient_central_differences {
         m_epsilon{tag::fill{epsilon}} {}
   //----------------------------------------------------------------------------
   template <fixed_dims_flowmap_c<num_dimensions()> _Flowmap>
-  flowmap_gradient_central_differences(Flowmap flowmap, vec_t const& epsilon)
+  flowmap_gradient_central_differences(_Flowmap flowmap, vec_t const& epsilon)
       : m_flowmap{std::forward<_Flowmap>(flowmap)}, m_epsilon{epsilon} {}
   //============================================================================
   auto evaluate(pos_t const& y0, real_t const t0, real_t const tau) const {

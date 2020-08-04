@@ -1,6 +1,8 @@
 #ifndef TATOOINE_HOLDER_H
 #define TATOOINE_HOLDER_H
 //==============================================================================
+#include <memory>
+
 #include "type_traits.h"
 //==============================================================================
 namespace tatooine {

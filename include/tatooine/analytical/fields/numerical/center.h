@@ -54,7 +54,7 @@ struct center_flowmap {
 //------------------------------------------------------------------------------
 template <
     template <typename, size_t> typename ODESolver = ode::vclibs::rungekutta43,
-    template <typename> typename InterpolationKernel = interpolation::hermite,
+    template <typename> typename InterpolationKernel = interpolation::cubic,
     std::floating_point Real>
 constexpr auto flowmap(
     vectorfield<analytical::fields::numerical::center<Real>, Real, 2> const& v,

@@ -45,15 +45,16 @@ TEST_CASE("ftle_counterexample_sadlo", "[ftle][counterexample_sadlo]") {
 //==============================================================================
 TEST_CASE("ftle_saddle", "[ftle][saddle]") {
   saddle     v;
-  grid       ftle_grid{linspace{-1.0, 1.0, 200}, linspace{-1.0, 1.0, 200}};
-  auto&      ftle_prop = ftle_grid.add_contiguous_vertex_property<double, x_fastest>("ftle");
+  grid<linspace<double>, linspace<double>> ftle_grid{linspace{-1.0, 1.0, 200},
+                                                     linspace{-1.0, 1.0, 200}};
+  auto& ftle_prop = ftle_grid.add_contiguous_vertex_property<double>("ftle");
   auto const t0        = 0;
   auto const tau       = 10;
 
   ftle_field f{v, tau};
   for_loop(
       [&](auto const... is) {
-        ftle_prop.data_at(is...) = f(vec{ftle_grid.vertex_at(is...)}, t0);
+        ftle_prop.container().at(is...) = f(vec{ftle_grid.vertex_at(is...)}, t0);
       },
       200, 200);
   ftle_grid.write_vtk("ftle_saddle_tau" + std::to_string(tau) + "_t0_" +
@@ -74,7 +75,7 @@ void ftle_test(V const& v, Grid& ftle_grid, T0 t0, Tau tau,
   for_loop(
       [&](auto const... is) {
         vec const x{ftle_grid.vertex_at(is...)};
-        ftle_prop.data_at(is...) = f(x, t0);
+        ftle_prop.container().at(is...) = f(x, t0);
       },
       ftle_grid.template size<0>(), ftle_grid.template size<1>());
   ftle_grid.write_vtk(path + ".vtk");

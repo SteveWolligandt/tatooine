@@ -7,7 +7,7 @@ namespace tatooine {
 //==============================================================================
 template <typename V, size_t N>
 class okubo_weiss_field
-    : public field<okubo_weiss_field<V, N>, typename V::real_t, N> {
+    : public scalarfield<okubo_weiss_field<V, N>, typename V::real_t, N> {
   //============================================================================
   // typedefs
   //============================================================================

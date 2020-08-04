@@ -2,6 +2,7 @@
 #define TATOOINE_MULTIDIM_PROPERTY_H
 //==============================================================================
 #include <tatooine/concepts.h>
+#include <tatooine/write_png.h>
 #include <tatooine/finite_differences_coefficients.h>
 //==============================================================================
 namespace tatooine {
@@ -31,6 +32,11 @@ struct multidim_property {
   //----------------------------------------------------------------------------
   auto grid()       -> auto& { return m_grid; }
   auto grid() const -> auto const& { return m_grid; }
+  //----------------------------------------------------------------------------
+  template <size_t DimensionIndex>
+  auto size() const {
+    return m_grid.template size<DimensionIndex>();
+  }
 };
 //==============================================================================
 template <typename Grid, typename T>
@@ -132,6 +138,27 @@ struct typed_multidim_property : multidim_property<Grid> {
   //                                     std::array{static_cast<size_t>(is)...});
   //}
 };
+//==============================================================================
+template <real_number T, typename Grid>
+void write_png(std::string const& filepath, typed_multidim_property<Grid, T> const& data, size_t width, size_t height) {
+  static_assert(Grid::num_dimensions() == 2);
+  static_assert(Grid::is_regular);
+  png::image<png::rgb_pixel> image(width, height);
+  for (unsigned int y = 0; y < image.get_height(); ++y) {
+    for (png::uint_32 x = 0; x < image.get_width(); ++x) {
+      auto d = data.data_at(x, y);
+      if (std::isnan(d)) {
+        d = 0;
+      } else {
+        d = std::max<T>(0, std::min<T>(1, d));
+      }
+      image[image.get_height() - 1 - y][x].red =
+          image[image.get_height() - 1 - y][x].green =
+              image[image.get_height() - 1 - y][x].blue = d * 255;
+    }
+  }
+  image.write(filepath);
+}
 //==============================================================================
 }  // namespace tatooine
 //==============================================================================
