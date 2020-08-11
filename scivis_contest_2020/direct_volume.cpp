@@ -51,8 +51,12 @@ int main() {
   if (!fs::exists("direct_volume")) {
     fs::create_directory("direct_volume");
   }
+
   double const tau = 24 * 5;
   for (auto const t : times) {
+    if (t < (times.back() - times.front()) / 2) {
+      continue;
+    }
     monitor(
         [&] {
           double const max_ftau = v.t_axis.back() - t;
