@@ -20,33 +20,29 @@ struct pathlines_boundingbox : boundingbox<Real, N> {
   using parent_t = boundingbox<Real, N>;
   //----------------------------------------------------------------------------
 
-  const vectorfield_t&              m_v;
-  integrator_t                      m_integrator;
-  std::unique_ptr<gpu::line_shader> m_shader;
-  yavin::vertexbuffer<yavin::vec3, yavin::vec3, yavin::scalar> m_vbo;
-  yavin::indexbuffer m_ibo;
-  bool hide_box = false;
-  double btau, ftau;
-  int num_pathlines;
-  float line_color[3];
-  float contour_color[3];
-  float line_width;
-  float contour_width;
-  float ambient_factor;
-  float diffuse_factor;
-  float specular_factor;
-  float shininess;
-  bool  animate;
-  bool  play;
-  float fade_length;
-  float general_alpha;
+  const vectorfield_t&                                        m_v;
+  integrator_t                                                m_integrator;
+  std::unique_ptr<gpu::line_shader>                           m_shader;
+  yavin::indexeddata<yavin::vec3, yavin::vec3, yavin::scalar> m_gpu_data;
+  bool                                                        hide_box = false;
+  double                                                      btau, ftau;
+  int                                                         num_pathlines;
+  float                                                       line_color[3];
+  float                                                       contour_color[3];
+  float                                                       line_width;
+  float                                                       contour_width;
+  float                                                       ambient_factor;
+  float                                                       diffuse_factor;
+  float                                                       specular_factor;
+  float                                                       shininess;
+  bool                                                        animate;
+  bool                                                        play;
+  float                                                       fade_length;
+  float                                                       general_alpha;
   float animation_min_alpha;
   float time;
   float speed;
-  bool m_integration_going_on = false;
-  std::unique_ptr<std::thread> m_integration_worker;
-  std::unique_ptr<yavin::context> m_worker_context;
-  std::mutex m_mutex;
+  bool  m_integration_going_on = false;
   //----------------------------------------------------------------------------
   template <typename Real0, typename Real1>
   pathlines_boundingbox(struct window& w, const vectorfield_t& v, const vec<Real0, N>& min,
@@ -93,15 +89,7 @@ struct pathlines_boundingbox : boundingbox<Real, N> {
     }
     update_shader(projection_matrix, view_matrix);
     m_shader->bind();
-    {
-      std::lock_guard    lock{m_mutex};
-      yavin::vertexarray vao;
-      vao.bind();
-      m_vbo.bind();
-      m_vbo.activate_attributes();
-      m_ibo.bind();
-      vao.draw_lines(m_ibo.size());
-    }
+    m_gpu_data.draw_lines();
   }
   //----------------------------------------------------------------------------
   void update(const std::chrono::duration<double>& dt) override {
@@ -115,25 +103,19 @@ struct pathlines_boundingbox : boundingbox<Real, N> {
     } else {
       time = btau;
     }
-    if (m_integration_worker != nullptr && !m_integration_going_on) {
-      m_integration_worker->join();
-      m_integration_worker.reset();
-    }
   }
   //----------------------------------------------------------------------------
   void draw_ui() override {
-    if (m_integration_worker != nullptr) {
+    if (m_integration_going_on) {
       ImGui::PushItemFlag(ImGuiItemFlags_Disabled, true);
     }
     if (ImGui::Button("integrate")) { integrate_lines(); }
     ImGui::SameLine(0);
-    if (m_integration_worker != nullptr) {
+    if (m_integration_going_on) {
       ImGui::PushItemFlag(ImGuiItemFlags_Disabled, true);
     }
     if (ImGui::Button("clear path lines")) {
-      std::lock_guard lock{m_mutex};
-      m_vbo.clear();
-      m_ibo.clear();
+      m_gpu_data.clear();
     }
     ImGui::Checkbox("hide box", &hide_box);
     parent_t::draw_ui_preferences();
@@ -182,37 +164,36 @@ struct pathlines_boundingbox : boundingbox<Real, N> {
   }
   //----------------------------------------------------------------------------
   void integrate_lines() {
-    if (m_integration_worker != nullptr) {
+    if (m_integration_going_on) {
       return;
     }
-    m_worker_context = std::make_unique<yavin::context>(this->window());
-    m_integration_going_on = true;
-    m_integration_worker   = std::make_unique<std::thread>([this] {
-      this->window().release();
-      m_worker_context->make_current();
-      {
-        std::lock_guard lock{m_mutex};
-        m_vbo.clear();
-        m_ibo.clear();
+    size_t index          = 0;
+    bool insert_segment = false;
+    auto callback = [this, &index, &insert_segment](auto const& y, auto const t,
+                                                    auto const& dy) {
+      std::lock_guard lock{m_gpu_data.mutex()};
+      m_gpu_data.vertexbuffer().push_back(
+          yavin::vec3{static_cast<float>(y(0)),
+                      static_cast<float>(y(1)),
+                      static_cast<float>(y(2))},
+          yavin::vec3{static_cast<float>(dy(0)),
+                      static_cast<float>(dy(1)),
+                      static_cast<float>(dy(2))},
+          static_cast<float>(t));
+      if (insert_segment) {
+        m_gpu_data.indexbuffer().push_back(index - 1);
+        m_gpu_data.indexbuffer().push_back(index);
+      } else {
+        insert_segment = true;
       }
-      bool   insert_segment = false;
-      size_t index          = 0;
-      auto   callback       = [&](auto const& y, auto const t, auto const& dy) {
-        std::lock_guard lock{m_mutex};
-        m_vbo.push_back(
-            yavin::vec3{static_cast<float>(y(0)), static_cast<float>(y(1)),
-                        static_cast<float>(y(2))},
-            yavin::vec3{static_cast<float>(dy(0)), static_cast<float>(dy(1)),
-                        static_cast<float>(dy(2))},
-            static_cast<float>(t));
-        if (insert_segment) {
-          m_ibo.push_back(index - 1);
-          m_ibo.push_back(index);
-        } else {
-          insert_segment = true;
-        }
-        ++index;
-      };
+      ++index;
+    };
+    m_integration_going_on = true;
+      m_gpu_data.vertexbuffer().resize(100);
+      m_gpu_data.indexbuffer().resize(100);
+    this->window().do_async([this, &index, &insert_segment, &callback] {
+      m_gpu_data.clear();
+      index = 0;
       for (size_t i = 0; i < num_pathlines; ++i) {
         auto const   x0 = this->random_point();
         double const t0 = 0;
@@ -222,7 +203,6 @@ struct pathlines_boundingbox : boundingbox<Real, N> {
         m_integrator.solve(m_v, x0, t0, ftau, callback);
       }
       m_integration_going_on = false;
-      m_worker_context.reset();
     });
   }
   //----------------------------------------------------------------------------

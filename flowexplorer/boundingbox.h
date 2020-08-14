@@ -87,7 +87,7 @@ struct boundingbox : tatooine::boundingbox<Real, N>, renderable {
   std::string name() const override { return "Bounding Box"; }
   //============================================================================
   void set_vbo_data() {
-    auto vbomap = m_gpu_data.vertex_buffer().map();
+    auto vbomap = m_gpu_data.vertexbuffer().map();
     yavin::get<0>(vbomap[0]) =
         gpu_vec{float(min(0)), float(min(1)), float(min(2))};
     yavin::get<0>(vbomap[1]) =
@@ -107,12 +107,11 @@ struct boundingbox : tatooine::boundingbox<Real, N>, renderable {
   }
   //----------------------------------------------------------------------------
   void create_indexed_data() {
-    m_gpu_data.vertex_buffer().resize(8);
-    m_gpu_data.index_buffer().resize(24);
+    m_gpu_data.vertexbuffer().resize(8);
+    m_gpu_data.indexbuffer().resize(24);
     set_vbo_data();
-    m_gpu_data.index_buffer() = {0, 1, 0, 2, 1, 3, 2, 3, 4, 5, 4, 6,
+    m_gpu_data.indexbuffer() = {0, 1, 0, 2, 1, 3, 2, 3, 4, 5, 4, 6,
                                  5, 7, 6, 7, 0, 4, 1, 5, 2, 6, 3, 7};
-    m_gpu_data.setup_vao();
   }
 };
 //==============================================================================
