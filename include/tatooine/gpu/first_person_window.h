@@ -116,6 +116,14 @@ struct first_person_window : yavin::window {
     yavin::enable_depth_test();
   }
   //============================================================================
+  auto width() const {
+    return m_width;
+  }
+  //----------------------------------------------------------------------------
+  auto height() const {
+    return m_height;
+  }
+  //----------------------------------------------------------------------------
   template <typename Event>
   void render_loop(Event&& event) {
     m_time = std::chrono::system_clock::now();

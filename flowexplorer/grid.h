@@ -23,8 +23,16 @@ struct grid : tatooine::grid<Dim0, Dim1, Dim2>, renderable {
   line_shader                                             m_shader;
   int                                                     m_linewidth = 1;
   std::array<GLfloat, 4> m_color{0.0f, 0.0f, 0.0f, 1.0f};
+  //----------------------------------------------------------------------------
+  ax::NodeEditor::NodeId m_node_id;
+  ax::NodeEditor::PinId  m_node_output_pin_id;
   //============================================================================
-  grid(struct window& w) : renderable{w} {}
+  grid(struct window& w)
+      : renderable{w},
+        m_node_id{boost::hash<boost::uuids::uuid>{}(
+            boost::uuids::random_generator()())},
+        m_node_output_pin_id{boost::hash<boost::uuids::uuid>{}(
+            boost::uuids::random_generator()())} {}
   grid(const grid&)     = default;
   grid(grid&&) noexcept = default;
   auto operator=(const grid&) -> grid& = default;
@@ -35,7 +43,11 @@ struct grid : tatooine::grid<Dim0, Dim1, Dim2>, renderable {
                  _Dim2&& dim2) noexcept
       : parent_t{std::forward<_Dim0>(dim0), std::forward<_Dim1>(dim1),
                  std::forward<_Dim2>(dim2)},
-        renderable{w} {
+        renderable{w},
+        m_node_id{boost::hash<boost::uuids::uuid>{}(
+            boost::uuids::random_generator()())},
+        m_node_output_pin_id{boost::hash<boost::uuids::uuid>{}(
+            boost::uuids::random_generator()())} {
     create_indexed_data();
   }
   //============================================================================
@@ -59,8 +71,15 @@ struct grid : tatooine::grid<Dim0, Dim1, Dim2>, renderable {
   }
   //----------------------------------------------------------------------------
   void draw_ui() override {
+    namespace ed = ax::NodeEditor;
+    ed::BeginNode(m_node_id);
+    ImGui::Text(name().c_str());
     draw_ui_preferences();
     draw_ui_render_preferences();
+    ed::BeginPin(m_node_output_pin_id, ed::PinKind::Output);
+    ImGui::Text("Out ->");
+    ed::EndPin();
+    ed::EndNode();
   }
   //----------------------------------------------------------------------------
   void draw_ui_preferences() {

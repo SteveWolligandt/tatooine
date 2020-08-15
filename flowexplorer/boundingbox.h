@@ -5,6 +5,9 @@
 #include <yavin/imgui.h>
 #include <yavin/indexeddata.h>
 
+#include <boost/uuid/uuid.hpp>
+#include <boost/uuid/uuid_generators.hpp>
+
 #include "line_shader.h"
 #include "renderable.h"
 //==============================================================================
@@ -22,8 +25,16 @@ struct boundingbox : tatooine::boundingbox<Real, N>, renderable {
   line_shader                              m_shader;
   int                                      m_linewidth = 1;
   std::array<GLfloat, 4>                   m_color{0.0f, 0.0f, 0.0f, 1.0f};
+  //----------------------------------------------------------------------------
+  ax::NodeEditor::NodeId m_node_id;
+  ax::NodeEditor::PinId  m_node_output_pin_id;
   //============================================================================
-  boundingbox(struct window& w) : renderable{w} {}
+  boundingbox(struct window& w)
+      : renderable{w},
+        m_node_id{boost::hash<boost::uuids::uuid>{}(
+            boost::uuids::random_generator()())},
+        m_node_output_pin_id{boost::hash<boost::uuids::uuid>{}(
+            boost::uuids::random_generator()())} {}
   boundingbox(const boundingbox&)     = default;
   boundingbox(boundingbox&&) noexcept = default;
   auto operator=(const boundingbox&) -> boundingbox& = default;
@@ -32,21 +43,37 @@ struct boundingbox : tatooine::boundingbox<Real, N>, renderable {
   template <typename Real0, typename Real1>
   constexpr boundingbox(struct window& w, vec<Real0, N>&& min,
                         vec<Real1, N>&& max) noexcept
-      : parent_t{std::move(min), std::move(max)}, renderable{w} {
+      : parent_t{std::move(min), std::move(max)},
+        renderable{w},
+        m_node_id{boost::hash<boost::uuids::uuid>{}(
+            boost::uuids::random_generator()())},
+        m_node_output_pin_id{boost::hash<boost::uuids::uuid>{}(
+            boost::uuids::random_generator()())} {
     create_indexed_data();
   }
   //----------------------------------------------------------------------------
   template <typename Real0, typename Real1>
   constexpr boundingbox(struct window& w, const vec<Real0, N>& min,
                         const vec<Real1, N>& max)
-      : parent_t{min, max}, renderable{w} {
+      : parent_t{min, max},
+        renderable{w},
+        m_node_id{boost::hash<boost::uuids::uuid>{}(
+            boost::uuids::random_generator()())},
+        m_node_output_pin_id{boost::hash<boost::uuids::uuid>{}(
+            boost::uuids::random_generator()())} {
     create_indexed_data();
   }
   //----------------------------------------------------------------------------
   template <typename Tensor0, typename Tensor1, typename Real0, typename Real1>
-  constexpr boundingbox(struct window& w, const base_tensor<Tensor0, Real0, N>& min,
+  constexpr boundingbox(struct window&                        w,
+                        const base_tensor<Tensor0, Real0, N>& min,
                         const base_tensor<Tensor1, Real1, N>& max)
-      : parent_t{min, max}, renderable{w} {
+      : parent_t{min, max},
+        renderable{w},
+        m_node_id{boost::hash<boost::uuids::uuid>{}(
+            boost::uuids::random_generator()())},
+        m_node_output_pin_id{boost::hash<boost::uuids::uuid>{}(
+            boost::uuids::random_generator()())} {
     create_indexed_data();
   }
   //============================================================================
@@ -70,8 +97,15 @@ struct boundingbox : tatooine::boundingbox<Real, N>, renderable {
   }
   //----------------------------------------------------------------------------
   void draw_ui() override {
+    namespace ed  = ax::NodeEditor;
+    ed::BeginNode(m_node_id);
+    ImGui::Text(name().c_str());
     draw_ui_preferences();
     draw_ui_render_preferences();
+    ed::BeginPin(m_node_output_pin_id, ed::PinKind::Output);
+    ImGui::Text("Out ->");
+    ed::EndPin();
+    ed::EndNode();
   }
   //----------------------------------------------------------------------------
   void draw_ui_preferences() {
@@ -84,7 +118,9 @@ struct boundingbox : tatooine::boundingbox<Real, N>, renderable {
     ImGui::ColorEdit4("line color", m_color.data());
   }
   //----------------------------------------------------------------------------
-  std::string name() const override { return "Bounding Box"; }
+  std::string name() const override {
+    return "Bounding Box";
+  }
   //============================================================================
   void set_vbo_data() {
     auto vbomap = m_gpu_data.vertexbuffer().map();
@@ -111,7 +147,7 @@ struct boundingbox : tatooine::boundingbox<Real, N>, renderable {
     m_gpu_data.indexbuffer().resize(24);
     set_vbo_data();
     m_gpu_data.indexbuffer() = {0, 1, 0, 2, 1, 3, 2, 3, 4, 5, 4, 6,
-                                 5, 7, 6, 7, 0, 4, 1, 5, 2, 6, 3, 7};
+                                5, 7, 6, 7, 0, 4, 1, 5, 2, 6, 3, 7};
   }
 };
 //==============================================================================
