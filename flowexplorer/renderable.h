@@ -6,7 +6,7 @@
 namespace tatooine::flowexplorer {
 //==============================================================================
 struct window;
-struct renderable {
+struct renderable : ui::node {
   bool    m_active = true;
   window* m_window;
 

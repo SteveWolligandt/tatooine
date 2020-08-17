@@ -8,11 +8,33 @@
 
 #include "boundingbox.h"
 #include "grid.h"
-#include "pathlines_boundingbox.h"
+#include "random_pathlines.h"
 //==============================================================================
 namespace tatooine::flowexplorer {
 //==============================================================================
+auto show_label(const char* label, ImColor color) {
+  ImGui::SetCursorPosY(ImGui::GetCursorPosY() - ImGui::GetTextLineHeight());
+  auto size = ImGui::CalcTextSize(label);
+
+  auto padding = ImGui::GetStyle().FramePadding;
+  auto spacing = ImGui::GetStyle().ItemSpacing;
+
+  ImGui::SetCursorPos(ImGui::GetCursorPos() + ImVec2(spacing.x, -spacing.y));
+
+  auto rectMin = ImGui::GetCursorScreenPos() - padding;
+  auto rectMax = ImGui::GetCursorScreenPos() + size + padding;
+
+  auto drawList = ImGui::GetWindowDrawList();
+  drawList->AddRectFilled(rectMin, rectMax, color, size.y * 0.15f);
+  ImGui::TextUnformatted(label);
+}
+//==============================================================================
 struct window : first_person_window {
+  struct NodeIdLess {
+    bool operator()(const ax::NodeEditor::NodeId& lhs, const ax::NodeEditor::NodeId& rhs) const {
+      return lhs.AsPointer() < rhs.AsPointer();
+    }
+  };
   //----------------------------------------------------------------------------
   // members
   //----------------------------------------------------------------------------
@@ -103,7 +125,33 @@ struct window : first_person_window {
     });
   }
   //----------------------------------------------------------------------------
-  void render_node_editor() {
+  auto find_node(ax::NodeEditor::NodeId id) -> renderable* {
+    for (auto& r : m_renderables) {
+      if (r->id() == id) {
+        return r.get();
+      }
+    }
+    return nullptr;
+  }
+  //----------------------------------------------------------------------------
+  auto find_pin(ax::NodeEditor::PinId id) -> ui::pin* {
+    for (auto& r : m_renderables) {
+      for (auto& p : r->input_pins()) {
+        if (p.id() == id) {
+          return &p;
+        }
+      }
+      for (auto& p : r->output_pins()) {
+        if (p.id() == id) {
+          return &p;
+        }
+      }
+    }
+    return nullptr;
+  }
+  //----------------------------------------------------------------------------
+  template <typename V, typename VReal, size_t N>
+  void render_node_editor(const vectorfield<V, VReal, N, N>& v) {
     namespace ed = ax::NodeEditor;
     ImGui::GetStyle().WindowRounding =
         0.0f;  // <- Set this on init or use ImGui::PushStyleVar()
@@ -125,6 +173,10 @@ struct window : first_person_window {
     if (ImGui::Button("add bounding box")) {
       m_renderables.emplace_back(
           new boundingbox{*this, vec{-1.0, -1.0, -1.0}, vec{1.0, 1.0, 1.0}});
+    }
+    if (ImGui::Button("add random pathlines")) {
+      m_renderables.emplace_back(
+          std::make_unique<random_pathlines<double, 3>>(*this, v));
     }
     // Start interaction with editor.
     ed::Begin("My Editor", ImVec2(0.0, 0.0f));
@@ -154,8 +206,8 @@ struct window : first_person_window {
     // Handle creation action, returns true if editor want to create new
     // object (node or link)
     if (ed::BeginCreate()) {
-      ed::PinId inputPinId, outputPinId;
-      if (ed::QueryNewLink(&inputPinId, &outputPinId)) {
+      ed::PinId start_pin_id, end_pin_id;
+      if (ed::QueryNewLink(&start_pin_id, &end_pin_id)) {
         // QueryNewLink returns true if editor want to create new link between
         // pins.
         //
@@ -172,21 +224,28 @@ struct window : first_person_window {
         //   * input valid, output valid   - user dragged link over other pin,
         //   can be validated
 
-        if (inputPinId && outputPinId) {  // both are valid, let's accept link
-          // ed::AcceptNewItem() return true when user release mouse button.
-          if (ed::AcceptNewItem()) {
+        if (start_pin_id && end_pin_id) {  // both are valid, let's accept link
+          
+          ui::pin* start_pin = find_pin(start_pin_id);
+          ui::pin* end_pin = find_pin(end_pin_id);
+
+          if (start_pin->node().id() == end_pin->node().id()) {
+            show_label("cannot connect to same node", ImColor(45, 32, 32, 180));
+            ed::RejectNewItem(ImColor(255, 0, 0), 2.0f);
+          } else if (start_pin->kind() == end_pin->kind()) {
+            show_label("both are input or output", ImColor(45, 32, 32, 180));
+            ed::RejectNewItem(ImColor(255, 0, 0), 2.0f);
+          } else if (ed::AcceptNewItem()) {
+            start_pin->node().on_pin_connected(*start_pin, *end_pin);
+            end_pin->node().on_pin_connected(*end_pin, *start_pin);
             // Since we accepted new link, lets add one to our list of links.
             m_links.push_back(
-                {ed::LinkId(m_next_link++), inputPinId, outputPinId});
+                {ed::LinkId(m_next_link++), start_pin_id, end_pin_id});
 
             // Draw new link.
             ed::Link(m_links.back().id, m_links.back().input_id,
                      m_links.back().output_id);
           }
-
-          // You may choose to reject connection between these nodes
-          // by calling ed::RejectNewItem(). This will allow editor to give
-          // visual feedback by changing link thickness and color.
         }
       }
     }
@@ -249,7 +308,7 @@ struct window : first_person_window {
   template <typename V, typename VReal, size_t N>
   void render_ui(const vectorfield<V, VReal, N, N>& v) {
     if (show_nodes_gui) {
-      render_node_editor();
+      render_node_editor(v);
     }
     //if (show_gui) {
     //  render_gui(v);

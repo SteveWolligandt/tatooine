@@ -1,0 +1,59 @@
+#ifndef TATOOINE_FLOWEXPLORER_UI_PIN_H
+#define TATOOINE_FLOWEXPLORER_UI_PIN_H
+//==============================================================================
+#include <boost/uuid/uuid.hpp>
+#include <boost/uuid/uuid_generators.hpp>
+
+#include "../imgui-node-editor/imgui_node_editor.h"
+#include "pinkind.h"
+//==============================================================================
+namespace tatooine::flowexplorer::ui {
+//==============================================================================
+struct node;
+//==============================================================================
+struct pin {
+ private:
+  ax::NodeEditor::PinId m_id;
+  node&                 m_node;
+  pinkind               m_kind;
+  std::type_info const& m_type;
+
+ public:
+  pin(node& n, std::type_info const& type, pinkind kind)
+      : m_id{boost::hash<boost::uuids::uuid>{}(
+            boost::uuids::random_generator()())},
+        m_node{n},
+        m_kind{kind},
+        m_type{type} {}
+
+  auto id() const {
+    return m_id;
+  }
+  auto node() const -> auto const& {
+    return m_node;
+  }
+  auto node() -> auto& {
+    return m_node;
+  }
+  auto kind() const {
+    return m_kind;
+  }
+  auto type() const -> auto const& {
+    return m_type;
+  }
+};
+//==============================================================================
+template <typename T>
+auto make_input_pin(node& n) {
+  return pin{n, typeid(std::decay_t<T>), pinkind::input};
+}
+//------------------------------------------------------------------------------
+template <typename T>
+auto make_output_pin(node& n) {
+  return pin{n, typeid(std::decay_t<T>), pinkind::output};
+}
+//==============================================================================
+}  // namespace tatooine::flowexplorer::ui
+//==============================================================================
+#include "node.h"
+#endif
