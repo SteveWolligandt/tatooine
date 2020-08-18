@@ -63,25 +63,6 @@ struct window : first_person_window {
   //----------------------------------------------------------------------------
   window() : m_show_nodes_gui{true} {
     m_node_editor_context = ax::NodeEditor::CreateEditor();
-    add_key_pressed_event([&](auto k) {
-      if (k == yavin::KEY_SPACE) {
-        m_show_nodes_gui = !m_show_nodes_gui;
-      }
-      if (k == yavin::KEY_SPACE) {
-        // try {
-        //  shader = std::make_unique<gpu::line_shader>(
-        //    line_color[0], line_color[1], line_color[2], contour_color[0],
-        //    contour_color[1], contour_color[2], line_width, contour_width,
-        //    ambient_factor, diffuse_factor, specular_factor, shininess);
-        //} catch (std::exception& e) { std::cerr << e.what() << '\n'; }
-      }
-    });
-    add_mouse_motion_event([&](int x, int y) {
-      mouse_x = x;
-      mouse_y = y;
-    });
-    add_button_released_event([&](auto b) {});
-
     start();
   }
   //----------------------------------------------------------------------------
@@ -89,16 +70,14 @@ struct window : first_person_window {
     ax::NodeEditor::DestroyEditor(m_node_editor_context);
   }
   //============================================================================
+  void on_key_pressed(yavin::key k) override {
+    first_person_window::on_key_pressed(k);
+    if (k == yavin::KEY_F1) {
+      m_show_nodes_gui = !m_show_nodes_gui;
+    }
+  }
   void start() {
     render_loop([&](const auto& dt) {
-      // if (shader->files_changed()) {
-      //  try {
-      //    shader = std::make_unique<gpu::line_shader>(
-      //        line_color[0], line_color[1], line_color[2], contour_color[0],
-      //        contour_color[1], contour_color[2], line_width, contour_width,
-      //        ambient_factor, diffuse_factor, specular_factor, shininess);
-      //  } catch (std::exception& e) { std::cerr << e.what() << '\n'; }
-      //}
       yavin::gl::clear_color(255, 255, 255, 255);
       yavin::clear_color_depth_buffer();
       for (auto& r : m_renderables) {
