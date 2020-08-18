@@ -69,6 +69,7 @@ struct node {
     ed::EndNode();
   }
   virtual void on_pin_connected(pin& this_pin, pin& other_pin) {}
+  virtual void on_pin_disconnected(pin& this_pin) {}
 };
 //==============================================================================
 }  // namespace tatooine::flowexplorer::ui

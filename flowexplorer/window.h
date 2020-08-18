@@ -173,10 +173,13 @@ struct window : first_person_window {
     if (ImGui::Button("add bounding box")) {
       m_renderables.emplace_back(
           new boundingbox{*this, vec{-1.0, -1.0, -1.0}, vec{1.0, 1.0, 1.0}});
+      std::cerr << "inserted boundingbox: " << m_renderables.back().get()
+                << '\n';
     }
     if (ImGui::Button("add random pathlines")) {
-      m_renderables.emplace_back(
-          std::make_unique<random_pathlines<double, 3>>(*this, v));
+      m_renderables.emplace_back(new random_pathlines<double, 3>{*this, v});
+      std::cerr << "inserted random_pathlines: " << m_renderables.back().get()
+                << '\n';
     }
     // Start interaction with editor.
     ed::Begin("My Editor", ImVec2(0.0, 0.0f));
@@ -261,6 +264,10 @@ struct window : first_person_window {
           // Then remove link from your data.
           for (auto& link : m_links) {
             if (link.id == deletedLinkId) {
+              ui::pin* input_pin  = find_pin(link.input_id);
+              ui::pin* output_pin = find_pin(link.output_id);
+              input_pin->node().on_pin_disconnected(*input_pin);
+              output_pin->node().on_pin_disconnected(*output_pin);
               m_links.erase(&link);
               break;
             }
