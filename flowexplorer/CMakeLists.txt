@@ -11,6 +11,8 @@ add_executable(
   imgui-node-editor/imgui_canvas.cpp
   imgui-node-editor/imgui_node_editor_api.cpp
   imgui-node-editor/imgui_node_editor.cpp)
+add_custom_target(flowexplorer.run
+  ./flowexplorer DEPENDS flowexplorer)
 target_link_libraries(flowexplorer tatooine yavin)
 target_compile_features(flowexplorer PUBLIC cxx_std_17)
 target_include_directories(flowexplorer
