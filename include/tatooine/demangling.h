@@ -5,6 +5,10 @@
 //==============================================================================
 namespace tatooine{
 //==============================================================================
+inline auto type_name(std::type_info const& t) -> std::string {
+  return boost::core::demangle(t.name());
+}
+//------------------------------------------------------------------------------
 /// returns demangled typename
 template <typename T>
 inline auto type_name(T && /*t*/) -> std::string {

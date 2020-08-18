@@ -14,14 +14,17 @@ struct node;
 struct pin {
  private:
   ax::NodeEditor::PinId m_id;
+  std::string           m_name;
   node&                 m_node;
   pinkind               m_kind;
   std::type_info const& m_type;
 
  public:
-  pin(node& n, std::type_info const& type, pinkind kind)
+  pin(node& n, std::type_info const& type, pinkind kind,
+      std::string const& name)
       : m_id{boost::hash<boost::uuids::uuid>{}(
             boost::uuids::random_generator()())},
+        m_name{name},
         m_node{n},
         m_kind{kind},
         m_type{type} {}
@@ -35,6 +38,12 @@ struct pin {
   auto node() -> auto& {
     return m_node;
   }
+  auto name() -> auto& {
+    return m_name;
+  }
+  auto name() const -> auto const& {
+    return m_name;
+  }
   auto kind() const {
     return m_kind;
   }
@@ -44,13 +53,13 @@ struct pin {
 };
 //==============================================================================
 template <typename T>
-auto make_input_pin(node& n) {
-  return pin{n, typeid(std::decay_t<T>), pinkind::input};
+auto make_input_pin(node& n, std::string const& name) {
+  return pin{n, typeid(std::decay_t<T>), pinkind::input, name};
 }
 //------------------------------------------------------------------------------
 template <typename T>
-auto make_output_pin(node& n) {
-  return pin{n, typeid(std::decay_t<T>), pinkind::output};
+auto make_output_pin(node& n, std::string const& name) {
+  return pin{n, typeid(std::decay_t<T>), pinkind::output, name};
 }
 //==============================================================================
 }  // namespace tatooine::flowexplorer::ui

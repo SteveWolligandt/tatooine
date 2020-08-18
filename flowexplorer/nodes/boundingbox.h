@@ -1,13 +1,11 @@
-#ifndef TATOOINE_FLOWEXPLORER_BOUNDINGBOX_H
-#define TATOOINE_FLOWEXPLORER_BOUNDINGBOX_H
+#ifndef TATOOINE_FLOWEXPLORER_NODES_BOUNDINGBOX_H
+#define TATOOINE_FLOWEXPLORER_NODES_BOUNDINGBOX_H
 //==============================================================================
 #include <tatooine/boundingbox.h>
 #include <yavin/imgui.h>
 #include <yavin/indexeddata.h>
-
-#include "../ui/node.h"
-#include "line_shader.h"
 #include "../renderable.h"
+#include "line_shader.h"
 //==============================================================================
 namespace tatooine::flowexplorer::nodes {
 //==============================================================================
@@ -26,7 +24,7 @@ struct boundingbox : tatooine::boundingbox<Real, N>, renderable {
   std::array<GLfloat, 4>                   m_color{0.0f, 0.0f, 0.0f, 1.0f};
   //============================================================================
   boundingbox(struct window& w)
-      : renderable{w} {}
+      : renderable{w, "Bounding Box"} {}
   boundingbox(const boundingbox&)     = default;
   boundingbox(boundingbox&&) noexcept = default;
   auto operator=(const boundingbox&) -> boundingbox& = default;
@@ -36,8 +34,8 @@ struct boundingbox : tatooine::boundingbox<Real, N>, renderable {
   constexpr boundingbox(struct window& w, vec<Real0, N>&& min,
                         vec<Real1, N>&& max) noexcept
       : parent_t{std::move(min), std::move(max)},
-        renderable{w} {
-    this->template insert_output_pin<this_t>();
+        renderable{w, "Bounding Box"} {
+    this->template insert_output_pin<this_t>("Out");
     create_indexed_data();
   }
   //----------------------------------------------------------------------------
@@ -45,8 +43,8 @@ struct boundingbox : tatooine::boundingbox<Real, N>, renderable {
   constexpr boundingbox(struct window& w, const vec<Real0, N>& min,
                         const vec<Real1, N>& max)
       : parent_t{min, max},
-        renderable{w} {
-    insert_output_node<this_t>();
+        renderable{w, "Bounding Box"} {
+    insert_output_node<this_t>("Out");
     create_indexed_data();
   }
   //----------------------------------------------------------------------------
@@ -55,8 +53,8 @@ struct boundingbox : tatooine::boundingbox<Real, N>, renderable {
                         const base_tensor<Tensor0, Real0, N>& min,
                         const base_tensor<Tensor1, Real1, N>& max)
       : parent_t{min, max},
-        renderable{w} {
-    insert_output_node<this_t>();
+        renderable{w, "Bounding Box"} {
+    insert_output_node<this_t>("Out");
     create_indexed_data();
   }
   //============================================================================
@@ -86,10 +84,6 @@ struct boundingbox : tatooine::boundingbox<Real, N>, renderable {
       ImGui::DragInt("line size", &m_linewidth, 1, 1, 10);
       ImGui::ColorEdit4("line color", m_color.data());
     });
-  }
-  //----------------------------------------------------------------------------
-  std::string name() const override {
-    return "Bounding Box";
   }
   //============================================================================
   void set_vbo_data() {

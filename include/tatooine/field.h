@@ -64,6 +64,8 @@ struct field {
     return evaluate(x, t);
   }
 };  // field
+template <typename Real, size_t N, size_t C = N>
+using vectorfield = field<Real, N, C>;
 //╘══════════════════════════════════════════════════════════════════════════╛
 }  // namespace tatooine::parent
 //╚════════════════════════════════════════════════════════════════════════════╝

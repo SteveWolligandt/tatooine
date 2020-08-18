@@ -1,10 +1,11 @@
-#ifndef TATOOINE_FLOWEXPLORER_RANDOM_PATHLINES_H
-#define TATOOINE_FLOWEXPLORER_RANDOM_PATHLINES_H
+#ifndef TATOOINE_FLOWEXPLORER_NODES_RANDOM_PATHLINES_H
+#define TATOOINE_FLOWEXPLORER_NODES_RANDOM_PATHLINES_H
 //==============================================================================
 #include <tatooine/boundingbox.h>
 #include <tatooine/gpu/line_renderer.h>
 #include <tatooine/gpu/line_shader.h>
 #include <tatooine/ode/vclibs/rungekutta43.h>
+#include "../renderable.h"
 
 #include <mutex>
 //==============================================================================
@@ -19,11 +20,11 @@ struct random_pathlines : renderable {
   using integrator_t  = ode::vclibs::rungekutta43<Real, N>;
   //----------------------------------------------------------------------------
 
-  const vectorfield_t&                                        m_v;
-  integrator_t                                                m_integrator;
+  vectorfield_t const*                                        m_v = nullptr;
+  boundingbox<Real, N>* m_boundingbox                             = nullptr;
+  integrator_t          m_integrator;
   std::unique_ptr<gpu::line_shader>                           m_shader;
   yavin::indexeddata<yavin::vec3, yavin::vec3, yavin::scalar> m_gpu_data;
-  boundingbox<Real, N>* m_boundingbox = nullptr;
   double                m_btau, m_ftau;
   int                   m_num_pathlines;
   float                 m_line_color[3];
@@ -43,9 +44,8 @@ struct random_pathlines : renderable {
   float                 m_speed;
   bool                  m_integration_going_on = false;
   //----------------------------------------------------------------------------
-  random_pathlines(struct window& w, const vectorfield_t& v)
-      : renderable{w},
-        m_v{v},
+  random_pathlines(struct window& w)
+      : renderable{w, "Random Path Lines"},
         m_shader{std::make_unique<gpu::line_shader>(
             m_line_color[0], m_line_color[1], m_line_color[2], m_contour_color[0],
             m_contour_color[1], m_contour_color[2], m_line_width, m_contour_width,
@@ -68,7 +68,8 @@ struct random_pathlines : renderable {
         m_animation_min_alpha{0.05f},
         m_time{0.0f},
         m_speed{1.0f} {
-    this->template insert_input_pin<boundingbox<Real, N>>();
+    this->template insert_input_pin<vectorfield_t>("3D Vector Field");
+    this->template insert_input_pin<boundingbox<Real, N>>("Bounding Box");
   }
   //----------------------------------------------------------------------------
   void render(const yavin::mat4& projection_matrix,
@@ -176,19 +177,23 @@ struct random_pathlines : renderable {
         auto const x0 = rp->m_boundingbox->random_point();
         double const t0 = 0;
         insert_segment  = false;
-        rp->m_integrator.solve(rp->m_v, x0, t0, rp->m_btau, callback);
+        rp->m_integrator.solve(*rp->m_v, x0, t0, rp->m_btau, callback);
         insert_segment = false;
-        rp->m_integrator.solve(rp->m_v, x0, t0, rp->m_ftau, callback);
+        rp->m_integrator.solve(*rp->m_v, x0, t0, rp->m_ftau, callback);
       }
       rp->m_integration_going_on = false;
     });
   }
   //----------------------------------------------------------------------------
-  std::string name() const override { return "path lines"; }
-  //----------------------------------------------------------------------------
   void on_pin_connected(ui::pin& this_pin, ui::pin& other_pin) override {
-    m_boundingbox = dynamic_cast<boundingbox<Real, N>*>(&other_pin.node());
-    integrate_lines();
+    if (other_pin.type() == typeid(boundingbox<Real, N>)) {
+      m_boundingbox = dynamic_cast<boundingbox<Real, N>*>(&other_pin.node());
+    } else if ((other_pin.type() == typeid(vectorfield_t))) {
+      m_v = dynamic_cast<vectorfield_t*>(&other_pin.node());
+    }
+    if (m_boundingbox != nullptr && m_v != nullptr) {
+      integrate_lines();
+    }
   }
   //----------------------------------------------------------------------------
   void on_pin_disconnected(ui::pin& this_pin) override {
