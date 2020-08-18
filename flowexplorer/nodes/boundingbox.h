@@ -5,11 +5,11 @@
 #include <yavin/imgui.h>
 #include <yavin/indexeddata.h>
 
-#include "ui/node.h"
+#include "../ui/node.h"
 #include "line_shader.h"
-#include "renderable.h"
+#include "../renderable.h"
 //==============================================================================
-namespace tatooine::flowexplorer {
+namespace tatooine::flowexplorer::nodes {
 //==============================================================================
 template <typename Real, size_t N>
 struct boundingbox : tatooine::boundingbox<Real, N>, renderable {

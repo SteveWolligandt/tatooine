@@ -6,9 +6,8 @@
 #include <tatooine/gpu/first_person_window.h>
 #include <tatooine/interpolation.h>
 
-#include "boundingbox.h"
-#include "grid.h"
-#include "random_pathlines.h"
+#include "nodes/boundingbox.h"
+#include "nodes/random_pathlines.h"
 //==============================================================================
 namespace tatooine::flowexplorer {
 //==============================================================================
@@ -65,7 +64,6 @@ struct window : first_person_window {
     add_key_pressed_event([&](auto k) {
       if (k == yavin::KEY_SPACE) {
         show_nodes_gui = !show_nodes_gui;
-        std::cerr << show_nodes_gui << '\n';
       }
       if (k == yavin::KEY_SPACE) {
         // try {
@@ -171,15 +169,12 @@ struct window : first_person_window {
     ed::SetCurrentEditor(m_node_editor_context);
 
     if (ImGui::Button("add bounding box")) {
-      m_renderables.emplace_back(
-          new boundingbox{*this, vec{-1.0, -1.0, -1.0}, vec{1.0, 1.0, 1.0}});
-      std::cerr << "inserted boundingbox: " << m_renderables.back().get()
-                << '\n';
+      m_renderables.emplace_back(new nodes::boundingbox{
+          *this, vec{-1.0, -1.0, -1.0}, vec{1.0, 1.0, 1.0}});
     }
     if (ImGui::Button("add random pathlines")) {
-      m_renderables.emplace_back(new random_pathlines<double, 3>{*this, v});
-      std::cerr << "inserted random_pathlines: " << m_renderables.back().get()
-                << '\n';
+      m_renderables.emplace_back(
+          new nodes::random_pathlines<double, 3>{*this, v});
     }
     // Start interaction with editor.
     ed::Begin("My Editor", ImVec2(0.0, 0.0f));

@@ -8,7 +8,7 @@
 
 #include <mutex>
 //==============================================================================
-namespace tatooine::flowexplorer {
+namespace tatooine::flowexplorer::nodes {
 //==============================================================================
 template <typename Real, size_t N>
 struct random_pathlines : renderable {
@@ -55,7 +55,7 @@ struct random_pathlines : renderable {
         m_num_pathlines{100},
         m_line_color{1.0f, 0.0f, 0.0f},
         m_contour_color{0.0f, 0.0f, 0.0f},
-        m_line_width{0.02f},
+        m_line_width{0.04f},
         m_contour_width{0.005f},
         m_ambient_factor{0.1f},
         m_diffuse_factor{0.9f},
@@ -73,7 +73,6 @@ struct random_pathlines : renderable {
   //----------------------------------------------------------------------------
   void render(const yavin::mat4& projection_matrix,
               const yavin::mat4& view_matrix) override {
-    //if(!m_integration_going_on){
     if (m_animate || m_general_alpha < 1) {
       yavin::enable_blending();
       yavin::blend_func_alpha();
@@ -85,7 +84,6 @@ struct random_pathlines : renderable {
     update_shader(projection_matrix, view_matrix);
     m_shader->bind();
     m_gpu_data.draw_lines();
-  //}
   }
   //----------------------------------------------------------------------------
   void update(const std::chrono::duration<double>& dt) override {
