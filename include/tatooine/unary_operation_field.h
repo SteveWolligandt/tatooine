@@ -13,7 +13,7 @@ struct unary_operation_field
             Real, N> {
   using this_t   = unary_operation_field<InternalField, PosOp, TimeOp, TensorOp,
                                        Real, N, TensorDims...>;
-  using parent_t = vectorfield<this_t, Real, N, TensorDims...>;
+  using parent_t = field<this_t, Real, N, TensorDims...>;
   using typename parent_t::pos_t;
   using typename parent_t::tensor_t;
   static constexpr auto holds_field_pointer = std::is_pointer_v<InternalField>;
@@ -48,15 +48,16 @@ struct unary_operation_field
   unary_operation_field() : m_field{nullptr} {}
 
   //----------------------------------------------------------------------------
-  constexpr tensor_t evaluate(pos_t const& x, Real const t) const override {
+  constexpr auto evaluate(pos_t const& x, Real const t) const
+      -> tensor_t override {
     if constexpr (holds_field_pointer) {
-      return m_unary_op(m_field->evaluate(m_pos_op(x), m_time_op(t)));
+      return m_tensor_op(m_field->evaluate(m_pos_op(x), m_time_op(t)));
     } else {
-      return m_unary_op(m_field.evaluate(m_pos_op(x), m_time_op(t)));
+      return m_tensor_op(m_field.evaluate(m_pos_op(x), m_time_op(t)));
     }
   }
   //----------------------------------------------------------------------------
-  constexpr bool in_domain(const pos_t& x, Real /*t*/) const override {
+  constexpr auto in_domain(const pos_t& x, Real t) const -> bool override {
     if constexpr (holds_field_pointer) {
       return m_field->in_domain(m_pos_op(x), m_time_op(t));
     } else {
@@ -67,40 +68,69 @@ struct unary_operation_field
   template <typename V, typename _F = InternalField,
             std::enable_if_t<std::is_pointer_v<_F>, bool>             = true,
             std::enable_if_t<std::is_same_v<_F, InternalField>, bool> = true>
-  void set_field(vectorfield<V, Real, N> const& v) {
+  void set_field(field<V, Real, N, TensorDims...> const& v) {
     m_field = &v;
   }
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
   template <typename _F                                   = InternalField,
             std::enable_if_t<std::is_pointer_v<_F>, bool> = true,
             std::enable_if_t<std::is_same_v<_F, InternalField>, bool> = true>
-  void set_field(parent::vectorfield<Real, N> const& v) {
+  void set_field(parent::field<Real, N, TensorDims...> const& v) {
     m_field = &v;
   }
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
   template <typename _F                                   = InternalField,
             std::enable_if_t<std::is_pointer_v<_F>, bool> = true,
             std::enable_if_t<std::is_same_v<_F, InternalField>, bool> = true>
-  void set_field(parent::vectorfield<Real, N> const* v) {
+  void set_field(parent::field<Real, N, TensorDims...> const* v) {
     m_field = v;
   }
 };
-//~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+//==============================================================================
+namespace detail {
+//==============================================================================
+template <typename Field, typename PosOp, typename TimeOp, typename TensorOp,
+          typename PosReal, size_t PosN,
+          typename TimeReal,
+          typename TenTensor, typename TenReal, size_t TenN,
+          size_t... TensorDims>
+constexpr auto unary_operation_field_constructor_impl(
+    Field&& field, PosOp&& pos_op, TimeOp&& time_op, TensorOp&& tensor_op,
+    vec<PosReal, PosN> const&,
+    TimeReal const,
+    base_tensor<TenTensor, TenReal, TenN, TensorDims...> const&) {
+  static_assert(std::is_same_v<PosReal, TimeReal>);
+  static_assert(std::is_same_v<PosReal, TenReal>);
+  return unary_operation_field<Field, PosOp, TimeOp, TensorOp, PosReal, PosN,
+                               TensorDims...>{
+         std::forward<Field>(field), std::forward<PosOp>(pos_op),
+          std::forward<TimeOp>(time_op), std::forward<TensorOp>(tensor_op)};
+}
+template <typename Field, typename PosOp, typename TimeOp, typename TensorOp>
+struct unary_operation_field_constructor {
+  using type = decltype(unary_operation_field_constructor_impl(
+      std::declval<Field>(), std::declval<PosOp>(), std::declval<TimeOp>(),
+      std::declval<TensorOp>(),
+      std::declval<std::invoke_result_t<PosOp, typename Field::pos_t>>(),
+      std::declval<std::invoke_result_t<TimeOp, typename Field::real_t>>(),
+      std::declval<
+          std::invoke_result_t<TensorOp, typename Field::tensor_t>>()));
+};
+//==============================================================================
+}  // namespace detail
+//==============================================================================
 template <typename Field, typename Real, size_t N, size_t... TensorDims,
           typename PosOp, typename TimeOp, typename TensorOp>
-unary_operation_field(field<Field, Real, N, TensorDims...> const&,
-                      PosOp&& pos_op, TimeOp&& time_op, TensorOp&& tensor_op)
-    -> unary_operation_field<Field, PosOp, TimeOp, TensorOp, RealOut, NOut,
-                             TensorDimsOut...>;
-// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-template <typename Field, typename Real, size_t N, size_t... TensorDims,
-          typename PosOp, typename TimeOp, typename TensorOp>
-unary_operation_field(parent::field<Real, N, TensorDims...> const*)
-    -> unary_operation_field<parent::field<Real, N, TensorDims...> const*,
-                             PosOp, TimeOp, TensorOp, RealOut, NOut,
-                             TensorDimsOut...>;
+constexpr auto make_unary_operation_field(
+    field<Field, Real, N, TensorDims...> const& f, PosOp&& pos_op,
+    TimeOp&& time_op, TensorOp&& tensor_op) {
+  return
+      typename detail::unary_operation_field_constructor<Field, PosOp, TimeOp,
+                                                         TensorOp>::type{
+          f.as_derived(), std::forward<PosOp>(pos_op),
+          std::forward<TimeOp>(time_op), std::forward<TensorOp>(tensor_op)};
+}
 //==============================================================================
 }  // namespace tatooine
 //==============================================================================
-
 #endif

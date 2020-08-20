@@ -3,98 +3,98 @@
 #include "field.h"
 //╔════════════════════════════════════════════════════════════════════════════╗
 namespace tatooine {
-//╒══════════════════════════════════════════════════════════════════════════╕
-//│ unary_operation_field                                                    │
-template <typename V, typename Op, typename Real, size_t N,
-          size_t... TensorDims>
-struct unary_operation_field
-    : field<unary_operation_field<V, Op, Real, N, TensorDims...>, Real, N,
-            TensorDims...> {
-  //┌──────────────────────────────────────────────────────────────────────┐
-  //│ typedefs                                                             │
-  //├──────────────────────────────────────────────────────────────────────┤
-  using this_t   = unary_operation_field<V, Op, Real, N, TensorDims...>;
-  using parent_t = field<this_t, Real, N, TensorDims...>;
-  using typename parent_t::pos_t;
-  using typename parent_t::tensor_t;
-  //┌──────────────────────────────────────────────────────────────────────┐
-  //│ members                                                              │
-  //├──────────────────────────────────────────────────────────────────────┤
- private:
-  V  m_v;
-  Op m_op;
-  //┌──────────────────────────────────────────────────────────────────────┐
-  //│ ctors                                                                │
-  //├──────────────────────────────────────────────────────────────────────┤
- public:
-  constexpr unary_operation_field(const unary_operation_field&) = default;
-  constexpr unary_operation_field(unary_operation_field&&) noexcept = default;
-  template <typename V_, typename Op_>
-  constexpr unary_operation_field(V_&& v, Op_&& op)
-      : m_v{std::forward<V_>(v)}, m_op{std::forward<Op_>(op)} {}
-  //┌──────────────────────────────────────────────────────────────────────┐
-  //│ assignment operators                                                 │
-  //├──────────────────────────────────────────────────────────────────────┤
- public:
-  constexpr auto operator=(const unary_operation_field&)
-    -> unary_operation_field& = default;
-  constexpr auto operator=(unary_operation_field &&) noexcept
-    ->unary_operation_field& = default;
-  //┌──────────────────────────────────────────────────────────────────────┐
-  //│ dtor                                                                 │
-  //├──────────────────────────────────────────────────────────────────────┤
- public:
-  ~unary_operation_field() override = default;
-  //┌──────────────────────────────────────────────────────────────────────┐
-  //│ methods                                                              │
-  //├──────────────────────────────────────────────────────────────────────┤
-  //├╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌┤
-  auto evaluate(const pos_t& x, Real t) const -> tensor_t override {
-    return m_op(m_v(x, t));
-  }
-  //├╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌┤
-  auto in_domain(const pos_t& x, Real t) const -> bool override {
-    return m_v.in_domain(x, t);
-  }
-};
-//╞══════════════════════════════════════════════════════════════════════════╡
-//│ unary field operations                                                   │
-//╞══════════════════════════════════════════════════════════════════════════╡
-template <typename RealOut, size_t NOut, size_t... TensorDimsOut, typename V,
-          typename Real, size_t    N, size_t... TensorDims, typename Op>
-constexpr auto make_unary_operation_field(
-    const field<V, Real, N, TensorDims...>& f, const Op& op) {
-  return unary_operation_field<const field<V, Real, N, TensorDims...>&,
-                               const Op&, RealOut, NOut, TensorDimsOut...>{f,
-                                                                           op};
-}
-//├╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌┤
-template <typename RealOut, size_t NOut, size_t... TensorDimsOut, typename V,
-          typename Real, size_t    N, size_t... TensorDims, typename Op>
-constexpr auto make_unary_operation_field(field<V, Real, N, TensorDims...>&& f,
-                                          const Op& op) {
-  return unary_operation_field<field<V, Real, N, TensorDims...>, const Op&,
-                               RealOut, NOut, TensorDimsOut...>{std::move(f),
-                                                                op};
-}
-//├╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌┤
-template <typename RealOut, size_t NOut, size_t... TensorDimsOut, typename V,
-          typename Real, size_t    N, size_t... TensorDims, typename Op>
-constexpr auto make_unary_operation_field(
-    const field<V, Real, N, TensorDims...>& f, Op&& op) {
-  return unary_operation_field<const field<V, Real, N, TensorDims...>&, Op&&,
-                               RealOut, NOut, TensorDimsOut...>{f,
-                                                                std::move(op)};
-}
-//├╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌┤
-template <typename RealOut, size_t NOut, size_t... TensorDimsOut, typename V,
-          typename Real, size_t    N, size_t... TensorDims, typename Op>
-constexpr auto make_unary_operation_field(field<V, Real, N, TensorDims...>&& f,
-                                          Op&& op) {
-  return unary_operation_field<field<V, Real, N, TensorDims...>, Op, RealOut,
-                               NOut, TensorDimsOut...>{std::move(f),
-                                                       std::move(op)};
-}
+////╒══════════════════════════════════════════════════════════════════════════╕
+////│ unary_operation_field                                                    │
+//template <typename V, typename Op, typename Real, size_t N,
+//          size_t... TensorDims>
+//struct unary_operation_field
+//    : field<unary_operation_field<V, Op, Real, N, TensorDims...>, Real, N,
+//            TensorDims...> {
+//  //┌──────────────────────────────────────────────────────────────────────┐
+//  //│ typedefs                                                             │
+//  //├──────────────────────────────────────────────────────────────────────┤
+//  using this_t   = unary_operation_field<V, Op, Real, N, TensorDims...>;
+//  using parent_t = field<this_t, Real, N, TensorDims...>;
+//  using typename parent_t::pos_t;
+//  using typename parent_t::tensor_t;
+//  //┌──────────────────────────────────────────────────────────────────────┐
+//  //│ members                                                              │
+//  //├──────────────────────────────────────────────────────────────────────┤
+// private:
+//  V  m_v;
+//  Op m_op;
+//  //┌──────────────────────────────────────────────────────────────────────┐
+//  //│ ctors                                                                │
+//  //├──────────────────────────────────────────────────────────────────────┤
+// public:
+//  constexpr unary_operation_field(const unary_operation_field&) = default;
+//  constexpr unary_operation_field(unary_operation_field&&) noexcept = default;
+//  template <typename V_, typename Op_>
+//  constexpr unary_operation_field(V_&& v, Op_&& op)
+//      : m_v{std::forward<V_>(v)}, m_op{std::forward<Op_>(op)} {}
+//  //┌──────────────────────────────────────────────────────────────────────┐
+//  //│ assignment operators                                                 │
+//  //├──────────────────────────────────────────────────────────────────────┤
+// public:
+//  constexpr auto operator=(const unary_operation_field&)
+//    -> unary_operation_field& = default;
+//  constexpr auto operator=(unary_operation_field &&) noexcept
+//    ->unary_operation_field& = default;
+//  //┌──────────────────────────────────────────────────────────────────────┐
+//  //│ dtor                                                                 │
+//  //├──────────────────────────────────────────────────────────────────────┤
+// public:
+//  ~unary_operation_field() override = default;
+//  //┌──────────────────────────────────────────────────────────────────────┐
+//  //│ methods                                                              │
+//  //├──────────────────────────────────────────────────────────────────────┤
+//  //├╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌┤
+//  auto evaluate(const pos_t& x, Real t) const -> tensor_t override {
+//    return m_op(m_v(x, t));
+//  }
+//  //├╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌┤
+//  auto in_domain(const pos_t& x, Real t) const -> bool override {
+//    return m_v.in_domain(x, t);
+//  }
+//};
+////╞══════════════════════════════════════════════════════════════════════════╡
+////│ unary field operations                                                   │
+////╞══════════════════════════════════════════════════════════════════════════╡
+//template <typename RealOut, size_t NOut, size_t... TensorDimsOut, typename V,
+//          typename Real, size_t    N, size_t... TensorDims, typename Op>
+//constexpr auto make_unary_operation_field(
+//    const field<V, Real, N, TensorDims...>& f, const Op& op) {
+//  return unary_operation_field<const field<V, Real, N, TensorDims...>&,
+//                               const Op&, RealOut, NOut, TensorDimsOut...>{f,
+//                                                                           op};
+//}
+////├╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌┤
+//template <typename RealOut, size_t NOut, size_t... TensorDimsOut, typename V,
+//          typename Real, size_t    N, size_t... TensorDims, typename Op>
+//constexpr auto make_unary_operation_field(field<V, Real, N, TensorDims...>&& f,
+//                                          const Op& op) {
+//  return unary_operation_field<field<V, Real, N, TensorDims...>, const Op&,
+//                               RealOut, NOut, TensorDimsOut...>{std::move(f),
+//                                                                op};
+//}
+////├╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌┤
+//template <typename RealOut, size_t NOut, size_t... TensorDimsOut, typename V,
+//          typename Real, size_t    N, size_t... TensorDims, typename Op>
+//constexpr auto make_unary_operation_field(
+//    const field<V, Real, N, TensorDims...>& f, Op&& op) {
+//  return unary_operation_field<const field<V, Real, N, TensorDims...>&, Op&&,
+//                               RealOut, NOut, TensorDimsOut...>{f,
+//                                                                std::move(op)};
+//}
+////├╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌┤
+//template <typename RealOut, size_t NOut, size_t... TensorDimsOut, typename V,
+//          typename Real, size_t    N, size_t... TensorDims, typename Op>
+//constexpr auto make_unary_operation_field(field<V, Real, N, TensorDims...>&& f,
+//                                          Op&& op) {
+//  return unary_operation_field<field<V, Real, N, TensorDims...>, Op, RealOut,
+//                               NOut, TensorDimsOut...>{std::move(f),
+//                                                       std::move(op)};
+//}
 //╘══════════════════════════════════════════════════════════════════════════╛
 //╒══════════════════════════════════════════════════════════════════════════╕
 //│ binary_operation_field                                                   │
