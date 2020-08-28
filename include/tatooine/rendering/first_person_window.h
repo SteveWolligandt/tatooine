@@ -1,25 +1,24 @@
-#ifndef TATOOINE_FIRST_PERSON_WINDOW_H
-#define TATOOINE_FIRST_PERSON_WINDOW_H
+#ifndef TATOOINE_RENDERING_FIRST_PERSON_WINDOW_H
+#define TATOOINE_RENDERING_FIRST_PERSON_WINDOW_H
 //==============================================================================
 #include <tatooine/holder.h>
 #include <tatooine/ray.h>
+#include <tatooine/rendering/perspective_camera.h>
 #include <yavin/glwrapper.h>
-#include <yavin/perspectivecamera.h>
-#include <yavin/vec.h>
 #include <yavin/window.h>
 
 #include <chrono>
 #include <cmath>
 //==============================================================================
-namespace tatooine {
+namespace tatooine::rendering {
 //==============================================================================
 struct first_person_window : yavin::window {
   using parent_t = yavin::window;
-  bool                     m_run;
-  GLsizei                  m_width, m_height;
-  yavin::vec3              m_eye, m_look_dir, m_up;
-  float                    m_theta = M_PI, m_phi = M_PI / 2;
-  yavin::perspectivecamera m_cam;
+  bool                                 m_run;
+  GLsizei                              m_width, m_height;
+  vec<float, 3>                        m_eye, m_look_dir, m_up;
+  float                                m_theta = M_PI, m_phi = M_PI / 2;
+  perspective_camera<float>            m_cam;
   std::chrono::time_point<std::chrono::system_clock> m_time =
       std::chrono::system_clock::now();
   int                                       m_mouse_pos_x, m_mouse_pos_y;
@@ -31,15 +30,16 @@ struct first_person_window : yavin::window {
   bool                                      m_q_down             = false;
   bool                                      m_e_down             = false;
   //============================================================================
-  first_person_window(GLsizei width = 800, GLsizei height = 600)
+  first_person_window(size_t width = 800, size_t height = 600)
       : yavin::window{"tatooine first person window", width, height},
         m_run{true},
         m_width{width},
         m_height{height},
-        m_eye{0, 0, 0},
-        m_look_dir{0, 0, -1},
-        m_up{0, 1, 0},
-        m_cam{60,    (float)(width) / (float)(height), 0.01f, 1000.0f, width,
+        m_cam{vec{0.0f, 0.0f, 0.0f},
+              vec{0.0f, 0.0f, -1.0f},
+              vec{0.0f, 1.0f, 0.0f},
+              60.0f,
+              width,
               height},
         m_time{std::chrono::system_clock::now()} {
     yavin::enable_depth_test();
@@ -58,7 +58,7 @@ struct first_person_window : yavin::window {
     m_time = std::chrono::system_clock::now();
     while (m_run) {
       refresh();
-      yavin::gl::viewport(m_cam);
+      yavin::gl::viewport(0, 0, m_width, m_height);
       update(std::forward<Event>(event),
              std::chrono::system_clock::now() - m_time);
       render_imgui();
@@ -98,10 +98,6 @@ struct first_person_window : yavin::window {
   //----------------------------------------------------------------------------
   auto projection_matrix() const {
     return m_cam.projection_matrix();
-  }
-  //----------------------------------------------------------------------------
-  auto view_matrix() const {
-    return *inverse(look_at_matrix(m_eye, m_eye + m_look_dir));
   }
   //============================================================================
   void on_key_pressed(yavin::key k) override {
@@ -176,25 +172,8 @@ struct first_person_window : yavin::window {
     m_height = h;
     m_cam.set_projection(60, (float)(w) / (float)(h), 0.1f, 1000.0f, w, h);
   }
-  //----------------------------------------------------------------------------
-  auto cast_ray(float x, float y) const {
-    // from http://antongerdelan.net/opengl/raycasting.html
-    auto ray_eye =
-        *inverse(projection_matrix()) *
-        yavin::vec4{
-            2 * m_mouse_pos_x / float(m_width - 1) - 1,
-            2 * (m_height - m_mouse_pos_y - 1) / float(m_height - 1) - 1, -1,
-            1};
-    ray_eye(2) = -1;
-    ray_eye(3) = 0;
-
-    auto const ray_wor = look_at_matrix(m_eye, m_eye + m_look_dir) * ray_eye;
-
-    return ray{vec3{m_eye(0), m_eye(1), m_eye(2)},
-               normalize(vec3{ray_wor(0), ray_wor(1), ray_wor(2)})};
-  }
 };
 //==============================================================================
-}  // namespace tatooine
+}  // namespace tatooine::rendering
 //==============================================================================
 #endif

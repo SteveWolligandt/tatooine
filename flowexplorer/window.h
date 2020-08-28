@@ -1,17 +1,17 @@
 #ifndef TATOOINE_FLOWEXPLORER_WINDOW_H
 #define TATOOINE_FLOWEXPLORER_WINDOW_H
 //==============================================================================
-#include "imgui-node-editor/imgui_node_editor.h"
-
 #include <tatooine/boundingbox.h>
 #include <tatooine/demangling.h>
-#include <tatooine/gpu/first_person_window.h>
+#include <tatooine/rendering/first_person_window.h>
 #include <tatooine/interpolation.h>
 
+#include "imgui-node-editor/imgui_node_editor.h"
 #include "nodes/abcflow.h"
 #include "nodes/boundingbox.h"
 #include "nodes/doublegyre.h"
 #include "nodes/random_pathlines.h"
+#include "nodes/rayleigh_benard_convection.h"
 #include "nodes/spacetime_vectorfield.h"
 //==============================================================================
 namespace tatooine::flowexplorer {
@@ -118,6 +118,9 @@ struct window : first_person_window {
   void node_creators() {
     if (ImGui::Button("ABC Flow")) {
       m_renderables.emplace_back(new nodes::abcflow<double>{*this});
+    }
+    if (ImGui::Button("Rayleigh Benard Convection")) {
+      m_renderables.emplace_back(new nodes::rayleigh_benard_convection<double>{*this});
     }
     ImGui::SameLine();
     if (ImGui::Button("Doublegyre Flow")) {
