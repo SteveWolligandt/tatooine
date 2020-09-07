@@ -33,7 +33,7 @@ auto show_label(const char* label, ImColor color) {
   ImGui::TextUnformatted(label);
 }
 //==============================================================================
-struct window : first_person_window {
+struct window : rendering::first_person_window {
   struct NodeIdLess {
     bool operator()(const ax::NodeEditor::NodeId& lhs,
                     const ax::NodeEditor::NodeId& rhs) const {

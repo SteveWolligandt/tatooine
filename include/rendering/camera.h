@@ -20,10 +20,19 @@ class camera : public movable {
   GLsizei    m_vp_w, m_vp_h;
 
  public:
-  camera(const mat4& proj_mat, GLint vp_x, GLint vp_y, GLsizei vp_w, GLsizei vp_h)
-      : m_projection_matrix{proj_mat}, m_vp_x{vp_x}, m_vp_y{vp_y}, m_vp_w{vp_w}, m_vp_h{vp_h} {}
+  camera(const mat4& proj_mat, GLint vp_x, GLint vp_y, GLsizei vp_w,
+         GLsizei vp_h)
+      : m_projection_matrix{proj_mat},
+        m_vp_x{vp_x},
+        m_vp_y{vp_y},
+        m_vp_w{vp_w},
+        m_vp_h{vp_h} {}
   camera(const mat4& proj_mat, GLsizei vp_w, GLsizei vp_h)
-      : m_projection_matrix{proj_mat}, m_vp_x{0}, m_vp_y{0}, m_vp_w{vp_w}, m_vp_h{vp_h} {}
+      : m_projection_matrix{proj_mat},
+        m_vp_x{0},
+        m_vp_y{0},
+        m_vp_w{vp_w},
+        m_vp_h{vp_h} {}
 
   auto&       projection_matrix() { return m_projection_matrix; }
   const auto& projection_matrix() const { return m_projection_matrix; }

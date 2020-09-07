@@ -1,8 +1,8 @@
 #ifndef TATOOINE_RENDERING_PERSPECTIVE_CAMERA_H
 #define TATOOINE_RENDERING_PERSPECTIVE_CAMERA_H
 //==============================================================================
-#include <tatooine/camera.h>
 #include <tatooine/ray.h>
+#include <tatooine/rendering/camera.h>
 #include <tatooine/rendering/matrices.h>
 #include <tatooine/vec.h>
 
@@ -22,7 +22,8 @@ class perspective_camera : public camera<Real> {
   using real_t   = Real;
   using parent_t = camera<real_t>;
   using this_t   = perspective_camera<real_t>;
-  using vec3_t   = vec<real_t, 3>;
+  using vec3     = vec<real_t, 3>;
+  using mat4     = mat<real_t, 4, 4>;
 
  private:
   //----------------------------------------------------------------------------
@@ -32,11 +33,10 @@ class perspective_camera : public camera<Real> {
   //----------------------------------------------------------------------------
   // member variables
   //----------------------------------------------------------------------------
-  vec3_t m_eye, m_lookat, m_up;
-  vec3_t m_bottom_left;
-  vec3_t m_plane_base_x, m_plane_base_y;
+  vec3   m_eye, m_lookat, m_up;
+  vec3   m_bottom_left;
+  vec3   m_plane_base_x, m_plane_base_y;
   real_t m_fov;
-  size_t m_res_x, m_res_y;
 
  public:
   //----------------------------------------------------------------------------
@@ -44,23 +44,21 @@ class perspective_camera : public camera<Real> {
   //----------------------------------------------------------------------------
   /// Constructor generates bottom left image plane pixel position and pixel
   /// offset size.
-  perspective_camera(vec3_t const& eye, vec3_t const& lookat, vec3_t const& up,
+  perspective_camera(vec3 const& eye, vec3 const& lookat, vec3 const& up,
                      real_t const fov, size_t const res_x, size_t const res_y)
       : parent_t{res_x, res_y},
         m_eye{eye},
         m_lookat{lookat},
         m_up{up},
-        m_fov{fov},
-        m_res_x{res_x},
-        m_res_y{res_y} {
+        m_fov{fov} {
     setup();
   }
   //----------------------------------------------------------------------------
   /// Constructor generates bottom left image plane pixel position and pixel
   /// offset size.
-  perspective_camera(vec3_t const& eye, vec3_t const& lookat, real_t fov,
+  perspective_camera(vec3 const& eye, vec3 const& lookat, real_t fov,
                      size_t res_x, size_t res_y)
-      : perspective_camera(eye, lookat, vec3_t{0, 1, 0}, fov, res_x, res_y) {}
+      : perspective_camera(eye, lookat, vec3{0, 1, 0}, fov, res_x, res_y) {}
   //----------------------------------------------------------------------------
   ~perspective_camera() override = default;
   //----------------------------------------------------------------------------
@@ -77,58 +75,99 @@ class perspective_camera : public camera<Real> {
     return {{m_eye}, {view_plane_point - m_eye}};
   }
   //============================================================================
+ private:
   void setup() {
-    vec3_t const view_dir = normalize(m_lookat - m_eye);
-    vec3_t const u        = cross(m_up, view_dir);
-    vec3_t const v        = cross(view_dir, u);
+    vec3 const   view_dir = normalize(m_lookat - m_eye);
+    vec3 const   u        = cross(m_up, view_dir);
+    vec3 const   v        = cross(view_dir, u);
     real_t const plane_half_width =
         std::tan(m_fov / real_t(2) * real_t(M_PI) / real_t(180));
-    real_t const plane_half_height = plane_half_width * aspect_ratio();
+    real_t const plane_half_height = plane_half_width * this->aspect_ratio();
     m_bottom_left =
         m_eye + view_dir - u * plane_half_width - v * plane_half_height;
-    m_plane_base_x = u * 2 * plane_half_width / (m_res_x - 1);
-    m_plane_base_y = v * 2 * plane_half_height / (m_res_y - 1);
+    m_plane_base_x = u * 2 * plane_half_width / (this->plane_width() - 1);
+    m_plane_base_y = v * 2 * plane_half_height / (this->plane_height() - 1);
   }
   //----------------------------------------------------------------------------
-  auto aspect_ratio() const {
-    return static_cast<real_t>(m_res_x) / static_cast<real_t>(m_res_y);
+ public:
+  void set_eye(vec3 const& eye) {
+    m_eye = eye;
+    setup();
+  }
+  //------------------------------------------------------------------------------
+  void set_resolution(size_t const res_x, size_t const res_y) {
+    parent_t::set_resolution(res_x, res_y);
+    setup();
+  }
+  //------------------------------------------------------------------------------
+  void set_lookat(vec3 const lookat) {
+    m_lookat = lookat;
+    setup();
+  }
+  //------------------------------------------------------------------------------
+  void set_up(vec3 const up) {
+    m_up = up;
+    setup();
+  }
+  //------------------------------------------------------------------------------
+  void set_fov(real_t const fov) {
+    m_fov = fov;
+    setup();
+  }
+  //----------------------------------------------------------------------------
+  void look_at(vec3 const& eye, vec3 const& lookat,
+               vec3 const& up = {0, 1, 0}) {
+    m_eye    = eye;
+    m_lookat = lookat;
+    m_up     = up;
+    setup();
+  }
+  //------------------------------------------------------------------------------
+  void look_at(vec3 const& eye, vec3 const& lookat, vec3 const& up,
+               real_t fov) {
+    m_eye    = eye;
+    m_lookat = lookat;
+    m_up     = up;
+    m_fov    = fov;
+    setup();
+  }
+  //----------------------------------------------------------------------------
+  void setup(vec3 const& eye, vec3 const& lookat, vec3 const& up, real_t fov,
+             size_t res_x, size_t res_y) {
+    this->set_resolution(res_x, res_y);
+    m_eye    = eye;
+    m_lookat = lookat;
+    m_up     = up;
+    m_fov    = fov;
+    setup();
   }
   //----------------------------------------------------------------------------
   std::unique_ptr<parent_t> clone() const override {
     return std::unique_ptr<this_t>(new this_t{*this});
   }
   //----------------------------------------------------------------------------
-  auto projection_matrix(Real const near, Real const far) const
-      -> mat<Real, 4, 4> {
+  auto projection_matrix(real_t const near, real_t const far) const
+      -> mat4 {
     real_t const plane_half_width =
-        std::tan(m_fov / real_t(2) * real_t(M_PI) / real_t(180));
-    real_t const r = aspect_ratio() * plane_half_width;
+        std::tan(m_fov / real_t(2) * real_t(M_PI) / real_t(180)) * near;
+    real_t const r = this->aspect_ratio() * plane_half_width;
     real_t const l = -r;
     real_t const t = plane_half_width;
     real_t const b = -t;
-    return {{2 * near / (r - l), Real(0), (r + l) / (r - l), Real(0)},
-            {Real(0), 2 * near / (t - b), (t + b) / (t - b), Real(0)},
-            {Real(0), Real(0), -(far + near) / (far - near),
+    return {{2 * near / (r - l), real_t(0), (r + l) / (r - l), real_t(0)},
+            {real_t(0), 2 * near / (t - b), (t + b) / (t - b), real_t(0)},
+            {real_t(0), real_t(0), -(far + near) / (far - near),
              -2 * far * near / (far - near)},
-            {Real(0), Real(0), Real(-1), Real(0)}};
+            {real_t(0), real_t(0), real_t(-1), real_t(0)}};
   }
   //----------------------------------------------------------------------------
-  auto transform_matrix(Real const near, Real const far) const
-      -> mat<Real, 4, 4> {
+  auto transform_matrix(real_t const near, real_t const far) const
+      -> mat4 {
     return look_at_matrix(m_eye, m_lookat, m_up);
   }
   //----------------------------------------------------------------------------
-  auto view_matrix(Real const near, Real const far) const
-      -> mat<Real, 4, 4> {
-    return inverse(transform_matrix(near, far));
-  }
-  //----------------------------------------------------------------------------
-  void look_at(vec3_t const& eye, vec3_t const& lookat,
-               vec3_t const& up = {0, 1, 0}) {
-    m_eye    = eye;
-    m_lookat = lookat;
-    m_up     = up;
-    setup();
+  auto view_matrix(real_t const near, real_t const far) const -> mat4 {
+    return inv(transform_matrix(near, far));
   }
 };
 //==============================================================================

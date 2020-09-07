@@ -2,6 +2,7 @@
 #define TATOOINE_LINE_SHADER_H
 //==============================================================================
 #include <yavin/shader.h>
+#include <tatooine/mat.h>
 
 #include <string_view>
 #include <filesystem>
@@ -54,12 +55,12 @@ struct line_shader : yavin::shader {
     return false;
   }
   //------------------------------------------------------------------------------
-  void set_projection_matrix(const yavin::mat4& projection_matrix) {
-    set_uniform("projection_matrix", projection_matrix);
+  void set_projection_matrix(mat<float, 4, 4> const& projection_matrix) {
+    set_uniform_mat4("projection_matrix", projection_matrix.data_ptr());
   }
   //------------------------------------------------------------------------------
-  void set_modelview_matrix(const yavin::mat4& modelview_matrix) {
-    set_uniform("modelview_matrix", modelview_matrix);
+  void set_modelview_matrix(mat<float, 4, 4> const& modelview_matrix) {
+    set_uniform_mat4("modelview_matrix", modelview_matrix.data_ptr());
   }
   //------------------------------------------------------------------------------
   void set_line_color(float r, float g, float b) {

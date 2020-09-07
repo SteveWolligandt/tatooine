@@ -13,12 +13,12 @@ template <typename Real, size_t N>
 struct boundingbox : tatooine::boundingbox<Real, N>, renderable {
   using this_t   = boundingbox<Real, N>;
   using parent_t = tatooine::boundingbox<Real, N>;
-  using gpu_vec  = yavin::vec<float, N>;
+  using gpu_vec  = vec<float, N>;
   using vbo_t    = yavin::vertexbuffer<gpu_vec>;
   using parent_t::max;
   using parent_t::min;
   //============================================================================
-  yavin::indexeddata<yavin::vec<float, N>> m_gpu_data;
+  yavin::indexeddata<vec<float, N>>        m_gpu_data;
   line_shader                              m_shader;
   int                                      m_linewidth = 1;
   std::array<GLfloat, 4>                   m_color{0.0f, 0.0f, 0.0f, 1.0f};
@@ -58,8 +58,8 @@ struct boundingbox : tatooine::boundingbox<Real, N>, renderable {
     create_indexed_data();
   }
   //============================================================================
-  void render(const yavin::mat4& projection_matrix,
-              const yavin::mat4& view_matrix) override {
+  void render(mat<float, 4, 4> const& projection_matrix,
+              mat<float, 4, 4> const& view_matrix) override {
     set_vbo_data();
     m_shader.bind();
     m_shader.set_color(m_color[0], m_color[1], m_color[2], m_color[3]);
@@ -88,22 +88,14 @@ struct boundingbox : tatooine::boundingbox<Real, N>, renderable {
   //============================================================================
   void set_vbo_data() {
     auto vbomap = m_gpu_data.vertexbuffer().map();
-    yavin::get<0>(vbomap[0]) =
-        gpu_vec{float(min(0)), float(min(1)), float(min(2))};
-    yavin::get<0>(vbomap[1]) =
-        gpu_vec{float(max(0)), float(min(1)), float(min(2))};
-    yavin::get<0>(vbomap[2]) =
-        gpu_vec{float(min(0)), float(max(1)), float(min(2))};
-    yavin::get<0>(vbomap[3]) =
-        gpu_vec{float(max(0)), float(max(1)), float(min(2))};
-    yavin::get<0>(vbomap[4]) =
-        gpu_vec{float(min(0)), float(min(1)), float(max(2))};
-    yavin::get<0>(vbomap[5]) =
-        gpu_vec{float(max(0)), float(min(1)), float(max(2))};
-    yavin::get<0>(vbomap[6]) =
-        gpu_vec{float(min(0)), float(max(1)), float(max(2))};
-    yavin::get<0>(vbomap[7]) =
-        gpu_vec{float(max(0)), float(max(1)), float(max(2))};
+    vbomap[0]   = gpu_vec{float(min(0)), float(min(1)), float(min(2))};
+    vbomap[1]   = gpu_vec{float(max(0)), float(min(1)), float(min(2))};
+    vbomap[2]   = gpu_vec{float(min(0)), float(max(1)), float(min(2))};
+    vbomap[3]   = gpu_vec{float(max(0)), float(max(1)), float(min(2))};
+    vbomap[4]   = gpu_vec{float(min(0)), float(min(1)), float(max(2))};
+    vbomap[5]   = gpu_vec{float(max(0)), float(min(1)), float(max(2))};
+    vbomap[6]   = gpu_vec{float(min(0)), float(max(1)), float(max(2))};
+    vbomap[7]   = gpu_vec{float(max(0)), float(max(1)), float(max(2))};
   }
   //----------------------------------------------------------------------------
   void create_indexed_data() {

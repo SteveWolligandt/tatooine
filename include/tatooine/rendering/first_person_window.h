@@ -14,11 +14,11 @@ namespace tatooine::rendering {
 //==============================================================================
 struct first_person_window : yavin::window {
   using parent_t = yavin::window;
-  bool                                 m_run;
-  GLsizei                              m_width, m_height;
-  vec<float, 3>                        m_eye, m_look_dir, m_up;
-  float                                m_theta = M_PI, m_phi = M_PI / 2;
-  perspective_camera<float>            m_cam;
+  bool                      m_run;
+  size_t                    m_width, m_height;
+  vec<float, 3>             m_eye, m_look_dir, m_up;
+  float                     m_theta = M_PI, m_phi = M_PI / 2;
+  perspective_camera<float> m_cam;
   std::chrono::time_point<std::chrono::system_clock> m_time =
       std::chrono::system_clock::now();
   int                                       m_mouse_pos_x, m_mouse_pos_y;
@@ -31,7 +31,7 @@ struct first_person_window : yavin::window {
   bool                                      m_e_down             = false;
   //============================================================================
   first_person_window(size_t width = 800, size_t height = 600)
-      : yavin::window{"tatooine first person window", width, height},
+      : yavin::window{"tatooine first person window", GLsizei(width), GLsizei(height)},
         m_run{true},
         m_width{width},
         m_height{height},
@@ -85,11 +85,11 @@ struct first_person_window : yavin::window {
       m_eye(1) -= 1 / ms;
     }
     if (m_a_down) {
-      auto const right = cross(yavin::vec3{0, 1, 0}, -m_look_dir);
+      auto const right = cross(vec{0, 1, 0}, -m_look_dir);
       m_eye -= right / ms;
     }
     if (m_d_down) {
-      auto const right = cross(yavin::vec3{0, 1, 0}, -m_look_dir);
+      auto const right = cross(vec{0, 1, 0}, -m_look_dir);
       m_eye += right / ms;
     }
     m_cam.look_at(m_eye, m_eye + m_look_dir + 0.1);
@@ -97,7 +97,11 @@ struct first_person_window : yavin::window {
   }
   //----------------------------------------------------------------------------
   auto projection_matrix() const {
-    return m_cam.projection_matrix();
+    return m_cam.projection_matrix(0.001, 1000);
+  }
+  //----------------------------------------------------------------------------
+  auto view_matrix() const {
+    return m_cam.view_matrix(0.001, 1000);
   }
   //============================================================================
   void on_key_pressed(yavin::key k) override {
@@ -156,7 +160,7 @@ struct first_person_window : yavin::window {
       m_theta -= offset_x * 0.01f;
       m_phi      = std::min<float>(M_PI - 0.3f,
                               std::max(0.3f, m_phi + offset_y * 0.01f));
-      m_look_dir = yavin::vec3{
+      m_look_dir = vec{
           std::sin(m_phi) * std::sin(m_theta),
           std::cos(m_phi),
           std::sin(m_phi) * std::cos(m_theta),
@@ -170,7 +174,7 @@ struct first_person_window : yavin::window {
     parent_t::on_resize(w, h);
     m_width  = w;
     m_height = h;
-    m_cam.set_projection(60, (float)(w) / (float)(h), 0.1f, 1000.0f, w, h);
+    m_cam.set_resolution(w, h);
   }
 };
 //==============================================================================

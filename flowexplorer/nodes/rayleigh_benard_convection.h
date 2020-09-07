@@ -15,11 +15,11 @@ struct rayleigh_benard_convection
       : renderable{w, "Rayleigh Benard Convection"} {
     this->template insert_output_pin<parent::field<Real, 3, 3>>("Field Out");
   }
-  void render(const yavin::mat4&, const yavin::mat4&) override {}
+  void render(mat<float, 4, 4> const&, mat<float, 4, 4> const&) override {}
   void draw_ui() override {
     ui::node::draw_ui([this] {
-      ImGui::SliderDouble("A", &this->A());
-      ImGui::SliderDouble("k", &this->k());
+      ImGui::DragDouble("A", &this->A());
+      ImGui::DragDouble("k", &this->k());
     });
   }
 };

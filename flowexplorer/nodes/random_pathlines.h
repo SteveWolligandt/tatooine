@@ -20,36 +20,37 @@ struct random_pathlines : renderable {
   using integrator_t  = ode::vclibs::rungekutta43<Real, N>;
   //----------------------------------------------------------------------------
 
-  vectorfield_t const*                                        m_v = nullptr;
-  boundingbox<Real, N>* m_boundingbox                             = nullptr;
-  integrator_t          m_integrator;
-  std::unique_ptr<gpu::line_shader>                           m_shader;
-  yavin::indexeddata<yavin::vec3, yavin::vec3, yavin::scalar> m_gpu_data;
-  double                m_btau, m_ftau;
-  int                   m_num_pathlines;
-  float                 m_line_color[3];
-  float                 m_contour_color[3];
-  float                 m_line_width;
-  float                 m_contour_width;
-  float                 m_ambient_factor;
-  float                 m_diffuse_factor;
-  float                 m_specular_factor;
-  float                 m_shininess;
-  bool                  m_animate;
-  bool                  m_play;
-  float                 m_fade_length;
-  float                 m_general_alpha;
-  float                 m_animation_min_alpha;
-  float                 m_time;
-  float                 m_speed;
-  bool                  m_integration_going_on = false;
+  vectorfield_t const*              m_v           = nullptr;
+  boundingbox<Real, N>*             m_boundingbox = nullptr;
+  integrator_t                      m_integrator;
+  std::unique_ptr<gpu::line_shader> m_shader;
+  yavin::indexeddata<vec<float, 3>, vec<float, 3>, float> m_gpu_data;
+  double                                                  m_btau, m_ftau;
+  int                                                     m_num_pathlines;
+  float                                                   m_line_color[3];
+  float                                                   m_contour_color[3];
+  float                                                   m_line_width;
+  float                                                   m_contour_width;
+  float                                                   m_ambient_factor;
+  float                                                   m_diffuse_factor;
+  float                                                   m_specular_factor;
+  float                                                   m_shininess;
+  bool                                                    m_animate;
+  bool                                                    m_play;
+  float                                                   m_fade_length;
+  float                                                   m_general_alpha;
+  float                                                   m_animation_min_alpha;
+  float                                                   m_time;
+  float                                                   m_speed;
+  bool m_integration_going_on = false;
   //----------------------------------------------------------------------------
   random_pathlines(struct window& w)
       : renderable{w, "Random Path Lines"},
         m_shader{std::make_unique<gpu::line_shader>(
-            m_line_color[0], m_line_color[1], m_line_color[2], m_contour_color[0],
-            m_contour_color[1], m_contour_color[2], m_line_width, m_contour_width,
-            m_ambient_factor, m_diffuse_factor, m_specular_factor, m_shininess)},
+            m_line_color[0], m_line_color[1], m_line_color[2],
+            m_contour_color[0], m_contour_color[1], m_contour_color[2],
+            m_line_width, m_contour_width, m_ambient_factor, m_diffuse_factor,
+            m_specular_factor, m_shininess)},
         m_btau{-10},
         m_ftau{10},
         m_num_pathlines{100},
@@ -72,8 +73,8 @@ struct random_pathlines : renderable {
     this->template insert_input_pin<boundingbox<Real, N>>("Bounding Box");
   }
   //----------------------------------------------------------------------------
-  void render(const yavin::mat4& projection_matrix,
-              const yavin::mat4& view_matrix) override {
+  void render(mat<float, 4, 4> const& projection_matrix,
+              mat<float, 4, 4> const& view_matrix) override {
     if (m_animate || m_general_alpha < 1) {
       yavin::enable_blending();
       yavin::blend_func_alpha();
@@ -127,8 +128,8 @@ struct random_pathlines : renderable {
     });
   }
   //----------------------------------------------------------------------------
-  void update_shader(const yavin::mat4& projection_matrix,
-                     const yavin::mat4& view_matrix) {
+  void update_shader(mat<float, 4, 4> const& projection_matrix,
+                     mat<float, 4, 4> const& view_matrix) {
     m_shader->set_modelview_matrix(view_matrix);
     m_shader->set_projection_matrix(projection_matrix);
     m_shader->set_line_color(m_line_color[0], m_line_color[1], m_line_color[2]);
@@ -159,10 +160,10 @@ struct random_pathlines : renderable {
                                                     auto const& dy) {
         //std::lock_guard lock{rp->m_gpu_data.mutex()};
         rp->m_gpu_data.vertexbuffer().push_back(
-            yavin::vec3{static_cast<float>(y(0)), static_cast<float>(y(1)),
-                        static_cast<float>(y(2))},
-            yavin::vec3{static_cast<float>(dy(0)), static_cast<float>(dy(1)),
-                        static_cast<float>(dy(2))},
+            vec<float, 3>{static_cast<float>(y(0)), static_cast<float>(y(1)),
+                          static_cast<float>(y(2))},
+            vec<float, 3>{static_cast<float>(dy(0)), static_cast<float>(dy(1)),
+                          static_cast<float>(dy(2))},
             static_cast<float>(t));
         if (insert_segment) {
           rp->m_gpu_data.indexbuffer().push_back(index - 1);

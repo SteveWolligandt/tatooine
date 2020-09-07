@@ -55,7 +55,8 @@ constexpr auto scale_matrix(const vec<Real, 3>& s) {
 }
 //------------------------------------------------------------------------------
 template <typename Real>
-constexpr mat<Real, 4, 4> rotation_matrix(Real angle, Real u, Real v, Real w) {
+constexpr auto rotation_matrix(Real angle, Real u, Real v, Real w)
+    -> mat<Real, 4, 4> {
   const Real s = std::sin(angle);
   const Real c = std::cos(angle);
   return {{u * u + (v * v + w * w) * c, u * v * (1 - c) - w * s,
@@ -73,9 +74,9 @@ constexpr auto rotation_matrix(Real angle, const vec<Real, 3>& axis) {
 }
 //------------------------------------------------------------------------------
 template <typename Real>
-constexpr mat<Real, 4, 4> orthographic_matrix(const Real l, const Real r,
-                                              const Real b, const Real t,
-                                              const Real n, const Real f) {
+constexpr auto orthographic_matrix(const Real l, const Real r, const Real b,
+                                   const Real t, const Real n, const Real f)
+    -> mat<Real, 4, 4> {
   return {{2 / (r - l), Real(0), Real(0), -(r + l) / (r - l)},
           {Real(0), 2 / (t - b), Real(0), -(t + b) / (t - b)},
           {Real(0), Real(0), -2 / (f - n), -(f + n) / (f - n)},
@@ -83,11 +84,10 @@ constexpr mat<Real, 4, 4> orthographic_matrix(const Real l, const Real r,
 }
 //------------------------------------------------------------------------------
 template <typename Real>
-mat<Real, 4, 4> look_at_matrix(const vec<Real, 3>& eye,
-                               const vec<Real, 3>& center,
-                               const vec<Real, 3>& up = {0, 1, 0}) {
+auto look_at_matrix(const vec<Real, 3>& eye, const vec<Real, 3>& center,
+                    const vec<Real, 3>& up = {0, 1, 0}) -> mat<Real, 4, 4> {
   const auto D = normalize(eye - center);
-  const auto R = cross(up, D);
+  const auto R = normalize(cross(up, D));
   const auto U = cross(D, R);
   return {{R(0), U(0), D(0), eye(0)},
           {R(1), U(1), D(1), eye(1)},

@@ -8,9 +8,7 @@ namespace tatooine::gpu {
 //==============================================================================
 template <typename Real, size_t N, template <typename> typename Interpolator>
 auto upload(const parameterized_line<Real, N, Interpolator>& l) {
-  using gpu_t = yavin::indexeddata<yavin::vec<float, N>,
-                                   yavin::vec<float, N>,
-                                   yavin::Scalar<float>>;
+  using gpu_t = yavin::indexeddata<vec<float, N>, vec<float, N>, float>;
   typename gpu_t::vbo_data_vec vbo_data;
   vbo_data.reserve(l.num_vertices());
   typename gpu_t::ibo_data_vec ibo_data;
@@ -20,7 +18,7 @@ auto upload(const parameterized_line<Real, N, Interpolator>& l) {
     const auto& pos = l.vertex_at(i);
     const auto tan = l.tangent_at(i);
     const auto t = l.parameterization_at(i);
-    yavin::vec<float, N> ypos, ytan;
+    vec<float, N> ypos, ytan;
     for (size_t j = 0; j < N; ++j) {
       ypos(j) = static_cast<float>(pos(j));
       ytan(j) = static_cast<float>(tan(j));
@@ -37,9 +35,7 @@ auto upload(const parameterized_line<Real, N, Interpolator>& l) {
 //------------------------------------------------------------------------------
 template <typename Real, size_t N, template <typename> typename Interpolator>
 auto upload(const std::vector<parameterized_line<Real, N, Interpolator>>& ls) {
-  using gpu_t = yavin::indexeddata<yavin::vec<float, N>,
-                                   yavin::vec<float, N>,
-                                   yavin::Scalar<float>>;
+  using gpu_t = yavin::indexeddata<vec<float, N>, vec<float, N>, float>;
   std::vector<gpu_t> uploads;
   uploads.reserve(ls.size());
   for (const auto& l : ls) { uploads.push_back(upload(l)); }

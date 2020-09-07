@@ -11,7 +11,7 @@ struct doublegyre : tatooine::analytical::fields::numerical::doublegyre<Real>, r
   doublegyre(struct window& w) : renderable{w, "Double Gyre"} {
     this->template insert_output_pin<parent::vectorfield<Real, 2>>("Field Out");
   }
-  void render(const yavin::mat4&, const yavin::mat4&) override {}
+  void render(mat<float, 4, 4> const&, mat<float, 4, 4> const&) override {}
   void draw_ui() override {
     ui::node::draw_ui([this] {});
   }

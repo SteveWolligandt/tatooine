@@ -17,7 +17,7 @@ struct spacetime_vectorfield
     this->template insert_input_pin<parent::vectorfield<Real, 2>>("2D Vector Field");
     this->template insert_output_pin<parent::vectorfield<Real, 3>>("3D Vector Field");
   }
-  void render(const yavin::mat4&, const yavin::mat4&) override {}
+  void render(mat<float, 4, 4> const&, mat<float, 4, 4> const&) override {}
   void draw_ui() override {
     ui::node::draw_ui([this] {});
   }

@@ -1,12 +1,12 @@
-#ifndef CG_CAMERA_H
-#define CG_CAMERA_H
+#ifndef TATOOINE_RENDERING_CAMERA_H
+#define TATOOINE_RENDERING_CAMERA_H
 //==============================================================================
 #include <tatooine/ray.h>
 #include <tatooine/clonable.h>
 #include <tatooine/concepts.h>
 #include <array>
 //==============================================================================
-namespace tatooine {
+namespace tatooine::rendering {
 //==============================================================================
 /// \brief Interface for camera implementations.
 ///
@@ -17,9 +17,11 @@ class camera : public clonable<camera<Real>> {
   //----------------------------------------------------------------------------
   // member variables
   //----------------------------------------------------------------------------
-  const std::array<size_t, 2> m_resolution;
+  std::array<size_t, 2> m_resolution;
+
  public:
   using this_t            = camera<Real>;
+  using real_t            = Real;
   using parent_clonable_t = clonable<camera<Real>>;
   //----------------------------------------------------------------------------
   // constructors / destructor
@@ -30,10 +32,20 @@ class camera : public clonable<camera<Real>> {
   // object methods
   //----------------------------------------------------------------------------
   /// Returns number of pixels of plane in x-direction.
-  size_t plane_width() const { return m_resolution[0]; }
+  auto plane_width() const { return m_resolution[0]; }
   //----------------------------------------------------------------------------
   /// Returns number of pixels of plane in y-direction.
-  size_t plane_height() const { return m_resolution[1]; }
+  auto plane_height() const { return m_resolution[1]; }
+  //----------------------------------------------------------------------------
+  auto aspect_ratio() const {
+    return static_cast<real_t>(m_resolution[0]) /
+           static_cast<real_t>(m_resolution[1]);
+  }
+  //----------------------------------------------------------------------------
+  auto set_resolution(size_t width, size_t height) {
+    m_resolution[0] = width;
+    m_resolution[1] = height;
+  }
   //----------------------------------------------------------------------------
   // interface methods
   //----------------------------------------------------------------------------

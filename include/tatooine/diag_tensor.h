@@ -103,7 +103,7 @@ constexpr auto diag_rect(base_tensor<Tensor, Real, VecN>&& t) {
 // free functions
 //==============================================================================
 template <typename Tensor, size_t N>
-auto inverse(diag_tensor<Tensor, N, N> const& A) {
+auto inv(diag_tensor<Tensor, N, N> const& A) {
   using value_type = typename std::decay_t<Tensor>::value_type;
   return diag_tensor<vec<value_type, N>, N, N>{value_type(1) / A.internal_tensor()};
 }
