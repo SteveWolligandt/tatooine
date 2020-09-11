@@ -1,5 +1,5 @@
 # Predefined Analytical Fields
-## Double Gyre
+#### Double Gyre
 ``` c++
 #include <tatooine/analytical/fields/numerical/doublegyre.h>
 void use_doublegyre() {
@@ -23,6 +23,6 @@ void apply_some_operation() {
 ```
 
 # Algorithms
-## Marching Cubes
-## Parallel Vectors
-## Stream Surface
+#### Marching Cubes
+#### Parallel Vectors
+#### Stream Surface
