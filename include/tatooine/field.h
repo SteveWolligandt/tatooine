@@ -19,6 +19,7 @@ struct field {
   using real_t   = Real;
   using this_t   = field<Real, N, TensorDims...>;
   using pos_t    = vec<Real, N>;
+  using time_t   = Real;
   using tensor_t = std::conditional_t<sizeof...(TensorDims) == 0, Real,
                                       tensor_type<Real, TensorDims...>>;
   //┌──────────────────────────────────────────────────────────────────────┐

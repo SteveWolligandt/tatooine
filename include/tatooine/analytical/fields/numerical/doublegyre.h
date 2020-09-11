@@ -13,6 +13,7 @@ template <typename Real>
 struct doublegyre : vectorfield<doublegyre<Real>, Real, 2> {
   using this_t   = doublegyre<Real>;
   using parent_t = vectorfield<this_t, Real, 2>;
+  using typename parent_t::real_t;
   using typename parent_t::pos_t;
   using typename parent_t::tensor_t;
   //============================================================================
@@ -50,6 +51,42 @@ struct doublegyre : vectorfield<doublegyre<Real>, Real, 2> {
   }
   //----------------------------------------------------------------------------
   constexpr void set_infinite_domain(bool v) { m_infinite_domain = v; }
+  //----------------------------------------------------------------------------
+  auto epsilon() const {
+    return m_epsilon;
+  }
+  // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+  auto epsilon() -> auto& {
+    return m_epsilon;
+  }
+  // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+  auto set_epsilon(real_t const epsilon) {
+    m_epsilon = epsilon;
+  }
+  //----------------------------------------------------------------------------
+  auto omega() const {
+    return m_omega;
+  }
+  // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+  auto omega() -> auto& {
+    return m_omega;
+  }
+  // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+  auto set_omega(real_t const omega) {
+    m_omega = omega;
+  }
+  //----------------------------------------------------------------------------
+  auto A() const {
+    return m_A;
+  }
+  // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+  auto A() -> auto& {
+    return m_A;
+  }
+  // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+  auto set_A(real_t const A) {
+    m_A = A;
+  }
 };
 
 doublegyre()->doublegyre<double>;

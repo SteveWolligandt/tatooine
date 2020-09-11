@@ -1,5 +1,4 @@
-﻿---
-BasedOnStyle: Google
+﻿BasedOnStyle: Google
 AlignAfterOpenBracket: Align
 AlignConsecutiveMacros: 'true'
 AlignConsecutiveAssignments: 'true'
@@ -22,5 +21,3 @@ SortIncludes: 'true'
 Standard: Auto
 TabWidth: '2'
 UseTab: Never
-
-...
