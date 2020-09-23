@@ -1,4 +1,5 @@
 //#include <tatooine/analytical/fields/numerical/autonomous_particles_test_field.h>
+#include <tatooine/analytical/fields/numerical/sinuscosinus.h>
 #include <tatooine/analytical/fields/numerical/center.h>
 #include <tatooine/analytical/fields/numerical/doublegyre.h>
 #include <tatooine/analytical/fields/numerical/saddle.h>
@@ -10,7 +11,7 @@ namespace tatooine::gpu::test {
 //==============================================================================
 TEST_CASE("gpu_lic_doublegyre", "[gpu][dg][doublegyre][lic]") {
   analytical::fields::numerical::doublegyre v;
-  gpu::lic(v, linspace{0.0, 2.0, 2000}, linspace{0.0, 1.0, 1000}, 0.0,
+  gpu::lic(v, linspace{0.0, 2.0, 2000}, linspace{0.0, 1.0, 1000}, 1.0,
            vec<size_t, 2>{1000, 500}, 30, 0.001)
       .write_png("dg_lic.png");
 }
@@ -27,6 +28,16 @@ TEST_CASE("gpu_lic_center", "[gpu][center][lic]") {
   gpu::lic(v, linspace{-1.0, 1.0, 501}, linspace{-1.0, 1.0, 501}, 0.0,
            vec<size_t, 2>{1000, 1000}, 30, 0.001)
       .write_png("center_lic.png");
+}
+//==============================================================================
+TEST_CASE("gpu_lic_sinuscosinus", "[gpu][sinuscosinus][lic]") {
+  analytical::fields::numerical::sinuscosinus v;
+  gpu::lic(v, linspace{-1.0, 1.0, 501}, linspace{-1.0, 1.0, 501}, 0.0,
+           vec<size_t, 2>{1000, 1000}, 30, 0.001)
+      .write_png("sinuscosinus_lic_0.png");
+  gpu::lic(v, linspace{-1.0, 1.0, 501}, linspace{-1.0, 1.0, 501}, M_PI/2,
+           vec<size_t, 2>{1000, 1000}, 30, 0.001)
+      .write_png("sinuscosinus_lic_pi2.png");
 }
 //==============================================================================
 //TEST_CASE("gpu_lic_autonomous_particles_test_field",

@@ -2,6 +2,8 @@
 #define TATOOINE_ANALYTICAL_FIELDS_NUMERICAL_CENTER_FIELD_H
 //==============================================================================
 #include <tatooine/field.h>
+#include <tatooine/numerical_flowmap.h>
+#include <tatooine/ode/vclibs/rungekutta43.h>
 //==============================================================================
 namespace tatooine::analytical::fields::numerical {
 //==============================================================================

@@ -1,55 +1,10 @@
 #ifndef TATOOINE_TENSOR_TYPE_TRAITS_H
 #define TATOOINE_TENSOR_TYPE_TRAITS_H
 //==============================================================================
-#include <tatooine/tensor.h>
+#include <tatooine/base_tensor.h>
 //==============================================================================
-namespace tatooine  {
+namespace tatooine {
 //==============================================================================
-template <typename T>
-struct is_tensor : std::false_type {};
-//------------------------------------------------------------------------------
-template <typename Tensor, typename Real, size_t... Dims>
-struct is_tensor<base_tensor<Tensor, Real, Dims...>> : std::true_type {};
-//------------------------------------------------------------------------------
-template <typename Real, size_t... Dims>
-struct is_tensor<tensor<Real, Dims...>> : std::true_type {};
-//------------------------------------------------------------------------------
-template <typename Real, size_t N>
-struct is_tensor<vec<Real, N>> : std::true_type {};
-//------------------------------------------------------------------------------
-template <typename Real, size_t M, size_t N>
-struct is_tensor<mat<Real, M, N>> : std::true_type {};
-//~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-template <typename T>
-static constexpr auto is_tensor_v = is_tensor<T>::value;
-//~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-template <typename... Ts>
-using enable_if_tensor = std::enable_if_t<(is_tensor_v<Ts> && ...), bool>;
-//==============================================================================
-template <typename T>
-struct is_vector : std::false_type {};
-//------------------------------------------------------------------------------
-template <typename Real, size_t N>
-struct is_vector<vec<Real, N>> : std::true_type {};
-//~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-template <typename T>
-static constexpr auto is_vector_v = is_vector<T>::value;
-//~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-template <typename... Ts>
-using enable_if_vector = std::enable_if_t<(is_vector_v<Ts> && ...), bool>;
-//==============================================================================
-template <typename T>
-struct is_matrix : std::false_type {};
-//------------------------------------------------------------------------------
-template <typename Real, size_t M, size_t N>
-struct is_matrix<mat<Real, M, N>> : std::true_type {};
-//~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-template <typename T>
-static constexpr auto is_matrix_v = is_matrix<T>::value;
-//~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-template <typename... Ts>
-using enable_if_matrix = std::enable_if_t<(is_matrix_v<Ts> && ...), bool>;
-//------------------------------------------------------------------------------
 template <typename Tensor, typename Real, size_t... Dims>
 struct num_components<base_tensor<Tensor, Real, Dims...>>
     : std::integral_constant<size_t, (Dims * ...)> {};

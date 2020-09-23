@@ -94,6 +94,11 @@ struct base_sampler : crtp<Sampler> {
     return as_derived().data_at(is...);
   }
   //----------------------------------------------------------------------------
+  void set_data_at(value_type const& data,
+                   integral auto... is) {
+    as_derived().set_data_at(data, is...);
+  }
+  //----------------------------------------------------------------------------
   auto grid() const -> auto const& {
     return as_derived().grid();
   }
@@ -325,6 +330,10 @@ struct sampler
   auto data_at(std::array<Is, num_dimensions()> const& is) const
       -> value_type const& {
     return m_container(is);
+  }
+  //----------------------------------------------------------------------------
+  void set_data_at(value_type const& data, integral auto const... is) {
+    m_container(is...) = data;
   }
   //----------------------------------------------------------------------------
   auto position_at(integral auto const... is) const {

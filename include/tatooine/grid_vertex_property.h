@@ -54,6 +54,19 @@ struct grid_vertex_property
     return sampler_parent_t::data_at(is);
   }
   //----------------------------------------------------------------------------
+  void set_data_at(std::array<size_t, Grid::num_dimensions()> const& is,
+                   value_type const& data) override {
+    invoke_unpacked(
+        [this](auto const& data, auto const... is) {
+          sampler_parent_t::set_data_at(data, is...);
+        },
+        data, unpack(is));
+  }
+  // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+  void set_data_at(value_type const& data, integral auto const... is) {
+    sampler_parent_t::set_data_at(data, is...);
+  }
+  //----------------------------------------------------------------------------
   auto container() -> auto& {
     return sampler_parent_t::container();
   }

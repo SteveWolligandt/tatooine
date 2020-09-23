@@ -74,6 +74,20 @@ struct typed_multidim_property : multidim_property<Grid> {
     return data_at(std::array{static_cast<size_t>(is)...});
   }
   //----------------------------------------------------------------------------
+  virtual void set_data_at(std::array<size_t, Grid::num_dimensions()> const& is,
+                           value_type const&) = 0;
+  // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+  void set_data_at(value_type const&                                 data,
+                   std::array<size_t, Grid::num_dimensions()> const& is) {
+    set_data_at(is, data);
+  }
+  // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+  void set_data_at(value_type const& data, integral auto... is) {
+    static_assert(sizeof...(is) == Grid::num_dimensions(),
+                  "Number of indices does not match number of dimensions.");
+    return set_data_at(std::array{static_cast<size_t>(is)...}, data);
+  }
+  //----------------------------------------------------------------------------
   auto out_of_domain_value() const -> auto const& {
     return m_out_of_domain_value;
   }

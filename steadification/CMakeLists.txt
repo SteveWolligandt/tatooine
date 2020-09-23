@@ -130,14 +130,16 @@ target_compile_options(random_pathlines PRIVATE
 set(OpenGL_GL_PREFERENCE "GLVND")
 find_package(OpenGL REQUIRED)
 find_package(GLUT)
-add_executable(ibfv ibfv.cpp)
-target_include_directories(ibfv PUBLIC ${GLUT_INCLUDE_DIRS})
-target_link_libraries(ibfv OpenGL::OpenGL OpenGL::GLU ${GLUT_LIBRARY})
-target_compile_features(ibfv PUBLIC cxx_std_17)
-add_custom_target(ibfv.run.dg 
-                  COMMAND ./ibfv dg 0 1000 0.05
-                  WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}
-                  DEPENDS ibfv)
+add_executable(steadification.ibfv ibfv.cpp)
+target_include_directories(steadification.ibfv PUBLIC ${GLUT_INCLUDE_DIRS})
+target_link_libraries(steadification.ibfv OpenGL::OpenGL OpenGL::GLU ${GLUT_LIBRARY})
+target_compile_features(steadification.ibfv PUBLIC cxx_std_17)
+add_custom_target(steadification.ibfv.run.dg 
+                  COMMAND ./steadification.ibfv dg 0 1000 0.05
+                  DEPENDS steadification.ibfv)
+add_custom_target(steadification.ibfv.run.sincos 
+                  COMMAND ./steadification.ibfv sc 0 10 0.005
+                  DEPENDS steadification.ibfv)
 #- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 add_executable (steadification.render_grid_edge render_grid_edge.cpp renderers.cpp shaders.cpp)
 target_include_directories(steadification.render_grid_edge PRIVATE ${CMAKE_CURRENT_BINARY_DIR})

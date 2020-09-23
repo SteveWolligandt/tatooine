@@ -1,18 +1,20 @@
 #ifndef TATOOINE_MULTIDIM_SIZE_H
 #define TATOOINE_MULTIDIM_SIZE_H
 //==============================================================================
+#include <tatooine/concepts.h>
+#include <tatooine/for_loop.h>
+#include <tatooine/functional.h>
+#include <tatooine/index_ordering.h>
+#include <tatooine/multidim.h>
+#include <tatooine/template_helper.h>
+#include <tatooine/type_traits.h>
+#include <tatooine/utility.h>
+
 #include <array>
-#include <iostream>
 #include <cassert>
+#include <iostream>
 #include <numeric>
 #include <sstream>
-
-#include "functional.h"
-#include "index_ordering.h"
-#include "multidim.h"
-#include "template_helper.h"
-#include "type_traits.h"
-#include "utility.h"
 //==============================================================================
 namespace tatooine {
 //==============================================================================
@@ -202,7 +204,9 @@ class dynamic_multidim_size {
     return Indexing::multi_index(m_size, gi);
   }
   //----------------------------------------------------------------------------
-  constexpr auto indices() const { return dynamic_multidim{m_size}; }
+  constexpr auto indices() const {
+    return dynamic_multidim{m_size};
+  }
 };
 //==============================================================================
 // deduction guides

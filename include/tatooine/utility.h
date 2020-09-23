@@ -2,6 +2,7 @@
 #define TATOOINE_UTILITY_H
 //==============================================================================
 #include <tatooine/cxxstd.h>
+#include <tatooine/rank.h>
 #include <tatooine/demangling.h>
 #include <tatooine/extract.h>
 #include <tatooine/make_array.h>
@@ -84,7 +85,6 @@ constexpr void tat_swap(T& t0, T& t1) {
   t0    = std::move(t1);
   t1    = std::move(tmp);
 }
-
 //==============================================================================
 }  // namespace tatooine
 //==============================================================================

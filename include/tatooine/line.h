@@ -404,14 +404,14 @@ struct line {
   line(pos_container_t&& data, bool is_closed = false)
       : m_vertices{std::move(data)}, m_is_closed{is_closed} {}
   //----------------------------------------------------------------------------
-  template <
-      typename... Vertices, enable_if_vector<std::decay_t<Vertices>...> = true,
-      enable_if_arithmetic<typename std::decay_t<Vertices>::value_type...> = true,
-      std::enable_if_t<((std::decay_t<Vertices>::num_components() == N) && ...),
-                       bool>                                           = true>
+  template <typename... Vertices>
+  requires
+    (is_vec_v<std::decay_t<Vertices>> && ...) &&
+    (std::is_arithmetic_v<std::decay_t<Vertices>> && ...) &&
+    (std::decay_t<Vertices>::num_components() == N)
   line(Vertices&&... vertices)
       : m_vertices{pos_t{std::forward<Vertices>(vertices)}...},
-        m_is_closed{false} {}
+  m_is_closed{false} {}
   //----------------------------------------------------------------------------
   auto num_vertices() const { return m_vertices.size(); }
   //----------------------------------------------------------------------------

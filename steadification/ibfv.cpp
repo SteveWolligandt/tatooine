@@ -195,10 +195,11 @@ void calc(int argc, char** argv) {
 //==============================================================================
 }  // namespace tatooine::steadification::ibfv
 //==============================================================================
-
-//------------------------------------------------------------------------------
 int main(int argc, char** argv) { 
   using namespace tatooine::steadification::ibfv;
-       if (std::string(argv[1]) == "dg") calc<dg>    (argc, argv);
-  else if (std::string(argv[1]) == "sc") calc<sc>(argc, argv);
+  if (std::string(argv[1]) == "dg") {
+    calc<dg>(argc, argv);
+  } else if (std::string(argv[1]) == "sc") {
+    calc<sc>(argc, argv);
+  }
 }

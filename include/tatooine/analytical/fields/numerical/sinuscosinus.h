@@ -1,6 +1,7 @@
 #ifndef TATOOINE_ANALYTICAL_FIELDS_NUMERICAL_SINUSCOSINUS_H
 #define TATOOINE_ANALYTICAL_FIELDS_NUMERICAL_SINUSCOSINUS_H
 //==============================================================================
+#include <tatooine/field.h>
 #include <boost/math/constants/constants.hpp>
 #include <cmath>
 //==============================================================================

@@ -2,21 +2,15 @@
 #define TATOOINE_TENSOR_H
 //==============================================================================
 #include <tatooine/base_tensor.h>
+#include <tatooine/math.h>
+#include <tatooine/multidim_array.h>
+#include <tatooine/tags.h>
+#include <tatooine/utility.h>
 #include <tatooine/transposed_tensor.h>
 
 #include <array>
-
-#include "math.h"
-#include "multidim_array.h"
-#include "tags.h"
-#include "utility.h"
 //==============================================================================
 namespace tatooine {
-//==============================================================================
-template <typename Tensor, size_t M, size_t N>
-struct const_transposed_tensor;
-template <typename Tensor, size_t M, size_t N>
-struct transposed_tensor;
 //==============================================================================
 template <real_or_complex_number T, size_t... Dims>
 struct tensor : base_tensor<tensor<T, Dims...>, T, Dims...>,  // NOLINT
@@ -135,6 +129,15 @@ struct tensor : base_tensor<tensor<T, Dims...>, T, Dims...>,  // NOLINT
   }
 };
 //==============================================================================
+template <typename Real, size_t... Dims>
+struct is_tensor<tensor<Real, Dims...>> : std::true_type {};
+//------------------------------------------------------------------------------
+template <typename Real, size_t N>
+struct is_vec<tensor<Real, N>> : std::true_type {};
+//------------------------------------------------------------------------------
+template <typename Real, size_t M, size_t N>
+struct is_mat<tensor<Real, M, N>> : std::true_type {};
+//==============================================================================
 }  // namespace tatooine
 //==============================================================================
 #include <tatooine/mat.h>
@@ -145,6 +148,5 @@ struct tensor : base_tensor<tensor<T, Dims...>, T, Dims...>,  // NOLINT
 #include <tatooine/tensor_operations.h>
 #include <tatooine/tensor_type_traits.h>
 #include <tatooine/tensor_unpack.h>
-#include <tatooine/transposed_tensor.h>
 //==============================================================================
 #endif

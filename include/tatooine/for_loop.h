@@ -25,8 +25,8 @@ struct for_loop_impl {
   // members
   //----------------------------------------------------------------------------
  public:
-  std::array<Int, N>&       status;
-  const std::array<Int, N>& ends;
+  std::array<Int, N>&       m_status;
+  const std::array<Int, N>& m_ends;
 
   //----------------------------------------------------------------------------
   // methods
@@ -45,21 +45,21 @@ struct for_loop_impl {
     constexpr bool returns_bool = std::is_same_v<return_type, bool>;
     static_assert(returns_void || returns_bool);
 
-    for (; status[I - 1] < ends[I - 1]; ++status[I - 1]) {
+    for (; m_status[I - 1] < m_ends[I - 1]; ++m_status[I - 1]) {
       if constexpr (returns_void) {
         // if if returns nothing just create another nested loop
         for_loop_impl<Int, N, I - 1, ParallelIndex>{
-            status, ends}(std::forward<Iteration>(iteration));
+            m_status, m_ends}(std::forward<Iteration>(iteration));
       } else {
         // if iteration returns bool and the current nested iteration returns
         // false stop the whole nested for loop by recursively returning false
         if (!for_loop_impl<Int, N, I - 1, ParallelIndex>{
-                status, ends}(std::forward<Iteration>(iteration))) {
+                m_status, m_ends}(std::forward<Iteration>(iteration))) {
           return false;
         }
       }
       // reset nested status
-      status[I - 2] = 0;
+      m_status[I - 2] = 0;
     }
     if constexpr (returns_bool) {
       // return true if iteration never returned false
@@ -84,8 +84,8 @@ struct for_loop_impl<Int, N, 1, ParallelIndex> {
   // members
   //----------------------------------------------------------------------------
  public:
-  std::array<Int, N>&       status;
-  const std::array<Int, N>& ends;
+  std::array<Int, N>&       m_status;
+  const std::array<Int, N>& m_ends;
 
   //----------------------------------------------------------------------------
   // methods
@@ -102,14 +102,14 @@ struct for_loop_impl<Int, N, 1, ParallelIndex> {
     constexpr bool returns_bool = std::is_same_v<return_type, bool>;
     static_assert(returns_void || returns_bool);
 
-    for (; status[0] < ends[0]; ++status[0]) {
+    for (; m_status[0] < m_ends[0]; ++m_status[0]) {
       if constexpr (returns_void) {
         // if if returns nothing just call it
-        iteration(status[Is]...);
+        iteration(m_status[Is]...);
       } else {
         // if iteration returns bool and the current iteration returns false
         // stop the whole nested for loop by recursively returning false
-        if (!iteration(status[Is]...)) { return false; }
+        if (!iteration(m_status[Is]...)) { return false; }
       }
     }
     if constexpr (returns_bool) {
@@ -137,8 +137,8 @@ struct for_loop_impl<Int, N, I, I> {
   // members
   //----------------------------------------------------------------------------
  public:
-  std::array<Int, N>&       status;
-  const std::array<Int, N>& ends;
+  std::array<Int, N>&       m_status;
+  const std::array<Int, N>& m_ends;
 
   //----------------------------------------------------------------------------
   // methods
@@ -157,18 +157,18 @@ struct for_loop_impl<Int, N, I, I> {
     static_assert(returns_void || returns_bool);
 
 #pragma omp parallel for
-    for (Int i = 0; i < ends[I - 1]; ++i) {
-      auto status_copy   = status;
+    for (Int i = 0; i < m_ends[I - 1]; ++i) {
+      auto status_copy   = m_status;
       status_copy[I - 1] = i;
       if constexpr (returns_void) {
         // if if returns nothing just create another nested loop
         for_loop_impl<Int, N, I - 1, I>{
-            status_copy, ends}(std::forward<Iteration>(iteration));
+            status_copy, m_ends}(std::forward<Iteration>(iteration));
       } else {
         // if iteration returns bool and the current nested iteration returns
         // false stop the whole nested for loop by recursively returning false
         const auto cont = for_loop_impl<Int, N, I - 1, I>{
-            status_copy, ends}(std::forward<Iteration>(iteration));
+            status_copy, m_ends}(std::forward<Iteration>(iteration));
         assert(cont && "cannot break in parallel loop");
       }
     }
@@ -196,8 +196,8 @@ struct for_loop_impl<Int, N, 1, 1> {
   // members
   //----------------------------------------------------------------------------
  public:
-  std::array<Int, N>&       status;
-  const std::array<Int, N>& ends;
+  std::array<Int, N>&       m_status;
+  const std::array<Int, N>& m_ends;
 
   //----------------------------------------------------------------------------
   // methods
@@ -215,8 +215,8 @@ struct for_loop_impl<Int, N, 1, 1> {
     static_assert(returns_void || returns_bool);
 
 #pragma omp parallel for
-    for (Int i = 0; i < ends[0]; ++i) {
-      auto status_copy = status;
+    for (Int i = 0; i < m_ends[0]; ++i) {
+      auto status_copy = m_status;
       status_copy[0]   = i;
       if constexpr (returns_void) {
         // if if returns nothing just call it
@@ -256,10 +256,10 @@ constexpr auto for_loop(Iteration&& iteration,
   static_assert(returns_void || returns_bool);
 
   std::array zeros{((void)Is, Int(0))...};
+  std::array ends_arr{static_cast<Int>(ends)...};
   return for_loop_impl<Int, sizeof...(ends), sizeof...(ends),
-                         ParallelIndex + 1>{
-      zeros, std::array{static_cast<Int>(ends)...}}(
-      std::forward<Iteration>(iteration));
+                       ParallelIndex + 1>{
+      zeros, ends_arr}(std::forward<Iteration>(iteration));
 }
 //==============================================================================
 }  // namespace detail

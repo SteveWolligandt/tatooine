@@ -117,6 +117,14 @@ struct mat : tensor<T, M, N> {
   constexpr auto col(size_t i) const { return this->template slice<1>(i); }
 };
 //==============================================================================
+// type traits
+//==============================================================================
+template <typename Real, size_t M, size_t N>
+struct is_tensor<mat<Real, M, N>> : std::true_type {};
+//------------------------------------------------------------------------------
+template <typename Real, size_t M, size_t N>
+struct is_mat<mat<Real, M, N>> : std::true_type {};
+//==============================================================================
 // deduction guide
 //==============================================================================
 template <size_t C, typename... Rows>

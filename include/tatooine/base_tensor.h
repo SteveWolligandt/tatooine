@@ -202,6 +202,33 @@ struct base_tensor : crtp<Tensor> {
   }
 };
 //==============================================================================
+template <typename T>
+struct is_tensor : std::false_type {};
+// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+template <typename T>
+static constexpr auto is_tensor_v = is_tensor<T>::value;
+// ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~
+template <typename Tensor, typename Real, size_t... Dims>
+struct is_tensor<base_tensor<Tensor, Real, Dims...>> : std::true_type {};
+//------------------------------------------------------------------------------
+template <typename T>
+struct is_vec : std::false_type {};
+// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+template <typename T>
+static constexpr auto is_vec_v = is_vec<T>::value;
+// ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~
+template <typename Tensor, typename Real, size_t N>
+struct is_vec<base_tensor<Tensor, Real, N>> : std::true_type {};
+//==============================================================================
+template <typename T>
+struct is_mat : std::false_type {};
+// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+template <typename T>
+static constexpr auto is_mat_v = is_mat<T>::value;
+// ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~
+template <typename Tensor, typename Real, size_t N>
+struct is_mat<base_tensor<Tensor, Real, N>> : std::true_type {};
+//==============================================================================
 }  // namespace tatooine
 //==============================================================================
 #include <tatooine/abs_tensor.h>
@@ -210,6 +237,7 @@ struct base_tensor : crtp<Tensor> {
 #include <tatooine/tensor_slice.h>
 #include <tatooine/complex_tensor_views.h>
 #include <tatooine/diag_tensor.h>
+#include <tatooine/transposed_tensor.h>
 
 #include <tatooine/tensor.h>
 #include <tatooine/tensor_symbolic.h>

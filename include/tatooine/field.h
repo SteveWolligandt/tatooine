@@ -141,24 +141,23 @@ struct is_field<field<Derived, Real, N, TensorDims...>> : std::true_type {};
 ////╒══════════════════════════════════════════════════════════════════════════╕
 ////│ free functions                                                           │
 ////╞══════════════════════════════════════════════════════════════════════════╡
-template <real_number OutReal, typename V, real_number VReal, size_t N,
+template <typename V, real_number VReal, size_t N,
           size_t... TensorDims, indexable_space... SpatialDimensions>
 auto sample_to_raw(field<V, VReal, N, TensorDims...> const& f,
                    grid<SpatialDimensions...> const& g, real_number auto t,
                    size_t padding = 0, VReal padval = 0) {
-  auto const           nan = OutReal(0) / OutReal(0);
-  std::vector<OutReal> raw_data;
+  auto const           nan = VReal(0) / VReal(0);
+  std::vector<VReal> raw_data;
   auto const           num_comps = std::max<size_t>(1, (TensorDims * ...));
   raw_data.reserve(g.num_vertices() * (num_comps + padding));
-  for (auto v : g.vertices()) {
-    auto const x = v.position();
+  for (auto x : g.vertices()) {
     if (f.in_domain(x, t)) {
       auto sample = f(x, t);
       if constexpr (sizeof...(TensorDims) == 0) {
-        raw_data.push_back(static_cast<OutReal>(sample));
+        raw_data.push_back(static_cast<VReal>(sample));
       } else {
         for (size_t i = 0; i < num_comps; ++i) {
-          raw_data.push_back(static_cast<OutReal>(sample[i]));
+          raw_data.push_back(static_cast<VReal>(sample[i]));
         }
       }
       for (size_t i = 0; i < padding; ++i) { raw_data.push_back(padval); }
@@ -171,15 +170,15 @@ auto sample_to_raw(field<V, VReal, N, TensorDims...> const& f,
   return raw_data;
 }
 //├──────────────────────────────────────────────────────────────────────────┤
-template <typename OutReal, typename V, real_number VReal, real_number TReal,
+template <typename V, real_number VReal, real_number TReal,
           size_t N, size_t... TensorDims, indexable_space... SpatialDimensions,
           indexable_space TemporalDimension>
 auto sample_to_raw(field<V, VReal, N, TensorDims...> const& f,
                    grid<SpatialDimensions...> const&        g,
                    TemporalDimension const& temporal_domain, size_t padding = 0,
-                   OutReal padval = 0) {
-  auto const           nan = OutReal(0) / OutReal(0);
-  std::vector<OutReal> raw_data;
+                   VReal padval = 0) {
+  auto const           nan = VReal(0) / VReal(0);
+  std::vector<VReal> raw_data;
   auto const           num_comps = std::max<size_t>(1, (TensorDims * ...));
   raw_data.reserve(g.num_vertices() * temporal_domain.size() *
                    (num_comps + padding));
@@ -189,10 +188,10 @@ auto sample_to_raw(field<V, VReal, N, TensorDims...> const& f,
       if (f.in_domain(x, t)) {
         auto sample = f(x, t);
         if constexpr (sizeof...(TensorDims) == 0) {
-          raw_data.push_back(static_cast<OutReal>(sample));
+          raw_data.push_back(static_cast<VReal>(sample));
         } else {
           for (size_t i = 0; i < num_comps; ++i) {
-            raw_data.push_back(static_cast<OutReal>(sample[i]));
+            raw_data.push_back(static_cast<VReal>(sample[i]));
           }
         }
         for (size_t i = 0; i < padding; ++i) { raw_data.push_back(padval); }
@@ -205,79 +204,98 @@ auto sample_to_raw(field<V, VReal, N, TensorDims...> const& f,
   }
   return raw_data;
 }
+//------------------------------------------------------------------------------
+template <typename V, real_number VReal, size_t N,
+          size_t... TensorDims, indexable_space... SpatialDimensions>
+auto sample_to_vector(field<V, VReal, N, TensorDims...> const& f,
+                   grid<SpatialDimensions...> const& g, real_number auto t) {
+  auto const           nan = VReal(0) / VReal(0);
+  std::vector<typename V::tensor_t> data;
+  data.reserve(g.num_vertices());
+  for (auto x : g.vertices()) {
+    if (f.in_domain(x, t)) {
+      data.push_back(f(x, t));
+    } else {
+      if constexpr (rank<typename V::tensor_t>() == 0) {
+        data.push_back(nan);
+      } else {
+        data.push_back(typename V::tensor_t{tag::fill{nan}});
+      }
+    }
+  }
+  return data;
+}
 //├──────────────────────────────────────────────────────────────────────────┤
-template <typename OutReal, typename V, real_number VReal, size_t N,
+template <typename V, real_number VReal, size_t N,
           size_t... TensorDims, indexable_space... SpatialDimensions>
 auto resample(field<V, VReal, N, TensorDims...> const& f,
               grid<SpatialDimensions...> const&        spatial_domain,
               real_number auto const                   t) {
   auto const ood_tensor = [] {
     if constexpr (sizeof...(TensorDims) == 0) {
-      return OutReal(0) / OutReal(0);
+      return VReal(0) / VReal(0);
     } else {
-      return tensor<OutReal, TensorDims...>{tag::fill{OutReal(0) / OutReal(0)}};
+      return tensor<VReal, TensorDims...>{tag::fill{VReal(0) / VReal(0)}};
     }
   }();
   std::pair gn{spatial_domain.copy_without_properties(), "resampled"};
   auto&     prop = [&]() -> decltype(auto) {
     if constexpr (sizeof...(TensorDims) == 0) {
-      return gn.first.template add_chunked_vertex_property<OutReal>(
-          gn.second, std::vector<size_t>(N, 10));
+      return gn.first.template add_contiguous_vertex_property<VReal>(
+          gn.second);
     } else if constexpr (sizeof...(TensorDims) == 1) {
       return gn.first
-          .template add_chunked_vertex_property<vec<OutReal, TensorDims...>>(
-              gn.second, std::vector<size_t>(N, 10));
+          .template add_contiguous_vertex_property<vec<VReal, TensorDims...>>(
+              gn.second);
     } else if constexpr (sizeof...(TensorDims) == 2) {
       return gn.first
-          .template add_chunked_vertex_property<mat<OutReal, TensorDims...>>(
-              gn.second, std::vector<size_t>(N, 10));
+          .template add_contiguous_vertex_property<mat<VReal, TensorDims...>>(
+              gn.second);
     } else {
       return gn.first
-          .template add_chunked_vertex_property<tensor<OutReal, TensorDims...>>(
-              gn.second, std::vector<size_t>(N, 10));
+          .template add_contiguous_vertex_property<tensor<VReal, TensorDims...>>(
+              gn.second);
     }
   }();
   spatial_domain.loop_over_vertex_indices([&](auto const... is) {
     auto const x = spatial_domain.vertex_at(is...);
     if (f.in_domain(x, t)) {
-      prop.data_at(is...) = f(x, t);
+      prop.set_data_at(f(x, t), is...);
     } else {
-      prop.data_at(is...) = ood_tensor;
+      prop.set_data_at(ood_tensor, is...);
     }
   });
   return gn;
 }
 //├──────────────────────────────────────────────────────────────────────────┤
-template <typename OutReal, typename V, real_number VReal, real_number TReal,
-          size_t N, size_t... TensorDims, indexable_space... SpatialDimensions,
+template <typename V, real_number VReal, real_number TReal, size_t N,
+          size_t... TensorDims, indexable_space... SpatialDimensions,
           indexable_space TemporalDomain>
 auto resample(field<V, VReal, N, TensorDims...> const& f,
               grid<SpatialDimensions...> const&        spatial_domain,
               TemporalDomain const&                    temporal_domain) {
   auto const ood_tensor = [] {
     if constexpr (sizeof...(TensorDims) == 0) {
-      return OutReal(0) / OutReal(0);
+      return VReal(0) / VReal(0);
     } else {
-      return tensor<OutReal, TensorDims...>{tag::fill{OutReal(0) / OutReal(0)}};
+      return tensor<VReal, TensorDims...>{tag::fill{VReal(0) / VReal(0)}};
     }
   }();
   std::pair gn{spatial_domain + temporal_domain, "resampled"};
   auto&     prop = [&]() -> decltype(auto) {
     if constexpr (sizeof...(TensorDims) == 0) {
-      return gn.first.template add_chunked_vertex_property<OutReal>(
-          gn.second, std::vector<size_t>(N, 10));
+      return gn.first.template add_contiguous_vertex_property<VReal>(gn.second);
     } else if constexpr (sizeof...(TensorDims) == 1) {
       return gn.first
-          .template add_chunked_vertex_property<vec<OutReal, TensorDims...>>(
-              gn.second, std::vector<size_t>(N, 10));
+          .template add_contiguous_vertex_property<vec<VReal, TensorDims...>>(
+              gn.second);
     } else if constexpr (sizeof...(TensorDims) == 2) {
       return gn.first
-          .template add_chunked_vertex_property<mat<OutReal, TensorDims...>>(
-              gn.second, std::vector<size_t>(N, 10));
+          .template add_contiguous_vertex_property<mat<VReal, TensorDims...>>(
+              gn.second);
     } else {
-      return gn.first
-          .template add_chunked_vertex_property<tensor<OutReal, TensorDims...>>(
-              gn.second, std::vector<size_t>(N, 10));
+      return gn.first.template add_contiguous_vertex_property<
+          tensor<VReal, TensorDims...>>(gn.second);
     }
   }();
   for (auto const t : temporal_domain) {

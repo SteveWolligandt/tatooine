@@ -44,11 +44,11 @@ struct lic_shader : yavin::shader {
   void set_stepsize(GLfloat s) { set_uniform("stepsize", s); }
 };
 //==============================================================================
-template <floating_point Real, typename Grid>
-auto lic(
-    const typed_multidim_property<Grid, vec<Real, 2>>& sampler,
-    const vec<size_t, 2>& lic_tex_res, size_t num_samples, Real stepsize,
-    vec<size_t, 2> noise_res = {128, 128}) {
+template <floating_point Real, floating_point XReal, floating_point YReal>
+auto lic(yavin::tex2rg<float>&                         v_tex,
+         const grid<linspace<XReal>, linspace<YReal>>& spatial_domain,
+         const vec<size_t, 2>& lic_tex_res, size_t num_samples, Real stepsize,
+         vec<size_t, 2> noise_res = {256, 256}) {
   using namespace yavin;
 
   // generate noise_tex data
@@ -58,7 +58,6 @@ auto lic(
   boost::generate(noise_data, [&rand] { return rand(); });
 
   // generate textures
-  auto                   v_tex = upload(sampler);
   texture<2, Real, R> noise_tex(noise_data, noise_res(0), noise_res(1));
   yavin::texture<2, Real, RGBA> lic_tex(lic_tex_res(0), lic_tex_res(1));
 
@@ -67,9 +66,9 @@ auto lic(
   v_tex.bind(1);
 
   lic_shader s;
-  s.set_domain_min(sampler.grid().template front<0>(), sampler.grid().template front<1>());
-  s.set_domain_max(sampler.grid().template back<0>(), sampler.grid().template back<1>());
-  s.set_v_tex_res(sampler.grid().template size<0>(), sampler.grid().template size<1>());
+  s.set_domain_min(spatial_domain.template front<0>(), spatial_domain.template front<1>());
+  s.set_domain_max(spatial_domain.template back<0>(), spatial_domain.template back<1>());
+  s.set_v_tex_res(spatial_domain.template size<0>(), spatial_domain.template size<1>());
   s.set_noise_tex_res(noise_res(0), noise_res(1));
   s.set_num_samples(num_samples);
   s.set_stepsize(stepsize);
@@ -84,10 +83,12 @@ auto lic(const vectorfield<V, VReal, 2>&                   v,
          const grid<linspace<XReal>, linspace<YReal>>& spatial_domain,
          real_number auto t, const vec<size_t, 2>& lic_tex_res,
          size_t num_samples, real_number auto stepsize,
-         vec<size_t, 2> noise_res = {128, 128}) {
-  auto [g, n] = resample<GPUReal>(v, spatial_domain, t);
-  return lic<GPUReal>(g.template vertex_property<vec<GPUReal, 2>>(n), lic_tex_res,
-                      num_samples, stepsize, noise_res);
+         vec<size_t, 2> noise_res = {256, 256}) {
+  auto v_tex = gpu::upload_tex(sample_to_vector(v, spatial_domain, t),
+                               spatial_domain.template size<0>(),
+                               spatial_domain.template size<1>());
+  return lic<GPUReal>(v_tex, spatial_domain, lic_tex_res, num_samples, stepsize,
+                      noise_res);
 }
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 template <typename GPUReal = float, typename V, real_number VReal,
@@ -95,8 +96,8 @@ template <typename GPUReal = float, typename V, real_number VReal,
 auto lic(const vectorfield<V, VReal, 2>& v, const linspace<XReal>& xres,
          const linspace<YReal>& yres, real_number auto t,
          const vec<size_t, 2>& lic_tex_res, size_t num_samples, real_number auto stepsize,
-         vec<size_t, 2> noise_res = {128, 128}) {
-  return lic(v, grid{xres, yres}, t, lic_tex_res, num_samples, stepsize,
+         vec<size_t, 2> noise_res = {256, 256}) {
+  return lic<GPUReal>(v, grid{xres, yres}, t, lic_tex_res, num_samples, stepsize,
              noise_res);
 }
 
