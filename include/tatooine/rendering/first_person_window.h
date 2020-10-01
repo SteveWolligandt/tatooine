@@ -14,7 +14,6 @@ namespace tatooine::rendering {
 //==============================================================================
 struct first_person_window : yavin::window {
   using parent_t = yavin::window;
-  bool                      m_run;
   size_t                    m_width, m_height;
   vec<float, 3>             m_eye, m_look_dir, m_up;
   float                     m_theta = M_PI, m_phi = M_PI / 2;
@@ -32,7 +31,6 @@ struct first_person_window : yavin::window {
   //============================================================================
   first_person_window(size_t width = 800, size_t height = 600)
       : yavin::window{"tatooine first person window", width, height},
-        m_run{true},
         m_width{width},
         m_height{height},
         m_cam{vec{0.0f, 0.0f, 0.0f},
@@ -56,7 +54,7 @@ struct first_person_window : yavin::window {
   template <typename Event>
   void render_loop(Event&& event) {
     m_time = std::chrono::system_clock::now();
-    while (m_run) {
+    while (!should_close()) {
       refresh();
       yavin::gl::viewport(0, 0, m_width, m_height);
       update(std::forward<Event>(event),
