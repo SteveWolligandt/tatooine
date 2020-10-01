@@ -72,13 +72,9 @@ struct boundingbox : tatooine::boundingbox<Real, N>, renderable {
     m_shader.set_projection_matrix(projection_matrix);
     m_shader.set_modelview_matrix(view_matrix);
     yavin::gl::line_width(m_linewidth);
-    if (m_color[3] < 1) {
+    if (is_transparent()) {
       yavin::enable_blending();
       yavin::blend_func_alpha();
-      yavin::disable_depth_test();
-    } else {
-      yavin::disable_blending();
-      yavin::enable_depth_test();
     }
     m_gpu_data.draw_lines();
   }

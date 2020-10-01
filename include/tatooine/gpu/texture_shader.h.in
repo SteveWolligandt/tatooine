@@ -23,6 +23,7 @@ struct texture_shader : yavin::shader {
     add_stage<yavin::vertexshader>(vert_shader_path.data());
     add_stage<yavin::fragmentshader>(frag_shader_path.data());
     create();
+    set_alpha(1);
     set_texture_binding(texture_binding);
   }
   //------------------------------------------------------------------------------
@@ -40,6 +41,10 @@ struct texture_shader : yavin::shader {
   //------------------------------------------------------------------------------
   void set_modelview_matrix(mat<float, 4, 4> const& modelview_matrix) {
     set_uniform_mat4("modelview_matrix", modelview_matrix.data_ptr());
+  }
+  //------------------------------------------------------------------------------
+  void set_alpha(GLfloat alpha) {
+    set_uniform("alpha", alpha);
   }
   //------------------------------------------------------------------------------
   void set_texture_binding(GLint texture_binding) {

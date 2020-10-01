@@ -3,9 +3,11 @@
 in vec2 frag_uv;
 //------------------------------------------------------------------------------
 uniform sampler2D tex;
+uniform float alpha;
 //------------------------------------------------------------------------------
 out vec4 frag_out;
 //------------------------------------------------------------------------------
 void main() {
-  frag_out = texture(tex, frag_uv);
+  frag_out.rgb = texture(tex, frag_uv).rgb;
+  frag_out.a = alpha;
 }

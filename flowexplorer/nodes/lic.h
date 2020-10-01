@@ -28,6 +28,7 @@ struct lic : renderable {
   double                                                  m_t;
   int                                                     m_num_samples;
   double                                                  m_stepsize;
+  float                                                   m_alpha;
   bool                                                    m_calculating = false;
   //----------------------------------------------------------------------------
   lic(struct window& w)
@@ -36,7 +37,8 @@ struct lic : renderable {
         m_vectorfield_sample_res{100, 100},
         m_t{0.0},
         m_num_samples{100},
-        m_stepsize{0.001} {
+        m_stepsize{0.001},
+        m_alpha{1.0f} {
     this->template insert_input_pin<vectorfield_t>("2D Vector Field");
     this->template insert_input_pin<bb_t>("2D Bounding Box");
     m_quad.vertexbuffer().resize(4);
@@ -58,11 +60,17 @@ struct lic : renderable {
   //----------------------------------------------------------------------------
   void render(mat<float, 4, 4> const& projection_matrix,
               mat<float, 4, 4> const& view_matrix) override {
-    yavin::disable_blending();
     if (m_lic_tex && m_v && m_boundingbox) {
       update_shader(projection_matrix, view_matrix);
       m_shader->bind();
+      m_shader->set_alpha(m_alpha);
       m_lic_tex->bind(0);
+      if (is_transparent()) {
+        yavin::enable_blending();
+        yavin::blend_func_alpha();
+      } else {
+        yavin::disable_blending();
+      }
       m_quad.draw_triangles();
     }
   }
@@ -71,12 +79,13 @@ struct lic : renderable {
   //----------------------------------------------------------------------------
   void draw_ui() override {
     ui::node::draw_ui([this] {
-      ImGui::DragInt2("LIC Resolution", m_lic_res.data_ptr(), 5);
+      ImGui::DragInt2("LIC Resolution", m_lic_res.data_ptr(), 5, 5, 10000);
       ImGui::DragInt2("Sample Resolution", m_vectorfield_sample_res.data_ptr(),
-                      5);
+                      5, 5, 10000);
       ImGui::DragDouble("t", &m_t, 0.1);
       ImGui::DragInt("number of samples", &m_num_samples, 5, 5, 1000000);
       ImGui::DragDouble("stepsize", &m_stepsize, 0.001);
+      ImGui::DragFloat("alpha", &m_alpha, 0.1, 0.0f, 1.0f);
     });
   }
   //----------------------------------------------------------------------------
@@ -130,7 +139,7 @@ struct lic : renderable {
   }
   //----------------------------------------------------------------------------
   bool is_transparent() const override {
-    return false;
+    return m_alpha < 1;
   }
 };
 //==============================================================================
