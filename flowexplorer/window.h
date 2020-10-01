@@ -3,13 +3,15 @@
 //==============================================================================
 #include <tatooine/boundingbox.h>
 #include <tatooine/demangling.h>
-#include <tatooine/rendering/first_person_window.h>
 #include <tatooine/interpolation.h>
+#include <tatooine/rendering/first_person_window.h>
 
 #include "imgui-node-editor/imgui_node_editor.h"
 #include "nodes/abcflow.h"
 #include "nodes/boundingbox.h"
 #include "nodes/doublegyre.h"
+#include "nodes/duffing_oscillator.h"
+#include "nodes/lic.h"
 #include "nodes/random_pathlines.h"
 #include "nodes/rayleigh_benard_convection.h"
 #include "nodes/spacetime_vectorfield.h"
@@ -83,9 +85,26 @@ struct window : rendering::first_person_window {
       for (auto& r : m_renderables) {
         r->update(dt);
       }
+
+      // render non-transparent objects
+      //yavin::enable_depth_test();
+      yavin::enable_depth_write();
       for (auto& r : m_renderables) {
-        r->render(projection_matrix(), view_matrix());
+        if (!r->is_transparent()) {
+          r->render(projection_matrix(), view_matrix());
+        }
       }
+      //
+      // render transparent objects
+      //yavin::disable_depth_test();
+      yavin::disable_depth_write();
+      for (auto& r : m_renderables) {
+        if (r->is_transparent()) {
+          r->render(projection_matrix(), view_matrix());
+        }
+      }
+      yavin::enable_depth_test();
+      yavin::enable_depth_write();
       render_ui();
     });
   }
@@ -119,23 +138,36 @@ struct window : rendering::first_person_window {
     if (ImGui::Button("ABC Flow")) {
       m_renderables.emplace_back(new nodes::abcflow<double>{*this});
     }
+    ImGui::SameLine();
     if (ImGui::Button("Rayleigh Benard Convection")) {
       m_renderables.emplace_back(new nodes::rayleigh_benard_convection<double>{*this});
     }
-    ImGui::SameLine();
     if (ImGui::Button("Doublegyre Flow")) {
       m_renderables.emplace_back(new nodes::doublegyre<double>{*this});
+    }
+    ImGui::SameLine();
+    if (ImGui::Button("Duffing Oscillator Flow")) {
+      m_renderables.emplace_back(new nodes::duffing_oscillator<double>{*this});
     }
     if (ImGui::Button("Spacetime Vector Field")) {
       m_renderables.emplace_back(
           new nodes::spacetime_vectorfield<double>{*this});
     }
-    if (ImGui::Button("BoundingBox")) {
+    if (ImGui::Button("2D BoundingBox")) {
+      m_renderables.emplace_back(new nodes::boundingbox{
+          *this, vec{-1.0, -1.0}, vec{1.0, 1.0}});
+    }
+    ImGui::SameLine();
+    if (ImGui::Button("3D BoundingBox")) {
       m_renderables.emplace_back(new nodes::boundingbox{
           *this, vec{-1.0, -1.0, -1.0}, vec{1.0, 1.0, 1.0}});
     }
     if (ImGui::Button("Random Path Lines")) {
       m_renderables.emplace_back(new nodes::random_pathlines<double, 3>{*this});
+    }
+    ImGui::SameLine();
+    if (ImGui::Button("LIC")) {
+      m_renderables.emplace_back(new nodes::lic<double>{*this});
     }
   }
   //----------------------------------------------------------------------------

@@ -15,12 +15,12 @@ struct pin {
  private:
   ax::NodeEditor::PinId m_id;
   std::string           m_name;
-  node&                 m_node;
+  ui::node&             m_node;
   pinkind               m_kind;
   std::type_info const& m_type;
 
  public:
-  pin(node& n, std::type_info const& type, pinkind kind,
+  pin(ui::node& n, std::type_info const& type, pinkind kind,
       std::string const& name)
       : m_id{boost::hash<boost::uuids::uuid>{}(
             boost::uuids::random_generator()())},

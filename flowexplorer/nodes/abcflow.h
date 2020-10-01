@@ -15,6 +15,9 @@ struct abcflow : tatooine::analytical::fields::numerical::abcflow<Real>, rendera
   void draw_ui() override {
     ui::node::draw_ui([this] {});
   }
+  auto is_transparent() const -> bool override {
+    return false;
+  }
 };
 //==============================================================================
 }  // namespace tatooine::flowexplorer::nodes

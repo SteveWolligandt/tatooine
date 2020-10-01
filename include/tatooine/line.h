@@ -406,9 +406,9 @@ struct line {
   //----------------------------------------------------------------------------
   template <typename... Vertices>
   requires
-    (is_vec_v<std::decay_t<Vertices>> && ...) &&
-    (std::is_arithmetic_v<std::decay_t<Vertices>> && ...) &&
-    (std::decay_t<Vertices>::num_components() == N)
+    ((is_vec_v<std::decay_t<Vertices>>
+      && std::is_arithmetic_v<std::decay_t<Vertices>>
+      && std::decay_t<Vertices>::num_components() == N) &&...)
   line(Vertices&&... vertices)
       : m_vertices{pos_t{std::forward<Vertices>(vertices)}...},
   m_is_closed{false} {}

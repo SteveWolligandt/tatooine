@@ -60,6 +60,12 @@ struct boundingbox : tatooine::boundingbox<Real, N>, renderable {
   //============================================================================
   void render(mat<float, 4, 4> const& projection_matrix,
               mat<float, 4, 4> const& view_matrix) override {
+    if (is_transparent()) {
+      yavin::enable_blending();
+      yavin::blend_func_alpha();
+    } else {
+      yavin::disable_blending();
+    }
     set_vbo_data();
     m_shader.bind();
     m_shader.set_color(m_color[0], m_color[1], m_color[2], m_color[3]);
@@ -79,8 +85,13 @@ struct boundingbox : tatooine::boundingbox<Real, N>, renderable {
   //----------------------------------------------------------------------------
   void draw_ui() override {
     ui::node::draw_ui([this] {
-      ImGui::DragDouble3("min", this->min().data_ptr(), 0.1);
-      ImGui::DragDouble3("max", this->max().data_ptr(), 0.1);
+      if constexpr (N == 3) {
+        ImGui::DragDouble3("min", this->min().data_ptr(), 0.1);
+        ImGui::DragDouble3("max", this->max().data_ptr(), 0.1);
+      } else if constexpr (N == 2) {
+        ImGui::DragDouble2("min", this->min().data_ptr(), 0.1);
+        ImGui::DragDouble2("max", this->max().data_ptr(), 0.1);
+      }
       ImGui::DragInt("line size", &m_linewidth, 1, 1, 10);
       ImGui::ColorEdit4("line color", m_color.data());
     });
@@ -88,14 +99,25 @@ struct boundingbox : tatooine::boundingbox<Real, N>, renderable {
   //============================================================================
   void set_vbo_data() {
     auto vbomap = m_gpu_data.vertexbuffer().map();
-    vbomap[0]   = gpu_vec{float(min(0)), float(min(1)), float(min(2))};
-    vbomap[1]   = gpu_vec{float(max(0)), float(min(1)), float(min(2))};
-    vbomap[2]   = gpu_vec{float(min(0)), float(max(1)), float(min(2))};
-    vbomap[3]   = gpu_vec{float(max(0)), float(max(1)), float(min(2))};
-    vbomap[4]   = gpu_vec{float(min(0)), float(min(1)), float(max(2))};
-    vbomap[5]   = gpu_vec{float(max(0)), float(min(1)), float(max(2))};
-    vbomap[6]   = gpu_vec{float(min(0)), float(max(1)), float(max(2))};
-    vbomap[7]   = gpu_vec{float(max(0)), float(max(1)), float(max(2))};
+    if constexpr (N == 3) {
+      vbomap[0] = gpu_vec{float(min(0)), float(min(1)), float(min(2))};
+      vbomap[1] = gpu_vec{float(max(0)), float(min(1)), float(min(2))};
+      vbomap[2] = gpu_vec{float(min(0)), float(max(1)), float(min(2))};
+      vbomap[3] = gpu_vec{float(max(0)), float(max(1)), float(min(2))};
+      vbomap[4] = gpu_vec{float(min(0)), float(min(1)), float(max(2))};
+      vbomap[5] = gpu_vec{float(max(0)), float(min(1)), float(max(2))};
+      vbomap[6] = gpu_vec{float(min(0)), float(max(1)), float(max(2))};
+      vbomap[7] = gpu_vec{float(max(0)), float(max(1)), float(max(2))};
+    } else if constexpr (N == 2) {
+      vbomap[0] = gpu_vec{float(min(0)), float(min(1))};
+      vbomap[1] = gpu_vec{float(max(0)), float(min(1))};
+      vbomap[2] = gpu_vec{float(min(0)), float(max(1))};
+      vbomap[3] = gpu_vec{float(max(0)), float(max(1))};
+      vbomap[4] = gpu_vec{float(min(0)), float(min(1))};
+      vbomap[5] = gpu_vec{float(max(0)), float(min(1))};
+      vbomap[6] = gpu_vec{float(min(0)), float(max(1))};
+      vbomap[7] = gpu_vec{float(max(0)), float(max(1))};
+    }
   }
   //----------------------------------------------------------------------------
   void create_indexed_data() {
@@ -104,6 +126,10 @@ struct boundingbox : tatooine::boundingbox<Real, N>, renderable {
     set_vbo_data();
     m_gpu_data.indexbuffer() = {0, 1, 0, 2, 1, 3, 2, 3, 4, 5, 4, 6,
                                 5, 7, 6, 7, 0, 4, 1, 5, 2, 6, 3, 7};
+  }
+  //----------------------------------------------------------------------------
+  auto is_transparent() const -> bool override {
+    return m_color[3] < 1;
   }
 };
 //==============================================================================

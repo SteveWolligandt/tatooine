@@ -10,9 +10,9 @@ namespace tatooine::flowexplorer {
 //==============================================================================
 struct window;
 struct renderable : ui::node {
-  window* m_window;
+  flowexplorer::window* m_window;
 
-  renderable(window& w, std::string const& name)
+  renderable(flowexplorer::window& w, std::string const& name)
       : m_window{&w}, ui::node{name} {}
   renderable(renderable const& w)     = default;
   renderable(renderable&& w) noexcept = default;
@@ -24,6 +24,7 @@ struct renderable : ui::node {
   virtual void        update(const std::chrono::duration<double>& dt) {}
   virtual void        render(const mat<float, 4, 4>& projection_matrix,
                              const mat<float, 4, 4>& view_matrix) = 0;
+  virtual bool        is_transparent() const                      = 0;
 
   auto window() const -> auto const& {
     return *m_window;
@@ -31,6 +32,7 @@ struct renderable : ui::node {
   auto window() -> auto& {
     return *m_window;
   }
+
 };
 //==============================================================================
 }  // namespace tatooine::flowexplorer

@@ -205,21 +205,23 @@ auto sample_to_raw(field<V, VReal, N, TensorDims...> const& f,
   return raw_data;
 }
 //------------------------------------------------------------------------------
-template <typename V, real_number VReal, size_t N,
+template <real_number VReal, size_t N,
           size_t... TensorDims, indexable_space... SpatialDimensions>
-auto sample_to_vector(field<V, VReal, N, TensorDims...> const& f,
+auto sample_to_vector(parent::field<VReal, N, TensorDims...> const& f,
                    grid<SpatialDimensions...> const& g, real_number auto t) {
-  auto const           nan = VReal(0) / VReal(0);
-  std::vector<typename V::tensor_t> data;
+  using V = parent::field<VReal, N, TensorDims...>;
+  using tensor_t = typename V::tensor_t;
+  auto const            nan = VReal(0) / VReal(0);
+  std::vector<tensor_t> data;
   data.reserve(g.num_vertices());
   for (auto x : g.vertices()) {
     if (f.in_domain(x, t)) {
       data.push_back(f(x, t));
     } else {
-      if constexpr (rank<typename V::tensor_t>() == 0) {
+      if constexpr (rank<tensor_t>() == 0) {
         data.push_back(nan);
       } else {
-        data.push_back(typename V::tensor_t{tag::fill{nan}});
+        data.push_back(tensor_t{tag::fill{nan}});
       }
     }
   }

@@ -1,25 +1,27 @@
-#ifndef TATOOINE_FLOWEXPLORER_NODES_RAYLEIGH_BENARD_CONVECTION_H
-#define TATOOINE_FLOWEXPLORER_NODES_RAYLEIGH_BENARD_CONVECTION_H
+#ifndef TATOOINE_FLOWEXPLORER_NODES_DUFFING_OSCILLATOR_H
+#define TATOOINE_FLOWEXPLORER_NODES_DUFFING_OSCILLATOR_H
 //==============================================================================
-#include <tatooine/analytical/fields/numerical/rayleigh_benard_convection.h>
-#include <yavin>
+#include <tatooine/analytical/fields/numerical/duffing_oscillator.h>
 #include "../renderable.h"
 //==============================================================================
 namespace tatooine::flowexplorer::nodes {
 //==============================================================================
 template <typename Real>
-struct rayleigh_benard_convection
-    : tatooine::analytical::fields::numerical::rayleigh_benard_convection<Real>,
+struct duffing_oscillator
+    : tatooine::analytical::fields::numerical::duffing_oscillator<Real>,
       renderable {
-  rayleigh_benard_convection(struct window& w)
-      : renderable{w, "Rayleigh Benard Convection"} {
-    this->template insert_output_pin<parent::field<Real, 3, 3>>("Field Out");
+  duffing_oscillator(struct window& w)
+      : renderable{w, "Duffing Oscillator"},
+        tatooine::analytical::fields::numerical::duffing_oscillator<Real>{
+            Real(1), Real(1), Real(1)} {
+    this->template insert_output_pin<parent::vectorfield<Real, 2>>("Field Out");
   }
   void render(mat<float, 4, 4> const&, mat<float, 4, 4> const&) override {}
   void draw_ui() override {
     ui::node::draw_ui([this] {
-      ImGui::DragDouble("A", &this->A());
-      ImGui::DragDouble("k", &this->k());
+      ImGui::DragDouble("alpha", &this->m_alpha);
+      ImGui::DragDouble("beta", &this->m_beta);
+      ImGui::DragDouble("delt", &this->m_delta);
     });
   }
   auto is_transparent() const -> bool override {

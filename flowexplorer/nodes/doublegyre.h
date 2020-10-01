@@ -15,6 +15,9 @@ struct doublegyre : tatooine::analytical::fields::numerical::doublegyre<Real>, r
   void draw_ui() override {
     ui::node::draw_ui([this] {});
   }
+  auto is_transparent() const -> bool override {
+    return false;
+  }
 };
 //==============================================================================
 }  // namespace tatooine::flowexplorer::nodes

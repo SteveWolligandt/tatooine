@@ -8,9 +8,9 @@ namespace tatooine {
 template <real_or_complex_number T, size_t N>
 struct vec : tensor<T, N> {  // NOLINT
   using parent_t = tensor<T, N>;
+  using parent_t::parent_t;
   using parent_t::at;
   using parent_t::dimension;
-  using parent_t::parent_t;
   using parent_t::operator();
 
   template <real_or_complex_number... Ts, size_t _Dim0 = parent_t::dimension(0),

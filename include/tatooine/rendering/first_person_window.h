@@ -31,7 +31,7 @@ struct first_person_window : yavin::window {
   bool                                      m_e_down             = false;
   //============================================================================
   first_person_window(size_t width = 800, size_t height = 600)
-      : yavin::window{"tatooine first person window", GLsizei(width), GLsizei(height)},
+      : yavin::window{"tatooine first person window", width, height},
         m_run{true},
         m_width{width},
         m_height{height},

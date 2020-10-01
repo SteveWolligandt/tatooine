@@ -38,6 +38,22 @@ TEST_CASE("gpu_lic_sinuscosinus", "[gpu][sinuscosinus][lic]") {
   gpu::lic(v, linspace{-1.0, 1.0, 501}, linspace{-1.0, 1.0, 501}, M_PI/2,
            vec<size_t, 2>{1000, 1000}, 30, 0.001)
       .write_png("sinuscosinus_lic_pi2.png");
+  gpu::lic(v, linspace{-1.0, 1.0, 501}, linspace{-1.0, 1.0, 501}, M_PI/4,
+           vec<size_t, 2>{1000, 1000}, 30, 0.001)
+      .write_png("sinuscosinus_lic_pi4.png");
+}
+//==============================================================================
+TEST_CASE("gpu_lic_cosinussinus", "[gpu][cosinussinus][lic]") {
+  analytical::fields::numerical::cosinussinus v;
+  gpu::lic(v, linspace{-1.0, 1.0, 501}, linspace{-1.0, 1.0, 501}, 0.0,
+           vec<size_t, 2>{1000, 1000}, 30, 0.001)
+      .write_png("cosinussinus_lic_0.png");
+  gpu::lic(v, linspace{-1.0, 1.0, 501}, linspace{-1.0, 1.0, 501}, M_PI/2,
+           vec<size_t, 2>{1000, 1000}, 30, 0.001)
+      .write_png("cosinussinus_lic_pi2.png");
+  gpu::lic(v, linspace{-1.0, 1.0, 501}, linspace{-1.0, 1.0, 501}, M_PI/4,
+           vec<size_t, 2>{1000, 1000}, 30, 0.001)
+      .write_png("cosinussinus_lic_pi4.png");
 }
 //==============================================================================
 //TEST_CASE("gpu_lic_autonomous_particles_test_field",

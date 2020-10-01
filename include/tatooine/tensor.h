@@ -21,11 +21,13 @@ struct tensor : base_tensor<tensor<T, Dims...>, T, Dims...>,  // NOLINT
   using typename tensor_parent_t::value_type;
   using array_parent_t =
       static_multidim_array<T, x_fastest, tag::stack, Dims...>;
-  using array_parent_t::at;
+
+  using tensor_parent_t::tensor_parent_t;
   using tensor_parent_t::dimension;
   using tensor_parent_t::num_components;
   using tensor_parent_t::rank;
-  using tensor_parent_t::tensor_parent_t;
+
+  using array_parent_t::at;
   using array_parent_t::operator();
 
   //============================================================================

@@ -28,6 +28,9 @@ struct spacetime_vectorfield
           dynamic_cast<parent::vectorfield<Real, 2> const*>(&other_pin.node()));
     }
   }
+  auto is_transparent() const -> bool override {
+    return false;
+  }
 };
 //==============================================================================
 }  // namespace tatooine::flowexplorer::nodes

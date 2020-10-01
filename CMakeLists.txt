@@ -45,6 +45,7 @@ set(TATOOINE_LIC_COMP_SHADER
 configure_file("${CMAKE_CURRENT_SOURCE_DIR}/include/tatooine/gpu/lic.h.in"
                "${CMAKE_CURRENT_BINARY_DIR}/include/tatooine/gpu/lic.h")
 
+## Line Shader
 set(TATOOINE_LINE_SHADER_VERT_PATH
     ${CMAKE_CURRENT_SOURCE_DIR}/include/tatooine/gpu/line.vert)
 set(TATOOINE_LINE_SHADER_GEOM_PATH
@@ -53,6 +54,14 @@ set(TATOOINE_LINE_SHADER_FRAG_PATH
     ${CMAKE_CURRENT_SOURCE_DIR}/include/tatooine/gpu/line.frag)
 configure_file("${CMAKE_CURRENT_SOURCE_DIR}/include/tatooine/gpu/line_shader.h.in"
                "${CMAKE_CURRENT_BINARY_DIR}/include/tatooine/gpu/line_shader.h")
+
+ ## Texture Shader
+set(TATOOINE_TEXTURE_SHADER_VERT_PATH
+    ${CMAKE_CURRENT_SOURCE_DIR}/include/tatooine/gpu/texture.vert)
+set(TATOOINE_TEXTURE_SHADER_FRAG_PATH
+    ${CMAKE_CURRENT_SOURCE_DIR}/include/tatooine/gpu/texture.frag)
+configure_file("${CMAKE_CURRENT_SOURCE_DIR}/include/tatooine/gpu/texture_shader.h.in"
+               "${CMAKE_CURRENT_BINARY_DIR}/include/tatooine/gpu/texture_shader.h")
 
 set(TATOOINE_GPU_REDUCE_TEX2R32F_COMP_SHADER_PATH
     ${CMAKE_CURRENT_SOURCE_DIR}/include/tatooine/gpu/reduce_tex2r32f.comp)

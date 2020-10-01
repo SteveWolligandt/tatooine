@@ -75,13 +75,11 @@ struct random_pathlines : renderable {
   //----------------------------------------------------------------------------
   void render(mat<float, 4, 4> const& projection_matrix,
               mat<float, 4, 4> const& view_matrix) override {
-    if (m_animate || m_general_alpha < 1) {
+    if (is_transparent()) {
       yavin::enable_blending();
       yavin::blend_func_alpha();
-      yavin::disable_depth_test();
     } else {
       yavin::disable_blending();
-      yavin::enable_depth_test();
     }
     update_shader(projection_matrix, view_matrix);
     m_shader->bind();
@@ -199,6 +197,10 @@ struct random_pathlines : renderable {
   //----------------------------------------------------------------------------
   void on_pin_disconnected(ui::pin& this_pin) override {
     m_gpu_data.clear();
+  }
+  //----------------------------------------------------------------------------
+  bool is_transparent() const override {
+    return m_animate || m_general_alpha < 1;
   }
 };
 //==============================================================================

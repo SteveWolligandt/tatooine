@@ -1,0 +1,52 @@
+#ifndef TATOOINE_TEXTURE_SHADER_H
+#define TATOOINE_TEXTURE_SHADER_H
+//==============================================================================
+#include <yavin/shader.h>
+#include <tatooine/mat.h>
+
+#include <string_view>
+#include <filesystem>
+//==============================================================================
+namespace tatooine::gpu {
+//==============================================================================
+struct texture_shader : yavin::shader {
+  static constexpr std::string_view vert_shader_path =
+      "@TATOOINE_TEXTURE_SHADER_VERT_PATH@";
+  static constexpr std::string_view frag_shader_path =
+      "@TATOOINE_TEXTURE_SHADER_FRAG_PATH@";
+  const std::filesystem::file_time_type vert_last_write;
+  const std::filesystem::file_time_type frag_last_write;
+  //==============================================================================
+  explicit texture_shader(GLint texture_binding = 0)
+      : vert_last_write{std::filesystem::last_write_time(vert_shader_path)},
+        frag_last_write{std::filesystem::last_write_time(frag_shader_path)} {
+    add_stage<yavin::vertexshader>(vert_shader_path.data());
+    add_stage<yavin::fragmentshader>(frag_shader_path.data());
+    create();
+    set_texture_binding(texture_binding);
+  }
+  //------------------------------------------------------------------------------
+  bool files_changed() const {
+    if (std::filesystem::last_write_time(vert_shader_path) > vert_last_write ||
+        std::filesystem::last_write_time(frag_shader_path) > frag_last_write) {
+      return true;
+    }
+    return false;
+  }
+  //------------------------------------------------------------------------------
+  void set_projection_matrix(mat<float, 4, 4> const& projection_matrix) {
+    set_uniform_mat4("projection_matrix", projection_matrix.data_ptr());
+  }
+  //------------------------------------------------------------------------------
+  void set_modelview_matrix(mat<float, 4, 4> const& modelview_matrix) {
+    set_uniform_mat4("modelview_matrix", modelview_matrix.data_ptr());
+  }
+  //------------------------------------------------------------------------------
+  void set_texture_binding(GLint texture_binding) {
+    set_uniform("tex", texture_binding);
+  }
+};
+//==============================================================================
+}  // namespace tatooine::gpu
+//==============================================================================
+#endif
