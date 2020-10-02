@@ -5,7 +5,7 @@
 #include <tatooine/gpu/line_renderer.h>
 #include <tatooine/gpu/line_shader.h>
 #include <tatooine/ode/vclibs/rungekutta43.h>
-#include "../renderable.h"
+#include <tatooine/flowexplorer/renderable.h>
 
 #include <mutex>
 //==============================================================================

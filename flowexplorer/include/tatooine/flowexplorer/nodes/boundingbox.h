@@ -1,8 +1,8 @@
 #ifndef TATOOINE_FLOWEXPLORER_NODES_BOUNDINGBOX_H
 #define TATOOINE_FLOWEXPLORER_NODES_BOUNDINGBOX_H
 //==============================================================================
-#include <line_shader.h>
-#include <renderable.h>
+#include <tatooine/flowexplorer/line_shader.h>
+#include <tatooine/flowexplorer/renderable.h>
 #include <tatooine/boundingbox.h>
 #include <yavin/imgui.h>
 #include <yavin/indexeddata.h>

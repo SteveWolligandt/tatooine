@@ -4,8 +4,8 @@
 #include <boost/uuid/uuid.hpp>
 #include <boost/uuid/uuid_generators.hpp>
 
-#include "../imgui-node-editor/imgui_node_editor.h"
-#include "pinkind.h"
+#include <imgui-node-editor/imgui_node_editor.h>
+#include <tatooine/flowexplorer/ui/pinkind.h>
 //==============================================================================
 namespace tatooine::flowexplorer::ui {
 //==============================================================================

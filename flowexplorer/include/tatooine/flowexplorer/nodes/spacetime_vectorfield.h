@@ -2,7 +2,7 @@
 #define TATOOINE_FLOWEXPLORER_NODES_SPACETIME_VECTORFIELD_H
 //==============================================================================
 #include <tatooine/spacetime_vectorfield.h>
-#include <ui/node.h>
+#include <tatooine/flowexplorer/renderable.h>
 //==============================================================================
 namespace tatooine::flowexplorer::nodes {
 //==============================================================================

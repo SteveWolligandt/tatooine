@@ -1,4 +1,4 @@
-#include "line_shader.h"
+#include <tatooine/flowexplorer/line_shader.h>
 //==============================================================================
 namespace tatooine::flowexplorer {
 //==============================================================================

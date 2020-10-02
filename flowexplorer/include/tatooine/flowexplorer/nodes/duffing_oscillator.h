@@ -2,7 +2,7 @@
 #define TATOOINE_FLOWEXPLORER_NODES_DUFFING_OSCILLATOR_H
 //==============================================================================
 #include <tatooine/analytical/fields/numerical/duffing_oscillator.h>
-#include "../renderable.h"
+#include <tatooine/flowexplorer/renderable.h>
 //==============================================================================
 namespace tatooine::flowexplorer::nodes {
 //==============================================================================

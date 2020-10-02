@@ -6,15 +6,15 @@
 #include <tatooine/interpolation.h>
 #include <tatooine/rendering/first_person_window.h>
 
-#include "imgui-node-editor/imgui_node_editor.h"
-#include "nodes/abcflow.h"
-#include "nodes/boundingbox.h"
-#include "nodes/doublegyre.h"
-#include "nodes/duffing_oscillator.h"
-#include "nodes/lic.h"
-#include "nodes/random_pathlines.h"
-#include "nodes/rayleigh_benard_convection.h"
-#include "nodes/spacetime_vectorfield.h"
+#include <imgui-node-editor/imgui_node_editor.h>
+#include <tatooine/flowexplorer/nodes/abcflow.h>
+#include <tatooine/flowexplorer/nodes/boundingbox.h>
+#include <tatooine/flowexplorer/nodes/doublegyre.h>
+#include <tatooine/flowexplorer/nodes/duffing_oscillator.h>
+#include <tatooine/flowexplorer/nodes/lic.h>
+#include <tatooine/flowexplorer/nodes/random_pathlines.h>
+#include <tatooine/flowexplorer/nodes/rayleigh_benard_convection.h>
+#include <tatooine/flowexplorer/nodes/spacetime_vectorfield.h>
 //==============================================================================
 namespace tatooine::flowexplorer {
 //==============================================================================

@@ -4,7 +4,7 @@
 #include <tatooine/boundingbox.h>
 #include <tatooine/gpu/texture_shader.h>
 #include <tatooine/gpu/lic.h>
-#include "../renderable.h"
+#include <tatooine/flowexplorer/renderable.h>
 
 #include <mutex>
 //==============================================================================

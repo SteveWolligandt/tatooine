@@ -7,7 +7,7 @@
 // CREDITS
 //   Written by Michal Cichon
 //------------------------------------------------------------------------------
-# include "imgui_node_editor_internal.h"
+# include <imgui-node-editor/imgui_node_editor_internal.h>
 # include <cstdio> // snprintf
 # include <string>
 # include <fstream>

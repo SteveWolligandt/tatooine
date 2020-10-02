@@ -2,7 +2,7 @@
 #define TATOOINE_FLOWEXPLORER_NODES_DOUBLEGYRE_H
 //==============================================================================
 #include <tatooine/analytical/fields/numerical/doublegyre.h>
-#include <ui/node.h>
+#include <tatooine/flowexplorer/ui/node.h>
 //==============================================================================
 namespace tatooine::flowexplorer::nodes {
 //==============================================================================
