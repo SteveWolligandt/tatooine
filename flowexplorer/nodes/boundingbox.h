@@ -1,11 +1,11 @@
 #ifndef TATOOINE_FLOWEXPLORER_NODES_BOUNDINGBOX_H
 #define TATOOINE_FLOWEXPLORER_NODES_BOUNDINGBOX_H
 //==============================================================================
+#include <line_shader.h>
+#include <renderable.h>
 #include <tatooine/boundingbox.h>
 #include <yavin/imgui.h>
 #include <yavin/indexeddata.h>
-#include "../renderable.h"
-#include "line_shader.h"
 //==============================================================================
 namespace tatooine::flowexplorer::nodes {
 //==============================================================================
@@ -18,20 +18,19 @@ struct boundingbox : tatooine::boundingbox<Real, N>, renderable {
   using parent_t::max;
   using parent_t::min;
   //============================================================================
-  yavin::indexeddata<vec<float, N>>        m_gpu_data;
-  line_shader                              m_shader;
-  int                                      m_linewidth = 1;
-  std::array<GLfloat, 4>                   m_color{0.0f, 0.0f, 0.0f, 1.0f};
+  yavin::indexeddata<vec<float, N>> m_gpu_data;
+  line_shader                       m_shader;
+  int                               m_linewidth = 1;
+  std::array<GLfloat, 4>            m_color{0.0f, 0.0f, 0.0f, 1.0f};
   //============================================================================
-  boundingbox(struct window& w)
-      : renderable{w, "Bounding Box"} {}
+  boundingbox(flowexplorer::window& w) : renderable{w, "Bounding Box"} {}
   boundingbox(const boundingbox&)     = default;
   boundingbox(boundingbox&&) noexcept = default;
   auto operator=(const boundingbox&) -> boundingbox& = default;
   auto operator=(boundingbox&&) noexcept -> boundingbox& = default;
   //============================================================================
   template <typename Real0, typename Real1>
-  constexpr boundingbox(struct window& w, vec<Real0, N>&& min,
+  constexpr boundingbox(flowexplorer::window& w, vec<Real0, N>&& min,
                         vec<Real1, N>&& max) noexcept
       : parent_t{std::move(min), std::move(max)},
         renderable{w, "Bounding Box"} {
@@ -40,20 +39,18 @@ struct boundingbox : tatooine::boundingbox<Real, N>, renderable {
   }
   //----------------------------------------------------------------------------
   template <typename Real0, typename Real1>
-  constexpr boundingbox(struct window& w, const vec<Real0, N>& min,
+  constexpr boundingbox(flowexplorer::window& w, const vec<Real0, N>& min,
                         const vec<Real1, N>& max)
-      : parent_t{min, max},
-        renderable{w, "Bounding Box"} {
+      : parent_t{min, max}, renderable{w, "Bounding Box"} {
     insert_output_node<this_t>("Out");
     create_indexed_data();
   }
   //----------------------------------------------------------------------------
   template <typename Tensor0, typename Tensor1, typename Real0, typename Real1>
-  constexpr boundingbox(struct window&                        w,
+  constexpr boundingbox(flowexplorer::window&                 w,
                         const base_tensor<Tensor0, Real0, N>& min,
                         const base_tensor<Tensor1, Real1, N>& max)
-      : parent_t{min, max},
-        renderable{w, "Bounding Box"} {
+      : parent_t{min, max}, renderable{w, "Bounding Box"} {
     insert_output_node<this_t>("Out");
     create_indexed_data();
   }
@@ -132,19 +129,19 @@ struct boundingbox : tatooine::boundingbox<Real, N>, renderable {
 // deduction guides
 //==============================================================================
 template <typename Real0, typename Real1, size_t N>
-boundingbox(struct window&, const vec<Real0, N>&, const vec<Real1, N>&)
+boundingbox(flowexplorer::window&, const vec<Real0, N>&, const vec<Real1, N>&)
     -> boundingbox<promote_t<Real0, Real1>, N>;
 //------------------------------------------------------------------------------
 template <typename Real0, typename Real1, size_t N>
-boundingbox(struct window&, vec<Real0, N>&&, vec<Real1, N> &&)
+boundingbox(flowexplorer::window&, vec<Real0, N>&&, vec<Real1, N> &&)
     -> boundingbox<promote_t<Real0, Real1>, N>;
 //------------------------------------------------------------------------------
 template <typename Tensor0, typename Tensor1, typename Real0, typename Real1,
           size_t N>
-boundingbox(struct window&, base_tensor<Tensor0, Real0, N>&&,
+boundingbox(flowexplorer::window&, base_tensor<Tensor0, Real0, N>&&,
             base_tensor<Tensor1, Real1, N> &&)
     -> boundingbox<promote_t<Real0, Real1>, N>;
 //==============================================================================
-}  // namespace tatooine::flowexplorer
+}  // namespace tatooine::flowexplorer::nodes
 //==============================================================================
 #endif

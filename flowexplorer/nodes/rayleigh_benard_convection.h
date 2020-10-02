@@ -3,27 +3,22 @@
 //==============================================================================
 #include <tatooine/analytical/fields/numerical/rayleigh_benard_convection.h>
 #include <yavin>
-#include "../renderable.h"
+#include <ui/node.h>
 //==============================================================================
 namespace tatooine::flowexplorer::nodes {
 //==============================================================================
 template <typename Real>
 struct rayleigh_benard_convection
     : tatooine::analytical::fields::numerical::rayleigh_benard_convection<Real>,
-      renderable {
-  rayleigh_benard_convection(struct window& w)
-      : renderable{w, "Rayleigh Benard Convection"} {
+      ui::node {
+  rayleigh_benard_convection() : ui::node{"Rayleigh Benard Convection"} {
     this->template insert_output_pin<parent::field<Real, 3, 3>>("Field Out");
   }
-  void render(mat<float, 4, 4> const&, mat<float, 4, 4> const&) override {}
   void draw_ui() override {
     ui::node::draw_ui([this] {
       ImGui::DragDouble("A", &this->A());
       ImGui::DragDouble("k", &this->k());
     });
-  }
-  auto is_transparent() const -> bool override {
-    return false;
   }
 };
 //==============================================================================

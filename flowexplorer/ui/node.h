@@ -21,6 +21,7 @@ struct node {
       : m_name{name},
         m_id{boost::hash<boost::uuids::uuid>{}(
             boost::uuids::random_generator()())} {}
+  virtual ~node() = default;
   //============================================================================
   template <typename T>
   auto insert_input_pin(std::string const& name) {
@@ -60,6 +61,8 @@ struct node {
     return m_output_pins;
   }
   //----------------------------------------------------------------------------
+  virtual void draw_ui() = 0;
+  // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
   template <typename F>
   void draw_ui(F&& f) {
     namespace ed = ax::NodeEditor;

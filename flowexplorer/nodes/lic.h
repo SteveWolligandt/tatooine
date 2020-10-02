@@ -31,7 +31,7 @@ struct lic : renderable {
   float                                                   m_alpha;
   bool                                                    m_calculating = false;
   //----------------------------------------------------------------------------
-  lic(struct window& w)
+  lic(flowexplorer::window& w)
       : renderable{w, "LIC"},
         m_lic_res{100, 100},
         m_vectorfield_sample_res{100, 100},

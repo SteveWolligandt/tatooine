@@ -17,6 +17,7 @@ target_link_libraries(flowexplorer tatooine yavin)
 target_compile_features(flowexplorer PUBLIC cxx_std_17)
 target_include_directories(flowexplorer
                             PRIVATE
+                             ${CMAKE_CURRENT_SOURCE_DIR}
                              ${CMAKE_CURRENT_BINARY_DIR})
 #- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 set (FLOWEXPLORER_LINE_VERT ${CMAKE_CURRENT_SOURCE_DIR}/line.vert)

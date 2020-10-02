@@ -47,6 +47,7 @@ struct window : rendering::first_person_window {
   //----------------------------------------------------------------------------
   bool                                     m_show_nodes_gui;
   std::vector<std::unique_ptr<renderable>> m_renderables;
+  std::vector<std::unique_ptr<ui::node>>   m_nodes;
 
   int mouse_x, mouse_y;
 
@@ -131,28 +132,45 @@ struct window : rendering::first_person_window {
         }
       }
     }
+    for (auto& n : m_nodes) {
+      for (auto& p : n->input_pins()) {
+        if (p.id() == id) {
+          return &p;
+        }
+      }
+      for (auto& p : n->output_pins()) {
+        if (p.id() == id) {
+          return &p;
+        }
+      }
+    }
     return nullptr;
   }
   //----------------------------------------------------------------------------
   void node_creators() {
+    // vectorfields
     if (ImGui::Button("ABC Flow")) {
-      m_renderables.emplace_back(new nodes::abcflow<double>{*this});
+      m_nodes.emplace_back(new nodes::abcflow<double>{});
     }
     ImGui::SameLine();
     if (ImGui::Button("Rayleigh Benard Convection")) {
-      m_renderables.emplace_back(new nodes::rayleigh_benard_convection<double>{*this});
+      m_nodes.emplace_back(new nodes::rayleigh_benard_convection<double>{});
     }
     if (ImGui::Button("Doublegyre Flow")) {
-      m_renderables.emplace_back(new nodes::doublegyre<double>{*this});
+      m_nodes.emplace_back(new nodes::doublegyre<double>{});
     }
     ImGui::SameLine();
     if (ImGui::Button("Duffing Oscillator Flow")) {
-      m_renderables.emplace_back(new nodes::duffing_oscillator<double>{*this});
+      m_nodes.emplace_back(new nodes::duffing_oscillator<double>{});
     }
+
+    // vectorfield operations
     if (ImGui::Button("Spacetime Vector Field")) {
-      m_renderables.emplace_back(
-          new nodes::spacetime_vectorfield<double>{*this});
+      m_nodes.emplace_back(
+          new nodes::spacetime_vectorfield<double>{});
     }
+
+    // bounding boxes
     if (ImGui::Button("2D BoundingBox")) {
       m_renderables.emplace_back(new nodes::boundingbox{
           *this, vec{-1.0, -1.0}, vec{1.0, 1.0}});
@@ -162,6 +180,8 @@ struct window : rendering::first_person_window {
       m_renderables.emplace_back(new nodes::boundingbox{
           *this, vec{-1.0, -1.0, -1.0}, vec{1.0, 1.0, 1.0}});
     }
+
+    // Algorithms
     if (ImGui::Button("Random Path Lines")) {
       m_renderables.emplace_back(new nodes::random_pathlines<double, 3>{*this});
     }
@@ -174,6 +194,11 @@ struct window : rendering::first_person_window {
   void draw_nodes() {
     namespace ed = ax::NodeEditor;
     size_t i     = 0;
+    for (auto& n : m_nodes) {
+      ImGui::PushID(i++);
+      n->draw_ui();
+      ImGui::PopID();
+    }
     for (auto& r : m_renderables) {
       ImGui::PushID(i++);
       r->draw_ui();

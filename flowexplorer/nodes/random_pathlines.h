@@ -44,7 +44,7 @@ struct random_pathlines : renderable {
   float                                                   m_speed;
   bool m_integration_going_on = false;
   //----------------------------------------------------------------------------
-  random_pathlines(struct window& w)
+  random_pathlines(flowexplorer::window& w)
       : renderable{w, "Random Path Lines"},
         m_shader{std::make_unique<gpu::line_shader>(
             m_line_color[0], m_line_color[1], m_line_color[2],
