@@ -2,9 +2,8 @@
 #define TATOOINE_FLOWEXPLORER_RENDERABLE_H
 //==============================================================================
 #include <chrono>
-#include <tatooine/boundingbox.h>
-#include <tatooine/rendering/yavin_interop.h>
-#include "ui/node.h"
+#include <tatooine/flowexplorer/ui/node.h>
+#include <tatooine/mat.h>
 //==============================================================================
 namespace tatooine::flowexplorer {
 //==============================================================================
@@ -12,8 +11,7 @@ struct window;
 struct renderable : ui::node {
   flowexplorer::window* m_window;
 
-  renderable(flowexplorer::window& w, std::string const& name)
-      : m_window{&w}, ui::node{name} {}
+  renderable(flowexplorer::window& w, std::string const& name);
   renderable(renderable const& w)                        = default;
   renderable(renderable&& w) noexcept                    = default;
   auto operator=(renderable const& w) -> renderable&     = default;
@@ -31,7 +29,6 @@ struct renderable : ui::node {
   auto window() -> auto& {
     return *m_window;
   }
-
 };
 //==============================================================================
 }  // namespace tatooine::flowexplorer

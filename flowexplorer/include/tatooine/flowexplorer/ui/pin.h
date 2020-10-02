@@ -1,6 +1,7 @@
 #ifndef TATOOINE_FLOWEXPLORER_UI_PIN_H
 #define TATOOINE_FLOWEXPLORER_UI_PIN_H
 //==============================================================================
+#include <boost/functional/hash.hpp>
 #include <boost/uuid/uuid.hpp>
 #include <boost/uuid/uuid_generators.hpp>
 

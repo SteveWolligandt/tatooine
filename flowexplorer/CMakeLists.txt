@@ -8,7 +8,9 @@ add_executable(
   flowexplorer
 
   src/flowexplorer.cpp
+  src/window.cpp
   src/line_shader.cpp 
+  src/renderable.cpp 
 
   src/imgui-node-editor/crude_json.cpp
   src/imgui-node-editor/imgui_canvas.cpp

@@ -5,6 +5,7 @@
 #include <tatooine/gpu/texture_shader.h>
 #include <tatooine/gpu/lic.h>
 #include <tatooine/flowexplorer/renderable.h>
+#include <tatooine/rendering/matrices.h>
 
 #include <mutex>
 //==============================================================================
