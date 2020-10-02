@@ -1,7 +1,4 @@
-#include <tatooine/flowexplorer/window.h>
-
 #include <imgui-node-editor/imgui_node_editor.h>
-
 #include <tatooine/boundingbox.h>
 #include <tatooine/demangling.h>
 #include <tatooine/flowexplorer/nodes/abcflow.h>
@@ -12,6 +9,7 @@
 #include <tatooine/flowexplorer/nodes/random_pathlines.h>
 #include <tatooine/flowexplorer/nodes/rayleigh_benard_convection.h>
 #include <tatooine/flowexplorer/nodes/spacetime_vectorfield.h>
+#include <tatooine/flowexplorer/window.h>
 #include <tatooine/interpolation.h>
 #include <tatooine/rendering/yavin_interop.h>
 //==============================================================================

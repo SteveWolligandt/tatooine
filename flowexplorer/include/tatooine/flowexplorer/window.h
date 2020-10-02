@@ -1,29 +1,12 @@
 #ifndef TATOOINE_FLOWEXPLORER_WINDOW_H
 #define TATOOINE_FLOWEXPLORER_WINDOW_H
 //==============================================================================
-#include <imgui-node-editor/imgui_node_editor.h>
-#include <tatooine/boundingbox.h>
-#include <tatooine/demangling.h>
-#include <tatooine/flowexplorer/nodes/abcflow.h>
-#include <tatooine/flowexplorer/nodes/boundingbox.h>
-#include <tatooine/flowexplorer/nodes/doublegyre.h>
-#include <tatooine/flowexplorer/nodes/duffing_oscillator.h>
-#include <tatooine/flowexplorer/nodes/lic.h>
-#include <tatooine/flowexplorer/nodes/random_pathlines.h>
-#include <tatooine/flowexplorer/nodes/rayleigh_benard_convection.h>
-#include <tatooine/flowexplorer/nodes/spacetime_vectorfield.h>
-#include <tatooine/interpolation.h>
 #include <tatooine/rendering/first_person_window.h>
+#include <tatooine/flowexplorer/renderable.h>
 //==============================================================================
 namespace tatooine::flowexplorer {
 //==============================================================================
 struct window : rendering::first_person_window {
-  struct NodeIdLess {
-    bool operator()(const ax::NodeEditor::NodeId& lhs,
-                    const ax::NodeEditor::NodeId& rhs) const {
-      return lhs.AsPointer() < rhs.AsPointer();
-    }
-  };
   //----------------------------------------------------------------------------
   // members
   //----------------------------------------------------------------------------
@@ -48,14 +31,14 @@ struct window : rendering::first_person_window {
   //----------------------------------------------------------------------------
   window();
   //----------------------------------------------------------------------------
-  ~window();
+  ~window(); 
   //============================================================================
-  void on_key_pressed(yavin::key k) override;
-  void start();
+  void on_key_pressed(yavin::key k) override ;
+  void start() ;
   //----------------------------------------------------------------------------
-  auto find_node(ax::NodeEditor::NodeId id) -> renderable*;
+  auto find_node(ax::NodeEditor::NodeId id) -> renderable* ;
   //----------------------------------------------------------------------------
-  auto find_pin(ax::NodeEditor::PinId id) -> ui::pin*;
+  auto find_pin(ax::NodeEditor::PinId id) -> ui::pin* ;
   //----------------------------------------------------------------------------
   void node_creators();
   //----------------------------------------------------------------------------
