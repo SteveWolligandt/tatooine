@@ -3,6 +3,7 @@
 //==============================================================================
 #include <tatooine/rendering/first_person_window.h>
 #include <tatooine/flowexplorer/renderable.h>
+#include <tatooine/flowexplorer/link_info.h>
 //==============================================================================
 namespace tatooine::flowexplorer {
 //==============================================================================
@@ -16,14 +17,9 @@ struct window : rendering::first_person_window {
 
   int mouse_x, mouse_y;
 
-  struct LinkInfo {
-    ax::NodeEditor::LinkId id;
-    ax::NodeEditor::PinId  input_id;
-    ax::NodeEditor::PinId  output_id;
-  };
   ax::NodeEditor::EditorContext* m_node_editor_context = nullptr;
-  ImVector<LinkInfo> m_links;  // List of live links. It is dynamic unless you
-                               // want to create read-only view over nodes.
+  ImVector<link_info> m_links;  // List of live links. It is dynamic unless you
+                                // want to create read-only view over nodes.
   int m_next_link = 100;
 
   //----------------------------------------------------------------------------
@@ -33,12 +29,12 @@ struct window : rendering::first_person_window {
   //----------------------------------------------------------------------------
   ~window(); 
   //============================================================================
-  void on_key_pressed(yavin::key k) override ;
-  void start() ;
+  void on_key_pressed(yavin::key k) override;
+  void start();
   //----------------------------------------------------------------------------
-  auto find_node(ax::NodeEditor::NodeId id) -> renderable* ;
+  auto find_node(ax::NodeEditor::NodeId id) -> renderable*;
   //----------------------------------------------------------------------------
-  auto find_pin(ax::NodeEditor::PinId id) -> ui::pin* ;
+  auto find_pin(ax::NodeEditor::PinId id) -> ui::pin*;
   //----------------------------------------------------------------------------
   void node_creators();
   //----------------------------------------------------------------------------
