@@ -55,7 +55,7 @@ struct spacetime_vectorfield
       if constexpr (holds_field_pointer) {
         return m_field->evaluate(spatial_position, temporal_position);
       } else {
-        m_field(spatial_position, temporal_position);
+        return m_field(spatial_position, temporal_position);
       }
     }();
     tensor_t t_out;

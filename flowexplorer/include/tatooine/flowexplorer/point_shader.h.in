@@ -1,0 +1,22 @@
+#ifndef TATOOINE_FLOWEXPLORER_POINT_SHADER_H
+#define TATOOINE_FLOWEXPLORER_POINT_SHADER_H
+//==============================================================================
+#include <tatooine/mat.h>
+#include <yavin/shader.h>
+#include <yavin/vertexshader.h>
+#include <yavin/fragmentshader.h>
+//==============================================================================
+namespace tatooine::flowexplorer {
+//==============================================================================
+struct point_shader : yavin::shader {
+  static constexpr std::string_view vertpath = "@FLOWEXPLORER_POINT_VERT@";
+  static constexpr std::string_view fragpath = "@FLOWEXPLORER_POINT_FRAG@";
+  point_shader();
+  void set_modelview_matrix(tatooine::mat<GLfloat, 4, 4> const& mvmat);
+  void set_projection_matrix(tatooine::mat<GLfloat, 4, 4> const& projmat);
+  void set_color(GLfloat r, GLfloat g, GLfloat b, GLfloat a);
+};
+//==============================================================================
+}  // namespace tatooine::flowexplorer
+//==============================================================================
+#endif

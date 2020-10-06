@@ -75,12 +75,6 @@ struct random_pathlines : renderable {
   //----------------------------------------------------------------------------
   void render(mat<float, 4, 4> const& projection_matrix,
               mat<float, 4, 4> const& view_matrix) override {
-    if (is_transparent()) {
-      yavin::enable_blending();
-      yavin::blend_func_alpha();
-    } else {
-      yavin::disable_blending();
-    }
     update_shader(projection_matrix, view_matrix);
     m_shader->bind();
     m_gpu_data.draw_lines();

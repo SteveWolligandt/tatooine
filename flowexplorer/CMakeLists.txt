@@ -3,6 +3,10 @@ if ("${CMAKE_CXX_COMPILER_ID}" STREQUAL "Clang")
 elseif ("${CMAKE_CXX_COMPILER_ID}" STREQUAL "GNU")
   list(APPEND CMAKE_CXX_FLAGS "-fdiagnostics-color=always")
 endif()
+set(TATFE_SRC_DIR ${CMAKE_CURRENT_SOURCE_DIR}/src)
+set(TATFE_INCLUDE_DIR ${CMAKE_CURRENT_SOURCE_DIR}/include)
+set(TATFE_BIN_INCLUDE_DIR ${CMAKE_CURRENT_BINARY_DIR}/include)
+set(TATFE_SHADER_DIR ${CMAKE_CURRENT_SOURCE_DIR}/shaders)
 #- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 add_executable(
   flowexplorer
@@ -10,6 +14,7 @@ add_executable(
   src/flowexplorer.cpp
   src/window.cpp
   src/line_shader.cpp 
+  src/point_shader.cpp 
   src/renderable.cpp 
 
   src/imgui-node-editor/crude_json.cpp
@@ -17,17 +22,19 @@ add_executable(
   src/imgui-node-editor/imgui_node_editor_api.cpp
   src/imgui-node-editor/imgui_node_editor.cpp)
 
-add_custom_target(flowexplorer.run
-  ./flowexplorer DEPENDS flowexplorer)
+add_custom_target(flowexplorer.run ./flowexplorer DEPENDS flowexplorer)
 target_link_libraries(flowexplorer tatooine yavin)
 target_compile_features(flowexplorer PUBLIC cxx_std_17)
-target_include_directories(flowexplorer
-                            PUBLIC
-                             ${CMAKE_CURRENT_SOURCE_DIR}/include
-                             ${CMAKE_CURRENT_BINARY_DIR}/include)
-                           message(STATUS ${CMAKE_CURRENT_BINARY_DIR}/include)
+target_include_directories(
+  flowexplorer
+  PUBLIC ${TATFE_INCLUDE_DIR} ${TATFE_BIN_INCLUDE_DIR})
 #- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-set (FLOWEXPLORER_LINE_VERT ${CMAKE_CURRENT_SOURCE_DIR}/shaders/line/line.vert)
-set (FLOWEXPLORER_LINE_FRAG ${CMAKE_CURRENT_SOURCE_DIR}/shaders/line/line.frag)
-configure_file(${CMAKE_CURRENT_SOURCE_DIR}/include/tatooine/flowexplorer/line_shader.h.in
-               ${CMAKE_CURRENT_BINARY_DIR}/include/tatooine/flowexplorer/line_shader.h)
+set (FLOWEXPLORER_LINE_VERT ${TATFE_SHADER_DIR}/line/line.vert)
+set (FLOWEXPLORER_LINE_FRAG ${TATFE_SHADER_DIR}/line/line.frag)
+configure_file(${TATFE_INCLUDE_DIR}/tatooine/flowexplorer/line_shader.h.in
+               ${TATFE_BIN_INCLUDE_DIR}/tatooine/flowexplorer/line_shader.h)
+#- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+set (FLOWEXPLORER_POINT_VERT ${TATFE_SHADER_DIR}/point/point.vert)
+set (FLOWEXPLORER_POINT_FRAG ${TATFE_SHADER_DIR}/point/point.frag)
+configure_file(${TATFE_INCLUDE_DIR}/tatooine/flowexplorer/point_shader.h.in
+               ${TATFE_BIN_INCLUDE_DIR}/tatooine/flowexplorer/point_shader.h)

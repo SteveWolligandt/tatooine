@@ -3,6 +3,8 @@
 //==============================================================================
 #include <tatooine/tensor.h>
 #include <tatooine/triangular_mesh.h>
+#include <boost/range/adaptor/transformed.hpp>
+#include <boost/range/algorithm/copy.hpp>
 
 #include "primitive.h"
 #include "sphere_ray_intersection.h"
@@ -51,6 +53,23 @@ struct sphere : primitive<Real, N> {
     return m_center;
   }
 };
+//------------------------------------------------------------------------------
+template <typename Real>
+auto discretize(const sphere<Real, 2>& s, size_t const num_vertices) {
+  using namespace boost;
+  using namespace adaptors;
+  linspace<Real>      radial{0.0, M_PI * 2, num_vertices};
+  radial.pop_back();
+
+  line<Real, 2> ellipse;
+  auto          radian_to_cartesian = [&s](auto const t) {
+    return vec{std::cos(t) * s.radius(), std::sin(t) * s.radius()} + s.center();
+  };
+  auto          out_it = std::back_inserter(ellipse);
+  copy(radial | transformed(radian_to_cartesian), out_it);
+  ellipse.set_closed(true);
+  return ellipse;
+}
 //------------------------------------------------------------------------------
 template <typename Real>
 auto discretize(const sphere<Real, 3>& s, size_t num_subdivisions = 0) {

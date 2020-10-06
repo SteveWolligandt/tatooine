@@ -57,22 +57,12 @@ struct boundingbox : tatooine::boundingbox<Real, N>, renderable {
   //============================================================================
   void render(mat<float, 4, 4> const& projection_matrix,
               mat<float, 4, 4> const& view_matrix) override {
-    if (is_transparent()) {
-      yavin::enable_blending();
-      yavin::blend_func_alpha();
-    } else {
-      yavin::disable_blending();
-    }
     set_vbo_data();
     m_shader.bind();
     m_shader.set_color(m_color[0], m_color[1], m_color[2], m_color[3]);
     m_shader.set_projection_matrix(projection_matrix);
     m_shader.set_modelview_matrix(view_matrix);
     yavin::gl::line_width(m_linewidth);
-    if (is_transparent()) {
-      yavin::enable_blending();
-      yavin::blend_func_alpha();
-    }
     m_gpu_data.draw_lines();
   }
   //----------------------------------------------------------------------------

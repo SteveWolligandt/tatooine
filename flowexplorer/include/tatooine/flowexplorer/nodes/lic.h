@@ -66,12 +66,6 @@ struct lic : renderable {
       m_shader->bind();
       m_shader->set_alpha(m_alpha);
       m_lic_tex->bind(0);
-      if (is_transparent()) {
-        yavin::enable_blending();
-        yavin::blend_func_alpha();
-      } else {
-        yavin::disable_blending();
-      }
       m_quad.draw_triangles();
     }
   }

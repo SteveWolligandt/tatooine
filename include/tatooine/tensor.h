@@ -147,8 +147,8 @@ struct is_mat<tensor<Real, M, N>> : std::true_type {};
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 #include <tatooine/tensor_cast.h>
 #include <tatooine/tensor_lapack_utility.h>
-#include <tatooine/tensor_operations.h>
 #include <tatooine/tensor_type_traits.h>
 #include <tatooine/tensor_unpack.h>
+#include <tatooine/tensor_operations.h>
 //==============================================================================
 #endif

@@ -1,24 +1,33 @@
 #ifndef TATOOINE_GEOMETRY_SPHERE_RAY_INTERSECTION_H
 #define TATOOINE_GEOMETRY_SPHERE_RAY_INTERSECTION_H
 //==============================================================================
-#include <tatooine/ray.h>
-#include <tatooine/polynomial.h>
 #include <tatooine/intersection.h>
+#include <tatooine/polynomial.h>
+#include <tatooine/ray.h>
 //==============================================================================
 namespace tatooine::geometry {
 //==============================================================================
-template <typename Real, size_t N> struct sphere;
+template <typename Real, size_t N>
+struct sphere;
 //==============================================================================
+/// TODO implement
 template <typename Real>
-std::optional<intersection<Real, 3>> check_intersection(const ray<Real, 3>&    r,
-                                               const sphere<Real, 3>& s,
-                                               const Real min_t = 0) {
-  const auto  L          = r.origin() - s.center();
-  const Real  c          = dot(r.direction(), r.direction());
-  const Real  b          = 2 * dot(r.direction(), L);
-  const Real  a          = dot(L, L) - s.radius() * s.radius();
-  auto        solutions  = solve(polynomial{a, b, c});
-  if (solutions.empty()) { return {}; }
+std::optional<intersection<Real, 2>> check_intersection(
+    ray<Real, 2> const& /*r*/, sphere<Real, 2> const& /*s*/, Real const /*min_t*/ = 0) {
+  return {};
+}
+//------------------------------------------------------------------------------
+template <typename Real>
+std::optional<intersection<Real, 3>> check_intersection(
+    ray<Real, 3> const& r, sphere<Real, 3> const& s, Real const min_t = 0) {
+  auto const L         = r.origin() - s.center();
+  Real const c         = dot(r.direction(), r.direction());
+  Real const b         = 2 * dot(r.direction(), L);
+  Real const a         = dot(L, L) - s.radius() * s.radius();
+  auto       solutions = solve(polynomial{a, b, c});
+  if (solutions.empty()) {
+    return {};
+  }
 
   Real t = 0;
   if (size(solutions) == 1) {
@@ -46,10 +55,9 @@ std::optional<intersection<Real, 3>> check_intersection(const ray<Real, 3>&    r
 }
 //------------------------------------------------------------------------------
 template <typename Real, size_t N>
-std::optional<intersection<Real, N>> check_intersection(const sphere<Real, N>& s,
-                                               const ray<Real, N>&    r,
-                                               const Real min_t = 0) {
-  return check_intersection(r,s, min_t);
+std::optional<intersection<Real, N>> check_intersection(
+    sphere<Real, N> const& s, ray<Real, N> const& r, Real const min_t = 0) {
+  return check_intersection(r, s, min_t);
 }
 //==============================================================================
 }  // namespace tatooine::geometry

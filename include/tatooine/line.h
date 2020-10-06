@@ -326,6 +326,7 @@ struct line {
   using mat3            = mat<Real, 3, 3>;
   using this_t          = line<Real, N>;
   using pos_container_t = std::deque<pos_t>;
+  using value_type      = pos_t;
 
   //============================================================================
   // Handles

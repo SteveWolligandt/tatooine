@@ -3,6 +3,7 @@
 #include <tatooine/demangling.h>
 #include <tatooine/flowexplorer/nodes/abcflow.h>
 #include <tatooine/flowexplorer/nodes/boundingbox.h>
+#include <tatooine/flowexplorer/nodes/position.h>
 #include <tatooine/flowexplorer/nodes/doublegyre.h>
 #include <tatooine/flowexplorer/nodes/duffing_oscillator.h>
 #include <tatooine/flowexplorer/nodes/lic.h>
@@ -58,6 +59,7 @@ void window::start() {
     // render non-transparent objects
     // yavin::enable_depth_test();
     yavin::enable_depth_write();
+    yavin::disable_blending();
     for (auto& r : m_renderables) {
       if (!r->is_transparent()) {
         r->render(projection_matrix(), view_matrix());
@@ -67,6 +69,8 @@ void window::start() {
     // render transparent objects
     // yavin::disable_depth_test();
     yavin::disable_depth_write();
+    yavin::enable_blending();
+    yavin::blend_func_alpha();
     for (auto& r : m_renderables) {
       if (r->is_transparent()) {
         r->render(projection_matrix(), view_matrix());
@@ -116,6 +120,13 @@ auto window::find_pin(ax::NodeEditor::PinId id) -> ui::pin* {
 }
 //----------------------------------------------------------------------------
 void window::node_creators() {
+  if (ImGui::Button("2D Position")) {
+    m_renderables.emplace_back(new nodes::position<2>{*this});
+  }
+  ImGui::SameLine();
+  if (ImGui::Button("3D Position")) {
+    m_renderables.emplace_back(new nodes::position<3>{*this});
+  }
   // vectorfields
   if (ImGui::Button("ABC Flow")) {
     m_nodes.emplace_back(new nodes::abcflow<double>{});
