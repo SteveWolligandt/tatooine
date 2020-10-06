@@ -61,7 +61,7 @@ struct node {
     return m_output_pins;
   }
   //----------------------------------------------------------------------------
-  virtual void draw_ui() = 0;
+  virtual void draw_ui() {}
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
   template <typename F>
   void draw_ui(F&& f) {

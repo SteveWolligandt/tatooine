@@ -18,9 +18,6 @@ struct spacetime_vectorfield
         "2D Vector Field");
     this->template insert_output_pin<parent::vectorfield<Real, 3>>("3D Vector Field");
   }
-  void draw_ui() override {
-    ui::node::draw_ui([this] {});
-  }
   //----------------------------------------------------------------------------
   void on_pin_connected(ui::pin& this_pin, ui::pin& other_pin) override {
     if (this_pin.kind() == ui::pinkind::input) {

@@ -21,15 +21,16 @@ struct position : tatooine::vec<double, N>, renderable {
   int                         m_pointsize = 1;
   std::array<GLfloat, 4>      m_color{0.0f, 0.0f, 0.0f, 1.0f};
   //============================================================================
-  constexpr position(flowexplorer::window& w) : renderable{w, "Position"} {
-    this->template insert_output_pin<this_t>("Out");
-    create_indexed_data();
-  }
   constexpr position(position const&)     = default;
   constexpr position(position&&) noexcept = default;
   constexpr auto operator=(position const&) -> position& = default;
   constexpr auto operator=(position&&) noexcept -> position& = default;
   //============================================================================
+  constexpr position(flowexplorer::window& w) : renderable{w, "Position"} {
+    this->template insert_output_pin<this_t>("Out");
+    create_indexed_data();
+  }
+  //----------------------------------------------------------------------------
   template <typename Real>
   constexpr position(flowexplorer::window& w, vec<Real, N>&& pos) noexcept
       : parent_t{std::move(pos)}, renderable{w, "Position"} {
@@ -54,7 +55,6 @@ struct position : tatooine::vec<double, N>, renderable {
   //============================================================================
   void render(mat<GLfloat, 4, 4> const& projection_matrix,
               mat<GLfloat, 4, 4> const& view_matrix) override {
-    //set_vbo_data();
     m_shader.bind();
     m_shader.set_color(m_color[0], m_color[1], m_color[2], m_color[3]);
     m_shader.set_projection_matrix(projection_matrix);
@@ -64,15 +64,19 @@ struct position : tatooine::vec<double, N>, renderable {
   }
   //----------------------------------------------------------------------------
   void draw_ui() override {
-    ui::node::draw_ui([this] {
-      if constexpr (N == 3) {
-        ImGui::DragDouble3("position", this->data_ptr(), 0.1);
-      } else if constexpr (N == 2) {
-        ImGui::DragDouble2("position", this->data_ptr(), 0.1);
+    if constexpr (N == 3) {
+      if (ImGui::DragDouble3("position", this->data_ptr(), 0.1, -100000.0,
+                             100000.0)) {
+        set_vbo_data();
       }
-      ImGui::DragInt("point size", &m_pointsize, 1, 1, 10);
-      ImGui::ColorEdit4("color", m_color.data());
-    });
+    } else if constexpr (N == 2) {
+      if (ImGui::DragDouble2("position", this->data_ptr(), 0.1, -100000.0,
+                             100000.0)) {
+        set_vbo_data();
+      }
+    }
+    ImGui::DragInt("point size", &m_pointsize, 0.1, 1, 10);
+    ImGui::ColorEdit4("color", m_color.data());
   }
   //============================================================================
   void set_vbo_data() {

@@ -2,6 +2,7 @@
 #include <tatooine/boundingbox.h>
 #include <tatooine/demangling.h>
 #include <tatooine/flowexplorer/nodes/abcflow.h>
+#include <tatooine/flowexplorer/nodes/autonomous_particle.h>
 #include <tatooine/flowexplorer/nodes/boundingbox.h>
 #include <tatooine/flowexplorer/nodes/position.h>
 #include <tatooine/flowexplorer/nodes/doublegyre.h>
@@ -49,6 +50,28 @@ void window::on_key_pressed(yavin::key k) {
   }
 }
 void window::start() {
+  auto& pos = *dynamic_cast<nodes::position<2>*>(
+      m_renderables.emplace_back(new nodes::position<2>{*this}).get());
+  pos.at(0)  = 1.0;
+  pos.at(1)  = 0.5;
+  auto& v    = m_nodes.emplace_back(new nodes::doublegyre<double>{});
+  auto& part = *dynamic_cast<nodes::autonomous_particle*>(
+      m_renderables.emplace_back(new nodes::autonomous_particle{*this}).get());
+
+  namespace ed = ax::NodeEditor;
+  m_links.push_back({ed::LinkId(m_next_link++), v->output_pins().front().id(),
+                     part.input_pins()[0].id()});
+  m_links.push_back({ed::LinkId(m_next_link++), pos.output_pins().front().id(),
+                     part.input_pins()[1].id()});
+
+  part.on_pin_connected(part.input_pins()[0], v->output_pins().front());
+  part.on_pin_connected(part.input_pins()[1], pos.output_pins().front());
+
+  ed::SetCurrentEditor(m_node_editor_context);
+  ed::SetNodePosition(part.id(), ImVec2{500.0, 0.0});
+  ed::SetNodePosition(pos.id(), ImVec2{0.0, 200.0});
+  ed::SetCurrentEditor(nullptr);
+
   render_loop([&](const auto& dt) {
     yavin::gl::clear_color(255, 255, 255, 255);
     yavin::clear_color_depth_buffer();
@@ -57,7 +80,6 @@ void window::start() {
     }
 
     // render non-transparent objects
-    // yavin::enable_depth_test();
     yavin::enable_depth_write();
     yavin::disable_blending();
     for (auto& r : m_renderables) {
@@ -65,9 +87,8 @@ void window::start() {
         r->render(projection_matrix(), view_matrix());
       }
     }
-    //
+    
     // render transparent objects
-    // yavin::disable_depth_test();
     yavin::disable_depth_write();
     yavin::enable_blending();
     yavin::blend_func_alpha();
@@ -167,20 +188,51 @@ void window::node_creators() {
   if (ImGui::Button("LIC")) {
     m_renderables.emplace_back(new nodes::lic<double>{*this});
   }
+  ImGui::SameLine();
+  if (ImGui::Button("Autonomous Particle")) {
+    m_renderables.emplace_back(new nodes::autonomous_particle{*this});
+  }
 }
 //----------------------------------------------------------------------------
 void window::draw_nodes() {
   namespace ed = ax::NodeEditor;
   size_t i     = 0;
-  for (auto& n : m_nodes) {
+
+  auto draw_ui = [&i](auto&& f, auto const& node) {
     ImGui::PushID(i++);
-    n->draw_ui();
+    namespace ed = ax::NodeEditor;
+    ed::BeginNode(node->id());
+    ImGui::TextUnformatted(node->name().c_str());
+    f();
+    for (auto& input_pin : node->input_pins()) {
+      ed::BeginPin(input_pin.id(), ed::PinKind::Input);
+      std::string in = "-> " + input_pin.name();
+      ImGui::TextUnformatted(in.c_str());
+      ed::EndPin();
+    }
+    for (auto& output_pin : node->output_pins()) {
+      ed::BeginPin(output_pin.id(), ed::PinKind::Output);
+      std::string out = output_pin.name() + " ->";
+      ImGui::TextUnformatted(out.c_str());
+      ed::EndPin();
+    }
+    ed::EndNode();
     ImGui::PopID();
+  };
+
+  for (auto& n : m_nodes) {
+    draw_ui(
+        [&n] {
+          n->draw_ui();
+        },
+        n);
   }
   for (auto& r : m_renderables) {
-    ImGui::PushID(i++);
-    r->draw_ui();
-    ImGui::PopID();
+    draw_ui(
+        [&r] {
+          r->draw_ui();
+        },
+        r);
   }
 }
 //----------------------------------------------------------------------------

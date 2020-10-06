@@ -94,30 +94,29 @@ struct random_pathlines : renderable {
   }
   //----------------------------------------------------------------------------
   void draw_ui() override {
-    ui::node::draw_ui([this] {
-      ImGui::DragInt("number of path lines", &m_num_pathlines, 1, 10, 1000);
-      ImGui::DragDouble("backward tau", &m_btau, 0.1, -100, 0);
-      ImGui::DragDouble("forward tau", &m_ftau, 0.1, 0, 100);
-      ImGui::SliderFloat("line width", &m_line_width, 0.0f, 0.1f);
-      ImGui::SliderFloat("contour width", &m_contour_width, 0.0f, m_line_width / 2);
-      ImGui::SliderFloat("ambient factor", &m_ambient_factor, 0.0f, 1.0f);
-      ImGui::SliderFloat("diffuse factor", &m_diffuse_factor, 0.0f, 1.0f);
-      ImGui::SliderFloat("specular factor", &m_specular_factor, 0.0f, 1.0f);
-      ImGui::SliderFloat("m_shininess", &m_shininess, 1.0f, 80.0f);
-      ImGui::ColorEdit3("line color", m_line_color);
-      ImGui::ColorEdit3("contour color", m_contour_color);
-      ImGui::Checkbox("m_animate", &m_animate);
-      if (m_animate) {
-        ImGui::Checkbox("m_play", &m_play);
-        ImGui::SliderFloat("m_animation_min_alpha", &m_animation_min_alpha, 0.0f,
-                           1.0f);
-        ImGui::SliderFloat("m_fade_length", &m_fade_length, 0.1f, 10.0f);
-        ImGui::SliderFloat("m_speed", &m_speed, 0.1f, 10.0f);
-        ImGui::SliderFloat("m_time", &m_time, m_btau, m_ftau);
-      } else {
-        ImGui::SliderFloat("m_general_alpha", &m_general_alpha, 0.0f, 1.0f);
-      }
-    });
+    ImGui::DragInt("number of path lines", &m_num_pathlines, 1, 10, 1000);
+    ImGui::DragDouble("backward tau", &m_btau, 0.1, -100, 0);
+    ImGui::DragDouble("forward tau", &m_ftau, 0.1, 0, 100);
+    ImGui::SliderFloat("line width", &m_line_width, 0.0f, 0.1f);
+    ImGui::SliderFloat("contour width", &m_contour_width, 0.0f,
+                       m_line_width / 2);
+    ImGui::SliderFloat("ambient factor", &m_ambient_factor, 0.0f, 1.0f);
+    ImGui::SliderFloat("diffuse factor", &m_diffuse_factor, 0.0f, 1.0f);
+    ImGui::SliderFloat("specular factor", &m_specular_factor, 0.0f, 1.0f);
+    ImGui::SliderFloat("m_shininess", &m_shininess, 1.0f, 80.0f);
+    ImGui::ColorEdit3("line color", m_line_color);
+    ImGui::ColorEdit3("contour color", m_contour_color);
+    ImGui::Checkbox("m_animate", &m_animate);
+    if (m_animate) {
+      ImGui::Checkbox("m_play", &m_play);
+      ImGui::SliderFloat("m_animation_min_alpha", &m_animation_min_alpha, 0.0f,
+                         1.0f);
+      ImGui::SliderFloat("m_fade_length", &m_fade_length, 0.1f, 10.0f);
+      ImGui::SliderFloat("m_speed", &m_speed, 0.1f, 10.0f);
+      ImGui::SliderFloat("m_time", &m_time, m_btau, m_ftau);
+    } else {
+      ImGui::SliderFloat("m_general_alpha", &m_general_alpha, 0.0f, 1.0f);
+    }
   }
   //----------------------------------------------------------------------------
   void update_shader(mat<float, 4, 4> const& projection_matrix,
@@ -152,11 +151,13 @@ struct random_pathlines : renderable {
                                                     auto const& dy) {
         //std::lock_guard lock{rp->m_gpu_data.mutex()};
         rp->m_gpu_data.vertexbuffer().push_back(
-            vec<float, 3>{static_cast<float>(y(0)), static_cast<float>(y(1)),
-                          static_cast<float>(y(2))},
-            vec<float, 3>{static_cast<float>(dy(0)), static_cast<float>(dy(1)),
-                          static_cast<float>(dy(2))},
-            static_cast<float>(t));
+            vec<GLfloat, 3>{static_cast<GLfloat>(y(0)),
+                            static_cast<GLfloat>(y(1)),
+                            static_cast<GLfloat>(y(2))},
+            vec<GLfloat, 3>{static_cast<GLfloat>(dy(0)),
+                            static_cast<GLfloat>(dy(1)),
+                            static_cast<GLfloat>(dy(2))},
+            static_cast<GLfloat>(t));
         if (insert_segment) {
           rp->m_gpu_data.indexbuffer().push_back(index - 1);
           rp->m_gpu_data.indexbuffer().push_back(index);

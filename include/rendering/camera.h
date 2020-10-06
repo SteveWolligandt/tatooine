@@ -15,9 +15,10 @@ class camera : public movable {
    using mat4 = mat<float, 4, 4>;
 
  protected:
-  mat4       m_projection_matrix;
-  GLint      m_vp_x, m_vp_y;
-  GLsizei    m_vp_w, m_vp_h;
+  vec3    m_eye, m_lookat, m_up;
+  mat4    m_projection_matrix;
+  GLint   m_vp_x, m_vp_y;
+  GLsizei m_vp_w, m_vp_h;
 
  public:
   camera(const mat4& proj_mat, GLint vp_x, GLint vp_y, GLsizei vp_w,

@@ -1,9 +1,11 @@
 #ifndef TATOOINE_RENDERING_CAMERA_H
 #define TATOOINE_RENDERING_CAMERA_H
 //==============================================================================
-#include <tatooine/ray.h>
 #include <tatooine/clonable.h>
 #include <tatooine/concepts.h>
+#include <tatooine/ray.h>
+#include <tatooine/vec.h>
+
 #include <array>
 //==============================================================================
 namespace tatooine::rendering {
@@ -13,20 +15,30 @@ namespace tatooine::rendering {
 /// Implementations must override the ray method that casts rays through the
 /// camera's image plane.
 template <real_number Real>
-class camera : public clonable<camera<Real>> {
+struct camera : clonable<camera<Real>> {
   //----------------------------------------------------------------------------
-  // member variables
+  // typedefs
   //----------------------------------------------------------------------------
-  std::array<size_t, 2> m_resolution;
-
- public:
   using this_t            = camera<Real>;
   using real_t            = Real;
   using parent_clonable_t = clonable<camera<Real>>;
+  using vec3     = vec<Real, 3>;
+  using mat4     = mat<Real, 4, 4>;
+
+  //----------------------------------------------------------------------------
+  // member variables
+  //----------------------------------------------------------------------------
+ private:
+  vec3                  m_eye, m_lookat, m_up;
+  std::array<size_t, 2> m_resolution;
+
   //----------------------------------------------------------------------------
   // constructors / destructor
   //----------------------------------------------------------------------------
-  camera(size_t res_x, size_t res_y) : m_resolution{res_x, res_y} {}
+ public:
+  camera(vec3 const& eye, vec3 const& lookat, vec3 const& up, size_t res_x,
+         size_t res_y)
+      : m_eye{eye}, m_lookat{lookat}, m_up{up}, m_resolution{res_x, res_y} {}
   virtual ~camera() = default;
   //----------------------------------------------------------------------------
   // object methods
@@ -38,13 +50,71 @@ class camera : public clonable<camera<Real>> {
   auto plane_height() const { return m_resolution[1]; }
   //----------------------------------------------------------------------------
   auto aspect_ratio() const {
-    return static_cast<real_t>(m_resolution[0]) /
-           static_cast<real_t>(m_resolution[1]);
+    return static_cast<Real>(m_resolution[0]) /
+           static_cast<Real>(m_resolution[1]);
   }
   //----------------------------------------------------------------------------
+  auto eye() const -> auto& {
+    return m_eye;
+  }
+  // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+  void set_eye(Real const x, Real const y, Real const z) {
+    m_eye = {x, y, z};
+    setup();
+  }
+  // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+  void set_eye(vec3 const& eye) {
+    m_eye = eye;
+    setup();
+  }
+  //----------------------------------------------------------------------------
+  auto lookat() const -> auto& {
+    return m_lookat;
+  }
+  // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+  void set_lookat(Real const x, Real const y, Real const z) {
+    m_lookat = {x, y, z};
+    setup();
+  }
+  // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+  void set_lookat(vec3 const lookat) {
+    m_lookat = lookat;
+    setup();
+  }
+  //----------------------------------------------------------------------------
+  auto up() const -> auto& {
+    return m_up;
+  }
+  // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+  void set_up(Real const x, Real const y, Real const z) {
+    m_up = {x, y, z};
+    setup();
+  }
+  // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+  void set_up(vec3 const up) {
+    m_up = up;
+    setup();
+  }
   auto set_resolution(size_t width, size_t height) {
     m_resolution[0] = width;
     m_resolution[1] = height;
+    setup();
+  }
+  //----------------------------------------------------------------------------
+  void look_at(vec3 const& eye, vec3 const& lookat,
+               vec3 const& up = {0, 1, 0}) {
+    m_eye    = eye;
+    m_lookat = lookat;
+    m_up     = up;
+    setup();
+  }
+  //----------------------------------------------------------------------------
+  auto transform_matrix() const -> mat4 {
+    return look_at_matrix(m_eye, m_lookat, m_up);
+  }
+  //----------------------------------------------------------------------------
+  auto view_matrix() const -> mat4 {
+    return inv(transform_matrix());
   }
   //----------------------------------------------------------------------------
   // interface methods
@@ -54,7 +124,9 @@ class camera : public clonable<camera<Real>> {
   /// [0,0] is bottom left.
   /// ray goes through center of pixel.
   /// This method must be overridden in camera implementations.
-  virtual tatooine::ray<Real, 3> ray(Real x, Real y) const = 0;
+  virtual auto ray(Real x, Real y) const -> tatooine::ray<Real, 3> = 0;
+  virtual auto setup()                   -> void = 0;
+  virtual auto projection_matrix() const -> mat4 = 0;
 };
 //==============================================================================
 }  // namespace cg

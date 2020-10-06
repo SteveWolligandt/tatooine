@@ -3,7 +3,7 @@
 //==============================================================================
 #include <tatooine/holder.h>
 #include <tatooine/ray.h>
-#include <tatooine/rendering/perspective_camera.h>
+#include <tatooine/rendering/camera_controller.h>
 #include <yavin/glwrapper.h>
 #include <yavin/window.h>
 
@@ -15,30 +15,15 @@ namespace tatooine::rendering {
 struct first_person_window : yavin::window {
   using parent_t = yavin::window;
   size_t                    m_width, m_height;
-  vec<float, 3>             m_eye, m_look_dir, m_up;
-  float                     m_theta = M_PI, m_phi = M_PI / 2;
-  perspective_camera<float> m_cam;
+  camera_controller<float>                           m_cam;
   std::chrono::time_point<std::chrono::system_clock> m_time =
       std::chrono::system_clock::now();
-  int                                       m_mouse_pos_x, m_mouse_pos_y;
-  bool                                      m_middle_button_down = false;
-  bool                                      m_w_down             = false;
-  bool                                      m_s_down             = false;
-  bool                                      m_a_down             = false;
-  bool                                      m_d_down             = false;
-  bool                                      m_q_down             = false;
-  bool                                      m_e_down             = false;
   //============================================================================
   first_person_window(size_t width = 800, size_t height = 600)
       : yavin::window{"tatooine first person window", width, height},
         m_width{width},
         m_height{height},
-        m_cam{vec{0.0f, 0.0f, 0.0f},
-              vec{0.0f, 0.0f, -1.0f},
-              vec{0.0f, 1.0f, 0.0f},
-              60.0f,
-              width,
-              height},
+        m_cam{width, height},
         m_time{std::chrono::system_clock::now()} {
     yavin::enable_depth_test();
   }
@@ -66,40 +51,16 @@ struct first_person_window : yavin::window {
   //----------------------------------------------------------------------------
   template <typename F>
   void update(F&& f, std::chrono::duration<double> const& dt) {
-    auto ms = static_cast<float>(
-        std::chrono::duration_cast<std::chrono::milliseconds>(dt).count());
-
-    m_time = std::chrono::system_clock::now();
-    if (m_w_down) {
-      m_eye += m_look_dir / ms;
-    }
-    if (m_s_down) {
-      m_eye -= m_look_dir / ms;
-    }
-    if (m_q_down) {
-      m_eye(1) += 1 / ms;
-    }
-    if (m_e_down) {
-      m_eye(1) -= 1 / ms;
-    }
-    if (m_a_down) {
-      auto const right = cross(vec{0, 1, 0}, -m_look_dir);
-      m_eye -= right / ms;
-    }
-    if (m_d_down) {
-      auto const right = cross(vec{0, 1, 0}, -m_look_dir);
-      m_eye += right / ms;
-    }
-    m_cam.look_at(m_eye, m_eye + m_look_dir + 0.1);
+    m_cam.update(dt);
     f(dt);
   }
   //----------------------------------------------------------------------------
   auto projection_matrix() const {
-    return m_cam.projection_matrix(0.001, 1000);
+    return m_cam.projection_matrix();
   }
   //----------------------------------------------------------------------------
   auto view_matrix() const {
-    return m_cam.view_matrix(0.001, 1000);
+    return m_cam.view_matrix();
   }
   //============================================================================
   void on_key_pressed(yavin::key k) override {

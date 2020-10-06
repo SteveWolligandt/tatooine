@@ -13,15 +13,21 @@ namespace tatooine {
 template <typename V, template <typename, size_t> typename ODESolver,
           template <typename> typename InterpolationKernel>
 struct numerical_flowmap {
-  using this_t = numerical_flowmap<V, ODESolver, InterpolationKernel>;
-  using real_t = typename V::real_t;
-  static constexpr auto num_dimensions() { return V::num_dimensions(); }
+  using this_t  = numerical_flowmap<V, ODESolver, InterpolationKernel>;
+  using raw_field_t = std::remove_pointer_t<std::decay_t<V>>;
+  using real_t      = typename raw_field_t::real_t;
+  static constexpr auto num_dimensions() {
+    return raw_field_t::num_dimensions();
+  }
   using vec_t = vec<real_t, num_dimensions()>;
   using pos_t = vec_t;
   using integral_curve_t =
       parameterized_line<real_t, num_dimensions(), InterpolationKernel>;
   using cache_t = tatooine::cache<std::pair<real_t, pos_t>, integral_curve_t>;
   using ode_solver_t = ODESolver<real_t, num_dimensions()>;
+  static constexpr auto holds_field_pointer = std::is_pointer_v<V>;
+  //============================================================================
+  // members
   //============================================================================
  private:
   V               m_v;
@@ -30,15 +36,36 @@ struct numerical_flowmap {
   mutable std::map<std::pair<pos_t, real_t>, std::pair<bool, bool>>
       m_on_domain_border;
   //============================================================================
+  // ctors
+  //============================================================================
  public:
-  template <typename VReal, size_t N>
-  constexpr numerical_flowmap(vectorfield<V, VReal, N> const& v)
-      : m_v{v.as_derived()} {}
+  template <std::convertible_to<V> W, real_number WReal, size_t N,
+            typename V_ = V>
+    requires(!std::is_pointer_v<V_>)
+  constexpr numerical_flowmap(vectorfield<W, WReal, N> const& w)
+      : m_v{w.as_derived()} {}
   //----------------------------------------------------------------------------
-  template <typename VReal, size_t N>
-  constexpr numerical_flowmap(vectorfield<V, VReal, N> const& v,
+  template <std::convertible_to<V> W, real_number WReal, size_t N,
+            typename V_ = V>
+    requires std::is_pointer_v<V_>
+  constexpr numerical_flowmap(vectorfield<W, WReal, N> const* w)
+      : m_v{&w->as_derived()} {}
+  //----------------------------------------------------------------------------
+  template <real_number WReal, size_t N, typename V_ = V>
+    requires std::is_pointer_v<V_>
+  constexpr numerical_flowmap(parent::vectorfield<WReal, N> const* w)
+      : m_v{w} {}
+  //----------------------------------------------------------------------------
+  template <typename V_ = V>
+    requires std::is_pointer_v<V_>
+  constexpr numerical_flowmap()
+      : m_v{nullptr} {}
+  //----------------------------------------------------------------------------
+  template <typename W, typename WReal, size_t N, typename V_ = V>
+  constexpr numerical_flowmap(vectorfield<W, WReal, N> const& w,
                               ode_solver_t const&             ode_solver)
-      : m_v{v.as_derived()}, m_ode_solver{ode_solver} {}
+    requires (!std::is_pointer_v<V_>)
+      : m_v{w.as_derived()}, m_ode_solver{ode_solver} {}
   //============================================================================
   [[nodiscard]] constexpr auto evaluate(pos_t const& y0, real_t const t0,
                                         real_t tau) const -> pos_t {
@@ -124,7 +151,11 @@ struct numerical_flowmap {
       }
     };
 
-    m_ode_solver.solve(m_v, y0, t0, tau, callback);
+    if constexpr (holds_field_pointer) {
+      m_ode_solver.solve(*m_v, y0, t0, tau, callback);
+    } else {
+      m_ode_solver.solve(m_v, y0, t0, tau, callback);
+    }
     integral_curve.update_interpolators();
     if (!integral_curve.empty()) {
       if ((tau > 0 && integral_curve.back_parameterization() < t0 + tau) ||
@@ -177,8 +208,27 @@ struct numerical_flowmap {
     return curve;
   }
   //============================================================================
-  auto vectorfield() const -> auto const& { return m_v; }
-  auto vectorfield() -> auto& { return m_v; }
+  auto vectorfield() const -> auto const& {
+    if constexpr (holds_field_pointer) {
+      return *m_v;
+    } else {
+      return m_v;
+    }
+  }
+  // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+  auto vectorfield() -> auto& {
+    if constexpr (holds_field_pointer) {
+      return *m_v;
+    } else {
+      return m_v;
+    }
+  }
+  //----------------------------------------------------------------------------
+  template <typename V_ = V>
+    requires std::is_pointer_v<V_>
+  void set_vectorfield(parent::vectorfield<real_t, num_dimensions()>* w) {
+    m_v = w;
+  }
   //----------------------------------------------------------------------------
   auto ode_solver() const -> auto const& { return *m_ode_solver; }
   auto ode_solver() -> auto& { return *m_ode_solver; }
@@ -244,6 +294,15 @@ auto diff(numerical_flowmap<V, ODESolver, InterpolationKernel> const& flowmap,
           vec<EpsReal, V::num_dimensions()>                           epsilon) {
   return diff(flowmap, tag::central, epsilon);
 }
+//==============================================================================
+// typedefs
+//==============================================================================
+template <real_number Real, size_t N,
+          template <typename, size_t> typename ODESolver,
+          template <typename> typename InterpolationKernel>
+using numerical_flowmap_field_pointer =
+    numerical_flowmap<parent::vectorfield<Real, N>*, ODESolver,
+                      InterpolationKernel>;
 //==============================================================================
 }  // namespace tatooine
 //==============================================================================

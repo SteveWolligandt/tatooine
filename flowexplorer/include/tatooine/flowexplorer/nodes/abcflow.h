@@ -11,9 +11,7 @@ struct abcflow : tatooine::analytical::fields::numerical::abcflow<Real>, ui::nod
   abcflow() : ui::node{"ABC Flow"} {
     this->template insert_output_pin<parent::field<Real, 3, 3>>("Field Out");
   }
-  void draw_ui() override {
-    ui::node::draw_ui([this] {});
-  }
+  virtual ~abcflow() = default;
 };
 //==============================================================================
 }  // namespace tatooine::flowexplorer::nodes

@@ -16,10 +16,8 @@ struct rayleigh_benard_convection
     this->template insert_output_pin<parent::field<Real, 3, 3>>("Field Out");
   }
   void draw_ui() override {
-    ui::node::draw_ui([this] {
-      ImGui::DragDouble("A", &this->A());
-      ImGui::DragDouble("k", &this->k());
-    });
+    ImGui::DragDouble("A", &this->A());
+    ImGui::DragDouble("k", &this->k());
   }
 };
 //==============================================================================

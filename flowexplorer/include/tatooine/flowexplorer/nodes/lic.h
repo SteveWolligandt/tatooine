@@ -73,15 +73,13 @@ struct lic : renderable {
   void update(const std::chrono::duration<double>&) override {}
   //----------------------------------------------------------------------------
   void draw_ui() override {
-    ui::node::draw_ui([this] {
-      ImGui::DragInt2("LIC Resolution", m_lic_res.data_ptr(), 5, 5, 10000);
-      ImGui::DragInt2("Sample Resolution", m_vectorfield_sample_res.data_ptr(),
-                      5, 5, 10000);
-      ImGui::DragDouble("t", &m_t, 0.1);
-      ImGui::DragInt("number of samples", &m_num_samples, 5, 5, 1000000);
-      ImGui::DragDouble("stepsize", &m_stepsize, 0.001);
-      ImGui::DragFloat("alpha", &m_alpha, 0.1, 0.0f, 1.0f);
-    });
+    ImGui::DragInt2("LIC Resolution", m_lic_res.data_ptr(), 5, 5, 10000);
+    ImGui::DragInt2("Sample Resolution", m_vectorfield_sample_res.data_ptr(), 5,
+                    5, 10000);
+    ImGui::DragDouble("t", &m_t, 0.1);
+    ImGui::DragInt("number of samples", &m_num_samples, 5, 5, 1000000);
+    ImGui::DragDouble("stepsize", &m_stepsize, 0.001);
+    ImGui::DragFloat("alpha", &m_alpha, 0.1, 0.0f, 1.0f);
   }
   //----------------------------------------------------------------------------
   void calculate_lic() {

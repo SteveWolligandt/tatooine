@@ -17,11 +17,9 @@ struct duffing_oscillator
     this->template insert_output_pin<parent::vectorfield<Real, 2>>("Field Out");
   }
   auto draw_ui() -> void override {
-    ui::node::draw_ui([this] {
-      ImGui::DragDouble("alpha", &this->m_alpha);
-      ImGui::DragDouble("beta", &this->m_beta);
-      ImGui::DragDouble("delt", &this->m_delta);
-    });
+    ImGui::DragDouble("alpha", &this->m_alpha);
+    ImGui::DragDouble("beta", &this->m_beta);
+    ImGui::DragDouble("delt", &this->m_delta);
   }
 };
 //==============================================================================

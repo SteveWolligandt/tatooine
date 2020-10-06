@@ -67,17 +67,15 @@ struct boundingbox : tatooine::boundingbox<Real, N>, renderable {
   }
   //----------------------------------------------------------------------------
   void draw_ui() override {
-    ui::node::draw_ui([this] {
-      if constexpr (N == 3) {
-        ImGui::DragDouble3("min", this->min().data_ptr(), 0.1);
-        ImGui::DragDouble3("max", this->max().data_ptr(), 0.1);
-      } else if constexpr (N == 2) {
-        ImGui::DragDouble2("min", this->min().data_ptr(), 0.1);
-        ImGui::DragDouble2("max", this->max().data_ptr(), 0.1);
-      }
-      ImGui::DragInt("line size", &m_linewidth, 1, 1, 10);
-      ImGui::ColorEdit4("line color", m_color.data());
-    });
+    if constexpr (N == 3) {
+      ImGui::DragDouble3("min", this->min().data_ptr(), 0.1);
+      ImGui::DragDouble3("max", this->max().data_ptr(), 0.1);
+    } else if constexpr (N == 2) {
+      ImGui::DragDouble2("min", this->min().data_ptr(), 0.1);
+      ImGui::DragDouble2("max", this->max().data_ptr(), 0.1);
+    }
+    ImGui::DragInt("line size", &m_linewidth, 1, 1, 10);
+    ImGui::ColorEdit4("line color", m_color.data());
   }
   //============================================================================
   void set_vbo_data() {

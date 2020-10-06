@@ -44,14 +44,19 @@ struct autonomous_particle<Flowmap> {
   // ctors
   //----------------------------------------------------------------------------
  public:
+  template <fixed_dims_flowmap_c<2> Flowmap_ = Flowmap>
+    requires Flowmap::holds_field_pointer
+  autonomous_particle()
+      : autonomous_particle{Flowmap{}, pos_t::zeros(), real_t(0), real_t(0)} {}
+  //----------------------------------------------------------------------------
   template <typename V, std::floating_point VReal, real_number RealX0>
-  autonomous_particle(const vectorfield<V, VReal, 2>&      v,
+  autonomous_particle(vectorfield<V, VReal, 2>const &      v,
                       vec<RealX0, num_dimensions()> const& x0,
                       real_number auto const t0, real_number auto const r0)
       : autonomous_particle{flowmap(v), x0, t0, r0} {}
   //----------------------------------------------------------------------------
   template <real_number RealX0>
-  autonomous_particle(flowmap_t phi, vec<RealX0, num_dimensions()> const& x0,
+  autonomous_particle(flowmap_t phi, tensor<RealX0, num_dimensions()> const& x0,
                       real_number auto const t0, real_number auto const r0)
       : m_phi{std::move(phi)},
         m_x0{x0},
@@ -70,21 +75,27 @@ struct autonomous_particle<Flowmap> {
         m_S{S} {}
   //----------------------------------------------------------------------------
  public:
-  autonomous_particle(const autonomous_particle&)     = default;
+  autonomous_particle(autonomous_particle const&)     = default;
   autonomous_particle(autonomous_particle&&) noexcept = default;
   //----------------------------------------------------------------------------
-  auto operator=(const autonomous_particle&) -> autonomous_particle& = default;
+  auto operator=(autonomous_particle const&) -> autonomous_particle& = default;
   auto operator               =(autonomous_particle&&) noexcept
       -> autonomous_particle& = default;
 
   //----------------------------------------------------------------------------
   // getter
   //----------------------------------------------------------------------------
+  auto x0() -> auto & {
+    return m_x0;
+  }
   auto x0() const -> auto const& {
     return m_x0;
   }
   auto x0(size_t i) const {
     return m_x0(i);
+  }
+  auto x1() -> auto & {
+    return m_x1;
   }
   auto x1() const -> auto const& {
     return m_x1;
@@ -92,11 +103,17 @@ struct autonomous_particle<Flowmap> {
   auto x1(size_t i) const {
     return m_x1(i);
   }
+  auto t1() -> auto& {
+    return m_t1;
+  }
   auto t1() const {
     return m_t1;
   }
   auto nabla_phi1() const -> auto const& {
     return m_nabla_phi1;
+  }
+  auto S() -> auto& {
+    return m_S;
   }
   auto S() const -> auto const& {
     return m_S;
