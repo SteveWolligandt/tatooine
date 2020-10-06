@@ -124,9 +124,18 @@ struct camera : clonable<camera<Real>> {
   /// [0,0] is bottom left.
   /// ray goes through center of pixel.
   /// This method must be overridden in camera implementations.
-  virtual auto ray(Real x, Real y) const -> tatooine::ray<Real, 3> = 0;
   virtual auto setup()                   -> void = 0;
+  virtual auto ray(Real x, Real y) const -> tatooine::ray<Real, 3> = 0;
   virtual auto projection_matrix() const -> mat4 = 0;
+  //----------------------------------------------------------------------------
+  auto transform_matrix(Real const near, Real const far) const
+      -> mat4 {
+    return look_at_matrix(m_eye, m_lookat, m_up);
+  }
+  //----------------------------------------------------------------------------
+  auto view_matrix(Real const near, Real const far) const -> mat4 {
+    return inv(transform_matrix(near, far));
+  }
 };
 //==============================================================================
 }  // namespace cg

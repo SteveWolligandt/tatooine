@@ -42,8 +42,10 @@ struct first_person_window : yavin::window {
     while (!should_close()) {
       refresh();
       yavin::gl::viewport(0, 0, m_width, m_height);
+      auto const before = std::chrono::system_clock::now();
       update(std::forward<Event>(event),
              std::chrono::system_clock::now() - m_time);
+      m_time = before;
       render_imgui();
       swap_buffers();
     }
@@ -62,78 +64,40 @@ struct first_person_window : yavin::window {
   auto view_matrix() const {
     return m_cam.view_matrix();
   }
-  //============================================================================
-  void on_key_pressed(yavin::key k) override {
-    parent_t::on_key_pressed(k);
-    if (k == yavin::KEY_W) {
-      m_w_down = true;
-    } else if (k == yavin::KEY_S) {
-      m_s_down = true;
-    } else if (k == yavin::KEY_A) {
-      m_a_down = true;
-    } else if (k == yavin::KEY_D) {
-      m_d_down = true;
-    } else if (k == yavin::KEY_Q) {
-      m_q_down = true;
-    } else if (k == yavin::KEY_E) {
-      m_e_down = true;
-    }
-  }
-  //----------------------------------------------------------------------------
-  void on_key_released(yavin::key k) override {
-    parent_t::on_key_released(k);
-    if (k == yavin::KEY_W) {
-      m_w_down = false;
-    } else if (k == yavin::KEY_S) {
-      m_s_down = false;
-    } else if (k == yavin::KEY_A) {
-      m_a_down = false;
-    } else if (k == yavin::KEY_D) {
-      m_d_down = false;
-    } else if (k == yavin::KEY_Q) {
-      m_q_down = false;
-    } else if (k == yavin::KEY_E) {
-      m_e_down = false;
-    }
-  }
-  //----------------------------------------------------------------------------
-  void on_button_pressed(yavin::button b) override {
-    parent_t::on_button_pressed(b);
-    if (b == yavin::BUTTON_MIDDLE) {
-      m_middle_button_down = true;
-    }
-  }
-  //----------------------------------------------------------------------------
-  void on_button_released(yavin::button b) override {
-    parent_t::on_button_released(b);
-    if (b == yavin::BUTTON_MIDDLE) {
-      m_middle_button_down = false;
-    }
-  }
-  //----------------------------------------------------------------------------
-  void on_mouse_motion(int x, int y) override {
-    parent_t::on_mouse_motion(x, y);
-    if (m_middle_button_down) {
-      int offset_x = x - m_mouse_pos_x;
-      int offset_y = y - m_mouse_pos_y;
-      m_theta -= offset_x * 0.01f;
-      m_phi      = std::min<float>(M_PI - 0.3f,
-                              std::max(0.3f, m_phi + offset_y * 0.01f));
-      m_look_dir = vec{
-          std::sin(m_phi) * std::sin(m_theta),
-          std::cos(m_phi),
-          std::sin(m_phi) * std::cos(m_theta),
-      };
-    }
-    m_mouse_pos_x = x;
-    m_mouse_pos_y = y;
-  }
   //----------------------------------------------------------------------------
   void on_resize(int w, int h) override {
     parent_t::on_resize(w, h);
     m_width  = w;
     m_height = h;
-    m_cam.set_resolution(w, h);
+    m_cam.on_resize(w, h);
+  }
+  //----------------------------------------------------------------------------
+  void on_key_pressed(yavin::key k) override {
+    parent_t::on_key_pressed(k);
+    m_cam.on_key_pressed(k);
+  }
+  //----------------------------------------------------------------------------
+  void on_key_released(yavin::key k) override {
+    parent_t::on_key_pressed(k);
+    m_cam.on_key_released(k);
+  }
+  void on_button_pressed(yavin::button b) override {
+    parent_t::on_button_pressed(b);
+    m_cam.on_button_pressed(b);
+  }
+  void on_button_released(yavin::button b) override {
+    parent_t::on_button_released(b);
+    m_cam.on_button_released(b);
+  }
+  void on_mouse_motion(int x, int y) override {
+    parent_t::on_mouse_motion(x, y);
+    m_cam.on_mouse_motion(x, y);
+  }
+  auto camera_controller() -> auto& {
+    return m_cam;
+  }
+  auto camera_controller() const -> auto const& {
+    return m_cam;
   }
 };
 //==============================================================================

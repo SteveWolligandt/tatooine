@@ -67,8 +67,6 @@ class perspective_camera : public camera<Real> {
   /// [0,0] is bottom left.
   /// ray goes through center of pixel
   auto ray(Real x, Real y) const -> tatooine::ray<Real, 3> override {
-    assert(x < this->plane_width());
-    assert(y < this->plane_height());
     auto const view_plane_point =
         m_bottom_left + x * m_plane_base_x + y * m_plane_base_y;
     return {{eye()}, {view_plane_point - eye()}};

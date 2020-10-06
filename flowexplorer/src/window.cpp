@@ -47,6 +47,10 @@ void window::on_key_pressed(yavin::key k) {
   first_person_window::on_key_pressed(k);
   if (k == yavin::KEY_F1) {
     m_show_nodes_gui = !m_show_nodes_gui;
+  } else if (k == yavin::KEY_F2) {
+    camera_controller().use_perspective_camera();
+  } else if (k == yavin::KEY_F3) {
+    camera_controller().use_orthographic_camera();
   }
 }
 void window::start() {
