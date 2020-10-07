@@ -6,6 +6,7 @@
 #include <tatooine/flowexplorer/nodes/boundingbox.h>
 #include <tatooine/flowexplorer/nodes/position.h>
 #include <tatooine/flowexplorer/nodes/doublegyre.h>
+#include <tatooine/flowexplorer/nodes/saddle.h>
 #include <tatooine/flowexplorer/nodes/duffing_oscillator.h>
 #include <tatooine/flowexplorer/nodes/lic.h>
 #include <tatooine/flowexplorer/nodes/random_pathlines.h>
@@ -57,31 +58,9 @@ void window::on_key_pressed(yavin::key k) {
     camera_controller().look_at({0, 0, 0}, {0, 0, -1});
   }
 }
+//------------------------------------------------------------------------------
 void window::start() {
-  auto& pos = *dynamic_cast<nodes::position<2>*>(
-      m_renderables.emplace_back(new nodes::position<2>{*this}).get());
-  pos.at(0)  = 1.0;
-  pos.at(1)  = 0.5;
-  auto& v    = m_nodes.emplace_back(new nodes::doublegyre<double>{});
-  m_renderables.emplace_back(
-      new nodes::boundingbox{*this, vec{0.0, 0.0}, vec{2.0, 1.0}});
-  auto& part = *dynamic_cast<nodes::autonomous_particle*>(
-      m_renderables.emplace_back(new nodes::autonomous_particle{*this}).get());
-
-  namespace ed = ax::NodeEditor;
-  m_links.push_back({ed::LinkId(m_next_link++), v->output_pins().front().id(),
-                     part.input_pins()[0].id()});
-  m_links.push_back({ed::LinkId(m_next_link++), pos.output_pins().front().id(),
-                     part.input_pins()[1].id()});
-
-  part.on_pin_connected(part.input_pins()[0], v->output_pins().front());
-  part.on_pin_connected(part.input_pins()[1], pos.output_pins().front());
-
-  ed::SetCurrentEditor(m_node_editor_context);
-  ed::SetNodePosition(part.id(), ImVec2{500.0, 0.0});
-  ed::SetNodePosition(pos.id(), ImVec2{0.0, 200.0});
-  ed::SetCurrentEditor(nullptr);
-
+  build_autonomous_particles_scene();
   render_loop([&](const auto& dt) {
     yavin::gl::clear_color(255, 255, 255, 255);
     yavin::clear_color_depth_buffer();
@@ -168,6 +147,9 @@ void window::node_creators() {
   }
   if (ImGui::Button("Doublegyre Flow")) {
     m_nodes.emplace_back(new nodes::doublegyre<double>{});
+  }
+  if (ImGui::Button("Saddle Flow")) {
+    m_nodes.emplace_back(new nodes::saddle<double>{});
   }
   ImGui::SameLine();
   if (ImGui::Button("Duffing Oscillator Flow")) {
@@ -368,6 +350,42 @@ void window::render_ui() {
   if (m_show_nodes_gui) {
     node_editor();
   }
+}
+//------------------------------------------------------------------------------
+void window::build_autonomous_particles_scene() {
+  auto& pos_1_05 = *dynamic_cast<nodes::position<2>*>(
+      m_renderables.emplace_back(new nodes::position<2>{*this}).get());
+  pos_1_05.at(0)  = 1.0;
+  pos_1_05.at(1)  = 0.5;
+  pos_1_05.set_point_size(10);
+  auto& pos_0_0 = *dynamic_cast<nodes::position<2>*>(
+      m_renderables.emplace_back(new nodes::position<2>{*this}).get());
+  pos_0_0.set_point_size(10);
+  auto& v_dg    = m_nodes.emplace_back(new nodes::doublegyre<double>{});
+  //auto& v_saddle    = m_nodes.emplace_back(new nodes::saddle<double>{});
+  auto & bb = m_renderables.emplace_back(
+      new nodes::boundingbox{*this, vec{0.0, 0.0}, vec{2.0, 1.0}});
+  auto& part = *dynamic_cast<nodes::autonomous_particle*>(
+      m_renderables.emplace_back(new nodes::autonomous_particle{*this}).get());
+
+  namespace ed = ax::NodeEditor;
+  m_links.push_back({ed::LinkId(m_next_link++), v_dg->output_pins().front().id(),
+                     part.input_pins()[0].id()});
+  m_links.push_back({ed::LinkId(m_next_link++), pos_1_05.output_pins().front().id(),
+                     part.input_pins()[1].id()});
+
+  part.on_pin_connected(part.input_pins()[0], v_dg->output_pins().front());
+  part.on_pin_connected(part.input_pins()[1], pos_1_05.output_pins().front());
+
+  ed::SetCurrentEditor(m_node_editor_context);
+  ed::SetNodePosition(part.id(), ImVec2{300.0, -50.0});
+  ed::SetNodePosition(pos_1_05.id(), ImVec2{0.0, 200.0});
+  ed::SetNodePosition(pos_0_0.id(), ImVec2{0.0, 400.0});
+  ed::SetNodePosition(bb->id(), ImVec2{0.0, -400.0});
+  //ed::SetNodePosition(v_saddle->id(), ImVec2{0.0, 100.0});
+  ed::SetCurrentEditor(nullptr);
+  camera_controller().use_orthographic_camera();
+  camera_controller().use_orthographic_controller();
 }
 //==============================================================================
 }  // namespace tatooine::flowexplorer

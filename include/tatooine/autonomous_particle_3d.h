@@ -218,7 +218,7 @@ struct autonomous_particle<Flowmap> {
     mat_t const  fmg2fmg1 = nabla_phi2 * m_nabla_phi1;
     real_t const t2       = m_t1 + tau;
     if (cond >= objective_cond) {
-      auto [eigvecs_np2, eigvals_np2] = eigenvectors_sym(nabla_phi2);
+      //auto [eigvecs_np2, eigvals_np2] = eigenvectors_sym(nabla_phi2);
       //std::cerr << "split at tau = " << tau << '\n';
       //std::cerr << "S:\n" << m_S << '\n';
       //std::cerr << "H:\n" << H << '\n';

@@ -49,6 +49,8 @@ struct window : rendering::first_person_window {
   void node_editor();
   //----------------------------------------------------------------------------
   void render_ui();
+  //----------------------------------------------------------------------------
+  void build_autonomous_particles_scene();
 };
 //==============================================================================
 }  // namespace tatooine::flowexplorer

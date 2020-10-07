@@ -2,11 +2,11 @@
 #define TATOOINE_AUTONOMOUS_PARTICLES_2D_H
 //==============================================================================
 #include <tatooine/autonomous_particle.h>
+#include <tatooine/numerical_flowmap.h>
 #include <tatooine/field.h>
 #include <tatooine/geometry/sphere.h>
 #include <tatooine/tensor.h>
 
-#include "concepts.h"
 //==============================================================================
 namespace tatooine {
 //==============================================================================
@@ -44,8 +44,14 @@ struct autonomous_particle<Flowmap> {
   // ctors
   //----------------------------------------------------------------------------
  public:
-  template <fixed_dims_flowmap_c<2> Flowmap_ = Flowmap>
-    requires Flowmap::holds_field_pointer
+  autonomous_particle(autonomous_particle const&) = default;
+  autonomous_particle(autonomous_particle &&) noexcept = default;
+  auto operator=(autonomous_particle const&)
+    -> autonomous_particle& = default;
+  auto operator=(autonomous_particle&&) noexcept
+    -> autonomous_particle& = default;
+  template <typename = void>
+    requires is_numerical_flowmap_v<Flowmap>
   autonomous_particle()
       : autonomous_particle{Flowmap{}, pos_t::zeros(), real_t(0), real_t(0)} {}
   //----------------------------------------------------------------------------
@@ -75,13 +81,6 @@ struct autonomous_particle<Flowmap> {
         m_S{S} {}
   //----------------------------------------------------------------------------
  public:
-  autonomous_particle(autonomous_particle const&)     = default;
-  autonomous_particle(autonomous_particle&&) noexcept = default;
-  //----------------------------------------------------------------------------
-  auto operator=(autonomous_particle const&) -> autonomous_particle& = default;
-  auto operator               =(autonomous_particle&&) noexcept
-      -> autonomous_particle& = default;
-
   //----------------------------------------------------------------------------
   // getter
   //----------------------------------------------------------------------------
@@ -130,43 +129,24 @@ struct autonomous_particle<Flowmap> {
   //----------------------------------------------------------------------------
  public:
   auto integrate(real_t tau_step, real_t const max_t) const {
-    std::vector<this_t>                             particles{*this};
-    std::vector<line<real_t, num_dimensions() + 1>> ellipses;
-
-    size_t size_before = size(particles);
-    size_t start_idx   = 0;
-    do {
-      // this is necessary because after a resize of particles the currently
-      // used adresses are not valid anymore
-      particles.reserve(size(particles) + size(particles) * 3);
-      size_before = size(particles);
-      for (size_t i = start_idx; i < size_before; ++i) {
-        particles[i].integrate_until_split(tau_step, particles, ellipses,
-                                           max_t);
-      }
-      start_idx = size_before;
-    } while (size_before != size(particles));
-    return std::pair{std::move(particles), std::move(ellipses)};
-  }
-  //----------------------------------------------------------------------------
-  void integrate_until_split(
-      real_t tau_step, std::vector<this_t>& particles,
-      std::vector<line<real_t, num_dimensions() + 1>>& ellipses,
-      real_t const                                     max_t) const {
-    // add initial circle
-    auto const discretized = discretize(geometry::sphere<real_t, 2>{1}, 100);
-    auto&      ellipse     = ellipses.emplace_back();
-    for (auto const& x : discretized.vertices()) {
-      auto const p = m_S * x + m_x1;
-      ellipse.push_back(vec{p(0), p(1), m_t1});
-    }
-    ellipse.push_back(ellipse.front_vertex());
-
-    if (m_t1 >= max_t) {
-      return;
-    }
-
+    std::array particles{std::vector<this_t>{*this}, std::vector<this_t>{}};
+    size_t     active = 0;
     real_t tau  = 0;
+    while (tau < max_t) {
+      particles[1 - active].clear();
+      for (auto const& particle : particles[active]) {
+        auto new_particles = particle.step(tau_step);
+        std::move(begin(new_particles), end(new_particles),
+                  std::back_inserter(particles[1 - active]));
+      }
+      active = 1 - active;
+      tau += tau_step;
+    } 
+    return particles[active];
+  }
+ private:
+  //----------------------------------------------------------------------------
+  auto step(real_t tau) const -> std::vector<this_t>& particles {
     real_t cond = 1;
 
     auto const [Q, lambdas] = eigenvectors_sym(m_S);
@@ -185,79 +165,52 @@ struct autonomous_particle<Flowmap> {
     auto const&             eigvecs_HHt = eig_HHt.first;
     auto const&             eigvals_HHt = eig_HHt.second;
 
-    while (cond < objective_cond && m_t1 + tau < max_t) {
-      tau += tau_step;
-      if (m_t1 + tau > max_t) {
-        tau = max_t - m_t1;
-      }
-      // integrate center points
-      p_00 = m_phi(m_x1, m_t1, tau);
+    // integrate center point
+    p_00 = m_phi(m_x1, m_t1, tau);
 
-      // integrate ghost particles
-      p_p0 = m_phi(m_x1 + o_p0, m_t1, tau);
-      p_n0 = m_phi(m_x1 + o_n0, m_t1, tau);
+    // integrate ghost particles
+    p_p0 = m_phi(m_x1 + o_p0, m_t1, tau);
+    p_n0 = m_phi(m_x1 + o_n0, m_t1, tau);
+    p_0p = m_phi(m_x1 + o_0p, m_t1, tau);
+    p_0n = m_phi(m_x1 + o_0n, m_t1, tau);
 
-      p_0p = m_phi(m_x1 + o_0p, m_t1, tau);
-      p_0n = m_phi(m_x1 + o_0n, m_t1, tau);
+    // construct ∇φ2
+    H.col(0) = p_p0 - p_n0;
+    H.col(1) = p_0p - p_0n;
+    H /= 2;
 
-      // construct ∇φ2
-      H.col(0) = p_p0 - p_n0;
-      H.col(1) = p_0p - p_0n;
-      H /= 2;
+    nabla_phi2 = H * inv(sigma) * transposed(Q);
 
-      nabla_phi2 = H * inv(sigma) * transposed(Q);
+    auto const HHt = H * transposed(H);
+    eig_HHt        = eigenvectors_sym(HHt);
 
-      auto const HHt = H * transposed(H);
-      eig_HHt        = eigenvectors_sym(HHt);
+    cond = eigvals_HHt(1) / eigvals_HHt(0);
 
-      cond = eigvals_HHt(1) / eigvals_HHt(0);
+    mat_t const  fmg2fmg1 = nabla_phi2 * m_nabla_phi1;
+    real_t const t2       = m_t1 + tau;
 
-      if (cond >= objective_cond && cond <= max_cond) {
-        auto& ellipse = ellipses.emplace_back();
-
-        for (auto x : discretized.vertices()) {
-          auto const p = H * x + p_00;
-          ellipse.push_back(vec{p(0), p(1), m_t1 + tau});
-        }
-        ellipse.push_back(ellipse.front_vertex());
-      }
-
-      if (cond > max_cond) {
-        tau -= tau_step;
-        tau_step *= 0.5;
-        cond = 0;
-      }
-    }
     if (cond >= objective_cond) {
-      mat_t const  fmg2fmg1 = nabla_phi2 * m_nabla_phi1;
-      real_t const t2       = m_t1 + tau;
-      // auto [eigvecs_np2, eigvals_np2] = eigenvectors_sym(nabla_phi2);
-      // std::cerr << "split at tau = " << tau << '\n';
-      // std::cerr << "S:\n" << m_S << '\n';
-      // std::cerr << "H:\n" << H << '\n';
-      // std::cerr << "H*Ht:\n" << H * transposed(H) << '\n';
-      // std::cerr << "eigenvalues HHt: " << eigvals_HHt << '\n';
-      // std::cerr << "eigenvectors HHt: \n" << eigvecs_HHt << '\n';
-      // std::cerr << "∇φ2:\n" << nabla_phi2 << '\n';
-      // std::cerr << "eigenvalues ∇φ2: " << eigvals_np2 << '\n';
-      // std::cerr << "eigenvectors ∇φ2: \n" << eigvecs_np2 << '\n';
-      vec const   new_eigvals_inner{std::sqrt(eigvals_HHt(0)),
-                                  std::sqrt(eigvals_HHt(1)) / 2};
-      auto const  new_eigvals_outer = new_eigvals_inner / 2;
-      vec_t const offset2 =
-          std::sqrt(eigvals_HHt(1)) * eigvecs_HHt.col(1) * 3 / 4;
-      vec_t const offset0 = inv(fmg2fmg1) * offset2;
-
-      auto const new_S_inner =
-          eigvecs_HHt * diag(new_eigvals_inner) * transposed(eigvecs_HHt);
-      auto const new_S_outer =
-          eigvecs_HHt * diag(new_eigvals_outer) * transposed(eigvecs_HHt);
-
-      particles.emplace_back(m_phi, m_x0 - offset0, p_00 - offset2, t2,
-                             fmg2fmg1, new_S_outer);
-      particles.emplace_back(m_phi, m_x0, p_00, t2, fmg2fmg1, new_S_inner);
-      particles.emplace_back(m_phi, m_x0 + offset0, p_00 + offset2, t2,
-                             fmg2fmg1, new_S_outer);
+      //vec const   new_eigvals_inner{std::sqrt(eigvals_HHt(0)),
+      //                            std::sqrt(eigvals_HHt(1)) / 2};
+      //auto const  new_eigvals_outer = new_eigvals_inner / 2;
+      //vec_t const offset2 =
+      //    std::sqrt(eigvals_HHt(1)) * eigvecs_HHt.col(1) * 3 / 4;
+      //vec_t const offset0 = inv(fmg2fmg1) * offset2;
+      //auto const  new_S_inner =
+      //    eigvecs_HHt * diag(new_eigvals_inner) * transposed(eigvecs_HHt);
+      //auto const new_S_outer =
+      //    eigvecs_HHt * diag(new_eigvals_outer) * transposed(eigvecs_HHt);
+      //particles.emplace_back(m_phi, m_x0 - offset0, p_00 - offset2, t2,
+      //                       fmg2fmg1, new_S_outer);
+      //particles.emplace_back(m_phi, m_x0, p_00, t2, fmg2fmg1, new_S_inner);
+      //particles.emplace_back(m_phi, m_x0 + offset0, p_00 + offset2, t2,
+      //                       fmg2fmg1, new_S_outer);
+      return {};
+    } else {
+      vec const foo{std::sqrt(eigvals_HHt(0)), std::sqrt(eigvals_HHt(1))};
+      return {{
+          m_phi, m_x0, p_00, t2, fmg2fmg1,
+          eigvecs_HHt * diag(foo) * transposed(eigvecs_HHt)}};
     }
   }
 };

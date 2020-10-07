@@ -149,7 +149,7 @@ struct random_pathlines : renderable {
       bool   insert_segment = false;
       auto callback = [rp, &index, &insert_segment](auto const& y, auto const t,
                                                     auto const& dy) {
-        //std::lock_guard lock{rp->m_gpu_data.mutex()};
+        std::lock_guard lock{rp->m_gpu_data.mutex()};
         rp->m_gpu_data.vertexbuffer().push_back(
             vec<GLfloat, 3>{static_cast<GLfloat>(y(0)),
                             static_cast<GLfloat>(y(1)),

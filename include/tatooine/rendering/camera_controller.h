@@ -369,7 +369,11 @@ struct orthographic_camera_controller : camera_controller_interface<Real> {
   // ctor
   //============================================================================
   orthographic_camera_controller(camera_controller<Real>* controller)
-      : camera_controller_interface<Real>{controller} {}
+      : camera_controller_interface<Real>{controller} {
+    auto new_eye = controller->eye();
+    new_eye(2)   = 0;
+    controller->look_at(new_eye, new_eye + vec{0, 0, -1});
+  }
 
   //============================================================================
   // methods
@@ -391,7 +395,7 @@ struct orthographic_camera_controller : camera_controller_interface<Real> {
       int  offset_x = x - m_mouse_pos_x;
       int  offset_y = y - m_mouse_pos_y;
       auto new_eye  = controller().eye();
-      new_eye(0) -= static_cast<Real>(offset_x) /
+      new_eye(0) -= static_cast<Real>(offset_x) * controller().orthographic_camera().aspect_ratio() /
                     controller().orthographic_camera().plane_width() *
                     controller().orthographic_camera().height();
       new_eye(1) += static_cast<Real>(offset_y) /
@@ -403,18 +407,20 @@ struct orthographic_camera_controller : camera_controller_interface<Real> {
     m_mouse_pos_x = x;
     m_mouse_pos_y = y;
   }
+  //----------------------------------------------------------------------------
   void on_wheel_down() override {
     controller().orthographic_camera().setup(
         controller().eye(), controller().lookat(), controller().up(),
-        controller().orthographic_camera().height() + 0.1,
+        controller().orthographic_camera().height() / 0.9,
         controller().orthographic_camera().near(),
         controller().orthographic_camera().far(),
         controller().plane_width(), controller().plane_height());
   }
+  //----------------------------------------------------------------------------
   void on_wheel_up() override {
     controller().orthographic_camera().setup(
         controller().eye(), controller().lookat(), controller().up(),
-        controller().orthographic_camera().height() - 0.1,
+        controller().orthographic_camera().height() * 0.9,
         controller().orthographic_camera().near(),
         controller().orthographic_camera().far(),
         controller().plane_width(), controller().plane_height());

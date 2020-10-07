@@ -1,6 +1,8 @@
 #ifndef TATOOINE_AUTONOMOUS_PARTICLES
 #define TATOOINE_AUTONOMOUS_PARTICLES
 //==============================================================================
+#include <tatooine/concepts.h>
+//==============================================================================
 namespace tatooine {
 //==============================================================================
 template <flowmap_c Flowmap>

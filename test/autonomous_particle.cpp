@@ -87,7 +87,7 @@ void autonomous_particles_test_backward_integration_distance(
   std::vector<parameterized_line<VReal, 3, interpolation::linear>>
                             integral_curves;
   autonomous_particle const p0{v, x0, t0, start_radius};
-  auto [particles, ellipses] = p0.integrate(tau_step, t1);
+  auto particles = p0.integrate(tau_step, t1);
   std::vector<line<double, 3>> formula_back;
   for (auto const& particle : particles) {
     auto const     total_integration_length = t0 - particle.t1();
@@ -136,7 +136,6 @@ void autonomous_particles_test_backward_integration_distance(
 
   write_vtk(integral_curves, name + "_back_integration.vtk");
   write_vtk(formula_back, name + "_formula_back.vtk");
-  write_vtk(ellipses, name + "_ellipses.vtk");
 }
 //------------------------------------------------------------------------------
 template <typename V, std::floating_point VReal, std::floating_point X0Real>
@@ -148,15 +147,12 @@ void autonomous_particles_test_backward_integration_distance(
   [[maybe_unused]] double const eps = 1e-10;
   std::vector<parameterized_line<VReal, 3, interpolation::linear>>
                                integral_curves;
-  std::vector<line<X0Real, 3>> ellipses_collector;
   std::vector<line<double, 3>> formula_back;
   for (size_t i = 0; i < size(x0s); ++i) {
     auto const                    x0  = x0s[i];
     [[maybe_unused]] double const eps = 1e-5;
     autonomous_particle const     p0{v, x0, t0, start_radius};
-    auto [particles, ellipses] = p0.integrate(tau_step, t1);
-    std::move(begin(ellipses), end(ellipses),
-              std::back_inserter(ellipses_collector));
+    auto particles = p0.integrate(tau_step, t1);
     for (auto const& particle : particles) {
       auto const     total_integration_length = t0 - particle.t1();
       auto&          integral_curve           = integral_curves.emplace_back();
@@ -206,7 +202,6 @@ void autonomous_particles_test_backward_integration_distance(
 
   write_vtk(integral_curves, name + "_back_integration.vtk");
   write_vtk(formula_back, name + "_formula_back.vtk");
-  write_vtk(ellipses_collector, name + "_ellipses.vtk");
 }
 //------------------------------------------------------------------------------
 template <typename V, std::floating_point VReal, typename XDomain,
@@ -223,15 +218,15 @@ void autonomous_particles_test_backward_integration_distance(
       tau_step);
 }
 //==============================================================================
-TEST_CASE("autonomous_particle_dg_backward_integration_grid",
-          "[autonomous_particle][dg][2d][2D][doublegyre][backward_integration]["
-          "grid]") {
-  doublegyre v;
-  v.set_infinite_domain(true);
-  grid x0s{linspace{1.0, 1.06, 7}, linspace{0.5, 0.56, 7}};
-  autonomous_particles_test_backward_integration_distance("dg", v, x0s, 0, 10,
-                                                          0.1);
-}
+//TEST_CASE("autonomous_particle_dg_backward_integration_grid",
+//          "[autonomous_particle][dg][2d][2D][doublegyre][backward_integration]["
+//          "grid]") {
+//  doublegyre v;
+//  v.set_infinite_domain(true);
+//  grid x0s{linspace{1.0, 1.06, 7}, linspace{0.5, 0.56, 7}};
+//  autonomous_particles_test_backward_integration_distance("dg", v, x0s, 0, 10,
+//                                                          0.1);
+//}
 //==============================================================================
 TEST_CASE("autonomous_particle_dg_backward_integration",
           "[autonomous_particle][dg][2d][2D][doublegyre][backward_integration]["
@@ -250,44 +245,44 @@ TEST_CASE("autonomous_particle_dg_backward_integration",
       "dg", v, vec{1.0, 0.5}, 0.001, 0, 4, 0.1);
 }
 //------------------------------------------------------------------------------
-TEST_CASE("autonomous_particle_stdg_backward_integration",
-          "[autonomous_particle][stdg][dg][3d][3D][spacetime][doublegyre]["
-          "backward_integration]") {
-  doublegyre v;
-  auto       stv = spacetime(v);
-  v.set_infinite_domain(true);
-
-  autonomous_particles_test_backward_integration_distance(
-      "stdg", stv, vec{1.0, 0.5, 0.0}, 0.001, 0, 2, 0.1);
-}
-//------------------------------------------------------------------------------
-TEST_CASE(
-    "autonomous_particle_space_time_saddle_backward_integration",
-    "[autonomous_particle][saddle][3d][3D][spacetime][backward_integration]") {
-  saddle v;
-  auto   stv = spacetime(v);
-
-  autonomous_particles_test_backward_integration_distance(
-      "spacetime_saddle", stv, vec{0.0, 0.0, 0.0}, 0.1, 0, 1, 0.1);
-}
-//==============================================================================
-TEST_CASE("autonomous_particle_saddle_backward_integration",
-          "[autonomous_particle][saddle][2D][2d][backward_integration]") {
-  autonomous_particles_test_backward_integration_distance(
-      "saddle", saddle{}, vec{0.0, 0.0}, 0.1, 0, 1.0, 0.1);
-}
-TEST_CASE("autonomous_particle_center_backward_integration",
-          "[autonomous_particle][center][2d][2D][backward_integration]") {
-  autonomous_particles_test_backward_integration_distance(
-      "center", center{}, vec{0.0, 0.0}, 0.01, 0, 20, 0.1);
-}
-//==============================================================================
-TEST_CASE("autonomous_particle_test_field_backward_integration",
-          "[autonomous_particle][test_field][2d][2D][backward_integration]") {
-  autonomous_particles_test_backward_integration_distance(
-      "test_field", autonomous_particles_test{}, vec{0.0, 0.0}, 0.001, 0, 10,
-      0.1);
-}
+//TEST_CASE("autonomous_particle_stdg_backward_integration",
+//          "[autonomous_particle][stdg][dg][3d][3D][spacetime][doublegyre]["
+//          "backward_integration]") {
+//  doublegyre v;
+//  auto       stv = spacetime(v);
+//  v.set_infinite_domain(true);
+//
+//  autonomous_particles_test_backward_integration_distance(
+//      "stdg", stv, vec{1.0, 0.5, 0.0}, 0.001, 0, 2, 0.1);
+//}
+////------------------------------------------------------------------------------
+//TEST_CASE(
+//    "autonomous_particle_space_time_saddle_backward_integration",
+//    "[autonomous_particle][saddle][3d][3D][spacetime][backward_integration]") {
+//  saddle v;
+//  auto   stv = spacetime(v);
+//
+//  autonomous_particles_test_backward_integration_distance(
+//      "spacetime_saddle", stv, vec{0.0, 0.0, 0.0}, 0.1, 0, 1, 0.1);
+//}
+////==============================================================================
+//TEST_CASE("autonomous_particle_saddle_backward_integration",
+//          "[autonomous_particle][saddle][2D][2d][backward_integration]") {
+//  autonomous_particles_test_backward_integration_distance(
+//      "saddle", saddle{}, vec{0.0, 0.0}, 0.1, 0, 1.0, 0.1);
+//}
+//TEST_CASE("autonomous_particle_center_backward_integration",
+//          "[autonomous_particle][center][2d][2D][backward_integration]") {
+//  autonomous_particles_test_backward_integration_distance(
+//      "center", center{}, vec{0.0, 0.0}, 0.01, 0, 20, 0.1);
+//}
+////==============================================================================
+//TEST_CASE("autonomous_particle_test_field_backward_integration",
+//          "[autonomous_particle][test_field][2d][2D][backward_integration]") {
+//  autonomous_particles_test_backward_integration_distance(
+//      "test_field", autonomous_particles_test{}, vec{0.0, 0.0}, 0.001, 0, 10,
+//      0.1);
+//}
 //==============================================================================
 }  // namespace tatooine::test
 //==============================================================================

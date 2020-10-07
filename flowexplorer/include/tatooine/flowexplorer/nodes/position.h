@@ -55,6 +55,7 @@ struct position : tatooine::vec<double, N>, renderable {
   //============================================================================
   void render(mat<GLfloat, 4, 4> const& projection_matrix,
               mat<GLfloat, 4, 4> const& view_matrix) override {
+    set_vbo_data();
     m_shader.bind();
     m_shader.set_color(m_color[0], m_color[1], m_color[2], m_color[3]);
     m_shader.set_projection_matrix(projection_matrix);
@@ -103,6 +104,10 @@ struct position : tatooine::vec<double, N>, renderable {
   //----------------------------------------------------------------------------
   auto is_transparent() const -> bool override {
     return m_color[3] < 1;
+  }
+  //----------------------------------------------------------------------------
+  void set_point_size(int s) {
+    m_pointsize = s;
   }
 };
 //==============================================================================

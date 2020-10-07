@@ -39,6 +39,11 @@ struct numerical_flowmap {
   // ctors
   //============================================================================
  public:
+  numerical_flowmap(numerical_flowmap const& other) :m_v{other.m_v},
+      m_ode_solver{other.m_ode_solver} {}
+  numerical_flowmap(numerical_flowmap&& other)
+      : m_v{std::move(other.m_v)},
+        m_ode_solver{std::move(other.m_ode_solver)} {}
   template <std::convertible_to<V> W, real_number WReal, size_t N,
             typename V_ = V>
     requires(!std::is_pointer_v<V_>)
@@ -303,6 +308,19 @@ template <real_number Real, size_t N,
 using numerical_flowmap_field_pointer =
     numerical_flowmap<parent::vectorfield<Real, N>*, ODESolver,
                       InterpolationKernel>;
+//==============================================================================
+// type traits
+//==============================================================================
+template <typename T>
+struct is_numerical_flowmap : std::false_type{};
+// = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = =
+template <typename V, template <typename, size_t> typename ODESolver,
+          template <typename> typename InterpolationKernel>
+struct is_numerical_flowmap<numerical_flowmap<V, ODESolver, InterpolationKernel>>
+    : std::true_type {};
+// = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = =
+template <typename T>
+static constexpr auto is_numerical_flowmap_v = is_numerical_flowmap<T>::value;
 //==============================================================================
 }  // namespace tatooine
 //==============================================================================

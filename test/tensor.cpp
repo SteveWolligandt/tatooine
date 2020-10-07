@@ -588,7 +588,7 @@ TEST_CASE("tensor_diag", "[tensor][diag]") {
     REQUIRE_FALSE(
         std::is_const_v<std::remove_reference_t<decltype(V)::tensor_t>>);
 
-    auto IV = inverse(V);
+    auto IV = inv(V);
     REQUIRE_FALSE(std::is_reference_v<decltype(IV)::tensor_t>);
     REQUIRE_FALSE(std::is_const_v<decltype(IV)::tensor_t>);
   }
@@ -599,7 +599,7 @@ TEST_CASE("tensor_diag", "[tensor][diag]") {
     REQUIRE(std::is_reference_v<decltype(CV)::tensor_t>);
     REQUIRE(std::is_const_v<std::remove_reference_t<decltype(CV)::tensor_t>>);
 
-    auto ICV = inverse(CV);
+    auto ICV = inv(CV);
     REQUIRE_FALSE(std::is_reference_v<decltype(ICV)::tensor_t>);
     REQUIRE_FALSE(std::is_const_v<decltype(ICV)::tensor_t>);
   }
@@ -609,7 +609,7 @@ TEST_CASE("tensor_diag", "[tensor][diag]") {
     REQUIRE_FALSE(std::is_reference_v<decltype(MV)::tensor_t>);
     REQUIRE_FALSE(std::is_const_v<decltype(MV)::tensor_t>);
 
-    auto IMV = inverse(MV);
+    auto IMV = inv(MV);
     REQUIRE_FALSE(std::is_reference_v<decltype(IMV)::tensor_t>);
     REQUIRE_FALSE(std::is_const_v<decltype(IMV)::tensor_t>);
   }
@@ -618,7 +618,7 @@ TEST_CASE("tensor_diag", "[tensor][diag]") {
 TEST_CASE("tensor_diag_inverse", "[tensor][diag][inverse]") {
   vec const v{1.0, 2.0, 3.0};
   auto      V = diag(v);
-  auto IV = inverse(V);
+  auto IV = inv(V);
   for (size_t i = 0; i < 3; ++i) {
     for (size_t j = 0; j < 3; ++j) {
       if (i == j) {
@@ -669,7 +669,7 @@ TEST_CASE("tensor_symbolic_inverse", "[tensor][symbolic][inverse][matrix]") {
   using namespace symbolic;
   mat m{{symbol::x(0), symbol::x(1)},
         {symbol::x(1) * symbol::t(), GiNaC::ex{symbol::x(0)}}};
-  auto inv = (inverse(m));
+  auto inv = (inv(m));
   auto eye = m * inv;
   expand(eye);
   //eval(eye);
