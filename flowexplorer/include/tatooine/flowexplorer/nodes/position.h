@@ -65,12 +65,12 @@ struct position : tatooine::vec<double, N>, renderable {
   //----------------------------------------------------------------------------
   void draw_ui() override {
     if constexpr (N == 3) {
-      if (ImGui::DragDouble3("position", this->data_ptr(), 0.1, -100000.0,
+      if (ImGui::DragDouble3("position", this->data_ptr(), 0.01, -100000.0,
                              100000.0)) {
         set_vbo_data();
       }
     } else if constexpr (N == 2) {
-      if (ImGui::DragDouble2("position", this->data_ptr(), 0.1, -100000.0,
+      if (ImGui::DragDouble2("position", this->data_ptr(), 0.01, -100000.0,
                              100000.0)) {
         set_vbo_data();
       }

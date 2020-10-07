@@ -14,6 +14,9 @@ struct camera_controller;
 // = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = =
 template <typename Real>
 struct fps_camera_controller;
+// = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = =
+template <typename Real>
+struct orthographic_camera_controller;
 //==============================================================================
 template <typename Real>
 struct camera_controller_interface {
@@ -53,6 +56,10 @@ struct camera_controller_interface {
   virtual void on_button_released(yavin::button b) {}
   virtual void on_mouse_motion(int x, int y) {}
   virtual void on_resize(int w, int h) {}
+  virtual void on_wheel_down() {}
+  virtual void on_wheel_up() {}
+  virtual void on_wheel_left() {}
+  virtual void on_wheel_right() {}
   virtual void update(std::chrono::duration<double> const& dt) {}
 };
 //==============================================================================
@@ -76,11 +83,8 @@ struct camera_controller : yavin::window_listener {
         m_ocam{{Real(0), Real(0), Real(0)},
                {Real(0), Real(0), Real(-1)},
                {Real(0), Real(1), Real(0)},
-               -1,
-               1,
-               -1,
-               1,
-               0,
+               5,
+               -10000,
                10000,
                res_x,
                res_y},
@@ -96,6 +100,9 @@ struct camera_controller : yavin::window_listener {
   }
   void use_fps_controller() {
     m_controller = std::make_unique<fps_camera_controller<Real>>(this);
+  }
+  void use_orthographic_controller() {
+    m_controller = std::make_unique<orthographic_camera_controller<Real>>(this);
   }
   auto perspective_camera() -> auto& {
     return m_pcam;
@@ -157,6 +164,12 @@ struct camera_controller : yavin::window_listener {
     m_pcam.look_at(eye, lookat, up);
     m_ocam.look_at(eye, lookat, up);
   }
+  auto plane_width() {
+    return m_active_cam->plane_width();
+  }
+  auto plane_height() {
+    return m_active_cam->plane_height();
+  }
   //------------------------------------------------------------------------------
   void on_key_pressed(yavin::key k) override {
     if (m_controller) {
@@ -183,6 +196,26 @@ struct camera_controller : yavin::window_listener {
       m_controller->on_mouse_motion(x, y);
     }
   }
+  void on_wheel_up() override {
+    if (m_controller) {
+      m_controller->on_wheel_up();
+    }
+  }
+  void on_wheel_down() override {
+    if (m_controller) {
+      m_controller->on_wheel_down();
+    }
+  }
+  void on_wheel_left() override {
+    if (m_controller) {
+      m_controller->on_wheel_left();
+    }
+  }
+  void on_wheel_right() override {
+    if (m_controller) {
+      m_controller->on_wheel_right();
+    }
+  }
   void on_resize(int w, int h) override {
     m_pcam.set_resolution(w, h);
     m_ocam.set_resolution(w, h);
@@ -203,10 +236,8 @@ struct fps_camera_controller : camera_controller_interface<Real> {
   using parent_t = camera_controller_interface<Real>;
   using parent_t::controller;
 
-  Real m_theta = M_PI, m_phi = M_PI / 2;
+  Real         m_theta = M_PI / 2, m_phi = M_PI / 2;
   vec<Real, 3> m_look_dir;
-  std::chrono::time_point<std::chrono::system_clock> m_time =
-      std::chrono::system_clock::now();
   int  m_mouse_pos_x, m_mouse_pos_y;
   bool m_middle_button_down = false;
   bool m_w_down             = false;
@@ -217,7 +248,12 @@ struct fps_camera_controller : camera_controller_interface<Real> {
   bool m_e_down             = false;
 
   fps_camera_controller(camera_controller<Real>* controller)
-      : camera_controller_interface<Real>{controller} {}
+      : camera_controller_interface<Real>{controller} {
+    m_look_dir = {std::sin(m_phi) * std::sin(m_theta),
+                  std::cos(m_phi),
+                  std::sin(m_phi) * std::cos(m_theta)};
+    controller->look_at(controller->eye(), controller->eye() + m_look_dir);
+  }
 
   void on_key_pressed(yavin::key k) override {
     if (k == yavin::KEY_W) {
@@ -277,7 +313,7 @@ struct fps_camera_controller : camera_controller_interface<Real> {
     }
     m_mouse_pos_x = x;
     m_mouse_pos_y = y;
-    controller().set_lookat(controller().eye() + m_look_dir);
+    controller().look_at(controller().eye(), controller().eye() + m_look_dir);
   }
   //----------------------------------------------------------------------------
   void update(std::chrono::duration<double> const& dt) override {
@@ -314,6 +350,74 @@ struct fps_camera_controller : camera_controller_interface<Real> {
       controller().look_at(controller().eye() + right / ms,
                            controller().eye() + right / ms + m_look_dir);
     }
+  }
+};
+//==============================================================================
+template <typename Real>
+struct orthographic_camera_controller : camera_controller_interface<Real> {
+  using this_t = fps_camera_controller<Real>;
+  using parent_t = camera_controller_interface<Real>;
+  using parent_t::controller;
+
+  //============================================================================
+  // members
+  //============================================================================
+  int  m_mouse_pos_x, m_mouse_pos_y;
+  bool m_left_button_down = false;
+
+  //============================================================================
+  // ctor
+  //============================================================================
+  orthographic_camera_controller(camera_controller<Real>* controller)
+      : camera_controller_interface<Real>{controller} {}
+
+  //============================================================================
+  // methods
+  //============================================================================
+  void on_button_pressed(yavin::button b) override {
+    if (b == yavin::BUTTON_LEFT) {
+      m_left_button_down = true;
+    }
+  }
+  //----------------------------------------------------------------------------
+  void on_button_released(yavin::button b) override {
+    if (b == yavin::BUTTON_LEFT) {
+      m_left_button_down = false;
+    }
+  }
+  //----------------------------------------------------------------------------
+  void on_mouse_motion(int x, int y) override {
+    if (m_left_button_down) {
+      int  offset_x = x - m_mouse_pos_x;
+      int  offset_y = y - m_mouse_pos_y;
+      auto new_eye  = controller().eye();
+      new_eye(0) -= static_cast<Real>(offset_x) /
+                    controller().orthographic_camera().plane_width() *
+                    controller().orthographic_camera().height();
+      new_eye(1) += static_cast<Real>(offset_y) /
+                    controller().orthographic_camera().plane_height() *
+                    controller().orthographic_camera().height();
+      new_eye(2) = 0;
+      controller().look_at(new_eye, new_eye + vec{0, 0, -1});
+    }
+    m_mouse_pos_x = x;
+    m_mouse_pos_y = y;
+  }
+  void on_wheel_down() override {
+    controller().orthographic_camera().setup(
+        controller().eye(), controller().lookat(), controller().up(),
+        controller().orthographic_camera().height() + 0.1,
+        controller().orthographic_camera().near(),
+        controller().orthographic_camera().far(),
+        controller().plane_width(), controller().plane_height());
+  }
+  void on_wheel_up() override {
+    controller().orthographic_camera().setup(
+        controller().eye(), controller().lookat(), controller().up(),
+        controller().orthographic_camera().height() - 0.1,
+        controller().orthographic_camera().near(),
+        controller().orthographic_camera().far(),
+        controller().plane_width(), controller().plane_height());
   }
 };
 //==============================================================================

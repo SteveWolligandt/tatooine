@@ -89,6 +89,22 @@ struct first_person_window : yavin::window {
     parent_t::on_button_released(b);
     m_cam.on_button_released(b);
   }
+  void on_wheel_down() override {
+    parent_t::on_wheel_down();
+    m_cam.on_wheel_down();
+  }
+  void on_wheel_up() override {
+    parent_t::on_wheel_up();
+    m_cam.on_wheel_up();
+  }
+  void on_wheel_left() override {
+    parent_t::on_wheel_left();
+    m_cam.on_wheel_left();
+  }
+  void on_wheel_right() override {
+    parent_t::on_wheel_right();
+    m_cam.on_wheel_right();
+  }
   void on_mouse_motion(int x, int y) override {
     parent_t::on_mouse_motion(x, y);
     m_cam.on_mouse_motion(x, y);

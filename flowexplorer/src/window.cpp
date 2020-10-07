@@ -49,8 +49,12 @@ void window::on_key_pressed(yavin::key k) {
     m_show_nodes_gui = !m_show_nodes_gui;
   } else if (k == yavin::KEY_F2) {
     camera_controller().use_perspective_camera();
+    camera_controller().use_fps_controller();
   } else if (k == yavin::KEY_F3) {
     camera_controller().use_orthographic_camera();
+    camera_controller().use_orthographic_controller();
+  } else if (k == yavin::KEY_F4) {
+    camera_controller().look_at({0, 0, 0}, {0, 0, -1});
   }
 }
 void window::start() {
@@ -59,6 +63,8 @@ void window::start() {
   pos.at(0)  = 1.0;
   pos.at(1)  = 0.5;
   auto& v    = m_nodes.emplace_back(new nodes::doublegyre<double>{});
+  m_renderables.emplace_back(
+      new nodes::boundingbox{*this, vec{0.0, 0.0}, vec{2.0, 1.0}});
   auto& part = *dynamic_cast<nodes::autonomous_particle*>(
       m_renderables.emplace_back(new nodes::autonomous_particle{*this}).get());
 
