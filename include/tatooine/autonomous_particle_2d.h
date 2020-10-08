@@ -27,8 +27,6 @@ struct autonomous_particle<Flowmap> {
   using diff1_t = mat_t;
   using pos_t   = vec_t;
 
-  static constexpr real_t objective_cond = 4;
-  static constexpr real_t max_cond       = objective_cond + 0.01;
 
   //----------------------------------------------------------------------------
   // members
@@ -128,89 +126,178 @@ struct autonomous_particle<Flowmap> {
   // methods
   //----------------------------------------------------------------------------
  public:
-  auto integrate(real_t tau_step, real_t const max_t) const {
+  auto integrate(real_t tau_step, real_t const max_t, bool const& stop = false) const {
     std::array particles{std::vector<this_t>{*this}, std::vector<this_t>{}};
     size_t     active = 0;
     real_t tau  = 0;
-    while (tau < max_t) {
+    while (tau < max_t && ! stop) {
+      if (tau + tau_step > max_t) {
+        tau_step = max_t - tau;
+      }
+      tau += tau_step;
       particles[1 - active].clear();
       for (auto const& particle : particles[active]) {
-        auto new_particles = particle.step(tau_step);
+        if (stop) {
+          break;
+        }
+        auto new_particles = particle.step_until_split5(tau_step);
         std::move(begin(new_particles), end(new_particles),
                   std::back_inserter(particles[1 - active]));
       }
       active = 1 - active;
-      tau += tau_step;
     } 
     return particles[active];
   }
  private:
   //----------------------------------------------------------------------------
-  auto step(real_t tau) const -> std::vector<this_t>& particles {
-    real_t cond = 1;
-
+  auto calc_B() const{
     auto const [Q, lambdas] = eigenvectors_sym(m_S);
     auto const sigma        = diag(lambdas);
-    auto const B            = Q * sigma;
-
+    return Q * sigma;
+  }
+  auto calc_H(real_t const tau, mat_t const& B) const {
     // n stands for negative offset, p for positive offset
     auto const o_p0 = B * vec_t{ 1,  0};
     auto const o_n0 = B * vec_t{-1,  0};
     auto const o_0p = B * vec_t{ 0,  1};
     auto const o_0n = B * vec_t{ 0, -1};
 
-    pos_t                   p_00, p_p0, p_n0, p_0p, p_0n;
-    mat_t                   H, nabla_phi2;
-    std::pair<mat_t, vec_t> eig_HHt;
-    auto const&             eigvecs_HHt = eig_HHt.first;
-    auto const&             eigvals_HHt = eig_HHt.second;
-
-    // integrate center point
-    p_00 = m_phi(m_x1, m_t1, tau);
-
     // integrate ghost particles
-    p_p0 = m_phi(m_x1 + o_p0, m_t1, tau);
-    p_n0 = m_phi(m_x1 + o_n0, m_t1, tau);
-    p_0p = m_phi(m_x1 + o_0p, m_t1, tau);
-    p_0n = m_phi(m_x1 + o_0n, m_t1, tau);
+    auto const p_p0 = m_phi(m_x1 + o_p0, m_t1, tau);
+    auto const p_n0 = m_phi(m_x1 + o_n0, m_t1, tau);
+    auto const p_0p = m_phi(m_x1 + o_0p, m_t1, tau);
+    auto const p_0n = m_phi(m_x1 + o_0n, m_t1, tau);
 
-    // construct ∇φ2
+    mat_t H;
     H.col(0) = p_p0 - p_n0;
     H.col(1) = p_0p - p_0n;
     H /= 2;
-
-    nabla_phi2 = H * inv(sigma) * transposed(Q);
-
-    auto const HHt = H * transposed(H);
-    eig_HHt        = eigenvectors_sym(HHt);
-
-    cond = eigvals_HHt(1) / eigvals_HHt(0);
-
+    return H;
+  }
+  //----------------------------------------------------------------------------
+  auto step_until_split2(real_t tau) const -> std::vector<this_t>  {
+    auto const [Q, lambdas]    = eigenvectors_sym(m_S);
+    auto const sigma           = diag(lambdas);
+    auto const B               = Q * sigma;
+    auto const H               = calc_H(tau, B);
+    auto const nabla_phi2      = H * inv(sigma) * transposed(Q);
+    auto const advected_center = m_phi(m_x1, m_t1, tau);
+    auto const HHt             = H * transposed(H);
+    auto const [eigvecs_HHt, eigvals_HHt] = eigenvectors_sym(HHt);
+    auto const   cond     = eigvals_HHt(1) / eigvals_HHt(0);
     mat_t const  fmg2fmg1 = nabla_phi2 * m_nabla_phi1;
     real_t const t2       = m_t1 + tau;
 
+    static auto const objective_cond = 2;
     if (cond >= objective_cond) {
-      //vec const   new_eigvals_inner{std::sqrt(eigvals_HHt(0)),
-      //                            std::sqrt(eigvals_HHt(1)) / 2};
-      //auto const  new_eigvals_outer = new_eigvals_inner / 2;
-      //vec_t const offset2 =
-      //    std::sqrt(eigvals_HHt(1)) * eigvecs_HHt.col(1) * 3 / 4;
-      //vec_t const offset0 = inv(fmg2fmg1) * offset2;
-      //auto const  new_S_inner =
-      //    eigvecs_HHt * diag(new_eigvals_inner) * transposed(eigvecs_HHt);
-      //auto const new_S_outer =
-      //    eigvecs_HHt * diag(new_eigvals_outer) * transposed(eigvecs_HHt);
-      //particles.emplace_back(m_phi, m_x0 - offset0, p_00 - offset2, t2,
-      //                       fmg2fmg1, new_S_outer);
-      //particles.emplace_back(m_phi, m_x0, p_00, t2, fmg2fmg1, new_S_inner);
-      //particles.emplace_back(m_phi, m_x0 + offset0, p_00 + offset2, t2,
-      //                       fmg2fmg1, new_S_outer);
-      return {};
+      vec const   new_eigvals{std::sqrt(eigvals_HHt(1)) / 2,
+                            std::sqrt(eigvals_HHt(1)) / 2};
+      vec_t const offset2 = eigvecs_HHt.col(1) * std::sqrt(eigvals_HHt(1)) / 2;
+      vec_t const offset0 = inv(fmg2fmg1) * offset2;
+      auto const  new_S =
+          eigvecs_HHt * diag(new_eigvals) * transposed(eigvecs_HHt);
+      return {{m_phi, m_x0 - offset0, advected_center - offset2, t2, fmg2fmg1, new_S},
+              {m_phi, m_x0 + offset0, advected_center + offset2, t2, fmg2fmg1, new_S}};
     } else {
       vec const foo{std::sqrt(eigvals_HHt(0)), std::sqrt(eigvals_HHt(1))};
-      return {{
-          m_phi, m_x0, p_00, t2, fmg2fmg1,
-          eigvecs_HHt * diag(foo) * transposed(eigvecs_HHt)}};
+      return {{m_phi, m_x0, advected_center, t2, fmg2fmg1,
+               eigvecs_HHt * diag(foo) * transposed(eigvecs_HHt)}};
+    }
+  }
+  //----------------------------------------------------------------------------
+  auto step_until_split3(real_t tau) const -> std::vector<this_t> {
+    auto const [Q, lambdas]    = eigenvectors_sym(m_S);
+    auto const sigma           = diag(lambdas);
+    auto const B               = Q * sigma;
+    auto const H               = calc_H(tau, B);
+    auto const nabla_phi2      = H * inv(sigma) * transposed(Q);
+    auto const advected_center = m_phi(m_x1, m_t1, tau);
+    auto const HHt             = H * transposed(H);
+    auto const [eigvecs_HHt, eigvals_HHt] = eigenvectors_sym(HHt);
+    auto const   cond     = eigvals_HHt(1) / eigvals_HHt(0);
+    mat_t const  fmg2fmg1 = nabla_phi2 * m_nabla_phi1;
+    real_t const t2       = m_t1 + tau;
+
+    auto objective_cond = 4;
+    if (cond >= objective_cond) {
+      vec const   new_eigvals_inner{std::sqrt(eigvals_HHt(0)),
+                                  std::sqrt(eigvals_HHt(1)) / 2};
+      auto const  new_eigvals_outer = new_eigvals_inner / 2;
+      vec_t const offset2 =
+          std::sqrt(eigvals_HHt(1)) * eigvecs_HHt.col(1) * 3 / 4;
+      vec_t const offset0 = inv(fmg2fmg1) * offset2;
+      auto const  new_S_inner =
+          eigvecs_HHt * diag(new_eigvals_inner) * transposed(eigvecs_HHt);
+      auto const new_S_outer =
+          eigvecs_HHt * diag(new_eigvals_outer) * transposed(eigvecs_HHt);
+      return {
+          {m_phi, m_x0 - offset0, advected_center - offset2, t2, fmg2fmg1, new_S_outer},
+          {m_phi, m_x0, advected_center, t2, fmg2fmg1, new_S_inner},
+          {m_phi, m_x0 + offset0, advected_center + offset2, t2, fmg2fmg1, new_S_outer}};
+    } else {
+      vec const foo{std::sqrt(eigvals_HHt(0)), std::sqrt(eigvals_HHt(1))};
+      return {{m_phi, m_x0, advected_center, t2, fmg2fmg1,
+               eigvecs_HHt * diag(foo) * transposed(eigvecs_HHt)}};
+    }
+  }
+  //----------------------------------------------------------------------------
+  auto step_until_split5(real_t tau) const -> std::vector<this_t> {
+    auto const [Q, lambdas]               = eigenvectors_sym(m_S);
+    auto const sigma                      = diag(lambdas);
+    auto const B                          = Q * sigma;
+    auto const H                          = calc_H(tau, B);
+    auto const nabla_phi2                 = H * inv(sigma) * transposed(Q);
+    auto const advected_center            = m_phi(m_x1, m_t1, tau);
+    auto const HHt                        = H * transposed(H);
+    auto const [eigvecs_HHt, eigvals_HHt] = eigenvectors_sym(HHt);
+    auto const cond                       = eigvals_HHt(1) / eigvals_HHt(0);
+    auto const fmg2fmg1                   = nabla_phi2 * m_nabla_phi1;
+    auto const t2                         = m_t1 + tau;
+    auto const relative_1                 = std::sqrt(eigvals_HHt(0));
+
+    static auto const sqrt5          = std::sqrt(5);
+    auto              objective_cond = 6 + 2 * sqrt5;
+    if (cond >= objective_cond) {
+      static auto const middle_radius = (sqrt5 + 3) / (2 * sqrt5 + 2);
+      static auto const outer_radius  = 1 / (sqrt5 + 1);
+      // inner circle
+      vec const  new_eigvals_inner{relative_1, relative_1};
+      auto const new_S_inner =
+          eigvecs_HHt * diag(new_eigvals_inner) * transposed(eigvecs_HHt);
+
+      // middle circles
+      auto const new_eigval_mid = relative_1 * middle_radius;
+      vec const  new_eigvals_mid{new_eigval_mid, new_eigval_mid};
+
+      vec_t const offset2_mid =
+          eigvecs_HHt.col(1) * relative_1 * (1 + middle_radius);
+      vec_t const offset0_mid = inv(fmg2fmg1) * offset2_mid;
+      auto const  new_S_mid =
+          eigvecs_HHt * diag(new_eigvals_mid) * transposed(eigvecs_HHt);
+
+      // outer cirlces
+      auto const  new_eigval_outer = relative_1 * outer_radius;
+      vec const   new_eigvals_outer{new_eigval_outer, new_eigval_outer};
+      vec_t const offset2_outer = eigvecs_HHt.col(1) * relative_1 *
+                                  (1 + 2 * middle_radius + outer_radius);
+      vec_t const offset0_outer = inv(fmg2fmg1) * offset2_outer;
+      auto const  new_S_outer =
+          eigvecs_HHt * diag(new_eigvals_outer) * transposed(eigvecs_HHt);
+
+      return {{m_phi, m_x0, advected_center, t2, fmg2fmg1, new_S_inner},
+              {m_phi, m_x0 - offset0_mid, advected_center - offset2_mid, t2, fmg2fmg1,
+               new_S_mid},
+              {m_phi, m_x0 + offset0_mid, advected_center + offset2_mid, t2, fmg2fmg1,
+               new_S_mid},
+              {m_phi, m_x0 - offset0_outer, advected_center - offset2_outer, t2, fmg2fmg1,
+               new_S_outer},
+              {m_phi, m_x0 + offset0_outer, advected_center + offset2_outer, t2, fmg2fmg1,
+               new_S_outer}};
+    } else {
+      vec const new_eig_vals{std::sqrt(eigvals_HHt(0)),
+                             std::sqrt(eigvals_HHt(1))};
+      return {{m_phi, m_x0, advected_center, t2, fmg2fmg1,
+               eigvecs_HHt * diag(new_eig_vals) * transposed(eigvecs_HHt)}};
     }
   }
 };
