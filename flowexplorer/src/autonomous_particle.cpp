@@ -1,6 +1,7 @@
 #include <tatooine/flowexplorer/nodes/autonomous_particle.h>
 #include <tatooine/flowexplorer/window.h>
 #include <tatooine/rendering/yavin_interop.h>
+#include <tatooine/random.h>
 //==============================================================================
 namespace tatooine::flowexplorer::nodes {
 //==============================================================================
@@ -15,18 +16,31 @@ autonomous_particle::autonomous_particle(flowexplorer::window& w)
 //============================================================================
 void autonomous_particle::render(mat<float, 4, 4> const& projection_matrix,
                                  mat<float, 4, 4> const& view_matrix) {
+  m_line_shader.set_projection_matrix(projection_matrix);
+  m_line_shader.set_modelview_matrix(view_matrix);
+  m_point_shader.set_projection_matrix(projection_matrix);
+  m_point_shader.set_modelview_matrix(view_matrix);
   m_line_shader.bind();
   m_line_shader.set_color(m_ellipses_color[0], m_ellipses_color[1],
                           m_ellipses_color[2], m_ellipses_color[3]);
-  m_line_shader.set_projection_matrix(projection_matrix);
-  m_line_shader.set_modelview_matrix(view_matrix);
 
   m_line_shader.set_color(0.7, 0.7, 0.7, 1);
   m_initial_circle.draw_lines();
   m_line_shader.set_color(0, 0, 0, 1);
+  yavin::gl::line_width(2);
   m_advected_ellipses.draw_lines();
+  yavin::gl::line_width(1);
   m_line_shader.set_color(0.2, 0.8, 0.2, 1);
   m_initial_ellipses_back_calculation.draw_lines();
+  m_line_shader.set_color(0.5,0.5,0.5,1);
+  m_gpu_advected_random_points_in_initial_circle.draw_lines();
+
+  m_point_shader.bind();
+  yavin::gl::point_size(4);
+  //m_point_shader.set_color(0,0,0,1);
+  //m_gpu_random_points_in_initial_circle.draw_points();
+  //m_point_shader.set_color(0.8,0.8,0.8,1);
+  //m_gpu_advected_random_points_in_initial_circle.draw_points();
 }
 //----------------------------------------------------------------------------
 void autonomous_particle::update_initial_circle() {
@@ -50,8 +64,12 @@ void autonomous_particle::update_initial_circle() {
   m_initial_circle.vertexbuffer().push_back(gpu_vec3{static_cast<float>(y(0)),
                                                      static_cast<float>(y(1)),
                                                      static_cast<float>(m_t0)});
+  generate_random_points_in_initial_circle(3000);
+  advect_random_points_in_initial_circle();
+  upload_advected_random_points_in_initial_circle();
 }
-void autonomous_particle::integrate() {
+
+void autonomous_particle::advect() {
   if (m_integration_going_on) {
     m_stop_thread          = true;
     m_needs_another_update = true;
@@ -63,9 +81,27 @@ void autonomous_particle::integrate() {
 
   // window().do_async([&node = *this] {
   auto& node = *this;
+  node.x0()  = *node.m_x0;
   node.x1()  = *node.m_x0;
+
   auto const particles =
-      node.integrate(node.m_taustep, node.m_max_t, node.m_stop_thread);
+      [&node, num_splits = m_num_splits] {
+        switch (num_splits) {
+          case 2:
+            return node.advect_with_2_splits(node.m_taustep, node.m_max_t,
+                                                node.m_stop_thread);
+          case 3:
+            return node.advect_with_3_splits(node.m_taustep, node.m_max_t,
+                                                node.m_stop_thread);
+          case 5:
+            return node.advect_with_5_splits(node.m_taustep, node.m_max_t,
+                                                node.m_stop_thread);
+          case 7:
+            return node.advect_with_7_splits(node.m_taustep, node.m_max_t,
+                                                node.m_stop_thread);
+        }
+        return std::vector<parent_t>{};
+      }();
   geometry::sphere<double, 2> ellipse{1.0};
   auto                        discretized_ellipse = discretize(ellipse, 100);
   size_t                      i                   = 0;
@@ -98,91 +134,114 @@ void autonomous_particle::integrate() {
                    static_cast<float>(particle.t1())});
       ++i;
     }
-    }
+  }
 
-    // back_integrated ellipses
+  // back_advectd ellipses
+  {
     {
-      {
-        std::lock_guard lock{node.m_initial_ellipses_back_calculation.mutex()};
-        node.m_initial_ellipses_back_calculation.clear();
+      std::lock_guard lock{node.m_initial_ellipses_back_calculation.mutex()};
+      node.m_initial_ellipses_back_calculation.clear();
+    }
+    i = 0;
+    for (auto const& particle : particles) {
+      if (node.m_stop_thread) {
+        break;
       }
-      i = 0;
-      for (auto const& particle : particles) {
+      std::lock_guard lock{node.m_initial_ellipses_back_calculation.mutex()};
+      for (auto const& x : discretized_ellipse.vertices()) {
         if (node.m_stop_thread) {
           break;
-        }
-        std::lock_guard lock{node.m_initial_ellipses_back_calculation.mutex()};
-        for (auto const& x : discretized_ellipse.vertices()) {
-          if (node.m_stop_thread) {
-            break;
-          }
-          auto sqrS = inv(particle.nabla_phi1()) * particle.S() * particle.S() *
-                      inv(transposed(particle.nabla_phi1()));
-          auto [eig_vecs, eig_vals] = eigenvectors_sym(sqrS);
-          eig_vals = {std::sqrt(eig_vals(0)), std::sqrt(eig_vals(1))};
-          auto S   = eig_vecs * diag(eig_vals) * transposed(eig_vecs);
-          auto y   = S * x + particle.x0();
-            node.m_initial_ellipses_back_calculation.vertexbuffer().push_back(
-                gpu_vec3{static_cast<float>(y(0)), static_cast<float>(y(1)),
-                         static_cast<float>(particle.t1())});
-            node.m_initial_ellipses_back_calculation.indexbuffer().push_back(
-                i++);
-            node.m_initial_ellipses_back_calculation.indexbuffer().push_back(i);
         }
         auto sqrS = inv(particle.nabla_phi1()) * particle.S() * particle.S() *
                     inv(transposed(particle.nabla_phi1()));
         auto [eig_vecs, eig_vals] = eigenvectors_sym(sqrS);
         eig_vals = {std::sqrt(eig_vals(0)), std::sqrt(eig_vals(1))};
         auto S   = eig_vecs * diag(eig_vals) * transposed(eig_vecs);
-        auto y   = S * discretized_ellipse.front_vertex() + particle.x0();
-          node.m_initial_ellipses_back_calculation.vertexbuffer().push_back(
-              gpu_vec3{static_cast<float>(y(0)),
-                       static_cast<float>(y(1)),
-                       static_cast<float>(particle.t1())});
-        ++i;
+        auto y   = S * x + particle.x0();
+        node.m_initial_ellipses_back_calculation.vertexbuffer().push_back(
+            gpu_vec3{static_cast<float>(y(0)), static_cast<float>(y(1)),
+                     static_cast<float>(particle.t1())});
+        node.m_initial_ellipses_back_calculation.indexbuffer().push_back(i++);
+        node.m_initial_ellipses_back_calculation.indexbuffer().push_back(i);
       }
+      auto sqrS = inv(particle.nabla_phi1()) * particle.S() * particle.S() *
+                  inv(transposed(particle.nabla_phi1()));
+      auto [eig_vecs, eig_vals] = eigenvectors_sym(sqrS);
+      eig_vals = {std::sqrt(eig_vals(0)), std::sqrt(eig_vals(1))};
+      auto S   = eig_vecs * diag(eig_vals) * transposed(eig_vecs);
+      auto y   = S * discretized_ellipse.front_vertex() + particle.x0();
+      node.m_initial_ellipses_back_calculation.vertexbuffer().push_back(
+          gpu_vec3{static_cast<float>(y(0)), static_cast<float>(y(1)),
+                   static_cast<float>(particle.t1())});
+      ++i;
     }
-    node.m_integration_going_on = false;
+  }
+  node.m_integration_going_on = false;
   //});
 }
 //----------------------------------------------------------------------------
 void autonomous_particle::draw_ui() {
-  bool do_integrate = false;
+  bool do_advect = false;
   if (ImGui::DragDouble("t0", &m_t0, 0.001)) {
-    do_integrate = true;
-    t1() = m_t0;
+    do_advect = true;
+    t1()         = m_t0;
   }
   if (ImGui::DragDouble("radius", &m_radius, 0.001, 0.001, 10.0)) {
-    do_integrate = true;
-    S() = mat_t::eye() * m_radius;
+    do_advect = true;
+    S()          = mat_t::eye() * m_radius;
     update_initial_circle();
   }
   ImGui::DragDouble("tau step", &m_taustep, 0.01, 0.01, 1000.0);
   if (ImGui::Button("<")) {
-    do_integrate = true;
+    do_advect = true;
     m_max_t -= 0.01;
+    advect_random_points_in_initial_circle();
+    upload_advected_random_points_in_initial_circle();
   }
   ImGui::SameLine();
-  if(ImGui::DragDouble("end time", &m_max_t, 0.01, 0.0, 1000.0)) {
-    do_integrate = true;
+  if (ImGui::DragDouble("end time", &m_max_t, 0.01, 0.0, 1000.0)) {
+    do_advect = true;
+    advect_random_points_in_initial_circle();
+    upload_advected_random_points_in_initial_circle();
   }
   ImGui::SameLine();
   if (ImGui::Button(">")) {
-    do_integrate = true;
+    do_advect = true;
     m_max_t += 0.01;
+    advect_random_points_in_initial_circle();
+    upload_advected_random_points_in_initial_circle();
   }
 
   ImGui::ColorEdit4("ellipses color", m_ellipses_color.data());
-  do_integrate |= ImGui::Button("integrate");
+  do_advect |= ImGui::Button("advect");
   if (m_integration_going_on && !m_stop_thread) {
     ImGui::SameLine();
     if (ImGui::Button("terminate")) {
       m_stop_thread = true;
     }
   }
-  if (do_integrate && m_x0 != nullptr &&
+  ImGui::Text("number of splits:");
+  ImGui::SameLine();
+  if (ImGui::Button("< ")) {
+    switch (m_num_splits) {
+      case 3: m_num_splits = 2; do_advect = true; break;
+      case 5: m_num_splits = 3; do_advect = true; break;
+      case 7: m_num_splits = 5; do_advect = true; break;
+    }
+  }
+  ImGui::SameLine();
+  ImGui::Text(std::to_string(m_num_splits).c_str());
+  ImGui::SameLine();
+  if (ImGui::Button(" >")) {
+    switch (m_num_splits) {
+      case 2: m_num_splits = 3; do_advect = true; break;
+      case 3: m_num_splits = 5; do_advect = true; break;
+      case 5: m_num_splits = 7; do_advect = true; break;
+    }
+  }
+  if (do_advect && m_x0 != nullptr &&
       &this->phi().vectorfield() != nullptr) {
-    integrate();
+    advect();
   }
 }
 //----------------------------------------------------------------------------
@@ -200,6 +259,44 @@ void autonomous_particle::on_pin_connected(ui::pin& this_pin,
   } else if ((other_pin.type() == typeid(vectorfield_t))) {
     this->phi().set_vectorfield(
         dynamic_cast<vectorfield_t*>(&other_pin.node()));
+  }
+}
+void autonomous_particle::generate_random_points_in_initial_circle(
+    size_t const n) {
+  m_random_points_in_initial_circle.clear();
+  random_uniform<real_t> rand;
+  for (size_t i = 0; i < n; ++i) {
+    //real_t const r     = (std::sqrt(rand()) * m_radius);
+    //real_t const theta = rand() * 2 * M_PI;
+    //m_random_points_in_initial_circle.emplace_back(std::cos(theta) * r,
+    //                                               std::sin(theta) * r);
+    real_t alpha = M_PI * 2 * real_t(i) / (n - 1);
+    m_random_points_in_initial_circle.emplace_back(std::cos(alpha) * m_radius,
+                                                   std::sin(alpha) * m_radius);
+    m_random_points_in_initial_circle.back() += *m_x0;
+  }
+}
+void autonomous_particle::advect_random_points_in_initial_circle() {
+  m_advected_random_points_in_initial_circle.clear();
+  for (auto const& x : m_random_points_in_initial_circle) {
+    m_advected_random_points_in_initial_circle.push_back(
+        phi()(x, m_t0, m_max_t - m_t0));
+  }
+}
+void autonomous_particle::upload_advected_random_points_in_initial_circle() {
+  m_gpu_advected_random_points_in_initial_circle.indexbuffer().resize(
+      size(m_advected_random_points_in_initial_circle) * 2);
+  m_gpu_advected_random_points_in_initial_circle.vertexbuffer().resize(
+      size(m_advected_random_points_in_initial_circle));
+  size_t i = 0;
+  for (auto const& x : m_advected_random_points_in_initial_circle) {
+    m_gpu_advected_random_points_in_initial_circle.vertexbuffer()[i] = {
+        static_cast<float>(x(0)), static_cast<float>(x(1)),
+        static_cast<float>(x(2))};
+    m_gpu_advected_random_points_in_initial_circle.indexbuffer()[i * 2] = i;
+    m_gpu_advected_random_points_in_initial_circle.indexbuffer()[i * 2 + 1] =
+        (i + 1)%size(m_advected_random_points_in_initial_circle);
+    ++i;
   }
 }
 //==============================================================================
