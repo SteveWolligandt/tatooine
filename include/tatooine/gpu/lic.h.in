@@ -60,8 +60,8 @@ auto lic(yavin::tex2rg<VReal>&                         v_tex,
   using namespace yavin;
 
   // generate noise_tex data
-  std::mt19937                       rand_eng{1234};
-  random_uniform<GPUReal, std::mt19937> rand(0, 1, rand_eng);
+  std::mt19937                          rand_eng{1234};
+  random_uniform                        rand(GPUReal(0), GPUReal(1), rand_eng);
   std::vector<GPUReal>                  noise_data(noise_res(0) * noise_res(1));
   boost::generate(noise_data, [&rand] {
     return rand();

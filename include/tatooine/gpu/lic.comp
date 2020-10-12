@@ -13,8 +13,6 @@ uniform vec2      domain_max;
 uniform uint      num_samples;
 uniform float     stepsize;
 //==============================================================================
-const uvec2 lic_tex_res = uvec2(imageSize(lic_tex));
-//==============================================================================
 vec2 idx_to_uv(uvec2 image_pos, uvec2 res) {
   // calculate normalized texture coordinates
   return ((image_pos / vec2(res - 1) * (res * 2 - 2)) + 1) / vec2(res * 2);
@@ -25,8 +23,8 @@ vec2 domain_pos_to_uv(vec2 domain_pos, vec2 min, vec2 max, uvec2 res) {
   return (grid_pos * (res * 2 - 2) + 1) / (vec2(res * 2));
 }
 //------------------------------------------------------------------------------
-vec2 idx_to_domain_pos(uvec2 image_pos, vec2 min, vec2 max, uvec2 res) {
-  return image_pos / vec2(res - 1) * (max - min) + min;
+vec2 idx_to_domain_pos(uvec2 image_pos, vec2 min, vec2 max) {
+  return image_pos / vec2(imageSize(lic_tex) - 1) * (max - min) + min;
 }
 //------------------------------------------------------------------------------
 vec2 v(vec2 pos) {
@@ -36,7 +34,7 @@ vec2 v(vec2 pos) {
 }
 //------------------------------------------------------------------------------
 float noise(vec2 pos) {
-  vec2 fres      = vec2(lic_tex_res);
+  vec2 fres      = vec2(imageSize(lic_tex));
   vec2 fnoiseres = vec2(noise_tex_res);
   return texture(noise_tex,
                  domain_pos_to_uv(pos, domain_min, domain_max, noise_tex_res) *
@@ -78,9 +76,10 @@ vec2 rungekutta4_step(vec2 pos, float stepsize) {
 }
 //==============================================================================
 void main() {
+  const uvec2 lic_tex_res = uvec2(imageSize(lic_tex));
   const uvec2 idx = uvec2(gl_GlobalInvocationID.xy);
   if (idx.x >= lic_tex_res.x || idx.y >= lic_tex_res.y) { return; }
-  const vec2 pos = idx_to_domain_pos(idx, domain_min, domain_max, lic_tex_res);
+  const vec2 pos = idx_to_domain_pos(idx, domain_min, domain_max);
   float      out_val = noise(pos);
   uint       cnt     = 1;
 
