@@ -129,13 +129,13 @@ struct autonomous_particle<Flowmap> {
                             bool const& stop = false) const {
     static real_t const sqrt2 = std::sqrt(real_t(2));
     return advect(tau_step, max_t, 2,
-                  std::array<real_t, 1>{sqrt(2) / real_t(2)}, false);
+                  std::array<real_t, 1>{sqrt2 / real_t(2)}, false, stop);
   }
   //----------------------------------------------------------------------------
   auto advect_with_3_splits(real_t tau_step, real_t const max_t,
                             bool const& stop = false) const {
     return advect(tau_step, max_t, 4, std::array<real_t, 1>{real_t(1) / 2},
-                  true);
+                  true, stop);
   }
   //----------------------------------------------------------------------------
   auto advect_with_5_splits(real_t tau_step, real_t const max_t,
@@ -143,7 +143,7 @@ struct autonomous_particle<Flowmap> {
     static real_t const sqrt5 = std::sqrt(real_t(5));
     return advect(tau_step, max_t, 6 + sqrt5 * 2,
                   std::array{(sqrt5 + 3) / (sqrt5 * 2 + 2), 1 / (sqrt5 + 1)},
-                  true);
+                  true, stop);
   }
   //----------------------------------------------------------------------------
   auto advect_with_7_splits(real_t tau_step, real_t const max_t,
@@ -151,7 +151,7 @@ struct autonomous_particle<Flowmap> {
     return advect(tau_step, max_t, 4.493959210 * 4.493959210,
                   std::array{real_t(.9009688678), real_t(.6234898004),
                              real_t(.2225209338)},
-                  true);
+                  true, stop);
   }
   //----------------------------------------------------------------------------
   auto advect(real_t tau_step, real_t const max_t, real_t const objective_cond,
@@ -162,6 +162,9 @@ struct autonomous_particle<Flowmap> {
     size_t     active = 0;
     real_t     tau    = 0;
     while (!particles[active].empty()) {
+      if (stop) {
+        break;
+      }
       if (tau + tau_step > max_t) {
         tau_step = max_t - tau;
       }

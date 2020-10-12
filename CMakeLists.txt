@@ -25,7 +25,7 @@ set(BENCHMARK_ENABLE_TESTING OFF CACHE BOOL
     "Enable testing of the benchmark library.")
 add_subdirectory(external/google-benchmark)
 #- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-find_package(Boost REQUIRED)
+find_package(Boost REQUIRED COMPONENTS program_options)
 find_package(TBB REQUIRED)
 find_package(yavin QUIET)
 find_package(BLAS REQUIRED)
@@ -112,13 +112,14 @@ target_include_directories(tatooine
     ${vcode_DIR}/../..
     ${PNG_INCLUDE_DIRS}
     ${PNG++_INCLUDE_DIRS}
+    ${CMAKE_CURRENT_SOURCE_DIR}/external/indicators/include
 )
 
 #- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 #set libs 
 target_link_libraries(tatooine
   INTERFACE
-    tbb
+    #tbb
     ${BLAS_LIBRARIES}
     ${LAPACK_LIBRARIES}
     ${PNG_LIBRARIES}
@@ -169,6 +170,7 @@ if (${yavin_FOUND})
   add_subdirectory(steadification)
   add_subdirectory(flowexplorer)
 endif()
+add_subdirectory(autonomous_particles)
 
 #- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 # This makes the project importable from the build directory
