@@ -3,6 +3,8 @@
 #include <tatooine/demangling.h>
 #include <tatooine/flowexplorer/nodes/abcflow.h>
 #include <tatooine/flowexplorer/scene.h>
+#include <toml++/toml.h>
+#include <fstream>
 
 #include <yavin>
 //#include <tatooine/flowexplorer/nodes/autonomous_particle.h>
@@ -316,6 +318,21 @@ void scene::node_creators() {
   //if (ImGui::Button("Autonomous Particle")) {
   //  m_renderables.emplace_back(new nodes::autonomous_particle{*this});
   //}
+}
+//------------------------------------------------------------------------------
+void scene::write(std::string const& filepath) const {
+  auto          data = toml::table{{
+      {"author",
+       toml::table{{{"sub", toml::table{{{"data",
+                                          "bumm"}}}},
+                    {"name", "Mark Gillard"},
+                    {"github", "https://github.com/marzer"},
+                    {"twitter", "https://twitter.com/marzer8789"}}}},
+  }};
+  std::ofstream fout {filepath};
+  if (fout.is_open()) {
+    fout << data << '\n';
+  }
 }
 //==============================================================================
 }  // namespace tatooine::flowexplorer

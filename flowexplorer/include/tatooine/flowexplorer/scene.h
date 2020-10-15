@@ -39,7 +39,9 @@ struct scene {
   //----------------------------------------------------------------------------
   void draw_node_editor(size_t const pos_x, size_t const pos_y,
                         size_t const width, size_t const height, 
-                             bool show);
+                        bool show);
+  //----------------------------------------------------------------------------
+  void write(std::string const& filepath) const;
 };
 //==============================================================================
 }  // namespace tatooine::flowexplorer
