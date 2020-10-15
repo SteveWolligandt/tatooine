@@ -10,7 +10,7 @@
 //==============================================================================
 namespace tatooine::flowexplorer::ui {
 //==============================================================================
-struct node : serializable{
+struct base_node : serializable {
  private:
   ax::NodeEditor::NodeId m_id;
   std::string            m_name;
@@ -18,11 +18,11 @@ struct node : serializable{
   std::vector<pin>       m_output_pins;
 
  public:
-  node(std::string const& name)
+  base_node(std::string const& name)
       : m_name{name},
         m_id{boost::hash<boost::uuids::uuid>{}(
             boost::uuids::random_generator()())} {}
-  virtual ~node() = default;
+  virtual ~base_node() = default;
   //============================================================================
   template <typename T>
   auto insert_input_pin(std::string const& name) {
@@ -84,8 +84,23 @@ struct node : serializable{
     }
     ed::EndNode();
   }
+  auto node_position() const -> ImVec2 {
+    return ax::NodeEditor::GetNodePosition(m_id);
+  }
   virtual void on_pin_connected(pin& this_pin, pin& other_pin) {}
   virtual void on_pin_disconnected(pin& this_pin) {}
+  constexpr virtual auto node_type_name() const -> std::string_view = 0;
+};
+template <typename Derived>
+struct node : base_node {
+  using base_node::base_node;
+  virtual ~node() = default;
+  //virtual constexpr auto node_type_name() -> std::string_view {
+  //  return Derived::node_type_name();
+  //}
+  //constexpr auto node_type_name_() const -> std::string_view override {
+  //  return node_type_name();
+  //}
 };
 //==============================================================================
 }  // namespace tatooine::flowexplorer::ui

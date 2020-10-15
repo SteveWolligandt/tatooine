@@ -76,7 +76,7 @@ void scene::render(std::chrono::duration<double> const& dt) {
   yavin::enable_depth_write();
 }
 //----------------------------------------------------------------------------
-auto scene::find_node(ax::NodeEditor::NodeId id) -> renderable* {
+auto scene::find_node(ax::NodeEditor::NodeId id) -> base_renderable* {
   for (auto& r : m_renderables) {
     if (r->id() == id) {
       return r.get();
@@ -321,14 +321,16 @@ void scene::node_creators() {
 }
 //------------------------------------------------------------------------------
 void scene::write(std::string const& filepath) const {
-  auto          data = toml::table{{
-      {"author",
-       toml::table{{{"sub", toml::table{{{"data",
-                                          "bumm"}}}},
-                    {"name", "Mark Gillard"},
-                    {"github", "https://github.com/marzer"},
-                    {"twitter", "https://twitter.com/marzer8789"}}}},
-  }};
+  toml::table data;
+
+  for (auto const& node : m_nodes) {
+    toml::table node_table;
+    auto pos = node->node_position();
+    node_table.insert("position", toml::array{pos[0], pos[1]});
+    node_table.insert("type", node->node_type_name());
+    data.insert(std::to_string(node->id().Get()), node_table);
+  }
+
   std::ofstream fout {filepath};
   if (fout.is_open()) {
     fout << data << '\n';

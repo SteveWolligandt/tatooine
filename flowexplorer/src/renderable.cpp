@@ -3,8 +3,9 @@
 //==============================================================================
 namespace tatooine::flowexplorer {
 //==============================================================================
-renderable::renderable(flowexplorer::window& w, std::string const& name)
-    : m_window{&w}, ui::node{name} {}
+base_renderable::base_renderable(flowexplorer::window& w,
+                                 std::string const&    name)
+    : m_window{&w}, ui::base_node{name} {}
 
 //==============================================================================
 }  // namespace tatooine::flowexplorer

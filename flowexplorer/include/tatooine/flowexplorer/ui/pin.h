@@ -10,18 +10,18 @@
 //==============================================================================
 namespace tatooine::flowexplorer::ui {
 //==============================================================================
-struct node;
+struct base_node;
 //==============================================================================
 struct pin {
  private:
   ax::NodeEditor::PinId m_id;
   std::string           m_name;
-  ui::node&             m_node;
+  base_node&        m_node;
   pinkind               m_kind;
   std::type_info const& m_type;
 
  public:
-  pin(ui::node& n, std::type_info const& type, pinkind kind,
+  pin(base_node& n, std::type_info const& type, pinkind kind,
       std::string const& name)
       : m_id{boost::hash<boost::uuids::uuid>{}(
             boost::uuids::random_generator()())},
@@ -54,12 +54,12 @@ struct pin {
 };
 //==============================================================================
 template <typename T>
-auto make_input_pin(node& n, std::string const& name) {
+auto make_input_pin(base_node& n, std::string const& name) {
   return pin{n, typeid(std::decay_t<T>), pinkind::input, name};
 }
 //------------------------------------------------------------------------------
 template <typename T>
-auto make_output_pin(node& n, std::string const& name) {
+auto make_output_pin(base_node& n, std::string const& name) {
   return pin{n, typeid(std::decay_t<T>), pinkind::output, name};
 }
 //==============================================================================

@@ -7,8 +7,12 @@
 namespace tatooine::flowexplorer::nodes {
 //==============================================================================
 template <typename Real>
-struct abcflow : tatooine::analytical::fields::numerical::abcflow<Real>, ui::node {
-  abcflow() : ui::node{"ABC Flow"} {
+struct abcflow : tatooine::analytical::fields::numerical::abcflow<Real>,
+                 ui::node<abcflow<Real>> {
+  constexpr auto node_type_name() const -> std::string_view override {
+    return "abcflow";
+  }
+  abcflow() : ui::node<abcflow<Real>>{"ABC Flow"} {
     this->template insert_output_pin<parent::field<Real, 3, 3>>("Field Out");
   }
   virtual ~abcflow() = default;
