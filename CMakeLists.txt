@@ -113,6 +113,7 @@ target_include_directories(tatooine
     ${PNG_INCLUDE_DIRS}
     ${PNG++_INCLUDE_DIRS}
     ${CMAKE_CURRENT_SOURCE_DIR}/external/indicators/include
+    ${CMAKE_CURRENT_SOURCE_DIR}/external/tomlplusplus/include
 )
 
 #- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -

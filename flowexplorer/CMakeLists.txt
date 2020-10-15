@@ -17,6 +17,7 @@ add_executable(
   src/line_shader.cpp 
   src/point_shader.cpp 
   src/renderable.cpp 
+  src/scene.cpp 
 
   src/imgui-node-editor/crude_json.cpp
   src/imgui-node-editor/imgui_canvas.cpp

@@ -6,10 +6,11 @@
 
 #include <imgui-node-editor/imgui_node_editor.h>
 #include <tatooine/flowexplorer/ui/pin.h>
+#include <tatooine/flowexplorer/serializable.h>
 //==============================================================================
 namespace tatooine::flowexplorer::ui {
 //==============================================================================
-struct node {
+struct node : serializable{
  private:
   ax::NodeEditor::NodeId m_id;
   std::string            m_name;
