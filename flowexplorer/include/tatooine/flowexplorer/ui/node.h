@@ -5,9 +5,12 @@
 #include <tatooine/flowexplorer/ui/pin.h>
 #include <tatooine/flowexplorer/uuid_holder.h>
 #include <tatooine/flowexplorer/serializable.h>
+//==============================================================================
 namespace tatooine::flowexplorer {
+//==============================================================================
 struct scene;
-}
+//==============================================================================
+}  // namespace tatooine::flowexplorer
 //==============================================================================
 namespace tatooine::flowexplorer::ui {
 //==============================================================================
@@ -92,4 +95,36 @@ struct node : uuid_holder<ax::NodeEditor::NodeId>, serializable {
 //==============================================================================
 }  // namespace tatooine::flowexplorer::ui
 //==============================================================================
+struct registered_function_t {
+  using registered_function_ptr_t = tatooine::flowexplorer::ui::node* (*)(tatooine::flowexplorer::scene const&, std::string const&);
+  registered_function_ptr_t registered_function;
+};
+#define REGISTER_NODE_FACTORY(registered_function_, sec)                       \
+  static constexpr registered_function_t ptr_##registered_function_            \
+      __attribute((used, section(#sec))) = {                                   \
+          .registered_function = registered_function_,                         \
+  }
+//------------------------------------------------------------------------------
+#define REGISTER_NODE(type)                                                    \
+  static auto register_##type(tatooine::flowexplorer::scene const&       s,                            \
+                              std::string const& node_type_name)               \
+      ->tatooine::flowexplorer::ui::node* {                                                            \
+    if (node_type_name == #type) {                                             \
+      return new type{s};                                                      \
+    }                                                                          \
+    return nullptr;                                                            \
+  }                                                                            \
+  REGISTER_NODE_FACTORY(register_##type, registration)
+//------------------------------------------------------------------------------
+extern registered_function_t __start_registration;
+extern registered_function_t __stop_registration;
+#define iterate_registered_functions(elem, section)                            \
+  for (registered_function_t* elem = &__start_##section;                       \
+       elem != &__stop_##section; ++elem)
+//------------------------------------------------------------------------------
+#define call_registered_functions(section, string)                             \
+  iterate_registered_functions(entry, section) {                               \
+    entry->registered_function();                                              \
+  }
 #endif
+

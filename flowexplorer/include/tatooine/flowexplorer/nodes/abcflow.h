@@ -6,8 +6,7 @@
 //==============================================================================
 namespace tatooine::flowexplorer::nodes {
 //==============================================================================
-template <typename Real>
-struct abcflow : tatooine::analytical::fields::numerical::abcflow<Real>,
+struct abcflow : tatooine::analytical::fields::numerical::abcflow<double>,
                  ui::node {
   abcflow(scene const& s) : ui::node{"ABC Flow", s} {
     setup_pins();
@@ -20,20 +19,19 @@ struct abcflow : tatooine::analytical::fields::numerical::abcflow<Real>,
 
  private:
   void setup_pins() {
-    this->template insert_output_pin<parent::field<Real, 3, 3>>("Field Out");
+    this->template insert_output_pin<parent::field<double, 3, 3>>("Field Out");
   }
 
  public:
   auto serialize() const -> toml::table override {
     return toml::table{};
   }
-  void deserialize(toml::table const& serialized_data) override {
-    
-  }
+  void           deserialize(toml::table const&) override {}
   constexpr auto node_type_name() const -> std::string_view override {
     return "abcflow";
   }
 };
+REGISTER_NODE(abcflow);
 //==============================================================================
 }  // namespace tatooine::flowexplorer::nodes
 //==============================================================================

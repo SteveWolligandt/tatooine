@@ -35,6 +35,7 @@ struct spacetime_vectorfield
     return "spacetime_vectorfield";
   }
 };
+//REGISTER_NODE(spacetime_vectorfield<double>);
 //==============================================================================
 }  // namespace tatooine::flowexplorer::nodes
 //==============================================================================

@@ -278,7 +278,7 @@ void scene::node_creators() {
   //}
   // vectorfields
   if (ImGui::Button("ABC Flow")) {
-    m_nodes.emplace_back(new nodes::abcflow<double>{*this});
+    m_nodes.emplace_back(new nodes::abcflow{*this});
   }
   //ImGui::SameLine();
   //if (ImGui::Button("Rayleigh Benard Convection")) {
@@ -368,6 +368,8 @@ void scene::read(std::string const& filepath) {
   clear();
   ax::NodeEditor::SetCurrentEditor(m_node_editor_context);
   auto const toml_scene = toml::parse_file(filepath);
+
+  // read nodes and renderables
   for (auto const& [id_string, item] : toml_scene) {
     auto const& serialized_node = *item.as_table();
     auto const  kind = serialized_node["kind"].as_string()->get();
@@ -376,30 +378,19 @@ void scene::read(std::string const& filepath) {
       auto const node_type_name =
           serialized_node["node_type"].as_string()->get();
 
-      auto n = [&, this]() -> ui::node* {
-        if (node_type_name == "abcflow") {
-          return m_nodes.emplace_back(new nodes::abcflow<double>{*this}).get();
+      ui::node* n;
+      iterate_registered_functions(entry, registration) {
+        if (auto ptr = entry->registered_function(*this, node_type_name); ptr) {
+          if (kind == "node") {
+            n =  m_nodes.emplace_back(ptr).get();
+            break;
+          } else /*if (kind == "renderable")*/ {
+            n = m_renderables.emplace_back(dynamic_cast<renderable*>(ptr))
+                    .get();
+            break;
+          }
         }
-        if (node_type_name == "doublegyre") {
-          return m_nodes.emplace_back(new nodes::doublegyre<double>{*this})
-              .get();
-        }
-        if (node_type_name == "spacetime_vectorfield") {
-          return m_nodes
-              .emplace_back(new nodes::spacetime_vectorfield<double>{*this})
-              .get();
-        }
-        if (node_type_name == "boundingbox2d") {
-          return m_renderables
-              .emplace_back(new nodes::boundingbox<double, 2>{*this})
-              .get();
-        }
-        if (node_type_name == "boundingbox3d") {
-          return m_renderables
-              .emplace_back(new nodes::boundingbox<double, 3>{*this})
-              .get();
-        }
-      }();
+      }
 
       // id string to size_t
       std::stringstream id_stream{id_string};
@@ -435,6 +426,8 @@ void scene::read(std::string const& filepath) {
       n->deserialize(serialized_node);
     }
   }
+
+  // read links
   for (auto const& [id_string, item] : toml_scene) {
     auto const& serialized_node = *item.as_table();
     auto const  kind            = serialized_node["kind"].as_string()->get();

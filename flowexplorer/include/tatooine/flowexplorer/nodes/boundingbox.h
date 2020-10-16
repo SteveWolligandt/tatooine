@@ -161,6 +161,8 @@ struct boundingbox : tatooine::boundingbox<Real, N>, renderable {
     }
   }
 };
+//REGISTER_NODE(boundingbox<double, 2>);
+//REGISTER_NODE(boundingbox<double, 3>);
 //==============================================================================
 // deduction guides
 //==============================================================================

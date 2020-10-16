@@ -24,6 +24,7 @@ struct doublegyre : tatooine::analytical::fields::numerical::doublegyre<Real>,
     return "doublegyre";
   }
 };
+//REGISTER_NODE(doublegyre<double>);
 //==============================================================================
 }  // namespace tatooine::flowexplorer::nodes
 //==============================================================================

@@ -38,14 +38,13 @@ struct scene {
   void remove_link();
   //----------------------------------------------------------------------------
   void draw_node_editor(size_t const pos_x, size_t const pos_y,
-                        size_t const width, size_t const height, 
-                        bool& show);
+                        size_t const width, size_t const height, bool& show);
   //----------------------------------------------------------------------------
   void write(std::string const& filepath) const;
   void read(std::string const& filepath);
   //----------------------------------------------------------------------------
   template <typename F>
-  auto do_in_context(F&& f) const  {
+  auto do_in_context(F&& f) const {
     ax::NodeEditor::SetCurrentEditor(m_node_editor_context);
     f();
     ax::NodeEditor::SetCurrentEditor(nullptr);
