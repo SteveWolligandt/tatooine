@@ -3,9 +3,11 @@
 #include <tatooine/demangling.h>
 #include <tatooine/flowexplorer/nodes/abcflow.h>
 #include <tatooine/flowexplorer/nodes/boundingbox.h>
+#include <tatooine/flowexplorer/nodes/doublegyre.h>
+#include <tatooine/flowexplorer/nodes/lic.h>
 #include <tatooine/flowexplorer/nodes/spacetime_vectorfield.h>
 #include <tatooine/flowexplorer/scene.h>
-#include <tatooine/flowexplorer/nodes/doublegyre.h>
+#include <tatooine/flowexplorer/window.h>
 #include <toml++/toml.h>
 
 #include <fstream>
@@ -14,7 +16,6 @@
 //#include <tatooine/flowexplorer/nodes/position.h>
 //#include <tatooine/flowexplorer/nodes/saddle.h>
 //#include <tatooine/flowexplorer/nodes/duffing_oscillator.h>
-//#include <tatooine/flowexplorer/nodes/lic.h>
 //#include <tatooine/flowexplorer/nodes/random_pathlines.h>
 //#include <tatooine/flowexplorer/nodes/rayleigh_benard_convection.h>
 #include <tatooine/interpolation.h>
@@ -39,7 +40,8 @@ auto show_label(const char* label, ImColor color) {
   ImGui::TextUnformatted(label);
 }
 //==============================================================================
-scene::scene(rendering::camera_controller<float>& cam) : m_cam{&cam} {
+scene::scene(rendering::camera_controller<float>& cam, flowexplorer::window* w)
+    : m_cam{&cam}, m_window{w} {
   m_node_editor_context = ax::NodeEditor::CreateEditor();
 }
 //----------------------------------------------------------------------------
@@ -285,7 +287,7 @@ void scene::node_creators() {
   //  m_nodes.emplace_back(new nodes::rayleigh_benard_convection<double>{});
   //}
   if (ImGui::Button("Doublegyre Flow")) {
-    m_nodes.emplace_back(new nodes::doublegyre<double>{*this});
+    m_nodes.emplace_back(new nodes::doublegyre{*this});
   }
   //if (ImGui::Button("Saddle Flow")) {
   //  m_nodes.emplace_back(new nodes::saddle<double>{});
@@ -297,7 +299,7 @@ void scene::node_creators() {
   //
   // vectorfield operations
   if (ImGui::Button("Spacetime Vector Field")) {
-    m_nodes.emplace_back(new nodes::spacetime_vectorfield<double>{*this});
+    m_nodes.emplace_back(new nodes::spacetime_vectorfield{*this});
   }
 
   // bounding boxes
@@ -316,9 +318,9 @@ void scene::node_creators() {
   //  m_renderables.emplace_back(new nodes::random_pathlines<double, 3>{*this});
   //}
   //ImGui::SameLine();
-  //if (ImGui::Button("LIC")) {
-  //  m_renderables.emplace_back(new nodes::lic<double>{*this});
-  //}
+  if (ImGui::Button("LIC")) {
+    m_renderables.emplace_back(new nodes::lic{*this});
+  }
   //ImGui::SameLine();
   //if (ImGui::Button("Autonomous Particle")) {
   //  m_renderables.emplace_back(new nodes::autonomous_particle{*this});
@@ -438,8 +440,11 @@ void scene::read(std::string const& filepath) {
       id_stream >> id;
       size_t const input_id  = serialized_node["input"].as_integer()->get();
       size_t const output_id = serialized_node["output"].as_integer()->get();
-      m_links.push_back(
-          ui::link{id, *find_pin(input_id), *find_pin(output_id)});
+      auto & input_pin = *find_pin(input_id);
+      auto&        output_pin = *find_pin(output_id);
+      m_links.push_back(ui::link{id, input_pin, output_pin});
+      input_pin.node().on_pin_connected(input_pin, output_pin);
+      output_pin.node().on_pin_connected(output_pin, input_pin);
     }
   }
   ax::NodeEditor::SetCurrentEditor(nullptr);

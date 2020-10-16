@@ -1,23 +1,24 @@
 #ifndef TATOOINE_FLOWEXPLORER_NODES_LIC_H
 #define TATOOINE_FLOWEXPLORER_NODES_LIC_H
 //==============================================================================
-#include <tatooine/boundingbox.h>
+#include <tatooine/flowexplorer/nodes/boundingbox.h>
 #include <tatooine/gpu/texture_shader.h>
 #include <tatooine/gpu/lic.h>
 #include <tatooine/flowexplorer/renderable.h>
 #include <tatooine/rendering/matrices.h>
+#include <yavin>
+#include <tatooine/rendering/yavin_interop.h>
 
 #include <mutex>
 //==============================================================================
 namespace tatooine::flowexplorer::nodes {
 //==============================================================================
-template <typename Real>
 struct lic : renderable {
   //----------------------------------------------------------------------------
   // typedefs
   //----------------------------------------------------------------------------
-  using vectorfield_t = parent::vectorfield<Real, 2>;
-  using bb_t          = boundingbox<Real, 2>;
+  using vectorfield_t = parent::vectorfield<double, 2>;
+  using bb_t          = flowexplorer::nodes::boundingbox<2>;
   //----------------------------------------------------------------------------
   vectorfield_t const*                    m_v           = nullptr;
   bb_t*                                   m_boundingbox = nullptr;
@@ -32,8 +33,8 @@ struct lic : renderable {
   float                                                   m_alpha;
   bool                                                    m_calculating = false;
   //----------------------------------------------------------------------------
-  lic(flowexplorer::window& w)
-      : renderable{w, "LIC"},
+  lic(flowexplorer::scene& s)
+      : renderable{"LIC", s},
         m_lic_res{100, 100},
         m_vectorfield_sample_res{100, 100},
         m_t{0.0},
@@ -82,25 +83,7 @@ struct lic : renderable {
     ImGui::DragFloat("alpha", &m_alpha, 0.1, 0.0f, 1.0f);
   }
   //----------------------------------------------------------------------------
-  void calculate_lic() {
-    if (m_calculating) {
-      return;
-    }
-    m_calculating = true;
-    this->window().do_async([node = this] {
-      node->m_lic_tex = std::make_unique<yavin::tex2rgba<float>>(
-        gpu::lic(
-          *node->m_v,
-          linspace{node->m_boundingbox->min(0), node->m_boundingbox->max(0),
-                   static_cast<size_t>(node->m_vectorfield_sample_res(0))},
-          linspace{node->m_boundingbox->min(1), node->m_boundingbox->max(1),
-                   static_cast<size_t>(node->m_vectorfield_sample_res(1))},
-          node->m_t, vec<size_t, 2>{node->m_lic_res(0), node->m_lic_res(1)},
-          node->m_num_samples, node->m_stepsize));
-
-      node->m_calculating = false;
-    });
-  }
+  void calculate_lic();
   //----------------------------------------------------------------------------
   void update_shader(mat<float, 4, 4> const& projection_matrix,
                      mat<float, 4, 4> const& view_matrix) {
@@ -134,7 +117,38 @@ struct lic : renderable {
   bool is_transparent() const override {
     return m_alpha < 1;
   }
+  auto serialize() const -> toml::table override {
+    toml::table serialization;
+    serialization.insert("lic_res", toml::array{m_lic_res(0), m_lic_res(1)});
+    serialization.insert("sample_res", toml::array{m_lic_res(0), m_lic_res(1)});
+
+    serialization.insert("t", m_t);
+    serialization.insert("num_samples", m_num_samples);
+    serialization.insert("stepsize", m_stepsize);
+    serialization.insert("alpha", m_alpha);
+
+    return serialization;
+  }
+  void           deserialize(toml::table const& serialization) override {
+    auto const& serialized_lic_res =
+        *serialization["lic_res"].as_array();
+    m_lic_res(0) = serialized_lic_res[0].as_integer()->get();
+    m_lic_res(1) = serialized_lic_res[1].as_integer()->get();
+    auto const& serialized_sample_res =
+        *serialization["sample_res"].as_array();
+    m_vectorfield_sample_res(0) = serialized_sample_res[0].as_integer()->get();
+    m_vectorfield_sample_res(1) = serialized_sample_res[1].as_integer()->get();
+
+    m_t           = serialization["t"].as_floating_point()->get();
+    m_num_samples = serialization["num_samples"].as_integer()->get();
+    m_stepsize    = serialization["stepsize"].as_floating_point()->get();
+    m_alpha       = serialization["alpha"].as_floating_point()->get();
+  }
+  constexpr auto node_type_name() const -> std::string_view override {
+    return "lic";
+  }
 };
+REGISTER_NODE(lic);
 //==============================================================================
 }  // namespace tatooine::flowexplorer
 //==============================================================================

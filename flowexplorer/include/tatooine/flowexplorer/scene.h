@@ -12,14 +12,16 @@
 //==============================================================================
 namespace tatooine::flowexplorer {
 //==============================================================================
+struct window;
 struct scene {
   std::vector<std::unique_ptr<renderable>> m_renderables;
   std::vector<std::unique_ptr<ui::node>>   m_nodes;
   std::vector<ui::link>                    m_links;
   ax::NodeEditor::EditorContext*           m_node_editor_context = nullptr;
   rendering::camera_controller<float>*     m_cam;
+  flowexplorer::window*                                  m_window;
   //============================================================================
-  scene(rendering::camera_controller<float>& ctrl);
+  scene(rendering::camera_controller<float>& ctrl, flowexplorer::window* w);
   ~scene();
   //============================================================================
   void render(std::chrono::duration<double> const& dt);
@@ -53,6 +55,12 @@ struct scene {
     m_nodes.clear();
     m_renderables.clear();
     m_links.clear();
+  }
+  auto window() const -> auto const& {
+    return *m_window;
+  }
+  auto window() -> auto& {
+    return *m_window;
   }
 };
 //==============================================================================

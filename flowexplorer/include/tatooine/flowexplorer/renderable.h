@@ -8,7 +8,7 @@
 namespace tatooine::flowexplorer {
 //==============================================================================
 struct renderable : ui::node {
-  renderable(std::string const& title, scene const& s);
+  renderable(std::string const& title, flowexplorer::scene& s);
   renderable(renderable const& w)                        = default;
   renderable(renderable&& w) noexcept                    = default;
   auto operator=(renderable const& w) -> renderable&     = default;

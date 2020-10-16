@@ -8,10 +8,11 @@ namespace tatooine::flowexplorer::nodes {
 //==============================================================================
 struct abcflow : tatooine::analytical::fields::numerical::abcflow<double>,
                  ui::node {
-  abcflow(scene const& s) : ui::node{"ABC Flow", s} {
+  abcflow(flowexplorer::scene& s) : ui::node{"ABC Flow", s} {
     setup_pins();
   }
-  abcflow(scene const& s, toml::table const& serialized_data) : ui::node{s} {
+  abcflow(flowexplorer::scene& s, toml::table const& serialized_data)
+      : ui::node{s} {
     setup_pins();
     deserialize(serialized_data);
   }

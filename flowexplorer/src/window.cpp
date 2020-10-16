@@ -2,7 +2,7 @@
 //==============================================================================
 namespace tatooine::flowexplorer {
 //==============================================================================
-window::window() : m_show_nodes_gui{true}, m_scene(camera_controller()) {
+window::window() : m_show_nodes_gui{true}, m_scene(camera_controller(), this) {
   start();
 }
 //============================================================================

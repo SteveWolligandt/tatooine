@@ -17,13 +17,13 @@ namespace tatooine::flowexplorer::ui {
 struct node : uuid_holder<ax::NodeEditor::NodeId>, serializable {
  private:
   std::string            m_title;
-  scene const&           m_scene;
+  flowexplorer::scene*                 m_scene;
   std::vector<pin>       m_input_pins;
   std::vector<pin>       m_output_pins;
 
  public:
-  node(scene const& s);
-  node(std::string const& title, scene const& s);
+  node(flowexplorer::scene & s);
+  node(std::string const& title, flowexplorer::scene & s);
   virtual ~node() = default;
   //============================================================================
   template <typename T>
@@ -91,12 +91,21 @@ struct node : uuid_holder<ax::NodeEditor::NodeId>, serializable {
   virtual void           on_pin_connected(pin& this_pin, pin& other_pin) {}
   virtual void on_pin_disconnected(pin& this_pin) {}
   constexpr virtual auto node_type_name() const -> std::string_view = 0;
+
+  auto scene() const -> auto const& {
+    return *m_scene;
+  }
+  auto scene() -> auto & {
+    return *m_scene;
+  }
 };
 //==============================================================================
 }  // namespace tatooine::flowexplorer::ui
 //==============================================================================
 struct registered_function_t {
-  using registered_function_ptr_t = tatooine::flowexplorer::ui::node* (*)(tatooine::flowexplorer::scene const&, std::string const&);
+  using registered_function_ptr_t =
+      tatooine::flowexplorer::ui::node* (*)(tatooine::flowexplorer::scene&,
+                                            std::string const&);
   registered_function_ptr_t registered_function;
 };
 #define REGISTER_NODE_FACTORY(registered_function_, sec)                       \
@@ -106,9 +115,9 @@ struct registered_function_t {
   }
 //------------------------------------------------------------------------------
 #define REGISTER_NODE(type)                                                    \
-  static auto register_##type(tatooine::flowexplorer::scene const&       s,                            \
-                              std::string const& node_type_name)               \
-      ->tatooine::flowexplorer::ui::node* {                                                            \
+  static auto register_##type(tatooine::flowexplorer::scene& s,                \
+                              std::string const&             node_type_name)   \
+      ->tatooine::flowexplorer::ui::node* {                                    \
     if (node_type_name == #type) {                                             \
       return new type{s};                                                      \
     }                                                                          \
