@@ -20,6 +20,8 @@ void window::on_key_pressed(yavin::key k) {
     camera_controller().look_at({0, 0, 0}, {0, 0, -1});
   } else if (k == yavin::KEY_F5) {
     m_scene.write("scene.toml");
+  } else if (k == yavin::KEY_F6) {
+    m_scene.read("scene.toml");
   }
 }
 //------------------------------------------------------------------------------

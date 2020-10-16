@@ -12,6 +12,7 @@ add_executable(
   flowexplorer
 
   src/flowexplorer.cpp
+  src/node.cpp
   src/window.cpp
   #src/autonomous_particle.cpp
   src/line_shader.cpp 

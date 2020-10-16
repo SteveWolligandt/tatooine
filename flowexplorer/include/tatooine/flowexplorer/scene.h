@@ -11,8 +11,8 @@
 namespace tatooine::flowexplorer {
 //==============================================================================
 struct scene {
-  std::vector<std::unique_ptr<base_renderable>> m_renderables;
-  std::vector<std::unique_ptr<ui::base_node>>   m_nodes;
+  std::vector<std::unique_ptr<renderable>> m_renderables;
+  std::vector<std::unique_ptr<ui::node>>   m_nodes;
   ax::NodeEditor::EditorContext* m_node_editor_context = nullptr;
   ImVector<link_info> m_links;  // List of live links. It is dynamic unless you
                                 // want to create read-only view over nodes.
@@ -23,7 +23,7 @@ struct scene {
   ~scene();
   //============================================================================
   void render(std::chrono::duration<double> const& dt);
-  auto find_node(ax::NodeEditor::NodeId id) -> base_renderable*;
+  auto find_node(ax::NodeEditor::NodeId id) -> renderable*;
   //----------------------------------------------------------------------------
   auto find_pin(ax::NodeEditor::PinId id) -> ui::pin*;
   //----------------------------------------------------------------------------
@@ -39,9 +39,17 @@ struct scene {
   //----------------------------------------------------------------------------
   void draw_node_editor(size_t const pos_x, size_t const pos_y,
                         size_t const width, size_t const height, 
-                        bool show);
+                        bool& show);
   //----------------------------------------------------------------------------
   void write(std::string const& filepath) const;
+  void read(std::string const& filepath);
+  //----------------------------------------------------------------------------
+  template <typename F>
+  auto do_in_context(F&& f) const  {
+    ax::NodeEditor::SetCurrentEditor(m_node_editor_context);
+    f();
+    ax::NodeEditor::SetCurrentEditor(nullptr);
+  }
 };
 //==============================================================================
 }  // namespace tatooine::flowexplorer

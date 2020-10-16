@@ -76,7 +76,7 @@ void scene::render(std::chrono::duration<double> const& dt) {
   yavin::enable_depth_write();
 }
 //----------------------------------------------------------------------------
-auto scene::find_node(ax::NodeEditor::NodeId id) -> base_renderable* {
+auto scene::find_node(ax::NodeEditor::NodeId id) -> renderable* {
   for (auto& r : m_renderables) {
     if (r->id() == id) {
       return r.get();
@@ -121,17 +121,17 @@ void scene::draw_nodes() {
     ImGui::PushID(i++);
     namespace ed = ax::NodeEditor;
     ed::BeginNode(node->id());
-    ImGui::TextUnformatted(node->name().c_str());
+    ImGui::TextUnformatted(node->title().c_str());
     f();
     for (auto& input_pin : node->input_pins()) {
       ed::BeginPin(input_pin.id(), ed::PinKind::Input);
-      std::string in = "-> " + input_pin.name();
+      std::string in = "-> " + input_pin.title();
       ImGui::TextUnformatted(in.c_str());
       ed::EndPin();
     }
     for (auto& output_pin : node->output_pins()) {
       ed::BeginPin(output_pin.id(), ed::PinKind::Output);
-      std::string out = output_pin.name() + " ->";
+      std::string out = output_pin.title() + " ->";
       ImGui::TextUnformatted(out.c_str());
       ed::EndPin();
     }
@@ -236,7 +236,7 @@ void scene::remove_link() {
 //----------------------------------------------------------------------------
 void scene::draw_node_editor(size_t const pos_x, size_t const pos_y,
                              size_t const width, size_t const height, 
-                             bool show) {
+                             bool& show) {
   namespace ed                        = ax::NodeEditor;
   ImGui::GetStyle().WindowRounding    = 0.0f;
   ImGui::GetStyle().ChildRounding     = 0.0f;
@@ -273,7 +273,7 @@ void scene::node_creators() {
   //}
   // vectorfields
   if (ImGui::Button("ABC Flow")) {
-    m_nodes.emplace_back(new nodes::abcflow<double>{});
+    m_nodes.emplace_back(new nodes::abcflow<double>{*this});
   }
   //ImGui::SameLine();
   //if (ImGui::Button("Rayleigh Benard Convection")) {
@@ -321,20 +321,61 @@ void scene::node_creators() {
 }
 //------------------------------------------------------------------------------
 void scene::write(std::string const& filepath) const {
-  toml::table data;
+  toml::table toml_scene;
 
-  for (auto const& node : m_nodes) {
-    toml::table node_table;
-    auto pos = node->node_position();
-    node_table.insert("position", toml::array{pos[0], pos[1]});
-    node_table.insert("type", node->node_type_name());
-    data.insert(std::to_string(node->id().Get()), node_table);
-  }
+  auto write_nodes = [&](auto const& field) {
+    for (auto const& node : field) {
+      toml::table node_table;
+      auto        pos = node->node_position();
+      node_table.insert("kind", "node");
+      node_table.insert("position", toml::array{pos[0], pos[1]});
+      node_table.insert("title", node->title());
+      node_table.insert("type", node->node_type_name());
+      toml_scene.insert(std::to_string(node->id().Get()), node_table);
+    }
+  };
+  write_nodes(m_nodes);
+  write_nodes(m_renderables);
 
   std::ofstream fout {filepath};
   if (fout.is_open()) {
-    fout << data << '\n';
+    fout << toml_scene << '\n';
   }
+}//------------------------------------------------------------------------------
+void scene::read(std::string const& filepath) {
+  ax::NodeEditor::SetCurrentEditor(m_node_editor_context);
+  auto const toml_scene = toml::parse_file(filepath);
+  for (auto const& [id_string, item] : toml_scene) {
+    auto const& serialized_node = *item.as_table();
+    auto const  node_type_name  = serialized_node["type"].as_string()->get();
+
+    auto& n = [&, this ]() -> auto& {
+      if (node_type_name == std::string{"abcflow"}) {
+        return m_nodes.emplace_back(new nodes::abcflow<double>{*this});
+      }
+    }
+    ();
+
+    // id string to size_t
+    std::stringstream id_stream{id_string};
+    size_t            id;
+    id_stream >> id;
+    n->set_id(id);
+
+    // set node position
+    auto const x =
+        (*serialized_node["position"].as_array())[0].as_floating_point()->get();
+    auto const y =
+        (*serialized_node["position"].as_array())[1].as_floating_point()->get();
+    ImVec2 pos{static_cast<float>(x), static_cast<float>(y)};
+    ax::NodeEditor::SetNodePosition(id, pos);
+
+    // set title
+    auto const title = serialized_node["title"].as_string()->get();
+    n->set_title(title);
+
+  }
+    ax::NodeEditor::SetCurrentEditor(nullptr);
 }
 //==============================================================================
 }  // namespace tatooine::flowexplorer
