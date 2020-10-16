@@ -23,9 +23,9 @@ struct scene {
   ~scene();
   //============================================================================
   void render(std::chrono::duration<double> const& dt);
-  auto find_node(ax::NodeEditor::NodeId id) -> renderable*;
+  auto find_node(size_t const id) -> ui::node*;
   //----------------------------------------------------------------------------
-  auto find_pin(ax::NodeEditor::PinId id) -> ui::pin*;
+  auto find_pin(size_t const id) -> ui::pin*;
   //----------------------------------------------------------------------------
   void node_creators();
   //----------------------------------------------------------------------------

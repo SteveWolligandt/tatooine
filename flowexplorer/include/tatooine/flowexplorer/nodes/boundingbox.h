@@ -17,41 +17,45 @@ struct boundingbox : tatooine::boundingbox<Real, N>, renderable {
   using vbo_t    = yavin::vertexbuffer<gpu_vec>;
   using parent_t::max;
   using parent_t::min;
+  static constexpr std::string_view bb2_name = "boundingbox2d";
+  static constexpr std::string_view bb3_name = "boundingbox3d";
   //============================================================================
   yavin::indexeddata<vec<float, N>> m_gpu_data;
   line_shader                       m_shader;
   int                               m_linewidth = 1;
   std::array<GLfloat, 4>            m_color{0.0f, 0.0f, 0.0f, 1.0f};
   //============================================================================
-  boundingbox(flowexplorer::window& w) : renderable{w, "Bounding Box"} {}
+  boundingbox(scene const& s) : renderable{"Bounding Box", s} {
+    this->template insert_output_pin<this_t>("Out");
+    create_indexed_data();
+  }
   boundingbox(const boundingbox&)     = default;
   boundingbox(boundingbox&&) noexcept = default;
   auto operator=(const boundingbox&) -> boundingbox& = default;
   auto operator=(boundingbox&&) noexcept -> boundingbox& = default;
   //============================================================================
   template <typename Real0, typename Real1>
-  constexpr boundingbox(flowexplorer::window& w, vec<Real0, N>&& min,
-                        vec<Real1, N>&& max) noexcept
+  constexpr boundingbox(vec<Real0, N>&& min,
+                        vec<Real1, N>&& max, scene const& s) noexcept
       : parent_t{std::move(min), std::move(max)},
-        renderable{w, "Bounding Box"} {
+        renderable{"Bounding Box", s} {
     this->template insert_output_pin<this_t>("Out");
     create_indexed_data();
   }
   //----------------------------------------------------------------------------
   template <typename Real0, typename Real1>
-  constexpr boundingbox(flowexplorer::window& w, const vec<Real0, N>& min,
-                        const vec<Real1, N>& max)
-      : parent_t{min, max}, renderable{w, "Bounding Box"} {
-    insert_output_node<this_t>("Out");
+  constexpr boundingbox(const vec<Real0, N>& min,
+                        const vec<Real1, N>& max, scene const& s)
+      : parent_t{min, max}, renderable{"Bounding Box", s} {
+    this->template insert_output_pin<this_t>("Out");
     create_indexed_data();
   }
   //----------------------------------------------------------------------------
   template <typename Tensor0, typename Tensor1, typename Real0, typename Real1>
-  constexpr boundingbox(flowexplorer::window&                 w,
-                        const base_tensor<Tensor0, Real0, N>& min,
-                        const base_tensor<Tensor1, Real1, N>& max)
-      : parent_t{min, max}, renderable{w, "Bounding Box"} {
-    insert_output_node<this_t>("Out");
+  constexpr boundingbox(const base_tensor<Tensor0, Real0, N>& min,
+                        const base_tensor<Tensor1, Real1, N>& max, scene const& s)
+      : parent_t{min, max}, renderable{"Bounding Box", s} {
+    this->template insert_output_pin<this_t>("Out");
     create_indexed_data();
   }
   //============================================================================
@@ -112,22 +116,66 @@ struct boundingbox : tatooine::boundingbox<Real, N>, renderable {
   auto is_transparent() const -> bool override {
     return m_color[3] < 1;
   }
+  auto serialize() const -> toml::table override {
+    toml::table serialization;
+    if constexpr (N == 2) {
+      serialization.insert("min", toml::array{min(0), min(1)});
+      serialization.insert("max", toml::array{max(0), max(1)});
+    } else if constexpr (N == 3) {
+      serialization.insert("min", toml::array{min(0), min(1), min(2)});
+      serialization.insert("max", toml::array{max(0), max(1), min(2)});
+    }
+    serialization.insert(
+        "color", toml::array{m_color[0], m_color[1], m_color[2], m_color[3]});
+    serialization.insert("linewidth", m_linewidth);
+
+    return serialization;
+  }
+  void deserialize(toml::table const& serialization) override {
+    auto const& serialized_min =
+        *serialization["min"].as_array();
+    auto const& serialized_max =
+        *serialization["max"].as_array();
+    auto const& serialized_color =
+        *serialization["color"].as_array();
+
+    min(0) = serialized_min[0].as_floating_point()->get();
+    min(1) = serialized_min[1].as_floating_point()->get();
+    max(0) = serialized_max[0].as_floating_point()->get();
+    max(1) = serialized_max[1].as_floating_point()->get();
+    if constexpr (N == 3) {
+      min(2) = serialized_min[2].as_floating_point()->get();
+      max(2) = serialized_max[2].as_floating_point()->get();
+    }
+    m_color[0] = serialized_color[0].as_floating_point()->get();
+    m_color[1] = serialized_color[1].as_floating_point()->get();
+    m_color[2] = serialized_color[2].as_floating_point()->get();
+    m_color[3] = serialized_color[3].as_floating_point()->get();
+    m_linewidth = serialization["linewidth"].as_integer()->get();
+  }
+  constexpr auto node_type_name() const -> std::string_view override {
+    if constexpr (N == 2) {
+      return bb2_name;
+    } else if constexpr (N == 3) {
+      return bb3_name;
+    }
+  }
 };
 //==============================================================================
 // deduction guides
 //==============================================================================
 template <typename Real0, typename Real1, size_t N>
-boundingbox(flowexplorer::window&, const vec<Real0, N>&, const vec<Real1, N>&)
+boundingbox(const vec<Real0, N>&, const vec<Real1, N>&, scene const&)
     -> boundingbox<promote_t<Real0, Real1>, N>;
 //------------------------------------------------------------------------------
 template <typename Real0, typename Real1, size_t N>
-boundingbox(flowexplorer::window&, vec<Real0, N>&&, vec<Real1, N> &&)
+boundingbox(vec<Real0, N>&&, vec<Real1, N> &&, scene const&)
     -> boundingbox<promote_t<Real0, Real1>, N>;
 //------------------------------------------------------------------------------
 template <typename Tensor0, typename Tensor1, typename Real0, typename Real1,
           size_t N>
-boundingbox(flowexplorer::window&, base_tensor<Tensor0, Real0, N>&&,
-            base_tensor<Tensor1, Real1, N> &&)
+boundingbox(base_tensor<Tensor0, Real0, N>&&,
+            base_tensor<Tensor1, Real1, N> &&, scene const&)
     -> boundingbox<promote_t<Real0, Real1>, N>;
 //==============================================================================
 }  // namespace tatooine::flowexplorer::nodes

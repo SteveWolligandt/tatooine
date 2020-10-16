@@ -9,11 +9,20 @@ namespace tatooine::flowexplorer::nodes {
 template <typename Real>
 struct doublegyre : tatooine::analytical::fields::numerical::doublegyre<Real>,
                     ui::node {
-  doublegyre() : ui::node{"Double Gyre"} {
+  doublegyre(scene const& s) : ui::node{"Double Gyre", s} {
     this->set_infinite_domain(true);
     this->template insert_output_pin<parent::vectorfield<Real, 2>>("Field Out");
   }
   virtual ~doublegyre() = default;
+  auto serialize() const -> toml::table override {
+    return toml::table{};
+  }
+  void deserialize(toml::table const& serialized_data) override {
+    
+  }
+  constexpr auto node_type_name() const -> std::string_view override {
+    return "doublegyre";
+  }
 };
 //==============================================================================
 }  // namespace tatooine::flowexplorer::nodes
