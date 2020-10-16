@@ -1,8 +1,10 @@
 #ifndef TATOOINE_FLOWEXPLORER_SCENE_H
 #define TATOOINE_FLOWEXPLORER_SCENE_H
 //==============================================================================
-#include <tatooine/flowexplorer/link_info.h>
 #include <tatooine/flowexplorer/renderable.h>
+#include <tatooine/flowexplorer/ui/link.h>
+#include <tatooine/flowexplorer/ui/node.h>
+#include <tatooine/flowexplorer/ui/pin.h>
 #include <tatooine/rendering/camera_controller.h>
 
 #include <memory>
@@ -13,11 +15,9 @@ namespace tatooine::flowexplorer {
 struct scene {
   std::vector<std::unique_ptr<renderable>> m_renderables;
   std::vector<std::unique_ptr<ui::node>>   m_nodes;
-  ax::NodeEditor::EditorContext* m_node_editor_context = nullptr;
-  ImVector<link_info> m_links;  // List of live links. It is dynamic unless you
-                                // want to create read-only view over nodes.
-  rendering::camera_controller<float>* m_cam;
-  int m_next_link = 100;
+  std::vector<ui::link>                    m_links;
+  ax::NodeEditor::EditorContext*           m_node_editor_context = nullptr;
+  rendering::camera_controller<float>*     m_cam;
   //============================================================================
   scene(rendering::camera_controller<float>& ctrl);
   ~scene();
@@ -49,6 +49,11 @@ struct scene {
     ax::NodeEditor::SetCurrentEditor(m_node_editor_context);
     f();
     ax::NodeEditor::SetCurrentEditor(nullptr);
+  }
+  void clear() {
+    m_nodes.clear();
+    m_renderables.clear();
+    m_links.clear();
   }
 };
 //==============================================================================

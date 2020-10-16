@@ -1,11 +1,9 @@
 #ifndef TATOOINE_FLOWEXPLORER_UI_NODE_H
 #define TATOOINE_FLOWEXPLORER_UI_NODE_H
 //==============================================================================
-#include <boost/uuid/uuid.hpp>
-#include <boost/uuid/uuid_generators.hpp>
-
 #include <imgui-node-editor/imgui_node_editor.h>
 #include <tatooine/flowexplorer/ui/pin.h>
+#include <tatooine/flowexplorer/uuid_holder.h>
 #include <tatooine/flowexplorer/serializable.h>
 namespace tatooine::flowexplorer {
 struct scene;
@@ -13,9 +11,8 @@ struct scene;
 //==============================================================================
 namespace tatooine::flowexplorer::ui {
 //==============================================================================
-struct node : serializable {
+struct node : uuid_holder<ax::NodeEditor::NodeId>, serializable {
  private:
-  ax::NodeEditor::NodeId m_id;
   std::string            m_title;
   scene const&           m_scene;
   std::vector<pin>       m_input_pins;
@@ -34,13 +31,6 @@ struct node : serializable {
   template <typename T>
   auto insert_output_pin(std::string const& title) {
     m_output_pins.push_back(make_output_pin<T>(*this, title));
-  }
-  //----------------------------------------------------------------------------
-  auto id() {
-    return m_id;
-  }
-  auto set_id(size_t const new_id) {
-    m_id = new_id;
   }
   //----------------------------------------------------------------------------
   auto title() const -> auto const& {
@@ -76,17 +66,17 @@ struct node : serializable {
   template <typename F>
   void draw_ui(F&& f) {
     namespace ed = ax::NodeEditor;
-    ed::BeginNode(m_id);
+    ed::BeginNode(get_id());
     ImGui::TextUnformatted(title().c_str());
     f();
     for (auto& input_pin : m_input_pins) {
-      ed::BeginPin(input_pin.id(), ed::PinKind::Input);
+      ed::BeginPin(input_pin.get_id(), ed::PinKind::Input);
       std::string in = "-> " + input_pin.title();
       ImGui::TextUnformatted(in.c_str());
       ed::EndPin();
     }
     for (auto& output_pin : m_output_pins) {
-      ed::BeginPin(output_pin.id(), ed::PinKind::Output);
+      ed::BeginPin(output_pin.get_id(), ed::PinKind::Output);
       std::string out = output_pin.title() + " ->";
       ImGui::TextUnformatted(out.c_str());
       ed::EndPin();

@@ -3,18 +3,14 @@
 //==============================================================================
 #include <imgui-node-editor/imgui_node_editor.h>
 #include <tatooine/flowexplorer/ui/pinkind.h>
-
-#include <boost/functional/hash.hpp>
-#include <boost/uuid/uuid.hpp>
-#include <boost/uuid/uuid_generators.hpp>
+#include <tatooine/flowexplorer/uuid_holder.h>
 //==============================================================================
 namespace tatooine::flowexplorer::ui {
 //==============================================================================
 struct node;
 //==============================================================================
-struct pin {
+struct pin : uuid_holder<ax::NodeEditor::PinId>{
  private:
-  ax::NodeEditor::PinId m_id;
   std::string           m_title;
   node&                 m_node;
   pinkind               m_kind;
@@ -23,16 +19,11 @@ struct pin {
  public:
   pin(node& n, std::type_info const& type, pinkind kind,
       std::string const& title)
-      : m_id{boost::hash<boost::uuids::uuid>{}(
-            boost::uuids::random_generator()())},
-        m_title{title},
+      : m_title{title},
         m_node{n},
         m_kind{kind},
         m_type{type} {}
 
-  auto id() const {
-    return m_id;
-  }
   auto node() const -> auto const& {
     return m_node;
   }
