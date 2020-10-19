@@ -9,7 +9,7 @@ AlignTrailingComments: 'true'
 AllowAllArgumentsOnNextLine: 'true'
 AllowShortBlocksOnASingleLine: 'false'
 AllowShortCaseLabelsOnASingleLine: 'false'
-AllowShortFunctionsOnASingleLine: Empty
+AllowShortFunctionsOnASingleLine: All
 AllowShortIfStatementsOnASingleLine: WithoutElse
 AllowShortLambdasOnASingleLine: Empty
 AllowShortLoopsOnASingleLine: 'false'

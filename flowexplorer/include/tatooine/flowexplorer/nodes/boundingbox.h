@@ -10,7 +10,8 @@
 namespace tatooine::flowexplorer::nodes {
 //==============================================================================
 template <size_t N>
-struct boundingbox : tatooine::boundingbox<double, N>, renderable {
+struct boundingbox : tatooine::boundingbox<double, N>,
+                     renderable<boundingbox<N>> {
   using this_t   = boundingbox<N>;
   using parent_t = tatooine::boundingbox<double, N>;
   using gpu_vec  = vec<float, N>;
@@ -25,7 +26,7 @@ struct boundingbox : tatooine::boundingbox<double, N>, renderable {
   int                               m_linewidth = 1;
   std::array<GLfloat, 4>            m_color{0.0f, 0.0f, 0.0f, 1.0f};
   //============================================================================
-  boundingbox(flowexplorer::scene& s) : renderable{"Bounding Box", s} {
+  boundingbox(flowexplorer::scene& s) : renderable<boundingbox>{"Bounding Box", s} {
     this->template insert_output_pin<this_t>("Out");
     create_indexed_data();
   }
@@ -38,7 +39,7 @@ struct boundingbox : tatooine::boundingbox<double, N>, renderable {
   constexpr boundingbox(vec<Real0, N>&& min, vec<Real1, N>&& max,
                         flowexplorer::scene& s) noexcept
       : parent_t{std::move(min), std::move(max)},
-        renderable{"Bounding Box", s} {
+        renderable<boundingbox>{"Bounding Box", s} {
     this->template insert_output_pin<this_t>("Out");
     create_indexed_data();
   }
@@ -46,7 +47,7 @@ struct boundingbox : tatooine::boundingbox<double, N>, renderable {
   template <typename Real0, typename Real1>
   constexpr boundingbox(const vec<Real0, N>& min, const vec<Real1, N>& max,
                         flowexplorer::scene& s)
-      : parent_t{min, max}, renderable{"Bounding Box", s} {
+      : parent_t{min, max}, renderable<boundingbox>{"Bounding Box", s} {
     this->template insert_output_pin<this_t>("Out");
     create_indexed_data();
   }
@@ -55,7 +56,7 @@ struct boundingbox : tatooine::boundingbox<double, N>, renderable {
   constexpr boundingbox(const base_tensor<Tensor0, Real0, N>& min,
                         const base_tensor<Tensor1, Real1, N>& max,
                         flowexplorer::scene&                  s)
-      : parent_t{min, max}, renderable{"Bounding Box", s} {
+      : parent_t{min, max}, renderable<boundingbox>{"Bounding Box", s} {
     this->template insert_output_pin<this_t>("Out");
     create_indexed_data();
   }

@@ -14,18 +14,18 @@ namespace tatooine::flowexplorer {
 //==============================================================================
 struct window;
 struct scene {
-  std::vector<std::unique_ptr<renderable>> m_renderables;
-  std::vector<std::unique_ptr<ui::node>>   m_nodes;
-  std::vector<ui::link>                    m_links;
-  ax::NodeEditor::EditorContext*           m_node_editor_context = nullptr;
-  rendering::camera_controller<float>*     m_cam;
-  flowexplorer::window*                                  m_window;
+  std::vector<std::unique_ptr<ui::base::node>>   m_nodes;
+  std::vector<std::unique_ptr<base::renderable>> m_renderables;
+  std::vector<ui::link>                          m_links;
+  ax::NodeEditor::EditorContext*       m_node_editor_context = nullptr;
+  rendering::camera_controller<float>* m_cam;
+  flowexplorer::window*                m_window;
   //============================================================================
   scene(rendering::camera_controller<float>& ctrl, flowexplorer::window* w);
   ~scene();
   //============================================================================
   void render(std::chrono::duration<double> const& dt);
-  auto find_node(size_t const id) -> ui::node*;
+  auto find_node(size_t const id) -> ui::base::node*;
   //----------------------------------------------------------------------------
   auto find_pin(size_t const id) -> ui::pin*;
   //----------------------------------------------------------------------------

@@ -1,7 +1,7 @@
 #include <tatooine/flowexplorer/ui/node.h>
 #include <tatooine/flowexplorer/scene.h>
 //==============================================================================
-namespace tatooine::flowexplorer::ui {
+namespace tatooine::flowexplorer::ui::base {
 //==============================================================================
 node::node(std::string const& title, flowexplorer::scene& s)
     : m_title{title}, m_scene{&s} {}
@@ -18,5 +18,5 @@ auto node::node_position() const -> ImVec2 {
   return pos;
 }
 //==============================================================================
-}  // namespace tatooine::flowexplorer::ui
+}  // namespace tatooine::flowexplorer::ui::base
 //==============================================================================

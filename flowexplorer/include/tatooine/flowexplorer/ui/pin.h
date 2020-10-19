@@ -7,17 +7,19 @@
 //==============================================================================
 namespace tatooine::flowexplorer::ui {
 //==============================================================================
+namespace base {
 struct node;
+}
 //==============================================================================
 struct pin : uuid_holder<ax::NodeEditor::PinId>{
  private:
   std::string           m_title;
-  node&                 m_node;
+  base::node&                 m_node;
   pinkind               m_kind;
   std::type_info const& m_type;
 
  public:
-  pin(node& n, std::type_info const& type, pinkind kind,
+  pin(base::node& n, std::type_info const& type, pinkind kind,
       std::string const& title)
       : m_title{title},
         m_node{n},
@@ -45,12 +47,12 @@ struct pin : uuid_holder<ax::NodeEditor::PinId>{
 };
 //==============================================================================
 template <typename T>
-auto make_input_pin(node& n, std::string const& title) {
+auto make_input_pin(base::node& n, std::string const& title) {
   return pin{n, typeid(std::decay_t<T>), pinkind::input, title};
 }
 //------------------------------------------------------------------------------
 template <typename T>
-auto make_output_pin(node& n, std::string const& title) {
+auto make_output_pin(base::node& n, std::string const& title) {
   return pin{n, typeid(std::decay_t<T>), pinkind::output, title};
 }
 //==============================================================================

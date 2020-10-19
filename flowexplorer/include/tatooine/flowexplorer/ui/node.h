@@ -15,6 +15,7 @@ struct scene;
 //==============================================================================
 namespace tatooine::flowexplorer::ui {
 //==============================================================================
+namespace base {
 struct node : uuid_holder<ax::NodeEditor::NodeId>, serializable {
  private:
   std::string            m_title;
@@ -100,12 +101,17 @@ struct node : uuid_holder<ax::NodeEditor::NodeId>, serializable {
     return *m_scene;
   }
 };
+}  // namespace base
+template <typename Child>
+struct node : base::node {
+  using base::node::node;
+};
 //==============================================================================
 }  // namespace tatooine::flowexplorer::ui
 //==============================================================================
 struct registered_function_t {
   using registered_function_ptr_t =
-      tatooine::flowexplorer::ui::node* (*)(tatooine::flowexplorer::scene&,
+      tatooine::flowexplorer::ui::base::node* (*)(tatooine::flowexplorer::scene&,
                                             std::string const&);
   registered_function_ptr_t registered_function;
 };
@@ -119,7 +125,7 @@ struct registered_function_t {
 #define REGISTER_NODE(type)                                                    \
   static auto register_##type(tatooine::flowexplorer::scene& s,                \
                               std::string const&             node_type_name)   \
-      ->tatooine::flowexplorer::ui::node* {                                    \
+      ->tatooine::flowexplorer::ui::base::node* {                              \
     if (node_type_name == #type) {                                             \
       return new type{s};                                                      \
     }                                                                          \
@@ -147,9 +153,9 @@ extern registered_function_t __stop_registration;
 
 #define END_META_NODE() );}};}
 
-#define META_NODE_ACCESSOR(name, method)                                       \
+#define META_NODE_ACCESSOR(name, accessor)                                     \
   make_pair(BOOST_HANA_STRING(#name), [](auto&& p) -> decltype(auto) {         \
-    return p.method();                                                         \
+    return p.accessor;                                                         \
   })
 
 #endif

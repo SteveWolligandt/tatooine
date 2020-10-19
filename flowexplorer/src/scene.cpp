@@ -1,11 +1,12 @@
 #include <imgui-node-editor/imgui_node_editor.h>
 #include <tatooine/boundingbox.h>
 #include <tatooine/demangling.h>
-#include <tatooine/flowexplorer/nodes/abcflow.h>
-#include <tatooine/flowexplorer/nodes/boundingbox.h>
-#include <tatooine/flowexplorer/nodes/doublegyre.h>
-#include <tatooine/flowexplorer/nodes/lic.h>
-#include <tatooine/flowexplorer/nodes/spacetime_vectorfield.h>
+//#include <tatooine/flowexplorer/nodes/abcflow.h>
+//#include <tatooine/flowexplorer/nodes/boundingbox.h>
+//#include <tatooine/flowexplorer/nodes/doublegyre.h>
+//#include <tatooine/flowexplorer/nodes/lic.h>
+#include <tatooine/flowexplorer/nodes/test_node.h>
+//#include <tatooine/flowexplorer/nodes/spacetime_vectorfield.h>
 #include <tatooine/flowexplorer/scene.h>
 #include <tatooine/flowexplorer/window.h>
 #include <toml++/toml.h>
@@ -20,9 +21,15 @@
 //#include <tatooine/flowexplorer/nodes/rayleigh_benard_convection.h>
 #include <tatooine/interpolation.h>
 #include <tatooine/rendering/yavin_interop.h>
+
 //==============================================================================
 namespace tatooine::flowexplorer {
 //==============================================================================
+
+
+
+
+
 auto show_label(const char* label, ImColor color) {
   ImGui::SetCursorPosY(ImGui::GetCursorPosY() - ImGui::GetTextLineHeight());
   auto size = ImGui::CalcTextSize(label);
@@ -78,7 +85,7 @@ void scene::render(std::chrono::duration<double> const& dt) {
   yavin::enable_depth_write();
 }
 //----------------------------------------------------------------------------
-auto scene::find_node(size_t const id) -> ui::node* {
+auto scene::find_node(size_t const id) -> ui::base::node* {
   for (auto& n : m_nodes) {
     if (n->get_id_number() == id) {
       return n.get();
@@ -279,16 +286,16 @@ void scene::node_creators() {
   //  m_renderables.emplace_back(new nodes::position<3>{*this});
   //}
   // vectorfields
-  if (ImGui::Button("ABC Flow")) {
-    m_nodes.emplace_back(new nodes::abcflow{*this});
-  }
+  //if (ImGui::Button("ABC Flow")) {
+  //  m_nodes.emplace_back(new nodes::abcflow{*this});
+  //}
   //ImGui::SameLine();
   //if (ImGui::Button("Rayleigh Benard Convection")) {
   //  m_nodes.emplace_back(new nodes::rayleigh_benard_convection<double>{});
   //}
-  if (ImGui::Button("Doublegyre Flow")) {
-    m_nodes.emplace_back(new nodes::doublegyre{*this});
-  }
+  //if (ImGui::Button("Doublegyre Flow")) {
+  //  m_nodes.emplace_back(new nodes::doublegyre{*this});
+  //}
   //if (ImGui::Button("Saddle Flow")) {
   //  m_nodes.emplace_back(new nodes::saddle<double>{});
   //}
@@ -298,33 +305,36 @@ void scene::node_creators() {
   //}
   //
   // vectorfield operations
-  if (ImGui::Button("Spacetime Vector Field")) {
-    m_nodes.emplace_back(new nodes::spacetime_vectorfield{*this});
-  }
+  //if (ImGui::Button("Spacetime Vector Field")) {
+  //  m_nodes.emplace_back(new nodes::spacetime_vectorfield{*this});
+  //}
 
   // bounding boxes
-  if (ImGui::Button("2D BoundingBox")) {
-    m_renderables.emplace_back(
-        new nodes::boundingbox{vec{-1.0, -1.0}, vec{1.0, 1.0}, *this});
-  }
-  ImGui::SameLine();
-  if (ImGui::Button("3D BoundingBox")) {
-    m_renderables.emplace_back(new nodes::boundingbox{
-        vec{-1.0, -1.0, -1.0}, vec{1.0, 1.0, 1.0}, *this});
-  }
+  //if (ImGui::Button("2D BoundingBox")) {
+  //  m_renderables.emplace_back(
+  //      new nodes::boundingbox{vec{-1.0, -1.0}, vec{1.0, 1.0}, *this});
+  //}
+  //ImGui::SameLine();
+  //if (ImGui::Button("3D BoundingBox")) {
+  //  m_renderables.emplace_back(new nodes::boundingbox{
+  //      vec{-1.0, -1.0, -1.0}, vec{1.0, 1.0, 1.0}, *this});
+  //}
 
   //// Algorithms
   //if (ImGui::Button("Random Path Lines")) {
   //  m_renderables.emplace_back(new nodes::random_pathlines<double, 3>{*this});
   //}
   //ImGui::SameLine();
-  if (ImGui::Button("LIC")) {
-    m_renderables.emplace_back(new nodes::lic{*this});
-  }
+  //if (ImGui::Button("LIC")) {
+  //  m_renderables.emplace_back(new nodes::lic{*this});
+  //}
   //ImGui::SameLine();
   //if (ImGui::Button("Autonomous Particle")) {
   //  m_renderables.emplace_back(new nodes::autonomous_particle{*this});
   //}
+  if (ImGui::Button("Test Node")) {
+    m_nodes.emplace_back(new nodes::test_node{*this});
+  }
 }
 //------------------------------------------------------------------------------
 void scene::write(std::string const& filepath) const {
@@ -332,8 +342,8 @@ void scene::write(std::string const& filepath) const {
 
   auto write_nodes = [&](std::string_view const& kind, auto const& field) {
     for (auto const& node : field) {
-      auto serialized_node = node->serialize();
-      auto                 pos = node->node_position();
+      auto        serialized_node = node->serialize();
+      auto        pos             = node->node_position();
       toml::array input_pin_ids, output_pin_ids;
       for (auto const& input_pin : node->input_pins()) {
         input_pin_ids.push_back(long(input_pin.get_id_number()));
@@ -380,14 +390,14 @@ void scene::read(std::string const& filepath) {
       auto const node_type_name =
           serialized_node["node_type"].as_string()->get();
 
-      ui::node* n;
+      ui::base::node* n;
       iterate_registered_functions(entry, registration) {
         if (auto ptr = entry->registered_function(*this, node_type_name); ptr) {
           if (kind == "node") {
             n =  m_nodes.emplace_back(ptr).get();
             break;
           } else /*if (kind == "renderable")*/ {
-            n = m_renderables.emplace_back(dynamic_cast<renderable*>(ptr))
+            n = m_renderables.emplace_back(dynamic_cast<base::renderable*>(ptr))
                     .get();
             break;
           }
