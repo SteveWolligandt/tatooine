@@ -25,7 +25,7 @@ macro(create_test NAME)
   list(APPEND TATOOINE_TEST_CPPS "${NAME}.cpp")
   add_executable (${NAME}.test ${NAME}.cpp main.cpp)
   target_link_libraries(${NAME}.test tatooine Catch2::Catch2)
-  target_compile_features(${NAME}.test PUBLIC cxx_std_17)
+  target_compile_features(${NAME}.test PUBLIC cxx_std_20)
   if (CMAKE_CXX_COMPILER_ID STREQUAL "Clang")
   target_compile_options(${NAME}.test PRIVATE
     -Wall -Wextra -pedantic -Wno-missing-braces -Wno-unused-lambda-capture -ftemplate-backtrace-limit=0)
