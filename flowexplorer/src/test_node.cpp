@@ -8,17 +8,7 @@ test_node::test_node(flowexplorer::scene& s)
 }
 //==============================================================================
 auto test_node::draw_ui() -> void {
-  namespace hana = boost::hana;
-  // ImGui::DragFloat("var", &m_test_var, 0.1, 0.0f, 1.0f);
-  hana::for_each(*this, [](auto& pair) {
-    auto const& var_name = hana::to<char const*>(hana::first(pair));
-    auto&       value    = hana::second(pair);
-    using T              = std::decay_t<decltype(value)>;
-    if constexpr (std::is_same_v<int, T>) {
-      ImGui::DragFloat(var_name, &const_cast<std::decay_t<T>&>(value), 0.1,
-                       0.0f, 1.0f);
-    }
-  });
+   ImGui::DragFloat("var", &m_test_var, 0.1, 0.0f, 1.0f);
 }
 //----------------------------------------------------------------------------
 auto test_node::on_pin_connected(ui::pin& this_pin, ui::pin& other_pin)

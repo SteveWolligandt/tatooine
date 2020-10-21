@@ -115,7 +115,6 @@ target_include_directories(tatooine
     ${CMAKE_CURRENT_SOURCE_DIR}/external/indicators/include
     ${CMAKE_CURRENT_SOURCE_DIR}/external/tomlplusplus/include
 )
-
 #- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 #set libs 
 target_link_libraries(tatooine

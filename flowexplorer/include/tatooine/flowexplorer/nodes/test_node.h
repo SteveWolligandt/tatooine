@@ -2,6 +2,7 @@
 #define TATOOINE_FLOWEXPLORER_NODES_TEST_NODE_H
 //==============================================================================
 #include <tatooine/flowexplorer/ui/node.h>
+#include <tatooine/utility.h>
 //==============================================================================
 namespace tatooine::flowexplorer::nodes {
 //==============================================================================
@@ -42,10 +43,11 @@ struct test_node : ui::node<test_node> {
   auto test_var() const { return m_test_var; }
 };
 REGISTER_NODE(test_node);
+static constexpr non_const_method_ptr<tatooine::flowexplorer::nodes::test_node,
+                                      float&>
+    test_node_test_var_method =
+        &tatooine::flowexplorer::nodes::test_node::test_var;
 //==============================================================================
 }  // namespace tatooine::flowexplorer::nodes
 //==============================================================================
-BEGIN_META_NODE(tatooine::flowexplorer::nodes::test_node)
-  META_NODE_ACCESSOR(test_var, test_var())
-END_META_NODE()
 #endif

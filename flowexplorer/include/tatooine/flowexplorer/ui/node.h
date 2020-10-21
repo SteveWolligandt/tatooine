@@ -2,7 +2,6 @@
 #define TATOOINE_FLOWEXPLORER_UI_NODE_H
 //==============================================================================
 #include <imgui-node-editor/imgui_node_editor.h>
-#include <boost/hana.hpp>
 #include <tatooine/flowexplorer/ui/pin.h>
 #include <tatooine/flowexplorer/uuid_holder.h>
 #include <tatooine/flowexplorer/serializable.h>
@@ -19,7 +18,7 @@ namespace base {
 struct node : uuid_holder<ax::NodeEditor::NodeId>, serializable {
  private:
   std::string            m_title;
-  flowexplorer::scene*                 m_scene;
+  flowexplorer::scene*   m_scene;
   std::vector<pin>       m_input_pins;
   std::vector<pin>       m_output_pins;
 
@@ -143,20 +142,4 @@ extern registered_function_t __stop_registration;
   iterate_registered_functions(entry, section) {                               \
     entry->registered_function();                                              \
   }
-//==============================================================================
-#define BEGIN_META_NODE(type)                                                  \
-  namespace boost::hana {                                                      \
-  template <>                                                                  \
-  struct accessors_impl<type> {                                                \
-    static BOOST_HANA_CONSTEXPR_LAMBDA auto apply() {                          \
-    return make_tuple(
-
-#define END_META_NODE() );}};}
-
-#define META_NODE_ACCESSOR(name, accessor)                                     \
-  make_pair(BOOST_HANA_STRING(#name), [](auto&& p) -> decltype(auto) {         \
-    return p.accessor;                                                         \
-  })
-
 #endif
-

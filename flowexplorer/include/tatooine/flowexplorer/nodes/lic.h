@@ -10,8 +10,6 @@
 #include <tatooine/rendering/yavin_interop.h>
 
 #include <mutex>
-//namespace tatooine::flowexplorer::nodes {struct lic ;}
-//namespace boost::hana {template <>struct accessors_impl<tatooine::flowexplorer::nodes::lic>;}
 //==============================================================================
 namespace tatooine::flowexplorer::nodes {
 //==============================================================================
