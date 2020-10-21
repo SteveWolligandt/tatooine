@@ -2,7 +2,11 @@ cmake_minimum_required(VERSION 3.10)
 project(tatooine)
 list(APPEND CMAKE_MODULE_PATH "${CMAKE_SOURCE_DIR}/cmake/modules/")
 list(APPEND CMAKE_MODULE_PATH "${CMAKE_SOURCE_DIR}/external/catch2/contrib/")
-
+#- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - 
+# preprocessor lib
+#- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - 
+set(TATOOINE_PP_NUM_MAX_INDICES "100" CACHE STRING "")
+include(preprocessor_setup)
 #- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - 
 # git submodules
 #- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - 

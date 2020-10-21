@@ -1,0 +1,11 @@
+#ifndef TATOOINE_PREPROCESSOR_EVENS_H
+#define TATOOINE_PREPROCESSOR_EVENS_H
+//------------------------------------------------------------------------------
+// returns arguments with even indices
+@CMAKE_EVENS@
+#define TATOOINE_PP_EVENS(...)                                                \
+  TATOOINE_PP_APPLY_INVOKE(                                                        \
+      TATOOINE_PP_CONCAT(TATOOINE_PP_EVENS_, TATOOINE_PP_NUM_ARGS(__VA_ARGS__)), \
+       __VA_ARGS__)
+//------------------------------------------------------------------------------
+#endif

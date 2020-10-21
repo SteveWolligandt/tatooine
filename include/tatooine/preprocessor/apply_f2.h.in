@@ -1,0 +1,7 @@
+#ifndef TATOOINE_PREPROCESSOR_APPLY_F2_H
+#define TATOOINE_PREPROCESSOR_APPLY_F2_H
+//==============================================================================
+// Applies pairs of arguments to function f
+@CMAKE_APPLY_F2@
+//==============================================================================
+#endif
