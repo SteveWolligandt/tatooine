@@ -2,6 +2,7 @@
 #define TATOOINE_FLOWEXPLORER_UI_NODE_H
 //==============================================================================
 #include <imgui-node-editor/imgui_node_editor.h>
+#include <boost/hana.hpp>
 #include <tatooine/flowexplorer/ui/pin.h>
 #include <tatooine/flowexplorer/uuid_holder.h>
 #include <tatooine/flowexplorer/serializable.h>
@@ -108,6 +109,7 @@ struct registered_function_t {
                                             std::string const&);
   registered_function_ptr_t registered_function;
 };
+
 #define REGISTER_NODE_FACTORY(registered_function_, sec)                       \
   static constexpr registered_function_t ptr_##registered_function_            \
       __attribute((used, section(#sec))) = {                                   \
@@ -135,5 +137,20 @@ extern registered_function_t __stop_registration;
   iterate_registered_functions(entry, section) {                               \
     entry->registered_function();                                              \
   }
+//==============================================================================
+#define BEGIN_META_NODE(type)                                                  \
+  namespace boost::hana {                                                      \
+  template <>                                                                  \
+  struct accessors_impl<type> {                                                \
+    static BOOST_HANA_CONSTEXPR_LAMBDA auto apply() {                          \
+    return make_tuple(
+
+#define END_META_NODE() );}};}
+
+#define META_NODE_ACCESSOR(name, method)                                       \
+  make_pair(BOOST_HANA_STRING(#name), [](auto&& p) -> decltype(auto) {         \
+    return p.method();                                                         \
+  })
+
 #endif
 

@@ -19,19 +19,23 @@ struct lic : renderable {
   //----------------------------------------------------------------------------
   using vectorfield_t = parent::vectorfield<double, 2>;
   using bb_t          = flowexplorer::nodes::boundingbox<2>;
+
+ private:
   //----------------------------------------------------------------------------
   vectorfield_t const*                    m_v           = nullptr;
   bb_t*                                   m_boundingbox = nullptr;
   std::unique_ptr<gpu::texture_shader>    m_shader;
   std::unique_ptr<yavin::tex2rgba<float>> m_lic_tex;
   yavin::indexeddata<vec<float, 2>, vec<float, 2>, float> m_quad;
-  vec<int, 2>                                             m_lic_res;
-  vec<int, 2>                                             m_vectorfield_sample_res;
-  double                                                  m_t;
-  int                                                     m_num_samples;
-  double                                                  m_stepsize;
-  float                                                   m_alpha;
-  bool                                                    m_calculating = false;
+  vec<int, 2> m_lic_res;
+  vec<int, 2> m_vectorfield_sample_res;
+  double      m_t;
+  int         m_num_samples;
+  double      m_stepsize;
+  float       m_alpha;
+  bool        m_calculating = false;
+
+ public:
   //----------------------------------------------------------------------------
   lic(flowexplorer::scene& s)
       : renderable{"LIC", s},
@@ -119,13 +123,19 @@ struct lic : renderable {
   }
   auto serialize() const -> toml::table override {
     toml::table serialization;
-    serialization.insert("lic_res", toml::array{m_lic_res(0), m_lic_res(1)});
-    serialization.insert("sample_res", toml::array{m_lic_res(0), m_lic_res(1)});
+    //serialization.insert("lic_res", toml::array{m_lic_res(0), m_lic_res(1)});
+    //serialization.insert("sample_res", toml::array{m_lic_res(0), m_lic_res(1)});
+    //
+    //serialization.insert("t", m_t);
+    //serialization.insert("num_samples", m_num_samples);
+    //serialization.insert("stepsize", m_stepsize);
 
-    serialization.insert("t", m_t);
-    serialization.insert("num_samples", m_num_samples);
-    serialization.insert("stepsize", m_stepsize);
-    serialization.insert("alpha", m_alpha);
+     namespace hana = boost::hana;
+     hana::for_each<lic>(*this, [&serialization](auto const& pair) {
+      auto const& var_name = hana::to<char const*>(hana::first(pair));
+      auto const& value    = hana::second(pair);
+      serialization.insert(var_name, value);
+    });
 
     return serialization;
   }
@@ -143,13 +153,70 @@ struct lic : renderable {
     m_num_samples = serialization["num_samples"].as_integer()->get();
     m_stepsize    = serialization["stepsize"].as_floating_point()->get();
     m_alpha       = serialization["alpha"].as_floating_point()->get();
+
   }
   constexpr auto node_type_name() const -> std::string_view override {
     return "lic";
   }
+  //============================================================================
+  auto lic_res() -> auto& {
+    return m_lic_res;
+  }
+  // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+  auto lic_res() const -> auto const& {
+    return m_lic_res;
+  }
+  //----------------------------------------------------------------------------
+  auto vectorfield_sample_res() -> auto& {
+    return m_vectorfield_sample_res;
+  }
+  // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+  auto vectorfield_sample_res() const -> auto const& {
+    return m_vectorfield_sample_res;
+  }
+  //----------------------------------------------------------------------------
+  auto t() -> auto& {
+    return m_t;
+  }
+  // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+  auto t() const {
+    return m_t;
+  }
+  //----------------------------------------------------------------------------
+  auto num_samples() -> auto& {
+    return m_num_samples;
+  }
+  // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+  auto num_samples() const {
+    return m_num_samples;
+  }
+  //----------------------------------------------------------------------------
+  auto stepsize() -> auto& {
+    return m_stepsize;
+  }
+  // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+  auto stepsize() const {
+    return m_stepsize;
+  }
+  //----------------------------------------------------------------------------
+  auto alpha() -> auto& {
+    return m_alpha;
+  }
+  // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+  auto alpha() const {
+    return m_alpha;
+  }
 };
 REGISTER_NODE(lic);
 //==============================================================================
-}  // namespace tatooine::flowexplorer
+}  // namespace tatooine::flowexplorer::nodes
 //==============================================================================
+BEGIN_META_NODE(tatooine::flowexplorer::nodes::lic)
+  META_NODE_ACCESSOR(lic_res, lic_res)
+  META_NODE_ACCESSOR(vectorfield_sample_res, vectorfield_sample_res)
+  META_NODE_ACCESSOR(t, t)
+  META_NODE_ACCESSOR(num_samples, num_samples)
+  META_NODE_ACCESSOR(step_size, step_size)
+  META_NODE_ACCESSOR(alpha, alpha)
+END_META_NODE()
 #endif
