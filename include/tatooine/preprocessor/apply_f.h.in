@@ -1,0 +1,7 @@
+#ifndef TATOOINE_PREPROCESSOR_APPLY_F_H
+#define TATOOINE_PREPROCESSOR_APPLY_F_H
+//==============================================================================
+// Applies arguments to function f
+@CMAKE_APPLY_F@
+//==============================================================================
+#endif

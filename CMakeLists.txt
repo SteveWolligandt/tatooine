@@ -2,7 +2,7 @@ cmake_minimum_required(VERSION 3.10)
 project(tatooine)
 list(APPEND CMAKE_MODULE_PATH "${CMAKE_SOURCE_DIR}/cmake/modules/")
 list(APPEND CMAKE_MODULE_PATH "${CMAKE_SOURCE_DIR}/external/catch2/contrib/")
-
+include(preprocessor_setup)
 #- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - 
 # git submodules
 #- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - 
@@ -177,3 +177,6 @@ add_subdirectory(autonomous_particles)
 # This makes the project importable from the build directory
 export(TARGETS tatooine FILE tatooineConfig.cmake)
 export(PACKAGE tatooine)
+
+
+
