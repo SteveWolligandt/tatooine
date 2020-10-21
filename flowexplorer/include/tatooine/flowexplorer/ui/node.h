@@ -5,6 +5,7 @@
 #include <tatooine/flowexplorer/ui/pin.h>
 #include <tatooine/flowexplorer/uuid_holder.h>
 #include <tatooine/flowexplorer/serializable.h>
+#include <tatooine/reflection.h>
 //==============================================================================
 namespace tatooine::flowexplorer {
 //==============================================================================
@@ -65,7 +66,7 @@ struct node : uuid_holder<ax::NodeEditor::NodeId>, serializable {
     return m_output_pins;
   }
   //----------------------------------------------------------------------------
-  virtual void draw_ui() {}
+  virtual void draw_ui() = 0;
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
   template <typename F>
   void draw_ui(F&& f) {
@@ -88,10 +89,10 @@ struct node : uuid_holder<ax::NodeEditor::NodeId>, serializable {
     ed::EndNode();
   }
   //----------------------------------------------------------------------------
-  auto                   node_position() const -> ImVec2;
-  virtual void           on_pin_connected(pin& this_pin, pin& other_pin) {}
-  virtual void on_pin_disconnected(pin& this_pin) {}
-  constexpr virtual auto node_type_name() const -> std::string_view = 0;
+  auto         node_position() const -> ImVec2;
+  virtual auto on_pin_connected(pin& this_pin, pin& other_pin) -> void {}
+  virtual auto on_pin_disconnected(pin& this_pin) -> void {}
+  virtual auto type_name() const -> std::string_view = 0;
 
   auto scene() const -> auto const& {
     return *m_scene;
@@ -104,6 +105,41 @@ struct node : uuid_holder<ax::NodeEditor::NodeId>, serializable {
 template <typename Child>
 struct node : base::node {
   using base::node::node;
+  //----------------------------------------------------------------------------
+  auto serialize() const -> toml::table override {
+    toml::table serialized_node;
+    reflection::for_each(
+        *dynamic_cast<Child const*>(this),
+        [&serialized_node](auto const& name, auto const& var) {
+          if constexpr (std::is_same_v<float, std::decay_t<decltype(var)>>) {
+            serialized_node.insert(name, var);
+          }
+        });
+    return serialized_node;
+  }
+  //----------------------------------------------------------------------------
+  auto deserialize(toml::table const& serialization) -> void override {
+    reflection::for_each(
+        *dynamic_cast<Child*>(this),
+        [&serialization](auto const& name, auto& var) {
+          if constexpr (std::is_same_v<float, std::decay_t<decltype(var)>>) {
+            var = serialization[name].as_floating_point()->get();
+          }
+        });
+  }
+  //----------------------------------------------------------------------------
+  auto draw_ui() -> void override {
+    reflection::for_each(
+        *dynamic_cast<Child*>(this), [](auto const& name, auto& var) {
+          if constexpr (std::is_same_v<float, std::decay_t<decltype(var)>>) {
+            ImGui::DragFloat(name, &var, 0.1f);
+          }
+        });
+  }
+  //----------------------------------------------------------------------------
+  auto type_name() const -> std::string_view override {
+    return reflection::name<Child>();
+  }
 };
 //==============================================================================
 }  // namespace tatooine::flowexplorer::ui

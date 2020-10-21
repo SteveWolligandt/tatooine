@@ -3,6 +3,7 @@
 //==============================================================================
 #include <tatooine/flowexplorer/ui/node.h>
 #include <tatooine/utility.h>
+#include <tatooine/reflection.h>
 //==============================================================================
 namespace tatooine::flowexplorer::nodes {
 //==============================================================================
@@ -10,31 +11,11 @@ struct test_node : ui::node<test_node> {
  private:
   //============================================================================
   float       m_test_var;
-
  public:
   //============================================================================
   // CONSTRUCTORS
   //============================================================================
   test_node(flowexplorer::scene& s);
-
- public:
-  //============================================================================
-  // NODE OVERRIDES
-  //============================================================================
-  auto draw_ui() -> void override;
-  //----------------------------------------------------------------------------
-  auto on_pin_connected(ui::pin& this_pin, ui::pin& other_pin) -> void override;
-  //----------------------------------------------------------------------------
-  auto on_pin_disconnected(ui::pin& this_pin) -> void override;
-  //----------------------------------------------------------------------------
-  auto serialize() const -> toml::table override;
-  //----------------------------------------------------------------------------
-  auto deserialize(toml::table const& serialization) -> void override;
-  //----------------------------------------------------------------------------
-  constexpr auto node_type_name() const -> std::string_view override {
-    return "test_node";
-  }
-
  public:
   //============================================================================
   // SETTER / GETTER
@@ -50,4 +31,7 @@ static constexpr non_const_method_ptr<tatooine::flowexplorer::nodes::test_node,
 //==============================================================================
 }  // namespace tatooine::flowexplorer::nodes
 //==============================================================================
+TATOOINE_MAKE_ADT_REFLECTABLE(
+  tatooine::flowexplorer::nodes::test_node,
+  TATOOINE_REFLECTION_INSERT_GETTER(test_var))
 #endif

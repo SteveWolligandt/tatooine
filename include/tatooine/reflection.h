@@ -1,5 +1,5 @@
-#ifndef TATOOINE_REFLECTION_REFLECTION_H
-#define TATOOINE_REFLECTION_REFLECTION_H
+#ifndef TATOOINE_REFLECTION_H
+#define TATOOINE_REFLECTION_H
 //==============================================================================
 // Provides a facility to declare a type as "reflectable" and apply a
 // reflection_visitor to it. The list of members is a compile-time data
@@ -65,25 +65,25 @@ constexpr auto get(T &&t) {
 //------------------------------------------------------------------------------
 // Get name of field, by index
 template <int idx, reflectable T>
-constexpr auto get_name() {
-  return detail::reflectable<std::decay_t<T>>::get_name(
+constexpr auto name() {
+  return detail::reflectable<std::decay_t<T>>::name(
       std::integral_constant<int, idx>{});
 }
 //------------------------------------------------------------------------------
 template <int idx, typename T>
-constexpr auto get_name(T &&) -> decltype(get_name<idx, T>()) {
-  return get_name<idx, T>();
+constexpr auto name(T &&) -> decltype(name<idx, T>()) {
+  return name<idx, T>();
 }
 //------------------------------------------------------------------------------
 // Get name of structure
 template <reflectable T>
-constexpr auto get_name() {
-  return detail::reflectable<std::decay_t<T>>::get_name();
+constexpr auto name() {
+  return detail::reflectable<std::decay_t<T>>::name();
 }
 //------------------------------------------------------------------------------
 template <reflectable T>
-constexpr auto get_name(T &&) {
-  return get_name<T>();
+constexpr auto name(T &&) {
+  return name<T>();
 }
 //------------------------------------------------------------------------------
 // These macros are used with TATOOINE_PP_MAP
@@ -112,7 +112,7 @@ constexpr auto get_name(T &&) {
     return t.ACCESSOR;                                                         \
   }                                                                            \
                                                                                \
-  static constexpr auto get_name(                                              \
+  static constexpr auto name(                                              \
       std::integral_constant<std::size_t, fields_enum::NAME>)                  \
       ->std::string_view {                                                     \
     return #NAME;                                                              \
@@ -135,7 +135,7 @@ constexpr auto get_name(T &&) {
       enum index { TATOOINE_PP_ODDS(__VA_ARGS__) };                            \
     };                                                                         \
                                                                                \
-    static constexpr auto get_name() -> std::string_view {                     \
+    static constexpr auto name() -> std::string_view {                     \
       return #STRUCT_NAME;                                                     \
     }                                                                          \
                                                                                \

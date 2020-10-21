@@ -356,7 +356,7 @@ void scene::write(std::string const& filepath) const {
       serialized_node.insert("output_pin_ids", output_pin_ids);
       serialized_node.insert("node_position", toml::array{pos[0], pos[1]});
       serialized_node.insert("node_title", node->title());
-      serialized_node.insert("node_type", node->node_type_name());
+      serialized_node.insert("node_type", node->type_name());
       toml_scene.insert(std::to_string(node->get_id_number()), serialized_node);
     }
   };
