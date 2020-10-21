@@ -20,7 +20,6 @@ add_executable(
   src/renderable.cpp 
   src/scene.cpp 
   #src/lic.cpp
-  src/test_node.cpp 
 
   src/imgui-node-editor/crude_json.cpp
   src/imgui-node-editor/imgui_canvas.cpp

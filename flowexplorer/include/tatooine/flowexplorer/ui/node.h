@@ -147,26 +147,30 @@ struct node : base::node {
 struct registered_function_t {
   using registered_function_ptr_t =
       tatooine::flowexplorer::ui::base::node* (*)(tatooine::flowexplorer::scene&,
-                                            std::string const&);
+                                            std::string_view const&);
   registered_function_ptr_t registered_function;
 };
 
-#define REGISTER_NODE_FACTORY(registered_function_, sec)                       \
+#define REGISTER_NODE_FACTORY(namespace_, registered_function_, sec)           \
   static constexpr registered_function_t ptr_##registered_function_            \
       __attribute((used, section(#sec))) = {                                   \
-          .registered_function = registered_function_,                         \
+          .registered_function = namespace_::registered_function_,             \
   }
 //------------------------------------------------------------------------------
-#define REGISTER_NODE(type)                                                    \
-  static auto register_##type(tatooine::flowexplorer::scene& s,                \
-                              std::string const&             node_type_name)   \
-      ->tatooine::flowexplorer::ui::base::node* {                              \
+#define REGISTER_NODE(type, ...)                                               \
+  namespace tatooine::flowexplorer::registered_funcs::type {                   \
+  auto register_node(::tatooine::flowexplorer::scene& s,                       \
+                     std::string_view const&          node_type_name)          \
+      -> ::tatooine::flowexplorer::ui::base::node* {                           \
     if (node_type_name == #type) {                                             \
-      return new type{s};                                                      \
+      return new ::type{s};                                                    \
     }                                                                          \
     return nullptr;                                                            \
   }                                                                            \
-  REGISTER_NODE_FACTORY(register_##type, registration)
+  }                                                                            \
+  REGISTER_NODE_FACTORY(tatooine::flowexplorer::registered_funcs::type,        \
+                        register_node, registration);                          \
+  TATOOINE_MAKE_ADT_REFLECTABLE(type, __VA_ARGS__)
 //------------------------------------------------------------------------------
 extern registered_function_t __start_registration;
 extern registered_function_t __stop_registration;
