@@ -18,15 +18,14 @@ struct boundingbox : tatooine::boundingbox<double, N>,
   using vbo_t    = yavin::vertexbuffer<gpu_vec>;
   using parent_t::max;
   using parent_t::min;
-  static constexpr std::string_view bb2_name = "boundingbox2d";
-  static constexpr std::string_view bb3_name = "boundingbox3d";
   //============================================================================
   yavin::indexeddata<vec<float, N>> m_gpu_data;
   line_shader                       m_shader;
-  int                               m_linewidth = 1;
-  std::array<GLfloat, 4>            m_color{0.0f, 0.0f, 0.0f, 1.0f};
+  int                               m_line_width = 1;
+  std::array<GLfloat, 4>            m_line_color{0.0f, 0.0f, 0.0f, 1.0f};
   //============================================================================
-  boundingbox(flowexplorer::scene& s) : renderable<boundingbox>{"Bounding Box", s} {
+  boundingbox(flowexplorer::scene& s)
+      : renderable<boundingbox>{"Bounding Box", s} {
     this->template insert_output_pin<this_t>("Out");
     create_indexed_data();
   }
@@ -65,23 +64,12 @@ struct boundingbox : tatooine::boundingbox<double, N>,
               mat<float, 4, 4> const& view_matrix) override {
     set_vbo_data();
     m_shader.bind();
-    m_shader.set_color(m_color[0], m_color[1], m_color[2], m_color[3]);
+    m_shader.set_color(m_line_color[0], m_line_color[1], m_line_color[2],
+                       m_line_color[3]);
     m_shader.set_projection_matrix(projection_matrix);
     m_shader.set_modelview_matrix(view_matrix);
-    yavin::gl::line_width(m_linewidth);
+    yavin::gl::line_width(m_line_width);
     m_gpu_data.draw_lines();
-  }
-  //----------------------------------------------------------------------------
-  void draw_ui() override {
-    if constexpr (N == 3) {
-      ImGui::DragDouble3("min", this->min().data_ptr(), 0.1);
-      ImGui::DragDouble3("max", this->max().data_ptr(), 0.1);
-    } else if constexpr (N == 2) {
-      ImGui::DragDouble2("min", this->min().data_ptr(), 0.1);
-      ImGui::DragDouble2("max", this->max().data_ptr(), 0.1);
-    }
-    ImGui::DragInt("line size", &m_linewidth, 1, 1, 10);
-    ImGui::ColorEdit4("line color", m_color.data());
   }
   //============================================================================
   void set_vbo_data() {
@@ -115,55 +103,16 @@ struct boundingbox : tatooine::boundingbox<double, N>,
                                 5, 7, 6, 7, 0, 4, 1, 5, 2, 6, 3, 7};
   }
   //----------------------------------------------------------------------------
-  auto is_transparent() const -> bool override {
-    return m_color[3] < 1;
-  }
-  auto serialize() const -> toml::table override {
-    toml::table serialization;
-    if constexpr (N == 2) {
-      serialization.insert("min", toml::array{min(0), min(1)});
-      serialization.insert("max", toml::array{max(0), max(1)});
-    } else if constexpr (N == 3) {
-      serialization.insert("min", toml::array{min(0), min(1), min(2)});
-      serialization.insert("max", toml::array{max(0), max(1), min(2)});
-    }
-    serialization.insert(
-        "color", toml::array{m_color[0], m_color[1], m_color[2], m_color[3]});
-    serialization.insert("linewidth", m_linewidth);
-
-    return serialization;
-  }
-  void deserialize(toml::table const& serialization) override {
-    auto const& serialized_min   = *serialization["min"].as_array();
-    auto const& serialized_max   = *serialization["max"].as_array();
-    auto const& serialized_color = *serialization["color"].as_array();
-
-    min(0) = serialized_min[0].as_floating_point()->get();
-    min(1) = serialized_min[1].as_floating_point()->get();
-    max(0) = serialized_max[0].as_floating_point()->get();
-    max(1) = serialized_max[1].as_floating_point()->get();
-    if constexpr (N == 3) {
-      min(2) = serialized_min[2].as_floating_point()->get();
-      max(2) = serialized_max[2].as_floating_point()->get();
-    }
-    m_color[0]  = serialized_color[0].as_floating_point()->get();
-    m_color[1]  = serialized_color[1].as_floating_point()->get();
-    m_color[2]  = serialized_color[2].as_floating_point()->get();
-    m_color[3]  = serialized_color[3].as_floating_point()->get();
-    m_linewidth = serialization["linewidth"].as_integer()->get();
-  }
-  constexpr auto node_type_name() const -> std::string_view override {
-    if constexpr (N == 2) {
-      return bb2_name;
-    } else if constexpr (N == 3) {
-      return bb3_name;
-    }
-  }
+  auto is_transparent() const -> bool override { return m_line_color[3] < 1; }
+  //----------------------------------------------------------------------------
+  auto line_width() -> auto& { return m_line_width; }
+  auto line_width() const { return m_line_width; }
+  //----------------------------------------------------------------------------
+  auto line_color() -> auto& { return m_line_color; }
+  auto line_color() const -> auto const& { return m_line_color; }
 };
 using boundingbox2d = boundingbox<2>;
 using boundingbox3d = boundingbox<3>;
-REGISTER_NODE(boundingbox2d);
-REGISTER_NODE(boundingbox3d);
 //==============================================================================
 // deduction guides
 //==============================================================================
@@ -182,4 +131,14 @@ boundingbox(base_tensor<Tensor0, Real0, N>&&, base_tensor<Tensor1, Real1, N>&&,
 //==============================================================================
 }  // namespace tatooine::flowexplorer::nodes
 //==============================================================================
+REGISTER_NODE(tatooine::flowexplorer::nodes::boundingbox2d,
+              TATOOINE_REFLECTION_INSERT_GETTER(min),
+              TATOOINE_REFLECTION_INSERT_GETTER(max),
+              TATOOINE_REFLECTION_INSERT_GETTER(line_width),
+              TATOOINE_REFLECTION_INSERT_GETTER(line_color));
+REGISTER_NODE(tatooine::flowexplorer::nodes::boundingbox3d,
+              TATOOINE_REFLECTION_INSERT_GETTER(min),
+              TATOOINE_REFLECTION_INSERT_GETTER(max),
+              TATOOINE_REFLECTION_INSERT_GETTER(line_width),
+              TATOOINE_REFLECTION_INSERT_GETTER(line_color));
 #endif

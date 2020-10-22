@@ -19,20 +19,18 @@ template <typename T>
 struct reflectable {
   static constexpr const bool value = false;
 };
-// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-template <typename T>
-static constexpr auto reflectable_v = reflectable<T>::value;
 //==============================================================================
 }  // namespace tatooine::reflection::detail
 //==============================================================================
 namespace tatooine::reflection {
 //==============================================================================
 template <typename T>
-struct is_reflectable : std::integral_constant<bool, detail::reflectable_v<T>> {
-};
+struct is_reflectable
+    : std::integral_constant<bool, detail::reflectable<T>::value> {};
+// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 template <typename T>
 static constexpr auto is_reflectable_v = is_reflectable<T>::value;
-//------------------------------------------------------------------------------
+// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 template <typename T>
 concept reflectable = is_reflectable_v<std::decay_t<T>>;
 //==============================================================================
@@ -45,7 +43,7 @@ constexpr auto field_count() -> std::size_t {
 }
 //------------------------------------------------------------------------------
 template <typename T>
-constexpr std::size_t field_count(T &&) {
+constexpr auto field_count(T &&) -> std::size_t {
   return field_count<T>();
 }
 //------------------------------------------------------------------------------

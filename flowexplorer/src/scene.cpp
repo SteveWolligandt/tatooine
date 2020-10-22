@@ -310,10 +310,10 @@ void scene::node_creators() {
   //}
 
   // bounding boxes
-  //if (ImGui::Button("2D BoundingBox")) {
-  //  m_renderables.emplace_back(
-  //      new nodes::boundingbox{vec{-1.0, -1.0}, vec{1.0, 1.0}, *this});
-  //}
+  if (ImGui::Button("2D BoundingBox")) {
+    m_renderables.emplace_back(
+        new nodes::boundingbox{vec{-1.0, -1.0}, vec{1.0, 1.0}, *this});
+  }
   //ImGui::SameLine();
   //if (ImGui::Button("3D BoundingBox")) {
   //  m_renderables.emplace_back(new nodes::boundingbox{

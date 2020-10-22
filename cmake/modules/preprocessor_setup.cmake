@@ -1,4 +1,5 @@
-
+################################################################################
+# num_args
 foreach(i RANGE 1 ${TATOOINE_PP_NUM_MAX_INDICES})
   list(APPEND FORWARD_INDICES ${i})
 endforeach()
@@ -7,8 +8,7 @@ set(BACKWARD_INDICES_WITH_ZERO ${BACKWARD_INDICES} 0)
 foreach(i RANGE ${TATOOINE_PP_NUM_MAX_INDICES} 1 -1)
   list(APPEND BACKWARD_INDICES ${i})
 endforeach()
-################################################################################
-# num_args
+
 string(JOIN ", " FORWARD_INDICES_COMMA ${FORWARD_INDICES})
 string(JOIN ", " FORWARD_INDICES_WITH_ZERO_COMMA ${FORWARD_INDICES})
 string(JOIN ", " BACKWARD_INDICES_COMMA ${BACKWARD_INDICES})

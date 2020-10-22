@@ -25,21 +25,23 @@ struct renderable : ui::base::node {
 template <typename Child>
 struct renderable : base::renderable, ui::node_serializer<Child> {
   using base::renderable::renderable;
+  using serializer_t = ui::node_serializer<Child>; 
   //============================================================================
   auto serialize() const -> toml::table override{
-    return ui::node_serializer<Child>::serialize();
+    return serializer_t::serialize(*dynamic_cast<Child const*>(this));
   }
   //----------------------------------------------------------------------------
   auto deserialize(toml::table const& serialization) -> void override {
-    return ui::node_serializer<Child>::deserialize(serialization);
+    return serializer_t::deserialize(*dynamic_cast<Child*>(this),
+                                               serialization);
   }
   //----------------------------------------------------------------------------
   auto draw_ui() -> void override {
-    return ui::node_serializer<Child>::draw_ui();
+    return serializer_t::draw_ui(*dynamic_cast<Child*>(this));
   }
   //----------------------------------------------------------------------------
   auto type_name() const -> std::string_view override {
-    return ui::node_serializer<Child>::type_name();
+    return serializer_t::type_name();
   }
 };
 //==============================================================================
