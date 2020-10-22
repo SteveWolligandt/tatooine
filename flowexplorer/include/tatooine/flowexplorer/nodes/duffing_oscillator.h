@@ -6,23 +6,22 @@
 //==============================================================================
 namespace tatooine::flowexplorer::nodes {
 //==============================================================================
-template <typename Real>
 struct duffing_oscillator
-    : tatooine::analytical::fields::numerical::duffing_oscillator<Real>,
-      ui::node {
-  duffing_oscillator()
-      : ui::node{"Duffing Oscillator"},
-        tatooine::analytical::fields::numerical::duffing_oscillator<Real>{
-            Real(1), Real(1), Real(1)} {
-    this->template insert_output_pin<parent::vectorfield<Real, 2>>("Field Out");
-  }
-  auto draw_ui() -> void override {
-    ImGui::DragDouble("alpha", &this->m_alpha);
-    ImGui::DragDouble("beta", &this->m_beta);
-    ImGui::DragDouble("delt", &this->m_delta);
+    : tatooine::analytical::fields::numerical::duffing_oscillator<double>,
+      ui::node<duffing_oscillator> {
+  duffing_oscillator(flowexplorer::scene& s)
+      : ui::node<duffing_oscillator>{"Duffing Oscillator", s},
+        tatooine::analytical::fields::numerical::duffing_oscillator<double>{
+            1.0, 1.0, 1.0} {
+    this->template insert_output_pin<parent::vectorfield<double, 2>>(
+        "Field Out");
   }
 };
 //==============================================================================
 }  // namespace tatooine::flowexplorer::nodes
 //==============================================================================
+REGISTER_NODE(tatooine::flowexplorer::nodes::duffing_oscillator,
+              TATOOINE_REFLECTION_INSERT_GETTER(alpha),
+              TATOOINE_REFLECTION_INSERT_GETTER(beta),
+              TATOOINE_REFLECTION_INSERT_GETTER(delta))
 #endif

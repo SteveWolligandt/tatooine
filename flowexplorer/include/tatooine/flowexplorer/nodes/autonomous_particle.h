@@ -13,7 +13,7 @@ namespace tatooine::flowexplorer::nodes {
 struct autonomous_particle
     : tatooine::autonomous_particle<numerical_flowmap_field_pointer<
           double, 2, ode::vclibs::rungekutta43, interpolation::cubic>>,
-      renderable {
+      renderable<autonomous_particle> {
   using this_t = autonomous_particle;
   using parent_t =
       tatooine::autonomous_particle<numerical_flowmap_field_pointer<
@@ -40,7 +40,7 @@ struct autonomous_particle
   bool                         m_integration_going_on = false;
   bool                         m_needs_another_update = false;
   bool                         m_stop_thread          = false;
-  size_t                       m_num_splits           = 3;
+  int                          m_num_splits           = 3;
   std::vector<vec_t>           m_random_points_in_initial_circle;
   std::vector<vec_t>           m_advected_random_points_in_initial_circle;
   // phong_shader                      m_phong_shader;
@@ -55,7 +55,7 @@ struct autonomous_particle
   // auto operator=(autonomous_particle&&) noexcept
   //  -> autonomous_particle& = default;
   //============================================================================
-  autonomous_particle(flowexplorer::window& w);
+  autonomous_particle(flowexplorer::scene& s);
   //============================================================================
   void render(mat<float, 4, 4> const& projection_matrix,
               mat<float, 4, 4> const& view_matrix) final;
@@ -65,7 +65,7 @@ struct autonomous_particle
 
  public:
   //----------------------------------------------------------------------------
-  void draw_ui() final ;
+  void draw_ui() final;
   //----------------------------------------------------------------------------
   auto is_transparent() const -> bool final ;
   //----------------------------------------------------------------------------
@@ -84,4 +84,11 @@ struct autonomous_particle
 //==============================================================================
 }  // namespace tatooine::flowexplorer::nodes
 //==============================================================================
+REGISTER_NODE(tatooine::flowexplorer::nodes::autonomous_particle,
+  TATOOINE_REFLECTION_INSERT_METHOD(t0, m_t0),
+  TATOOINE_REFLECTION_INSERT_METHOD(radius, m_radius),
+  TATOOINE_REFLECTION_INSERT_METHOD(tau_step, m_taustep),
+  TATOOINE_REFLECTION_INSERT_METHOD(end_time, m_max_t),
+  TATOOINE_REFLECTION_INSERT_METHOD(ellipses_color,m_ellipses_color),
+  TATOOINE_REFLECTION_INSERT_METHOD(num_splits, m_num_splits))
 #endif

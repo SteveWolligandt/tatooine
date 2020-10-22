@@ -140,6 +140,24 @@ struct node_serializer {
           std::is_same_v<vec<double, 4>, std::decay_t<decltype(var)>>) {
         serialized_node.insert(
             name, toml::array{var.at(0), var.at(1), var.at(2), var.at(3)});
+      } else if constexpr (
+          std::is_same_v<int[2], std::remove_cv_t<std::remove_reference_t<decltype(var)>>> ||
+          std::is_same_v<float[2], std::remove_cv_t<std::remove_reference_t<decltype(var)>>> ||
+          std::is_same_v<double[2], std::remove_cv_t<std::remove_reference_t<decltype(var)>>>) {
+        serialized_node.insert(
+            name, toml::array{var[0], var[1]});
+      } else if constexpr (
+          std::is_same_v<int[3], std::remove_cv_t<std::remove_reference_t<decltype(var)>>> ||
+          std::is_same_v<float[3], std::remove_cv_t<std::remove_reference_t<decltype(var)>>> ||
+          std::is_same_v<double[3], std::remove_cv_t<std::remove_reference_t<decltype(var)>>>) {
+        serialized_node.insert(
+            name, toml::array{var[0], var[1], var[2]});
+      } else if constexpr (
+          std::is_same_v<int[4], std::remove_cv_t<std::remove_reference_t<decltype(var)>>> ||
+          std::is_same_v<float[4], std::remove_cv_t<std::remove_reference_t<decltype(var)>>> ||
+          std::is_same_v<double[4], std::remove_cv_t<std::remove_reference_t<decltype(var)>>>) {
+        serialized_node.insert(
+            name, toml::array{var[0], var[1], var[2], var[3]});
       }
     });
     return serialized_node;
@@ -147,7 +165,9 @@ struct node_serializer {
   //----------------------------------------------------------------------------
   auto deserialize(T& t, toml::table const& serialized_node) -> void {
     reflection::for_each(t, [&serialized_node](auto const& name, auto& var) {
-      if constexpr (std::is_integral_v<std::decay_t<decltype(var)>>) {
+      if constexpr (std::is_same_v<bool, std::decay_t<decltype(var)>>) {
+        var = serialized_node[name].as_boolean()->get();
+      } else if constexpr (std::is_integral_v<std::decay_t<decltype(var)>>) {
         var = serialized_node[name].as_integer()->get();
       } else if constexpr (std::is_floating_point_v<
                                std::decay_t<decltype(var)>>) {
@@ -210,6 +230,55 @@ struct node_serializer {
         var.at(1) = arr[1].as_floating_point()->get();
         var.at(2) = arr[2].as_floating_point()->get();
         var.at(3) = arr[3].as_floating_point()->get();
+      } else if constexpr (std::is_same_v<int[2],
+                                          std::remove_cv_t<std::remove_reference_t<decltype(var)>>>) {
+        auto const& arr = *serialized_node[name].as_array();
+
+        var[0] = arr[0].as_integer()->get();
+        var[1] = arr[1].as_integer()->get();
+      } else if constexpr (std::is_same_v<int[3],
+                                          std::remove_cv_t<std::remove_reference_t<decltype(var)>>>) {
+        auto const& arr = *serialized_node[name].as_array();
+
+        var[0] = arr[0].as_integer()->get();
+        var[1] = arr[1].as_integer()->get();
+        var[2] = arr[2].as_integer()->get();
+      } else if constexpr (std::is_same_v<int[4],
+                                          std::remove_cv_t<std::remove_reference_t<decltype(var)>>>) {
+        auto const& arr = *serialized_node[name].as_array();
+
+        var[0] = arr[0].as_integer()->get();
+        var[1] = arr[1].as_integer()->get();
+        var[2] = arr[2].as_integer()->get();
+        var[3] = arr[3].as_integer()->get();
+
+      } else if constexpr (std::is_same_v<float[2],
+                                          std::remove_cv_t<std::remove_reference_t<decltype(var)>>> ||
+                           std::is_same_v<double[2],
+                                          std::remove_cv_t<std::remove_reference_t<decltype(var)>>>) {
+        auto const& arr = *serialized_node[name].as_array();
+
+        var.at[0] = arr[0].as_floating_point()->get();
+        var.at[1] = arr[1].as_floating_point()->get();
+      } else if constexpr (std::is_same_v<float[3],
+                                          std::remove_cv_t<std::remove_reference_t<decltype(var)>>> ||
+                           std::is_same_v<double[3],
+                                          std::remove_cv_t<std::remove_reference_t<decltype(var)>>>) {
+        auto const& arr = *serialized_node[name].as_array();
+
+        var[0] = arr[0].as_floating_point()->get();
+        var[1] = arr[1].as_floating_point()->get();
+        var[2] = arr[2].as_floating_point()->get();
+      } else if constexpr (std::is_same_v<float[4],
+                                          std::remove_cv_t<std::remove_reference_t<decltype(var)>>> ||
+                           std::is_same_v<double[4],
+                                          std::remove_cv_t<std::remove_reference_t<decltype(var)>>>) {
+        auto const& arr = *serialized_node[name].as_array();
+
+        var[0] = arr[0].as_floating_point()->get();
+        var[1] = arr[1].as_floating_point()->get();
+        var[2] = arr[2].as_floating_point()->get();
+        var[3] = arr[3].as_floating_point()->get();
       }
     });
   }
@@ -322,25 +391,24 @@ struct registered_function_t {
   registered_function_ptr_t registered_function;
 };
 
-#define REGISTER_NODE_FACTORY(registered_function_, sec)           \
-    static constexpr registered_function_t ptr_##registered_function_          \
-        __attribute((used, section(#sec))) = {                                 \
-          .registered_function = registered_function_,             \
-        }                                                                      \
-//------------------------------------------------------------------------------
-#define REGISTER_NODE(type, ...)                                               \
-  namespace tatooine::flowexplorer::registered_funcs::type {                   \
-  auto register_node(::tatooine::flowexplorer::scene& s,                       \
-                     std::string_view const&          node_type_name)          \
-      -> ::tatooine::flowexplorer::ui::base::node* {                           \
-    if (node_type_name == #type) {                                             \
-      return new ::type{s};                                                    \
-    }                                                                          \
-    return nullptr;                                                            \
-  }                                                                            \
-  REGISTER_NODE_FACTORY(register_node, registration);                          \
-  }                                                                            \
-  TATOOINE_MAKE_ADT_REFLECTABLE(type, ##__VA_ARGS__)                           
+#define REGISTER_NODE_FACTORY(registered_function_, sec)                       \
+  static registered_function_t ptr_##registered_function_            \
+      __attribute((used, section(#sec))) = {                                   \
+          .registered_function = registered_function_,                         \
+  }  //------------------------------------------------------------------------------
+#define REGISTER_NODE(type, ...)                                                \
+  namespace tatooine::flowexplorer::registered_funcs::type {                    \
+  static auto register_node(::tatooine::flowexplorer::scene& s,              \
+                               std::string_view const&          node_type_name) \
+      -> ::tatooine::flowexplorer::ui::base::node* {                            \
+    if (node_type_name == #type) {                                              \
+      return new ::type{s};                                                     \
+    }                                                                           \
+    return nullptr;                                                             \
+  }                                                                             \
+  REGISTER_NODE_FACTORY(register_node, registration);                           \
+  }                                                                             \
+  TATOOINE_MAKE_ADT_REFLECTABLE(type, ##__VA_ARGS__)
 //------------------------------------------------------------------------------
 extern registered_function_t __start_registration;
 extern registered_function_t __stop_registration;

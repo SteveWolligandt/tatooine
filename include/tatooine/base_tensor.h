@@ -238,6 +238,7 @@ struct is_mat<base_tensor<Tensor, Real, N>> : std::true_type {};
 #include <tatooine/complex_tensor_views.h>
 #include <tatooine/diag_tensor.h>
 #include <tatooine/transposed_tensor.h>
+#include <tatooine/rank.h>
 
 #include <tatooine/tensor.h>
 #include <tatooine/tensor_symbolic.h>

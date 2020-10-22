@@ -52,8 +52,6 @@ struct lic : renderable<lic> {
   //----------------------------------------------------------------------------
   auto update(const std::chrono::duration<double>&) -> void override {}
   //----------------------------------------------------------------------------
-  auto draw_ui() -> void override;
-  //----------------------------------------------------------------------------
   auto calculate_lic() -> void;
   //----------------------------------------------------------------------------
   auto update_shader(mat<float, 4, 4> const& projection_matrix,
@@ -64,11 +62,6 @@ struct lic : renderable<lic> {
   void on_pin_disconnected(ui::pin& this_pin) override ;
   //----------------------------------------------------------------------------
   auto           is_transparent() const -> bool override;
-  auto           serialize() const -> toml::table override;
-  auto           deserialize(toml::table const& serialization) -> void override;
-  constexpr auto node_type_name() const -> std::string_view override {
-    return "lic";
-  }
   //============================================================================
   auto lic_res() -> auto& {
     return m_lic_res;
@@ -118,16 +111,15 @@ struct lic : renderable<lic> {
     return m_alpha;
   }
 };
-REGISTER_NODE(lic);
 //==============================================================================
 }  // namespace tatooine::flowexplorer::nodes
 //==============================================================================
-BEGIN_META_NODE(tatooine::flowexplorer::nodes::lic)
-  //META_NODE_ACCESSOR(lic_res, lic_res()),
+REGISTER_NODE(tatooine::flowexplorer::nodes::lic,
+  TATOOINE_REFLECTION_INSERT_METHOD(resolution, lic_res()),
   //META_NODE_ACCESSOR(vectorfield_sample_res, vectorfield_sample_res()),
-  META_NODE_ACCESSOR(t, t())
+  TATOOINE_REFLECTION_INSERT_GETTER(t)
   //META_NODE_ACCESSOR(num_samples, num_samples()),
   //META_NODE_ACCESSOR(stepsize, stepsize()),
   //META_NODE_ACCESSOR(alpha, alpha())
-END_META_NODE()
+  )
 #endif

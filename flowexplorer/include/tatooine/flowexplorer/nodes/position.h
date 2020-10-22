@@ -44,14 +44,6 @@ struct position : tatooine::vec<double, N>, renderable<position<N>> {
     this->template insert_output_pin<this_t>("Out");
     create_indexed_data();
   }
-  //----------------------------------------------------------------------------
-  template <typename Tensor, typename Real>
-  constexpr position(flowexplorer::window&               w,
-                     base_tensor<Tensor, Real, N> const& pos)
-      : parent_t{pos}, renderable<position>{w, "Position"} {
-    this->template insert_output_pin<this_t>("Out");
-    create_indexed_data();
-  }
   //============================================================================
   void render(mat<GLfloat, 4, 4> const& projection_matrix,
               mat<GLfloat, 4, 4> const& view_matrix) override {

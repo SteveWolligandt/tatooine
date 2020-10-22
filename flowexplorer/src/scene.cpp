@@ -3,24 +3,24 @@
 #include <tatooine/demangling.h>
 #include <tatooine/flowexplorer/nodes/abcflow.h>
 #include <tatooine/flowexplorer/nodes/boundingbox.h>
-//#include <tatooine/flowexplorer/nodes/doublegyre.h>
+#include <tatooine/flowexplorer/nodes/doublegyre.h>
 //#include <tatooine/flowexplorer/nodes/lic.h>
+#include <tatooine/flowexplorer/nodes/autonomous_particle.h>
+#include <tatooine/flowexplorer/nodes/duffing_oscillator.h>
+#include <tatooine/flowexplorer/nodes/position.h>
+#include <tatooine/flowexplorer/nodes/random_pathlines.h>
+#include <tatooine/flowexplorer/nodes/rayleigh_benard_convection.h>
+#include <tatooine/flowexplorer/nodes/saddle.h>
+#include <tatooine/flowexplorer/nodes/spacetime_vectorfield.h>
 #include <tatooine/flowexplorer/nodes/test_node.h>
-//#include <tatooine/flowexplorer/nodes/spacetime_vectorfield.h>
 #include <tatooine/flowexplorer/scene.h>
 #include <tatooine/flowexplorer/window.h>
+#include <tatooine/interpolation.h>
+#include <tatooine/rendering/yavin_interop.h>
 #include <toml++/toml.h>
 
 #include <fstream>
 #include <yavin>
-//#include <tatooine/flowexplorer/nodes/autonomous_particle.h>
-#include <tatooine/flowexplorer/nodes/position.h>
-//#include <tatooine/flowexplorer/nodes/saddle.h>
-//#include <tatooine/flowexplorer/nodes/duffing_oscillator.h>
-//#include <tatooine/flowexplorer/nodes/random_pathlines.h>
-//#include <tatooine/flowexplorer/nodes/rayleigh_benard_convection.h>
-#include <tatooine/interpolation.h>
-#include <tatooine/rendering/yavin_interop.h>
 
 //==============================================================================
 namespace tatooine::flowexplorer {
@@ -278,6 +278,10 @@ void scene::draw_node_editor(size_t const pos_x, size_t const pos_y,
 }
 //----------------------------------------------------------------------------
 void scene::node_creators() {
+  if (ImGui::Button("Test Node")) {
+    m_nodes.emplace_back(new nodes::test_node{*this});
+  }
+  //----------------------------------------------------------------------------
   if (ImGui::Button("2D Position")) {
     m_renderables.emplace_back(new nodes::position<2>{*this});
   }
@@ -289,25 +293,25 @@ void scene::node_creators() {
   if (ImGui::Button("ABC Flow")) {
     m_nodes.emplace_back(new nodes::abcflow{*this});
   }
-  //ImGui::SameLine();
-  //if (ImGui::Button("Rayleigh Benard Convection")) {
-  //  m_nodes.emplace_back(new nodes::rayleigh_benard_convection<double>{});
-  //}
-  //if (ImGui::Button("Doublegyre Flow")) {
-  //  m_nodes.emplace_back(new nodes::doublegyre{*this});
-  //}
-  //if (ImGui::Button("Saddle Flow")) {
-  //  m_nodes.emplace_back(new nodes::saddle<double>{});
-  //}
-  //ImGui::SameLine();
-  //if (ImGui::Button("Duffing Oscillator Flow")) {
-  //  m_nodes.emplace_back(new nodes::duffing_oscillator<double>{});
-  //}
-  //
+  ImGui::SameLine();
+  if (ImGui::Button("Rayleigh Benard Convection")) {
+    m_nodes.emplace_back(new nodes::rayleigh_benard_convection{*this});
+  }
+  if (ImGui::Button("Doublegyre Flow")) {
+    m_nodes.emplace_back(new nodes::doublegyre{*this});
+  }
+  if (ImGui::Button("Saddle Flow")) {
+    m_nodes.emplace_back(new nodes::saddle{*this});
+  }
+  ImGui::SameLine();
+  if (ImGui::Button("Duffing Oscillator Flow")) {
+    m_nodes.emplace_back(new nodes::duffing_oscillator{*this});
+  }
+
   // vectorfield operations
-  //if (ImGui::Button("Spacetime Vector Field")) {
-  //  m_nodes.emplace_back(new nodes::spacetime_vectorfield{*this});
-  //}
+  if (ImGui::Button("Spacetime Vector Field")) {
+    m_nodes.emplace_back(new nodes::spacetime_vectorfield{*this});
+  }
 
   // bounding boxes
   if (ImGui::Button("2D BoundingBox")) {
@@ -320,20 +324,17 @@ void scene::node_creators() {
         vec{-1.0, -1.0, -1.0}, vec{1.0, 1.0, 1.0}, *this});
   }
 
-  //// Algorithms
-  //if (ImGui::Button("Random Path Lines")) {
-  //  m_renderables.emplace_back(new nodes::random_pathlines<double, 3>{*this});
-  //}
+  // Algorithms
+  if (ImGui::Button("Random Path Lines")) {
+    m_renderables.emplace_back(new nodes::random_pathlines3d{*this});
+  }
   //ImGui::SameLine();
   //if (ImGui::Button("LIC")) {
   //  m_renderables.emplace_back(new nodes::lic{*this});
   //}
-  //ImGui::SameLine();
-  //if (ImGui::Button("Autonomous Particle")) {
-  //  m_renderables.emplace_back(new nodes::autonomous_particle{*this});
-  //}
-  if (ImGui::Button("Test Node")) {
-    m_nodes.emplace_back(new nodes::test_node{*this});
+  ImGui::SameLine();
+  if (ImGui::Button("Autonomous Particle")) {
+    m_renderables.emplace_back(new nodes::autonomous_particle{*this});
   }
 }
 //------------------------------------------------------------------------------

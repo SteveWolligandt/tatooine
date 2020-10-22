@@ -2,50 +2,51 @@
 #define TATOOINE_FLOWEXPLORER_NODES_RANDOM_PATHLINES_H
 //==============================================================================
 #include <tatooine/boundingbox.h>
+#include <tatooine/flowexplorer/renderable.h>
 #include <tatooine/gpu/line_renderer.h>
 #include <tatooine/gpu/line_shader.h>
 #include <tatooine/ode/vclibs/rungekutta43.h>
-#include <tatooine/flowexplorer/renderable.h>
 
 #include <mutex>
 //==============================================================================
 namespace tatooine::flowexplorer::nodes {
 //==============================================================================
-template <typename Real, size_t N>
-struct random_pathlines : renderable {
+template <size_t N>
+struct random_pathlines : renderable<random_pathlines<N>> {
   //----------------------------------------------------------------------------
   // typedefs
   //----------------------------------------------------------------------------
-  using vectorfield_t = parent::field<Real, N, N>;
-  using integrator_t  = ode::vclibs::rungekutta43<Real, N>;
+  using vectorfield_t = parent::vectorfield<double, N>;
+  using integrator_t  = ode::vclibs::rungekutta43<double, N>;
   //----------------------------------------------------------------------------
 
   vectorfield_t const*              m_v           = nullptr;
-  boundingbox<Real, N>*             m_boundingbox = nullptr;
+  boundingbox<N>*                   m_boundingbox = nullptr;
   integrator_t                      m_integrator;
   std::unique_ptr<gpu::line_shader> m_shader;
   yavin::indexeddata<vec<float, 3>, vec<float, 3>, float> m_gpu_data;
-  double                                                  m_btau, m_ftau;
-  int                                                     m_num_pathlines;
-  float                                                   m_line_color[3];
-  float                                                   m_contour_color[3];
-  float                                                   m_line_width;
-  float                                                   m_contour_width;
-  float                                                   m_ambient_factor;
-  float                                                   m_diffuse_factor;
-  float                                                   m_specular_factor;
-  float                                                   m_shininess;
-  bool                                                    m_animate;
-  bool                                                    m_play;
-  float                                                   m_fade_length;
-  float                                                   m_general_alpha;
-  float                                                   m_animation_min_alpha;
-  float                                                   m_time;
-  float                                                   m_speed;
-  bool m_integration_going_on = false;
+
+  double m_btau, m_ftau;
+  int    m_num_pathlines;
+  float  m_line_color[3];
+  float  m_contour_color[3];
+  float  m_line_width;
+  float  m_contour_width;
+  float  m_ambient_factor;
+  float  m_diffuse_factor;
+  float  m_specular_factor;
+  float  m_shininess;
+  bool   m_animate;
+  bool   m_play;
+  float  m_fade_length;
+  float  m_general_alpha;
+  float  m_animation_min_alpha;
+  float  m_time;
+  float  m_speed;
+  bool   m_integration_going_on = false;
   //----------------------------------------------------------------------------
-  random_pathlines(flowexplorer::window& w)
-      : renderable{w, "Random Path Lines"},
+  random_pathlines(flowexplorer::scene& s)
+      : renderable<random_pathlines<N>>{"Random Path Lines", s},
         m_shader{std::make_unique<gpu::line_shader>(
             m_line_color[0], m_line_color[1], m_line_color[2],
             m_contour_color[0], m_contour_color[1], m_contour_color[2],
@@ -70,7 +71,7 @@ struct random_pathlines : renderable {
         m_time{0.0f},
         m_speed{1.0f} {
     this->template insert_input_pin<vectorfield_t>("3D Vector Field");
-    this->template insert_input_pin<boundingbox<Real, N>>("Bounding Box");
+    this->template insert_input_pin<boundingbox<N>>("Bounding Box");
   }
   //----------------------------------------------------------------------------
   void render(mat<float, 4, 4> const& projection_matrix,
@@ -86,7 +87,9 @@ struct random_pathlines : renderable {
     if (m_animate) {
       if (m_play) {
         m_time += m_speed * ms / 1000;
-        while (m_time > m_ftau + m_fade_length) { m_time = m_btau; }
+        while (m_time > m_ftau + m_fade_length) {
+          m_time = m_btau;
+        }
       }
     } else {
       m_time = m_btau;
@@ -125,7 +128,7 @@ struct random_pathlines : renderable {
     m_shader->set_projection_matrix(projection_matrix);
     m_shader->set_line_color(m_line_color[0], m_line_color[1], m_line_color[2]);
     m_shader->set_contour_color(m_contour_color[0], m_contour_color[1],
-                              m_contour_color[2]);
+                                m_contour_color[2]);
     m_shader->set_line_width(m_line_width);
     m_shader->set_contour_width(m_contour_width);
     m_shader->set_ambient_factor(m_ambient_factor);
@@ -144,7 +147,7 @@ struct random_pathlines : renderable {
       return;
     }
     m_integration_going_on = true;
-    this->window().do_async([rp = this] {
+    this->scene().window().do_async([rp = this] {
       size_t index          = 0;
       bool   insert_segment = false;
       auto callback = [rp, &index, &insert_segment](auto const& y, auto const t,
@@ -168,7 +171,7 @@ struct random_pathlines : renderable {
       };
       rp->m_gpu_data.clear();
       for (size_t i = 0; i < rp->m_num_pathlines; ++i) {
-        auto const x0 = rp->m_boundingbox->random_point();
+        auto const   x0 = rp->m_boundingbox->random_point();
         double const t0 = 0;
         insert_segment  = false;
         rp->m_integrator.solve(*rp->m_v, x0, t0, rp->m_btau, callback);
@@ -180,8 +183,8 @@ struct random_pathlines : renderable {
   }
   //----------------------------------------------------------------------------
   void on_pin_connected(ui::pin& this_pin, ui::pin& other_pin) override {
-    if (other_pin.type() == typeid(boundingbox<Real, N>)) {
-      m_boundingbox = dynamic_cast<boundingbox<Real, N>*>(&other_pin.node());
+    if (other_pin.type() == typeid(boundingbox<N>)) {
+      m_boundingbox = dynamic_cast<boundingbox<N>*>(&other_pin.node());
     } else if ((other_pin.type() == typeid(vectorfield_t))) {
       m_v = dynamic_cast<vectorfield_t*>(&other_pin.node());
     }
@@ -190,15 +193,35 @@ struct random_pathlines : renderable {
     }
   }
   //----------------------------------------------------------------------------
-  void on_pin_disconnected(ui::pin& this_pin) override {
-    m_gpu_data.clear();
-  }
+  void on_pin_disconnected(ui::pin& this_pin) override { m_gpu_data.clear(); }
   //----------------------------------------------------------------------------
   bool is_transparent() const override {
     return m_animate || m_general_alpha < 1;
   }
 };
+using random_pathlines3d = random_pathlines<3>;
 //==============================================================================
-}  // namespace tatooine::flowexplorer
+}  // namespace tatooine::flowexplorer::nodes
 //==============================================================================
+REGISTER_NODE(
+    tatooine::flowexplorer::nodes::random_pathlines3d,
+    TATOOINE_REFLECTION_INSERT_METHOD(number_of_path_lines, m_num_pathlines),
+    TATOOINE_REFLECTION_INSERT_METHOD(backward_tau, m_btau),
+    TATOOINE_REFLECTION_INSERT_METHOD(forward_tau, m_ftau),
+    TATOOINE_REFLECTION_INSERT_METHOD(line_width, m_line_width),
+    TATOOINE_REFLECTION_INSERT_METHOD(contour_width, m_contour_width),
+    TATOOINE_REFLECTION_INSERT_METHOD(ambient_factor, m_ambient_factor),
+    TATOOINE_REFLECTION_INSERT_METHOD(diffuse_factor, m_diffuse_factor),
+    TATOOINE_REFLECTION_INSERT_METHOD(specular_factor, m_specular_factor),
+    TATOOINE_REFLECTION_INSERT_METHOD(shininess, m_shininess),
+    TATOOINE_REFLECTION_INSERT_METHOD(line_color, m_line_color),
+    TATOOINE_REFLECTION_INSERT_METHOD(contour_color, m_contour_color),
+    TATOOINE_REFLECTION_INSERT_METHOD(animate, m_animate),
+    TATOOINE_REFLECTION_INSERT_METHOD(play, m_play),
+    TATOOINE_REFLECTION_INSERT_METHOD(animation_min_alpha,
+                                      m_animation_min_alpha),
+    TATOOINE_REFLECTION_INSERT_METHOD(fade_length, m_fade_length),
+    TATOOINE_REFLECTION_INSERT_METHOD(speed, m_speed),
+    TATOOINE_REFLECTION_INSERT_METHOD(time, m_time),
+    TATOOINE_REFLECTION_INSERT_METHOD(general_alpha, m_general_alpha))
 #endif

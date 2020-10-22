@@ -84,34 +84,6 @@ void lic::calculate_lic() {
   });
 }
 //----------------------------------------------------------------------------
-auto lic::draw_ui() -> void {
-  ImGui::DragInt2("LIC Resolution", m_lic_res.data_ptr(), 5, 5, 10000);
-  ImGui::DragInt2("Sample Resolution", m_vectorfield_sample_res.data_ptr(), 5,
-                  5, 10000);
-  ImGui::DragDouble("t", &m_t, 0.1);
-  //ImGui::DragInt("number of samples", &m_num_samples, 5, 5, 1000000);
-  ImGui::DragDouble("stepsize", &m_stepsize, 0.001);
-  ImGui::DragFloat("alpha", &m_alpha, 0.1, 0.0f, 1.0f);
-
-   namespace hana = boost::hana;
-   hana::for_each(*this, [](auto const& pair) {
-    auto const& var_name = hana::to<char const*>(hana::first(pair));
-    auto&       value    = hana::second(pair);
-    using T              = std::decay_t<decltype(value)>;
-    if constexpr (std::is_same_v<int, T>) {
-      ImGui::DragInt(var_name, &const_cast<std::decay_t<T>&>(value), 0.1,
-      0.0f,
-                     1.0f);
-    //} else if constexpr (std::is_same_v<float, T>) {
-    //  ImGui::DragFloat(var_name, &const_cast<std::decay_t<T>&>(value), 0.1,
-    //                   0.0f, 1.0f);
-    //} else if constexpr (std::is_same_v<double, T>) {
-    //  ImGui::DragDouble(var_name, &const_cast<std::decay_t<T>&>(value), 0.1,
-    //                   0.0f, 1.0f);
-    }
-  });
-}
-//----------------------------------------------------------------------------
 auto lic::update_shader(mat<float, 4, 4> const& projection_matrix,
                         mat<float, 4, 4> const& view_matrix) -> void {
   m_shader->set_modelview_matrix(
@@ -141,35 +113,6 @@ auto lic::on_pin_disconnected(ui::pin& this_pin) -> void {
 //----------------------------------------------------------------------------
 auto lic::is_transparent() const -> bool{
   return m_alpha < 1;
-}
-//----------------------------------------------------------------------------
-auto lic::serialize() const -> toml::table {
-  toml::table serialized_node;
-  namespace hana = boost::hana;
-  hana::for_each(*this, [&serialized_node](auto const& pair) {
-    auto const& var_name = hana::to<char const*>(hana::first(pair));
-    auto const& value    = hana::second(pair);
-    using T              = std::decay_t<decltype(value)>;
-    if constexpr (std::is_arithmetic_v<T>) {
-      serialized_node.insert(var_name, value);
-    } else if constexpr (std::is_arithmetic_v<T>) {
-    }
-  });
-  return serialized_node;
-}
-//----------------------------------------------------------------------------
-void lic::deserialize(toml::table const& serialization) {
-  auto const& serialized_lic_res    = *serialization["lic_res"].as_array();
-  m_lic_res(0)                      = serialized_lic_res[0].as_integer()->get();
-  m_lic_res(1)                      = serialized_lic_res[1].as_integer()->get();
-  auto const& serialized_sample_res = *serialization["sample_res"].as_array();
-  m_vectorfield_sample_res(0) = serialized_sample_res[0].as_integer()->get();
-  m_vectorfield_sample_res(1) = serialized_sample_res[1].as_integer()->get();
-
-  m_t           = serialization["t"].as_floating_point()->get();
-  m_num_samples = serialization["num_samples"].as_integer()->get();
-  m_stepsize    = serialization["stepsize"].as_floating_point()->get();
-  m_alpha       = serialization["alpha"].as_floating_point()->get();
 }
 //==============================================================================
 }  // namespace tatooine::flowexplorer::nodes
