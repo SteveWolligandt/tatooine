@@ -10,7 +10,7 @@
 namespace tatooine::flowexplorer::nodes {
 //==============================================================================
 template <size_t N>
-struct position : tatooine::vec<double, N>, renderable {
+struct position : tatooine::vec<double, N>, renderable<position<N>> {
   using this_t   = position<N>;
   using parent_t = tatooine::vec<double, N>;
   using gpu_vec  = vec<GLfloat, 3>;
@@ -26,21 +26,21 @@ struct position : tatooine::vec<double, N>, renderable {
   constexpr auto operator=(position const&) -> position& = default;
   constexpr auto operator=(position&&) noexcept -> position& = default;
   //============================================================================
-  constexpr position(flowexplorer::window& w) : renderable{w, "Position"} {
+  constexpr position(flowexplorer::scene& s) : renderable<position>{"Position", s} {
     this->template insert_output_pin<this_t>("Out");
     create_indexed_data();
   }
   //----------------------------------------------------------------------------
   template <typename Real>
-  constexpr position(flowexplorer::window& w, vec<Real, N>&& pos) noexcept
-      : parent_t{std::move(pos)}, renderable{w, "Position"} {
+  constexpr position(flowexplorer::scene& s, vec<Real, N>&& pos) noexcept
+      : parent_t{std::move(pos)}, renderable<position>{"Position", s} {
     this->template insert_output_pin<this_t>("Out");
     create_indexed_data();
   }
   //----------------------------------------------------------------------------
   template <typename Real>
-  constexpr position(flowexplorer::window& w, vec<Real, N> const& pos)
-      : parent_t{pos}, renderable{w, "Position"} {
+  constexpr position(flowexplorer::scene& s, vec<Real, N> const& pos)
+      : parent_t{pos}, renderable<position>{"Position", s} {
     this->template insert_output_pin<this_t>("Out");
     create_indexed_data();
   }
@@ -48,7 +48,7 @@ struct position : tatooine::vec<double, N>, renderable {
   template <typename Tensor, typename Real>
   constexpr position(flowexplorer::window&               w,
                      base_tensor<Tensor, Real, N> const& pos)
-      : parent_t{pos}, renderable{w, "Position"} {
+      : parent_t{pos}, renderable<position>{w, "Position"} {
     this->template insert_output_pin<this_t>("Out");
     create_indexed_data();
   }
@@ -62,22 +62,6 @@ struct position : tatooine::vec<double, N>, renderable {
     m_shader.set_modelview_matrix(view_matrix);
     yavin::gl::point_size(m_pointsize);
     m_gpu_data.draw_points();
-  }
-  //----------------------------------------------------------------------------
-  void draw_ui() override {
-    if constexpr (N == 3) {
-      if (ImGui::DragDouble3("position", this->data_ptr(), 0.01, -100000.0,
-                             100000.0)) {
-        set_vbo_data();
-      }
-    } else if constexpr (N == 2) {
-      if (ImGui::DragDouble2("position", this->data_ptr(), 0.01, -100000.0,
-                             100000.0)) {
-        set_vbo_data();
-      }
-    }
-    ImGui::DragInt("point size", &m_pointsize, 0.1, 1, 10);
-    ImGui::ColorEdit4("color", m_color.data());
   }
   //============================================================================
   void set_vbo_data() {
@@ -106,11 +90,26 @@ struct position : tatooine::vec<double, N>, renderable {
     return m_color[3] < 1;
   }
   //----------------------------------------------------------------------------
-  void set_point_size(int s) {
-    m_pointsize = s;
-  }
+  auto pos()       -> vec<double, N>& { return *this; }
+  auto pos() const -> vec<double, N> const& { return *this; }
+  //----------------------------------------------------------------------------
+  auto point_size()       -> auto& { return m_pointsize; }
+  auto point_size() const -> auto const& { return m_pointsize; }
+  //----------------------------------------------------------------------------
+  auto color()       -> auto& { return m_color; }
+  auto color() const -> auto const& { return m_color; }
 };
+using position2 = position<2>;
+using position3 = position<3>;
 //==============================================================================
 }  // namespace tatooine::flowexplorer::nodes
 //==============================================================================
+REGISTER_NODE(tatooine::flowexplorer::nodes::position2,
+              TATOOINE_REFLECTION_INSERT_METHOD(position, pos()),
+              TATOOINE_REFLECTION_INSERT_GETTER(point_size),
+              TATOOINE_REFLECTION_INSERT_GETTER(color))
+REGISTER_NODE(tatooine::flowexplorer::nodes::position3,
+              TATOOINE_REFLECTION_INSERT_METHOD(position, pos()),
+              TATOOINE_REFLECTION_INSERT_GETTER(point_size),
+              TATOOINE_REFLECTION_INSERT_GETTER(color))
 #endif

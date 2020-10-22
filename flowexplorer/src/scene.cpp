@@ -14,7 +14,7 @@
 #include <fstream>
 #include <yavin>
 //#include <tatooine/flowexplorer/nodes/autonomous_particle.h>
-//#include <tatooine/flowexplorer/nodes/position.h>
+#include <tatooine/flowexplorer/nodes/position.h>
 //#include <tatooine/flowexplorer/nodes/saddle.h>
 //#include <tatooine/flowexplorer/nodes/duffing_oscillator.h>
 //#include <tatooine/flowexplorer/nodes/random_pathlines.h>
@@ -278,13 +278,13 @@ void scene::draw_node_editor(size_t const pos_x, size_t const pos_y,
 }
 //----------------------------------------------------------------------------
 void scene::node_creators() {
-  //if (ImGui::Button("2D Position")) {
-  //  m_renderables.emplace_back(new nodes::position<2>{*this});
-  //}
-  //ImGui::SameLine();
-  //if (ImGui::Button("3D Position")) {
-  //  m_renderables.emplace_back(new nodes::position<3>{*this});
-  //}
+  if (ImGui::Button("2D Position")) {
+    m_renderables.emplace_back(new nodes::position<2>{*this});
+  }
+  ImGui::SameLine();
+  if (ImGui::Button("3D Position")) {
+    m_renderables.emplace_back(new nodes::position<3>{*this});
+  }
   // vectorfields
   //if (ImGui::Button("ABC Flow")) {
   //  m_nodes.emplace_back(new nodes::abcflow{*this});
@@ -314,11 +314,11 @@ void scene::node_creators() {
     m_renderables.emplace_back(
         new nodes::boundingbox{vec{-1.0, -1.0}, vec{1.0, 1.0}, *this});
   }
-  //ImGui::SameLine();
-  //if (ImGui::Button("3D BoundingBox")) {
-  //  m_renderables.emplace_back(new nodes::boundingbox{
-  //      vec{-1.0, -1.0, -1.0}, vec{1.0, 1.0, 1.0}, *this});
-  //}
+  ImGui::SameLine();
+  if (ImGui::Button("3D BoundingBox")) {
+    m_renderables.emplace_back(new nodes::boundingbox{
+        vec{-1.0, -1.0, -1.0}, vec{1.0, 1.0, 1.0}, *this});
+  }
 
   //// Algorithms
   //if (ImGui::Button("Random Path Lines")) {

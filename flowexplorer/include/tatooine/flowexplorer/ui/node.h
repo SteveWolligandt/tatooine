@@ -309,22 +309,22 @@ struct node_serializer {
 template <typename Child>
 struct node : base::node, node_serializer<Child> {
   using base::node::node;
-  using serializer_t = node_serializer<Child>; 
+  using serializer_t = node_serializer<Child>;
   //============================================================================
-  auto serialize() const -> toml::table override{
+  auto serialize() const -> toml::table override final {
     return serializer_t::serialize(*dynamic_cast<Child const*>(this));
   }
   //----------------------------------------------------------------------------
-  auto deserialize(toml::table const& serialized_node) -> void override {
+  auto deserialize(toml::table const& serialized_node) -> void override final {
     return node_serializer<Child>::deserialize(*dynamic_cast<Child*>(this),
                                                serialized_node);
   }
   //----------------------------------------------------------------------------
-  auto draw_ui() -> void override {
+  auto draw_ui() -> void override final {
     return node_serializer<Child>::draw_ui(*dynamic_cast<Child*>(this));
   }
   //----------------------------------------------------------------------------
-  auto type_name() const -> std::string_view override {
+  auto type_name() const -> std::string_view override final {
     return node_serializer<Child>::type_name();
   }
 };
