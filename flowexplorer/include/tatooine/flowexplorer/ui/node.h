@@ -3,6 +3,7 @@
 //==============================================================================
 #include <imgui-node-editor/imgui_node_editor.h>
 #include <tatooine/flowexplorer/ui/pin.h>
+#include <tatooine/demangling.h>
 #include <tatooine/flowexplorer/uuid_holder.h>
 #include <tatooine/flowexplorer/serializable.h>
 #include <tatooine/reflection.h>
@@ -109,56 +110,38 @@ struct node_serializer {
   //----------------------------------------------------------------------------
   auto serialize(T const& t) const -> toml::table {
     toml::table serialized_node;
-    reflection::for_each(
-        t, [&serialized_node](auto const& name, auto const& var) {
-          if constexpr (std::is_arithmetic_v<std::decay_t<decltype(var)>>) {
-            serialized_node.insert(name, var);
-          } else if constexpr (
-              std::is_same_v<std::array<int, 2>,
-                             std::decay_t<decltype(var)>> ||
-              std::is_same_v<std::array<float, 2>,
-                             std::decay_t<decltype(var)>> ||
-              std::is_same_v<std::array<double, 2>,
-                             std::decay_t<decltype(var)>> ||
-              std::is_same_v<vec<int, 2>,
-                             std::decay_t<decltype(var)>> ||
-              std::is_same_v<vec<float, 2>,
-                             std::decay_t<decltype(var)>> ||
-              std::is_same_v<vec<double, 2>,
-                             std::decay_t<decltype(var)>>) {
-            serialized_node.insert(name, toml::array{var.at(0), var.at(1)});
-          } else if constexpr (
-              std::is_same_v<std::array<int, 3>,
-                             std::decay_t<decltype(var)>> ||
-              std::is_same_v<std::array<float, 3>,
-                             std::decay_t<decltype(var)>> ||
-              std::is_same_v<std::array<double, 3>,
-                             std::decay_t<decltype(var)>> ||
-              std::is_same_v<vec<int, 3>,
-                             std::decay_t<decltype(var)>> ||
-              std::is_same_v<vec<float, 3>,
-                             std::decay_t<decltype(var)>> ||
-              std::is_same_v<vec<double, 3>,
-                             std::decay_t<decltype(var)>>) {
-            serialized_node.insert(name,
-                                 toml::array{var.at(0), var.at(1), var.at(2)});
-          } else if constexpr (
-              std::is_same_v<std::array<int, 4>,
-                             std::decay_t<decltype(var)>> ||
-              std::is_same_v<std::array<float, 4>,
-                             std::decay_t<decltype(var)>> ||
-              std::is_same_v<std::array<double, 4>,
-                             std::decay_t<decltype(var)>> ||
-              std::is_same_v<vec<int, 4>,
-                             std::decay_t<decltype(var)>> ||
-              std::is_same_v<vec<float, 4>,
-                             std::decay_t<decltype(var)>> ||
-              std::is_same_v<vec<double, 4>,
-                             std::decay_t<decltype(var)>>) {
-            serialized_node.insert(
-                name, toml::array{var.at(0), var.at(1), var.at(2), var.at(3)});
-          }
-        });
+    reflection::for_each(t, [&serialized_node](auto const& name,
+                                               auto const& var) {
+      if constexpr (std::is_arithmetic_v<std::decay_t<decltype(var)>>) {
+        serialized_node.insert(name, var);
+      } else if constexpr (
+          std::is_same_v<std::array<int, 2>, std::decay_t<decltype(var)>> ||
+          std::is_same_v<std::array<float, 2>, std::decay_t<decltype(var)>> ||
+          std::is_same_v<std::array<double, 2>, std::decay_t<decltype(var)>> ||
+          std::is_same_v<vec<int, 2>, std::decay_t<decltype(var)>> ||
+          std::is_same_v<vec<float, 2>, std::decay_t<decltype(var)>> ||
+          std::is_same_v<vec<double, 2>, std::decay_t<decltype(var)>>) {
+        serialized_node.insert(name, toml::array{var.at(0), var.at(1)});
+      } else if constexpr (
+          std::is_same_v<std::array<int, 3>, std::decay_t<decltype(var)>> ||
+          std::is_same_v<std::array<float, 3>, std::decay_t<decltype(var)>> ||
+          std::is_same_v<std::array<double, 3>, std::decay_t<decltype(var)>> ||
+          std::is_same_v<vec<int, 3>, std::decay_t<decltype(var)>> ||
+          std::is_same_v<vec<float, 3>, std::decay_t<decltype(var)>> ||
+          std::is_same_v<vec<double, 3>, std::decay_t<decltype(var)>>) {
+        serialized_node.insert(name,
+                               toml::array{var.at(0), var.at(1), var.at(2)});
+      } else if constexpr (
+          std::is_same_v<std::array<int, 4>, std::decay_t<decltype(var)>> ||
+          std::is_same_v<std::array<float, 4>, std::decay_t<decltype(var)>> ||
+          std::is_same_v<std::array<double, 4>, std::decay_t<decltype(var)>> ||
+          std::is_same_v<vec<int, 4>, std::decay_t<decltype(var)>> ||
+          std::is_same_v<vec<float, 4>, std::decay_t<decltype(var)>> ||
+          std::is_same_v<vec<double, 4>, std::decay_t<decltype(var)>>) {
+        serialized_node.insert(
+            name, toml::array{var.at(0), var.at(1), var.at(2), var.at(3)});
+      }
+    });
     return serialized_node;
   }
   //----------------------------------------------------------------------------
@@ -166,7 +149,8 @@ struct node_serializer {
     reflection::for_each(t, [&serialized_node](auto const& name, auto& var) {
       if constexpr (std::is_integral_v<std::decay_t<decltype(var)>>) {
         var = serialized_node[name].as_integer()->get();
-      } else if constexpr (std::is_floating_point_v<std::decay_t<decltype(var)>>) {
+      } else if constexpr (std::is_floating_point_v<
+                               std::decay_t<decltype(var)>>) {
         var = serialized_node[name].as_floating_point()->get();
       } else if constexpr (std::is_same_v<std::array<int, 2>,
                                           std::decay_t<decltype(var)>> ||
@@ -254,7 +238,7 @@ struct node_serializer {
                                           std::decay_t<decltype(var)>>) {
         ImGui::DragFloat4(name, var.data_ptr(), 0.1f);
 
-      // double
+        // double
       } else if constexpr (std::is_same_v<double,
                                           std::decay_t<decltype(var)>>) {
         ImGui::DragDouble(name, &var, 0.1);
@@ -277,7 +261,7 @@ struct node_serializer {
                                           std::decay_t<decltype(var)>>) {
         ImGui::DragDouble4(name, var.data_ptr(), 0.1);
 
-      // int
+        // int
       } else if constexpr (std::is_same_v<int, std::decay_t<decltype(var)>>) {
         ImGui::DragInt(name, &var, 1);
       } else if constexpr (std::is_same_v<std::array<int, 2>,
@@ -328,7 +312,7 @@ struct node : base::node, node_serializer<Child> {
     return node_serializer<Child>::type_name();
   }
 };
-//==============================================================================
+  //==============================================================================
 }  // namespace tatooine::flowexplorer::ui
 //==============================================================================
 struct registered_function_t {
@@ -356,7 +340,7 @@ struct registered_function_t {
   }                                                                            \
   REGISTER_NODE_FACTORY(register_node, registration);                          \
   }                                                                            \
-  TATOOINE_MAKE_ADT_REFLECTABLE(type, __VA_ARGS__)
+  TATOOINE_MAKE_ADT_REFLECTABLE(type, ##__VA_ARGS__)                           
 //------------------------------------------------------------------------------
 extern registered_function_t __start_registration;
 extern registered_function_t __stop_registration;

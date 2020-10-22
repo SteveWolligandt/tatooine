@@ -24,10 +24,13 @@ struct reflection_test {
     return m_j;
   }
 };
+struct reflection_test_empty {
+};
 }  // namespace tatooine::test
 TATOOINE_MAKE_ADT_REFLECTABLE(tatooine::test::reflection_test,
                               TATOOINE_REFLECTION_INSERT_GETTER(i),
                               TATOOINE_REFLECTION_INSERT_GETTER(j));
+TATOOINE_MAKE_ADT_REFLECTABLE(tatooine::test::reflection_test_empty);
 namespace tatooine::test {
 TEST_CASE("reflection", "[reflection]") {
   reflection_test obj{1, 2};

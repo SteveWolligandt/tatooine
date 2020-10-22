@@ -133,15 +133,14 @@ constexpr auto name(T &&) {
       enum index { TATOOINE_PP_ODDS(__VA_ARGS__) };                            \
     };                                                                         \
                                                                                \
-    static constexpr auto name() -> std::string_view {                     \
-      return #STRUCT_NAME;                                                     \
-    }                                                                          \
+    static constexpr auto name() -> std::string_view { return #STRUCT_NAME; }  \
                                                                                \
-    TATOOINE_PP_MAP2(TATOOINE_REFLECTION_MAKE_GETTERS, __VA_ARGS__)            \
+    TATOOINE_PP_MAP2(TATOOINE_REFLECTION_MAKE_GETTERS, ##__VA_ARGS__)          \
                                                                                \
     template <reflection::reflectable T, typename V>                           \
-    constexpr static auto apply(V &&v, T &&t) -> void {                        \
-      TATOOINE_PP_MAP2(TATOOINE_REFLECTION_MEMBER_HELPER, __VA_ARGS__)         \
+    constexpr static auto apply([[maybe_unused]] V &&v,                        \
+                                [[maybe_unused]] T &&t) -> void {              \
+      TATOOINE_PP_MAP2(TATOOINE_REFLECTION_MEMBER_HELPER, ##__VA_ARGS__)       \
     }                                                                          \
   };                                                                           \
   }

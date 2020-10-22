@@ -1,7 +1,7 @@
 #include <imgui-node-editor/imgui_node_editor.h>
 #include <tatooine/boundingbox.h>
 #include <tatooine/demangling.h>
-//#include <tatooine/flowexplorer/nodes/abcflow.h>
+#include <tatooine/flowexplorer/nodes/abcflow.h>
 #include <tatooine/flowexplorer/nodes/boundingbox.h>
 //#include <tatooine/flowexplorer/nodes/doublegyre.h>
 //#include <tatooine/flowexplorer/nodes/lic.h>
@@ -286,9 +286,9 @@ void scene::node_creators() {
     m_renderables.emplace_back(new nodes::position<3>{*this});
   }
   // vectorfields
-  //if (ImGui::Button("ABC Flow")) {
-  //  m_nodes.emplace_back(new nodes::abcflow{*this});
-  //}
+  if (ImGui::Button("ABC Flow")) {
+    m_nodes.emplace_back(new nodes::abcflow{*this});
+  }
   //ImGui::SameLine();
   //if (ImGui::Button("Rayleigh Benard Convection")) {
   //  m_nodes.emplace_back(new nodes::rayleigh_benard_convection<double>{});

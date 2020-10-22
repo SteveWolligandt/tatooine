@@ -11,11 +11,6 @@ struct abcflow : tatooine::analytical::fields::numerical::abcflow<double>,
   abcflow(flowexplorer::scene& s) : ui::node<abcflow>{"ABC Flow", s} {
     setup_pins();
   }
-  abcflow(flowexplorer::scene& s, toml::table const& serialized_data)
-      : ui::node<abcflow>{s} {
-    setup_pins();
-    deserialize(serialized_data);
-  }
   virtual ~abcflow() = default;
 
  private:
