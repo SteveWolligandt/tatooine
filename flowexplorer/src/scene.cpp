@@ -2,7 +2,7 @@
 #include <tatooine/boundingbox.h>
 #include <tatooine/demangling.h>
 //#include <tatooine/flowexplorer/nodes/abcflow.h>
-//#include <tatooine/flowexplorer/nodes/boundingbox.h>
+#include <tatooine/flowexplorer/nodes/boundingbox.h>
 //#include <tatooine/flowexplorer/nodes/doublegyre.h>
 //#include <tatooine/flowexplorer/nodes/lic.h>
 #include <tatooine/flowexplorer/nodes/test_node.h>

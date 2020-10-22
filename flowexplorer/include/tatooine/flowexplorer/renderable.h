@@ -23,8 +23,24 @@ struct renderable : ui::base::node {
 };
 }  // namespace base
 template <typename Child>
-struct renderable : base::renderable {
+struct renderable : base::renderable, ui::node_serializer<Child> {
   using base::renderable::renderable;
+  //============================================================================
+  auto serialize() const -> toml::table override{
+    return ui::node_serializer<Child>::serialize();
+  }
+  //----------------------------------------------------------------------------
+  auto deserialize(toml::table const& serialization) -> void override {
+    return ui::node_serializer<Child>::deserialize(serialization);
+  }
+  //----------------------------------------------------------------------------
+  auto draw_ui() -> void override {
+    return ui::node_serializer<Child>::draw_ui();
+  }
+  //----------------------------------------------------------------------------
+  auto type_name() const -> std::string_view override {
+    return ui::node_serializer<Child>::type_name();
+  }
 };
 //==============================================================================
 }  // namespace tatooine::flowexplorer

@@ -102,15 +102,13 @@ struct node : uuid_holder<ax::NodeEditor::NodeId>, serializable {
   }
 };
 }  // namespace base
-template <typename Child>
-struct node : base::node {
-  using base::node::node;
+template <typename T>
+struct node_serializer {
   //----------------------------------------------------------------------------
-  auto serialize() const -> toml::table override {
+  auto serialize(T const& t) const -> toml::table {
     toml::table serialized_node;
     reflection::for_each(
-        *dynamic_cast<Child const*>(this),
-        [&serialized_node](auto const& name, auto const& var) {
+        t, [&serialized_node](auto const& name, auto const& var) {
           if constexpr (std::is_same_v<float, std::decay_t<decltype(var)>>) {
             serialized_node.insert(name, var);
           }
@@ -118,27 +116,46 @@ struct node : base::node {
     return serialized_node;
   }
   //----------------------------------------------------------------------------
+  auto deserialize(T& t, toml::table const& serialization) -> void {
+    reflection::for_each(t, [&serialization](auto const& name, auto & var) {
+      if constexpr (std::is_same_v<float, std::decay_t<decltype(var)>>) {
+        var = serialization[name].as_floating_point()->get();
+      }
+    });
+  }
+  //----------------------------------------------------------------------------
+  auto draw_ui(T& t) -> void {
+    reflection::for_each(t, [](auto const& name, auto& var) {
+      if constexpr (std::is_same_v<float, std::decay_t<decltype(var)>>) {
+        ImGui::DragFloat(name, &var, 0.1f);
+      }
+    });
+  }
+  //----------------------------------------------------------------------------
+  constexpr auto type_name() const -> std::string_view {
+    return reflection::name<T>();
+  }
+};
+template <typename Child>
+struct node : base::node, node_serializer<Child> {
+  using base::node::node;
+  using serializer_t = node_serializer<Child>; 
+  //============================================================================
+  auto serialize() const -> toml::table override{
+    return serializer_t::serialize(*dynamic_cast<Child const*>(this));
+  }
+  //----------------------------------------------------------------------------
   auto deserialize(toml::table const& serialization) -> void override {
-    reflection::for_each(
-        *dynamic_cast<Child*>(this),
-        [&serialization](auto const& name, auto& var) {
-          if constexpr (std::is_same_v<float, std::decay_t<decltype(var)>>) {
-            var = serialization[name].as_floating_point()->get();
-          }
-        });
+    return node_serializer<Child>::deserialize(*dynamic_cast<Child*>(this),
+                                               serialization);
   }
   //----------------------------------------------------------------------------
   auto draw_ui() -> void override {
-    reflection::for_each(
-        *dynamic_cast<Child*>(this), [](auto const& name, auto& var) {
-          if constexpr (std::is_same_v<float, std::decay_t<decltype(var)>>) {
-            ImGui::DragFloat(name, &var, 0.1f);
-          }
-        });
+    return node_serializer<Child>::draw_ui(*dynamic_cast<Child*>(this));
   }
   //----------------------------------------------------------------------------
   auto type_name() const -> std::string_view override {
-    return reflection::name<Child>();
+    return node_serializer<Child>::type_name();
   }
 };
 //==============================================================================
