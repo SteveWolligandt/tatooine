@@ -20,15 +20,25 @@ struct lic : renderable<lic> {
   using vectorfield_t = parent::vectorfield<double, 2>;
   using bb_t          = flowexplorer::nodes::boundingbox<2>;
 
- private:
   //----------------------------------------------------------------------------
+  // attributes
+  //----------------------------------------------------------------------------
+ private:
+  // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+  // pins
   vectorfield_t const*                    m_v           = nullptr;
   bb_t*                                   m_boundingbox = nullptr;
+
+  // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+  // internal
   bool                                    m_calculating = false;
   std::unique_ptr<gpu::texture_shader>    m_shader;
   std::unique_ptr<yavin::tex2rgba<float>> m_lic_tex;
   yavin::indexeddata<vec<float, 2>, vec<float, 2>, float> m_quad;
-  vec<int, 2>                                             m_lic_res;
+
+  // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+  // user data
+  vec<int, 2> m_lic_res;
   vec<int, 2> m_vectorfield_sample_res;
   double      m_t;
   int         m_num_samples;
@@ -37,10 +47,15 @@ struct lic : renderable<lic> {
 
  public:
   //----------------------------------------------------------------------------
-  lic(flowexplorer::scene& s);
+  // ctors
   //----------------------------------------------------------------------------
+  lic(flowexplorer::scene& s);
+  // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
   lic(lic const& other);
-  //============================================================================
+
+  //----------------------------------------------------------------------------
+  // methods
+  //----------------------------------------------------------------------------
   auto init() -> void;
   //----------------------------------------------------------------------------
   auto setup_pins() -> void;
@@ -62,54 +77,28 @@ struct lic : renderable<lic> {
   void on_pin_disconnected(ui::pin& this_pin) override ;
   //----------------------------------------------------------------------------
   auto           is_transparent() const -> bool override;
-  //============================================================================
-  auto lic_res() -> auto& {
-    return m_lic_res;
-  }
-  // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-  auto lic_res() const -> auto const& {
-    return m_lic_res;
-  }
   //----------------------------------------------------------------------------
-  auto vectorfield_sample_res() -> auto& {
-    return m_vectorfield_sample_res;
-  }
-  // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+  // setters / getters
+  //----------------------------------------------------------------------------
+  auto lic_res() -> auto& { return m_lic_res; }
+  auto lic_res() const -> auto const& { return m_lic_res; }
+  //----------------------------------------------------------------------------
+  auto vectorfield_sample_res() -> auto& { return m_vectorfield_sample_res; }
   auto vectorfield_sample_res() const -> auto const& {
     return m_vectorfield_sample_res;
   }
   //----------------------------------------------------------------------------
-  auto t() -> auto& {
-    return m_t;
-  }
-  // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-  auto t() const {
-    return m_t;
-  }
+  auto t() -> auto& { return m_t; }
+  auto t() const { return m_t; }
   //----------------------------------------------------------------------------
-  auto num_samples() -> auto& {
-    return m_num_samples;
-  }
-  // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-  auto num_samples() const {
-    return m_num_samples;
-  }
+  auto num_samples() -> auto& { return m_num_samples; }
+  auto num_samples() const { return m_num_samples; }
   //----------------------------------------------------------------------------
-  auto stepsize() -> auto& {
-    return m_stepsize;
-  }
-  // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-  auto stepsize() const {
-    return m_stepsize;
-  }
+  auto stepsize() -> auto& { return m_stepsize; }
+  auto stepsize() const { return m_stepsize; }
   //----------------------------------------------------------------------------
-  auto alpha() -> auto& {
-    return m_alpha;
-  }
-  // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-  auto alpha() const {
-    return m_alpha;
-  }
+  auto alpha() -> auto& { return m_alpha; }
+  auto alpha() const { return m_alpha; }
 };
 //==============================================================================
 }  // namespace tatooine::flowexplorer::nodes
