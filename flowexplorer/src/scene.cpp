@@ -466,8 +466,6 @@ void scene::read(std::filesystem::path const& filepath) {
 //------------------------------------------------------------------------------
 void scene::open_file(std::filesystem::path const& filepath) {
   auto const ext = filepath.extension().string();
-  std::cerr << "path: " << filepath << '\n';
-  std::cerr << "ext: " << ext << '\n';
   if (ext == ".toml" || ext == "toml" ||
       ext == ".scene" || ext == "scene") {
     read(filepath);
