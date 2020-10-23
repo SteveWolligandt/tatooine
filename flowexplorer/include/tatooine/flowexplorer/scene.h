@@ -42,8 +42,10 @@ struct scene {
   void draw_node_editor(size_t const pos_x, size_t const pos_y,
                         size_t const width, size_t const height, bool& show);
   //----------------------------------------------------------------------------
-  void write(std::string const& filepath) const;
-  void read(std::string const& filepath);
+  void write(std::filesystem::path const& filepath) const;
+  void read(std::filesystem::path const& filepath);
+  //----------------------------------------------------------------------------
+  auto open_file(std::filesystem::path const& filepath) -> void;
   //----------------------------------------------------------------------------
   template <typename F>
   auto do_in_context(F&& f) const {

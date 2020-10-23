@@ -2,11 +2,11 @@
 #include <tatooine/boundingbox.h>
 #include <tatooine/demangling.h>
 #include <tatooine/flowexplorer/nodes/abcflow.h>
+#include <tatooine/flowexplorer/nodes/autonomous_particle.h>
 #include <tatooine/flowexplorer/nodes/boundingbox.h>
 #include <tatooine/flowexplorer/nodes/doublegyre.h>
-#include <tatooine/flowexplorer/nodes/lic.h>
-#include <tatooine/flowexplorer/nodes/autonomous_particle.h>
 #include <tatooine/flowexplorer/nodes/duffing_oscillator.h>
+#include <tatooine/flowexplorer/nodes/lic.h>
 #include <tatooine/flowexplorer/nodes/position.h>
 #include <tatooine/flowexplorer/nodes/random_pathlines.h>
 #include <tatooine/flowexplorer/nodes/rayleigh_benard_convection.h>
@@ -25,10 +25,6 @@
 //==============================================================================
 namespace tatooine::flowexplorer {
 //==============================================================================
-
-
-
-
 
 auto show_label(const char* label, ImColor color) {
   ImGui::SetCursorPosY(ImGui::GetCursorPosY() - ImGui::GetTextLineHeight());
@@ -52,9 +48,7 @@ scene::scene(rendering::camera_controller<float>& cam, flowexplorer::window* w)
   m_node_editor_context = ax::NodeEditor::CreateEditor();
 }
 //----------------------------------------------------------------------------
-scene::~scene() {
-  ax::NodeEditor::DestroyEditor(m_node_editor_context);
-}
+scene::~scene() { ax::NodeEditor::DestroyEditor(m_node_editor_context); }
 //------------------------------------------------------------------------------
 void scene::render(std::chrono::duration<double> const& dt) {
   yavin::gl::clear_color(255, 255, 255, 255);
@@ -153,8 +147,12 @@ void scene::draw_nodes() {
     ImGui::PopID();
   };
 
-  for (auto& n : m_nodes) {       draw_ui([&n] { n->draw_ui(); }, n); }
-  for (auto& r : m_renderables) { draw_ui([&r] { r->draw_ui(); }, r); }
+  for (auto& n : m_nodes) {
+    draw_ui([&n] { n->draw_ui(); }, n);
+  }
+  for (auto& r : m_renderables) {
+    draw_ui([&r] { r->draw_ui(); }, r);
+  }
 }
 //----------------------------------------------------------------------------
 void scene::draw_links() {
@@ -195,10 +193,13 @@ void scene::create_link() {
           ed::RejectNewItem(ImColor(255, 0, 0), 2.0f);
         } else if (ed::AcceptNewItem()) {
           // remove old input link if present
-          for (auto link_it = begin(m_links); link_it != end(m_links);++link_it) {
-            ui::pin* present_input_pin = find_pin(link_it->input().get_id_number());
+          for (auto link_it = begin(m_links); link_it != end(m_links);
+               ++link_it) {
+            ui::pin* present_input_pin =
+                find_pin(link_it->input().get_id_number());
             if (present_input_pin->get_id() == input_pin->get_id()) {
-              ui::pin* present_output_pin = find_pin(link_it->output().get_id_number());
+              ui::pin* present_output_pin =
+                  find_pin(link_it->output().get_id_number());
               present_input_pin->node().on_pin_disconnected(*present_input_pin);
               present_output_pin->node().on_pin_disconnected(
                   *present_output_pin);
@@ -232,7 +233,8 @@ void scene::remove_link() {
       // If you agree that link can be deleted, accept deletion.
       if (ed::AcceptDeletedItem()) {
         // Then remove link from your data.
-          for (auto link_it = begin(m_links); link_it != end(m_links);++link_it) {
+        for (auto link_it = begin(m_links); link_it != end(m_links);
+             ++link_it) {
           if (link_it->get_id() == deletedLinkId) {
             ui::pin* input_pin  = find_pin(link_it->input().get_id_number());
             ui::pin* output_pin = find_pin(link_it->output().get_id_number());
@@ -249,7 +251,7 @@ void scene::remove_link() {
 }
 //----------------------------------------------------------------------------
 void scene::draw_node_editor(size_t const pos_x, size_t const pos_y,
-                             size_t const width, size_t const height, 
+                             size_t const width, size_t const height,
                              bool& show) {
   namespace ed                        = ax::NodeEditor;
   ImGui::GetStyle().WindowRounding    = 0.0f;
@@ -325,7 +327,6 @@ void scene::node_creators() {
     m_nodes.emplace_back(new nodes::spacetime_vectorfield{*this});
   }
 
-
   // Algorithms
   if (ImGui::Button("Random Path Lines")) {
     m_renderables.emplace_back(new nodes::random_pathlines3d{*this});
@@ -340,7 +341,7 @@ void scene::node_creators() {
   }
 }
 //------------------------------------------------------------------------------
-void scene::write(std::string const& filepath) const {
+void scene::write(std::filesystem::path const& filepath) const {
   toml::table toml_scene;
 
   auto write_nodes = [&](std::string_view const& kind, auto const& field) {
@@ -374,20 +375,20 @@ void scene::write(std::string const& filepath) const {
     toml_scene.insert(std::to_string(link.get_id_number()), serialized_link);
   }
 
-  std::ofstream fout {filepath};
+  std::ofstream fout{filepath};
   if (fout.is_open()) {
     fout << toml_scene << '\n';
   }
-}//------------------------------------------------------------------------------
-void scene::read(std::string const& filepath) {
+}  //------------------------------------------------------------------------------
+void scene::read(std::filesystem::path const& filepath) {
   clear();
   ax::NodeEditor::SetCurrentEditor(m_node_editor_context);
-  auto const toml_scene = toml::parse_file(filepath);
+  auto const toml_scene = toml::parse_file(filepath.string());
 
   // read nodes and renderables
   for (auto const& [id_string, item] : toml_scene) {
     auto const& serialized_node = *item.as_table();
-    auto const  kind = serialized_node["kind"].as_string()->get();
+    auto const  kind            = serialized_node["kind"].as_string()->get();
 
     if (kind == "node" || kind == "renderable") {
       auto const node_type_name =
@@ -397,7 +398,7 @@ void scene::read(std::string const& filepath) {
       iterate_registered_functions(entry, registration) {
         if (auto ptr = entry->registered_function(*this, node_type_name); ptr) {
           if (kind == "node") {
-            n =  m_nodes.emplace_back(ptr).get();
+            n = m_nodes.emplace_back(ptr).get();
             break;
           } else /*if (kind == "renderable")*/ {
             n = m_renderables.emplace_back(dynamic_cast<base::renderable*>(ptr))
@@ -451,9 +452,9 @@ void scene::read(std::string const& filepath) {
       std::stringstream id_stream{id_string};
       size_t            id;
       id_stream >> id;
-      size_t const input_id  = serialized_node["input"].as_integer()->get();
-      size_t const output_id = serialized_node["output"].as_integer()->get();
-      auto & input_pin = *find_pin(input_id);
+      size_t const input_id   = serialized_node["input"].as_integer()->get();
+      size_t const output_id  = serialized_node["output"].as_integer()->get();
+      auto&        input_pin  = *find_pin(input_id);
       auto&        output_pin = *find_pin(output_id);
       m_links.push_back(ui::link{id, input_pin, output_pin});
       input_pin.node().on_pin_connected(input_pin, output_pin);
@@ -461,6 +462,18 @@ void scene::read(std::string const& filepath) {
     }
   }
   ax::NodeEditor::SetCurrentEditor(nullptr);
+}
+//------------------------------------------------------------------------------
+void scene::open_file(std::filesystem::path const& filepath) {
+  auto const ext = filepath.extension().string();
+  std::cerr << "path: " << filepath << '\n';
+  std::cerr << "ext: " << ext << '\n';
+  if (ext == ".toml" || ext == "toml" ||
+      ext == ".scene" || ext == "scene") {
+    read(filepath);
+  } else if (ext == ".vtk" || ext == "vtk") {
+    // TODO add vtk reader
+  }
 }
 //==============================================================================
 }  // namespace tatooine::flowexplorer
