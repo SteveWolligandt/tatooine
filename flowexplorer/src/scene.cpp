@@ -21,7 +21,6 @@
 
 #include <fstream>
 #include <yavin>
-
 //==============================================================================
 namespace tatooine::flowexplorer {
 //==============================================================================
@@ -54,15 +53,19 @@ void scene::render(std::chrono::duration<double> const& dt) {
   yavin::gl::clear_color(255, 255, 255, 255);
   yavin::clear_color_depth_buffer();
   for (auto& r : m_renderables) {
-    r->update(dt);
+    if (r->is_enabled()) {
+      r->update(dt);
+    }
   }
 
   // render non-transparent objects
   yavin::enable_depth_write();
   yavin::disable_blending();
   for (auto& r : m_renderables) {
-    if (!r->is_transparent()) {
-      r->render(m_cam->projection_matrix(), m_cam->view_matrix());
+    if (r->is_enabled()) {
+      if (!r->is_transparent()) {
+        r->render(m_cam->projection_matrix(), m_cam->view_matrix());
+      }
     }
   }
 
@@ -71,8 +74,10 @@ void scene::render(std::chrono::duration<double> const& dt) {
   yavin::enable_blending();
   yavin::blend_func_alpha();
   for (auto& r : m_renderables) {
-    if (r->is_transparent()) {
-      r->render(m_cam->projection_matrix(), m_cam->view_matrix());
+    if (r->is_enabled()) {
+      if (r->is_transparent()) {
+        r->render(m_cam->projection_matrix(), m_cam->view_matrix());
+      }
     }
   }
   yavin::enable_depth_test();
@@ -125,33 +130,15 @@ void scene::draw_nodes() {
   namespace ed = ax::NodeEditor;
   size_t i     = 0;
 
-  auto draw_ui = [&i](auto&& f, auto const& node) {
-    ImGui::PushID(i++);
-    namespace ed = ax::NodeEditor;
-    ed::BeginNode(node->get_id());
-    ImGui::TextUnformatted(node->title().c_str());
-    f();
-    for (auto& input_pin : node->input_pins()) {
-      ed::BeginPin(input_pin.get_id(), ed::PinKind::Input);
-      std::string in = "-> " + input_pin.title();
-      ImGui::TextUnformatted(in.c_str());
-      ed::EndPin();
-    }
-    for (auto& output_pin : node->output_pins()) {
-      ed::BeginPin(output_pin.get_id(), ed::PinKind::Output);
-      std::string out = output_pin.title() + " ->";
-      ImGui::TextUnformatted(out.c_str());
-      ed::EndPin();
-    }
-    ed::EndNode();
-    ImGui::PopID();
-  };
-
   for (auto& n : m_nodes) {
-    draw_ui([&n] { n->draw_ui(); }, n);
+    ImGui::PushID(i++);
+    n->draw_node();
+    ImGui::PopID();
   }
   for (auto& r : m_renderables) {
-    draw_ui([&r] { r->draw_ui(); }, r);
+    ImGui::PushID(i++);
+    r->draw_node();
+    ImGui::PopID();
   }
 }
 //----------------------------------------------------------------------------
@@ -361,6 +348,7 @@ void scene::write(std::filesystem::path const& filepath) const {
       serialized_node.insert("node_position", toml::array{pos[0], pos[1]});
       serialized_node.insert("node_title", node->title());
       serialized_node.insert("node_type", node->type_name());
+      serialized_node.insert("enabled", node->is_enabled());
       toml_scene.insert(std::to_string(node->get_id_number()), serialized_node);
     }
   };
@@ -438,6 +426,10 @@ void scene::read(std::filesystem::path const& filepath) {
       // set title
       auto const title = serialized_node["node_title"].as_string()->get();
       n->set_title(title);
+
+      // enable or disable
+      auto const enabled = serialized_node["enabled"].as_boolean()->get();
+      n->enable(enabled);
 
       n->deserialize(serialized_node);
     }

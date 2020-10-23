@@ -96,7 +96,7 @@ struct random_pathlines : renderable<random_pathlines<N>> {
     }
   }
   //----------------------------------------------------------------------------
-  void draw_ui() override {
+  void draw_properties() override {
     ImGui::DragInt("number of path lines", &m_num_pathlines, 1, 10, 1000);
     ImGui::DragDouble("backward tau", &m_btau, 0.1, -100, 0);
     ImGui::DragDouble("forward tau", &m_ftau, 0.1, 0, 100);

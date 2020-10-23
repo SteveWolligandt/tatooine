@@ -176,7 +176,7 @@ void autonomous_particle::advect() {
   //});
 }
 //----------------------------------------------------------------------------
-void autonomous_particle::draw_ui() {
+void autonomous_particle::draw_properties() {
   bool do_advect = false;
   if (ImGui::DragDouble("t0", &m_t0, 0.001)) {
     do_advect = true;

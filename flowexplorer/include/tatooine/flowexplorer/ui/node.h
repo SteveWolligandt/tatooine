@@ -2,10 +2,10 @@
 #define TATOOINE_FLOWEXPLORER_UI_NODE_H
 //==============================================================================
 #include <imgui-node-editor/imgui_node_editor.h>
-#include <tatooine/flowexplorer/ui/pin.h>
 #include <tatooine/demangling.h>
-#include <tatooine/flowexplorer/uuid_holder.h>
 #include <tatooine/flowexplorer/serializable.h>
+#include <tatooine/flowexplorer/ui/pin.h>
+#include <tatooine/flowexplorer/uuid_holder.h>
 #include <tatooine/reflection.h>
 #include <tatooine/vec.h>
 #include <yavin/imgui.h>
@@ -21,14 +21,15 @@ namespace tatooine::flowexplorer::ui {
 namespace base {
 struct node : uuid_holder<ax::NodeEditor::NodeId>, serializable {
  private:
-  std::string            m_title;
-  flowexplorer::scene*   m_scene;
-  std::vector<pin>       m_input_pins;
-  std::vector<pin>       m_output_pins;
+  std::string          m_title;
+  flowexplorer::scene* m_scene;
+  std::vector<pin>     m_input_pins;
+  std::vector<pin>     m_output_pins;
+  bool                 m_enabled = true;
 
  public:
-  node(flowexplorer::scene & s);
-  node(std::string const& title, flowexplorer::scene & s);
+  node(flowexplorer::scene& s);
+  node(std::string const& title, flowexplorer::scene& s);
   virtual ~node() = default;
   //============================================================================
   template <typename T>
@@ -41,49 +42,40 @@ struct node : uuid_holder<ax::NodeEditor::NodeId>, serializable {
     m_output_pins.push_back(make_output_pin<T>(*this, title));
   }
   //----------------------------------------------------------------------------
-  auto title() const -> auto const& {
-    return m_title;
-  }
+  auto title() const -> auto const& { return m_title; }
+  auto title() -> auto& { return m_title; }
   //----------------------------------------------------------------------------
-  auto title() -> auto& {
-    return m_title;
-  }
+  auto is_enabled() const { return m_enabled; }
   //----------------------------------------------------------------------------
-  auto set_title(std::string const& title) {
-    m_title = title;
-  }
+  auto enable(bool en = true) -> void { m_enabled = en; }
+  auto disable() -> void { m_enabled = false; }
+  auto toggle() -> void { m_enabled = !m_enabled; }
   //----------------------------------------------------------------------------
-  auto input_pins() const -> auto const& {
-    return m_input_pins;
-  }
+  auto set_title(std::string const& title) { m_title = title; }
   //----------------------------------------------------------------------------
-  auto input_pins() -> auto& {
-    return m_input_pins;
-  }
+  auto input_pins() const -> auto const& { return m_input_pins; }
+  auto input_pins() -> auto& { return m_input_pins; }
   //----------------------------------------------------------------------------
-  auto output_pins() const -> auto const& {
-    return m_output_pins;
-  }
+  auto output_pins() const -> auto const& { return m_output_pins; }
+  auto output_pins() -> auto& { return m_output_pins; }
   //----------------------------------------------------------------------------
-  auto output_pins() -> auto& {
-    return m_output_pins;
-  }
-  //----------------------------------------------------------------------------
-  virtual void draw_ui() = 0;
+  virtual void draw_properties() = 0;
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-  template <typename F>
-  void draw_ui(F&& f) {
+  void draw_node() {
     namespace ed = ax::NodeEditor;
     ed::BeginNode(get_id());
+    ImGui::Checkbox("", &m_enabled);
+    ImGui::SameLine();
     ImGui::TextUnformatted(title().c_str());
-    f();
-    for (auto& input_pin : m_input_pins) {
+    ImGui::Separator();
+    draw_properties();
+    for (auto& input_pin : input_pins()) {
       ed::BeginPin(input_pin.get_id(), ed::PinKind::Input);
       std::string in = "-> " + input_pin.title();
       ImGui::TextUnformatted(in.c_str());
       ed::EndPin();
     }
-    for (auto& output_pin : m_output_pins) {
+    for (auto& output_pin : output_pins()) {
       ed::BeginPin(output_pin.get_id(), ed::PinKind::Output);
       std::string out = output_pin.title() + " ->";
       ImGui::TextUnformatted(out.c_str());
@@ -97,12 +89,8 @@ struct node : uuid_holder<ax::NodeEditor::NodeId>, serializable {
   virtual auto on_pin_disconnected(pin& this_pin) -> void {}
   virtual auto type_name() const -> std::string_view = 0;
 
-  auto scene() const -> auto const& {
-    return *m_scene;
-  }
-  auto scene() -> auto & {
-    return *m_scene;
-  }
+  auto scene() const -> auto const& { return *m_scene; }
+  auto scene() -> auto& { return *m_scene; }
 };
 }  // namespace base
 template <typename T>
@@ -141,23 +129,36 @@ struct node_serializer {
         serialized_node.insert(
             name, toml::array{var.at(0), var.at(1), var.at(2), var.at(3)});
       } else if constexpr (
-          std::is_same_v<int[2], std::remove_cv_t<std::remove_reference_t<decltype(var)>>> ||
-          std::is_same_v<float[2], std::remove_cv_t<std::remove_reference_t<decltype(var)>>> ||
-          std::is_same_v<double[2], std::remove_cv_t<std::remove_reference_t<decltype(var)>>>) {
-        serialized_node.insert(
-            name, toml::array{var[0], var[1]});
+          std::is_same_v<int[2], std::remove_cv_t<
+                                     std::remove_reference_t<decltype(var)>>> ||
+          std::is_same_v<
+              float[2],
+              std::remove_cv_t<std::remove_reference_t<decltype(var)>>> ||
+          std::is_same_v<
+              double[2],
+              std::remove_cv_t<std::remove_reference_t<decltype(var)>>>) {
+        serialized_node.insert(name, toml::array{var[0], var[1]});
       } else if constexpr (
-          std::is_same_v<int[3], std::remove_cv_t<std::remove_reference_t<decltype(var)>>> ||
-          std::is_same_v<float[3], std::remove_cv_t<std::remove_reference_t<decltype(var)>>> ||
-          std::is_same_v<double[3], std::remove_cv_t<std::remove_reference_t<decltype(var)>>>) {
-        serialized_node.insert(
-            name, toml::array{var[0], var[1], var[2]});
+          std::is_same_v<int[3], std::remove_cv_t<
+                                     std::remove_reference_t<decltype(var)>>> ||
+          std::is_same_v<
+              float[3],
+              std::remove_cv_t<std::remove_reference_t<decltype(var)>>> ||
+          std::is_same_v<
+              double[3],
+              std::remove_cv_t<std::remove_reference_t<decltype(var)>>>) {
+        serialized_node.insert(name, toml::array{var[0], var[1], var[2]});
       } else if constexpr (
-          std::is_same_v<int[4], std::remove_cv_t<std::remove_reference_t<decltype(var)>>> ||
-          std::is_same_v<float[4], std::remove_cv_t<std::remove_reference_t<decltype(var)>>> ||
-          std::is_same_v<double[4], std::remove_cv_t<std::remove_reference_t<decltype(var)>>>) {
-        serialized_node.insert(
-            name, toml::array{var[0], var[1], var[2], var[3]});
+          std::is_same_v<int[4], std::remove_cv_t<
+                                     std::remove_reference_t<decltype(var)>>> ||
+          std::is_same_v<
+              float[4],
+              std::remove_cv_t<std::remove_reference_t<decltype(var)>>> ||
+          std::is_same_v<
+              double[4],
+              std::remove_cv_t<std::remove_reference_t<decltype(var)>>>) {
+        serialized_node.insert(name,
+                               toml::array{var[0], var[1], var[2], var[3]});
       }
     });
     return serialized_node;
@@ -230,21 +231,24 @@ struct node_serializer {
         var.at(1) = arr[1].as_floating_point()->get();
         var.at(2) = arr[2].as_floating_point()->get();
         var.at(3) = arr[3].as_floating_point()->get();
-      } else if constexpr (std::is_same_v<int[2],
-                                          std::remove_cv_t<std::remove_reference_t<decltype(var)>>>) {
+      } else if constexpr (std::is_same_v<
+                               int[2], std::remove_cv_t<std::remove_reference_t<
+                                           decltype(var)>>>) {
         auto const& arr = *serialized_node[name].as_array();
 
         var[0] = arr[0].as_integer()->get();
         var[1] = arr[1].as_integer()->get();
-      } else if constexpr (std::is_same_v<int[3],
-                                          std::remove_cv_t<std::remove_reference_t<decltype(var)>>>) {
+      } else if constexpr (std::is_same_v<
+                               int[3], std::remove_cv_t<std::remove_reference_t<
+                                           decltype(var)>>>) {
         auto const& arr = *serialized_node[name].as_array();
 
         var[0] = arr[0].as_integer()->get();
         var[1] = arr[1].as_integer()->get();
         var[2] = arr[2].as_integer()->get();
-      } else if constexpr (std::is_same_v<int[4],
-                                          std::remove_cv_t<std::remove_reference_t<decltype(var)>>>) {
+      } else if constexpr (std::is_same_v<
+                               int[4], std::remove_cv_t<std::remove_reference_t<
+                                           decltype(var)>>>) {
         auto const& arr = *serialized_node[name].as_array();
 
         var[0] = arr[0].as_integer()->get();
@@ -252,27 +256,36 @@ struct node_serializer {
         var[2] = arr[2].as_integer()->get();
         var[3] = arr[3].as_integer()->get();
 
-      } else if constexpr (std::is_same_v<float[2],
-                                          std::remove_cv_t<std::remove_reference_t<decltype(var)>>> ||
-                           std::is_same_v<double[2],
-                                          std::remove_cv_t<std::remove_reference_t<decltype(var)>>>) {
+      } else if constexpr (
+          std::is_same_v<
+              float[2],
+              std::remove_cv_t<std::remove_reference_t<decltype(var)>>> ||
+          std::is_same_v<
+              double[2],
+              std::remove_cv_t<std::remove_reference_t<decltype(var)>>>) {
         auto const& arr = *serialized_node[name].as_array();
 
         var.at[0] = arr[0].as_floating_point()->get();
         var.at[1] = arr[1].as_floating_point()->get();
-      } else if constexpr (std::is_same_v<float[3],
-                                          std::remove_cv_t<std::remove_reference_t<decltype(var)>>> ||
-                           std::is_same_v<double[3],
-                                          std::remove_cv_t<std::remove_reference_t<decltype(var)>>>) {
+      } else if constexpr (
+          std::is_same_v<
+              float[3],
+              std::remove_cv_t<std::remove_reference_t<decltype(var)>>> ||
+          std::is_same_v<
+              double[3],
+              std::remove_cv_t<std::remove_reference_t<decltype(var)>>>) {
         auto const& arr = *serialized_node[name].as_array();
 
         var[0] = arr[0].as_floating_point()->get();
         var[1] = arr[1].as_floating_point()->get();
         var[2] = arr[2].as_floating_point()->get();
-      } else if constexpr (std::is_same_v<float[4],
-                                          std::remove_cv_t<std::remove_reference_t<decltype(var)>>> ||
-                           std::is_same_v<double[4],
-                                          std::remove_cv_t<std::remove_reference_t<decltype(var)>>>) {
+      } else if constexpr (
+          std::is_same_v<
+              float[4],
+              std::remove_cv_t<std::remove_reference_t<decltype(var)>>> ||
+          std::is_same_v<
+              double[4],
+              std::remove_cv_t<std::remove_reference_t<decltype(var)>>>) {
         auto const& arr = *serialized_node[name].as_array();
 
         var[0] = arr[0].as_floating_point()->get();
@@ -283,7 +296,7 @@ struct node_serializer {
     });
   }
   //----------------------------------------------------------------------------
-  auto draw_ui(T& t) -> void {
+  auto draw_properties(T& t) -> void {
     reflection::for_each(t, [](auto const& name, auto& var) {
       // float
       if constexpr (std::is_same_v<float, std::decay_t<decltype(var)>>) {
@@ -373,41 +386,40 @@ struct node : base::node, node_serializer<Child> {
                                                serialized_node);
   }
   //----------------------------------------------------------------------------
-  auto draw_ui() -> void override final {
-    return node_serializer<Child>::draw_ui(*dynamic_cast<Child*>(this));
+  auto draw_properties() -> void override final {
+    node_serializer<Child>::draw_properties(*dynamic_cast<Child*>(this));
   }
   //----------------------------------------------------------------------------
   auto type_name() const -> std::string_view override final {
     return node_serializer<Child>::type_name();
   }
 };
-  //==============================================================================
+//==============================================================================
 }  // namespace tatooine::flowexplorer::ui
 //==============================================================================
 struct registered_function_t {
-  using registered_function_ptr_t =
-      tatooine::flowexplorer::ui::base::node* (*)(tatooine::flowexplorer::scene&,
-                                            std::string_view const&);
+  using registered_function_ptr_t = tatooine::flowexplorer::ui::base::
+      node* (*)(tatooine::flowexplorer::scene&, std::string_view const&);
   registered_function_ptr_t registered_function;
 };
 
 #define REGISTER_NODE_FACTORY(registered_function_, sec)                       \
-  static registered_function_t ptr_##registered_function_            \
+  static registered_function_t ptr_##registered_function_                      \
       __attribute((used, section(#sec))) = {                                   \
           .registered_function = registered_function_,                         \
   }  //------------------------------------------------------------------------------
-#define REGISTER_NODE(type, ...)                                                \
-  namespace tatooine::flowexplorer::registered_funcs::type {                    \
-  static auto register_node(::tatooine::flowexplorer::scene& s,              \
-                               std::string_view const&          node_type_name) \
-      -> ::tatooine::flowexplorer::ui::base::node* {                            \
-    if (node_type_name == #type) {                                              \
-      return new ::type{s};                                                     \
-    }                                                                           \
-    return nullptr;                                                             \
-  }                                                                             \
-  REGISTER_NODE_FACTORY(register_node, registration);                           \
-  }                                                                             \
+#define REGISTER_NODE(type, ...)                                               \
+  namespace tatooine::flowexplorer::registered_funcs::type {                   \
+  static auto register_node(::tatooine::flowexplorer::scene& s,                \
+                            std::string_view const&          node_type_name)   \
+      -> ::tatooine::flowexplorer::ui::base::node* {                           \
+    if (node_type_name == #type) {                                             \
+      return new ::type{s};                                                    \
+    }                                                                          \
+    return nullptr;                                                            \
+  }                                                                            \
+  REGISTER_NODE_FACTORY(register_node, registration);                          \
+  }                                                                            \
   TATOOINE_MAKE_ADT_REFLECTABLE(type, ##__VA_ARGS__)
 //------------------------------------------------------------------------------
 extern registered_function_t __start_registration;
@@ -417,7 +429,5 @@ extern registered_function_t __stop_registration;
        elem != &__stop_##section; ++elem)
 //------------------------------------------------------------------------------
 #define call_registered_functions(section, string)                             \
-  iterate_registered_functions(entry, section) {                               \
-    entry->registered_function();                                              \
-  }
+  iterate_registered_functions(entry, section) { entry->registered_function(); }
 #endif
