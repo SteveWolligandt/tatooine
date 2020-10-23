@@ -115,11 +115,10 @@ struct lic : renderable<lic> {
 }  // namespace tatooine::flowexplorer::nodes
 //==============================================================================
 REGISTER_NODE(tatooine::flowexplorer::nodes::lic,
-  TATOOINE_REFLECTION_INSERT_METHOD(resolution, lic_res()),
-  //META_NODE_ACCESSOR(vectorfield_sample_res, vectorfield_sample_res()),
-  TATOOINE_REFLECTION_INSERT_GETTER(t)
-  //META_NODE_ACCESSOR(num_samples, num_samples()),
-  //META_NODE_ACCESSOR(stepsize, stepsize()),
-  //META_NODE_ACCESSOR(alpha, alpha())
-  )
+              TATOOINE_REFLECTION_INSERT_METHOD(resolution, lic_res()),
+              TATOOINE_REFLECTION_INSERT_GETTER(vectorfield_sample_res),
+              TATOOINE_REFLECTION_INSERT_GETTER(t),
+              TATOOINE_REFLECTION_INSERT_GETTER(num_samples),
+              TATOOINE_REFLECTION_INSERT_GETTER(stepsize),
+              TATOOINE_REFLECTION_INSERT_GETTER(alpha))
 #endif

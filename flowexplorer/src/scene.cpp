@@ -4,7 +4,7 @@
 #include <tatooine/flowexplorer/nodes/abcflow.h>
 #include <tatooine/flowexplorer/nodes/boundingbox.h>
 #include <tatooine/flowexplorer/nodes/doublegyre.h>
-//#include <tatooine/flowexplorer/nodes/lic.h>
+#include <tatooine/flowexplorer/nodes/lic.h>
 #include <tatooine/flowexplorer/nodes/autonomous_particle.h>
 #include <tatooine/flowexplorer/nodes/duffing_oscillator.h>
 #include <tatooine/flowexplorer/nodes/position.h>
@@ -282,6 +282,7 @@ void scene::node_creators() {
     m_nodes.emplace_back(new nodes::test_node{*this});
   }
   //----------------------------------------------------------------------------
+  // positions
   if (ImGui::Button("2D Position")) {
     m_renderables.emplace_back(new nodes::position<2>{*this});
   }
@@ -289,6 +290,17 @@ void scene::node_creators() {
   if (ImGui::Button("3D Position")) {
     m_renderables.emplace_back(new nodes::position<3>{*this});
   }
+  // bounding boxes
+  if (ImGui::Button("2D BoundingBox")) {
+    m_renderables.emplace_back(
+        new nodes::boundingbox{vec{-1.0, -1.0}, vec{1.0, 1.0}, *this});
+  }
+  ImGui::SameLine();
+  if (ImGui::Button("3D BoundingBox")) {
+    m_renderables.emplace_back(new nodes::boundingbox{
+        vec{-1.0, -1.0, -1.0}, vec{1.0, 1.0, 1.0}, *this});
+  }
+
   // vectorfields
   if (ImGui::Button("ABC Flow")) {
     m_nodes.emplace_back(new nodes::abcflow{*this});
@@ -313,25 +325,15 @@ void scene::node_creators() {
     m_nodes.emplace_back(new nodes::spacetime_vectorfield{*this});
   }
 
-  // bounding boxes
-  if (ImGui::Button("2D BoundingBox")) {
-    m_renderables.emplace_back(
-        new nodes::boundingbox{vec{-1.0, -1.0}, vec{1.0, 1.0}, *this});
-  }
-  ImGui::SameLine();
-  if (ImGui::Button("3D BoundingBox")) {
-    m_renderables.emplace_back(new nodes::boundingbox{
-        vec{-1.0, -1.0, -1.0}, vec{1.0, 1.0, 1.0}, *this});
-  }
 
   // Algorithms
   if (ImGui::Button("Random Path Lines")) {
     m_renderables.emplace_back(new nodes::random_pathlines3d{*this});
   }
-  //ImGui::SameLine();
-  //if (ImGui::Button("LIC")) {
-  //  m_renderables.emplace_back(new nodes::lic{*this});
-  //}
+  ImGui::SameLine();
+  if (ImGui::Button("LIC")) {
+    m_renderables.emplace_back(new nodes::lic{*this});
+  }
   ImGui::SameLine();
   if (ImGui::Button("Autonomous Particle")) {
     m_renderables.emplace_back(new nodes::autonomous_particle{*this});
