@@ -6,15 +6,16 @@
 //==============================================================================
 namespace tatooine::flowexplorer::nodes {
 //==============================================================================
-template <typename Real>
-struct saddle : tatooine::analytical::fields::numerical::saddle<Real>,
-                    ui::node {
-  saddle() : ui::node{"Saddle Field"} {
-    this->template insert_output_pin<parent::vectorfield<Real, 2>>("Field Out");
+struct saddle : tatooine::analytical::fields::numerical::saddle<double>,
+                ui::node<saddle> {
+  saddle(flowexplorer::scene& s) : ui::node<saddle>{"Saddle Field",s} {
+    this->template insert_output_pin<parent::vectorfield<double, 2>>(
+        "Field Out");
   }
   virtual ~saddle() = default;
 };
 //==============================================================================
 }  // namespace tatooine::flowexplorer::nodes
 //==============================================================================
+REGISTER_NODE(tatooine::flowexplorer::nodes::saddle)
 #endif

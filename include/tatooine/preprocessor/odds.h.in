@@ -1,0 +1,13 @@
+#ifndef TATOOINE_PREPROCESSOR_ODDS_H
+#define TATOOINE_PREPROCESSOR_ODDS_H
+//==============================================================================
+#include <tatooine/preprocessor/invoke.h>
+//==============================================================================
+@CMAKE_ODDS@
+//==============================================================================
+#define TATOOINE_PP_ODDS(...)                                                \
+  TATOOINE_PP_INVOKE(                                                        \
+      TATOOINE_PP_CONCAT(TATOOINE_PP_ODDS_, TATOOINE_PP_NUM_ARGS(__VA_ARGS__)), \
+       __VA_ARGS__)
+//==============================================================================
+#endif

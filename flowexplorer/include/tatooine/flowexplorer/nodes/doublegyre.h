@@ -6,16 +6,17 @@
 //==============================================================================
 namespace tatooine::flowexplorer::nodes {
 //==============================================================================
-template <typename Real>
-struct doublegyre : tatooine::analytical::fields::numerical::doublegyre<Real>,
-                    ui::node {
-  doublegyre() : ui::node{"Double Gyre"} {
+struct doublegyre : tatooine::analytical::fields::numerical::doublegyre<double>,
+                    ui::node<doublegyre> {
+  doublegyre(flowexplorer::scene& s) : ui::node<doublegyre>{"Double Gyre", s} {
     this->set_infinite_domain(true);
-    this->template insert_output_pin<parent::vectorfield<Real, 2>>("Field Out");
+    this->template insert_output_pin<parent::vectorfield<double, 2>>(
+        "Field Out");
   }
   virtual ~doublegyre() = default;
 };
 //==============================================================================
 }  // namespace tatooine::flowexplorer::nodes
 //==============================================================================
+REGISTER_NODE(tatooine::flowexplorer::nodes::doublegyre);
 #endif

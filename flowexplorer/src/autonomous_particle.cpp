@@ -5,8 +5,8 @@
 //==============================================================================
 namespace tatooine::flowexplorer::nodes {
 //==============================================================================
-autonomous_particle::autonomous_particle(flowexplorer::window& w)
-    : renderable{w, "Autonomous Particle"} {
+autonomous_particle::autonomous_particle(flowexplorer::scene& s)
+    : renderable<autonomous_particle>{"Autonomous Particle", s} {
   this->template insert_input_pin<vectorfield_t>("2D Vector Field");
   this->template insert_input_pin<position<2>>("x0");
 
@@ -37,10 +37,6 @@ void autonomous_particle::render(mat<float, 4, 4> const& projection_matrix,
 
   m_point_shader.bind();
   yavin::gl::point_size(4);
-  //m_point_shader.set_color(0,0,0,1);
-  //m_gpu_random_points_in_initial_circle.draw_points();
-  //m_point_shader.set_color(0.8,0.8,0.8,1);
-  //m_gpu_advected_random_points_in_initial_circle.draw_points();
 }
 //----------------------------------------------------------------------------
 void autonomous_particle::update_initial_circle() {
@@ -255,7 +251,7 @@ void autonomous_particle::on_pin_connected(ui::pin& this_pin,
     m_x0 = dynamic_cast<vec<double, 2>*>(&other_pin.node());
     x0() = *m_x0;
     x1() = *m_x0;
-    update_initial_circle();
+    //update_initial_circle();
   } else if ((other_pin.type() == typeid(vectorfield_t))) {
     this->phi().set_vectorfield(
         dynamic_cast<vectorfield_t*>(&other_pin.node()));

@@ -6,14 +6,20 @@
 //==============================================================================
 namespace tatooine::flowexplorer::nodes {
 //==============================================================================
-template <typename Real>
-struct abcflow : tatooine::analytical::fields::numerical::abcflow<Real>, ui::node {
-  abcflow() : ui::node{"ABC Flow"} {
-    this->template insert_output_pin<parent::field<Real, 3, 3>>("Field Out");
+struct abcflow : tatooine::analytical::fields::numerical::abcflow<double>,
+                 ui::node<abcflow> {
+  abcflow(flowexplorer::scene& s) : ui::node<abcflow>{"ABC Flow", s} {
+    setup_pins();
   }
   virtual ~abcflow() = default;
+
+ private:
+  void setup_pins() {
+    this->template insert_output_pin<parent::field<double, 3, 3>>("Field Out");
+  }
 };
 //==============================================================================
 }  // namespace tatooine::flowexplorer::nodes
 //==============================================================================
+REGISTER_NODE(tatooine::flowexplorer::nodes::abcflow);
 #endif

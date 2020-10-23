@@ -7,11 +7,9 @@
 //==============================================================================
 namespace tatooine::flowexplorer {
 //==============================================================================
-struct window;
-struct renderable : ui::node {
-  flowexplorer::window* m_window;
-
-  renderable(flowexplorer::window& w, std::string const& name);
+namespace base {
+struct renderable : ui::base::node {
+  renderable(std::string const& title, flowexplorer::scene& s);
   renderable(renderable const& w)                        = default;
   renderable(renderable&& w) noexcept                    = default;
   auto operator=(renderable const& w) -> renderable&     = default;
@@ -22,12 +20,28 @@ struct renderable : ui::node {
   virtual void        render(const mat<float, 4, 4>& projection_matrix,
                              const mat<float, 4, 4>& view_matrix) = 0;
   virtual bool        is_transparent() const                      = 0;
-
-  auto window() const -> auto const& {
-    return *m_window;
+};
+}  // namespace base
+template <typename Child>
+struct renderable : base::renderable, ui::node_serializer<Child> {
+  using base::renderable::renderable;
+  using serializer_t = ui::node_serializer<Child>; 
+  //============================================================================
+  auto serialize() const -> toml::table override{
+    return serializer_t::serialize(*dynamic_cast<Child const*>(this));
   }
-  auto window() -> auto& {
-    return *m_window;
+  //----------------------------------------------------------------------------
+  auto deserialize(toml::table const& serialization) -> void override {
+    return serializer_t::deserialize(*dynamic_cast<Child*>(this),
+                                               serialization);
+  }
+  //----------------------------------------------------------------------------
+  auto draw_ui() -> void override {
+    return serializer_t::draw_ui(*dynamic_cast<Child*>(this));
+  }
+  //----------------------------------------------------------------------------
+  auto type_name() const -> std::string_view override {
+    return serializer_t::type_name();
   }
 };
 //==============================================================================

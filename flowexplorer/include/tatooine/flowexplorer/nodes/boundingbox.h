@@ -1,18 +1,19 @@
 #ifndef TATOOINE_FLOWEXPLORER_NODES_BOUNDINGBOX_H
 #define TATOOINE_FLOWEXPLORER_NODES_BOUNDINGBOX_H
 //==============================================================================
+#include <tatooine/boundingbox.h>
 #include <tatooine/flowexplorer/line_shader.h>
 #include <tatooine/flowexplorer/renderable.h>
-#include <tatooine/boundingbox.h>
 #include <yavin/imgui.h>
 #include <yavin/indexeddata.h>
 //==============================================================================
 namespace tatooine::flowexplorer::nodes {
 //==============================================================================
-template <typename Real, size_t N>
-struct boundingbox : tatooine::boundingbox<Real, N>, renderable {
-  using this_t   = boundingbox<Real, N>;
-  using parent_t = tatooine::boundingbox<Real, N>;
+template <size_t N>
+struct boundingbox : tatooine::boundingbox<double, N>,
+                     renderable<boundingbox<N>> {
+  using this_t   = boundingbox<N>;
+  using parent_t = tatooine::boundingbox<double, N>;
   using gpu_vec  = vec<float, N>;
   using vbo_t    = yavin::vertexbuffer<gpu_vec>;
   using parent_t::max;
@@ -20,38 +21,42 @@ struct boundingbox : tatooine::boundingbox<Real, N>, renderable {
   //============================================================================
   yavin::indexeddata<vec<float, N>> m_gpu_data;
   line_shader                       m_shader;
-  int                               m_linewidth = 1;
-  std::array<GLfloat, 4>            m_color{0.0f, 0.0f, 0.0f, 1.0f};
+  int                               m_line_width = 1;
+  std::array<GLfloat, 4>            m_line_color{0.0f, 0.0f, 0.0f, 1.0f};
   //============================================================================
-  boundingbox(flowexplorer::window& w) : renderable{w, "Bounding Box"} {}
+  boundingbox(flowexplorer::scene& s)
+      : renderable<boundingbox>{"Bounding Box", s} {
+    this->template insert_output_pin<this_t>("Out");
+    create_indexed_data();
+  }
   boundingbox(const boundingbox&)     = default;
   boundingbox(boundingbox&&) noexcept = default;
   auto operator=(const boundingbox&) -> boundingbox& = default;
   auto operator=(boundingbox&&) noexcept -> boundingbox& = default;
   //============================================================================
   template <typename Real0, typename Real1>
-  constexpr boundingbox(flowexplorer::window& w, vec<Real0, N>&& min,
-                        vec<Real1, N>&& max) noexcept
+  constexpr boundingbox(vec<Real0, N>&& min, vec<Real1, N>&& max,
+                        flowexplorer::scene& s) noexcept
       : parent_t{std::move(min), std::move(max)},
-        renderable{w, "Bounding Box"} {
+        renderable<boundingbox>{"Bounding Box", s} {
     this->template insert_output_pin<this_t>("Out");
     create_indexed_data();
   }
   //----------------------------------------------------------------------------
   template <typename Real0, typename Real1>
-  constexpr boundingbox(flowexplorer::window& w, const vec<Real0, N>& min,
-                        const vec<Real1, N>& max)
-      : parent_t{min, max}, renderable{w, "Bounding Box"} {
-    insert_output_node<this_t>("Out");
+  constexpr boundingbox(const vec<Real0, N>& min, const vec<Real1, N>& max,
+                        flowexplorer::scene& s)
+      : parent_t{min, max}, renderable<boundingbox>{"Bounding Box", s} {
+    this->template insert_output_pin<this_t>("Out");
     create_indexed_data();
   }
   //----------------------------------------------------------------------------
   template <typename Tensor0, typename Tensor1, typename Real0, typename Real1>
-  constexpr boundingbox(flowexplorer::window&                 w,
-                        const base_tensor<Tensor0, Real0, N>& min,
-                        const base_tensor<Tensor1, Real1, N>& max)
-      : parent_t{min, max}, renderable{w, "Bounding Box"} {
-    insert_output_node<this_t>("Out");
+  constexpr boundingbox(const base_tensor<Tensor0, Real0, N>& min,
+                        const base_tensor<Tensor1, Real1, N>& max,
+                        flowexplorer::scene&                  s)
+      : parent_t{min, max}, renderable<boundingbox>{"Bounding Box", s} {
+    this->template insert_output_pin<this_t>("Out");
     create_indexed_data();
   }
   //============================================================================
@@ -59,23 +64,12 @@ struct boundingbox : tatooine::boundingbox<Real, N>, renderable {
               mat<float, 4, 4> const& view_matrix) override {
     set_vbo_data();
     m_shader.bind();
-    m_shader.set_color(m_color[0], m_color[1], m_color[2], m_color[3]);
+    m_shader.set_color(m_line_color[0], m_line_color[1], m_line_color[2],
+                       m_line_color[3]);
     m_shader.set_projection_matrix(projection_matrix);
     m_shader.set_modelview_matrix(view_matrix);
-    yavin::gl::line_width(m_linewidth);
+    yavin::gl::line_width(m_line_width);
     m_gpu_data.draw_lines();
-  }
-  //----------------------------------------------------------------------------
-  void draw_ui() override {
-    if constexpr (N == 3) {
-      ImGui::DragDouble3("min", this->min().data_ptr(), 0.1);
-      ImGui::DragDouble3("max", this->max().data_ptr(), 0.1);
-    } else if constexpr (N == 2) {
-      ImGui::DragDouble2("min", this->min().data_ptr(), 0.1);
-      ImGui::DragDouble2("max", this->max().data_ptr(), 0.1);
-    }
-    ImGui::DragInt("line size", &m_linewidth, 1, 1, 10);
-    ImGui::ColorEdit4("line color", m_color.data());
   }
   //============================================================================
   void set_vbo_data() {
@@ -109,27 +103,42 @@ struct boundingbox : tatooine::boundingbox<Real, N>, renderable {
                                 5, 7, 6, 7, 0, 4, 1, 5, 2, 6, 3, 7};
   }
   //----------------------------------------------------------------------------
-  auto is_transparent() const -> bool override {
-    return m_color[3] < 1;
-  }
+  auto is_transparent() const -> bool override { return m_line_color[3] < 1; }
+  //----------------------------------------------------------------------------
+  auto line_width() -> auto& { return m_line_width; }
+  auto line_width() const { return m_line_width; }
+  //----------------------------------------------------------------------------
+  auto line_color() -> auto& { return m_line_color; }
+  auto line_color() const -> auto const& { return m_line_color; }
 };
+using boundingbox2d = boundingbox<2>;
+using boundingbox3d = boundingbox<3>;
 //==============================================================================
 // deduction guides
 //==============================================================================
 template <typename Real0, typename Real1, size_t N>
-boundingbox(flowexplorer::window&, const vec<Real0, N>&, const vec<Real1, N>&)
-    -> boundingbox<promote_t<Real0, Real1>, N>;
+boundingbox(const vec<Real0, N>&, const vec<Real1, N>&, flowexplorer::scene&)
+    -> boundingbox<N>;
 //------------------------------------------------------------------------------
 template <typename Real0, typename Real1, size_t N>
-boundingbox(flowexplorer::window&, vec<Real0, N>&&, vec<Real1, N> &&)
-    -> boundingbox<promote_t<Real0, Real1>, N>;
+boundingbox(vec<Real0, N>&&, vec<Real1, N>&&, flowexplorer::scene&)
+    -> boundingbox<N>;
 //------------------------------------------------------------------------------
 template <typename Tensor0, typename Tensor1, typename Real0, typename Real1,
           size_t N>
-boundingbox(flowexplorer::window&, base_tensor<Tensor0, Real0, N>&&,
-            base_tensor<Tensor1, Real1, N> &&)
-    -> boundingbox<promote_t<Real0, Real1>, N>;
+boundingbox(base_tensor<Tensor0, Real0, N>&&, base_tensor<Tensor1, Real1, N>&&,
+            flowexplorer::scene&) -> boundingbox<N>;
 //==============================================================================
 }  // namespace tatooine::flowexplorer::nodes
 //==============================================================================
+REGISTER_NODE(tatooine::flowexplorer::nodes::boundingbox2d,
+              TATOOINE_REFLECTION_INSERT_GETTER(min),
+              TATOOINE_REFLECTION_INSERT_GETTER(max),
+              TATOOINE_REFLECTION_INSERT_GETTER(line_width),
+              TATOOINE_REFLECTION_INSERT_GETTER(line_color));
+REGISTER_NODE(tatooine::flowexplorer::nodes::boundingbox3d,
+              TATOOINE_REFLECTION_INSERT_GETTER(min),
+              TATOOINE_REFLECTION_INSERT_GETTER(max),
+              TATOOINE_REFLECTION_INSERT_GETTER(line_width),
+              TATOOINE_REFLECTION_INSERT_GETTER(line_color));
 #endif

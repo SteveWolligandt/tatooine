@@ -9,9 +9,9 @@ AlignTrailingComments: 'true'
 AllowAllArgumentsOnNextLine: 'true'
 AllowShortBlocksOnASingleLine: 'false'
 AllowShortCaseLabelsOnASingleLine: 'false'
-AllowShortFunctionsOnASingleLine: Empty
+AllowShortFunctionsOnASingleLine: All
 AllowShortIfStatementsOnASingleLine: WithoutElse
-AllowShortLambdasOnASingleLine: Empty
+AllowShortLambdasOnASingleLine: All
 AllowShortLoopsOnASingleLine: 'false'
 ColumnLimit: '80'
 Cpp11BracedListStyle: 'true'

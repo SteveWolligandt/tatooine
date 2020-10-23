@@ -1,14 +1,13 @@
-#ifndef TATOOINE_FLOWEXPLORER_LINK_INFO_H
-#define TATOOINE_FLOWEXPLORER_LINK_INFO_H
+#ifndef TATOOINE_FLOWEXPLORER_SERIALIZABLE_H
+#define TATOOINE_FLOWEXPLORER_SERIALIZABLE_H
 //==============================================================================
-#include <imgui-node-editor/imgui_node_editor.h>
+#include <toml++/toml.h>
 //==============================================================================
 namespace tatooine::flowexplorer {
 //==============================================================================
-struct link_info {
-  ax::NodeEditor::LinkId id;
-  ax::NodeEditor::PinId  input_id;
-  ax::NodeEditor::PinId  output_id;
+struct serializable {
+  virtual auto serialize() const -> toml::table = 0;
+  virtual void deserialize(toml::table const&) = 0;
 };
 //==============================================================================
 }  // namespace tatooine::flowexplorer

@@ -3,6 +3,7 @@
 //==============================================================================
 #include <tatooine/field.h>
 #include <tatooine/grid.h>
+#include <tatooine/rank.h>
 #include <yavin/texture.h>
 //==============================================================================
 namespace tatooine::gpu {

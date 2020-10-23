@@ -29,6 +29,15 @@ struct duffing_oscillator : vectorfield<duffing_oscillator<Real>, Real, 2> {
   constexpr bool in_domain(const pos_t& x, Real) const override {
     return true;
   }
+  //----------------------------------------------------------------------------
+  auto alpha() -> auto& { return m_alpha; }
+  auto alpha() const { return m_alpha; }
+  //----------------------------------------------------------------------------
+  auto beta() -> auto& { return m_beta; }
+  auto beta() const { return m_beta; }
+  //----------------------------------------------------------------------------
+  auto delta() -> auto& { return m_delta; }
+  auto delta() const { return m_delta; }
 };
 //------------------------------------------------------------------------------
 duffing_oscillator()->duffing_oscillator<double>;

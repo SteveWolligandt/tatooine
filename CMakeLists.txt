@@ -2,7 +2,11 @@ cmake_minimum_required(VERSION 3.10)
 project(tatooine)
 list(APPEND CMAKE_MODULE_PATH "${CMAKE_SOURCE_DIR}/cmake/modules/")
 list(APPEND CMAKE_MODULE_PATH "${CMAKE_SOURCE_DIR}/external/catch2/contrib/")
-
+#- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - 
+# preprocessor lib
+#- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - 
+set(TATOOINE_PP_NUM_MAX_INDICES "100" CACHE STRING "")
+include(preprocessor_setup)
 #- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - 
 # git submodules
 #- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - 
@@ -113,8 +117,8 @@ target_include_directories(tatooine
     ${PNG_INCLUDE_DIRS}
     ${PNG++_INCLUDE_DIRS}
     ${CMAKE_CURRENT_SOURCE_DIR}/external/indicators/include
+    ${CMAKE_CURRENT_SOURCE_DIR}/external/tomlplusplus/include
 )
-
 #- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 #set libs 
 target_link_libraries(tatooine

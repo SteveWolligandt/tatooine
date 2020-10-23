@@ -3,7 +3,7 @@
 //==============================================================================
 #include <boost/core/demangle.hpp>
 //==============================================================================
-namespace tatooine{
+namespace tatooine {
 //==============================================================================
 inline auto type_name(std::type_info const& t) -> std::string {
   return boost::core::demangle(t.name());

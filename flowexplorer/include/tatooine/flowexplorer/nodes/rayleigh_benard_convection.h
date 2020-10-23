@@ -8,19 +8,18 @@
 //==============================================================================
 namespace tatooine::flowexplorer::nodes {
 //==============================================================================
-template <typename Real>
 struct rayleigh_benard_convection
-    : tatooine::analytical::fields::numerical::rayleigh_benard_convection<Real>,
-      ui::node {
-  rayleigh_benard_convection() : ui::node{"Rayleigh Benard Convection"} {
-    this->template insert_output_pin<parent::field<Real, 3, 3>>("Field Out");
-  }
-  void draw_ui() override {
-    ImGui::DragDouble("A", &this->A());
-    ImGui::DragDouble("k", &this->k());
+    : tatooine::analytical::fields::numerical::rayleigh_benard_convection<double>,
+      ui::node<rayleigh_benard_convection> {
+  rayleigh_benard_convection(flowexplorer::scene& s)
+      : ui::node<rayleigh_benard_convection>{"Rayleigh Benard Convection", s} {
+    this->template insert_output_pin<parent::field<double, 3, 3>>("Field Out");
   }
 };
 //==============================================================================
 }  // namespace tatooine::flowexplorer::nodes
 //==============================================================================
+REGISTER_NODE(tatooine::flowexplorer::nodes::rayleigh_benard_convection,
+              TATOOINE_REFLECTION_INSERT_GETTER(A),
+              TATOOINE_REFLECTION_INSERT_GETTER(k))
 #endif

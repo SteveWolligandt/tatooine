@@ -1,11 +1,10 @@
 #include <tatooine/flowexplorer/renderable.h>
-#include <tatooine/flowexplorer/window.h>
 //==============================================================================
-namespace tatooine::flowexplorer {
+namespace tatooine::flowexplorer::base {
 //==============================================================================
-renderable::renderable(flowexplorer::window& w, std::string const& name)
-    : m_window{&w}, ui::node{name} {}
+renderable::renderable(std::string const& title, flowexplorer::scene& s)
+    : ui::base::node{title, s} {}
 
 //==============================================================================
-}  // namespace tatooine::flowexplorer
+}  // namespace tatooine::flowexplorer::base
 //==============================================================================

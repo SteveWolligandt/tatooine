@@ -2,7 +2,7 @@
 #define TATOOINE_UTILITY_H
 //==============================================================================
 #include <tatooine/cxxstd.h>
-#include <tatooine/rank.h>
+//#include <tatooine/rank.h>
 #include <tatooine/demangling.h>
 #include <tatooine/extract.h>
 #include <tatooine/make_array.h>
@@ -85,6 +85,11 @@ constexpr void tat_swap(T& t0, T& t1) {
   t0    = std::move(t1);
   t1    = std::move(tmp);
 }
+//==============================================================================
+template <typename T, typename Ret, typename ... Args>
+using const_method_ptr = Ret (T::*)(Args...) const;
+template <typename T, typename Ret, typename ... Args>
+using non_const_method_ptr = Ret (T::*)(Args...);
 //==============================================================================
 }  // namespace tatooine
 //==============================================================================

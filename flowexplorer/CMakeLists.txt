@@ -12,11 +12,14 @@ add_executable(
   flowexplorer
 
   src/flowexplorer.cpp
+  src/node.cpp
   src/window.cpp
   src/autonomous_particle.cpp
   src/line_shader.cpp 
   src/point_shader.cpp 
   src/renderable.cpp 
+  src/scene.cpp 
+  src/lic.cpp
 
   src/imgui-node-editor/crude_json.cpp
   src/imgui-node-editor/imgui_canvas.cpp
