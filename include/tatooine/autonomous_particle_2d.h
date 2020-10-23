@@ -191,7 +191,7 @@ struct autonomous_particle<Flowmap> {
 
  private:
   //----------------------------------------------------------------------------
-  auto step_until_split(real_t const tau_step, real_t const max_t,
+  auto step_until_split(real_t tau_step, real_t const max_t,
                         real_t const objective_cond, bool const add_center,
                         std::ranges::range auto const radii) const
       -> std::vector<this_t> {
@@ -236,10 +236,7 @@ struct autonomous_particle<Flowmap> {
                                std::sqrt(eigvals_HHt(1))};
         return {{m_phi, m_x0, advected_center, t2, fmg2fmg1,
                  eigvecs_HHt * diag(new_eig_vals) * transposed(eigvecs_HHt)}};
-      } else if (cond_HHt >= objective_cond) {
-        auto const best_tau_step_lin_interp_fac =
-            (objective_cond - old_cond_HHt) / (cond_HHt - old_cond_HHt);
-        t2 -= (1 - best_tau_step_lin_interp_fac) * tau_step;
+      } else if (cond_HHt >= objective_cond && cond_HHt - objective_cond < 0.0001) {
         p_p0 = m_phi(m_x1 + o_p0, m_t1, t2 - m_t1);
         p_n0 = m_phi(m_x1 + o_n0, m_t1, t2 - m_t1);
         p_0p = m_phi(m_x1 + o_0p, m_t1, t2 - m_t1);
@@ -282,6 +279,13 @@ struct autonomous_particle<Flowmap> {
           current_offset += relative_unit_vec * 2 * radius;
         }
         return splits;
+      } else if (cond_HHt >= objective_cond && cond_HHt - objective_cond >= 0.0001){
+        t2 -= tau_step;
+        tau_step /= 2;
+        //// go back in time via linear interpolation
+        //auto const best_tau_step_lin_interp_fac =
+        //    (objective_cond - old_cond_HHt) / (cond_HHt - old_cond_HHt);
+        //t2 -= (1 - best_tau_step_lin_interp_fac) * tau_step;
       }
     }
     return {};
