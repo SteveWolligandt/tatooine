@@ -1,7 +1,7 @@
 #include <tatooine/flowexplorer/nodes/autonomous_particle.h>
 #include <tatooine/flowexplorer/window.h>
-#include <tatooine/rendering/yavin_interop.h>
 #include <tatooine/random.h>
+#include <tatooine/rendering/yavin_interop.h>
 //==============================================================================
 namespace tatooine::flowexplorer::nodes {
 //==============================================================================
@@ -32,7 +32,7 @@ void autonomous_particle::render(mat<float, 4, 4> const& projection_matrix,
   yavin::gl::line_width(1);
   m_line_shader.set_color(0.2, 0.8, 0.2, 1);
   m_initial_ellipses_back_calculation.draw_lines();
-  m_line_shader.set_color(0.5,0.5,0.5,1);
+  m_line_shader.set_color(0.5, 0.5, 0.5, 1);
   m_gpu_advected_random_points_in_initial_circle.draw_lines();
 
   m_point_shader.bind();
@@ -40,7 +40,7 @@ void autonomous_particle::render(mat<float, 4, 4> const& projection_matrix,
 }
 //----------------------------------------------------------------------------
 void autonomous_particle::update_initial_circle() {
-  size_t                      i                   = 0;
+  size_t                      i = 0;
   geometry::sphere<double, 2> ellipse{1.0};
   auto                        discretized_ellipse = discretize(ellipse, 100);
   std::lock_guard             lock{m_initial_circle.mutex()};
@@ -75,29 +75,28 @@ void autonomous_particle::advect() {
   m_stop_thread          = false;
   m_needs_another_update = false;
 
-   //window().do_async([&node = *this] {
+  // window().do_async([&node = *this] {
   auto& node = *this;
   node.x0()  = *node.m_x0;
   node.x1()  = *node.m_x0;
 
-  auto const particles =
-      [&node] {
-        switch (node.m_num_splits) {
-          case 2:
-            return node.advect_with_2_splits(node.m_taustep, node.m_max_t,
-                                                node.m_stop_thread);
-          case 3:
-            return node.advect_with_3_splits(node.m_taustep, node.m_max_t,
-                                                node.m_stop_thread);
-          case 5:
-            return node.advect_with_5_splits(node.m_taustep, node.m_max_t,
-                                                node.m_stop_thread);
-          case 7:
-            return node.advect_with_7_splits(node.m_taustep, node.m_max_t,
-                                                node.m_stop_thread);
-        }
-        return std::vector<parent_t>{};
-      }();
+  auto const particles = [&node] {
+    switch (node.m_num_splits) {
+      case 2:
+        return node.advect_with_2_splits(node.m_taustep, node.m_max_t,
+                                         node.m_stop_thread);
+      case 3:
+        return node.advect_with_3_splits(node.m_taustep, node.m_max_t,
+                                         node.m_stop_thread);
+      case 5:
+        return node.advect_with_5_splits(node.m_taustep, node.m_max_t,
+                                         node.m_stop_thread);
+      case 7:
+        return node.advect_with_7_splits(node.m_taustep, node.m_max_t,
+                                         node.m_stop_thread);
+    }
+    return std::vector<parent_t>{};
+  }();
   geometry::sphere<double, 2> ellipse{1.0};
   auto                        discretized_ellipse = discretize(ellipse, 100);
   size_t                      i                   = 0;
@@ -180,11 +179,11 @@ void autonomous_particle::draw_properties() {
   bool do_advect = false;
   if (ImGui::DragDouble("t0", &m_t0, 0.001)) {
     do_advect = true;
-    t1()         = m_t0;
+    t1()      = m_t0;
   }
   if (ImGui::DragDouble("radius", &m_radius, 0.001, 0.001, 10.0)) {
     do_advect = true;
-    S()          = mat_t::eye() * m_radius;
+    S()       = mat_t::eye() * m_radius;
     update_initial_circle();
   }
   ImGui::DragDouble("tau step", &m_taustep, 0.01, 0.01, 1000.0);
@@ -220,9 +219,18 @@ void autonomous_particle::draw_properties() {
   ImGui::SameLine();
   if (ImGui::Button("< ")) {
     switch (m_num_splits) {
-      case 3: m_num_splits = 2; do_advect = true; break;
-      case 5: m_num_splits = 3; do_advect = true; break;
-      case 7: m_num_splits = 5; do_advect = true; break;
+      case 3:
+        m_num_splits = 2;
+        do_advect    = true;
+        break;
+      case 5:
+        m_num_splits = 3;
+        do_advect    = true;
+        break;
+      case 7:
+        m_num_splits = 5;
+        do_advect    = true;
+        break;
     }
   }
   ImGui::SameLine();
@@ -230,20 +238,26 @@ void autonomous_particle::draw_properties() {
   ImGui::SameLine();
   if (ImGui::Button(" >")) {
     switch (m_num_splits) {
-      case 2: m_num_splits = 3; do_advect = true; break;
-      case 3: m_num_splits = 5; do_advect = true; break;
-      case 5: m_num_splits = 7; do_advect = true; break;
+      case 2:
+        m_num_splits = 3;
+        do_advect    = true;
+        break;
+      case 3:
+        m_num_splits = 5;
+        do_advect    = true;
+        break;
+      case 5:
+        m_num_splits = 7;
+        do_advect    = true;
+        break;
     }
   }
-  if (do_advect && m_x0 != nullptr &&
-      &this->phi().vectorfield() != nullptr) {
+  if (do_advect && m_x0 != nullptr && &this->phi().vectorfield() != nullptr) {
     advect();
   }
 }
 //----------------------------------------------------------------------------
-auto autonomous_particle::is_transparent() const -> bool {
-  return false;
-}
+auto autonomous_particle::is_transparent() const -> bool { return false; }
 //----------------------------------------------------------------------------
 void autonomous_particle::on_pin_connected(ui::pin& this_pin,
                                            ui::pin& other_pin) {
@@ -251,7 +265,7 @@ void autonomous_particle::on_pin_connected(ui::pin& this_pin,
     m_x0 = dynamic_cast<vec<double, 2>*>(&other_pin.node());
     x0() = *m_x0;
     x1() = *m_x0;
-    //update_initial_circle();
+    update_initial_circle();
   } else if ((other_pin.type() == typeid(vectorfield_t))) {
     this->phi().set_vectorfield(
         dynamic_cast<vectorfield_t*>(&other_pin.node()));
@@ -262,9 +276,9 @@ void autonomous_particle::generate_random_points_in_initial_circle(
   m_random_points_in_initial_circle.clear();
   random_uniform<real_t> rand;
   for (size_t i = 0; i < n; ++i) {
-    //real_t const r     = (std::sqrt(rand()) * m_radius);
-    //real_t const theta = rand() * 2 * M_PI;
-    //m_random_points_in_initial_circle.emplace_back(std::cos(theta) * r,
+    // real_t const r     = (std::sqrt(rand()) * m_radius);
+    // real_t const theta = rand() * 2 * M_PI;
+    // m_random_points_in_initial_circle.emplace_back(std::cos(theta) * r,
     //                                               std::sin(theta) * r);
     real_t alpha = M_PI * 2 * real_t(i) / (n - 1);
     m_random_points_in_initial_circle.emplace_back(std::cos(alpha) * m_radius,
@@ -291,7 +305,7 @@ void autonomous_particle::upload_advected_random_points_in_initial_circle() {
         static_cast<float>(x(2))};
     m_gpu_advected_random_points_in_initial_circle.indexbuffer()[i * 2] = i;
     m_gpu_advected_random_points_in_initial_circle.indexbuffer()[i * 2 + 1] =
-        (i + 1)%size(m_advected_random_points_in_initial_circle);
+        (i + 1) % size(m_advected_random_points_in_initial_circle);
     ++i;
   }
 }
