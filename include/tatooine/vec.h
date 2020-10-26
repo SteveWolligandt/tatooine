@@ -38,6 +38,11 @@ struct vec : tensor<T, N> {  // NOLINT
   }
   //----------------------------------------------------------------------------
   ~vec() = default;
+
+  auto begin() const { return this->data().begin(); }
+  auto begin() { return this->data().begin(); }
+  auto end() const { return this->data().end(); }
+  auto end() { return this->data().end(); }
 };
 //==============================================================================
 // type traits

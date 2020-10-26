@@ -5,6 +5,7 @@
 #include <tatooine/field.h>
 #include <tatooine/interpolation.h>
 #include <tatooine/ode/vclibs/rungekutta43.h>
+#include <tatooine/ode/boost/rungekuttafehlberg78.h>
 #include <tatooine/tags.h>
 #include <tatooine/cache.h>
 //==============================================================================
@@ -39,15 +40,15 @@ struct numerical_flowmap {
   // ctors
   //============================================================================
  public:
-  numerical_flowmap(numerical_flowmap const& other) :m_v{other.m_v},
-      m_ode_solver{other.m_ode_solver} {}
+  numerical_flowmap(numerical_flowmap const& other)
+      : m_v{other.m_v}, m_ode_solver{other.m_ode_solver} {}
   numerical_flowmap(numerical_flowmap&& other)
       : m_v{std::move(other.m_v)},
         m_ode_solver{std::move(other.m_ode_solver)} {}
   template <std::convertible_to<V> W, real_number WReal, size_t N,
             typename V_ = V>
-    requires(!std::is_pointer_v<V_>)
-  constexpr numerical_flowmap(vectorfield<W, WReal, N> const& w)
+  requires(!std::is_pointer_v<V_>) constexpr numerical_flowmap(
+      vectorfield<W, WReal, N> const& w)
       : m_v{w.as_derived()} {}
   //----------------------------------------------------------------------------
   template <std::convertible_to<V> W, real_number WReal, size_t N,
@@ -74,25 +75,40 @@ struct numerical_flowmap {
   //============================================================================
   [[nodiscard]] constexpr auto evaluate(pos_t const& y0, real_t const t0,
                                         real_t tau) const -> pos_t {
-    constexpr real_t security_eps = 1e-7;
     if (tau == 0) { return y0; }
-    auto const& integral_curve = cached_curve(y0, t0, tau);
-    auto        t              = t0 + tau;
-    if (tau < 0 && t < integral_curve.front_parameterization()) {
-      if (t + security_eps < integral_curve.front_parameterization()) {
-        t = integral_curve.front_parameterization();
-      } else {
-        throw out_of_domain_error{};
+    pos_t x;
+    auto  callback = [t0, &x, tau](const auto& y, auto const t) {
+      if (std::abs(t0 + tau - t) < 1e-10) {
+        x = y;
       }
+    };
+    if constexpr (holds_field_pointer) {
+      m_ode_solver.solve(*m_v, y0, t0, tau, callback);
+    } else {
+      m_ode_solver.solve(m_v, y0, t0, tau, callback);
     }
-    if (tau > 0 && t > integral_curve.back_parameterization()) {
-      if (t - security_eps < integral_curve.back_parameterization()) {
-        t = integral_curve.back_parameterization();
-      } else {
-        throw out_of_domain_error{};
-      }
-    }
-    return integral_curve(t);
+    return x;
+
+    //constexpr real_t security_eps = 1e-7;
+    //auto const& integral_curve = cached_curve(y0, t0, tau);
+    //if constexpr (holds_field_pointer) {
+    //  m_ode_solver.solve(*m_v, y0, t0, tau, callback);
+    //auto        t              = t0 + tau;
+    //if (tau < 0 && t < integral_curve.front_parameterization()) {
+    //  if (t + security_eps < integral_curve.front_parameterization()) {
+    //    t = integral_curve.front_parameterization();
+    //  } else {
+    //    throw out_of_domain_error{};
+    //  }
+    //}
+    //if (tau > 0 && t > integral_curve.back_parameterization()) {
+    //  if (t - security_eps < integral_curve.back_parameterization()) {
+    //    t = integral_curve.back_parameterization();
+    //  } else {
+    //    throw out_of_domain_error{};
+    //  }
+    //}
+    //return integral_curve(t);
   }
   //----------------------------------------------------------------------------
   [[nodiscard]] constexpr auto operator()(pos_t const& y0, real_t const t0,
@@ -142,7 +158,7 @@ struct numerical_flowmap {
       return integral_curve.front_parameterization();
     }();
     auto callback = [this, &integral_curve, &tangents, tau](
-                         const auto& y, auto const t, const auto& dy) {
+                        const auto& y, auto const t, const auto& dy) {
       if (integral_curve.num_vertices() > 0 &&
           std::abs(integral_curve.back_parameterization() - t) < 1e-13) {
         return;
@@ -242,10 +258,15 @@ struct numerical_flowmap {
 //==============================================================================
 template <typename V, typename Real, size_t N>
 numerical_flowmap(vectorfield<V, Real, N> const&)
-    -> numerical_flowmap<V, ode::vclibs::rungekutta43, interpolation::cubic>;
+    -> numerical_flowmap<V, ode::boost::rungekuttafehlberg78, interpolation::cubic>;
+//------------------------------------------------------------------------------
+template <typename V, typename Real, size_t N,
+          template <typename, size_t> typename ODESolver>
+numerical_flowmap(vectorfield<V, Real, N> const&, ODESolver<Real, N> const&)
+    -> numerical_flowmap<V, ODESolver, interpolation::cubic>;
 //==============================================================================
 template <
-    template <typename, size_t> typename ODESolver = ode::vclibs::rungekutta43,
+    template <typename, size_t> typename ODESolver = ode::boost::rungekuttafehlberg78,
     template <typename> typename InterpolationKernel = interpolation::cubic,
     typename V, typename Real, size_t N>
 auto flowmap(vectorfield<V, Real, N> const& v, tag::numerical_t /*tag*/) {
@@ -253,7 +274,7 @@ auto flowmap(vectorfield<V, Real, N> const& v, tag::numerical_t /*tag*/) {
 }
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 template <
-    template <typename, size_t> typename ODESolver = ode::vclibs::rungekutta43,
+    template <typename, size_t> typename ODESolver = ode::boost::rungekuttafehlberg78,
     template <typename> typename InterpolationKernel = interpolation::cubic,
     typename V, typename Real, size_t N>
 auto flowmap(vectorfield<V, Real, N> const& v) {

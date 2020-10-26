@@ -35,6 +35,24 @@ auto size(grid_vertex_container<Dimensions...> const& c) {
   return c.size();
 }
 //==============================================================================
-}
+}  // namespace tatooine
 //==============================================================================
+namespace std::ranges {
+template <tatooine::indexable_space... Dimensions>
+constexpr auto begin(tatooine::grid_vertex_container<Dimensions...>& r) {
+  r.begin();
+}
+template <tatooine::indexable_space... Dimensions>
+constexpr auto end(tatooine::grid_vertex_container<Dimensions...>& r) {
+  r.end();
+}
+template <tatooine::indexable_space... Dimensions>
+constexpr auto begin(tatooine::grid_vertex_container<Dimensions...> const& r) {
+  r.begin();
+}
+template <tatooine::indexable_space... Dimensions>
+constexpr auto end(tatooine::grid_vertex_container<Dimensions...> const& r) {
+  r.end();
+}
+}  // namespace std::ranges
 #endif

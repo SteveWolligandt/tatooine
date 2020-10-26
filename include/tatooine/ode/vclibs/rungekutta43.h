@@ -100,7 +100,7 @@ struct rungekutta43 : solver<rungekutta43<Real, N>, Real, N> {
  public:
   constexpr rungekutta43()
       : m_stepper{vc_ode_t::solver(
-            rk43, vc_options_t{abs_tol = 1e-4, rel_tol = 1e-4,
+            rk43, vc_options_t{abs_tol = 1e-6, rel_tol = 1e-6,
                                initial_step = 0 /*, max_step = 0.1*/})} {}
   constexpr rungekutta43(rungekutta43 const& other)     = default;
   constexpr rungekutta43(rungekutta43&& other) noexcept = default;

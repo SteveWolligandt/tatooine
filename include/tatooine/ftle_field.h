@@ -24,25 +24,41 @@ struct ftle_field : field<ftle_field<FlowmapGradient>, typename FlowmapGradient:
 
   //============================================================================
  public:
+  template <typename V, typename VReal, size_t N, template <typename, size_t> typename ODESolver>
+  requires requires
+    (V && v, typename V::pos_t && x, typename V::real_t && t) { v(x, t); }
+  constexpr ftle_field(field<V, VReal, N, N> const& v, real_number auto tau,
+                       ODESolver<VReal, N> const&)
+      : m_flowmap_gradient{diff(flowmap<ODESolver>(v))}, m_tau{static_cast<real_t>(tau)} {}
+  //------------------------------------------------------------------------------
   template <typename V, typename VReal, size_t N>
+  requires requires
+    (V && v, typename V::pos_t && x, typename V::real_t && t) { v(x, t); }
   constexpr ftle_field(field<V, VReal, N, N> const& v, real_number auto tau)
       : m_flowmap_gradient{diff(flowmap(v))}, m_tau{static_cast<real_t>(tau)} {}
   //------------------------------------------------------------------------------
   template <typename V, typename VReal, size_t N>
+  requires requires(V&& v, typename V::pos_t&& x, typename V::real_t&& t) {
+    {v(x, t)} -> std::convertible_to<typename V::tensor_t>;
+  }
   constexpr ftle_field(field<V, VReal, N, N> const& v, real_number auto tau,
                        real_number auto eps)
       : m_flowmap_gradient{diff(flowmap(v), eps)},
         m_tau{static_cast<real_t>(tau)} {}
   //------------------------------------------------------------------------------
   template <typename V, typename VReal, size_t N>
+  requires requires(V&& v, typename V::pos_t&& x, typename V::real_t&& t) {
+    v(x, t);
+  }
   constexpr ftle_field(field<V, VReal, N, N> const& v, real_number auto tau,
                        vec_t const& eps)
       : m_flowmap_gradient{diff(flowmap(v), eps)},
         m_tau{static_cast<real_t>(tau)} {}
-  //------------------------------------------------------------------------------
-  constexpr ftle_field(FlowmapGradient&& flowmap_gradient, real_number auto tau)
-      : m_flowmap_gradient{std::forward<FlowmapGradient>(flowmap_gradient)},
-        m_tau{static_cast<real_t>(tau)} {}
+  ////------------------------------------------------------------------------------
+  //template <typename FlowmapGradient_>
+  //constexpr ftle_field(FlowmapGradient_&& flowmap_gradient, real_number auto tau)
+  //    : m_flowmap_gradient{std::forward<FlowmapGradient_>(flowmap_gradient)},
+  //      m_tau{static_cast<real_t>(tau)} {}
   //============================================================================
   auto evaluate(pos_t const& x, real_t t) const -> tensor_t final{
     auto const g                = m_flowmap_gradient(x, t, m_tau);
@@ -63,6 +79,9 @@ struct ftle_field : field<ftle_field<FlowmapGradient>, typename FlowmapGradient:
   auto flowmap_gradient() -> auto& { return m_flowmap_gradient; }
 };
 //==============================================================================
+template <typename V, typename Real, size_t N, template <typename, size_t> typename ODESolver>
+ftle_field(field<V, Real, N, N> const& v, real_number auto, ODESolver<Real, N>)
+    -> ftle_field<decltype(diff(flowmap<ODESolver>(v)))>;
 template <typename V, typename Real, size_t N>
 ftle_field(field<V, Real, N, N> const& v, real_number auto)
     -> ftle_field<decltype(diff(flowmap(v)))>;
@@ -70,9 +89,12 @@ template <typename V, typename Real, size_t N>
 ftle_field(field<V, Real, N, N> const& v, real_number auto, real_number auto)
     -> ftle_field<decltype(diff(flowmap(v)))>;
 template <typename V, typename Real, size_t N, typename EpsReal>
-ftle_field(field<V, Real, N, N> const& v, real_number auto, vec<EpsReal, N> const&)
-    -> ftle_field<decltype(diff(flowmap(v)))>;
-
+ftle_field(field<V, Real, N, N> const& v, real_number auto,
+           vec<EpsReal, N> const&) -> ftle_field<decltype(diff(flowmap(v)))>;
+//template <typename FlowmapGradient>
+//ftle_field(FlowmapGradient&&, real_number auto)
+//    -> ftle_field<std::decay_t<FlowmapGradient>>;
+//
 //==============================================================================
 }  // namespace tatooine
 //==============================================================================

@@ -1,6 +1,7 @@
 #include <tatooine/analytical/fields/numerical/doublegyre.h>
 #include <tatooine/autonomous_particle.h>
 #include <tatooine/grid.h>
+#include <tatooine/chrono.h>
 #include <tatooine/progress_bars.h>
 #include <tatooine/vtk_legacy.h>
 
@@ -24,8 +25,8 @@ auto ellipsis_vertices(mat<double, 2, 2> const& S, vec<double, 2> const& x0,
 auto parse_args(int argc, char** argv) {
   namespace po = boost::program_options;
 
-  size_t width, height, num_splits;
-  double t0, tau, tau_step, min_cond;
+  size_t width = 30, height = 15, num_splits = 3;
+  double t0 = 0, tau = 2, tau_step = 0.05, min_cond = 0.01;
   // Declare the supported options.
   po::options_description desc("Allowed options");
   desc.add_options()("help", "produce help message")(
@@ -43,45 +44,46 @@ auto parse_args(int argc, char** argv) {
   po::store(po::parse_command_line(argc, argv, desc), vm);
   po::notify(vm);
 
-  if (vm.count("help")) {
+  if (vm.count("help") > 0) {
     std::stringstream ss;
     ss << desc;
     throw std::runtime_error{ss.str()};
   }
-  if (vm.count("width")) {
+  if (vm.count("width") > 0) {
     width = vm["width"].as<size_t>();
   } else {
-    throw std::runtime_error{"Width 'width' was not set."};
+    //throw std::runtime_error{"Width 'width' was not set."};
   }
-  if (vm.count("height")) {
+  if (vm.count("height") > 0) {
     height = vm["height"].as<size_t>();
   } else {
-    throw std::runtime_error{"Height 'height' was not set."};
+    //throw std::runtime_error{"Height 'height' was not set."};
   }
-  if (vm.count("num_splits")) {
+  if (vm.count("num_splits") > 0) {
     num_splits = vm["num_splits"].as<size_t>();
   } else {
-    throw std::runtime_error{"Number of splits 'num_splits' was not set."};
+    //throw std::runtime_error{"Number of splits 'num_splits' was not set."};
   }
-  if (vm.count("t0")) {
+  if (vm.count("t0") > 0) {
     t0 = vm["t0"].as<double>();
   } else {
-    throw std::runtime_error{"Initial time 't0' was not set."};
+    //throw std::runtime_error{"Initial time 't0' was not set."};
   }
-  if (vm.count("tau")) {
+  if (vm.count("tau") > 0) {
     tau = vm["tau"].as<double>();
   } else {
-    throw std::runtime_error{"Integration length 'tau' was not set."};
+    //throw std::runtime_error{"Integration length 'tau' was not set."};
   }
-  if (vm.count("tau_step")) {
+  if (vm.count("tau_step") > 0) {
     tau_step = vm["tau_step"].as<double>();
   } else {
-    throw std::runtime_error{"Step width 'tau_step' was not set."};
+    //throw std::runtime_error{"Step width 'tau_step' was not set."};
   }
-  if (vm.count("min_cond")) {
+  if (vm.count("min_cond") > 0) {
     min_cond = vm["min_cond"].as<double>();
   } else {
-    throw std::runtime_error{"Minimal condition number 'min_cond' was not set."};
+    //throw std::runtime_error{
+    //    "Minimal condition number 'min_cond' was not set."};
   }
   struct {
     size_t width, height, num_splits;
@@ -90,6 +92,7 @@ auto parse_args(int argc, char** argv) {
   return args;
 }
 //------------------------------------------------------------------------------
+
 auto main(int argc, char** argv) -> int {
   auto [width, height, num_splits, t0, tau, tau_step, min_cond] =
       parse_args(argc, argv);
@@ -127,78 +130,76 @@ auto main(int argc, char** argv) -> int {
       back_calculation_ellipses;
   std::vector<std::vector<size_t>> indices_initial, indices_advected,
       indices_back_calculation;
-  std::mutex initial_mutex, advected_mutex;
-  size_t     i0_advected = 0, i0_initial = 0, i0_back = 0;
+  // std::mutex initial_mutex, advected_mutex;
+  size_t i0_advected = 0, i0_initial = 0, i0_back = 0;
 
-  size_t const       ellipsis_res = 100;
+  size_t const       ellipsis_res = 50;
   std::atomic_size_t cnt          = 0;
 
   progress_bar([&, num_splits = std::ref(num_splits), r0 = std::ref(r0),
                 t0 = std::ref(t0), tau_step = std::ref(tau_step),
                 tau      = std::ref(tau),
                 min_cond = std::ref(min_cond)](auto indicator) {
-    std::for_each(
-        std::execution::par_unseq, begin(g.vertices()), end(g.vertices()),
-        [&](auto const& x0) {
-          autonomous_particle p0{v, x0, t0.get(), r0.get()};
+    std::vector<autonomous_particle<decltype(flowmap(v))>> particles;
+    particles.reserve(g.num_vertices());
+    for (auto const& x : g.vertices()) {
+      autonomous_particle p0{v, x, t0.get(), r0.get()};
+      auto [vs, is] =
+          ellipsis_vertices(p0.S(), p0.x1(), ellipsis_res, i0_initial);
+      {
+        // std::lock_guard lock{initial_mutex};
+        std::move(begin(vs), end(vs), std::back_inserter(initial_ellipses));
+        indices_initial.push_back(std::move(is));
+        i0_initial += ellipsis_res;
+      }
+
+      auto const advected_particles = calc_particles(p0);
+      for (auto const& p : advected_particles) {
+        {
+          auto sqrS = inv(p.nabla_phi1()) * p.S() * p.S() *
+                      inv(transposed(p.nabla_phi1()));
+          auto [eig_vecs, eig_vals] = eigenvectors_sym(sqrS);
+          eig_vals = {std::sqrt(eig_vals(0)), std::sqrt(eig_vals(1))};
+          // auto S   = eig_vecs * diag(eig_vals) *
+          transposed(eig_vecs);
+          // auto [vs, is] =
+          //    ellipsis_vertices(S, p.x0(), ellipsis_res, i0_back);
+          if (min_cond > 0 && eig_vals(1) / eig_vals(0) < min_cond) {
+            continue;
+          }
+        }
+
+        {
+          auto [vs, is] =
+              ellipsis_vertices(p.S(), p.x1(), ellipsis_res, i0_advected);
           {
-            auto [vs, is] =
-                ellipsis_vertices(p0.S(), p0.x1(), ellipsis_res, i0_initial);
-            {
-              std::lock_guard lock{initial_mutex};
-              std::move(begin(vs), end(vs),
-                        std::back_inserter(initial_ellipses));
-              indices_initial.push_back(std::move(is));
-              i0_initial += ellipsis_res;
-            }
+            // std::lock_guard lock{advected_mutex};
+            std::move(begin(vs), end(vs),
+                      std::back_inserter(advected_ellipses));
+            indices_advected.push_back(std::move(is));
+            i0_advected += ellipsis_res;
           }
-          auto const particles = calc_particles(p0);
-          for (auto const& p : particles) {
-            {
-              auto sqrS = inv(p.nabla_phi1()) * p.S() * p.S() *
-                          inv(transposed(p.nabla_phi1()));
-              auto [eig_vecs, eig_vals] = eigenvectors_sym(sqrS);
-              eig_vals = {std::sqrt(eig_vals(0)), std::sqrt(eig_vals(1))};
-              // auto S   = eig_vecs * diag(eig_vals) * transposed(eig_vecs);
-              // auto [vs, is] =
-              //    ellipsis_vertices(S, p.x0(), ellipsis_res, i0_back);
-              if (min_cond > 0 && eig_vals(1) / eig_vals(0) < min_cond) {
-                continue;
-              }
-            }
+        }
 
-            {
-              auto [vs, is] =
-                  ellipsis_vertices(p.S(), p.x1(), ellipsis_res, i0_advected);
-              {
-                std::lock_guard lock{advected_mutex};
-                std::move(begin(vs), end(vs),
-                          std::back_inserter(advected_ellipses));
-                indices_advected.push_back(std::move(is));
-                i0_advected += ellipsis_res;
-              }
-            }
-
-            {
-              auto sqrS = inv(p.nabla_phi1()) * p.S() * p.S() *
-                          inv(transposed(p.nabla_phi1()));
-              auto [eig_vecs, eig_vals] = eigenvectors_sym(sqrS);
-              eig_vals = {std::sqrt(eig_vals(0)), std::sqrt(eig_vals(1))};
-              auto S   = eig_vecs * diag(eig_vals) * transposed(eig_vecs);
-              auto [vs, is] =
-                  ellipsis_vertices(S, p.x0(), ellipsis_res, i0_back);
-              {
-                std::lock_guard lock{advected_mutex};
-                std::move(begin(vs), end(vs),
-                          std::back_inserter(back_calculation_ellipses));
-                indices_back_calculation.push_back(std::move(is));
-                i0_back += ellipsis_res;
-              }
-            }
+        {
+          auto sqrS = inv(p.nabla_phi1()) * p.S() * p.S() *
+                      inv(transposed(p.nabla_phi1()));
+          auto [eig_vecs, eig_vals] = eigenvectors_sym(sqrS);
+          eig_vals      = {std::sqrt(eig_vals(0)), std::sqrt(eig_vals(1))};
+          auto S        = eig_vecs * diag(eig_vals) * transposed(eig_vecs);
+          auto [vs, is] = ellipsis_vertices(S, p.x0(), ellipsis_res, i0_back);
+          {
+            // std::lock_guard lock{advected_mutex};
+            std::move(begin(vs), end(vs),
+                      std::back_inserter(back_calculation_ellipses));
+            indices_back_calculation.push_back(std::move(is));
+            i0_back += ellipsis_res;
           }
-          ++cnt;
-          indicator.progress = cnt / double(g.num_vertices());
-        });
+        }
+      }
+      ++cnt;
+      indicator.progress = cnt / double(g.num_vertices());
+    }
   });
 
   indeterminate_progress_bar([&](auto option) {
@@ -223,7 +224,8 @@ auto main(int argc, char** argv) -> int {
       advection_file.close();
     }
     {
-      vtk::legacy_file_writer back_calc_file{"dg_grid_back_calculation.vtk",
+      vtk::legacy_file_writer
+      back_calc_file{"dg_grid_back_calculation.vtk",
                                              vtk::POLYDATA};
       back_calc_file.write_header();
       option = "Writing back calculated points";

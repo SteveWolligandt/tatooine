@@ -66,8 +66,8 @@ struct camera_controller_interface {
 template <typename Real>
 struct camera_controller : yavin::window_listener {
   friend struct camera_controller_interface<Real>;
-  perspective_camera<Real>                           m_pcam;
-  orthographic_camera<Real>                          m_ocam;
+  struct perspective_camera<Real>                    m_pcam;
+  struct orthographic_camera<Real>                   m_ocam;
   camera<Real>*                                      m_active_cam;
   std::unique_ptr<camera_controller_interface<Real>> m_controller;
   //============================================================================

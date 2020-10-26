@@ -15,7 +15,7 @@ namespace tatooine::rendering {
 struct first_person_window : yavin::window {
   using parent_t = yavin::window;
   size_t                    m_width, m_height;
-  camera_controller<float>                           m_cam;
+  struct camera_controller<float>                    m_cam;
   std::chrono::time_point<std::chrono::system_clock> m_time =
       std::chrono::system_clock::now();
   //============================================================================

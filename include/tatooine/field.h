@@ -133,12 +133,24 @@ struct is_field : std::false_type {};
 //------------------------------------------------------------------------------
 template <typename T>
 static constexpr bool is_field_v = is_field<T>::value;
-template <typename Real, size_t N, size_t... TensorDims>
 //------------------------------------------------------------------------------
+template <typename Real, size_t N, size_t... TensorDims>
 struct is_field<parent::field<Real, N, TensorDims...>> : std::true_type {};
 //------------------------------------------------------------------------------
 template <typename Derived, typename Real, size_t N, size_t... TensorDims>
 struct is_field<field<Derived, Real, N, TensorDims...>> : std::true_type {};
+//==============================================================================
+template <typename T>
+struct is_vectorfield : std::false_type {};
+//------------------------------------------------------------------------------
+template <typename T>
+static constexpr bool is_vectorfield_v = is_vectorfield<T>::value;
+//------------------------------------------------------------------------------
+template <typename Real, size_t N, size_t M>
+struct is_vectorfield<parent::vectorfield<Real, N, M>> : std::true_type {};
+//------------------------------------------------------------------------------
+template <typename Derived, typename Real, size_t N, size_t M>
+struct is_vectorfield<vectorfield<Derived, Real, N, M>> : std::true_type {};
 //==============================================================================
 // free functions
 //==============================================================================

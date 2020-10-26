@@ -20,9 +20,7 @@ struct autonomous_particle<Flowmap> {
  public:
   using this_t    = autonomous_particle<Flowmap>;
   using flowmap_t = std::decay_t<Flowmap>;
-  static constexpr auto num_dimensions() {
-    return flowmap_t::num_dimensions();
-  }
+  static constexpr auto num_dimensions() { return flowmap_t::num_dimensions(); }
   using real_t  = typename flowmap_t::real_t;
   using vec_t   = vec<real_t, num_dimensions()>;
   using mat_t   = mat<real_t, num_dimensions(), num_dimensions()>;
@@ -81,64 +79,45 @@ struct autonomous_particle<Flowmap> {
   //----------------------------------------------------------------------------
   // getter
   //----------------------------------------------------------------------------
-  auto x0() -> auto& {
-    return m_x0;
-  }
-  auto x0() const -> auto const& {
-    return m_x0;
-  }
-  auto x0(size_t i) const {
-    return m_x0(i);
-  }
-  auto x1() -> auto& {
-    return m_x1;
-  }
-  auto x1() const -> auto const& {
-    return m_x1;
-  }
-  auto x1(size_t i) const {
-    return m_x1(i);
-  }
-  auto t1() -> auto& {
-    return m_t1;
-  }
-  auto t1() const {
-    return m_t1;
-  }
-  auto nabla_phi1() const -> auto const& {
-    return m_nabla_phi1;
-  }
-  auto S() -> auto& {
-    return m_S;
-  }
-  auto S() const -> auto const& {
-    return m_S;
-  }
-  auto phi() const -> auto const& {
-    return m_phi;
-  }
-  auto phi() -> auto& {
-    return m_phi;
-  }
+  auto x0() -> auto& { return m_x0; }
+  auto x0() const -> auto const& { return m_x0; }
+  auto x0(size_t i) const { return m_x0(i); }
+  auto x1() -> auto& { return m_x1; }
+  auto x1() const -> auto const& { return m_x1; }
+  auto x1(size_t i) const { return m_x1(i); }
+  auto t1() -> auto& { return m_t1; }
+  auto t1() const { return m_t1; }
+  auto nabla_phi1() const -> auto const& { return m_nabla_phi1; }
+  auto S() -> auto& { return m_S; }
+  auto S() const -> auto const& { return m_S; }
+  auto phi() const -> auto const& { return m_phi; }
+  auto phi() -> auto& { return m_phi; }
 
   //----------------------------------------------------------------------------
   // methods
   //----------------------------------------------------------------------------
  public:
-  auto advect_with_2_splits(real_t tau_step, real_t const max_t,
+  auto advect_with_2_splits(real_t const tau_step, real_t const max_t,
                             bool const& stop = false) const {
     static real_t const sqrt2 = std::sqrt(real_t(2));
-    return advect(tau_step, max_t, 2,
-                  std::array<real_t, 1>{sqrt2 / real_t(2)}, false, stop);
+    return advect(tau_step, max_t, 2, std::array<real_t, 1>{sqrt2 / real_t(2)},
+                  false, stop);
   }
   //----------------------------------------------------------------------------
-  auto advect_with_3_splits(real_t tau_step, real_t const max_t,
+  auto advect_with_3_splits(real_t const tau_step, real_t const max_t,
                             bool const& stop = false) const {
     return advect(tau_step, max_t, 4, std::array<real_t, 1>{real_t(1) / 2},
                   true, stop);
   }
   //----------------------------------------------------------------------------
-  auto advect_with_5_splits(real_t tau_step, real_t const max_t,
+  static auto advect_with_3_splits(real_t const tau_step, real_t const max_t,
+                                   std::vector<this_t> particles,
+                                   bool const&         stop = false) {
+    return advect(tau_step, max_t, 4, std::array<real_t, 1>{real_t(1) / 2},
+                  true, std::move(particles), stop);
+  }
+  //----------------------------------------------------------------------------
+  auto advect_with_5_splits(real_t const tau_step, real_t const max_t,
                             bool const& stop = false) const {
     static real_t const sqrt5 = std::sqrt(real_t(5));
     return advect(tau_step, max_t, 6 + sqrt5 * 2,
@@ -146,7 +125,7 @@ struct autonomous_particle<Flowmap> {
                   true, stop);
   }
   //----------------------------------------------------------------------------
-  auto advect_with_7_splits(real_t tau_step, real_t const max_t,
+  auto advect_with_7_splits(real_t const tau_step, real_t const max_t,
                             bool const& stop = false) const {
     return advect(tau_step, max_t, 4.493959210 * 4.493959210,
                   std::array{real_t(.9009688678), real_t(.6234898004),
@@ -157,8 +136,19 @@ struct autonomous_particle<Flowmap> {
   auto advect(real_t tau_step, real_t const max_t, real_t const objective_cond,
               std::ranges::range auto const radii, bool const add_center,
               bool const& stop = false) const {
+    return advect(tau_step, max_t, objective_cond, radii, add_center, {*this},
+                  stop);
+  }
+  //----------------------------------------------------------------------------
+  static auto advect(real_t tau_step, real_t const max_t,
+                     real_t const                  objective_cond,
+                     std::ranges::range auto const radii, bool const add_center,
+                     std::vector<this_t> input_particles,
+                     bool const&         stop = false) {
+    std::mutex          finished_particles_mutex;
+    std::mutex          inactive_particles_mutex;
     std::vector<this_t> finished_particles;
-    std::array particles{std::vector<this_t>{*this}, std::vector<this_t>{}};
+    std::array particles{std::move(input_particles), std::vector<this_t>{}};
     size_t     active = 0;
     real_t     tau    = 0;
     while (!particles[active].empty()) {
@@ -170,16 +160,21 @@ struct autonomous_particle<Flowmap> {
       }
       tau += tau_step;
       particles[1 - active].clear();
-      for (auto const& particle : particles[active]) {
-        if (stop) {
-          break;
-        }
-        auto new_particles = particle.step_until_split(tau_step, max_t, objective_cond,
-                                                       add_center, radii);
+#pragma omp parallel for
+      for (size_t i = 0; i < size(particles[active]); ++i) {
+        // for (auto const& particle : particles[active]) {
+        auto const& particle = particles[active][i];
+        // if (stop) {
+        //  break;
+        //}
+        auto new_particles = particle.step_until_split(
+            tau_step, max_t, objective_cond, add_center, radii);
         if (size(new_particles) == 1) {
+          std::lock_guard lock{finished_particles_mutex};
           std::move(begin(new_particles), end(new_particles),
                     std::back_inserter(finished_particles));
         } else {
+          std::lock_guard lock{inactive_particles_mutex};
           std::move(begin(new_particles), end(new_particles),
                     std::back_inserter(particles[1 - active]));
         }
@@ -236,7 +231,8 @@ struct autonomous_particle<Flowmap> {
                                std::sqrt(eigvals_HHt(1))};
         return {{m_phi, m_x0, advected_center, t2, fmg2fmg1,
                  eigvecs_HHt * diag(new_eig_vals) * transposed(eigvecs_HHt)}};
-      } else if (cond_HHt >= objective_cond && cond_HHt - objective_cond < 0.0001) {
+      } else if (cond_HHt >= objective_cond &&
+                 cond_HHt - objective_cond < 0.0001) {
         p_p0 = m_phi(m_x1 + o_p0, m_t1, t2 - m_t1);
         p_n0 = m_phi(m_x1 + o_n0, m_t1, t2 - m_t1);
         p_0p = m_phi(m_x1 + o_0p, m_t1, t2 - m_t1);
@@ -279,13 +275,10 @@ struct autonomous_particle<Flowmap> {
           current_offset += relative_unit_vec * 2 * radius;
         }
         return splits;
-      } else if (cond_HHt >= objective_cond && cond_HHt - objective_cond >= 0.0001){
+      } else if (cond_HHt >= objective_cond &&
+                 cond_HHt - objective_cond >= 0.0001) {
         t2 -= tau_step;
         tau_step /= 2;
-        //// go back in time via linear interpolation
-        //auto const best_tau_step_lin_interp_fac =
-        //    (objective_cond - old_cond_HHt) / (cond_HHt - old_cond_HHt);
-        //t2 -= (1 - best_tau_step_lin_interp_fac) * tau_step;
       }
     }
     return {};
