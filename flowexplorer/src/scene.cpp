@@ -47,6 +47,13 @@ scene::scene(rendering::camera_controller<float>& cam, flowexplorer::window* w)
   m_node_editor_context = ax::NodeEditor::CreateEditor();
 }
 //----------------------------------------------------------------------------
+scene::scene(rendering::camera_controller<float>& cam, flowexplorer::window* w,
+             std::filesystem::path const& path)
+    : m_cam{&cam}, m_window{w} {
+  m_node_editor_context = ax::NodeEditor::CreateEditor();
+  read(path);
+}
+//----------------------------------------------------------------------------
 scene::~scene() { ax::NodeEditor::DestroyEditor(m_node_editor_context); }
 //------------------------------------------------------------------------------
 void scene::render(std::chrono::duration<double> const& dt) {

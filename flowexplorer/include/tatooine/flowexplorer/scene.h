@@ -22,6 +22,8 @@ struct scene {
   flowexplorer::window*                m_window;
   //============================================================================
   scene(rendering::camera_controller<float>& ctrl, flowexplorer::window* w);
+  scene(rendering::camera_controller<float>& ctrl, flowexplorer::window* w,
+        std::filesystem::path const& path);
   ~scene();
   //============================================================================
   void render(std::chrono::duration<double> const& dt);

@@ -10,14 +10,15 @@ struct window : rendering::first_person_window {
   //----------------------------------------------------------------------------
   // members
   //----------------------------------------------------------------------------
-  bool               m_show_nodes_gui = true;
-  int                mouse_x, mouse_y;
-  scene              m_scene;
+  bool                                m_show_nodes_gui = true;
+  int                                 mouse_x, mouse_y;
+  scene                               m_scene;
   std::unique_ptr<ImGui::FileBrowser> m_file_browser;
   //----------------------------------------------------------------------------
   // ctor
   //----------------------------------------------------------------------------
   window();
+  window(std::filesystem::path const& scene_path);
   //----------------------------------------------------------------------------
   ~window() = default;
   //============================================================================

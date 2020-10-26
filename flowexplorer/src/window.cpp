@@ -2,8 +2,13 @@
 //==============================================================================
 namespace tatooine::flowexplorer {
 //==============================================================================
-window::window() : m_scene(camera_controller(), this) { start(); }
-//============================================================================
+window::window() : m_scene{camera_controller(), this} { start(); }
+//------------------------------------------------------------------------------
+window::window(std::filesystem::path const& path)
+    : m_scene{camera_controller(), this, path} {
+  start();
+}
+//==============================================================================
 void window::on_key_pressed(yavin::key k) {
   first_person_window::on_key_pressed(k);
   if (k == yavin::KEY_F1) {

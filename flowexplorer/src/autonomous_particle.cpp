@@ -75,14 +75,14 @@ void autonomous_particle::advect() {
   m_stop_thread          = false;
   m_needs_another_update = false;
 
-  // window().do_async([&node = *this] {
+   //window().do_async([&node = *this] {
   auto& node = *this;
   node.x0()  = *node.m_x0;
   node.x1()  = *node.m_x0;
 
   auto const particles =
-      [&node, num_splits = m_num_splits] {
-        switch (num_splits) {
+      [&node] {
+        switch (node.m_num_splits) {
           case 2:
             return node.advect_with_2_splits(node.m_taustep, node.m_max_t,
                                                 node.m_stop_thread);
