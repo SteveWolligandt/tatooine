@@ -1,10 +1,10 @@
 #ifndef TATOOINE_ANALYTICAL_FIELDS_NUMERICAL_DOUBLEGYRE_H
 #define TATOOINE_ANALYTICAL_FIELDS_NUMERICAL_DOUBLEGYRE_H
 //==============================================================================
+#include <tatooine/field.h>
+
 #include <boost/math/constants/constants.hpp>
 #include <cmath>
-
-#include <tatooine/field.h>
 //==============================================================================
 namespace tatooine::analytical::fields::numerical {
 //==============================================================================
@@ -13,80 +13,68 @@ template <typename Real>
 struct doublegyre : vectorfield<doublegyre<Real>, Real, 2> {
   using this_t   = doublegyre<Real>;
   using parent_t = vectorfield<this_t, Real, 2>;
-  using typename parent_t::real_t;
   using typename parent_t::pos_t;
+  using typename parent_t::real_t;
   using typename parent_t::tensor_t;
   //============================================================================
   static constexpr auto pi = boost::math::constants::pi<Real>();
   //============================================================================
   Real m_epsilon, m_omega, m_A;
-  bool m_infinite_domain;
+  bool m_infinite_domain  = false;
   //============================================================================
-  explicit constexpr doublegyre(Real epsilon = 0.25, Real omega = 2 * pi * 0.1,
-                                Real A = 0.1) noexcept
-      : m_epsilon{epsilon}, m_omega{omega}, m_A{A}, m_infinite_domain{false} {}
-  constexpr doublegyre(const doublegyre&)     = default;
+  explicit constexpr doublegyre(Real const epsilon = 0.25,
+                                Real const omega   = 2 * pi * 0.1,
+                                Real const A       = 0.1) noexcept
+      : m_epsilon{epsilon}, m_omega{omega}, m_A{A} {}
+  //------------------------------------------------------------------------------
+  constexpr doublegyre(doublegyre const&)     = default;
   constexpr doublegyre(doublegyre&&) noexcept = default;
-  constexpr auto operator=(const doublegyre&) -> doublegyre& = default;
+  //------------------------------------------------------------------------------
+  constexpr auto operator=(doublegyre const&) -> doublegyre& = default;
   constexpr auto operator=(doublegyre&&) noexcept -> doublegyre& = default;
-  //----------------------------------------------------------------------------
+  //------------------------------------------------------------------------------
   ~doublegyre() override = default;
   //----------------------------------------------------------------------------
-  [[nodiscard]] constexpr auto evaluate(const pos_t& x, Real t) const
+  [[nodiscard]] constexpr auto evaluate(pos_t const& x, Real t) const
       -> tensor_t final {
-    Real a  = m_epsilon * sin(m_omega * t);
-    Real b  = 1.0 - 2.0 * a;
-    Real f  = a * x(0) * x(0) + b * x(0);
-    Real df = 2 * a * x(0) + b;
+    Real const a  = m_epsilon * sin(m_omega * t);
+    Real const b  = 1.0 - 2.0 * a;
+    Real const f  = a * x(0) * x(0) + b * x(0);
+    Real const df = 2 * a * x(0) + b;
 
-    return tensor_t{-pi * m_A * std::sin(pi * f) * std::cos(pi * x(1)),
-                    pi * m_A * std::cos(pi * f) * std::sin(pi * x(1)) * df};
+    return {-pi * m_A * std::sin(pi * f) * std::cos(pi * x(1)),
+             pi * m_A * std::cos(pi * f) * std::sin(pi * x(1)) * df};
   }
   //----------------------------------------------------------------------------
-  [[nodiscard]] constexpr auto in_domain(const pos_t& x, Real /*t*/) const
+  [[nodiscard]] constexpr auto in_domain(pos_t const& x, Real /*t*/) const
       -> bool final {
-    if (m_infinite_domain) { return true; }
-    return 0 <= x(0) && x(0) <= 2 &&
-           0 <= x(1) && x(1) <= 1;
+    if (m_infinite_domain) {
+      return true;
+    }
+    return 0 <= x(0) && x(0) <= 2 && 0 <= x(1) && x(1) <= 1;
   }
   //----------------------------------------------------------------------------
-  constexpr void set_infinite_domain(bool v) { m_infinite_domain = v; }
-  //----------------------------------------------------------------------------
-  auto epsilon() const {
-    return m_epsilon;
-  }
-  // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-  auto epsilon() -> auto& {
-    return m_epsilon;
-  }
-  // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-  auto set_epsilon(real_t const epsilon) {
-    m_epsilon = epsilon;
+  constexpr void set_infinite_domain(bool const v = true) {
+    m_infinite_domain = v;
   }
   //----------------------------------------------------------------------------
-  auto omega() const {
-    return m_omega;
-  }
+  constexpr auto epsilon() const { return m_epsilon; }
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-  auto omega() -> auto& {
-    return m_omega;
-  }
+  constexpr auto epsilon() -> auto& { return m_epsilon; }
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-  auto set_omega(real_t const omega) {
-    m_omega = omega;
-  }
+  constexpr auto set_epsilon(Real const epsilon) { m_epsilon = epsilon; }
   //----------------------------------------------------------------------------
-  auto A() const {
-    return m_A;
-  }
+  constexpr auto omega() const { return m_omega; }
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-  auto A() -> auto& {
-    return m_A;
-  }
+  constexpr auto omega() -> auto& { return m_omega; }
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-  auto set_A(real_t const A) {
-    m_A = A;
-  }
+  constexpr auto set_omega(Real const omega) { m_omega = omega; }
+  //----------------------------------------------------------------------------
+  constexpr auto A() const { return m_A; }
+  // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+  constexpr auto A() -> auto& { return m_A; }
+  // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+  constexpr auto set_A(Real const A) { m_A = A; }
 };
 
 doublegyre()->doublegyre<double>;

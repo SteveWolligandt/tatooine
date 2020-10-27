@@ -105,8 +105,8 @@ auto progress_bar(F&& f, Args&&... args)
   -> decltype(auto) {
   indicators::BlockProgressBar progress_indicator{
       indicators::option::BarWidth{50},
-      indicators::option::Start{""},
-      indicators::option::End{""},
+      indicators::option::Start{"▶"},
+      indicators::option::End{"◀"},
       indicators::option::PostfixText{"Integrating"},
       indicators::option::ShowElapsedTime{true},
       indicators::option::ShowRemainingTime{true},

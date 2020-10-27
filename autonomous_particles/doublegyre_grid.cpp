@@ -1,118 +1,127 @@
 #include <tatooine/analytical/fields/numerical/doublegyre.h>
 #include <tatooine/autonomous_particle.h>
-#include <tatooine/grid.h>
 #include <tatooine/chrono.h>
+#include <tatooine/grid.h>
 #include <tatooine/progress_bars.h>
 #include <tatooine/vtk_legacy.h>
 
-#include <boost/program_options.hpp>
-#include <execution>
+#include "ellipsis_vertices.h"
+#include "parse_args.h"
 //==============================================================================
 using namespace tatooine;
-auto ellipsis_vertices(mat<double, 2, 2> const& S, vec<double, 2> const& x0,
-                       size_t const resolution, size_t const i0) {
-  std::vector<vec<double, 3>> ellipse;
-  std::vector<size_t>         indices;
-  size_t                      i = 0;
-  for (auto t : linspace{0.0, M_PI * 2, resolution}) {
-    auto const x = S * vec{std::cos(t), std::sin(t)} + x0;
-    ellipse.emplace_back(x(0), x(1), 0);
-    indices.push_back(i0 + i++);
+//==============================================================================
+size_t const                ellipsis_res = 12;
+std::vector<vec<double, 3>> initial_ellipses, advected_ellipses,
+    back_calculation_ellipses;
+//==============================================================================
+void create_geometry(auto const& args, auto const& advected_particles) {
+  for (auto const& p : advected_particles) {
+    {
+      auto sqrS =
+          inv(p.nabla_phi1()) * p.S() * p.S() * inv(transposed(p.nabla_phi1()));
+      auto [eig_vecs, eig_vals] = eigenvectors_sym(sqrS);
+      eig_vals = {std::sqrt(eig_vals(0)), std::sqrt(eig_vals(1))};
+      transposed(eig_vecs);
+      if (args.min_cond > 0 && eig_vals(1) / eig_vals(0) < args.min_cond) {
+        continue;
+      }
+    }
+
+    {
+      auto vs =
+          ellipsis_vertices(p.S(), p.x1(), ellipsis_res);
+      std::move(begin(vs), end(vs), std::back_inserter(advected_ellipses));
+    }
+
+    {
+      auto sqrS =
+          inv(p.nabla_phi1()) * p.S() * p.S() * inv(transposed(p.nabla_phi1()));
+      auto [eig_vecs, eig_vals] = eigenvectors_sym(sqrS);
+      eig_vals      = {std::sqrt(eig_vals(0)), std::sqrt(eig_vals(1))};
+      auto S        = eig_vecs * diag(eig_vals) * transposed(eig_vecs);
+      auto vs = ellipsis_vertices(S, p.x0(), ellipsis_res);
+      std::move(begin(vs), end(vs),
+                std::back_inserter(back_calculation_ellipses));
+    }
   }
-  return std::pair{std::move(ellipse), std::move(indices)};
 }
 //------------------------------------------------------------------------------
-auto parse_args(int argc, char** argv) {
-  namespace po = boost::program_options;
+auto write_data() {
+  indeterminate_progress_bar([&](auto option) {
+    {
+      vtk::legacy_file_writer initial_file{"dg_grid_initial.vtk",
+                                           vtk::POLYDATA};
+      initial_file.write_header();
+      option = "Writing initial points";
+      initial_file.write_points(initial_ellipses);
+      option = "Writing initial lines";
+      std::vector<std::vector<size_t>> indices_initial;
+      size_t k = 0;
+      for (size_t i = 0; i < size(initial_ellipses) / ellipsis_res; ++i) {
+          indices_initial.emplace_back();
+        for (size_t j = 0; j < ellipsis_res; ++j) {
+          indices_initial.back().push_back(k++);
+        }
+        indices_initial.back().push_back(k-ellipsis_res);
+      }
+      initial_file.write_lines(indices_initial);
+    }
 
-  size_t width = 30, height = 15, num_splits = 3;
-  double t0 = 0, tau = 2, tau_step = 0.05, min_cond = 0.01;
-  // Declare the supported options.
-  po::options_description desc("Allowed options");
-  desc.add_options()("help", "produce help message")(
-      "width", po::value<size_t>(), "set width")("height", po::value<size_t>(),
-                                                 "set height")(
-      "num_splits", po::value<size_t>(), "set number of splits")(
-      "t0", po::value<double>(), "set initial time")(
-      "tau", po::value<double>(), "set integration length tau")(
-      "tau_step", po::value<double>(), "set stepsize for integrator")(
-      "min_cond", po::value<double>(),
-      "set minimal condition number of back calculation for advected "
-      "particles");
-
-  po::variables_map vm;
-  po::store(po::parse_command_line(argc, argv, desc), vm);
-  po::notify(vm);
-
-  if (vm.count("help") > 0) {
-    std::stringstream ss;
-    ss << desc;
-    throw std::runtime_error{ss.str()};
-  }
-  if (vm.count("width") > 0) {
-    width = vm["width"].as<size_t>();
-  } else {
-    //throw std::runtime_error{"Width 'width' was not set."};
-  }
-  if (vm.count("height") > 0) {
-    height = vm["height"].as<size_t>();
-  } else {
-    //throw std::runtime_error{"Height 'height' was not set."};
-  }
-  if (vm.count("num_splits") > 0) {
-    num_splits = vm["num_splits"].as<size_t>();
-  } else {
-    //throw std::runtime_error{"Number of splits 'num_splits' was not set."};
-  }
-  if (vm.count("t0") > 0) {
-    t0 = vm["t0"].as<double>();
-  } else {
-    //throw std::runtime_error{"Initial time 't0' was not set."};
-  }
-  if (vm.count("tau") > 0) {
-    tau = vm["tau"].as<double>();
-  } else {
-    //throw std::runtime_error{"Integration length 'tau' was not set."};
-  }
-  if (vm.count("tau_step") > 0) {
-    tau_step = vm["tau_step"].as<double>();
-  } else {
-    //throw std::runtime_error{"Step width 'tau_step' was not set."};
-  }
-  if (vm.count("min_cond") > 0) {
-    min_cond = vm["min_cond"].as<double>();
-  } else {
-    //throw std::runtime_error{
-    //    "Minimal condition number 'min_cond' was not set."};
-  }
-  struct {
-    size_t width, height, num_splits;
-    double t0, tau, tau_step, min_cond;
-  } args{width, height, num_splits, t0, tau, tau_step, min_cond};
-  return args;
+    std::vector<std::vector<size_t>> indices;
+    size_t                           k = 0;
+    for (size_t i = 0; i < size(advected_ellipses) / ellipsis_res; ++i) {
+      indices.emplace_back();
+      for (size_t j = 0; j < ellipsis_res; ++j) {
+        indices.back().push_back(k++);
+      }
+      indices.back().push_back(k - ellipsis_res);
+    }
+    {
+      vtk::legacy_file_writer advection_file{"dg_grid_advected.vtk",
+                                             vtk::POLYDATA};
+      advection_file.write_header();
+      option = "Writing advected points";
+      advection_file.write_points(advected_ellipses);
+      option = "Writing advected lines";
+      advection_file.write_lines(indices);
+      advection_file.close();
+    }
+    {
+      vtk::legacy_file_writer back_calc_file{"dg_grid_back_calculation.vtk",
+                                             vtk::POLYDATA};
+      back_calc_file.write_header();
+      option = "Writing back calculated points";
+      back_calc_file.write_points(back_calculation_ellipses);
+      option = "Writing back calculated lines";
+      back_calc_file.write_lines(indices);
+      back_calc_file.close();
+    }
+  });
 }
 //------------------------------------------------------------------------------
-
 auto main(int argc, char** argv) -> int {
-  auto [width, height, num_splits, t0, tau, tau_step, min_cond] =
-      parse_args(argc, argv);
+  auto args_opt = parse_args(argc, argv);
+  if (!args_opt) {
+    return 1;
+  }
+  auto args = *args_opt;
   auto calc_particles =
-      [tau_step = tau_step, t0 = t0, tau = tau, num_splits = num_splits](
-          auto const& p0) -> std::vector<std::decay_t<decltype(p0)>> {
-    switch (num_splits) {
+      [&args](auto const& p0) -> std::vector<std::decay_t<decltype(p0)>> {
+    switch (args.num_splits) {
       case 2:
-        return p0.advect_with_2_splits(tau_step, t0 + tau);
+        return p0.advect_with_2_splits(args.tau_step, args.t0 + args.tau);
       case 3:
-        return p0.advect_with_3_splits(tau_step, t0 + tau);
+        return p0.advect_with_3_splits(args.tau_step, args.t0 + args.tau);
       case 5:
-        return p0.advect_with_5_splits(tau_step, t0 + tau);
+        return p0.advect_with_5_splits(args.tau_step, args.t0 + args.tau);
       case 7:
-        return p0.advect_with_7_splits(tau_step, t0 + tau);
+        return p0.advect_with_7_splits(args.tau_step, args.t0 + args.tau);
     }
     return {};
   };
 
-  grid g{linspace{0.0, 2.0, width + 1}, linspace{0.0, 1.0, height + 1}};
+  grid g{linspace{0, 2.0, args.width + 1},
+         linspace{0, 1.0, args.height + 1}};
   g.dimension<0>().pop_front();
   g.dimension<1>().pop_front();
   auto const spacing_x = g.dimension<0>().spacing();
@@ -126,113 +135,21 @@ auto main(int argc, char** argv) -> int {
   analytical::fields::numerical::doublegyre v;
   v.set_infinite_domain(true);
 
-  std::vector<vec<double, 3>> initial_ellipses, advected_ellipses,
-      back_calculation_ellipses;
-  std::vector<std::vector<size_t>> indices_initial, indices_advected,
-      indices_back_calculation;
-  // std::mutex initial_mutex, advected_mutex;
-  size_t i0_advected = 0, i0_initial = 0, i0_back = 0;
+  std::atomic_size_t cnt = 0;
 
-  size_t const       ellipsis_res = 50;
-  std::atomic_size_t cnt          = 0;
-
-  progress_bar([&, num_splits = std::ref(num_splits), r0 = std::ref(r0),
-                t0 = std::ref(t0), tau_step = std::ref(tau_step),
-                tau      = std::ref(tau),
-                min_cond = std::ref(min_cond)](auto indicator) {
-    std::vector<autonomous_particle<decltype(flowmap(v))>> particles;
-    particles.reserve(g.num_vertices());
+  progress_bar([&](auto indicator) {
     for (auto const& x : g.vertices()) {
-      autonomous_particle p0{v, x, t0.get(), r0.get()};
-      auto [vs, is] =
-          ellipsis_vertices(p0.S(), p0.x1(), ellipsis_res, i0_initial);
-      {
-        // std::lock_guard lock{initial_mutex};
-        std::move(begin(vs), end(vs), std::back_inserter(initial_ellipses));
-        indices_initial.push_back(std::move(is));
-        i0_initial += ellipsis_res;
-      }
+      autonomous_particle p0{v, x, args.t0, r0};
+      p0.phi().use_caching(false);
+      auto vs = ellipsis_vertices(p0.S(), p0.x1(), ellipsis_res);
+      std::move(begin(vs), end(vs), std::back_inserter(initial_ellipses));
 
       auto const advected_particles = calc_particles(p0);
-      for (auto const& p : advected_particles) {
-        {
-          auto sqrS = inv(p.nabla_phi1()) * p.S() * p.S() *
-                      inv(transposed(p.nabla_phi1()));
-          auto [eig_vecs, eig_vals] = eigenvectors_sym(sqrS);
-          eig_vals = {std::sqrt(eig_vals(0)), std::sqrt(eig_vals(1))};
-          // auto S   = eig_vecs * diag(eig_vals) *
-          transposed(eig_vecs);
-          // auto [vs, is] =
-          //    ellipsis_vertices(S, p.x0(), ellipsis_res, i0_back);
-          if (min_cond > 0 && eig_vals(1) / eig_vals(0) < min_cond) {
-            continue;
-          }
-        }
-
-        {
-          auto [vs, is] =
-              ellipsis_vertices(p.S(), p.x1(), ellipsis_res, i0_advected);
-          {
-            // std::lock_guard lock{advected_mutex};
-            std::move(begin(vs), end(vs),
-                      std::back_inserter(advected_ellipses));
-            indices_advected.push_back(std::move(is));
-            i0_advected += ellipsis_res;
-          }
-        }
-
-        {
-          auto sqrS = inv(p.nabla_phi1()) * p.S() * p.S() *
-                      inv(transposed(p.nabla_phi1()));
-          auto [eig_vecs, eig_vals] = eigenvectors_sym(sqrS);
-          eig_vals      = {std::sqrt(eig_vals(0)), std::sqrt(eig_vals(1))};
-          auto S        = eig_vecs * diag(eig_vals) * transposed(eig_vecs);
-          auto [vs, is] = ellipsis_vertices(S, p.x0(), ellipsis_res, i0_back);
-          {
-            // std::lock_guard lock{advected_mutex};
-            std::move(begin(vs), end(vs),
-                      std::back_inserter(back_calculation_ellipses));
-            indices_back_calculation.push_back(std::move(is));
-            i0_back += ellipsis_res;
-          }
-        }
-      }
+      //create_geometry(args, advected_particles);
       ++cnt;
       indicator.progress = cnt / double(g.num_vertices());
     }
+    indicator.progress = 1;
   });
-
-  indeterminate_progress_bar([&](auto option) {
-    {
-      vtk::legacy_file_writer initial_file{"dg_grid_initial.vtk",
-                                           vtk::POLYDATA};
-      initial_file.write_header();
-      option = "Writing initial points";
-      initial_file.write_points(initial_ellipses);
-      option = "Writing initial lines";
-      initial_file.write_lines(indices_initial);
-    }
-
-    {
-      vtk::legacy_file_writer advection_file{"dg_grid_advected.vtk",
-                                             vtk::POLYDATA};
-      advection_file.write_header();
-      option = "Writing advected points";
-      advection_file.write_points(advected_ellipses);
-      option = "Writing advected lines";
-      advection_file.write_lines(indices_advected);
-      advection_file.close();
-    }
-    {
-      vtk::legacy_file_writer
-      back_calc_file{"dg_grid_back_calculation.vtk",
-                                             vtk::POLYDATA};
-      back_calc_file.write_header();
-      option = "Writing back calculated points";
-      back_calc_file.write_points(back_calculation_ellipses);
-      option = "Writing back calculated lines";
-      back_calc_file.write_lines(indices_back_calculation);
-      back_calc_file.close();
-    }
-  });
+  //write_data();
 }

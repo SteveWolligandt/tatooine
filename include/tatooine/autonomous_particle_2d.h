@@ -42,10 +42,17 @@ struct autonomous_particle<Flowmap> {
   //----------------------------------------------------------------------------
  public:
   autonomous_particle(autonomous_particle const&)     = default;
+  // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
   autonomous_particle(autonomous_particle&&) noexcept = default;
-  auto operator=(autonomous_particle const&) -> autonomous_particle& = default;
-  auto operator               =(autonomous_particle&&) noexcept
+  //----------------------------------------------------------------------------
+  auto operator=(autonomous_particle const&)
+    -> autonomous_particle& = default;
+  // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+  auto operator=(autonomous_particle&&) noexcept
       -> autonomous_particle& = default;
+  //----------------------------------------------------------------------------
+  ~autonomous_particle() = default;
+  //----------------------------------------------------------------------------
   template <typename = void>
   requires is_numerical_flowmap_v<Flowmap> autonomous_particle()
       : autonomous_particle{Flowmap{}, pos_t::zeros(), real_t(0), real_t(0)} {}
@@ -162,21 +169,19 @@ struct autonomous_particle<Flowmap> {
       particles[1 - active].clear();
 #pragma omp parallel for
       for (size_t i = 0; i < size(particles[active]); ++i) {
-        // for (auto const& particle : particles[active]) {
-        auto const& particle = particles[active][i];
-        // if (stop) {
-        //  break;
-        //}
-        auto new_particles = particle.step_until_split(
-            tau_step, max_t, objective_cond, add_center, radii);
-        if (size(new_particles) == 1) {
-          std::lock_guard lock{finished_particles_mutex};
-          std::move(begin(new_particles), end(new_particles),
-                    std::back_inserter(finished_particles));
-        } else {
-          std::lock_guard lock{inactive_particles_mutex};
-          std::move(begin(new_particles), end(new_particles),
-                    std::back_inserter(particles[1 - active]));
+        if (!stop) {
+          auto const& particle      = particles[active][i];
+          auto        new_particles = particle.step_until_split(
+              tau_step, max_t, objective_cond, add_center, radii);
+          if (size(new_particles) == 1) {
+            std::lock_guard lock{finished_particles_mutex};
+            std::move(begin(new_particles), end(new_particles),
+                      std::back_inserter(finished_particles));
+          } else {
+            std::lock_guard lock{inactive_particles_mutex};
+            std::move(begin(new_particles), end(new_particles),
+                      std::back_inserter(particles[1 - active]));
+          }
         }
       }
       active = 1 - active;
@@ -232,7 +237,7 @@ struct autonomous_particle<Flowmap> {
         return {{m_phi, m_x0, advected_center, t2, fmg2fmg1,
                  eigvecs_HHt * diag(new_eig_vals) * transposed(eigvecs_HHt)}};
       } else if (cond_HHt >= objective_cond &&
-                 cond_HHt - objective_cond < 0.0001) {
+                 (cond_HHt - objective_cond < 0.0001 || tau_step < 1e-13)) {
         p_p0 = m_phi(m_x1 + o_p0, m_t1, t2 - m_t1);
         p_n0 = m_phi(m_x1 + o_n0, m_t1, t2 - m_t1);
         p_0p = m_phi(m_x1 + o_0p, m_t1, t2 - m_t1);
@@ -283,20 +288,22 @@ struct autonomous_particle<Flowmap> {
     }
     return {};
   }
-};
-// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-// deduction guides
-// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-template <typename V, typename VReal, real_number RealX0, size_t N>
-autonomous_particle(const vectorfield<V, VReal, 2>& v, vec<RealX0, N> const&,
-                    real_number auto const, real_number auto const)
-    -> autonomous_particle<decltype(flowmap(v))>;
-// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-template <fixed_dims_flowmap_c<2> Flowmap, real_number RealX0, size_t N>
-autonomous_particle(const Flowmap& flowmap, vec<RealX0, N> const&,
-                    real_number auto const, real_number auto const)
-    -> autonomous_particle<Flowmap>;
-//==============================================================================
+  };
+  // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+  // - deduction guides
+  // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+  // -
+  template <typename V, typename VReal, real_number RealX0, size_t N>
+  autonomous_particle(const vectorfield<V, VReal, 2>& v, vec<RealX0, N> const&,
+                      real_number auto const, real_number auto const)
+      -> autonomous_particle<decltype(flowmap(v))>;
+  // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+  // -
+  template <fixed_dims_flowmap_c<2> Flowmap, real_number RealX0, size_t N>
+  autonomous_particle(const Flowmap& flowmap, vec<RealX0, N> const&,
+                      real_number auto const, real_number auto const)
+      -> autonomous_particle<Flowmap>;
+  //==============================================================================
 }  // namespace tatooine
 //==============================================================================
 #endif
