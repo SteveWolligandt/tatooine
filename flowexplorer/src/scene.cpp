@@ -3,6 +3,7 @@
 #include <tatooine/demangling.h>
 #include <tatooine/flowexplorer/nodes/abcflow.h>
 #include <tatooine/flowexplorer/nodes/autonomous_particle.h>
+#include <tatooine/flowexplorer/nodes/autonomous_particles_renderer.h>
 #include <tatooine/flowexplorer/nodes/boundingbox.h>
 #include <tatooine/flowexplorer/nodes/doublegyre.h>
 #include <tatooine/flowexplorer/nodes/duffing_oscillator.h>
@@ -329,9 +330,12 @@ void scene::node_creators() {
   if (ImGui::Button("LIC")) {
     m_renderables.emplace_back(new nodes::lic{*this});
   }
-  ImGui::SameLine();
   if (ImGui::Button("Autonomous Particle")) {
     m_renderables.emplace_back(new nodes::autonomous_particle{*this});
+  }
+  ImGui::SameLine();
+  if (ImGui::Button("Autonomous Particle Renderer")) {
+    m_renderables.emplace_back(new nodes::autonomous_particles_renderer{*this});
   }
 }
 //------------------------------------------------------------------------------

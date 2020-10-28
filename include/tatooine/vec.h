@@ -56,9 +56,24 @@ struct is_vec<vec<Real, N>> : std::true_type {};
 template <typename... Ts>
 vec(const Ts&...) -> vec<promote_t<Ts...>, sizeof...(Ts)>;
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-using vec2 = vec<double, 2>;
-using vec3 = vec<double, 3>;
-using vec4 = vec<double, 4>;
+template <real_or_complex_number T>
+using Vec2 = vec<T, 2>;
+template <real_or_complex_number T>
+using Vec3 = vec<T, 3>;
+template <real_or_complex_number T>
+using Vec4 = vec<T, 4>;
+
+using vec2f = Vec2<float>;
+using vec3f = Vec3<float>;
+using vec4f = Vec4<float>;
+
+using vec2d = Vec2<double>;
+using vec3d = Vec3<double>;
+using vec4d = Vec4<double>;
+
+using vec2 = vec2d;
+using vec3 = vec3d;
+using vec4 = vec4d;
 //==============================================================================
 }  // namespace tatooine
 //==============================================================================
