@@ -4,97 +4,94 @@
 #include <tatooine/grid.h>
 #include <tatooine/progress_bars.h>
 #include <tatooine/vtk_legacy.h>
+#include <tatooine/netcdf.h>
 
 #include "ellipsis_vertices.h"
 #include "parse_args.h"
 //==============================================================================
 using namespace tatooine;
 //==============================================================================
-size_t const                ellipsis_res = 12;
-std::vector<vec<double, 3>> initial_ellipses, advected_ellipses,
+std::vector<mat34f> initial_ellipses, advected_ellipses,
     back_calculation_ellipses;
 //==============================================================================
 void create_geometry(auto const& args, auto const& advected_particles) {
   for (auto const& p : advected_particles) {
-    {
-      auto sqrS =
-          inv(p.nabla_phi1()) * p.S() * p.S() * inv(transposed(p.nabla_phi1()));
-      auto [eig_vecs, eig_vals] = eigenvectors_sym(sqrS);
-      eig_vals = {std::sqrt(eig_vals(0)), std::sqrt(eig_vals(1))};
-      transposed(eig_vecs);
-      if (args.min_cond > 0 && eig_vals(1) / eig_vals(0) < args.min_cond) {
-        continue;
-      }
+    auto sqrS =
+        inv(p.nabla_phi1()) * p.S() * p.S() * inv(transposed(p.nabla_phi1()));
+    auto [eig_vecs, eig_vals] = eigenvectors_sym(sqrS);
+    eig_vals = {std::sqrt(eig_vals(0)), std::sqrt(eig_vals(1))};
+    transposed(eig_vecs);
+    if (args.min_cond > 0 && eig_vals(1) / eig_vals(0) < args.min_cond) {
+      continue;
     }
 
-    {
-      auto vs =
-          ellipsis_vertices(p.S(), p.x1(), ellipsis_res);
-      std::move(begin(vs), end(vs), std::back_inserter(advected_ellipses));
-    }
+    // advection
+    advected_ellipses.push_back(
+        mat34f{{p.S()(0, 0), p.S()(0, 1), p.S()(0, 2), p.x1()(0)},
+               {p.S()(1, 0), p.S()(1, 1), p.S()(1, 2), p.x1()(1)},
+               {p.S()(2, 0), p.S()(2, 1), p.S()(2, 2), p.x1()(2)}});
 
-    {
-      auto sqrS =
-          inv(p.nabla_phi1()) * p.S() * p.S() * inv(transposed(p.nabla_phi1()));
-      auto [eig_vecs, eig_vals] = eigenvectors_sym(sqrS);
-      eig_vals      = {std::sqrt(eig_vals(0)), std::sqrt(eig_vals(1))};
-      auto S        = eig_vecs * diag(eig_vals) * transposed(eig_vecs);
-      auto vs = ellipsis_vertices(S, p.x0(), ellipsis_res);
-      std::move(begin(vs), end(vs),
-                std::back_inserter(back_calculation_ellipses));
-    }
+    // back calculation
+    auto Sback = eig_vecs * diag(eig_vals) * transposed(eig_vecs);
+    back_calculation_ellipses.push_back(
+        mat34f{{Sback(0, 0), Sback(0, 1), Sback(0, 2), p.x0()(0)},
+               {Sback(1, 0), Sback(1, 1), Sback(1, 2), p.x0()(1)},
+               {Sback(2, 0), Sback(2, 1), Sback(2, 2), p.x0()(2)}});
   }
 }
 //------------------------------------------------------------------------------
 auto write_data() {
   indeterminate_progress_bar([&](auto option) {
+    std::vector<size_t> const cnt{1, 4, 3};
     {
-      vtk::legacy_file_writer initial_file{"dg_grid_initial.vtk",
-                                           vtk::POLYDATA};
-      initial_file.write_header();
-      option = "Writing initial points";
-      initial_file.write_points(initial_ellipses);
-      option = "Writing initial lines";
-      std::vector<std::vector<size_t>> indices_initial;
-      size_t k = 0;
-      for (size_t i = 0; i < size(initial_ellipses) / ellipsis_res; ++i) {
-          indices_initial.emplace_back();
-        for (size_t j = 0; j < ellipsis_res; ++j) {
-          indices_initial.back().push_back(k++);
-        }
-        indices_initial.back().push_back(k-ellipsis_res);
+      option = "Writing initial circles";
+      netcdf::file f_out{"dg_grid_initial.nc", netCDF::NcFile::replace};
+      auto         dim_indices = f_out.add_dimension("index");
+      auto         dim_cols    = f_out.add_dimension("column", 3);
+      auto         dim_rows    = f_out.add_dimension("row", 4);
+      auto         var         = f_out.add_variable<float>("transformations",
+                                           {dim_indices, dim_rows, dim_cols});
+
+      // create some data
+      std::vector<size_t> is{0, 0, 0};
+      for (auto const& S : initial_ellipses) {
+        var.write(is, cnt, S.data_ptr());
+        ++is.front();
       }
-      initial_file.write_lines(indices_initial);
     }
 
-    std::vector<std::vector<size_t>> indices;
-    size_t                           k = 0;
-    for (size_t i = 0; i < size(advected_ellipses) / ellipsis_res; ++i) {
-      indices.emplace_back();
-      for (size_t j = 0; j < ellipsis_res; ++j) {
-        indices.back().push_back(k++);
+    {
+      option = "Writing advected ellipses";
+      netcdf::file f_out{"dg_grid_advected.nc", netCDF::NcFile::replace};
+      auto         dim_indices = f_out.add_dimension("index");
+      auto         dim_cols    = f_out.add_dimension("column", 3);
+      auto         dim_rows    = f_out.add_dimension("row", 4);
+      auto         var         = f_out.add_variable<float>("transformations",
+                                           {dim_indices, dim_rows, dim_cols});
+
+      // create some data
+      std::vector<size_t> is{0, 0, 0};
+      for (auto const& S : initial_ellipses) {
+        var.write(is, cnt, S.data_ptr());
+        ++is.front();
       }
-      indices.back().push_back(k - ellipsis_res);
     }
     {
-      vtk::legacy_file_writer advection_file{"dg_grid_advected.vtk",
-                                             vtk::POLYDATA};
-      advection_file.write_header();
-      option = "Writing advected points";
-      advection_file.write_points(advected_ellipses);
-      option = "Writing advected lines";
-      advection_file.write_lines(indices);
-      advection_file.close();
-    }
-    {
-      vtk::legacy_file_writer back_calc_file{"dg_grid_back_calculation.vtk",
-                                             vtk::POLYDATA};
-      back_calc_file.write_header();
-      option = "Writing back calculated points";
-      back_calc_file.write_points(back_calculation_ellipses);
-      option = "Writing back calculated lines";
-      back_calc_file.write_lines(indices);
-      back_calc_file.close();
+      option = "Writing back calculated ellipses";
+      netcdf::file f_out{"dg_grid_back_calculation.nc",
+                         netCDF::NcFile::replace};
+      auto         dim_indices = f_out.add_dimension("index");
+      auto         dim_cols    = f_out.add_dimension("column", 3);
+      auto         dim_rows    = f_out.add_dimension("row", 4);
+      auto         var         = f_out.add_variable<float>("transformations",
+                                           {dim_indices, dim_rows, dim_cols});
+
+      // create some data
+      std::vector<size_t> is{0, 0, 0};
+      for (auto const& S : initial_ellipses) {
+        var.write(is, cnt, S.data_ptr());
+        ++is.front();
+      }
     }
   });
 }
@@ -141,15 +138,16 @@ auto main(int argc, char** argv) -> int {
     for (auto const& x : g.vertices()) {
       autonomous_particle p0{v, x, args.t0, r0};
       p0.phi().use_caching(false);
-      auto vs = ellipsis_vertices(p0.S(), p0.x1(), ellipsis_res);
-      std::move(begin(vs), end(vs), std::back_inserter(initial_ellipses));
-
+      initial_ellipses.push_back(
+          mat34f{{p0.S()(0, 0), p0.S()(0, 1), p0.S()(0, 2), p0.x1()(0)},
+                 {p0.S()(1, 0), p0.S()(1, 1), p0.S()(1, 2), p0.x1()(1)},
+                 {p0.S()(2, 0), p0.S()(2, 1), p0.S()(2, 2), p0.x1()(2)}});
       auto const advected_particles = calc_particles(p0);
-      //create_geometry(args, advected_particles);
+      create_geometry(args, advected_particles);
       ++cnt;
       indicator.progress = cnt / double(g.num_vertices());
     }
     indicator.progress = 1;
   });
-  //write_data();
+  write_data();
 }

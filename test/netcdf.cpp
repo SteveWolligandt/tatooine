@@ -7,19 +7,23 @@
 //==============================================================================
 namespace tatooine::netcdf {
 //==============================================================================
-size_t constexpr NX              = 8;
-size_t constexpr NY              = 6;
-size_t constexpr NZ              = 4;
-size_t constexpr NT              = 6;
-std::string const variable_name  = "DATA";
-std::string const xdim_name      = "X";
-std::string const ydim_name      = "Y";
-std::string const zdim_name      = "Z";
-std::string const tdim_name      = "T";
-std::string const file_path_xy   = "simple_xy.nc";
-std::string const file_path_xyz  = "simple_xyz.nc";
-std::string const file_path_xyzt = "simple_xyzt.nc";
+size_t constexpr NX                       = 8;
+size_t constexpr NY                       = 6;
+size_t constexpr NZ                       = 4;
+size_t constexpr NT                       = 6;
+std::string const variable_name           = "DATA";
+std::string const xdim_name               = "X";
+std::string const ydim_name               = "Y";
+std::string const zdim_name               = "Z";
+std::string const tdim_name               = "T";
+std::string const row_dim_name            = "ROWS";
+std::string const col_dim_name            = "COLS";
+std::string const file_path_xy            = "simple_xy.nc";
+std::string const file_unlimited_mat_list = "unlimited_mat_list.nc";
+std::string const file_path_xyz           = "simple_xyz.nc";
+std::string const file_path_xyzt          = "simple_xyzt.nc";
 using namespace netCDF::exceptions;
+//==============================================================================
 auto write_simple_xy() {
   // 2D data, a 8 x 6 grid.
   std::vector<double> data_out(NX * NY);
@@ -39,6 +43,28 @@ auto write_simple_xy() {
   auto dim_x = f_out.add_dimension(xdim_name, NX);
   auto dim_y = f_out.add_dimension(ydim_name, NY);
   f_out.add_variable<double>(variable_name, {dim_y, dim_x}).write(data_out);
+  return data_out;
+}
+//------------------------------------------------------------------------------
+auto write_unlimited_mat_list() {
+  std::vector<mat2> data_out;
+
+  file f_out{file_unlimited_mat_list, netCDF::NcFile::replace};
+  auto dim_t    = f_out.add_dimension(tdim_name);
+  auto dim_cols = f_out.add_dimension(col_dim_name, 2);
+  auto dim_rows = f_out.add_dimension(row_dim_name, 2);
+  auto var =
+      f_out.add_variable<double>(variable_name, {dim_t, dim_rows, dim_cols});
+  
+  // create some data
+  random_uniform<double>    rand;
+  std::vector<size_t>       is{0, 0, 0};
+  std::vector<size_t> const cnt{1, 2, 2};
+  for (; is.front() < 10; ++is.front()) {
+     data_out.push_back(mat2{{rand(), rand()}, {rand(), rand()}});
+    var.write(is, cnt, data_out.back().data_ptr());
+  }
+
   return data_out;
 }
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -128,7 +154,8 @@ TEST_CASE("netcdf_write_read", "[netcdf][read][write]") {
     REQUIRE(data_in.size(0) == NX);
     REQUIRE(data_in.size(1) == NY);
     std::cerr << "full: ";
-    for (auto d : data_in.data()) std::cerr << d << ' ';
+    for (auto d : data_in.data())
+      std::cerr << d << ' ';
     std::cerr << '\n';
 
     // Check the values.
@@ -145,7 +172,8 @@ TEST_CASE("netcdf_write_read", "[netcdf][read][write]") {
       auto chunk =
           var.read_chunk(std::vector<size_t>{0, 0}, std::vector<size_t>{2, 2});
       std::cerr << "chunk: ";
-      for (auto d : chunk.data()) std::cerr << d << ' ';
+      for (auto d : chunk.data())
+        std::cerr << d << ' ';
       std::cerr << '\n';
       REQUIRE(chunk(0, 0) == 0);
       REQUIRE(chunk(1, 0) == 1);
@@ -156,7 +184,8 @@ TEST_CASE("netcdf_write_read", "[netcdf][read][write]") {
       auto chunk =
           var.read_chunk(std::vector<size_t>{2, 0}, std::vector<size_t>{2, 2});
       std::cerr << "chunk: ";
-      for (auto d : chunk.data()) std::cerr << d << ' ';
+      for (auto d : chunk.data())
+        std::cerr << d << ' ';
       std::cerr << '\n';
       REQUIRE(chunk(0, 0) == 2);
       REQUIRE(chunk(1, 0) == 3);
@@ -167,7 +196,8 @@ TEST_CASE("netcdf_write_read", "[netcdf][read][write]") {
       auto chunk =
           var.read_chunk(std::vector<size_t>{0, 2}, std::vector<size_t>{2, 2});
       std::cerr << "chunk: ";
-      for (auto d : chunk.data()) std::cerr << d << ' ';
+      for (auto d : chunk.data())
+        std::cerr << d << ' ';
       std::cerr << '\n';
       REQUIRE(chunk(0, 0) == 16);
       REQUIRE(chunk(1, 0) == 17);
@@ -178,7 +208,8 @@ TEST_CASE("netcdf_write_read", "[netcdf][read][write]") {
       auto chunk =
           var.read_chunk(std::vector<size_t>{2, 2}, std::vector<size_t>{2, 2});
       std::cerr << "chunk: ";
-      for (auto d : chunk.data()) std::cerr << d << ' ';
+      for (auto d : chunk.data())
+        std::cerr << d << ' ';
       std::cerr << '\n';
       REQUIRE(chunk(0, 0) == 18);
       REQUIRE(chunk(1, 0) == 19);
@@ -189,7 +220,8 @@ TEST_CASE("netcdf_write_read", "[netcdf][read][write]") {
       auto chunk =
           var.read_chunk(std::vector<size_t>{0, 0}, std::vector<size_t>{3, 2});
       std::cerr << "chunk: ";
-      for (auto d : chunk.data()) std::cerr << d << ' ';
+      for (auto d : chunk.data())
+        std::cerr << d << ' ';
       std::cerr << '\n';
       REQUIRE(chunk(0, 0) == 0);
       REQUIRE(chunk(1, 0) == 1);
@@ -208,15 +240,18 @@ TEST_CASE("netcdf_write_read", "[netcdf][read][write]") {
     REQUIRE(data_in.size(1) == NY);
 
     std::cerr << "chunk 0: ";
-    for (auto d : data_in.chunk_at(0)->data()) std::cerr << d << ' ';
+    for (auto d : data_in.chunk_at(0)->data())
+      std::cerr << d << ' ';
     std::cerr << '\n';
     std::cerr << "chunk 1: ";
-    for (auto d : data_in.chunk_at(1)->data()) std::cerr << d << ' ';
+    for (auto d : data_in.chunk_at(1)->data())
+      std::cerr << d << ' ';
     std::cerr << '\n';
     std::cerr << "chunk 2: ";
     REQUIRE(data_in.chunk_at_is_null(2));
     std::cerr << "chunk 3: ";
-    for (auto d : data_in.chunk_at(3)->data()) std::cerr << d << ' ';
+    for (auto d : data_in.chunk_at(3)->data())
+      std::cerr << d << ' ';
     std::cerr << '\n';
 
     // Check the values.
@@ -298,6 +333,33 @@ TEST_CASE("netcdf_lazy_xyzt", "[netcdf][lazy][xyzt]") {
         }
       }
     }
+  }
+}
+//==============================================================================
+TEST_CASE("netcdf_unlimited_mat", "[netcdf][unlimited][mat]") {
+  auto const data_out = write_unlimited_mat_list();
+  file       f_in{file_unlimited_mat_list, netCDF::NcFile::read};
+  auto       var = f_in.variable<double>(variable_name);
+  std::cerr << var.dimension_name(2) << '\n';
+  std::cerr << var.dimension_name(1) << '\n';
+  std::cerr << var.dimension_name(0) << '\n';
+
+  REQUIRE(var.size(0) == 10);
+  REQUIRE(var.size(1) == 2);
+  REQUIRE(var.size(2) == 2);
+
+  std::vector<size_t>       is{0, 0, 0};
+  std::vector<size_t> const cnt{1, 2, 2};
+  for (; is.front() < var.size(0); ++is.front()) {
+    auto const data_in = var.read_chunk(is, cnt);
+    REQUIRE(data_in.size(0) == 1);
+    REQUIRE(data_in.size(1) == 2);
+    REQUIRE(data_in.size(2) == 2);
+    CAPTURE(is.front());
+    REQUIRE(data_in(0, 0, 0) == data_out[is.front()](0, 0));
+    REQUIRE(data_in(0, 1, 0) == data_out[is.front()](1, 0));
+    REQUIRE(data_in(0, 0, 1) == data_out[is.front()](0, 1));
+    REQUIRE(data_in(0, 1, 1) == data_out[is.front()](1, 1));
   }
 }
 //==============================================================================

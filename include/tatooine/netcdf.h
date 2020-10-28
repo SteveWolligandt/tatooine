@@ -7,8 +7,8 @@
 #include <tatooine/multidim_array.h>
 
 #include <cassert>
-#include <mutex>
 #include <memory>
+#include <mutex>
 #include <netcdf>
 #include <numeric>
 #include <vector>
@@ -16,22 +16,37 @@
 namespace tatooine::netcdf {
 //==============================================================================
 template <typename T>
-auto to_nc_type();
+struct nc_type;
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 template <>
-inline auto to_nc_type<int>() {
-  return netCDF::ncInt;
-}
+struct nc_type<int> {
+  static auto value() { return netCDF::ncInt; }
+};
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 template <>
-inline auto to_nc_type<float>() {
-  return netCDF::ncFloat;
-}
+struct nc_type<float> {
+  static auto value() { return netCDF::ncFloat; }
+};
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 template <>
-inline auto to_nc_type<double>() {
-  return netCDF::ncDouble;
-}
+struct nc_type<double> {
+  static auto value() { return netCDF::ncDouble; }
+};
+// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+template <real_number T, size_t M, size_t N>
+struct nc_type<mat<T, M, N>> {
+  static auto value() { return nc_type<T>::value(); }
+};
+// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+template <real_number T, size_t N>
+struct nc_type<vec<T, N>> {
+  static auto value() { return nc_type<T>::value(); }
+};
+// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+template <real_number T, size_t... Dims>
+struct nc_type<tensor<T, Dims...>> {
+  static auto value() { return nc_type<T>::value(); }
+};
 //==============================================================================
 class group {};
 //==============================================================================
@@ -47,9 +62,25 @@ class variable {
   variable(std::shared_ptr<netCDF::NcFile>& file,
            std::shared_ptr<std::mutex>& mutex, netCDF::NcVar const& var)
       : m_file{file}, m_mutex{mutex}, m_var{var} {}
-  variable(variable const& other)     = default;
-  variable(variable&& other) noexcept = default;
+  //----------------------------------------------------------------------------
+  variable(variable const&)     = default;
+  variable(variable&&) noexcept = default;
+  //----------------------------------------------------------------------------
+  auto operator=(variable const&) -> variable& = default;
+  auto operator=(variable&&) noexcept -> variable& = default;
   //============================================================================
+  auto write(std::vector<size_t> const& is, T const& t) {
+    std::lock_guard lock{*m_mutex};
+    // std::reverse(begin(is), end(is));
+    return m_var.putVar(is, t);
+  }
+  auto write(std::vector<size_t> const& is, std::vector<size_t> const& count,
+             T const* const arr) {
+    std::lock_guard lock{*m_mutex};
+    // std::reverse(begin(is), end(is));
+    // std::reverse(begin(count), end(count));
+    return m_var.putVar(is, count, arr);
+  }
   auto write(T const* const arr) {
     std::lock_guard lock{*m_mutex};
     return m_var.putVar(arr);
@@ -60,13 +91,13 @@ class variable {
     return m_var.putVar(arr.data());
   }
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-  auto write(range auto r) {
-    return write(std::vector(begin(r), end(r)));
-  }
+  auto write(range auto r) { return write(std::vector(begin(r), end(r))); }
   //----------------------------------------------------------------------------
   auto num_components() const {
     size_t c = 1;
-    for (size_t i = 0; i < num_dimensions(); ++i) { c *= size(i); }
+    for (size_t i = 0; i < num_dimensions(); ++i) {
+      c *= size(i);
+    }
     return c;
   }
   //----------------------------------------------------------------------------
@@ -81,12 +112,14 @@ class variable {
     bool       must_resize = n != arr.num_dimensions();
     if (!must_resize) {
       for (size_t i = 0; i < n; ++i) {
-        if (arr.size(i) != size(i)) { break; }
+        if (arr.size(i) != size(i)) {
+          break;
+        }
       }
     }
     if (must_resize) {
       auto s = size();
-      std::reverse(begin(s), end(s));
+      //std::reverse(begin(s), end(s));
       arr.resize(s);
     }
 
@@ -114,12 +147,14 @@ class variable {
     if (!must_resize) {
       for (size_t i = 0; i < num_dimensions(); ++i) {
         must_resize = size(i) != arr.size(num_dimensions() - i - 1);
-        if (must_resize) { break; }
+        if (must_resize) {
+          break;
+        }
       }
     }
     if (must_resize) {
       auto s = size();
-      std::reverse(begin(s), end(s));
+      //std::reverse(begin(s), end(s));
       arr.resize(s);
     }
 
@@ -132,9 +167,9 @@ class variable {
         arr.create_chunk_at(plain_chunk_index);
       }
 
-      std::reverse(begin(start_indices), end(start_indices));
+      //std::reverse(begin(start_indices), end(start_indices));
       auto s = arr.internal_chunk_size();
-      std::reverse(begin(s), end(s));
+      //std::reverse(begin(s), end(s));
       read_chunk(start_indices, s, *arr.chunk_at(plain_chunk_index));
       if constexpr (std::is_arithmetic_v<T>) {
         bool all_zero = true;
@@ -144,7 +179,9 @@ class variable {
             break;
           }
         }
-        if (all_zero) { arr.destroy_chunk_at(plain_chunk_index); }
+        if (all_zero) {
+          arr.destroy_chunk_at(plain_chunk_index);
+        }
       }
     }
   }
@@ -159,7 +196,9 @@ class variable {
   }
   //----------------------------------------------------------------------------
   auto read(std::vector<T>& arr) const {
-    if (auto const n = num_components(); size(arr) != n) { arr.resize(n); }
+    if (auto const n = num_components(); size(arr) != n) {
+      arr.resize(n);
+    }
     std::lock_guard lock{*m_mutex};
     m_var.getVar(arr.data());
   }
@@ -193,8 +232,8 @@ class variable {
     assert(start_indices.size() == num_dimensions());
 
     dynamic_multidim_array<T> arr(counts);
-    std::reverse(begin(start_indices), end(start_indices));
-    std::reverse(begin(counts), end(counts));
+    //std::reverse(begin(start_indices), end(start_indices));
+    //std::reverse(begin(counts), end(counts));
     std::lock_guard lock{*m_mutex};
     m_var.getVar(start_indices, counts, arr.data_ptr());
     return arr;
@@ -241,7 +280,9 @@ class variable {
                   std::vector<T>&            arr) const {
     auto const n = std::accumulate(begin(counts), end(counts), size_t(1),
                                    std::multiplies<size_t>{});
-    if (size(arr) != n) { arr.resize(n); }
+    if (size(arr) != n) {
+      arr.resize(n);
+    }
     std::lock_guard lock{*m_mutex};
     m_var.getVar(start_indices, counts, arr.data());
   }
@@ -269,7 +310,9 @@ class variable {
   auto size() const {
     std::vector<size_t> res;
     res.reserve(num_dimensions());
-    for (size_t i = 0; i < num_dimensions(); ++i) { res.push_back(size(i)); }
+    for (size_t i = 0; i < num_dimensions(); ++i) {
+      res.push_back(size(i));
+    }
     return res;
   }
   //----------------------------------------------------------------------------
@@ -292,22 +335,28 @@ class file {
         m_mutex{std::make_shared<std::mutex>()} {}
   //============================================================================
   template <typename T>
-  auto add_variable(std::string const&                variable_name,
+  auto add_variable(std::string const&   variable_name,
                     netCDF::NcDim const& dim) {
     return netcdf::variable<T>{
-        m_file, m_mutex, m_file->addVar(variable_name, to_nc_type<T>(), dim)};
+        m_file, m_mutex,
+        m_file->addVar(variable_name, nc_type<T>::value(), dim)};
   }
   //----------------------------------------------------------------------------
   template <typename T>
   auto add_variable(std::string const&                variable_name,
                     std::vector<netCDF::NcDim> const& dims) {
     return netcdf::variable<T>{
-        m_file, m_mutex, m_file->addVar(variable_name, to_nc_type<T>(), dims)};
+        m_file, m_mutex,
+        m_file->addVar(variable_name, nc_type<T>::value(), dims)};
   }
   //----------------------------------------------------------------------------
   template <typename T>
   auto variable(std::string const& variable_name) const {
     return netcdf::variable<T>{m_file, m_mutex, m_file->getVar(variable_name)};
+  }
+  //----------------------------------------------------------------------------
+  auto add_dimension(std::string const& dimension_name) {
+    return m_file->addDim(dimension_name);
   }
   //----------------------------------------------------------------------------
   auto add_dimension(std::string const& dimension_name, size_t const size) {
@@ -328,7 +377,7 @@ class file {
   auto variables() const {
     std::vector<netcdf::variable<T>> vars;
     for (auto& [name, var] : m_file->getVars()) {
-      if (var.getType() == to_nc_type<T>()) {
+      if (var.getType() == nc_type<T>::value()) {
         vars.push_back(netcdf::variable<T>{m_file, m_mutex, std::move(var)});
       }
     }

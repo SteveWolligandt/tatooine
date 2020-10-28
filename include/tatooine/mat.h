@@ -133,11 +133,78 @@ mat(Rows const(&&... rows)[C])  // NOLINT
 //==============================================================================
 // typedefs
 //==============================================================================
-using mat2 = mat<double, 2, 2>;
-using mat3 = mat<double, 3, 3>;
-using mat4 = mat<double, 4, 4>;
-using mat5 = mat<double, 5, 5>;
-using mat6 = mat<double, 6, 6>;
+
+template <real_or_complex_number T>
+using Mat2 = mat<T, 2, 2>;
+template <real_or_complex_number T>
+using Mat23 = mat<T, 2, 3>;
+template <real_or_complex_number T>
+using Mat24 = mat<T, 2, 4>;
+
+template <real_or_complex_number T>
+using Mat32 = mat<T, 3, 2>;
+template <real_or_complex_number T>
+using Mat3 = mat<T, 3, 3>;
+template <real_or_complex_number T>
+using Mat34 = mat<T, 3, 4>;
+
+template <real_or_complex_number T>
+using Mat42 = mat<T, 4, 2>;
+template <real_or_complex_number T>
+using Mat43 = mat<T, 4, 3>;
+template <real_or_complex_number T>
+using Mat4 = mat<T, 4, 4>;
+
+template <real_or_complex_number T>
+using Mat5 = mat<T, 5, 5>;
+template <real_or_complex_number T>
+using Mat6 = mat<T, 6, 6>;
+
+
+using mat2d = Mat2<double>;
+using mat23d = Mat23<double>;
+using mat24d = Mat24<double>;
+
+using mat32d = Mat32<double>;
+using mat3d = Mat3<double>;
+using mat34d = Mat34<double>;
+
+using mat42d = Mat42<double>;
+using mat43d = Mat43<double>;
+using mat4d = Mat4<double>;
+
+using mat5d = Mat5<double>;
+using mat6d = Mat6<double>;
+
+using mat2f = Mat2<float>;
+using mat23f = Mat23<float>;
+using mat24f = Mat24<float>;
+
+using mat32f = Mat32<float>;
+using mat3f = Mat3<float>;
+using mat34f = Mat34<float>;
+
+using mat42f = Mat42<float>;
+using mat43f = Mat43<float>;
+using mat4f = Mat4<float>;
+
+using mat5f = Mat5<float>;
+using mat6f = Mat6<float>;
+
+using mat2 = mat2d;
+using mat23 = mat23d;
+using mat24 = mat24d;
+
+using mat32 = mat32d;
+using mat3 = mat3d;
+using mat34 = mat34d;
+
+using mat42 = mat42d;
+using mat43 = mat43d;
+using mat4 = mat4d;
+
+using mat5 = mat5d;
+using mat6 = mat6d;
 //==============================================================================
 }  // namespace tatooine
 //==============================================================================

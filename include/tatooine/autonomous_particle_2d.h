@@ -24,7 +24,6 @@ struct autonomous_particle<Flowmap> {
   using real_t  = typename flowmap_t::real_t;
   using vec_t   = vec<real_t, num_dimensions()>;
   using mat_t   = mat<real_t, num_dimensions(), num_dimensions()>;
-  using diff1_t = mat_t;
   using pos_t   = vec_t;
 
   //----------------------------------------------------------------------------
@@ -35,7 +34,7 @@ struct autonomous_particle<Flowmap> {
   pos_t     m_x0, m_x1;
   real_t    m_t1;
   mat_t     m_nabla_phi1;
-  diff1_t   m_S;
+  mat_t     m_S;
 
   //----------------------------------------------------------------------------
   // ctors
