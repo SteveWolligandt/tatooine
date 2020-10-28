@@ -10,32 +10,11 @@
 #include "parse_args.h"
 //==============================================================================
 std::vector<size_t> const cnt{1, 2, 3};
+std::vector<std::thread>  writers;
+std::mutex writer_mutex;
 //==============================================================================
 using namespace tatooine;
 //==============================================================================
-//void create_geometry(auto const& args, auto const& advected_particles) {
-//  for (auto const& p : advected_particles) {
-//    auto sqrS =
-//        inv(p.nabla_phi1()) * p.S() * p.S() * inv(transposed(p.nabla_phi1()));
-//    auto [eig_vecs, eig_vals] = eigenvectors_sym(sqrS);
-//    eig_vals = {std::sqrt(eig_vals(0)), std::sqrt(eig_vals(1))};
-//    transposed(eig_vecs);
-//    if (args.min_cond > 0 && eig_vals(1) / eig_vals(0) < args.min_cond) {
-//      continue;
-//    }
-//
-//    // advection
-//    advected_ellipses.push_back(mat23f{{p.S()(0, 0), p.S()(0, 1), p.x1()(0)},
-//                                       {p.S()(1, 0), p.S()(1, 1), p.x1()(1)}});
-//
-//    // back calculation
-//    auto Sback = eig_vecs * diag(eig_vals) * transposed(eig_vecs);
-//    back_calculation_ellipses.push_back(
-//        mat23f{{Sback(0, 0), Sback(0, 1), p.x0()(0)},
-//               {Sback(1, 0), Sback(1, 1), p.x0()(1)}});
-//  }
-//}
-//------------------------------------------------------------------------------
 auto main(int argc, char** argv) -> int {
   auto args_opt = parse_args(argc, argv);
   if (!args_opt) {
@@ -107,35 +86,46 @@ auto main(int argc, char** argv) -> int {
 
       p0.phi().use_caching(false);
 
-      for (auto const& p : calc_particles(p0)) {
-        auto sqrS = inv(p.nabla_phi1()) * p.S() * p.S() *
-                    inv(transposed(p.nabla_phi1()));
-        auto [eig_vecs, eig_vals] = eigenvectors_sym(sqrS);
-        eig_vals = {std::sqrt(eig_vals(0)), std::sqrt(eig_vals(1))};
-        transposed(eig_vecs);
-        if (args.min_cond > 0 && eig_vals(1) / eig_vals(0) < args.min_cond) {
-          continue;
+      auto ps = calc_particles(p0);
+      writers.emplace_back([&, ps = std::move(ps)] {
+        for (auto const& p : ps) {
+          auto sqrS = inv(p.nabla_phi1()) * p.S() * p.S() *
+                      inv(transposed(p.nabla_phi1()));
+          auto [eig_vecs, eig_vals] = eigenvectors_sym(sqrS);
+          eig_vals = {std::sqrt(eig_vals(0)), std::sqrt(eig_vals(1))};
+          transposed(eig_vecs);
+          if (args.min_cond > 0 && eig_vals(1) / eig_vals(0) < args.min_cond) {
+            continue;
+          }
+
+          // advection
+          mat23f advected_T{{p.S()(0, 0), p.S()(0, 1), p.x1()(0)},
+                            {p.S()(1, 0), p.S()(1, 1), p.x1()(1)}};
+          {
+            std::lock_guard lock{writer_mutex};
+            advected_var.write(advected_netcdf_is, cnt, advected_T.data_ptr());
+            ++advected_netcdf_is.front();
+          }
+
+          // back calculation
+          auto   Sback = eig_vecs * diag(eig_vals) * transposed(eig_vecs);
+          mat23f back_calculation_T{{Sback(0, 0), Sback(0, 1), p.x1()(0)},
+                                    {Sback(1, 0), Sback(1, 1), p.x1()(1)}};
+          {
+            std::lock_guard lock{writer_mutex};
+            back_calculation_var.write(back_calculation_netcdf_is, cnt,
+                                       back_calculation_T.data_ptr());
+            ++back_calculation_netcdf_is.front();
+          }
         }
-
-        // advection
-        mat23f advected_T{{p.S()(0, 0), p.S()(0, 1), p.x1()(0)},
-                          {p.S()(1, 0), p.S()(1, 1), p.x1()(1)}};
-        advected_var.write(advected_netcdf_is, cnt,
-                           advected_T.data_ptr());
-        ++advected_netcdf_is.front();
-
-        // back calculation
-        auto Sback = eig_vecs * diag(eig_vals) * transposed(eig_vecs);
-        mat23f back_calculation_T{{Sback(0, 0), Sback(0, 1), p.x1()(0)},
-                                  {Sback(1, 0), Sback(1, 1), p.x1()(1)}};
-        back_calculation_var.write(back_calculation_netcdf_is,
-                                   cnt, back_calculation_T.data_ptr());
-        ++back_calculation_netcdf_is.front();
-      }
+      });
 
       ++particle_counter;
       indicator.progress = particle_counter / double(g.num_vertices());
     }
     indicator.progress = 1;
   });
+  for (auto& writer : writers) {
+    writer.join();
+  }
 }
