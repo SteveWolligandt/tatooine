@@ -87,7 +87,7 @@ auto main(int argc, char** argv) -> int {
       p0.phi().use_caching(false);
 
       auto ps = calc_particles(p0);
-      writers.emplace_back([&, ps = std::move(ps)] {
+      writers.emplace_back([&, ps = std::move(ps)]() mutable {
         for (auto const& p : ps) {
           auto sqrS = inv(p.nabla_phi1()) * p.S() * p.S() *
                       inv(transposed(p.nabla_phi1()));
@@ -118,6 +118,8 @@ auto main(int argc, char** argv) -> int {
             ++back_calculation_netcdf_is.front();
           }
         }
+        ps.clear();
+        ps.shrink_to_fit();
       });
 
       ++particle_counter;
