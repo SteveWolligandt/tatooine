@@ -61,7 +61,9 @@ auto write_unlimited_mat_list() {
   std::vector<size_t>       is{0, 0, 0};
   std::vector<size_t> const cnt{1, 2, 2};
   for (; is.front() < 10; ++is.front()) {
-     data_out.push_back(mat2{{rand(), rand()}, {rand(), rand()}});
+    data_out.push_back(mat2{{is.front() * 4, is.front() * 4 + 2},
+                            {is.front() * 4 + 1, is.front() * 4 + 3}});
+    // data_out.push_back(mat2{{rand(), rand()}, {rand(), rand()}});
     var.write(is, cnt, data_out.back().data_ptr());
   }
 

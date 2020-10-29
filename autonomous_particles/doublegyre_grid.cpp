@@ -87,7 +87,7 @@ auto main(int argc, char** argv) -> int {
       p0.phi().use_caching(false);
 
       auto ps = calc_particles(p0);
-      writers.emplace_back([&, ps = std::move(ps)]() mutable {
+      //writers.emplace_back([&, ps = std::move(ps)]() mutable {
         for (auto const& p : ps) {
           auto sqrS = inv(p.nabla_phi1()) * p.S() * p.S() *
                       inv(transposed(p.nabla_phi1()));
@@ -120,7 +120,7 @@ auto main(int argc, char** argv) -> int {
         }
         ps.clear();
         ps.shrink_to_fit();
-      });
+      //});
 
       ++particle_counter;
       indicator.progress = particle_counter / double(g.num_vertices());

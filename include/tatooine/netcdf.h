@@ -203,6 +203,11 @@ class variable {
     m_var.getVar(arr.data());
   }
   //----------------------------------------------------------------------------
+  auto read(T* const ptr) const {
+    std::lock_guard lock{*m_mutex};
+    m_var.getVar(ptr);
+  }
+  //----------------------------------------------------------------------------
   auto read_as_vector() const {
     std::vector<T>  arr(num_components());
     std::lock_guard lock{*m_mutex};
