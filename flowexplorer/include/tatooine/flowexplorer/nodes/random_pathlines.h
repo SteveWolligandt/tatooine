@@ -96,7 +96,7 @@ struct random_pathlines : renderable<random_pathlines<N>> {
     }
   }
   //----------------------------------------------------------------------------
-  void draw_properties() override {
+  auto draw_properties()->bool override {
     ImGui::DragInt("number of path lines", &m_num_pathlines, 1, 10, 1000);
     ImGui::DragDouble("backward tau", &m_btau, 0.1, -100, 0);
     ImGui::DragDouble("forward tau", &m_ftau, 0.1, 0, 100);
@@ -120,6 +120,7 @@ struct random_pathlines : renderable<random_pathlines<N>> {
     } else {
       ImGui::SliderFloat("m_general_alpha", &m_general_alpha, 0.0f, 1.0f);
     }
+    return false;
   }
   //----------------------------------------------------------------------------
   void update_shader(mat<float, 4, 4> const& projection_matrix,

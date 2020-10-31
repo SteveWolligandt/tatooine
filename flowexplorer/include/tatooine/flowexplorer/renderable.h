@@ -36,7 +36,7 @@ struct renderable : base::renderable, ui::node_serializer<Child> {
                                                serialization);
   }
   //----------------------------------------------------------------------------
-  auto draw_properties() -> void override {
+  auto draw_properties() -> bool override {
     return serializer_t::draw_properties(*dynamic_cast<Child*>(this));
   }
   //----------------------------------------------------------------------------

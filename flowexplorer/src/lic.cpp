@@ -56,7 +56,7 @@ auto lic::setup_quad() -> void {
 //----------------------------------------------------------------------------
 auto lic::render(mat<float, 4, 4> const& projection_matrix,
                  mat<float, 4, 4> const& view_matrix) -> void {
-  if (m_lic_tex && m_v && m_boundingbox) {
+  if (!m_calculating && m_lic_tex && m_v && m_boundingbox) {
     update_shader(projection_matrix, view_matrix);
     m_shader->bind();
     m_shader->set_alpha(m_alpha);
@@ -70,18 +70,18 @@ void lic::calculate_lic() {
     return;
   }
   m_calculating = true;
-  this->scene().window().do_async([node = this] {
-    node->m_lic_tex = std::make_unique<yavin::tex2rgba<float>>(gpu::lic(
-        *node->m_v,
-        linspace{node->m_boundingbox->min(0), node->m_boundingbox->max(0),
-                 static_cast<size_t>(node->m_vectorfield_sample_res(0))},
-        linspace{node->m_boundingbox->min(1), node->m_boundingbox->max(1),
-                 static_cast<size_t>(node->m_vectorfield_sample_res(1))},
-        node->m_t, vec<size_t, 2>{node->m_lic_res(0), node->m_lic_res(1)},
-        node->m_num_samples, node->m_stepsize));
+  //this->scene().window().do_async([this] {
+    m_lic_tex = std::make_unique<yavin::tex2rgba<float>>(
+        gpu::lic(*m_v,
+                 linspace{m_boundingbox->min(0), m_boundingbox->max(0),
+                          static_cast<size_t>(m_vectorfield_sample_res(0))},
+                 linspace{m_boundingbox->min(1), m_boundingbox->max(1),
+                          static_cast<size_t>(m_vectorfield_sample_res(1))},
+                 m_t, vec<size_t, 2>{m_lic_res(0), m_lic_res(1)}, m_num_samples,
+                 m_stepsize));
 
-    node->m_calculating = false;
-  });
+    m_calculating = false;
+  //});
 }
 //----------------------------------------------------------------------------
 auto lic::update_shader(mat<float, 4, 4> const& projection_matrix,
@@ -107,13 +107,9 @@ auto lic::on_pin_connected(ui::pin& this_pin, ui::pin& other_pin) -> void {
   }
 }
 //----------------------------------------------------------------------------
-auto lic::on_pin_disconnected(ui::pin& this_pin) -> void {
-  m_lic_tex.reset();
-}
+auto lic::on_pin_disconnected(ui::pin& this_pin) -> void { m_lic_tex.reset(); }
 //----------------------------------------------------------------------------
-auto lic::is_transparent() const -> bool{
-  return m_alpha < 1;
-}
+auto lic::is_transparent() const -> bool { return m_alpha < 1; }
 //==============================================================================
 }  // namespace tatooine::flowexplorer::nodes
 //==============================================================================

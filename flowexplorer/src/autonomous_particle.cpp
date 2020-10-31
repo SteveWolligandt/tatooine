@@ -175,7 +175,7 @@ void autonomous_particle::advect() {
   //});
 }
 //----------------------------------------------------------------------------
-void autonomous_particle::draw_properties() {
+auto autonomous_particle::draw_properties() -> bool {
   bool do_advect = false;
   if (ImGui::DragDouble("t0", &m_t0, 0.001)) {
     do_advect = true;
@@ -255,6 +255,7 @@ void autonomous_particle::draw_properties() {
   if (do_advect && m_x0 != nullptr && &this->phi().vectorfield() != nullptr) {
     advect();
   }
+  return false;
 }
 //----------------------------------------------------------------------------
 auto autonomous_particle::is_transparent() const -> bool { return false; }

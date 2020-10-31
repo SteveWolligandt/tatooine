@@ -43,3 +43,12 @@ set (FLOWEXPLORER_POINT_VERT ${TATFE_SHADER_DIR}/point/point.vert)
 set (FLOWEXPLORER_POINT_FRAG ${TATFE_SHADER_DIR}/point/point.frag)
 configure_file(${TATFE_INCLUDE_DIR}/tatooine/flowexplorer/point_shader.h.in
                ${TATFE_BIN_INCLUDE_DIR}/tatooine/flowexplorer/point_shader.h)
+#- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+set (TATOOINE_FLOWEXPLORER_SHADERS_AUTONOMOUS_PARTICLES_RENDERER_VERT
+     ${TATFE_SHADER_DIR}/autonomous_particles_renderer.vert)
+set (TATOOINE_FLOWEXPLORER_SHADERS_AUTONOMOUS_PARTICLES_RENDERER_GEOM
+     ${TATFE_SHADER_DIR}/autonomous_particles_renderer.geom)
+set (TATOOINE_FLOWEXPLORER_SHADERS_AUTONOMOUS_PARTICLES_RENDERER_FRAG
+     ${TATFE_SHADER_DIR}/autonomous_particles_renderer.frag)
+configure_file(${TATFE_INCLUDE_DIR}/tatooine/flowexplorer/nodes/autonomous_particles_renderer.h.in
+               ${TATFE_BIN_INCLUDE_DIR}/tatooine/flowexplorer/nodes/autonomous_particles_renderer.h)

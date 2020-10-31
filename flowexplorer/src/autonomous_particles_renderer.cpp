@@ -5,15 +5,9 @@
 namespace tatooine::flowexplorer::nodes {
 //==============================================================================
 autonomous_particles_renderer::shader::shader() {
-  add_stage<yavin::vertexshader>(
-      "/home/steve/libs/tatooine2/flowexplorer/shaders/"
-      "autonomous_particles_renderer.vert");
-  add_stage<yavin::geometryshader>(
-      "/home/steve/libs/tatooine2/flowexplorer/shaders/"
-      "autonomous_particles_renderer.geom");
-  add_stage<yavin::fragmentshader>(
-      "/home/steve/libs/tatooine2/flowexplorer/shaders/"
-      "autonomous_particles_renderer.frag");
+  add_stage<yavin::vertexshader>(vertex_shader_path);
+  add_stage<yavin::geometryshader>(geometry_shader_path);
+  add_stage<yavin::fragmentshader>(fragment_shader_path);
   create();
 }
 //------------------------------------------------------------------------------
@@ -44,12 +38,12 @@ void autonomous_particles_renderer::render(mat4f const& P, mat4f const& V) {
   //}
 }
 //----------------------------------------------------------------------------
-void autonomous_particles_renderer::draw_properties() {
+auto autonomous_particles_renderer::draw_properties() -> bool {
   ImGui::Text("number of particles: %i", (m_gpu_Ss.size()));
   if (ImGui::Button("load")) {
     load_data();
   }
-
+  return false;
 }
 //----------------------------------------------------------------------------
 void autonomous_particles_renderer::load_data() {

@@ -59,7 +59,8 @@ struct node : uuid_holder<ax::NodeEditor::NodeId>, serializable {
   auto output_pins() const -> auto const& { return m_output_pins; }
   auto output_pins() -> auto& { return m_output_pins; }
   //----------------------------------------------------------------------------
-  virtual void draw_properties() = 0;
+  virtual auto draw_properties() -> bool = 0;
+  virtual auto on_property_changed() -> void {}
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
   void draw_node() {
     namespace ed = ax::NodeEditor;
@@ -68,7 +69,9 @@ struct node : uuid_holder<ax::NodeEditor::NodeId>, serializable {
     ImGui::SameLine();
     ImGui::TextUnformatted(title().c_str());
     ImGui::Separator();
-    draw_properties();
+    if ( draw_properties()) {
+      on_property_changed();
+    }
     for (auto& input_pin : input_pins()) {
       ed::BeginPin(input_pin.get_id(), ed::PinKind::Input);
       std::string in = "-> " + input_pin.title();
@@ -296,76 +299,78 @@ struct node_serializer {
     });
   }
   //----------------------------------------------------------------------------
-  auto draw_properties(T& t) -> void {
-    reflection::for_each(t, [](auto const& name, auto& var) {
+  auto draw_properties(T& t) -> bool {
+    bool changed = false;
+    reflection::for_each(t, [&changed](auto const& name, auto& var) {
       // float
       if constexpr (std::is_same_v<float, std::decay_t<decltype(var)>>) {
-        ImGui::DragFloat(name, &var, 0.1f);
+        changed |= ImGui::DragFloat(name, &var, 0.1f);
       } else if constexpr (std::is_same_v<std::array<float, 2>,
                                           std::decay_t<decltype(var)>>) {
-        ImGui::DragFloat2(name, var.data(), 0.1f);
+        changed |= ImGui::DragFloat2(name, var.data(), 0.1f);
       } else if constexpr (std::is_same_v<std::array<float, 3>,
                                           std::decay_t<decltype(var)>>) {
-        ImGui::DragFloat3(name, var.data(), 0.1f);
+        changed |= ImGui::DragFloat3(name, var.data(), 0.1f);
       } else if constexpr (std::is_same_v<std::array<float, 4>,
                                           std::decay_t<decltype(var)>>) {
-        ImGui::DragFloat4(name, var.data(), 0.1f);
+        changed |= ImGui::DragFloat4(name, var.data(), 0.1f);
       } else if constexpr (std::is_same_v<vec<float, 2>,
                                           std::decay_t<decltype(var)>>) {
-        ImGui::DragFloat2(name, var.data_ptr(), 0.1f);
+        changed |= ImGui::DragFloat2(name, var.data_ptr(), 0.1f);
       } else if constexpr (std::is_same_v<vec<float, 3>,
                                           std::decay_t<decltype(var)>>) {
-        ImGui::DragFloat3(name, var.data_ptr(), 0.1f);
+        changed |= ImGui::DragFloat3(name, var.data_ptr(), 0.1f);
       } else if constexpr (std::is_same_v<vec<float, 4>,
                                           std::decay_t<decltype(var)>>) {
-        ImGui::DragFloat4(name, var.data_ptr(), 0.1f);
+        changed |= ImGui::DragFloat4(name, var.data_ptr(), 0.1f);
 
         // double
       } else if constexpr (std::is_same_v<double,
                                           std::decay_t<decltype(var)>>) {
-        ImGui::DragDouble(name, &var, 0.1);
+        changed |= ImGui::DragDouble(name, &var, 0.1);
       } else if constexpr (std::is_same_v<std::array<double, 2>,
                                           std::decay_t<decltype(var)>>) {
-        ImGui::DragDouble2(name, var.data(), 0.1);
+        changed |= ImGui::DragDouble2(name, var.data(), 0.1);
       } else if constexpr (std::is_same_v<std::array<double, 3>,
                                           std::decay_t<decltype(var)>>) {
-        ImGui::DragDouble3(name, var.data(), 0.1);
+        changed |= ImGui::DragDouble3(name, var.data(), 0.1);
       } else if constexpr (std::is_same_v<std::array<double, 4>,
                                           std::decay_t<decltype(var)>>) {
-        ImGui::DragDouble4(name, var.data(), 0.1);
+        changed |= ImGui::DragDouble4(name, var.data(), 0.1);
       } else if constexpr (std::is_same_v<vec<double, 2>,
                                           std::decay_t<decltype(var)>>) {
-        ImGui::DragDouble2(name, var.data_ptr(), 0.1);
+        changed |= ImGui::DragDouble2(name, var.data_ptr(), 0.1);
       } else if constexpr (std::is_same_v<vec<double, 3>,
                                           std::decay_t<decltype(var)>>) {
-        ImGui::DragDouble3(name, var.data_ptr(), 0.1);
+        changed |= ImGui::DragDouble3(name, var.data_ptr(), 0.1);
       } else if constexpr (std::is_same_v<vec<double, 4>,
                                           std::decay_t<decltype(var)>>) {
-        ImGui::DragDouble4(name, var.data_ptr(), 0.1);
+        changed |= ImGui::DragDouble4(name, var.data_ptr(), 0.1);
 
         // int
       } else if constexpr (std::is_same_v<int, std::decay_t<decltype(var)>>) {
-        ImGui::DragInt(name, &var, 1);
+        changed |= ImGui::DragInt(name, &var, 1);
       } else if constexpr (std::is_same_v<std::array<int, 2>,
                                           std::decay_t<decltype(var)>>) {
-        ImGui::DragInt2(name, var.data(), 1);
+        changed |= ImGui::DragInt2(name, var.data(), 1);
       } else if constexpr (std::is_same_v<std::array<int, 3>,
                                           std::decay_t<decltype(var)>>) {
-        ImGui::DragInt3(name, var.data(), 1);
+        changed |= ImGui::DragInt3(name, var.data(), 1);
       } else if constexpr (std::is_same_v<std::array<int, 4>,
                                           std::decay_t<decltype(var)>>) {
-        ImGui::DragInt4(name, var.data(), 1);
+        changed |= ImGui::DragInt4(name, var.data(), 1);
       } else if constexpr (std::is_same_v<vec<int, 2>,
                                           std::decay_t<decltype(var)>>) {
-        ImGui::DragInt2(name, var.data_ptr(), 1);
+        changed |= ImGui::DragInt2(name, var.data_ptr(), 1);
       } else if constexpr (std::is_same_v<vec<int, 3>,
                                           std::decay_t<decltype(var)>>) {
-        ImGui::DragInt3(name, var.data_ptr(), 1);
+        changed |= ImGui::DragInt3(name, var.data_ptr(), 1);
       } else if constexpr (std::is_same_v<vec<int, 4>,
                                           std::decay_t<decltype(var)>>) {
-        ImGui::DragInt4(name, var.data_ptr(), 1);
+        changed |= ImGui::DragInt4(name, var.data_ptr(), 1);
       }
     });
+    return changed;
   }
   //----------------------------------------------------------------------------
   constexpr auto type_name() const -> std::string_view {
@@ -386,8 +391,8 @@ struct node : base::node, node_serializer<Child> {
                                                serialized_node);
   }
   //----------------------------------------------------------------------------
-  auto draw_properties() -> void override final {
-    node_serializer<Child>::draw_properties(*dynamic_cast<Child*>(this));
+  auto draw_properties() -> bool override final {
+    return node_serializer<Child>::draw_properties(*dynamic_cast<Child*>(this));
   }
   //----------------------------------------------------------------------------
   auto type_name() const -> std::string_view override final {

@@ -65,7 +65,11 @@ struct lic : renderable<lic> {
   auto render(mat<float, 4, 4> const& projection_matrix,
               mat<float, 4, 4> const& view_matrix) -> void override;
   //----------------------------------------------------------------------------
-  auto update(const std::chrono::duration<double>&) -> void override {}
+  auto on_property_changed() -> void override {
+    if (m_v != nullptr && m_boundingbox != nullptr) {
+      calculate_lic();
+    }
+  }
   //----------------------------------------------------------------------------
   auto calculate_lic() -> void;
   //----------------------------------------------------------------------------
