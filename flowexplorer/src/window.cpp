@@ -41,10 +41,8 @@ void window::start() {
   render_loop([&](const auto& dt) {
     m_scene.render(dt);
     if (m_show_nodes_gui) {
-      std::cerr << "========== NODE EDITOR BEGIN\n";
       m_scene.draw_node_editor(0, 0, this->width() / 3, this->height(),
                                m_show_nodes_gui);
-      std::cerr << "========== NODE EDITOR END\n";
     }
     if (m_file_browser) {
       m_file_browser->Display();

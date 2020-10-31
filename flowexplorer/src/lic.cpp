@@ -70,7 +70,7 @@ void lic::calculate_lic() {
     return;
   }
   m_calculating = true;
-  //this->scene().window().do_async([this] {
+  this->scene().window().do_async([this] {
     m_lic_tex = std::make_unique<yavin::tex2rgba<float>>(
         gpu::lic(*m_v,
                  linspace{m_boundingbox->min(0), m_boundingbox->max(0),
@@ -81,7 +81,7 @@ void lic::calculate_lic() {
                  m_stepsize));
 
     m_calculating = false;
-  //});
+  });
 }
 //----------------------------------------------------------------------------
 auto lic::update_shader(mat<float, 4, 4> const& projection_matrix,
