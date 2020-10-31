@@ -18,8 +18,6 @@ void autonomous_particle::render(mat<float, 4, 4> const& projection_matrix,
                                  mat<float, 4, 4> const& view_matrix) {
   m_line_shader.set_projection_matrix(projection_matrix);
   m_line_shader.set_modelview_matrix(view_matrix);
-  m_point_shader.set_projection_matrix(projection_matrix);
-  m_point_shader.set_modelview_matrix(view_matrix);
   m_line_shader.bind();
   m_line_shader.set_color(m_ellipses_color[0], m_ellipses_color[1],
                           m_ellipses_color[2], m_ellipses_color[3]);
@@ -34,9 +32,6 @@ void autonomous_particle::render(mat<float, 4, 4> const& projection_matrix,
   m_initial_ellipses_back_calculation.draw_lines();
   m_line_shader.set_color(0.5, 0.5, 0.5, 1);
   m_gpu_advected_random_points_in_initial_circle.draw_lines();
-
-  m_point_shader.bind();
-  yavin::gl::point_size(4);
 }
 //----------------------------------------------------------------------------
 void autonomous_particle::update_initial_circle() {
@@ -75,25 +70,25 @@ void autonomous_particle::advect() {
   m_stop_thread          = false;
   m_needs_another_update = false;
 
-  // window().do_async([&node = *this] {
-  auto& node = *this;
-  node.x0()  = *node.m_x0;
-  node.x1()  = *node.m_x0;
+  // window().do_async([node = this] {
+  auto node  = this;
+  node->x0() = *node->m_x0;
+  node->x1() = *node->m_x0;
 
   auto const particles = [&node] {
-    switch (node.m_num_splits) {
+    switch (node->m_num_splits) {
       case 2:
-        return node.advect_with_2_splits(node.m_taustep, node.m_max_t,
-                                         node.m_stop_thread);
+        return node->advect_with_2_splits(node->m_taustep, node->m_max_t,
+                                          node->m_stop_thread);
       case 3:
-        return node.advect_with_3_splits(node.m_taustep, node.m_max_t,
-                                         node.m_stop_thread);
+        return node->advect_with_3_splits(node->m_taustep, node->m_max_t,
+                                          node->m_stop_thread);
       case 5:
-        return node.advect_with_5_splits(node.m_taustep, node.m_max_t,
-                                         node.m_stop_thread);
+        return node->advect_with_5_splits(node->m_taustep, node->m_max_t,
+                                          node->m_stop_thread);
       case 7:
-        return node.advect_with_7_splits(node.m_taustep, node.m_max_t,
-                                         node.m_stop_thread);
+        return node->advect_with_7_splits(node->m_taustep, node->m_max_t,
+                                          node->m_stop_thread);
     }
     return std::vector<parent_t>{};
   }();
@@ -102,49 +97,49 @@ void autonomous_particle::advect() {
   size_t                      i                   = 0;
   {
     {
-      std::lock_guard lock{node.m_advected_ellipses.mutex()};
-      node.m_advected_ellipses.clear();
+      std::lock_guard lock{node->m_advected_ellipses.mutex()};
+      node->m_advected_ellipses.clear();
     }
     i = 0;
     for (auto const& particle : particles) {
-      if (node.m_stop_thread) {
+      if (node->m_stop_thread) {
         break;
       }
-      std::lock_guard lock{node.m_advected_ellipses.mutex()};
+      std::lock_guard lock{node->m_advected_ellipses.mutex()};
       for (auto const& x : discretized_ellipse.vertices()) {
-        if (node.m_stop_thread) {
+        if (node->m_stop_thread) {
           break;
         }
         auto y = particle.S() * x + particle.x1();
-        node.m_advected_ellipses.vertexbuffer().push_back(
+        node->m_advected_ellipses.vertexbuffer().push_back(
             gpu_vec3{static_cast<float>(y(0)), static_cast<float>(y(1)),
                      static_cast<float>(particle.t1())});
-        node.m_advected_ellipses.indexbuffer().push_back(i++);
-        node.m_advected_ellipses.indexbuffer().push_back(i);
+        node->m_advected_ellipses.indexbuffer().push_back(i++);
+        node->m_advected_ellipses.indexbuffer().push_back(i);
       }
       auto y =
           particle.S() * discretized_ellipse.front_vertex() + particle.x1();
-      node.m_advected_ellipses.vertexbuffer().push_back(
+      node->m_advected_ellipses.vertexbuffer().push_back(
           gpu_vec3{static_cast<float>(y(0)), static_cast<float>(y(1)),
                    static_cast<float>(particle.t1())});
       ++i;
     }
   }
 
-  // back_advectd ellipses
+  // back_advected ellipses
   {
     {
-      std::lock_guard lock{node.m_initial_ellipses_back_calculation.mutex()};
-      node.m_initial_ellipses_back_calculation.clear();
+      std::lock_guard lock{node->m_initial_ellipses_back_calculation.mutex()};
+      node->m_initial_ellipses_back_calculation.clear();
     }
     i = 0;
     for (auto const& particle : particles) {
-      if (node.m_stop_thread) {
+      if (node->m_stop_thread) {
         break;
       }
-      std::lock_guard lock{node.m_initial_ellipses_back_calculation.mutex()};
+      std::lock_guard lock{node->m_initial_ellipses_back_calculation.mutex()};
       for (auto const& x : discretized_ellipse.vertices()) {
-        if (node.m_stop_thread) {
+        if (node->m_stop_thread) {
           break;
         }
         auto sqrS = inv(particle.nabla_phi1()) * particle.S() * particle.S() *
@@ -153,11 +148,11 @@ void autonomous_particle::advect() {
         eig_vals = {std::sqrt(eig_vals(0)), std::sqrt(eig_vals(1))};
         auto S   = eig_vecs * diag(eig_vals) * transposed(eig_vecs);
         auto y   = S * x + particle.x0();
-        node.m_initial_ellipses_back_calculation.vertexbuffer().push_back(
+        node->m_initial_ellipses_back_calculation.vertexbuffer().push_back(
             gpu_vec3{static_cast<float>(y(0)), static_cast<float>(y(1)),
                      static_cast<float>(particle.t1())});
-        node.m_initial_ellipses_back_calculation.indexbuffer().push_back(i++);
-        node.m_initial_ellipses_back_calculation.indexbuffer().push_back(i);
+        node->m_initial_ellipses_back_calculation.indexbuffer().push_back(i++);
+        node->m_initial_ellipses_back_calculation.indexbuffer().push_back(i);
       }
       auto sqrS = inv(particle.nabla_phi1()) * particle.S() * particle.S() *
                   inv(transposed(particle.nabla_phi1()));
@@ -165,13 +160,13 @@ void autonomous_particle::advect() {
       eig_vals = {std::sqrt(eig_vals(0)), std::sqrt(eig_vals(1))};
       auto S   = eig_vecs * diag(eig_vals) * transposed(eig_vecs);
       auto y   = S * discretized_ellipse.front_vertex() + particle.x0();
-      node.m_initial_ellipses_back_calculation.vertexbuffer().push_back(
+      node->m_initial_ellipses_back_calculation.vertexbuffer().push_back(
           gpu_vec3{static_cast<float>(y(0)), static_cast<float>(y(1)),
                    static_cast<float>(particle.t1())});
       ++i;
     }
   }
-  node.m_integration_going_on = false;
+  node->m_integration_going_on = false;
   //});
 }
 //----------------------------------------------------------------------------
