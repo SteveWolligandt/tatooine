@@ -107,6 +107,12 @@ auto lic::on_pin_connected(ui::pin& this_pin, ui::pin& other_pin) -> void {
   }
 }
 //----------------------------------------------------------------------------
+auto lic::on_property_changed() -> void {
+  if (m_v != nullptr && m_boundingbox != nullptr) {
+    calculate_lic();
+  }
+}
+//----------------------------------------------------------------------------
 auto lic::on_pin_disconnected(ui::pin& this_pin) -> void { m_lic_tex.reset(); }
 //----------------------------------------------------------------------------
 auto lic::is_transparent() const -> bool { return m_alpha < 1; }
