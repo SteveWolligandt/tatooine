@@ -26,13 +26,13 @@ struct autonomous_particles_renderer
       "@TATOOINE_FLOWEXPLORER_SHADERS_AUTONOMOUS_PARTICLES_RENDERER_FRAG@";
   //============================================================================
   yavin::vertexbuffer<vec2f, vec2f, vec2f> m_gpu_Ss;
+  yavin::indexbuffer                       m_gpu_Is;
   shader                                   m_shader;
-  std::unique_ptr<std::thread>             m_reading_thread;
   bool                                     m_currently_reading = false;
   std::mutex                               m_gpu_data_mutex;
   //----------------------------------------------------------------------------
   autonomous_particles_renderer(flowexplorer::scene& s);
-  virtual ~autonomous_particles_renderer();
+  virtual ~autonomous_particles_renderer() = default;
   //----------------------------------------------------------------------------
   auto render(mat4f const& P, mat4f const& V) -> void override;
   //----------------------------------------------------------------------------

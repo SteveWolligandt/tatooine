@@ -56,7 +56,7 @@ auto lic::setup_quad() -> void {
 //----------------------------------------------------------------------------
 auto lic::render(mat<float, 4, 4> const& projection_matrix,
                  mat<float, 4, 4> const& view_matrix) -> void {
-  if (!m_calculating && m_lic_tex && m_v && m_boundingbox) {
+  if ( m_lic_tex && m_v && m_boundingbox) {
     update_shader(projection_matrix, view_matrix);
     m_shader->bind();
     m_shader->set_alpha(m_alpha);
@@ -71,15 +71,15 @@ void lic::calculate_lic() {
   }
   m_calculating = true;
   this->scene().window().do_async([this] {
-    m_lic_tex = std::make_unique<yavin::tex2rgba<float>>(
+    auto tex =
         gpu::lic(*m_v,
                  linspace{m_boundingbox->min(0), m_boundingbox->max(0),
                           static_cast<size_t>(m_vectorfield_sample_res(0))},
                  linspace{m_boundingbox->min(1), m_boundingbox->max(1),
                           static_cast<size_t>(m_vectorfield_sample_res(1))},
                  m_t, vec<size_t, 2>{m_lic_res(0), m_lic_res(1)}, m_num_samples,
-                 m_stepsize));
-
+                 m_stepsize);
+    m_lic_tex = std::make_unique<yavin::tex2rgba<float>>(std::move(tex));
     m_calculating = false;
   });
 }

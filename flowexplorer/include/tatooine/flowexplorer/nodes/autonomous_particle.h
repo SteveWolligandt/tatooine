@@ -2,11 +2,11 @@
 #define TATOOINE_FLOWEXPLORER_NODES_AUTONOMOUS_PARTICLE_H
 //==============================================================================
 #include <tatooine/autonomous_particle.h>
-#include <tatooine/numerical_flowmap.h>
 #include <tatooine/flowexplorer/line_shader.h>
-#include <tatooine/flowexplorer/point_shader.h>
 #include <tatooine/flowexplorer/nodes/position.h>
+#include <tatooine/flowexplorer/point_shader.h>
 #include <tatooine/flowexplorer/renderable.h>
+#include <tatooine/numerical_flowmap.h>
 //==============================================================================
 namespace tatooine::flowexplorer::nodes {
 //==============================================================================
@@ -29,10 +29,9 @@ struct autonomous_particle
   vec<double, 2>* m_x0      = nullptr;
   double          m_t0      = 0;
 
-  line_shader m_line_shader;
+  line_shader  m_line_shader;
   point_shader m_point_shader;
 
-  yavin::indexeddata<gpu_vec3> m_gpu_advected_random_points_in_initial_circle;
   yavin::indexeddata<gpu_vec3> m_initial_circle;
   yavin::indexeddata<gpu_vec3> m_advected_ellipses;
   yavin::indexeddata<gpu_vec3> m_initial_ellipses_back_calculation;
@@ -41,8 +40,9 @@ struct autonomous_particle
   bool                         m_needs_another_update = false;
   bool                         m_stop_thread          = false;
   int                          m_num_splits           = 3;
-  std::vector<vec_t>           m_random_points_in_initial_circle;
-  std::vector<vec_t>           m_advected_random_points_in_initial_circle;
+  std::vector<vec_t>           m_points_on_initial_circle;
+  std::vector<vec_t>           m_advected_points_on_initial_circle;
+  yavin::indexeddata<gpu_vec3> m_gpu_advected_points_on_initial_circle;
   // phong_shader                      m_phong_shader;
   // int                               m_integral_curve_width = 1;
   // std::array<GLfloat, 4> m_integral_curve_color{0.0f, 0.0f, 0.0f, 1.0f};
@@ -61,13 +61,13 @@ struct autonomous_particle
               mat<float, 4, 4> const& view_matrix) final;
   //----------------------------------------------------------------------------
  private:
-  void advect() ;
+  void advect();
 
  public:
   //----------------------------------------------------------------------------
   auto draw_properties() -> bool final;
   //----------------------------------------------------------------------------
-  auto is_transparent() const -> bool final ;
+  auto is_transparent() const -> bool final;
   //----------------------------------------------------------------------------
   void on_pin_connected(ui::pin& this_pin, ui::pin& other_pin) final;
   //----------------------------------------------------------------------------
@@ -85,10 +85,11 @@ struct autonomous_particle
 }  // namespace tatooine::flowexplorer::nodes
 //==============================================================================
 REGISTER_NODE(tatooine::flowexplorer::nodes::autonomous_particle,
-  TATOOINE_REFLECTION_INSERT_METHOD(t0, m_t0),
-  TATOOINE_REFLECTION_INSERT_METHOD(radius, m_radius),
-  TATOOINE_REFLECTION_INSERT_METHOD(tau_step, m_taustep),
-  TATOOINE_REFLECTION_INSERT_METHOD(end_time, m_max_t),
-  TATOOINE_REFLECTION_INSERT_METHOD(ellipses_color,m_ellipses_color),
-  TATOOINE_REFLECTION_INSERT_METHOD(num_splits, m_num_splits))
+              TATOOINE_REFLECTION_INSERT_METHOD(t0, m_t0),
+              TATOOINE_REFLECTION_INSERT_METHOD(radius, m_radius),
+              TATOOINE_REFLECTION_INSERT_METHOD(tau_step, m_taustep),
+              TATOOINE_REFLECTION_INSERT_METHOD(end_time, m_max_t),
+              TATOOINE_REFLECTION_INSERT_METHOD(ellipses_color,
+                                                m_ellipses_color),
+              TATOOINE_REFLECTION_INSERT_METHOD(num_splits, m_num_splits))
 #endif
