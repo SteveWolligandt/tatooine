@@ -38,9 +38,7 @@ find_package(OpenMP REQUIRED)
 find_package(vcode REQUIRED)
 find_package(PNG REQUIRED)
 find_package(PNG++ REQUIRED)
-find_package(HDF5 REQUIRED CXX HL)
 find_package(NetCDF REQUIRED)
-set(HDF5_LIBS ${HDF5_LIBRARIES} ${HDF5_HL_LIBRARIES})
 #- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - 
 # configure files
 #- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - 
@@ -123,12 +121,10 @@ target_include_directories(tatooine
 #set libs 
 target_link_libraries(tatooine
   INTERFACE
-    #tbb
     ${BLAS_LIBRARIES}
     ${LAPACK_LIBRARIES}
     ${PNG_LIBRARIES}
     ${PNG++_LIBRARIES}
-    ${HDF5_LIBS}
     ${NETCDF_LIBRARIES}
 )
 if (${yavin_FOUND}) 
