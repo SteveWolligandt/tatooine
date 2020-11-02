@@ -43,7 +43,7 @@ auto autonomous_particles_renderer::draw_properties() -> bool {
   ImGui::Text("number of particles: %i", (m_gpu_Ss.size()));
   if (m_currently_reading) {
     const ImU32 col = ImGui::GetColorU32(ImGuiCol_ButtonHovered);
-    ImGui::Spinner("##spinner", 15, 6, col);
+    ImGui::Spinner("##spinner", 8, 3, col);
   } else {
     if (ImGui::Button("load")) {
       load_data();
