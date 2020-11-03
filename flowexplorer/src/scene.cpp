@@ -275,6 +275,35 @@ void scene::draw_node_editor(size_t const pos_x, size_t const pos_y,
 }
 //----------------------------------------------------------------------------
 void scene::node_creators() {
+  std::vector<char const*> items{"AAAA",       "BBBB",    "CCCC", "DDDD",    "EEEE",
+                         "FFFF",       "GGGG",    "HHHH", "IIII",    "JJJJ",
+                         "KKKK",       "LLLLLLL", "MMMM", "OOOOOOO", "PPPP",
+                         "QQQQQQQQQQ", "RRR",     "SSSS"};
+
+
+      //iterate_registered_functions(entry, registration) {
+      //  if (auto ptr = entry->registered_function(*this, node_type_name); ptr) {
+      //    if (kind == "node") {
+      //      n = m_nodes.emplace_back(ptr).get();
+      //      break;
+      //    } else [>if (kind == "renderable")<] {
+      //      n = m_renderables.emplace_back(dynamic_cast<base::renderable*>(ptr))
+      //              .get();
+      //      break;
+      //    }
+      //  }
+      //}
+
+
+  if (ImGui::BeginCombo("##combo", nullptr)) {
+    for (size_t n = 0; n < size(items); n++) {
+      if (ImGui::Selectable(items[n], false)) {
+        std::cerr << items[n] << '\n';
+      }
+    }
+    ImGui::EndCombo();
+  }
+
   if (ImGui::Button("Test Node")) {
     m_nodes.emplace_back(new nodes::test_node{*this});
   }

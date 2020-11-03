@@ -80,7 +80,7 @@ struct first_person_window : yavin::window {
   }
   //----------------------------------------------------------------------------
   void on_key_released(yavin::key k) override {
-    parent_t::on_key_pressed(k);
+    parent_t::on_key_released(k);
     if (!ImGui::GetIO().WantCaptureKeyboard) {
       m_cam.on_key_released(k);
     }

@@ -68,7 +68,7 @@ struct node : uuid_holder<ax::NodeEditor::NodeId>, serializable {
     ImGui::Checkbox("", &m_enabled);
     ImGui::SameLine();
     ImGui::TextUnformatted(title().c_str());
-    ImGui::Separator();
+    //ImGui::Separator();
     if ( draw_properties()) {
       on_property_changed();
     }
@@ -103,7 +103,9 @@ struct node_serializer {
     toml::table serialized_node;
     reflection::for_each(t, [&serialized_node](auto const& name,
                                                auto const& var) {
-      if constexpr (std::is_arithmetic_v<std::decay_t<decltype(var)>>) {
+      if constexpr (std::is_same_v<std::string, std::decay_t<decltype(var)>>) {
+        serialized_node.insert(name, var);
+      } else if constexpr (std::is_arithmetic_v<std::decay_t<decltype(var)>>) {
         serialized_node.insert(name, var);
       } else if constexpr (
           std::is_same_v<std::array<int, 2>, std::decay_t<decltype(var)>> ||
@@ -169,7 +171,9 @@ struct node_serializer {
   //----------------------------------------------------------------------------
   auto deserialize(T& t, toml::table const& serialized_node) -> void {
     reflection::for_each(t, [&serialized_node](auto const& name, auto& var) {
-      if constexpr (std::is_same_v<bool, std::decay_t<decltype(var)>>) {
+      if constexpr (std::is_same_v<std::string, std::decay_t<decltype(var)>>) {
+        var = serialized_node[name].as_string()->get();
+      } else if constexpr (std::is_same_v<bool, std::decay_t<decltype(var)>>) {
         var = serialized_node[name].as_boolean()->get();
       } else if constexpr (std::is_integral_v<std::decay_t<decltype(var)>>) {
         var = serialized_node[name].as_integer()->get();
@@ -303,7 +307,9 @@ struct node_serializer {
     bool changed = false;
     reflection::for_each(t, [&changed](auto const& name, auto& var) {
       // float
-      if constexpr (std::is_same_v<float, std::decay_t<decltype(var)>>) {
+      if constexpr (std::is_same_v<std::string, std::decay_t<decltype(var)>>) {
+        changed |= ImGui::InputText(name, &var);
+      } else if constexpr (std::is_same_v<float, std::decay_t<decltype(var)>>) {
         changed |= ImGui::DragFloat(name, &var, 0.1f);
       } else if constexpr (std::is_same_v<std::array<float, 2>,
                                           std::decay_t<decltype(var)>>) {

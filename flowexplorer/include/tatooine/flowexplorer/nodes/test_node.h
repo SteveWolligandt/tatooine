@@ -10,6 +10,7 @@ namespace tatooine::flowexplorer::nodes {
 struct test_node : ui::node<test_node> {
  private:
   //============================================================================
+  std::string           m_string_var;
   int                   m_int_var;
   float                 m_float_var;
   double                m_double_var;
@@ -45,6 +46,8 @@ struct test_node : ui::node<test_node> {
   //============================================================================
   // SETTER / GETTER
   //============================================================================
+  auto string() -> auto& { return m_string_var; }
+  auto string() const -> auto const& { return m_string_var; }
   auto int1() -> auto& { return m_int_var; }
   auto int1() const-> auto const& { return m_int_var; }
   auto int2_arr() -> auto& { return m_arr_int2_var; }
@@ -92,6 +95,7 @@ struct test_node : ui::node<test_node> {
 }  // namespace tatooine::flowexplorer::nodes
 //==============================================================================
 REGISTER_NODE(tatooine::flowexplorer::nodes::test_node,
+              TATOOINE_REFLECTION_INSERT_GETTER(string),
               TATOOINE_REFLECTION_INSERT_GETTER(int1),
               TATOOINE_REFLECTION_INSERT_GETTER(int2_vec),
               TATOOINE_REFLECTION_INSERT_GETTER(int3_vec),
