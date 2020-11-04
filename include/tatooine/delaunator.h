@@ -183,19 +183,7 @@ class Delaunator {
 };
 //------------------------------------------------------------------------------
 template <range Coords>
-Delaunator<Coords>::Delaunator(Coords const& in_coords)
-    : coords(in_coords),
-      triangles(),
-      halfedges(),
-      hull_prev(),
-      hull_next(),
-      hull_tri(),
-      hull_start(),
-      m_hash(),
-      m_center_x(),
-      m_center_y(),
-      m_hash_size(),
-      m_edge_stack() {
+Delaunator<Coords>::Delaunator(Coords const& in_coords) : coords{in_coords} {
   std::size_t n = (coords.size() * 2) >> 1;
 
   real_t                     max_x = std::numeric_limits<real_t>::min();
@@ -209,10 +197,10 @@ Delaunator<Coords>::Delaunator(Coords const& in_coords)
     real_t const x = coords[i](0);
     real_t const y = coords[i](1);
 
-    if (x < min_x) min_x = x;
-    if (y < min_y) min_y = y;
-    if (x > max_x) max_x = x;
-    if (y > max_y) max_y = y;
+    if (x < min_x) { min_x = x; }
+    if (y < min_y) { min_y = y; }
+    if (x > max_x) { max_x = x; }
+    if (y > max_y) { max_y = y; }
 
     ids.push_back(i);
   }

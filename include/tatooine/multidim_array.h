@@ -154,14 +154,23 @@ class static_multidim_array
       : m_data(std::move(data)) {
     assert(num_components() == data.size());
   }
-  ////----------------------------------------------------------------------------
+  //----------------------------------------------------------------------------
+  template <typename RandomReal, typename Engine, typename _T = T,
+            enable_if_arithmetic<_T> = true>
+  explicit constexpr static_multidim_array(
+      random_uniform<RandomReal, Engine>& rand)
+      : static_multidim_array{} {
+    this->unary_operation(
+        [&](const auto& /*c*/) { return static_cast<T>(rand()); });
+  }
+  // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
   template <typename RandomReal, typename Engine, typename _T = T,
             enable_if_arithmetic<_T> = true>
   explicit constexpr static_multidim_array(
       random_uniform<RandomReal, Engine>&& rand)
       : static_multidim_array{} {
     this->unary_operation(
-        [&](const auto& /*c*/) { return static_cast<T>(rand.get()); });
+        [&](const auto& /*c*/) { return static_cast<T>(rand()); });
   }
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
   template <typename RandomReal, typename Engine, typename _T = T,
@@ -170,7 +179,16 @@ class static_multidim_array
       random_normal<RandomReal, Engine>&& rand)
       : static_multidim_array{} {
     this->unary_operation(
-        [&](const auto& /*c*/) { return static_cast<T>(rand.get()); });
+        [&](const auto& /*c*/) { return static_cast<T>(rand()); });
+  }
+  // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+  template <typename RandomReal, typename Engine, typename _T = T,
+            enable_if_arithmetic<_T> = true>
+  explicit constexpr static_multidim_array(
+      random_normal<RandomReal, Engine>& rand)
+      : static_multidim_array{} {
+    this->unary_operation(
+        [&](const auto& /*c*/) { return static_cast<T>(rand()); });
   }
   //============================================================================
   // methods

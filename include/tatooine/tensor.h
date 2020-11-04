@@ -61,9 +61,19 @@ struct tensor : base_tensor<tensor<T, Dims...>, T, Dims...>,  // NOLINT
       : array_parent_t{std::move(rand)} {}
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
   template <typename RandomReal, typename Engine, typename _T = T,
+            enable_if_arithmetic<RandomReal> = true>
+  explicit constexpr tensor(random_uniform<RandomReal, Engine>& rand)
+      : array_parent_t{rand} {}
+  // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+  template <typename RandomReal, typename Engine, typename _T = T,
             enable_if_arithmetic<_T> = true>
   explicit constexpr tensor(random_normal<RandomReal, Engine>&& rand)
       : array_parent_t{std::move(rand)} {}
+  // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+  template <typename RandomReal, typename Engine, typename _T = T,
+            enable_if_arithmetic<_T> = true>
+  explicit constexpr tensor(random_normal<RandomReal, Engine>& rand)
+      : array_parent_t{rand} {}
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
   template <typename OtherTensor, real_or_complex_number OtherT>
   explicit constexpr tensor(

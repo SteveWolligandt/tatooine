@@ -2,10 +2,12 @@
 #define TATOOINE_TRIANGULAR_MESH_H
 //==============================================================================
 #include <tatooine/pointset.h>
+#include <tatooine/delaunator.h>
 #include <tatooine/property.h>
 #include <tatooine/vtk_legacy.h>
 
 #include <boost/range/algorithm/copy.hpp>
+#include <filesystem>
 #include <vector>
 //==============================================================================
 namespace tatooine {
@@ -86,8 +88,7 @@ class triangular_mesh : public pointset<Real, N> {
     }
 
     auto end() const {
-      return triangle_iterator{
-          triangle_index{m_mesh->m_triangles.size()}, m_mesh};
+      return triangle_iterator{triangle_index{m_mesh->num_triangles()}, m_mesh};
     }
   };
   //----------------------------------------------------------------------------
@@ -98,7 +99,7 @@ class triangular_mesh : public pointset<Real, N> {
                std::unique_ptr<vector_property<triangle_index>>>;
   //============================================================================
  private:
-  std::vector<std::array<vertex_index, 3>> m_triangles;
+  std::vector<vertex_index>             m_triangle_indices;
   std::vector<triangle_index>           m_invalid_triangles;
   triangle_property_container_t         m_triangle_properties;
 
@@ -108,7 +109,7 @@ class triangular_mesh : public pointset<Real, N> {
   //============================================================================
  public:
   triangular_mesh(triangular_mesh const& other)
-      : parent_t{other}, m_triangles{other.m_triangles} {
+      : parent_t{other}, m_triangle_indices{other.m_triangle_indices} {
     for (auto const& [key, fprop] : other.m_triangle_properties) {
       m_triangle_properties.insert(std::pair{key, fprop->clone()});
     }
@@ -119,7 +120,7 @@ class triangular_mesh : public pointset<Real, N> {
   auto operator=(triangular_mesh const& other) -> triangular_mesh& {
     parent_t::operator=(other);
     m_triangle_properties.clear();
-    m_triangles    = other.m_triangles;
+    m_triangle_indices    = other.m_triangle_indices;
     for (auto const& [key, fprop] : other.m_triangle_properties) {
       m_triangle_properties.insert(std::pair{key, fprop->clone()});
     }
@@ -129,44 +130,63 @@ class triangular_mesh : public pointset<Real, N> {
   auto operator=(triangular_mesh&& other) noexcept
     -> triangular_mesh& = default;
   //----------------------------------------------------------------------------
-  triangular_mesh(std::string const& file) { read(file); }
+  triangular_mesh(std::filesystem::path const& file) { read(file); }
   //============================================================================
-  auto operator[](triangle_index t) const -> auto const& {
-    return m_triangles[t.i];
-  }
-  auto operator[](triangle_index t) -> auto& { return m_triangles[t.i]; }
+  auto operator[](triangle_index t) const { return at(t); }
+  auto operator[](triangle_index t) { return at(t); }
   //----------------------------------------------------------------------------
-  auto at(triangle_index t) const -> auto const& {
-    return m_triangles[t.i];
+  auto at(triangle_index t) const {
+    return std::tuple<size_t const&, size_t const&, size_t const&>{
+        t.i * 3, t.i * 3 + 1, t.i * 3 + 2};
   }
-  auto at(triangle_index t) -> auto& { return m_triangles[t.i]; }
+  auto at(triangle_index t)  { 
+    return std::tuple<size_t&, size_t&, size_t&>{t.i * 3, t.i * 3 + 1,
+                                                 t.i * 3 + 2};
+  }
   //----------------------------------------------------------------------------
   auto insert_triangle(vertex_index v0, vertex_index v1, vertex_index v2) {
-    m_triangles.push_back(std::array{v0, v1, v2});
+    m_triangle_indices.push_back(v0.i);
+    m_triangle_indices.push_back(v1.i);
+    m_triangle_indices.push_back(v2.i);
     for (auto& [key, prop] : m_triangle_properties) { prop->push_back(); }
-    return triangle_index{m_triangles.size() - 1};
   }
   //----------------------------------------------------------------------------
   auto insert_triangle(size_t v0, size_t v1, size_t v2) {
-    return insert_triangle(vertex_index{v0}, vertex_index{v1}, vertex_index{v2});
+    insert_triangle(vertex_index{v0}, vertex_index{v1}, vertex_index{v2});
   }
   //----------------------------------------------------------------------------
   auto insert_triangle(std::array<vertex_index, 3> const& t) {
-    m_triangles.push_back(t);
+    m_triangle_indices.push_back(t);
     for (auto& [key, prop] : m_triangle_properties) { prop->push_back(); }
-    return triangle_index{m_triangles.size() - 1};
   }
   //----------------------------------------------------------------------------
   auto clear() {
     parent_t::clear();
-    m_triangles.clear();
+    m_triangle_indices.clear();
   }
   //----------------------------------------------------------------------------
   auto triangles() const { return triangle_container{this}; }
   //----------------------------------------------------------------------------
-  auto num_triangles() const { return m_triangles.size(); }
+  auto num_triangles() const { return m_triangle_indices.size() / 3; }
   //----------------------------------------------------------------------------
-  template <size_t _N = N, std::enable_if_t<_N == 2 || _N == 3, bool> = true>
+  template <typename = void>
+  requires (N == 2)
+  auto triangulate_delaunay() {
+    delaunator::Delaunator d{this->points()};
+    set_triangle_indices(std::move(d.triangles));
+  }
+  //----------------------------------------------------------------------------
+  auto set_triangle_indices(std::vector<size_t> && is) {
+    m_triangle_indices =
+        std::move(*reinterpret_cast<std::vector<vertex_index>*>(&is));
+  }
+  //----------------------------------------------------------------------------
+  auto set_triangle_indices(std::vector<size_t> const& is) {
+    m_triangle_indices = *reinterpret_cast<std::vector<vertex_index>*>(&is);
+  }
+  //----------------------------------------------------------------------------
+  template <typename = void>
+  requires (N == 2) || (N == 3)
   auto write_vtk(std::string const& path,
                  std::string const& title = "tatooine triangular mesh") const
       -> bool {
@@ -191,10 +211,9 @@ class triangular_mesh : public pointset<Real, N> {
 
       std::vector<std::vector<size_t>> polygons;
       polygons.reserve(num_triangles());
-      for (auto const& triangle_index : m_triangles) {
-        polygons.push_back(
-            std::vector{triangle_index[0].i, triangle_index[1].i,
-                        triangle_index[2].i, triangle_index[3].i});
+      for (size_t i = 0; i < size(m_triangle_indices); i+=3) {
+        polygons.push_back(std::vector{m_triangle_indices[i].i, m_triangle_indices[i + 1].i,
+                                       m_triangle_indices[i + 2].i});
       }
       writer.write_polygons(polygons);
 
@@ -221,15 +240,16 @@ class triangular_mesh : public pointset<Real, N> {
     }
   }
   //----------------------------------------------------------------------------
-  auto read(std::string const& path) {
-    auto ext = path.substr(path.find_last_of(".") + 1);
+  auto read(std::filesystem::path const& path) {
+    auto const ext = path.extension();
     if constexpr (N == 2 || N == 3) {
       if (ext == "vtk") { read_vtk(path); }
     }
   }
   //----------------------------------------------------------------------------
-  template <size_t _N = N, std::enable_if_t<_N == 2 || _N == 3, bool> = true>
-  auto read_vtk(std::string const& path) {
+  template <typename = void>
+  requires (N == 2) || (N == 3)
+  auto read_vtk(std::filesystem::path const& path) {
     struct listener_t : vtk::legacy_file_listener {
       triangular_mesh& mesh;
 
@@ -322,7 +342,7 @@ class triangular_mesh : public pointset<Real, N> {
     auto [it, suc] = m_triangle_properties.insert(
         std::pair{name, std::make_unique<triangle_property_t<T>>(value)});
     auto fprop = dynamic_cast<triangle_property_t<T>*>(it->second.get());
-    fprop->resize(m_triangles.size());
+    fprop->resize(num_triangles());
     return *fprop;
   }
   //----------------------------------------------------------------------------
