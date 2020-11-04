@@ -11,7 +11,7 @@
 //==============================================================================
 std::vector<size_t> const cnt{1, 2, 3};
 std::vector<std::thread>  writers;
-std::mutex writer_mutex;
+std::mutex                writer_mutex;
 //==============================================================================
 using namespace tatooine;
 //==============================================================================
@@ -36,15 +36,13 @@ auto main(int argc, char** argv) -> int {
     return {};
   };
 
-  std::vector<size_t> initial_netcdf_is{0, 0, 0},
-                      advected_netcdf_is{0, 0, 0},
-                      back_calculation_netcdf_is{0, 0, 0};
+  std::vector<size_t> initial_netcdf_is{0, 0, 0}, advected_netcdf_is{0, 0, 0},
+      back_calculation_netcdf_is{0, 0, 0};
   netcdf::file initial_ellipsis_file{"dg_grid_initial.nc",
                                      netCDF::NcFile::replace},
-               advected_file{"dg_grid_advected.nc",
-                              netCDF::NcFile::replace},
-               back_calculation_file{"dg_grid_back_calculation.nc",
-                                     netCDF::NcFile::replace};
+      advected_file{"dg_grid_advected.nc", netCDF::NcFile::replace},
+      back_calculation_file{"dg_grid_back_calculation.nc",
+                            netCDF::NcFile::replace};
   auto initial_var = initial_ellipsis_file.add_variable<float>(
       "transformations", {initial_ellipsis_file.add_dimension("index"),
                           initial_ellipsis_file.add_dimension("row", 2),
@@ -68,7 +66,9 @@ auto main(int argc, char** argv) -> int {
   g.dimension<0>().back() -= spacing_x / 2;
   g.dimension<1>().front() -= spacing_y / 2;
   g.dimension<1>().back() -= spacing_y / 2;
-  double const r0 = g.dimension<0>().spacing() / 2;
+  double const               r0 = g.dimension<0>().spacing() / 2;
+  triangular_mesh<double, 2> mesh;
+  auto& flowmap = mesh.add_vertex_property<vec<double, 2>>("flowmap");
 
   analytical::fields::numerical::doublegyre v;
   v.set_infinite_domain(true);
@@ -87,46 +87,52 @@ auto main(int argc, char** argv) -> int {
       p0.phi().use_caching(false);
 
       auto ps = calc_particles(p0);
-      //writers.emplace_back([&, ps = std::move(ps)]() mutable {
-        for (auto const& p : ps) {
-          auto sqrS = inv(p.nabla_phi1()) * p.S() * p.S() *
-                      inv(transposed(p.nabla_phi1()));
-          auto [eig_vecs, eig_vals] = eigenvectors_sym(sqrS);
-          eig_vals = {std::sqrt(eig_vals(0)), std::sqrt(eig_vals(1))};
-          transposed(eig_vecs);
-          if (args.min_cond > 0 && eig_vals(1) / eig_vals(0) < args.min_cond) {
-            continue;
-          }
+      mesh.points().reserve(mesh.num_vertices() + size(ps));
+      for (auto const& p : ps) {
+        auto v     = mesh.insert_vertex(p.x0());
+        flowmap[v] = p.x1();
+      }
 
-          // advection
-          mat23f advected_T{{p.S()(0, 0), p.S()(0, 1), p.x1()(0)},
-                            {p.S()(1, 0), p.S()(1, 1), p.x1()(1)}};
-          {
-            std::lock_guard lock{writer_mutex};
-            advected_var.write(advected_netcdf_is, cnt, advected_T.data_ptr());
-            ++advected_netcdf_is.front();
-          }
-
-          // back calculation
-          auto   Sback = eig_vecs * diag(eig_vals) * transposed(eig_vecs);
-          mat23f back_calculation_T{{Sback(0, 0), Sback(0, 1), p.x1()(0)},
-                                    {Sback(1, 0), Sback(1, 1), p.x1()(1)}};
-          {
-            std::lock_guard lock{writer_mutex};
-            back_calculation_var.write(back_calculation_netcdf_is, cnt,
-                                       back_calculation_T.data_ptr());
-            ++back_calculation_netcdf_is.front();
-          }
+      for (auto const& p : ps) {
+        auto sqrS = inv(p.nabla_phi1()) * p.S() * p.S() *
+                    inv(transposed(p.nabla_phi1()));
+        auto [eig_vecs, eig_vals] = eigenvectors_sym(sqrS);
+        eig_vals = {std::sqrt(eig_vals(0)), std::sqrt(eig_vals(1))};
+        transposed(eig_vecs);
+        if (args.min_cond > 0 && eig_vals(1) / eig_vals(0) < args.min_cond) {
+          continue;
         }
-        ps.clear();
-        ps.shrink_to_fit();
-      //});
+
+        // advection
+        mat23f advected_T{{p.S()(0, 0), p.S()(0, 1), p.x1()(0)},
+                          {p.S()(1, 0), p.S()(1, 1), p.x1()(1)}};
+        {
+          std::lock_guard lock{writer_mutex};
+          advected_var.write(advected_netcdf_is, cnt, advected_T.data_ptr());
+          ++advected_netcdf_is.front();
+        }
+
+        // back calculation
+        auto   Sback = eig_vecs * diag(eig_vals) * transposed(eig_vecs);
+        mat23f back_calculation_T{{Sback(0, 0), Sback(0, 1), p.x1()(0)},
+                                  {Sback(1, 0), Sback(1, 1), p.x1()(1)}};
+        {
+          std::lock_guard lock{writer_mutex};
+          back_calculation_var.write(back_calculation_netcdf_is, cnt,
+                                     back_calculation_T.data_ptr());
+          ++back_calculation_netcdf_is.front();
+        }
+      }
+      ps.clear();
+      ps.shrink_to_fit();
 
       ++particle_counter;
       indicator.progress = particle_counter / double(g.num_vertices());
     }
     indicator.progress = 1;
   });
+  mesh.triangulate_delaunay();
+  mesh.write_vtk("doublegyre_flowmap.vtk");
   for (auto& writer : writers) {
     writer.join();
   }

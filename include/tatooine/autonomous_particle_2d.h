@@ -2,6 +2,7 @@
 #define TATOOINE_AUTONOMOUS_PARTICLES_2D_H
 //==============================================================================
 #include <tatooine/autonomous_particle.h>
+#include <tatooine/triangular_mesh.h>
 #include <tatooine/field.h>
 #include <tatooine/geometry/sphere.h>
 #include <tatooine/numerical_flowmap.h>
