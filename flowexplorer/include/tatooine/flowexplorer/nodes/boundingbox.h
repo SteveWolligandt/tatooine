@@ -6,6 +6,7 @@
 #include <tatooine/flowexplorer/renderable.h>
 #include <yavin/imgui.h>
 #include <yavin/indexeddata.h>
+#include <tatooine/rendering/yavin_interop.h>
 //==============================================================================
 namespace tatooine::flowexplorer::nodes {
 //==============================================================================
@@ -131,14 +132,16 @@ boundingbox(base_tensor<Tensor0, Real0, N>&&, base_tensor<Tensor1, Real1, N>&&,
 //==============================================================================
 }  // namespace tatooine::flowexplorer::nodes
 //==============================================================================
-REGISTER_NODE(tatooine::flowexplorer::nodes::boundingbox2d,
-              TATOOINE_REFLECTION_INSERT_GETTER(min),
-              TATOOINE_REFLECTION_INSERT_GETTER(max),
-              TATOOINE_REFLECTION_INSERT_GETTER(line_width),
-              TATOOINE_REFLECTION_INSERT_GETTER(line_color));
-REGISTER_NODE(tatooine::flowexplorer::nodes::boundingbox3d,
-              TATOOINE_REFLECTION_INSERT_GETTER(min),
-              TATOOINE_REFLECTION_INSERT_GETTER(max),
-              TATOOINE_REFLECTION_INSERT_GETTER(line_width),
-              TATOOINE_REFLECTION_INSERT_GETTER(line_color));
+TATOOINE_FLOWEXPLORER_REGISTER_RENDERABLE(
+    tatooine::flowexplorer::nodes::boundingbox2d,
+    TATOOINE_REFLECTION_INSERT_GETTER(min),
+    TATOOINE_REFLECTION_INSERT_GETTER(max),
+    TATOOINE_REFLECTION_INSERT_GETTER(line_width),
+    TATOOINE_REFLECTION_INSERT_GETTER(line_color));
+TATOOINE_FLOWEXPLORER_REGISTER_RENDERABLE(
+    tatooine::flowexplorer::nodes::boundingbox3d,
+    TATOOINE_REFLECTION_INSERT_GETTER(min),
+    TATOOINE_REFLECTION_INSERT_GETTER(max),
+    TATOOINE_REFLECTION_INSERT_GETTER(line_width),
+    TATOOINE_REFLECTION_INSERT_GETTER(line_color));
 #endif

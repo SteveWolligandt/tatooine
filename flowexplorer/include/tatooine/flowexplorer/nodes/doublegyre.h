@@ -18,5 +18,5 @@ struct doublegyre : tatooine::analytical::fields::numerical::doublegyre<double>,
 //==============================================================================
 }  // namespace tatooine::flowexplorer::nodes
 //==============================================================================
-REGISTER_NODE(tatooine::flowexplorer::nodes::doublegyre);
+TATOOINE_FLOWEXPLORER_REGISTER_NODE(tatooine::flowexplorer::nodes::doublegyre);
 #endif

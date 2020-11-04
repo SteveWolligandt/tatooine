@@ -19,7 +19,7 @@ struct rayleigh_benard_convection
 //==============================================================================
 }  // namespace tatooine::flowexplorer::nodes
 //==============================================================================
-REGISTER_NODE(tatooine::flowexplorer::nodes::rayleigh_benard_convection,
-              TATOOINE_REFLECTION_INSERT_GETTER(A),
-              TATOOINE_REFLECTION_INSERT_GETTER(k))
+TATOOINE_FLOWEXPLORER_REGISTER_NODE(
+    tatooine::flowexplorer::nodes::rayleigh_benard_convection,
+    TATOOINE_REFLECTION_INSERT_GETTER(A), TATOOINE_REFLECTION_INSERT_GETTER(k))
 #endif

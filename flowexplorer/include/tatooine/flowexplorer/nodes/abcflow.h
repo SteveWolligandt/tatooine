@@ -21,5 +21,5 @@ struct abcflow : tatooine::analytical::fields::numerical::abcflow<double>,
 //==============================================================================
 }  // namespace tatooine::flowexplorer::nodes
 //==============================================================================
-REGISTER_NODE(tatooine::flowexplorer::nodes::abcflow);
+TATOOINE_FLOWEXPLORER_REGISTER_NODE(tatooine::flowexplorer::nodes::abcflow);
 #endif

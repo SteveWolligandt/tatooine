@@ -17,5 +17,5 @@ struct saddle : tatooine::analytical::fields::numerical::saddle<double>,
 //==============================================================================
 }  // namespace tatooine::flowexplorer::nodes
 //==============================================================================
-REGISTER_NODE(tatooine::flowexplorer::nodes::saddle)
+TATOOINE_FLOWEXPLORER_REGISTER_NODE(tatooine::flowexplorer::nodes::saddle)
 #endif

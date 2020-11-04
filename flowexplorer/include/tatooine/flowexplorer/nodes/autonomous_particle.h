@@ -84,12 +84,12 @@ struct autonomous_particle
 //==============================================================================
 }  // namespace tatooine::flowexplorer::nodes
 //==============================================================================
-REGISTER_NODE(tatooine::flowexplorer::nodes::autonomous_particle,
-              TATOOINE_REFLECTION_INSERT_METHOD(t0, m_t0),
-              TATOOINE_REFLECTION_INSERT_METHOD(radius, m_radius),
-              TATOOINE_REFLECTION_INSERT_METHOD(tau_step, m_taustep),
-              TATOOINE_REFLECTION_INSERT_METHOD(end_time, m_max_t),
-              TATOOINE_REFLECTION_INSERT_METHOD(ellipses_color,
-                                                m_ellipses_color),
-              TATOOINE_REFLECTION_INSERT_METHOD(num_splits, m_num_splits))
+TATOOINE_FLOWEXPLORER_REGISTER_RENDERABLE(
+    tatooine::flowexplorer::nodes::autonomous_particle,
+    TATOOINE_REFLECTION_INSERT_METHOD(t0, m_t0),
+    TATOOINE_REFLECTION_INSERT_METHOD(radius, m_radius),
+    TATOOINE_REFLECTION_INSERT_METHOD(tau_step, m_taustep),
+    TATOOINE_REFLECTION_INSERT_METHOD(end_time, m_max_t),
+    TATOOINE_REFLECTION_INSERT_METHOD(ellipses_color, m_ellipses_color),
+    TATOOINE_REFLECTION_INSERT_METHOD(num_splits, m_num_splits))
 #endif

@@ -29,5 +29,5 @@ struct spacetime_vectorfield
 //==============================================================================
 }  // namespace tatooine::flowexplorer::nodes
 //==============================================================================
-REGISTER_NODE(tatooine::flowexplorer::nodes::spacetime_vectorfield);
+TATOOINE_FLOWEXPLORER_REGISTER_NODE(tatooine::flowexplorer::nodes::spacetime_vectorfield);
 #endif

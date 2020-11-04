@@ -6,6 +6,7 @@
 #include <tatooine/vec.h>
 #include <yavin/imgui.h>
 #include <yavin/indexeddata.h>
+#include <tatooine/rendering/yavin_interop.h>
 //==============================================================================
 namespace tatooine::flowexplorer::nodes {
 //==============================================================================
@@ -96,12 +97,14 @@ using position3 = position<3>;
 //==============================================================================
 }  // namespace tatooine::flowexplorer::nodes
 //==============================================================================
-REGISTER_NODE(tatooine::flowexplorer::nodes::position2,
-              TATOOINE_REFLECTION_INSERT_METHOD(position, pos()),
-              TATOOINE_REFLECTION_INSERT_GETTER(point_size),
-              TATOOINE_REFLECTION_INSERT_GETTER(color))
-REGISTER_NODE(tatooine::flowexplorer::nodes::position3,
-              TATOOINE_REFLECTION_INSERT_METHOD(position, pos()),
-              TATOOINE_REFLECTION_INSERT_GETTER(point_size),
-              TATOOINE_REFLECTION_INSERT_GETTER(color))
+TATOOINE_FLOWEXPLORER_REGISTER_RENDERABLE(
+    tatooine::flowexplorer::nodes::position2,
+    TATOOINE_REFLECTION_INSERT_METHOD(position, pos()),
+    TATOOINE_REFLECTION_INSERT_GETTER(point_size),
+    TATOOINE_REFLECTION_INSERT_GETTER(color))
+TATOOINE_FLOWEXPLORER_REGISTER_RENDERABLE(
+    tatooine::flowexplorer::nodes::position3,
+    TATOOINE_REFLECTION_INSERT_METHOD(position, pos()),
+    TATOOINE_REFLECTION_INSERT_GETTER(point_size),
+    TATOOINE_REFLECTION_INSERT_GETTER(color))
 #endif

@@ -20,7 +20,7 @@ struct duffing_oscillator
 //==============================================================================
 }  // namespace tatooine::flowexplorer::nodes
 //==============================================================================
-REGISTER_NODE(tatooine::flowexplorer::nodes::duffing_oscillator,
+TATOOINE_FLOWEXPLORER_REGISTER_NODE(tatooine::flowexplorer::nodes::duffing_oscillator,
               TATOOINE_REFLECTION_INSERT_GETTER(alpha),
               TATOOINE_REFLECTION_INSERT_GETTER(beta),
               TATOOINE_REFLECTION_INSERT_GETTER(delta))

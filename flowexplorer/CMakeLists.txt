@@ -12,6 +12,17 @@ add_executable(
   flowexplorer
 
   src/flowexplorer.cpp
+  src/doublegyre.cpp
+  src/abcflow.cpp
+  src/saddle.cpp
+  src/position.cpp
+  src/duffing_oscillator.cpp
+  src/random_pathlines.cpp
+  src/rayleigh_benard_convection.cpp
+  src/test_node.cpp
+
+  src/spacetime_vectorfield.cpp
+
   src/node.cpp
   src/window.cpp
   src/autonomous_particle.cpp

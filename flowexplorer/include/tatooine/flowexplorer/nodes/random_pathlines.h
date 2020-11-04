@@ -3,6 +3,7 @@
 //==============================================================================
 #include <tatooine/boundingbox.h>
 #include <tatooine/flowexplorer/renderable.h>
+#include <tatooine/flowexplorer/nodes/boundingbox.h>
 #include <tatooine/gpu/line_renderer.h>
 #include <tatooine/gpu/line_shader.h>
 #include <tatooine/ode/vclibs/rungekutta43.h>
@@ -204,7 +205,7 @@ using random_pathlines3d = random_pathlines<3>;
 //==============================================================================
 }  // namespace tatooine::flowexplorer::nodes
 //==============================================================================
-REGISTER_NODE(
+TATOOINE_FLOWEXPLORER_REGISTER_RENDERABLE(
     tatooine::flowexplorer::nodes::random_pathlines3d,
     TATOOINE_REFLECTION_INSERT_METHOD(number_of_path_lines, m_num_pathlines),
     TATOOINE_REFLECTION_INSERT_METHOD(backward_tau, m_btau),

@@ -408,37 +408,78 @@ struct node : base::node, node_serializer<Child> {
 //==============================================================================
 }  // namespace tatooine::flowexplorer::ui
 //==============================================================================
-struct registered_function_t {
-  using registered_function_ptr_t = tatooine::flowexplorer::ui::base::
-      node* (*)(tatooine::flowexplorer::scene&, std::string_view const&);
-  registered_function_ptr_t registered_function;
+struct registration_name_t {
+  using F = std::string_view (*)();
+  F f;
 };
-
-#define REGISTER_NODE_FACTORY(registered_function_, sec)                       \
-  static registered_function_t ptr_##registered_function_                      \
+//------------------------------------------------------------------------------
+struct registration_factory_t {
+  using F = tatooine::flowexplorer::ui::base::
+      node& (*)(tatooine::flowexplorer::scene&, std::string_view const&);
+  F f;
+};
+//==============================================================================
+#define TATOOINE_FLOWEXPLORER_REGISTER_NAME(registered_function_, sec)         \
+  static registration_name_t ptr_##registered_function_                        \
       __attribute((used, section(#sec))) = {                                   \
-          .registered_function = registered_function_,                         \
-  }  //------------------------------------------------------------------------------
-#define REGISTER_NODE(type, ...)                                               \
-  namespace tatooine::flowexplorer::registered_funcs::type {                   \
-  static auto register_node(::tatooine::flowexplorer::scene& s,                \
-                            std::string_view const&          node_type_name)   \
-      -> ::tatooine::flowexplorer::ui::base::node* {                           \
+          .f = registered_function_,                                           \
+  }
+//------------------------------------------------------------------------------
+#define TATOOINE_FLOWEXPLORER_REGISTER_FACTORY(registered_function_, sec)      \
+  static registration_factory_t ptr_##registered_function_                     \
+      __attribute((used, section(#sec))) = {                                   \
+          .f = registered_function_,                                           \
+  }
+//------------------------------------------------------------------------------
+#define TATOOINE_FLOWEXPLORER_REGISTER_NODE(type, ...)                         \
+  TATOOINE_MAKE_ADT_REFLECTABLE(type, ##__VA_ARGS__)                           \
+  namespace tatooine::flowexplorer::registration::type {                       \
+  static auto factory(::tatooine::flowexplorer::scene& s,                      \
+                      std::string_view const&          node_type_name)         \
+      -> tatooine::flowexplorer::ui::base::node* {                             \
     if (node_type_name == #type) {                                             \
-      return new ::type{s};                                                    \
+      return &s.nodes().emplace_back(new ::type{s});                            \
     }                                                                          \
     return nullptr;                                                            \
   }                                                                            \
-  REGISTER_NODE_FACTORY(register_node, registration);                          \
+  static constexpr auto name() -> std::string_view { return #type; }           \
+  TATOOINE_FLOWEXPLORER_REGISTER_FACTORY(factory, factory_);                   \
+  TATOOINE_FLOWEXPLORER_REGISTER_NAME(name, name_);                            \
+  }
+//------------------------------------------------------------------------------
+#define TATOOINE_FLOWEXPLORER_REGISTER_RENDERABLE(type, ...)                   \
+  TATOOINE_MAKE_ADT_REFLECTABLE(type, ##__VA_ARGS__)                           \
+  namespace tatooine::flowexplorer::registration::type {                       \
+  static auto factory(::tatooine::flowexplorer::scene& s,                      \
+                      std::string_view const&          node_type_name)         \
+      -> tatooine::flowexplorer::ui::base::node* {                             \
+    if (node_type_name == #type) {                                             \
+      return &s.renderables().emplace_back(new ::type{s});                            \
+    }                                                                          \
+    return nullptr;                                                            \
   }                                                                            \
-  TATOOINE_MAKE_ADT_REFLECTABLE(type, ##__VA_ARGS__)
+  static constexpr auto name() -> std::string_view { return #type; }           \
+  TATOOINE_FLOWEXPLORER_REGISTER_FACTORY(factory, factory_);                   \
+  TATOOINE_FLOWEXPLORER_REGISTER_NAME(name, name_);                            \
+  }
 //------------------------------------------------------------------------------
-extern registered_function_t __start_registration;
-extern registered_function_t __stop_registration;
-#define iterate_registered_functions(elem, section)                            \
-  for (registered_function_t* elem = &__start_##section;                       \
-       elem != &__stop_##section; ++elem)
+#define iterate_registered_factories(elem)                                     \
+  for (registration_factory_t* elem = &__start_factory_;                       \
+       elem != &__stop_factory_; ++elem)
 //------------------------------------------------------------------------------
-#define call_registered_functions(section, string)                             \
-  iterate_registered_functions(entry, section) { entry->registered_function(); }
+#define iterate_registered_names(elem)                                         \
+  for (registration_name_t* elem = &__start_name_; elem != &__stop_name_;      \
+       ++elem)
+//------------------------------------------------------------------------------
+extern registration_factory_t __start_factory_;
+extern registration_factory_t __stop_factory_;
+extern registration_name_t    __start_name_;
+extern registration_name_t    __stop_name_;
+//==============================================================================
+namespace tatooine::flowexplorer {
+//==============================================================================
+auto insert_registered_element(scene& s, std::string_view const& name);
+//==============================================================================
+}  // namespace tatooine::flowexplorer
+//==============================================================================
 #endif
