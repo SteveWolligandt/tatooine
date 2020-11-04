@@ -6,6 +6,7 @@
 //==============================================================================
 namespace tatooine::flowexplorer::ui {
 //==============================================================================
+struct pin;
 struct link : uuid_holder<ax::NodeEditor::LinkId> {
  private:
   pin* m_input_pin;

@@ -68,9 +68,13 @@ struct node : uuid_holder<ax::NodeEditor::NodeId>, serializable {
     ImGui::Checkbox("", &m_enabled);
     ImGui::SameLine();
     ImGui::TextUnformatted(title().c_str());
-    //ImGui::Separator();
-    if ( draw_properties()) {
+    if (draw_properties()) {
       on_property_changed();
+      for (auto & p : m_output_pins) {
+        if (p.is_connected()) {
+          (p.link().input().node().on_property_changed());
+        }
+      }
     }
     for (auto& input_pin : input_pins()) {
       ed::BeginPin(input_pin.get_id(), ed::PinKind::Input);

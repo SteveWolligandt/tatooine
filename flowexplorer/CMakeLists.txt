@@ -30,6 +30,7 @@ add_executable(
   src/scene.cpp 
   src/lic.cpp
   src/autonomous_particles_renderer.cpp
+  src/pin.cpp
 
   src/imgui-node-editor/crude_json.cpp
   src/imgui-node-editor/imgui_canvas.cpp

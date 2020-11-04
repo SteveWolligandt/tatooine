@@ -196,14 +196,11 @@ void scene::create_link() {
             }
           }
 
-          input_pin->node().on_pin_connected(*input_pin, *output_pin);
-          output_pin->node().on_pin_connected(*output_pin, *input_pin);
-          // Since we accepted new link, lets add one to our list of links.
-          m_links.emplace_back(*input_pin, *output_pin);
+          auto& l = m_links.emplace_back(*input_pin, *output_pin);
+          input_pin->set_link(l);
+          output_pin->set_link(l);
 
-          // Draw new link.
-          ed::Link(m_links.back().get_id(), m_links.back().input().get_id(),
-                   m_links.back().output().get_id());
+          ed::Link(l.get_id(), l.input().get_id(), l.output().get_id());
         }
       }
     }
@@ -226,8 +223,8 @@ void scene::remove_link() {
           if (link_it->get_id() == deletedLinkId) {
             ui::pin* input_pin  = find_pin(link_it->input().get_id_number());
             ui::pin* output_pin = find_pin(link_it->output().get_id_number());
-            input_pin->node().on_pin_disconnected(*input_pin);
-            output_pin->node().on_pin_disconnected(*output_pin);
+            input_pin->unset_link();
+            output_pin->unset_link();
             m_links.erase(link_it);
             break;
           }
@@ -386,9 +383,9 @@ void scene::read(std::filesystem::path const& filepath) {
       size_t const output_id  = serialized_node["output"].as_integer()->get();
       auto&        input_pin  = *find_pin(input_id);
       auto&        output_pin = *find_pin(output_id);
-      m_links.push_back(ui::link{id, input_pin, output_pin});
-      input_pin.node().on_pin_connected(input_pin, output_pin);
-      output_pin.node().on_pin_connected(output_pin, input_pin);
+      auto& l = m_links.emplace_back(id, input_pin, output_pin);
+      input_pin.set_link(l);
+      output_pin.set_link(l);
     }
   }
   ax::NodeEditor::SetCurrentEditor(nullptr);

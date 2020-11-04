@@ -2,6 +2,7 @@
 #define TATOOINE_FLOWEXPLORER_UI_PIN_H
 //==============================================================================
 #include <imgui-node-editor/imgui_node_editor.h>
+#include <tatooine/flowexplorer/ui/link.h>
 #include <tatooine/flowexplorer/ui/pinkind.h>
 #include <tatooine/flowexplorer/uuid_holder.h>
 //==============================================================================
@@ -10,21 +11,19 @@ namespace tatooine::flowexplorer::ui {
 namespace base {
 struct node;
 }
+struct link;
 //==============================================================================
 struct pin : uuid_holder<ax::NodeEditor::PinId>{
  private:
   std::string           m_title;
-  base::node&                 m_node;
+  base::node&           m_node;
   pinkind               m_kind;
   std::type_info const& m_type;
+  link*                 m_link = nullptr;
 
  public:
   pin(base::node& n, std::type_info const& type, pinkind kind,
-      std::string const& title)
-      : m_title{title},
-        m_node{n},
-        m_kind{kind},
-        m_type{type} {}
+      std::string const& title);
 
   auto node() const -> auto const& {
     return m_node;
@@ -44,6 +43,11 @@ struct pin : uuid_holder<ax::NodeEditor::PinId>{
   auto type() const -> auto const& {
     return m_type;
   }
+  auto is_connected() const { return m_link != nullptr; }
+  auto set_link(struct link& l) -> void;
+  auto unset_link() ->void;
+  auto link() const -> auto const& { return *m_link; }
+  auto link() -> auto& { return *m_link; }
 };
 //==============================================================================
 template <typename T>
