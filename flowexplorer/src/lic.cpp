@@ -1,5 +1,5 @@
-#include <tatooine/flowexplorer/window.h>
 #include <tatooine/flowexplorer/scene.h>
+#include <tatooine/flowexplorer/window.h>
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 #include <tatooine/flowexplorer/nodes/lic.h>
 //==============================================================================
@@ -34,6 +34,21 @@ auto lic::init() -> void {
   setup_quad();
 }
 //----------------------------------------------------------------------------
+auto lic::write_png() -> void {
+  if (m_lic_tex) {
+    std::stringstream str;
+    std::string       type_name{
+        dynamic_cast<ui::base::node const*>(m_v)->type_name()};
+    auto const last_colon_pos = type_name.find_last_of(':');
+    type_name =
+        type_name.substr(last_colon_pos+1, size(type_name) - last_colon_pos-1);
+
+    str << "lic_" << type_name << "_x_" << m_bb->min(0) << "_" << m_bb->max(0)
+        << "_y_" << m_bb->min(1) << "_" << m_bb->max(1) << "_t_" << m_t << ".png";
+    m_lic_tex->write_png(str.str());
+  }
+}
+//----------------------------------------------------------------------------
 auto lic::setup_pins() -> void {
   insert_input_pin<vectorfield_t>("2D Vector Field");
   insert_input_pin<bb_t>("2D Bounding Box");
@@ -58,7 +73,7 @@ auto lic::setup_quad() -> void {
 //----------------------------------------------------------------------------
 auto lic::render(mat<float, 4, 4> const& projection_matrix,
                  mat<float, 4, 4> const& view_matrix) -> void {
-  if (m_lic_tex && m_v && m_boundingbox) {
+  if (m_lic_tex && m_v && m_bb) {
     update_shader(projection_matrix, view_matrix);
     m_shader->bind();
     m_shader->set_alpha(m_alpha);
@@ -78,14 +93,14 @@ void lic::calculate_lic() {
   this->scene().window().do_async([this] {
     auto tex =
         gpu::lic(*m_v,
-                 linspace{m_boundingbox->min(0), m_boundingbox->max(0),
+                 linspace{m_bb->min(0), m_bb->max(0),
                           static_cast<size_t>(m_vectorfield_sample_res(0))},
-                 linspace{m_boundingbox->min(1), m_boundingbox->max(1),
+                 linspace{m_bb->min(1), m_bb->max(1),
                           static_cast<size_t>(m_vectorfield_sample_res(1))},
                  m_t, vec<size_t, 2>{m_lic_res(0), m_lic_res(1)}, m_num_samples,
                  m_stepsize);
     std::lock_guard lock{m_mutex};
-    m_lic_tex = std::make_unique<yavin::tex2rgba<float>>(std::move(tex));
+    m_lic_tex     = std::make_unique<yavin::tex2rgba<float>>(std::move(tex));
     m_calculating = false;
   });
 }
@@ -94,27 +109,25 @@ auto lic::update_shader(mat<float, 4, 4> const& projection_matrix,
                         mat<float, 4, 4> const& view_matrix) -> void {
   m_shader->set_modelview_matrix(
       view_matrix *
-      rendering::translation_matrix<float>(m_boundingbox->min(0),
-                                           m_boundingbox->min(1), 0) *
-      rendering::scale_matrix<float>(
-          m_boundingbox->max(0) - m_boundingbox->min(0),
-          m_boundingbox->max(1) - m_boundingbox->min(1), 1));
+      rendering::translation_matrix<float>(m_bb->min(0), m_bb->min(1), 0) *
+      rendering::scale_matrix<float>(m_bb->max(0) - m_bb->min(0),
+                                     m_bb->max(1) - m_bb->min(1), 1));
   m_shader->set_projection_matrix(projection_matrix);
 }
 //----------------------------------------------------------------------------
 auto lic::on_pin_connected(ui::pin& this_pin, ui::pin& other_pin) -> void {
   if (other_pin.type() == typeid(bb_t)) {
-    m_boundingbox = dynamic_cast<bb_t*>(&other_pin.node());
+    m_bb = dynamic_cast<bb_t*>(&other_pin.node());
   } else if ((other_pin.type() == typeid(vectorfield_t))) {
     m_v = dynamic_cast<vectorfield_t*>(&other_pin.node());
   }
-  if (m_boundingbox != nullptr && m_v != nullptr) {
+  if (m_bb != nullptr && m_v != nullptr) {
     calculate_lic();
   }
 }
 //----------------------------------------------------------------------------
 auto lic::on_property_changed() -> void {
-  if (m_v != nullptr && m_boundingbox != nullptr) {
+  if (m_v != nullptr && m_bb != nullptr) {
     calculate_lic();
   }
 }

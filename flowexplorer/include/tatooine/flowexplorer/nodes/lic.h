@@ -2,14 +2,14 @@
 #define TATOOINE_FLOWEXPLORER_NODES_LIC_H
 //==============================================================================
 #include <tatooine/flowexplorer/nodes/boundingbox.h>
-#include <tatooine/gpu/texture_shader.h>
-#include <tatooine/gpu/lic.h>
 #include <tatooine/flowexplorer/renderable.h>
+#include <tatooine/gpu/lic.h>
+#include <tatooine/gpu/texture_shader.h>
 #include <tatooine/rendering/matrices.h>
-#include <yavin>
 #include <tatooine/rendering/yavin_interop.h>
 
 #include <mutex>
+#include <yavin>
 //==============================================================================
 namespace tatooine::flowexplorer::nodes {
 //==============================================================================
@@ -26,8 +26,8 @@ struct lic : renderable<lic> {
  private:
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
   // pins
-  vectorfield_t const*                    m_v           = nullptr;
-  bb_t*                                   m_boundingbox = nullptr;
+  vectorfield_t const* m_v  = nullptr;
+  bb_t*                m_bb = nullptr;
 
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
   // internal
@@ -58,6 +58,7 @@ struct lic : renderable<lic> {
   // methods
   //----------------------------------------------------------------------------
   auto init() -> void;
+  auto write_png() -> void;
   //----------------------------------------------------------------------------
   auto setup_pins() -> void;
   //----------------------------------------------------------------------------
@@ -73,11 +74,11 @@ struct lic : renderable<lic> {
   auto update_shader(mat<float, 4, 4> const& projection_matrix,
                      mat<float, 4, 4> const& view_matrix) -> void;
   //----------------------------------------------------------------------------
-  void on_pin_connected(ui::pin& this_pin, ui::pin& other_pin) override ;
+  void on_pin_connected(ui::pin& this_pin, ui::pin& other_pin) override;
   //----------------------------------------------------------------------------
-  void on_pin_disconnected(ui::pin& this_pin) override ;
+  void on_pin_disconnected(ui::pin& this_pin) override;
   //----------------------------------------------------------------------------
-  auto           is_transparent() const -> bool override;
+  auto is_transparent() const -> bool override;
   //----------------------------------------------------------------------------
   // setters / getters
   //----------------------------------------------------------------------------
@@ -100,15 +101,28 @@ struct lic : renderable<lic> {
   //----------------------------------------------------------------------------
   auto alpha() -> auto& { return m_alpha; }
   auto alpha() const { return m_alpha; }
+  //----------------------------------------------------------------------------
+  auto draw_properties() -> bool override {
+    auto const changed = renderable<lic>::draw_properties();
+
+    if (m_lic_tex) {
+      if (ImGui::Button("write png")) {
+        write_png();
+      }
+    }
+
+    return changed;
+  }
 };
 //==============================================================================
 }  // namespace tatooine::flowexplorer::nodes
 //==============================================================================
-TATOOINE_FLOWEXPLORER_REGISTER_RENDERABLE(tatooine::flowexplorer::nodes::lic,
-              TATOOINE_REFLECTION_INSERT_METHOD(resolution, lic_res()),
-              TATOOINE_REFLECTION_INSERT_GETTER(vectorfield_sample_res),
-              TATOOINE_REFLECTION_INSERT_GETTER(t),
-              TATOOINE_REFLECTION_INSERT_GETTER(num_samples),
-              TATOOINE_REFLECTION_INSERT_GETTER(stepsize),
-              TATOOINE_REFLECTION_INSERT_GETTER(alpha))
+TATOOINE_FLOWEXPLORER_REGISTER_RENDERABLE(
+    tatooine::flowexplorer::nodes::lic,
+    TATOOINE_REFLECTION_INSERT_METHOD(resolution, lic_res()),
+    TATOOINE_REFLECTION_INSERT_GETTER(vectorfield_sample_res),
+    TATOOINE_REFLECTION_INSERT_GETTER(t),
+    TATOOINE_REFLECTION_INSERT_GETTER(num_samples),
+    TATOOINE_REFLECTION_INSERT_GETTER(stepsize),
+    TATOOINE_REFLECTION_INSERT_GETTER(alpha))
 #endif
