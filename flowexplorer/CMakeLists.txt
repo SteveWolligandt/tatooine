@@ -10,7 +10,7 @@ set(TATFE_SHADER_DIR ${CMAKE_CURRENT_SOURCE_DIR}/shaders)
 #- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 add_executable(
   flowexplorer
-
+  src/boundingbox.cpp
   src/flowexplorer.cpp
   src/doublegyre.cpp
   src/abcflow.cpp
@@ -20,9 +20,7 @@ add_executable(
   src/random_pathlines.cpp
   src/rayleigh_benard_convection.cpp
   src/test_node.cpp
-
   src/spacetime_vectorfield.cpp
-
   src/node.cpp
   src/window.cpp
   src/autonomous_particle.cpp

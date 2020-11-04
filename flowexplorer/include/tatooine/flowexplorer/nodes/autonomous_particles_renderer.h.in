@@ -45,5 +45,6 @@ struct autonomous_particles_renderer
 //==============================================================================
 }  // namespace tatooine::flowexplorer::nodes
 //==============================================================================
-REGISTER_NODE(tatooine::flowexplorer::nodes::autonomous_particles_renderer)
+TATOOINE_FLOWEXPLORER_REGISTER_RENDERABLE(
+    tatooine::flowexplorer::nodes::autonomous_particles_renderer)
 #endif

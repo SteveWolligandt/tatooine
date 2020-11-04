@@ -1,5 +1,7 @@
-#include <tatooine/flowexplorer/nodes/lic.h>
 #include <tatooine/flowexplorer/window.h>
+#include <tatooine/flowexplorer/scene.h>
+// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+#include <tatooine/flowexplorer/nodes/lic.h>
 //==============================================================================
 namespace tatooine::flowexplorer::nodes {
 //==============================================================================
@@ -56,11 +58,14 @@ auto lic::setup_quad() -> void {
 //----------------------------------------------------------------------------
 auto lic::render(mat<float, 4, 4> const& projection_matrix,
                  mat<float, 4, 4> const& view_matrix) -> void {
-  if ( m_lic_tex && m_v && m_boundingbox) {
+  if (m_lic_tex && m_v && m_boundingbox) {
     update_shader(projection_matrix, view_matrix);
     m_shader->bind();
     m_shader->set_alpha(m_alpha);
-    m_lic_tex->bind(0);
+    {
+      std::lock_guard lock{m_mutex};
+      m_lic_tex->bind(0);
+    }
     m_quad.draw_triangles();
   }
 }
@@ -79,6 +84,7 @@ void lic::calculate_lic() {
                           static_cast<size_t>(m_vectorfield_sample_res(1))},
                  m_t, vec<size_t, 2>{m_lic_res(0), m_lic_res(1)}, m_num_samples,
                  m_stepsize);
+    std::lock_guard lock{m_mutex};
     m_lic_tex = std::make_unique<yavin::tex2rgba<float>>(std::move(tex));
     m_calculating = false;
   });

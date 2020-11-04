@@ -415,7 +415,7 @@ struct registration_name_t {
 //------------------------------------------------------------------------------
 struct registration_factory_t {
   using F = tatooine::flowexplorer::ui::base::
-      node& (*)(tatooine::flowexplorer::scene&, std::string_view const&);
+      node* (*)(tatooine::flowexplorer::scene&, std::string_view const&);
   F f;
 };
 //==============================================================================
@@ -436,9 +436,9 @@ struct registration_factory_t {
   namespace tatooine::flowexplorer::registration::type {                       \
   static auto factory(::tatooine::flowexplorer::scene& s,                      \
                       std::string_view const&          node_type_name)         \
-      -> tatooine::flowexplorer::ui::base::node* {                             \
+      -> ::tatooine::flowexplorer::ui::base::node* {                           \
     if (node_type_name == #type) {                                             \
-      return &s.nodes().emplace_back(new ::type{s});                            \
+      return s.nodes().emplace_back(new ::type{s}).get();                     \
     }                                                                          \
     return nullptr;                                                            \
   }                                                                            \
@@ -452,9 +452,9 @@ struct registration_factory_t {
   namespace tatooine::flowexplorer::registration::type {                       \
   static auto factory(::tatooine::flowexplorer::scene& s,                      \
                       std::string_view const&          node_type_name)         \
-      -> tatooine::flowexplorer::ui::base::node* {                             \
+      -> ::tatooine::flowexplorer::ui::base::node* {                           \
     if (node_type_name == #type) {                                             \
-      return &s.renderables().emplace_back(new ::type{s});                            \
+      return s.renderables().emplace_back(new ::type{s}).get();               \
     }                                                                          \
     return nullptr;                                                            \
   }                                                                            \
@@ -478,7 +478,8 @@ extern registration_name_t    __stop_name_;
 //==============================================================================
 namespace tatooine::flowexplorer {
 //==============================================================================
-auto insert_registered_element(scene& s, std::string_view const& name);
+auto insert_registered_element(scene& s, std::string_view const& name)
+    -> ui::base::node*;
 //==============================================================================
 }  // namespace tatooine::flowexplorer
 //==============================================================================

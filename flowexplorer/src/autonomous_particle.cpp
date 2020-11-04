@@ -1,5 +1,7 @@
-#include <tatooine/flowexplorer/nodes/autonomous_particle.h>
+#include <tatooine/flowexplorer/scene.h>
 #include <tatooine/flowexplorer/window.h>
+// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+#include <tatooine/flowexplorer/nodes/autonomous_particle.h>
 #include <tatooine/random.h>
 #include <tatooine/rendering/yavin_interop.h>
 //==============================================================================
@@ -218,7 +220,7 @@ auto autonomous_particle::draw_properties() -> bool {
       m_stop_thread = true;
     }
   }
-  ImGui::Text("number of splits:");
+  ImGui::TextUnformatted("number of splits:");
   ImGui::SameLine();
   if (ImGui::Button("< ")) {
     switch (m_num_splits) {
@@ -237,7 +239,7 @@ auto autonomous_particle::draw_properties() -> bool {
     }
   }
   ImGui::SameLine();
-  ImGui::Text(std::to_string(m_num_splits).c_str());
+  ImGui::TextUnformatted(std::to_string(m_num_splits).c_str());
   ImGui::SameLine();
   if (ImGui::Button(" >")) {
     switch (m_num_splits) {
@@ -269,10 +271,15 @@ void autonomous_particle::on_pin_connected(ui::pin& this_pin,
     m_x0 = dynamic_cast<vec<double, 2>*>(&other_pin.node());
     x0() = *m_x0;
     x1() = *m_x0;
-    update_initial_circle();
+    if (&this->phi().vectorfield() != nullptr) {
+      update_initial_circle();
+    }
   } else if ((other_pin.type() == typeid(vectorfield_t))) {
     this->phi().set_vectorfield(
         dynamic_cast<vectorfield_t*>(&other_pin.node()));
+    if (m_x0 != nullptr) {
+      update_initial_circle();
+    }
   }
 }
 //------------------------------------------------------------------------------

@@ -1,84 +1,84 @@
-[1]
-enabled = true
-color = [ 0.0, 0.0, 0.0, 1.0 ]
-input_pin_ids = []
-kind = 'renderable'
-node_position = [ -29.0, 155.0 ]
-node_title = 'Position'
-node_type = 'tatooine::flowexplorer::nodes::position2'
-output_pin_ids = [ 2 ]
-point_size = 7
-position = [ 1.0, 0.5 ]
+[10518157588145699300]
+input = -9073255915156573856
+kind = 'link'
+output = 6741596781571953228
 
-[3]
-enabled = true
-input_pin_ids = []
-kind = 'node'
-node_position = [ -194.0, -191.0 ]
-node_title = 'Double Gyre'
-node_type = 'tatooine::flowexplorer::nodes::doublegyre'
-output_pin_ids = [ 4 ]
-
-[6]
-enabled = true
+[13855666796200154288]
+enabled = false
 input_pin_ids = []
 kind = 'renderable'
 line_color = [ 0.0, 0.0, 0.0, 1.0 ]
-line_width = 1
+line_width = 0
 max = [ 2.0, 1.0 ]
 min = [ 0.0, 0.0 ]
-node_position = [ 51.0, -347.0 ]
+node_position = [ 3.0, -209.0 ]
 node_title = 'Bounding Box'
 node_type = 'tatooine::flowexplorer::nodes::boundingbox2d'
-output_pin_ids = [ 7 ]
+output_pin_ids = [ 6741596781571953228 ]
 
-[8]
-enabled = true
-alpha = 0.300000011920929
-input_pin_ids = [ 9, 10 ]
-kind = 'renderable'
-node_position = [ 9.0, -602.0 ]
-node_title = 'LIC'
-node_type = 'tatooine::flowexplorer::nodes::lic'
-num_samples = 40
-output_pin_ids = []
-resolution = [ 3000, 1500 ]
-stepsize = 0.001
-t = 0.0
-vectorfield_sample_res = [ 100, 100 ]
-
-[11]
-input = 10
-kind = 'link'
-output = 7
-
-[12]
-input = 9
-kind = 'link'
-output = 4
-
-[13]
-input = 17
-kind = 'link'
-output = 2
-
-[14]
-input = 16
-kind = 'link'
-output = 4
-
-[15]
-enabled = true
+[15710694557836614307]
 ellipses_color = [ 0.0, 0.0, 0.0, 1.0 ]
-end_time = 0.0
-input_pin_ids = [ 16, 17 ]
+enabled = true
+end_time = 1.88
+input_pin_ids = [ -4983248621907286883, -8712479174395270616 ]
 kind = 'renderable'
-node_position = [ 105.0, -128.0 ]
+node_position = [ -25.0, 472.0 ]
 node_title = 'Autonomous Particle'
 node_type = 'tatooine::flowexplorer::nodes::autonomous_particle'
 num_splits = 3
 output_pin_ids = []
-radius = 0.03
+radius = 0.029
 t0 = 0.0
-tau_step = 0.1
+tau_step = 0.54
+
+[15811711753239253833]
+input = -4983248621907286883
+kind = 'link'
+output = -6702034660170758782
+
+[17211332811515552799]
+input = -8712479174395270616
+kind = 'link'
+output = 8807391546010266826
+
+[2281876557902140136]
+input = 5801223280736786443
+kind = 'link'
+output = -6702034660170758782
+
+[557646784750718]
+color = [ 0.0, 0.0, 0.0, 1.0 ]
+enabled = true
+input_pin_ids = []
+kind = 'renderable'
+node_position = [ -29.0, 309.0 ]
+node_title = 'Position'
+node_type = 'tatooine::flowexplorer::nodes::position2'
+output_pin_ids = [ 8807391546010266826 ]
+point_size = 7
+position = [ 1.0, 0.5 ]
+
+[9621071598396892825]
+enabled = true
+input_pin_ids = []
+kind = 'node'
+node_position = [ -194.0, 218.0 ]
+node_title = 'Double Gyre'
+node_type = 'tatooine::flowexplorer::nodes::doublegyre'
+output_pin_ids = [ -6702034660170758782 ]
+
+[9692064412777356266]
+alpha = 0.4000000059604645
+enabled = true
+input_pin_ids = [ 5801223280736786443, -9073255915156573856 ]
+kind = 'renderable'
+node_position = [ 0.0, 0.0 ]
+node_title = 'LIC'
+node_type = 'tatooine::flowexplorer::nodes::lic'
+num_samples = 100
+output_pin_ids = []
+resolution = [ 1000, 500 ]
+stepsize = 0.001
+t = 0.0
+vectorfield_sample_res = [ 100, 100 ]
 

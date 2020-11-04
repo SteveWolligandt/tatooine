@@ -19,9 +19,10 @@ auto node::node_position() const -> ImVec2 {
 //==============================================================================
 namespace tatooine::flowexplorer {
 //==============================================================================
-auto insert_registered_element(scene& s, std::string_view const& name) {
+auto insert_registered_element(scene& s, std::string_view const& name)
+    -> ui::base::node* {
   iterate_registered_factories(factory) {
-    if (auto ptr = factory->f(s, node_type_name); ptr) {
+    if (auto ptr = factory->f(s, name); ptr) {
       return ptr;
     }
   }

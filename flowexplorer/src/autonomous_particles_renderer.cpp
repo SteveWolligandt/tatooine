@@ -1,7 +1,8 @@
+#include <tatooine/flowexplorer/scene.h>
+
 #include <tatooine/flowexplorer/nodes/autonomous_particles_renderer.h>
 #include <tatooine/netcdf.h>
 #include <tatooine/rendering/yavin_interop.h>
-#include <tatooine/flowexplorer/scene.h>
 #include <tatooine/flowexplorer/window.h>
 //==============================================================================
 namespace tatooine::flowexplorer::nodes {

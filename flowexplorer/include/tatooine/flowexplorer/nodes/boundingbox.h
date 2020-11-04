@@ -26,7 +26,9 @@ struct boundingbox : tatooine::boundingbox<double, N>,
   std::array<GLfloat, 4>            m_line_color{0.0f, 0.0f, 0.0f, 1.0f};
   //============================================================================
   boundingbox(flowexplorer::scene& s)
-      : renderable<boundingbox>{"Bounding Box", s} {
+      : renderable<boundingbox>{"Bounding Box", s},
+        tatooine::boundingbox<double, N>{vec<double, N>{tag::fill{-1}},
+                                         vec<double, N>{tag::fill{1}}} {
     this->template insert_output_pin<this_t>("Out");
     create_indexed_data();
   }

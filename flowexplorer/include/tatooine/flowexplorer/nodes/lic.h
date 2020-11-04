@@ -31,10 +31,11 @@ struct lic : renderable<lic> {
 
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
   // internal
-  bool                                    m_calculating = false;
-  std::unique_ptr<gpu::texture_shader>    m_shader;
-  std::unique_ptr<yavin::tex2rgba<float>> m_lic_tex;
+  bool                                                    m_calculating = false;
+  std::unique_ptr<gpu::texture_shader>                    m_shader;
+  std::unique_ptr<yavin::tex2rgba<float>>                 m_lic_tex;
   yavin::indexeddata<vec<float, 2>, vec<float, 2>, float> m_quad;
+  std::mutex                                              m_mutex;
 
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
   // user data
