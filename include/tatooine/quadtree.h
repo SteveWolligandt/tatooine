@@ -1,6 +1,7 @@
 #ifndef TATOOINE_QUADTREE_H
 #define TATOOINE_QUADTREE_H
 //==============================================================================
+#include <functional>
 #include <tatooine/axis_aligned_bounding_box.h>
 //==============================================================================
 namespace tatooine {
@@ -17,6 +18,7 @@ struct quadtree : aabb<Real, 2> {
   using parent_t::max;
   using parent_t::min;
   using typename parent_t::vec_t;
+  friend class std::unique_ptr<this_t>;
 
  private:
   size_t                                   m_level;
@@ -40,7 +42,6 @@ struct quadtree : aabb<Real, 2> {
   quadtree(vec_t const& min, vec_t const& max, size_t const level,
            size_t const max_depth)
       : parent_t{min, max}, m_level{level}, m_max_depth{max_depth} {}
-  friend class std::unique_ptr<this_t>;
 
  public:
   auto num_vertex_indices() const { return size(m_vertex_indices); }
@@ -91,6 +92,31 @@ struct quadtree : aabb<Real, 2> {
     }
     return true;
   }
+  //----------------------------------------------------------------------------
+  auto triangle_candidates(vec_t const& x) const -> auto const& {
+    if (auto tris = triangle_candidates_ptr(x); tris != nullptr) {
+      return *tris;
+    }
+    throw std::runtime_error{"[quadtree::triangle_candidatas] out of domain"};
+  }
+ private:
+  //----------------------------------------------------------------------------
+  auto triangle_candidates_ptr(vec_t const& x) const
+      -> std::vector<size_t> const* {
+    if (!is_inside(x)) {
+      return nullptr;
+    }
+    if (is_splitted()) {
+      for (auto const& child : m_children) {
+        if (auto tris = child->triangle_candidates_ptr(x); tris != nullptr) {
+          return tris;
+        }
+      }
+    }
+    return &m_triangle_indices;
+  }
+
+ public:
   //----------------------------------------------------------------------------
   constexpr auto is_splitted() const { return m_children.front() != nullptr; }
   constexpr auto holds_vertices() const { return !m_vertex_indices.empty(); }
