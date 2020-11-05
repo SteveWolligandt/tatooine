@@ -93,30 +93,27 @@ struct quadtree : aabb<Real, 2> {
     return true;
   }
   //----------------------------------------------------------------------------
-  auto triangle_candidates(vec_t const& x) const -> auto const& {
-    if (auto tris = triangle_candidates_ptr(x); tris != nullptr) {
+  auto nearby_triangles(vec_t const& x) const -> auto const& {
+    if (auto tris = nearby_triangles_ptr(x); tris != nullptr) {
       return *tris;
     }
     throw std::runtime_error{"[quadtree::triangle_candidatas] out of domain"};
   }
- private:
   //----------------------------------------------------------------------------
-  auto triangle_candidates_ptr(vec_t const& x) const
+  auto nearby_triangles_ptr(vec_t const& x) const
       -> std::vector<size_t> const* {
     if (!is_inside(x)) {
       return nullptr;
     }
     if (is_splitted()) {
       for (auto const& child : m_children) {
-        if (auto tris = child->triangle_candidates_ptr(x); tris != nullptr) {
+        if (auto tris = child->nearby_triangles_ptr(x); tris != nullptr) {
           return tris;
         }
       }
     }
     return &m_triangle_indices;
   }
-
- public:
   //----------------------------------------------------------------------------
   constexpr auto is_splitted() const { return m_children.front() != nullptr; }
   constexpr auto holds_vertices() const { return !m_vertex_indices.empty(); }

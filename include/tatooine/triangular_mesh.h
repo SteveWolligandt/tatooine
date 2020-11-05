@@ -5,6 +5,7 @@
 #include <tatooine/delaunator.h>
 #include <tatooine/property.h>
 #include <tatooine/vtk_legacy.h>
+#include <tatooine/quadtree.h>
 
 #include <boost/range/algorithm/copy.hpp>
 #include <filesystem>
@@ -26,6 +27,39 @@ class triangular_mesh : public pointset<Real, N> {
   using parent_t::is_valid;
   template <typename T>
   using vertex_property_t = typename parent_t::template vertex_property_t<T>;
+  using typename parent_t::pos_t;
+
+  template <typename T>
+  struct vertex_property_sampler_t {
+    this_t const&         m_mesh;
+    vertex_property_t<T>& m_prop;
+
+    auto operator()(pos_t const& x) const { return sample(x); }
+    auto sample(pos_t const& x) const -> T {
+      auto tris = m_mesh.m_quadtree->nearby_triangles_ptr(x);
+      if (tris == nullptr || tris->empty()) {
+        throw std::runtime_error{
+            "[vertex_property_sampler_t::sample] out of domain"};
+      }
+      for (auto ti : *tris) {
+        auto [vi0, vi1, vi2] = m_mesh.triangle_at(ti);
+        auto const& v0 = m_mesh.vertex_at(vi0);
+        auto const& v1 = m_mesh.vertex_at(vi1);
+        auto const& v2 = m_mesh.vertex_at(vi2);
+        mat<Real, 3, 3> const A{{v0(0), v1(0), v2(0)},
+                                {v0(1), v1(1), v2(1)},
+                                {Real(1), Real(1), Real(1)}};
+        vec<Real, 3> const    b{x(0), x(1), 1};
+        auto const            abc = solve(A, b);
+        if (abc(0) >= 0 && abc(0) <= 1 &&
+            abc(1) >= 0 && abc(1) <= 1 &&
+            abc(2) >= 0 && abc(2) <= 1) {
+          return m_prop[vi0] * abc(0) + m_prop[vi1] * abc(1) + m_prop[vi2] * abc(2);
+        }
+        return T{};
+      }
+    }
+  };
   //----------------------------------------------------------------------------
   struct triangle_index : handle {
     using handle::handle;
@@ -102,6 +136,7 @@ class triangular_mesh : public pointset<Real, N> {
   std::vector<vertex_index>             m_triangle_indices;
   std::vector<triangle_index>           m_invalid_triangles;
   triangle_property_container_t         m_triangle_properties;
+  std::unique_ptr<quadtree<Real>>       m_quadtree;
 
  public:
   //============================================================================
@@ -189,6 +224,30 @@ class triangular_mesh : public pointset<Real, N> {
   //----------------------------------------------------------------------------
   auto set_triangle_indices(std::vector<size_t> const& is) {
     m_triangle_indices = *reinterpret_cast<std::vector<vertex_index>*>(&is);
+  }
+  //----------------------------------------------------------------------------
+  auto add_triangles_to_hierarchy() {
+    if constexpr (N==2) {
+      if (m_quadtree == nullptr) {
+        auto min = pos_t::ones() * std::numeric_limits<Real>::infinity();
+        auto max = -pos_t::ones() * std::numeric_limits<Real>::infinity();
+        for (auto v : this->vertices()) {
+          min(0) = std::min(min(0), at(v)(0));
+          min(1) = std::min(min(1), at(v)(1));
+          max(0) = std::max(max(0), at(v)(0));
+          max(1) = std::max(max(1), at(v)(1));
+        }
+        m_quadtree = std::make_unique<quadtree<Real>>(min, max);
+      }
+      for (size_t i = 0; i < num_triangles(); ++i) {
+        m_quadtree->insert_triangle(*this, i);
+      }
+    }
+  }
+  //----------------------------------------------------------------------------
+  template <typename T>
+  auto vertex_property_sampler(std::string const& name) {
+    return vertex_property_sampler_t<T>{*this, this->template vertex_property<T>(name)};
   }
   //----------------------------------------------------------------------------
   template <typename = void>

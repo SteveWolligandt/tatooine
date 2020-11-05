@@ -67,25 +67,25 @@ TEST_CASE("quadtree", "[quadtree]") {
   REQUIRE_FALSE(qt.top_left()->holds_triangles());
 
   // triangle get
-  REQUIRE(qt.triangle_candidates(vec2{0.5, 0.5}).size() == 1);
-  REQUIRE(qt.triangle_candidates(vec2{1.5, 0.5}).size() == 1);
-  REQUIRE(qt.triangle_candidates(vec2{2.5, 0.5}).size() == 0);
-  REQUIRE(qt.triangle_candidates(vec2{3.5, 0.5}).size() == 0);
+  REQUIRE(qt.nearby_triangles(vec2{0.5, 0.5}).size() == 1);
+  REQUIRE(qt.nearby_triangles(vec2{1.5, 0.5}).size() == 1);
+  REQUIRE(qt.nearby_triangles(vec2{2.5, 0.5}).size() == 0);
+  REQUIRE(qt.nearby_triangles(vec2{3.5, 0.5}).size() == 0);
 
-  REQUIRE(qt.triangle_candidates(vec2{0.5, 1.5}).size() == 1);
-  REQUIRE(qt.triangle_candidates(vec2{1.5, 1.5}).size() == 1);
-  REQUIRE(qt.triangle_candidates(vec2{2.5, 1.5}).size() == 0);
-  REQUIRE(qt.triangle_candidates(vec2{3.5, 1.5}).size() == 0);
+  REQUIRE(qt.nearby_triangles(vec2{0.5, 1.5}).size() == 1);
+  REQUIRE(qt.nearby_triangles(vec2{1.5, 1.5}).size() == 1);
+  REQUIRE(qt.nearby_triangles(vec2{2.5, 1.5}).size() == 0);
+  REQUIRE(qt.nearby_triangles(vec2{3.5, 1.5}).size() == 0);
 
-  REQUIRE(qt.triangle_candidates(vec2{0.5, 2.5}).size() == 0);
-  REQUIRE(qt.triangle_candidates(vec2{1.5, 2.5}).size() == 0);
-  REQUIRE(qt.triangle_candidates(vec2{2.5, 2.5}).size() == 0);
-  REQUIRE(qt.triangle_candidates(vec2{3.5, 2.5}).size() == 0);
+  REQUIRE(qt.nearby_triangles(vec2{0.5, 2.5}).size() == 0);
+  REQUIRE(qt.nearby_triangles(vec2{1.5, 2.5}).size() == 0);
+  REQUIRE(qt.nearby_triangles(vec2{2.5, 2.5}).size() == 0);
+  REQUIRE(qt.nearby_triangles(vec2{3.5, 2.5}).size() == 0);
 
-  REQUIRE(qt.triangle_candidates(vec2{0.5, 3.5}).size() == 0);
-  REQUIRE(qt.triangle_candidates(vec2{1.5, 3.5}).size() == 0);
-  REQUIRE(qt.triangle_candidates(vec2{2.5, 3.5}).size() == 0);
-  REQUIRE(qt.triangle_candidates(vec2{3.5, 3.5}).size() == 0);
+  REQUIRE(qt.nearby_triangles(vec2{0.5, 3.5}).size() == 0);
+  REQUIRE(qt.nearby_triangles(vec2{1.5, 3.5}).size() == 0);
+  REQUIRE(qt.nearby_triangles(vec2{2.5, 3.5}).size() == 0);
+  REQUIRE(qt.nearby_triangles(vec2{3.5, 3.5}).size() == 0);
 }
 //==============================================================================
 }  // namespace tatooine::test
