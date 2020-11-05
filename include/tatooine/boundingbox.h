@@ -85,7 +85,6 @@ struct boundingbox : ray_intersectable<Real, N> {
     }
   }
   //----------------------------------------------------------------------------
-  //----------------------------------------------------------------------------
   [[nodiscard]] constexpr auto add_dimension(Real const min,
                                              Real const max) const {
     boundingbox<Real, N + 1> addeddim;
