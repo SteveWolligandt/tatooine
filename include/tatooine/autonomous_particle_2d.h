@@ -2,14 +2,13 @@
 #define TATOOINE_AUTONOMOUS_PARTICLES_2D_H
 //==============================================================================
 #include <tatooine/autonomous_particle.h>
-#include <tatooine/triangular_mesh.h>
 #include <tatooine/field.h>
 #include <tatooine/geometry/sphere.h>
 #include <tatooine/numerical_flowmap.h>
 #include <tatooine/tensor.h>
+#include <tatooine/triangular_mesh.h>
 
 #include <ranges>
-
 //==============================================================================
 namespace tatooine {
 //==============================================================================
@@ -22,10 +21,10 @@ struct autonomous_particle<Flowmap> {
   using this_t    = autonomous_particle<Flowmap>;
   using flowmap_t = std::decay_t<Flowmap>;
   static constexpr auto num_dimensions() { return flowmap_t::num_dimensions(); }
-  using real_t  = typename flowmap_t::real_t;
-  using vec_t   = vec<real_t, num_dimensions()>;
-  using mat_t   = mat<real_t, num_dimensions(), num_dimensions()>;
-  using pos_t   = vec_t;
+  using real_t = typename flowmap_t::real_t;
+  using vec_t  = vec<real_t, num_dimensions()>;
+  using mat_t  = mat<real_t, num_dimensions(), num_dimensions()>;
+  using pos_t  = vec_t;
 
   //----------------------------------------------------------------------------
   // members
@@ -41,14 +40,13 @@ struct autonomous_particle<Flowmap> {
   // ctors
   //----------------------------------------------------------------------------
  public:
-  autonomous_particle(autonomous_particle const&)     = default;
+  autonomous_particle(autonomous_particle const&) = default;
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
   autonomous_particle(autonomous_particle&&) noexcept = default;
   //----------------------------------------------------------------------------
-  auto operator=(autonomous_particle const&)
-    -> autonomous_particle& = default;
+  auto operator=(autonomous_particle const&) -> autonomous_particle& = default;
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-  auto operator=(autonomous_particle&&) noexcept
+  auto operator               =(autonomous_particle&&) noexcept
       -> autonomous_particle& = default;
   //----------------------------------------------------------------------------
   ~autonomous_particle() = default;
@@ -288,22 +286,22 @@ struct autonomous_particle<Flowmap> {
     }
     return {};
   }
-  };
-  // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-  // - deduction guides
-  // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-  // -
-  template <typename V, typename VReal, real_number RealX0, size_t N>
-  autonomous_particle(const vectorfield<V, VReal, 2>& v, vec<RealX0, N> const&,
-                      real_number auto const, real_number auto const)
-      -> autonomous_particle<decltype(flowmap(v))>;
-  // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-  // -
-  template <fixed_dims_flowmap_c<2> Flowmap, real_number RealX0, size_t N>
-  autonomous_particle(const Flowmap& flowmap, vec<RealX0, N> const&,
-                      real_number auto const, real_number auto const)
-      -> autonomous_particle<Flowmap>;
-  //==============================================================================
+};
+// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+// - deduction guides
+// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+// -
+template <typename V, typename VReal, real_number RealX0, size_t N>
+autonomous_particle(const vectorfield<V, VReal, 2>& v, vec<RealX0, N> const&,
+                    real_number auto const, real_number auto const)
+    -> autonomous_particle<decltype(flowmap(v))>;
+// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+// -
+template <fixed_dims_flowmap_c<2> Flowmap, real_number RealX0, size_t N>
+autonomous_particle(const Flowmap& flowmap, vec<RealX0, N> const&,
+                    real_number auto const, real_number auto const)
+    -> autonomous_particle<Flowmap>;
+//==============================================================================
 }  // namespace tatooine
 //==============================================================================
 #endif
