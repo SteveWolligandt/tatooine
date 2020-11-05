@@ -16,7 +16,8 @@ struct boundingbox : ray_intersectable<Real, N> {
   //============================================================================
   using real_t = Real;
   using this_t = boundingbox<Real, N>;
-  using pos_t  = vec<Real, N>;
+  using vec_t  = vec<Real, N>;
+  using pos_t  = vec_t;
 
   static constexpr auto num_dimensions() { return N; }
   //============================================================================
@@ -26,36 +27,51 @@ struct boundingbox : ray_intersectable<Real, N> {
   //============================================================================
  public:
   constexpr boundingbox()                             = default;
-  constexpr boundingbox(const boundingbox& other)     = default;
+  constexpr boundingbox(boundingbox const& other)     = default;
   constexpr boundingbox(boundingbox&& other) noexcept = default;
-  constexpr auto operator=(const this_t& other) -> boundingbox& = default;
-  constexpr auto operator=(this_t&& other) noexcept -> boundingbox& = default;
-  ~boundingbox()                                                    = default;
+  constexpr auto operator=(boundingbox const& other) -> boundingbox& = default;
+  constexpr auto operator=(boundingbox&& other) noexcept
+      -> boundingbox&    = default;
+  ~boundingbox()         = default;
   //----------------------------------------------------------------------------
   template <typename Real0, typename Real1>
   constexpr boundingbox(vec<Real0, N>&& min, vec<Real1, N>&& max) noexcept
       : m_min{std::move(min)}, m_max{std::move(max)} {}
   //----------------------------------------------------------------------------
   template <typename Real0, typename Real1>
-  constexpr boundingbox(const vec<Real0, N>& min, const vec<Real1, N>& max)
+  constexpr boundingbox(vec<Real0, N> const& min, vec<Real1, N> const& max)
       : m_min{min}, m_max{max} {}
   //----------------------------------------------------------------------------
   template <typename Tensor0, typename Tensor1, typename Real0, typename Real1>
-  constexpr boundingbox(const base_tensor<Tensor0, Real0, N>& min,
-                        const base_tensor<Tensor1, Real1, N>& max)
+  constexpr boundingbox(base_tensor<Tensor0, Real0, N> const& min,
+                        base_tensor<Tensor1, Real1, N> const& max)
       : m_min{min}, m_max{max} {}
   //============================================================================
-  const auto& min() const { return m_min; }
-  auto&       min() { return m_min; }
-  const auto& min(size_t i) const { return m_min(i); }
-  auto&       min(size_t i) { return m_min(i); }
+  constexpr auto min() const -> auto const& { return m_min; }
+  constexpr auto min() -> auto const& { return m_min; }
+  constexpr auto min(size_t i) const -> auto& { return m_min(i); }
+  constexpr auto min(size_t i) -> auto const& { return m_min(i); }
   //----------------------------------------------------------------------------
-  const auto& max() const { return m_max; }
-  auto&       max() { return m_max; }
-  const auto& max(size_t i) const { return m_max(i); }
-  auto&       max(size_t i) { return m_max(i); }
+  constexpr auto max() const -> auto const& { return m_max; }
+  constexpr auto max() -> auto const& { return m_max; }
+  constexpr auto max(size_t i) const -> auto& { return m_max(i); }
+  constexpr auto max(size_t i) -> auto const& { return m_max(i); }
   //----------------------------------------------------------------------------
-  constexpr void operator+=(const pos_t& point) {
+  constexpr auto center() const { return (m_max + m_min) * Real(0.5); }
+  constexpr auto center(size_t const i) const {
+    return (m_max(i) + m_min(i)) * Real(0.5);
+  }
+  //----------------------------------------------------------------------------
+  constexpr auto is_inside(pos_t const& p) const {
+    for (size_t i = 0; i < N; ++i) {
+      if (p(i) < m_min(i) || m_max(i) < p(i)) {
+        return false;
+      }
+    }
+    return true;
+  }
+  //----------------------------------------------------------------------------
+  constexpr auto operator+=(pos_t const& point) {
     for (size_t i = 0; i < point.size(); ++i) {
       m_min(i) = std::min(m_min(i), point(i));
       m_max(i) = std::max(m_max(i), point(i));
@@ -69,27 +85,16 @@ struct boundingbox : ray_intersectable<Real, N> {
     }
   }
   //----------------------------------------------------------------------------
-  constexpr auto center() const { return (m_max + m_min) * Real(0.5); }
   //----------------------------------------------------------------------------
-  constexpr auto center(size_t i) const {
-    return (m_max(i) + m_min(i)) * Real(0.5);
-  }
-  //----------------------------------------------------------------------------
-  constexpr auto is_inside(const pos_t& p) const {
-    for (size_t i = 0; i < N; ++i) {
-      if (p(i) < m_min(i) || m_max(i) < p(i)) { return false; }
-    }
-    return true;
-  }
-  //----------------------------------------------------------------------------
-  [[nodiscard]] constexpr auto add_dimension(Real m_min, Real m_max) const {
+  [[nodiscard]] constexpr auto add_dimension(Real const min,
+                                             Real const max) const {
     boundingbox<Real, N + 1> addeddim;
     for (size_t i = 0; i < N; ++i) {
-      addeddim.m_min(i) = this->m_min(i);
-      addeddim.m_max(i) = this->m_max(i);
+      addeddim.m_min(i) = m_min(i);
+      addeddim.m_max(i) = m_max(i);
     }
-    addeddim.m_min(N) = m_min;
-    addeddim.m_max(N) = m_max;
+    addeddim.m_min(N) = min;
+    addeddim.m_max(N) = max;
     return addeddim;
   }
   //----------------------------------------------------------------------------
@@ -106,10 +111,10 @@ struct boundingbox : ray_intersectable<Real, N> {
   //============================================================================
   // ray_intersectable overrides
   //============================================================================
-  std::optional<intersection<Real, N>> check_intersection(
-      ray<Real, N> const& r, Real const = 0) const override {
+  auto check_intersection(ray<Real, N> const& r, Real const = 0) const
+      -> std::optional<intersection<Real, N>> override {
     enum Quadrant { right, left, middle };
-    vec<Real, N>            coord;
+    vec_t                   coord;
     bool                    inside = true;
     std::array<Quadrant, N> quadrant;
     size_t                  which_plane;
@@ -133,12 +138,9 @@ struct boundingbox : ray_intersectable<Real, N> {
 
     // Ray origin inside bounding box
     if (inside) {
-      return intersection<Real, N>{this,
-                                   r,
-                                   Real(0),
-                                   r.origin(),
-                                   vec<Real, N>::zeros(),
-                                   vec<Real, N - 1>::zeros()};
+      return intersection<Real, N>{this,           r,
+                                   Real(0),        r.origin(),
+                                   vec_t::zeros(), vec<Real, N - 1>::zeros()};
     }
 
     // Calculate T distances to candidate planes
@@ -173,7 +175,7 @@ struct boundingbox : ray_intersectable<Real, N> {
                                  r,
                                  max_t[which_plane],
                                  coord,
-                                 vec<Real, N>::zeros(),
+                                 vec_t::zeros(),
                                  vec<Real, N - 1>::zeros()};
   }
 };
@@ -181,7 +183,7 @@ struct boundingbox : ray_intersectable<Real, N> {
 // deduction guides
 //==============================================================================
 template <typename Real0, typename Real1, size_t N>
-boundingbox(const vec<Real0, N>&, const vec<Real1, N>&)
+boundingbox(vec<Real0, N> const&, vec<Real1, N> const&)
     -> boundingbox<promote_t<Real0, Real1>, N>;
 //------------------------------------------------------------------------------
 template <typename Real0, typename Real1, size_t N>
@@ -197,14 +199,18 @@ boundingbox(base_tensor<Tensor0, Real0, N>&&, base_tensor<Tensor1, Real1, N> &&)
 // ostream output
 //==============================================================================
 template <typename Real, size_t N>
-auto operator<<(std::ostream& out, const boundingbox<Real, N>& bb)
+auto operator<<(std::ostream& out, boundingbox<Real, N> const& bb)
     -> std::ostream& {
   out << std::scientific;
   for (size_t i = 0; i < N; ++i) {
     out << "[ ";
-    if (bb.min(i) >= 0) { out << ' '; }
+    if (bb.min(i) >= 0) {
+      out << ' ';
+    }
     out << bb.min(i) << " .. ";
-    if (bb.max(i) >= 0) { out << ' '; }
+    if (bb.max(i) >= 0) {
+      out << ' ';
+    }
     out << bb.max(i) << " ]\n";
   }
   out << std::defaultfloat;
