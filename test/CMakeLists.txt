@@ -37,9 +37,12 @@ macro(create_test NAME)
   if("${CMAKE_CXX_COMPILER_ID}" STREQUAL "GNU" OR
      "${CMAKE_CXX_COMPILER_ID}" STREQUAL "Clang")
     if(CMAKE_BUILD_TYPE STREQUAL "Debug")
-      add_custom_target (${NAME}.test.valgrind
-                         COMMAND valgrind --log-file="${NAME}.test.valgrind" --tool=memcheck --leak-check=yes --show-reachable=yes --track-fds=yes ./${NAME}.test
-                         DEPENDS ${NAME}.test)
+      add_custom_target(${NAME}.test.valgrind
+                        COMMAND valgrind --log-file="${NAME}.test.valgrind" --tool=memcheck --leak-check=yes --show-reachable=yes --track-fds=yes ./${NAME}.test
+                        DEPENDS ${NAME}.test)
+      add_custom_target(${NAME}.test.debug
+                        COMMAND cgdb ./${NAME}.test
+                        DEPENDS ${NAME}.test)
     endif()
   endif()
   add_custom_target (${NAME}.test.callgrind

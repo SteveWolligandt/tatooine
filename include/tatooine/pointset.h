@@ -43,12 +43,12 @@ struct pointset {
       : boost::iterator_facade<vertex_iterator, vertex_index,
                                boost::bidirectional_traversal_tag,
                                vertex_index> {
-    vertex_iterator(vertex_index _v, const pointset* _ps) : v{_v}, ps{_ps} {}
-    vertex_iterator(const vertex_iterator& other) : v{other.v}, ps{other.ps} {}
+    vertex_iterator(vertex_index _v, pointset const* _ps) : v{_v}, ps{_ps} {}
+    vertex_iterator(vertex_iterator const& other) : v{other.v}, ps{other.ps} {}
 
    private:
     vertex_index    v;
-    const pointset* ps;
+    pointset const* ps;
 
     friend class boost::iterator_core_access;
 
@@ -63,7 +63,7 @@ struct pointset {
       while (!ps->is_valid(v));
     }
 
-    auto equal(const vertex_iterator& other) const { return v == other.v; }
+    auto equal(vertex_iterator const& other) const { return v == other.v; }
     auto dereference() const { return v; }
   };
   //----------------------------------------------------------------------------
@@ -71,7 +71,7 @@ struct pointset {
     using iterator       = vertex_iterator;
     using const_iterator = vertex_iterator;
     //==========================================================================
-    const pointset* m_pointset;
+    pointset const* m_pointset;
     //==========================================================================
     auto begin() const {
       vertex_iterator vi{vertex_index{0}, m_pointset};
@@ -91,8 +91,8 @@ struct pointset {
       std::map<std::string, std::unique_ptr<vector_property<vertex_index>>>;
   //============================================================================
  private:
-  std::vector<pos_t>        m_vertices;
-  std::vector<vertex_index> m_invalid_vertices;
+  std::vector<pos_t>          m_vertices;
+  std::vector<vertex_index>   m_invalid_vertices;
   vertex_property_container_t m_vertex_properties;
   //============================================================================
  public:
@@ -108,18 +108,19 @@ struct pointset {
   //   }
   // #endif
 
-  // template <size_t _N = N, typename = std::enable_if_t<_N == 3>>
+  // template <typename = void>
+  // requires (N == 3)
   // pointset(const tetgenio& io) {
   //   for (int i = 0; i < io.numberofpoints; ++i)
   //     insert_vertex(io.pointlist[i * 3], io.pointlist[i * 3 + 1],
   //                   io.pointlist[i * 3 + 2]);
   // }
   //----------------------------------------------------------------------------
-  pointset(const pointset& other)
+  pointset(pointset const& other)
       : m_vertices(other.m_vertices),
         m_invalid_vertices(other.m_invalid_vertices) {
     m_vertex_properties.clear();
-    for (const auto& [name, prop] : other.m_vertex_properties)
+    for (auto const& [name, prop] : other.m_vertex_properties)
       m_vertex_properties.insert(std::pair{name, prop->clone()});
   }
   //----------------------------------------------------------------------------
@@ -128,11 +129,11 @@ struct pointset {
         m_invalid_vertices(std::move(other.m_invalid_vertices)),
         m_vertex_properties(std::move(other.m_vertex_properties)) {}
   //----------------------------------------------------------------------------
-  auto operator=(const pointset& other) -> pointset& {
+  auto operator=(pointset const& other) -> pointset& {
     m_vertex_properties.clear();
     m_vertices         = other.m_vertices;
     m_invalid_vertices = other.m_invalid_vertices;
-    for (const auto& [name, prop] : other.m_vertex_properties){
+    for (auto const& [name, prop] : other.m_vertex_properties) {
       m_vertex_properties.emplace(name, prop->clone());
     }
     return *this;
@@ -140,48 +141,64 @@ struct pointset {
   //----------------------------------------------------------------------------
   auto operator=(pointset&& other) noexcept -> pointset& = default;
   //----------------------------------------------------------------------------
-  const auto& vertex_properties() const { return m_vertex_properties; }
+  auto vertex_properties() const -> auto const& { return m_vertex_properties; }
   //----------------------------------------------------------------------------
-  auto&       at(vertex_index v) { return m_vertices[v.i]; }
-  const auto& at(vertex_index v) const { return m_vertices[v.i]; }
+  auto at(vertex_index const v) -> auto& { return m_vertices[v.i]; }
+  auto at(vertex_index const v) const -> auto const& { return m_vertices[v.i]; }
   //----------------------------------------------------------------------------
-  auto&       operator[](vertex_index v) { return at(v); }
-  const auto& operator[](vertex_index v) const { return at(v); }
+  auto vertex_at(vertex_index const v) -> auto& { return m_vertices[v.i]; }
+  auto vertex_at(vertex_index const v) const -> auto const& {
+    return m_vertices[v.i];
+  }
+  //----------------------------------------------------------------------------
+  auto vertex_at(size_t const i) -> auto& { return m_vertices[i]; }
+  auto vertex_at(size_t const i) const -> auto const& { return m_vertices[i]; }
+  //----------------------------------------------------------------------------
+  auto operator[](vertex_index const v) -> auto& { return at(v); }
+  auto operator[](vertex_index const v) const -> auto const& { return at(v); }
   //----------------------------------------------------------------------------
   auto vertices() const { return vertex_container{this}; }
   //----------------------------------------------------------------------------
-  auto&       points() { return m_vertices; }
-  const auto& points() const { return m_vertices; }
+  auto vertex_data() -> auto& { return m_vertices; }
+  auto vertex_data() const -> auto const& { return m_vertices; }
   //----------------------------------------------------------------------------
-  template <typename... Ts, enable_if_arithmetic<Ts...> = true,
-            std::enable_if_t<sizeof...(Ts) == N, bool> = true>
-  auto insert_vertex(Ts... ts) {
-    points().push_back(pos_t{static_cast<Real>(std::forward<Ts>(ts))...});
-    for (auto& [key, prop] : m_vertex_properties) { prop->push_back(); }
-    return vertex_index{m_vertices.size() - 1};
+  template <real_number... Ts>
+  requires(sizeof...(Ts) == N)
+  auto insert_vertex(Ts const... ts) {
+    m_vertices.push_back(pos_t{static_cast<Real>(ts)...});
+    for (auto& [key, prop] : m_vertex_properties) {
+      prop->push_back();
+    }
+    return vertex_index{size(m_vertices) - 1};
   }
   //----------------------------------------------------------------------------
-  auto insert_vertex(const pos_t& v) {
-    points().push_back(v);
-    for (auto& [key, prop] : m_vertex_properties) { prop->push_back(); }
-    return vertex_index{m_vertices.size() - 1};
+  auto insert_vertex(pos_t const& v) {
+    m_vertices.push_back(v);
+    for (auto& [key, prop] : m_vertex_properties) {
+      prop->push_back();
+    }
+    return vertex_index{size(m_vertices) - 1};
   }
   //----------------------------------------------------------------------------
   auto insert_vertex(pos_t&& v) {
-    points().emplace_back(std::move(v));
-    for (auto& [key, prop] : m_vertex_properties) { prop->push_back(); }
-    return vertex_index{m_vertices.size() - 1};
+    m_vertices.emplace_back(std::move(v));
+    for (auto& [key, prop] : m_vertex_properties) {
+      prop->push_back();
+    }
+    return vertex_index{size(m_vertices) - 1};
   }
   //----------------------------------------------------------------------------
-  //! tidies up invalid vertices
+  /// tidies up invalid vertices
   void tidy_up() {
-    for (const auto v : m_invalid_vertices) {
+    for (auto const v : m_invalid_vertices) {
       // decrease deleted vertex indices;
       for (auto& v_to_decrease : m_invalid_vertices)
         if (v_to_decrease.i > v.i) --v_to_decrease.i;
 
       m_vertices.erase(m_vertices.begin() + v.i);
-      for (const auto& [key, prop] : m_vertex_properties) { prop->erase(v.i); }
+      for (auto const& [key, prop] : m_vertex_properties) {
+        prop->erase(v.i);
+      }
     }
     m_invalid_vertices.clear();
   }
@@ -193,30 +210,31 @@ struct pointset {
   }
 
   //----------------------------------------------------------------------------
-  constexpr bool is_valid(vertex_index v) const {
+  constexpr auto is_valid(vertex_index v) const -> bool {
     return boost::find(m_invalid_vertices, v) == m_invalid_vertices.end();
   }
 
   //----------------------------------------------------------------------------
-  void clear_vertices() {
+  auto clear_vertices() {
     m_vertices.clear();
     m_vertices.shrink_to_fit();
     m_invalid_vertices.clear();
     m_invalid_vertices.shrink_to_fit();
-    for (auto& [key, val] : m_vertex_properties) val->clear();
+    for (auto& [key, val] : m_vertex_properties)
+      val->clear();
   }
-  void clear() { clear_vertices(); }
+  auto clear() { clear_vertices(); }
 
   //----------------------------------------------------------------------------
   auto num_vertices() const {
     return m_vertices.size() - m_invalid_vertices.size();
   }
-
   //----------------------------------------------------------------------------
-  auto join(const this_t& other) {
-    for (auto v : other.vertices()) { insert_vertex(other[v]); }
-  };
-
+  auto join(this_t const& other) {
+    for (auto v : other.vertices()) {
+      insert_vertex(other[v]);
+    }
+  }
   //----------------------------------------------------------------------------
   auto find_duplicates(Real eps = 1e-6) {
     std::vector<std::pair<vertex_index, vertex_index>> duplicates;
@@ -227,43 +245,45 @@ struct pointset {
     return duplicates;
   }
 
-#ifdef USE_TRIANGLE
+  //#ifdef USE_TRIANGLE
+  //  //----------------------------------------------------------------------------
+  //  template <typename = void>
+  //  requires (N == triangle_dims>>
+  //  auto to_triangle_io() const {
+  //    triangle::io in;
+  //    size_t       i    = 0;
+  //    in.numberofpoints = num_vertices();
+  //    in.pointlist      = new triangle::Real[in.numberofpoints *
+  //    triangle_dims]; for (auto v : vertices()) {
+  //      for (size_t j = 0; j < triangle_dims; ++j) {
+  //        in.pointlist[i++] = at(v)(j);
+  //      }
+  //    }
+  //
+  //    return in;
+  //  }
+  //
+  //  //----------------------------------------------------------------------------
+  //  template <typename vertex_cont_t>
+  //  requires (N == triangle_dims)
+  //  auto to_triangle_io(vertex_cont_t const& vertices) const {
+  //    triangle::io in;
+  //    size_t       i    = 0;
+  //    in.numberofpoints = num_vertices();
+  //    in.pointlist      = new triangle::Real[in.numberofpoints *
+  //    triangle_dims]; for (auto v : vertices()) {
+  //      for (size_t j = 0; j < triangle_dims; ++j) {
+  //        in.pointlist[i++] = at(v)(j);
+  //      }
+  //    }
+  //
+  //    return in;
+  //  }
+  //#endif
+
   //----------------------------------------------------------------------------
-  template <size_t _N = N, typename = std::enable_if_t<_N == triangle_dims>>
-  auto to_triangle_io() const {
-    triangle::io in;
-    size_t       i    = 0;
-    in.numberofpoints = num_vertices();
-    in.pointlist      = new triangle::Real[in.numberofpoints * triangle_dims];
-    for (auto v : vertices()) {
-      for (size_t j = 0; j < triangle_dims; ++j) {
-        in.pointlist[i++] = at(v)(j);
-      }
-    }
-
-    return in;
-  }
-
-  //----------------------------------------------------------------------------
-  template <typename vertex_cont_t, size_t _N = N,
-            typename = std::enable_if_t<_N == triangle_dims>>
-  auto to_triangle_io(const vertex_cont_t& vertices) const {
-    triangle::io in;
-    size_t       i    = 0;
-    in.numberofpoints = num_vertices();
-    in.pointlist      = new triangle::Real[in.numberofpoints * triangle_dims];
-    for (auto v : vertices()) {
-      for (size_t j = 0; j < triangle_dims; ++j) {
-        in.pointlist[i++] = at(v)(j);
-      }
-    }
-
-    return in;
-  }
-#endif
-
-  //----------------------------------------------------------------------------
-  // template <size_t _N = N, typename = std::enable_if_t<_N == tetgen_dims>>
+  // template <typename = void>
+  // requires (N == tetgen_dims)
   // void to_tetgen_io(tetgenio& in) const {
   //   size_t i           = 0;
   //   in.numberofpoints  = num_vertices();
@@ -283,15 +303,15 @@ struct pointset {
   // }
 
   //----------------------------------------------------------------------------
-  //! using specified vertices of point_set
+  /// using specified vertices of point_set
   // template <typename vertex_cont_t>
-  // auto to_tetgen_io(const vertex_cont_t& vertices) const {
+  // auto to_tetgen_io(vertex_cont_t const& vertices) const {
   //   tetgenio io;
   //   size_t       i    = 0;
   //   io.numberofpoints = vertices.size();
   //   io.pointlist      = new tetgen_real_t[io.numberofpoints * 3];
   //   for (auto v : vertices) {
-  //     const auto& x       = at(v);
+  //     auto const& x       = at(v);
   //     io.pointlist[i]     = x(0);
   //     io.pointlist[i + 1] = x(1);
   //     io.pointlist[i + 2] = x(2);
@@ -302,20 +322,21 @@ struct pointset {
   // }
   //----------------------------------------------------------------------------
   template <typename T>
-  auto& vertex_property(const std::string& name) {
+  auto vertex_property(std::string const& name) -> auto& {
     auto prop        = m_vertex_properties.at(name).get();
     auto casted_prop = dynamic_cast<vertex_property_t<T>*>(prop);
     return *casted_prop;
   }
   //----------------------------------------------------------------------------
   template <typename T>
-  const auto& vertex_property(const std::string& name) const {
+  auto vertex_property(std::string const& name) const -> const auto& {
     return *dynamic_cast<vertex_property_t<T>*>(
         m_vertex_properties.at(name).get());
   }
   //----------------------------------------------------------------------------
   template <typename T>
-  auto& add_vertex_property(const std::string& name, const T& value = T{}) {
+  auto add_vertex_property(std::string const& name, T const& value = T{})
+      -> auto& {
     auto [it, suc] = m_vertex_properties.insert(
         std::pair{name, std::make_unique<vertex_property_t<T>>(value)});
     auto prop = dynamic_cast<vertex_property_t<T>*>(it->second.get());
@@ -323,64 +344,66 @@ struct pointset {
     return *prop;
   }
   //----------------------------------------------------------------------------
-  template <typename = std::enable_if_t<N == 3 || N == 2>>
-  void write_vtk(const std::string& path,
-                 const std::string& title = "Tatooine pointset") {
+  template <typename = void>
+  requires(N == 3 || N == 2) auto write_vtk(
+      std::string const& path, std::string const& title = "Tatooine pointset") {
     vtk::legacy_file_writer writer(path, vtk::POLYDATA);
     if (writer.is_open()) {
       writer.set_title(title);
       writer.write_header();
       std::vector<std::array<Real, 3>> points;
       points.reserve(m_vertices.size());
-      for (const auto& p : m_vertices)
-        if constexpr (N == 3)
+      for (auto const& p : m_vertices) {
+        if constexpr (N == 3) {
           points.push_back({p(0), p(1), p(2)});
-        else
+        } else {
           points.push_back({p(0), p(1), 0});
-      writer.write_points(points);
-      writer.write_point_data(m_vertices.size());
-      for (const auto& [name, prop] : m_vertex_properties) {
-        std::vector<std::vector<Real>> data;
-        data.reserve(m_vertices.size());
-
-        if (prop->type() == typeid(vec<Real, 4>)) {
-          for (const auto& v4 :
-               *dynamic_cast<const vertex_property_t<vec<Real, 4>>*>(
-                   prop.get()))
-            data.push_back({v4(0), v4(1), v4(2), v4(3)});
-
-        } else if (prop->type() == typeid(vec<Real, 3>)) {
-          for (const auto& v3 :
-               *dynamic_cast<const vertex_property_t<vec<Real, 3>>*>(
-                   prop.get()))
-            data.push_back({v3(0), v3(1), v3(2)});
-
-        } else if (prop->type() == typeid(vec<Real, 2>)) {
-          for (const auto& v2 :
-               *dynamic_cast<const vertex_property_t<vec<Real, 2>>*>(
-                   prop.get()))
-            data.push_back({v2(0), v2(1)});
-
-        } else if (prop->type() == typeid(Real)) {
-          for (const auto& scalar :
-               *dynamic_cast<const vertex_property_t<Real>*>(prop.get()))
-            data.push_back({scalar});
         }
+        writer.write_points(points);
+        writer.write_point_data(m_vertices.size());
+        for (auto const& [name, prop] : m_vertex_properties) {
+          std::vector<std::vector<Real>> data;
+          data.reserve(m_vertices.size());
 
-        writer.write_scalars(name, data);
+          if (prop->type() == typeid(vec<Real, 4>)) {
+            for (auto const& v4 :
+                 *dynamic_cast<vertex_property_t<vec<Real, 4>> const*>(
+                     prop.get())) {
+              data.push_back({v4(0), v4(1), v4(2), v4(3)});
+            }
+          } else if (prop->type() == typeid(vec<Real, 3>)) {
+            for (auto const& v3 :
+                 *dynamic_cast<vertex_property_t<vec<Real, 3>> const*>(
+                     prop.get())) {
+              data.push_back({v3(0), v3(1), v3(2)});
+            }
+          } else if (prop->type() == typeid(vec<Real, 2>)) {
+            for (auto const& v2 :
+                 *dynamic_cast<vertex_property_t<vec<Real, 2>> const*>(
+                     prop.get())) {
+              data.push_back({v2(0), v2(1)});
+            }
+          } else if (prop->type() == typeid(Real)) {
+            for (auto const& scalar :
+                 *dynamic_cast<vertex_property_t<Real> const*>(prop.get())) {
+              data.push_back({scalar});
+            }
+          }
+          writer.write_scalars(name, data);
+        }
+        writer.close();
       }
-      writer.close();
     }
   }
 };
 //------------------------------------------------------------------------------
 template <typename Real, size_t N>
-auto begin(const typename pointset<Real, N>::vertex_container& verts) {
+auto begin(typename pointset<Real, N>::vertex_container const& verts) {
   return verts.begin();
 }
 //------------------------------------------------------------------------------
 template <typename Real, size_t N>
-auto end(const typename pointset<Real, N>::vertex_container& verts) {
+auto end(typename pointset<Real, N>::vertex_container const& verts) {
   return verts.end();
 }
 //==============================================================================

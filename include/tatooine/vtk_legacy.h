@@ -1,6 +1,6 @@
 #ifndef TATOOINE_VTK_LEGACY_H
 #define TATOOINE_VTK_LEGACY_H
-
+//==============================================================================
 #include <tatooine/concepts.h>
 
 #include <cassert>
@@ -14,15 +14,13 @@
 #include <sstream>
 #include <vector>
 
-#include "string_conversion.h"
-#include "swap_endianess.h"
-#include "tensor.h"
-#include "type_to_str.h"
-#include "type_traits.h"
-
+#include <tatooine/string_conversion.h>
+#include <tatooine/swap_endianess.h>
+#include <tatooine/tensor.h>
+#include <tatooine/type_to_str.h>
+#include <tatooine/type_traits.h>
 //=============================================================================
-namespace tatooine {
-namespace vtk {
+namespace tatooine::vtk {
 //=============================================================================
 /// reads until terminator_char was found. buffer will containg the
 /// terminator_char
@@ -1418,8 +1416,6 @@ void legacy_file_writer::write_scalars(
     }
 }
 //=============================================================================
-}  // namespace vtk
 }  // namespace tatooine
 //=============================================================================
-
 #endif

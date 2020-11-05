@@ -77,9 +77,14 @@ struct axis_aligned_bounding_box : ray_intersectable<Real, N> {
   //----------------------------------------------------------------------------
   template <typename = void>
   requires(N == 2)
-  constexpr auto is_triangle_inside(vec<Real, 2> const& x0,
-                                    vec<Real, 2> const& x1,
-                                    vec<Real, 2> const& x2) const {
+  constexpr auto is_triangle_inside(vec<Real, 2> x0,
+                                    vec<Real, 2> x1,
+                                    vec<Real, 2> x2) const {
+    //auto const c = center();
+    //auto const e = extents();
+    //x0 -= c;
+    //x1 -= c;
+    //x2 -= c;
     auto is_separating_axis = [&](vec<Real, 2> const& n) {
       auto const p0   = dot(vec_t{m_min(0), m_min(1)}, n);
       auto const p1   = dot(vec_t{m_min(0), m_max(1)}, n);
