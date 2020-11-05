@@ -24,13 +24,14 @@ struct quadtree : aabb<Real, 2> {
   std::vector<size_t>                      m_vertex_indices;
   std::vector<size_t>                      m_triangle_indices;
   std::array<std::unique_ptr<quadtree>, 4> m_children;
+  static constexpr size_t                  default_max_depth = 10;
 
  public:
   quadtree(vec_t const& min, vec_t const& max,
-           size_t const max_depth = 10)
+           size_t const max_depth = default_max_depth)
       : parent_t{min, max}, m_level{0}, m_max_depth{max_depth} {}
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-  explicit quadtree(size_t const max_depth = 10)
+  explicit quadtree(size_t const max_depth = default_max_depth)
       : m_level{0}, m_max_depth{max_depth} {}
   virtual ~quadtree() = default;
 
@@ -54,14 +55,8 @@ struct quadtree : aabb<Real, 2> {
       if (is_at_max_depth()) {
         m_vertex_indices.push_back(vertex_idx);
       } else {
-        create_children(); // children cannot be created up to this point
-        distribute_vertex(mesh, m_vertex_indices.front());
+        split_and_distribute(mesh);
         distribute_vertex(mesh, vertex_idx);
-        m_vertex_indices.clear();
-        if (!m_triangle_indices.empty()) {
-          distribute_triangle(mesh, m_triangle_indices.front());
-          m_triangle_indices.clear();
-        }
       }
     } else {
       if (is_splitted()) {
@@ -84,14 +79,8 @@ struct quadtree : aabb<Real, 2> {
       if (is_at_max_depth()) {
         m_triangle_indices.push_back(triangle_idx);
       } else {
-        create_children(); // children cannot be created up to this point
-        distribute_triangle(mesh, m_triangle_indices.front());
+        split_and_distribute(mesh);
         distribute_triangle(mesh, triangle_idx);
-        m_triangle_indices.clear();
-        if (!m_vertex_indices.empty()) {
-          distribute_vertex(mesh, m_vertex_indices.front());
-          m_vertex_indices.clear();
-        }
       }
     } else {
       if (is_splitted()) {
@@ -188,6 +177,19 @@ struct quadtree : aabb<Real, 2> {
   auto distribute_triangle(Mesh const& mesh, size_t const triangle_idx) {
     for (auto& child : m_children) {
       child->insert_triangle(mesh, triangle_idx);
+    }
+  }
+  //----------------------------------------------------------------------------
+  template <typename Mesh>
+  auto split_and_distribute(Mesh const& mesh) {
+    create_children();
+    if (!m_vertex_indices.empty()) {
+      distribute_vertex(mesh, m_vertex_indices.front());
+      m_vertex_indices.clear();
+    }
+    if (!m_triangle_indices.empty()) {
+      distribute_triangle(mesh, m_triangle_indices.front());
+      m_triangle_indices.clear();
     }
   }
 };

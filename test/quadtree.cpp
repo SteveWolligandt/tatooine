@@ -59,6 +59,12 @@ TEST_CASE("quadtree", "[quadtree]") {
   REQUIRE(qt.bottom_left()->bottom_right()->num_triangle_indices() == 1);
   REQUIRE(qt.bottom_left()->top_left()->num_triangle_indices() == 1);
   REQUIRE(qt.bottom_left()->top_right()->num_triangle_indices() == 1);
+  REQUIRE_FALSE(qt.bottom_right()->is_splitted());
+  REQUIRE_FALSE(qt.top_right()->is_splitted());
+  REQUIRE_FALSE(qt.top_left()->is_splitted());
+  REQUIRE_FALSE(qt.bottom_right()->holds_triangles());
+  REQUIRE_FALSE(qt.top_right()->holds_triangles());
+  REQUIRE_FALSE(qt.top_left()->holds_triangles());
 
 }
 //==============================================================================
