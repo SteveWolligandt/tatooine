@@ -18,7 +18,7 @@ class triangular_mesh : public pointset<Real, N> {
   using this_t   = triangular_mesh<Real, N>;
   using parent_t = pointset<Real, N>;
   using parent_t::at;
-  using parent_t::points;
+  using parent_t::vertex_data;
   using parent_t::num_vertices;
   using parent_t::vertex_properties;
   using typename parent_t::vertex_index;
@@ -132,32 +132,38 @@ class triangular_mesh : public pointset<Real, N> {
   //----------------------------------------------------------------------------
   triangular_mesh(std::filesystem::path const& file) { read(file); }
   //============================================================================
-  auto operator[](triangle_index t) const { return at(t); }
-  auto operator[](triangle_index t) { return at(t); }
+  auto operator[](triangle_index const t) const { return triangle_at(t.i); }
+  auto operator[](triangle_index const t) { return triangle_at(t.i); }
   //----------------------------------------------------------------------------
-  auto at(triangle_index t) const {
-    return std::tuple<size_t const&, size_t const&, size_t const&>{
-        t.i * 3, t.i * 3 + 1, t.i * 3 + 2};
+  auto at(triangle_index t) const { return triangle_at(t.i); }
+  auto at(triangle_index t) { return triangle_at(t.i); }
+  //----------------------------------------------------------------------------
+  auto triangle_at(triangle_index const t) const { return triangle_at(t.i); }
+  auto triangle_at(triangle_index const t) { return triangle_at(t.i); }
+  //----------------------------------------------------------------------------
+  auto triangle_at(size_t const i) const
+      -> std::tuple<vertex_index const&, vertex_index const&, vertex_index const&> {
+    return {m_triangle_indices[i * 3],
+            m_triangle_indices[i * 3 + 1],
+            m_triangle_indices[i * 3 + 2]};
   }
-  auto at(triangle_index t)  { 
-    return std::tuple<size_t&, size_t&, size_t&>{t.i * 3, t.i * 3 + 1,
-                                                 t.i * 3 + 2};
+  auto triangle_at(size_t const i)
+      -> std::tuple<vertex_index&, vertex_index&, vertex_index&> {
+    return {m_triangle_indices[i * 3],
+            m_triangle_indices[i * 3 + 1],
+            m_triangle_indices[i * 3 + 2]};
   }
   //----------------------------------------------------------------------------
   auto insert_triangle(vertex_index v0, vertex_index v1, vertex_index v2) {
-    m_triangle_indices.push_back(v0.i);
-    m_triangle_indices.push_back(v1.i);
-    m_triangle_indices.push_back(v2.i);
+    m_triangle_indices.push_back(v0);
+    m_triangle_indices.push_back(v1);
+    m_triangle_indices.push_back(v2);
     for (auto& [key, prop] : m_triangle_properties) { prop->push_back(); }
+    return triangle_index{size(m_triangle_indices) / 3 - 1};
   }
   //----------------------------------------------------------------------------
   auto insert_triangle(size_t v0, size_t v1, size_t v2) {
-    insert_triangle(vertex_index{v0}, vertex_index{v1}, vertex_index{v2});
-  }
-  //----------------------------------------------------------------------------
-  auto insert_triangle(std::array<vertex_index, 3> const& t) {
-    m_triangle_indices.push_back(t);
-    for (auto& [key, prop] : m_triangle_properties) { prop->push_back(); }
+    return insert_triangle(vertex_index{v0}, vertex_index{v1}, vertex_index{v2});
   }
   //----------------------------------------------------------------------------
   auto clear() {
@@ -172,7 +178,7 @@ class triangular_mesh : public pointset<Real, N> {
   template <typename = void>
   requires (N == 2)
   auto triangulate_delaunay() {
-    delaunator::Delaunator d{this->points()};
+    delaunator::Delaunator d{vertex_data()};
     set_triangle_indices(std::move(d.triangles));
   }
   //----------------------------------------------------------------------------
@@ -202,11 +208,11 @@ class triangular_mesh : public pointset<Real, N> {
         };
         std::vector<vec<Real, 3>> v3s(num_vertices());
         auto                      three_dimensional = transformed(three_dims);
-        copy(points() | three_dimensional, begin(v3s));
+        copy(vertex_data() | three_dimensional, begin(v3s));
         writer.write_points(v3s);
 
       } else if constexpr (N == 3) {
-        writer.write_points(points());
+        writer.write_points(vertex_data());
       }
 
       std::vector<std::vector<size_t>> polygons;
@@ -273,7 +279,7 @@ class triangular_mesh : public pointset<Real, N> {
           auto const& size = ps[i++];
           if (size == 4) {
             mesh.insert_triangle(size_t(ps[i]), size_t(ps[i + 1]),
-                                    size_t(ps[i + 2]), size_t(ps[i + 2]));
+                                 size_t(ps[i + 2]), size_t(ps[i + 2]));
           }
           i += size;
         }

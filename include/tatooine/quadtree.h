@@ -22,6 +22,7 @@ struct quadtree : aabb<Real, 2> {
   size_t                                   m_level;
   size_t                                   m_max_depth;
   std::vector<size_t>                      m_vertex_indices;
+  std::vector<size_t>                      m_triangle_indices;
   std::array<std::unique_ptr<quadtree>, 4> m_children;
 
  public:
@@ -42,44 +43,70 @@ struct quadtree : aabb<Real, 2> {
 
  public:
   auto num_vertex_indices() const { return size(m_vertex_indices); }
+  auto num_triangle_indices() const { return size(m_triangle_indices); }
   //------------------------------------------------------------------------------
-  template <typename PointSet>
-  auto insert_vertex(PointSet const& ps, size_t const vertex_idx) -> bool {
-    if (!is_inside(ps.vertex_at(vertex_idx))) {
+  template <typename Mesh>
+  auto insert_vertex(Mesh const& mesh, size_t const vertex_idx) -> bool {
+    if (!is_inside(mesh.vertex_at(vertex_idx))) {
       return false;
     }
-    if (m_vertex_indices.empty()) {
-      if (bottom_left() == nullptr) {
+    if (holds_vertices()) {
+      if (is_at_max_depth()) {
         m_vertex_indices.push_back(vertex_idx);
       } else {
-        // distribute
-        bottom_left()->insert_vertex(ps, vertex_idx);
-        bottom_right()->insert_vertex(ps, vertex_idx);
-        top_left()->insert_vertex(ps, vertex_idx);
-        top_right()->insert_vertex(ps, vertex_idx);
+        create_children(); // children cannot be created up to this point
+        distribute_vertex(mesh, m_vertex_indices.front());
+        distribute_vertex(mesh, vertex_idx);
+        m_vertex_indices.clear();
+        if (!m_triangle_indices.empty()) {
+          distribute_triangle(mesh, m_triangle_indices.front());
+          m_triangle_indices.clear();
+        }
       }
     } else {
-      if (m_level < m_max_depth) {
-        create_bottom_left();
-        create_bottom_right();
-        create_top_left();
-        create_top_right();
-        // distribute
-        bottom_left()->insert_vertex(ps, vertex_idx);
-        bottom_left()->insert_vertex(ps, m_vertex_indices.front());
-        bottom_right()->insert_vertex(ps, vertex_idx);
-        bottom_right()->insert_vertex(ps, m_vertex_indices.front());
-        top_left()->insert_vertex(ps, vertex_idx);
-        top_left()->insert_vertex(ps, m_vertex_indices.front());
-        top_right()->insert_vertex(ps, vertex_idx);
-        top_right()->insert_vertex(ps, m_vertex_indices.front());
-        m_vertex_indices.clear();
+      if (is_splitted()) {
+        distribute_vertex(mesh, vertex_idx);
       } else {
         m_vertex_indices.push_back(vertex_idx);
       }
     }
     return true;
   }
+  //------------------------------------------------------------------------------
+  template <typename TriangularMesh>
+  auto insert_triangle(TriangularMesh const& mesh, size_t const triangle_idx)
+      -> bool {
+    auto [vi0, vi1, vi2] = mesh.triangle_at(triangle_idx);
+    if (!is_triangle_inside(mesh[vi0], mesh[vi1], mesh[vi2])) {
+      return false;
+    }
+    if (holds_triangles()) {
+      if (is_at_max_depth()) {
+        m_triangle_indices.push_back(triangle_idx);
+      } else {
+        create_children(); // children cannot be created up to this point
+        distribute_triangle(mesh, m_triangle_indices.front());
+        distribute_triangle(mesh, triangle_idx);
+        m_triangle_indices.clear();
+        if (!m_vertex_indices.empty()) {
+          distribute_vertex(mesh, m_vertex_indices.front());
+          m_vertex_indices.clear();
+        }
+      }
+    } else {
+      if (is_splitted()) {
+        distribute_triangle(mesh, triangle_idx);
+      } else {
+        m_triangle_indices.push_back(triangle_idx);
+      }
+    }
+    return true;
+  }
+  //----------------------------------------------------------------------------
+  constexpr auto is_splitted() const { return m_children.front() != nullptr; }
+  constexpr auto holds_vertices() const { return !m_vertex_indices.empty(); }
+  constexpr auto holds_triangles() const { return !m_triangle_indices.empty(); }
+  constexpr auto is_at_max_depth() const { return m_level == m_max_depth; }
   //----------------------------------------------------------------------------
   static constexpr auto index(dim0 const d0, dim1 const d1) {
     return static_cast<std::uint8_t>(d0) + static_cast<std::uint8_t>(d1);
@@ -142,6 +169,26 @@ struct quadtree : aabb<Real, 2> {
   auto create_top_right() {
     top_right() = std::unique_ptr<this_t>(
         new this_t{center(), max(), m_level + 1, m_max_depth});
+  }
+  auto create_children() {
+    create_bottom_left();
+    create_bottom_right();
+    create_top_left();
+    create_top_right();
+  }
+  //----------------------------------------------------------------------------
+  template <typename Mesh>
+  auto distribute_vertex(Mesh const& mesh, size_t const vertex_idx) {
+    for (auto& child : m_children) {
+      child->insert_vertex(mesh, vertex_idx);
+    }
+  }
+  //----------------------------------------------------------------------------
+  template <typename Mesh>
+  auto distribute_triangle(Mesh const& mesh, size_t const triangle_idx) {
+    for (auto& child : m_children) {
+      child->insert_triangle(mesh, triangle_idx);
+    }
   }
 };
 //==============================================================================
