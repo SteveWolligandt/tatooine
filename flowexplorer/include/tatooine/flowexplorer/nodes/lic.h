@@ -1,7 +1,7 @@
 #ifndef TATOOINE_FLOWEXPLORER_NODES_LIC_H
 #define TATOOINE_FLOWEXPLORER_NODES_LIC_H
 //==============================================================================
-#include <tatooine/flowexplorer/nodes/boundingbox.h>
+#include <tatooine/flowexplorer/nodes/axis_aligned_bounding_box.h>
 #include <tatooine/flowexplorer/renderable.h>
 #include <tatooine/gpu/lic.h>
 #include <tatooine/gpu/texture_shader.h>
@@ -18,7 +18,7 @@ struct lic : renderable<lic> {
   // typedefs
   //----------------------------------------------------------------------------
   using vectorfield_t = parent::vectorfield<double, 2>;
-  using bb_t          = flowexplorer::nodes::boundingbox<2>;
+  using bb_t          = flowexplorer::nodes::axis_aligned_bounding_box<2>;
 
   //----------------------------------------------------------------------------
   // attributes

@@ -244,6 +244,17 @@ class variable {
     return arr;
   }
   //----------------------------------------------------------------------------
+  auto read_chunk(std::vector<size_t> start_indices, std::vector<size_t> counts,
+                  T* ptr) const {
+    assert(start_indices.size() == counts.size());
+    assert(start_indices.size() == num_dimensions());
+
+    //std::reverse(begin(start_indices), end(start_indices));
+    //std::reverse(begin(counts), end(counts));
+    std::lock_guard lock{*m_mutex};
+    m_var.getVar(start_indices, counts, ptr);
+  }
+  //----------------------------------------------------------------------------
   auto read_chunk(std::vector<size_t> const&            start_indices,
                   std::vector<size_t> const&            counts,
                   dynamic_multidim_array<T, x_fastest>& arr) const {

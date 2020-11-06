@@ -19,7 +19,7 @@ struct pin : uuid_holder<ax::NodeEditor::PinId>{
   base::node&           m_node;
   pinkind               m_kind;
   std::type_info const& m_type;
-  link*                 m_link = nullptr;
+  struct link*          m_link = nullptr;
 
  public:
   pin(base::node& n, std::type_info const& type, pinkind kind,

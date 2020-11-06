@@ -1,5 +1,4 @@
 #include <imgui-node-editor/imgui_node_editor.h>
-#include <tatooine/boundingbox.h>
 #include <tatooine/demangling.h>
 #include <tatooine/flowexplorer/scene.h>
 #include <tatooine/flowexplorer/window.h>

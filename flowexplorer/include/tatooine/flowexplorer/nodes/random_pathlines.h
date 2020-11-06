@@ -1,9 +1,8 @@
 #ifndef TATOOINE_FLOWEXPLORER_NODES_RANDOM_PATHLINES_H
 #define TATOOINE_FLOWEXPLORER_NODES_RANDOM_PATHLINES_H
 //==============================================================================
-#include <tatooine/boundingbox.h>
+#include <tatooine/flowexplorer/nodes/axis_aligned_bounding_box.h>
 #include <tatooine/flowexplorer/renderable.h>
-#include <tatooine/flowexplorer/nodes/boundingbox.h>
 #include <tatooine/gpu/line_renderer.h>
 #include <tatooine/gpu/line_shader.h>
 #include <tatooine/ode/vclibs/rungekutta43.h>
@@ -22,7 +21,7 @@ struct random_pathlines : renderable<random_pathlines<N>> {
   //----------------------------------------------------------------------------
 
   vectorfield_t const*              m_v           = nullptr;
-  boundingbox<N>*                   m_boundingbox = nullptr;
+  axis_aligned_bounding_box<N>*     m_boundingbox = nullptr;
   integrator_t                      m_integrator;
   std::unique_ptr<gpu::line_shader> m_shader;
   yavin::indexeddata<vec<float, 3>, vec<float, 3>, float> m_gpu_data;
@@ -72,7 +71,8 @@ struct random_pathlines : renderable<random_pathlines<N>> {
         m_time{0.0f},
         m_speed{1.0f} {
     this->template insert_input_pin<vectorfield_t>("3D Vector Field");
-    this->template insert_input_pin<boundingbox<N>>("Bounding Box");
+    this->template insert_input_pin<axis_aligned_bounding_box<N>>(
+        "Bounding Box");
   }
   //----------------------------------------------------------------------------
   void render(mat<float, 4, 4> const& projection_matrix,
@@ -97,7 +97,7 @@ struct random_pathlines : renderable<random_pathlines<N>> {
     }
   }
   //----------------------------------------------------------------------------
-  auto draw_properties()->bool override {
+  auto draw_properties() -> bool override {
     ImGui::DragInt("number of path lines", &m_num_pathlines, 1, 10, 1000);
     ImGui::DragDouble("backward tau", &m_btau, 0.1, -100, 0);
     ImGui::DragDouble("forward tau", &m_ftau, 0.1, 0, 100);
@@ -185,8 +185,9 @@ struct random_pathlines : renderable<random_pathlines<N>> {
   }
   //----------------------------------------------------------------------------
   void on_pin_connected(ui::pin& this_pin, ui::pin& other_pin) override {
-    if (other_pin.type() == typeid(boundingbox<N>)) {
-      m_boundingbox = dynamic_cast<boundingbox<N>*>(&other_pin.node());
+    if (other_pin.type() == typeid(axis_aligned_bounding_box<N>)) {
+      m_boundingbox =
+          dynamic_cast<axis_aligned_bounding_box<N>*>(&other_pin.node());
     } else if ((other_pin.type() == typeid(vectorfield_t))) {
       m_v = dynamic_cast<vectorfield_t*>(&other_pin.node());
     }

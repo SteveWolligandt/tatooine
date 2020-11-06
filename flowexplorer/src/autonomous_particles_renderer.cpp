@@ -64,11 +64,20 @@ void autonomous_particles_renderer::load_data() {
         "dg_grid_advected.nc",
         netCDF::NcFile::read};
     auto var = f_in.variable<float>("transformations");
-    std::lock_guard lock{node->m_gpu_data_mutex};
     node->m_gpu_Ss.resize(var.size(0));
     {
       auto vbo_map = node->m_gpu_Ss.wmap();
-      var.read(reinterpret_cast<float*>(&vbo_map.front()));
+      auto ptr = reinterpret_cast<float*>(&vbo_map.front());
+      size_t const chunk_size = 1000;
+      for (size_t i = 0; i < var.size(0); i += chunk_size) {
+        size_t cnt = chunk_size;
+        if (i + chunk_size >= var.size(0)) {
+          cnt = var.size(0) - i - 1;
+        }
+        var.read_chunk(std::vector<size_t>{i, 0, 0},
+                       std::vector<size_t>{cnt, 2, 3}, ptr);
+        ptr += cnt * 6;
+      }
     }
     node->m_gpu_Is.resize(var.size(0));
     {

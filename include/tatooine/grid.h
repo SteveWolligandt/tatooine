@@ -1,7 +1,7 @@
 #ifndef TATOOINE_GRID_H
 #define TATOOINE_GRID_H
 //==============================================================================
-#include <tatooine/boundingbox.h>
+#include <tatooine/axis_aligned_bounding_box.h>
 #include <tatooine/chunked_multidim_array.h>
 #include <tatooine/concepts.h>
 #include <tatooine/for_loop.h>
@@ -44,7 +44,8 @@ struct default_grid_vertex_property<0, DefaultInterpolationKernel, Grid,
 /// GCC bug (80438)
 template <indexable_space... Dimensions>
 class grid {
-  static_assert(sizeof...(Dimensions) > 0, "Grid needs at least one dimension.");
+  static_assert(sizeof...(Dimensions) > 0,
+                "Grid needs at least one dimension.");
 
  public:
   static constexpr bool is_regular =
@@ -73,16 +74,19 @@ class grid {
 
   //----------------------------------------------------------------------------
   // vertex properties
-  template <typename Container,template <typename>  typename... InterpolationKernels>
+  template <typename Container,
+            template <typename> typename... InterpolationKernels>
   using vertex_property_t =
       grid_vertex_property<this_t, Container, InterpolationKernels...>;
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-  template <typename T, typename Indexing,template <typename>  typename... InterpolationKernels>
+  template <typename T, typename Indexing,
+            template <typename> typename... InterpolationKernels>
   using chunked_vertex_property_t =
       vertex_property_t<chunked_multidim_array<T, Indexing>,
                         InterpolationKernels...>;
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-  template <typename T, typename Indexing,template <typename>  typename... InterpolationKernels>
+  template <typename T, typename Indexing,
+            template <typename> typename... InterpolationKernels>
   using contiguous_vertex_property_t =
       vertex_property_t<dynamic_multidim_array<T, Indexing>,
                         InterpolationKernels...>;
@@ -133,16 +137,16 @@ class grid {
   //----------------------------------------------------------------------------
  private:
   template <typename Real, size_t... Is>
-  constexpr grid(boundingbox<Real, num_dimensions()> const&  bb,
-                 std::array<size_t, num_dimensions()> const& res,
+  constexpr grid(axis_aligned_bounding_box<Real, num_dimensions()> const& bb,
+                 std::array<size_t, num_dimensions()> const&              res,
                  std::index_sequence<Is...> /*seq*/)
       : m_dimensions{linspace<real_t>{real_t(bb.min(Is)), real_t(bb.max(Is)),
                                       res[Is]}...} {}
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
  public:
   template <typename Real>
-  constexpr grid(boundingbox<Real, num_dimensions()> const&  bb,
-                 std::array<size_t, num_dimensions()> const& res)
+  constexpr grid(axis_aligned_bounding_box<Real, num_dimensions()> const& bb,
+                 std::array<size_t, num_dimensions()> const&              res)
       : grid{bb, res, seq_t{}} {}
   //----------------------------------------------------------------------------
   ~grid() = default;
@@ -216,15 +220,18 @@ class grid {
   //----------------------------------------------------------------------------
  private:
   template <size_t... Is>
-  constexpr auto boundingbox(std::index_sequence<Is...> /*seq*/) const {
+  constexpr auto axis_aligned_bounding_box(
+      std::index_sequence<Is...> /*seq*/) const {
     static_assert(sizeof...(Is) == num_dimensions());
-    return tatooine::boundingbox<real_t, num_dimensions()>{
+    return tatooine::axis_aligned_bounding_box<real_t, num_dimensions()>{
         vec<real_t, num_dimensions()>{static_cast<real_t>(front<Is>())...},
         vec<real_t, num_dimensions()>{static_cast<real_t>(back<Is>())...}};
   }
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
  public:
-  constexpr auto boundingbox() const { return boundingbox(seq_t{}); }
+  constexpr auto axis_aligned_bounding_box() const {
+    return axis_aligned_bounding_box(seq_t{});
+  }
   //----------------------------------------------------------------------------
  private:
   template <size_t... Is>
@@ -253,7 +260,7 @@ class grid {
   }
   //----------------------------------------------------------------------------
   template <size_t I>
-  constexpr auto front() ->auto& {
+  constexpr auto front() -> auto& {
     return dimension<I>().front();
   }
   //----------------------------------------------------------------------------
@@ -388,7 +395,9 @@ class grid {
 
     for (size_t i = 1; i < dim.size() - 1; ++i) {
       vec<double, 3> xs;
-      for (size_t j = 0; j < 3; ++j) { xs(j) = dim[i - 1 + j] - dim[i]; }
+      for (size_t j = 0; j < 3; ++j) {
+        xs(j) = dim[i - 1 + j] - dim[i];
+      }
       auto const cs = finite_differences_coefficients(1, xs);
       m_diff_stencil_coefficients_n1_0_p1[D][i].reserve(3);
       std::copy(begin(cs.data()), end(cs.data()),
@@ -403,7 +412,9 @@ class grid {
 
     for (size_t i = 0; i < dim.size() - 2; ++i) {
       vec<double, 3> xs;
-      for (size_t j = 0; j < 3; ++j) { xs(j) = dim[i + j] - dim[i]; }
+      for (size_t j = 0; j < 3; ++j) {
+        xs(j) = dim[i + j] - dim[i];
+      }
       auto const cs = finite_differences_coefficients(1, xs);
       m_diff_stencil_coefficients_0_p1_p2[D][i].reserve(3);
       std::copy(begin(cs.data()), end(cs.data()),
@@ -418,7 +429,9 @@ class grid {
 
     for (size_t i = 2; i < dim.size(); ++i) {
       vec<double, 3> xs;
-      for (size_t j = 0; j < 3; ++j) { xs(j) = dim[i - 2 + j] - dim[i]; }
+      for (size_t j = 0; j < 3; ++j) {
+        xs(j) = dim[i - 2 + j] - dim[i];
+      }
       auto const cs = finite_differences_coefficients(1, xs);
       m_diff_stencil_coefficients_n2_n1_0[D][i].reserve(3);
       std::copy(begin(cs.data()), end(cs.data()),
@@ -433,7 +446,9 @@ class grid {
 
     for (size_t i = 0; i < dim.size() - 1; ++i) {
       vec<double, 2> xs;
-      for (size_t j = 0; j < 2; ++j) { xs(j) = dim[i + j] - dim[i]; }
+      for (size_t j = 0; j < 2; ++j) {
+        xs(j) = dim[i + j] - dim[i];
+      }
       auto const cs = finite_differences_coefficients(1, xs);
       m_diff_stencil_coefficients_0_p1[D][i].reserve(2);
       std::copy(begin(cs.data()), end(cs.data()),
@@ -448,7 +463,9 @@ class grid {
 
     for (size_t i = 1; i < dim.size(); ++i) {
       vec<double, 2> xs;
-      for (size_t j = 0; j < 2; ++j) { xs(j) = dim[i - 1 + j] - dim[i]; }
+      for (size_t j = 0; j < 2; ++j) {
+        xs(j) = dim[i - 1 + j] - dim[i];
+      }
       auto const cs = finite_differences_coefficients(1, xs);
       m_diff_stencil_coefficients_n1_0[D][i].reserve(3);
       std::copy(begin(cs.data()), end(cs.data()),
@@ -590,10 +607,10 @@ class grid {
     update_diff_stencil_coefficients();
     if (auto it = m_vertex_properties.find(name);
         it == end(m_vertex_properties)) {
-      auto       new_prop = new prop_t{*this, std::forward<Args>(args)...};
+      auto new_prop = new prop_t{*this, std::forward<Args>(args)...};
       m_vertex_properties.emplace(name, std::unique_ptr<property_t>{new_prop});
-      //if constexpr (sizeof...(Args) == 0) {
-        new_prop->resize(size());
+      // if constexpr (sizeof...(Args) == 0) {
+      new_prop->resize(size());
       //}
       return *new_prop;
     } else {
@@ -801,8 +818,8 @@ template <typename Dim0, typename... Dims>
 grid(Dim0&&, Dims&&...) -> grid<std::decay_t<Dim0>, std::decay_t<Dims>...>;
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 template <typename Real, size_t N, size_t... Is>
-grid(boundingbox<Real, N> const& bb, std::array<size_t, N> const& res,
-     std::index_sequence<Is...>)
+grid(axis_aligned_bounding_box<Real, N> const& bb,
+     std::array<size_t, N> const&              res, std::index_sequence<Is...>)
     -> grid<decltype(((void)Is, std::declval<linspace<Real>()>))...>;
 //==============================================================================
 // operators

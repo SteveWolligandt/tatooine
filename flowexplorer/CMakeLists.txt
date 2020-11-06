@@ -10,7 +10,7 @@ set(TATFE_SHADER_DIR ${CMAKE_CURRENT_SOURCE_DIR}/shaders)
 #- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 add_executable(
   flowexplorer
-  src/boundingbox.cpp
+  src/axis_aligned_bounding_box.cpp
   src/flowexplorer.cpp
   src/doublegyre.cpp
   src/abcflow.cpp

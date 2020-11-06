@@ -70,7 +70,7 @@ struct node : uuid_holder<ax::NodeEditor::NodeId>, serializable {
     ImGui::TextUnformatted(title().c_str());
     if (draw_properties()) {
       on_property_changed();
-      for (auto & p : m_output_pins) {
+      for (auto& p : m_output_pins) {
         if (p.is_connected()) {
           (p.link().input().node().on_property_changed());
         }
@@ -107,34 +107,32 @@ struct node_serializer {
     toml::table serialized_node;
     reflection::for_each(t, [&serialized_node](auto const& name,
                                                auto const& var) {
-      if constexpr (std::is_same_v<std::string, std::decay_t<decltype(var)>>) {
+      using var_t = std::decay_t<decltype(var)>;
+      if constexpr (std::is_same_v<std::string, var_t>) {
         serialized_node.insert(name, var);
-      } else if constexpr (std::is_arithmetic_v<std::decay_t<decltype(var)>>) {
+      } else if constexpr (std::is_arithmetic_v<var_t>) {
         serialized_node.insert(name, var);
-      } else if constexpr (
-          std::is_same_v<std::array<int, 2>, std::decay_t<decltype(var)>> ||
-          std::is_same_v<std::array<float, 2>, std::decay_t<decltype(var)>> ||
-          std::is_same_v<std::array<double, 2>, std::decay_t<decltype(var)>> ||
-          std::is_same_v<vec<int, 2>, std::decay_t<decltype(var)>> ||
-          std::is_same_v<vec<float, 2>, std::decay_t<decltype(var)>> ||
-          std::is_same_v<vec<double, 2>, std::decay_t<decltype(var)>>) {
+      } else if constexpr (std::is_same_v<std::array<int, 2>, var_t> ||
+                           std::is_same_v<std::array<float, 2>, var_t> ||
+                           std::is_same_v<std::array<double, 2>, var_t> ||
+                           std::is_same_v<vec<int, 2>, var_t> ||
+                           std::is_same_v<vec<float, 2>, var_t> ||
+                           std::is_same_v<vec<double, 2>, var_t>) {
         serialized_node.insert(name, toml::array{var.at(0), var.at(1)});
-      } else if constexpr (
-          std::is_same_v<std::array<int, 3>, std::decay_t<decltype(var)>> ||
-          std::is_same_v<std::array<float, 3>, std::decay_t<decltype(var)>> ||
-          std::is_same_v<std::array<double, 3>, std::decay_t<decltype(var)>> ||
-          std::is_same_v<vec<int, 3>, std::decay_t<decltype(var)>> ||
-          std::is_same_v<vec<float, 3>, std::decay_t<decltype(var)>> ||
-          std::is_same_v<vec<double, 3>, std::decay_t<decltype(var)>>) {
+      } else if constexpr (std::is_same_v<std::array<int, 3>, var_t> ||
+                           std::is_same_v<std::array<float, 3>, var_t> ||
+                           std::is_same_v<std::array<double, 3>, var_t> ||
+                           std::is_same_v<vec<int, 3>, var_t> ||
+                           std::is_same_v<vec<float, 3>, var_t> ||
+                           std::is_same_v<vec<double, 3>, var_t>) {
         serialized_node.insert(name,
                                toml::array{var.at(0), var.at(1), var.at(2)});
-      } else if constexpr (
-          std::is_same_v<std::array<int, 4>, std::decay_t<decltype(var)>> ||
-          std::is_same_v<std::array<float, 4>, std::decay_t<decltype(var)>> ||
-          std::is_same_v<std::array<double, 4>, std::decay_t<decltype(var)>> ||
-          std::is_same_v<vec<int, 4>, std::decay_t<decltype(var)>> ||
-          std::is_same_v<vec<float, 4>, std::decay_t<decltype(var)>> ||
-          std::is_same_v<vec<double, 4>, std::decay_t<decltype(var)>>) {
+      } else if constexpr (std::is_same_v<std::array<int, 4>, var_t> ||
+                           std::is_same_v<std::array<float, 4>, var_t> ||
+                           std::is_same_v<std::array<double, 4>, var_t> ||
+                           std::is_same_v<vec<int, 4>, var_t> ||
+                           std::is_same_v<vec<float, 4>, var_t> ||
+                           std::is_same_v<vec<double, 4>, var_t>) {
         serialized_node.insert(
             name, toml::array{var.at(0), var.at(1), var.at(2), var.at(3)});
       } else if constexpr (
@@ -175,36 +173,30 @@ struct node_serializer {
   //----------------------------------------------------------------------------
   auto deserialize(T& t, toml::table const& serialized_node) -> void {
     reflection::for_each(t, [&serialized_node](auto const& name, auto& var) {
-      if constexpr (std::is_same_v<std::string, std::decay_t<decltype(var)>>) {
+      using var_t = std::decay_t<decltype(var)>;
+      if constexpr (std::is_same_v<std::string, var_t>) {
         var = serialized_node[name].as_string()->get();
-      } else if constexpr (std::is_same_v<bool, std::decay_t<decltype(var)>>) {
+      } else if constexpr (std::is_same_v<bool, var_t>) {
         var = serialized_node[name].as_boolean()->get();
-      } else if constexpr (std::is_integral_v<std::decay_t<decltype(var)>>) {
+      } else if constexpr (std::is_integral_v<var_t>) {
         var = serialized_node[name].as_integer()->get();
-      } else if constexpr (std::is_floating_point_v<
-                               std::decay_t<decltype(var)>>) {
+      } else if constexpr (std::is_floating_point_v<var_t>) {
         var = serialized_node[name].as_floating_point()->get();
-      } else if constexpr (std::is_same_v<std::array<int, 2>,
-                                          std::decay_t<decltype(var)>> ||
-                           std::is_same_v<vec<int, 2>,
-                                          std::decay_t<decltype(var)>>) {
+      } else if constexpr (std::is_same_v<std::array<int, 2>, var_t> ||
+                           std::is_same_v<vec<int, 2>, var_t>) {
         auto const& arr = *serialized_node[name].as_array();
 
         var.at(0) = arr[0].as_integer()->get();
         var.at(1) = arr[1].as_integer()->get();
-      } else if constexpr (std::is_same_v<std::array<int, 3>,
-                                          std::decay_t<decltype(var)>> ||
-                           std::is_same_v<vec<int, 3>,
-                                          std::decay_t<decltype(var)>>) {
+      } else if constexpr (std::is_same_v<std::array<int, 3>, var_t> ||
+                           std::is_same_v<vec<int, 3>, var_t>) {
         auto const& arr = *serialized_node[name].as_array();
 
         var.at(0) = arr[0].as_integer()->get();
         var.at(1) = arr[1].as_integer()->get();
         var.at(2) = arr[2].as_integer()->get();
-      } else if constexpr (std::is_same_v<std::array<int, 4>,
-                                          std::decay_t<decltype(var)>> ||
-                           std::is_same_v<vec<int, 4>,
-                                          std::decay_t<decltype(var)>>) {
+      } else if constexpr (std::is_same_v<std::array<int, 4>, var_t> ||
+                           std::is_same_v<vec<int, 4>, var_t>) {
         auto const& arr = *serialized_node[name].as_array();
 
         var.at(0) = arr[0].as_integer()->get();
@@ -212,30 +204,31 @@ struct node_serializer {
         var.at(2) = arr[2].as_integer()->get();
         var.at(3) = arr[3].as_integer()->get();
 
-      } else if constexpr (
-          std::is_same_v<std::array<float, 2>, std::decay_t<decltype(var)>> ||
-          std::is_same_v<std::array<double, 2>, std::decay_t<decltype(var)>> ||
-          std::is_same_v<vec<float, 2>, std::decay_t<decltype(var)>> ||
-          std::is_same_v<vec<double, 2>, std::decay_t<decltype(var)>>) {
+      } else if constexpr (std::is_same_v<std::array<float, 2>, var_t> ||
+                           std::is_same_v<std::array<double, 2>, var_t>) {
         auto const& arr = *serialized_node[name].as_array();
 
-        var.at(0) = arr[0].as_floating_point()->get();
-        var.at(1) = arr[1].as_floating_point()->get();
-      } else if constexpr (
-          std::is_same_v<std::array<float, 3>, std::decay_t<decltype(var)>> ||
-          std::is_same_v<std::array<double, 3>, std::decay_t<decltype(var)>> ||
-          std::is_same_v<vec<float, 3>, std::decay_t<decltype(var)>> ||
-          std::is_same_v<vec<double, 3>, std::decay_t<decltype(var)>>) {
+        var[0] = arr[0].as_floating_point()->get();
+        var[1] = arr[1].as_floating_point()->get();
+      } else if constexpr (std::is_same_v<vec<float, 2>, var_t> ||
+                           std::is_same_v<vec<double, 2>, var_t>) {
+        auto const& arr = *serialized_node[name].as_array();
+
+        var(0) = arr[0].as_floating_point()->get();
+        var(1) = arr[1].as_floating_point()->get();
+      } else if constexpr (std::is_same_v<std::array<float, 3>, var_t> ||
+                           std::is_same_v<std::array<double, 3>, var_t> ||
+                           std::is_same_v<vec<float, 3>, var_t> ||
+                           std::is_same_v<vec<double, 3>, var_t>) {
         auto const& arr = *serialized_node[name].as_array();
 
         var.at(0) = arr[0].as_floating_point()->get();
         var.at(1) = arr[1].as_floating_point()->get();
         var.at(2) = arr[2].as_floating_point()->get();
-      } else if constexpr (
-          std::is_same_v<std::array<float, 4>, std::decay_t<decltype(var)>> ||
-          std::is_same_v<std::array<double, 4>, std::decay_t<decltype(var)>> ||
-          std::is_same_v<vec<float, 4>, std::decay_t<decltype(var)>> ||
-          std::is_same_v<vec<double, 4>, std::decay_t<decltype(var)>>) {
+      } else if constexpr (std::is_same_v<std::array<float, 4>, var_t> ||
+                           std::is_same_v<std::array<double, 4>, var_t> ||
+                           std::is_same_v<vec<float, 4>, var_t> ||
+                           std::is_same_v<vec<double, 4>, var_t>) {
         auto const& arr = *serialized_node[name].as_array();
 
         var.at(0) = arr[0].as_floating_point()->get();
@@ -310,73 +303,55 @@ struct node_serializer {
   auto draw_properties(T& t) -> bool {
     bool changed = false;
     reflection::for_each(t, [&changed](auto const& name, auto& var) {
+      using var_t = std::decay_t<decltype(var)>;
       // float
-      if constexpr (std::is_same_v<std::string, std::decay_t<decltype(var)>>) {
+      if constexpr (std::is_same_v<std::string, var_t>) {
         changed |= ImGui::InputText(name, &var);
-      } else if constexpr (std::is_same_v<float, std::decay_t<decltype(var)>>) {
+      } else if constexpr (std::is_same_v<float, var_t>) {
         changed |= ImGui::DragFloat(name, &var, 0.1f);
-      } else if constexpr (std::is_same_v<std::array<float, 2>,
-                                          std::decay_t<decltype(var)>>) {
+      } else if constexpr (std::is_same_v<std::array<float, 2>, var_t>) {
         changed |= ImGui::DragFloat2(name, var.data(), 0.1f);
-      } else if constexpr (std::is_same_v<std::array<float, 3>,
-                                          std::decay_t<decltype(var)>>) {
+      } else if constexpr (std::is_same_v<std::array<float, 3>, var_t>) {
         changed |= ImGui::DragFloat3(name, var.data(), 0.1f);
-      } else if constexpr (std::is_same_v<std::array<float, 4>,
-                                          std::decay_t<decltype(var)>>) {
+      } else if constexpr (std::is_same_v<std::array<float, 4>, var_t>) {
         changed |= ImGui::DragFloat4(name, var.data(), 0.1f);
-      } else if constexpr (std::is_same_v<vec<float, 2>,
-                                          std::decay_t<decltype(var)>>) {
+      } else if constexpr (std::is_same_v<vec<float, 2>, var_t>) {
         changed |= ImGui::DragFloat2(name, var.data_ptr(), 0.1f);
-      } else if constexpr (std::is_same_v<vec<float, 3>,
-                                          std::decay_t<decltype(var)>>) {
+      } else if constexpr (std::is_same_v<vec<float, 3>, var_t>) {
         changed |= ImGui::DragFloat3(name, var.data_ptr(), 0.1f);
-      } else if constexpr (std::is_same_v<vec<float, 4>,
-                                          std::decay_t<decltype(var)>>) {
+      } else if constexpr (std::is_same_v<vec<float, 4>, var_t>) {
         changed |= ImGui::DragFloat4(name, var.data_ptr(), 0.1f);
 
         // double
-      } else if constexpr (std::is_same_v<double,
-                                          std::decay_t<decltype(var)>>) {
+      } else if constexpr (std::is_same_v<double, var_t>) {
         changed |= ImGui::DragDouble(name, &var, 0.1);
-      } else if constexpr (std::is_same_v<std::array<double, 2>,
-                                          std::decay_t<decltype(var)>>) {
+      } else if constexpr (std::is_same_v<std::array<double, 2>, var_t>) {
         changed |= ImGui::DragDouble2(name, var.data(), 0.1);
-      } else if constexpr (std::is_same_v<std::array<double, 3>,
-                                          std::decay_t<decltype(var)>>) {
+      } else if constexpr (std::is_same_v<std::array<double, 3>, var_t>) {
         changed |= ImGui::DragDouble3(name, var.data(), 0.1);
-      } else if constexpr (std::is_same_v<std::array<double, 4>,
-                                          std::decay_t<decltype(var)>>) {
+      } else if constexpr (std::is_same_v<std::array<double, 4>, var_t>) {
         changed |= ImGui::DragDouble4(name, var.data(), 0.1);
-      } else if constexpr (std::is_same_v<vec<double, 2>,
-                                          std::decay_t<decltype(var)>>) {
+      } else if constexpr (std::is_same_v<vec<double, 2>, var_t>) {
         changed |= ImGui::DragDouble2(name, var.data_ptr(), 0.1);
-      } else if constexpr (std::is_same_v<vec<double, 3>,
-                                          std::decay_t<decltype(var)>>) {
+      } else if constexpr (std::is_same_v<vec<double, 3>, var_t>) {
         changed |= ImGui::DragDouble3(name, var.data_ptr(), 0.1);
-      } else if constexpr (std::is_same_v<vec<double, 4>,
-                                          std::decay_t<decltype(var)>>) {
+      } else if constexpr (std::is_same_v<vec<double, 4>, var_t>) {
         changed |= ImGui::DragDouble4(name, var.data_ptr(), 0.1);
 
         // int
-      } else if constexpr (std::is_same_v<int, std::decay_t<decltype(var)>>) {
+      } else if constexpr (std::is_same_v<int, var_t>) {
         changed |= ImGui::DragInt(name, &var, 1);
-      } else if constexpr (std::is_same_v<std::array<int, 2>,
-                                          std::decay_t<decltype(var)>>) {
+      } else if constexpr (std::is_same_v<std::array<int, 2>, var_t>) {
         changed |= ImGui::DragInt2(name, var.data(), 1);
-      } else if constexpr (std::is_same_v<std::array<int, 3>,
-                                          std::decay_t<decltype(var)>>) {
+      } else if constexpr (std::is_same_v<std::array<int, 3>, var_t>) {
         changed |= ImGui::DragInt3(name, var.data(), 1);
-      } else if constexpr (std::is_same_v<std::array<int, 4>,
-                                          std::decay_t<decltype(var)>>) {
+      } else if constexpr (std::is_same_v<std::array<int, 4>, var_t>) {
         changed |= ImGui::DragInt4(name, var.data(), 1);
-      } else if constexpr (std::is_same_v<vec<int, 2>,
-                                          std::decay_t<decltype(var)>>) {
+      } else if constexpr (std::is_same_v<vec<int, 2>, var_t>) {
         changed |= ImGui::DragInt2(name, var.data_ptr(), 1);
-      } else if constexpr (std::is_same_v<vec<int, 3>,
-                                          std::decay_t<decltype(var)>>) {
+      } else if constexpr (std::is_same_v<vec<int, 3>, var_t>) {
         changed |= ImGui::DragInt3(name, var.data_ptr(), 1);
-      } else if constexpr (std::is_same_v<vec<int, 4>,
-                                          std::decay_t<decltype(var)>>) {
+      } else if constexpr (std::is_same_v<vec<int, 4>, var_t>) {
         changed |= ImGui::DragInt4(name, var.data_ptr(), 1);
       }
     });
@@ -442,7 +417,7 @@ struct registration_factory_t {
                       std::string_view const&          node_type_name)         \
       -> ::tatooine::flowexplorer::ui::base::node* {                           \
     if (node_type_name == #type) {                                             \
-      return s.nodes().emplace_back(new ::type{s}).get();                     \
+      return s.nodes().emplace_back(new ::type{s}).get();                      \
     }                                                                          \
     return nullptr;                                                            \
   }                                                                            \
@@ -458,7 +433,7 @@ struct registration_factory_t {
                       std::string_view const&          node_type_name)         \
       -> ::tatooine::flowexplorer::ui::base::node* {                           \
     if (node_type_name == #type) {                                             \
-      return s.renderables().emplace_back(new ::type{s}).get();               \
+      return s.renderables().emplace_back(new ::type{s}).get();                \
     }                                                                          \
     return nullptr;                                                            \
   }                                                                            \

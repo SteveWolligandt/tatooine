@@ -6,6 +6,8 @@
 #include <tatooine/progress_bars.h>
 #include <tatooine/vtk_legacy.h>
 
+#include <iomanip>
+
 #include "ellipsis_vertices.h"
 #include "parse_args.h"
 //==============================================================================
@@ -68,7 +70,7 @@ auto main(int argc, char** argv) -> int {
   g.dimension<1>().back() -= spacing_y / 2;
   double const               r0 = g.dimension<0>().spacing() / 2;
   triangular_mesh<double, 2> mesh;
-  auto& flowmap = mesh.add_vertex_property<vec<double, 2>>("flowmap");
+  auto& flowmap_prop = mesh.add_vertex_property<vec<double, 2>>("flowmap");
 
   analytical::fields::numerical::doublegyre v;
   v.set_infinite_domain(true);
@@ -87,10 +89,10 @@ auto main(int argc, char** argv) -> int {
       p0.phi().use_caching(false);
 
       auto ps = calc_particles(p0);
-      mesh.points().reserve(mesh.num_vertices() + size(ps));
+      mesh.vertex_data().reserve(mesh.num_vertices() + size(ps));
       for (auto const& p : ps) {
-        auto v     = mesh.insert_vertex(p.x0());
-        flowmap[v] = p.x1();
+        auto v          = mesh.insert_vertex(p.x0());
+        flowmap_prop[v] = p.x1();
       }
 
       for (auto const& p : ps) {
@@ -131,8 +133,76 @@ auto main(int argc, char** argv) -> int {
     }
     indicator.progress = 1;
   });
+  std::cerr << '\n';
+
+  //----------------------------------------------------------------------------
+  // build numerical flowmap
+  //----------------------------------------------------------------------------
+  auto numerical_flowmap = flowmap(v);
+  numerical_flowmap.use_caching(false);
+
+  //----------------------------------------------------------------------------
+  // build regular sampled flowmap
+  //----------------------------------------------------------------------------
+  grid  regular_grid{linspace{0.0, 2.0, args.width},
+                    linspace{0.0, 1.0, args.height}};
+  auto& regular_sampled_flowmap = regular_grid.add_contiguous_vertex_property<
+      vec2, x_fastest, interpolation::linear, interpolation::linear>("flowmap");
+  regular_grid.loop_over_vertex_indices([&](auto const... is) {
+    regular_sampled_flowmap.set_data_at(
+        numerical_flowmap(regular_grid(is...), args.t0, args.tau), is...);
+  });
+
+  //----------------------------------------------------------------------------
+  // build samplable discretized flowmap
+  //----------------------------------------------------------------------------
   mesh.triangulate_delaunay();
   mesh.write_vtk("doublegyre_flowmap.vtk");
+  auto flowmap_sampler_autonomous_particles =
+      mesh.vertex_property_sampler(flowmap_prop);
+
+  //----------------------------------------------------------------------------
+  // check robustness
+  //----------------------------------------------------------------------------
+  grid   sampler_check_grid{linspace{0.0, 2.0, 1001}, linspace{0.0, 1.0, 501}};
+  size_t num_out_of_domain = 0;
+  std::vector<double> autonomous_particles_errors, regular_errors;
+  autonomous_particles_errors.reserve(sampler_check_grid.num_vertices());
+  for (auto x : sampler_check_grid.vertices()) {
+    try {
+      auto const autonomous_particles_sampled_advection =
+          flowmap_sampler_autonomous_particles(x);
+      auto const regular_sampled_advection = regular_sampled_flowmap.sample(x);
+      auto const numerical_advection = numerical_flowmap(x, args.t0, args.tau);
+      autonomous_particles_errors.push_back(distance(
+          autonomous_particles_sampled_advection, numerical_advection));
+      regular_errors.push_back(
+          distance(regular_sampled_advection, numerical_advection));
+    } catch (std::exception const& e) {
+      ++num_out_of_domain;
+    }
+  }
+  std::cerr << "==============================================================="
+               "=================\n"
+            << "REPORT\n"
+            << "==============================================================="
+               "=================\n\n"
+            << num_out_of_domain << " / " << sampler_check_grid.num_vertices()
+            << " out of domain ("
+            << (100 * num_out_of_domain /
+                (double)sampler_check_grid.num_vertices())
+            << "%)\n"
+            << "average error autonomous particles: " << std::scientific
+            << std::accumulate(begin(autonomous_particles_errors),
+                               end(autonomous_particles_errors), double(0)) /
+                   size(autonomous_particles_errors)
+            << '\n'
+            << "average error regular grid: " << std::scientific
+            << std::accumulate(begin(regular_errors), end(regular_errors),
+                               double(0)) /
+                   size(regular_errors)
+            << std::defaultfloat << '\n';
+
   for (auto& writer : writers) {
     writer.join();
   }

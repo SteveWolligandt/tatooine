@@ -1,20 +1,21 @@
-#ifndef TATOOINE_FLOWEXPLORER_NODES_BOUNDINGBOX_H
-#define TATOOINE_FLOWEXPLORER_NODES_BOUNDINGBOX_H
+#ifndef TATOOINE_FLOWEXPLORER_NODES_AXIS_ALIGNED_BOUNDING_BOX_H
+#define TATOOINE_FLOWEXPLORER_NODES_AXIS_ALIGNED_BOUNDING_BOX_H
 //==============================================================================
-#include <tatooine/boundingbox.h>
+#include <tatooine/axis_aligned_bounding_box.h>
 #include <tatooine/flowexplorer/line_shader.h>
 #include <tatooine/flowexplorer/renderable.h>
+#include <tatooine/rendering/yavin_interop.h>
 #include <yavin/imgui.h>
 #include <yavin/indexeddata.h>
-#include <tatooine/rendering/yavin_interop.h>
 //==============================================================================
 namespace tatooine::flowexplorer::nodes {
 //==============================================================================
 template <size_t N>
-struct boundingbox : tatooine::boundingbox<double, N>,
-                     renderable<boundingbox<N>> {
-  using this_t   = boundingbox<N>;
-  using parent_t = tatooine::boundingbox<double, N>;
+struct axis_aligned_bounding_box
+    : tatooine::axis_aligned_bounding_box<double, N>,
+      renderable<axis_aligned_bounding_box<N>> {
+  using this_t   = axis_aligned_bounding_box<N>;
+  using parent_t = tatooine::axis_aligned_bounding_box<double, N>;
   using gpu_vec  = vec<float, N>;
   using vbo_t    = yavin::vertexbuffer<gpu_vec>;
   using parent_t::max;
@@ -25,40 +26,45 @@ struct boundingbox : tatooine::boundingbox<double, N>,
   int                               m_line_width = 1;
   std::array<GLfloat, 4>            m_line_color{0.0f, 0.0f, 0.0f, 1.0f};
   //============================================================================
-  boundingbox(flowexplorer::scene& s)
-      : renderable<boundingbox>{"Bounding Box", s},
-        tatooine::boundingbox<double, N>{vec<double, N>{tag::fill{-1}},
-                                         vec<double, N>{tag::fill{1}}} {
+  axis_aligned_bounding_box(flowexplorer::scene& s)
+      : renderable<axis_aligned_bounding_box>{"Axis Aligned Bounding Box", s},
+        tatooine::axis_aligned_bounding_box<double, N>{
+            vec<double, N>{tag::fill{-1}}, vec<double, N>{tag::fill{1}}} {
     this->template insert_output_pin<this_t>("Out");
     create_indexed_data();
   }
-  boundingbox(const boundingbox&)     = default;
-  boundingbox(boundingbox&&) noexcept = default;
-  auto operator=(const boundingbox&) -> boundingbox& = default;
-  auto operator=(boundingbox&&) noexcept -> boundingbox& = default;
+  axis_aligned_bounding_box(const axis_aligned_bounding_box&)     = default;
+  axis_aligned_bounding_box(axis_aligned_bounding_box&&) noexcept = default;
+  auto operator                     =(const axis_aligned_bounding_box&)
+      -> axis_aligned_bounding_box& = default;
+  auto operator                     =(axis_aligned_bounding_box&&) noexcept
+      -> axis_aligned_bounding_box& = default;
   //============================================================================
   template <typename Real0, typename Real1>
-  constexpr boundingbox(vec<Real0, N>&& min, vec<Real1, N>&& max,
-                        flowexplorer::scene& s) noexcept
+  constexpr axis_aligned_bounding_box(vec<Real0, N>&& min, vec<Real1, N>&& max,
+                                      flowexplorer::scene& s) noexcept
       : parent_t{std::move(min), std::move(max)},
-        renderable<boundingbox>{"Bounding Box", s} {
+        renderable<axis_aligned_bounding_box>{"Axis Aligned Bounding Box", s} {
     this->template insert_output_pin<this_t>("Out");
     create_indexed_data();
   }
   //----------------------------------------------------------------------------
   template <typename Real0, typename Real1>
-  constexpr boundingbox(const vec<Real0, N>& min, const vec<Real1, N>& max,
-                        flowexplorer::scene& s)
-      : parent_t{min, max}, renderable<boundingbox>{"Bounding Box", s} {
+  constexpr axis_aligned_bounding_box(const vec<Real0, N>& min,
+                                      const vec<Real1, N>& max,
+                                      flowexplorer::scene& s)
+      : parent_t{min, max},
+        renderable<axis_aligned_bounding_box>{"Axis Aligned Bounding Box", s} {
     this->template insert_output_pin<this_t>("Out");
     create_indexed_data();
   }
   //----------------------------------------------------------------------------
   template <typename Tensor0, typename Tensor1, typename Real0, typename Real1>
-  constexpr boundingbox(const base_tensor<Tensor0, Real0, N>& min,
-                        const base_tensor<Tensor1, Real1, N>& max,
-                        flowexplorer::scene&                  s)
-      : parent_t{min, max}, renderable<boundingbox>{"Bounding Box", s} {
+  constexpr axis_aligned_bounding_box(const base_tensor<Tensor0, Real0, N>& min,
+                                      const base_tensor<Tensor1, Real1, N>& max,
+                                      flowexplorer::scene&                  s)
+      : parent_t{min, max},
+        renderable<axis_aligned_bounding_box>{"Axis Aligned Bounding Box", s} {
     this->template insert_output_pin<this_t>("Out");
     create_indexed_data();
   }
@@ -114,34 +120,19 @@ struct boundingbox : tatooine::boundingbox<double, N>,
   auto line_color() -> auto& { return m_line_color; }
   auto line_color() const -> auto const& { return m_line_color; }
 };
-using boundingbox2d = boundingbox<2>;
-using boundingbox3d = boundingbox<3>;
-//==============================================================================
-// deduction guides
-//==============================================================================
-template <typename Real0, typename Real1, size_t N>
-boundingbox(const vec<Real0, N>&, const vec<Real1, N>&, flowexplorer::scene&)
-    -> boundingbox<N>;
-//------------------------------------------------------------------------------
-template <typename Real0, typename Real1, size_t N>
-boundingbox(vec<Real0, N>&&, vec<Real1, N>&&, flowexplorer::scene&)
-    -> boundingbox<N>;
-//------------------------------------------------------------------------------
-template <typename Tensor0, typename Tensor1, typename Real0, typename Real1,
-          size_t N>
-boundingbox(base_tensor<Tensor0, Real0, N>&&, base_tensor<Tensor1, Real1, N>&&,
-            flowexplorer::scene&) -> boundingbox<N>;
+using aabb2d = axis_aligned_bounding_box<2>;
+using aabb3d = axis_aligned_bounding_box<3>;
 //==============================================================================
 }  // namespace tatooine::flowexplorer::nodes
 //==============================================================================
 TATOOINE_FLOWEXPLORER_REGISTER_RENDERABLE(
-    tatooine::flowexplorer::nodes::boundingbox2d,
+    tatooine::flowexplorer::nodes::aabb2d,
     TATOOINE_REFLECTION_INSERT_GETTER(min),
     TATOOINE_REFLECTION_INSERT_GETTER(max),
     TATOOINE_REFLECTION_INSERT_GETTER(line_width),
     TATOOINE_REFLECTION_INSERT_GETTER(line_color));
 TATOOINE_FLOWEXPLORER_REGISTER_RENDERABLE(
-    tatooine::flowexplorer::nodes::boundingbox3d,
+    tatooine::flowexplorer::nodes::aabb3d,
     TATOOINE_REFLECTION_INSERT_GETTER(min),
     TATOOINE_REFLECTION_INSERT_GETTER(max),
     TATOOINE_REFLECTION_INSERT_GETTER(line_width),

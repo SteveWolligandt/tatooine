@@ -49,14 +49,14 @@ struct axis_aligned_bounding_box : ray_intersectable<Real, N> {
       : m_min{min}, m_max{max} {}
   //============================================================================
   constexpr auto min() const -> auto const& { return m_min; }
-  constexpr auto min() -> auto const& { return m_min; }
-  constexpr auto min(size_t i) const -> auto& { return m_min(i); }
-  constexpr auto min(size_t i) -> auto const& { return m_min(i); }
+  constexpr auto min() -> auto& { return m_min; }
+  constexpr auto min(size_t i) const -> auto const& { return m_min(i); }
+  constexpr auto min(size_t i) -> auto& { return m_min(i); }
   //----------------------------------------------------------------------------
   constexpr auto max() const -> auto const& { return m_max; }
-  constexpr auto max() -> auto const& { return m_max; }
-  constexpr auto max(size_t i) const -> auto& { return m_max(i); }
-  constexpr auto max(size_t i) -> auto const& { return m_max(i); }
+  constexpr auto max() -> auto& { return m_max; }
+  constexpr auto max(size_t i) const -> auto const& { return m_max(i); }
+  constexpr auto max(size_t i) -> auto & { return m_max(i); }
   //----------------------------------------------------------------------------
   constexpr auto extents() const { return m_max - m_min; }
   constexpr auto extent(size_t i) const { return m_max(i) - m_min(i); }

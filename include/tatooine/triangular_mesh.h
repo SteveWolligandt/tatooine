@@ -1,11 +1,12 @@
 #ifndef TATOOINE_TRIANGULAR_MESH_H
 #define TATOOINE_TRIANGULAR_MESH_H
 //==============================================================================
-#include <tatooine/pointset.h>
 #include <tatooine/delaunator.h>
+#include <tatooine/octree.h>
+#include <tatooine/pointset.h>
 #include <tatooine/property.h>
-#include <tatooine/vtk_legacy.h>
 #include <tatooine/quadtree.h>
+#include <tatooine/vtk_legacy.h>
 
 #include <boost/range/algorithm/copy.hpp>
 #include <filesystem>
@@ -19,8 +20,8 @@ class triangular_mesh : public pointset<Real, N> {
   using this_t   = triangular_mesh<Real, N>;
   using parent_t = pointset<Real, N>;
   using parent_t::at;
-  using parent_t::vertex_data;
   using parent_t::num_vertices;
+  using parent_t::vertex_data;
   using parent_t::vertex_properties;
   using typename parent_t::vertex_index;
   using parent_t::operator[];
@@ -31,33 +32,33 @@ class triangular_mesh : public pointset<Real, N> {
 
   template <typename T>
   struct vertex_property_sampler_t {
-    this_t const&         m_mesh;
-    vertex_property_t<T>& m_prop;
+    this_t const&               m_mesh;
+    vertex_property_t<T> const& m_prop;
 
-    auto operator()(pos_t const& x) const { return sample(x); }
-    auto sample(pos_t const& x) const -> T {
-      auto tris = m_mesh.m_quadtree->nearby_triangles_ptr(x);
+    [[nodiscard]] auto operator()(pos_t const& x) const { return sample(x); }
+    [[nodiscard]] auto sample(pos_t const& x) const -> T {
+      auto tris = m_mesh.hierarchy()->nearby_triangles_ptr(x);
       if (tris == nullptr || tris->empty()) {
         throw std::runtime_error{
             "[vertex_property_sampler_t::sample] out of domain"};
       }
       for (auto ti : *tris) {
-        auto [vi0, vi1, vi2] = m_mesh.triangle_at(ti);
-        auto const& v0 = m_mesh.vertex_at(vi0);
-        auto const& v1 = m_mesh.vertex_at(vi1);
-        auto const& v2 = m_mesh.vertex_at(vi2);
+        auto [vi0, vi1, vi2]     = m_mesh.triangle_at(ti);
+        auto const&           v0 = m_mesh.vertex_at(vi0);
+        auto const&           v1 = m_mesh.vertex_at(vi1);
+        auto const&           v2 = m_mesh.vertex_at(vi2);
         mat<Real, 3, 3> const A{{v0(0), v1(0), v2(0)},
                                 {v0(1), v1(1), v2(1)},
                                 {Real(1), Real(1), Real(1)}};
         vec<Real, 3> const    b{x(0), x(1), 1};
         auto const            abc = solve(A, b);
-        if (abc(0) >= 0 && abc(0) <= 1 &&
-            abc(1) >= 0 && abc(1) <= 1 &&
+        if (abc(0) >= 0 && abc(0) <= 1 && abc(1) >= 0 && abc(1) <= 1 &&
             abc(2) >= 0 && abc(2) <= 1) {
-          return m_prop[vi0] * abc(0) + m_prop[vi1] * abc(1) + m_prop[vi2] * abc(2);
+          return m_prop[vi0] * abc(0) + m_prop[vi1] * abc(1) +
+                 m_prop[vi2] * abc(2);
         }
-        return T{};
       }
+      return T{};
     }
   };
   //----------------------------------------------------------------------------
@@ -87,7 +88,7 @@ class triangular_mesh : public pointset<Real, N> {
         : m_index{other.m_index}, m_mesh{other.m_mesh} {}
 
    private:
-    triangle_index       m_index;
+    triangle_index         m_index;
     triangular_mesh const* m_mesh;
 
     friend class boost::iterator_core_access;
@@ -117,7 +118,9 @@ class triangular_mesh : public pointset<Real, N> {
 
     auto begin() const {
       triangle_iterator vi{triangle_index{0}, m_mesh};
-      if (!m_mesh->is_valid(*vi)) { ++vi; }
+      if (!m_mesh->is_valid(*vi)) {
+        ++vi;
+      }
       return vi;
     }
 
@@ -129,14 +132,16 @@ class triangular_mesh : public pointset<Real, N> {
   template <typename T>
   using triangle_property_t = vector_property_impl<triangle_index, T>;
   using triangle_property_container_t =
-      std::map<std::string,
-               std::unique_ptr<vector_property<triangle_index>>>;
+      std::map<std::string, std::unique_ptr<vector_property<triangle_index>>>;
+  using hierarchy_t =
+      std::conditional_t<N == 2, quadtree<Real>,
+                         std::conditional_t<N == 3, octree<Real>, void>>;
   //============================================================================
  private:
-  std::vector<vertex_index>             m_triangle_indices;
-  std::vector<triangle_index>           m_invalid_triangles;
-  triangle_property_container_t         m_triangle_properties;
-  std::unique_ptr<quadtree<Real>>       m_quadtree;
+  std::vector<vertex_index>     m_triangle_indices;
+  std::vector<triangle_index>   m_invalid_triangles;
+  triangle_property_container_t m_triangle_properties;
+  std::unique_ptr<hierarchy_t>  m_hierarchy;
 
  public:
   //============================================================================
@@ -155,15 +160,15 @@ class triangular_mesh : public pointset<Real, N> {
   auto operator=(triangular_mesh const& other) -> triangular_mesh& {
     parent_t::operator=(other);
     m_triangle_properties.clear();
-    m_triangle_indices    = other.m_triangle_indices;
+    m_triangle_indices = other.m_triangle_indices;
     for (auto const& [key, fprop] : other.m_triangle_properties) {
       m_triangle_properties.insert(std::pair{key, fprop->clone()});
     }
     return *this;
   }
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-  auto operator=(triangular_mesh&& other) noexcept
-    -> triangular_mesh& = default;
+  auto operator           =(triangular_mesh&& other) noexcept
+      -> triangular_mesh& = default;
   //----------------------------------------------------------------------------
   triangular_mesh(std::filesystem::path const& file) { read(file); }
   //============================================================================
@@ -177,28 +182,71 @@ class triangular_mesh : public pointset<Real, N> {
   auto triangle_at(triangle_index const t) { return triangle_at(t.i); }
   //----------------------------------------------------------------------------
   auto triangle_at(size_t const i) const
-      -> std::tuple<vertex_index const&, vertex_index const&, vertex_index const&> {
-    return {m_triangle_indices[i * 3],
-            m_triangle_indices[i * 3 + 1],
+      -> std::tuple<vertex_index const&, vertex_index const&,
+                    vertex_index const&> {
+    return {m_triangle_indices[i * 3], m_triangle_indices[i * 3 + 1],
             m_triangle_indices[i * 3 + 2]};
   }
   auto triangle_at(size_t const i)
       -> std::tuple<vertex_index&, vertex_index&, vertex_index&> {
-    return {m_triangle_indices[i * 3],
-            m_triangle_indices[i * 3 + 1],
+    return {m_triangle_indices[i * 3], m_triangle_indices[i * 3 + 1],
             m_triangle_indices[i * 3 + 2]};
+  }
+  //----------------------------------------------------------------------------
+  template <real_number... Ts>
+  requires(sizeof...(Ts) == N) auto insert_vertex(Ts const... ts) {
+    auto const vi = parent_t::insert_vertex(ts...);
+    if (m_hierarchy != nullptr) {
+      if (!m_hierarchy->insert_vertex(*this, vi.i)) {
+        clear_hierarchy();
+        build_hierarchy();
+      }
+    }
+    return vi;
+  }
+  //----------------------------------------------------------------------------
+  auto insert_vertex(pos_t const& v) {
+    auto const vi = parent_t::insert_vertex(v);
+    if (m_hierarchy != nullptr) {
+      if (!m_hierarchy->insert_vertex(*this, vi.i)) {
+        clear_hierarchy();
+        build_hierarchy();
+      }
+    }
+    return vi;
+  }
+  //----------------------------------------------------------------------------
+  auto insert_vertex(pos_t&& v) {
+    auto const vi = parent_t::insert_vertex(std::move(v));
+    if (m_hierarchy != nullptr) {
+      if (!m_hierarchy->insert_vertex(*this, vi.i)) {
+        clear_hierarchy();
+        build_hierarchy();
+      }
+    }
+    return vi;
   }
   //----------------------------------------------------------------------------
   auto insert_triangle(vertex_index v0, vertex_index v1, vertex_index v2) {
     m_triangle_indices.push_back(v0);
     m_triangle_indices.push_back(v1);
     m_triangle_indices.push_back(v2);
-    for (auto& [key, prop] : m_triangle_properties) { prop->push_back(); }
-    return triangle_index{size(m_triangle_indices) / 3 - 1};
+    auto const ti = triangle_index{size(m_triangle_indices) / 3 - 1};
+    for (auto& [key, prop] : m_triangle_properties) {
+      prop->push_back();
+    }
+    if (m_hierarchy != nullptr) {
+      if (!m_hierarchy->insert_triangle(*this, ti.i)) {
+        clear_hierarchy();
+        build_hierarchy();
+      }
+    }
+    return ti;
   }
   //----------------------------------------------------------------------------
   auto insert_triangle(size_t v0, size_t v1, size_t v2) {
-    return insert_triangle(vertex_index{v0}, vertex_index{v1}, vertex_index{v2});
+    return insert_triangle(vertex_index{v0}, vertex_index{v1},
+                           vertex_index{v2});
   }
   //----------------------------------------------------------------------------
   auto clear() {
@@ -211,13 +259,12 @@ class triangular_mesh : public pointset<Real, N> {
   auto num_triangles() const { return m_triangle_indices.size() / 3; }
   //----------------------------------------------------------------------------
   template <typename = void>
-  requires (N == 2)
-  auto triangulate_delaunay() {
+  requires(N == 2) auto triangulate_delaunay() {
     delaunator::Delaunator d{vertex_data()};
     set_triangle_indices(std::move(d.triangles));
   }
   //----------------------------------------------------------------------------
-  auto set_triangle_indices(std::vector<size_t> && is) {
+  auto set_triangle_indices(std::vector<size_t>&& is) {
     m_triangle_indices =
         std::move(*reinterpret_cast<std::vector<vertex_index>*>(&is));
   }
@@ -226,35 +273,65 @@ class triangular_mesh : public pointset<Real, N> {
     m_triangle_indices = *reinterpret_cast<std::vector<vertex_index>*>(&is);
   }
   //----------------------------------------------------------------------------
-  auto add_triangles_to_hierarchy() {
-    if constexpr (N==2) {
-      if (m_quadtree == nullptr) {
-        auto min = pos_t::ones() * std::numeric_limits<Real>::infinity();
-        auto max = -pos_t::ones() * std::numeric_limits<Real>::infinity();
-        for (auto v : this->vertices()) {
-          min(0) = std::min(min(0), at(v)(0));
-          min(1) = std::min(min(1), at(v)(1));
-          max(0) = std::max(max(0), at(v)(0));
-          max(1) = std::max(max(1), at(v)(1));
-        }
-        m_quadtree = std::make_unique<quadtree<Real>>(min, max);
-      }
-      for (size_t i = 0; i < num_triangles(); ++i) {
-        m_quadtree->insert_triangle(*this, i);
-      }
+  template <typename = void>
+  requires(N == 2 || N == 3) auto build_hierarchy() {
+    auto& h = hierarchy();
+    for (auto v : this->vertices()) {
+      h.insert_vertex(*this, v.i);
     }
+    for (auto t : triangles()) {
+      h.insert_triangle(*this, t.i);
+    }
+  }
+  //----------------------------------------------------------------------------
+  template <typename = void>
+  requires(N == 2 || N == 3) auto clear_hierarchy() {
+    m_hierarchy.reset();
+  }
+  //----------------------------------------------------------------------------
+  template <typename = void>
+  requires(N == 2 || N == 3) auto hierarchy() -> auto& {
+    if (m_hierarchy == nullptr) {
+      auto min = pos_t::ones() * std::numeric_limits<Real>::infinity();
+      auto max = -pos_t::ones() * std::numeric_limits<Real>::infinity();
+      for (auto v : this->vertices()) {
+        for (size_t i = 0; i < N; ++i) {
+          min(i) = std::min(min(i), at(v)(i));
+          max(i) = std::max(max(i), at(v)(i));
+        }
+      }
+      m_hierarchy = std::make_unique<hierarchy_t>(min, max);
+    }
+    return *m_hierarchy;
+  }
+  //----------------------------------------------------------------------------
+  template <typename = void>
+  requires(N == 2 || N == 3) auto hierarchy() const -> auto const& {
+    return m_hierarchy;
+  }
+  //----------------------------------------------------------------------------
+  template <typename T>
+  auto vertex_property_sampler(vertex_property_t<T> const& prop) {
+    if (m_hierarchy == nullptr) {
+      build_hierarchy();
+    }
+    return vertex_property_sampler_t<T>{*this, prop};
   }
   //----------------------------------------------------------------------------
   template <typename T>
   auto vertex_property_sampler(std::string const& name) {
-    return vertex_property_sampler_t<T>{*this, this->template vertex_property<T>(name)};
+    if (m_hierarchy == nullptr) {
+      build_hierarchy();
+    }
+    return vertex_property_sampler_t<T>{
+        *this, this->template vertex_property<T>(name)};
   }
   //----------------------------------------------------------------------------
   template <typename = void>
-  requires (N == 2) || (N == 3)
-  auto write_vtk(std::string const& path,
-                 std::string const& title = "tatooine triangular mesh") const
-      -> bool {
+      requires(N == 2) ||
+      (N == 3) auto write_vtk(
+          std::string const& path,
+          std::string const& title = "tatooine triangular mesh") const -> bool {
     using boost::copy;
     using boost::adaptors::transformed;
     vtk::legacy_file_writer writer(path, vtk::POLYDATA);
@@ -276,8 +353,9 @@ class triangular_mesh : public pointset<Real, N> {
 
       std::vector<std::vector<size_t>> polygons;
       polygons.reserve(num_triangles());
-      for (size_t i = 0; i < size(m_triangle_indices); i+=3) {
-        polygons.push_back(std::vector{m_triangle_indices[i].i, m_triangle_indices[i + 1].i,
+      for (size_t i = 0; i < size(m_triangle_indices); i += 3) {
+        polygons.push_back(std::vector{m_triangle_indices[i].i,
+                                       m_triangle_indices[i + 1].i,
                                        m_triangle_indices[i + 2].i});
       }
       writer.write_polygons(polygons);
@@ -308,13 +386,15 @@ class triangular_mesh : public pointset<Real, N> {
   auto read(std::filesystem::path const& path) {
     auto const ext = path.extension();
     if constexpr (N == 2 || N == 3) {
-      if (ext == "vtk") { read_vtk(path); }
+      if (ext == "vtk") {
+        read_vtk(path);
+      }
     }
   }
   //----------------------------------------------------------------------------
   template <typename = void>
-  requires (N == 2) || (N == 3)
-  auto read_vtk(std::filesystem::path const& path) {
+      requires(N == 2) ||
+      (N == 3) auto read_vtk(std::filesystem::path const& path) {
     struct listener_t : vtk::legacy_file_listener {
       triangular_mesh& mesh;
 
@@ -328,10 +408,14 @@ class triangular_mesh : public pointset<Real, N> {
       }
 
       void on_points(std::vector<std::array<float, 3>> const& ps) override {
-        for (auto& p : ps) { mesh.insert_vertex(p[0], p[1], p[2]); }
+        for (auto& p : ps) {
+          mesh.insert_vertex(p[0], p[1], p[2]);
+        }
       }
       void on_points(std::vector<std::array<double, 3>> const& ps) override {
-        for (auto& p : ps) { mesh.insert_vertex(p[0], p[1], p[2]); }
+        for (auto& p : ps) {
+          mesh.insert_vertex(p[0], p[1], p[2]);
+        }
       }
       void on_polygons(std::vector<int> const& ps) override {
         for (size_t i = 0; i < ps.size();) {
@@ -350,7 +434,9 @@ class triangular_mesh : public pointset<Real, N> {
         if (data == vtk::POINT_DATA) {
           if (num_comps == 1) {
             auto& prop = mesh.template add_vertex_property<double>(data_name);
-            for (size_t i = 0; i < prop.size(); ++i) { prop[i] = scalars[i]; }
+            for (size_t i = 0; i < prop.size(); ++i) {
+              prop[i] = scalars[i];
+            }
           } else if (num_comps == 2) {
             auto& prop =
                 mesh.template add_vertex_property<vec<double, 2>>(data_name);
@@ -387,23 +473,23 @@ class triangular_mesh : public pointset<Real, N> {
   //----------------------------------------------------------------------------
   template <typename T>
   auto triangle_property(std::string const& name) -> auto& {
-    auto prop = m_triangle_properties.at(name).get();
-    auto casted_prop =  dynamic_cast<triangle_property_t<T>*>(prop);
+    auto prop        = m_triangle_properties.at(name).get();
+    auto casted_prop = dynamic_cast<triangle_property_t<T>*>(prop);
     assert(typeid(T) == casted_prop->type());
     return *casted_prop;
   }
   //----------------------------------------------------------------------------
   template <typename T>
   auto triangle_property(std::string const& name) const -> auto const& {
-    auto prop = m_triangle_properties.at(name).get();
-    auto casted_prop =  dynamic_cast<triangle_property_t<T> const*>(prop);
+    auto prop        = m_triangle_properties.at(name).get();
+    auto casted_prop = dynamic_cast<triangle_property_t<T> const*>(prop);
     assert(typeid(T) == casted_prop->type());
     return *casted_prop;
   }
   //----------------------------------------------------------------------------
   template <typename T>
-  auto add_triangle_property(std::string const& name,
-                                 T const&           value = T{}) -> auto& {
+  auto add_triangle_property(std::string const& name, T const& value = T{})
+      -> auto& {
     auto [it, suc] = m_triangle_properties.insert(
         std::pair{name, std::make_unique<triangle_property_t<T>>(value)});
     auto fprop = dynamic_cast<triangle_property_t<T>*>(it->second.get());
@@ -412,8 +498,7 @@ class triangular_mesh : public pointset<Real, N> {
   }
   //----------------------------------------------------------------------------
   constexpr bool is_valid(triangle_index t) const {
-    return boost::find(m_invalid_triangles, t) ==
-           end(m_invalid_triangles);
+    return boost::find(m_invalid_triangles, t) == end(m_invalid_triangles);
   }
 };
 //==============================================================================
