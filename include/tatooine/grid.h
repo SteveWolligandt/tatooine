@@ -20,25 +20,25 @@
 //==============================================================================
 namespace tatooine {
 //==============================================================================
-template <size_t N, template <typename> typename DefaultInterpolationKernel,
-          typename Grid, typename Container,
-          template <typename> typename... InterpolationKernels>
-struct default_grid_vertex_property {
-  template <template <typename> typename... _InterpolationKernels>
-  using vertex_property_t =
-      grid_vertex_property<Grid, Container, _InterpolationKernels...>;
-  using type = typename default_grid_vertex_property<
-      N - 1, DefaultInterpolationKernel, Grid, Container,
-      InterpolationKernels..., DefaultInterpolationKernel>::type;
-};
-// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-template <template <typename> typename DefaultInterpolationKernel,
-          typename Grid, typename Container,
-          template <typename> typename... InterpolationKernels>
-struct default_grid_vertex_property<0, DefaultInterpolationKernel, Grid,
-                                    Container, InterpolationKernels...> {
-  using type = grid_vertex_property<Grid, Container, InterpolationKernels...>;
-};
+//template <size_t N, template <typename> typename DefaultInterpolationKernel,
+//          typename Grid, typename Container,
+//          template <typename> typename... InterpolationKernels>
+//struct default_grid_vertex_property_sampler {
+//  template <template <typename> typename... _InterpolationKernels>
+//  using vertex_property_t =
+//      grid_vertex_property<Grid, Container, _InterpolationKernels...>;
+//  using type = typename default_grid_vertex_property_sampler<
+//      N - 1, DefaultInterpolationKernel, Grid, Container,
+//      InterpolationKernels..., DefaultInterpolationKernel>::type;
+//};
+//// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+//template <template <typename> typename DefaultInterpolationKernel,
+//          typename Grid, typename Container,
+//          template <typename> typename... InterpolationKernels>
+//struct default_grid_vertex_property_sampler<0, DefaultInterpolationKernel, Grid,
+//                                    Container, InterpolationKernels...> {
+//  using type = grid_vertex_property<Grid, Container, InterpolationKernels...>;
+//};
 //==============================================================================
 /// When using GCC you have to specify Dimensions types by hand. This is a known
 /// GCC bug (80438)
@@ -590,21 +590,34 @@ class grid {
         std::forward<AdditionalDimension>(additional_dimension), seq_t{});
   }
   //----------------------------------------------------------------------------
-  template <typename Container,
-            template <typename> typename... InterpolationKernels,
-            typename... Args>
+  template <template <typename> typename... InterpolationKernels>
+  auto vertex_property_sampler(std::string const& name) /*-> auto&*/ {
+    //static_assert(
+    //    sizeof...(InterpolationKernels) == num_dimensions() ||
+    //        sizeof...(InterpolationKernels) == 0,
+    //    "Number of interpolation kernels does not match number of dimensions.");
+    //using prop_t = std::conditional_t<
+    //    sizeof...(InterpolationKernels) == 0,
+    //    typename default_grid_vertex_property_sampler<num_dimensions(),
+    //                                          default_interpolation_kernel_t,
+    //                                          this_t, Container>::type,
+    //    vertex_property_t<Container, InterpolationKernels...>>;
+    //update_diff_stencil_coefficients();
+    //if (auto it = m_vertex_properties.find(name);
+    //    it == end(m_vertex_properties)) {
+    //  auto new_prop = new prop_t{*this, std::forward<Args>(args)...};
+    //  m_vertex_properties.emplace(name, std::unique_ptr<property_t>{new_prop});
+    //  // if constexpr (sizeof...(Args) == 0) {
+    //  new_prop->resize(size());
+    //  //}
+    //  return *new_prop;
+    //} else {
+    //  return *dynamic_cast<prop_t*>(it->second.get());
+    //}
+  }
+  //----------------------------------------------------------------------------
+  template <typename Container, typename... Args>
   auto add_vertex_property(std::string const& name, Args&&... args) -> auto& {
-    static_assert(
-        sizeof...(InterpolationKernels) == num_dimensions() ||
-            sizeof...(InterpolationKernels) == 0,
-        "Number of interpolation kernels does not match number of dimensions.");
-    using prop_t = std::conditional_t<
-        sizeof...(InterpolationKernels) == 0,
-        typename default_grid_vertex_property<num_dimensions(),
-                                              default_interpolation_kernel_t,
-                                              this_t, Container>::type,
-        vertex_property_t<Container, InterpolationKernels...>>;
-    update_diff_stencil_coefficients();
     if (auto it = m_vertex_properties.find(name);
         it == end(m_vertex_properties)) {
       auto new_prop = new prop_t{*this, std::forward<Args>(args)...};
