@@ -146,12 +146,15 @@ auto main(int argc, char** argv) -> int {
   //----------------------------------------------------------------------------
   grid  regular_grid{linspace{0.0, 2.0, args.width},
                     linspace{0.0, 1.0, args.height}};
-  auto& regular_sampled_flowmap = regular_grid.add_contiguous_vertex_property<
-      vec2, x_fastest, interpolation::linear, interpolation::linear>("flowmap");
+  auto& regular_sampled_flowmap =
+      regular_grid.add_vertex_property<vec2, x_fastest>("flowmap");
   regular_grid.loop_over_vertex_indices([&](auto const... is) {
-    regular_sampled_flowmap.set_data_at(
-        numerical_flowmap(regular_grid(is...), args.t0, args.tau), is...);
+    regular_sampled_flowmap(is...) =
+        numerical_flowmap(regular_grid(is...), args.t0, args.tau);
   });
+  auto regular_flowmap_sampler =
+      regular_sampled_flowmap
+          .sampler<interpolation::linear, interpolation::linear>();
 
   //----------------------------------------------------------------------------
   // build samplable discretized flowmap
@@ -172,7 +175,7 @@ auto main(int argc, char** argv) -> int {
     try {
       auto const autonomous_particles_sampled_advection =
           flowmap_sampler_autonomous_particles(x);
-      auto const regular_sampled_advection = regular_sampled_flowmap.sample(x);
+      auto const regular_sampled_advection = regular_flowmap_sampler(x);
       auto const numerical_advection = numerical_flowmap(x, args.t0, args.tau);
       autonomous_particles_errors.push_back(distance(
           autonomous_particles_sampled_advection, numerical_advection));

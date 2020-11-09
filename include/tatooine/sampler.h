@@ -62,7 +62,9 @@ struct base_sampler : crtp<Sampler> {
   static constexpr auto current_dimension_index() {
     return Sampler::current_dimension_index();
   }
-  static constexpr auto num_dimensions() { return Sampler::num_dimensions(); }
+  static constexpr auto num_dimensions() {
+    return sizeof...(TailInterpolationKernels) + 1;
+  }
   static constexpr auto num_components() {
     return num_components_v<value_type>;
   }
@@ -254,10 +256,29 @@ struct base_sampler : crtp<Sampler> {
     return sample(std::make_index_sequence<num_dimensions()>{}, xs...);
   }
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+  template <typename Tensor, real_number TensorReal, size_t... Is>
+  constexpr auto sample(
+      base_tensor<Tensor, TensorReal, num_dimensions()> const& x,
+      std::index_sequence<Is...>                               seq) const {
+    return sample(seq, x(Is)...);
+  }
+  // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+  template <typename Tensor, real_number TensorReal>
+  constexpr auto sample(
+      base_tensor<Tensor, TensorReal, num_dimensions()>const& x) const {
+    return sample(x, std::make_index_sequence<num_dimensions()>{});
+  }
+  // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
   constexpr auto operator()(real_number auto const... xs) const {
     static_assert(sizeof...(xs) == num_dimensions(),
                   "Number of coordinates does not match number of dimensions.");
     return sample(std::make_index_sequence<num_dimensions()>{}, xs...);
+  }
+  // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+  template <typename Tensor, real_number TensorReal>
+  constexpr auto operator()(
+      base_tensor<Tensor, TensorReal, num_dimensions()> const& x) const {
+    return sample(x);
   }
 };
 //==============================================================================
@@ -278,7 +299,7 @@ struct sampler
   static constexpr size_t current_dimension_index() { return 0; }
   //----------------------------------------------------------------------------
   static constexpr auto num_dimensions() {
-    return GridVertexProperty::num_dimensions();
+    return sizeof...(InterpolationKernels);
   }
   //----------------------------------------------------------------------------
   static_assert(std::is_floating_point_v<internal_data_type_t<value_type>>);
