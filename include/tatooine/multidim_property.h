@@ -8,6 +8,34 @@
 //==============================================================================
 namespace tatooine {
 //==============================================================================
+template <size_t N, template <typename> typename DefaultInterpolationKernel,
+          typename GridVertexProperty,
+          template <typename> typename... InterpolationKernels>
+struct default_multidim_property_sampler {
+  template <template <typename> typename... _InterpolationKernels>
+  using vertex_property_t =
+      sampler<GridVertexProperty, _InterpolationKernels...>;
+  using type = typename default_multidim_property_sampler<
+      N - 1, DefaultInterpolationKernel, GridVertexProperty,
+      InterpolationKernels..., DefaultInterpolationKernel>::type;
+};
+// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+template <template <typename> typename DefaultInterpolationKernel,
+          typename GridVertexProperty,
+          template <typename> typename... InterpolationKernels>
+struct default_multidim_property_sampler<0, DefaultInterpolationKernel,
+                                         GridVertexProperty,
+                                         InterpolationKernels...> {
+  using type = sampler<GridVertexProperty, InterpolationKernels...>;
+};
+template <size_t N, template <typename> typename DefaultInterpolationKernel,
+          typename GridVertexProperty,
+          template <typename> typename... InterpolationKernels>
+using default_multidim_property_sampler_t =
+    typename default_multidim_property_sampler<N, DefaultInterpolationKernel,
+                                               GridVertexProperty,
+                                               InterpolationKernels...>::type;
+//==============================================================================
 template <typename Grid>
 struct multidim_property {
   //============================================================================
@@ -53,6 +81,7 @@ struct typed_multidim_property : multidim_property<Grid> {
   using grid_t        = Grid;
   using parent_t::num_dimensions;
   using parent_t::grid;
+
   //============================================================================
   // ctors
   //============================================================================
@@ -71,34 +100,25 @@ struct typed_multidim_property : multidim_property<Grid> {
   //----------------------------------------------------------------------------
   template <template <typename> typename... InterpolationKernels>
   auto sampler() const {
-    // static_assert(
-    //    sizeof...(InterpolationKernels) == num_dimensions() ||
-    //        sizeof...(InterpolationKernels) == 0,
-    //    "Number of interpolation kernels does not match number of
-    //    dimensions.");
-    // using prop_t = std::conditional_t<
-    //    sizeof...(InterpolationKernels) == 0,
-    //    typename default_grid_vertex_property_sampler<num_dimensions(),
-    //                                          default_interpolation_kernel_t,
-    //                                          this_t, Container>::type,
-    //    vertex_property_t<Container, InterpolationKernels...>>;
-    // update_diff_stencil_coefficients();
-    // if (auto it = m_vertex_properties.find(name);
-    //    it == end(m_vertex_properties)) {
-    //  auto new_prop = new prop_t{*this, std::forward<Args>(args)...};
-    //  m_vertex_properties.emplace(name,
-    //  std::unique_ptr<property_t>{new_prop});
-    //  // if constexpr (sizeof...(Args) == 0) {
-    //  new_prop->resize(size());
-    //  //}
-    //  return *new_prop;
-    //} else {
-    //  return *dynamic_cast<prop_t*>(it->second.get());
-    //}
     if (!grid().diff_stencil_coefficients_created_once()) {
       grid().update_diff_stencil_coefficients();
     }
-    return tatooine::sampler<this_t, InterpolationKernels...>{*this};
+    static_assert(
+        sizeof...(InterpolationKernels) == 0 ||
+        //sizeof...(InterpolationKernels) == 1 ||
+        sizeof...(InterpolationKernels) == num_dimensions(),
+        "Number of interpolation kernels does not match number of dimensions.");
+    using sampler_t =
+      // if no interpolation kernels are given take cubic as default in every dimensions.
+      std::conditional_t<sizeof...(InterpolationKernels) == 0,
+      default_multidim_property_sampler_t<num_dimensions(), interpolation::cubic, this_t>,
+      //// if one interpolation kernel is given take this one in every dimensions.
+      //std::conditional_t<sizeof...(InterpolationKernels) == 1,
+      //default_multidim_property_sampler_t<num_dimensions(), InterpolationKernels..., this_t>,
+      // else take specified kernels.
+      tatooine::sampler<this_t, InterpolationKernels...>>/*>*/;
+    grid().update_diff_stencil_coefficients();
+    return sampler_t{*this};
   }
   //----------------------------------------------------------------------------
   // data access

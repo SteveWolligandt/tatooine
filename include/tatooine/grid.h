@@ -20,28 +20,6 @@
 //==============================================================================
 namespace tatooine {
 //==============================================================================
-// template <size_t N, template <typename> typename DefaultInterpolationKernel,
-//          typename Grid, typename Container,
-//          template <typename> typename... InterpolationKernels>
-// struct default_grid_vertex_property_sampler {
-//  template <template <typename> typename... _InterpolationKernels>
-//  using vertex_property_t =
-//      grid_vertex_property<Grid, Container, _InterpolationKernels...>;
-//  using type = typename default_grid_vertex_property_sampler<
-//      N - 1, DefaultInterpolationKernel, Grid, Container,
-//      InterpolationKernels..., DefaultInterpolationKernel>::type;
-//};
-//// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-///-
-// template <template <typename> typename DefaultInterpolationKernel,
-//          typename Grid, typename Container,
-//          template <typename> typename... InterpolationKernels>
-// struct default_grid_vertex_property_sampler<0, DefaultInterpolationKernel,
-// Grid,
-//                                    Container, InterpolationKernels...> {
-//  using type = grid_vertex_property<Grid, Container, InterpolationKernels...>;
-//};
-//==============================================================================
 /// When using GCC you have to specify Dimensions types by hand. This is a known
 /// GCC bug (80438)
 template <indexable_space... Dimensions>
@@ -63,9 +41,6 @@ class grid {
 
   using vertex_iterator  = grid_vertex_iterator<Dimensions...>;
   using vertex_container = grid_vertex_container<Dimensions...>;
-
-  template <typename ValueType>
-  using default_interpolation_kernel_t = interpolation::cubic<ValueType>;
 
   // general property types
   using property_t = multidim_property<this_t>;
