@@ -67,8 +67,8 @@ struct chunked_multidim_array {
   }
   //----------------------------------------------------------------------------
   template <range SizeRange, range ChunkSizeRange>
-  requires (std::is_integral_v<typename SizeRange::value_type>) &&
-           (std::is_integral_v<typename ChunkSizeRange::value_type>)
+  requires (std::is_integral_v<typename std::decay_t<SizeRange>::value_type>) &&
+           (std::is_integral_v<typename std::decay_t<ChunkSizeRange>::value_type>)
   chunked_multidim_array(SizeRange&& size, ChunkSizeRange&& chunk_size) {
     resize(std::forward<SizeRange>(size),
            std::forward<ChunkSizeRange>(chunk_size));
@@ -90,7 +90,7 @@ struct chunked_multidim_array {
   }
   //==============================================================================
   template <range SizeRange>
-  requires (std::is_integral_v<typename SizeRange::value_type>)
+  requires (std::is_integral_v<typename std::decay_t<SizeRange>::value_type>)
   void resize(SizeRange&& size) {
     // apply full size
     m_data_structure.resize(size);
@@ -107,8 +107,10 @@ struct chunked_multidim_array {
   }
   //----------------------------------------------------------------------------
   template <range SizeRange, range ChunkSizeRange>
-  requires (std::is_integral_v<typename SizeRange::value_type>) &&
-           (std::is_integral_v<typename ChunkSizeRange::value_type>)
+  requires (std::is_integral_v<
+              typename std::decay_t<SizeRange>::value_type>) &&
+           (std::is_integral_v<
+              typename std::decay_t<ChunkSizeRange>::value_type>)
   void resize(SizeRange&& size, ChunkSizeRange&& chunk_size) {
     m_internal_chunk_size.resize(chunk_size.size());
     std::ranges::copy(chunk_size, begin(m_internal_chunk_size));

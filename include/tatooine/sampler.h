@@ -267,6 +267,8 @@ struct sampler
     : base_sampler<sampler<GridVertexProperty, InterpolationKernels...>,
                    typename GridVertexProperty::value_type,
                    InterpolationKernels...> {
+  static_assert(sizeof...(InterpolationKernels) ==
+                GridVertexProperty::num_dimensions());
   using property_t = GridVertexProperty;
   using this_t     = sampler<property_t, InterpolationKernels...>;
   using parent_t = base_sampler<this_t, typename GridVertexProperty::value_type,
@@ -276,7 +278,7 @@ struct sampler
   static constexpr size_t current_dimension_index() { return 0; }
   //----------------------------------------------------------------------------
   static constexpr auto num_dimensions() {
-    return sizeof...(InterpolationKernels);
+    return GridVertexProperty::num_dimensions();
   }
   //----------------------------------------------------------------------------
   static_assert(std::is_floating_point_v<internal_data_type_t<value_type>>);
