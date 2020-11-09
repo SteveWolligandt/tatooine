@@ -61,7 +61,7 @@ void autonomous_particles_renderer::load_data() {
   auto run = [node = this] {
     netcdf::file f_in{
         "/home/steve/libs/tatooine2/build/autonomous_particles/"
-        "dg_grid_advected.nc",
+        "dg_grid_back_calculation.nc",
         netCDF::NcFile::read};
     auto var = f_in.variable<float>("transformations");
     node->m_gpu_Ss.resize(var.size(0));
