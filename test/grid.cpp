@@ -5,6 +5,20 @@
 //==============================================================================
 namespace tatooine::test {
 //==============================================================================
+TEST_CASE("grid_copy_constructor", "[grid][copy][constructor]") {
+  std::array                           dim0{0, 1, 2};
+  std::array                           dim1{0, 1, 2};
+  grid<decltype(dim0), decltype(dim1)> g0{dim0, dim1};
+  auto& prop = g0.add_contiguous_vertex_property<double, x_fastest>("prop");
+
+  prop(0, 0)      = 100;
+  auto  g1        = g0;
+  auto& prop_copy = g1.vertex_property<double>("prop");
+  REQUIRE(prop(0, 0) == prop_copy(0, 0));
+  prop(0, 0) = 0;
+  REQUIRE_FALSE(prop(0, 0) == prop_copy(0, 0));
+}
+//==============================================================================
 TEST_CASE("grid_vertex_indexing", "[grid][vertex][indexing]") {
   std::array                                           dim0{0, 1, 2};
   std::vector                                          dim1{0, 1, 2};
