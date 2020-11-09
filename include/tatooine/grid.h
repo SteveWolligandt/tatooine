@@ -7,9 +7,9 @@
 #include <tatooine/for_loop.h>
 #include <tatooine/grid_vertex_container.h>
 #include <tatooine/grid_vertex_iterator.h>
-#include <tatooine/grid_vertex_property.h>
 #include <tatooine/interpolation.h>
 #include <tatooine/linspace.h>
+#include <tatooine/multidim_property.h>
 #include <tatooine/random.h>
 #include <tatooine/template_helper.h>
 #include <tatooine/vec.h>
@@ -20,25 +20,27 @@
 //==============================================================================
 namespace tatooine {
 //==============================================================================
-template <size_t N, template <typename> typename DefaultInterpolationKernel,
-          typename Grid, typename Container,
-          template <typename> typename... InterpolationKernels>
-struct default_grid_vertex_property {
-  template <template <typename> typename... _InterpolationKernels>
-  using vertex_property_t =
-      grid_vertex_property<Grid, Container, _InterpolationKernels...>;
-  using type = typename default_grid_vertex_property<
-      N - 1, DefaultInterpolationKernel, Grid, Container,
-      InterpolationKernels..., DefaultInterpolationKernel>::type;
-};
-// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-template <template <typename> typename DefaultInterpolationKernel,
-          typename Grid, typename Container,
-          template <typename> typename... InterpolationKernels>
-struct default_grid_vertex_property<0, DefaultInterpolationKernel, Grid,
-                                    Container, InterpolationKernels...> {
-  using type = grid_vertex_property<Grid, Container, InterpolationKernels...>;
-};
+// template <size_t N, template <typename> typename DefaultInterpolationKernel,
+//          typename Grid, typename Container,
+//          template <typename> typename... InterpolationKernels>
+// struct default_grid_vertex_property_sampler {
+//  template <template <typename> typename... _InterpolationKernels>
+//  using vertex_property_t =
+//      grid_vertex_property<Grid, Container, _InterpolationKernels...>;
+//  using type = typename default_grid_vertex_property_sampler<
+//      N - 1, DefaultInterpolationKernel, Grid, Container,
+//      InterpolationKernels..., DefaultInterpolationKernel>::type;
+//};
+//// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+///-
+// template <template <typename> typename DefaultInterpolationKernel,
+//          typename Grid, typename Container,
+//          template <typename> typename... InterpolationKernels>
+// struct default_grid_vertex_property_sampler<0, DefaultInterpolationKernel,
+// Grid,
+//                                    Container, InterpolationKernels...> {
+//  using type = grid_vertex_property<Grid, Container, InterpolationKernels...>;
+//};
 //==============================================================================
 /// When using GCC you have to specify Dimensions types by hand. This is a known
 /// GCC bug (80438)
@@ -62,40 +64,25 @@ class grid {
   using vertex_iterator  = grid_vertex_iterator<Dimensions...>;
   using vertex_container = grid_vertex_container<Dimensions...>;
 
-  template <typename T>
-  using default_interpolation_kernel_t = interpolation::cubic<T>;
+  template <typename ValueType>
+  using default_interpolation_kernel_t = interpolation::cubic<ValueType>;
 
   // general property types
   using property_t = multidim_property<this_t>;
-  template <typename T>
-  using typed_property_t     = typed_multidim_property<this_t, T>;
+  template <typename ValueType>
+  using typed_property_t = typed_multidim_property<this_t, ValueType>;
+  template <typename Container>
+  using typed_property_impl_t =
+      typed_multidim_property_impl<this_t, typename Container::value_type,
+                                   Container>;
   using property_ptr_t       = std::unique_ptr<property_t>;
   using property_container_t = std::map<std::string, property_ptr_t>;
-
-  //----------------------------------------------------------------------------
-  // vertex properties
-  template <typename Container,
-            template <typename> typename... InterpolationKernels>
-  using vertex_property_t =
-      grid_vertex_property<this_t, Container, InterpolationKernels...>;
-  // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-  template <typename T, typename Indexing,
-            template <typename> typename... InterpolationKernels>
-  using chunked_vertex_property_t =
-      vertex_property_t<chunked_multidim_array<T, Indexing>,
-                        InterpolationKernels...>;
-  // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-  template <typename T, typename Indexing,
-            template <typename> typename... InterpolationKernels>
-  using contiguous_vertex_property_t =
-      vertex_property_t<dynamic_multidim_array<T, Indexing>,
-                        InterpolationKernels...>;
-
   //============================================================================
  private:
   dimensions_t         m_dimensions;
   property_container_t m_vertex_properties;
-  std::array<std::vector<std::vector<double>>, num_dimensions()>
+  mutable bool         m_diff_stencil_coefficients_created_once = false;
+  mutable std::array<std::vector<std::vector<double>>, num_dimensions()>
       m_diff_stencil_coefficients_n1_0_p1, m_diff_stencil_coefficients_n2_n1_0,
       m_diff_stencil_coefficients_0_p1_p2, m_diff_stencil_coefficients_0_p1,
       m_diff_stencil_coefficients_n1_0;
@@ -122,10 +109,9 @@ class grid {
   //----------------------------------------------------------------------------
   /// The enable if is needed due to gcc bug 80871. See here:
   /// https://stackoverflow.com/questions/46848129/variadic-deduction-guide-not-taken-by-g-taken-by-clang-who-is-correct
-  template <typename... _Dimensions,
-            std::enable_if_t<sizeof...(_Dimensions) == sizeof...(Dimensions),
-                             bool> = true>
-  constexpr grid(_Dimensions&&... dimensions)
+  template <typename... _Dimensions>
+  requires(sizeof...(_Dimensions) ==
+           sizeof...(Dimensions)) constexpr grid(_Dimensions&&... dimensions)
       : m_dimensions{std::forward<_Dimensions>(dimensions)...} {
     static_assert(sizeof...(_Dimensions) == num_dimensions(),
                   "Number of given dimensions does not match number of "
@@ -248,9 +234,10 @@ class grid {
     return dimension<I>().size();
   }
   //----------------------------------------------------------------------------
-  template <size_t I, typename _T = template_helper::get_t<I, Dimensions...>,
-            std::enable_if_t<std::is_reference_v<_T>, bool> = true>
-  constexpr auto size() -> auto& {
+  template <size_t I>
+  requires std::is_reference_v<
+      template_helper::get_t<I, Dimensions...>> constexpr auto
+  size() -> auto& {
     return dimension<I>().size();
   }
   //----------------------------------------------------------------------------
@@ -374,22 +361,28 @@ class grid {
     return m_diff_stencil_coefficients_0_p1_p2[dim_index][i];
   }
   //----------------------------------------------------------------------------
+  constexpr auto diff_stencil_coefficients_created_once() const {
+    return m_diff_stencil_coefficients_created_once;
+  }
+  //----------------------------------------------------------------------------
   template <size_t... Ds>
-  auto update_diff_stencil_coefficients(std::index_sequence<Ds...> /*seq*/) {
+  auto update_diff_stencil_coefficients(
+      std::index_sequence<Ds...> /*seq*/) const {
     (update_diff_stencil_coefficients_n1_0_p1<Ds>(), ...);
     (update_diff_stencil_coefficients_0_p1_p2<Ds>(), ...);
     (update_diff_stencil_coefficients_n2_n1_0<Ds>(), ...);
     (update_diff_stencil_coefficients_0_p1<Ds>(), ...);
     (update_diff_stencil_coefficients_n1_0<Ds>(), ...);
+    m_diff_stencil_coefficients_created_once = true;
   }
-
-  auto update_diff_stencil_coefficients() {
+  // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+  auto update_diff_stencil_coefficients() const {
     update_diff_stencil_coefficients(
         std::make_index_sequence<num_dimensions()>{});
   }
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
   template <size_t D>
-  auto update_diff_stencil_coefficients_n1_0_p1() {
+  auto update_diff_stencil_coefficients_n1_0_p1() const {
     auto const& dim = dimension<D>();
     m_diff_stencil_coefficients_n1_0_p1[D].resize(dim.size());
 
@@ -406,7 +399,7 @@ class grid {
   }
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
   template <size_t D>
-  auto update_diff_stencil_coefficients_0_p1_p2() {
+  auto update_diff_stencil_coefficients_0_p1_p2() const {
     auto const& dim = dimension<D>();
     m_diff_stencil_coefficients_0_p1_p2[D].resize(dim.size());
 
@@ -423,7 +416,7 @@ class grid {
   }
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
   template <size_t D>
-  auto update_diff_stencil_coefficients_n2_n1_0() {
+  auto update_diff_stencil_coefficients_n2_n1_0() const {
     auto const& dim = dimension<D>();
     m_diff_stencil_coefficients_n2_n1_0[D].resize(dim.size());
 
@@ -440,7 +433,7 @@ class grid {
   }
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
   template <size_t D>
-  auto update_diff_stencil_coefficients_0_p1() {
+  auto update_diff_stencil_coefficients_0_p1() const {
     auto const& dim = dimension<D>();
     m_diff_stencil_coefficients_0_p1[D].resize(dim.size());
 
@@ -457,7 +450,7 @@ class grid {
   }
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
   template <size_t D>
-  auto update_diff_stencil_coefficients_n1_0() {
+  auto update_diff_stencil_coefficients_n1_0() const {
     auto const& dim = dimension<D>();
     m_diff_stencil_coefficients_n1_0[D].resize(dim.size());
 
@@ -590,57 +583,66 @@ class grid {
         std::forward<AdditionalDimension>(additional_dimension), seq_t{});
   }
   //----------------------------------------------------------------------------
-  template <typename Container,
-            template <typename> typename... InterpolationKernels,
-            typename... Args>
-  auto add_vertex_property(std::string const& name, Args&&... args) -> auto& {
-    static_assert(
-        sizeof...(InterpolationKernels) == num_dimensions() ||
-            sizeof...(InterpolationKernels) == 0,
-        "Number of interpolation kernels does not match number of dimensions.");
-    using prop_t = std::conditional_t<
-        sizeof...(InterpolationKernels) == 0,
-        typename default_grid_vertex_property<num_dimensions(),
-                                              default_interpolation_kernel_t,
-                                              this_t, Container>::type,
-        vertex_property_t<Container, InterpolationKernels...>>;
-    update_diff_stencil_coefficients();
+  template <typename Container, typename... Args>
+  auto create_vertex_property(std::string const& name, Args&&... args) -> auto& {
     if (auto it = m_vertex_properties.find(name);
         it == end(m_vertex_properties)) {
-      auto new_prop = new prop_t{*this, std::forward<Args>(args)...};
+      auto new_prop = new typed_property_impl_t<Container>{
+          *this, std::forward<Args>(args)...};
       m_vertex_properties.emplace(name, std::unique_ptr<property_t>{new_prop});
-      // if constexpr (sizeof...(Args) == 0) {
-      new_prop->resize(size());
-      //}
+      if constexpr (sizeof...(Args) == 0) {
+        new_prop->resize(size());
+      }
       return *new_prop;
     } else {
-      return *dynamic_cast<prop_t*>(it->second.get());
+      if (it->second->container_type() != typeid(Container)) {
+        throw std::runtime_error{
+            "Queried container type does not match already inserted property "
+            "container type."};
+      }
+      return *dynamic_cast<typed_property_impl_t<Container>*>(it->second.get());
     }
   }
   //----------------------------------------------------------------------------
-  template <typename T, typename Indexing = x_fastest,
-            template <typename> typename... InterpolationKernels>
-  auto add_contiguous_vertex_property(std::string const& name) -> auto& {
-    static_assert(sizeof...(InterpolationKernels) == num_dimensions() ||
-                      sizeof...(InterpolationKernels) == 0,
-                  "Number of interpolation kernels does not match number of "
-                  "dimensions.");
-    return add_vertex_property<dynamic_multidim_array<T, Indexing>,
-                               InterpolationKernels...>(name, size());
+  template <typename T, typename Indexing = x_fastest>
+  auto add_vertex_property(std::string const& name) -> auto& {
+    return add_contiguous_vertex_property<T, Indexing>(name);
   }
   //----------------------------------------------------------------------------
-  template <typename T, typename Indexing = x_fastest,
-            template <typename> typename... InterpolationKernels>
+  template <typename T, typename Indexing = x_fastest>
+  auto add_contiguous_vertex_property(std::string const& name) -> auto& {
+    return create_vertex_property<dynamic_multidim_array<T, Indexing>>(name,
+                                                                    size());
+  }
+  //----------------------------------------------------------------------------
+  template <typename T, typename Indexing = x_fastest>
   auto add_chunked_vertex_property(std::string const&         name,
                                    std::vector<size_t> const& chunk_size)
       -> auto& {
-    static_assert(sizeof...(InterpolationKernels) == num_dimensions() ||
-                      sizeof...(InterpolationKernels) == 0,
-                  "Number of interpolation kernels does not match number of "
-                  "dimensions.");
-    return add_vertex_property<chunked_multidim_array<T, Indexing>,
-                               InterpolationKernels...>(name, size(),
-                                                        chunk_size);
+    return create_vertex_property<chunked_multidim_array<T, Indexing>>(
+        name, size(), chunk_size);
+  }
+  // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+  template <typename T, typename Indexing = x_fastest>
+  auto add_chunked_vertex_property(
+      std::string const&                          name,
+      std::array<size_t, num_dimensions()> const& chunk_size) -> auto& {
+    return create_vertex_property<chunked_multidim_array<T, Indexing>>(
+        name, size(), chunk_size);
+  }
+  // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+  template <typename T, typename Indexing = x_fastest, integral... ChunkSize>
+  requires(sizeof...(ChunkSize) == num_dimensions())
+  auto add_chunked_vertex_property(std::string const& name,
+                                   ChunkSize const... chunk_size) -> auto& {
+    return create_vertex_property<chunked_multidim_array<T, Indexing>>(
+        name, size(), std::vector<size_t>{static_cast<size_t>(chunk_size)...});
+  }
+  // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+  template <typename T, typename Indexing = x_fastest>
+  auto add_chunked_vertex_property(std::string const& name) -> auto& {
+    return create_vertex_property<chunked_multidim_array<T, Indexing>>(
+        name, size(), make_array<num_dimensions()>(size_t(10)));
   }
   //----------------------------------------------------------------------------
   template <typename T>
@@ -675,17 +677,16 @@ class grid {
     }
   }
   //----------------------------------------------------------------------------
-  template <typename T, size_t _N = num_dimensions(),
-            std::enable_if_t<_N == 3, bool> = true>
+  template <typename T>
+  requires(num_dimensions() == 3)
   void write_amira(std::string const& file_path,
-                   std::string const& vertex_property_name) const {
+                               std::string const& vertex_property_name) const {
     write_amira(file_path, vertex_property<T>(vertex_property_name));
   }
   //----------------------------------------------------------------------------
-  template <typename T, bool R = is_regular, size_t _N = num_dimensions(),
-            std::enable_if_t<R, bool>       = true,
-            std::enable_if_t<_N == 3, bool> = true>
-  void write_amira(std::string const&         file_path,
+  template <typename T>
+  requires is_regular && (num_dimensions() == 3)
+  void write_amira(std::string const& file_path,
                    typed_property_t<T> const& prop) const {
     std::ofstream     outfile{file_path, std::ofstream::binary};
     std::stringstream header;
@@ -712,7 +713,7 @@ class grid {
     std::vector<T> data;
     data.reserve(size<0>() * size<1>() * size<2>());
     auto back_inserter = [&](auto const... is) {
-      data.push_back(prop.data_at(is...));
+      data.push_back(prop(is...));
     };
     for_loop(back_inserter, size<0>(), size<1>(), size<2>());
     outfile.write((char*)header_string.c_str(),

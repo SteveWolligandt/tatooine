@@ -34,8 +34,7 @@ struct polynomial {
   // ctors
   //----------------------------------------------------------------------------
  public:
-  constexpr polynomial()
-      : m_coefficients{make_array<Real, Degree + 1>(0)} {}
+  constexpr polynomial() : m_coefficients{make_array<Real, Degree + 1>()} {}
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
   constexpr polynomial(const polynomial& other) = default;
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
