@@ -4,6 +4,7 @@
 #include <tatooine/concepts.h>
 #include <tatooine/finite_differences_coefficients.h>
 #include <tatooine/write_png.h>
+#include <tatooine/sampler.h>
 //==============================================================================
 namespace tatooine {
 //==============================================================================
@@ -29,6 +30,7 @@ struct multidim_property {
   //----------------------------------------------------------------------------
   /// for identifying type.
   virtual auto type() const -> std::type_info const& = 0;
+  virtual auto container_type() const -> std::type_info const& = 0;
   //----------------------------------------------------------------------------
   virtual auto clone() const -> std::unique_ptr<this_t> = 0;
   //----------------------------------------------------------------------------
@@ -38,186 +40,193 @@ struct multidim_property {
   auto grid() const -> auto const& {
     return m_grid;
   }
-  //----------------------------------------------------------------------------
-  template <size_t DimensionIndex>
-  auto size() const {
-    return m_grid.template size<DimensionIndex>();
-  }
 };
 //==============================================================================
-template <typename Grid, typename T>
-struct typed_multidim_property : multidim_property<Grid> {
+template <typename Grid, typename Container>
+struct typed_multidim_property : multidim_property<Grid>, Container {
   //============================================================================
-  using this_t     = typed_multidim_property<Grid, T>;
-  using parent_t   = multidim_property<Grid>;
-  using value_type = T;
-  using parent_t::num_dimensions;
+  // typedefs
   //============================================================================
-  std::optional<value_type> m_out_of_domain_value;
+  using this_t        = typed_multidim_property<Grid, Container>;
+  using prop_parent_t = multidim_property<Grid>;
+  using cont_parent_t = Container;
+  using value_type    = typename Container::value_type;
+  using grid_t        = Grid;
+  using prop_parent_t::grid;
+  using prop_parent_t::num_dimensions;
   //============================================================================
-  typed_multidim_property(Grid const& grid) : parent_t{grid} {}
+  // ctors
+  //============================================================================
+  template <typename... Args>
+  explicit typed_multidim_property(Grid const& grid, Args&&... args)
+      : prop_parent_t{grid}, cont_parent_t{std::forward<Args>(args)...} {}
   typed_multidim_property(typed_multidim_property const&)     = default;
   typed_multidim_property(typed_multidim_property&&) noexcept = default;
   //----------------------------------------------------------------------------
   ~typed_multidim_property() override = default;
+  //============================================================================
+  // methods
+  //============================================================================
+  // overrides
   //----------------------------------------------------------------------------
-  const std::type_info& type() const override {
+  auto clone() const -> std::unique_ptr<multidim_property<Grid>> override {
+    return std::unique_ptr<this_t>(new this_t{*this});
+  }
+  //----------------------------------------------------------------------------
+  auto type() const -> std::type_info const& override {
     return typeid(value_type);
   }
   //----------------------------------------------------------------------------
-  virtual auto data_at(std::array<size_t, Grid::num_dimensions()> const& is)
-      const -> value_type const& = 0;
-  // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-  auto data_at(integral auto... is) const -> value_type const& {
-    static_assert(sizeof...(is) == Grid::num_dimensions(),
-                  "Number of indices does not match number of dimensions.");
-    return data_at(std::array{static_cast<size_t>(is)...});
+  auto container_type() const -> std::type_info const& override {
+    return typeid(Container);
   }
-  //----------------------------------------------------------------------------
-  virtual void set_data_at(std::array<size_t, Grid::num_dimensions()> const& is,
-                           value_type const&) = 0;
-  // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-  void set_data_at(value_type const&                                 data,
-                   std::array<size_t, Grid::num_dimensions()> const& is) {
-    set_data_at(is, data);
-  }
-  // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-  void set_data_at(value_type const& data, integral auto... is) {
-    static_assert(sizeof...(is) == Grid::num_dimensions(),
-                  "Number of indices does not match number of dimensions.");
-    return set_data_at(std::array{static_cast<size_t>(is)...}, data);
-  }
-  //----------------------------------------------------------------------------
-  auto out_of_domain_value() const -> auto const& {
-    return m_out_of_domain_value;
-  }
-  // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-  void set_out_of_domain_value(value_type const& value) {
-    m_out_of_domain_value = value;
-  }
-  // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-  void unset_out_of_domain_value() {
-    m_out_of_domain_value = {};
-  }
-  //----------------------------------------------------------------------------
-  virtual auto sample(typename Grid::pos_t const& x) const -> value_type = 0;
-  // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-  auto sample(real_number auto... xs) const -> value_type {
-    static_assert(
-        sizeof...(xs) == Grid::num_dimensions(),
-        "Number of spatial components does not match number of dimensions.");
-    return sample(typename Grid::pos_t{xs...});
-  }
-  //----------------------------------------------------------------------------
-  // template <floating_point Real, size_t DimIndex, size_t StencilSize>
-  // auto stencil_coefficients(linspace<Real> const& dim,
-  //                          integral auto const        i,
-  //                          integral auto const        num_diffs) {
-  //}
-  //----------------------------------------------------------------------------
-  template <size_t DimIndex, size_t StencilSize>
-  auto stencil_coefficients(indexable_space auto const& dim, size_t const i,
-                            unsigned int const num_diffs) const {
-    assert(num_diffs < StencilSize &&
-           "Number of differentiations must be smaller thant stencil size");
-    assert(StencilSize <= dim.size());
-    size_t left_index = std::max<long>(0, i - StencilSize / 2);
-    left_index        = std::min<long>(left_index, dim.size() - StencilSize);
-
-    vec<double, StencilSize> stencil;
-    for (size_t j = 0; j < StencilSize; ++j) {
-      stencil(j) = dim[left_index + j] - dim[i];
-    }
-    return std::pair{left_index,
-                     finite_differences_coefficients(num_diffs, stencil)};
+  template <template <typename> typename... InterpolationKernels>
+  auto sampler() const {
+    return tatooine::sampler<this_t, InterpolationKernels...>{*this};
   }
   ////----------------------------------------------------------------------------
-  // template <size_t DimIndex, size_t StencilSize>
-  // auto stencil_coefficients(size_t const i,
-  //                          unsigned int const num_diffs) const {
-  //  return stencil_coefficients<DimIndex, StencilSize>(
-  //      this->grid().template dimension<DimIndex>(), i, num_diffs);
+  //template <size_t N = num_dimensions()>
+  //requires(N == 1) || (N == 2) || (N == 3)
+  //void write_vtk(std::string const& file_path,
+  //               std::string const& description = "tatooine grid") const {
+  //  auto writer = [this, &file_path, &description] {
+  //    vtk::legacy_file_writer writer{file_path, vtk::RECTILINEAR_GRID};
+  //    writer.set_title(description);
+  //    writer.write_header();
+  //    if constexpr (Grid::is_regular) {
+  //      if constexpr (num_dimensions() == 1) {
+  //        writer.write_dimensions(grid().template size<0>(), 1, 1);
+  //        writer.write_origin(grid().template front<0>(), 0, 0);
+  //        writer.write_spacing(grid().template dimension<0>().spacing(), 0, 0);
+  //      } else if constexpr (num_dimensions() == 2) {
+  //        writer.write_dimensions(grid().template size<0>(),
+  //                                grid().template size<1>(), 1);
+  //        writer.write_origin(grid().template front<0>(),
+  //                            grid().template front<1>(), 0);
+  //        writer.write_spacing(grid().template dimension<0>().spacing(),
+  //                             grid().template dimension<1>().spacing(), 0);
+  //      } else if constexpr (num_dimensions() == 3) {
+  //        writer.write_dimensions(grid().template size<0>(),
+  //                                grid().template size<1>(),
+  //                                grid().template size<2>());
+  //        writer.write_origin(grid().template front<0>(),
+  //                            grid().template front<1>(),
+  //                            grid().template front<2>());
+  //        writer.write_spacing(grid().template dimension<0>().spacing(),
+  //                             grid().template dimension<1>().spacing(),
+  //                             grid().template dimension<2>().spacing());
+  //      }
+  //      return writer;
+  //    } else {
+  //      if constexpr (num_dimensions() == 1) {
+  //        writer.write_dimensions(grid().template size<0>(), 1, 1);
+  //        writer.write_x_coordinates(
+  //            std::vector<double>(begin(grid().template dimension<0>()),
+  //                                end(grid().template dimension<0>())));
+  //        writer.write_y_coordinates(std::vector<double>{0});
+  //        writer.write_z_coordinates(std::vector<double>{0});
+  //      } else if constexpr (num_dimensions() == 2) {
+  //        writer.write_dimensions(grid().template size<0>(),
+  //                                grid().template size<1>(), 1);
+  //        writer.write_x_coordinates(
+  //            std::vector<double>(begin(grid().template dimension<0>()),
+  //                                end(grid().template dimension<0>())));
+  //        writer.write_y_coordinates(
+  //            std::vector<double>(begin(grid().template dimension<1>()),
+  //                                end(grid().template dimension<1>())));
+  //        writer.write_z_coordinates(std::vector<double>{0});
+  //      } else if constexpr (num_dimensions() == 3) {
+  //        writer.write_dimensions(grid().template size<0>(),
+  //                                grid().template size<1>(),
+  //                                grid().template size<2>());
+  //        writer.write_x_coordinates(
+  //            std::vector<double>(begin(grid().template dimension<0>()),
+  //                                end(grid().template dimension<0>())));
+  //        writer.write_y_coordinates(
+  //            std::vector<double>(begin(grid().template dimension<1>()),
+  //                                end(grid().template dimension<1>())));
+  //        writer.write_z_coordinates(
+  //            std::vector<double>(begin(grid().template dimension<2>()),
+  //                                end(grid().template dimension<2>())));
+  //      }
+  //      return writer;
+  //    }
+  //  }();
+  //  // write vertex data
+  //  writer.write_point_data(grid().num_vertices());
+  //  std::vector<typename Container::value_type> data;
+  //  grid().loop_over_vertex_indices(
+  //      [&](auto const... is) { data.push_back(at(is...)); });
+  //  writer.write_scalars("data", data);
   //}
   ////----------------------------------------------------------------------------
-  // template <size_t DimIndex, size_t StencilSize>
-  // auto diff_at(unsigned int const                   num_diffs,
-  //          std::array<size_t, num_dimensions()> is) const -> value_type {
-  //  static_assert(DimIndex < num_dimensions());
-  //  auto const [first_idx, coeffs] =
-  //      stencil_coefficients<DimIndex, StencilSize>(is[DimIndex], num_diffs);
-  //  value_type d{};
-  //  is[DimIndex] = first_idx;
-  //  for (size_t i = 0; i < StencilSize; ++i, ++is[DimIndex]) {
-  //    if (coeffs(i) != 0) { d += coeffs(i) * data_at(is); }
-  //  }
-  //  return d;
-  //}
-  ////----------------------------------------------------------------------------
-  // template <size_t DimIndex, size_t StencilSize>
-  // auto diff_at(unsigned int const num_diffs, integral auto... is) const {
-  //  static_assert(DimIndex < num_dimensions());
-  //  static_assert(sizeof...(is) == num_dimensions(),
-  //                "Number of indices does not match number of dimensions.");
-  //  return diff_at<DimIndex, StencilSize>(num_diffs,
-  //                                     std::array{static_cast<size_t>(is)...});
+  //template <size_t N = num_dimensions()>
+  //requires (N == 2) && (std::is_floating_point_v<typename Container::value_type>)
+  //void write_png(std::string const& file_path) const {
+  //  std::vector<typename Container::value_type> data;
+  //  grid().loop_over_vertex_indices(
+  //      [&](auto const... is) { data.push_back(at(is...)); });
+  //  tatooine::write_png(file_path, data,
+  //                      grid().template size<0>(),
+  //                      grid().template size<1>());
   //}
 };
 //==============================================================================
-template <real_number T, typename Grid>
-void write_png(std::string const&                      filepath,
-               typed_multidim_property<Grid, T> const& data, size_t width,
-               size_t height) {
-  static_assert(Grid::num_dimensions() == 2);
-  static_assert(Grid::is_regular);
-  png::image<png::rgb_pixel> image(width, height);
-  for (unsigned int y = 0; y < image.get_height(); ++y) {
-    for (png::uint_32 x = 0; x < image.get_width(); ++x) {
-      auto d = data.data_at(x, y);
-      if (std::isnan(d)) {
-        d = 0;
-      } else {
-        d = std::max<T>(0, std::min<T>(1, d));
-      }
-      image[image.get_height() - 1 - y][x].red =
-          image[image.get_height() - 1 - y][x].green =
-              image[image.get_height() - 1 - y][x].blue = d * 255;
-    }
-  }
-  image.write(filepath);
-}
-// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-template <real_number T, typename Grid>
-void write_png(std::string const&                              filepath,
-               typed_multidim_property<Grid, vec<T, 3>> const& data,
-               size_t width, size_t height) {
-  static_assert(Grid::num_dimensions() == 2);
-  static_assert(Grid::is_regular);
-  png::image<png::rgb_pixel> image(width, height);
-  for (unsigned int y = 0; y < image.get_height(); ++y) {
-    for (png::uint_32 x = 0; x < image.get_width(); ++x) {
-      auto d = data.data_at(x, y);
-      if (std::isnan(d(0))) {
-        image[image.get_height() - 1 - y][x].red = 0;
-      } else {
-        image[image.get_height() - 1 - y][x].red =
-            std::max<T>(0, std::min<T>(1, d(0))) * 255;
-      }
-      if (std::isnan(d(1))) {
-        image[image.get_height() - 1 - y][x].green = 0;
-      } else {
-        image[image.get_height() - 1 - y][x].green =
-            std::max<T>(0, std::min<T>(1, d(1))) * 255;
-      }
-      if (std::isnan(d(2))) {
-        image[image.get_height() - 1 - y][x].blue = 0;
-      } else {
-        image[image.get_height() - 1 - y][x].blue =
-            std::max<T>(0, std::min<T>(1, d(2))) * 255;
-      }
-    }
-  }
-  image.write(filepath);
-}
+//template <real_number T, typename Grid>
+//void write_png(std::string const&                      filepath,
+//               typed_multidim_property<Grid, T> const& data, size_t width,
+//               size_t height) {
+//  static_assert(Grid::num_dimensions() == 2);
+//  static_assert(Grid::is_regular);
+//  png::image<png::rgb_pixel> image(width, height);
+//  for (unsigned int y = 0; y < image.get_height(); ++y) {
+//    for (png::uint_32 x = 0; x < image.get_width(); ++x) {
+//      auto d = data.at(x, y);
+//      if (std::isnan(d)) {
+//        d = 0;
+//      } else {
+//        d = std::max<T>(0, std::min<T>(1, d));
+//      }
+//      image[image.get_height() - 1 - y][x].red =
+//          image[image.get_height() - 1 - y][x].green =
+//              image[image.get_height() - 1 - y][x].blue = d * 255;
+//    }
+//  }
+//  image.write(filepath);
+//}
+//// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+//template <real_number T, typename Grid>
+//void write_png(std::string const&                              filepath,
+//               typed_multidim_property<Grid, vec<T, 3>> const& data,
+//               size_t width, size_t height) {
+//  static_assert(Grid::num_dimensions() == 2);
+//  static_assert(Grid::is_regular);
+//  png::image<png::rgb_pixel> image(width, height);
+//  for (unsigned int y = 0; y < image.get_height(); ++y) {
+//    for (png::uint_32 x = 0; x < image.get_width(); ++x) {
+//      auto d = data.at(x, y);
+//      if (std::isnan(d(0))) {
+//        image[image.get_height() - 1 - y][x].red = 0;
+//      } else {
+//        image[image.get_height() - 1 - y][x].red =
+//            std::max<T>(0, std::min<T>(1, d(0))) * 255;
+//      }
+//      if (std::isnan(d(1))) {
+//        image[image.get_height() - 1 - y][x].green = 0;
+//      } else {
+//        image[image.get_height() - 1 - y][x].green =
+//            std::max<T>(0, std::min<T>(1, d(1))) * 255;
+//      }
+//      if (std::isnan(d(2))) {
+//        image[image.get_height() - 1 - y][x].blue = 0;
+//      } else {
+//        image[image.get_height() - 1 - y][x].blue =
+//            std::max<T>(0, std::min<T>(1, d(2))) * 255;
+//      }
+//    }
+//  }
+//  image.write(filepath);
+//}
 //==============================================================================
 }  // namespace tatooine
 //==============================================================================

@@ -66,16 +66,12 @@ struct chunked_multidim_array {
     return *this;
   }
   //----------------------------------------------------------------------------
-  chunked_multidim_array(std::vector<size_t> const& size,
-                         std::vector<size_t> const& chunk_size) {
-    resize(size, chunk_size);
-  }
-  //----------------------------------------------------------------------------
-  template <size_t N>
-  chunked_multidim_array(std::array<size_t, N> const& size,
-                         std::vector<size_t> const&   chunk_size) {
-    m_internal_chunk_size = chunk_size;
-    resize(std::vector<size_t>(begin(size), end(size)));
+  template <range SizeRange, range ChunkSizeRange>
+  requires (std::is_integral_v<typename SizeRange::value_type>) &&
+           (std::is_integral_v<typename ChunkSizeRange::value_type>)
+  chunked_multidim_array(SizeRange&& size, ChunkSizeRange&& chunk_size) {
+    resize(std::forward<SizeRange>(size),
+           std::forward<ChunkSizeRange>(chunk_size));
   }
   //----------------------------------------------------------------------------
   template <range Range>
@@ -93,7 +89,9 @@ struct chunked_multidim_array {
     reader.read(*this);
   }
   //==============================================================================
-  void resize(std::vector<size_t> size) {
+  template <range SizeRange>
+  requires (std::is_integral_v<typename SizeRange::value_type>)
+  void resize(SizeRange&& size) {
     // apply full size
     m_data_structure.resize(size);
 
@@ -108,10 +106,13 @@ struct chunked_multidim_array {
     m_chunks.resize(m_chunk_structure.num_components());
   }
   //----------------------------------------------------------------------------
-  void resize(std::vector<size_t> const& size,
-              std::vector<size_t> const& chunk_size) {
-    m_internal_chunk_size = chunk_size;
-    resize(size);
+  template <range SizeRange, range ChunkSizeRange>
+  requires (std::is_integral_v<typename SizeRange::value_type>) &&
+           (std::is_integral_v<typename ChunkSizeRange::value_type>)
+  void resize(SizeRange&& size, ChunkSizeRange&& chunk_size) {
+    m_internal_chunk_size.resize(chunk_size.size());
+    std::ranges::copy(chunk_size, begin(m_internal_chunk_size));
+    resize(std::forward<SizeRange>(size));
   }
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
   auto resize(integral auto const... sizes) -> void {

@@ -7,48 +7,43 @@
 //==============================================================================
 namespace tatooine {
 //==============================================================================
-template <typename Grid, typename Container,
+template <typename GridVertexProperty,
           template <typename> typename... InterpolationKernels>
 struct sampler;
 //==============================================================================
-template <typename TopSampler,
+template <typename TopSampler, typename ValueType,
           template <typename> typename... InterpolationKernels>
 struct sampler_view;
 //==============================================================================
-template <typename Sampler,
+template <typename Sampler, typename ValueType,
           template <typename> typename... InterpolationKernels>
 struct base_sampler_at;
 //------------------------------------------------------------------------------
-template <typename Sampler, template <typename> typename InterpolationKernel0,
+template <typename Sampler, typename ValueType,
+          template <typename> typename InterpolationKernel0,
           template <typename> typename InterpolationKernel1,
           template <typename> typename... TailInterpolationKernels>
-struct base_sampler_at<Sampler, InterpolationKernel0, InterpolationKernel1,
+struct base_sampler_at<Sampler, ValueType, InterpolationKernel0, InterpolationKernel1,
                        TailInterpolationKernels...> {
   using value_type =
-      sampler_view<Sampler, InterpolationKernel1, TailInterpolationKernels...>;
-  using const_value_type = sampler_view<const Sampler, InterpolationKernel1,
-                                        TailInterpolationKernels...>;
+      sampler_view<Sampler, ValueType, InterpolationKernel1,
+                   TailInterpolationKernels...>;
 };
 //------------------------------------------------------------------------------
-template <typename Sampler, template <typename> typename InterpolationKernel>
-struct base_sampler_at<Sampler, InterpolationKernel> {
-  using value_type       = std::decay_t<typename Sampler::value_type>&;
-  using const_value_type = std::decay_t<typename Sampler::value_type>;
+template <typename Sampler, typename ValueType,
+          template <typename> typename InterpolationKernel>
+struct base_sampler_at<Sampler, ValueType, InterpolationKernel> {
+  using value_type       = std::decay_t<ValueType>&;
 };
 //==============================================================================
 template <typename Sampler,
+         typename ValueType,
           template <typename> typename... InterpolationKernels>
 using base_sampler_at_t =
-    typename base_sampler_at<Sampler, InterpolationKernels...>::value_type;
-//==============================================================================
-template <typename Sampler,
-          template <typename> typename... InterpolationKernels>
-using base_sampler_at_ct =
-    typename base_sampler_at<Sampler,
-                             InterpolationKernels...>::const_value_type;
+    typename base_sampler_at<Sampler, ValueType, InterpolationKernels...>::value_type;
 //==============================================================================
 /// CRTP inheritance class for sampler and sampler_view
-template <typename Sampler, typename T,
+template <typename Sampler, typename ValueType,
           template <typename> typename HeadInterpolationKernel,
           template <typename> typename... TailInterpolationKernels>
 struct base_sampler : crtp<Sampler> {
@@ -56,52 +51,36 @@ struct base_sampler : crtp<Sampler> {
             template <typename> typename...>
   friend struct base_sampler;
   //----------------------------------------------------------------------------
+  // typedefs
+  //----------------------------------------------------------------------------
+  using this_t = base_sampler<Sampler, ValueType, HeadInterpolationKernel,
+                              TailInterpolationKernels...>;
+  using indexing_t =
+      base_sampler_at_t<this_t, ValueType, HeadInterpolationKernel,
+                        TailInterpolationKernels...>;
+  using value_type       = ValueType;
   static constexpr auto current_dimension_index() {
     return Sampler::current_dimension_index();
   }
-  //----------------------------------------------------------------------------
-  static constexpr auto num_dimensions() {
-    return Sampler::num_dimensions();
-  }
-  //----------------------------------------------------------------------------
-  // typedefs
-  //----------------------------------------------------------------------------
-  using value_type = T;
+  static constexpr auto num_dimensions() { return Sampler::num_dimensions(); }
   static constexpr auto num_components() {
     return num_components_v<value_type>;
   }
-  using this_t     = base_sampler<Sampler, value_type, HeadInterpolationKernel,
-                              TailInterpolationKernels...>;
-  using indexing_t = base_sampler_at_t<this_t, HeadInterpolationKernel,
-                                       TailInterpolationKernels...>;
-  using const_indexing_t = base_sampler_at_ct<this_t, HeadInterpolationKernel,
-                                              TailInterpolationKernels...>;
   using crtp<Sampler>::as_derived;
   //============================================================================
-  auto container() -> auto& {
-    return as_derived().container();
-  }
+  auto property() -> auto& { return as_derived().property(); }
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-  auto container() const -> auto const& {
-    return as_derived().container();
-  }
+  auto property() const -> auto const& { return as_derived().property(); }
   //----------------------------------------------------------------------------
   /// data at specified indices is...
   /// CRTP-virtual method
-  auto data_at(integral auto... is) const -> value_type const& {
+  auto data_at(integral auto const... is) const -> decltype(auto) {
     static_assert(sizeof...(is) == num_dimensions(),
                   "Number of indices does not match number of dimensions.");
     return as_derived().data_at(is...);
   }
   //----------------------------------------------------------------------------
-  void set_data_at(value_type const& data,
-                   integral auto... is) {
-    as_derived().set_data_at(data, is...);
-  }
-  //----------------------------------------------------------------------------
-  auto grid() const -> auto const& {
-    return as_derived().grid();
-  }
+  auto grid() const -> auto const& { return as_derived().grid(); }
   ////----------------------------------------------------------------------------
   // auto stencil_coefficients(size_t const dim_index, size_t const i) const {
   //  return as_derived().stencil_coefficients(dim_index, i);
@@ -118,15 +97,13 @@ struct base_sampler : crtp<Sampler> {
   /// sampler_view with i as fixed index
   auto at(size_t i) const -> decltype(auto) {
     if constexpr (num_dimensions() > 1) {
-      return const_indexing_t{this, i};
+      return indexing_t{*this, i};
     } else {
       return data_at(i);
     }
   }
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-  auto operator[](size_t i) const -> decltype(auto) {
-    return at(i);
-  }
+  auto operator[](size_t i) const -> decltype(auto) { return at(i); }
   ////----------------------------------------------------------------------------
   // template <size_t DimIndex, size_t StencilSize>
   // auto diff_at(unsigned int num_diffs, integral auto const... is) const
@@ -276,22 +253,27 @@ struct base_sampler : crtp<Sampler> {
                   "Number of coordinates does not match number of dimensions.");
     return sample(std::make_index_sequence<num_dimensions()>{}, xs...);
   }
+  // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+  constexpr auto operator()(real_number auto const... xs) const {
+    static_assert(sizeof...(xs) == num_dimensions(),
+                  "Number of coordinates does not match number of dimensions.");
+    return sample(std::make_index_sequence<num_dimensions()>{}, xs...);
+  }
 };
 //==============================================================================
-template <typename Grid, typename Container,
+template <typename GridVertexProperty,
           template <typename> typename... InterpolationKernels>
 struct sampler
-    : base_sampler<sampler<Grid, Container, InterpolationKernels...>,
-                   typename Container::value_type, InterpolationKernels...> {
-  using grid_t      = Grid;
-  using container_t = Container;
-  using value_type  = typename container_t::value_type;
-  using this_t      = sampler<grid_t, container_t, InterpolationKernels...>;
-  using parent_t    = base_sampler<this_t, value_type, InterpolationKernels...>;
+    : base_sampler<sampler<GridVertexProperty, InterpolationKernels...>,
+                   typename GridVertexProperty::value_type,
+                   InterpolationKernels...> {
+  using property_t = GridVertexProperty;
+  using this_t     = sampler<property_t, InterpolationKernels...>;
+  using parent_t = base_sampler<this_t, typename GridVertexProperty::value_type,
+                                InterpolationKernels...>;
+  using value_type = typename parent_t::value_type;
   //============================================================================
-  static constexpr size_t current_dimension_index() {
-    return 0;
-  }
+  static constexpr size_t current_dimension_index() { return 0; }
   //----------------------------------------------------------------------------
   static constexpr auto num_dimensions() {
     return sizeof...(InterpolationKernels);
@@ -300,51 +282,45 @@ struct sampler
   static_assert(std::is_floating_point_v<internal_data_type_t<value_type>>);
   //============================================================================
  private:
-  grid_t const* m_grid;
-  container_t   m_container;
+  property_t const& m_property;
   //============================================================================
  public:
-  template <typename... Args>
-  sampler(grid_t const& g, Args&&... args)
-      : m_grid{&g}, m_container{std::forward<Args>(args)...} {}
+  sampler(property_t const& prop) : m_property{prop} {}
   //----------------------------------------------------------------------------
-  sampler(sampler const& other) = default;
-  //----------------------------------------------------------------------------
+  sampler(sampler const& other)     = default;
   sampler(sampler&& other) noexcept = default;
-  //----------------------------------------------------------------------------
-  virtual ~sampler() = default;
   //============================================================================
-  auto container() -> auto& {
-    return m_container;
+  auto property() const -> auto const& { return m_property; }
+  auto property() -> auto& { return m_property; }
+  //----------------------------------------------------------------------------
+  auto grid() const -> auto const& { return m_property.grid(); }
+  auto grid() -> auto& { return m_property.grid(); }
+  //----------------------------------------------------------------------------
+  template <integral... Is>
+  requires(
+      sizeof...(Is) ==
+      GridVertexProperty::grid_t::num_dimensions()) auto data_at(Is const... is)
+      const -> decltype(auto) {
+    return m_property(is...);
   }
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-  auto container() const -> auto const& {
-    return m_container;
-  }
-  //----------------------------------------------------------------------------
-  auto data_at(integral auto const... is) const -> value_type const& {
-    return m_container(is...);
-  }
-  // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-  template <integral Is>
-  auto data_at(std::array<Is, num_dimensions()> const& is) const
-      -> value_type const& {
-    return m_container(is);
-  }
-  //----------------------------------------------------------------------------
-  void set_data_at(value_type const& data, integral auto const... is) {
-    m_container(is...) = data;
+  template <integral... Is>
+  requires(
+      sizeof...(Is) ==
+      GridVertexProperty::grid_t::num_dimensions()) auto data_at(Is const... is)
+      -> decltype(auto) {
+    return m_property(is...);
   }
   //----------------------------------------------------------------------------
   auto position_at(integral auto const... is) const {
     static_assert(sizeof...(is) == num_dimensions(),
                   "Number of indices does not match number of dimensions.");
-    return m_grid->position_at(is...);
+    return grid().position_at(is...);
   }
   //----------------------------------------------------------------------------
   template <size_t DimensionIndex>
   auto cell_index(real_number auto const x) const -> decltype(auto) {
-    return m_grid->template cell_index<DimensionIndex>(x);
+    return grid().template cell_index<DimensionIndex>(x);
   }
   ////----------------------------------------------------------------------------
   // template <size_t DimIndex, size_t StencilSize, size_t... Is>
@@ -373,10 +349,6 @@ struct sampler
   //      num_diffs, std::array{static_cast<size_t>(is)...},
   //      std::make_index_sequence<num_dimensions()>{});
   //}
-  //----------------------------------------------------------------------------
-  auto grid() const -> auto const& {
-    return *m_grid;
-  }
   ////----------------------------------------------------------------------------
   // template <size_t DimIndex, size_t StencilSize>
   // auto stencil_coefficients(size_t const       i,
@@ -389,19 +361,18 @@ struct sampler
 /// holds an object of type TopSampler which can either be
 /// sampler or sampler_view and a fixed index of the top
 /// sampler
-template <typename TopSampler,
+template <typename TopSampler, typename ValueType, 
           template <typename> typename... InterpolationKernels>
 struct sampler_view
-    : base_sampler<sampler_view<TopSampler, InterpolationKernels...>,
+    : base_sampler<sampler_view<TopSampler, ValueType, InterpolationKernels...>,
                    typename TopSampler::value_type, InterpolationKernels...> {
   //============================================================================
   static constexpr auto data_is_changeable() {
     return TopSampler::data_is_changeable();
   }
-  using value_type = typename TopSampler::value_type;
-  using parent_t =
-      base_sampler<sampler_view<TopSampler, InterpolationKernels...>,
-                   value_type, InterpolationKernels...>;
+  using this_t   = sampler_view<TopSampler, ValueType, InterpolationKernels...>;
+  using parent_t = base_sampler<this_t, ValueType, InterpolationKernels...>;
+  using value_type = ValueType;
   //============================================================================
   static constexpr auto num_dimensions() {
     return TopSampler::num_dimensions() - 1;
@@ -411,30 +382,28 @@ struct sampler_view
     return TopSampler::current_dimension_index() + 1;
   }
   //============================================================================
-  TopSampler* m_top_sampler;
-  size_t      m_fixed_index;
+  TopSampler const& m_top_sampler;
+  size_t            m_fixed_index;
   //============================================================================
-  sampler_view(TopSampler* top_sampler, size_t fixed_index)
+  sampler_view(TopSampler const& top_sampler, size_t const fixed_index)
       : m_top_sampler{top_sampler}, m_fixed_index{fixed_index} {}
   //============================================================================
-  constexpr auto container() -> auto& {
-    return m_top_sampler->container();
-  }
+  constexpr auto property() -> auto& { return m_top_sampler.property(); }
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-  constexpr auto container() const -> auto const& {
-    return m_top_sampler->container();
+  constexpr auto property() const -> auto const& {
+    return m_top_sampler.property();
   }
   //------------------------------------------------------------------------------
   /// returns data of top sampler at m_fixed_index and index list is...
   constexpr auto data_at(integral auto... is) const -> value_type const& {
     static_assert(sizeof...(is) == num_dimensions(),
                   "Number of indices is not equal to number of dimensions.");
-    return m_top_sampler->data_at(m_fixed_index, is...);
+    return m_top_sampler.data_at(m_fixed_index, is...);
   }
   //----------------------------------------------------------------------------
   template <size_t DimensionIndex>
   constexpr auto cell_index(real_number auto const x) const -> decltype(auto) {
-    return m_top_sampler->template cell_index<DimensionIndex>(x);
+    return m_top_sampler.template cell_index<DimensionIndex>(x);
   }
   ////----------------------------------------------------------------------------
   // template <size_t DimIndex, size_t StencilSize>
@@ -442,16 +411,14 @@ struct sampler_view
   //    -> decltype(auto) {
   //  static_assert(sizeof...(is) == num_dimensions(),
   //                "Number of indices is not equal to number of dimensions.");
-  //  return m_top_sampler->template diff_at<DimIndex, StencilSize>(
+  //  return m_top_sampler.template diff_at<DimIndex, StencilSize>(
   //      num_diffs, m_fixed_index, is...);
   //}
   //----------------------------------------------------------------------------
-  auto grid() const -> auto const& {
-    return m_top_sampler->grid();
-  }
+  auto grid() const -> auto const& { return m_top_sampler.grid(); }
   ////----------------------------------------------------------------------------
   // auto stencil_coefficients(size_t const dim_index, size_t const i) const {
-  //  return m_top_sampler->stencil_coefficients(dim_index, i);
+  //  return m_top_sampler.stencil_coefficients(dim_index, i);
   //}
 };
 //==============================================================================
