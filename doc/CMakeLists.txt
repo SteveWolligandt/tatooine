@@ -1,7 +1,7 @@
 find_package(Doxygen)
 find_package(Sphinx QUIET)
 if (SPHINX_FOUND)
-  option(TATOOINE_DOC_USE_SPHINX "Use Sphinx to build documentation" FALSE)
+  option(TATOOINE_DOC_USE_SPHINX "Use Sphinx to build documentation" TRUE)
 else()
   set(TATOOINE_DOC_USE_SPHINX "Use Sphinx to build documentation" FALSE)
 endif()
@@ -56,12 +56,10 @@ if (DOXYGEN_FOUND)
 
     add_custom_target(doc ALL
       COMMENT "Building HTML documentation with Sphinx"
-      WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}
       DEPENDS doc.doxygen doc.sphinx)
   else()
     add_custom_target(doc ALL
       COMMENT "Building HTML documentation with Sphinx"
-      WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}
       DEPENDS doc.doxygen)
   endif()
 else()

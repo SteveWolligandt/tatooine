@@ -85,8 +85,9 @@ class grid {
   /// The enable if is needed due to gcc bug 80871. See here:
   /// https://stackoverflow.com/questions/46848129/variadic-deduction-guide-not-taken-by-g-taken-by-clang-who-is-correct
   template <typename... _Dimensions>
-  requires(sizeof...(_Dimensions) ==
-           sizeof...(Dimensions)) constexpr grid(_Dimensions&&... dimensions)
+  requires (sizeof...(_Dimensions) == sizeof...(Dimensions)) &&
+           (indexable_space<std::decay_t<_Dimensions>> && ...)
+  constexpr grid(_Dimensions&&... dimensions)
       : m_dimensions{std::forward<_Dimensions>(dimensions)...} {
     static_assert(sizeof...(_Dimensions) == num_dimensions(),
                   "Number of given dimensions does not match number of "
@@ -109,6 +110,11 @@ class grid {
   constexpr grid(axis_aligned_bounding_box<Real, num_dimensions()> const& bb,
                  std::array<size_t, num_dimensions()> const&              res)
       : grid{bb, res, seq_t{}} {}
+  // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+  constexpr grid(integral auto const... size)
+      : grid{linspace{0.0, 1.0, static_cast<size_t>(size)}...} {
+    assert(((size >= 0) && ...));
+  }
   //----------------------------------------------------------------------------
   ~grid() = default;
   //============================================================================
@@ -797,6 +803,10 @@ template <typename Real, size_t N, size_t... Is>
 grid(axis_aligned_bounding_box<Real, N> const& bb,
      std::array<size_t, N> const&              res, std::index_sequence<Is...>)
     -> grid<decltype(((void)Is, std::declval<linspace<Real>()>))...>;
+// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+template <integral... Size>
+grid(Size const...)
+    -> grid<linspace<std::conditional_t<true, double, Size>>...>;
 //==============================================================================
 // operators
 //==============================================================================

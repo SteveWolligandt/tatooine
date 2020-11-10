@@ -5,6 +5,23 @@
 //==============================================================================
 namespace tatooine::test {
 //==============================================================================
+TEST_CASE("grid_ctor_raw_size", "[grid][ctor][raw_size]") {
+  grid g{10, 11, 12};
+  REQUIRE(g.num_dimensions() == 3);
+  REQUIRE(std::is_same_v<linspace<double>, std::decay_t<decltype(g.dimension<0>())>>);
+  REQUIRE(std::is_same_v<linspace<double>, std::decay_t<decltype(g.dimension<1>())>>);
+  REQUIRE(std::is_same_v<linspace<double>, std::decay_t<decltype(g.dimension<2>())>>);
+  REQUIRE(g.dimension<0>().front() == 0);
+  REQUIRE(g.dimension<1>().front() == 0);
+  REQUIRE(g.dimension<2>().front() == 0);
+  REQUIRE(g.dimension<0>().back() == 1);
+  REQUIRE(g.dimension<1>().back() == 1);
+  REQUIRE(g.dimension<2>().back() == 1);
+  REQUIRE(g.dimension<0>().size() == 10);
+  REQUIRE(g.dimension<1>().size() == 11);
+  REQUIRE(g.dimension<2>().size() == 12);
+}
+//==============================================================================
 TEST_CASE("grid_copy_constructor", "[grid][copy][constructor]") {
   std::array                           dim0{0, 1, 2};
   std::array                           dim1{0, 1, 2};
