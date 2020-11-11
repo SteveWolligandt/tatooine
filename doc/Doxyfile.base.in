@@ -1,6 +1,7 @@
 PROJECT_NAME           = "@CMAKE_PROJECT_NAME@"
 OUTPUT_DIRECTORY       = @CMAKE_CURRENT_BINARY_DIR@
 INPUT                  = @PROJECT_SOURCE_DIR@/include/ \
+                         @PROJECT_SOURCE_DIR@/flowexplorer/include \
                          @PROJECT_SOURCE_DIR@/doc/pages/
 RECURSIVE              = YES
 MARKDOWN_SUPPORT       = YES
