@@ -46,10 +46,24 @@ struct numerical_flowmap {
         m_ode_solver{other.m_ode_solver},
         m_use_caching{other.m_use_caching} {}
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-  numerical_flowmap(numerical_flowmap&& other)
+  numerical_flowmap(numerical_flowmap&& other) noexcept
       : m_v{std::move(other.m_v)},
         m_ode_solver{std::move(other.m_ode_solver)},
         m_use_caching{other.m_use_caching} {}
+  // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+  auto operator=(numerical_flowmap const& other) -> numerical_flowmap& {
+    m_v           = other.m_v;
+    m_ode_solver  = other.m_ode_solver;
+    m_use_caching = other.m_use_caching;
+    return *this;
+  }
+  // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+  auto operator=(numerical_flowmap&& other) noexcept -> numerical_flowmap& {
+    m_v           = std::move(other.m_v);
+    m_ode_solver  = std::move(other.m_ode_solver);
+    m_use_caching = std::move(other.m_use_caching);
+    return *this;
+  }
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
   template <std::convertible_to<V> W, real_number WReal, size_t N,
             typename V_ = V>

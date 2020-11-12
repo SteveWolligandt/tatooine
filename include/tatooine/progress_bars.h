@@ -24,6 +24,10 @@ struct indicator_msg {
     indicator.set_option(indicators::option::PostfixText{msg});
     return *this;
   }
+  auto set_text(std::string const& text) -> void {
+    indicator.set_option(indicators::option::PostfixText{text});
+  }
+  auto mark_as_completed() -> void { indicator.mark_as_completed(); }
 };
 template <typename Indicator>
 struct progress_indicator_wrapper {
@@ -37,17 +41,20 @@ struct progress_indicator_wrapper {
     indicator.set_option(indicators::option::PostfixText{msg});
     return *this;
   }
+  auto set_text(std::string const& text) -> void {
+    indicator.set_option(indicators::option::PostfixText{text});
+  }
 };
 //==============================================================================
 template <typename F, typename... Args>
   requires
-  std::invocable<F, Args...> ||
-  std::invocable<F, indicator_msg<indicators::IndeterminateProgressBar>,
+    std::is_invocable_v<F, Args...> ||
+    std::is_invocable_v<F, indicator_msg<indicators::IndeterminateProgressBar>,
                    Args...>
 auto indeterminate_progress_bar(F&& f, Args&&... args)
   -> decltype(auto) {
   indicators::IndeterminateProgressBar indicator{
-      indicators::option::BarWidth{50},
+      indicators::option::BarWidth{10},
       indicators::option::Start{"▶"},
       indicators::option::Fill{" "},
       indicators::option::Lead{"░▒▓▒░"},
@@ -72,8 +79,7 @@ auto indeterminate_progress_bar(F&& f, Args&&... args)
       indicator.mark_as_completed();
       job_completion_thread.join();
     } else {
-      decltype(auto) ret =
-          f(       std::forward<Args>(args)...);
+      decltype(auto) ret = f(std::forward<Args>(args)...);
       indicator.mark_as_completed();
       job_completion_thread.join();
       return ret;
@@ -104,10 +110,9 @@ template <typename F, typename... Args>
 auto progress_bar(F&& f, Args&&... args)
   -> decltype(auto) {
   indicators::BlockProgressBar progress_indicator{
-      indicators::option::BarWidth{50},
+      indicators::option::BarWidth{10},
       indicators::option::Start{"▶"},
       indicators::option::End{"◀"},
-      indicators::option::PostfixText{"Integrating"},
       indicators::option::ShowElapsedTime{true},
       indicators::option::ShowRemainingTime{true},
       indicators::option::ForegroundColor{indicators::Color::green},

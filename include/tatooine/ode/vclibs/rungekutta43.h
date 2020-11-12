@@ -102,12 +102,20 @@ struct rungekutta43 : solver<rungekutta43<Real, N>, Real, N> {
       : m_stepper{vc_ode_t::solver(
             rk43, vc_options_t{abs_tol = 1e-5, rel_tol = 1e-5,
                                initial_step = 0 /*, max_step = 0.1*/})} {}
-  constexpr rungekutta43(rungekutta43 const& other)     = default;
-  constexpr rungekutta43(rungekutta43&& other) noexcept = default;
-  constexpr auto operator=(rungekutta43 const& other)
-      -> rungekutta43&   = default;
-  constexpr auto operator=(rungekutta43&& other) noexcept
-      -> rungekutta43&   = default;
+  constexpr rungekutta43(rungekutta43 const& /*other*/)
+      : m_stepper{vc_ode_t::solver(
+            rk43, vc_options_t{abs_tol = 1e-5, rel_tol = 1e-5,
+                               initial_step = 0 /*, max_step = 0.1*/})} {}
+  constexpr rungekutta43(rungekutta43&& /*other*/)
+      : m_stepper{vc_ode_t::solver(
+            rk43, vc_options_t{abs_tol = 1e-5, rel_tol = 1e-5,
+                               initial_step = 0 /*, max_step = 0.1*/})} {}
+  constexpr auto operator=(rungekutta43 const & /*other*/) -> rungekutta43& {
+    return *this;
+  }
+  constexpr auto operator=(rungekutta43&& /*other*/) noexcept -> rungekutta43& {
+    return *this;
+  }
   //----------------------------------------------------------------------------
   template <typename... Options>
   rungekutta43(Options&&... options)

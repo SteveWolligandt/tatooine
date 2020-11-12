@@ -2,6 +2,7 @@
 #define TATOOINE_AUTONOMOUS_PARTICLES_2D_H
 //==============================================================================
 #include <tatooine/autonomous_particle.h>
+#include <tatooine/random.h>
 #include <tatooine/field.h>
 #include <tatooine/geometry/sphere.h>
 #include <tatooine/numerical_flowmap.h>
@@ -41,12 +42,11 @@ struct autonomous_particle<Flowmap> {
   //----------------------------------------------------------------------------
  public:
   autonomous_particle(autonomous_particle const&) = default;
-  // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
   autonomous_particle(autonomous_particle&&) noexcept = default;
   //----------------------------------------------------------------------------
-  auto operator=(autonomous_particle const&) -> autonomous_particle& = default;
-  // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-  auto operator               =(autonomous_particle&&) noexcept
+  auto operator=(autonomous_particle const&)
+      -> autonomous_particle& = default;
+  auto operator=(autonomous_particle&&) noexcept
       -> autonomous_particle& = default;
   //----------------------------------------------------------------------------
   ~autonomous_particle() = default;
@@ -182,7 +182,24 @@ struct autonomous_particle<Flowmap> {
           }
         }
       }
+
       active = 1 - active;
+      size_t const max_num_particles = 1000000;
+      if (particles[active].size() > max_num_particles) {
+        size_t const num_particles_to_delete =
+            particles[active].size() - max_num_particles;
+
+        std::cerr << "number of particles to delete: "
+                  << num_particles_to_delete << '\n';
+
+        for (size_t i = 0; i < num_particles_to_delete; ++i) {
+          random_uniform<size_t> rand{0, particles[active].size() - 1};
+          particles[active][rand()] = std::move(particles[active].back());
+          particles[active].pop_back();
+        }
+      }
+
+      std::cerr << "number of particles: " << particles[active].size() << '\n';
     }
     return finished_particles;
   }
