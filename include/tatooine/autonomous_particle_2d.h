@@ -287,16 +287,14 @@ struct autonomous_particle<Flowmap> {
     return {};
   }
 };
-// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-// - deduction guides
-// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-// -
+// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+// deduction guides
+// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 template <typename V, typename VReal, real_number RealX0, size_t N>
 autonomous_particle(const vectorfield<V, VReal, 2>& v, vec<RealX0, N> const&,
                     real_number auto const, real_number auto const)
     -> autonomous_particle<decltype(flowmap(v))>;
-// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-// -
+// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 template <fixed_dims_flowmap_c<2> Flowmap, real_number RealX0, size_t N>
 autonomous_particle(const Flowmap& flowmap, vec<RealX0, N> const&,
                     real_number auto const, real_number auto const)

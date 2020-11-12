@@ -19,8 +19,9 @@ tatooine::grid is a templated class and for each dimension holds a container of
 coordinates. When giving the constructor integral types (that must be > 0) a
 deduction guide will be used to create an object of type
 tatooine::grid<tatooine::linspace<double>, tatooine::linspace<double>>. So in
-the example above g holds two instances of \ref tatooine::linspace "tatooine::linspace<double>". The code
-above creates the following as here:
+the example above uniform_grid_2d holds two instances of \ref
+tatooine::linspace "tatooine::linspace<double>". The code above creates the
+following as here:
 \code{.cpp}
 auto create_uniform_grid_2d() {
   tatooine::grid uniform_grid_2d{tatooine::linspace{0.0, 1.0, 32},
