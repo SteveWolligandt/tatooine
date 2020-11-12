@@ -116,8 +116,8 @@ auto main(int argc, char** argv) -> int {
 
         // back calculation
         auto   Sback = eig_vecs * diag(eig_vals) * transposed(eig_vecs);
-        mat23f back_calculation_T{{Sback(0, 0), Sback(0, 1), p.x1()(0)},
-                                  {Sback(1, 0), Sback(1, 1), p.x1()(1)}};
+        mat23f back_calculation_T{{Sback(0, 0), Sback(0, 1), p.x0()(0)},
+                                  {Sback(1, 0), Sback(1, 1), p.x0()(1)}};
         {
           std::lock_guard lock{writer_mutex};
           back_calculation_var.write(back_calculation_netcdf_is, cnt,

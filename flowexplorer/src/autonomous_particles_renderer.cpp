@@ -46,22 +46,36 @@ auto autonomous_particles_renderer::draw_properties() -> bool {
     const ImU32 col = ImGui::GetColorU32(ImGuiCol_ButtonHovered);
     ImGui::Spinner("##spinner", 8, 3, col);
   } else {
-    if (ImGui::Button("load")) {
-      load_data();
+    if (ImGui::Button("load advection")) {
+      load_advection();
+    }
+    if (ImGui::Button("load back_calculation")) {
+      load_back_calculation();
     }
   }
   return false;
 }
 //----------------------------------------------------------------------------
-void autonomous_particles_renderer::load_data() {
+auto autonomous_particles_renderer::load_back_calculation() -> void {
+  load_data(
+      "/home/steve/libs/tatooine2/build/autonomous_particles/"
+      "dg_grid_back_calculation.nc");
+}
+//----------------------------------------------------------------------------
+auto autonomous_particles_renderer::load_advection() -> void {
+  load_data(
+      "/home/steve/libs/tatooine2/build/autonomous_particles/"
+      "dg_grid_advected.nc");
+}
+//----------------------------------------------------------------------------
+void autonomous_particles_renderer::load_data(std::string_view const& file) {
   if (m_currently_reading) {
     return;
   }
   m_currently_reading = true;
-  auto run = [node = this] {
+  auto run = [file, node = this] {
     netcdf::file f_in{
-        "/home/steve/libs/tatooine2/build/autonomous_particles/"
-        "dg_grid_back_calculation.nc",
+      std::string{file},
         netCDF::NcFile::read};
     auto var = f_in.variable<float>("transformations");
     node->m_gpu_Ss.resize(var.size(0));

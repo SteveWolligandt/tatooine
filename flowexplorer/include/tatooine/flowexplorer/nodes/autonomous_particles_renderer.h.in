@@ -38,7 +38,9 @@ struct autonomous_particles_renderer
   //----------------------------------------------------------------------------
   auto draw_properties() -> bool override;
   //----------------------------------------------------------------------------
-  auto load_data() ->void;
+  auto load_back_calculation() -> void;
+  auto load_advection() -> void;
+  auto load_data(std::string_view const& file) -> void;
   //----------------------------------------------------------------------------
   auto is_transparent() const -> bool override;
 };
