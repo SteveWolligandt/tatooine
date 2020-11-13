@@ -9,7 +9,7 @@ uniform mat4 view_projection_matrix;
 //------------------------------------------------------------------------------
 const float X = 0.525731112119133606;
 const float Z = 0.850650808352039932;
-void        main() {
+void main() {
   vec4 vs[] = vec4[](vec4(-X, 0, Z, 1), vec4(X, 0, Z, 1), vec4(-X, 0, -Z, 1),
                      vec4(X, 0, -Z, 1), vec4(0, Z, X, 1), vec4(0, Z, -X, 1),
                      vec4(0, -Z, X, 1), vec4(0, -Z, -X, 1), vec4(Z, X, 0, 1),
