@@ -2,6 +2,7 @@
 #include <tatooine/flowexplorer/window.h>
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 #include <tatooine/flowexplorer/nodes/autonomous_particle.h>
+#include <tatooine/geometry/sphere.h>
 #include <tatooine/random.h>
 #include <tatooine/rendering/yavin_interop.h>
 //==============================================================================

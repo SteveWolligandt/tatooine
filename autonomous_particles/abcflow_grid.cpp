@@ -9,7 +9,7 @@
 #include <iomanip>
 #include "parse_args.h"
 //==============================================================================
-std::vector<size_t> const cnt{1, 2, 3};
+std::vector<size_t> const cnt{1, 3, 4};
 std::vector<std::thread>  writers;
 std::mutex                writer_mutex;
 //==============================================================================
@@ -45,17 +45,17 @@ auto main(int argc, char** argv) -> int {
                             netCDF::NcFile::replace};
   auto initial_var = initial_ellipsis_file.add_variable<float>(
       "transformations", {initial_ellipsis_file.add_dimension("index"),
-                          initial_ellipsis_file.add_dimension("row", 2),
-                          initial_ellipsis_file.add_dimension("column", 3)});
+                          initial_ellipsis_file.add_dimension("row", 3),
+                          initial_ellipsis_file.add_dimension("column", 4)});
 
   auto advected_var = advected_file.add_variable<float>(
       "transformations", {advected_file.add_dimension("index"),
-                          advected_file.add_dimension("row", 2),
-                          advected_file.add_dimension("column", 3)});
+                          advected_file.add_dimension("row", 3),
+                          advected_file.add_dimension("column", 4)});
   auto back_calculation_var = back_calculation_file.add_variable<float>(
       "transformations", {back_calculation_file.add_dimension("index"),
-                          back_calculation_file.add_dimension("row", 2),
-                          back_calculation_file.add_dimension("column", 3)});
+                          back_calculation_file.add_dimension("row", 3),
+                          back_calculation_file.add_dimension("column", 4)});
 
   grid initial_autonomous_particles_grid{linspace{-1.0, 1.0, args.width + 1},
                                          linspace{-1.0, 1.0, args.height + 1},
@@ -117,7 +117,7 @@ auto main(int argc, char** argv) -> int {
       mat34f T{{ap.S()(0, 0), ap.S()(0, 1), ap.S()(0, 2), ap.x1()(0)},
                {ap.S()(1, 0), ap.S()(1, 1), ap.S()(1, 2), ap.x1()(1)},
                {ap.S()(2, 0), ap.S()(2, 1), ap.S()(2, 2), ap.x1()(2)}};
-      initial_var.write(initial_netcdf_is, initial_netcdf_is, T.data_ptr());
+      initial_var.write(initial_netcdf_is, cnt, T.data_ptr());
       ++initial_netcdf_is.front();
     }
     for (auto const& p : advected_particles) {

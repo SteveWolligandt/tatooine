@@ -9,7 +9,7 @@ uniform mat4  view_projection_matrix;
 //------------------------------------------------------------------------------
 void main() {
   const int num_vertices = 23;
-  const float normalizer   = 1 / float(num_vertices - 1) * 2 * 3.14159;
+  const float normalizer  = 1 / float(num_vertices - 1) * 2 * 3.14159;
   for (int i = 0; i < num_vertices; ++i) {
     vec4 circle_pos =
         vec4(cos(float(i) * normalizer), sin(float(i) * normalizer), 0, 1);

@@ -10,8 +10,8 @@
 //==============================================================================
 namespace tatooine::flowexplorer::nodes {
 //==============================================================================
-struct autonomous_particles_renderer
-    : renderable<autonomous_particles_renderer> {
+struct autonomous_particles_renderer2d
+    : renderable<autonomous_particles_renderer2d> {
   struct shader : yavin::shader {
     shader();
     //------------------------------------------------------------------------------
@@ -19,11 +19,11 @@ struct autonomous_particles_renderer
   };
   //============================================================================
   static constexpr std::string_view vertex_shader_path =
-      "@TATOOINE_FLOWEXPLORER_SHADERS_AUTONOMOUS_PARTICLES_RENDERER_VERT@";
+      "@TATOOINE_FLOWEXPLORER_SHADERS_AUTONOMOUS_PARTICLES_RENDERER_2D_VERT@";
   static constexpr std::string_view geometry_shader_path =
-      "@TATOOINE_FLOWEXPLORER_SHADERS_AUTONOMOUS_PARTICLES_RENDERER_GEOM@";
+      "@TATOOINE_FLOWEXPLORER_SHADERS_AUTONOMOUS_PARTICLES_RENDERER_2D_GEOM@";
   static constexpr std::string_view fragment_shader_path =
-      "@TATOOINE_FLOWEXPLORER_SHADERS_AUTONOMOUS_PARTICLES_RENDERER_FRAG@";
+      "@TATOOINE_FLOWEXPLORER_SHADERS_AUTONOMOUS_PARTICLES_RENDERER_2D_FRAG@";
   //============================================================================
   yavin::vertexbuffer<vec2f, vec2f, vec2f> m_gpu_Ss;
   yavin::indexbuffer                       m_gpu_Is;
@@ -31,15 +31,52 @@ struct autonomous_particles_renderer
   bool                                     m_currently_reading = false;
   std::mutex                               m_gpu_data_mutex;
   //----------------------------------------------------------------------------
-  autonomous_particles_renderer(flowexplorer::scene& s);
-  virtual ~autonomous_particles_renderer() = default;
+  autonomous_particles_renderer2d(flowexplorer::scene& s);
+  virtual ~autonomous_particles_renderer2d() = default;
   //----------------------------------------------------------------------------
   auto render(mat4f const& P, mat4f const& V) -> void override;
   //----------------------------------------------------------------------------
   auto draw_properties() -> bool override;
   //----------------------------------------------------------------------------
-  auto load_back_calculation() -> void;
+  auto load_initial() -> void;
   auto load_advection() -> void;
+  auto load_back_calculation() -> void;
+  auto load_data(std::string_view const& file) -> void;
+  //----------------------------------------------------------------------------
+  auto is_transparent() const -> bool override;
+};
+//==============================================================================
+struct autonomous_particles_renderer3d
+    : renderable<autonomous_particles_renderer3d> {
+  struct shader : yavin::shader {
+    shader();
+    //------------------------------------------------------------------------------
+    void set_view_projection_matrix(mat4f const& A);
+  };
+  //============================================================================
+  static constexpr std::string_view vertex_shader_path =
+      "@TATOOINE_FLOWEXPLORER_SHADERS_AUTONOMOUS_PARTICLES_RENDERER_3D_VERT@";
+  static constexpr std::string_view geometry_shader_path =
+      "@TATOOINE_FLOWEXPLORER_SHADERS_AUTONOMOUS_PARTICLES_RENDERER_3D_GEOM@";
+  static constexpr std::string_view fragment_shader_path =
+      "@TATOOINE_FLOWEXPLORER_SHADERS_AUTONOMOUS_PARTICLES_RENDERER_3D_FRAG@";
+  //============================================================================
+  yavin::vertexbuffer<vec3f, vec3f, vec3f, vec3f> m_gpu_Ss;
+  yavin::indexbuffer                              m_gpu_Is;
+  shader                                          m_shader;
+  bool                                            m_currently_reading = false;
+  std::mutex                                      m_gpu_data_mutex;
+  //----------------------------------------------------------------------------
+  autonomous_particles_renderer3d(flowexplorer::scene& s);
+  virtual ~autonomous_particles_renderer3d() = default;
+  //----------------------------------------------------------------------------
+  auto render(mat4f const& P, mat4f const& V) -> void override;
+  //----------------------------------------------------------------------------
+  auto draw_properties() -> bool override;
+  //----------------------------------------------------------------------------
+  auto load_initial() -> void;
+  auto load_advection() -> void;
+  auto load_back_calculation() -> void;
   auto load_data(std::string_view const& file) -> void;
   //----------------------------------------------------------------------------
   auto is_transparent() const -> bool override;
@@ -48,5 +85,7 @@ struct autonomous_particles_renderer
 }  // namespace tatooine::flowexplorer::nodes
 //==============================================================================
 TATOOINE_FLOWEXPLORER_REGISTER_RENDERABLE(
-    tatooine::flowexplorer::nodes::autonomous_particles_renderer)
+    tatooine::flowexplorer::nodes::autonomous_particles_renderer2d)
+TATOOINE_FLOWEXPLORER_REGISTER_RENDERABLE(
+    tatooine::flowexplorer::nodes::autonomous_particles_renderer3d)
 #endif

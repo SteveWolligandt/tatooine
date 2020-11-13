@@ -206,8 +206,8 @@ struct autonomous_particle {
                         std::ranges::range auto const radii) const
       -> std::vector<this_t> {
     auto const [Q, lambdas]       = eigenvectors_sym(m_S);
-    auto const              sigma = diag(lambdas);
-    auto const              B     = Q * sigma;
+    auto const              Sigma = diag(lambdas);
+    auto const              B     = Q * Sigma;
     mat_t                   H, HHt, nabla_phi2, fmg2fmg1;
     std::pair<mat_t, vec_t> eig_HHt;
     real_t                  old_cond_HHt = 1, cond_HHt = 1;
@@ -215,18 +215,15 @@ struct autonomous_particle {
     auto const&             eigvals_HHt = eig_HHt.second;
 
     vec_t                               advected_center;
-    std::array<vec_t, num_dimensions()> pos_offset_advections,
-        neg_offset_advections;
     std::array<vec_t, num_dimensions()> pos_offsets, neg_offsets;
     real_t                              t2 = m_t1;
 
     vec_t aux_offset = vec_t::zeros();
     for (size_t i = 0; i < num_dimensions(); ++i) {
-      aux_offset(i)  = 1;
+      aux_offset(i) =  1;
       pos_offsets[i] = B * aux_offset;
-      aux_offset(i)  = -1;
-      neg_offsets[i] = B * aux_offset;
-      aux_offset(i)  = 0;
+      neg_offsets[i] = B * (-aux_offset);
+      aux_offset(i) =  0;
     }
 
     while (cond_HHt < objective_cond || t2 != max_t) {
@@ -234,23 +231,17 @@ struct autonomous_particle {
       t2 += tau_step;
       t2 = std::min(t2, max_t);
 
+      advected_center = m_phi(m_x1, m_t1, t2 - m_t1);
       for (size_t i = 0; i < num_dimensions(); ++i) {
-        pos_offset_advections[i] =
-            m_phi(m_x1 + pos_offsets[i], m_t1, t2 - m_t1);
-        neg_offset_advections[i] =
-            m_phi(m_x1 + neg_offsets[i], m_t1, t2 - m_t1);
-      }
-
-      for (size_t i = 0; i < num_dimensions(); ++i) {
-        H.col(i) = pos_offset_advections[i] - neg_offset_advections[i];
+        H.col(i) = m_phi(m_x1 + pos_offsets[i], m_t1, t2 - m_t1) -
+                   m_phi(m_x1 + neg_offsets[i], m_t1, t2 - m_t1);
       }
       H /= 2;
-      advected_center = m_phi(m_x1, m_t1, t2 - m_t1);
       HHt             = H * transposed(H);
       eig_HHt         = eigenvectors_sym(HHt);
       cond_HHt        = eigvals_HHt(num_dimensions() - 1) / eigvals_HHt(0);
 
-      nabla_phi2 = H * inv(sigma) * transposed(Q);
+      nabla_phi2 = H * inv(Sigma) * transposed(Q);
       fmg2fmg1   = nabla_phi2 * m_nabla_phi1;
       if (t2 == max_t) {
         vec_t new_eig_vals;
@@ -261,33 +252,27 @@ struct autonomous_particle {
                  eigvecs_HHt * diag(new_eig_vals) * transposed(eigvecs_HHt)}};
       } else if (cond_HHt >= objective_cond &&
                  (cond_HHt - objective_cond < 0.0001 || tau_step < 1e-13)) {
+        advected_center = m_phi(m_x1, m_t1, t2 - m_t1);
         for (size_t i = 0; i < num_dimensions(); ++i) {
-          pos_offset_advections[i] =
-              m_phi(m_x1 + pos_offsets[i], m_t1, t2 - m_t1);
-          neg_offset_advections[i] =
-              m_phi(m_x1 + neg_offsets[i], m_t1, t2 - m_t1);
-        }
-
-        for (size_t i = 0; i < num_dimensions(); ++i) {
-          H.col(i) = pos_offset_advections[i] - neg_offset_advections[i];
+          H.col(i) = m_phi(m_x1 + pos_offsets[i], m_t1, t2 - m_t1) -
+                     m_phi(m_x1 + neg_offsets[i], m_t1, t2 - m_t1);
         }
         H /= 2;
-        advected_center = m_phi(m_x1, m_t1, t2 - m_t1);
         HHt             = H * transposed(H);
         eig_HHt         = eigenvectors_sym(HHt);
         cond_HHt        = eigvals_HHt(num_dimensions() - 1) / eigvals_HHt(0);
 
-        nabla_phi2 = H * inv(sigma) * transposed(Q);
+        nabla_phi2 = H * inv(Sigma) * transposed(Q);
         fmg2fmg1   = nabla_phi2 * m_nabla_phi1;
         std::vector<this_t> splits;
         vec_t               center_radii;
         for (size_t i = 0; i < num_dimensions() - 1; ++i) {
-          center_radii(i) = std::sqrt(eigvals_HHt(0));
+          center_radii(i) = std::sqrt(eigvals_HHt(i));
         }
         center_radii(num_dimensions() - 1) = center_radii(0);
 
         auto const relative_unit_vec =
-            eigvecs_HHt.col(num_dimensions() - 1) * center_radii;
+            eigvecs_HHt.col(num_dimensions() - 1) * center_radii(0);
         auto current_offset = vec_t::zeros();
 
         if (add_center) {

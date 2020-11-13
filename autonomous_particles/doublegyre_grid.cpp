@@ -113,7 +113,7 @@ auto main(int argc, char** argv) -> int {
     for (auto const& ap : initial_particles) {
       mat23f T{{ap.S()(0, 0), ap.S()(0, 1), ap.x1()(0)},
                {ap.S()(1, 0), ap.S()(1, 1), ap.x1()(1)}};
-      initial_var.write(initial_netcdf_is, initial_netcdf_is, T.data_ptr());
+      initial_var.write(initial_netcdf_is, cnt, T.data_ptr());
       ++initial_netcdf_is.front();
     }
     for (auto const& p : advected_particles) {
