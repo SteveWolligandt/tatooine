@@ -3,13 +3,8 @@
 //==============================================================================
 #include <tatooine/autonomous_particle.h>
 #include <tatooine/random.h>
-#include <tatooine/field.h>
-#include <tatooine/geometry/sphere.h>
 #include <tatooine/numerical_flowmap.h>
 #include <tatooine/tensor.h>
-#include <tatooine/triangular_mesh.h>
-
-#include <ranges>
 //==============================================================================
 namespace tatooine {
 //==============================================================================
@@ -184,7 +179,7 @@ struct autonomous_particle<Flowmap> {
       }
 
       active = 1 - active;
-      size_t const max_num_particles = 1000000;
+      size_t const max_num_particles = 100000;
       if (particles[active].size() > max_num_particles) {
         size_t const num_particles_to_delete =
             particles[active].size() - max_num_particles;
@@ -218,72 +213,91 @@ struct autonomous_particle<Flowmap> {
     real_t                  old_cond_HHt = 1, cond_HHt = 1;
     auto const&             eigvecs_HHt = eig_HHt.first;
     auto const&             eigvals_HHt = eig_HHt.second;
-    auto const              o_p0        = B * vec_t{1, 0};
-    auto const              o_n0        = B * vec_t{-1, 0};
-    auto const              o_0p        = B * vec_t{0, 1};
-    auto const              o_0n        = B * vec_t{0, -1};
 
-    vec_t  advected_center, p_p0, p_n0, p_0p, p_0n;
+    vec_t  advected_center;
+    std::array<vec_t, num_dimensions()> pos_offset_advections,
+        neg_offset_advections;
+    std::array<vec_t, num_dimensions()> pos_offsets, neg_offsets;
     real_t t2 = m_t1;
+
+    vec_t aux_offset = vec_t::zeros();
+    for (size_t i = 0; i < num_dimensions(); ++i) {
+      aux_offset(i)  = 1;
+      pos_offsets[i] = B * aux_offset;
+      aux_offset(i)  = -1;
+      neg_offsets[i] = B * aux_offset;
+      aux_offset(i)  = 0;
+    }
 
     while (cond_HHt < objective_cond || t2 != max_t) {
       old_cond_HHt = cond_HHt;
       t2 += tau_step;
       t2 = std::min(t2, max_t);
 
-      p_p0 = m_phi(m_x1 + o_p0, m_t1, t2 - m_t1);
-      p_n0 = m_phi(m_x1 + o_n0, m_t1, t2 - m_t1);
-      p_0p = m_phi(m_x1 + o_0p, m_t1, t2 - m_t1);
-      p_0n = m_phi(m_x1 + o_0n, m_t1, t2 - m_t1);
+      for (size_t i = 0; i < num_dimensions(); ++i) {
+        pos_offset_advections[i] =
+            m_phi(m_x1 + pos_offsets[i], m_t1, t2 - m_t1);
+        neg_offset_advections[i] =
+            m_phi(m_x1 + neg_offsets[i], m_t1, t2 - m_t1);
+      }
 
-      H.col(0) = p_p0 - p_n0;
-      H.col(1) = p_0p - p_0n;
+      for (size_t i = 0; i < num_dimensions(); ++i) {
+        H.col(i) = pos_offset_advections[i] - neg_offset_advections[i];
+      }
       H /= 2;
       advected_center = m_phi(m_x1, m_t1, t2 - m_t1);
       HHt             = H * transposed(H);
       eig_HHt         = eigenvectors_sym(HHt);
-      cond_HHt        = eigvals_HHt(1) / eigvals_HHt(0);
+      cond_HHt        = eigvals_HHt(num_dimensions() - 1) / eigvals_HHt(0);
 
       nabla_phi2 = H * inv(sigma) * transposed(Q);
       fmg2fmg1   = nabla_phi2 * m_nabla_phi1;
       if (t2 == max_t) {
-        vec const new_eig_vals{std::sqrt(eigvals_HHt(0)),
-                               std::sqrt(eigvals_HHt(1))};
+        vec_t const new_eig_vals{std::sqrt(eigvals_HHt(0)),
+                                 std::sqrt(eigvals_HHt(1))};
         return {{m_phi, m_x0, advected_center, t2, fmg2fmg1,
                  eigvecs_HHt * diag(new_eig_vals) * transposed(eigvecs_HHt)}};
       } else if (cond_HHt >= objective_cond &&
                  (cond_HHt - objective_cond < 0.0001 || tau_step < 1e-13)) {
-        p_p0 = m_phi(m_x1 + o_p0, m_t1, t2 - m_t1);
-        p_n0 = m_phi(m_x1 + o_n0, m_t1, t2 - m_t1);
-        p_0p = m_phi(m_x1 + o_0p, m_t1, t2 - m_t1);
-        p_0n = m_phi(m_x1 + o_0n, m_t1, t2 - m_t1);
+        for (size_t i = 0; i < num_dimensions(); ++i) {
+          pos_offset_advections[i] =
+              m_phi(m_x1 + pos_offsets[i], m_t1, t2 - m_t1);
+          neg_offset_advections[i] =
+              m_phi(m_x1 + neg_offsets[i], m_t1, t2 - m_t1);
+        }
 
-        H.col(0) = p_p0 - p_n0;
-        H.col(1) = p_0p - p_0n;
+        for (size_t i = 0; i < num_dimensions(); ++i) {
+          H.col(i) = pos_offset_advections[i] - neg_offset_advections[i];
+        }
         H /= 2;
         advected_center = m_phi(m_x1, m_t1, t2 - m_t1);
         HHt             = H * transposed(H);
         eig_HHt         = eigenvectors_sym(HHt);
-        cond_HHt        = eigvals_HHt(1) / eigvals_HHt(0);
+        cond_HHt        = eigvals_HHt(num_dimensions() - 1) / eigvals_HHt(0);
 
         nabla_phi2 = H * inv(sigma) * transposed(Q);
         fmg2fmg1   = nabla_phi2 * m_nabla_phi1;
         std::vector<this_t> splits;
-        auto const          relative_1        = std::sqrt(eigvals_HHt(0));
-        auto const          relative_unit_vec = eigvecs_HHt.col(1) * relative_1;
-        auto                current_offset    = vec_t::zeros();
+        vec_t center_radii;
+        for (size_t i = 0; i < num_dimensions() - 1; ++i) {
+          center_radii(i) = std::sqrt(eigvals_HHt(0));
+        }
+        center_radii(num_dimensions() - 1) = center_radii(0);
+
+        auto const relative_unit_vec =
+            eigvecs_HHt.col(num_dimensions() - 1) * center_radii;
+        auto       current_offset    = vec_t::zeros();
 
         if (add_center) {
-          auto const new_eigvals = vec_t::ones() * relative_1;
           auto const new_S =
-              eigvecs_HHt * diag(new_eigvals) * transposed(eigvecs_HHt);
+              eigvecs_HHt * diag(center_radii) * transposed(eigvecs_HHt);
           splits.emplace_back(m_phi, m_x0, advected_center, t2, fmg2fmg1,
                               new_S);
           current_offset = relative_unit_vec;
         }
 
         for (auto const radius : radii) {
-          auto const new_eigvals = vec_t::ones() * relative_1 * radius;
+          auto const new_eigvals = center_radii * radius;
           auto const offset2     = current_offset + relative_unit_vec * radius;
           auto const offset0     = inv(fmg2fmg1) * offset2;
           auto const new_S =

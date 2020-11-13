@@ -4,7 +4,7 @@
 #include <optional>
 //==============================================================================
 struct args_t {
-  size_t width, height, num_splits;
+  size_t width, height, depth, num_splits;
   double t0, tau, tau_step, min_cond;
 };
 //------------------------------------------------------------------------------

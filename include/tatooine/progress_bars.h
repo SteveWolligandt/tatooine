@@ -54,7 +54,7 @@ template <typename F, typename... Args>
 auto indeterminate_progress_bar(F&& f, Args&&... args)
   -> decltype(auto) {
   indicators::IndeterminateProgressBar indicator{
-      indicators::option::BarWidth{10},
+      indicators::option::BarWidth{20},
       indicators::option::Start{"▶"},
       indicators::option::Fill{" "},
       indicators::option::Lead{"░▒▓▒░"},
@@ -110,7 +110,7 @@ template <typename F, typename... Args>
 auto progress_bar(F&& f, Args&&... args)
   -> decltype(auto) {
   indicators::BlockProgressBar progress_indicator{
-      indicators::option::BarWidth{10},
+      indicators::option::BarWidth{20},
       indicators::option::Start{"▶"},
       indicators::option::End{"◀"},
       indicators::option::ShowElapsedTime{true},

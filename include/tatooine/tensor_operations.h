@@ -505,7 +505,7 @@ constexpr auto operator*(base_tensor<Tensor0, T0, M, N> const& lhs,
 template <typename Tensor0, real_or_complex_number T0, typename Tensor1,
           real_or_complex_number T1, size_t... Dims,
           std::enable_if_t<(sizeof...(Dims) != 2), bool> = true>
-constexpr auto operator%(base_tensor<Tensor0, T0, Dims...> const& lhs,
+constexpr auto operator*(base_tensor<Tensor0, T0, Dims...> const& lhs,
                          base_tensor<Tensor1, T1, Dims...> const& rhs) {
   return binary_operation(std::multiplies<promote_t<T0, T1>>{}, lhs, rhs);
 }

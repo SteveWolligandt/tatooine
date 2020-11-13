@@ -5,13 +5,14 @@
 auto parse_args(int argc, char** argv) -> std::optional<args_t> {
   namespace po = boost::program_options;
 
-  size_t width = 30, height = 15, num_splits = 3;
+  size_t width = 10, height = 10, depth = 10, num_splits = 3;
   double t0 = 0, tau = 2, tau_step = 0.05, min_cond = 0.01;
   // Declare the supported options.
   po::options_description desc("Allowed options");
   desc.add_options()("help", "produce help message")(
-      "width", po::value<size_t>(), "set width")("height", po::value<size_t>(),
-                                                 "set height")(
+      "width", po::value<size_t>(), "set width")(
+      "height", po::value<size_t>(), "set height")(
+      "depth", po::value<size_t>(), "set depth")(
       "num_splits", po::value<size_t>(), "set number of splits")(
       "t0", po::value<double>(), "set initial time")(
       "tau", po::value<double>(), "set integration length tau")(
@@ -39,6 +40,12 @@ auto parse_args(int argc, char** argv) -> std::optional<args_t> {
     std::cerr << "specified height = " << height << '\n';
   } else {
     std::cerr << "default height = " << height << '\n';
+  }
+  if (vm.count("depth") > 0) {
+    depth = vm["depth"].as<size_t>();
+    std::cerr << "specified depth = " << depth << '\n';
+  } else {
+    std::cerr << "default depth = " << depth << '\n';
   }
   if (vm.count("num_splits") > 0) {
     num_splits = vm["num_splits"].as<size_t>();
@@ -70,5 +77,5 @@ auto parse_args(int argc, char** argv) -> std::optional<args_t> {
   } else {
     std::cerr << "default min_cond = " << min_cond << '\n';
   }
-  return args_t{width, height, num_splits, t0, tau, tau_step, min_cond};
+  return args_t{width, height, depth, num_splits, t0, tau, tau_step, min_cond};
 }
