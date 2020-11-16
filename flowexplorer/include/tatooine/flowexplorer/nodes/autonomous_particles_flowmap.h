@@ -19,9 +19,11 @@ struct autonomous_particles_flowmap : ui::node<autonomous_particles_flowmap> {
   auto draw_properties() -> bool override {
     bool changed = false;
     if (ImGui::Button("load double gyre")) {
+      std::cerr << "loading ... ";
       m_mesh = std::make_unique<triangular_mesh<double, 2>>(
-                   "/home/steve/libs/tatooine2/build/autonomous_particles/"
-                   "doublegyre_flowmap.vtk");
+          "/home/steve/libs/tatooine2/build/autonomous_particles/"
+          "doublegyre_flowmap.vtk");
+      std::cerr << "done\n";
       changed = true;
     }
     return changed;

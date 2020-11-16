@@ -159,10 +159,12 @@ auto main(int argc, char** argv) -> int {
     // build samplable discretized flowmap
     //----------------------------------------------------------------------------
     indicator.set_text("Building delaunay triangulation");
+    std::cerr << "delaunay\n";
     mesh.triangulate_delaunay();
-
     indicator.set_text("Writing delaunay triangulated flowmap");
+    std::cerr << "writing\n";
     mesh.write_vtk("doublegyre_flowmap.vtk");
+    std::cerr << "done\n";
     auto flowmap_sampler_autonomous_particles =
         mesh.vertex_property_sampler(flowmap_prop);
 

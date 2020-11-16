@@ -159,6 +159,8 @@ void scene::create_link() {
 
         ui::pin* input_pin  = find_pin(input_pin_id.Get());
         ui::pin* output_pin = find_pin(output_pin_id.Get());
+        assert(input_pin != nullptr);
+        assert(output_pin != nullptr);
 
         if (input_pin->kind() == ui::pinkind::output) {
           std::swap(input_pin, output_pin);
@@ -196,8 +198,8 @@ void scene::create_link() {
           }
 
           auto& l = m_links.emplace_back(*input_pin, *output_pin);
-          input_pin->set_link(l);
-          output_pin->set_link(l);
+          input_pin->add_link(l);
+          output_pin->add_link(l);
 
           ed::Link(l.get_id(), l.input().get_id(), l.output().get_id());
         }
@@ -222,8 +224,8 @@ void scene::remove_link() {
           if (link_it->get_id() == deletedLinkId) {
             ui::pin* input_pin  = find_pin(link_it->input().get_id_number());
             ui::pin* output_pin = find_pin(link_it->output().get_id_number());
-            input_pin->unset_link();
-            output_pin->unset_link();
+            input_pin->remove_link(*link_it);
+            output_pin->remove_link(*link_it);
             m_links.erase(link_it);
             break;
           }
@@ -381,11 +383,13 @@ void scene::read(std::filesystem::path const& filepath) {
       id_stream >> id;
       size_t const input_id   = serialized_node["input"].as_integer()->get();
       size_t const output_id  = serialized_node["output"].as_integer()->get();
-      auto&        input_pin  = *find_pin(input_id);
-      auto&        output_pin = *find_pin(output_id);
-      auto& l = m_links.emplace_back(id, input_pin, output_pin);
-      input_pin.set_link(l);
-      output_pin.set_link(l);
+      auto         input_pin  = find_pin(input_id);
+      auto         output_pin = find_pin(output_id);
+      assert(input_pin != nullptr);
+      assert(output_pin != nullptr);
+      auto& l = m_links.emplace_back(id, *input_pin, *output_pin);
+      input_pin->add_link(l);
+      output_pin->add_link(l);
       //ax::NodeEditor::Link(l.get_id(), l.input().get_id(), l.output().get_id());
     }
   }

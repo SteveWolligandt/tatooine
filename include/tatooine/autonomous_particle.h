@@ -184,17 +184,12 @@ struct autonomous_particle {
         size_t const num_particles_to_delete =
             particles[active].size() - max_num_particles;
 
-        std::cerr << "number of particles to delete: "
-                  << num_particles_to_delete << '\n';
-
         for (size_t i = 0; i < num_particles_to_delete; ++i) {
           random_uniform<size_t> rand{0, particles[active].size() - 1};
           particles[active][rand()] = std::move(particles[active].back());
           particles[active].pop_back();
         }
       }
-
-      std::cerr << "number of particles: " << particles[active].size() << '\n';
     }
     return finished_particles;
   }

@@ -37,7 +37,7 @@ class triangular_mesh : public pointset<Real, N> {
 
     [[nodiscard]] auto operator()(pos_t const& x) const { return sample(x); }
     [[nodiscard]] auto sample(pos_t const& x) const -> T {
-      auto tris = m_mesh.hierarchy()->nearby_triangles_ptr(x);
+      auto tris = m_mesh.hierarchy().nearby_triangles_ptr(x);
       if (tris == nullptr || tris->empty()) {
         throw std::runtime_error{
             "[vertex_property_sampler_t::sample] out of domain"};
@@ -138,10 +138,10 @@ class triangular_mesh : public pointset<Real, N> {
                          std::conditional_t<N == 3, octree<Real>, void>>;
   //============================================================================
  private:
-  std::vector<vertex_index>     m_triangle_indices;
-  std::vector<triangle_index>   m_invalid_triangles;
-  triangle_property_container_t m_triangle_properties;
-  std::unique_ptr<hierarchy_t>  m_hierarchy;
+  std::vector<vertex_index>            m_triangle_indices;
+  std::vector<triangle_index>          m_invalid_triangles;
+  triangle_property_container_t        m_triangle_properties;
+  mutable std::unique_ptr<hierarchy_t> m_hierarchy;
 
  public:
   //============================================================================
@@ -274,23 +274,26 @@ class triangular_mesh : public pointset<Real, N> {
   }
   //----------------------------------------------------------------------------
   template <typename = void>
-  requires(N == 2 || N == 3) auto build_hierarchy() const {
+  requires(N == 2 || N == 3)
+  auto build_hierarchy() const {
     auto& h = hierarchy();
     for (auto v : this->vertices()) {
-      h->insert_vertex(*this, v.i);
+      h.insert_vertex(*this, v.i);
     }
     for (auto t : triangles()) {
-      h->insert_triangle(*this, t.i);
+      h.insert_triangle(*this, t.i);
     }
   }
   //----------------------------------------------------------------------------
   template <typename = void>
-  requires(N == 2 || N == 3) auto clear_hierarchy() {
+  requires(N == 2 || N == 3)
+  auto clear_hierarchy() {
     m_hierarchy.reset();
   }
   //----------------------------------------------------------------------------
   template <typename = void>
-  requires(N == 2 || N == 3) auto hierarchy() -> auto& {
+  requires(N == 2 || N == 3)
+  auto hierarchy() const -> auto& {
     if (m_hierarchy == nullptr) {
       auto min = pos_t::ones() * std::numeric_limits<Real>::infinity();
       auto max = -pos_t::ones() * std::numeric_limits<Real>::infinity();
@@ -303,11 +306,6 @@ class triangular_mesh : public pointset<Real, N> {
       m_hierarchy = std::make_unique<hierarchy_t>(min, max);
     }
     return *m_hierarchy;
-  }
-  //----------------------------------------------------------------------------
-  template <typename = void>
-  requires(N == 2 || N == 3) auto hierarchy() const -> auto const& {
-    return m_hierarchy;
   }
   //----------------------------------------------------------------------------
   template <typename T>
@@ -328,10 +326,10 @@ class triangular_mesh : public pointset<Real, N> {
   }
   //----------------------------------------------------------------------------
   template <typename = void>
-      requires(N == 2) ||
-      (N == 3) auto write_vtk(
-          std::string const& path,
-          std::string const& title = "tatooine triangular mesh") const -> bool {
+  requires(N == 2) || (N == 3)
+  auto write_vtk(std::string const& path,
+                 std::string const& title = "tatooine triangular mesh") const
+      -> bool {
     using boost::copy;
     using boost::adaptors::transformed;
     vtk::legacy_file_writer writer(path, vtk::POLYDATA);
@@ -386,15 +384,15 @@ class triangular_mesh : public pointset<Real, N> {
   auto read(std::filesystem::path const& path) {
     auto const ext = path.extension();
     if constexpr (N == 2 || N == 3) {
-      if (ext == "vtk") {
+      if (ext == ".vtk") {
         read_vtk(path);
       }
     }
   }
   //----------------------------------------------------------------------------
   template <typename = void>
-      requires(N == 2) ||
-      (N == 3) auto read_vtk(std::filesystem::path const& path) {
+  requires(N == 2) || (N == 3)
+  auto read_vtk(std::filesystem::path const& path) {
     struct listener_t : vtk::legacy_file_listener {
       triangular_mesh& mesh;
 
@@ -435,8 +433,15 @@ class triangular_mesh : public pointset<Real, N> {
       }
       void on_scalars(std::string const& data_name,
                       std::string const& /*lookup_table_name*/,
+                      size_t num_comps, std::vector<float> const& scalars,
+                      vtk::ReaderData data) override {
+        std::cerr << data_name << " " <<num_comps << '\n';
+      }
+      void on_scalars(std::string const& data_name,
+                      std::string const& /*lookup_table_name*/,
                       size_t num_comps, std::vector<double> const& scalars,
                       vtk::ReaderData data) override {
+        std::cerr << data_name << " " <<num_comps << '\n';
         if (data == vtk::POINT_DATA) {
           if (num_comps == 1) {
             auto& prop = mesh.template add_vertex_property<double>(data_name);

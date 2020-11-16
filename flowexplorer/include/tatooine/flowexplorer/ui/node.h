@@ -74,8 +74,8 @@ struct node : uuid_holder<ax::NodeEditor::NodeId>, serializable  {
     if (draw_properties()) {
       on_property_changed();
       for (auto& p : m_output_pins) {
-        if (p.is_connected()) {
-          (p.link().input().node().on_property_changed());
+        for (auto l : p.links()) {
+          (l->input().node().on_property_changed());
         }
       }
     }

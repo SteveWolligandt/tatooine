@@ -964,10 +964,12 @@ void legacy_file::read_scalars_ascii(std::ifstream &    file,
   std::vector<Real> scalars;
   scalars.reserve(m_data_size * num_comps);
   std::string val_str;
-  for (size_t i = 0; i < m_data_size * num_comps; i++)
+  for (size_t i = 0; i < m_data_size * num_comps; i++) {
     scalars.push_back(parse<Real>(vtk::read_word(file, buffer)));
-  for (auto l : m_listeners)
+  }
+  for (auto l : m_listeners) {
     l->on_scalars(name, lookup_table, num_comps, scalars, m_data);
+  }
 }
 //-----------------------------------------------------------------------------
 template <typename Real>

@@ -15,11 +15,11 @@ struct link;
 //==============================================================================
 struct pin : uuid_holder<ax::NodeEditor::PinId>{
  private:
-  std::string           m_title;
-  base::node&           m_node;
-  pinkind               m_kind;
-  std::type_info const& m_type;
-  struct link*          m_link = nullptr;
+  std::string               m_title;
+  base::node&               m_node;
+  pinkind                   m_kind;
+  std::type_info const&     m_type;
+  std::vector<struct link*> m_links;
 
  public:
   pin(base::node& n, std::type_info const& type, pinkind kind,
@@ -43,11 +43,11 @@ struct pin : uuid_holder<ax::NodeEditor::PinId>{
   auto type() const -> auto const& {
     return m_type;
   }
-  auto is_connected() const { return m_link != nullptr; }
-  auto set_link(struct link& l) -> void;
-  auto unset_link() ->void;
-  auto link() const -> auto const& { return *m_link; }
-  auto link() -> auto& { return *m_link; }
+  auto is_connected() const { return !m_links.empty(); }
+  auto add_link(struct link& l) -> void;
+  auto remove_link(struct link& l) -> void;
+  auto links() const -> auto const& { return m_links; }
+  auto links() -> auto& { return m_links; }
 };
 //==============================================================================
 template <typename T>

@@ -123,7 +123,11 @@ struct single_pathline : renderable<single_pathline<N>> {
   //----------------------------------------------------------------------------
   void on_pin_disconnected(ui::pin& this_pin) override { m_gpu_data.clear(); }
   //----------------------------------------------------------------------------
-  void on_property_changed() override { integrate_lines(); }
+  void on_property_changed() override {
+    if (m_x0 != nullptr && m_v != nullptr) {
+      integrate_lines();
+    }
+  }
   //----------------------------------------------------------------------------
   bool is_transparent() const override {
     return m_line_color[3] < 1;

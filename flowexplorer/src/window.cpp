@@ -84,8 +84,8 @@ void window::on_mouse_motion(int x, int y) {
     for (auto& r : m_scene.renderables()) {
       if (r->is_picked() && r->on_mouse_drag(offset_x, offset_y)) {
         for (auto& output_pin : r->output_pins()) {
-          if (output_pin.is_connected()) {
-            output_pin.link().input().node().on_property_changed();
+          for (auto l : output_pin.links()) {
+            l->input().node().on_property_changed();
           }
         }
       }

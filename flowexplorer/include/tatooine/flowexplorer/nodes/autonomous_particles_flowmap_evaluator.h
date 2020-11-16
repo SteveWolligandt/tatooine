@@ -62,6 +62,7 @@ struct autonomous_particles_flowmap_evaluator
         std::cerr << x1 << '\n';
         m_gpu_data.vertexbuffer()[0] = vec3f{x1(0), x1(1), 0.0f};
       } catch (std::runtime_error&) {
+        std::cerr << "outside\n";
       }
     }
   }

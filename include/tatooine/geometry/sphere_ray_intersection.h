@@ -21,10 +21,10 @@ template <typename Real>
 std::optional<intersection<Real, 3>> check_intersection(
     ray<Real, 3> const& r, sphere<Real, 3> const& s, Real const min_t = 0) {
   auto const L         = r.origin() - s.center();
-  Real const a         = dot(r.direction(), r.direction());
-  Real const b         = 2 * dot(r.direction(), L);
-  Real const c         = dot(L, L) - s.radius() * s.radius();
-  auto       solutions = solve(polynomial{a, b, c});
+  auto const a         = dot(r.direction(), r.direction());
+  auto const b         = 2 * dot(r.direction(), L);
+  auto const c         = dot(L, L) - s.radius() * s.radius();
+  auto       solutions = solve(polynomial{c, b, a});
   if (solutions.empty()) {
     return {};
   }
