@@ -239,7 +239,7 @@ struct fps_camera_controller : camera_controller_interface<Real> {
   Real         m_theta = M_PI / 2, m_phi = M_PI / 2;
   vec<Real, 3> m_look_dir;
   int  m_mouse_pos_x, m_mouse_pos_y;
-  bool m_middle_button_down = false;
+  bool m_right_button_down = false;
   bool m_w_down             = false;
   bool m_s_down             = false;
   bool m_a_down             = false;
@@ -288,19 +288,19 @@ struct fps_camera_controller : camera_controller_interface<Real> {
   }
   //----------------------------------------------------------------------------
   void on_button_pressed(yavin::button b) override {
-    if (b == yavin::BUTTON_MIDDLE) {
-      m_middle_button_down = true;
+    if (b == yavin::BUTTON_RIGHT) {
+      m_right_button_down = true;
     }
   }
   //----------------------------------------------------------------------------
   void on_button_released(yavin::button b) override {
-    if (b == yavin::BUTTON_MIDDLE) {
-      m_middle_button_down = false;
+    if (b == yavin::BUTTON_RIGHT) {
+      m_right_button_down = false;
     }
   }
   //----------------------------------------------------------------------------
   void on_mouse_motion(int x, int y) override {
-    if (m_middle_button_down) {
+    if (m_right_button_down) {
       int offset_x = x - m_mouse_pos_x;
       int offset_y = y - m_mouse_pos_y;
       m_theta -= offset_x * Real(0.01);
@@ -363,7 +363,7 @@ struct orthographic_camera_controller : camera_controller_interface<Real> {
   // members
   //============================================================================
   int  m_mouse_pos_x, m_mouse_pos_y;
-  bool m_left_button_down = false;
+  bool m_right_button_down = false;
 
   //============================================================================
   // ctor
@@ -379,19 +379,19 @@ struct orthographic_camera_controller : camera_controller_interface<Real> {
   // methods
   //============================================================================
   void on_button_pressed(yavin::button b) override {
-    if (b == yavin::BUTTON_LEFT) {
-      m_left_button_down = true;
+    if (b == yavin::BUTTON_RIGHT) {
+      m_right_button_down = true;
     }
   }
   //----------------------------------------------------------------------------
   void on_button_released(yavin::button b) override {
-    if (b == yavin::BUTTON_LEFT) {
-      m_left_button_down = false;
+    if (b == yavin::BUTTON_RIGHT) {
+      m_right_button_down = false;
     }
   }
   //----------------------------------------------------------------------------
   void on_mouse_motion(int x, int y) override {
-    if (m_left_button_down) {
+    if (m_right_button_down) {
       int  offset_x = x - m_mouse_pos_x;
       int  offset_y = y - m_mouse_pos_y;
       auto new_eye  = controller().eye();
