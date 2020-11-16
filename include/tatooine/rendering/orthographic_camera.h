@@ -27,18 +27,25 @@ class orthographic_camera : public camera<Real> {
 
  private:
   //----------------------------------------------------------------------------
-  // class variables
-  //----------------------------------------------------------------------------
-
-  //----------------------------------------------------------------------------
   // member variables
   //----------------------------------------------------------------------------
-  vec3 m_eye, m_lookat, m_up;
   vec3 m_bottom_left;
   vec3 m_plane_base_x, m_plane_base_y;
   Real m_height, m_near, m_far;
 
  public:
+  //----------------------------------------------------------------------------
+  // getter / setter
+  //----------------------------------------------------------------------------
+  auto height() const {
+    return m_height;
+  }
+  auto near() const {
+    return m_near;
+  }
+  auto far() const {
+    return m_far;
+  }
   //----------------------------------------------------------------------------
   // constructors / destructor
   //----------------------------------------------------------------------------
@@ -69,31 +76,32 @@ class orthographic_camera : public camera<Real> {
   /// gets a ray through plane at pixel with coordinate [x,y].
   /// [0,0] is bottom left.
   /// ray goes through center of pixel
-  tatooine::ray<Real, 3> ray(Real x, Real y) const override {
+  auto ray(Real x, Real y) const -> tatooine::ray<Real, 3> override {
     assert(x < this->plane_width());
     assert(y < this->plane_height());
     auto const view_plane_point =
         m_bottom_left + x * m_plane_base_x + y * m_plane_base_y;
-    return {{m_eye}, {view_plane_point - m_eye}};
+    return {view_plane_point, normalize(this->lookat() - this->eye())};
   }
   //============================================================================
  private:
-  void setup() override {
-    vec3 const view_dir          = normalize(m_lookat - m_eye);
-    vec3 const u                 = cross(m_up, view_dir);
-    vec3 const v                 = cross(view_dir, u);
+  auto setup() -> void override {
+    vec3 const view_dir          = normalize(this->lookat() - this->eye());
+    vec3 const u                 = cross(view_dir, this->up());
+    vec3 const v                 = cross(u, view_dir);
     Real const plane_half_height = m_height / 2;
     Real const plane_half_width  = plane_half_height * this->aspect_ratio();
 
-    m_bottom_left =
-        m_eye + view_dir - u * plane_half_width - v * plane_half_height;
+    m_bottom_left = this->eye() + view_dir * m_near
+                                - u * plane_half_width
+                                - v * plane_half_height;
     m_plane_base_x = u * 2 * plane_half_width / (this->plane_width() - 1);
     m_plane_base_y = v * 2 * plane_half_height / (this->plane_height() - 1);
   }
   //----------------------------------------------------------------------------
  public:
   //----------------------------------------------------------------------------
-  std::unique_ptr<parent_t> clone() const override {
+  auto clone() const -> std::unique_ptr<parent_t> override {
     return std::unique_ptr<this_t>(new this_t{*this});
   }
   //----------------------------------------------------------------------------
@@ -105,9 +113,9 @@ class orthographic_camera : public camera<Real> {
              -(m_far + m_near) / (m_far - m_near)},
             {Real(0), Real(0), Real(0), Real(1)}};
   }
-  void setup(vec3 const& eye, vec3 const& lookat, vec3 const& up,
+  auto setup(vec3 const& eye, vec3 const& lookat, vec3 const& up,
              Real const height, Real const near, Real const far,
-             size_t const res_x, size_t const res_y) {
+             size_t const res_x, size_t const res_y) -> void {
     this->set_eye(eye);
     this->set_lookat(lookat);
     this->set_up(up);
@@ -116,15 +124,6 @@ class orthographic_camera : public camera<Real> {
     m_near   = near;
     m_far    = far;
     setup();
-  }
-  auto height() const {
-    return m_height;
-  }
-  auto near() const {
-    return m_near;
-  }
-  auto far() const {
-    return m_far;
   }
 };
 //==============================================================================

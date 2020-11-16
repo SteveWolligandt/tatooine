@@ -170,6 +170,7 @@ struct camera_controller : yavin::window_listener {
   auto plane_height() {
     return m_active_cam->plane_height();
   }
+  auto ray(int x, int y) const { return m_active_cam->ray(x, y); }
   //------------------------------------------------------------------------------
   void on_key_pressed(yavin::key k) override {
     if (m_controller) {
@@ -238,14 +239,14 @@ struct fps_camera_controller : camera_controller_interface<Real> {
 
   Real         m_theta = M_PI / 2, m_phi = M_PI / 2;
   vec<Real, 3> m_look_dir;
-  int  m_mouse_pos_x, m_mouse_pos_y;
-  bool m_right_button_down = false;
-  bool m_w_down             = false;
-  bool m_s_down             = false;
-  bool m_a_down             = false;
-  bool m_d_down             = false;
-  bool m_q_down             = false;
-  bool m_e_down             = false;
+  int          m_mouse_pos_x, m_mouse_pos_y;
+  bool         m_right_button_down = false;
+  bool         m_w_down            = false;
+  bool         m_s_down            = false;
+  bool         m_a_down            = false;
+  bool         m_d_down            = false;
+  bool         m_q_down            = false;
+  bool         m_e_down            = false;
 
   fps_camera_controller(camera_controller<Real>* controller)
       : camera_controller_interface<Real>{controller} {

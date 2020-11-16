@@ -274,13 +274,13 @@ class triangular_mesh : public pointset<Real, N> {
   }
   //----------------------------------------------------------------------------
   template <typename = void>
-  requires(N == 2 || N == 3) auto build_hierarchy() {
+  requires(N == 2 || N == 3) auto build_hierarchy() const {
     auto& h = hierarchy();
     for (auto v : this->vertices()) {
-      h.insert_vertex(*this, v.i);
+      h->insert_vertex(*this, v.i);
     }
     for (auto t : triangles()) {
-      h.insert_triangle(*this, t.i);
+      h->insert_triangle(*this, t.i);
     }
   }
   //----------------------------------------------------------------------------
@@ -311,7 +311,7 @@ class triangular_mesh : public pointset<Real, N> {
   }
   //----------------------------------------------------------------------------
   template <typename T>
-  auto vertex_property_sampler(vertex_property_t<T> const& prop) {
+  auto vertex_property_sampler(vertex_property_t<T> const& prop) const {
     if (m_hierarchy == nullptr) {
       build_hierarchy();
     }
@@ -319,7 +319,7 @@ class triangular_mesh : public pointset<Real, N> {
   }
   //----------------------------------------------------------------------------
   template <typename T>
-  auto vertex_property_sampler(std::string const& name) {
+  auto vertex_property_sampler(std::string const& name) const {
     if (m_hierarchy == nullptr) {
       build_hierarchy();
     }
@@ -409,21 +409,27 @@ class triangular_mesh : public pointset<Real, N> {
 
       void on_points(std::vector<std::array<float, 3>> const& ps) override {
         for (auto& p : ps) {
-          mesh.insert_vertex(p[0], p[1], p[2]);
+          if constexpr (N == 3) {
+            mesh.insert_vertex(p[0], p[1], p[2]);
+          } else if constexpr (N == 2) {
+            mesh.insert_vertex(p[0], p[1]);
+          }
         }
       }
       void on_points(std::vector<std::array<double, 3>> const& ps) override {
         for (auto& p : ps) {
-          mesh.insert_vertex(p[0], p[1], p[2]);
+          if constexpr (N == 3) {
+            mesh.insert_vertex(p[0], p[1], p[2]);
+          } else if constexpr (N == 2) {
+            mesh.insert_vertex(p[0], p[1]);
+          }
         }
       }
       void on_polygons(std::vector<int> const& ps) override {
         for (size_t i = 0; i < ps.size();) {
           auto const& size = ps[i++];
-          if (size == 4) {
-            mesh.insert_triangle(size_t(ps[i]), size_t(ps[i + 1]),
-                                 size_t(ps[i + 2]), size_t(ps[i + 2]));
-          }
+          mesh.insert_triangle(size_t(ps[i]), size_t(ps[i + 1]),
+                               size_t(ps[i + 2]));
           i += size;
         }
       }
@@ -435,7 +441,7 @@ class triangular_mesh : public pointset<Real, N> {
           if (num_comps == 1) {
             auto& prop = mesh.template add_vertex_property<double>(data_name);
             for (size_t i = 0; i < prop.size(); ++i) {
-              prop[i] = scalars[i];
+              prop[vertex_index{i}] = scalars[i];
             }
           } else if (num_comps == 2) {
             auto& prop =
@@ -443,7 +449,7 @@ class triangular_mesh : public pointset<Real, N> {
 
             for (size_t i = 0; i < prop.size(); ++i) {
               for (size_t j = 0; j < num_comps; ++j) {
-                prop[i][j] = scalars[i * num_comps + j];
+                prop[vertex_index{i}][j] = scalars[i * num_comps + j];
               }
             }
           } else if (num_comps == 3) {
@@ -451,7 +457,7 @@ class triangular_mesh : public pointset<Real, N> {
                 mesh.template add_vertex_property<vec<double, 3>>(data_name);
             for (size_t i = 0; i < prop.size(); ++i) {
               for (size_t j = 0; j < num_comps; ++j) {
-                prop[i][j] = scalars[i * num_comps + j];
+                prop[vertex_index{i}][j] = scalars[i * num_comps + j];
               }
             }
           } else if (num_comps == 4) {
@@ -459,7 +465,7 @@ class triangular_mesh : public pointset<Real, N> {
                 mesh.template add_vertex_property<vec<double, 4>>(data_name);
             for (size_t i = 0; i < prop.size(); ++i) {
               for (size_t j = 0; j < num_comps; ++j) {
-                prop[i][j] = scalars[i * num_comps + j];
+                prop[vertex_index{i}][j] = scalars[i * num_comps + j];
               }
             }
           }

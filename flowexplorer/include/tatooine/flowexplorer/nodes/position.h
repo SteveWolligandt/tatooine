@@ -2,6 +2,7 @@
 #define TATOOINE_FLOWEXPLORER_NODES_POSITION_H
 //==============================================================================
 #include <tatooine/flowexplorer/point_shader.h>
+#include <tatooine/geometry/sphere.h>
 #include <tatooine/flowexplorer/renderable.h>
 #include <tatooine/vec.h>
 #include <yavin/imgui.h>
@@ -15,12 +16,21 @@ struct position : tatooine::vec<double, N>, renderable<position<N>> {
   using this_t   = position<N>;
   using parent_t = tatooine::vec<double, N>;
   using gpu_vec  = vec<GLfloat, 3>;
-  using vbo_t    = yavin::vertexbuffer<gpu_vec>;
+  using parent_t::at;
   //============================================================================
   yavin::indexeddata<gpu_vec> m_gpu_data;
   point_shader                m_shader;
   int                         m_pointsize = 1;
   std::array<GLfloat, 4>      m_color{0.0f, 0.0f, 0.0f, 1.0f};
+  //============================================================================
+  auto pos()       -> vec<double, N>& { return *this; }
+  auto pos() const -> vec<double, N> const& { return *this; }
+  //----------------------------------------------------------------------------
+  auto point_size()       -> auto& { return m_pointsize; }
+  auto point_size() const -> auto const& { return m_pointsize; }
+  //----------------------------------------------------------------------------
+  auto color()       -> auto& { return m_color; }
+  auto color() const -> auto const& { return m_color; }
   //============================================================================
   constexpr position(position const&)     = default;
   constexpr position(position&&) noexcept = default;
@@ -83,14 +93,44 @@ struct position : tatooine::vec<double, N>, renderable<position<N>> {
     return m_color[3] < 1;
   }
   //----------------------------------------------------------------------------
-  auto pos()       -> vec<double, N>& { return *this; }
-  auto pos() const -> vec<double, N> const& { return *this; }
+  auto on_mouse_drag(int offset_x, int offset_y) -> bool override {
+    auto const P = this->scene().camera_controller().projection_matrix();
+    auto const V = this->scene().camera_controller().view_matrix();
+
+    auto x = [this] {
+      if constexpr (N == 2) {
+        return vec<double, 4>{at(0), at(1), 0, 1};
+      } else {
+        return vec<double, 4>{at(0), at(1), at(2), 1};
+      }
+    }();
+
+    x    = P * (V * x);
+    x(0) = (x(0) * 0.5 + 0.5) * (this->scene().window().width() - 1) + offset_x;
+    x(1) = (x(1) * 0.5 + 0.5) * (this->scene().window().height() - 1) - offset_y;
+
+    x(0) = x(0) / (this->scene().window().width() - 1) * 2 - 1;
+    x(1) = x(1) / (this->scene().window().height() - 1) * 2 - 1;
+
+    x     = inv(V) * (inv(P) * x);
+    at(0) = x(0);
+    at(1) = x(1);
+    if constexpr (N == 3) {
+      at(2) = x(2);
+    }
+    return true;
+  }
   //----------------------------------------------------------------------------
-  auto point_size()       -> auto& { return m_pointsize; }
-  auto point_size() const -> auto const& { return m_pointsize; }
-  //----------------------------------------------------------------------------
-  auto color()       -> auto& { return m_color; }
-  auto color() const -> auto const& { return m_color; }
+  auto check_intersection(ray<float, 3> const& r) const -> bool override {
+    if constexpr (N == 3) {
+      geometry::sphere<float, 3> s{0.001, vec3f{at(0), at(1), at(2)}};
+      return s.check_intersection(r).has_value();
+    } else if constexpr (N == 2) {
+      geometry::sphere<float, 3> s{0.001, vec3f{at(0), at(1), 0}};
+      return s.check_intersection(r).has_value();
+    }
+    return false;
+  }
 };
 using position2 = position<2>;
 using position3 = position<3>;

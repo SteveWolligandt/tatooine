@@ -14,7 +14,7 @@ namespace tatooine::flowexplorer {
 //==============================================================================
 struct window;
 struct scene {
-  private:
+ private:
   static std::set<std::string_view>              items;
   static bool                                    items_created;
   std::vector<std::unique_ptr<ui::base::node>>   m_nodes;
@@ -28,57 +28,67 @@ struct scene {
   //============================================================================
   auto nodes() const -> auto const& { return m_nodes; }
   auto nodes() -> auto& { return m_nodes; }
-  auto renderables() const -> auto const& { return m_renderables; }
-  auto renderables() -> auto& { return m_renderables; }
-
+  //------------------------------------------------------------------------------
+  auto renderables()       const -> auto const& { return m_renderables; }
+  auto renderables()             -> auto&       { return m_renderables; }
+  //----------------------------------------------------------------------------
+  auto window()            const -> auto const& { return *m_window; }
+  auto window()                  -> auto&       { return *m_window; }
+  //----------------------------------------------------------------------------
+  auto camera_controller() const -> auto const& { return *m_cam; }
+  auto camera_controller()       -> auto&       { return *m_cam; }
   //============================================================================
   scene(rendering::camera_controller<float>& ctrl, flowexplorer::window* w);
   scene(rendering::camera_controller<float>& ctrl, flowexplorer::window* w,
         std::filesystem::path const& path);
   ~scene();
   //============================================================================
-  void render(std::chrono::duration<double> const& dt);
+  auto render(std::chrono::duration<double> const& dt) -> void;
+  //----------------------------------------------------------------------------
   auto find_node(size_t const id) -> ui::base::node*;
   //----------------------------------------------------------------------------
   auto find_pin(size_t const id) -> ui::pin*;
   //----------------------------------------------------------------------------
-  void node_creators();
+  auto node_creators() -> void;
   //----------------------------------------------------------------------------
-  void draw_nodes();
+  auto draw_nodes() -> void;
   //----------------------------------------------------------------------------
-  void draw_links();
+  auto draw_links() -> void;
   //----------------------------------------------------------------------------
-  void create_link();
+  auto create_link() -> void;
   //----------------------------------------------------------------------------
-  void remove_link();
+  auto remove_link() -> void;
   //----------------------------------------------------------------------------
-  void draw_node_editor(size_t const pos_x, size_t const pos_y,
-                        size_t const width, size_t const height, bool& show);
+  auto draw_node_editor(size_t const pos_x, size_t const pos_y,
+                        size_t const width, size_t const height,
+                        bool& show) -> void;
   //----------------------------------------------------------------------------
-  void write(std::filesystem::path const& filepath) const;
-  void read(std::filesystem::path const& filepath);
+  auto write(std::filesystem::path const& filepath) const -> void;
+  auto read(std::filesystem::path const& filepath) -> void;
   //----------------------------------------------------------------------------
   auto open_file(std::filesystem::path const& filepath) -> void;
   //----------------------------------------------------------------------------
   template <typename F>
-  auto do_in_context(F&& f) const {
+  auto do_in_context(F&& f) const -> decltype(auto) {
     ax::NodeEditor::SetCurrentEditor(m_node_editor_context);
-    f();
-    ax::NodeEditor::SetCurrentEditor(nullptr);
+    if constexpr (!std::is_same_v<std::invoke_result_t<F>, void>) {
+      decltype(auto) ret = f();
+      ax::NodeEditor::SetCurrentEditor(nullptr);
+      return ret;
+    } else {
+      f();
+      ax::NodeEditor::SetCurrentEditor(nullptr);
+    }
   }
-  void clear() {
+  //----------------------------------------------------------------------------
+  auto clear() -> void {
     m_nodes.clear();
     m_renderables.clear();
     m_links.clear();
-  }
-  auto window() const -> auto const& {
-    return *m_window;
-  }
-  auto window() -> auto& {
-    return *m_window;
   }
 };
 //==============================================================================
 }  // namespace tatooine::flowexplorer
 //==============================================================================
+#include <tatooine/flowexplorer/window.h>
 #endif

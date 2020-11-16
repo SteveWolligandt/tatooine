@@ -19,7 +19,7 @@ struct scene;
 namespace tatooine::flowexplorer::ui {
 //==============================================================================
 namespace base {
-struct node : uuid_holder<ax::NodeEditor::NodeId>, serializable {
+struct node : uuid_holder<ax::NodeEditor::NodeId>, serializable  {
  private:
   std::string          m_title;
   flowexplorer::scene* m_scene;
@@ -44,6 +44,9 @@ struct node : uuid_holder<ax::NodeEditor::NodeId>, serializable {
   //----------------------------------------------------------------------------
   auto title() const -> auto const& { return m_title; }
   auto title() -> auto& { return m_title; }
+  //----------------------------------------------------------------------------
+  auto scene() const -> auto const& { return *m_scene; }
+  auto scene() -> auto& { return *m_scene; }
   //----------------------------------------------------------------------------
   auto is_enabled() const { return m_enabled; }
   //----------------------------------------------------------------------------
@@ -96,8 +99,6 @@ struct node : uuid_holder<ax::NodeEditor::NodeId>, serializable {
   virtual auto on_pin_disconnected(pin& this_pin) -> void {}
   virtual auto type_name() const -> std::string_view = 0;
 
-  auto scene() const -> auto const& { return *m_scene; }
-  auto scene() -> auto& { return *m_scene; }
 };
 }  // namespace base
 template <typename T>
@@ -376,7 +377,7 @@ struct node : base::node, node_serializer<Child> {
                                                serialized_node);
   }
   //----------------------------------------------------------------------------
-  auto draw_properties() -> bool override final {
+  auto draw_properties() -> bool override {
     return node_serializer<Child>::draw_properties(*dynamic_cast<Child*>(this));
   }
   //----------------------------------------------------------------------------

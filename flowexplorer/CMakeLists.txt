@@ -17,6 +17,8 @@ add_executable(
   src/saddle.cpp
   src/position.cpp
   src/duffing_oscillator.cpp
+  src/single_pathline.cpp
+  src/autonomous_particles_flowmap.cpp
   src/random_pathlines.cpp
   src/rayleigh_benard_convection.cpp
   src/test_node.cpp

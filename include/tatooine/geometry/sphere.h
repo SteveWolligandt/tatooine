@@ -2,6 +2,7 @@
 #define TATOOINE_GEOMETRY_SPHERE_H
 //==============================================================================
 #include <tatooine/tensor.h>
+#include <tatooine/line.h>
 #include <tatooine/triangular_mesh.h>
 #include <boost/range/adaptor/transformed.hpp>
 #include <boost/range/algorithm/copy.hpp>

@@ -329,6 +329,7 @@ void scene::read(std::filesystem::path const& filepath) {
           serialized_node["node_type"].as_string()->get();
 
       ui::base::node* n = insert_registered_element(*this, node_type_name);
+      assert(n != nullptr);
 
       // id string to size_t
       std::stringstream id_stream{id_string};
@@ -385,6 +386,7 @@ void scene::read(std::filesystem::path const& filepath) {
       auto& l = m_links.emplace_back(id, input_pin, output_pin);
       input_pin.set_link(l);
       output_pin.set_link(l);
+      //ax::NodeEditor::Link(l.get_id(), l.input().get_id(), l.output().get_id());
     }
   }
   ax::NodeEditor::SetCurrentEditor(nullptr);

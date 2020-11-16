@@ -182,20 +182,22 @@ constexpr auto diff(const polynomial<Real, Degree>& f) {
 //------------------------------------------------------------------------------
 /// solve a + bx
 template <typename Real>
-std::vector<Real> solve(const polynomial<Real, 1>& p) {
+auto solve(const polynomial<Real, 1>& p) -> std::vector<Real> {
   if (p.c(1) == 0) { return {}; }
   return {-p.c(0) / p.c(1)};
 }
 //------------------------------------------------------------------------------
 /// solve a + bx + cxx
 template <typename Real>
-std::vector<Real> solve(const polynomial<Real, 2>& p) {
-  const auto& a = p.c(0);
-  const auto& b = p.c(1);
-  const auto& c = p.c(2);
-  if (c == 0) { return solve(polynomial{a, b}); }
+auto solve(const polynomial<Real, 2>& p) -> std::vector<Real> {
+  auto const a = p.c(0);
+  auto const b = p.c(1);
+  auto const c = p.c(2);
+  if (c == 0) {
+    return solve(polynomial{a, b});
+  }
 
-  Real discr = b * b - 4 * c * a;
+  auto const discr = b * b - 4 * a * c;
   if (discr < 0) {
     return {};
   } else if (std::abs(discr) < 1e-10) {

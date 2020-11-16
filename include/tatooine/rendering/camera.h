@@ -22,8 +22,8 @@ struct camera : clonable<camera<Real>> {
   using this_t            = camera<Real>;
   using real_t            = Real;
   using parent_clonable_t = clonable<camera<Real>>;
-  using vec3     = vec<Real, 3>;
-  using mat4     = mat<Real, 4, 4>;
+  using vec3              = vec<Real, 3>;
+  using mat4              = mat<Real, 4, 4>;
 
   //----------------------------------------------------------------------------
   // member variables
@@ -54,44 +54,38 @@ struct camera : clonable<camera<Real>> {
            static_cast<Real>(m_resolution[1]);
   }
   //----------------------------------------------------------------------------
-  auto eye() const -> auto& {
-    return m_eye;
-  }
+  auto eye() const -> auto& { return m_eye; }
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-  void set_eye(Real const x, Real const y, Real const z) {
+  auto set_eye(Real const x, Real const y, Real const z) -> void {
     m_eye = {x, y, z};
     setup();
   }
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-  void set_eye(vec3 const& eye) {
+  auto set_eye(vec3 const& eye) -> void {
     m_eye = eye;
     setup();
   }
   //----------------------------------------------------------------------------
-  auto lookat() const -> auto& {
-    return m_lookat;
-  }
+  auto lookat() const -> auto& { return m_lookat; }
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-  void set_lookat(Real const x, Real const y, Real const z) {
+  auto set_lookat(Real const x, Real const y, Real const z) -> void {
     m_lookat = {x, y, z};
     setup();
   }
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-  void set_lookat(vec3 const lookat) {
+  auto set_lookat(vec3 const lookat) -> void {
     m_lookat = lookat;
     setup();
   }
   //----------------------------------------------------------------------------
-  auto up() const -> auto& {
-    return m_up;
-  }
+  auto up() const -> auto& { return m_up; }
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-  void set_up(Real const x, Real const y, Real const z) {
+  auto set_up(Real const x, Real const y, Real const z) -> void {
     m_up = {x, y, z};
     setup();
   }
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-  void set_up(vec3 const up) {
+  auto set_up(vec3 const up) -> void {
     m_up = up;
     setup();
   }
@@ -101,8 +95,8 @@ struct camera : clonable<camera<Real>> {
     setup();
   }
   //----------------------------------------------------------------------------
-  void look_at(vec3 const& eye, vec3 const& lookat,
-               vec3 const& up = {0, 1, 0}) {
+  auto look_at(vec3 const& eye, vec3 const& lookat, vec3 const& up = {0, 1, 0})
+      -> void {
     m_eye    = eye;
     m_lookat = lookat;
     m_up     = up;
@@ -113,9 +107,7 @@ struct camera : clonable<camera<Real>> {
     return look_at_matrix(m_eye, m_lookat, m_up);
   }
   //----------------------------------------------------------------------------
-  auto view_matrix() const -> mat4 {
-    return inv(transform_matrix());
-  }
+  auto view_matrix() const -> mat4 { return inv(transform_matrix()); }
   //----------------------------------------------------------------------------
   // interface methods
   //----------------------------------------------------------------------------
@@ -124,20 +116,19 @@ struct camera : clonable<camera<Real>> {
   /// [0,0] is bottom left.
   /// ray goes through center of pixel.
   /// This method must be overridden in camera implementations.
-  virtual auto setup()                   -> void = 0;
+  virtual auto setup() -> void                                     = 0;
   virtual auto ray(Real x, Real y) const -> tatooine::ray<Real, 3> = 0;
-  virtual auto projection_matrix() const -> mat4 = 0;
+  virtual auto projection_matrix() const -> mat4                   = 0;
   //----------------------------------------------------------------------------
-  auto transform_matrix(Real const near, Real const far) const
-      -> mat4 {
+  auto transform_matrix(Real const near, Real const far) const -> mat4 {
     return look_at_matrix(m_eye, m_lookat, m_up);
   }
-  //----------------------------------------------------------------------------
+  //--------------------------------------------------:--------------------------
   auto view_matrix(Real const near, Real const far) const -> mat4 {
     return inv(transform_matrix(near, far));
   }
 };
 //==============================================================================
-}  // namespace cg
+}  // namespace tatooine::rendering
 //==============================================================================
 #endif
