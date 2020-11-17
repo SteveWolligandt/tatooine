@@ -179,7 +179,7 @@ struct autonomous_particle {
       }
 
       active                         = 1 - active;
-      size_t const max_num_particles = 100000;
+      size_t const max_num_particles = 500000;
       if (particles[active].size() > max_num_particles) {
         size_t const num_particles_to_delete =
             particles[active].size() - max_num_particles;

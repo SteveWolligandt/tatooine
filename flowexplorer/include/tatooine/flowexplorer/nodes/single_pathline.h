@@ -27,16 +27,14 @@ struct single_pathline : renderable<single_pathline<N>> {
   line_shader                                             m_shader;
   yavin::indexeddata<vec<float, 3>, vec<float, 3>, float> m_gpu_data;
 
-  double                 m_btau, m_ftau;
+  double                 m_t0   = 0;
+  double                 m_btau = -5, m_ftau = 5;
   std::array<GLfloat, 4> m_line_color{0.0f, 0.0f, 0.0f, 1.0f};
   int                    m_line_width           = 1;
   bool                   m_integration_going_on = false;
   //----------------------------------------------------------------------------
   single_pathline(flowexplorer::scene& s)
-      : renderable<single_pathline<N>>{"Path Line", s},
-        m_btau{0},
-        m_ftau{10},
-        m_line_color{0.0f, 0.0f, 0.0f, 1.0f} {
+      : renderable<single_pathline<N>>{"Path Line", s} {
     this->template insert_input_pin<vectorfield_t>("Vector Field");
     this->template insert_input_pin<position<N>>("x0");
   }
@@ -54,9 +52,10 @@ struct single_pathline : renderable<single_pathline<N>> {
   //----------------------------------------------------------------------------
   auto draw_properties() -> bool override {
     bool changed = false;
+    changed |= ImGui::DragDouble("t0", &m_t0, 0.1, 0, 100);
     changed |= ImGui::DragDouble("backward tau", &m_btau, 0.1, -100, 0);
     changed |= ImGui::DragDouble("forward tau", &m_ftau, 0.1, 0, 100);
-    changed |= ImGui::SliderInt("line width", &m_line_width, 0, 50);
+    changed |= ImGui::SliderInt("line width", &m_line_width, 1, 50);
     changed |= ImGui::ColorEdit4("line color", m_line_color.data());
     return changed;
   }
@@ -99,11 +98,10 @@ struct single_pathline : renderable<single_pathline<N>> {
         ++index;
       };
       node->m_gpu_data.clear();
-      double const t0 = 0;
       insert_segment  = false;
-      node->m_integrator.solve(*node->m_v, *node->m_x0, t0, node->m_btau, callback);
+      node->m_integrator.solve(*node->m_v, *node->m_x0, node->m_t0, node->m_btau, callback);
       insert_segment = false;
-      node->m_integrator.solve(*node->m_v, *node->m_x0, t0, node->m_ftau, callback);
+      node->m_integrator.solve(*node->m_v, *node->m_x0, node->m_t0, node->m_ftau, callback);
       node->m_integration_going_on = false;
     };
     worker();
@@ -140,12 +138,14 @@ using single_pathlines3d = single_pathline<3>;
 //==============================================================================
 TATOOINE_FLOWEXPLORER_REGISTER_RENDERABLE(
     tatooine::flowexplorer::nodes::single_pathlines2d,
+    TATOOINE_REFLECTION_INSERT_METHOD(t0, m_t0),
     TATOOINE_REFLECTION_INSERT_METHOD(backward_tau, m_btau),
     TATOOINE_REFLECTION_INSERT_METHOD(forward_tau, m_ftau),
     TATOOINE_REFLECTION_INSERT_METHOD(line_width, m_line_width),
     TATOOINE_REFLECTION_INSERT_METHOD(line_color, m_line_color))
 TATOOINE_FLOWEXPLORER_REGISTER_RENDERABLE(
     tatooine::flowexplorer::nodes::single_pathlines3d,
+    TATOOINE_REFLECTION_INSERT_METHOD(t0, m_t0),
     TATOOINE_REFLECTION_INSERT_METHOD(backward_tau, m_btau),
     TATOOINE_REFLECTION_INSERT_METHOD(forward_tau, m_ftau),
     TATOOINE_REFLECTION_INSERT_METHOD(line_width, m_line_width),

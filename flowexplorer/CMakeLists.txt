@@ -42,6 +42,9 @@ add_executable(
 add_custom_target(flowexplorer.run ./flowexplorer DEPENDS flowexplorer)
 target_link_libraries(flowexplorer tatooine yavin)
 target_compile_features(flowexplorer PUBLIC cxx_std_17)
+target_compile_options(flowexplorer PRIVATE
+  -Wall -Wextra -pedantic
+  -Wno-tautological-undefined-compare -Wno-gnu-zero-variadic-macro-arguments)
 target_include_directories(
   flowexplorer
   PUBLIC ${TATFE_INCLUDE_DIR} ${TATFE_BIN_INCLUDE_DIR})

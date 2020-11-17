@@ -33,7 +33,7 @@ struct base_tensor : crtp<Tensor> {
     return std::array<size_t, rank()>{Dims...};
   }
   //------------------------------------------------------------------------------
-  static constexpr auto dimension(const size_t i) {
+  static constexpr auto dimension(size_t const i) {
     return template_helper::getval<size_t>(i, Dims...);
   }
   //------------------------------------------------------------------------------
@@ -50,13 +50,13 @@ struct base_tensor : crtp<Tensor> {
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
   template <typename OtherTensor, real_or_complex_number OtherReal>
   explicit constexpr base_tensor(
-      const base_tensor<OtherTensor, OtherReal, Dims...>& other) {
+      base_tensor<OtherTensor, OtherReal, Dims...> const& other) {
     assign_other_tensor(other);
   }
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
   template <typename OtherTensor, real_or_complex_number OtherReal>
   constexpr auto operator=(
-      const base_tensor<OtherTensor, OtherReal, Dims...>& other)
+      base_tensor<OtherTensor, OtherReal, Dims...> const& other)
       -> base_tensor& {
     assign_other_tensor(other);
     return *this;
@@ -64,15 +64,15 @@ struct base_tensor : crtp<Tensor> {
   //============================================================================
   template <typename F>
   auto unary_operation(F&& f) -> auto& {
-    for_indices([this, &f](const auto... is) { at(is...) = f(at(is...)); });
+    for_indices([this, &f](auto const... is) { at(is...) = f(at(is...)); });
     return as_derived();
   }
   //----------------------------------------------------------------------------
   template <typename F, typename OtherTensor, real_or_complex_number OtherReal>
   auto binary_operation(
-      F&& f, const base_tensor<OtherTensor, OtherReal, Dims...>& other)
+      F&& f, base_tensor<OtherTensor, OtherReal, Dims...> const& other)
       -> decltype(auto) {
-    for_indices([this, &f, &other](const auto... is) {
+    for_indices([this, &f, &other](auto const... is) {
       at(is...) = f(at(is...), other(is...));
     });
     return as_derived();
@@ -80,8 +80,8 @@ struct base_tensor : crtp<Tensor> {
   //----------------------------------------------------------------------------
   template <typename OtherTensor, real_or_complex_number OtherReal>
   constexpr void assign_other_tensor(
-      const base_tensor<OtherTensor, OtherReal, Dims...>& other) {
-    for_indices([this, &other](const auto... is) {
+      base_tensor<OtherTensor, OtherReal, Dims...> const& other) {
+    for_indices([this, &other](auto const... is) {
       at(is...) = other(is...);
     });
   }
@@ -137,7 +137,7 @@ struct base_tensor : crtp<Tensor> {
     static_assert(FixedDim < rank(),
                   "fixed dimensions must be in range of number of dimensions");
     return tensor_slice<
-        const Tensor, T, FixedDim,
+        Tensor const, T, FixedDim,
         dimension(sliced_indices<rank(), FixedDim>()[Is])...>{
         &as_derived(), fixed_index};
   }
@@ -159,45 +159,45 @@ struct base_tensor : crtp<Tensor> {
 
   //----------------------------------------------------------------------------
   template <typename OtherTensor, real_or_complex_number OtherReal>
-  auto operator==(const base_tensor<OtherTensor, OtherReal, Dims...>& other) {
+  auto operator==(base_tensor<OtherTensor, OtherReal, Dims...> const& other) {
     bool equal = true;
-    for_indices([&](const auto... is) {
+    for_indices([&](auto const... is) {
       if (at(is...) != other(is...)) { equal = false; }
     });
     return equal;
   }
   //----------------------------------------------------------------------------
   template <typename OtherTensor, real_or_complex_number OtherReal>
-  auto operator+=(const base_tensor<OtherTensor, OtherReal, Dims...>& other)
+  auto operator+=(base_tensor<OtherTensor, OtherReal, Dims...> const& other)
       -> auto& {
-    for_indices([&](const auto... is) { at(is...) += other(is...); });
+    for_indices([&](auto const... is) { at(is...) += other(is...); });
     return *this;
   }
   //----------------------------------------------------------------------------
   auto operator+=(real_or_complex_number auto const& other) -> auto& {
-    for_indices([&](const auto... is) { at(is...) += other; });
+    for_indices([&](auto const... is) { at(is...) += other; });
     return *this;
   }
   //----------------------------------------------------------------------------
   template <typename OtherTensor, real_or_complex_number OtherReal>
-  auto operator-=(const base_tensor<OtherTensor, OtherReal, Dims...>& other)
+  auto operator-=(base_tensor<OtherTensor, OtherReal, Dims...> const& other)
       -> auto& {
-    for_indices([&](const auto... is) { at(is...) -= other(is...); });
+    for_indices([&](auto const... is) { at(is...) -= other(is...); });
     return *this;
   }
   //----------------------------------------------------------------------------
   auto operator-=(real_or_complex_number auto const& other) -> auto& {
-    for_indices([&](const auto... is) { at(is...) -= other; });
+    for_indices([&](auto const... is) { at(is...) -= other; });
     return *this;
   }
   //----------------------------------------------------------------------------
   auto operator*=(real_or_complex_number auto const& other) -> auto& {
-    for_indices([&](const auto... is) { at(is...) *= other; });
+    for_indices([&](auto const... is) { at(is...) *= other; });
     return *this;
   }
   //----------------------------------------------------------------------------
   auto operator/=(real_or_complex_number auto const& other) -> auto& {
-    for_indices([&](const auto... is) { at(is...) /= other; });
+    for_indices([&](auto const... is) { at(is...) /= other; });
     return *this;
   }
 };

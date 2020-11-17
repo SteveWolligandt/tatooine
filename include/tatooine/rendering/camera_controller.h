@@ -50,24 +50,24 @@ struct camera_controller_interface {
     return *m_controller;
   }
   //----------------------------------------------------------------------------
-  virtual void on_key_pressed(yavin::key k) {}
-  virtual void on_key_released(yavin::key k) {}
-  virtual void on_button_pressed(yavin::button b) {}
-  virtual void on_button_released(yavin::button b) {}
-  virtual void on_mouse_motion(int x, int y) {}
-  virtual void on_resize(int w, int h) {}
+  virtual void on_key_pressed(yavin::key /*k*/) {}
+  virtual void on_key_released(yavin::key /*k*/) {}
+  virtual void on_button_pressed(yavin::button /*b*/) {}
+  virtual void on_button_released(yavin::button /*b*/) {}
+  virtual void on_mouse_motion(int /*x*/, int /*y*/) {}
+  virtual void on_resize(int /*w*/, int /*h*/) {}
   virtual void on_wheel_down() {}
   virtual void on_wheel_up() {}
   virtual void on_wheel_left() {}
   virtual void on_wheel_right() {}
-  virtual void update(std::chrono::duration<double> const& dt) {}
+  virtual void update(std::chrono::duration<double> const& /*dt*/) {}
 };
 //==============================================================================
 template <typename Real>
 struct camera_controller : yavin::window_listener {
   friend struct camera_controller_interface<Real>;
-  struct perspective_camera<Real>                    m_pcam;
-  struct orthographic_camera<Real>                   m_ocam;
+  class perspective_camera<Real>                    m_pcam;
+  class orthographic_camera<Real>                   m_ocam;
   camera<Real>*                                      m_active_cam;
   std::unique_ptr<camera_controller_interface<Real>> m_controller;
   //============================================================================

@@ -19,17 +19,17 @@ struct renderable : ui::base::node {
   auto operator=(renderable&& w) noexcept -> renderable& = default;
   virtual ~renderable()                                  = default;
 
-  virtual auto update(std::chrono::duration<double> const& dt) -> void {}
+  virtual auto update(std::chrono::duration<double> const& /*dt*/) -> void {}
   virtual auto render(mat<float, 4, 4> const& projection_matrix,
                       mat<float, 4, 4> const& view_matrix) -> void = 0;
   virtual auto is_transparent() const -> bool { return false; }
-  virtual auto on_mouse_drag(int offset_x, int offset_y) -> bool {
+  virtual auto on_mouse_drag(int /*offset_x*/, int /*offset_y*/) -> bool {
     return false;
   }
   auto         on_mouse_clicked() -> void { m_picked = true; }
   auto         on_mouse_released() -> void { m_picked = false; }
   auto         is_picked() -> bool { return m_picked; }
-  virtual auto check_intersection(ray<float, 3> const& r) const -> bool {
+  virtual auto check_intersection(ray<float, 3> const& /*r*/) const -> bool {
     return false;
   }
 };

@@ -16,6 +16,8 @@ struct autonomous_particles_renderer2d
     shader();
     //------------------------------------------------------------------------------
     void set_view_projection_matrix(mat4f const& A);
+    //------------------------------------------------------------------------------
+    void set_color(GLfloat r, GLfloat g, GLfloat b, GLfloat a);
   };
   //============================================================================
   static constexpr std::string_view vertex_shader_path =
@@ -30,6 +32,8 @@ struct autonomous_particles_renderer2d
   shader                                   m_shader;
   bool                                     m_currently_reading = false;
   std::mutex                               m_gpu_data_mutex;
+  std::array<GLfloat, 4>                   m_line_color;
+  int                                      m_line_width;
   //----------------------------------------------------------------------------
   autonomous_particles_renderer2d(flowexplorer::scene& s);
   virtual ~autonomous_particles_renderer2d() = default;
@@ -85,7 +89,9 @@ struct autonomous_particles_renderer3d
 }  // namespace tatooine::flowexplorer::nodes
 //==============================================================================
 TATOOINE_FLOWEXPLORER_REGISTER_RENDERABLE(
-    tatooine::flowexplorer::nodes::autonomous_particles_renderer2d)
+    tatooine::flowexplorer::nodes::autonomous_particles_renderer2d,
+    TATOOINE_REFLECTION_INSERT_METHOD(line_width, m_line_width),
+    TATOOINE_REFLECTION_INSERT_METHOD(line_color, m_line_color))
 TATOOINE_FLOWEXPLORER_REGISTER_RENDERABLE(
     tatooine::flowexplorer::nodes::autonomous_particles_renderer3d)
 #endif

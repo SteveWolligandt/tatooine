@@ -46,7 +46,6 @@ void window::on_button_pressed(yavin::button b) {
     m_left_button_down = true;
     auto const ray =
         m_scene.camera_controller().ray(m_mouse_x, height() - m_mouse_y - 1);
-    std::cerr << ray.origin() << " -> " << ray.direction() << '\n';
     for (auto& r : m_scene.renderables()) {
       if (r->check_intersection(ray)) {
         r->on_mouse_clicked();

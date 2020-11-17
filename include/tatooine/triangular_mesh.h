@@ -4,6 +4,7 @@
 #include <tatooine/delaunator.h>
 #include <tatooine/octree.h>
 #include <tatooine/pointset.h>
+#include <tatooine/grid.h>
 #include <tatooine/property.h>
 #include <tatooine/quadtree.h>
 #include <tatooine/vtk_legacy.h>
@@ -170,6 +171,44 @@ class triangular_mesh : public pointset<Real, N> {
   auto operator           =(triangular_mesh&& other) noexcept
       -> triangular_mesh& = default;
   //----------------------------------------------------------------------------
+  template <indexable_space DimX, indexable_space DimY>
+  requires (N == 2)
+  triangular_mesh(grid<DimX, DimY> const& g) {
+    for (auto v : g.vertices()) {
+      insert_vertex(v);
+    }
+    for (size_t j = 0; j < g.size(1) - 1; ++j) {
+      for (size_t i = 0; i < g.size(0) - 1; ++i) {
+        insert_triangle(vertex_index{i + j * g.size(0)},
+                        vertex_index{(i + 1) + j * g.size(0)},
+                        vertex_index{i + (j + 1) * g.size(0)});
+        insert_triangle(vertex_index{(i + 1) + j * g.size(0)},
+                        vertex_index{(i + 1) + (j + 1) * g.size(0)},
+                        vertex_index{i + (j + 1) * g.size(0)});
+      }
+    }
+    auto copy_prop = [&]<typename T>(auto const& name, auto const& prop) {
+      if (prop->type() == typeid(T)) {
+        auto const& grid_prop = g.template vertex_property<T>(name);
+        auto&       tri_prop  = this->template add_vertex_property<T>(name);
+        g.loop_over_vertex_indices([&](auto const... is) {
+            std::array is_arr{is...};
+          tri_prop[vertex_index{is_arr[0] + is_arr[1] * g.size(0)}] = grid_prop(is...);
+        });
+      }
+    };
+    for (auto const& [name, prop] : g.vertex_properties()) {
+      copy_prop.template operator()<vec<double, 4>>(name, prop);
+      copy_prop.template operator()<vec<double, 3>>(name, prop);
+      copy_prop.template operator()<vec<double, 2>>(name, prop);
+      copy_prop.template operator()<double>(name, prop);
+      copy_prop.template operator()<vec<float, 4>>(name, prop);
+      copy_prop.template operator()<vec<float, 3>>(name, prop);
+      copy_prop.template operator()<vec<float, 2>>(name, prop);
+      copy_prop.template operator()<float>(name, prop);
+    }
+  }
+  //----------------------------------------------------------------------------
   triangular_mesh(std::filesystem::path const& file) { read(file); }
   //============================================================================
   auto operator[](triangle_index const t) const { return triangle_at(t.i); }
@@ -259,7 +298,8 @@ class triangular_mesh : public pointset<Real, N> {
   auto num_triangles() const { return m_triangle_indices.size() / 3; }
   //----------------------------------------------------------------------------
   template <typename = void>
-  requires(N == 2) auto triangulate_delaunay() {
+  requires(N == 2)
+  auto triangulate_delaunay() {
     delaunator::Delaunator d{vertex_data()};
     set_triangle_indices(std::move(d.triangles));
   }
@@ -362,7 +402,13 @@ class triangular_mesh : public pointset<Real, N> {
       writer.write_point_data(this->num_vertices());
       for (auto const& [name, prop] : vertex_properties()) {
         if (prop->type() == typeid(vec<Real, 4>)) {
+          auto const& casted_prop =
+              *dynamic_cast<vertex_property_t<vec<Real, 4>> const*>(prop.get());
+          writer.write_scalars(name, casted_prop.container());
         } else if (prop->type() == typeid(vec<Real, 3>)) {
+          auto const& casted_prop =
+              *dynamic_cast<vertex_property_t<vec<Real, 3>> const*>(prop.get());
+          writer.write_scalars(name, casted_prop.container());
         } else if (prop->type() == typeid(vec<Real, 2>)) {
           auto const& casted_prop =
               *dynamic_cast<vertex_property_t<vec<Real, 2>> const*>(prop.get());

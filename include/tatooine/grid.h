@@ -85,9 +85,9 @@ class grid {
   /// The enable if is needed due to gcc bug 80871. See here:
   /// https://stackoverflow.com/questions/46848129/variadic-deduction-guide-not-taken-by-g-taken-by-clang-who-is-correct
   template <typename... _Dimensions>
-  requires (sizeof...(_Dimensions) == sizeof...(Dimensions)) &&
-           (indexable_space<std::decay_t<_Dimensions>> && ...)
-  constexpr grid(_Dimensions&&... dimensions)
+      requires(sizeof...(_Dimensions) == sizeof...(Dimensions)) &&
+      (indexable_space<std::decay_t<_Dimensions>> &&
+       ...) constexpr grid(_Dimensions&&... dimensions)
       : m_dimensions{std::forward<_Dimensions>(dimensions)...} {
     static_assert(sizeof...(_Dimensions) == num_dimensions(),
                   "Number of given dimensions does not match number of "
@@ -213,6 +213,77 @@ class grid {
   template <size_t I>
   constexpr auto size() const {
     return dimension<I>().size();
+  }
+  //----------------------------------------------------------------------------
+  constexpr auto size(size_t const i) const {
+    if (i == 0) {
+      return size<0>();
+    } else if constexpr (num_dimensions() > 1) {
+      if (i == 1) {
+        return size<1>();
+      } else if constexpr (num_dimensions() > 2) {
+        if (i == 2) {
+          return size<2>();
+        } else if constexpr (num_dimensions() > 3) {
+          if (i == 3) {
+            return size<3>();
+          } else if constexpr (num_dimensions() > 4) {
+            if (i == 4) {
+              return size<4>();
+            } else if constexpr (num_dimensions() > 5) {
+              if (i == 5) {
+                return size<5>();
+              } else if constexpr (num_dimensions() > 6) {
+                if (i == 6) {
+                  return size<6>();
+                } else if constexpr (num_dimensions() > 7) {
+                  if (i == 7) {
+                    return size<7>();
+                  } else if constexpr (num_dimensions() > 8) {
+                    if (i == 8) {
+                      return size<8>();
+                    } else if constexpr (num_dimensions() > 9) {
+                      if (i == 9) {
+                        return size<9>();
+                      } else if constexpr (num_dimensions() > 10) {
+                        if (i == 10) {
+                          return size<10>();
+                        } else if constexpr (num_dimensions() > 11) {
+                          if (i == 11) {
+                            return size<11>();
+                          } else if constexpr (num_dimensions() > 12) {
+                            if (i == 12) {
+                              return size<12>();
+                            } else if constexpr (num_dimensions() > 13) {
+                              if (i == 13) {
+                                return size<13>();
+                              } else if constexpr (num_dimensions() > 14) {
+                                if (i == 14) {
+                                  return size<14>();
+                                } else if constexpr (num_dimensions() > 15) {
+                                  if (i == 15) {
+                                    return size<15>();
+                                  } else if constexpr (num_dimensions() > 16) {
+                                    if (i == 16) {
+                                      return size<16>();
+                                    }
+                                  }
+                                }
+                              }
+                            }
+                          }
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+    std::numeric_limits<size_t>::max();
   }
   //----------------------------------------------------------------------------
   template <size_t I>
@@ -565,7 +636,8 @@ class grid {
   }
   //----------------------------------------------------------------------------
   template <typename Container, typename... Args>
-  auto create_vertex_property(std::string const& name, Args&&... args) -> auto& {
+  auto create_vertex_property(std::string const& name, Args&&... args)
+      -> auto& {
     if (auto it = m_vertex_properties.find(name);
         it == end(m_vertex_properties)) {
       auto new_prop = new typed_property_impl_t<Container>{
@@ -585,6 +657,9 @@ class grid {
     }
   }
   //----------------------------------------------------------------------------
+  auto vertex_properties() const -> auto const& { return m_vertex_properties; }
+  auto vertex_properties() -> auto& { return m_vertex_properties; }
+  //----------------------------------------------------------------------------
   template <typename T, typename Indexing = x_fastest>
   auto add_vertex_property(std::string const& name) -> auto& {
     return add_contiguous_vertex_property<T, Indexing>(name);
@@ -593,7 +668,7 @@ class grid {
   template <typename T, typename Indexing = x_fastest>
   auto add_contiguous_vertex_property(std::string const& name) -> auto& {
     return create_vertex_property<dynamic_multidim_array<T, Indexing>>(name,
-                                                                    size());
+                                                                       size());
   }
   //----------------------------------------------------------------------------
   template <typename T, typename Indexing = x_fastest>
@@ -613,9 +688,8 @@ class grid {
   }
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
   template <typename T, typename Indexing = x_fastest, integral... ChunkSize>
-  requires(sizeof...(ChunkSize) == num_dimensions())
-  auto add_chunked_vertex_property(std::string const& name,
-                                   ChunkSize const... chunk_size) -> auto& {
+  requires(sizeof...(ChunkSize) == num_dimensions()) auto add_chunked_vertex_property(
+      std::string const& name, ChunkSize const... chunk_size) -> auto& {
     return create_vertex_property<chunked_multidim_array<T, Indexing>>(
         name, size(), std::vector<size_t>{static_cast<size_t>(chunk_size)...});
   }
@@ -659,16 +733,17 @@ class grid {
   }
   //----------------------------------------------------------------------------
   template <typename T>
-  requires(num_dimensions() == 3)
-  void write_amira(std::string const& file_path,
+  requires(num_dimensions() ==
+           3) void write_amira(std::string const& file_path,
                                std::string const& vertex_property_name) const {
     write_amira(file_path, vertex_property<T>(vertex_property_name));
   }
   //----------------------------------------------------------------------------
   template <typename T>
-  requires is_regular && (num_dimensions() == 3)
-  void write_amira(std::string const& file_path,
-                   typed_property_t<T> const& prop) const {
+      requires is_regular &&
+      (num_dimensions() ==
+       3) void write_amira(std::string const&         file_path,
+                           typed_property_t<T> const& prop) const {
     std::ofstream     outfile{file_path, std::ofstream::binary};
     std::stringstream header;
 
@@ -681,7 +756,7 @@ class grid {
            << back<2>() << ",\n";
     header << "    CoordType \"uniform\"\n";
     header << "}\n";
-    if constexpr (num_components_v<T> > 1) {
+    if constexpr (num_components_v < T >> 1) {
       header << "Lattice { " << type_name<internal_data_type_t<T>>() << "["
              << num_components_v<T> << "] Data } @1\n\n";
     } else {
@@ -693,9 +768,7 @@ class grid {
 
     std::vector<T> data;
     data.reserve(size<0>() * size<1>() * size<2>());
-    auto back_inserter = [&](auto const... is) {
-      data.push_back(prop(is...));
-    };
+    auto back_inserter = [&](auto const... is) { data.push_back(prop(is...)); };
     for_loop(back_inserter, size<0>(), size<1>(), size<2>());
     outfile.write((char*)header_string.c_str(),
                   header_string.size() * sizeof(char));

@@ -18,6 +18,11 @@ void autonomous_particles_renderer2d::shader::set_view_projection_matrix(
     mat4f const& A) {
   set_uniform_mat4("view_projection_matrix", A.data_ptr());
 }
+//------------------------------------------------------------------------------
+void autonomous_particles_renderer2d::shader::set_color(GLfloat r, GLfloat g,
+                                                        GLfloat b, GLfloat a) {
+  set_uniform("color", r, g, b, a);
+}
 //----------------------------------------------------------------------------
 autonomous_particles_renderer2d::autonomous_particles_renderer2d(
     flowexplorer::scene& s)
@@ -31,6 +36,9 @@ void autonomous_particles_renderer2d::render(mat4f const& P, mat4f const& V) {
   if (!m_gpu_Ss.empty()) {
     m_shader.bind();
     m_shader.set_view_projection_matrix(P * V);
+    m_shader.set_color(m_line_color[0], m_line_color[1], m_line_color[2],
+                       m_line_color[3]);
+    yavin::gl::line_width(m_line_width);
     yavin::vertexarray vao;
     vao.bind();
     m_gpu_Ss.bind();
@@ -41,7 +49,8 @@ void autonomous_particles_renderer2d::render(mat4f const& P, mat4f const& V) {
 }
 //----------------------------------------------------------------------------
 auto autonomous_particles_renderer2d::draw_properties() -> bool {
-  ImGui::Text("number of particles: %i", (m_gpu_Ss.size()));
+  bool changed = false;
+  ImGui::Text("number of particles: %i", (static_cast<int>(m_gpu_Ss.size())));
   if (m_currently_reading) {
     const ImU32 col = ImGui::GetColorU32(ImGuiCol_ButtonHovered);
     ImGui::Spinner("##spinner", 8, 3, col);
@@ -56,7 +65,9 @@ auto autonomous_particles_renderer2d::draw_properties() -> bool {
       load_back_calculation();
     }
   }
-  return false;
+  changed |= ImGui::SliderInt("line width", &m_line_width, 1, 50);
+  changed |= ImGui::ColorEdit4("line color", m_line_color.data());
+  return changed;
 }
 //----------------------------------------------------------------------------
 auto autonomous_particles_renderer2d::load_initial() -> void {
@@ -113,7 +124,9 @@ void autonomous_particles_renderer2d::load_data(std::string_view const& file) {
   this->scene().window().do_async(run);
 }
 //----------------------------------------------------------------------------
-bool autonomous_particles_renderer2d::is_transparent() const { return false; }
+auto autonomous_particles_renderer2d::is_transparent() const -> bool {
+  return m_line_color[3] < 1;
+}
 //==============================================================================
 autonomous_particles_renderer3d::shader::shader() {
   add_stage<yavin::vertexshader>(vertex_shader_path);
@@ -149,7 +162,7 @@ void autonomous_particles_renderer3d::render(mat4f const& P, mat4f const& V) {
 }
 //----------------------------------------------------------------------------
 auto autonomous_particles_renderer3d::draw_properties() -> bool {
-  ImGui::Text("number of particles: %i", (m_gpu_Ss.size()));
+  ImGui::Text("number of particles: %i", (static_cast<int>(m_gpu_Ss.size())));
   if (m_currently_reading) {
     const ImU32 col = ImGui::GetColorU32(ImGuiCol_ButtonHovered);
     ImGui::Spinner("##spinner", 8, 3, col);
@@ -222,7 +235,9 @@ void autonomous_particles_renderer3d::load_data(std::string_view const& file) {
   this->scene().window().do_async(run);
 }
 //----------------------------------------------------------------------------
-bool autonomous_particles_renderer3d::is_transparent() const { return true; }
+auto autonomous_particles_renderer3d::is_transparent() const -> bool {
+  return true;
+}
 //==============================================================================
 }  // namespace tatooine::flowexplorer::nodes
 //==============================================================================

@@ -19,7 +19,7 @@ struct scene {
   static bool                                    items_created;
   std::vector<std::unique_ptr<ui::base::node>>   m_nodes;
   std::vector<std::unique_ptr<base::renderable>> m_renderables;
-  std::vector<ui::link>                          m_links;
+  std::list<ui::link>                            m_links;
   ax::NodeEditor::EditorContext*       m_node_editor_context = nullptr;
   rendering::camera_controller<float>* m_cam;
   flowexplorer::window*                m_window;

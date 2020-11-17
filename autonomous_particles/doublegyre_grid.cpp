@@ -90,6 +90,28 @@ auto main(int argc, char** argv) -> int {
           .phi()
           .use_caching(false);
     }
+    //// bottom left
+    //initial_particles.emplace_back(v, vec2{r0 / 6, r0 / 6}, args.t0, r0 / 6)
+    //    .phi()
+    //    .use_caching(false);
+    //// bottom left+offset
+    //initial_particles.emplace_back(v, vec2{r0 * 2, r0 / 6}, args.t0, r0 / 6)
+    //    .phi()
+    //    .use_caching(false);
+    //// bottom+offset left
+    //initial_particles.emplace_back(v, vec2{r0 / 6, r0 * 2}, args.t0, r0 / 6)
+    //    .phi()
+    //    .use_caching(false);
+    //initial_particles.emplace_back(v, vec2{2 - r0 / 6, r0 / 6}, args.t0, r0 / 6)
+    //    .phi()
+    //    .use_caching(false);
+    //initial_particles
+    //    .emplace_back(v, vec2{2 - r0 / 6, 1 - r0 / 6}, args.t0, r0 / 6)
+    //    .phi()
+    //    .use_caching(false);
+    //initial_particles.emplace_back(v, vec2{r0 / 6, 1 - r0 / 6}, args.t0, r0 / 6)
+    //    .phi()
+    //    .use_caching(false);
 
     //----------------------------------------------------------------------------
     // integrate particles
@@ -159,12 +181,23 @@ auto main(int argc, char** argv) -> int {
     // build samplable discretized flowmap
     //----------------------------------------------------------------------------
     indicator.set_text("Building delaunay triangulation");
-    std::cerr << "delaunay\n";
     mesh.triangulate_delaunay();
     indicator.set_text("Writing delaunay triangulated flowmap");
-    std::cerr << "writing\n";
-    mesh.write_vtk("doublegyre_flowmap.vtk");
-    std::cerr << "done\n";
+
+    for (auto v : mesh.vertices()) {
+      std::swap(mesh[v](0), flowmap_prop[v](0));
+      std::swap(mesh[v](1), flowmap_prop[v](1));
+    }
+    mesh.triangulate_delaunay();
+    mesh.write_vtk("doublegyre_autonomous_backward_flowmap.vtk");
+
+    for (auto v : mesh.vertices()) {
+      std::swap(mesh[v](0), flowmap_prop[v](0));
+      std::swap(mesh[v](1), flowmap_prop[v](1));
+    }
+    mesh.triangulate_delaunay();
+    mesh.write_vtk("doublegyre_autonomous_forward_flowmap.vtk");
+
     auto flowmap_sampler_autonomous_particles =
         mesh.vertex_property_sampler(flowmap_prop);
 
@@ -182,6 +215,17 @@ auto main(int argc, char** argv) -> int {
       regular_sampled_flowmap(is...) =
           numerical_flowmap(uniform_grid(is...), args.t0, args.tau);
     });
+    triangular_mesh<double, 2> regular_tri_mesh{uniform_grid};
+    auto& regular_tri_sampler_prop =regular_tri_mesh.vertex_property<vec<double, 2>>("flowmap"); 
+    regular_tri_mesh.write_vtk("doublegyre_regular_forward_flowmap.vtk");
+
+    for (auto v : regular_tri_mesh.vertices()) {
+      std::swap(regular_tri_mesh[v](0), regular_tri_sampler_prop[v](0));
+      std::swap(regular_tri_mesh[v](1), regular_tri_sampler_prop[v](1));
+    }
+    regular_tri_mesh.triangulate_delaunay();
+    regular_tri_mesh.write_vtk("doublegyre_regular_backward_flowmap.vtk");
+
     auto regular_flowmap_sampler =
         regular_sampled_flowmap
             .sampler<interpolation::linear, interpolation::linear>();

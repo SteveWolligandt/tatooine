@@ -95,8 +95,8 @@ struct node : uuid_holder<ax::NodeEditor::NodeId>, serializable  {
   }
   //----------------------------------------------------------------------------
   auto         node_position() const -> ImVec2;
-  virtual auto on_pin_connected(pin& this_pin, pin& other_pin) -> void {}
-  virtual auto on_pin_disconnected(pin& this_pin) -> void {}
+  virtual auto on_pin_connected(pin& /*this_pin*/, pin& /*other_pin*/) -> void {}
+  virtual auto on_pin_disconnected(pin& /*this_pin*/) -> void {}
   virtual auto type_name() const -> std::string_view = 0;
 
 };
