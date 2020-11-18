@@ -302,14 +302,14 @@ class triangular_mesh : public pointset<Real, N> {
   auto triangulate_delaunay() -> void {
     m_triangle_indices.clear();
     using Kernel = CGAL::Cartesian<Real>;
-    using Vb     = CGAL::Triangulation_vertex_base_with_info_2<size_t, Kernel>;
+    using Vb     = CGAL::Triangulation_vertex_base_with_info_2<vertex_index, Kernel>;
     using Tds    = CGAL::Triangulation_data_structure_2<Vb>;
     using Triangulation = CGAL::Delaunay_triangulation_2<Kernel, Tds>;
     using Point         = typename Kernel::Point_2;
-    std::vector<std::pair<Point, size_t>> points;
+    std::vector<std::pair<Point, vertex_index>> points;
     points.reserve(this->num_vertices());
     for (auto v : this->vertices()) {
-      points.emplace_back(Point{at(v)(0), at(v)(1)}, v.i);
+      points.emplace_back(Point{at(v)(0), at(v)(1)}, v);
     }
 
     Triangulation dt{begin(points), end(points)};
