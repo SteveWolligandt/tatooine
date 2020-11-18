@@ -24,16 +24,8 @@ namespace tatooine::vtk {
 //=============================================================================
 /// reads until terminator_char was found. buffer will containg the
 /// terminator_char
-inline auto read_until(std::istream &stream, const char terminator_char,
-                       char *buffer) {
-  size_t idx = 0;
-  do {
-    if (!stream.eof()) stream.read(&buffer[idx], sizeof(char));
-    idx++;
-  } while (buffer[idx - 1] != terminator_char && !stream.eof());
-  buffer[idx] = '\0';
-  return std::string(buffer);
-}
+auto read_until(std::istream &stream, const char terminator_char, char *buffer)
+    -> std::string;
 //-----------------------------------------------------------------------------
 /// reads stream until a linebreak was found. buffer will not contain the break
 inline auto read_binaryline(std::istream &stream, char *buffer) {

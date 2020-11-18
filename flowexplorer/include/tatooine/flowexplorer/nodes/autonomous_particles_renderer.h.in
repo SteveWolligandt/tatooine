@@ -32,8 +32,8 @@ struct autonomous_particles_renderer2d
   shader                                   m_shader;
   bool                                     m_currently_reading = false;
   std::mutex                               m_gpu_data_mutex;
-  std::array<GLfloat, 4>                   m_line_color;
-  int                                      m_line_width;
+  std::array<GLfloat, 4>                   m_line_color{0.0f, 0.0f, 0.0f, 1.0f};
+  int                                      m_line_width = 1;
   //----------------------------------------------------------------------------
   autonomous_particles_renderer2d(flowexplorer::scene& s);
   virtual ~autonomous_particles_renderer2d() = default;

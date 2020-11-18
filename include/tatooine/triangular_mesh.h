@@ -1,10 +1,12 @@
 #ifndef TATOOINE_TRIANGULAR_MESH_H
 #define TATOOINE_TRIANGULAR_MESH_H
 //==============================================================================
-#include <tatooine/delaunator.h>
+#include <CGAL/Delaunay_triangulation_2.h>
+#include <CGAL/Exact_predicates_inexact_constructions_kernel.h>
+#include <CGAL/Projection_traits_xy_3.h>
+#include <tatooine/grid.h>
 #include <tatooine/octree.h>
 #include <tatooine/pointset.h>
-#include <tatooine/grid.h>
 #include <tatooine/property.h>
 #include <tatooine/quadtree.h>
 #include <tatooine/vtk_legacy.h>
@@ -300,8 +302,16 @@ class triangular_mesh : public pointset<Real, N> {
   template <typename = void>
   requires(N == 2)
   auto triangulate_delaunay() {
-    delaunator::Delaunator d{vertex_data()};
-    set_triangle_indices(std::move(d.triangles));
+    using K        = CGAL::Exact_predicates_inexact_constructions_kernel;
+    using Gt       = CGAL::Projection_traits_xy_3<K>;
+    using Delaunay = CGAL::Delaunay_triangulation_2<Gt>;
+    using Point    = K::Point_2;
+    std::vector<Point> points;
+    
+    Delaunay dt(begin(points), end(points));
+    std::cout << dt.number_of_vertices() << std::endl;
+
+    //set_triangle_indices(std::move(d.triangles));
   }
   //----------------------------------------------------------------------------
   auto set_triangle_indices(std::vector<size_t>&& is) {

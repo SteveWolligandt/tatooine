@@ -1,20 +1,20 @@
 #ifndef TATOOINE_FLOWEXPLORER_NODES_AUTONOMOUS_PARTICLES_FLOWMAP_H
 #define TATOOINE_FLOWEXPLORER_NODES_AUTONOMOUS_PARTICLES_FLOWMAP_H
 //==============================================================================
+#include <tatooine/flowexplorer/line_shader.h>
 #include <tatooine/flowexplorer/ui/node.h>
 #include <tatooine/triangular_mesh.h>
-#include <tatooine/flowexplorer/line_shader.h>
 #include <yavin/indexeddata.h>
 //==============================================================================
-namespace tatooine::flowexplorer::nodes{
+namespace tatooine::flowexplorer::nodes {
 //==============================================================================
-struct autonomous_particles_flowmap :renderable<autonomous_particles_flowmap> {
+struct autonomous_particles_flowmap : renderable<autonomous_particles_flowmap> {
   std::string                                 m_currently_read_path;
   std::unique_ptr<triangular_mesh<double, 2>> m_mesh;
   yavin::indexeddata<vec3f>                   m_edges;
-  int                                         m_line_width;
+  int                                         m_line_width = 1;
   std::array<GLfloat, 4> m_line_color{0.0f, 0.0f, 0.0f, 1.0f};
-  line_shader                                 m_line_shader;
+  line_shader            m_line_shader;
   //============================================================================
   autonomous_particles_flowmap(flowexplorer::scene& s)
       : renderable<autonomous_particles_flowmap>{"Autonomous Particles Flowmap",
@@ -61,7 +61,7 @@ struct autonomous_particles_flowmap :renderable<autonomous_particles_flowmap> {
     return changed;
     return changed;
   }
-  auto load(std::filesystem::path const& path) ->void{
+  auto load(std::filesystem::path const& path) -> void {
     std::cerr << "loading ... ";
     m_currently_read_path = path;
     m_mesh                = std::make_unique<triangular_mesh<double, 2>>(path);
@@ -98,9 +98,7 @@ struct autonomous_particles_flowmap :renderable<autonomous_particles_flowmap> {
     }
   }
   //----------------------------------------------------------------------------
-  bool is_transparent() const override {
-    return m_line_color[3] < 1;
-  }
+  bool is_transparent() const override { return m_line_color[3] < 1; }
   //----------------------------------------------------------------------------
   auto mesh_available() const -> bool { return m_mesh != nullptr; }
   auto mesh() const -> auto const& { return *m_mesh; }

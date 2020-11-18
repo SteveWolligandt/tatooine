@@ -39,6 +39,7 @@ find_package(vcode REQUIRED)
 find_package(PNG REQUIRED)
 find_package(PNG++ REQUIRED)
 find_package(NetCDF REQUIRED)
+find_package(CGAL REQUIRED)
 #- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - 
 # configure files
 #- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - 
@@ -100,12 +101,22 @@ string(CONCAT TATOOINE_CLANG_TIDY_CHECKS
   )
 #- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 # create library target
-add_library(tatooine INTERFACE)
-target_compile_features(tatooine INTERFACE cxx_std_20)
+add_library(tatooine SHARED 
+  src/vtk_legacy.cpp
+  )
+if ("${CMAKE_CXX_COMPILER_ID}" STREQUAL "Clang")
+  target_compile_options(tatooine PRIVATE "-fcolor-diagnostics")
+elseif ("${CMAKE_CXX_COMPILER_ID}" STREQUAL "GNU")
+  target_compile_options(tatooine PRIVATE  "-fdiagnostics-color=always")
+endif()
+target_compile_options(tatooine PRIVATE
+  -Wall -Wextra -pedantic
+  -Wno-tautological-undefined-compare -Wno-gnu-zero-variadic-macro-arguments)
+target_compile_features(tatooine PUBLIC cxx_std_20)
 #- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 # set include dirs
 target_include_directories(tatooine
-  INTERFACE
+  PUBLIC
     ${CMAKE_CURRENT_SOURCE_DIR}/include
     ${CMAKE_CURRENT_SOURCE_DIR}/single_include
     ${CMAKE_CURRENT_BINARY_DIR}/include
@@ -120,7 +131,8 @@ target_include_directories(tatooine
 #- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 #set libs 
 target_link_libraries(tatooine
-  INTERFACE
+  PUBLIC
+    CGAL::CGAL
     ${BLAS_LIBRARIES}
     ${LAPACK_LIBRARIES}
     ${PNG_LIBRARIES}
@@ -129,7 +141,7 @@ target_link_libraries(tatooine
 )
 if (${yavin_FOUND}) 
   set(TATOOINE_YAVIN_AVAILABLE 1)
-  target_link_libraries(tatooine INTERFACE yavin)
+  target_link_libraries(tatooine PUBLIC yavin)
 else()
   set(TATOOINE_YAVIN_AVAILABLE 0)
 endif()
@@ -139,8 +151,8 @@ if (${GINAC_FOUND})
   option(TATOOINE_USE_GINAC "use GiNaC for symbolics support" FALSE)
   if (${TATOOINE_USE_GINAC})
     set(TATOOINE_GINAC_AVAILABLE 1)
-    target_include_directories(tatooine INTERFACE ${GINAC_INCLUDE_DIR})
-    target_link_libraries(tatooine INTERFACE ${GINAC_LIBRARY})
+    target_include_directories(tatooine PUBLIC ${GINAC_INCLUDE_DIR})
+    target_link_libraries(tatooine PUBLIC ${GINAC_LIBRARY})
   else()
     set(TATOOINE_GINAC_AVAILABLE 0)
   endif()
@@ -150,7 +162,7 @@ endif()
 
 if(OpenMP_CXX_FOUND)
   set(TATOOINE_OPENMP_AVAILABLE 1)
-  target_link_libraries(tatooine INTERFACE OpenMP::OpenMP_CXX)
+  target_link_libraries(tatooine PUBLIC OpenMP::OpenMP_CXX)
 else()
   set(TATOOINE_OPENMP_AVAILABLE 0)
 endif()
