@@ -302,14 +302,22 @@ class triangular_mesh : public pointset<Real, N> {
   template <typename = void>
   requires(N == 2)
   auto triangulate_delaunay() {
+      m_triangle_indices.clear();
     using K        = CGAL::Exact_predicates_inexact_constructions_kernel;
     using Gt       = CGAL::Projection_traits_xy_3<K>;
     using Delaunay = CGAL::Delaunay_triangulation_2<Gt>;
     using Point    = K::Point_2;
     std::vector<Point> points;
-    
+    points.reserve(this->num_vertices());
+    for (auto v : this->vertices()) {
+      points.emplace_back(at(v)(0), at(v)(1));
+    }
+
     Delaunay dt(begin(points), end(points));
-    std::cout << dt.number_of_vertices() << std::endl;
+    for (auto it = dt.finite_faces_begin(); it != dt.finite_faces_end(); it++) {
+      add_triangle(it->face_handle().vertex(0), it->face_handle().vertex(1),
+                   it->face_handle().vertex(2));
+    }
 
     //set_triangle_indices(std::move(d.triangles));
   }
