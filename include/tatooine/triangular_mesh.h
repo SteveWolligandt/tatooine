@@ -301,7 +301,6 @@ class triangular_mesh : public pointset<Real, N> {
   template <typename = void> requires(N == 2)
   auto triangulate_delaunay() -> void {
     m_triangle_indices.clear();
-
     using Kernel = CGAL::Cartesian<Real>;
     using Vb     = CGAL::Triangulation_vertex_base_with_info_2<size_t, Kernel>;
     using Tds    = CGAL::Triangulation_data_structure_2<Vb>;
@@ -315,14 +314,9 @@ class triangular_mesh : public pointset<Real, N> {
 
     Triangulation dt{begin(points), end(points)};
     for (auto it = dt.finite_faces_begin(); it != dt.finite_faces_end(); ++it) {
-      //std::cerr << it->index(it->vertex(0)) << ", " << it->index(it->vertex(1))
-      //          << ", " << it->index(it->vertex(2)) << '\n';
-      typename Triangulation::Vertex_handle v0 = it->vertex(0);
-      typename Triangulation::Vertex_handle v1 = it->vertex(1);
-      typename Triangulation::Vertex_handle v2 = it->vertex(2);
-      insert_face(vertex_index{v0->info()},
-                  vertex_index{v1->info()},
-                  vertex_index{v2->info()});
+      insert_face(vertex_index{it->vertex(0)->info()},
+                  vertex_index{it->vertex(1)->info()},
+                  vertex_index{it->vertex(2)->info()});
     }
   }
   //----------------------------------------------------------------------------
