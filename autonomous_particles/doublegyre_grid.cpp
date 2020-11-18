@@ -198,6 +198,7 @@ auto main(int argc, char** argv) -> int {
     mesh.triangulate_delaunay();
     mesh.write_vtk("doublegyre_autonomous_forward_flowmap.vtk");
 
+    indicator.set_text("Creating Sampler");
     auto flowmap_sampler_autonomous_particles =
         mesh.vertex_property_sampler(flowmap_prop);
 

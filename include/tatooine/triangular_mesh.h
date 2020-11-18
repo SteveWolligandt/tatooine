@@ -1,9 +1,9 @@
 #ifndef TATOOINE_TRIANGULAR_MESH_H
 #define TATOOINE_TRIANGULAR_MESH_H
 //==============================================================================
+#include <CGAL/Cartesian.h>
 #include <CGAL/Delaunay_triangulation_2.h>
-#include <CGAL/Exact_predicates_inexact_constructions_kernel.h>
-#include <CGAL/Projection_traits_xy_3.h>
+#include <CGAL/Triangulation_vertex_base_with_info_2.h>
 #include <tatooine/grid.h>
 #include <tatooine/octree.h>
 #include <tatooine/pointset.h>
@@ -174,19 +174,18 @@ class triangular_mesh : public pointset<Real, N> {
       -> triangular_mesh& = default;
   //----------------------------------------------------------------------------
   template <indexable_space DimX, indexable_space DimY>
-  requires (N == 2)
-  triangular_mesh(grid<DimX, DimY> const& g) {
+  requires(N == 2) triangular_mesh(grid<DimX, DimY> const& g) {
     for (auto v : g.vertices()) {
       insert_vertex(v);
     }
     for (size_t j = 0; j < g.size(1) - 1; ++j) {
       for (size_t i = 0; i < g.size(0) - 1; ++i) {
-        insert_triangle(vertex_index{i + j * g.size(0)},
-                        vertex_index{(i + 1) + j * g.size(0)},
-                        vertex_index{i + (j + 1) * g.size(0)});
-        insert_triangle(vertex_index{(i + 1) + j * g.size(0)},
-                        vertex_index{(i + 1) + (j + 1) * g.size(0)},
-                        vertex_index{i + (j + 1) * g.size(0)});
+        insert_face(vertex_index{i + j * g.size(0)},
+                    vertex_index{(i + 1) + j * g.size(0)},
+                    vertex_index{i + (j + 1) * g.size(0)});
+        insert_face(vertex_index{(i + 1) + j * g.size(0)},
+                    vertex_index{(i + 1) + (j + 1) * g.size(0)},
+                    vertex_index{i + (j + 1) * g.size(0)});
       }
     }
     auto copy_prop = [&]<typename T>(auto const& name, auto const& prop) {
@@ -194,8 +193,9 @@ class triangular_mesh : public pointset<Real, N> {
         auto const& grid_prop = g.template vertex_property<T>(name);
         auto&       tri_prop  = this->template add_vertex_property<T>(name);
         g.loop_over_vertex_indices([&](auto const... is) {
-            std::array is_arr{is...};
-          tri_prop[vertex_index{is_arr[0] + is_arr[1] * g.size(0)}] = grid_prop(is...);
+          std::array is_arr{is...};
+          tri_prop[vertex_index{is_arr[0] + is_arr[1] * g.size(0)}] =
+              grid_prop(is...);
         });
       }
     };
@@ -268,7 +268,7 @@ class triangular_mesh : public pointset<Real, N> {
     return vi;
   }
   //----------------------------------------------------------------------------
-  auto insert_triangle(vertex_index v0, vertex_index v1, vertex_index v2) {
+  auto insert_face(vertex_index v0, vertex_index v1, vertex_index v2) {
     m_triangle_indices.push_back(v0);
     m_triangle_indices.push_back(v1);
     m_triangle_indices.push_back(v2);
@@ -277,7 +277,7 @@ class triangular_mesh : public pointset<Real, N> {
       prop->push_back();
     }
     if (m_hierarchy != nullptr) {
-      if (!m_hierarchy->insert_triangle(*this, ti.i)) {
+      if (!m_hierarchy->insert_face(*this, ti.i)) {
         clear_hierarchy();
         build_hierarchy();
       }
@@ -285,9 +285,8 @@ class triangular_mesh : public pointset<Real, N> {
     return ti;
   }
   //----------------------------------------------------------------------------
-  auto insert_triangle(size_t v0, size_t v1, size_t v2) {
-    return insert_triangle(vertex_index{v0}, vertex_index{v1},
-                           vertex_index{v2});
+  auto insert_face(size_t v0, size_t v1, size_t v2) {
+    return insert_face(vertex_index{v0}, vertex_index{v1}, vertex_index{v2});
   }
   //----------------------------------------------------------------------------
   auto clear() {
@@ -299,27 +298,32 @@ class triangular_mesh : public pointset<Real, N> {
   //----------------------------------------------------------------------------
   auto num_triangles() const { return m_triangle_indices.size() / 3; }
   //----------------------------------------------------------------------------
-  template <typename = void>
-  requires(N == 2)
-  auto triangulate_delaunay() {
-      m_triangle_indices.clear();
-    using K        = CGAL::Exact_predicates_inexact_constructions_kernel;
-    using Gt       = CGAL::Projection_traits_xy_3<K>;
-    using Delaunay = CGAL::Delaunay_triangulation_2<Gt>;
-    using Point    = K::Point_2;
-    std::vector<Point> points;
+  template <typename = void> requires(N == 2)
+  auto triangulate_delaunay() -> void {
+    m_triangle_indices.clear();
+
+    using Kernel = CGAL::Cartesian<Real>;
+    using Vb     = CGAL::Triangulation_vertex_base_with_info_2<size_t, Kernel>;
+    using Tds    = CGAL::Triangulation_data_structure_2<Vb>;
+    using Triangulation = CGAL::Delaunay_triangulation_2<Kernel, Tds>;
+    using Point         = typename Kernel::Point_2;
+    std::vector<std::pair<Point, size_t>> points;
     points.reserve(this->num_vertices());
     for (auto v : this->vertices()) {
-      points.emplace_back(at(v)(0), at(v)(1));
+      points.emplace_back(Point{at(v)(0), at(v)(1)}, v.i);
     }
 
-    Delaunay dt(begin(points), end(points));
-    for (auto it = dt.finite_faces_begin(); it != dt.finite_faces_end(); it++) {
-      add_triangle(it->face_handle().vertex(0), it->face_handle().vertex(1),
-                   it->face_handle().vertex(2));
+    Triangulation dt{begin(points), end(points)};
+    for (auto it = dt.finite_faces_begin(); it != dt.finite_faces_end(); ++it) {
+      //std::cerr << it->index(it->vertex(0)) << ", " << it->index(it->vertex(1))
+      //          << ", " << it->index(it->vertex(2)) << '\n';
+      typename Triangulation::Vertex_handle v0 = it->vertex(0);
+      typename Triangulation::Vertex_handle v1 = it->vertex(1);
+      typename Triangulation::Vertex_handle v2 = it->vertex(2);
+      insert_face(vertex_index{v0->info()},
+                  vertex_index{v1->info()},
+                  vertex_index{v2->info()});
     }
-
-    //set_triangle_indices(std::move(d.triangles));
   }
   //----------------------------------------------------------------------------
   auto set_triangle_indices(std::vector<size_t>&& is) {
@@ -332,26 +336,23 @@ class triangular_mesh : public pointset<Real, N> {
   }
   //----------------------------------------------------------------------------
   template <typename = void>
-  requires(N == 2 || N == 3)
-  auto build_hierarchy() const {
+  requires(N == 2 || N == 3) auto build_hierarchy() const {
     auto& h = hierarchy();
     for (auto v : this->vertices()) {
       h.insert_vertex(*this, v.i);
     }
     for (auto t : triangles()) {
-      h.insert_triangle(*this, t.i);
+      h.insert_face(*this, t.i);
     }
   }
   //----------------------------------------------------------------------------
   template <typename = void>
-  requires(N == 2 || N == 3)
-  auto clear_hierarchy() {
+  requires(N == 2 || N == 3) auto clear_hierarchy() {
     m_hierarchy.reset();
   }
   //----------------------------------------------------------------------------
   template <typename = void>
-  requires(N == 2 || N == 3)
-  auto hierarchy() const -> auto& {
+  requires(N == 2 || N == 3) auto hierarchy() const -> auto& {
     if (m_hierarchy == nullptr) {
       auto min = pos_t::ones() * std::numeric_limits<Real>::infinity();
       auto max = -pos_t::ones() * std::numeric_limits<Real>::infinity();
@@ -384,10 +385,10 @@ class triangular_mesh : public pointset<Real, N> {
   }
   //----------------------------------------------------------------------------
   template <typename = void>
-  requires(N == 2) || (N == 3)
-  auto write_vtk(std::string const& path,
-                 std::string const& title = "tatooine triangular mesh") const
-      -> bool {
+      requires(N == 2) ||
+      (N == 3) auto write_vtk(
+          std::string const& path,
+          std::string const& title = "tatooine triangular mesh") const -> bool {
     using boost::copy;
     using boost::adaptors::transformed;
     vtk::legacy_file_writer writer(path, vtk::POLYDATA);
@@ -455,8 +456,8 @@ class triangular_mesh : public pointset<Real, N> {
   }
   //----------------------------------------------------------------------------
   template <typename = void>
-  requires(N == 2) || (N == 3)
-  auto read_vtk(std::filesystem::path const& path) {
+      requires(N == 2) ||
+      (N == 3) auto read_vtk(std::filesystem::path const& path) {
     struct listener_t : vtk::legacy_file_listener {
       triangular_mesh& mesh;
 
@@ -490,8 +491,7 @@ class triangular_mesh : public pointset<Real, N> {
       void on_polygons(std::vector<int> const& ps) override {
         for (size_t i = 0; i < ps.size();) {
           auto const& size = ps[i++];
-          mesh.insert_triangle(size_t(ps[i]), size_t(ps[i + 1]),
-                               size_t(ps[i + 2]));
+          mesh.insert_face(size_t(ps[i]), size_t(ps[i + 1]), size_t(ps[i + 2]));
           i += size;
         }
       }
@@ -499,13 +499,13 @@ class triangular_mesh : public pointset<Real, N> {
                       std::string const& /*lookup_table_name*/,
                       size_t num_comps, std::vector<float> const& scalars,
                       vtk::ReaderData data) override {
-        std::cerr << data_name << " " <<num_comps << '\n';
+        std::cerr << data_name << " " << num_comps << '\n';
       }
       void on_scalars(std::string const& data_name,
                       std::string const& /*lookup_table_name*/,
                       size_t num_comps, std::vector<double> const& scalars,
                       vtk::ReaderData data) override {
-        std::cerr << data_name << " " <<num_comps << '\n';
+        std::cerr << data_name << " " << num_comps << '\n';
         if (data == vtk::POINT_DATA) {
           if (num_comps == 1) {
             auto& prop = mesh.template add_vertex_property<double>(data_name);

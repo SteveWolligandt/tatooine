@@ -70,7 +70,7 @@ struct quadtree : aabb<Real, 2> {
   }
   //------------------------------------------------------------------------------
   template <typename TriangularMesh>
-  auto insert_triangle(TriangularMesh const& mesh, size_t const triangle_idx)
+  auto insert_face(TriangularMesh const& mesh, size_t const triangle_idx)
       -> bool {
     auto [vi0, vi1, vi2] = mesh.triangle_at(triangle_idx);
     if (!is_triangle_inside(mesh[vi0], mesh[vi1], mesh[vi2])) {
@@ -199,7 +199,7 @@ struct quadtree : aabb<Real, 2> {
   template <typename Mesh>
   auto distribute_triangle(Mesh const& mesh, size_t const triangle_idx) {
     for (auto& child : m_children) {
-      child->insert_triangle(mesh, triangle_idx);
+      child->insert_face(mesh, triangle_idx);
     }
   }
   //----------------------------------------------------------------------------
