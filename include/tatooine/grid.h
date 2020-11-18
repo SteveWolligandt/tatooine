@@ -283,7 +283,7 @@ class grid {
         }
       }
     }
-    std::numeric_limits<size_t>::max();
+    return std::numeric_limits<size_t>::max();
   }
   //----------------------------------------------------------------------------
   template <size_t I>
