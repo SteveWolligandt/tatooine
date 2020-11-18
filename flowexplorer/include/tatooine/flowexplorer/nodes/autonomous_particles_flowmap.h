@@ -28,7 +28,7 @@ struct autonomous_particles_flowmap : renderable<autonomous_particles_flowmap> {
     if (m_currently_read_path.empty()) {
       ImGui::Text("no dataset read");
     } else {
-      ImGui::Text(m_currently_read_path.c_str());
+      ImGui::TextUnformatted(m_currently_read_path.c_str());
     }
     if (ImGui::Button("load double gyre autonomous adaptive forward")) {
       load(

@@ -40,11 +40,12 @@ auto lic::write_png() -> void {
     std::string       type_name{
         dynamic_cast<ui::base::node const*>(m_v)->type_name()};
     auto const last_colon_pos = type_name.find_last_of(':');
-    type_name =
-        type_name.substr(last_colon_pos+1, size(type_name) - last_colon_pos-1);
+    type_name                 = type_name.substr(last_colon_pos + 1,
+                                 size(type_name) - last_colon_pos - 1);
 
     str << "lic_" << type_name << "_x_" << m_bb->min(0) << "_" << m_bb->max(0)
-        << "_y_" << m_bb->min(1) << "_" << m_bb->max(1) << "_t_" << m_t << ".png";
+        << "_y_" << m_bb->min(1) << "_" << m_bb->max(1) << "_t_" << m_t
+        << ".png";
     m_lic_tex->write_png(str.str());
   }
 }
@@ -115,7 +116,7 @@ auto lic::update_shader(mat<float, 4, 4> const& projection_matrix,
   m_shader->set_projection_matrix(projection_matrix);
 }
 //----------------------------------------------------------------------------
-auto lic::on_pin_connected(ui::pin& this_pin, ui::pin& other_pin) -> void {
+auto lic::on_pin_connected(ui::pin& /*this_pin*/, ui::pin& other_pin) -> void {
   if (other_pin.type() == typeid(bb_t)) {
     m_bb = dynamic_cast<bb_t*>(&other_pin.node());
   } else if ((other_pin.type() == typeid(vectorfield_t))) {
@@ -132,7 +133,9 @@ auto lic::on_property_changed() -> void {
   }
 }
 //----------------------------------------------------------------------------
-auto lic::on_pin_disconnected(ui::pin& this_pin) -> void { m_lic_tex.reset(); }
+auto lic::on_pin_disconnected(ui::pin & /*this_pin*/) -> void {
+  m_lic_tex.reset();
+}
 //----------------------------------------------------------------------------
 auto lic::is_transparent() const -> bool { return m_alpha < 1; }
 //==============================================================================

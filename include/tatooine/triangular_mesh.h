@@ -491,8 +491,8 @@ class triangular_mesh : public pointset<Real, N> {
       }
       void on_scalars(std::string const& data_name,
                       std::string const& /*lookup_table_name*/,
-                      size_t num_comps, std::vector<float> const& scalars,
-                      vtk::ReaderData data) override {
+                      size_t num_comps, std::vector<float> const& /*scalars*/,
+                      vtk::ReaderData /*data*/) override {
         std::cerr << data_name << " " << num_comps << '\n';
       }
       void on_scalars(std::string const& data_name,

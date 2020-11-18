@@ -38,13 +38,12 @@ struct rayleigh_benard_convection
                 2 / m_k * std::sin(m_k * rho)};
   }
   //----------------------------------------------------------------------------
-  auto in_domain(pos_t const& x, real_t const t) const -> bool override {
+  auto in_domain(pos_t const& /*x*/, real_t const /*t*/) const
+      -> bool override {
     return true;
   }
   //----------------------------------------------------------------------------
-  auto g(real_t const t) const -> real_t{
-    return 0;
-  }
+  auto g(real_t const /*t*/) const -> real_t { return 0; }
   //----------------------------------------------------------------------------
   auto k() -> real_t& {
     return m_k;

@@ -266,7 +266,7 @@ auto autonomous_particle::draw_properties() -> bool {
 //----------------------------------------------------------------------------
 auto autonomous_particle::is_transparent() const -> bool { return false; }
 //----------------------------------------------------------------------------
-void autonomous_particle::on_pin_connected(ui::pin& this_pin,
+void autonomous_particle::on_pin_connected(ui::pin& /*this_pin*/,
                                            ui::pin& other_pin) {
   if (other_pin.type() == typeid(position<2>)) {
     m_x0 = dynamic_cast<vec<double, 2>*>(&other_pin.node());

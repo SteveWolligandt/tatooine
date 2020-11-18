@@ -21,12 +21,14 @@ struct duffing_oscillator : vectorfield<duffing_oscillator<Real>, Real, 2> {
   constexpr duffing_oscillator(Real delta, Real alpha, Real beta) noexcept
       : m_delta{delta}, m_alpha{alpha}, m_beta{beta} {}
   //----------------------------------------------------------------------------
-  constexpr tensor_t evaluate(const pos_t& x, Real t) const override {
+  constexpr auto evaluate(const pos_t& x, Real /*t*/) const
+      -> tensor_t override {
     return tensor_t{
         x(1), -m_delta * x(1) - m_alpha * x(0) - m_beta * x(0) * x(0) * x(0)};
   }
   //----------------------------------------------------------------------------
-  constexpr bool in_domain(const pos_t& x, Real) const override {
+  constexpr auto in_domain(const pos_t& /*x*/, Real /*t*/) const
+      -> bool override {
     return true;
   }
   //----------------------------------------------------------------------------
@@ -60,7 +62,7 @@ struct forced_duffing_oscillator
     return {x(1), x(0) - x(0) * x(0) * x(0) + m_eps * std::sin(t)};
   }
   //----------------------------------------------------------------------------
-  constexpr bool in_domain(const pos_t& x, Real) const override {
+  constexpr bool in_domain(const pos_t& /*x*/, Real /*t*/) const override {
     return true;
   }
 };

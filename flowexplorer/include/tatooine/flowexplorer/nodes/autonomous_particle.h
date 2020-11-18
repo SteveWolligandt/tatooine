@@ -71,7 +71,7 @@ struct autonomous_particle
   //----------------------------------------------------------------------------
   void on_pin_connected(ui::pin& this_pin, ui::pin& other_pin) final;
   //----------------------------------------------------------------------------
-  void update(const std::chrono::duration<double>& dt) {
+  void update(std::chrono::duration<double> const& /*dt*/) {
     if (m_needs_another_update && !m_integration_going_on) {
       advect();
     }

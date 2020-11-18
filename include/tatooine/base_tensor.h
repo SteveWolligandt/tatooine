@@ -73,7 +73,7 @@ struct base_tensor : crtp<Tensor> {
       F&& f, base_tensor<OtherTensor, OtherReal, Dims...> const& other)
       -> decltype(auto) {
     for_indices([this, &f, &other](auto const... is) {
-      at(is...) = f(at(is...), other(is...));
+      this->at(is...) = f(at(is...), other(is...));
     });
     return as_derived();
   }
@@ -82,7 +82,7 @@ struct base_tensor : crtp<Tensor> {
   constexpr void assign_other_tensor(
       base_tensor<OtherTensor, OtherReal, Dims...> const& other) {
     for_indices([this, &other](auto const... is) {
-      at(is...) = other(is...);
+      this->at(is...) = other(is...);
     });
   }
   //----------------------------------------------------------------------------

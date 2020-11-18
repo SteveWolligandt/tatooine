@@ -273,7 +273,7 @@ void scene::node_creators() {
   if (ImGui::BeginCombo("##combo", nullptr)) {
     for (auto const& item : items) {
       if (ImGui::Selectable(std::string{item}.c_str(), false)) {
-        ui::base::node* n = insert_registered_element(*this, item);
+        insert_registered_element(*this, item);
       }
     }
     ImGui::EndCombo();

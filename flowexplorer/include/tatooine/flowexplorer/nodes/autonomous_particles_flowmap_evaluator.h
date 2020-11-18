@@ -1,10 +1,10 @@
 #ifndef TATOOINE_FLOWEXPLORER_NODES_AUTONOMOUS_PARTICLES_FLOWMAP_EVALUATOR_H
 #define TATOOINE_FLOWEXPLORER_NODES_AUTONOMOUS_PARTICLES_FLOWMAP_EVALUATOR_H
 //==============================================================================
-#include <tatooine/flowexplorer/renderable.h>
 #include <tatooine/flowexplorer/nodes/autonomous_particles_flowmap.h>
 #include <tatooine/flowexplorer/nodes/position.h>
 #include <tatooine/flowexplorer/point_shader.h>
+#include <tatooine/flowexplorer/renderable.h>
 #include <yavin/indexeddata.h>
 //==============================================================================
 namespace tatooine::flowexplorer::nodes {
@@ -41,7 +41,7 @@ struct autonomous_particles_flowmap_evaluator
     m_gpu_data.draw_points();
   }
   //----------------------------------------------------------------------------
-  bool         is_transparent() const override { return m_color[3] < 1; }
+  bool is_transparent() const override { return m_color[3] < 1; }
   //----------------------------------------------------------------------------
   auto draw_properties() -> bool override {
     bool changed = false;
@@ -50,7 +50,7 @@ struct autonomous_particles_flowmap_evaluator
     return changed;
   }
   //----------------------------------------------------------------------------
-  virtual auto on_pin_connected(ui::pin& this_pin,ui:: pin& other_pin)
+  virtual auto on_pin_connected(ui::pin& /*this_pin*/, ui::pin& other_pin)
       -> void override {
     if (other_pin.type() == typeid(position<2>)) {
       m_x0 = dynamic_cast<position<2>*>(&other_pin.node());
@@ -62,7 +62,7 @@ struct autonomous_particles_flowmap_evaluator
       evaluate();
     }
   }
-  auto on_property_changed() ->void override {
+  auto on_property_changed() -> void override {
     if (m_x0 != nullptr && m_flowmap != nullptr) {
       evaluate();
     }

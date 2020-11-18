@@ -35,9 +35,9 @@ add_executable(
   src/imgui-node-editor/imgui_node_editor.cpp)
 
 if ("${CMAKE_CXX_COMPILER_ID}" STREQUAL "Clang")
-  target_compile_options(tatooine PRIVATE "-fcolor-diagnostics")
+  target_compile_options(flowexplorer PRIVATE "-fcolor-diagnostics")
 elseif ("${CMAKE_CXX_COMPILER_ID}" STREQUAL "GNU")
-  target_compile_options(tatooine PRIVATE  "-fdiagnostics-color=always")
+  target_compile_options(flowexplorer PRIVATE  "-fdiagnostics-color=always")
 endif()
 target_link_libraries(flowexplorer tatooine yavin)
 target_compile_features(flowexplorer PUBLIC cxx_std_17)

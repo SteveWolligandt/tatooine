@@ -172,7 +172,7 @@ struct random_pathlines : renderable<random_pathlines<N>> {
         ++index;
       };
       rp->m_gpu_data.clear();
-      for (size_t i = 0; i < rp->m_num_pathlines; ++i) {
+      for (size_t i = 0; i < static_cast<size_t>(rp->m_num_pathlines); ++i) {
         auto const   x0 = rp->m_boundingbox->random_point();
         double const t0 = 0;
         insert_segment  = false;
@@ -184,7 +184,7 @@ struct random_pathlines : renderable<random_pathlines<N>> {
     });
   }
   //----------------------------------------------------------------------------
-  void on_pin_connected(ui::pin& this_pin, ui::pin& other_pin) override {
+  void on_pin_connected(ui::pin& /*this_pin*/, ui::pin& other_pin) override {
     if (other_pin.type() == typeid(axis_aligned_bounding_box<N>)) {
       m_boundingbox =
           dynamic_cast<axis_aligned_bounding_box<N>*>(&other_pin.node());
@@ -196,7 +196,7 @@ struct random_pathlines : renderable<random_pathlines<N>> {
     }
   }
   //----------------------------------------------------------------------------
-  void on_pin_disconnected(ui::pin& this_pin) override { m_gpu_data.clear(); }
+  void on_pin_disconnected(ui::pin& /*this_pin*/) override { m_gpu_data.clear(); }
   //----------------------------------------------------------------------------
   bool is_transparent() const override {
     return m_animate || m_general_alpha < 1;

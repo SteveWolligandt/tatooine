@@ -26,6 +26,7 @@ struct camera_controller_interface {
  public:
   camera_controller_interface(camera_controller<Real>* controller)
       : m_controller{controller} {}
+  virtual ~camera_controller_interface() = default;
 
   auto perspective_camera() -> auto& {
     return m_controller->perspective_camera();
@@ -255,6 +256,7 @@ struct fps_camera_controller : camera_controller_interface<Real> {
                   std::sin(m_phi) * std::cos(m_theta)};
     controller->look_at(controller->eye(), controller->eye() + m_look_dir);
   }
+  virtual ~fps_camera_controller() = default;
 
   void on_key_pressed(yavin::key k) override {
     if (k == yavin::KEY_W) {
@@ -356,7 +358,7 @@ struct fps_camera_controller : camera_controller_interface<Real> {
 //==============================================================================
 template <typename Real>
 struct orthographic_camera_controller : camera_controller_interface<Real> {
-  using this_t = fps_camera_controller<Real>;
+  using this_t = orthographic_camera_controller<Real>;
   using parent_t = camera_controller_interface<Real>;
   using parent_t::controller;
 
@@ -375,6 +377,7 @@ struct orthographic_camera_controller : camera_controller_interface<Real> {
     new_eye(2)   = 0;
     controller->look_at(new_eye, new_eye + vec{0, 0, -1});
   }
+  virtual ~orthographic_camera_controller() = default;
 
   //============================================================================
   // methods
