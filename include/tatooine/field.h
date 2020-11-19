@@ -330,4 +330,5 @@ auto resample(field<V, VReal, N, TensorDims...> const& f,
 //==============================================================================
 #include "differentiated_field.h"
 #include "field_operations.h"
+#include "numerical_flowmap.h"
 #endif

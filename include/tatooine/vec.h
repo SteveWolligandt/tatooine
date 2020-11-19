@@ -43,6 +43,26 @@ struct vec : tensor<T, N> {  // NOLINT
   auto begin() { return this->data().begin(); }
   auto end() const { return this->data().end(); }
   auto end() { return this->data().end(); }
+  //----------------------------------------------------------------------------
+  template <typename = void> requires (N >= 1)
+  auto x() const -> auto const& {return this->at(0);}
+  template <typename = void> requires (N >= 1)
+  auto x() -> auto& {return this->at(0);}
+  //----------------------------------------------------------------------------
+  template <typename = void> requires (N >= 2)
+  auto y() const -> auto const& {return this->at(1);}
+  template <typename = void> requires (N >= 2)
+  auto y() -> auto& {return this->at(1);}
+  //----------------------------------------------------------------------------
+  template <typename = void> requires (N >= 3)
+  auto z() const -> auto const& {return this->at(2);}
+  template <typename = void> requires (N >= 3)
+  auto z() -> auto& {return this->at(2);}
+  //----------------------------------------------------------------------------
+  template <typename = void> requires (N >= 4)
+  auto w() const -> auto const& {return this->at(3);}
+  template <typename = void> requires (N >= 4)
+  auto w() -> auto& {return this->at(3);}
 };
 //==============================================================================
 // type traits

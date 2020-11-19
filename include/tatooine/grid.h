@@ -781,20 +781,23 @@ class grid {
                       typed_property_t<T> const& prop) const {
     std::vector<T> data;
     loop_over_vertex_indices(
-        [&](auto const... is) { data.push_back(prop.data_at(is...)); });
+        [&](auto const... is) { data.push_back(prop(is...)); });
     writer.write_scalars(name, data);
   }
 
  public:
-  template <size_t _N = num_dimensions(),
-            std::enable_if_t<(_N == 1 || _N == 2 || _N == 3), bool> = true>
+  template <typename = void>
+  requires (num_dimensions() == 1) ||
+           (num_dimensions() == 2) ||
+           (num_dimensions() == 3)
   void write_vtk(std::string const& file_path,
                  std::string const& description = "tatooine grid") const {
     auto writer = [this, &file_path, &description] {
-      vtk::legacy_file_writer writer{file_path, vtk::dataset_type::rectilinear_grid};
-      writer.set_title(description);
-      writer.write_header();
       if constexpr (is_regular) {
+        vtk::legacy_file_writer writer{file_path,
+                                       vtk::dataset_type::structured_points};
+        writer.set_title(description);
+        writer.write_header();
         if constexpr (num_dimensions() == 1) {
           writer.write_dimensions(size<0>(), 1, 1);
           writer.write_origin(front<0>(), 0, 0);
@@ -813,6 +816,10 @@ class grid {
         }
         return writer;
       } else {
+        vtk::legacy_file_writer writer{file_path,
+                                       vtk::dataset_type::rectilinear_grid};
+        writer.set_title(description);
+        writer.write_header();
         if constexpr (num_dimensions() == 1) {
           writer.write_dimensions(size<0>(), 1, 1);
           writer.write_x_coordinates(
@@ -852,6 +859,10 @@ class grid {
         write_prop_vtk(
             writer, name,
             *dynamic_cast<const typed_property_t<double>*>(prop.get()));
+      } else if (prop->type() == typeid(vec2)) {
+        write_prop_vtk(
+            writer, name,
+            *dynamic_cast<const typed_property_t<vec2>*>(prop.get()));
       }
     }
   }

@@ -314,7 +314,6 @@ struct sampler
   sampler(sampler&& other) noexcept = default;
   //============================================================================
   auto property() const -> auto const& { return m_property; }
-  auto property() -> auto& { return m_property; }
   //----------------------------------------------------------------------------
   auto grid() const -> auto const& { return m_property.grid(); }
   auto grid() -> auto& { return m_property.grid(); }

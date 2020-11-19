@@ -2,6 +2,7 @@
 #define TATOOINE_MULTIDIM_PROPERTY_H
 //==============================================================================
 #include <tatooine/concepts.h>
+#include <tatooine/variadic_alias.h>
 #include <tatooine/finite_differences_coefficients.h>
 #include <tatooine/write_png.h>
 #include <tatooine/sampler.h>
@@ -98,6 +99,15 @@ struct typed_multidim_property : multidim_property<Grid> {
     return typeid(value_type);
   }
   //----------------------------------------------------------------------------
+  template <template <typename> typename InterpolationKernel>
+  auto sampler_() const {
+    using sampler_t =
+        default_multidim_property_sampler_t<num_dimensions(),
+                                            InterpolationKernel, this_t>;
+    grid().update_diff_stencil_coefficients();
+    return sampler_t{*this};
+  }
+  //----------------------------------------------------------------------------
   template <template <typename> typename... InterpolationKernels>
   auto sampler() const {
     if (!grid().diff_stencil_coefficients_created_once()) {
@@ -105,20 +115,23 @@ struct typed_multidim_property : multidim_property<Grid> {
     }
     static_assert(
         sizeof...(InterpolationKernels) == 0 ||
-        //sizeof...(InterpolationKernels) == 1 ||
-        sizeof...(InterpolationKernels) == num_dimensions(),
+        sizeof...(InterpolationKernels) == 1 ||
+            sizeof...(InterpolationKernels) == num_dimensions(),
         "Number of interpolation kernels does not match number of dimensions.");
-    using sampler_t =
-      // if no interpolation kernels are given take cubic as default in every dimensions.
-      std::conditional_t<sizeof...(InterpolationKernels) == 0,
-      default_multidim_property_sampler_t<num_dimensions(), interpolation::cubic, this_t>,
-      //// if one interpolation kernel is given take this one in every dimensions.
-      //std::conditional_t<sizeof...(InterpolationKernels) == 1,
-      //default_multidim_property_sampler_t<num_dimensions(), InterpolationKernels..., this_t>,
-      // else take specified kernels.
-      tatooine::sampler<this_t, InterpolationKernels...>>/*>*/;
-    grid().update_diff_stencil_coefficients();
-    return sampler_t{*this};
+
+    if constexpr (sizeof...(InterpolationKernels) == 0) {
+      using sampler_t =
+          default_multidim_property_sampler_t<num_dimensions(),
+                                              interpolation::cubic, this_t>;
+      grid().update_diff_stencil_coefficients();
+      return sampler_t{*this};
+    } else if constexpr (sizeof...(InterpolationKernels) == 1) {
+      return sampler_<InterpolationKernels...>();
+    } else {
+      using sampler_t = tatooine::sampler<this_t, InterpolationKernels...>;
+      grid().update_diff_stencil_coefficients();
+      return sampler_t{*this};
+    }
   }
   //----------------------------------------------------------------------------
   // data access

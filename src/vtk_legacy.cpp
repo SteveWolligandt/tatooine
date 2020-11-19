@@ -318,7 +318,8 @@ auto legacy_file::read_field_header(std::ifstream &file)
 }
 //----------------------------------------------------------------------------
 // field data
-auto legacy_file::read_field_array_header(std::ifstream &file) -> std::tuple<std::string, size_t, size_t, std::string> {
+auto legacy_file::read_field_array_header(std::ifstream &file)
+    -> std::tuple<std::string, size_t, size_t, std::string> {
   std::string       field_array_params = vtk::read_binaryline(file, buffer);
   std::stringstream field_array_params_stream(field_array_params);
 
@@ -655,25 +656,25 @@ legacy_file_writer::legacy_file_writer(std::string const &path,
 auto legacy_file_writer::is_open() -> bool { return m_file.is_open(); }
 auto legacy_file_writer::close() -> void { m_file.close(); }
 //---------------------------------------------------------------------------
-auto legacy_file_writer::write_dimensions(size_t dimx, size_t dimy, size_t dimz)
-    -> void {
+auto legacy_file_writer::write_dimensions(size_t const dimx, size_t const dimy,
+                                          size_t const dimz) -> void {
   vtk::write_binary(m_file, "\nDIMENSIONS " + std::to_string(dimx) + ' ' +
                                 std::to_string(dimy) + ' ' +
-                                std::to_string(dimz) + '\n');
+                                std::to_string(dimz));
 }
 //----------------------------------------------------------------------------
-auto legacy_file_writer::write_origin(double orgx, double orgy, double orgz)
-    -> void {
+auto legacy_file_writer::write_origin(double const orgx, double const orgy,
+                                      double const orgz) -> void {
   vtk::write_binary(m_file, "\nORIGIN " + std::to_string(orgx) + ' ' +
                                 std::to_string(orgy) + ' ' +
-                                std::to_string(orgz) + '\n');
+                                std::to_string(orgz));
 }
 //----------------------------------------------------------------------------
-auto legacy_file_writer::write_spacing(double spax, double spay, double spaz)
-    -> void {
+auto legacy_file_writer::write_spacing(double const spax, double const spay,
+                                       double const spaz) -> void {
   vtk::write_binary(m_file, "\nSPACING " + std::to_string(spax) + ' ' +
                                 std::to_string(spay) + ' ' +
-                                std::to_string(spaz) + '\n');
+                                std::to_string(spaz));
 }
 //---------------------------------------------------------------------------
 auto legacy_file_writer::set_version(unsigned short const major_version,

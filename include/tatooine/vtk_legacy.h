@@ -658,11 +658,14 @@ class legacy_file_writer {
       }
   }
   //----------------------------------------------------------------------------
-  auto write_dimensions(size_t dimx, size_t dimy, size_t dimz) -> void;
+  auto write_dimensions(size_t const dimx, size_t const dimy, size_t const dimz)
+      -> void;
   //----------------------------------------------------------------------------
-  auto write_origin(double orgx, double orgy, double orgz) -> void;
+  auto write_origin(double const orgx, double const orgy, double const orgz)
+      -> void;
   //----------------------------------------------------------------------------
-  auto write_spacing(double spax, double spay, double spaz) -> void;
+  auto write_spacing(double const spax, double const spay, double const spaz)
+      -> void;
   //---------------------------------------------------------------------------
   auto set_version(unsigned short const major_version,
                    unsigned short const minor_version) -> void;

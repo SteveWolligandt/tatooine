@@ -38,7 +38,9 @@ class triangular_mesh : public pointset<Real, N> {
     this_t const&               m_mesh;
     vertex_property_t<T> const& m_prop;
 
+    [[nodiscard]] auto operator()(Real x, Real y) const { return sample(pos_t{x, y}); }
     [[nodiscard]] auto operator()(pos_t const& x) const { return sample(x); }
+    [[nodiscard]] auto sample(Real x, Real y) const { return sample(pos_t{x, y}); }
     [[nodiscard]] auto sample(pos_t const& x) const -> T {
       auto tris = m_mesh.hierarchy().nearby_triangles_ptr(x);
       if (tris == nullptr || tris->empty()) {
@@ -379,10 +381,10 @@ class triangular_mesh : public pointset<Real, N> {
   }
   //----------------------------------------------------------------------------
   template <typename = void>
-      requires(N == 2) ||
-      (N == 3) auto write_vtk(
-          std::string const& path,
-          std::string const& title = "tatooine triangular mesh") const -> bool {
+  requires(N == 2) || (N == 3)
+  auto write_vtk(std::string const& path,
+                 std::string const& title = "tatooine triangular mesh") const
+      -> bool {
     using boost::copy;
     using boost::adaptors::transformed;
     vtk::legacy_file_writer writer(path, vtk::dataset_type::polydata);
