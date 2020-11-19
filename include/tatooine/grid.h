@@ -791,7 +791,7 @@ class grid {
   void write_vtk(std::string const& file_path,
                  std::string const& description = "tatooine grid") const {
     auto writer = [this, &file_path, &description] {
-      vtk::legacy_file_writer writer{file_path, vtk::RECTILINEAR_GRID};
+      vtk::legacy_file_writer writer{file_path, vtk::dataset_type::rectilinear_grid};
       writer.set_title(description);
       writer.write_header();
       if constexpr (is_regular) {

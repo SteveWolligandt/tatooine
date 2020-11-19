@@ -1,8 +1,5 @@
 #include <tatooine/concepts.h>
-#include <tatooine/string_conversion.h>
-#include <tatooine/swap_endianess.h>
 #include <tatooine/tensor.h>
-#include <tatooine/type_to_str.h>
 #include <tatooine/type_traits.h>
 #include <tatooine/vtk_legacy.h>
 
@@ -68,63 +65,63 @@ auto write_binary(std::ostream &stream, char const c) -> void {
   stream.write(&c, long(sizeof(char)));
 }
 //-----------------------------------------------------------------------------
-auto str_to_type(std::string const &type) -> DatasetType {
-  if (type == "STRUCTURED_POINTS" || type == "structured_points")
-    return STRUCTURED_POINTS;
-  else if (type == "STRUCTURED_GRID" || type == "structured_grid")
-    return STRUCTURED_GRID;
-  else if (type == "UNSTRUCTURED_GRID" || type == "unstructured_grid")
-    return UNSTRUCTURED_GRID;
-  else if (type == "POLYDATA" || type == "polydata")
-    return POLYDATA;
-  else if (type == "RECTILINEAR_GRID" || type == "rectilinear_grid")
-    return RECTILINEAR_GRID;
-  else if (type == "FIELD" || type == "field")
-    return FIELD;
-  else
-    return UNKNOWN_TYPE;
+auto parse_dataset_type(std::string const &type) -> dataset_type {
+  if (type == "STRUCTURED_POINTS") {
+    return dataset_type::structured_points;
+  } else if (type == "STRUCTURED_GRID") {
+    return dataset_type::structured_grid;
+  } else if (type == "UNSTRUCTURED_GRID") {
+    return dataset_type::unstructured_grid;
+  } else if (type == "POLYDATA") {
+    return dataset_type::polydata;
+  } else if (type == "RECTILINEAR_GRID") {
+    return dataset_type::rectilinear_grid;
+  } else if (type == "FIELD") {
+    return dataset_type::field;
+  }
+  return dataset_type::unknown;
 }
 //-----------------------------------------------------------------------------
-auto str_to_format(std::string const &format) -> Format {
-  if (format == "ASCII" || format == "ascii")
-    return ASCII;
-  else if (format == "BINARY" || format == "binary")
-    return BINARY;
-  else
-    return UNKNOWN_FORMAT;
+auto parse_format(std::string const &f) -> format {
+  if (f == to_string_view(format::ascii)) {
+    return format::ascii;
+  } else if (f == to_string_view(format::binary)) {
+    return format::binary;
+  }
+  return format::unknown;
 }
 //-----------------------------------------------------------------------------
-auto str_to_cell_type(std::string const &cell_type) -> CellType {
-  if (cell_type == "VERTEX" || cell_type == "vertex")
-    return VERTEX;
-  else if (cell_type == "POLY_VERTEX" || cell_type == "poly_vertex")
-    return POLY_VERTEX;
-  else if (cell_type == "LINE" || cell_type == "line")
-    return LINE;
-  else if (cell_type == "POLY_LINE" || cell_type == "poly_line")
-    return POLY_LINE;
-  else if (cell_type == "TRIANGLE" || cell_type == "triangle")
-    return TRIANGLE;
-  else if (cell_type == "TRIANGLE_STRIP" || cell_type == "triangle_strip")
-    return TRIANGLE_STRIP;
-  else if (cell_type == "POLYGON" || cell_type == "polygon")
-    return POLYGON;
-  else if (cell_type == "PIXEL" || cell_type == "pixel")
-    return PIXEL;
-  else if (cell_type == "QUAD" || cell_type == "quad")
-    return QUAD;
-  else if (cell_type == "TETRA" || cell_type == "tetra")
-    return TETRA;
-  else if (cell_type == "VOXEL" || cell_type == "voxel")
-    return VOXEL;
-  else if (cell_type == "HEXAHEDRON" || cell_type == "hexahedron")
-    return HEXAHEDRON;
-  else if (cell_type == "WEDGE" || cell_type == "wedge")
-    return WEDGE;
-  else if (cell_type == "PYRAMID" || cell_type == "pyramid")
-    return PYRAMID;
-  else
-    return UNKNOWN_CELL_TYPE;
+auto parse_cell_type(std::string const &ct) -> cell_type {
+  if (ct == "VERTEX") {
+    return cell_type::vertex;
+  } else if (ct == "POLY_VERTEX") {
+    return cell_type::poly_vertex;
+  } else if (ct == "LINE") {
+    return cell_type::line;
+  } else if (ct == "POLY_LINE") {
+    return cell_type::poly_line;
+  } else if (ct == "TRIANGLE") {
+    return cell_type::triangle;
+  } else if (ct == "TRIANGLE_STRIP") {
+    return cell_type::triangle_strip;
+  } else if (ct == "POLYGON") {
+    return cell_type::polygon;
+  } else if (ct == "PIXEL") {
+    return cell_type::pixel;
+  } else if (ct == "QUAD") {
+    return cell_type::quad;
+  } else if (ct == "TETRA") {
+    return cell_type::tetra;
+  } else if (ct == "VOXEL") {
+    return cell_type::voxel;
+  } else if (ct == "HEXAHEDRON") {
+    return cell_type::hexahedron;
+  } else if (ct == "WEDGE") {
+    return cell_type::wedge;
+  } else if (ct == "PYRAMID") {
+    return cell_type::pyramid;
+  }
+  return cell_type::unknown_cell_type;
 }
 //---------------------------------------------------------------------------
 auto legacy_file::add_listener(legacy_file_listener &listener) -> void {
@@ -311,26 +308,26 @@ auto legacy_file::read_tensors(std::ifstream &file) -> void {
   }
 }
 //----------------------------------------------------------------------------
-auto legacy_file::read_field_header(std::ifstream &file) {
+auto legacy_file::read_field_header(std::ifstream &file)
+    -> std::pair<std::string, size_t> {
   std::string       field_params = vtk::read_binaryline(file, buffer);
   std::stringstream field_params_stream(field_params);
 
-  return std::make_pair(
-      vtk::read_word(field_params_stream, buffer),
-      parse<size_t>(vtk::read_word(field_params_stream, buffer)));
+  return {vtk::read_word(field_params_stream, buffer),
+          parse<size_t>(vtk::read_word(field_params_stream, buffer))};
 }
 //----------------------------------------------------------------------------
 // field data
-auto legacy_file::read_field_array_header(std::ifstream &file) {
+auto legacy_file::read_field_array_header(std::ifstream &file) -> std::tuple<std::string, size_t, size_t, std::string> {
   std::string       field_array_params = vtk::read_binaryline(file, buffer);
   std::stringstream field_array_params_stream(field_array_params);
 
   // {array_name, num_components, num_tuples, datatype_str}
-  return std::make_tuple(
+  return std::tuple{
       vtk::read_word(field_array_params_stream, buffer),
       parse<size_t>(vtk::read_word(field_array_params_stream, buffer)),
       parse<size_t>(vtk::read_word(field_array_params_stream, buffer)),
-      vtk::read_word(field_array_params_stream, buffer));
+      vtk::read_word(field_array_params_stream, buffer)};
 }
 //----------------------------------------------------------------------------
 auto legacy_file::read_field(std::ifstream &file) -> void {
@@ -344,7 +341,7 @@ auto legacy_file::read_field(std::ifstream &file) -> void {
     auto const &num_tuples       = std::get<2>(header);
     auto const &datatype_str     = std::get<3>(header);
 
-    if (m_format == ASCII) {
+    if (m_format == format::ascii) {
       if (datatype_str == "int") {
         auto data = read_field_array_ascii<int>(file, num_comps, num_tuples);
         for (auto l : m_listeners)
@@ -362,7 +359,7 @@ auto legacy_file::read_field(std::ifstream &file) -> void {
                             num_tuples);
       }
 
-    } else if (m_format == BINARY) {
+    } else if (m_format == format::binary) {
       if (datatype_str == "int") {
         auto data = read_field_array_binary<int>(file, num_comps, num_tuples);
         for (auto l : m_listeners)
@@ -406,11 +403,11 @@ auto legacy_file::read_header() -> void {
     // read part3 ASCII | BINARY
     std::string part3 = vtk::read_binaryline(file, buffer);
     if (part3 == "ASCII" || part3 == "ascii")
-      m_format = ASCII;
+      m_format = format::ascii;
     else if (part3 == "BINARY" || part3 == "binary")
-      m_format = BINARY;
+      m_format = format::binary;
     else
-      m_format = UNKNOWN_FORMAT;
+      m_format = format::unknown;
 
     for (auto listener : m_listeners)
       listener->on_format(m_format);
@@ -418,7 +415,7 @@ auto legacy_file::read_header() -> void {
     // read part4 STRUCTURED_POINTS | STRUCTURED_GRID | UNSTRUCTURED_GRID |
     // POLYDATA | RECTILINEAR_GRID | FIELD
     file.read(buffer, sizeof(char) * 8);  // consume "DATASET "
-    auto part4 = str_to_type(vtk::read_binaryline(file, buffer));
+    auto part4 = parse_dataset_type(vtk::read_binaryline(file, buffer));
     for (auto listener : m_listeners)
       listener->on_dataset_type(part4);
 
@@ -477,14 +474,14 @@ auto legacy_file::read_data() -> void {
         } else if (keyword == "POINT_DATA") {
           auto const word = vtk::read_word(file, buffer);
           m_data_size     = size_t(parse<int>(word));
-          m_data          = POINT_DATA;
+          m_data          = reader_data::point_data;
           for (auto l : m_listeners) {
             l->on_point_data(m_data_size);
           }
 
         } else if (keyword == "CELL_DATA") {
           m_data_size = size_t(parse<int>(vtk::read_word(file, buffer)));
-          m_data      = POINT_DATA;
+          m_data      = reader_data::point_data;
           for (auto l : m_listeners)
             l->on_cell_data(m_data_size);
 
@@ -546,12 +543,12 @@ auto legacy_file::read_points(std::ifstream &file) -> void {
   auto const n              = parse<size_t>(num_points_str);
   auto const datatype_str   = vtk::read_word(file, buffer);
 
-  if (m_format == ASCII) {
+  if (m_format == format::ascii) {
     if (datatype_str == "float")
       read_points_ascii<float>(file, n);
     else if (datatype_str == "double")
       read_points_ascii<double>(file, n);
-  } else if (m_format == BINARY) {
+  } else if (m_format == format::binary) {
     if (datatype_str == "float")
       read_points_binary<float>(file, n);
     else if (datatype_str == "double")
@@ -563,19 +560,19 @@ auto legacy_file::read_cell_types(std::ifstream &file) -> void {
   auto num_cell_types_str = vtk::read_word(file, buffer);
   auto num_cell_types     = parse<size_t>(num_cell_types_str);
 
-  if (m_format == ASCII)
+  if (m_format == format::ascii)
     read_cell_types_ascii(file, num_cell_types);
-  else if (m_format == BINARY)
+  else if (m_format == format::binary)
     read_cell_types_binary(file, num_cell_types);
 }
 //-----------------------------------------------------------------------------------------------
 auto legacy_file::read_cell_types_ascii(std::ifstream &file,
                                         size_t const   num_cell_types) -> void {
-  std::vector<CellType> cell_types;
-  std::string           cell_type_str;
+  std::vector<cell_type> cell_types;
+  std::string            cell_type_str;
   for (size_t i = 0; i < num_cell_types; i++) {
     cell_type_str = vtk::read_word(file, buffer);
-    cell_types.push_back((CellType)parse<int>(cell_type_str));
+    cell_types.push_back((cell_type)parse<int>(cell_type_str));
   }
   for (auto listener : m_listeners)
     listener->on_cell_types(cell_types);
@@ -583,7 +580,7 @@ auto legacy_file::read_cell_types_ascii(std::ifstream &file,
 //-----------------------------------------------------------------------------
 auto legacy_file::read_cell_types_binary(std::ifstream &file,
                                          size_t const num_cell_types) -> void {
-  std::vector<CellType> cell_types(num_cell_types);
+  std::vector<cell_type> cell_types(num_cell_types);
   file.read((char *)cell_types.data(), sizeof(int) * num_cell_types);
   swap_endianess(cell_types);
   for (auto listener : m_listeners)
@@ -598,10 +595,10 @@ auto legacy_file::read_indices(std::ifstream &file) -> std::vector<int> {
   [[maybe_unused]] auto const num_indices = parse<size_t>(num_indices_str);
   auto const                  size        = parse<size_t>(size_str);
 
-  if (m_format == ASCII) {
+  if (m_format == format::ascii) {
     return read_indices_ascii(file, size);
   } else
-  /* if (m_format == BINARY) */ {
+  /* if (m_format == format::binary) */ {
     return read_indices_binary(file, size);
   }
 }
@@ -630,13 +627,13 @@ auto legacy_file::read_indices_binary(std::ifstream &file, size_t const size)
 //------------------------------------------------------------------------------
 auto legacy_file::read_scalars(std::ifstream &file) -> void {
   auto const &[name, type, num_comps, lookup_table] = read_scalars_header(file);
-  if (m_format == ASCII) {
+  if (m_format == format::ascii) {
     if (type == "float") {
       read_scalars_ascii<float>(file, name, lookup_table, num_comps);
     } else if (type == "double") {
       read_scalars_ascii<double>(file, name, lookup_table, num_comps);
     }
-  } else if (m_format == BINARY) {
+  } else if (m_format == format::binary) {
     if (type == "float") {
       read_scalars_binary<float>(file, name, lookup_table, num_comps);
     } else if (type == "double") {
@@ -646,7 +643,7 @@ auto legacy_file::read_scalars(std::ifstream &file) -> void {
 }
 //------------------------------------------------------------------------------
 legacy_file_writer::legacy_file_writer(std::string const &path,
-                                       DatasetType type, unsigned short major,
+                                       dataset_type type, unsigned short major,
                                        unsigned short     minor,
                                        std::string const &title)
     : m_file(path, std::ofstream::binary),
@@ -696,12 +693,12 @@ auto legacy_file_writer::write_header() -> void {
   vtk::write_binary(m_file, m_title + '\n');
 
   // write part3 ASCII | BINARY
-  vtk::write_binary(m_file, std::string{format_to_str(BINARY)} + '\n');
+  vtk::write_binary(m_file, std::string{to_string_view(format::binary)} + '\n');
 
   // write part4 STRUCTURED_POINTS | STRUCTURED_GRID | UNSTRUCTURED_GRID|
   // POLYDATA | RECTILINEAR_GRID | FIELD
   std::stringstream ss;
-  ss << "DATASET " << type_to_str(m_dataset_type);
+  ss << "DATASET " << to_string_view(m_dataset_type);
   vtk::write_binary(m_file, ss.str());
 }
 //------------------------------------------------------------------------------
@@ -731,12 +728,13 @@ auto legacy_file_writer::write_cells(
 }
 //------------------------------------------------------------------------------
 auto legacy_file_writer::write_cell_types(
-    std::vector<CellType> const &cell_types) -> void {
+    std::vector<cell_type> const &cell_types) -> void {
   vtk::write_binary(m_file,
                     "\nCELL_TYPES " + std::to_string(cell_types.size()) + '\n');
-  for (int type : cell_types) {
-    type = swap_endianess(int(type));
-    m_file.write((char *)(&type), sizeof(int));
+  int ict;
+  for (auto ct : cell_types) {
+    ict = swap_endianess(static_cast<int>(ct));
+    m_file.write((char *)(&ict), sizeof(int));
   }
 }
 //------------------------------------------------------------------------------

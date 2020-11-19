@@ -385,7 +385,7 @@ class triangular_mesh : public pointset<Real, N> {
           std::string const& title = "tatooine triangular mesh") const -> bool {
     using boost::copy;
     using boost::adaptors::transformed;
-    vtk::legacy_file_writer writer(path, vtk::POLYDATA);
+    vtk::legacy_file_writer writer(path, vtk::dataset_type::polydata);
     if (writer.is_open()) {
       writer.set_title(title);
       writer.write_header();
@@ -457,8 +457,8 @@ class triangular_mesh : public pointset<Real, N> {
 
       listener_t(triangular_mesh& _mesh) : mesh(_mesh) {}
 
-      void on_dataset_type(vtk::DatasetType t) override {
-        if (t != vtk::POLYDATA) {
+      void on_dataset_type(vtk::dataset_type t) override {
+        if (t != vtk::dataset_type::polydata) {
           throw std::runtime_error{
               "[triangular_mesh] need polydata when reading vtk legacy"};
         }
@@ -492,15 +492,15 @@ class triangular_mesh : public pointset<Real, N> {
       void on_scalars(std::string const& data_name,
                       std::string const& /*lookup_table_name*/,
                       size_t num_comps, std::vector<float> const& /*scalars*/,
-                      vtk::ReaderData /*data*/) override {
+                      vtk::reader_data /*data*/) override {
         std::cerr << data_name << " " << num_comps << '\n';
       }
       void on_scalars(std::string const& data_name,
                       std::string const& /*lookup_table_name*/,
                       size_t num_comps, std::vector<double> const& scalars,
-                      vtk::ReaderData data) override {
+                      vtk::reader_data data) override {
         std::cerr << data_name << " " << num_comps << '\n';
-        if (data == vtk::POINT_DATA) {
+        if (data == vtk::reader_data::point_data) {
           if (num_comps == 1) {
             auto& prop = mesh.template add_vertex_property<double>(data_name);
             for (size_t i = 0; i < prop.size(); ++i) {
@@ -579,7 +579,7 @@ template <typename MeshCont>
 auto write_mesh_container_to_vtk(MeshCont const&    meshes,
                                  std::string const& path,
                                  std::string const& title) {
-  vtk::legacy_file_writer writer(path, vtk::POLYDATA);
+  vtk::legacy_file_writer writer(path, vtk::dataset_type::polydata);
   if (writer.is_open()) {
     size_t num_pts   = 0;
     size_t cur_first = 0;

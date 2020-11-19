@@ -103,7 +103,8 @@ string(CONCAT TATOOINE_CLANG_TIDY_CHECKS
 # create library target
 add_library(tatooine SHARED 
   src/vtk_legacy.cpp
-  )
+  src/parse.cpp
+)
 if ("${CMAKE_CXX_COMPILER_ID}" STREQUAL "Clang")
   target_compile_options(tatooine PRIVATE "-fcolor-diagnostics")
 elseif ("${CMAKE_CXX_COMPILER_ID}" STREQUAL "GNU")

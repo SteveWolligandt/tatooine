@@ -48,7 +48,7 @@ target_include_directories(
   flowexplorer
   PUBLIC ${TATFE_INCLUDE_DIR} ${TATFE_BIN_INCLUDE_DIR})
 
-add_custom_target(flowexplorer.run ./flowexplorer DEPENDS flowexplorer)
+add_custom_target(flowexplorer.run ./flowexplorer DEPENDS tatooine flowexplorer)
 #- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 set (FLOWEXPLORER_LINE_VERT ${TATFE_SHADER_DIR}/line/line.vert)
 set (FLOWEXPLORER_LINE_FRAG ${TATFE_SHADER_DIR}/line/line.frag)

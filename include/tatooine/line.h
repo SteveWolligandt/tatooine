@@ -670,7 +670,7 @@ struct line {
   //----------------------------------------------------------------------------
   void write_vtk(const std::string& path,
                  const std::string& title = "tatooine line") const {
-    vtk::legacy_file_writer writer(path, vtk::POLYDATA);
+    vtk::legacy_file_writer writer(path, vtk::dataset_type::polydata);
     if (writer.is_open()) {
       writer.set_title(title);
       writer.write_header();
@@ -805,7 +805,7 @@ namespace detail {
 template <typename LineCont>
 void write_line_container_to_vtk(const LineCont& lines, const std::string& path,
                                  const std::string& title) {
-  vtk::legacy_file_writer writer(path, vtk::POLYDATA);
+  vtk::legacy_file_writer writer(path, vtk::dataset_type::polydata);
   if (writer.is_open()) {
     size_t num_pts = 0;
     for (const auto& l : lines) num_pts += l.num_vertices();

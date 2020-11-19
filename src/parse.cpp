@@ -1,78 +1,52 @@
-#ifndef __TATOOINE_STRING_CONVERSION_H__
-#define __TATOOINE_STRING_CONVERSION_H__
-
+#include <tatooine/parse.h>
 //==============================================================================
 namespace tatooine {
 //==============================================================================
-
-template <typename real_t>
-inline real_t parse(const std::string & /*to_parse*/);
-
-//-----------------------------------------------------------------------------
-
 template <>
-inline float parse<float>(const std::string &to_parse) {
+auto parse<float>(std::string const &to_parse) -> float {
   return std::stof(to_parse);
 }
-
 //-----------------------------------------------------------------------------
-
 template <>
-inline double parse<double>(const std::string &to_parse) {
+auto parse<double>(std::string const &to_parse) -> double {
   return std::stod(to_parse);
 }
-
 //-----------------------------------------------------------------------------
-
 template <>
-inline long double parse<long double>(const std::string &to_parse) {
+auto parse<long double>(std::string const &to_parse) -> long double {
   return std::stold(to_parse);
 }
-
 //-----------------------------------------------------------------------------
-
 template <>
-inline int parse<int>(const std::string &to_parse) {
+auto parse<int>(std::string const &to_parse) -> int {
   return std::stoi(to_parse);
 }
-
 //-----------------------------------------------------------------------------
-
 template <>
-inline unsigned int parse<unsigned int>(const std::string &to_parse) {
+auto parse<unsigned int>(std::string const &to_parse) -> unsigned int {
   return (unsigned int)(std::stoul(to_parse));
 }
-
 //-----------------------------------------------------------------------------
-
 template <>
-inline long parse<long>(const std::string &to_parse) {
+auto parse<long>(std::string const &to_parse) -> long {
   return std::stol(to_parse);
 }
-
 //-----------------------------------------------------------------------------
-
 template <>
-inline unsigned long parse<unsigned long>(const std::string &to_parse) {
+auto parse<unsigned long>(std::string const &to_parse) -> unsigned long {
   return std::stoul(to_parse);
 }
-
 //-----------------------------------------------------------------------------
-
 template <>
-inline long long parse<long long>(const std::string &to_parse) {
+auto parse<long long>(std::string const &to_parse) -> long long {
   return std::stoll(to_parse);
 }
-
 //-----------------------------------------------------------------------------
-
 template <>
-inline unsigned long long parse<unsigned long long>(
-    const std::string &to_parse) {
+auto parse<unsigned long long>(std::string const &to_parse)
+    -> unsigned long long {
   return std::stoull(to_parse);
 }
-
 //==============================================================================
 }  // namespace tatooine
 //==============================================================================
-#endif
