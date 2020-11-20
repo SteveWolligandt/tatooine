@@ -1,7 +1,8 @@
 #ifndef TATOOINE_TRIANGULAR_MESH_H
 #define TATOOINE_TRIANGULAR_MESH_H
 //==============================================================================
-#include <CGAL/Cartesian.h>
+//#include <CGAL/Cartesian.h>
+#include <CGAL/Exact_predicates_inexact_constructions_kernel.h>
 #include <CGAL/Delaunay_triangulation_2.h>
 #include <CGAL/Triangulation_vertex_base_with_info_2.h>
 #include <tatooine/grid.h>
@@ -245,7 +246,6 @@ class triangular_mesh : public pointset<Real, N> {
     auto const vi = parent_t::insert_vertex(ts...);
     if (m_hierarchy != nullptr) {
       if (!m_hierarchy->insert_vertex(*this, vi.i)) {
-        clear_hierarchy();
         build_hierarchy();
       }
     }
@@ -256,7 +256,6 @@ class triangular_mesh : public pointset<Real, N> {
     auto const vi = parent_t::insert_vertex(v);
     if (m_hierarchy != nullptr) {
       if (!m_hierarchy->insert_vertex(*this, vi.i)) {
-        clear_hierarchy();
         build_hierarchy();
       }
     }
@@ -267,7 +266,6 @@ class triangular_mesh : public pointset<Real, N> {
     auto const vi = parent_t::insert_vertex(std::move(v));
     if (m_hierarchy != nullptr) {
       if (!m_hierarchy->insert_vertex(*this, vi.i)) {
-        clear_hierarchy();
         build_hierarchy();
       }
     }
@@ -284,7 +282,6 @@ class triangular_mesh : public pointset<Real, N> {
     }
     if (m_hierarchy != nullptr) {
       if (!m_hierarchy->insert_face(*this, ti.i)) {
-        clear_hierarchy();
         build_hierarchy();
       }
     }
@@ -307,7 +304,8 @@ class triangular_mesh : public pointset<Real, N> {
   template <typename = void> requires(N == 2)
   auto triangulate_delaunay() -> void {
     m_face_indices.clear();
-    using Kernel = CGAL::Cartesian<Real>;
+    //using Kernel = CGAL::Cartesian<Real>;
+    using Kernel = CGAL::Exact_predicates_inexact_constructions_kernel;
     using Vb     = CGAL::Triangulation_vertex_base_with_info_2<vertex_handle, Kernel>;
     using Tds    = CGAL::Triangulation_data_structure_2<Vb>;
     using Triangulation = CGAL::Delaunay_triangulation_2<Kernel, Tds>;
@@ -336,7 +334,9 @@ class triangular_mesh : public pointset<Real, N> {
   }
   //----------------------------------------------------------------------------
   template <typename = void>
-  requires(N == 2 || N == 3) auto build_hierarchy() const {
+  requires(N == 2 || N == 3)
+  auto build_hierarchy() const {
+    clear_hierarchy();
     auto& h = hierarchy();
     for (auto v : this->vertices()) {
       h.insert_vertex(*this, v.i);
@@ -347,7 +347,8 @@ class triangular_mesh : public pointset<Real, N> {
   }
   //----------------------------------------------------------------------------
   template <typename = void>
-  requires(N == 2 || N == 3) auto clear_hierarchy() {
+  requires(N == 2 || N == 3)
+  auto clear_hierarchy() const {
     m_hierarchy.reset();
   }
   //----------------------------------------------------------------------------
