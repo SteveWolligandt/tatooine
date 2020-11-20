@@ -9,6 +9,7 @@
 #include <tatooine/type_traits.h>
 
 #include <cassert>
+#include <filesystem>
 #include <cstdlib>
 #include <exception>
 #include <fstream>
@@ -236,22 +237,24 @@ struct legacy_file_listener {
 class legacy_file {
   std::vector<legacy_file_listener *> m_listeners;
 
-  std::string m_path;
-  format      m_format;
-  reader_data m_data = reader_data::unknown;
-  size_t      m_data_size;  // cell_data or point_data size
-  long        m_begin_of_data;
-  char        buffer[256];
+  std::filesystem::path m_path;
+  format                m_format;
+  reader_data           m_data = reader_data::unknown;
+  size_t                m_data_size;  // cell_data or point_data size
+  long                  m_begin_of_data;
+  char                  buffer[256];
 
  public:
   auto add_listener(legacy_file_listener &listener) -> void;
   //---------------------------------------------------------------------------
-  legacy_file(std::string const &path);
+  legacy_file(std::filesystem::path const &path);
   //---------------------------------------------------------------------------
   auto read() -> void;
   //---------------------------------------------------------------------------
-  auto set_path(std::string const &path) -> void { m_path = path; }
-  auto set_path(std::string &&path) -> void { m_path = std::move(path); }
+  auto set_path(std::filesystem::path const &path) -> void { m_path = path; }
+  auto set_path(std::filesystem::path &&path) -> void {
+    m_path = std::move(path);
+  }
   auto path() const -> auto const & { return m_path; }
   //---------------------------------------------------------------------------
  private:
@@ -495,7 +498,7 @@ class legacy_file_writer {
   std::string    m_title;
 
  public:
-  legacy_file_writer(std::string const &path, dataset_type type,
+  legacy_file_writer(std::filesystem::path const &path, dataset_type type,
                      unsigned short major = 2, unsigned short minor = 0,
                      std::string const &title = "");
   auto is_open() -> bool;
@@ -514,7 +517,11 @@ class legacy_file_writer {
  public:
   auto write_header() -> void;
   template <typename Real>
+  auto write_points(std::vector<std::array<Real, 2>> const &points) -> void;
+  template <typename Real>
   auto write_points(std::vector<std::array<Real, 3>> const &points) -> void;
+  template <typename Real>
+  auto write_points(std::vector<vec<Real, 2>> const &points) -> void;
   template <typename Real>
   auto write_points(std::vector<vec<Real, 3>> const &points) -> void;
   auto write_cells(std::vector<std::vector<size_t>> const &cells) -> void;
@@ -585,27 +592,22 @@ class legacy_file_writer {
                      std::vector<std::array<Real, 9>> &tensors) -> void;
   //----------------------------------------------------------------------------
   template <typename Data>
-  requires (std::is_same_v<Data, double>) ||
-           (std::is_same_v<Data, float>) ||
-           (std::is_same_v<Data, int>)
-  auto write_scalars(std::string const &name, std::vector<Data> const &data,
-                     std::string const &lookup_table_name = "default") -> void;
+      requires(std::is_same_v<Data, double>) || (std::is_same_v<Data, float>) ||
+      (std::is_same_v<Data, int>)auto write_scalars(
+          std::string const &name, std::vector<Data> const &data,
+          std::string const &lookup_table_name = "default") -> void;
   //----------------------------------------------------------------------------
   template <typename Data>
-  requires (std::is_same_v<Data, double>) ||
-           (std::is_same_v<Data, float>) ||
-           (std::is_same_v<Data, int>)
-  auto write_scalars(std::string const &                   name,
-                     std::vector<std::vector<Data>> const &data,
-                     std::string const &lookup_table_name = "default") -> void;
+      requires(std::is_same_v<Data, double>) || (std::is_same_v<Data, float>) ||
+      (std::is_same_v<Data, int>)auto write_scalars(
+          std::string const &name, std::vector<std::vector<Data>> const &data,
+          std::string const &lookup_table_name = "default") -> void;
   //----------------------------------------------------------------------------
   template <typename Data, size_t N>
-  requires (std::is_same_v<Data, double>) ||
-           (std::is_same_v<Data, float>) ||
-           (std::is_same_v<Data, int>)
-  auto write_scalars(std::string const &                     name,
-                     std::vector<std::array<Data, N>> const &data,
-                     std::string const &lookup_table_name = "default") -> void {
+      requires(std::is_same_v<Data, double>) || (std::is_same_v<Data, float>) ||
+      (std::is_same_v<Data, int>)auto write_scalars(
+          std::string const &name, std::vector<std::array<Data, N>> const &data,
+          std::string const &lookup_table_name = "default") -> void {
     std::stringstream ss;
     ss << "\nSCALARS " << name << ' ' << type_to_str<Data>() << ' ' << N
        << '\n';
@@ -619,12 +621,10 @@ class legacy_file_writer {
   }
   //----------------------------------------------------------------------------
   template <typename Data, size_t N>
-  requires(std::is_same_v<Data, double>) ||
-          (std::is_same_v<Data, float>) ||
-          (std::is_same_v<Data, int>)
-  auto write_scalars(std::string const &              name,
-                     std::vector<vec<Data, N>> const &data,
-                     std::string const &lookup_table_name = "default") -> void {
+      requires(std::is_same_v<Data, double>) || (std::is_same_v<Data, float>) ||
+      (std::is_same_v<Data, int>)auto write_scalars(
+          std::string const &name, std::vector<vec<Data, N>> const &data,
+          std::string const &lookup_table_name = "default") -> void {
     std::stringstream ss;
     ss << "\nSCALARS " << name << ' ' << type_to_str<Data>() << ' ' << N
        << '\n';
@@ -639,12 +639,10 @@ class legacy_file_writer {
   }
   //----------------------------------------------------------------------------
   template <typename Real, size_t N>
-  requires (std::is_same_v<Real, double>) ||
-           (std::is_same_v<Real, float>) ||
-           (std::is_same_v<Real, int>)
-  auto write_scalars(std::string const &                 name,
-                     std::vector<tensor<Real, N>> const &data,
-                     std::string const &lookup_table_name = "default") -> void {
+      requires(std::is_same_v<Real, double>) || (std::is_same_v<Real, float>) ||
+      (std::is_same_v<Real, int>)auto write_scalars(
+          std::string const &name, std::vector<tensor<Real, N>> const &data,
+          std::string const &lookup_table_name = "default") -> void {
     std::stringstream ss;
     ss << "\nSCALARS " << name << ' ' << type_to_str<Real>() << ' ' << N
        << '\n';
@@ -693,6 +691,17 @@ class legacy_file_writer {
 //=============================================================================
 template <typename Real>
 auto legacy_file_writer::write_points(
+    std::vector<std::array<Real, 2>> const &points2) -> void {
+  std::vector<std::array<Real, 3>> points3;
+  points3.reserve(points2.size());
+  for (auto const &x : points2) {
+    points3.push_back({x[0], x[1], Real(0)});
+  }
+  write_points(points3);
+}
+//------------------------------------------------------------------------------
+template <typename Real>
+auto legacy_file_writer::write_points(
     std::vector<std::array<Real, 3>> const &points) -> void {
   std::stringstream ss;
   ss << "\nPOINTS " << points.size() << ' ' << type_to_str<Real>() << '\n';
@@ -705,6 +714,17 @@ auto legacy_file_writer::write_points(
       m_file.write((char *)(&c), sizeof(Real));
     }
   }
+}
+//------------------------------------------------------------------------------
+template <typename Real>
+auto legacy_file_writer::write_points(std::vector<vec<Real, 2>> const &points2)
+    -> void {
+  std::vector<std::array<Real, 3>> points3;
+  points3.reserve(points2.size());
+  for (auto const &x : points2) {
+    points3.push_back({x(0), x(1), Real(0)});
+  }
+  write_points(points3);
 }
 //------------------------------------------------------------------------------
 template <typename Real>
@@ -792,13 +812,10 @@ auto legacy_file_writer::write_tensors(
   write_data<9>("TENSORS", name, tensors);
 }
 template <typename Data>
-requires (std::is_same_v<Data, double>) ||
-         (std::is_same_v<Data, float>) ||
-         (std::is_same_v<Data, int>)
-auto legacy_file_writer::write_scalars(std::string const &      name,
-                                       std::vector<Data> const &data,
-                                       std::string const &lookup_table_name)
-    -> void {
+    requires(std::is_same_v<Data, double>) || (std::is_same_v<Data, float>) ||
+    (std::is_same_v<Data, int>)auto legacy_file_writer::write_scalars(
+        std::string const &name, std::vector<Data> const &data,
+        std::string const &lookup_table_name) -> void {
   std::stringstream ss;
   ss << "\nSCALARS " << name << ' ' << type_to_str<Data>() << " 1\n";
   vtk::write_binary(m_file, ss.str());
@@ -809,12 +826,10 @@ auto legacy_file_writer::write_scalars(std::string const &      name,
   }
 }
 template <typename Data>
-requires (std::is_same_v<Data, double>) ||
-         (std::is_same_v<Data, float>) ||
-         (std::is_same_v<Data, int>)
-auto legacy_file_writer::write_scalars(
-    std::string const &name, std::vector<std::vector<Data>> const &data,
-    std::string const &lookup_table_name) -> void {
+    requires(std::is_same_v<Data, double>) || (std::is_same_v<Data, float>) ||
+    (std::is_same_v<Data, int>)auto legacy_file_writer::write_scalars(
+        std::string const &name, std::vector<std::vector<Data>> const &data,
+        std::string const &lookup_table_name) -> void {
   std::stringstream ss;
   ss << "\nSCALARS " << name << ' ' << type_to_str<Data>()
      << std::to_string(data.front().size()) + '\n';

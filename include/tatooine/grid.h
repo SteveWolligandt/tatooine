@@ -1,6 +1,7 @@
 #ifndef TATOOINE_GRID_H
 #define TATOOINE_GRID_H
 //==============================================================================
+#include <filesystem>
 #include <tatooine/axis_aligned_bounding_box.h>
 #include <tatooine/chunked_multidim_array.h>
 #include <tatooine/concepts.h>
@@ -28,7 +29,7 @@ class grid {
                 "Grid needs at least one dimension.");
 
  public:
-  static constexpr bool is_regular =
+  static constexpr bool is_uniform =
       (is_linspace_v<std::decay_t<Dimensions>> && ...);
   static constexpr auto num_dimensions() { return sizeof...(Dimensions); }
   using this_t = grid<Dimensions...>;
@@ -734,17 +735,16 @@ class grid {
   //----------------------------------------------------------------------------
   template <typename T>
   requires(num_dimensions() ==
-           3) void write_amira(std::string const& file_path,
+           3) void write_amira(std::string const& path,
                                std::string const& vertex_property_name) const {
-    write_amira(file_path, vertex_property<T>(vertex_property_name));
+    write_amira(path, vertex_property<T>(vertex_property_name));
   }
   //----------------------------------------------------------------------------
   template <typename T>
-      requires is_regular &&
-      (num_dimensions() ==
-       3) void write_amira(std::string const&         file_path,
-                           typed_property_t<T> const& prop) const {
-    std::ofstream     outfile{file_path, std::ofstream::binary};
+  requires is_uniform && (num_dimensions() == 3)
+  void write_amira(std::string const&         path,
+                   typed_property_t<T> const& prop) const {
+    std::ofstream     outfile{path, std::ofstream::binary};
     std::stringstream header;
 
     header << "# AmiraMesh BINARY-LITTLE-ENDIAN 2.1\n\n";
@@ -786,15 +786,27 @@ class grid {
   }
 
  public:
+  auto write(std::filesystem::path const& path) const {
+    auto const ext = path.extension();
+
+    if constexpr (num_dimensions() == 1 || num_dimensions() == 2 ||
+                  num_dimensions() == 3) {
+      if (ext == ".vtk") {
+        write_vtk(path);
+        return;
+      }
+    }
+  }
+  //----------------------------------------------------------------------------
   template <typename = void>
   requires (num_dimensions() == 1) ||
            (num_dimensions() == 2) ||
            (num_dimensions() == 3)
-  void write_vtk(std::string const& file_path,
+  void write_vtk(std::filesystem::path const& path,
                  std::string const& description = "tatooine grid") const {
-    auto writer = [this, &file_path, &description] {
-      if constexpr (is_regular) {
-        vtk::legacy_file_writer writer{file_path,
+    auto writer = [this, &path, &description] {
+      if constexpr (is_uniform) {
+        vtk::legacy_file_writer writer{path,
                                        vtk::dataset_type::structured_points};
         writer.set_title(description);
         writer.write_header();
@@ -816,7 +828,7 @@ class grid {
         }
         return writer;
       } else {
-        vtk::legacy_file_writer writer{file_path,
+        vtk::legacy_file_writer writer{path,
                                        vtk::dataset_type::rectilinear_grid};
         writer.set_title(description);
         writer.write_header();

@@ -2,8 +2,8 @@
 #define TATOOINE_AXIS_ALIGNED_BOUNDING_BOX_H
 //==============================================================================
 #include <tatooine/concepts.h>
-#include <tatooine/separating_axis_theorem.h>
 #include <tatooine/ray_intersectable.h>
+#include <tatooine/separating_axis_theorem.h>
 #include <tatooine/tensor.h>
 #include <tatooine/type_traits.h>
 
@@ -27,25 +27,30 @@ struct axis_aligned_bounding_box : ray_intersectable<Real, N> {
   pos_t m_max;
   //============================================================================
  public:
-  constexpr axis_aligned_bounding_box()                             = default;
-  constexpr axis_aligned_bounding_box(axis_aligned_bounding_box const& other)     = default;
-  constexpr axis_aligned_bounding_box(axis_aligned_bounding_box&& other) noexcept = default;
-  constexpr auto operator=(axis_aligned_bounding_box const& other) -> axis_aligned_bounding_box& = default;
+  constexpr axis_aligned_bounding_box() = default;
+  constexpr axis_aligned_bounding_box(axis_aligned_bounding_box const& other) =
+      default;
+  constexpr axis_aligned_bounding_box(
+      axis_aligned_bounding_box&& other) noexcept = default;
+  constexpr auto operator           =(axis_aligned_bounding_box const& other)
+      -> axis_aligned_bounding_box& = default;
   constexpr auto operator=(axis_aligned_bounding_box&& other) noexcept
-      -> axis_aligned_bounding_box&    = default;
-  ~axis_aligned_bounding_box()         = default;
+      -> axis_aligned_bounding_box& = default;
+  ~axis_aligned_bounding_box()      = default;
   //----------------------------------------------------------------------------
   template <typename Real0, typename Real1>
-  constexpr axis_aligned_bounding_box(vec<Real0, N>&& min, vec<Real1, N>&& max) noexcept
+  constexpr axis_aligned_bounding_box(vec<Real0, N>&& min,
+                                      vec<Real1, N>&& max) noexcept
       : m_min{std::move(min)}, m_max{std::move(max)} {}
   //----------------------------------------------------------------------------
   template <typename Real0, typename Real1>
-  constexpr axis_aligned_bounding_box(vec<Real0, N> const& min, vec<Real1, N> const& max)
+  constexpr axis_aligned_bounding_box(vec<Real0, N> const& min,
+                                      vec<Real1, N> const& max)
       : m_min{min}, m_max{max} {}
   //----------------------------------------------------------------------------
   template <typename Tensor0, typename Tensor1, typename Real0, typename Real1>
   constexpr axis_aligned_bounding_box(base_tensor<Tensor0, Real0, N> const& min,
-                        base_tensor<Tensor1, Real1, N> const& max)
+                                      base_tensor<Tensor1, Real1, N> const& max)
       : m_min{min}, m_max{max} {}
   //============================================================================
   constexpr auto min() const -> auto const& { return m_min; }
@@ -56,7 +61,7 @@ struct axis_aligned_bounding_box : ray_intersectable<Real, N> {
   constexpr auto max() const -> auto const& { return m_max; }
   constexpr auto max() -> auto& { return m_max; }
   constexpr auto max(size_t i) const -> auto const& { return m_max(i); }
-  constexpr auto max(size_t i) -> auto & { return m_max(i); }
+  constexpr auto max(size_t i) -> auto& { return m_max(i); }
   //----------------------------------------------------------------------------
   constexpr auto extents() const { return m_max - m_min; }
   constexpr auto extent(size_t i) const { return m_max(i) - m_min(i); }
@@ -77,14 +82,13 @@ struct axis_aligned_bounding_box : ray_intersectable<Real, N> {
   //----------------------------------------------------------------------------
   template <typename = void>
   requires(N == 2)
-  constexpr auto is_triangle_inside(vec<Real, 2> x0,
-                                    vec<Real, 2> x1,
-                                    vec<Real, 2> x2) const {
-    //auto const c = center();
-    //auto const e = extents();
-    //x0 -= c;
-    //x1 -= c;
-    //x2 -= c;
+  constexpr auto is_triangle_inside(vec<Real, 2> x0, vec<Real, 2> x1,
+                                vec<Real, 2> x2) const {
+    // auto const c = center();
+    // auto const e = extents();
+    // x0 -= c;
+    // x1 -= c;
+    // x2 -= c;
     auto is_separating_axis = [&](vec<Real, 2> const& n) {
       auto const p0   = dot(vec_t{m_min(0), m_min(1)}, n);
       auto const p1   = dot(vec_t{m_min(0), m_max(1)}, n);
@@ -126,10 +130,9 @@ struct axis_aligned_bounding_box : ray_intersectable<Real, N> {
   /// from here:
   /// https://gdbooks.gitbooks.io/3dcollisions/content/Chapter4/aabb-triangle.html
   template <typename = void>
-  requires(N == 3)
-  constexpr auto is_triangle_inside(vec<Real, 3> x0,
-                                    vec<Real, 3> x1,
-                                    vec<Real, 3> x2) const {
+  requires(N == 3) constexpr auto is_triangle_inside(vec<Real, 3> x0,
+                                                     vec<Real, 3> x1,
+                                                     vec<Real, 3> x2) const {
     auto const c = center();
     auto const e = extents();
 
@@ -149,8 +152,7 @@ struct axis_aligned_bounding_box : ray_intersectable<Real, N> {
       auto const p0 = dot(x0, axis);
       auto const p1 = dot(x1, axis);
       auto const p2 = dot(x2, axis);
-      auto r = e(0) * abs(dot(u0, axis)) +
-               e(1) * abs(dot(u1, axis)) +
+      auto       r  = e(0) * abs(dot(u0, axis)) + e(1) * abs(dot(u1, axis)) +
                e(2) * abs(dot(u2, axis));
       if (tatooine::max(-tatooine::max(p0, p1, p2), tatooine::min(p0, p1, p2)) >
           r) {
@@ -159,19 +161,45 @@ struct axis_aligned_bounding_box : ray_intersectable<Real, N> {
       return false;
     };
 
-    if (is_separating_axis(cross(u0, f0))) { return false; }
-    if (is_separating_axis(cross(u0, f1))) { return false; }
-    if (is_separating_axis(cross(u0, f2))) { return false; }
-    if (is_separating_axis(cross(u1, f0))) { return false; }
-    if (is_separating_axis(cross(u1, f1))) { return false; }
-    if (is_separating_axis(cross(u1, f2))) { return false; }
-    if (is_separating_axis(cross(u2, f0))) { return false; }
-    if (is_separating_axis(cross(u2, f1))) { return false; }
-    if (is_separating_axis(cross(u2, f2))) { return false; }
-    if (is_separating_axis(u0))            { return false; }
-    if (is_separating_axis(u1))            { return false; }
-    if (is_separating_axis(u2))            { return false; }
-    if (is_separating_axis(cross(f0, f1))) { return false; }
+    if (is_separating_axis(cross(u0, f0))) {
+      return false;
+    }
+    if (is_separating_axis(cross(u0, f1))) {
+      return false;
+    }
+    if (is_separating_axis(cross(u0, f2))) {
+      return false;
+    }
+    if (is_separating_axis(cross(u1, f0))) {
+      return false;
+    }
+    if (is_separating_axis(cross(u1, f1))) {
+      return false;
+    }
+    if (is_separating_axis(cross(u1, f2))) {
+      return false;
+    }
+    if (is_separating_axis(cross(u2, f0))) {
+      return false;
+    }
+    if (is_separating_axis(cross(u2, f1))) {
+      return false;
+    }
+    if (is_separating_axis(cross(u2, f2))) {
+      return false;
+    }
+    if (is_separating_axis(u0)) {
+      return false;
+    }
+    if (is_separating_axis(u1)) {
+      return false;
+    }
+    if (is_separating_axis(u2)) {
+      return false;
+    }
+    if (is_separating_axis(cross(f0, f1))) {
+      return false;
+    }
     return true;
   }
   //----------------------------------------------------------------------------
@@ -292,12 +320,13 @@ axis_aligned_bounding_box(vec<Real0, N> const&, vec<Real1, N> const&)
     -> axis_aligned_bounding_box<promote_t<Real0, Real1>, N>;
 //------------------------------------------------------------------------------
 template <typename Real0, typename Real1, size_t N>
-axis_aligned_bounding_box(vec<Real0, N>&&, vec<Real1, N> &&)
+axis_aligned_bounding_box(vec<Real0, N>&&, vec<Real1, N>&&)
     -> axis_aligned_bounding_box<promote_t<Real0, Real1>, N>;
 //------------------------------------------------------------------------------
 template <typename Tensor0, typename Tensor1, typename Real0, typename Real1,
           size_t N>
-axis_aligned_bounding_box(base_tensor<Tensor0, Real0, N>&&, base_tensor<Tensor1, Real1, N> &&)
+axis_aligned_bounding_box(base_tensor<Tensor0, Real0, N>&&,
+                          base_tensor<Tensor1, Real1, N>&&)
     -> axis_aligned_bounding_box<promote_t<Real0, Real1>, N>;
 
 //==============================================================================

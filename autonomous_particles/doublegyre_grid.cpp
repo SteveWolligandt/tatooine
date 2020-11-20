@@ -23,20 +23,24 @@ auto main(int argc, char** argv) -> int {
     return 1;
   }
   auto args = *args_opt;
-  // auto calc_particles =
-  //    [&args](auto const& p0) -> std::vector<std::decay_t<decltype(p0)>> {
-  //  switch (args.num_splits) {
-  //    case 2:
-  //      return p0.advect_with_2_splits(args.tau_step, args.t0 + args.tau);
-  //    case 3:
-  //      return p0.advect_with_3_splits(args.tau_step, args.t0 + args.tau);
-  //    case 5:
-  //      return p0.advect_with_5_splits(args.tau_step, args.t0 + args.tau);
-  //    case 7:
-  //      return p0.advect_with_7_splits(args.tau_step, args.t0 + args.tau);
-  //  }
-  //  return {};
-  //};
+  auto calc_particles = [&args](auto const& initial_particles)
+      -> std::vector<std::decay_t<decltype(initial_particles.front())>> {
+    switch (args.num_splits) {
+      case 2:
+        return initial_particles.front().advect_with_2_splits(
+            args.tau_step, args.t0 + args.tau, initial_particles);
+      case 3:
+        return initial_particles.front().advect_with_3_splits(
+            args.tau_step, args.t0 + args.tau, initial_particles);
+      case 5:
+        return initial_particles.front().advect_with_5_splits(
+            args.tau_step, args.t0 + args.tau, initial_particles);
+      case 7:
+        return initial_particles.front().advect_with_7_splits(
+            args.tau_step, args.t0 + args.tau, initial_particles);
+    }
+    return {};
+  };
 
   std::vector<size_t> initial_netcdf_is{0, 0, 0}, advected_netcdf_is{0, 0, 0},
       back_calculation_netcdf_is{0, 0, 0};
@@ -90,37 +94,15 @@ auto main(int argc, char** argv) -> int {
           .phi()
           .use_caching(false);
     }
-    //// bottom left
-    //initial_particles.emplace_back(v, vec2{r0 / 6, r0 / 6}, args.t0, r0 / 6)
-    //    .phi()
-    //    .use_caching(false);
-    //// bottom left+offset
-    //initial_particles.emplace_back(v, vec2{r0 * 2, r0 / 6}, args.t0, r0 / 6)
-    //    .phi()
-    //    .use_caching(false);
-    //// bottom+offset left
-    //initial_particles.emplace_back(v, vec2{r0 / 6, r0 * 2}, args.t0, r0 / 6)
-    //    .phi()
-    //    .use_caching(false);
-    //initial_particles.emplace_back(v, vec2{2 - r0 / 6, r0 / 6}, args.t0, r0 / 6)
-    //    .phi()
-    //    .use_caching(false);
-    //initial_particles
-    //    .emplace_back(v, vec2{2 - r0 / 6, 1 - r0 / 6}, args.t0, r0 / 6)
-    //    .phi()
-    //    .use_caching(false);
-    //initial_particles.emplace_back(v, vec2{r0 / 6, 1 - r0 / 6}, args.t0, r0 / 6)
-    //    .phi()
-    //    .use_caching(false);
 
     //----------------------------------------------------------------------------
     // integrate particles
     //----------------------------------------------------------------------------
     indicator.set_text("Integrating autonomous particles");
-    // auto advected_particles = calc_particles(p0);
-    auto const advected_particles =
-        initial_particles.front().advect_with_3_splits(
-            args.tau_step, args.t0 + args.tau, initial_particles);
+     auto const advected_particles = calc_particles(initial_particles);
+    //auto const advected_particles =
+    //    initial_particles.front().advect_with_3_splits(
+    //        args.tau_step, args.t0 + args.tau, initial_particles);
     mesh.vertex_data().reserve(mesh.num_vertices() + size(advected_particles));
     indicator.set_text("Writing discretized flowmap");
     for (auto const& p : advected_particles) {
@@ -197,6 +179,8 @@ auto main(int argc, char** argv) -> int {
     }
     mesh.triangulate_delaunay();
     mesh.write_vtk("doublegyre_autonomous_forward_flowmap.vtk");
+    mesh.build_hierarchy();
+    mesh.hierarchy().write_vtk("doublegyre_grid_hierarchy.vtk");
 
     indicator.set_text("Creating Sampler");
     auto flowmap_sampler_autonomous_particles =
@@ -217,7 +201,8 @@ auto main(int argc, char** argv) -> int {
           numerical_flowmap(uniform_grid(is...), args.t0, args.tau);
     });
     triangular_mesh<double, 2> regular_tri_mesh{uniform_grid};
-    auto& regular_tri_sampler_prop =regular_tri_mesh.vertex_property<vec<double, 2>>("flowmap"); 
+    auto&                      regular_tri_sampler_prop =
+        regular_tri_mesh.vertex_property<vec<double, 2>>("flowmap");
     regular_tri_mesh.write_vtk("doublegyre_regular_forward_flowmap.vtk");
 
     for (auto v : regular_tri_mesh.vertices()) {
@@ -234,36 +219,46 @@ auto main(int argc, char** argv) -> int {
     //----------------------------------------------------------------------------
     // Compare with regular sampled flowmap
     //----------------------------------------------------------------------------
-    grid sampler_check_grid{linspace{0.0, 2.0, 1001}, linspace{0.0, 1.0, 501}};
+    grid  sampler_check_grid{linspace{0.0, 2.0, 1001}, linspace{0.0, 1.0, 501}};
+    auto& forward_error_autonomous_prop =
+        sampler_check_grid.add_vertex_property<double>(
+            "forward_error_autonomous");
+    auto& forward_error_regular_prop =
+        sampler_check_grid.add_vertex_property<double>("forward_error_regular");
     indicator.set_text("Comparing with regular sampled flowmap [" +
                        std::to_string(sampler_check_grid.size<0>()) + " x " +
                        std::to_string(sampler_check_grid.size<1>()) + "]");
     size_t              num_out_of_domain = 0;
-    std::vector<double> autonomous_particles_errors, regular_errors;
-    autonomous_particles_errors.reserve(sampler_check_grid.num_vertices());
-    for (auto x : sampler_check_grid.vertices()) {
+    std::vector<double> autonomous_errors, regular_errors;
+    autonomous_errors.reserve(sampler_check_grid.num_vertices());
+    sampler_check_grid.loop_over_vertex_indices([&](auto const... is) {
+      auto x = sampler_check_grid(is...);
       try {
         auto const autonomous_particles_sampled_advection =
             flowmap_sampler_autonomous_particles(x);
         auto const regular_sampled_advection = regular_flowmap_sampler(x);
         auto const numerical_advection =
             numerical_flowmap(x, args.t0, args.tau);
-        autonomous_particles_errors.push_back(distance(
+        autonomous_errors.push_back(distance(
             autonomous_particles_sampled_advection, numerical_advection));
+        forward_error_autonomous_prop(is...) = autonomous_errors.back();
         regular_errors.push_back(
             distance(regular_sampled_advection, numerical_advection));
+        forward_error_regular_prop(is...) = regular_errors.back();
       } catch (std::exception const& e) {
         ++num_out_of_domain;
+        forward_error_autonomous_prop(is...) = 0.0 / 0.0;
+        forward_error_regular_prop(is...)    = 0.0 / 0.0;
       }
-    }
+    });
     indicator.mark_as_completed();
     auto const regular_grid_error =
         std::accumulate(begin(regular_errors), end(regular_errors), double(0)) /
         size(regular_errors);
     auto const autonomous_particles_error =
-        std::accumulate(begin(autonomous_particles_errors),
-                        end(autonomous_particles_errors), double(0)) /
-        size(autonomous_particles_errors);
+        std::accumulate(begin(autonomous_errors), end(autonomous_errors),
+                        double(0)) /
+        size(autonomous_errors);
     std::cerr
         << "==============================================================="
            "=================\n"
@@ -288,6 +283,7 @@ auto main(int argc, char** argv) -> int {
     }
     std::cerr << std::abs(regular_grid_error - autonomous_particles_error)
               << std::defaultfloat << '\n';
+    sampler_check_grid.write("doublegyre_grid_errors.vtk");
   });
 
   for (auto& writer : writers) {

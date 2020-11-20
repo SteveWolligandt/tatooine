@@ -2,8 +2,8 @@
 #define TATOOINE_AUTONOMOUS_PARTICLES
 //==============================================================================
 #include <tatooine/concepts.h>
-#include <tatooine/random.h>
 #include <tatooine/numerical_flowmap.h>
+#include <tatooine/random.h>
 #include <tatooine/tensor.h>
 //==============================================================================
 namespace tatooine {
@@ -39,10 +39,9 @@ struct autonomous_particle {
   autonomous_particle(autonomous_particle const&)     = default;
   autonomous_particle(autonomous_particle&&) noexcept = default;
   //----------------------------------------------------------------------------
-  auto operator=(autonomous_particle const&)
-    -> autonomous_particle& = default;
-  auto operator=(autonomous_particle&&) noexcept
-    -> autonomous_particle& = default;
+  auto operator=(autonomous_particle const&) -> autonomous_particle& = default;
+  auto operator               =(autonomous_particle&&) noexcept
+      -> autonomous_particle& = default;
   //----------------------------------------------------------------------------
   ~autonomous_particle() = default;
   //----------------------------------------------------------------------------
@@ -51,8 +50,8 @@ struct autonomous_particle {
       : autonomous_particle{Flowmap{}, pos_t::zeros(), real_t(0), real_t(0)} {}
   //----------------------------------------------------------------------------
   template <typename V, std::floating_point VReal, real_number RealX0>
-  autonomous_particle(vectorfield<V, VReal, num_dimensions()> const&      v,
-                      vec<RealX0, num_dimensions()> const& x0,
+  autonomous_particle(vectorfield<V, VReal, num_dimensions()> const& v,
+                      vec<RealX0, num_dimensions()> const&           x0,
                       real_number auto const t0, real_number auto const r0)
       : autonomous_particle{flowmap(v), x0, t0, r0} {}
   //----------------------------------------------------------------------------
@@ -104,6 +103,14 @@ struct autonomous_particle {
                   false, stop);
   }
   //----------------------------------------------------------------------------
+  static auto advect_with_2_splits(real_t const tau_step, real_t const max_t,
+                                   std::vector<this_t> particles,
+                                   bool const&         stop = false) {
+    static real_t const sqrt2 = std::sqrt(real_t(2));
+    return advect(tau_step, max_t, 2, std::array<real_t, 1>{sqrt2 / real_t(2)},
+                  false, std::move(particles), stop);
+  }
+  //----------------------------------------------------------------------------
   auto advect_with_3_splits(real_t const tau_step, real_t const max_t,
                             bool const& stop = false) const {
     return advect(tau_step, max_t, 4, std::array<real_t, 1>{real_t(1) / 2},
@@ -125,12 +132,30 @@ struct autonomous_particle {
                   true, stop);
   }
   //----------------------------------------------------------------------------
+  static auto advect_with_5_splits(real_t const tau_step, real_t const max_t,
+                                   std::vector<this_t> particles,
+                                   bool const&         stop = false) {
+    static real_t const sqrt5 = std::sqrt(real_t(5));
+    return advect(tau_step, max_t, 6 + sqrt5 * 2,
+                  std::array{(sqrt5 + 3) / (sqrt5 * 2 + 2), 1 / (sqrt5 + 1)},
+                  true, std::move(particles), stop);
+  }
+  //----------------------------------------------------------------------------
   auto advect_with_7_splits(real_t const tau_step, real_t const max_t,
                             bool const& stop = false) const {
     return advect(tau_step, max_t, 4.493959210 * 4.493959210,
                   std::array{real_t(.9009688678), real_t(.6234898004),
                              real_t(.2225209338)},
                   true, stop);
+  }
+  //----------------------------------------------------------------------------
+  static auto advect_with_7_splits(real_t const tau_step, real_t const max_t,
+                                   std::vector<this_t> particles,
+                                   bool const&         stop = false) {
+    return advect(tau_step, max_t, 4.493959210 * 4.493959210,
+                  std::array{real_t(.9009688678), real_t(.6234898004),
+                             real_t(.2225209338)},
+                  true, std::move(particles), stop);
   }
   //----------------------------------------------------------------------------
   auto advect(real_t tau_step, real_t const max_t, real_t const objective_cond,
@@ -215,10 +240,10 @@ struct autonomous_particle {
 
     vec_t aux_offset = vec_t::zeros();
     for (size_t i = 0; i < num_dimensions(); ++i) {
-      aux_offset(i) =  1;
+      aux_offset(i)  = 1;
       pos_offsets[i] = B * aux_offset;
       neg_offsets[i] = B * (-aux_offset);
-      aux_offset(i) =  0;
+      aux_offset(i)  = 0;
     }
 
     while (cond_HHt < objective_cond || t2 != max_t) {
@@ -232,9 +257,9 @@ struct autonomous_particle {
                    m_phi(m_x1 + neg_offsets[i], m_t1, t2 - m_t1);
       }
       H /= 2;
-      HHt             = H * transposed(H);
-      eig_HHt         = eigenvectors_sym(HHt);
-      cond_HHt        = eigvals_HHt(num_dimensions() - 1) / eigvals_HHt(0);
+      HHt      = H * transposed(H);
+      eig_HHt  = eigenvectors_sym(HHt);
+      cond_HHt = eigvals_HHt(num_dimensions() - 1) / eigvals_HHt(0);
 
       nabla_phi2 = H * inv(Sigma) * transposed(Q);
       fmg2fmg1   = nabla_phi2 * m_nabla_phi1;
@@ -253,9 +278,9 @@ struct autonomous_particle {
                      m_phi(m_x1 + neg_offsets[i], m_t1, t2 - m_t1);
         }
         H /= 2;
-        HHt             = H * transposed(H);
-        eig_HHt         = eigenvectors_sym(HHt);
-        cond_HHt        = eigvals_HHt(num_dimensions() - 1) / eigvals_HHt(0);
+        HHt      = H * transposed(H);
+        eig_HHt  = eigenvectors_sym(HHt);
+        cond_HHt = eigvals_HHt(num_dimensions() - 1) / eigvals_HHt(0);
 
         nabla_phi2 = H * inv(Sigma) * transposed(Q);
         fmg2fmg1   = nabla_phi2 * m_nabla_phi1;

@@ -26,7 +26,7 @@ class triangular_mesh : public pointset<Real, N> {
   using parent_t::num_vertices;
   using parent_t::vertex_data;
   using parent_t::vertex_properties;
-  using typename parent_t::vertex_index;
+  using typename parent_t::vertex_handle;
   using parent_t::operator[];
   using parent_t::is_valid;
   template <typename T>
@@ -42,13 +42,13 @@ class triangular_mesh : public pointset<Real, N> {
     [[nodiscard]] auto operator()(pos_t const& x) const { return sample(x); }
     [[nodiscard]] auto sample(Real x, Real y) const { return sample(pos_t{x, y}); }
     [[nodiscard]] auto sample(pos_t const& x) const -> T {
-      auto tris = m_mesh.hierarchy().nearby_triangles_ptr(x);
-      if (tris == nullptr || tris->empty()) {
+      auto face_handles = m_mesh.hierarchy().nearby_faces(x);
+      if (face_handles.empty()) {
         throw std::runtime_error{
             "[vertex_property_sampler_t::sample] out of domain"};
       }
-      for (auto ti : *tris) {
-        auto [vi0, vi1, vi2]     = m_mesh.triangle_at(ti);
+      for (auto f : face_handles) {
+        auto [vi0, vi1, vi2]     = m_mesh.face_at(f);
         auto const&           v0 = m_mesh.vertex_at(vi0);
         auto const&           v1 = m_mesh.vertex_at(vi1);
         auto const&           v2 = m_mesh.vertex_at(vi2);
@@ -57,43 +57,47 @@ class triangular_mesh : public pointset<Real, N> {
                                 {Real(1), Real(1), Real(1)}};
         vec<Real, 3> const    b{x(0), x(1), 1};
         auto const            abc = solve(A, b);
-        if (abc(0) >= 0 && abc(0) <= 1 && abc(1) >= 0 && abc(1) <= 1 &&
-            abc(2) >= 0 && abc(2) <= 1) {
-          return m_prop[vi0] * abc(0) + m_prop[vi1] * abc(1) +
+        if (abc(0) >= -1e-6 && abc(0) <= 1 + 1e-6 &&
+            abc(1) >= -1e-6 && abc(1) <= 1 + 1e-6 &&
+            abc(2) >= -1e-6 && abc(2) <= 1 + 1e-6) {
+          return m_prop[vi0] * abc(0) +
+                 m_prop[vi1] * abc(1) +
                  m_prop[vi2] * abc(2);
         }
       }
+      throw std::runtime_error{
+          "[vertex_property_sampler_t::sample] out of domain"};
       return T{};
     }
   };
   //----------------------------------------------------------------------------
-  struct triangle_index : handle {
+  struct face_handle : handle {
     using handle::handle;
-    constexpr bool operator==(triangle_index other) const {
+    constexpr bool operator==(face_handle other) const {
       return this->i == other.i;
     }
-    constexpr bool operator!=(triangle_index other) const {
+    constexpr bool operator!=(face_handle other) const {
       return this->i != other.i;
     }
-    constexpr bool operator<(triangle_index other) const {
+    constexpr bool operator<(face_handle other) const {
       return this->i < other.i;
     }
     static constexpr auto invalid() {
-      return triangle_index{handle::invalid_idx};
+      return face_handle{handle::invalid_idx};
     }
   };
   //----------------------------------------------------------------------------
-  struct triangle_iterator
-      : boost::iterator_facade<triangle_iterator, triangle_index,
+  struct face_iterator
+      : boost::iterator_facade<face_iterator, face_handle,
                                boost::bidirectional_traversal_tag,
-                               triangle_index> {
-    triangle_iterator(triangle_index i, triangular_mesh const* mesh)
+                               face_handle> {
+    face_iterator(face_handle i, triangular_mesh const* mesh)
         : m_index{i}, m_mesh{mesh} {}
-    triangle_iterator(triangle_iterator const& other)
+    face_iterator(face_iterator const& other)
         : m_index{other.m_index}, m_mesh{other.m_mesh} {}
 
    private:
-    triangle_index         m_index;
+    face_handle         m_index;
     triangular_mesh const* m_mesh;
 
     friend class boost::iterator_core_access;
@@ -109,20 +113,20 @@ class triangular_mesh : public pointset<Real, N> {
       while (!m_mesh->is_valid(m_index));
     }
 
-    auto equal(triangle_iterator const& other) const {
+    auto equal(face_iterator const& other) const {
       return m_index == other.m_index;
     }
     auto dereference() const { return m_index; }
   };
   //----------------------------------------------------------------------------
-  struct triangle_container {
-    using iterator       = triangle_iterator;
-    using const_iterator = triangle_iterator;
+  struct face_container {
+    using iterator       = face_iterator;
+    using const_iterator = face_iterator;
 
     triangular_mesh const* m_mesh;
 
     auto begin() const {
-      triangle_iterator vi{triangle_index{0}, m_mesh};
+      face_iterator vi{face_handle{0}, m_mesh};
       if (!m_mesh->is_valid(*vi)) {
         ++vi;
       }
@@ -130,22 +134,22 @@ class triangular_mesh : public pointset<Real, N> {
     }
 
     auto end() const {
-      return triangle_iterator{triangle_index{m_mesh->num_triangles()}, m_mesh};
+      return face_iterator{face_handle{m_mesh->num_faces()}, m_mesh};
     }
   };
   //----------------------------------------------------------------------------
   template <typename T>
-  using triangle_property_t = vector_property_impl<triangle_index, T>;
-  using triangle_property_container_t =
-      std::map<std::string, std::unique_ptr<vector_property<triangle_index>>>;
+  using face_property_t = vector_property_impl<face_handle, T>;
+  using face_property_container_t =
+      std::map<std::string, std::unique_ptr<vector_property<face_handle>>>;
   using hierarchy_t =
       std::conditional_t<N == 2, quadtree<Real>,
                          std::conditional_t<N == 3, octree<Real>, void>>;
   //============================================================================
  private:
-  std::vector<vertex_index>            m_triangle_indices;
-  std::vector<triangle_index>          m_invalid_triangles;
-  triangle_property_container_t        m_triangle_properties;
+  std::vector<vertex_handle>            m_face_indices;
+  std::vector<face_handle>          m_invalid_faces;
+  face_property_container_t        m_face_properties;
   mutable std::unique_ptr<hierarchy_t> m_hierarchy;
 
  public:
@@ -154,9 +158,9 @@ class triangular_mesh : public pointset<Real, N> {
   //============================================================================
  public:
   triangular_mesh(triangular_mesh const& other)
-      : parent_t{other}, m_triangle_indices{other.m_triangle_indices} {
-    for (auto const& [key, fprop] : other.m_triangle_properties) {
-      m_triangle_properties.insert(std::pair{key, fprop->clone()});
+      : parent_t{other}, m_face_indices{other.m_face_indices} {
+    for (auto const& [key, fprop] : other.m_face_properties) {
+      m_face_properties.insert(std::pair{key, fprop->clone()});
     }
   }
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -164,10 +168,10 @@ class triangular_mesh : public pointset<Real, N> {
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
   auto operator=(triangular_mesh const& other) -> triangular_mesh& {
     parent_t::operator=(other);
-    m_triangle_properties.clear();
-    m_triangle_indices = other.m_triangle_indices;
-    for (auto const& [key, fprop] : other.m_triangle_properties) {
-      m_triangle_properties.insert(std::pair{key, fprop->clone()});
+    m_face_properties.clear();
+    m_face_indices = other.m_face_indices;
+    for (auto const& [key, fprop] : other.m_face_properties) {
+      m_face_properties.insert(std::pair{key, fprop->clone()});
     }
     return *this;
   }
@@ -182,12 +186,12 @@ class triangular_mesh : public pointset<Real, N> {
     }
     for (size_t j = 0; j < g.size(1) - 1; ++j) {
       for (size_t i = 0; i < g.size(0) - 1; ++i) {
-        insert_face(vertex_index{i + j * g.size(0)},
-                    vertex_index{(i + 1) + j * g.size(0)},
-                    vertex_index{i + (j + 1) * g.size(0)});
-        insert_face(vertex_index{(i + 1) + j * g.size(0)},
-                    vertex_index{(i + 1) + (j + 1) * g.size(0)},
-                    vertex_index{i + (j + 1) * g.size(0)});
+        insert_face(vertex_handle{i + j * g.size(0)},
+                    vertex_handle{(i + 1) + j * g.size(0)},
+                    vertex_handle{i + (j + 1) * g.size(0)});
+        insert_face(vertex_handle{(i + 1) + j * g.size(0)},
+                    vertex_handle{(i + 1) + (j + 1) * g.size(0)},
+                    vertex_handle{i + (j + 1) * g.size(0)});
       }
     }
     auto copy_prop = [&]<typename T>(auto const& name, auto const& prop) {
@@ -196,7 +200,7 @@ class triangular_mesh : public pointset<Real, N> {
         auto&       tri_prop  = this->template add_vertex_property<T>(name);
         g.loop_over_vertex_indices([&](auto const... is) {
           std::array is_arr{is...};
-          tri_prop[vertex_index{is_arr[0] + is_arr[1] * g.size(0)}] =
+          tri_prop[vertex_handle{is_arr[0] + is_arr[1] * g.size(0)}] =
               grid_prop(is...);
         });
       }
@@ -215,25 +219,25 @@ class triangular_mesh : public pointset<Real, N> {
   //----------------------------------------------------------------------------
   triangular_mesh(std::filesystem::path const& file) { read(file); }
   //============================================================================
-  auto operator[](triangle_index const t) const { return triangle_at(t.i); }
-  auto operator[](triangle_index const t) { return triangle_at(t.i); }
+  auto operator[](face_handle const t) const { return face_at(t.i); }
+  auto operator[](face_handle const t) { return face_at(t.i); }
   //----------------------------------------------------------------------------
-  auto at(triangle_index t) const { return triangle_at(t.i); }
-  auto at(triangle_index t) { return triangle_at(t.i); }
+  auto at(face_handle t) const { return face_at(t.i); }
+  auto at(face_handle t) { return face_at(t.i); }
   //----------------------------------------------------------------------------
-  auto triangle_at(triangle_index const t) const { return triangle_at(t.i); }
-  auto triangle_at(triangle_index const t) { return triangle_at(t.i); }
+  auto face_at(face_handle const t) const { return face_at(t.i); }
+  auto face_at(face_handle const t) { return face_at(t.i); }
   //----------------------------------------------------------------------------
-  auto triangle_at(size_t const i) const
-      -> std::tuple<vertex_index const&, vertex_index const&,
-                    vertex_index const&> {
-    return {m_triangle_indices[i * 3], m_triangle_indices[i * 3 + 1],
-            m_triangle_indices[i * 3 + 2]};
+  auto face_at(size_t const i) const
+      -> std::tuple<vertex_handle const&, vertex_handle const&,
+                    vertex_handle const&> {
+    return {m_face_indices[i * 3], m_face_indices[i * 3 + 1],
+            m_face_indices[i * 3 + 2]};
   }
-  auto triangle_at(size_t const i)
-      -> std::tuple<vertex_index&, vertex_index&, vertex_index&> {
-    return {m_triangle_indices[i * 3], m_triangle_indices[i * 3 + 1],
-            m_triangle_indices[i * 3 + 2]};
+  auto face_at(size_t const i)
+      -> std::tuple<vertex_handle&, vertex_handle&, vertex_handle&> {
+    return {m_face_indices[i * 3], m_face_indices[i * 3 + 1],
+            m_face_indices[i * 3 + 2]};
   }
   //----------------------------------------------------------------------------
   template <real_number... Ts>
@@ -270,12 +274,12 @@ class triangular_mesh : public pointset<Real, N> {
     return vi;
   }
   //----------------------------------------------------------------------------
-  auto insert_face(vertex_index v0, vertex_index v1, vertex_index v2) {
-    m_triangle_indices.push_back(v0);
-    m_triangle_indices.push_back(v1);
-    m_triangle_indices.push_back(v2);
-    auto const ti = triangle_index{size(m_triangle_indices) / 3 - 1};
-    for (auto& [key, prop] : m_triangle_properties) {
+  auto insert_face(vertex_handle v0, vertex_handle v1, vertex_handle v2) {
+    m_face_indices.push_back(v0);
+    m_face_indices.push_back(v1);
+    m_face_indices.push_back(v2);
+    auto const ti = face_handle{size(m_face_indices) / 3 - 1};
+    for (auto& [key, prop] : m_face_properties) {
       prop->push_back();
     }
     if (m_hierarchy != nullptr) {
@@ -288,27 +292,27 @@ class triangular_mesh : public pointset<Real, N> {
   }
   //----------------------------------------------------------------------------
   auto insert_face(size_t v0, size_t v1, size_t v2) {
-    return insert_face(vertex_index{v0}, vertex_index{v1}, vertex_index{v2});
+    return insert_face(vertex_handle{v0}, vertex_handle{v1}, vertex_handle{v2});
   }
   //----------------------------------------------------------------------------
   auto clear() {
     parent_t::clear();
-    m_triangle_indices.clear();
+    m_face_indices.clear();
   }
   //----------------------------------------------------------------------------
-  auto triangles() const { return triangle_container{this}; }
+  auto faces() const { return face_container{this}; }
   //----------------------------------------------------------------------------
-  auto num_triangles() const { return m_triangle_indices.size() / 3; }
+  auto num_faces() const { return m_face_indices.size() / 3; }
   //----------------------------------------------------------------------------
   template <typename = void> requires(N == 2)
   auto triangulate_delaunay() -> void {
-    m_triangle_indices.clear();
+    m_face_indices.clear();
     using Kernel = CGAL::Cartesian<Real>;
-    using Vb     = CGAL::Triangulation_vertex_base_with_info_2<vertex_index, Kernel>;
+    using Vb     = CGAL::Triangulation_vertex_base_with_info_2<vertex_handle, Kernel>;
     using Tds    = CGAL::Triangulation_data_structure_2<Vb>;
     using Triangulation = CGAL::Delaunay_triangulation_2<Kernel, Tds>;
     using Point         = typename Kernel::Point_2;
-    std::vector<std::pair<Point, vertex_index>> points;
+    std::vector<std::pair<Point, vertex_handle>> points;
     points.reserve(this->num_vertices());
     for (auto v : this->vertices()) {
       points.emplace_back(Point{at(v)(0), at(v)(1)}, v);
@@ -316,19 +320,19 @@ class triangular_mesh : public pointset<Real, N> {
 
     Triangulation dt{begin(points), end(points)};
     for (auto it = dt.finite_faces_begin(); it != dt.finite_faces_end(); ++it) {
-      insert_face(vertex_index{it->vertex(0)->info()},
-                  vertex_index{it->vertex(1)->info()},
-                  vertex_index{it->vertex(2)->info()});
+      insert_face(vertex_handle{it->vertex(0)->info()},
+                  vertex_handle{it->vertex(1)->info()},
+                  vertex_handle{it->vertex(2)->info()});
     }
   }
   //----------------------------------------------------------------------------
-  auto set_triangle_indices(std::vector<size_t>&& is) {
-    m_triangle_indices =
-        std::move(*reinterpret_cast<std::vector<vertex_index>*>(&is));
+  auto set_face_indices(std::vector<size_t>&& is) {
+    m_face_indices =
+        std::move(*reinterpret_cast<std::vector<vertex_handle>*>(&is));
   }
   //----------------------------------------------------------------------------
-  auto set_triangle_indices(std::vector<size_t> const& is) {
-    m_triangle_indices = *reinterpret_cast<std::vector<vertex_index>*>(&is);
+  auto set_face_indices(std::vector<size_t> const& is) {
+    m_face_indices = *reinterpret_cast<std::vector<vertex_handle>*>(&is);
   }
   //----------------------------------------------------------------------------
   template <typename = void>
@@ -337,7 +341,7 @@ class triangular_mesh : public pointset<Real, N> {
     for (auto v : this->vertices()) {
       h.insert_vertex(*this, v.i);
     }
-    for (auto t : triangles()) {
+    for (auto t : faces()) {
       h.insert_face(*this, t.i);
     }
   }
@@ -405,15 +409,15 @@ class triangular_mesh : public pointset<Real, N> {
       }
 
       std::vector<std::vector<size_t>> polygons;
-      polygons.reserve(num_triangles());
-      for (size_t i = 0; i < size(m_triangle_indices); i += 3) {
-        polygons.push_back(std::vector{m_triangle_indices[i].i,
-                                       m_triangle_indices[i + 1].i,
-                                       m_triangle_indices[i + 2].i});
+      polygons.reserve(num_faces());
+      for (size_t i = 0; i < size(m_face_indices); i += 3) {
+        polygons.push_back(std::vector{m_face_indices[i].i,
+                                       m_face_indices[i + 1].i,
+                                       m_face_indices[i + 2].i});
       }
       writer.write_polygons(polygons);
 
-      // write vertex_index data
+      // write vertex_handle data
       writer.write_point_data(this->num_vertices());
       for (auto const& [name, prop] : vertex_properties()) {
         if (prop->type() == typeid(vec<Real, 4>)) {
@@ -506,7 +510,7 @@ class triangular_mesh : public pointset<Real, N> {
           if (num_comps == 1) {
             auto& prop = mesh.template add_vertex_property<double>(data_name);
             for (size_t i = 0; i < prop.size(); ++i) {
-              prop[vertex_index{i}] = scalars[i];
+              prop[vertex_handle{i}] = scalars[i];
             }
           } else if (num_comps == 2) {
             auto& prop =
@@ -514,7 +518,7 @@ class triangular_mesh : public pointset<Real, N> {
 
             for (size_t i = 0; i < prop.size(); ++i) {
               for (size_t j = 0; j < num_comps; ++j) {
-                prop[vertex_index{i}][j] = scalars[i * num_comps + j];
+                prop[vertex_handle{i}][j] = scalars[i * num_comps + j];
               }
             }
           } else if (num_comps == 3) {
@@ -522,7 +526,7 @@ class triangular_mesh : public pointset<Real, N> {
                 mesh.template add_vertex_property<vec<double, 3>>(data_name);
             for (size_t i = 0; i < prop.size(); ++i) {
               for (size_t j = 0; j < num_comps; ++j) {
-                prop[vertex_index{i}][j] = scalars[i * num_comps + j];
+                prop[vertex_handle{i}][j] = scalars[i * num_comps + j];
               }
             }
           } else if (num_comps == 4) {
@@ -530,7 +534,7 @@ class triangular_mesh : public pointset<Real, N> {
                 mesh.template add_vertex_property<vec<double, 4>>(data_name);
             for (size_t i = 0; i < prop.size(); ++i) {
               for (size_t j = 0; j < num_comps; ++j) {
-                prop[vertex_index{i}][j] = scalars[i * num_comps + j];
+                prop[vertex_handle{i}][j] = scalars[i * num_comps + j];
               }
             }
           }
@@ -543,33 +547,33 @@ class triangular_mesh : public pointset<Real, N> {
   }
   //----------------------------------------------------------------------------
   template <typename T>
-  auto triangle_property(std::string const& name) -> auto& {
-    auto prop        = m_triangle_properties.at(name).get();
-    auto casted_prop = dynamic_cast<triangle_property_t<T>*>(prop);
+  auto face_property(std::string const& name) -> auto& {
+    auto prop        = m_face_properties.at(name).get();
+    auto casted_prop = dynamic_cast<face_property_t<T>*>(prop);
     assert(typeid(T) == casted_prop->type());
     return *casted_prop;
   }
   //----------------------------------------------------------------------------
   template <typename T>
-  auto triangle_property(std::string const& name) const -> auto const& {
-    auto prop        = m_triangle_properties.at(name).get();
-    auto casted_prop = dynamic_cast<triangle_property_t<T> const*>(prop);
+  auto face_property(std::string const& name) const -> auto const& {
+    auto prop        = m_face_properties.at(name).get();
+    auto casted_prop = dynamic_cast<face_property_t<T> const*>(prop);
     assert(typeid(T) == casted_prop->type());
     return *casted_prop;
   }
   //----------------------------------------------------------------------------
   template <typename T>
-  auto add_triangle_property(std::string const& name, T const& value = T{})
+  auto add_face_property(std::string const& name, T const& value = T{})
       -> auto& {
-    auto [it, suc] = m_triangle_properties.insert(
-        std::pair{name, std::make_unique<triangle_property_t<T>>(value)});
-    auto fprop = dynamic_cast<triangle_property_t<T>*>(it->second.get());
-    fprop->resize(num_triangles());
+    auto [it, suc] = m_face_properties.insert(
+        std::pair{name, std::make_unique<face_property_t<T>>(value)});
+    auto fprop = dynamic_cast<face_property_t<T>*>(it->second.get());
+    fprop->resize(num_faces());
     return *fprop;
   }
   //----------------------------------------------------------------------------
-  constexpr bool is_valid(triangle_index t) const {
-    return boost::find(m_invalid_triangles, t) == end(m_invalid_triangles);
+  constexpr bool is_valid(face_handle t) const {
+    return boost::find(m_invalid_faces, t) == end(m_invalid_faces);
   }
 };
 //==============================================================================
@@ -589,9 +593,9 @@ auto write_mesh_container_to_vtk(MeshCont const&    meshes,
       num_pts += m.num_vertices();
     }
     std::vector<std::array<typename MeshCont::value_type::real_t, 3>> points;
-    std::vector<std::vector<size_t>>                                  triangles;
+    std::vector<std::vector<size_t>>                                  faces;
     points.reserve(num_pts);
-    triangles.reserve(meshes.size());
+    faces.reserve(meshes.size());
 
     for (auto const& m : meshes) {
       // add points
@@ -599,12 +603,12 @@ auto write_mesh_container_to_vtk(MeshCont const&    meshes,
         points.push_back(std::array{m[v](0), m[v](1), m[v](2)});
       }
 
-      // add triangles
-      for (auto t : m.triangles()) {
-        triangles.emplace_back();
-        triangles.back().push_back(cur_first + m[t][0].i);
-        triangles.back().push_back(cur_first + m[t][1].i);
-        triangles.back().push_back(cur_first + m[t][2].i);
+      // add faces
+      for (auto t : m.faces()) {
+        faces.emplace_back();
+        faces.back().push_back(cur_first + m[t][0].i);
+        faces.back().push_back(cur_first + m[t][1].i);
+        faces.back().push_back(cur_first + m[t][2].i);
       }
       cur_first += m.num_vertices();
     }
@@ -613,7 +617,7 @@ auto write_mesh_container_to_vtk(MeshCont const&    meshes,
     writer.set_title(title);
     writer.write_header();
     writer.write_points(points);
-    writer.write_polygons(triangles);
+    writer.write_polygons(faces);
     // writer.write_point_data(num_pts);
     writer.close();
   }

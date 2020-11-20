@@ -2,7 +2,6 @@
 #define TATOOINE_MULTIDIM_PROPERTY_H
 //==============================================================================
 #include <tatooine/concepts.h>
-#include <tatooine/variadic_alias.h>
 #include <tatooine/finite_differences_coefficients.h>
 #include <tatooine/write_png.h>
 #include <tatooine/sampler.h>

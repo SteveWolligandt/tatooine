@@ -128,7 +128,7 @@ auto legacy_file::add_listener(legacy_file_listener &listener) -> void {
   m_listeners.push_back(&listener);
 }
 //===========================================================================
-legacy_file::legacy_file(std::string const &path) : m_path(path) {}
+legacy_file::legacy_file(std::filesystem::path const &path) : m_path(path) {}
 //---------------------------------------------------------------------------
 auto legacy_file::read() -> void {
   read_header();
@@ -423,8 +423,8 @@ auto legacy_file::read_header() -> void {
     m_begin_of_data = file.tellg();
     file.close();
   } else
-    throw std::runtime_error("[vtk::legacy_file] could not open file " +
-                             m_path);
+    throw std::runtime_error{"[vtk::legacy_file] could not open file " +
+                             m_path.string()};
 }
 //-----------------------------------------------------------------------------
 auto legacy_file::read_data() -> void {
@@ -508,8 +508,8 @@ auto legacy_file::read_data() -> void {
       }
     }
   } else
-    throw std::runtime_error(
-        "[tatooine::vtk::legacy_file] could not open file " + m_path);
+    throw std::runtime_error{
+        "[tatooine::vtk::legacy_file] could not open file " + m_path.string()};
 }
 //------------------------------------------------------------------------------
 auto legacy_file::read_spacing(std::ifstream &file) -> void {
@@ -643,15 +643,15 @@ auto legacy_file::read_scalars(std::ifstream &file) -> void {
   }
 }
 //------------------------------------------------------------------------------
-legacy_file_writer::legacy_file_writer(std::string const &path,
+legacy_file_writer::legacy_file_writer(std::filesystem::path const &path,
                                        dataset_type type, unsigned short major,
                                        unsigned short     minor,
                                        std::string const &title)
-    : m_file(path, std::ofstream::binary),
-      m_major_version(major),
-      m_minor_version(minor),
-      m_dataset_type(type),
-      m_title(title) {}
+    : m_file{path, std::ofstream::binary},
+      m_major_version{major},
+      m_minor_version{minor},
+      m_dataset_type{type},
+      m_title{title} {}
 
 auto legacy_file_writer::is_open() -> bool { return m_file.is_open(); }
 auto legacy_file_writer::close() -> void { m_file.close(); }

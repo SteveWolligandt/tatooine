@@ -17,6 +17,7 @@ struct autonomous_particles_flowmap_evaluator
   autonomous_particles_flowmap* m_flowmap = nullptr;
   std::array<GLfloat, 4>        m_color;
   int                           m_point_size = 1;
+  bool                          m_is_evaluatable = false;
   //----------------------------------------------------------------------------
   autonomous_particles_flowmap_evaluator(flowexplorer::scene& s)
       : renderable<autonomous_particles_flowmap_evaluator>{
@@ -33,12 +34,14 @@ struct autonomous_particles_flowmap_evaluator
   //============================================================================
   auto render(mat4f const& projection_matrix, mat4f const& view_matrix)
       -> void override {
-    m_shader.bind();
-    m_shader.set_modelview_matrix(view_matrix);
-    m_shader.set_projection_matrix(projection_matrix);
-    m_shader.set_color(m_color[0], m_color[1], m_color[2], m_color[3]);
-    yavin::gl::point_size(m_point_size);
-    m_gpu_data.draw_points();
+    if (m_is_evaluatable) {
+      m_shader.bind();
+      m_shader.set_modelview_matrix(view_matrix);
+      m_shader.set_projection_matrix(projection_matrix);
+      m_shader.set_color(m_color[0], m_color[1], m_color[2], m_color[3]);
+      yavin::gl::point_size(m_point_size);
+      m_gpu_data.draw_points();
+    }
   }
   //----------------------------------------------------------------------------
   bool is_transparent() const override { return m_color[3] < 1; }
@@ -76,7 +79,9 @@ struct autonomous_particles_flowmap_evaluator
       try {
         auto const x1 = flowmap_sampler_autonomous_particles(*m_x0);
         m_gpu_data.vertexbuffer()[0] = vec3f{x1(0), x1(1), 0.0f};
+        m_is_evaluatable = true;
       } catch (std::runtime_error&) {
+        m_is_evaluatable = false;
       }
     }
   }

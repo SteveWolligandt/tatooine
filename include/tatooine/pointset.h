@@ -28,26 +28,26 @@ struct pointset {
   using this_t = pointset<Real, N>;
   using pos_t  = vec<Real, N>;
   //----------------------------------------------------------------------------
-  struct vertex_index : handle {
+  struct vertex_handle : handle {
     using handle::handle;
     using handle::operator=;
-    bool operator==(vertex_index other) const { return this->i == other.i; }
-    bool operator!=(vertex_index other) const { return this->i != other.i; }
-    bool operator<(vertex_index other) const { return this->i < other.i; }
+    bool operator==(vertex_handle other) const { return this->i == other.i; }
+    bool operator!=(vertex_handle other) const { return this->i != other.i; }
+    bool operator<(vertex_handle other) const { return this->i < other.i; }
     static constexpr auto invalid() {
-      return vertex_index{handle::invalid_idx};
+      return vertex_handle{handle::invalid_idx};
     }
   };
   //----------------------------------------------------------------------------
   struct vertex_iterator
-      : boost::iterator_facade<vertex_iterator, vertex_index,
+      : boost::iterator_facade<vertex_iterator, vertex_handle,
                                boost::bidirectional_traversal_tag,
-                               vertex_index> {
-    vertex_iterator(vertex_index _v, pointset const* _ps) : v{_v}, ps{_ps} {}
+                               vertex_handle> {
+    vertex_iterator(vertex_handle _v, pointset const* _ps) : v{_v}, ps{_ps} {}
     vertex_iterator(vertex_iterator const& other) : v{other.v}, ps{other.ps} {}
 
    private:
-    vertex_index    v;
+    vertex_handle    v;
     pointset const* ps;
 
     friend class boost::iterator_core_access;
@@ -74,25 +74,25 @@ struct pointset {
     pointset const* m_pointset;
     //==========================================================================
     auto begin() const {
-      vertex_iterator vi{vertex_index{0}, m_pointset};
+      vertex_iterator vi{vertex_handle{0}, m_pointset};
       if (!m_pointset->is_valid(*vi)) ++vi;
       return vi;
     }
     //--------------------------------------------------------------------------
     auto end() const {
-      return vertex_iterator{vertex_index{m_pointset->m_vertices.size()},
+      return vertex_iterator{vertex_handle{m_pointset->m_vertices.size()},
                              m_pointset};
     }
   };
   //----------------------------------------------------------------------------
   template <typename T>
-  using vertex_property_t = vector_property_impl<vertex_index, T>;
+  using vertex_property_t = vector_property_impl<vertex_handle, T>;
   using vertex_property_container_t =
-      std::map<std::string, std::unique_ptr<vector_property<vertex_index>>>;
+      std::map<std::string, std::unique_ptr<vector_property<vertex_handle>>>;
   //============================================================================
  private:
   std::vector<pos_t>          m_vertices;
-  std::vector<vertex_index>   m_invalid_vertices;
+  std::vector<vertex_handle>   m_invalid_vertices;
   vertex_property_container_t m_vertex_properties;
   //============================================================================
  public:
@@ -143,19 +143,19 @@ struct pointset {
   //----------------------------------------------------------------------------
   auto vertex_properties() const -> auto const& { return m_vertex_properties; }
   //----------------------------------------------------------------------------
-  auto at(vertex_index const v) -> auto& { return m_vertices[v.i]; }
-  auto at(vertex_index const v) const -> auto const& { return m_vertices[v.i]; }
+  auto at(vertex_handle const v) -> auto& { return m_vertices[v.i]; }
+  auto at(vertex_handle const v) const -> auto const& { return m_vertices[v.i]; }
   //----------------------------------------------------------------------------
-  auto vertex_at(vertex_index const v) -> auto& { return m_vertices[v.i]; }
-  auto vertex_at(vertex_index const v) const -> auto const& {
+  auto vertex_at(vertex_handle const v) -> auto& { return m_vertices[v.i]; }
+  auto vertex_at(vertex_handle const v) const -> auto const& {
     return m_vertices[v.i];
   }
   //----------------------------------------------------------------------------
   auto vertex_at(size_t const i) -> auto& { return m_vertices[i]; }
   auto vertex_at(size_t const i) const -> auto const& { return m_vertices[i]; }
   //----------------------------------------------------------------------------
-  auto operator[](vertex_index const v) -> auto& { return at(v); }
-  auto operator[](vertex_index const v) const -> auto const& { return at(v); }
+  auto operator[](vertex_handle const v) -> auto& { return at(v); }
+  auto operator[](vertex_handle const v) const -> auto const& { return at(v); }
   //----------------------------------------------------------------------------
   auto vertices() const { return vertex_container{this}; }
   //----------------------------------------------------------------------------
@@ -169,7 +169,7 @@ struct pointset {
     for (auto& [key, prop] : m_vertex_properties) {
       prop->push_back();
     }
-    return vertex_index{size(m_vertices) - 1};
+    return vertex_handle{size(m_vertices) - 1};
   }
   //----------------------------------------------------------------------------
   auto insert_vertex(pos_t const& v) {
@@ -177,7 +177,7 @@ struct pointset {
     for (auto& [key, prop] : m_vertex_properties) {
       prop->push_back();
     }
-    return vertex_index{size(m_vertices) - 1};
+    return vertex_handle{size(m_vertices) - 1};
   }
   //----------------------------------------------------------------------------
   auto insert_vertex(pos_t&& v) {
@@ -185,7 +185,7 @@ struct pointset {
     for (auto& [key, prop] : m_vertex_properties) {
       prop->push_back();
     }
-    return vertex_index{size(m_vertices) - 1};
+    return vertex_handle{size(m_vertices) - 1};
   }
   //----------------------------------------------------------------------------
   /// tidies up invalid vertices
@@ -203,14 +203,14 @@ struct pointset {
     m_invalid_vertices.clear();
   }
   //----------------------------------------------------------------------------
-  void remove(vertex_index v) {
+  void remove(vertex_handle v) {
     if (is_valid(v) &&
         boost::find(m_invalid_vertices, v) == m_invalid_vertices.end())
       m_invalid_vertices.push_back(v);
   }
 
   //----------------------------------------------------------------------------
-  constexpr auto is_valid(vertex_index v) const -> bool {
+  constexpr auto is_valid(vertex_handle v) const -> bool {
     return boost::find(m_invalid_vertices, v) == m_invalid_vertices.end();
   }
 
@@ -237,7 +237,7 @@ struct pointset {
   }
   //----------------------------------------------------------------------------
   auto find_duplicates(Real eps = 1e-6) {
-    std::vector<std::pair<vertex_index, vertex_index>> duplicates;
+    std::vector<std::pair<vertex_handle, vertex_handle>> duplicates;
     for (auto v0 = vertices().begin(); v0 != vertices().end(); ++v0)
       for (auto v1 = next(v0); v1 != vertices().end(); ++v1)
         if (approx_equal(at(v0), at(v1), eps)) duplicates.emplace_back(v0, v1);

@@ -1,8 +1,10 @@
 #ifndef TATOOINE_QUADTREE_H
 #define TATOOINE_QUADTREE_H
 //==============================================================================
-#include <functional>
 #include <tatooine/axis_aligned_bounding_box.h>
+#include <tatooine/vtk_legacy.h>
+
+#include <functional>
 //==============================================================================
 namespace tatooine {
 //==============================================================================
@@ -13,8 +15,8 @@ struct quadtree : aabb<Real, 2> {
   using this_t   = quadtree<Real>;
   using parent_t = aabb<Real, 2>;
   using parent_t::center;
-  using parent_t::is_inside;
   using parent_t::is_triangle_inside;
+  using parent_t::is_inside;
   using parent_t::max;
   using parent_t::min;
   using typename parent_t::vec_t;
@@ -23,8 +25,8 @@ struct quadtree : aabb<Real, 2> {
  private:
   size_t                                   m_level;
   size_t                                   m_max_depth;
-  std::vector<size_t>                      m_vertex_indices;
-  std::vector<size_t>                      m_triangle_indices;
+  std::vector<size_t>                      m_vertex_handles;
+  std::vector<size_t>                      m_face_handles;
   std::array<std::unique_ptr<quadtree>, 4> m_children;
   static constexpr size_t                  default_max_depth = 10;
 
@@ -44,8 +46,8 @@ struct quadtree : aabb<Real, 2> {
       : parent_t{min, max}, m_level{level}, m_max_depth{max_depth} {}
 
  public:
-  auto num_vertex_indices() const { return size(m_vertex_indices); }
-  auto num_triangle_indices() const { return size(m_triangle_indices); }
+  auto num_vertex_handles() const { return size(m_vertex_handles); }
+  auto num_face_handles() const { return size(m_face_handles); }
   //------------------------------------------------------------------------------
   template <typename Mesh>
   auto insert_vertex(Mesh const& mesh, size_t const vertex_idx) -> bool {
@@ -54,7 +56,7 @@ struct quadtree : aabb<Real, 2> {
     }
     if (holds_vertices()) {
       if (is_at_max_depth()) {
-        m_vertex_indices.push_back(vertex_idx);
+        m_vertex_handles.push_back(vertex_idx);
       } else {
         split_and_distribute(mesh);
         distribute_vertex(mesh, vertex_idx);
@@ -63,61 +65,59 @@ struct quadtree : aabb<Real, 2> {
       if (is_splitted()) {
         distribute_vertex(mesh, vertex_idx);
       } else {
-        m_vertex_indices.push_back(vertex_idx);
+        m_vertex_handles.push_back(vertex_idx);
       }
     }
     return true;
   }
   //------------------------------------------------------------------------------
   template <typename TriangularMesh>
-  auto insert_face(TriangularMesh const& mesh, size_t const triangle_idx)
-      -> bool {
-    auto [vi0, vi1, vi2] = mesh.triangle_at(triangle_idx);
+  auto insert_face(TriangularMesh const& mesh, size_t const face_idx) -> bool {
+    auto [vi0, vi1, vi2] = mesh.face_at(face_idx);
     if (!is_triangle_inside(mesh[vi0], mesh[vi1], mesh[vi2])) {
       return false;
     }
-    if (holds_triangles()) {
+    if (holds_faces()) {
       if (is_at_max_depth()) {
-        m_triangle_indices.push_back(triangle_idx);
+        m_face_handles.push_back(face_idx);
       } else {
         split_and_distribute(mesh);
-        distribute_triangle(mesh, triangle_idx);
+        distribute_face(mesh, face_idx);
       }
     } else {
       if (is_splitted()) {
-        distribute_triangle(mesh, triangle_idx);
+        distribute_face(mesh, face_idx);
       } else {
-        m_triangle_indices.push_back(triangle_idx);
+        m_face_handles.push_back(face_idx);
       }
     }
     return true;
   }
   //----------------------------------------------------------------------------
-  auto nearby_triangles(vec_t const& x) const -> auto const& {
-    if (auto tris = nearby_triangles_ptr(x); tris != nullptr) {
-      return *tris;
-    }
-    throw std::runtime_error{"[quadtree::triangle_candidatas] out of domain"};
+  auto nearby_faces(vec_t const& x) const -> std::set<size_t> {
+    std::set<size_t> collector;
+    nearby_faces(x, collector);
+    return collector;
   }
-  //----------------------------------------------------------------------------
-  auto nearby_triangles_ptr(vec_t const& x) const
-      -> std::vector<size_t> const* {
+  // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+  auto nearby_faces(vec_t const& x, std::set<size_t>& collector) const
+      -> void {
     if (!is_inside(x)) {
-      return nullptr;
+      return;
     }
     if (is_splitted()) {
       for (auto const& child : m_children) {
-        if (auto tris = child->nearby_triangles_ptr(x); tris != nullptr) {
-          return tris;
-        }
+        child->nearby_faces(x, collector);
       }
+    } else {
+      std::copy(begin(m_face_handles), end(m_face_handles),
+                std::inserter(collector, end(collector)));
     }
-    return &m_triangle_indices;
   }
   //----------------------------------------------------------------------------
   constexpr auto is_splitted() const { return m_children.front() != nullptr; }
-  constexpr auto holds_vertices() const { return !m_vertex_indices.empty(); }
-  constexpr auto holds_triangles() const { return !m_triangle_indices.empty(); }
+  constexpr auto holds_vertices() const { return !m_vertex_handles.empty(); }
+  constexpr auto holds_faces() const { return !m_face_handles.empty(); }
   constexpr auto is_at_max_depth() const { return m_level == m_max_depth; }
   //----------------------------------------------------------------------------
   static constexpr auto index(dim0 const d0, dim1 const d1) {
@@ -197,23 +197,54 @@ struct quadtree : aabb<Real, 2> {
   }
   //----------------------------------------------------------------------------
   template <typename Mesh>
-  auto distribute_triangle(Mesh const& mesh, size_t const triangle_idx) {
+  auto distribute_face(Mesh const& mesh, size_t const face_idx) {
     for (auto& child : m_children) {
-      child->insert_face(mesh, triangle_idx);
+      child->insert_face(mesh, face_idx);
     }
   }
   //----------------------------------------------------------------------------
   template <typename Mesh>
   auto split_and_distribute(Mesh const& mesh) {
     create_children();
-    if (!m_vertex_indices.empty()) {
-      distribute_vertex(mesh, m_vertex_indices.front());
-      m_vertex_indices.clear();
+    if (!m_vertex_handles.empty()) {
+      distribute_vertex(mesh, m_vertex_handles.front());
+      m_vertex_handles.clear();
     }
-    if (!m_triangle_indices.empty()) {
-      distribute_triangle(mesh, m_triangle_indices.front());
-      m_triangle_indices.clear();
+    if (!m_face_handles.empty()) {
+      distribute_face(mesh, m_face_handles.front());
+      m_face_handles.clear();
     }
+  }
+  //----------------------------------------------------------------------------
+ public:
+  auto write_vtk(std::filesystem::path const& path) {
+    vtk::legacy_file_writer f{path, vtk::dataset_type::polydata};
+    f.write_header();
+    std::vector<vec<Real, 2>>        positions;
+    std::vector<std::vector<size_t>> indices;
+    write_vtk_collect_positions_and_indices(positions, indices);
+    f.write_points(positions);
+    f.write_lines(indices);
+  }
+  // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+ private:
+  auto write_vtk_collect_positions_and_indices(
+      std::vector<vec<Real, 2>>&        positions,
+      std::vector<std::vector<size_t>>& indices, size_t cur_idx = 0)
+      -> size_t {
+    positions.push_back(vec{min(0), min(1)});
+    positions.push_back(vec{max(0), min(1)});
+    positions.push_back(vec{max(0), max(1)});
+    positions.push_back(vec{min(0), max(1)});
+    indices.push_back(
+        {cur_idx, cur_idx + 1, cur_idx + 2, cur_idx + 3, cur_idx});
+    cur_idx += 4;
+    if (is_splitted()) {
+      for (auto& child : m_children) {
+        cur_idx = child->write_vtk_collect_positions_and_indices(positions, indices, cur_idx);
+      }
+    }
+    return cur_idx;
   }
 };
 //==============================================================================
