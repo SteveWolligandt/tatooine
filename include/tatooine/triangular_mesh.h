@@ -38,7 +38,10 @@ class triangular_mesh : public pointset<Real, N> {
   struct vertex_property_sampler_t {
     this_t const&               m_mesh;
     vertex_property_t<T> const& m_prop;
-
+    //--------------------------------------------------------------------------
+    auto mesh() const -> auto const& { return m_mesh; }
+    auto property() const -> auto const& { return m_prop; }
+    //--------------------------------------------------------------------------
     [[nodiscard]] auto operator()(Real x, Real y) const { return sample(pos_t{x, y}); }
     [[nodiscard]] auto operator()(pos_t const& x) const { return sample(x); }
     [[nodiscard]] auto sample(Real x, Real y) const { return sample(pos_t{x, y}); }
@@ -181,7 +184,8 @@ class triangular_mesh : public pointset<Real, N> {
       -> triangular_mesh& = default;
   //----------------------------------------------------------------------------
   template <indexable_space DimX, indexable_space DimY>
-  requires(N == 2) triangular_mesh(grid<DimX, DimY> const& g) {
+  requires(N == 2)
+  triangular_mesh(grid<DimX, DimY> const& g) {
     for (auto v : g.vertices()) {
       insert_vertex(v);
     }
@@ -207,13 +211,13 @@ class triangular_mesh : public pointset<Real, N> {
       }
     };
     for (auto const& [name, prop] : g.vertex_properties()) {
-      copy_prop.template operator()<vec<double, 4>>(name, prop);
-      copy_prop.template operator()<vec<double, 3>>(name, prop);
-      copy_prop.template operator()<vec<double, 2>>(name, prop);
+      copy_prop.template operator()<vec4d>(name, prop);
+      copy_prop.template operator()<vec3d>(name, prop);
+      copy_prop.template operator()<vec2d>(name, prop);
+      copy_prop.template operator()<vec4f>(name, prop);
+      copy_prop.template operator()<vec3f>(name, prop);
+      copy_prop.template operator()<vec2f>(name, prop);
       copy_prop.template operator()<double>(name, prop);
-      copy_prop.template operator()<vec<float, 4>>(name, prop);
-      copy_prop.template operator()<vec<float, 3>>(name, prop);
-      copy_prop.template operator()<vec<float, 2>>(name, prop);
       copy_prop.template operator()<float>(name, prop);
     }
   }
@@ -369,7 +373,7 @@ class triangular_mesh : public pointset<Real, N> {
   }
   //----------------------------------------------------------------------------
   template <typename T>
-  auto vertex_property_sampler(vertex_property_t<T> const& prop) const {
+  auto sampler(vertex_property_t<T> const& prop) const {
     if (m_hierarchy == nullptr) {
       build_hierarchy();
     }

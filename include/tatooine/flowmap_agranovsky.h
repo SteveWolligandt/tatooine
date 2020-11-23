@@ -65,6 +65,7 @@ struct flowmap_agranovsky {
             size(m_t0s) - 1,
             grid{linspace<Real>{min(Is), max(Is),
                                 static_cast<size_t>(resolution)}...}) {
+    m_backward_meshes.reserve(size(m_t0s) - 1);
     for (size_t i = 0; i < size(m_t0s) - 1; ++i) {
       m_t0s[i] = t0 + delta_t * i;
     }
@@ -120,13 +121,13 @@ struct flowmap_agranovsky {
           backward_mesh.template vertex_property<pos_t>("flowmap");
       for (auto v : backward_mesh.vertices()) {
         for (size_t i = 0; i < N; ++i) {
-          std::swap(backward_mesh[v](0), backward_base[v](0));
+          std::swap(backward_mesh[v](i), backward_base[v](i));
         }
       }
       backward_mesh.triangulate_delaunay();
       backward_mesh.build_hierarchy();
       m_backward_samplers.push_back(
-          backward_mesh.vertex_property_sampler(backward_base));
+          backward_mesh.sampler(backward_base));
     }
   }
 
@@ -139,8 +140,8 @@ struct flowmap_agranovsky {
   }
   auto evaluate_full_backward(pos_t x) -> pos_t {
     for (size_t j = 0; j < size(m_t0s) - 1; ++j) {
-      size_t i = size(m_t0s) - j - 1;
-      x        = m_backward_samplers[i](x(0), x(1));
+      size_t i = size(m_t0s) - j - 2;
+      x = m_backward_samplers[i](x(0), x(1));
     }
     return x;
   }

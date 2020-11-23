@@ -29,16 +29,16 @@ auto main(int argc, char** argv) -> int {
     switch (args.num_splits) {
       case 2:
         return initial_particles.front().advect_with_2_splits(
-            args.tau_step, args.t0 + args.tau, initial_particles);
+            args.tau_step, args.t0 + args.tau, args.max_num_particles, initial_particles);
       case 3:
         return initial_particles.front().advect_with_3_splits(
-            args.tau_step, args.t0 + args.tau, initial_particles);
+            args.tau_step, args.t0 + args.tau, args.max_num_particles, initial_particles);
       case 5:
         return initial_particles.front().advect_with_5_splits(
-            args.tau_step, args.t0 + args.tau, initial_particles);
+            args.tau_step, args.t0 + args.tau, args.max_num_particles, initial_particles);
       case 7:
         return initial_particles.front().advect_with_7_splits(
-            args.tau_step, args.t0 + args.tau, initial_particles);
+            args.tau_step, args.t0 + args.tau, args.max_num_particles, initial_particles);
     }
     return {};
   };
@@ -102,9 +102,6 @@ auto main(int argc, char** argv) -> int {
     //----------------------------------------------------------------------------
     indicator.set_text("Integrating autonomous particles");
     auto const advected_particles = calc_particles(initial_particles);
-    // auto const advected_particles =
-    //    initial_particles.front().advect_with_3_splits(
-    //        args.tau_step, args.t0 + args.tau, initial_particles);
     autonomous_mesh.vertex_data().reserve(autonomous_mesh.num_vertices() +
                                           size(advected_particles));
     indicator.set_text("Writing discretized flowmap");
@@ -153,7 +150,6 @@ auto main(int argc, char** argv) -> int {
         ++back_calculation_netcdf_is.front();
       }
     }
-    std::cerr << '\n';
 
     //----------------------------------------------------------------------------
     // build numerical flowmap
@@ -171,7 +167,7 @@ auto main(int argc, char** argv) -> int {
     autonomous_mesh.write_vtk("doublegyre_autonomous_forward_flowmap.vtk");
     indicator.set_text("Creating Sampler");
     auto flowmap_sampler_autonomous_particles =
-        autonomous_mesh.vertex_property_sampler(autonomous_flowmap_mesh_prop);
+        autonomous_mesh.sampler(autonomous_flowmap_mesh_prop);
 
     //----------------------------------------------------------------------------
     // build flowmap on uniform grid that has approximately the same number of
@@ -193,15 +189,13 @@ auto main(int argc, char** argv) -> int {
     regular_mesh.write_vtk("doublegyre_regular_forward_flowmap.vtk");
 
     auto regular_flowmap_sampler =
-        regular_mesh.vertex_property_sampler(regular_flowmap_mesh_prop);
-    // regular_flowmap_grid_prop
-    //    .sampler<interpolation::linear, interpolation::linear>();
+        regular_mesh.sampler(regular_flowmap_mesh_prop);
 
     //----------------------------------------------------------------------------
     // build agranovsky
     //----------------------------------------------------------------------------
     indicator.set_text("Building agranovsky flowmap");
-    double const       agranovsky_delta_t = 0.1;
+    double const       agranovsky_delta_t = 1;
     flowmap_agranovsky agranovsky{
         v,          args.t0,    args.tau, agranovsky_delta_t,
         vec2{0, 0}, vec2{2, 1}, n * 2,    n};
@@ -253,61 +247,61 @@ auto main(int argc, char** argv) -> int {
     //----------------------------------------------------------------------------
     // Compare forward
     //----------------------------------------------------------------------------
-    //indicator.set_text("Comparing forward advection");
-    //{
-    //  std::vector<double> autonomous_errors, regular_errors, agranovsky_errors;
-    //  autonomous_errors.reserve(sampler_check_grid.num_vertices());
-    //  regular_errors.reserve(sampler_check_grid.num_vertices());
-    //  agranovsky_errors.reserve(sampler_check_grid.num_vertices());
-    //  sampler_check_grid.loop_over_vertex_indices([&](auto const... is) {
-    //    auto x = sampler_check_grid(is...);
-    //    try {
-    //      auto const autonomous_advection =
-    //          flowmap_sampler_autonomous_particles(x);
-    //      auto const regular_advection = regular_flowmap_sampler(x);
-    //      auto const agranovsky_advection = agranovsky.evaluate_full_forward(x);
-    //      auto const numerical_advection =
-    //          numerical_flowmap(x, args.t0, args.tau);
-    //      autonomous_errors.push_back(
-    //          distance(autonomous_advection, numerical_advection));
-    //      forward_errors_autonomous_prop(is...) = autonomous_errors.back();
-    //
-    //      regular_errors.push_back(
-    //          distance(regular_advection, numerical_advection));
-    //      forward_errors_regular_prop(is...) = regular_errors.back();
-    //
-    //      agranovsky_errors.push_back(
-    //          distance(agranovsky_advection, numerical_advection));
-    //      forward_errors_agranovsky_prop(is...) = agranovsky_errors.back();
-    //
-    //      forward_errors_diff_regular_prop(is...) =
-    //          forward_errors_regular_prop(is...) -
-    //          forward_errors_autonomous_prop(is...);
-    //      forward_errors_diff_agranovsky_prop(is...) =
-    //          forward_errors_agranovsky_prop(is...) -
-    //          forward_errors_autonomous_prop(is...);
-    //    } catch (std::exception const& e) {
-    //      ++num_points_ood_forward;
-    //      forward_errors_autonomous_prop(is...)      = 0.0 / 0.0;
-    //      forward_errors_regular_prop(is...)         = 0.0 / 0.0;
-    //      forward_errors_agranovsky_prop(is...)      = 0.0 / 0.0;
-    //      forward_errors_diff_regular_prop(is...)    = 0.0 / 0.0;
-    //      forward_errors_diff_agranovsky_prop(is...) = 0.0 / 0.0;
-    //    }
-    //  });
-    //  mean_autonomous_forward_error =
-    //      std::accumulate(begin(autonomous_errors), end(autonomous_errors),
-    //                      double(0)) /
-    //      size(autonomous_errors);
-    //  mean_regular_forward_error =
-    //      std::accumulate(begin(regular_errors), end(regular_errors),
-    //                      double(0)) /
-    //      size(regular_errors);
-    //  mean_agranovsky_forward_error =
-    //      std::accumulate(begin(agranovsky_errors), end(agranovsky_errors),
-    //                      double(0)) /
-    //      size(agranovsky_errors);
-    //}
+    indicator.set_text("Comparing forward advection");
+    {
+      std::vector<double> autonomous_errors, regular_errors, agranovsky_errors;
+      autonomous_errors.reserve(sampler_check_grid.num_vertices());
+      regular_errors.reserve(sampler_check_grid.num_vertices());
+      agranovsky_errors.reserve(sampler_check_grid.num_vertices());
+      sampler_check_grid.loop_over_vertex_indices([&](auto const... is) {
+        auto x = sampler_check_grid(is...);
+        try {
+          auto const autonomous_advection =
+              flowmap_sampler_autonomous_particles(x);
+          auto const regular_advection = regular_flowmap_sampler(x);
+          auto const agranovsky_advection = agranovsky.evaluate_full_forward(x);
+          auto const numerical_advection =
+              numerical_flowmap(x, args.t0, args.tau);
+          autonomous_errors.push_back(
+              distance(autonomous_advection, numerical_advection));
+          forward_errors_autonomous_prop(is...) = autonomous_errors.back();
+
+          regular_errors.push_back(
+              distance(regular_advection, numerical_advection));
+          forward_errors_regular_prop(is...) = regular_errors.back();
+
+          agranovsky_errors.push_back(
+              distance(agranovsky_advection, numerical_advection));
+          forward_errors_agranovsky_prop(is...) = agranovsky_errors.back();
+
+          forward_errors_diff_regular_prop(is...) =
+              forward_errors_regular_prop(is...) -
+              forward_errors_autonomous_prop(is...);
+          forward_errors_diff_agranovsky_prop(is...) =
+              forward_errors_agranovsky_prop(is...) -
+              forward_errors_autonomous_prop(is...);
+        } catch (std::exception const& e) {
+          ++num_points_ood_forward;
+          forward_errors_autonomous_prop(is...)      = 0.0 / 0.0;
+          forward_errors_regular_prop(is...)         = 0.0 / 0.0;
+          forward_errors_agranovsky_prop(is...)      = 0.0 / 0.0;
+          forward_errors_diff_regular_prop(is...)    = 0.0 / 0.0;
+          forward_errors_diff_agranovsky_prop(is...) = 0.0 / 0.0;
+        }
+      });
+      mean_autonomous_forward_error =
+          std::accumulate(begin(autonomous_errors), end(autonomous_errors),
+                          double(0)) /
+          size(autonomous_errors);
+      mean_regular_forward_error =
+          std::accumulate(begin(regular_errors), end(regular_errors),
+                          double(0)) /
+          size(regular_errors);
+      mean_agranovsky_forward_error =
+          std::accumulate(begin(agranovsky_errors), end(agranovsky_errors),
+                          double(0)) /
+          size(agranovsky_errors);
+    }
 
     //----------------------------------------------------------------------------
     // Reverse Meshes
@@ -340,30 +334,34 @@ auto main(int argc, char** argv) -> int {
       sampler_check_grid.loop_over_vertex_indices([&](auto const... is) {
         auto x = sampler_check_grid(is...);
         try {
+          // numerical backward advection
+          auto const numerical_advection =
+              numerical_flowmap(x, args.t0 + args.tau, -args.tau);
+
+          // autonomous backward advection
           auto const autonomous_advection =
               flowmap_sampler_autonomous_particles(x);
-          auto const regular_advection = regular_flowmap_sampler(x);
-          auto const agranovsky_advection = agranovsky.evaluate_full_backward(x);
-          auto const numerical_advection =
-              numerical_flowmap(x, args.t0, args.tau);
           autonomous_errors.push_back(
               distance(autonomous_advection, numerical_advection));
           backward_errors_autonomous_prop(is...) = autonomous_errors.back();
 
+          // regular backward advection
+          auto const regular_advection = regular_flowmap_sampler(x);
           regular_errors.push_back(
               distance(regular_advection, numerical_advection));
           backward_errors_regular_prop(is...) = regular_errors.back();
-
-          //agranovsky_errors.push_back(
-          //    distance(agranovsky_advection, numerical_advection));
-          //backward_errors_agranovsky_prop(is...) = agranovsky_errors.back();
-
           backward_errors_diff_regular_prop(is...) =
               backward_errors_regular_prop(is...) -
               backward_errors_autonomous_prop(is...);
-          //backward_errors_diff_agranovsky_prop(is...) =
-          //    backward_errors_agranovsky_prop(is...) -
-          //    backward_errors_autonomous_prop(is...);
+
+          auto const agranovsky_advection = agranovsky.evaluate_full_backward(x);
+          agranovsky_errors.push_back(
+              distance(agranovsky_advection, numerical_advection));
+          backward_errors_agranovsky_prop(is...) = agranovsky_errors.back();
+
+          backward_errors_diff_agranovsky_prop(is...) =
+              backward_errors_agranovsky_prop(is...) -
+              backward_errors_autonomous_prop(is...);
         } catch (std::exception const& e) {
           ++num_points_ood_backward;
           backward_errors_autonomous_prop(is...)      = 0.0 / 0.0;
@@ -385,9 +383,6 @@ auto main(int argc, char** argv) -> int {
           std::accumulate(begin(agranovsky_errors), end(agranovsky_errors),
                           double(0)) /
           size(agranovsky_errors);
-      if (std::isnan(mean_agranovsky_backward_error)) {
-        mean_agranovsky_backward_error = std::numeric_limits<double>::max();
-      }
     }
     indicator.mark_as_completed();
     std::cerr << '\n';
@@ -412,15 +407,15 @@ auto main(int argc, char** argv) -> int {
         << "%)\n"
         << "mean error forward autonomous particles: " << std::scientific
         << mean_autonomous_forward_error << '\n'
-        << "mean error forward  regular grid: " << std::scientific
+        << "mean error forward regular grid: " << std::scientific
         << mean_regular_forward_error << '\n'
-        << "mean error forward  agranovsky grid: " << std::scientific
+        << "mean error forward agranovsky grid: " << std::scientific
         << mean_agranovsky_forward_error << '\n'
         << "mean error backward autonomous particles: " << std::scientific
         << mean_autonomous_backward_error << '\n'
-        << "mean error backward  regular grid: " << std::scientific
+        << "mean error backward regular grid: " << std::scientific
         << mean_regular_backward_error << '\n'
-        << "mean error backward  agranovsky grid: " << std::scientific
+        << "mean error backward agranovsky grid: " << std::scientific
         << mean_agranovsky_backward_error << '\n';
     if (mean_regular_forward_error > mean_autonomous_forward_error &&
         mean_agranovsky_forward_error > mean_autonomous_forward_error) {
