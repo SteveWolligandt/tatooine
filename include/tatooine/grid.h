@@ -750,36 +750,44 @@ class grid {
                    std::index_sequence<Is...>) {
     netcdf::file f{path, netCDF::NcFile::read};
     bool first = true;
-    for (auto v : f.variables<double>()) {
-      if (v.name() == "x" || v.name() == "y") {
-        continue;
+    auto         add_variables_of_type = [&]<typename T>() {
+      for (auto v : f.variables<T>()) {
+        if (v.name() == "x" || v.name() == "y" || v.name() == "z" ||
+            v.name() == "t" || v.name() == "X" || v.name() == "Y" ||
+            v.name() == "Z" || v.name() == "T") {
+          continue;
+        }
+        if (v.num_dimensions() != num_dimensions()) {
+          throw std::runtime_error{
+              "[grid::read_netcdf] variable's number of dimensions does not "
+              "match grid's number of dimensions"};
+        }
+        if (!first) {
+          auto check = [this, &v](size_t i) {
+            if (v.size(i) != size(i)) {
+              throw std::runtime_error{"[grid::read_netcdf] variable's size(" +
+                                       std::to_string(i) +
+                                       ") does not "
+                                       "match grid's size(" +
+                                       std::to_string(i) + ")"};
+            }
+          };
+          (check(Is), ...);
+        } else {
+          ((f.variable<
+                 typename std::decay_t<decltype(dimension<Is>())>::value_type>(
+                 v.dimension_name(Is))
+                .read(dimension<Is>())),
+           ...);
+        }
+        create_vertex_property<netcdf::lazy_reader<T>>(
+            v.name(), v, std::vector<size_t>{2, 2});
+        first = false;
       }
-      if (v.num_dimensions() != num_dimensions()) {
-        throw std::runtime_error{
-            "[grid::read_netcdf] variable's number of dimensions does not "
-            "match grid's number of dimensions"};
-      }
-      if (!first) {
-        auto check = [this, &v](size_t i) {
-          if (v.size(i) != size(i)) {
-            throw std::runtime_error{"[grid::read_netcdf] variable's size(" +
-                                     std::to_string(i) +
-                                     ") does not "
-                                     "match grid's size(" +
-                                     std::to_string(i) + ")"};
-          }
-        };
-        (check(Is), ...);
-      } else {
-        ((f.variable<typename std::decay_t<decltype(dimension<Is>())>::value_type>(
-               v.dimension_name(Is))
-              .read(dimension<Is>())),
-         ...);
-      }
-      create_vertex_property<netcdf::lazy_reader<double>>(
-          v.name(), v, std::vector<size_t>{2, 2});
-      first = false;
-    }
+    };
+    add_variables_of_type.template operator()<double>();
+    add_variables_of_type.template operator()<float>();
+    add_variables_of_type.template operator()<int>();
   }
   //----------------------------------------------------------------------------
   template <typename T>
