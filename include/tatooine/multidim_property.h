@@ -2,6 +2,7 @@
 #define TATOOINE_MULTIDIM_PROPERTY_H
 //==============================================================================
 #include <tatooine/concepts.h>
+#include <tatooine/invoke_unpacked.h>
 #include <tatooine/finite_differences_coefficients.h>
 #include <tatooine/write_png.h>
 #include <tatooine/sampler.h>
@@ -232,15 +233,27 @@ struct typed_multidim_property_impl : typed_multidim_property<Grid, ValueType>,
   auto at(Is const... is) -> decltype(auto) {
     return Container::at(is...);
   }
+  //----------------------------------------------------------------------------
+  template <size_t... Is>
+  auto at(std::array<size_t, num_dimensions()> const& size,
+          std::index_sequence<Is...> /*seq*/) const -> ValueType const& {
+    return Container::at(size[Is]...);
+  }
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
   auto at(std::array<size_t, num_dimensions()> const& size) const
       -> ValueType const& override {
-    return Container::at(size);
+    return at(size, std::make_index_sequence<num_dimensions()>{});
+  }
+  // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+  template <size_t... Is>
+  auto at(std::array<size_t, num_dimensions()> const& size,
+          std::index_sequence<Is...> /*seq*/) -> ValueType& {
+    return Container::at(size[Is]...);
   }
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
   auto at(std::array<size_t, num_dimensions()> const& size)
       -> ValueType& override {
-    return Container::at(size);
+    return at(size, std::make_index_sequence<num_dimensions()>{});
   }
   //----------------------------------------------------------------------------
   auto resize(std::array<size_t, num_dimensions()> const& size)

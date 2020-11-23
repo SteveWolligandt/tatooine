@@ -7,6 +7,7 @@
 #include <tatooine/multidim_array.h>
 
 #include <cassert>
+#include <filesystem>
 #include <memory>
 #include <mutex>
 #include <netcdf>
@@ -196,7 +197,7 @@ class variable {
   }
   //----------------------------------------------------------------------------
   auto read(std::vector<T>& arr) const {
-    if (auto const n = num_components(); size(arr) != n) {
+    if (auto const n = num_components(); arr.size() != n) {
       arr.resize(n);
     }
     std::lock_guard lock{*m_mutex};
@@ -346,8 +347,8 @@ class file {
   //============================================================================
  public:
   template <typename... Ts>
-  file(std::string const& path, Ts&&... ts)
-      : m_file{new netCDF::NcFile{path, std::forward<Ts>(ts)...}},
+  file(std::filesystem::path const& path, Ts&&... ts)
+      : m_file{new netCDF::NcFile{path.string(), std::forward<Ts>(ts)...}},
         m_mutex{std::make_shared<std::mutex>()} {}
   //============================================================================
   template <typename T>

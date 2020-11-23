@@ -86,9 +86,9 @@ class grid {
   /// The enable if is needed due to gcc bug 80871. See here:
   /// https://stackoverflow.com/questions/46848129/variadic-deduction-guide-not-taken-by-g-taken-by-clang-who-is-correct
   template <typename... _Dimensions>
-      requires(sizeof...(_Dimensions) == sizeof...(Dimensions)) &&
-      (indexable_space<std::decay_t<_Dimensions>> &&
-       ...) constexpr grid(_Dimensions&&... dimensions)
+  requires (sizeof...(_Dimensions) == sizeof...(Dimensions)) &&
+           (indexable_space<std::decay_t<_Dimensions>> && ...)
+  constexpr grid(_Dimensions&&... dimensions)
       : m_dimensions{std::forward<_Dimensions>(dimensions)...} {
     static_assert(sizeof...(_Dimensions) == num_dimensions(),
                   "Number of given dimensions does not match number of "
@@ -116,6 +116,8 @@ class grid {
       : grid{linspace{0.0, 1.0, static_cast<size_t>(size)}...} {
     assert(((size >= 0) && ...));
   }
+  //----------------------------------------------------------------------------
+  grid(std::filesystem::path const& path) { read(path); }
   //----------------------------------------------------------------------------
   ~grid() = default;
   //============================================================================
@@ -733,10 +735,57 @@ class grid {
     }
   }
   //----------------------------------------------------------------------------
+  auto read(std::filesystem::path const& path) {
+    if (path.extension() == ".nc") {
+      read_netcdf(path);
+    }
+  }
+  //----------------------------------------------------------------------------
+  auto read_netcdf(std::filesystem::path const& path) {
+    read_netcdf(path, std::make_index_sequence<num_dimensions()>{});
+  }
+  // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+  template <size_t... Is>
+  auto read_netcdf(std::filesystem::path const& path,
+                   std::index_sequence<Is...>) {
+    netcdf::file f{path, netCDF::NcFile::read};
+    bool first = true;
+    for (auto v : f.variables<double>()) {
+      if (v.name() == "x" || v.name() == "y") {
+        continue;
+      }
+      if (v.num_dimensions() != num_dimensions()) {
+        throw std::runtime_error{
+            "[grid::read_netcdf] variable's number of dimensions does not "
+            "match grid's number of dimensions"};
+      }
+      if (!first) {
+        auto check = [this, &v](size_t i) {
+          if (v.size(i) != size(i)) {
+            throw std::runtime_error{"[grid::read_netcdf] variable's size(" +
+                                     std::to_string(i) +
+                                     ") does not "
+                                     "match grid's size(" +
+                                     std::to_string(i) + ")"};
+          }
+        };
+        (check(Is), ...);
+      } else {
+        ((f.variable<typename std::decay_t<decltype(dimension<Is>())>::value_type>(
+               v.dimension_name(Is))
+              .read(dimension<Is>())),
+         ...);
+      }
+      create_vertex_property<netcdf::lazy_reader<double>>(
+          v.name(), v, std::vector<size_t>{2, 2});
+      first = false;
+    }
+  }
+  //----------------------------------------------------------------------------
   template <typename T>
-  requires(num_dimensions() ==
-           3) void write_amira(std::string const& path,
-                               std::string const& vertex_property_name) const {
+  requires(num_dimensions() == 3)
+  void write_amira(std::string const& path,
+                   std::string const& vertex_property_name) const {
     write_amira(path, vertex_property<T>(vertex_property_name));
   }
   //----------------------------------------------------------------------------
@@ -919,6 +968,25 @@ auto operator+(AdditionalDimension&&      additional_dimension,
   return grid.add_dimension(
       std::forward<AdditionalDimension>(additional_dimension));
 }
+//==============================================================================
+// typedefs
+//==============================================================================
+template <real_number T>
+using uniform_grid_2d = grid<linspace<T>, linspace<T>>;
+template <real_number T>
+using uniform_grid_3d = grid<linspace<T>, linspace<T>, linspace<T>>;
+template <real_number T>
+using uniform_grid_4d =
+    grid<linspace<T>, linspace<T>, linspace<T>, linspace<T>>;
+template <real_number T>
+//------------------------------------------------------------------------------
+using non_uniform_grid_2d = grid<std::vector<T>, std::vector<T>>;
+template <real_number T>
+using non_uniform_grid_3d =
+    grid<std::vector<T>, std::vector<T>, std::vector<T>>;
+template <real_number T>
+using non_uniform_grid_4d =
+    grid<std::vector<T>, std::vector<T>, std::vector<T>, std::vector<T>>;
 //==============================================================================
 }  // namespace tatooine
 //==============================================================================
