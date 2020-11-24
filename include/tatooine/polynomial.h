@@ -36,20 +36,22 @@ struct polynomial {
  public:
   constexpr polynomial() : m_coefficients{make_array<Real, Degree + 1>()} {}
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-  constexpr polynomial(const polynomial& other) = default;
+  constexpr polynomial(polynomial const& other) = default;
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-  constexpr polynomial(polynomial&& other) = default;
+  constexpr polynomial(polynomial&& other) noexcept = default;
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-  constexpr polynomial& operator=(const polynomial& other) = default;
+  constexpr auto operator=(polynomial const& other)
+      -> polynomial& = default;
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-  constexpr polynomial& operator=(polynomial&& other) = default;
+  constexpr auto operator=(polynomial&& other) noexcept
+      -> polynomial& = default;
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-  constexpr polynomial(const std::array<Real, Degree + 1>& coeffs)
+  constexpr polynomial(std::array<Real, Degree + 1> const& coeffs)
       : m_coefficients{coeffs} {}
   //----------------------------------------------------------------------------
-  template <typename OtherReal, size_t OtherDegree,
-            std::enable_if_t<(OtherDegree <= Degree), bool> = true>
-  constexpr polynomial(const polynomial<OtherReal, OtherDegree>& other)
+  template <typename OtherReal, size_t OtherDegree>
+  requires (OtherDegree <= Degree)
+  constexpr polynomial(polynomial<OtherReal, OtherDegree> const& other)
       : m_coefficients{make_array<Real, Degree + 1>(0)} {
     for (size_t i = 0; i < OtherDegree + 1; ++i) {
       m_coefficients[i] = other.coefficient(i);
@@ -59,17 +61,20 @@ struct polynomial {
   constexpr polynomial(std::array<Real, Degree + 1>&& coeffs)
       : m_coefficients{std::move(coeffs)} {}
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-  template <typename... Coeffs, enable_if_arithmetic<Coeffs...> = true,
-            std::enable_if_t<sizeof...(Coeffs) == Degree + 1, bool> = true>
+  template <typename... Coeffs>
+  requires (std::is_arithmetic_v<Coeffs> && ...) &&
+           (sizeof...(Coeffs) == Degree + 1)
   constexpr polynomial(Coeffs... coeffs)
       : m_coefficients{static_cast<Real>(coeffs)...} {}
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-  template <typename OtherReal, enable_if_arithmetic<OtherReal> = true>
-  constexpr polynomial(const vec<OtherReal, Degree + 1>& coeffs)
+  template <typename OtherReal>
+  requires std::is_arithmetic_v<OtherReal>
+  constexpr polynomial(tensor<OtherReal, Degree + 1> const& coeffs)
       : m_coefficients{make_array<Real>(coeffs.data())} {}
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-  template <typename OtherReal, enable_if_arithmetic<OtherReal> = true>
-  constexpr polynomial(const std::array<OtherReal, Degree + 1>& coeffs)
+  template <typename OtherReal>
+  requires std::is_arithmetic_v<OtherReal>
+  constexpr polynomial(std::array<OtherReal, Degree + 1> const& coeffs)
       : m_coefficients{make_array<Real>(coeffs)} {}
 
   //----------------------------------------------------------------------------
@@ -90,33 +95,35 @@ struct polynomial {
   /// evaluates c0 * x^0 + c1 * x^1 + ... + c{N-1} * x^{N-1}
   constexpr auto operator()(Real x) const { return evaluate(x); }
   //----------------------------------------------------------------------------
-  auto&       c(size_t i) { return m_coefficients[i]; }
-  const auto& c(size_t i) const { return m_coefficients[i]; }
+  auto c(size_t i) const -> auto const& { return m_coefficients[i]; }
+  auto c(size_t i) -> auto& { return m_coefficients[i]; }
   //----------------------------------------------------------------------------
-  auto&       coefficient(size_t i) { return m_coefficients[i]; }
-  const auto& coefficient(size_t i) const { return m_coefficients[i]; }
+  auto coefficient(size_t i) const -> auto const& { return m_coefficients[i]; }
+  auto coefficient(size_t i) -> auto const& { return m_coefficients[i]; }
   //----------------------------------------------------------------------------
-  auto&       coefficients() { return m_coefficients; }
-  const auto& coefficients() const { return m_coefficients; }
+  auto coefficients() const -> auto const& { return m_coefficients; }
+  auto coefficients() -> auto const& { return m_coefficients; }
   //----------------------------------------------------------------------------
-  constexpr void set_coefficients(
-      const std::array<Real, Degree + 1>& coeffs) {
+  constexpr auto set_coefficients(
+      std::array<Real, Degree + 1> const& coeffs) -> void{
     m_coefficients = coeffs;
   }
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-  constexpr void set_coefficients(std::array<Real, Degree + 1>&& coeffs) {
+  constexpr auto set_coefficients(std::array<Real, Degree + 1>&& coeffs) -> void {
     m_coefficients = std::move(coeffs);
   }
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-  template <typename OtherReal, enable_if_arithmetic<OtherReal> = true>
-  constexpr void set_coefficients(
-      const std::array<OtherReal, Degree + 1>& coeffs) {
+  template <typename OtherReal>
+  requires std::is_arithmetic_v<OtherReal>
+  constexpr auto set_coefficients(
+      std::array<OtherReal, Degree + 1> const& coeffs) -> void {
     m_coefficients = make_array<Real>(coeffs);
   }
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-  template <typename... Coeffs, enable_if_arithmetic<Coeffs...> = true,
-            std::enable_if_t<sizeof...(Coeffs) == Degree + 1, bool> = true>
-  constexpr void set_coefficients(Coeffs... coeffs) {
+  template <typename... Coeffs>
+  requires (std::is_arithmetic_v<Coeffs> && ...) &&
+           (sizeof...(Coeffs) == Degree + 1)
+  constexpr auto set_coefficients(Coeffs... coeffs) -> void {
     m_coefficients =
         std::array<Real, Degree + 1>{static_cast<Real>(coeffs)...};
   }
@@ -136,7 +143,7 @@ struct polynomial {
       return polynomial<Real, 0>{0};
     }
   }
-  auto print(std::ostream& out, const std::string& x) const -> std::ostream& {
+  auto print(std::ostream& out, std::string const& x) const -> std::ostream& {
     out << c(0);
     if (Degree >= 1) {
       if (c(1) != 0) {
@@ -163,18 +170,19 @@ struct polynomial {
     return out;
   }
 };
-
 //------------------------------------------------------------------------------
 // deduction guides
 //------------------------------------------------------------------------------
 template <typename... Coeffs>
 polynomial(Coeffs... coeffs)
-    ->polynomial<promote_t<Coeffs...>, sizeof...(Coeffs) - 1>;
+    -> polynomial<promote_t<Coeffs...>, sizeof...(Coeffs) - 1>;
+template <typename Real, size_t N>
+polynomial(tensor<Real, N> const&) -> polynomial<Real, N - 1>;
 //------------------------------------------------------------------------------
 // diff
 //------------------------------------------------------------------------------
 template <typename Real, size_t Degree>
-constexpr auto diff(const polynomial<Real, Degree>& f) {
+constexpr auto diff(polynomial<Real, Degree> const& f) {
   return f.diff();
 }
 //------------------------------------------------------------------------------
@@ -182,14 +190,14 @@ constexpr auto diff(const polynomial<Real, Degree>& f) {
 //------------------------------------------------------------------------------
 /// solve a + bx
 template <typename Real>
-auto solve(const polynomial<Real, 1>& p) -> std::vector<Real> {
+auto solve(polynomial<Real, 1> const& p) -> std::vector<Real> {
   if (p.c(1) == 0) { return {}; }
   return {-p.c(0) / p.c(1)};
 }
 //------------------------------------------------------------------------------
 /// solve a + bx + cxx
 template <typename Real>
-auto solve(const polynomial<Real, 2>& p) -> std::vector<Real> {
+auto solve(polynomial<Real, 2> const& p) -> std::vector<Real> {
   auto const a = p.c(0);
   auto const b = p.c(1);
   auto const c = p.c(2);
@@ -215,7 +223,7 @@ auto solve(const polynomial<Real, 2>& p) -> std::vector<Real> {
 // I/O
 //------------------------------------------------------------------------------
 template <typename Real, size_t Degree>
-auto& operator<<(std::ostream& out, const polynomial<Real, Degree>& f) {
+auto& operator<<(std::ostream& out, polynomial<Real, Degree> const& f) {
   return f.print(out, "x");
 }
 //------------------------------------------------------------------------------
@@ -229,28 +237,6 @@ struct is_polynomial<polynomial<Real, Degree>> : std::true_type {};
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 template <typename T>
 static constexpr bool is_polynomial_v = is_polynomial<T>::value;
-//------------------------------------------------------------------------------
-template <typename... Ts>
-struct are_polynomial;
-// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-template <typename... Ts>
-static constexpr auto are_polynomial_v = are_polynomial<Ts...>::value;
-// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-template <>
-struct are_polynomial<> : std::false_type {};
-// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-template <typename T>
-struct are_polynomial<T>
-    : std::integral_constant<bool, is_polynomial_v<T>> {};
-// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-template <typename T0, typename T1, typename... Ts>
-struct are_polynomial<T0, T1, Ts...>
-    : std::integral_constant<bool, are_polynomial_v<T0> &&
-                                       are_polynomial_v<T1, Ts...>> {};
-//------------------------------------------------------------------------------
-template <typename... Ts>
-using enable_if_polynomial =
-    std::enable_if_t<sizeof...(Ts) == 0 || are_polynomial_v<Ts...>, bool>;
 //==============================================================================
 }  // namespace tatooine
 //==============================================================================

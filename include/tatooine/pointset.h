@@ -9,11 +9,12 @@
 #include <unordered_set>
 #include <vector>
 
-#include "handle.h"
-#include "property.h"
-#include "tensor.h"
-#include "type_traits.h"
-#include "vtk_legacy.h"
+#include <tatooine/handle.h>
+#include <tatooine/property.h>
+#include <tatooine/polynomial.h>
+#include <tatooine/tensor.h>
+#include <tatooine/type_traits.h>
+#include <tatooine/vtk_legacy.h>
 
 // #include "tetgen_inc.h"
 // #include "triangle_inc.h"
@@ -422,9 +423,9 @@ struct pointset {
     flann::Matrix<Real>            qm{const_cast<Real*>(x.data_ptr()), 1,
                            num_dimensions()};
     std::vector<std::vector<int>>  indices;
-    std::vector<std::vector<Real>> dists;
+    std::vector<std::vector<Real>> distances;
     flann::SearchParams            params;
-    kd_tree().knnSearch(qm, indices, dists, 1, params);
+    kd_tree().knnSearch(qm, indices, distances, 1, params);
     return vertex_handle{static_cast<size_t>(indices.front().front())};
   }
   //----------------------------------------------------------------------------
@@ -436,15 +437,15 @@ struct pointset {
     flann::Matrix<Real>            qm{const_cast<Real*>(x.data_ptr()), 1,
                            num_dimensions()};
     std::vector<std::vector<int>>  indices;
-    std::vector<std::vector<Real>> dists;
+    std::vector<std::vector<Real>> distances;
     ;
-    kd_tree().knnSearch(qm, indices, dists, num_nearest_neighbors, params);
-    return {std::move(indices.front()), std::move(dists.front())};
+    kd_tree().knnSearch(qm, indices, distances, num_nearest_neighbors, params);
+    return {std::move(indices.front()), std::move(distances.front())};
   }
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
   auto nearest_neighbors(pos_t const& x,
                          size_t const num_nearest_neighbors) const {
-    auto const [indices, dists] =
+    auto const [indices, distances] =
         nearest_neighbors_raw(x, num_nearest_neighbors);
     std::vector<vertex_handle> handles;
     handles.reserve(size(indices));
@@ -500,13 +501,13 @@ struct pointset {
     ~inverse_distance_weighting_sampler_t()      = default;
     //==========================================================================
     auto sample(pos_t const& x) const {
-      auto [is, dists] = m_pointset.nearest_neighbors_raw(x, m_num_neighbors);
+      auto [indices, distances] = m_pointset.nearest_neighbors_raw(x, m_num_neighbors);
       T    accumulated_prop_val{};
       Real accumulated_weight = 0;
 
-      auto index_it = begin(is);
-      auto dist_it  = begin(dists);
-      for (; index_it != end(is); ++index_it, ++dist_it) {
+      auto index_it = begin(indices);
+      auto dist_it  = begin(distances);
+      for (; index_it != end(indices); ++index_it, ++dist_it) {
         auto const& property_value = m_property[vertex_handle{*index_it}];
         if (*dist_it == 0) {
           return property_value;
@@ -525,6 +526,98 @@ struct pointset {
     template <real_number... Components>
     requires(sizeof...(Components) == N)
     auto operator()(Components const... components) const {
+      return sample(pos_t{components...});
+    }
+    auto operator()(pos_t const& x) const { return sample(x); }
+  };
+  //============================================================================
+  template <typename T>
+  auto moving_least_squares_sampler(std::string const& prop_name) {
+    return moving_least_squares_sampler_t<T>{*this,
+                                             vertex_property<T>(prop_name)};
+  }
+  //----------------------------------------------------------------------------
+  template <typename T>
+  auto moving_least_squares_sampler(vertex_property_t<T> const& prop) {
+    return moving_least_squares_sampler_t<T>{*this, prop};
+  }
+  //============================================================================
+  template <typename T>
+  struct moving_least_squares_sampler_t {
+    using this_t     = moving_least_squares_sampler_t;
+    using pointset_t = pointset<Real, N>;
+    //==========================================================================
+    pointset_t const&           m_pointset;
+    vertex_property_t<T> const& m_property;
+    size_t                      m_num_neighbors = 10;
+    //==========================================================================
+    moving_least_squares_sampler_t(pointset_t const&           ps,
+                                   vertex_property_t<T> const& property)
+        : m_pointset{ps}, m_property{property} {}
+    // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+    moving_least_squares_sampler_t(pointset_t const&           ps,
+                                   vertex_property_t<T> const& property,
+                                   size_t const                num_neighbors)
+        : m_pointset{ps},
+          m_property{property},
+          m_num_neighbors{num_neighbors} {}
+    //--------------------------------------------------------------------------
+    moving_least_squares_sampler_t(moving_least_squares_sampler_t const&) =
+        default;
+    // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+    moving_least_squares_sampler_t(moving_least_squares_sampler_t&&) noexcept =
+        default;
+    //--------------------------------------------------------------------------
+    auto operator=(moving_least_squares_sampler_t const&)
+        -> moving_least_squares_sampler_t& = default;
+    // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+    auto operator=(moving_least_squares_sampler_t&&) noexcept
+        -> moving_least_squares_sampler_t& = default;
+    // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+    ~moving_least_squares_sampler_t() = default;
+    //==========================================================================
+    template <size_t num_neighbors = 4, size_t degree = 3>
+    auto sample(pos_t const& x) const {
+      auto [indices, distances] = m_pointset.nearest_neighbors_raw(x, num_neighbors);
+      
+      using B_t = mat<Real, num_neighbors, degree+1>;
+      using w_t = vec<Real, num_neighbors>;
+      using u_t = vec<Real, num_neighbors>;
+      auto      B = B_t::ones();
+      w_t       w;
+      u_t       u;
+      for (size_t i = 0; i < num_neighbors; ++i) {
+        w(i) = distances[i];
+      }
+      for (size_t i = 0; i < num_neighbors; ++i) {
+        u(i) = m_property[vertex_handle{indices[i]}];
+      }
+
+      T sample{};
+
+      for (size_t k = 0; k < N; ++k) {
+        for (size_t i = 0; i < num_neighbors; ++i) {
+          B(i, 1) = m_pointset.vertex_at(indices[i])(k);
+        }
+        for (size_t i = 0; i < num_neighbors; ++i) {
+          for (size_t j = 0; j < degree - 1; ++j) {
+            B(i, j + 2) = B(i, j + 1) * B(i, 1);
+          }
+        }
+        auto const BtW = transposed(B) * diag(w);
+        polynomial p{solve(BtW * B, BtW * u)};
+        //sample = p(x(k));
+      }
+      return sample;
+    }
+    template <real_number... Components>
+    requires(sizeof...(Components) ==
+             N) auto sample(Components const... components) const {
+      return sample(pos_t{components...});
+    }
+    template <real_number... Components>
+    requires(sizeof...(Components) == N) auto operator()(
+        Components const... components) const {
       return sample(pos_t{components...});
     }
     auto operator()(pos_t const& x) const { return sample(x); }

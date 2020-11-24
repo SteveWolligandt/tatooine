@@ -102,5 +102,26 @@ TEST_CASE_METHOD((pointset<double, 2>), "pointset_inverse_distance_weighting_sam
   gr.write_vtk("inverse_distance_weighting_sampler.vtk");
 }
 //==============================================================================
+TEST_CASE_METHOD((pointset<double, 2>), "pointset_moving_least_squares_sampler",
+                 "[pointset][moving_least_squares_sampler]") {
+  auto const v0 = insert_vertex(-1, 0);
+  auto const v1 = insert_vertex(0, 0);
+  auto const v2 = insert_vertex(1, 0);
+
+  auto& prop = add_vertex_property<double>("prop");
+  prop[v0] = -1;
+  prop[v1] = 0;
+  prop[v2] = 1;
+
+  auto sampler = moving_least_squares_sampler(prop);
+  //REQUIRE(sampler(0.5, 0, 0) == 1.5);
+  uniform_grid_2d<double> gr{linspace{-2.0, 2.0, 500},
+                             linspace{-2.0, 2.0, 500}};
+  auto& interpolated_data = gr.add_vertex_property<double>("interpolated_data");
+  gr.loop_over_vertex_indices(
+      [&](auto const... is) { interpolated_data(is...) = sampler(gr(is...)); });
+  gr.write_vtk("moving_least_squares_sampler.vtk");
+}
+//==============================================================================
 }  // namespace tatooine::test
 //==============================================================================
