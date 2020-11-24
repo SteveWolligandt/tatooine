@@ -169,10 +169,11 @@ struct autonomous_particle {
   }
   //----------------------------------------------------------------------------
   auto advect(real_t tau_step, real_t const max_t, real_t const objective_cond,
+              size_t const                  max_num_particles,
               std::ranges::range auto const radii, bool const add_center,
               bool const& stop = false) const {
-    return advect(tau_step, max_t, objective_cond, radii, add_center, {*this},
-                  stop);
+    return advect(tau_step, max_t, objective_cond, max_num_particles, radii,
+                  add_center, {*this}, stop);
   }
   //----------------------------------------------------------------------------
   static auto advect(real_t tau_step, real_t const max_t,

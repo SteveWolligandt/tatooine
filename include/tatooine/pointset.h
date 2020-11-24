@@ -3,6 +3,7 @@
 //==============================================================================
 #include <boost/iterator/iterator_facade.hpp>
 #include <boost/range/algorithm/find.hpp>
+#include <flann/flann.hpp>
 #include <fstream>
 #include <limits>
 #include <unordered_set>
@@ -27,6 +28,7 @@ struct pointset {
   using real_t = Real;
   using this_t = pointset<Real, N>;
   using pos_t  = vec<Real, N>;
+  using flann_index_t = flann::Index<flann::L2<Real>>;
   //----------------------------------------------------------------------------
   struct vertex_handle : handle {
     using handle::handle;
@@ -91,9 +93,10 @@ struct pointset {
       std::map<std::string, std::unique_ptr<vector_property<vertex_handle>>>;
   //============================================================================
  private:
-  std::vector<pos_t>          m_vertices;
-  std::vector<vertex_handle>   m_invalid_vertices;
-  vertex_property_container_t m_vertex_properties;
+  std::vector<pos_t>                             m_vertices;
+  std::vector<vertex_handle>                     m_invalid_vertices;
+  vertex_property_container_t                    m_vertex_properties;
+  mutable std::unique_ptr<flann_index_t>         m_kd_tree;
   //============================================================================
  public:
   pointset() = default;
@@ -345,8 +348,9 @@ struct pointset {
   }
   //----------------------------------------------------------------------------
   template <typename = void>
-  requires(N == 3 || N == 2) auto write_vtk(
-      std::string const& path, std::string const& title = "Tatooine pointset") {
+  requires(N == 3 || N == 2)
+  auto write_vtk(std::string const& path,
+                 std::string const& title = "Tatooine pointset") {
     vtk::legacy_file_writer writer(path, vtk::dataset_type::polydata);
     if (writer.is_open()) {
       writer.set_title(title);
@@ -395,8 +399,134 @@ struct pointset {
       }
     }
   }
+  //----------------------------------------------------------------------------
+ private:
+  auto kd_tree() const -> auto& {
+    if (m_kd_tree == nullptr) {
+      flann::Matrix<double> dataset{
+          const_cast<Real*>(m_vertices.front().data_ptr()), num_vertices(),
+          num_dimensions()};
+      m_kd_tree = std::make_unique<flann_index_t>(
+          dataset, flann::KDTreeSingleIndexParams{});
+      m_kd_tree->buildIndex();
+    }
+    return *m_kd_tree;
+  }
+  //----------------------------------------------------------------------------
+ public:
+  auto nearest_neighbor(pos_t const& x) const {
+    flann::Matrix<Real>            qm{const_cast<Real*>(x.data_ptr()), 1,
+                           num_dimensions()};
+    std::vector<std::vector<int>>  indices;
+    std::vector<std::vector<Real>> dists;
+    flann::SearchParams            params;
+    kd_tree().knnSearch(qm, indices, dists, 1, params);
+    return vertex_handle{static_cast<size_t>(indices.front().front())};
+  }
+  //----------------------------------------------------------------------------
+  /// Takes the raw output indices of flann without converting them into vertex
+  /// handles.
+  auto nearest_neighbors_raw(pos_t const& x, size_t const num_nearest_neighbors,
+                             flann::SearchParams const params = {}) const
+      -> std::pair<std::vector<int>, std::vector<Real>> {
+    flann::Matrix<Real>            qm{const_cast<Real*>(x.data_ptr()), 1,
+                           num_dimensions()};
+    std::vector<std::vector<int>>  indices;
+    std::vector<std::vector<Real>> dists;
+    ;
+    kd_tree().knnSearch(qm, indices, dists, num_nearest_neighbors, params);
+    return {std::move(indices.front()), std::move(dists.front())};
+  }
+  // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+  auto nearest_neighbors(pos_t const& x,
+                         size_t const num_nearest_neighbors) const {
+    auto const [indices, dists] =
+        nearest_neighbors_raw(x, num_nearest_neighbors);
+    std::vector<vertex_handle> handles;
+    handles.reserve(size(indices));
+    for (auto const i : indices) {
+      handles.emplace_back(static_cast<size_t>(i));
+    }
+    return handles;
+  }
+  //----------------------------------------------------------------------------
+  template <typename T>
+  auto inverse_distance_weighting_sampler(std::string const& prop_name) {
+    return inverse_distance_weighting_sampler_t<T>{*this,
+                                                vertex_property<T>(prop_name)};
+  }
+  //----------------------------------------------------------------------------
+  template <typename T>
+  auto inverse_distance_weighting_sampler(vertex_property_t<T> const& prop) {
+    return inverse_distance_weighting_sampler_t<T>{*this, prop};
+  }
+  //============================================================================
+  template <typename T>
+  struct inverse_distance_weighting_sampler_t {
+    using this_t     = inverse_distance_weighting_sampler_t;
+    using pointset_t = pointset<Real, N>;
+    //==========================================================================
+    pointset_t const&           m_pointset;
+    vertex_property_t<T> const& m_property;
+    size_t                      m_num_neighbors = 10;
+    //==========================================================================
+    inverse_distance_weighting_sampler_t(pointset_t const&           ps,
+                                         vertex_property_t<T> const& property)
+        : m_pointset{ps}, m_property{property} {}
+    // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+    inverse_distance_weighting_sampler_t(pointset_t const&           ps,
+                                         vertex_property_t<T> const& property,
+                                         size_t const num_neighbors)
+        : m_pointset{ps},
+          m_property{property},
+          m_num_neighbors{num_neighbors} {}
+    //--------------------------------------------------------------------------
+    inverse_distance_weighting_sampler_t(
+        inverse_distance_weighting_sampler_t const&) = default;
+    // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+    inverse_distance_weighting_sampler_t(
+        inverse_distance_weighting_sampler_t&&) noexcept = default;
+    //--------------------------------------------------------------------------
+    auto operator=(inverse_distance_weighting_sampler_t const&)
+        -> inverse_distance_weighting_sampler_t& = default;
+    // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+    auto operator=(inverse_distance_weighting_sampler_t&&) noexcept
+        -> inverse_distance_weighting_sampler_t& = default;
+    // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+    ~inverse_distance_weighting_sampler_t()      = default;
+    //==========================================================================
+    auto sample(pos_t const& x) const {
+      auto [is, dists] = m_pointset.nearest_neighbors_raw(x, m_num_neighbors);
+      T    accumulated_prop_val{};
+      Real accumulated_weight = 0;
+
+      auto index_it = begin(is);
+      auto dist_it  = begin(dists);
+      for (; index_it != end(is); ++index_it, ++dist_it) {
+        auto const& property_value = m_property[vertex_handle{*index_it}];
+        if (*dist_it == 0) {
+          return property_value;
+        };
+        auto const  weight         = 1 / *dist_it;
+        accumulated_prop_val += property_value * weight;
+        accumulated_weight += weight;
+      }
+      return accumulated_prop_val / accumulated_weight;
+    }
+    template <real_number... Components>
+    requires(sizeof...(Components) == N)
+    auto sample(Components const... components) const {
+      return sample(pos_t{components...});
+    }
+    template <real_number... Components>
+    requires(sizeof...(Components) == N)
+    auto operator()(Components const... components) const {
+      return sample(pos_t{components...});
+    }
+    auto operator()(pos_t const& x) const { return sample(x); }
+  };
 };
-//------------------------------------------------------------------------------
+//==============================================================================
 template <typename Real, size_t N>
 auto begin(typename pointset<Real, N>::vertex_container const& verts) {
   return verts.begin();

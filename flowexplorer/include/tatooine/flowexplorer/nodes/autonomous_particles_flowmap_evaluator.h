@@ -75,7 +75,7 @@ struct autonomous_particles_flowmap_evaluator
       auto& flowmap_prop =
           m_flowmap->mesh().vertex_property<vec<double, 2>>("flowmap");
       auto flowmap_sampler_autonomous_particles =
-          m_flowmap->mesh().vertex_property_sampler(flowmap_prop);
+          m_flowmap->mesh().sampler(flowmap_prop);
       try {
         auto const x1 = flowmap_sampler_autonomous_particles(*m_x0);
         m_gpu_data.vertexbuffer()[0] = vec3f{x1(0), x1(1), 0.0f};

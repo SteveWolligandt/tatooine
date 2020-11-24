@@ -40,6 +40,7 @@ find_package(PNG REQUIRED)
 find_package(PNG++ REQUIRED)
 find_package(NetCDF REQUIRED)
 find_package(CGAL REQUIRED)
+find_package(FLANN REQUIRED)
 #- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - 
 # configure files
 #- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - 
@@ -121,19 +122,20 @@ target_include_directories(tatooine
     ${CMAKE_CURRENT_SOURCE_DIR}/include
     ${CMAKE_CURRENT_SOURCE_DIR}/single_include
     ${CMAKE_CURRENT_BINARY_DIR}/include
+    ${CMAKE_CURRENT_SOURCE_DIR}/external/indicators/include
+    ${CMAKE_CURRENT_SOURCE_DIR}/external/tomlplusplus/include
     ${NETCDF_INCLUDES}
     ${LAPACKE_INCLUDES}
     ${vcode_DIR}/../..
     ${PNG_INCLUDE_DIRS}
     ${PNG++_INCLUDE_DIRS}
-    ${CMAKE_CURRENT_SOURCE_DIR}/external/indicators/include
-    ${CMAKE_CURRENT_SOURCE_DIR}/external/tomlplusplus/include
 )
 #- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 #set libs 
 target_link_libraries(tatooine
   PUBLIC
     CGAL::CGAL
+    FLANN::FLANN
     ${BLAS_LIBRARIES}
     ${LAPACK_LIBRARIES}
     ${PNG_LIBRARIES}
@@ -146,7 +148,9 @@ if (${yavin_FOUND})
 else()
   set(TATOOINE_YAVIN_AVAILABLE 0)
 endif()
-
+#-------------------------------------------------------------------------------
+# GINAC
+#-------------------------------------------------------------------------------
 find_package(GINAC QUIET)
 if (${GINAC_FOUND}) 
   option(TATOOINE_USE_GINAC "use GiNaC for symbolics support" FALSE)
@@ -172,7 +176,9 @@ endif()
 configure_file(${CMAKE_CURRENT_SOURCE_DIR}/include/tatooine/packages.h.in
                ${CMAKE_CURRENT_BINARY_DIR}/include/tatooine/packages.h)
 
-#- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+#-------------------------------------------------------------------------------
+# Subdirectories
+#-------------------------------------------------------------------------------
 add_subdirectory(test)
 add_subdirectory(scivis_contest_2020)
 add_subdirectory(benchmarks)

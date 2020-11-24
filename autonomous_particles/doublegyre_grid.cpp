@@ -96,6 +96,17 @@ auto main(int argc, char** argv) -> int {
           .phi()
           .use_caching(false);
     }
+    initial_autonomous_particles_grid.dimension<0>().front() += spacing_x / 2;
+    initial_autonomous_particles_grid.dimension<0>().back() += spacing_x / 2;
+    initial_autonomous_particles_grid.dimension<1>().front() += spacing_y / 2;
+    initial_autonomous_particles_grid.dimension<1>().back() += spacing_y / 2;
+    initial_autonomous_particles_grid.dimension<0>().pop_back();
+    initial_autonomous_particles_grid.dimension<1>().pop_back();
+    for (auto const& x : initial_autonomous_particles_grid.vertices()) {
+      initial_particles.emplace_back(v, x, args.t0, r0)
+          .phi()
+          .use_caching(false);
+    }
 
     //----------------------------------------------------------------------------
     // integrate particles
@@ -397,7 +408,7 @@ auto main(int argc, char** argv) -> int {
         << "number of grid vertices: " << n * 2 * n << '\n'
         << num_points_ood_forward << " / " << sampler_check_grid.num_vertices()
         << " out of domain in forward direction("
-        << (100 * num_points_ood_backward /
+        << (100 * num_points_ood_forward /
             (double)sampler_check_grid.num_vertices())
         << "%)\n"
         << num_points_ood_backward << " / " << sampler_check_grid.num_vertices()

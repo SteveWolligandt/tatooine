@@ -3,6 +3,8 @@
 //==============================================================================
 #include <filesystem>
 #include <tatooine/axis_aligned_bounding_box.h>
+#include <tatooine/netcdf.h>
+#include <tatooine/lazy_netcdf_reader.h>
 #include <tatooine/chunked_multidim_array.h>
 #include <tatooine/concepts.h>
 #include <tatooine/for_loop.h>
@@ -745,6 +747,7 @@ class grid {
     read_netcdf(path, std::make_index_sequence<num_dimensions()>{});
   }
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+  /// this only reads scalar types
   template <size_t... Is>
   auto read_netcdf(std::filesystem::path const& path,
                    std::index_sequence<Is...>) {
