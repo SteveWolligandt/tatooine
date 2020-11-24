@@ -7,18 +7,20 @@ auto parse_args(int argc, char** argv) -> std::optional<args_t> {
 
   size_t width = 10, height = 10, depth = 10, num_splits = 3, max_num_particles = 500000;
   double t0 = 0, tau = 2, tau_step = 0.05, min_cond = 0.01;
+  bool write_ellipses = true;
   // Declare the supported options.
   po::options_description desc("Allowed options");
-  desc.add_options()("help", "produce help message")(
-      "width", po::value<size_t>(), "set width")(
-      "height", po::value<size_t>(), "set height")(
-      "depth", po::value<size_t>(), "set depth")(
-      "num_splits", po::value<size_t>(), "set number of splits")(
-      "max_num_particles", po::value<size_t>(), "set maximum number of particles")(
-      "t0", po::value<double>(), "set initial time")(
-      "tau", po::value<double>(), "set integration length tau")(
-      "tau_step", po::value<double>(), "set stepsize for integrator")(
-      "min_cond", po::value<double>(),
+  desc.add_options()("help", "produce help message")
+    ("write_ellipses", po::value<bool>(), "write ellipses")
+    ("width", po::value<size_t>(), "set width")
+    ("height", po::value<size_t>(), "set height")
+    ("depth", po::value<size_t>(), "set depth")
+    ("num_splits", po::value<size_t>(), "set number of splits")
+    ("max_num_particles", po::value<size_t>(), "set maximum number of particles")
+    ("t0", po::value<double>(), "set initial time")
+    ("tau", po::value<double>(), "set integration length tau")
+    ("tau_step", po::value<double>(), "set stepsize for integrator")
+    ("min_cond", po::value<double>(),
       "set minimal condition number of back calculation for advected "
       "particles");
 
@@ -84,5 +86,12 @@ auto parse_args(int argc, char** argv) -> std::optional<args_t> {
   } else {
     std::cerr << "default min_cond = " << min_cond << '\n';
   }
-  return args_t{width, height, depth, num_splits, max_num_particles, t0, tau, tau_step, min_cond};
+  if (vm.count("write_ellipses") > 0) {
+    write_ellipses = vm["write_ellipses"].as<bool>();
+    std::cerr << "specified write_ellipses = " << write_ellipses << '\n';
+  } else {
+    std::cerr << "default write_ellipses = " << write_ellipses << '\n';
+  }
+  return args_t{width, height, depth,    num_splits, max_num_particles,
+                t0,    tau,    tau_step, min_cond,   write_ellipses};
 }

@@ -96,17 +96,18 @@ auto main(int argc, char** argv) -> int {
           .phi()
           .use_caching(false);
     }
-    initial_autonomous_particles_grid.dimension<0>().front() += spacing_x / 2;
-    initial_autonomous_particles_grid.dimension<0>().back() += spacing_x / 2;
-    initial_autonomous_particles_grid.dimension<1>().front() += spacing_y / 2;
-    initial_autonomous_particles_grid.dimension<1>().back() += spacing_y / 2;
-    initial_autonomous_particles_grid.dimension<0>().pop_back();
-    initial_autonomous_particles_grid.dimension<1>().pop_back();
-    for (auto const& x : initial_autonomous_particles_grid.vertices()) {
-      initial_particles.emplace_back(v, x, args.t0, r0)
-          .phi()
-          .use_caching(false);
-    }
+    //// add initially overlapping particles
+    //initial_autonomous_particles_grid.dimension<0>().front() += spacing_x / 2;
+    //initial_autonomous_particles_grid.dimension<0>().back() += spacing_x / 2;
+    //initial_autonomous_particles_grid.dimension<1>().front() += spacing_y / 2;
+    //initial_autonomous_particles_grid.dimension<1>().back() += spacing_y / 2;
+    //initial_autonomous_particles_grid.dimension<0>().pop_back();
+    //initial_autonomous_particles_grid.dimension<1>().pop_back();
+    //for (auto const& x : initial_autonomous_particles_grid.vertices()) {
+    //  initial_particles.emplace_back(v, x, args.t0, r0)
+    //      .phi()
+    //      .use_caching(false);
+    //}
 
     //----------------------------------------------------------------------------
     // integrate particles
@@ -124,41 +125,43 @@ auto main(int argc, char** argv) -> int {
     //----------------------------------------------------------------------------
     // write ellipses to netcdf
     //----------------------------------------------------------------------------
-    indicator.set_text("Writing ellipses to NetCDF Files");
-    for (auto const& ap : initial_particles) {
-      mat23f T{{ap.S()(0, 0), ap.S()(0, 1), ap.x1()(0)},
-               {ap.S()(1, 0), ap.S()(1, 1), ap.x1()(1)}};
-      initial_var.write(initial_netcdf_is, cnt, T.data_ptr());
-      ++initial_netcdf_is.front();
-    }
-    for (auto const& p : advected_particles) {
-      auto sqrS =
-          inv(p.nabla_phi1()) * p.S() * p.S() * inv(transposed(p.nabla_phi1()));
-      auto [eig_vecs, eig_vals] = eigenvectors_sym(sqrS);
-      eig_vals = {std::sqrt(eig_vals(0)), std::sqrt(eig_vals(1))};
-      transposed(eig_vecs);
-      if (args.min_cond > 0 && eig_vals(1) / eig_vals(0) < args.min_cond) {
-        continue;
+    if (args.write_ellipses_to_netcdf) {
+      indicator.set_text("Writing ellipses to NetCDF Files");
+      for (auto const& ap : initial_particles) {
+        mat23f T{{ap.S()(0, 0), ap.S()(0, 1), ap.x1()(0)},
+                 {ap.S()(1, 0), ap.S()(1, 1), ap.x1()(1)}};
+        initial_var.write(initial_netcdf_is, cnt, T.data_ptr());
+        ++initial_netcdf_is.front();
       }
+      for (auto const& p : advected_particles) {
+        auto sqrS = inv(p.nabla_phi1()) * p.S() * p.S() *
+                    inv(transposed(p.nabla_phi1()));
+        auto [eig_vecs, eig_vals] = eigenvectors_sym(sqrS);
+        eig_vals = {std::sqrt(eig_vals(0)), std::sqrt(eig_vals(1))};
+        transposed(eig_vecs);
+        if (args.min_cond > 0 && eig_vals(1) / eig_vals(0) < args.min_cond) {
+          continue;
+        }
 
-      // advection
-      mat23f advected_T{{p.S()(0, 0), p.S()(0, 1), p.x1()(0)},
-                        {p.S()(1, 0), p.S()(1, 1), p.x1()(1)}};
-      {
-        std::lock_guard lock{writer_mutex};
-        advected_var.write(advected_netcdf_is, cnt, advected_T.data_ptr());
-        ++advected_netcdf_is.front();
-      }
+        // advection
+        mat23f advected_T{{p.S()(0, 0), p.S()(0, 1), p.x1()(0)},
+                          {p.S()(1, 0), p.S()(1, 1), p.x1()(1)}};
+        {
+          std::lock_guard lock{writer_mutex};
+          advected_var.write(advected_netcdf_is, cnt, advected_T.data_ptr());
+          ++advected_netcdf_is.front();
+        }
 
-      // back calculation
-      auto   Sback = eig_vecs * diag(eig_vals) * transposed(eig_vecs);
-      mat23f back_calculation_T{{Sback(0, 0), Sback(0, 1), p.x0()(0)},
-                                {Sback(1, 0), Sback(1, 1), p.x0()(1)}};
-      {
-        std::lock_guard lock{writer_mutex};
-        back_calculation_var.write(back_calculation_netcdf_is, cnt,
-                                   back_calculation_T.data_ptr());
-        ++back_calculation_netcdf_is.front();
+        // back calculation
+        auto   Sback = eig_vecs * diag(eig_vals) * transposed(eig_vecs);
+        mat23f back_calculation_T{{Sback(0, 0), Sback(0, 1), p.x0()(0)},
+                                  {Sback(1, 0), Sback(1, 1), p.x0()(1)}};
+        {
+          std::lock_guard lock{writer_mutex};
+          back_calculation_var.write(back_calculation_netcdf_is, cnt,
+                                     back_calculation_T.data_ptr());
+          ++back_calculation_netcdf_is.front();
+        }
       }
     }
 
@@ -176,9 +179,12 @@ auto main(int argc, char** argv) -> int {
     autonomous_mesh.triangulate_delaunay();
     indicator.set_text("Writing delaunay triangulated flowmap");
     autonomous_mesh.write_vtk("doublegyre_autonomous_forward_flowmap.vtk");
-    indicator.set_text("Creating Sampler");
+    //indicator.set_text("Creating Sampler");
+    //auto flowmap_sampler_autonomous_particles =
+    //    autonomous_mesh.sampler(autonomous_flowmap_mesh_prop);
     auto flowmap_sampler_autonomous_particles =
-        autonomous_mesh.sampler(autonomous_flowmap_mesh_prop);
+        autonomous_mesh.inverse_distance_weighting_sampler(
+            autonomous_flowmap_mesh_prop);
 
     //----------------------------------------------------------------------------
     // build flowmap on uniform grid that has approximately the same number of
@@ -199,8 +205,11 @@ auto main(int argc, char** argv) -> int {
         regular_mesh.vertex_property<vec<double, 2>>("flowmap");
     regular_mesh.write_vtk("doublegyre_regular_forward_flowmap.vtk");
 
-    auto regular_flowmap_sampler =
-        regular_mesh.sampler(regular_flowmap_mesh_prop);
+    //auto flowmap_sampler_regular =
+    //    regular_mesh.sampler(regular_flowmap_mesh_prop);
+    auto flowmap_sampler_regular =
+        regular_mesh.inverse_distance_weighting_sampler(
+            regular_flowmap_mesh_prop);
 
     //----------------------------------------------------------------------------
     // build agranovsky
@@ -269,7 +278,7 @@ auto main(int argc, char** argv) -> int {
         try {
           auto const autonomous_advection =
               flowmap_sampler_autonomous_particles(x);
-          auto const regular_advection = regular_flowmap_sampler(x);
+          auto const regular_advection = flowmap_sampler_regular(x);
           auto const agranovsky_advection = agranovsky.evaluate_full_forward(x);
           auto const numerical_advection =
               numerical_flowmap(x, args.t0, args.tau);
@@ -322,8 +331,9 @@ auto main(int argc, char** argv) -> int {
       std::swap(autonomous_mesh[v](1), autonomous_flowmap_mesh_prop[v](1));
     }
     autonomous_mesh.triangulate_delaunay();
-    autonomous_mesh.build_hierarchy();
     autonomous_mesh.write_vtk("doublegyre_autonomous_backward_flowmap.vtk");
+    autonomous_mesh.rebuild_kd_tree();
+    //autonomous_mesh.build_hierarchy();
 
     for (auto v : regular_mesh.vertices()) {
       std::swap(regular_mesh[v](0), regular_flowmap_mesh_prop[v](0));
@@ -331,6 +341,7 @@ auto main(int argc, char** argv) -> int {
     }
     regular_mesh.triangulate_delaunay();
     regular_mesh.build_hierarchy();
+    regular_mesh.rebuild_kd_tree();
     regular_mesh.write_vtk("doublegyre_regular_backward_flowmap.vtk");
 
     //----------------------------------------------------------------------------
@@ -357,7 +368,7 @@ auto main(int argc, char** argv) -> int {
           backward_errors_autonomous_prop(is...) = autonomous_errors.back();
 
           // regular backward advection
-          auto const regular_advection = regular_flowmap_sampler(x);
+          auto const regular_advection = flowmap_sampler_regular(x);
           regular_errors.push_back(
               distance(regular_advection, numerical_advection));
           backward_errors_regular_prop(is...) = regular_errors.back();

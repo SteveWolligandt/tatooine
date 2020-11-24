@@ -399,6 +399,10 @@ struct pointset {
       }
     }
   }
+  auto rebuild_kd_tree() {
+    m_kd_tree.reset();
+    kd_tree();
+  }
   //----------------------------------------------------------------------------
  private:
   auto kd_tree() const -> auto& {
