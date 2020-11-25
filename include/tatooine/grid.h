@@ -693,8 +693,9 @@ class grid {
   }
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
   template <typename T, typename Indexing = x_fastest, integral... ChunkSize>
-  requires(sizeof...(ChunkSize) == num_dimensions()) auto add_chunked_vertex_property(
-      std::string const& name, ChunkSize const... chunk_size) -> auto& {
+  requires(sizeof...(ChunkSize) == num_dimensions())
+  auto add_chunked_vertex_property(std::string const& name,
+                                   ChunkSize const... chunk_size) -> auto& {
     return create_vertex_property<chunked_multidim_array<T, Indexing>>(
         name, size(), std::vector<size_t>{static_cast<size_t>(chunk_size)...});
   }
@@ -736,7 +737,15 @@ class grid {
       return *dynamic_cast<typed_property_t<T>*>(it->second.get());
     }
   }
-  //----------------------------------------------------------------------------
+  //============================================================================
+  template <regular_invocable<pos_t> F>
+  auto sample_to_vertex_property(F&& f, std::string const& name) -> auto& {
+    auto& prop = add_vertex_property<std::invoke_result_t<F, pos_t>>(name);
+    loop_over_vertex_indices(
+        [&](auto const... is) { prop(is...) = f(vertex_at(is...)); });
+    return prop;
+  }
+  //============================================================================
   auto read(std::filesystem::path const& path) {
     if (path.extension() == ".nc") {
       read_netcdf(path);

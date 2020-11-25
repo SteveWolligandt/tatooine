@@ -1,14 +1,14 @@
 #version 330 core
 //------------------------------------------------------------------------------
 layout(points) in;
-layout(line_strip, max_vertices = 23) out;
+layout(line_strip, max_vertices = 100) out;
 //------------------------------------------------------------------------------
 in mat4 model_matrix[1];
 //------------------------------------------------------------------------------
 uniform mat4  view_projection_matrix;
 //------------------------------------------------------------------------------
 void main() {
-  const int num_vertices = 23;
+  const int num_vertices = 33;
   const float normalizer  = 1 / float(num_vertices - 1) * 2 * 3.14159;
   for (int i = 0; i < num_vertices; ++i) {
     vec4 circle_pos =

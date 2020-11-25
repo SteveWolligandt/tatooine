@@ -438,7 +438,6 @@ struct pointset {
                            num_dimensions()};
     std::vector<std::vector<int>>  indices;
     std::vector<std::vector<Real>> distances;
-    ;
     kd_tree().knnSearch(qm, indices, distances, num_nearest_neighbors, params);
     return {std::move(indices.front()), std::move(distances.front())};
   }
@@ -447,6 +446,29 @@ struct pointset {
                          size_t const num_nearest_neighbors) const {
     auto const [indices, distances] =
         nearest_neighbors_raw(x, num_nearest_neighbors);
+    std::vector<vertex_handle> handles;
+    handles.reserve(size(indices));
+    for (auto const i : indices) {
+      handles.emplace_back(static_cast<size_t>(i));
+    }
+    return handles;
+  }
+  //----------------------------------------------------------------------------
+  /// Takes the raw output indices of flann without converting them into vertex
+  /// handles.
+  auto nearest_neighbors_radius_raw(pos_t const& x, Real const radius,
+                                    flann::SearchParams const params = {}) const
+      -> std::pair<std::vector<int>, std::vector<Real>> {
+    flann::Matrix<Real>            qm{const_cast<Real*>(x.data_ptr()), 1,
+                           num_dimensions()};
+    std::vector<std::vector<int>>  indices;
+    std::vector<std::vector<Real>> distances;
+    kd_tree().radiusSearch(qm, indices, distances, radius, params);
+    return {std::move(indices.front()), std::move(distances.front())};
+  }
+  // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+  auto nearest_neighbors_radius(pos_t const& x, Real const radius) const {
+    auto const [indices, distances] = nearest_neighbors_radius_raw(x, radius);
     std::vector<vertex_handle> handles;
     handles.reserve(size(indices));
     for (auto const i : indices) {
@@ -473,7 +495,7 @@ struct pointset {
     //==========================================================================
     pointset_t const&           m_pointset;
     vertex_property_t<T> const& m_property;
-    size_t                      m_num_neighbors = 10;
+    Real                        m_radius = 0.01;
     //==========================================================================
     inverse_distance_weighting_sampler_t(pointset_t const&           ps,
                                          vertex_property_t<T> const& property)
@@ -481,10 +503,10 @@ struct pointset {
     // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
     inverse_distance_weighting_sampler_t(pointset_t const&           ps,
                                          vertex_property_t<T> const& property,
-                                         size_t const num_neighbors)
+                                         Real const radius)
         : m_pointset{ps},
           m_property{property},
-          m_num_neighbors{num_neighbors} {}
+          m_radius{radius} {}
     //--------------------------------------------------------------------------
     inverse_distance_weighting_sampler_t(
         inverse_distance_weighting_sampler_t const&) = default;
@@ -501,7 +523,12 @@ struct pointset {
     ~inverse_distance_weighting_sampler_t()      = default;
     //==========================================================================
     auto sample(pos_t const& x) const {
-      auto [indices, distances] = m_pointset.nearest_neighbors_raw(x, m_num_neighbors);
+      auto [indices, distances] =
+          m_pointset.nearest_neighbors_radius_raw(x, m_radius);
+      if (indices.empty()) {
+        throw std::runtime_error{
+            "[inverse_distance_weighting_sampler] out of domain"};
+      }
       T    accumulated_prop_val{};
       Real accumulated_weight = 0;
 
@@ -576,39 +603,68 @@ struct pointset {
     // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
     ~moving_least_squares_sampler_t() = default;
     //==========================================================================
-    template <size_t num_neighbors = 4, size_t degree = 3>
-    auto sample(pos_t const& x) const {
-      auto [indices, distances] = m_pointset.nearest_neighbors_raw(x, num_neighbors);
-      
-      using B_t = mat<Real, num_neighbors, degree+1>;
+    template <size_t num_neighbors = 20>
+    auto sample(pos_t const& q) const {
+      using B_t = mat<Real, num_neighbors, 6>;
       using w_t = vec<Real, num_neighbors>;
-      using u_t = vec<Real, num_neighbors>;
-      auto      B = B_t::ones();
-      w_t       w;
-      u_t       u;
-      for (size_t i = 0; i < num_neighbors; ++i) {
-        w(i) = distances[i];
-      }
-      for (size_t i = 0; i < num_neighbors; ++i) {
-        u(i) = m_property[vertex_handle{indices[i]}];
-      }
+      using f_t = vec<Real, num_neighbors>;
 
-      T sample{};
-
-      for (size_t k = 0; k < N; ++k) {
+      auto const  nn      = m_pointset.nearest_neighbors_raw(q, num_neighbors);
+      auto const& indices = nn.first;
+      auto const& distances = nn.second;
+      if (indices.size() < num_neighbors) {
+        throw std::runtime_error{"dasdsa"};
+      }
+      auto const w = [&] {
+        w_t w;
         for (size_t i = 0; i < num_neighbors; ++i) {
-          B(i, 1) = m_pointset.vertex_at(indices[i])(k);
+          w(i) = distances[i];
+        }
+        return w;
+      }();
+      auto const f = [&] {
+        f_t f;
+        for (size_t i = 0; i < num_neighbors; ++i) {
+          f(i) = m_property[vertex_handle{indices[i]}];
+        }
+        return f;
+      }();
+
+      auto const B = [&] {
+        auto B = B_t::ones();
+
+        for (size_t i = 0; i < num_neighbors; ++i) {
+          B(i, 1) = m_pointset.vertex_at(indices[i]).x() - q.x();
         }
         for (size_t i = 0; i < num_neighbors; ++i) {
-          for (size_t j = 0; j < degree - 1; ++j) {
-            B(i, j + 2) = B(i, j + 1) * B(i, 1);
-          }
+          B(i, 2) = m_pointset.vertex_at(indices[i]).y() - q.y();
         }
-        auto const BtW = transposed(B) * diag(w);
-        polynomial p{solve(BtW * B, BtW * u)};
-        //sample = p(x(k));
+        for (size_t i = 0; i < num_neighbors; ++i) {
+          B(i, 3) = (m_pointset.vertex_at(indices[i]).x() - q.x()) *
+                    (m_pointset.vertex_at(indices[i]).x() - q.x());
+        }
+        for (size_t i = 0; i < num_neighbors; ++i) {
+          B(i, 4) = (m_pointset.vertex_at(indices[i]).x() - q.x()) *
+                    (m_pointset.vertex_at(indices[i]).y() - q.y());
+        }
+        for (size_t i = 0; i < num_neighbors; ++i) {
+          B(i, 5) = (m_pointset.vertex_at(indices[i]).y() - q.y()) *
+                    (m_pointset.vertex_at(indices[i]).y() - q.y());
+        }
+        return B;
+      }();
+      auto const BtW = transposed(B) * diag(w);
+      auto const c   = solve(BtW * B, BtW * f);
+      if (auto const c = condition_number(BtW * B); c > 5000) {
+        std::cerr << "cond: " << c << '\n';
       }
-      return sample;
+      //auto const c   = solve(B, f);
+      return c(0)/* +
+             c(1) * q.x() +
+             c(2) * q.y() +
+             c(3) * q.x() * q.x() +
+             c(4) * q.x() * q.y() +
+             c(5) * q.y() * q.y()*/;
     }
     template <real_number... Components>
     requires(sizeof...(Components) ==

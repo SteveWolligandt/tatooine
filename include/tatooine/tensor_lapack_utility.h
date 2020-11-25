@@ -6,8 +6,8 @@
 namespace tatooine {
 //==============================================================================
 /// compute condition number
-template <real_or_complex_number T, size_t N>
-auto condition_number(const tensor<T, N, N>& A, integral auto p = 2) {
+template <real_or_complex_number T, size_t N, integral P = int>
+auto condition_number(const tensor<T, N, N>& A, P const p = 2) {
   if (p == 1) {
     return 1 / lapack::gecon(tensor{A});
   } else if (p == 2) {

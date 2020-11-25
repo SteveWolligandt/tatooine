@@ -73,6 +73,12 @@ struct is_tensor<vec<Real, N>> : std::true_type {};
 template <typename Real, size_t N>
 struct is_vec<vec<Real, N>> : std::true_type {};
 //==============================================================================
+template <real_or_complex_number T, size_t N>
+auto begin(vec<T, N> const& v) {return v.begin();}
+//------------------------------------------------------------------------------
+template <real_or_complex_number T, size_t N>
+auto end(vec<T, N> const& v) {return v.ned();}
+//==============================================================================
 template <typename... Ts>
 vec(const Ts&...) -> vec<promote_t<Ts...>, sizeof...(Ts)>;
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
