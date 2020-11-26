@@ -45,24 +45,6 @@ auto main(int argc, char** argv) -> int {
 
   std::vector<size_t> initial_netcdf_is{0, 0, 0}, advected_netcdf_is{0, 0, 0},
       back_calculation_netcdf_is{0, 0, 0};
-  netcdf::file initial_ellipsis_file{"doublegyre_grid_initial.nc",
-                                     netCDF::NcFile::replace},
-      advected_file{"doublegyre_grid_advected.nc", netCDF::NcFile::replace},
-      back_calculation_file{"doublegyre_grid_back_calculation.nc",
-                            netCDF::NcFile::replace};
-  auto initial_var = initial_ellipsis_file.add_variable<float>(
-      "transformations", {initial_ellipsis_file.add_dimension("index"),
-                          initial_ellipsis_file.add_dimension("row", 2),
-                          initial_ellipsis_file.add_dimension("column", 3)});
-
-  auto advected_var = advected_file.add_variable<float>(
-      "transformations", {advected_file.add_dimension("index"),
-                          advected_file.add_dimension("row", 2),
-                          advected_file.add_dimension("column", 3)});
-  auto back_calculation_var = back_calculation_file.add_variable<float>(
-      "transformations", {back_calculation_file.add_dimension("index"),
-                          back_calculation_file.add_dimension("row", 2),
-                          back_calculation_file.add_dimension("column", 3)});
 
   grid initial_autonomous_particles_grid{linspace{0, 2.0, args.width + 1},
                                          linspace{0, 1.0, args.height + 1}};
@@ -466,6 +448,26 @@ auto main(int argc, char** argv) -> int {
     //// write ellipses to netcdf
     ////----------------------------------------------------------------------------
     if (args.write_ellipses_to_netcdf) {
+      netcdf::file initial_ellipsis_file{"doublegyre_grid_initial.nc",
+                                         netCDF::NcFile::replace},
+          advected_file{"doublegyre_grid_advected.nc", netCDF::NcFile::replace},
+          back_calculation_file{"doublegyre_grid_back_calculation.nc",
+                                netCDF::NcFile::replace};
+      auto initial_var = initial_ellipsis_file.add_variable<float>(
+          "transformations",
+          {initial_ellipsis_file.add_dimension("index"),
+           initial_ellipsis_file.add_dimension("row", 2),
+           initial_ellipsis_file.add_dimension("column", 3)});
+
+      auto advected_var = advected_file.add_variable<float>(
+          "transformations", {advected_file.add_dimension("index"),
+                              advected_file.add_dimension("row", 2),
+                              advected_file.add_dimension("column", 3)});
+      auto back_calculation_var = back_calculation_file.add_variable<float>(
+          "transformations",
+          {back_calculation_file.add_dimension("index"),
+           back_calculation_file.add_dimension("row", 2),
+           back_calculation_file.add_dimension("column", 3)});
       indicator.set_text("Writing ellipses to NetCDF Files");
       for (auto const& ap : initial_particles) {
         mat23f T{{ap.S()(0, 0), ap.S()(0, 1), ap.x1()(0)},
