@@ -55,6 +55,13 @@ struct sphere : primitive<Real, N> {
   }
 };
 //------------------------------------------------------------------------------
+template <typename Real0, typename Real1, size_t N>
+sphere(Real0 radius, vec<Real1, N>&&)
+    -> sphere<std::common_type_t<Real0, Real1>, N>;
+template <typename Real0, typename Real1, size_t N>
+sphere(Real0 radius, vec<Real1, N>const&)
+    -> sphere<std::common_type_t<Real0, Real1>, N>;
+//------------------------------------------------------------------------------
 template <typename Real>
 auto discretize(const sphere<Real, 2>& s, size_t const num_vertices) {
   using namespace boost;
@@ -146,6 +153,9 @@ auto discretize(const sphere<Real, 3>& s, size_t num_subdivisions = 0) {
   }
   return m;
 }
+using sphere2 = sphere<double, 2>;
+using sphere3 = sphere<double, 3>;
+using sphere4 = sphere<double, 4>;
 //==============================================================================
 }  // namespace tatooine::geometry
 //==============================================================================

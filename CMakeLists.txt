@@ -190,6 +190,7 @@ if (${yavin_FOUND})
   add_subdirectory(flowexplorer)
 endif()
 add_subdirectory(autonomous_particles)
+add_subdirectory(smearing_scalar_field)
 
 #- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 # This makes the project importable from the build directory
