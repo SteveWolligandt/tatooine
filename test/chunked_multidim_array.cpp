@@ -8,7 +8,7 @@ namespace tatooine::test {
 //==============================================================================
 TEST_CASE("chunked_multidim_array_indices",
           "[chunked_multidim_array][indices]") {
-  chunked_multidim_array<int> arr{{6, 4}, {3, 2}};
+  chunked_multidim_array<int> arr{std::array{6, 4}, std::array{3, 2}};
   arr.create_all_chunks();
   REQUIRE(arr.size(0) == 6);
   REQUIRE(arr.size(1) == 4);

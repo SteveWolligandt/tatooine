@@ -17,7 +17,7 @@ struct magma : grid<std::array<Real, 256>> {
   using container_t = dynamic_multidim_array<col_t, x_fastest>;
   template <typename T>
   using interpolation_t = interpolation::linear<T>;
-  using prop_t = grid_vertex_property<grid_t, container_t, interpolation_t>;
+  using prop_t = multidim_property<grid_t>;
   //==============================================================================
   prop_t &m_scale;
   //==============================================================================

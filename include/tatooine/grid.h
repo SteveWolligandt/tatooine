@@ -192,18 +192,15 @@ class grid {
   //----------------------------------------------------------------------------
  private:
   template <size_t... Is>
-  constexpr auto axis_aligned_bounding_box(
-      std::index_sequence<Is...> /*seq*/) const {
+  constexpr auto bounding_box(std::index_sequence<Is...> /*seq*/) const {
     static_assert(sizeof...(Is) == num_dimensions());
-    return tatooine::axis_aligned_bounding_box<real_t, num_dimensions()>{
+    return axis_aligned_bounding_box<real_t, num_dimensions()>{
         vec<real_t, num_dimensions()>{static_cast<real_t>(front<Is>())...},
         vec<real_t, num_dimensions()>{static_cast<real_t>(back<Is>())...}};
   }
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
  public:
-  constexpr auto axis_aligned_bounding_box() const {
-    return axis_aligned_bounding_box(seq_t{});
-  }
+  constexpr auto bounding_box() const { return bounding_box(seq_t{}); }
   //----------------------------------------------------------------------------
  private:
   template <size_t... Is>

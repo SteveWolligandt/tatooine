@@ -4,23 +4,23 @@
 #include <boost/range/algorithm/copy.hpp>
 #include <boost/range/adaptor/transformed.hpp>
 
-#include "critical_points_bilinear.h"
-#include "field.h"
-#include "grid.h"
-#include "interpolation.h"
-#include "sampled_field.h"
+#include <tatooine/critical_points_bilinear.h>
+#include <tatooine/field.h>
+#include <tatooine/grid.h>
+#include <tatooine/interpolation.h>
+#include <tatooine/sampled_field.h>
 //==============================================================================
 namespace tatooine {
 //==============================================================================
-template <typename Grid, typename Container>
-auto find_critical_points(const sampler<Grid, Container, interpolation::linear,
-                                        interpolation::linear>& s) {
-  static_assert(is_vector_v<typename Container::value_type>,
+template <typename VertexProperty>
+auto find_critical_points(sampler<VertexProperty, interpolation::linear,
+                                  interpolation::linear> const& s) {
+  static_assert(is_vec_v<typename VertexProperty::value_type>,
                 "container of sampler must hold vectors");
-  static_assert(Container::value_type::dimension(0) == 2);
+  static_assert(VertexProperty::value_type::dimension(0) == 2);
   using namespace boost;
   using namespace adaptors;
-  std::vector<typename Grid::pos_t> critical_points;
+  std::vector<typename VertexProperty::grid_t::pos_t> critical_points;
   // iterate over each grid cell
   for (size_t y = 0; y < s.grid().template size<1>() - 1; ++y) {
     for (size_t x = 0; x < s.grid().template size<0>() - 1; ++x) {
