@@ -1,112 +1,132 @@
-#include <tatooine/grid.h>
 #include <tatooine/geometry/sphere.h>
+#include <tatooine/grid.h>
+
+#include "io.h"
+#include "parse_arguments.h"
 //==============================================================================
 using namespace tatooine;
 //==============================================================================
-template <size_t N>
-auto smear(auto& scalar_field, auto& smeared_scalar_field,
-           geometry::sphere<double, N> const& s, double const r1,
-           double const r_t, double const t, double const t0,
-           vec<double, N> const& dir) {
-  auto sampler = scalar_field.template sampler<interpolation::cubic>();
-  scalar_field.grid().parallel_loop_over_vertex_indices([&](auto const... is) {
-    auto const current_pos               = scalar_field.grid()(is...);
-    auto const smear_origin              = current_pos - dir;
+/// Stores a smeared version of ping_field into pong_field.
+auto smear(auto& ping_field, auto& pong_field, geometry::sphere2 const& s,
+           double const inner_radius, double const temporal_range,
+           double const current_time, double const t0, vec2 const& dir) {
+  auto sampler = ping_field.template sampler<interpolation::cubic>();
+  ping_field.grid().parallel_loop_over_vertex_indices([&](auto const... is) {
+    auto const current_pos  = ping_field.grid()(is...);
+    auto const smear_origin = current_pos - dir;
     auto const sqr_distance_to_sphere_origin =
         sqr_distance(smear_origin, s.center());
     if (sqr_distance_to_sphere_origin < s.radius() * s.radius()) {
-      auto const r      = std::sqrt(sqr_distance_to_sphere_origin);
-      auto const s_x    = [&]() -> double {
-        if (r < r1) {
+      auto const r   = std::sqrt(sqr_distance_to_sphere_origin);
+      auto const s_x = [&]() -> double {
+        if (r < inner_radius) {
           return 1;
         }
         if (r > s.radius()) {
           return 0;
         }
-        return (r - s.radius()) / (r1 - s.radius());
+        return (r - s.radius()) / (inner_radius - s.radius());
       }();
       auto const lambda_s = s_x * s_x * s_x + 3 * s_x * s_x * (1 - s_x);
       auto const s_t      = [&]() -> double {
-        if (auto const t_diff = std::abs(t - t0); t_diff < r_t) {
-          return 1 - t_diff / r_t;
+        if (auto const t_diff = std::abs(current_time - t0);
+            t_diff < temporal_range) {
+          return 1 - t_diff / temporal_range;
         }
         return 0;
       }();
       auto const lambda_t = s_t * s_t * s_t + 3 * s_t * s_t * (1 - s_t);
       assert(lambda_s >= 0 && lambda_s <= 1);
       auto const lambda = lambda_s * lambda_t;
-      smeared_scalar_field(is...) =
-          sampler(current_pos) * (1 - lambda) + sampler(smear_origin) * lambda;
+      if (!ping_field.grid().bounding_box().is_inside(current_pos) ||
+          !ping_field.grid().bounding_box().is_inside(smear_origin)) {
+        pong_field(is...) = 0.0 / 0.0;
+      } else {
+        auto const sampled_current = sampler(current_pos);
+        auto const sampled_smeared = sampler(smear_origin);
+        pong_field(is...) =
+            sampled_current * (1 - lambda) + sampled_smeared * lambda;
+      }
     }
   });
 }
 //==============================================================================
-int main() {
-  std::ifstream f{"drift_piped_301_2.00_1.00.df"};
-  size_t res_x{}, res_y{}, res_t{};
+auto main(int argc, char const** argv) -> int {
+  using namespace tatooine::smearing;
+  // parse arguments
+  auto const args = parse_arguments(argc, argv);
+  if (!args) {
+    return 0;
+  }
+  auto const [input_file_path, output_file_path, sphere, inner_radius,
+              end_point, temporal_range, t0, dir, num_steps, write_vtk] = *args;
+
+  // read file
+  int    res_x{}, res_y{}, res_t{};
   double min_x{}, min_y{}, min_t{};
   double extent_x{}, extent_y{}, extent_t{};
-  if (f.is_open()) {
-    f >> res_x >> res_y >> res_t >>
-         min_x >> min_y >> min_t >>
-         extent_x >> extent_y >> extent_t;
-    std::cerr << res_x << ", " << res_y << ", " << res_t << '\n';
-    std::cerr << min_x << ", " << min_y << ", " << min_t << '\n';
-    std::cerr << extent_x << ", " << extent_y << ", " << extent_t << '\n';
+  auto   grids = [&] {
+    auto const ext = args->input_file_path.extension();
+    if (ext != ".df" && ext != ".bin") {
+      throw std::runtime_error{"File must have extension .df or .bin."};
+    }
+    if (ext == ".df") {
+      return read_ascii(args->input_file_path, res_x, res_y, res_t, min_x,
+                        min_y, min_t, extent_x, extent_y, extent_t);
+    }
+    return read_binary(args->input_file_path, res_x, res_y, res_t, min_x, min_y,
+                       min_t, extent_x, extent_y, extent_t);
+  }();
+  linspace<double> times{min_t, min_t + extent_t, static_cast<size_t>(res_t)};
+
+  // write originals to vtk files
+  if (write_vtk) {
+    for (size_t i = 0; i < size(grids); ++i) {
+      grids[i].write_vtk("original_" + std::to_string(i) + ".vtk");
+    }
   }
-  std::vector<uniform_grid_2d<double>> grids(
-      res_t, uniform_grid_2d<double>{linspace{min_x, min_x + extent_x, res_x},
-                                     linspace{min_y, min_y + extent_y, res_x}});
-  std::vector<double> ts;
-  double const        spacing = extent_t / (res_t - 1);
-  for (size_t i = 0; i < res_t; ++i) {
-    ts.push_back(min_t + spacing * i);
+
+  // for each grid smear a scalar field
+  std::string const scalar_field_name = "a";
+  for (size_t j = 0; j < size(times); ++j) {
+    auto                   s = sphere;
+    [[maybe_unused]] auto& ping_field =
+        grids[j].vertex_property<double>(scalar_field_name);
+    auto& pong_field = grids[j].add_vertex_property<double>("pong");
+    grids[j].loop_over_vertex_indices(
+        [&](auto const... is) { pong_field(is...) = ping_field(is...); });
+    bool       ping         = true;
+    auto const current_time = times[j];
+    for (size_t i = 0; i < num_steps; ++i) {
+      if (ping) {
+        smear(ping_field, pong_field, s, inner_radius, temporal_range,
+              current_time, t0, dir);
+      } else {
+        smear(pong_field, ping_field, s, inner_radius, temporal_range,
+              current_time, t0, dir);
+      }
+      s.center() += dir;
+      ping = !ping;
+    }
+    if (ping) {
+      grids[j].remove_vertex_property(scalar_field_name);
+      grids[j].rename_vertex_property("pong", scalar_field_name);
+    } else {
+      grids[j].remove_vertex_property("pong");
+    }
   }
-  double val;
-  for (size_t i = 0; i < res_t; ++i) {
-    auto& a = grids[i].add_vertex_property<double>("a");
-    grids[i].loop_over_vertex_indices([&](auto const... is) {
-      f >> val;
-      a(is...) = val;
-    });
+  // write to vtk
+  if (write_vtk) {
+    for (size_t i = 0; i < size(grids); ++i) {
+      grids[i].write_vtk("smeared_" + std::to_string(i) + ".vtk");
+    }
   }
-  for (size_t i = 0; i < res_t; ++i) {
-    auto& b = grids[i].add_vertex_property<double>("b");
-    grids[i].loop_over_vertex_indices([&](auto const... is) {
-      f >> val;
-      b(is...) = val;
-    });
+  // write to output file
+  if (output_file_path.extension() == ".bin") {
+    write_binary(output_file_path, grids, res_x, res_y, res_t, min_x, min_y,
+                 min_t, extent_x, extent_y, extent_t);
+  } else if (output_file_path.extension() == ".df") {
+    write_ascii(output_file_path, grids, res_x, res_y, res_t, min_x, min_y,
+                min_t, extent_x, extent_y, extent_t);
   }
-  grids[0].write_vtk("a.vtk");
-  grids[0].write_vtk("b.vtk");
-  //auto& scalar_field = g.add_vertex_property<double>("scalar_field");
-  //auto& smeared_scalar_field =
-  //    g.add_vertex_property<double>("smeared_scalar_field");
-  //
-  //for (size_t x = 0; x < g.size(0); x++) {
-  //  auto const v = static_cast<double>(x) / static_cast<double>(g.size(0) - 1);
-  //  for (size_t y = 0; y < g.size(1); y++) {
-  //    scalar_field(x, y)         = v;
-  //    smeared_scalar_field(x, y) = v;
-  //  }
-  //}
-  //g.write_vtk("original.vtk");
-  //
-  //double           r1 = 0.03, r2 = 0.1;
-  //double           r_t = 0.1, t0 = 0, t = 0;
-  //geometry::sphere s{r2, vec2{0.5, 0.5}};
-  //vec2             dir{0.1, 0.0};
-  //dir = normalize(dir);
-  //dir *= (r2 - r1) * 0.1;
-  //bool ping = true;
-  //for (size_t i = 0; i < 20; ++i) {
-  //  if (ping) {
-  //    smear(scalar_field, smeared_scalar_field, s, r1, r_t, t, t0, dir);
-  //  } else {
-  //    smear(smeared_scalar_field, scalar_field, s, r1, r_t, t, t0, dir);
-  //  }
-  //  s.center() += dir;
-  //  ping = !ping;
-  //}
-  //g.write_vtk("smeared.vtk");
 }
