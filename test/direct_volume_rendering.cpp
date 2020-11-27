@@ -3,8 +3,8 @@
 #include <tatooine/analytical/fields/numerical/doublegyre.h>
 #include <tatooine/color_scales/magma.h>
 #include <tatooine/direct_volume_rendering.h>
-#include <tatooine/perspective_camera.h>
-#include <tatooine/spacetime_field.h>
+#include <tatooine/rendering/perspective_camera.h>
+#include <tatooine/spacetime_vectorfield.h>
 
 #include <catch2/catch.hpp>
 //==============================================================================
@@ -13,7 +13,7 @@ namespace tatooine::test {
 TEST_CASE("direct_volume_rendering_doublegyre",
           "[direct_volume_rendering][doublegyre]") {
   analytical::fields::numerical::doublegyre v;
-  spacetime_field                           stv{v};
+  spacetime_vectorfield                           stv{v};
   color_scales::magma                       color_scale;
   constexpr auto                            alpha_scale = [](double const t) {
     //return t - 0.2;
@@ -21,19 +21,18 @@ TEST_CASE("direct_volume_rendering_doublegyre",
     return t * t - 0.2;
   };
 
-  boundingbox bb{vec{0.0, 0.0, 0.0}, vec{2.0, 1.0, 10.0}};
+  axis_aligned_bounding_box bb{vec{0.0, 0.0, 0.0}, vec{2.0, 1.0, 10.0}};
   auto        mag = length(stv);
   auto        Qf  = lagrangian_Q(stv, 0, 5);
   REQUIRE(mag(vec{0.1, 0.1, 0.1}, 0) == length(stv(vec{0.1, 0.1, 0.1}, 0)));
   size_t const               width = 1000, height = 600;
-  perspective_camera<double> cam{vec{-1, 2, -3}, vec{0.5, 1, 0.0}, 60, width,
-                                 height};
+  rendering::perspective_camera<double> cam{vec3{-1, 2, -3}, vec3{0.5, 1, 0.0},
+                                            60, 0.001, 1000, width, height};
   auto                       mag_grid =
       direct_volume_rendering(cam, bb, mag, 0, 1, 1.1, 0.01, color_scale,
                               alpha_scale, vec<double, 3>::ones());
-  write_png("direct_volume_stdg_mag.png",
-            mag_grid.vertex_property<vec<double, 3>>("rendering"), width,
-            height);
+  mag_grid.vertex_property<vec<double, 3>>("rendering")
+      .write_png("direct_volume_stdg_mag.png");
   auto Q_grid = direct_volume_rendering(
       cam, bb, Qf, 0, 0.0, 1.0, 0.001, color_scale,
       [](auto const t) -> double {
@@ -60,7 +59,7 @@ TEST_CASE("direct_volume_rendering_doublegyre_2",
     return t * t - 0.2;
   };
 
-  boundingbox<double, 3>     bb{vec{30, 10, 0}, vec{50, 30, 8}};
+  axis_aligned_bounding_box<double, 3>     bb{vec{30, 10, 0}, vec{50, 30, 8}};
   auto const                 Qf    = Q(stv);
   size_t const               width = 1000, height = 1000;
   vec<double, 3> const       top_left_front{bb.min(0), bb.center(1), bb.min(2)};
