@@ -6,39 +6,38 @@ namespace tatooine::smearing {
 auto parse_arguments(int argc, char const** argv) -> std::optional<arguments> { 
   namespace po = boost::program_options;
 
-  std::filesystem::path input_file, output_file;
-  double                t0 = 0;
-  std::vector<double>   starting_point;
-  std::vector<double>   end_point;
-  double                inner_radius   = 0.03;
-  double                outer_radius  = 0.1;
-  double                temporal_range = 0.1;
-  size_t                num_steps      = 1;
-  bool                  write_vtk      = false;
+  std::filesystem::path    input_file, output_file;
+  double                   t0 = 0;
+  std::vector<double>      starting_point;
+  std::vector<double>      end_point;
+  double                   inner_radius   = 0.03;
+  double                   outer_radius   = 0.1;
+  double                   temporal_range = 0.1;
+  size_t                   num_steps      = 1;
+  bool                     write_vtk      = false;
+  std::vector<std::string> fields;
 
   // Declare the supported options.
   po::options_description desc("Allowed options");
   desc.add_options()("help", "produce help message")(
-      "input", po::value<std::string>(),
-        "file to read")(
-      "output", po::value<std::string>(),
-        "file to write")(
+      "fields", po::value<std::vector<std::string>>()->multitoken(),
+      "fields to smear. must be a, b or both")(
+      "input", po::value<std::string>(), "file to read")(
+      "output", po::value<std::string>(), "file to write")(
       "inner_radius", po::value<double>(),
-        "specifies the inner radius of the smearing")(
+      "specifies the inner radius of the smearing")(
       "outer_radius", po::value<double>(),
-        "specifies the outer radius of the smearing")(
+      "specifies the outer radius of the smearing")(
       "t0", po::value<double>(),
-        "specifies the point where the smearing has its greatest impact")(
+      "specifies the point where the smearing has its greatest impact")(
       "temporal_range", po::value<double>(),
-        "specifies the temporal width of the smearing")(
+      "specifies the temporal width of the smearing")(
       "start", po::value<std::vector<double>>()->multitoken(),
-        "starting point of the smearing")(
+      "starting point of the smearing")(
       "end", po::value<std::vector<double>>()->multitoken(),
-        "end point of the smearing")(
-      "num_steps", po::value<size_t>(),
-        "number of smearing between start and end")(
-      "write_vtk", po::value<bool>(),
-        "additionally writes data as vtk");
+      "end point of the smearing")("num_steps", po::value<size_t>(),
+                                   "number of smearing between start and end")(
+      "write_vtk", po::value<bool>(), "additionally writes data as vtk");
 
   po::variables_map vm;
   po::store(po::parse_command_line(argc, argv, desc), vm);
@@ -77,6 +76,17 @@ auto parse_arguments(int argc, char const** argv) -> std::optional<arguments> {
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
   if (vm.count("temporal_range") > 0) {
     temporal_range = vm["temporal_range"].as<double>();
+  }
+  // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+  if (vm.count("fields") > 0) {
+    fields = vm["fields"].as<std::vector<std::string>>();
+    for (auto const& f : fields) {
+      if (f != "a" && f != "b") {
+        throw std::runtime_error{"Fields only can be \"a\" or \"b\"!"};
+      }
+    }
+  } else {
+    throw std::runtime_error{"You need to specify which fields to smear!"};
   }
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
   if (vm.count("write_vtk") > 0) {
@@ -119,7 +129,8 @@ auto parse_arguments(int argc, char const** argv) -> std::optional<arguments> {
                    t0,
                    dir,
                    num_steps,
-                   write_vtk};
+                   write_vtk,
+                   fields};
 }
 //==============================================================================
 }  // namespace tatooine::smearing
