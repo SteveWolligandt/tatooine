@@ -17,6 +17,7 @@ struct arguments {
   vec2                  dir;
   size_t                num_steps;
   bool                  write_vtk;
+  std::vector<std::string> fields;
 };
 //==============================================================================
 auto parse_arguments(int argc, char const** argv) -> std::optional<arguments>;

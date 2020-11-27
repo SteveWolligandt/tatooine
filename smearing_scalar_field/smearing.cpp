@@ -7,15 +7,19 @@
 using namespace tatooine;
 //==============================================================================
 /// Stores a smeared version of ping_field into pong_field.
+/// For each point of a grid go in backward directions and sample field there.
+/// Afterwards create the interpolation factor depending of position and time.
 auto smear(auto& ping_field, auto& pong_field, geometry::sphere2 const& s,
            double const inner_radius, double const temporal_range,
            double const current_time, double const t0, vec2 const& dir) {
+  // create a sampler of the ping_field
   auto sampler = ping_field.template sampler<interpolation::cubic>();
+
   ping_field.grid().parallel_loop_over_vertex_indices([&](auto const... is) {
     auto const current_pos  = ping_field.grid()(is...);
-    auto const smear_origin = current_pos - dir;
+    auto const offset_pos = current_pos - dir;
     auto const sqr_distance_to_sphere_origin =
-        sqr_distance(smear_origin, s.center());
+        sqr_distance(offset_pos, s.center());
     if (sqr_distance_to_sphere_origin < s.radius() * s.radius()) {
       auto const r   = std::sqrt(sqr_distance_to_sphere_origin);
       auto const s_x = [&]() -> double {
@@ -39,11 +43,11 @@ auto smear(auto& ping_field, auto& pong_field, geometry::sphere2 const& s,
       assert(lambda_s >= 0 && lambda_s <= 1);
       auto const lambda = lambda_s * lambda_t;
       if (!ping_field.grid().bounding_box().is_inside(current_pos) ||
-          !ping_field.grid().bounding_box().is_inside(smear_origin)) {
+          !ping_field.grid().bounding_box().is_inside(offset_pos)) {
         pong_field(is...) = 0.0 / 0.0;
       } else {
         auto const sampled_current = sampler(current_pos);
-        auto const sampled_smeared = sampler(smear_origin);
+        auto const sampled_smeared = sampler(offset_pos);
         pong_field(is...) =
             sampled_current * (1 - lambda) + sampled_smeared * lambda;
       }
@@ -59,7 +63,8 @@ auto main(int argc, char const** argv) -> int {
     return 0;
   }
   auto const [input_file_path, output_file_path, sphere, inner_radius,
-              end_point, temporal_range, t0, dir, num_steps, write_vtk] = *args;
+              end_point, temporal_range, t0, dir, num_steps, write_vtk,
+              fields] = *args;
 
   // read file
   int    res_x{}, res_y{}, res_t{};
@@ -87,32 +92,33 @@ auto main(int argc, char const** argv) -> int {
   }
 
   // for each grid smear a scalar field
-  std::string const scalar_field_name = "a";
-  for (size_t j = 0; j < size(times); ++j) {
-    auto                   s = sphere;
-    [[maybe_unused]] auto& ping_field =
-        grids[j].vertex_property<double>(scalar_field_name);
-    auto& pong_field = grids[j].add_vertex_property<double>("pong");
-    grids[j].loop_over_vertex_indices(
-        [&](auto const... is) { pong_field(is...) = ping_field(is...); });
-    bool       ping         = true;
-    auto const current_time = times[j];
-    for (size_t i = 0; i < num_steps; ++i) {
-      if (ping) {
-        smear(ping_field, pong_field, s, inner_radius, temporal_range,
-              current_time, t0, dir);
-      } else {
-        smear(pong_field, ping_field, s, inner_radius, temporal_range,
-              current_time, t0, dir);
+  for (auto const& scalar_field_name : fields) {
+    for (size_t j = 0; j < size(times); ++j) {
+      auto                   s = sphere;
+      [[maybe_unused]] auto& ping_field =
+          grids[j].vertex_property<double>(scalar_field_name);
+      auto& pong_field = grids[j].add_vertex_property<double>("pong");
+      grids[j].loop_over_vertex_indices(
+          [&](auto const... is) { pong_field(is...) = ping_field(is...); });
+      bool       ping         = true;
+      auto const current_time = times[j];
+      for (size_t i = 0; i < num_steps; ++i) {
+        if (ping) {
+          smear(ping_field, pong_field, s, inner_radius, temporal_range,
+                current_time, t0, dir);
+        } else {
+          smear(pong_field, ping_field, s, inner_radius, temporal_range,
+                current_time, t0, dir);
+        }
+        s.center() += dir;
+        ping = !ping;
       }
-      s.center() += dir;
-      ping = !ping;
-    }
-    if (ping) {
-      grids[j].remove_vertex_property(scalar_field_name);
-      grids[j].rename_vertex_property("pong", scalar_field_name);
-    } else {
-      grids[j].remove_vertex_property("pong");
+      if (ping) {
+        grids[j].remove_vertex_property(scalar_field_name);
+        grids[j].rename_vertex_property("pong", scalar_field_name);
+      } else {
+        grids[j].remove_vertex_property("pong");
+      }
     }
   }
   // write to vtk
