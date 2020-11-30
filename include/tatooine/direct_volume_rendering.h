@@ -92,7 +92,7 @@ template <real_number CameraReal, real_number      AABBReal, typename S,
           typename SReal, regular_invocable<SReal> ColorScale,
           regular_invocable<SReal> AlphaScale>
 auto direct_volume_rendering(
-    rendering::camera<CameraReal> const&                     cam,
+    rendering::camera<CameraReal> const&          cam,
     axis_aligned_bounding_box<AABBReal, 3> const& bb,
     scalarfield<S, SReal, 3> const& s, real_number auto const t,
     real_number auto const min, real_number auto const max,
@@ -106,18 +106,13 @@ auto direct_volume_rendering(
       std::forward<AlphaScale>(alpha_scale), bg_color);
 }
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-template <real_number CameraReal, typename Grid, typename Container,
-          template <typename> typename Kernel0,
-          template <typename> typename Kernel1,
-          template <typename> typename Kernel2,
-          regular_invocable<typename Container::value_type> ColorScale,
-          regular_invocable<typename Container::value_type> AlphaScale>
+template <real_number CameraReal, typename Grid, typename ValueType,
+          regular_invocable<ValueType> ColorScale,
+          regular_invocable<ValueType> AlphaScale>
 auto direct_volume_rendering(
-    rendering::camera<CameraReal> const& cam,
-    multidim_property<Container> const&  prop,
-    typename Container::value_type const min,
-    typename Container::value_type const max,
-    typename Container::value_type const distance_on_ray,
+    rendering::camera<CameraReal> const&            cam,
+    typed_multidim_property<Grid, ValueType> const& prop, ValueType const min,
+    ValueType const max, ValueType const distance_on_ray,
     ColorScale&& color_scale, AlphaScale&& alpha_scale,
     std::invoke_result_t<ColorScale, typename Container::value_type> const&
         bg_color = {}) {

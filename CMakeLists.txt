@@ -41,6 +41,7 @@ find_package(PNG++ REQUIRED)
 find_package(NetCDF REQUIRED)
 find_package(CGAL REQUIRED)
 find_package(FLANN REQUIRED)
+set(CGAL_DO_NOT_WARN_ABOUT_CMAKE_BUILD_TYPE TRUE)
 #- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - 
 # configure files
 #- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - 

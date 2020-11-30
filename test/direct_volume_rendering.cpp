@@ -46,14 +46,14 @@ TEST_CASE("direct_volume_rendering_doublegyre",
       },
       vec<double, 3>::ones());
   write_png("direct_volume_stdg_Q.png",
-            Q_grid.vertex_property<vec<double, 3>>("rendering"), width, height);
+            Q_grid.vertex_property<vec<double, 3>>("rendering"));
 }
 //==============================================================================
 TEST_CASE("direct_volume_rendering_doublegyre_2",
           "[direct_volume_rendering][doublegyre]") {
   analytical::fields::numerical::doublegyre v;
   v.set_infinite_domain(true);
-  spacetime_field     stv{v};
+  spacetime_vectorfield     stv{v};
   color_scales::magma color_scale;
   auto                alpha_scale = [](double const t) {
     return t * t - 0.2;
@@ -65,16 +65,12 @@ TEST_CASE("direct_volume_rendering_doublegyre_2",
   vec<double, 3> const       top_left_front{bb.min(0), bb.center(1), bb.min(2)};
   auto const                 ctr      = bb.center();
   auto                       view_dir = top_left_front - ctr;
-  perspective_camera<double> cam{top_left_front + view_dir*1.5,
-                                 ctr,
-                                 vec<double, 3>{0, 0, -1},
-                                 60,
-                                 width,
-                                 height};
+  rendering::perspective_camera<double> cam{top_left_front + view_dir * 1.5,
+                                            ctr, 60, width, height};
   auto Q_grid = direct_volume_rendering(cam, bb, Qf, 0, 0.1, 1.1, 0.01,
                                         color_scale, alpha_scale, vec<double, 3>::ones());
   write_png("direct_volume_stdg_Q_wide.png",
-            Q_grid.vertex_property<vec<double, 3>>("rendering"), width, height);
+            Q_grid.vertex_property<vec<double, 3>>("rendering"));
 }
 //==============================================================================
 TEST_CASE("direct_volume_rendering_abc_magnitude",
@@ -88,20 +84,17 @@ TEST_CASE("direct_volume_rendering_abc_magnitude",
     return t - 0.2;
     //return (std::exp(t) - 1) / (std::exp(1) - 1);
   };
-  auto&               mag =
-      g.add_contiguous_vertex_property<double, x_fastest, interpolation::linear,
-                                       interpolation::linear,
-                                       interpolation::linear>("mag");
+  auto&  mag = g.add_vertex_property<double>("mag");
   double min = std::numeric_limits<double>::max(),
          max = -std::numeric_limits<double>::max();
   g.loop_over_vertex_indices([&](auto const... is) {
-    mag.container().at(is...) = length(v(g.vertex_at(is...), 0));
-    min                       = std::min(mag.container().at(is...), min);
-    max                       = std::max(mag.container().at(is...), max);
+    mag(is...) = length(v(g.vertex_at(is...), 0));
+    min        = std::min(mag(is...), min);
+    max        = std::max(mag(is...), max);
   });
   size_t const               width = 1000, height = 1000;
-  perspective_camera<double> cam{vec{40, 50, 50}, vec{0.0, 0.0, 0.0}, 30, width,
-                                 height};
+  rendering::perspective_camera<double> cam{vec{40, 50, 50}, vec{0.0, 0.0, 0.0},
+                                            30, width, height};
   std::cerr << "max: " << max << '\n';
   auto rendered_grid = direct_volume_rendering(
       cam, mag, 1, max, 0.01, color_scale, alpha_scale, vec<double, 3>::ones());

@@ -30,14 +30,14 @@ int main() {
     }
   };
 
-  boundingbox bb{
+  axis_aligned_bounding_box aabb{
       vec{v.xc_axis.front(), v.yc_axis.front(), v.z_axis.front() * 0.0025},
       vec{v.xc_axis.back(), v.yc_axis.back(), v.z_axis.back() * 0.0025}};
   auto Qf = Q(v);
 
   size_t const               width = 1600, height = 800;
-  vec<double, 3> const       top_left_front{bb.min(0), bb.center(1), bb.min(2)};
-  auto const                 ctr      = bb.center();
+  vec<double, 3> const       top_left_front{aabb.min(0), aabb.center(1), aabb.min(2)};
+  auto const                 ctr      = aabb.center();
   auto                       view_dir = top_left_front - ctr;
   perspective_camera<double> cam{top_left_front + view_dir * 1.5,
                                  ctr,
@@ -65,7 +65,7 @@ int main() {
           auto const btau = 0;  // std::max<double>(-tau, min_btau);
           auto const lQf  = lagrangian_Q(v, btau, ftau);
           auto       g    = direct_volume_rendering(
-              cam, bb,
+              cam, aabb,
               [&](auto const& pos) {
                 return lQf(vec{pos(0), pos(1), pos(2) / 0.0025}, t);
               },

@@ -59,6 +59,13 @@ class perspective_camera : public camera<Real> {
       : perspective_camera(eye, lookat, vec3{0, 1, 0}, fov, near, far, res_x,
                            res_y) {}
   //----------------------------------------------------------------------------
+  /// Constructor generates bottom left image plane pixel position and pixel
+  /// offset size.
+  perspective_camera(vec3 const& eye, vec3 const& lookat, Real fov,
+                     size_t res_x, size_t res_y)
+      : perspective_camera(eye, lookat, vec3{0, 1, 0}, fov, 0.001, 1000, res_x,
+                           res_y) {}
+  //----------------------------------------------------------------------------
   ~perspective_camera() override = default;
   //----------------------------------------------------------------------------
   // object methods

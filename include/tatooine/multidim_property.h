@@ -6,6 +6,7 @@
 #include <tatooine/finite_differences_coefficients.h>
 #include <tatooine/write_png.h>
 #include <tatooine/sampler.h>
+#include <tatooine/type_traits.h>
 //==============================================================================
 namespace tatooine {
 //==============================================================================
@@ -174,7 +175,56 @@ struct typed_multidim_property : multidim_property<Grid> {
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
   virtual auto resize(std::array<size_t, num_dimensions()> const& size)
       -> void = 0;
+  //----------------------------------------------------------------------------
+  template <typename = void>
+  requires (num_dimensions() == 2) &&
+           (is_floating_point_v<ValueType> || is_vec_v<ValueType>)
+  auto write_png(std::filesystem::path const& path) const -> void {
+    png::image<png::rgb_pixel> image{this->grid().size(0),
+                                     this->grid().size(1)};
+    for (unsigned int y = 0; y < image.get_height(); ++y) {
+      for (png::uint_32 x = 0; x < image.get_width(); ++x) {
+        auto d = at(x, y);
+        if constexpr (is_floating_point_v<ValueType>) {
+          if (std::isnan(d)) {
+            d = 0;
+          } else {
+            d = std::max<ValueType>(0, std::min<ValueType>(1, d));
+          }
+          image[image.get_height() - 1 - y][x].red =
+          image[image.get_height() - 1 - y][x].green =
+          image[image.get_height() - 1 - y][x].blue = d * 255;
+        } else if constexpr (is_floating_point_v<ValueType>) {
+          if (std::isnan(d(0))) {
+            for (auto& c : d) {
+              c = 0;
+            }
+          } else {
+            for (auto& c : d) {
+              c = std::max<ValueType>(0, std::min<ValueType>(1, c));
+            }
+          }
+          image[image.get_height() - 1 - y][x].red   = d(0) * 255;
+          image[image.get_height() - 1 - y][x].green = d(1) * 255;
+          image[image.get_height() - 1 - y][x].blue  = d(2) * 255;
+        }
+      }
+    }
+    image.write(path.string());
+  }
 };
+//==============================================================================
+template <typename Grid, typename ValueType>
+auto write_png(typed_multidim_property<Grid, ValueType> const& prop,
+               std::filesystem::path const&                    path) -> void {
+  prop.write_png(path);
+}
+// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+template <typename Grid, typename ValueType>
+auto write_png(std::filesystem::path const&                    path,
+               typed_multidim_property<Grid, ValueType> const& prop) -> void {
+  prop.write_png(path);
+}
 //==============================================================================
 template <typename Grid, typename ValueType, typename Container>
 struct typed_multidim_property_impl : typed_multidim_property<Grid, ValueType>,

@@ -33,6 +33,9 @@ using enable_if_arithmetic =
     std::enable_if_t<(std::is_arithmetic_v<Ts> && ...), bool>;
 //==============================================================================
 template <typename T>
+static constexpr auto is_floating_point_v = std::is_floating_point_v<T>;
+//==============================================================================
+template <typename T>
 struct num_components;
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 template <typename T>

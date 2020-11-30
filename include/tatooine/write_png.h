@@ -8,8 +8,8 @@
 namespace tatooine {
 //==============================================================================
 template <real_number T>
-void write_png(std::string const& filepath, std::vector<T> const& data,
-               size_t width, size_t height) {
+void write_png(std::filesystem::path const& path,
+               std::vector<T> const& data, size_t width, size_t height) {
   png::image<png::rgb_pixel> image(width, height);
   for (unsigned int y = 0; y < image.get_height(); ++y) {
     for (png::uint_32 x = 0; x < image.get_width(); ++x) {
@@ -25,7 +25,7 @@ void write_png(std::string const& filepath, std::vector<T> const& data,
               image[image.get_height() - 1 - y][x].blue = d * 255;
     }
   }
-  image.write(filepath);
+  image.write(path.string());
 }
 //==============================================================================
 }  // namespace tatooine
