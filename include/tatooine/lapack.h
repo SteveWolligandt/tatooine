@@ -3,23 +3,9 @@
 //==============================================================================
 #include <tatooine/tensor.h>
 #include <lapacke.h>
+#include <tatooine/lapack_job.h>
 //==============================================================================
-namespace tatooine {
-//==============================================================================
-namespace lapack_job {
-//==============================================================================
-struct A_t {};
-struct S_t {};
-struct O_t {};
-struct N_t {};
-static constexpr A_t A;
-static constexpr S_t S;
-static constexpr O_t O;
-static constexpr N_t N;
-//==============================================================================
-}  // namespace lapack_job
-//==============================================================================
-namespace lapack {
+namespace tatooine::lapack {
 //==============================================================================
 template <real_or_complex_number T, size_t M, size_t N>
 auto getrf(tensor<T, M, N>&& A) {
@@ -165,8 +151,8 @@ auto gecon(tensor<T, N, N>& A) {
 /// http://www.netlib.org/lapack/explore-html/d0/dee/lapacke__dgesvd_8c_af31b3cb47f7cc3b9f6541303a2968c9f.html
 template <real_or_complex_number T, size_t M, size_t N, typename JOBU, typename JOBVT>
 auto gesvd(tensor<T, M, N>&& A, JOBU, JOBVT) {
-  static_assert(!std::is_same_v<JOBU, lapack_job::O_t> ||
-                    !std::is_same_v<JOBVT, lapack_job::O_t>,
+  static_assert(!std::is_same_v<JOBU,  lapack_job::O_t> ||
+                !std::is_same_v<JOBVT, lapack_job::O_t>,
                 "either jobu or jobvt must not be O");
   vec<T, tatooine::min(M, N)> s;
   constexpr char              jobu = [&] {
@@ -293,8 +279,6 @@ auto gesvd(tensor<T, M, N>&& A, JOBU, JOBVT) {
   }
 }
 //==============================================================================
-}  // namespace lapack
-//==============================================================================
-}  // namespace tatooine
+}  // namespace tatooine::lapack
 //==============================================================================
 #endif

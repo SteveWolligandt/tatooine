@@ -355,7 +355,6 @@ class dynamic_multidim_array : public dynamic_multidim_size<Indexing> {
   //}
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
   template <unsigned_integral UInt, typename RandEng = std::mt19937_64>
-
   static auto randu(T min, T max, std::vector<UInt> const& size,
                     RandEng&& eng = RandEng{std::random_device{}()}) {
     return this_t{

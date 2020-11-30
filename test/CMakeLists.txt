@@ -27,7 +27,7 @@ macro(create_test NAME)
   target_link_libraries(${NAME}.test tatooine Catch2::Catch2)
   target_compile_features(${NAME}.test PUBLIC cxx_std_20)
   target_compile_options(${NAME}.test PRIVATE
-    -Wall -Wextra -pedantic -Wno-missing-braces-Wno-gnu-zero-variadic-macro-arguments -ftemplate-backtrace-limit=0)
+    -Wall -Wextra -pedantic -Wno-missing-braces -Wno-gnu-zero-variadic-macro-arguments -ftemplate-backtrace-limit=0)
   if (CMAKE_CXX_COMPILER_ID STREQUAL "Clang")
     target_compile_options(${NAME}.test PRIVATE -Wno-unused-lambda-capture)
   endif()

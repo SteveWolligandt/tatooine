@@ -9,6 +9,7 @@
 #include <unordered_set>
 #include <vector>
 
+#include <tatooine/dynamic_tensor.h>
 #include <tatooine/handle.h>
 #include <tatooine/property.h>
 #include <tatooine/polynomial.h>
@@ -576,7 +577,7 @@ struct pointset {
     //==========================================================================
     pointset_t const&           m_pointset;
     vertex_property_t<T> const& m_property;
-    size_t                      m_num_neighbors = 10;
+    Real                        m_radius = 0.3;
     //==========================================================================
     moving_least_squares_sampler_t(pointset_t const&           ps,
                                    vertex_property_t<T> const& property)
@@ -584,10 +585,8 @@ struct pointset {
     // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
     moving_least_squares_sampler_t(pointset_t const&           ps,
                                    vertex_property_t<T> const& property,
-                                   size_t const                num_neighbors)
-        : m_pointset{ps},
-          m_property{property},
-          m_num_neighbors{num_neighbors} {}
+                                   Real const                  radius)
+        : m_pointset{ps}, m_property{property}, m_radius{radius} {}
     //--------------------------------------------------------------------------
     moving_least_squares_sampler_t(moving_least_squares_sampler_t const&) =
         default;
@@ -603,68 +602,79 @@ struct pointset {
     // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
     ~moving_least_squares_sampler_t() = default;
     //==========================================================================
-    template <size_t num_neighbors = 20>
     auto sample(pos_t const& q) const {
-      using B_t = mat<Real, num_neighbors, 6>;
-      using w_t = vec<Real, num_neighbors>;
-      using f_t = vec<Real, num_neighbors>;
+      auto const  nn = m_pointset.nearest_neighbors_radius_raw(q, m_radius);
+      auto const& indices       = nn.first;
+      auto const& distances     = nn.second;
+      auto const  num_neighbors = size(indices);
 
-      auto const  nn      = m_pointset.nearest_neighbors_raw(q, num_neighbors);
-      auto const& indices = nn.first;
-      auto const& distances = nn.second;
-      if (indices.size() < num_neighbors) {
-        throw std::runtime_error{"dasdsa"};
+      for (size_t i = 0; i < num_neighbors; ++i) {
+        if (distances[i] == 0) {
+          return m_property[vertex_handle{indices[i]}];
+        }
       }
       auto const w = [&] {
-        w_t w;
+        auto w = dynamic_tensor<Real>::zeros(num_neighbors);
         for (size_t i = 0; i < num_neighbors; ++i) {
-          w(i) = distances[i];
+          w(i) = 1 / distances[i] - 1 / m_radius;
         }
         return w;
       }();
       auto const f = [&] {
-        f_t f;
+        auto f = dynamic_tensor<Real>::zeros(num_neighbors);
         for (size_t i = 0; i < num_neighbors; ++i) {
           f(i) = m_property[vertex_handle{indices[i]}];
         }
         return f;
       }();
+      std::cerr << f << '\n';
 
-      auto const B = [&] {
-        auto B = B_t::ones();
+      if (num_neighbors >= 6) {
+        auto const B = [&] {
+          auto B = dynamic_tensor<Real>::ones(num_neighbors, 6);
 
-        for (size_t i = 0; i < num_neighbors; ++i) {
-          B(i, 1) = m_pointset.vertex_at(indices[i]).x() - q.x();
-        }
-        for (size_t i = 0; i < num_neighbors; ++i) {
-          B(i, 2) = m_pointset.vertex_at(indices[i]).y() - q.y();
-        }
-        for (size_t i = 0; i < num_neighbors; ++i) {
-          B(i, 3) = (m_pointset.vertex_at(indices[i]).x() - q.x()) *
-                    (m_pointset.vertex_at(indices[i]).x() - q.x());
-        }
-        for (size_t i = 0; i < num_neighbors; ++i) {
-          B(i, 4) = (m_pointset.vertex_at(indices[i]).x() - q.x()) *
-                    (m_pointset.vertex_at(indices[i]).y() - q.y());
-        }
-        for (size_t i = 0; i < num_neighbors; ++i) {
-          B(i, 5) = (m_pointset.vertex_at(indices[i]).y() - q.y()) *
-                    (m_pointset.vertex_at(indices[i]).y() - q.y());
-        }
-        return B;
-      }();
-      auto const BtW = transposed(B) * diag(w);
-      auto const c   = solve(BtW * B, BtW * f);
-      if (auto const c = condition_number(BtW * B); c > 5000) {
-        std::cerr << "cond: " << c << '\n';
+          for (size_t i = 0; i < num_neighbors; ++i) {
+            B(i, 1) = m_pointset.vertex_at(indices[i]).x() - q.x();
+          }
+          for (size_t i = 0; i < num_neighbors; ++i) {
+            B(i, 2) = m_pointset.vertex_at(indices[i]).y() - q.y();
+          }
+          for (size_t i = 0; i < num_neighbors; ++i) {
+            B(i, 3) = (m_pointset.vertex_at(indices[i]).x() - q.x()) *
+                      (m_pointset.vertex_at(indices[i]).x() - q.x());
+          }
+          for (size_t i = 0; i < num_neighbors; ++i) {
+            B(i, 4) = (m_pointset.vertex_at(indices[i]).x() - q.x()) *
+                      (m_pointset.vertex_at(indices[i]).y() - q.y());
+          }
+          for (size_t i = 0; i < num_neighbors; ++i) {
+            B(i, 5) = (m_pointset.vertex_at(indices[i]).y() - q.y()) *
+                      (m_pointset.vertex_at(indices[i]).y() - q.y());
+          }
+          return B;
+        }();
+        auto const BtW = transposed(B) * diag(w);
+        auto const c   = solve(BtW * B, BtW * f);
+        return c(0);
+      } else if (num_neighbors >= 3) {
+        auto const B = [&] {
+          auto B = dynamic_tensor<Real>::ones(num_neighbors, 4);
+
+          for (size_t i = 0; i < num_neighbors; ++i) {
+            B(i, 1) = m_pointset.vertex_at(indices[i]).x() - q.x();
+          }
+          for (size_t i = 0; i < num_neighbors; ++i) {
+            B(i, 2) = m_pointset.vertex_at(indices[i]).y() - q.y();
+          }
+          return B;
+        }();
+        auto const BtW = transposed(B) * diag(w);
+        auto const c   = solve(BtW * B, BtW * f);
+        return c(0);
+      } else if (num_neighbors == 1) {
+        return f(0);
       }
-      //auto const c   = solve(B, f);
-      return c(0)/* +
-             c(1) * q.x() +
-             c(2) * q.y() +
-             c(3) * q.x() * q.x() +
-             c(4) * q.x() * q.y() +
-             c(5) * q.y() * q.y()*/;
+      throw std::runtime_error{"ood"};
     }
     template <real_number... Components>
     requires(sizeof...(Components) ==

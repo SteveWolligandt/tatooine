@@ -180,8 +180,9 @@ struct typed_multidim_property : multidim_property<Grid> {
   requires (num_dimensions() == 2) &&
            (is_floating_point_v<ValueType> || is_vec_v<ValueType>)
   auto write_png(std::filesystem::path const& path) const -> void {
-    png::image<png::rgb_pixel> image{this->grid().size(0),
-                                     this->grid().size(1)};
+    png::image<png::rgb_pixel> image{
+        static_cast<png::uint_32>(this->grid().size(0)),
+        static_cast<png::uint_32>(this->grid().size(1))};
     for (unsigned int y = 0; y < image.get_height(); ++y) {
       for (png::uint_32 x = 0; x < image.get_width(); ++x) {
         auto d = at(x, y);
