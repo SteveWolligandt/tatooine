@@ -496,7 +496,7 @@ struct pointset {
     //==========================================================================
     pointset_t const&           m_pointset;
     vertex_property_t<T> const& m_property;
-    Real                        m_radius = 0.01;
+    Real                        m_radius = 1;
     //==========================================================================
     inverse_distance_weighting_sampler_t(pointset_t const&           ps,
                                          vertex_property_t<T> const& property)
@@ -577,7 +577,7 @@ struct pointset {
     //==========================================================================
     pointset_t const&           m_pointset;
     vertex_property_t<T> const& m_property;
-    Real                        m_radius = 0.3;
+    Real                        m_radius = 1;
     //==========================================================================
     moving_least_squares_sampler_t(pointset_t const&           ps,
                                    vertex_property_t<T> const& property)
@@ -627,9 +627,53 @@ struct pointset {
         }
         return f;
       }();
-      std::cerr << f << '\n';
+      if (num_neighbors >= 10) {
+        auto const B = [&] {
+          auto B = dynamic_tensor<Real>::ones(num_neighbors, 10);
 
-      if (num_neighbors >= 6) {
+          for (size_t i = 0; i < num_neighbors; ++i) {
+            B(i, 1) = m_pointset.vertex_at(indices[i]).x() - q.x();
+          }
+          for (size_t i = 0; i < num_neighbors; ++i) {
+            B(i, 2) = m_pointset.vertex_at(indices[i]).y() - q.y();
+          }
+          for (size_t i = 0; i < num_neighbors; ++i) {
+            B(i, 3) = (m_pointset.vertex_at(indices[i]).x() - q.x()) *
+                      (m_pointset.vertex_at(indices[i]).x() - q.x());
+          }
+          for (size_t i = 0; i < num_neighbors; ++i) {
+            B(i, 4) = (m_pointset.vertex_at(indices[i]).x() - q.x()) *
+                      (m_pointset.vertex_at(indices[i]).y() - q.y());
+          }
+          for (size_t i = 0; i < num_neighbors; ++i) {
+            B(i, 5) = (m_pointset.vertex_at(indices[i]).y() - q.y()) *
+                      (m_pointset.vertex_at(indices[i]).y() - q.y());
+          }
+          for (size_t i = 0; i < num_neighbors; ++i) {
+            B(i, 6) = (m_pointset.vertex_at(indices[i]).x() - q.x()) *
+                      (m_pointset.vertex_at(indices[i]).x() - q.x()) *
+                      (m_pointset.vertex_at(indices[i]).x() - q.x());
+          }
+          for (size_t i = 0; i < num_neighbors; ++i) {
+            B(i, 7) = (m_pointset.vertex_at(indices[i]).x() - q.x()) *
+                      (m_pointset.vertex_at(indices[i]).x() - q.x()) *
+                      (m_pointset.vertex_at(indices[i]).y() - q.y());
+          }
+          for (size_t i = 0; i < num_neighbors; ++i) {
+            B(i, 8) = (m_pointset.vertex_at(indices[i]).x() - q.x()) *
+                      (m_pointset.vertex_at(indices[i]).y() - q.y()) *
+                      (m_pointset.vertex_at(indices[i]).y() - q.y());
+          }
+          for (size_t i = 0; i < num_neighbors; ++i) {
+            B(i, 9) = (m_pointset.vertex_at(indices[i]).y() - q.y()) *
+                      (m_pointset.vertex_at(indices[i]).y() - q.y()) *
+                      (m_pointset.vertex_at(indices[i]).y() - q.y());
+          }
+          return B;
+        }();
+        auto const BtW = transposed(B) * diag(w);
+        return solve(BtW * B, BtW * f)(0);
+      } else if (num_neighbors >= 6) {
         auto const B = [&] {
           auto B = dynamic_tensor<Real>::ones(num_neighbors, 6);
 
@@ -654,11 +698,10 @@ struct pointset {
           return B;
         }();
         auto const BtW = transposed(B) * diag(w);
-        auto const c   = solve(BtW * B, BtW * f);
-        return c(0);
+        return solve(BtW * B, BtW * f)(0);
       } else if (num_neighbors >= 3) {
         auto const B = [&] {
-          auto B = dynamic_tensor<Real>::ones(num_neighbors, 4);
+          auto B = dynamic_tensor<Real>::ones(num_neighbors, 3);
 
           for (size_t i = 0; i < num_neighbors; ++i) {
             B(i, 1) = m_pointset.vertex_at(indices[i]).x() - q.x();
@@ -669,10 +712,9 @@ struct pointset {
           return B;
         }();
         auto const BtW = transposed(B) * diag(w);
-        auto const c   = solve(BtW * B, BtW * f);
-        return c(0);
-      } else if (num_neighbors == 1) {
-        return f(0);
+        return solve(BtW * B, BtW * f)(0);
+        //} else if (num_neighbors == 1) {
+        //  return f(0);
       }
       throw std::runtime_error{"ood"};
     }

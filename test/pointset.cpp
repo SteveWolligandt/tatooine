@@ -86,7 +86,7 @@ TEST_CASE_METHOD((pointset<double, 2>), "pointset_inverse_distance_weighting_sam
                  "[pointset][inverse_distance_weighting_sampler]") {
   random_uniform rand{-1.0, 1.0, std::mt19937_64{1234}};
   auto&          prop = add_vertex_property<double>("prop");
-  for (size_t i = 0; i < 1000; ++i) {
+  for (size_t i = 0; i < 100; ++i) {
     auto v = insert_vertex(rand(), rand());
     prop[v] = rand() * 10;
   }

@@ -30,8 +30,6 @@ TEST_CASE("tensor_initializers", "[tensor][initializers]") {
 TEST_CASE("tensor_print_matrix", "[tensor][print][matrix]") {
   std::cerr << mat<int, 3, 3>{random_uniform{0, 9}} << '\n';
 }
-
-
 //==============================================================================
 TEST_CASE("tensor_assignment", "[tensor][assignment]") {
   vec v{1.0, 2.0, 3.0};
@@ -65,7 +63,6 @@ TEST_CASE("tensor_assignment", "[tensor][assignment]") {
   CHECK(v2(1) == v3(1));
   CHECK(v2(2) == v3(2));
 }
-
 //==============================================================================
 TEST_CASE("tensor_slice", "[tensor][slice]") {
   vec v{1.0, 2.0, 3.0};
@@ -158,7 +155,6 @@ TEST_CASE("tensor_negate", "[tensor][operation][negate]") {
   auto m_neg = -m;
   m.for_indices([&](const auto... is) { CHECK(m(is...) == -m_neg(is...)); });
 }
-
 //==============================================================================
 TEST_CASE("tensor_addition", "[tensor][operation][addition]") {
   auto m0 = mat4::randu();
@@ -168,8 +164,6 @@ TEST_CASE("tensor_addition", "[tensor][operation][addition]") {
     CHECK((added(is...) == m0(is...) + m1(is...)));
   });
 }
-
-
 //==============================================================================
 TEST_CASE("tensor_eigenvalue", "[tensor][eigenvalue]") {
   const mat m{{1.0,  2.0,  3.0},
@@ -201,7 +195,6 @@ TEST_CASE("tensor_eigenvalue", "[tensor][eigenvalue]") {
   REQUIRE(ve(1,2) == Approx(-0.81650).epsilon(eps));
   REQUIRE(ve(2,2) == Approx(0.40825).epsilon(eps));
 }
-
 //==============================================================================
 TEST_CASE("tensor_compare", "[tensor][compare]") {
   vec v1{0.1, 0.1};
@@ -217,7 +210,6 @@ TEST_CASE("tensor_compare", "[tensor][compare]") {
   REQUIRE(std::array{0.1, 0.1, 0.0} < std::array{0.2, 0.2, 0.0});
   REQUIRE(vec{0.1, 0.1, 0.0} < vec{0.2, 0.2, 0.0});
 }
-
 //==============================================================================
 TEST_CASE("tensor_complex", "[tensor][complex][view]") {
   vec<std::complex<double>, 3> v{std::complex<double>{1, 2},
@@ -233,7 +225,6 @@ TEST_CASE("tensor_complex", "[tensor][complex][view]") {
   }
   std::max(std::abs(min(real(v))), max(real(v)));
 }
-
 //==============================================================================
 TEST_CASE("tensor_matrix_transpose", "[tensor][matrix][mat][transpose][view]") {
   auto A = mat<double, 2, 3>::randu();

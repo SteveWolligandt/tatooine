@@ -737,9 +737,15 @@ class grid {
   //============================================================================
   template <regular_invocable<pos_t> F>
   auto sample_to_vertex_property(F&& f, std::string const& name) -> auto& {
-    auto& prop = add_vertex_property<std::invoke_result_t<F, pos_t>>(name);
-    loop_over_vertex_indices(
-        [&](auto const... is) { prop(is...) = f(vertex_at(is...)); });
+    using T = std::invoke_result_t<F, pos_t>;
+    auto& prop = add_vertex_property<T>(name);
+    loop_over_vertex_indices([&](auto const... is) {
+      try {
+        prop(is...) = f(vertex_at(is...));
+      } catch (std::exception&) {
+        prop(is...) = T{0.0 / 0.0};
+      }
+    });
     return prop;
   }
   //============================================================================

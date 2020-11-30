@@ -197,7 +197,7 @@ struct const_transposed_dynamic_tensor {
     throw std::runtime_error{
         "[const_transposed_dynamic_tensor::at] need exactly two indices"};
   }
-  auto at(size_t const r, size_t const c) const -> value_type const& {
+  auto at(integral auto const r, integral auto const c) const -> value_type const& {
     return m_tensor(c, r);
   }
   //----------------------------------------------------------------------------
@@ -233,11 +233,11 @@ struct transposed_dynamic_tensor {
         "[transposed_dynamic_tensor::at] need exactly two indices"};
   }
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-  auto at(size_t const r, size_t const c) const -> value_type const& {
+  auto at(integral auto const r, integral auto const c) const -> value_type const& {
     return m_tensor(c, r);
   }
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-  auto at(size_t const r, size_t const c) -> value_type& {
+  auto at(integral auto const r, integral auto const c) -> value_type& {
     return m_tensor(c, r);
   }
   //----------------------------------------------------------------------------
@@ -281,7 +281,7 @@ struct const_diag_dynamic_tensor {
         "[const_diag_dynamic_tensor::at] need exactly two indices"};
   }
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-  auto at(size_t const r, size_t const c) const -> value_type const& {
+  auto at(integral auto const r, integral auto const c) const -> value_type const& {
     if (r == c) {
       return m_tensor(r);
     }
@@ -316,14 +316,14 @@ struct diag_dynamic_tensor {
         "[diag_dynamic_tensor::at] need exactly two indices"};
   }
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-  auto at(size_t const r, size_t const c) const -> value_type const& {
+  auto at(integral auto const r, integral auto const c) const -> value_type const& {
     if (r == c) {
       return m_tensor(r);
     }
     return zero;
   }
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-  auto at(size_t const r, size_t const c) -> value_type& {
+  auto at(integral auto const r, integral auto const c) -> value_type& {
     static typename DynamicTensor::value_type zero;
     zero = typename DynamicTensor::value_type{};
     if (r == c) {
@@ -370,7 +370,8 @@ auto operator*(LhsTensor const& lhs, RhsTensor const& rhs)
                                         typename RhsTensor::value_type>>;
   out_t out;
   // matrix-matrix-multiplication
-  if (lhs.num_dimensions() == 2 && rhs.num_dimensions() == 2 &&
+  if (lhs.num_dimensions() == 2 &&
+      rhs.num_dimensions() == 2 &&
       lhs.size(1) == rhs.size(0)) {
     auto out = out_t::zeros(lhs.size(0), rhs.size(1));
     for (size_t r = 0; r < lhs.size(0); ++r) {
@@ -383,14 +384,13 @@ auto operator*(LhsTensor const& lhs, RhsTensor const& rhs)
     return out;
   }
   // matrix-vector-multiplication
-  else if (lhs.num_dimensions() == 2 && rhs.num_dimensions() == 1 &&
+  else if (lhs.num_dimensions() == 2 &&
+           rhs.num_dimensions() == 1 &&
            lhs.size(1) == rhs.size(0)) {
     auto out = out_t::zeros(lhs.size(0));
     for (size_t r = 0; r < lhs.size(0); ++r) {
-      for (size_t c = 0; c < rhs.size(1); ++c) {
-        for (size_t i = 0; i < lhs.size(1); ++i) {
-          out(r) += lhs(r, i) * rhs(c);
-        }
+      for (size_t i = 0; i < lhs.size(1); ++i) {
+        out(r) += lhs(r, i) * rhs(i);
       }
     }
     return out;
