@@ -229,6 +229,12 @@ static constexpr auto is_mat_v = is_mat<T>::value;
 template <typename Tensor, typename Real, size_t N>
 struct is_mat<base_tensor<Tensor, Real, N>> : std::true_type {};
 //==============================================================================
+// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+template <typename Tensor, real_or_complex_number T, size_t... Dims>
+struct inner_value_type<base_tensor<Tensor, T, Dims...>> {
+  using type = T;
+};
+//==============================================================================
 }  // namespace tatooine
 //==============================================================================
 #include <tatooine/abs_tensor.h>

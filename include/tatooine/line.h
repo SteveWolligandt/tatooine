@@ -408,7 +408,7 @@ struct line {
   template <typename... Vertices>
   requires
     ((is_vec_v<std::decay_t<Vertices>>
-      && std::is_arithmetic_v<std::decay_t<Vertices>>
+      && std::is_arithmetic_v<typename std::decay_t<Vertices>::value_type>
       && std::decay_t<Vertices>::num_components() == N) &&...)
   line(Vertices&&... vertices)
       : m_vertices{pos_t{std::forward<Vertices>(vertices)}...},
@@ -440,8 +440,8 @@ struct line {
   const auto& back_vertex() const { return m_vertices.back(); }
   auto&       back_vertex() { return m_vertices.back(); }
   //----------------------------------------------------------------------------
-  template <typename... Components, enable_if_arithmetic<Components...> = true,
-            std::enable_if_t<sizeof...(Components) == N, bool> = true>
+  template <real_number... Components>
+  requires (sizeof...(Components) == N)
   auto push_back(Components... comps) {
     m_vertices.push_back(pos_t{static_cast<Real>(comps)...});
     for (auto& [name, prop] : m_vertex_properties) { prop->push_back(); }
@@ -465,8 +465,8 @@ struct line {
   }
   auto pop_back() { m_vertices.pop_back(); }
   //----------------------------------------------------------------------------
-  template <typename... Components, enable_if_arithmetic<Components...> = true,
-            std::enable_if_t<sizeof...(Components) == N, bool> = true>
+  template <real_number... Components>
+  requires (sizeof...(Components) == N)
   auto push_front(Components... comps) {
     m_vertices.push_front(pos_t{static_cast<Real>(comps)...});
     for (auto& [name, prop] : m_vertex_properties) { prop->push_front(); }
@@ -732,7 +732,8 @@ struct line {
     writer.write_scalars(name, std::vector<T>(begin(deque), end(deque)));
   }
   //----------------------------------------------------------------------------
-  template <size_t N_ = N, std::enable_if_t<N_ == 3>...>
+  template <typename = void>
+  requires (num_dimensions() == 3)
   static auto read_vtk(const std::string& filepath) {
     struct reader : vtk::legacy_file_listener {
       std::vector<std::array<Real, 3>> points;

@@ -16,7 +16,7 @@ class tetrahedral_mesh : public pointset<Real, N> {
   using this_t   = tetrahedral_mesh<Real, N>;
   using parent_t = pointset<Real, N>;
   using parent_t::at;
-  using typename parent_t::vertex_index;
+  using typename parent_t::vertex_handle;
   using parent_t::operator[];
   using parent_t::is_valid;
   template <typename T>
@@ -78,7 +78,9 @@ class tetrahedral_mesh : public pointset<Real, N> {
 
     auto begin() const {
       tetrahedron_iterator vi{tetrahedron_index{0}, m_mesh};
-      if (!m_mesh->is_valid(*vi)) { ++vi; }
+      if (!m_mesh->is_valid(*vi)) {
+        ++vi;
+      }
       return vi;
     }
 
@@ -95,9 +97,9 @@ class tetrahedral_mesh : public pointset<Real, N> {
                std::unique_ptr<vector_property<tetrahedron_index>>>;
   //============================================================================
  private:
-  std::vector<std::array<vertex_index, 4>> m_tetrahedrons;
-  std::vector<tetrahedron_index>           m_invalid_tetrahedrons;
-  tetrahedron_property_container_t         m_tetrahedron_properties;
+  std::vector<std::array<vertex_handle, 4>> m_tetrahedrons;
+  std::vector<tetrahedron_index>            m_invalid_tetrahedrons;
+  tetrahedron_property_container_t          m_tetrahedron_properties;
 
  public:
   //============================================================================
@@ -116,15 +118,15 @@ class tetrahedral_mesh : public pointset<Real, N> {
   auto operator=(tetrahedral_mesh const& other) -> tetrahedral_mesh& {
     parent_t::operator=(other);
     m_tetrahedron_properties.clear();
-    m_tetrahedrons    = other.m_tetrahedrons;
+    m_tetrahedrons = other.m_tetrahedrons;
     for (auto const& [key, fprop] : other.m_tetrahedron_properties) {
       m_tetrahedron_properties.insert(std::pair{key, fprop->clone()});
     }
     return *this;
   }
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-  auto operator=(tetrahedral_mesh&& other) noexcept
-    -> tetrahedral_mesh& = default;
+  auto operator            =(tetrahedral_mesh&& other) noexcept
+      -> tetrahedral_mesh& = default;
   //----------------------------------------------------------------------------
   tetrahedral_mesh(std::string const& file) { read(file); }
   //============================================================================
@@ -138,19 +140,25 @@ class tetrahedral_mesh : public pointset<Real, N> {
   }
   auto at(tetrahedron_index t) -> auto& { return m_tetrahedrons[t.i]; }
   //----------------------------------------------------------------------------
-  auto insert_tetrahedron(vertex_index v0, vertex_index v1, vertex_index v2, vertex_index v3) {
+  auto insert_tetrahedron(vertex_handle v0, vertex_handle v1, vertex_handle v2,
+                          vertex_handle v3) {
     m_tetrahedrons.push_back(std::array{v0, v1, v2, v3});
-    for (auto& [key, prop] : m_tetrahedron_properties) { prop->push_back(); }
+    for (auto& [key, prop] : m_tetrahedron_properties) {
+      prop->push_back();
+    }
     return tetrahedron_index{m_tetrahedrons.size() - 1};
   }
   //----------------------------------------------------------------------------
   auto insert_tetrahedron(size_t v0, size_t v1, size_t v2, size_t v3) {
-    return insert_tetrahedron(vertex_index{v0}, vertex_index{v1}, vertex_index{v2}, vertex_index{v3});
+    return insert_tetrahedron(vertex_handle{v0}, vertex_handle{v1},
+                              vertex_handle{v2}, vertex_handle{v3});
   }
   //----------------------------------------------------------------------------
-  auto insert_tetrahedron(std::array<vertex_index, 4> const& t) {
+  auto insert_tetrahedron(std::array<vertex_handle, 4> const& t) {
     m_tetrahedrons.push_back(t);
-    for (auto& [key, prop] : m_tetrahedron_properties) { prop->push_back(); }
+    for (auto& [key, prop] : m_tetrahedron_properties) {
+      prop->push_back();
+    }
     return tetrahedron_index{m_tetrahedrons.size() - 1};
   }
   //----------------------------------------------------------------------------
@@ -169,7 +177,7 @@ class tetrahedral_mesh : public pointset<Real, N> {
       -> bool {
     using boost::copy;
     using boost::adaptors::transformed;
-    vtk::legacy_file_writer writer(path, vtk::POLYDATA);
+    vtk::legacy_file_writer writer(path, vtk::dataset_type::polydata);
     if (writer.is_open()) {
       writer.set_title(title);
       writer.write_header();
@@ -195,7 +203,7 @@ class tetrahedral_mesh : public pointset<Real, N> {
       }
       writer.write_polygons(polygons);
 
-      // write vertex_index data
+      // write vertex_handle data
       writer.write_point_data(this->num_vertices());
       for (auto const& [name, prop] : this->m_vertex_properties) {
         if (prop->type() == typeid(vec<Real, 4>)) {
@@ -221,7 +229,9 @@ class tetrahedral_mesh : public pointset<Real, N> {
   auto read(std::string const& path) {
     auto ext = path.substr(path.find_last_of(".") + 1);
     if constexpr (N == 2 || N == 3) {
-      if (ext == "vtk") { read_vtk(path); }
+      if (ext == "vtk") {
+        read_vtk(path);
+      }
     }
   }
   //----------------------------------------------------------------------------
@@ -232,18 +242,22 @@ class tetrahedral_mesh : public pointset<Real, N> {
 
       listener_t(tetrahedral_mesh& _mesh) : mesh(_mesh) {}
 
-      void on_dataset_type(vtk::DatasetType t) override {
-        if (t != vtk::POLYDATA) {
+      void on_dataset_type(vtk::dataset_type t) override {
+        if (t != vtk::dataset_type::polydata) {
           throw std::runtime_error{
               "[tetrahedral_mesh] need polydata when reading vtk legacy"};
         }
       }
 
       void on_points(std::vector<std::array<float, 3>> const& ps) override {
-        for (auto& p : ps) { mesh.insert_vertex(p[0], p[1], p[2]); }
+        for (auto& p : ps) {
+          mesh.insert_vertex(p[0], p[1], p[2]);
+        }
       }
       void on_points(std::vector<std::array<double, 3>> const& ps) override {
-        for (auto& p : ps) { mesh.insert_vertex(p[0], p[1], p[2]); }
+        for (auto& p : ps) {
+          mesh.insert_vertex(p[0], p[1], p[2]);
+        }
       }
       void on_polygons(std::vector<int> const& ps) override {
         for (size_t i = 0; i < ps.size();) {
@@ -258,11 +272,13 @@ class tetrahedral_mesh : public pointset<Real, N> {
       void on_scalars(std::string const& data_name,
                       std::string const& /*lookup_table_name*/,
                       size_t num_comps, std::vector<double> const& scalars,
-                      vtk::ReaderData data) override {
-        if (data == vtk::POINT_DATA) {
+                      vtk::reader_data data) override {
+        if (data == vtk::reader_data::point_data) {
           if (num_comps == 1) {
             auto& prop = mesh.template add_vertex_property<double>(data_name);
-            for (size_t i = 0; i < prop.size(); ++i) { prop[i] = scalars[i]; }
+            for (size_t i = 0; i < prop.size(); ++i) {
+              prop[i] = scalars[i];
+            }
           } else if (num_comps == 2) {
             auto& prop =
                 mesh.template add_vertex_property<vec<double, 2>>(data_name);
@@ -299,23 +315,23 @@ class tetrahedral_mesh : public pointset<Real, N> {
   //----------------------------------------------------------------------------
   template <typename T>
   auto tetrahedron_property(std::string const& name) -> auto& {
-    auto prop = m_tetrahedron_properties.at(name).get();
-    auto casted_prop =  dynamic_cast<tetrahedron_property_t<T>*>(prop);
+    auto prop        = m_tetrahedron_properties.at(name).get();
+    auto casted_prop = dynamic_cast<tetrahedron_property_t<T>*>(prop);
     assert(typeid(T) == casted_prop->type());
     return *casted_prop;
   }
   //----------------------------------------------------------------------------
   template <typename T>
   auto tetrahedron_property(std::string const& name) const -> auto const& {
-    auto prop = m_tetrahedron_properties.at(name).get();
-    auto casted_prop =  dynamic_cast<tetrahedron_property_t<T> const*>(prop);
+    auto prop        = m_tetrahedron_properties.at(name).get();
+    auto casted_prop = dynamic_cast<tetrahedron_property_t<T> const*>(prop);
     assert(typeid(T) == casted_prop->type());
     return *casted_prop;
   }
   //----------------------------------------------------------------------------
   template <typename T>
-  auto add_tetrahedron_property(std::string const& name,
-                                 T const&           value = T{}) -> auto& {
+  auto add_tetrahedron_property(std::string const& name, T const& value = T{})
+      -> auto& {
     auto [it, suc] = m_tetrahedron_properties.insert(
         std::pair{name, std::make_unique<tetrahedron_property_t<T>>(value)});
     auto fprop = dynamic_cast<tetrahedron_property_t<T>*>(it->second.get());

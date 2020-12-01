@@ -5,7 +5,7 @@
 #include <tatooine/analytical/fields/numerical/abcflow.h>
 #include <tatooine/analytical/fields/numerical/modified_doublegyre.h>
 #include <tatooine/parallel_vectors.h>
-#include <tatooine/spacetime_field.h>
+#include <tatooine/spacetime_vectorfield.h>
 //==============================================================================
 namespace tatooine::test {
 //==============================================================================
@@ -22,7 +22,7 @@ TEST_CASE("parallel_vectors_pv_on_tri", "[parallel_vectors][pv][pv_on_tri]") {
 template <typename Field, typename Real, typename... Preds>
 auto pv_acceleration(const field<Field, Real, 2, 2>& vf, linspace<Real> x,
                      linspace<Real> y, linspace<Real> z, Preds&&... preds) {
-  spacetime_field stvf{vf};
+  spacetime_vectorfield stvf{vf};
   auto            grad_stvf = diff(stvf, 1e-7);
   auto            staf      = grad_stvf * stvf;
   return parallel_vectors(stvf, staf, x, y, z, std::forward<Preds>(preds)...);
@@ -39,7 +39,7 @@ auto pv_acceleration(const field<Field, Real, 3, 3>& vf, linspace<Real> x,
 template <typename Field, typename Real, typename... Preds>
 auto pv_jerk(const field<Field, Real, 2, 2>& vf, linspace<Real> x,
              linspace<Real> y, linspace<Real> z, Preds&&... preds) {
-  spacetime_field stvf{vf};
+  spacetime_vectorfield stvf{vf};
   auto            Jstvf = diff(stvf, 1e-7);
   auto            staf  = Jstvf * stvf;
   auto            Jstaf = diff(staf, 1e-7);
@@ -58,7 +58,7 @@ auto pv_jerk(const field<Field, Real, 3, 3>& vf, linspace<Real> x,
 }
 //==============================================================================
 TEST_CASE("parallel_vectors_numerical_doublegyre_acceleration",
-          "[parallel_vectors][pv][numerical][doublegyre][dg][spacetime_field]"
+          "[parallel_vectors][pv][numerical][doublegyre][dg][spacetime_vectorfield]"
           "[differentiate][acceleration]") {
   write_vtk(
       pv_acceleration(analytical::fields::numerical::doublegyre{}, linspace{1e-3, 2.0 - 1e-4, 201},
@@ -67,7 +67,7 @@ TEST_CASE("parallel_vectors_numerical_doublegyre_acceleration",
 }
 //==============================================================================
 TEST_CASE("parallel_vectors_numerical_doublegyre_jerk",
-          "[parallel_vectors][pv][numerical][doublegyre][dg][spacetime_field]"
+          "[parallel_vectors][pv][numerical][doublegyre][dg][spacetime_vectorfield]"
           "[differentiate][jerk]") {
   write_vtk(pv_jerk(analytical::fields::numerical::doublegyre{}, linspace{1e-3, 2.0 - 1e-3, 201},
                     linspace{-1e-4, 1e-3, 101}, linspace{-10.0, 20.0, 401}),
@@ -76,7 +76,7 @@ TEST_CASE("parallel_vectors_numerical_doublegyre_jerk",
 //==============================================================================
 TEST_CASE("parallel_vectors_numerical_modified_doublegyre_acceleration",
           "[parallel_vectors][pv][numerical][modified_doublegyre][mdg]["
-          "spacetime_field]"
+          "spacetime_vectorfield]"
           "[differentiate][acceleration]") {
   write_vtk(
       pv_acceleration(analytical::fields::numerical::modified_doublegyre{},
@@ -87,7 +87,7 @@ TEST_CASE("parallel_vectors_numerical_modified_doublegyre_acceleration",
 //==============================================================================
 TEST_CASE("parallel_vectors_numerical_modified_doublegyre_jerk",
           "[parallel_vectors][pv][numerical][modified_doublegyre][mdg]["
-          "spacetime_field]"
+          "spacetime_vectorfield]"
           "[differentiate][jerk]") {
   write_vtk(
       pv_jerk(analytical::fields::numerical::modified_doublegyre{}, linspace{1e-3, 2.0 - 1e-3, 201},
@@ -97,7 +97,7 @@ TEST_CASE("parallel_vectors_numerical_modified_doublegyre_jerk",
 //==============================================================================
 TEST_CASE(
     "parallel_vectors_numerical_counterexample_sadlo_acceleration",
-    "[parallel_vectors][pv][numerical][counterexample_sadlo][spacetime_field]"
+    "[parallel_vectors][pv][numerical][counterexample_sadlo][spacetime_vectorfield]"
     "[differentiate][acceleration]") {
   write_vtk(
       pv_acceleration(
@@ -112,7 +112,7 @@ TEST_CASE(
 //==============================================================================
 TEST_CASE(
     "parallel_vectors_numerical_counterexample_sadlo_jerk",
-    "[parallel_vectors][pv][numerical][counterexample_sadlo][spacetime_field]"
+    "[parallel_vectors][pv][numerical][counterexample_sadlo][spacetime_vectorfield]"
     "[differentiate][jerk]") {
   write_vtk(
       pv_jerk(
@@ -147,7 +147,7 @@ TEST_CASE("parallel_vectors_numerical_abcflow_jerk",
 ////==============================================================================
 //#if TATOOINE_GINAC_AVAILABLE
 //TEST_CASE("parallel_vectors_symbolic_doublegyre_acceleration",
-//          "[parallel_vectors][pv][symbolic][doublegyre][dg][spacetime_field]"
+//          "[parallel_vectors][pv][symbolic][doublegyre][dg][spacetime_vectorfield]"
 //          "[differentiate][acceleration]") {
 //  write_vtk(
 //      pv_acceleration(symbolic::doublegyre{}, linspace{1e-3, 2.0 - 1e-4, 51},
@@ -156,7 +156,7 @@ TEST_CASE("parallel_vectors_numerical_abcflow_jerk",
 //}
 ////==============================================================================
 //TEST_CASE("parallel_vectors_symbolic_doublegyre_jerk",
-//          "[parallel_vectors][pv][symbolic][doublegyre][dg][spacetime_field]"
+//          "[parallel_vectors][pv][symbolic][doublegyre][dg][spacetime_vectorfield]"
 //          "[differentiate][jerk]") {
 //  write_vtk(pv_jerk(symbolic::doublegyre{}, linspace{0.0, 2.0, 201},
 //                    linspace{-1.0, 1.0, 101}, linspace{0.0, 10.0, 401}),
@@ -165,7 +165,7 @@ TEST_CASE("parallel_vectors_numerical_abcflow_jerk",
 ////==============================================================================
 //TEST_CASE("parallel_vectors_symbolic_modified_doublegyre_acceleration",
 //          "[parallel_vectors][pv][symbolic][modified_doublegyre][mdg]["
-//          "spacetime_field]"
+//          "spacetime_vectorfield]"
 //          "[differentiate][acceleration]") {
 //  write_vtk(
 //      pv_acceleration(symbolic::modified_doublegyre{}, linspace{0.0, 2.0, 201},
@@ -175,7 +175,7 @@ TEST_CASE("parallel_vectors_numerical_abcflow_jerk",
 ////==============================================================================
 //TEST_CASE("parallel_vectors_symbolic_modified_doublegyre_jerk",
 //          "[parallel_vectors][pv][symbolic][modified_doublegyre][mdg]["
-//          "spacetime_field]"
+//          "spacetime_vectorfield]"
 //          "[differentiate][jerk]") {
 //  write_vtk(pv_jerk(symbolic::modified_doublegyre{}, linspace{0.0, 2.0, 201},
 //                    linspace{-1.0, 1.0, 101}, linspace{0.0, 10.0, 401}),
@@ -185,7 +185,7 @@ TEST_CASE("parallel_vectors_numerical_abcflow_jerk",
 ////==============================================================================
 //TEST_CASE(
 //    "parallel_vectors_symbolic_counterexample_sadlo_acceleration",
-//    "[parallel_vectors][pv][symbolic][counterexample_sadlo][spacetime_field]"
+//    "[parallel_vectors][pv][symbolic][counterexample_sadlo][spacetime_vectorfield]"
 //    "[differentiate][acceleration]") {
 //  write_vtk(
 //      pv_acceleration(
@@ -200,7 +200,7 @@ TEST_CASE("parallel_vectors_numerical_abcflow_jerk",
 ////==============================================================================
 //TEST_CASE(
 //    "parallel_vectors_symbolic_counterexample_sadlo_jerk",
-//    "[parallel_vectors][pv][symbolic][counterexample_sadlo][spacetime_field]"
+//    "[parallel_vectors][pv][symbolic][counterexample_sadlo][spacetime_vectorfield]"
 //    "[differentiate][jerk]") {
 //  write_vtk(
 //      pv_jerk(symbolic::counterexample_sadlo{},

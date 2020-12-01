@@ -7,18 +7,13 @@ namespace tatooine::test {
 TEST_CASE("sampler_contiguous_array", "[sampler][contiguous_array]") {
   grid<linspace<double>, linspace<double>> g{linspace{0.0, 10.0, 11},
                                              linspace{0.0, 10.0, 11}};
-  using container_t = dynamic_multidim_array<double>;
-  using grid_t = decltype(g);
-  using sampler_t   = sampler<grid_t, container_t, interpolation::linear,
-                            interpolation::linear>;
-  sampler_t s{g, 11, 11};
-  s.container()(0, 0) = 1;
-  s.container()(1, 0) = 3;
-  s.container()(0, 1) = 2;
-  s.container()(1, 1) = 4;
+  auto& prop = g.add_vertex_property<double>("prop");
+  auto  s    = prop.sampler<interpolation::linear>();
+  prop(0, 0) = 1;
+  prop(1, 0) = 3;
+  prop(0, 1) = 2;
+  prop(1, 1) = 4;
 
-  REQUIRE(s.container().at(0, 0) == 1);
-  REQUIRE(s.container().at(1, 0) == 3);
   REQUIRE(s.sample(0.1, 0) == Approx(0.9 * 1 + 0.1 * 3));
 }
 //==============================================================================

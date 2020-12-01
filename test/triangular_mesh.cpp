@@ -8,14 +8,14 @@ TEST_CASE("triangular_mesh_copy", "[triangular_mesh][copy]"){
   auto const       v0 = mesh.insert_vertex(0.0, 0.0, 0.0);
   auto const       v1 = mesh.insert_vertex(1.0, 0.0, 0.0);
   auto const       v2 = mesh.insert_vertex(0.0, 1.0, 0.0);
-  auto const       f0 = mesh.insert_triangle(v0, v1, v2);
+  auto const       f0 = mesh.insert_face(v0, v1, v2);
 
   auto& vertex_prop = mesh.add_vertex_property<double>("vertex_prop");
   vertex_prop[v0] = 0;
   vertex_prop[v1] = 1;
   vertex_prop[v2] = 2;
-  auto& tri_prop = mesh.add_triangle_property<double>("tri_prop");
-  tri_prop[f0] = 4;
+  auto& face_prop = mesh.add_face_property<double>("face_prop");
+  face_prop[f0] = 4;
 
   auto copied_mesh = mesh;
 
@@ -34,11 +34,11 @@ TEST_CASE("triangular_mesh_copy", "[triangular_mesh][copy]"){
     vertex_prop[v0] = 100;
     REQUIRE_FALSE(vertex_prop[v0] == copied_vertex_prop[v0]);
 
-    auto& copied_tri_prop = copied_mesh.triangle_property<double>("tri_prop");
-    REQUIRE(tri_prop[f0] == copied_tri_prop[f0]);
+    auto& copied_face_prop = copied_mesh.face_property<double>("face_prop");
+    REQUIRE(face_prop[f0] == copied_face_prop[f0]);
 
-    tri_prop[f0] = 10;
-    REQUIRE_FALSE(tri_prop[f0] == copied_tri_prop[f0]);
+    face_prop[f0] = 10;
+    REQUIRE_FALSE(face_prop[f0] == copied_face_prop[f0]);
   }
 
   copied_mesh = mesh;
@@ -47,9 +47,9 @@ TEST_CASE("triangular_mesh_copy", "[triangular_mesh][copy]"){
     REQUIRE(mesh[v0] == copied_mesh[v0]);
     REQUIRE(vertex_prop[v0] == copied_vertex_prop[v0]);
 
-    auto& copied_tri_prop = copied_mesh.triangle_property<double>("tri_prop");
+    auto& copied_face_prop = copied_mesh.face_property<double>("face_prop");
     REQUIRE(mesh[f0] == copied_mesh[f0]);
-    REQUIRE(tri_prop[f0] == copied_tri_prop[f0]);
+    REQUIRE(face_prop[f0] == copied_face_prop[f0]);
   }
 }
 //==============================================================================
@@ -60,15 +60,15 @@ TEST_CASE("triangular_mesh_linear_sampler",
   auto const                 v1 = mesh.insert_vertex(1.0, 0.0);
   auto const                 v2 = mesh.insert_vertex(0.0, 1.0);
   auto const                 v3 = mesh.insert_vertex(1.0, 1.0);
-  mesh.insert_triangle(v0, v1, v2);
-  mesh.insert_triangle(v1, v3, v2);
+  mesh.insert_face(v0, v1, v2);
+  mesh.insert_face(v1, v3, v2);
 
   auto& prop    = mesh.add_vertex_property<double>("prop");
   prop[v0] = 1;
   prop[v1] = 2;
   prop[v2] = 3;
   prop[v3] = 4;
-  auto sampler  = mesh.vertex_property_sampler(prop);
+  auto sampler  = mesh.sampler(prop);
   REQUIRE(sampler(vec2{0.5, 0.5}) == Approx(2.5));
   REQUIRE(sampler(vec2{0.0, 0.0}) == Approx(1));
   REQUIRE(sampler(vec2{1.0, 1.0}) == Approx(4));

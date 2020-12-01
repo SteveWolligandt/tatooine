@@ -46,7 +46,6 @@ TEST_CASE("preprocessor_empty_variadic", "[preprocessor][empty_variadic]") {
 //==============================================================================
 TEST_CASE("preprocessor_invoke", "[preprocessor][invoke]") {
   auto f = [](auto x) { return x; };
-  TATOOINE_PP_INVOKE(f);
   TATOOINE_PP_INVOKE(f, 1);
 }
 //==============================================================================
@@ -60,7 +59,7 @@ TEST_CASE("preprocessor_map", "[preprocessor][map]") {
 }
 //==============================================================================
 TEST_CASE("preprocessor_expand", "[preprocessor][expand]") {
-  std::array arr{TATOOINE_PP_EXPAND((1))};
+  [[maybe_unused]] std::array arr{TATOOINE_PP_EXPAND((1))};
 }
 //==============================================================================
 }  // namespace tatooine::test

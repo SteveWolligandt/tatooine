@@ -2,8 +2,11 @@
 #define TATOOINE_SAMPLER_H
 //==============================================================================
 #include <tatooine/concepts.h>
+#include <tatooine/crtp.h>
 #include <tatooine/exceptions.h>
-#include <tatooine/multidim_property.h>
+#include <tatooine/base_tensor.h>
+
+#include <vector>
 //==============================================================================
 namespace tatooine {
 //==============================================================================

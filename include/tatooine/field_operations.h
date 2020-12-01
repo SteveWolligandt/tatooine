@@ -111,13 +111,12 @@ constexpr auto operator*(const ScalarReal                         scalar,
 //}
 template <typename V, typename VReal, size_t N>
 constexpr auto length(vectorfield<V, VReal, N> const& v) {
-  return make_unary_operation_field<VReal, N>(
-      v, [](auto const& v) { return length(v); });
+  return make_unary_operation_field(v, [](auto const& v) { return length(v); });
 }
 template <typename V, typename VReal, size_t N>
 constexpr auto length(vectorfield<V, VReal, N>&& v) {
-  return make_unary_operation_field<VReal, N>(
-      std::move(v), [](auto const& v) { return length(v); });
+  return make_unary_operation_field(std::move(v),
+                                    [](auto const& v) { return length(v); });
 }
 //==============================================================================
 }  // namespace tatooine

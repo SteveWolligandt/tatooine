@@ -477,16 +477,29 @@ struct pointset {
     }
     return handles;
   }
-  //----------------------------------------------------------------------------
+  //============================================================================
   template <typename T>
   auto inverse_distance_weighting_sampler(std::string const& prop_name) {
     return inverse_distance_weighting_sampler_t<T>{*this,
                                                 vertex_property<T>(prop_name)};
   }
-  //----------------------------------------------------------------------------
+  // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
   template <typename T>
   auto inverse_distance_weighting_sampler(vertex_property_t<T> const& prop) {
     return inverse_distance_weighting_sampler_t<T>{*this, prop};
+  }
+  // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+  template <typename T>
+  auto inverse_distance_weighting_sampler(std::string const& prop_name,
+                                          Real const         radius) {
+    return inverse_distance_weighting_sampler_t<T>{
+        *this, vertex_property<T>(prop_name), radius};
+  }
+  // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+  template <typename T>
+  auto inverse_distance_weighting_sampler(vertex_property_t<T> const& prop,
+                                          Real const                  radius) {
+    return inverse_distance_weighting_sampler_t<T>{*this, prop, radius};
   }
   //============================================================================
   template <typename T>
@@ -560,14 +573,31 @@ struct pointset {
   };
   //============================================================================
   template <typename T>
+  requires (num_dimensions() == 2) || (num_dimensions() == 3)
   auto moving_least_squares_sampler(std::string const& prop_name) {
     return moving_least_squares_sampler_t<T>{*this,
                                              vertex_property<T>(prop_name)};
   }
   //----------------------------------------------------------------------------
   template <typename T>
+  requires (num_dimensions() == 2) || (num_dimensions() == 3)
   auto moving_least_squares_sampler(vertex_property_t<T> const& prop) {
     return moving_least_squares_sampler_t<T>{*this, prop};
+  }
+  //----------------------------------------------------------------------------
+  template <typename T>
+  requires (num_dimensions() == 2) || (num_dimensions() == 3)
+  auto moving_least_squares_sampler(std::string const& prop_name,
+                                    Real const         radius) {
+    return moving_least_squares_sampler_t<T>{
+        *this, vertex_property<T>(prop_name), radius};
+  }
+  //----------------------------------------------------------------------------
+  template <typename T>
+  requires (num_dimensions() == 2) || (num_dimensions() == 3)
+  auto moving_least_squares_sampler(vertex_property_t<T> const& prop,
+                                    Real const                  radius) {
+    return moving_least_squares_sampler_t<T>{*this, prop, radius};
   }
   //============================================================================
   template <typename T>
@@ -602,122 +632,238 @@ struct pointset {
     // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
     ~moving_least_squares_sampler_t() = default;
     //==========================================================================
+    template <typename = void>
+    requires (num_dimensions() == 2) || (num_dimensions() == 3)
     auto sample(pos_t const& q) const {
+      if constexpr (num_dimensions() == 2) {
+        return sample2d(q);
+      } else if constexpr (num_dimensions() == 3) {
+        return sample3d(q);
+      };
+    }
+
+   private:
+    template <typename = void>
+    requires(num_dimensions() == 2)
+    auto sample2d(pos_t const& q) const {
       auto const  nn = m_pointset.nearest_neighbors_radius_raw(q, m_radius);
       auto const& indices       = nn.first;
       auto const& distances     = nn.second;
       auto const  num_neighbors = size(indices);
 
+      if (num_neighbors == 0) {
+        throw std::runtime_error{"ood"};
+      }
+      if (num_neighbors == 1) {
+        return m_property[vertex_handle{indices[0]}];
+      }
+
+      auto w = dynamic_tensor<Real>::zeros(num_neighbors);
+      auto f = dynamic_tensor<Real>::zeros(num_neighbors);
+      auto B = [&] {
+        if (num_neighbors >= 10) {
+          return dynamic_tensor<Real>::ones(num_neighbors, 10);
+        }
+        if (num_neighbors >= 6) {
+          return dynamic_tensor<Real>::ones(num_neighbors, 6);
+        }
+        if (num_neighbors >= 3) {
+          return dynamic_tensor<Real>::ones(num_neighbors, 3);
+        }
+        return dynamic_tensor<Real>::ones(1, 1);
+      }();
+
+      // build w
       for (size_t i = 0; i < num_neighbors; ++i) {
         if (distances[i] == 0) {
           return m_property[vertex_handle{indices[i]}];
         }
+        w(i) = 1 / distances[i] - 1 / m_radius;
       }
-      auto const w = [&] {
-        auto w = dynamic_tensor<Real>::zeros(num_neighbors);
+      // build f
+      for (size_t i = 0; i < num_neighbors; ++i) {
+        f(i) = m_property[vertex_handle{indices[i]}];
+      }
+      // build B
+      if (num_neighbors >= 3) {
         for (size_t i = 0; i < num_neighbors; ++i) {
-          w(i) = 1 / distances[i] - 1 / m_radius;
+          B(i, 1) = m_pointset.vertex_at(indices[i]).x() - q.x();
         }
-        return w;
-      }();
-      auto const f = [&] {
-        auto f = dynamic_tensor<Real>::zeros(num_neighbors);
         for (size_t i = 0; i < num_neighbors; ++i) {
-          f(i) = m_property[vertex_handle{indices[i]}];
+          B(i, 2) = m_pointset.vertex_at(indices[i]).y() - q.y();
         }
-        return f;
-      }();
+      }
+      if (num_neighbors >= 6) {
+        for (size_t i = 0; i < num_neighbors; ++i) {
+          B(i, 3) = (m_pointset.vertex_at(indices[i]).x() - q.x()) *
+                    (m_pointset.vertex_at(indices[i]).x() - q.x());
+        }
+        for (size_t i = 0; i < num_neighbors; ++i) {
+          B(i, 4) = (m_pointset.vertex_at(indices[i]).x() - q.x()) *
+                    (m_pointset.vertex_at(indices[i]).y() - q.y());
+        }
+        for (size_t i = 0; i < num_neighbors; ++i) {
+          B(i, 5) = (m_pointset.vertex_at(indices[i]).y() - q.y()) *
+                    (m_pointset.vertex_at(indices[i]).y() - q.y());
+        }
+      }
       if (num_neighbors >= 10) {
-        auto const B = [&] {
-          auto B = dynamic_tensor<Real>::ones(num_neighbors, 10);
-
-          for (size_t i = 0; i < num_neighbors; ++i) {
-            B(i, 1) = m_pointset.vertex_at(indices[i]).x() - q.x();
-          }
-          for (size_t i = 0; i < num_neighbors; ++i) {
-            B(i, 2) = m_pointset.vertex_at(indices[i]).y() - q.y();
-          }
-          for (size_t i = 0; i < num_neighbors; ++i) {
-            B(i, 3) = (m_pointset.vertex_at(indices[i]).x() - q.x()) *
-                      (m_pointset.vertex_at(indices[i]).x() - q.x());
-          }
-          for (size_t i = 0; i < num_neighbors; ++i) {
-            B(i, 4) = (m_pointset.vertex_at(indices[i]).x() - q.x()) *
-                      (m_pointset.vertex_at(indices[i]).y() - q.y());
-          }
-          for (size_t i = 0; i < num_neighbors; ++i) {
-            B(i, 5) = (m_pointset.vertex_at(indices[i]).y() - q.y()) *
-                      (m_pointset.vertex_at(indices[i]).y() - q.y());
-          }
-          for (size_t i = 0; i < num_neighbors; ++i) {
-            B(i, 6) = (m_pointset.vertex_at(indices[i]).x() - q.x()) *
-                      (m_pointset.vertex_at(indices[i]).x() - q.x()) *
-                      (m_pointset.vertex_at(indices[i]).x() - q.x());
-          }
-          for (size_t i = 0; i < num_neighbors; ++i) {
-            B(i, 7) = (m_pointset.vertex_at(indices[i]).x() - q.x()) *
-                      (m_pointset.vertex_at(indices[i]).x() - q.x()) *
-                      (m_pointset.vertex_at(indices[i]).y() - q.y());
-          }
-          for (size_t i = 0; i < num_neighbors; ++i) {
-            B(i, 8) = (m_pointset.vertex_at(indices[i]).x() - q.x()) *
-                      (m_pointset.vertex_at(indices[i]).y() - q.y()) *
-                      (m_pointset.vertex_at(indices[i]).y() - q.y());
-          }
-          for (size_t i = 0; i < num_neighbors; ++i) {
-            B(i, 9) = (m_pointset.vertex_at(indices[i]).y() - q.y()) *
-                      (m_pointset.vertex_at(indices[i]).y() - q.y()) *
-                      (m_pointset.vertex_at(indices[i]).y() - q.y());
-          }
-          return B;
-        }();
-        auto const BtW = transposed(B) * diag(w);
-        return solve(BtW * B, BtW * f)(0);
-      } else if (num_neighbors >= 6) {
-        auto const B = [&] {
-          auto B = dynamic_tensor<Real>::ones(num_neighbors, 6);
-
-          for (size_t i = 0; i < num_neighbors; ++i) {
-            B(i, 1) = m_pointset.vertex_at(indices[i]).x() - q.x();
-          }
-          for (size_t i = 0; i < num_neighbors; ++i) {
-            B(i, 2) = m_pointset.vertex_at(indices[i]).y() - q.y();
-          }
-          for (size_t i = 0; i < num_neighbors; ++i) {
-            B(i, 3) = (m_pointset.vertex_at(indices[i]).x() - q.x()) *
-                      (m_pointset.vertex_at(indices[i]).x() - q.x());
-          }
-          for (size_t i = 0; i < num_neighbors; ++i) {
-            B(i, 4) = (m_pointset.vertex_at(indices[i]).x() - q.x()) *
-                      (m_pointset.vertex_at(indices[i]).y() - q.y());
-          }
-          for (size_t i = 0; i < num_neighbors; ++i) {
-            B(i, 5) = (m_pointset.vertex_at(indices[i]).y() - q.y()) *
-                      (m_pointset.vertex_at(indices[i]).y() - q.y());
-          }
-          return B;
-        }();
-        auto const BtW = transposed(B) * diag(w);
-        return solve(BtW * B, BtW * f)(0);
-      } else if (num_neighbors >= 3) {
-        auto const B = [&] {
-          auto B = dynamic_tensor<Real>::ones(num_neighbors, 3);
-
-          for (size_t i = 0; i < num_neighbors; ++i) {
-            B(i, 1) = m_pointset.vertex_at(indices[i]).x() - q.x();
-          }
-          for (size_t i = 0; i < num_neighbors; ++i) {
-            B(i, 2) = m_pointset.vertex_at(indices[i]).y() - q.y();
-          }
-          return B;
-        }();
-        auto const BtW = transposed(B) * diag(w);
-        return solve(BtW * B, BtW * f)(0);
-        //} else if (num_neighbors == 1) {
-        //  return f(0);
+        for (size_t i = 0; i < num_neighbors; ++i) {
+          B(i, 6) = (m_pointset.vertex_at(indices[i]).x() - q.x()) *
+                    (m_pointset.vertex_at(indices[i]).x() - q.x()) *
+                    (m_pointset.vertex_at(indices[i]).x() - q.x());
+        }
+        for (size_t i = 0; i < num_neighbors; ++i) {
+          B(i, 7) = (m_pointset.vertex_at(indices[i]).x() - q.x()) *
+                    (m_pointset.vertex_at(indices[i]).x() - q.x()) *
+                    (m_pointset.vertex_at(indices[i]).y() - q.y());
+        }
+        for (size_t i = 0; i < num_neighbors; ++i) {
+          B(i, 8) = (m_pointset.vertex_at(indices[i]).x() - q.x()) *
+                    (m_pointset.vertex_at(indices[i]).y() - q.y()) *
+                    (m_pointset.vertex_at(indices[i]).y() - q.y());
+        }
+        for (size_t i = 0; i < num_neighbors; ++i) {
+          B(i, 9) = (m_pointset.vertex_at(indices[i]).y() - q.y()) *
+                    (m_pointset.vertex_at(indices[i]).y() - q.y()) *
+                    (m_pointset.vertex_at(indices[i]).y() - q.y());
+        }
       }
-      throw std::runtime_error{"ood"};
+      auto const BtW = transposed(B) * diag(w);
+      return solve(BtW * B, BtW * f)(0);
     }
+    template <typename = void>
+    requires(num_dimensions() == 3)
+    auto sample3d(pos_t const& q) const {
+      auto const  nn = m_pointset.nearest_neighbors_radius_raw(q, m_radius);
+      auto const& indices       = nn.first;
+      auto const& distances     = nn.second;
+      auto const  num_neighbors = size(indices);
+      if (num_neighbors == 0) {
+        throw std::runtime_error{"ood"};
+      }
+      if (num_neighbors == 1) {
+        return m_property[vertex_handle{indices[0]}];
+      }
+
+      auto w = dynamic_tensor<Real>::zeros(num_neighbors);
+      auto f = dynamic_tensor<Real>::zeros(num_neighbors);
+      auto B = [&] {
+        if (num_neighbors >= 20) {
+          return dynamic_tensor<Real>::ones(num_neighbors, 20);
+        } else if (num_neighbors >= 10) {
+          return dynamic_tensor<Real>::ones(num_neighbors, 10);
+        } else if (num_neighbors >= 4) {
+          return dynamic_tensor<Real>::ones(num_neighbors, 4);
+        }
+        return dynamic_tensor<Real>::ones(1, 1);
+      }();
+      // build w
+      for (size_t i = 0; i < num_neighbors; ++i) {
+        if (distances[i] == 0) {
+          return m_property[vertex_handle{indices[i]}];
+        }
+        w(i) = 1 / distances[i] - 1 / m_radius;
+      }
+      // build f
+      for (size_t i = 0; i < num_neighbors; ++i) {
+        f(i) = m_property[vertex_handle{indices[i]}];
+      }
+      // build B
+      if (num_neighbors >= 4) {
+        for (size_t i = 0; i < num_neighbors; ++i) {
+          B(i, 1) = m_pointset.vertex_at(indices[i]).x() - q.x();
+        }
+        for (size_t i = 0; i < num_neighbors; ++i) {
+          B(i, 2) = m_pointset.vertex_at(indices[i]).y() - q.y();
+        }
+        for (size_t i = 0; i < num_neighbors; ++i) {
+          B(i, 3) = m_pointset.vertex_at(indices[i]).z() - q.z();
+        }
+      }
+      if (num_neighbors >= 10) {
+        for (size_t i = 0; i < num_neighbors; ++i) {
+          B(i, 4) = (m_pointset.vertex_at(indices[i]).x() - q.x()) *
+                    (m_pointset.vertex_at(indices[i]).x() - q.x());
+        }
+        for (size_t i = 0; i < num_neighbors; ++i) {
+          B(i, 5) = (m_pointset.vertex_at(indices[i]).y() - q.y()) *
+                    (m_pointset.vertex_at(indices[i]).y() - q.y());
+        }
+        for (size_t i = 0; i < num_neighbors; ++i) {
+          B(i, 6) = (m_pointset.vertex_at(indices[i]).z() - q.z()) *
+                    (m_pointset.vertex_at(indices[i]).z() - q.z());
+        }
+        for (size_t i = 0; i < num_neighbors; ++i) {
+          B(i, 7) = (m_pointset.vertex_at(indices[i]).x() - q.x()) *
+                    (m_pointset.vertex_at(indices[i]).y() - q.y());
+        }
+        for (size_t i = 0; i < num_neighbors; ++i) {
+          B(i, 8) = (m_pointset.vertex_at(indices[i]).x() - q.x()) *
+                    (m_pointset.vertex_at(indices[i]).z() - q.z());
+        }
+        for (size_t i = 0; i < num_neighbors; ++i) {
+          B(i, 9) = (m_pointset.vertex_at(indices[i]).y() - q.y()) *
+                    (m_pointset.vertex_at(indices[i]).z() - q.z());
+        }
+      }
+      if (num_neighbors >= 20) {
+        for (size_t i = 0; i < num_neighbors; ++i) {
+          B(i, 10) = (m_pointset.vertex_at(indices[i]).x() - q.x()) *
+                     (m_pointset.vertex_at(indices[i]).x() - q.x()) *
+                     (m_pointset.vertex_at(indices[i]).x() - q.x());
+        }
+        for (size_t i = 0; i < num_neighbors; ++i) {
+          B(i, 11) = (m_pointset.vertex_at(indices[i]).y() - q.y()) *
+                     (m_pointset.vertex_at(indices[i]).y() - q.y()) *
+                     (m_pointset.vertex_at(indices[i]).y() - q.y());
+        }
+        for (size_t i = 0; i < num_neighbors; ++i) {
+          B(i, 12) = (m_pointset.vertex_at(indices[i]).z() - q.z()) *
+                     (m_pointset.vertex_at(indices[i]).z() - q.z()) *
+                     (m_pointset.vertex_at(indices[i]).z() - q.z());
+        }
+        for (size_t i = 0; i < num_neighbors; ++i) {
+          B(i, 13) = (m_pointset.vertex_at(indices[i]).x() - q.x()) *
+                     (m_pointset.vertex_at(indices[i]).x() - q.x()) *
+                     (m_pointset.vertex_at(indices[i]).y() - q.y());
+        }
+        for (size_t i = 0; i < num_neighbors; ++i) {
+          B(i, 14) = (m_pointset.vertex_at(indices[i]).x() - q.x()) *
+                     (m_pointset.vertex_at(indices[i]).x() - q.x()) *
+                     (m_pointset.vertex_at(indices[i]).z() - q.z());
+        }
+        for (size_t i = 0; i < num_neighbors; ++i) {
+          B(i, 15) = (m_pointset.vertex_at(indices[i]).x() - q.x()) *
+                     (m_pointset.vertex_at(indices[i]).y() - q.y()) *
+                     (m_pointset.vertex_at(indices[i]).y() - q.y());
+        }
+        for (size_t i = 0; i < num_neighbors; ++i) {
+          B(i, 16) = (m_pointset.vertex_at(indices[i]).y() - q.y()) *
+                     (m_pointset.vertex_at(indices[i]).y() - q.y()) *
+                     (m_pointset.vertex_at(indices[i]).z() - q.z());
+        }
+        for (size_t i = 0; i < num_neighbors; ++i) {
+          B(i, 17) = (m_pointset.vertex_at(indices[i]).x() - q.x()) *
+                     (m_pointset.vertex_at(indices[i]).z() - q.z()) *
+                     (m_pointset.vertex_at(indices[i]).z() - q.z());
+        }
+        for (size_t i = 0; i < num_neighbors; ++i) {
+          B(i, 18) = (m_pointset.vertex_at(indices[i]).y() - q.y()) *
+                     (m_pointset.vertex_at(indices[i]).z() - q.z()) *
+                     (m_pointset.vertex_at(indices[i]).z() - q.z());
+        }
+        for (size_t i = 0; i < num_neighbors; ++i) {
+          B(i, 19) = (m_pointset.vertex_at(indices[i]).x() - q.x()) *
+                     (m_pointset.vertex_at(indices[i]).y() - q.y()) *
+                     (m_pointset.vertex_at(indices[i]).z() - q.z());
+        }
+      }
+      auto const BtW = transposed(B) * diag(w);
+      return solve(BtW * B, BtW * f)(0);
+    }
+
+   public:
     template <real_number... Components>
     requires(sizeof...(Components) ==
              N) auto sample(Components const... components) const {

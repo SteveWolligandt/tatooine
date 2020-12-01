@@ -475,7 +475,8 @@ struct chunked_multidim_array {
   //  return data;
   //}
   ////----------------------------------------------------------------------------
-  // template <typename _T = T, enable_if_tensor<_T> = true>
+  //template <typename = void>
+  //requires is_arithmetic_v<T>
   // auto unchunk_plain() const {
   //  using real_t          = typename T::real_t;
   //  constexpr auto      n = T::num_components();
@@ -487,8 +488,8 @@ struct chunked_multidim_array {
   //  return data;
   //}
   //----------------------------------------------------------------------------
-  template <typename RandomEngine = std::mt19937_64, typename _T = T,
-            enable_if_arithmetic<_T>...>
+  template <typename RandomEngine = std::mt19937_64>
+  requires is_arithmetic_v<T>
   auto randu(T min = 0, T max = 1,
              RandomEngine&& random_engine = RandomEngine{
                  std::random_device{}()}) -> void {
@@ -498,7 +499,8 @@ struct chunked_multidim_array {
     }
   }
 
-  template <typename _T = T, enable_if_arithmetic<_T>...>
+  template <typename = void>
+  requires is_arithmetic_v<T>
   auto min_value() const {
     T min = std::numeric_limits<T>::max();
     for (auto const& chunk : m_chunks) {
@@ -507,7 +509,8 @@ struct chunked_multidim_array {
     return min;
   }
 
-  template <typename _T = T, enable_if_arithmetic<_T>...>
+  template <typename = void>
+  requires is_arithmetic_v<T>
   auto max_value() const {
     T max = -std::numeric_limits<T>::max();
     for (auto const& chunk : m_chunks) {
@@ -516,7 +519,8 @@ struct chunked_multidim_array {
     return max;
   }
 
-  template <typename _T = T, enable_if_arithmetic<_T>...>
+  template <typename = void>
+  requires is_arithmetic_v<T>
   auto minmax_value() const {
     std::pair minmax{std::numeric_limits<T>::max(),
                      -std::numeric_limits<T>::max()};
@@ -535,7 +539,8 @@ struct chunked_multidim_array {
     return minmax;
   }
 
-  template <typename _T = T, enable_if_arithmetic<_T>...>
+  template <typename = void>
+  requires is_arithmetic_v<T>
   auto normalize() -> void {
     auto [min, max] = minmax_value();
     auto normalizer = 1.0 / (max - min);

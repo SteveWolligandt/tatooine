@@ -84,7 +84,7 @@ TEMPLATE_TEST_CASE("chunked_multidim_array_element_assignment_primitive",
       return random_uniform<T>{0.0, 1.0}();
     }
   };
-  chunked_multidim_array<T> arr{{4, 4}, {2, 2}};
+  chunked_multidim_array<T> arr{std::vector<size_t>{4, 4}, std::vector<size_t>{2, 2}};
   for (size_t x = 0; x < 4; ++x) {
     for (size_t y = 0; y < 4; ++y) {
       auto v = rand();
@@ -98,7 +98,8 @@ TEMPLATE_TEST_CASE("chunked_multidim_array_element_assignment_primitive",
 TEMPLATE_TEST_CASE("chunked_multidim_array_element_assignment_vec",
                    "[chunked_multidim_array][tensor]", float, double) {
   using T = vec<TestType, 2>;
-  chunked_multidim_array<T> arr{{4, 4}, {2, 2}};
+  chunked_multidim_array<T> arr{std::vector<size_t>{4, 4},
+                                std::vector<size_t>{2, 2}};
   for (size_t x = 0; x < 4; ++x) {
     for (size_t y = 0; y < 4; ++y) {
       auto v = T::randu();

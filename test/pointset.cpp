@@ -86,31 +86,51 @@ TEST_CASE_METHOD((pointset<double, 2>), "pointset_inverse_distance_weighting_sam
                  "[pointset][inverse_distance_weighting_sampler]") {
   random_uniform rand{-1.0, 1.0, std::mt19937_64{1234}};
   auto&          prop = add_vertex_property<double>("prop");
-  for (size_t i = 0; i < 100; ++i) {
+  for (size_t i = 0; i < 1000; ++i) {
     auto v = insert_vertex(rand(), rand());
     prop[v] = rand() * 10;
   }
-  auto sampler = inverse_distance_weighting_sampler(prop);
+  auto sampler = inverse_distance_weighting_sampler(prop, 0.1);
   uniform_grid_2d<double> gr{linspace{-1.0, 1.0, 500},
                              linspace{-1.0, 1.0, 500}};
   gr.sample_to_vertex_property(sampler, "interpolated_data");
   gr.write_vtk("inverse_distance_weighting_sampler.vtk");
 }
 //==============================================================================
-TEST_CASE_METHOD((pointset<double, 2>), "pointset_moving_least_squares_sampler",
-                 "[pointset][moving_least_squares_sampler]") {
+TEST_CASE_METHOD((pointset<double, 2>), "pointset_moving_least_squares_sampler_2",
+                 "[pointset][moving_least_squares_sampler][2d][2D]") {
   random_uniform rand{-1.0, 1.0, std::mt19937_64{1234}};
   auto&          prop = add_vertex_property<double>("prop");
-  for (size_t i = 0; i < 100; ++i) {
+  for (size_t i = 0; i < 1000; ++i) {
     auto v = insert_vertex(rand(), rand());
     prop[v] = rand() * 10;
   }
 
-  auto sampler = moving_least_squares_sampler(prop);
-  uniform_grid_2d<double> gr{linspace{-1.0, 1.0, 500},
-                             linspace{-1.0, 1.0, 500}};
+  auto sampler = moving_least_squares_sampler(prop, 0.1);
+  grid gr{linspace{-1.0, 1.0, 500},
+          linspace{-1.0, 1.0, 500}};
   gr.sample_to_vertex_property(sampler, "interpolated_data");
   gr.write_vtk("moving_least_squares_sampler.vtk");
+  for (auto v : vertices()) {
+    CHECK(sampler(at(v)) == Approx(prop[v]));
+  }
+}
+//==============================================================================
+TEST_CASE_METHOD((pointset<double, 3>), "pointset_moving_least_squares_sampler_3",
+                 "[pointset][moving_least_squares_sampler][3d][3D]") {
+  random_uniform rand{-1.0, 1.0, std::mt19937_64{1234}};
+  auto&          prop = add_vertex_property<double>("prop");
+  for (size_t i = 0; i < 1000; ++i) {
+    auto v = insert_vertex(rand(), rand(), rand());
+    prop[v] = rand() * 10;
+  }
+
+  auto sampler = moving_least_squares_sampler(prop, 0.1);
+  grid gr{linspace{-1.0, 1.0, 500},
+          linspace{-1.0, 1.0, 500},
+          linspace{-1.0, 1.0, 500}};
+  gr.sample_to_vertex_property(sampler, "interpolated_data");
+  gr.write_vtk("moving_least_squares_sampler_3d.vtk");
   for (auto v : vertices()) {
     CHECK(sampler(at(v)) == Approx(prop[v]));
   }

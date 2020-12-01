@@ -176,7 +176,8 @@ struct lazy_reader : chunked_multidim_array<T> {
     return true;
   }
   //----------------------------------------------------------------------------
-  template <typename _T = value_type, enable_if_arithmetic<_T> = true>
+  template <typename = void>
+  requires is_arithmetic_v<value_type>
   auto is_chunk_filled_with_zeros(size_t const plain_index) const -> bool {
     return is_chunk_filled_with_value(plain_index, 0);
   }

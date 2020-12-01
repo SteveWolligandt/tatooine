@@ -5,10 +5,10 @@
 #include <ostream>
 #include <type_traits>
 
-#include "make_array.h"
-#include "linspace.h"
-#include "tensor.h"
-#include "type_traits.h"
+#include <tatooine/make_array.h>
+#include <tatooine/linspace.h>
+#include <tatooine/tensor.h>
+#include <tatooine/type_traits.h>
 //==============================================================================
 namespace tatooine {
 //==============================================================================
@@ -52,7 +52,7 @@ struct polynomial {
   template <typename OtherReal, size_t OtherDegree>
   requires (OtherDegree <= Degree)
   constexpr polynomial(polynomial<OtherReal, OtherDegree> const& other)
-      : m_coefficients{make_array<Real, Degree + 1>(0)} {
+      : m_coefficients{make_array<Degree + 1>(Real(0))} {
     for (size_t i = 0; i < OtherDegree + 1; ++i) {
       m_coefficients[i] = other.coefficient(i);
     }

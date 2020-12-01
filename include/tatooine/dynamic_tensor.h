@@ -360,6 +360,43 @@ auto diag(DynamicTensor& A) {
 }
 //==============================================================================
 template <typename LhsTensor, typename RhsTensor>
+requires is_dynamic_tensor_v<LhsTensor>
+auto operator*(LhsTensor const& lhs, diag_dynamic_tensor<RhsTensor> const& rhs)
+    -> dynamic_tensor<std::common_type_t<typename LhsTensor::value_type,
+                                         typename RhsTensor::value_type>> {
+  using out_t =
+      dynamic_tensor<std::common_type_t<typename LhsTensor::value_type,
+                                        typename RhsTensor::value_type>>;
+  out_t out;
+  // matrix-matrix-multiplication
+  if (lhs.num_dimensions() == 2 &&
+      lhs.size(1) == rhs.size(0)) {
+    auto out = out_t::zeros(lhs.size(0), rhs.size(1));
+    for (size_t r = 0; r < lhs.size(0); ++r) {
+      for (size_t c = 0; c < rhs.size(1); ++c) {
+        out(r, c) = lhs(r, c) * rhs(c, c);
+      }
+    }
+    return out;
+  }
+
+  std::stringstream A;
+  A << "[ " << lhs.size(0);
+  for (size_t i = 1; i < lhs.num_dimensions(); ++i) {
+    A << " x " << lhs.size(i);
+  }
+  A << " ]";
+      std::stringstream B;
+  B << "[ " << rhs.size(0);
+  for (size_t i = 1; i < rhs.num_dimensions(); ++i) {
+    B << " x " << rhs.size(i);
+  }
+  B << " ]";
+  throw std::runtime_error{"Cannot contract given dynamic tensors. (A:" +
+                           A.str() + "; B" + B.str() + ")"};
+}
+//==============================================================================
+template <typename LhsTensor, typename RhsTensor>
 requires is_dynamic_tensor_v<LhsTensor> &&
          is_dynamic_tensor_v<RhsTensor>
 auto operator*(LhsTensor const& lhs, RhsTensor const& rhs)

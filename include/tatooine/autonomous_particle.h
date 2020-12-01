@@ -104,6 +104,13 @@ struct autonomous_particle {
                   std::array<real_t, 1>{sqrt2 / real_t(2)}, false, stop);
   }
   //----------------------------------------------------------------------------
+  auto advect_with_2_splits(real_t const tau_step, real_t const max_t,
+                            bool const&  stop = false) const {
+    static real_t const sqrt2 = std::sqrt(real_t(2));
+    return advect(tau_step, max_t, 2, 0,
+                  std::array<real_t, 1>{sqrt2 / real_t(2)}, false, stop);
+  }
+  //----------------------------------------------------------------------------
   static auto advect_with_2_splits(real_t const tau_step, real_t const max_t,
                                    size_t const        max_num_particles,
                                    std::vector<this_t> particles,
@@ -114,11 +121,34 @@ struct autonomous_particle {
                   std::move(particles), stop);
   }
   //----------------------------------------------------------------------------
+  static auto advect_with_2_splits(real_t const tau_step, real_t const max_t,
+                                   std::vector<this_t> particles,
+                                   bool const&         stop = false) {
+    static real_t const sqrt2 = std::sqrt(real_t(2));
+    return advect(tau_step, max_t, 2, 0,
+                  std::array<real_t, 1>{sqrt2 / real_t(2)}, false,
+                  std::move(particles), stop);
+  }
+  //----------------------------------------------------------------------------
+  auto advect_with_3_splits(real_t const tau_step, real_t const max_t,
+                            bool const&  stop = false) const {
+    return advect(tau_step, max_t, 4, 0,
+                  std::array<real_t, 1>{real_t(1) / 2}, true, stop);
+  }
+  //----------------------------------------------------------------------------
   auto advect_with_3_splits(real_t const tau_step, real_t const max_t,
                             size_t const max_num_particles,
                             bool const&  stop = false) const {
     return advect(tau_step, max_t, 4, max_num_particles,
                   std::array<real_t, 1>{real_t(1) / 2}, true, stop);
+  }
+  //----------------------------------------------------------------------------
+  static auto advect_with_3_splits(real_t const tau_step, real_t const max_t,
+                                   std::vector<this_t> particles,
+                                   bool const&         stop = false) {
+    return advect(tau_step, max_t, 4, 0,
+                  std::array<real_t, 1>{real_t(1) / 2}, true,
+                  std::move(particles), stop);
   }
   //----------------------------------------------------------------------------
   static auto advect_with_3_splits(real_t const tau_step, real_t const max_t,
@@ -139,12 +169,29 @@ struct autonomous_particle {
                   true, stop);
   }
   //----------------------------------------------------------------------------
+  auto advect_with_5_splits(real_t const tau_step, real_t const max_t,
+                            bool const&  stop = false) const {
+    static real_t const sqrt5 = std::sqrt(real_t(5));
+    return advect(tau_step, max_t, 6 + sqrt5 * 2, 0,
+                  std::array{(sqrt5 + 3) / (sqrt5 * 2 + 2), 1 / (sqrt5 + 1)},
+                  true, stop);
+  }
+  //----------------------------------------------------------------------------
   static auto advect_with_5_splits(real_t const tau_step, real_t const max_t,
                                    size_t const        max_num_particles,
                                    std::vector<this_t> particles,
                                    bool const&         stop = false) {
     static real_t const sqrt5 = std::sqrt(real_t(5));
     return advect(tau_step, max_t, 6 + sqrt5 * 2, max_num_particles,
+                  std::array{(sqrt5 + 3) / (sqrt5 * 2 + 2), 1 / (sqrt5 + 1)},
+                  true, std::move(particles), stop);
+  }
+  //----------------------------------------------------------------------------
+  static auto advect_with_5_splits(real_t const tau_step, real_t const max_t,
+                                   std::vector<this_t> particles,
+                                   bool const&         stop = false) {
+    static real_t const sqrt5 = std::sqrt(real_t(5));
+    return advect(tau_step, max_t, 6 + sqrt5 * 2, 0,
                   std::array{(sqrt5 + 3) / (sqrt5 * 2 + 2), 1 / (sqrt5 + 1)},
                   true, std::move(particles), stop);
   }
@@ -158,11 +205,28 @@ struct autonomous_particle {
                   true, stop);
   }
   //----------------------------------------------------------------------------
+  auto advect_with_7_splits(real_t const tau_step, real_t const max_t,
+                            bool const&  stop = false) const {
+    return advect(tau_step, max_t, 4.493959210 * 4.493959210, 0,
+                  std::array{real_t(.9009688678), real_t(.6234898004),
+                             real_t(.2225209338)},
+                  true, stop);
+  }
+  //----------------------------------------------------------------------------
   static auto advect_with_7_splits(real_t const tau_step, real_t const max_t,
                                    size_t const        max_num_particles,
                                    std::vector<this_t> particles,
                                    bool const&         stop = false) {
     return advect(tau_step, max_t, 4.493959210 * 4.493959210, max_num_particles,
+                  std::array{real_t(.9009688678), real_t(.6234898004),
+                             real_t(.2225209338)},
+                  true, std::move(particles), stop);
+  }
+  //----------------------------------------------------------------------------
+  static auto advect_with_7_splits(real_t const tau_step, real_t const max_t,
+                                   std::vector<this_t> particles,
+                                   bool const&         stop = false) {
+    return advect(tau_step, max_t, 4.493959210 * 4.493959210, 0,
                   std::array{real_t(.9009688678), real_t(.6234898004),
                              real_t(.2225209338)},
                   true, std::move(particles), stop);
@@ -216,7 +280,7 @@ struct autonomous_particle {
       }
 
       active                         = 1 - active;
-      if (particles[active].size() > max_num_particles) {
+      if (max_num_particles > 0 && particles[active].size() > max_num_particles) {
         size_t const num_particles_to_delete =
             particles[active].size() - max_num_particles;
 
@@ -227,7 +291,7 @@ struct autonomous_particle {
         }
       }
     }
-    while (size(finished_particles) > max_num_particles) {
+    while (max_num_particles > 0 && size(finished_particles) > max_num_particles) {
       random_uniform<size_t> rand{0, size(finished_particles) - 1};
       finished_particles[rand()] =
           std::move(finished_particles.back());

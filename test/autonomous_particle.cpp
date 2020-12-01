@@ -22,7 +22,7 @@ void autonomous_particles_test_backward_integration_distance(
   std::vector<parameterized_line<VReal, 3, interpolation::linear>>
                             integral_curves;
   autonomous_particle const p0{v, x0, t0, start_radius};
-  auto [particles, ellipsoids] = p0.integrate(tau_step, t1);
+  auto [particles, ellipsoids] = p0.advect_with_2_splits(tau_step, t1);
   std::vector<line<double, 3>> formula_back;
   for (auto const& particle : particles) {
     auto const     total_integration_length = t0 - particle.t1();
@@ -87,7 +87,7 @@ void autonomous_particles_test_backward_integration_distance(
   std::vector<parameterized_line<VReal, 3, interpolation::linear>>
                             integral_curves;
   autonomous_particle const p0{v, x0, t0, start_radius};
-  auto particles = p0.integrate(tau_step, t1);
+  auto particles = p0.advect_with_2_splits(tau_step, t1);
   std::vector<line<double, 3>> formula_back;
   for (auto const& particle : particles) {
     auto const     total_integration_length = t0 - particle.t1();
@@ -152,7 +152,7 @@ void autonomous_particles_test_backward_integration_distance(
     auto const                    x0  = x0s[i];
     [[maybe_unused]] double const eps = 1e-5;
     autonomous_particle const     p0{v, x0, t0, start_radius};
-    auto particles = p0.integrate(tau_step, t1);
+    auto particles = p0.advect_with_2_splits(tau_step, t1);
     for (auto const& particle : particles) {
       auto const     total_integration_length = t0 - particle.t1();
       auto&          integral_curve           = integral_curves.emplace_back();

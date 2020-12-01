@@ -2,7 +2,7 @@
 #include <tatooine/analytical/fields/numerical/sinuscosinus.h>
 #include <tatooine/streamsurface.h>
 //#include <tatooine/boussinesq.h>
-#include <tatooine/spacetime_field.h>
+#include <tatooine/spacetime_vectorfield.h>
 
 #include <catch2/catch.hpp>
 //==============================================================================
@@ -61,7 +61,7 @@ TEST_CASE(
     "streamsurface_hultquist_spacetime_doublegyre",
     "[streamsurface][hultquist][numerical][doublegyre][dg][spacetime_field]") {
   analytical::fields::numerical::doublegyre v;
-  spacetime_field                           vst{v};
+  spacetime_vectorfield                           vst{v};
   streamsurface                             ssf{
       vst, parameterized_line<double, 3, cubic>{{{0.1, 0.2, 0.0}, 0.0},
                                                   {{0.5, 0.9, 0.0}, 0.5},

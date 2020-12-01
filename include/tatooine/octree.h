@@ -48,7 +48,7 @@ struct octree : aabb<Real, 3> {
   }
   //----------------------------------------------------------------------------
   template <typename Mesh>
-  auto insert_triangle(Mesh const& /*mesh*/, size_t const /*triangle_idx*/)
+  auto insert_face(Mesh const& /*mesh*/, size_t const /*triangle_idx*/)
       -> bool {
     return true;
   }

@@ -1,11 +1,13 @@
 #ifndef TATOOINE_HTML_H
 #define TATOOINE_HTML_H
 //╔════════════════════════════════════════════════════════════════════════════╗
+#include <tatooine/concepts.h>
+#include <tatooine/type_traits.h>
+
 #include <fstream>
 #include <iostream>
 #include <sstream>
 #include <string>
-#include <tatooine/type_traits.h>
 //╔════════════════════════════════════════════════════════════════════════════╗
 namespace tatooine::html {
 //├╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌┤
@@ -184,7 +186,7 @@ struct table : content {
     for (const auto& t:v) {c.push_back(t);} 
     return c;
   }
-  template <typename Real, enable_if_arithmetic<Real> = true>
+  template <real_number Real>
   auto to_strvec(const std::vector<Real>& v)    {
     std::vector<std::string> c;
     c.reserve(v.size());
@@ -284,7 +286,8 @@ struct chart : content {
   std::string        color;
   std::vector<Label> labels;
 
-  template <enable_if_arithmetic<Real> = true>
+  template <typename = void>
+  requires is_arithmetic_v<Real>
   chart(const std::vector<Real>& data_, const std::string& name_,
         const std::string&        color_  = "#FF0000",
         const std::vector<Label>& labels_ = std::vector<std::string>{})
@@ -536,24 +539,24 @@ template<typename Real, typename Label>
     add_content(html::to_string(cnt));
   }
   //├╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌┤
-  template <typename... Contents,
-            std::enable_if_t<(sizeof...(Contents) > 1), bool> = true>
+  template <typename... Contents>
+  requires(sizeof...(Contents) > 1)
   void add(Contents&&... contents) {
     use_bootstrap();
     use_chart_js();
     add(vbox{std::forward<Contents>(contents)...});
   }
   //├╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌┤
-  template <typename... Contents,
-            std::enable_if_t<(sizeof...(Contents) > 1), bool> = true>
+  template <typename... Contents>
+  requires (sizeof...(Contents) > 1)
   void add_horizontal(Contents&&... contents) {
     use_bootstrap();
     use_chart_js();
     add(hbox{std::forward<Contents>(contents)...});
   }
   //├╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌┤
-  template <typename... Contents,
-            std::enable_if_t<(sizeof...(Contents) > 1), bool> = true>
+  template <typename... Contents>
+  requires (sizeof...(Contents) > 1)
   void add_vertical(Contents&&... contents) {
     use_bootstrap();
     use_chart_js();

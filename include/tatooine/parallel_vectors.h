@@ -357,13 +357,11 @@ template <
 //------------------------------------------------------------------------------
 template <typename V, typename W, real_number VReal, real_number WReal,
           real_number XReal, real_number YReal, real_number ZReal,
-          real_number TReal,
-          invocable<vec<promote_t<VReal, WReal>, 3>>... Preds,
-          enable_if_arithmetic<TReal> = true>
+          invocable<vec<promote_t<VReal, WReal>, 3>>... Preds>
 auto parallel_vectors(field<V, VReal, 3, 3> const& v,
                       field<W, WReal, 3, 3> const& w, linspace<XReal> const& x,
                       linspace<YReal> const& y, linspace<ZReal> const& z,
-                      TReal t, Preds&&... preds) {
+                      real_number auto t, Preds&&... preds) {
   return parallel_vectors(v, w, grid{x, y, z}, t,
                           std::forward<Preds>(preds)...);
 }
@@ -380,12 +378,12 @@ auto parallel_vectors(field<V, VReal, 3, 3> const& v,
 }
 //------------------------------------------------------------------------------
 template <real_number VReal, typename VIndexing, real_number WReal,
-          real_number WIndexing, real_number BBReal,
+          real_number WIndexing, real_number AABBReal,
           invocable<vec<promote_t<VReal, WReal>, 3>>... Preds>
 auto parallel_vectors(
     dynamic_multidim_array<vec<VReal, 3>, VIndexing> const& vf,
     dynamic_multidim_array<vec<WReal, 3>, WIndexing> const& wf,
-    boundingbox<BBReal, 3> const& bb, Preds&&... preds) {
+    axis_aligned_bounding_box<AABBReal, 3> const& bb, Preds&&... preds) {
   assert(vf.num_dimensions() == 3);
   assert(wf.num_dimensions() == 3);
   assert(vf.size(0) == wf.size(0));

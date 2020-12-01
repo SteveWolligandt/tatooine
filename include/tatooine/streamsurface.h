@@ -302,15 +302,15 @@ struct front_evolving_streamsurface_discretization
   using parent_t::at;
   using typename parent_t::pos_t;
   using parent_t::operator[];
-  using typename parent_t::triangle_index;
-  using typename parent_t::vertex_index;
+  using typename parent_t::face_handle;
+  using typename parent_t::vertex_handle;
 
   using vec2          = vec<real_t, 2>;
   using uv_t          = vec2;
   using uv_property_t = typename parent_t::template vertex_property_t<uv_t>;
 
-  using vertex_vec_t     = std::vector<vertex_index>;
-  using vertex_list_t    = std::list<vertex_index>;
+  using vertex_vec_t     = std::vector<vertex_handle>;
+  using vertex_list_t    = std::list<vertex_handle>;
   using vertex_list_it_t = typename vertex_list_t::const_iterator;
   using vertex_range_t   = std::pair<vertex_list_it_t, vertex_list_it_t>;
   using subfront_t       = std::pair<vertex_list_t, vertex_range_t>;
@@ -324,7 +324,7 @@ struct front_evolving_streamsurface_discretization
   // members
   //============================================================================
   ssf_t*                 ssf;
-  std::set<vertex_index> m_on_border;
+  std::set<vertex_handle> m_on_border;
   uv_property_t*         m_uv_property;
 
   //============================================================================
@@ -366,10 +366,10 @@ struct front_evolving_streamsurface_discretization
   }
   //----------------------------------------------------------------------------
  public:
-  auto& uv(vertex_index v) {
+  auto& uv(vertex_handle v) {
     return m_uv_property->at(v);
   }
-  const auto& uv(vertex_index v) const {
+  const auto& uv(vertex_handle v) const {
     return m_uv_property->at(v);
   }
   //----------------------------------------------------------------------------
@@ -403,7 +403,7 @@ struct front_evolving_streamsurface_discretization
   //----------------------------------------------------------------------------
   void triangulate_timeline(const front_t& front) {
     for (const auto& subfront : front) {
-      std::vector<triangle_index> new_face_indices;
+      std::vector<face_handle> new_face_indices;
       const auto&                 vs = subfront.first;
       auto [left0, end0]             = subfront.second;
       auto left1                     = begin(vs);
@@ -432,14 +432,14 @@ struct front_evolving_streamsurface_discretization
 
         if (lower_edge_len < upper_edge_len) {
           new_face_indices.push_back(
-              this->insert_triangle(*left0, *right0, *left1));
+              this->insert_face(*left0, *right0, *left1));
           if (next(left0) != end0) {
             ++left0;
           }
 
         } else {
           new_face_indices.push_back(
-              this->insert_triangle(*left0, *right1, *left1));
+              this->insert_face(*left0, *right1, *left1));
 
           if (next(left1) != end1) {
             ++left1;
@@ -609,8 +609,8 @@ struct front_evolving_streamsurface_discretization
 //  using ssf_t            = typename parent_t::ssf_t;
 //  using vertex_vec_t     = typename parent_t::vertex_vec_t;
 //  using vertex_list_t    = typename parent_t::vertex_list_t;
-//  using vertex_index           = typename parent_t::vertex_index;
-//  using triangle_index             = typename parent_t::triangle_index;
+//  using vertex_handle           = typename parent_t::vertex_handle;
+//  using face_handle             = typename parent_t::face_handle;
 //  using vertex_list_it_t = typename parent_t::vertex_list_it_t;
 //  using vertex_range_t   = typename parent_t::vertex_range_t;
 //  using parent_t::at;
@@ -710,9 +710,9 @@ struct hultquist_discretization : front_evolving_streamsurface_discretization<
   using typename parent_t::front_t;
   using typename parent_t::ssf_t;
   using typename parent_t::subfront_t;
-  using typename parent_t::triangle_index;
+  using typename parent_t::face_handle;
   using typename parent_t::uv_t;
-  using typename parent_t::vertex_index;
+  using typename parent_t::vertex_handle;
   using typename parent_t::vertex_list_it_t;
   using typename parent_t::vertex_list_t;
   using typename parent_t::vertex_range_t;
@@ -770,7 +770,7 @@ struct hultquist_discretization : front_evolving_streamsurface_discretization<
   auto integrate(const subfront_t& subfront, real_t step) {
     assert(step != 0);
     struct integrated_t {
-      vertex_index     v;
+      vertex_handle     v;
       bool             moved, on_border, resampled;
       vertex_list_it_t start_vertex;
     };
@@ -916,8 +916,8 @@ struct schulze_discretization : front_evolving_streamsurface_discretization<
   using typename parent_t::front_t;
   using typename parent_t::ssf_t;
   using typename parent_t::subfront_t;
-  using typename parent_t::triangle_index;
-  using typename parent_t::vertex_index;
+  using typename parent_t::face_handle;
+  using typename parent_t::vertex_handle;
   using typename parent_t::vertex_list_it_t;
   using typename parent_t::vertex_list_t;
   template <typename T>
@@ -964,7 +964,7 @@ struct schulze_discretization : front_evolving_streamsurface_discretization<
         splitted_front_ranges[0].first == begin(vs) &&
         splitted_front_ranges[0].second == end(vs)) {
       auto& vertices1 = new_subfronts
-                            .emplace_back(std::list<vertex_index>{},
+                            .emplace_back(std::list<vertex_handle>{},
                                           std::pair{begin(vs), end(vs)})
                             .first;
 
@@ -981,10 +981,10 @@ struct schulze_discretization : front_evolving_streamsurface_discretization<
       // rip needed
       for (const auto& range : splitted_front_ranges) {
         auto& [vertices1, pred_range] =
-            new_subfronts.emplace_back(std::list<vertex_index>{}, range);
+            new_subfronts.emplace_back(std::list<vertex_handle>{}, range);
 
         size_t                  i = 0;
-        std::list<vertex_index> sub_front;
+        std::list<vertex_handle> sub_front;
         std::copy(pred_range.first, pred_range.second,
                   std::back_inserter(sub_front));
         auto sub_alpha = optimal_stepsizes(sub_front);
@@ -1014,7 +1014,7 @@ struct schulze_discretization : front_evolving_streamsurface_discretization<
   auto evolve(const front_t& front, real_t desired_spatial_dist) {
     auto integrated_front = integrate(front);
     // triangulate
-    std::vector<std::vector<triangle_index>> faces;
+    std::vector<std::vector<face_handle>> faces;
     this->subdivide(integrated_front, desired_spatial_dist);
     this->reduce(integrated_front, desired_spatial_dist);
     this->triangulate_timeline(integrated_front);
@@ -1032,17 +1032,17 @@ struct schulze_discretization : front_evolving_streamsurface_discretization<
 
     // TODO: get t0 at u, not at 0
     size_t i = 0;
-    for (const auto vertex_index : vs)
-      ps[i++] = v(at(vertex_index), this->t0(0) + uv(vertex_index)(1));
+    for (const auto vertex_handle : vs)
+      ps[i++] = v(at(vertex_handle), this->t0(0) + uv(vertex_handle)(1));
 
     i              = 0;
     real_t avg_len = 0;
-    for (auto vertex_index = begin(vs); vertex_index != prev(end(vs));
-         ++vertex_index, ++i) {
+    for (auto vertex_handle = begin(vs); vertex_handle != prev(end(vs));
+         ++vertex_handle, ++i) {
       auto tm = this->t0(0) +
-                (uv(*vertex_index)(1) + uv(*next(vertex_index))(1)) * 0.5;
-      auto xm  = (at(*next(vertex_index)) + at(*vertex_index)) * 0.5;
-      auto dir = at(*next(vertex_index)) - at(*vertex_index);
+                (uv(*vertex_handle)(1) + uv(*next(vertex_handle))(1)) * 0.5;
+      auto xm  = (at(*next(vertex_handle)) + at(*vertex_handle)) * 0.5;
+      auto dir = at(*next(vertex_handle)) - at(*vertex_handle);
       auto vm  = v(xm, tm);
       auto Jm  = jacobian(xm, tm);
 

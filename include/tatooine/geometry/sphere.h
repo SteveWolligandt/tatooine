@@ -75,7 +75,7 @@ auto discretize(const sphere<Real, 2>& s, size_t const num_vertices) {
 template <typename Real>
 auto discretize(const sphere<Real, 3>& s, size_t num_subdivisions = 0) {
   using mesh_t       = triangular_mesh<Real, 3>;
-  using vertex_index = typename mesh_t::vertex_index;
+  using vertex_handle = typename mesh_t::vertex_handle;
   // const Real  X = 0.525731112119133606;
   // const Real  Z = 0.850650808352039932;
   const Real  X = 0.525731112119133606;
@@ -84,34 +84,34 @@ auto discretize(const sphere<Real, 3>& s, size_t num_subdivisions = 0) {
                        vec{X, 0, -Z}, vec{0, Z, X},   vec{0, Z, -X},
                        vec{0, -Z, X}, vec{0, -Z, -X}, vec{Z, X, 0},
                        vec{-Z, X, 0}, vec{Z, -X, 0},  vec{-Z, -X, 0}};
-  std::vector<std::array<vertex_index, 3>> triangles{
-      {vertex_index{0}, vertex_index{4}, vertex_index{1}},
-      {vertex_index{0}, vertex_index{9}, vertex_index{4}},
-      {vertex_index{9}, vertex_index{5}, vertex_index{4}},
-      {vertex_index{4}, vertex_index{5}, vertex_index{8}},
-      {vertex_index{4}, vertex_index{8}, vertex_index{1}},
-      {vertex_index{8}, vertex_index{10}, vertex_index{1}},
-      {vertex_index{8}, vertex_index{3}, vertex_index{10}},
-      {vertex_index{5}, vertex_index{3}, vertex_index{8}},
-      {vertex_index{5}, vertex_index{2}, vertex_index{3}},
-      {vertex_index{2}, vertex_index{7}, vertex_index{3}},
-      {vertex_index{7}, vertex_index{10}, vertex_index{3}},
-      {vertex_index{7}, vertex_index{6}, vertex_index{10}},
-      {vertex_index{7}, vertex_index{11}, vertex_index{6}},
-      {vertex_index{11}, vertex_index{0}, vertex_index{6}},
-      {vertex_index{0}, vertex_index{1}, vertex_index{6}},
-      {vertex_index{6}, vertex_index{1}, vertex_index{10}},
-      {vertex_index{9}, vertex_index{0}, vertex_index{11}},
-      {vertex_index{9}, vertex_index{11}, vertex_index{2}},
-      {vertex_index{9}, vertex_index{2}, vertex_index{5}},
-      {vertex_index{7}, vertex_index{2}, vertex_index{11}}};
+  std::vector<std::array<vertex_handle, 3>> faces{
+      {vertex_handle{0}, vertex_handle{4}, vertex_handle{1}},
+      {vertex_handle{0}, vertex_handle{9}, vertex_handle{4}},
+      {vertex_handle{9}, vertex_handle{5}, vertex_handle{4}},
+      {vertex_handle{4}, vertex_handle{5}, vertex_handle{8}},
+      {vertex_handle{4}, vertex_handle{8}, vertex_handle{1}},
+      {vertex_handle{8}, vertex_handle{10}, vertex_handle{1}},
+      {vertex_handle{8}, vertex_handle{3}, vertex_handle{10}},
+      {vertex_handle{5}, vertex_handle{3}, vertex_handle{8}},
+      {vertex_handle{5}, vertex_handle{2}, vertex_handle{3}},
+      {vertex_handle{2}, vertex_handle{7}, vertex_handle{3}},
+      {vertex_handle{7}, vertex_handle{10}, vertex_handle{3}},
+      {vertex_handle{7}, vertex_handle{6}, vertex_handle{10}},
+      {vertex_handle{7}, vertex_handle{11}, vertex_handle{6}},
+      {vertex_handle{11}, vertex_handle{0}, vertex_handle{6}},
+      {vertex_handle{0}, vertex_handle{1}, vertex_handle{6}},
+      {vertex_handle{6}, vertex_handle{1}, vertex_handle{10}},
+      {vertex_handle{9}, vertex_handle{0}, vertex_handle{11}},
+      {vertex_handle{9}, vertex_handle{11}, vertex_handle{2}},
+      {vertex_handle{9}, vertex_handle{2}, vertex_handle{5}},
+      {vertex_handle{7}, vertex_handle{2}, vertex_handle{11}}};
   for (size_t i = 0; i < num_subdivisions; ++i) {
-    std::vector<std::array<vertex_index, 3>> subdivided_triangles;
-    using edge_t = std::pair<vertex_index, vertex_index>;
-    std::map<edge_t, size_t> subdivided;  // vertex_index index on edge
-    for (auto& [v0, v1, v2] : triangles) {
+    std::vector<std::array<vertex_handle, 3>> subdivided_faces;
+    using edge_t = std::pair<vertex_handle, vertex_handle>;
+    std::map<edge_t, size_t> subdivided;  // vertex_handle index on edge
+    for (auto& [v0, v1, v2] : faces) {
       std::array edges{edge_t{v0, v1}, edge_t{v0, v2}, edge_t{v1, v2}};
-      std::array nvs{vertex_index{0}, vertex_index{0}, vertex_index{0}};
+      std::array nvs{vertex_handle{0}, vertex_handle{0}, vertex_handle{0}};
       size_t     i = 0;
       for (auto& edge : edges) {
         if (edge.first < edge.second) {
@@ -126,23 +126,23 @@ auto discretize(const sphere<Real, 3>& s, size_t num_subdivisions = 0) {
           nvs[i++] = subdivided[edge];
         }
       }
-      subdivided_triangles.emplace_back(std::array{v0, nvs[1], nvs[0]});
-      subdivided_triangles.emplace_back(std::array{nvs[0], nvs[2], v1});
-      subdivided_triangles.emplace_back(std::array{nvs[1], v2, nvs[2]});
-      subdivided_triangles.emplace_back(std::array{nvs[0], nvs[1], nvs[2]});
+      subdivided_faces.emplace_back(std::array{v0, nvs[1], nvs[0]});
+      subdivided_faces.emplace_back(std::array{nvs[0], nvs[2], v1});
+      subdivided_faces.emplace_back(std::array{nvs[1], v2, nvs[2]});
+      subdivided_faces.emplace_back(std::array{nvs[0], nvs[1], nvs[2]});
     }
-    triangles = subdivided_triangles;
+    faces = subdivided_faces;
   }
   for (auto& v : vertices) {
     v *= s.radius();
     v += s.center();
   }
   mesh_t m;
-  for (auto& vertex_index : vertices) {
-    m.insert_vertex(std::move(vertex_index));
+  for (auto& vertex_handle : vertices) {
+    m.insert_vertex(std::move(vertex_handle));
   }
-  for (auto& tri : triangles) {
-    m.insert_triangle(std::move(tri));
+  for (auto& f : faces) {
+    m.insert_face(f[0], f[1], f[2]);
   }
   return m;
 }
