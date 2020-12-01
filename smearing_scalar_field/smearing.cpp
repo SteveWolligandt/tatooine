@@ -16,7 +16,12 @@ auto smear(auto& ping_field, auto& pong_field, geometry::sphere2 const& s,
   auto sampler = ping_field.template sampler<interpolation::cubic>();
 
   ping_field.grid().parallel_loop_over_vertex_indices([&](auto const... is) {
-    auto const current_pos  = ping_field.grid()(is...);
+    if (std::abs(t0 - current_time) > temporal_range) {
+      auto const sampled_current = ping_field(is...);
+      pong_field(is...)          = sampled_current;
+      return;
+    }
+    auto const current_pos = ping_field.grid()(is...);
     auto const offset_pos = current_pos - dir;
     auto const sqr_distance_to_sphere_origin =
         sqr_distance(offset_pos, s.center());
