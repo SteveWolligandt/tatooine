@@ -22,9 +22,32 @@ auto read_ascii(std::filesystem::path const& file_path, int& res_x, int& res_y,
   double val;
   for (int i = 0; i < res_t; ++i) {
     auto& a = grids[i].add_vertex_property<double>("a");
-    grids[i].loop_over_vertex_indices([&](auto const... is) {
+    grids[i].loop_over_vertex_indices([&](auto x, auto y) {
       file >> val;
-      a(is...) = val;
+      a(x, y) = val;
+    });
+    grids[i].loop_over_vertex_indices([&](auto x, auto y) {
+      if (std::isnan(a(x, y))) {
+        double mean = 0.0;
+        size_t cnt  = 0;
+        if (x > 0) {
+          mean += a(x - 1, y);
+          ++cnt;
+        }
+        if (y > 0) {
+          mean += a(x, y - 1);
+          ++cnt;
+        }
+        if (x < grids[i].size(0) - 1) {
+          mean += a(x + 1, y);
+          ++cnt;
+        }
+        if (y < grids[i].size(1) - 1) {
+          mean += a(x, y + 1);
+          ++cnt;
+        }
+        a(x, y) = mean / cnt;
+      }
     });
   }
   for (int i = 0; i < res_t; ++i) {
@@ -32,6 +55,29 @@ auto read_ascii(std::filesystem::path const& file_path, int& res_x, int& res_y,
     grids[i].loop_over_vertex_indices([&](auto const... is) {
       file >> val;
       b(is...) = val;
+    });
+    grids[i].loop_over_vertex_indices([&](auto x, auto y) {
+      if (std::isnan(b(x, y))) {
+        double mean = 0.0;
+        size_t cnt  = 0;
+        if (x > 0) {
+          mean += b(x - 1, y);
+          ++cnt;
+        }
+        if (y > 0) {
+          mean += b(x, y - 1);
+          ++cnt;
+        }
+        if (x < grids[i].size(0) - 1) {
+          mean += b(x + 1, y);
+          ++cnt;
+        }
+        if (y < grids[i].size(1) - 1) {
+          mean += b(x, y + 1);
+          ++cnt;
+        }
+        b(x, y) = mean / cnt;
+      }
     });
   }
   return grids;
@@ -64,11 +110,57 @@ auto read_binary(std::filesystem::path const& file_path, int& res_x, int& res_y,
     grids[i].loop_over_vertex_indices([&](auto const... is) {
       file.read(reinterpret_cast<char*>(&a(is...)), sizeof(double));
     });
+    grids[i].loop_over_vertex_indices([&](auto x, auto y) {
+      if (std::isnan(a(x, y))) {
+        double mean = 0.0;
+        size_t cnt  = 0;
+        if (x > 0) {
+          mean += a(x - 1, y);
+          ++cnt;
+        }
+        if (y > 0) {
+          mean += a(x, y - 1);
+          ++cnt;
+        }
+        if (x < grids[i].size(0) - 1) {
+          mean += a(x + 1, y);
+          ++cnt;
+        }
+        if (y < grids[i].size(1) - 1) {
+          mean += a(x, y + 1);
+          ++cnt;
+        }
+        a(x, y) = mean / cnt;
+      }
+    });
   }
   for (int i = 0; i < res_t; ++i) {
     auto& b = grids[i].add_vertex_property<double>("b");
     grids[i].loop_over_vertex_indices([&](auto const... is) {
       file.read(reinterpret_cast<char*>(&b(is...)), sizeof(double));
+    });
+    grids[i].loop_over_vertex_indices([&](auto x, auto y) {
+      if (std::isnan(b(x, y))) {
+        double mean = 0.0;
+        size_t cnt  = 0;
+        if (x > 0) {
+          mean += b(x - 1, y);
+          ++cnt;
+        }
+        if (y > 0) {
+          mean += b(x, y - 1);
+          ++cnt;
+        }
+        if (x < grids[i].size(0) - 1) {
+          mean += b(x + 1, y);
+          ++cnt;
+        }
+        if (y < grids[i].size(1) - 1) {
+          mean += b(x, y + 1);
+          ++cnt;
+        }
+        b(x, y) = mean / cnt;
+      }
     });
   }
   return grids;
