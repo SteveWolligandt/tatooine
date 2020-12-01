@@ -192,7 +192,8 @@ class grid {
   //----------------------------------------------------------------------------
  private:
   template <size_t... Is>
-  constexpr auto bounding_box(std::index_sequence<Is...> /*seq*/) const {
+  constexpr auto bounding_box(
+      std::index_sequence<Is...> /*seq*/) const {
     static_assert(sizeof...(Is) == num_dimensions());
     return axis_aligned_bounding_box<real_t, num_dimensions()>{
         vec<real_t, num_dimensions()>{static_cast<real_t>(front<Is>())...},
@@ -200,7 +201,9 @@ class grid {
   }
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
  public:
-  constexpr auto bounding_box() const { return bounding_box(seq_t{}); }
+  constexpr auto bounding_box() const {
+    return bounding_box(seq_t{});
+  }
   //----------------------------------------------------------------------------
  private:
   template <size_t... Is>
@@ -635,6 +638,24 @@ class grid {
   auto add_dimension(indexable_space auto&& additional_dimension) const {
     return add_dimension(
         std::forward<AdditionalDimension>(additional_dimension), seq_t{});
+  }
+  //----------------------------------------------------------------------------
+  auto remove_vertex_property(std::string const& name)
+      ->void{
+    if (auto it = m_vertex_properties.find(name);
+        it != end(m_vertex_properties)) {
+      m_vertex_properties.erase(it);
+    }
+  }
+  //----------------------------------------------------------------------------
+  auto rename_vertex_property(std::string const& current_name,
+                              std::string const& new_name) -> void {
+    if (auto it = m_vertex_properties.find(current_name);
+        it != end(m_vertex_properties)) {
+      auto handler = m_vertex_properties.extract(it);
+      handler.key() = new_name;
+      m_vertex_properties.insert(std::move(handler));
+    }
   }
   //----------------------------------------------------------------------------
   template <typename Container, typename... Args>

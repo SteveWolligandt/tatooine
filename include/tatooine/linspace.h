@@ -216,11 +216,6 @@ auto size(linspace<Real> const& l) {
 }
 //------------------------------------------------------------------------------
 template <real_number Real>
-auto size(linspace<Real> & l) -> auto& {
-  return l.size();
-}
-//------------------------------------------------------------------------------
-template <real_number Real>
 auto front(linspace<Real> const& l) {
   return l.front();
 }
