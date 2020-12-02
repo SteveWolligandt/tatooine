@@ -17,10 +17,20 @@ TEST_CASE("isosurface_abcflow_length", "[iso][isosurface][numerical][abcflow]") 
 }
 //------------------------------------------------------------------------------
 TEST_CASE("isolines_doublegyre_length", "[iso][isolines][numerical][doublegyre]") {
-  write_vtk(
-      isolines(length(analytical::fields::numerical::doublegyre{}),
-                 grid{linspace{0.0, 2.0, 200}, linspace{0.0, 1.0, 100}}, 0.1),
-      "isolines_doublegyre.vtk");
+  auto const l = length(analytical::fields::numerical::doublegyre{});
+  SECTION("field") {
+    write_vtk(
+        isolines(l, grid{linspace{0.0, 2.0, 200}, linspace{0.0, 1.0, 100}},
+                 0.1),
+        "isolines_doublegyre.vtk");
+  }
+  SECTION("sampled") {
+    grid g{linspace{0.0, 2.0, 200}, linspace{0.0, 1.0, 100}};
+    auto& s = g.sample_to_vertex_property(
+        [&](auto const& x) { return l(x, 0); }, "l");
+    g.write_vtk("magnitude_doublegyre.vtk");
+    write_vtk(isolines(s, 0.1), "isolines_doublegyre_sampled.vtk");
+  }
 }
 //------------------------------------------------------------------------------
 TEST_CASE("isosurface_random",

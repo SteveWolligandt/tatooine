@@ -106,6 +106,16 @@ auto isolines(GetScalars&& get_scalars, grid<XDomain, YDomain> const& g,
   return isolines;
 }
 //------------------------------------------------------------------------------
+template <typename Grid, real_number T>
+auto isolines(typed_multidim_property<Grid, T> const& data,
+              real_number auto const                  isolevel) {
+  return isolines(
+      [&](auto ix, auto iy, auto const& /*ps*/) -> auto const& {
+        return data(ix, iy);
+      },
+      data.grid(), isolevel);
+}
+//------------------------------------------------------------------------------
 template <real_number Real, typename Indexing, real_number BBReal>
 auto isolines(dynamic_multidim_array<Real, Indexing> const& data,
               axis_aligned_bounding_box<BBReal, 2> const&   bb,
