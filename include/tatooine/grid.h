@@ -1,22 +1,23 @@
 #ifndef TATOOINE_GRID_H
 #define TATOOINE_GRID_H
 //==============================================================================
-#include <filesystem>
+#include <tatooine/amira_file.h>
 #include <tatooine/axis_aligned_bounding_box.h>
-#include <tatooine/netcdf.h>
-#include <tatooine/lazy_netcdf_reader.h>
 #include <tatooine/chunked_multidim_array.h>
 #include <tatooine/concepts.h>
 #include <tatooine/for_loop.h>
 #include <tatooine/grid_vertex_container.h>
 #include <tatooine/grid_vertex_iterator.h>
 #include <tatooine/interpolation.h>
+#include <tatooine/lazy_netcdf_reader.h>
 #include <tatooine/linspace.h>
 #include <tatooine/multidim_property.h>
+#include <tatooine/netcdf.h>
 #include <tatooine/random.h>
 #include <tatooine/template_helper.h>
 #include <tatooine/vec.h>
 
+#include <filesystem>
 #include <map>
 #include <memory>
 #include <tuple>
@@ -316,6 +317,28 @@ class grid {
   template <size_t I>
   constexpr auto back() -> auto& {
     return dimension<I>().back();
+  }
+  //----------------------------------------------------------------------------
+  template <real_number... Comps, size_t... Is>
+  requires(num_dimensions() == sizeof...(Comps))
+  constexpr auto is_inside(std::index_sequence<Is...> /*seq*/,
+                           Comps const... comps) const {
+    return ((front<Is>() <= comps || comps <= back<Is>()) || ...);
+  }
+  // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+  template <real_number... Comps>
+  requires(num_dimensions() == sizeof...(Comps)) constexpr auto is_inside(
+      Comps const... comps) const {
+    return is_inside(std::make_index_sequence<num_dimensions()>{}, comps...);
+  }
+  // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+  template <size_t... Is>
+  constexpr auto is_inside(pos_t const& p, std::index_sequence<Is...>/*seq*/) const {
+    return ((p(Is) < front<Is>() || back<Is>() < p(Is)) && ...);
+  }
+  // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+  constexpr auto is_inside(pos_t const& p) const {
+    return is_inside(p, std::make_index_sequence<num_dimensions()>{});
   }
   //----------------------------------------------------------------------------
  private:
@@ -773,205 +796,479 @@ class grid {
   auto read(std::filesystem::path const& path) {
     if (path.extension() == ".nc") {
       read_netcdf(path);
+      return;
     }
-  }
-  //----------------------------------------------------------------------------
-  auto read_netcdf(std::filesystem::path const& path) {
-    read_netcdf(path, std::make_index_sequence<num_dimensions()>{});
-  }
-  // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-  /// this only reads scalar types
-  template <size_t... Is>
-  auto read_netcdf(std::filesystem::path const& path,
-                   std::index_sequence<Is...>) {
-    netcdf::file f{path, netCDF::NcFile::read};
-    bool first = true;
-    auto         add_variables_of_type = [&]<typename T>() {
-      for (auto v : f.variables<T>()) {
-        if (v.name() == "x" || v.name() == "y" || v.name() == "z" ||
-            v.name() == "t" || v.name() == "X" || v.name() == "Y" ||
-            v.name() == "Z" || v.name() == "T") {
-          continue;
-        }
-        if (v.num_dimensions() != num_dimensions()) {
-          throw std::runtime_error{
-              "[grid::read_netcdf] variable's number of dimensions does not "
-              "match grid's number of dimensions"};
-        }
-        if (!first) {
-          auto check = [this, &v](size_t i) {
-            if (v.size(i) != size(i)) {
-              throw std::runtime_error{"[grid::read_netcdf] variable's size(" +
-                                       std::to_string(i) +
-                                       ") does not "
-                                       "match grid's size(" +
-                                       std::to_string(i) + ")"};
-            }
-          };
-          (check(Is), ...);
-        } else {
-          ((f.variable<
-                 typename std::decay_t<decltype(dimension<Is>())>::value_type>(
-                 v.dimension_name(Is))
-                .read(dimension<Is>())),
-           ...);
-        }
-        create_vertex_property<netcdf::lazy_reader<T>>(
-            v.name(), v, std::vector<size_t>{2, 2});
-        first = false;
+    if constexpr (num_dimensions() == 2 || num_dimensions() == 3) {
+      if (path.extension() == ".vtk") {
+        read_vtk(path);
+        return;
       }
-    };
-    add_variables_of_type.template operator()<double>();
-    add_variables_of_type.template operator()<float>();
-    add_variables_of_type.template operator()<int>();
-  }
-  //----------------------------------------------------------------------------
-  template <typename T>
-  requires(num_dimensions() == 3)
-  void write_amira(std::string const& path,
-                   std::string const& vertex_property_name) const {
-    write_amira(path, vertex_property<T>(vertex_property_name));
-  }
-  //----------------------------------------------------------------------------
-  template <typename T>
-  requires is_uniform && (num_dimensions() == 3)
-  void write_amira(std::string const&         path,
-                   typed_property_t<T> const& prop) const {
-    std::ofstream     outfile{path, std::ofstream::binary};
-    std::stringstream header;
-
-    header << "# AmiraMesh BINARY-LITTLE-ENDIAN 2.1\n\n";
-    header << "define Lattice " << size<0>() << " " << size<1>() << " "
-           << size<2>() << "\n\n";
-    header << "Parameters {\n";
-    header << "    BoundingBox " << front<0>() << " " << back<0>() << " "
-           << front<1>() << " " << back<1>() << " " << front<2>() << " "
-           << back<2>() << ",\n";
-    header << "    CoordType \"uniform\"\n";
-    header << "}\n";
-    if constexpr (num_components_v < T >> 1) {
-      header << "Lattice { " << type_name<internal_data_type_t<T>>() << "["
-             << num_components_v<T> << "] Data } @1\n\n";
-    } else {
-      header << "Lattice { " << type_name<internal_data_type_t<T>>()
-             << " Data } @1\n\n";
     }
-    header << "# Data section follows\n@1\n";
-    auto const header_string = header.str();
-
-    std::vector<T> data;
-    data.reserve(size<0>() * size<1>() * size<2>());
-    auto back_inserter = [&](auto const... is) { data.push_back(prop(is...)); };
-    for_loop(back_inserter, size<0>(), size<1>(), size<2>());
-    outfile.write((char*)header_string.c_str(),
-                  header_string.size() * sizeof(char));
-    outfile.write((char*)data.data(), data.size() * sizeof(T));
-  }
-  //----------------------------------------------------------------------------
- private:
-  template <typename T>
-  void write_prop_vtk(vtk::legacy_file_writer& writer, std::string const& name,
-                      typed_property_t<T> const& prop) const {
-    std::vector<T> data;
-    loop_over_vertex_indices(
-        [&](auto const... is) { data.push_back(prop(is...)); });
-    writer.write_scalars(name, data);
-  }
-
- public:
-  auto write(std::filesystem::path const& path) const {
-    auto const ext = path.extension();
-
-    if constexpr (num_dimensions() == 1 || num_dimensions() == 2 ||
-                  num_dimensions() == 3) {
-      if (ext == ".vtk") {
-        write_vtk(path);
+    if constexpr (is_uniform) {
+      if (path.extension() == ".am") {
+        read_amira(path);
         return;
       }
     }
   }
   //----------------------------------------------------------------------------
   template <typename = void>
-  requires (num_dimensions() == 1) ||
-           (num_dimensions() == 2) ||
-           (num_dimensions() == 3)
-  void write_vtk(std::filesystem::path const& path,
-                 std::string const& description = "tatooine grid") const {
-    auto writer = [this, &path, &description] {
-      if constexpr (is_uniform) {
-        vtk::legacy_file_writer writer{path,
-                                       vtk::dataset_type::structured_points};
-        writer.set_title(description);
-        writer.write_header();
-        if constexpr (num_dimensions() == 1) {
-          writer.write_dimensions(size<0>(), 1, 1);
-          writer.write_origin(front<0>(), 0, 0);
-          writer.write_spacing(dimension<0>().spacing(), 0, 0);
-        } else if constexpr (num_dimensions() == 2) {
-          writer.write_dimensions(size<0>(), size<1>(), 1);
-          writer.write_origin(front<0>(), front<1>(), 0);
-          writer.write_spacing(dimension<0>().spacing(),
-                               dimension<1>().spacing(), 0);
-        } else if constexpr (num_dimensions() == 3) {
-          writer.write_dimensions(size<0>(), size<1>(), size<2>());
-          writer.write_origin(front<0>(), front<1>(), front<2>());
-          writer.write_spacing(dimension<0>().spacing(),
-                               dimension<1>().spacing(),
-                               dimension<2>().spacing());
+  requires (num_dimensions() == 2) || (num_dimensions() == 3)
+  auto read_vtk(std::filesystem::path const& path) {
+    bool is_structured_points = false;
+    vec3 spacing;
+    struct listener_t : vtk::legacy_file_listener {
+      this_t& gr;
+      bool&   is_structured_points;
+      vec3& spacing;
+      listener_t(this_t& gr_, bool& is_structured_points_, vec3& spacing_)
+          : gr{gr_}, is_structured_points{is_structured_points_}, spacing{spacing_} {}
+      // header data
+      auto on_dataset_type(vtk::dataset_type t) -> void override {
+        if (t == vtk::dataset_type::structured_points && !is_uniform) {
+          is_structured_points = true;
         }
-        return writer;
-      } else {
-        vtk::legacy_file_writer writer{path,
-                                       vtk::dataset_type::rectilinear_grid};
-        writer.set_title(description);
-        writer.write_header();
-        if constexpr (num_dimensions() == 1) {
-          writer.write_dimensions(size<0>(), 1, 1);
-          writer.write_x_coordinates(
-              std::vector<double>(begin(dimension<0>()), end(dimension<0>())));
-          writer.write_y_coordinates(std::vector<double>{0});
-          writer.write_z_coordinates(std::vector<double>{0});
-        } else if constexpr (num_dimensions() == 2) {
-          writer.write_dimensions(size<0>(), size<1>(), 1);
-          writer.write_x_coordinates(
-              std::vector<double>(begin(dimension<0>()), end(dimension<0>())));
-          writer.write_y_coordinates(
-              std::vector<double>(begin(dimension<1>()), end(dimension<1>())));
-          writer.write_z_coordinates(std::vector<double>{0});
-        } else if constexpr (num_dimensions() == 3) {
-          writer.write_dimensions(size<0>(), size<1>(), size<2>());
-          writer.write_x_coordinates(
-              std::vector<double>(begin(dimension<0>()), end(dimension<0>())));
-          writer.write_y_coordinates(
-              std::vector<double>(begin(dimension<1>()), end(dimension<1>())));
-          writer.write_z_coordinates(
-              std::vector<double>(begin(dimension<2>()), end(dimension<2>())));
-        }
-        return writer;
       }
-    }();
-    // write vertex data
-    writer.write_point_data(num_vertices());
-    for (const auto& [name, prop] : this->m_vertex_properties) {
-      if (prop->type() == typeid(int)) {
-        write_prop_vtk(writer, name,
-                       *dynamic_cast<const typed_property_t<int>*>(prop.get()));
-      } else if (prop->type() == typeid(float)) {
-        write_prop_vtk(
-            writer, name,
-            *dynamic_cast<const typed_property_t<float>*>(prop.get()));
-      } else if (prop->type() == typeid(double)) {
-        write_prop_vtk(
-            writer, name,
-            *dynamic_cast<const typed_property_t<double>*>(prop.get()));
-      } else if (prop->type() == typeid(vec2)) {
-        write_prop_vtk(
-            writer, name,
-            *dynamic_cast<const typed_property_t<vec2>*>(prop.get()));
+
+      // coordinate data
+      auto on_origin(double x, double y, double z)
+          -> void override {
+        gr.front<0>() = x;
+        gr.front<1>() = y;
+        if (num_dimensions() < 3 && z > 1) {
+          throw std::runtime_error{
+              "[grid::read_vtk] number of dimensions is < 3 but got third "
+              "dimension."};
+        }
+        if constexpr (num_dimensions() > 3) {
+          gr.front<2>() = z;
+        }
+      }
+      auto on_spacing(double x, double y, double z) -> void override {
+        spacing = {x, y, z};
+      }
+      auto on_dimensions(size_t x, size_t y, size_t z) -> void override {
+        gr.dimension<0>().resize(x);
+        gr.dimension<1>().resize(y);
+        if (num_dimensions() < 3 && z > 1) {
+          throw std::runtime_error{
+              "[grid::read_vtk] number of dimensions is < 3 but got third "
+              "dimension."};
+        }
+        if constexpr (num_dimensions() > 3) {
+          gr.dimension<2>().resize(z);
+        }
+      }
+      auto on_x_coordinates(std::vector<float> const& /*xs*/) -> void override {
+      }
+      auto on_x_coordinates(std::vector<double> const& /*xs*/)
+          -> void override {}
+      auto on_y_coordinates(std::vector<float> const& /*ys*/) -> void override {
+      }
+      auto on_y_coordinates(std::vector<double> const& /*ys*/)
+          -> void override {}
+      auto on_z_coordinates(std::vector<float> const& /*zs*/) -> void override {
+      }
+      auto on_z_coordinates(std::vector<double> const& /*zs*/)
+          -> void override {}
+
+      // index data
+      auto on_cells(std::vector<int> const&) -> void override {}
+      auto on_cell_types(std::vector<vtk::cell_type> const&) -> void override {}
+      auto on_vertices(std::vector<int> const&) -> void override {}
+      auto on_lines(std::vector<int> const&) -> void override {}
+      auto on_polygons(std::vector<int> const&) -> void override {}
+      auto on_triangle_strips(std::vector<int> const&) -> void override {}
+
+      // cell- / pointdata
+      auto on_vectors(std::string const& /*name*/,
+                      std::vector<std::array<float, 3>> const& /*vectors*/,
+                      vtk::reader_data) -> void override {}
+      auto on_vectors(std::string const& /*name*/,
+                      std::vector<std::array<double, 3>> const& /*vectors*/,
+                      vtk::reader_data) -> void override {}
+      auto on_normals(std::string const& /*name*/,
+                      std::vector<std::array<float, 3>> const& /*normals*/,
+                      vtk::reader_data) -> void override {}
+      auto on_normals(std::string const& /*name*/,
+                      std::vector<std::array<double, 3>> const& /*normals*/,
+                      vtk::reader_data) -> void override {}
+      auto on_texture_coordinates(
+          std::string const& /*name*/,
+          std::vector<std::array<float, 2>> const& /*texture_coordinates*/,
+          vtk::reader_data) -> void override {}
+      auto on_texture_coordinates(
+          std::string const& /*name*/,
+          std::vector<std::array<double, 2>> const& /*texture_coordinates*/,
+          vtk::reader_data) -> void override {}
+      auto on_tensors(std::string const& /*name*/,
+                      std::vector<std::array<float, 9>> const& /*tensors*/,
+                      vtk::reader_data) -> void override {}
+      auto on_tensors(std::string const& /*name*/,
+                      std::vector<std::array<double, 9>> const& /*tensors*/,
+                      vtk::reader_data) -> void override {}
+
+      auto on_scalars(std::string const& /*data_name*/,
+                      std::string const& /*lookup_table_name*/,
+                      size_t const /*num_comps*/,
+                      std::vector<float> const& /*scalars*/, vtk::reader_data)
+          -> void override {}
+      auto on_scalars(std::string const& /*data_name*/,
+                      std::string const& /*lookup_table_name*/,
+                      size_t const /*num_comps*/,
+                      std::vector<double> const& /*scalars*/, vtk::reader_data)
+          -> void override {}
+      auto on_point_data(size_t) -> void override {}
+      auto on_cell_data(size_t) -> void override {}
+      auto on_field_array(std::string const /*field_name*/,
+                          std::string const /*field_array_name*/,
+                          std::vector<int> const& /*data*/,
+                          size_t /*num_comps*/, size_t /*num_tuples*/)
+          -> void override {}
+      auto on_field_array(std::string const /*field_name*/,
+                          std::string const /*field_array_name*/,
+                          std::vector<float> const& /*data*/,
+                          size_t /*num_comps*/, size_t /*num_tuples*/)
+          -> void override {}
+      auto on_field_array(std::string const /*field_name*/,
+                          std::string const /*field_array_name*/,
+                          std::vector<double> const& /*data*/,
+                          size_t /*num_comps*/, size_t /*num_tuples*/
+                          ) -> void override {}
+    } listener{*this, is_structured_points, spacing};
+    vtk::legacy_file f{path};
+    f.add_listener(listener);
+    f.read();
+
+    if (is_structured_points) {
+      if constexpr (std::is_same_v<std::decay_t<decltype(dimension<0>())>,
+                                   linspace<double>>) {
+        dimension<0>().back() = front<0>() + (size<0>() - 1) * spacing(0);
+      } else {
+        size_t i = 0;
+        for (auto& d : dimension<0>()) {
+          d = front<0>() + i * spacing(0);
+        }
+      }
+      if constexpr (std::is_same_v<std::decay_t<decltype(dimension<1>())>,
+                                   linspace<double>>) {
+        dimension<1>().back() = front<1>() + (size<1>() - 1) * spacing(1);
+      } else {
+        size_t i = 0;
+        for (auto& d : dimension<1>()) {
+          d = front<1>() + i * spacing(1);
+        }
+      }
+      if constexpr (num_dimensions() == 3) {
+        if constexpr (std::is_same_v<std::decay_t<decltype(dimension<2>())>,
+                                     linspace<double>>) {
+          dimension<2>().back() = front<2>() + (size<2>() - 1) * spacing(2);
+        } else {
+          size_t i = 0;
+          for (auto& d : dimension<2>()) {
+            d = front<2>() + i * spacing(2);
+          }
+        }
       }
     }
   }
-};
+  //----------------------------------------------------------------------------
+  template <typename = void>
+  requires is_uniform auto read_amira(std::filesystem::path const& path) {
+    auto const  am        = amira::read(path);
+    auto const& data      = std::get<0>(am);
+    auto const& dims      = std::get<1>(am);
+    auto const& aabb      = std::get<2>(am);
+    auto const& num_comps = std::get<3>(am);
+    if (dims[2] == 1 && num_dimensions() == 3) {
+      throw std::runtime_error{
+          "[grid::read_amira] file contains 2-dimensional data. Cannot "
+          "read "
+          "into 3-dimensional grid"};
+    }
+    if (dims[2] > 1 && num_dimensions() == 2) {
+      throw std::runtime_error{
+          "[grid::read_amira] file contains 3-dimensional data. Cannot "
+          "read "
+          "into 2-dimensional grid"};
+    }
+    // set dimensions
+
+    if constexpr (std::is_same_v<std::decay_t<decltype(dimension<0>())>,
+                                 linspace<double>>) {
+      dimension<0>() = linspace<double>{aabb.min(0), aabb.max(0), dims[0]};
+    } else if constexpr (std::is_same_v<std::decay_t<decltype(dimension<0>())>,
+                                        linspace<float>>) {
+      dimension<0>() = linspace<float>{aabb.min(0), aabb.max(0), dims[0]};
+    } else {
+      linspace<double> d{aabb.min(0), aabb.max(0), dims[0]};
+      dimension<0>().resize(dims[0]);
+      std::copy(begin(d), end(d), begin(dimension<0>()));
+    }
+    if constexpr (std::is_same_v<std::decay_t<decltype(dimension<1>())>,
+                                 linspace<double>>) {
+      dimension<1>() = linspace<double>{aabb.min(1), aabb.max(1), dims[1]};
+    } else if constexpr (std::is_same_v<std::decay_t<decltype(dimension<0>())>,
+                                        linspace<float>>) {
+      dimension<1>() = linspace<float>{aabb.min(1), aabb.max(1), dims[1]};
+    } else {
+      linspace<double> d{aabb.min(1), aabb.max(1), dims[1]};
+      dimension<1>().resize(dims[1]);
+      std::copy(begin(d), end(d), begin(dimension<1>()));
+    }
+    if constexpr (num_dimensions() == 3) {
+      if constexpr (std::is_same_v<std::decay_t<decltype(dimension<1>())>,
+                                   linspace<double>>) {
+        dimension<2>() = linspace<double>{aabb.min(2), aabb.max(2), dims[2]};
+      } else if constexpr (std::is_same_v<
+                               std::decay_t<decltype(dimension<1>())>,
+                               linspace<float>>) {
+        dimension<2>() = linspace<float>{aabb.min(2), aabb.max(2), dims[2]};
+      } else {
+        linspace<double> d{aabb.min(2), aabb.max(2), dims[2]};
+        dimension<2>().resize(dims[2]);
+        std::copy(begin(d), end(d), begin(dimension<2>()));
+      }
+    }
+    // copy data
+    size_t i = 0;
+    if (num_comps == 1) {
+      auto& prop = add_vertex_property<float>(path.string());
+      loop_over_vertex_indices(
+          [&](auto const... is) { prop(is...) = data[i++]; });
+    } else if (num_comps == 2) {
+      auto& prop = add_vertex_property<vec<float, 2>>(path.string());
+      loop_over_vertex_indices([&](auto const... is) {
+        prop(is...) = {data[i], data[i + 1]};
+        i += num_comps;
+      });
+    } else if (num_comps == 3) {
+      auto& prop = add_vertex_property<vec<float, 2>>(path.string());
+      loop_over_vertex_indices([&](auto const... is) {
+        prop(is...) = {data[i], data[i + 1], data[i + 2]};
+        i += num_comps;
+      });
+    } else if (num_comps == 4) {
+      auto& prop = add_vertex_property<vec<float, 2>>(path.string());
+      loop_over_vertex_indices([&](auto const... is) {
+        prop(is...) = {data[i], data[i + 1], data[i + 2], data[i + 3]};
+        i += num_comps;
+      });
+    }
+      }
+      //----------------------------------------------------------------------------
+      auto read_netcdf(std::filesystem::path const& path) {
+        read_netcdf(path, std::make_index_sequence<num_dimensions()>{});
+      }
+      // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+      // - -
+      /// this only reads scalar types
+      template <size_t... Is>
+      auto read_netcdf(std::filesystem::path const& path,
+                       std::index_sequence<Is...>) {
+        netcdf::file f{path, netCDF::NcFile::read};
+        bool         first                 = true;
+        auto         add_variables_of_type = [&]<typename T>() {
+          for (auto v : f.variables<T>()) {
+            if (v.name() == "x" || v.name() == "y" || v.name() == "z" ||
+                v.name() == "t" || v.name() == "X" || v.name() == "Y" ||
+                v.name() == "Z" || v.name() == "T" || v.name() == "xdim" ||
+                v.name() == "ydim" || v.name() == "zdim" ||
+                v.name() == "tdim" || v.name() == "Xdim" ||
+                v.name() == "Ydim" || v.name() == "Zdim" ||
+                v.name() == "Tdim" || v.name() == "XDim" ||
+                v.name() == "YDim" || v.name() == "ZDim" ||
+                v.name() == "TDim") {
+              continue;
+            }
+            if (v.num_dimensions() != num_dimensions()) {
+              throw std::runtime_error{
+                  "[grid::read_netcdf] variable's number of dimensions does "
+                  "not "
+                  "match grid's number of dimensions:\nnumber of grid "
+                  "dimensions: " +
+                  std::to_string(num_dimensions()) +
+                  "\nnumber of data dimensions: " +
+                  std::to_string(v.num_dimensions()) +
+                  "\nvariable name: " + v.name()};
+            }
+            if (!first) {
+              auto check = [this, &v](size_t i) {
+                if (v.size(i) != size(i)) {
+                  throw std::runtime_error{
+                      "[grid::read_netcdf] variable's size(" +
+                      std::to_string(i) +
+                      ") does not "
+                      "match grid's size(" +
+                      std::to_string(i) + ")"};
+                }
+              };
+              (check(Is), ...);
+            } else {
+              ((f.variable<typename std::decay_t<decltype(
+                    dimension<Is>())>::value_type>(v.dimension_name(Is))
+                    .read(dimension<Is>())),
+               ...);
+            }
+            create_vertex_property<netcdf::lazy_reader<T>>(
+                v.name(), v, std::vector<size_t>{2, 2});
+            first = false;
+          }
+        };
+        add_variables_of_type.template operator()<double>();
+        add_variables_of_type.template operator()<float>();
+        add_variables_of_type.template operator()<int>();
+      }
+      //----------------------------------------------------------------------------
+      template <typename T>
+      requires(num_dimensions() == 3) void write_amira(
+          std::string const& path, std::string const& vertex_property_name)
+          const {
+        write_amira(path, vertex_property<T>(vertex_property_name));
+      }
+      //----------------------------------------------------------------------------
+      template <typename T>
+          requires is_uniform &&
+          (num_dimensions() == 3) void write_amira(
+              std::string const& path, typed_property_t<T> const& prop) const {
+        std::ofstream     outfile{path, std::ofstream::binary};
+        std::stringstream header;
+
+        header << "# AmiraMesh BINARY-LITTLE-ENDIAN 2.1\n\n";
+        header << "define Lattice " << size<0>() << " " << size<1>() << " "
+               << size<2>() << "\n\n";
+        header << "Parameters {\n";
+        header << "    BoundingBox " << front<0>() << " " << back<0>() << " "
+               << front<1>() << " " << back<1>() << " " << front<2>() << " "
+               << back<2>() << ",\n";
+        header << "    CoordType \"uniform\"\n";
+        header << "}\n";
+        if constexpr (num_components_v < T >> 1) {
+          header << "Lattice { " << type_name<internal_data_type_t<T>>() << "["
+                 << num_components_v<T> << "] Data } @1\n\n";
+        } else {
+          header << "Lattice { " << type_name<internal_data_type_t<T>>()
+                 << " Data } @1\n\n";
+        }
+        header << "# Data section follows\n@1\n";
+        auto const header_string = header.str();
+
+        std::vector<T> data;
+        data.reserve(size<0>() * size<1>() * size<2>());
+        auto back_inserter = [&](auto const... is) {
+          data.push_back(prop(is...));
+        };
+        for_loop(back_inserter, size<0>(), size<1>(), size<2>());
+        outfile.write((char*)header_string.c_str(),
+                      header_string.size() * sizeof(char));
+        outfile.write((char*)data.data(), data.size() * sizeof(T));
+      }
+      //----------------------------------------------------------------------------
+     private:
+      template <typename T>
+      void write_prop_vtk(vtk::legacy_file_writer & writer,
+                          std::string const&         name,
+                          typed_property_t<T> const& prop) const {
+        std::vector<T> data;
+        loop_over_vertex_indices(
+            [&](auto const... is) { data.push_back(prop(is...)); });
+        writer.write_scalars(name, data);
+      }
+
+     public:
+      auto write(std::filesystem::path const& path) const {
+        auto const ext = path.extension();
+
+        if constexpr (num_dimensions() == 1 || num_dimensions() == 2 ||
+                      num_dimensions() == 3) {
+          if (ext == ".vtk") {
+            write_vtk(path);
+            return;
+          }
+        }
+      }
+      //----------------------------------------------------------------------------
+      template <typename = void>
+          requires(num_dimensions() == 1) || (num_dimensions() == 2) ||
+          (num_dimensions() == 3) void write_vtk(
+              std::filesystem::path const& path,
+              std::string const& description = "tatooine grid") const {
+        auto writer = [this, &path, &description] {
+          if constexpr (is_uniform) {
+            vtk::legacy_file_writer writer{
+                path, vtk::dataset_type::structured_points};
+            writer.set_title(description);
+            writer.write_header();
+            if constexpr (num_dimensions() == 1) {
+              writer.write_dimensions(size<0>(), 1, 1);
+              writer.write_origin(front<0>(), 0, 0);
+              writer.write_spacing(dimension<0>().spacing(), 0, 0);
+            } else if constexpr (num_dimensions() == 2) {
+              writer.write_dimensions(size<0>(), size<1>(), 1);
+              writer.write_origin(front<0>(), front<1>(), 0);
+              writer.write_spacing(dimension<0>().spacing(),
+                                   dimension<1>().spacing(), 0);
+            } else if constexpr (num_dimensions() == 3) {
+              writer.write_dimensions(size<0>(), size<1>(), size<2>());
+              writer.write_origin(front<0>(), front<1>(), front<2>());
+              writer.write_spacing(dimension<0>().spacing(),
+                                   dimension<1>().spacing(),
+                                   dimension<2>().spacing());
+            }
+            return writer;
+          } else {
+            vtk::legacy_file_writer writer{path,
+                                           vtk::dataset_type::rectilinear_grid};
+            writer.set_title(description);
+            writer.write_header();
+            if constexpr (num_dimensions() == 1) {
+              writer.write_dimensions(size<0>(), 1, 1);
+              writer.write_x_coordinates(std::vector<double>(
+                  begin(dimension<0>()), end(dimension<0>())));
+              writer.write_y_coordinates(std::vector<double>{0});
+              writer.write_z_coordinates(std::vector<double>{0});
+            } else if constexpr (num_dimensions() == 2) {
+              writer.write_dimensions(size<0>(), size<1>(), 1);
+              writer.write_x_coordinates(std::vector<double>(
+                  begin(dimension<0>()), end(dimension<0>())));
+              writer.write_y_coordinates(std::vector<double>(
+                  begin(dimension<1>()), end(dimension<1>())));
+              writer.write_z_coordinates(std::vector<double>{0});
+            } else if constexpr (num_dimensions() == 3) {
+              writer.write_dimensions(size<0>(), size<1>(), size<2>());
+              writer.write_x_coordinates(std::vector<double>(
+                  begin(dimension<0>()), end(dimension<0>())));
+              writer.write_y_coordinates(std::vector<double>(
+                  begin(dimension<1>()), end(dimension<1>())));
+              writer.write_z_coordinates(std::vector<double>(
+                  begin(dimension<2>()), end(dimension<2>())));
+            }
+            return writer;
+          }
+        }();
+        // write vertex data
+        writer.write_point_data(num_vertices());
+        for (const auto& [name, prop] : this->m_vertex_properties) {
+          if (prop->type() == typeid(int)) {
+            write_prop_vtk(
+                writer, name,
+                *dynamic_cast<const typed_property_t<int>*>(prop.get()));
+          } else if (prop->type() == typeid(float)) {
+            write_prop_vtk(
+                writer, name,
+                *dynamic_cast<const typed_property_t<float>*>(prop.get()));
+          } else if (prop->type() == typeid(double)) {
+            write_prop_vtk(
+                writer, name,
+                *dynamic_cast<const typed_property_t<double>*>(prop.get()));
+          } else if (prop->type() == typeid(vec2)) {
+            write_prop_vtk(
+                writer, name,
+                *dynamic_cast<const typed_property_t<vec2>*>(prop.get()));
+          }
+        }
+      }
+    };
 //==============================================================================
 // free functions
 //==============================================================================

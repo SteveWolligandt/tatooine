@@ -9,14 +9,17 @@
 namespace tatooine::smearing {
 //==============================================================================
 struct arguments {
-  std::filesystem::path input_file_path, output_file_path;
-  geometry::sphere2    sphere;
-  double                inner_radius;
-  vec2                  end_point;
-  double                temporal_range, t0;
-  vec2                  dir;
-  size_t                num_steps;
-  bool                  write_vtk;
+  std::filesystem::path    input_file_path, output_file_path;
+  geometry::sphere2        sphere;
+  double                   inner_radius;
+  vec2                     end_point;
+  double                   temporal_range, t0;
+  vec2                     dir;
+  size_t                   num_steps;
+  bool                     write_vtk;
+  bool                     isolevels_specified;
+  double                   isolevel_a;
+  double                   isolevel_b;
   std::vector<std::string> fields;
 };
 //==============================================================================

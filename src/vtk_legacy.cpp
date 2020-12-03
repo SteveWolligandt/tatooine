@@ -696,7 +696,7 @@ auto legacy_file_writer::write_header() -> void {
   // write part3 ASCII | BINARY
   vtk::write_binary(m_file, std::string{to_string_view(format::binary)} + '\n');
 
-  // write part4 STRUCTURED_POINTS | STRUCTURED_GRID | UNSTRUCTURED_GRID|
+  // write part4 STRUCTURED_POINTS | STRUCTURED_GRID | UNSTRUCTURED_GRID |
   // POLYDATA | RECTILINEAR_GRID | FIELD
   std::stringstream ss;
   ss << "DATASET " << to_string_view(m_dataset_type);

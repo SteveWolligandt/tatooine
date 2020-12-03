@@ -1756,6 +1756,47 @@ auto merge_lines(const std::vector<line<Real, N>>& lines) {
   }
   return merged_lines;
 }
+//------------------------------------------------------------------------------
+template <typename Real>
+auto intersections(const std::vector<line<Real, 2>>& lines0,
+                   const std::vector<line<Real, 2>>& lines1) {
+  static auto const         eps = 1e-6;
+  std::vector<vec<Real, 2>> xs;
+  for (auto const& l0 : lines0) {
+    for (auto const& l1 : lines1) {
+      for (size_t i = 0; i < l0.num_vertices() - 1; ++i) {
+        for (size_t j = 0; j < l1.num_vertices() - 1; ++j) {
+          auto const& p0 = l0.vertex_at(i);
+          auto const& p1 = l0.vertex_at(i + 1);
+          auto const& p2 = l1.vertex_at(j);
+          auto const& p3 = l1.vertex_at(j + 1);
+          auto const  d01 = p0 - p1;
+          auto const  d23 = p2 - p3;
+          auto const  d02 = p0 - p2;
+
+          auto const denom = d01.x() * d23.y() - d01.y() * d23.x();
+          if (std::abs(denom) < eps) {
+            continue;
+          }
+          auto const inv_denom = 1 / denom;
+
+          auto const nom_t = d02.x() * d23.y() - d02.y() * d23.x();
+          auto const t = nom_t * inv_denom;
+          if (0 > t || t > 1) {
+            continue;
+          }
+          auto const nom_u = -(d01.x() * d02.y() - d01.y() * d02.x());
+          auto const u = nom_u * inv_denom;
+          if (0 > u || u > 1) {
+            continue;
+          }
+          xs.push_back(p2 - u * d23);
+        }
+      }
+    }
+  }
+  return xs;
+}
 //==============================================================================
 }  // namespace tatooine
 //==============================================================================

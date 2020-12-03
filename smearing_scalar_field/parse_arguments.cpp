@@ -1,9 +1,10 @@
 #include "parse_arguments.h"
+
 #include <boost/program_options.hpp>
 //==============================================================================
 namespace tatooine::smearing {
 //==============================================================================
-auto parse_arguments(int argc, char const** argv) -> std::optional<arguments> { 
+auto parse_arguments(int argc, char const** argv) -> std::optional<arguments> {
   namespace po = boost::program_options;
 
   std::filesystem::path    input_file, output_file;
@@ -15,6 +16,9 @@ auto parse_arguments(int argc, char const** argv) -> std::optional<arguments> {
   double                   temporal_range = 0.1;
   size_t                   num_steps      = 1;
   bool                     write_vtk      = false;
+  double                   isolevel_a{};
+  double                   isolevel_b{};
+  bool iso_specified =false;
   std::vector<std::string> fields;
 
   // Declare the supported options.
@@ -33,7 +37,9 @@ auto parse_arguments(int argc, char const** argv) -> std::optional<arguments> {
       "temporal_range", po::value<double>(),
       "specifies the temporal width of the smearing")(
       "start", po::value<std::vector<double>>()->multitoken(),
-      "starting point of the smearing")(
+      "starting point of the smearing")("isolevel_a", po::value<double>(),
+                                        "isolevel for a field")(
+      "isolevel_b", po::value<double>(), "isolevel for b field")(
       "end", po::value<std::vector<double>>()->multitoken(),
       "end point of the smearing")("num_steps", po::value<size_t>(),
                                    "number of smearing between start and end")(
@@ -100,7 +106,13 @@ auto parse_arguments(int argc, char const** argv) -> std::optional<arguments> {
           "starting point must have exactly 2 components!"};
     }
   } else {
-      throw std::runtime_error{"You have to specify a starting point!"};
+    throw std::runtime_error{"You have to specify a starting point!"};
+  }
+  // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+  if (vm.count("isolevel_a") > 0 && vm.count("isolevel_b") > 0) {
+    isolevel_a    = vm["isolevel_a"].as<double>();
+    isolevel_b    = vm["isolevel_b"].as<double>();
+    iso_specified = true;
   }
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
   if (vm.count("end") > 0) {
@@ -109,7 +121,7 @@ auto parse_arguments(int argc, char const** argv) -> std::optional<arguments> {
       throw std::runtime_error{"end point must have exactly 2 components!"};
     }
   } else {
-      throw std::runtime_error{"You have to specify an end point!"};
+    throw std::runtime_error{"You have to specify an end point!"};
   }
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
   if (vm.count("num_steps") > 0) {
@@ -130,6 +142,9 @@ auto parse_arguments(int argc, char const** argv) -> std::optional<arguments> {
                    dir,
                    num_steps,
                    write_vtk,
+                   iso_specified,
+                   isolevel_a,
+                   isolevel_b,
                    fields};
 }
 //==============================================================================

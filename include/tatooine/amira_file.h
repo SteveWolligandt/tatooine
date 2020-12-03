@@ -1,23 +1,22 @@
-#ifndef __TATOOINE_AMIRA_READER_H__
-#define __TATOOINE_AMIRA_READER_H__
-
+#ifndef TATOOINE_AMIRA_READER_H
+#define TATOOINE_AMIRA_READER_H
+//==============================================================================
 #include <cassert>
 #include <cstring>
+#include <filesystem>
 #include <iostream>
 #include <stdexcept>
 #include <string>
 #include <vector>
-#include "boundingbox.h"
-#include "tensor.h"
-
+#include <tatooine/axis_aligned_bounding_box.h>
+#include <tatooine/vec.h>
 //==============================================================================
 namespace tatooine::amira {
 //==============================================================================
-
-//! Find a string in the given buffer and return a pointer
-//!    to the contents directly behind the search_string.
-//!    If not found, return the buffer. A subsequent sscanf()
-//!    will fail then, but at least we return a decent pointer.
+/// Find a string in the given buffer and return a pointer
+///    to the contents directly behind the search_string.
+///    If not found, return the buffer. A subsequent sscanf()
+///    will fail then, but at least we return a decent pointer.
 inline const char* find_and_jump(const char* buffer,
                                  const char* search_string) {
   const char* found_loc = strstr(buffer, search_string);
@@ -25,11 +24,11 @@ inline const char* find_and_jump(const char* buffer,
   return buffer;
 }
 
-//! A simple routine to read an AmiraMesh file
-//! that defines a scalar/vector field on a uniform grid.
-inline auto read(const std::string& filename) {
-  FILE* fp = fopen(filename.c_str(), "rb");
-  if (!fp) throw std::runtime_error("could not open file " + filename);
+/// A simple routine to read an AmiraMesh file
+/// that defines a scalar/vector field on a uniform grid.
+inline auto read(std::filesystem::path const& path) {
+  FILE* fp = fopen(path.string().c_str(), "rb");
+  if (!fp) throw std::runtime_error("could not open file " + path.string());
 
   // We read the first 2k bytes into memory to parse the header.
   // The fixed buffer size looks a bit like a hack, and it is one, but it gets
@@ -50,9 +49,9 @@ inline auto read(const std::string& filename) {
          &dims[1], &dims[2]);
 
   // Find the boundingbox
-  boundingbox<float, 3> bb;
-  sscanf(find_and_jump(buffer, "BoundingBox"), "%g %g %g %g %g %g", &bb.min(0),
-         &bb.max(0), &bb.min(1), &bb.max(1), &bb.min(2), &bb.max(2));
+  axis_aligned_bounding_box<float, 3> aabb;
+  sscanf(find_and_jump(buffer, "BoundingBox"), "%g %g %g %g %g %g", &aabb.min(0),
+         &aabb.max(0), &aabb.min(1), &aabb.max(1), &aabb.min(2), &aabb.max(2));
 
   // Is it a uniform grid? We need this only for the sanity check below.
   const bool b_is_uniform = (strstr(buffer, "CoordType \"uniform\"") != NULL);
@@ -67,8 +66,8 @@ inline auto read(const std::string& filename) {
     sscanf(find_and_jump(buffer, "Lattice { float["), "%d", &num_comps);
 
   // Sanity check
-  if (dims[0] <= 0 || dims[1] <= 0 || dims[2] <= 0 || bb.min(0) > bb.max(0) ||
-      bb.min(1) > bb.max(1) || bb.min(2) > bb.max(2) || !b_is_uniform ||
+  if (dims[0] <= 0 || dims[1] <= 0 || dims[2] <= 0 || aabb.min(0) > aabb.max(0) ||
+      aabb.min(1) > aabb.max(1) || aabb.min(2) > aabb.max(2) || !b_is_uniform ||
       num_comps <= 0) {
     fclose(fp);
     throw std::runtime_error("something went wrong");
@@ -103,11 +102,9 @@ inline auto read(const std::string& filename) {
   }
 
   fclose(fp);
-  return std::tuple{std::move(data), std::move(dims), std::move(bb), num_comps};
+  return std::tuple{std::move(data), std::move(dims), std::move(aabb), num_comps};
 }
-
 //==============================================================================
 }  // namespace tatooine::amira
 //==============================================================================
-
 #endif
