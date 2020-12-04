@@ -436,6 +436,7 @@ auto legacy_file::read_field_array_binary(std::ifstream &file, size_t num_comps,
     -> std::vector<Real> {
   std::vector<Real> data(num_comps * num_tuples);
   file.read((char *)data.data(), sizeof(Real) * num_comps * num_tuples);
+  swap_endianess(data);
 
   // consume trailing \n
   char consumer;

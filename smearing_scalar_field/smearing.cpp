@@ -13,6 +13,23 @@ using namespace tatooine;
 /// Stores a smeared version of ping_field into pong_field.
 /// For each point of a grid go in backward directions and sample field there.
 /// Afterwards create the interpolation factor depending of position and time.
+struct rotating_flow : vectorfield<rotating_flow, double, 2> {
+  using parent_t = vectorfield<rotating_flow, double, 2>;
+  using parent_t::real_t;
+  using parent_t::pos_t;
+  using parent_t::tensor_t;
+
+  constexpr auto evaluate(pos_t const& p, real_t const /*t*/) const
+      -> tensor_t final {
+    return {-p.y() * (1 - p.x() * p.x() - p.y() * p.y()),
+             p.x() * (1 - p.x() * p.x() - p.y() * p.y())};
+  }
+  constexpr auto in_domain(pos_t const& p, real_t const /*t*/) const
+      -> bool final {
+    constexpr auto half = real_t(1) / real_t(2);
+    return -half <= p.x() && p.x() <= half && -half <= p.y() && p.y() <= half;
+  }
+};
 auto smear(auto& ping_field, auto& pong_field, geometry::sphere2 const& s,
            double const inner_radius, double const temporal_range,
            double const current_time, double const t0, vec2 const& dir) {
@@ -27,18 +44,18 @@ auto smear(auto& ping_field, auto& pong_field, geometry::sphere2 const& s,
     }
     auto const current_pos = ping_field.grid()(is...);
     auto const offset_pos = current_pos - dir;
-    auto const sqr_distance_to_sphere_origin =
-        sqr_distance(offset_pos, s.center());
-    if (sqr_distance_to_sphere_origin < s.radius() * s.radius()) {
-      auto const r   = std::sqrt(sqr_distance_to_sphere_origin);
+    auto const distance_to_sphere_origin =
+        distance(current_pos, s.center());
+    if (distance_to_sphere_origin < s.radius()) {
       auto const s_x = [&]() -> double {
-        if (r < inner_radius) {
+        if (distance_to_sphere_origin <= inner_radius) {
           return 1;
         }
-        if (r > s.radius()) {
+        if (distance_to_sphere_origin > s.radius()) {
           return 0;
         }
-        return (r - s.radius()) / (inner_radius - s.radius());
+        return (distance_to_sphere_origin - s.radius()) /
+               (inner_radius - s.radius());
       }();
       auto const lambda_s = s_x * s_x * s_x + 3 * s_x * s_x * (1 - s_x);
       auto const s_t      = [&]() -> double {
@@ -74,13 +91,18 @@ auto main(int argc, char const** argv) -> int {
   auto const [input_file_path, output_file_path, sphere, inner_radius,
               end_point, temporal_range, t0, dir, num_steps, write_vtk,
               isolevels_specified, isolevel_a, isolevel_b, fields] = *args;
+  auto const outer_radius = sphere.radius();
 
-  vf_grid_time_dependent_prop<std::vector<double>, std::vector<double>, std::vector<double>> pipe{
-      "/home/steve/flows/pipedcylinder2d.vtk"};
-  std::cerr << pipe.grid().front<0>() << '\n';
-  std::cerr << pipe.grid().front<1>() << '\n';
-  std::cerr << pipe.grid().size<0>() << '\n';
-  std::cerr << pipe.grid().size<1>() << '\n';
+  vf_grid_prop<std::vector<float>, std::vector<float>, std::vector<float>>
+      cavity_flow_{
+          "/home/steve/flows/2DCavity/Cavity2DTimeFilter3x3x7_100_bin.am"};
+  vf_split cavity_flow{cavity_flow_};
+  //vf_grid_time_dependent_prop<std::vector<float>, std::vector<float>,
+  //                            std::vector<float>>
+  //    pipe_flow{"/home/steve/flows/pipedcylinder2d.vtk", "u", "v"};
+  //analytical::fields::numerical::doublegyre dg_flow;
+  //rotating_flow                             rot_flow;
+
   // read file
   int    res_x{}, res_y{}, res_t{};
   double min_x{}, min_y{}, min_t{};
@@ -130,22 +152,72 @@ auto main(int argc, char const** argv) -> int {
     line<double, 2> numerical_pathline;
     numerical_pathline.push_back(pathline.front_vertex());
     ode::vclibs::rungekutta43<double, 2> solver;
-    analytical::fields::numerical::doublegyre v;
-    for (size_t i = 1; i < size(grids); ++i) {
-      solver.solve(v, numerical_pathline.back_vertex(), times[i],
-                   times.spacing(), [&](auto const& x, auto const /*t*/) {
-                     numerical_pathline.push_back(x);
-                   });
-    }
-    numerical_pathline.write_vtk("numerical_pathline.vtk");
+    //for (size_t i = 1; i < size(grids); ++i) {
+    //  solver.solve(dg_flow, numerical_pathline.back_vertex(), times[i],
+    //               times.spacing(), [&](auto const& x, auto const [>t<]) {
+    //                 numerical_pathline.push_back(x);
+    //               });
+    //}
+    //numerical_pathline.write_vtk("numerical_pathline_doublegyre.vtk");
+    //for (size_t i = 1; i < size(grids); ++i) {
+    //  solver.solve(rot_flow, numerical_pathline.back_vertex(), times[i],
+    //               times.spacing(), [&](auto const& x, auto const [>t<]) {
+    //                 numerical_pathline.push_back(x);
+    //               });
+    //}
+    //numerical_pathline.write_vtk("numerical_pathline_rotating.vtk");
+
+    line<double, 2> fnumerical_pathline;
+    fnumerical_pathline.push_back(pathline.front_vertex());
+    ode::vclibs::rungekutta43<float, 2> fsolver;
+    fnumerical_pathline.push_back(fnumerical_pathline.back_vertex());
+    //fsolver.solve(pipe_flow, fnumerical_pathline.back_vertex(), 2, 2,
+    //              [&](auto const& x, auto const t) {
+    //                fnumerical_pathline.push_back(x);
+    //              });
+    //fnumerical_pathline.write_vtk("numerical_pathline_pipe.vtk");
+    fsolver.solve(cavity_flow, fnumerical_pathline.back_vertex(), 1, 3,
+                  [&](auto const& x, auto const /*t*/) {
+                    fnumerical_pathline.push_back(x);
+                  });
+    fnumerical_pathline.write_vtk("numerical_pathline_cavity.vtk");
   }
 
   if (isolevels_specified) {
     // for each grid smear a scalar field
+    auto s = sphere;
+    std::cerr << times[50] << '\n';
+    {
+ 
+      line<double, 2> pathline;
+      auto const      isolines_a =
+          create_iso_lines_a(grids, isolevel_a);
+      auto const isolines_b =
+          create_iso_lines_b(grids, isolevel_b);
+      for (size_t i = 0; i < size(grids); ++i) {
+        auto const is = intersections(isolines_a[i], isolines_b[i]);
+        if (size(is) > 1) {
+          std::cerr << "more than one intersection found!\n";
+        }
+        if (!is.empty()) {
+          pathline.push_back(is.front());
+        }
+      }
+      pathline.write_vtk("pathline_smeared_0.vtk");
+      grids[50].write_vtk("smeared_field_0.vtk");
+      tatooine::write_vtk(isolines_a[50], "smeared_isolines_a_0.vtk");
+      tatooine::write_vtk(isolines_b[50], "smeared_isolines_b_0.vtk");
+      discretize(s, 200).write_vtk("outer_sphere_0.vtk");
+      s.radius() = inner_radius;
+      discretize(s, 200).write_vtk("inner_sphere_0.vtk");
+      s.radius() = outer_radius;
+    }
+
+
     for (size_t i = 0; i < num_steps; ++i) {
+      s.center() += dir;
       for (auto const& scalar_field_name : fields) {
         for (size_t j = 0; j < size(times); ++j) {
-          auto                   s = sphere;
           [[maybe_unused]] auto& ping_field =
               grids[j].vertex_property<double>(scalar_field_name);
           auto& pong_field = grids[j].add_vertex_property<double>("pong");
@@ -154,7 +226,6 @@ auto main(int argc, char const** argv) -> int {
           auto const current_time = times[j];
           smear(ping_field, pong_field, s, inner_radius, temporal_range,
                 current_time, t0, dir);
-          s.center() += dir;
           grids[j].remove_vertex_property(scalar_field_name);
           grids[j].rename_vertex_property("pong", scalar_field_name);
         }
@@ -173,10 +244,18 @@ auto main(int argc, char const** argv) -> int {
           pathline.push_back(is.front());
         }
       }
-      pathline.write_vtk("pathline_smeared_" + std::to_string(i) + ".vtk");
-      grids[grids.size()/2].write_vtk("smeared_field_" + std::to_string(i) + ".vtk");
-      tatooine::write_vtk(isolines_a[grids.size()/2], "smeared_isolines_a_" + std::to_string(i) + ".vtk");
-      tatooine::write_vtk(isolines_b[grids.size()/2], "smeared_isolines_b_" + std::to_string(i) + ".vtk");
+      pathline.write_vtk("pathline_smeared_" + std::to_string(i + 1) + ".vtk");
+      grids[50].write_vtk("smeared_field_" + std::to_string(i + 1) + ".vtk");
+      tatooine::write_vtk(isolines_a[50], "smeared_isolines_a_" +
+                                              std::to_string(i + 1) + ".vtk");
+      tatooine::write_vtk(isolines_b[50], "smeared_isolines_b_" +
+                                              std::to_string(i + 1) + ".vtk");
+      discretize(s, 200).write_vtk("outer_sphere_" + std::to_string(i+1) +
+                                   ".vtk");
+      s.radius() = inner_radius;
+      discretize(s, 200).write_vtk("inner_sphere_" + std::to_string(i+1) +
+                                   ".vtk");
+      s.radius() = outer_radius;
     }
   } else {
     // for each grid smear a scalar field

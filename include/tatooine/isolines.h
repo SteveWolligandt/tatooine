@@ -51,10 +51,10 @@ auto isolines(GetScalars&& get_scalars, grid<XDomain, YDomain> const& g,
         s[3] > isolevel) {
       return;
     }
-    if (s[0] <= isolevel &&
-        s[1] <= isolevel &&
-        s[2] <= isolevel &&
-        s[3] <= isolevel) {
+    if (s[0] < isolevel &&
+        s[1] < isolevel &&
+        s[2] < isolevel &&
+        s[3] < isolevel) {
       return;
     }
 
@@ -69,6 +69,11 @@ auto isolines(GetScalars&& get_scalars, grid<XDomain, YDomain> const& g,
     check_edge(1, 2);
     check_edge(2, 3);
     check_edge(3, 0);
+    for (size_t i = 0; i < 4; ++i) {
+      if (s[i] == isolevel) {
+        iso_positions.push_back(p[i]);
+      }
+    }
 
     if (size(iso_positions) == 2) {
 #ifdef NDEBUG
@@ -103,7 +108,7 @@ auto isolines(GetScalars&& get_scalars, grid<XDomain, YDomain> const& g,
 #else
   for_loop(process_cube, g.size(0) - 1, g.size(1) - 1);
 #endif
-  return isolines;
+  return merge_lines(isolines);
 }
 //------------------------------------------------------------------------------
 template <typename Grid, real_number T>

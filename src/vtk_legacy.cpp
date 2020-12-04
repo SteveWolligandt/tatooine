@@ -322,13 +322,20 @@ auto legacy_file::read_field_array_header(std::ifstream &file)
     -> std::tuple<std::string, size_t, size_t, std::string> {
   std::string       field_array_params = vtk::read_binaryline(file, buffer);
   std::stringstream field_array_params_stream(field_array_params);
-
-  // {array_name, num_components, num_tuples, datatype_str}
-  return std::tuple{
-      vtk::read_word(field_array_params_stream, buffer),
-      parse<size_t>(vtk::read_word(field_array_params_stream, buffer)),
-      parse<size_t>(vtk::read_word(field_array_params_stream, buffer)),
-      vtk::read_word(field_array_params_stream, buffer)};
+  std::string       array_name;
+  field_array_params_stream >> array_name;
+  while (array_name == "METADATA" || array_name == "INFORMATION" ||
+         field_array_params.empty()) {
+    field_array_params        = vtk::read_binaryline(file, buffer);
+    field_array_params_stream = std::stringstream{field_array_params};
+    if (!field_array_params.empty()) {
+      field_array_params_stream >> array_name;
+    }
+  }
+  size_t num_comps, num_tuples;
+  std::string datatype_str;
+  field_array_params_stream >> num_comps >> num_tuples >> datatype_str;
+  return {array_name, num_comps, num_tuples, datatype_str};
 }
 //----------------------------------------------------------------------------
 auto legacy_file::read_field(std::ifstream &file) -> void {
@@ -336,47 +343,49 @@ auto legacy_file::read_field(std::ifstream &file) -> void {
   auto const &field_name = header.first;
   auto const &num_arrays = header.second;
   for (size_t i = 0; i < num_arrays; ++i) {
-    auto const  header           = read_field_array_header(file);
-    auto const &field_array_name = std::get<0>(header);
-    auto const &num_comps        = std::get<1>(header);
-    auto const &num_tuples       = std::get<2>(header);
-    auto const &datatype_str     = std::get<3>(header);
+    auto const [field_array_name, num_comps, num_tuples, datatype_str] =
+        read_field_array_header(file);
 
     if (m_format == format::ascii) {
       if (datatype_str == "int") {
         auto data = read_field_array_ascii<int>(file, num_comps, num_tuples);
-        for (auto l : m_listeners)
+        for (auto l : m_listeners) {
           l->on_field_array(field_name, field_array_name, data, num_comps,
                             num_tuples);
+        }
       } else if (datatype_str == "float") {
         auto data = read_field_array_ascii<float>(file, num_comps, num_tuples);
-        for (auto l : m_listeners)
+        for (auto l : m_listeners) {
           l->on_field_array(field_name, field_array_name, data, num_comps,
                             num_tuples);
+        }
       } else if (datatype_str == "double") {
         auto data = read_field_array_ascii<double>(file, num_comps, num_tuples);
-        for (auto l : m_listeners)
+        for (auto l : m_listeners) {
           l->on_field_array(field_name, field_array_name, data, num_comps,
                             num_tuples);
+        }
       }
-
     } else if (m_format == format::binary) {
       if (datatype_str == "int") {
         auto data = read_field_array_binary<int>(file, num_comps, num_tuples);
-        for (auto l : m_listeners)
+        for (auto l : m_listeners) {
           l->on_field_array(field_name, field_array_name, data, num_comps,
                             num_tuples);
+        }
       } else if (datatype_str == "float") {
         auto data = read_field_array_binary<float>(file, num_comps, num_tuples);
-        for (auto l : m_listeners)
+        for (auto l : m_listeners) {
           l->on_field_array(field_name, field_array_name, data, num_comps,
                             num_tuples);
+        }
       } else if (datatype_str == "double") {
         auto data =
             read_field_array_binary<double>(file, num_comps, num_tuples);
-        for (auto l : m_listeners)
+        for (auto l : m_listeners) {
           l->on_field_array(field_name, field_array_name, data, num_comps,
                             num_tuples);
+        }
       }
     }
   }
@@ -398,17 +407,19 @@ auto legacy_file::read_header() -> void {
 
     // read part2 maximal 256 characters
     std::string part2 = vtk::read_binaryline(file, buffer);
-    for (auto listener : m_listeners)
+    for (auto listener : m_listeners) {
       listener->on_title(part2);
+    }
 
     // read part3 ASCII | BINARY
     std::string part3 = vtk::read_binaryline(file, buffer);
-    if (part3 == "ASCII" || part3 == "ascii")
+    if (part3 == "ASCII" || part3 == "ascii") {
       m_format = format::ascii;
-    else if (part3 == "BINARY" || part3 == "binary")
+    } else if (part3 == "BINARY" || part3 == "binary") {
       m_format = format::binary;
-    else
+    } else {
       m_format = format::unknown;
+    }
 
     for (auto listener : m_listeners)
       listener->on_format(m_format);
@@ -417,18 +428,20 @@ auto legacy_file::read_header() -> void {
     // POLYDATA | RECTILINEAR_GRID | FIELD
     file.read(buffer, sizeof(char) * 8);  // consume "DATASET "
     auto part4 = parse_dataset_type(vtk::read_binaryline(file, buffer));
-    for (auto listener : m_listeners)
+    for (auto listener : m_listeners) {
       listener->on_dataset_type(part4);
+    }
 
     m_begin_of_data = file.tellg();
     file.close();
-  } else
+  } else {
     throw std::runtime_error{"[vtk::legacy_file] could not open file " +
                              m_path.string()};
+  }
 }
 //-----------------------------------------------------------------------------
 auto legacy_file::read_data() -> void {
-  std::ifstream file(m_path, std::ifstream::binary);
+  std::ifstream file{m_path, std::ifstream::binary};
   if (file.is_open()) {
     file.seekg(m_begin_of_data, file.beg);
     std::string keyword;
@@ -438,40 +451,28 @@ auto legacy_file::read_data() -> void {
       if (!keyword.empty()) {
         if (keyword == "POINTS") {
           read_points(file);
-
         } else if (keyword == "LINES") {
           read_lines(file);
-
         } else if (keyword == "VERTICES") {
           read_vertices(file);
-
         } else if (keyword == "POLYGONS") {
           read_polygons(file);
-
         } else if (keyword == "CELLS") {
           read_cells(file);
-
         } else if (keyword == "CELL_TYPES") {
           read_cell_types(file);
-
         } else if (keyword == "DIMENSIONS") {
           read_dimensions(file);
-
         } else if (keyword == "ORIGIN") {
           read_origin(file);
-
         } else if (keyword == "SPACING") {
           read_spacing(file);
-
         } else if (keyword == "X_COORDINATES") {
           read_x_coordinates(file);
-
         } else if (keyword == "Y_COORDINATES") {
           read_y_coordinates(file);
-
         } else if (keyword == "Z_COORDINATES") {
           read_z_coordinates(file);
-
         } else if (keyword == "POINT_DATA") {
           auto const word = vtk::read_word(file, buffer);
           m_data_size     = size_t(parse<int>(word));
@@ -479,31 +480,24 @@ auto legacy_file::read_data() -> void {
           for (auto l : m_listeners) {
             l->on_point_data(m_data_size);
           }
-
         } else if (keyword == "CELL_DATA") {
           m_data_size = size_t(parse<int>(vtk::read_word(file, buffer)));
           m_data      = reader_data::point_data;
           for (auto l : m_listeners)
             l->on_cell_data(m_data_size);
-
         } else if (keyword == "SCALARS") {
           read_scalars(file);
-
         } else if (keyword == "VECTORS") {
           read_vectors(file);
-
         } else if (keyword == "NORMALS") {
           read_normals(file);
-
         } else if (keyword == "TEXTURE_COORDINATES") {
           read_texture_coordinates(file);
-
         } else if (keyword == "FIELD") {
           read_field(file);
-
         } else {
-          std::cerr << "[tatooine::vtk::legacy_file] unknown keyword: "
-                    << keyword << '\n';
+            //std::cerr << "[tatooine::vtk::legacy_file] unknown keyword: "
+          //          << keyword << '\n';
         }
       }
     }
