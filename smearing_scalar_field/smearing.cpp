@@ -2,17 +2,16 @@
 #include <tatooine/geometry/sphere.h>
 #include <tatooine/grid.h>
 #include <tatooine/ode/vclibs/rungekutta43.h>
+#include <tatooine/sampled_grid_property_field.h>
+#include <tatooine/spacetime_splitted_vectorfield.h>
+#include <tatooine/smear.h>
 
 #include "io.h"
-#include "vf_grid_prop.h"
 #include "isolines.h"
 #include "parse_arguments.h"
 //==============================================================================
 using namespace tatooine;
 //==============================================================================
-/// Stores a smeared version of ping_field into pong_field.
-/// For each point of a grid go in backward directions and sample field there.
-/// Afterwards create the interpolation factor depending of position and time.
 struct rotating_flow : vectorfield<rotating_flow, double, 2> {
   using parent_t = vectorfield<rotating_flow, double, 2>;
   using parent_t::real_t;
@@ -30,56 +29,6 @@ struct rotating_flow : vectorfield<rotating_flow, double, 2> {
     return -half <= p.x() && p.x() <= half && -half <= p.y() && p.y() <= half;
   }
 };
-auto smear(auto& ping_field, auto& pong_field, geometry::sphere2 const& s,
-           double const inner_radius, double const temporal_range,
-           double const current_time, double const t0, vec2 const& dir) {
-  // create a sampler of the ping_field
-  auto sampler = ping_field.template sampler<interpolation::cubic>();
-
-  ping_field.grid().parallel_loop_over_vertex_indices([&](auto const... is) {
-    if (std::abs(t0 - current_time) > temporal_range) {
-      auto const sampled_current = ping_field(is...);
-      pong_field(is...)          = sampled_current;
-      return;
-    }
-    auto const current_pos = ping_field.grid()(is...);
-    auto const offset_pos = current_pos - dir;
-    auto const distance_to_sphere_origin =
-        distance(current_pos, s.center());
-    if (distance_to_sphere_origin < s.radius()) {
-      auto const s_x = [&]() -> double {
-        if (distance_to_sphere_origin <= inner_radius) {
-          return 1;
-        }
-        if (distance_to_sphere_origin > s.radius()) {
-          return 0;
-        }
-        return (distance_to_sphere_origin - s.radius()) /
-               (inner_radius - s.radius());
-      }();
-      auto const lambda_s = s_x * s_x * s_x + 3 * s_x * s_x * (1 - s_x);
-      auto const s_t      = [&]() -> double {
-        if (auto const t_diff = std::abs(current_time - t0);
-            t_diff < temporal_range) {
-          return 1 - t_diff / temporal_range;
-        }
-        return 0;
-      }();
-      auto const lambda_t = s_t * s_t * s_t + 3 * s_t * s_t * (1 - s_t);
-      assert(lambda_s >= 0 && lambda_s <= 1);
-      auto const lambda = lambda_s * lambda_t;
-      if (!ping_field.grid().bounding_box().is_inside(current_pos) ||
-          !ping_field.grid().bounding_box().is_inside(offset_pos)) {
-        pong_field(is...) = 0.0 / 0.0;
-      } else {
-        auto const sampled_current = sampler(current_pos);
-        auto const sampled_smeared = sampler(offset_pos);
-        pong_field(is...) =
-            sampled_current * (1 - lambda) + sampled_smeared * lambda;
-      }
-    }
-  });
-}
 //==============================================================================
 auto main(int argc, char const** argv) -> int {
   using namespace tatooine::smearing;
@@ -93,15 +42,14 @@ auto main(int argc, char const** argv) -> int {
               isolevels_specified, isolevel_a, isolevel_b, fields] = *args;
   auto const outer_radius = sphere.radius();
 
-  vf_grid_prop<std::vector<float>, std::vector<float>, std::vector<float>>
+  sampled_grid_property_field<non_uniform_grid_3d<float>, float, 3, 3>
       cavity_flow_{
           "/home/steve/flows/2DCavity/Cavity2DTimeFilter3x3x7_100_bin.am"};
-  vf_split cavity_flow{cavity_flow_};
-  //vf_grid_time_dependent_prop<std::vector<float>, std::vector<float>,
-  //                            std::vector<float>>
-  //    pipe_flow{"/home/steve/flows/pipedcylinder2d.vtk", "u", "v"};
-  //analytical::fields::numerical::doublegyre dg_flow;
-  //rotating_flow                             rot_flow;
+  spacetime_splitted_vectorfield cavity_flow{cavity_flow_};
+  sampled_grid_property_field<non_uniform_grid_3d<float>, float, 2, 2>
+      pipe_flow{"/home/steve/flows/pipedcylinder2d.vtk", "u", "v"};
+  analytical::fields::numerical::doublegyre dg_flow;
+  rotating_flow                             rot_flow;
 
   // read file
   int    res_x{}, res_y{}, res_t{};
