@@ -10,6 +10,7 @@
 #include <vector>
 #include <tatooine/axis_aligned_bounding_box.h>
 #include <tatooine/vec.h>
+#include <tatooine/concepts.h>
 //==============================================================================
 namespace tatooine::amira {
 //==============================================================================
@@ -26,7 +27,8 @@ inline const char* find_and_jump(const char* buffer,
 
 /// A simple routine to read an AmiraMesh file
 /// that defines a scalar/vector field on a uniform grid.
-inline auto read(std::filesystem::path const& path) {
+template <floating_point T = float>
+auto read(std::filesystem::path const& path) {
   FILE* fp = fopen(path.string().c_str(), "rb");
   if (!fp) throw std::runtime_error("could not open file " + path.string());
 
@@ -102,7 +104,13 @@ inline auto read(std::filesystem::path const& path) {
   }
 
   fclose(fp);
-  return std::tuple{std::move(data), std::move(dims), std::move(aabb), num_comps};
+  if constexpr (std::is_same_v<float, T>) {
+    return std::tuple{std::move(data), std::move(dims), std::move(aabb),
+                      num_comps};
+  } else {
+    std::vector<T> casted_data(begin(data), end(data));
+    return std::tuple{casted_data, std::move(dims), std::move(aabb), num_comps};
+  }
 }
 //==============================================================================
 }  // namespace tatooine::amira

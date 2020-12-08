@@ -88,17 +88,20 @@ struct spacetime_vectorfield
     return v().in_domain(spatial_position, temporal_position);
   }
   //----------------------------------------------------------------------------
-  template <typename W, typename V_ = V> requires std::is_pointer_v<V_>
+  template <typename W>
+  requires std::is_pointer_v<V>
   void set_field(vectorfield<W, Real, N - 1> const& v) {
     m_v = &v;
   }
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-  template <typename V_ = V> requires std::is_pointer_v<V_>
+  template <typename = void>
+  requires std::is_pointer_v<V>
   void set_field(parent::vectorfield<Real, N - 1> const& v) {
     m_v = &v;
   }
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-  template <typename V_ = V> requires std::is_pointer_v<V_>
+  template <typename = void>
+  requires std::is_pointer_v<V>
   void set_field(parent::vectorfield<Real, N - 1> const* v) {
     m_v = v;
   }

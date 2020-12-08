@@ -1,4 +1,5 @@
 #include <tatooine/tensor.h>
+#include <tatooine/real.h>
 //==============================================================================
 #ifndef TATOOINE_VEC_H
 #define TATOOINE_VEC_H
@@ -97,9 +98,9 @@ using vec2d = Vec2<double>;
 using vec3d = Vec3<double>;
 using vec4d = Vec4<double>;
 
-using vec2 = vec2d;
-using vec3 = vec3d;
-using vec4 = vec4d;
+using vec2 = Vec2<real_t>;
+using vec3 = Vec3<real_t>;
+using vec4 = Vec4<real_t>;
 //==============================================================================
 }  // namespace tatooine
 //==============================================================================

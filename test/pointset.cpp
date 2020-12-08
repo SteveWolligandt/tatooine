@@ -5,16 +5,16 @@
 //==============================================================================
 namespace tatooine::test {
 //==============================================================================
-TEST_CASE_METHOD((pointset<double, 3>), "pointset", "[pointset]") {
-  auto& prop1 = add_vertex_property<double>("prop1", 0);
+TEST_CASE_METHOD((pointset<real_t, 3>), "pointset", "[pointset]") {
+  auto& prop1 = add_vertex_property<real_t>("prop1", 0);
   auto  v0    = insert_vertex(1, 2, 3);
   auto  v1    = insert_vertex(2, 4, 6);
   prop1[v0]   = 123;
   prop1[v1]   = 246;
   for (size_t i = 0; i < 8; ++i) { insert_vertex(1, 2, 3); }
-  auto&                  prop2 = add_vertex_property<double>("prop2", 2);
+  auto&                  prop2 = add_vertex_property<real_t>("prop2", 2);
   [[maybe_unused]] auto& prop3 =
-      add_vertex_property<vec<double, 3>>("prop3", {1, 0, 2});
+      add_vertex_property<vec<real_t, 3>>("prop3", {1, 0, 2});
   write_vtk("pointset.vtk");
 
   REQUIRE(num_vertices() == 10);
@@ -37,7 +37,7 @@ TEST_CASE_METHOD((pointset<double, 3>), "pointset", "[pointset]") {
 }
 //==============================================================================
 TEST_CASE("[pointset] copy", "[pointset]") {
-  pointset<double, 2> ps;
+  pointset<real_t, 2> ps;
   std::vector         v{ps.insert_vertex(1, 2), ps.insert_vertex(2, 3),
                 ps.insert_vertex(3, 4)};
 
@@ -47,12 +47,12 @@ TEST_CASE("[pointset] copy", "[pointset]") {
   foo[v[1]] = 2;
   foo[v[2]] = 4;
 
-  pointset<double, 2> copy{ps};
+  pointset<real_t, 2> copy{ps};
   const auto&         foo_copy = copy.vertex_property<int>("foo");
   for (auto v : ps.vertices()) REQUIRE(foo[v] == foo_copy[v]);
 }
 //==============================================================================
-TEST_CASE_METHOD((pointset<double, 3>), "[pointset] delete vertex",
+TEST_CASE_METHOD((pointset<real_t, 3>), "[pointset] delete vertex",
                  "[pointset]") {
   auto v0 = insert_vertex(1, 2, 3);
   insert_vertex(2, 3, 4);
@@ -66,7 +66,7 @@ TEST_CASE_METHOD((pointset<double, 3>), "[pointset] delete vertex",
   SECTION("v0 now must be {2,3,4}") { REQUIRE(at(v0)(0) == 2); }
 }
 //==============================================================================
-TEST_CASE_METHOD((pointset<double, 3>), "pointset_kd_tree",
+TEST_CASE_METHOD((pointset<real_t, 3>), "pointset_kd_tree",
                  "[pointset][kdtree]") {
   auto const v0 = insert_vertex(0, 0, 0);
   auto const v1 = insert_vertex(1, 0, 0);
@@ -82,57 +82,77 @@ TEST_CASE_METHOD((pointset<double, 3>), "pointset_kd_tree",
   REQUIRE((nearest_0_5_2[0] == v1 || nearest_0_5_2[1] == v1));
 }
 //==============================================================================
-TEST_CASE_METHOD((pointset<double, 2>), "pointset_inverse_distance_weighting_sampler",
+TEST_CASE_METHOD((pointset<real_t, 2>), "pointset_inverse_distance_weighting_sampler",
                  "[pointset][inverse_distance_weighting_sampler]") {
   random_uniform rand{-1.0, 1.0, std::mt19937_64{1234}};
-  auto&          prop = add_vertex_property<double>("prop");
+  auto&          prop = add_vertex_property<real_t>("prop");
   for (size_t i = 0; i < 1000; ++i) {
     auto v = insert_vertex(rand(), rand());
     prop[v] = rand() * 10;
   }
   auto sampler = inverse_distance_weighting_sampler(prop, 0.1);
-  uniform_grid_2d<double> gr{linspace{-1.0, 1.0, 500},
+  uniform_grid<real_t, 2> gr{linspace{-1.0, 1.0, 500},
                              linspace{-1.0, 1.0, 500}};
   gr.sample_to_vertex_property(sampler, "interpolated_data");
   gr.write_vtk("inverse_distance_weighting_sampler.vtk");
 }
 //==============================================================================
-TEST_CASE_METHOD((pointset<double, 2>), "pointset_moving_least_squares_sampler_2",
+TEST_CASE_METHOD((pointset<real_t, 2>), "pointset_moving_least_squares_sampler_2",
                  "[pointset][moving_least_squares_sampler][2d][2D]") {
   random_uniform rand{-1.0, 1.0, std::mt19937_64{1234}};
-  auto&          prop = add_vertex_property<double>("prop");
-  for (size_t i = 0; i < 1000; ++i) {
-    auto v = insert_vertex(rand(), rand());
-    prop[v] = rand() * 10;
-  }
+  SECTION("scalar property") {
+    auto& prop = add_vertex_property<real_t>("prop");
+    for (size_t i = 0; i < 1000; ++i) {
+      auto v  = insert_vertex(rand(), rand());
+      prop[v] = rand() * 10;
+    }
 
-  auto sampler = moving_least_squares_sampler(prop, 0.1);
-  grid gr{linspace{-1.0, 1.0, 500},
-          linspace{-1.0, 1.0, 500}};
-  gr.sample_to_vertex_property(sampler, "interpolated_data");
-  gr.write_vtk("moving_least_squares_sampler.vtk");
-  for (auto v : vertices()) {
-    CHECK(sampler(at(v)) == Approx(prop[v]));
+    auto sampler = moving_least_squares_sampler(prop, 0.1);
+    grid gr{linspace{-1.0, 1.0, 500}, linspace{-1.0, 1.0, 500}};
+    gr.sample_to_vertex_property(sampler, "interpolated_data");
+    gr.write_vtk("moving_least_squares_sampler_2d_scalar.vtk");
+    for (auto v : vertices()) {
+      CHECK(sampler(at(v)) == Approx(prop[v]));
+    }
+  }
+  SECTION("vector property") {
+    auto& prop = add_vertex_property<vec3>("prop");
+    for (size_t i = 0; i < 1000; ++i) {
+      auto v  = insert_vertex(rand(), rand());
+      prop[v](0) = rand() * 10;
+      prop[v](1) = rand() * 10;
+      prop[v](2) = rand() * 10;
+    }
+
+    auto sampler = moving_least_squares_sampler(prop, 0.1);
+    uniform_grid<double, 2> gr{linspace{-1.0, 1.0, 500},
+                               linspace{-1.0, 1.0, 500}};
+    gr.sample_to_vertex_property(sampler, "interpolated_data");
+    gr.write_vtk("moving_least_squares_sampler_2d_vector.vtk");
+    for (auto v : vertices()) {
+      CHECK(approx_equal(sampler(at(v)), prop[v]));
+    }
   }
 }
 //==============================================================================
-TEST_CASE_METHOD((pointset<double, 3>), "pointset_moving_least_squares_sampler_3",
+TEST_CASE_METHOD((pointset<real_t, 3>), "pointset_moving_least_squares_sampler_3",
                  "[pointset][moving_least_squares_sampler][3d][3D]") {
   random_uniform rand{-1.0, 1.0, std::mt19937_64{1234}};
-  auto&          prop = add_vertex_property<double>("prop");
-  for (size_t i = 0; i < 1000; ++i) {
-    auto v = insert_vertex(rand(), rand(), rand());
-    prop[v] = rand() * 10;
-  }
+  SECTION("scalar property") {
+    auto& prop = add_vertex_property<real_t>("prop");
+    for (size_t i = 0; i < 1000; ++i) {
+      auto v  = insert_vertex(rand(), rand(), rand());
+      prop[v] = rand() * 10;
+    }
 
-  auto sampler = moving_least_squares_sampler(prop, 0.1);
-  grid gr{linspace{-1.0, 1.0, 500},
-          linspace{-1.0, 1.0, 500},
-          linspace{-1.0, 1.0, 500}};
-  gr.sample_to_vertex_property(sampler, "interpolated_data");
-  gr.write_vtk("moving_least_squares_sampler_3d.vtk");
-  for (auto v : vertices()) {
-    CHECK(sampler(at(v)) == Approx(prop[v]));
+    auto sampler = moving_least_squares_sampler(prop, 0.1);
+    grid gr{linspace{-1.0, 1.0, 500}, linspace{-1.0, 1.0, 500},
+            linspace{-1.0, 1.0, 500}};
+    gr.sample_to_vertex_property(sampler, "interpolated_data");
+    gr.write_vtk("moving_least_squares_sampler_3d.vtk");
+    for (auto v : vertices()) {
+      CHECK(sampler(at(v)) == Approx(prop[v]));
+    }
   }
 }
 //==============================================================================

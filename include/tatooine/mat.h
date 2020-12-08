@@ -1,4 +1,5 @@
 #include <tatooine/tensor.h>
+#include <tatooine/real.h>
 //==============================================================================
 #ifndef TATOOINE_MAT_H
 #define TATOOINE_MAT_H
@@ -191,20 +192,20 @@ using mat4f = Mat4<float>;
 using mat5f = Mat5<float>;
 using mat6f = Mat6<float>;
 
-using mat2 = mat2d;
-using mat23 = mat23d;
-using mat24 = mat24d;
+using mat2 = Mat2<real_t>;
+using mat23 = Mat23<real_t>;
+using mat24 = Mat24<real_t>;
 
-using mat32 = mat32d;
-using mat3 = mat3d;
-using mat34 = mat34d;
+using mat32 = Mat32<real_t>;
+using mat3 = Mat3<real_t>;
+using mat34 = Mat34<real_t>;
 
-using mat42 = mat42d;
-using mat43 = mat43d;
-using mat4 = mat4d;
+using mat42 = Mat42<real_t>;
+using mat43 = Mat43<real_t>;
+using mat4 = Mat4<real_t>;
 
-using mat5 = mat5d;
-using mat6 = mat6d;
+using mat5 = Mat5<real_t>;
+using mat6 = Mat6<real_t>;
 //==============================================================================
 }  // namespace tatooine
 //==============================================================================

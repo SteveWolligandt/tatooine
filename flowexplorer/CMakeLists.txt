@@ -5,6 +5,8 @@ set(TATFE_SHADER_DIR ${CMAKE_CURRENT_SOURCE_DIR}/shaders)
 #- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 add_executable(
   flowexplorer
+  src/spacetime_splitted_vectorfield.cpp
+  src/field_from_file.cpp
   src/axis_aligned_bounding_box.cpp
   src/flowexplorer.cpp
   src/doublegyre.cpp

@@ -41,11 +41,9 @@ auto main(int argc, char const** argv) -> int {
               end_point, temporal_range, t0, dir, num_steps, write_vtk,
               isolevels_specified, isolevel_a, isolevel_b, fields] = *args;
   auto const outer_radius = sphere.radius();
-
-  sampled_grid_property_field<non_uniform_grid_3d<float>, float, 3, 3>
-      cavity_flow_{
-          "/home/steve/flows/2DCavity/Cavity2DTimeFilter3x3x7_100_bin.am"};
-  spacetime_splitted_vectorfield cavity_flow{cavity_flow_};
+  auto const cavity_flow  = split_spacetime(
+      sampled_grid_property_field<non_uniform_grid_3d<float>, float, 3, 3>{
+          "/home/steve/flows/2DCavity/Cavity2DTimeFilter3x3x7_100_bin.am"});
   sampled_grid_property_field<non_uniform_grid_3d<float>, float, 2, 2>
       pipe_flow{"/home/steve/flows/pipedcylinder2d.vtk", "u", "v"};
   analytical::fields::numerical::doublegyre dg_flow;

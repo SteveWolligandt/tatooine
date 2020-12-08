@@ -782,7 +782,11 @@ class grid {
       try {
         prop(is...) = f(vertex_at(is...));
       } catch (std::exception&) {
-        prop(is...) = T{0.0 / 0.0};
+        if constexpr (num_components_v<T> == 1) {
+          prop(is...) = T{0.0 / 0.0};
+        } else {
+          prop(is...) = T{tag::fill{0.0 / 0.0}};
+        }
       }
     });
     return prop;
@@ -1002,7 +1006,7 @@ class grid {
   template <typename = void>
   requires(num_dimensions() == 2) || (num_dimensions() == 3) 
   auto read_amira(std::filesystem::path const& path) {
-    auto const  am        = amira::read(path);
+    auto const  am        = amira::read<real_t>(path);
     auto const& data      = std::get<0>(am);
     auto const& dims      = std::get<1>(am);
     auto const& aabb      = std::get<2>(am);
@@ -1025,8 +1029,8 @@ class grid {
                                  linspace<double>>) {
       dimension<0>() = linspace<double>{aabb.min(0), aabb.max(0), dims[0]};
     } else if constexpr (std::is_same_v<std::decay_t<decltype(dimension<0>())>,
-                                        linspace<float>>) {
-      dimension<0>() = linspace<float>{aabb.min(0), aabb.max(0), dims[0]};
+                                        linspace<real_t>>) {
+      dimension<0>() = linspace<real_t>{aabb.min(0), aabb.max(0), dims[0]};
     } else {
       linspace<double> d{aabb.min(0), aabb.max(0), dims[0]};
       dimension<0>().resize(dims[0]);
@@ -1036,8 +1040,8 @@ class grid {
                                  linspace<double>>) {
       dimension<1>() = linspace<double>{aabb.min(1), aabb.max(1), dims[1]};
     } else if constexpr (std::is_same_v<std::decay_t<decltype(dimension<0>())>,
-                                        linspace<float>>) {
-      dimension<1>() = linspace<float>{aabb.min(1), aabb.max(1), dims[1]};
+                                        linspace<real_t>>) {
+      dimension<1>() = linspace<real_t>{aabb.min(1), aabb.max(1), dims[1]};
     } else {
       linspace<double> d{aabb.min(1), aabb.max(1), dims[1]};
       dimension<1>().resize(dims[1]);
@@ -1049,8 +1053,8 @@ class grid {
         dimension<2>() = linspace<double>{aabb.min(2), aabb.max(2), dims[2]};
       } else if constexpr (std::is_same_v<
                                std::decay_t<decltype(dimension<1>())>,
-                               linspace<float>>) {
-        dimension<2>() = linspace<float>{aabb.min(2), aabb.max(2), dims[2]};
+                               linspace<real_t>>) {
+        dimension<2>() = linspace<real_t>{aabb.min(2), aabb.max(2), dims[2]};
       } else {
         linspace<double> d{aabb.min(2), aabb.max(2), dims[2]};
         dimension<2>().resize(dims[2]);
@@ -1061,25 +1065,19 @@ class grid {
     size_t i = 0;
     std::cerr << "amira num components: " << num_comps << '\n';
     if (num_comps == 1) {
-      auto& prop = add_vertex_property<float>(path.string());
+      auto& prop = add_vertex_property<real_t>(path.string());
       loop_over_vertex_indices(
           [&](auto const... is) { prop(is...) = data[i++]; });
     } else if (num_comps == 2) {
-      auto& prop = add_vertex_property<vec<float, 2>>(path.string());
+      auto& prop = add_vertex_property<vec<real_t, 2>>(path.string());
       loop_over_vertex_indices([&](auto const... is) {
         prop(is...) = {data[i], data[i + 1]};
         i += num_comps;
       });
     } else if (num_comps == 3) {
-      auto& prop = add_vertex_property<vec<float, 3>>(path.string());
+      auto& prop = add_vertex_property<vec<real_t, 3>>(path.string());
       loop_over_vertex_indices([&](auto const... is) {
         prop(is...) = {data[i], data[i + 1], data[i + 2]};
-        i += num_comps;
-      });
-    } else if (num_comps == 4) {
-      auto& prop = add_vertex_property<vec<float, 4>>(path.string());
-      loop_over_vertex_indices([&](auto const... is) {
-        prop(is...) = {data[i], data[i + 1], data[i + 2], data[i + 3]};
         i += num_comps;
       });
     }
@@ -1214,10 +1212,11 @@ class grid {
   }
   //----------------------------------------------------------------------------
   template <typename = void>
-      requires(num_dimensions() == 1) || (num_dimensions() == 2) ||
-      (num_dimensions() == 3) void write_vtk(
-          std::filesystem::path const& path,
-          std::string const&           description = "tatooine grid") const {
+  requires (num_dimensions() == 1) ||
+           (num_dimensions() == 2) ||
+           (num_dimensions() == 3)
+  void write_vtk(std::filesystem::path const& path,
+                 std::string const& description = "tatooine grid") const {
     auto writer = [this, &path, &description] {
       if constexpr (is_uniform) {
         vtk::legacy_file_writer writer{path,
@@ -1285,10 +1284,30 @@ class grid {
         write_prop_vtk(
             writer, name,
             *dynamic_cast<const typed_property_t<double>*>(prop.get()));
-      } else if (prop->type() == typeid(vec2)) {
+      } else if (prop->type() == typeid(vec2f)) {
         write_prop_vtk(
             writer, name,
-            *dynamic_cast<const typed_property_t<vec2>*>(prop.get()));
+            *dynamic_cast<const typed_property_t<vec2f>*>(prop.get()));
+      } else if (prop->type() == typeid(vec3f)) {
+        write_prop_vtk(
+            writer, name,
+            *dynamic_cast<const typed_property_t<vec3f>*>(prop.get()));
+      } else if (prop->type() == typeid(vec4f)) {
+        write_prop_vtk(
+            writer, name,
+            *dynamic_cast<const typed_property_t<vec4f>*>(prop.get()));
+      } else if (prop->type() == typeid(vec2d)) {
+        write_prop_vtk(
+            writer, name,
+            *dynamic_cast<const typed_property_t<vec2d>*>(prop.get()));
+      } else if (prop->type() == typeid(vec3d)) {
+        write_prop_vtk(
+            writer, name,
+            *dynamic_cast<const typed_property_t<vec3d>*>(prop.get()));
+      } else if (prop->type() == typeid(vec4d)) {
+        write_prop_vtk(
+            writer, name,
+            *dynamic_cast<const typed_property_t<vec4d>*>(prop.get()));
       }
     }
   }
@@ -1336,22 +1355,35 @@ auto operator+(AdditionalDimension&&      additional_dimension,
 //==============================================================================
 // typedefs
 //==============================================================================
-template <real_number T>
-using uniform_grid_2d = grid<linspace<T>, linspace<T>>;
-template <real_number T>
-using uniform_grid_3d = grid<linspace<T>, linspace<T>, linspace<T>>;
-template <real_number T>
-using uniform_grid_4d =
-    grid<linspace<T>, linspace<T>, linspace<T>, linspace<T>>;
-template <real_number T>
+template <indexable_space IndexableSpace, size_t N>
+struct grid_creator {
+ private:
+  template <typename... Args, size_t... Is>
+  static constexpr auto create(Args&&... args,
+                               std::index_sequence<Is...> /*seq*/) {
+    return grid<decltype((static_cast<void>(Is), IndexableSpace{}))...>{
+        std::forward<Args>(args)...};
+  }
+  template <typename... Args>
+  static constexpr auto create(Args&&... args) {
+    return create(std::forward<Args>(args)..., std::make_index_sequence<N>{});
+  }
+
+ public:
+  using type = decltype(create());
+};
+// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+template <indexable_space IndexableSpace, size_t N>
+using grid_creator_t = typename grid_creator<IndexableSpace, N>::type;
+//==============================================================================
+template <real_number Real, size_t N>
+using uniform_grid = grid_creator_t<linspace<Real>, N>;
 //------------------------------------------------------------------------------
-using non_uniform_grid_2d = grid<std::vector<T>, std::vector<T>>;
-template <real_number T>
-using non_uniform_grid_3d =
-    grid<std::vector<T>, std::vector<T>, std::vector<T>>;
-template <real_number T>
-using non_uniform_grid_4d =
-    grid<std::vector<T>, std::vector<T>, std::vector<T>, std::vector<T>>;
+template <real_number Real, size_t N>
+using non_uniform_grid = grid_creator_t<std::vector<Real>, N>;
+//------------------------------------------------------------------------------
+template <real_number Real, size_t... N>
+using static_non_uniform_grid = grid<std::array<Real, N>...>;
 //==============================================================================
 }  // namespace tatooine
 //==============================================================================
