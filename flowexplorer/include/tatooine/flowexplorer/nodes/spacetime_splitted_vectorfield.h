@@ -21,11 +21,10 @@ struct spacetime_splitted_vectorfield
         "2D Vector Field");
   }
   //----------------------------------------------------------------------------
-  void on_pin_connected(ui::pin& this_pin, ui::pin& other_pin) override {
-    if (this_pin.kind() == ui::pinkind::input) {
-      this->set_field(dynamic_cast<parent::vectorfield<double, 3> const*>(
-          &other_pin.node()));
-    }
+  auto on_pin_connected(ui::input_pin& /*this_pin*/, ui::output_pin& other_pin)
+      -> void override {
+    this->set_field(
+        dynamic_cast<parent::vectorfield<double, 3> const*>(&other_pin.node()));
   }
 };
 //==============================================================================

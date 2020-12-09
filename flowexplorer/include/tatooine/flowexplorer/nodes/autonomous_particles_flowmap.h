@@ -2,7 +2,7 @@
 #define TATOOINE_FLOWEXPLORER_NODES_AUTONOMOUS_PARTICLES_FLOWMAP_H
 //==============================================================================
 #include <tatooine/flowexplorer/line_shader.h>
-#include <tatooine/flowexplorer/ui/node.h>
+#include <tatooine/flowexplorer/renderable.h>
 #include <tatooine/triangular_mesh.h>
 #include <yavin/indexeddata.h>
 //==============================================================================
@@ -100,7 +100,7 @@ struct autonomous_particles_flowmap : renderable<autonomous_particles_flowmap> {
   //----------------------------------------------------------------------------
   bool is_transparent() const override { return m_line_color[3] < 1; }
   //----------------------------------------------------------------------------
-  auto mesh_available() const -> bool { return m_mesh != nullptr; }
+  auto data_available() const -> bool { return m_mesh != nullptr; }
   auto mesh() const -> auto const& { return *m_mesh; }
 };
 //==============================================================================

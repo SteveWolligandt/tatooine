@@ -479,26 +479,27 @@ struct pointset {
   }
   //============================================================================
   template <typename T>
-  auto inverse_distance_weighting_sampler(std::string const& prop_name) {
-    return inverse_distance_weighting_sampler_t<T>{*this,
-                                                vertex_property<T>(prop_name)};
+  auto inverse_distance_weighting_sampler(std::string const& prop_name) const {
+    return inverse_distance_weighting_sampler_t<T>{
+        *this, vertex_property<T>(prop_name)};
   }
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
   template <typename T>
-  auto inverse_distance_weighting_sampler(vertex_property_t<T> const& prop) {
+  auto inverse_distance_weighting_sampler(
+      vertex_property_t<T> const& prop) const {
     return inverse_distance_weighting_sampler_t<T>{*this, prop};
   }
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
   template <typename T>
   auto inverse_distance_weighting_sampler(std::string const& prop_name,
-                                          Real const         radius) {
+                                          Real const         radius) const {
     return inverse_distance_weighting_sampler_t<T>{
         *this, vertex_property<T>(prop_name), radius};
   }
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
   template <typename T>
   auto inverse_distance_weighting_sampler(vertex_property_t<T> const& prop,
-                                          Real const                  radius) {
+                                          Real const radius) const {
     return inverse_distance_weighting_sampler_t<T>{*this, prop, radius};
   }
   //============================================================================
@@ -574,21 +575,21 @@ struct pointset {
   //============================================================================
   template <typename T>
   requires (num_dimensions() == 2) || (num_dimensions() == 3)
-  auto moving_least_squares_sampler(std::string const& prop_name) {
+  auto moving_least_squares_sampler(std::string const& prop_name) const {
     return moving_least_squares_sampler_t<T>{*this,
                                              vertex_property<T>(prop_name)};
   }
   //----------------------------------------------------------------------------
   template <typename T>
   requires (num_dimensions() == 2) || (num_dimensions() == 3)
-  auto moving_least_squares_sampler(vertex_property_t<T> const& prop) {
+  auto moving_least_squares_sampler(vertex_property_t<T> const& prop) const {
     return moving_least_squares_sampler_t<T>{*this, prop};
   }
   //----------------------------------------------------------------------------
   template <typename T>
   requires (num_dimensions() == 2) || (num_dimensions() == 3)
   auto moving_least_squares_sampler(std::string const& prop_name,
-                                    Real const         radius) {
+                                    Real const         radius) const {
     return moving_least_squares_sampler_t<T>{
         *this, vertex_property<T>(prop_name), radius};
   }
@@ -596,7 +597,7 @@ struct pointset {
   template <typename T>
   requires (num_dimensions() == 2) || (num_dimensions() == 3)
   auto moving_least_squares_sampler(vertex_property_t<T> const& prop,
-                                    Real const                  radius) {
+                                    Real const                  radius) const {
     return moving_least_squares_sampler_t<T>{*this, prop, radius};
   }
   //============================================================================

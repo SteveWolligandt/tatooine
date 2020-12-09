@@ -184,7 +184,8 @@ struct random_pathlines : renderable<random_pathlines<N>> {
     });
   }
   //----------------------------------------------------------------------------
-  void on_pin_connected(ui::pin& /*this_pin*/, ui::pin& other_pin) override {
+  void on_pin_connected(ui::input_pin& /*this_pin*/,
+                        ui::output_pin& other_pin) override {
     if (other_pin.type() == typeid(axis_aligned_bounding_box<N>)) {
       m_boundingbox =
           dynamic_cast<axis_aligned_bounding_box<N>*>(&other_pin.node());
@@ -196,7 +197,9 @@ struct random_pathlines : renderable<random_pathlines<N>> {
     }
   }
   //----------------------------------------------------------------------------
-  void on_pin_disconnected(ui::pin& /*this_pin*/) override { m_gpu_data.clear(); }
+  void on_pin_disconnected(ui::input_pin& /*this_pin*/) override {
+    m_gpu_data.clear();
+  }
   //----------------------------------------------------------------------------
   bool is_transparent() const override {
     return m_animate || m_general_alpha < 1;

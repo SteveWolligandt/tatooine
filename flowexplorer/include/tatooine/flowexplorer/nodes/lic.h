@@ -71,12 +71,12 @@ struct lic : renderable<lic> {
   //----------------------------------------------------------------------------
   auto calculate_lic() -> void;
   //----------------------------------------------------------------------------
-  auto update_shader(mat<float, 4, 4> const& projection_matrix,
-                     mat<float, 4, 4> const& view_matrix) -> void;
+  auto update_shader(mat4f const& projection_matrix,
+                     mat4f const& view_matrix) -> void;
   //----------------------------------------------------------------------------
-  void on_pin_connected(ui::pin& this_pin, ui::pin& other_pin) override;
+  void on_pin_connected(ui::input_pin& this_pin, ui::output_pin& other_pin) override;
   //----------------------------------------------------------------------------
-  void on_pin_disconnected(ui::pin& this_pin) override;
+  void on_pin_disconnected(ui::input_pin& this_pin) override;
   //----------------------------------------------------------------------------
   auto is_transparent() const -> bool override;
   //----------------------------------------------------------------------------

@@ -6,21 +6,23 @@
 //==============================================================================
 namespace tatooine::flowexplorer::ui {
 //==============================================================================
-struct pin;
+struct output_pin;
+struct input_pin;
+//==============================================================================
 struct link : uuid_holder<ax::NodeEditor::LinkId> {
  private:
-  pin* m_input_pin;
-  pin* m_output_pin;
+  input_pin*  m_input_pin;
+  output_pin* m_output_pin;
 
  public:
   //============================================================================
-  link(size_t const id, pin& input_pin, pin& output_pin)
+  link(size_t const id, input_pin& in, output_pin& out)
       : uuid_holder<ax::NodeEditor::LinkId>{id},
-        m_input_pin{&input_pin},
-        m_output_pin{&output_pin} {}
+        m_input_pin{&in},
+        m_output_pin{&out} {}
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-  link(pin& input_pin, pin& output_pin)
-      : m_input_pin{&input_pin}, m_output_pin{&output_pin} {}
+  link(input_pin& in, output_pin& out)
+      : m_input_pin{&in}, m_output_pin{&out} {}
   //============================================================================
   auto input() const -> auto const& {
     return *m_input_pin;

@@ -116,7 +116,8 @@ auto lic::update_shader(mat<float, 4, 4> const& projection_matrix,
   m_shader->set_projection_matrix(projection_matrix);
 }
 //----------------------------------------------------------------------------
-auto lic::on_pin_connected(ui::pin& /*this_pin*/, ui::pin& other_pin) -> void {
+auto lic::on_pin_connected(ui::input_pin& /*this_pin*/,
+                           ui::output_pin& other_pin) -> void {
   if (other_pin.type() == typeid(bb_t)) {
     m_bb = dynamic_cast<bb_t*>(&other_pin.node());
   } else if ((other_pin.type() == typeid(vectorfield_t))) {
@@ -133,7 +134,7 @@ auto lic::on_property_changed() -> void {
   }
 }
 //----------------------------------------------------------------------------
-auto lic::on_pin_disconnected(ui::pin & /*this_pin*/) -> void {
+auto lic::on_pin_disconnected(ui::input_pin & /*this_pin*/) -> void {
   m_lic_tex.reset();
 }
 //----------------------------------------------------------------------------

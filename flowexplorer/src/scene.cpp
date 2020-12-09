@@ -102,14 +102,9 @@ auto scene::find_node(size_t const id) -> ui::base::node* {
   return nullptr;
 }
 //----------------------------------------------------------------------------
-auto scene::find_pin(size_t const id) -> ui::pin* {
+auto scene::find_input_pin(size_t const id) -> ui::input_pin* {
   for (auto& r : m_renderables) {
     for (auto& p : r->input_pins()) {
-      if (p.get_id_number() == id) {
-        return &p;
-      }
-    }
-    for (auto& p : r->output_pins()) {
       if (p.get_id_number() == id) {
         return &p;
       }
@@ -121,6 +116,19 @@ auto scene::find_pin(size_t const id) -> ui::pin* {
         return &p;
       }
     }
+  }
+  return nullptr;
+}
+//----------------------------------------------------------------------------
+auto scene::find_output_pin(size_t const id) -> ui::output_pin* {
+  for (auto& r : m_renderables) {
+    for (auto& p : r->output_pins()) {
+      if (p.get_id_number() == id) {
+        return &p;
+      }
+    }
+  }
+  for (auto& n : m_nodes) {
     for (auto& p : n->output_pins()) {
       if (p.get_id_number() == id) {
         return &p;
@@ -161,15 +169,15 @@ void scene::create_link() {
     if (ed::QueryNewLink(&input_pin_id, &output_pin_id)) {
       if (input_pin_id && output_pin_id) {  // both are valid, let's accept link
 
-        ui::pin* input_pin  = find_pin(input_pin_id.Get());
-        ui::pin* output_pin = find_pin(output_pin_id.Get());
+        auto input_pin  = find_input_pin(input_pin_id.Get());
+        auto* output_pin = find_output_pin(output_pin_id.Get());
         assert(input_pin != nullptr);
         assert(output_pin != nullptr);
 
-        if (input_pin->kind() == ui::pinkind::output) {
-          std::swap(input_pin, output_pin);
-          std::swap(input_pin_id, output_pin_id);
-        }
+        //if (input_pin->kind() == ui::pinkind::output) {
+        //  std::swap(input_pin, output_pin);
+        //  std::swap(input_pin_id, output_pin_id);
+        //}
 
         if (input_pin->node().get_id() == output_pin->node().get_id()) {
           show_label("cannot connect to same node", ImColor(45, 32, 32, 180));
@@ -177,10 +185,13 @@ void scene::create_link() {
         } else if (input_pin->kind() == output_pin->kind()) {
           show_label("both are input or output", ImColor(45, 32, 32, 180));
           ed::RejectNewItem(ImColor(255, 0, 0), 2.0f);
-        } else if (input_pin->type() != output_pin->type()) {
+        } else if (std::any_of(begin(input_pin->types()),
+                               end(input_pin->types()), [&output_pin](auto t) {
+                                 return *t != output_pin->type();
+                               })) {
           std::string msg = "Types do not match:\n";
-          msg += type_name(input_pin->type());
-          msg += "\n";
+          //msg += type_name(input_pin->type());
+          //msg += "\n";
           msg += type_name(output_pin->type());
           show_label(msg.c_str(), ImColor(45, 32, 32, 180));
           ed::RejectNewItem(ImColor(255, 0, 0), 2.0f);
@@ -188,11 +199,11 @@ void scene::create_link() {
           // remove old input link if present
           for (auto link_it = begin(m_links); link_it != end(m_links);
                ++link_it) {
-            ui::pin* present_input_pin =
-                find_pin(link_it->input().get_id_number());
+            ui::input_pin* present_input_pin =
+                find_input_pin(link_it->input().get_id_number());
             if (present_input_pin->get_id() == input_pin->get_id()) {
-              ui::pin* present_output_pin =
-                  find_pin(link_it->output().get_id_number());
+              ui::output_pin* present_output_pin =
+                  find_output_pin(link_it->output().get_id_number());
               present_input_pin->node().on_pin_disconnected(*present_input_pin);
               present_output_pin->node().on_pin_disconnected(
                   *present_output_pin);
@@ -202,8 +213,8 @@ void scene::create_link() {
           }
 
           auto& l = m_links.emplace_back(*input_pin, *output_pin);
-          input_pin->add_link(l);
-          output_pin->add_link(l);
+          input_pin->set_link(l);
+          output_pin->insert_link(l);
 
           ed::Link(l.get_id(), l.input().get_id(), l.output().get_id());
         }
@@ -226,9 +237,11 @@ void scene::remove_link() {
         for (auto link_it = begin(m_links); link_it != end(m_links);
              ++link_it) {
           if (link_it->get_id() == deletedLinkId) {
-            ui::pin* input_pin  = find_pin(link_it->input().get_id_number());
-            ui::pin* output_pin = find_pin(link_it->output().get_id_number());
-            input_pin->remove_link(*link_it);
+            ui::input_pin* input_pin =
+                find_input_pin(link_it->input().get_id_number());
+            ui::output_pin* output_pin =
+                find_output_pin(link_it->output().get_id_number());
+            input_pin->unset_link();
             output_pin->remove_link(*link_it);
             m_links.erase(link_it);
             break;
@@ -387,13 +400,13 @@ void scene::read(std::filesystem::path const& filepath) {
       id_stream >> id;
       size_t const input_id   = serialized_node["input"].as_integer()->get();
       size_t const output_id  = serialized_node["output"].as_integer()->get();
-      auto         input_pin  = find_pin(input_id);
-      auto         output_pin = find_pin(output_id);
+      auto         input_pin  = find_input_pin(input_id);
+      auto         output_pin = find_output_pin(output_id);
       assert(input_pin != nullptr);
       assert(output_pin != nullptr);
       auto& l = m_links.emplace_back(id, *input_pin, *output_pin);
-      input_pin->add_link(l);
-      output_pin->add_link(l);
+      input_pin->set_link(l);
+      output_pin->insert_link(l);
       //ax::NodeEditor::Link(l.get_id(), l.input().get_id(), l.output().get_id());
     }
   }

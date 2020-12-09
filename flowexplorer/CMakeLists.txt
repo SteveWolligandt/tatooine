@@ -16,6 +16,7 @@ add_executable(
   src/duffing_oscillator.cpp
   src/single_pathline.cpp
   src/autonomous_particles_flowmap.cpp
+  src/autonomous_particles_flowmap_evaluator.cpp
   src/random_pathlines.cpp
   src/rayleigh_benard_convection.cpp
   src/test_node.cpp

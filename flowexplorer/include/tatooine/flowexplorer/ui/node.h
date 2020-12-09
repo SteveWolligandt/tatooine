@@ -23,8 +23,8 @@ struct node : uuid_holder<ax::NodeEditor::NodeId>, serializable  {
  private:
   std::string          m_title;
   flowexplorer::scene* m_scene;
-  std::vector<pin>     m_input_pins;
-  std::vector<pin>     m_output_pins;
+  std::vector<input_pin>  m_input_pins;
+  std::vector<output_pin> m_output_pins;
   bool                 m_enabled = true;
 
  public:
@@ -32,9 +32,9 @@ struct node : uuid_holder<ax::NodeEditor::NodeId>, serializable  {
   node(std::string const& title, flowexplorer::scene& s);
   virtual ~node() = default;
   //============================================================================
-  template <typename T>
+  template <typename... Ts>
   auto insert_input_pin(std::string const& title) {
-    m_input_pins.push_back(make_input_pin<T>(*this, title));
+    m_input_pins.push_back(make_input_pin<Ts...>(*this, title));
   }
   //----------------------------------------------------------------------------
   template <typename T>
@@ -65,42 +65,21 @@ struct node : uuid_holder<ax::NodeEditor::NodeId>, serializable  {
   virtual auto draw_properties() -> bool = 0;
   virtual auto on_property_changed() -> void {}
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-  void draw_node() {
-    namespace ed = ax::NodeEditor;
-    ed::BeginNode(get_id());
-    ImGui::Checkbox("", &m_enabled);
-    ImGui::SameLine();
-    ImGui::TextUnformatted(title().c_str());
-    if (draw_properties()) {
-      on_property_changed();
-      for (auto& p : m_output_pins) {
-        for (auto l : p.links()) {
-          (l->input().node().on_property_changed());
-        }
-      }
-    }
-    for (auto& input_pin : input_pins()) {
-      ed::BeginPin(input_pin.get_id(), ed::PinKind::Input);
-      std::string in = "-> " + input_pin.title();
-      ImGui::TextUnformatted(in.c_str());
-      ed::EndPin();
-    }
-    for (auto& output_pin : output_pins()) {
-      ed::BeginPin(output_pin.get_id(), ed::PinKind::Output);
-      std::string out = output_pin.title() + " ->";
-      ImGui::TextUnformatted(out.c_str());
-      ed::EndPin();
-    }
-    ed::EndNode();
-  }
+  auto draw_node() -> void;
   //----------------------------------------------------------------------------
   auto         node_position() const -> ImVec2;
-  virtual auto on_pin_connected(pin& /*this_pin*/, pin& /*other_pin*/) -> void {}
-  virtual auto on_pin_disconnected(pin& /*this_pin*/) -> void {}
+  virtual auto on_pin_connected(input_pin& /*this_pin*/,
+                                output_pin& /*other_pin*/) -> void {}
+  virtual auto on_pin_connected(output_pin& /*this_pin*/,
+                                input_pin& /*other_pin*/) -> void {}
+  virtual auto on_pin_disconnected(input_pin& /*this_pin*/) -> void {}
+  virtual auto on_pin_disconnected(output_pin& /*this_pin*/) -> void {}
   virtual auto type_name() const -> std::string_view = 0;
 
 };
+//==============================================================================
 }  // namespace base
+//==============================================================================
 template <typename T>
 struct node_serializer {
   //----------------------------------------------------------------------------

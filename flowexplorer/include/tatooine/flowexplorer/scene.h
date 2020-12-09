@@ -47,7 +47,8 @@ struct scene {
   //----------------------------------------------------------------------------
   auto find_node(size_t const id) -> ui::base::node*;
   //----------------------------------------------------------------------------
-  auto find_pin(size_t const id) -> ui::pin*;
+  auto find_input_pin(size_t const id) -> ui::input_pin*;
+  auto find_output_pin(size_t const id) -> ui::output_pin*;
   //----------------------------------------------------------------------------
   auto node_creators() -> void;
   //----------------------------------------------------------------------------
