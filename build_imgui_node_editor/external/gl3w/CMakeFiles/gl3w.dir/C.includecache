@@ -1,0 +1,42 @@
+#IncludeRegexLine: ^[ 	]*[#%][ 	]*(include|import)[ 	]*[<"]([^">]+)([">])
+
+#IncludeRegexScan: ^.*$
+
+#IncludeRegexComplain: ^$
+
+#IncludeRegexTransform: 
+
+/home/steve/libs/tatooine2/flowexplorer/external/imgui-node-editor/external/gl3w/Include/GL/gl3w.h
+GL/glcorearb.h
+-
+
+/home/steve/libs/tatooine2/flowexplorer/external/imgui-node-editor/external/gl3w/Include/GL/glcorearb.h
+windows.h
+-
+stddef.h
+-
+inttypes.h
+-
+inttypes.h
+-
+inttypes.h
+-
+stdint.h
+-
+stdint.h
+-
+inttypes.h
+-
+
+/home/steve/libs/tatooine2/flowexplorer/external/imgui-node-editor/external/gl3w/Source/gl3w.c
+GL/gl3w.h
+-
+windows.h
+-
+Carbon/Carbon.h
+-
+dlfcn.h
+-
+GL/glx.h
+-
+

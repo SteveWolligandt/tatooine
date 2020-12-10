@@ -8,10 +8,12 @@ namespace tatooine::flowexplorer::nodes {
 //==============================================================================
 struct doublegyre : tatooine::analytical::fields::numerical::doublegyre<double>,
                     ui::node<doublegyre> {
-  doublegyre(flowexplorer::scene& s) : ui::node<doublegyre>{"Double Gyre", s} {
+  doublegyre(flowexplorer::scene& s)
+      : ui::node<doublegyre>{"Double Gyre", s,
+                             typeid(parent::vectorfield<double, 2>)} {
     this->set_infinite_domain(true);
-    this->template insert_output_pin<parent::vectorfield<double, 2>>(
-        "Field Out");
+    //this->template insert_output_pin<parent::vectorfield<double, 2>>(
+    //    "Field Out");
   }
   virtual ~doublegyre() = default;
 };

@@ -1,0 +1,1 @@
+/usr/lib/ccache/bin/c++ -g CMakeFiles/basic-interaction-example.dir/basic-interaction-example.cpp.o -o ../bin/basic-interaction-example_d  ../external/imgui/libimgui.a ../canvas-example/libimgui_node_editor.a ../application/libapplication.a ../external/imgui/libimgui.a ../external/gl3w/libgl3w.a -lGL -ldl /usr/lib/libglfw.so.3.3 

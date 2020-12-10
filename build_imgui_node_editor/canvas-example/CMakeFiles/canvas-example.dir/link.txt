@@ -1,0 +1,1 @@
+/usr/lib/ccache/bin/c++ -g CMakeFiles/canvas-example.dir/canvas-example.cpp.o -o ../bin/canvas-example_d  ../external/imgui/libimgui.a libimgui_node_editor.a ../application/libapplication.a ../external/imgui/libimgui.a ../external/gl3w/libgl3w.a -lGL -ldl /usr/lib/libglfw.so.3.3 
