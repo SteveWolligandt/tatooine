@@ -2,7 +2,13 @@
 //==============================================================================
 namespace tatooine::flowexplorer {
 //==============================================================================
-window::window() : m_scene{camera_controller(), this} { start(); }
+window::window()
+    : m_scene{camera_controller(), this},
+      m_font{ImGui::GetIO().Fonts->AddFontFromFileTTF(
+          "/usr/share/fonts/TTF/Roboto-Regular.ttf", 23.0f)} {
+  imgui_render_backend().create_fonts_texture();
+  start();
+}
 //------------------------------------------------------------------------------
 window::window(std::filesystem::path const& path)
     : m_scene{camera_controller(), this, path} {

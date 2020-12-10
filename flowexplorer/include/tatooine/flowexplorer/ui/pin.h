@@ -32,7 +32,7 @@ struct base_pin : uuid_holder<ax::NodeEditor::PinId> {
 struct input_pin : base_pin {
  private:
   std::vector<std::type_info const*> m_types;
-  struct link*                 m_link;
+  struct link*                 m_link = nullptr;
 
  public:
   input_pin(base::node& n, std::vector<std::type_info const*> types,

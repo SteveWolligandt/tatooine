@@ -24,6 +24,9 @@ struct spacetime_vectorfield
     this->set_field(
         dynamic_cast<parent::vectorfield<real_t, 2> const*>(&other_pin.node()));
   }
+  auto on_pin_disconnected(ui::input_pin& /*this_pin*/) -> void override {
+    std::cerr << "disconnected\n";
+  }
 };
 //==============================================================================
 }  // namespace tatooine::flowexplorer::nodes

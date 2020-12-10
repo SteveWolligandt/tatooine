@@ -4,6 +4,7 @@
 #include <tatooine/flowexplorer/window.h>
 #include <tatooine/interpolation.h>
 #include <tatooine/rendering/yavin_interop.h>
+#include <tatooine/flowexplorer/ui/pinkind.h>
 #include <toml++/toml.h>
 
 #include <fstream>
@@ -165,33 +166,42 @@ void scene::draw_links() {
 void scene::create_link() {
   namespace ed = ax::NodeEditor;
   if (ed::BeginCreate()) {
-    ed::PinId input_pin_id, output_pin_id;
-    if (ed::QueryNewLink(&input_pin_id, &output_pin_id)) {
-      if (input_pin_id && output_pin_id) {  // both are valid, let's accept link
+    ed::PinId pin_id0, pin_id1;
+    if (ed::QueryNewLink(&pin_id0, &pin_id1)) {
+      if (pin_id0 && pin_id1) {  // both are valid, let's accept link
 
-        auto input_pin  = find_input_pin(input_pin_id.Get());
-        auto* output_pin = find_output_pin(output_pin_id.Get());
-        assert(input_pin != nullptr);
-        assert(output_pin != nullptr);
+        auto input_pin0  = find_input_pin(pin_id0.Get());
+        auto output_pin0 = find_output_pin(pin_id0.Get());
+        auto input_pin1  = find_input_pin(pin_id1.Get());
+        auto output_pin1 = find_output_pin(pin_id1.Get());
 
-        //if (input_pin->kind() == ui::pinkind::output) {
-        //  std::swap(input_pin, output_pin);
-        //  std::swap(input_pin_id, output_pin_id);
-        //}
+        auto pins = [&]() -> std::pair<ui::input_pin*, ui::output_pin*> {
+          if (input_pin0 != nullptr && output_pin1 != nullptr) {
+            return {input_pin0, output_pin1};
+          } else if (input_pin1 != nullptr && output_pin0 != nullptr) {
+            return {input_pin1, output_pin0};
+          }
+          return {nullptr, nullptr};
+        }();
+        auto input_pin  = pins.first;
+        auto output_pin = pins.second;
 
-        if (input_pin->node().get_id() == output_pin->node().get_id()) {
+        if (input_pin0 != nullptr && input_pin1 != nullptr) {
+          show_label("cannot two input nodes", ImColor(45, 32, 32, 180));
+          ed::RejectNewItem(ImColor(255, 0, 0), 2.0f);
+        } else if (output_pin0 != nullptr && output_pin1 != nullptr) {
+          show_label("cannot two output nodes", ImColor(45, 32, 32, 180));
+          ed::RejectNewItem(ImColor(255, 0, 0), 2.0f);
+        } else if (input_pin->node().get_id() == output_pin->node().get_id()) {
           show_label("cannot connect to same node", ImColor(45, 32, 32, 180));
           ed::RejectNewItem(ImColor(255, 0, 0), 2.0f);
-        } else if (input_pin->kind() == output_pin->kind()) {
-          show_label("both are input or output", ImColor(45, 32, 32, 180));
-          ed::RejectNewItem(ImColor(255, 0, 0), 2.0f);
-        } else if (std::any_of(begin(input_pin->types()),
-                               end(input_pin->types()), [&output_pin](auto t) {
-                                 return *t != output_pin->type();
-                               })) {
+        } else if (!std::any_of(begin(input_pin->types()),
+                                end(input_pin->types()), [output_pin](auto t) {
+                                  return *t == output_pin->type();
+                                })) {
           std::string msg = "Types do not match:\n";
-          //msg += type_name(input_pin->type());
-          //msg += "\n";
+          // msg += type_name(input_pin->type());
+          // msg += "\n";
           msg += type_name(output_pin->type());
           show_label(msg.c_str(), ImColor(45, 32, 32, 180));
           ed::RejectNewItem(ImColor(255, 0, 0), 2.0f);
@@ -199,10 +209,10 @@ void scene::create_link() {
           // remove old input link if present
           for (auto link_it = begin(m_links); link_it != end(m_links);
                ++link_it) {
-            ui::input_pin* present_input_pin =
+            auto present_input_pin =
                 find_input_pin(link_it->input().get_id_number());
             if (present_input_pin->get_id() == input_pin->get_id()) {
-              ui::output_pin* present_output_pin =
+              auto present_output_pin =
                   find_output_pin(link_it->output().get_id_number());
               present_input_pin->node().on_pin_disconnected(*present_input_pin);
               present_output_pin->node().on_pin_disconnected(
@@ -249,6 +259,27 @@ void scene::remove_link() {
         }
       }
     }
+    ed::NodeId node_id = 0;
+    while (ed::QueryDeletedNode(&node_id)) {
+      if (ed::AcceptDeletedItem()) {
+        auto node_it = std::find_if(
+            begin(m_nodes), end(m_nodes),
+            [node_id](auto& node) { return node->get_id() == node_id; });
+        if (node_it != end(m_nodes)) {
+          for (auto input : node_it->get()->input_pins()) {
+            if (input.is_connected()) {
+              input.link().output().node().on_pin_disconnected(input.link().output());
+            }
+          }
+          for (auto output : node_it->get()->output_pins()) {
+            for (auto link  : output.links()) {
+              link->input().node().on_pin_disconnected(link->input());
+            }
+          }
+          m_nodes.erase(node_it);
+        }
+      }
+    }
   }
   ed::EndDelete();
 }
@@ -271,6 +302,10 @@ void scene::draw_node_editor(size_t const pos_x, size_t const pos_y,
                    ImGuiWindowFlags_NoTitleBar);
   ed::SetCurrentEditor(m_node_editor_context);
 
+  //assert(window().font().IsLoaded());
+  ImGui::PushFont(&window().font());
+  window().imgui_render_backend().create_fonts_texture();
+
   node_creators();
   ed::Begin("My Editor", ImVec2(0.0, 0.0f));
   draw_nodes();
@@ -278,6 +313,7 @@ void scene::draw_node_editor(size_t const pos_x, size_t const pos_y,
   create_link();
   remove_link();
   ed::End();
+  ImGui::PopFont();
   ImGui::End();
   ed::SetCurrentEditor(nullptr);
 }

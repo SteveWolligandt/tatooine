@@ -17,6 +17,10 @@ struct window : rendering::first_person_window {
   bool                                m_left_button_down = false;
   scene                               m_scene;
   std::unique_ptr<ImGui::FileBrowser> m_file_browser;
+  ImFont*                             m_font = nullptr;
+
+  auto font() -> auto& { return *m_font; }
+  auto font() const -> auto const& { return *m_font; }
   //----------------------------------------------------------------------------
   // ctor
   //----------------------------------------------------------------------------
