@@ -32,6 +32,7 @@ auto node::draw_node() -> void {
   node_builder builder;
   builder.begin(get_id());
 
+  ImGui::Spring(0);
   builder.header();
   ImGui::Spring(0);
   ImGui::Checkbox("", &m_enabled);
