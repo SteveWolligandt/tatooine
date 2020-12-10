@@ -16,18 +16,6 @@ lic::lic(flowexplorer::scene& s)
       m_alpha{1.0f} {
   init();
 }
-//----------------------------------------------------------------------------
-lic::lic(lic const& other)
-    : renderable<lic>{other},
-      m_shader{std::make_unique<gpu::texture_shader>()},
-      m_lic_res{other.m_lic_res},
-      m_vectorfield_sample_res{other.m_vectorfield_sample_res},
-      m_t{other.m_t},
-      m_num_samples{other.m_num_samples},
-      m_stepsize{other.m_stepsize},
-      m_alpha{other.m_alpha} {
-  init();
-}
 //==============================================================================
 auto lic::init() -> void {
   setup_pins();

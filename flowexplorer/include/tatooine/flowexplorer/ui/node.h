@@ -21,15 +21,18 @@ namespace tatooine::flowexplorer::ui {
 namespace base {
 struct node : uuid_holder<ax::NodeEditor::NodeId>, serializable  {
  private:
-  std::string          m_title;
-  flowexplorer::scene* m_scene;
-  std::vector<input_pin>  m_input_pins;
-  std::vector<output_pin> m_output_pins;
-  bool                 m_enabled = true;
+  std::string                 m_title;
+  flowexplorer::scene*        m_scene;
+  std::vector<input_pin>      m_input_pins;
+  std::vector<output_pin>     m_output_pins;
+  bool                        m_enabled = true;
+  std::unique_ptr<output_pin> m_self_pin = nullptr;
 
  public:
   node(flowexplorer::scene& s);
   node(std::string const& title, flowexplorer::scene& s);
+  node(flowexplorer::scene& s, std::type_info const&);
+  node(std::string const& title, flowexplorer::scene& s, std::type_info const&);
   virtual ~node() = default;
   //============================================================================
   template <typename... Ts>
@@ -55,6 +58,11 @@ struct node : uuid_holder<ax::NodeEditor::NodeId>, serializable  {
   auto toggle() -> void { m_enabled = !m_enabled; }
   //----------------------------------------------------------------------------
   auto set_title(std::string const& title) { m_title = title; }
+  //----------------------------------------------------------------------------
+  auto has_self_pin() const -> bool { return m_self_pin != nullptr; }
+  //----------------------------------------------------------------------------
+  auto self_pin() const -> auto const& { return *m_self_pin; }
+  auto self_pin() -> auto& { return *m_self_pin; }
   //----------------------------------------------------------------------------
   auto input_pins() const -> auto const& { return m_input_pins; }
   auto input_pins() -> auto& { return m_input_pins; }

@@ -123,6 +123,9 @@ auto scene::find_input_pin(size_t const id) -> ui::input_pin* {
 //----------------------------------------------------------------------------
 auto scene::find_output_pin(size_t const id) -> ui::output_pin* {
   for (auto& r : m_renderables) {
+    if (r->has_self_pin() && r->self_pin().get_id_number() == id) {
+      return &r->self_pin();
+    }
     for (auto& p : r->output_pins()) {
       if (p.get_id_number() == id) {
         return &p;
@@ -130,6 +133,9 @@ auto scene::find_output_pin(size_t const id) -> ui::output_pin* {
     }
   }
   for (auto& n : m_nodes) {
+    if (n->has_self_pin() && n->self_pin().get_id_number() == id) {
+      return &n->self_pin();
+    }
     for (auto& p : n->output_pins()) {
       if (p.get_id_number() == id) {
         return &p;
@@ -301,10 +307,7 @@ void scene::draw_node_editor(size_t const pos_x, size_t const pos_y,
                    ImGuiWindowFlags_NoBringToFrontOnFocus |
                    ImGuiWindowFlags_NoTitleBar);
   ed::SetCurrentEditor(m_node_editor_context);
-
-  //assert(window().font().IsLoaded());
   ImGui::PushFont(&window().font());
-  window().imgui_render_backend().create_fonts_texture();
 
   node_creators();
   ed::Begin("My Editor", ImVec2(0.0, 0.0f));

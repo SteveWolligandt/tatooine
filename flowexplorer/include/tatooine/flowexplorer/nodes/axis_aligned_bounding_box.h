@@ -42,35 +42,6 @@ struct axis_aligned_bounding_box
   auto operator                     =(axis_aligned_bounding_box&&) noexcept
       -> axis_aligned_bounding_box& = default;
   //============================================================================
-  template <typename Real0, typename Real1>
-  constexpr axis_aligned_bounding_box(vec<Real0, N>&& min, vec<Real1, N>&& max,
-                                      flowexplorer::scene& s) noexcept
-      : parent_t{std::move(min), std::move(max)},
-        renderable<axis_aligned_bounding_box>{"Axis Aligned Bounding Box", s} {
-    this->template insert_output_pin<this_t>("Out");
-    create_indexed_data();
-  }
-  //----------------------------------------------------------------------------
-  template <typename Real0, typename Real1>
-  constexpr axis_aligned_bounding_box(const vec<Real0, N>& min,
-                                      const vec<Real1, N>& max,
-                                      flowexplorer::scene& s)
-      : parent_t{min, max},
-        renderable<axis_aligned_bounding_box>{"Axis Aligned Bounding Box", s} {
-    this->template insert_output_pin<this_t>("Out");
-    create_indexed_data();
-  }
-  //----------------------------------------------------------------------------
-  template <typename Tensor0, typename Tensor1, typename Real0, typename Real1>
-  constexpr axis_aligned_bounding_box(const base_tensor<Tensor0, Real0, N>& min,
-                                      const base_tensor<Tensor1, Real1, N>& max,
-                                      flowexplorer::scene&                  s)
-      : parent_t{min, max},
-        renderable<axis_aligned_bounding_box>{"Axis Aligned Bounding Box", s} {
-    this->template insert_output_pin<this_t>("Out");
-    create_indexed_data();
-  }
-  //============================================================================
   void render(mat<float, 4, 4> const& projection_matrix,
               mat<float, 4, 4> const& view_matrix) override {
     set_vbo_data();
