@@ -353,6 +353,10 @@ void scene::write(std::filesystem::path const& filepath) const {
       serialized_node.insert("node_title", node->title());
       serialized_node.insert("node_type", node->type_name());
       serialized_node.insert("enabled", node->is_enabled());
+      if (node->has_self_pin()) {
+        serialized_node.insert("self_pin",
+                               long(node->self_pin().get_id_number()));
+      }
       toml_scene.insert(std::to_string(node->get_id_number()), serialized_node);
     }
   };
@@ -423,6 +427,11 @@ void scene::read(std::filesystem::path const& filepath) {
       // enable or disable
       auto const enabled = serialized_node["enabled"].as_boolean()->get();
       n->enable(enabled);
+
+      // enable or disable
+      if (n-> has_self_pin()) {
+        n->self_pin().set_id(serialized_node["self_pin"].as_integer()->get());
+      }
 
       n->deserialize(serialized_node);
     }
