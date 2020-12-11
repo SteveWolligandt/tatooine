@@ -23,6 +23,9 @@ struct scene {
   ax::NodeEditor::EditorContext*       m_node_editor_context = nullptr;
   rendering::camera_controller<float>* m_cam;
   flowexplorer::window*                m_window;
+  bool                                 m_new_link             = false;
+  ui::input_pin*                       m_new_link_start_input = nullptr;
+  ui::output_pin*                      m_new_link_start_output = nullptr;
 
  public:
   //============================================================================
@@ -37,6 +40,8 @@ struct scene {
   //----------------------------------------------------------------------------
   auto camera_controller() const -> auto const& { return *m_cam; }
   auto camera_controller()       -> auto&       { return *m_cam; }
+  //----------------------------------------------------------------------------
+  auto new_link() const  { return m_new_link; }
   //============================================================================
   scene(rendering::camera_controller<float>& ctrl, flowexplorer::window* w);
   scene(rendering::camera_controller<float>& ctrl, flowexplorer::window* w,
@@ -55,6 +60,20 @@ struct scene {
   auto draw_nodes() -> void;
   //----------------------------------------------------------------------------
   auto draw_links() -> void;
+  //----------------------------------------------------------------------------
+  auto can_create_link(ui::input_pin const& , ui::input_pin const& )
+      -> bool;
+  // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+  auto can_create_link(ui::output_pin const&, ui::output_pin const&) -> bool;
+  // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+  auto can_create_link(ui::input_pin const&, ui::output_pin const&) -> bool;
+  // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+  auto can_create_link(ui::output_pin const& , ui::input_pin const& )
+      -> bool;
+  //----------------------------------------------------------------------------
+  auto can_create_new_link(ui::input_pin const&) -> bool;
+  // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+  auto can_create_new_link(ui::output_pin const&) -> bool;
   //----------------------------------------------------------------------------
   auto create_link() -> void;
   //----------------------------------------------------------------------------
