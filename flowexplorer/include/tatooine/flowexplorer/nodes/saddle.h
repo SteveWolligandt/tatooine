@@ -8,10 +8,9 @@ namespace tatooine::flowexplorer::nodes {
 //==============================================================================
 struct saddle : tatooine::analytical::fields::numerical::saddle<double>,
                 ui::node<saddle> {
-  saddle(flowexplorer::scene& s) : ui::node<saddle>{"Saddle Field",s} {
-    this->template insert_output_pin<parent::vectorfield<double, 2>>(
-        "Field Out");
-  }
+  saddle(flowexplorer::scene& s)
+      : ui::node<saddle>{"Saddle Field", s,
+                         typeid(parent::vectorfield<double, 2>)} {}
   virtual ~saddle() = default;
 };
 //==============================================================================

@@ -19,10 +19,12 @@ struct window : rendering::first_person_window {
   std::unique_ptr<ImGui::FileBrowser> m_file_browser;
   ImFont*                             m_font_regular = nullptr;
   ImFont*                             m_font_bold = nullptr;
+  yavin::tex2rgba32f                  m_aabb2d_icon_tex;
+  yavin::tex2rgba32f                  m_aabb3d_icon_tex;
 
-  auto push_regular_font() -> void { ImGui::PushFont(m_font_regular); }
-  auto push_bold_font() -> void { ImGui::PushFont(m_font_bold); }
-  auto pop_font() -> void { ImGui::PopFont(); }
+  auto aabb2d_icon_tex() const -> auto const& { return m_aabb2d_icon_tex; }
+  auto aabb3d_icon_tex() const -> auto const& { return m_aabb3d_icon_tex; }
+
   //----------------------------------------------------------------------------
   // ctor
   //----------------------------------------------------------------------------
@@ -36,6 +38,10 @@ struct window : rendering::first_person_window {
   void on_button_released(yavin::button b) override;
   void on_mouse_motion(int /*x*/, int /*y*/) override;
   void start();
+  //=============================================================================
+  auto push_regular_font() -> void { ImGui::PushFont(m_font_regular); }
+  auto push_bold_font() -> void { ImGui::PushFont(m_font_bold); }
+  auto pop_font() -> void { ImGui::PopFont(); }
 };
 //==============================================================================
 }  // namespace tatooine::flowexplorer
