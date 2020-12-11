@@ -81,13 +81,13 @@ auto node::draw_node() -> void {
 
   for (auto& input : input_pins()) {
      auto alpha = ImGui::GetStyle().Alpha;
-    // if (newLinkPin && !CanCreateLink(newLinkPin, &input) &&
-    //    &input != newLinkPin)
-    //  alpha = alpha * (48.0f / 255.0f);
+     if (scene().new_link() && !scene().can_create_new_link(input)) {
+       alpha = alpha * 48.0f / 255.0f;
+     }
 
     builder.input(input.get_id());
-     ImGui::PushStyleVar(ImGuiStyleVar_Alpha, alpha);
-    icon(ImVec2(50, 50), icon_type::flow, input.is_connected());
+    ImGui::PushStyleVar(ImGuiStyleVar_Alpha, alpha);
+    icon(ImVec2(50, 50), icon_type::flow, input.is_connected(), ImVec4(1, 1, 1, alpha));
     ImGui::Spring(0);
     if (!input.title().empty()) {
       ImGui::TextUnformatted(input.title().c_str());

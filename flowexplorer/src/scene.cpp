@@ -117,13 +117,13 @@ scene::scene(rendering::camera_controller<float>& cam, flowexplorer::window* w)
   style.NodeRounding                              = 5.0f;
   ed::SetCurrentEditor(nullptr);
 }
-//----------------------------------------------------------------------------
+//------------------------------------------------------------------------------
 scene::scene(rendering::camera_controller<float>& cam, flowexplorer::window* w,
              std::filesystem::path const& path)
     : scene{cam, w} {
   read(path);
 }
-//----------------------------------------------------------------------------
+//------------------------------------------------------------------------------
 scene::~scene() { ax::NodeEditor::DestroyEditor(m_node_editor_context); }
 //------------------------------------------------------------------------------
 void scene::render(std::chrono::duration<double> const& dt) {
@@ -160,7 +160,7 @@ void scene::render(std::chrono::duration<double> const& dt) {
   yavin::enable_depth_test();
   yavin::enable_depth_write();
 }
-//----------------------------------------------------------------------------
+//------------------------------------------------------------------------------
 auto scene::find_node(size_t const id) -> ui::base::node* {
   for (auto& n : m_nodes) {
     if (n->get_id_number() == id) {
@@ -174,7 +174,7 @@ auto scene::find_node(size_t const id) -> ui::base::node* {
   }
   return nullptr;
 }
-//----------------------------------------------------------------------------
+//------------------------------------------------------------------------------
 auto scene::find_input_pin(size_t const id) -> ui::input_pin* {
   for (auto& r : m_renderables) {
     for (auto& p : r->input_pins()) {
@@ -192,7 +192,7 @@ auto scene::find_input_pin(size_t const id) -> ui::input_pin* {
   }
   return nullptr;
 }
-//----------------------------------------------------------------------------
+//------------------------------------------------------------------------------
 auto scene::find_output_pin(size_t const id) -> ui::output_pin* {
   for (auto& r : m_renderables) {
     if (r->has_self_pin() && r->self_pin().get_id_number() == id) {
@@ -216,7 +216,7 @@ auto scene::find_output_pin(size_t const id) -> ui::output_pin* {
   }
   return nullptr;
 }
-//----------------------------------------------------------------------------
+//------------------------------------------------------------------------------
 void scene::draw_nodes() {
   namespace ed = ax::NodeEditor;
   size_t i     = 0;
@@ -232,7 +232,7 @@ void scene::draw_nodes() {
     ImGui::PopID();
   }
 }
-//----------------------------------------------------------------------------
+//------------------------------------------------------------------------------
 void scene::draw_links() {
   namespace ed = ax::NodeEditor;
   for (auto& link_info : m_links) {
@@ -240,7 +240,40 @@ void scene::draw_links() {
              link_info.output().get_id());
   }
 }
+//------------------------------------------------------------------------------
+auto scene::can_create_link(ui::input_pin const& /*pin0*/,
+                            ui::input_pin const& /*pin1*/) -> bool {return false;}
+// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+auto scene::can_create_link(ui::output_pin const& /*pin0*/,
+                            ui::output_pin const& /*pin1*/) -> bool {
+  return false;
+}
+// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+auto scene::can_create_link(ui::output_pin const& pin0,
+                            ui::input_pin const&  pin1) -> bool {
+  return can_create_link(pin1, pin0);
+}
+// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+auto scene::can_create_link(ui::input_pin const&  pin0,
+                            ui::output_pin const& pin1) -> bool {
+  return std::any_of(begin(pin0.types()), end(pin0.types()),
+                     [&pin1](auto t) { return *t == pin1.type(); });
+}
 //----------------------------------------------------------------------------
+auto scene::can_create_new_link(ui::input_pin const& pin) -> bool{
+  if (m_new_link_start_output == nullptr) {
+    return false;
+  }
+  return can_create_link(pin, *m_new_link_start_output);
+}
+// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+auto scene::can_create_new_link(ui::output_pin const& pin) -> bool {
+  if (m_new_link_start_input == nullptr) {
+    return false;
+  }
+  return can_create_link(pin, *m_new_link_start_input);
+}
+//------------------------------------------------------------------------------
 void scene::create_link() {
   namespace ed = ax::NodeEditor;
   if (ed::BeginCreate()) {
@@ -273,10 +306,7 @@ void scene::create_link() {
         } else if (input_pin->node().get_id() == output_pin->node().get_id()) {
           show_label("cannot connect to same node", ImColor(45, 32, 32, 180));
           ed::RejectNewItem(ImColor(255, 0, 0), 2.0f);
-        } else if (!std::any_of(begin(input_pin->types()),
-                                end(input_pin->types()), [output_pin](auto t) {
-                                  return *t == output_pin->type();
-                                })) {
+        } else if (!can_create_link(*input_pin, *output_pin)) {
           std::string msg = "Types do not match:\n";
           // msg += type_name(input_pin->type());
           // msg += "\n";
@@ -308,12 +338,33 @@ void scene::create_link() {
         }
       }
     }
+
+    ed::PinId pinId = 0;
+    if (ed::QueryNewNode(&pinId)) {
+      m_new_link_start_input  = find_input_pin(pinId.Get());
+      m_new_link_start_output = find_output_pin(pinId.Get());
+      m_new_link              = true;
+
+      if (ed::AcceptNewItem()) {
+        m_new_link              = false;
+        m_new_link_start_input  = nullptr;
+        m_new_link_start_output = nullptr;
+        ed::Suspend();
+        ImGui::OpenPopup("Create New Node");
+        ed::Resume();
+      }
+    }
+
+  } else {
+    m_new_link              = false;
+    m_new_link_start_input  = nullptr;
+    m_new_link_start_output = nullptr;
   }
+  ed::EndCreate();
 }
-//----------------------------------------------------------------------------
+//------------------------------------------------------------------------------
 void scene::remove_link() {
   namespace ed = ax::NodeEditor;
-  ed::EndCreate();
   // Handle deletion action
   if (ed::BeginDelete()) {
     // There may be many links marked for deletion, let's loop over them.
@@ -361,7 +412,7 @@ void scene::remove_link() {
   }
   ed::EndDelete();
 }
-//----------------------------------------------------------------------------
+//------------------------------------------------------------------------------
 void scene::draw_node_editor(size_t const pos_x, size_t const pos_y,
                              size_t const width, size_t const height,
                              bool& show) {
@@ -385,7 +436,7 @@ void scene::draw_node_editor(size_t const pos_x, size_t const pos_y,
   ImGui::End();
   ed::SetCurrentEditor(nullptr);
 }
-//----------------------------------------------------------------------------
+//------------------------------------------------------------------------------
 void scene::node_creators() {
   if (ImGui::BeginCombo("##combo", nullptr)) {
     for (auto const& item : items) {
@@ -440,7 +491,8 @@ void scene::write(std::filesystem::path const& filepath) const {
   if (fout.is_open()) {
     fout << toml_scene << '\n';
   }
-}  //------------------------------------------------------------------------------
+}
+//------------------------------------------------------------------------------
 void scene::read(std::filesystem::path const& filepath) {
   clear();
   ax::NodeEditor::SetCurrentEditor(m_node_editor_context);
