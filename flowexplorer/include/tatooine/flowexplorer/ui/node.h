@@ -292,13 +292,15 @@ struct node_serializer {
     bool changed = false;
     reflection::for_each(t, [&changed](auto const& name, auto& var) {
       using var_t = std::decay_t<decltype(var)>;
-      // float
       if constexpr (std::is_same_v<std::string, var_t>) {
         changed |= ImGui::InputText(name, &var);
+
+      // float
       } else if constexpr (std::is_same_v<float, var_t>) {
         changed |= ImGui::DragFloat(name, &var, 0.1f);
       } else if constexpr (std::is_same_v<std::array<float, 2>, var_t>) {
         changed |= ImGui::DragFloat2(name, var.data(), 0.1f);
+
       } else if constexpr (std::is_same_v<std::array<float, 3>, var_t>) {
         changed |= ImGui::DragFloat3(name, var.data(), 0.1f);
       } else if constexpr (std::is_same_v<std::array<float, 4>, var_t>) {

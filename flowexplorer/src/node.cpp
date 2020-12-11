@@ -32,11 +32,13 @@ auto node::draw_node() -> void {
   node_builder builder;
   builder.begin(get_id());
 
-  ImGui::Spring(0);
+  ImGui::Dummy(ImVec2(10, 0));
   builder.header();
-  ImGui::Spring(0);
   ImGui::Checkbox("", &m_enabled);
+  ImGui::Spring(0);
+  scene().window().push_bold_font();
   ImGui::TextUnformatted(title().c_str());
+  scene().window().pop_font();
   ImGui::Spring(1);
   ImGui::Dummy(ImVec2(0, 28));
 
@@ -76,13 +78,13 @@ auto node::draw_node() -> void {
   builder.end_header();
 
   for (auto& input : input_pins()) {
-    // auto alpha = ImGui::GetStyle().Alpha;
+     auto alpha = ImGui::GetStyle().Alpha;
     // if (newLinkPin && !CanCreateLink(newLinkPin, &input) &&
     //    &input != newLinkPin)
     //  alpha = alpha * (48.0f / 255.0f);
 
     builder.input(input.get_id());
-    // ImGui::PushStyleVar(ImGuiStyleVar_Alpha, alpha);
+     ImGui::PushStyleVar(ImGuiStyleVar_Alpha, alpha);
     // DrawPinIcon(input, IsPinLinked(input.get_id()), (int)(alpha * 255));
     std::string in = "-> ";
     ImGui::TextUnformatted(in.c_str());
@@ -91,11 +93,12 @@ auto node::draw_node() -> void {
       ImGui::TextUnformatted(input.title().c_str());
       ImGui::Spring(0);
     }
-    // ImGui::PopStyleVar();
+    ImGui::PopStyleVar();
     builder.end_input();
   }
   // ImGui::Spring(0);
   builder.middle();
+  ImGui::PushItemWidth(400);
   if (draw_properties()) {
     on_property_changed();
     for (auto& p : m_output_pins) {
@@ -104,13 +107,14 @@ auto node::draw_node() -> void {
       }
     }
   }
+  ImGui::PopItemWidth();
   for (auto& output : output_pins()) {
-    // auto alpha = ImGui::GetStyle().Alpha;
+     auto alpha = ImGui::GetStyle().Alpha;
     // if (newLinkPin && !CanCreateLink(newLinkPin, &output) &&
     //    &output != newLinkPin)
     //  alpha = alpha * (48.0f / 255.0f);
 
-    // ImGui::PushStyleVar(ImGuiStyleVar_Alpha, alpha);
+     ImGui::PushStyleVar(ImGuiStyleVar_Alpha, alpha);
     builder.output(output.get_id());
     if (!output.title().empty()) {
       ImGui::Spring(0);
@@ -120,36 +124,10 @@ auto node::draw_node() -> void {
     // DrawPinIcon(output, IsPinLinked(output.get_id()), (int)(alpha * 255));
     std::string out = "-> ";
     ImGui::TextUnformatted(out.c_str());
-    // ImGui::PopStyleVar();
+     ImGui::PopStyleVar();
     builder.end_output();
   }
   builder.end();
-
-  // ed::BeginNode(get_id());
-  // ImGui::Checkbox("", &m_enabled);
-  // ImGui::SameLine();
-  // ImGui::TextUnformatted(title().c_str());
-  // if (draw_properties()) {
-  //  on_property_changed();
-  //  for (auto& p : m_output_pins) {
-  //    for (auto l : p.links()) {
-  //      (l->input().node().on_property_changed());
-  //    }
-  //  }
-  //}
-  // for (auto& input_pin : input_pins()) {
-  //  ed::BeginPin(input_pin.get_id(), ed::PinKind::Input);
-  //  std::string in = "-> " + input_pin.title();
-  //  ImGui::TextUnformatted(in.c_str());
-  //  ed::EndPin();
-  //}
-  // for (auto& output_pin : output_pins()) {
-  //  ed::BeginPin(output_pin.get_id(), ed::PinKind::Output);
-  //  std::string out = output_pin.title() + " ->";
-  //  ImGui::TextUnformatted(out.c_str());
-  //  ed::EndPin();
-  //}
-  // ed::EndNode();
 }
 //==============================================================================
 }  // namespace tatooine::flowexplorer::ui::base

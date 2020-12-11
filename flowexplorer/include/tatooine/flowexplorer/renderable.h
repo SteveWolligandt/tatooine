@@ -13,6 +13,8 @@ struct renderable : ui::base::node {
   bool m_picked = false;
   //============================================================================
   renderable(std::string const& title, flowexplorer::scene& s);
+  renderable(std::string const& title, flowexplorer::scene& s,
+             std::type_info const&);
   renderable(renderable const& w)                        = default;
   renderable(renderable&& w) noexcept                    = default;
   auto operator=(renderable const& w) -> renderable&     = default;

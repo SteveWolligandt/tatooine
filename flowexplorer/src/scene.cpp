@@ -39,16 +39,88 @@ scene::scene(rendering::camera_controller<float>& cam, flowexplorer::window* w)
     iterate_registered_names(name) { items.insert(name->f()); }
     items_created = true;
   }
+  
+
+  ImVec4 *colors                         = ImGui::GetStyle().Colors;
+//colors[ImGuiCol_Text]                  = ImVec4(1.00f, 1.00f, 1.00f, 1.00f);
+//colors[ImGuiCol_TextDisabled]          = ImVec4(0.50f, 0.50f, 0.50f, 1.00f);
+//colors[ImGuiCol_WindowBg]              = ImVec4(0.06f, 0.06f, 0.06f, 0.94f);
+//colors[ImGuiCol_ChildBg]               = ImVec4(1.00f, 1.00f, 1.00f, 0.00f);
+//colors[ImGuiCol_PopupBg]               = ImVec4(0.08f, 0.08f, 0.08f, 0.94f);
+//colors[ImGuiCol_Border]                = ImVec4(0.43f, 0.43f, 0.50f, 0.50f);
+//colors[ImGuiCol_BorderShadow]          = ImVec4(0.00f, 0.00f, 0.00f, 0.00f);
+//colors[ImGuiCol_FrameBg]               = ImVec4(0.20f, 0.21f, 0.22f, 0.54f);
+//colors[ImGuiCol_FrameBgHovered]        = ImVec4(0.40f, 0.40f, 0.40f, 0.40f);
+//colors[ImGuiCol_FrameBgActive]         = ImVec4(0.18f, 0.18f, 0.18f, 0.67f);
+//colors[ImGuiCol_TitleBg]               = ImVec4(0.04f, 0.04f, 0.04f, 1.00f);
+//colors[ImGuiCol_TitleBgActive]         = ImVec4(0.29f, 0.29f, 0.29f, 1.00f);
+//colors[ImGuiCol_TitleBgCollapsed]      = ImVec4(0.00f, 0.00f, 0.00f, 0.51f);
+//colors[ImGuiCol_MenuBarBg]             = ImVec4(0.14f, 0.14f, 0.14f, 1.00f);
+//colors[ImGuiCol_ScrollbarBg]           = ImVec4(0.02f, 0.02f, 0.02f, 0.53f);
+//colors[ImGuiCol_ScrollbarGrab]         = ImVec4(0.31f, 0.31f, 0.31f, 1.00f);
+//colors[ImGuiCol_ScrollbarGrabHovered]  = ImVec4(0.41f, 0.41f, 0.41f, 1.00f);
+//colors[ImGuiCol_ScrollbarGrabActive]   = ImVec4(0.51f, 0.51f, 0.51f, 1.00f);
+//colors[ImGuiCol_CheckMark]             = ImVec4(0.94f, 0.94f, 0.94f, 1.00f);
+//colors[ImGuiCol_SliderGrab]            = ImVec4(0.51f, 0.51f, 0.51f, 1.00f);
+//colors[ImGuiCol_SliderGrabActive]      = ImVec4(0.86f, 0.86f, 0.86f, 1.00f);
+//colors[ImGuiCol_Button]                = ImVec4(0.44f, 0.44f, 0.44f, 0.40f);
+//colors[ImGuiCol_ButtonHovered]         = ImVec4(0.46f, 0.47f, 0.48f, 1.00f);
+//colors[ImGuiCol_ButtonActive]          = ImVec4(0.42f, 0.42f, 0.42f, 1.00f);
+//colors[ImGuiCol_Header]                = ImVec4(0.70f, 0.70f, 0.70f, 0.31f);
+//colors[ImGuiCol_HeaderHovered]         = ImVec4(0.70f, 0.70f, 0.70f, 0.80f);
+//colors[ImGuiCol_HeaderActive]          = ImVec4(0.48f, 0.50f, 0.52f, 1.00f);
+//colors[ImGuiCol_Separator]             = ImVec4(0.43f, 0.43f, 0.50f, 0.50f);
+//colors[ImGuiCol_SeparatorHovered]      = ImVec4(0.72f, 0.72f, 0.72f, 0.78f);
+//colors[ImGuiCol_SeparatorActive]       = ImVec4(0.51f, 0.51f, 0.51f, 1.00f);
+//colors[ImGuiCol_ResizeGrip]            = ImVec4(0.91f, 0.91f, 0.91f, 0.25f);
+//colors[ImGuiCol_ResizeGripHovered]     = ImVec4(0.81f, 0.81f, 0.81f, 0.67f);
+//colors[ImGuiCol_ResizeGripActive]      = ImVec4(0.46f, 0.46f, 0.46f, 0.95f);
+//colors[ImGuiCol_PlotLines]             = ImVec4(0.61f, 0.61f, 0.61f, 1.00f);
+//colors[ImGuiCol_PlotLinesHovered]      = ImVec4(1.00f, 0.43f, 0.35f, 1.00f);
+//colors[ImGuiCol_PlotHistogram]         = ImVec4(0.73f, 0.60f, 0.15f, 1.00f);
+//colors[ImGuiCol_PlotHistogramHovered]  = ImVec4(1.00f, 0.60f, 0.00f, 1.00f);
+//colors[ImGuiCol_TextSelectedBg]        = ImVec4(0.87f, 0.87f, 0.87f, 0.35f);
+//colors[ImGuiCol_ModalWindowDarkening]  = ImVec4(0.80f, 0.80f, 0.80f, 0.35f);
+//colors[ImGuiCol_DragDropTarget]        = ImVec4(1.00f, 1.00f, 0.00f, 0.90f);
+//colors[ImGuiCol_NavHighlight]          = ImVec4(0.60f, 0.60f, 0.60f, 1.00f);
+//colors[ImGuiCol_NavWindowingHighlight] = ImVec4(1.00f, 1.00f, 1.00f, 0.70f);
+
+  ImGui::GetStyle().WindowRounding    = 0.0f;
+  ImGui::GetStyle().ChildRounding     = 0.0f;
+  ImGui::GetStyle().FrameRounding     = 0.0f;
+  ImGui::GetStyle().GrabRounding      = 0.0f;
+  ImGui::GetStyle().PopupRounding     = 0.0f;
+  ImGui::GetStyle().ScrollbarRounding = 0.0f;
+
+
+  namespace ed = ax::NodeEditor;
+  ed::SetCurrentEditor(m_node_editor_context);
+  auto& style = ed::GetStyle();
+  style.Colors[ed::StyleColor_Bg]                 = colors[ImGuiCol_ChildBg];
+  style.Colors[ed::StyleColor_Grid]               = style.Colors[ed::StyleColor_Bg];
+  style.Colors[ed::StyleColor_NodeBg]             = ImColor( 32,  32,  32, 200);
+  style.Colors[ed::StyleColor_NodeBorder]         = ImColor(127, 127, 127,  96);
+  style.Colors[ed::StyleColor_HovNodeBorder]      = ImColor(200, 200, 200, 255);
+  style.Colors[ed::StyleColor_SelNodeBorder]      = ImColor(255, 255, 255, 255);
+  style.Colors[ed::StyleColor_NodeSelRect]        = ImColor(  5, 130, 255,  64);
+  style.Colors[ed::StyleColor_NodeSelRectBorder]  = ImColor(  5, 130, 255, 128);
+  style.Colors[ed::StyleColor_HovLinkBorder]      = ImColor( 50, 176, 255, 255);
+  style.Colors[ed::StyleColor_SelLinkBorder]      = ImColor(255, 176,  50, 255);
+  style.Colors[ed::StyleColor_LinkSelRect]        = ImColor(  5, 130, 255,  64);
+  style.Colors[ed::StyleColor_LinkSelRectBorder]  = ImColor(  5, 130, 255, 128);
+  style.Colors[ed::StyleColor_PinRect]            = ImColor( 60, 180, 255, 100);
+  style.Colors[ed::StyleColor_PinRectBorder]      = ImColor( 60, 180, 255, 128);
+  style.Colors[ed::StyleColor_Flow]               = ImColor(255, 128,  64, 255);
+  style.Colors[ed::StyleColor_FlowMarker]         = ImColor(102, 255, 153, 255);
+  style.Colors[ed::StyleColor_GroupBg]            = ImColor(  0,   0,   0, 160);
+  style.Colors[ed::StyleColor_GroupBorder]        = ImColor(255, 255, 255,  32);
+  style.NodeRounding                              = 5.0f;
+  ed::SetCurrentEditor(nullptr);
 }
 //----------------------------------------------------------------------------
 scene::scene(rendering::camera_controller<float>& cam, flowexplorer::window* w,
              std::filesystem::path const& path)
-    : m_cam{&cam}, m_window{w} {
-  m_node_editor_context = ax::NodeEditor::CreateEditor();
-  if (!items_created) {
-    iterate_registered_names(name) { items.insert(name->f()); }
-    items_created = true;
-  }
+    : scene{cam, w} {
   read(path);
 }
 //----------------------------------------------------------------------------
@@ -294,12 +366,6 @@ void scene::draw_node_editor(size_t const pos_x, size_t const pos_y,
                              size_t const width, size_t const height,
                              bool& show) {
   namespace ed                        = ax::NodeEditor;
-  ImGui::GetStyle().WindowRounding    = 0.0f;
-  ImGui::GetStyle().ChildRounding     = 0.0f;
-  ImGui::GetStyle().FrameRounding     = 0.0f;
-  ImGui::GetStyle().GrabRounding      = 0.0f;
-  ImGui::GetStyle().PopupRounding     = 0.0f;
-  ImGui::GetStyle().ScrollbarRounding = 0.0f;
   ImGui::SetNextWindowPos(ImVec2(pos_x, pos_y));
   ImGui::SetNextWindowSize(ImVec2(width, height));
   ImGui::Begin("Node Editor", &show,
@@ -307,8 +373,7 @@ void scene::draw_node_editor(size_t const pos_x, size_t const pos_y,
                    ImGuiWindowFlags_NoBringToFrontOnFocus |
                    ImGuiWindowFlags_NoTitleBar);
   ed::SetCurrentEditor(m_node_editor_context);
-  ImGui::PushFont(&window().font());
-
+  window().push_regular_font();
   node_creators();
   ed::Begin("My Editor", ImVec2(0.0, 0.0f));
   draw_nodes();
@@ -316,7 +381,7 @@ void scene::draw_node_editor(size_t const pos_x, size_t const pos_y,
   create_link();
   remove_link();
   ed::End();
-  ImGui::PopFont();
+  window().pop_font();
   ImGui::End();
   ed::SetCurrentEditor(nullptr);
 }

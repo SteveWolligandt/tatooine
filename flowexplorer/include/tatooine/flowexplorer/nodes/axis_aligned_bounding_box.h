@@ -31,8 +31,8 @@ struct axis_aligned_bounding_box
                                                            tag::fill{-1}},
                                                        vec<double, N>{
                                                            tag::fill{1}}},
-        renderable<axis_aligned_bounding_box>{"Axis Aligned Bounding Box", s} {
-    this->template insert_output_pin<this_t>("Out");
+        renderable<axis_aligned_bounding_box>{"Axis Aligned Bounding Box", s,
+                                              typeid(this_t)} {
     create_indexed_data();
   }
   axis_aligned_bounding_box(const axis_aligned_bounding_box&)     = default;
