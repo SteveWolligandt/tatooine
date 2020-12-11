@@ -38,25 +38,25 @@ auto node_builder::end() -> void {
     //                   (m_header_color & IM_COL32(255, 255, 255, 0));
     //if ((m_header_max.x > m_header_min.x) &&
     //    (m_header_max.y > m_header_min.y) && m_header_texture_id) {
-    //  const auto uv = ImVec2((m_header_max.x - m_header_min.x) /
+    //  const auto uv = ImVec2{(m_header_max.x - m_header_min.x} /
     //                             (float)(4.0f * m_header_texture_width),
     //                         (m_header_max.y - m_header_min.y) /
     //                             (float)(4.0f * m_header_texture_height));
     //
     //  drawList->AddImageRounded(
     //      m_header_texture_id,
-    //      m_header_min - ImVec2(8 - halfBorderWidth, 4 - halfBorderWidth),
-    //      m_header_max + ImVec2(8 - halfBorderWidth, 0), ImVec2(0.0f, 0.0f), uv,
+    //      m_header_min - ImVec2{8 - halfBorderWidth, 4 - halfBorderWidth},
+    //      m_header_max + ImVec2{8 - halfBorderWidth, 0}, ImVec2{0.0f, 0.0f}, uv,
     //      headerColor, ed::GetStyle().NodeRounding, 1 | 2);
     //
-    //  auto headerSeparatorMin = ImVec2(m_header_min.x, m_header_max.y);
-    //  auto headerSeparatorMax = ImVec2(m_header_max.x, m_header_min.y);
+    //  auto headerSeparatorMin = ImVec2{m_header_min.x, m_header_max.y};
+    //  auto headerSeparatorMax = ImVec2{m_header_max.x, m_header_min.y};
     //
     //  if ((headerSeparatorMax.x > headerSeparatorMin.x) &&
     //      (headerSeparatorMax.y > headerSeparatorMin.y)) {
     //    drawList->AddLine(
-    //        headerSeparatorMin + ImVec2(-(8 - halfBorderWidth), -0.5f),
-    //        headerSeparatorMax + ImVec2((8 - halfBorderWidth), -0.5f),
+    //        headerSeparatorMin + ImVec2{-(8 - halfBorderWidth}, -0.5f),
+    //        headerSeparatorMax + ImVec2{(8 - halfBorderWidth}, -0.5f),
     //        ImColor(255, 255, 255, 96 * alpha / (3 * 255)), 1.0f);
     //  }
     //}
@@ -209,10 +209,10 @@ auto node_builder::set_stage(stage stage) -> bool {
       break;
 
     case stage::input:
-      ImGui::BeginVertical("inputs", ImVec2(0, 0), 0.0f);
+      ImGui::BeginVertical("inputs", ImVec2{0, 0}, 0.0f);
 
-      ed::PushStyleVar(ed::StyleVar_PivotAlignment, ImVec2(0, 0.5f));
-      ed::PushStyleVar(ed::StyleVar_PivotSize, ImVec2(0, 0));
+      ed::PushStyleVar(ed::StyleVar_PivotAlignment, ImVec2{0, 0.5f});
+      ed::PushStyleVar(ed::StyleVar_PivotSize, ImVec2{0, 0});
 
       if (!m_has_header) {
         ImGui::Spring(1, 0);
@@ -221,7 +221,7 @@ auto node_builder::set_stage(stage stage) -> bool {
 
     case stage::middle:
       ImGui::Spring(1);
-      ImGui::BeginVertical("middle", ImVec2(0, 0), 1.0f);
+      ImGui::BeginVertical("middle", ImVec2{0, 0}, 1.0f);
       break;
 
     case stage::output:
@@ -230,10 +230,10 @@ auto node_builder::set_stage(stage stage) -> bool {
       } else {
         ImGui::Spring(1, 0);
       }
-      ImGui::BeginVertical("outputs", ImVec2(0, 0), 1.0f);
+      ImGui::BeginVertical("outputs", ImVec2{0, 0}, 1.0f);
 
-      ed::PushStyleVar(ed::StyleVar_PivotAlignment, ImVec2(1.0f, 0.5f));
-      ed::PushStyleVar(ed::StyleVar_PivotSize, ImVec2(0, 0));
+      ed::PushStyleVar(ed::StyleVar_PivotAlignment, ImVec2{1.0f, 0.5f});
+      ed::PushStyleVar(ed::StyleVar_PivotSize, ImVec2{0, 0});
 
       if (!m_has_header) {
         ImGui::Spring(1, 0);
