@@ -177,8 +177,8 @@ void autonomous_particle::advect() {
     node->m_integration_going_on = false;
   };
 
-  this->scene().window().do_async(run);
-  //run();
+  //this->scene().window().do_async(run);
+  run();
 }
 //----------------------------------------------------------------------------
 auto autonomous_particle::draw_properties() -> bool {
