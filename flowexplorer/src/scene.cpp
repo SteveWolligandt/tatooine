@@ -5,6 +5,7 @@
 #include <tatooine/interpolation.h>
 #include <tatooine/rendering/yavin_interop.h>
 #include <tatooine/flowexplorer/ui/pinkind.h>
+#include <tatooine/flowexplorer/nodes/axis_aligned_bounding_box.h>
 #include <toml++/toml.h>
 
 #include <fstream>
@@ -397,15 +398,42 @@ void scene::remove_link() {
         if (node_it != end(m_nodes)) {
           for (auto input : node_it->get()->input_pins()) {
             if (input.is_connected()) {
-              input.link().output().node().on_pin_disconnected(input.link().output());
+              input.link().output().node().on_pin_disconnected(
+                  input.link().output());
             }
           }
           for (auto output : node_it->get()->output_pins()) {
-            for (auto link  : output.links()) {
+            for (auto link : output.links()) {
               link->input().node().on_pin_disconnected(link->input());
             }
           }
+
+          std::cerr << size(m_nodes) << '\n';
           m_nodes.erase(node_it);
+          std::cerr << size(m_nodes) << '\n';
+        } else {
+          auto renderable_it =
+              std::find_if(begin(m_renderables), end(m_renderables),
+                           [node_id](auto& renderable) {
+                             return renderable->get_id() == node_id;
+                           });
+          if (renderable_it != end(m_renderables)) {
+            for (auto input : renderable_it->get()->input_pins()) {
+              if (input.is_connected()) {
+                input.link().output().node().on_pin_disconnected(
+                    input.link().output());
+              }
+            }
+            for (auto output : renderable_it->get()->output_pins()) {
+              for (auto link : output.links()) {
+                link->input().node().on_pin_disconnected(link->input());
+              }
+            }
+
+            std::cerr << size(m_renderables) << '\n';
+            m_renderables.erase(renderable_it);
+            std::cerr << size(m_renderables) << '\n';
+          }
         }
       }
     }
@@ -416,28 +444,42 @@ void scene::remove_link() {
 void scene::draw_node_editor(size_t const pos_x, size_t const pos_y,
                              size_t const width, size_t const height,
                              bool& show) {
-  namespace ed                        = ax::NodeEditor;
+  namespace ed = ax::NodeEditor;
+  window().push_regular_font();
   ImGui::SetNextWindowPos(ImVec2(pos_x, pos_y));
   ImGui::SetNextWindowSize(ImVec2(width, height));
   ImGui::Begin("Node Editor", &show,
                ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoMove |
                    ImGuiWindowFlags_NoBringToFrontOnFocus |
                    ImGuiWindowFlags_NoTitleBar);
+  node_creators(width - 20);
   ed::SetCurrentEditor(m_node_editor_context);
-  window().push_regular_font();
-  node_creators();
   ed::Begin("My Editor", ImVec2(0.0, 0.0f));
   draw_nodes();
   draw_links();
   create_link();
   remove_link();
   ed::End();
+  ed::SetCurrentEditor(nullptr);
   window().pop_font();
   ImGui::End();
-  ed::SetCurrentEditor(nullptr);
 }
 //------------------------------------------------------------------------------
-void scene::node_creators() {
+void scene::node_creators(size_t const width) {
+  ImGui::BeginVertical("nodecreators1");
+  ImGui::BeginHorizontal("nodecreators2");
+
+  ImTextureID aabb2d_id = (ImTextureID)window().aabb2d_icon_tex().id();
+  if (ImGui::ImageButton(aabb2d_id, ImVec2(100, 100)/*, ImVec2(0, 0),*/
+                         /*ImVec2(100.0f, 100.0f), 2, ImColor(255, 255, 255, 0)*/)) {
+    m_renderables.emplace_back(new nodes::aabb2d{*this});
+  }
+  ImTextureID aabb3d_id = (ImTextureID)window().aabb3d_icon_tex().id();
+  if (ImGui::ImageButton(aabb3d_id, ImVec2(100, 100))) {
+    m_renderables.emplace_back(new nodes::aabb3d{*this});
+  }
+  ImGui::EndHorizontal();
+  ImGui::PushItemWidth(width);
   if (ImGui::BeginCombo("##combo", nullptr)) {
     for (auto const& item : items) {
       if (ImGui::Selectable(std::string{item}.c_str(), false)) {
@@ -446,6 +488,8 @@ void scene::node_creators() {
     }
     ImGui::EndCombo();
   }
+  ImGui::PopItemWidth();
+  ImGui::EndVertical();
 }
 //------------------------------------------------------------------------------
 void scene::write(std::filesystem::path const& filepath) const {

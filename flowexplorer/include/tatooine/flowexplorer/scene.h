@@ -55,7 +55,7 @@ struct scene {
   auto find_input_pin(size_t const id) -> ui::input_pin*;
   auto find_output_pin(size_t const id) -> ui::output_pin*;
   //----------------------------------------------------------------------------
-  auto node_creators() -> void;
+  auto node_creators(size_t const width) -> void;
   //----------------------------------------------------------------------------
   auto draw_nodes() -> void;
   //----------------------------------------------------------------------------

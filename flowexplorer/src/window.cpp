@@ -7,7 +7,11 @@ window::window()
       m_font_regular{ImGui::GetIO().Fonts->AddFontFromFileTTF(
           "/usr/share/fonts/TTF/Roboto-Regular.ttf", 30.0f)},
       m_font_bold{ImGui::GetIO().Fonts->AddFontFromFileTTF(
-          "/usr/share/fonts/TTF/Roboto-Bold.ttf", 40.0f)} {
+          "/usr/share/fonts/TTF/Roboto-Bold.ttf", 40.0f)},
+      m_aabb2d_icon_tex{
+          "/home/steve/libs/tatooine2/flowexplorer/icons/aabb2d.png"},
+      m_aabb3d_icon_tex{
+          "/home/steve/libs/tatooine2/flowexplorer/icons/aabb3d.png"} {
   imgui_render_backend().create_fonts_texture();
   start();
 }
@@ -17,7 +21,11 @@ window::window(std::filesystem::path const& path)
       m_font_regular{ImGui::GetIO().Fonts->AddFontFromFileTTF(
           "/usr/share/fonts/TTF/Roboto-Regular.ttf", 30.0f)},
       m_font_bold{ImGui::GetIO().Fonts->AddFontFromFileTTF(
-          "/usr/share/fonts/TTF/Roboto-Bold.ttf", 40.0f)} {
+          "/usr/share/fonts/TTF/Roboto-Bold.ttf", 40.0f)},
+      m_aabb2d_icon_tex{
+          "/home/steve/libs/tatooine2/flowexplorer/icons/aabb2d.png"},
+      m_aabb3d_icon_tex{
+          "/home/steve/libs/tatooine2/flowexplorer/icons/aabb3d.png"} {
   imgui_render_backend().create_fonts_texture();
   start();
 }
