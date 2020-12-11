@@ -5,15 +5,20 @@ namespace tatooine::flowexplorer {
 window::window()
     : m_scene{camera_controller(), this},
       m_font_regular{ImGui::GetIO().Fonts->AddFontFromFileTTF(
-          "/usr/share/fonts/TTF/Roboto-Regular.ttf", 23.0f)},
+          "/usr/share/fonts/TTF/Roboto-Regular.ttf", 30.0f)},
       m_font_bold{ImGui::GetIO().Fonts->AddFontFromFileTTF(
-          "/usr/share/fonts/TTF/Roboto-Bold.ttf", 23.0f)} {
+          "/usr/share/fonts/TTF/Roboto-Bold.ttf", 40.0f)} {
   imgui_render_backend().create_fonts_texture();
   start();
 }
 //------------------------------------------------------------------------------
 window::window(std::filesystem::path const& path)
-    : m_scene{camera_controller(), this, path} {
+    : m_scene{camera_controller(), this, path},
+      m_font_regular{ImGui::GetIO().Fonts->AddFontFromFileTTF(
+          "/usr/share/fonts/TTF/Roboto-Regular.ttf", 30.0f)},
+      m_font_bold{ImGui::GetIO().Fonts->AddFontFromFileTTF(
+          "/usr/share/fonts/TTF/Roboto-Bold.ttf", 40.0f)} {
+  imgui_render_backend().create_fonts_texture();
   start();
 }
 //==============================================================================

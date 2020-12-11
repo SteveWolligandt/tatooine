@@ -6,6 +6,7 @@ set(TATFE_SHADER_DIR ${CMAKE_CURRENT_SOURCE_DIR}/shaders)
 add_executable(
   flowexplorer
   src/node_builder.cpp
+  src/draw_icon.cpp
   src/spacetime_splitted_vectorfield.cpp
   src/spacetime_splitted_vectorfield.cpp
   src/field_from_file.cpp
