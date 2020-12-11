@@ -37,22 +37,8 @@ struct position : tatooine::vec<double, N>, renderable<position<N>> {
   constexpr auto operator=(position const&) -> position& = default;
   constexpr auto operator=(position&&) noexcept -> position& = default;
   //============================================================================
-  constexpr position(flowexplorer::scene& s) : renderable<position>{"Position", s} {
-    this->template insert_output_pin<this_t>("Out");
-    create_indexed_data();
-  }
-  //----------------------------------------------------------------------------
-  template <typename Real>
-  constexpr position(flowexplorer::scene& s, vec<Real, N>&& pos) noexcept
-      : parent_t{std::move(pos)}, renderable<position>{"Position", s} {
-    this->template insert_output_pin<this_t>("Out");
-    create_indexed_data();
-  }
-  //----------------------------------------------------------------------------
-  template <typename Real>
-  constexpr position(flowexplorer::scene& s, vec<Real, N> const& pos)
-      : parent_t{pos}, renderable<position>{"Position", s} {
-    this->template insert_output_pin<this_t>("Out");
+  constexpr position(flowexplorer::scene& s)
+      : renderable<position>{"Position", s, typeid(this_t)} {
     create_indexed_data();
   }
   //============================================================================
