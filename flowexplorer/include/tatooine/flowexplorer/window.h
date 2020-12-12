@@ -12,6 +12,7 @@ struct window : rendering::first_person_window {
   //----------------------------------------------------------------------------
   // members
   //----------------------------------------------------------------------------
+  float                               m_ui_scale_factor = 1.0f;
   bool                                m_show_nodes_gui = true;
   int                                 m_mouse_x, m_mouse_y;
   bool                                m_left_button_down = false;
@@ -21,7 +22,9 @@ struct window : rendering::first_person_window {
   ImFont*                             m_font_bold = nullptr;
   yavin::tex2rgba32f                  m_aabb2d_icon_tex;
   yavin::tex2rgba32f                  m_aabb3d_icon_tex;
-
+  //============================================================================
+  auto ui_scale_factor() const { return m_ui_scale_factor; }
+  //----------------------------------------------------------------------------
   auto aabb2d_icon_tex() const -> auto const& { return m_aabb2d_icon_tex; }
   auto aabb3d_icon_tex() const -> auto const& { return m_aabb3d_icon_tex; }
 

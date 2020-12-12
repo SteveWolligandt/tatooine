@@ -4,28 +4,35 @@ namespace tatooine::flowexplorer {
 //==============================================================================
 window::window()
     : m_scene{camera_controller(), this},
-      m_font_regular{ImGui::GetIO().Fonts->AddFontFromFileTTF(
-          "/usr/share/fonts/TTF/Roboto-Regular.ttf", 30.0f)},
-      m_font_bold{ImGui::GetIO().Fonts->AddFontFromFileTTF(
-          "/usr/share/fonts/TTF/Roboto-Bold.ttf", 40.0f)},
+      
       m_aabb2d_icon_tex{
           "/home/steve/libs/tatooine2/flowexplorer/icons/aabb2d.png"},
       m_aabb3d_icon_tex{
           "/home/steve/libs/tatooine2/flowexplorer/icons/aabb3d.png"} {
+  if (display().x11_display().screen_resolution().first > 2000) {
+    m_ui_scale_factor = 2.0f;
+  }
+  m_font_regular = ImGui::GetIO().Fonts->AddFontFromFileTTF(
+      "/usr/share/fonts/TTF/Roboto-Regular.ttf", 15.0f * m_ui_scale_factor);
+  m_font_bold = ImGui::GetIO().Fonts->AddFontFromFileTTF(
+      "/usr/share/fonts/TTF/Roboto-Bold.ttf", 20.0f * m_ui_scale_factor);
   imgui_render_backend().create_fonts_texture();
   start();
 }
 //------------------------------------------------------------------------------
 window::window(std::filesystem::path const& path)
     : m_scene{camera_controller(), this, path},
-      m_font_regular{ImGui::GetIO().Fonts->AddFontFromFileTTF(
-          "/usr/share/fonts/TTF/Roboto-Regular.ttf", 30.0f)},
-      m_font_bold{ImGui::GetIO().Fonts->AddFontFromFileTTF(
-          "/usr/share/fonts/TTF/Roboto-Bold.ttf", 40.0f)},
       m_aabb2d_icon_tex{
           "/home/steve/libs/tatooine2/flowexplorer/icons/aabb2d.png"},
       m_aabb3d_icon_tex{
           "/home/steve/libs/tatooine2/flowexplorer/icons/aabb3d.png"} {
+  if (display().x11_display().screen_resolution().first > 2000) {
+    m_ui_scale_factor = 2.0f;
+  }
+  m_font_regular = ImGui::GetIO().Fonts->AddFontFromFileTTF(
+      "/usr/share/fonts/TTF/Roboto-Regular.ttf", 15.0f * m_ui_scale_factor);
+  m_font_bold = ImGui::GetIO().Fonts->AddFontFromFileTTF(
+      "/usr/share/fonts/TTF/Roboto-Bold.ttf", 20.0f * m_ui_scale_factor);
   imgui_render_backend().create_fonts_texture();
   start();
 }
@@ -119,8 +126,10 @@ void window::start() {
   render_loop([&](const auto& dt) {
     m_scene.render(dt);
     if (m_show_nodes_gui) {
-      m_scene.draw_node_editor(0, this->height() *2/ 3,
-                               this->width(), this->height() / 3,
+      //m_scene.draw_node_editor(0, this->height() *2/ 3,
+      //                         this->width(), this->height() / 3,
+      //                         m_show_nodes_gui);
+      m_scene.draw_node_editor(0, 0, this->width(), this->height(),
                                m_show_nodes_gui);
     }
     if (m_file_browser) {
