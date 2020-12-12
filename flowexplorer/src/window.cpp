@@ -4,7 +4,6 @@ namespace tatooine::flowexplorer {
 //==============================================================================
 window::window()
     : m_scene{camera_controller(), this},
-      
       m_aabb2d_icon_tex{
           "/home/steve/libs/tatooine2/flowexplorer/icons/aabb2d.png"},
       m_aabb3d_icon_tex{
@@ -17,6 +16,10 @@ window::window()
   m_font_bold = ImGui::GetIO().Fonts->AddFontFromFileTTF(
       "/usr/share/fonts/TTF/Roboto-Bold.ttf", 20.0f * m_ui_scale_factor);
   imgui_render_backend().create_fonts_texture();
+
+  if (std::filesystem::exists("scene.toml")) {
+    m_scene.read("scene.toml");
+  }
   start();
 }
 //------------------------------------------------------------------------------
@@ -36,6 +39,8 @@ window::window(std::filesystem::path const& path)
   imgui_render_backend().create_fonts_texture();
   start();
 }
+//------------------------------------------------------------------------------
+window::~window() { m_scene.write("scene.toml"); }
 //==============================================================================
 void window::on_key_pressed(yavin::key k) {
   parent_t::on_key_pressed(k);

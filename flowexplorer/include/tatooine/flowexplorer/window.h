@@ -34,7 +34,7 @@ struct window : rendering::first_person_window {
   window();
   window(std::filesystem::path const& scene_path);
   //----------------------------------------------------------------------------
-  ~window() = default;
+  ~window();
   //============================================================================
   void on_key_pressed(yavin::key k) override;
   void on_button_pressed(yavin::button b) override;
