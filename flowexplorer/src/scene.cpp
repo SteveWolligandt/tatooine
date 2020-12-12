@@ -470,12 +470,13 @@ void scene::node_creators(size_t const width) {
   ImGui::BeginHorizontal("nodecreators2");
 
   ImTextureID aabb2d_id = (ImTextureID)window().aabb2d_icon_tex().id();
-  if (ImGui::ImageButton(aabb2d_id, ImVec2(100, 100)/*, ImVec2(0, 0),*/
-                         /*ImVec2(100.0f, 100.0f), 2, ImColor(255, 255, 255, 0)*/)) {
+  if (ImGui::ImageButton(aabb2d_id, ImVec2(50 * window().ui_scale_factor(),
+                                           50 * window().ui_scale_factor()))) {
     m_renderables.emplace_back(new nodes::aabb2d{*this});
   }
   ImTextureID aabb3d_id = (ImTextureID)window().aabb3d_icon_tex().id();
-  if (ImGui::ImageButton(aabb3d_id, ImVec2(100, 100))) {
+  if (ImGui::ImageButton(aabb3d_id, ImVec2(50 * window().ui_scale_factor(),
+                                           50 * window().ui_scale_factor()))) {
     m_renderables.emplace_back(new nodes::aabb3d{*this});
   }
   ImGui::EndHorizontal();
@@ -509,7 +510,9 @@ void scene::write(std::filesystem::path const& filepath) const {
       serialized_node.insert("kind", kind);
       serialized_node.insert("input_pin_ids", input_pin_ids);
       serialized_node.insert("output_pin_ids", output_pin_ids);
-      serialized_node.insert("node_position", toml::array{pos[0], pos[1]});
+      serialized_node.insert("node_position",
+                             toml::array{pos[0] / window().ui_scale_factor(),
+                                         pos[1] / window().ui_scale_factor()});
       serialized_node.insert("node_title", node->title());
       serialized_node.insert("node_type", node->type_name());
       serialized_node.insert("enabled", node->is_enabled());
@@ -578,7 +581,8 @@ void scene::read(std::filesystem::path const& filepath) {
       auto const y = (*serialized_node["node_position"].as_array())[1]
                          .as_floating_point()
                          ->get();
-      ImVec2 pos{static_cast<float>(x), static_cast<float>(y)};
+      ImVec2 pos{static_cast<float>(x) * window().ui_scale_factor(),
+                 static_cast<float>(y) * window().ui_scale_factor()};
       ax::NodeEditor::SetNodePosition(id, pos);
 
       // set title

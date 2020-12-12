@@ -108,7 +108,9 @@ auto node::draw_node() -> void {
       ImGui::TextUnformatted(m_self_pin->title().c_str());
       ImGui::Spring(0);
     }
-    icon(ImVec2(50, 50), icon_type::flow, m_self_pin->is_connected(),
+    icon(ImVec2(25 * scene().window().ui_scale_factor(),
+                25 * scene().window().ui_scale_factor()),
+         icon_type::flow, m_self_pin->is_connected(),
          icon_color(*m_self_pin, alpha));
     ImGui::Spring(0, ImGui::GetStyle().ItemSpacing.x / 2);
     ImGui::EndHorizontal();
@@ -131,8 +133,9 @@ auto node::draw_node() -> void {
 
     builder.input(input.get_id());
     ImGui::PushStyleVar(ImGuiStyleVar_Alpha, alpha);
-    icon(ImVec2(50, 50), icon_type::flow, input.is_connected(),
-         icon_color(input, alpha));
+    icon(ImVec2(25 * scene().window().ui_scale_factor(),
+                25 * scene().window().ui_scale_factor()),
+        icon_type::flow, input.is_connected(), icon_color(input, alpha));
     ImGui::Spring(0);
     if (!input.title().empty()) {
       ImGui::TextUnformatted(input.title().c_str());
@@ -149,7 +152,7 @@ auto node::draw_node() -> void {
     }
     builder.middle();
     ImGui::PushStyleVar(ImGuiStyleVar_Alpha, alpha);
-    ImGui::PushItemWidth(400);
+    ImGui::PushItemWidth(200 * scene().window().ui_scale_factor());
     if (draw_properties()) {
       on_property_changed();
       for (auto& p : m_output_pins) {
@@ -175,8 +178,9 @@ auto node::draw_node() -> void {
       ImGui::TextUnformatted(output.title().c_str());
     }
     ImGui::Spring(0);
-    icon(ImVec2(50, 50), icon_type::flow, output.is_connected(),
-         icon_color(output, alpha));
+    icon(ImVec2(25 * scene().window().ui_scale_factor(),
+                25 * scene().window().ui_scale_factor()),
+         icon_type::flow, output.is_connected(), icon_color(output, alpha));
     ImGui::PopStyleVar();
     builder.end_output();
   }
