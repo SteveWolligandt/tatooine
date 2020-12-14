@@ -1,39 +1,45 @@
 set(TATFE_SRC_DIR ${CMAKE_CURRENT_SOURCE_DIR}/src)
+set(TATFE_BIN_SRC_DIR ${CMAKE_CURRENT_BINARY_DIR}/src)
 set(TATFE_INCLUDE_DIR ${CMAKE_CURRENT_SOURCE_DIR}/include)
 set(TATFE_BIN_INCLUDE_DIR ${CMAKE_CURRENT_BINARY_DIR}/include)
 set(TATFE_SHADER_DIR ${CMAKE_CURRENT_SOURCE_DIR}/shaders)
 #- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+set(TATOOINE_FLOWEXPLORER_FONTS_DIR ${CMAKE_CURRENT_SOURCE_DIR}/fonts)
+configure_file(${TATFE_SRC_DIR}/fonts_dir.cpp.in
+               ${TATFE_BIN_SRC_DIR}/fonts_dir.cpp)
+#- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 add_executable(
   flowexplorer
-  src/node_builder.cpp
-  src/draw_icon.cpp
-  src/spacetime_splitted_vectorfield.cpp
-  src/spacetime_splitted_vectorfield.cpp
-  src/field_from_file.cpp
-  src/axis_aligned_bounding_box.cpp
-  src/flowexplorer.cpp
-  src/doublegyre.cpp
-  src/abcflow.cpp
-  src/saddle.cpp
-  src/position.cpp
-  src/duffing_oscillator.cpp
-  src/single_pathline.cpp
-  src/autonomous_particles_flowmap.cpp
-  src/autonomous_particles_flowmap_evaluator.cpp
-  src/random_pathlines.cpp
-  src/rayleigh_benard_convection.cpp
-  src/test_node.cpp
-  src/spacetime_vectorfield.cpp
-  src/node.cpp
-  src/window.cpp
-  src/autonomous_particle.cpp
-  src/line_shader.cpp 
-  src/point_shader.cpp 
-  src/renderable.cpp 
-  src/scene.cpp 
-  src/lic.cpp
-  src/autonomous_particles_renderer.cpp
-  src/pin.cpp
+  ${TATFE_BIN_SRC_DIR}/fonts_dir.cpp
+  ${TATFE_SRC_DIR}/node_builder.cpp
+  ${TATFE_SRC_DIR}/draw_icon.cpp
+  ${TATFE_SRC_DIR}/spacetime_splitted_vectorfield.cpp
+  ${TATFE_SRC_DIR}/spacetime_splitted_vectorfield.cpp
+  ${TATFE_SRC_DIR}/field_from_file.cpp
+  ${TATFE_SRC_DIR}/axis_aligned_bounding_box.cpp
+  ${TATFE_SRC_DIR}/flowexplorer.cpp
+  ${TATFE_SRC_DIR}/doublegyre.cpp
+  ${TATFE_SRC_DIR}/abcflow.cpp
+  ${TATFE_SRC_DIR}/saddle.cpp
+  ${TATFE_SRC_DIR}/position.cpp
+  ${TATFE_SRC_DIR}/duffing_oscillator.cpp
+  ${TATFE_SRC_DIR}/single_pathline.cpp
+  ${TATFE_SRC_DIR}/autonomous_particles_flowmap.cpp
+  ${TATFE_SRC_DIR}/autonomous_particles_flowmap_evaluator.cpp
+  ${TATFE_SRC_DIR}/random_pathlines.cpp
+  ${TATFE_SRC_DIR}/rayleigh_benard_convection.cpp
+  ${TATFE_SRC_DIR}/test_node.cpp
+  ${TATFE_SRC_DIR}/spacetime_vectorfield.cpp
+  ${TATFE_SRC_DIR}/node.cpp
+  ${TATFE_SRC_DIR}/window.cpp
+  ${TATFE_SRC_DIR}/autonomous_particle.cpp
+  ${TATFE_SRC_DIR}/line_shader.cpp 
+  ${TATFE_SRC_DIR}/point_shader.cpp 
+  ${TATFE_SRC_DIR}/renderable.cpp 
+  ${TATFE_SRC_DIR}/scene.cpp 
+  ${TATFE_SRC_DIR}/lic.cpp
+  ${TATFE_SRC_DIR}/autonomous_particles_renderer.cpp
+  ${TATFE_SRC_DIR}/pin.cpp
 
   external/imgui-node-editor/crude_json.cpp
   external/imgui-node-editor/imgui_canvas.cpp

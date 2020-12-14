@@ -1,6 +1,7 @@
 #include <tatooine/flowexplorer/scene.h>
 #include <tatooine/field.h>
 #include <tatooine/flowexplorer/nodes/axis_aligned_bounding_box.h>
+#include <tatooine/flowexplorer/nodes/position.h>
 #include <tatooine/flowexplorer/ui/node.h>
 #include <tatooine/flowexplorer/ui/node_builder.h>
 #include <tatooine/flowexplorer/ui/pin.h>
@@ -37,6 +38,9 @@ auto icon_color(std::type_info const& type, float const alpha) -> ImVec4 {
   } else if (type == typeid(nodes::axis_aligned_bounding_box<2>) ||
              type == typeid(nodes::axis_aligned_bounding_box<3>)) {
     return {0.5, 1, 0.5, alpha};
+  } else if (type == typeid(nodes::position<2>) ||
+             type == typeid(nodes::position<3>)) {
+    return {0.5, 0.5, 1, alpha};
   }
   return {1, 1, 1, alpha};
 }
@@ -48,6 +52,9 @@ auto icon_color(ui::output_pin const& pin, float const alpha) -> ImVec4 {
   } else if (pin.type() == typeid(nodes::axis_aligned_bounding_box<2>) ||
              pin.type() == typeid(nodes::axis_aligned_bounding_box<3>)) {
     return icon_color(typeid(nodes::axis_aligned_bounding_box<2>), alpha);
+  } else if (pin.type() == typeid(nodes::position<2>) ||
+             pin.type() == typeid(nodes::position<3>)) {
+    return icon_color(typeid(nodes::position<2>), alpha);
   }
   return {1, 1, 1, alpha};
 }
@@ -63,6 +70,11 @@ auto icon_color(ui::input_pin const& pin, float const alpha) -> ImVec4 {
                       *t == typeid(nodes::axis_aligned_bounding_box<3>);
              })) {
     return icon_color(typeid(nodes::axis_aligned_bounding_box<2>), alpha);
+  } else if (std::any_of(begin(pin.types()), end(pin.types()), [](auto t) {
+               return *t == typeid(nodes::position<2>) ||
+                      *t == typeid(nodes::position<3>);
+             })) {
+    return icon_color(typeid(nodes::position<2>), alpha);
   }
   return {1, 1, 1, alpha};
 }

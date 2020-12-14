@@ -10,6 +10,7 @@ namespace tatooine::flowexplorer::nodes {
 //==============================================================================
 autonomous_particle::autonomous_particle(flowexplorer::scene& s)
     : renderable<autonomous_particle>{"Autonomous Particle", s} {
+  phi().use_caching(false);
   this->template insert_input_pin<vectorfield_t>("2D Vector Field");
   this->template insert_input_pin<position<2>>("x0");
 
