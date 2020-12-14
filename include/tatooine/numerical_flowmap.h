@@ -1,6 +1,7 @@
 #ifndef TATOOINE_NUMERICAL_FLOWMAP_H
 #define TATOOINE_NUMERICAL_FLOWMAP_H
 //==============================================================================
+#include <tatooine/is_cacheable.h>
 #include <tatooine/exceptions.h>
 #include <tatooine/field.h>
 #include <tatooine/interpolation.h>

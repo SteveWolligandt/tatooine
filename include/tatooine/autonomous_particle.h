@@ -47,13 +47,21 @@ struct autonomous_particle {
   //----------------------------------------------------------------------------
   template <typename = void>
   requires is_numerical_flowmap_v<Flowmap> autonomous_particle()
-      : autonomous_particle{Flowmap{}, pos_t::zeros(), real_t(0), real_t(0)} {}
+      : autonomous_particle{Flowmap{}, pos_t::zeros(), real_t(0), real_t(0)} {
+    if constexpr (is_cacheable_v<decltype(m_phi)>) {
+      m_phi.use_caching(false);
+    }
+  }
   //----------------------------------------------------------------------------
   template <typename V, std::floating_point VReal, real_number RealX0>
   autonomous_particle(vectorfield<V, VReal, num_dimensions()> const& v,
                       vec<RealX0, num_dimensions()> const&           x0,
                       real_number auto const t0, real_number auto const r0)
-      : autonomous_particle{flowmap(v), x0, t0, r0} {}
+      : autonomous_particle{flowmap(v), x0, t0, r0} {
+    if constexpr (is_cacheable_v<decltype(m_phi)>) {
+      m_phi.use_caching(false);
+    }
+  }
   //----------------------------------------------------------------------------
   template <real_number RealX0>
   autonomous_particle(flowmap_t phi, tensor<RealX0, num_dimensions()> const& x0,
@@ -63,7 +71,11 @@ struct autonomous_particle {
         m_x1{x0},
         m_t1{static_cast<real_t>(t0)},
         m_nabla_phi1{mat_t::eye()},
-        m_S{mat_t::eye() * r0} {}
+        m_S{mat_t::eye() * r0} {
+    if constexpr (is_cacheable_v<decltype(m_phi)>) {
+      m_phi.use_caching(false);
+    }
+  }
   //----------------------------------------------------------------------------
   autonomous_particle(flowmap_t phi, pos_t const& x0, pos_t const& x1,
                       real_t const t1, mat_t const& nabla_phi1, mat_t const& S)
@@ -72,7 +84,11 @@ struct autonomous_particle {
         m_x1{x1},
         m_t1{t1},
         m_nabla_phi1{nabla_phi1},
-        m_S{S} {}
+        m_S{S} {
+    if constexpr (is_cacheable_v<decltype(m_phi)>) {
+      m_phi.use_caching(false);
+    }
+  }
   //----------------------------------------------------------------------------
  public:
   //----------------------------------------------------------------------------
@@ -133,21 +149,21 @@ struct autonomous_particle {
   auto advect_with_3_splits(real_t const tau_step, real_t const max_t,
                             bool const&  stop = false) const {
     return advect(tau_step, max_t, 4, 0,
-                  std::array<real_t, 1>{real_t(1) / 2}, false, stop);
+                  std::array<real_t, 1>{real_t(1) / 2}, true, stop);
   }
   //----------------------------------------------------------------------------
   auto advect_with_3_splits(real_t const tau_step, real_t const max_t,
                             size_t const max_num_particles,
                             bool const&  stop = false) const {
     return advect(tau_step, max_t, 4, max_num_particles,
-                  std::array<real_t, 1>{real_t(1) / 2}, false, stop);
+                  std::array<real_t, 1>{real_t(1) / 2}, true, stop);
   }
   //----------------------------------------------------------------------------
   static auto advect_with_3_splits(real_t const tau_step, real_t const max_t,
                                    std::vector<this_t> particles,
                                    bool const&         stop = false) {
     return advect(tau_step, max_t, 4, 0,
-                  std::array<real_t, 1>{real_t(1) / 2}, false,
+                  std::array<real_t, 1>{real_t(1) / 2}, true,
                   std::move(particles), stop);
   }
   //----------------------------------------------------------------------------
@@ -156,7 +172,7 @@ struct autonomous_particle {
                                    std::vector<this_t> particles,
                                    bool const&         stop = false) {
     return advect(tau_step, max_t, 4, max_num_particles,
-                  std::array<real_t, 1>{real_t(1) / 2}, false,
+                  std::array<real_t, 1>{real_t(1) / 2}, true,
                   std::move(particles), stop);
   }
   //----------------------------------------------------------------------------
@@ -300,7 +316,6 @@ struct autonomous_particle {
     return finished_particles;
   }
 
- private:
   //----------------------------------------------------------------------------
   auto step_until_split(real_t tau_step, real_t const max_t,
                         real_t const objective_cond, bool const add_center,
@@ -363,9 +378,8 @@ struct autonomous_particle {
         eig_HHt  = eigenvectors_sym(HHt);
         cond_HHt = eigvals_HHt(num_dimensions() - 1) / eigvals_HHt(0);
 
-        nabla_phi2 = H * inv(Sigma) * transposed(Q);
+        nabla_phi2 = H * inv(Sigma) *  transposed(Q);
         fmg2fmg1   = nabla_phi2 * m_nabla_phi1;
-        std::vector<this_t> splits;
         vec_t               center_radii;
         for (size_t i = 0; i < num_dimensions() - 1; ++i) {
           center_radii(i) = std::sqrt(eigvals_HHt(i));
@@ -376,8 +390,10 @@ struct autonomous_particle {
             eigvecs_HHt.col(num_dimensions() - 1) * center_radii(0);
         auto current_offset = vec_t::zeros();
 
+        std::vector<this_t> splits;
         if constexpr(num_dimensions() == 2) {
           if (objective_cond == 4) {
+            std::cerr << cond_HHt << '\n';
             //{
             //  auto const new_eigvals = center_radii ;
             //  auto const new_S =
@@ -390,7 +406,7 @@ struct autonomous_particle {
 
             {
               auto const offset2 = eigvecs_HHt.col(1) * center_radii(0) * x1;
-              auto const offset0     = inv(fmg2fmg1) * offset2;
+              auto const offset0     = solve(fmg2fmg1, offset2);
               auto const new_eigvals = center_radii * r1;
               auto const new_S =
                   eigvecs_HHt * diag(new_eigvals) * transposed(eigvecs_HHt);
@@ -456,11 +472,11 @@ struct autonomous_particle {
             //static real_t const x5 = std::sqrt(2) - 1;
             //static real_t const y5 = std::sqrt(2) - 1;
             //static real_t const r5 = std::sqrt(2) - 1;
-            
+
             {
               auto const offset2 = eigvecs_HHt.col(1) * center_radii(0) * x5 -
                                    eigvecs_HHt.col(0) * center_radii(0) * y5;
-              auto const offset0     = inv(fmg2fmg1) * offset2;
+              auto const offset0     = solve(fmg2fmg1, offset2);
               auto const new_eigvals = center_radii * r5;
               auto const new_S =
                   eigvecs_HHt * diag(new_eigvals) * transposed(eigvecs_HHt);
@@ -471,7 +487,7 @@ struct autonomous_particle {
             {
               auto const offset2 = -eigvecs_HHt.col(1) * center_radii(0) * x5 -
                                    eigvecs_HHt.col(0) * center_radii(0) * y5;
-              auto const offset0     = inv(fmg2fmg1) * offset2;
+              auto const offset0     = solve(fmg2fmg1, offset2);
               auto const new_eigvals = center_radii * r5;
               auto const new_S =
                   eigvecs_HHt * diag(new_eigvals) * transposed(eigvecs_HHt);
@@ -482,7 +498,7 @@ struct autonomous_particle {
             {
               auto const offset2 = eigvecs_HHt.col(1) * center_radii(0) * x5 -
                                    -eigvecs_HHt.col(0) * center_radii(0) * y5;
-              auto const offset0     = inv(fmg2fmg1) * offset2;
+              auto const offset0     = solve(fmg2fmg1,  offset2);
               auto const new_eigvals = center_radii * r5;
               auto const new_S =
                   eigvecs_HHt * diag(new_eigvals) * transposed(eigvecs_HHt);
@@ -493,7 +509,7 @@ struct autonomous_particle {
             {
               auto const offset2 = -eigvecs_HHt.col(1) * center_radii(0) * x5 -
                                    -eigvecs_HHt.col(0) * center_radii(0) * y5;
-              auto const offset0     = inv(fmg2fmg1) * offset2;
+              auto const offset0     = solve(fmg2fmg1, offset2);
               auto const new_eigvals = center_radii * r5;
               auto const new_S =
                   eigvecs_HHt * diag(new_eigvals) * transposed(eigvecs_HHt);
@@ -513,7 +529,7 @@ struct autonomous_particle {
             for (auto const radius : radii) {
               auto const new_eigvals = center_radii * radius;
               auto const offset2 = current_offset + relative_unit_vec * radius;
-              auto const offset0 = inv(fmg2fmg1) * offset2;
+              auto const offset0 = solve(fmg2fmg1, offset2);
               auto const new_S =
                   eigvecs_HHt * diag(new_eigvals) * transposed(eigvecs_HHt);
               splits.emplace_back(m_phi, m_x0 - offset0,
@@ -528,7 +544,7 @@ struct autonomous_particle {
         }
         return splits;
       } else if (cond_HHt >= objective_cond &&
-                 cond_HHt - objective_cond >= 0.0001) {
+                 cond_HHt - objective_cond >= 0.00001) {
         t2 -= tau_step;
         tau_step /= 2;
       }
