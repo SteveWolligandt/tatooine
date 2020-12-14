@@ -17,10 +17,9 @@ struct autonomous_particles_flowmap : renderable<autonomous_particles_flowmap> {
   line_shader            m_line_shader;
   //============================================================================
   autonomous_particles_flowmap(flowexplorer::scene& s)
-      : renderable<autonomous_particles_flowmap>{"Autonomous Particles Flowmap",
-                                                 s} {
-    this->template insert_output_pin<autonomous_particles_flowmap>("Out");
-  }
+      : renderable<autonomous_particles_flowmap>{
+            "Autonomous Particles Flowmap", s,
+            typeid(autonomous_particles_flowmap)} {}
   virtual ~autonomous_particles_flowmap() = default;
   //----------------------------------------------------------------------------
   auto draw_properties() -> bool override {

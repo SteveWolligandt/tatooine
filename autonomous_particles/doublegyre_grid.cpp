@@ -312,7 +312,7 @@ auto main(int argc, char** argv) -> int {
     // auto flowmap_sampler_autonomous_particles =
     //    autonomous_mesh.sampler(autonomous_flowmap_mesh_prop);
     auto flowmap_sampler_autonomous_particles =
-        autonomous_mesh.moving_least_squares_sampler(
+        autonomous_mesh.inverse_distance_weighting_sampler(
             autonomous_flowmap_mesh_prop);
     auto const grid_min_extent =
         static_cast<size_t>(std::ceil(std::sqrt(size(advected_particles) / 2)));
@@ -362,7 +362,7 @@ auto main(int argc, char** argv) -> int {
     // auto flowmap_sampler_regular =
     //    regular_mesh.sampler(regular_flowmap_mesh_prop);
     auto flowmap_sampler_regular =
-        regular_mesh.moving_least_squares_sampler(
+        regular_mesh.inverse_distance_weighting_sampler(
             regular_flowmap_mesh_prop);
 
     //----------------------------------------------------------------------------
