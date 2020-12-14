@@ -451,8 +451,8 @@ struct autonomous_particle {
             //                      new_S);
             //}
             static real_t const x5 = 0.4830517593887872;
-            static real_t const y5 = 0.4830517593887872;
-            static real_t const r5 = 0.4830517593887872;
+            static real_t const y5 = x5;
+            static real_t const r5 = x5;
             //static real_t const x5 = std::sqrt(2) - 1;
             //static real_t const y5 = std::sqrt(2) - 1;
             //static real_t const r5 = std::sqrt(2) - 1;

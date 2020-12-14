@@ -167,9 +167,14 @@ auto node::draw_node() -> void {
     ImGui::PushItemWidth(200 * scene().window().ui_scale_factor());
     if (draw_properties()) {
       on_property_changed();
+      if (has_self_pin()) {
+        for (auto l : m_self_pin->links()) {
+          l->input().node().on_property_changed();
+        }
+      }
       for (auto& p : m_output_pins) {
         for (auto l : p.links()) {
-          (l->input().node().on_property_changed());
+          l->input().node().on_property_changed();
         }
       }
     }

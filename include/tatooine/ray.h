@@ -2,11 +2,14 @@
 #define TATOOINE_RAY_H
 //==============================================================================
 #include <tatooine/tensor.h>
+#include <tatooine/concepts.h>
 //==============================================================================
 namespace tatooine {
 //==============================================================================
-template <typename Real, size_t N>
+template <floating_point Real, size_t N>
 struct ray {
+  template <floating_point OtherReal, size_t OtherN>
+  friend struct ray;
   using vec_t = vec<Real, N>;
   using pos_t = vec_t;
   //============================================================================
@@ -17,6 +20,10 @@ struct ray {
  public:
   ray(ray const&)     = default;
   ray(ray&&) noexcept = default;
+  //----------------------------------------------------------------------------
+  template <floating_point OtherReal>
+  ray(ray<OtherReal, N> const& other)
+      : m_origin{other.m_origin}, m_direction{other.m_direction} {}
   //----------------------------------------------------------------------------
   ray& operator=(ray const&) = default;
   ray& operator=(ray&&) noexcept = default;

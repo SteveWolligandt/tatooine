@@ -1,9 +1,11 @@
 #ifndef TATOOINE_GEOMETRY_SPHERE_H
 #define TATOOINE_GEOMETRY_SPHERE_H
 //==============================================================================
-#include <tatooine/tensor.h>
+#include <tatooine/concepts.h>
 #include <tatooine/line.h>
+#include <tatooine/tensor.h>
 #include <tatooine/triangular_mesh.h>
+
 #include <boost/range/adaptor/transformed.hpp>
 #include <boost/range/algorithm/copy.hpp>
 
@@ -12,7 +14,7 @@
 //==============================================================================
 namespace tatooine::geometry {
 //==============================================================================
-template <typename Real, size_t N>
+template <floating_point Real, size_t N>
 struct sphere : primitive<Real, N> {
   using this_t   = sphere<Real, N>;
   using parent_t = primitive<Real, N>;
@@ -27,66 +29,58 @@ struct sphere : primitive<Real, N> {
   explicit sphere(Real radius) : m_radius{radius}, m_center{pos_t::zeros()} {}
   sphere(Real radius, pos_t&& center)
       : m_radius{radius}, m_center{std::move(center)} {}
-  sphere(Real radius, const pos_t& center)
+  sphere(Real radius, pos_t const& center)
       : m_radius{radius}, m_center{center} {}
   //----------------------------------------------------------------------------
-  sphere(const sphere&) = default;
+  sphere(sphere const&) = default;
   sphere(sphere&&)      = default;
-  sphere& operator=(const sphere&) = default;
+  sphere& operator=(sphere const&) = default;
   sphere& operator=(sphere&&) = default;
   //============================================================================
-  std::optional<intersection<Real, N>> check_intersection(
-      const ray<Real, N>& r, const Real min_t = 0) const override {
+  auto check_intersection(ray<Real, N> const& r, Real const min_t = 0) const
+      -> std::optional<intersection<Real, N>> override {
     return tatooine::geometry::check_intersection(*this, r, min_t);
   }
   //----------------------------------------------------------------------------
-  constexpr auto radius() const {
-    return m_radius;
-  }
-  constexpr auto& radius() {
-    return m_radius;
-  }
+  constexpr auto radius() const { return m_radius; }
+  constexpr auto radius() -> auto& { return m_radius; }
   //----------------------------------------------------------------------------
-  constexpr const auto& center() const {
-    return m_center;
-  }
-  constexpr auto& center() {
-    return m_center;
-  }
+  constexpr auto center() const -> auto const& { return m_center; }
+  constexpr auto center() -> auto& { return m_center; }
 };
 //------------------------------------------------------------------------------
-template <typename Real0, typename Real1, size_t N>
+template <floating_point Real0, floating_point Real1, size_t N>
 sphere(Real0 radius, vec<Real1, N>&&)
     -> sphere<std::common_type_t<Real0, Real1>, N>;
-template <typename Real0, typename Real1, size_t N>
-sphere(Real0 radius, vec<Real1, N>const&)
+template <floating_point Real0, floating_point Real1, size_t N>
+sphere(Real0 radius, vec<Real1, N> const&)
     -> sphere<std::common_type_t<Real0, Real1>, N>;
 //------------------------------------------------------------------------------
-template <typename Real>
-auto discretize(const sphere<Real, 2>& s, size_t const num_vertices) {
+template <floating_point Real>
+auto discretize(sphere<Real, 2> const& s, size_t const num_vertices) {
   using namespace boost;
   using namespace adaptors;
-  linspace<Real>      radial{0.0, M_PI * 2, num_vertices};
+  linspace<Real> radial{0.0, M_PI * 2, num_vertices};
   radial.pop_back();
 
   line<Real, 2> ellipse;
   auto          radian_to_cartesian = [&s](auto const t) {
     return vec{std::cos(t) * s.radius(), std::sin(t) * s.radius()} + s.center();
   };
-  auto          out_it = std::back_inserter(ellipse);
+  auto out_it = std::back_inserter(ellipse);
   copy(radial | transformed(radian_to_cartesian), out_it);
   ellipse.set_closed(true);
   return ellipse;
 }
 //------------------------------------------------------------------------------
-template <typename Real>
-auto discretize(const sphere<Real, 3>& s, size_t num_subdivisions = 0) {
-  using mesh_t       = triangular_mesh<Real, 3>;
+template <floating_point Real>
+auto discretize(sphere<Real, 3> const& s, size_t num_subdivisions = 0) {
+  using mesh_t        = triangular_mesh<Real, 3>;
   using vertex_handle = typename mesh_t::vertex_handle;
-  // const Real  X = 0.525731112119133606;
-  // const Real  Z = 0.850650808352039932;
-  const Real  X = 0.525731112119133606;
-  const Real  Z = 0.850650808352039932;
+  // Real const  X = 0.525731112119133606;
+  // Real const  Z = 0.850650808352039932;
+  Real const  X = 0.525731112119133606;
+  Real const  Z = 0.850650808352039932;
   std::vector vertices{vec{-X, 0, Z}, vec{X, 0, Z},   vec{-X, 0, -Z},
                        vec{X, 0, -Z}, vec{0, Z, X},   vec{0, Z, -X},
                        vec{0, -Z, X}, vec{0, -Z, -X}, vec{Z, X, 0},
