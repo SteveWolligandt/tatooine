@@ -109,11 +109,11 @@ struct position : tatooine::vec<double, N>, renderable<position<N>> {
   //----------------------------------------------------------------------------
   auto check_intersection(ray<float, 3> const& r) const -> bool override {
     if constexpr (N == 3) {
-      geometry::sphere<float, 3> s{0.001, vec3f{at(0), at(1), at(2)}};
-      return s.check_intersection(r).has_value();
+      geometry::sphere<double, 3> s{0.01, vec3{at(0), at(1), at(2)}};
+      return s.check_intersection(ray<double, 3>{r}).has_value();
     } else if constexpr (N == 2) {
-      geometry::sphere<float, 3> s{0.001, vec3f{at(0), at(1), 0}};
-      return s.check_intersection(r).has_value();
+      geometry::sphere<double, 3> s{0.01, vec3{at(0), at(1), 0}};
+      return s.check_intersection(ray<double, 3>{r}).has_value();
     }
     return false;
   }

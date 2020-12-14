@@ -120,6 +120,11 @@ void window::on_mouse_motion(int x, int y) {
     }
     for (auto& r : m_scene.renderables()) {
       if (r->is_picked() && r->on_mouse_drag(offset_x, offset_y)) {
+        if (r->has_self_pin()) {
+          for (auto l : r->self_pin().links()) {
+            l->input().node().on_property_changed();
+          }
+        }
         for (auto& output_pin : r->output_pins()) {
           for (auto l : output_pin.links()) {
             l->input().node().on_property_changed();

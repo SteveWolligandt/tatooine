@@ -7,54 +7,50 @@
 //==============================================================================
 namespace tatooine::geometry {
 //==============================================================================
-template <typename Real, size_t N>
+template <floating_point Real, size_t N>
 struct sphere;
 //==============================================================================
 /// TODO implement
-template <typename Real>
+template <floating_point Real>
 std::optional<intersection<Real, 2>> check_intersection(
     ray<Real, 2> const& /*r*/, sphere<Real, 2> const& /*s*/, Real const /*min_t*/ = 0) {
   return {};
 }
 //------------------------------------------------------------------------------
-template <typename Real>
+template <floating_point Real>
 std::optional<intersection<Real, 3>> check_intersection(
     ray<Real, 3> const& r, sphere<Real, 3> const& s, Real const min_t = 0) {
-  auto const L         = r.origin() - s.center();
-  auto const a         = dot(r.direction(), r.direction());
-  auto const b         = 2 * dot(r.direction(), L);
-  auto const c         = dot(L, L) - s.radius() * s.radius();
-  auto       solutions = solve(polynomial{c, b, a});
-  if (solutions.empty()) {
+  auto const m = r.origin() - s.center();
+  auto const b = dot(m, r.direction());
+  auto const c = dot(m, m) - s.radius() * s.radius();
+
+  // Exit if r’s origin outside s (c > 0) and r pointing away from s (b > 0)
+  if (c > 0 && b > 0) {
+    return {};
+  }
+  auto const discr = b * b - c;
+
+  // A negative discriminant corresponds to ray missing sphere
+  if (discr < 0) {
     return {};
   }
 
-  Real t = 0;
-  if (size(solutions) == 1) {
-    if (t < 0 || t < min_t) {
-      return {};
-    };
-    t = solutions[0];
+  // Ray now found to intersect sphere, compute smallest t value of intersection
+  auto t = -b - std::sqrt(discr);
+
+  // If t is negative, ray started inside sphere so clamp t to zero
+  if (t < 0) {
+    t = 0;
   }
 
-  if (solutions[1] < 0) {
-    t = solutions[0];
-  } else if (solutions[0] < 0) {
-    t = solutions[1];
-  } else if (solutions[0] < solutions[1]) {
-    t = solutions[0] > min_t ? solutions[0] : solutions[1];
-  } else {
-    t = solutions[1] > min_t ? solutions[1] : solutions[0];
-  }
-
-  auto hit_pos = r(t);
-  auto nor     = normalize(hit_pos - s.center());
-  vec  uv{std::atan2(nor(0), nor(2)) / (2 * M_PI) + M_PI / 2,
+  auto const hit_pos = r(t);
+  auto const nor     = normalize(hit_pos - s.center());
+  vec        uv{std::atan2(nor(0), nor(2)) / (2 * M_PI) + M_PI / 2,
          std::acos(-nor(1)) / M_PI};
   return intersection<Real, 3>{&s, r, t, hit_pos, nor, uv};
 }
 //------------------------------------------------------------------------------
-template <typename Real, size_t N>
+template <floating_point Real, size_t N>
 std::optional<intersection<Real, N>> check_intersection(
     sphere<Real, N> const& s, ray<Real, N> const& r, Real const min_t = 0) {
   return check_intersection(r, s, min_t);
