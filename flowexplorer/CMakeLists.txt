@@ -4,13 +4,14 @@ set(TATFE_INCLUDE_DIR ${CMAKE_CURRENT_SOURCE_DIR}/include)
 set(TATFE_BIN_INCLUDE_DIR ${CMAKE_CURRENT_BINARY_DIR}/include)
 set(TATFE_SHADER_DIR ${CMAKE_CURRENT_SOURCE_DIR}/shaders)
 #- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-set(TATOOINE_FLOWEXPLORER_FONTS_DIR ${CMAKE_CURRENT_SOURCE_DIR}/fonts)
-configure_file(${TATFE_SRC_DIR}/fonts_dir.cpp.in
-               ${TATFE_BIN_SRC_DIR}/fonts_dir.cpp)
+set(TATOOINE_FLOWEXPLORER_FONTS_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/fonts)
+set(TATOOINE_FLOWEXPLORER_ICONS_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/icons)
+configure_file(${TATFE_SRC_DIR}/directories.cpp.in
+               ${TATFE_BIN_SRC_DIR}/directories.cpp)
 #- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 add_executable(
   flowexplorer
-  ${TATFE_BIN_SRC_DIR}/fonts_dir.cpp
+  ${TATFE_BIN_SRC_DIR}/directories.cpp
   ${TATFE_SRC_DIR}/node_builder.cpp
   ${TATFE_SRC_DIR}/draw_icon.cpp
   ${TATFE_SRC_DIR}/spacetime_splitted_vectorfield.cpp

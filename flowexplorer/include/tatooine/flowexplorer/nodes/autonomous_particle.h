@@ -35,6 +35,7 @@ struct autonomous_particle
   yavin::indexeddata<gpu_vec3> m_initial_circle;
   yavin::indexeddata<gpu_vec3> m_advected_ellipses;
   yavin::indexeddata<gpu_vec3> m_initial_ellipses_back_calculation;
+  yavin::indexeddata<gpu_vec3> m_pathlines;
   std::array<GLfloat, 4>       m_ellipses_color{0.0f, 0.0f, 0.0f, 1.0f};
   bool                         m_integration_going_on = false;
   bool                         m_needs_another_update = false;
@@ -78,6 +79,7 @@ struct autonomous_particle
     }
   }
   void update_initial_circle();
+  auto on_property_changed() -> void override { update_initial_circle();advect(); }
   void generate_random_points_in_initial_circle(size_t const n);
   void advect_random_points_in_initial_circle();
   void upload_advected_random_points_in_initial_circle();

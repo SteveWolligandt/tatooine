@@ -36,6 +36,9 @@ void autonomous_particle::render(mat<float, 4, 4> const& projection_matrix,
   m_initial_ellipses_back_calculation.draw_lines();
   m_line_shader.set_color(0.5, 0.5, 0.5, 1);
   m_gpu_advected_points_on_initial_circle.draw_lines();
+
+  m_line_shader.set_color(0, 0, 0, 1);
+  m_pathlines.draw_lines();
 }
 //----------------------------------------------------------------------------
 void autonomous_particle::update_initial_circle() {
@@ -175,6 +178,51 @@ void autonomous_particle::advect() {
         ++i;
       }
     }
+
+    // pathlines
+    {
+      {
+        std::lock_guard
+        lock{node->m_pathlines.mutex()};
+        node->m_pathlines.clear();
+      }
+      i = 0;
+      for (auto const& particle : particles) {
+        if (node->m_stop_thread) {
+          break;
+        }
+        std::lock_guard
+        lock{node->m_pathlines.mutex()}; for (auto
+        const& x : discretized_ellipse.vertices()) {
+          if (node->m_stop_thread) {
+            break;
+          }
+          auto sqrS = *inv(particle.nabla_phi1()) * particle.S() * particle.S()
+          *
+                      *inv(transposed(particle.nabla_phi1()));
+          auto [eig_vecs, eig_vals] = eigenvectors_sym(sqrS);
+          eig_vals = {std::sqrt(eig_vals(0)), std::sqrt(eig_vals(1))};
+          auto S   = eig_vecs * diag(eig_vals) * transposed(eig_vecs);
+          auto y   = S * x + particle.x0();
+          node->m_pathlines.vertexbuffer().push_back(
+              gpu_vec3{static_cast<float>(y(0)), static_cast<float>(y(1)),
+                       static_cast<float>(particle.t1())});
+          node->m_pathlines.indexbuffer().push_back(
+              i++);
+          node->m_pathlines.indexbuffer().push_back(i);
+        }
+        auto sqrS = *inv(particle.nabla_phi1()) * particle.S() * particle.S() *
+                    *inv(transposed(particle.nabla_phi1()));
+        auto [eig_vecs, eig_vals] = eigenvectors_sym(sqrS);
+        eig_vals = {std::sqrt(eig_vals(0)), std::sqrt(eig_vals(1))};
+        auto S   = eig_vecs * diag(eig_vals) * transposed(eig_vecs);
+        auto y   = S * discretized_ellipse.front_vertex() + particle.x0();
+        node->m_pathlines.vertexbuffer().push_back(
+            gpu_vec3{static_cast<float>(y(0)), static_cast<float>(y(1)),
+                     static_cast<float>(particle.t1())});
+        ++i;
+      }
+    }
     node->m_integration_going_on = false;
   };
 
@@ -197,21 +245,15 @@ auto autonomous_particle::draw_properties() -> bool {
   if (ImGui::Button("<")) {
     do_advect = true;
     m_max_t -= 0.01;
-    //advect_random_points_in_initial_circle();
-    //upload_advected_random_points_in_initial_circle();
   }
   ImGui::SameLine();
   if (ImGui::DragDouble("end time", &m_max_t, 0.01, 0.0, 1000.0)) {
     do_advect = true;
-    //advect_random_points_in_initial_circle();
-    //upload_advected_random_points_in_initial_circle();
   }
   ImGui::SameLine();
   if (ImGui::Button(">")) {
     do_advect = true;
     m_max_t += 0.01;
-    //advect_random_points_in_initial_circle();
-    //upload_advected_random_points_in_initial_circle();
   }
 
   ImGui::ColorEdit4("ellipses color", m_ellipses_color.data());
