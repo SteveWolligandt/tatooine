@@ -7,6 +7,7 @@
 #include <tatooine/gpu/texture_shader.h>
 #include <tatooine/rendering/matrices.h>
 #include <tatooine/rendering/yavin_interop.h>
+#include <tatooine/flowexplorer/nodes/vectorfield_to_gpu.h>
 
 #include <mutex>
 #include <yavin>
@@ -17,7 +18,7 @@ struct lic : renderable<lic> {
   //----------------------------------------------------------------------------
   // typedefs
   //----------------------------------------------------------------------------
-  using vectorfield_t = parent::vectorfield<double, 2>;
+  using vectorfield_t = vectorfield_to_gpu;
   using bb_t          = flowexplorer::nodes::axis_aligned_bounding_box<2>;
 
   //----------------------------------------------------------------------------
@@ -26,8 +27,8 @@ struct lic : renderable<lic> {
  private:
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
   // pins
-  vectorfield_t const* m_v  = nullptr;
-  bb_t*                m_bb = nullptr;
+  vectorfield_t* m_v  = nullptr;
+  bb_t*          m_bb = nullptr;
 
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
   // internal
@@ -40,8 +41,6 @@ struct lic : renderable<lic> {
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
   // user data
   vec<int, 2> m_lic_res;
-  vec<int, 2> m_vectorfield_sample_res;
-  double      m_t;
   int         m_num_samples;
   double      m_stepsize;
   float       m_alpha;
@@ -69,10 +68,11 @@ struct lic : renderable<lic> {
   //----------------------------------------------------------------------------
   auto calculate_lic() -> void;
   //----------------------------------------------------------------------------
-  auto update_shader(mat4f const& projection_matrix,
-                     mat4f const& view_matrix) -> void;
+  auto update_shader(mat4f const& projection_matrix, mat4f const& view_matrix)
+      -> void;
   //----------------------------------------------------------------------------
-  void on_pin_connected(ui::input_pin& this_pin, ui::output_pin& other_pin) override;
+  void on_pin_connected(ui::input_pin&  this_pin,
+                        ui::output_pin& other_pin) override;
   //----------------------------------------------------------------------------
   void on_pin_disconnected(ui::input_pin& this_pin) override;
   //----------------------------------------------------------------------------
@@ -82,14 +82,6 @@ struct lic : renderable<lic> {
   //----------------------------------------------------------------------------
   auto lic_res() -> auto& { return m_lic_res; }
   auto lic_res() const -> auto const& { return m_lic_res; }
-  //----------------------------------------------------------------------------
-  auto vectorfield_sample_res() -> auto& { return m_vectorfield_sample_res; }
-  auto vectorfield_sample_res() const -> auto const& {
-    return m_vectorfield_sample_res;
-  }
-  //----------------------------------------------------------------------------
-  auto t() -> auto& { return m_t; }
-  auto t() const { return m_t; }
   //----------------------------------------------------------------------------
   auto num_samples() -> auto& { return m_num_samples; }
   auto num_samples() const { return m_num_samples; }
@@ -118,8 +110,6 @@ struct lic : renderable<lic> {
 TATOOINE_FLOWEXPLORER_REGISTER_RENDERABLE(
     tatooine::flowexplorer::nodes::lic,
     TATOOINE_REFLECTION_INSERT_METHOD(resolution, lic_res()),
-    TATOOINE_REFLECTION_INSERT_GETTER(vectorfield_sample_res),
-    TATOOINE_REFLECTION_INSERT_GETTER(t),
     TATOOINE_REFLECTION_INSERT_GETTER(num_samples),
     TATOOINE_REFLECTION_INSERT_GETTER(stepsize),
     TATOOINE_REFLECTION_INSERT_GETTER(alpha))

@@ -9,8 +9,6 @@ lic::lic(flowexplorer::scene& s)
     : renderable<lic>{"LIC", s},
       m_shader{std::make_unique<gpu::texture_shader>()},
       m_lic_res{100, 100},
-      m_vectorfield_sample_res{100, 100},
-      m_t{0.0},
       m_num_samples{100},
       m_stepsize{0.001},
       m_alpha{1.0f} {
@@ -32,7 +30,7 @@ auto lic::write_png() -> void {
                                  size(type_name) - last_colon_pos - 1);
 
     str << "lic_" << type_name << "_x_" << m_bb->min(0) << "_" << m_bb->max(0)
-        << "_y_" << m_bb->min(1) << "_" << m_bb->max(1) << "_t_" << m_t
+        << "_y_" << m_bb->min(1) << "_" << m_bb->max(1) << "_t_" << m_v->time()
         << ".png";
     m_lic_tex->write_png(str.str());
   }
@@ -80,14 +78,15 @@ void lic::calculate_lic() {
   }
   m_calculating = true;
   this->scene().window().do_async([this] {
-    auto tex =
-        gpu::lic(*m_v,
-                 linspace{m_bb->min(0), m_bb->max(0),
-                          static_cast<size_t>(m_vectorfield_sample_res(0))},
-                 linspace{m_bb->min(1), m_bb->max(1),
-                          static_cast<size_t>(m_vectorfield_sample_res(1))},
-                 m_t, vec<size_t, 2>{m_lic_res(0), m_lic_res(1)}, m_num_samples,
-                 m_stepsize);
+    auto tex = gpu::lic(
+        *m_v,
+        uniform_grid<real_t, 2>{
+            linspace{m_bb->min(0), m_bb->max(0),
+                     static_cast<size_t>(m_v->resolution()(0))},
+            linspace{m_bb->min(1), m_bb->max(1),
+                     static_cast<size_t>(m_v->resolution()(1))}},
+        vec<size_t, 2>{m_lic_res(0), m_lic_res(1)}, m_num_samples, m_stepsize);
+
     std::lock_guard lock{m_mutex};
     m_lic_tex     = std::make_unique<yavin::tex2rgba<float>>(std::move(tex));
     m_calculating = false;
