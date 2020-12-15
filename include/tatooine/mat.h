@@ -1,8 +1,10 @@
+#ifndef TATOOINE_MAT_H
+#define TATOOINE_MAT_H
+//==============================================================================
 #include <tatooine/tensor.h>
 #include <tatooine/real.h>
 //==============================================================================
-#ifndef TATOOINE_MAT_H
-#define TATOOINE_MAT_H
+#include <tatooine/tags.h>
 //==============================================================================
 namespace tatooine {
 //==============================================================================
@@ -117,14 +119,6 @@ struct mat : tensor<T, M, N> {
   constexpr auto col(size_t i) { return this->template slice<1>(i); }
   constexpr auto col(size_t i) const { return this->template slice<1>(i); }
 };
-//==============================================================================
-// type traits
-//==============================================================================
-template <typename Real, size_t M, size_t N>
-struct is_tensor<mat<Real, M, N>> : std::true_type {};
-//------------------------------------------------------------------------------
-template <typename Real, size_t M, size_t N>
-struct is_mat<mat<Real, M, N>> : std::true_type {};
 //==============================================================================
 // deduction guide
 //==============================================================================

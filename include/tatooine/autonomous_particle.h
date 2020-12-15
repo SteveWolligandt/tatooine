@@ -357,7 +357,7 @@ struct autonomous_particle {
       eig_HHt  = eigenvectors_sym(HHt);
       cond_HHt = eigvals_HHt(num_dimensions() - 1) / eigvals_HHt(0);
 
-      nabla_phi2 = H * inv(Sigma) * transposed(Q);
+      nabla_phi2 = H * *solve(Sigma, transposed(Q));
       fmg2fmg1   = nabla_phi2 * m_nabla_phi1;
       if (t2 == max_t) {
         vec_t new_eig_vals;
@@ -378,7 +378,7 @@ struct autonomous_particle {
         eig_HHt  = eigenvectors_sym(HHt);
         cond_HHt = eigvals_HHt(num_dimensions() - 1) / eigvals_HHt(0);
 
-        nabla_phi2 = H * inv(Sigma) *  transposed(Q);
+        nabla_phi2 = H * *solve(Sigma, transposed(Q));
         fmg2fmg1   = nabla_phi2 * m_nabla_phi1;
         vec_t               center_radii;
         for (size_t i = 0; i < num_dimensions() - 1; ++i) {
@@ -391,133 +391,133 @@ struct autonomous_particle {
         auto current_offset = vec_t::zeros();
 
         std::vector<this_t> splits;
-        if constexpr(num_dimensions() == 2) {
-          if (objective_cond == 4) {
-            std::cerr << cond_HHt << '\n';
-            //{
-            //  auto const new_eigvals = center_radii ;
-            //  auto const new_S =
-            //      eigvecs_HHt * diag(new_eigvals) * transposed(eigvecs_HHt);
-            //  splits.emplace_back(m_phi, m_x0, advected_center, t2, fmg2fmg1,
-            //                      new_S);
-            //}
-            static real_t const x1 = 3.0/2.0;
-            static real_t const r1 = 1.0/2.0;
-
-            {
-              auto const offset2 = eigvecs_HHt.col(1) * center_radii(0) * x1;
-              auto const offset0     = solve(fmg2fmg1, offset2);
-              auto const new_eigvals = center_radii * r1;
-              auto const new_S =
-                  eigvecs_HHt * diag(new_eigvals) * transposed(eigvecs_HHt);
-              splits.emplace_back(m_phi, m_x0 + offset0,
-                                  advected_center + offset2, t2, fmg2fmg1,
-                                  new_S);
-              splits.emplace_back(m_phi, m_x0 - offset0,
-                                  advected_center - offset2, t2, fmg2fmg1,
-                                  new_S);
-            }
-            //static real_t const x4 = 1.077350269;
-            //static real_t const y4 = 0.5977169814;
-            //static real_t const r4 = 0.2320508081;
-            //
-            //{
-            //  auto const offset2 = eigvecs_HHt.col(1) * center_radii(0) * x4 +
-            //                       eigvecs_HHt.col(0) * center_radii(0) * y4;
-            //  auto const offset0     = inv(fmg2fmg1) * offset2;
-            //  auto const new_eigvals = center_radii * r4;
-            //  auto const new_S =
-            //      eigvecs_HHt * diag(new_eigvals) * transposed(eigvecs_HHt);
-            //  splits.emplace_back(m_phi, m_x0 + offset0,
-            //                      advected_center + offset2, t2, fmg2fmg1,
-            //                      new_S);
-            //}
-            //{
-            //  auto const offset2 = -eigvecs_HHt.col(1) * center_radii(0) * x4 +
-            //                       eigvecs_HHt.col(0) * center_radii(0) * y4;
-            //  auto const offset0     = inv(fmg2fmg1) * offset2;
-            //  auto const new_eigvals = center_radii * r4;
-            //  auto const new_S =
-            //      eigvecs_HHt * diag(new_eigvals) * transposed(eigvecs_HHt);
-            //  splits.emplace_back(m_phi, m_x0 + offset0,
-            //                      advected_center + offset2, t2, fmg2fmg1,
-            //                      new_S);
-            //}
-            //
-            //{
-            //  auto const offset2 = eigvecs_HHt.col(1) * center_radii(0) * x4 -
-            //                       eigvecs_HHt.col(0) * center_radii(0) * y4;
-            //  auto const offset0     = inv(fmg2fmg1) * offset2;
-            //  auto const new_eigvals = center_radii * r4;
-            //  auto const new_S =
-            //      eigvecs_HHt * diag(new_eigvals) * transposed(eigvecs_HHt);
-            //  splits.emplace_back(m_phi, m_x0 + offset0,
-            //                      advected_center + offset2, t2, fmg2fmg1,
-            //                      new_S);
-            //}
-            //{
-            //  auto const offset2 = -eigvecs_HHt.col(1) * center_radii(0) * x4 -
-            //                       eigvecs_HHt.col(0) * center_radii(0) * y4;
-            //  auto const offset0     = inv(fmg2fmg1) * offset2;
-            //  auto const new_eigvals = center_radii * r4;
-            //  auto const new_S =
-            //      eigvecs_HHt * diag(new_eigvals) * transposed(eigvecs_HHt);
-            //  splits.emplace_back(m_phi, m_x0 + offset0,
-            //                      advected_center + offset2, t2, fmg2fmg1,
-            //                      new_S);
-            //}
-            static real_t const x5 = 0.4830517593887872;
-            static real_t const y5 = x5;
-            static real_t const r5 = x5;
-            //static real_t const x5 = std::sqrt(2) - 1;
-            //static real_t const y5 = std::sqrt(2) - 1;
-            //static real_t const r5 = std::sqrt(2) - 1;
-
-            {
-              auto const offset2 = eigvecs_HHt.col(1) * center_radii(0) * x5 -
-                                   eigvecs_HHt.col(0) * center_radii(0) * y5;
-              auto const offset0     = solve(fmg2fmg1, offset2);
-              auto const new_eigvals = center_radii * r5;
-              auto const new_S =
-                  eigvecs_HHt * diag(new_eigvals) * transposed(eigvecs_HHt);
-              splits.emplace_back(m_phi, m_x0 + offset0,
-                                  advected_center + offset2, t2, fmg2fmg1,
-                                  new_S);
-            }
-            {
-              auto const offset2 = -eigvecs_HHt.col(1) * center_radii(0) * x5 -
-                                   eigvecs_HHt.col(0) * center_radii(0) * y5;
-              auto const offset0     = solve(fmg2fmg1, offset2);
-              auto const new_eigvals = center_radii * r5;
-              auto const new_S =
-                  eigvecs_HHt * diag(new_eigvals) * transposed(eigvecs_HHt);
-              splits.emplace_back(m_phi, m_x0 + offset0,
-                                  advected_center + offset2, t2, fmg2fmg1,
-                                  new_S);
-            }
-            {
-              auto const offset2 = eigvecs_HHt.col(1) * center_radii(0) * x5 -
-                                   -eigvecs_HHt.col(0) * center_radii(0) * y5;
-              auto const offset0     = solve(fmg2fmg1,  offset2);
-              auto const new_eigvals = center_radii * r5;
-              auto const new_S =
-                  eigvecs_HHt * diag(new_eigvals) * transposed(eigvecs_HHt);
-              splits.emplace_back(m_phi, m_x0 + offset0,
-                                  advected_center + offset2, t2, fmg2fmg1,
-                                  new_S);
-            }
-            {
-              auto const offset2 = -eigvecs_HHt.col(1) * center_radii(0) * x5 -
-                                   -eigvecs_HHt.col(0) * center_radii(0) * y5;
-              auto const offset0     = solve(fmg2fmg1, offset2);
-              auto const new_eigvals = center_radii * r5;
-              auto const new_S =
-                  eigvecs_HHt * diag(new_eigvals) * transposed(eigvecs_HHt);
-              splits.emplace_back(m_phi, m_x0 + offset0,
-                                  advected_center + offset2, t2, fmg2fmg1,
-                                  new_S);
-            }
-          } else {
+        //if constexpr(num_dimensions() == 2) {
+        //  if (objective_cond == 4) {
+          //  std::cerr << cond_HHt << '\n';
+          //  //{
+          //  //  auto const new_eigvals = center_radii ;
+          //  //  auto const new_S =
+          //  //      eigvecs_HHt * diag(new_eigvals) * transposed(eigvecs_HHt);
+          //  //  splits.emplace_back(m_phi, m_x0, advected_center, t2, fmg2fmg1,
+          //  //                      new_S);
+          //  //}
+          //  static real_t const x1 = 3.0/2.0;
+          //  static real_t const r1 = 1.0/2.0;
+          //
+          //  {
+          //    auto const offset2 = eigvecs_HHt.col(1) * center_radii(0) * x1;
+          //    auto const offset0     = solve(fmg2fmg1, offset2);
+          //    auto const new_eigvals = center_radii * r1;
+          //    auto const new_S =
+          //        eigvecs_HHt * diag(new_eigvals) * transposed(eigvecs_HHt);
+          //    splits.emplace_back(m_phi, m_x0 + offset0,
+          //                        advected_center + offset2, t2, fmg2fmg1,
+          //                        new_S);
+          //    splits.emplace_back(m_phi, m_x0 - offset0,
+          //                        advected_center - offset2, t2, fmg2fmg1,
+          //                        new_S);
+          //  }
+          //  //static real_t const x4 = 1.077350269;
+          //  //static real_t const y4 = 0.5977169814;
+          //  //static real_t const r4 = 0.2320508081;
+          //  //
+          //  //{
+          //  //  auto const offset2 = eigvecs_HHt.col(1) * center_radii(0) * x4 +
+          //  //                       eigvecs_HHt.col(0) * center_radii(0) * y4;
+          //  //  auto const offset0     = solve(fmg2fmg1, offset2);
+          //  //  auto const new_eigvals = center_radii * r4;
+          //  //  auto const new_S =
+          //  //      eigvecs_HHt * diag(new_eigvals) * transposed(eigvecs_HHt);
+          //  //  splits.emplace_back(m_phi, m_x0 + offset0,
+          //  //                      advected_center + offset2, t2, fmg2fmg1,
+          //  //                      new_S);
+          //  //}
+          //  //{
+          //  //  auto const offset2 = -eigvecs_HHt.col(1) * center_radii(0) * x4 +
+          //  //                       eigvecs_HHt.col(0) * center_radii(0) * y4;
+          //  //  auto const offset0     = solve(fmg2fmg1, offset2);
+          //  //  auto const new_eigvals = center_radii * r4;
+          //  //  auto const new_S =
+          //  //      eigvecs_HHt * diag(new_eigvals) * transposed(eigvecs_HHt);
+          //  //  splits.emplace_back(m_phi, m_x0 + offset0,
+          //  //                      advected_center + offset2, t2, fmg2fmg1,
+          //  //                      new_S);
+          //  //}
+          //  //
+          //  //{
+          //  //  auto const offset2 = eigvecs_HHt.col(1) * center_radii(0) * x4 -
+          //  //                       eigvecs_HHt.col(0) * center_radii(0) * y4;
+          //  //  auto const offset0     = solve(fmg2fmg1, offset2);
+          //  //  auto const new_eigvals = center_radii * r4;
+          //  //  auto const new_S =
+          //  //      eigvecs_HHt * diag(new_eigvals) * transposed(eigvecs_HHt);
+          //  //  splits.emplace_back(m_phi, m_x0 + offset0,
+          //  //                      advected_center + offset2, t2, fmg2fmg1,
+          //  //                      new_S);
+          //  //}
+          //  //{
+          //  //  auto const offset2 = -eigvecs_HHt.col(1) * center_radii(0) * x4 -
+          //  //                       eigvecs_HHt.col(0) * center_radii(0) * y4;
+          //  //  auto const offset0     = solve(fmg2fmg1, offset2);
+          //  //  auto const new_eigvals = center_radii * r4;
+          //  //  auto const new_S =
+          //  //      eigvecs_HHt * diag(new_eigvals) * transposed(eigvecs_HHt);
+          //  //  splits.emplace_back(m_phi, m_x0 + offset0,
+          //  //                      advected_center + offset2, t2, fmg2fmg1,
+          //  //                      new_S);
+          //  //}
+          //  static real_t const x5 = 0.4830517593887872;
+          //  static real_t const y5 = x5;
+          //  static real_t const r5 = x5;
+          //  //static real_t const x5 = std::sqrt(2) - 1;
+          //  //static real_t const y5 = std::sqrt(2) - 1;
+          //  //static real_t const r5 = std::sqrt(2) - 1;
+          //
+          //  {
+          //    auto const offset2 = eigvecs_HHt.col(1) * center_radii(0) * x5 -
+          //                         eigvecs_HHt.col(0) * center_radii(0) * y5;
+          //    auto const offset0     = solve(fmg2fmg1, offset2);
+          //    auto const new_eigvals = center_radii * r5;
+          //    auto const new_S =
+          //        eigvecs_HHt * diag(new_eigvals) * transposed(eigvecs_HHt);
+          //    splits.emplace_back(m_phi, m_x0 + offset0,
+          //                        advected_center + offset2, t2, fmg2fmg1,
+          //                        new_S);
+          //  }
+          //  {
+          //    auto const offset2 = -eigvecs_HHt.col(1) * center_radii(0) * x5 -
+          //                         eigvecs_HHt.col(0) * center_radii(0) * y5;
+          //    auto const offset0     = solve(fmg2fmg1, offset2);
+          //    auto const new_eigvals = center_radii * r5;
+          //    auto const new_S =
+          //        eigvecs_HHt * diag(new_eigvals) * transposed(eigvecs_HHt);
+          //    splits.emplace_back(m_phi, m_x0 + offset0,
+          //                        advected_center + offset2, t2, fmg2fmg1,
+          //                        new_S);
+          //  }
+          //  {
+          //    auto const offset2 = eigvecs_HHt.col(1) * center_radii(0) * x5 -
+          //                         -eigvecs_HHt.col(0) * center_radii(0) * y5;
+          //    auto const offset0     = solve(fmg2fmg1,  offset2);
+          //    auto const new_eigvals = center_radii * r5;
+          //    auto const new_S =
+          //        eigvecs_HHt * diag(new_eigvals) * transposed(eigvecs_HHt);
+          //    splits.emplace_back(m_phi, m_x0 + offset0,
+          //                        advected_center + offset2, t2, fmg2fmg1,
+          //                        new_S);
+          //  }
+          //  {
+          //    auto const offset2 = -eigvecs_HHt.col(1) * center_radii(0) * x5 -
+          //                         -eigvecs_HHt.col(0) * center_radii(0) * y5;
+          //    auto const offset0     = solve(fmg2fmg1, offset2);
+          //    auto const new_eigvals = center_radii * r5;
+          //    auto const new_S =
+          //        eigvecs_HHt * diag(new_eigvals) * transposed(eigvecs_HHt);
+          //    splits.emplace_back(m_phi, m_x0 + offset0,
+          //                        advected_center + offset2, t2, fmg2fmg1,
+          //                        new_S);
+          //  }
+          //} else {
             if (add_center) {
               auto const new_S =
                   eigvecs_HHt * diag(center_radii) * transposed(eigvecs_HHt);
@@ -540,8 +540,8 @@ struct autonomous_particle {
                                   new_S);
               current_offset += relative_unit_vec * 2 * radius;
             }
-          }
-        }
+          //}
+        //}
         return splits;
       } else if (cond_HHt >= objective_cond &&
                  cond_HHt - objective_cond >= 0.00001) {

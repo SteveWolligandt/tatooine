@@ -2,6 +2,7 @@
 #define TATOOINE_DIAG_TENSOR_H
 //==============================================================================
 #include <tatooine/base_tensor.h>
+//==============================================================================
 #include <tatooine/concepts.h>
 //==============================================================================
 namespace tatooine {
@@ -103,9 +104,57 @@ constexpr auto diag_rect(base_tensor<Tensor, Real, VecN>&& t) {
 // free functions
 //==============================================================================
 template <typename Tensor, size_t N>
-auto inv(diag_tensor<Tensor, N, N> const& A) {
+constexpr auto inv(diag_tensor<Tensor, N, N> const& A) -> std::optional<
+    diag_tensor<vec<typename std::decay_t<Tensor>::value_type, N>, N, N>> {
   using value_type = typename std::decay_t<Tensor>::value_type;
-  return diag_tensor<vec<value_type, N>, N, N>{value_type(1) / A.internal_tensor()};
+  for (size_t i = 0; i < N; ++i) {
+    if (std::abs(A.internal_tensor()(i)) < 1e-10) {
+      return {};
+    }
+  }
+  return diag_tensor<vec<value_type, N>, N, N>{value_type(1) /
+                                               A.internal_tensor()};
+}
+//------------------------------------------------------------------------------
+#include <tatooine/vec.h>
+//------------------------------------------------------------------------------
+template <typename TensorA, typename TensorB, size_t N>
+requires is_vec_v<TensorB> && (std::decay_t<TensorB>::num_dimensions() == N)
+constexpr auto solve(diag_tensor<TensorA, N, N> const& A, TensorB&& b)
+    -> std::optional<vec<std::common_type_t<typename std::decay_t<TensorA>::value_type,
+                              typename std::decay_t<TensorB>::value_type>,
+           N>> {
+  for (size_t i = 0; i < N; ++i) {
+    if (std::abs(A.internal_tensor()(i)) < 1e-10) {
+      return {};
+    }
+  }
+  return A.internal_tensor() / b;
+}
+//------------------------------------------------------------------------------
+#include <tatooine/mat.h>
+//------------------------------------------------------------------------------
+template <typename TensorA, typename TensorB, size_t N>
+requires is_mat_v<TensorB> &&
+         (std::decay_t<TensorB>::dimension(0) == N)
+constexpr auto solve(diag_tensor<TensorA, N, N> const& A, TensorB&& B)
+    -> std::optional<
+        mat<std::common_type_t<typename std::decay_t<TensorA>::value_type,
+                               typename std::decay_t<TensorB>::value_type>,
+            N, N>> {
+  for (size_t i = 0; i < N; ++i) {
+    if (std::abs(A.internal_tensor()(i)) < 1e-10) {
+      return {};
+    }
+  }
+  mat<std::common_type_t<typename std::decay_t<TensorA>::value_type,
+                         typename std::decay_t<TensorB>::value_type>,
+      N, N>
+      ret = B;
+  for (size_t i = 0; i < N; ++i) {
+    ret.row(i) /= A.internal_tensor()(i);
+  }
+  return ret;
 }
 //==============================================================================
 }  // namespace tatooine

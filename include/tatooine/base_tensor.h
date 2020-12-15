@@ -1,12 +1,14 @@
 #ifndef TATOOINE_BASE_TENSOR_H
 #define TATOOINE_BASE_TENSOR_H
 //==============================================================================
-#include <cassert>
 #include <tatooine/concepts.h>
 #include <tatooine/crtp.h>
 #include <tatooine/index_ordering.h>
 #include <tatooine/multidim_size.h>
 #include <tatooine/template_helper.h>
+
+#include <cassert>
+#include <type_traits>
 //==============================================================================
 namespace tatooine {
 //==============================================================================
@@ -35,6 +37,13 @@ struct base_tensor : crtp<Tensor> {
   //------------------------------------------------------------------------------
   static constexpr auto dimension(size_t const i) {
     return template_helper::getval<size_t>(i, Dims...);
+  }
+  //------------------------------------------------------------------------------
+  static constexpr auto is_tensor() -> bool { return true; }
+  static constexpr auto is_vec() -> bool { return rank() == 1; }
+  static constexpr auto is_mat() -> bool { return rank() == 2; }
+  static constexpr auto is_quadratic_mat() -> bool {
+    return rank() == 2 && dimension(0) == dimension(1);
   }
   //------------------------------------------------------------------------------
   static constexpr auto indices() { return multidim_size_t::indices(); }
@@ -202,51 +211,77 @@ struct base_tensor : crtp<Tensor> {
   }
 };
 //==============================================================================
-template <typename T>
+template <typename T, typename Void = void>
 struct is_tensor : std::false_type {};
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 template <typename T>
 static constexpr auto is_tensor_v = is_tensor<T>::value;
 // ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~
-template <typename Tensor, typename Real, size_t... Dims>
-struct is_tensor<base_tensor<Tensor, Real, Dims...>> : std::true_type {};
-//------------------------------------------------------------------------------
 template <typename T>
+struct is_tensor<T, std::void_t<decltype(std::decay_t<T>::is_tensor())>>
+    : std::integral_constant<bool, std::decay_t<T>::is_tensor()> {};
+//------------------------------------------------------------------------------
+template <typename T, typename Void = void>
 struct is_vec : std::false_type {};
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 template <typename T>
 static constexpr auto is_vec_v = is_vec<T>::value;
 // ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~
-template <typename Tensor, typename Real, size_t N>
-struct is_vec<base_tensor<Tensor, Real, N>> : std::true_type {};
-//==============================================================================
 template <typename T>
+struct is_vec<T, std::void_t<decltype(std::decay_t<T>::is_vec())>>
+    : std::integral_constant<bool, std::decay_t<T>::is_vec()> {};
+//==============================================================================
+template <typename T, typename Void = void>
 struct is_mat : std::false_type {};
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 template <typename T>
 static constexpr auto is_mat_v = is_mat<T>::value;
 // ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~
-template <typename Tensor, typename Real, size_t N>
-struct is_mat<base_tensor<Tensor, Real, N>> : std::true_type {};
+template <typename T>
+struct is_mat<T, std::void_t<decltype(std::decay_t<T>::is_mat())>>
+    : std::integral_constant<bool, std::decay_t<T>::is_mat()> {};
+//==============================================================================
+template <typename T, typename Void = void>
+struct is_quadratic_mat : std::false_type {};
+// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+template <typename T>
+static constexpr auto is_quadratic_mat_v = is_quadratic_mat<T>::value;
+// ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~
+template <typename T>
+struct is_quadratic_mat<
+    T, std::void_t<decltype(std::decay_t<T>::is_quadratic_mat())>>
+    : std::integral_constant<bool, std::decay_t<T>::is_quadratic_mat()> {};
 //==============================================================================
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 template <typename Tensor, real_or_complex_number T, size_t... Dims>
 struct inner_value_type<base_tensor<Tensor, T, Dims...>> {
   using type = T;
 };
+template <real_or_complex_number T, size_t... Dims>
+struct tensor;
 //==============================================================================
 }  // namespace tatooine
+//==============================================================================
+#include <tatooine/tensor.h>
+//==============================================================================
+#include <tatooine/vec.h>
+#include <tatooine/mat.h>
+// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+#include <tatooine/tensor_cast.h>
+#include <tatooine/tensor_lapack_utility.h>
+#include <tatooine/tensor_type_traits.h>
+#include <tatooine/tensor_unpack.h>
+#include <tatooine/tensor_operations.h>
 //==============================================================================
 #include <tatooine/abs_tensor.h>
 #include <tatooine/tensor_io.h>
 #include <tatooine/tensor_utility.h>
-#include <tatooine/tensor_slice.h>
-#include <tatooine/complex_tensor_views.h>
+#include <tatooine/rank.h>
 #include <tatooine/diag_tensor.h>
 #include <tatooine/transposed_tensor.h>
-#include <tatooine/rank.h>
+#include <tatooine/tensor_slice.h>
+#include <tatooine/complex_tensor_views.h>
 
-#include <tatooine/tensor.h>
-#include <tatooine/tensor_symbolic.h>
+//#include <tatooine/tensor_symbolic.h>
 //==============================================================================
 #endif

@@ -2,13 +2,11 @@
 #define TATOOINE_TENSOR_H
 //==============================================================================
 #include <tatooine/base_tensor.h>
+//==============================================================================
 #include <tatooine/math.h>
 #include <tatooine/multidim_array.h>
 #include <tatooine/tags.h>
 #include <tatooine/utility.h>
-#include <tatooine/transposed_tensor.h>
-
-#include <array>
 //==============================================================================
 namespace tatooine {
 //==============================================================================
@@ -142,24 +140,7 @@ struct tensor : base_tensor<tensor<T, Dims...>, T, Dims...>,  // NOLINT
   }
 };
 //==============================================================================
-template <typename Real, size_t... Dims>
-struct is_tensor<tensor<Real, Dims...>> : std::true_type {};
-//------------------------------------------------------------------------------
-template <typename Real, size_t N>
-struct is_vec<tensor<Real, N>> : std::true_type {};
-//------------------------------------------------------------------------------
-template <typename Real, size_t M, size_t N>
-struct is_mat<tensor<Real, M, N>> : std::true_type {};
-//==============================================================================
 }  // namespace tatooine
 //==============================================================================
-#include <tatooine/mat.h>
-#include <tatooine/vec.h>
-// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-#include <tatooine/tensor_cast.h>
-#include <tatooine/tensor_lapack_utility.h>
-#include <tatooine/tensor_type_traits.h>
-#include <tatooine/tensor_unpack.h>
-#include <tatooine/tensor_operations.h>
 //==============================================================================
 #endif
