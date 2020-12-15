@@ -361,9 +361,9 @@ struct node : base::node, node_serializer<Child> {
     return serializer_t::serialize(*dynamic_cast<Child const*>(this));
   }
   //----------------------------------------------------------------------------
-  auto deserialize(toml::table const& serialized_node) -> void override final {
-    return node_serializer<Child>::deserialize(*dynamic_cast<Child*>(this),
-                                               serialized_node);
+  auto deserialize(toml::table const& serialized_node) -> void override {
+    node_serializer<Child>::deserialize(*dynamic_cast<Child*>(this),
+                                        serialized_node);
   }
   //----------------------------------------------------------------------------
   auto draw_properties() -> bool override {

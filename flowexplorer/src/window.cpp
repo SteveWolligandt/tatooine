@@ -1,5 +1,5 @@
-#include <tatooine/flowexplorer/window.h>
 #include <tatooine/flowexplorer/directories.h>
+#include <tatooine/flowexplorer/window.h>
 //==============================================================================
 namespace tatooine::flowexplorer {
 //==============================================================================
@@ -11,10 +11,11 @@ window::window()
     m_ui_scale_factor = 2.0f;
   }
   m_font_regular = ImGui::GetIO().Fonts->AddFontFromFileTTF(
-      (fonts_directory() /"Roboto-Regular.ttf").c_str(),
+      (fonts_directory() / "Roboto-Regular.ttf").c_str(),
       15.0f * m_ui_scale_factor);
   m_font_bold = ImGui::GetIO().Fonts->AddFontFromFileTTF(
-      (fonts_directory() / "Roboto-Bold.ttf").c_str(), 20.0f * m_ui_scale_factor);
+      (fonts_directory() / "Roboto-Bold.ttf").c_str(),
+      20.0f * m_ui_scale_factor);
   imgui_render_backend().create_fonts_texture();
 
   if (std::filesystem::exists("scene.toml")) {
@@ -31,10 +32,11 @@ window::window(std::filesystem::path const& path)
     m_ui_scale_factor = 2.0f;
   }
   m_font_regular = ImGui::GetIO().Fonts->AddFontFromFileTTF(
-      (fonts_directory() /"Roboto-Regular.ttf").c_str(),
+      (fonts_directory() / "Roboto-Regular.ttf").c_str(),
       15.0f * m_ui_scale_factor);
   m_font_bold = ImGui::GetIO().Fonts->AddFontFromFileTTF(
-      (fonts_directory() / "Roboto-Bold.ttf").c_str(), 20.0f * m_ui_scale_factor);
+      (fonts_directory() / "Roboto-Bold.ttf").c_str(),
+      20.0f * m_ui_scale_factor);
   imgui_render_backend().create_fonts_texture();
 
   if (std::filesystem::exists("scene.toml")) {
@@ -60,15 +62,14 @@ void window::on_key_pressed(yavin::key k) {
   } else if (k == yavin::KEY_F5) {
     m_scene.write("scene.toml");
   } else if (k == yavin::KEY_F6) {
-    m_file_browser = std::make_unique<ImGui::FileBrowser>(0);
-    m_file_browser->SetTitle("Load File");
-    m_file_browser->SetTypeFilters({".toml", ".scene", ".vtk"});
-    m_file_browser->Open();
+    if (!file_explorer_is_opened()) {
+      m_picking_file = true;
+      open_file_explorer("Load File", {".toml", ".scene", ".vtk"});
+    }
   } else if (k == yavin::KEY_ESCAPE) {
-    if (m_file_browser) {
-      if (m_file_browser->IsOpened()) {
-        m_file_browser->Close();
-      }
+    if (file_explorer_is_opened()) {
+      close_file_explorer();
+      m_picking_file = false;
     }
   }
 }
@@ -106,7 +107,7 @@ void window::on_button_released(yavin::button b) {
 }
 //------------------------------------------------------------------------------
 void window::on_mouse_motion(int x, int y) {
-  parent_t::on_mouse_motion(x,y);
+  parent_t::on_mouse_motion(x, y);
   if (ImGui::GetIO().WantCaptureMouse) {
     return;
   }
@@ -139,18 +140,18 @@ void window::start() {
   render_loop([&](const auto& dt) {
     m_scene.render(dt);
     if (m_show_nodes_gui) {
-      m_scene.draw_node_editor(0, this->height() *2/ 3,
-                               this->width(), this->height() / 3,
-                               m_show_nodes_gui);
-      //m_scene.draw_node_editor(0, 0, this->width(), this->height(),
+      m_scene.draw_node_editor(0, this->height() * 2 / 3, this->width(),
+                               this->height() / 3, m_show_nodes_gui);
+      // m_scene.draw_node_editor(0, 0, this->width(), this->height(),
       //                         m_show_nodes_gui);
     }
     if (m_file_browser) {
       m_file_browser->Display();
-      if (m_file_browser->HasSelected()) {
-        m_scene.open_file(m_file_browser->GetSelected());
-        m_file_browser->ClearSelected();
-        m_file_browser->Close();
+      if (m_picking_file) {
+        if (m_file_browser->HasSelected()) {
+          m_scene.open_file(m_file_browser->GetSelected());
+          close_file_explorer();
+        }
       }
     }
   });
