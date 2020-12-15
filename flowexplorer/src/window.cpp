@@ -1,25 +1,20 @@
 #include <tatooine/flowexplorer/window.h>
-#include <tatooine/flowexplorer/fonts_dir.h>
+#include <tatooine/flowexplorer/directories.h>
 //==============================================================================
 namespace tatooine::flowexplorer {
 //==============================================================================
 window::window()
     : m_scene{camera_controller(), this},
-      m_aabb2d_icon_tex{
-          "/home/steve/libs/tatooine2/flowexplorer/icons/aabb2d.png"},
-      m_aabb3d_icon_tex{
-          "/home/steve/libs/tatooine2/flowexplorer/icons/aabb3d.png"} {
+      m_aabb2d_icon_tex{icons_directory() / "aabb2d.png"},
+      m_aabb3d_icon_tex{icons_directory() / "aabb3d.png"} {
   if (display().x11_display().screen_resolution().first > 2000) {
     m_ui_scale_factor = 2.0f;
   }
-  std::cerr << fonts_dir() / "Roboto-Regular.ttf" << '\n';
   m_font_regular = ImGui::GetIO().Fonts->AddFontFromFileTTF(
-      //"/usr/share/fonts/TTF/Roboto-Regular.ttf",
-      (fonts_dir() /"Roboto-Regular.ttf").c_str(),
+      (fonts_directory() /"Roboto-Regular.ttf").c_str(),
       15.0f * m_ui_scale_factor);
   m_font_bold = ImGui::GetIO().Fonts->AddFontFromFileTTF(
-      //"/usr/share/fonts/TTF/Roboto-Bold.ttf", 20.0f * m_ui_scale_factor);
-      (fonts_dir() / "Roboto-Bold.ttf").c_str(), 20.0f * m_ui_scale_factor);
+      (fonts_directory() / "Roboto-Bold.ttf").c_str(), 20.0f * m_ui_scale_factor);
   imgui_render_backend().create_fonts_texture();
 
   if (std::filesystem::exists("scene.toml")) {
@@ -30,18 +25,21 @@ window::window()
 //------------------------------------------------------------------------------
 window::window(std::filesystem::path const& path)
     : m_scene{camera_controller(), this, path},
-      m_aabb2d_icon_tex{
-          "/home/steve/libs/tatooine2/flowexplorer/icons/aabb2d.png"},
-      m_aabb3d_icon_tex{
-          "/home/steve/libs/tatooine2/flowexplorer/icons/aabb3d.png"} {
+      m_aabb2d_icon_tex{icons_directory() / "aabb2d.png"},
+      m_aabb3d_icon_tex{icons_directory() / "aabb3d.png"} {
   if (display().x11_display().screen_resolution().first > 2000) {
     m_ui_scale_factor = 2.0f;
   }
   m_font_regular = ImGui::GetIO().Fonts->AddFontFromFileTTF(
-      "/usr/share/fonts/TTF/Roboto-Regular.ttf", 15.0f * m_ui_scale_factor);
+      (fonts_directory() /"Roboto-Regular.ttf").c_str(),
+      15.0f * m_ui_scale_factor);
   m_font_bold = ImGui::GetIO().Fonts->AddFontFromFileTTF(
-      "/usr/share/fonts/TTF/Roboto-Bold.ttf", 20.0f * m_ui_scale_factor);
+      (fonts_directory() / "Roboto-Bold.ttf").c_str(), 20.0f * m_ui_scale_factor);
   imgui_render_backend().create_fonts_texture();
+
+  if (std::filesystem::exists("scene.toml")) {
+    m_scene.read("scene.toml");
+  }
   start();
 }
 //------------------------------------------------------------------------------

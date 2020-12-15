@@ -1,10 +1,13 @@
-#include <tatooine/flowexplorer/fonts_dir.h>
+#ifndef TATOOINE_FLOWEXPLORER_DIRECTORIES_H
+#define TATOOINE_FLOWEXPLORER_DIRECTORIES_H
+//==============================================================================
+#include <filesystem>
 //==============================================================================
 namespace tatooine::flowexplorer {
 //==============================================================================
-auto fonts_dir() -> std::filesystem::path {
-  return "@TATOOINE_FLOWEXPLORER_FONTS_DIR@";
-}
+auto fonts_directory() -> std::filesystem::path;
+auto icons_directory() -> std::filesystem::path;
 //==============================================================================
 }  // namespace tatooine::flowexplorer
 //==============================================================================
+#endif
