@@ -1,8 +1,10 @@
+#ifndef TATOOINE_VEC_H
+#define TATOOINE_VEC_H
+//==============================================================================
 #include <tatooine/tensor.h>
 #include <tatooine/real.h>
 //==============================================================================
-#ifndef TATOOINE_VEC_H
-#define TATOOINE_VEC_H
+#include <tatooine/tags.h>
 //==============================================================================
 namespace tatooine {
 //==============================================================================
@@ -67,12 +69,6 @@ struct vec : tensor<T, N> {  // NOLINT
 };
 //==============================================================================
 // type traits
-//==============================================================================
-template <typename Real, size_t N>
-struct is_tensor<vec<Real, N>> : std::true_type {};
-//------------------------------------------------------------------------------
-template <typename Real, size_t N>
-struct is_vec<vec<Real, N>> : std::true_type {};
 //==============================================================================
 template <real_or_complex_number T, size_t N>
 auto begin(vec<T, N> const& v) {return v.begin();}

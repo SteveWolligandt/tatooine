@@ -1,7 +1,7 @@
-#include <tatooine/concepts.h>
-#include <tatooine/tensor.h>
-#include <tatooine/type_traits.h>
 #include <tatooine/vtk_legacy.h>
+
+#include <tatooine/concepts.h>
+#include <tatooine/type_traits.h>
 
 #include <cassert>
 #include <cstdlib>

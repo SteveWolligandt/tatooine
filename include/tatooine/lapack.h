@@ -4,6 +4,7 @@
 #include <tatooine/tensor.h>
 #include <lapacke.h>
 #include <tatooine/lapack_job.h>
+#include <tatooine/math.h>
 //==============================================================================
 namespace tatooine::lapack {
 //==============================================================================

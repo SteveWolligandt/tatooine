@@ -1,10 +1,10 @@
 #ifndef TATOOINE_VTK_LEGACY_H
 #define TATOOINE_VTK_LEGACY_H
 //==============================================================================
+#include <tatooine/tensor.h>
 #include <tatooine/concepts.h>
 #include <tatooine/parse.h>
 #include <tatooine/swap_endianess.h>
-#include <tatooine/tensor.h>
 #include <tatooine/type_to_str.h>
 #include <tatooine/type_traits.h>
 

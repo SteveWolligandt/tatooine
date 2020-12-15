@@ -5,17 +5,14 @@
 //==============================================================================
 namespace tatooine {
 //==============================================================================
-template <typename Tensor>
+template <real_number Tensor>
 constexpr auto rank() {
-  if constexpr (std::is_arithmetic_v<Tensor>) {
-    return 0;
-  } else {
-    return Tensor::rank();
-  }
+  return 0;
 }
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 template <typename Tensor>
-constexpr inline auto rank(Tensor &&) {
+requires is_tensor_v<Tensor>
+constexpr auto rank(Tensor &&) {
   return rank<std::decay_t<Tensor>>();
 }
 //==============================================================================

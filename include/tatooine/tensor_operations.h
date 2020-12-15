@@ -2,52 +2,69 @@
 #define TATOOINE_TENSOR_OPERATIONS_H
 //==============================================================================
 #include <tatooine/tensor.h>
+
+#include <optional>
 //==============================================================================
 namespace tatooine {
 //==============================================================================
 /// invert symmetric matrix
 /// A = [a,b]
 ///     [b,c]
-template <typename Tensor, real_number T>
-constexpr auto inv_sym(base_tensor<Tensor, T, 2, 2> const& A) {
-  auto const& a = A(0, 0);
-  auto const& b = A(1, 0);
-  auto const& c = A(1, 1);
-  auto const  d = 1 / (a * c - b * b);
-  auto const  e = -b * d;
+template <typename Tensor, floating_point Real>
+constexpr auto inv_sym(base_tensor<Tensor, Real, 2, 2> const& A)
+    -> std::optional<mat<Real, 2, 2>> {
+  decltype(auto) a   = A(0, 0);
+  decltype(auto) b   = A(1, 0);
+  decltype(auto) c   = A(1, 1);
+  auto const  det = (a * c - b * b);
+  if (std::abs(det) < 1e-10) {
+    return {};
+  }
+  auto const d = 1 / det;
+  auto const e = -b * d;
   return mat{{c * d, e}, {e, a * d}};
 }
 //------------------------------------------------------------------------------
 /// invert matrix
 /// A = [a,b]
 ///     [c,d]
-template <typename Tensor, real_number T>
-constexpr auto inv(base_tensor<Tensor, T, 2, 2> const& A) {
-  auto const& b = A(0, 1);
-  auto const& c = A(1, 0);
+template <typename Tensor, floating_point Real>
+constexpr auto inv(base_tensor<Tensor, Real, 2, 2> const& A)
+    -> std::optional<mat<Real, 2, 2>> {
+  decltype(auto) b = A(0, 1);
+  decltype(auto) c = A(1, 0);
   if (std::abs(b - c) < 1e-10) {
     return inv_sym(A);
   }
-  auto const& a = A(0, 0);
-  auto const& d = A(1, 1);
-  auto const  e = 1 / (a * d - b * c);
-  return mat{{d * e, -b * e}, {-c * e, a * e}};
+  decltype(auto) a = A(0, 0);
+  decltype(auto) d = A(1, 1);
+  auto const det = (a * d - b * c);
+  if (std::abs(det) < 1e-10) {
+    return {};
+  }
+  auto const  e = 1 / det;
+  return mat{{ d, -b},
+             {-c,  a}} * e;
 }
 //------------------------------------------------------------------------------
 /// invert symmetric matrix
 /// A = [a,b,c]
 ///     [b,d,e]
 ///     [c,e,f]
-template <typename Tensor, real_number T>
-constexpr auto inv_sym(base_tensor<Tensor, T, 3, 3> const& A) {
-  auto const& a = A(0, 0);
-  auto const& b = A(1, 0);
-  auto const& c = A(2, 0);
-  auto const& d = A(1, 1);
-  auto const& e = A(2, 1);
-  auto const& f = A(2, 2);
-  auto const  div =
-      1 / ((a * d - b * b) * f - a * e * e + 2 * b * c * e - c * c * d);
+template <typename Tensor, floating_point Real>
+constexpr auto inv_sym(base_tensor<Tensor, Real, 3, 3> const& A)
+    -> std::optional<mat<Real, 3, 3>> {
+  decltype(auto) a = A(0, 0);
+  decltype(auto) b = A(1, 0);
+  decltype(auto) c = A(2, 0);
+  decltype(auto) d = A(1, 1);
+  decltype(auto) e = A(2, 1);
+  decltype(auto) f = A(2, 2);
+  auto const det =((a * d - b * b) * f - a * e * e + 2 * b * c * e - c * c * d);
+  if (std::abs(det) < 1e-10) {
+    return {};
+  }
+  auto const div = 1 / det;
   return mat{
       {(d * f - e * e) * div, -(b * f - c * e) * div, (b * e - c * d) * div},
       {-(b * f - c * e) * div, (a * f - c * c) * div, -(a * e - b * c) * div},
@@ -58,27 +75,31 @@ constexpr auto inv_sym(base_tensor<Tensor, T, 3, 3> const& A) {
 /// A = [a,b,c]
 ///     [d,e,f]
 ///     [g,h,i]
-template <typename Tensor, real_number T>
-constexpr auto inv(base_tensor<Tensor, T, 3, 3> const& A) {
-  auto const& b = A(0, 1);
-  auto const& c = A(0, 2);
-  auto const& d = A(1, 0);
-  auto const& g = A(2, 0);
-  auto const& f = A(1, 2);
-  auto const& h = A(2, 1);
+template <typename Tensor, floating_point Real>
+constexpr auto inv(base_tensor<Tensor, Real, 3, 3> const& A) -> std::optional<mat<Real, 3, 3>> {
+  decltype(auto) b = A(0, 1);
+  decltype(auto) c = A(0, 2);
+  decltype(auto) d = A(1, 0);
+  decltype(auto) g = A(2, 0);
+  decltype(auto) f = A(1, 2);
+  decltype(auto) h = A(2, 1);
   if (std::abs(b - d) < 1e-10 && std::abs(c - g) < 1e-10 &&
       std::abs(f - h) < 1e-10) {
     return inv_sym(A);
   }
-  auto const& a = A(0, 0);
-  auto const& e = A(1, 1);
-  auto const& i = A(2, 2);
-  auto const  div =
-      1 / ((a * e - b * d) * i + (c * d - a * f) * h + (b * f - c * e) * g);
-  return mat{
-      {(e * i - f * h) * div, -(b * i - c * h) * div, (b * f - c * e) * div},
-      {-(d * i - f * g) * div, (a * i - c * g) * div, -(a * f - c * d) * div},
-      {(d * h - e * g) * div, -(a * h - b * g) * div, (a * e - b * d) * div}};
+  decltype(auto) a = A(0, 0);
+  decltype(auto) e = A(1, 1);
+  decltype(auto) i = A(2, 2);
+  auto const  det =
+      ((a * e - b * d) * i + (c * d - a * f) * h + (b * f - c * e) * g);
+  if (std::abs(det) < 1e-10) {
+    return {};
+  }
+  auto const div = 1 / det;
+  return mat{{(e * i - f * h), -(b * i - c * h), (b * f - c * e)},
+             {-(d * i - f * g), (a * i - c * g), -(a * f - c * d)},
+             {(d * h - e * g), -(a * h - b * g), (a * e - b * d)}} *
+         div;
 }
 //------------------------------------------------------------------------------
 /// invert symmetric matrix
@@ -86,8 +107,8 @@ constexpr auto inv(base_tensor<Tensor, T, 3, 3> const& A) {
 ///     [b,e,f,g]
 ///     [c,f,h,i]
 ///     [d,g,i,j]
-template <typename Tensor, real_number T>
-constexpr auto inv_sym(base_tensor<Tensor, T, 4, 4> const& A) {
+template <typename Tensor, floating_point Real>
+constexpr auto inv_sym(base_tensor<Tensor, Real, 4, 4> const& A) {
   decltype(auto) a = A(0, 0);
   decltype(auto) b = A(1, 0);
   decltype(auto) c = A(2, 0);
@@ -140,8 +161,9 @@ constexpr auto inv_sym(base_tensor<Tensor, T, 4, 4> const& A) {
 ///     [e,f,g,h]
 ///     [i,j,k,l]
 ///     [m,n,o,p]
-template <typename Tensor, real_number T>
-constexpr auto inv(base_tensor<Tensor, T, 4, 4> const& A) {
+template <typename Tensor, floating_point Real>
+constexpr auto inv(base_tensor<Tensor, Real, 4, 4> const& A)
+    -> std::optional<mat<Real, 4, 4>> {
   decltype(auto) b = A(0, 1);
   decltype(auto) c = A(0, 2);
   decltype(auto) d = A(0, 3);
@@ -165,12 +187,15 @@ constexpr auto inv(base_tensor<Tensor, T, 4, 4> const& A) {
   decltype(auto) f = A(1, 1);
   decltype(auto) k = A(2, 2);
   decltype(auto) p = A(3, 3);
-  const auto     div =
-      1 /
+  const auto     det =
       ((((a * f - b * e) * k + (c * e - a * g) * j + (b * g - c * f) * i) * p +
         ((b * e - a * f) * l + (a * h - d * e) * j + (d * f - b * h) * i) * o +
         ((a * g - c * e) * l + (d * e - a * h) * k + (c * h - d * g) * i) * n +
         ((c * f - b * g) * l + (b * h - d * f) * k + (d * g - c * h) * j) * m));
+  if (std::abs(det) < 1e-10) {
+    return {};
+  }
+  const auto div = 1 / det;
   return mat{
       {((f * k - g * j) * p + (h * j - f * l) * o + (g * l - h * k) * n) * div,
        -((b * k - c * j) * p + (d * j - b * l) * o + (c * l - d * k) * n) * div,
@@ -581,6 +606,22 @@ constexpr auto operator*(base_tensor<Tensor0, T0, M> const&    lhs,
     product(i) = dot(lhs, rhs.template slice<1>(i));
   }
   return product;
+}
+//==============================================================================
+}  // namespace tatooine
+//==============================================================================
+#include <tatooine/tensor_lapack_utility.h>
+//==============================================================================
+namespace tatooine {
+//==============================================================================
+template <typename Real, size_t M, size_t N>
+auto solve(tensor<Real, M, N> const& A, tensor<Real, N> const& b) {
+  return lapack::gesv(A, b);
+}
+//------------------------------------------------------------------------------
+template <typename Real, size_t M, size_t N, size_t O>
+auto solve(tensor<Real, M, N> const& A, tensor<Real, N, O> const& B) {
+  return lapack::gesv(A, B);
 }
 //==============================================================================
 }  // namespace tatooine
