@@ -18,7 +18,7 @@ struct field_from_file
   //============================================================================
  private:
   std::string m_path;
-  bool m_picking_file = false;
+  bool        m_picking_file = false;
 
   //============================================================================
  public:

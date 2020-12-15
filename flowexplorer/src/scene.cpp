@@ -469,12 +469,12 @@ void scene::node_creators(size_t const width) {
   ImGui::BeginVertical("nodecreators1");
   ImGui::BeginHorizontal("nodecreators2");
 
-  ImTextureID aabb2d_id = (ImTextureID)window().aabb2d_icon_tex().id();
+  ImTextureID aabb2d_id = reinterpret_cast<ImTextureID>(window().aabb2d_icon_tex().id());
   if (ImGui::ImageButton(aabb2d_id, ImVec2(50 * window().ui_scale_factor(),
                                            50 * window().ui_scale_factor()))) {
     m_renderables.emplace_back(new nodes::aabb2d{*this});
   }
-  ImTextureID aabb3d_id = (ImTextureID)window().aabb3d_icon_tex().id();
+  ImTextureID aabb3d_id = reinterpret_cast<ImTextureID>(window().aabb3d_icon_tex().id());
   if (ImGui::ImageButton(aabb3d_id, ImVec2(50 * window().ui_scale_factor(),
                                            50 * window().ui_scale_factor()))) {
     m_renderables.emplace_back(new nodes::aabb3d{*this});

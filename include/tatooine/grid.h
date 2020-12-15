@@ -1063,7 +1063,6 @@ class grid {
     }
     // copy data
     size_t i = 0;
-    std::cerr << "amira num components: " << num_comps << '\n';
     if (num_comps == 1) {
       auto& prop = add_vertex_property<real_t>(path.string());
       loop_over_vertex_indices(
