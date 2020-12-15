@@ -98,7 +98,7 @@ struct position : tatooine::vec<double, N>, renderable<position<N>> {
     x(0) = x(0) / (this->scene().window().width() - 1) * 2 - 1;
     x(1) = x(1) / (this->scene().window().height() - 1) * 2 - 1;
 
-    x     = inv(V) * (inv(P) * x);
+    x     = *inv(V) * *inv(P) * x;
     at(0) = x(0);
     at(1) = x(1);
     if constexpr (N == 3) {

@@ -125,7 +125,7 @@ struct camera_controller : yavin::window_listener {
                           m_active_cam->up());
   }
   auto view_matrix() const {
-    return inv(transform_matrix());
+    return *inv(transform_matrix());
   }
   auto eye() const -> auto const& {
     return m_active_cam->eye();
