@@ -149,9 +149,9 @@ void autonomous_particle::advect() {
           if (node->m_stop_thread) {
             break;
           }
-          auto sqrS = inv(particle.nabla_phi1()) * particle.S() * particle.S()
+          auto sqrS = *inv(particle.nabla_phi1()) * particle.S() * particle.S()
           *
-                      inv(transposed(particle.nabla_phi1()));
+                      *inv(transposed(particle.nabla_phi1()));
           auto [eig_vecs, eig_vals] = eigenvectors_sym(sqrS);
           eig_vals = {std::sqrt(eig_vals(0)), std::sqrt(eig_vals(1))};
           auto S   = eig_vecs * diag(eig_vals) * transposed(eig_vecs);
@@ -163,8 +163,8 @@ void autonomous_particle::advect() {
               i++);
           node->m_initial_ellipses_back_calculation.indexbuffer().push_back(i);
         }
-        auto sqrS = inv(particle.nabla_phi1()) * particle.S() * particle.S() *
-                    inv(transposed(particle.nabla_phi1()));
+        auto sqrS = *inv(particle.nabla_phi1()) * particle.S() * particle.S() *
+                    *inv(transposed(particle.nabla_phi1()));
         auto [eig_vecs, eig_vals] = eigenvectors_sym(sqrS);
         eig_vals = {std::sqrt(eig_vals(0)), std::sqrt(eig_vals(1))};
         auto S   = eig_vecs * diag(eig_vals) * transposed(eig_vecs);
