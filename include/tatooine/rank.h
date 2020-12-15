@@ -5,15 +5,24 @@
 //==============================================================================
 namespace tatooine {
 //==============================================================================
-template <real_number Tensor>
+template <real_number Scalar>
 constexpr auto rank() {
+  return 0;
+}
+template <real_number Scalar>
+constexpr auto rank(Scalar&&) {
   return 0;
 }
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 template <typename Tensor>
 requires is_tensor_v<Tensor>
+constexpr auto rank() {
+  return std::decay_t<Tensor>::rank();
+}
+template <typename Tensor>
+requires is_tensor_v<Tensor>
 constexpr auto rank(Tensor &&) {
-  return rank<std::decay_t<Tensor>>();
+  return std::decay_t<Tensor>::rank();
 }
 //==============================================================================
 }  // namespace tatooine

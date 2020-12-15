@@ -33,7 +33,7 @@ TEST_CASE("lazy_netcdf_reader", "[lazy_netcdf_reader]") {
 }
 //==============================================================================
 TEST_CASE("lazy_netcdf_reader_grid", "[lazy_netcdf_reader][grid]") {
-  non_uniform_grid_2d<double> g{"simple_xy.nc"};
+  non_uniform_grid<double, 2> g{"simple_xy.nc"};
   auto const& prop = g.vertex_property<double>("data");
 
   REQUIRE(prop(7, 0) == Approx(7));

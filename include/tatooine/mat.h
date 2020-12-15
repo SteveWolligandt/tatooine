@@ -1,9 +1,10 @@
 #ifndef TATOOINE_MAT_H
 #define TATOOINE_MAT_H
 //==============================================================================
-#include <tatooine/tensor.h>
 #include <tatooine/real.h>
+#include <tatooine/tensor.h>
 //==============================================================================
+#include <tatooine/random.h>
 #include <tatooine/tags.h>
 //==============================================================================
 namespace tatooine {
@@ -25,7 +26,30 @@ struct mat : tensor<T, M, N> {
   //============================================================================
   // inherited methods
   //============================================================================
+  using parent_t::is_quadratic_mat;
   using parent_t::parent_t;
+  //============================================================================
+  // factories
+  //============================================================================
+  static constexpr auto zeros() { return this_t{tag::fill<T>{0}}; }
+  //----------------------------------------------------------------------------
+  static constexpr auto ones() { return this_t{tag::fill<T>{1}}; }
+  //----------------------------------------------------------------------------
+  template <typename = void>
+  requires (is_quadratic_mat())
+  static constexpr auto eye() { return this_t{tag::eye}; }
+  //----------------------------------------------------------------------------
+  template <typename RandEng = std::mt19937_64>
+  static constexpr auto randu(T min = 0, T max = 1,
+                              RandEng&& eng = RandEng{std::random_device{}()}) {
+    return this_t{random_uniform{min, max, std::forward<RandEng>(eng)}};
+  }
+  //----------------------------------------------------------------------------
+  template <typename RandEng = std::mt19937_64>
+  static constexpr auto randn(T mean = 0, T stddev = 1,
+                              RandEng&& eng = RandEng{std::random_device{}()}) {
+    return this_t{random_normal<T>{eng, mean, stddev}};
+  }
 
   //============================================================================
   // constructors
