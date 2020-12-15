@@ -109,7 +109,7 @@ struct sampled_grid_property_field
       } else {
         return sampler(x(Is)...);
       }
-    } else {
+    } else if (!m_real_props.empty()) {
       if constexpr (std::is_arithmetic_v<tensor_t>) {
         auto sampler =
             m_real_props.front()->template sampler<interpolation::linear>();
@@ -132,6 +132,11 @@ struct sampled_grid_property_field
         return v;
       }
     }
+    if constexpr (std::is_arithmetic_v<tensor_t>) {
+      return 0.0 / 0.0;
+    } else {
+      return tensor_t{tag::fill{0.0 / 0.0}};
+    }
   }
   //----------------------------------------------------------------------------
   [[nodiscard]] auto evaluate(pos_t const& x, real_t const t) const
@@ -143,6 +148,9 @@ struct sampled_grid_property_field
   [[nodiscard]] auto in_domain(pos_t const& x, [[maybe_unused]] real_t const t,
                                std::index_sequence<Is...> /*seq*/) const
       -> bool {
+    if (m_grid == nullptr) {
+      return false;
+    }
     if constexpr (is_time_dependent) {
       return m_grid->is_inside(x(Is)..., t);
     } else {
