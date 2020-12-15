@@ -442,11 +442,11 @@ TEST_CASE("tensor_inverse", "[tensor][inverse]") {
       const mat invA{{-1.032948519056287e-01, -4.377215335591266e-02},
                      {-4.377215335591266e-02, 1.261565252782578e-01}};
       INFO("A = \n" << A);
-      INFO("inv(A) = \n" << inv(A));
-      INFO("inv_sym(A) = \n" << inv_sym(A));
+      INFO("inv(A) = \n" << *inv(A));
+      INFO("inv_sym(A) = \n" << *inv_sym(A));
       INFO("invA = \n" << invA);
-      REQUIRE(approx_equal(inv(A), invA));
-      REQUIRE(approx_equal(inv_sym(A), invA));
+      REQUIRE(approx_equal(*inv(A), *invA));
+      REQUIRE(approx_equal(*inv_sym(A), *invA));
     }
     SECTION("non-symmetric") {
       const mat A{{-2.885334385073613, 1.078956733870776},
@@ -454,9 +454,9 @@ TEST_CASE("tensor_inverse", "[tensor][inverse]") {
       const mat invA{{-2.042895558527066e-01, 4.521363926545416e-02},
                      {3.805123107336210e-01, 1.209098233058101e-01}};
       INFO("A = \n" << A);
-      INFO("inv(A) = \n" << inv(A));
+      INFO("inv(A) = \n" << *inv(A));
       INFO("invA = \n" << invA);
-      REQUIRE(approx_equal(inv(A), invA));
+      REQUIRE(approx_equal(*inv(A), invA));
     }
   }
   SECTION("3x3"){} {
@@ -474,11 +474,11 @@ TEST_CASE("tensor_inverse", "[tensor][inverse]") {
                      {-2.254834416457464e-03, 8.077900460878503e-03,
                       6.319851850288617e-03}};
       INFO("A = \n" << A);
-      INFO("inv(A) = \n" << inv(A));
-      INFO("inv_sym(A) = \n" << inv_sym(A));
+      INFO("inv(A) = \n" << *inv(A));
+      INFO("inv_sym(A) = \n" << *inv_sym(A));
       INFO("invA = \n" << invA);
-      REQUIRE(approx_equal(inv(A), invA));
-      REQUIRE(approx_equal(inv_sym(A), invA));
+      REQUIRE(approx_equal(*inv(A), invA));
+      REQUIRE(approx_equal(*inv_sym(A), invA));
     }
     SECTION("non-symmetric") {
       const mat A{
@@ -493,9 +493,9 @@ TEST_CASE("tensor_inverse", "[tensor][inverse]") {
                      {-4.146327878179570e-02, 1.854588131396796e-01,
                       -1.648469874994442e-02}};
       INFO("A = \n" << A);
-      INFO("inv(A) = \n" << inv(A));
+      INFO("inv(A) = \n" << *inv(A));
       INFO("invA = \n" << invA);
-      REQUIRE(approx_equal(inv(A), invA));
+      REQUIRE(approx_equal(*inv(A), invA));
     }
   }
   SECTION("4x4") {
@@ -517,11 +517,11 @@ TEST_CASE("tensor_inverse", "[tensor][inverse]") {
                   {-2.593053024761461e-01, -2.512275537360439e-01,
                    -3.215960238699798e-01, 2.386123500582727e-01}};
       INFO("A = \n" << A);
-      INFO("inv(A) = \n" << inv(A));
-      INFO("inv_sym(A) = \n" << inv_sym(A));
+      INFO("inv(A) = \n" << *inv(A));
+      INFO("inv_sym(A) = \n" << *inv_sym(A));
       INFO("invA = \n" << invA);
-      REQUIRE(approx_equal(inv(A), invA));
-      REQUIRE(approx_equal(inv_sym(A), invA));
+      REQUIRE(approx_equal(*inv(A), invA));
+      REQUIRE(approx_equal(*inv_sym(A), invA));
     }
     SECTION("non-symmetric") {
       const mat A{{2.819414707372358e+00, 5.092058185719120e+00,
@@ -541,9 +541,50 @@ TEST_CASE("tensor_inverse", "[tensor][inverse]") {
                      {1.703748201372928e-01, 5.729893752058061e-02,
                       1.280778195586736e-01, -2.528932523294680e-01}};
       INFO("A = \n" << A);
-      INFO("inv(A) = \n" << inv(A));
+      INFO("inv(A) = \n" << *inv(A));
       INFO("invA = \n" << invA);
-      REQUIRE(approx_equal(inv(A), invA));
+      REQUIRE(approx_equal(*inv(A), invA));
+    }
+  }
+  SECTION("diagonal"){
+    SECTION("2x2") {
+      auto const A  = diag(vec2::randu());
+      auto const Ai = *inv(A);
+      for (size_t i = 0; i < 2; ++i) {
+        for (size_t j = 0; j < 2; ++j) {
+          if (i == j) {
+            REQUIRE(Ai(i, j) == 1 / A(i, j));
+          } else {
+            REQUIRE(Ai(i, j) == 0);
+          }
+        }
+      }
+    }
+    SECTION("3x3") {
+      auto const A  = diag(vec3::randu());
+      auto const Ai = *inv(A);
+      for (size_t i = 0; i < 2; ++i) {
+        for (size_t j = 0; j < 2; ++j) {
+          if (i == j) {
+            REQUIRE(Ai(i, j) == 1 / A(i, j));
+          } else {
+            REQUIRE(Ai(i, j) == 0);
+          }
+        }
+      }
+    }
+    SECTION("4x4") {
+      auto const A  = diag(vec4::randu());
+      auto const Ai = *inv(A);
+      for (size_t i = 0; i < 2; ++i) {
+        for (size_t j = 0; j < 2; ++j) {
+          if (i == j) {
+            REQUIRE(Ai(i, j) == 1 / A(i, j));
+          } else {
+            REQUIRE(Ai(i, j) == 0);
+          }
+        }
+      }
     }
   }
 }
@@ -579,7 +620,7 @@ TEST_CASE("tensor_diag", "[tensor][diag]") {
     REQUIRE_FALSE(
         std::is_const_v<std::remove_reference_t<decltype(V)::tensor_t>>);
 
-    auto IV = inv(V);
+    auto IV = *inv(V);
     REQUIRE_FALSE(std::is_reference_v<decltype(IV)::tensor_t>);
     REQUIRE_FALSE(std::is_const_v<decltype(IV)::tensor_t>);
   }
@@ -590,7 +631,7 @@ TEST_CASE("tensor_diag", "[tensor][diag]") {
     REQUIRE(std::is_reference_v<decltype(CV)::tensor_t>);
     REQUIRE(std::is_const_v<std::remove_reference_t<decltype(CV)::tensor_t>>);
 
-    auto ICV = inv(CV);
+    auto ICV = *inv(CV);
     REQUIRE_FALSE(std::is_reference_v<decltype(ICV)::tensor_t>);
     REQUIRE_FALSE(std::is_const_v<decltype(ICV)::tensor_t>);
   }
@@ -600,7 +641,7 @@ TEST_CASE("tensor_diag", "[tensor][diag]") {
     REQUIRE_FALSE(std::is_reference_v<decltype(MV)::tensor_t>);
     REQUIRE_FALSE(std::is_const_v<decltype(MV)::tensor_t>);
 
-    auto IMV = inv(MV);
+    auto IMV = *inv(MV);
     REQUIRE_FALSE(std::is_reference_v<decltype(IMV)::tensor_t>);
     REQUIRE_FALSE(std::is_const_v<decltype(IMV)::tensor_t>);
   }
@@ -609,7 +650,7 @@ TEST_CASE("tensor_diag", "[tensor][diag]") {
 TEST_CASE("tensor_diag_inverse", "[tensor][diag][inverse]") {
   vec const v{1.0, 2.0, 3.0};
   auto      V = diag(v);
-  auto IV = inv(V);
+  auto IV = *inv(V);
   for (size_t i = 0; i < 3; ++i) {
     for (size_t j = 0; j < 3; ++j) {
       if (i == j) {
@@ -660,7 +701,7 @@ TEST_CASE("tensor_symbolic_inverse", "[tensor][symbolic][inverse][matrix]") {
   using namespace symbolic;
   mat m{{symbol::x(0), symbol::x(1)},
         {symbol::x(1) * symbol::t(), GiNaC::ex{symbol::x(0)}}};
-  auto inv = (inv(m));
+  auto inv = (*inv(m));
   auto eye = m * inv;
   expand(eye);
   //eval(eye);

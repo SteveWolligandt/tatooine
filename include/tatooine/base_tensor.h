@@ -259,8 +259,15 @@ struct inner_value_type<base_tensor<Tensor, T, Dims...>> {
 };
 template <real_or_complex_number T, size_t... Dims>
 struct tensor;
+template <real_or_complex_number T, size_t M, size_t N>
+struct mat;
+template <real_or_complex_number T, size_t N>
+struct vec;
 //==============================================================================
 }  // namespace tatooine
+//==============================================================================
+#include <tatooine/tensor_utility.h>
+#include <tatooine/transposed_tensor.h>
 //==============================================================================
 #include <tatooine/tensor.h>
 //==============================================================================
@@ -275,10 +282,8 @@ struct tensor;
 //==============================================================================
 #include <tatooine/abs_tensor.h>
 #include <tatooine/tensor_io.h>
-#include <tatooine/tensor_utility.h>
 #include <tatooine/rank.h>
 #include <tatooine/diag_tensor.h>
-#include <tatooine/transposed_tensor.h>
 #include <tatooine/tensor_slice.h>
 #include <tatooine/complex_tensor_views.h>
 
