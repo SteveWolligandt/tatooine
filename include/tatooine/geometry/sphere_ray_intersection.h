@@ -39,8 +39,8 @@ std::optional<intersection<Real, 3>> check_intersection(
   auto t = -b - std::sqrt(discr);
 
   // If t is negative, ray started inside sphere so clamp t to zero
-  if (t < 0) {
-    t = 0;
+  if (t < min_t) {
+    return {};
   }
 
   auto const hit_pos = r(t);

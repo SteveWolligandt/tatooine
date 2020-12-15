@@ -15,10 +15,10 @@ struct renderable : ui::base::node {
   renderable(std::string const& title, flowexplorer::scene& s);
   renderable(std::string const& title, flowexplorer::scene& s,
              std::type_info const&);
-  renderable(renderable const& w)                        = default;
-  renderable(renderable&& w) noexcept                    = default;
-  auto operator=(renderable const& w) -> renderable&     = default;
-  auto operator=(renderable&& w) noexcept -> renderable& = default;
+  //renderable(renderable const& w)                        = default;
+  //renderable(renderable&& w) noexcept                    = default;
+  //auto operator=(renderable const& w) -> renderable&     = default;
+  //auto operator=(renderable&& w) noexcept -> renderable& = default;
   virtual ~renderable()                                  = default;
 
   virtual auto update(std::chrono::duration<double> const& /*dt*/) -> void {}
