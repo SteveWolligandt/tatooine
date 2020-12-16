@@ -51,6 +51,8 @@ struct camera_controller_interface {
     return *m_controller;
   }
   //----------------------------------------------------------------------------
+  virtual auto type() const -> std::type_info const& = 0;
+  //----------------------------------------------------------------------------
   virtual void on_key_pressed(yavin::key /*k*/) {}
   virtual void on_key_released(yavin::key /*k*/) {}
   virtual void on_button_pressed(yavin::button /*b*/) {}
@@ -67,8 +69,8 @@ struct camera_controller_interface {
 template <typename Real>
 struct camera_controller : yavin::window_listener {
   friend struct camera_controller_interface<Real>;
-  class perspective_camera<Real>                    m_pcam;
-  class orthographic_camera<Real>                   m_ocam;
+  class perspective_camera<Real>                     m_pcam;
+  class orthographic_camera<Real>                    m_ocam;
   camera<Real>*                                      m_active_cam;
   std::unique_ptr<camera_controller_interface<Real>> m_controller;
   //============================================================================
@@ -117,6 +119,7 @@ struct camera_controller : yavin::window_listener {
   auto orthographic_camera() const -> auto const& {
     return m_ocam;
   }
+  auto controller() const -> auto const& { return *m_controller; }
   auto projection_matrix() const {
     return m_active_cam->projection_matrix();
   }
@@ -354,6 +357,8 @@ struct fps_camera_controller : camera_controller_interface<Real> {
                            controller().eye() + right / ms + m_look_dir);
     }
   }
+  //----------------------------------------------------------------------------
+  auto type() const -> std::type_info const& override { return typeid(this_t); }
 };
 //==============================================================================
 template <typename Real>
@@ -429,6 +434,8 @@ struct orthographic_camera_controller : camera_controller_interface<Real> {
         controller().orthographic_camera().far(),
         controller().plane_width(), controller().plane_height());
   }
+  //----------------------------------------------------------------------------
+  auto type() const -> std::type_info const& override { return typeid(this_t); }
 };
 //==============================================================================
 }  // namespace tatooine::rendering

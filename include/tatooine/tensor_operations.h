@@ -623,6 +623,12 @@ template <typename Real, size_t M, size_t N, size_t O>
 auto solve(tensor<Real, M, N> const& A, tensor<Real, N, O> const& B) {
   return lapack::gesv(A, B);
 }
+//------------------------------------------------------------------------------
+template <typename Tensor, real_or_complex_number TensorT, size_t... Dims>
+constexpr auto sqrt(base_tensor<Tensor, TensorT, Dims...> const& t) {
+  return unary_operation(
+      [](auto const& component) { return std::sqrt(component); }, t);
+}
 //==============================================================================
 }  // namespace tatooine
 //==============================================================================
