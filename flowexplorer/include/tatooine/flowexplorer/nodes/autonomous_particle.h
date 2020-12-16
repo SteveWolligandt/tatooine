@@ -83,9 +83,9 @@ struct autonomous_particle
     update_initial_circle();
     advect();
   }
-  void generate_random_points_in_initial_circle(size_t const n);
-  void advect_random_points_in_initial_circle();
-  void upload_advected_random_points_in_initial_circle();
+  void generate_points_in_initial_circle(size_t const n);
+  void advect_points_in_initial_circle();
+  void upload_advected_points_in_initial_circle();
 };
 //==============================================================================
 }  // namespace tatooine::flowexplorer::nodes

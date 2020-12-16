@@ -37,7 +37,7 @@ void autonomous_particle::render(mat4f const& projection_matrix,
   m_line_shader.set_color(0.5, 0.5, 0.5, 1);
   m_gpu_advected_points_on_initial_circle.draw_lines();
 
-  m_line_shader.set_color(0, 0, 0, 1);
+  m_line_shader.set_color(0.5, 1, 0.5, 1);
   m_pathlines.draw_lines();
 }
 //----------------------------------------------------------------------------
@@ -62,9 +62,9 @@ void autonomous_particle::update_initial_circle() {
   m_initial_circle.vertexbuffer().push_back(gpu_vec3{static_cast<float>(y(0)),
                                                      static_cast<float>(y(1)),
                                                      static_cast<float>(m_t0)});
-  generate_random_points_in_initial_circle(3000);
-  advect_random_points_in_initial_circle();
-  upload_advected_random_points_in_initial_circle();
+  generate_points_in_initial_circle(30);
+  advect_points_in_initial_circle();
+  upload_advected_points_in_initial_circle();
 }
 
 void autonomous_particle::advect() {
@@ -78,8 +78,8 @@ void autonomous_particle::advect() {
   m_needs_another_update = false;
 
   auto run = [node = this] {
-    node->advect_random_points_in_initial_circle();
-    node->upload_advected_random_points_in_initial_circle();
+    node->advect_points_in_initial_circle();
+    node->upload_advected_points_in_initial_circle();
     node->x0() = *node->m_x0;
     node->x1() = *node->m_x0;
 
@@ -189,34 +189,25 @@ void autonomous_particle::advect() {
         }
         std::lock_guard lock{node->m_pathlines.mutex()};
 
-        bool       insert_segment = false;
-        auto       y              = particle.x0();
-        auto       t              = node->m_t0;
-        auto const t_dist         = 0.01;
-        do {
-          node->m_pathlines.vertexbuffer().push_back(gpu_vec3{
-              static_cast<GLfloat>(y(0)), static_cast<GLfloat>(y(1)), 0});
-          if (insert_segment) {
-            node->m_pathlines.indexbuffer().push_back(index - 1);
-            node->m_pathlines.indexbuffer().push_back(index);
-          } else {
-            insert_segment = true;
-          }
-          ++index;
-          y = node->phi()(y, t, t_dist);
-          t += t_dist;
-          t = std::min(t, particle.t1());
-        } while (t < particle.t1());
-        node->m_pathlines.vertexbuffer().push_back(gpu_vec3{
-            static_cast<GLfloat>(y(0)), static_cast<GLfloat>(y(1)), 0});
-        if (insert_segment) {
+        auto const tau = 0.1;
+        auto       y   = particle.x0();
+        auto       t   = node->m_t0;
+        node->m_pathlines.vertexbuffer().push_back(gpu_vec3{y(0), y(1), t});
+        ++index;
+        while (t + tau < particle.t1()) {
+          y = node->phi()(y, t, tau);
+          t += tau;
+          node->m_pathlines.vertexbuffer().push_back(gpu_vec3{y(0), y(1), t});
           node->m_pathlines.indexbuffer().push_back(index - 1);
           node->m_pathlines.indexbuffer().push_back(index);
-          } else {
-            insert_segment = true;
-          }
           ++index;
-          y = node->phi()(y, t, t_dist);
+        }
+        y = node->phi()(y, t, particle.t1() - t);
+        node->m_pathlines.vertexbuffer().push_back(
+            gpu_vec3{y(0), y(1), particle.t1()});
+        node->m_pathlines.indexbuffer().push_back(index - 1);
+        node->m_pathlines.indexbuffer().push_back(index);
+        ++index;
       }
     }
     node->m_currently_advecting = false;
@@ -243,7 +234,7 @@ auto autonomous_particle::draw_properties() -> bool {
     m_max_t -= 0.01;
   }
   ImGui::SameLine();
-  if (ImGui::DragDouble("end time", &m_max_t, 0.01, 0.0, 1000.0)) {
+  if (ImGui::DragDouble("end time", &m_max_t, 0.001, 0.0, 1000.0)) {
     do_advect = true;
   }
   ImGui::SameLine();
@@ -323,11 +314,14 @@ void autonomous_particle::on_pin_connected(ui::input_pin& /*this_pin*/,
   }
 }
 //------------------------------------------------------------------------------
-void autonomous_particle::generate_random_points_in_initial_circle(
+void autonomous_particle::generate_points_in_initial_circle(
     size_t const n) {
   m_points_on_initial_circle.clear();
   random_uniform<real_t> rand;
   for (size_t i = 0; i < n; ++i) {
+    if (m_stop_thread) {
+      break;
+    }
     real_t alpha = M_PI * 2 * real_t(i) / (n - 1);
     m_points_on_initial_circle.emplace_back(std::cos(alpha) * m_radius,
                                             std::sin(alpha) * m_radius);
@@ -335,21 +329,27 @@ void autonomous_particle::generate_random_points_in_initial_circle(
   }
 }
 //------------------------------------------------------------------------------
-void autonomous_particle::advect_random_points_in_initial_circle() {
+void autonomous_particle::advect_points_in_initial_circle() {
   m_advected_points_on_initial_circle.clear();
   for (auto const& x : m_points_on_initial_circle) {
+    if (m_stop_thread) {
+      break;
+    }
     m_advected_points_on_initial_circle.push_back(
         phi()(x, m_t0, m_max_t - m_t0));
   }
 }
 //------------------------------------------------------------------------------
-void autonomous_particle::upload_advected_random_points_in_initial_circle() {
+void autonomous_particle::upload_advected_points_in_initial_circle() {
   m_gpu_advected_points_on_initial_circle.indexbuffer().resize(
       size(m_advected_points_on_initial_circle) * 2);
   m_gpu_advected_points_on_initial_circle.vertexbuffer().resize(
       size(m_advected_points_on_initial_circle));
   size_t i = 0;
   for (auto const& x : m_advected_points_on_initial_circle) {
+    if (m_stop_thread) {
+      break;
+    }
     m_gpu_advected_points_on_initial_circle.vertexbuffer()[i] = {
         static_cast<float>(x(0)), static_cast<float>(x(1)), 0.0f};
     m_gpu_advected_points_on_initial_circle.indexbuffer()[i * 2] = i;

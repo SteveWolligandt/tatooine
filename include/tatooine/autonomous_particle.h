@@ -168,26 +168,26 @@ struct autonomous_particle {
                                    size_t const        max_num_particles,
                                    std::vector<this_t> particles,
                                    bool const&         stop = false) {
-    static real_t const x5 = 0.4830517593887872;
+    //static real_t const x5 = 0.4830517593887872;
     return advect(tau_step, max_t, 4, max_num_particles,
-                  //std::array{vec_t{real_t(1),             real_t(1) / real_t(2)},
-                  //           vec_t{real_t(1) / real_t(2), real_t(1) / real_t(4)},
-                  //           vec_t{real_t(1) / real_t(2), real_t(1) / real_t(4)}},
-                  //std::array{vec_t{0, 0},
-                  //           vec_t{real_t(3) / 4, 0},
-                  //           vec_t{-real_t(3) / 4, 0}},
-                  std::array{vec_t{x5, x5/2},
-                             vec_t{x5, x5/2},
-                             vec_t{x5, x5/2},
-                             vec_t{x5, x5/2},
+                  std::array{vec_t{real_t(1),             real_t(1) / real_t(2)},
                              vec_t{real_t(1) / real_t(2), real_t(1) / real_t(4)},
                              vec_t{real_t(1) / real_t(2), real_t(1) / real_t(4)}},
-                  std::array{vec_t{-x5/2, -x5},
-                             vec_t{x5/2, -x5},
-                             vec_t{-x5/2, x5},
-                             vec_t{x5/2, x5},
-                             vec_t{real_t(3) / 4, 0},
-                             vec_t{-real_t(3) / 4, 0}},
+                  std::array{vec_t{0, 0},
+                             vec_t{0, real_t(3) / 4},
+                             vec_t{0, -real_t(3) / 4}},
+                  //std::array{vec_t{x5, x5/2},
+                  //           vec_t{x5, x5/2},
+                  //           vec_t{x5, x5/2},
+                  //           vec_t{x5, x5/2},
+                  //           vec_t{real_t(1) / real_t(2), real_t(1) / real_t(4)},
+                  //           vec_t{real_t(1) / real_t(2), real_t(1) / real_t(4)}},
+                  //std::array{vec_t{-x5, -x5/2},
+                  //           vec_t{x5, -x5/2},
+                  //           vec_t{-x5, x5/2},
+                  //           vec_t{x5, x5/2},
+                  //           vec_t{0,real_t(3) / 4},
+                  //           vec_t{0,-real_t(3) / 4}},
                   std::move(particles), stop);
   }
   ////----------------------------------------------------------------------------
@@ -301,25 +301,26 @@ struct autonomous_particle {
           auto        new_particles = particle.advect_until_split(
               tau_step, max_t, objective_cond, radii, offsets);
 
-          //if (size(new_particles) == 1) {
-          //  std::lock_guard lock{finished_particles_mutex};
-          //  std::copy(begin(new_particles), end(new_particles),
-          //            std::back_inserter(finished_particles));
-          //} else {
-          //  std::lock_guard lock{inactive_particles_mutex};
-          //  std::copy(begin(new_particles), end(new_particles),
-          //            std::back_inserter(*inactive));
-          //}
-          {
+          if (size(new_particles) == 1) {
             std::lock_guard lock{finished_particles_mutex};
             std::copy(begin(new_particles), end(new_particles),
                       std::back_inserter(finished_particles));
-          }
-          if (size(new_particles) > 1) {
+          } else {
             std::lock_guard lock{inactive_particles_mutex};
             std::copy(begin(new_particles), end(new_particles),
                       std::back_inserter(*inactive));
           }
+          //{
+          //  std::lock_guard lock{finished_particles_mutex};
+          //  std::copy(begin(new_particles), end(new_particles),
+          //            std::back_inserter(finished_particles));
+          //}
+          //if (size(new_particles) > 1) {
+          //  std::lock_guard lock{inactive_particles_mutex};
+          //  //new_particles.pop_back();
+          //  std::copy(begin(new_particles), end(new_particles),
+          //            std::back_inserter(*inactive));
+          //}
         }
       }
 
@@ -357,8 +358,8 @@ struct autonomous_particle {
     mat_t      H, HHt, nabla_phi2, fmg2fmg1;
     std::pair<mat_t, vec_t> eig_HHt;
     real_t                  old_cond_HHt = 1, cond_HHt = 1;
-    auto const&             eigvecs_HHt = eig_HHt.first;
-    auto const&             eigvals_HHt = eig_HHt.second;
+    auto const&             cur_Q = eig_HHt.first;
+    auto const&             cur_lambdas = eig_HHt.second;
     vec_t                   advected_center;
     real_t                  t2 = m_t1;
 
@@ -369,37 +370,39 @@ struct autonomous_particle {
 
       advected_center = m_phi(m_x1, m_t1, t2 - m_t1);
       for (size_t i = 0; i < num_dimensions(); ++i) {
-        H.col(i) = m_phi(m_x1 + B.col(i), m_t1, t2 - m_t1) -
-                   m_phi(m_x1 - B.col(i), m_t1, t2 - m_t1);
+        H.col(i) =
+            m_phi(m_x1 + B.col(i), m_t1, t2 - m_t1) -
+            m_phi(m_x1 - B.col(i), m_t1, t2 - m_t1) ;
       }
       H /= 2;
       HHt      = H * transposed(H);
       eig_HHt  = eigenvectors_sym(HHt);
-      cond_HHt = eigvals_HHt(num_dimensions() - 1) / eigvals_HHt(0);
+      cond_HHt = cur_lambdas(num_dimensions() - 1) / cur_lambdas(0);
 
-      nabla_phi2 = H * *solve(Sigma, transposed(Q));
+      nabla_phi2 = H * *inv(Sigma) *  transposed(Q);
       fmg2fmg1   = nabla_phi2 * m_nabla_phi1;
 
-      auto const current_radii = sqrt(eigvals_HHt);
-      auto const cur_S =
-          eigvecs_HHt * diag(current_radii) * transposed(eigvecs_HHt);
+      auto const current_radii = sqrt(cur_lambdas);
+      auto const cur_B         = cur_Q * diag(current_radii);
+      auto const cur_S         = cur_B * transposed(cur_Q);
 
-        std::vector<this_t> splits;
+      std::vector<this_t> splits;
       if (t2 == max_t) {
         splits.emplace_back(m_phi, m_x0, advected_center, t2, fmg2fmg1, cur_S);
         return splits;
       } else if (cond_HHt >= objective_cond &&
-                 (cond_HHt - objective_cond < 0.0001 || tau_step < 1e-13)) {
+                 (cond_HHt - objective_cond < 0.000001 || tau_step < 1e-13)) {
 
         for (size_t i = 0; i < size(radii); ++i) {
           auto const new_eigvals = current_radii * radii[i];
           auto const new_S =
-              eigvecs_HHt * diag(new_eigvals) * transposed(eigvecs_HHt);
-          auto const offset2     = cur_S * offsets[i];
-          auto const offset0     = solve(fmg2fmg1, offset2);
-          splits.emplace_back(m_phi, m_x0 - offset0, advected_center - offset2,
+              cur_Q * diag(new_eigvals) * transposed(cur_Q);
+          auto const offset2     = cur_B * offsets[i];
+          auto const offset0     = *inv(fmg2fmg1) * offset2;
+          splits.emplace_back(m_phi, m_x0 + offset0, advected_center + offset2,
                               t2, fmg2fmg1, new_S);
         }
+        //splits.emplace_back(m_phi, m_x0, advected_center, t2, fmg2fmg1, cur_S);
         return splits;
       } else if (cond_HHt >= objective_cond &&
                  cond_HHt - objective_cond >= 0.00001) {
