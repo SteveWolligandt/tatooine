@@ -534,6 +534,28 @@ void scene::write(std::filesystem::path const& filepath) const {
     toml_scene.insert(std::to_string(link.get_id_number()), serialized_link);
   }
 
+  // write camera
+  // TODO write perspective camera settings
+  toml::table serialized_camera;
+  toml::table serialized_orthographic_camera;
+  auto const& ortho_cam = m_cam->orthographic_camera();
+  serialized_orthographic_camera.insert(
+      "eye",
+      toml::array{ortho_cam.eye()(0), ortho_cam.eye()(1), ortho_cam.eye()(2)});
+  serialized_orthographic_camera.insert(
+      "lookat", toml::array{ortho_cam.lookat()(0), ortho_cam.lookat()(1),
+                            ortho_cam.lookat()(2)});
+  serialized_orthographic_camera.insert(
+      "up",
+      toml::array{ortho_cam.up()(0), ortho_cam.up()(1), ortho_cam.up()(2)});
+  serialized_orthographic_camera.insert("far", ortho_cam.far());
+  serialized_orthographic_camera.insert("height", ortho_cam.height());
+  serialized_orthographic_camera.insert("near", ortho_cam.near());
+  serialized_camera.insert("orthographic", serialized_orthographic_camera);
+  serialized_camera.insert("kind", "camera");
+  serialized_camera.insert("controller", type_name(m_cam->controller().type()));
+  toml_scene.insert("camera", serialized_camera);
+
   std::ofstream fout{filepath};
   if (fout.is_open()) {
     fout << toml_scene << '\n';
@@ -594,7 +616,7 @@ void scene::read(std::filesystem::path const& filepath) {
       n->enable(enabled);
 
       // enable or disable
-      if (n-> has_self_pin()) {
+      if (n->has_self_pin()) {
         n->self_pin().set_id(serialized_node["self_pin"].as_integer()->get());
       }
 
@@ -620,7 +642,50 @@ void scene::read(std::filesystem::path const& filepath) {
       auto& l = m_links.emplace_back(id, *input_pin, *output_pin);
       input_pin->set_link(l);
       output_pin->insert_link(l);
-      //ax::NodeEditor::Link(l.get_id(), l.input().get_id(), l.output().get_id());
+      // ax::NodeEditor::Link(l.get_id(), l.input().get_id(),
+      // l.output().get_id());
+    }
+  }
+  for (auto const& [id_string, item] : toml_scene) {
+    auto const& serialized_node = *item.as_table();
+    auto const  kind            = serialized_node["kind"].as_string()->get();
+    if (kind == "camera") {
+      auto const& controller_type_name =
+          serialized_node["controller"].as_string()->get();
+      if (controller_type_name ==
+          type_name(typeid(rendering::orthographic_camera_controller<float>))) {
+        m_cam->use_orthographic_camera();
+        m_cam->use_orthographic_controller();
+      }
+      // TODO read perspective camera settings
+      {
+        auto const& serialized_orthographic_camera =
+            *serialized_node["orthographic"].as_table();
+
+        auto const& eye = *serialized_orthographic_camera["eye"].as_array();
+        auto const& lookat =
+            *serialized_orthographic_camera["lookat"].as_array();
+        auto const& up = *serialized_orthographic_camera["up"].as_array();
+
+        auto const near =
+            serialized_orthographic_camera["near"].as_floating_point()->get();
+        auto const far =
+            serialized_orthographic_camera["far"].as_floating_point()->get();
+        auto const height =
+            serialized_orthographic_camera["height"].as_floating_point()->get();
+
+        m_cam->orthographic_camera().setup(
+            vec3f{eye[0].as_floating_point()->get(),
+                  eye[1].as_floating_point()->get(),
+                  eye[2].as_floating_point()->get()},
+            vec3f{lookat[0].as_floating_point()->get(),
+                  lookat[1].as_floating_point()->get(),
+                  lookat[2].as_floating_point()->get()},
+            vec3f{up[0].as_floating_point()->get(),
+                  up[1].as_floating_point()->get(),
+                  up[2].as_floating_point()->get()},
+            height, near, far, window().width(), window().height());
+      }
     }
   }
   ax::NodeEditor::SetCurrentEditor(nullptr);

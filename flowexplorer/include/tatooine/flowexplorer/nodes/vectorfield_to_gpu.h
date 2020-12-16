@@ -60,7 +60,7 @@ struct vectorfield_to_gpu : ui::node<vectorfield_to_gpu>, yavin::tex2rg32f {
     }
   }
   //----------------------------------------------------------------------------
-  auto on_property_changed() -> void {
+  auto on_property_changed() -> void override {
     if (m_v != nullptr && m_bb != nullptr) {
       upload();
     }

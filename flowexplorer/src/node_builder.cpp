@@ -27,8 +27,8 @@ auto node_builder::end() -> void {
 
   ed::EndNode();
 
-  if (ImGui::IsItemVisible()) {
-    auto alpha = static_cast<int>(255 * ImGui::GetStyle().Alpha);
+  //if (ImGui::IsItemVisible()) {
+    //auto alpha = static_cast<int>(255 * ImGui::GetStyle().Alpha);
 
     //auto drawList = ed::GetNodeBackgroundDrawList(m_cur_node_id);
 
@@ -60,7 +60,7 @@ auto node_builder::end() -> void {
     //        ImColor(255, 255, 255, 96 * alpha / (3 * 255)), 1.0f);
     //  }
     //}
-  }
+  //}
 
   m_cur_node_id = 0;
 

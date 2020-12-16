@@ -37,7 +37,7 @@ struct autonomous_particle
   yavin::indexeddata<gpu_vec3> m_initial_ellipses_back_calculation;
   yavin::indexeddata<gpu_vec3> m_pathlines;
   std::array<GLfloat, 4>       m_ellipses_color{0.0f, 0.0f, 0.0f, 1.0f};
-  bool                         m_integration_going_on = false;
+  bool                         m_currently_advecting  = false;
   bool                         m_needs_another_update = false;
   bool                         m_stop_thread          = false;
   int                          m_num_splits           = 3;
@@ -58,8 +58,8 @@ struct autonomous_particle
   //============================================================================
   autonomous_particle(flowexplorer::scene& s);
   //============================================================================
-  void render(mat<float, 4, 4> const& projection_matrix,
-              mat<float, 4, 4> const& view_matrix) final;
+  void render(mat4f const& projection_matrix,
+              mat4f const& view_matrix) final;
   //----------------------------------------------------------------------------
  private:
   void advect();
@@ -73,13 +73,16 @@ struct autonomous_particle
   void on_pin_connected(ui::input_pin&  this_pin,
                         ui::output_pin& other_pin) final;
   //----------------------------------------------------------------------------
-  void update(std::chrono::duration<double> const& /*dt*/) {
-    if (m_needs_another_update && !m_integration_going_on) {
+  void update(std::chrono::duration<double> const& /*dt*/) override {
+    if (m_needs_another_update && !m_currently_advecting) {
       advect();
     }
   }
   void update_initial_circle();
-  auto on_property_changed() -> void override { update_initial_circle();advect(); }
+  auto on_property_changed() -> void override {
+    update_initial_circle();
+    advect();
+  }
   void generate_random_points_in_initial_circle(size_t const n);
   void advect_random_points_in_initial_circle();
   void upload_advected_random_points_in_initial_circle();

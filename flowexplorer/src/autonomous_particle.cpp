@@ -18,8 +18,8 @@ autonomous_particle::autonomous_particle(flowexplorer::scene& s)
   t1() = m_t0;
 }
 //============================================================================
-void autonomous_particle::render(mat<float, 4, 4> const& projection_matrix,
-                                 mat<float, 4, 4> const& view_matrix) {
+void autonomous_particle::render(mat4f const& projection_matrix,
+                                 mat4f const& view_matrix) {
   m_line_shader.set_projection_matrix(projection_matrix);
   m_line_shader.set_modelview_matrix(view_matrix);
   m_line_shader.bind();
@@ -68,12 +68,12 @@ void autonomous_particle::update_initial_circle() {
 }
 
 void autonomous_particle::advect() {
-  if (m_integration_going_on) {
+  if (m_currently_advecting) {
     m_stop_thread          = true;
     m_needs_another_update = true;
     return;
   }
-  m_integration_going_on = true;
+  m_currently_advecting  = true;
   m_stop_thread          = false;
   m_needs_another_update = false;
 
@@ -85,18 +85,18 @@ void autonomous_particle::advect() {
 
     auto const particles = [&node] {
       switch (node->m_num_splits) {
-        case 2:
-          return node->advect_with_2_splits(node->m_taustep, node->m_max_t,
-                                            node->m_stop_thread);
+        //case 2:
+        //  return node->advect_with_2_splits(node->m_taustep, node->m_max_t,
+        //                                    node->m_stop_thread);
         case 3:
           return node->advect_with_3_splits(node->m_taustep, node->m_max_t,
                                             node->m_stop_thread);
-        case 5:
-          return node->advect_with_5_splits(node->m_taustep, node->m_max_t,
-                                            node->m_stop_thread);
-        case 7:
-          return node->advect_with_7_splits(node->m_taustep, node->m_max_t,
-                                            node->m_stop_thread);
+        //case 5:
+        //  return node->advect_with_5_splits(node->m_taustep, node->m_max_t,
+        //                                    node->m_stop_thread);
+        //case 7:
+        //  return node->advect_with_7_splits(node->m_taustep, node->m_max_t,
+        //                                    node->m_stop_thread);
       }
       return std::vector<parent_t>{};
     }();
@@ -137,8 +137,7 @@ void autonomous_particle::advect() {
     // back_advected ellipses
     {
       {
-        std::lock_guard
-        lock{node->m_initial_ellipses_back_calculation.mutex()};
+        std::lock_guard lock{node->m_initial_ellipses_back_calculation.mutex()};
         node->m_initial_ellipses_back_calculation.clear();
       }
       i = 0;
@@ -146,15 +145,13 @@ void autonomous_particle::advect() {
         if (node->m_stop_thread) {
           break;
         }
-        std::lock_guard
-        lock{node->m_initial_ellipses_back_calculation.mutex()}; for (auto
-        const& x : discretized_ellipse.vertices()) {
+        std::lock_guard lock{node->m_initial_ellipses_back_calculation.mutex()};
+        for (auto const& x : discretized_ellipse.vertices()) {
           if (node->m_stop_thread) {
             break;
           }
-          auto sqrS = *inv(particle.nabla_phi1()) * particle.S() * particle.S()
-          *
-                      *inv(transposed(particle.nabla_phi1()));
+          auto sqrS = *inv(particle.nabla_phi1()) * particle.S() *
+                      particle.S() * *inv(transposed(particle.nabla_phi1()));
           auto [eig_vecs, eig_vals] = eigenvectors_sym(sqrS);
           eig_vals = {std::sqrt(eig_vals(0)), std::sqrt(eig_vals(1))};
           auto S   = eig_vecs * diag(eig_vals) * transposed(eig_vecs);
@@ -182,51 +179,50 @@ void autonomous_particle::advect() {
     // pathlines
     {
       {
-        std::lock_guard
-        lock{node->m_pathlines.mutex()};
+        std::lock_guard lock{node->m_pathlines.mutex()};
         node->m_pathlines.clear();
       }
-      i = 0;
+      size_t index = 0;
       for (auto const& particle : particles) {
         if (node->m_stop_thread) {
           break;
         }
-        std::lock_guard
-        lock{node->m_pathlines.mutex()}; for (auto
-        const& x : discretized_ellipse.vertices()) {
-          if (node->m_stop_thread) {
-            break;
+        std::lock_guard lock{node->m_pathlines.mutex()};
+
+        bool       insert_segment = false;
+        auto       y              = particle.x0();
+        auto       t              = node->m_t0;
+        auto const t_dist         = 0.01;
+        do {
+          node->m_pathlines.vertexbuffer().push_back(gpu_vec3{
+              static_cast<GLfloat>(y(0)), static_cast<GLfloat>(y(1)), 0});
+          if (insert_segment) {
+            node->m_pathlines.indexbuffer().push_back(index - 1);
+            node->m_pathlines.indexbuffer().push_back(index);
+          } else {
+            insert_segment = true;
           }
-          auto sqrS = *inv(particle.nabla_phi1()) * particle.S() * particle.S()
-          *
-                      *inv(transposed(particle.nabla_phi1()));
-          auto [eig_vecs, eig_vals] = eigenvectors_sym(sqrS);
-          eig_vals = {std::sqrt(eig_vals(0)), std::sqrt(eig_vals(1))};
-          auto S   = eig_vecs * diag(eig_vals) * transposed(eig_vecs);
-          auto y   = S * x + particle.x0();
-          node->m_pathlines.vertexbuffer().push_back(
-              gpu_vec3{static_cast<float>(y(0)), static_cast<float>(y(1)),
-                       static_cast<float>(particle.t1())});
-          node->m_pathlines.indexbuffer().push_back(
-              i++);
-          node->m_pathlines.indexbuffer().push_back(i);
-        }
-        auto sqrS = *inv(particle.nabla_phi1()) * particle.S() * particle.S() *
-                    *inv(transposed(particle.nabla_phi1()));
-        auto [eig_vecs, eig_vals] = eigenvectors_sym(sqrS);
-        eig_vals = {std::sqrt(eig_vals(0)), std::sqrt(eig_vals(1))};
-        auto S   = eig_vecs * diag(eig_vals) * transposed(eig_vecs);
-        auto y   = S * discretized_ellipse.front_vertex() + particle.x0();
-        node->m_pathlines.vertexbuffer().push_back(
-            gpu_vec3{static_cast<float>(y(0)), static_cast<float>(y(1)),
-                     static_cast<float>(particle.t1())});
-        ++i;
+          ++index;
+          y = node->phi()(y, t, t_dist);
+          t += t_dist;
+          t = std::min(t, particle.t1());
+        } while (t < particle.t1());
+        node->m_pathlines.vertexbuffer().push_back(gpu_vec3{
+            static_cast<GLfloat>(y(0)), static_cast<GLfloat>(y(1)), 0});
+        if (insert_segment) {
+          node->m_pathlines.indexbuffer().push_back(index - 1);
+          node->m_pathlines.indexbuffer().push_back(index);
+          } else {
+            insert_segment = true;
+          }
+          ++index;
+          y = node->phi()(y, t, t_dist);
       }
     }
-    node->m_integration_going_on = false;
+    node->m_currently_advecting = false;
   };
 
-  //this->scene().window().do_async(run);
+  // this->scene().window().do_async(run);
   run();
 }
 //----------------------------------------------------------------------------
@@ -258,7 +254,7 @@ auto autonomous_particle::draw_properties() -> bool {
 
   ImGui::ColorEdit4("ellipses color", m_ellipses_color.data());
   do_advect |= ImGui::Button("advect");
-  if (m_integration_going_on && !m_stop_thread) {
+  if (m_currently_advecting && !m_stop_thread) {
     ImGui::SameLine();
     if (ImGui::Button("terminate")) {
       m_stop_thread = true;
