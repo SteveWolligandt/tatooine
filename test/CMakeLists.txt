@@ -32,7 +32,7 @@ macro(create_test NAME)
     target_compile_options(${NAME}.test PRIVATE -Wno-unused-lambda-capture)
   endif()
   #target_compile_definitions(${NAME}.test PRIVATE CATCH_CONFIG_FAST_COMPILE)
-  add_custom_target (${NAME}.test.run COMMAND ./${NAME}.test --use-colour=yes --success DEPENDS ${NAME}.test)
+  add_custom_target (${NAME}.test.run COMMAND ./${NAME}.test --use-colour=yes DEPENDS ${NAME}.test)
   if("${CMAKE_CXX_COMPILER_ID}" STREQUAL "GNU" OR
      "${CMAKE_CXX_COMPILER_ID}" STREQUAL "Clang")
     if(CMAKE_BUILD_TYPE STREQUAL "Debug")
