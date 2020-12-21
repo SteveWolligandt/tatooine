@@ -25,28 +25,104 @@ auto condition_number(const base_tensor<Tensor, T, N, N>& A, PReal p) {
   return condition_number(tensor{A}, p);
 }
 //==============================================================================
-template <size_t N>
-auto eigenvalues(tensor<float, N, N> A) -> vec<std::complex<float>, N> {
-  [[maybe_unused]] lapack_int info;
-  std::array<float, N>        wr;
-  std::array<float, N>        wi;
-  info = LAPACKE_sgeev(LAPACK_COL_MAJOR, 'N', 'N', N, A.data_ptr(), N,
-                       wr.data(), wi.data(), nullptr, N, nullptr, N);
-
-  vec<std::complex<float>, N> vals;
-  for (size_t i = 0; i < N; ++i) { vals[i] = {wr[i], wi[i]}; }
-  return vals;
+//template <typename Tensor, typename Real>
+//constexpr auto eigenvectors_sym(base_tensor<Tensor, Real, 2, 2> const& A) {
+//  decltype(auto) b     = A(1, 0);
+//  if (b == 0) {
+//    return std::pair{mat<Real, 2, 2>::eye(), vec<Real, 2>{A(0, 0), A(1, 1)}};
+//  }
+//
+//  decltype(auto) a     = A(0, 0);
+//  decltype(auto) d     = A(1, 1);
+//  auto const     e_sqr = d * d - 2 * a * d + 4 * b * b + a * a;
+//  auto const     e     = std::sqrt(e_sqr);
+//  constexpr auto half  = 1 / Real(2);
+//  auto const     b2inv = 1 / (2 * b);
+//  std::pair      out{mat<Real, 2, 2>{{Real(1), Real(1)},
+//                                {-(e - d + a) * b2inv, (e + d - a) * b2inv}},
+//                vec<Real, 2>{-(e - d - a) * half, (e + d + a) * half}};
+//  if (out.second(0) > out.second(1)) {
+//    std::swap(out.first(1, 0), out.first(1, 1));
+//    std::swap(out.second(0), out.second(1));
+//  }
+//  if (out.first(1, 0) < 0) {
+//    out.first.col(0) *= -1;
+//  }
+//  if (out.first(1, 1) < 0) {
+//    out.first.col(1) *= -1;
+//  }
+//  out.first.col(0) /= std::sqrt(1 + out.first(1, 0) * out.first(1, 0));
+//  out.first.col(1) /= std::sqrt(1 + out.first(1, 1) * out.first(1, 1));
+//  return out;
+//}
+//------------------------------------------------------------------------------
+template <typename Tensor, typename Real, size_t N>
+auto eigenvectors_sym(base_tensor<Tensor, Real, N, N> const& A) {
+  return lapack::syev(A);
 }
+//------------------------------------------------------------------------------
+template <typename Tensor, typename Real>
+constexpr auto eigenvalues_22(base_tensor<Tensor, Real, 2, 2> const& A)
+    -> vec<std::complex<Real>, 2> {
+  decltype(auto) b   = A(1, 0);
+  decltype(auto) c   = A(0, 1);
+  //if (std::abs(b - c) < 1e-10) {
+  //  return eigenvalues_22_sym(A);
+  //}
+  decltype(auto) a   = A(0, 0);
+  decltype(auto) d   = A(1, 1);
+  auto const     sqr = d * d - 2 * a * d + 4 * b * c + a * a;
+
+  vec<std::complex<Real>, 2> s;
+  if (sqr >= 0) {
+    s(0).real(-(std::sqrt(sqr) - d - a) / 2);
+    s(1).real((std::sqrt(sqr) + d + a) / 2);
+  } else {
+    s(0).real((d + a) / 2);
+    s(1).real(s(0).real());
+    s(0).imag(std::sqrt(std::abs(sqr)) / 2);
+    s(1).imag(-s(0).imag());
+  }
+  return s;
+}
+// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 template <size_t N>
-auto eigenvalues(tensor<double, N, N> A) -> vec<std::complex<double>, N> {
-  [[maybe_unused]] lapack_int info;
-  std::array<double, N>       wr;
-  std::array<double, N>       wi;
-  info = LAPACKE_dgeev(LAPACK_COL_MAJOR, 'N', 'N', N, A.data_ptr(), N,
-                       wr.data(), wi.data(), nullptr, N, nullptr, N);
-  vec<std::complex<double>, N> vals;
-  for (size_t i = 0; i < N; ++i) { vals[i] = {wr[i], wi[i]}; }
-  return vals;
+constexpr auto eigenvalues(tensor<float, N, N> A)
+    -> vec<std::complex<float>, N> {
+  if constexpr (N == 2) {
+    return eigenvalues_22(A);
+  } else {
+    [[maybe_unused]] lapack_int info;
+    std::array<float, N>        wr;
+    std::array<float, N>        wi;
+    info = LAPACKE_sgeev(LAPACK_COL_MAJOR, 'N', 'N', N, A.data_ptr(), N,
+                         wr.data(), wi.data(), nullptr, N, nullptr, N);
+
+    vec<std::complex<float>, N> vals;
+    for (size_t i = 0; i < N; ++i) {
+      vals[i] = {wr[i], wi[i]};
+    }
+    return vals;
+  }
+}
+// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+template <size_t N>
+constexpr auto eigenvalues(tensor<double, N, N> A)
+    -> vec<std::complex<double>, N> {
+  if constexpr (N == 2) {
+    return eigenvalues_22(A);
+  } else {
+    [[maybe_unused]] lapack_int info;
+    std::array<double, N>       wr;
+    std::array<double, N>       wi;
+    info = LAPACKE_dgeev(LAPACK_COL_MAJOR, 'N', 'N', N, A.data_ptr(), N,
+                         wr.data(), wi.data(), nullptr, N, nullptr, N);
+    vec<std::complex<double>, N> vals;
+    for (size_t i = 0; i < N; ++i) {
+      vals[i] = {wr[i], wi[i]};
+    }
+    return vals;
+  }
 }
 //------------------------------------------------------------------------------
 template <size_t N>
@@ -76,6 +152,7 @@ auto eigenvectors(tensor<float, N, N> A)
 
   return {std::move(vecs), std::move(vals)};
 }
+//------------------------------------------------------------------------------
 template <size_t N>
 auto eigenvectors(tensor<double, N, N> A)
     -> std::pair<mat<std::complex<double>, N, N>,
@@ -103,44 +180,6 @@ auto eigenvectors(tensor<double, N, N> A)
   }
 
   return {std::move(vecs), std::move(vals)};
-}
-//------------------------------------------------------------------------------
-template <size_t N>
-auto eigenvalues_sym(tensor<float, N, N> A) {
-  vec<float, N>               vals;
-  [[maybe_unused]] lapack_int info;
-  info = LAPACKE_ssyev(LAPACK_COL_MAJOR, 'N', 'U', N, A.data_ptr(), N,
-                       vals.data_ptr());
-  return vals;
-}
-template <size_t N>
-auto eigenvalues_sym(tensor<double, N, N> A) {
-  vec<double, N>              vals;
-  [[maybe_unused]] lapack_int info;
-  info = LAPACKE_dsyev(LAPACK_COL_MAJOR, 'N', 'U', N, A.data_ptr(), N,
-                       vals.data_ptr());
-
-  return vals;
-}
-
-//------------------------------------------------------------------------------
-template <size_t N>
-auto eigenvectors_sym(mat<float, N, N> A)
-    -> std::pair<mat<float, N, N>, vec<float, N>> {
-  vec<float, N>               vals;
-  [[maybe_unused]] lapack_int info;
-  info = LAPACKE_ssyev(LAPACK_COL_MAJOR, 'V', 'U', N, A.data_ptr(), N,
-                       vals.data_ptr());
-  return {std::move(A), std::move(vals)};
-}
-template <size_t N>
-auto eigenvectors_sym(mat<double, N, N> A)
-    -> std::pair<mat<double, N, N>, vec<double, N>> {
-  vec<double, N>              vals;
-  [[maybe_unused]] lapack_int info;
-  info = LAPACKE_dsyev(LAPACK_COL_MAJOR, 'V', 'U', N, A.data_ptr(), N,
-                       vals.data_ptr());
-  return {std::move(A), std::move(vals)};
 }
 //==============================================================================
 template <typename T, size_t M, size_t N>

@@ -23,42 +23,43 @@ endif()
 set(TATOOINE_TEST_CPPS main.cpp)
 macro(create_test NAME)
   list(APPEND TATOOINE_TEST_CPPS "${NAME}.cpp")
-  add_executable (${NAME}.test ${NAME}.cpp main.cpp)
-  target_link_libraries(${NAME}.test tatooine Catch2::Catch2)
-  target_compile_features(${NAME}.test PUBLIC cxx_std_20)
-  target_compile_options(${NAME}.test PRIVATE
+  add_executable (unittests.${NAME} ${NAME}.cpp main.cpp)
+  target_link_libraries(unittests.${NAME} tatooine Catch2::Catch2)
+  target_include_directories(unittests.${NAME} PRIVATE ${CMAKE_SOURCE_DIR}/external/catch2/include)
+  target_compile_features(unittests.${NAME} PUBLIC cxx_std_20)
+  target_compile_options(unittests.${NAME} PRIVATE
     -Wall -Wextra -pedantic -Wno-missing-braces -Wno-gnu-zero-variadic-macro-arguments -ftemplate-backtrace-limit=0)
   if (CMAKE_CXX_COMPILER_ID STREQUAL "Clang")
-    target_compile_options(${NAME}.test PRIVATE -Wno-unused-lambda-capture)
+    target_compile_options(unittests.${NAME} PRIVATE -Wno-unused-lambda-capture)
   endif()
-  #target_compile_definitions(${NAME}.test PRIVATE CATCH_CONFIG_FAST_COMPILE)
-  add_custom_target (${NAME}.test.run COMMAND ./${NAME}.test --use-colour=yes DEPENDS ${NAME}.test)
+  #target_compile_definitions(unittests.${NAME} PRIVATE CATCH_CONFIG_FAST_COMPILE)
+  add_custom_target (unittests.${NAME}.run COMMAND ./unittests.${NAME} --use-colour=yes DEPENDS unittests.${NAME})
   if("${CMAKE_CXX_COMPILER_ID}" STREQUAL "GNU" OR
      "${CMAKE_CXX_COMPILER_ID}" STREQUAL "Clang")
     if(CMAKE_BUILD_TYPE STREQUAL "Debug")
-      add_custom_target(${NAME}.test.valgrind
-                        COMMAND valgrind --log-file="${NAME}.test.valgrind" --tool=memcheck --leak-check=yes --show-reachable=yes --track-fds=yes ./${NAME}.test
-                        DEPENDS ${NAME}.test)
-      add_custom_target(${NAME}.test.debug
-                        COMMAND cgdb ./${NAME}.test
-                        DEPENDS ${NAME}.test)
+      add_custom_target(unittests.${NAME}.valgrind
+                        COMMAND valgrind --log-file="unittests.${NAME}.valgrind" --tool=memcheck --leak-check=yes --show-reachable=yes --track-fds=yes ./unittests.${NAME}
+                        DEPENDS unittests.${NAME})
+      add_custom_target(unittests.${NAME}.debug
+                        COMMAND cgdb ./unittests.${NAME}
+                        DEPENDS unittests.${NAME})
     endif()
   endif()
-  add_custom_target (${NAME}.test.callgrind
-                     COMMAND valgrind --tool=callgrind --callgrind-out-file=${NAME}.test.callgrind ./${NAME}.test
-                     DEPENDS ${NAME}.test)
-  add_custom_target (${NAME}.test.callgrind.kcachegrind
-                     COMMAND kcachegrind ${NAME}.test.callgrind
-                     DEPENDS ${NAME}.test.callgrind)
-  add_custom_target (${NAME}.test.callgrind.dot
-                     COMMAND gprof2dot --format=callgrind --output=${NAME}.test.dot ${NAME}.test.callgrind
-                     COMMAND dot -Tsvg ${NAME}.test.dot -o ${NAME}.test-graph.svg
-                     DEPENDS ${NAME}.test.callgrind)
+  add_custom_target (unittests.${NAME}.callgrind
+                     COMMAND valgrind --tool=callgrind --callgrind-out-file=unittests.${NAME}.callgrind ./unittests.${NAME}
+                     DEPENDS unittests.${NAME})
+  add_custom_target (unittests.${NAME}.callgrind.kcachegrind
+                     COMMAND kcachegrind unittests.${NAME}.callgrind
+                     DEPENDS unittests.${NAME}.callgrind)
+  add_custom_target (unittests.${NAME}.callgrind.dot
+                     COMMAND gprof2dot --format=callgrind --output=unittests.${NAME}.dot unittests.${NAME}.callgrind
+                     COMMAND dot -Tsvg unittests.${NAME}.dot -o unittests.${NAME}-graph.svg
+                     DEPENDS unittests.${NAME}.callgrind)
   if (TATOOINE_TEST_USE_FAST_MATH)
-    target_compile_options(${NAME}.test PRIVATE -ffast-math)
+    target_compile_options(unittests.${NAME} PRIVATE -ffast-math)
   endif()
   if(CLANG_TIDY_EXECUTABLE AND TATOOINE_USE_CLANG_TIDY)
-    set_target_properties(${NAME}.test PROPERTIES CXX_CLANG_TIDY "${TATOOINE_CLANG_TIDY_CMD}")
+    set_target_properties(unittests.${NAME} PROPERTIES CXX_CLANG_TIDY "${TATOOINE_CLANG_TIDY_CMD}")
   endif()
 endmacro()
 #- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -76,6 +77,7 @@ endforeach()
 #- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 add_executable (unittests main.cpp ${TATOOINE_TEST_CPPS})
 target_link_libraries(unittests tatooine Catch2::Catch2)
+target_include_directories(unittests PRIVATE ${CMAKE_SOURCE_DIR}/external/catch2/include)
 target_compile_options(unittests PRIVATE -Wall -Wextra -pedantic
   -Wno-missing-braces -Wno-unused-lambda-capture -Wno-gnu-zero-variadic-macro-arguments)
 catch_discover_tests(unittests)
@@ -90,7 +92,7 @@ if("${CMAKE_CXX_COMPILER_ID}" STREQUAL "GNU" OR
   else()
     add_custom_target (unittests.valgrind
                        COMMAND echo "" > /dev/null
-                       COMMENT "Target ${BoldRed}unittest.valgrind ${ColourReset}only available in debug mode.")
+                       COMMENT "Target ${BoldRed}unittests.valgrind ${ColourReset}only available in debug mode.")
   endif()
 endif()
 add_custom_target (unittests.callgrind

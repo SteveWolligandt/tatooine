@@ -203,11 +203,11 @@ bool solve_qr(int _n, T* __restrict__ _d, T* __restrict__ _du,
     } else {
       if (fabs(_du[j]) > fabs(_d[j])) {  // Do it the super-stable way!
         T tau = _d[j] / _du[j];          // (avoid overflows)
-        s     = 1 / sqrt(T(1) + tau * tau);
+        s     = 1 / std::sqrt(T(1) + tau * tau);
         c     = s * tau;
       } else {
         T tau = _du[j] / _d[j];
-        c     = 1 / sqrt(T(1) + tau * tau);
+        c     = 1 / std::sqrt(T(1) + tau * tau);
         s     = c * tau;
       }
     }

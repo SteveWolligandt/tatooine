@@ -22,7 +22,7 @@ auto lic::init() -> void {
 //----------------------------------------------------------------------------
 auto lic::write_png() -> void {
   if (m_lic_tex) {
-    std::stringstream str;
+    std::stringstream str{};
     std::string       type_name{
         dynamic_cast<ui::base::node const*>(m_v)->type_name()};
     auto const last_colon_pos = type_name.find_last_of(':');
@@ -78,14 +78,16 @@ void lic::calculate_lic() {
   }
   m_calculating = true;
   this->scene().window().do_async([this] {
-    auto tex = gpu::lic(
-        *m_v,
-        uniform_grid<real_t, 2>{
-            linspace{m_bb->min(0), m_bb->max(0),
-                     static_cast<size_t>(m_v->resolution()(0))},
-            linspace{m_bb->min(1), m_bb->max(1),
-                     static_cast<size_t>(m_v->resolution()(1))}},
-        vec<size_t, 2>{m_lic_res(0), m_lic_res(1)}, m_num_samples, m_stepsize);
+    std::seed_seq seed(begin(m_seed_str), end(m_seed_str));
+    auto tex =
+        gpu::lic(*m_v,
+                 uniform_grid<real_t, 2>{
+                     linspace{m_bb->min(0), m_bb->max(0),
+                              static_cast<size_t>(m_v->resolution()(0))},
+                     linspace{m_bb->min(1), m_bb->max(1),
+                              static_cast<size_t>(m_v->resolution()(1))}},
+                 vec<size_t, 2>{m_lic_res(0), m_lic_res(1)}, m_num_samples,
+                 m_stepsize, {256, 256}, seed);
 
     std::lock_guard lock{m_mutex};
     m_lic_tex     = std::make_unique<yavin::tex2rgba<float>>(std::move(tex));

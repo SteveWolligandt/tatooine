@@ -22,5 +22,5 @@ TEST_CASE("critical_points", "[critical_points]") {
   REQUIRE(!approx_equal(critical_points[0], critical_points[1]));
 }
 //==============================================================================
-}
+}  // namespace tatooine::test
 //==============================================================================

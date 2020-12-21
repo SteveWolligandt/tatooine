@@ -6,9 +6,9 @@ auto sig_handler(int signo) -> void {
   }
 }
 auto main(int argc, char const** argv) -> int {
-  if (signal(SIGINT, sig_handler) == SIG_ERR) {
-    std::cerr << "can't catch SIGINT\n";
-  }
+  //if (signal(SIGINT, sig_handler) == SIG_ERR) {
+  //  std::cerr << "can't catch SIGINT\n";
+  //}
   if (argc == 1) {
     tatooine::flowexplorer::window w{};
   } else if (argc == 2) {
