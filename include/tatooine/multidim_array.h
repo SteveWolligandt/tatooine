@@ -88,9 +88,9 @@ class static_multidim_array
   constexpr static_multidim_array(static_multidim_array&& other) noexcept =
       default;
   //----------------------------------------------------------------------------
-  constexpr auto operator       =(static_multidim_array const& other)
+  constexpr auto operator=(static_multidim_array const& other)
       -> static_multidim_array& = default;
-  constexpr auto operator       =(static_multidim_array&& other) noexcept
+  constexpr auto operator=(static_multidim_array&& other) noexcept
       -> static_multidim_array& = default;
   //----------------------------------------------------------------------------
   ~static_multidim_array() = default;

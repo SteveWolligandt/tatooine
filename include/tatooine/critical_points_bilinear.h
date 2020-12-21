@@ -2,7 +2,6 @@
 #include <vector>
 
 #include "tensor.h"
-
 //==============================================================================
 namespace tatooine {
 namespace detail {
@@ -32,7 +31,7 @@ auto solve_bilinear(const base_tensor<T0, Real, 2>& v00,
   const Real d = 2 * v01(0);
   const Real e = 2 * v10(0);
   const Real f = 2 * v11(0);
-  const Real g = sqrt(
+  const Real g = std::sqrt(
       v00(0) * v00(0) * v11(1) * v11(1) +
       (-c * a - c * b + (4 * v01(0) * v10(0) - c * v11(0)) * v00(1)) * v11(1) +
       v01(0) * a * v10(1) +

@@ -86,6 +86,12 @@ struct numerical_flowmap {
                                        bool const use_caching = true)
       : m_v{w}, m_use_caching{use_caching} {}
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+  template <real_number WReal, size_t N, typename V_ = V>
+  requires holds_field_pointer
+  explicit constexpr numerical_flowmap(parent::vectorfield<WReal, N> * w,
+                                       bool const use_caching = true)
+      : m_v{w}, m_use_caching{use_caching} {}
+  // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
   template <typename V_ = V>
   requires holds_field_pointer
   explicit constexpr numerical_flowmap(bool const use_caching = true)

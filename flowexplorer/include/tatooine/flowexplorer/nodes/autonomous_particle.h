@@ -11,23 +11,26 @@
 namespace tatooine::flowexplorer::nodes {
 //==============================================================================
 struct autonomous_particle
-    : tatooine::autonomous_particle<numerical_flowmap_field_pointer<
-          double, 2, ode::vclibs::rungekutta43, interpolation::cubic>>,
+    : tatooine::autonomous_particle<
+          parent::vectorfield<real_t, 2>*,
+          numerical_flowmap_field_pointer<real_t, 2, ode::vclibs::rungekutta43,
+                                          interpolation::cubic>>,
       renderable<autonomous_particle> {
-  using this_t = autonomous_particle;
-  using parent_t =
-      tatooine::autonomous_particle<numerical_flowmap_field_pointer<
-          double, 2, ode::vclibs::rungekutta43, interpolation::cubic>>;
+  using this_t   = autonomous_particle;
+  using parent_t = tatooine::autonomous_particle<
+      parent::vectorfield<real_t, 2>*,
+      numerical_flowmap_field_pointer<real_t, 2, ode::vclibs::rungekutta43,
+                                      interpolation::cubic>>;
   using gpu_vec3      = vec<GLfloat, 3>;
   using vbo_t         = yavin::vertexbuffer<gpu_vec3>;
-  using vectorfield_t = parent::vectorfield<double, 2>;
+  using vectorfield_t = parent::vectorfield<real_t, 2>;
   using parent_t::advect;
   //============================================================================
-  double          m_taustep = 0.1;
-  double          m_max_t   = 0.0;
-  double          m_radius  = 0.03;
-  vec<double, 2>* m_x0      = nullptr;
-  double          m_t0      = 0;
+  real_t          m_taustep = 0.1;
+  real_t          m_max_t   = 0.0;
+  real_t          m_radius  = 0.03;
+  vec<real_t, 2>* m_x0      = nullptr;
+  real_t          m_t0      = 0;
 
   line_shader  m_line_shader;
   point_shader m_point_shader;
@@ -70,22 +73,19 @@ struct autonomous_particle
   //----------------------------------------------------------------------------
   auto is_transparent() const -> bool final;
   //----------------------------------------------------------------------------
-  void on_pin_connected(ui::input_pin&  this_pin,
-                        ui::output_pin& other_pin) final;
+  auto on_pin_connected(ui::input_pin& this_pin, ui::output_pin& other_pin)
+      -> void final;
   //----------------------------------------------------------------------------
-  void update(std::chrono::duration<double> const& /*dt*/) override {
+  auto update(std::chrono::duration<real_t> const& /*dt*/) -> void override {
     if (m_needs_another_update && !m_currently_advecting) {
       advect();
     }
   }
-  void update_initial_circle();
-  auto on_property_changed() -> void override {
-    update_initial_circle();
-    advect();
-  }
-  void generate_points_in_initial_circle(size_t const n);
-  void advect_points_in_initial_circle();
-  void upload_advected_points_in_initial_circle();
+  auto update_initial_circle() -> void;
+  auto on_property_changed() -> void override;
+  auto generate_points_in_initial_circle(size_t const n) -> void;
+  auto advect_points_in_initial_circle() -> void;
+  auto upload_advected_points_in_initial_circle() -> void;
 };
 //==============================================================================
 }  // namespace tatooine::flowexplorer::nodes

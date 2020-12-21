@@ -41,6 +41,8 @@ struct saddle_flowmap {
   using real_t = Real;
   using vec_t  = vec<Real, 2>;
   using pos_t  = vec_t;
+  saddle_flowmap() = default;
+  saddle_flowmap(saddle<Real> const&) {}
   static constexpr auto num_dimensions() { return 2; }
   //----------------------------------------------------------------------------
   constexpr auto evaluate(pos_t const& x, Real const /*t*/,

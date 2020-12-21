@@ -279,6 +279,20 @@ auto gesvd(tensor<T, M, N>&& A, JOBU, JOBVT) {
     }
   }
 }
+//------------------------------------------------------------------------------
+template <typename Tensor, typename Real, size_t N>
+auto syev(base_tensor<Tensor, Real, N, N> const& A) {
+  std::pair                   out{mat<Real, N, N>{A}, vec<Real, N>{}};
+  [[maybe_unused]] lapack_int info;
+  if constexpr (std::is_same_v<Real, float>) {
+    info = LAPACKE_ssyev(LAPACK_COL_MAJOR, 'V', 'U', N, out.first.data_ptr(), N,
+                         out.second.data_ptr());
+  } else if constexpr (std::is_same_v<Real, double>) {
+    info = LAPACKE_dsyev(LAPACK_COL_MAJOR, 'V', 'U', N, out.first.data_ptr(), N,
+                         out.second.data_ptr());
+  }
+  return out;
+}
 //==============================================================================
 }  // namespace tatooine::lapack
 //==============================================================================

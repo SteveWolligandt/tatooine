@@ -213,7 +213,7 @@ auto solve(polynomial<Real, 2> const& p) -> std::vector<Real> {
   }
   std::vector<Real> solutions;
   solutions.reserve(2);
-  Real q = (b > 0) ? -0.5 * (b + sqrt(discr)) : -0.5 * (b - sqrt(discr));
+  Real q = (b > 0) ? -0.5 * (b + std::sqrt(discr)) : -0.5 * (b - std::sqrt(discr));
   solutions.push_back(q / c);
   solutions.push_back(a / q);
   std::swap(solutions[0], solutions[1]);

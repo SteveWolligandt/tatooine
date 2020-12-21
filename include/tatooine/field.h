@@ -22,6 +22,9 @@ struct field {
   using time_t   = Real;
   using tensor_t = std::conditional_t<sizeof...(TensorDims) == 0, Real,
                                       tensor_type<Real, TensorDims...>>;
+  static constexpr auto is_field() {return true;}
+  static constexpr auto is_scalarfield() { return sizeof...(TensorDims) == 0; }
+  static constexpr auto is_vectorfield() { return sizeof...(TensorDims) == 1; }
   //============================================================================
   // static methods
   //============================================================================
@@ -128,29 +131,32 @@ using scalarfield = field<V, Real, N>;
 //==============================================================================
 // type traits
 //==============================================================================
-template <typename T>
+template <typename T, typename = void>
 struct is_field : std::false_type {};
 //------------------------------------------------------------------------------
 template <typename T>
 static constexpr bool is_field_v = is_field<T>::value;
 //------------------------------------------------------------------------------
-template <typename Real, size_t N, size_t... TensorDims>
-struct is_field<parent::field<Real, N, TensorDims...>> : std::true_type {};
-//------------------------------------------------------------------------------
-template <typename Derived, typename Real, size_t N, size_t... TensorDims>
-struct is_field<field<Derived, Real, N, TensorDims...>> : std::true_type {};
-//==============================================================================
 template <typename T>
+struct is_field<T> : std::integral_constant<bool, T::is_field()> {};
+//==============================================================================
+template <typename T, typename = void>
+struct is_scalarfield : std::false_type {};
+//------------------------------------------------------------------------------
+template <typename T>
+static constexpr bool is_scalarfield_v = is_scalarfield<T>::value;
+//------------------------------------------------------------------------------
+template <typename T>
+struct is_scalarfield<T> : std::integral_constant<bool, T::is_scalarfield()> {};
+//==============================================================================
+template <typename T, typename = void>
 struct is_vectorfield : std::false_type {};
 //------------------------------------------------------------------------------
 template <typename T>
 static constexpr bool is_vectorfield_v = is_vectorfield<T>::value;
 //------------------------------------------------------------------------------
-template <typename Real, size_t N, size_t M>
-struct is_vectorfield<parent::vectorfield<Real, N, M>> : std::true_type {};
-//------------------------------------------------------------------------------
-template <typename Derived, typename Real, size_t N, size_t M>
-struct is_vectorfield<vectorfield<Derived, Real, N, M>> : std::true_type {};
+template <typename T>
+struct is_vectorfield<T> : std::integral_constant<bool, T::is_vectorfield()> {};
 //==============================================================================
 // free functions
 //==============================================================================

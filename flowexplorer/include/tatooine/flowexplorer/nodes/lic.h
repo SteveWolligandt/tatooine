@@ -44,6 +44,7 @@ struct lic : renderable<lic> {
   int         m_num_samples;
   double      m_stepsize;
   float       m_alpha;
+  std::string m_seed_str;
 
  public:
   //----------------------------------------------------------------------------
@@ -92,6 +93,9 @@ struct lic : renderable<lic> {
   auto alpha() -> auto& { return m_alpha; }
   auto alpha() const { return m_alpha; }
   //----------------------------------------------------------------------------
+  auto seed() -> auto& { return m_seed_str; }
+  auto seed() const -> auto const& { return m_seed_str; }
+  //----------------------------------------------------------------------------
   auto draw_properties() -> bool override {
     auto const changed = renderable<lic>::draw_properties();
 
@@ -112,5 +116,6 @@ TATOOINE_FLOWEXPLORER_REGISTER_RENDERABLE(
     TATOOINE_REFLECTION_INSERT_METHOD(resolution, lic_res()),
     TATOOINE_REFLECTION_INSERT_GETTER(num_samples),
     TATOOINE_REFLECTION_INSERT_GETTER(stepsize),
-    TATOOINE_REFLECTION_INSERT_GETTER(alpha))
+    TATOOINE_REFLECTION_INSERT_GETTER(alpha),
+    TATOOINE_REFLECTION_INSERT_GETTER(seed))
 #endif

@@ -10,7 +10,6 @@ namespace tatooine::flowexplorer::nodes {
 //==============================================================================
 autonomous_particle::autonomous_particle(flowexplorer::scene& s)
     : renderable<autonomous_particle>{"Autonomous Particle", s} {
-  phi().use_caching(false);
   this->template insert_input_pin<vectorfield_t>("2D Vector Field");
   this->template insert_input_pin<position<2>>("x0");
 
@@ -41,7 +40,14 @@ void autonomous_particle::render(mat4f const& projection_matrix,
   m_pathlines.draw_lines();
 }
 //----------------------------------------------------------------------------
-void autonomous_particle::update_initial_circle() {
+auto autonomous_particle::on_property_changed() -> void {
+  if (m_x0 != nullptr) {
+    //update_initial_circle();
+    advect();
+  }
+}
+//----------------------------------------------------------------------------
+auto autonomous_particle::update_initial_circle() -> void {
   size_t                      i = 0;
   geometry::sphere<double, 2> ellipse{1.0};
   auto                        discretized_ellipse = discretize(ellipse, 100);
@@ -66,7 +72,7 @@ void autonomous_particle::update_initial_circle() {
   advect_points_in_initial_circle();
   upload_advected_points_in_initial_circle();
 }
-
+//------------------------------------------------------------------------------
 void autonomous_particle::advect() {
   if (m_currently_advecting) {
     m_stop_thread          = true;
@@ -76,12 +82,14 @@ void autonomous_particle::advect() {
   m_currently_advecting  = true;
   m_stop_thread          = false;
   m_needs_another_update = false;
+  this->t1() = m_t0;
+  this->S()  = mat_t::eye() * m_radius;
+  this->x0() = *m_x0;
+  this->x1() = *m_x0;
 
   auto run = [node = this] {
-    node->advect_points_in_initial_circle();
-    node->upload_advected_points_in_initial_circle();
-    node->x0() = *node->m_x0;
-    node->x1() = *node->m_x0;
+    //node->advect_points_in_initial_circle();
+    //node->upload_advected_points_in_initial_circle();
 
     auto const particles = [&node] {
       switch (node->m_num_splits) {
@@ -98,7 +106,7 @@ void autonomous_particle::advect() {
         //  return node->advect_with_7_splits(node->m_taustep, node->m_max_t,
         //                                    node->m_stop_thread);
       }
-      return std::vector<parent_t>{};
+      return parent_t::container_t{};
     }();
     geometry::sphere<double, 2> ellipse{1.0};
     auto                        discretized_ellipse = discretize(ellipse, 100);
@@ -189,7 +197,7 @@ void autonomous_particle::advect() {
         }
         std::lock_guard lock{node->m_pathlines.mutex()};
 
-        auto const tau = 0.1;
+        auto const tau = 0.05;
         auto       y   = particle.x0();
         auto       t   = node->m_t0;
         node->m_pathlines.vertexbuffer().push_back(gpu_vec3{y(0), y(1), t});
@@ -213,8 +221,8 @@ void autonomous_particle::advect() {
     node->m_currently_advecting = false;
   };
 
-  // this->scene().window().do_async(run);
-  run();
+  this->scene().window().do_async(run);
+  //run();
 }
 //----------------------------------------------------------------------------
 auto autonomous_particle::draw_properties() -> bool {
@@ -306,8 +314,7 @@ void autonomous_particle::on_pin_connected(ui::input_pin& /*this_pin*/,
       update_initial_circle();
     }
   } else if ((other_pin.type() == typeid(vectorfield_t))) {
-    this->phi().set_vectorfield(
-        dynamic_cast<vectorfield_t*>(&other_pin.node()));
+    set_vectorfield(dynamic_cast<vectorfield_t*>(&other_pin.node()));
     if (m_x0 != nullptr) {
       update_initial_circle();
     }
