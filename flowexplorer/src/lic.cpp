@@ -74,8 +74,10 @@ auto lic::render(mat<float, 4, 4> const& projection_matrix,
 //----------------------------------------------------------------------------
 void lic::calculate_lic() {
   if (m_calculating) {
+    m_needs_another_update = true;
     return;
   }
+  m_needs_another_update = false;
   m_calculating = true;
   this->scene().window().do_async([this] {
     std::seed_seq seed(begin(m_seed_str), end(m_seed_str));
@@ -93,6 +95,12 @@ void lic::calculate_lic() {
     m_lic_tex     = std::make_unique<yavin::tex2rgba<float>>(std::move(tex));
     m_calculating = false;
   });
+}
+//----------------------------------------------------------------------------
+auto lic::update(std::chrono::duration<double> const& /*dt*/) -> void {
+  if (m_needs_another_update && !m_calculating) {
+    calculate_lic();
+  }
 }
 //----------------------------------------------------------------------------
 auto lic::update_shader(mat<float, 4, 4> const& projection_matrix,
