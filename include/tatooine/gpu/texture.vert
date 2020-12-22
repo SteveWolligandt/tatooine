@@ -1,4 +1,4 @@
-#version 450
+#version 430 core
 //------------------------------------------------------------------------------
 layout(location = 0) in vec2 vert_position;
 layout(location = 1) in vec2 vert_uv;

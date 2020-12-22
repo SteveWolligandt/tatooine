@@ -14,7 +14,7 @@ struct window : rendering::first_person_window {
   //----------------------------------------------------------------------------
   float                               m_ui_scale_factor = 1.0f;
   bool                                m_show_nodes_gui = true;
-  int                                 m_mouse_x, m_mouse_y;
+  double                              m_mouse_x, m_mouse_y;
   bool                                m_left_button_down = false;
   scene                               m_scene;
   std::unique_ptr<ImGui::FileBrowser> m_file_browser;
@@ -40,7 +40,7 @@ struct window : rendering::first_person_window {
   void on_key_pressed(yavin::key k) override;
   void on_button_pressed(yavin::button b) override;
   void on_button_released(yavin::button b) override;
-  void on_mouse_motion(int /*x*/, int /*y*/) override;
+  void on_cursor_moved(double /*x*/, double /*y*/) override;
   void start();
   //=============================================================================
   auto push_regular_font() -> void { ImGui::PushFont(m_font_regular); }

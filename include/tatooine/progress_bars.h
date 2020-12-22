@@ -84,7 +84,10 @@ auto indeterminate_progress_bar(F&& f, Args&&... args)
       job_completion_thread.join();
       return ret;
     }
-  } else {
+  } else if constexpr (std::is_invocable_v<
+                           F,
+                           indicator_msg<indicators::IndeterminateProgressBar>,
+                           Args...>) {
     using ret_t = std::invoke_result_t<
         F, indicator_msg<indicators::IndeterminateProgressBar>, Args...>;
     if constexpr (std::is_same_v<void, ret_t>) {
