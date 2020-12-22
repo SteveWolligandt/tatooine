@@ -121,10 +121,10 @@ struct first_person_window : yavin::window {
       m_cam.on_wheel_right();
     }
   }
-  void on_mouse_motion(int x, int y) override {
-    parent_t::on_mouse_motion(x, y);
+  void on_cursor_moved(double x, double y) override {
+    parent_t::on_cursor_moved(x, y);
     if (!ImGui::GetIO().WantCaptureMouse) {
-      m_cam.on_mouse_motion(x, y);
+      m_cam.on_cursor_moved(x, y);
     }
   }
   auto camera_controller() -> auto& {

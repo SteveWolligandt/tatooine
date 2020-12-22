@@ -7,7 +7,7 @@ window::window()
     : m_scene{camera_controller(), this},
       m_aabb2d_icon_tex{icons_directory() / "aabb2d.png"},
       m_aabb3d_icon_tex{icons_directory() / "aabb3d.png"} {
-  if (display().x11_display().screen_resolution().first > 2000) {
+  if (primary_screen_resolution().first > 2000) {
     m_ui_scale_factor = 2.0f;
   }
   m_font_regular = ImGui::GetIO().Fonts->AddFontFromFileTTF(
@@ -28,7 +28,7 @@ window::window(std::filesystem::path const& path)
     : m_scene{camera_controller(), this, path},
       m_aabb2d_icon_tex{icons_directory() / "aabb2d.png"},
       m_aabb3d_icon_tex{icons_directory() / "aabb3d.png"} {
-  if (display().x11_display().screen_resolution().first > 2000) {
+  if (primary_screen_resolution().first > 2000) {
     m_ui_scale_factor = 2.0f;
   }
   m_font_regular = ImGui::GetIO().Fonts->AddFontFromFileTTF(
@@ -106,8 +106,8 @@ void window::on_button_released(yavin::button b) {
   }
 }
 //------------------------------------------------------------------------------
-void window::on_mouse_motion(int x, int y) {
-  parent_t::on_mouse_motion(x, y);
+void window::on_cursor_moved(double x, double y) {
+  parent_t::on_cursor_moved(x, y);
   if (ImGui::GetIO().WantCaptureMouse) {
     return;
   }
