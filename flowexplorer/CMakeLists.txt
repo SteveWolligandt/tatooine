@@ -21,6 +21,7 @@ add_executable(
   ${TATFE_SRC_DIR}/axis_aligned_bounding_box.cpp
   ${TATFE_SRC_DIR}/flowexplorer.cpp
   ${TATFE_SRC_DIR}/doublegyre.cpp
+  ${TATFE_SRC_DIR}/doublegyre3d.cpp
   ${TATFE_SRC_DIR}/abcflow.cpp
   ${TATFE_SRC_DIR}/saddle.cpp
   ${TATFE_SRC_DIR}/position.cpp
