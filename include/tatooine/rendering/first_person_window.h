@@ -26,6 +26,7 @@ struct first_person_window : yavin::window {
         m_cam{width, height},
         m_time{std::chrono::system_clock::now()} {
     yavin::enable_depth_test();
+    this->add_listener(m_cam);
   }
   //============================================================================
   auto width() const {
@@ -70,62 +71,6 @@ struct first_person_window : yavin::window {
     m_width  = w;
     m_height = h;
     m_cam.on_resize(w, h);
-  }
-  //----------------------------------------------------------------------------
-  void on_key_pressed(yavin::key k) override {
-    parent_t::on_key_pressed(k);
-    if (!ImGui::GetIO().WantCaptureKeyboard) {
-      m_cam.on_key_pressed(k);
-    }
-  }
-  //----------------------------------------------------------------------------
-  void on_key_released(yavin::key k) override {
-    parent_t::on_key_released(k);
-    if (!ImGui::GetIO().WantCaptureKeyboard) {
-      m_cam.on_key_released(k);
-    }
-  }
-  void on_button_pressed(yavin::button b) override {
-    parent_t::on_button_pressed(b);
-    if (!ImGui::GetIO().WantCaptureMouse) {
-      m_cam.on_button_pressed(b);
-    }
-  }
-  void on_button_released(yavin::button b) override {
-    parent_t::on_button_released(b);
-    if (!ImGui::GetIO().WantCaptureMouse) {
-      m_cam.on_button_released(b);
-    }
-  }
-  void on_wheel_down() override {
-    parent_t::on_wheel_down();
-    if (!ImGui::GetIO().WantCaptureMouse) {
-      m_cam.on_wheel_down();
-    }
-  }
-  void on_wheel_up() override {
-    parent_t::on_wheel_up();
-    if (!ImGui::GetIO().WantCaptureMouse) {
-      m_cam.on_wheel_up();
-    }
-  }
-  void on_wheel_left() override {
-    parent_t::on_wheel_left();
-    if (!ImGui::GetIO().WantCaptureMouse) {
-      m_cam.on_wheel_left();
-    }
-  }
-  void on_wheel_right() override {
-    parent_t::on_wheel_right();
-    if (!ImGui::GetIO().WantCaptureMouse) {
-      m_cam.on_wheel_right();
-    }
-  }
-  void on_mouse_motion(int x, int y) override {
-    parent_t::on_mouse_motion(x, y);
-    if (!ImGui::GetIO().WantCaptureMouse) {
-      m_cam.on_mouse_motion(x, y);
-    }
   }
   auto camera_controller() -> auto& {
     return m_cam;
