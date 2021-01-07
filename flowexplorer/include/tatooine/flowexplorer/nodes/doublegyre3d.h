@@ -12,8 +12,7 @@ struct doublegyre3d
       ui::node<doublegyre3d> {
   doublegyre3d(flowexplorer::scene& s)
       : ui::node<doublegyre3d>{"Double Gyre 3D", s,
-                             typeid(parent::vectorfield<double, 3>)} {
-  }
+                               typeid(parent::vectorfield<double, 3>)} {}
   virtual ~doublegyre3d() = default;
 };
 //==============================================================================
