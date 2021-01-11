@@ -19,7 +19,7 @@ template <typename Real>
 struct orthographic_camera_controller;
 //==============================================================================
 template <typename Real>
-struct camera_controller_interface {
+struct camera_controller_interface : yavin::window_listener {
  private:
   camera_controller<Real>* m_controller;
   //----------------------------------------------------------------------------
@@ -53,16 +53,6 @@ struct camera_controller_interface {
   //----------------------------------------------------------------------------
   virtual auto type() const -> std::type_info const& = 0;
   //----------------------------------------------------------------------------
-  virtual void on_key_pressed(yavin::key /*k*/) {}
-  virtual void on_key_released(yavin::key /*k*/) {}
-  virtual void on_button_pressed(yavin::button /*b*/) {}
-  virtual void on_button_released(yavin::button /*b*/) {}
-  virtual void on_cursor_moved(double /*x*/, double /*y*/) {}
-  virtual void on_resize(int /*w*/, int /*h*/) {}
-  virtual void on_wheel_down() {}
-  virtual void on_wheel_up() {}
-  virtual void on_wheel_left() {}
-  virtual void on_wheel_right() {}
   virtual void update(std::chrono::duration<double> const& /*dt*/) {}
 };
 //==============================================================================
