@@ -165,7 +165,10 @@ auto node::draw_node() -> void {
     builder.middle();
     ImGui::PushStyleVar(ImGuiStyleVar_Alpha, alpha);
     ImGui::PushItemWidth(200 * scene().window().ui_scale_factor());
-    if (draw_properties()) {
+    //ed::Suspend();
+    auto const changed = draw_properties();
+    //ed::Resume();
+    if (changed) {
       on_property_changed();
       if (has_self_pin()) {
         for (auto l : m_self_pin->links()) {

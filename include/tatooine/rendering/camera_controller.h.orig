@@ -53,6 +53,19 @@ struct camera_controller_interface : yavin::window_listener {
   //----------------------------------------------------------------------------
   virtual auto type() const -> std::type_info const& = 0;
   //----------------------------------------------------------------------------
+<<<<<<< HEAD
+  virtual void on_key_pressed(yavin::key /*k*/) {}
+  virtual void on_key_released(yavin::key /*k*/) {}
+  virtual void on_button_pressed(yavin::button /*b*/) {}
+  virtual void on_button_released(yavin::button /*b*/) {}
+  virtual void on_cursor_moved(double /*x*/, double /*y*/) {}
+  virtual void on_resize(int /*w*/, int /*h*/) {}
+  virtual void on_wheel_down() {}
+  virtual void on_wheel_up() {}
+  virtual void on_wheel_left() {}
+  virtual void on_wheel_right() {}
+=======
+>>>>>>> fb8bb25d363deb6213e6ddb51666a0c52a9c8e39
   virtual void update(std::chrono::duration<double> const& /*dt*/) {}
 };
 //==============================================================================
@@ -317,32 +330,34 @@ struct fps_camera_controller : camera_controller_interface<Real> {
         std::chrono::duration_cast<std::chrono::milliseconds>(dt).count());
 
     if (m_w_down) {
-      auto const new_eye = controller().eye() + m_look_dir * ms / 1000;
-      controller().look_at(new_eye, new_eye + m_look_dir);
+      controller().look_at(controller().eye() + m_look_dir / ms,
+                          controller().eye() + m_look_dir * (1 / ms + 1));
     }
     if (m_s_down) {
-      auto const new_eye = controller().eye() - m_look_dir * ms / 1000;
-      controller().look_at(new_eye, new_eye + m_look_dir);
+      controller().look_at(controller().eye() - m_look_dir / ms,
+                           controller().eye() + m_look_dir * (1 - 1 / ms));
     }
     if (m_q_down) {
       auto const& old_eye = controller().eye();
-      auto const new_eye = vec{old_eye(0), old_eye(1) + 1 * ms / 1000, old_eye(2)};
-      controller().look_at(new_eye, new_eye + m_look_dir);
+      controller().look_at(
+          vec{old_eye(0), old_eye(1) + 1 / ms, old_eye(2)},
+          vec{old_eye(0), old_eye(1) + 1 / ms, old_eye(2)} + m_look_dir);
     }
     if (m_e_down) {
       auto const& old_eye = controller().eye();
-      auto const new_eye = vec{old_eye(0), old_eye(1) - 1 * ms / 1000, old_eye(2)};
-      controller().look_at(new_eye, new_eye + m_look_dir);
+      controller().look_at(
+          vec{old_eye(0), old_eye(1) - 1 / ms, old_eye(2)},
+          vec{old_eye(0), old_eye(1) - 1 / ms, old_eye(2)} + m_look_dir);
     }
     if (m_a_down) {
-      auto const right   = cross(vec{0, 1, 0}, -m_look_dir);
-      auto const new_eye = controller().eye() - right * ms / 1000;
-      controller().look_at(new_eye, new_eye + m_look_dir);
+      auto const right = cross(vec{0, 1, 0}, -m_look_dir);
+      controller().look_at(controller().eye() - right / ms,
+                           controller().eye() - right / ms + m_look_dir);
     }
     if (m_d_down) {
-      auto const right   = cross(vec{0, 1, 0}, -m_look_dir);
-      auto const new_eye = controller().eye() + right * ms / 1000;
-      controller().look_at(new_eye, new_eye + m_look_dir);
+      auto const right = cross(vec{0, 1, 0}, -m_look_dir);
+      controller().look_at(controller().eye() + right / ms,
+                           controller().eye() + right / ms + m_look_dir);
     }
   }
   //----------------------------------------------------------------------------
