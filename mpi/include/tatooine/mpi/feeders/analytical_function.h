@@ -2,6 +2,7 @@
 #define TATOOINE_MPI_FEEDERS_ANALYTICAL_FUNCTION_H
 //==============================================================================
 #include <tatooine/tensor.h>
+
 #include <array>
 #include <memory>
 #include <set>
@@ -17,9 +18,9 @@ class ScalarFieldInFlow {
   explicit ScalarFieldInFlow(const bbox_t& bbox) : bbox(bbox) {}
   virtual ~ScalarFieldInFlow(){};
 
-  virtual double          s(double x, double y, double z, double t) = 0;
-  virtual vec3 g(double x, double y, double z, double t) = 0;
-  virtual vec3 v(double x, double y, double z, double t) = 0;
+  virtual double s(double x, double y, double z, double t) const = 0;
+  virtual vec3   g(double x, double y, double z, double t) const = 0;
+  virtual vec3   v(double x, double y, double z, double t) const = 0;
 };
 
 class EggBox : public ScalarFieldInFlow {
@@ -33,9 +34,9 @@ class EggBox : public ScalarFieldInFlow {
 
   EggBox(double a, double bx, double by, double cx, double cy);
 
-  double          s(double x, double y, double z, double t);
-  vec3 g(double x, double y, double z, double t);
-  vec3 v(double x, double y, double z, double t);
+  double s(double x, double y, double z, double t) const;
+  vec3   g(double x, double y, double z, double t) const;
+  vec3   v(double x, double y, double z, double t) const;
 };
 
 class TileBox : public ScalarFieldInFlow {
@@ -44,17 +45,17 @@ class TileBox : public ScalarFieldInFlow {
   double l;  // speed of translation in x direction
 
   TileBox(double k, double l);
-  double          s(double x, double y, double z, double t);
-  vec3 g(double x, double y, double z, double t);
-  vec3 v(double x, double y, double z, double t);
+  double s(double x, double y, double z, double t) const;
+  vec3   g(double x, double y, double z, double t) const;
+  vec3   v(double x, double y, double z, double t) const;
 };
 
 class Plane : public ScalarFieldInFlow {
  public:
   Plane();
-  double          s(double x, double y, double z, double t);
-  vec3 g(double x, double y, double z, double t);
-  vec3 v(double x, double y, double z, double t);
+  double s(double x, double y, double z, double t) const;
+  vec3   g(double x, double y, double z, double t) const;
+  vec3   v(double x, double y, double z, double t) const;
 };
 
 /// Field that returns linearly interpolated values between time steps of
@@ -63,9 +64,9 @@ class InterpolatedField : public ScalarFieldInFlow {
  public:
   InterpolatedField(std::unique_ptr<ScalarFieldInFlow>&& base,
                     std::set<double>                     steps);
-  double          s(double x, double y, double z, double t);
-  vec3 g(double x, double y, double z, double t);
-  vec3 v(double x, double y, double z, double t);
+  double s(double x, double y, double z, double t) const;
+  vec3   g(double x, double y, double z, double t) const;
+  vec3   v(double x, double y, double z, double t) const;
 
  private:
   std::unique_ptr<ScalarFieldInFlow> _base;

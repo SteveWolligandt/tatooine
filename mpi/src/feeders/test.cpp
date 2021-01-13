@@ -1,4 +1,5 @@
 #include <mpi.h>
+#include <tatooine/axis_aligned_bounding_box.h>
 #include <tatooine/mpi/feeders/analytical_function.h>
 #include <tatooine/mpi/interfaces/test.h>
 
@@ -10,11 +11,73 @@
 //==============================================================================
 namespace po = boost::program_options;
 using namespace tatooine::mpi::feeders;
+using scalar_array = boost::multi_array<double, 3>;
+using vec_array    = boost::multi_array<double, 4>;
+using index_t      = scalar_array::index;
+using range_t      = scalar_array::extent_range;
+using flow_t       = std::unique_ptr<ScalarFieldInFlow>;
 //==============================================================================
-auto main(int argc, char** argv) -> int {
-  // Initialize MPI Environment
-  auto rank = 0;
-  auto size = 0;
+int                nDims = 2;
+std::array<int, 2> dims{0, 0};
+std::array<int, 2> periods{0, 0};
+
+int                zero = 0;
+int                rank = 0;
+int                size = 0;
+std::array<int, 3> grid_size{0, 0, 0};
+tatooine::aabb3    aabb;
+int                restart          = 0;
+int                iteration        = 0;
+double             t0               = 0;
+double             t1               = 0;
+double             cur_t            = t0;
+double             dt               = 0;
+bool               use_interpolated = false;
+
+int  endy          = 0;
+int  endz          = 0;
+bool isSingleCellY = true;
+bool isSingleCellZ = true;
+
+int rSizey = 0;
+int rSizez = 0;
+
+int rNperY = 0;
+int rNperZ = 0;
+
+std::array<int, 2> rDims{0, 0};
+std::array<int, 2> rPeriods{0, 0};
+std::array<int, 2> rCoords{0, 0};
+
+int starty = 0;
+int startz = 0;
+
+int gridstx = 0;
+int gridsty = 0;
+int gridstz = 0;
+
+double xst = 0;
+double yst = 0;
+double zst = 0;
+
+int periodicx = 0;
+int periodicy = 0;
+int periodicz = 0;
+
+double dx = 0;
+double dy = 0;
+double dz = 0;
+
+double deltaX = 0;
+double deltaY = 0;
+double deltaZ = 0;
+
+int halo_level = 4;
+
+std::unique_ptr<vec_array> velocity_field;
+flow_t                     flow;
+//==============================================================================
+auto initialize_mpi(int argc, char** argv) -> void {
   MPI_Init(&argc, &argv);
   MPI_Comm_set_errhandler(MPI_COMM_WORLD, MPI_ERRORS_RETURN);
   MPI_Comm_rank(MPI_COMM_WORLD, &rank);  // My ID
@@ -22,35 +85,9 @@ auto main(int argc, char** argv) -> int {
   if (rank == 0) {
     std::cerr << "Initializing MPI Environment.\n";
   }
-
-  auto gridsizex = int{};
-  auto gridsizey = gridsizex;
-  auto gridsizez = gridsizex;
-
-  auto transformation_start_time    = 0.0;
-  auto interval_step                = 0.0;
-  auto num_transformation_intervals = int{0};
-  auto split_interval               = int{1};
-  auto saving_tracers_interval      = int{1};
-  auto restart                      = int{0};
-  auto iteration                    = int{0};
-  auto max_init_distance            = 0.0;
-  auto seeding_error_init           = 0.01;
-  auto normal_error_max             = 0.0;
-  auto normal_error_min             = 0.0;
-  auto tangential_error_max         = 0.0;
-  auto tangential_error_min         = 0.0;
-  auto target_iso_value             = 0.0;
-  auto x0                           = 0.0;
-  auto x1                           = 0.0;
-  auto y0                           = 0.0;
-  auto y1                           = 0.0;
-  auto z0                           = 0.0;
-  auto z1                           = 0.0;
-  auto t0                           = 0.0;
-  auto t1                           = 0.0;
-  auto dt                           = 0.0;
-  auto use_interpolated             = false;
+}
+//------------------------------------------------------------------------------
+auto parse_args(int argc, char** argv) {
   try {
     po::options_description desc("Allowed options");
     desc.add_options()("help,h", "produce help message")(
@@ -60,32 +97,6 @@ auto main(int argc, char** argv) -> int {
         "Number of grid points in y direction")(
         "gridsizez", po::value<int>()->required(),
         "Number of grid points in z direction")(
-        "split_interval", po::value<int>()->default_value(1),
-        "Number of iterations between checking for splitting tracers")(
-        "saving_tracers_interval", po::value<int>()->required(),
-        "Number of iterations between saving tracer states")(
-        "transformation_start_time", po::value<double>()->default_value(0.0),
-        "Number of iterations between saving tracer states")(
-        "interval_step", po::value<double>()->default_value(0.0),
-        "Number of iterations between saving tracer states")(
-        "num_transformation_intervals", po::value<int>()->default_value(0),
-        "Number of iterations between saving tracer states")(
-        "max_init_distance", po::value<double>()->required(),
-        "Maximum radius of a circle on the surface that contains no tracers")(
-        "seeding_error_init",
-        po::value<double>()->required()->default_value(0.01),
-        "Maximum deviation from a plane (relative to curvature radius) in the "
-        "neighborhood when considering adding or removing tracers")(
-        "normal_error_max", po::value<double>()->required(),
-        "Maximum error in normal direction before splitting")(
-        "normal_error_min", po::value<double>()->required(),
-        "Maximum error in normal direction before splitting")(
-        "tangential_error_max", po::value<double>()->required(),
-        "Maximum error in normal direction before splitting")(
-        "tangential_error_min", po::value<double>()->required(),
-        "Maximum error in normal direction before splitting")(
-        "target_iso_value", po::value<double>()->required()->default_value(0),
-        "Iso value of the implicit surface to track")(
         "x0", po::value<double>()->default_value(0), "start of x bounding box")(
         "x1", po::value<double>()->default_value(3), "end of x bounding box")(
         "y0", po::value<double>()->default_value(0), "start of y bounding box")(
@@ -110,50 +121,29 @@ auto main(int argc, char** argv) -> int {
       if (rank == 0) {
         std::cerr << desc << "\n";
       }
-      return 0;
+      return false;
     }
 
     po::notify(vm);
-
-    gridsizex                    = vm["gridsizex"].as<int>();
-    gridsizey                    = vm["gridsizey"].as<int>();
-    gridsizez                    = vm["gridsizez"].as<int>();
-    transformation_start_time    = vm["transformation_start_time"].as<double>();
-    interval_step                = vm["interval_step"].as<double>();
-    num_transformation_intervals = vm["num_transformation_intervals"].as<int>();
-    split_interval               = vm["split_interval"].as<int>();
-    saving_tracers_interval      = vm["saving_tracers_interval"].as<int>();
-    max_init_distance            = vm["max_init_distance"].as<double>();
-    seeding_error_init           = vm["seeding_error_init"].as<double>();
-    normal_error_max             = vm["normal_error_max"].as<double>();
-    normal_error_min             = vm["normal_error_min"].as<double>();
-    tangential_error_max         = vm["tangential_error_max"].as<double>();
-    tangential_error_min         = vm["tangential_error_min"].as<double>();
-    target_iso_value             = vm["target_iso_value"].as<double>();
-    x0                           = vm["x0"].as<double>();
-    x1                           = vm["x1"].as<double>();
-    y0                           = vm["y0"].as<double>();
-    y1                           = vm["y1"].as<double>();
-    z0                           = vm["z0"].as<double>();
-    z1                           = vm["z1"].as<double>();
-    t0                           = vm["t0"].as<double>();
-    t1                           = vm["t1"].as<double>();
-    dt                           = vm["dt"].as<double>();
-    use_interpolated             = vm["use_interpolated"].as<bool>();
+    grid_size        = {vm["gridsizex"].as<int>(), vm["gridsizey"].as<int>(),
+                 vm["gridsizez"].as<int>()};
+    aabb.min(0)      = vm["x0"].as<double>();
+    aabb.max(0)      = vm["x1"].as<double>();
+    aabb.min(1)      = vm["y0"].as<double>();
+    aabb.max(1)      = vm["y1"].as<double>();
+    aabb.min(2)      = vm["z0"].as<double>();
+    aabb.max(2)      = vm["z1"].as<double>();
+    t0               = vm["t0"].as<double>();
+    t1               = vm["t1"].as<double>();
+    cur_t            = t0;
+    dt               = vm["dt"].as<double>();
+    use_interpolated = vm["use_interpolated"].as<bool>();
 
     if (rank == 0) {
-      std::cerr << "grid size x was set to " << gridsizex << ".\n";
-      std::cerr << "grid size y was set to " << gridsizey << ".\n";
-      std::cerr << "grid size z was set to " << gridsizez << ".\n";
+      std::cerr << "grid size x was set to " << grid_size[0] << ".\n";
+      std::cerr << "grid size y was set to " << grid_size[1] << ".\n";
+      std::cerr << "grid size z was set to " << grid_size[2] << ".\n";
 
-      std::cerr << "saving_tracers_interval was set to "
-                << saving_tracers_interval << ".\n";
-      std::cerr << "max_init_distance " << max_init_distance << ".\n";
-
-      std::cerr << "seeding_error_init was set to " << seeding_error_init
-                << ".\n";
-
-      std::cerr << "target_iso_value was set to " << target_iso_value << ".\n";
       std::cerr << "t0 was set to " << t0 << ".\n";
       std::cerr << "t1 was set to " << t1 << ".\n";
       std::cerr << "dt was set to " << dt << ".\n";
@@ -170,21 +160,200 @@ auto main(int argc, char** argv) -> int {
     if (rank == 0) {
       std::cerr << "error: " << e.what() << "\n";
     }
-    return 1;
+    return false;
   } catch (...) {
     if (rank == 0) {
       std::cerr << "Exception of unknown type!\n";
     }
+  }
+  return true;
+}
+//------------------------------------------------------------------------------
+auto simulation_step(ScalarFieldInFlow const& flow) -> void {
+  if (rank == 0) {
+    std::cerr << "Loop interation: " << iteration << ".\n";
+  }
+  cur_t = cur_t + dt;
+  // Build new field
+  for (auto k = index_t{startz}; k < endz; ++k) {
+    for (auto j = index_t{starty}; j < endy; ++j) {
+      for (auto i = index_t{0}; i < grid_size[0]; ++i) {
+        auto const x                  = xst + double(i) * deltaX;
+        auto const y                  = yst + double(j - starty) * deltaY;
+        auto const z                  = zst + double(k - startz) * deltaZ;
+        auto const vel                = flow.v(x, y, z, t0);
+        (*velocity_field)[i][j][k][0] = vel.x();
+        (*velocity_field)[i][j][k][1] = vel.y();
+        (*velocity_field)[i][j][k][2] = vel.z();
+      }
+    }
+  }
+  if (rank == 0) {
+    std::cerr << "Made new Field.\n";
+  }
+  tatooine_mpi_test_update_variables(velocity_field->data());
+  if (rank == 0) {
+    std::cerr << "Variables updated.\n";
+  }
+  tatooine_mpi_test_update(&iteration, &cur_t);
+  if (rank == 0) {
+    std::cerr << "Tracking updated.\n";
+  }
+
+  ++iteration;
+}
+//------------------------------------------------------------------------------
+auto simulation_loop(ScalarFieldInFlow const& flow) -> void {
+  iteration++;
+  while (cur_t <= t1) {
+    simulation_step(flow);
+  }
+}
+//------------------------------------------------------------------------------
+auto calculate_grid_position_for_worker() -> void {
+  isSingleCellY = (rDims[0] == 1);
+  isSingleCellZ = (rDims[1] == 1);
+
+  rNperY = int(std::floor(grid_size[1] / rDims[0]));
+  rNperZ = int(std::floor(grid_size[2] / rDims[1]));
+
+  // add additional halo grid points
+  // # of grid points is:
+  // rNperY + 2*haloLevel
+  // rNperZ + 2*haloLevel
+  // Unless it's a single cell, where it's not added
+
+  // when the cell is not a border cell, it just starts earlier and ends later.
+  // If it's either the last or first cell, it either uses periodic information
+  // or it ignores the values given in the halo position
+
+  // start index
+  starty = rNperY * rCoords[0];
+  startz = rNperZ * rCoords[1];
+
+  // end index changes when it's the last cell
+  if (rCoords[0] == rDims[0] - 1) {
+    endy = grid_size[1];
+  } else {
+    endy = starty + rNperY;
+  }
+
+  if (rCoords[1] == rDims[1] - 1) {
+    endz = grid_size[2];
+  } else {
+    endz = startz + rNperZ;
+  }
+
+  std::cerr << rank << ": " << endy - starty << " , " << endz - startz
+            << " <- number of points.\n";
+  std::cerr << rank << ": " << starty << " , " << endy << " <- Range Y.\n";
+  std::cerr << rank << ": " << startz << " , " << endz << " <- Range Z.\n";
+
+  gridstx = 0;
+  gridsty = starty;
+  gridstz = startz;
+  rSizey  = endy - starty;
+  rSizez  = endz - startz;
+
+  // TODO No larger array when isSingleCell
+  if (!isSingleCellY) {
+    starty -= halo_level;
+    endy += halo_level;
+  }
+  if (!isSingleCellZ) {
+    startz -= halo_level;
+    endz += halo_level;
+  }
+}
+//------------------------------------------------------------------------------
+auto create_flow() -> void {
+  flow = flow_t{new TileBox{2 * M_PI, 0.0}};
+  if (use_interpolated) {
+    if (rank == 0) {
+      std::cerr << "Using interpolated dataset\n";
+    }
+    flow = flow_t{new InterpolatedField{
+        std::move(flow), std::set<double>{-1.0, 0.0, 1.0, 2.0, 3.0}}};
+  }
+}
+//------------------------------------------------------------------------------
+auto initialize_flow_data() {
+  if (rank == 0) {
+    std::cerr << "Filling the grid by function.\n";
+  }
+
+  create_flow();
+
+  dx = aabb.max(0) - aabb.min(0);
+  dy = aabb.max(1) - aabb.min(1);
+  dz = aabb.max(2) - aabb.min(2);
+
+  deltaX = periodicx ? dx / grid_size[0] : dx / (grid_size[0] - 1);
+  deltaY = periodicy ? dy / grid_size[1] : dy / (grid_size[1] - 1);
+  deltaZ = periodicz ? dz / grid_size[2] : dz / (grid_size[2] - 1);
+
+  xst = aabb.min(0);
+  yst = aabb.min(1) + starty * deltaY;
+  zst = aabb.min(2) + startz * deltaZ;
+
+  for (auto k = index_t{startz}; k < endz; ++k) {
+    for (auto j = index_t{starty}; j < endy; ++j) {
+      for (auto i = index_t{0}; i < grid_size[0]; ++i) {
+        auto const x                  = xst + double(i) * deltaX;
+        auto const y                  = yst + double(j - starty) * deltaY;
+        auto const z                  = zst + double(k - startz) * deltaZ;
+        auto const vel                = flow->v(x, y, z, t0);
+        (*velocity_field)[i][j][k][0] = vel.x();
+        (*velocity_field)[i][j][k][1] = vel.y();
+        (*velocity_field)[i][j][k][2] = vel.z();
+      }
+    }
+  }
+  if (rank == 0) {
+    std::cerr << "Done Filling grid.\n";
+  }
+}
+//------------------------------------------------------------------------------
+auto call_interface(MPI_Fint& commF) -> void {
+  tatooine_mpi_test_initialize_communicator(&commF);
+  if (rank == 0) {
+    std::cerr << "Initialized MPI.\n";
+  }
+
+  tatooine_mpi_test_initialize_grid(
+      &zero, &zero, &zero, &grid_size[0], &grid_size[1], &grid_size[2],
+      &gridstx, &gridsty, &gridstz, &grid_size[0], &rSizey, &rSizez, &dx, &dy,
+      &dz, &periodicx, &periodicy, &periodicz, &halo_level);
+  if (rank == 0) {
+    std::cerr << "Initialized grid.\n";
+  }
+
+  tatooine_mpi_test_initialize_variables(velocity_field->data());
+  if (rank == 0) {
+    std::cerr << "Initialized Variables.\n";
+  }
+
+  auto prev_time = t0 - dt;
+  tatooine_mpi_test_initialize_parameters(&t0, &prev_time, &iteration);
+  if (rank == 0) {
+    std::cerr << "Initialized Parameters.\n";
+  }
+
+  tatooine_mpi_test_initialize(&restart);
+
+  simulation_loop(*flow);
+}
+//==============================================================================
+auto main(int argc, char** argv) -> int {
+  initialize_mpi(argc, argv);
+  if (!parse_args(argc, argv)) {
+    return 0;
   }
 
   // Define Cartesian Topology
   if (rank == 0) {
     std::cerr << "Create Cartesian Topology.\n";
   }
-  // int		*rDims, *rPeriods, *rCoords;
-  auto     nDims   = 2;
-  auto     dims    = std::array<int, 2>{0, 0};
-  auto     periods = std::array<int, 2>{0, 0};
   MPI_Comm newComm;
 
   MPI_Dims_create(size, nDims, dims.data());
@@ -198,9 +367,6 @@ auto main(int argc, char** argv) -> int {
     std::cerr << "Get dimension and position.\n";
   }
   MPI_Cartdim_get(newComm, &nDims);
-  auto rDims    = std::array<int, 2>{0, 0};
-  auto rPeriods = std::array<int, 2>{0, 0};
-  auto rCoords  = std::array<int, 2>{0, 0};
 
   // Get Position in Cartesian grid
   MPI_Cart_get(newComm, nDims, rDims.data(), rPeriods.data(), rCoords.data());
@@ -212,220 +378,15 @@ auto main(int argc, char** argv) -> int {
   // Convert to FInt
   MPI_Fint commF = MPI_Comm_c2f(newComm);
 
-  // Calculate grid position foreach worker
-  auto endy          = 0;
-  auto endz          = 0;
-  auto rSizey        = 0;
-  auto rSizez        = 0;
-  auto isSingleCellY = (rDims[0] == 1);
-  auto isSingleCellZ = (rDims[1] == 1);
+  calculate_grid_position_for_worker();
+  velocity_field = std::make_unique<vec_array>(
+      boost::extents[range_t(0, grid_size[0])][range_t(starty, endy)]
+                    [range_t(startz, endz)][3],
+      boost::fortran_storage_order());
 
-  auto rNperY = int(std::floor(gridsizey / rDims[0]));
-  auto rNperZ = int(std::floor(gridsizez / rDims[1]));
+  initialize_flow_data();
 
-  // add additional halo grid points
-  // # of grid points is:
-  // rNperY + 2*haloLevel
-  // rNperZ + 2*haloLevel
-  // Unless it's a single cell, where it's not added
-
-  // when the cell is not a border cell, it just starts earlier and ends later.
-  // If it's either the last or first cell, it either uses periodic information
-  // or it ignores the values given in the halo position
-
-  // start index
-  auto starty = rNperY * rCoords[0];
-  auto startz = rNperZ * rCoords[1];
-
-  // end index changes when it's the last cell
-  if (rCoords[0] == rDims[0] - 1) {
-    endy = gridsizey;
-  } else {
-    endy = starty + rNperY;
-  }
-
-  if (rCoords[1] == rDims[1] - 1) {
-    endz = gridsizez;
-  } else {
-    endz = startz + rNperZ;
-  }
-
-  std::cerr << rank << ": " << endy - starty << " , " << endz - startz
-            << " <- number of points.\n";
-  std::cerr << rank << ": " << starty << " , " << endy << " <- Range Y.\n";
-  std::cerr << rank << ": " << startz << " , " << endz << " <- Range Z.\n";
-
-  auto halo_level = 4;
-
-  auto gridstx = 0;
-  auto gridsty = starty;
-  auto gridstz = startz;
-  rSizey       = endy - starty;
-  rSizez       = endz - startz;
-
-  // No larger array when isSingleCell TODO
-  if (!isSingleCellY) {
-    starty -= halo_level;
-    endy += halo_level;
-  }
-  if (!isSingleCellZ) {
-    startz -= halo_level;
-    endz += halo_level;
-  }
-
-  using scalar_array = boost::multi_array<double, 3>;
-  using vec_array    = boost::multi_array<double, 4>;
-  using index        = scalar_array::index;
-  using range        = scalar_array::extent_range;
-  auto sField        = scalar_array(boost::extents[range(0, gridsizex)][range(
-                                 starty, endy)][range(startz, endz)],
-                             boost::fortran_storage_order());
-  auto gradField     = vec_array(boost::extents[range(0, gridsizex)][range(
-                                 starty, endy)][range(startz, endz)][3],
-                             boost::fortran_storage_order());
-  auto newsField     = scalar_array(boost::extents[range(0, gridsizex)][range(
-                                    starty, endy)][range(startz, endz)],
-                                boost::fortran_storage_order());
-  auto newgradField  = vec_array(boost::extents[range(0, gridsizex)][range(
-                                    starty, endy)][range(startz, endz)][3],
-                                boost::fortran_storage_order());
-  auto vField        = vec_array(boost::extents[range(0, gridsizex)][range(
-                              starty, endy)][range(startz, endz)][3],
-                          boost::fortran_storage_order());
-
-  if (rank == 0) {
-    std::cerr << "Filling the grid by function.\n";
-  }
-  auto flow = std::unique_ptr<ScalarFieldInFlow>(new TileBox(2 * M_PI, 0.0));
-  // auto flow = unique_ptr<ScalarFieldInFlow>(new Plane());
-
-  if (use_interpolated) {
-    if (rank == 0) {
-      std::cerr << "Using interpolated dataset\n";
-    }
-    flow = std::unique_ptr<ScalarFieldInFlow>(new InterpolatedField{
-        std::move(flow), std::set<double>{-1.0, 0.0, 1.0, 2.0, 3.0}});
-  }
-
-  auto prev_time = t0 - dt;
-
-  auto periodicx = 0;
-  auto periodicy = 0;
-  auto periodicz = 0;
-
-  auto dx = x1 - x0;
-  auto dy = y1 - y0;
-  auto dz = z1 - z0;
-
-  auto deltaX = periodicx ? dx / gridsizex : dx / (gridsizex - 1);
-  auto deltaY = periodicy ? dy / gridsizey : dy / (gridsizey - 1);
-  auto deltaZ = periodicz ? dz / gridsizez : dz / (gridsizez - 1);
-
-  auto xst = x0;
-  auto yst = y0 + starty * deltaY;
-  auto zst = z0 + startz * deltaZ;
-
-  for (auto k = index{startz}; k < endz; ++k) {
-    for (auto j = index{starty}; j < endy; ++j) {
-      for (auto i = index{0}; i < gridsizex; ++i) {
-        auto x                = xst + double(i) * deltaX;
-        auto y                = yst + double(j - starty) * deltaY;
-        auto z                = zst + double(k - startz) * deltaZ;
-        sField[i][j][k]       = flow->s(x, y, z, prev_time);
-        newsField[i][j][k]    = flow->s(x, y, z, t0);
-        auto grad             = flow->g(x, y, z, t0);
-        gradField[i][j][k][0] = grad.x();
-        gradField[i][j][k][1] = grad.y();
-        gradField[i][j][k][2] = grad.z();
-        auto vel              = flow->v(x, y, z, t0);
-        vField[i][j][k][0]    = vel.x();
-        vField[i][j][k][1]    = vel.y();
-        vField[i][j][k][2]    = vel.z();
-      }
-    }
-  }
-  if (rank == 0) {
-    std::cerr << "Done Filling grid.\n";
-  }
-
-  tatooine::mpi::interfaces::test::tatooine_mpi_initialize(&commF);
-  if (rank == 0) {
-    std::cerr << "Initialized MPI.\n";
-  }
-
-  auto zero = 0;
-
-  tatooine::mpi::interfaces::test::tatooine_mpi_initialize_grid(
-      &zero, &zero, &zero, &gridsizex, &gridsizey, &gridsizez, &gridstx,
-      &gridsty, &gridstz, &gridsizex, &rSizey, &rSizez, &dx, &dy, &dz,
-      &periodicx, &periodicy, &periodicz, &halo_level);
-  if (rank == 0) {
-    std::cerr << "Initialized grid.\n";
-  }
-
-  tatooine::mpi::interfaces::test::tatooine_mpi_initialize_variables(
-      newsField.data(), sField.data(), gradField.data(), vField.data(),
-      sField.data());
-  if (rank == 0) {
-    std::cerr << "Initialized Variables.\n";
-  }
-
-  auto time = t0;
-
-  tatooine::mpi::interfaces::test::tatooine_mpi_initialize_parameters(
-      &max_init_distance, &seeding_error_init, &normal_error_max,
-      &normal_error_min, &tangential_error_max, &tangential_error_min,
-      &target_iso_value, &split_interval, &saving_tracers_interval,
-      &transformation_start_time, &interval_step, &num_transformation_intervals,
-      &t0, &prev_time, &iteration);
-  if (rank == 0) {
-    std::cerr << "Initialized Parameters.\n";
-  }
-
-  tatooine::mpi::interfaces::test::tatooine_mpi_initialize_tracking(&restart);
-
-  // Update Loop:
-  ++iteration;
-
-  while (time <= t1) {
-    if (rank == 0) {
-      std::cerr << "Loop interation: " << iteration << ".\n";
-    }
-    time = time + dt;
-    // Build new field
-    for (auto k = index{startz}; k < endz; ++k) {
-      for (auto j = index{starty}; j < endy; ++j) {
-        for (auto i = index{0}; i < gridsizex; ++i) {
-          auto x                   = xst + double(i) * deltaX;
-          auto y                   = yst + double(j - starty) * deltaY;
-          auto z                   = zst + double(k - startz) * deltaZ;
-          newsField[i][j][k]       = flow->s(x, y, z, time);
-          auto grad                = flow->g(x, y, z, time);
-          newgradField[i][j][k][0] = grad.x();
-          newgradField[i][j][k][1] = grad.y();
-          newgradField[i][j][k][2] = grad.z();
-        }
-      }
-    }
-    if (rank == 0) {
-      std::cerr << "Made new Field.\n";
-    }
-    tatooine::mpi::interfaces::test::tatooine_mpi_update_variables(
-        newsField.data(), sField.data(), newgradField.data(), vField.data(),
-        sField.data());
-    if (rank == 0) {
-      std::cerr << "Variables updated.\n";
-    }
-    tatooine::mpi::interfaces::test::tatooine_mpi_update(&iteration, &time);
-    if (rank == 0) {
-      std::cerr << "Tracking updated.\n";
-    }
-    sField    = newsField;
-    gradField = newgradField;
-
-    ++iteration;
-  }
-
+  call_interface(commF);
   MPI_Finalize();
   return 0;
 }
