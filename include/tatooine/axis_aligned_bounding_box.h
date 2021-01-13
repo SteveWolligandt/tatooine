@@ -312,6 +312,14 @@ struct axis_aligned_bounding_box : ray_intersectable<Real, N> {
 };
 template <real_number Real, size_t N>
 using aabb = axis_aligned_bounding_box<Real, N>;
+
+using aabb2d = aabb<double, 2>;
+using aabb2f = aabb<float, 2>;
+using aabb2  = aabb<real_t, 2>;
+
+using aabb3d = aabb<double, 3>;
+using aabb3f = aabb<float, 3>;
+using aabb3 = aabb<real_t, 3>;
 //==============================================================================
 // deduction guides
 //==============================================================================
