@@ -184,7 +184,6 @@ add_subdirectory(test)
 add_subdirectory(scivis_contest_2020)
 add_subdirectory(benchmarks)
 add_subdirectory(doc)
-#add_subdirectory(misc)
 add_subdirectory(material_science)
 if (${yavin_FOUND}) 
   add_subdirectory(steadification)
@@ -192,6 +191,7 @@ if (${yavin_FOUND})
 endif()
 add_subdirectory(autonomous_particles)
 add_subdirectory(smearing_scalar_field)
+add_subdirectory(mpi)
 
 #- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 # This makes the project importable from the build directory
