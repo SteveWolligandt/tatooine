@@ -6,6 +6,7 @@
 #include <chrono>
 #include <filesystem>
 #include <fstream>
+#include <tatooine/grid.h>
 #include <iomanip>
 #include <iostream>
 //==============================================================================
@@ -65,28 +66,33 @@ struct base_interface {
   // MEMBERS
   //============================================================================
   bool m_mpi_communicator_initialized = false;
+  bool m_grid_initialized             = false;
   std::unique_ptr<boost::mpi::cartesian_communicator> m_mpi_communicator;
   long                                                m_base_vmused = 0;
   long                                                m_base_pmused = 0;
   std::ofstream                                       m_memory_file;
   std::chrono::time_point<std::chrono::system_clock>  m_last_end_time;
+  uniform_grid<double, 3>                             m_global_grid;
+  uniform_grid<double, 3>                             m_worker_grid;
 
   //============================================================================
   // METHODS
   //============================================================================
-  auto initialize_memory_file(int                          restart,
+  auto initialize_memory_file(bool const                   restart,
                               std::filesystem::path const& filepath) -> void {
     m_base_pmused = pm_used();
     m_base_vmused = vm_used();
 
-    if (restart == 1) {
-      // Append to log files
-      m_memory_file.open(filepath, std::ios::app);
-    } else {
+    if (restart == 0) {
       // Clear contents of log files
       m_memory_file.open(filepath, std::ios::trunc);
       // Seed particles on iso surface
+    } else {
+      // Append to log files
+      m_memory_file.open(filepath, std::ios::app);
     }
+    m_base_pmused   = pm_used();
+    m_base_vmused   = vm_used();
     m_last_end_time = std::chrono::system_clock::now();
   }
   //------------------------------------------------------------------------------
@@ -102,6 +108,84 @@ struct base_interface {
                                                boost::mpi::comm_attach}};
     log("Initializing MPI");
     m_mpi_communicator_initialized = true;
+  }
+  //------------------------------------------------------------------------------
+  /// \brief  Initialize the dataset grid.
+  ///
+  /// \param  global_grid_size_x, global_grid_size_y, global_grid_size_z     global grid dimensions
+  /// \param  local_starting_index_x, local_starting_index_y, local_starting_index_z           starting indices of current
+  ///                                 process
+  /// \param  local_grid_size_x, local_grid_size_y, local_grid_size_z           number of grid points of current process
+  /// \param  domain_size_x, domain_size_y, domain_size_z              size of domain box
+  /// \param  is_periodic_x, is_periodic_y, is_periodic_z     periodic boundary directions
+  ///                                             (0 for no, 1 for yes)
+  /// \param  halo_level              number of halo cell layers
+  auto initialize_grid(int const global_grid_size_x, int const global_grid_size_y, int const global_grid_size_z,
+                       int const local_starting_index_x, int const local_starting_index_y, int const local_starting_index_z,
+                       int const local_grid_size_x, int const local_grid_size_y, int const local_grid_size_z,
+                       double const domain_size_x, double const domain_size_y, double const domain_size_z,
+                       int const /*is_periodic_x*/, int const /*is_periodic_y*/,
+                       int const /*is_periodic_z*/, int const halo_level) -> void {
+    if (m_grid_initialized) {
+      return;
+    }
+    if (!m_mpi_communicator_initialized) {
+      throw std::logic_error(
+          "initialize_grid must be called after "
+          "initialize");
+    }
+    log("Initializing grid");
+
+    assert(global_grid_size_x >= 0);
+    assert(global_grid_size_y >= 0);
+    assert(global_grid_size_z >= 0);
+    assert(local_grid_size_x >= 0);
+    assert(local_grid_size_y >= 0);
+    assert(local_grid_size_z >= 0);
+    assert(domain_size_x >= 0);
+    assert(domain_size_y >= 0);
+    assert(domain_size_z >= 0);
+    assert(halo_level >= 0 && halo_level <= UINT8_MAX);
+
+    log_all("global_grid_size_x: " + std::to_string(global_grid_size_x));
+    log_all("global_grid_size_y: " + std::to_string(global_grid_size_y));
+    log_all("global_grid_size_z: " + std::to_string(global_grid_size_z));
+    log_all("local_starting_index_x: " + std::to_string(local_starting_index_x));
+    log_all("local_starting_index_y: " + std::to_string(local_starting_index_y));
+    log_all("local_starting_index_z: " + std::to_string(local_starting_index_z));
+    log_all("domain_size_x: " + std::to_string(domain_size_x));
+    log_all("domain_size_y: " + std::to_string(domain_size_y));
+    log_all("domain_size_z: " + std::to_string(domain_size_z));
+    log_all("halo_level: " + std::to_string(halo_level));
+
+    if (halo_level < 4) {
+      throw std::invalid_argument("halo_level must be at least 4. Given: " +
+                                  std::to_string(halo_level));
+    }
+
+    m_global_grid.dimension<0>() = linspace<double>{0, domain_size_x, static_cast<size_t>(global_grid_size_x)};
+    m_global_grid.dimension<1>() = linspace<double>{0, domain_size_y, static_cast<size_t>(global_grid_size_y)};
+    m_global_grid.dimension<2>() = linspace<double>{0, domain_size_z, static_cast<size_t>(global_grid_size_z)};
+
+    m_worker_grid.dimension<0>() = linspace{
+        m_global_grid.dimension<0>()[local_starting_index_x],
+        m_global_grid.dimension<0>()[local_starting_index_x + local_grid_size_x - 1], static_cast<size_t>(local_grid_size_x)};
+    m_worker_grid.dimension<1>() = linspace{
+        m_global_grid.dimension<1>()[local_starting_index_y],
+        m_global_grid.dimension<1>()[local_starting_index_y + local_grid_size_y - 1], static_cast<size_t>(local_grid_size_y)};
+    m_worker_grid.dimension<2>() = linspace{
+        m_global_grid.dimension<2>()[local_starting_index_z],
+        m_global_grid.dimension<2>()[local_starting_index_z + local_grid_size_z - 1], static_cast<size_t>(local_grid_size_z)};
+    if (m_mpi_communicator->rank() == 0) {
+      std::cerr << "global grid:\n" << m_global_grid.dimension<0>() << '\n'
+                << m_global_grid.dimension<1>() << '\n'
+                << m_global_grid.dimension<2>() << '\n';
+      std::cerr << "worker grid:\n" << m_worker_grid.dimension<0>() << '\n'
+                << m_worker_grid.dimension<1>() << '\n'
+                << m_worker_grid.dimension<2>() << '\n';
+    }
+
+    m_grid_initialized = true;
   }
   //----------------------------------------------------------------------------
   void log(const std::string& message) {
@@ -221,6 +305,18 @@ struct base_interface {
                     << *(mima_overhead.first) / 1024 << '\t'
                     << overhead_avg / 1024 << '\n';
     }
+  }
+  //============================================================================
+  auto initialize_variable(char const* name, int num_components,
+                           double const* var) -> void {
+    static_cast<InterfaceImplementation*>(this)->initialize_variable(
+        name, num_components, var);
+  }
+  //----------------------------------------------------------------------------
+  auto update_variable(char const* name, int const num_components,
+                       double const* var) -> void {
+    static_cast<InterfaceImplementation*>(this)->update_variable(
+        name, num_components, var);
   }
 };
 //==============================================================================

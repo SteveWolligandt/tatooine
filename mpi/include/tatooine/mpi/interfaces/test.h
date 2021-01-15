@@ -5,7 +5,7 @@
 //==============================================================================
 /// Initialize the MPI environment.
 /// Call first.
-extern "C" void tatooine_mpi_test_initialize_communicator(MPI_Fint* communicator);
+extern "C" void tatooine_dino_initialize_communicator(MPI_Fint* communicator);
 //------------------------------------------------------------------------------
 /// \brief  Initialize the dataset grid. Call after tatooine_initialize_mpi()
 /// and
@@ -19,11 +19,13 @@ extern "C" void tatooine_mpi_test_initialize_communicator(MPI_Fint* communicator
 /// \param  periodicx, periodicy, periodicz     periodic boundary directions (0
 ///                                             for no, 1 for yes)
 /// \param  halo_level              number of halo cell layers
-extern "C" void tatooine_mpi_test_initialize_grid(
-    int* gridstx, int* gridsty, int* gridstz, int* gridx, int* gridy,
-    int* gridz, int* xst, int* yst, int* zst, int* xsz, int* ysz, int* zsz,
-    double* dx, double* dy, double* dz, int* periodicx, int* periodicy,
-    int* periodicz, int* halo_level);
+extern "C" void tatooine_dino_initialize_grid(
+    int const* gridx, int const* gridy, int const* gridz,
+    int const* xst, int const* yst, int const* zst,
+    int const* xsz, int const* ysz, int const* zsz,
+    double const* dx, double const* dy, double const* dz,
+    int const* periodicx, int const* periodicy, int const* periodicz,
+    int const* halo_level);
 //------------------------------------------------------------------------------
 /// \brief  Add variables to the dataset.
 ///
@@ -34,9 +36,9 @@ extern "C" void tatooine_mpi_test_initialize_grid(
 ///         processor block does not span the whole domain.
 ///         If a direction does have a halo, it must have exactly the size
 ///         of the @a halo_level parameter in tatooine_initialize_grid()
-///
-/// \param  flow_velocity              vector with halo
-extern "C" void tatooine_mpi_test_initialize_variables(double* flow_velocity);
+extern "C" void tatooine_dino_initialize_variable(char const*   name,
+                                                  int const*    num_components,
+                                                  double const* variable);
 //------------------------------------------------------------------------------
 /// \brief  Set parameters.
 ///
@@ -46,21 +48,21 @@ extern "C" void tatooine_mpi_test_initialize_variables(double* flow_velocity);
 /// \param  prev_time                Initial time of virtual previous
 ///                                  time step
 /// \param  iteration                Initial iteration number
-extern "C" void tatooine_mpi_test_initialize_parameters(double* time,
-                                                   double* prev_time,
-                                                   int*    iteration);
+extern "C" void tatooine_dino_initialize_parameters(double const* time,
+                                                    double const* prev_time,
+                                                    int const*    iteration);
 //------------------------------------------------------------------------------
 /// Initialize the flame front tracers and complete the initialization. Call
 /// after all other initialize functions
 ///
 /// \param  restart  Restart from saved file (1) or start from scratch (0)
-extern "C" void tatooine_mpi_test_initialize(int* restart);
+extern "C" void tatooine_dino_initialize(int const* restart);
 //------------------------------------------------------------------------------
 /// \brief  Update the grid variables to their new values after a simulation
 /// step
-///
-/// \param  flow_velocity              vector with halo
-extern "C" void tatooine_mpi_test_update_variables(double* flow_velocity);
+extern "C" void tatooine_dino_update_variable(char const*   name,
+                                              int const*    num_components,
+                                              double const* variable);
 //------------------------------------------------------------------------------
-extern "C" void tatooine_mpi_test_update(int* iteration, double* time);
+extern "C" void tatooine_dino_update(int const* iteration, double const* time);
 #endif
