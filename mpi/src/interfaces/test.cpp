@@ -1,21 +1,26 @@
 #include <tatooine/mpi/interfaces/base_interface.h>
 #include <tatooine/mpi/interfaces/test.h>
 
+#include <boost/multi_array.hpp>
+#include <tatooine/multidim_array.h>
+
 //==============================================================================
 namespace tatooine::mpi::interfaces {
 //==============================================================================
 struct test : base_interface<test> {
+  using this_t   = test;
+  using parent_t = base_interface<this_t>;
+
   static constexpr std::string_view m_timings_fname     = "test_timings.txt";
   static constexpr std::string_view m_memory_fname      = "test_memory.txt";
   static constexpr std::string_view m_split_merge_fname = "test_splitmerge.txt";
 
   static constexpr std::string_view m_output_dir_name = "data_test";
 
-  double   m_time;
-  double   m_prev_time;
-  uint64_t m_iteration;
+  double   m_time      = 0;
+  double   m_prev_time = 0;
+  uint64_t m_iteration = 0;
 
-  bool m_grid_initialized       = false;
   bool m_variables_initialized  = false;
   bool m_parameters_initialized = false;
   bool m_initialized            = false;
@@ -25,90 +30,8 @@ struct test : base_interface<test> {
   //==============================================================================
   // Interface Functions
   //==============================================================================
-  auto initialize_grid(int gridstx, int gridsty, int gridstz, int gridx,
-                       int gridy, int gridz, int xst, int yst, int zst, int xsz,
-                       int ysz, int zsz, double dx, double dy, double dz,
-                       int /*periodicx*/, int /*periodicy*/, int /*periodicz*/,
-                       int halo_level) -> void {
-    if (m_grid_initialized) {
-      return;
-    }
-    if (!m_mpi_communicator_initialized) {
-      throw std::logic_error(
-          "initialize_grid must be called after "
-          "initialize");
-    }
-    log("Initializing grid");
-
-    assert(gridx >= 0);
-    assert(gridy >= 0);
-    assert(gridz >= 0);
-    assert(xsz >= 0);
-    assert(ysz >= 0);
-    assert(zsz >= 0);
-    assert(dx >= 0);
-    assert(dy >= 0);
-    assert(dz >= 0);
-    assert(halo_level >= 0 && halo_level <= UINT8_MAX);
-
-    log_all("gridstx: " + std::to_string(gridstx));
-    log_all("gridsty: " + std::to_string(gridsty));
-    log_all("gridstz: " + std::to_string(gridstz));
-    log_all("gridx: " + std::to_string(gridx));
-    log_all("gridy: " + std::to_string(gridy));
-    log_all("gridz: " + std::to_string(gridz));
-    log_all("xst: " + std::to_string(xst));
-    log_all("yst: " + std::to_string(yst));
-    log_all("zst: " + std::to_string(zst));
-    log_all("dx: " + std::to_string(dx));
-    log_all("dy: " + std::to_string(dy));
-    log_all("dz: " + std::to_string(dz));
-    log_all("halo_level: " + std::to_string(halo_level));
-
-    if (halo_level < 4) {
-      throw std::invalid_argument("halo_level must be at least 4. Given: " +
-                                  std::to_string(halo_level));
-    }
-
-    // auto to_BC = [](int* periodic) {
-    //  return *periodic ? BC::periodic : BC::nonperiodic;
-    //};
-    // auto bc =
-    //    BoundaryConditions(to_BC(periodicx), to_BC(periodicx),
-    //    to_BC(periodicy),
-    //                       to_BC(periodicy), to_BC(periodicz),
-    //                       to_BC(periodicz));
-    //
-    // auto domain = DomainExtent{{*dx, *dy, *dz}};
-
-    // Make boundary conditions for singleton dimensions periodic and make sure
-    // their domain is zero-width to make code simpler
-    // if (*gridx == 1) {
-    //  bc[Direction::left] = bc[Direction::right] = BC::periodic;
-    //  domain.size[0]                             = 0;
-    //}
-    // if (*gridy == 1) {
-    //  bc[Direction::down] = bc[Direction::up] = BC::periodic;
-    //  domain.size[1]                          = 0;
-    //}
-    // if (*gridz == 1) {
-    //  bc[Direction::front] = bc[Direction::back] = BC::periodic;
-    //  domain.size[2]                             = 0;
-    //}
-
-    // two ghost particles for each non-singleton dimension minus one
-    // auto grid = UniformGrid{
-    //    GridExtent{{*gridstx, *gridsty, *gridstz}, {*gridx, *gridy, *gridz}},
-    //    domain, bc};
-    //
-    // auto local_extent = GridExtent{{*xst, *yst, *zst}, {*xsz, *ysz, *zsz}};
-    //
-    //
-    //_min_init_distance = grid.deltas().norm() * 0.33;
-    m_grid_initialized = true;
-  }
-  //------------------------------------------------------------------------------
-  auto initialize_variables(double* /*flow_velocity*/) -> void {
+  auto initialize_variable(char const* /*name*/, int const num_components,
+                           double const* var) -> void {
     if (m_variables_initialized) {
       return;
     }
@@ -118,30 +41,84 @@ struct test : base_interface<test> {
           "after initialize_grid");
     }
     log("Initializing variables");
-    // Variables
+
+    if (num_components == 1) {
+      using arr_t   = boost::multi_array<double, 3>;
+      arr_t transformed_data{
+          boost::extents[m_worker_grid.size(0)][m_worker_grid.size(1)]
+                        [m_worker_grid.size(2)]};
+
+      size_t idx = 0;
+      for (size_t i = 0; i < m_worker_grid.size(0); ++i) {
+        for (size_t j = 0; j < m_worker_grid.size(1); ++j) {
+          for (size_t k = 0; k < m_worker_grid.size(2); ++k) {
+            transformed_data[i][j][k] = var[idx++];
+          }
+        }
+      }
+
+      for (size_t i = 0; i < 12; ++i) {
+        if (m_mpi_communicator->rank() == 0) {
+          std::cerr << transformed_data.data()[i] << ", ";
+        }
+        std::cerr << "...\n";
+      }
+    } else {
+      using arr_t   = dynamic_multidim_array<vec3>;
+
+      arr_t transformed_data{m_worker_grid.size(0),
+                             m_worker_grid.size(1),
+                             m_worker_grid.size(2)};
+
+      size_t idx = 0;
+      for (size_t i = 0; i < m_worker_grid.size(0); ++i) {
+        for (size_t j = 0; j < m_worker_grid.size(1); ++j) {
+          for (size_t k = 0; k < m_worker_grid.size(2); ++k) {
+            transformed_data(i, j, k) =
+                vec3{var[idx], var[idx + 1], var[idx + 2]};
+            idx += 3;
+          }
+        }
+      }
+
+      if (m_mpi_communicator->rank() == 0) {
+        std::cerr << "from feeder: ";
+        for (size_t i = 0; i < 12; ++i) {
+          std::cerr << var[i] << ", ";
+        }
+        std::cerr << "...\n"
+                  << "interface: ";
+        for (size_t i = 0; i < 4; ++i) {
+          std::cerr << transformed_data.data()[i].x() << ", ";
+          std::cerr << transformed_data.data()[i].y() << ", ";
+          std::cerr << transformed_data.data()[i].z() << ", ";
+        }
+        std::cerr << "...\n";
+      }
+    }
     m_variables_initialized = true;
   }
   //------------------------------------------------------------------------------
-  auto initialize_parameters(double time, double prev_time, int iteration)
-      -> void {
-    if (m_parameters_initialized) return;
-    if (!m_grid_initialized) {
-      throw std::logic_error(
-          "initialize_parameters must be called "
-          "after initialize_grid");
-    }
-    log("Initializing parameters");
-    m_time      = time;
-    m_prev_time = prev_time;
-    m_iteration = iteration;
-
-    // the local blocks must be large enough so that ghost particles never
-    // wander further than into the neighboring processor
-    m_parameters_initialized = true;
+  auto initialize_parameters(double const time, double const prev_time,
+                             int const iteration) -> void {
+  if (m_parameters_initialized) return;
+  if (!m_grid_initialized) {
+    throw std::logic_error(
+        "initialize_parameters must be called "
+        "after initialize_grid");
   }
+  log("Initializing parameters");
+  m_time      = time;
+  m_prev_time = prev_time;
+  m_iteration = iteration;
+
+  // the local blocks must be large enough so that ghost particles never
+  // wander further than into the neighboring processor
+  m_parameters_initialized = true;
+}
   //------------------------------------------------------------------------------
-  auto initialize(int restart) -> void {
-    base_interface<test>::initialize_memory_file(restart, m_memory_fname);
+  auto initialize(bool const restart) -> void {
+    initialize_memory_file(restart, m_memory_fname);
     if (m_initialized) {
       return;
     }
@@ -152,9 +129,6 @@ struct test : base_interface<test> {
           "initialize_variables");
     }
     log("Initializing");
-
-    m_base_pmused = pm_used();
-    m_base_vmused = vm_used();
 
     // create output directory
     std::filesystem::create_directories(m_output_dir_name);
@@ -172,17 +146,18 @@ struct test : base_interface<test> {
     m_initialized = true;
   }
   //------------------------------------------------------------------------------
-  auto update_variables(double* /*flow_velocity*/) -> void {
+  auto update_variable(char const* /*name*/, int const /*num_components*/,
+                       double const* /*var*/) -> void {
     if (!m_initialized) {
       throw std::logic_error(
-          "update_variables can only be called if "
+          "update_variable can only be called if "
           "initialization is complete");
     }
     log("Updating variables");
     // Here goes updating variables
   }
   //------------------------------------------------------------------------------
-  auto update(int iteration, double time) -> void {
+  auto update(int const iteration, double const time) -> void {
     if (!m_initialized) {
       throw std::logic_error(
           "update can only be called if "
@@ -206,7 +181,7 @@ struct test : base_interface<test> {
     // Here goes update
 
     log("Tatooine update step finished");
-    //log_mem_usage(m_iteration);
+    // log_mem_usage(m_iteration);
     m_last_end_time = std::chrono::system_clock::now();
   }
 };
@@ -217,41 +192,50 @@ struct test : base_interface<test> {
 //==============================================================================
 // Interface Functions
 //==============================================================================
-auto tatooine_mpi_test_initialize_communicator(MPI_Fint* communicator) -> void {
+auto tatooine_dino_initialize_communicator(MPI_Fint* communicator) -> void {
   tatooine::mpi::interfaces::test::get().initialize_communicator(*communicator);
 }
 //------------------------------------------------------------------------------
-auto tatooine_mpi_test_initialize_grid(int* gridstx, int* gridsty, int* gridstz,
-                                       int* gridx, int* gridy, int* gridz,
-                                       int* xst, int* yst, int* zst, int* xsz,
-                                       int* ysz, int* zsz, double* dx,
-                                       double* dy, double* dz, int* periodicx,
-                                       int* periodicy, int* periodicz,
-                                       int* halo_level) -> void {
+auto tatooine_dino_initialize_grid(
+    int const* global_grid_size_x, int const* global_grid_size_y,
+    int const* global_grid_size_z, int const* local_starting_index_x,
+    int const* local_starting_index_y, int const* local_starting_index_z,
+    int const* local_grid_size_x, int const* local_grid_size_y,
+    int const* local_grid_size_z, double const* domain_size_x,
+    double const* domain_size_y, double const* domain_size_z,
+    int const* is_periodic_x, int const* is_periodic_y,
+    int const* is_periodic_z, int const* halo_level) -> void {
   tatooine::mpi::interfaces::test::get().initialize_grid(
-      *gridstx, *gridsty, *gridstz, *gridx, *gridy, *gridz, *xst, *yst, *zst,
-      *xsz, *ysz, *zsz, *dx, *dy, *dz, *periodicx, *periodicy, *periodicz,
+      *global_grid_size_x, *global_grid_size_y, *global_grid_size_z,
+      *local_starting_index_x, *local_starting_index_y, *local_starting_index_z,
+      *local_grid_size_x, *local_grid_size_y, *local_grid_size_z,
+      *domain_size_x, *domain_size_y, *domain_size_z,
+      *is_periodic_x, *is_periodic_y, *is_periodic_z,
       *halo_level);
 }
 //------------------------------------------------------------------------------
-auto tatooine_mpi_test_initialize_variables(double* flow_velocity) -> void {
-  tatooine::mpi::interfaces::test::get().initialize_variables(flow_velocity);
+auto tatooine_dino_initialize_variable(char const* name, int const* num_components,
+                                       double const* var) -> void {
+  tatooine::mpi::interfaces::test::get().initialize_variable(
+      name, *num_components, var);
 }
 //------------------------------------------------------------------------------
-auto tatooine_mpi_test_initialize_parameters(double* time, double* prev_time,
-                                             int* iteration) -> void {
+auto tatooine_dino_initialize_parameters(double const* time, double const* prev_time,
+                                         int const* iteration) -> void {
   tatooine::mpi::interfaces::test::get().initialize_parameters(
       *time, *prev_time, *iteration);
 }
 //------------------------------------------------------------------------------
-auto tatooine_mpi_test_initialize(int* restart) -> void {
+auto tatooine_dino_initialize(int const* restart) -> void {
   tatooine::mpi::interfaces::test::get().initialize(*restart);
 }
 //------------------------------------------------------------------------------
-auto tatooine_mpi_test_update_variables(double* flow_velocity) -> void {
-  tatooine::mpi::interfaces::test::get().update_variables(flow_velocity);
+auto tatooine_dino_update_variable(char const* name, int const* num_components,
+                                   double const* var) -> void {
+  tatooine::mpi::interfaces::test::get().update_variable(name, *num_components,
+                                                         var);
 }
 //------------------------------------------------------------------------------
-auto tatooine_mpi_test_update(int* iteration, double* time) -> void {
+auto tatooine_dino_update(int const* iteration, double const* time) -> void {
   tatooine::mpi::interfaces::test::get().update(*iteration, *time);
 }

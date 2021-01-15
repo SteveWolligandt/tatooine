@@ -40,8 +40,7 @@ if (MPI_FOUND)
   #- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
   # feeder executable
   #- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-  add_executable(mpi.feeder.test ${TATOMPI_SOURCE_DIR}/feeders/test.cpp
-                                 ${TATOMPI_SOURCE_DIR}/feeders/analytical_function.cpp)
+  add_executable(mpi.feeder.test ${TATOMPI_SOURCE_DIR}/feeders/test.cpp)
   target_link_libraries(mpi.feeder.test
     tatooine ${MPI_LIBRARIES} Boost::program_options mpi.interface.test)
   if ("${CMAKE_CXX_COMPILER_ID}" STREQUAL "Clang")
@@ -67,12 +66,18 @@ if (MPI_FOUND)
     PUBLIC ${TATOMPI_INCLUDE_DIR} ${TATOMPI_BINARY_INCLUDE_DIR})
   add_custom_target(mpi.feeder.test.run
     mpirun -np 4 ./mpi.feeder.test 
-    --gridsizex               20 
-    --gridsizey               20 
-    --gridsizez               20 
-    --t0                      0
-    --t1                      10
-    --dt                      1
+    --gridsizex 20 
+    --gridsizey 20 
+    --gridsizez 20 
+    --x0        -1
+    --x1         1
+    --y0        -1
+    --y1         1
+    --z0        -1
+    --z1         1
+    --t0         0
+    --t1        10
+    --dt         1
     DEPENDS tatooine mpi.feeder.test)
 else()
   message("MPI not found.")

@@ -1,6 +1,6 @@
 #include <mpi.h>
+#include <tatooine/analytical/fields/numerical/abcflow.h>
 #include <tatooine/axis_aligned_bounding_box.h>
-#include <tatooine/mpi/feeders/analytical_function.h>
 #include <tatooine/mpi/interfaces/test.h>
 
 #include <boost/multi_array.hpp>
@@ -9,38 +9,39 @@
 #include <iostream>
 #include <iterator>
 //==============================================================================
-namespace po = boost::program_options;
-using namespace tatooine::mpi::feeders;
+namespace po       = boost::program_options;
 using scalar_array = boost::multi_array<double, 3>;
 using vec_array    = boost::multi_array<double, 4>;
 using index_t      = scalar_array::index;
 using range_t      = scalar_array::extent_range;
-using flow_t       = std::unique_ptr<ScalarFieldInFlow>;
 //==============================================================================
 int                nDims = 2;
 std::array<int, 2> dims{0, 0};
 std::array<int, 2> periods{0, 0};
 
-int                zero = 0;
-int                rank = 0;
-int                size = 0;
-std::array<int, 3> grid_size{0, 0, 0};
-tatooine::aabb3    aabb;
-int                restart          = 0;
-int                iteration        = 0;
-double             t0               = 0;
-double             t1               = 0;
-double             cur_t            = t0;
-double             dt               = 0;
-bool               use_interpolated = false;
+[[maybe_unused]] int const zero  = 0;
+[[maybe_unused]] int const one   = 1;
+[[maybe_unused]] int const two   = 2;
+[[maybe_unused]] int const three = 3;
+int                        rank  = 0;
+int                        size  = 0;
+std::array<int, 3>         global_grid_size{0, 0, 0};
+tatooine::aabb3            aabb;
+int                        restart          = 0;
+int                        iteration        = 0;
+double                     t0               = 0;
+double                     t1               = 0;
+double                     cur_t            = t0;
+double                     dt               = 0;
+bool                       use_interpolated = false;
 
-int  endy          = 0;
-int  endz          = 0;
-bool isSingleCellY = true;
-bool isSingleCellZ = true;
+int  local_grid_end_y          = 0;
+int  local_grid_end_z          = 0;
+bool is_single_cell_y = true;
+bool is_single_cell_z = true;
 
-int rSizey = 0;
-int rSizez = 0;
+int local_grid_size_y = 0;
+int local_grid_size_z = 0;
 
 int rNperY = 0;
 int rNperZ = 0;
@@ -52,21 +53,21 @@ std::array<int, 2> rCoords{0, 0};
 int starty = 0;
 int startz = 0;
 
-int gridstx = 0;
-int gridsty = 0;
-int gridstz = 0;
+int local_starting_index_x = 0;
+int local_starting_index_y = 0;
+int local_starting_index_z = 0;
 
-double xst = 0;
-double yst = 0;
-double zst = 0;
+double local_domain_origin_x = 0;
+double local_domain_origin_y = 0;
+double local_domain_origin_z = 0;
 
-int periodicx = 0;
-int periodicy = 0;
-int periodicz = 0;
+int is_periodic_x = 0;
+int is_periodic_y = 0;
+int is_periodic_z = 0;
 
-double dx = 0;
-double dy = 0;
-double dz = 0;
+double domain_size_x = 0;
+double domain_size_y = 0;
+double domain_size_z = 0;
 
 double deltaX = 0;
 double deltaY = 0;
@@ -75,7 +76,6 @@ double deltaZ = 0;
 int halo_level = 4;
 
 std::unique_ptr<vec_array> velocity_field;
-flow_t                     flow;
 //==============================================================================
 auto initialize_mpi(int argc, char** argv) -> void {
   MPI_Init(&argc, &argv);
@@ -125,8 +125,8 @@ auto parse_args(int argc, char** argv) {
     }
 
     po::notify(vm);
-    grid_size        = {vm["gridsizex"].as<int>(), vm["gridsizey"].as<int>(),
-                 vm["gridsizez"].as<int>()};
+    global_grid_size = {vm["gridsizex"].as<int>(), vm["gridsizey"].as<int>(),
+                        vm["gridsizez"].as<int>()};
     aabb.min(0)      = vm["x0"].as<double>();
     aabb.max(0)      = vm["x1"].as<double>();
     aabb.min(1)      = vm["y0"].as<double>();
@@ -140,9 +140,9 @@ auto parse_args(int argc, char** argv) {
     use_interpolated = vm["use_interpolated"].as<bool>();
 
     if (rank == 0) {
-      std::cerr << "grid size x was set to " << grid_size[0] << ".\n";
-      std::cerr << "grid size y was set to " << grid_size[1] << ".\n";
-      std::cerr << "grid size z was set to " << grid_size[2] << ".\n";
+      std::cerr << "grid size x was set to " << global_grid_size[0] << ".\n";
+      std::cerr << "grid size y was set to " << global_grid_size[1] << ".\n";
+      std::cerr << "grid size z was set to " << global_grid_size[2] << ".\n";
 
       std::cerr << "t0 was set to " << t0 << ".\n";
       std::cerr << "t1 was set to " << t1 << ".\n";
@@ -169,19 +169,15 @@ auto parse_args(int argc, char** argv) {
   return true;
 }
 //------------------------------------------------------------------------------
-auto simulation_step(ScalarFieldInFlow const& flow) -> void {
-  if (rank == 0) {
-    std::cerr << "Loop interation: " << iteration << ".\n";
-  }
-  cur_t = cur_t + dt;
-  // Build new field
-  for (auto k = index_t{startz}; k < endz; ++k) {
-    for (auto j = index_t{starty}; j < endy; ++j) {
-      for (auto i = index_t{0}; i < grid_size[0]; ++i) {
-        auto const x                  = xst + double(i) * deltaX;
-        auto const y                  = yst + double(j - starty) * deltaY;
-        auto const z                  = zst + double(k - startz) * deltaZ;
-        auto const vel                = flow.v(x, y, z, t0);
+auto sample_flow() {
+  tatooine::analytical::fields::numerical::abcflow v;
+  for (auto i = index_t{0}; i < global_grid_size[0]; ++i) {
+    for (auto j = index_t{starty}; j < local_grid_end_y; ++j) {
+      for (auto k = index_t{startz}; k < local_grid_end_z; ++k) {
+        auto const vel = v(tatooine::vec3{local_domain_origin_x + double(i) * deltaX,
+                                          local_domain_origin_y + double(j - starty) * deltaY,
+                                          local_domain_origin_z + double(k - startz) * deltaZ},
+                           cur_t);
         (*velocity_field)[i][j][k][0] = vel.x();
         (*velocity_field)[i][j][k][1] = vel.y();
         (*velocity_field)[i][j][k][2] = vel.z();
@@ -189,13 +185,25 @@ auto simulation_step(ScalarFieldInFlow const& flow) -> void {
     }
   }
   if (rank == 0) {
-    std::cerr << "Made new Field.\n";
+    std::cerr << "feeder: " << cur_t << " | ";
+    for (size_t i = 0; i < 12; ++i) {
+      std::cerr << velocity_field->data()[i] << ", ";
+    }
+    std::cerr << "...\n";
   }
-  tatooine_mpi_test_update_variables(velocity_field->data());
+}
+//------------------------------------------------------------------------------
+auto simulation_step() -> void {
+  if (rank == 0) {
+    std::cerr << "Loop interation: " << iteration << ".\n";
+  }
+  cur_t = cur_t + dt;
+  sample_flow();
+  tatooine_dino_update_variable("velocity", &three, velocity_field->data());
   if (rank == 0) {
     std::cerr << "Variables updated.\n";
   }
-  tatooine_mpi_test_update(&iteration, &cur_t);
+  tatooine_dino_update(&iteration, &cur_t);
   if (rank == 0) {
     std::cerr << "Tracking updated.\n";
   }
@@ -203,19 +211,19 @@ auto simulation_step(ScalarFieldInFlow const& flow) -> void {
   ++iteration;
 }
 //------------------------------------------------------------------------------
-auto simulation_loop(ScalarFieldInFlow const& flow) -> void {
+auto simulation_loop() -> void {
   iteration++;
   while (cur_t <= t1) {
-    simulation_step(flow);
+    simulation_step();
   }
 }
 //------------------------------------------------------------------------------
 auto calculate_grid_position_for_worker() -> void {
-  isSingleCellY = (rDims[0] == 1);
-  isSingleCellZ = (rDims[1] == 1);
+  is_single_cell_y = (rDims[0] == 1);
+  is_single_cell_z = (rDims[1] == 1);
 
-  rNperY = int(std::floor(grid_size[1] / rDims[0]));
-  rNperZ = int(std::floor(grid_size[2] / rDims[1]));
+  rNperY = int(std::floor(global_grid_size[1] / rDims[0]));
+  rNperZ = int(std::floor(global_grid_size[2] / rDims[1]));
 
   // add additional halo grid points
   // # of grid points is:
@@ -233,47 +241,36 @@ auto calculate_grid_position_for_worker() -> void {
 
   // end index changes when it's the last cell
   if (rCoords[0] == rDims[0] - 1) {
-    endy = grid_size[1];
+    local_grid_end_y = global_grid_size[1];
   } else {
-    endy = starty + rNperY;
+    local_grid_end_y = starty + rNperY;
   }
 
   if (rCoords[1] == rDims[1] - 1) {
-    endz = grid_size[2];
+    local_grid_end_z = global_grid_size[2];
   } else {
-    endz = startz + rNperZ;
+    local_grid_end_z = startz + rNperZ;
   }
 
-  std::cerr << rank << ": " << endy - starty << " , " << endz - startz
+  std::cerr << rank << ": " << local_grid_end_y - starty << " , " << local_grid_end_z - startz
             << " <- number of points.\n";
-  std::cerr << rank << ": " << starty << " , " << endy << " <- Range Y.\n";
-  std::cerr << rank << ": " << startz << " , " << endz << " <- Range Z.\n";
+  std::cerr << rank << ": " << starty << " , " << local_grid_end_y << " <- Range Y.\n";
+  std::cerr << rank << ": " << startz << " , " << local_grid_end_z << " <- Range Z.\n";
 
-  gridstx = 0;
-  gridsty = starty;
-  gridstz = startz;
-  rSizey  = endy - starty;
-  rSizez  = endz - startz;
+  local_starting_index_x = 0;
+  local_starting_index_y = starty;
+  local_starting_index_z = startz;
+  local_grid_size_y      = local_grid_end_y - starty;
+  local_grid_size_z      = local_grid_end_z - startz;
 
   // TODO No larger array when isSingleCell
-  if (!isSingleCellY) {
+  if (!is_single_cell_y) {
     starty -= halo_level;
-    endy += halo_level;
+    local_grid_end_y += halo_level;
   }
-  if (!isSingleCellZ) {
+  if (!is_single_cell_z) {
     startz -= halo_level;
-    endz += halo_level;
-  }
-}
-//------------------------------------------------------------------------------
-auto create_flow() -> void {
-  flow = flow_t{new TileBox{2 * M_PI, 0.0}};
-  if (use_interpolated) {
-    if (rank == 0) {
-      std::cerr << "Using interpolated dataset\n";
-    }
-    flow = flow_t{new InterpolatedField{
-        std::move(flow), std::set<double>{-1.0, 0.0, 1.0, 2.0, 3.0}}};
+    local_grid_end_z += halo_level;
   }
 }
 //------------------------------------------------------------------------------
@@ -282,66 +279,52 @@ auto initialize_flow_data() {
     std::cerr << "Filling the grid by function.\n";
   }
 
-  create_flow();
+  domain_size_x = aabb.max(0) - aabb.min(0);
+  domain_size_y = aabb.max(1) - aabb.min(1);
+  domain_size_z = aabb.max(2) - aabb.min(2);
 
-  dx = aabb.max(0) - aabb.min(0);
-  dy = aabb.max(1) - aabb.min(1);
-  dz = aabb.max(2) - aabb.min(2);
+  deltaX = is_periodic_x ? domain_size_x / global_grid_size[0]
+                         : domain_size_x / (global_grid_size[0] - 1);
+  deltaY = is_periodic_y ? domain_size_y / global_grid_size[1]
+                         : domain_size_y / (global_grid_size[1] - 1);
+  deltaZ = is_periodic_z ? domain_size_z / global_grid_size[2]
+                         : domain_size_z / (global_grid_size[2] - 1);
 
-  deltaX = periodicx ? dx / grid_size[0] : dx / (grid_size[0] - 1);
-  deltaY = periodicy ? dy / grid_size[1] : dy / (grid_size[1] - 1);
-  deltaZ = periodicz ? dz / grid_size[2] : dz / (grid_size[2] - 1);
+  local_domain_origin_x = aabb.min(0);
+  local_domain_origin_y = aabb.min(1) + starty * deltaY;
+  local_domain_origin_z = aabb.min(2) + startz * deltaZ;
 
-  xst = aabb.min(0);
-  yst = aabb.min(1) + starty * deltaY;
-  zst = aabb.min(2) + startz * deltaZ;
-
-  for (auto k = index_t{startz}; k < endz; ++k) {
-    for (auto j = index_t{starty}; j < endy; ++j) {
-      for (auto i = index_t{0}; i < grid_size[0]; ++i) {
-        auto const x                  = xst + double(i) * deltaX;
-        auto const y                  = yst + double(j - starty) * deltaY;
-        auto const z                  = zst + double(k - startz) * deltaZ;
-        auto const vel                = flow->v(x, y, z, t0);
-        (*velocity_field)[i][j][k][0] = vel.x();
-        (*velocity_field)[i][j][k][1] = vel.y();
-        (*velocity_field)[i][j][k][2] = vel.z();
-      }
-    }
-  }
+  sample_flow();
   if (rank == 0) {
     std::cerr << "Done Filling grid.\n";
   }
 }
 //------------------------------------------------------------------------------
-auto call_interface(MPI_Fint& commF) -> void {
-  tatooine_mpi_test_initialize_communicator(&commF);
-  if (rank == 0) {
-    std::cerr << "Initialized MPI.\n";
-  }
-
-  tatooine_mpi_test_initialize_grid(
-      &zero, &zero, &zero, &grid_size[0], &grid_size[1], &grid_size[2],
-      &gridstx, &gridsty, &gridstz, &grid_size[0], &rSizey, &rSizez, &dx, &dy,
-      &dz, &periodicx, &periodicy, &periodicz, &halo_level);
+auto start_simulation() -> void {
+  tatooine_dino_initialize_grid(
+      &global_grid_size[0], &global_grid_size[1], &global_grid_size[2],
+      &local_starting_index_x, &local_starting_index_y, &local_starting_index_z,
+      &global_grid_size[0], &local_grid_size_y, &local_grid_size_z,
+      &domain_size_x, &domain_size_y, &domain_size_z, &is_periodic_x,
+      &is_periodic_y, &is_periodic_z, &halo_level);
   if (rank == 0) {
     std::cerr << "Initialized grid.\n";
   }
 
-  tatooine_mpi_test_initialize_variables(velocity_field->data());
+  tatooine_dino_initialize_variable("velocity", &three, velocity_field->data());
   if (rank == 0) {
     std::cerr << "Initialized Variables.\n";
   }
 
-  auto prev_time = t0 - dt;
-  tatooine_mpi_test_initialize_parameters(&t0, &prev_time, &iteration);
+  auto const prev_time = t0 - dt;
+  tatooine_dino_initialize_parameters(&t0, &prev_time, &iteration);
   if (rank == 0) {
     std::cerr << "Initialized Parameters.\n";
   }
 
-  tatooine_mpi_test_initialize(&restart);
+  tatooine_dino_initialize(&restart);
 
-  simulation_loop(*flow);
+  simulation_loop();
 }
 //==============================================================================
 auto main(int argc, char** argv) -> int {
@@ -380,13 +363,18 @@ auto main(int argc, char** argv) -> int {
 
   calculate_grid_position_for_worker();
   velocity_field = std::make_unique<vec_array>(
-      boost::extents[range_t(0, grid_size[0])][range_t(starty, endy)]
-                    [range_t(startz, endz)][3],
+      boost::extents[range_t(0, global_grid_size[0])][range_t(starty, local_grid_end_y)]
+                    [range_t(startz, local_grid_end_z)][3],
       boost::fortran_storage_order());
 
   initialize_flow_data();
 
-  call_interface(commF);
+  tatooine_dino_initialize_communicator(&commF);
+  if (rank == 0) {
+    std::cerr << "Initialized MPI.\n";
+  }
+
+  start_simulation();
   MPI_Finalize();
   return 0;
 }
