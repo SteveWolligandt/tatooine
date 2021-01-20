@@ -19,13 +19,15 @@ extern "C" void tatooine_dino_initialize_communicator(MPI_Fint* communicator);
 /// \param  periodicx, periodicy, periodicz     periodic boundary directions (0
 ///                                             for no, 1 for yes)
 /// \param  halo_level              number of halo cell layers
-extern "C" void tatooine_dino_initialize_grid(
-    int const* gridx, int const* gridy, int const* gridz,
-    int const* xst, int const* yst, int const* zst,
-    int const* xsz, int const* ysz, int const* zsz,
-    double const* dx, double const* dy, double const* dz,
-    int const* periodicx, int const* periodicy, int const* periodicz,
-    int const* halo_level);
+extern "C" auto tatooine_dino_initialize_grid(
+    int const* global_grid_size_x, int const* global_grid_size_y,
+    int const* global_grid_size_z, int const* local_starting_index_x,
+    int const* local_starting_index_y, int const* local_starting_index_z,
+    int const* local_grid_size_x, int const* local_grid_size_y,
+    int const* local_grid_size_z, double const* domain_size_x,
+    double const* domain_size_y, double const* domain_size_z,
+    int const* is_periodic_x, int const* is_periodic_y,
+    int const* is_periodic_z, int const* halo_level) -> void;
 //------------------------------------------------------------------------------
 /// \brief  Add variables to the dataset.
 ///
@@ -36,9 +38,10 @@ extern "C" void tatooine_dino_initialize_grid(
 ///         processor block does not span the whole domain.
 ///         If a direction does have a halo, it must have exactly the size
 ///         of the @a halo_level parameter in tatooine_initialize_grid()
-extern "C" void tatooine_dino_initialize_variable(char const*   name,
+extern "C" auto tatooine_dino_initialize_variable(char const*   name,
                                                   int const*    num_components,
-                                                  double const* variable);
+                                                  double const* variable)
+    -> void;
 //------------------------------------------------------------------------------
 /// \brief  Set parameters.
 ///

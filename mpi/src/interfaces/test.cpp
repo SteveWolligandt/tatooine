@@ -43,26 +43,26 @@ struct test : base_interface<test> {
     log("Initializing variables");
 
     if (num_components == 1) {
-      using arr_t   = boost::multi_array<double, 3>;
-      arr_t transformed_data{
-          boost::extents[m_worker_grid.size(0)][m_worker_grid.size(1)]
-                        [m_worker_grid.size(2)]};
-
-      size_t idx = 0;
-      for (size_t i = 0; i < m_worker_grid.size(0); ++i) {
-        for (size_t j = 0; j < m_worker_grid.size(1); ++j) {
-          for (size_t k = 0; k < m_worker_grid.size(2); ++k) {
-            transformed_data[i][j][k] = var[idx++];
-          }
-        }
-      }
-
-      for (size_t i = 0; i < 12; ++i) {
-        if (m_mpi_communicator->rank() == 0) {
-          std::cerr << transformed_data.data()[i] << ", ";
-        }
-        std::cerr << "...\n";
-      }
+      //using arr_t   = boost::multi_array<double, 3>;
+      //arr_t transformed_data{
+      //    boost::extents[m_worker_grid.size(0)][m_worker_grid.size(1)]
+      //                  [m_worker_grid.size(2)]};
+      //
+      //size_t idx = 0;
+      //for (size_t i = 0; i < m_worker_grid.size(0); ++i) {
+      //  for (size_t j = 0; j < m_worker_grid.size(1); ++j) {
+      //    for (size_t k = 0; k < m_worker_grid.size(2); ++k) {
+      //      transformed_data[i][j][k] = var[idx++];
+      //    }
+      //  }
+      //}
+      //
+      //for (size_t i = 0; i < 12; ++i) {
+      //  if (m_mpi_communicator->rank() == 0) {
+      //    std::cerr << transformed_data.data()[i] << ", ";
+      //  }
+      //  std::cerr << "...\n";
+      //}
     } else {
       using arr_t   = dynamic_multidim_array<vec3>;
 
@@ -71,9 +71,9 @@ struct test : base_interface<test> {
                              m_worker_grid.size(2)};
 
       size_t idx = 0;
-      for (size_t i = 0; i < m_worker_grid.size(0); ++i) {
+      for (size_t k = 0; k < m_worker_grid.size(2); ++k) {
         for (size_t j = 0; j < m_worker_grid.size(1); ++j) {
-          for (size_t k = 0; k < m_worker_grid.size(2); ++k) {
+          for (size_t i = 0; i < m_worker_grid.size(0); ++i) {
             transformed_data(i, j, k) =
                 vec3{var[idx], var[idx + 1], var[idx + 2]};
             idx += 3;

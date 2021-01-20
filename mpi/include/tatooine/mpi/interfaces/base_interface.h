@@ -83,7 +83,7 @@ struct base_interface {
     m_base_pmused = pm_used();
     m_base_vmused = vm_used();
 
-    if (restart == 0) {
+    if (restart) {
       // Clear contents of log files
       m_memory_file.open(filepath, std::ios::trunc);
       // Seed particles on iso surface

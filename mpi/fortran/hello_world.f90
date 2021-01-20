@@ -2,11 +2,11 @@ program hello
   use iso_c_binding
   use c_interface
   !==============================================================================
-  integer(c_int), dimension (:,:), allocatable:: A, B    
-  integer(c_int), dimension (2, 2, 2, 2):: arr
+  integer(c_int), dimension (:,:), allocatable, target:: A, B    
+  integer(c_int), dimension (2, 2, 2, 2), target:: arr
   integer:: c, s1, s2     
   !==============================================================================
-  call hello_world()
+  call hello_world
   !------------------------------------------------------------------------------
   c = add(1, 2)
   print *,c
@@ -19,7 +19,7 @@ program hello
   A(:,:) = 1
   B(:,:) = 2
   A(1, 2) = 5
-  call add_matrix(A, B, s1, s2)
+  call add_matrix(c_loc(A), c_loc(B), s1, s2)
   deallocate (A, B)
   !------------------------------------------------------------------------------
   arr(1, 1, 1, 1) =  1; 
@@ -38,5 +38,5 @@ program hello
   arr(2, 1, 2, 2) = 14; 
   arr(1, 2, 2, 2) = 15; 
   arr(2, 2, 2, 2) = 16; 
-  call multi_arr(arr)
+  call multi_arr(c_loc(arr))
 end program
