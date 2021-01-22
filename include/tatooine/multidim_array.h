@@ -181,7 +181,7 @@ class static_multidim_array
   template <typename = void>
   requires std::is_same_v<MemLoc, tag::heap>
 #else
-  template <typename = void, enable_if_same<MemLoc, tag::heap> = true>
+  template <typename _Mem = MemLoc, enable_if_same<_Mem, tag::heap> = true>
 #endif
   explicit constexpr static_multidim_array(std::vector<T>&& data)
       : m_data(std::move(data)) {

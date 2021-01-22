@@ -1,5 +1,5 @@
-#ifndef TATOOINE_MPI_INTERFACES_BASE_INTERFACE_H
-#define TATOOINE_MPI_INTERFACES_BASE_INTERFACE_H
+#ifndef TATOOINE_DINO_INTERFACE_BASE_INTERFACE_H
+#define TATOOINE_DINO_INTERFACE_BASE_INTERFACE_H
 //==============================================================================
 #include <boost/mpi.hpp>
 #include <boost/mpi/cartesian_communicator.hpp>
@@ -10,7 +10,7 @@
 #include <iomanip>
 #include <iostream>
 //==============================================================================
-namespace tatooine::mpi::interfaces{
+namespace tatooine::dino_interface::interfaces{
 //==============================================================================
 template <typename InterfaceImplementation>
 struct base_interface {
@@ -320,6 +320,6 @@ struct base_interface {
   }
 };
 //==============================================================================
-}  // namespace tatooine::mpi::interfaces
+}  // namespace tatooine::dino_interface::interfaces
 //==============================================================================
 #endif

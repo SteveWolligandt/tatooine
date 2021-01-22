@@ -87,6 +87,9 @@ template <typename T, typename = void>
 struct is_dereferencable_impl : std::false_type {};
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 template <typename T>
+    struct is_dereferencable_impl<T*> : std::true_type {};
+// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+template <typename T>
 struct is_dereferencable_impl<T, std::void_t<decltype(*std::declval<T>())>>
     : std::true_type {};
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -101,6 +104,12 @@ struct is_post_incrementable_impl<T, std::void_t<decltype(std::declval<T>()++)>>
     : std::true_type {};
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 template <typename T>
+struct is_post_incrementable_impl<T*> : std::true_type {};
+// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+template <typename T>
+struct is_post_incrementable_impl<T const*> : std::true_type {};
+// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+template <typename T>
 static constexpr auto is_post_incrementable =
     is_post_incrementable_impl<T>::value;
 //------------------------------------------------------------------------------
@@ -110,6 +119,12 @@ struct is_pre_incrementable_impl : std::false_type {};
 template <typename T>
 struct is_pre_incrementable_impl<T, std::void_t<decltype(++std::declval<T>())>>
     : std::true_type {};
+// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+template <typename T>
+struct is_pre_incrementable_impl<T*> : std::true_type {};
+// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+template <typename T>
+struct is_pre_incrementable_impl<T const*> : std::true_type {};
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 template <typename T>
 static constexpr auto is_pre_incrementable =
@@ -123,6 +138,12 @@ struct is_post_decrementable_impl<T, std::void_t<decltype(std::declval<T>()--)>>
     : std::true_type {};
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 template <typename T>
+struct is_post_decrementable_impl<T*> : std::true_type {};
+// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+template <typename T>
+struct is_post_decrementable_impl<T const*> : std::true_type {};
+// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+template <typename T>
 static constexpr auto is_post_decrementable =
     is_post_decrementable_impl<T>::value;
 //------------------------------------------------------------------------------
@@ -132,6 +153,12 @@ struct is_pre_decrementable_impl : std::false_type {};
 template <typename T>
 struct is_pre_decrementable_impl<T, std::void_t<decltype(--std::declval<T>())>>
     : std::true_type {};
+// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+template <typename T>
+struct is_pre_decrementable_impl<T*> : std::true_type {};
+// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+template <typename T>
+struct is_pre_decrementable_impl<T const*> : std::true_type {};
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 template <typename T>
 static constexpr auto is_pre_decrementable =

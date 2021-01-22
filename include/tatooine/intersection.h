@@ -6,13 +6,12 @@
 //==============================================================================
 namespace tatooine {
 //==============================================================================
-template <real_number Real, size_t N>
+template <typename Real, size_t N>
 struct ray_intersectable;
 //==============================================================================
-/// Intersections are created when a \ref cg::Ray "ray" hits an \ref
-/// cg::primitive "primitive object".
-template <real_number Real, size_t N>
+template <typename Real, size_t N>
 struct intersection {
+  static_assert(is_arithmetic<Real>);
   using real_t = Real;
   static constexpr size_t num_dimensions() {
     return N;

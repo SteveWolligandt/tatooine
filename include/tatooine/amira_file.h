@@ -27,7 +27,11 @@ inline const char* find_and_jump(const char* buffer,
 
 /// A simple routine to read an AmiraMesh file
 /// that defines a scalar/vector field on a uniform grid.
+#ifdef __cpp_concepts
 template <floating_point T = float>
+#else
+template <typename T = float, enable_if_floating_point<T> = true>
+#endif
 auto read(std::filesystem::path const& path) {
   FILE* fp = fopen(path.string().c_str(), "rb");
   if (!fp) throw std::runtime_error("could not open file " + path.string());
