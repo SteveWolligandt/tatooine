@@ -115,7 +115,7 @@ endif()
 target_compile_options(tatooine PRIVATE
   -Wall -Wextra -pedantic
   -Wno-tautological-undefined-compare -Wno-gnu-zero-variadic-macro-arguments)
-target_compile_features(tatooine PUBLIC cxx_std_20)
+target_compile_features(tatooine PUBLIC cxx_std_17)
 #- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 # set include dirs
 target_include_directories(tatooine

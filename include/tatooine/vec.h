@@ -9,8 +9,9 @@
 //==============================================================================
 namespace tatooine {
 //==============================================================================
-template <real_or_complex_number T, size_t N>
+template <typename T, size_t N>
 struct vec : tensor<T, N> {  // NOLINT
+  static_assert(is_arithmetic<T> || is_complex<T>);
   using this_t = vec<T, N>;
   using parent_t = tensor<T, N>;
   using parent_t::parent_t;
@@ -18,9 +19,11 @@ struct vec : tensor<T, N> {  // NOLINT
   using parent_t::dimension;
   using parent_t::operator();
 
-  template <real_or_complex_number... Ts, size_t _Dim0 = parent_t::dimension(0),
+  template <typename... Ts, size_t _Dim0 = parent_t::dimension(0),
             std::enable_if_t<_Dim0 == sizeof...(Ts), bool> = true>
-  constexpr vec(Ts const&... ts) : parent_t{ts...} {}
+  constexpr vec(Ts const&... ts) : parent_t{ts...} {
+    static_assert(((is_arithmetic<Ts> || is_complex<Ts>)&&...));
+  }
 
   using iterator = typename parent_t::array_parent_t::container_t::iterator;
   using const_iterator =
@@ -43,18 +46,18 @@ struct vec : tensor<T, N> {  // NOLINT
   }
 
   //----------------------------------------------------------------------------
-  constexpr vec(const vec&) = default;
+  constexpr vec(vec const&) = default;
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
   explicit constexpr vec(vec&& other) noexcept : parent_t{std::move(other)} {}
   //----------------------------------------------------------------------------
-  constexpr auto operator=(const vec&) -> vec& = default;
+  constexpr auto operator=(vec const&) -> vec& = default;
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
   constexpr auto operator=(vec&& other) noexcept -> vec& {
     parent_t::operator=(std::move(other));
     return *this;
   }
   template <typename OtherTensor, typename OtherReal>
-  constexpr vec(const base_tensor<OtherTensor, OtherReal, N>& other) {
+  constexpr vec(base_tensor<OtherTensor, OtherReal, N> const& other) {
     for (size_t i = 0; i < N; ++i) { at(i) = other(i); }
   }
   //----------------------------------------------------------------------------
@@ -88,20 +91,20 @@ struct vec : tensor<T, N> {  // NOLINT
 //==============================================================================
 // type traits
 //==============================================================================
-template <real_or_complex_number T, size_t N>
+template <typename T, size_t N>
 auto begin(vec<T, N> const& v) {return v.begin();}
 //------------------------------------------------------------------------------
-template <real_or_complex_number T, size_t N>
+template <typename T, size_t N>
 auto end(vec<T, N> const& v) {return v.ned();}
 //==============================================================================
 template <typename... Ts>
-vec(const Ts&...) -> vec<promote_t<Ts...>, sizeof...(Ts)>;
+vec(const Ts&...) -> vec<common_type<Ts...>, sizeof...(Ts)>;
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-template <real_or_complex_number T>
+template <typename T>
 using Vec2 = vec<T, 2>;
-template <real_or_complex_number T>
+template <typename T>
 using Vec3 = vec<T, 3>;
-template <real_or_complex_number T>
+template <typename T>
 using Vec4 = vec<T, 4>;
 
 using vec2f = Vec2<float>;

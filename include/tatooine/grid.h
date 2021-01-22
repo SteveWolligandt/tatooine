@@ -36,7 +36,7 @@ class grid {
       (is_linspace_v<std::decay_t<Dimensions>> && ...);
   static constexpr auto num_dimensions() { return sizeof...(Dimensions); }
   using this_t = grid<Dimensions...>;
-  using real_t = promote_t<typename Dimensions::value_type...>;
+  using real_t = common_type<typename Dimensions::value_type...>;
   using vec_t  = vec<real_t, num_dimensions()>;
   using pos_t  = vec_t;
   using seq_t  = std::make_index_sequence<num_dimensions()>;

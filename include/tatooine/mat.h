@@ -9,8 +9,9 @@
 //==============================================================================
 namespace tatooine {
 //==============================================================================
-template <real_or_complex_number T, size_t M, size_t N>
+template <typename T, size_t M, size_t N>
 struct mat : tensor<T, M, N> {
+  static_assert(is_arithmetic<T> || is_complex<T>);
   //============================================================================
   // static methods
   //============================================================================
@@ -62,8 +63,9 @@ struct mat : tensor<T, M, N> {
   constexpr mat(base_tensor<Tensor, TensorReal, M, N> const& other)
       : parent_t{other} {}
   //----------------------------------------------------------------------------
-  template <real_number... Rows>
+  template <typename... Rows>
   constexpr mat(Rows(&&... rows)[parent_t::dimension(1)]) {  // NOLINT
+    static_assert(((is_arithmetic<Rows> || is_complex<Rows>)&&...));
     static_assert(
         sizeof...(rows) == parent_t::dimension(0),
         "number of given rows does not match specified number of rows");
@@ -148,35 +150,35 @@ struct mat : tensor<T, M, N> {
 //==============================================================================
 template <size_t C, typename... Rows>
 mat(Rows const(&&... rows)[C])  // NOLINT
-    ->mat<promote_t<Rows...>, sizeof...(Rows), C>;
+    ->mat<common_type<Rows...>, sizeof...(Rows), C>;
 //==============================================================================
 // typedefs
 //==============================================================================
 
-template <real_or_complex_number T>
+template <typename T>
 using Mat2 = mat<T, 2, 2>;
-template <real_or_complex_number T>
+template <typename T>
 using Mat23 = mat<T, 2, 3>;
-template <real_or_complex_number T>
+template <typename T>
 using Mat24 = mat<T, 2, 4>;
 
-template <real_or_complex_number T>
+template <typename T>
 using Mat32 = mat<T, 3, 2>;
-template <real_or_complex_number T>
+template <typename T>
 using Mat3 = mat<T, 3, 3>;
-template <real_or_complex_number T>
+template <typename T>
 using Mat34 = mat<T, 3, 4>;
 
-template <real_or_complex_number T>
+template <typename T>
 using Mat42 = mat<T, 4, 2>;
-template <real_or_complex_number T>
+template <typename T>
 using Mat43 = mat<T, 4, 3>;
-template <real_or_complex_number T>
+template <typename T>
 using Mat4 = mat<T, 4, 4>;
 
-template <real_or_complex_number T>
+template <typename T>
 using Mat5 = mat<T, 5, 5>;
-template <real_or_complex_number T>
+template <typename T>
 using Mat6 = mat<T, 6, 6>;
 
 

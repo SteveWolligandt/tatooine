@@ -175,7 +175,7 @@ struct polynomial {
 //------------------------------------------------------------------------------
 template <typename... Coeffs>
 polynomial(Coeffs... coeffs)
-    -> polynomial<promote_t<Coeffs...>, sizeof...(Coeffs) - 1>;
+    -> polynomial<common_type<Coeffs...>, sizeof...(Coeffs) - 1>;
 template <typename Real, size_t N>
 polynomial(tensor<Real, N> const&) -> polynomial<Real, N - 1>;
 //------------------------------------------------------------------------------

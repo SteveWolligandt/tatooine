@@ -764,7 +764,7 @@ struct line {
 
 template <typename... Tensors, typename... Reals, size_t N>
     line(base_tensor<Tensors, Reals, N>&&... vertices) ->
-    line<promote_t<Reals...>, N>;
+    line<common_type<Reals...>, N>;
 //------------------------------------------------------------------------------
 template <typename Real, size_t N>
 auto diff(const line<Real, N>& l) {

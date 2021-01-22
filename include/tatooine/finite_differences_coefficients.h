@@ -11,7 +11,7 @@ namespace tatooine {
 template <floating_point... Xs>
 auto finite_differences_coefficients(std::size_t d, Xs... xs) {
   constexpr auto N = sizeof...(xs);
-  using real_t     = promote_t<std::decay_t<Xs>...>;
+  using real_t     = common_type<std::decay_t<Xs>...>;
   auto V           = mat<real_t, N, N>::vander(xs...);
   V = transposed(V);
   auto b = vec<real_t, N>::zeros();

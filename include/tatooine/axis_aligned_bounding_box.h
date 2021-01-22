@@ -325,17 +325,17 @@ using aabb3 = aabb<real_t, 3>;
 //==============================================================================
 template <typename Real0, typename Real1, size_t N>
 axis_aligned_bounding_box(vec<Real0, N> const&, vec<Real1, N> const&)
-    -> axis_aligned_bounding_box<promote_t<Real0, Real1>, N>;
+    -> axis_aligned_bounding_box<common_type<Real0, Real1>, N>;
 //------------------------------------------------------------------------------
 template <typename Real0, typename Real1, size_t N>
 axis_aligned_bounding_box(vec<Real0, N>&&, vec<Real1, N>&&)
-    -> axis_aligned_bounding_box<promote_t<Real0, Real1>, N>;
+    -> axis_aligned_bounding_box<common_type<Real0, Real1>, N>;
 //------------------------------------------------------------------------------
 template <typename Tensor0, typename Tensor1, typename Real0, typename Real1,
           size_t N>
 axis_aligned_bounding_box(base_tensor<Tensor0, Real0, N>&&,
                           base_tensor<Tensor1, Real1, N>&&)
-    -> axis_aligned_bounding_box<promote_t<Real0, Real1>, N>;
+    -> axis_aligned_bounding_box<common_type<Real0, Real1>, N>;
 
 //==============================================================================
 // ostream output

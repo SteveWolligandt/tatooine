@@ -1,7 +1,9 @@
 #ifndef TATOOINE_LINSPACE_H
 #define TATOOINE_LINSPACE_H
 //============================================================================
+#ifdef __cpp_concepts
 #include <tatooine/concepts.h>
+#endif
 #include <tatooine/type_traits.h>
 
 #include <boost/iterator/iterator_facade.hpp>
@@ -13,10 +15,18 @@ namespace tatooine {
 //============================================================================
 // forward declarations
 //============================================================================
-template <real_number Real>
+#ifdef __cpp_concepts
+template <arithmetic Real>
+#else
+template <typename Real, enable_if_arithmetic<Real>>
+#endif
 struct linspace_iterator;
 //============================================================================
-template <real_number Real>
+#ifdef __cpp_concepts
+template <arithmetic Real>
+#else
+template <typename Real, enable_if_arithmetic<Real> = true>
+#endif
 struct linspace {
   //============================================================================
   // typedefs
@@ -40,16 +50,25 @@ struct linspace {
  public:
   constexpr linspace() noexcept : m_min{Real(0)}, m_max{Real(0)}, m_size{0} {}
   //----------------------------------------------------------------------------
-  constexpr linspace(real_number auto min, real_number auto max,
-                     size_t size) noexcept
+#if __cpp_concepts
+  template <arithmetic Min, arithmetic Max>
+#else
+  template <typename Min, typename Max, enable_if_arithmetic<Min, Max> = true>
+#endif
+  constexpr linspace(Min const min, Max const max, size_t size) noexcept
       : m_min{std::min<Real>(min, max)},
         m_max{std::max<Real>(min, max)},
-        m_size{size} {}
+        m_size{size} {
+  }
   //----------------------------------------------------------------------------
   constexpr linspace(linspace const&)     = default;
   constexpr linspace(linspace&&) noexcept = default;
   //----------------------------------------------------------------------------
-  template <real_number OtherReal>
+#if __cpp_concepts
+  template <arithmetic OtherReal>
+#else
+  template <typename OtherReal, enable_if_arithmetic<OtherReal> = true>
+#endif
   explicit constexpr linspace(linspace<OtherReal> const& other) noexcept
       : m_min{static_cast<Real>(other.front())},
         m_max{static_cast<Real>(other.back())},
@@ -58,7 +77,11 @@ struct linspace {
   constexpr auto operator=(linspace const&) -> linspace& = default;
   constexpr auto operator=(linspace&&) noexcept -> linspace& = default;
   //----------------------------------------------------------------------------
-  template <real_number OtherReal>
+#if __cpp_concepts
+  template <arithmetic OtherReal>
+#else
+  template <typename OtherReal, enable_if_arithmetic<OtherReal> = true>
+#endif
   constexpr auto operator=(linspace<OtherReal> const& other) noexcept -> auto& {
     m_min  = other.front();
     m_max  = other.back();
@@ -113,7 +136,11 @@ struct linspace {
 };
 
 //==============================================================================
-template <real_number Real>
+#ifdef __cpp_concepts
+template <arithmetic Real>
+#else
+template <typename Real, enable_if_arithmetic<Real> = true>
+#endif
 struct linspace_iterator
     : boost::iterator_facade<linspace_iterator<Real>, Real,
                              std::bidirectional_iterator_tag, Real> {
@@ -194,62 +221,106 @@ struct linspace_iterator
 //==============================================================================
 // free functions
 //==============================================================================
-template <real_number Real>
+#ifdef __cpp_concepts
+template <arithmetic Real>
+#else
+template <typename Real, enable_if_arithmetic<Real> = true>
+#endif
 constexpr auto begin(linspace<Real> const& l) {
   return l.begin();
 }
 //------------------------------------------------------------------------------
-template <real_number Real>
+#ifdef __cpp_concepts
+template <arithmetic Real>
+#else
+template <typename Real, enable_if_arithmetic<Real> = true>
+#endif
 constexpr auto end(linspace<Real> const& l) {
   return l.end();
 }
 //------------------------------------------------------------------------------
-template <real_number Real>
+#ifdef __cpp_concepts
+template <arithmetic Real>
+#else
+template <typename Real, enable_if_arithmetic<Real> = true>
+#endif
 constexpr auto distance(linspace_iterator<Real> const& it0,
                         linspace_iterator<Real> const& it1) {
   return it0.distance(it1);
 }
 //------------------------------------------------------------------------------
-template <real_number Real>
+#ifdef __cpp_concepts
+template <arithmetic Real>
+#else
+template <typename Real, enable_if_arithmetic<Real> = true>
+#endif
 auto size(linspace<Real> const& l) {
   return l.size();
 }
 //------------------------------------------------------------------------------
-template <real_number Real>
+#ifdef __cpp_concepts
+template <arithmetic Real>
+#else
+template <typename Real, enable_if_arithmetic<Real> = true>
+#endif
 auto front(linspace<Real> const& l) {
   return l.front();
 }
 //------------------------------------------------------------------------------
-template <real_number Real>
+#ifdef __cpp_concepts
+template <arithmetic Real>
+#else
+template <typename Real, enable_if_arithmetic<Real> = true>
+#endif
 auto front(linspace<Real>& l) -> auto& {
   return l.front();
 }
 //------------------------------------------------------------------------------
-template <real_number Real>
+#ifdef __cpp_concepts
+template <arithmetic Real>
+#else
+template <typename Real, enable_if_arithmetic<Real> = true>
+#endif
 auto back(linspace<Real> const& l) {
   return l.back();
 }
 //------------------------------------------------------------------------------
-template <real_number Real>
+#ifdef __cpp_concepts
+template <arithmetic Real>
+#else
+template <typename Real, enable_if_arithmetic<Real> = true>
+#endif
 auto back(linspace<Real>& l) -> auto& {
   return l.back();
 }
 //------------------------------------------------------------------------------
-template <real_number Real>
+#ifdef __cpp_concepts
+template <arithmetic Real>
+#else
+template <typename Real, enable_if_arithmetic<Real> = true>
+#endif
 auto next(linspace_iterator<Real> const& l, size_t diff = 1) {
   linspace_iterator<Real> it{l};
   it.increment(diff);
   return it;
 }
 //------------------------------------------------------------------------------
-template <real_number Real>
+#ifdef __cpp_concepts
+template <arithmetic Real>
+#else
+template <typename Real, enable_if_arithmetic<Real> = true>
+#endif
 auto prev(linspace_iterator<Real> const& l, size_t diff = 1) {
   linspace_iterator<Real> it{l};
   it.decrement(diff);
   return it;
 }
 //------------------------------------------------------------------------------
-template <real_number Real>
+#ifdef __cpp_concepts
+template <arithmetic Real>
+#else
+template <typename Real, enable_if_arithmetic<Real> = true>
+#endif
 inline auto advance(linspace_iterator<Real>& l, long n = 1) -> auto& {
   if (n < 0) {
     while (n++) { --l; }
@@ -261,8 +332,13 @@ inline auto advance(linspace_iterator<Real>& l, long n = 1) -> auto& {
 //==============================================================================
 // deduction guides
 //==============================================================================
-template <real_number Real0, real_number Real1>
-linspace(Real0, Real1, size_t) -> linspace<promote_t<Real0, Real1>>;
+#ifdef __cpp_concepts
+template <arithmetic Real0, arithmetic Real1>
+#else
+template <typename Real0, typename Real1,
+          enable_if_arithmetic<Real0, Real1> = true>
+#endif
+linspace(Real0, Real1, size_t) -> linspace<common_type<Real0, Real1>>;
 
 //==============================================================================
 // type trait
@@ -270,7 +346,7 @@ linspace(Real0, Real1, size_t) -> linspace<promote_t<Real0, Real1>>;
 template <typename T>
 struct is_linspace : std::false_type {};
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-template <real_number Real>
+template <typename Real>
 struct is_linspace<linspace<Real>> : std::true_type {};
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 template <typename T>
@@ -278,7 +354,11 @@ static constexpr auto is_linspace_v = is_linspace<T>::value;
 //==============================================================================
 // I/O
 //==============================================================================
-template <real_number Real>
+#ifdef __cpp_concepts
+template <arithmetic Real>
+#else
+template <typename Real, enable_if_arithmetic<Real> = true>
+#endif
 auto operator<<(std::ostream& out, linspace<Real> const& l) -> auto& {
   out << "[" << l[0] << ", " << l[1] << ", ..., " << l.back() << "]";
   return out;
