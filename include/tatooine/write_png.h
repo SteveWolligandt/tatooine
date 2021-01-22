@@ -4,11 +4,16 @@
 #include <tatooine/concepts.h>
 
 #include <filesystem>
-#include <png++/png.hpp>
+#include <tatooine/png.h>
 //==============================================================================
 namespace tatooine {
 //==============================================================================
-template <real_number T>
+#if TATOOINE_HAS_PNG_SUPPORT
+#ifdef __cpp_concepts
+template <arithmetic T>
+#else
+template <typename T, enable_if_arithmetic<T>>
+#endif
 void write_png(std::filesystem::path const& path,
                std::vector<T> const& data, size_t width, size_t height) {
   png::image<png::rgb_pixel> image(width, height);
@@ -28,8 +33,8 @@ void write_png(std::filesystem::path const& path,
   }
   image.write(path.string());
 }
+#endif
 //==============================================================================
 }  // namespace tatooine
 //==============================================================================
-
 #endif

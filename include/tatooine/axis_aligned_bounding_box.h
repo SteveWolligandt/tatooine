@@ -12,8 +12,9 @@
 //==============================================================================
 namespace tatooine {
 //==============================================================================
-template <real_number Real, size_t N>
+template <typename Real, size_t N>
 struct axis_aligned_bounding_box : ray_intersectable<Real, N> {
+  static_assert(is_arithmetic<Real>);
   //============================================================================
   using real_t = Real;
   using this_t = axis_aligned_bounding_box<Real, N>;
@@ -80,10 +81,14 @@ struct axis_aligned_bounding_box : ray_intersectable<Real, N> {
     return true;
   }
   //----------------------------------------------------------------------------
-  template <typename = void>
-  requires(N == 2)
-  constexpr auto is_triangle_inside(vec<Real, 2> x0, vec<Real, 2> x1,
-                                vec<Real, 2> x2) const {
+#ifdef __cpp_concepts
+  template <typename = void> requires(N == 2)
+#else
+  template <size_t _N = N, enable_if<(_N == 2)> = true>
+#endif
+  constexpr auto is_triangle_inside(vec<Real, 2> x0,
+                                    vec<Real, 2> x1,
+                                    vec<Real, 2> x2) const {
     // auto const c = center();
     // auto const e = extents();
     // x0 -= c;
@@ -129,10 +134,14 @@ struct axis_aligned_bounding_box : ray_intersectable<Real, N> {
   //----------------------------------------------------------------------------
   /// from here:
   /// https://gdbooks.gitbooks.io/3dcollisions/content/Chapter4/aabb-triangle.html
-  template <typename = void>
-  requires(N == 3) constexpr auto is_triangle_inside(vec<Real, 3> x0,
-                                                     vec<Real, 3> x1,
-                                                     vec<Real, 3> x2) const {
+#ifdef __cpp_concepts
+  template <typename = void> requires(N == 3)
+#else
+  template <size_t _N = N, enable_if<(_N == 3)> = true>
+#endif
+  constexpr auto is_triangle_inside(vec<Real, 3> x0,
+                                    vec<Real, 3> x1,
+                                    vec<Real, 3> x2) const {
     auto const c = center();
     auto const e = extents();
 
@@ -310,7 +319,7 @@ struct axis_aligned_bounding_box : ray_intersectable<Real, N> {
                                  vec<Real, N - 1>::zeros()};
   }
 };
-template <real_number Real, size_t N>
+template <typename Real, size_t N>
 using aabb = axis_aligned_bounding_box<Real, N>;
 
 using aabb2d = aabb<double, 2>;

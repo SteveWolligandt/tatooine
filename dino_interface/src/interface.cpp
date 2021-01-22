@@ -1,21 +1,20 @@
-#include <tatooine/mpi/interfaces/base_interface.h>
-#include <tatooine/mpi/interfaces/test.h>
+#include <tatooine/dino_interface/base_interface.h>
+#include <tatooine/dino_interface/interface.h>
 
 #include <boost/multi_array.hpp>
 #include <tatooine/multidim_array.h>
-
 //==============================================================================
-namespace tatooine::mpi::interfaces {
+namespace tatooine::dino_interface {
 //==============================================================================
-struct test : base_interface<test> {
+struct interface : base_interface<test> {
   using this_t   = test;
   using parent_t = base_interface<this_t>;
 
-  static constexpr std::string_view m_timings_fname     = "test_timings.txt";
-  static constexpr std::string_view m_memory_fname      = "test_memory.txt";
-  static constexpr std::string_view m_split_merge_fname = "test_splitmerge.txt";
+  static constexpr std::string_view m_timings_fname     = "tatooine_dino_interface_timings.txt";
+  static constexpr std::string_view m_memory_fname      = "tatooine_dino_interface_memory.txt";
+  static constexpr std::string_view m_split_merge_fname = "tatooine_dino_interface_splitmerge.txt";
 
-  static constexpr std::string_view m_output_dir_name = "data_test";
+  static constexpr std::string_view m_output_dir_name = "tatooine_dino_interface_output";
 
   double   m_time      = 0;
   double   m_prev_time = 0;
@@ -186,17 +185,19 @@ struct test : base_interface<test> {
   }
 };
 //==============================================================================
-}  // namespace tatooine::mpi::interfaces
+}  // namespace tatooine::dino_interface::interfaces
 //==============================================================================
 
 //==============================================================================
 // Interface Functions
 //==============================================================================
-auto tatooine_dino_initialize_communicator(MPI_Fint* communicator) -> void {
-  tatooine::mpi::interfaces::test::get().initialize_communicator(*communicator);
+auto tatooine_dino_interface_initialize_communicator(MPI_Fint* communicator)
+    -> void {
+  tatooine::dino_interface::interfaces::test::get().initialize_communicator(
+      *communicator);
 }
 //------------------------------------------------------------------------------
-auto tatooine_dino_initialize_grid(
+auto tatooine_dino_interface_initialize_grid(
     int const* global_grid_size_x, int const* global_grid_size_y,
     int const* global_grid_size_z, int const* local_starting_index_x,
     int const* local_starting_index_y, int const* local_starting_index_z,
@@ -205,37 +206,41 @@ auto tatooine_dino_initialize_grid(
     double const* domain_size_y, double const* domain_size_z,
     int const* is_periodic_x, int const* is_periodic_y,
     int const* is_periodic_z, int const* halo_level) -> void {
-  tatooine::mpi::interfaces::test::get().initialize_grid(
+  tatooine::dino_interface::interfaces::test::get().initialize_grid(
       *global_grid_size_x, *global_grid_size_y, *global_grid_size_z,
       *local_starting_index_x, *local_starting_index_y, *local_starting_index_z,
       *local_grid_size_x, *local_grid_size_y, *local_grid_size_z,
-      *domain_size_x, *domain_size_y, *domain_size_z,
-      *is_periodic_x, *is_periodic_y, *is_periodic_z,
-      *halo_level);
+      *domain_size_x, *domain_size_y, *domain_size_z, *is_periodic_x,
+      *is_periodic_y, *is_periodic_z, *halo_level);
 }
 //------------------------------------------------------------------------------
-auto tatooine_dino_initialize_variable(char const* name, int const* num_components,
-                                       double const* var) -> void {
-  tatooine::mpi::interfaces::test::get().initialize_variable(
+auto tatooine_dino_interface_initialize_variable(char const*   name,
+                                                 int const*    num_components,
+                                                 double const* var) -> void {
+  tatooine::dino_interface::interfaces::test::get().initialize_variable(
       name, *num_components, var);
 }
 //------------------------------------------------------------------------------
-auto tatooine_dino_initialize_parameters(double const* time, double const* prev_time,
-                                         int const* iteration) -> void {
-  tatooine::mpi::interfaces::test::get().initialize_parameters(
+auto tatooine_dino_interface_initialize_parameters(double const* time,
+                                                   double const* prev_time,
+                                                   int const*    iteration)
+    -> void {
+  tatooine::dino_interface::interfaces::test::get().initialize_parameters(
       *time, *prev_time, *iteration);
 }
 //------------------------------------------------------------------------------
-auto tatooine_dino_initialize(int const* restart) -> void {
-  tatooine::mpi::interfaces::test::get().initialize(*restart);
+auto tatooine_dino_interface_initialize(int const* restart) -> void {
+  tatooine::dino_interface::interfaces::test::get().initialize(*restart);
 }
 //------------------------------------------------------------------------------
-auto tatooine_dino_update_variable(char const* name, int const* num_components,
-                                   double const* var) -> void {
-  tatooine::mpi::interfaces::test::get().update_variable(name, *num_components,
-                                                         var);
+auto tatooine_dino_interface_update_variable(char const*   name,
+                                             int const*    num_components,
+                                             double const* var) -> void {
+  tatooine::dino_interface::interfaces::test::get().update_variable(
+      name, *num_components, var);
 }
 //------------------------------------------------------------------------------
-auto tatooine_dino_update(int const* iteration, double const* time) -> void {
-  tatooine::mpi::interfaces::test::get().update(*iteration, *time);
+auto tatooine_dino_interface_update(int const* iteration, double const* time)
+    -> void {
+  tatooine::dino_interface::interfaces::test::get().update(*iteration, *time);
 }

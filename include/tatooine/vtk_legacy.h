@@ -879,7 +879,7 @@ auto legacy_file_writer::write_tensors(
   template <typename Data,
             enable_if<((std::is_same_v<Data, double>) ||
                        (std::is_same_v<Data, float>) ||
-                       (std::is_same_v<Data, int>))> = true>
+                       (std::is_same_v<Data, int>))>>
 #endif
 auto legacy_file_writer::write_scalars(std::string const &      name,
                                        std::vector<Data> const &data,
@@ -904,7 +904,7 @@ auto legacy_file_writer::write_scalars(std::string const &      name,
   template <typename Data,
             enable_if<((std::is_same_v<Data, double>) ||
                        (std::is_same_v<Data, float>) ||
-                       (std::is_same_v<Data, int>))> = true>
+                       (std::is_same_v<Data, int>))>>
 #endif
 auto legacy_file_writer::write_scalars(
     std::string const &name, std::vector<std::vector<Data>> const &data,

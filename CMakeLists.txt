@@ -129,9 +129,13 @@ endif()
 if (TATOOINE_HAS_PNG_SUPPORT)
   target_compile_definitions(tatooine PUBLIC TATOOINE_HAS_PNG_SUPPORT)
 endif()
+
+if ("${CMAKE_CXX_COMPILER_ID}" STREQUAL "Clang" OR
+    "${CMAKE_CXX_COMPILER_ID}" STREQUAL "GNU")
 target_compile_options(tatooine PRIVATE
   -Wall -Wextra -pedantic
   -Wno-tautological-undefined-compare -Wno-gnu-zero-variadic-macro-arguments)
+endif()
 target_compile_features(tatooine PUBLIC cxx_std_17)
 #- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 # set include dirs
@@ -218,7 +222,7 @@ if (${yavin_FOUND})
 endif()
 add_subdirectory(autonomous_particles)
 add_subdirectory(smearing_scalar_field)
-add_subdirectory(mpi)
+add_subdirectory(dino_interface)
 
 #- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 # This makes the project importable from the build directory
