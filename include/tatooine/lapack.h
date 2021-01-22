@@ -1,12 +1,24 @@
 #ifndef TATOOINE_LAPACK_H
 #define TATOOINE_LAPACK_H
 //==============================================================================
-#include <tatooine/tensor.h>
+#if TATOOINE_INCLUDE_MKL_LAPACKE
+#include <mkl_lapacke.h>
+#else
 #include <lapacke.h>
+#endif
+#include <tatooine/tensor.h>
 #include <tatooine/lapack_job.h>
 #include <tatooine/math.h>
 //==============================================================================
 namespace tatooine::lapack {
+//==============================================================================
+static constexpr auto including_mkl_lapacke() {
+#if TATOOINE_INCLUDE_MKL_LAPACKE
+  return true;
+#else
+  return false;
+#endif
+}
 //==============================================================================
 template <typename T, size_t M, size_t N>
 auto getrf(tensor<T, M, N>&& A) {

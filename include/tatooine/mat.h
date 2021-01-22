@@ -36,8 +36,12 @@ struct mat : tensor<T, M, N> {
   //----------------------------------------------------------------------------
   static constexpr auto ones() { return this_t{tag::fill<T>{1}}; }
   //----------------------------------------------------------------------------
+#ifdef __cpp_concepts
   template <typename = void>
   requires (is_quadratic_mat())
+#else
+  template <typename = void, enable_if<is_quadratic_mat()> = true>
+#endif
   static constexpr auto eye() { return this_t{tag::eye}; }
   //----------------------------------------------------------------------------
   template <typename RandEng = std::mt19937_64>
@@ -122,7 +126,12 @@ struct mat : tensor<T, M, N> {
     return V;
   }
   //----------------------------------------------------------------------------
-  static constexpr auto vander(convertible_to<T> auto&&... xs) {
+#ifdef __cpp_concepts
+  template <convertible_to<T> ...Xs>
+#else
+  template <typename... Xs, enable_if<(is_convertible<Xs, T> && ...)> = true>
+#endif
+  static constexpr auto vander(Xs&&... xs) {
     static_assert(sizeof...(xs) == num_columns());
     this_t V;
     auto   factor_up_row = [row = 0ul, &V](auto x) mutable {

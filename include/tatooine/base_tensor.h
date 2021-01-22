@@ -100,28 +100,48 @@ struct base_tensor : crtp<Tensor> {
         [this, &other](auto const... is) { this->at(is...) = other(is...); });
   }
   //----------------------------------------------------------------------------
-  constexpr decltype(auto) at(integral auto const... is) const {
+#ifdef __cpp_concepts
+  template <integral... Is>
+#else
+  template <typename... Is, enable_if_integral<Is...> = true>
+#endif
+  constexpr decltype(auto) at(Is const... is) const {
     static_assert(sizeof...(is) == rank(),
                   "number of indices does not match number of dimensions");
     return as_derived().at(is...);
   }
 
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-  constexpr decltype(auto) at(integral auto const... is) {
+#ifdef __cpp_concepts
+  template <integral... Is>
+#else
+  template <typename... Is, enable_if_integral<Is...> = true>
+#endif
+  constexpr decltype(auto) at(Is const... is) {
     static_assert(sizeof...(is) == rank(),
                   "number of indices does not match rank");
     return as_derived().at(is...);
   }
 
   //----------------------------------------------------------------------------
-  constexpr decltype(auto) operator()(integral auto const... is) const {
+#ifdef __cpp_concepts
+  template <integral... Is>
+#else
+  template <typename... Is, enable_if_integral<Is...> = true>
+#endif
+  constexpr decltype(auto) operator()(Is const... is) const {
     static_assert(sizeof...(is) == rank(),
                   "number of indices does not match number of dimensions");
     return at(is...);
   }
 
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-  constexpr decltype(auto) operator()(integral auto const... is) {
+#ifdef __cpp_concepts
+  template <integral... Is>
+#else
+  template <typename... Is, enable_if_integral<Is...> = true>
+#endif
+  constexpr decltype(auto) operator()(Is const... is) {
     static_assert(sizeof...(is) == rank(),
                   "number of indices does not match number of dimensions");
     return at(is...);
@@ -161,7 +181,12 @@ struct base_tensor : crtp<Tensor> {
   }
 
   //----------------------------------------------------------------------------
-  static constexpr auto array_index(integral auto const... is) {
+#ifdef __cpp_concepts
+  template <integral... Is>
+#else
+  template <typename... Is, enable_if_integral<Is...> = true>
+#endif
+  static constexpr auto array_index(Is const... is) {
     static_assert(sizeof...(is) == rank(),
                   "number of indices does not match number of dimensions");
     return static_multidim_size<x_fastest, Dims...>::plain_idx(is...);

@@ -1,3 +1,7 @@
+option(TATOOINE_BUILD_TESTS "Tests shall be built?")
+if(${TATOOINE_BUILD_TESTS})
+add_subdirectory(external/catch2)
+list(APPEND CMAKE_MODULE_PATH "${CMAKE_SOURCE_DIR}/external/catch2/contrib/")
 set(TATOOINE_TEST_USE_FAST_MATH false CACHE BOOL
     "use -ffast-math for unittests")
 option(TATOOINE_TEST_USE_FAST_MATH
@@ -169,4 +173,5 @@ if(CMAKE_BUILD_TYPE STREQUAL "Debug" AND (
       DEPENDS coverage.llvm.profdata
       WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR})
   endif()
+endif()
 endif()

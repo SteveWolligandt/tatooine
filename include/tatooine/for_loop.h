@@ -33,9 +33,14 @@ struct for_loop_impl {
   //----------------------------------------------------------------------------
  private:
   /// recursively creates loops
-  template <
-      std::size_t... Is,
-      regular_invocable<decltype(((void)Is, Int{}))...> Iteration>
+#ifdef __cpp_concepts
+  template <std::size_t... Is,
+            invocable<decltype(((void)Is, Int{}))...> Iteration>
+#else
+  template <std::size_t... Is,
+            typename Iteration, 
+            enable_if_invocable<Iteration, decltype(((void)Is, Int{}))...> = true>
+#endif
   constexpr auto loop(Iteration&& iteration,
                       std::index_sequence<Is...> /*unused*/) const {
     // check if Iteration either returns bool or nothing
@@ -91,8 +96,14 @@ struct for_loop_impl<Int, N, 1, ParallelIndex> {
   // methods
   //----------------------------------------------------------------------------
  private:
+#ifdef __cpp_concepts
   template <std::size_t... Is,
-            regular_invocable<decltype(((void)Is, Int{}))...> Iteration>
+            invocable<decltype(((void)Is, Int{}))...> Iteration>
+#else
+  template <
+      std::size_t... Is, typename Iteration,
+      enable_if_invocable<Iteration, decltype(((void)Is, Int{}))...> = true>
+#endif
   constexpr auto loop(Iteration&& iteration,
                       std::index_sequence<Is...> /*unused*/) const {
     // check if Iteration either returns bool or nothing
@@ -145,8 +156,14 @@ struct for_loop_impl<Int, N, I, I> {
   //----------------------------------------------------------------------------
  private:
   /// recursively creates loops
+#ifdef __cpp_concepts
   template <std::size_t... Is,
-            regular_invocable<decltype(((void)Is, Int{}))...> Iteration>
+            invocable<decltype(((void)Is, Int{}))...> Iteration>
+#else
+  template <
+      std::size_t... Is, typename Iteration,
+      enable_if_invocable<Iteration, decltype(((void)Is, Int{}))...> = true>
+#endif
   auto loop(Iteration&& iteration,
             std::index_sequence<Is...> /*unused*/) const {
     // check if Iteration either returns bool or nothing
@@ -203,8 +220,14 @@ struct for_loop_impl<Int, N, 1, 1> {
   // methods
   //----------------------------------------------------------------------------
  private:
+#ifdef __cpp_concepts
   template <std::size_t... Is,
-            regular_invocable<decltype(((void)Is, Int{}))...> Iteration>
+            invocable<decltype(((void)Is, Int{}))...> Iteration>
+#else
+  template <
+      std::size_t... Is, typename Iteration,
+      enable_if_invocable<Iteration, decltype(((void)Is, Int{}))...> = true>
+#endif
   auto loop(Iteration&& iteration,
             std::index_sequence<Is...> /*unused*/) const {
     // check if Iteration either returns bool or nothing
@@ -243,11 +266,18 @@ struct for_loop_impl<Int, N, 1, 1> {
 };
 #endif  // TATOOINE_OPENMP_AVAILABLE
 //==============================================================================
-template <std::size_t ParallelIndex, typename Int, Int... Is,
-          regular_invocable<decltype(((void)Is, Int{}))...> Iteration>
+#ifdef __cpp_concepts
+template <std::size_t ParallelIndex, typename Int, Int... Is, integral... Ends,
+          invocable<decltype(((void)Is, Int{}))...> Iteration>
+#else
+template <
+    std::size_t ParallelIndex, typename Int, Int... Is, typename Iteration,
+    typename... Ends, enable_if_integral<Ends...> = true,
+    enable_if_invocable<Iteration, decltype(((void)Is, Int{}))...> = true>
+#endif
 constexpr auto for_loop(Iteration&& iteration,
                         std::integer_sequence<Int, Is...>,
-                        integral auto const... ends) {
+                        Ends const... ends) {
   // check if Iteration either returns bool or nothing
   using return_type =
       std::invoke_result_t<Iteration, decltype(((void)Is, Int{}))...>;
@@ -271,8 +301,13 @@ constexpr auto for_loop(Iteration&& iteration,
 /// iteration must either return bool or nothing. If iteration returns false in
 /// any state the whole nested iteration will stop. iteration must return true
 /// to continue.
-template <typename Int = std::size_t, typename Iteration>
-constexpr void for_loop(Iteration&& iteration, integral auto const... ends) {
+#ifdef __cpp_concepts
+template <typename Int = std::size_t, typename Iteration, integral... Ends>
+#else
+template <typename Int = std::size_t, typename Iteration, typename... Ends,
+          enable_if_integral<Ends...> = true>
+#endif
+constexpr void for_loop(Iteration&& iteration, Ends const... ends) {
   detail::for_loop<sizeof...(ends) + 1, Int>(
       std::forward<Iteration>(iteration),
       std::make_integer_sequence<Int, sizeof...(ends)>{},
@@ -286,9 +321,14 @@ constexpr void for_loop(Iteration&& iteration, integral auto const... ends) {
 /// iteration must either return bool or nothing. If iteration returns false in
 /// any state the whole nested iteration will stop. iteration must return true
 /// to continue.
-template <typename Int = std::size_t, typename Iteration>
+#ifdef __cpp_concepts
+template <typename Int = std::size_t, typename Iteration, integral... Ends>
+#else
+template <typename Int = std::size_t, typename Iteration, typename... Ends,
+          enable_if_integral<Ends...> = true>
+#endif
 constexpr void parallel_for_loop(Iteration&& iteration,
-                                 integral auto const... ends) {
+                                 Ends const... ends) {
 #ifdef _OPENMP
   return detail::for_loop<sizeof...(ends) - 1, Int>(
       std::forward<Iteration>(iteration),

@@ -68,24 +68,60 @@ struct vec : tensor<T, N> {  // NOLINT
   auto end() const { return this->data().end(); }
   auto end() { return this->data().end(); }
   //----------------------------------------------------------------------------
+#ifdef __cpp_concepts
   template <typename = void> requires (N >= 1)
+#else
+  template <typename = void, enable_if<(N >= 1)> = true>
+#endif
   auto x() const -> auto const& {return this->at(0);}
+  // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+#ifdef __cpp_concepts
   template <typename = void> requires (N >= 1)
+#else
+  template <typename = void, enable_if<(N >= 1)> = true>
+#endif
   auto x() -> auto& {return this->at(0);}
   //----------------------------------------------------------------------------
+#ifdef __cpp_concepts
   template <typename = void> requires (N >= 2)
+#else
+  template <typename = void, enable_if<(N >= 2)> = true>
+#endif
   auto y() const -> auto const& {return this->at(1);}
+  // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+#ifdef __cpp_concepts
   template <typename = void> requires (N >= 2)
+#else
+  template <typename = void, enable_if<(N >= 2)> = true>
+#endif
   auto y() -> auto& {return this->at(1);}
   //----------------------------------------------------------------------------
+#ifdef __cpp_concepts
   template <typename = void> requires (N >= 3)
+#else
+  template <typename = void, enable_if<(N >= 3)> = true>
+#endif
   auto z() const -> auto const& {return this->at(2);}
+  // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+#ifdef __cpp_concepts
   template <typename = void> requires (N >= 3)
+#else
+  template <typename = void, enable_if<(N >= 3)> = true>
+#endif
   auto z() -> auto& {return this->at(2);}
   //----------------------------------------------------------------------------
+#ifdef __cpp_concepts
   template <typename = void> requires (N >= 4)
+#else
+  template <typename = void, enable_if<(N >= 4)> = true>
+#endif
+  // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
   auto w() const -> auto const& {return this->at(3);}
+#ifdef __cpp_concepts
   template <typename = void> requires (N >= 4)
+#else
+  template <typename = void, enable_if<(N >= 4)> = true>
+#endif
   auto w() -> auto& {return this->at(3);}
 };
 //==============================================================================

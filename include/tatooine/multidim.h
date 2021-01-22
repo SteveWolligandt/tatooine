@@ -1,11 +1,10 @@
 #ifndef TATOOINE_MULTIDIM_H
 #define TATOOINE_MULTIDIM_H
-
+//==============================================================================
 #include <cassert>
 
 #include "type_traits.h"
 #include "utility.h"
-
 //==============================================================================
 namespace tatooine {
 //==============================================================================
@@ -35,17 +34,30 @@ struct static_multidim {
       std::array<std::pair<size_t, size_t>, N> ranges)
       : m_ranges{ranges} {}
   //----------------------------------------------------------------------------
+#ifdef __cpp_concepts
   template <integral... Ts>
+#else
+  template <typename... Ts, enable_if_integral<Ts...> = true>
+#endif
   explicit constexpr static_multidim(const std::pair<Ts, Ts>&... ranges)
       : m_ranges{std::make_pair(static_cast<size_t>(ranges.first),
                                 static_cast<size_t>(ranges.second))...} {}
   //----------------------------------------------------------------------------
+#ifdef __cpp_concepts
   template <integral... Ts>
+#else
+  template <typename... Ts, enable_if_integral<Ts...> = true>
+#endif
   constexpr static_multidim(Ts const (&... ranges)[2])  // NOLINT
       : m_ranges{std::make_pair(static_cast<size_t>(ranges[0]),
                                 static_cast<size_t>(ranges[1]))...} {}
   //----------------------------------------------------------------------------
-  explicit constexpr static_multidim(integral auto... res)
+#ifdef __cpp_concepts
+  template <integral... Res>
+#else
+  template <typename... Res, enable_if_integral<Res...> = true>
+#endif
+  explicit constexpr static_multidim(Res... res)
       : m_ranges{std::make_pair(static_cast<size_t>(0),
                                 static_cast<size_t>(res))...} {}
   //----------------------------------------------------------------------------
@@ -215,19 +227,32 @@ struct dynamic_multidim {
     for (size_t i = 0; i < N; ++i) { m_ranges[i].second = res[i]; }
   }
   //----------------------------------------------------------------------------
+#ifdef __cpp_concepts
   template <integral... Ts>
+#else
+  template <typename... Ts, enable_if_integral<Ts...> = true>
+#endif
   explicit constexpr dynamic_multidim(const std::pair<Ts, Ts>&... ranges)
       : m_ranges{std::make_pair(static_cast<size_t>(ranges.first),
                                 static_cast<size_t>(ranges.second))...} {}
 
   //----------------------------------------------------------------------------
+#ifdef __cpp_concepts
   template <integral... Ts>
+#else
+  template <typename... Ts, enable_if_integral<Ts...> = true>
+#endif
   constexpr dynamic_multidim(Ts const (&... ranges)[2]) // NOLINT
       : m_ranges{std::make_pair(static_cast<size_t>(ranges[0]),
                                 static_cast<size_t>(ranges[1]))...} {}
 
   //----------------------------------------------------------------------------
-  explicit constexpr dynamic_multidim(integral auto... res)
+#ifdef __cpp_concepts
+  template <integral... Res>
+#else
+  template <typename... Res, enable_if_integral<Res...> = true>
+#endif
+  explicit constexpr dynamic_multidim(Res... res)
       : m_ranges{std::make_pair(static_cast<size_t>(0),
                                 static_cast<size_t>(res))...} {}
 
@@ -256,9 +281,7 @@ struct dynamic_multidim {
   //----------------------------------------------------------------------------
   [[nodiscard]] auto num_dimensions() const -> size_t { return m_ranges.size(); }
 };
-
 //==============================================================================
 }  // namespace tatooine
 //==============================================================================
-
 #endif
