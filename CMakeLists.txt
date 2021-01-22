@@ -1,7 +1,6 @@
 cmake_minimum_required(VERSION 3.10)
 project(tatooine)
 list(APPEND CMAKE_MODULE_PATH "${CMAKE_SOURCE_DIR}/cmake/modules/")
-list(APPEND CMAKE_MODULE_PATH "${CMAKE_SOURCE_DIR}/external/catch2/contrib/")
 #- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - 
 # preprocessor lib
 #- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - 
@@ -22,26 +21,38 @@ if(GIT_FOUND AND EXISTS "${PROJECT_SOURCE_DIR}/.git")
   endif()
 endif()
 #- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-add_subdirectory(external/catch2)
 set(BENCHMARK_ENABLE_GTEST_TESTS OFF CACHE BOOL
     "Enable building the unit tests which depend on gtest")
 set(BENCHMARK_ENABLE_TESTING OFF CACHE BOOL
     "Enable testing of the benchmark library.")
 add_subdirectory(external/google-benchmark)
 #- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-find_package(Boost REQUIRED COMPONENTS program_options)
-find_package(TBB REQUIRED)
-find_package(yavin QUIET)
 find_package(BLAS REQUIRED)
+find_package(LAPACK REQUIRED)
 find_package(LAPACKE REQUIRED)
+option(TATOOINE_INCLUDE_MKL_LAPACKE "If ON mkl_lapacke.h will be include instead of lapacke.h")
+find_package(Boost REQUIRED COMPONENTS program_options)
+find_package(yavin QUIET)
 find_package(OpenMP REQUIRED)
 find_package(vcode REQUIRED)
-find_package(PNG REQUIRED)
-find_package(PNG++ REQUIRED)
-find_package(NetCDF REQUIRED)
-find_package(CGAL REQUIRED)
-find_package(FLANN REQUIRED)
-set(CGAL_DO_NOT_WARN_ABOUT_CMAKE_BUILD_TYPE TRUE)
+find_package(PNG QUIET)
+if(${PNG_FOUND})
+  find_package(PNG++ QUIET)
+  if (${PNG++_INCLUDE_DIRS})
+    set(TATOOINE_HAS_PNG_SUPPORT ON)
+  else()
+    set(TATOOINE_HAS_PNG_SUPPORT OFF)
+  endif()
+else()
+  set(TATOOINE_HAS_PNG_SUPPORT OFF)
+endif()
+#find_package(NetCDF REQUIRED)
+#set(CGAL_DO_NOT_WARN_ABOUT_CMAKE_BUILD_TYPE TRUE)
+#find_package(CGAL REQUIRED)
+#find_package(FLANN REQUIRED)
+#find_package(TBB REQUIRED)
+
+
 #- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - 
 # configure files
 #- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - 
@@ -112,6 +123,12 @@ if ("${CMAKE_CXX_COMPILER_ID}" STREQUAL "Clang")
 elseif ("${CMAKE_CXX_COMPILER_ID}" STREQUAL "GNU")
   target_compile_options(tatooine PRIVATE  "-fdiagnostics-color=always")
 endif()
+if (TATOOINE_INCLUDE_MKL_LAPACKE)
+  target_compile_definitions(tatooine PUBLIC TATOOINE_INCLUDE_MKL_LAPACKE)
+endif()
+if (TATOOINE_HAS_PNG_SUPPORT)
+  target_compile_definitions(tatooine PUBLIC TATOOINE_HAS_PNG_SUPPORT)
+endif()
 target_compile_options(tatooine PRIVATE
   -Wall -Wextra -pedantic
   -Wno-tautological-undefined-compare -Wno-gnu-zero-variadic-macro-arguments)
@@ -125,24 +142,34 @@ target_include_directories(tatooine
     ${CMAKE_CURRENT_BINARY_DIR}/include
     ${CMAKE_CURRENT_SOURCE_DIR}/external/indicators/include
     ${CMAKE_CURRENT_SOURCE_DIR}/external/tomlplusplus/include
-    ${NETCDF_INCLUDES}
-    ${LAPACKE_INCLUDES}
+    #${NETCDF_INCLUDES}
+    ${LAPACKE_INCLUDE_DIRS}
     ${vcode_DIR}/../..
+)
+if(${TATOOINE_HAS_PNG_SUPPORT})
+target_include_directories(tatooine
+  PUBLIC
     ${PNG_INCLUDE_DIRS}
     ${PNG++_INCLUDE_DIRS}
 )
+endif()
 #- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 #set libs 
 target_link_libraries(tatooine
   PUBLIC
-    CGAL::CGAL
-    FLANN::FLANN
+    #CGAL::CGAL
+    #FLANN::FLANN
     ${BLAS_LIBRARIES}
     ${LAPACK_LIBRARIES}
+    #${NETCDF_LIBRARIES}
+)
+if(${TATOOINE_HAS_PNG_SUPPORT})
+target_link_libraries(tatooine
+  PUBLIC
     ${PNG_LIBRARIES}
     ${PNG++_LIBRARIES}
-    ${NETCDF_LIBRARIES}
 )
+endif()
 if (${yavin_FOUND}) 
   set(TATOOINE_YAVIN_AVAILABLE 1)
   target_link_libraries(tatooine PUBLIC yavin)

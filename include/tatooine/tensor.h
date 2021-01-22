@@ -39,11 +39,18 @@ struct tensor : base_tensor<tensor<T, Dims...>, T, Dims...>,  // NOLINT
   ~tensor()                                                    = default;
   //============================================================================
  public:
+#ifdef __cpp_concepts
   template <typename... Ts, size_t _N = tensor_parent_t::rank(),
             size_t _Dim0 = tensor_parent_t::dimension(0)>
-      requires(_N == 1) &&
-      (_Dim0 == sizeof...(Ts)) explicit constexpr tensor(Ts const&... ts)
-      : array_parent_t{ts...} {}
+      requires(_N == 1) && (_Dim0 == sizeof...(Ts))
+#else
+  template <typename... Ts, size_t _N = tensor_parent_t::rank(),
+            size_t _Dim0 = tensor_parent_t::dimension(0),
+            enable_if<(_N == 1), (_Dim0 == sizeof...(Ts))> >
+#endif
+  explicit constexpr tensor(Ts const&... ts)
+      : array_parent_t{ts...} {
+  }
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 #ifdef __cpp_concepts
   template <typename = void>
@@ -95,22 +102,24 @@ struct tensor : base_tensor<tensor<T, Dims...>, T, Dims...>,  // NOLINT
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 #ifdef __cpp_concepts
   template <arithmetic RandomReal, typename Engine>
+  requires is_arithmetic<T> 
 #else
   template <typename RandomReal, typename Engine,
-            enable_if_arithmetic<RandomReal> = true>
+            enable_if_arithmetic<T, RandomReal> = true>
 #endif
-  requires is_arithmetic<T> explicit constexpr tensor(
+  explicit constexpr tensor(
       random_normal<RandomReal, Engine>&& rand)
       : array_parent_t{std::move(rand)} {
   }
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 #ifdef __cpp_concepts
   template <arithmetic RandomReal, typename Engine>
+  requires is_arithmetic<T> 
 #else
   template <typename RandomReal, typename Engine,
-            enable_if_arithmetic<RandomReal> = true>
+            enable_if_arithmetic<T, RandomReal> = true>
 #endif
-  requires is_arithmetic<T> explicit constexpr tensor(
+  explicit constexpr tensor(
       random_normal<RandomReal, Engine>& rand)
       : array_parent_t{rand} {
   }

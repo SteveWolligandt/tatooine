@@ -28,7 +28,11 @@ constexpr auto inv_sym(base_tensor<Tensor, Real, 2, 2> const& A)
 /// invert matrix
 /// A = [a,b]
 ///     [c,d]
+#ifdef __cpp_concepts
 template <typename Tensor, floating_point Real>
+#else
+template <typename Tensor, typename Real, enable_if_floating_point<Real> = true>
+#endif
 constexpr auto inv(base_tensor<Tensor, Real, 2, 2> const& A)
     -> std::optional<mat<Real, 2, 2>> {
   decltype(auto) b = A(0, 1);
@@ -51,7 +55,11 @@ constexpr auto inv(base_tensor<Tensor, Real, 2, 2> const& A)
 /// A = [a,b,c]
 ///     [b,d,e]
 ///     [c,e,f]
+#ifdef __cpp_concepts
 template <typename Tensor, floating_point Real>
+#else
+template <typename Tensor, typename Real, enable_if_floating_point<Real> = true>
+#endif
 constexpr auto inv_sym(base_tensor<Tensor, Real, 3, 3> const& A)
     -> std::optional<mat<Real, 3, 3>> {
   decltype(auto) a = A(0, 0);
@@ -75,7 +83,11 @@ constexpr auto inv_sym(base_tensor<Tensor, Real, 3, 3> const& A)
 /// A = [a,b,c]
 ///     [d,e,f]
 ///     [g,h,i]
+#ifdef __cpp_concepts
 template <typename Tensor, floating_point Real>
+#else
+template <typename Tensor, typename Real, enable_if_floating_point<Real> = true>
+#endif
 constexpr auto inv(base_tensor<Tensor, Real, 3, 3> const& A) -> std::optional<mat<Real, 3, 3>> {
   decltype(auto) b = A(0, 1);
   decltype(auto) c = A(0, 2);
@@ -107,7 +119,11 @@ constexpr auto inv(base_tensor<Tensor, Real, 3, 3> const& A) -> std::optional<ma
 ///     [b,e,f,g]
 ///     [c,f,h,i]
 ///     [d,g,i,j]
+#ifdef __cpp_concepts
 template <typename Tensor, floating_point Real>
+#else
+template <typename Tensor, typename Real, enable_if_floating_point<Real> = true>
+#endif
 constexpr auto inv_sym(base_tensor<Tensor, Real, 4, 4> const& A) {
   decltype(auto) a = A(0, 0);
   decltype(auto) b = A(1, 0);
@@ -161,7 +177,11 @@ constexpr auto inv_sym(base_tensor<Tensor, Real, 4, 4> const& A) {
 ///     [e,f,g,h]
 ///     [i,j,k,l]
 ///     [m,n,o,p]
+#ifdef __cpp_concepts
 template <typename Tensor, floating_point Real>
+#else
+template <typename Tensor, typename Real, enable_if_floating_point<Real> = true>
+#endif
 constexpr auto inv(base_tensor<Tensor, Real, 4, 4> const& A)
     -> std::optional<mat<Real, 4, 4>> {
   decltype(auto) b = A(0, 1);

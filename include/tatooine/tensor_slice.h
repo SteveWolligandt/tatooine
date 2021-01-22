@@ -26,7 +26,12 @@ struct tensor_slice
       : m_tensor{tensor}, m_fixed_index{fixed_index} {}
 
   //----------------------------------------------------------------------------
-  constexpr auto at(integral auto const... is) const -> decltype(auto) {
+#ifdef __cpp_concepts
+  template <integral... Is>
+#else
+  template <typename... Is, enable_if_integral<Is...> = true>
+#endif
+  constexpr auto at(Is const... is) const -> decltype(auto) {
     if constexpr (FixedDim == 0) {
       return m_tensor->at(m_fixed_index, is...);
 
@@ -43,9 +48,17 @@ struct tensor_slice
     };
   }
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-  template <typename _Tensor                                       = Tensor,
-            std::enable_if_t<!std::is_const<_Tensor>::value, bool> = true>
-  constexpr auto at(integral auto const... is) -> decltype(auto) {
+#ifdef __cpp_concepts
+  template <typename _Tensor              = Tensor,
+            integral... Is,
+            enable_if_non_const<_Tensor> = true>
+#else
+  template <typename _Tensor              = Tensor,
+            typename... Is,
+            enable_if_integral<Is...>     = true,
+            enable_if_non_const<_Tensor> = true>
+#endif
+  constexpr auto at(Is const... is) -> decltype(auto) {
     if constexpr (FixedDim == 0) {
       return m_tensor->at(m_fixed_index, is...);
 
