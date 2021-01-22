@@ -537,7 +537,11 @@ class legacy_file_writer {
   auto write_triangle_strips(
       std::vector<std::vector<size_t>> const &triangle_strips) -> void;
 
-  template <real_number T>
+#ifdef __cpp_concepts
+  template <arithmetic T>
+#else
+  template <typename T, enable_if_arithmetic<T> = true>
+#endif
   auto write_x_coordinates(std::vector<T> const &x_coordinates) -> void {
     std::stringstream ss;
     ss << "\nX_COORDINATES " << ' ' << x_coordinates.size() << ' '
@@ -549,7 +553,11 @@ class legacy_file_writer {
       m_file.write((char *)(&d), sizeof(T));
     }
   }
-  template <real_number T>
+#ifdef __cpp_concepts
+  template <arithmetic T>
+#else
+  template <typename T, enable_if_arithmetic<T> = true>
+#endif
   auto write_y_coordinates(std::vector<T> const &y_coordinates) -> void {
     std::stringstream ss;
     ss << "\nY_COORDINATES " << ' ' << y_coordinates.size() << ' '
@@ -561,7 +569,11 @@ class legacy_file_writer {
       m_file.write((char *)(&d), sizeof(T));
     }
   }
-  template <real_number T>
+#ifdef __cpp_concepts
+  template <arithmetic T>
+#else
+  template <typename T, enable_if_arithmetic<T> = true>
+#endif
   auto write_z_coordinates(std::vector<T> const &z_coordinates) -> void {
     std::stringstream ss;
     ss << "\nZ_COORDINATES " << ' ' << z_coordinates.size() << ' '

@@ -66,7 +66,7 @@ diag_tensor(Tensor&& t)
                    Tensor::dimension(0),
                    Tensor::dimension(0)>;
 //==============================================================================
-template <real_or_complex_number Real, size_t N>
+template <typename Real, size_t N>
 struct vec;
 //==============================================================================
 // factory functions
@@ -118,12 +118,19 @@ constexpr auto inv(diag_tensor<Tensor, N, N> const& A) -> std::optional<
 //------------------------------------------------------------------------------
 #include <tatooine/vec.h>
 //------------------------------------------------------------------------------
+#ifdef __cpp_concepts
 template <typename TensorA, typename TensorB, size_t N>
-requires is_vec_v<TensorB> && (std::decay_t<TensorB>::num_dimensions() == N)
+requires is_vec<TensorB> && (std::decay_t<TensorB>::num_dimensions() == N)
+#else
+template <typename TensorA, typename TensorB, size_t N,
+          enable_if_vec<TensorB>                                    = true,
+          enable_if<(std::decay_t<TensorB>::num_dimensions() == N)> = true>
+#endif
 constexpr auto solve(diag_tensor<TensorA, N, N> const& A, TensorB&& b)
-    -> std::optional<vec<std::common_type_t<typename std::decay_t<TensorA>::value_type,
-                              typename std::decay_t<TensorB>::value_type>,
-           N>> {
+    -> std::optional<
+        vec<std::common_type_t<typename std::decay_t<TensorA>::value_type,
+                               typename std::decay_t<TensorB>::value_type>,
+            N>> {
   for (size_t i = 0; i < N; ++i) {
     if (std::abs(A.internal_tensor()(i)) < 1e-10) {
       return {};
@@ -154,9 +161,15 @@ constexpr auto operator*(base_tensor<TensorB, BReal, N> const& b,
 //------------------------------------------------------------------------------
 #include <tatooine/mat.h>
 //------------------------------------------------------------------------------
+#ifdef __cpp_concepts
 template <typename TensorA, typename TensorB, size_t N>
-requires is_mat_v<TensorB> &&
+requires is_mat<TensorB> &&
          (std::decay_t<TensorB>::dimension(0) == N)
+#else
+template <typename TensorA, typename TensorB, size_t N,
+          enable_if_mat<TensorB>                                    = true,
+          enable_if<(std::decay_t<TensorB>::num_dimension(0) == N)> = true>
+#endif
 constexpr auto solve(diag_tensor<TensorA, N, N> const& A, TensorB&& B)
     -> std::optional<
         mat<std::common_type_t<typename std::decay_t<TensorA>::value_type,

@@ -120,7 +120,7 @@ constexpr auto unary_operation_field_constructor_impl(
     Field&& field, PosOp&& pos_op, TimeOp&& time_op, TensorOp&& tensor_op,
     base_tensor<Pos, PosReal, PosN> const& /*x*/, TimeReal const /*t*/,
     base_tensor<Tensor, TensorReal, TensorDims...> const& /*tensor*/) {
-  using real_t = promote_t<TimeReal, PosReal, TensorReal>;
+  using real_t = common_type<TimeReal, PosReal, TensorReal>;
   return unary_operation_field<Field, std::decay_t<PosOp>, std::decay_t<TimeOp>,
                                std::decay_t<TensorOp>, real_t, PosN,
                                TensorDims...>{
@@ -135,7 +135,7 @@ constexpr auto unary_operation_field_constructor_impl(
     Field&& field, PosOp&& pos_op, TimeOp&& time_op, TensorOp&& tensor_op,
     base_tensor<Pos, PosReal, PosN> const& /*x*/, TimeReal const /*t*/,
     Tensor const& /*tensor*/) {
-  using real_t = promote_t<TimeReal, PosReal, Tensor>;
+  using real_t = common_type<TimeReal, PosReal, Tensor>;
   return unary_operation_field<Field, std::decay_t<PosOp>, std::decay_t<TimeOp>,
                                std::decay_t<TensorOp>, real_t, PosN>{
       std::forward<Field>(field), std::forward<PosOp>(pos_op),

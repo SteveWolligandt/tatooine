@@ -5,9 +5,9 @@
 //==============================================================================
 namespace tatooine {
 //==============================================================================
-template <typename Tensor, real_or_complex_number T, size_t FixedDim, size_t... Dims>
-struct tensor_slice : base_tensor<tensor_slice<Tensor, T, FixedDim, Dims...>,
-                                  T, Dims...> {
+template <typename Tensor, typename T, size_t FixedDim, size_t... Dims>
+struct tensor_slice
+    : base_tensor<tensor_slice<Tensor, T, FixedDim, Dims...>, T, Dims...> {
   using tensor_t          = Tensor;
   using this_t            = tensor_slice<Tensor, T, FixedDim, Dims...>;
   using parent_t          = base_tensor<this_t, T, Dims...>;

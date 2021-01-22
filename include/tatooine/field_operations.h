@@ -12,7 +12,7 @@ template <typename V0, typename Real0,
           size_t N, size_t TN>
 constexpr auto dot(const field<V0, Real0, N, TN>& lhs,
                    const field<V1, Real1, N, TN>& rhs) {
-  using RealOut = promote_t<Real0, Real1>;
+  using RealOut = common_type<Real0, Real1>;
   return make_binary_operation_field<RealOut, N>(
       lhs, rhs,
       [](const typename V0::tensor_t& lhs, const typename V1::tensor_t& rhs) {
@@ -26,7 +26,7 @@ template <typename V0, typename Real0,
 constexpr auto operator+(
     const field<V0, Real0, N, TensorDims...>& lhs,
     const field<V1, Real1, N, TensorDims...>& rhs) {
-  return make_binary_operation_field<promote_t<Real0, Real1>, N,
+  return make_binary_operation_field<common_type<Real0, Real1>, N,
                                      TensorDims...>(
       lhs, rhs, [](const auto& lhs, const auto& rhs) { return lhs + rhs; });
 }
@@ -35,7 +35,7 @@ template <typename V0, typename Real0, typename V1,
           typename Real1, size_t N, size_t TM, size_t TN>
 constexpr auto operator*(const field<V0, Real0, N, TM, TN>& lhs,
                          const field<V1, Real1, N, TN>&     rhs) {
-  return make_binary_operation_field<promote_t<Real0, Real1>, N, TM>(
+  return make_binary_operation_field<common_type<Real0, Real1>, N, TM>(
       lhs, rhs, [](const auto& lhs, const auto& rhs) { return lhs * rhs; });
 }
 //├──────────────────────────────────────────────────────────────────────────┤
@@ -44,7 +44,7 @@ template <typename V0, typename Real0,
           size_t N, size_t... TensorDims>
 constexpr auto operator*(const field<V0, Real0, N, TensorDims...>& lhs,
                          const field<V1, Real1, N, TensorDims...>& rhs) {
-  return make_binary_operation_field<promote_t<Real0, Real1>, N, TensorDims...>(
+  return make_binary_operation_field<common_type<Real0, Real1>, N, TensorDims...>(
       lhs, rhs, [](const auto& lhs, const auto& rhs) { return lhs * rhs; });
 }
 //├──────────────────────────────────────────────────────────────────────────┤
@@ -93,7 +93,7 @@ constexpr auto operator*(const ScalarReal                         scalar,
 // constexpr auto operator-(
 //    const base_tensor<lhs_tensor_t, Real0, Dims...>& lhs,
 //    const base_tensor<rhs_tensor_t, Real1, Dims...>& rhs) {
-//  return binary_operation(std::minus<promote_t<Real0, Real1>>{}, lhs,
+//  return binary_operation(std::minus<common_type<Real0, Real1>>{}, lhs,
 //                          rhs);
 //}
 //
@@ -103,7 +103,7 @@ constexpr auto operator*(const ScalarReal                         scalar,
 //          typename rhs_tensor_t, typename Real1, size_t M, size_t N>
 // constexpr auto operator*(const base_tensor<lhs_tensor_t, Real0, M, N>& lhs,
 //                         const base_tensor<rhs_tensor_t, Real1, N>& rhs) {
-//  tensor<promote_t<Real0, Real1>, M> product;
+//  tensor<common_type<Real0, Real1>, M> product;
 //  for (size_t i = 0; i < M; ++i) {
 //    product(i) = dot(lhs.template slice<0>(i), rhs);
 //  }

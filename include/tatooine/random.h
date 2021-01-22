@@ -10,7 +10,7 @@ namespace tatooine {
 //==============================================================================
 template <typename T, typename Engine = std::mt19937_64>
 struct random_uniform {
-  static_assert(std::is_arithmetic_v<T>);
+  static_assert(is_arithmetic<T>);
   //============================================================================
   using engine_t = Engine;
   using real_t   = T;
