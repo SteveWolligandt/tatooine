@@ -26,7 +26,11 @@ namespace tatooine {
 //==============================================================================
 /// When using GCC you have to specify Dimensions types by hand. This is a known
 /// GCC bug (80438)
+#ifdef __cpp_concepts
 template <indexable_space... Dimensions>
+#else
+template <typename... Dimensions>
+#endif
 class grid {
   static_assert(sizeof...(Dimensions) > 0,
                 "Grid needs at least one dimension.");
@@ -88,10 +92,16 @@ class grid {
   //----------------------------------------------------------------------------
   /// The enable if is needed due to gcc bug 80871. See here:
   /// https://stackoverflow.com/questions/46848129/variadic-deduction-guide-not-taken-by-g-taken-by-clang-who-is-correct
+#ifdef __cpp_concepts
   template <typename... _Dimensions>
       requires(sizeof...(_Dimensions) == sizeof...(Dimensions)) &&
       (indexable_space<std::decay_t<_Dimensions>> &&
-       ...) constexpr grid(_Dimensions&&... dimensions)
+       ...)
+#else
+  template <typename... _Dimensions,
+            enable_if<(sizeof...(_Dimensions) == sizeof...(Dimensions))> = true>
+#endif
+  constexpr grid(_Dimensions&&... dimensions)
       : m_dimensions{std::forward<_Dimensions>(dimensions)...} {
     static_assert(sizeof...(_Dimensions) == num_dimensions(),
                   "Number of given dimensions does not match number of "
@@ -115,7 +125,12 @@ class grid {
                  std::array<size_t, num_dimensions()> const&              res)
       : grid{bb, res, seq_t{}} {}
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-  constexpr grid(integral auto const... size)
+#ifdef __cpp_concepts
+  template <integral... Is>
+#else
+  template <typename... Is, enable_if_integral<Is...> = true>
+#endif
+  constexpr grid(Is const... size)
       : grid{linspace{0.0, 1.0, static_cast<size_t>(size)}...} {
     assert(((size >= 0) && ...));
   }
@@ -289,12 +304,14 @@ class grid {
     return std::numeric_limits<size_t>::max();
   }
   //----------------------------------------------------------------------------
+#ifdef __cpp_concepts
   template <size_t I>
-  requires std::is_reference_v<
-      template_helper::get_t<I, Dimensions...>> constexpr auto
-  size() -> auto& {
-    return dimension<I>().size();
-  }
+  requires std::is_reference_v<template_helper::get_t<I, Dimensions...>>
+#else
+  template <size_t I, enable_if<std::is_reference_v<
+                          template_helper::get_t<I, Dimensions...>>> = true>
+#endif
+      constexpr auto size() -> auto& { return dimension<I>().size(); }
   //----------------------------------------------------------------------------
   template <size_t I>
   constexpr auto front() const {
@@ -316,15 +333,27 @@ class grid {
     return dimension<I>().back();
   }
   //----------------------------------------------------------------------------
-  template <real_number... Comps, size_t... Is>
-  requires(num_dimensions() == sizeof...(Comps)) constexpr auto is_inside(
+#ifdef __cpp_concepts
+  template <arithmetic... Comps, size_t... Is>
+  requires(num_dimensions() == sizeof...(Comps))
+#else
+  template <typename... Comps, size_t... Is,
+            enable_if_arithmetic<Comps...>                    = true,
+            enable_if<(num_dimensions() == sizeof...(Comps))> = true>
+#endif
+  constexpr auto is_inside(
       std::index_sequence<Is...> /*seq*/, Comps const... comps) const {
     return ((front<Is>() <= comps || comps <= back<Is>()) || ...);
   }
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-  template <real_number... Comps>
-  requires(num_dimensions() == sizeof...(Comps)) constexpr auto is_inside(
-      Comps const... comps) const {
+#ifdef __cpp_concepts
+  template <arithmetic... Comps>
+  requires(num_dimensions() == sizeof...(Comps))
+#else
+  template <typename... Comps, enable_if_arithmetic<Comps...> = true,
+            enable_if<(num_dimensions() == sizeof...(Comps))> = true>
+#endif
+  constexpr auto is_inside(Comps const... comps) const {
     return is_inside(std::make_index_sequence<num_dimensions()>{}, comps...);
   }
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -339,9 +368,13 @@ class grid {
   }
   //----------------------------------------------------------------------------
  private:
-  template <size_t... Is>
+#ifdef __cpp_concepts
+  template <size_t... Is, arithmetic... Xs>
+#else
+  template <size_t... Is, typename... Xs, enable_if_arithmetic<Xs...> = true>
+#endif
   constexpr auto in_domain(std::index_sequence<Is...> /*seq*/,
-                           real_number auto const... xs) const {
+                           Xs const... xs) const {
     static_assert(sizeof...(xs) == num_dimensions(),
                   "number of components does not match number of dimensions");
     static_assert(sizeof...(Is) == num_dimensions(),
@@ -350,7 +383,12 @@ class grid {
   }
   //----------------------------------------------------------------------------
  public:
-  constexpr auto in_domain(real_number auto const... xs) const {
+#ifdef __cpp_concepts
+  template <size_t... Is, arithmetic... Xs>
+#else
+  template <size_t... Is, typename... Xs, enable_if_arithmetic<Xs...> = true>
+#endif
+  constexpr auto in_domain(Xs const... xs) const {
     static_assert(sizeof...(xs) == num_dimensions(),
                   "number of components does not match number of dimensions");
     return in_domain(seq_t{}, xs...);
@@ -371,8 +409,12 @@ class grid {
   }
   //----------------------------------------------------------------------------
   /// returns cell index and factor for interpolation
-  template <size_t DimensionIndex>
-  auto cell_index(real_number auto const x) const -> std::pair<size_t, double> {
+#ifdef __cpp_concepts
+  template <size_t DimensionIndex, arithmetic X>
+#else
+  template <size_t DimensionIndex, typename X, enable_if_arithmetic<X> = true>
+#endif
+  auto cell_index(X const x) const -> std::pair<size_t, double> {
     auto const& dim = dimension<DimensionIndex>();
     if constexpr (is_linspace_v<std::decay_t<decltype(dim)>>) {
       // calculate
@@ -402,14 +444,23 @@ class grid {
   }
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
   /// returns cell indices and factors for each dimension for interpolaton
+#ifdef __cpp_concepts
   template <size_t... DimensionIndex>
-  auto cell_index(std::index_sequence<DimensionIndex...>,
-                  real_number auto const... xs) const
+#else
+  template <size_t... DimensionIndex, typename... Xs,
+            enable_if_arithmetic<Xs...> = true>
+#endif
+  auto cell_index(std::index_sequence<DimensionIndex...>, Xs const... xs) const
       -> std::array<std::pair<size_t, double>, num_dimensions()> {
     return std::array{cell_index<DimensionIndex>(static_cast<double>(xs))...};
   }
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-  auto cell_index(real_number auto const... xs) const {
+#ifdef __cpp_concepts
+  template <arithmetic... Xs>
+#else
+  template <typename... Xs, enable_if_arithmetic<Xs...> = true>
+#endif
+  auto cell_index(Xs const... xs) const {
     return cell_index(seq_t{}, xs...);
   }
   //----------------------------------------------------------------------------
@@ -544,8 +595,12 @@ class grid {
   }
   //----------------------------------------------------------------------------
  private:
-  template <size_t... DIs>
-  auto vertex_at(std::index_sequence<DIs...>, integral auto const... is) const
+#ifdef __cpp_concepts
+  template <size_t... DIs, integral... Is>
+#else
+  template <size_t... DIs, typename... Is, enable_if_integral<Is...> = true>
+#endif
+  auto vertex_at(std::index_sequence<DIs...>, Is const... is) const
       -> vec<real_t, num_dimensions()> {
     static_assert(sizeof...(DIs) == sizeof...(is));
     static_assert(sizeof...(is) == num_dimensions());
@@ -553,12 +608,22 @@ class grid {
   }
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
  public:
-  auto vertex_at(integral auto const... is) const {
+#ifdef __cpp_concepts
+  template <integral... Is>
+#else
+  template <typename... Is, enable_if_integral<Is...> = true>
+#endif
+  auto vertex_at(Is const... is) const {
     static_assert(sizeof...(is) == num_dimensions());
     return vertex_at(seq_t{}, is...);
   }
   //----------------------------------------------------------------------------
-  auto operator()(integral auto const... is) const {
+#ifdef __cpp_concepts
+  template <integral... Is>
+#else
+  template <typename... Is, enable_if_integral<Is...> = true>
+#endif
+  auto operator()(Is const... is) const {
     static_assert(sizeof...(is) == num_dimensions());
     return vertex_at(is...);
   }
@@ -600,10 +665,17 @@ class grid {
   auto vertices() const { return vertex_container{*this}; }
   //----------------------------------------------------------------------------
  private:
-  template <regular_invocable<decltype(((void)std::declval<Dimensions>(),
+#ifdef __cpp_concepts
+  template <invocable<decltype(((void)std::declval<Dimensions>(),
                                         size_t{}))...>
                 Iteration,
             size_t... Ds>
+#else
+  template <
+      typename Iteration, size_t... Ds,
+      enable_if_invocable<Iteration, decltype(((void)std::declval<Dimensions>(),
+                                               size_t{}))...> = true>
+#endif
   auto loop_over_vertex_indices(Iteration&& iteration,
                                 std::index_sequence<Ds...>) const
       -> decltype(auto) {
@@ -611,10 +683,15 @@ class grid {
   }
   //----------------------------------------------------------------------------
  public:
-  template <regular_invocable<decltype(((void)std::declval<Dimensions>(),
-                                        size_t{}))...>
-                Iteration,
-            size_t... Ds>
+#ifdef __cpp_concepts
+  template <invocable<decltype(((void)std::declval<Dimensions>(), size_t{}))...>
+                Iteration>
+#else
+  template <
+      typename Iteration,
+      enable_if_invocable<Iteration, decltype(((void)std::declval<Dimensions>(),
+                                               size_t{}))...> = true>
+#endif
   auto loop_over_vertex_indices(Iteration&& iteration) const -> decltype(auto) {
     return loop_over_vertex_indices(
         std::forward<Iteration>(iteration),
@@ -622,10 +699,17 @@ class grid {
   }
   //----------------------------------------------------------------------------
  private:
-  template <regular_invocable<decltype(((void)std::declval<Dimensions>(),
+#ifdef __cpp_concepts
+  template <invocable<decltype(((void)std::declval<Dimensions>(),
                                         size_t{}))...>
                 Iteration,
             size_t... Ds>
+#else
+  template <
+      typename Iteration, size_t... Ds,
+      enable_if_invocable<Iteration, decltype(((void)std::declval<Dimensions>(),
+                                               size_t{}))...> = true>
+#endif
   auto parallel_loop_over_vertex_indices(Iteration&& iteration,
                                          std::index_sequence<Ds...>) const
       -> decltype(auto) {
@@ -633,10 +717,15 @@ class grid {
   }
   //----------------------------------------------------------------------------
  public:
-  template <regular_invocable<decltype(((void)std::declval<Dimensions>(),
-                                        size_t{}))...>
-                Iteration,
-            size_t... Ds>
+#ifdef __cpp_concepts
+  template <invocable<decltype(((void)std::declval<Dimensions>(), size_t{}))...>
+                Iteration>
+#else
+  template <
+      typename Iteration,
+      enable_if_invocable<Iteration, decltype(((void)std::declval<Dimensions>(),
+                                               size_t{}))...> = true>
+#endif
   auto parallel_loop_over_vertex_indices(Iteration&& iteration) const
       -> decltype(auto) {
     return parallel_loop_over_vertex_indices(
@@ -645,7 +734,11 @@ class grid {
   }
   //----------------------------------------------------------------------------
  private:
+#ifdef __cpp_concepts
   template <indexable_space AdditionalDimension, size_t... Is>
+#else
+  template <typename AdditionalDimension, size_t... Is>
+#endif
   auto add_dimension(AdditionalDimension&& additional_dimension,
                      std::index_sequence<Is...> /*seq*/) const {
     return grid<Dimensions..., std::decay_t<AdditionalDimension>>{
@@ -654,8 +747,12 @@ class grid {
   }
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
  public:
+#ifdef __cpp_concepts
   template <indexable_space AdditionalDimension>
-  auto add_dimension(indexable_space auto&& additional_dimension) const {
+#else
+  template <typename AdditionalDimension>
+#endif
+  auto add_dimension(AdditionalDimension&& additional_dimension) const {
     return add_dimension(
         std::forward<AdditionalDimension>(additional_dimension), seq_t{});
   }
@@ -729,8 +826,15 @@ class grid {
         name, size(), chunk_size);
   }
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+#ifdef __cpp_concepts
   template <typename T, typename Indexing = x_fastest, integral... ChunkSize>
-  requires(sizeof...(ChunkSize) == num_dimensions()) auto add_chunked_vertex_property(
+  requires(sizeof...(ChunkSize) == num_dimensions())
+#else
+  template <typename T, typename Indexing = x_fastest, typename... ChunkSize,
+            enable_if_integral<ChunkSize...>                      = true,
+            enable_if<(sizeof...(ChunkSize) == num_dimensions())> = true>
+#endif
+  auto add_chunked_vertex_property(
       std::string const& name, ChunkSize const... chunk_size) -> auto& {
     return create_vertex_property<chunked_multidim_array<T, Indexing>>(
         name, size(), std::vector<size_t>{static_cast<size_t>(chunk_size)...});
@@ -774,7 +878,11 @@ class grid {
     }
   }
   //============================================================================
-  template <regular_invocable<pos_t> F>
+#ifdef __cpp_concepts
+  template <invocable<pos_t> F>
+#else
+  template <typename F, enable_if_invocable<F, pos_t> = true>
+#endif
   auto sample_to_vertex_property(F&& f, std::string const& name) -> auto& {
     using T    = std::invoke_result_t<F, pos_t>;
     auto& prop = add_vertex_property<T>(name);
@@ -782,7 +890,7 @@ class grid {
       try {
         prop(is...) = f(vertex_at(is...));
       } catch (std::exception&) {
-        if constexpr (num_components_v<T> == 1) {
+        if constexpr (num_components<T> == 1) {
           prop(is...) = T{0.0 / 0.0};
         } else {
           prop(is...) = T{tag::fill{0.0 / 0.0}};
@@ -960,8 +1068,13 @@ class grid {
       add_prop<double>(field_array_name, data, num_comps);
     }
   };
+#ifdef __cpp_concepts
   template <typename = void>
   requires(num_dimensions() == 2) || (num_dimensions() == 3) 
+#else
+  template <size_t _N = num_dimensions(),
+            enable_if<(_N == 2) || (_N == 3)> = true>
+#endif
   auto read_vtk(std::filesystem::path const& path) {
     bool             is_structured_points = false;
     vec3             spacing;
@@ -1003,8 +1116,13 @@ class grid {
     }
   }
   //----------------------------------------------------------------------------
+#ifdef __cpp_concepts
   template <typename = void>
   requires(num_dimensions() == 2) || (num_dimensions() == 3) 
+#else
+  template <size_t _N = num_dimensions(),
+            enable_if<(_N == 2) || (_N == 3)> = true>
+#endif
   auto read_amira(std::filesystem::path const& path) {
     auto const  am        = amira::read<real_t>(path);
     auto const& data      = std::get<0>(am);
@@ -1144,17 +1262,25 @@ class grid {
     add_variables_of_type.template operator()<int>();
   }
   //----------------------------------------------------------------------------
+#ifdef __cpp_concepts
   template <typename T>
-  requires(num_dimensions() ==
-           3) void write_amira(std::string const& path,
+  requires((num_dimensions() == 3)
+#else
+  template <typename T, enable_if<(num_dimensions() == 3)> = true>
+#endif
+ void write_amira(std::string const& path,
                                std::string const& vertex_property_name) const {
     write_amira(path, vertex_property<T>(vertex_property_name));
   }
   //----------------------------------------------------------------------------
+#ifdef __cpp_concepts
   template <typename T>
-      requires is_uniform &&
-      (num_dimensions() ==
-       3) void write_amira(std::string const&         path,
+  requires is_uniform && (num_dimensions() == 3)
+#else
+  template <typename T,
+            enable_if<(is_uniform && (num_dimensions() == 3))> = true>
+#endif
+  void write_amira(std::string const&         path,
                            typed_property_t<T> const& prop) const {
     std::ofstream     outfile{path, std::ofstream::binary};
     std::stringstream header;
@@ -1168,9 +1294,9 @@ class grid {
            << back<2>() << ",\n";
     header << "    CoordType \"uniform\"\n";
     header << "}\n";
-    if constexpr (num_components_v < T >> 1) {
+    if constexpr (num_components < T >> 1) {
       header << "Lattice { " << type_name<internal_data_type_t<T>>() << "["
-             << num_components_v<T> << "] Data } @1\n\n";
+             << num_components<T> << "] Data } @1\n\n";
     } else {
       header << "Lattice { " << type_name<internal_data_type_t<T>>()
              << " Data } @1\n\n";
@@ -1210,10 +1336,17 @@ class grid {
     }
   }
   //----------------------------------------------------------------------------
+#ifdef __cpp_concepts
   template <typename = void>
   requires (num_dimensions() == 1) ||
            (num_dimensions() == 2) ||
            (num_dimensions() == 3)
+#else
+  template <size_t _N = num_dimensions(),
+            enable_if<(num_dimensions() == 1) ||
+                      (num_dimensions() == 2) ||
+                      (num_dimensions() == 3)> = true>
+#endif
   void write_vtk(std::filesystem::path const& path,
                  std::string const& description = "tatooine grid") const {
     auto writer = [this, &path, &description] {
@@ -1314,7 +1447,11 @@ class grid {
 //==============================================================================
 // free functions
 //==============================================================================
+#ifdef __cpp_concepts
 template <indexable_space... Dimensions>
+#else
+template <typename... Dimensions>
+#endif
 auto vertices(grid<Dimensions...> const& g) {
   return g.vertices();
 }
@@ -1332,20 +1469,32 @@ grid(axis_aligned_bounding_box<Real, N> const& bb,
      std::array<size_t, N> const&              res, std::index_sequence<Is...>)
     -> grid<decltype(((void)Is, std::declval<linspace<Real>()>))...>;
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-template <integral... Size>
+#ifdef __cpp_concepts
+  template <integral... Size>
+#else
+  template <typename... Size, enable_if_integral<Size...> = true>
+#endif
 grid(Size const...)
     -> grid<linspace<std::conditional_t<true, double, Size>>...>;
 //==============================================================================
 // operators
 //==============================================================================
+#ifdef __cpp_concepts
 template <indexable_space... Dimensions, indexable_space AdditionalDimension>
+#else
+template <typename... Dimensions, typename AdditionalDimension>
+#endif
 auto operator+(grid<Dimensions...> const& grid,
                AdditionalDimension&&      additional_dimension) {
   return grid.add_dimension(
       std::forward<AdditionalDimension>(additional_dimension));
 }
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+#ifdef __cpp_concepts
 template <indexable_space... Dimensions, indexable_space AdditionalDimension>
+#else
+template <typename... Dimensions, typename AdditionalDimension>
+#endif
 auto operator+(AdditionalDimension&&      additional_dimension,
                grid<Dimensions...> const& grid) {
   return grid.add_dimension(
@@ -1354,7 +1503,11 @@ auto operator+(AdditionalDimension&&      additional_dimension,
 //==============================================================================
 // typedefs
 //==============================================================================
+#ifdef __cpp_concepts
 template <indexable_space IndexableSpace, size_t N>
+#else
+template <typename IndexableSpace, size_t N>
+#endif
 struct grid_creator {
  private:
   template <typename... Args, size_t... Is>
@@ -1372,16 +1525,32 @@ struct grid_creator {
   using type = decltype(create());
 };
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+#ifdef __cpp_concepts
 template <indexable_space IndexableSpace, size_t N>
+#else
+template <typename IndexableSpace, size_t N>
+#endif
 using grid_creator_t = typename grid_creator<IndexableSpace, N>::type;
 //==============================================================================
-template <real_number Real, size_t N>
+#ifdef __cpp_concepts
+template <arithmetic Real, size_t N>
+#else
+template <typename Real, size_t N>
+#endif
 using uniform_grid = grid_creator_t<linspace<Real>, N>;
 //------------------------------------------------------------------------------
-template <real_number Real, size_t N>
+#ifdef __cpp_concepts
+template <arithmetic Real, size_t N>
+#else
+template <typename Real, size_t N>
+#endif
 using non_uniform_grid = grid_creator_t<std::vector<Real>, N>;
 //------------------------------------------------------------------------------
-template <real_number Real, size_t... N>
+#ifdef __cpp_concepts
+template <arithmetic Real, size_t... N>
+#else
+template <typename Real, size_t... N>
+#endif
 using static_non_uniform_grid = grid<std::array<Real, N>...>;
 //==============================================================================
 }  // namespace tatooine

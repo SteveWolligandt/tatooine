@@ -10,7 +10,7 @@
 #include <iomanip>
 #include <iostream>
 //==============================================================================
-namespace tatooine::dino_interface::interfaces{
+namespace tatooine::dino_interface {
 //==============================================================================
 template <typename InterfaceImplementation>
 struct base_interface {
@@ -320,6 +320,6 @@ struct base_interface {
   }
 };
 //==============================================================================
-}  // namespace tatooine::dino_interface::interfaces
+}  // namespace tatooine::dino_interface
 //==============================================================================
 #endif

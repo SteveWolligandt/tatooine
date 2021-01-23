@@ -20,7 +20,8 @@ struct vec : tensor<T, N> {  // NOLINT
   using parent_t::operator();
 
   template <typename... Ts, size_t _Dim0 = parent_t::dimension(0),
-            std::enable_if_t<_Dim0 == sizeof...(Ts), bool> = true>
+            enable_if<is_convertible<Ts, T>...> = true,
+            enable_if<_Dim0 == sizeof...(Ts)>   = true>
   constexpr vec(Ts const&... ts) : parent_t{ts...} {
     static_assert(((is_arithmetic<Ts> || is_complex<Ts>)&&...));
   }
@@ -44,7 +45,6 @@ struct vec : tensor<T, N> {  // NOLINT
                               RandEng&& eng = RandEng{std::random_device{}()}) {
     return this_t{random_normal<T>{eng, mean, stddev}};
   }
-
   //----------------------------------------------------------------------------
   constexpr vec(vec const&) = default;
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
