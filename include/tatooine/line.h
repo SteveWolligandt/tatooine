@@ -405,11 +405,21 @@ struct line {
   line(pos_container_t&& data, bool is_closed = false)
       : m_vertices{std::move(data)}, m_is_closed{is_closed} {}
   //----------------------------------------------------------------------------
+#ifdef __cpp_concepts
   template <typename... Vertices>
   requires
-    ((is_vec_v<std::decay_t<Vertices>>
+    ((is_vec<std::decay_t<Vertices>>
       && std::is_arithmetic_v<typename std::decay_t<Vertices>::value_type>
       && std::decay_t<Vertices>::num_components() == N) &&...)
+#else
+  template <
+      typename... Vertices,
+      enable_if<((is_vec<std::decay_t<Vertices>> &&
+                  is_arithmetic<typename std::decay_t<Vertices>::value_type> &&
+                  std::decay_t<Vertices>::num_components() == N) &&
+                 ...)> = true>
+
+#endif
   line(Vertices&&... vertices)
       : m_vertices{pos_t{std::forward<Vertices>(vertices)}...},
   m_is_closed{false} {}
@@ -440,8 +450,14 @@ struct line {
   const auto& back_vertex() const { return m_vertices.back(); }
   auto&       back_vertex() { return m_vertices.back(); }
   //----------------------------------------------------------------------------
-  template <real_number... Components>
+#ifdef __cpp_concepts
+  template <arithmetic... Components>
   requires (sizeof...(Components) == N)
+#else
+  template <typename... Components,
+            enable_if_arithmetic<Components...> = true,
+            enable_if<(sizeof...(Components) == N)> = true>
+#endif
   auto push_back(Components... comps) {
     m_vertices.push_back(pos_t{static_cast<Real>(comps)...});
     for (auto& [name, prop] : m_vertex_properties) { prop->push_back(); }
@@ -465,8 +481,14 @@ struct line {
   }
   auto pop_back() { m_vertices.pop_back(); }
   //----------------------------------------------------------------------------
-  template <real_number... Components>
+#ifdef __cpp_concepts
+  template <arithmetic... Components>
   requires (sizeof...(Components) == N)
+#else
+  template <typename... Components,
+            enable_if_arithmetic<Components...> = true,
+            enable_if<(sizeof...(Components) == N)> = true>
+#endif
   auto push_front(Components... comps) {
     m_vertices.push_front(pos_t{static_cast<Real>(comps)...});
     for (auto& [name, prop] : m_vertex_properties) { prop->push_front(); }
@@ -732,8 +754,12 @@ struct line {
     writer.write_scalars(name, std::vector<T>(begin(deque), end(deque)));
   }
   //----------------------------------------------------------------------------
+#ifdef __cpp_concepts
   template <typename = void>
   requires (num_dimensions() == 3)
+#else
+  template <size_t _N = num_dimensions(), enable_if<(_N == 3)> = true>
+#endif
   static auto read_vtk(const std::string& filepath) {
     struct reader : vtk::legacy_file_listener {
       std::vector<std::array<Real, 3>> points;

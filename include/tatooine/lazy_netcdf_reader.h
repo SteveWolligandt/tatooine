@@ -49,7 +49,7 @@ struct lazy_reader : chunked_multidim_array<T> {
   }
   //----------------------------------------------------------------------------
   lazy_reader(lazy_reader const& other) : parent_t{other}, m_var{other.m_var} {
-    if constexpr (std::is_arithmetic_v<T>) {
+    if constexpr (is_arithmetic<T>) {
       m_read.resize(this->num_chunks(), false);
       m_mutexes.resize(this->num_chunks());
       for (auto& mutex : m_mutexes) {
@@ -63,7 +63,7 @@ struct lazy_reader : chunked_multidim_array<T> {
     auto s = m_var.size();
     std::reverse(begin(s), end(s));
     this->resize(s, chunk_size);
-    if constexpr (std::is_arithmetic_v<T>) {
+    if constexpr (is_arithmetic<T>) {
       m_read.resize(this->num_chunks(), false);
       m_mutexes.resize(this->num_chunks());
       for (auto& mutex : m_mutexes) {
@@ -72,7 +72,12 @@ struct lazy_reader : chunked_multidim_array<T> {
     }
   }
   //----------------------------------------------------------------------------
-  auto read_chunk(size_t& plain_index, integral auto const... indices) const
+#ifdef __cpp_concepts
+  template <integral... Is>
+#else
+  template <typename... Is, enable_if_integral<Is...> = true>
+#endif
+  auto read_chunk(size_t& plain_index, Is const... indices) const
       -> auto const& {
 #ifndef NDEBUG
     static std::mutex m;
@@ -94,7 +99,7 @@ struct lazy_reader : chunked_multidim_array<T> {
     plain_index = this->plain_chunk_index_from_global_indices(indices...);
     std::lock_guard lock{*m_mutexes[plain_index]};
 
-    if constexpr (std::is_arithmetic_v<T>) {
+    if constexpr (is_arithmetic<T>) {
       if (this->chunk_at_is_null(plain_index)) {
         if (!m_read[plain_index]) {
           m_read[plain_index] = true;
@@ -123,7 +128,12 @@ struct lazy_reader : chunked_multidim_array<T> {
   }
   //----------------------------------------------------------------------------
  public:
-   auto at(integral auto const... indices) -> T& {
+#ifdef __cpp_concepts
+  template <integral... Is>
+#else
+  template <typename... Is, enable_if_integral<Is...> = true>
+#endif
+   auto at(Is const... indices) -> T& {
     size_t      plain_index = 0;
     auto & chunk       = read_chunk(plain_index, indices...);
 
@@ -139,7 +149,12 @@ struct lazy_reader : chunked_multidim_array<T> {
     }
   }
   //----------------------------------------------------------------------------
-  auto at(integral auto const... indices) const -> T const& {
+#ifdef __cpp_concepts
+  template <integral... Is>
+#else
+  template <typename... Is, enable_if_integral<Is...> = true>
+#endif
+  auto at(Is const... indices) const -> T const& {
     size_t      plain_index = 0;
     auto const& chunk       = read_chunk(plain_index, indices...);
 
@@ -155,12 +170,22 @@ struct lazy_reader : chunked_multidim_array<T> {
     }
   }
   //----------------------------------------------------------------------------
-   auto operator()(integral auto const... indices) -> T& {
+#ifdef __cpp_concepts
+  template <integral... Is>
+#else
+  template <typename... Is, enable_if_integral<Is...> = true>
+#endif
+   auto operator()(Is const... indices) -> T& {
     assert(sizeof...(indices) == this->num_dimensions());
     return at(indices...);
   }
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-  auto operator()(integral auto const... indices) const -> T const& {
+#ifdef __cpp_concepts
+  template <integral... Is>
+#else
+  template <typename... Is, enable_if_integral<Is...> = true>
+#endif
+  auto operator()(Is const... indices) const -> T const& {
     assert(sizeof...(indices) == this->num_dimensions());
     return at(indices...);
   }
@@ -176,8 +201,12 @@ struct lazy_reader : chunked_multidim_array<T> {
     return true;
   }
   //----------------------------------------------------------------------------
+#ifdef __cpp_concepts
   template <typename = void>
-  requires is_arithmetic_v<value_type>
+  requires is_arithmetic<value_type>
+#else
+  template <typename V = value_type, enable_if_arithmetic<value_type> = true>
+#endif
   auto is_chunk_filled_with_zeros(size_t const plain_index) const -> bool {
     return is_chunk_filled_with_value(plain_index, 0);
   }

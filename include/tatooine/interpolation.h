@@ -8,13 +8,17 @@
 #include <iostream>
 #include <utility>
 
-#include "polynomial.h"
-#include "polynomial_line.h"
-#include "tensor.h"
+#include <tatooine/polynomial.h>
+#include <tatooine/polynomial_line.h>
+#include <tatooine/tensor.h>
 //==============================================================================
 namespace tatooine::interpolation {
 //==============================================================================
-template <typename Real>
+#ifdef __cpp_concepts
+  template <arithmetic Real>
+#else
+  template <typename Real>
+#endif
 struct linear {
   //----------------------------------------------------------------------------
   // traits
@@ -197,7 +201,11 @@ struct cubic {
   }
 };
 //------------------------------------------------------------------------------
-template <real_number Real, size_t N>
+#ifdef __cpp_concepts
+template <arithmetic Real, size_t N>
+#else
+template <typename Real, size_t N>
+#endif
 struct cubic<tensor<Real, N>> {
   //----------------------------------------------------------------------------
   // traits
@@ -358,7 +366,11 @@ struct quintic {
   }
 };
 //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-template <real_number Real, size_t N>
+#ifdef __cpp_concepts
+template <arithmetic Real, size_t N>
+#else
+template <typename Real, size_t N>
+#endif
 struct quintic<tensor<Real, N>> {
   //----------------------------------------------------------------------------
   // traits

@@ -11,10 +11,18 @@
 //==============================================================================
 namespace tatooine {
 //==============================================================================
+#ifdef __cpp_concepts
 template <indexable_space... Dimensions>
+#else
+template <typename... Dimensions>
+#endif
 class grid;
 //==============================================================================
+#ifdef __cpp_concepts
 template <indexable_space... Dimensions>
+#else
+template <typename... Dimensions>
+#endif
 struct grid_vertex_iterator {
   static constexpr auto num_dimensions() { return sizeof...(Dimensions); }
   using difference_type   = size_t;
@@ -84,7 +92,11 @@ struct grid_vertex_iterator {
   }
 };
 //==============================================================================
+#ifdef __cpp_concepts
 template <indexable_space... Dimensions>
+#else
+template <typename... Dimensions>
+#endif
 auto next(grid_vertex_iterator<Dimensions...> it, size_t num = 1) {
   for (size_t i = 0; i < num; ++i) { ++it; }
   return it;

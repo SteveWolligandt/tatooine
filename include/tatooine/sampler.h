@@ -69,7 +69,7 @@ struct base_sampler : crtp<Sampler> {
     return sizeof...(TailInterpolationKernels) + 1;
   }
   static constexpr auto num_components() {
-    return num_components_v<value_type>;
+    return tatooine::num_components<value_type>;
   }
   using crtp<Sampler>::as_derived;
   //============================================================================
@@ -79,7 +79,12 @@ struct base_sampler : crtp<Sampler> {
   //----------------------------------------------------------------------------
   /// data at specified indices is...
   /// CRTP-virtual method
-  auto data_at(integral auto const... is) const -> decltype(auto) {
+#ifdef __cpp_concepts
+  template <integral... Is>
+#else
+  template <typename... Is, enable_if_integral<Is...> = true>
+#endif
+  auto data_at(Is const... is) const -> decltype(auto) {
     static_assert(sizeof...(is) == num_dimensions(),
                   "Number of indices does not match number of dimensions.");
     return as_derived().data_at(is...);
@@ -91,7 +96,12 @@ struct base_sampler : crtp<Sampler> {
   //  return as_derived().stencil_coefficients(dim_index, i);
   //}
   //----------------------------------------------------------------------------
-  auto position_at(integral auto const... is) const {
+#ifdef __cpp_concepts
+  template <integral... Is>
+#else
+  template <typename... Is, enable_if_integral<Is...> = true>
+#endif
+  auto position_at(Is const... is) const {
     static_assert(sizeof...(is) == num_dimensions(),
                   "Number of indices does not match number of dimensions.");
     return as_derived().position_at(is...);
@@ -119,8 +129,12 @@ struct base_sampler : crtp<Sampler> {
   //                                                              is...);
   //}
   //----------------------------------------------------------------------------
-  template <size_t DimensionIndex>
-  auto cell_index(real_number auto const x) const -> decltype(auto) {
+#ifdef __cpp_concepts
+  template <size_t DimensionIndex, arithmetic X>
+#else
+  template <size_t DimensionIndex, typename X, enable_if_arithmetic<X> = true>
+#endif
+  auto cell_index(X const x) const -> decltype(auto) {
     return as_derived().template cell_index<DimensionIndex>(x);
   }
   //----------------------------------------------------------------------------
@@ -241,9 +255,13 @@ struct base_sampler : crtp<Sampler> {
     }
   }
   //------------------------------------------------------------------------------
-  template <size_t... Is>
+#ifdef __cpp_concepts
+  template <size_t... Is, arithmetic... Xs>
+#else
+  template <size_t... Is, typename... Xs, enable_if_arithmetic<Xs...> = true>
+#endif
   constexpr auto sample(std::index_sequence<Is...> /*seq*/,
-                        real_number auto const... xs) const {
+                        Xs const... xs) const {
     return sample_cit(cell_index<Is>(xs)...);
   }
   //----------------------------------------------------------------------------
@@ -253,32 +271,42 @@ struct base_sampler : crtp<Sampler> {
   /// component so that only once a binary search must be done and than calls
   /// sample_cit .
  public:
-  constexpr auto sample(real_number auto const... xs) const {
+#ifdef __cpp_concepts
+  template <arithmetic... Xs>
+#else
+  template <typename... Xs, enable_if_arithmetic<Xs...> = true>
+#endif
+  constexpr auto sample(Xs const... xs) const {
     static_assert(sizeof...(xs) == num_dimensions(),
                   "Number of coordinates does not match number of dimensions.");
     return sample(std::make_index_sequence<num_dimensions()>{}, xs...);
   }
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-  template <typename Tensor, real_number TensorReal, size_t... Is>
+  template <typename Tensor, typename TensorReal, size_t... Is>
   constexpr auto sample(
       base_tensor<Tensor, TensorReal, num_dimensions()> const& x,
       std::index_sequence<Is...>                               seq) const {
     return sample(seq, x(Is)...);
   }
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-  template <typename Tensor, real_number TensorReal>
+  template <typename Tensor, typename TensorReal>
   constexpr auto sample(
       base_tensor<Tensor, TensorReal, num_dimensions()>const& x) const {
     return sample(x, std::make_index_sequence<num_dimensions()>{});
   }
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-  constexpr auto operator()(real_number auto const... xs) const {
+#ifdef __cpp_concepts
+  template <arithmetic... Xs>
+#else
+  template <typename... Xs, enable_if_arithmetic<Xs...> = true>
+#endif
+  constexpr auto operator()(Xs const... xs) const {
     static_assert(sizeof...(xs) == num_dimensions(),
                   "Number of coordinates does not match number of dimensions.");
     return sample(std::make_index_sequence<num_dimensions()>{}, xs...);
   }
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-  template <typename Tensor, real_number TensorReal>
+  template <typename Tensor, typename TensorReal>
   constexpr auto operator()(
       base_tensor<Tensor, TensorReal, num_dimensions()> const& x) const {
     return sample(x);
@@ -321,30 +349,53 @@ struct sampler
   auto grid() const -> auto const& { return m_property.grid(); }
   auto grid() -> auto& { return m_property.grid(); }
   //----------------------------------------------------------------------------
+#ifdef __cpp_concepts
   template <integral... Is>
   requires(
       sizeof...(Is) ==
-      GridVertexProperty::grid_t::num_dimensions()) auto data_at(Is const... is)
+      GridVertexProperty::grid_t::num_dimensions())
+#else
+  template <typename... Is, enable_if_integral<Is...> = true,
+            enable_if<(sizeof...(Is) ==
+                       GridVertexProperty::grid_t::num_dimensions())> = true>
+#endif
+  auto data_at(Is const... is)
       const -> decltype(auto) {
     return m_property(is...);
   }
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+#ifdef __cpp_concepts
   template <integral... Is>
   requires(
       sizeof...(Is) ==
-      GridVertexProperty::grid_t::num_dimensions()) auto data_at(Is const... is)
+      GridVertexProperty::grid_t::num_dimensions())
+#else
+  template <typename... Is, enable_if_integral<Is...> = true,
+            enable_if<(sizeof...(Is) ==
+                       GridVertexProperty::grid_t::num_dimensions())> = true>
+#endif
+  auto data_at(Is const... is)
       -> decltype(auto) {
     return m_property(is...);
   }
   //----------------------------------------------------------------------------
-  auto position_at(integral auto const... is) const {
+#ifdef __cpp_concepts
+  template <integral... Is>
+#else
+  template <typename... Is, enable_if_integral<Is...> = true>
+#endif
+  auto position_at(Is const... is) const {
     static_assert(sizeof...(is) == num_dimensions(),
                   "Number of indices does not match number of dimensions.");
     return grid().position_at(is...);
   }
   //----------------------------------------------------------------------------
-  template <size_t DimensionIndex>
-  auto cell_index(real_number auto const x) const -> decltype(auto) {
+#ifdef __cpp_concepts
+  template <size_t DimensionIndex, arithmetic X>
+#else
+  template <size_t DimensionIndex, typename X, enable_if_arithmetic<X> = true>
+#endif
+  auto cell_index(X const x) const -> decltype(auto) {
     return grid().template cell_index<DimensionIndex>(x);
   }
   ////----------------------------------------------------------------------------
@@ -420,14 +471,23 @@ struct sampler_view
   }
   //------------------------------------------------------------------------------
   /// returns data of top sampler at m_fixed_index and index list is...
-  constexpr auto data_at(integral auto... is) const -> value_type const& {
+#ifdef __cpp_concepts
+  template <integral... Is>
+#else
+  template <typename... Is, enable_if_integral<Is...> = true>
+#endif
+  constexpr auto data_at(Is const... is) const -> value_type const& {
     static_assert(sizeof...(is) == num_dimensions(),
                   "Number of indices is not equal to number of dimensions.");
     return m_top_sampler.data_at(m_fixed_index, is...);
   }
   //----------------------------------------------------------------------------
-  template <size_t DimensionIndex>
-  constexpr auto cell_index(real_number auto const x) const -> decltype(auto) {
+#ifdef __cpp_concepts
+  template <size_t DimensionIndex, arithmetic X>
+#else
+  template <size_t DimensionIndex, typename X, enable_if_arithmetic<X> = true>
+#endif
+  constexpr auto cell_index(X const x) const -> decltype(auto) {
     return m_top_sampler.template cell_index<DimensionIndex>(x);
   }
   ////----------------------------------------------------------------------------

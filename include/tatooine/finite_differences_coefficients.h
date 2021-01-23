@@ -8,7 +8,11 @@ namespace tatooine {
 //==============================================================================
 /// read her for more information:
 /// http://web.media.mit.edu/~crtaylor/calculator.html
+#ifdef __cpp_concepts
 template <floating_point... Xs>
+#else
+template <typename... Xs, enable_if_floating_point<Xs...> = true>
+#endif
 auto finite_differences_coefficients(std::size_t d, Xs... xs) {
   constexpr auto N = sizeof...(xs);
   using real_t     = common_type<std::decay_t<Xs>...>;
@@ -21,7 +25,12 @@ auto finite_differences_coefficients(std::size_t d, Xs... xs) {
 //------------------------------------------------------------------------------
 /// read her for more information:
 /// http://web.media.mit.edu/~crtaylor/calculator.html
+#ifdef __cpp_concepts
 template <typename Tensor, floating_point T, size_t N>
+#else
+template <typename Tensor, typename T, size_t N,
+          enable_if_floating_point<T> = true>
+#endif
 auto finite_differences_coefficients(std::size_t                      d,
                                      base_tensor<Tensor, T, N> const& v) {
   auto V           = mat<T, N, N>::vander(v);

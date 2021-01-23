@@ -6,8 +6,8 @@
 //==============================================================================
 namespace tatooine::dino_interface {
 //==============================================================================
-struct interface : base_interface<test> {
-  using this_t   = test;
+struct interface : base_interface<interface> {
+  using this_t   = interface;
   using parent_t = base_interface<this_t>;
 
   static constexpr std::string_view m_timings_fname     = "tatooine_dino_interface_timings.txt";
@@ -185,7 +185,7 @@ struct interface : base_interface<test> {
   }
 };
 //==============================================================================
-}  // namespace tatooine::dino_interface::interfaces
+}  // namespace tatooine::dino_interface
 //==============================================================================
 
 //==============================================================================
@@ -193,7 +193,7 @@ struct interface : base_interface<test> {
 //==============================================================================
 auto tatooine_dino_interface_initialize_communicator(MPI_Fint* communicator)
     -> void {
-  tatooine::dino_interface::interfaces::test::get().initialize_communicator(
+  tatooine::dino_interface::interface::get().initialize_communicator(
       *communicator);
 }
 //------------------------------------------------------------------------------
@@ -206,7 +206,7 @@ auto tatooine_dino_interface_initialize_grid(
     double const* domain_size_y, double const* domain_size_z,
     int const* is_periodic_x, int const* is_periodic_y,
     int const* is_periodic_z, int const* halo_level) -> void {
-  tatooine::dino_interface::interfaces::test::get().initialize_grid(
+  tatooine::dino_interface::interface::get().initialize_grid(
       *global_grid_size_x, *global_grid_size_y, *global_grid_size_z,
       *local_starting_index_x, *local_starting_index_y, *local_starting_index_z,
       *local_grid_size_x, *local_grid_size_y, *local_grid_size_z,
@@ -217,7 +217,7 @@ auto tatooine_dino_interface_initialize_grid(
 auto tatooine_dino_interface_initialize_variable(char const*   name,
                                                  int const*    num_components,
                                                  double const* var) -> void {
-  tatooine::dino_interface::interfaces::test::get().initialize_variable(
+  tatooine::dino_interface::interface::get().initialize_variable(
       name, *num_components, var);
 }
 //------------------------------------------------------------------------------
@@ -225,22 +225,22 @@ auto tatooine_dino_interface_initialize_parameters(double const* time,
                                                    double const* prev_time,
                                                    int const*    iteration)
     -> void {
-  tatooine::dino_interface::interfaces::test::get().initialize_parameters(
+  tatooine::dino_interface::interface::get().initialize_parameters(
       *time, *prev_time, *iteration);
 }
 //------------------------------------------------------------------------------
 auto tatooine_dino_interface_initialize(int const* restart) -> void {
-  tatooine::dino_interface::interfaces::test::get().initialize(*restart);
+  tatooine::dino_interface::interface::get().initialize(*restart);
 }
 //------------------------------------------------------------------------------
 auto tatooine_dino_interface_update_variable(char const*   name,
                                              int const*    num_components,
                                              double const* var) -> void {
-  tatooine::dino_interface::interfaces::test::get().update_variable(
+  tatooine::dino_interface::interface::get().update_variable(
       name, *num_components, var);
 }
 //------------------------------------------------------------------------------
 auto tatooine_dino_interface_update(int const* iteration, double const* time)
     -> void {
-  tatooine::dino_interface::interfaces::test::get().update(*iteration, *time);
+  tatooine::dino_interface::interface::get().update(*iteration, *time);
 }
