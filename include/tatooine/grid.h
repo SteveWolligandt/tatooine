@@ -1512,14 +1512,14 @@ template <typename IndexableSpace, size_t N>
 struct grid_creator {
  private:
   template <typename... Args, size_t... Is>
-  static constexpr auto create(Args&&... args,
-                               std::index_sequence<Is...> /*seq*/) {
+  static constexpr auto create(std::index_sequence<Is...> /*seq*/,
+                               Args&&... args) {
     return grid<decltype((static_cast<void>(Is), IndexableSpace{}))...>{
         std::forward<Args>(args)...};
   }
   template <typename... Args>
   static constexpr auto create(Args&&... args) {
-    return create(std::forward<Args>(args)..., std::make_index_sequence<N>{});
+    return create(std::make_index_sequence<N>{}, std::forward<Args>(args)...);
   }
 
  public:
