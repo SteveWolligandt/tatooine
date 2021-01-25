@@ -96,11 +96,11 @@ constexpr auto eigenvalues(tensor<float, N, N> A)
   if constexpr (N == 2) {
     return eigenvalues_22(A);
   } else {
-    [[maybe_unused]] lapack_int info;
     std::array<float, N>        wr;
     std::array<float, N>        wi;
-    info = LAPACKE_sgeev(LAPACK_COL_MAJOR, 'N', 'N', N, A.data_ptr(), N,
-                         wr.data(), wi.data(), nullptr, N, nullptr, N);
+    [[maybe_unused]] auto const info =
+        LAPACKE_sgeev(LAPACK_COL_MAJOR, 'N', 'N', N, A.data_ptr(), N, wr.data(),
+                      wi.data(), nullptr, N, nullptr, N);
 
     vec<std::complex<float>, N> vals;
     for (size_t i = 0; i < N; ++i) {
@@ -116,11 +116,11 @@ constexpr auto eigenvalues(tensor<double, N, N> A)
   if constexpr (N == 2) {
     return eigenvalues_22(A);
   } else {
-    [[maybe_unused]] lapack_int info;
     std::array<double, N>       wr;
     std::array<double, N>       wi;
-    info = LAPACKE_dgeev(LAPACK_COL_MAJOR, 'N', 'N', N, A.data_ptr(), N,
-                         wr.data(), wi.data(), nullptr, N, nullptr, N);
+    [[maybe_unused]] auto const info =
+        LAPACKE_dgeev(LAPACK_COL_MAJOR, 'N', 'N', N, A.data_ptr(), N, wr.data(),
+                      wi.data(), nullptr, N, nullptr, N);
     vec<std::complex<double>, N> vals;
     for (size_t i = 0; i < N; ++i) {
       vals[i] = {wr[i], wi[i]};
@@ -132,12 +132,12 @@ constexpr auto eigenvalues(tensor<double, N, N> A)
 template <size_t N>
 auto eigenvectors(tensor<float, N, N> A)
     -> std::pair<mat<std::complex<float>, N, N>, vec<std::complex<float>, N>> {
-  [[maybe_unused]] lapack_int info;
   std::array<float, N>        wr;
   std::array<float, N>        wi;
   std::array<float, N * N>    vr;
-  info = LAPACKE_sgeev(LAPACK_COL_MAJOR, 'N', 'V', N, A.data_ptr(), N,
-                       wr.data(), wi.data(), nullptr, N, vr.data(), N);
+  [[maybe_unused]] auto const info =
+      LAPACKE_sgeev(LAPACK_COL_MAJOR, 'N', 'V', N, A.data_ptr(), N, wr.data(),
+                    wi.data(), nullptr, N, vr.data(), N);
 
   vec<std::complex<float>, N>    vals;
   mat<std::complex<float>, N, N> vecs;

@@ -99,7 +99,8 @@ class grid {
        ...)
 #else
   template <typename... _Dimensions,
-            enable_if<(sizeof...(_Dimensions) == sizeof...(Dimensions))> = true>
+            enable_if<(sizeof...(_Dimensions) == sizeof...(Dimensions))> = true,
+            enable_if_indexable<std::decay_t<_Dimensions>...> = true>
 #endif
   constexpr grid(_Dimensions&&... dimensions)
       : m_dimensions{std::forward<_Dimensions>(dimensions)...} {
@@ -1203,70 +1204,70 @@ class grid {
   auto read_netcdf(std::filesystem::path const& path) {
     read_netcdf(path, std::make_index_sequence<num_dimensions()>{});
   }
-  // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-  // - -
+  // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+  template <typename T, size_t... Is>
+  auto add_variables_of_type(netcdf::file& f, bool& first,
+                             std::index_sequence<Is...> /*seq*/) {
+    for (auto v : f.variables<T>()) {
+      if (v.name() == "x" || v.name() == "y" || v.name() == "z" ||
+          v.name() == "t" || v.name() == "X" || v.name() == "Y" ||
+          v.name() == "Z" || v.name() == "T" || v.name() == "xdim" ||
+          v.name() == "ydim" || v.name() == "zdim" || v.name() == "tdim" ||
+          v.name() == "Xdim" || v.name() == "Ydim" || v.name() == "Zdim" ||
+          v.name() == "Tdim" || v.name() == "XDim" || v.name() == "YDim" ||
+          v.name() == "ZDim" || v.name() == "TDim") {
+        continue;
+      }
+      if (v.num_dimensions() != num_dimensions() &&
+          v.size()[0] != num_vertices()) {
+        throw std::runtime_error{
+            "[grid::read_netcdf] variable's number of dimensions does "
+            "not "
+            "match grid's number of dimensions:\nnumber of grid "
+            "dimensions: " +
+            std::to_string(num_dimensions()) + "\nnumber of data dimensions: " +
+            std::to_string(v.num_dimensions()) +
+            "\nvariable name: " + v.name()};
+      }
+      if (!first) {
+        auto check = [this, &v](size_t i) {
+          if (v.size(i) != size(i)) {
+            throw std::runtime_error{"[grid::read_netcdf] variable's size(" +
+                                     std::to_string(i) +
+                                     ") does not "
+                                     "match grid's size(" +
+                                     std::to_string(i) + ")"};
+          }
+        };
+        (check(Is), ...);
+      } else {
+        ((f.variable<
+               typename std::decay_t<decltype(dimension<Is>())>::value_type>(
+               v.dimension_name(Is))
+              .read(dimension<Is>())),
+         ...);
+      }
+      create_vertex_property<netcdf::lazy_reader<T>>(v.name(), v,
+                                                     std::vector<size_t>{2, 2});
+      first = false;
+    }
+  }
   /// this only reads scalar types
   template <size_t... Is>
   auto read_netcdf(std::filesystem::path const& path,
-                   std::index_sequence<Is...>) {
+                   std::index_sequence<Is...>   seq) {
     netcdf::file f{path, netCDF::NcFile::read};
-    bool         first                 = true;
-    auto         add_variables_of_type = [&]<typename T>() {
-      for (auto v : f.variables<T>()) {
-        if (v.name() == "x" || v.name() == "y" || v.name() == "z" ||
-            v.name() == "t" || v.name() == "X" || v.name() == "Y" ||
-            v.name() == "Z" || v.name() == "T" || v.name() == "xdim" ||
-            v.name() == "ydim" || v.name() == "zdim" || v.name() == "tdim" ||
-            v.name() == "Xdim" || v.name() == "Ydim" || v.name() == "Zdim" ||
-            v.name() == "Tdim" || v.name() == "XDim" || v.name() == "YDim" ||
-            v.name() == "ZDim" || v.name() == "TDim") {
-          continue;
-        }
-        if (v.num_dimensions() != num_dimensions() &&
-            v.size()[0] != num_vertices()) {
-          throw std::runtime_error{
-              "[grid::read_netcdf] variable's number of dimensions does "
-              "not "
-              "match grid's number of dimensions:\nnumber of grid "
-              "dimensions: " +
-              std::to_string(num_dimensions()) +
-              "\nnumber of data dimensions: " +
-              std::to_string(v.num_dimensions()) +
-              "\nvariable name: " + v.name()};
-        }
-        if (!first) {
-          auto check = [this, &v](size_t i) {
-            if (v.size(i) != size(i)) {
-              throw std::runtime_error{"[grid::read_netcdf] variable's size(" +
-                                       std::to_string(i) +
-                                       ") does not "
-                                       "match grid's size(" +
-                                       std::to_string(i) + ")"};
-            }
-          };
-          (check(Is), ...);
-        } else {
-          ((f.variable<
-                 typename std::decay_t<decltype(dimension<Is>())>::value_type>(
-                 v.dimension_name(Is))
-                .read(dimension<Is>())),
-           ...);
-        }
-        create_vertex_property<netcdf::lazy_reader<T>>(
-            v.name(), v, std::vector<size_t>{2, 2});
-        first = false;
-      }
-    };
-    add_variables_of_type.template operator()<double>();
-    add_variables_of_type.template operator()<float>();
-    add_variables_of_type.template operator()<int>();
+    bool         first = true;
+    add_variables_of_type<double>(f, first, seq);
+    add_variables_of_type<float>(f, first, seq);
+    add_variables_of_type<int>(f, first, seq);
   }
   //----------------------------------------------------------------------------
 #ifdef __cpp_concepts
   template <typename T>
   requires((num_dimensions() == 3)
 #else
-  template <typename T, enable_if<(num_dimensions() == 3)> = true>
+  template <typename T, size_t _N = num_dimensions(), enable_if<_N == 3> = true>
 #endif
  void write_amira(std::string const& path,
                                std::string const& vertex_property_name) const {
@@ -1277,8 +1278,8 @@ class grid {
   template <typename T>
   requires is_uniform && (num_dimensions() == 3)
 #else
-  template <typename T,
-            enable_if<(is_uniform && (num_dimensions() == 3))> = true>
+  template <typename T, bool U = is_uniform, size_t _N = num_dimensions(),
+            enable_if<(U && (_N == 3))> = true>
 #endif
   void write_amira(std::string const&         path,
                            typed_property_t<T> const& prop) const {
