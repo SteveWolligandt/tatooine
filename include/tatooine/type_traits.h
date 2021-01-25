@@ -22,32 +22,34 @@ template <typename F, typename... Ts>
 static constexpr auto is_predicate =
     std::is_same_v<bool, std::invoke_result_t<F, Ts...>>;
 //==============================================================================
-template <typename T>
-static constexpr auto is_floating_point = std::is_floating_point_v<T>;
+template <typename... Ts>
+static constexpr auto is_floating_point = (std::is_floating_point_v<Ts> && ...);
 //------------------------------------------------------------------------------
-template <typename T>
-static constexpr auto is_arithmetic = std::is_arithmetic_v<T>;
+template <typename ... Ts>
+static constexpr auto is_arithmetic = (std::is_arithmetic_v<Ts> && ...);
 //------------------------------------------------------------------------------
 template <typename... Ts>
 static constexpr auto is_integral = (std::is_integral_v<Ts> && ...);
 //------------------------------------------------------------------------------
-template <typename T>
-static constexpr auto is_const = std::is_const_v<T>;
+template <typename ... Ts>
+static constexpr auto is_const = (std::is_const_v<Ts> && ...);
 //------------------------------------------------------------------------------
-template <typename T>
-static constexpr auto is_non_const = !std::is_const_v<T>;
+template <typename ... Ts>
+static constexpr auto is_non_const = (!std::is_const_v<Ts> && ...);
 //------------------------------------------------------------------------------
-template <typename T>
-static constexpr auto is_signed = std::is_signed_v<T>;
+template <typename ... Ts>
+static constexpr auto is_signed = (std::is_signed_v<Ts> && ...);
 //------------------------------------------------------------------------------
-template <typename T>
-static constexpr auto is_unsigned = std::is_unsigned_v<T>;
+template <typename ... Ts>
+static constexpr auto is_unsigned = (std::is_unsigned_v<Ts> && ...);
 //------------------------------------------------------------------------------
-template <typename T>
-static constexpr auto is_signed_integral = is_signed<T>&& is_integral<T>;
+template <typename... Ts>
+static constexpr auto is_signed_integral = ((is_signed<Ts> && ...) &&
+                                            (is_integral<Ts> && ...));
 //------------------------------------------------------------------------------
-template <typename T>
-static constexpr auto is_unsigned_integral = is_unsigned<T> && is_integral<T>;
+template <typename... Ts>
+static constexpr auto is_unsigned_integral = ((is_unsigned<Ts> && ...) &&
+                                              (is_integral<Ts> && ...));
 //------------------------------------------------------------------------------
 template <typename From, typename To>
 static constexpr auto is_convertible = std::is_convertible_v<From, To>;
@@ -76,7 +78,7 @@ static constexpr auto is_convertible_to_floating_point =
 template <typename T>
 struct is_complex_impl : std::false_type {};
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-template <typename... Ts>
+template <typename ... Ts>
 static constexpr auto is_complex = (is_complex_impl<Ts>::value && ...);
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 template <typename... Ts>
@@ -94,19 +96,20 @@ struct is_range_impl<T, std::void_t<decltype(std::declval<T>().begin()),
                                     decltype(std::declval<T>().end())>>
     : std::true_type {};
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-template <typename T>
-static constexpr auto is_range = is_range_impl<T>::value;
+template <typename ... Ts>
+static constexpr auto is_range = (is_range_impl<Ts>::value && ...);
 //------------------------------------------------------------------------------
 template <typename T, typename = void>
 struct is_indexable_impl : std::false_type {};
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 template <typename T>
-struct is_indexable_impl<T, std::void_t<decltype(std::declval<T>().at(size_t{})),
-                                    decltype(std::declval<T>()[size_t{}])>>
+struct is_indexable_impl<T,
+                         std::void_t<decltype(std::declval<T>().at(size_t{})),
+                                     decltype(std::declval<T>()[size_t{}])>>
     : std::true_type {};
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-template <typename T>
-static constexpr auto is_indexable = is_indexable_impl<T>::value;
+template <typename... Ts>
+static constexpr auto is_indexable = (is_indexable_impl<Ts>::value && ...);
 //------------------------------------------------------------------------------
 //template <typename T, typename = void>
 //struct is_indexable_space_impl: std::false_type{};
@@ -138,8 +141,9 @@ template <typename T>
 struct is_dereferencable_impl<T, std::void_t<decltype(*std::declval<T>())>>
     : std::true_type {};
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-template <typename T>
-static constexpr auto is_dereferencable = is_dereferencable_impl<T>::value;
+template <typename... Ts>
+static constexpr auto is_dereferencable = (is_dereferencable_impl<Ts>::value &&
+                                           ...);
 //------------------------------------------------------------------------------
 template <typename T, typename = void>
 struct is_post_incrementable_impl : std::false_type {};
@@ -154,9 +158,9 @@ struct is_post_incrementable_impl<T*> : std::true_type {};
 template <typename T>
 struct is_post_incrementable_impl<T const*> : std::true_type {};
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-template <typename T>
+template <typename ...Ts>
 static constexpr auto is_post_incrementable =
-    is_post_incrementable_impl<T>::value;
+    (is_post_incrementable_impl<Ts>::value && ...);
 //------------------------------------------------------------------------------
 template <typename T, typename = void>
 struct is_pre_incrementable_impl : std::false_type {};
