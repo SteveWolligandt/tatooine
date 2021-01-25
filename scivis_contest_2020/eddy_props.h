@@ -12,7 +12,7 @@ namespace tatooine::scivis_contest_2020 {
 //==============================================================================
 template <typename V>
 auto eddy_props(V const& v, typename V::pos_t const& x,
-                real_number auto const t) {
+                arithmetic auto const t) {
   auto const Jf             = diff(v, 1e-8);
 
   auto const eulerian_J     = Jf(x, t);

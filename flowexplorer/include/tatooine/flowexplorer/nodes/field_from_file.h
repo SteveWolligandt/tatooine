@@ -6,7 +6,7 @@
 //==============================================================================
 namespace tatooine::flowexplorer::nodes {
 //==============================================================================
-template <real_number Real, size_t N, bool is_time_dependent,
+template <arithmetic Real, size_t N, bool is_time_dependent,
           size_t... TensorDims>
 struct field_from_file
     : sampled_grid_property_field_creator_t<Real, N, is_time_dependent,
@@ -64,10 +64,10 @@ struct field_from_file
   }
 };
 //==============================================================================
-template <real_number Real, size_t N, size_t... TensorDims>
+template <arithmetic Real, size_t N, size_t... TensorDims>
 using unsteady_field_from_file = field_from_file<Real, N, true, TensorDims...>;
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-template <real_number Real, size_t N, size_t... TensorDims>
+template <arithmetic Real, size_t N, size_t... TensorDims>
 using steady_field_from_file = field_from_file<Real, N, false, TensorDims...>;
 //==============================================================================
 using steady_scalarfield_2d   = steady_field_from_file<double, 2>;

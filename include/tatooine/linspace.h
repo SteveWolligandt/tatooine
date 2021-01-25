@@ -18,16 +18,19 @@ namespace tatooine {
 #ifdef __cpp_concepts
 template <arithmetic Real>
 #else
-template <typename Real, enable_if_arithmetic<Real> = true>
+template <typename Real>
 #endif
 struct linspace_iterator;
 //============================================================================
 #ifdef __cpp_concepts
 template <arithmetic Real>
 #else
-template <typename Real, enable_if_arithmetic<Real> = true>
+template <typename Real>
 #endif
 struct linspace {
+#ifndef __cpp_concepts
+  static_assert(is_arithmetic<Real>);
+#endif
   //============================================================================
   // typedefs
   //============================================================================
@@ -139,11 +142,14 @@ struct linspace {
 #ifdef __cpp_concepts
 template <arithmetic Real>
 #else
-template <typename Real, enable_if_arithmetic<Real> = true>
+template <typename Real>
 #endif
 struct linspace_iterator
     : boost::iterator_facade<linspace_iterator<Real>, Real,
                              std::bidirectional_iterator_tag, Real> {
+#ifndef __cpp_concepts
+  static_assert(is_arithmetic<Real>);
+#endif
   //============================================================================
   // typedefs
   //============================================================================

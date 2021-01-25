@@ -8,7 +8,7 @@
 //==============================================================================
 namespace tatooine {
 //==============================================================================
-template <typename Grid, real_number Real, size_t N, size_t... TensorDims>
+template <typename Grid, arithmetic Real, size_t N, size_t... TensorDims>
 struct sampled_grid_property_field
     : field<sampled_grid_property_field<Grid, Real, N, TensorDims...>, Real, N,
             TensorDims...> {
@@ -163,73 +163,73 @@ struct sampled_grid_property_field
   }
 };
 //==============================================================================
-template <real_number Real, size_t N, bool is_time_dependent,
+template <arithmetic Real, size_t N, bool is_time_dependent,
           size_t... TensorDims>
 struct sampled_grid_property_field_creator;
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-template <real_number Real, size_t N, bool is_time_dependent,
+template <arithmetic Real, size_t N, bool is_time_dependent,
           size_t... TensorDims>
 using sampled_grid_property_field_creator_t =
     typename sampled_grid_property_field_creator<Real, N, is_time_dependent,
                                                  TensorDims...>::type;
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-template <real_number Real, size_t N, size_t... TensorDims>
+template <arithmetic Real, size_t N, size_t... TensorDims>
 struct sampled_grid_property_field_creator<Real, N, false, TensorDims...> {
   using type = sampled_grid_property_field<non_uniform_grid<Real, N>, Real, N,
                                            TensorDims...>;
 };
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-template <real_number Real, size_t N, size_t... TensorDims>
+template <arithmetic Real, size_t N, size_t... TensorDims>
 struct sampled_grid_property_field_creator<Real, N, true, TensorDims...> {
   using type = sampled_grid_property_field<non_uniform_grid<Real, N + 1>, Real,
                                            N, TensorDims...>;
 };
 //==============================================================================
-template <real_number Real, size_t N, size_t... TensorDims>
+template <arithmetic Real, size_t N, size_t... TensorDims>
 using time_dependent_sampled_grid_property_field =
     sampled_grid_property_field_creator_t<Real, N, true, TensorDims...>;
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-template <real_number Real, size_t N, size_t... TensorDims>
+template <arithmetic Real, size_t N, size_t... TensorDims>
 using unsteady_sampled_grid_property_field =
     time_dependent_sampled_grid_property_field<Real, N, TensorDims...>;
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-template <real_number Real, size_t N, size_t... TensorDims>
+template <arithmetic Real, size_t N, size_t... TensorDims>
 using time_independent_sampled_grid_property_field =
     sampled_grid_property_field_creator_t<Real, N, false, TensorDims...>;
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-template <real_number Real, size_t N, size_t... TensorDims>
+template <arithmetic Real, size_t N, size_t... TensorDims>
 using steady_sampled_grid_property_field =
     time_independent_sampled_grid_property_field<Real, N, TensorDims...>;
 //------------------------------------------------------------------------------
-template <real_number Real, size_t N, size_t VecDim = N>
+template <arithmetic Real, size_t N, size_t VecDim = N>
 using time_dependent_sampled_grid_property_vectorfield =
     time_dependent_sampled_grid_property_field<Real, N, VecDim>;
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-template <real_number Real, size_t N, size_t VecDim = N>
+template <arithmetic Real, size_t N, size_t VecDim = N>
 using unsteady_sampled_grid_property_vectorfield =
     time_dependent_sampled_grid_property_vectorfield<Real, N, VecDim>;
 //------------------------------------------------------------------------------
-template <real_number Real, size_t N, size_t VecDim = N>
+template <arithmetic Real, size_t N, size_t VecDim = N>
 using time_independent_sampled_grid_property_vectorfield =
     time_independent_sampled_grid_property_field<Real, N, VecDim>;
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-template <real_number Real, size_t N, size_t VecDim = N>
+template <arithmetic Real, size_t N, size_t VecDim = N>
 using steady_sampled_grid_property_vectorfield =
     time_independent_sampled_grid_property_vectorfield<Real, N, VecDim>;
 //------------------------------------------------------------------------------
-template <real_number Real, size_t N>
+template <arithmetic Real, size_t N>
 using time_dependent_sampled_grid_property_scalarfield =
     time_dependent_sampled_grid_property_field<Real, N>;
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-template <real_number Real, size_t N>
+template <arithmetic Real, size_t N>
 using unsteady_sampled_grid_property_scalarfield =
     time_dependent_sampled_grid_property_scalarfield<Real, N>;
 //------------------------------------------------------------------------------
-template <real_number Real, size_t N>
+template <arithmetic Real, size_t N>
 using time_independent_sampled_grid_property_scalarfield =
     time_independent_sampled_grid_property_field<Real, N>;
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-template <real_number Real, size_t N>
+template <arithmetic Real, size_t N>
 using steady_sampled_grid_property_scalarfield =
     time_independent_sampled_grid_property_scalarfield<Real, N>;
 //==============================================================================

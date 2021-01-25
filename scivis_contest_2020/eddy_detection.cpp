@@ -238,7 +238,7 @@ auto eddy_detection(std::vector<std::string> const& ensemble_ids) {
                                   });
                             }
 
-                            auto Q_time = [&](real_number auto const
+                            auto Q_time = [&](arithmetic auto const
                                                   threshold) {
                               double Q_time = 0;
                               for (size_t i = 0;
