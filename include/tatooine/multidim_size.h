@@ -32,7 +32,7 @@ struct static_multidim_size {
 #ifdef __cpp_concepts
   template <integral... Is>
 #else
-  template <typename... Is, enable_if_integral<Is...> = true>
+  template <typename... Is, enable_if<is_integral<Is...>> = true>
 #endif
   static constexpr auto in_range(Is const... is) {
     static_assert(sizeof...(is) == num_dimensions(),
@@ -56,7 +56,7 @@ struct static_multidim_size {
 #ifdef __cpp_concepts
   template <integral... Is>
 #else
-  template <typename... Is, enable_if_integral<Is...> = true>
+  template <typename... Is, enable_if<is_integral<Is...>> = true>
 #endif
   static constexpr auto plain_index(Is const... is) {
     static_assert(sizeof...(is) == num_dimensions(),
@@ -126,7 +126,7 @@ class dynamic_multidim_size {
 #ifdef __cpp_concepts
   template <integral... Size>
 #else
-  template <typename... Size, enable_if_integral<Size...> = true>
+  template <typename... Size, enable_if<is_integral<Size...>> = true>
 #endif
   explicit dynamic_multidim_size(Size... size)
       : m_size{static_cast<size_t>(size)...} {}
@@ -184,7 +184,7 @@ class dynamic_multidim_size {
 #ifdef __cpp_concepts
   template <integral... Size>
 #else
-  template <typename... Size, enable_if_integral<Size...> = true>
+  template <typename... Size, enable_if<is_integral<Size...>> = true>
 #endif
   void resize(Size const... size) {
     m_size = {static_cast<size_t>(size)...};
@@ -206,7 +206,7 @@ class dynamic_multidim_size {
 #ifdef __cpp_concepts
   template <integral... Is>
 #else
-  template <typename... Is, enable_if_integral<Is...> = true>
+  template <typename... Is, enable_if<is_integral<Is...>> = true>
 #endif
   constexpr auto in_range(Is const... is) const {
     assert(sizeof...(is) == num_dimensions());
@@ -233,7 +233,7 @@ class dynamic_multidim_size {
 #ifdef __cpp_concepts
   template <integral... Is>
 #else
-  template <typename... Is, enable_if_integral<Is...> = true>
+  template <typename... Is, enable_if<is_integral<Is...>> = true>
 #endif
   constexpr auto plain_index(Is const... is) const {
     assert(sizeof...(is) == num_dimensions());
