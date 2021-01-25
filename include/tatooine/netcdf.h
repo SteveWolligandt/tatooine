@@ -95,7 +95,7 @@ class variable {
 #ifdef __cpp_concepts
   template <range R>
 #else
-  template <typename R, enable_if_range<R> = true>
+  template <typename R, enable_if<is_range<R>> = true>
 #endif
   auto write(R r) { return write(std::vector(begin(r), end(r))); }
   //----------------------------------------------------------------------------
@@ -232,7 +232,7 @@ class variable {
 #ifdef __cpp_concepts
   template <integral... Is>
 #else
-  template <typename... Is, enable_if_integral<Is...> = true>
+  template <typename... Is, enable_if<is_integral<Is...>> = true>
 #endif
   auto read_single(Is const... is) const {
     assert(num_dimensions() == sizeof...(is));
@@ -287,7 +287,7 @@ class variable {
   template <typename MemLoc, size_t... Resolution, integral...StartIndices>
 #else
   template <typename MemLoc, size_t... Resolution, typename... StartIndices,
-            enable_if_integral<StartIndices...> = true>
+            enable_if<is_integral<StartIndices...>> = true>
 #endif
   auto read_chunk(
       static_multidim_array<T, x_fastest, MemLoc, Resolution...>& arr,

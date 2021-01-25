@@ -33,7 +33,7 @@ struct differentiated_field
 #ifdef __cpp_concpets
   template <typename Field_, arithmetic Eps>
 #else
-  template <typename Field_, typename Eps, enable_if_arithmetic<Eps> = true>
+  template <typename Field_, typename Eps, enable_if<is_arithmetic<Eps>> = true>
 #endif
   differentiated_field(Field_&& f, Eps const eps)
       : m_internal_field{std::forward<Field_>(f)}, m_eps{tag::fill{eps}} {
@@ -46,7 +46,7 @@ struct differentiated_field
 #ifdef __cpp_concpets
   template <typename Field_, arithmetic Real>
 #else
-  template <typename Field_, typename Real, enable_if_arithmetic<Real> = true>
+  template <typename Field_, typename Real, enable_if<is_arithmetic<Real>> = true>
 #endif
   differentiated_field(Field_&& f, vec<Real, num_dimensions()> const& eps)
       : m_internal_field{std::forward<Field_>(f)}, m_eps{eps} {}

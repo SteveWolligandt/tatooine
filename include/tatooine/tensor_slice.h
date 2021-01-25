@@ -29,7 +29,7 @@ struct tensor_slice
 #ifdef __cpp_concepts
   template <integral... Is>
 #else
-  template <typename... Is, enable_if_integral<Is...> = true>
+  template <typename... Is, enable_if<is_integral<Is...>> = true>
 #endif
   constexpr auto at(Is const... is) const -> decltype(auto) {
     if constexpr (FixedDim == 0) {
@@ -51,12 +51,12 @@ struct tensor_slice
 #ifdef __cpp_concepts
   template <typename _Tensor              = Tensor,
             integral... Is,
-            enable_if_non_const<_Tensor> = true>
+            enable_if<is_non_const<_Tensor>> = true>
 #else
   template <typename _Tensor              = Tensor,
             typename... Is,
-            enable_if_integral<Is...>     = true,
-            enable_if_non_const<_Tensor> = true>
+            enable_if<is_integral<Is...>>     = true,
+            enable_if<is_non_const<_Tensor>> = true>
 #endif
   constexpr auto at(Is const... is) -> decltype(auto) {
     if constexpr (FixedDim == 0) {

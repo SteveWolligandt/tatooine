@@ -37,9 +37,9 @@ struct for_loop_impl {
   template <std::size_t... Is,
             invocable<decltype(((void)Is, Int{}))...> Iteration>
 #else
-  template <std::size_t... Is,
-            typename Iteration, 
-            enable_if_invocable<Iteration, decltype(((void)Is, Int{}))...> = true>
+  template <std::size_t... Is, typename Iteration,
+            enable_if<is_invocable<Iteration,
+                                   decltype(((void)Is, Int{}))...> > = true>
 #endif
   constexpr auto loop(Iteration&& iteration,
                       std::index_sequence<Is...> /*unused*/) const {
@@ -102,7 +102,7 @@ struct for_loop_impl<Int, N, 1, ParallelIndex> {
 #else
   template <
       std::size_t... Is, typename Iteration,
-      enable_if_invocable<Iteration, decltype(((void)Is, Int{}))...> = true>
+      enable_if<is_invocable<Iteration, decltype(((void)Is, Int{}))...>> = true>
 #endif
   constexpr auto loop(Iteration&& iteration,
                       std::index_sequence<Is...> /*unused*/) const {
@@ -162,7 +162,7 @@ struct for_loop_impl<Int, N, I, I> {
 #else
   template <
       std::size_t... Is, typename Iteration,
-      enable_if_invocable<Iteration, decltype(((void)Is, Int{}))...> = true>
+      enable_if<is_invocable<Iteration, decltype(((void)Is, Int{}))...>> = true>
 #endif
   auto loop(Iteration&& iteration,
             std::index_sequence<Is...> /*unused*/) const {
@@ -226,7 +226,7 @@ struct for_loop_impl<Int, N, 1, 1> {
 #else
   template <
       std::size_t... Is, typename Iteration,
-      enable_if_invocable<Iteration, decltype(((void)Is, Int{}))...> = true>
+      enable_if<is_invocable<Iteration, decltype(((void)Is, Int{}))...>> = true>
 #endif
   auto loop(Iteration&& iteration,
             std::index_sequence<Is...> /*unused*/) const {
@@ -272,8 +272,8 @@ template <std::size_t ParallelIndex, typename Int, Int... Is, integral... Ends,
 #else
 template <
     std::size_t ParallelIndex, typename Int, Int... Is, typename Iteration,
-    typename... Ends, enable_if_integral<Ends...> = true,
-    enable_if_invocable<Iteration, decltype(((void)Is, Int{}))...> = true>
+    typename... Ends, enable_if<is_integral<Ends...>> = true,
+    enable_if<is_invocable<Iteration, decltype(((void)Is, Int{}))...>> = true>
 #endif
 constexpr auto for_loop(Iteration&& iteration,
                         std::integer_sequence<Int, Is...>,
@@ -305,7 +305,7 @@ constexpr auto for_loop(Iteration&& iteration,
 template <typename Int = std::size_t, typename Iteration, integral... Ends>
 #else
 template <typename Int = std::size_t, typename Iteration, typename... Ends,
-          enable_if_integral<Ends...> = true>
+          enable_if<is_integral<Ends...>> = true>
 #endif
 constexpr void for_loop(Iteration&& iteration, Ends const... ends) {
   detail::for_loop<sizeof...(ends) + 1, Int>(
@@ -325,7 +325,7 @@ constexpr void for_loop(Iteration&& iteration, Ends const... ends) {
 template <typename Int = std::size_t, typename Iteration, integral... Ends>
 #else
 template <typename Int = std::size_t, typename Iteration, typename... Ends,
-          enable_if_integral<Ends...> = true>
+          enable_if<is_integral<Ends...>> = true>
 #endif
 constexpr void parallel_for_loop(Iteration&& iteration,
                                  Ends const... ends) {

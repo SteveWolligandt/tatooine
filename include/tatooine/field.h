@@ -175,7 +175,7 @@ template <typename V, arithmetic VReal, size_t N,
 template <typename V, typename VReal, size_t N, size_t... TensorDims,
           typename... SpatialDimensions,
           typename T,
-          enable_if_arithmetic<VReal, T> = true>
+          enable_if<is_arithmetic<VReal, T>> = true>
 #endif
 auto sample_to_raw(field<V, VReal, N, TensorDims...> const& f,
                    grid<SpatialDimensions...> const& g, T const t,
@@ -212,7 +212,7 @@ template <typename V, arithmetic VReal, arithmetic TReal,
 template <typename V, typename VReal, typename TReal, size_t N,
           size_t... TensorDims, typename... SpatialDimensions,
           typename TemporalDimension,
-          enable_if_arithmetic<VReal, TReal> = true>
+          enable_if<is_arithmetic<VReal, TReal>> = true>
 #endif
 auto sample_to_raw(field<V, VReal, N, TensorDims...> const& f,
                    grid<SpatialDimensions...> const&        g,
@@ -252,7 +252,7 @@ template <arithmetic VReal, arithmetic TReal, size_t N,
 #else
 template <typename VReal, typename TReal, size_t N, size_t... TensorDims,
           typename... SpatialDimensions,
-          enable_if_arithmetic<VReal, TReal> = true>
+          enable_if<is_arithmetic<VReal, TReal>> = true>
 #endif
 auto sample_to_vector(parent::field<VReal, N, TensorDims...> const& f,
                    grid<SpatialDimensions...> const& g, TReal t) {
@@ -281,7 +281,7 @@ template <typename V, arithmetic VReal, arithmetic TReal size_t N,
 #else
 template <typename V, typename VReal, typename TReal, size_t N,
           size_t... TensorDims, typename... SpatialDimensions,
-          enable_if_arithmetic<VReal, TReal> = true>
+          enable_if<is_arithmetic<VReal, TReal>> = true>
 #endif
 auto resample(field<V, VReal, N, TensorDims...> const& f,
               grid<SpatialDimensions...> const&        spatial_domain,
@@ -331,7 +331,7 @@ template <typename V, arithmetic VReal, arithmetic TReal, size_t N,
 template <typename V, typename VReal, typename TReal, size_t N,
           size_t... TensorDims, typename... SpatialDimensions,
           typename TemporalDomain,
-          enable_if_arithmetic<VReal, TReal> = true>
+          enable_if<is_arithmetic<VReal, TReal>> = true>
 #endif
 auto resample(field<V, VReal, N, TensorDims...> const& f,
               grid<SpatialDimensions...> const&        spatial_domain,

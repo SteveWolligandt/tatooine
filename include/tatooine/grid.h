@@ -100,7 +100,7 @@ class grid {
 #else
   template <typename... _Dimensions,
             enable_if<(sizeof...(_Dimensions) == sizeof...(Dimensions))> = true,
-            enable_if_indexable<std::decay_t<_Dimensions>...> = true>
+            enable_if<is_indexable<std::decay_t<_Dimensions>...>>        = true>
 #endif
   constexpr grid(_Dimensions&&... dimensions)
       : m_dimensions{std::forward<_Dimensions>(dimensions)...} {
@@ -129,7 +129,7 @@ class grid {
 #ifdef __cpp_concepts
   template <integral... Is>
 #else
-  template <typename... Is, enable_if_integral<Is...> = true>
+  template <typename... Is, enable_if<is_integral<Is...>> = true>
 #endif
   constexpr grid(Is const... size)
       : grid{linspace{0.0, 1.0, static_cast<size_t>(size)}...} {
@@ -339,7 +339,7 @@ class grid {
   requires(num_dimensions() == sizeof...(Comps))
 #else
   template <typename... Comps, size_t... Is,
-            enable_if_arithmetic<Comps...>                    = true,
+            enable_if<is_arithmetic<Comps...>>                    = true,
             enable_if<(num_dimensions() == sizeof...(Comps))> = true>
 #endif
   constexpr auto is_inside(
@@ -351,7 +351,7 @@ class grid {
   template <arithmetic... Comps>
   requires(num_dimensions() == sizeof...(Comps))
 #else
-  template <typename... Comps, enable_if_arithmetic<Comps...> = true,
+  template <typename... Comps, enable_if<is_arithmetic<Comps...>> = true,
             enable_if<(num_dimensions() == sizeof...(Comps))> = true>
 #endif
   constexpr auto is_inside(Comps const... comps) const {
@@ -372,7 +372,7 @@ class grid {
 #ifdef __cpp_concepts
   template <size_t... Is, arithmetic... Xs>
 #else
-  template <size_t... Is, typename... Xs, enable_if_arithmetic<Xs...> = true>
+  template <size_t... Is, typename... Xs, enable_if<is_arithmetic<Xs...>> = true>
 #endif
   constexpr auto in_domain(std::index_sequence<Is...> /*seq*/,
                            Xs const... xs) const {
@@ -387,7 +387,7 @@ class grid {
 #ifdef __cpp_concepts
   template <size_t... Is, arithmetic... Xs>
 #else
-  template <size_t... Is, typename... Xs, enable_if_arithmetic<Xs...> = true>
+  template <size_t... Is, typename... Xs, enable_if<is_arithmetic<Xs...>> = true>
 #endif
   constexpr auto in_domain(Xs const... xs) const {
     static_assert(sizeof...(xs) == num_dimensions(),
@@ -413,7 +413,7 @@ class grid {
 #ifdef __cpp_concepts
   template <size_t DimensionIndex, arithmetic X>
 #else
-  template <size_t DimensionIndex, typename X, enable_if_arithmetic<X> = true>
+  template <size_t DimensionIndex, typename X, enable_if<is_arithmetic<X>> = true>
 #endif
   auto cell_index(X const x) const -> std::pair<size_t, double> {
     auto const& dim = dimension<DimensionIndex>();
@@ -449,7 +449,7 @@ class grid {
   template <size_t... DimensionIndex>
 #else
   template <size_t... DimensionIndex, typename... Xs,
-            enable_if_arithmetic<Xs...> = true>
+            enable_if<is_arithmetic<Xs...>> = true>
 #endif
   auto cell_index(std::index_sequence<DimensionIndex...>, Xs const... xs) const
       -> std::array<std::pair<size_t, double>, num_dimensions()> {
@@ -459,7 +459,7 @@ class grid {
 #ifdef __cpp_concepts
   template <arithmetic... Xs>
 #else
-  template <typename... Xs, enable_if_arithmetic<Xs...> = true>
+  template <typename... Xs, enable_if<is_arithmetic<Xs...>> = true>
 #endif
   auto cell_index(Xs const... xs) const {
     return cell_index(seq_t{}, xs...);
@@ -599,7 +599,7 @@ class grid {
 #ifdef __cpp_concepts
   template <size_t... DIs, integral... Is>
 #else
-  template <size_t... DIs, typename... Is, enable_if_integral<Is...> = true>
+  template <size_t... DIs, typename... Is, enable_if<is_integral<Is...>> = true>
 #endif
   auto vertex_at(std::index_sequence<DIs...>, Is const... is) const
       -> vec<real_t, num_dimensions()> {
@@ -612,7 +612,7 @@ class grid {
 #ifdef __cpp_concepts
   template <integral... Is>
 #else
-  template <typename... Is, enable_if_integral<Is...> = true>
+  template <typename... Is, enable_if<is_integral<Is...>> = true>
 #endif
   auto vertex_at(Is const... is) const {
     static_assert(sizeof...(is) == num_dimensions());
@@ -622,7 +622,7 @@ class grid {
 #ifdef __cpp_concepts
   template <integral... Is>
 #else
-  template <typename... Is, enable_if_integral<Is...> = true>
+  template <typename... Is, enable_if<is_integral<Is...>> = true>
 #endif
   auto operator()(Is const... is) const {
     static_assert(sizeof...(is) == num_dimensions());
@@ -674,8 +674,8 @@ class grid {
 #else
   template <
       typename Iteration, size_t... Ds,
-      enable_if_invocable<Iteration, decltype(((void)std::declval<Dimensions>(),
-                                               size_t{}))...> = true>
+      enable_if<is_invocable<Iteration, decltype(((void)std::declval<Dimensions>(),
+                                               size_t{}))...>> = true>
 #endif
   auto loop_over_vertex_indices(Iteration&& iteration,
                                 std::index_sequence<Ds...>) const
@@ -690,8 +690,8 @@ class grid {
 #else
   template <
       typename Iteration,
-      enable_if_invocable<Iteration, decltype(((void)std::declval<Dimensions>(),
-                                               size_t{}))...> = true>
+      enable_if<is_invocable<Iteration, decltype(((void)std::declval<Dimensions>(),
+                                               size_t{}))...>> = true>
 #endif
   auto loop_over_vertex_indices(Iteration&& iteration) const -> decltype(auto) {
     return loop_over_vertex_indices(
@@ -708,8 +708,8 @@ class grid {
 #else
   template <
       typename Iteration, size_t... Ds,
-      enable_if_invocable<Iteration, decltype(((void)std::declval<Dimensions>(),
-                                               size_t{}))...> = true>
+      enable_if<is_invocable<Iteration, decltype(((void)std::declval<Dimensions>(),
+                                               size_t{}))...>> = true>
 #endif
   auto parallel_loop_over_vertex_indices(Iteration&& iteration,
                                          std::index_sequence<Ds...>) const
@@ -724,8 +724,8 @@ class grid {
 #else
   template <
       typename Iteration,
-      enable_if_invocable<Iteration, decltype(((void)std::declval<Dimensions>(),
-                                               size_t{}))...> = true>
+      enable_if<is_invocable<Iteration, decltype(((void)std::declval<Dimensions>(),
+                                               size_t{}))...>> = true>
 #endif
   auto parallel_loop_over_vertex_indices(Iteration&& iteration) const
       -> decltype(auto) {
@@ -832,7 +832,7 @@ class grid {
   requires(sizeof...(ChunkSize) == num_dimensions())
 #else
   template <typename T, typename Indexing = x_fastest, typename... ChunkSize,
-            enable_if_integral<ChunkSize...>                      = true,
+            enable_if<is_integral<ChunkSize...>>                      = true,
             enable_if<(sizeof...(ChunkSize) == num_dimensions())> = true>
 #endif
   auto add_chunked_vertex_property(
@@ -882,7 +882,7 @@ class grid {
 #ifdef __cpp_concepts
   template <invocable<pos_t> F>
 #else
-  template <typename F, enable_if_invocable<F, pos_t> = true>
+  template <typename F, enable_if<is_invocable<F, pos_t>> = true>
 #endif
   auto sample_to_vertex_property(F&& f, std::string const& name) -> auto& {
     using T    = std::invoke_result_t<F, pos_t>;
@@ -1473,7 +1473,7 @@ grid(axis_aligned_bounding_box<Real, N> const& bb,
 #ifdef __cpp_concepts
   template <integral... Size>
 #else
-  template <typename... Size, enable_if_integral<Size...> = true>
+  template <typename... Size, enable_if<is_integral<Size...>> = true>
 #endif
 grid(Size const...)
     -> grid<linspace<std::conditional_t<true, double, Size>>...>;

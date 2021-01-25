@@ -82,7 +82,7 @@ struct base_sampler : crtp<Sampler> {
 #ifdef __cpp_concepts
   template <integral... Is>
 #else
-  template <typename... Is, enable_if_integral<Is...> = true>
+  template <typename... Is, enable_if<is_integral<Is...>> = true>
 #endif
   auto data_at(Is const... is) const -> decltype(auto) {
     static_assert(sizeof...(is) == num_dimensions(),
@@ -99,7 +99,7 @@ struct base_sampler : crtp<Sampler> {
 #ifdef __cpp_concepts
   template <integral... Is>
 #else
-  template <typename... Is, enable_if_integral<Is...> = true>
+  template <typename... Is, enable_if<is_integral<Is...>> = true>
 #endif
   auto position_at(Is const... is) const {
     static_assert(sizeof...(is) == num_dimensions(),
@@ -132,7 +132,7 @@ struct base_sampler : crtp<Sampler> {
 #ifdef __cpp_concepts
   template <size_t DimensionIndex, arithmetic X>
 #else
-  template <size_t DimensionIndex, typename X, enable_if_arithmetic<X> = true>
+  template <size_t DimensionIndex, typename X, enable_if<is_arithmetic<X>> = true>
 #endif
   auto cell_index(X const x) const -> decltype(auto) {
     return as_derived().template cell_index<DimensionIndex>(x);
@@ -258,7 +258,7 @@ struct base_sampler : crtp<Sampler> {
 #ifdef __cpp_concepts
   template <size_t... Is, arithmetic... Xs>
 #else
-  template <size_t... Is, typename... Xs, enable_if_arithmetic<Xs...> = true>
+  template <size_t... Is, typename... Xs, enable_if<is_arithmetic<Xs...>> = true>
 #endif
   constexpr auto sample(std::index_sequence<Is...> /*seq*/,
                         Xs const... xs) const {
@@ -274,7 +274,7 @@ struct base_sampler : crtp<Sampler> {
 #ifdef __cpp_concepts
   template <arithmetic... Xs>
 #else
-  template <typename... Xs, enable_if_arithmetic<Xs...> = true>
+  template <typename... Xs, enable_if<is_arithmetic<Xs...>> = true>
 #endif
   constexpr auto sample(Xs const... xs) const {
     static_assert(sizeof...(xs) == num_dimensions(),
@@ -298,7 +298,7 @@ struct base_sampler : crtp<Sampler> {
 #ifdef __cpp_concepts
   template <arithmetic... Xs>
 #else
-  template <typename... Xs, enable_if_arithmetic<Xs...> = true>
+  template <typename... Xs, enable_if<is_arithmetic<Xs...>> = true>
 #endif
   constexpr auto operator()(Xs const... xs) const {
     static_assert(sizeof...(xs) == num_dimensions(),
@@ -355,7 +355,7 @@ struct sampler
       sizeof...(Is) ==
       GridVertexProperty::grid_t::num_dimensions())
 #else
-  template <typename... Is, enable_if_integral<Is...> = true,
+  template <typename... Is, enable_if<is_integral<Is...>> = true,
             enable_if<(sizeof...(Is) ==
                        GridVertexProperty::grid_t::num_dimensions())> = true>
 #endif
@@ -370,7 +370,7 @@ struct sampler
       sizeof...(Is) ==
       GridVertexProperty::grid_t::num_dimensions())
 #else
-  template <typename... Is, enable_if_integral<Is...> = true,
+  template <typename... Is, enable_if<is_integral<Is...>> = true,
             enable_if<(sizeof...(Is) ==
                        GridVertexProperty::grid_t::num_dimensions())> = true>
 #endif
@@ -382,7 +382,7 @@ struct sampler
 #ifdef __cpp_concepts
   template <integral... Is>
 #else
-  template <typename... Is, enable_if_integral<Is...> = true>
+  template <typename... Is, enable_if<is_integral<Is...>> = true>
 #endif
   auto position_at(Is const... is) const {
     static_assert(sizeof...(is) == num_dimensions(),
@@ -393,7 +393,7 @@ struct sampler
 #ifdef __cpp_concepts
   template <size_t DimensionIndex, arithmetic X>
 #else
-  template <size_t DimensionIndex, typename X, enable_if_arithmetic<X> = true>
+  template <size_t DimensionIndex, typename X, enable_if<is_arithmetic<X>> = true>
 #endif
   auto cell_index(X const x) const -> decltype(auto) {
     return grid().template cell_index<DimensionIndex>(x);
@@ -474,7 +474,7 @@ struct sampler_view
 #ifdef __cpp_concepts
   template <integral... Is>
 #else
-  template <typename... Is, enable_if_integral<Is...> = true>
+  template <typename... Is, enable_if<is_integral<Is...>> = true>
 #endif
   constexpr auto data_at(Is const... is) const -> value_type const& {
     static_assert(sizeof...(is) == num_dimensions(),
@@ -485,7 +485,7 @@ struct sampler_view
 #ifdef __cpp_concepts
   template <size_t DimensionIndex, arithmetic X>
 #else
-  template <size_t DimensionIndex, typename X, enable_if_arithmetic<X> = true>
+  template <size_t DimensionIndex, typename X, enable_if<is_arithmetic<X>> = true>
 #endif
   constexpr auto cell_index(X const x) const -> decltype(auto) {
     return m_top_sampler.template cell_index<DimensionIndex>(x);

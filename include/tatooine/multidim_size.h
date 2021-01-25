@@ -32,7 +32,7 @@ struct static_multidim_size {
 #ifdef __cpp_concepts
   template <integral... Is>
 #else
-  template <typename... Is, enable_if_integral<Is...> = true>
+  template <typename... Is, enable_if<is_integral<Is...>> = true>
 #endif
   static constexpr auto in_range(Is const... is) {
     static_assert(sizeof...(is) == num_dimensions(),
@@ -44,7 +44,7 @@ struct static_multidim_size {
 #ifdef __cpp_concepts
   template <range Indices>
 #else
-  template <typename Indices, enable_if_range<Indices> = true>
+  template <typename Indices, enable_if<is_range<Indices>> = true>
 #endif
   static constexpr auto in_range(Indices const& is) {
     for (size_t i = 0; i < is.size(); ++i) {
@@ -56,7 +56,7 @@ struct static_multidim_size {
 #ifdef __cpp_concepts
   template <integral... Is>
 #else
-  template <typename... Is, enable_if_integral<Is...> = true>
+  template <typename... Is, enable_if<is_integral<Is...>> = true>
 #endif
   static constexpr auto plain_index(Is const... is) {
     static_assert(sizeof...(is) == num_dimensions(),
@@ -67,7 +67,7 @@ struct static_multidim_size {
 #ifdef __cpp_concepts
   template <range Indices>
 #else
-  template <typename Indices, enable_if_range<Indices> = true>
+  template <typename Indices, enable_if<is_range<Indices>> = true>
 #endif
   static auto plain_index(Indices const& is) {
     static_assert(std::is_integral_v<typename Indices::value_type>,
@@ -126,7 +126,7 @@ class dynamic_multidim_size {
 #ifdef __cpp_concepts
   template <integral... Size>
 #else
-  template <typename... Size, enable_if_integral<Size...> = true>
+  template <typename... Size, enable_if<is_integral<Size...>> = true>
 #endif
   explicit dynamic_multidim_size(Size... size)
       : m_size{static_cast<size_t>(size)...} {}
@@ -137,7 +137,7 @@ class dynamic_multidim_size {
 #ifdef __cpp_concepts
   template <range Size>
 #else
-  template <typename Size, enable_if_range<Size> = true>
+  template <typename Size, enable_if<is_range<Size>> = true>
 #endif
   explicit dynamic_multidim_size(Size const& size)
       : m_size(begin(size), end(size)) {
@@ -184,7 +184,7 @@ class dynamic_multidim_size {
 #ifdef __cpp_concepts
   template <integral... Size>
 #else
-  template <typename... Size, enable_if_integral<Size...> = true>
+  template <typename... Size, enable_if<is_integral<Size...>> = true>
 #endif
   void resize(Size const... size) {
     m_size = {static_cast<size_t>(size)...};
@@ -193,7 +193,7 @@ class dynamic_multidim_size {
 #ifdef __cpp_concepts
   template <range Size>
 #else
-  template <typename Size, enable_if_range<Size> = true>
+  template <typename Size, enable_if<is_range<Size>> = true>
 #endif
   void resize(Size const& size) {
     m_size = std::vector<size_t>(begin(size), end(size));
@@ -206,7 +206,7 @@ class dynamic_multidim_size {
 #ifdef __cpp_concepts
   template <integral... Is>
 #else
-  template <typename... Is, enable_if_integral<Is...> = true>
+  template <typename... Is, enable_if<is_integral<Is...>> = true>
 #endif
   constexpr auto in_range(Is const... is) const {
     assert(sizeof...(is) == num_dimensions());
@@ -216,7 +216,7 @@ class dynamic_multidim_size {
 #ifdef __cpp_concepts
   template <range Indices>
 #else
-  template <typename Indices, enable_if_range<Indices> = true>
+  template <typename Indices, enable_if<is_range<Indices>> = true>
 #endif
   constexpr auto in_range(Indices const& is) const {
     static_assert(std::is_integral_v<typename Indices::value_type>,
@@ -233,7 +233,7 @@ class dynamic_multidim_size {
 #ifdef __cpp_concepts
   template <integral... Is>
 #else
-  template <typename... Is, enable_if_integral<Is...> = true>
+  template <typename... Is, enable_if<is_integral<Is...>> = true>
 #endif
   constexpr auto plain_index(Is const... is) const {
     assert(sizeof...(is) == num_dimensions());
@@ -244,7 +244,7 @@ class dynamic_multidim_size {
 #ifdef __cpp_concepts
   template <range Indices>
 #else
-  template <typename Indices, enable_if_range<Indices> = true>
+  template <typename Indices, enable_if<is_range<Indices>> = true>
 #endif
   constexpr auto plain_index(Indices const& is) const {
     static_assert(std::is_integral_v<typename Indices::value_type>,
