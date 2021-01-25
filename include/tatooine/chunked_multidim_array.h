@@ -97,7 +97,7 @@ struct chunked_multidim_array {
   template <
       typename Reader,
       enable_if<is_same<void, std::void_t<decltype(std::declval<Reader>().read(
-                                  std::declval<this_t>()))> > > >
+                                  std::declval<this_t>()))> > > = true>
 #endif
   chunked_multidim_array(Reader&&                   reader,
                          std::vector<size_t> const& chunk_size) {

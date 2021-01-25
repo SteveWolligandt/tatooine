@@ -57,7 +57,8 @@ struct x_fastest {
   template <range Resolution, integral... Is>
 #else
   template <typename Resolution, typename... Is,
-            enable_if_range<Resolution> = true, enable_if_integral<Is...> = true>
+            enable_if_range<Resolution> = true,
+            enable_if_integral<Is...>   = true>
 #endif
   static constexpr auto plain_index(Resolution const& resolution,
                                     Is const... is) {
@@ -133,7 +134,9 @@ struct x_slowest {
 #ifdef __cpp_concepts
   template <indexable Resolution, integral... Is>
 #else
-  template <typename Resolution, typename... Is, enable_if_indexable<Resolution> = true, enable_if_integral<Is...> = true>
+  template <typename Resolution, typename... Is,
+            enable_if_indexable<Resolution> = true,
+            enable_if_integral<Is...>       = true>
 #endif
   static constexpr auto internal_plain_index(Resolution resolution,
                                              Is const... p_is) -> size_t {

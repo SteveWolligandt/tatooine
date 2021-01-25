@@ -64,7 +64,7 @@ constexpr auto operator*(const ScalarReal                         scalar,
 //├──────────────────────────────────────────────────────────────────────────┤
 // template <typename Tensor, typename TensorReal, typename ScalarReal,
 //          size_t... Dims,
-//          std::enable_if_t<std::is_arithmetic_v<ScalarReal> ||
+//          enable_if<std::is_arithmetic_v<ScalarReal> ||
 //                           is_complex_v<ScalarReal> ||
 //                           std::is_same_v<ScalarReal, GiNaC::ex>>...>
 // constexpr auto operator/(const base_tensor<Tensor, TensorReal, Dims...>&
@@ -76,7 +76,7 @@ constexpr auto operator*(const ScalarReal                         scalar,
 //├──────────────────────────────────────────────────────────────────────────┤
 // template <typename Tensor, typename TensorReal, typename ScalarReal,
 //          size_t... Dims,
-//          std::enable_if_t<std::is_arithmetic_v<ScalarReal> ||
+//          enable_if<std::is_arithmetic_v<ScalarReal> ||
 //                           is_complex_v<ScalarReal> ||
 //                           std::is_same_v<ScalarReal, GiNaC::ex>>...>
 // constexpr auto operator/(

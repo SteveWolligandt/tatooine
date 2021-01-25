@@ -19,9 +19,14 @@ struct vec : tensor<T, N> {  // NOLINT
   using parent_t::dimension;
   using parent_t::operator();
 
-  template <typename... Ts, size_t _Dim0 = parent_t::dimension(0),
-            enable_if<is_convertible<Ts, T>...> = true,
-            enable_if<_Dim0 == sizeof...(Ts)>   = true>
+#ifdef __cpp_concepts
+  template <typename... Ts>
+  requires (is_convertible<Ts, T>...>) &&
+           (parent_t::dimension(0) == sizeof...(Ts)>)
+#else
+  template <typename... Ts, enable_if<is_convertible<Ts, T>...> = true,
+            enable_if<parent_t::dimension(0) == sizeof...(Ts)> = true>
+#endif
   constexpr vec(Ts const&... ts) : parent_t{ts...} {
     static_assert(((is_arithmetic<Ts> || is_complex<Ts>)&&...));
   }
