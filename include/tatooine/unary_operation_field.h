@@ -76,7 +76,7 @@ struct unary_operation_field_builder {
   template <typename Field_, typename Op_, arithmetic T>
 #else
   template <typename Field_, typename Op_, typename T,
-            enable_if_arithmetic<T> = true>
+            enable_if<is_arithmetic<T>> = true>
 #endif
   static auto build(Field_&& field, Op_&& op, T const&) {
     return unary_operation_field<
