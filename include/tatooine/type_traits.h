@@ -52,6 +52,27 @@ static constexpr auto is_unsigned_integral = is_unsigned<T>&& is_integral<T>;
 template <typename From, typename To>
 static constexpr auto is_convertible = std::is_convertible_v<From, To>;
 //------------------------------------------------------------------------------
+template <typename From>
+static constexpr auto is_convertible_to_integral =
+    std::is_convertible_v<From, bool>           ||
+    std::is_convertible_v<From, char>           ||
+    std::is_convertible_v<From, unsigned char>  ||
+    std::is_convertible_v<From, char16_t>       ||
+    std::is_convertible_v<From, char32_t>       ||
+    std::is_convertible_v<From, wchar_t>        ||
+    std::is_convertible_v<From, unsigned short> ||
+    std::is_convertible_v<From, short>          ||
+    std::is_convertible_v<From, int>            ||
+    std::is_convertible_v<From, unsigned int>   ||
+    std::is_convertible_v<From, long>           ||
+    std::is_convertible_v<From, unsigned long>;
+//------------------------------------------------------------------------------
+template <typename From>
+static constexpr auto is_convertible_to_floating_point =
+    std::is_convertible_v<From, float>  ||
+    std::is_convertible_v<From, double> ||
+    std::is_convertible_v<From, long double>;
+//------------------------------------------------------------------------------
 template <typename T>
 struct is_complex_impl : std::false_type {};
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -82,6 +103,26 @@ struct is_indexable_impl<T, std::void_t<decltype(std::declval<T>().at(size_t{}))
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 template <typename T>
 static constexpr auto is_indexable = is_indexable_impl<T>::value;
+//------------------------------------------------------------------------------
+//template <typename T, typename = void>
+//struct is_indexable_space_impl: std::false_type{};
+//template <typename T>
+//struct is_indexable_space_impl<
+//  std::decay_t<T>::iterator,
+//  decltype(std::declval<T>().at(size_t{})),
+//  decltype(std::declval<T>()[size_t{}]),
+//  decltype(std::declval<T>().size()),
+//    { t.size() } -> convertible_to_integral;
+//    { size(t)  } -> convertible_to_integral;
+//    { t.front()  } -> convertible_to_floating_point;
+//    { t.back()  } -> convertible_to_floating_point;
+//    { t.begin()  } -> forward_iterator;
+//    { begin(t)  } -> forward_iterator;
+//    { t.end()  } -> forward_iterator;
+//    { end(t)  } -> forward_iterator;
+//>: std::true_type{};
+//template <typename T>
+//static constexpr is_indexable_space = is_indexable_space_impl<T>::value
 //------------------------------------------------------------------------------
 template <typename T, typename = void>
 struct is_dereferencable_impl : std::false_type {};

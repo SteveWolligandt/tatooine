@@ -9,7 +9,7 @@ namespace tatooine {
 template <typename Real, size_t N>
 struct ray {
   static_assert(is_floating_point<Real>);
-  template <typename OtherReal, size_t OtherN, bool>
+  template <typename OtherReal, size_t OtherN>
   friend struct ray;
   using vec_t = vec<Real, N>;
   using pos_t = vec_t;
