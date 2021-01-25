@@ -57,11 +57,19 @@ struct field {
   //============================================================================
   // virtual methods
   //============================================================================
+#ifdef __cpp_concepts
   [[nodiscard]] constexpr virtual auto evaluate(pos_t const& x,
                                                 Real         t = 0) const
       -> tensor_t = 0;
   [[nodiscard]] constexpr virtual auto in_domain(pos_t const&, Real) const
       -> bool = 0;
+#else
+  [[nodiscard]] virtual auto evaluate(pos_t const& x,
+                                                Real         t = 0) const
+      -> tensor_t = 0;
+  [[nodiscard]] virtual auto in_domain(pos_t const&, Real) const
+      -> bool = 0;
+#endif
   //============================================================================
   // methods
   //============================================================================
