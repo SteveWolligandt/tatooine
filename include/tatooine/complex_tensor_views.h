@@ -28,7 +28,7 @@ struct const_imag_complex_tensor
 #ifdef __cpp_concepts
   template <integral... Is>
 #else
-  template <typename... Is, enable_if_integral<Is...> = true>
+  template <typename... Is, enable_if<is_integral<Is...>> = true>
 #endif
   constexpr decltype(auto) operator()(Is const... is) const {
     static_assert(sizeof...(is) == rank());
@@ -38,7 +38,7 @@ struct const_imag_complex_tensor
 #ifdef __cpp_concepts
   template <integral... Is>
 #else
-  template <typename... Is, enable_if_integral<Is...> = true>
+  template <typename... Is, enable_if<is_integral<Is...>> = true>
 #endif
   constexpr decltype(auto) at(Is const... is) const {
     static_assert(sizeof...(is) == rank());
@@ -71,7 +71,7 @@ struct imag_complex_tensor
 #ifdef __cpp_concepts
   template <integral... Is>
 #else
-  template <typename... Is, enable_if_integral<Is...> = true>
+  template <typename... Is, enable_if<is_integral<Is...>> = true>
 #endif
   constexpr auto operator()(Is const... is) const -> decltype(auto) {
     static_assert(sizeof...(is) == rank());
@@ -81,7 +81,7 @@ struct imag_complex_tensor
 #ifdef __cpp_concepts
   template <integral... Is>
 #else
-  template <typename... Is, enable_if_integral<Is...> = true>
+  template <typename... Is, enable_if<is_integral<Is...>> = true>
 #endif
   constexpr auto operator()(Is const... is) -> decltype(auto) {
     static_assert(sizeof...(is) == rank());
@@ -91,7 +91,7 @@ struct imag_complex_tensor
 #ifdef __cpp_concepts
   template <integral... Is>
 #else
-  template <typename... Is, enable_if_integral<Is...> = true>
+  template <typename... Is, enable_if<is_integral<Is...>> = true>
 #endif
   constexpr auto at(Is const... is) const -> decltype(auto) {
     static_assert(sizeof...(is) == rank());
@@ -101,7 +101,7 @@ struct imag_complex_tensor
 #ifdef __cpp_concepts
   template <integral... Is>
 #else
-  template <typename... Is, enable_if_integral<Is...> = true>
+  template <typename... Is, enable_if<is_integral<Is...>> = true>
 #endif
   constexpr auto at(Is const... is) -> decltype(auto) {
     static_assert(sizeof...(is) == rank());
@@ -147,7 +147,7 @@ struct const_real_complex_tensor
 #ifdef __cpp_concepts
   template <integral... Is>
 #else
-  template <typename... Is, enable_if_integral<Is...> = true>
+  template <typename... Is, enable_if<is_integral<Is...>> = true>
 #endif
   constexpr auto operator()(Is const... is) const -> decltype(auto) {
     static_assert(sizeof...(is) == rank());
@@ -157,7 +157,7 @@ struct const_real_complex_tensor
 #ifdef __cpp_concepts
   template <integral... Is>
 #else
-  template <typename... Is, enable_if_integral<Is...> = true>
+  template <typename... Is, enable_if<is_integral<Is...>> = true>
 #endif
   constexpr auto at(Is const... is) const -> decltype(auto) {
     static_assert(sizeof...(is) == rank());
@@ -189,7 +189,7 @@ struct real_complex_tensor
 #ifdef __cpp_concepts
   template <integral... Is>
 #else
-  template <typename... Is, enable_if_integral<Is...> = true>
+  template <typename... Is, enable_if<is_integral<Is...>> = true>
 #endif
   constexpr auto operator()(Is const... is) const -> decltype(auto) {
     static_assert(sizeof...(is) == rank());
@@ -199,7 +199,7 @@ struct real_complex_tensor
 #ifdef __cpp_concepts
   template <integral... Is>
 #else
-  template <typename... Is, enable_if_integral<Is...> = true>
+  template <typename... Is, enable_if<is_integral<Is...>> = true>
 #endif
   constexpr auto operator()(Is const... is) -> decltype(auto) {
     static_assert(sizeof...(is) == rank());
@@ -209,7 +209,7 @@ struct real_complex_tensor
 #ifdef __cpp_concepts
   template <integral... Is>
 #else
-  template <typename... Is, enable_if_integral<Is...> = true>
+  template <typename... Is, enable_if<is_integral<Is...>> = true>
 #endif
   constexpr auto at(Is const... is) const -> decltype(auto) {
     static_assert(sizeof...(is) == rank());
@@ -219,7 +219,7 @@ struct real_complex_tensor
 #ifdef __cpp_concepts
   template <integral... Is>
 #else
-  template <typename... Is, enable_if_integral<Is...> = true>
+  template <typename... Is, enable_if<is_integral<Is...>> = true>
 #endif
   constexpr auto at(Is const... is) -> decltype(auto) {
     static_assert(sizeof...(is) == rank());

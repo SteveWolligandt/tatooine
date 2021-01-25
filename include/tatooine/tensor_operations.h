@@ -10,7 +10,7 @@ namespace tatooine {
 /// invert symmetric matrix
 /// A = [a,b]
 ///     [b,c]
-template <typename Tensor, typename Real, enable_if_floating_point<Real> = true>
+template <typename Tensor, typename Real, enable_if<is_floating_point<Real>> = true>
 constexpr auto inv_sym(base_tensor<Tensor, Real, 2, 2> const& A)
     -> std::optional<mat<Real, 2, 2>> {
   decltype(auto) a   = A(0, 0);
@@ -31,7 +31,7 @@ constexpr auto inv_sym(base_tensor<Tensor, Real, 2, 2> const& A)
 #ifdef __cpp_concepts
 template <typename Tensor, floating_point Real>
 #else
-template <typename Tensor, typename Real, enable_if_floating_point<Real> = true>
+template <typename Tensor, typename Real, enable_if<is_floating_point<Real>> = true>
 #endif
 constexpr auto inv(base_tensor<Tensor, Real, 2, 2> const& A)
     -> std::optional<mat<Real, 2, 2>> {
@@ -58,7 +58,7 @@ constexpr auto inv(base_tensor<Tensor, Real, 2, 2> const& A)
 #ifdef __cpp_concepts
 template <typename Tensor, floating_point Real>
 #else
-template <typename Tensor, typename Real, enable_if_floating_point<Real> = true>
+template <typename Tensor, typename Real, enable_if<is_floating_point<Real>> = true>
 #endif
 constexpr auto inv_sym(base_tensor<Tensor, Real, 3, 3> const& A)
     -> std::optional<mat<Real, 3, 3>> {
@@ -86,7 +86,7 @@ constexpr auto inv_sym(base_tensor<Tensor, Real, 3, 3> const& A)
 #ifdef __cpp_concepts
 template <typename Tensor, floating_point Real>
 #else
-template <typename Tensor, typename Real, enable_if_floating_point<Real> = true>
+template <typename Tensor, typename Real, enable_if<is_floating_point<Real>> = true>
 #endif
 constexpr auto inv(base_tensor<Tensor, Real, 3, 3> const& A) -> std::optional<mat<Real, 3, 3>> {
   decltype(auto) b = A(0, 1);
@@ -122,7 +122,7 @@ constexpr auto inv(base_tensor<Tensor, Real, 3, 3> const& A) -> std::optional<ma
 #ifdef __cpp_concepts
 template <typename Tensor, floating_point Real>
 #else
-template <typename Tensor, typename Real, enable_if_floating_point<Real> = true>
+template <typename Tensor, typename Real, enable_if<is_floating_point<Real>> = true>
 #endif
 constexpr auto inv_sym(base_tensor<Tensor, Real, 4, 4> const& A) {
   decltype(auto) a = A(0, 0);
@@ -180,7 +180,7 @@ constexpr auto inv_sym(base_tensor<Tensor, Real, 4, 4> const& A) {
 #ifdef __cpp_concepts
 template <typename Tensor, floating_point Real>
 #else
-template <typename Tensor, typename Real, enable_if_floating_point<Real> = true>
+template <typename Tensor, typename Real, enable_if<is_floating_point<Real>> = true>
 #endif
 constexpr auto inv(base_tensor<Tensor, Real, 4, 4> const& A)
     -> std::optional<mat<Real, 4, 4>> {
@@ -570,7 +570,7 @@ constexpr auto operator+(base_tensor<Tensor0, T0, Dims...> const& lhs,
 }
 //------------------------------------------------------------------------------
 template <typename Tensor, typename TensorT, typename Scalar,
-          enable_if_arithmetic_or_complex<Scalar> = true, size_t... Dims>
+          enable_if<is_arithmetic_or_complex<Scalar>> = true, size_t... Dims>
 constexpr auto operator*(base_tensor<Tensor, TensorT, Dims...> const& t,
                          Scalar const                                 scalar) {
   return unary_operation(
@@ -578,7 +578,7 @@ constexpr auto operator*(base_tensor<Tensor, TensorT, Dims...> const& t,
 }
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 template <typename Tensor, typename TensorT, typename Scalar,
-          enable_if_arithmetic_or_complex<Scalar> = true, size_t... Dims>
+          enable_if<is_arithmetic_or_complex<Scalar>> = true, size_t... Dims>
 constexpr auto operator*(Scalar const                                 scalar,
                          base_tensor<Tensor, TensorT, Dims...> const& t) {
   return unary_operation(
@@ -586,7 +586,7 @@ constexpr auto operator*(Scalar const                                 scalar,
 }
 //------------------------------------------------------------------------------
 template <typename Tensor, typename TensorT, typename Scalar,
-          enable_if_arithmetic_or_complex<Scalar> = true, size_t... Dims>
+          enable_if<is_arithmetic_or_complex<Scalar>> = true, size_t... Dims>
 constexpr auto operator/(base_tensor<Tensor, TensorT, Dims...> const& t,
                          Scalar const                                 scalar) {
   return unary_operation(
@@ -594,7 +594,7 @@ constexpr auto operator/(base_tensor<Tensor, TensorT, Dims...> const& t,
 }
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 template <typename Tensor, typename TensorT, typename Scalar,
-          enable_if_arithmetic_or_complex<Scalar> = true, size_t... Dims>
+          enable_if<is_arithmetic_or_complex<Scalar>> = true, size_t... Dims>
 constexpr auto operator/(Scalar const                                 scalar,
                          base_tensor<Tensor, TensorT, Dims...> const& t) {
   return unary_operation(

@@ -102,7 +102,7 @@ struct base_tensor : crtp<Tensor> {
 #ifdef __cpp_concepts
   template <integral... Is>
 #else
-  template <typename... Is, enable_if_integral<Is...> = true>
+  template <typename... Is, enable_if<is_integral<Is...>> = true>
 #endif
   constexpr decltype(auto) at(Is const... is) const {
     static_assert(sizeof...(is) == rank(),
@@ -114,7 +114,7 @@ struct base_tensor : crtp<Tensor> {
 #ifdef __cpp_concepts
   template <integral... Is>
 #else
-  template <typename... Is, enable_if_integral<Is...> = true>
+  template <typename... Is, enable_if<is_integral<Is...>> = true>
 #endif
   constexpr decltype(auto) at(Is const... is) {
     static_assert(sizeof...(is) == rank(),
@@ -126,7 +126,7 @@ struct base_tensor : crtp<Tensor> {
 #ifdef __cpp_concepts
   template <integral... Is>
 #else
-  template <typename... Is, enable_if_integral<Is...> = true>
+  template <typename... Is, enable_if<is_integral<Is...>> = true>
 #endif
   constexpr decltype(auto) operator()(Is const... is) const {
     static_assert(sizeof...(is) == rank(),
@@ -138,7 +138,7 @@ struct base_tensor : crtp<Tensor> {
 #ifdef __cpp_concepts
   template <integral... Is>
 #else
-  template <typename... Is, enable_if_integral<Is...> = true>
+  template <typename... Is, enable_if<is_integral<Is...>> = true>
 #endif
   constexpr decltype(auto) operator()(Is const... is) {
     static_assert(sizeof...(is) == rank(),
@@ -183,7 +183,7 @@ struct base_tensor : crtp<Tensor> {
 #ifdef __cpp_concepts
   template <integral... Is>
 #else
-  template <typename... Is, enable_if_integral<Is...> = true>
+  template <typename... Is, enable_if<is_integral<Is...>> = true>
 #endif
   static constexpr auto array_index(Is const... is) {
     static_assert(sizeof...(is) == rank(),
@@ -210,7 +210,7 @@ struct base_tensor : crtp<Tensor> {
     return *this;
   }
   //----------------------------------------------------------------------------
-  template <typename OtherT, enable_if_convertible<OtherT, T> = true>
+  template <typename OtherT, enable_if<is_convertible<OtherT, T>> = true>
   auto operator+=(OtherT const& other) -> auto& {
     for_indices([&](auto const... is) { at(is...) += other; });
     return *this;
@@ -223,19 +223,19 @@ struct base_tensor : crtp<Tensor> {
     return *this;
   }
   //----------------------------------------------------------------------------
-  template <typename OtherT, enable_if_convertible<OtherT, T> = true>
+  template <typename OtherT, enable_if<is_convertible<OtherT, T>> = true>
   auto operator-=(OtherT const& other) -> auto& {
     for_indices([&](auto const... is) { at(is...) -= other; });
     return *this;
   }
   //----------------------------------------------------------------------------
-  template <typename OtherT, enable_if_convertible<OtherT, T> = true>
+  template <typename OtherT, enable_if<is_convertible<OtherT, T>> = true>
   auto operator*=(OtherT const& other) -> auto& {
     for_indices([&](auto const... is) { at(is...) *= other; });
     return *this;
   }
   //----------------------------------------------------------------------------
-  template <typename OtherT, enable_if_convertible<OtherT, T> = true>
+  template <typename OtherT, enable_if<is_convertible<OtherT, T>> = true>
   auto operator/=(OtherT const& other) -> auto& {
     for_indices([&](auto const... is) { at(is...) /= other; });
     return *this;

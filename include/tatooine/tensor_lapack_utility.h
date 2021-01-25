@@ -9,7 +9,8 @@ namespace tatooine {
 #ifdef __cpp_concepts
 template <typename T, size_t N, integral P = int>
 #else
-template <typename T, size_t N, typename P = int, enable_if_integral<P> = true>
+template <typename T, size_t N, typename P = int,
+          enable_if<is_integral<P>> = true>
 #endif
 auto condition_number(tensor<T, N, N> const& A, P const p = 2) {
   if (p == 1) {

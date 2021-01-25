@@ -56,7 +56,7 @@ struct linspace {
 #if __cpp_concepts
   template <arithmetic Min, arithmetic Max>
 #else
-  template <typename Min, typename Max, enable_if_arithmetic<Min, Max> = true>
+  template <typename Min, typename Max>
 #endif
   constexpr linspace(Min const min, Max const max, size_t size) noexcept
       : m_min{std::min<Real>(min, max)},
@@ -70,7 +70,7 @@ struct linspace {
 #if __cpp_concepts
   template <arithmetic OtherReal>
 #else
-  template <typename OtherReal, enable_if_arithmetic<OtherReal> = true>
+  template <typename OtherReal, enable_if<is_arithmetic<OtherReal>> = true>
 #endif
   explicit constexpr linspace(linspace<OtherReal> const& other) noexcept
       : m_min{static_cast<Real>(other.front())},
@@ -83,7 +83,7 @@ struct linspace {
 #if __cpp_concepts
   template <arithmetic OtherReal>
 #else
-  template <typename OtherReal, enable_if_arithmetic<OtherReal> = true>
+  template <typename OtherReal, enable_if<is_arithmetic<OtherReal>> = true>
 #endif
   constexpr auto operator=(linspace<OtherReal> const& other) noexcept -> auto& {
     m_min  = other.front();
@@ -230,7 +230,7 @@ struct linspace_iterator
 #ifdef __cpp_concepts
 template <arithmetic Real>
 #else
-template <typename Real, enable_if_arithmetic<Real> = true>
+template <typename Real, enable_if<is_arithmetic<Real>> = true>
 #endif
 constexpr auto begin(linspace<Real> const& l) {
   return l.begin();
@@ -239,7 +239,7 @@ constexpr auto begin(linspace<Real> const& l) {
 #ifdef __cpp_concepts
 template <arithmetic Real>
 #else
-template <typename Real, enable_if_arithmetic<Real> = true>
+template <typename Real, enable_if<is_arithmetic<Real>> = true>
 #endif
 constexpr auto end(linspace<Real> const& l) {
   return l.end();
@@ -248,7 +248,7 @@ constexpr auto end(linspace<Real> const& l) {
 #ifdef __cpp_concepts
 template <arithmetic Real>
 #else
-template <typename Real, enable_if_arithmetic<Real> = true>
+template <typename Real, enable_if<is_arithmetic<Real>> = true>
 #endif
 constexpr auto distance(linspace_iterator<Real> const& it0,
                         linspace_iterator<Real> const& it1) {
@@ -258,7 +258,7 @@ constexpr auto distance(linspace_iterator<Real> const& it0,
 #ifdef __cpp_concepts
 template <arithmetic Real>
 #else
-template <typename Real, enable_if_arithmetic<Real> = true>
+template <typename Real, enable_if<is_arithmetic<Real>> = true>
 #endif
 auto size(linspace<Real> const& l) {
   return l.size();
@@ -267,7 +267,7 @@ auto size(linspace<Real> const& l) {
 #ifdef __cpp_concepts
 template <arithmetic Real>
 #else
-template <typename Real, enable_if_arithmetic<Real> = true>
+template <typename Real, enable_if<is_arithmetic<Real>> = true>
 #endif
 auto front(linspace<Real> const& l) {
   return l.front();
@@ -276,7 +276,7 @@ auto front(linspace<Real> const& l) {
 #ifdef __cpp_concepts
 template <arithmetic Real>
 #else
-template <typename Real, enable_if_arithmetic<Real> = true>
+template <typename Real, enable_if<is_arithmetic<Real>> = true>
 #endif
 auto front(linspace<Real>& l) -> auto& {
   return l.front();
@@ -285,7 +285,7 @@ auto front(linspace<Real>& l) -> auto& {
 #ifdef __cpp_concepts
 template <arithmetic Real>
 #else
-template <typename Real, enable_if_arithmetic<Real> = true>
+template <typename Real, enable_if<is_arithmetic<Real>> = true>
 #endif
 auto back(linspace<Real> const& l) {
   return l.back();
@@ -294,7 +294,7 @@ auto back(linspace<Real> const& l) {
 #ifdef __cpp_concepts
 template <arithmetic Real>
 #else
-template <typename Real, enable_if_arithmetic<Real> = true>
+template <typename Real, enable_if<is_arithmetic<Real>> = true>
 #endif
 auto back(linspace<Real>& l) -> auto& {
   return l.back();
@@ -303,7 +303,7 @@ auto back(linspace<Real>& l) -> auto& {
 #ifdef __cpp_concepts
 template <arithmetic Real>
 #else
-template <typename Real, enable_if_arithmetic<Real> = true>
+template <typename Real, enable_if<is_arithmetic<Real>> = true>
 #endif
 auto next(linspace_iterator<Real> const& l, size_t diff = 1) {
   linspace_iterator<Real> it{l};
@@ -314,7 +314,7 @@ auto next(linspace_iterator<Real> const& l, size_t diff = 1) {
 #ifdef __cpp_concepts
 template <arithmetic Real>
 #else
-template <typename Real, enable_if_arithmetic<Real> = true>
+template <typename Real, enable_if<is_arithmetic<Real>> = true>
 #endif
 auto prev(linspace_iterator<Real> const& l, size_t diff = 1) {
   linspace_iterator<Real> it{l};
@@ -325,7 +325,7 @@ auto prev(linspace_iterator<Real> const& l, size_t diff = 1) {
 #ifdef __cpp_concepts
 template <arithmetic Real>
 #else
-template <typename Real, enable_if_arithmetic<Real> = true>
+template <typename Real, enable_if<is_arithmetic<Real>> = true>
 #endif
 inline auto advance(linspace_iterator<Real>& l, long n = 1) -> auto& {
   if (n < 0) {
@@ -341,13 +341,12 @@ inline auto advance(linspace_iterator<Real>& l, long n = 1) -> auto& {
 #ifdef __cpp_concepts
 template <arithmetic Real0, arithmetic Real1>
 #else
-template <typename Real0, typename Real1,
-          enable_if_arithmetic<Real0, Real1> = true>
+template <typename Real0, typename Real1>
 #endif
-linspace(Real0, Real1, size_t) -> linspace<common_type<Real0, Real1>>;
+linspace(Real0 const, Real1 const, size_t) -> linspace<common_type<Real0, Real1>>;
 
 //==============================================================================
-// type trait
+// type traits
 //==============================================================================
 template <typename T>
 struct is_linspace : std::false_type {};
@@ -363,7 +362,7 @@ static constexpr auto is_linspace_v = is_linspace<T>::value;
 #ifdef __cpp_concepts
 template <arithmetic Real>
 #else
-template <typename Real, enable_if_arithmetic<Real> = true>
+template <typename Real, enable_if<is_arithmetic<Real>> = true>
 #endif
 auto operator<<(std::ostream& out, linspace<Real> const& l) -> auto& {
   out << "[" << l[0] << ", " << l[1] << ", ..., " << l.back() << "]";

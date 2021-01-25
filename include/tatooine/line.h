@@ -455,7 +455,7 @@ struct line {
   requires (sizeof...(Components) == N)
 #else
   template <typename... Components,
-            enable_if_arithmetic<Components...> = true,
+            enable_if<is_arithmetic<Components...>> = true,
             enable_if<(sizeof...(Components) == N)> = true>
 #endif
   auto push_back(Components... comps) {
@@ -486,7 +486,7 @@ struct line {
   requires (sizeof...(Components) == N)
 #else
   template <typename... Components,
-            enable_if_arithmetic<Components...> = true,
+            enable_if<is_arithmetic<Components...>> = true,
             enable_if<(sizeof...(Components) == N)> = true>
 #endif
   auto push_front(Components... comps) {

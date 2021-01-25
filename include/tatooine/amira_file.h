@@ -30,7 +30,7 @@ inline const char* find_and_jump(const char* buffer,
 #ifdef __cpp_concepts
 template <floating_point T = float>
 #else
-template <typename T = float, enable_if_floating_point<T> = true>
+template <typename T = float, enable_if<is_floating_point<T>> = true>
 #endif
 auto read(std::filesystem::path const& path) {
   FILE* fp = fopen(path.string().c_str(), "rb");

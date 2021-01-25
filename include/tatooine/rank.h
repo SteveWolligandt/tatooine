@@ -11,7 +11,7 @@ namespace tatooine {
 #ifdef __cpp_concepts
 template <arithmetic_or_complex Scalar>
 #else
-template <typename Scalar, enable_if_arithmetic_or_complex<Scalar> = true>
+template <typename Scalar, enable_if<is_arithmetic_or_complex<Scalar>> = true>
 #endif
 constexpr auto rank() {
   return 0;
@@ -19,7 +19,7 @@ constexpr auto rank() {
 #ifdef __cpp_concepts
 template <arithmetic_or_complex Scalar>
 #else
-template <typename Scalar, enable_if_arithmetic_or_complex<Scalar> = true>
+template <typename Scalar, enable_if<is_arithmetic_or_complex<Scalar>> = true>
 #endif
 constexpr auto rank(Scalar&&) {
   return 0;

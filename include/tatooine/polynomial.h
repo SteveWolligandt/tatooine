@@ -70,7 +70,7 @@ struct polynomial {
   template <arithmetic... Coeffs>
   requires (sizeof...(Coeffs) == Degree + 1)
 #else
-  template <typename... Coeffs, enable_if_arithmetic<Coeffs...> = true,
+  template <typename... Coeffs, enable_if<is_arithmetic<Coeffs...>> = true,
             enable_if<(sizeof...(Coeffs) == Degree + 1)> = true>
 #endif
   constexpr polynomial(Coeffs... coeffs)
@@ -79,7 +79,7 @@ struct polynomial {
 #ifdef __cpp_concepts
   template <arithmetic OtherReal>
 #else
-  template <typename OtherReal, enable_if_arithmetic<OtherReal> = true>
+  template <typename OtherReal, enable_if<is_arithmetic<OtherReal>> = true>
 #endif
   constexpr polynomial(tensor<OtherReal, Degree + 1> const& coeffs)
       : m_coefficients{make_array<Real>(coeffs.data())} {}
@@ -87,7 +87,7 @@ struct polynomial {
 #ifdef __cpp_concepts
   template <arithmetic OtherReal>
 #else
-  template <typename OtherReal, enable_if_arithmetic<OtherReal> = true>
+  template <typename OtherReal, enable_if<is_arithmetic<OtherReal>> = true>
 #endif
   constexpr polynomial(std::array<OtherReal, Degree + 1> const& coeffs)
       : m_coefficients{make_array<Real>(coeffs)} {}
@@ -131,7 +131,7 @@ struct polynomial {
 #ifdef __cpp_concepts
   template <arithmetic OtherReal>
 #else
-  template <typename OtherReal, enable_if_arithmetic<OtherReal> = true>
+  template <typename OtherReal, enable_if<is_arithmetic<OtherReal>> = true>
 #endif
   constexpr auto set_coefficients(
       std::array<OtherReal, Degree + 1> const& coeffs) -> void {
@@ -142,7 +142,7 @@ struct polynomial {
   template <arithmetic... Coeffs>
   requires (sizeof...(Coeffs) == Degree + 1)
 #else
-  template <typename... Coeffs, enable_if_arithmetic<Coeffs...> = true,
+  template <typename... Coeffs, enable_if<is_arithmetic<Coeffs...>> = true,
             enable_if<(sizeof...(Coeffs) == Degree + 1)> = true>
 #endif
   constexpr auto set_coefficients(Coeffs... coeffs) -> void {

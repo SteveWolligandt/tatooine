@@ -53,7 +53,7 @@ template <typename V, arithmetic VReal, size_t N, arithmetic ScalarReal,
           size_t... TensorDims>
 #else
 template <typename V, typename VReal, size_t N, typename ScalarReal,
-          size_t... TensorDims, enable_if_arithmetic<VReal, ScalarReal> = true>
+          size_t... TensorDims, enable_if<is_arithmetic<VReal, ScalarReal>> = true>
 #endif
 constexpr auto operator*(const field<V, VReal, N, TensorDims...>& f,
                          const ScalarReal                         scalar) {
@@ -65,7 +65,7 @@ template <typename V, arithmetic VReal, size_t N, arithmetic ScalarReal,
           size_t... TensorDims>
 #else
 template <typename V, typename VReal, size_t N, typename ScalarReal,
-          size_t... TensorDims, enable_if_arithmetic<VReal, ScalarReal> = true>
+          size_t... TensorDims, enable_if<is_arithmetic<VReal, ScalarReal>> = true>
 #endif
 constexpr auto operator*(const ScalarReal                         scalar,
                          const field<V, VReal, N, TensorDims...>& f) {

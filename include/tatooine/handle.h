@@ -16,7 +16,7 @@ struct handle {
 #ifdef __cpp_concepts
   template <integral Int>
 #else
-  template <typename Int, enable_if_integral<Int> = true>
+  template <typename Int, enable_if<is_integral<Int>> = true>
 #endif
   explicit handle(Int _i) : i{static_cast<std::size_t>(_i)} {}
   handle(const handle&)                    = default;
@@ -26,7 +26,7 @@ struct handle {
 #ifdef __cpp_concepts
   template <integral Int>
 #else
-  template <typename Int, enable_if_integral<Int> = true>
+  template <typename Int, enable_if<is_integral<Int>> = true>
 #endif
   auto operator=(Int i_) -> handle& {
     i = i_;

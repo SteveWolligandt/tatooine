@@ -21,7 +21,7 @@ struct grid_vertex_container {
 #ifdef __cpp_concepts
   template <integral... Is>
 #else
-  template <typename... Is, enable_if_integral<Is...> = true>
+  template <typename... Is, enable_if<is_integral<Is...>> = true>
 #endif
   auto at(Is const... is) const {
     static_assert(sizeof...(Dimensions) == sizeof...(is),

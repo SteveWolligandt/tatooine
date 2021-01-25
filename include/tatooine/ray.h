@@ -25,7 +25,7 @@ struct ray {
 #ifdef __cpp_concepts
   template <floating_point OtherReal>
 #else
-  template <typename OtherReal, enable_if_floating_point<OtherReal> = true>
+  template <typename OtherReal, enable_if<is_floating_point<OtherReal>> = true>
 #endif
   ray(ray<OtherReal, N> const& other)
       : m_origin{other.m_origin}, m_direction{other.m_direction} {}

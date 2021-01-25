@@ -28,8 +28,8 @@ static constexpr auto is_floating_point = std::is_floating_point_v<T>;
 template <typename T>
 static constexpr auto is_arithmetic = std::is_arithmetic_v<T>;
 //------------------------------------------------------------------------------
-template <typename T>
-static constexpr auto is_integral = std::is_integral_v<T>;
+template <typename... Ts>
+static constexpr auto is_integral = (std::is_integral_v<Ts> && ...);
 //------------------------------------------------------------------------------
 template <typename T>
 static constexpr auto is_const = std::is_const_v<T>;
@@ -47,7 +47,7 @@ template <typename T>
 static constexpr auto is_signed_integral = is_signed<T>&& is_integral<T>;
 //------------------------------------------------------------------------------
 template <typename T>
-static constexpr auto is_unsigned_integral = is_unsigned<T>&& is_integral<T>;
+static constexpr auto is_unsigned_integral = is_unsigned<T> && is_integral<T>;
 //------------------------------------------------------------------------------
 template <typename From, typename To>
 static constexpr auto is_convertible = std::is_convertible_v<From, To>;
@@ -76,8 +76,12 @@ static constexpr auto is_convertible_to_floating_point =
 template <typename T>
 struct is_complex_impl : std::false_type {};
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-template <typename T>
-static constexpr auto is_complex = is_complex_impl<T>::value;
+template <typename... Ts>
+static constexpr auto is_complex = (is_complex_impl<Ts>::value && ...);
+// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+template <typename... Ts>
+static constexpr auto is_arithmetic_or_complex = ((is_arithmetic<Ts> ||
+                                                   is_complex<Ts>)&&...);
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 template <typename T>
 struct is_complex_impl<std::complex<T>> : std::true_type {};
@@ -233,58 +237,58 @@ static constexpr auto               is_bidirectional_iterator =
 template <bool... Preds>
 using enable_if = std::enable_if_t<(Preds && ...), bool>;
 //------------------------------------------------------------------------------
-template <typename T, typename S>
-using enable_if_same = enable_if<is_same<T, S>>;
-//------------------------------------------------------------------------------
-template <typename... Ts>
-using enable_if_floating_point = enable_if<is_floating_point<Ts>...>;
-//------------------------------------------------------------------------------
-template <typename... Ts>
-using enable_if_arithmetic = enable_if<is_arithmetic<Ts>...>;
-//------------------------------------------------------------------------------
-template <typename... Ts>
-using enable_if_integral = enable_if<is_integral<Ts>...>;
-//------------------------------------------------------------------------------
-template <typename... Ts>
-using enable_if_signed_integral = enable_if<is_signed_integral<Ts>...>;
-//------------------------------------------------------------------------------
-template <typename... Ts>
-using enable_if_unsigned_integral = enable_if<is_unsigned_integral<Ts>...>;
-//------------------------------------------------------------------------------
-template <typename... Ts>
-using enable_if_complex = enable_if<is_complex<Ts>...>;
-//------------------------------------------------------------------------------
-template <typename... Ts>
-using enable_if_arithmetic_or_complex =
-    enable_if<(is_arithmetic<Ts> || is_complex<Ts>)...>;
-//------------------------------------------------------------------------------
-template <typename... Ts>
-using enable_if_range = enable_if<is_range<Ts>...>;
-//------------------------------------------------------------------------------
-template <typename... Ts>
-using enable_if_indexable = enable_if<is_indexable<Ts>...>;
-//------------------------------------------------------------------------------
-template <typename... Ts>
-using enable_if_forward_iterator = enable_if<is_forward_iterator<Ts>...>;
-//------------------------------------------------------------------------------
-template <typename... Ts>
-using enable_if_backward_iterator = enable_if<is_backward_iterator<Ts>...>;
-//------------------------------------------------------------------------------
-template <typename... Ts>
-using enable_if_bidirectional_iterator =
-    enable_if<is_bidirectional_iterator<Ts>...>;
-//------------------------------------------------------------------------------
-template <typename From, typename To>
-using enable_if_convertible = enable_if<is_convertible<From, To>>;
-//------------------------------------------------------------------------------
-template <typename F, typename... Args>
-using enable_if_invocable = enable_if<is_invocable<F, Args...>>;
-//------------------------------------------------------------------------------
-template <typename... Ts>
-using enable_if_const = enable_if<is_const<Ts>...>;
-//------------------------------------------------------------------------------
-template <typename... Ts>
-using enable_if_non_const = enable_if<is_non_const<Ts>...>;
+//template <typename T, typename S>
+//using enable_if_same = enable_if<is_same<T, S>>;
+////------------------------------------------------------------------------------
+//template <typename... Ts>
+//using enable_if_floating_point = enable_if<is_floating_point<Ts>...>;
+////------------------------------------------------------------------------------
+//template <typename... Ts>
+//using enable_if_arithmetic = enable_if<is_arithmetic<Ts>...>;
+////------------------------------------------------------------------------------
+//template <typename... Ts>
+//using enable_if_integral = enable_if<is_integral<Ts>...>;
+////------------------------------------------------------------------------------
+//template <typename... Ts>
+//using enable_if_signed_integral = enable_if<is_signed_integral<Ts>...>;
+////------------------------------------------------------------------------------
+//template <typename... Ts>
+//using enable_if_unsigned_integral = enable_if<is_unsigned_integral<Ts>...>;
+////------------------------------------------------------------------------------
+//template <typename... Ts>
+//using enable_if_complex = enable_if<is_complex<Ts>...>;
+////------------------------------------------------------------------------------
+//template <typename... Ts>
+//using enable_if_arithmetic_or_complex =
+//    enable_if<(is_arithmetic<Ts> || is_complex<Ts>)...>;
+////------------------------------------------------------------------------------
+//template <typename... Ts>
+//using enable_if_range = enable_if<is_range<Ts>...>;
+////------------------------------------------------------------------------------
+//template <typename... Ts>
+//using enable_if_indexable = enable_if<is_indexable<Ts>...>;
+////------------------------------------------------------------------------------
+//template <typename... Ts>
+//using enable_if_forward_iterator = enable_if<is_forward_iterator<Ts>...>;
+////------------------------------------------------------------------------------
+//template <typename... Ts>
+//using enable_if_backward_iterator = enable_if<is_backward_iterator<Ts>...>;
+////------------------------------------------------------------------------------
+//template <typename... Ts>
+//using enable_if_bidirectional_iterator =
+//    enable_if<is_bidirectional_iterator<Ts>...>;
+////------------------------------------------------------------------------------
+//template <typename From, typename To>
+//using enable_if_convertible = enable_if<is_convertible<From, To>>;
+////------------------------------------------------------------------------------
+//template <typename F, typename... Args>
+//using enable_if_invocable = enable_if<is_invocable<F, Args...>>;
+////------------------------------------------------------------------------------
+//template <typename... Ts>
+//using enable_if_const = enable_if<is_const<Ts>...>;
+////------------------------------------------------------------------------------
+//template <typename... Ts>
+//using enable_if_non_const = enable_if<is_non_const<Ts>...>;
 //==============================================================================
 }  // namespace tatooine
 //==============================================================================

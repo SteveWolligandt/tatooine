@@ -540,7 +540,7 @@ class legacy_file_writer {
 #ifdef __cpp_concepts
   template <arithmetic T>
 #else
-  template <typename T, enable_if_arithmetic<T> = true>
+  template <typename T, enable_if<is_arithmetic<T>> = true>
 #endif
   auto write_x_coordinates(std::vector<T> const &x_coordinates) -> void {
     std::stringstream ss;
@@ -556,7 +556,7 @@ class legacy_file_writer {
 #ifdef __cpp_concepts
   template <arithmetic T>
 #else
-  template <typename T, enable_if_arithmetic<T> = true>
+  template <typename T, enable_if<is_arithmetic<T>> = true>
 #endif
   auto write_y_coordinates(std::vector<T> const &y_coordinates) -> void {
     std::stringstream ss;
@@ -572,7 +572,7 @@ class legacy_file_writer {
 #ifdef __cpp_concepts
   template <arithmetic T>
 #else
-  template <typename T, enable_if_arithmetic<T> = true>
+  template <typename T, enable_if<is_arithmetic<T>> = true>
 #endif
   auto write_z_coordinates(std::vector<T> const &z_coordinates) -> void {
     std::stringstream ss;

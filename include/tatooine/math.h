@@ -74,7 +74,7 @@ constexpr auto min(T0&& a, T1&& b, TRest&&... rest) -> decltype(auto) {
 #ifdef __cpp_concepts
 template <integral Base, integral Exp>
 #else
-template <typename Base, typename Exp, enable_if_integral<Base, Exp> = true>
+template <typename Base, typename Exp, enable_if<is_integral<Base, Exp>> = true>
 #endif
 constexpr auto ipow(Base const base, Exp const exp) {
   std::decay_t<decltype(base)> p = 1;
@@ -87,7 +87,7 @@ constexpr auto ipow(Base const base, Exp const exp) {
 #ifdef __cpp_concepts
 template <integral Int>
 #else
-template <typename Int, enable_if_integral<Int> = true>
+template <typename Int, enable_if<is_integral<Int>> = true>
 #endif
 constexpr Int factorial(Int const i) {
   if (i == 0) {

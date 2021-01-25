@@ -75,7 +75,7 @@ struct lazy_reader : chunked_multidim_array<T> {
 #ifdef __cpp_concepts
   template <integral... Is>
 #else
-  template <typename... Is, enable_if_integral<Is...> = true>
+  template <typename... Is, enable_if<is_integral<Is...>> = true>
 #endif
   auto read_chunk(size_t& plain_index, Is const... indices) const
       -> auto const& {
@@ -131,7 +131,7 @@ struct lazy_reader : chunked_multidim_array<T> {
 #ifdef __cpp_concepts
   template <integral... Is>
 #else
-  template <typename... Is, enable_if_integral<Is...> = true>
+  template <typename... Is, enable_if<is_integral<Is...>> = true>
 #endif
    auto at(Is const... indices) -> T& {
     size_t      plain_index = 0;
@@ -152,7 +152,7 @@ struct lazy_reader : chunked_multidim_array<T> {
 #ifdef __cpp_concepts
   template <integral... Is>
 #else
-  template <typename... Is, enable_if_integral<Is...> = true>
+  template <typename... Is, enable_if<is_integral<Is...>> = true>
 #endif
   auto at(Is const... indices) const -> T const& {
     size_t      plain_index = 0;
@@ -173,7 +173,7 @@ struct lazy_reader : chunked_multidim_array<T> {
 #ifdef __cpp_concepts
   template <integral... Is>
 #else
-  template <typename... Is, enable_if_integral<Is...> = true>
+  template <typename... Is, enable_if<is_integral<Is...>> = true>
 #endif
    auto operator()(Is const... indices) -> T& {
     assert(sizeof...(indices) == this->num_dimensions());
@@ -183,7 +183,7 @@ struct lazy_reader : chunked_multidim_array<T> {
 #ifdef __cpp_concepts
   template <integral... Is>
 #else
-  template <typename... Is, enable_if_integral<Is...> = true>
+  template <typename... Is, enable_if<is_integral<Is...>> = true>
 #endif
   auto operator()(Is const... indices) const -> T const& {
     assert(sizeof...(indices) == this->num_dimensions());
@@ -205,7 +205,7 @@ struct lazy_reader : chunked_multidim_array<T> {
   template <typename = void>
   requires is_arithmetic<value_type>
 #else
-  template <typename V = value_type, enable_if_arithmetic<value_type> = true>
+  template <typename V = value_type, enable_if<is_arithmetic<value_type>> = true>
 #endif
   auto is_chunk_filled_with_zeros(size_t const plain_index) const -> bool {
     return is_chunk_filled_with_value(plain_index, 0);

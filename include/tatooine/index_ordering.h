@@ -19,8 +19,8 @@ struct x_fastest {
   template <std::forward_iterator ForwardIterator, integral... Is>
 #else
   template <typename ForwardIterator, typename... Is,
-            enable_if_forward_iterator<ForwardIterator> = true,
-            enable_if_integral<Is...>                   = true>
+            enable_if<is_forward_iterator<ForwardIterator>> = true,
+            enable_if<is_integral<Is...>>                   = true>
 #endif
   static constexpr auto plain_index(ForwardIterator resoltion_it,
                                     Is const... is) {
@@ -39,8 +39,8 @@ struct x_fastest {
   template <std::forward_iterator ForwardIterator, range Is>
 #else
   template <typename ForwardIterator, typename Is,
-            enable_if_forward_iterator<ForwardIterator> = true,
-            enable_if_range<Is>                         = true>
+            enable_if<is_forward_iterator<ForwardIterator>> = true,
+            enable_if<is_range<Is>>                         = true>
 #endif
   static constexpr auto plain_index(ForwardIterator resoltion_it,
                                     Is const&  is) {
@@ -57,8 +57,8 @@ struct x_fastest {
   template <range Resolution, integral... Is>
 #else
   template <typename Resolution, typename... Is,
-            enable_if_range<Resolution> = true,
-            enable_if_integral<Is...>   = true>
+            enable_if<is_range<Resolution>> = true,
+            enable_if<is_integral<Is...>>   = true>
 #endif
   static constexpr auto plain_index(Resolution const& resolution,
                                     Is const... is) {
@@ -71,7 +71,7 @@ struct x_fastest {
   template <range Resolution, range IndexRange>
 #else
   template <typename Resolution, typename IndexRange,
-            enable_if_range<Resolution, IndexRange> = true>
+            enable_if<is_range<Resolution, IndexRange>> = true>
 #endif
   static constexpr auto plain_index(Resolution const& resolution,
                                     IndexRange const& is) {
@@ -86,7 +86,7 @@ struct x_fastest {
 #ifdef __cpp_concepts
   template <range Resolution>
 #else
-  template <typename Resolution, enable_if_range<Resolution> = true>
+  template <typename Resolution, enable_if<is_range<Resolution>> = true>
 #endif
   static auto multi_index(Resolution const& resolution, size_t plain_index) {
     std::vector<size_t> is(resolution.size());
@@ -115,8 +115,8 @@ struct x_slowest {
   template <integral Is, std::forward_iterator ResolutionIterator>
 #else
   template <typename Is, typename ResolutionIterator,
-            enable_if_integral<Is> = true,
-            enable_if_forward_iterator<ResolutionIterator> = true >
+            enable_if<is_integral<Is>> = true,
+            enable_if<is_forward_iterator<ResolutionIterator>> = true >
 #endif
   static constexpr auto internal_plain_index(ResolutionIterator resoltion_it,
                                              std::vector<Is> const& is)
@@ -135,8 +135,8 @@ struct x_slowest {
   template <indexable Resolution, integral... Is>
 #else
   template <typename Resolution, typename... Is,
-            enable_if_indexable<Resolution> = true,
-            enable_if_integral<Is...>       = true>
+            enable_if<is_indexable<Resolution>> = true,
+            enable_if<is_integral<Is...>>       = true>
 #endif
   static constexpr auto internal_plain_index(Resolution resolution,
                                              Is const... p_is) -> size_t {
@@ -158,7 +158,7 @@ struct x_slowest {
   template <integral Resolution, integral... Is>
 #else
   template <typename Resolution, typename... Is,
-            enable_if_integral<Resolution, Is...> = true>
+            enable_if<is_integral<Resolution, Is...>> = true>
 #endif
   static constexpr auto plain_index(const std::vector<Resolution>& resolution,
                                     Is const... is) -> size_t {
@@ -170,7 +170,7 @@ struct x_slowest {
   template <integral Resolution, integral Is>
 #else
   template <typename Resolution, typename Is,
-            enable_if_integral<Resolution, Is> = true>
+            enable_if<is_integral<Resolution, Is>> = true>
 #endif
   static auto plain_index(const std::vector<Resolution>& resolution,
                           const std::vector<Is>&         is) -> size_t {
@@ -182,7 +182,7 @@ struct x_slowest {
   template <size_t N, integral Resolution, integral... Is>
 #else
   template <size_t N, typename Resolution, typename... Is,
-            enable_if_integral<Resolution> = true>
+            enable_if<is_integral<Resolution>> = true>
 #endif
   static constexpr auto plain_index(const std::array<Resolution, N>& resolution,
                                     Is const... is) -> size_t {
@@ -194,7 +194,7 @@ struct x_slowest {
   template <size_t N, integral Resolution, integral Is>
 #else
   template <size_t N, typename Resolution, typename Is,
-            enable_if_integral<Resolution, Is> = true >
+            enable_if<is_integral<Resolution, Is>> = true >
 #endif
   static constexpr auto plain_index(const std::array<Resolution, N>& resolution,
                                     const std::vector<Is>& is) -> size_t {
@@ -205,7 +205,7 @@ struct x_slowest {
 #ifdef __cpp_concepts
   template <integral Resolution>
 #else
-  template <typename Resolution, enable_if_integral<Resolution> = true>
+  template <typename Resolution, enable_if<is_integral<Resolution>> = true>
 #endif
   static auto multi_index(const std::vector<Resolution>& resolution,
                           size_t /*plain_index*/) {
@@ -220,7 +220,7 @@ struct x_slowest {
   template <size_t N, integral Resolution>
 #else
   template <size_t N, typename Resolution,
-            enable_if_integral<Resolution> = true>
+            enable_if<is_integral<Resolution>> = true>
 #endif
   static constexpr auto multi_index(
       const std::array<Resolution, N>& /*resolution*/, size_t /*plain_index*/) {

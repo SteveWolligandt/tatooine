@@ -72,7 +72,7 @@ struct chunked_multidim_array {
            (is_integral<typename std::decay_t<ChunkSizeRange>::value_type>)
 #else
   template <typename SizeRange, typename ChunkSizeRange,
-            enable_if_range<SizeRange, ChunkSizeRange> = true>
+            enable_if<is_range<SizeRange, ChunkSizeRange>> = true>
 #endif
   chunked_multidim_array(SizeRange&& size, ChunkSizeRange&& chunk_size) {
     resize(std::forward<SizeRange>(size),
@@ -82,7 +82,7 @@ struct chunked_multidim_array {
 #ifdef __cpp_concepts
   template <range Range>
 #else
-  template <typename Range, enable_if_range<Range> = true>
+  template <typename Range, enable_if<is_range<Range>> = true>
 #endif
   chunked_multidim_array(Range&& data, std::vector<size_t> const& size,
                          std::vector<size_t> const& chunk_size) {
@@ -109,8 +109,10 @@ struct chunked_multidim_array {
   template <range SizeRange>
   requires (std::is_integral_v<typename std::decay_t<SizeRange>::value_type>)
 #else
-  template <typename SizeRange, enable_if_range<SizeRange> = true,
-            enable_if_integral<typename std::decay_t<SizeRange>::value_type> = true>
+  template <
+      typename SizeRange, enable_if<is_range<SizeRange>> = true,
+      enable_if<is_integral<typename std::decay_t<SizeRange>::value_type> > =
+          true>
 #endif
   void resize(SizeRange&& size) {
     // apply full size
@@ -135,10 +137,10 @@ struct chunked_multidim_array {
               typename std::decay_t<ChunkSizeRange>::value_type>)
 #else
   template <typename SizeRange, typename ChunkSizeRange,
-            enable_if_range<SizeRange, ChunkSizeRange> = true,
-            enable_if_integral<
+            enable_if<is_range<SizeRange, ChunkSizeRange>>               = true,
+            enable_if<is_integral<
                 typename std::decay_t<SizeRange>::value_type,
-                typename std::decay_t<ChunkSizeRange>::value_type> = true>
+                typename std::decay_t<ChunkSizeRange>::value_type> > = true>
 #endif
   void resize(SizeRange&& size, ChunkSizeRange&& chunk_size) {
     m_internal_chunk_size.resize(chunk_size.size());
@@ -149,7 +151,7 @@ struct chunked_multidim_array {
 #ifdef __cpp_concepts
   template <integral ...Size>
 #else
-  template <typename ...Size, enable_if_integral<Size...> = true>
+  template <typename ...Size, enable_if<is_integral<Size...>> = true>
 #endif
   auto resize(Size const... sizes) -> void {
     return resize(std::vector{static_cast<size_t>(sizes)...});
@@ -159,7 +161,7 @@ struct chunked_multidim_array {
   template <typename Tensor, integral Int, size_t N>
 #else
   template <typename Tensor, typename Int, size_t N,
-            enable_if_integral<Int> = true>
+            enable_if<is_integral<Int>> = true>
 #endif
   auto resize(base_tensor<Tensor, Int, N> const& v) -> void {
     assert(N == num_dimensions());
@@ -173,7 +175,7 @@ struct chunked_multidim_array {
 #ifdef __cpp_concepts
   template <integral Int, size_t N>
 #else
-  template <typename Int, size_t N, enable_if_integral<Int> = true>
+  template <typename Int, size_t N, enable_if<is_integral<Int>> = true>
 #endif
   auto resize(std::array<Int, N> const& v) {
     assert(N == num_dimensions());
@@ -185,7 +187,7 @@ struct chunked_multidim_array {
   template <integral... Indices, size_t... Seq>
 #else
   template <typename... Indices, size_t... Seq,
-            enable_if_integral<Indices...> = true>
+            enable_if<is_integral<Indices...>> = true>
 #endif
   auto plain_internal_chunk_index_from_global_indices(
       size_t plain_chunk_index, std::index_sequence<Seq...>,
@@ -201,7 +203,7 @@ struct chunked_multidim_array {
 #ifdef __cpp_concepts
   template <integral... Indices>
 #else
-  template <typename... Indices, enable_if_integral<Indices...> = true>
+  template <typename... Indices, enable_if<is_integral<Indices...>> = true>
 #endif
   auto plain_internal_chunk_index_from_global_indices(
       size_t plain_chunk_index, Indices const... indices) const {
@@ -217,7 +219,7 @@ struct chunked_multidim_array {
   template <integral... Indices, size_t... Seq>
 #else
   template <typename... Indices, size_t... Seq,
-            enable_if_integral<Indices...> = true>
+            enable_if<is_integral<Indices...>> = true>
 #endif
   auto plain_chunk_index_from_global_indices(
       std::index_sequence<Seq...>, Indices const... indices) const {
@@ -230,7 +232,7 @@ struct chunked_multidim_array {
 #ifdef __cpp_concepts
   template <integral... Indices>
 #else
-  template <typename... Indices, enable_if_integral<Indices...> = true>
+  template <typename... Indices, enable_if<is_integral<Indices...>> = true>
 #endif
   auto plain_chunk_index_from_global_indices(
       Indices const... indices) const {
@@ -244,7 +246,7 @@ struct chunked_multidim_array {
   template <integral... Indices, size_t... Seq>
 #else
   template <typename... Indices, size_t... Seq,
-            enable_if_integral<Indices...> = true>
+            enable_if<is_integral<Indices...>> = true>
 #endif
   auto internal_chunk_indices_from_global_indices(
       std::index_sequence<Seq...>, Indices const... indices) const {
@@ -257,7 +259,7 @@ struct chunked_multidim_array {
   template <integral... Indices>
 #else
   template <typename... Indices,
-            enable_if_integral<Indices...> = true>
+            enable_if<is_integral<Indices...>> = true>
 #endif
   auto internal_chunk_indices_from_global_indices(
       Indices const... indices) const {
@@ -280,7 +282,7 @@ struct chunked_multidim_array {
   template <integral... Indices, size_t... Seq>
 #else
   template <typename... Indices, size_t... Seq,
-            enable_if_integral<Indices...> = true>
+            enable_if<is_integral<Indices...>> = true>
 #endif
   auto chunk_indices_from_global_indices(std::index_sequence<Seq...>,
                                          Indices const... indices) const {
@@ -292,7 +294,7 @@ struct chunked_multidim_array {
 #ifdef __cpp_concepts
   template <integral... Indices>
 #else
-  template <typename... Indices, enable_if_integral<Indices...> = true>
+  template <typename... Indices, enable_if<is_integral<Indices...>> = true>
 #endif
   auto chunk_indices_from_global_indices(Indices const... indices) const {
     assert(sizeof...(indices) == num_dimensions());
@@ -303,7 +305,7 @@ struct chunked_multidim_array {
 #ifdef __cpp_concepts
   template <integral Int>
 #else
-  template <typename Int, enable_if_integral<Int> = true>
+  template <typename Int, enable_if<is_integral<Int>> = true>
 #endif
   auto chunk_indices_from_global_indices(std::vector<Int> indices) const {
     assert(size(indices) == num_dimensions());
@@ -316,7 +318,7 @@ struct chunked_multidim_array {
 #ifdef __cpp_concepts
   template <integral Int>
 #else
-  template <typename Int, enable_if_integral<Int> = true>
+  template <typename Int, enable_if<is_integral<Int>> = true>
 #endif
   auto global_indices_from_chunk_indices(std::vector<Int> indices) const {
     assert(indices.size() == num_dimensions());
@@ -329,7 +331,7 @@ struct chunked_multidim_array {
 #ifdef __cpp_concepts
   template <integral... Indices>
 #else
-  template <typename... Indices, enable_if_integral<Indices...> = true>
+  template <typename... Indices, enable_if<is_integral<Indices...>> = true>
 #endif
   auto plain_chunk_index_from_chunk_indices(
       Indices const... chunk_indices) const {
@@ -340,7 +342,7 @@ struct chunked_multidim_array {
 #ifdef __cpp_concepts
   template <integral Int>
 #else
-  template <typename Int, enable_if_integral<Int> = true>
+  template <typename Int, enable_if<is_integral<Int>> = true>
 #endif
   auto plain_chunk_index_from_chunk_indices(
       std::vector<Int> const& chunk_indices) const {
@@ -351,7 +353,7 @@ struct chunked_multidim_array {
 #ifdef __cpp_concepts
   template <integral... ChunkIndices>
 #else
-  template <typename... ChunkIndices, enable_if_integral<ChunkIndices...> = true>
+  template <typename... ChunkIndices, enable_if<is_integral<ChunkIndices...>> = true>
 #endif
   auto chunk_at(size_t const chunk_index0, ChunkIndices const... chunk_indices)
       -> auto& {
@@ -368,7 +370,7 @@ struct chunked_multidim_array {
   template <integral ChunkIndex0, integral...ChunkIndices>
 #else
   template <typename ChunkIndex0, typename... ChunkIndices,
-            enable_if_integral<ChunkIndex0, ChunkIndices...> = true>
+            enable_if<is_integral<ChunkIndex0, ChunkIndices...>> = true>
 #endif
   auto chunk_at(ChunkIndex0 const chunk_index0, ChunkIndices const... chunk_indices)
      const -> auto const& {
@@ -385,7 +387,7 @@ struct chunked_multidim_array {
   template <integral ChunkIndex0, integral...ChunkIndices>
 #else
   template <typename ChunkIndex0, typename... ChunkIndices,
-            enable_if_integral<ChunkIndex0, ChunkIndices...> = true>
+            enable_if<is_integral<ChunkIndex0, ChunkIndices...>> = true>
 #endif
   auto chunk_at_is_null(ChunkIndex0 const chunk_index0,
                         ChunkIndices const... chunk_indices) const {
@@ -408,7 +410,7 @@ struct chunked_multidim_array {
   template <integral ChunkIndex0, integral...ChunkIndices>
 #else
   template <typename ChunkIndex0, typename... ChunkIndices,
-            enable_if_integral<ChunkIndex0, ChunkIndices...> = true>
+            enable_if<is_integral<ChunkIndex0, ChunkIndices...>> = true>
 #endif
   auto create_chunk_at(ChunkIndex0 const chunk_index0,
                        ChunkIndices const... chunk_indices) const -> const
@@ -429,7 +431,7 @@ struct chunked_multidim_array {
   template <integral ChunkIndex0, integral...ChunkIndices>
 #else
   template <typename ChunkIndex0, typename... ChunkIndices,
-            enable_if_integral<ChunkIndex0, ChunkIndices...> = true>
+            enable_if<is_integral<ChunkIndex0, ChunkIndices...>> = true>
 #endif
   auto create_chunk_at(ChunkIndex0 const chunk_index0,
                        ChunkIndices const... chunk_indices) -> auto& {
@@ -449,7 +451,7 @@ struct chunked_multidim_array {
   template <integral ChunkIndex0, integral...ChunkIndices>
 #else
   template <typename ChunkIndex0, typename... ChunkIndices,
-            enable_if_integral<ChunkIndex0, ChunkIndices...> = true>
+            enable_if<is_integral<ChunkIndex0, ChunkIndices...>> = true>
 #endif
   auto destroy_chunk_at(ChunkIndex0 const chunk_index0,
                         ChunkIndices const... chunk_indices) const {
@@ -477,7 +479,7 @@ struct chunked_multidim_array {
 #ifdef __cpp_concepts
   template <integral... Is>
 #else
-  template <typename... Is, enable_if_integral<Is...> = true>
+  template <typename... Is, enable_if<is_integral<Is...>> = true>
 #endif
   auto in_range(Is const... is) const {
     return m_data_structure.in_range(is...);
@@ -513,7 +515,7 @@ struct chunked_multidim_array {
 #ifdef __cpp_concepts
   template <integral... Is>
 #else
-  template <typename... Is, enable_if_integral<Is...> = true>
+  template <typename... Is, enable_if<is_integral<Is...>> = true>
 #endif
   auto at(Is const... indices) -> T& {
     assert(sizeof...(indices) == num_dimensions());
@@ -529,7 +531,7 @@ struct chunked_multidim_array {
 #ifdef __cpp_concepts
   template <integral... Is>
 #else
-  template <typename... Is, enable_if_integral<Is...> = true>
+  template <typename... Is, enable_if<is_integral<Is...>> = true>
 #endif
   auto at(Is const... indices) const -> T const& {
     assert(sizeof...(indices) == num_dimensions());
@@ -547,7 +549,7 @@ struct chunked_multidim_array {
 #ifdef __cpp_concepts
   template <typename Tensor, size_t N, integral S>
 #else
-  template <typename Tensor, size_t N, typename S, enable_if_integral<S> = true>
+  template <typename Tensor, size_t N, typename S, enable_if<is_integral<S>> = true>
 #endif
   auto at(base_tensor<Tensor, S, N> const& indices) -> T& {
     return invoke_unpacked(
@@ -558,7 +560,7 @@ struct chunked_multidim_array {
 #ifdef __cpp_concepts
   template <integral S, size_t N>
 #else
-  template <typename S, size_t N, enable_if_integral<S> = true>
+  template <typename S, size_t N, enable_if<is_integral<S>> = true>
 #endif
   auto at(std::array<S, N> const& indices) -> T& {
     return invoke_unpacked(
@@ -569,7 +571,7 @@ struct chunked_multidim_array {
 #ifdef __cpp_concepts
   template <integral S>
 #else
-  template <typename S, enable_if_integral<S> = true>
+  template <typename S, enable_if<is_integral<S>> = true>
 #endif
   auto at(std::vector<S> const& indices) -> T& {
     assert(num_dimensions() == indices.size());
@@ -584,7 +586,7 @@ struct chunked_multidim_array {
 #ifdef __cpp_concepts
   template <integral S>
 #else
-  template <typename S, enable_if_integral<S> = true>
+  template <typename S, enable_if<is_integral<S>> = true>
 #endif
   auto at(std::vector<S> const& indices) const -> T const& {
     assert(num_dimensions() == indices.size());
@@ -606,7 +608,7 @@ struct chunked_multidim_array {
 #ifdef __cpp_concepts
   template <integral... Is>
 #else
-  template <typename... Is, enable_if_integral<Is...> = true>
+  template <typename... Is, enable_if<is_integral<Is...>> = true>
 #endif
   auto operator()(Is const... indices) -> T& {
     assert(sizeof...(indices) == num_dimensions());
@@ -616,7 +618,7 @@ struct chunked_multidim_array {
 #ifdef __cpp_concepts
   template <integral... Is>
 #else
-  template <typename... Is, enable_if_integral<Is...> = true>
+  template <typename... Is, enable_if<is_integral<Is...>> = true>
 #endif
   auto operator()(Is const... indices) const -> T const& {
     assert(sizeof...(indices) == num_dimensions());
@@ -626,7 +628,7 @@ struct chunked_multidim_array {
 #ifdef __cpp_concepts
   template <typename Tensor, size_t N, integral S>
 #else
-  template <typename Tensor, size_t N, typename S, enable_if_integral<S> = true>
+  template <typename Tensor, size_t N, typename S, enable_if<is_integral<S>> = true>
 #endif
   auto operator()(base_tensor<Tensor, S, N> const& indices) -> T& {
     return at(indices);
@@ -635,7 +637,7 @@ struct chunked_multidim_array {
 #ifdef __cpp_concepts
   template <integral S, size_t N>
 #else
-  template <typename S, size_t N, enable_if_integral<S> = true>
+  template <typename S, size_t N, enable_if<is_integral<S>> = true>
 #endif
   auto operator()(std::array<S, N> const& indices) -> T& {
     return at(indices);
@@ -644,7 +646,7 @@ struct chunked_multidim_array {
 #ifdef __cpp_concepts
   template <integral S, size_t N>
 #else
-  template <typename S, size_t N, enable_if_integral<S> = true>
+  template <typename S, size_t N, enable_if<is_integral<S>> = true>
 #endif
   auto operator()(std::array<S, N> const& indices) const -> T const& {
     return at(indices);
@@ -653,7 +655,7 @@ struct chunked_multidim_array {
 #ifdef __cpp_concepts
   template <integral S, size_t N>
 #else
-  template <typename S, size_t N, enable_if_integral<S> = true>
+  template <typename S, size_t N, enable_if<is_integral<S>> = true>
 #endif
   auto at(std::array<S, N> const& indices) const -> T const& {
     return invoke_unpacked(
@@ -685,7 +687,7 @@ struct chunked_multidim_array {
   requires is_arithmetic<T>
 #else
   template <typename RandomEngine   = std::mt19937_64,
-            enable_if_arithmetic<T> = true>
+            enable_if<is_arithmetic<T>> = true>
 #endif
       auto randu(T min = 0, T max = 1,
                  RandomEngine&& random_engine = RandomEngine{
@@ -698,7 +700,7 @@ struct chunked_multidim_array {
 #ifdef __cpp_concepts
   template <typename = void> requires is_arithmetic_<T>
 #else
-  template <typename _T = T, enable_if_arithmetic<T> = true>
+  template <typename _T = T, enable_if<is_arithmetic<T>> = true>
 #endif
   auto min_value() const {
     T min = std::numeric_limits<T>::max();
@@ -711,7 +713,7 @@ struct chunked_multidim_array {
 #ifdef __cpp_concepts
   template <typename = void> requires is_arithmetic_<T>
 #else
-  template <typename _T = T, enable_if_arithmetic<T> = true>
+  template <typename _T = T, enable_if<is_arithmetic<T>> = true>
 #endif
   auto max_value() const {
     T max = -std::numeric_limits<T>::max();
@@ -724,7 +726,7 @@ struct chunked_multidim_array {
 #ifdef __cpp_concepts
   template <typename = void> requires is_arithmetic_<T>
 #else
-  template <typename _T = T, enable_if_arithmetic<T> = true>
+  template <typename _T = T, enable_if<is_arithmetic<T>> = true>
 #endif
   auto minmax_value() const {
     std::pair minmax{std::numeric_limits<T>::max(),
@@ -747,7 +749,7 @@ struct chunked_multidim_array {
 #ifdef __cpp_concepts
   template <typename = void> requires is_arithmetic_<T>
 #else
-  template <typename _T = T, enable_if_arithmetic<T> = true>
+  template <typename _T = T, enable_if<is_arithmetic<T>> = true>
 #endif
   auto normalize() -> void {
     auto [min, max] = minmax_value();

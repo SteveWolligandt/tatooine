@@ -141,7 +141,7 @@ struct typed_multidim_property : multidim_property<Grid> {
   template <integral... Is>
   requires(sizeof...(Is) == Grid::num_dimensions())
 #else
-  template <typename... Is, enable_if_integral<Is...> = true,
+  template <typename... Is, enable_if<is_integral<Is...>> = true,
             enable_if<(sizeof...(Is) == Grid::num_dimensions())> = true>
 #endif
   constexpr auto operator()(Is const... is) const -> decltype(auto) {
@@ -152,7 +152,7 @@ struct typed_multidim_property : multidim_property<Grid> {
   template <integral... Is>
   requires(sizeof...(Is) == Grid::num_dimensions())
 #else
-  template <typename... Is, enable_if_integral<Is...> = true,
+  template <typename... Is, enable_if<is_integral<Is...>> = true,
             enable_if<(sizeof...(Is) == Grid::num_dimensions())> = true>
 #endif
   constexpr auto operator()(Is const... is) -> decltype(auto) {
@@ -163,7 +163,7 @@ struct typed_multidim_property : multidim_property<Grid> {
   template <integral... Is>
   requires(sizeof...(Is) == Grid::num_dimensions())
 #else
-  template <typename... Is, enable_if_integral<Is...> = true,
+  template <typename... Is, enable_if<is_integral<Is...>> = true,
             enable_if<(sizeof...(Is) == Grid::num_dimensions())> = true>
 #endif
   auto at(Is const... is) const -> decltype(auto) {
@@ -174,7 +174,7 @@ struct typed_multidim_property : multidim_property<Grid> {
   template <integral... Is>
   requires(sizeof...(Is) == Grid::num_dimensions())
 #else
-  template <typename... Is, enable_if_integral<Is...> = true,
+  template <typename... Is, enable_if<is_integral<Is...>> = true,
             enable_if<(sizeof...(Is) == Grid::num_dimensions())> = true>
 #endif
   auto at(Is const... is) -> decltype(auto) {
@@ -191,7 +191,7 @@ struct typed_multidim_property : multidim_property<Grid> {
   template <integral... Size>
   requires(sizeof...(Size) == Grid::num_dimensions())
 #else
-  template <typename... Size, enable_if_integral<Size...> = true,
+  template <typename... Size, enable_if<is_integral<Size...>> = true,
             enable_if<(sizeof...(Size) == Grid::num_dimensions())> = true>
 #endif
       auto resize(Size const... size) -> decltype(auto) {
@@ -301,7 +301,7 @@ struct typed_multidim_property_impl : typed_multidim_property<Grid, ValueType>,
   template <integral... Is>
   requires(sizeof...(Is) == Grid::num_dimensions())
 #else
-  template <typename... Is, enable_if_integral<Is...> = true, 
+  template <typename... Is, enable_if<is_integral<Is...>> = true, 
   enable_if<(sizeof...(Is) == Grid::num_dimensions())> = true>
 #endif
   constexpr auto operator()(Is const... is) const -> decltype(auto) {
@@ -312,7 +312,7 @@ struct typed_multidim_property_impl : typed_multidim_property<Grid, ValueType>,
   template <integral... Is>
   requires(sizeof...(Is) == Grid::num_dimensions())
 #else
-  template <typename... Is, enable_if_integral<Is...> = true, 
+  template <typename... Is, enable_if<is_integral<Is...>> = true, 
   enable_if<(sizeof...(Is) == Grid::num_dimensions())> = true>
 #endif
   constexpr auto operator()(Is const... is) -> decltype(auto) {
@@ -323,7 +323,7 @@ struct typed_multidim_property_impl : typed_multidim_property<Grid, ValueType>,
   template <integral... Is>
   requires(sizeof...(Is) == Grid::num_dimensions())
 #else
-  template <typename... Is, enable_if_integral<Is...> = true, 
+  template <typename... Is, enable_if<is_integral<Is...>> = true, 
   enable_if<(sizeof...(Is) == Grid::num_dimensions())> = true>
 #endif
   auto at(Is const... is) const -> decltype(auto) {
@@ -334,7 +334,7 @@ struct typed_multidim_property_impl : typed_multidim_property<Grid, ValueType>,
   template <integral... Is>
   requires(sizeof...(Is) == Grid::num_dimensions())
 #else
-  template <typename... Is, enable_if_integral<Is...> = true, 
+  template <typename... Is, enable_if<is_integral<Is...>> = true, 
   enable_if<(sizeof...(Is) == Grid::num_dimensions())> = true>
 #endif
   auto at(Is const... is) -> decltype(auto) {
