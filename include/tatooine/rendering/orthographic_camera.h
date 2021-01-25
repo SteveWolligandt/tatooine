@@ -16,7 +16,7 @@ namespace tatooine::rendering {
 /// Based on the eye position, a look-at point and a field of view angle the
 /// image plane gets constructed.
 /// This camera class constructs a right-handed coordinate system.
-template <real_number Real>
+template <arithmetic Real>
 class orthographic_camera : public camera<Real> {
  public:
   using real_t   = Real;

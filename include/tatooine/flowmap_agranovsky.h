@@ -57,8 +57,8 @@ struct flowmap_agranovsky {
   template <typename V, size_t... Is>
   flowmap_agranovsky(std::index_sequence<Is...> /*seq*/,
                      vectorfield<V, Real, N> const& v,
-                     real_number auto const t0, real_number auto const tau,
-                     real_number auto const delta_t, pos_t const& min,
+                     arithmetic auto const t0, arithmetic auto const tau,
+                     arithmetic auto const delta_t, pos_t const& min,
                      pos_t const& max, integral auto const... resolution)
       : m_t0s(static_cast<size_t>(std::ceil(tau / delta_t) + 1)),
         m_forward_grids(
@@ -77,8 +77,8 @@ struct flowmap_agranovsky {
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
   template <typename V>
   flowmap_agranovsky(vectorfield<V, Real, N> const& v,
-                     real_number auto const t0, real_number auto const tau,
-                     real_number auto const delta_t, pos_t const& min,
+                     arithmetic auto const t0, arithmetic auto const tau,
+                     arithmetic auto const delta_t, pos_t const& min,
                      pos_t const& max, integral auto const... resolution)
       : flowmap_agranovsky{std::make_index_sequence<N>{},
                            v,

@@ -7,7 +7,7 @@
 namespace tatooine::scivis_contest_2020 {
 //==============================================================================
 template <typename V>
-auto integrate_pathline(V&& v, typename V::pos_t const& x, real_number auto t,
+auto integrate_pathline(V&& v, typename V::pos_t const& x, arithmetic auto t,
                         double btau, double ftau) {
   parameterized_line<double, 3, interpolation::linear> pathline;
 

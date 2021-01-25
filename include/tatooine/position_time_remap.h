@@ -114,8 +114,8 @@ struct unary_operation_field
 namespace detail {
 //==============================================================================
 template <typename Field, typename PosOp, typename TimeOp, typename TensorOp,
-          typename Pos, real_number PosReal, size_t PosN, real_number TimeReal,
-          typename Tensor, real_number TensorReal, size_t... TensorDims>
+          typename Pos, arithmetic PosReal, size_t PosN, arithmetic TimeReal,
+          typename Tensor, arithmetic TensorReal, size_t... TensorDims>
 constexpr auto unary_operation_field_constructor_impl(
     Field&& field, PosOp&& pos_op, TimeOp&& time_op, TensorOp&& tensor_op,
     base_tensor<Pos, PosReal, PosN> const& /*x*/, TimeReal const /*t*/,
@@ -129,8 +129,8 @@ constexpr auto unary_operation_field_constructor_impl(
 }
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 template <typename Field, typename PosOp, typename TimeOp, typename TensorOp,
-          typename Pos, real_number PosReal, size_t PosN, real_number TimeReal,
-          real_number Tensor>
+          typename Pos, arithmetic PosReal, size_t PosN, arithmetic TimeReal,
+          arithmetic Tensor>
 constexpr auto unary_operation_field_constructor_impl(
     Field&& field, PosOp&& pos_op, TimeOp&& time_op, TensorOp&& tensor_op,
     base_tensor<Pos, PosReal, PosN> const& /*x*/, TimeReal const /*t*/,

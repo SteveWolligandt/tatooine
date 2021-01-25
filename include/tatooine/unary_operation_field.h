@@ -72,7 +72,7 @@ struct unary_operation_field_builder {
         std::forward<Field_>(field), std::forward<Op_>(op)};
   }
   template <typename Field_, typename Op_>
-  static auto build(Field_&& field, Op_&& op, real_number auto const&) {
+  static auto build(Field_&& field, Op_&& op, arithmetic auto const&) {
     return unary_operation_field<
         Field, Op, typename std::remove_pointer_t<std::decay_t<Field>>::real_t,
         std::remove_pointer_t<std::decay_t<Field>>::num_dimensions()>{

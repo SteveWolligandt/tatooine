@@ -14,7 +14,7 @@ namespace tatooine::rendering {
 ///
 /// Implementations must override the ray method that casts rays through the
 /// camera's image plane.
-template <real_number Real>
+template <arithmetic Real>
 struct camera : clonable<camera<Real>> {
   //----------------------------------------------------------------------------
   // typedefs

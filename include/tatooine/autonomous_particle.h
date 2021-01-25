@@ -97,9 +97,9 @@ requires is_vectorfield_v<
   requires std::is_pointer_v<V> autonomous_particle()
       : m_v{nullptr}, m_nabla_phi1{mat_t::eye()} {}
   //----------------------------------------------------------------------------
-  template <typename V_, real_number RealX0>
+  template <typename V_, arithmetic RealX0>
   autonomous_particle(V_&& v, vec<RealX0, num_dimensions()> const& x0,
-                      real_number auto const t0, real_number auto const r0)
+                      arithmetic auto const t0, arithmetic auto const r0)
       : m_v{std::forward<V_>(v.as_derived())},
         m_x0{x0},
         m_x1{x0},
@@ -461,32 +461,32 @@ requires is_vectorfield_v<
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 // deduction guides
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-template <typename V, real_number RealX0, size_t N>
-autonomous_particle(V const& v, vec<RealX0, N> const&, real_number auto const,
-                    real_number auto const)
+template <typename V, arithmetic RealX0, size_t N>
+autonomous_particle(V const& v, vec<RealX0, N> const&, arithmetic auto const,
+                    arithmetic auto const)
     -> autonomous_particle<std::decay_t<V> const&,
                            std::decay_t<decltype(flowmap(v))>>;
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-template <typename V, real_number RealX0, size_t N>
-autonomous_particle(V& v, vec<RealX0, N> const&, real_number auto const,
-                    real_number auto const)
+template <typename V, arithmetic RealX0, size_t N>
+autonomous_particle(V& v, vec<RealX0, N> const&, arithmetic auto const,
+                    arithmetic auto const)
     -> autonomous_particle<std::decay_t<V>&,
                            std::decay_t<decltype(flowmap(v))>>;
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-template <typename V, size_t N, real_number RealX0>
-autonomous_particle(V&& v, vec<RealX0, N> const&, real_number auto const,
-                    real_number auto const)
+template <typename V, size_t N, arithmetic RealX0>
+autonomous_particle(V&& v, vec<RealX0, N> const&, arithmetic auto const,
+                    arithmetic auto const)
     -> autonomous_particle<std::decay_t<V>, std::decay_t<decltype(flowmap(v))>>;
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-template <typename V, size_t N, real_number RealX0>
-autonomous_particle(V* v, vec<RealX0, N> const&, real_number auto const,
-                    real_number auto const)
+template <typename V, size_t N, arithmetic RealX0>
+autonomous_particle(V* v, vec<RealX0, N> const&, arithmetic auto const,
+                    arithmetic auto const)
     -> autonomous_particle<std::decay_t<V>*,
                            std::decay_t<decltype(flowmap(v))>>;
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-template <typename V, size_t N, real_number RealX0>
-autonomous_particle(V const* v, vec<RealX0, N> const&, real_number auto const,
-                    real_number auto const)
+template <typename V, size_t N, arithmetic RealX0>
+autonomous_particle(V const* v, vec<RealX0, N> const&, arithmetic auto const,
+                    arithmetic auto const)
     -> autonomous_particle<std::decay_t<V> const*,
                            std::decay_t<decltype(flowmap(v))>>;
 //==============================================================================

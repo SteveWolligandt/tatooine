@@ -25,7 +25,7 @@ template <indexable_space XDomain, indexable_space YDomain,
                     vec<typename grid<XDomain, YDomain>::real_t, 2> const&>
               GetScalars>
 auto isolines(GetScalars&& get_scalars, grid<XDomain, YDomain> const& g,
-              real_number auto const isolevel) {
+              arithmetic auto const isolevel) {
   using real_t = typename grid<XDomain, YDomain>::real_t;
   using pos_t = vec<real_t, 2>;
   using edge_set_t = std::vector<line<real_t, 2>>;
@@ -111,9 +111,9 @@ auto isolines(GetScalars&& get_scalars, grid<XDomain, YDomain> const& g,
   return merge_lines(isolines);
 }
 //------------------------------------------------------------------------------
-template <typename Grid, real_number T>
+template <typename Grid, arithmetic T>
 auto isolines(typed_multidim_property<Grid, T> const& data,
-              real_number auto const                  isolevel) {
+              arithmetic auto const                  isolevel) {
   return isolines(
       [&](auto ix, auto iy, auto const& /*ps*/) -> auto const& {
         return data(ix, iy);
@@ -121,10 +121,10 @@ auto isolines(typed_multidim_property<Grid, T> const& data,
       data.grid(), isolevel);
 }
 //------------------------------------------------------------------------------
-template <real_number Real, typename Indexing, real_number BBReal>
+template <arithmetic Real, typename Indexing, arithmetic BBReal>
 auto isolines(dynamic_multidim_array<Real, Indexing> const& data,
               axis_aligned_bounding_box<BBReal, 2> const&   bb,
-              real_number auto const                        isolevel) {
+              arithmetic auto const                        isolevel) {
   assert(data.num_dimensions() == 2);
   return isolines(
       [&](auto ix, auto iy, auto const& /*ps*/) -> auto const& {
@@ -135,11 +135,12 @@ auto isolines(dynamic_multidim_array<Real, Indexing> const& data,
       isolevel);
 }
 //------------------------------------------------------------------------------
-template <real_number Real, real_number BBReal, typename Indexing, typename MemLoc, size_t XRes,
-          size_t YRes>
+template <arithmetic Real, arithmetic BBReal, typename Indexing,
+          typename MemLoc, size_t XRes, size_t YRes>
 auto isolines(
     static_multidim_array<Real, Indexing, MemLoc, XRes, YRes> const& data,
-    axis_aligned_bounding_box<BBReal, 2> const& bb, real_number auto const isolevel) {
+    axis_aligned_bounding_box<BBReal, 2> const&                      bb,
+    arithmetic auto const                                            isolevel) {
   return isolines(
       [&](auto ix, auto iy, auto const& /*ps*/) -> auto const& {
         return data(ix, iy);
@@ -150,9 +151,9 @@ auto isolines(
 }
 //------------------------------------------------------------------------------
 template <typename Field, typename FieldReal, indexable_space XDomain,
-          indexable_space YDomain, real_number TReal = FieldReal>
+          indexable_space YDomain, arithmetic TReal = FieldReal>
 auto isolines(field<Field, FieldReal, 2> const& sf,
-              grid<XDomain, YDomain> const& g, real_number auto const isolevel,
+              grid<XDomain, YDomain> const& g, arithmetic auto const isolevel,
               TReal const t = 0) {
   auto eval = [&](auto const /*ix*/, auto const /*iy*/, auto const& pos) {
     return sf(pos, t);

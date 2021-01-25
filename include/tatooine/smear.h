@@ -12,14 +12,14 @@ namespace tatooine {
 /// Afterwards create the interpolation factor depending of position and time.
 template <template <typename>
           typename InterpolationKernel = interpolation::cubic,
-          typename PingGrid, real_number PingReal, typename PongGrid,
-          real_number PongReal, real_number SphereReal, real_number DirReal>
+          typename PingGrid, arithmetic PingReal, typename PongGrid,
+          arithmetic PongReal, arithmetic SphereReal, arithmetic DirReal>
 auto smear(typed_multidim_property<PingGrid, PingReal> const& ping_field,
            typed_multidim_property<PongGrid, PongReal>&       pong_field,
            geometry::sphere<SphereReal, 2> const&             s,
-           real_number auto const                             inner_radius,
-           real_number auto const                             temporal_range,
-           real_number auto const current_time, real_number auto const t0,
+           arithmetic auto const                             inner_radius,
+           arithmetic auto const                             temporal_range,
+           arithmetic auto const current_time, arithmetic auto const t0,
            vec<DirReal, 2> const& dir) {
   // create a sampler of the ping_field
   auto sampler = ping_field.template sampler<InterpolationKernel>();

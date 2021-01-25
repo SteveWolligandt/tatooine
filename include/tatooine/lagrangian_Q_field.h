@@ -37,7 +37,7 @@ class lagrangian_Q_field
  public:
   template <typename Real>
   lagrangian_Q_field(const vectorfield<V, Real, N>& v,
-                     real_number auto const btau, real_number auto const ftau)
+                     arithmetic auto const btau, arithmetic auto const ftau)
       : m_v{v.as_derived()},
         m_btau{static_cast<real_t>(btau)},
         m_ftau{static_cast<real_t>(ftau)} {}
@@ -128,8 +128,8 @@ class lagrangian_Q_field
 };
 //==============================================================================
 template <typename V, typename Real, size_t N>
-auto lagrangian_Q(const field<V, Real, N, N>& vf, real_number auto const btau,
-                  real_number auto const ftau) {
+auto lagrangian_Q(const field<V, Real, N, N>& vf, arithmetic auto const btau,
+                  arithmetic auto const ftau) {
   return lagrangian_Q_field<V, N>{vf, btau, ftau};
 }
 //==============================================================================

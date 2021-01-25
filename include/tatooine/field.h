@@ -160,10 +160,17 @@ struct is_vectorfield<T> : std::integral_constant<bool, T::is_vectorfield()> {};
 //==============================================================================
 // free functions
 //==============================================================================
-template <typename V, real_number VReal, size_t N,
-          size_t... TensorDims, indexable_space... SpatialDimensions>
+#ifdef __cpp_concpets
+template <typename V, arithmetic VReal, size_t N,
+          size_t... TensorDims, indexable_space... SpatialDimensions, arithmetc T>
+#else
+template <typename V, typename VReal, size_t N, size_t... TensorDims,
+          typename... SpatialDimensions,
+          typename T,
+          enable_if_arithmetic<VReal, T> = true>
+#endif
 auto sample_to_raw(field<V, VReal, N, TensorDims...> const& f,
-                   grid<SpatialDimensions...> const& g, real_number auto t,
+                   grid<SpatialDimensions...> const& g, T const t,
                    size_t padding = 0, VReal padval = 0) {
   auto const           nan = VReal(0) / VReal(0);
   std::vector<VReal> raw_data;
@@ -189,9 +196,16 @@ auto sample_to_raw(field<V, VReal, N, TensorDims...> const& f,
   return raw_data;
 }
 //------------------------------------------------------------------------------
-template <typename V, real_number VReal, real_number TReal,
+#ifdef __cpp_concpets
+template <typename V, arithmetic VReal, arithmetic TReal,
           size_t N, size_t... TensorDims, indexable_space... SpatialDimensions,
           indexable_space TemporalDimension>
+#else
+template <typename V, typename VReal, typename TReal, size_t N,
+          size_t... TensorDims, typename... SpatialDimensions,
+          typename TemporalDimension,
+          enable_if_arithmetic<VReal, TReal> = true>
+#endif
 auto sample_to_raw(field<V, VReal, N, TensorDims...> const& f,
                    grid<SpatialDimensions...> const&        g,
                    TemporalDimension const& temporal_domain, size_t padding = 0,
@@ -224,10 +238,16 @@ auto sample_to_raw(field<V, VReal, N, TensorDims...> const& f,
   return raw_data;
 }
 //------------------------------------------------------------------------------
-template <real_number VReal, size_t N,
+#ifdef __cpp_concpets
+template <arithmetic VReal, arithmetic TReal, size_t N,
           size_t... TensorDims, indexable_space... SpatialDimensions>
+#else
+template <typename VReal, typename TReal, size_t N, size_t... TensorDims,
+          typename... SpatialDimensions,
+          enable_if_arithmetic<VReal, TReal> = true>
+#endif
 auto sample_to_vector(parent::field<VReal, N, TensorDims...> const& f,
-                   grid<SpatialDimensions...> const& g, real_number auto t) {
+                   grid<SpatialDimensions...> const& g, TReal t) {
   using V = parent::field<VReal, N, TensorDims...>;
   using tensor_t = typename V::tensor_t;
   auto const            nan = VReal(0) / VReal(0);
@@ -247,11 +267,17 @@ auto sample_to_vector(parent::field<VReal, N, TensorDims...> const& f,
   return data;
 }
 //------------------------------------------------------------------------------
-template <typename V, real_number VReal, size_t N,
+#ifdef __cpp_concpets
+template <typename V, arithmetic VReal, arithmetic TReal size_t N,
           size_t... TensorDims, indexable_space... SpatialDimensions>
+#else
+template <typename V, typename VReal, typename TReal, size_t N,
+          size_t... TensorDims, typename... SpatialDimensions,
+          enable_if_arithmetic<VReal, TReal> = true>
+#endif
 auto resample(field<V, VReal, N, TensorDims...> const& f,
               grid<SpatialDimensions...> const&        spatial_domain,
-              real_number auto const                   t) {
+              TReal const                   t) {
   auto const ood_tensor = [] {
     if constexpr (sizeof...(TensorDims) == 0) {
       return VReal(0) / VReal(0);
@@ -289,9 +315,16 @@ auto resample(field<V, VReal, N, TensorDims...> const& f,
   return gn;
 }
 //------------------------------------------------------------------------------
-template <typename V, real_number VReal, real_number TReal, size_t N,
+#ifdef __cpp_concpets
+template <typename V, arithmetic VReal, arithmetic TReal, size_t N,
           size_t... TensorDims, indexable_space... SpatialDimensions,
           indexable_space TemporalDomain>
+#else
+template <typename V, typename VReal, typename TReal, size_t N,
+          size_t... TensorDims, typename... SpatialDimensions,
+          typename TemporalDomain,
+          enable_if_arithmetic<VReal, TReal> = true>
+#endif
 auto resample(field<V, VReal, N, TensorDims...> const& f,
               grid<SpatialDimensions...> const&        spatial_domain,
               TemporalDomain const&                    temporal_domain) {

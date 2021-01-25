@@ -48,14 +48,14 @@ constexpr auto operator*(const field<V0, Real0, N, TensorDims...>& lhs,
       lhs, rhs, [](const auto& lhs, const auto& rhs) { return lhs * rhs; });
 }
 //├──────────────────────────────────────────────────────────────────────────┤
-template <typename V, real_number VReal, size_t N, real_number ScalarReal,
+template <typename V, arithmetic VReal, size_t N, arithmetic ScalarReal,
           size_t... TensorDims>
 constexpr auto operator*(const field<V, VReal, N, TensorDims...>& f,
                          const ScalarReal                         scalar) {
   return V{f.as_derived()} | [scalar](auto const& t) { return t * scalar; };
 }
 //├──────────────────────────────────────────────────────────────────────────┤
-template <typename V, real_number VReal, size_t N, real_number ScalarReal,
+template <typename V, arithmetic VReal, size_t N, arithmetic ScalarReal,
           size_t... TensorDims>
 constexpr auto operator*(const ScalarReal                         scalar,
                          const field<V, VReal, N, TensorDims...>& f) {

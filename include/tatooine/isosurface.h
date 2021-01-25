@@ -27,7 +27,7 @@ template <
         GetScalars>
 auto isosurface(GetScalars&&                           get_scalars,
                 grid<XDomain, YDomain, ZDomain> const& g,
-                real_number auto const                 isolevel) {
+                arithmetic auto const                 isolevel) {
   using real_t = typename grid<XDomain, YDomain, ZDomain>::real_t;
   using pos_t = vec<real_t, 3>;
   triangular_mesh<real_t, 3> iso_volume;
@@ -159,10 +159,10 @@ auto isosurface(GetScalars&&                           get_scalars,
   return iso_volume;
 }
 //------------------------------------------------------------------------------
-template <real_number Real, typename Indexing, real_number BBReal>
+template <arithmetic Real, typename Indexing, arithmetic BBReal>
 auto isosurface(dynamic_multidim_array<Real, Indexing> const& data,
                 axis_aligned_bounding_box<BBReal, 3> const&   bb,
-                real_number auto const                                  isolevel) {
+                arithmetic auto const                                  isolevel) {
   assert(data.num_dimensions() == 3);
   return isosurface(
       [&](auto ix, auto iy, auto iz, auto const& /*ps*/) -> auto const& {
@@ -174,11 +174,11 @@ auto isosurface(dynamic_multidim_array<Real, Indexing> const& data,
       isolevel);
 }
 //------------------------------------------------------------------------------
-template <real_number Real, typename Indexing, typename MemLoc, size_t XRes,
-          size_t YRes, size_t ZRes, real_number BBReal>
+template <arithmetic Real, typename Indexing, typename MemLoc, size_t XRes,
+          size_t YRes, size_t ZRes, arithmetic BBReal>
 auto isosurface(
     static_multidim_array<Real, Indexing, MemLoc, XRes, YRes, ZRes> const& data,
-    axis_aligned_bounding_box<BBReal, 3> const& bb, real_number auto isolevel) {
+    axis_aligned_bounding_box<BBReal, 3> const& bb, arithmetic auto isolevel) {
   return isosurface(
       [&](auto ix, auto iy, auto iz, auto const& /*ps*/) -> auto const& {
         return data(ix, iy, iz);
@@ -189,12 +189,12 @@ auto isosurface(
       isolevel);
 }
 //------------------------------------------------------------------------------
-template <typename Field, real_number FieldReal, indexable_space XDomain,
+template <typename Field, arithmetic FieldReal, indexable_space XDomain,
           indexable_space YDomain, indexable_space ZDomain,
-          real_number TReal = FieldReal>
+          arithmetic TReal = FieldReal>
 auto isosurface(field<Field, FieldReal, 3> const&      sf,
                 grid<XDomain, YDomain, ZDomain> const& g,
-                real_number auto const isolevel, TReal const t = 0) {
+                arithmetic auto const isolevel, TReal const t = 0) {
   return isosurface([&](auto /*ix*/, auto /*iy*/, auto /*iz*/,
                                    auto const& pos) { return sf(pos, t); },
                                g, isolevel);

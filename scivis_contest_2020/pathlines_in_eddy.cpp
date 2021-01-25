@@ -31,8 +31,8 @@ auto create_grid() {
 //------------------------------------------------------------------------------
 template <typename... Is>
 void collect_pathlines_in_eddy(
-    V const& v, typename V::pos_t const& x, real_number auto const t,
-    real_number auto const threshold,
+    V const& v, typename V::pos_t const& x, arithmetic auto const t,
+    arithmetic auto const threshold,
     std::vector<parameterized_line<double, 3, interpolation::linear>>&
         pathlines) {
   auto const Jf = diff(v, 1e-8);
@@ -79,7 +79,7 @@ void collect_pathlines_in_eddy(
 }
 //------------------------------------------------------------------------------
 void collect_pathlines_in_eddy(
-    V const& v, real_number auto const t, real_number auto const threshold,
+    V const& v, arithmetic auto const t, arithmetic auto const threshold,
     std::vector<vec<double, 3>> const& xs,
     std::vector<parameterized_line<double, 3, interpolation::linear>>&
         pathlines) {
@@ -105,7 +105,7 @@ void collect_pathlines_in_eddy(
 }
 //------------------------------------------------------------------------------
 void collect_pathlines_in_eddy(char const*            ensemble_id,
-                               real_number auto const threshold) {
+                               arithmetic auto const threshold) {
   auto const ensemble_path = [&] {
     if (std::string{ensemble_id} == "MEAN" ||
         std::string{ensemble_id} == "Mean" ||

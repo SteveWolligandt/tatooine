@@ -167,7 +167,7 @@ struct pointset {
   auto vertex_data() -> auto& { return m_vertices; }
   auto vertex_data() const -> auto const& { return m_vertices; }
   //----------------------------------------------------------------------------
-  template <real_number... Ts>
+  template <arithmetic... Ts>
   requires(sizeof...(Ts) == N)
   auto insert_vertex(Ts const... ts) {
     m_vertices.push_back(pos_t{static_cast<Real>(ts)...});
@@ -560,12 +560,12 @@ struct pointset {
       }
       return accumulated_prop_val / accumulated_weight;
     }
-    template <real_number... Components>
+    template <arithmetic... Components>
     requires(sizeof...(Components) == N)
     auto sample(Components const... components) const {
       return sample(pos_t{components...});
     }
-    template <real_number... Components>
+    template <arithmetic... Components>
     requires(sizeof...(Components) == N)
     auto operator()(Components const... components) const {
       return sample(pos_t{components...});
@@ -896,12 +896,12 @@ struct pointset {
     }
 
    public:
-    template <real_number... Components>
+    template <arithmetic... Components>
     requires(sizeof...(Components) ==
              N) auto sample(Components const... components) const {
       return sample(pos_t{components...});
     }
-    template <real_number... Components>
+    template <arithmetic... Components>
     requires(sizeof...(Components) == N) auto operator()(
         Components const... components) const {
       return sample(pos_t{components...});

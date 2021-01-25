@@ -36,8 +36,8 @@ struct solver : crtp<Derived> {
   //----------------------------------------------------------------------------
   // methods
   //----------------------------------------------------------------------------
-  template <typename V, std::floating_point VReal, real_number Y0Real,
-            real_number T0Real, real_number TauReal,
+  template <typename V, std::floating_point VReal, arithmetic Y0Real,
+            arithmetic T0Real, arithmetic TauReal,
             stepper_callback_invocable<Y0Real, N> StepperCallback>
   constexpr auto solve(vectorfield<V, VReal, N> const& v, vec<Y0Real, N>& y0,
                        T0Real t0, TauReal tau,
@@ -45,7 +45,7 @@ struct solver : crtp<Derived> {
     as_derived().solve(v, y0, t0, tau, std::forward<StepperCallback>(callback));
   }
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-  template <real_number Y0Real, real_number T0Real, real_number TauReal,
+  template <arithmetic Y0Real, arithmetic T0Real, arithmetic TauReal,
             stepper_evaluator<Y0Real, N>          Evaluator,
             stepper_callback_invocable<Y0Real, N> StepperCallback>
   constexpr auto solve(Evaluator&& evaluator, vec<Y0Real, N>& y0, T0Real t0,

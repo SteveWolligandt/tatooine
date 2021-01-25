@@ -245,7 +245,7 @@ class triangular_mesh : public pointset<Real, N> {
             m_face_indices[i * 3 + 2]};
   }
   //----------------------------------------------------------------------------
-  template <real_number... Ts>
+  template <arithmetic... Ts>
   requires(sizeof...(Ts) == N) auto insert_vertex(Ts const... ts) {
     auto const vi = parent_t::insert_vertex(ts...);
     if (m_hierarchy != nullptr) {
