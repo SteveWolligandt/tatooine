@@ -10,7 +10,7 @@ namespace tatooine {
 /// invert symmetric matrix
 /// A = [a,b]
 ///     [b,c]
-template <typename Tensor, typename Real, enable_if_floating_point<Real>>
+template <typename Tensor, typename Real, enable_if_floating_point<Real> = true>
 constexpr auto inv_sym(base_tensor<Tensor, Real, 2, 2> const& A)
     -> std::optional<mat<Real, 2, 2>> {
   decltype(auto) a   = A(0, 0);
@@ -549,7 +549,7 @@ constexpr auto operator*(base_tensor<Tensor0, T0, M, N> const& lhs,
 /// component-wise multiplication
 template <typename Tensor0, typename T0, typename Tensor1,
           typename T1, size_t... Dims,
-          std::enable_if_t<(sizeof...(Dims) != 2), bool> = true>
+          enable_if<(sizeof...(Dims) != 2)> = true>
 constexpr auto operator*(base_tensor<Tensor0, T0, Dims...> const& lhs,
                          base_tensor<Tensor1, T1, Dims...> const& rhs) {
   return binary_operation(std::multiplies<common_type<T0, T1>>{}, lhs, rhs);

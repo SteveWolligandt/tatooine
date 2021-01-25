@@ -1,6 +1,8 @@
 #ifndef TATOOINE_NUM_COMPONENTS_H
 #define TATOOINE_NUM_COMPONENTS_H
 //==============================================================================
+#include <tatooine/type_traits.h>
+//==============================================================================
 namespace tatooine {
 //==============================================================================
 template <typename T, typename = void>
@@ -15,7 +17,7 @@ requires is_arithmetic<T> struct num_components_impl<T>
     : std::integral_constant<size_t, 1> {};
 #else
 template <typename T>
-struct num_components_impl<T, enable_if_arithmetic<T> >
+struct num_components_impl<T, enable_if_arithmetic<T> = true>
     : std::integral_constant<size_t, 1> {};
 #endif
 //==============================================================================

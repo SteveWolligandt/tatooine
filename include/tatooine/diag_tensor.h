@@ -37,8 +37,7 @@ struct diag_tensor : base_tensor<diag_tensor<Tensor, M, N>,
   }
   //----------------------------------------------------------------------------
   template <typename _Tensor = tensor_t,
-            std::enable_if_t<std::is_const_v<std::remove_reference_t<_Tensor>>,
-                             bool> = true>
+            enable_if<std::is_const_v<std::remove_reference_t<_Tensor>>> = true>
   auto internal_tensor() -> auto& {
     return m_internal_tensor;
   }

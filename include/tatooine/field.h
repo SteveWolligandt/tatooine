@@ -35,7 +35,7 @@ struct field {
   }
   //----------------------------------------------------------------------------
   template <size_t _num_tensor_dims = sizeof...(TensorDims),
-            std::enable_if_t<(_num_tensor_dims > 0)>...>
+            enable_if<(_num_tensor_dims > 0)> = true>
   static constexpr auto tensor_dimension(size_t i) {
     return tensor_t::dimension(i);
   }

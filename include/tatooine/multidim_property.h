@@ -208,9 +208,8 @@ struct typed_multidim_property : multidim_property<Grid> {
            (is_floating_point_v<ValueType> || is_vec_v<ValueType>)
 #else
   template <size_t _N                                   = num_dimensions(),
-            enable_if<(_N == 2) &&
-                      (is_floating_point<ValueType> ||
-                      is_vec<ValueType>)> = true>
+            enable_if<(_N == 2) && (is_floating_point<ValueType> ||
+                                    is_vec<ValueType>)> = true>
 #endif
   auto write_png(std::filesystem::path const& path) const -> void {
     png::image<png::rgb_pixel> image{
