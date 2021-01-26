@@ -670,7 +670,7 @@ struct chunked_multidim_array {
   //}
   ////----------------------------------------------------------------------------
   //template <typename = void>
-  //requires is_arithmetic_<T>
+  //requires is_arithmetic<T>
   // auto unchunk_plain() const {
   //  using real_t          = typename T::real_t;
   //  constexpr auto      n = T::num_components();
@@ -698,7 +698,7 @@ struct chunked_multidim_array {
     }
   }
 #ifdef __cpp_concepts
-  template <typename = void> requires is_arithmetic_<T>
+  template <typename = void> requires is_arithmetic<T>
 #else
   template <typename _T = T, enable_if<is_arithmetic<T>> = true>
 #endif
@@ -711,7 +711,7 @@ struct chunked_multidim_array {
   }
 
 #ifdef __cpp_concepts
-  template <typename = void> requires is_arithmetic_<T>
+  template <typename = void> requires is_arithmetic<T>
 #else
   template <typename _T = T, enable_if<is_arithmetic<T>> = true>
 #endif
@@ -724,7 +724,7 @@ struct chunked_multidim_array {
   }
 
 #ifdef __cpp_concepts
-  template <typename = void> requires is_arithmetic_<T>
+  template <typename = void> requires is_arithmetic<T>
 #else
   template <typename _T = T, enable_if<is_arithmetic<T>> = true>
 #endif
@@ -747,7 +747,7 @@ struct chunked_multidim_array {
   }
 
 #ifdef __cpp_concepts
-  template <typename = void> requires is_arithmetic_<T>
+  template <typename = void> requires is_arithmetic<T>
 #else
   template <typename _T = T, enable_if<is_arithmetic<T>> = true>
 #endif

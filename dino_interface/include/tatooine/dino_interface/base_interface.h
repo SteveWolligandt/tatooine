@@ -1,12 +1,13 @@
 #ifndef TATOOINE_DINO_INTERFACE_BASE_INTERFACE_H
 #define TATOOINE_DINO_INTERFACE_BASE_INTERFACE_H
 //==============================================================================
+#include <tatooine/grid.h>
+
 #include <boost/mpi.hpp>
 #include <boost/mpi/cartesian_communicator.hpp>
 #include <chrono>
 #include <filesystem>
 #include <fstream>
-#include <tatooine/grid.h>
 #include <iomanip>
 #include <iostream>
 //==============================================================================
@@ -74,6 +75,7 @@ struct base_interface {
   std::chrono::time_point<std::chrono::system_clock>  m_last_end_time;
   uniform_grid<double, 3>                             m_global_grid;
   uniform_grid<double, 3>                             m_worker_grid;
+  uniform_grid<double, 3>                             m_worker_halo_grid;
 
   //============================================================================
   // METHODS
@@ -112,20 +114,25 @@ struct base_interface {
   //------------------------------------------------------------------------------
   /// \brief  Initialize the dataset grid.
   ///
-  /// \param  global_grid_size_x, global_grid_size_y, global_grid_size_z     global grid dimensions
-  /// \param  local_starting_index_x, local_starting_index_y, local_starting_index_z           starting indices of current
+  /// \param  global_grid_size_x, global_grid_size_y, global_grid_size_z global
+  /// grid dimensions \param  local_starting_index_x, local_starting_index_y,
+  /// local_starting_index_z           starting indices of current
   ///                                 process
-  /// \param  local_grid_size_x, local_grid_size_y, local_grid_size_z           number of grid points of current process
-  /// \param  domain_size_x, domain_size_y, domain_size_z              size of domain box
-  /// \param  is_periodic_x, is_periodic_y, is_periodic_z     periodic boundary directions
+  /// \param  local_grid_size_x, local_grid_size_y, local_grid_size_z number of
+  /// grid points of current process \param  domain_size_x, domain_size_y,
+  /// domain_size_z              size of domain box \param  is_periodic_x,
+  /// is_periodic_y, is_periodic_z     periodic boundary directions
   ///                                             (0 for no, 1 for yes)
   /// \param  halo_level              number of halo cell layers
-  auto initialize_grid(int const global_grid_size_x, int const global_grid_size_y, int const global_grid_size_z,
-                       int const local_starting_index_x, int const local_starting_index_y, int const local_starting_index_z,
-                       int const local_grid_size_x, int const local_grid_size_y, int const local_grid_size_z,
-                       double const domain_size_x, double const domain_size_y, double const domain_size_z,
-                       int const /*is_periodic_x*/, int const /*is_periodic_y*/,
-                       int const /*is_periodic_z*/, int const halo_level) -> void {
+  auto initialize_grid(
+      int const global_grid_size_x, int const global_grid_size_y,
+      int const global_grid_size_z, int const local_starting_index_x,
+      int const local_starting_index_y, int const local_starting_index_z,
+      int const local_grid_size_x, int const local_grid_size_y,
+      int const local_grid_size_z, double const domain_size_x,
+      double const domain_size_y, double const domain_size_z,
+      int const /*is_periodic_x*/, int const /*is_periodic_y*/,
+      int const /*is_periodic_z*/, int const halo_level) -> void {
     if (m_grid_initialized) {
       return;
     }
@@ -150,9 +157,12 @@ struct base_interface {
     log_all("global_grid_size_x: " + std::to_string(global_grid_size_x));
     log_all("global_grid_size_y: " + std::to_string(global_grid_size_y));
     log_all("global_grid_size_z: " + std::to_string(global_grid_size_z));
-    log_all("local_starting_index_x: " + std::to_string(local_starting_index_x));
-    log_all("local_starting_index_y: " + std::to_string(local_starting_index_y));
-    log_all("local_starting_index_z: " + std::to_string(local_starting_index_z));
+    log_all("local_starting_index_x: " +
+            std::to_string(local_starting_index_x));
+    log_all("local_starting_index_y: " +
+            std::to_string(local_starting_index_y));
+    log_all("local_starting_index_z: " +
+            std::to_string(local_starting_index_z));
     log_all("domain_size_x: " + std::to_string(domain_size_x));
     log_all("domain_size_y: " + std::to_string(domain_size_y));
     log_all("domain_size_z: " + std::to_string(domain_size_z));
@@ -163,26 +173,61 @@ struct base_interface {
                                   std::to_string(halo_level));
     }
 
-    m_global_grid.dimension<0>() = linspace<double>{0, domain_size_x, static_cast<size_t>(global_grid_size_x)};
-    m_global_grid.dimension<1>() = linspace<double>{0, domain_size_y, static_cast<size_t>(global_grid_size_y)};
-    m_global_grid.dimension<2>() = linspace<double>{0, domain_size_z, static_cast<size_t>(global_grid_size_z)};
+    m_global_grid.dimension<0>() = linspace<double>{
+        0, domain_size_x, static_cast<size_t>(global_grid_size_x)};
+    m_global_grid.dimension<1>() = linspace<double>{
+        0, domain_size_y, static_cast<size_t>(global_grid_size_y)};
+    m_global_grid.dimension<2>() = linspace<double>{
+        0, domain_size_z, static_cast<size_t>(global_grid_size_z)};
 
     m_worker_grid.dimension<0>() = linspace{
         m_global_grid.dimension<0>()[local_starting_index_x],
-        m_global_grid.dimension<0>()[local_starting_index_x + local_grid_size_x - 1], static_cast<size_t>(local_grid_size_x)};
+        m_global_grid
+            .dimension<0>()[local_starting_index_x + local_grid_size_x - 1],
+        static_cast<size_t>(local_grid_size_x)};
     m_worker_grid.dimension<1>() = linspace{
         m_global_grid.dimension<1>()[local_starting_index_y],
-        m_global_grid.dimension<1>()[local_starting_index_y + local_grid_size_y - 1], static_cast<size_t>(local_grid_size_y)};
+        m_global_grid
+            .dimension<1>()[local_starting_index_y + local_grid_size_y - 1],
+        static_cast<size_t>(local_grid_size_y)};
     m_worker_grid.dimension<2>() = linspace{
         m_global_grid.dimension<2>()[local_starting_index_z],
-        m_global_grid.dimension<2>()[local_starting_index_z + local_grid_size_z - 1], static_cast<size_t>(local_grid_size_z)};
+        m_global_grid
+            .dimension<2>()[local_starting_index_z + local_grid_size_z - 1],
+        static_cast<size_t>(local_grid_size_z)};
+
+    m_worker_halo_grid.dimension<0>() = linspace{
+        m_global_grid.dimension<0>()[local_starting_index_x],
+        m_global_grid
+            .dimension<0>()[local_starting_index_x + local_grid_size_x - 1],
+        static_cast<size_t>(local_grid_size_x)};
+    if (local_grid_size_x < global_grid_size_x) {
+      if (local)
+    }
+    m_worker_halo_grid.dimension<1>() = linspace{
+        m_global_grid.dimension<1>()[local_starting_index_y],
+        m_global_grid
+            .dimension<1>()[local_starting_index_y + local_grid_size_y - 1],
+        static_cast<size_t>(local_grid_size_y)};
+    m_worker_halo_grid.dimension<2>() = linspace{
+        m_global_grid.dimension<2>()[local_starting_index_z],
+        m_global_grid
+            .dimension<2>()[local_starting_index_z + local_grid_size_z - 1],
+        static_cast<size_t>(local_grid_size_z)};
+
     if (m_mpi_communicator->rank() == 0) {
-      std::cerr << "global grid:\n" << m_global_grid.dimension<0>() << '\n'
+      std::cerr << "global grid:\n"
+                << m_global_grid.dimension<0>() << '\n'
                 << m_global_grid.dimension<1>() << '\n'
                 << m_global_grid.dimension<2>() << '\n';
-      std::cerr << "worker grid:\n" << m_worker_grid.dimension<0>() << '\n'
+      std::cerr << "worker grid:\n"
+                << m_worker_grid.dimension<0>() << '\n'
                 << m_worker_grid.dimension<1>() << '\n'
                 << m_worker_grid.dimension<2>() << '\n';
+      std::cerr << "worker halo grid:\n"
+                << m_worker_halo_grid.dimension<0>() << '\n'
+                << m_worker_halo_grid.dimension<1>() << '\n'
+                << m_worker_halo_grid.dimension<2>() << '\n';
     }
 
     m_grid_initialized = true;
@@ -205,13 +250,15 @@ struct base_interface {
 
     // Gather all memory usage at master node
     // auto vmused_all = std::vector<long>{};
-    // boost::mpi::gather(*m_mpi_communicator, virtualMemUsedProcess, vmused_all, 0L);
+    // boost::mpi::gather(*m_mpi_communicator, virtualMemUsedProcess,
+    // vmused_all, 0L);
 
     auto pmused_all = std::vector<long>{};
     boost::mpi::gather(*m_mpi_communicator, memUsedProcess, pmused_all, 0L);
 
     auto overhead_all = std::vector<long>{};
-    boost::mpi::gather(*m_mpi_communicator, memOverheadProcess, overhead_all, 0L);
+    boost::mpi::gather(*m_mpi_communicator, memOverheadProcess, overhead_all,
+                       0L);
 
     // auto basevm_all = std::vector<long>{};
     // boost::mpi::gather(*m_mpi_communicator, _base_vmused, basevm_all, 0L);

@@ -1,5 +1,6 @@
 #include <tatooine/dino_interface/base_interface.h>
 #include <tatooine/dino_interface/interface.h>
+#include <tatooine/analytical/fields/numerical/abcflow.h>
 
 #include <boost/multi_array.hpp>
 #include <tatooine/multidim_array.h>
@@ -32,7 +33,7 @@ struct interface : base_interface<interface> {
   //==============================================================================
   // Interface Functions
   //==============================================================================
-  auto initialize_variable(char const* /*name*/, int const num_components,
+  auto initialize_variable(char const* name, int const num_components,
                            double const* var) -> void {
     if (m_variables_initialized) {
       return;
@@ -45,26 +46,36 @@ struct interface : base_interface<interface> {
     log("Initializing variables");
 
     if (num_components == 1) {
-      //using arr_t   = boost::multi_array<double, 3>;
-      //arr_t transformed_data{
-      //    boost::extents[m_worker_grid.size(0)][m_worker_grid.size(1)]
-      //                  [m_worker_grid.size(2)]};
-      //
-      //size_t idx = 0;
-      //for (size_t i = 0; i < m_worker_grid.size(0); ++i) {
-      //  for (size_t j = 0; j < m_worker_grid.size(1); ++j) {
-      //    for (size_t k = 0; k < m_worker_grid.size(2); ++k) {
-      //      transformed_data[i][j][k] = var[idx++];
-      //    }
-      //  }
-      //}
-      //
-      //for (size_t i = 0; i < 12; ++i) {
-      //  if (m_mpi_communicator->rank() == 0) {
-      //    std::cerr << transformed_data.data()[i] << ", ";
-      //  }
-      //  std::cerr << "...\n";
-      //}
+      using arr_t   = dynamic_multidim_array<double>;
+      arr_t transformed_data{m_worker_grid.size(0),
+                             m_worker_grid.size(1),
+                             m_worker_grid.size(2)};
+
+      size_t idx = 0;
+      for (size_t i = 0; i < m_worker_grid.size(0); ++i) {
+        for (size_t j = 0; j < m_worker_grid.size(1); ++j) {
+          for (size_t k = 0; k < m_worker_grid.size(2); ++k) {
+            transformed_data(i, j, k) = var[idx++];
+          }
+        }
+      }
+
+      if (std::string{name} == "velocity_x") {
+        tatooine::analytical::fields::numerical::abcflow v{};
+        m_worker_grid.loop_over_vertex_indices([&](auto const... is) {
+          auto const x = m_worker_grid(is...);
+           if (v(x, m_time).x() != transformed_data(is...)) {
+             throw std::logic_error{"FOOOO"};
+           }
+        });
+      }
+
+      for (size_t i = 0; i < 12; ++i) {
+        if (m_mpi_communicator->rank() == 0) {
+          std::cerr << transformed_data.data()[i] << ", ";
+        }
+        std::cerr << "...\n";
+      }
     } else {
       using arr_t   = dynamic_multidim_array<vec3>;
 

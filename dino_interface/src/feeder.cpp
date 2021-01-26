@@ -1,7 +1,7 @@
 #include <mpi.h>
 #include <tatooine/analytical/fields/numerical/abcflow.h>
 #include <tatooine/axis_aligned_bounding_box.h>
-#include <tatooine/mpi/interfaces/test.h>
+#include <tatooine/dino_interface/interface.h>
 
 #include <boost/multi_array.hpp>
 #include <boost/program_options.hpp>
@@ -75,7 +75,8 @@ double deltaZ = 0;
 
 int halo_level = 4;
 
-std::unique_ptr<vec_array> velocity_field;
+std::unique_ptr<scalar_array> velocity_x_field, velocity_y_field,
+    velocity_z_field;
 //==============================================================================
 auto initialize_mpi(int argc, char** argv) -> void {
   MPI_Init(&argc, &argv);
@@ -178,16 +179,16 @@ auto sample_flow() {
                                           local_domain_origin_y + double(j - starty) * deltaY,
                                           local_domain_origin_z + double(k - startz) * deltaZ},
                            cur_t);
-        (*velocity_field)[i][j][k][0] = vel.x();
-        (*velocity_field)[i][j][k][1] = vel.y();
-        (*velocity_field)[i][j][k][2] = vel.z();
+        (*velocity_x_field)[i][j][k] = vel.x();
+        (*velocity_y_field)[i][j][k] = vel.y();
+        (*velocity_z_field)[i][j][k] = vel.z();
       }
     }
   }
   if (rank == 0) {
     std::cerr << "feeder: " << cur_t << " | ";
     for (size_t i = 0; i < 12; ++i) {
-      std::cerr << velocity_field->data()[i] << ", ";
+      std::cerr << velocity_x_field->data()[i] << ", ";
     }
     std::cerr << "...\n";
   }
@@ -199,11 +200,13 @@ auto simulation_step() -> void {
   }
   cur_t = cur_t + dt;
   sample_flow();
-  tatooine_dino_update_variable("velocity", &three, velocity_field->data());
+  tatooine_dino_interface_update_variable("velocity_x", &one, velocity_x_field->data());
+  tatooine_dino_interface_update_variable("velocity_y", &one, velocity_y_field->data());
+  tatooine_dino_interface_update_variable("velocity_z", &one, velocity_z_field->data());
   if (rank == 0) {
     std::cerr << "Variables updated.\n";
   }
-  tatooine_dino_update(&iteration, &cur_t);
+  tatooine_dino_interface_update(&iteration, &cur_t);
   if (rank == 0) {
     std::cerr << "Tracking updated.\n";
   }
@@ -301,7 +304,7 @@ auto initialize_flow_data() {
 }
 //------------------------------------------------------------------------------
 auto start_simulation() -> void {
-  tatooine_dino_initialize_grid(
+  tatooine_dino_interface_initialize_grid(
       &global_grid_size[0], &global_grid_size[1], &global_grid_size[2],
       &local_starting_index_x, &local_starting_index_y, &local_starting_index_z,
       &global_grid_size[0], &local_grid_size_y, &local_grid_size_z,
@@ -311,18 +314,20 @@ auto start_simulation() -> void {
     std::cerr << "Initialized grid.\n";
   }
 
-  tatooine_dino_initialize_variable("velocity", &three, velocity_field->data());
+  tatooine_dino_interface_initialize_variable("velocity_x", &one, velocity_x_field->data());
+  tatooine_dino_interface_initialize_variable("velocity_y", &one, velocity_y_field->data());
+  tatooine_dino_interface_initialize_variable("velocity_z", &one, velocity_z_field->data());
   if (rank == 0) {
     std::cerr << "Initialized Variables.\n";
   }
 
   auto const prev_time = t0 - dt;
-  tatooine_dino_initialize_parameters(&t0, &prev_time, &iteration);
+  tatooine_dino_interface_initialize_parameters(&t0, &prev_time, &iteration);
   if (rank == 0) {
     std::cerr << "Initialized Parameters.\n";
   }
 
-  tatooine_dino_initialize(&restart);
+  tatooine_dino_interface_initialize(&restart);
 
   simulation_loop();
 }
@@ -362,14 +367,22 @@ auto main(int argc, char** argv) -> int {
   MPI_Fint commF = MPI_Comm_c2f(newComm);
 
   calculate_grid_position_for_worker();
-  velocity_field = std::make_unique<vec_array>(
+  velocity_x_field = std::make_unique<scalar_array>(
       boost::extents[range_t(0, global_grid_size[0])][range_t(starty, local_grid_end_y)]
-                    [range_t(startz, local_grid_end_z)][3],
+                    [range_t(startz, local_grid_end_z)],
+      boost::fortran_storage_order());
+  velocity_y_field = std::make_unique<scalar_array>(
+      boost::extents[range_t(0, global_grid_size[0])][range_t(starty, local_grid_end_y)]
+                    [range_t(startz, local_grid_end_z)],
+      boost::fortran_storage_order());
+  velocity_z_field = std::make_unique<scalar_array>(
+      boost::extents[range_t(0, global_grid_size[0])][range_t(starty, local_grid_end_y)]
+                    [range_t(startz, local_grid_end_z)],
       boost::fortran_storage_order());
 
   initialize_flow_data();
 
-  tatooine_dino_initialize_communicator(&commF);
+  tatooine_dino_interface_initialize_communicator(&commF);
   if (rank == 0) {
     std::cerr << "Initialized MPI.\n";
   }

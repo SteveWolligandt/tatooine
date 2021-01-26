@@ -1,6 +1,8 @@
 #ifndef TATOOINE_GRID_VERTEX_CONTAINER_H
 #define TATOOINE_GRID_VERTEX_CONTAINER_H
 //==============================================================================
+#include <tatooine/concepts.h>
+//==============================================================================
 namespace tatooine {
 //==============================================================================
 #ifdef __cpp_concepts
@@ -64,7 +66,7 @@ auto size(grid_vertex_container<Dimensions...> const& c) {
 //==============================================================================
 namespace std::ranges {
 #ifdef __cpp_concepts
-template <indexable_space... Dimensions>
+template <tatooine::indexable_space... Dimensions>
 #else
 template <typename... Dimensions>
 #endif
@@ -72,7 +74,7 @@ constexpr auto begin(tatooine::grid_vertex_container<Dimensions...>& r) {
   r.begin();
 }
 #ifdef __cpp_concepts
-template <indexable_space... Dimensions>
+template <tatooine::indexable_space... Dimensions>
 #else
 template <typename... Dimensions>
 #endif
@@ -80,7 +82,7 @@ constexpr auto end(tatooine::grid_vertex_container<Dimensions...>& r) {
   r.end();
 }
 #ifdef __cpp_concepts
-template <indexable_space... Dimensions>
+template <tatooine::indexable_space... Dimensions>
 #else
 template <typename... Dimensions>
 #endif
@@ -88,7 +90,7 @@ constexpr auto begin(tatooine::grid_vertex_container<Dimensions...> const& r) {
   r.begin();
 }
 #ifdef __cpp_concepts
-template <indexable_space... Dimensions>
+template <tatooine::indexable_space... Dimensions>
 #else
 template <typename... Dimensions>
 #endif

@@ -447,7 +447,7 @@ class grid {
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
   /// returns cell indices and factors for each dimension for interpolaton
 #ifdef __cpp_concepts
-  template <size_t... DimensionIndex>
+  template <size_t... DimensionIndex, arithmetic... Xs>
 #else
   template <size_t... DimensionIndex, typename... Xs,
             enable_if<is_arithmetic<Xs...>> = true>
@@ -1270,7 +1270,7 @@ class grid {
   //----------------------------------------------------------------------------
 #ifdef __cpp_concepts
   template <typename T>
-  requires((num_dimensions() == 3)
+  requires(num_dimensions() == 3)
 #else
   template <typename T, size_t _N = num_dimensions(), enable_if<_N == 3> = true>
 #endif
