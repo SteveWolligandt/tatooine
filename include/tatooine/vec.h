@@ -22,8 +22,8 @@ struct vec : tensor<T, N> {  // NOLINT
   //----------------------------------------------------------------------------
 #ifdef __cpp_concepts
   template <typename... Ts>
-      requires(is_convertible<Ts, T>... >) &&
-      (parent_t::dimension(0) == sizeof...(Ts) >)
+      requires((is_convertible<Ts, T> && ...)) &&
+      (parent_t::dimension(0) == sizeof...(Ts))
 #else
   template <typename... Ts,
             enable_if<(is_convertible<std::decay_t<Ts>, T> && ...)> = true,
