@@ -34,7 +34,7 @@ struct base_interface {
     long  result = -1;
     char  line[128];
 
-    while (fgets(line, 128, file) != NULL) {
+    while (fgets(line, 128, file) != nullptr) {
       if (strncmp(line, "VmSize:", 7) == 0) {
         result = parse_line(line);
         break;
@@ -49,7 +49,7 @@ struct base_interface {
     long  result = -1;
     char  line[128];
 
-    while (fgets(line, 128, file) != NULL) {
+    while (fgets(line, 128, file) != nullptr) {
       if (strncmp(line, "VmRSS:", 6) == 0) {
         result = parse_line(line);
         break;
@@ -196,24 +196,54 @@ struct base_interface {
             .dimension<2>()[local_starting_index_z + local_grid_size_z - 1],
         static_cast<size_t>(local_grid_size_z)};
 
+    log_all("[interface]: local_domain_origin_x: " +
+            std::to_string(m_worker_grid.dimension<0>().front()));
+
     m_worker_halo_grid.dimension<0>() = linspace{
         m_global_grid.dimension<0>()[local_starting_index_x],
         m_global_grid
             .dimension<0>()[local_starting_index_x + local_grid_size_x - 1],
         static_cast<size_t>(local_grid_size_x)};
+
+    // no pencil in x-direction
     if (local_grid_size_x < global_grid_size_x) {
-      if (local)
+      for (int i = 0; i < halo_level; ++i) {
+        m_worker_halo_grid.dimension<0>().push_front();
+      }
+      for (int i = 0; i < halo_level; ++i) {
+        m_worker_halo_grid.dimension<0>().push_back();
+      }
     }
     m_worker_halo_grid.dimension<1>() = linspace{
         m_global_grid.dimension<1>()[local_starting_index_y],
         m_global_grid
             .dimension<1>()[local_starting_index_y + local_grid_size_y - 1],
         static_cast<size_t>(local_grid_size_y)};
+
+    // no pencil in y-direction
+    if (local_grid_size_y < global_grid_size_y) {
+      for (int i = 0; i < halo_level; ++i) {
+        m_worker_halo_grid.dimension<1>().push_front();
+      }
+      for (int i = 0; i < halo_level; ++i) {
+        m_worker_halo_grid.dimension<1>().push_back();
+      }
+    }
+
     m_worker_halo_grid.dimension<2>() = linspace{
         m_global_grid.dimension<2>()[local_starting_index_z],
         m_global_grid
             .dimension<2>()[local_starting_index_z + local_grid_size_z - 1],
         static_cast<size_t>(local_grid_size_z)};
+    // no pencil in z-direction
+    if (local_grid_size_z < global_grid_size_z) {
+      for (int i = 0; i < halo_level; ++i) {
+        m_worker_halo_grid.dimension<2>().push_front();
+      }
+      for (int i = 0; i < halo_level; ++i) {
+        m_worker_halo_grid.dimension<2>().push_back();
+      }
+    }
 
     if (m_mpi_communicator->rank() == 0) {
       std::cerr << "global grid:\n"
