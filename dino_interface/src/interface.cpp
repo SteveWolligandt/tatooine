@@ -28,12 +28,16 @@ struct interface : base_interface<interface> {
   bool m_parameters_initialized = false;
   bool m_initialized            = false;
 
+  double const* m_velocity_x;
+  double const* m_velocity_y;
+  double const* m_velocity_z;
+
   std::ofstream m_timings_file;
 
   //==============================================================================
   // Interface Functions
   //==============================================================================
-  auto initialize_variable(char const* name, int const num_components,
+  auto initialize_variable(char const* name, int const /*num_components*/,
                            double const* var) -> void {
     if (m_variables_initialized) {
       return;
@@ -45,90 +49,39 @@ struct interface : base_interface<interface> {
     }
     log("Initializing variables");
 
-    if (num_components == 1) {
-      using arr_t   = dynamic_multidim_array<double>;
-      arr_t transformed_data{m_worker_grid.size(0),
-                             m_worker_grid.size(1),
-                             m_worker_grid.size(2)};
-
-      size_t idx = 0;
-      for (size_t i = 0; i < m_worker_grid.size(0); ++i) {
-        for (size_t j = 0; j < m_worker_grid.size(1); ++j) {
-          for (size_t k = 0; k < m_worker_grid.size(2); ++k) {
-            transformed_data(i, j, k) = var[idx++];
-          }
-        }
-      }
-
-      if (std::string{name} == "velocity_x") {
-        tatooine::analytical::fields::numerical::abcflow v{};
-        m_worker_grid.loop_over_vertex_indices([&](auto const... is) {
-          auto const x = m_worker_grid(is...);
-           if (v(x, m_time).x() != transformed_data(is...)) {
-             throw std::logic_error{"FOOOO"};
-           }
-        });
-      }
-
-      for (size_t i = 0; i < 12; ++i) {
-        if (m_mpi_communicator->rank() == 0) {
-          std::cerr << transformed_data.data()[i] << ", ";
-        }
-        std::cerr << "...\n";
-      }
-    } else {
-      using arr_t   = dynamic_multidim_array<vec3>;
-
-      arr_t transformed_data{m_worker_grid.size(0),
-                             m_worker_grid.size(1),
-                             m_worker_grid.size(2)};
-
-      size_t idx = 0;
-      for (size_t k = 0; k < m_worker_grid.size(2); ++k) {
-        for (size_t j = 0; j < m_worker_grid.size(1); ++j) {
-          for (size_t i = 0; i < m_worker_grid.size(0); ++i) {
-            transformed_data(i, j, k) =
-                vec3{var[idx], var[idx + 1], var[idx + 2]};
-            idx += 3;
-          }
-        }
-      }
-
-      if (m_mpi_communicator->rank() == 0) {
-        std::cerr << "from feeder: ";
-        for (size_t i = 0; i < 12; ++i) {
-          std::cerr << var[i] << ", ";
-        }
-        std::cerr << "...\n"
-                  << "interface: ";
-        for (size_t i = 0; i < 4; ++i) {
-          std::cerr << transformed_data.data()[i].x() << ", ";
-          std::cerr << transformed_data.data()[i].y() << ", ";
-          std::cerr << transformed_data.data()[i].z() << ", ";
-        }
-        std::cerr << "...\n";
-      }
+    std::string sname{name};
+    if (sname == "velocity_x") {
+      m_velocity_x = var;
+      log("updating velocity x");
+    }
+    if (sname == "velocity_y") {
+      m_velocity_y = var;
+      log("updating velocity y");
+    }
+    if (sname == "velocity_z") {
+      m_velocity_z = var;
+      log("updating velocity z");
     }
     m_variables_initialized = true;
   }
   //------------------------------------------------------------------------------
   auto initialize_parameters(double const time, double const prev_time,
                              int const iteration) -> void {
-  if (m_parameters_initialized) return;
-  if (!m_grid_initialized) {
-    throw std::logic_error(
-        "initialize_parameters must be called "
-        "after initialize_grid");
-  }
-  log("Initializing parameters");
-  m_time      = time;
-  m_prev_time = prev_time;
-  m_iteration = iteration;
+    if (m_parameters_initialized) { return; }
+    if (!m_grid_initialized) {
+      throw std::logic_error(
+          "initialize_parameters must be called "
+          "after initialize_grid");
+    }
+    log("Initializing parameters");
+    m_time      = time;
+    m_prev_time = prev_time;
+    m_iteration = iteration;
 
-  // the local blocks must be large enough so that ghost particles never
-  // wander further than into the neighboring processor
-  m_parameters_initialized = true;
-}
+    // the local blocks must be large enough so that ghost particles never
+    // wander further than into the neighboring processor
+    m_parameters_initialized = true;
+  }
   //------------------------------------------------------------------------------
   auto initialize(bool const restart) -> void {
     initialize_memory_file(restart, m_memory_fname);
@@ -159,15 +112,27 @@ struct interface : base_interface<interface> {
     m_initialized = true;
   }
   //------------------------------------------------------------------------------
-  auto update_variable(char const* /*name*/, int const /*num_components*/,
-                       double const* /*var*/) -> void {
+  auto update_variable(char const* name, int const /*num_components*/,
+                       double const* var) -> void {
     if (!m_initialized) {
       throw std::logic_error(
           "update_variable can only be called if "
           "initialization is complete");
     }
     log("Updating variables");
-    // Here goes updating variables
+    std::string sname{name};
+    if (sname == "velocity_x") {
+      m_velocity_x = var;
+      log("updating velocity x");
+    }
+    if (sname == "velocity_y") {
+      m_velocity_y = var;
+      log("updating velocity y");
+    }
+    if (sname == "velocity_z") {
+      m_velocity_z = var;
+      log("updating velocity z");
+    }
   }
   //------------------------------------------------------------------------------
   auto update(int const iteration, double const time) -> void {

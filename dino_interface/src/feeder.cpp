@@ -153,7 +153,9 @@ auto parse_args(int argc, char** argv) {
     if (vm.count("restart_iteration") > 0) {
       restart   = 1;
       iteration = vm["restart_iteration"].as<int>();
-      if (rank == 0) std::cerr << "restarting from step " << iteration << '\n';
+      if (rank == 0) {
+        std::cerr << "restarting from step " << iteration << '\n';
+      }
       t0 = t0 + iteration * dt;
     }
 
@@ -172,9 +174,15 @@ auto parse_args(int argc, char** argv) {
 //------------------------------------------------------------------------------
 auto sample_flow() {
   tatooine::analytical::fields::numerical::abcflow v;
-  for (auto i = index_t{0}; i < global_grid_size[0]; ++i) {
-    for (auto j = index_t{starty}; j < local_grid_end_y; ++j) {
-      for (auto k = index_t{startz}; k < local_grid_end_z; ++k) {
+  if (rank == 0) {
+    std::cerr << "[feeder]#" << rank << ": [y_range] " << starty << " , "
+              << local_grid_end_y << '\n';
+    std::cerr << "[feeder]#" << rank << ": [z_range] " << startz << " , "
+              << local_grid_end_z << '\n';
+  }
+  for (int i = 0; i < global_grid_size[0]; ++i) {
+    for (int j = starty; j < local_grid_end_y; ++j) {
+      for (int k = startz; k < local_grid_end_z; ++k) {
         auto const vel = v(tatooine::vec3{local_domain_origin_x + double(i) * deltaX,
                                           local_domain_origin_y + double(j - starty) * deltaY,
                                           local_domain_origin_z + double(k - startz) * deltaZ},
@@ -297,6 +305,9 @@ auto initialize_flow_data() {
   local_domain_origin_y = aabb.min(1) + starty * deltaY;
   local_domain_origin_z = aabb.min(2) + startz * deltaZ;
 
+  std::cerr << rank << "[feeder] local_domain_origin_x: " << local_domain_origin_x
+            << '\n';
+
   sample_flow();
   if (rank == 0) {
     std::cerr << "Done Filling grid.\n";
@@ -368,16 +379,16 @@ auto main(int argc, char** argv) -> int {
 
   calculate_grid_position_for_worker();
   velocity_x_field = std::make_unique<scalar_array>(
-      boost::extents[range_t(0, global_grid_size[0])][range_t(starty, local_grid_end_y)]
-                    [range_t(startz, local_grid_end_z)],
+      boost::extents[range_t(0, global_grid_size[0])][range_t(
+          starty, local_grid_end_y)][range_t(startz, local_grid_end_z)],
       boost::fortran_storage_order());
   velocity_y_field = std::make_unique<scalar_array>(
-      boost::extents[range_t(0, global_grid_size[0])][range_t(starty, local_grid_end_y)]
-                    [range_t(startz, local_grid_end_z)],
+      boost::extents[range_t(0, global_grid_size[0])][range_t(
+          starty, local_grid_end_y)][range_t(startz, local_grid_end_z)],
       boost::fortran_storage_order());
   velocity_z_field = std::make_unique<scalar_array>(
-      boost::extents[range_t(0, global_grid_size[0])][range_t(starty, local_grid_end_y)]
-                    [range_t(startz, local_grid_end_z)],
+      boost::extents[range_t(0, global_grid_size[0])][range_t(
+          starty, local_grid_end_y)][range_t(startz, local_grid_end_z)],
       boost::fortran_storage_order());
 
   initialize_flow_data();

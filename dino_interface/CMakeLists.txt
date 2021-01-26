@@ -63,15 +63,15 @@ if (MPI_FOUND)
   target_include_directories(dino_interface.feeder
     PUBLIC ${TATOOINE_DINO_INTERFACE_INCLUDE_DIR})
   add_custom_target(dino_interface.feeder.run
-    mpirun -np 4 ./dino_interface.feeder 
-    --gridsizex 20 
-    --gridsizey 20 
-    --gridsizez 20 
-    --x0        -1
+    mpirun -np 2 ./dino_interface.feeder 
+    --gridsizex 11 
+    --gridsizey 11 
+    --gridsizez 11 
+    --x0         0
     --x1         1
-    --y0        -1
+    --y0         0
     --y1         1
-    --z0        -1
+    --z0         0
     --z1         1
     --t0         0
     --t1        10
