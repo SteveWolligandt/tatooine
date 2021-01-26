@@ -33,7 +33,6 @@ find_package(LAPACKE REQUIRED)
 option(TATOOINE_INCLUDE_MKL_LAPACKE "If ON mkl_lapacke.h will be include instead of lapacke.h")
 find_package(Boost REQUIRED COMPONENTS program_options)
 find_package(yavin QUIET)
-find_package(OpenMP REQUIRED)
 find_package(vcode REQUIRED)
 find_package(PNG QUIET)
 if(${PNG_FOUND})
@@ -46,7 +45,23 @@ if(${PNG_FOUND})
 else()
   set(TATOOINE_HAS_PNG_SUPPORT OFF)
 endif()
-#find_package(NetCDF REQUIRED)
+find_package(NetCDF QUIET)
+if (${NETCDF_FOUND})
+  if (${PNG++_INCLUDE_DIRS})
+    set(TATOOINE_HAS_NETCDF_SUPPORT ON)
+  else()
+    set(TATOOINE_HAS_NETCDF_SUPPORT OFF)
+  endif()
+endif()
+
+
+option (TATOOINE_COMPILE_WITH_OPENMP "" ON)
+if (TATOOINE_COMPILE_WITH_OPENMP)
+find_package(OpenMP QUIET)
+else()
+set(TATOOINE_OPENMP_AVAILABLE 0)
+endif()
+
 #set(CGAL_DO_NOT_WARN_ABOUT_CMAKE_BUILD_TYPE TRUE)
 #find_package(CGAL REQUIRED)
 #find_package(FLANN REQUIRED)
@@ -129,6 +144,9 @@ endif()
 if (TATOOINE_HAS_PNG_SUPPORT)
   target_compile_definitions(tatooine PUBLIC TATOOINE_HAS_PNG_SUPPORT)
 endif()
+if (TATOOINE_HAS_NETCDF_SUPPORT)
+  target_compile_definitions(tatooine PUBLIC TATOOINE_HAS_NETCDF_SUPPORT)
+endif()
 
 if ("${CMAKE_CXX_COMPILER_ID}" STREQUAL "Clang" OR
     "${CMAKE_CXX_COMPILER_ID}" STREQUAL "GNU")
@@ -136,7 +154,7 @@ target_compile_options(tatooine PRIVATE
   -Wall -Wextra -pedantic
   -Wno-tautological-undefined-compare -Wno-gnu-zero-variadic-macro-arguments)
 endif()
-target_compile_features(tatooine PUBLIC cxx_std_17)
+target_compile_features(tatooine PUBLIC cxx_std_20)
 #- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 # set include dirs
 target_include_directories(tatooine
@@ -146,7 +164,6 @@ target_include_directories(tatooine
     ${CMAKE_CURRENT_BINARY_DIR}/include
     ${CMAKE_CURRENT_SOURCE_DIR}/external/indicators/include
     ${CMAKE_CURRENT_SOURCE_DIR}/external/tomlplusplus/include
-    #${NETCDF_INCLUDES}
     ${LAPACKE_INCLUDE_DIRS}
     ${vcode_DIR}/../..
 )
@@ -157,21 +174,33 @@ target_include_directories(tatooine
     ${PNG++_INCLUDE_DIRS}
 )
 endif()
+if(${TATOOINE_HAS_PNG_SUPPORT})
+target_include_directories(tatooine
+  PUBLIC
+    ${NETCDF_INCLUDES}
+)
+endif()
 #- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 #set libs 
 target_link_libraries(tatooine
   PUBLIC
+    stdc++fs
     #CGAL::CGAL
     #FLANN::FLANN
     ${BLAS_LIBRARIES}
     ${LAPACK_LIBRARIES}
-    #${NETCDF_LIBRARIES}
 )
 if(${TATOOINE_HAS_PNG_SUPPORT})
 target_link_libraries(tatooine
   PUBLIC
     ${PNG_LIBRARIES}
     ${PNG++_LIBRARIES}
+)
+endif()
+if(${TATOOINE_HAS_NETCDF_SUPPORT})
+target_link_libraries(tatooine
+  PUBLIC
+    ${NETCDF_LIBRARIES}
 )
 endif()
 if (${yavin_FOUND}) 
@@ -197,11 +226,13 @@ else()
   set(TATOOINE_GINAC_AVAILABLE 0)
 endif()
 
+if (TATOOINE_COMPILE_WITH_OPENMP)
 if(OpenMP_CXX_FOUND)
   set(TATOOINE_OPENMP_AVAILABLE 1)
   target_link_libraries(tatooine PUBLIC OpenMP::OpenMP_CXX)
 else()
   set(TATOOINE_OPENMP_AVAILABLE 0)
+endif()
 endif()
 
 
@@ -226,5 +257,7 @@ add_subdirectory(dino_interface)
 
 #- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 # This makes the project importable from the build directory
-export(TARGETS tatooine FILE tatooineConfig.cmake)
+export(TARGETS tatooine dino_interface
+       FILE tatooineConfig.cmake
+       NAMESPACE tatooine::)
 export(PACKAGE tatooine)

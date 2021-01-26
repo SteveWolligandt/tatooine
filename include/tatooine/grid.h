@@ -9,13 +9,14 @@
 #include <tatooine/grid_vertex_container.h>
 #include <tatooine/grid_vertex_iterator.h>
 #include <tatooine/interpolation.h>
-#include <tatooine/lazy_netcdf_reader.h>
 #include <tatooine/linspace.h>
 #include <tatooine/multidim_property.h>
-#include <tatooine/netcdf.h>
 #include <tatooine/random.h>
 #include <tatooine/template_helper.h>
 #include <tatooine/vec.h>
+
+#include <tatooine/netcdf.h>
+#include <tatooine/lazy_netcdf_reader.h>
 
 #include <filesystem>
 #include <map>
@@ -902,10 +903,12 @@ class grid {
   }
   //============================================================================
   auto read(std::filesystem::path const& path) {
+#ifdef TATOOINE_HAS_NETCDF_SUPPORT
     if (path.extension() == ".nc") {
       read_netcdf(path);
       return;
     }
+#endif
     if constexpr (num_dimensions() == 2 || num_dimensions() == 3) {
       if (path.extension() == ".vtk") {
         read_vtk(path);
@@ -1201,6 +1204,7 @@ class grid {
     }
   }
   //----------------------------------------------------------------------------
+#ifdef TATOOINE_HAS_NETCDF_SUPPORT
   auto read_netcdf(std::filesystem::path const& path) {
     read_netcdf(path, std::make_index_sequence<num_dimensions()>{});
   }
@@ -1262,6 +1266,7 @@ class grid {
     add_variables_of_type<float>(f, first, seq);
     add_variables_of_type<int>(f, first, seq);
   }
+#endif
   //----------------------------------------------------------------------------
 #ifdef __cpp_concepts
   template <typename T>

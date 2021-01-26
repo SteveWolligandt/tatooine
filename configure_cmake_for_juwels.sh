@@ -1,13 +1,13 @@
 #!/bin/bash
 #Intel
-CXX_COMPILER=mpiicpc
-C_COMPILER=mpiicc
-Fortran_COMPILER=mpiifort
+#CXX_COMPILER=mpiicpc
+#C_COMPILER=mpiicc
+#Fortran_COMPILER=mpiifort
 
 #GCC
-#CXX_COMPILER=mpicxx
-#C_COMPILER=mpicc
-#Fortran_COMPILER=mpif90
+CXX_COMPILER=mpicxx
+C_COMPILER=mpicc
+Fortran_COMPILER=mpif90
 
 cmake \
   -Bbuild\

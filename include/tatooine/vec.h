@@ -19,16 +19,18 @@ struct vec : tensor<T, N> {  // NOLINT
   using parent_t::dimension;
   using parent_t::operator();
 
+  //----------------------------------------------------------------------------
 #ifdef __cpp_concepts
   template <typename... Ts>
-  requires (is_convertible<Ts, T>...>) &&
-           (parent_t::dimension(0) == sizeof...(Ts)>)
+      requires(is_convertible<Ts, T>... >) &&
+      (parent_t::dimension(0) == sizeof...(Ts) >)
 #else
-  template <typename... Ts, enable_if<is_convertible<Ts, T>...> = true,
-            enable_if<parent_t::dimension(0) == sizeof...(Ts)> = true>
+  template <typename... Ts,
+            enable_if<(is_convertible<std::decay_t<Ts>, T> && ...)> = true,
+            enable_if<parent_t::dimension(0) == sizeof...(Ts)>      = true>
 #endif
-  constexpr vec(Ts const&... ts) : parent_t{ts...} {
-    static_assert(((is_arithmetic<Ts> || is_complex<Ts>)&&...));
+          constexpr vec(Ts const&... ts)
+      : parent_t{ts...} {
   }
 
   using iterator = typename parent_t::array_parent_t::container_t::iterator;
