@@ -128,7 +128,7 @@ class static_multidim_array
 #ifdef __cpp_concepts
   template <convertible_to<T> ... Ts>
 #else
-  template <typename... Ts, enable_if<is_convertible<Ts, T>...> = true>
+  template <typename... Ts, enable_if<(is_convertible<Ts, T> && ...)> = true>
 #endif
   explicit constexpr static_multidim_array(Ts&&... ts)
       : m_data{static_cast<T>(ts)...} {

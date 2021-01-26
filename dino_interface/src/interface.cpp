@@ -10,11 +10,14 @@ struct interface : base_interface<interface> {
   using this_t   = interface;
   using parent_t = base_interface<this_t>;
 
-  static constexpr std::string_view m_timings_fname     = "tatooine_dino_interface_timings.txt";
-  static constexpr std::string_view m_memory_fname      = "tatooine_dino_interface_memory.txt";
-  static constexpr std::string_view m_split_merge_fname = "tatooine_dino_interface_splitmerge.txt";
-
-  static constexpr std::string_view m_output_dir_name = "tatooine_dino_interface_output";
+  static constexpr std::string_view m_timings_fname =
+      "tatooine_dino_interface_timings.txt";
+  static constexpr std::string_view m_memory_fname =
+      "tatooine_dino_interface_memory.txt";
+  static constexpr std::string_view m_split_merge_fname =
+      "tatooine_dino_interface_splitmerge.txt";
+  static constexpr std::string_view m_output_dir_name =
+      "tatooine_dino_interface_output";
 
   double   m_time      = 0;
   double   m_prev_time = 0;

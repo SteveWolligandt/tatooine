@@ -161,21 +161,21 @@ struct dynamic_multidim {
  private:
   std::vector<std::pair<size_t, size_t>> m_ranges;
   struct iterator {
-    //----------------------------------------------------------------------------
+    //--------------------------------------------------------------------------
     const dynamic_multidim* m_cont;
     std::vector<size_t>     m_status;
-    //----------------------------------------------------------------------------
+    //--------------------------------------------------------------------------
     iterator(const dynamic_multidim& c, std::vector<size_t> status)
         : m_cont{&c}, m_status{std::move(status)} {}
-    //----------------------------------------------------------------------------
+    //--------------------------------------------------------------------------
     iterator(const iterator& other) = default;
     iterator(iterator&& other) = default;
-    //----------------------------------------------------------------------------
+    //--------------------------------------------------------------------------
     auto operator=(const iterator& other) -> iterator& = default;
     auto operator=(iterator&& other) -> iterator& = default;
-    //----------------------------------------------------------------------------
+    //--------------------------------------------------------------------------
     ~iterator() = default;
-    //----------------------------------------------------------------------------
+    //--------------------------------------------------------------------------
     void operator++() {
       ++m_status.front();
       auto range_it  = m_cont->ranges().begin();
@@ -188,19 +188,19 @@ struct dynamic_multidim {
         }
       }
     }
-    //----------------------------------------------------------------------------
-    constexpr auto operator==(const iterator& other) const {
+    //--------------------------------------------------------------------------
+    auto operator==(const iterator& other) const {
       if (m_cont != other.m_cont) { return false; }
       for (size_t i = 0; i < m_cont->num_dimensions(); ++i) {
         if (m_status[i] != other.m_status[i]) { return false; }
       }
       return true;
     }
-    //----------------------------------------------------------------------------
-    constexpr auto operator!=(const iterator& other) const {
+    //--------------------------------------------------------------------------
+    auto operator!=(const iterator& other) const {
       return !operator==(other);
     }
-    //----------------------------------------------------------------------------
+    //--------------------------------------------------------------------------
     auto operator*() const -> const auto& { return m_status; }
   };
 

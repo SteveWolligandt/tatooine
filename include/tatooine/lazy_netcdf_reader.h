@@ -1,3 +1,4 @@
+#ifdef TATOOINE_HAS_NETCDF_SUPPORT
 #ifndef TATOOINE_LAZY_NETCDF_READER_H
 #define TATOOINE_LAZY_NETCDF_READER_H
 //==============================================================================
@@ -214,4 +215,5 @@ struct lazy_reader : chunked_multidim_array<T> {
 //==============================================================================
 }  // namespace tatooine::netcdf
 //==============================================================================
+#endif
 #endif

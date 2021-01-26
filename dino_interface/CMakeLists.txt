@@ -1,17 +1,16 @@
 set(TATOOINE_DINO_INTERFACE_SOURCE_DIR ${CMAKE_CURRENT_SOURCE_DIR}/src)
 set(TATOOINE_DINO_INTERFACE_INCLUDE_DIR ${CMAKE_CURRENT_SOURCE_DIR}/include)
 set(TATOOINE_DINO_INTERFACE_BINARY_SOURCE_DIR ${CMAKE_CURRENT_BINARY_DIR}/src)
-set(TATOOINE_DINO_INTERFACE_BINARY_INCLUDE_DIR ${CMAKE_CURRENT_BINARY_DIR}/include)
 #- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 find_package(MPI)
 if (MPI_FOUND)
-  FIND_PACKAGE(Boost COMPONENTS mpi REQUIRED)
+  find_package(Boost COMPONENTS mpi REQUIRED)
   #- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
   # test interface
   #- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
   add_library(dino_interface STATIC
     ${TATOOINE_DINO_INTERFACE_SOURCE_DIR}/interface.cpp)
-  target_link_libraries(dino_interface tatooine ${MPI_LIBRARIES} Boost::mpi)
+  target_link_libraries(dino_interface PRIVATE tatooine ${MPI_LIBRARIES} Boost::mpi)
   if ("${CMAKE_CXX_COMPILER_ID}" STREQUAL "Clang")
     target_compile_options(dino_interface
       PRIVATE "-fcolor-diagnostics")
@@ -32,15 +31,14 @@ if (MPI_FOUND)
     PRIVATE
     -Wall -Wextra -pedantic)
   target_include_directories(dino_interface
-    PUBLIC ${TATOOINE_DINO_INTERFACE_INCLUDE_DIR}
-           ${TATOOINE_DINO_INTERFACE_BINARY_INCLUDE_DIR})
+    PUBLIC ${TATOOINE_DINO_INTERFACE_INCLUDE_DIR})
 
   #- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
   # feeder executable
   #- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
   add_executable(dino_interface.feeder
     ${TATOOINE_DINO_INTERFACE_SOURCE_DIR}/feeder.cpp)
-  target_link_libraries(dino_interface.feeder
+  target_link_libraries(dino_interface.feeder PRIVATE
     tatooine ${MPI_LIBRARIES} Boost::program_options dino_interface)
   if ("${CMAKE_CXX_COMPILER_ID}" STREQUAL "Clang")
     target_compile_options(dino_interface.feeder PRIVATE "-fcolor-diagnostics")
@@ -63,8 +61,7 @@ if (MPI_FOUND)
     -Wall -Wextra -pedantic
     -Wno-tautological-undefined-compare -Wno-gnu-zero-variadic-macro-arguments)
   target_include_directories(dino_interface.feeder
-    PUBLIC ${TATOOINE_DINO_INTERFACE_INCLUDE_DIR}
-           ${TATOOINE_DINO_INTERFACE_BINARY_INCLUDE_DIR})
+    PUBLIC ${TATOOINE_DINO_INTERFACE_INCLUDE_DIR})
   add_custom_target(dino_interface.feeder.run
     mpirun -np 4 ./dino_interface.feeder 
     --gridsizex 20 

@@ -40,12 +40,14 @@ struct tensor : base_tensor<tensor<T, Dims...>, T, Dims...>,  // NOLINT
   //============================================================================
  public:
 #ifdef __cpp_concepts
-  template <typename... Ts>
+  template <convertible_to<T>... Ts>
   requires (tensor_parent_t::rank() == 1) &&
            (tensor_parent_t::dimension(0) == sizeof...(Ts))
 #else
   template <typename... Ts, size_t R = tensor_parent_t::rank(),
-            size_t D0 = tensor_parent_t::dimension(0), enable_if<R == 1> = true,
+            size_t D0 = tensor_parent_t::dimension(0),
+            enable_if<R == 1> = true,
+            enable_if<(is_convertible<Ts, T> && ...)> = true,
             enable_if<D0 == sizeof...(Ts)> = true>
 #endif
   explicit constexpr tensor(Ts const&... ts) : array_parent_t{ts...} {}
