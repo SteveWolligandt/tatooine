@@ -660,7 +660,7 @@ struct pointset {
       }
 
       auto w = dynamic_tensor<Real>::zeros(num_neighbors);
-      auto F = dynamic_tensor<Real>::zeros(num_neighbors, num_components_v<T>);
+      auto F = dynamic_tensor<Real>::zeros(num_neighbors, num_components<T>);
       auto B = [&] {
         if (num_neighbors >= 10) {
           return dynamic_tensor<Real>::ones(num_neighbors, 10);
@@ -683,10 +683,10 @@ struct pointset {
       }
       // build F
       for (size_t i = 0; i < num_neighbors; ++i) {
-        if constexpr (num_components_v<T> == 1) {
+        if constexpr (num_components<T> == 1) {
           F(i, 0) = m_property[vertex_handle{indices[i]}];
         } else {
-          for (size_t j = 0; j < num_components_v<T>; ++j) {
+          for (size_t j = 0; j < num_components<T>; ++j) {
             F(i, j) = m_property[vertex_handle{indices[i]}](j);
           }
         }
@@ -738,12 +738,12 @@ struct pointset {
         }
         auto const BtW = transposed(B) * diag(w);
 
-        if constexpr (num_components_v<T> == 1) {
+        if constexpr (num_components<T> == 1) {
           return solve(BtW * B, BtW * F)(0);
         } else {
           T    ret{};
           auto C = solve(BtW * B, BtW * F);
-          for (size_t i = 0; i < num_components_v<T>; ++i) {
+          for (size_t i = 0; i < num_components<T>; ++i) {
             ret(i) = C(0, i);
           }
           return ret;
@@ -764,7 +764,7 @@ struct pointset {
       }
 
       auto w = dynamic_tensor<Real>::zeros(num_neighbors);
-      auto F = dynamic_tensor<Real>::zeros(num_neighbors, num_components_v<T>);
+      auto F = dynamic_tensor<Real>::zeros(num_neighbors, num_components<T>);
       auto B = [&] {
         if (num_neighbors >= 20) {
           return dynamic_tensor<Real>::ones(num_neighbors, 20);
@@ -784,10 +784,10 @@ struct pointset {
       }
       // build f
       for (size_t i = 0; i < num_neighbors; ++i) {
-        if constexpr (num_components_v<T> == 1) {
+        if constexpr (num_components<T> == 1) {
           F(i, 0) = m_property[vertex_handle{indices[i]}];
         } else {
-          for (size_t j = 0; j < num_components_v<T>; ++j) {
+          for (size_t j = 0; j < num_components<T>; ++j) {
             F(i, j) = m_property[vertex_handle{indices[i]}](j);
           }
         }
@@ -883,12 +883,12 @@ struct pointset {
         }
       }
       auto const BtW = transposed(B) * diag(w);
-      if constexpr (num_components_v<T> == 1) {
+      if constexpr (num_components<T> == 1) {
         return solve(BtW * B, BtW * F)(0);
       } else {
         T    ret{};
         auto C = solve(BtW * B, BtW * F);
-        for (size_t i = 0; i < num_components_v<T>; ++i) {
+        for (size_t i = 0; i < num_components<T>; ++i) {
           ret(i) = C(0, i);
         }
         return ret;

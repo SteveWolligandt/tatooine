@@ -203,21 +203,12 @@ auto sample_flow() {
 }
 //------------------------------------------------------------------------------
 auto simulation_step() -> void {
-  if (rank == 0) {
-    std::cerr << "Loop interation: " << iteration << ".\n";
-  }
   cur_t = cur_t + dt;
   sample_flow();
   tatooine_dino_interface_update_variable("velocity_x", &one, velocity_x_field->data());
   tatooine_dino_interface_update_variable("velocity_y", &one, velocity_y_field->data());
   tatooine_dino_interface_update_variable("velocity_z", &one, velocity_z_field->data());
-  if (rank == 0) {
-    std::cerr << "Variables updated.\n";
-  }
   tatooine_dino_interface_update(&iteration, &cur_t);
-  if (rank == 0) {
-    std::cerr << "Tracking updated.\n";
-  }
 
   ++iteration;
 }
@@ -263,11 +254,6 @@ auto calculate_grid_position_for_worker() -> void {
     local_grid_end_z = startz + rNperZ;
   }
 
-  std::cerr << rank << ": " << local_grid_end_y - starty << " , " << local_grid_end_z - startz
-            << " <- number of points.\n";
-  std::cerr << rank << ": " << starty << " , " << local_grid_end_y << " <- Range Y.\n";
-  std::cerr << rank << ": " << startz << " , " << local_grid_end_z << " <- Range Z.\n";
-
   local_starting_index_x = 0;
   local_starting_index_y = starty;
   local_starting_index_z = startz;
@@ -286,9 +272,6 @@ auto calculate_grid_position_for_worker() -> void {
 }
 //------------------------------------------------------------------------------
 auto initialize_flow_data() {
-  if (rank == 0) {
-    std::cerr << "Filling the grid by function.\n";
-  }
 
   domain_size_x = aabb.max(0) - aabb.min(0);
   domain_size_y = aabb.max(1) - aabb.min(1);
@@ -305,13 +288,7 @@ auto initialize_flow_data() {
   local_domain_origin_y = aabb.min(1) + starty * deltaY;
   local_domain_origin_z = aabb.min(2) + startz * deltaZ;
 
-  std::cerr << rank << "[feeder] local_domain_origin_x: " << local_domain_origin_x
-            << '\n';
-
   sample_flow();
-  if (rank == 0) {
-    std::cerr << "Done Filling grid.\n";
-  }
 }
 //------------------------------------------------------------------------------
 auto start_simulation() -> void {
@@ -321,23 +298,13 @@ auto start_simulation() -> void {
       &global_grid_size[0], &local_grid_size_y, &local_grid_size_z,
       &domain_size_x, &domain_size_y, &domain_size_z, &is_periodic_x,
       &is_periodic_y, &is_periodic_z, &halo_level);
-  if (rank == 0) {
-    std::cerr << "Initialized grid.\n";
-  }
 
   tatooine_dino_interface_initialize_variable("velocity_x", &one, velocity_x_field->data());
   tatooine_dino_interface_initialize_variable("velocity_y", &one, velocity_y_field->data());
   tatooine_dino_interface_initialize_variable("velocity_z", &one, velocity_z_field->data());
-  if (rank == 0) {
-    std::cerr << "Initialized Variables.\n";
-  }
 
   auto const prev_time = t0 - dt;
   tatooine_dino_interface_initialize_parameters(&t0, &prev_time, &iteration);
-  if (rank == 0) {
-    std::cerr << "Initialized Parameters.\n";
-  }
-
   tatooine_dino_interface_initialize(&restart);
 
   simulation_loop();
@@ -349,10 +316,6 @@ auto main(int argc, char** argv) -> int {
     return 0;
   }
 
-  // Define Cartesian Topology
-  if (rank == 0) {
-    std::cerr << "Create Cartesian Topology.\n";
-  }
   MPI_Comm newComm;
 
   MPI_Dims_create(size, nDims, dims.data());
@@ -362,17 +325,10 @@ auto main(int argc, char** argv) -> int {
   MPI_Comm_set_errhandler(newComm, MPI_ERRORS_RETURN);
 
   // Allocate required space
-  if (rank == 0) {
-    std::cerr << "Get dimension and position.\n";
-  }
   MPI_Cartdim_get(newComm, &nDims);
 
   // Get Position in Cartesian grid
   MPI_Cart_get(newComm, nDims, rDims.data(), rPeriods.data(), rCoords.data());
-  std::cerr << rank << ": " << rDims[0] << " , " << rDims[1]
-            << " <- Dimensions \n";
-  std::cerr << rank << ": " << rCoords[0] << " , " << rCoords[1]
-            << " <- Rank Coordinate.\n";
 
   // Convert to FInt
   MPI_Fint commF = MPI_Comm_c2f(newComm);
@@ -394,9 +350,6 @@ auto main(int argc, char** argv) -> int {
   initialize_flow_data();
 
   tatooine_dino_interface_initialize_communicator(&commF);
-  if (rank == 0) {
-    std::cerr << "Initialized MPI.\n";
-  }
 
   start_simulation();
   MPI_Finalize();

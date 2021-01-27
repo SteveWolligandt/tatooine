@@ -1,6 +1,6 @@
 #include <tatooine/dino_interface/base_interface.h>
 #include <tatooine/dino_interface/interface.h>
-#include <tatooine/analytical/fields/numerical/abcflow.h>
+#include <tatooine/isosurface.h>
 
 #include <boost/multi_array.hpp>
 #include <tatooine/multidim_array.h>
@@ -24,45 +24,80 @@ struct interface : base_interface<interface> {
   double   m_prev_time = 0;
   uint64_t m_iteration = 0;
 
-  bool m_variables_initialized  = false;
   bool m_parameters_initialized = false;
   bool m_initialized            = false;
 
-  double const* m_velocity_x;
-  double const* m_velocity_y;
-  double const* m_velocity_z;
+  using scalar_arr_t = non_owning_multidim_array<double, x_fastest>;
+  using grid_prop_t =
+      uniform_grid<double, 3>::typed_property_impl_t<scalar_arr_t>;
+
+  grid_prop_t *m_velocity_x, *m_velocity_y, *m_velocity_z;
 
   std::ofstream m_timings_file;
+
+  struct velocity_field : vectorfield<velocity_field, double, 3> {
+    using this_t   = velocity_field;
+    using parent_t = vectorfield<this_t, double, 3>;
+    using parent_t::pos_t;
+    using parent_t::real_t;
+    using parent_t::tensor_t;
+
+    uniform_grid<double, 3> const& m_worker_halo_grid;
+    grid_prop_t const&             m_x;
+    grid_prop_t const&             m_y;
+    grid_prop_t const&             m_z;
+
+    velocity_field(uniform_grid<double, 3> const& worker_halo_grid,
+                   grid_prop_t const& x,
+                   grid_prop_t const& y,
+                   grid_prop_t const& z)
+        : m_worker_halo_grid{worker_halo_grid}, m_x{x}, m_y{y}, m_z{z} {}
+
+    auto evaluate(pos_t const& x, real_t const /*t*/) const
+        -> tensor_t override {
+      return {m_x.sampler<interpolation::linear>()(x),
+              m_y.sampler<interpolation::linear>()(x),
+              m_z.sampler<interpolation::linear>()(x)};
+    }
+    auto in_domain(pos_t const& x, real_t const /*t*/) const -> bool override {
+      return m_worker_halo_grid.in_domain(x(0), x(1), x(2));
+    }
+  };
+
+  std::unique_ptr<velocity_field> m_velocity_field;
 
   //==============================================================================
   // Interface Functions
   //==============================================================================
   auto initialize_variable(char const* name, int const /*num_components*/,
                            double const* var) -> void {
-    if (m_variables_initialized) {
-      return;
-    }
     if (!m_grid_initialized) {
       throw std::logic_error(
           "initialize_variables must be called "
           "after initialize_grid");
     }
-    log("Initializing variables");
 
     std::string sname{name};
+    log_all("initializing " + sname);
     if (sname == "velocity_x") {
-      m_velocity_x = var;
-      log("updating velocity x");
+      m_velocity_x = &m_worker_halo_grid.create_vertex_property<scalar_arr_t>(
+          sname, var,
+          m_worker_halo_grid.size(0),
+          m_worker_halo_grid.size(1),
+          m_worker_halo_grid.size(2));
+    } else if (sname == "velocity_y") {
+      m_velocity_y = &m_worker_halo_grid.create_vertex_property<scalar_arr_t>(
+          sname, var,
+          m_worker_halo_grid.size(0),
+          m_worker_halo_grid.size(1),
+          m_worker_halo_grid.size(2));
+    } else if (sname == "velocity_z") {
+      m_velocity_z = &m_worker_halo_grid.create_vertex_property<scalar_arr_t>(
+          sname, var,
+          m_worker_halo_grid.size(0),
+          m_worker_halo_grid.size(1),
+          m_worker_halo_grid.size(2));
     }
-    if (sname == "velocity_y") {
-      m_velocity_y = var;
-      log("updating velocity y");
-    }
-    if (sname == "velocity_z") {
-      m_velocity_z = var;
-      log("updating velocity z");
-    }
-    m_variables_initialized = true;
   }
   //------------------------------------------------------------------------------
   auto initialize_parameters(double const time, double const prev_time,
@@ -88,7 +123,7 @@ struct interface : base_interface<interface> {
     if (m_initialized) {
       return;
     }
-    if (!m_variables_initialized || !m_parameters_initialized) {
+    if (!m_parameters_initialized) {
       throw std::logic_error(
           "initialize must be called "
           "after initialize_parameters and "
@@ -109,6 +144,9 @@ struct interface : base_interface<interface> {
                           std::ios::trunc);
       // Seed particles on iso surface
     }
+
+    m_velocity_field = std::make_unique<velocity_field>(
+        m_worker_halo_grid, *m_velocity_x, *m_velocity_y, *m_velocity_z);
     m_initialized = true;
   }
   //------------------------------------------------------------------------------
@@ -119,19 +157,16 @@ struct interface : base_interface<interface> {
           "update_variable can only be called if "
           "initialization is complete");
     }
-    log("Updating variables");
     std::string sname{name};
+    log("updating " + sname);
     if (sname == "velocity_x") {
-      m_velocity_x = var;
-      log("updating velocity x");
+      m_velocity_x->change_data(var);
     }
     if (sname == "velocity_y") {
-      m_velocity_y = var;
-      log("updating velocity y");
+       m_velocity_y->change_data(var);
     }
     if (sname == "velocity_z") {
-      m_velocity_z = var;
-      log("updating velocity z");
+      m_velocity_z->change_data(var);
     }
   }
   //------------------------------------------------------------------------------
@@ -156,10 +191,35 @@ struct interface : base_interface<interface> {
                      << '\n';
     }
 
-    // Here goes update
+    auto isogrid = m_worker_grid;
+    if (std::abs(isogrid.dimension<0>().back() -
+                 m_global_grid.dimension<0>().back()) > 1e-6) {
+      isogrid.dimension<0>().push_back();
+    }
+    if (std::abs(isogrid.dimension<1>().back() -
+                 m_global_grid.dimension<1>().back()) > 1e-6) {
+      isogrid.dimension<1>().push_back();
+    }
+    if (std::abs(isogrid.dimension<2>().back() -
+                 m_global_grid.dimension<2>().back()) > 1e-6) {
+      isogrid.dimension<2>().push_back();
+    }
+    isosurface(
+        // length(*m_velocity_field),
+        [&](auto const ix, auto const iy, auto const iz, auto const& pos) {
+          auto const velx = m_velocity_x->at(
+              ix + m_halo_level, iy + m_halo_level, iz + m_halo_level);
+          auto const vely = m_velocity_y->at(
+              ix + m_halo_level, iy + m_halo_level, iz + m_halo_level);
+          auto const velz = m_velocity_z->at(
+              ix + m_halo_level, iy + m_halo_level, iz + m_halo_level);
+          return std::sqrt(velx * velx + vely * vely + velz * velz);
+        },
+        isogrid, 1)
+        .write_vtk("isosurface_" + std::to_string(m_mpi_communicator->rank()) +
+                   "_" + std::to_string(m_iteration) + ".vtk");
 
     log("Tatooine update step finished");
-    // log_mem_usage(m_iteration);
     m_last_end_time = std::chrono::system_clock::now();
   }
 };

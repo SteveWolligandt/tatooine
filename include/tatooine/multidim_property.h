@@ -72,14 +72,17 @@ struct multidim_property {
   }
 };
 //==============================================================================
-template <typename Grid, typename ValueType>
+template <typename Grid, typename ValueType, bool HasNonConstReference>
 struct typed_multidim_property : multidim_property<Grid> {
   //============================================================================
   // typedefs
   //============================================================================
-  using this_t        = typed_multidim_property<Grid, ValueType>;
-  using parent_t      = multidim_property<Grid>;
-  using value_type    = ValueType;
+  using this_t = typed_multidim_property<Grid, ValueType, HasNonConstReference>;
+  using parent_t        = multidim_property<Grid>;
+  using value_type      = ValueType;
+  using const_reference = ValueType const&;
+  using reference =
+      std::conditional_t<HasNonConstReference, ValueType&, const_reference>;
   using grid_t        = Grid;
   using parent_t::num_dimensions;
   using parent_t::grid;
@@ -182,10 +185,10 @@ struct typed_multidim_property : multidim_property<Grid> {
   }
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
   virtual auto at(std::array<size_t, num_dimensions()> const& size) const
-      -> ValueType const& = 0;
+      -> const_reference = 0;
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
   virtual auto at(std::array<size_t, num_dimensions()> const& size)
-      -> ValueType& = 0;
+      -> reference = 0;
   //----------------------------------------------------------------------------
 #ifdef __cpp_concepts
   template <integral... Size>
@@ -263,16 +266,30 @@ auto write_png(std::filesystem::path const&                    path,
 #endif
 //==============================================================================
 template <typename Grid, typename ValueType, typename Container>
-struct typed_multidim_property_impl : typed_multidim_property<Grid, ValueType>,
-                                      Container {
+struct typed_multidim_property_impl
+    : typed_multidim_property<
+          Grid, ValueType,
+          std::is_convertible_v<
+              decltype(std::declval<Container&>().at(
+                  std::declval<std::array<
+                      size_t, Grid::num_dimensions()>>())),
+              ValueType&>>,
+      Container {
   static_assert(std::is_same_v<ValueType, typename Container::value_type>);
   //============================================================================
   // typedefs
   //============================================================================
   using this_t = typed_multidim_property_impl<Grid, ValueType, Container>;
-  using prop_parent_t = typed_multidim_property<Grid, ValueType>;
+  static constexpr bool has_non_const_reference = std::is_convertible_v<
+      decltype(std::declval<Container&>().at(
+          std::declval<std::array<size_t, Grid::num_dimensions()>>())),
+      ValueType&>;
+  using prop_parent_t =
+      typed_multidim_property<Grid, ValueType, has_non_const_reference>;
   using cont_parent_t = Container;
-  using value_type    = typename prop_parent_t::value_type;
+  using value_type = typename prop_parent_t::value_type;
+  using reference = typename prop_parent_t::reference;
+  using const_reference = typename prop_parent_t::const_reference;
   using grid_t        = Grid;
   using prop_parent_t::num_dimensions;
   //============================================================================
@@ -343,23 +360,23 @@ struct typed_multidim_property_impl : typed_multidim_property<Grid, ValueType>,
   //----------------------------------------------------------------------------
   template <size_t... Is>
   auto at(std::array<size_t, num_dimensions()> const& size,
-          std::index_sequence<Is...> /*seq*/) const -> ValueType const& {
+          std::index_sequence<Is...> /*seq*/) const -> const_reference {
     return Container::at(size[Is]...);
   }
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
   auto at(std::array<size_t, num_dimensions()> const& size) const
-      -> ValueType const& override {
+      -> const_reference override {
     return at(size, std::make_index_sequence<num_dimensions()>{});
   }
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
   template <size_t... Is>
   auto at(std::array<size_t, num_dimensions()> const& size,
-          std::index_sequence<Is...> /*seq*/) -> ValueType& {
+          std::index_sequence<Is...> /*seq*/) -> reference {
     return Container::at(size[Is]...);
   }
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
   auto at(std::array<size_t, num_dimensions()> const& size)
-      -> ValueType& override {
+      -> reference override {
     return at(size, std::make_index_sequence<num_dimensions()>{});
   }
   //----------------------------------------------------------------------------

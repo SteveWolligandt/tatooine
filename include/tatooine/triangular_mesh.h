@@ -1,10 +1,12 @@
 #ifndef TATOOINE_TRIANGULAR_MESH_H
 #define TATOOINE_TRIANGULAR_MESH_H
 //==============================================================================
-//#include <CGAL/Cartesian.h>
+#ifdef TATOOINE_HAS_CGAL_SUPPORT
 #include <CGAL/Exact_predicates_inexact_constructions_kernel.h>
 #include <CGAL/Delaunay_triangulation_2.h>
 #include <CGAL/Triangulation_vertex_base_with_info_2.h>
+#endif
+
 #include <tatooine/grid.h>
 #include <tatooine/octree.h>
 #include <tatooine/pointset.h>
@@ -305,6 +307,7 @@ class triangular_mesh : public pointset<Real, N> {
   //----------------------------------------------------------------------------
   auto num_faces() const { return m_face_indices.size() / 3; }
   //----------------------------------------------------------------------------
+#ifdef TATOOINE_HAS_CGAL_SUPPORT
   template <typename = void> requires(N == 2)
   auto triangulate_delaunay() -> void {
     m_face_indices.clear();
@@ -327,6 +330,7 @@ class triangular_mesh : public pointset<Real, N> {
                   vertex_handle{it->vertex(2)->info()});
     }
   }
+#endif
   //----------------------------------------------------------------------------
   auto set_face_indices(std::vector<size_t>&& is) {
     m_face_indices =
