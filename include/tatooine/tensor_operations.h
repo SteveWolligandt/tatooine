@@ -525,8 +525,8 @@ constexpr auto operator-(base_tensor<Tensor, T, Dims...> const& t) {
   return unary_operation([](auto const& c) { return -c; }, t);
 }
 //------------------------------------------------------------------------------
-template <typename Tensor0, typename T0,
-          typename T1, size_t... Dims>
+template <typename Tensor0, typename T0, typename T1, size_t... Dims,
+          enable_if<is_arithmetic_or_complex<T1>> = true>
 constexpr auto operator+(base_tensor<Tensor0, T0, Dims...> const& lhs,
                          T1                                       scalar) {
   return unary_operation([scalar](auto const& c) { return c + scalar; }, lhs);

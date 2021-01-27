@@ -62,11 +62,16 @@ else()
 set(TATOOINE_OPENMP_AVAILABLE 0)
 endif()
 
-#set(CGAL_DO_NOT_WARN_ABOUT_CMAKE_BUILD_TYPE TRUE)
-#find_package(CGAL REQUIRED)
 #find_package(FLANN REQUIRED)
 #find_package(TBB REQUIRED)
 
+set(CGAL_DO_NOT_WARN_ABOUT_CMAKE_BUILD_TYPE TRUE)
+find_package(CGAL QUIET)
+if (CGAL_FOUND)
+  set(TATOOINE_HAS_CGAL_SUPPORT ON)
+else()
+  set(TATOOINE_HAS_CGAL_SUPPORT OFF)
+endif()
 
 #- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - 
 # configure files
@@ -147,6 +152,9 @@ endif()
 if (TATOOINE_HAS_NETCDF_SUPPORT)
   target_compile_definitions(tatooine PUBLIC TATOOINE_HAS_NETCDF_SUPPORT)
 endif()
+if (TATOOINE_HAS_CGAL_SUPPORT)
+  target_compile_definitions(tatooine PUBLIC TATOOINE_HAS_CGAL_SUPPORT)
+endif()
 
 if ("${CMAKE_CXX_COMPILER_ID}" STREQUAL "Clang" OR
     "${CMAKE_CXX_COMPILER_ID}" STREQUAL "GNU")
@@ -168,40 +176,28 @@ target_include_directories(tatooine
     ${vcode_DIR}/../..
 )
 if(${TATOOINE_HAS_PNG_SUPPORT})
-target_include_directories(tatooine
-  PUBLIC
-    ${PNG_INCLUDE_DIRS}
-    ${PNG++_INCLUDE_DIRS}
-)
+target_include_directories(tatooine PUBLIC ${PNG_INCLUDE_DIRS} ${PNG++_INCLUDE_DIRS})
 endif()
-if(${TATOOINE_HAS_PNG_SUPPORT})
-target_include_directories(tatooine
-  PUBLIC
-    ${NETCDF_INCLUDES}
-)
+if(${TATOOINE_HAS_NETCDF_SUPPORT})
+target_include_directories(tatooine PUBLIC ${NETCDF_INCLUDES})
 endif()
 #- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 #set libs 
 target_link_libraries(tatooine
   PUBLIC
     stdc++fs
-    #CGAL::CGAL
     #FLANN::FLANN
     ${BLAS_LIBRARIES}
     ${LAPACK_LIBRARIES}
 )
 if(${TATOOINE_HAS_PNG_SUPPORT})
-target_link_libraries(tatooine
-  PUBLIC
-    ${PNG_LIBRARIES}
-    ${PNG++_LIBRARIES}
-)
+target_link_libraries(tatooine PUBLIC ${PNG_LIBRARIES} ${PNG++_LIBRARIES})
 endif()
 if(${TATOOINE_HAS_NETCDF_SUPPORT})
-target_link_libraries(tatooine
-  PUBLIC
-    ${NETCDF_LIBRARIES}
-)
+target_link_libraries(tatooine PUBLIC ${NETCDF_LIBRARIES})
+endif()
+if(${TATOOINE_HAS_CGAL_SUPPORT})
+target_link_libraries(tatooine PUBLIC CGAL::CGAL)
 endif()
 if (${yavin_FOUND}) 
   set(TATOOINE_YAVIN_AVAILABLE 1)

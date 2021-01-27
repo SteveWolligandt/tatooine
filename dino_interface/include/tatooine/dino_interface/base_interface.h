@@ -76,6 +76,7 @@ struct base_interface {
   uniform_grid<double, 3>                             m_global_grid;
   uniform_grid<double, 3>                             m_worker_grid;
   uniform_grid<double, 3>                             m_worker_halo_grid;
+  int                                                 m_halo_level = 0;
 
   //============================================================================
   // METHODS
@@ -154,19 +155,19 @@ struct base_interface {
     assert(domain_size_z >= 0);
     assert(halo_level >= 0 && halo_level <= UINT8_MAX);
 
-    log_all("global_grid_size_x: " + std::to_string(global_grid_size_x));
-    log_all("global_grid_size_y: " + std::to_string(global_grid_size_y));
-    log_all("global_grid_size_z: " + std::to_string(global_grid_size_z));
-    log_all("local_starting_index_x: " +
-            std::to_string(local_starting_index_x));
-    log_all("local_starting_index_y: " +
-            std::to_string(local_starting_index_y));
-    log_all("local_starting_index_z: " +
-            std::to_string(local_starting_index_z));
-    log_all("domain_size_x: " + std::to_string(domain_size_x));
-    log_all("domain_size_y: " + std::to_string(domain_size_y));
-    log_all("domain_size_z: " + std::to_string(domain_size_z));
-    log_all("halo_level: " + std::to_string(halo_level));
+    //log_all("global_grid_size_x: " + std::to_string(global_grid_size_x));
+    //log_all("global_grid_size_y: " + std::to_string(global_grid_size_y));
+    //log_all("global_grid_size_z: " + std::to_string(global_grid_size_z));
+    //log_all("local_starting_index_x: " +
+    //        std::to_string(local_starting_index_x));
+    //log_all("local_starting_index_y: " +
+    //        std::to_string(local_starting_index_y));
+    //log_all("local_starting_index_z: " +
+    //        std::to_string(local_starting_index_z));
+    //log_all("domain_size_x: " + std::to_string(domain_size_x));
+    //log_all("domain_size_y: " + std::to_string(domain_size_y));
+    //log_all("domain_size_z: " + std::to_string(domain_size_z));
+    //log_all("halo_level: " + std::to_string(halo_level));
 
     if (halo_level < 4) {
       throw std::invalid_argument("halo_level must be at least 4. Given: " +
@@ -195,9 +196,6 @@ struct base_interface {
         m_global_grid
             .dimension<2>()[local_starting_index_z + local_grid_size_z - 1],
         static_cast<size_t>(local_grid_size_z)};
-
-    log_all("[interface]: local_domain_origin_x: " +
-            std::to_string(m_worker_grid.dimension<0>().front()));
 
     m_worker_halo_grid.dimension<0>() = linspace{
         m_global_grid.dimension<0>()[local_starting_index_x],
@@ -259,7 +257,7 @@ struct base_interface {
                 << m_worker_halo_grid.dimension<1>() << '\n'
                 << m_worker_halo_grid.dimension<2>() << '\n';
     }
-
+    m_halo_level       = halo_level;
     m_grid_initialized = true;
   }
   //----------------------------------------------------------------------------

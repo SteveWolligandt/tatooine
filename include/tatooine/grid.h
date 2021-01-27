@@ -53,8 +53,8 @@ class grid {
 
   // general property types
   using property_t = multidim_property<this_t>;
-  template <typename ValueType>
-  using typed_property_t = typed_multidim_property<this_t, ValueType>;
+  template <typename ValueType, bool HasNonConstReference>
+  using typed_property_t = typed_multidim_property<this_t, ValueType, HasNonConstReference>;
   template <typename Container>
   using typed_property_impl_t =
       typed_multidim_property_impl<this_t, typename Container::value_type,
@@ -848,7 +848,7 @@ class grid {
         name, size(), make_array<num_dimensions()>(size_t(10)));
   }
   //----------------------------------------------------------------------------
-  template <typename T>
+  template <typename T, bool HasNonConstReference = true>
   auto vertex_property(std::string const& name) const -> auto const& {
     if (auto it = m_vertex_properties.find(name);
         it == end(m_vertex_properties)) {
@@ -860,11 +860,11 @@ class grid {
             boost::core::demangle(it->second->type().name()) +
             ") does not match specified type " + type_name<T>() + "."};
       }
-      return *dynamic_cast<typed_property_t<T> const*>(it->second.get());
+      return *dynamic_cast<typed_property_t<T, HasNonConstReference> const*>(it->second.get());
     }
   }
   //----------------------------------------------------------------------------
-  template <typename T>
+  template <typename T, bool HasNonConstReference = true>
   auto vertex_property(std::string const& name) -> auto& {
     if (auto it = m_vertex_properties.find(name);
         it == end(m_vertex_properties)) {
@@ -876,7 +876,7 @@ class grid {
             boost::core::demangle(it->second->type().name()) +
             ") does not match specified type " + type_name<T>() + "."};
       }
-      return *dynamic_cast<typed_property_t<T>*>(it->second.get());
+      return *dynamic_cast<typed_property_t<T, HasNonConstReference>*>(it->second.get());
     }
   }
   //============================================================================
@@ -1280,14 +1280,16 @@ class grid {
   }
   //----------------------------------------------------------------------------
 #ifdef __cpp_concepts
-  template <typename T>
-  requires is_uniform && (num_dimensions() == 3)
+  template <typename T, bool HasNonConstReference>
+      requires is_uniform &&
+      (num_dimensions() == 3)
 #else
-  template <typename T, bool U = is_uniform, size_t _N = num_dimensions(),
-            enable_if<(U && (_N == 3))> = true>
+  template <typename T, bool HasNonConstReference, bool U = is_uniform,
+            size_t _N = num_dimensions(), enable_if<(U && (_N == 3))> = true>
 #endif
-  void write_amira(std::string const&         path,
-                           typed_property_t<T> const& prop) const {
+  void write_amira(
+      std::string const&                               path,
+      typed_property_t<T, HasNonConstReference> const& prop) const {
     std::ofstream     outfile{path, std::ofstream::binary};
     std::stringstream header;
 
@@ -1320,9 +1322,9 @@ class grid {
   }
   //----------------------------------------------------------------------------
  private:
-  template <typename T>
+  template <typename T, bool HasNonConstReference>
   void write_prop_vtk(vtk::legacy_file_writer& writer, std::string const& name,
-                      typed_property_t<T> const& prop) const {
+                      typed_property_t<T, HasNonConstReference> const& prop) const {
     std::vector<T> data;
     loop_over_vertex_indices(
         [&](auto const... is) { data.push_back(prop(is...)); });
@@ -1413,39 +1415,39 @@ class grid {
     for (const auto& [name, prop] : this->m_vertex_properties) {
       if (prop->type() == typeid(int)) {
         write_prop_vtk(writer, name,
-                       *dynamic_cast<const typed_property_t<int>*>(prop.get()));
+                       *dynamic_cast<const typed_property_t<int, true>*>(prop.get()));
       } else if (prop->type() == typeid(float)) {
         write_prop_vtk(
             writer, name,
-            *dynamic_cast<const typed_property_t<float>*>(prop.get()));
+            *dynamic_cast<const typed_property_t<float, true>*>(prop.get()));
       } else if (prop->type() == typeid(double)) {
         write_prop_vtk(
             writer, name,
-            *dynamic_cast<const typed_property_t<double>*>(prop.get()));
+            *dynamic_cast<const typed_property_t<double, true>*>(prop.get()));
       } else if (prop->type() == typeid(vec2f)) {
         write_prop_vtk(
             writer, name,
-            *dynamic_cast<const typed_property_t<vec2f>*>(prop.get()));
+            *dynamic_cast<const typed_property_t<vec2f, true>*>(prop.get()));
       } else if (prop->type() == typeid(vec3f)) {
         write_prop_vtk(
             writer, name,
-            *dynamic_cast<const typed_property_t<vec3f>*>(prop.get()));
+            *dynamic_cast<const typed_property_t<vec3f, true>*>(prop.get()));
       } else if (prop->type() == typeid(vec4f)) {
         write_prop_vtk(
             writer, name,
-            *dynamic_cast<const typed_property_t<vec4f>*>(prop.get()));
+            *dynamic_cast<const typed_property_t<vec4f, true>*>(prop.get()));
       } else if (prop->type() == typeid(vec2d)) {
         write_prop_vtk(
             writer, name,
-            *dynamic_cast<const typed_property_t<vec2d>*>(prop.get()));
+            *dynamic_cast<const typed_property_t<vec2d, true>*>(prop.get()));
       } else if (prop->type() == typeid(vec3d)) {
         write_prop_vtk(
             writer, name,
-            *dynamic_cast<const typed_property_t<vec3d>*>(prop.get()));
+            *dynamic_cast<const typed_property_t<vec3d, true>*>(prop.get()));
       } else if (prop->type() == typeid(vec4d)) {
         write_prop_vtk(
             writer, name,
-            *dynamic_cast<const typed_property_t<vec4d>*>(prop.get()));
+            *dynamic_cast<const typed_property_t<vec4d, true>*>(prop.get()));
       }
     }
   }

@@ -13,8 +13,15 @@ struct is_dynamic_tensor : std::false_type {};
 template <typename T>
 static constexpr auto is_dynamic_tensor_v = is_dynamic_tensor<T>::value;
 //==============================================================================
-template <real_or_complex_number T>
+#ifdef __cpp_concepts
+template <arithmetic_or_complex T>
+#else
+template <typename T>
+#endif
 struct dynamic_tensor : dynamic_multidim_array<T> {
+#ifndef __cpp_concepts
+  static_assert(is_arithmetic<T> || is_complex<T>);
+#endif
   using this_t   = dynamic_tensor<T>;
   using parent_t = dynamic_multidim_array<T>;
   using parent_t::parent_t;
@@ -455,7 +462,11 @@ auto operator*(LhsTensor const& lhs, RhsTensor const& rhs)
 //==============================================================================
 namespace tatooine {
 //==============================================================================
-template <real_or_complex_number T>
+#ifdef __cpp_concepts
+template <arithmetic_or_complex T>
+#else
+template <typename T>
+#endif
 auto solve(dynamic_tensor<T> const& A, dynamic_tensor<T> const& b) {
   return lapack::gesv(A, b);
 }
@@ -468,7 +479,7 @@ requires is_dynamic_tensor_v<DynamicTensor> auto operator<<(
   out << "[ ";
   out << std::scientific;
   for (size_t i = 0; i < v.size(0); ++i) {
-    if constexpr (!is_complex_v<typename DynamicTensor::value_type>) {
+    if constexpr (!is_complex<typename DynamicTensor::value_type>) {
     }
     out << v(i) << ' ';
   }
