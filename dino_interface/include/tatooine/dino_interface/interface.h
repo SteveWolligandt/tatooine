@@ -4,6 +4,7 @@
 #include <mpi.h>
 //==============================================================================
 extern "C" {
+//==============================================================================
 /// Initialize the MPI environment.
 /// Call first.
 auto tatooine_dino_interface_initialize_communicator(MPI_Fint* communicator)
@@ -31,19 +32,9 @@ auto tatooine_dino_interface_initialize_grid(
     int const* is_periodic_x, int const* is_periodic_y,
     int const* is_periodic_z, int const* halo_level) -> void;
 //------------------------------------------------------------------------------
-/// \brief  Add variables to the dataset.
-///
-///         Call after tatooine_initialize_grid() and before
-///         tatooine_initialize()
-///
-///         The data must have halos only in the directions where the current
-///         processor block does not span the whole domain.
-///         If a direction does have a halo, it must have exactly the size
-///         of the @a halo_level parameter in tatooine_initialize_grid()
-auto tatooine_dino_interface_initialize_variable(char const*   name,
-                                                 int const*    num_components,
-                                                 double const* variable)
-    -> void;
+auto tatooine_dino_interface_initialize_velocity_x(double const* vel_x) -> void;
+auto tatooine_dino_interface_initialize_velocity_y(double const* vel_y) -> void;
+auto tatooine_dino_interface_initialize_velocity_z(double const* vel_z) -> void;
 //------------------------------------------------------------------------------
 /// \brief  Set parameters.
 ///
@@ -65,10 +56,12 @@ void tatooine_dino_interface_initialize(int const* restart);
 //------------------------------------------------------------------------------
 /// \brief  Update the grid variables to their new values after a simulation
 /// step
-void tatooine_dino_interface_update_variable(char const*   name,
-                                             int const*    num_components,
-                                             double const* variable);
+void tatooine_dino_interface_update_velocity_x(double const* vel_x);
+void tatooine_dino_interface_update_velocity_y(double const* vel_y);
+void tatooine_dino_interface_update_velocity_z(double const* vel_z);
 //------------------------------------------------------------------------------
 void tatooine_dino_interface_update(int const* iteration, double const* time);
-}
+//==============================================================================
+} // extern "C"
+//==============================================================================
 #endif

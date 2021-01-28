@@ -205,9 +205,9 @@ auto sample_flow() {
 auto simulation_step() -> void {
   cur_t = cur_t + dt;
   sample_flow();
-  tatooine_dino_interface_update_variable("velocity_x", &one, velocity_x_field->data());
-  tatooine_dino_interface_update_variable("velocity_y", &one, velocity_y_field->data());
-  tatooine_dino_interface_update_variable("velocity_z", &one, velocity_z_field->data());
+  tatooine_dino_interface_update_velocity_x(velocity_x_field->data());
+  tatooine_dino_interface_update_velocity_y(velocity_y_field->data());
+  tatooine_dino_interface_update_velocity_z(velocity_z_field->data());
   tatooine_dino_interface_update(&iteration, &cur_t);
 
   ++iteration;
@@ -299,9 +299,9 @@ auto start_simulation() -> void {
       &domain_size_x, &domain_size_y, &domain_size_z, &is_periodic_x,
       &is_periodic_y, &is_periodic_z, &halo_level);
 
-  tatooine_dino_interface_initialize_variable("velocity_x", &one, velocity_x_field->data());
-  tatooine_dino_interface_initialize_variable("velocity_y", &one, velocity_y_field->data());
-  tatooine_dino_interface_initialize_variable("velocity_z", &one, velocity_z_field->data());
+  tatooine_dino_interface_initialize_velocity_x(velocity_x_field->data());
+  tatooine_dino_interface_initialize_velocity_y(velocity_y_field->data());
+  tatooine_dino_interface_initialize_velocity_z(velocity_z_field->data());
 
   auto const prev_time = t0 - dt;
   tatooine_dino_interface_initialize_parameters(&t0, &prev_time, &iteration);
