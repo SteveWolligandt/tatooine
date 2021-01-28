@@ -334,8 +334,7 @@ constexpr void parallel_for_loop(Iteration&& iteration,
       std::forward<Iteration>(iteration),
       std::make_integer_sequence<Int, sizeof...(ends)>{}, ends...);
 #else
-#pragma message \
-    "Not able to execute nested for loop in parallel because OpenMP is not available."
+//#pragma message "Not able to execute nested for loop in parallel because OpenMP is not available."
   return for_loop(std::forward<Iteration>(iteration), ends...);
 #endif  // _OPENMP
 }
