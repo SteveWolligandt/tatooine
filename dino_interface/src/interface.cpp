@@ -66,40 +66,44 @@ struct interface : base_interface<interface> {
 
   std::unique_ptr<velocity_field> m_velocity_field;
 
-  //==============================================================================
+  //============================================================================
   // Interface Functions
-  //==============================================================================
-  auto initialize_variable(char const* name, int const /*num_components*/,
-                           double const* var) -> void {
+  //============================================================================
+  auto initialize_velocity_x(double const* vel_x) -> void {
     if (!m_grid_initialized) {
       throw std::logic_error(
           "initialize_variables must be called "
           "after initialize_grid");
     }
 
-    std::string sname{name};
-    log_all("initializing " + sname);
-    if (sname == "velocity_x") {
-      m_velocity_x = &m_worker_halo_grid.create_vertex_property<scalar_arr_t>(
-          sname, var,
-          m_worker_halo_grid.size(0),
-          m_worker_halo_grid.size(1),
-          m_worker_halo_grid.size(2));
-    } else if (sname == "velocity_y") {
-      m_velocity_y = &m_worker_halo_grid.create_vertex_property<scalar_arr_t>(
-          sname, var,
-          m_worker_halo_grid.size(0),
-          m_worker_halo_grid.size(1),
-          m_worker_halo_grid.size(2));
-    } else if (sname == "velocity_z") {
-      m_velocity_z = &m_worker_halo_grid.create_vertex_property<scalar_arr_t>(
-          sname, var,
-          m_worker_halo_grid.size(0),
-          m_worker_halo_grid.size(1),
-          m_worker_halo_grid.size(2));
-    }
+    m_velocity_x = &m_worker_halo_grid.create_vertex_property<scalar_arr_t>(
+        "velocity_x", vel_x, m_worker_halo_grid.size(0), m_worker_halo_grid.size(1),
+        m_worker_halo_grid.size(2));
   }
-  //------------------------------------------------------------------------------
+  //----------------------------------------------------------------------------
+  auto initialize_velocity_y(double const* vel_y) -> void {
+    if (!m_grid_initialized) {
+      throw std::logic_error(
+          "initialize_variables must be called "
+          "after initialize_grid");
+    }
+    m_velocity_y = &m_worker_halo_grid.create_vertex_property<scalar_arr_t>(
+        "velocity_y", vel_y, m_worker_halo_grid.size(0), m_worker_halo_grid.size(1),
+        m_worker_halo_grid.size(2));
+  }
+  //----------------------------------------------------------------------------
+  auto initialize_velocity_z(double const* vel_z) -> void {
+    if (!m_grid_initialized) {
+      throw std::logic_error(
+          "initialize_variables must be called "
+          "after initialize_grid");
+    }
+
+    m_velocity_z = &m_worker_halo_grid.create_vertex_property<scalar_arr_t>(
+        "velocity_z", vel_z, m_worker_halo_grid.size(0), m_worker_halo_grid.size(1),
+        m_worker_halo_grid.size(2));
+  }
+  //----------------------------------------------------------------------------
   auto initialize_parameters(double const time, double const prev_time,
                              int const iteration) -> void {
     if (m_parameters_initialized) { return; }
@@ -117,7 +121,7 @@ struct interface : base_interface<interface> {
     // wander further than into the neighboring processor
     m_parameters_initialized = true;
   }
-  //------------------------------------------------------------------------------
+  //----------------------------------------------------------------------------
   auto initialize(bool const restart) -> void {
     initialize_memory_file(restart, m_memory_fname);
     if (m_initialized) {
@@ -149,27 +153,34 @@ struct interface : base_interface<interface> {
         m_worker_halo_grid, *m_velocity_x, *m_velocity_y, *m_velocity_z);
     m_initialized = true;
   }
-  //------------------------------------------------------------------------------
-  auto update_variable(char const* name, int const /*num_components*/,
-                       double const* var) -> void {
+  //----------------------------------------------------------------------------
+  auto update_velocity_x(double const* var) -> void {
     if (!m_initialized) {
       throw std::logic_error(
           "update_variable can only be called if "
           "initialization is complete");
     }
-    std::string sname{name};
-    log("updating " + sname);
-    if (sname == "velocity_x") {
-      m_velocity_x->change_data(var);
-    }
-    if (sname == "velocity_y") {
-       m_velocity_y->change_data(var);
-    }
-    if (sname == "velocity_z") {
-      m_velocity_z->change_data(var);
-    }
+    m_velocity_x->change_data(var);
   }
-  //------------------------------------------------------------------------------
+  //----------------------------------------------------------------------------
+  auto update_velocity_y(double const* var) -> void {
+    if (!m_initialized) {
+      throw std::logic_error(
+          "update_variable can only be called if "
+          "initialization is complete");
+    }
+    m_velocity_y->change_data(var);
+  }
+  //----------------------------------------------------------------------------
+  auto update_velocity_z(double const* var) -> void {
+    if (!m_initialized) {
+      throw std::logic_error(
+          "update_variable can only be called if "
+          "initialization is complete");
+    }
+    m_velocity_z->change_data(var);
+  }
+  //----------------------------------------------------------------------------
   auto update(int const iteration, double const time) -> void {
     if (!m_initialized) {
       throw std::logic_error(
@@ -206,7 +217,7 @@ struct interface : base_interface<interface> {
     }
     isosurface(
         // length(*m_velocity_field),
-        [&](auto const ix, auto const iy, auto const iz, auto const& pos) {
+        [&](auto const ix, auto const iy, auto const iz, auto const& /*pos*/) {
           auto const velx = m_velocity_x->at(
               ix + m_halo_level, iy + m_halo_level, iz + m_halo_level);
           auto const vely = m_velocity_y->at(
@@ -253,11 +264,16 @@ auto tatooine_dino_interface_initialize_grid(
       *is_periodic_y, *is_periodic_z, *halo_level);
 }
 //------------------------------------------------------------------------------
-auto tatooine_dino_interface_initialize_variable(char const*   name,
-                                                 int const*    num_components,
-                                                 double const* var) -> void {
-  tatooine::dino_interface::interface::get().initialize_variable(
-      name, *num_components, var);
+auto tatooine_dino_interface_initialize_velocity_x(double const* vel_x) -> void {
+  tatooine::dino_interface::interface::get().initialize_velocity_x(vel_x);
+}
+//------------------------------------------------------------------------------
+auto tatooine_dino_interface_initialize_velocity_y(double const* vel_y) -> void {
+  tatooine::dino_interface::interface::get().initialize_velocity_y(vel_y);
+}
+//------------------------------------------------------------------------------
+auto tatooine_dino_interface_initialize_velocity_z(double const* vel_z) -> void {
+  tatooine::dino_interface::interface::get().initialize_velocity_z(vel_z);
 }
 //------------------------------------------------------------------------------
 auto tatooine_dino_interface_initialize_parameters(double const* time,
@@ -272,11 +288,16 @@ auto tatooine_dino_interface_initialize(int const* restart) -> void {
   tatooine::dino_interface::interface::get().initialize(*restart);
 }
 //------------------------------------------------------------------------------
-auto tatooine_dino_interface_update_variable(char const*   name,
-                                             int const*    num_components,
-                                             double const* var) -> void {
-  tatooine::dino_interface::interface::get().update_variable(
-      name, *num_components, var);
+auto tatooine_dino_interface_update_velocity_x(double const* vel_x) -> void {
+  tatooine::dino_interface::interface::get().update_velocity_x(vel_x);
+}
+//------------------------------------------------------------------------------
+auto tatooine_dino_interface_update_velocity_y(double const* vel_y) -> void {
+  tatooine::dino_interface::interface::get().update_velocity_y(vel_y);
+}
+//------------------------------------------------------------------------------
+auto tatooine_dino_interface_update_velocity_z(double const* vel_z) -> void {
+  tatooine::dino_interface::interface::get().update_velocity_z(vel_z);
 }
 //------------------------------------------------------------------------------
 auto tatooine_dino_interface_update(int const* iteration, double const* time)
