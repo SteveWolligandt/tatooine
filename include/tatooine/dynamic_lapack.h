@@ -3,7 +3,11 @@
 //==============================================================================
 #include <tatooine/dynamic_tensor.h>
 #include <tatooine/lapack_job.h>
+#if TATOOINE_INCLUDE_MKL_LAPACKE
+#include <mkl_lapacke.h>
+#else
 #include <lapacke.h>
+#endif
 //==============================================================================
 namespace tatooine::lapack {
 //==============================================================================

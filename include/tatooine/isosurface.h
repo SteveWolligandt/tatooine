@@ -20,14 +20,25 @@ namespace tatooine {
 //==============================================================================
 /// \brief      Indexing and lookup map from
 /// http://paulbourke.net/geometry/polygonise/
+#ifdef __cpp_concepts
 template <
     indexable_space XDomain, indexable_space YDomain, indexable_space ZDomain,
+    arithmetic Isolevel,
     invocable<size_t const, size_t const, size_t const,
               vec<typename grid<XDomain, YDomain, ZDomain>::real_t, 3> const&>
         GetScalars>
+#else
+template <
+    typename XDomain, typename YDomain, typename ZDomain, typename GetScalars,
+    typename Isolevel,
+    enable_if<is_invocable<GetScalars, size_t const, size_t const, size_t const,
+                           vec<typename grid<XDomain, YDomain, ZDomain>::real_t,
+                               3> const&> > = true,
+    enable_if<is_arithmetic<Isolevel> >     = true>
+#endif
 auto isosurface(GetScalars&&                           get_scalars,
                 grid<XDomain, YDomain, ZDomain> const& g,
-                arithmetic auto const                 isolevel) {
+                Isolevel const                         isolevel) {
   using real_t = typename grid<XDomain, YDomain, ZDomain>::real_t;
   using pos_t = vec<real_t, 3>;
   triangular_mesh<real_t, 3> iso_volume;
@@ -159,10 +170,15 @@ auto isosurface(GetScalars&&                           get_scalars,
   return iso_volume;
 }
 //------------------------------------------------------------------------------
-template <arithmetic Real, typename Indexing, arithmetic BBReal>
+#ifdef __cpp_concepts
+template <arithmetic Real, typename Indexing, arithmetic BBReal, arithmetic Isolevel>
+#else
+template <typename Real, typename Indexing, typename BBReal, typename Isolevel,
+          enable_if<is_arithmetic<Isolevel> > = true>
+#endif
 auto isosurface(dynamic_multidim_array<Real, Indexing> const& data,
                 axis_aligned_bounding_box<BBReal, 3> const&   bb,
-                arithmetic auto const                                  isolevel) {
+                Isolevel const                                  isolevel) {
   assert(data.num_dimensions() == 3);
   return isosurface(
       [&](auto ix, auto iy, auto iz, auto const& /*ps*/) -> auto const& {
@@ -174,11 +190,17 @@ auto isosurface(dynamic_multidim_array<Real, Indexing> const& data,
       isolevel);
 }
 //------------------------------------------------------------------------------
+#ifdef __cpp_concepts
 template <arithmetic Real, typename Indexing, typename MemLoc, size_t XRes,
-          size_t YRes, size_t ZRes, arithmetic BBReal>
+          size_t YRes, size_t ZRes, arithmetic BBReal, arithmetic Isolevel>
+#else
+template <typename Real, typename Indexing, typename MemLoc, size_t XRes,
+          size_t YRes, size_t ZRes, typename BBReal, typename Isolevel,
+          enable_if<is_arithmetic<Isolevel> > = true>
+#endif
 auto isosurface(
     static_multidim_array<Real, Indexing, MemLoc, XRes, YRes, ZRes> const& data,
-    axis_aligned_bounding_box<BBReal, 3> const& bb, arithmetic auto isolevel) {
+    axis_aligned_bounding_box<BBReal, 3> const& bb, Isolevel const isolevel) {
   return isosurface(
       [&](auto ix, auto iy, auto iz, auto const& /*ps*/) -> auto const& {
         return data(ix, iy, iz);
@@ -189,12 +211,19 @@ auto isosurface(
       isolevel);
 }
 //------------------------------------------------------------------------------
+#ifdef __cpp_concepts
 template <typename Field, arithmetic FieldReal, indexable_space XDomain,
           indexable_space YDomain, indexable_space ZDomain,
-          arithmetic TReal = FieldReal>
+          arithmetic TReal, arithmetic Isolevel>
+#else
+template <typename Field, typename FieldReal, typename XDomain,
+          typename YDomain, typename ZDomain, typename Isolevel,
+          typename TReal                             = FieldReal,
+          enable_if<is_arithmetic<Isolevel, TReal> > = true>
+#endif
 auto isosurface(field<Field, FieldReal, 3> const&      sf,
                 grid<XDomain, YDomain, ZDomain> const& g,
-                arithmetic auto const isolevel, TReal const t = 0) {
+                Isolevel const isolevel, TReal const t = 0) {
   return isosurface([&](auto /*ix*/, auto /*iy*/, auto /*iz*/,
                                    auto const& pos) { return sf(pos, t); },
                                g, isolevel);

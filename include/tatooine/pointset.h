@@ -3,13 +3,15 @@
 //==============================================================================
 #include <boost/iterator/iterator_facade.hpp>
 #include <boost/range/algorithm/find.hpp>
+#ifdef TATOOINE_HAS_FLANN_SUPPORT
 #include <flann/flann.hpp>
+#include <tatooine/dynamic_tensor.h>
+#endif
 #include <fstream>
 #include <limits>
 #include <unordered_set>
 #include <vector>
 
-#include <tatooine/dynamic_tensor.h>
 #include <tatooine/handle.h>
 #include <tatooine/property.h>
 #include <tatooine/polynomial.h>
@@ -30,7 +32,9 @@ struct pointset {
   using real_t = Real;
   using this_t = pointset<Real, N>;
   using pos_t  = vec<Real, N>;
+#ifdef TATOOINE_HAS_FLANN_SUPPORT
   using flann_index_t = flann::Index<flann::L2<Real>>;
+#endif
   //----------------------------------------------------------------------------
   struct vertex_handle : handle {
     using handle::handle;
@@ -98,7 +102,9 @@ struct pointset {
   std::vector<pos_t>                             m_vertices;
   std::vector<vertex_handle>                     m_invalid_vertices;
   vertex_property_container_t                    m_vertex_properties;
+#ifdef TATOOINE_HAS_FLANN_SUPPORT
   mutable std::unique_ptr<flann_index_t>         m_kd_tree;
+#endif
   //============================================================================
  public:
   pointset() = default;
@@ -167,8 +173,13 @@ struct pointset {
   auto vertex_data() -> auto& { return m_vertices; }
   auto vertex_data() const -> auto const& { return m_vertices; }
   //----------------------------------------------------------------------------
+#ifdef __cpp_concepts
   template <arithmetic... Ts>
   requires(sizeof...(Ts) == N)
+#else
+  template <typename... Ts, enable_if<is_arithmetic<Ts...>> = true,
+            enable_if<sizeof...(Ts) == N> = true>
+#endif
   auto insert_vertex(Ts const... ts) {
     m_vertices.push_back(pos_t{static_cast<Real>(ts)...});
     for (auto& [key, prop] : m_vertex_properties) {
@@ -349,8 +360,12 @@ struct pointset {
     return *prop;
   }
   //----------------------------------------------------------------------------
+#ifdef __cpp_concepts
   template <typename = void>
   requires(N == 3 || N == 2)
+#else
+  template <size_t _N = N, enable_if<(N == 3 || N == 2)> = true>
+#endif
   auto write_vtk(std::string const& path,
                  std::string const& title = "Tatooine pointset") {
     vtk::legacy_file_writer writer(path, vtk::dataset_type::polydata);
@@ -401,6 +416,7 @@ struct pointset {
       }
     }
   }
+#ifdef TATOOINE_HAS_FLANN_SUPPORT
   auto rebuild_kd_tree() {
     m_kd_tree.reset();
     kd_tree();
@@ -477,7 +493,9 @@ struct pointset {
     }
     return handles;
   }
+#endif
   //============================================================================
+#ifdef TATOOINE_HAS_FLANN_SUPPORT
   template <typename T>
   auto inverse_distance_weighting_sampler(std::string const& prop_name) const {
     return inverse_distance_weighting_sampler_t<T>{
@@ -560,42 +578,70 @@ struct pointset {
       }
       return accumulated_prop_val / accumulated_weight;
     }
-    template <arithmetic... Components>
-    requires(sizeof...(Components) == N)
+#ifdef __cpp_concepts
+  template <arithmetic... Components>
+  requires(sizeof...(Components) == N)
+#else
+  template <typename... Components, enable_if<is_arithmetic<Components...>> = true,
+            enable_if<sizeof...(Components) == N> = true>
+#endif
     auto sample(Components const... components) const {
       return sample(pos_t{components...});
     }
-    template <arithmetic... Components>
-    requires(sizeof...(Components) == N)
+#ifdef __cpp_concepts
+  template <arithmetic... Components>
+  requires(sizeof...(Components) == N)
+#else
+  template <typename... Components, enable_if<is_arithmetic<Components...>> = true,
+            enable_if<sizeof...(Components) == N> = true>
+#endif
     auto operator()(Components const... components) const {
       return sample(pos_t{components...});
     }
     auto operator()(pos_t const& x) const { return sample(x); }
   };
+#endif
   //============================================================================
-  template <typename T>
-  requires (num_dimensions() == 2) || (num_dimensions() == 3)
+#ifdef TATOOINE_HAS_FLANN_SUPPORT
+#ifdef __cpp_concepts
+  template <typename = void>
+  requires(N == 3 || N == 2)
+#else
+  template <size_t _N = N, enable_if<(N == 3 || N == 2)> = true>
+#endif
   auto moving_least_squares_sampler(std::string const& prop_name) const {
     return moving_least_squares_sampler_t<T>{*this,
                                              vertex_property<T>(prop_name)};
   }
   //----------------------------------------------------------------------------
+#ifdef __cpp_concepts
   template <typename T>
-  requires (num_dimensions() == 2) || (num_dimensions() == 3)
+  requires(N == 3 || N == 2)
+#else
+  template <typename T, size_t _N = N, enable_if<(N == 3 || N == 2)> = true>
+#endif
   auto moving_least_squares_sampler(vertex_property_t<T> const& prop) const {
     return moving_least_squares_sampler_t<T>{*this, prop};
   }
   //----------------------------------------------------------------------------
+#ifdef __cpp_concepts
   template <typename T>
-  requires (num_dimensions() == 2) || (num_dimensions() == 3)
+  requires(N == 3 || N == 2)
+#else
+  template <typename T, size_t _N = N, enable_if<(N == 3 || N == 2)> = true>
+#endif
   auto moving_least_squares_sampler(std::string const& prop_name,
                                     Real const         radius) const {
     return moving_least_squares_sampler_t<T>{
         *this, vertex_property<T>(prop_name), radius};
   }
   //----------------------------------------------------------------------------
+#ifdef __cpp_concepts
   template <typename T>
-  requires (num_dimensions() == 2) || (num_dimensions() == 3)
+  requires(N == 3 || N == 2)
+#else
+  template <typename T, size_t _N = N, enable_if<(N == 3 || N == 2)> = true>
+#endif
   auto moving_least_squares_sampler(vertex_property_t<T> const& prop,
                                     Real const                  radius) const {
     return moving_least_squares_sampler_t<T>{*this, prop, radius};
@@ -908,6 +954,7 @@ struct pointset {
     }
     auto operator()(pos_t const& x) const { return sample(x); }
   };
+#endif
 };
 //==============================================================================
 template <typename Real, size_t N>

@@ -62,7 +62,13 @@ else()
 set(TATOOINE_OPENMP_AVAILABLE 0)
 endif()
 
-#find_package(FLANN REQUIRED)
+find_package(FLANN QUIET)
+if (FLANN_FOUND)
+  set(TATOOINE_HAS_FLANN_SUPPORT ON)
+else()
+  set(TATOOINE_HAS_FLANN_SUPPORT OFF)
+endif()
+
 #find_package(TBB REQUIRED)
 
 set(CGAL_DO_NOT_WARN_ABOUT_CMAKE_BUILD_TYPE TRUE)
@@ -146,6 +152,9 @@ endif()
 if (TATOOINE_INCLUDE_MKL_LAPACKE)
   target_compile_definitions(tatooine PUBLIC TATOOINE_INCLUDE_MKL_LAPACKE)
 endif()
+if (TATOOINE_HAS_FLANN_SUPPORT)
+  target_compile_definitions(tatooine PUBLIC TATOOINE_HAS_FLANN_SUPPORT)
+endif()
 if (TATOOINE_HAS_PNG_SUPPORT)
   target_compile_definitions(tatooine PUBLIC TATOOINE_HAS_PNG_SUPPORT)
 endif()
@@ -186,10 +195,12 @@ endif()
 target_link_libraries(tatooine
   PUBLIC
     stdc++fs
-    #FLANN::FLANN
     ${BLAS_LIBRARIES}
     ${LAPACK_LIBRARIES}
 )
+if(${TATOOINE_HAS_FLANN_SUPPORT})
+target_link_libraries(tatooine PUBLIC FLANN::FLANN)
+endif()
 if(${TATOOINE_HAS_PNG_SUPPORT})
 target_link_libraries(tatooine PUBLIC ${PNG_LIBRARIES} ${PNG++_LIBRARIES})
 endif()

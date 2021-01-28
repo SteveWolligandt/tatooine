@@ -185,8 +185,13 @@ class triangular_mesh : public pointset<Real, N> {
   auto operator           =(triangular_mesh&& other) noexcept
       -> triangular_mesh& = default;
   //----------------------------------------------------------------------------
+#ifdef __cpp_concepts
   template <indexable_space DimX, indexable_space DimY>
   requires(N == 2)
+#else
+  template <typename DimX, typename DimY, size_t _N = N,
+            enable_if<_N == 2> = true>
+#endif
   triangular_mesh(grid<DimX, DimY> const& g) {
     for (auto v : g.vertices()) {
       insert_vertex(v);
@@ -247,8 +252,14 @@ class triangular_mesh : public pointset<Real, N> {
             m_face_indices[i * 3 + 2]};
   }
   //----------------------------------------------------------------------------
+#ifdef __cpp_concepts
   template <arithmetic... Ts>
-  requires(sizeof...(Ts) == N) auto insert_vertex(Ts const... ts) {
+  requires(sizeof...(Ts) == N)
+#else
+  template <typename... Ts, enable_if<is_arithmetic<Ts...>> = true,
+            enable_if<sizeof...(Ts) == N> = true>
+#endif
+  auto insert_vertex(Ts const... ts) {
     auto const vi = parent_t::insert_vertex(ts...);
     if (m_hierarchy != nullptr) {
       if (!m_hierarchy->insert_vertex(*this, vi.i)) {
@@ -341,8 +352,12 @@ class triangular_mesh : public pointset<Real, N> {
     m_face_indices = *reinterpret_cast<std::vector<vertex_handle>*>(&is);
   }
   //----------------------------------------------------------------------------
+#ifdef __cpp_concepts
   template <typename = void>
   requires(N == 2 || N == 3)
+#else
+  template <size_t _N = N, enable_if<(_N == 2 || _N == 3)> = true>
+#endif
   auto build_hierarchy() const {
     clear_hierarchy();
     auto& h = hierarchy();
@@ -354,14 +369,23 @@ class triangular_mesh : public pointset<Real, N> {
     }
   }
   //----------------------------------------------------------------------------
+#ifdef __cpp_concepts
   template <typename = void>
   requires(N == 2 || N == 3)
+#else
+  template <size_t _N = N, enable_if<(_N == 2 || _N == 3)> = true>
+#endif
   auto clear_hierarchy() const {
     m_hierarchy.reset();
   }
   //----------------------------------------------------------------------------
+#ifdef __cpp_concepts
   template <typename = void>
-  requires(N == 2 || N == 3) auto hierarchy() const -> auto& {
+  requires(N == 2 || N == 3)
+#else
+  template <size_t _N = N, enable_if<(_N == 2 || _N == 3)> = true>
+#endif
+  auto hierarchy() const -> auto& {
     if (m_hierarchy == nullptr) {
       auto min = pos_t::ones() * std::numeric_limits<Real>::infinity();
       auto max = -pos_t::ones() * std::numeric_limits<Real>::infinity();
@@ -393,8 +417,12 @@ class triangular_mesh : public pointset<Real, N> {
         *this, this->template vertex_property<T>(name)};
   }
   //----------------------------------------------------------------------------
+#ifdef __cpp_concepts
   template <typename = void>
-  requires(N == 2) || (N == 3)
+  requires(N == 2 || N == 3)
+#else
+  template <size_t _N = N, enable_if<(_N == 2 || _N == 3)> = true>
+#endif
   auto write_vtk(std::string const& path,
                  std::string const& title = "tatooine triangular mesh") const
       -> bool {
@@ -464,9 +492,13 @@ class triangular_mesh : public pointset<Real, N> {
     }
   }
   //----------------------------------------------------------------------------
+#ifdef __cpp_concepts
   template <typename = void>
-      requires(N == 2) ||
-      (N == 3) auto read_vtk(std::filesystem::path const& path) {
+  requires(N == 2 || N == 3)
+#else
+  template <size_t _N = N, enable_if<(_N == 2 || _N == 3)> = true>
+#endif
+  auto read_vtk(std::filesystem::path const& path) {
     struct listener_t : vtk::legacy_file_listener {
       triangular_mesh& mesh;
 
