@@ -1,7 +1,7 @@
 #include <mpi.h>
 #include <tatooine/analytical/fields/numerical/abcflow.h>
 #include <tatooine/axis_aligned_bounding_box.h>
-#include <tatooine/dino_interface/interface.h>
+#include <tatooine/insitu/c_interface.h>
 
 #include <boost/multi_array.hpp>
 #include <boost/program_options.hpp>
@@ -15,7 +15,7 @@ using vec_array    = boost::multi_array<double, 4>;
 using index_t      = scalar_array::index;
 using range_t      = scalar_array::extent_range;
 //==============================================================================
-int                nDims = 2;
+int                num_dimensions = 2;
 std::array<int, 2> dims{0, 0};
 std::array<int, 2> periods{0, 0};
 
@@ -83,9 +83,6 @@ auto initialize_mpi(int argc, char** argv) -> void {
   MPI_Comm_set_errhandler(MPI_COMM_WORLD, MPI_ERRORS_RETURN);
   MPI_Comm_rank(MPI_COMM_WORLD, &rank);  // My ID
   MPI_Comm_size(MPI_COMM_WORLD, &size);  // Number of Processes
-  if (rank == 0) {
-    std::cerr << "Initializing MPI Environment.\n";
-  }
 }
 //------------------------------------------------------------------------------
 auto parse_args(int argc, char** argv) {
@@ -119,9 +116,6 @@ auto parse_args(int argc, char** argv) {
     po::store(po::parse_command_line(argc, argv, desc), vm);
 
     if (vm.empty() || vm.count("help")) {
-      if (rank == 0) {
-        std::cerr << desc << "\n";
-      }
       return false;
     }
 
@@ -140,46 +134,21 @@ auto parse_args(int argc, char** argv) {
     dt               = vm["dt"].as<double>();
     use_interpolated = vm["use_interpolated"].as<bool>();
 
-    if (rank == 0) {
-      std::cerr << "grid size x was set to " << global_grid_size[0] << ".\n";
-      std::cerr << "grid size y was set to " << global_grid_size[1] << ".\n";
-      std::cerr << "grid size z was set to " << global_grid_size[2] << ".\n";
-
-      std::cerr << "t0 was set to " << t0 << ".\n";
-      std::cerr << "t1 was set to " << t1 << ".\n";
-      std::cerr << "dt was set to " << dt << ".\n";
-    }
-
     if (vm.count("restart_iteration") > 0) {
       restart   = 1;
       iteration = vm["restart_iteration"].as<int>();
-      if (rank == 0) {
-        std::cerr << "restarting from step " << iteration << '\n';
-      }
       t0 = t0 + iteration * dt;
     }
 
   } catch (std::exception& e) {
-    if (rank == 0) {
-      std::cerr << "error: " << e.what() << "\n";
-    }
     return false;
   } catch (...) {
-    if (rank == 0) {
-      std::cerr << "Exception of unknown type!\n";
-    }
   }
   return true;
 }
 //------------------------------------------------------------------------------
 auto sample_flow() {
   tatooine::analytical::fields::numerical::abcflow v;
-  if (rank == 0) {
-    std::cerr << "[feeder]#" << rank << ": [y_range] " << starty << " , "
-              << local_grid_end_y << '\n';
-    std::cerr << "[feeder]#" << rank << ": [z_range] " << startz << " , "
-              << local_grid_end_z << '\n';
-  }
   for (int i = 0; i < global_grid_size[0]; ++i) {
     for (int j = starty; j < local_grid_end_y; ++j) {
       for (int k = startz; k < local_grid_end_z; ++k) {
@@ -193,22 +162,15 @@ auto sample_flow() {
       }
     }
   }
-  if (rank == 0) {
-    std::cerr << "feeder: " << cur_t << " | ";
-    for (size_t i = 0; i < 12; ++i) {
-      std::cerr << velocity_x_field->data()[i] << ", ";
-    }
-    std::cerr << "...\n";
-  }
 }
 //------------------------------------------------------------------------------
 auto simulation_step() -> void {
   cur_t = cur_t + dt;
   sample_flow();
-  tatooine_dino_interface_update_velocity_x(velocity_x_field->data());
-  tatooine_dino_interface_update_velocity_y(velocity_y_field->data());
-  tatooine_dino_interface_update_velocity_z(velocity_z_field->data());
-  tatooine_dino_interface_update(&iteration, &cur_t);
+  tatooine_insitu_interface_update_velocity_x(velocity_x_field->data());
+  tatooine_insitu_interface_update_velocity_y(velocity_y_field->data());
+  tatooine_insitu_interface_update_velocity_z(velocity_z_field->data());
+  tatooine_insitu_interface_update(&iteration, &cur_t);
 
   ++iteration;
 }
@@ -292,20 +254,20 @@ auto initialize_flow_data() {
 }
 //------------------------------------------------------------------------------
 auto start_simulation() -> void {
-  tatooine_dino_interface_initialize_grid(
+  tatooine_insitu_interface_initialize_grid(
       &global_grid_size[0], &global_grid_size[1], &global_grid_size[2],
       &local_starting_index_x, &local_starting_index_y, &local_starting_index_z,
       &global_grid_size[0], &local_grid_size_y, &local_grid_size_z,
       &domain_size_x, &domain_size_y, &domain_size_z, &is_periodic_x,
       &is_periodic_y, &is_periodic_z, &halo_level);
 
-  tatooine_dino_interface_initialize_velocity_x(velocity_x_field->data());
-  tatooine_dino_interface_initialize_velocity_y(velocity_y_field->data());
-  tatooine_dino_interface_initialize_velocity_z(velocity_z_field->data());
+  tatooine_insitu_interface_initialize_velocity_x(velocity_x_field->data());
+  tatooine_insitu_interface_initialize_velocity_y(velocity_y_field->data());
+  tatooine_insitu_interface_initialize_velocity_z(velocity_z_field->data());
 
   auto const prev_time = t0 - dt;
-  tatooine_dino_interface_initialize_parameters(&t0, &prev_time, &iteration);
-  tatooine_dino_interface_initialize(&restart);
+  tatooine_insitu_interface_initialize_parameters(&t0, &prev_time, &iteration);
+  tatooine_insitu_interface_initialize(&restart);
 
   simulation_loop();
 }
@@ -316,22 +278,22 @@ auto main(int argc, char** argv) -> int {
     return 0;
   }
 
-  MPI_Comm newComm;
+  MPI_Comm new_communicator;
 
-  MPI_Dims_create(size, nDims, dims.data());
-  MPI_Cart_create(MPI_COMM_WORLD, nDims, dims.data(), periods.data(), true,
-                  &newComm);
+  MPI_Dims_create(size, num_dimensions, dims.data());
+  MPI_Cart_create(MPI_COMM_WORLD, num_dimensions, dims.data(), periods.data(), true,
+                  &new_communicator);
 
-  MPI_Comm_set_errhandler(newComm, MPI_ERRORS_RETURN);
+  MPI_Comm_set_errhandler(new_communicator, MPI_ERRORS_RETURN);
 
   // Allocate required space
-  MPI_Cartdim_get(newComm, &nDims);
+  MPI_Cartdim_get(new_communicator, &num_dimensions);
 
   // Get Position in Cartesian grid
-  MPI_Cart_get(newComm, nDims, rDims.data(), rPeriods.data(), rCoords.data());
+  MPI_Cart_get(new_communicator, num_dimensions, rDims.data(), rPeriods.data(), rCoords.data());
 
   // Convert to FInt
-  MPI_Fint commF = MPI_Comm_c2f(newComm);
+  MPI_Fint comm_fint = MPI_Comm_c2f(new_communicator);
 
   calculate_grid_position_for_worker();
   velocity_x_field = std::make_unique<scalar_array>(
@@ -349,7 +311,7 @@ auto main(int argc, char** argv) -> int {
 
   initialize_flow_data();
 
-  tatooine_dino_interface_initialize_communicator(&commF);
+  tatooine_insitu_interface_initialize_communicator(&comm_fint);
 
   start_simulation();
   MPI_Finalize();

@@ -604,10 +604,10 @@ struct pointset {
   //============================================================================
 #ifdef TATOOINE_HAS_FLANN_SUPPORT
 #ifdef __cpp_concepts
-  template <typename = void>
+  template <typename T>
   requires(N == 3 || N == 2)
 #else
-  template <size_t _N = N, enable_if<(N == 3 || N == 2)> = true>
+  template <typename T, size_t _N = N, enable_if<(N == 3 || N == 2)> = true>
 #endif
   auto moving_least_squares_sampler(std::string const& prop_name) const {
     return moving_least_squares_sampler_t<T>{*this,

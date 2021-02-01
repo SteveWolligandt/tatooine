@@ -1,5 +1,5 @@
-#ifndef TATOOINE_DINO_INTERFACE_BASE_INTERFACE_H
-#define TATOOINE_DINO_INTERFACE_BASE_INTERFACE_H
+#ifndef TATOOINE_INSITU_BASE_INTERFACE_H
+#define TATOOINE_INSITU_BASE_INTERFACE_H
 //==============================================================================
 #include <tatooine/grid.h>
 
@@ -11,14 +11,32 @@
 #include <iomanip>
 #include <iostream>
 //==============================================================================
-namespace tatooine::dino_interface {
+namespace tatooine::insitu {
 //==============================================================================
 template <typename InterfaceImplementation>
 struct base_interface {
+  static constexpr std::string_view reset       = "\033[0m";
+  static constexpr std::string_view bold        = "\033[1m";
+  static constexpr std::string_view black       = "\033[30m";
+  static constexpr std::string_view red         = "\033[31m";
+  static constexpr std::string_view green       = "\033[32m";
+  static constexpr std::string_view yellow      = "\033[33m";
+  static constexpr std::string_view blue        = "\033[34m";
+  static constexpr std::string_view magenta     = "\033[35m";
+  static constexpr std::string_view cyan        = "\033[36m";
+  static constexpr std::string_view white       = "\033[37m";
+  static constexpr std::string_view boldblack   = "\033[1m\033[30m";
+  static constexpr std::string_view boldred     = "\033[1m\033[31m";
+  static constexpr std::string_view boldgreen   = "\033[1m\033[32m";
+  static constexpr std::string_view boldyellow  = "\033[1m\033[33m";
+  static constexpr std::string_view boldblue    = "\033[1m\033[34m";
+  static constexpr std::string_view boldmagenta = "\033[1m\033[35m";
+  static constexpr std::string_view boldcyan    = "\033[1m\033[36m";
+  static constexpr std::string_view boldwhite   = "\033[1m\033[37m";
   //============================================================================
   // Helper Functions
   //============================================================================
-  static long parse_line(char* line) {
+  static auto parse_line(char* line) {
     // This assumes that a digit will be found and the line ends in " Kb".
     auto        i = strlen(line);
     const char* p = line;
@@ -29,7 +47,7 @@ struct base_interface {
     return long(i);
   }
   //----------------------------------------------------------------------------
-  static long vm_used() {  // Note: this value is in KB!
+  static auto vm_used() {  // Note: this value is in KB!
     FILE* file   = fopen("/proc/self/status", "r");
     long  result = -1;
     char  line[128];
@@ -44,7 +62,7 @@ struct base_interface {
     return result;
   }
   //----------------------------------------------------------------------------
-  static long pm_used() {  // Note: this value is in KB!
+  static auto pm_used() {  // Note: this value is in KB!
     FILE* file   = fopen("/proc/self/status", "r");
     long  result = -1;
     char  line[128];
@@ -63,11 +81,18 @@ struct base_interface {
     static InterfaceImplementation impl;
     return impl;
   }
+  enum class phase : unsigned short {
+    pre_start,
+    initialized_communicator,
+    initialized_grid,
+    initializing_parameters_and_variables,
+    initialized,
+    preparing_update,
+    updating
+  };
   //============================================================================
   // MEMBERS
   //============================================================================
-  bool m_mpi_communicator_initialized = false;
-  bool m_grid_initialized             = false;
   std::unique_ptr<boost::mpi::cartesian_communicator> m_mpi_communicator;
   long                                                m_base_vmused = 0;
   long                                                m_base_pmused = 0;
@@ -77,6 +102,10 @@ struct base_interface {
   uniform_grid<double, 3>                             m_worker_grid;
   uniform_grid<double, 3>                             m_worker_halo_grid;
   int                                                 m_halo_level = 0;
+  double                                              m_time       = 0;
+  double                                              m_prev_time  = 0;
+  uint64_t                                            m_iteration  = 0;
+  phase m_phase = phase::pre_start;
 
   //============================================================================
   // METHODS
@@ -100,7 +129,7 @@ struct base_interface {
   }
   //------------------------------------------------------------------------------
   auto initialize_communicator(MPI_Fint& communicator) -> void {
-    if (m_mpi_communicator_initialized) {
+    if (m_phase >= phase::initialized_communicator) {
       return;
     }
     // Communicator should be the one describing the cartesian grid
@@ -109,8 +138,8 @@ struct base_interface {
     m_mpi_communicator = std::unique_ptr<boost::mpi::cartesian_communicator>{
         new boost::mpi::cartesian_communicator{MPI_Comm_f2c(communicator),
                                                boost::mpi::comm_attach}};
-    //log("Initializing MPI");
-    m_mpi_communicator_initialized = true;
+    // log("Initializing MPI");
+    m_phase = phase::initialized_communicator;
   }
   //------------------------------------------------------------------------------
   /// \brief  Initialize the dataset grid.
@@ -134,15 +163,12 @@ struct base_interface {
       double const domain_size_y, double const domain_size_z,
       int const /*is_periodic_x*/, int const /*is_periodic_y*/,
       int const /*is_periodic_z*/, int const halo_level) -> void {
-    if (m_grid_initialized) {
-      return;
-    }
-    if (!m_mpi_communicator_initialized) {
+    if (m_phase < phase::initialized_communicator) {
       throw std::logic_error(
-          "initialize_grid must be called after "
-          "initialize");
+          "[tatooine insitu interface]\n  "
+          "initialize_grid must be called after initialize_communicator");
     }
-    //log("Initializing grid");
+    // log("Initializing grid");
 
     assert(global_grid_size_x >= 0);
     assert(global_grid_size_y >= 0);
@@ -155,19 +181,19 @@ struct base_interface {
     assert(domain_size_z >= 0);
     assert(halo_level >= 0 && halo_level <= UINT8_MAX);
 
-    //log_all("[TATOOINE] global_grid_size_x: " + std::to_string(global_grid_size_x));
-    //log_all("[TATOOINE] global_grid_size_y: " + std::to_string(global_grid_size_y));
-    //log_all("[TATOOINE] global_grid_size_z: " + std::to_string(global_grid_size_z));
-    //log_all("[TATOOINE] local_starting_index_x: " +
+    // log_all(" global_grid_size_x: " + std::to_string(global_grid_size_x));
+    // log_all(" global_grid_size_y: " + std::to_string(global_grid_size_y));
+    // log_all(" global_grid_size_z: " + std::to_string(global_grid_size_z));
+    // log_all(" local_starting_index_x: " +
     //        std::to_string(local_starting_index_x));
-    //log_all("[TATOOINE] local_starting_index_y: " +
+    // log_all(" local_starting_index_y: " +
     //        std::to_string(local_starting_index_y));
-    //log_all("[TATOOINE] local_starting_index_z: " +
+    // log_all(" local_starting_index_z: " +
     //        std::to_string(local_starting_index_z));
-    //log_all("[TATOOINE] domain_size_x: " + std::to_string(domain_size_x));
-    //log_all("[TATOOINE] domain_size_y: " + std::to_string(domain_size_y));
-    //log_all("[TATOOINE] domain_size_z: " + std::to_string(domain_size_z));
-    //log_all("[TATOOINE] halo_level: " + std::to_string(halo_level));
+    // log_all(" domain_size_x: " + std::to_string(domain_size_x));
+    // log_all(" domain_size_y: " + std::to_string(domain_size_y));
+    // log_all(" domain_size_z: " + std::to_string(domain_size_z));
+    // log_all(" halo_level: " + std::to_string(halo_level));
 
     m_global_grid.dimension<0>() = linspace<double>{
         0, domain_size_x, static_cast<size_t>(global_grid_size_x)};
@@ -238,38 +264,27 @@ struct base_interface {
       }
     }
 
-    if (m_mpi_communicator->rank() == 0) {
-      std::cout << "[TATOOINE] global grid:\n"
-                << m_global_grid.dimension<0>() << '\n'
-                << m_global_grid.dimension<1>() << '\n'
-                << m_global_grid.dimension<2>() << '\n';
-      std::cout << "[TATOOINE] worker grid:\n"
-                << m_worker_grid.dimension<0>() << '\n'
-                << m_worker_grid.dimension<1>() << '\n'
-                << m_worker_grid.dimension<2>() << '\n';
-      std::cout << "[TATOOINE] worker halo grid:\n"
-                << m_worker_halo_grid.dimension<0>() << '\n'
-                << m_worker_halo_grid.dimension<1>() << '\n'
-                << m_worker_halo_grid.dimension<2>() << '\n';
-    }
     m_halo_level       = halo_level;
-    m_grid_initialized = true;
+    m_phase = phase::initialized_grid;
   }
   //----------------------------------------------------------------------------
   void log(const std::string& message) {
     if (m_mpi_communicator->rank() == 0) {
-      std::cout << message << '\n';
+      std::cout << bold << "[tatooine insitu interface]" << reset << "\n  "
+                << message << '\n';
     }
   }
   //----------------------------------------------------------------------------
   void log_all(const std::string& message) {
-    std::cout << m_mpi_communicator->rank() << ": " << message << '\n';
+    std::cout << bold << "[tatooine insitu interface#"
+              << m_mpi_communicator->rank() << "]" << reset << "\n  " << message
+              << '\n';
   }
   //----------------------------------------------------------------------------
   void log_mem_usage(int iteration) {
     // auto virtualMemUsedProcess = vm_used();
-    auto memUsedProcess     = pm_used();
-    auto memOverheadProcess = memUsedProcess - m_base_pmused;
+    auto mem_used_process     = pm_used();
+    auto mem_overhead_process = mem_used_process - m_base_pmused;
 
     // Gather all memory usage at master node
     // auto vmused_all = std::vector<long>{};
@@ -277,10 +292,10 @@ struct base_interface {
     // vmused_all, 0L);
 
     auto pmused_all = std::vector<long>{};
-    boost::mpi::gather(*m_mpi_communicator, memUsedProcess, pmused_all, 0L);
+    boost::mpi::gather(*m_mpi_communicator, mem_used_process, pmused_all, 0L);
 
     auto overhead_all = std::vector<long>{};
-    boost::mpi::gather(*m_mpi_communicator, memOverheadProcess, overhead_all,
+    boost::mpi::gather(*m_mpi_communicator, mem_overhead_process, overhead_all,
                        0L);
 
     // auto basevm_all = std::vector<long>{};
@@ -376,20 +391,27 @@ struct base_interface {
                     << overhead_avg / 1024 << '\n';
     }
   }
-  //============================================================================
-  auto initialize_variable(char const* name, int num_components,
-                           double const* var) -> void {
-    static_cast<InterfaceImplementation*>(this)->initialize_variable(
-        name, num_components, var);
+  //==============================================================================
+  auto init_par_and_var_check() -> void {
+    if (m_phase < phase::initialized_grid) {
+      throw std::logic_error(
+          "[tatooine insitu interface]\n  "
+          "Parameters and variables can first be initialized after "
+          "initialize_grid");
+    }
+  m_phase = phase::initializing_parameters_and_variables;
   }
-  //----------------------------------------------------------------------------
-  auto update_variable(char const* name, int const num_components,
-                       double const* var) -> void {
-    static_cast<InterfaceImplementation*>(this)->update_variable(
-        name, num_components, var);
+  //------------------------------------------------------------------------------
+  auto update_var_check() -> void {
+    if (m_phase < phase::initialized) {
+      throw std::logic_error(
+          "[tatooine insitu interface]\n  "
+          "variables can first be update after initialize");
+    }
+    m_phase = phase::preparing_update;
   }
 };
 //==============================================================================
-}  // namespace tatooine::dino_interface
+}  // namespace tatooine::insitu
 //==============================================================================
 #endif
