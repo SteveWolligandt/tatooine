@@ -7,7 +7,7 @@ add_custom_target(mpi.fortran.hello_world.run
   DEPENDS mpi.fortran.hello_world)
 
 add_library(mpi.fortran.c_interface SHARED
-  ${CMAKE_CURRENT_SOURCE_DIR}/hello_world.cpp)
+  ${CMAKE_CURRENT_SOURCE_DIR}/c_interface.cpp)
 target_compile_features(mpi.fortran.c_interface PUBLIC cxx_std_20)
 
 target_link_libraries(mpi.fortran.hello_world mpi.fortran.c_interface)

@@ -46,13 +46,6 @@ else()
   set(TATOOINE_HAS_PNG_SUPPORT OFF)
 endif()
 find_package(NetCDF QUIET)
-if (${NETCDF_FOUND})
-  if (NOT DEFINED PNG++_INCLUDE_DIRS)
-    set(TATOOINE_HAS_NETCDF_SUPPORT ON)
-  else()
-    set(TATOOINE_HAS_NETCDF_SUPPORT OFF)
-  endif()
-endif()
 
 
 option (TATOOINE_COMPILE_WITH_OPENMP "" ON)
@@ -63,18 +56,27 @@ set(TATOOINE_OPENMP_AVAILABLE 0)
 endif()
 
 find_package(FLANN QUIET)
+#find_package(TBB REQUIRED)
+set(CGAL_DO_NOT_WARN_ABOUT_CMAKE_BUILD_TYPE TRUE)
+find_package(CGAL QUIET)
+
+if (NETCDF_FOUND)
+  set(TATOOINE_HAS_NETCDF_SUPPORT ON)
+  message(STATUS "NetCDF available")
+else()
+  set(TATOOINE_HAS_NETCDF_SUPPORT OFF)
+endif()
+
 if (FLANN_FOUND)
   set(TATOOINE_HAS_FLANN_SUPPORT ON)
+  message(STATUS "FLANN available")
 else()
   set(TATOOINE_HAS_FLANN_SUPPORT OFF)
 endif()
 
-#find_package(TBB REQUIRED)
-
-set(CGAL_DO_NOT_WARN_ABOUT_CMAKE_BUILD_TYPE TRUE)
-find_package(CGAL QUIET)
 if (CGAL_FOUND)
   set(TATOOINE_HAS_CGAL_SUPPORT ON)
+  message(STATUS "CGAL available")
 else()
   set(TATOOINE_HAS_CGAL_SUPPORT OFF)
 endif()
@@ -260,11 +262,11 @@ if (${yavin_FOUND})
 endif()
 add_subdirectory(autonomous_particles)
 add_subdirectory(smearing_scalar_field)
-add_subdirectory(dino_interface)
+add_subdirectory(insitu)
 
 #- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 # This makes the project importable from the build directory
-export(TARGETS tatooine dino_interface
+export(TARGETS tatooine insitu_interface
        FILE tatooineConfig.cmake
        NAMESPACE tatooine::)
 export(PACKAGE tatooine)

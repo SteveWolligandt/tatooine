@@ -8,62 +8,63 @@ if (MPI_FOUND)
   #- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
   # test interface
   #- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-  add_library(dino_interface STATIC
-    ${TATOOINE_DINO_INTERFACE_SOURCE_DIR}/interface.cpp)
-  target_link_libraries(dino_interface PRIVATE tatooine ${MPI_LIBRARIES} Boost::mpi)
+  add_library(insitu_interface STATIC
+    ${TATOOINE_DINO_INTERFACE_SOURCE_DIR}/interface.cpp
+    ${TATOOINE_DINO_INTERFACE_SOURCE_DIR}/c_interface.cpp)
+  target_link_libraries(insitu_interface PRIVATE tatooine ${MPI_LIBRARIES} Boost::mpi)
   if ("${CMAKE_CXX_COMPILER_ID}" STREQUAL "Clang")
-    target_compile_options(dino_interface
+    target_compile_options(insitu_interface
       PRIVATE "-fcolor-diagnostics")
   elseif ("${CMAKE_CXX_COMPILER_ID}" STREQUAL "GNU")
-    target_compile_options(dino_interface
+    target_compile_options(insitu_interface
       PRIVATE  "-fdiagnostics-color=always")
   endif()
   if (MPI_COMPILE_FLAGS)
-    set_target_properties(dino_interface PROPERTIES
+    set_target_properties(insitu_interface PROPERTIES
     COMPILE_FLAGS "${MPI_COMPILE_FLAGS}")
   endif()
   if(MPI_LINK_FLAGS)
-    set_target_properties(dino_interface PROPERTIES
+    set_target_properties(insitu_interface PROPERTIES
       LINK_FLAGS "${MPI_LINK_FLAGS}")
   endif()
-  target_compile_features(dino_interface PUBLIC cxx_std_20)
-  target_compile_options(dino_interface
+  target_compile_features(insitu_interface PUBLIC cxx_std_20)
+  target_compile_options(insitu_interface
     PRIVATE
     -Wall -Wextra -pedantic)
-  target_include_directories(dino_interface
+  target_include_directories(insitu_interface
     PUBLIC ${TATOOINE_DINO_INTERFACE_INCLUDE_DIR})
 
   #- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
   # feeder executable
   #- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-  add_executable(dino_interface.feeder
+  add_executable(insitu_interface.feeder
     ${TATOOINE_DINO_INTERFACE_SOURCE_DIR}/feeder.cpp)
-  target_link_libraries(dino_interface.feeder PRIVATE
-    tatooine ${MPI_LIBRARIES} Boost::program_options dino_interface)
+  target_link_libraries(insitu_interface.feeder PRIVATE
+    tatooine ${MPI_LIBRARIES} Boost::program_options insitu_interface)
   if ("${CMAKE_CXX_COMPILER_ID}" STREQUAL "Clang")
-    target_compile_options(dino_interface.feeder PRIVATE "-fcolor-diagnostics")
+    target_compile_options(insitu_interface.feeder PRIVATE "-fcolor-diagnostics")
   elseif ("${CMAKE_CXX_COMPILER_ID}" STREQUAL "GNU")
-    target_compile_options(dino_interface.feeder PRIVATE
+    target_compile_options(insitu_interface.feeder PRIVATE
       "-fdiagnostics-color=always")
   endif()
 
   if (MPI_COMPILE_FLAGS)
-    set_target_properties(dino_interface.feeder PROPERTIES
+    set_target_properties(insitu_interface.feeder PROPERTIES
     COMPILE_FLAGS "${MPI_COMPILE_FLAGS}")
   endif()
   if(MPI_LINK_FLAGS)
-    set_target_properties(dino_interface.feeder PROPERTIES
+    set_target_properties(insitu_interface.feeder PROPERTIES
       LINK_FLAGS "${MPI_LINK_FLAGS}")
   endif()
-  target_compile_features(dino_interface.feeder PUBLIC cxx_std_20)
-  target_compile_options(dino_interface.feeder
+  target_compile_features(insitu_interface.feeder PUBLIC cxx_std_20)
+  target_compile_options(insitu_interface.feeder
     PRIVATE
     -Wall -Wextra -pedantic
     -Wno-tautological-undefined-compare -Wno-gnu-zero-variadic-macro-arguments)
-  target_include_directories(dino_interface.feeder
+  target_include_directories(insitu_interface.feeder
     PUBLIC ${TATOOINE_DINO_INTERFACE_INCLUDE_DIR})
-  add_custom_target(dino_interface.feeder.run
-    mpirun -np 4 ./dino_interface.feeder 
+  add_custom_target(insitu_interface.feeder.run
+    mpirun -np 20 --host localhost:20 ./insitu_interface.feeder 
     --gridsizex 101 
     --gridsizey 101 
     --gridsizez 101 
@@ -76,7 +77,7 @@ if (MPI_FOUND)
     --t0         0
     --t1        10
     --dt         1
-    DEPENDS tatooine dino_interface.feeder)
+    DEPENDS tatooine insitu_interface.feeder)
 else()
   message("MPI not found.")
 endif()
