@@ -109,7 +109,7 @@ struct base_interface {
     m_mpi_communicator = std::unique_ptr<boost::mpi::cartesian_communicator>{
         new boost::mpi::cartesian_communicator{MPI_Comm_f2c(communicator),
                                                boost::mpi::comm_attach}};
-    log("Initializing MPI");
+    //log("Initializing MPI");
     m_mpi_communicator_initialized = true;
   }
   //------------------------------------------------------------------------------
@@ -142,7 +142,7 @@ struct base_interface {
           "initialize_grid must be called after "
           "initialize");
     }
-    log("Initializing grid");
+    //log("Initializing grid");
 
     assert(global_grid_size_x >= 0);
     assert(global_grid_size_y >= 0);
@@ -155,24 +155,19 @@ struct base_interface {
     assert(domain_size_z >= 0);
     assert(halo_level >= 0 && halo_level <= UINT8_MAX);
 
-    //log_all("global_grid_size_x: " + std::to_string(global_grid_size_x));
-    //log_all("global_grid_size_y: " + std::to_string(global_grid_size_y));
-    //log_all("global_grid_size_z: " + std::to_string(global_grid_size_z));
-    //log_all("local_starting_index_x: " +
+    //log_all("[TATOOINE] global_grid_size_x: " + std::to_string(global_grid_size_x));
+    //log_all("[TATOOINE] global_grid_size_y: " + std::to_string(global_grid_size_y));
+    //log_all("[TATOOINE] global_grid_size_z: " + std::to_string(global_grid_size_z));
+    //log_all("[TATOOINE] local_starting_index_x: " +
     //        std::to_string(local_starting_index_x));
-    //log_all("local_starting_index_y: " +
+    //log_all("[TATOOINE] local_starting_index_y: " +
     //        std::to_string(local_starting_index_y));
-    //log_all("local_starting_index_z: " +
+    //log_all("[TATOOINE] local_starting_index_z: " +
     //        std::to_string(local_starting_index_z));
-    //log_all("domain_size_x: " + std::to_string(domain_size_x));
-    //log_all("domain_size_y: " + std::to_string(domain_size_y));
-    //log_all("domain_size_z: " + std::to_string(domain_size_z));
-    //log_all("halo_level: " + std::to_string(halo_level));
-
-    if (halo_level < 4) {
-      throw std::invalid_argument("halo_level must be at least 4. Given: " +
-                                  std::to_string(halo_level));
-    }
+    //log_all("[TATOOINE] domain_size_x: " + std::to_string(domain_size_x));
+    //log_all("[TATOOINE] domain_size_y: " + std::to_string(domain_size_y));
+    //log_all("[TATOOINE] domain_size_z: " + std::to_string(domain_size_z));
+    //log_all("[TATOOINE] halo_level: " + std::to_string(halo_level));
 
     m_global_grid.dimension<0>() = linspace<double>{
         0, domain_size_x, static_cast<size_t>(global_grid_size_x)};
@@ -244,15 +239,15 @@ struct base_interface {
     }
 
     if (m_mpi_communicator->rank() == 0) {
-      std::cerr << "global grid:\n"
+      std::cout << "[TATOOINE] global grid:\n"
                 << m_global_grid.dimension<0>() << '\n'
                 << m_global_grid.dimension<1>() << '\n'
                 << m_global_grid.dimension<2>() << '\n';
-      std::cerr << "worker grid:\n"
+      std::cout << "[TATOOINE] worker grid:\n"
                 << m_worker_grid.dimension<0>() << '\n'
                 << m_worker_grid.dimension<1>() << '\n'
                 << m_worker_grid.dimension<2>() << '\n';
-      std::cerr << "worker halo grid:\n"
+      std::cout << "[TATOOINE] worker halo grid:\n"
                 << m_worker_halo_grid.dimension<0>() << '\n'
                 << m_worker_halo_grid.dimension<1>() << '\n'
                 << m_worker_halo_grid.dimension<2>() << '\n';
@@ -263,12 +258,12 @@ struct base_interface {
   //----------------------------------------------------------------------------
   void log(const std::string& message) {
     if (m_mpi_communicator->rank() == 0) {
-      std::cerr << message << '\n';
+      std::cout << message << '\n';
     }
   }
   //----------------------------------------------------------------------------
   void log_all(const std::string& message) {
-    std::cerr << m_mpi_communicator->rank() << ": " << message << '\n';
+    std::cout << m_mpi_communicator->rank() << ": " << message << '\n';
   }
   //----------------------------------------------------------------------------
   void log_mem_usage(int iteration) {
@@ -325,49 +320,49 @@ struct base_interface {
 
       // auto numtr_avg   = numtr_total / m_mpi_communicator->size();
 
-      // std::cerr << "Virtual Memory: \n";
-      // std::cerr << "======================================\n";
-      // std::cerr << "Maximum per node: " << *(mima_vm.second) / 1024 << "Mb"
+      // std::cout << "Virtual Memory: \n";
+      // std::cout << "======================================\n";
+      // std::cout << "Maximum per node: " << *(mima_vm.second) / 1024 << "Mb"
       //          << '\n';
-      // std::cerr << "Minimum per node: " << *(mima_vm.first) / 1024 << "Mb\n";
-      // std::cerr << "Average per node: " << vm_avg / 1024 << "Mb\n";
-      // std::cerr << "Total: " << vm_total / 1024 << "Mb\n";
-      // std::cerr << "Maximum baseline per node: " << *(mima_basevm.second) /
+      // std::cout << "Minimum per node: " << *(mima_vm.first) / 1024 << "Mb\n";
+      // std::cout << "Average per node: " << vm_avg / 1024 << "Mb\n";
+      // std::cout << "Total: " << vm_total / 1024 << "Mb\n";
+      // std::cout << "Maximum baseline per node: " << *(mima_basevm.second) /
       // 1024
       //          << "Mb\n";
-      // std::cerr << "Minimum
+      // std::cout << "Minimum
       //    baseline per node : " << *(mima_basevm.first)/1024 << " Mb\n ";
-      //                        std::cerr
+      //                        std::cout
       //          << "Average baseline per node: "
       //          << basevm_avg / 1024
       //          << "Mb"
       //          << '\n';
-      // std::cerr << "Total baseline: " << basevm_total / 1024 << "Mb\n";
-      // std::cerr << '\n';
+      // std::cout << "Total baseline: " << basevm_total / 1024 << "Mb\n";
+      // std::cout << '\n';
 
-      std::cerr << "Physical Memory: \n";
-      std::cerr << "======================================\n";
-      std::cerr << "Maximum per node: " << *(mima_pm.second) / 1024 << "Mb"
+      std::cout << "Physical Memory: \n";
+      std::cout << "======================================\n";
+      std::cout << "Maximum per node: " << *(mima_pm.second) / 1024 << "Mb"
                 << '\n';
-      std::cerr << "Minimum per node: " << *(mima_pm.first) / 1024 << "Mb"
+      std::cout << "Minimum per node: " << *(mima_pm.first) / 1024 << "Mb"
                 << '\n';
-      std::cerr << "Average per node: " << pm_avg / 1024 << "Mb\n";
-      std::cerr << "Total: " << pm_total / 1024 << "Mb\n";
-      std::cerr << "Maximum baseline per node: " << *(mima_basepm.second) / 1024
+      std::cout << "Average per node: " << pm_avg / 1024 << "Mb\n";
+      std::cout << "Total: " << pm_total / 1024 << "Mb\n";
+      std::cout << "Maximum baseline per node: " << *(mima_basepm.second) / 1024
                 << "Mb\n";
-      std::cerr << "Minimum baseline per node: " << *(mima_basepm.first) / 1024
+      std::cout << "Minimum baseline per node: " << *(mima_basepm.first) / 1024
                 << "Mb\n";
-      std::cerr << "Average baseline per node: " << basepm_avg / 1024 << "Mb"
+      std::cout << "Average baseline per node: " << basepm_avg / 1024 << "Mb"
                 << '\n';
-      std::cerr << "Total baseline: " << basepm_total / 1024 << "Mb\n";
-      std::cerr << "Maximum overhead per node: "
+      std::cout << "Total baseline: " << basepm_total / 1024 << "Mb\n";
+      std::cout << "Maximum overhead per node: "
                 << *(mima_overhead.second) / 1024 << "Mb\n";
-      std::cerr << "Minimum overhead per node: "
+      std::cout << "Minimum overhead per node: "
                 << *(mima_overhead.first) / 1024 << "Mb\n";
-      std::cerr << "Average overhead per node: " << overhead_avg / 1024 << "Mb"
+      std::cout << "Average overhead per node: " << overhead_avg / 1024 << "Mb"
                 << '\n';
-      std::cerr << "Total overhead: " << overhead_total / 1024 << "Mb" << '\n';
-      std::cerr << '\n';
+      std::cout << "Total overhead: " << overhead_total / 1024 << "Mb" << '\n';
+      std::cout << '\n';
 
       m_memory_file << iteration
                     << '\t'

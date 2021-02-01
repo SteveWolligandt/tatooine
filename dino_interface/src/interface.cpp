@@ -17,8 +17,8 @@ struct interface : base_interface<interface> {
       "tatooine_dino_interface_memory.txt";
   static constexpr std::string_view m_split_merge_fname =
       "tatooine_dino_interface_splitmerge.txt";
-  static constexpr std::string_view m_output_dir_name =
-      "tatooine_dino_interface_output";
+  static std::filesystem::path m_output_path;
+  static std::filesystem::path m_isosurface_output_path;
 
   double   m_time      = 0;
   double   m_prev_time = 0;
@@ -112,13 +112,11 @@ struct interface : base_interface<interface> {
           "initialize_parameters must be called "
           "after initialize_grid");
     }
-    log("Initializing parameters");
+    log("[TATOOINE] Initializing parameters");
     m_time      = time;
     m_prev_time = prev_time;
     m_iteration = iteration;
 
-    // the local blocks must be large enough so that ghost particles never
-    // wander further than into the neighboring processor
     m_parameters_initialized = true;
   }
   //----------------------------------------------------------------------------
@@ -133,10 +131,11 @@ struct interface : base_interface<interface> {
           "after initialize_parameters and "
           "initialize_variables");
     }
-    log("Initializing");
+    //log("Initializing");
 
     // create output directory
-    std::filesystem::create_directories(m_output_dir_name);
+    std::filesystem::create_directories(m_output_path);
+    std::filesystem::create_directories(m_isosurface_output_path);
 
     if (restart == 1) {
       // Append to log files
@@ -190,17 +189,17 @@ struct interface : base_interface<interface> {
     m_prev_time = m_time;
     m_time      = time;
     m_iteration = iteration;
-    log("Updating for iteration " + std::to_string(m_iteration));
+    //log("Updating for iteration " + std::to_string(m_iteration));
 
     auto ct = std::chrono::system_clock::now();
-    if (m_mpi_communicator->rank() == 0) {
-      auto sim_time = ct - m_last_end_time;
-      m_timings_file << m_iteration << '\t'
-                     << std::chrono::duration_cast<std::chrono::milliseconds>(
-                            sim_time)
-                            .count()
-                     << '\n';
-    }
+    //if (m_mpi_communicator->rank() == 0) {
+    //  auto sim_time = ct - m_last_end_time;
+    //  m_timings_file << m_iteration << '\t'
+    //                 << std::chrono::duration_cast<std::chrono::milliseconds>(
+    //                        sim_time)
+    //                        .count()
+    //                 << '\n';
+    //}
 
     auto isogrid = m_worker_grid;
     if (std::abs(isogrid.dimension<0>().back() -
@@ -215,25 +214,30 @@ struct interface : base_interface<interface> {
                  m_global_grid.dimension<2>().back()) > 1e-6) {
       isogrid.dimension<2>().push_back();
     }
-    isosurface(
-        // length(*m_velocity_field),
-        [&](auto const ix, auto const iy, auto const iz, auto const& /*pos*/) {
-          auto const velx = m_velocity_x->at(
-              ix + m_halo_level, iy + m_halo_level, iz + m_halo_level);
-          auto const vely = m_velocity_y->at(
-              ix + m_halo_level, iy + m_halo_level, iz + m_halo_level);
-          auto const velz = m_velocity_z->at(
-              ix + m_halo_level, iy + m_halo_level, iz + m_halo_level);
-          return std::sqrt(velx * velx + vely * vely + velz * velz);
-        },
-        isogrid, 1)
-        .write_vtk("isosurface_" + std::to_string(m_mpi_communicator->rank()) +
-                   "_" + std::to_string(m_iteration) + ".vtk");
+    for (auto const iso : std::array{10, 20, 30, 40}) {
+      isosurface(
+          [&](auto const ix, auto const iy, auto const iz,
+              auto const& /*pos*/) {
+            auto const velx = m_velocity_x->at(ix, iy, iz);
+            auto const vely = m_velocity_y->at(ix, iy, iz);
+            auto const velz = m_velocity_z->at(ix, iy, iz);
+            return std::sqrt(velx * velx + vely * vely + velz * velz);
+          },
+          m_worker_halo_grid, iso)
+          .write_vtk(m_isosurface_output_path /
+                     std::filesystem::path{
+                         "vel_mag_" + std::to_string(iso) + "_rank_" +
+                         std::to_string(m_mpi_communicator->rank()) + "_time_" +
+                         std::to_string(m_iteration) + ".vtk"});
+    }
 
-    log("Tatooine update step finished");
+    //log("Tatooine update step finished");
     m_last_end_time = std::chrono::system_clock::now();
   }
 };
+std::filesystem::path interface::m_output_path = "tatooine_insitu";
+std::filesystem::path interface::m_isosurface_output_path =
+    interface::m_output_path / "isosurfaces";
 //==============================================================================
 }  // namespace tatooine::dino_interface
 //==============================================================================
