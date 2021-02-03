@@ -1,9 +1,11 @@
+#ifdef TATOOINE_HAS_HDF5_SUPPORT
 #ifndef TATOOINE_HDF5_H
 #define TATOOINE_HDF5_H
 //==============================================================================
 #include <H5Cpp.h>
 
 #include <array>
+#include <filesystem>
 #include <cassert>
 #include <iostream>
 #include <memory>
@@ -144,15 +146,18 @@ struct group {
   }
 };
 //==============================================================================
-struct ifile {
+struct file {
   std::shared_ptr<H5::H5File> m_file;
   //----------------------------------------------------------------------------
-  ifile(const std::string& p_filepath) : ifile{p_filepath.data()} {}
+  file(const std::string& p_filepath) : file{p_filepath.data()} {}
   //----------------------------------------------------------------------------
-  ifile(const std::string_view& p_filepath) : ifile{p_filepath.data()} {}
+  file(const std::string_view& p_filepath) : file{p_filepath.data()} {}
   //----------------------------------------------------------------------------
-  ifile(const char* p_filepath)
+  file(const char* p_filepath)
       : m_file{std::make_shared<H5::H5File>(p_filepath, H5F_ACC_RDONLY)} {}
+  //----------------------------------------------------------------------------
+  file(const std::filesystem::path& p_filepath)
+      : m_file{std::make_shared<H5::H5File>(p_filepath.string(), H5F_ACC_RDONLY)} {}
   //----------------------------------------------------------------------------
   auto dataset(const std::string& dataset_name) const {
     return h5::dataset(m_file, dataset_name);
@@ -181,4 +186,5 @@ struct ifile {
 //==============================================================================
 }  // namespace tatooine::h5
 //==============================================================================
+#endif
 #endif

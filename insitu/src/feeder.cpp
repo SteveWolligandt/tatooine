@@ -1,5 +1,6 @@
 #include <mpi.h>
 #include <tatooine/analytical/fields/numerical/abcflow.h>
+#include <tatooine/analytical/fields/numerical/tornado.h>
 #include <tatooine/axis_aligned_bounding_box.h>
 #include <tatooine/insitu/c_interface.h>
 
@@ -73,7 +74,7 @@ double deltaX = 0;
 double deltaY = 0;
 double deltaZ = 0;
 
-int halo_level = 4;
+int halo_level = 1;
 
 std::unique_ptr<scalar_array> velocity_x_field, velocity_y_field,
     velocity_z_field;
@@ -148,7 +149,8 @@ auto parse_args(int argc, char** argv) {
 }
 //------------------------------------------------------------------------------
 auto sample_flow() {
-  tatooine::analytical::fields::numerical::abcflow v;
+  //tatooine::analytical::fields::numerical::abcflow v;
+  tatooine::analytical::fields::numerical::tornado v;
   for (int i = 0; i < global_grid_size[0]; ++i) {
     for (int j = starty; j < local_grid_end_y; ++j) {
       for (int k = startz; k < local_grid_end_z; ++k) {

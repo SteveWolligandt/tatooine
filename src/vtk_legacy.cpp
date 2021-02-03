@@ -701,13 +701,14 @@ auto legacy_file_writer::write_indices(
     std::string const &keyword, std::vector<std::vector<size_t>> const &indices)
     -> void {
   size_t total_number = 0;
-  for (auto const &is : indices)
+  for (auto const &is : indices) {
     total_number += is.size() + 1;
+  }
   vtk::write_binary(m_file, "\n" + keyword + " " +
                                 std::to_string(indices.size()) + ' ' +
                                 std::to_string(total_number) + '\n');
   for (auto const &p : indices) {
-    int size = (int)p.size();
+    auto size = static_cast<int>(p.size());
     size     = swap_endianess(size);
     m_file.write((char *)(&size), sizeof(int));
     for (int i : p) {

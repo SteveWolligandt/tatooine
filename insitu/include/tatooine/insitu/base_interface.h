@@ -2,9 +2,15 @@
 #define TATOOINE_INSITU_BASE_INTERFACE_H
 //==============================================================================
 #include <tatooine/grid.h>
+#include <tatooine/insitu/boost_mpi.h>
+#include <tatooine/netcdf.h>
 
-#include <boost/mpi.hpp>
-#include <boost/mpi/cartesian_communicator.hpp>
+#include <boost/range/adaptors.hpp>
+#include <boost/range/algorithm.hpp>
+#include <boost/serialization/optional.hpp>
+#include <boost/serialization/utility.hpp>
+#include <boost/serialization/variant.hpp>
+#include <boost/serialization/vector.hpp>
 #include <chrono>
 #include <filesystem>
 #include <fstream>
@@ -105,7 +111,9 @@ struct base_interface {
   double                                              m_time       = 0;
   double                                              m_prev_time  = 0;
   uint64_t                                            m_iteration  = 0;
-  phase m_phase = phase::pre_start;
+  bool m_is_periodic_x = false, m_is_periodic_y = false,
+       m_is_periodic_z = false;
+  phase m_phase        = phase::pre_start;
 
   //============================================================================
   // METHODS
@@ -138,134 +146,7 @@ struct base_interface {
     m_mpi_communicator = std::unique_ptr<boost::mpi::cartesian_communicator>{
         new boost::mpi::cartesian_communicator{MPI_Comm_f2c(communicator),
                                                boost::mpi::comm_attach}};
-    // log("Initializing MPI");
     m_phase = phase::initialized_communicator;
-  }
-  //------------------------------------------------------------------------------
-  /// \brief  Initialize the dataset grid.
-  ///
-  /// \param  global_grid_size_x, global_grid_size_y, global_grid_size_z global
-  /// grid dimensions \param  local_starting_index_x, local_starting_index_y,
-  /// local_starting_index_z           starting indices of current
-  ///                                 process
-  /// \param  local_grid_size_x, local_grid_size_y, local_grid_size_z number of
-  /// grid points of current process \param  domain_size_x, domain_size_y,
-  /// domain_size_z              size of domain box \param  is_periodic_x,
-  /// is_periodic_y, is_periodic_z     periodic boundary directions
-  ///                                             (0 for no, 1 for yes)
-  /// \param  halo_level              number of halo cell layers
-  auto initialize_grid(
-      int const global_grid_size_x, int const global_grid_size_y,
-      int const global_grid_size_z, int const local_starting_index_x,
-      int const local_starting_index_y, int const local_starting_index_z,
-      int const local_grid_size_x, int const local_grid_size_y,
-      int const local_grid_size_z, double const domain_size_x,
-      double const domain_size_y, double const domain_size_z,
-      int const /*is_periodic_x*/, int const /*is_periodic_y*/,
-      int const /*is_periodic_z*/, int const halo_level) -> void {
-    if (m_phase < phase::initialized_communicator) {
-      throw std::logic_error(
-          "[tatooine insitu interface]\n  "
-          "initialize_grid must be called after initialize_communicator");
-    }
-    // log("Initializing grid");
-
-    assert(global_grid_size_x >= 0);
-    assert(global_grid_size_y >= 0);
-    assert(global_grid_size_z >= 0);
-    assert(local_grid_size_x >= 0);
-    assert(local_grid_size_y >= 0);
-    assert(local_grid_size_z >= 0);
-    assert(domain_size_x >= 0);
-    assert(domain_size_y >= 0);
-    assert(domain_size_z >= 0);
-    assert(halo_level >= 0 && halo_level <= UINT8_MAX);
-
-    // log_all(" global_grid_size_x: " + std::to_string(global_grid_size_x));
-    // log_all(" global_grid_size_y: " + std::to_string(global_grid_size_y));
-    // log_all(" global_grid_size_z: " + std::to_string(global_grid_size_z));
-    // log_all(" local_starting_index_x: " +
-    //        std::to_string(local_starting_index_x));
-    // log_all(" local_starting_index_y: " +
-    //        std::to_string(local_starting_index_y));
-    // log_all(" local_starting_index_z: " +
-    //        std::to_string(local_starting_index_z));
-    // log_all(" domain_size_x: " + std::to_string(domain_size_x));
-    // log_all(" domain_size_y: " + std::to_string(domain_size_y));
-    // log_all(" domain_size_z: " + std::to_string(domain_size_z));
-    // log_all(" halo_level: " + std::to_string(halo_level));
-
-    m_global_grid.dimension<0>() = linspace<double>{
-        0, domain_size_x, static_cast<size_t>(global_grid_size_x)};
-    m_global_grid.dimension<1>() = linspace<double>{
-        0, domain_size_y, static_cast<size_t>(global_grid_size_y)};
-    m_global_grid.dimension<2>() = linspace<double>{
-        0, domain_size_z, static_cast<size_t>(global_grid_size_z)};
-
-    m_worker_grid.dimension<0>() = linspace{
-        m_global_grid.dimension<0>()[local_starting_index_x],
-        m_global_grid
-            .dimension<0>()[local_starting_index_x + local_grid_size_x - 1],
-        static_cast<size_t>(local_grid_size_x)};
-    m_worker_grid.dimension<1>() = linspace{
-        m_global_grid.dimension<1>()[local_starting_index_y],
-        m_global_grid
-            .dimension<1>()[local_starting_index_y + local_grid_size_y - 1],
-        static_cast<size_t>(local_grid_size_y)};
-    m_worker_grid.dimension<2>() = linspace{
-        m_global_grid.dimension<2>()[local_starting_index_z],
-        m_global_grid
-            .dimension<2>()[local_starting_index_z + local_grid_size_z - 1],
-        static_cast<size_t>(local_grid_size_z)};
-
-    m_worker_halo_grid.dimension<0>() = linspace{
-        m_global_grid.dimension<0>()[local_starting_index_x],
-        m_global_grid
-            .dimension<0>()[local_starting_index_x + local_grid_size_x - 1],
-        static_cast<size_t>(local_grid_size_x)};
-
-    // no pencil in x-direction
-    if (local_grid_size_x < global_grid_size_x) {
-      for (int i = 0; i < halo_level; ++i) {
-        m_worker_halo_grid.dimension<0>().push_front();
-      }
-      for (int i = 0; i < halo_level; ++i) {
-        m_worker_halo_grid.dimension<0>().push_back();
-      }
-    }
-    m_worker_halo_grid.dimension<1>() = linspace{
-        m_global_grid.dimension<1>()[local_starting_index_y],
-        m_global_grid
-            .dimension<1>()[local_starting_index_y + local_grid_size_y - 1],
-        static_cast<size_t>(local_grid_size_y)};
-
-    // no pencil in y-direction
-    if (local_grid_size_y < global_grid_size_y) {
-      for (int i = 0; i < halo_level; ++i) {
-        m_worker_halo_grid.dimension<1>().push_front();
-      }
-      for (int i = 0; i < halo_level; ++i) {
-        m_worker_halo_grid.dimension<1>().push_back();
-      }
-    }
-
-    m_worker_halo_grid.dimension<2>() = linspace{
-        m_global_grid.dimension<2>()[local_starting_index_z],
-        m_global_grid
-            .dimension<2>()[local_starting_index_z + local_grid_size_z - 1],
-        static_cast<size_t>(local_grid_size_z)};
-    // no pencil in z-direction
-    if (local_grid_size_z < global_grid_size_z) {
-      for (int i = 0; i < halo_level; ++i) {
-        m_worker_halo_grid.dimension<2>().push_front();
-      }
-      for (int i = 0; i < halo_level; ++i) {
-        m_worker_halo_grid.dimension<2>().push_back();
-      }
-    }
-
-    m_halo_level       = halo_level;
-    m_phase = phase::initialized_grid;
   }
   //----------------------------------------------------------------------------
   void log(const std::string& message) {
@@ -399,7 +280,7 @@ struct base_interface {
           "Parameters and variables can first be initialized after "
           "initialize_grid");
     }
-  m_phase = phase::initializing_parameters_and_variables;
+    m_phase = phase::initializing_parameters_and_variables;
   }
   //------------------------------------------------------------------------------
   auto update_var_check() -> void {
@@ -409,6 +290,61 @@ struct base_interface {
           "variables can first be update after initialize");
     }
     m_phase = phase::preparing_update;
+  }
+  //----------------------------------------------------------------------------
+  template <typename T>
+  auto mpi_gather(T const& in, int const root) const {
+    std::vector<T> out;
+    boost::mpi::gather(*m_mpi_communicator, in, out, root);
+    return out;
+  }
+  //----------------------------------------------------------------------------
+  template <typename T>
+  auto mpi_all_gather(T const& in) const {
+    std::vector<T> out;
+    boost::mpi::all_gather(*m_mpi_communicator, in, out);
+    return out;
+  }
+  /// \brief Communicate a number of elements with all neighbor processes
+  /// \details Sends a number of \p outgoing elements to all neighbors in the
+  ///      given \p communicator. Receives a number of elements of the same type
+  ///      from all neighbors. Calls the \p callback for each received element.
+  ///
+  /// \param outgoing Collection of elements to send to all neighbors
+  /// \param comm Communicator for the communication
+  /// \param callback Functor that is called with each received element
+  ///
+  template <typename T, typename ReceiveHandler>
+  auto mpi_all_gather_neighbors(std::vector<T> const& outgoing,
+                                ReceiveHandler&&      callback) -> void {
+    namespace mpi = boost::mpi;
+    auto sendreqs = std::vector<mpi::request>{};
+    auto recvreqs = std::map<int, mpi::request>{};
+    auto incoming = std::map<int, std::vector<T> >{};
+
+    for (auto const& [rank, coords] : mpi::neighbors(
+             m_mpi_communicator->coordinates(m_mpi_communicator->rank()),
+             *m_mpi_communicator)) {
+      incoming[rank] = std::vector<T>{};
+      recvreqs[rank] =
+          m_mpi_communicator->irecv(rank, rank, incoming[rank]);
+      sendreqs.push_back(m_mpi_communicator->isend(
+          rank, m_mpi_communicator->rank(), outgoing));
+    }
+
+    // wait for and handle receive requests
+    while (!recvreqs.empty()) {
+      for (auto& [key, req] : recvreqs) {
+        if (req.test()) {
+          boost::for_each(incoming[key], callback);
+          recvreqs.erase(key);
+          break;
+        }
+      }
+    }
+
+    // wait for send requests to finish
+    mpi::wait_all(begin(sendreqs), end(sendreqs));
   }
 };
 //==============================================================================
