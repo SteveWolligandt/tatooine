@@ -69,15 +69,15 @@ if (MPI_FOUND)
     --gridsizex 101 
     --gridsizey 101 
     --gridsizez 101 
-    --x0         -10
-    --x1         10
-    --y0         -10
-    --y1         10
-    --z0         -10
-    --z1         10
+    --x0         0
+    --x1         1
+    --y0         0
+    --y1         1
+    --z0         0
+    --z1         1
     --t0         0
     --t1        100
-    --dt         10
+    --dt         0.1
     DEPENDS tatooine insitu_interface.feeder)
 else()
   message("MPI not found.")

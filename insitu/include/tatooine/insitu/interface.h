@@ -58,7 +58,7 @@ struct interface : base_interface<interface> {
 
   std::ofstream m_timings_file;
 
-  size_t                                m_num_tracers = 100;
+  size_t                                m_num_tracers = 10;
   std::vector<std::pair<size_t, pos_t>> m_tracers;
   std::unique_ptr<velocity_field>       m_velocity_field;
 
