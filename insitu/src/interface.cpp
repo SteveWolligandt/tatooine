@@ -328,14 +328,13 @@ auto interface::advect_tracers() -> void {
   bb.max(1) += m_worker_grid.dimension<1>().spacing() / 2;
   bb.min(2) -= m_worker_grid.dimension<2>().spacing() / 2;
   bb.max(2) += m_worker_grid.dimension<2>().spacing() / 2;
-  size_t cnt = 0;
-  mpi_all_gather_neighbors(m_tracers, [&](auto const& x) {
-    ++cnt;
+  auto   add_if_in_working_domain = [&](auto const& x) {
     if (bb.is_inside(x.second)) {
       in_working_area.push_back(x);
     }
-  });
-  log_all(std::to_string(cnt));
+  };
+  mpi_all_gather_neighbors(m_tracers, add_if_in_working_domain);
+  boost::for_each(m_tracers, add_if_in_working_domain);
   m_tracers = std::move(in_working_area);
 }
 //------------------------------------------------------------------------------

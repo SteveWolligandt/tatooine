@@ -7,6 +7,8 @@
 //==============================================================================
 namespace tatooine::analytical::fields::numerical {
 //==============================================================================
+/// From here:
+/// http://web.cse.ohio-state.edu/~crawfis.3/Data/Tornado/tornadoSrc.c
 template <typename T>
 struct tornado : vectorfield<tornado<T>, T, 3> {
   using this_t   = tornado<T>;
@@ -23,11 +25,11 @@ struct tornado : vectorfield<tornado<T>, T, 3> {
     real_t r2 = 8;
 
     // For each z-slice, determine the spiral circle.
-    xc = 0.5 + 0.1 * std::sin(0.04 * t + 10.0 * pos.z());
+    xc = 0.5 + 0.1 * std::sin(0.04 * t + 10 * pos.z());
     //    (xc,yc) determine the center of the circle.
-    yc = 0.5 + 0.1 * std::cos(0.03 * t + 3.0 * pos.z());
+    yc = 0.5 + 0.1 * std::cos(0.03 * t + 3 * pos.z());
     //  The radius also changes at each z-slice.
-    r = 0.1 + 0.4 * pos.z() * pos.z() + 0.1 * pos.z() * std::sin(8.0 * pos.z());
+    r = 0.1 + 0.4 * pos.z() * pos.z() + 0.1 * pos.z() * std::sin(8 * pos.z());
     //    r is the center radius, r2 is for damping
     r2    = 0.2 + 0.1 * pos.z();
     temp  = std::sqrt((pos.y() - yc) * (pos.y() - yc) + (pos.x() - xc) * (pos.x() - xc));
@@ -37,7 +39,7 @@ struct tornado : vectorfield<tornado<T>, T, 3> {
     if (scale > r2) {
       scale = 0.8 - scale;
     } else {
-      scale = 1.0;
+      scale = 1;
     }
     z0 = 0.1 * (0.1 - temp * pos.z());
     if (z0 < 0) {
