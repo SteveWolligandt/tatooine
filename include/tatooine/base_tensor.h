@@ -9,6 +9,8 @@
 #include <tatooine/index_ordering.h>
 #include <tatooine/multidim_size.h>
 #include <tatooine/template_helper.h>
+#include <boost/archive/text_oarchive.hpp>
+#include <boost/archive/text_iarchive.hpp>
 
 #include <cassert>
 #include <type_traits>
@@ -240,6 +242,9 @@ struct base_tensor : crtp<Tensor> {
     for_indices([&](auto const... is) { at(is...) /= other; });
     return *this;
   }
+
+ private:
+  friend class boost::serialization::access;
 };
 //==============================================================================
 template <typename T, typename Void = void>

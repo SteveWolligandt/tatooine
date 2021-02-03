@@ -40,7 +40,7 @@ auto read(std::filesystem::path const& path) {
   // The fixed buffer size looks a bit like a hack, and it is one, but it gets
   // the job done.
   char buffer[2048];
-  fread(buffer, sizeof(char), 2047, fp);
+  [[maybe_unused]] auto const ret = fread(buffer, sizeof(char), 2047, fp);
   buffer[2047] =
       '\0';  // The following string routines prefer null-terminated strings
 
@@ -86,9 +86,9 @@ auto read(std::filesystem::path const& path) {
     // Set the file pointer to the beginning of "# Data section follows"
     fseek(fp, idx_start_data, SEEK_SET);
     // Consume this line, which is "# Data section follows"
-    fgets(buffer, 2047, fp);
+    [[maybe_unused]] auto const ret0 = fgets(buffer, 2047, fp);
     // Consume the next line, which is "@1"
-    fgets(buffer, 2047, fp);
+    [[maybe_unused]] auto const ret1 = fgets(buffer, 2047, fp);
 
     // Read the data
     // - how much to read

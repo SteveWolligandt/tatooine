@@ -130,6 +130,13 @@ struct vec : tensor<T, N> {  // NOLINT
   template <size_t _N = N, enable_if<(_N >= 4)> = true>
 #endif
   auto w() -> auto& {return this->at(3);}
+
+  template <typename Archive>
+  auto serialize(Archive& ar, unsigned int const /*version*/) -> void {
+    for (size_t i = 0; i < N; ++i) {
+      ar& at(i);
+    }
+  }
 };
 //==============================================================================
 // type traits
