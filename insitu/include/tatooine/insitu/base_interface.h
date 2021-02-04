@@ -299,35 +299,39 @@ struct base_interface {
     return out;
   }
   //----------------------------------------------------------------------------
-  template <typename T>
-  auto mpi_all_gather(T const& in) const {
-    std::vector<T> out;
-    boost::mpi::all_gather(*m_mpi_communicator, in, out);
-    return out;
+  template <typename T, typename ReceiveHandler>
+  auto mpi_all_gather(std::vector<T> const& outgoing,
+                      ReceiveHandler&&      receive_handler) const {
+    std::vector<std::vector<T>> received_data;
+    boost::mpi::all_gather(*m_mpi_communicator, outgoing, received_data);
+
+    for (auto const& rec : received_data) {
+      boost::for_each(rec, receive_handler);
+    }
   }
   /// \brief Communicate a number of elements with all neighbor processes
   /// \details Sends a number of \p outgoing elements to all neighbors in the
   ///      given \p communicator. Receives a number of elements of the same type
-  ///      from all neighbors. Calls the \p callback for each received element.
+  ///      from all neighbors. Calls the \p receive_handler for each received
+  ///      element.
   ///
   /// \param outgoing Collection of elements to send to all neighbors
   /// \param comm Communicator for the communication
-  /// \param callback Functor that is called with each received element
+  /// \param receive_handler Functor that is called with each received element
   ///
   template <typename T, typename ReceiveHandler>
-  auto mpi_all_gather_neighbors(std::vector<T> const& outgoing,
-                                ReceiveHandler&&      callback) -> void {
+  auto mpi_gather_neighbors(std::vector<T> const& outgoing,
+                            ReceiveHandler&&      receive_handler) -> void {
     namespace mpi = boost::mpi;
     auto sendreqs = std::vector<mpi::request>{};
     auto recvreqs = std::map<int, mpi::request>{};
-    auto incoming = std::map<int, std::vector<T> >{};
+    auto incoming = std::map<int, std::vector<T>>{};
 
     for (auto const& [rank, coords] : mpi::neighbors(
              m_mpi_communicator->coordinates(m_mpi_communicator->rank()),
              *m_mpi_communicator)) {
       incoming[rank] = std::vector<T>{};
-      recvreqs[rank] =
-          m_mpi_communicator->irecv(rank, rank, incoming[rank]);
+      recvreqs[rank] = m_mpi_communicator->irecv(rank, rank, incoming[rank]);
       sendreqs.push_back(m_mpi_communicator->isend(
           rank, m_mpi_communicator->rank(), outgoing));
     }
@@ -336,7 +340,7 @@ struct base_interface {
     while (!recvreqs.empty()) {
       for (auto& [key, req] : recvreqs) {
         if (req.test()) {
-          boost::for_each(incoming[key], callback);
+          boost::for_each(incoming[key], receive_handler);
           recvreqs.erase(key);
           break;
         }

@@ -14,6 +14,8 @@ struct interface : base_interface<interface> {
   using scalar_arr_t = non_owning_multidim_array<double, x_fastest>;
   using grid_prop_t =
       uniform_grid<double, 3>::typed_property_impl_t<scalar_arr_t>;
+  using tracer_t           = std::pair<size_t, pos_t>;
+  using tracer_container_t = std::vector<tracer_t>;
 
   struct velocity_field : vectorfield<velocity_field, double, 3> {
     using this_t   = velocity_field;
@@ -58,9 +60,9 @@ struct interface : base_interface<interface> {
 
   std::ofstream m_timings_file;
 
-  size_t                                m_num_tracers = 10;
-  std::vector<std::pair<size_t, pos_t>> m_tracers;
-  std::unique_ptr<velocity_field>       m_velocity_field;
+  size_t                          m_num_tracers = 10;
+  tracer_container_t              m_tracers;
+  std::unique_ptr<velocity_field> m_velocity_field;
 
   //============================================================================
   // Interface Functions

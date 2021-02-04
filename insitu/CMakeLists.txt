@@ -64,19 +64,19 @@ if (MPI_FOUND)
   target_include_directories(insitu_interface.feeder
     PUBLIC ${TATOOINE_DINO_INTERFACE_INCLUDE_DIR})
   add_custom_target(insitu_interface.feeder.run
-    mpirun -np 4 --host localhost:4 ./insitu_interface.feeder 
-    #mpirun -np 20 --host localhost:20 ./insitu_interface.feeder
+    #mpirun -np 4 --host localhost:4 ./insitu_interface.feeder
+    mpirun -np 8 --host localhost:8 ./insitu_interface.feeder
     --gridsizex 101 
     --gridsizey 101 
     --gridsizez 101 
-    --x0         0
-    --x1         1
-    --y0         0
-    --y1         1
-    --z0         0
-    --z1         1
+    --x0         -10
+    --x1         10
+    --y0         -10
+    --y1         10
+    --z0         -10
+    --z1         10
     --t0         0
-    --t1        100
+    --t1        10
     --dt         0.1
     DEPENDS tatooine insitu_interface.feeder)
 else()

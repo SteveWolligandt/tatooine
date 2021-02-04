@@ -180,6 +180,9 @@ auto interface::initialize(bool const restart) -> void {
   fs::create_directories(m_output_path);
   fs::create_directories(m_isosurface_output_path);
   fs::create_directories(m_tracers_output_path);
+  if (!fs::exists(m_tracers_tmp_path)) {
+    fs::remove_all(m_tracers_tmp_path);
+  }
   fs::create_directories(m_tracers_tmp_path);
 
   if (restart == 1) {
@@ -195,15 +198,8 @@ auto interface::initialize(bool const restart) -> void {
       m_worker_halo_grid, *m_velocity_x, *m_velocity_y, *m_velocity_z);
   m_phase = phase::initialized;
 
-  extract_isosurfaces();
+  //extract_isosurfaces();
   advect_tracers();
-
-  for (auto const& [idx, pos] : m_tracers) {
-    std::fstream fout{m_tracers_tmp_path / (std::to_string(idx) + ".bin"),
-                      std::ios::binary | std::ios::out | std::ios::app};
-    fout.write(reinterpret_cast<char const*>(pos.data_ptr()),
-               sizeof(double) * 3);
-  }
 }
 //----------------------------------------------------------------------------
 auto interface::update_velocity_x(double const* var) -> void {
@@ -236,14 +232,8 @@ auto interface::update(int const iteration, double const time) -> void {
                    << "ms\n";
   }
 
-  extract_isosurfaces();
+  //extract_isosurfaces();
   advect_tracers();
-  for (auto const& [idx, pos] : m_tracers) {
-    std::fstream fout{m_tracers_tmp_path / (std::to_string(idx) + ".bin"),
-                      std::ios::binary | std::ios::out | std::ios::app};
-    fout.write(reinterpret_cast<char const*>(pos.data_ptr()),
-               sizeof(double) * 3);
-  }
 
   if (m_mpi_communicator->rank() == 0) {
     create_tracer_vtk();
@@ -319,23 +309,41 @@ auto interface::advect_tracers() -> void {
       m_tracers.emplace_back(idx, tracer_pos);
     }
   }
-  std::vector<std::pair<size_t, pos_t>> in_working_area;
+  tracer_container_t in_working_area;
 
-  auto bb = m_worker_grid.bounding_box();
-  bb.min(0) -= m_worker_grid.dimension<0>().spacing() / 2;
-  bb.max(0) += m_worker_grid.dimension<0>().spacing() / 2;
-  bb.min(1) -= m_worker_grid.dimension<1>().spacing() / 2;
-  bb.max(1) += m_worker_grid.dimension<1>().spacing() / 2;
-  bb.min(2) -= m_worker_grid.dimension<2>().spacing() / 2;
-  bb.max(2) += m_worker_grid.dimension<2>().spacing() / 2;
-  auto   add_if_in_working_domain = [&](auto const& x) {
-    if (bb.is_inside(x.second)) {
-      in_working_area.push_back(x);
+  auto       bb             = m_worker_grid.bounding_box();
+  auto const half_x_spacing = m_worker_grid.dimension<0>().spacing() / 2;
+  auto const half_y_spacing = m_worker_grid.dimension<1>().spacing() / 2;
+  auto const half_z_spacing = m_worker_grid.dimension<2>().spacing() / 2;
+  bb.min(0) -= half_x_spacing;
+  bb.max(0) += half_x_spacing;
+  bb.min(1) -= half_y_spacing;
+  bb.max(1) += half_y_spacing;
+  bb.min(2) -= half_z_spacing;
+  bb.max(2) += half_z_spacing;
+  auto add_if_in_working_domain = [&](auto const& tracer) {
+    auto const& x = tracer.second;
+    if (bb.min(0) <= x(0) && x(0) < bb.max(0) &&
+        bb.min(1) <= x(1) && x(1) < bb.max(1) &&
+        bb.min(2) <= x(2) && x(2) < bb.max(2)) {
+      in_working_area.push_back(tracer);
     }
   };
-  mpi_all_gather_neighbors(m_tracers, add_if_in_working_domain);
+  //mpi_all_gather(m_tracers, add_if_in_working_domain);
+  mpi_gather_neighbors(m_tracers, add_if_in_working_domain);
   boost::for_each(m_tracers, add_if_in_working_domain);
   m_tracers = std::move(in_working_area);
+
+  // write
+  //if (m_iteration % 10 == 0) {
+    log(std::to_string(m_iteration));
+    for (auto const& [idx, pos] : m_tracers) {
+      std::fstream fout{m_tracers_tmp_path / (std::to_string(idx) + ".bin"),
+                        std::ios::binary | std::ios::out | std::ios::app};
+      fout.write(reinterpret_cast<char const*>(pos.data_ptr()),
+                 sizeof(double) * 3);
+    //}
+  }
 }
 //------------------------------------------------------------------------------
 auto interface::create_tracer_vtk() -> void {
@@ -343,19 +351,19 @@ auto interface::create_tracer_vtk() -> void {
   vtk::legacy_file_writer tracer_collector{
       m_tracers_output_path / "tracers.vtk", vtk::dataset_type::polydata};
 
-  size_t                                   total_num_points = 0;
-  size_t                                   num_lines        = 0;
-  size_t                                   lines_size       = 0;
+  size_t                                   total_num_vertices = 0;
+  size_t                                   num_lines          = 0;
+  size_t                                   lines_size         = 0;
   std::vector<std::pair<size_t, fs::path>> tracer_info;
 
   for (auto const& bin_tracer_dir_entry :
        fs::directory_iterator(m_tracers_tmp_path)) {
-    auto const tmp_filesize   = fs::file_size(bin_tracer_dir_entry);
-    auto const cur_num_points = tmp_filesize / (sizeof(double) * 3);
-    if (cur_num_points > 1) {
-      tracer_info.emplace_back(cur_num_points, bin_tracer_dir_entry.path());
-      total_num_points += cur_num_points;
-      lines_size += cur_num_points + 1;
+    auto const tmp_filesize = fs::file_size(bin_tracer_dir_entry);
+    auto const num_vertices = tmp_filesize / (sizeof(double) * 3);
+    if (num_vertices > 1) {
+      tracer_info.emplace_back(num_vertices, bin_tracer_dir_entry.path());
+      total_num_vertices += num_vertices;
+      lines_size += num_vertices + 1;
       ++num_lines;
     }
   }
@@ -370,13 +378,13 @@ auto interface::create_tracer_vtk() -> void {
 
   // write points
   std::stringstream points_header_stream;
-  points_header_stream << "\nPOINTS " << total_num_points << ' '
+  points_header_stream << "\nPOINTS " << total_num_vertices << ' '
                        << type_to_str<double>() << '\n';
-  std::copy(std::istreambuf_iterator<char>(points_header_stream),
-            std::istreambuf_iterator<char>(),
-            std::ostreambuf_iterator<char>(tracer_vtk_file));
-  for (auto const& [cur_num_points, path] : tracer_info) {
-    auto const          num_entries   = cur_num_points * 3;
+  std::copy(std::istreambuf_iterator<char>{points_header_stream},
+            std::istreambuf_iterator<char>{},
+            std::ostreambuf_iterator<char>{tracer_vtk_file});
+  for (auto const& [num_vertices, path] : tracer_info) {
+    auto const          num_entries   = num_vertices * 3;
     auto const          tmp_file_size = num_entries * sizeof(double);
     std::fstream        tracer_tmp_file{path, std::ios::binary | std::ios::in};
     std::vector<double> points(num_entries);
@@ -389,19 +397,19 @@ auto interface::create_tracer_vtk() -> void {
   // write line indices
   std::stringstream lines_header_stream;
   lines_header_stream << "\nLINES " << num_lines << ' ' << lines_size << '\n';
-  std::copy(std::istreambuf_iterator<char>(lines_header_stream),
-            std::istreambuf_iterator<char>(),
-            std::ostreambuf_iterator<char>(tracer_vtk_file));
+  std::copy(std::istreambuf_iterator<char>{lines_header_stream},
+            std::istreambuf_iterator<char>{},
+            std::ostreambuf_iterator<char>{tracer_vtk_file});
   size_t cur_initial_index = 0;
-  for (auto const& [cur_num_points, path] : tracer_info) {
+  for (auto const& [num_vertices, path] : tracer_info) {
     // write number of indices and indices of current line
-    std::vector<int> cur_line(cur_num_points + 1);
-    cur_line.front() = cur_num_points;
+    std::vector<int> cur_line(num_vertices + 1);
+    cur_line.front() = num_vertices;
     std::iota(next(begin(cur_line)), end(cur_line), cur_initial_index);
     swap_endianess(cur_line);
     tracer_vtk_file.write(reinterpret_cast<char*>(cur_line.data()),
                           sizeof(int) * cur_line.size());
-    cur_initial_index += cur_num_points;
+    cur_initial_index += num_vertices;
   }
 }
 //------------------------------------------------------------------------------
