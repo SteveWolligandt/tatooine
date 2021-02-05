@@ -16,7 +16,8 @@
 #include <tatooine/vec.h>
 
 #include <tatooine/netcdf.h>
-#include <tatooine/lazy_netcdf_reader.h>
+#include <tatooine/hdf5.h>
+#include <tatooine/lazy_reader.h>
 
 #include <filesystem>
 #include <map>
@@ -114,12 +115,12 @@ class grid {
   }
   //----------------------------------------------------------------------------
  private:
-  template <typename Real, size_t... Is>
+  template <typename Real, size_t... Seq>
   constexpr grid(axis_aligned_bounding_box<Real, num_dimensions()> const& bb,
                  std::array<size_t, num_dimensions()> const&              res,
-                 std::index_sequence<Is...> /*seq*/)
-      : m_dimensions{linspace<real_t>{real_t(bb.min(Is)), real_t(bb.max(Is)),
-                                      res[Is]}...} {}
+                 std::index_sequence<Seq...> /*seq*/)
+      : m_dimensions{linspace<real_t>{real_t(bb.min(Seq)), real_t(bb.max(Seq)),
+                                      res[Seq]}...} {}
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
  public:
   template <typename Real>
@@ -128,11 +129,11 @@ class grid {
       : grid{bb, res, seq_t{}} {}
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 #ifdef __cpp_concepts
-  template <integral... Is>
+  template <integral... Size>
 #else
-  template <typename... Is, enable_if<is_integral<Is...>> = true>
+  template <typename... Size, enable_if<is_integral<Size...>> = true>
 #endif
-  constexpr grid(Is const... size)
+  constexpr grid(Size const... size)
       : grid{linspace{0.0, 1.0, static_cast<size_t>(size)}...} {
     assert(((size >= 0) && ...));
   }
@@ -182,49 +183,49 @@ class grid {
   }
   //----------------------------------------------------------------------------
  private:
-  template <size_t... Is>
-  constexpr auto min(std::index_sequence<Is...> /*seq*/) const {
-    return vec<real_t, num_dimensions()>{static_cast<real_t>(front<Is>())...};
+  template <size_t... Seq>
+  constexpr auto min(std::index_sequence<Seq...> /*seq*/) const {
+    return vec<real_t, num_dimensions()>{static_cast<real_t>(front<Seq>())...};
   }
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
  public:
   constexpr auto min() const { return min(seq_t{}); }
   //----------------------------------------------------------------------------
  private:
-  template <size_t... Is>
-  constexpr auto max(std::index_sequence<Is...> /*seq*/) const {
-    return vec<real_t, num_dimensions()>{static_cast<real_t>(back<Is>())...};
+  template <size_t... Seq>
+  constexpr auto max(std::index_sequence<Seq...> /*seq*/) const {
+    return vec<real_t, num_dimensions()>{static_cast<real_t>(back<Seq>())...};
   }
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
  public:
   constexpr auto max() const { return max(seq_t{}); }
   //----------------------------------------------------------------------------
  private:
-  template <size_t... Is>
-  constexpr auto resolution(std::index_sequence<Is...> /*seq*/) const {
-    return vec<size_t, num_dimensions()>{size<Is>()...};
+  template <size_t... Seq>
+  constexpr auto resolution(std::index_sequence<Seq...> /*seq*/) const {
+    return vec<size_t, num_dimensions()>{size<Seq>()...};
   }
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
  public:
   constexpr auto resolution() const { return resolution(seq_t{}); }
   //----------------------------------------------------------------------------
  private:
-  template <size_t... Is>
-  constexpr auto bounding_box(std::index_sequence<Is...> /*seq*/) const {
-    static_assert(sizeof...(Is) == num_dimensions());
+  template <size_t... Seq>
+  constexpr auto bounding_box(std::index_sequence<Seq...> /*seq*/) const {
+    static_assert(sizeof...(Seq) == num_dimensions());
     return axis_aligned_bounding_box<real_t, num_dimensions()>{
-        vec<real_t, num_dimensions()>{static_cast<real_t>(front<Is>())...},
-        vec<real_t, num_dimensions()>{static_cast<real_t>(back<Is>())...}};
+        vec<real_t, num_dimensions()>{static_cast<real_t>(front<Seq>())...},
+        vec<real_t, num_dimensions()>{static_cast<real_t>(back<Seq>())...}};
   }
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
  public:
   constexpr auto bounding_box() const { return bounding_box(seq_t{}); }
   //----------------------------------------------------------------------------
  private:
-  template <size_t... Is>
-  constexpr auto size(std::index_sequence<Is...> /*seq*/) const {
-    static_assert(sizeof...(Is) == num_dimensions());
-    return std::array{size<Is>()...};
+  template <size_t... Seq>
+  constexpr auto size(std::index_sequence<Seq...> /*seq*/) const {
+    static_assert(sizeof...(Seq) == num_dimensions());
+    return std::array{size<Seq>()...};
   }
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
  public:
@@ -336,16 +337,16 @@ class grid {
   }
   //----------------------------------------------------------------------------
 #ifdef __cpp_concepts
-  template <arithmetic... Comps, size_t... Is>
+  template <arithmetic... Comps, size_t... Seq>
   requires(num_dimensions() == sizeof...(Comps))
 #else
-  template <typename... Comps, size_t... Is,
+  template <typename... Comps, size_t... Seq,
             enable_if<is_arithmetic<Comps...>>                    = true,
             enable_if<(num_dimensions() == sizeof...(Comps))> = true>
 #endif
   constexpr auto is_inside(
-      std::index_sequence<Is...> /*seq*/, Comps const... comps) const {
-    return ((front<Is>() <= comps || comps <= back<Is>()) || ...);
+      std::index_sequence<Seq...> /*seq*/, Comps const... comps) const {
+    return ((front<Seq>() <= comps || comps <= back<Seq>()) || ...);
   }
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 #ifdef __cpp_concepts
@@ -359,10 +360,10 @@ class grid {
     return is_inside(std::make_index_sequence<num_dimensions()>{}, comps...);
   }
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-  template <size_t... Is>
+  template <size_t... Seq>
   constexpr auto is_inside(pos_t const& p,
-                           std::index_sequence<Is...> /*seq*/) const {
-    return ((p(Is) < front<Is>() || back<Is>() < p(Is)) && ...);
+                           std::index_sequence<Seq...> /*seq*/) const {
+    return ((p(Seq) < front<Seq>() || back<Seq>() < p(Seq)) && ...);
   }
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
   constexpr auto is_inside(pos_t const& p) const {
@@ -371,17 +372,17 @@ class grid {
   //----------------------------------------------------------------------------
  private:
 #ifdef __cpp_concepts
-  template <size_t... Is, arithmetic... Xs>
+  template <size_t... Seq, arithmetic... Xs>
 #else
-  template <size_t... Is, typename... Xs, enable_if<is_arithmetic<Xs...>> = true>
+  template <size_t... Seq, typename... Xs, enable_if<is_arithmetic<Xs...>> = true>
 #endif
-  constexpr auto in_domain(std::index_sequence<Is...> /*seq*/,
+  constexpr auto in_domain(std::index_sequence<Seq...> /*seq*/,
                            Xs const... xs) const {
     static_assert(sizeof...(xs) == num_dimensions(),
                   "number of components does not match number of dimensions");
-    static_assert(sizeof...(Is) == num_dimensions(),
+    static_assert(sizeof...(Seq) == num_dimensions(),
                   "number of indices does not match number of dimensions");
-    return ((front<Is>() <= xs) && ...) && ((xs <= back<Is>()) && ...);
+    return ((front<Seq>() <= xs) && ...) && ((xs <= back<Seq>()) && ...);
   }
   //----------------------------------------------------------------------------
  public:
@@ -398,10 +399,10 @@ class grid {
 
   //----------------------------------------------------------------------------
  private:
-  template <size_t... Is>
+  template <size_t... Seq>
   constexpr auto in_domain(std::array<real_t, num_dimensions()> const& x,
-                           std::index_sequence<Is...> /*seq*/) const {
-    return in_domain(x[Is]...);
+                           std::index_sequence<Seq...> /*seq*/) const {
+    return in_domain(x[Seq]...);
   }
   //----------------------------------------------------------------------------
  public:
@@ -864,6 +865,67 @@ class grid {
     }
   }
   //----------------------------------------------------------------------------
+  template <typename T>
+  auto add_lazy_property(std::filesystem::path const& path,
+                         std::string const&           dataset_name)
+      -> typed_property_t<T, false>& {
+    auto const ext = path.extension();
+#ifdef TATOOINE_HAS_HDF5_SUPPORT
+    if (ext == ".h5") {
+      return add_hdf5_lazy_property<T>(path, dataset_name);
+    }
+#endif
+#ifdef TATOOINE_HAS_NETCDF_SUPPORT
+    if (ext == ".nc") {
+
+      return add_netcdf_lazy_property<T>(path, dataset_name);
+    }
+#endif
+    throw std::runtime_error{"[grid::add_lazy_property] - unknown file extension"};
+  }
+  //----------------------------------------------------------------------------
+#ifdef TATOOINE_HAS_HDF5_SUPPORT
+  template <typename T>
+  auto add_hdf5_lazy_property(std::filesystem::path const& path,
+                              std::string const& dataset_name) -> auto& {
+    hdf5::file f{path, H5F_ACC_RDONLY};
+    return add_lazy_property<T>(f.dataset<T>(dataset_name));
+  }
+  //----------------------------------------------------------------------------
+  template <typename T>
+  auto add_lazy_property(hdf5::dataset<T> const& dataset) -> auto& {
+    auto num_dims_dataset = dataset.num_dimensions();
+    if (num_dimensions() != num_dims_dataset) {
+      throw std::runtime_error{
+          "Number of dimensions do not match for HDF5 dataset and grid."};
+    }
+    auto size_dataset = dataset.size();
+    for (size_t i = 0; i < num_dimensions(); ++i) {
+    if (size_dataset[i] != size(0)) {
+      throw std::runtime_error{
+          "Resolution of grad and HDF5 DataSet do not match."};
+    }
+    }
+    return create_vertex_property<lazy_reader<hdf5::dataset<T>>>(
+        dataset.name(), dataset, std::vector<size_t>{2, 2});
+  }
+#endif
+#ifdef TATOOINE_HAS_NETCDF_SUPPORT
+  //----------------------------------------------------------------------------
+  template <typename T>
+  auto add_netcdf_lazy_property(std::filesystem::path const& path,
+                                std::string const& dataset_name) -> auto& {
+    netcdf::file f{path, netCDF::NcFile::read};
+    return add_lazy_property<T>(f.variable<T>(dataset_name));
+  }
+  //----------------------------------------------------------------------------
+  template <typename T>
+  auto add_lazy_property(netcdf::variable<T> const& dataset) -> auto& {
+    return create_vertex_property<lazy_reader<netcdf::variable<T>>>(
+        dataset.name(), dataset, std::vector<size_t>{2, 2});
+  }
+#endif
+  //----------------------------------------------------------------------------
   template <typename T, bool HasNonConstReference = true>
   auto vertex_property(std::string const& name) -> auto& {
     if (auto it = m_vertex_properties.find(name);
@@ -1209,9 +1271,9 @@ class grid {
     read_netcdf(path, std::make_index_sequence<num_dimensions()>{});
   }
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-  template <typename T, size_t... Is>
+  template <typename T, size_t... Seq>
   auto add_variables_of_type(netcdf::file& f, bool& first,
-                             std::index_sequence<Is...> /*seq*/) {
+                             std::index_sequence<Seq...> /*seq*/) {
     for (auto v : f.variables<T>()) {
       if (v.name() == "x" || v.name() == "y" || v.name() == "z" ||
           v.name() == "t" || v.name() == "X" || v.name() == "Y" ||
@@ -1243,23 +1305,23 @@ class grid {
                                      std::to_string(i) + ")"};
           }
         };
-        (check(Is), ...);
+        (check(Seq), ...);
       } else {
         ((f.variable<
-               typename std::decay_t<decltype(dimension<Is>())>::value_type>(
-               v.dimension_name(Is))
-              .read(dimension<Is>())),
+               typename std::decay_t<decltype(dimension<Seq>())>::value_type>(
+               v.dimension_name(Seq))
+              .read(dimension<Seq>())),
          ...);
+        first = false;
       }
-      create_vertex_property<netcdf::lazy_reader<T>>(v.name(), v,
+      create_vertex_property<lazy_reader<T>>(v.name(), v,
                                                      std::vector<size_t>{2, 2});
-      first = false;
     }
   }
   /// this only reads scalar types
-  template <size_t... Is>
+  template <size_t... Seq>
   auto read_netcdf(std::filesystem::path const& path,
-                   std::index_sequence<Is...>   seq) {
+                   std::index_sequence<Seq...>   seq) {
     netcdf::file f{path, netCDF::NcFile::read};
     bool         first = true;
     add_variables_of_type<double>(f, first, seq);
@@ -1472,10 +1534,10 @@ grid(Dimensions&&...) -> grid<std::decay_t<Dimensions>...>;
 template <typename Dim0, typename... Dims>
 grid(Dim0&&, Dims&&...) -> grid<std::decay_t<Dim0>, std::decay_t<Dims>...>;
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-template <typename Real, size_t N, size_t... Is>
+template <typename Real, size_t N, size_t... Seq>
 grid(axis_aligned_bounding_box<Real, N> const& bb,
-     std::array<size_t, N> const&              res, std::index_sequence<Is...>)
-    -> grid<decltype(((void)Is, std::declval<linspace<Real>()>))...>;
+     std::array<size_t, N> const&              res, std::index_sequence<Seq...>)
+    -> grid<decltype(((void)Seq, std::declval<linspace<Real>()>))...>;
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 #ifdef __cpp_concepts
   template <integral... Size>
@@ -1518,10 +1580,10 @@ template <typename IndexableSpace, size_t N>
 #endif
 struct grid_creator {
  private:
-  template <typename... Args, size_t... Is>
-  static constexpr auto create(std::index_sequence<Is...> /*seq*/,
+  template <typename... Args, size_t... Seq>
+  static constexpr auto create(std::index_sequence<Seq...> /*seq*/,
                                Args&&... args) {
-    return grid<decltype((static_cast<void>(Is), IndexableSpace{}))...>{
+    return grid<decltype((static_cast<void>(Seq), IndexableSpace{}))...>{
         std::forward<Args>(args)...};
   }
   template <typename... Args>
