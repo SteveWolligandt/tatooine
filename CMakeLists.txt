@@ -197,6 +197,9 @@ if(HDF5_FOUND)
     ${HDF5_LIBRARIES} ${HDF5_HL_LIBRARIES} ${HDF5_CXX_LIBRARIES} ${HDF5_CXX_HL_LIBRARIES})
   target_include_directories(tatooine PUBLIC
     ${HDF5_INCLUDE_DIRS} ${HDF5_CXX_INCLUDE_DIRS})
+
+  add_executable(hdf5_create src/hdf5_create.cpp)
+  target_link_libraries(hdf5_create PUBLIC tatooine)
 endif()
 
 #- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -

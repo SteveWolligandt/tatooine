@@ -56,6 +56,11 @@ class attribute {};
 //==============================================================================
 template <typename T>
 class variable {
+ public:
+  using this_t     = variable<T>;
+  using value_type = T;
+
+ private:
   mutable std::shared_ptr<netCDF::NcFile> m_file;
   mutable std::shared_ptr<std::mutex>     m_mutex;
   netCDF::NcVar                           m_var;

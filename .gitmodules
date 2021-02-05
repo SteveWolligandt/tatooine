@@ -2,7 +2,7 @@
 	path = external/google-benchmark
 	url = https://github.com/google/benchmark
 [submodule "external/catch2"]
-	path = external/catch2
+	path = test/external/catch2
 	url = https://github.com/catchorg/Catch2
 [submodule "external/indicators"]
 	path = external/indicators
