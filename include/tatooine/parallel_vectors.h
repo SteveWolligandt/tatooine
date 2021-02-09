@@ -8,7 +8,7 @@
 #include <tatooine/for_loop.h>
 #include <tatooine/grid.h>
 #include <tatooine/line.h>
-#include <tatooine/openblas.h>
+//#include <tatooine/openblas.h>
 #include <tatooine/type_traits.h>
 
 #include <array>
@@ -35,7 +35,7 @@ std::optional<vec<Real, 3>> pv_on_tri(
   W.col(1) = w1;
   W.col(2) = w2;
 
-  openblas_set_num_threads(1);
+  //openblas_set_num_threads(1);
   if (std::abs(det(V)) > 0) {
     M = solve(V, W);
   } else if (std::abs(det(W)) > 0) {
@@ -185,12 +185,10 @@ auto calc(GetV&& getv, GetW&& getw, grid<XDomain, YDomain, ZDomain> const& g,
     if (isnan(w7)) { return; }
     if (turned(ix, iy, iz)) {
       // check if there are parallel vectors on any of the tet's triangles
-      [[maybe_unused]] auto pv012 =
-          detail::pv_on_tri(p[0], v0, w0, p[1], v1, w1, p[2], v2, w2,
-                            std::forward<Preds>(preds)...);
-      [[maybe_unused]] auto pv014 =
-          detail::pv_on_tri(p[0], v0, w0, p[1], v1, w1, p[4], v4, w4,
-                            std::forward<Preds>(preds)...);
+      auto pv012 = detail::pv_on_tri(p[0], v0, w0, p[1], v1, w1, p[2], v2, w2,
+                                     std::forward<Preds>(preds)...);
+      auto pv014 = detail::pv_on_tri(p[0], v0, w0, p[1], v1, w1, p[4], v4, w4,
+                                     std::forward<Preds>(preds)...);
       auto pv024 = detail::pv_on_tri(p[0], v0, w0, p[2], v2, w2, p[4], v4, w4,
                                      std::forward<Preds>(preds)...);
       auto pv124 = detail::pv_on_tri(p[1], v1, w1, p[2], v2, w2, p[4], v4, w4,
@@ -330,18 +328,18 @@ auto parallel_vectors(field<V, VReal, 3, 3> const&           vf,
       // get v data by evaluating V field
       [&vf, t](auto /*ix*/, auto /*iy*/, auto /*iz*/, auto const& p) {
         if (vf.in_domain(p, t)) {
-          return
-              typename std::decay_t<decltype(vf)>::tensor_t{tag::fill{VReal(0) / VReal(0)}};
+          return vf(p, t);
         }
-        return vf(p, t);
+        return typename std::decay_t<decltype(vf)>::tensor_t{
+            tag::fill{VReal(0) / VReal(0)}};
       },
       // get w data by evaluating W field
       [&wf, t](auto /*ix*/, auto /*iy*/, auto /*iz*/, auto const& p) {
         if (wf.in_domain(p, t)) {
-          return
-              typename std::decay_t<decltype(wf)>::tensor_t{tag::fill{WReal(0) / WReal(0)}};
+          return wf(p, t);
         }
-        return wf(p, t);
+        return typename std::decay_t<decltype(wf)>::tensor_t{
+            tag::fill{WReal(0) / WReal(0)}};
       },
       g, std::forward<Preds>(preds)...);
 }
