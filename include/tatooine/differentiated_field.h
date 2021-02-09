@@ -125,6 +125,77 @@ auto diff(field<Field, Real, N, TensorDims...>&& f, vec<Real, N> const& eps) {
       std::move(f.as_derived()), eps};
 }
 //==============================================================================
+template <typename Field, size_t... TensorDims>
+struct time_differentiated_field
+    : field<time_differentiated_field<Field, TensorDims...>,
+            typename std::decay_t<Field>::real_t,
+            std::decay_t<Field>::num_dimensions(), TensorDims...> {
+  using this_t   = time_differentiated_field<Field, TensorDims...>;
+  using parent_t = field<this_t, typename std::decay_t<Field>::real_t,
+                         std::decay_t<Field>::num_dimensions(), TensorDims...>;
+  using parent_t::num_dimensions;
+  using typename parent_t::pos_t;
+  using typename parent_t::real_t;
+  using vec_t = vec<real_t, num_dimensions()>;
+  using typename parent_t::tensor_t;
+
+  //============================================================================
+ private:
+  Field m_internal_field;
+  real_t m_eps;
+  //============================================================================
+ public:
+#ifdef __cpp_concpets
+  template <typename Field_, arithmetic Eps>
+#else
+  template <typename Field_, typename Eps,
+            enable_if<is_arithmetic<Eps> > = true>
+#endif
+  time_differentiated_field(Field_&& f, Eps const eps)
+      : m_internal_field{std::forward<Field_>(f)},
+        m_eps{static_cast<real_t>(eps)} {}
+  //----------------------------------------------------------------------------
+  constexpr auto evaluate(pos_t const& x, real_t const t) const
+      -> tensor_t final {
+    real_t t0 = t - m_eps;
+    real_t t1 = t + m_eps;
+    auto   dt = 2 * m_eps;
+    if (!m_internal_field.in_domain(x, t0)) {
+      t0 = t;
+      dt = m_eps;
+    }
+    if (!m_internal_field.in_domain(x, t1)) {
+      t1 = t;
+      dt = m_eps;
+    }
+    return (m_internal_field(x, t1) - m_internal_field(x, t0)) / dt;
+  }
+  //----------------------------------------------------------------------------
+  constexpr auto in_domain(pos_t const& x, real_t t) const -> bool final {
+    return m_internal_field.in_domain(x, t);
+  }
+  //----------------------------------------------------------------------------
+  auto set_eps(real_t eps) { m_eps = eps; }
+  auto eps() -> auto& { return m_eps; }
+  auto eps() const -> auto const& { return m_eps; }
+};
+//~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+template <typename Field, typename Real, size_t N, size_t... TensorDims>
+auto diff_time(field<Field, Real, N, TensorDims...> const& f, Real const eps) {
+  return time_differentiated_field<Field const&, TensorDims...>{f.as_derived(), eps};
+}
+// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+template <typename Field, typename Real, size_t N, size_t... TensorDims>
+auto diff_time(field<Field, Real, N, TensorDims...>& f, Real const eps) {
+  return time_differentiated_field<Field&, TensorDims...>{f.as_derived(), eps};
+}
+// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+template <typename Field, typename Real, size_t N, size_t... TensorDims>
+auto diff_time(field<Field, Real, N, TensorDims...>&& f, Real const eps) {
+  return time_differentiated_field<Field, TensorDims...>{
+      std::move(f.as_derived()), eps};
+}
+//==============================================================================
 }  // namespace tatooine
 //==============================================================================
 #endif

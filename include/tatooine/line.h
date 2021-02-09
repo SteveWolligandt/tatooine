@@ -832,6 +832,8 @@ struct line {
     }
     return lines;
   }
+  template <typename Pred>
+  std::vector<line<Real, N>> filter(Pred&& pred) const;
 };
 
 template <typename... Tensors, typename... Reals, size_t N>
@@ -843,36 +845,39 @@ auto diff(const line<Real, N>& l) {
   return l.tangents();
 }
 //==============================================================================
-// template <typename Real, size_t N>
-// template <typename Pred>
-// std::vector<line<Real, N>> line<Real, N>::filter(Pred&& pred) const {
-//  std::vector<line<Real, N>> filtered_lines;
-//  bool                         need_new_strip = true;
-//
-//  size_t i      = 0;
-//  bool   closed = is_closed();
-//  for (const auto [x, t] : *this) {
-//    if (pred(x, t, i)) {
-//      if (need_new_strip) {
-//        filtered_lines.emplace_back();
-//        need_new_strip = false;
-//      }
-//      filtered_lines.back().push_back(x, t);
-//    } else {
-//      closed         = false;
-//      need_new_strip = true;
-//      if (!filtered_lines.empty() && filtered_lines.back().num_vertices() <=
-//      1)
-//        filtered_lines.pop_back();
-//    }
-//    i++;
-//  }
-//
-//  if (!filtered_lines.empty() && filtered_lines.back().num_vertices() <= 1)
-//    filtered_lines.pop_back();
-//  if (filtered_lines.num_vertices() == 1)
-//  filtered_lines.front().set_is_closed(closed); return filtered_lines;
-//}
+template <typename Real, size_t N>
+template <typename Pred>
+std::vector<line<Real, N>> line<Real, N>::filter(Pred&& pred) const {
+  std::vector<line<Real, N>>   filtered_lines;
+  bool                         need_new_strip = true;
+
+  size_t i      = 0;
+  bool   closed = is_closed();
+  for (const auto x : vertices()) {
+    if (pred(x, i)) {
+      if (need_new_strip) {
+        filtered_lines.emplace_back();
+        need_new_strip = false;
+      }
+      filtered_lines.back().push_back(x);
+    } else {
+      closed         = false;
+      need_new_strip = true;
+      if (!filtered_lines.empty() && filtered_lines.back().num_vertices() <=
+      1)
+        filtered_lines.pop_back();
+    }
+    i++;
+  }
+
+  if (!filtered_lines.empty() && filtered_lines.back().num_vertices() <= 1){
+    filtered_lines.pop_back();
+  }
+  if (filtered_lines.size() == 1) {
+    filtered_lines.front().set_closed(closed);
+  }
+  return filtered_lines;
+}
 
 namespace detail {
 template <typename LineCont>
@@ -1001,16 +1006,15 @@ auto merge_line_container(Lines   lines,
 }
 
 //------------------------------------------------------------------------------
-template <typename Lines, typename Real>
-auto filter_length(Lines lines, Real length) {
-  for (auto it = begin(lines); it != end(lines);) {
-    auto l = it->arc_length();
-    ++it;
-    if (l < length) {
-      lines.erase(prev(it));
+template <range Lines, arithmetic Real>
+auto filter_length(Lines const& lines, Real length) {
+  std::vector<typename std::decay_t<Lines>::value_type> filtered;
+  for (auto const& l : lines) {
+    if (l.arc_length() > length) {
+      filtered.push_back(l);
     }
   }
-  return lines;
+  return filtered;
 }
 }  // namespace detail
 //------------------------------------------------------------------------------

@@ -91,86 +91,60 @@ constexpr auto eigenvalues_22(base_tensor<Tensor, Real, 2, 2> const& A)
   return s;
 }
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-template <size_t N>
-constexpr auto eigenvalues(tensor<float, N, N> A)
-    -> vec<std::complex<float>, N> {
-  if constexpr (N == 2) {
-    return eigenvalues_22(A);
-  } else {
-    std::array<float, N>        wr;
-    std::array<float, N>        wi;
-    [[maybe_unused]] auto const info =
-        LAPACKE_sgeev(LAPACK_COL_MAJOR, 'N', 'N', N, A.data_ptr(), N, wr.data(),
-                      wi.data(), nullptr, N, nullptr, N);
-
-    vec<std::complex<float>, N> vals;
-    for (size_t i = 0; i < N; ++i) {
-      vals[i] = {wr[i], wi[i]};
-    }
-    return vals;
-  }
-}
-// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-template <size_t N>
-constexpr auto eigenvalues(tensor<double, N, N> A)
-    -> vec<std::complex<double>, N> {
-  if constexpr (N == 2) {
-    return eigenvalues_22(A);
-  } else {
-    std::array<double, N>       wr;
-    std::array<double, N>       wi;
-    [[maybe_unused]] auto const info =
-        LAPACKE_dgeev(LAPACK_COL_MAJOR, 'N', 'N', N, A.data_ptr(), N, wr.data(),
-                      wi.data(), nullptr, N, nullptr, N);
-    vec<std::complex<double>, N> vals;
-    for (size_t i = 0; i < N; ++i) {
-      vals[i] = {wr[i], wi[i]};
-    }
-    return vals;
-  }
+template <typename Tensor, typename Real, size_t N>
+constexpr auto eigenvalues(base_tensor<Tensor, Real, N, N> const& A){
+  return eigenvalues(tensor<Real, N, N>{A});
 }
 //------------------------------------------------------------------------------
-template <size_t N>
-auto eigenvectors(tensor<float, N, N> A)
-    -> std::pair<mat<std::complex<float>, N, N>, vec<std::complex<float>, N>> {
-  std::array<float, N>        wr;
-  std::array<float, N>        wi;
-  std::array<float, N * N>    vr;
-  [[maybe_unused]] auto const info =
-      LAPACKE_sgeev(LAPACK_COL_MAJOR, 'N', 'V', N, A.data_ptr(), N, wr.data(),
-                    wi.data(), nullptr, N, vr.data(), N);
-
-  vec<std::complex<float>, N>    vals;
-  mat<std::complex<float>, N, N> vecs;
-  for (size_t i = 0; i < N; ++i) { vals[i] = {wr[i], wi[i]}; }
-  for (size_t j = 0; j < N; ++j) {
-    for (size_t i = 0; i < N; ++i) {
-      if (wi[j] == 0) {
-        vecs(i, j) = {vr[i + j * N], 0};
-      } else {
-        vecs(i, j)     = {vr[i + j * N], vr[i + (j + 1) * N]};
-        vecs(i, j + 1) = {vr[i + j * N], -vr[i + (j + 1) * N]};
-        if (i == N - 1) { ++j; }
+template <typename Real, size_t N>
+constexpr auto eigenvalues(tensor<Real, N, N> A)
+    -> vec<std::complex<Real>, N> {
+  if constexpr (N == 2) {
+    return eigenvalues_22(A);
+  } else {
+    std::array<Real, N>         wr;
+    std::array<Real, N>         wi;
+    [[maybe_unused]] auto const info = [&]() {
+      if constexpr (std::is_same_v<float, Real>) {
+        return LAPACKE_sgeev(LAPACK_COL_MAJOR, 'N', 'N', N, A.data_ptr(), N,
+                             wr.data(), wi.data(), nullptr, N, nullptr, N);
+      } else if constexpr (std::is_same_v<double, Real>) {
+        return LAPACKE_dgeev(LAPACK_COL_MAJOR, 'N', 'N', N, A.data_ptr(), N,
+                             wr.data(), wi.data(), nullptr, N, nullptr, N);
       }
-    }
-  }
+    }();
 
-  return {std::move(vecs), std::move(vals)};
+    vec<std::complex<Real>, N>
+        vals;
+    for (size_t i = 0; i < N; ++i) {
+      vals[i] = {wr[i], wi[i]};
+    }
+    return vals;
+  }
 }
 //------------------------------------------------------------------------------
-template <size_t N>
-auto eigenvectors(tensor<double, N, N> A)
-    -> std::pair<mat<std::complex<double>, N, N>,
-                 vec<std::complex<double>, N>> {
-  [[maybe_unused]] lapack_int info;
-  std::array<double, N>       wr;
-  std::array<double, N>       wi;
-  std::array<double, N * N>   vr;
-  info = LAPACKE_dgeev(LAPACK_COL_MAJOR, 'N', 'V', N, A.data_ptr(), N,
-                       wr.data(), wi.data(), nullptr, N, vr.data(), N);
+template <typename Tensor,typename Real, size_t N>
+auto eigenvectors(base_tensor<Tensor, Real, N, N> const& A){
+  return eigenvectors(tensor<Real, N, N>{A});
+}
+template <typename Real, size_t N>
+auto eigenvectors(tensor<Real, N, N> A)
+    -> std::pair<mat<std::complex<Real>, N, N>, vec<std::complex<Real>, N>> {
+  std::array<Real, N>        wr;
+  std::array<Real, N>        wi;
+  std::array<Real, N * N>    vr;
+  [[maybe_unused]] auto const info = [&]() {
+    if constexpr (std::is_same_v<float, Real>) {
+      return LAPACKE_sgeev(LAPACK_COL_MAJOR, 'N', 'V', N, A.data_ptr(), N,
+                           wr.data(), wi.data(), nullptr, N, vr.data(), N);
+    } else if constexpr (std::is_same_v<double, Real>) {
+      return LAPACKE_dgeev(LAPACK_COL_MAJOR, 'N', 'V', N, A.data_ptr(), N,
+                           wr.data(), wi.data(), nullptr, N, vr.data(), N);
+    }
+  }();
 
-  vec<std::complex<double>, N>    vals;
-  mat<std::complex<double>, N, N> vecs;
+  vec<std::complex<Real>, N>    vals;
+  mat<std::complex<Real>, N, N> vecs;
   for (size_t i = 0; i < N; ++i) { vals[i] = {wr[i], wi[i]}; }
   for (size_t j = 0; j < N; ++j) {
     for (size_t i = 0; i < N; ++i) {
