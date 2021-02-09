@@ -537,7 +537,11 @@ class legacy_file_writer {
   auto write_triangle_strips(
       std::vector<std::vector<size_t>> const &triangle_strips) -> void;
 
-  template <real_number T>
+#ifdef __cpp_concepts
+  template <arithmetic T>
+#else
+  template <typename T, enable_if<is_arithmetic<T>> = true>
+#endif
   auto write_x_coordinates(std::vector<T> const &x_coordinates) -> void {
     std::stringstream ss;
     ss << "\nX_COORDINATES " << ' ' << x_coordinates.size() << ' '
@@ -549,7 +553,11 @@ class legacy_file_writer {
       m_file.write((char *)(&d), sizeof(T));
     }
   }
-  template <real_number T>
+#ifdef __cpp_concepts
+  template <arithmetic T>
+#else
+  template <typename T, enable_if<is_arithmetic<T>> = true>
+#endif
   auto write_y_coordinates(std::vector<T> const &y_coordinates) -> void {
     std::stringstream ss;
     ss << "\nY_COORDINATES " << ' ' << y_coordinates.size() << ' '
@@ -561,7 +569,11 @@ class legacy_file_writer {
       m_file.write((char *)(&d), sizeof(T));
     }
   }
-  template <real_number T>
+#ifdef __cpp_concepts
+  template <arithmetic T>
+#else
+  template <typename T, enable_if<is_arithmetic<T>> = true>
+#endif
   auto write_z_coordinates(std::vector<T> const &z_coordinates) -> void {
     std::stringstream ss;
     ss << "\nZ_COORDINATES " << ' ' << z_coordinates.size() << ' '
@@ -592,23 +604,50 @@ class legacy_file_writer {
   auto write_tensors(std::string const &               name,
                      std::vector<std::array<Real, 9>> &tensors) -> void;
   //----------------------------------------------------------------------------
+#ifdef __cpp_concepts
   template <typename Data>
-      requires(std::is_same_v<Data, double>) || (std::is_same_v<Data, float>) ||
-      (std::is_same_v<Data, int>)auto write_scalars(
-          std::string const &name, std::vector<Data> const &data,
-          std::string const &lookup_table_name = "default") -> void;
+  requires (std::is_same_v<Data, double>) ||
+           (std::is_same_v<Data, float>) ||
+           (std::is_same_v<Data, int>)
+#else
+  template <typename Data,
+            enable_if<((std::is_same_v<Data, double>) ||
+                       (std::is_same_v<Data, float>) ||
+                       (std::is_same_v<Data, int>))> = true>
+#endif
+  auto write_scalars(std::string const &      name,
+                     std::vector<Data> const &data,
+                     std::string const &lookup_table_name = "default") -> void;
   //----------------------------------------------------------------------------
+#ifdef __cpp_concepts
   template <typename Data>
-      requires(std::is_same_v<Data, double>) || (std::is_same_v<Data, float>) ||
-      (std::is_same_v<Data, int>)auto write_scalars(
-          std::string const &name, std::vector<std::vector<Data>> const &data,
-          std::string const &lookup_table_name = "default") -> void;
+  requires (std::is_same_v<Data, double>) ||
+           (std::is_same_v<Data, float>) ||
+           (std::is_same_v<Data, int>)
+#else
+  template <typename Data,
+            enable_if<((std::is_same_v<Data, double>) ||
+                       (std::is_same_v<Data, float>) ||
+                       (std::is_same_v<Data, int>))> = true>
+#endif
+  auto write_scalars(std::string const &                   name,
+                     std::vector<std::vector<Data>> const &data,
+                     std::string const &lookup_table_name = "default") -> void;
   //----------------------------------------------------------------------------
+#ifdef __cpp_concepts
   template <typename Data, size_t N>
-      requires(std::is_same_v<Data, double>) || (std::is_same_v<Data, float>) ||
-      (std::is_same_v<Data, int>)auto write_scalars(
-          std::string const &name, std::vector<std::array<Data, N>> const &data,
-          std::string const &lookup_table_name = "default") -> void {
+  requires (std::is_same_v<Data, double>) ||
+           (std::is_same_v<Data, float>) ||
+           (std::is_same_v<Data, int>)
+#else
+  template <typename Data, size_t N,
+            enable_if<((std::is_same_v<Data, double>) ||
+                       (std::is_same_v<Data, float>) ||
+                       (std::is_same_v<Data, int>))> = true>
+#endif
+  auto write_scalars(std::string const &                     name,
+                     std::vector<std::array<Data, N>> const &data,
+                     std::string const &lookup_table_name = "default") -> void {
     std::stringstream ss;
     ss << "\nSCALARS " << name << ' ' << type_to_str<Data>() << ' ' << N
        << '\n';
@@ -621,11 +660,20 @@ class legacy_file_writer {
       }
   }
   //----------------------------------------------------------------------------
+#ifdef __cpp_concepts
   template <typename Data, size_t N>
-      requires(std::is_same_v<Data, double>) || (std::is_same_v<Data, float>) ||
-      (std::is_same_v<Data, int>)auto write_scalars(
-          std::string const &name, std::vector<vec<Data, N>> const &data,
-          std::string const &lookup_table_name = "default") -> void {
+  requires (std::is_same_v<Data, double>) ||
+           (std::is_same_v<Data, float>) ||
+           (std::is_same_v<Data, int>)
+#else
+  template <typename Data, size_t N,
+            enable_if<((std::is_same_v<Data, double>) ||
+                       (std::is_same_v<Data, float>) ||
+                       (std::is_same_v<Data, int>))> = true>
+#endif
+  auto write_scalars(std::string const &              name,
+                     std::vector<vec<Data, N>> const &data,
+                     std::string const &lookup_table_name = "default") -> void {
     std::stringstream ss;
     ss << "\nSCALARS " << name << ' ' << type_to_str<Data>() << ' ' << N
        << '\n';
@@ -639,11 +687,20 @@ class legacy_file_writer {
       }
   }
   //----------------------------------------------------------------------------
+#ifdef __cpp_concepts
   template <typename Real, size_t N>
-      requires(std::is_same_v<Real, double>) || (std::is_same_v<Real, float>) ||
-      (std::is_same_v<Real, int>)auto write_scalars(
-          std::string const &name, std::vector<tensor<Real, N>> const &data,
-          std::string const &lookup_table_name = "default") -> void {
+  requires (std::is_same_v<Real, double>) ||
+           (std::is_same_v<Real, float>) ||
+           (std::is_same_v<Real, int>)
+#else
+  template <typename Real, size_t N,
+            enable_if<((std::is_same_v<Real, double>) ||
+                       (std::is_same_v<Real, float>) ||
+                       (std::is_same_v<Real, int>))> = true>
+#endif
+  auto write_scalars(std::string const &                 name,
+                     std::vector<tensor<Real, N>> const &data,
+                     std::string const &lookup_table_name = "default") -> void {
     std::stringstream ss;
     ss << "\nSCALARS " << name << ' ' << type_to_str<Real>() << ' ' << N
        << '\n';
@@ -812,11 +869,22 @@ auto legacy_file_writer::write_tensors(
     -> void {
   write_data<9>("TENSORS", name, tensors);
 }
-template <typename Data>
-    requires(std::is_same_v<Data, double>) || (std::is_same_v<Data, float>) ||
-    (std::is_same_v<Data, int>)auto legacy_file_writer::write_scalars(
-        std::string const &name, std::vector<Data> const &data,
-        std::string const &lookup_table_name) -> void {
+//-----------------------------------------------------------------------------
+#ifdef __cpp_concepts
+  template <typename Data>
+  requires (std::is_same_v<Data, double>) ||
+           (std::is_same_v<Data, float>) ||
+           (std::is_same_v<Data, int>)
+#else
+  template <typename Data,
+            enable_if<((std::is_same_v<Data, double>) ||
+                       (std::is_same_v<Data, float>) ||
+                       (std::is_same_v<Data, int>))>>
+#endif
+auto legacy_file_writer::write_scalars(std::string const &      name,
+                                       std::vector<Data> const &data,
+                                       std::string const &lookup_table_name)
+    -> void {
   std::stringstream ss;
   ss << "\nSCALARS " << name << ' ' << type_to_str<Data>() << " 1\n";
   vtk::write_binary(m_file, ss.str());
@@ -826,11 +894,21 @@ template <typename Data>
     m_file.write((char *)(&comp), sizeof(Data));
   }
 }
-template <typename Data>
-    requires(std::is_same_v<Data, double>) || (std::is_same_v<Data, float>) ||
-    (std::is_same_v<Data, int>)auto legacy_file_writer::write_scalars(
-        std::string const &name, std::vector<std::vector<Data>> const &data,
-        std::string const &lookup_table_name) -> void {
+//------------------------------------------------------------------------------
+#ifdef __cpp_concepts
+  template <typename Data>
+  requires (std::is_same_v<Data, double>) ||
+           (std::is_same_v<Data, float>) ||
+           (std::is_same_v<Data, int>)
+#else
+  template <typename Data,
+            enable_if<((std::is_same_v<Data, double>) ||
+                       (std::is_same_v<Data, float>) ||
+                       (std::is_same_v<Data, int>))>>
+#endif
+auto legacy_file_writer::write_scalars(
+    std::string const &name, std::vector<std::vector<Data>> const &data,
+    std::string const &lookup_table_name) -> void {
   std::stringstream ss;
   ss << "\nSCALARS " << name << ' ' << type_to_str<Data>()
      << std::to_string(data.front().size()) + '\n';

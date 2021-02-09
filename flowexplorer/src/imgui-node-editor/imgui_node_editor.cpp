@@ -134,7 +134,8 @@ static void LogV(const char* fmt, va_list args)
 }
 # endif
 
-void ed::Log([[maybe_unused]] const char* fmt, ...) {
+void ed::Log(const char* fmt, ...)
+{
 # if defined(_DEBUG) && defined(_WIN32)
     va_list args;
     va_start(args, fmt);
@@ -142,6 +143,7 @@ void ed::Log([[maybe_unused]] const char* fmt, ...) {
     va_end(args);
 # endif
 }
+
 
 //------------------------------------------------------------------------------
 static bool IsGroup(const ed::Node* node)
@@ -1091,7 +1093,7 @@ void ed::EditorContext::Begin(const char* id, const ImVec2& size)
     //    ImGuiWindowFlags_NoScrollbar |
     //    ImGuiWindowFlags_NoScrollWithMouse);
 
-    ImGui::CaptureKeyboardFromApp();
+    //ImGui::CaptureKeyboardFromApp();
 
     m_IsWindowActive = ImGui::IsWindowFocused();
 

@@ -1,14 +1,26 @@
 #ifndef TATOOINE_LAPACK_H
 #define TATOOINE_LAPACK_H
 //==============================================================================
-#include <tatooine/tensor.h>
+#if TATOOINE_INCLUDE_MKL_LAPACKE
+#include <mkl_lapacke.h>
+#else
 #include <lapacke.h>
+#endif
+#include <tatooine/tensor.h>
 #include <tatooine/lapack_job.h>
 #include <tatooine/math.h>
 //==============================================================================
 namespace tatooine::lapack {
 //==============================================================================
-template <real_or_complex_number T, size_t M, size_t N>
+static constexpr auto including_mkl_lapacke() {
+#if TATOOINE_INCLUDE_MKL_LAPACKE
+  return true;
+#else
+  return false;
+#endif
+}
+//==============================================================================
+template <typename T, size_t M, size_t N>
 auto getrf(tensor<T, M, N>&& A) {
   vec<int, tatooine::min(M, N)> p;
   if constexpr (std::is_same_v<double, T>) {
@@ -25,7 +37,7 @@ auto getrf(tensor<T, M, N>&& A) {
   return A;
 }
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-template <real_or_complex_number T, size_t M, size_t N>
+template <typename T, size_t M, size_t N>
 auto getrf(tensor<T, M, N>& A) {
   vec<int, tatooine::min(M, N)> p;
   if constexpr (std::is_same_v<double, T>) {
@@ -40,7 +52,7 @@ auto getrf(tensor<T, M, N>& A) {
   return A;
 }
 //==============================================================================
-template <real_number T, size_t N>
+template <typename T, size_t N>
 auto gesv(tensor<T, N, N> A, tensor<T, N> b) {
   vec<int, N> ipiv;
   int         nrhs = 1;
@@ -56,7 +68,7 @@ auto gesv(tensor<T, N, N> A, tensor<T, N> b) {
   return b;
 }
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-template <real_number T, size_t N, size_t NRHS>
+template <typename T, size_t N, size_t NRHS>
 auto gesv(tensor<T, N, N> A, tensor<T, N, NRHS> B) {
   std::array<int, N> ipiv;
   if constexpr (std::is_same_v<double, T>) {
@@ -71,7 +83,7 @@ auto gesv(tensor<T, N, N> A, tensor<T, N, NRHS> B) {
   return B;
 }
 //==============================================================================
-template <real_or_complex_number T, size_t M, size_t N>
+template <typename T, size_t M, size_t N>
 auto lange(const tensor<T, M, N>& A, const char norm) {
   if constexpr (std::is_same_v<double, T>) {
     return LAPACKE_dlange(LAPACK_COL_MAJOR, norm, M, N, A.data_ptr(), M);
@@ -89,7 +101,7 @@ auto lange(const tensor<T, M, N>& A, const char norm) {
 /// Estimates the reciprocal of the condition number of a general matrix A.
 /// http://www.netlib.org/lapack/explore-html/d7/db5/lapacke__dgecon_8c_a7c007823b949b0b118acf7e0235a6fc5.html
 /// https://www.netlib.org/lapack/explore-html/dd/d9a/group__double_g_ecomputational_ga188b8d30443d14b1a3f7f8331d87ae60.html
-template <real_or_complex_number T, size_t N>
+template <typename T, size_t N>
 auto gecon(tensor<T, N, N>&& A) {
   T              rcond = 0;
   constexpr char p     = '1';
@@ -118,7 +130,7 @@ auto gecon(tensor<T, N, N>&& A) {
 /// Estimates the reciprocal of the condition number of a general matrix A.
 /// http://www.netlib.org/lapack/explore-html/d7/db5/lapacke__dgecon_8c_a7c007823b949b0b118acf7e0235a6fc5.html
 /// https://www.netlib.org/lapack/explore-html/dd/d9a/group__double_g_ecomputational_ga188b8d30443d14b1a3f7f8331d87ae60.html
-template <real_or_complex_number T, size_t N>
+template <typename T, size_t N>
 auto gecon(tensor<T, N, N>& A) {
   T              rcond = 0;
   constexpr char p     = 'I';
@@ -150,7 +162,7 @@ auto gecon(tensor<T, N, N>& A) {
 /// Estimates the reciprocal of the condition number of a general matrix A.
 /// http://www.netlib.org/lapack/explore-html/d1/d7e/group__double_g_esing_ga84fdf22a62b12ff364621e4713ce02f2.html
 /// http://www.netlib.org/lapack/explore-html/d0/dee/lapacke__dgesvd_8c_af31b3cb47f7cc3b9f6541303a2968c9f.html
-template <real_or_complex_number T, size_t M, size_t N, typename JOBU, typename JOBVT>
+template <typename T, size_t M, size_t N, typename JOBU, typename JOBVT>
 auto gesvd(tensor<T, M, N>&& A, JOBU, JOBVT) {
   static_assert(!std::is_same_v<JOBU,  lapack_job::O_t> ||
                 !std::is_same_v<JOBVT, lapack_job::O_t>,

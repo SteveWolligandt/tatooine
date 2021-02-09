@@ -44,8 +44,13 @@ class polynomial_line {
   constexpr polynomial_line& operator=(const polynomial_line& other) = default;
   constexpr polynomial_line& operator=(polynomial_line&& other) = default;
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+#ifdef __cpp_concepts
   template <typename... Polynomials>
-  requires (is_polynomial_v<Polynomials> && ...)
+  requires (is_polynomial<Polynomials> && ...)
+#else
+  template <typename... Polynomials,
+  enable_if_polynomial<Polynomials...> = true>
+#endif
   constexpr polynomial_line(Polynomials&&... polynomials)
       : m_polynomials{std::forward<Polynomials>(polynomials)...} {}
 
@@ -150,7 +155,7 @@ class polynomial_line {
 //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 template <typename... Polynomials>
 polynomial_line(Polynomials&&...)
-    ->polynomial_line<promote_t<typename Polynomials::real_t...>,
+    ->polynomial_line<common_type<typename Polynomials::real_t...>,
                       sizeof...(Polynomials), max(Polynomials::degree()...)>;
 //==============================================================================
 template <typename Real, size_t N, size_t Degree>

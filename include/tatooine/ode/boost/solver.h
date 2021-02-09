@@ -42,7 +42,7 @@ struct solver : ode::solver<solver<Real, N, Stepper>, Real, N> {
   solver(Stepper &&stepper, const Real stepsize)
       : m_stepper{std::move(stepper)}, m_stepsize{stepsize} {}
   //============================================================================
-  template <real_number Y0Real, real_number T0Real, real_number TauReal,
+  template <arithmetic Y0Real, arithmetic T0Real, arithmetic TauReal,
             typename Evaluator,
             stepper_callback_invocable<Real, N> StepperCallback>
   constexpr void solve(Evaluator&& evaluator, vec<Y0Real, N> const& y0,

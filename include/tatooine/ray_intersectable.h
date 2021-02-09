@@ -6,8 +6,9 @@
 //==============================================================================
 namespace tatooine {
 //==============================================================================
-template <real_number Real, size_t N>
+template <typename Real, size_t N>
 struct ray_intersectable{
+  static_assert(is_floating_point<Real>);
   using vec_t = vec<Real, N>;
   using pos_t = vec_t;
   using ray_t = ray<Real, N>;

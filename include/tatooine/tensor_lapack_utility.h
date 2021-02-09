@@ -6,12 +6,17 @@
 namespace tatooine {
 //==============================================================================
 /// compute condition number
-template <real_or_complex_number T, size_t N, integral P = int>
-auto condition_number(const tensor<T, N, N>& A, P const p = 2) {
+#ifdef __cpp_concepts
+template <typename T, size_t N, integral P = int>
+#else
+template <typename T, size_t N, typename P = int,
+          enable_if<is_integral<P>> = true>
+#endif
+auto condition_number(tensor<T, N, N> const& A, P const p = 2) {
   if (p == 1) {
     return 1 / lapack::gecon(tensor{A});
   } else if (p == 2) {
-    const auto s = singular_values(A);
+    auto const s = singular_values(A);
     return s(0) / s(N-1);
   } else {
     throw std::runtime_error {
@@ -21,7 +26,7 @@ auto condition_number(const tensor<T, N, N>& A, P const p = 2) {
 }
 //------------------------------------------------------------------------------
 template <typename Tensor, typename T, size_t N, typename PReal>
-auto condition_number(const base_tensor<Tensor, T, N, N>& A, PReal p) {
+auto condition_number(base_tensor<Tensor, T, N, N> const& A, PReal p) {
   return condition_number(tensor{A}, p);
 }
 //==============================================================================
@@ -92,11 +97,11 @@ constexpr auto eigenvalues(tensor<float, N, N> A)
   if constexpr (N == 2) {
     return eigenvalues_22(A);
   } else {
-    [[maybe_unused]] lapack_int info;
     std::array<float, N>        wr;
     std::array<float, N>        wi;
-    info = LAPACKE_sgeev(LAPACK_COL_MAJOR, 'N', 'N', N, A.data_ptr(), N,
-                         wr.data(), wi.data(), nullptr, N, nullptr, N);
+    [[maybe_unused]] auto const info =
+        LAPACKE_sgeev(LAPACK_COL_MAJOR, 'N', 'N', N, A.data_ptr(), N, wr.data(),
+                      wi.data(), nullptr, N, nullptr, N);
 
     vec<std::complex<float>, N> vals;
     for (size_t i = 0; i < N; ++i) {
@@ -112,11 +117,11 @@ constexpr auto eigenvalues(tensor<double, N, N> A)
   if constexpr (N == 2) {
     return eigenvalues_22(A);
   } else {
-    [[maybe_unused]] lapack_int info;
     std::array<double, N>       wr;
     std::array<double, N>       wi;
-    info = LAPACKE_dgeev(LAPACK_COL_MAJOR, 'N', 'N', N, A.data_ptr(), N,
-                         wr.data(), wi.data(), nullptr, N, nullptr, N);
+    [[maybe_unused]] auto const info =
+        LAPACKE_dgeev(LAPACK_COL_MAJOR, 'N', 'N', N, A.data_ptr(), N, wr.data(),
+                      wi.data(), nullptr, N, nullptr, N);
     vec<std::complex<double>, N> vals;
     for (size_t i = 0; i < N; ++i) {
       vals[i] = {wr[i], wi[i]};
@@ -128,12 +133,12 @@ constexpr auto eigenvalues(tensor<double, N, N> A)
 template <size_t N>
 auto eigenvectors(tensor<float, N, N> A)
     -> std::pair<mat<std::complex<float>, N, N>, vec<std::complex<float>, N>> {
-  [[maybe_unused]] lapack_int info;
   std::array<float, N>        wr;
   std::array<float, N>        wi;
   std::array<float, N * N>    vr;
-  info = LAPACKE_sgeev(LAPACK_COL_MAJOR, 'N', 'V', N, A.data_ptr(), N,
-                       wr.data(), wi.data(), nullptr, N, vr.data(), N);
+  [[maybe_unused]] auto const info =
+      LAPACKE_sgeev(LAPACK_COL_MAJOR, 'N', 'V', N, A.data_ptr(), N, wr.data(),
+                    wi.data(), nullptr, N, vr.data(), N);
 
   vec<std::complex<float>, N>    vals;
   mat<std::complex<float>, N, N> vecs;
@@ -183,114 +188,114 @@ auto eigenvectors(tensor<double, N, N> A)
 }
 //==============================================================================
 template <typename T, size_t M, size_t N>
-auto svd(const tensor<T, M, N>& A, tag::full_t /*tag*/) {
+auto svd(tensor<T, M, N> const& A, tag::full_t /*tag*/) {
   return lapack::gesvd(tensor{A}, lapack_job::A, lapack_job::A);
 }
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 template <typename T, size_t M, size_t N>
-auto svd(const tensor<T, M, N>& A, tag::economy_t /*tag*/) {
+auto svd(tensor<T, M, N> const& A, tag::economy_t /*tag*/) {
   return lapack::gesvd(tensor{A}, lapack_job::S, lapack_job::S);
 }
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 template <typename T, size_t M, size_t N>
-auto svd(const tensor<T, M, N>& A) {
+auto svd(tensor<T, M, N> const& A) {
   return svd(A, tag::full);
 }
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 template <typename T, size_t M, size_t N>
-auto svd_left(const tensor<T, M, N>& A, tag::full_t /*tag*/) {
+auto svd_left(tensor<T, M, N> const& A, tag::full_t /*tag*/) {
   return lapack::gesvd(tensor{A}, lapack_job::A, lapack_job::N);
 }
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 template <typename T, size_t M, size_t N>
-auto svd_left(const tensor<T, M, N>& A, tag::economy_t /*tag*/) {
+auto svd_left(tensor<T, M, N> const& A, tag::economy_t /*tag*/) {
   return lapack::gesvd(tensor{A}, lapack_job::S, lapack_job::N);
 }
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 template <typename T, size_t M, size_t N>
-auto svd_left(const tensor<T, M, N>& A) {
+auto svd_left(tensor<T, M, N> const& A) {
   return svd_left(A, tag::full);
 }
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 template <typename T, size_t M, size_t N>
-auto svd_right(const tensor<T, M, N>& A, tag::full_t /*tag*/) {
+auto svd_right(tensor<T, M, N> const& A, tag::full_t /*tag*/) {
   return lapack::gesvd(tensor{A}, lapack_job::N, lapack_job::A);
 }
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 template <typename T, size_t M, size_t N>
-auto svd_right(const tensor<T, M, N>& A, tag::economy_t /*tag*/) {
+auto svd_right(tensor<T, M, N> const& A, tag::economy_t /*tag*/) {
   return lapack::gesvd(tensor{A}, lapack_job::N, lapack_job::S);
 }
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 template <typename T, size_t M, size_t N>
-auto svd_right(const tensor<T, M, N>& A) {
+auto svd_right(tensor<T, M, N> const& A) {
   return svd_right(A, tag::full);
 }
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 template <typename Tensor, typename T, size_t M, size_t N>
-auto svd(const base_tensor<Tensor, T, M, N>& A, tag::full_t /*tag*/) {
+auto svd(base_tensor<Tensor, T, M, N> const& A, tag::full_t /*tag*/) {
   tensor copy{A};
   return lapack::gesvd(tensor{A}, lapack_job::A, lapack_job::A);
 }
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 template <typename Tensor, typename T, size_t M, size_t N>
-auto svd(const base_tensor<Tensor, T, M, N>& A, tag::economy_t /*tag*/) {
+auto svd(base_tensor<Tensor, T, M, N> const& A, tag::economy_t /*tag*/) {
   tensor copy{A};
   return lapack::gesvd(tensor{A}, lapack_job::S, lapack_job::S);
 }
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 template <typename Tensor, typename T, size_t M, size_t N>
-auto svd(const base_tensor<Tensor, T, M, N>& A) {
+auto svd(base_tensor<Tensor, T, M, N> const& A) {
   return svd(A, tag::full);
 }
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 template <typename Tensor, typename T, size_t M, size_t N>
-auto svd_left(const base_tensor<Tensor, T, M, N>& A, tag::full_t /*tag*/) {
+auto svd_left(base_tensor<Tensor, T, M, N> const& A, tag::full_t /*tag*/) {
   return lapack::gesvd(tensor{A}, lapack_job::A, lapack_job::N);
 }
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 template <typename Tensor, typename T, size_t M, size_t N>
-auto svd_left(const base_tensor<Tensor, T, M, N>& A, tag::economy_t /*tag*/) {
+auto svd_left(base_tensor<Tensor, T, M, N> const& A, tag::economy_t /*tag*/) {
   return lapack::gesvd(tensor{A}, lapack_job::S, lapack_job::N);
 }
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 template <typename Tensor, typename T, size_t M, size_t N>
-auto svd_left(const base_tensor<Tensor, T, M, N>& A) {
+auto svd_left(base_tensor<Tensor, T, M, N> const& A) {
   return svd_left(A, tag::full);
 }
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 template <typename Tensor, typename T, size_t M, size_t N>
-auto svd_right(const base_tensor<Tensor, T, M, N>& A, tag::full_t /*tag*/) {
+auto svd_right(base_tensor<Tensor, T, M, N> const& A, tag::full_t /*tag*/) {
   tensor copy{A};
   return gesvd(tensor{A}, lapack_job::N, lapack_job::A);
 }
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 template <typename Tensor, typename T, size_t M, size_t N>
-auto svd_right(const base_tensor<Tensor, T, M, N>& A, tag::economy_t /*tag*/) {
+auto svd_right(base_tensor<Tensor, T, M, N> const& A, tag::economy_t /*tag*/) {
   tensor copy{A};
   return gesvd(tensor{A}, lapack_job::N, lapack_job::S);
 }
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 template <typename Tensor, typename T, size_t M, size_t N>
-auto svd_right(const base_tensor<Tensor, T, M, N>& A) {
+auto svd_right(base_tensor<Tensor, T, M, N> const& A) {
   return svd_right(A, tag::full);
 }
 template <typename Tensor, typename T>
-constexpr auto singular_values22(const base_tensor<Tensor, T, 2, 2>& A) {
-  const auto a = A(0, 0);
-  const auto b = A(0, 1);
-  const auto c = A(1, 0);
-  const auto d = A(1, 1);
+constexpr auto singular_values22(base_tensor<Tensor, T, 2, 2> const& A) {
+  auto const a = A(0, 0);
+  auto const b = A(0, 1);
+  auto const c = A(1, 0);
+  auto const d = A(1, 1);
 
-  const auto aa = a * a;
-  const auto bb = b * b;
-  const auto cc = c * c;
-  const auto dd = d * d;
-  const auto s1 = aa + bb + cc + dd;
-  const auto s2 = std::sqrt((aa + bb - cc - dd) * (aa + bb - cc - dd) +
+  auto const aa = a * a;
+  auto const bb = b * b;
+  auto const cc = c * c;
+  auto const dd = d * d;
+  auto const s1 = aa + bb + cc + dd;
+  auto const s2 = std::sqrt((aa + bb - cc - dd) * (aa + bb - cc - dd) +
                             4 * (a * c + b * d) * (a * c + b * d));
-  const auto sigma1  = std::sqrt((s1 + s2) / 2);
-  const auto sigma2  = std::sqrt((s1 - s2) / 2);
+  auto const sigma1  = std::sqrt((s1 + s2) / 2);
+  auto const sigma2  = std::sqrt((s1 - s2) / 2);
   return vec{tatooine::max(sigma1, sigma2),
              tatooine::min(sigma1, sigma2)};
 }
@@ -305,7 +310,7 @@ constexpr auto singular_values(tensor<T, M, N>&& A) {
 }
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 template <typename T, size_t M, size_t N>
-constexpr auto singular_values(const tensor<T, M, N>& A) {
+constexpr auto singular_values(tensor<T, M, N> const& A) {
   if constexpr (M == 2 && N == 2) {
     return singular_values22(A);
   } else {
@@ -314,7 +319,7 @@ constexpr auto singular_values(const tensor<T, M, N>& A) {
 }
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 template <typename Tensor, typename T, size_t M, size_t N>
-constexpr auto singular_values(const base_tensor<Tensor, T, M, N>& A) {
+constexpr auto singular_values(base_tensor<Tensor, T, M, N> const& A) {
   if constexpr (M == 2 && N == 2) {
     return singular_values22(A);
   } else {

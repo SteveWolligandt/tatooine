@@ -171,7 +171,7 @@ class tetrahedral_mesh : public pointset<Real, N> {
   //----------------------------------------------------------------------------
   auto num_tetrahedrons() const { return m_tetrahedrons.size(); }
   //----------------------------------------------------------------------------
-  template <size_t _N = N, std::enable_if_t<_N == 2 || _N == 3, bool> = true>
+  template <size_t _N = N, enable_if<_N == 2 || _N == 3> = true>
   auto write_vtk(std::string const& path,
                  std::string const& title = "tatooine tetrahedral mesh") const
       -> bool {
@@ -235,7 +235,7 @@ class tetrahedral_mesh : public pointset<Real, N> {
     }
   }
   //----------------------------------------------------------------------------
-  template <size_t _N = N, std::enable_if_t<_N == 2 || _N == 3, bool> = true>
+  template <size_t _N = N, enable_if<_N == 2 || _N == 3> = true>
   auto read_vtk(std::string const& path) {
     struct listener_t : vtk::legacy_file_listener {
       tetrahedral_mesh& mesh;

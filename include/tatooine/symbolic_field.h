@@ -56,21 +56,21 @@ struct field : tatooine::field<field<real_t, N, TensorDims...>, real_t, N,
 template <typename Real0, typename Real1, size_t N, size_t D>
 constexpr auto dot(const field<Real0, N, D>& lhs,
                    const field<Real1, N, D>& rhs) {
-  return field<promote_t<Real0, Real1>, N>{dot(lhs.expr(), rhs.expr())};
+  return field<common_type<Real0, Real1>, N>{dot(lhs.expr(), rhs.expr())};
 }
 
 //------------------------------------------------------------------------------
 template <typename Real0, typename Real1, size_t N, size_t... TensorDims>
 constexpr auto operator+(const field<Real0, N, TensorDims...>& lhs,
                          const field<Real1, N, TensorDims...>& rhs) {
-  return field<promote_t<Real0, Real1>, N, TensorDims...>{lhs.expr() +
+  return field<common_type<Real0, Real1>, N, TensorDims...>{lhs.expr() +
                                                               rhs.expr()};
 }
 //------------------------------------------------------------------------------
 template <typename Real0, typename Real1, size_t N, size_t... TensorDims>
 constexpr auto operator-(const field<Real0, N, TensorDims...>& lhs,
                          const field<Real1, N, TensorDims...>& rhs) {
-  return field<promote_t<Real0, Real1>, N, TensorDims...>{lhs.expr() -
+  return field<common_type<Real0, Real1>, N, TensorDims...>{lhs.expr() -
                                                               rhs.expr()};
 }
 
@@ -78,7 +78,7 @@ constexpr auto operator-(const field<Real0, N, TensorDims...>& lhs,
 template <typename Real0, typename Real1, size_t... TensorDims>
 constexpr auto operator*(const field<Real0, TensorDims...>& lhs,
                          const field<Real1, TensorDims...>& rhs) {
-  return field<promote_t<Real0, Real1>, TensorDims...>{lhs.expr() *
+  return field<common_type<Real0, Real1>, TensorDims...>{lhs.expr() *
                                                            rhs.expr()};
 }
 
@@ -86,7 +86,7 @@ constexpr auto operator*(const field<Real0, TensorDims...>& lhs,
 template <typename Real0, typename Real1, size_t... TensorDims>
 constexpr auto operator/(const field<Real0, TensorDims...>& lhs,
                          const field<Real1, TensorDims...>& rhs) {
-  return field<promote_t<Real0, Real1>, TensorDims...>{lhs.expr() /
+  return field<common_type<Real0, Real1>, TensorDims...>{lhs.expr() /
                                                            rhs.expr()};
 }
 
@@ -94,7 +94,7 @@ constexpr auto operator/(const field<Real0, TensorDims...>& lhs,
 template <typename Real0, typename Real1, size_t N, size_t D0, size_t D1>
 constexpr auto operator*(const field<Real0, N, D0, D1>& lhs,
                          const field<Real1, N, D1>&     rhs) {
-  return field<promote_t<Real0, Real1>, N, D0>{lhs.expr() * rhs.expr()};
+  return field<common_type<Real0, Real1>, N, D0>{lhs.expr() * rhs.expr()};
 }
 //==============================================================================
 }  // namespace tatooine::symbolic

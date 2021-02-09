@@ -77,12 +77,14 @@ struct random_pathlines : renderable<random_pathlines<N>> {
   //----------------------------------------------------------------------------
   void render(mat<float, 4, 4> const& projection_matrix,
               mat<float, 4, 4> const& view_matrix) override {
-    update_shader(projection_matrix, view_matrix);
-    m_shader->bind();
-    m_gpu_data.draw_lines();
+    if (!m_integration_going_on) {
+      update_shader(projection_matrix, view_matrix);
+      m_shader->bind();
+      m_gpu_data.draw_lines();
+    }
   }
   //----------------------------------------------------------------------------
-  void update(const std::chrono::duration<double>& dt) override {
+  void update(std::chrono::duration<double> const& dt) override {
     auto ms = static_cast<float>(
         std::chrono::duration_cast<std::chrono::milliseconds>(dt).count());
     if (m_animate) {
@@ -107,25 +109,24 @@ struct random_pathlines : renderable<random_pathlines<N>> {
     ImGui::SliderFloat("ambient factor", &m_ambient_factor, 0.0f, 1.0f);
     ImGui::SliderFloat("diffuse factor", &m_diffuse_factor, 0.0f, 1.0f);
     ImGui::SliderFloat("specular factor", &m_specular_factor, 0.0f, 1.0f);
-    ImGui::SliderFloat("m_shininess", &m_shininess, 1.0f, 80.0f);
+    ImGui::SliderFloat("shininess", &m_shininess, 1.0f, 80.0f);
     ImGui::ColorEdit3("line color", m_line_color);
     ImGui::ColorEdit3("contour color", m_contour_color);
-    ImGui::Checkbox("m_animate", &m_animate);
+    ImGui::Checkbox("animate", &m_animate);
     if (m_animate) {
-      ImGui::Checkbox("m_play", &m_play);
-      ImGui::SliderFloat("m_animation_min_alpha", &m_animation_min_alpha, 0.0f,
+      ImGui::Checkbox("play", &m_play);
+      ImGui::SliderFloat("animation_min_alpha", &m_animation_min_alpha, 0.0f,
                          1.0f);
-      ImGui::SliderFloat("m_fade_length", &m_fade_length, 0.1f, 10.0f);
-      ImGui::SliderFloat("m_speed", &m_speed, 0.1f, 10.0f);
-      ImGui::SliderFloat("m_time", &m_time, m_btau, m_ftau);
+      ImGui::SliderFloat("fade_length", &m_fade_length, 0.1f, 10.0f);
+      ImGui::SliderFloat("speed", &m_speed, 0.1f, 10.0f);
+      ImGui::SliderFloat("time", &m_time, m_btau, m_ftau);
     } else {
-      ImGui::SliderFloat("m_general_alpha", &m_general_alpha, 0.0f, 1.0f);
+      ImGui::SliderFloat("general_alpha", &m_general_alpha, 0.0f, 1.0f);
     }
     return false;
   }
   //----------------------------------------------------------------------------
-  void update_shader(mat<float, 4, 4> const& projection_matrix,
-                     mat<float, 4, 4> const& view_matrix) {
+  void update_shader(mat4f const& projection_matrix, mat4f const& view_matrix) {
     m_shader->set_modelview_matrix(view_matrix);
     m_shader->set_projection_matrix(projection_matrix);
     m_shader->set_line_color(m_line_color[0], m_line_color[1], m_line_color[2]);
@@ -149,12 +150,12 @@ struct random_pathlines : renderable<random_pathlines<N>> {
       return;
     }
     m_integration_going_on = true;
-    this->scene().window().do_async([rp = this] {
+    auto work = [rp = this] {
       size_t index          = 0;
       bool   insert_segment = false;
       auto callback = [rp, &index, &insert_segment](auto const& y, auto const t,
                                                     auto const& dy) {
-        std::lock_guard lock{rp->m_gpu_data.mutex()};
+        //std::lock_guard lock{rp->m_gpu_data.mutex()};
         rp->m_gpu_data.vertexbuffer().push_back(
             vec<GLfloat, 3>{static_cast<GLfloat>(y(0)),
                             static_cast<GLfloat>(y(1)),
@@ -171,7 +172,10 @@ struct random_pathlines : renderable<random_pathlines<N>> {
         }
         ++index;
       };
-      rp->m_gpu_data.clear();
+      {
+        //std::lock_guard lock{rp->m_gpu_data.mutex()};
+        rp->m_gpu_data.clear();
+      }
       for (size_t i = 0; i < static_cast<size_t>(rp->m_num_pathlines); ++i) {
         auto const   x0 = rp->m_boundingbox->random_point();
         double const t0 = 0;
@@ -181,7 +185,9 @@ struct random_pathlines : renderable<random_pathlines<N>> {
         rp->m_integrator.solve(*rp->m_v, x0, t0, rp->m_ftau, callback);
       }
       rp->m_integration_going_on = false;
-    });
+    };
+    //work();
+    this->scene().window().do_async(work);
   }
   //----------------------------------------------------------------------------
   void on_pin_connected(ui::input_pin& /*this_pin*/,

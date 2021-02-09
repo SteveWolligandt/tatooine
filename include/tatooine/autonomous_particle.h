@@ -10,7 +10,8 @@
 //==============================================================================
 namespace tatooine {
 //==============================================================================
-template <typename V, flowmap_c Flowmap>
+template <typename V, flowmap_c Flowmap =
+                          std::decay_t<decltype(flowmap(std::declval<V>()))>>
 requires is_vectorfield_v<
     std::remove_pointer_t<std::decay_t<V>>> struct autonomous_particle {
   //----------------------------------------------------------------------------
@@ -96,9 +97,9 @@ requires is_vectorfield_v<
   requires std::is_pointer_v<V> autonomous_particle()
       : m_v{nullptr}, m_nabla_phi1{mat_t::eye()} {}
   //----------------------------------------------------------------------------
-  template <typename V_, real_number RealX0>
+  template <typename V_, arithmetic RealX0>
   autonomous_particle(V_&& v, vec<RealX0, num_dimensions()> const& x0,
-                      real_number auto const t0, real_number auto const r0)
+                      arithmetic auto const t0, arithmetic auto const r0)
       : m_v{std::forward<V_>(v.as_derived())},
         m_x0{x0},
         m_x1{x0},
@@ -312,7 +313,7 @@ requires is_vectorfield_v<
         break;
       }
       advected_particles->clear();
-//#pragma omp parallel for
+      //#pragma omp parallel for
       for (size_t i = 0; i < particles_to_be_advected->size(); ++i) {
         if (!stop) {
           particles_to_be_advected->at(i).advect_until_split(
@@ -323,26 +324,26 @@ requires is_vectorfield_v<
       }
 
       std::swap(particles_to_be_advected, advected_particles);
-       if (max_num_particles > 0 && particles_to_be_advected->size() >
-       max_num_particles) {
+      if (max_num_particles > 0 &&
+          particles_to_be_advected->size() > max_num_particles) {
         size_t const num_particles_to_delete =
             particles_to_be_advected->size() - max_num_particles;
 
         for (size_t i = 0; i < num_particles_to_delete; ++i) {
-          random_uniform<size_t> rand{0, particles_to_be_advected->size() -
-          1}; particles_to_be_advected->at(rand()) =
-          std::move(particles_to_be_advected->back());
+          random_uniform<size_t> rand{0, particles_to_be_advected->size() - 1};
+          particles_to_be_advected->at(rand()) =
+              std::move(particles_to_be_advected->back());
           particles_to_be_advected->pop_back();
         }
       }
-      particles_to_be_advected->shrink_to_fit();
+      //particles_to_be_advected->shrink_to_fit();
     }
-    // while (max_num_particles > 0 &&
-    //       size(finished_particles) > max_num_particles) {
-    //  random_uniform<size_t> rand{0, size(finished_particles) - 1};
-    //  finished_particles[rand()] = std::move(finished_particles.back());
-    //  finished_particles.pop_back();
-    //}
+    while (max_num_particles > 0 &&
+           size(finished_particles) > max_num_particles) {
+      random_uniform<size_t> rand{0, size(finished_particles) - 1};
+      finished_particles[rand()] = std::move(finished_particles.back());
+      finished_particles.pop_back();
+    }
     return finished_particles;
   }
 
@@ -366,8 +367,8 @@ requires is_vectorfield_v<
                           std::ranges::range auto const  radii,
                           std::ranges::range auto const& offsets,
                           std::ranges::range auto& out, auto& out_mutex,
-                          std::ranges::range auto& finished,
-                          auto&                    finished_mutex) const {
+                          std::ranges::range auto& finished_particles,
+                          auto& finished_particles_mutex) const {
     static real_t const threshold = 1e-6;
     auto const [Q, lambdas]       = eigenvectors_sym(m_S);
     auto const Sigma              = diag(lambdas);
@@ -415,8 +416,9 @@ requires is_vectorfield_v<
 
       if (t2 == max_t &&
           (cond_HHt <= (objective_cond + threshold) || tau_step < 1e-13)) {
-        std::lock_guard lock{finished_mutex};
-        finished.emplace_back(m_v, m_x0, advected_center, t2, fmg2fmg1, cur_S);
+        std::lock_guard lock{finished_particles_mutex};
+        finished_particles.emplace_back(m_v, m_x0, advected_center, t2,
+                                        fmg2fmg1, cur_S);
         return;
       } else if (cond_HHt >= objective_cond &&
                  (cond_HHt <= (objective_cond + threshold) ||
@@ -429,12 +431,12 @@ requires is_vectorfield_v<
           std::lock_guard lock{out_mutex};
           out.emplace_back(m_v, m_x0 + offset0, advected_center + offset2, t2,
                            fmg2fmg1, new_S);
-          // std::lock_guard lock2{finished_mutex};
-          // finished.push_back(out.back());
+          // std::lock_guard lock2{finished_particles_mutex};
+          // finished_particles.push_back(out.back());
         }
-        // std::lock_guard lock{finished_mutex};
-        // finished.emplace_back(m_v, m_x0, advected_center, t2, fmg2fmg1,
-        // cur_S);
+        // std::lock_guard lock{finished_particles_mutex};
+        // finished_particles.emplace_back(m_v, m_x0, advected_center, t2,
+        // fmg2fmg1, cur_S);
         return;
       } else if (cond_HHt > objective_cond + threshold) {
         t2 -= tau_step;
@@ -459,32 +461,32 @@ requires is_vectorfield_v<
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 // deduction guides
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-template <typename V, real_number RealX0, size_t N>
-autonomous_particle(V const& v, vec<RealX0, N> const&, real_number auto const,
-                    real_number auto const)
+template <typename V, arithmetic RealX0, size_t N>
+autonomous_particle(V const& v, vec<RealX0, N> const&, arithmetic auto const,
+                    arithmetic auto const)
     -> autonomous_particle<std::decay_t<V> const&,
                            std::decay_t<decltype(flowmap(v))>>;
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-template <typename V, real_number RealX0, size_t N>
-autonomous_particle(V& v, vec<RealX0, N> const&, real_number auto const,
-                    real_number auto const)
+template <typename V, arithmetic RealX0, size_t N>
+autonomous_particle(V& v, vec<RealX0, N> const&, arithmetic auto const,
+                    arithmetic auto const)
     -> autonomous_particle<std::decay_t<V>&,
                            std::decay_t<decltype(flowmap(v))>>;
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-template <typename V, size_t N, real_number RealX0>
-autonomous_particle(V&& v, vec<RealX0, N> const&, real_number auto const,
-                    real_number auto const)
+template <typename V, size_t N, arithmetic RealX0>
+autonomous_particle(V&& v, vec<RealX0, N> const&, arithmetic auto const,
+                    arithmetic auto const)
     -> autonomous_particle<std::decay_t<V>, std::decay_t<decltype(flowmap(v))>>;
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-template <typename V, size_t N, real_number RealX0>
-autonomous_particle(V* v, vec<RealX0, N> const&, real_number auto const,
-                    real_number auto const)
+template <typename V, size_t N, arithmetic RealX0>
+autonomous_particle(V* v, vec<RealX0, N> const&, arithmetic auto const,
+                    arithmetic auto const)
     -> autonomous_particle<std::decay_t<V>*,
                            std::decay_t<decltype(flowmap(v))>>;
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-template <typename V, size_t N, real_number RealX0>
-autonomous_particle(V const* v, vec<RealX0, N> const&, real_number auto const,
-                    real_number auto const)
+template <typename V, size_t N, arithmetic RealX0>
+autonomous_particle(V const* v, vec<RealX0, N> const&, arithmetic auto const,
+                    arithmetic auto const)
     -> autonomous_particle<std::decay_t<V> const*,
                            std::decay_t<decltype(flowmap(v))>>;
 //==============================================================================

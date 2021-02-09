@@ -3,11 +3,15 @@
 //==============================================================================
 #include <tatooine/dynamic_tensor.h>
 #include <tatooine/lapack_job.h>
+#if TATOOINE_INCLUDE_MKL_LAPACKE
+#include <mkl_lapacke.h>
+#else
 #include <lapacke.h>
+#endif
 //==============================================================================
 namespace tatooine::lapack {
 //==============================================================================
-template <real_number T>
+template <arithmetic T>
 auto gesv(dynamic_tensor<T> A, dynamic_tensor<T> b) {
   assert(A.num_dimensions() == 2);
   assert(b.num_dimensions() == 1 || b.num_dimensions() == 2);

@@ -8,7 +8,7 @@
 namespace tatooine {
 //==============================================================================
 template <
-    real_number CameraReal, real_number AABBReal,
+    arithmetic CameraReal, arithmetic AABBReal,
     regular_invocable<vec<AABBReal, 3>> DataEvaluator,
     regular_invocable<vec<AABBReal, 3>> DomainCheck,
     regular_invocable<std::invoke_result_t<DataEvaluator, vec<AABBReal, 3>>>
@@ -19,8 +19,8 @@ auto direct_volume_rendering(
     rendering::camera<CameraReal> const&          cam,
     axis_aligned_bounding_box<AABBReal, 3> const& aabb,
     DataEvaluator&& data_evaluator, DomainCheck&& domain_check,
-    real_number auto const min, real_number auto const max,
-    real_number auto const distance_on_ray, ColorScale&& color_scale,
+    arithmetic auto const min, arithmetic auto const max,
+    arithmetic auto const distance_on_ray, ColorScale&& color_scale,
     AlphaScale&& alpha_scale,
     std::invoke_result_t<
         ColorScale,
@@ -87,15 +87,15 @@ auto direct_volume_rendering(
   return rendered_image;
 }
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-template <real_number CameraReal, real_number      AABBReal, typename S,
+template <arithmetic CameraReal, arithmetic      AABBReal, typename S,
           typename SReal, regular_invocable<SReal> ColorScale,
           regular_invocable<SReal> AlphaScale>
 auto direct_volume_rendering(
     rendering::camera<CameraReal> const&          cam,
     axis_aligned_bounding_box<AABBReal, 3> const& aabb,
-    scalarfield<S, SReal, 3> const& s, real_number auto const t,
-    real_number auto const min, real_number auto const max,
-    real_number auto const distance_on_ray, ColorScale&& color_scale,
+    scalarfield<S, SReal, 3> const& s, arithmetic auto const t,
+    arithmetic auto const min, arithmetic auto const max,
+    arithmetic auto const distance_on_ray, ColorScale&& color_scale,
     AlphaScale&&                                   alpha_scale,
     std::invoke_result_t<ColorScale, SReal> const& bg_color = {}) {
   return direct_volume_rendering(
@@ -105,7 +105,7 @@ auto direct_volume_rendering(
       std::forward<AlphaScale>(alpha_scale), bg_color);
 }
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-template <real_number CameraReal, typename Grid, typename ValueType,
+template <arithmetic CameraReal, typename Grid, typename ValueType,
           regular_invocable<double> ColorScale,
           regular_invocable<double> AlphaScale>
 auto direct_volume_rendering(
@@ -113,7 +113,7 @@ auto direct_volume_rendering(
     typed_multidim_property<Grid, ValueType> const& prop,
     std::convertible_to<ValueType> auto const       min,
     std::convertible_to<ValueType> auto const       max,
-    real_number auto const distance_on_ray, ColorScale&& color_scale,
+    arithmetic auto const distance_on_ray, ColorScale&& color_scale,
     AlphaScale&&                                       alpha_scale,
     std::invoke_result_t<ColorScale, ValueType> const& bg_color = {}) {
   auto sampler = prop.template sampler<interpolation::cubic>();

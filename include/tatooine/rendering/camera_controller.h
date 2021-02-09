@@ -186,9 +186,9 @@ struct camera_controller : yavin::window_listener {
       m_controller->on_button_released(b);
     }
   }
-  void on_mouse_motion(int x, int y) override {
+  void on_cursor_moved(double x, double y) override {
     if (m_controller) {
-      m_controller->on_mouse_motion(x, y);
+      m_controller->on_cursor_moved(x, y);
     }
   }
   void on_wheel_up() override {
@@ -233,7 +233,7 @@ struct fps_camera_controller : camera_controller_interface<Real> {
 
   Real         m_theta = M_PI / 2, m_phi = M_PI / 2;
   vec<Real, 3> m_look_dir;
-  int          m_mouse_pos_x, m_mouse_pos_y;
+  double       m_mouse_pos_x, m_mouse_pos_y;
   bool         m_right_button_down = false;
   bool         m_w_down            = false;
   bool         m_s_down            = false;
@@ -295,10 +295,10 @@ struct fps_camera_controller : camera_controller_interface<Real> {
     }
   }
   //----------------------------------------------------------------------------
-  void on_mouse_motion(int x, int y) override {
+  void on_cursor_moved(double x, double y) override {
     if (m_right_button_down) {
-      int offset_x = x - m_mouse_pos_x;
-      int offset_y = y - m_mouse_pos_y;
+      auto offset_x = std::ceil(x) - m_mouse_pos_x;
+      auto offset_y = std::ceil(y) - m_mouse_pos_y;
       m_theta -= offset_x * Real(0.01);
       m_phi = std::min<Real>(
           M_PI - Real(0.3),
@@ -307,8 +307,8 @@ struct fps_camera_controller : camera_controller_interface<Real> {
                     std::cos(m_phi),
                     std::sin(m_phi) * std::cos(m_theta)};
     }
-    m_mouse_pos_x = x;
-    m_mouse_pos_y = y;
+    m_mouse_pos_x = std::ceil(x);
+    m_mouse_pos_y = std::ceil(y);
     controller().look_at(controller().eye(), controller().eye() + m_look_dir);
   }
   //----------------------------------------------------------------------------
@@ -317,34 +317,32 @@ struct fps_camera_controller : camera_controller_interface<Real> {
         std::chrono::duration_cast<std::chrono::milliseconds>(dt).count());
 
     if (m_w_down) {
-      controller().look_at(controller().eye() + m_look_dir / ms,
-                          controller().eye() + m_look_dir * (1 / ms + 1));
+      auto const new_eye = controller().eye() + m_look_dir * ms / 1000;
+      controller().look_at(new_eye, new_eye + m_look_dir);
     }
     if (m_s_down) {
-      controller().look_at(controller().eye() - m_look_dir / ms,
-                           controller().eye() + m_look_dir * (1 - 1 / ms));
+      auto const new_eye = controller().eye() - m_look_dir * ms / 1000;
+      controller().look_at(new_eye, new_eye + m_look_dir);
     }
     if (m_q_down) {
       auto const& old_eye = controller().eye();
-      controller().look_at(
-          vec{old_eye(0), old_eye(1) + 1 / ms, old_eye(2)},
-          vec{old_eye(0), old_eye(1) + 1 / ms, old_eye(2)} + m_look_dir);
+      auto const new_eye = vec{old_eye(0), old_eye(1) + 1 * ms / 1000, old_eye(2)};
+      controller().look_at(new_eye, new_eye + m_look_dir);
     }
     if (m_e_down) {
       auto const& old_eye = controller().eye();
-      controller().look_at(
-          vec{old_eye(0), old_eye(1) - 1 / ms, old_eye(2)},
-          vec{old_eye(0), old_eye(1) - 1 / ms, old_eye(2)} + m_look_dir);
+      auto const new_eye = vec{old_eye(0), old_eye(1) - 1 * ms / 1000, old_eye(2)};
+      controller().look_at(new_eye, new_eye + m_look_dir);
     }
     if (m_a_down) {
-      auto const right = cross(vec{0, 1, 0}, -m_look_dir);
-      controller().look_at(controller().eye() - right / ms,
-                           controller().eye() - right / ms + m_look_dir);
+      auto const right   = cross(vec{0, 1, 0}, -m_look_dir);
+      auto const new_eye = controller().eye() - right * ms / 1000;
+      controller().look_at(new_eye, new_eye + m_look_dir);
     }
     if (m_d_down) {
-      auto const right = cross(vec{0, 1, 0}, -m_look_dir);
-      controller().look_at(controller().eye() + right / ms,
-                           controller().eye() + right / ms + m_look_dir);
+      auto const right   = cross(vec{0, 1, 0}, -m_look_dir);
+      auto const new_eye = controller().eye() + right * ms / 1000;
+      controller().look_at(new_eye, new_eye + m_look_dir);
     }
   }
   //----------------------------------------------------------------------------
@@ -389,10 +387,10 @@ struct orthographic_camera_controller : camera_controller_interface<Real> {
     }
   }
   //----------------------------------------------------------------------------
-  void on_mouse_motion(int x, int y) override {
+  void on_cursor_moved(double x, double y) override {
     if (m_right_button_down) {
-      int  offset_x = x - m_mouse_pos_x;
-      int  offset_y = y - m_mouse_pos_y;
+      auto  offset_x = std::ceil(x) - m_mouse_pos_x;
+      auto  offset_y = std::ceil(y) - m_mouse_pos_y;
       auto new_eye  = controller().eye();
       new_eye(0) -= static_cast<Real>(offset_x) * controller().orthographic_camera().aspect_ratio() /
                     controller().orthographic_camera().plane_width() *
@@ -403,8 +401,8 @@ struct orthographic_camera_controller : camera_controller_interface<Real> {
       new_eye(2) = 0;
       controller().look_at(new_eye, new_eye + vec{0, 0, -1});
     }
-    m_mouse_pos_x = x;
-    m_mouse_pos_y = y;
+    m_mouse_pos_x = std::ceil(x);
+    m_mouse_pos_y = std::ceil(y);
   }
   //----------------------------------------------------------------------------
   void on_wheel_down() override {

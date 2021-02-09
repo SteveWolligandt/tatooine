@@ -49,8 +49,13 @@ struct polynomial {
   constexpr polynomial(std::array<Real, Degree + 1> const& coeffs)
       : m_coefficients{coeffs} {}
   //----------------------------------------------------------------------------
+#ifdef __cpp_concepts
   template <typename OtherReal, size_t OtherDegree>
   requires (OtherDegree <= Degree)
+#else
+  template <typename OtherReal, size_t OtherDegree,
+            enable_if<(OtherDegree <= Degree)> = true>
+#endif
   constexpr polynomial(polynomial<OtherReal, OtherDegree> const& other)
       : m_coefficients{make_array<Degree + 1>(Real(0))} {
     for (size_t i = 0; i < OtherDegree + 1; ++i) {
@@ -61,19 +66,29 @@ struct polynomial {
   constexpr polynomial(std::array<Real, Degree + 1>&& coeffs)
       : m_coefficients{std::move(coeffs)} {}
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-  template <typename... Coeffs>
-  requires (std::is_arithmetic_v<Coeffs> && ...) &&
-           (sizeof...(Coeffs) == Degree + 1)
+#ifdef __cpp_concepts
+  template <arithmetic... Coeffs>
+  requires (sizeof...(Coeffs) == Degree + 1)
+#else
+  template <typename... Coeffs, enable_if<is_arithmetic<Coeffs...>> = true,
+            enable_if<(sizeof...(Coeffs) == Degree + 1)> = true>
+#endif
   constexpr polynomial(Coeffs... coeffs)
       : m_coefficients{static_cast<Real>(coeffs)...} {}
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-  template <typename OtherReal>
-  requires std::is_arithmetic_v<OtherReal>
+#ifdef __cpp_concepts
+  template <arithmetic OtherReal>
+#else
+  template <typename OtherReal, enable_if<is_arithmetic<OtherReal>> = true>
+#endif
   constexpr polynomial(tensor<OtherReal, Degree + 1> const& coeffs)
       : m_coefficients{make_array<Real>(coeffs.data())} {}
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-  template <typename OtherReal>
-  requires std::is_arithmetic_v<OtherReal>
+#ifdef __cpp_concepts
+  template <arithmetic OtherReal>
+#else
+  template <typename OtherReal, enable_if<is_arithmetic<OtherReal>> = true>
+#endif
   constexpr polynomial(std::array<OtherReal, Degree + 1> const& coeffs)
       : m_coefficients{make_array<Real>(coeffs)} {}
 
@@ -113,16 +128,23 @@ struct polynomial {
     m_coefficients = std::move(coeffs);
   }
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-  template <typename OtherReal>
-  requires std::is_arithmetic_v<OtherReal>
+#ifdef __cpp_concepts
+  template <arithmetic OtherReal>
+#else
+  template <typename OtherReal, enable_if<is_arithmetic<OtherReal>> = true>
+#endif
   constexpr auto set_coefficients(
       std::array<OtherReal, Degree + 1> const& coeffs) -> void {
     m_coefficients = make_array<Real>(coeffs);
   }
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-  template <typename... Coeffs>
-  requires (std::is_arithmetic_v<Coeffs> && ...) &&
-           (sizeof...(Coeffs) == Degree + 1)
+#ifdef __cpp_concepts
+  template <arithmetic... Coeffs>
+  requires (sizeof...(Coeffs) == Degree + 1)
+#else
+  template <typename... Coeffs, enable_if<is_arithmetic<Coeffs...>> = true,
+            enable_if<(sizeof...(Coeffs) == Degree + 1)> = true>
+#endif
   constexpr auto set_coefficients(Coeffs... coeffs) -> void {
     m_coefficients =
         std::array<Real, Degree + 1>{static_cast<Real>(coeffs)...};
@@ -175,7 +197,7 @@ struct polynomial {
 //------------------------------------------------------------------------------
 template <typename... Coeffs>
 polynomial(Coeffs... coeffs)
-    -> polynomial<promote_t<Coeffs...>, sizeof...(Coeffs) - 1>;
+    -> polynomial<common_type<Coeffs...>, sizeof...(Coeffs) - 1>;
 template <typename Real, size_t N>
 polynomial(tensor<Real, N> const&) -> polynomial<Real, N - 1>;
 //------------------------------------------------------------------------------
@@ -230,13 +252,16 @@ auto& operator<<(std::ostream& out, polynomial<Real, Degree> const& f) {
 // type_traits
 //------------------------------------------------------------------------------
 template <typename T>
-struct is_polynomial : std::false_type {};
+struct is_polynomial_impl : std::false_type {};
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 template <typename Real, size_t Degree>
-struct is_polynomial<polynomial<Real, Degree>> : std::true_type {};
+struct is_polynomial_impl<polynomial<Real, Degree>> : std::true_type {};
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 template <typename T>
-static constexpr bool is_polynomial_v = is_polynomial<T>::value;
+static constexpr bool is_polynomial = is_polynomial_impl<T>::value;
+// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+template <typename ... Ts>
+using enable_if_polynomial = enable_if<is_polynomial<Ts>...>;
 //==============================================================================
 }  // namespace tatooine
 //==============================================================================

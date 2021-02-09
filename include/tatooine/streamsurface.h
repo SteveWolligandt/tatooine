@@ -50,8 +50,8 @@ struct streamsurface {
   //----------------------------------------------------------------------------
  public:
   template <flowmap_c _Flowmap>
-  streamsurface(_Flowmap&& flowmap, real_number auto t0u0,
-                real_number auto t0u1, const seedcurve_t& seedcurve)
+  streamsurface(_Flowmap&& flowmap, arithmetic auto t0u0,
+                arithmetic auto t0u1, const seedcurve_t& seedcurve)
       : m_flowmap{std::forward<_Flowmap>(flowmap)},
         m_t0_u0{static_cast<real_t>(t0u0)},
         m_t0_u1{static_cast<real_t>(t0u1)},
@@ -62,7 +62,7 @@ struct streamsurface {
                          m_seedcurve.back_parameterization())} {}
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
   template <flowmap_c _Flowmap>
-  streamsurface(_Flowmap&& flowmap, real_number auto t0,
+  streamsurface(_Flowmap&& flowmap, arithmetic auto t0,
                 const seedcurve_t& seedcurve)
       : m_flowmap{std::forward<_Flowmap>(flowmap)},
         m_t0_u0{static_cast<real_t>(t0)},
@@ -84,7 +84,7 @@ struct streamsurface {
                          m_seedcurve.back_parameterization())} {}
   template <typename V>
   streamsurface(const vectorfield<V, real_t, num_dimensions()>& v,
-                real_number auto t0u0, real_number auto t0u1,
+                arithmetic auto t0u0, arithmetic auto t0u1,
                 const seedcurve_t& seedcurve)
       : m_flowmap{tatooine::flowmap(v)},
         m_t0_u0{static_cast<real_t>(t0u0)},
@@ -97,7 +97,7 @@ struct streamsurface {
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
   template <typename V>
   streamsurface(const vectorfield<V, real_t, num_dimensions()>& v,
-                real_number auto t0, const seedcurve_t& seedcurve)
+                arithmetic auto t0, const seedcurve_t& seedcurve)
       : m_flowmap{tatooine::flowmap(v)},
         m_t0_u0{static_cast<real_t>(t0)},
         m_t0_u1{static_cast<real_t>(t0)},
@@ -197,15 +197,15 @@ struct streamsurface {
 template <typename V, floating_point Real, size_t N,
           template <typename> typename SeedcurveInterpolationKernel>
 streamsurface(
-    const vectorfield<V, Real, N>& v, real_number auto u0t0,
-    real_number auto                                                 u1t0,
+    const vectorfield<V, Real, N>& v, arithmetic auto u0t0,
+    arithmetic auto                                                 u1t0,
     const parameterized_line<Real, N, SeedcurveInterpolationKernel>& seedcurve)
     -> streamsurface<std::decay_t<decltype(flowmap(v))>,
                      SeedcurveInterpolationKernel>;
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 template <typename V, floating_point Real, size_t N,
           template <typename> typename SeedcurveInterpolationKernel>
-streamsurface(const vectorfield<V, Real, N>& v, real_number auto t0,
+streamsurface(const vectorfield<V, Real, N>& v, arithmetic auto t0,
               const parameterized_line<typename V::real_t, N,
                                        SeedcurveInterpolationKernel>& seedcurve)
     -> streamsurface<std::decay_t<decltype(flowmap(v))>,
@@ -221,7 +221,7 @@ streamsurface(
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 template <typename Flowmap,
           template <typename> typename SeedcurveInterpolationKernel>
-streamsurface(Flowmap const&, real_number auto u0t0, real_number auto u1t0,
+streamsurface(Flowmap const&, arithmetic auto u0t0, arithmetic auto u1t0,
               const parameterized_line<typename Flowmap::real_t,
                                        Flowmap::num_dimensions(),
                                        SeedcurveInterpolationKernel>& seedcurve)
@@ -229,7 +229,7 @@ streamsurface(Flowmap const&, real_number auto u0t0, real_number auto u1t0,
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 template <typename Flowmap,
           template <typename> typename SeedcurveInterpolationKernel>
-streamsurface(Flowmap const&, real_number auto t0,
+streamsurface(Flowmap const&, arithmetic auto t0,
               const parameterized_line<typename Flowmap::real_t,
                                        Flowmap::num_dimensions(),
                                        SeedcurveInterpolationKernel>& seedcurve)
@@ -245,7 +245,7 @@ streamsurface(Flowmap const&,
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 template <typename Flowmap,
           template <typename> typename SeedcurveInterpolationKernel>
-streamsurface(Flowmap&&, real_number auto u0t0, real_number auto u1t0,
+streamsurface(Flowmap&&, arithmetic auto u0t0, arithmetic auto u1t0,
               const parameterized_line<typename Flowmap::real_t,
                                        Flowmap::num_dimensions(),
                                        SeedcurveInterpolationKernel>& seedcurve)
@@ -253,7 +253,7 @@ streamsurface(Flowmap&&, real_number auto u0t0, real_number auto u1t0,
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 template <typename Flowmap,
           template <typename> typename SeedcurveInterpolationKernel>
-streamsurface(Flowmap&&, real_number auto t0,
+streamsurface(Flowmap&&, arithmetic auto t0,
               const parameterized_line<typename Flowmap::real_t,
                                        Flowmap::num_dimensions(),
                                        SeedcurveInterpolationKernel>& seedcurve)

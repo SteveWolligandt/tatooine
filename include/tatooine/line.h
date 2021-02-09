@@ -66,7 +66,9 @@ struct const_line_vertex_iterator
     return m_handle == other.m_handle;
   }
   //----------------------------------------------------------------------------
-  const Reference dereference() const { return m_line.at(m_handle, m_prefer_calc); }
+  const Reference dereference() const {
+    return m_line.at(m_handle, m_prefer_calc);
+  }
   //============================================================================
   // methods
   //============================================================================
@@ -214,12 +216,14 @@ struct const_line_vertex_container {
   // members
   //============================================================================
   const Line& m_line;
-  bool m_prefer_calc;
+  bool        m_prefer_calc;
 
   //============================================================================
   // methods
   //============================================================================
-  auto begin() const { return const_iterator{Handle{0}, m_line, m_prefer_calc}; }
+  auto begin() const {
+    return const_iterator{Handle{0}, m_line, m_prefer_calc};
+  }
   // -  -  -  -  -  -  -  -  -  -  -  -  -  -  -  -  -  -  -  -  -  -  -  -  -
   auto end() const {
     return const_iterator{Handle{m_line.num_vertices()}, m_line, m_prefer_calc};
@@ -263,12 +267,14 @@ struct line_vertex_container {
   // members
   //============================================================================
   Line& m_line;
-  bool m_prefer_calc;
+  bool  m_prefer_calc;
 
   //============================================================================
   // methods
   //============================================================================
-  auto begin() const { return const_iterator{Handle{0}, m_line, m_prefer_calc}; }
+  auto begin() const {
+    return const_iterator{Handle{0}, m_line, m_prefer_calc};
+  }
   //-  -  -  -  -  -  -  -  -  -  -  -  -  -  -  -  -  -  -  -  -  -  -  -  -  -
   auto begin() { return iterator{Handle{0}, m_line, m_prefer_calc}; }
   //-  -  -  -  -  -  -  -  -  -  -  -  -  -  -  -  -  -  -  -  -  -  -  -  -  -
@@ -276,7 +282,9 @@ struct line_vertex_container {
     return const_iterator{Handle{m_line.num_vertices()}, m_line, m_prefer_calc};
   }
   //-  -  -  -  -  -  -  -  -  -  -  -  -  -  -  -  -  -  -  -  -  -  -  -  -  -
-  auto end() { return iterator{Handle{m_line.num_vertices()}, m_line, m_prefer_calc}; }
+  auto end() {
+    return iterator{Handle{m_line.num_vertices()}, m_line, m_prefer_calc};
+  }
   //----------------------------------------------------------------------------
   const auto& front() const { return m_line.at(Handle{0}, m_prefer_calc); }
   auto&       front() { return m_line.at(Handle{0}, m_prefer_calc); }
@@ -284,7 +292,9 @@ struct line_vertex_container {
   const auto& back() const {
     return m_line.at(Handle{m_line.num_vertices() - 1}, m_prefer_calc);
   }
-  auto& back() { return m_line.at(Handle{m_line.num_vertices() - 1}, m_prefer_calc); }
+  auto& back() {
+    return m_line.at(Handle{m_line.num_vertices() - 1}, m_prefer_calc);
+  }
 };
 //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 template <typename Line, typename Real, size_t N, typename Handle,
@@ -405,14 +415,25 @@ struct line {
   line(pos_container_t&& data, bool is_closed = false)
       : m_vertices{std::move(data)}, m_is_closed{is_closed} {}
   //----------------------------------------------------------------------------
+#ifdef __cpp_concepts
   template <typename... Vertices>
-  requires
-    ((is_vec_v<std::decay_t<Vertices>>
-      && std::is_arithmetic_v<typename std::decay_t<Vertices>::value_type>
-      && std::decay_t<Vertices>::num_components() == N) &&...)
-  line(Vertices&&... vertices)
+  requires((is_vec<std::decay_t<Vertices>> &&
+            std::is_arithmetic_v<typename std::decay_t<Vertices>::value_type> &&
+            std::decay_t<Vertices>::num_components() == N) &&
+           ...)
+#else
+  template <
+      typename... Vertices,
+      enable_if<((is_vec<std::decay_t<Vertices>> &&
+                  is_arithmetic<typename std::decay_t<Vertices>::value_type> &&
+                  std::decay_t<Vertices>::num_components() == N) &&
+                 ...)> = true>
+
+#endif
+      line(Vertices&&... vertices)
       : m_vertices{pos_t{std::forward<Vertices>(vertices)}...},
-  m_is_closed{false} {}
+        m_is_closed{false} {
+  }
   //----------------------------------------------------------------------------
   auto num_vertices() const { return m_vertices.size(); }
   //----------------------------------------------------------------------------
@@ -440,52 +461,80 @@ struct line {
   const auto& back_vertex() const { return m_vertices.back(); }
   auto&       back_vertex() { return m_vertices.back(); }
   //----------------------------------------------------------------------------
-  template <real_number... Components>
-  requires (sizeof...(Components) == N)
-  auto push_back(Components... comps) {
+#ifdef __cpp_concepts
+  template <arithmetic... Components>
+  requires(sizeof...(Components) == N)
+#else
+  template <typename... Components,
+            enable_if<is_arithmetic<Components...>> = true,
+            enable_if<(sizeof...(Components) == N)> = true>
+#endif
+      auto push_back(Components... comps) {
     m_vertices.push_back(pos_t{static_cast<Real>(comps)...});
-    for (auto& [name, prop] : m_vertex_properties) { prop->push_back(); }
+    for (auto& [name, prop] : m_vertex_properties) {
+      prop->push_back();
+    }
     return vertex_idx{m_vertices.size() - 1};
   }
   auto push_back(const pos_t& p) {
     m_vertices.push_back(p);
-    for (auto& [name, prop] : m_vertex_properties) { prop->push_back(); }
+    for (auto& [name, prop] : m_vertex_properties) {
+      prop->push_back();
+    }
     return vertex_idx{m_vertices.size() - 1};
   }
   auto push_back(pos_t&& p) {
     m_vertices.emplace_back(std::move(p));
-    for (auto& [name, prop] : m_vertex_properties) { prop->push_back(); }
+    for (auto& [name, prop] : m_vertex_properties) {
+      prop->push_back();
+    }
     return vertex_idx{m_vertices.size() - 1};
   }
   template <typename OtherReal>
   auto push_back(const vec<OtherReal, N>& p) {
     m_vertices.push_back(p);
-    for (auto& [name, prop] : m_vertex_properties) { prop->push_back(); }
+    for (auto& [name, prop] : m_vertex_properties) {
+      prop->push_back();
+    }
     return vertex_idx{m_vertices.size() - 1};
   }
   auto pop_back() { m_vertices.pop_back(); }
   //----------------------------------------------------------------------------
-  template <real_number... Components>
-  requires (sizeof...(Components) == N)
-  auto push_front(Components... comps) {
+#ifdef __cpp_concepts
+  template <arithmetic... Components>
+  requires(sizeof...(Components) == N)
+#else
+  template <typename... Components,
+            enable_if<is_arithmetic<Components...>> = true,
+            enable_if<(sizeof...(Components) == N)> = true>
+#endif
+      auto push_front(Components... comps) {
     m_vertices.push_front(pos_t{static_cast<Real>(comps)...});
-    for (auto& [name, prop] : m_vertex_properties) { prop->push_front(); }
+    for (auto& [name, prop] : m_vertex_properties) {
+      prop->push_front();
+    }
     return vertex_idx{0};
   }
   auto push_front(const pos_t& p) {
     m_vertices.push_front(p);
-    for (auto& [name, prop] : m_vertex_properties) { prop->push_front(); }
+    for (auto& [name, prop] : m_vertex_properties) {
+      prop->push_front();
+    }
     return vertex_idx{0};
   }
   auto push_front(pos_t&& p) {
     m_vertices.emplace_front(std::move(p));
-    for (auto& [name, prop] : m_vertex_properties) { prop->push_front(); }
+    for (auto& [name, prop] : m_vertex_properties) {
+      prop->push_front();
+    }
     return vertex_idx{0};
   }
   template <typename OtherReal>
   auto push_front(const vec<OtherReal, N>& p) {
     m_vertices.push_front(p);
-    for (auto& [name, prop] : m_vertex_properties) { prop->push_front(); }
+    for (auto& [name, prop] : m_vertex_properties) {
+      prop->push_front();
+    }
     return vertex_idx{0};
   }
   void pop_front() { m_vertices.pop_front(); }
@@ -559,10 +608,18 @@ struct line {
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
   auto tangent_at(const size_t i, tag::automatic_t /*tag*/,
                   bool         prefer_calc = false) const {
-    if (m_tangents && !prefer_calc) { return m_tangents->at(vertex_idx{i}); }
-    if (is_closed()) { return tangent_at(i, tag::central); }
-    if (i == 0) { return tangent_at(i, tag::forward); }
-    if (i == num_vertices() - 1) { return tangent_at(i, tag::backward); }
+    if (m_tangents && !prefer_calc) {
+      return m_tangents->at(vertex_idx{i});
+    }
+    if (is_closed()) {
+      return tangent_at(i, tag::central);
+    }
+    if (i == 0) {
+      return tangent_at(i, tag::forward);
+    }
+    if (i == num_vertices() - 1) {
+      return tangent_at(i, tag::backward);
+    }
     return tangent_at(i, tag::central);
   }
   //----------------------------------------------------------------------------
@@ -585,9 +642,15 @@ struct line {
   auto at(tangent_idx i, bool prefer_calc = false) const {
     return tangent_at(i.i, prefer_calc);
   }
-  auto at(tangent_idx i, tag::forward_t tag) const { return tangent_at(i.i, tag); }
-  auto at(tangent_idx i, tag::backward_t tag) const { return tangent_at(i.i, tag); }
-  auto at(tangent_idx i, tag::central_t tag) const { return tangent_at(i.i, tag); }
+  auto at(tangent_idx i, tag::forward_t tag) const {
+    return tangent_at(i.i, tag);
+  }
+  auto at(tangent_idx i, tag::backward_t tag) const {
+    return tangent_at(i.i, tag);
+  }
+  auto at(tangent_idx i, tag::central_t tag) const {
+    return tangent_at(i.i, tag);
+  }
   auto operator[](tangent_idx i) const { return tangent_at(i.i); }
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
   using tangent_iterator =
@@ -608,7 +671,8 @@ struct line {
   auto& tangents_property() {
     if (!m_tangents) {
       m_tangents = &add_vertex_property<vec<Real, N>>("tangents");
-    } return *m_tangents;
+    }
+    return *m_tangents;
   }
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
   const auto& tangents_property() const {
@@ -619,7 +683,9 @@ struct line {
   }
   //----------------------------------------------------------------------------
   auto& tangents_to_property(bool update = false) {
-    if (m_tangents != nullptr && !update) { return tangents_property(); }
+    if (m_tangents != nullptr && !update) {
+      return tangents_property();
+    }
     auto& prop = tangents_property();
     boost::copy(this->tangents(true), prop.begin());
     return prop;
@@ -691,7 +757,9 @@ struct line {
       std::vector<std::vector<size_t>> line_seq(
           1, std::vector<size_t>(this->num_vertices()));
       boost::iota(line_seq.front(), 0);
-      if (this->is_closed()) { line_seq.front().push_back(0); }
+      if (this->is_closed()) {
+        line_seq.front().push_back(0);
+      }
       writer.write_lines(line_seq);
 
       writer.write_point_data(this->num_vertices());
@@ -732,9 +800,13 @@ struct line {
     writer.write_scalars(name, std::vector<T>(begin(deque), end(deque)));
   }
   //----------------------------------------------------------------------------
+#ifdef __cpp_concepts
   template <typename = void>
-  requires (num_dimensions() == 3)
-  static auto read_vtk(const std::string& filepath) {
+  requires(num_dimensions() == 3)
+#else
+  template <size_t _N = num_dimensions(), enable_if<(_N == 3)> = true>
+#endif
+      static auto read_vtk(const std::string& filepath) {
     struct reader : vtk::legacy_file_listener {
       std::vector<std::array<Real, 3>> points;
       std::vector<int>                 lines;
@@ -742,9 +814,7 @@ struct line {
       void on_points(const std::vector<std::array<Real, 3>>& points_) override {
         points = points_;
       }
-      void on_lines(const std::vector<int>& lines_) override {
-        lines = lines_;
-      }
+      void on_lines(const std::vector<int>& lines_) override { lines = lines_; }
     } listener;
 
     vtk::legacy_file file{filepath};
@@ -756,15 +826,17 @@ struct line {
     for (size_t i = 0; i < listener.lines.size();) {
       auto&       l    = lines.emplace_back();
       const auto& size = listener.lines[i++];
-      for (; i < size; ++i) { l.push_back({vs[i][0], vs[i][1], vs[i][2]}); }
+      for (; i < size; ++i) {
+        l.push_back({vs[i][0], vs[i][1], vs[i][2]});
+      }
     }
     return lines;
   }
 };
 
 template <typename... Tensors, typename... Reals, size_t N>
-    line(base_tensor<Tensors, Reals, N>&&... vertices) ->
-    line<promote_t<Reals...>, N>;
+line(base_tensor<Tensors, Reals, N>&&... vertices)
+    -> line<common_type<Reals...>, N>;
 //------------------------------------------------------------------------------
 template <typename Real, size_t N>
 auto diff(const line<Real, N>& l) {
@@ -809,7 +881,9 @@ void write_line_container_to_vtk(const LineCont& lines, const std::string& path,
   vtk::legacy_file_writer writer(path, vtk::dataset_type::polydata);
   if (writer.is_open()) {
     size_t num_pts = 0;
-    for (const auto& l : lines) num_pts += l.num_vertices();
+    for (const auto& l : lines) {
+      num_pts += l.num_vertices();
+    }
     std::vector<std::array<typename LineCont::value_type::real_t, 3>> points;
     std::vector<std::vector<size_t>>                                  line_seqs;
     points.reserve(num_pts);
@@ -828,7 +902,9 @@ void write_line_container_to_vtk(const LineCont& lines, const std::string& path,
 
       // add lines
       boost::iota(line_seqs.emplace_back(l.num_vertices()), cur_first);
-      if (l.is_closed()) { line_seqs.back().push_back(cur_first); }
+      if (l.is_closed()) {
+        line_seqs.back().push_back(cur_first);
+      }
       cur_first += l.num_vertices();
     }
 
@@ -930,7 +1006,9 @@ auto filter_length(Lines lines, Real length) {
   for (auto it = begin(lines); it != end(lines);) {
     auto l = it->arc_length();
     ++it;
-    if (l < length) { lines.erase(prev(it)); }
+    if (l < length) {
+      lines.erase(prev(it));
+    }
   }
   return lines;
 }
@@ -986,11 +1064,11 @@ struct parameterized_line : line<Real, N> {
 
   template <typename T>
   using vertex_property_t = typename parent_t::template vertex_property_t<T>;
+  using parent_t::back_vertex;
+  using parent_t::front_vertex;
   using parent_t::num_vertices;
   using parent_t::tangent_at;
   using parent_t::vertex_at;
-  using parent_t::front_vertex;
-  using parent_t::back_vertex;
   using parent_t::vertices;
   using parent_t::operator[];
 
@@ -1000,8 +1078,8 @@ struct parameterized_line : line<Real, N> {
 
  public:
   parameterized_line()
-      : m_parameterization{&this->template add_vertex_property<Real>(
-            "parameterization")} {}
+      : m_parameterization{
+            &this->template add_vertex_property<Real>("parameterization")} {}
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
   parameterized_line(const parameterized_line& other)
       : parent_t{other},
@@ -1070,7 +1148,9 @@ struct parameterized_line : line<Real, N> {
   auto operator[](vertex_idx i) const { return at(i); }
   auto operator[](vertex_idx i) { return at(i); }
   //----------------------------------------------------------------------------
-  auto& parameterization_at(size_t i) { return m_parameterization->at(vertex_idx{i}); }
+  auto& parameterization_at(size_t i) {
+    return m_parameterization->at(vertex_idx{i});
+  }
   const auto& parameterization_at(size_t i) const {
     return m_parameterization->at(vertex_idx{i});
   }
@@ -1085,7 +1165,8 @@ struct parameterized_line : line<Real, N> {
     return m_parameterization->back();
   }
   //----------------------------------------------------------------------------
-  auto push_back(const pos_t& p, Real t, bool auto_compute_interpolator = true) {
+  auto push_back(const pos_t& p, Real t,
+                 bool auto_compute_interpolator = true) {
     auto i                  = parent_t::push_back(p);
     back_parameterization() = t;
     if (num_vertices() > 1) {
@@ -1114,7 +1195,7 @@ struct parameterized_line : line<Real, N> {
   }
   //----------------------------------------------------------------------------
   auto push_back(pos_t&& p, Real t, bool auto_compute_interpolator = true) {
-    auto i                    = parent_t::push_back(std::move(p));
+    auto i                                = parent_t::push_back(std::move(p));
     m_parameterization->at(vertex_idx{i}) = t;
     if (num_vertices() > 1) {
       if (auto_compute_interpolator) {
@@ -1144,10 +1225,13 @@ struct parameterized_line : line<Real, N> {
   void pop_back() {
     parent_t::pop_back();
     m_parameterization->pop_back();
-    if (num_vertices() >= 2) { m_interpolators.pop_back(); }
+    if (num_vertices() >= 2) {
+      m_interpolators.pop_back();
+    }
   }
   //----------------------------------------------------------------------------
-  auto push_front(const pos_t& p, Real t, bool auto_compute_interpolator = true) {
+  auto push_front(const pos_t& p, Real t,
+                  bool auto_compute_interpolator = true) {
     auto i                   = parent_t::push_front(p);
     front_parameterization() = t;
     if (num_vertices() > 1) {
@@ -1156,10 +1240,14 @@ struct parameterized_line : line<Real, N> {
           const auto h = front_parameterization() - parameterization_at(1);
           m_interpolators.emplace_front(front_vertex(), vertex_at(1),
                                         front_tangent() * h, tangent_at(1) * h);
-          if (num_vertices() >= 3) { update_interpolator(1); }
+          if (num_vertices() >= 3) {
+            update_interpolator(1);
+          }
         } else {
           m_interpolators.emplace_front(front_vertex(), vertex_at(1));
-          if (num_vertices() >= 3) { update_interpolator(1); }
+          if (num_vertices() >= 3) {
+            update_interpolator(1);
+          }
         }
       } else {
         m_interpolators.emplace_front();
@@ -1169,7 +1257,7 @@ struct parameterized_line : line<Real, N> {
   }
   //----------------------------------------------------------------------------
   auto push_front(pos_t&& p, Real t, bool auto_compute_interpolator = true) {
-    auto i                    = parent_t::push_front(std::move(p));
+    auto i                                = parent_t::push_front(std::move(p));
     m_parameterization->at(vertex_idx{i}) = t;
     if (num_vertices() > 1) {
       if (auto_compute_interpolator) {
@@ -1177,10 +1265,14 @@ struct parameterized_line : line<Real, N> {
           const auto h = front_parameterization() - parameterization_at(1);
           m_interpolators.emplace_front(front_vertex(), vertex_at(1),
                                         front_tangent() * h, tangent_at(1) * h);
-          if (num_vertices() >= 3) { update_interpolator(1); }
+          if (num_vertices() >= 3) {
+            update_interpolator(1);
+          }
         } else {
           m_interpolators.emplace_front(front_vertex(), vertex_at(1));
-          if (num_vertices() >= 3) { update_interpolator(1); }
+          if (num_vertices() >= 3) {
+            update_interpolator(1);
+          }
         }
       } else {
         m_interpolators.emplace_front();
@@ -1192,7 +1284,9 @@ struct parameterized_line : line<Real, N> {
   void pop_front() {
     parent_t::pop_front();
     m_parameterization->pop_front();
-    if (num_vertices() >= 2) { m_interpolators.pop_front(); }
+    if (num_vertices() >= 2) {
+      m_interpolators.pop_front();
+    }
   }
   //----------------------------------------------------------------------------
   auto interpolators() const -> const auto& { return m_interpolators; }
@@ -1214,13 +1308,14 @@ struct parameterized_line : line<Real, N> {
           interpolation_t{vertex_at(i), vertex_at(i + 1), tangent_at(i) * h,
                           tangent_at(i + 1) * h};
     } else {
-      m_interpolators[i] =
-          interpolation_t{vertex_at(i), vertex_at(i + 1)};
+      m_interpolators[i] = interpolation_t{vertex_at(i), vertex_at(i + 1)};
     }
   }
   //----------------------------------------------------------------------------
   auto binary_search_index(Real t) const {
-    if (this->empty()) { throw empty_exception{}; }
+    if (this->empty()) {
+      throw empty_exception{};
+    }
 
     if (t < front_parameterization() && front_parameterization() - t < 1e-7) {
       t = front_parameterization();
@@ -1272,9 +1367,7 @@ struct parameterized_line : line<Real, N> {
     return m_interpolators[left](factor);
   }
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-  auto operator()(const Real t) const {
-    return sample(t);
-  }
+  auto operator()(const Real t) const { return sample(t); }
   //----------------------------------------------------------------------------
   /// sample tangents
   auto tangent(Real t) const {
@@ -1309,7 +1402,9 @@ struct parameterized_line : line<Real, N> {
   //----------------------------------------------------------------------------
   /// sample curvature
   Real curvature(Real t) const {
-    if (num_vertices() <= 1) { return -1; }
+    if (num_vertices() <= 1) {
+      return -1;
+    }
     const auto left = binary_search_index(t);
 
     // interpolate
@@ -1326,17 +1421,19 @@ struct parameterized_line : line<Real, N> {
     auto left = binary_search_index(t);
 
     // interpolate
-    const Real h      = parameterization_at(left+1) - parameterization_at(left);
+    const Real h = parameterization_at(left + 1) - parameterization_at(left);
     const Real factor = (t - parameterization_at(left)) / h;
     assert(0 <= factor && factor <= 1);
 
     // if constexpr (num_derivatives_needed == 1) {
-    //  InterpolationKernel<Prop>{prop[left], prop[left+1], tangent_at(left) * h,
+    //  InterpolationKernel<Prop>{prop[left], prop[left+1], tangent_at(left) *
+    //  h,
     //                            tangent_at(left+1) * h}(factor);
     //} else {
     //  return InterpolationKernel<Prop>{prop[left], prop[left+1]}(factor);
     //}
-    return prop[vertex_idx{left}] * (1 - factor) + prop[vertex_idx{left+1}] * factor;
+    return prop[vertex_idx{left}] * (1 - factor) +
+           prop[vertex_idx{left + 1}] * factor;
   }
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
  private:
@@ -1376,19 +1473,20 @@ struct parameterized_line : line<Real, N> {
           }(),
           ...);
     }
-    }
+  }
 
-  public:
-   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-   auto resample(const linspace<Real>& ts) const {
-     this_t resampled;
-     for (auto t : ts) { resampled.push_back(sample(t), t); }
-     resample_properties<double, float,
-                         vec<double, 2>, vec<float, 2>,
-                         vec<double, 3>, vec<float, 3>,
-                         vec<double, 4>, vec<float, 4>>(ts, resampled);
-     return resampled;
-   }
+ public:
+  // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+  auto resample(const linspace<Real>& ts) const {
+    this_t resampled;
+    for (auto t : ts) {
+      resampled.push_back(sample(t), t);
+    }
+    resample_properties<double, float, vec<double, 2>, vec<float, 2>,
+                        vec<double, 3>, vec<float, 3>, vec<double, 4>,
+                        vec<float, 4>>(ts, resampled);
+    return resampled;
+  }
 
   //============================================================================
   void uniform_parameterization(Real t0 = 0) {
@@ -1488,9 +1586,8 @@ struct parameterized_line : line<Real, N> {
     // for each dimension fit a quadratic curve through the neighbor points and
     // the point itself and compute the derivative
     vec_t      tangent;
-    const mat3 A{{t0 * t0, t0, Real(1)},
-                 {t1 * t1, t1, Real(1)},
-                 {t2 * t2, t2, Real(1)}};
+    const mat3 A{
+        {t0 * t0, t0, Real(1)}, {t1 * t1, t1, Real(1)}, {t2 * t2, t2, Real(1)}};
     for (size_t n = 0; n < N; ++n) {
       vec3 b{x0(n), x1(n), x2(n)};
       auto c     = lapack::gesv(A, b);
@@ -1561,12 +1658,14 @@ struct parameterized_line : line<Real, N> {
   //----------------------------------------------------------------------------
   [[nodiscard]] auto integrate_property(const vertex_property_t<Real>& prop)
       -> Real {
-    if (num_vertices() <= 1) { return 0; }
-    Real integral = 0;
+    if (num_vertices() <= 1) {
+      return 0;
+    }
+    Real integral    = 0;
     Real acc_seg_len = 0;
     auto len_prev    = parameterization_at(1) - parameterization_at(0);
     auto len_next    = (parameterization_at(num_vertices() - 2) -
-                        parameterization_at(num_vertices() - 1));
+                     parameterization_at(num_vertices() - 1));
     integral += len_prev * prop[vertex_idx{0}];
     integral += len_next * prop[vertex_idx{num_vertices() - 1}];
     acc_seg_len += len_prev;
@@ -1590,8 +1689,8 @@ struct parameterized_line : line<Real, N> {
   //  auto len_next    = len_prev;
   //  integral += len_prev * curvature(front_parameterization());
   //  integral +=
-  //      distance(vertex_at(num_vertices() - 2), vertex_at(num_vertices() - 1)) *
-  //      curvature(back_parameterization());
+  //      distance(vertex_at(num_vertices() - 2), vertex_at(num_vertices() - 1))
+  //      * curvature(back_parameterization());
   //  for (size_t i = 1; i < num_vertices() - 1; ++i) {
   //    len_next = distance(vertex_at(i), vertex_at(i + 1));
   //    acc_seg_len += len_prev;
@@ -1635,7 +1734,8 @@ void write_vtk(
   detail::write_line_container_to_vtk(lines, path, title);
 }
 //------------------------------------------------------------------------------
-template <typename Real, size_t N, template <typename> typename InterpolationKernel>
+template <typename Real, size_t N,
+          template <typename> typename InterpolationKernel>
 auto diff(const parameterized_line<Real, N, InterpolationKernel>& l) {
   return l.tangents();
 }
@@ -1664,14 +1764,16 @@ void merge_lines(std::vector<line<Real, N>>& lines0,
           line0->clear();
 
           // [line1front, ..., LINE1BACK] -> [LINE0FRONT, ..., line0back]
-        } else if (approx_equal(line1->back_vertex(), line0->front_vertex(), eps)) {
+        } else if (approx_equal(line1->back_vertex(), line0->front_vertex(),
+                                eps)) {
           for (size_t i = 1; i < line0->num_vertices(); ++i) {
             line1->push_back(line0->vertex_at(i));
           }
           line0->clear();
 
           // [LINE1FRONT, ..., line1back] -> [LINE0FRONT, ..., line0back]
-        } else if (approx_equal(line1->front_vertex(), line0->front_vertex(), eps)) {
+        } else if (approx_equal(line1->front_vertex(), line0->front_vertex(),
+                                eps)) {
           boost::reverse(line1->vertices());
           // -> [line1back, ..., LINE1FRONT] -> [LINE0FRONT, ..., line0back]
           for (size_t i = 1; i < line0->num_vertices(); ++i) {
@@ -1680,7 +1782,8 @@ void merge_lines(std::vector<line<Real, N>>& lines0,
           line0->clear();
 
           // [line0front, ..., LINE0BACK] -> [line1front,..., LINE1BACK]
-        } else if (approx_equal(line0->back_vertex(), line1->back_vertex(), eps)) {
+        } else if (approx_equal(line0->back_vertex(), line1->back_vertex(),
+                                eps)) {
           boost::reverse(line0->vertices());
           // -> [line1front, ..., LINE1BACK] -> [LINE0BACK, ..., line0front]
           for (size_t i = 1; i < line0->num_vertices(); ++i) {
@@ -1703,7 +1806,9 @@ void merge_lines(std::vector<line<Real, N>>& lines0,
 
   // remove empty vectors of line0 side
   for (int i = lines0.size() - 1; i >= 0; i--) {
-    if (lines0[i].empty()) { lines0.pop_back(); }
+    if (lines0[i].empty()) {
+      lines0.pop_back();
+    }
   }
 }
 
@@ -1766,10 +1871,10 @@ auto intersections(const std::vector<line<Real, 2>>& lines0,
     for (auto const& l1 : lines1) {
       for (size_t i = 0; i < l0.num_vertices() - 1; ++i) {
         for (size_t j = 0; j < l1.num_vertices() - 1; ++j) {
-          auto const& p0 = l0.vertex_at(i);
-          auto const& p1 = l0.vertex_at(i + 1);
-          auto const& p2 = l1.vertex_at(j);
-          auto const& p3 = l1.vertex_at(j + 1);
+          auto const& p0  = l0.vertex_at(i);
+          auto const& p1  = l0.vertex_at(i + 1);
+          auto const& p2  = l1.vertex_at(j);
+          auto const& p3  = l1.vertex_at(j + 1);
           auto const  d01 = p0 - p1;
           auto const  d23 = p2 - p3;
           auto const  d02 = p0 - p2;
@@ -1781,12 +1886,12 @@ auto intersections(const std::vector<line<Real, 2>>& lines0,
           auto const inv_denom = 1 / denom;
 
           auto const nom_t = d02.x() * d23.y() - d02.y() * d23.x();
-          auto const t = nom_t * inv_denom;
+          auto const t     = nom_t * inv_denom;
           if (0 > t || t > 1) {
             continue;
           }
           auto const nom_u = -(d01.x() * d02.y() - d01.y() * d02.x());
-          auto const u = nom_u * inv_denom;
+          auto const u     = nom_u * inv_denom;
           if (0 > u || u > 1) {
             continue;
           }
