@@ -1,7 +1,6 @@
 cmake_minimum_required(VERSION 3.10)
 project(tatooine)
 list(APPEND CMAKE_MODULE_PATH "${CMAKE_SOURCE_DIR}/cmake/modules/")
-list(APPEND CMAKE_MODULE_PATH "${CMAKE_SOURCE_DIR}/external/catch2/contrib/")
 #- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - 
 # preprocessor lib
 #- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - 
@@ -22,26 +21,11 @@ if(GIT_FOUND AND EXISTS "${PROJECT_SOURCE_DIR}/.git")
   endif()
 endif()
 #- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-add_subdirectory(external/catch2)
 set(BENCHMARK_ENABLE_GTEST_TESTS OFF CACHE BOOL
     "Enable building the unit tests which depend on gtest")
 set(BENCHMARK_ENABLE_TESTING OFF CACHE BOOL
     "Enable testing of the benchmark library.")
 add_subdirectory(external/google-benchmark)
-#- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-find_package(Boost REQUIRED COMPONENTS program_options)
-find_package(TBB REQUIRED)
-find_package(yavin QUIET)
-find_package(BLAS REQUIRED)
-find_package(LAPACKE REQUIRED)
-find_package(OpenMP REQUIRED)
-find_package(vcode REQUIRED)
-find_package(PNG REQUIRED)
-find_package(PNG++ REQUIRED)
-find_package(NetCDF REQUIRED)
-find_package(CGAL REQUIRED)
-find_package(FLANN REQUIRED)
-set(CGAL_DO_NOT_WARN_ABOUT_CMAKE_BUILD_TYPE TRUE)
 #- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - 
 # configure files
 #- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - 
@@ -107,15 +91,37 @@ add_library(tatooine SHARED
   src/vtk_legacy.cpp
   src/parse.cpp
 )
+target_compile_features(tatooine PUBLIC cxx_std_20)
+
+# force coloring
 if ("${CMAKE_CXX_COMPILER_ID}" STREQUAL "Clang")
   target_compile_options(tatooine PRIVATE "-fcolor-diagnostics")
 elseif ("${CMAKE_CXX_COMPILER_ID}" STREQUAL "GNU")
   target_compile_options(tatooine PRIVATE  "-fdiagnostics-color=always")
 endif()
+
+#enable warnings
+if ("${CMAKE_CXX_COMPILER_ID}" STREQUAL "Clang" OR
+    "${CMAKE_CXX_COMPILER_ID}" STREQUAL "GNU")
 target_compile_options(tatooine PRIVATE
   -Wall -Wextra -pedantic
   -Wno-tautological-undefined-compare -Wno-gnu-zero-variadic-macro-arguments)
-target_compile_features(tatooine PUBLIC cxx_std_20)
+endif()
+
+#===============================================================================
+# Required Packages
+#===============================================================================
+find_package(BLAS REQUIRED)
+find_package(LAPACK REQUIRED)
+find_package(LAPACKE REQUIRED)
+find_package(Boost REQUIRED COMPONENTS program_options)
+find_package(vcode REQUIRED)
+
+option(TATOOINE_INCLUDE_MKL_LAPACKE "If ON mkl_lapacke.h will be include instead of lapacke.h")
+if (TATOOINE_INCLUDE_MKL_LAPACKE)
+  target_compile_definitions(tatooine PUBLIC TATOOINE_INCLUDE_MKL_LAPACKE)
+endif()
+
 #- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 # set include dirs
 target_include_directories(tatooine
@@ -125,33 +131,109 @@ target_include_directories(tatooine
     ${CMAKE_CURRENT_BINARY_DIR}/include
     ${CMAKE_CURRENT_SOURCE_DIR}/external/indicators/include
     ${CMAKE_CURRENT_SOURCE_DIR}/external/tomlplusplus/include
-    ${NETCDF_INCLUDES}
-    ${LAPACKE_INCLUDES}
+    ${LAPACKE_INCLUDE_DIRS}
     ${vcode_DIR}/../..
-    ${PNG_INCLUDE_DIRS}
-    ${PNG++_INCLUDE_DIRS}
 )
 #- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 #set libs 
 target_link_libraries(tatooine
   PUBLIC
-    CGAL::CGAL
-    FLANN::FLANN
+    stdc++fs
     ${BLAS_LIBRARIES}
     ${LAPACK_LIBRARIES}
-    ${PNG_LIBRARIES}
-    ${PNG++_LIBRARIES}
-    ${NETCDF_LIBRARIES}
 )
+
+#===============================================================================
+# Optional Packages
+#===============================================================================
+#- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+# PNG
+#- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+find_package(PNG QUIET)
+if(PNG_FOUND)
+  find_package(PNG++ QUIET)
+  if (NOT DEFINED PNG++_INCLUDE_DIRS)
+    target_compile_definitions(tatooine PUBLIC TATOOINE_HAS_PNG_SUPPORT)
+    target_include_directories(tatooine PUBLIC ${PNG_INCLUDE_DIRS} ${PNG++_INCLUDE_DIRS})
+    target_link_libraries(tatooine PUBLIC ${PNG_LIBRARIES} ${PNG++_LIBRARIES})
+  endif()
+endif()
+#- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+# OpenMP
+#- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+find_package(OpenMP QUIET COMPONENTS CXX)
+if (OpenMP_CXX_FOUND)
+  option(TATOOINE_COMPILE_WITH_OPENMP "" ON)
+  if (TATOOINE_COMPILE_WITH_OPENMP)
+    set(TATOOINE_OPENMP_AVAILABLE 1)
+    target_link_libraries(tatooine PUBLIC OpenMP::OpenMP_CXX)
+  else()
+    set(TATOOINE_OPENMP_AVAILABLE 0)
+  endif()
+endif()
+#- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+# NetCDF
+#- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+find_package(NetCDF QUIET)
+if (NETCDF_FOUND)
+  message(STATUS "NetCDF available")
+  target_compile_definitions(tatooine PUBLIC TATOOINE_HAS_NETCDF_SUPPORT)
+  target_link_libraries(tatooine PUBLIC ${NETCDF_LIBRARIES})
+  target_include_directories(tatooine PUBLIC ${NETCDF_INCLUDES})
+endif()
+#- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+# HDF5
+#- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+find_package(HDF5 QUIET COMPONENTS CXX HL)
+if(HDF5_FOUND)
+  if (HDF5_IS_PARALLEL)
+    message(STATUS "HDF5 available with parallel support")
+  else()
+    message(STATUS "HDF5 available without parallel support")
+  endif()
+  target_compile_definitions(tatooine PUBLIC
+    TATOOINE_HAS_HDF5_SUPPORT ${HDF5_DEFINITIONS} ${HDF5_CXX_DEFINITIONS})
+  target_link_libraries(tatooine PUBLIC
+    ${HDF5_LIBRARIES} ${HDF5_HL_LIBRARIES} ${HDF5_CXX_LIBRARIES} ${HDF5_CXX_HL_LIBRARIES})
+  target_include_directories(tatooine PUBLIC
+    ${HDF5_INCLUDE_DIRS} ${HDF5_CXX_INCLUDE_DIRS})
+
+  add_executable(hdf5_create src/hdf5_create.cpp)
+  target_link_libraries(hdf5_create PUBLIC tatooine)
+endif()
+
+#- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+# FLANN
+#- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+find_package(FLANN QUIET)
+if (FLANN_FOUND)
+  target_compile_definitions(tatooine PUBLIC TATOOINE_HAS_FLANN_SUPPORT)
+  target_link_libraries(tatooine PUBLIC FLANN::FLANN)
+  message(STATUS "FLANN available")
+endif()
+#- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+# CGAL
+#- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+set(CGAL_DO_NOT_WARN_ABOUT_CMAKE_BUILD_TYPE TRUE)
+find_package(CGAL QUIET)
+if (CGAL_FOUND)
+  target_compile_definitions(tatooine PUBLIC TATOOINE_HAS_CGAL_SUPPORT)
+  target_link_libraries(tatooine PUBLIC CGAL::CGAL)
+  message(STATUS "CGAL available")
+endif()
+#- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+# yavin
+#- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+find_package(yavin QUIET)
 if (${yavin_FOUND}) 
   set(TATOOINE_YAVIN_AVAILABLE 1)
   target_link_libraries(tatooine PUBLIC yavin)
 else()
   set(TATOOINE_YAVIN_AVAILABLE 0)
 endif()
-#-------------------------------------------------------------------------------
+#- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 # GINAC
-#-------------------------------------------------------------------------------
+#- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 find_package(GINAC QUIET)
 if (${GINAC_FOUND}) 
   option(TATOOINE_USE_GINAC "use GiNaC for symbolics support" FALSE)
@@ -166,14 +248,6 @@ else()
   set(TATOOINE_GINAC_AVAILABLE 0)
 endif()
 
-if(OpenMP_CXX_FOUND)
-  set(TATOOINE_OPENMP_AVAILABLE 1)
-  target_link_libraries(tatooine PUBLIC OpenMP::OpenMP_CXX)
-else()
-  set(TATOOINE_OPENMP_AVAILABLE 0)
-endif()
-
-
 configure_file(${CMAKE_CURRENT_SOURCE_DIR}/include/tatooine/packages.h.in
                ${CMAKE_CURRENT_BINARY_DIR}/include/tatooine/packages.h)
 
@@ -184,7 +258,6 @@ add_subdirectory(test)
 add_subdirectory(scivis_contest_2020)
 add_subdirectory(benchmarks)
 add_subdirectory(doc)
-#add_subdirectory(misc)
 add_subdirectory(material_science)
 if (${yavin_FOUND}) 
   add_subdirectory(steadification)
@@ -192,8 +265,11 @@ if (${yavin_FOUND})
 endif()
 add_subdirectory(autonomous_particles)
 add_subdirectory(smearing_scalar_field)
+add_subdirectory(insitu)
 
 #- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 # This makes the project importable from the build directory
-export(TARGETS tatooine FILE tatooineConfig.cmake)
+export(TARGETS tatooine insitu_interface
+       FILE tatooineConfig.cmake
+       NAMESPACE tatooine::)
 export(PACKAGE tatooine)

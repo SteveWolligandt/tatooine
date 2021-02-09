@@ -1,18 +1,15 @@
 #ifndef TATOOINE_GRID_VERTEX_NEIGHBORS_H
 #define TATOOINE_GRID_VERTEX_NEIGHBORS_H
-
+//==============================================================================
 #include <cstddef>
 #include "grid_vertex.h"
 #include "subgrid.h"
-
 //==============================================================================
 namespace tatooine {
 //==============================================================================
-
 template <typename Real, size_t N>
 struct grid_vertex_neighbors : subgrid<Real, N> {
   grid_vertex<Real, N> center;
-
   //----------------------------------------------------------------------------
   explicit grid_vertex_neighbors(const grid_vertex<Real, N>& c)
       : subgrid<Real, N>{c, c}, center(c) {
@@ -29,7 +26,6 @@ struct grid_vertex_neighbors : subgrid<Real, N> {
       }
     }
   }
-
   //----------------------------------------------------------------------------
   struct iterator : subgrid<Real, N>::vertex_iterator {
     auto operator++() -> auto& {
@@ -39,7 +35,6 @@ struct grid_vertex_neighbors : subgrid<Real, N> {
       }
       return *this;
     }
-
     //--------------------------------------------------------------------------
     auto operator--() -> auto& {
       subgrid<Real, N>::vertex_iterator::operator--();
@@ -48,20 +43,17 @@ struct grid_vertex_neighbors : subgrid<Real, N> {
       }
       return *this;
     }
-
     //--------------------------------------------------------------------------
     auto neighbors() {
       return reinterpret_cast<grid_vertex_neighbors*>(this->m_subgrid);
     }
   };
-
   //----------------------------------------------------------------------------
   auto begin() {
     iterator it{this->m_begin_vertex, this};
     if ((this->m_begin_vertex == this->center)) { ++it; }
     return it;
   }
-
   //----------------------------------------------------------------------------
   auto end() {
     auto actual_end_vertex             = this->m_begin_vertex;
@@ -69,7 +61,6 @@ struct grid_vertex_neighbors : subgrid<Real, N> {
     return iterator{actual_end_vertex, this};
   }
 };
-
 //==============================================================================
 }  // namespace tatooine
 //==============================================================================

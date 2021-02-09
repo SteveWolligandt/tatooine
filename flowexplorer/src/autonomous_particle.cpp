@@ -19,25 +19,27 @@ autonomous_particle::autonomous_particle(flowexplorer::scene& s)
 //============================================================================
 void autonomous_particle::render(mat4f const& projection_matrix,
                                  mat4f const& view_matrix) {
-  m_line_shader.set_projection_matrix(projection_matrix);
-  m_line_shader.set_modelview_matrix(view_matrix);
-  m_line_shader.bind();
-  m_line_shader.set_color(m_ellipses_color[0], m_ellipses_color[1],
-                          m_ellipses_color[2], m_ellipses_color[3]);
+  if (!m_currently_advecting) {
+    m_line_shader.set_projection_matrix(projection_matrix);
+    m_line_shader.set_modelview_matrix(view_matrix);
+    m_line_shader.bind();
+    m_line_shader.set_color(m_ellipses_color[0], m_ellipses_color[1],
+                            m_ellipses_color[2], m_ellipses_color[3]);
 
-  m_line_shader.set_color(0.7, 0.7, 0.7, 1);
-  m_initial_circle.draw_lines();
-  m_line_shader.set_color(0, 0, 0, 1);
-  yavin::gl::line_width(2);
-  m_advected_ellipses.draw_lines();
-  yavin::gl::line_width(1);
-  m_line_shader.set_color(0.2, 0.8, 0.2, 1);
-  m_initial_ellipses_back_calculation.draw_lines();
-  m_line_shader.set_color(0.5, 0.5, 0.5, 1);
-  m_gpu_advected_points_on_initial_circle.draw_lines();
+    m_line_shader.set_color(0.7, 0.7, 0.7, 1);
+    m_initial_circle.draw_lines();
+    m_line_shader.set_color(0, 0, 0, 1);
+    yavin::gl::line_width(2);
+    m_advected_ellipses.draw_lines();
+    yavin::gl::line_width(1);
+    m_line_shader.set_color(0.2, 0.8, 0.2, 1);
+    m_initial_ellipses_back_calculation.draw_lines();
+    m_line_shader.set_color(0.5, 0.5, 0.5, 1);
+    m_gpu_advected_points_on_initial_circle.draw_lines();
 
-  m_line_shader.set_color(0.5, 1, 0.5, 1);
-  m_pathlines.draw_lines();
+    m_line_shader.set_color(0.5, 1, 0.5, 1);
+    m_pathlines.draw_lines();
+  }
 }
 //----------------------------------------------------------------------------
 auto autonomous_particle::on_property_changed() -> void {
@@ -189,33 +191,34 @@ void autonomous_particle::advect() {
       {
         std::lock_guard lock{node->m_pathlines.mutex()};
         node->m_pathlines.clear();
-      }
-      size_t index = 0;
-      for (auto const& particle : particles) {
-        if (node->m_stop_thread) {
-          break;
-        }
-        std::lock_guard lock{node->m_pathlines.mutex()};
+        size_t index = 0;
+        for (auto const& particle : particles) {
+          if (node->m_stop_thread) {
+            break;
+          }
 
-        auto const tau = 0.05;
-        auto       y   = particle.x0();
-        auto       t   = node->m_t0;
-        node->m_pathlines.vertexbuffer().push_back(gpu_vec3{y(0), y(1), t});
-        ++index;
-        while (t + tau < particle.t1()) {
-          y = node->phi()(y, t, tau);
-          t += tau;
+          auto const tau = 0.05;
+          auto       y   = particle.x0();
+          auto       t   = node->m_t0;
           node->m_pathlines.vertexbuffer().push_back(gpu_vec3{y(0), y(1), t});
+
+          ++index;
+
+          while (t + tau < particle.t1()) {
+            y = node->phi()(y, t, tau);
+            t += tau;
+            node->m_pathlines.vertexbuffer().push_back(gpu_vec3{y(0), y(1), t});
+            node->m_pathlines.indexbuffer().push_back(index - 1);
+            node->m_pathlines.indexbuffer().push_back(index);
+            ++index;
+          }
+          y = node->phi()(y, t, particle.t1() - t);
+          node->m_pathlines.vertexbuffer().push_back(
+              gpu_vec3{y(0), y(1), particle.t1()});
           node->m_pathlines.indexbuffer().push_back(index - 1);
           node->m_pathlines.indexbuffer().push_back(index);
           ++index;
         }
-        y = node->phi()(y, t, particle.t1() - t);
-        node->m_pathlines.vertexbuffer().push_back(
-            gpu_vec3{y(0), y(1), particle.t1()});
-        node->m_pathlines.indexbuffer().push_back(index - 1);
-        node->m_pathlines.indexbuffer().push_back(index);
-        ++index;
       }
     }
     node->m_currently_advecting = false;

@@ -186,7 +186,7 @@ struct table : content {
     for (const auto& t:v) {c.push_back(t);} 
     return c;
   }
-  template <real_number Real>
+  template <arithmetic Real>
   auto to_strvec(const std::vector<Real>& v)    {
     std::vector<std::string> c;
     c.reserve(v.size());

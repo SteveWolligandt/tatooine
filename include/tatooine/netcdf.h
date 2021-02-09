@@ -1,3 +1,4 @@
+#ifdef TATOOINE_HAS_NETCDF_SUPPORT
 #ifndef TATOOINE_NETCDF_H
 #define TATOOINE_NETCDF_H
 //==============================================================================
@@ -34,17 +35,17 @@ struct nc_type<double> {
   static auto value() { return netCDF::ncDouble; }
 };
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-template <real_number T, size_t M, size_t N>
+template <typename T, size_t M, size_t N>
 struct nc_type<mat<T, M, N>> {
   static auto value() { return nc_type<T>::value(); }
 };
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-template <real_number T, size_t N>
+template <typename T, size_t N>
 struct nc_type<vec<T, N>> {
   static auto value() { return nc_type<T>::value(); }
 };
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-template <real_number T, size_t... Dims>
+template <typename T, size_t... Dims>
 struct nc_type<tensor<T, Dims...>> {
   static auto value() { return nc_type<T>::value(); }
 };
@@ -55,6 +56,11 @@ class attribute {};
 //==============================================================================
 template <typename T>
 class variable {
+ public:
+  using this_t     = variable<T>;
+  using value_type = T;
+
+ private:
   mutable std::shared_ptr<netCDF::NcFile> m_file;
   mutable std::shared_ptr<std::mutex>     m_mutex;
   netCDF::NcVar                           m_var;
@@ -92,7 +98,12 @@ class variable {
     return m_var.putVar(arr.data());
   }
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-  auto write(range auto r) { return write(std::vector(begin(r), end(r))); }
+#ifdef __cpp_concepts
+  template <range R>
+#else
+  template <typename R, enable_if<is_range<R>> = true>
+#endif
+  auto write(R r) { return write(std::vector(begin(r), end(r))); }
   //----------------------------------------------------------------------------
   auto num_components() const {
     size_t c = 1;
@@ -224,7 +235,12 @@ class variable {
     return t;
   }
   //----------------------------------------------------------------------------
-  auto read_single(integral auto... is) const {
+#ifdef __cpp_concepts
+  template <integral... Is>
+#else
+  template <typename... Is, enable_if<is_integral<Is...>> = true>
+#endif
+  auto read_single(Is const... is) const {
     assert(num_dimensions() == sizeof...(is));
     T               t;
     std::lock_guard lock{*m_mutex};
@@ -273,10 +289,15 @@ class variable {
     m_var.getVar(start_indices, counts, arr.data_ptr());
   }
   //----------------------------------------------------------------------------
-  template <typename MemLoc, size_t... Resolution>
+#ifdef __cpp_concepts
+  template <typename MemLoc, size_t... Resolution, integral...StartIndices>
+#else
+  template <typename MemLoc, size_t... Resolution, typename... StartIndices,
+            enable_if<is_integral<StartIndices...>> = true>
+#endif
   auto read_chunk(
       static_multidim_array<T, x_fastest, MemLoc, Resolution...>& arr,
-      integral auto const... start_indices) const {
+      StartIndices const... start_indices) const {
     static_assert(sizeof...(start_indices) == sizeof...(Resolution));
     assert(sizeof...(Resolution) == num_dimensions());
     std::lock_guard lock{*m_mutex};
@@ -404,4 +425,5 @@ class file {
 //==============================================================================
 }  // namespace tatooine::netcdf
 //==============================================================================
+#endif
 #endif

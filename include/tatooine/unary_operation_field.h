@@ -56,6 +56,7 @@ struct unary_operation_field
   auto internal_field() const -> decltype(auto) { return m_field; }
   auto internal_field() -> decltype(auto) { return m_field; }
 };
+//==============================================================================
 template <typename Field, typename Op>
 struct unary_operation_field_builder {
   using transformed_tensor_t = std::invoke_result_t<
@@ -71,8 +72,13 @@ struct unary_operation_field_builder {
         std::remove_pointer_t<std::decay_t<Field>>::num_dimensions(), Dims...>{
         std::forward<Field_>(field), std::forward<Op_>(op)};
   }
-  template <typename Field_, typename Op_>
-  static auto build(Field_&& field, Op_&& op, real_number auto const&) {
+#ifdef __cpp_concpets
+  template <typename Field_, typename Op_, arithmetic T>
+#else
+  template <typename Field_, typename Op_, typename T,
+            enable_if<is_arithmetic<T>> = true>
+#endif
+  static auto build(Field_&& field, Op_&& op, T const&) {
     return unary_operation_field<
         Field, Op, typename std::remove_pointer_t<std::decay_t<Field>>::real_t,
         std::remove_pointer_t<std::decay_t<Field>>::num_dimensions()>{

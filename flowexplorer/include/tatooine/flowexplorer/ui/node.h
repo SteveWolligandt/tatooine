@@ -1,6 +1,7 @@
 #ifndef TATOOINE_FLOWEXPLORER_UI_NODE_H
 #define TATOOINE_FLOWEXPLORER_UI_NODE_H
 //==============================================================================
+
 #include <imgui-node-editor/imgui_node_editor.h>
 #include <tatooine/demangling.h>
 #include <tatooine/flowexplorer/serializable.h>

@@ -6,7 +6,7 @@
 //==============================================================================
 namespace tatooine::color_scales {
 //==============================================================================
-template <real_number Real>
+template <arithmetic Real>
 struct magma : grid<std::array<Real, 256>> {
   using real_t      = Real;
   using this_t      = magma<real_t>;

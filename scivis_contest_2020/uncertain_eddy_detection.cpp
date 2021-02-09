@@ -27,8 +27,8 @@ template <typename Xs, typename XIs, typename EulerianQProp, typename Lagrangian
 void uncertain_eddy_detection(V const& v,
                               Xs const& xs,
                               XIs const& xis,
-                              real_number auto const t,
-                              real_number auto const threshold,
+                              arithmetic auto const t,
+                              arithmetic auto const threshold,
                               EulerianQProp& eulerian_Q_prop,
                               LagrangianQProp& lagrangian_Q_prop) {
   std::atomic_size_t cnt;
@@ -48,7 +48,7 @@ void uncertain_eddy_detection(V const& v,
   std::cerr << '\n';
 }
 //------------------------------------------------------------------------------
-void uncertain_eddy_detection(real_number auto const threshold) {
+void uncertain_eddy_detection(arithmetic auto const threshold) {
   auto  g = create_grid();
   auto& uncertain_eulerian_Q_prop =
       g.add_contiguous_vertex_property<double>("uncertain_eulerian_Q");

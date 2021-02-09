@@ -6,9 +6,10 @@
 //==============================================================================
 namespace tatooine {
 //==============================================================================
-template <floating_point Real, size_t N>
+template <typename Real, size_t N>
 struct ray {
-  template <floating_point OtherReal, size_t OtherN>
+  static_assert(is_floating_point<Real>);
+  template <typename OtherReal, size_t OtherN>
   friend struct ray;
   using vec_t = vec<Real, N>;
   using pos_t = vec_t;
@@ -21,7 +22,11 @@ struct ray {
   ray(ray const&)     = default;
   ray(ray&&) noexcept = default;
   //----------------------------------------------------------------------------
+#ifdef __cpp_concepts
   template <floating_point OtherReal>
+#else
+  template <typename OtherReal, enable_if<is_floating_point<OtherReal>> = true>
+#endif
   ray(ray<OtherReal, N> const& other)
       : m_origin{other.m_origin}, m_direction{other.m_direction} {}
   //----------------------------------------------------------------------------

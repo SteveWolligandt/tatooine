@@ -25,7 +25,7 @@ struct fixed_time_field : field<fixed_time_field<Field, Real, N, TensorDims...>,
   fixed_time_field& operator=(fixed_time_field&& other) noexcept = default;
 
   //============================================================================
-  template <typename TReal, enable_if_arithmetic<TReal> = true>
+  template <typename TReal, enable_if<is_arithmetic<TReal>> = true>
   constexpr fixed_time_field(const field<Field, Real, N, TensorDims...>& field,
                              TReal fixed_time)
       : m_field{field.as_derived()},

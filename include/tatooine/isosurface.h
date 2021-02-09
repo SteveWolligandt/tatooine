@@ -20,21 +20,32 @@ namespace tatooine {
 //==============================================================================
 /// \brief      Indexing and lookup map from
 /// http://paulbourke.net/geometry/polygonise/
+#ifdef __cpp_concepts
 template <
     indexable_space XDomain, indexable_space YDomain, indexable_space ZDomain,
+    arithmetic Isolevel,
     invocable<size_t const, size_t const, size_t const,
               vec<typename grid<XDomain, YDomain, ZDomain>::real_t, 3> const&>
         GetScalars>
+#else
+template <
+    typename XDomain, typename YDomain, typename ZDomain, typename GetScalars,
+    typename Isolevel,
+    enable_if<is_invocable<GetScalars, size_t const, size_t const, size_t const,
+                           vec<typename grid<XDomain, YDomain, ZDomain>::real_t,
+                               3> const&> > = true,
+    enable_if<is_arithmetic<Isolevel> >     = true>
+#endif
 auto isosurface(GetScalars&&                           get_scalars,
                 grid<XDomain, YDomain, ZDomain> const& g,
-                real_number auto const                 isolevel) {
+                Isolevel const                         isolevel) {
   using real_t = typename grid<XDomain, YDomain, ZDomain>::real_t;
   using pos_t = vec<real_t, 3>;
   triangular_mesh<real_t, 3> iso_volume;
 
-#ifdef NDEBUG
-  std::mutex mutex;
-#endif
+//#if defined(NDEBUG) && defined(TATOOINE_OPENMP_AVAILABLE)
+//  std::mutex mutex;
+//#endif
   auto process_cube = [&](auto ix, auto iy, auto iz) {
     auto       vertlist = make_array<pos_t, 12>();
     std::array p{g(ix, iy, iz + 1),     g(ix + 1, iy, iz + 1),
@@ -132,11 +143,11 @@ auto isosurface(GetScalars&&                           get_scalars,
       vertlist[11] = p[3] * (1 - s) + p[7] * s;
     }
 
-#ifdef NDEBUG
-    {
-      std::lock_guard lock{mutex};
-#endif
-      // create the triangle
+//#if defined(NDEBUG) && defined(TATOOINE_OPENMP_AVAILABLE)
+//    {
+//      std::lock_guard lock{mutex};
+//#endif
+       //create the triangle
       for (size_t i = 0; marchingcubes_lookup::tri_table[cube_index][i] != -1;
            i += 3) {
         iso_volume.insert_face(
@@ -147,22 +158,27 @@ auto isosurface(GetScalars&&                           get_scalars,
             iso_volume.insert_vertex(
                 vertlist[marchingcubes_lookup::tri_table[cube_index][i + 1]]));
       }
-#ifdef NDEBUG
-    }
-#endif
+//#if defined(NDEBUG) && defined(TATOOINE_OPENMP_AVAILABLE)
+//    }
+//#endif
   };
-#ifdef NDEBUG
-  parallel_for_loop(process_cube, g.size(0) - 1, g.size(1) - 1, g.size(2) - 1);
-#else
+//#if defined(NDEBUG) && defined(TATOOINE_OPENMP_AVAILABLE)
+//  parallel_for_loop(process_cube, g.size(0) - 1, g.size(1) - 1, g.size(2) - 1);
+//#else
   for_loop(process_cube, g.size(0) - 1, g.size(1) - 1, g.size(2) - 1);
-#endif
+//#endif
   return iso_volume;
 }
 //------------------------------------------------------------------------------
-template <real_number Real, typename Indexing, real_number BBReal>
+#ifdef __cpp_concepts
+template <arithmetic Real, typename Indexing, arithmetic BBReal, arithmetic Isolevel>
+#else
+template <typename Real, typename Indexing, typename BBReal, typename Isolevel,
+          enable_if<is_arithmetic<Isolevel> > = true>
+#endif
 auto isosurface(dynamic_multidim_array<Real, Indexing> const& data,
                 axis_aligned_bounding_box<BBReal, 3> const&   bb,
-                real_number auto const                                  isolevel) {
+                Isolevel const                                  isolevel) {
   assert(data.num_dimensions() == 3);
   return isosurface(
       [&](auto ix, auto iy, auto iz, auto const& /*ps*/) -> auto const& {
@@ -174,11 +190,17 @@ auto isosurface(dynamic_multidim_array<Real, Indexing> const& data,
       isolevel);
 }
 //------------------------------------------------------------------------------
-template <real_number Real, typename Indexing, typename MemLoc, size_t XRes,
-          size_t YRes, size_t ZRes, real_number BBReal>
+#ifdef __cpp_concepts
+template <arithmetic Real, typename Indexing, typename MemLoc, size_t XRes,
+          size_t YRes, size_t ZRes, arithmetic BBReal, arithmetic Isolevel>
+#else
+template <typename Real, typename Indexing, typename MemLoc, size_t XRes,
+          size_t YRes, size_t ZRes, typename BBReal, typename Isolevel,
+          enable_if<is_arithmetic<Isolevel> > = true>
+#endif
 auto isosurface(
     static_multidim_array<Real, Indexing, MemLoc, XRes, YRes, ZRes> const& data,
-    axis_aligned_bounding_box<BBReal, 3> const& bb, real_number auto isolevel) {
+    axis_aligned_bounding_box<BBReal, 3> const& bb, Isolevel const isolevel) {
   return isosurface(
       [&](auto ix, auto iy, auto iz, auto const& /*ps*/) -> auto const& {
         return data(ix, iy, iz);
@@ -189,12 +211,19 @@ auto isosurface(
       isolevel);
 }
 //------------------------------------------------------------------------------
-template <typename Field, real_number FieldReal, indexable_space XDomain,
+#ifdef __cpp_concepts
+template <typename Field, arithmetic FieldReal, indexable_space XDomain,
           indexable_space YDomain, indexable_space ZDomain,
-          real_number TReal = FieldReal>
+          arithmetic TReal, arithmetic Isolevel>
+#else
+template <typename Field, typename FieldReal, typename XDomain,
+          typename YDomain, typename ZDomain, typename Isolevel,
+          typename TReal                             = FieldReal,
+          enable_if<is_arithmetic<Isolevel, TReal> > = true>
+#endif
 auto isosurface(field<Field, FieldReal, 3> const&      sf,
                 grid<XDomain, YDomain, ZDomain> const& g,
-                real_number auto const isolevel, TReal const t = 0) {
+                Isolevel const isolevel, TReal const t = 0) {
   return isosurface([&](auto /*ix*/, auto /*iy*/, auto /*iz*/,
                                    auto const& pos) { return sf(pos, t); },
                                g, isolevel);

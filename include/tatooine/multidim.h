@@ -1,11 +1,10 @@
 #ifndef TATOOINE_MULTIDIM_H
 #define TATOOINE_MULTIDIM_H
-
+//==============================================================================
 #include <cassert>
 
 #include "type_traits.h"
 #include "utility.h"
-
 //==============================================================================
 namespace tatooine {
 //==============================================================================
@@ -35,17 +34,30 @@ struct static_multidim {
       std::array<std::pair<size_t, size_t>, N> ranges)
       : m_ranges{ranges} {}
   //----------------------------------------------------------------------------
+#ifdef __cpp_concepts
   template <integral... Ts>
+#else
+  template <typename... Ts, enable_if<is_integral<Ts...>> = true>
+#endif
   explicit constexpr static_multidim(const std::pair<Ts, Ts>&... ranges)
       : m_ranges{std::make_pair(static_cast<size_t>(ranges.first),
                                 static_cast<size_t>(ranges.second))...} {}
   //----------------------------------------------------------------------------
+#ifdef __cpp_concepts
   template <integral... Ts>
+#else
+  template <typename... Ts, enable_if<is_integral<Ts...>> = true>
+#endif
   constexpr static_multidim(Ts const (&... ranges)[2])  // NOLINT
       : m_ranges{std::make_pair(static_cast<size_t>(ranges[0]),
                                 static_cast<size_t>(ranges[1]))...} {}
   //----------------------------------------------------------------------------
-  explicit constexpr static_multidim(integral auto... res)
+#ifdef __cpp_concepts
+  template <integral... Res>
+#else
+  template <typename... Res, enable_if<is_integral<Res...>> = true>
+#endif
+  explicit constexpr static_multidim(Res... res)
       : m_ranges{std::make_pair(static_cast<size_t>(0),
                                 static_cast<size_t>(res))...} {}
   //----------------------------------------------------------------------------
@@ -149,21 +161,21 @@ struct dynamic_multidim {
  private:
   std::vector<std::pair<size_t, size_t>> m_ranges;
   struct iterator {
-    //----------------------------------------------------------------------------
+    //--------------------------------------------------------------------------
     const dynamic_multidim* m_cont;
     std::vector<size_t>     m_status;
-    //----------------------------------------------------------------------------
+    //--------------------------------------------------------------------------
     iterator(const dynamic_multidim& c, std::vector<size_t> status)
         : m_cont{&c}, m_status{std::move(status)} {}
-    //----------------------------------------------------------------------------
+    //--------------------------------------------------------------------------
     iterator(const iterator& other) = default;
     iterator(iterator&& other) = default;
-    //----------------------------------------------------------------------------
+    //--------------------------------------------------------------------------
     auto operator=(const iterator& other) -> iterator& = default;
     auto operator=(iterator&& other) -> iterator& = default;
-    //----------------------------------------------------------------------------
+    //--------------------------------------------------------------------------
     ~iterator() = default;
-    //----------------------------------------------------------------------------
+    //--------------------------------------------------------------------------
     void operator++() {
       ++m_status.front();
       auto range_it  = m_cont->ranges().begin();
@@ -176,19 +188,19 @@ struct dynamic_multidim {
         }
       }
     }
-    //----------------------------------------------------------------------------
-    constexpr auto operator==(const iterator& other) const {
+    //--------------------------------------------------------------------------
+    auto operator==(const iterator& other) const {
       if (m_cont != other.m_cont) { return false; }
       for (size_t i = 0; i < m_cont->num_dimensions(); ++i) {
         if (m_status[i] != other.m_status[i]) { return false; }
       }
       return true;
     }
-    //----------------------------------------------------------------------------
-    constexpr auto operator!=(const iterator& other) const {
+    //--------------------------------------------------------------------------
+    auto operator!=(const iterator& other) const {
       return !operator==(other);
     }
-    //----------------------------------------------------------------------------
+    //--------------------------------------------------------------------------
     auto operator*() const -> const auto& { return m_status; }
   };
 
@@ -215,19 +227,32 @@ struct dynamic_multidim {
     for (size_t i = 0; i < N; ++i) { m_ranges[i].second = res[i]; }
   }
   //----------------------------------------------------------------------------
+#ifdef __cpp_concepts
   template <integral... Ts>
+#else
+  template <typename... Ts, enable_if<is_integral<Ts...>> = true>
+#endif
   explicit constexpr dynamic_multidim(const std::pair<Ts, Ts>&... ranges)
       : m_ranges{std::make_pair(static_cast<size_t>(ranges.first),
                                 static_cast<size_t>(ranges.second))...} {}
 
   //----------------------------------------------------------------------------
+#ifdef __cpp_concepts
   template <integral... Ts>
+#else
+  template <typename... Ts, enable_if<is_integral<Ts...>> = true>
+#endif
   constexpr dynamic_multidim(Ts const (&... ranges)[2]) // NOLINT
       : m_ranges{std::make_pair(static_cast<size_t>(ranges[0]),
                                 static_cast<size_t>(ranges[1]))...} {}
 
   //----------------------------------------------------------------------------
-  explicit constexpr dynamic_multidim(integral auto... res)
+#ifdef __cpp_concepts
+  template <integral... Res>
+#else
+  template <typename... Res, enable_if<is_integral<Res...>> = true>
+#endif
+  explicit constexpr dynamic_multidim(Res... res)
       : m_ranges{std::make_pair(static_cast<size_t>(0),
                                 static_cast<size_t>(res))...} {}
 
@@ -256,9 +281,7 @@ struct dynamic_multidim {
   //----------------------------------------------------------------------------
   [[nodiscard]] auto num_dimensions() const -> size_t { return m_ranges.size(); }
 };
-
 //==============================================================================
 }  // namespace tatooine
 //==============================================================================
-
 #endif

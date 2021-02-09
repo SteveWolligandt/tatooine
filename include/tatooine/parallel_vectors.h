@@ -318,15 +318,15 @@ auto calc(GetV&& getv, GetW&& getw, grid<XDomain, YDomain, ZDomain> const& g,
 //==============================================================================
 }  // namespace detail
 //==============================================================================
-template <typename V, typename W, real_number VReal, real_number WReal,
+template <typename V, typename W, arithmetic VReal, arithmetic WReal,
           indexable_space XDomain, indexable_space YDomain,
           indexable_space ZDomain,
-          invocable<vec<promote_t<VReal, WReal>, 3>>... Preds>
+          invocable<vec<common_type<VReal, WReal>, 3>>... Preds>
 auto parallel_vectors(field<V, VReal, 3, 3> const&           vf,
                       field<W, WReal, 3, 3> const&           wf,
                       grid<XDomain, YDomain, ZDomain> const& g,
-                      real_number auto const t, Preds&&... preds) {
-  return detail::calc<promote_t<VReal, WReal>>(
+                      arithmetic auto const t, Preds&&... preds) {
+  return detail::calc<common_type<VReal, WReal>>(
       // get v data by evaluating V field
       [&vf, t](auto /*ix*/, auto /*iy*/, auto /*iz*/, auto const& p) {
         if (vf.in_domain(p, t)) {
@@ -347,28 +347,28 @@ auto parallel_vectors(field<V, VReal, 3, 3> const&           vf,
 }
 //------------------------------------------------------------------------------
 template <
-    typename V, typename W, real_number VReal, real_number WReal,
+    typename V, typename W, arithmetic VReal, arithmetic WReal,
     indexable_space XDomain, indexable_space YDomain, indexable_space ZDomain,
-    invocable<vec<promote_t<VReal, WReal>, 3>>... Preds> auto parallel_vectors(
+    invocable<vec<common_type<VReal, WReal>, 3>>... Preds> auto parallel_vectors(
         field<V, VReal, 3, 3> const& v, field<W, WReal, 3, 3> const& w,
         grid<XDomain, YDomain, ZDomain> const& g, Preds&&... preds) {
   return parallel_vectors(v, w, g, 0, std::forward<Preds>(preds)...);
 }
 //------------------------------------------------------------------------------
-template <typename V, typename W, real_number VReal, real_number WReal,
-          real_number XReal, real_number YReal, real_number ZReal,
-          invocable<vec<promote_t<VReal, WReal>, 3>>... Preds>
+template <typename V, typename W, arithmetic VReal, arithmetic WReal,
+          arithmetic XReal, arithmetic YReal, arithmetic ZReal,
+          invocable<vec<common_type<VReal, WReal>, 3>>... Preds>
 auto parallel_vectors(field<V, VReal, 3, 3> const& v,
                       field<W, WReal, 3, 3> const& w, linspace<XReal> const& x,
                       linspace<YReal> const& y, linspace<ZReal> const& z,
-                      real_number auto t, Preds&&... preds) {
+                      arithmetic auto t, Preds&&... preds) {
   return parallel_vectors(v, w, grid{x, y, z}, t,
                           std::forward<Preds>(preds)...);
 }
 //------------------------------------------------------------------------------
-template <typename V, typename W, real_number VReal, real_number WReal,
-          real_number XReal, real_number YReal, real_number ZReal,
-          invocable<vec<promote_t<VReal, WReal>, 3>>... Preds>
+template <typename V, typename W, arithmetic VReal, arithmetic WReal,
+          arithmetic XReal, arithmetic YReal, arithmetic ZReal,
+          invocable<vec<common_type<VReal, WReal>, 3>>... Preds>
 auto parallel_vectors(field<V, VReal, 3, 3> const& v,
                       field<W, WReal, 3, 3> const& w, linspace<XReal> const& x,
                       linspace<YReal> const& y, linspace<ZReal> const& z,
@@ -377,9 +377,9 @@ auto parallel_vectors(field<V, VReal, 3, 3> const& v,
                           std::forward<Preds>(preds)...);
 }
 //------------------------------------------------------------------------------
-template <real_number VReal, typename VIndexing, real_number WReal,
-          real_number WIndexing, real_number AABBReal,
-          invocable<vec<promote_t<VReal, WReal>, 3>>... Preds>
+template <arithmetic VReal, typename VIndexing, arithmetic WReal,
+          arithmetic WIndexing, arithmetic AABBReal,
+          invocable<vec<common_type<VReal, WReal>, 3>>... Preds>
 auto parallel_vectors(
     dynamic_multidim_array<vec<VReal, 3>, VIndexing> const& vf,
     dynamic_multidim_array<vec<WReal, 3>, WIndexing> const& wf,
@@ -390,7 +390,7 @@ auto parallel_vectors(
   assert(vf.size(1) == wf.size(1));
   assert(vf.size(2) == wf.size(2));
 
-  return detail::calc<promote_t<VReal, WReal>>(
+  return detail::calc<common_type<VReal, WReal>>(
       [&vf](auto ix, auto iy, auto iz, auto const & /*p*/) -> auto const& {
         return vf(ix, iy, iz);
       },

@@ -37,12 +37,13 @@ auto create_initial_distribution(args_t const& args) {
 auto create_initial_particles(auto&& v, args_t const& args) {
   auto       initial_distribution_grid = create_initial_distribution(args);
   auto const r0 = initial_distribution_grid.dimension<0>().spacing() / 2;
-  std::vector<autonomous_particle<decltype(flowmap(v))>> initial_particles;
+  typename autonomous_particle<std::decay_t<decltype(v)>>::container_t
+      initial_particles;
   for (auto const& x : initial_distribution_grid.vertices()) {
     initial_particles.emplace_back(v, x, args.t0, r0).phi().use_caching(false);
   }
 
-  //// overlapping particles
+  // overlapping particles
   //initial_distribution_grid.front<0>() +=
   //    initial_distribution_grid.dimension<0>().spacing() / 2;
   //initial_distribution_grid.back<0>() +=
@@ -60,9 +61,7 @@ auto create_initial_particles(auto&& v, args_t const& args) {
   return initial_particles;
 }
 //------------------------------------------------------------------------------
-template <flowmap_c Flowmap>
-auto create_autonomous_mesh(
-    std::vector<autonomous_particle<Flowmap>> const& advected_particles) {
+auto create_autonomous_mesh(range auto const& advected_particles) {
   triangular_mesh<double, 2> autonomous_mesh;
   auto&                      autonomous_flowmap_mesh_prop =
       autonomous_mesh.add_vertex_property<vec2>("flowmap");
@@ -256,28 +255,28 @@ auto main(int argc, char** argv) -> int {
   auto args = *args_opt;
   report << "t0: " << args.t0 << '\n' << "tau: " << args.tau << '\n';
 
-  auto calc_particles = [&args](auto const& initial_particles)
-      -> std::vector<std::decay_t<decltype(initial_particles.front())>> {
-    switch (args.num_splits) {
-      case 2:
-        return initial_particles.front().advect_with_2_splits(
-            args.tau_step, args.t0 + args.tau, args.max_num_particles,
-            initial_particles);
-      case 3:
-        return initial_particles.front().advect_with_3_splits(
-            args.tau_step, args.t0 + args.tau, args.max_num_particles,
-            initial_particles);
-      case 5:
-        return initial_particles.front().advect_with_5_splits(
-            args.tau_step, args.t0 + args.tau, args.max_num_particles,
-            initial_particles);
-      case 7:
-        return initial_particles.front().advect_with_7_splits(
-            args.tau_step, args.t0 + args.tau, args.max_num_particles,
-            initial_particles);
-    }
-    return {};
-  };
+  auto calc_particles = [&args](auto const& initial_particles) ->
+      typename std::decay_t<decltype(initial_particles.front())>::container_t {
+        switch (args.num_splits) {
+          // case 2:
+          //  return initial_particles.front().advect_with_2_splits(
+          //      args.tau_step, args.t0 + args.tau, args.max_num_particles,
+          //      initial_particles);
+          case 3:
+            return initial_particles.front().advect_with_3_splits(
+                args.tau_step, args.t0 + args.tau, args.max_num_particles,
+                initial_particles);
+            // case 5:
+            //  return initial_particles.front().advect_with_5_splits(
+            //      args.tau_step, args.t0 + args.tau, args.max_num_particles,
+            //      initial_particles);
+            // case 7:
+            //  return initial_particles.front().advect_with_7_splits(
+            //      args.tau_step, args.t0 + args.tau, args.max_num_particles,
+            //      initial_particles);
+        }
+        return {};
+      };
 
   analytical::fields::numerical::doublegyre v;
   v.set_infinite_domain(true);

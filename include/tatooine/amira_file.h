@@ -27,7 +27,11 @@ inline const char* find_and_jump(const char* buffer,
 
 /// A simple routine to read an AmiraMesh file
 /// that defines a scalar/vector field on a uniform grid.
+#ifdef __cpp_concepts
 template <floating_point T = float>
+#else
+template <typename T = float, enable_if<is_floating_point<T>> = true>
+#endif
 auto read(std::filesystem::path const& path) {
   FILE* fp = fopen(path.string().c_str(), "rb");
   if (!fp) throw std::runtime_error("could not open file " + path.string());
@@ -36,7 +40,7 @@ auto read(std::filesystem::path const& path) {
   // The fixed buffer size looks a bit like a hack, and it is one, but it gets
   // the job done.
   char buffer[2048];
-  fread(buffer, sizeof(char), 2047, fp);
+  [[maybe_unused]] auto const ret = fread(buffer, sizeof(char), 2047, fp);
   buffer[2047] =
       '\0';  // The following string routines prefer null-terminated strings
 
@@ -82,9 +86,9 @@ auto read(std::filesystem::path const& path) {
     // Set the file pointer to the beginning of "# Data section follows"
     fseek(fp, idx_start_data, SEEK_SET);
     // Consume this line, which is "# Data section follows"
-    fgets(buffer, 2047, fp);
+    [[maybe_unused]] auto const ret0 = fgets(buffer, 2047, fp);
     // Consume the next line, which is "@1"
-    fgets(buffer, 2047, fp);
+    [[maybe_unused]] auto const ret1 = fgets(buffer, 2047, fp);
 
     // Read the data
     // - how much to read

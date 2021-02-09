@@ -1,9 +1,10 @@
+#ifdef __cpp_concepts
 #ifndef TATOOINE_CONCPETS_H
 #define TATOOINE_CONCPETS_H
 //==============================================================================
 #include <concepts>
 #include <ranges>
-#include <tatooine/is_complex.h>
+#include <tatooine/type_traits.h>
 #include <tatooine/invocable_with_n_types.h>
 //==============================================================================
 namespace tatooine {
@@ -40,10 +41,10 @@ template <typename T>
 concept floating_point = std::floating_point<T>;
 //------------------------------------------------------------------------------
 template <typename T>
-concept real_number = integral<T> || floating_point<T>;
+concept arithmetic = integral<T> || floating_point<T>;
 //------------------------------------------------------------------------------
 template <typename T>
-concept real_or_complex_number = real_number<T> || is_complex_v<T>;
+concept arithmetic_or_complex = arithmetic<T> || is_complex<T>;
 //------------------------------------------------------------------------------
 template <typename From, typename To>
 concept convertible_to = std::convertible_to<From, To>;
@@ -202,4 +203,5 @@ concept can_read = requires(Reader reader, Readable readable) {
 //==============================================================================
 }  // namespace tatooine
 //==============================================================================
+#endif
 #endif
