@@ -17,7 +17,11 @@ struct magma : grid<std::array<Real, 256>> {
   using container_t = dynamic_multidim_array<col_t, x_fastest>;
   template <typename T>
   using interpolation_t = interpolation::linear<T>;
-  using prop_t          = typed_multidim_property<grid_t, vec<Real, 3>>;
+  template <typename ValueType, bool HasNonConstReference>
+  using typed_property_t =
+      typename parent_t::template typed_property_t<ValueType,
+                                                   HasNonConstReference>;
+  using prop_t          = typed_property_t<col_t, true>;
   using sampler_t       = sampler<prop_t, interpolation::linear>;
   //==============================================================================
   prop_t&    m_scale_prop;

@@ -30,15 +30,15 @@ auto direct_volume_rendering(
   using value_type = std::invoke_result_t<DataEvaluator, pos_t>;
   using color_type = std::invoke_result_t<ColorScale, value_type>;
   using alpha_type = std::invoke_result_t<AlphaScale, value_type>;
-  static_assert(std::is_arithmetic_v<value_type>,
+  static_assert(is_arithmetic<value_type>,
                 "DataEvaluator must return scalar type.");
-  static_assert(std::is_arithmetic_v<color_type> || is_vec_v<color_type>,
+  static_assert(is_arithmetic<color_type> || is_vec<color_type>,
                 "ColorScale must return scalar type or tatooine::vec.");
-  static_assert(std::is_floating_point_v<alpha_type>,
+  static_assert(is_floating_point<alpha_type>,
                 "AlphaScale must return floating point number.");
   grid<linspace<CameraReal>, linspace<CameraReal>> rendered_image{
-      linspace<CameraReal>{0.0, 1.0, cam.plane_width()},
-      linspace<CameraReal>{0.0, 1.0, cam.plane_height()}};
+      linspace<CameraReal>{0.0, cam.plane_width() - 1, cam.plane_width()},
+      linspace<CameraReal>{0.0, cam.plane_height() - 1, cam.plane_height()}};
   auto& rendering =
       rendered_image.template add_vertex_property<color_type>("rendering");
 
@@ -106,13 +106,13 @@ auto direct_volume_rendering(
 }
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 template <arithmetic CameraReal, typename Grid, typename ValueType,
-          regular_invocable<double> ColorScale,
+          bool HasNonConstReference, regular_invocable<double> ColorScale,
           regular_invocable<double> AlphaScale>
 auto direct_volume_rendering(
-    rendering::camera<CameraReal> const&            cam,
-    typed_multidim_property<Grid, ValueType> const& prop,
-    std::convertible_to<ValueType> auto const       min,
-    std::convertible_to<ValueType> auto const       max,
+    rendering::camera<CameraReal> const&                                  cam,
+    typed_multidim_property<Grid, ValueType, HasNonConstReference> const& prop,
+    std::convertible_to<ValueType> auto const                             min,
+    std::convertible_to<ValueType> auto const                             max,
     arithmetic auto const distance_on_ray, ColorScale&& color_scale,
     AlphaScale&&                                       alpha_scale,
     std::invoke_result_t<ColorScale, ValueType> const& bg_color = {}) {

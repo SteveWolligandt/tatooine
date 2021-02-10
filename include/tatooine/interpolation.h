@@ -14,11 +14,11 @@
 //==============================================================================
 namespace tatooine::interpolation {
 //==============================================================================
-#ifdef __cpp_concepts
-  template <arithmetic Real>
-#else
+//#ifdef __cpp_concepts
+//  template <arithmetic Real>
+//#else
   template <typename Real>
-#endif
+//#endif
 struct linear {
   //----------------------------------------------------------------------------
   // traits
@@ -30,7 +30,7 @@ struct linear {
   static constexpr size_t num_dimensions() {
     return 1;
   }
-  static_assert(std::is_arithmetic<Real>::value);
+  //static_assert(std::is_arithmetic<Real>::value);
 
   //----------------------------------------------------------------------------
   // members

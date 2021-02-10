@@ -54,15 +54,15 @@ class perspective_camera : public camera<Real> {
   /// Constructor generates bottom left image plane pixel position and pixel
   /// offset size.
   perspective_camera(vec3 const& eye, vec3 const& lookat, Real fov,
-                     Real const near, Real const far, size_t res_x,
-                     size_t res_y)
+                     Real const near, Real const far, size_t const res_x,
+                     size_t const res_y)
       : perspective_camera(eye, lookat, vec3{0, 1, 0}, fov, near, far, res_x,
                            res_y) {}
   //----------------------------------------------------------------------------
   /// Constructor generates bottom left image plane pixel position and pixel
   /// offset size.
   perspective_camera(vec3 const& eye, vec3 const& lookat, Real fov,
-                     size_t res_x, size_t res_y)
+                     size_t const res_x, size_t const res_y)
       : perspective_camera(eye, lookat, vec3{0, 1, 0}, fov, 0.001, 1000, res_x,
                            res_y) {}
   //----------------------------------------------------------------------------
@@ -73,7 +73,7 @@ class perspective_camera : public camera<Real> {
   /// gets a ray through plane at pixel with coordinate [x,y].
   /// [0,0] is bottom left.
   /// ray goes through center of pixel
-  auto ray(Real x, Real y) const -> tatooine::ray<Real, 3> override {
+  auto ray(Real const x, Real const y) const -> tatooine::ray<Real, 3> override {
     auto const view_plane_point =
         m_bottom_left + x * m_plane_base_x + y * m_plane_base_y;
     return {{eye()}, {view_plane_point - eye()}};
@@ -85,8 +85,8 @@ class perspective_camera : public camera<Real> {
     vec3 const   u        = cross(up(), view_dir);
     vec3 const   v        = cross(view_dir, u);
     Real const plane_half_width =
-        std::tan(m_fov / Real(2) * Real(M_PI) / Real(180));
-    Real const plane_half_height = plane_half_width * this->aspect_ratio();
+        std::tan(m_fov / Real(2) * Real(M_PI) / Real(180)) ;
+    Real const plane_half_height = plane_half_width / this->aspect_ratio();
     m_bottom_left =
         eye() + view_dir - u * plane_half_width - v * plane_half_height;
     m_plane_base_x = u * 2 * plane_half_width / (this->plane_width() - 1);
