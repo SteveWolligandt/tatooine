@@ -4,6 +4,7 @@
 #include <tatooine/concepts.h>
 #include <tatooine/crtp.h>
 #include <tatooine/exceptions.h>
+#include <tatooine/internal_value_type.h>
 #include <tatooine/base_tensor.h>
 
 #include <vector>
@@ -333,7 +334,7 @@ struct sampler
     return sizeof...(InterpolationKernels);
   }
   //----------------------------------------------------------------------------
-  static_assert(std::is_floating_point_v<internal_data_type_t<value_type>>);
+  static_assert(is_floating_point<internal_value_type<value_type>>);
   //============================================================================
  private:
   property_t const& m_property;

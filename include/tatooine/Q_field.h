@@ -29,20 +29,20 @@ class Q_field
   //============================================================================
  public:
   template <typename Real>
-  Q_field(const field<V, Real, N, N>& v) : m_v{v.as_derived()} {}
+  Q_field(field<V, Real, N, N> const& v) : m_v{v.as_derived()} {}
 
   //============================================================================
   // methods
   //============================================================================
  public:
-  constexpr tensor_t evaluate(const pos_t& x, real_t t) const {
+  constexpr tensor_t evaluate(pos_t const& x, real_t t) const {
     auto J      = diff(m_v, 1e-7)(x, t);
     auto S      = (J + transposed(J)) / 2;
     auto Omega  = (J - transposed(J)) / 2;
     return (sqr_norm(Omega) - sqr_norm(S)) / 2;
   }
   //----------------------------------------------------------------------------
-  constexpr bool in_domain(const pos_t& x, real_t t) const {
+  constexpr bool in_domain(pos_t const& x, real_t t) const {
     return m_v.in_domain(x, t);
   }
 };
@@ -110,7 +110,7 @@ class Q_field<V, 3>
 };
 //==============================================================================
 template <typename V, typename Real, size_t N>
-auto Q(const field<V, Real, N, N>& vf) {
+auto Q(field<V, Real, N, N> const& vf) {
   return Q_field<V, N>{vf.as_derived()};
 }
 //==============================================================================

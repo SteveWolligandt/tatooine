@@ -87,10 +87,30 @@ class grid {
         m_diff_stencil_coefficients_n1_0{
             other.m_diff_stencil_coefficients_n1_0} {
     for (auto const& [name, prop] : other.m_vertex_properties) {
-      m_vertex_properties.emplace(name, prop->clone());
+      auto & emplaced_prop = m_vertex_properties.emplace(name, prop->clone());
+      emplaced_prop.set_grid(*this);
     }
   }
-  constexpr grid(grid&& other) noexcept = default;
+  constexpr grid(grid&& other) noexcept
+      : m_dimensions{std::move(other.m_dimensions)},
+        m_vertex_properties{std::move(other.m_vertex_properties)},
+        m_diff_stencil_coefficients_n1_0_p1{
+            std::move(other.m_diff_stencil_coefficients_n1_0_p1)},
+        m_diff_stencil_coefficients_n2_n1_0{
+            std::move(other.m_diff_stencil_coefficients_n2_n1_0)},
+        m_diff_stencil_coefficients_0_p1_p2{
+            std::move(other.m_diff_stencil_coefficients_0_p1_p2)},
+        m_diff_stencil_coefficients_0_p1{
+            std::move(other.m_diff_stencil_coefficients_0_p1)},
+        m_diff_stencil_coefficients_n1_0{
+            std::move(other.m_diff_stencil_coefficients_n1_0)} {
+    for (auto const& [name, prop] : m_vertex_properties) {
+      prop->set_grid(*this);
+    }
+    for (auto const& [name, prop] : other.m_vertex_properties) {
+      prop->set_grid(other);
+    }
+  }
   //----------------------------------------------------------------------------
   /// The enable if is needed due to gcc bug 80871. See here:
   /// https://stackoverflow.com/questions/46848129/variadic-deduction-guide-not-taken-by-g-taken-by-clang-who-is-correct
@@ -239,71 +259,37 @@ class grid {
   constexpr auto size(size_t const i) const {
     if (i == 0) {
       return size<0>();
-    } else if constexpr (num_dimensions() > 1) {
-      if (i == 1) {
-        return size<1>();
-      } else if constexpr (num_dimensions() > 2) {
-        if (i == 2) {
-          return size<2>();
-        } else if constexpr (num_dimensions() > 3) {
-          if (i == 3) {
-            return size<3>();
-          } else if constexpr (num_dimensions() > 4) {
-            if (i == 4) {
-              return size<4>();
-            } else if constexpr (num_dimensions() > 5) {
-              if (i == 5) {
-                return size<5>();
-              } else if constexpr (num_dimensions() > 6) {
-                if (i == 6) {
-                  return size<6>();
-                } else if constexpr (num_dimensions() > 7) {
-                  if (i == 7) {
-                    return size<7>();
-                  } else if constexpr (num_dimensions() > 8) {
-                    if (i == 8) {
-                      return size<8>();
-                    } else if constexpr (num_dimensions() > 9) {
-                      if (i == 9) {
-                        return size<9>();
-                      } else if constexpr (num_dimensions() > 10) {
-                        if (i == 10) {
-                          return size<10>();
-                        } else if constexpr (num_dimensions() > 11) {
-                          if (i == 11) {
-                            return size<11>();
-                          } else if constexpr (num_dimensions() > 12) {
-                            if (i == 12) {
-                              return size<12>();
-                            } else if constexpr (num_dimensions() > 13) {
-                              if (i == 13) {
-                                return size<13>();
-                              } else if constexpr (num_dimensions() > 14) {
-                                if (i == 14) {
-                                  return size<14>();
-                                } else if constexpr (num_dimensions() > 15) {
-                                  if (i == 15) {
-                                    return size<15>();
-                                  } else if constexpr (num_dimensions() > 16) {
-                                    if (i == 16) {
-                                      return size<16>();
-                                    }
-                                  }
-                                }
-                              }
-                            }
-                          }
-                        }
-                      }
-                    }
-                  }
-                }
-              }
-            }
-          }
-        }
-      }
     }
+    if constexpr (num_dimensions() > 1) { if (i == 1) {
+      return size<1>();
+    }}
+    if constexpr (num_dimensions() > 2) { if (i == 2) {
+      return size<2>();
+    }}
+    if constexpr (num_dimensions() > 3) { if (i == 3) {
+      return size<3>();
+    }}
+    if constexpr (num_dimensions() > 4) { if (i == 4) {
+      return size<4>();
+    }}
+    if constexpr (num_dimensions() > 5) { if (i == 5) {
+      return size<5>();
+    }}
+    if constexpr (num_dimensions() > 6) { if (i == 6) {
+      return size<6>();
+    }}
+    if constexpr (num_dimensions() > 7) { if (i == 7) {
+      return size<7>();
+    }}
+    if constexpr (num_dimensions() > 8) { if (i == 8) {
+      return size<8>();
+    }}
+    if constexpr (num_dimensions() > 9) { if (i == 9) {
+      return size<9>();
+    }}
+    if constexpr (num_dimensions() > 10) { if (i == 10) {
+      return size<10>();
+    }}
     return std::numeric_limits<size_t>::max();
   }
   //----------------------------------------------------------------------------
@@ -1513,7 +1499,7 @@ class grid {
       }
     }
   }
-};
+            };
 //==============================================================================
 // free functions
 //==============================================================================
@@ -1623,6 +1609,6 @@ template <typename Real, size_t... N>
 #endif
 using static_non_uniform_grid = grid<std::array<Real, N>...>;
 //==============================================================================
-}  // namespace tatooine
+          }  // namespace tatooine
 //==============================================================================
 #endif

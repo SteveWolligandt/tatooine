@@ -152,7 +152,7 @@ target_link_libraries(tatooine
 find_package(PNG QUIET)
 if(PNG_FOUND)
   find_package(PNG++ QUIET)
-  if (NOT DEFINED PNG++_INCLUDE_DIRS)
+  if (DEFINED PNG++_INCLUDE_DIRS)
     target_compile_definitions(tatooine PUBLIC TATOOINE_HAS_PNG_SUPPORT)
     target_include_directories(tatooine PUBLIC ${PNG_INCLUDE_DIRS} ${PNG++_INCLUDE_DIRS})
     target_link_libraries(tatooine PUBLIC ${PNG_LIBRARIES} ${PNG++_LIBRARIES})

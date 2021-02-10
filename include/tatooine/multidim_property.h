@@ -48,10 +48,10 @@ struct multidim_property {
   }
   //============================================================================
  private:
-  Grid const& m_grid;
+  Grid const* m_grid;
   //============================================================================
  public:
-  multidim_property(Grid const& grid) : m_grid{grid} {}
+  multidim_property(Grid const& grid) : m_grid{&grid} {}
   multidim_property(multidim_property const& other)     = default;
   multidim_property(multidim_property&& other) noexcept = default;
   //----------------------------------------------------------------------------
@@ -65,11 +65,12 @@ struct multidim_property {
   virtual auto clone() const -> std::unique_ptr<this_t> = 0;
   //----------------------------------------------------------------------------
   auto grid() -> auto& {
-    return m_grid;
+    return *m_grid;
   }
   auto grid() const -> auto const& {
-    return m_grid;
+    return *m_grid;
   }
+  auto set_grid(Grid const& g) { m_grid = &g; }
 };
 //==============================================================================
 template <typename Grid, typename ValueType, bool HasNonConstReference>
@@ -208,7 +209,7 @@ struct typed_multidim_property : multidim_property<Grid> {
 #ifdef __cpp_concepts
   template <typename = void>
   requires (num_dimensions() == 2) &&
-           (is_floating_point_v<ValueType> || is_vec_v<ValueType>)
+           (is_floating_point<ValueType> || is_vec<ValueType>)
 #else
   template <size_t _N                                   = num_dimensions(),
             enable_if<(_N == 2) && (is_floating_point<ValueType> ||
@@ -221,7 +222,7 @@ struct typed_multidim_property : multidim_property<Grid> {
     for (unsigned int y = 0; y < image.get_height(); ++y) {
       for (png::uint_32 x = 0; x < image.get_width(); ++x) {
         auto d = at(x, y);
-        if constexpr (is_floating_point_v<ValueType>) {
+        if constexpr (is_floating_point<ValueType>) {
           if (std::isnan(d)) {
             d = 0;
           } else {
@@ -230,14 +231,15 @@ struct typed_multidim_property : multidim_property<Grid> {
           image[image.get_height() - 1 - y][x].red =
           image[image.get_height() - 1 - y][x].green =
           image[image.get_height() - 1 - y][x].blue = d * 255;
-        } else if constexpr (is_floating_point_v<ValueType>) {
+        } else if constexpr (is_vec<ValueType>) {
           if (std::isnan(d(0))) {
             for (auto& c : d) {
               c = 0;
             }
           } else {
             for (auto& c : d) {
-              c = std::max<ValueType>(0, std::min<ValueType>(1, c));
+              c = std::max<typename ValueType::value_type>(
+                  0, std::min<typename ValueType::value_type>(1, c));
             }
           }
           image[image.get_height() - 1 - y][x].red   = d(0) * 255;
@@ -252,15 +254,18 @@ struct typed_multidim_property : multidim_property<Grid> {
 };
 //==============================================================================
 #if TATOOINE_HAS_PNG_SUPPORT
-template <typename Grid, typename ValueType>
-auto write_png(typed_multidim_property<Grid, ValueType> const& prop,
-               std::filesystem::path const&                    path) -> void {
+template <typename Grid, typename ValueType, bool HasNonConstReference>
+auto write_png(
+    typed_multidim_property<Grid, ValueType, HasNonConstReference> const& prop,
+    std::filesystem::path const& path) -> void {
   prop.write_png(path);
 }
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-template <typename Grid, typename ValueType>
-auto write_png(std::filesystem::path const&                    path,
-               typed_multidim_property<Grid, ValueType> const& prop) -> void {
+template <typename Grid, typename ValueType, bool HasNonConstReference>
+auto write_png(
+    std::filesystem::path const&                                          path,
+    typed_multidim_property<Grid, ValueType, HasNonConstReference> const& prop)
+    -> void {
   prop.write_png(path);
 }
 #endif
