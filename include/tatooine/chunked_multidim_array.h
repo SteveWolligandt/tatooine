@@ -222,7 +222,7 @@ struct chunked_multidim_array {
             enable_if<is_integral<Indices...>> = true>
 #endif
   auto plain_chunk_index_from_global_indices(
-      std::index_sequence<Seq...>, Indices const... indices) const {
+      std::index_sequence<Seq...> seq, Indices const... indices) const {
     assert(sizeof...(indices) == num_dimensions());
     return m_chunk_structure.plain_index(
         (indices / m_internal_chunk_size[Seq])...);

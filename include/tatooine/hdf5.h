@@ -51,6 +51,38 @@ struct h5_type<tensor<T, Dims...>> {
   static auto value() { return h5_type<T>::value(); }
 };
 //==============================================================================
+class attribute {
+ public:
+  using this_t = attribute;
+
+ private:
+  mutable std::shared_ptr<H5::H5File> m_file;
+  mutable std::shared_ptr<std::mutex> m_mutex;
+  H5::Attribute                       m_attribute;
+  std::string                         m_name;
+
+ public:
+  attribute(std::shared_ptr<H5::H5File>& file,
+            std::shared_ptr<std::mutex>& mutex, H5::Attribute const& attribute,
+            std::string const& name)
+      : m_file{file}, m_mutex{mutex}, m_attribute{attribute}, m_name{name} {}
+  //----------------------------------------------------------------------------
+  attribute(attribute const&)     = default;
+  attribute(attribute&&) noexcept = default;
+  //----------------------------------------------------------------------------
+  auto operator=(attribute const&) -> attribute& = default;
+  auto operator=(attribute&&) noexcept -> attribute& = default;
+  //============================================================================
+  template <typename T>
+  auto read() {
+    std::vector<T> t;
+    auto           s = m_attribute.getInMemDataSize();
+    t.resize(s / sizeof(T));
+    m_attribute.read(h5_type<T>::value(), t.data());
+    return t;
+  }
+};
+//==============================================================================
 template <typename T>
 class dataset {
  public:
@@ -131,6 +163,7 @@ class dataset {
     if (!must_resize) {
       for (size_t i = 0; i < num_dims; ++i) {
         if (arr.size(i) != size[i]) {
+          must_resize = true;
           break;
         }
       }
@@ -141,6 +174,29 @@ class dataset {
 
     std::lock_guard lock{*m_mutex};
     m_dataset.read(arr.data_ptr(), h5_type<T>::value());
+  }
+  //----------------------------------------------------------------------------
+  auto read_as_vector() const {
+    std::vector<T> data;
+    read(data);
+    return data;
+  }
+  //----------------------------------------------------------------------------
+  auto read(std::vector<T>& data) const {
+    auto const ds       = data_space();
+    auto const num_dims = ds.getSimpleExtentNdims();
+    auto       size     = std::make_unique<hsize_t[]>(num_dims);
+    ds.getSimpleExtentDims(size.get());
+    size_t num_entries = 1;
+    for (size_t i = 0; i < num_dims; ++i) {
+      num_entries *= size[i];
+    }
+    if (data.size() != num_entries) {
+      data.resize(num_entries);
+    }
+
+    std::lock_guard lock{*m_mutex};
+    m_dataset.read(data.data(), h5_type<T>::value());
   }
   //----------------------------------------------------------------------------
   //  auto read_chunked(size_t const chunk_size = 10) const {
@@ -382,7 +438,7 @@ class dataset {
     data_space().getSimpleExtentDims(size.get());
     return std::vector<size_t>(size.get(), size.get() + n);
   }
-  //  //----------------------------------------------------------------------------
+  //----------------------------------------------------------------------------
   //  auto name() const {
   //    std::lock_guard lock{*m_mutex};
   //    return m_dataset.getName();
@@ -392,9 +448,41 @@ class dataset {
   }
   //----------------------------------------------------------------------------
   auto name() const -> auto const& { return m_name; }
+  //----------------------------------------------------------------------------
 };
 //==============================================================================
-class size {};
+class group {
+ public:
+  using this_t = group;
+
+ private:
+  mutable std::shared_ptr<H5::H5File> m_file;
+  mutable std::shared_ptr<std::mutex> m_mutex;
+  H5::Group                           m_group;
+  std::string                         m_name;
+
+ public:
+  group(std::shared_ptr<H5::H5File>& file, std::shared_ptr<std::mutex>& mutex,
+          H5::Group const& group, std::string const& name)
+      : m_file{file}, m_mutex{mutex}, m_group{group}, m_name{name} {}
+  //----------------------------------------------------------------------------
+  group(group const&)     = default;
+  group(group&&) noexcept = default;
+  //----------------------------------------------------------------------------
+  auto operator=(group const&) -> group& = default;
+  auto operator=(group&&) noexcept -> group& = default;
+  //============================================================================
+  auto attribute(std::string const& attribute_name) {
+    return hdf5::attribute{
+        m_file, m_mutex, m_group.openAttribute(attribute_name), attribute_name};
+  }
+  //============================================================================
+  template <typename T>
+  auto dataset(std::string const& dataset_name) {
+    return hdf5::dataset<T>{
+        m_file, m_mutex, m_group.openDataSet(dataset_name), dataset_name};
+  }
+};
 //==============================================================================
 class file {
   mutable std::shared_ptr<H5::H5File> m_file;
@@ -416,6 +504,11 @@ class file {
       : m_file{new H5::H5File(path, std::forward<Ts>(ts)...)},
         m_mutex{std::make_shared<std::mutex>()} {}
   //============================================================================
+  auto group(std::string const& group_name) {
+    return hdf5::group{m_file, m_mutex, m_file->openGroup(group_name),
+                       group_name};
+  }
+  //============================================================================
   template <typename T, integral... Size>
   auto add_dataset(std::string const& dataset_name, Size... size) {
     H5::AtomType data_type{h5_type<T>::value()};
@@ -430,16 +523,18 @@ class file {
   //----------------------------------------------------------------------------
   template <typename T>
   auto dataset(char const* dataset_name) const {
-    return hdf5::dataset<T>{m_file, m_mutex, m_file->openDataSet(dataset_name), dataset_name};
+    return hdf5::dataset<T>{m_file, m_mutex, m_file->openDataSet(dataset_name),
+                            dataset_name};
   }
   //----------------------------------------------------------------------------
   template <typename T>
   auto dataset(std::string const& dataset_name) const {
-    return hdf5::dataset<T>{m_file, m_mutex, m_file->openDataSet(dataset_name), dataset_name};
+    return hdf5::dataset<T>{m_file, m_mutex, m_file->openDataSet(dataset_name),
+                            dataset_name};
   }
   //----------------------------------------------------------------------------
-  //template <typename T>
-  //auto datasets() const {
+  // template <typename T>
+  // auto datasets() const {
   //  std::map<std::string, hdf5::dataset<T>> vars;
   //  for (auto& [name, var] : m_file->getDataSets()) {
   //    if (var.getType() == h5_type<T>::value()) {
