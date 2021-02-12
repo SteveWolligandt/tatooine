@@ -1,5 +1,7 @@
 #if TATOOINE_HAS_HDF5_SUPPORT
 #include <tatooine/grid.h>
+#include <tatooine/random.h>
+#include <tatooine/isosurface.h>
 
 #include <catch2/catch.hpp>
 //==============================================================================
@@ -10,9 +12,10 @@ TEST_CASE("hdf5_read_chunk", "[hdf5][read][chunk]") {
   auto filepath   = std::filesystem::path{"hdf5_unittest.h5"};
   auto array_name = std::string{"Array"};
 
-  auto                full_size = std::vector<size_t>{32, 64, 16};
+  auto                full_size = std::vector<size_t>{64, 512, 32};
   std::vector<value_type> data_src(full_size[0] * full_size[1] * full_size[2]);
-  std::iota(begin(data_src), end(data_src), 0);
+  auto                    rand = random_uniform{value_type(-1000), value_type(1000)};
+  std::generate(begin(data_src), end(data_src), [&rand]() { return rand(); });
   {
     auto out = hdf5::file{filepath, H5F_ACC_TRUNC};
     auto arr_out =
@@ -68,16 +71,27 @@ TEST_CASE("hdf5_read_chunk", "[hdf5][read][chunk]") {
     auto const size   = std::vector<size_t>{2, 3, 4};
     read_chunk(offset, size);
   }
-  lazy_reader<hdf5::dataset<value_type>> lr{arr_in, {2, 2, 2}};
-  REQUIRE(lr(full_size[0] - 1, full_size[1] - 1, full_size[2] - 1) ==
-          full_size[0] * full_size[1] * full_size[2] - 1);
-  for (size_t z = 0; z < full_size[2]; ++z) {
-    for (size_t y = 0; y < full_size[1]; ++y) {
-      for (size_t x = 0; x < full_size[0]; ++x) {
-        CHECK(full_data(x, y, z) == lr(x, y, z));
-      }
-    }
-  }
+  //lazy_reader<hdf5::dataset<value_type>> lr{arr_in, {2, 2, 2}};
+  //REQUIRE(lr(full_size[0] - 1, full_size[1] - 1, full_size[2] - 1) ==
+  //        data_src.back());
+  //for (size_t z = 0; z < full_size[2]; ++z) {
+  //  for (size_t y = 0; y < full_size[1]; ++y) {
+  //    for (size_t x = 0; x < full_size[0]; ++x) {
+  //      CHECK(full_data(x, y, z) == lr(x, y, z));
+  //    }
+  //  }
+  //}
+
+  auto  domain = grid{linspace<double>{0.0, double(full_size[0]), full_size[0]},
+                     linspace<double>{0.0, double(full_size[1]), full_size[1]},
+                     linspace<double>{0.0, double(full_size[2]), full_size[2]}};
+  auto& prop   = domain.add_lazy_vertex_property(arr_in);
+  auto  ev      = [&](auto const ix, auto const iy, auto const iz,
+                auto const& /*p*/) {
+    return prop(ix, iy, iz);
+  };
+  auto  isomesh = isosurface(ev, domain, 0);
+  isomesh.write_vtk("isomesh.vtk");
 }
 //==============================================================================
 // TEST_CASE("hdf5_grid", "[hdf5][grid]") {

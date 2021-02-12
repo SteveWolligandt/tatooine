@@ -342,7 +342,10 @@ class dataset {
                   dynamic_multidim_array<T, Ordering>& arr) const {
     assert(offset.size() == count.size());
 
-    auto dataspace = m_dataset.getSpace();
+    auto dataspace = [this]() {
+      std::lock_guard lock{*m_mutex};
+      return m_dataset.getSpace();
+    }();
     int rank = dataspace.getSimpleExtentNdims();
     if (static_cast<unsigned int>(rank) != arr.num_dimensions()) {
       arr.resize(count);
@@ -356,9 +359,9 @@ class dataset {
     }
     std::reverse(begin(count), end(count));
     std::reverse(begin(offset), end(offset));
-    dataspace.selectHyperslab(H5S_SELECT_SET, count.data(), offset.data());
-    H5::DataSpace memspace(rank, count.data());
     {
+      dataspace.selectHyperslab(H5S_SELECT_SET, count.data(), offset.data());
+      H5::DataSpace   memspace(rank, count.data());
       std::lock_guard lock{*m_mutex};
       m_dataset.read(arr.data_ptr(), h5_type<T>::value(), memspace, dataspace);
     }
