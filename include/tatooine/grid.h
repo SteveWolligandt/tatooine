@@ -872,14 +872,20 @@ class grid {
   //----------------------------------------------------------------------------
 #ifdef TATOOINE_HAS_HDF5_SUPPORT
   template <typename T>
-  auto add_hdf5_lazy_property(std::filesystem::path const& path,
-                              std::string const& dataset_name) -> auto& {
+  auto add_hdf5_lazy_vertex_property(std::filesystem::path const& path,
+                                     std::string const& dataset_name) -> auto& {
     hdf5::file f{path, H5F_ACC_RDONLY};
     return add_lazy_property<T>(f.dataset<T>(dataset_name));
   }
   //----------------------------------------------------------------------------
   template <typename T>
-  auto add_lazy_property(hdf5::dataset<T> const& dataset) -> auto& {
+  auto add_vertex_property(hdf5::dataset<T> const& dataset) -> auto& {
+    return add_vertex_property(dataset, dataset.name());
+  }
+  //----------------------------------------------------------------------------
+  template <typename T>
+  auto add_vertex_property(hdf5::dataset<T> const& dataset,
+                           std::string const&      name) -> auto& {
     auto num_dims_dataset = dataset.num_dimensions();
     if (num_dimensions() != num_dims_dataset) {
       throw std::runtime_error{
@@ -887,13 +893,59 @@ class grid {
     }
     auto size_dataset = dataset.size();
     for (size_t i = 0; i < num_dimensions(); ++i) {
-    if (size_dataset[i] != size(0)) {
-      throw std::runtime_error{
-          "Resolution of grad and HDF5 DataSet do not match."};
+      if (size_dataset[i] != size(i)) {
+        std::stringstream ss;
+        ss << "Resolution of grid and HDF5 DataSet do not match. grid("
+           << size(0);
+        for (size_t i = 1; i < num_dimensions(); ++i) {
+          ss << ", " << size(i);
+        }
+        ss << ") and hdf5 dataset(" << size_dataset[i];
+        for (size_t i = 1; i < num_dimensions(); ++i) {
+          ss << ", " << size_dataset[i];
+        }
+        ss << ")";
+        throw std::runtime_error{ss.str()};
+      }
     }
+    auto& prop = add_vertex_property<T>(name);
+    dataset.read(prop);
+    return prop;
+  }
+  //----------------------------------------------------------------------------
+  template <typename T>
+  auto add_lazy_vertex_property(hdf5::dataset<T> const& dataset) -> auto& {
+    return add_lazy_vertex_property(dataset, dataset.name());
+  }
+  //----------------------------------------------------------------------------
+  template <typename T>
+  auto add_lazy_vertex_property(hdf5::dataset<T> const& dataset,
+                                std::string const&      name) -> auto& {
+    auto num_dims_dataset = dataset.num_dimensions();
+    if (num_dimensions() != num_dims_dataset) {
+      throw std::runtime_error{
+          "Number of dimensions do not match for HDF5 dataset and grid."};
+    }
+    auto size_dataset = dataset.size();
+    std::reverse(begin(size_dataset), end(size_dataset));
+    for (size_t i = 0; i < num_dimensions(); ++i) {
+      if (size_dataset[i] != size(i)) {
+        std::stringstream ss;
+        ss << "Resolution of grid and HDF5 DataSet do not match. grid("
+           << size(0);
+        for (size_t i = 1; i < num_dimensions(); ++i) {
+          ss << ", " << size(i);
+        }
+        ss << ") and hdf5 dataset(" << size_dataset[i];
+        for (size_t i = 1; i < num_dimensions(); ++i) {
+          ss << ", " << size_dataset[i];
+        }
+        ss << ")";
+        throw std::runtime_error{ss.str()};
+      }
     }
     return create_vertex_property<lazy_reader<hdf5::dataset<T>>>(
-        dataset.name(), dataset, std::vector<size_t>(num_dimensions(), 2));
+        name, dataset, std::vector<size_t>(num_dimensions(), 2));
   }
 #endif
 #ifdef TATOOINE_HAS_NETCDF_SUPPORT

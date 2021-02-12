@@ -141,6 +141,7 @@ target_link_libraries(tatooine
     stdc++fs
     ${BLAS_LIBRARIES}
     ${LAPACK_LIBRARIES}
+    ${LAPACKE_LIBRARIES}
 )
 
 #===============================================================================
@@ -167,6 +168,7 @@ if (OpenMP_CXX_FOUND)
   if (TATOOINE_COMPILE_WITH_OPENMP)
     set(TATOOINE_OPENMP_AVAILABLE 1)
     target_link_libraries(tatooine PUBLIC OpenMP::OpenMP_CXX)
+    message(STATUS "Compiling with OpenMP")
   else()
     set(TATOOINE_OPENMP_AVAILABLE 0)
   endif()
@@ -271,6 +273,7 @@ endif()
 add_subdirectory(autonomous_particles)
 add_subdirectory(smearing_scalar_field)
 add_subdirectory(insitu)
+add_subdirectory(channelflow)
 
 #- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 # This makes the project importable from the build directory
