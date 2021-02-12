@@ -115,11 +115,11 @@ auto main() -> int {
   auto Q_122_calc =
       [&](auto ix, auto iy, auto iz) {
         tat::mat3  J;
-        auto const ixpos = ix + 1;
+        auto const ixpos = ix == 511 ? ix : ix + 1;
         auto const ixneg = ix == 0 ? ix : ix - 1;
-        auto const iypos = iy + 1;
+        auto const iypos = iy == 4095 ? iy : iy + 1;
         auto const iyneg = iy == 0 ? iy : iy - 1;
-        auto const izpos = iz + 1;
+        auto const izpos = iz == 255 ? iz : iz + 1;
         auto const izneg = iz == 0 ? iz : iz - 1;
 
         auto const dx = full_domain.dimension<0>()[ixpos] -
