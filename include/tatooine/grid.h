@@ -893,7 +893,7 @@ class grid {
     }
     }
     return create_vertex_property<lazy_reader<hdf5::dataset<T>>>(
-        dataset.name(), dataset, std::vector<size_t>{2, 2});
+        dataset.name(), dataset, std::vector<size_t>(num_dimensions(), 2));
   }
 #endif
 #ifdef TATOOINE_HAS_NETCDF_SUPPORT
