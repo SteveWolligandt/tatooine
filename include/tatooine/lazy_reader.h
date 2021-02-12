@@ -3,7 +3,7 @@
 //==============================================================================
 #include <tatooine/chunked_multidim_array.h>
 
-#include <mutex>
+//#include <mutex>
 //==============================================================================
 namespace tatooine {
 //==============================================================================
@@ -22,7 +22,7 @@ struct lazy_reader : chunked_multidim_array<typename DataSet::value_type> {
  private:
   DataSet                                          m_dataset;
   mutable std::vector<bool>                        m_read;
-  mutable std::vector<std::unique_ptr<std::mutex>> m_mutexes;
+  //mutable std::vector<std::unique_ptr<std::mutex>> m_mutexes;
 
  public:
   lazy_reader(DataSet const& file, std::vector<size_t> chunk_size)
@@ -36,10 +36,10 @@ struct lazy_reader : chunked_multidim_array<typename DataSet::value_type> {
   lazy_reader(lazy_reader const& other) : parent_t{other}, m_dataset{other.m_dataset} {
     if constexpr (is_arithmetic<value_type>) {
       m_read.resize(this->num_chunks(), false);
-      m_mutexes.resize(this->num_chunks());
-      for (auto& mutex : m_mutexes) {
-        mutex = std::make_unique<std::mutex>();
-      }
+      //m_mutexes.resize(this->num_chunks());
+      //for (auto& mutex : m_mutexes) {
+      //  mutex = std::make_unique<std::mutex>();
+      //}
     }
   }
   //----------------------------------------------------------------------------
@@ -50,10 +50,10 @@ struct lazy_reader : chunked_multidim_array<typename DataSet::value_type> {
     this->resize(s, chunk_size);
     if constexpr (is_arithmetic<value_type>) {
       m_read.resize(this->num_chunks(), false);
-      m_mutexes.resize(this->num_chunks());
-      for (auto& mutex : m_mutexes) {
-        mutex = std::make_unique<std::mutex>();
-      }
+      //m_mutexes.resize(this->num_chunks());
+      //for (auto& mutex : m_mutexes) {
+      //  mutex = std::make_unique<std::mutex>();
+      //}
     }
   }
   //----------------------------------------------------------------------------
@@ -65,9 +65,9 @@ struct lazy_reader : chunked_multidim_array<typename DataSet::value_type> {
   auto read_chunk(size_t& plain_index, Indices const... indices) const
       -> auto const& {
 #ifndef NDEBUG
-    static std::mutex m;
+    //static std::mutex m;
     if (!this->in_range(indices...)) {
-      std::lock_guard lock{m};
+      //std::lock_guard lock{m};
       std::cerr << "not in range: ";
       ((std::cerr << indices << ", "), ...);
       std::cerr << '\n';
@@ -82,7 +82,7 @@ struct lazy_reader : chunked_multidim_array<typename DataSet::value_type> {
     assert(sizeof...(indices) == this->num_dimensions());
     assert(this->in_range(indices...));
     plain_index = this->plain_chunk_index_from_global_indices(indices...);
-    std::lock_guard lock{*m_mutexes[plain_index]};
+    //std::lock_guard lock{*m_mutexes[plain_index]};
 
     if constexpr (is_arithmetic<value_type>) {
       if (this->chunk_at_is_null(plain_index)) {

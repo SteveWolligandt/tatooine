@@ -56,6 +56,10 @@ template <typename Engine>
 random_uniform(const Engine&)->random_uniform<double, const Engine&>;
 
 // copy when having rvalue
+template <typename T>
+random_uniform(T min, T max) -> random_uniform<T, std::mt19937_64>;
+
+// copy when having rvalue
 template <typename T, typename Engine>
 random_uniform(T min, T max, Engine &&)->random_uniform<T, Engine>;
 
