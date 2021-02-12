@@ -858,13 +858,13 @@ class grid {
     auto const ext = path.extension();
 #ifdef TATOOINE_HAS_HDF5_SUPPORT
     if (ext == ".h5") {
-      return add_hdf5_lazy_property<T>(path, dataset_name);
+      return add_hdf5_lazy_vertex_property<T>(path, dataset_name);
     }
 #endif
 #ifdef TATOOINE_HAS_NETCDF_SUPPORT
     if (ext == ".nc") {
 
-      return add_netcdf_lazy_property<T>(path, dataset_name);
+      return add_netcdf_lazy_vertex_property<T>(path, dataset_name);
     }
 #endif
     throw std::runtime_error{
@@ -872,13 +872,6 @@ class grid {
   }
   //----------------------------------------------------------------------------
 #ifdef TATOOINE_HAS_HDF5_SUPPORT
-  template <typename T>
-  auto add_hdf5_lazy_vertex_property(std::filesystem::path const& path,
-                                     std::string const& dataset_name) -> auto& {
-    hdf5::file f{path, H5F_ACC_RDONLY};
-    return add_lazy_vertex_property<T>(f.dataset<T>(dataset_name));
-  }
-  //----------------------------------------------------------------------------
   template <typename T>
   auto add_vertex_property(hdf5::dataset<T> const& dataset) -> auto& {
     return add_vertex_property(dataset, dataset.name());
@@ -912,6 +905,13 @@ class grid {
     auto& prop = add_vertex_property<T>(name);
     dataset.read(prop);
     return prop;
+  }
+  //----------------------------------------------------------------------------
+  template <typename T>
+  auto add_hdf5_lazy_vertex_property(std::filesystem::path const& path,
+                                     std::string const& dataset_name) -> auto& {
+    hdf5::file f{path, H5F_ACC_RDONLY};
+    return add_lazy_vertex_property<T>(f.dataset<T>(dataset_name));
   }
   //----------------------------------------------------------------------------
   template <typename T>
@@ -952,7 +952,7 @@ class grid {
 #ifdef TATOOINE_HAS_NETCDF_SUPPORT
   //----------------------------------------------------------------------------
   template <typename T>
-  auto add_netcdf_lazy_property(std::filesystem::path const& path,
+  auto add_netcdf_lazy_vertex_property(std::filesystem::path const& path,
                                 std::string const& dataset_name) -> auto& {
     netcdf::file f{path, netCDF::NcFile::read};
     return add_lazy_vertex_property<T>(f.variable<T>(dataset_name));
