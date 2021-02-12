@@ -4,9 +4,9 @@
 #include <cassert>
 #include <string>
 #include <vector>
-//#ifndef NDEBUG
+#ifndef NDEBUG
 #include <mutex>
-//#endif
+#endif
 
 #include <tatooine/field.h>
 #include <tatooine/for_loop.h>
@@ -43,9 +43,9 @@ auto isosurface(GetScalars&&                           get_scalars,
   using pos_t = vec<real_t, 3>;
   triangular_mesh<real_t, 3> iso_volume;
 
-//#if defined(NDEBUG) && defined(TATOOINE_OPENMP_AVAILABLE)
+#if defined(NDEBUG) && defined(TATOOINE_OPENMP_AVAILABLE)
   std::mutex mutex;
-//#endif
+#endif
   auto process_cube = [&](auto ix, auto iy, auto iz) {
     auto       vertlist = make_array<pos_t, 12>();
     std::array p{g(ix, iy, iz + 1),     g(ix + 1, iy, iz + 1),
@@ -143,10 +143,10 @@ auto isosurface(GetScalars&&                           get_scalars,
       vertlist[11] = p[3] * (1 - s) + p[7] * s;
     }
 
-//#if defined(NDEBUG) && defined(TATOOINE_OPENMP_AVAILABLE)
+#if defined(NDEBUG) && defined(TATOOINE_OPENMP_AVAILABLE)
     {
       std::lock_guard lock{mutex};
-//#endif
+#endif
        //create the triangle
       for (size_t i = 0; marchingcubes_lookup::tri_table[cube_index][i] != -1;
            i += 3) {
@@ -158,15 +158,15 @@ auto isosurface(GetScalars&&                           get_scalars,
             iso_volume.insert_vertex(
                 vertlist[marchingcubes_lookup::tri_table[cube_index][i + 1]]));
       }
-//#if defined(NDEBUG) && defined(TATOOINE_OPENMP_AVAILABLE)
+#if defined(NDEBUG) && defined(TATOOINE_OPENMP_AVAILABLE)
     }
-//#endif
+#endif
   };
-//#if defined(NDEBUG) && defined(TATOOINE_OPENMP_AVAILABLE)
+#if defined(NDEBUG) && defined(TATOOINE_OPENMP_AVAILABLE)
   parallel_for_loop(process_cube, g.size(0) - 1, g.size(1) - 1, g.size(2) - 1);
-//#else
-//  for_loop(process_cube, g.size(0) - 1, g.size(1) - 1, g.size(2) - 1);
-//#endif
+#else
+  for_loop(process_cube, g.size(0) - 1, g.size(1) - 1, g.size(2) - 1);
+#endif
   return iso_volume;
 }
 //------------------------------------------------------------------------------
