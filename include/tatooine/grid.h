@@ -852,7 +852,7 @@ class grid {
   }
   //----------------------------------------------------------------------------
   template <typename T>
-  auto add_lazy_property(std::filesystem::path const& path,
+  auto add_lazy_vertex_property(std::filesystem::path const& path,
                          std::string const&           dataset_name)
       -> typed_property_t<T, false>& {
     auto const ext = path.extension();
@@ -867,7 +867,8 @@ class grid {
       return add_netcdf_lazy_property<T>(path, dataset_name);
     }
 #endif
-    throw std::runtime_error{"[grid::add_lazy_property] - unknown file extension"};
+    throw std::runtime_error{
+        "[grid::add_lazy_vertex_property] - unknown file extension"};
   }
   //----------------------------------------------------------------------------
 #ifdef TATOOINE_HAS_HDF5_SUPPORT
@@ -875,7 +876,7 @@ class grid {
   auto add_hdf5_lazy_vertex_property(std::filesystem::path const& path,
                                      std::string const& dataset_name) -> auto& {
     hdf5::file f{path, H5F_ACC_RDONLY};
-    return add_lazy_property<T>(f.dataset<T>(dataset_name));
+    return add_lazy_vertex_property<T>(f.dataset<T>(dataset_name));
   }
   //----------------------------------------------------------------------------
   template <typename T>
@@ -954,11 +955,11 @@ class grid {
   auto add_netcdf_lazy_property(std::filesystem::path const& path,
                                 std::string const& dataset_name) -> auto& {
     netcdf::file f{path, netCDF::NcFile::read};
-    return add_lazy_property<T>(f.variable<T>(dataset_name));
+    return add_lazy_vertex_property<T>(f.variable<T>(dataset_name));
   }
   //----------------------------------------------------------------------------
   template <typename T>
-  auto add_lazy_property(netcdf::variable<T> const& dataset) -> auto& {
+  auto add_lazy_vertex_property(netcdf::variable<T> const& dataset) -> auto& {
     return create_vertex_property<lazy_reader<netcdf::variable<T>>>(
         dataset.name(), dataset, std::vector<size_t>{2, 2});
   }

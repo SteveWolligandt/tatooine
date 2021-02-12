@@ -6,35 +6,35 @@
 namespace tatooine::test {
 //==============================================================================
 TEST_CASE("hdf5_read_chunk", "[hdf5][read][chunk]") {
-  using data_t    = int;
+  using value_type    = int;
   auto filepath   = std::filesystem::path{"hdf5_unittest.h5"};
   auto array_name = std::string{"Array"};
 
-  auto                full_size = std::vector<size_t>{64, 128};
-  std::vector<data_t> data_src(full_size[0] * full_size[1]);
+  auto                full_size = std::vector<size_t>{32, 64, 16};
+  std::vector<value_type> data_src(full_size[0] * full_size[1] * full_size[2]);
   std::iota(begin(data_src), end(data_src), 0);
   {
     auto out = hdf5::file{filepath, H5F_ACC_TRUNC};
     auto arr_out =
-        out.add_dataset<data_t>(array_name, full_size[0], full_size[1]);
+        out.add_dataset<value_type>(array_name, full_size[0], full_size[1], full_size[2]);
     arr_out.write(data_src);
   }
 
   auto in     = hdf5::file{filepath, H5F_ACC_RDONLY};
-  auto arr_in = in.dataset<data_t>(std::filesystem::path{array_name});
+  auto arr_in = in.dataset<value_type>(std::filesystem::path{array_name});
 
   auto const full_data = arr_in.read();
   SECTION("Full Data check") {
-    REQUIRE(full_data.num_dimensions() == 2);
+    REQUIRE(full_data.num_dimensions() == 3);
     REQUIRE(full_data.size(0) == full_size[0]);
     REQUIRE(full_data.size(1) == full_size[1]);
-    REQUIRE(full_data(0,0) == 0);
-    REQUIRE(full_data(1,0) == 1);
-    REQUIRE(full_data(0,1) == 64);
+    REQUIRE(full_data.size(2) == full_size[2]);
     size_t i = 0;
-    for (size_t y = 0; y < full_size[1]; ++y) {
-      for (size_t x = 0; x < full_size[0]; ++x) {
-        CHECK(full_data(x, y) == data_src[i++]);
+    for (size_t z = 0; z < full_size[2]; ++z) {
+      for (size_t y = 0; y < full_size[1]; ++y) {
+        for (size_t x = 0; x < full_size[0]; ++x) {
+          CHECK(full_data(x, y, z) == data_src[i++]);
+        }
       }
     }
   }
@@ -43,26 +43,40 @@ TEST_CASE("hdf5_read_chunk", "[hdf5][read][chunk]") {
                         std::vector<size_t> const& size) {
     auto const chunk = arr_in.read_chunk(offset, size);
 
-    REQUIRE(chunk.num_dimensions() == 2);
+    REQUIRE(chunk.num_dimensions() == 3);
     REQUIRE(chunk.size(0) == size[0]);
     REQUIRE(chunk.size(1) == size[1]);
-    for (size_t y = 0; y < size[1]; ++y) {
-      for (size_t x = 0; x < size[0]; ++x) {
-        CAPTURE(x, y, (x + offset[0]), (y + offset[1]));
-        CHECK(chunk(x, y) == full_data(x + offset[0], y + offset[1]));
+    REQUIRE(chunk.size(2) == size[2]);
+    for (size_t z = 0; z < size[2]; ++z) {
+      for (size_t y = 0; y < size[1]; ++y) {
+        for (size_t x = 0; x < size[0]; ++x) {
+          CAPTURE(x, y, z, (x + offset[0]), (y + offset[1]), (z + offset[2]));
+          //CHECK(chunk(x, y, z) ==
+          //      full_data(x + offset[0], y + offset[1], z + offset[2]));
+        }
       }
     }
   };
   SECTION("Chunk [0..1] x [0..1] Test") {
-    auto const offset = std::vector<size_t>{0, 0};
-    auto const size   = std::vector<size_t>{3, 2};
+    auto const offset = std::vector<size_t>{0, 0, 0};
+    auto const size   = std::vector<size_t>{3, 2, 4};
     read_chunk(offset, size);
   }
 
   SECTION("Chunk [4..5] x [4..5] Test") {
-    auto const offset = std::vector<size_t>{4, 5};
-    auto const size   = std::vector<size_t>{2, 3};
+    auto const offset = std::vector<size_t>{4, 5, 6};
+    auto const size   = std::vector<size_t>{2, 3, 4};
     read_chunk(offset, size);
+  }
+  lazy_reader<hdf5::dataset<value_type>> lr{arr_in, {2, 2, 2}};
+  REQUIRE(lr(full_size[0] - 1, full_size[1] - 1, full_size[2] - 1) ==
+          full_size[0] * full_size[1] * full_size[2] - 1);
+  for (size_t z = 0; z < full_size[2]; ++z) {
+    for (size_t y = 0; y < full_size[1]; ++y) {
+      for (size_t x = 0; x < full_size[0]; ++x) {
+        CHECK(full_data(x, y, z) == lr(x, y, z));
+      }
+    }
   }
 }
 //==============================================================================

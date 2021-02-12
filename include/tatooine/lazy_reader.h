@@ -92,7 +92,6 @@ struct lazy_reader : chunked_multidim_array<typename DataSet::value_type> {
           auto start_indices = this->global_indices_from_chunk_indices(
               this->chunk_indices_from_global_indices(indices...));
           auto s = this->internal_chunk_size();
-          std::reverse(begin(start_indices), end(start_indices));
           m_dataset.read_chunk(start_indices, s, *chunk_at(plain_index));
 
           if (is_chunk_filled_with_zeros(plain_index)) {
@@ -105,7 +104,6 @@ struct lazy_reader : chunked_multidim_array<typename DataSet::value_type> {
         this->create_chunk_at(plain_index);
         std::vector start_indices{static_cast<size_t>(indices)...};
         auto        s = this->internal_chunk_size();
-        std::reverse(begin(start_indices), end(start_indices));
         m_dataset.read_chunk(start_indices, this->internal_chunk_size());
       }
     }
