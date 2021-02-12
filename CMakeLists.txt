@@ -200,6 +200,11 @@ if(HDF5_FOUND)
 
   add_executable(hdf5_create src/hdf5_create.cpp)
   target_link_libraries(hdf5_create PUBLIC tatooine)
+  add_custom_target(hdf5_create.run COMMAND ./hdf5_create DEPENDS hdf5_create)
+
+  add_executable(hdf5_readdata src/hdf5_readdata.cpp)
+  target_link_libraries(hdf5_readdata PUBLIC tatooine)
+  add_custom_target(hdf5_readdata.run COMMAND ./hdf5_readdata DEPENDS hdf5_readdata)
 endif()
 
 #- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -

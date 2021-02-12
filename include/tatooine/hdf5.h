@@ -122,11 +122,12 @@ class dataset {
   }
   //----------------------------------------------------------------------------
   auto read(dynamic_multidim_array<T, x_fastest>& arr) const {
-    auto const ds          = data_space();
-    auto const num_dims    = ds.getSimpleExtentNdims();
-    auto       size        = std::make_unique<hsize_t[]>(num_dims);
+    auto const   ds       = data_space();
+    size_t const num_dims = ds.getSimpleExtentNdims();
+    auto    size     = std::make_unique<hsize_t[]>(num_dims);
     ds.getSimpleExtentDims(size.get());
-    bool       must_resize = num_dims != arr.num_dimensions();
+    std::reverse(size.get(), size.get() + num_dims);
+    bool must_resize = num_dims != arr.num_dimensions();
     if (!must_resize) {
       for (size_t i = 0; i < num_dims; ++i) {
         if (arr.size(i) != size[i]) {
@@ -135,7 +136,6 @@ class dataset {
       }
     }
     if (must_resize) {
-      // std::reverse(begin(s), end(s));
       arr.resize(std::vector<size_t>(size.get(), size.get() + num_dims));
     }
 
@@ -175,7 +175,7 @@ class dataset {
   //    }
   //
   //    for (auto const& chunk_indices : dynamic_multidim(arr.chunk_size())) {
-  //      auto start_indices =
+  //      auto offset =
   //      arr.global_indices_from_chunk_indices(chunk_indices); auto const
   //      plain_chunk_index =
   //          arr.plain_chunk_index_from_chunk_indices(chunk_indices);
@@ -184,10 +184,10 @@ class dataset {
   //        arr.create_chunk_at(plain_chunk_index);
   //      }
   //
-  //      // std::reverse(begin(start_indices), end(start_indices));
+  //      // std::reverse(begin(offset), end(offset));
   //      auto s = arr.internal_chunk_size();
   //      // std::reverse(begin(s), end(s));
-  //      read_chunk(start_indices, s, *arr.chunk_at(plain_chunk_index));
+  //      read_chunk(offset, s, *arr.chunk_at(plain_chunk_index));
   //      if constexpr (std::is_arithmetic_v<T>) {
   //        bool all_zero = true;
   //        for (auto const& v : arr.chunk_at(plain_chunk_index)->data()) {
@@ -234,11 +234,11 @@ class dataset {
   //    return arr;
   //  }
   //  //----------------------------------------------------------------------------
-  //  auto read_single(std::vector<size_t> const& start_indices) const {
-  //    assert(size(start_indices) == num_dimensions());
+  //  auto read_single(std::vector<size_t> const& offset) const {
+  //    assert(size(offset) == num_dimensions());
   //    T               t;
   //    std::lock_guard lock{*m_mutex};
-  //    m_dataset.getVar(start_indices, std::vector<size_t>(num_dimensions(),
+  //    m_dataset.getVar(offset, std::vector<size_t>(num_dimensions(),
   //    1), &t); return t;
   //  }
   //  //----------------------------------------------------------------------------
@@ -255,79 +255,70 @@ class dataset {
   //    size_t(1))...}, &t); return t;
   //  }
   //----------------------------------------------------------------------------
-  auto read_chunk(std::vector<size_t> start_indices, std::vector<size_t> counts,
-                  dynamic_multidim_array<T, x_fastest>& arr) const {
-    read_chunk(std::vector<hsize_t>(begin(start_indices), end(start_indices)),
-               std::vector<hsize_t>(begin(counts), end(counts)), arr);
+  template <typename Ordering>
+  auto read_chunk(std::vector<size_t> const&            offset,
+                  std::vector<size_t> const&            count,
+                  dynamic_multidim_array<T, Ordering>& arr) const {
+    read_chunk(std::vector<hsize_t>(begin(offset), end(offset)),
+               std::vector<hsize_t>(begin(count), end(count)), arr);
     return arr;
   }
   //----------------------------------------------------------------------------
-  auto read_chunk(std::vector<size_t> start_indices,
-                  std::vector<size_t> counts) const {
-    return read_chunk(
-        std::vector<hsize_t>(begin(start_indices), end(start_indices)),
-        std::vector<hsize_t>(begin(counts), end(counts)));
+  template <typename Ordering = x_fastest>
+  auto read_chunk(std::vector<size_t> const& offset,
+                  std::vector<size_t> const& count) const {
+    return read_chunk<Ordering>(
+        std::vector<hsize_t>(begin(offset), end(offset)),
+        std::vector<hsize_t>(begin(count), end(count)));
   }
   //----------------------------------------------------------------------------
-  auto read_chunk(std::vector<hsize_t> start_indices,
-                  std::vector<hsize_t> counts) const {
-    dynamic_multidim_array<T, x_fastest> arr;
-    read_chunk(start_indices, counts, arr);
+  template <typename Ordering = x_fastest>
+  auto read_chunk(std::vector<hsize_t> const& offset,
+                  std::vector<hsize_t> const& count) const {
+    dynamic_multidim_array<T, Ordering> arr;
+    read_chunk(offset, count, arr);
     return arr;
   }
   //----------------------------------------------------------------------------
-  auto read_chunk(std::vector<hsize_t> start_indices,
-                  std::vector<hsize_t> counts,
-                  dynamic_multidim_array<T, x_fastest>& arr) const {
-    assert(start_indices.size() == counts.size());
+  template <typename Ordering>
+  auto read_chunk(std::vector<hsize_t>            offset,
+                  std::vector<hsize_t>            count,
+                  dynamic_multidim_array<T, Ordering>& arr) const {
+    assert(offset.size() == count.size());
 
-    auto const ds       = data_space();
-    auto const num_dims = ds.getSimpleExtentNdims();
-    auto size =  std::make_unique<hsize_t[]>(num_dims);
-    data_space().getSimpleExtentDims(size.get());
-
-    // Write a subset of data to the dataset, then read the
-    // entire dataset back from the file.
-
-    assert(start_indices.size() == num_dims);
-    if (num_dims != static_cast<int>(arr.num_dimensions())) {
-      arr.resize(counts);
+    auto dataspace = m_dataset.getSpace();
+    int rank = dataspace.getSimpleExtentNdims();
+    if (static_cast<unsigned int>(rank) != arr.num_dimensions()) {
+      arr.resize(count);
     } else {
-      for (int i = 0; i < num_dims; ++i) {
-        if (arr.size(i) != size[i]) {
-          arr.resize(counts);
+      for (int i = 0; i < rank; ++i) {
+        if (arr.size(i) != count[i]) {
+          arr.resize(count);
           break;
         }
       }
     }
-
-    auto stride = std::make_unique<hsize_t[]>(num_dims);
-    auto block  = std::make_unique<hsize_t[]>(num_dims);
-    for (int i = 0; i < num_dims; ++i) {
-      stride[i] = block[i] = 1;
-    }
-
-    ds.selectHyperslab(H5S_SELECT_SET, counts.data(), start_indices.data(),
-                       stride.get(), block.get());
-    H5::DataSpace mem_space{num_dims, counts.data()};
-
+    std::reverse(begin(count), end(count));
+    std::reverse(begin(offset), end(offset));
+    dataspace.selectHyperslab(H5S_SELECT_SET, count.data(), offset.data());
+    H5::DataSpace memspace(rank, count.data());
     {
       std::lock_guard lock{*m_mutex};
-      m_dataset.read(arr.data_ptr(), h5_type<T>::value(), mem_space, ds);
+      m_dataset.read(arr.data_ptr(), h5_type<T>::value(), memspace, dataspace);
     }
     return arr;
   }
   //----------------------------------------------------------------------------
-  //  auto read_chunk(std::vector<size_t> start_indices, std::vector<size_t>
-  //  counts,
+  //  auto read_chunk(std::vector<size_t> offset, std::vector<size_t>
+  //  count,
   //                  T* ptr) const {
-  //    assert(start_indices.size() == counts.size());
-  //    assert(start_indices.size() == num_dimensions());
+  //    assert(offset.size() == count.size());
+  //    assert(offset.size() == num_dimensions());
   //
-  //    // std::reverse(begin(start_indices), end(start_indices));
-  //    // std::reverse(begin(counts), end(counts));
+  //    // std::reverse(begin(offset), end(offset));
+  //    // std::reverse(begin(count), end(count));
   //    std::lock_guard lock{*m_mutex};
-  //    m_dataset.getVar(start_indices, counts, ptr);
+  //    m_dataset.getVar(offset, count, ptr);
   //  }
   //----------------------------------------------------------------------------
   //#ifdef __cpp_concepts
@@ -340,33 +331,33 @@ class dataset {
   //#endif
   //  auto read_chunk(
   //      static_multidim_array<T, x_fastest, MemLoc, Resolution...>& arr,
-  //      StartIndices const... start_indices) const {
-  //    static_assert(sizeof...(start_indices) == sizeof...(Resolution));
+  //      StartIndices const... offset) const {
+  //    static_assert(sizeof...(offset) == sizeof...(Resolution));
   //    assert(sizeof...(Resolution) == num_dimensions());
   //    std::lock_guard lock{*m_mutex};
-  //    m_dataset.getVar(std::vector{static_cast<size_t>(start_indices)...},
+  //    m_dataset.getVar(std::vector{static_cast<size_t>(offset)...},
   //                 std::vector{Resolution...}, arr.data_ptr());
   //  }
   //  //----------------------------------------------------------------------------
   //  template <typename MemLoc, size_t... Resolution>
   //  auto read_chunk(
-  //      std::vector<size_t> const& start_indices, static_multidim_array<T,
+  //      std::vector<size_t> const& offset, static_multidim_array<T,
   //      x_fastest, MemLoc, Resolution...>& arr) const {
   //    std::lock_guard lock{*m_mutex};
-  //    m_dataset.getVar(start_indices, std::vector{Resolution...},
+  //    m_dataset.getVar(offset, std::vector{Resolution...},
   //    arr.data_ptr());
   //  }
   //  //----------------------------------------------------------------------------
-  //  auto read_chunk(std::vector<size_t> const& start_indices,
-  //                  std::vector<size_t> const& counts,
+  //  auto read_chunk(std::vector<size_t> const& offset,
+  //                  std::vector<size_t> const& count,
   //                  std::vector<T>&            arr) const {
-  //    auto const n = std::accumulate(begin(counts), end(counts), size_t(1),
+  //    auto const n = std::accumulate(begin(count), end(count), size_t(1),
   //                                   std::multiplies<size_t>{});
   //    if (size(arr) != n) {
   //      arr.resize(n);
   //    }
   //    std::lock_guard lock{*m_mutex};
-  //    m_dataset.getVar(start_indices, counts, arr.data());
+  //    m_dataset.getVar(offset, count, arr.data());
   //  }
   //  //----------------------------------------------------------------------------
   //  auto is_null() const {
@@ -419,16 +410,22 @@ class file {
   file(std::string const& path, Ts&&... ts)
       : m_file{new H5::H5File(path, std::forward<Ts>(ts)...)},
         m_mutex{std::make_shared<std::mutex>()} {}
+  // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+  template <typename... Ts>
+  file(char const* path, Ts&&... ts)
+      : m_file{new H5::H5File(path, std::forward<Ts>(ts)...)},
+        m_mutex{std::make_shared<std::mutex>()} {}
   //============================================================================
   template <typename T, integral... Size>
   auto add_dataset(std::string const& dataset_name, Size... size) {
     H5::AtomType data_type{h5_type<T>::value()};
-    data_type.setOrder(H5T_ORDER_LE);
-    hsize_t dimsf[]{static_cast<hsize_t>(size)...};  // data set dimensions
+    hsize_t      dimsf[]{static_cast<hsize_t>(size)...};  // data set dimensions
+    std::reverse(dimsf, dimsf + sizeof...(Size));
     return hdf5::dataset<T>{
         m_file, m_mutex,
         m_file->createDataSet(dataset_name, data_type,
-                              H5::DataSpace{sizeof...(Size), dimsf}), dataset_name};
+                              H5::DataSpace{sizeof...(Size), dimsf}),
+        dataset_name};
   }
   //----------------------------------------------------------------------------
   template <typename T>
