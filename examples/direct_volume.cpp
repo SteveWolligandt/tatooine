@@ -1,13 +1,7 @@
 #include <tatooine/Q_field.h>
-#include <tatooine/lagrangian_Q_field.h>
-#include <tatooine/analytical/fields/numerical/abcflow.h>
 #include <tatooine/analytical/fields/numerical/tornado.h>
-#include <tatooine/analytical/fields/numerical/doublegyre.h>
-#include <tatooine/color_scales/magma.h>
 #include <tatooine/color_scales/viridis.h>
 #include <tatooine/direct_volume_rendering.h>
-#include <tatooine/rendering/perspective_camera.h>
-#include <tatooine/spacetime_vectorfield.h>
 //==============================================================================
 namespace tatooine::examples {
 //==============================================================================
