@@ -39,7 +39,7 @@ class grid {
 
  public:
   static constexpr bool is_uniform =
-      (is_linspace_v<std::decay_t<Dimensions>> && ...);
+      (is_linspace<std::decay_t<Dimensions>> && ...);
   static constexpr auto num_dimensions() { return sizeof...(Dimensions); }
   using this_t = grid<Dimensions...>;
   using real_t = common_type<typename Dimensions::value_type...>;
@@ -60,6 +60,11 @@ class grid {
   using typed_property_impl_t =
       typed_multidim_property_impl<this_t, typename Container::value_type,
                                    Container>;
+  template <typename F>
+  using invoke_result_with_indices =
+      std::invoke_result_t<F, decltype(((void)std::declval<Dimensions>(),
+                                        std::declval<size_t>()))...>;
+
   using property_ptr_t       = std::unique_ptr<property_t>;
   using property_container_t = std::map<std::string, property_ptr_t>;
   //============================================================================
@@ -405,7 +410,7 @@ class grid {
 #endif
   auto cell_index(X const x) const -> std::pair<size_t, double> {
     auto const& dim = dimension<DimensionIndex>();
-    if constexpr (is_linspace_v<std::decay_t<decltype(dim)>>) {
+    if constexpr (is_linspace<std::decay_t<decltype(dim)>>) {
       // calculate
       auto pos =
           (x - dim.front()) / (dim.back() - dim.front()) * (dim.size() - 1);
@@ -851,6 +856,15 @@ class grid {
     }
   }
   //----------------------------------------------------------------------------
+  //template <invocable<decltype(((void)std::declval<Dimensions>(),
+  //                              std::declval<size_t>()))...>
+  //              F>
+  //auto add_vertex_property(std::string const& name, F&& f) -> auto& {
+  //  return create_vertex_property<
+  //      typed_multidim_property_lambda<this_t, std::decay_t<F>>>(
+  //      name, std::forward<F>(f));
+  //}
+  //----------------------------------------------------------------------------
   template <typename T>
   auto add_lazy_vertex_property(std::filesystem::path const& path,
                          std::string const&           dataset_name)
@@ -886,6 +900,7 @@ class grid {
           "Number of dimensions do not match for HDF5 dataset and grid."};
     }
     auto size_dataset = dataset.size();
+    std::reverse(begin(size_dataset), end(size_dataset));
     for (size_t i = 0; i < num_dimensions(); ++i) {
       if (size_dataset[i] != size(i)) {
         std::stringstream ss;
@@ -946,7 +961,7 @@ class grid {
       }
     }
     return create_vertex_property<lazy_reader<hdf5::dataset<T>>>(
-        name, dataset, std::vector<size_t>(num_dimensions(), 2));
+        name, dataset, std::vector<size_t>(num_dimensions(), 16));
   }
 #endif
 #ifdef TATOOINE_HAS_NETCDF_SUPPORT
@@ -1552,10 +1567,37 @@ class grid {
       }
     }
   }
-            };
+
+ private:
+  template <size_t... Seq>
+  auto print(std::ostream& out, std::index_sequence<Seq...> /*seq*/) const
+      -> auto& {
+    (
+        [&]() -> decltype(auto) {
+          auto const& dim = dimension<Seq>();
+          if constexpr (is_linspace<std::decay_t<decltype(dim)>>) {
+            return out << dim << '\n';
+          } else {
+            return out << dim.front() << ", " << dim[1] << ", ..., " << dim.back()
+                       << '\n';
+          }
+        }(),
+        ...);
+    return out;
+  }
+
+ public:
+  auto print(std::ostream& out = std::cout) const -> auto& {
+    return print(out, std::make_index_sequence<num_dimensions()>{});
+  }
+};
 //==============================================================================
 // free functions
 //==============================================================================
+template <typename... Dimensions>
+auto operator<<(std::ostream& out, grid<Dimensions...> const& g) -> auto& {
+  return g.print(out);
+}
 #ifdef __cpp_concepts
 template <indexable_space... Dimensions>
 #else
@@ -1662,6 +1704,6 @@ template <typename Real, size_t... N>
 #endif
 using static_non_uniform_grid = grid<std::array<Real, N>...>;
 //==============================================================================
-          }  // namespace tatooine
+}  // namespace tatooine
 //==============================================================================
 #endif

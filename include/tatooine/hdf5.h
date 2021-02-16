@@ -485,6 +485,18 @@ class group {
     return hdf5::dataset<T>{
         m_file, m_mutex, m_group.openDataSet(dataset_name), dataset_name};
   }
+  //----------------------------------------------------------------------------
+  template <typename T, integral... Size>
+  auto add_dataset(std::string const& dataset_name, Size... size) {
+    H5::AtomType data_type{h5_type<T>::value()};
+    hsize_t      dimsf[]{static_cast<hsize_t>(size)...};  // data set dimensions
+    std::reverse(dimsf, dimsf + sizeof...(Size));
+    return hdf5::dataset<T>{
+        m_file, m_mutex,
+        m_group.createDataSet(dataset_name, data_type,
+                              H5::DataSpace{sizeof...(Size), dimsf}),
+        dataset_name};
+  }
 };
 //==============================================================================
 class file {
