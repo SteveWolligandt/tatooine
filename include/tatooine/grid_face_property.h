@@ -64,7 +64,7 @@ struct grid_face_property
         return halfpos;
       }
     };
-    if constexpr (is_linspace_v<std::decay_t<decltype(dim())>>) {
+    if constexpr (is_linspace<std::decay_t<decltype(dim())>>) {
       auto const& actual_dim = dim();
       // calculate
       auto const pos = (x - actual_dim.front()) /

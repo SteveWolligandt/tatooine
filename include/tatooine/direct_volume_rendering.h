@@ -2,6 +2,7 @@
 #define TATOOINE_DIRECT_VOLUME_RENDERING_H
 //==============================================================================
 #include <tatooine/demangling.h>
+#include <tatooine/field.h>
 #include <tatooine/grid.h>
 #include <tatooine/rendering/camera.h>
 //==============================================================================
@@ -69,7 +70,7 @@ auto direct_volume_rendering(
       if (domain_check(cur_pos)) {
         auto const sample = data_evaluator(cur_pos);
         auto const normalized_sample =
-            (std::clamp<value_type>(sample, min, max) - min) / (max - min);
+            std::clamp<value_type>((sample - min) / (max - min), 0, 1);
         auto const sample_color = color_scale(normalized_sample);
         auto const sample_alpha =
             std::clamp<alpha_type>(alpha_scale(normalized_sample), 0, 1);

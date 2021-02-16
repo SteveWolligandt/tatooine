@@ -390,6 +390,100 @@ struct typed_multidim_property_impl
     Container::resize(size);
   }
 };
+////==============================================================================
+//template <typename Grid, typename F>
+//struct typed_multidim_property_lambda
+//    : typed_multidim_property<
+//          Grid, typename Grid::template invoke_result_with_indices<F>, false> {
+//  //============================================================================
+//  // typedefs
+//  //============================================================================
+//  using this_t = typed_multidim_property_lambda<Grid, F>;
+//  using value_type = typename Grid::template invoke_result_with_indices<F>;
+//  static constexpr bool has_non_const_reference = false;
+//  using prop_parent_t =
+//      typed_multidim_property<Grid, value_type, has_non_const_reference>;
+//  using grid_t        = Grid;
+//  using prop_parent_t::num_dimensions;
+//  using reference = typename prop_parent_t::reference;
+//  using const_reference = typename prop_parent_t::const_reference;
+//
+//  //============================================================================
+//  // members
+//  //============================================================================
+// private:
+//  F m_f;
+//
+//  //============================================================================
+//  // ctors
+//  //============================================================================
+// public:
+//  template <typename _F>
+//  typed_multidim_property_lambda(Grid const& grid, _F&& f)
+//      : prop_parent_t{grid}, m_f{std::forward<_F>(f)} {}
+//  typed_multidim_property_lambda(typed_multidim_property_lambda const&) =
+//      default;
+//  typed_multidim_property_lambda(typed_multidim_property_lambda&&) noexcept =
+//      default;
+//  //----------------------------------------------------------------------------
+//  ~typed_multidim_property_lambda() override = default;
+//  //============================================================================
+//  // methods
+//  //============================================================================
+//  auto clone() const -> std::unique_ptr<multidim_property<Grid>> override {
+//    return std::unique_ptr<this_t>(new this_t{*this});
+//  }
+//  //----------------------------------------------------------------------------
+//#ifdef __cpp_concepts
+//  template <integral... Is>
+//  requires(sizeof...(Is) == num_dimensions())
+//#else
+//  template <typename... Is, enable_if<is_integral<Is...>> = true,
+//  enable_if<(sizeof...(Is) == num_dimensions())> = true>
+//#endif
+//  constexpr auto operator()(Is const... is) const -> decltype(auto) {
+//    return m_f(is...);
+//  }
+//  // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+//#ifdef __cpp_concepts
+//  template <integral... Is>
+//  requires(sizeof...(Is) == num_dimensions())
+//#else
+//  template <typename... Is, enable_if<is_integral<Is...>> = true,
+//  enable_if<(sizeof...(Is) == num_dimensions())> = true>
+//#endif
+//  constexpr auto operator()(Is const... is) -> decltype(auto) {
+//    return m_f(is...);
+//  }
+//  //----------------------------------------------------------------------------
+//#ifdef __cpp_concepts
+//  template <integral... Is>
+//  requires(sizeof...(Is) == Grid::num_dimensions())
+//#else
+//  template <typename... Is, enable_if<is_integral<Is...>> = true,
+//  enable_if<(sizeof...(Is) == Grid::num_dimensions())> = true>
+//#endif
+//  auto at(Is const... is) const -> const_reference {
+//    return m_f(is...);
+//  }
+//  //----------------------------------------------------------------------------
+//  template <size_t... Is>
+//  auto at(std::array<size_t, num_dimensions()> const& size,
+//          std::index_sequence<Is...> [>seq<]) const -> const_reference {
+//    return m_f(size[Is]...);
+//  }
+//  // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+//  auto at(std::array<size_t, num_dimensions()> const& size) const
+//      -> const_reference override {
+//    return at(size, std::make_index_sequence<num_dimensions()>{});
+//  }
+//  //----------------------------------------------------------------------------
+//  auto resize(std::array<size_t, num_dimensions()> const & [>size<])
+//      -> void override {}
+//  auto container_type() const -> std::type_info const& override {
+//    return typeid(m_f);
+//  }
+//};
 //==============================================================================
 }  // namespace tatooine
 //==============================================================================
