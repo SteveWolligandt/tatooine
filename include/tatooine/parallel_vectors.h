@@ -132,7 +132,7 @@ bool turned(size_t ix, size_t iy, size_t iz) {
 template <typename Real, typename GetV, typename GetW, indexable_space XDomain,
           indexable_space YDomain, indexable_space ZDomain,
           invocable<vec<Real, 3>>... Preds>
-auto calc(GetV&& getv, GetW&& getw, grid<XDomain, YDomain, ZDomain> const& g,
+auto calc_parallel_vectors(GetV&& getv, GetW&& getw, grid<XDomain, YDomain, ZDomain> const& g,
           Preds&&... preds) {
   std::vector<line<Real, 3>> line_segments;
 
@@ -324,7 +324,7 @@ auto parallel_vectors(field<V, VReal, 3, 3> const&           vf,
                       field<W, WReal, 3, 3> const&           wf,
                       grid<XDomain, YDomain, ZDomain> const& g,
                       arithmetic auto const t, Preds&&... preds) {
-  return detail::calc<common_type<VReal, WReal>>(
+  return detail::calc_parallel_vectors<common_type<VReal, WReal>>(
       // get v data by evaluating V field
       [&vf, t](auto /*ix*/, auto /*iy*/, auto /*iz*/, auto const& p) {
         if (vf.in_domain(p, t)) {
@@ -388,7 +388,7 @@ auto parallel_vectors(
   assert(vf.size(1) == wf.size(1));
   assert(vf.size(2) == wf.size(2));
 
-  return detail::calc<common_type<VReal, WReal>>(
+  return detail::calc_parallel_vectors<common_type<VReal, WReal>>(
       [&vf](auto ix, auto iy, auto iz, auto const & /*p*/) -> auto const& {
         return vf(ix, iy, iz);
       },

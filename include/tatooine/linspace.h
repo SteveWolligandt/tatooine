@@ -349,13 +349,13 @@ linspace(Real0 const, Real1 const, size_t) -> linspace<common_type<Real0, Real1>
 // type traits
 //==============================================================================
 template <typename T>
-struct is_linspace : std::false_type {};
+struct is_linspace_impl : std::false_type {};
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 template <typename Real>
-struct is_linspace<linspace<Real>> : std::true_type {};
+struct is_linspace_impl<linspace<Real>> : std::true_type {};
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 template <typename T>
-static constexpr auto is_linspace_v = is_linspace<T>::value;
+static constexpr auto is_linspace = is_linspace_impl<T>::value;
 //==============================================================================
 // I/O
 //==============================================================================
