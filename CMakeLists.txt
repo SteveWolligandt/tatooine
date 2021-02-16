@@ -274,6 +274,10 @@ add_subdirectory(autonomous_particles)
 add_subdirectory(smearing_scalar_field)
 add_subdirectory(insitu)
 add_subdirectory(channelflow)
+option(TATOOINE_BUILD_EXAMPLES "")
+if (TATOOINE_BUILD_EXAMPLES)
+  add_subdirectory(examples)
+endif()
 
 #- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 # This makes the project importable from the build directory
