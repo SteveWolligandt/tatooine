@@ -133,6 +133,7 @@ target_include_directories(tatooine
     ${CMAKE_CURRENT_SOURCE_DIR}/external/tomlplusplus/include
     ${LAPACKE_INCLUDE_DIRS}
     ${vcode_DIR}/../..
+    ${Boost_INCLUDE_DIRS}
 )
 #- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 #set libs 
