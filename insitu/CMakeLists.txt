@@ -2,8 +2,8 @@ set(TATOOINE_INSITU_INTERFACE_SOURCE_DIR ${CMAKE_CURRENT_SOURCE_DIR}/src)
 set(TATOOINE_INSITU_INTERFACE_INCLUDE_DIR ${CMAKE_CURRENT_SOURCE_DIR}/include)
 set(TATOOINE_INSITU_INTERFACE_BINARY_SOURCE_DIR ${CMAKE_CURRENT_BINARY_DIR}/src)
 #- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-find_package(MPI)
-if (MPI_FOUND)
+find_package(MPI COMPONENTS C CXX)
+if (MPI_C_FOUND)
   #- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
   # test interface
   #- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -11,9 +11,12 @@ if (MPI_FOUND)
   src/mpi_program.cpp
   )
   find_package(Boost COMPONENTS mpi REQUIRED)
-  target_link_libraries(tatooine.insitu PUBLIC tatooine ${MPI_LIBRARIES} Boost::mpi)
+  target_compile_options(tatooine.insitu PUBLIC ${MPI_C_COMPILE_OPTIONS} ${MPI_CXX_COMPILE_OPTIONS})
+  target_compile_definitions(tatooine.insitu PUBLIC ${MPI_C_COMPILE_DEFINITIONS} ${MPI_CXX_COMPILE_DEFINITIONS})
+  target_link_libraries(tatooine.insitu PUBLIC tatooine ${MPI_C_LIBRARIES} ${MPI_CXX_LIBRARIES} Boost::mpi)
   target_include_directories(tatooine.insitu PUBLIC
-    ${TATOOINE_INSITU_INTERFACE_INCLUDE_DIR})
+    ${TATOOINE_INSITU_INTERFACE_INCLUDE_DIR} ${MPI_C_INCLUDE_DIRS} ${MPI_CXX_INCLUDE_DIRS})
+  #target_link_options(tatooine.insitu PUBLIC ${MPI_C_LINK_FLAGS} ${MPI_CXX_LINK_FLAGS})
 
   #- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
   # test interface

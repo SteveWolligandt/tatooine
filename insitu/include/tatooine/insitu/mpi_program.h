@@ -119,7 +119,7 @@ struct mpi_program {
     constexpr auto num_dimensions = sizeof...(GlobalGridDimensions);
     init_communicator(
         num_dimensions,
-        std::unique_ptr<size_t[]>{new size_t[]{static_cast<size_t>(ggd)...}});
+        std::unique_ptr<size_t[]>{new size_t[sizeof...(GlobalGridDimensions)]{static_cast<size_t>(ggd)...}});
   }
   //----------------------------------------------------------------------------
   auto init_communicator(int                         num_dimensions,
