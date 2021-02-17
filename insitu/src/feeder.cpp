@@ -36,8 +36,8 @@ double                     cur_t            = t0;
 double                     dt               = 0;
 bool                       use_interpolated = false;
 
-int  local_grid_end_y          = 0;
-int  local_grid_end_z          = 0;
+int  local_grid_end_y = 0;
+int  local_grid_end_z = 0;
 bool is_single_cell_y = true;
 bool is_single_cell_z = true;
 
@@ -79,13 +79,6 @@ int halo_level = 1;
 std::unique_ptr<scalar_array> velocity_x_field, velocity_y_field,
     velocity_z_field;
 //==============================================================================
-auto initialize_mpi(int argc, char** argv) -> void {
-  MPI_Init(&argc, &argv);
-  MPI_Comm_set_errhandler(MPI_COMM_WORLD, MPI_ERRORS_RETURN);
-  MPI_Comm_rank(MPI_COMM_WORLD, &rank);  // My ID
-  MPI_Comm_size(MPI_COMM_WORLD, &size);  // Number of Processes
-}
-//------------------------------------------------------------------------------
 auto parse_args(int argc, char** argv) {
   try {
     po::options_description desc("Allowed options");
@@ -169,7 +162,7 @@ auto sample_flow() {
 auto simulation_step() -> void {
   cur_t = cur_t + dt;
   sample_flow();
-  tatooine_insitu_interface_update_velocity_x(velocity_x_field->data());
+  tatooine_insitu_interface_update_velocity_x(velocity_x_field->DATA());
   tatooine_insitu_interface_update_velocity_y(velocity_y_field->data());
   tatooine_insitu_interface_update_velocity_z(velocity_z_field->data());
   tatooine_insitu_interface_update(&iteration, &cur_t);
@@ -274,12 +267,19 @@ auto start_simulation() -> void {
   simulation_loop();
 }
 //==============================================================================
+auto initialize_mpi(int argc, char** argv) -> void {
+  MPI_Init(&argc, &argv);
+  MPI_Comm_set_errhandler(MPI_COMM_WORLD, MPI_ERRORS_RETURN);
+  MPI_Comm_rank(MPI_COMM_WORLD, &rank);  // My ID
+  MPI_Comm_size(MPI_COMM_WORLD, &size);  // Number of Processes
+}
+//------------------------------------------------------------------------------
 auto main(int argc, char** argv) -> int {
-  initialize_mpi(argc, argv);
   if (!parse_args(argc, argv)) {
     return 0;
   }
 
+  initialize_mpi(argc, argv);
   MPI_Comm new_communicator;
 
   MPI_Dims_create(size, num_dimensions, dims.data());

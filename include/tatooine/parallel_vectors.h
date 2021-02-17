@@ -21,12 +21,17 @@ namespace tatooine {
 namespace detail {
 //==============================================================================
 /// \return Position where v and w are parallel otherwise nothing.
+#ifdef __cpp_concepts
 template <typename Real, invocable<vec<Real, 3>>... Preds>
-std::optional<vec<Real, 3>> pv_on_tri(
+#else
+template <typename Real, typename... Preds,
+          enable_if<is_invocable<Preds, vec<Real, 3>>...> = true>
+#endif
+auto pv_on_tri(
     vec<Real, 3> const& p0, vec<Real, 3> const& v0, vec<Real, 3> const& w0,
     vec<Real, 3> const& p1, vec<Real, 3> const& v1, vec<Real, 3> const& w1,
     vec<Real, 3> const& p2, vec<Real, 3> const& v2, vec<Real, 3> const& w2,
-    Preds&&... preds) {
+    Preds&&... preds) -> std::optional<vec<Real, 3>> {
   mat<Real, 3, 3> V, W, M;
   V.col(0) = v0;
   V.col(1) = v1;
@@ -115,7 +120,7 @@ static auto check_tet(std::optional<vec<Real, 3>> const& tri0,
   return lines;
 }
 //------------------------------------------------------------------------------
-bool turned(size_t ix, size_t iy, size_t iz) {
+auto turned(size_t const ix, size_t const iy, size_t const iz) -> bool {
   bool const xodd = ix % 2 == 0;
   bool const yodd = iy % 2 == 0;
   bool const zodd = iz % 2 == 0;
@@ -129,9 +134,16 @@ bool turned(size_t ix, size_t iy, size_t iz) {
 /// Framework for calculating PV Operator.
 /// \param getv function for getting value for V field
 /// \param getw function for getting value for W field
+#ifdef __cpp_concepts
 template <typename Real, typename GetV, typename GetW, indexable_space XDomain,
           indexable_space YDomain, indexable_space ZDomain,
           invocable<vec<Real, 3>>... Preds>
+#else
+template <typename Real, typename GetV, typename GetW, typename XDomain,
+          typename YDomain, typename ZDomain,
+          typename... Preds,
+          enable_if<is_invocable<Preds, vec<Real, 3>>...> = true>
+#endif
 auto calc_parallel_vectors(GetV&& getv, GetW&& getw, grid<XDomain, YDomain, ZDomain> const& g,
           Preds&&... preds) {
   std::vector<line<Real, 3>> line_segments;
@@ -316,14 +328,24 @@ auto calc_parallel_vectors(GetV&& getv, GetW&& getw, grid<XDomain, YDomain, ZDom
 //==============================================================================
 }  // namespace detail
 //==============================================================================
-template <typename V, typename W, arithmetic VReal, arithmetic WReal,
-          indexable_space XDomain, indexable_space YDomain,
-          indexable_space ZDomain,
+#ifdef __cpp_concepts
+template <typename V, typename W, typename VReal, typename WReal,
+          typename XDomain, typename YDomain,
+          typename ZDomain, arithmetic TReal,
           invocable<vec<common_type<VReal, WReal>, 3>>... Preds>
+#else
+template <typename V, typename W, typename VReal, typename WReal,
+          typename TReal,
+          typename XDomain, typename YDomain,
+          typename ZDomain, typename ...Preds,
+          enable_if<
+            is_arithmetic<TReal>,
+            is_invocable<Preds, vec<common_type<VReal, WReal>, 3>>...> = true>
+#endif
 auto parallel_vectors(field<V, VReal, 3, 3> const&           vf,
                       field<W, WReal, 3, 3> const&           wf,
                       grid<XDomain, YDomain, ZDomain> const& g,
-                      arithmetic auto const t, Preds&&... preds) {
+                      TReal const t, Preds&&... preds) {
   return detail::calc_parallel_vectors<common_type<VReal, WReal>>(
       // get v data by evaluating V field
       [&vf, t](auto /*ix*/, auto /*iy*/, auto /*iz*/, auto const& p) {
@@ -344,29 +366,52 @@ auto parallel_vectors(field<V, VReal, 3, 3> const&           vf,
       g, std::forward<Preds>(preds)...);
 }
 //------------------------------------------------------------------------------
+#ifdef __cpp_concepts
 template <
-    typename V, typename W, arithmetic VReal, arithmetic WReal,
-    indexable_space XDomain, indexable_space YDomain, indexable_space ZDomain,
-    invocable<vec<common_type<VReal, WReal>, 3>>... Preds> auto parallel_vectors(
+    typename V, typename W, typename VReal, typename WReal,
+    typename XDomain, typename YDomain, typename ZDomain,
+    invocable<vec<common_type<VReal, WReal>, 3>>... Preds>
+#else
+template <
+    typename V, typename W, typename VReal, typename WReal,
+    typename XDomain, typename YDomain, typename ZDomain,
+    typename... Preds,
+    enable_if<is_invocable<Preds, vec<common_type<VReal, WReal>, 3>>...> = true>
+#endif
+auto parallel_vectors(
         field<V, VReal, 3, 3> const& v, field<W, WReal, 3, 3> const& w,
         grid<XDomain, YDomain, ZDomain> const& g, Preds&&... preds) {
   return parallel_vectors(v, w, g, 0, std::forward<Preds>(preds)...);
 }
 //------------------------------------------------------------------------------
-template <typename V, typename W, arithmetic VReal, arithmetic WReal,
-          arithmetic XReal, arithmetic YReal, arithmetic ZReal,
+#ifdef __cpp_concepts
+template <typename V, typename W, typename VReal, typename WReal,
+          typename XReal, typename YReal, typename ZReal, arithmetic TReal,
           invocable<vec<common_type<VReal, WReal>, 3>>... Preds>
+#else
+template <typename V, typename W, typename VReal, typename WReal,
+          typename XReal, typename YReal, typename ZReal, typename TReal,
+          typename... Preds,
+          enable_if<is_arithmetic<TReal>, is_invocable<Preds, vec<common_type<VReal, WReal>, 3>>...> = true>
+#endif
 auto parallel_vectors(field<V, VReal, 3, 3> const& v,
                       field<W, WReal, 3, 3> const& w, linspace<XReal> const& x,
                       linspace<YReal> const& y, linspace<ZReal> const& z,
-                      arithmetic auto t, Preds&&... preds) {
+                      TReal const t, Preds&&... preds) {
   return parallel_vectors(v, w, grid{x, y, z}, t,
                           std::forward<Preds>(preds)...);
 }
 //------------------------------------------------------------------------------
-template <typename V, typename W, arithmetic VReal, arithmetic WReal,
-          arithmetic XReal, arithmetic YReal, arithmetic ZReal,
+#ifdef __cpp_concepts
+template <typename V, typename W, typename VReal, typename WReal,
+          typename XReal, typename YReal, typename ZReal,
           invocable<vec<common_type<VReal, WReal>, 3>>... Preds>
+#else
+template <typename V, typename W, typename VReal, typename WReal,
+          typename XReal, typename YReal, typename ZReal,
+          typename... Preds,
+          enable_if<is_invocable<Preds, vec<common_type<VReal, WReal>, 3>>...> = true>
+#endif
 auto parallel_vectors(field<V, VReal, 3, 3> const& v,
                       field<W, WReal, 3, 3> const& w, linspace<XReal> const& x,
                       linspace<YReal> const& y, linspace<ZReal> const& z,
@@ -375,9 +420,16 @@ auto parallel_vectors(field<V, VReal, 3, 3> const& v,
                           std::forward<Preds>(preds)...);
 }
 //------------------------------------------------------------------------------
-template <arithmetic VReal, typename VIndexing, arithmetic WReal,
-          arithmetic WIndexing, arithmetic AABBReal,
+#ifdef __cpp_concepts
+template <typename VReal, typename VIndexing, typename WReal,
+          typename WIndexing, typename AABBReal,
           invocable<vec<common_type<VReal, WReal>, 3>>... Preds>
+#else
+template <typename VReal, typename VIndexing, typename WReal,
+          typename WIndexing, typename AABBReal,
+          typename... Preds,
+          enable_if<is_invocable<Preds, vec<common_type<VReal, WReal>, 3>>...> = true>
+#endif
 auto parallel_vectors(
     dynamic_multidim_array<vec<VReal, 3>, VIndexing> const& vf,
     dynamic_multidim_array<vec<WReal, 3>, WIndexing> const& wf,

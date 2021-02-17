@@ -124,7 +124,7 @@ struct lazy_reader : chunked_multidim_array<typename DataSet::value_type> {
   template <integral Index, size_t N, size_t... Seq>
 #else
   template <typename Index, size_t N, size_t... Seq,
-            enable_if<is_integral<Index...>> = true>
+            enable_if<is_integral<Index>> = true>
 #endif
   auto at(std::array<Index, N> const& indices,
           std::index_sequence<Seq...> /*seq*/) const -> value_type const& {
@@ -135,7 +135,7 @@ struct lazy_reader : chunked_multidim_array<typename DataSet::value_type> {
 #ifdef __cpp_concepts
   template <integral Index, size_t N>
 #else
-  template <typename Index, size_t N, enable_if<is_integral<Index...>> = true>
+  template <typename Index, size_t N, enable_if<is_integral<Index>> = true>
 #endif
   auto at(std::array<Index, N> const& indices) const -> value_type const& {
     return at(indices, std::make_index_sequence<N>{});

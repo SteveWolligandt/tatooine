@@ -486,7 +486,11 @@ class group {
         m_file, m_mutex, m_group.openDataSet(dataset_name), dataset_name};
   }
   //----------------------------------------------------------------------------
+#ifdef __cpp_concepts
   template <typename T, integral... Size>
+#else
+  template <typename T, typename... Size, enable_if<is_integral<Size...>> = true>
+#endif
   auto add_dataset(std::string const& dataset_name, Size... size) {
     H5::AtomType data_type{h5_type<T>::value()};
     hsize_t      dimsf[]{static_cast<hsize_t>(size)...};  // data set dimensions
@@ -524,7 +528,11 @@ class file {
                        group_name};
   }
   //============================================================================
+#ifdef __cpp_concepts
   template <typename T, integral... Size>
+#else
+  template <typename T, typename... Size, enable_if<is_integral<Size...>> = true>
+#endif
   auto add_dataset(std::string const& dataset_name, Size... size) {
     H5::AtomType data_type{h5_type<T>::value()};
     hsize_t      dimsf[]{static_cast<hsize_t>(size)...};  // data set dimensions

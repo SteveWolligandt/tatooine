@@ -9,6 +9,7 @@
 #include <cassert>
 #include <deque>
 #include <map>
+#include <list>
 #include <stdexcept>
 
 #include "handle.h"
@@ -1006,7 +1007,12 @@ auto merge_line_container(Lines   lines,
 }
 
 //------------------------------------------------------------------------------
+#ifdef __cpp_concepts
 template <range Lines, arithmetic Real>
+#else
+template <typename Lines, typename Real,
+	  enable_if<is_range<Lines>, is_arithmetic<Real>> = true>
+#endif
 auto filter_length(Lines const& lines, Real length) {
   std::vector<typename std::decay_t<Lines>::value_type> filtered;
   for (auto const& l : lines) {

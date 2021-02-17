@@ -134,6 +134,7 @@ target_include_directories(tatooine
     ${LAPACKE_INCLUDE_DIRS}
     ${vcode_DIR}/../..
     ${Boost_INCLUDE_DIRS}
+/lrz/sys/intel/studio2019_u5/compilers_and_libraries_2019.5.281/linux/mkl/include
 )
 #- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 #set libs 
@@ -158,6 +159,7 @@ if(PNG_FOUND)
     target_compile_definitions(tatooine PUBLIC TATOOINE_HAS_PNG_SUPPORT)
     target_include_directories(tatooine PUBLIC ${PNG_INCLUDE_DIRS} ${PNG++_INCLUDE_DIRS})
     target_link_libraries(tatooine PUBLIC ${PNG_LIBRARIES} ${PNG++_LIBRARIES})
+    message(STATUS "Compiling with PNG support")
   endif()
 endif()
 #- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -198,6 +200,7 @@ if(HDF5_FOUND)
     TATOOINE_HAS_HDF5_SUPPORT ${HDF5_DEFINITIONS} ${HDF5_CXX_DEFINITIONS})
   target_link_libraries(tatooine PUBLIC
     ${HDF5_LIBRARIES} ${HDF5_HL_LIBRARIES} ${HDF5_CXX_LIBRARIES} ${HDF5_CXX_HL_LIBRARIES})
+    message(STATUS ${HDF5_LIBRARIES} ${HDF5_HL_LIBRARIES} ${HDF5_CXX_LIBRARIES} ${HDF5_CXX_HL_LIBRARIES})
   target_include_directories(tatooine PUBLIC
     ${HDF5_INCLUDE_DIRS} ${HDF5_CXX_INCLUDE_DIRS})
 
@@ -208,6 +211,8 @@ if(HDF5_FOUND)
   add_executable(hdf5_readdata src/hdf5_readdata.cpp)
   target_link_libraries(hdf5_readdata PUBLIC tatooine)
   add_custom_target(hdf5_readdata.run COMMAND ./hdf5_readdata DEPENDS hdf5_readdata)
+else()
+  message(STATUS "HDF5 not available")
 endif()
 
 #- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
