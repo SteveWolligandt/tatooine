@@ -1,4 +1,4 @@
-#include <mpi.h>
+#include <tatooine/insitu/mpi_program.h>
 #include <tatooine/analytical/fields/numerical/abcflow.h>
 #include <tatooine/analytical/fields/numerical/tornado.h>
 #include <tatooine/axis_aligned_bounding_box.h>
@@ -16,16 +16,15 @@ using vec_array    = boost::multi_array<double, 4>;
 using index_t      = scalar_array::index;
 using range_t      = scalar_array::extent_range;
 //==============================================================================
-int                num_dimensions = 2;
-std::array<int, 2> dims{0, 0};
-std::array<int, 2> periods{0, 0};
+int start_y, start_z, end_y, end_z;
+std::array<double, 3> local_domain_origin;
+std::array<double, 3> domain_size;
+std::array<double, 3> delta;
 
 [[maybe_unused]] int const zero  = 0;
 [[maybe_unused]] int const one   = 1;
 [[maybe_unused]] int const two   = 2;
 [[maybe_unused]] int const three = 3;
-int                        rank  = 0;
-int                        size  = 0;
 std::array<int, 3>         global_grid_size{0, 0, 0};
 tatooine::aabb3            aabb;
 int                        restart          = 0;
@@ -36,43 +35,6 @@ double                     cur_t            = t0;
 double                     dt               = 0;
 bool                       use_interpolated = false;
 
-int  local_grid_end_y = 0;
-int  local_grid_end_z = 0;
-bool is_single_cell_y = true;
-bool is_single_cell_z = true;
-
-int local_grid_size_y = 0;
-int local_grid_size_z = 0;
-
-int rNperY = 0;
-int rNperZ = 0;
-
-std::array<int, 2> rDims{0, 0};
-std::array<int, 2> rPeriods{0, 0};
-std::array<int, 2> rCoords{0, 0};
-
-int starty = 0;
-int startz = 0;
-
-int local_starting_index_x = 0;
-int local_starting_index_y = 0;
-int local_starting_index_z = 0;
-
-double local_domain_origin_x = 0;
-double local_domain_origin_y = 0;
-double local_domain_origin_z = 0;
-
-int is_periodic_x = 0;
-int is_periodic_y = 0;
-int is_periodic_z = 0;
-
-double domain_size_x = 0;
-double domain_size_y = 0;
-double domain_size_z = 0;
-
-double deltaX = 0;
-double deltaY = 0;
-double deltaZ = 0;
 
 int halo_level = 1;
 
@@ -114,7 +76,8 @@ auto parse_args(int argc, char** argv) {
     }
 
     po::notify(vm);
-    global_grid_size = {vm["gridsizex"].as<int>(), vm["gridsizey"].as<int>(),
+    global_grid_size = {vm["gridsizex"].as<int>(),
+                        vm["gridsizey"].as<int>(),
                         vm["gridsizez"].as<int>()};
     aabb.min(0)      = vm["x0"].as<double>();
     aabb.max(0)      = vm["x1"].as<double>();
@@ -145,11 +108,11 @@ auto sample_flow() {
   //tatooine::analytical::fields::numerical::abcflow v;
   tatooine::analytical::fields::numerical::tornado v;
   for (int i = 0; i < global_grid_size[0]; ++i) {
-    for (int j = starty; j < local_grid_end_y; ++j) {
-      for (int k = startz; k < local_grid_end_z; ++k) {
-        auto const vel = v(tatooine::vec3{local_domain_origin_x + double(i) * deltaX,
-                                          local_domain_origin_y + double(j - starty) * deltaY,
-                                          local_domain_origin_z + double(k - startz) * deltaZ},
+    for (int j = start_y; j < end_y; ++j) {
+      for (int k = start_z; k < end_z; ++k) {
+        auto const vel = v(tatooine::vec3{local_domain_origin[0] + double(i) * delta[0],
+                                          local_domain_origin[1] + double(j - start_y) * delta[1],
+                                          local_domain_origin[2] + double(k - start_z) * delta[2]},
                            cur_t);
         (*velocity_x_field)[i][j][k] = vel.x();
         (*velocity_y_field)[i][j][k] = vel.y();
@@ -162,7 +125,7 @@ auto sample_flow() {
 auto simulation_step() -> void {
   cur_t = cur_t + dt;
   sample_flow();
-  tatooine_insitu_interface_update_velocity_x(velocity_x_field->DATA());
+  tatooine_insitu_interface_update_velocity_x(velocity_x_field->data());
   tatooine_insitu_interface_update_velocity_y(velocity_y_field->data());
   tatooine_insitu_interface_update_velocity_z(velocity_z_field->data());
   tatooine_insitu_interface_update(&iteration, &cur_t);
@@ -177,84 +140,7 @@ auto simulation_loop() -> void {
   }
 }
 //------------------------------------------------------------------------------
-auto calculate_grid_position_for_worker() -> void {
-  is_single_cell_y = (rDims[0] == 1);
-  is_single_cell_z = (rDims[1] == 1);
-
-  rNperY = int(std::floor(global_grid_size[1] / rDims[0]));
-  rNperZ = int(std::floor(global_grid_size[2] / rDims[1]));
-
-  // add additional halo grid points
-  // # of grid points is:
-  // rNperY + 2*haloLevel
-  // rNperZ + 2*haloLevel
-  // Unless it's a single cell, where it's not added
-
-  // when the cell is not a border cell, it just starts earlier and ends later.
-  // If it's either the last or first cell, it either uses periodic information
-  // or it ignores the values given in the halo position
-
-  // start index
-  starty = rNperY * rCoords[0];
-  startz = rNperZ * rCoords[1];
-
-  // end index changes when it's the last cell
-  if (rCoords[0] == rDims[0] - 1) {
-    local_grid_end_y = global_grid_size[1];
-  } else {
-    local_grid_end_y = starty + rNperY;
-  }
-
-  if (rCoords[1] == rDims[1] - 1) {
-    local_grid_end_z = global_grid_size[2];
-  } else {
-    local_grid_end_z = startz + rNperZ;
-  }
-
-  local_starting_index_x = 0;
-  local_starting_index_y = starty;
-  local_starting_index_z = startz;
-  local_grid_size_y      = local_grid_end_y - starty;
-  local_grid_size_z      = local_grid_end_z - startz;
-
-  // TODO No larger array when isSingleCell
-  if (!is_single_cell_y) {
-    starty -= halo_level;
-    local_grid_end_y += halo_level;
-  }
-  if (!is_single_cell_z) {
-    startz -= halo_level;
-    local_grid_end_z += halo_level;
-  }
-}
-//------------------------------------------------------------------------------
-auto initialize_flow_data() {
-
-  domain_size_x = aabb.max(0) - aabb.min(0);
-  domain_size_y = aabb.max(1) - aabb.min(1);
-  domain_size_z = aabb.max(2) - aabb.min(2);
-
-  deltaX = is_periodic_x ? domain_size_x / global_grid_size[0]
-                         : domain_size_x / (global_grid_size[0] - 1);
-  deltaY = is_periodic_y ? domain_size_y / global_grid_size[1]
-                         : domain_size_y / (global_grid_size[1] - 1);
-  deltaZ = is_periodic_z ? domain_size_z / global_grid_size[2]
-                         : domain_size_z / (global_grid_size[2] - 1);
-
-  local_domain_origin_x = aabb.min(0);
-  local_domain_origin_y = aabb.min(1) + starty * deltaY;
-  local_domain_origin_z = aabb.min(2) + startz * deltaZ;
-
-  sample_flow();
-}
-//------------------------------------------------------------------------------
 auto start_simulation() -> void {
-  tatooine_insitu_interface_initialize_grid(
-      &global_grid_size[0], &global_grid_size[1], &global_grid_size[2],
-      &local_starting_index_x, &local_starting_index_y, &local_starting_index_z,
-      &global_grid_size[0], &local_grid_size_y, &local_grid_size_z,
-      &domain_size_x, &domain_size_y, &domain_size_z, &is_periodic_x,
-      &is_periodic_y, &is_periodic_z, &halo_level);
 
   tatooine_insitu_interface_initialize_velocity_x(velocity_x_field->data());
   tatooine_insitu_interface_initialize_velocity_y(velocity_y_field->data());
@@ -267,55 +153,70 @@ auto start_simulation() -> void {
   simulation_loop();
 }
 //==============================================================================
-auto initialize_mpi(int argc, char** argv) -> void {
-  MPI_Init(&argc, &argv);
-  MPI_Comm_set_errhandler(MPI_COMM_WORLD, MPI_ERRORS_RETURN);
-  MPI_Comm_rank(MPI_COMM_WORLD, &rank);  // My ID
-  MPI_Comm_size(MPI_COMM_WORLD, &size);  // Number of Processes
-}
-//------------------------------------------------------------------------------
 auto main(int argc, char** argv) -> int {
+  auto& mpi_prog = tatooine::insitu::mpi_program::get(argc, argv);
   if (!parse_args(argc, argv)) {
     return 0;
   }
-
-  initialize_mpi(argc, argv);
-  MPI_Comm new_communicator;
-
-  MPI_Dims_create(size, num_dimensions, dims.data());
-  MPI_Cart_create(MPI_COMM_WORLD, num_dimensions, dims.data(), periods.data(), true,
-                  &new_communicator);
-
-  MPI_Comm_set_errhandler(new_communicator, MPI_ERRORS_RETURN);
-
-  // Allocate required space
-  MPI_Cartdim_get(new_communicator, &num_dimensions);
-
-  // Get Position in Cartesian grid
-  MPI_Cart_get(new_communicator, num_dimensions, rDims.data(), rPeriods.data(), rCoords.data());
-
-  // Convert to FInt
-  MPI_Fint comm_fint = MPI_Comm_c2f(new_communicator);
-
-  calculate_grid_position_for_worker();
-  velocity_x_field = std::make_unique<scalar_array>(
-      boost::extents[range_t(0, global_grid_size[0])][range_t(
-          starty, local_grid_end_y)][range_t(startz, local_grid_end_z)],
-      boost::fortran_storage_order());
-  velocity_y_field = std::make_unique<scalar_array>(
-      boost::extents[range_t(0, global_grid_size[0])][range_t(
-          starty, local_grid_end_y)][range_t(startz, local_grid_end_z)],
-      boost::fortran_storage_order());
-  velocity_z_field = std::make_unique<scalar_array>(
-      boost::extents[range_t(0, global_grid_size[0])][range_t(
-          starty, local_grid_end_y)][range_t(startz, local_grid_end_z)],
-      boost::fortran_storage_order());
-
-  initialize_flow_data();
-
+  mpi_prog.init_communicator(global_grid_size[1], global_grid_size[2]);
+  auto comm_fint = mpi_prog.communicator_fint();
   tatooine_insitu_interface_initialize_communicator(&comm_fint);
 
+  if (mpi_prog.rank() == 0) {
+    std::cout << mpi_prog.num_processes() << '\n';
+  }
+
+  start_y = mpi_prog.process_begin(0);
+  start_z = mpi_prog.process_begin(1);
+  end_y   = mpi_prog.process_end(0);
+  end_z   = mpi_prog.process_end(1);
+  if (!mpi_prog.is_single_cell(0))  {
+    start_y -= halo_level;
+    end_y += halo_level;
+  }
+  if (!mpi_prog.is_single_cell(1))  {
+    start_z -= halo_level;
+    end_z += halo_level;
+  }
+  int pb0 = mpi_prog.process_begin(0);
+  int pb1 = mpi_prog.process_begin(1);
+  int ps0 = mpi_prog.process_size(0);
+  int ps1 = mpi_prog.process_size(1);
+  domain_size[0] = aabb.max(0) - aabb.min(0);
+  domain_size[1] = aabb.max(1) - aabb.min(1);
+  domain_size[2] = aabb.max(2) - aabb.min(2);
+
+  int is_periodic_x = mpi_prog.is_periodic(0);
+  int is_periodic_y = mpi_prog.is_periodic(1);
+  int is_periodic_z = mpi_prog.is_periodic(2);
+  delta[0] = is_periodic_x ? domain_size[0] / global_grid_size[0]
+                            : domain_size[0] / (global_grid_size[0] - 1);
+  delta[1] = is_periodic_y ? domain_size[1] / global_grid_size[1]
+                            : domain_size[1] / (global_grid_size[1] - 1);
+  delta[2] = is_periodic_z ? domain_size[2] / global_grid_size[2]
+                            : domain_size[2] / (global_grid_size[2] - 1);
+
+  local_domain_origin[0] = aabb.min(0);
+  local_domain_origin[1] = aabb.min(1) + start_y * delta[1];
+  local_domain_origin[2] = aabb.min(2) + start_z * delta[2];
+
+  auto const extents = boost::extents[range_t(0, global_grid_size[0])][range_t(
+      start_y, end_y)][range_t(start_z, end_z)];
+  velocity_x_field =
+      std::make_unique<scalar_array>(extents, boost::fortran_storage_order());
+  velocity_y_field =
+      std::make_unique<scalar_array>(extents, boost::fortran_storage_order());
+  velocity_z_field =
+      std::make_unique<scalar_array>(extents, boost::fortran_storage_order());
+
+  sample_flow();
+  tatooine_insitu_interface_initialize_grid(
+      &global_grid_size[0], &global_grid_size[1], &global_grid_size[2],
+      &zero, &pb0, &pb1,
+      &global_grid_size[0], &ps0, &ps1,
+      &domain_size[0], &domain_size[1], &domain_size[2],
+      &is_periodic_x, &is_periodic_y, &is_periodic_z,
+      &halo_level);
   start_simulation();
-  MPI_Finalize();
   return 0;
 }

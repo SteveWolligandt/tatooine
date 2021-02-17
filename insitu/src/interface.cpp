@@ -125,6 +125,11 @@ auto interface::initialize_grid(
       m_worker_halo_grid.dimension<2>().push_back();
     }
   }
+  if (m_mpi_communicator->rank() == 7) {
+    std::cout << "m_global_grid: \n" << m_global_grid << '\n';
+    std::cout << "m_worker_grid: \n" << m_worker_grid << '\n';
+    std::cout << "m_worker_halo_grid: \n" << m_worker_halo_grid << '\n';
+  }
 
   m_halo_level    = halo_level;
   m_is_periodic_x = is_periodic_x;
@@ -198,8 +203,8 @@ auto interface::initialize(bool const restart) -> void {
       m_worker_halo_grid, *m_velocity_x, *m_velocity_y, *m_velocity_z);
   m_phase = phase::initialized;
 
-  //extract_isosurfaces();
-  advect_tracers();
+  extract_isosurfaces();
+  //advect_tracers();
 }
 //----------------------------------------------------------------------------
 auto interface::update_velocity_x(double const* var) -> void {
@@ -233,7 +238,7 @@ auto interface::update(int const iteration, double const time) -> void {
   }
 
   //extract_isosurfaces();
-  advect_tracers();
+  //advect_tracers();
 
   if (m_mpi_communicator->rank() == 0) {
     create_tracer_vtk();
