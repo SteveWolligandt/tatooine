@@ -92,8 +92,9 @@ class grid {
         m_diff_stencil_coefficients_n1_0{
             other.m_diff_stencil_coefficients_n1_0} {
     for (auto const& [name, prop] : other.m_vertex_properties) {
-      auto & emplaced_prop = m_vertex_properties.emplace(name, prop->clone());
-      emplaced_prop.set_grid(*this);
+      auto& emplaced_prop =
+          m_vertex_properties.emplace(name, prop->clone()).first->second;
+      emplaced_prop->set_grid(*this);
     }
   }
   constexpr grid(grid&& other) noexcept

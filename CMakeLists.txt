@@ -95,9 +95,9 @@ target_compile_features(tatooine PUBLIC cxx_std_20)
 
 # force coloring
 if ("${CMAKE_CXX_COMPILER_ID}" STREQUAL "Clang")
-  target_compile_options(tatooine PRIVATE "-fcolor-diagnostics")
+  target_compile_options(tatooine PUBLIC "-fcolor-diagnostics")
 elseif ("${CMAKE_CXX_COMPILER_ID}" STREQUAL "GNU")
-  target_compile_options(tatooine PRIVATE  "-fdiagnostics-color=always")
+  target_compile_options(tatooine PUBLIC  "-fdiagnostics-color=always")
 endif()
 
 #enable warnings
