@@ -1,17 +1,27 @@
-set(TATOOINE_DINO_INTERFACE_SOURCE_DIR ${CMAKE_CURRENT_SOURCE_DIR}/src)
-set(TATOOINE_DINO_INTERFACE_INCLUDE_DIR ${CMAKE_CURRENT_SOURCE_DIR}/include)
-set(TATOOINE_DINO_INTERFACE_BINARY_SOURCE_DIR ${CMAKE_CURRENT_BINARY_DIR}/src)
+set(TATOOINE_INSITU_INTERFACE_SOURCE_DIR ${CMAKE_CURRENT_SOURCE_DIR}/src)
+set(TATOOINE_INSITU_INTERFACE_INCLUDE_DIR ${CMAKE_CURRENT_SOURCE_DIR}/include)
+set(TATOOINE_INSITU_INTERFACE_BINARY_SOURCE_DIR ${CMAKE_CURRENT_BINARY_DIR}/src)
 #- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 find_package(MPI)
 if (MPI_FOUND)
+  #- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+  # test interface
+  #- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+  add_library(tatooine.insitu SHARED
+  src/mpi_program.cpp
+  )
   find_package(Boost COMPONENTS mpi REQUIRED)
+  target_link_libraries(tatooine.insitu PUBLIC tatooine ${MPI_LIBRARIES} Boost::mpi)
+  target_include_directories(tatooine.insitu PUBLIC
+    ${TATOOINE_INSITU_INTERFACE_INCLUDE_DIR})
+
   #- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
   # test interface
   #- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
   add_library(insitu_interface STATIC
-    ${TATOOINE_DINO_INTERFACE_SOURCE_DIR}/interface.cpp
-    ${TATOOINE_DINO_INTERFACE_SOURCE_DIR}/c_interface.cpp)
-  target_link_libraries(insitu_interface PRIVATE tatooine ${MPI_LIBRARIES} Boost::mpi)
+    ${TATOOINE_INSITU_INTERFACE_SOURCE_DIR}/interface.cpp
+    ${TATOOINE_INSITU_INTERFACE_SOURCE_DIR}/c_interface.cpp)
+  target_link_libraries(insitu_interface PRIVATE tatooine.insitu)
   if ("${CMAKE_CXX_COMPILER_ID}" STREQUAL "Clang")
     target_compile_options(insitu_interface
       PRIVATE "-fcolor-diagnostics")
@@ -32,13 +42,13 @@ if (MPI_FOUND)
     PRIVATE
     -Wall -Wextra -pedantic)
   target_include_directories(insitu_interface
-    PUBLIC ${TATOOINE_DINO_INTERFACE_INCLUDE_DIR})
+    PUBLIC ${TATOOINE_INSITU_INTERFACE_INCLUDE_DIR})
 
   #- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
   # feeder executable
   #- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
   add_executable(insitu_interface.feeder
-    ${TATOOINE_DINO_INTERFACE_SOURCE_DIR}/feeder.cpp)
+    ${TATOOINE_INSITU_INTERFACE_SOURCE_DIR}/feeder.cpp)
   target_link_libraries(insitu_interface.feeder PRIVATE
     tatooine ${MPI_LIBRARIES} Boost::program_options insitu_interface)
   if ("${CMAKE_CXX_COMPILER_ID}" STREQUAL "Clang")
@@ -62,7 +72,7 @@ if (MPI_FOUND)
     -Wall -Wextra -pedantic
     -Wno-tautological-undefined-compare -Wno-gnu-zero-variadic-macro-arguments)
   target_include_directories(insitu_interface.feeder
-    PUBLIC ${TATOOINE_DINO_INTERFACE_INCLUDE_DIR})
+    PUBLIC ${TATOOINE_INSITU_INTERFACE_INCLUDE_DIR})
   add_custom_target(insitu_interface.feeder.run
     #mpirun -np 4 --host localhost:4 ./insitu_interface.feeder
     mpirun -np 8 --host localhost:8 ./insitu_interface.feeder

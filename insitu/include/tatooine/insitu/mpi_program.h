@@ -3,7 +3,14 @@
 //==============================================================================
 #include <mpi.h>
 #include <tatooine/grid.h>
+#include <tatooine/insitu/boost_mpi.h>
 
+#include <boost/range/adaptors.hpp>
+#include <boost/range/algorithm.hpp>
+#include <boost/serialization/optional.hpp>
+#include <boost/serialization/utility.hpp>
+#include <boost/serialization/variant.hpp>
+#include <boost/serialization/vector.hpp>
 #include <memory>
 //==============================================================================
 namespace tatooine::insitu {
@@ -22,11 +29,12 @@ struct mpi_program {
   //============================================================================
   // Members
   //============================================================================
-  MPI_Comm m_communicator;
-  MPI_Fint m_communicator_fint;
-  int      m_rank           = 0;
-  int      m_num_processes  = 0;
-  int      m_num_dimensions = 0;
+  MPI_Comm                                            m_communicator;
+  MPI_Fint                                            m_communicator_fint;
+  std::unique_ptr<boost::mpi::cartesian_communicator> m_mpi_communicator;
+  int                                                 m_rank           = 0;
+  int                                                 m_num_processes  = 0;
+  int                                                 m_num_dimensions = 0;
 
   std::unique_ptr<int[]>    m_num_processes_per_dimension;
   std::unique_ptr<int[]>    m_periods;
@@ -43,44 +51,7 @@ struct mpi_program {
   //============================================================================
   // Ctor
   //============================================================================
-  mpi_program(int& argc, char** argv) {
-    int ret = MPI_SUCCESS;
-    ret     = MPI_Init(&argc, &argv);
-    if (ret == MPI_ERR_OTHER) {
-      throw std::runtime_error{
-          "[MPI_Init]\nThis error class is associated with an error code that "
-          "indicates that an attempt was made to call MPI_INIT a second time. "
-          "MPI_INIT may only be called once in a program."};
-    }
-    ret = MPI_Comm_set_errhandler(MPI_COMM_WORLD, MPI_ERRORS_RETURN);
-    if (ret == MPI_ERR_COMM) {
-      throw std::runtime_error{
-          "[MPI_Comm_set_errhandler]\nInvalid communicator. A common error "
-          "is "
-          "to use a null communicator "
-          "in a call (not even allowed in MPI_Comm_rank)."};
-    } else if (ret == MPI_ERR_OTHER) {
-      throw std::runtime_error{
-          "[MPI_Comm_set_errhandler]\nOther error; use MPI_Error_string to get "
-          "more information about this error code."};
-    }
-    ret = MPI_Comm_rank(MPI_COMM_WORLD, &m_rank);
-    if (ret == MPI_ERR_OTHER) {
-      throw std::runtime_error{
-          "[MPI_Comm_rank]\nInvalid communicator. A common error is to use a "
-          "null communicator in a call (not even allowed in MPI_Comm_rank)."};
-    }
-    ret = MPI_Comm_size(MPI_COMM_WORLD, &m_num_processes);
-    if (ret == MPI_ERR_COMM) {
-      throw std::runtime_error{
-          "[MPI_Comm_size]\nInvalid communicator. A common error is to use a "
-          "null communicator in a call (not even allowed in MPI_Comm_rank)."};
-    } else if (ret == MPI_ERR_OTHER) {
-      throw std::runtime_error{
-          "[MPI_Comm_size]\nInvalid argument. Some argument is invalid and is "
-          "not identified by a specific error class."};
-    }
-  }
+  mpi_program(int& argc, char** argv);
 
  public:
   mpi_program(mpi_program const&) = delete;
@@ -89,19 +60,15 @@ struct mpi_program {
   auto operator=(mpi_program&&) -> mpi_program& = delete;
 
   /// Destructor terminating mpi
-  ~mpi_program() { MPI_Finalize(); }
+  ~mpi_program();
   //============================================================================
   // Methods
   //============================================================================
   auto rank() const { return m_rank; }
   auto num_dimensions() const { return m_num_dimensions; }
   auto num_processes() const { return m_num_processes; }
-  auto global_grid_size() const -> auto const& {
-    return m_global_grid_size;
-  }
-  auto global_grid_size(size_t i) const {
-    return m_global_grid_size[i];
-  }
+  auto global_grid_size() const -> auto const& { return m_global_grid_size; }
+  auto global_grid_size(size_t i) const { return m_global_grid_size[i]; }
 
   auto periods() const -> auto const& { return m_periods; }
   auto is_periodic(size_t const i) const -> auto const& { return m_periods[i]; }
@@ -157,80 +124,65 @@ struct mpi_program {
   //----------------------------------------------------------------------------
   auto init_communicator(int                         num_dimensions,
                          std::unique_ptr<size_t[]>&& global_grid_dimensions)
-      -> void {
-    m_num_dimensions   = num_dimensions;
-    m_global_grid_size = std::move(global_grid_dimensions);
-    m_num_processes_per_dimension =
-        std::unique_ptr<int[]>{new int[m_num_dimensions]};
-    for (int i = 0; i < m_num_dimensions; ++i) {
-      m_num_processes_per_dimension[i] = 0;
-    }
-    m_periods = std::unique_ptr<int[]>{new int[m_num_dimensions]};
-    for (int i = 0; i < m_num_dimensions; ++i) {
-      m_periods[i] = 0;
-    }
-    m_process_periods = std::unique_ptr<int[]>{new int[m_num_dimensions]};
-    m_process_coords  = std::unique_ptr<int[]>{new int[m_num_dimensions]};
-    m_process_size    = std::unique_ptr<int[]>{new int[m_num_dimensions]};
-    m_process_begin_indices =
-        std::unique_ptr<size_t[]>{new size_t[m_num_dimensions]};
-    m_process_end_indices =
-        std::unique_ptr<size_t[]>{new size_t[m_num_dimensions]};
-    m_is_single_cell = std::unique_ptr<bool[]>{new bool[m_num_dimensions]};
+      -> void;
+  //----------------------------------------------------------------------------
+  template <typename T>
+  auto gather(T const& in, int const root) const {
+    std::vector<T> out;
+    boost::mpi::gather(*m_mpi_communicator, in, out, root);
+    return out;
+  }
+  //----------------------------------------------------------------------------
+  template <typename T, typename ReceiveHandler>
+  auto all_gather(std::vector<T> const& outgoing,
+                  ReceiveHandler&&      receive_handler) const {
+    std::vector<std::vector<T>> received_data;
+    boost::mpi::all_gather(*m_mpi_communicator, outgoing, received_data);
 
-    int ret = 0;
-
-    MPI_Dims_create(m_num_processes, m_num_dimensions,
-                    m_num_processes_per_dimension.get());
-    if (ret != MPI_SUCCESS) {
-        throw std::runtime_error{
-            "[MPI_Dims_create]\nThis should not happen."};
+    for (auto const& rec : received_data) {
+      boost::for_each(rec, receive_handler);
     }
-    ret = MPI_Cart_create(MPI_COMM_WORLD, m_num_dimensions,
-                          m_num_processes_per_dimension.get(), m_periods.get(),
-                          true, &m_communicator);
-    if (ret != MPI_SUCCESS) {
-      if (ret == MPI_ERR_TOPOLOGY) {
-        throw std::runtime_error{
-            "[MPI_Cart_create]\nInvalid topology. Either there is no topology "
-            "associated with this communicator, or it is not the correct "
-            "type."};
-      } else if (ret == MPI_ERR_DIMS) {
-        throw std::runtime_error{
-            "[MPI_Cart_create]\nInvalid dimension argument. A dimension "
-            "argument is null or its length is less than or equal to zero."};
-      } else if (ret == MPI_ERR_ARG) {
-        throw std::runtime_error{
-            "[MPI_Cart_create]\nInvalid argument. Some argument is invalid and "
-            "is not identified by a specific error class."};
+  }
+  /// \brief Communicate a number of elements with all neighbor processes
+  /// \details Sends a number of \p outgoing elements to all neighbors in the
+  ///      given \p communicator. Receives a number of elements of the same type
+  ///      from all neighbors. Calls the \p receive_handler for each received
+  ///      element.
+  ///
+  /// \param outgoing Collection of elements to send to all neighbors
+  /// \param comm Communicator for the communication
+  /// \param receive_handler Functor that is called with each received element
+  ///
+  template <typename T, typename ReceiveHandler>
+  auto gather_neighbors(std::vector<T> const& outgoing,
+                        ReceiveHandler&&      receive_handler) -> void {
+    namespace mpi = boost::mpi;
+    auto sendreqs = std::vector<mpi::request>{};
+    auto recvreqs = std::map<int, mpi::request>{};
+    auto incoming = std::map<int, std::vector<T>>{};
+
+    for (auto const& [rank, coords] : mpi::neighbors(
+             m_mpi_communicator->coordinates(m_mpi_communicator->rank()),
+             *m_mpi_communicator)) {
+      incoming[rank] = std::vector<T>{};
+      recvreqs[rank] = m_mpi_communicator->irecv(rank, rank, incoming[rank]);
+      sendreqs.push_back(m_mpi_communicator->isend(
+          rank, m_mpi_communicator->rank(), outgoing));
+    }
+
+    // wait for and handle receive requests
+    while (!recvreqs.empty()) {
+      for (auto& [key, req] : recvreqs) {
+        if (req.test()) {
+          boost::for_each(incoming[key], receive_handler);
+          recvreqs.erase(key);
+          break;
+        }
       }
     }
 
-    MPI_Comm_set_errhandler(m_communicator, MPI_ERRORS_RETURN);
-
-    MPI_Cartdim_get(m_communicator, &m_num_dimensions);
-
-    MPI_Cart_get(m_communicator, m_num_dimensions,
-                 m_num_processes_per_dimension.get(), m_process_periods.get(),
-                 m_process_coords.get());
-
-    m_communicator_fint = MPI_Comm_c2f(m_communicator);
-
-    for (int i = 0; i < m_num_dimensions; ++i) {
-      m_is_single_cell[i] = m_num_processes_per_dimension[i] == 1;
-      m_process_size[i] =
-          m_global_grid_size[i] / m_num_processes_per_dimension[i];
-
-      m_process_begin_indices[i] = m_process_size[i] * m_process_coords[i];
-      if (m_process_coords[i] == m_num_processes_per_dimension[i] - 1) {
-        m_process_end_indices[i] = m_global_grid_size[i];
-        m_process_size[i] =
-            m_process_end_indices[i] - m_process_begin_indices[i];
-      } else {
-        m_process_end_indices[i] =
-            m_process_begin_indices[i] + m_process_size[i];
-      }
-    }
+    // wait for send requests to finish
+    mpi::wait_all(begin(sendreqs), end(sendreqs));
   }
 };
 //==============================================================================
