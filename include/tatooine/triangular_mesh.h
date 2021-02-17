@@ -15,6 +15,7 @@
 #include <tatooine/vtk_legacy.h>
 
 #include <boost/range/algorithm/copy.hpp>
+#include <boost/range/adaptor/transformed.hpp>
 #include <filesystem>
 #include <vector>
 //==============================================================================

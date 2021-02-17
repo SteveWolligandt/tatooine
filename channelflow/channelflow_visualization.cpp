@@ -20,8 +20,7 @@ struct scalarfield : tat::scalarfield<scalarfield<Sampler>, double, 3> {
 
   Sampler m_sampler;
   //============================================================================
-  template <typename _Sampler>
-  scalarfield(_Sampler sampler) : m_sampler{sampler} {}
+  scalarfield(Sampler sampler) : m_sampler{sampler} {}
   //----------------------------------------------------------------------------
   auto evaluate(pos_t const& x, real_t const t) const -> tensor_t final {
     return m_sampler(x(0), x(1), x(2));
@@ -32,8 +31,8 @@ struct scalarfield : tat::scalarfield<scalarfield<Sampler>, double, 3> {
   }
 };
 // = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = =
-template <typename Sampler>
-scalarfield(Sampler) -> scalarfield<std::decay_t<Sampler>>;
+// template <typename Sampler>
+// scalarfield(Sampler) -> scalarfield<std::decay_t<Sampler>>;
 //==============================================================================
 template <typename SamplerX, typename SamplerY, typename SamplerZ>
 struct vectorfield
@@ -70,8 +69,9 @@ vectorfield(SamplerX, SamplerY, SamplerZ)
     -> vectorfield<std::decay_t<SamplerX>, std::decay_t<SamplerY>,
                    std::decay_t<SamplerZ>>;
 //==============================================================================
-auto add_scalar_prop(auto const& threedpart_domain, auto& channelflow_file,
-                     auto&& creator, std::string const& name) -> auto& {
+template <typename Domain, typename File, typename Creator>
+auto add_scalar_prop(Domain const& threedpart_domain, File& channelflow_file,
+                     Creator&& creator, std::string const& name) -> auto& {
   auto arr = tat::dynamic_multidim_array<tat::vec3>(512, 4096, 256);
   threedpart_domain.loop_over_vertex_indices(
       [&](auto const... is) { arr(is...) = creator(is...); });
@@ -81,7 +81,8 @@ auto add_scalar_prop(auto const& threedpart_domain, auto& channelflow_file,
   return prop;
 }
 //------------------------------------------------------------------------------
-auto add_vec3_prop(auto const& threedpart_domain, auto& channelflow_file, auto&& creator,
+template <typename Domain, typename File, typename Creator>
+auto add_vec3_prop(Domain const& threedpart_domain, File& channelflow_file, Creator&& creator,
                    std::string const& name) {
   auto arr_x = tat::dynamic_multidim_array<double>(512, 4096, 256);
   auto arr_y = tat::dynamic_multidim_array<double>(512, 4096, 256);
@@ -105,11 +106,18 @@ auto add_vec3_prop(auto const& threedpart_domain, auto& channelflow_file, auto&&
       .write(arr_z.data());
 }
 //------------------------------------------------------------------------------
-auto add_acceleration(auto const& full_domain, auto const& threedpart_domain,
-                      auto& channelflow_file, auto const& velx,
-                      auto const& vely, auto const& velz,
-                      auto const& temporal_diff_x, auto const& temporal_diff_y,
-                      auto const& temporal_diff_z) {
+template <typename FullDomain, typename ThreeDPartDomain, typename File,
+          typename Creator, typename Vx, typename Vy, typename Vz,
+          typename Tx, typename Ty, typename Tz>
+auto add_acceleration(FullDomain const& full_domain,
+                      ThreeDPartDomain const& threedpart_domain,
+                      File& channelflow_file,
+                      Vx const& velx,
+                      Vy const& vely,
+                      Vz const& velz,
+                      Tx const& temporal_diff_x,
+                      Ty const& temporal_diff_y,
+                      Tz const& temporal_diff_z) {
   auto calc_acceleration = [&](auto ix, auto iy, auto iz) {
     tat::mat3  J;
     auto const ixpos = ix == 511 ? ix : ix + 1;
@@ -147,13 +155,21 @@ auto add_acceleration(auto const& full_domain, auto const& threedpart_domain,
                        "acceleration");
 }
 //------------------------------------------------------------------------------
-auto add_temporal_derivative(auto const& full_domain,
-                             auto const& threedpart_domain,
-                             auto& channelflow_121_file, auto const& velx_121,
-                             auto const& vely_121, auto const& velz_121,
-                             auto& channelflow_122_file,
-                             auto& channelflow_123_file, auto const& velx_123,
-                             auto const& vely_123, auto const& velz_123) {
+template <typename FullDomain, typename ThreeDPartDomain,
+          typename File121, typename File122,typename File123,
+          typename Vx121, typename Vy121, typename Vz121,
+          typename Vx123, typename Vy123, typename Vz123>
+auto add_temporal_derivative(FullDomain const& full_domain,
+                             ThreeDPartDomain const& threedpart_domain,
+                             File121& channelflow_121_file,
+                             Vx121 const& velx_121,
+                             Vy121 const& vely_121,
+                             Vz121 const& velz_121,
+                             File122& channelflow_122_file,
+                             File123& channelflow_123_file,
+                             Vx123 const& velx_123,
+                             Vy123 const& vely_123,
+                             Vz123 const& velz_123) {
   auto arr_x = tat::dynamic_multidim_array<double>(512, 4096, 256);
   auto arr_y = tat::dynamic_multidim_array<double>(512, 4096, 256);
   auto arr_z = tat::dynamic_multidim_array<double>(512, 4096, 256);
@@ -177,9 +193,14 @@ auto add_temporal_derivative(auto const& full_domain,
   add_vec3_prop(threedpart_domain, channelflow_122_file, calc, "dvdt");
 }
 //------------------------------------------------------------------------------
-auto add_Q_steve(auto const& full_domain, auto const& threedpart_domain,
-                 auto& channelflow_file, auto const& velx, auto const& vely,
-                 auto const& velz, auto&& creator) -> auto& {
+template <typename FullDomain, typename ThreeDPartDomain,
+          typename File, typename Vx, typename Vy, typename Vz>
+auto add_Q_steve(FullDomain const& full_domain,
+                 ThreeDPartDomain const& threedpart_domain,
+                 File& channelflow_file,
+                 Vx const& velx,
+                 Vy const& vely,
+                 Vz const& velz) -> auto& {
   auto calc_Q = [&](auto ix, auto iy, auto iz) {
     tat::mat3  J;
     auto const ixpos = ix == 511 ? ix : ix + 1;
@@ -269,21 +290,21 @@ auto main() -> int {
                             H5F_ACC_RDONLY};
 
   // create grid properties of pod
-  auto& pod0_velx = pod_domain.add_lazy_vertex_property<double>(
+  auto& pod0_velx = pod_domain.add_lazy_vertex_property(
       pod0_file.group("variables").dataset<double>("Vx"));
-  auto& pod0_vely = pod_domain.add_lazy_vertex_property<double>(
+  auto& pod0_vely = pod_domain.add_lazy_vertex_property(
       pod0_file.group("variables").dataset<double>("Vy"));
-  auto& pod0_velz = pod_domain.add_lazy_vertex_property<double>(
+  auto& pod0_velz = pod_domain.add_lazy_vertex_property(
       pod0_file.group("variables").dataset<double>("Vz"));
 
   // create grid properties of 121000 time step
-  auto& velx_121 = threedpart_domain.add_lazy_vertex_property<double>(
+  auto& velx_121 = threedpart_domain.add_lazy_vertex_property(
       channelflow_121_file.group("variables").dataset<double>("Vx"), "Vx_121");
-  auto& vely_121 = threedpart_domain.add_lazy_vertex_property<double>(
+  auto& vely_121 = threedpart_domain.add_lazy_vertex_property(
       channelflow_121_file.group("variables").dataset<double>("Vy"), "Vy_121");
-  auto& velz_121 = threedpart_domain.add_lazy_vertex_property<double>(
+  auto& velz_121 = threedpart_domain.add_lazy_vertex_property(
       channelflow_121_file.group("variables").dataset<double>("Vz"), "Vz_121");
-  // auto& Q_121 = threedpart_domain.add_lazy_vertex_property<double>(
+  // auto& Q_121 = threedpart_domain.add_lazy_vertex_property(
   //    channelflow_121_file.group("variables").dataset<double>("Q"), "Q_121");
   // scalarfield Q_121_field{Q_121.sampler<tat::interpolation::linear>()};
 
@@ -315,18 +336,23 @@ auto main() -> int {
   auto& accz_122 = threedpart_domain.add_lazy_vertex_property(
       channelflow_122_file.group("variables").dataset<double>("acceleration_z"),
       "accz_122");
-  scalarfield Q_122_field{Q_122.sampler<tat::interpolation::linear>()};
-  scalarfield vely_122_field{vely_122.sampler<tat::interpolation::linear>()};
-  vectorfield vel_122_field{velx_122.sampler<tat::interpolation::linear>(),
-                            vely_122.sampler<tat::interpolation::linear>(),
-                            velz_122.sampler<tat::interpolation::linear>()};
+  auto Q_122_sampler = Q_122.linear_sampler();
+  auto velx_122_sampler = velx_122.linear_sampler();
+  auto vely_122_sampler = vely_122.linear_sampler();
+  auto velz_122_sampler = velz_122.linear_sampler();
+  // auto Q_122_field      = scalarfield{Q_122_sampler};
+  // auto vely_122_field   = scalarfield{vely_122_sampler};
+  // auto vel_122_field    = vectorfield{
+  //                           velx_122_sampler,
+  //                           vely_122_sampler,
+  //                           velz_122_sampler};
 
   // create grid properties of 123000 time step
-  auto& velx_123 = threedpart_domain.add_lazy_vertex_property<double>(
+  auto& velx_123 = threedpart_domain.add_lazy_vertex_property(
       channelflow_123_file.group("variables").dataset<double>("Vx"), "Vx_123");
-  auto& vely_123 = threedpart_domain.add_lazy_vertex_property<double>(
+  auto& vely_123 = threedpart_domain.add_lazy_vertex_property(
       channelflow_123_file.group("variables").dataset<double>("Vy"), "Vy_123");
-  auto& velz_123 = threedpart_domain.add_lazy_vertex_property<double>(
+  auto& velz_123 = threedpart_domain.add_lazy_vertex_property(
       channelflow_123_file.group("variables").dataset<double>("Vz"), "Vz_123");
   // auto& Q_123 = threedpart_domain.add_lazy_vertex_property<double>(
   //    channelflow_123_file.group("variables").dataset<double>("Q"), "Q_123");
@@ -400,22 +426,22 @@ auto main() -> int {
   //                                       alpha, tat::vec3::ones())
   //              .vertex_property<tat::vec3>("rendering"));
 
-  auto       J_122_field  = diff(vel_122_field, 1e-7);
-  write_vtk(tat::detail::calc_parallel_vectors<double>(
-                [&](auto ix, auto iy, auto iz, auto const& /*p*/) {
-                  return tat::vec3{velx_122(ix, iy, iz), vely_122(ix, iy, iz),
-                                   velz_122(ix, iy, iz)};
-                },
-                [&](auto ix, auto iy, auto iz, auto const& /*p*/) {
-                  return tat::vec3{accx_122(ix, iy, iz), accy_122(ix, iy, iz),
-                                   accz_122(ix, iy, iz)};
-                },
-                threedpart_domain,
-                [&](auto const& x) {
-                  auto const eig = eigenvalues(J_122_field(x, 0));
-                  return std::abs(eig(0).imag()) > 0 ||
-                         std::abs(eig(1).imag()) > 0 ||
-                         std::abs(eig(2).imag()) > 0;
-                }),
-            "pv_122.vtk");
+  //auto       J_122_field  = diff(vel_122_field, 1e-7);
+  //tat::write_vtk(tat::detail::calc_parallel_vectors<double>(
+  //              [&](auto ix, auto iy, auto iz, auto const& /*p*/) {
+  //                return tat::vec3{velx_122(ix, iy, iz), vely_122(ix, iy, iz),
+  //                                 velz_122(ix, iy, iz)};
+  //              },
+  //              [&](auto ix, auto iy, auto iz, auto const& /*p*/) {
+  //                return tat::vec3{accx_122(ix, iy, iz), accy_122(ix, iy, iz),
+  //                                 accz_122(ix, iy, iz)};
+  //              },
+  //              threedpart_domain,
+  //              [&](auto const& x) {
+  //                auto const eig = eigenvalues(J_122_field(x, 0));
+  //                return std::abs(eig(0).imag()) > 0 ||
+  //                       std::abs(eig(1).imag()) > 0 ||
+  //                       std::abs(eig(2).imag()) > 0;
+  //              }),
+  //          "pv_122.vtk");
 }

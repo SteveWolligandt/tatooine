@@ -15,7 +15,11 @@ namespace tatooine::rendering {
 /// Based on the eye position, a look-at point and a field of view angle the
 /// image plane gets constructed.
 /// This camera class constructs a right-handed coordinate system.
+#ifdef __cpp_concepts
 template <arithmetic Real>
+#else
+template <typename Real>
+#endif
 class perspective_camera : public camera<Real> {
  public:
   using real_t   = Real;

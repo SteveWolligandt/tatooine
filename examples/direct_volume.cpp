@@ -1,5 +1,6 @@
 #include <tatooine/Q_field.h>
 #include <tatooine/analytical/fields/numerical/tornado.h>
+#include <tatooine/rendering/perspective_camera.h>
 #include <tatooine/color_scales/viridis.h>
 #include <tatooine/direct_volume_rendering.h>
 //==============================================================================
@@ -36,12 +37,15 @@ auto direct_volume_rendering_tornado() {
   auto const max              = 0.01;
   auto const distance_on_ray  = 0.001;
   auto const background_color = vec3::ones();
-  auto       Q_grid =
+  auto       rendering_grid =
       direct_volume_rendering(cam, aabb, Q(v), t, min, max, distance_on_ray,
                               color_scale, alpha, background_color);
-  write_png("direct_volume_tornado_Q.png",
-            Q_grid.vertex_property<vec<double, 3>>("rendering"));
-  Q_grid.write_vtk("direct_volume_tornado_Q.vtk");
+#ifdef TATOOINE_HAS_PNG_SUPPORT
+    write_png("direct_volume_tornado_Q.png",
+              rendering_grid.vertex_property<vec<double, 3>>("rendering"));
+  }
+#endif
+  rendering_grid.write_vtk("direct_volume_tornado_Q.vtk");
 }
 //==============================================================================
 }  // namespace tatooine::examples
