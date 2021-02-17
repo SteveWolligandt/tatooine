@@ -287,7 +287,7 @@ endif()
 
 #- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 # This makes the project importable from the build directory
-export(TARGETS tatooine insitu_interface
+export(TARGETS tatooine tatooine.insitu insitu_interface
        FILE tatooineConfig.cmake
        NAMESPACE tatooine::)
 export(PACKAGE tatooine)
