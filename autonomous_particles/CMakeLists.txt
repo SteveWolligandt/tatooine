@@ -8,7 +8,6 @@ function(create_autonomous_particles_application CPP_FILE)
   set(TAT_AP_APP autonomous_particles.${CPP_FILE})
   add_executable (${TAT_AP_APP} ${CPP_FILE}.cpp parse_args.cpp)
   target_link_libraries(${TAT_AP_APP} tatooine Boost::program_options)
-  target_compile_features(${TAT_AP_APP} PUBLIC cxx_std_20)
   target_compile_options(${TAT_AP_APP} PRIVATE
   -Wall -Wextra -pedantic -Wno-missing-braces -Wno-unused-lambda-capture
   -march=native)
