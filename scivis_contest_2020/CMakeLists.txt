@@ -16,7 +16,6 @@ macro(create_executable NAME)
                   ${NAME}.cpp
                   ${CMAKE_CURRENT_BINARY_DIR}/ensemble_file_paths.cpp)
   target_link_libraries(${NAME}.sciviscontest2020 tatooine)
-  target_compile_features(${NAME}.sciviscontest2020 PUBLIC cxx_std_20)
   target_compile_options(${NAME}.sciviscontest2020 PRIVATE
     -Wall -Wextra -pedantic -Wno-missing-braces -Wno-unused-lambda-capture -march=native)
 endmacro()
