@@ -120,7 +120,7 @@ scene::scene(rendering::camera_controller<float>& cam, flowexplorer::window* w)
 }
 //------------------------------------------------------------------------------
 scene::scene(rendering::camera_controller<float>& cam, flowexplorer::window* w,
-             std::filesystem::path const& path)
+             filesystem::path const& path)
     : scene{cam, w} {
   read(path);
 }
@@ -493,7 +493,7 @@ void scene::node_creators(size_t const width) {
   ImGui::EndVertical();
 }
 //------------------------------------------------------------------------------
-void scene::write(std::filesystem::path const& filepath) const {
+void scene::write(filesystem::path const& filepath) const {
   toml::table toml_scene;
 
   auto write_nodes = [&](std::string_view const& kind, auto const& field) {
@@ -562,7 +562,7 @@ void scene::write(std::filesystem::path const& filepath) const {
   }
 }
 //------------------------------------------------------------------------------
-void scene::read(std::filesystem::path const& filepath) {
+void scene::read(filesystem::path const& filepath) {
   clear();
   ax::NodeEditor::SetCurrentEditor(m_node_editor_context);
   auto const toml_scene = toml::parse_file(filepath.string());
@@ -691,7 +691,7 @@ void scene::read(std::filesystem::path const& filepath) {
   ax::NodeEditor::SetCurrentEditor(nullptr);
 }
 //------------------------------------------------------------------------------
-void scene::open_file(std::filesystem::path const& filepath) {
+void scene::open_file(filesystem::path const& filepath) {
   auto const ext = filepath.extension().string();
   if (ext == ".toml" || ext == "toml" ||
       ext == ".scene" || ext == "scene") {

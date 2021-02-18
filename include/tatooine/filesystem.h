@@ -1,3 +1,5 @@
+/// This wrapper is needed in case that std::filesystem is not available.
+/// This is the case for gcc 7.
 #ifdef TATOOINE_STD_FILESYSTEM_AVAILABLE
 #include <filesystem>
 #else

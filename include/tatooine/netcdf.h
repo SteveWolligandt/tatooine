@@ -8,7 +8,7 @@
 #include <tatooine/multidim_array.h>
 
 #include <cassert>
-#include <filesystem>
+#include <tatooine/filesystem.h>
 #include <memory>
 #include <mutex>
 #include <netcdf>
@@ -368,7 +368,7 @@ class file {
   //============================================================================
  public:
   template <typename... Ts>
-  file(std::filesystem::path const& path, Ts&&... ts)
+  file(filesystem::path const& path, Ts&&... ts)
       : m_file{new netCDF::NcFile{path.string(), std::forward<Ts>(ts)...}},
         m_mutex{std::make_shared<std::mutex>()} {}
   //============================================================================

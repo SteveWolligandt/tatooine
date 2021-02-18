@@ -11,7 +11,7 @@
 #include <tatooine/tensor.h>
 #include <tatooine/interpolation.h>
 #include <tatooine/grid_sampler.h>
-#include <filesystem>
+#include <tatooine/filesystem.h>
 //==============================================================================
 static const std::array<std::string_view, 4> filenames{
     "texture_case1.txt", "texture_case2.txt", "texture_case3.txt",

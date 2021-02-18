@@ -4,7 +4,7 @@
 #include "positions_in_domain.h"
 #include "eddy_props.h"
 
-#include <filesystem>
+#include <tatooine/filesystem.h>
 #include <mutex>
 //==============================================================================
 namespace tatooine::scivis_contest_2020 {
@@ -66,7 +66,7 @@ void uncertain_eddy_detection(arithmetic auto const threshold) {
   size_t ti = 0;
   for (auto const t : v0.t_axis) {
     std::cerr << "processing time " << t << ", at index " << ti << " ...\n";
-    namespace fs = std::filesystem;
+    namespace fs = filesystem;
     fs::path path   = "uncertain_eddy_detection/";
     if (!fs::exists(path)) { fs::create_directory(path); }
     path += "uncertain_eddy_detection_" + std::to_string(ti++) + ".vtk";

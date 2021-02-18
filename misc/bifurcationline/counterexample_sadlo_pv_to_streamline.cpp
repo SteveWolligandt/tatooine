@@ -2,7 +2,7 @@
 #include <tatooine/line.h>
 #include <tatooine/spacetime_field.h>
 #include <array>
-#include <filesystem>
+#include <tatooine/filesystem.h>
 #include <list>
 #include "progress.h"
 

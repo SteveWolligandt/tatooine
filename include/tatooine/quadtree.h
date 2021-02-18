@@ -218,7 +218,7 @@ struct quadtree : aabb<Real, 2> {
   }
   //----------------------------------------------------------------------------
  public:
-  auto write_vtk(std::filesystem::path const& path) {
+  auto write_vtk(filesystem::path const& path) {
     vtk::legacy_file_writer f{path, vtk::dataset_type::polydata};
     f.write_header();
     std::vector<vec<Real, 2>>        positions;

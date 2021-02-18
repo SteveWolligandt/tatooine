@@ -33,7 +33,7 @@ struct window : rendering::first_person_window {
   // ctor
   //----------------------------------------------------------------------------
   window();
-  window(std::filesystem::path const& scene_path);
+  window(filesystem::path const& scene_path);
   //----------------------------------------------------------------------------
   ~window();
   //============================================================================

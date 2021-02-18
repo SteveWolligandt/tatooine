@@ -3,7 +3,7 @@
 //==============================================================================
 #include <cassert>
 #include <cstring>
-#include <filesystem>
+#include <tatooine/filesystem.h>
 #include <iostream>
 #include <stdexcept>
 #include <string>
@@ -32,7 +32,7 @@ template <floating_point T = float>
 #else
 template <typename T = float, enable_if<is_floating_point<T>> = true>
 #endif
-auto read(std::filesystem::path const& path) {
+auto read(filesystem::path const& path) {
   FILE* fp = fopen(path.string().c_str(), "rb");
   if (!fp) throw std::runtime_error("could not open file " + path.string());
 

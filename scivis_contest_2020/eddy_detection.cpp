@@ -1,6 +1,5 @@
+#include <tatooine/filesystem.h>
 #include <tatooine/ode/vclibs/rungekutta43.h>
-
-#include <filesystem>
 
 #include "ensemble_file_paths.h"
 #include "ensemble_member.h"
@@ -9,7 +8,7 @@
 //==============================================================================
 using namespace tatooine;
 using namespace tatooine::scivis_contest_2020;
-namespace fs = std::filesystem;
+namespace fs = filesystem;
 using V      = ensemble_member<interpolation::hermite>;
 //==============================================================================
 template <typename V>
