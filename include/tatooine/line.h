@@ -1472,17 +1472,19 @@ struct parameterized_line : line<Real, N> {
     }
   }
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-  template <typename... Ts>
-  void resample_properties(const linspace<Real>& ts, this_t& resampled) const {
+  template <typename T>
+  auto resample_properties(linspace<Real> const& ts, this_t& resampled) const -> void {
     for (const auto& prop : this->m_vertex_properties) {
-      (
-          [&]() {
-            if (prop.second->type() == typeid(Ts)) {
-              resample_property<Ts>(ts, resampled, prop.first, prop.second);
-            }
-          }(),
-          ...);
+      if (prop.second->type() == typeid(T)) {
+        resample_property<T>(ts, resampled, prop.first, prop.second);
+      };
     }
+  }
+  // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+  template <typename T0, typename T1, typename... Ts>
+  auto resample_properties(linspace<Real> const& ts, this_t& resampled) const -> void {
+    resample_properties<T0>(resampled);
+    resample_properties<T1, Ts...>(resampled);
   }
 
  public:
