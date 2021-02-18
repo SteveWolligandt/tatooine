@@ -35,7 +35,7 @@ struct sampled_grid_property_field
   //============================================================================
   sampled_grid_property_field() = default;
   //----------------------------------------------------------------------------
-  explicit sampled_grid_property_field(std::filesystem::path const& path)
+  explicit sampled_grid_property_field(filesystem::path const& path)
       : m_grid{std::make_shared<grid_t>(path)} {
     for (auto const& [name, prop] : m_grid->vertex_properties()) {
       if (prop->type() == typeid(tensor_t)) {
@@ -48,7 +48,7 @@ struct sampled_grid_property_field
     }
   }
   //----------------------------------------------------------------------------
-  explicit sampled_grid_property_field(std::filesystem::path const& path,
+  explicit sampled_grid_property_field(filesystem::path const& path,
                                        std::string const& name) noexcept
       : m_grid{std::make_shared<grid_t>(path)} {
     m_tensor_prop = &m_grid->template vertex_property<tensor_t>(name);
@@ -56,7 +56,7 @@ struct sampled_grid_property_field
   //----------------------------------------------------------------------------
   template <std::convertible_to<std::string>... CompNames>
   requires(sizeof...(CompNames) == num_dimensions())
-  sampled_grid_property_field(std::filesystem::path const& path,
+  sampled_grid_property_field(filesystem::path const& path,
                               CompNames const&... comp_names) noexcept
       : m_grid{std::make_shared<grid_t>(path)} {
     ((m_real_props.push_back(
@@ -64,7 +64,7 @@ struct sampled_grid_property_field
      ...);
   }
   //----------------------------------------------------------------------------
-  auto read(std::filesystem::path const& path) -> void {
+  auto read(filesystem::path const& path) -> void {
     m_grid = std::make_shared<grid_t>();
     m_grid->read(path);
     for (auto const& [name, prop] : m_grid->vertex_properties()) {
@@ -80,7 +80,7 @@ struct sampled_grid_property_field
   //----------------------------------------------------------------------------
   template <std::convertible_to<std::string>... CompNames>
   requires(sizeof...(CompNames) == num_dimensions())
-  auto read(std::filesystem::path const& path, CompNames const&... comp_names)
+  auto read(filesystem::path const& path, CompNames const&... comp_names)
       -> void {
     m_grid = std::make_shared<grid_t>();
     m_grid->read(path);

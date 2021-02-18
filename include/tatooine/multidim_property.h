@@ -222,7 +222,7 @@ struct typed_multidim_property : multidim_property<Grid> {
             enable_if<(_N == 2) && (is_floating_point<ValueType> ||
                                     is_vec<ValueType>)> = true>
 #endif
-  auto write_png(std::filesystem::path const& path) const -> void {
+  auto write_png(filesystem::path const& path) const -> void {
     png::image<png::rgb_pixel> image{
         static_cast<png::uint_32>(this->grid().size(0)),
         static_cast<png::uint_32>(this->grid().size(1))};
@@ -264,13 +264,13 @@ struct typed_multidim_property : multidim_property<Grid> {
 template <typename Grid, typename ValueType, bool HasNonConstReference>
 auto write_png(
     typed_multidim_property<Grid, ValueType, HasNonConstReference> const& prop,
-    std::filesystem::path const& path) -> void {
+    filesystem::path const& path) -> void {
   prop.write_png(path);
 }
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 template <typename Grid, typename ValueType, bool HasNonConstReference>
 auto write_png(
-    std::filesystem::path const&                                          path,
+    filesystem::path const&                                          path,
     typed_multidim_property<Grid, ValueType, HasNonConstReference> const& prop)
     -> void {
   prop.write_png(path);

@@ -51,10 +51,10 @@ struct interface : base_interface<interface> {
       "tatooine_insitu_interface_memory.txt";
   static constexpr std::string_view m_split_merge_fname =
       "tatooine_insitu_interface_splitmerge.txt";
-  static std::filesystem::path m_output_path;
-  static std::filesystem::path m_isosurface_output_path;
-  static std::filesystem::path m_tracers_output_path;
-  static std::filesystem::path m_tracers_tmp_path;
+  static filesystem::path m_output_path;
+  static filesystem::path m_isosurface_output_path;
+  static filesystem::path m_tracers_output_path;
+  static filesystem::path m_tracers_tmp_path;
 
   grid_prop_t *m_velocity_x, *m_velocity_y, *m_velocity_z;
 

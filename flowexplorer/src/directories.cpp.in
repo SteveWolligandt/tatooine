@@ -2,11 +2,11 @@
 //==============================================================================
 namespace tatooine::flowexplorer {
 //==============================================================================
-auto fonts_directory() -> std::filesystem::path {
+auto fonts_directory() -> filesystem::path {
   return "@TATOOINE_FLOWEXPLORER_FONTS_DIRECTORY@";
 }
 //------------------------------------------------------------------------------
-auto icons_directory() -> std::filesystem::path {
+auto icons_directory() -> filesystem::path {
   return "@TATOOINE_FLOWEXPLORER_ICONS_DIRECTORY@";
 }
 //==============================================================================

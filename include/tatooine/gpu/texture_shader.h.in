@@ -5,7 +5,7 @@
 #include <tatooine/mat.h>
 
 #include <string_view>
-#include <filesystem>
+#include <tatooine/filesystem.h>
 //==============================================================================
 namespace tatooine::gpu {
 //==============================================================================
@@ -14,12 +14,12 @@ struct texture_shader : yavin::shader {
       "@TATOOINE_TEXTURE_SHADER_VERT_PATH@";
   static constexpr std::string_view frag_shader_path =
       "@TATOOINE_TEXTURE_SHADER_FRAG_PATH@";
-  const std::filesystem::file_time_type vert_last_write;
-  const std::filesystem::file_time_type frag_last_write;
+  const filesystem::file_time_type vert_last_write;
+  const filesystem::file_time_type frag_last_write;
   //==============================================================================
   explicit texture_shader(GLint texture_binding = 0)
-      : vert_last_write{std::filesystem::last_write_time(vert_shader_path)},
-        frag_last_write{std::filesystem::last_write_time(frag_shader_path)} {
+      : vert_last_write{filesystem::last_write_time(vert_shader_path)},
+        frag_last_write{filesystem::last_write_time(frag_shader_path)} {
     add_stage<yavin::vertexshader>(vert_shader_path.data());
     add_stage<yavin::fragmentshader>(frag_shader_path.data());
     create();
@@ -28,8 +28,8 @@ struct texture_shader : yavin::shader {
   }
   //------------------------------------------------------------------------------
   bool files_changed() const {
-    if (std::filesystem::last_write_time(vert_shader_path) > vert_last_write ||
-        std::filesystem::last_write_time(frag_shader_path) > frag_last_write) {
+    if (filesystem::last_write_time(vert_shader_path) > vert_last_write ||
+        filesystem::last_write_time(frag_shader_path) > frag_last_write) {
       return true;
     }
     return false;

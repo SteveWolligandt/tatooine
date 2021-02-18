@@ -4,7 +4,7 @@
 //==============================================================================
 namespace tatooine::smearing {
 //==============================================================================
-auto read_ascii(std::filesystem::path const& file_path, int& res_x, int& res_y,
+auto read_ascii(filesystem::path const& file_path, int& res_x, int& res_y,
                 int& res_t, double& min_x, double& min_y, double& min_t,
                 double& extent_x, double& extent_y, double& extent_t)
     -> std::vector<uniform_grid_2d<double>> {
@@ -83,7 +83,7 @@ auto read_ascii(std::filesystem::path const& file_path, int& res_x, int& res_y,
   return grids;
 }
 //------------------------------------------------------------------------------
-auto read_binary(std::filesystem::path const& file_path, int& res_x, int& res_y,
+auto read_binary(filesystem::path const& file_path, int& res_x, int& res_y,
                  int& res_t, double& min_x, double& min_y, double& min_t,
                  double& extent_x, double& extent_y, double& extent_t)
     -> std::vector<uniform_grid_2d<double>> {
@@ -166,7 +166,7 @@ auto read_binary(std::filesystem::path const& file_path, int& res_x, int& res_y,
   return grids;
 }
 //------------------------------------------------------------------------------
-auto write_ascii(std::filesystem::path const&                file_path,
+auto write_ascii(filesystem::path const&                     file_path,
                  std::vector<uniform_grid_2d<double>> const& grids,
                  int const res_x, int const res_y, int const res_t,
                  double const min_x, double const min_y, double const min_t,
@@ -191,7 +191,7 @@ auto write_ascii(std::filesystem::path const&                file_path,
   }
 }
 //------------------------------------------------------------------------------
-auto write_binary(std::filesystem::path const&                file_path,
+auto write_binary(filesystem::path const&                     file_path,
                   std::vector<uniform_grid_2d<double>> const& grids,
                   int const res_x, int const res_y, int const res_t,
                   double const min_x, double const min_y, double const min_t,

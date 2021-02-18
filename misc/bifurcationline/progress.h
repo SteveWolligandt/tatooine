@@ -4,7 +4,7 @@
 #include <tatooine/line.h>
 #include "write_step.h"
 #include <tatooine/curve_to_streamline.h>
-#include <filesystem>
+#include <tatooine/filesystem.h>
 #include <string>
 
 //==============================================================================
@@ -26,8 +26,8 @@ void progress(V&& v, Lines&& lines, const std::string& name, size_t vertex_inc) 
     const double        t0               = 0;
     auto                current_stepsize = initial_stepsize;
 
-    if (!std::filesystem::exists(name)) {
-      std::filesystem::create_directory(name);
+    if (!filesystem::exists(name)) {
+      filesystem::create_directory(name);
     }
     for (size_t i = 0; i < n; ++i) {
       auto new_l = c2s(v, t0, l, current_stepsize, delta, 1);

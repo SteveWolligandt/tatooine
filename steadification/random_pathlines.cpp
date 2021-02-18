@@ -1,7 +1,7 @@
 #include <tatooine/chrono.h>
+#include <tatooine/filesystem.h>
 #include <tatooine/integration/vclibs/rungekutta43.h>
 
-#include <filesystem>
 #include <random>
 #include <yavin>
 
@@ -143,8 +143,8 @@ void calc(V&& vf, size_t num_lines, const std::string& seed_str) {
 
   std::stringstream path;
   path << pathline_dir << "/" << ls::name;
-  if (!std::filesystem::exists(path.str())) {
-    std::filesystem::create_directory(path.str());
+  if (!filesystem::exists(path.str())) {
+    filesystem::create_directory(path.str());
   }
   col.write_png(std::string{filename<V>(seed_str, num_lines)});
 }
@@ -162,8 +162,8 @@ void calc(V&& v, int argc, const char** argv) {
 
 int main(int argc, const char** argv) {
   using namespace tatooine::steadification;
-  if (!std::filesystem::exists(std::string{pathline_dir})) {
-    std::filesystem::create_directory(std::string{pathline_dir});
+  if (!filesystem::exists(std::string{pathline_dir})) {
+    filesystem::create_directory(std::string{pathline_dir});
   }
   std::string vf = argv[1];
   //if (vf == "dg") calc<dg_t>(argc, argv);

@@ -12,7 +12,7 @@
 #include <boost/serialization/variant.hpp>
 #include <boost/serialization/vector.hpp>
 #include <chrono>
-#include <filesystem>
+#include <tatooine/filesystem.h>
 #include <fstream>
 #include <iomanip>
 #include <iostream>
@@ -119,7 +119,7 @@ struct base_interface {
   // METHODS
   //============================================================================
   auto initialize_memory_file(bool const                   restart,
-                              std::filesystem::path const& filepath) -> void {
+                              filesystem::path const& filepath) -> void {
     m_base_pmused = pm_used();
     m_base_vmused = vm_used();
 

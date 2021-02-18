@@ -9,7 +9,7 @@ namespace tatooine::test {
 //==============================================================================
 TEST_CASE("hdf5_read_chunk", "[hdf5][read][chunk]") {
   using value_type    = int;
-  auto filepath   = std::filesystem::path{"hdf5_unittest.h5"};
+  auto filepath   = filesystem::path{"hdf5_unittest.h5"};
   auto array_name = std::string{"Array"};
 
   auto                full_size = std::vector<size_t>{64, 512, 32};
@@ -24,7 +24,7 @@ TEST_CASE("hdf5_read_chunk", "[hdf5][read][chunk]") {
   }
 
   auto in     = hdf5::file{filepath, H5F_ACC_RDONLY};
-  auto arr_in = in.dataset<value_type>(std::filesystem::path{array_name});
+  auto arr_in = in.dataset<value_type>(filesystem::path{array_name});
 
   auto const full_data = arr_in.read();
   SECTION("Full Data check") {
