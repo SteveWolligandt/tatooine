@@ -40,7 +40,6 @@ if (MPI_C_FOUND)
     set_target_properties(insitu_interface PROPERTIES
       LINK_FLAGS "${MPI_LINK_FLAGS}")
   endif()
-  target_compile_features(insitu_interface PUBLIC cxx_std_20)
   target_compile_options(insitu_interface
     PRIVATE
     -Wall -Wextra -pedantic)
@@ -53,7 +52,7 @@ if (MPI_C_FOUND)
   add_executable(insitu_interface.feeder
     ${TATOOINE_INSITU_INTERFACE_SOURCE_DIR}/feeder.cpp)
   target_link_libraries(insitu_interface.feeder PRIVATE
-    tatooine ${MPI_LIBRARIES} Boost::program_options insitu_interface)
+    tatooine ${MPI_LIBRARIES} insitu_interface)
   if ("${CMAKE_CXX_COMPILER_ID}" STREQUAL "Clang")
     target_compile_options(insitu_interface.feeder PRIVATE "-fcolor-diagnostics")
   elseif ("${CMAKE_CXX_COMPILER_ID}" STREQUAL "GNU")
@@ -69,7 +68,6 @@ if (MPI_C_FOUND)
     set_target_properties(insitu_interface.feeder PROPERTIES
       LINK_FLAGS "${MPI_LINK_FLAGS}")
   endif()
-  target_compile_features(insitu_interface.feeder PUBLIC cxx_std_20)
   target_compile_options(insitu_interface.feeder
     PRIVATE
     -Wall -Wextra -pedantic

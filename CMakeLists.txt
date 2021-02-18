@@ -91,7 +91,7 @@ add_library(tatooine SHARED
   src/vtk_legacy.cpp
   src/parse.cpp
 )
-target_compile_features(tatooine PUBLIC cxx_std_20)
+target_compile_features(tatooine PUBLIC cxx_std_17)
 
 # force coloring
 if ("${CMAKE_CXX_COMPILER_ID}" STREQUAL "Clang")
@@ -108,13 +108,22 @@ target_compile_options(tatooine PRIVATE
   -Wno-tautological-undefined-compare -Wno-gnu-zero-variadic-macro-arguments)
 endif()
 
+try_compile(TATOOINE_STD_FILESYSTEM_AVAILABLE "${CMAKE_BINARY_DIR}/temp" 
+            "${CMAKE_CURRENT_SOURCE_DIR}/src/test_has_filesystem.cpp" 
+            CMAKE_FLAGS -DCMAKE_CXX_STANDARD=17 -DCMAKE_CXX_STANDARD_REQUIRED=ON
+            LINK_LIBRARIES stdc++fs)
+
 #===============================================================================
 # Required Packages
 #===============================================================================
 find_package(BLAS REQUIRED)
 find_package(LAPACK REQUIRED)
 find_package(LAPACKE REQUIRED)
-find_package(Boost REQUIRED COMPONENTS program_options)
+if(TATOOINE_STD_FILESYSTEM_AVAILABLE)
+  find_package(Boost REQUIRED COMPONENTS program_options)
+else()
+  find_package(Boost REQUIRED COMPONENTS program_options filesystem)
+endif()
 find_package(vcode REQUIRED)
 
 option(TATOOINE_INCLUDE_MKL_LAPACKE "If ON mkl_lapacke.h will be include instead of lapacke.h")
@@ -140,12 +149,19 @@ target_include_directories(tatooine
 #set libs 
 target_link_libraries(tatooine
   PUBLIC
-    stdc++fs
     ${BLAS_LIBRARIES}
     ${LAPACK_LIBRARIES}
     ${LAPACKE_LIBRARIES}
+    ${Boost_PROGRAM_OPTIONS_LIBRARY}
 )
 
+if (TATOOINE_STD_FILESYSTEM_AVAILABLE)
+  target_link_libraries(tatooine PUBLIC stdc++fs)
+  target_compile_definitions(tatooine PUBLIC TATOOINE_STD_FILESYSTEM_AVAILABLE)
+else()
+target_link_libraries(tatooine PUBLIC
+  ${Boost_FILESYSTEM_LIBRARY} ${Boost_SYSTEM_LIBRARY})
+endif()
 #===============================================================================
 # Optional Packages
 #===============================================================================
@@ -200,17 +216,16 @@ if(HDF5_FOUND)
     TATOOINE_HAS_HDF5_SUPPORT ${HDF5_DEFINITIONS} ${HDF5_CXX_DEFINITIONS})
   target_link_libraries(tatooine PUBLIC
     ${HDF5_LIBRARIES} ${HDF5_HL_LIBRARIES} ${HDF5_CXX_LIBRARIES} ${HDF5_CXX_HL_LIBRARIES})
-    message(STATUS ${HDF5_LIBRARIES} ${HDF5_HL_LIBRARIES} ${HDF5_CXX_LIBRARIES} ${HDF5_CXX_HL_LIBRARIES})
   target_include_directories(tatooine PUBLIC
     ${HDF5_INCLUDE_DIRS} ${HDF5_CXX_INCLUDE_DIRS})
 
-  add_executable(hdf5_create src/hdf5_create.cpp)
-  target_link_libraries(hdf5_create PUBLIC tatooine)
-  add_custom_target(hdf5_create.run COMMAND ./hdf5_create DEPENDS hdf5_create)
+  #add_executable(hdf5_create src/hdf5_create.cpp)
+  #target_link_libraries(hdf5_create PUBLIC tatooine)
+  #add_custom_target(hdf5_create.run COMMAND ./hdf5_create DEPENDS hdf5_create)
 
-  add_executable(hdf5_readdata src/hdf5_readdata.cpp)
-  target_link_libraries(hdf5_readdata PUBLIC tatooine)
-  add_custom_target(hdf5_readdata.run COMMAND ./hdf5_readdata DEPENDS hdf5_readdata)
+  #add_executable(hdf5_readdata src/hdf5_readdata.cpp)
+  #target_link_libraries(hdf5_readdata PUBLIC tatooine)
+  #add_custom_target(hdf5_readdata.run COMMAND ./hdf5_readdata DEPENDS hdf5_readdata)
 else()
   message(STATUS "HDF5 not available")
 endif()

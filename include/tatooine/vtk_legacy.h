@@ -2,6 +2,7 @@
 #define TATOOINE_VTK_LEGACY_H
 //==============================================================================
 #include <tatooine/tensor.h>
+#include <tatooine/filesystem.h>
 #include <tatooine/concepts.h>
 #include <tatooine/parse.h>
 #include <tatooine/swap_endianess.h>
@@ -9,7 +10,7 @@
 #include <tatooine/type_traits.h>
 
 #include <cassert>
-#include <filesystem>
+#include <boost/filesystem.hpp>
 #include <cstdlib>
 #include <exception>
 #include <fstream>
@@ -237,7 +238,7 @@ struct legacy_file_listener {
 class legacy_file {
   std::vector<legacy_file_listener *> m_listeners;
 
-  std::filesystem::path m_path;
+  filesystem::path m_path;
   format                m_format;
   reader_data           m_data = reader_data::unknown;
   size_t                m_data_size;  // cell_data or point_data size
@@ -247,12 +248,12 @@ class legacy_file {
  public:
   auto add_listener(legacy_file_listener &listener) -> void;
   //---------------------------------------------------------------------------
-  legacy_file(std::filesystem::path const &path);
+  legacy_file(filesystem::path const &path);
   //---------------------------------------------------------------------------
   auto read() -> void;
   //---------------------------------------------------------------------------
-  auto set_path(std::filesystem::path const &path) -> void { m_path = path; }
-  auto set_path(std::filesystem::path &&path) -> void {
+  auto set_path(filesystem::path const &path) -> void { m_path = path; }
+  auto set_path(filesystem::path &&path) -> void {
     m_path = std::move(path);
   }
   auto path() const -> auto const & { return m_path; }
@@ -499,7 +500,7 @@ class legacy_file_writer {
   std::string    m_title;
 
  public:
-  legacy_file_writer(std::filesystem::path const &path, dataset_type type,
+  legacy_file_writer(filesystem::path const &path, dataset_type type,
                      unsigned short major = 2, unsigned short minor = 0,
                      std::string const &title = "");
   auto is_open() -> bool;
