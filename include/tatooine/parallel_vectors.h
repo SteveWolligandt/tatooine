@@ -323,7 +323,7 @@ auto calc_parallel_vectors(GetV&& getv, GetW&& getw, grid<XDomain, YDomain, ZDom
                      g.template size<1>() - 1,
                      g.template size<2>() - 1);
 #endif
-  return merge_lines(line_segments);
+  return merge(line_segments);
 }
 //==============================================================================
 }  // namespace detail

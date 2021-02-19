@@ -1,5 +1,5 @@
-#ifndef TATOOINE_INSITU_BOOST_MPI_H
-#define TATOOINE_INSITU_BOOST_MPI_H
+#ifndef TATOOINE_MPI_CARTESIAN_NEIGHBORS_H
+#define TATOOINE_MPI_CARTESIAN_NEIGHBORS_H
 //==============================================================================
 #include <boost/algorithm/cxx11/all_of.hpp>
 #include <boost/assert.hpp>
@@ -13,28 +13,26 @@
 #include <boost/range/iterator_range.hpp>
 
 //==============================================================================
-namespace boost::mpi {
+namespace tatooine::mpi {
 //==============================================================================
-namespace detail {
-//==============================================================================
-using coords_t    = std::vector<int>;
-using rank_coords = std::pair<int, coords_t>;
-
 /// \brief Iterator over direct (von Neumann) neighbor processes of a process
 /// with a given coordinate.
-class direct_neighbor_iterator
-    : public iterator_facade<direct_neighbor_iterator, rank_coords,
-                             forward_traversal_tag, rank_coords const&, int> {
-  mutable rank_coords           current;
-  cartesian_communicator const* comm;
-  coords_t                      center;
-  int                           index;
+class direct_cartesian_neighbor_iterator
+    : public boost::iterator_facade<
+          direct_cartesian_neighbor_iterator, std::pair<int, std::vector<int>>,
+          boost::forward_traversal_tag, std::pair<int, std::vector<int>> const&,
+          int> {
+  mutable std::pair<int, std::vector<int>>  current;
+  boost::mpi::cartesian_communicator const* comm;
+  std::vector<int>                          center;
+  int                                       index;
 
  public:
-  direct_neighbor_iterator() : comm(nullptr), index(-1) {}
+  direct_cartesian_neighbor_iterator() : comm(nullptr), index(-1) {}
 
-  direct_neighbor_iterator(cartesian_communicator const& comm,
-                           coords_t const& coordinates, int index = 0)
+  direct_cartesian_neighbor_iterator(
+      boost::mpi::cartesian_communicator const& comm,
+      std::vector<int> const& coordinates, int index = 0)
       : comm(&comm), center(coordinates), index(index) {
     ensure_valid_index();
   }
@@ -42,17 +40,17 @@ class direct_neighbor_iterator
  protected:
   friend class boost::iterator_core_access;
   //----------------------------------------------------------------------------
-  auto dereference() const -> rank_coords const& {
+  auto dereference() const -> std::pair<int, std::vector<int>> const& {
     current.second = index_to_coord(index);
     current.first  = comm->rank(current.second);
     return current;
   }
   //----------------------------------------------------------------------------
-  auto equal(direct_neighbor_iterator const& other) const -> bool {
+  auto equal(direct_cartesian_neighbor_iterator const& other) const -> bool {
     return index == other.index;
   }
   //----------------------------------------------------------------------------
-  auto increment() -> void{
+  auto increment() -> void {
     ++index;
     ensure_valid_index();
   }
@@ -64,8 +62,7 @@ class direct_neighbor_iterator
     auto const dims   = comm->topology().stl();
     auto const coords = index_to_coord(index);
     for (std::size_t i = 0; int(i) < comm->ndims(); ++i) {
-      if (!dims[i].periodic &&
-          (coords[i] < 0 || coords[i] >= dims[i].size)) {
+      if (!dims[i].periodic && (coords[i] < 0 || coords[i] >= dims[i].size)) {
         return false;
       }
     }
@@ -82,12 +79,12 @@ class direct_neighbor_iterator
     }
   }
 
-  auto index_to_coord(int index) const -> coords_t {
+  auto index_to_coord(int index) const -> std::vector<int> {
     // which dimension?
     int dim = index / 2;
     // which direction?
-    int      dir = (index % 2) * 2 - 1;
-    coords_t result{center};
+    int              dir = (index % 2) * 2 - 1;
+    std::vector<int> result{center};
     result[dim] += dir;
     return result;
   }
@@ -97,19 +94,22 @@ class direct_neighbor_iterator
 
 /// \brief Iterator over neighbor processes (Moore neighborhood) of a process
 /// with a given coordinate.
-class neighbor_iterator
-    : public iterator_facade<neighbor_iterator, rank_coords,
-                             forward_traversal_tag, rank_coords const&, int> {
+class cartesian_neighbor_iterator
+    : public boost::iterator_facade<
+          cartesian_neighbor_iterator, std::pair<int, std::vector<int>>,
+          boost::forward_traversal_tag, std::pair<int, std::vector<int>> const&,
+          int> {
+  mutable std::pair<int, std::vector<int>>  current;
+  boost::mpi::cartesian_communicator const* comm;
+  std::vector<int>                          center;
+  int                                       index;
 
-  mutable rank_coords           current;
-  cartesian_communicator const* comm;
-  coords_t                      center;
-  int                           index;
  public:
-  neighbor_iterator() : comm{nullptr}, index{-1} {}
+  cartesian_neighbor_iterator() : comm{nullptr}, index{-1} {}
 
-  neighbor_iterator(cartesian_communicator const& comm,
-                    coords_t const& coordinates, int index = 0)
+  cartesian_neighbor_iterator(boost::mpi::cartesian_communicator const& comm,
+                              std::vector<int> const& coordinates,
+                              int                     index = 0)
       : comm(&comm), center(coordinates), index(index) {
     ensure_valid_index();
   }
@@ -117,17 +117,17 @@ class neighbor_iterator
  protected:
   friend class boost::iterator_core_access;
   //----------------------------------------------------------------------------
-  auto dereference() const ->rank_coords const& {
+  auto dereference() const -> std::pair<int, std::vector<int>> const& {
     current.second = index_to_coord(index);
     current.first  = comm->rank(current.second);
     return current;
   }
   //----------------------------------------------------------------------------
-  auto equal(neighbor_iterator const& other) const -> bool{
+  auto equal(cartesian_neighbor_iterator const& other) const -> bool {
     return index == other.index;
   }
   //----------------------------------------------------------------------------
-  auto increment() ->void{
+  auto increment() -> void {
     ++index;
     ensure_valid_index();
   }
@@ -139,8 +139,7 @@ class neighbor_iterator
     auto const dims   = comm->topology().stl();
     auto const coords = index_to_coord(index);
     for (std::size_t i = 0; int(i) < comm->ndims(); ++i) {
-      if (!dims[i].periodic &&
-          (coords[i] < 0 || coords[i] >= dims[i].size)) {
+      if (!dims[i].periodic && (coords[i] < 0 || coords[i] >= dims[i].size)) {
         return false;
       }
     }
@@ -158,15 +157,15 @@ class neighbor_iterator
     }
   }
   //----------------------------------------------------------------------------
-  auto index_to_coord(int index) const -> coords_t {
+  auto index_to_coord(int index) const -> std::vector<int> {
     // coordinate centered at 0
-    coords_t result(comm->ndims());
-    int      dim_prod = 1;
+    std::vector<int> result(comm->ndims());
+    int              dim_prod = 1;
     for (std::size_t i = 0; i < result.size(); ++i) {
       result[i] = (index / dim_prod) % 3 - 1;
       dim_prod *= 3;
     }
-    range::transform(center, result, result.begin(), std::plus<int>{});
+    boost::range::transform(center, result, result.begin(), std::plus<int>{});
     return result;
   }
   //----------------------------------------------------------------------------
@@ -178,20 +177,20 @@ class neighbor_iterator
     return static_cast<int>(power);
   }
 };
-
-using direct_neighbor_range = iterator_range<direct_neighbor_iterator>;
-using neighbor_range        = iterator_range<neighbor_iterator>;
-
-}  // end namespace detail
-
+//==============================================================================
+using direct_neighbor_range =
+    boost::iterator_range<direct_cartesian_neighbor_iterator>;
+using neighbor_range = boost::iterator_range<cartesian_neighbor_iterator>;
+//==============================================================================
 template <typename Coordinates>
-auto neighbors(Coordinates&& coordinates, cartesian_communicator const& comm)
-    -> detail::neighbor_range {
-  return {detail::neighbor_iterator{comm,
-                                    std::forward<Coordinates>(coordinates), 0},
-          detail::neighbor_iterator{}};
+auto cartesian_neighbors(Coordinates&&                             coordinates,
+                         boost::mpi::cartesian_communicator const& comm)
+    -> neighbor_range {
+  return {cartesian_neighbor_iterator{
+              comm, std::forward<Coordinates>(coordinates), 0},
+          cartesian_neighbor_iterator{}};
 }
 //==============================================================================
-}  // namespace boost::mpi
+}  // namespace tatooine::mpi
 //==============================================================================
 #endif

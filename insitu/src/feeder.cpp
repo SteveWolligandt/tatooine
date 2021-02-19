@@ -1,4 +1,4 @@
-#include <tatooine/insitu/mpi_program.h>
+#include <tatooine/mpi/program.h>
 #include <tatooine/analytical/fields/numerical/abcflow.h>
 #include <tatooine/analytical/fields/numerical/tornado.h>
 #include <tatooine/axis_aligned_bounding_box.h>
@@ -154,7 +154,7 @@ auto start_simulation() -> void {
 }
 //==============================================================================
 auto main(int argc, char** argv) -> int {
-  auto& mpi_prog = tatooine::insitu::mpi_program::get(argc, argv);
+  auto& mpi_prog = tatooine::mpi::program::get(argc, argv);
   if (!parse_args(argc, argv)) {
     return 0;
   }

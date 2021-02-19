@@ -1,8 +1,8 @@
-#include <tatooine/insitu/mpi_program.h>
+#include <tatooine/mpi/program.h>
 //==============================================================================
-namespace tatooine::insitu {
+namespace tatooine::mpi {
 //==============================================================================
-mpi_program::mpi_program(int& argc, char** argv) {
+program::program(int& argc, char** argv) {
   int ret = MPI_SUCCESS;
   ret     = MPI_Init(&argc, &argv);
   if (ret == MPI_ERR_OTHER) {
@@ -41,9 +41,9 @@ mpi_program::mpi_program(int& argc, char** argv) {
   }
 }
 //------------------------------------------------------------------------------
-mpi_program::~mpi_program() { MPI_Finalize(); }
+program::~program() { MPI_Finalize(); }
 //------------------------------------------------------------------------------
-auto mpi_program::init_communicator(
+auto program::init_communicator(
     int num_dimensions, std::unique_ptr<size_t[]>&& global_grid_dimensions)
     -> void {
   m_num_dimensions   = num_dimensions;
@@ -121,5 +121,5 @@ auto mpi_program::init_communicator(
   }
 }
 //==============================================================================
-}  // namespace tatooine::insitu
+}  // namespace tatooine::mpi
 //==============================================================================
