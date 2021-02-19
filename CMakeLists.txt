@@ -279,6 +279,7 @@ endif()
 configure_file(${CMAKE_CURRENT_SOURCE_DIR}/include/tatooine/packages.h.in
                ${CMAKE_CURRENT_BINARY_DIR}/include/tatooine/packages.h)
 
+set(TATOOINE_EXPORTING_TARGETS tatooine)
 #-------------------------------------------------------------------------------
 # Subdirectories
 #-------------------------------------------------------------------------------
@@ -293,8 +294,14 @@ if (${yavin_FOUND})
 endif()
 add_subdirectory(autonomous_particles)
 add_subdirectory(smearing_scalar_field)
-add_subdirectory(insitu)
-add_subdirectory(channelflow)
+
+option(TATOOINE_BUILD_MPI "Builds MPI-related projecs")
+if (TATOOINE_BUILD_MPI)
+  add_subdirectory(mpi)
+  add_subdirectory(insitu)
+  add_subdirectory(channelflow)
+endif()
+
 option(TATOOINE_BUILD_EXAMPLES "")
 if (TATOOINE_BUILD_EXAMPLES)
   add_subdirectory(examples)
@@ -302,7 +309,7 @@ endif()
 
 #- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 # This makes the project importable from the build directory
-export(TARGETS tatooine tatooine.insitu insitu_interface
+export(TARGETS ${TATOOINE_EXPORTING_TARGETS}
        FILE tatooineConfig.cmake
        NAMESPACE tatooine::)
 export(PACKAGE tatooine)

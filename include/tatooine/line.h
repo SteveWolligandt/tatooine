@@ -8,8 +8,8 @@
 #include <boost/range/numeric.hpp>
 #include <cassert>
 #include <deque>
-#include <map>
 #include <list>
+#include <map>
 #include <stdexcept>
 
 #include "handle.h"
@@ -849,8 +849,8 @@ auto diff(const line<Real, N>& l) {
 template <typename Real, size_t N>
 template <typename Pred>
 std::vector<line<Real, N>> line<Real, N>::filter(Pred&& pred) const {
-  std::vector<line<Real, N>>   filtered_lines;
-  bool                         need_new_strip = true;
+  std::vector<line<Real, N>> filtered_lines;
+  bool                       need_new_strip = true;
 
   size_t i      = 0;
   bool   closed = is_closed();
@@ -864,14 +864,13 @@ std::vector<line<Real, N>> line<Real, N>::filter(Pred&& pred) const {
     } else {
       closed         = false;
       need_new_strip = true;
-      if (!filtered_lines.empty() && filtered_lines.back().num_vertices() <=
-      1)
+      if (!filtered_lines.empty() && filtered_lines.back().num_vertices() <= 1)
         filtered_lines.pop_back();
     }
     i++;
   }
 
-  if (!filtered_lines.empty() && filtered_lines.back().num_vertices() <= 1){
+  if (!filtered_lines.empty() && filtered_lines.back().num_vertices() <= 1) {
     filtered_lines.pop_back();
   }
   if (filtered_lines.size() == 1) {
@@ -1011,7 +1010,7 @@ auto merge_line_container(Lines   lines,
 template <range Lines, arithmetic Real>
 #else
 template <typename Lines, typename Real,
-	  enable_if<is_range<Lines>, is_arithmetic<Real>> = true>
+          enable_if<is_range<Lines>, is_arithmetic<Real>> = true>
 #endif
 auto filter_length(Lines const& lines, Real length) {
   std::vector<typename std::decay_t<Lines>::value_type> filtered;
@@ -1473,7 +1472,8 @@ struct parameterized_line : line<Real, N> {
   }
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
   template <typename T>
-  auto resample_properties(linspace<Real> const& ts, this_t& resampled) const -> void {
+  auto resample_properties(linspace<Real> const& ts, this_t& resampled) const
+      -> void {
     for (const auto& prop : this->m_vertex_properties) {
       if (prop.second->type() == typeid(T)) {
         resample_property<T>(ts, resampled, prop.first, prop.second);
@@ -1482,7 +1482,8 @@ struct parameterized_line : line<Real, N> {
   }
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
   template <typename T0, typename T1, typename... Ts>
-  auto resample_properties(linspace<Real> const& ts, this_t& resampled) const -> void {
+  auto resample_properties(linspace<Real> const& ts, this_t& resampled) const
+      -> void {
     resample_properties<T0>(resampled);
     resample_properties<T1, Ts...>(resampled);
   }
@@ -1754,11 +1755,11 @@ auto diff(const parameterized_line<Real, N, InterpolationKernel>& l) {
 //==============================================================================
 /// \brief      merge line strips
 template <typename Real, size_t N>
-void merge_lines(std::vector<line<Real, N>>& lines0,
-                 std::vector<line<Real, N>>& lines1) {
-  const Real eps = 1e-7;
+auto merge(std::vector<line<Real, N>>& lines0,
+           std::vector<line<Real, N>>& lines1) -> void {
+  Real const eps = 1e-7;
   // move line1 pairs to line0 pairs
-  const size_t size_before = size(lines0);
+  size_t const size_before = size(lines0);
   lines0.resize(size(lines0) + size(lines1));
   std::move(begin(lines1), end(lines1), next(begin(lines0), size_before));
   lines1.clear();
@@ -1786,9 +1787,8 @@ void merge_lines(std::vector<line<Real, N>>& lines0,
           // [LINE1FRONT, ..., line1back] -> [LINE0FRONT, ..., line0back]
         } else if (approx_equal(line1->front_vertex(), line0->front_vertex(),
                                 eps)) {
-          boost::reverse(line1->vertices());
           // -> [line1back, ..., LINE1FRONT] -> [LINE0FRONT, ..., line0back]
-          for (size_t i = 1; i < line0->num_vertices(); ++i) {
+          for (size_t i = line0->num_vertices() - 1; i > 0; --i) {
             line1->push_back(line0->vertex_at(i));
           }
           line0->clear();
@@ -1796,9 +1796,8 @@ void merge_lines(std::vector<line<Real, N>>& lines0,
           // [line0front, ..., LINE0BACK] -> [line1front,..., LINE1BACK]
         } else if (approx_equal(line0->back_vertex(), line1->back_vertex(),
                                 eps)) {
-          boost::reverse(line0->vertices());
           // -> [line1front, ..., LINE1BACK] -> [LINE0BACK, ..., line0front]
-          for (size_t i = 1; i < line0->num_vertices(); ++i) {
+          for (size_t i = line0->num_vertices() - 1; i > 0; --i) {
             line1->push_back(line0->vertex_at(i));
           }
           line0->clear();
@@ -1823,38 +1822,38 @@ void merge_lines(std::vector<line<Real, N>>& lines0,
     }
   }
 }
-
 //----------------------------------------------------------------------------
 template <typename Real, size_t N>
 auto line_segments_to_line_strips(
-    const std::vector<line<Real, N>>& line_segments) {
-  std::vector<std::vector<line<Real, N>>> merged_strips(line_segments.size());
+    std::vector<line<Real, N>> const& unmerged_lines) {
+  auto merged_lines =
+      std::vector<std::vector<line<Real, N>>>(unmerged_lines.size());
 
-  auto seg_it = begin(line_segments);
-  for (auto& merged_strip : merged_strips) {
-    merged_strip.push_back({*seg_it});
-    ++seg_it;
+  auto unmerged_it = begin(unmerged_lines);
+  for (auto& merged_line : merged_lines) {
+    merged_line.push_back({*unmerged_it});
+    ++unmerged_it;
   }
 
   auto num_merge_steps =
-      static_cast<size_t>(std::ceil(std::log2(line_segments.size())));
+      static_cast<size_t>(std::ceil(std::log2(unmerged_lines.size())));
 
   for (size_t i = 0; i < num_merge_steps; i++) {
     size_t offset = std::pow(2, i);
 
-    for (size_t j = 0; j < line_segments.size(); j += offset * 2) {
+    for (size_t j = 0; j < unmerged_lines.size(); j += offset * 2) {
       auto left  = j;
       auto right = j + offset;
-      if (right < line_segments.size()) {
-        merge_lines(merged_strips[left], merged_strips[right]);
+      if (right < unmerged_lines.size()) {
+        merge(merged_lines[left], merged_lines[right]);
       }
     }
   }
-  return merged_strips.front();
+  return merged_lines.front();
 }
 //------------------------------------------------------------------------------
 template <typename Real, size_t N>
-auto merge_lines(const std::vector<line<Real, N>>& lines) {
+auto merge(const std::vector<line<Real, N>>& lines) {
   std::vector<line<Real, N>> merged_lines;
   if (!lines.empty()) {
     auto line_strips = line_segments_to_line_strips(lines);

@@ -1,9 +1,9 @@
-#ifndef TATOOINE_INSITU_MPI_PROGRAM_H
-#define TATOOINE_INSITU_MPI_PROGRAM_H
+#ifndef TATOOINE_MPI_PROGRAM_H
+#define TATOOINE_MPI_PROGRAM_H
 //==============================================================================
 #include <mpi.h>
 #include <tatooine/grid.h>
-#include <tatooine/insitu/boost_mpi.h>
+#include <tatooine/mpi/cartesian_neighbors.h>
 
 #include <boost/range/adaptors.hpp>
 #include <boost/range/algorithm.hpp>
@@ -13,17 +13,17 @@
 #include <boost/serialization/vector.hpp>
 #include <memory>
 //==============================================================================
-namespace tatooine::insitu {
+namespace tatooine::mpi {
 //==============================================================================
-struct mpi_program {
+struct program {
  public:
   //============================================================================
   // Singleton Getter
   //============================================================================
   /// Creates the mpi program.
   /// Store the returned object as reference!
-  static auto get(int& argc, char** argv) -> mpi_program& {
-    static mpi_program p{argc, argv};
+  static auto get(int& argc, char** argv) -> program& {
+    static program p{argc, argv};
     return p;
   }
   //============================================================================
@@ -51,16 +51,16 @@ struct mpi_program {
   //============================================================================
   // Ctor
   //============================================================================
-  mpi_program(int& argc, char** argv);
+  program(int& argc, char** argv);
 
  public:
-  mpi_program(mpi_program const&) = delete;
-  mpi_program(mpi_program&&)      = delete;
-  auto operator=(mpi_program const&) -> mpi_program& = delete;
-  auto operator=(mpi_program&&) -> mpi_program& = delete;
+  program(program const&) = delete;
+  program(program&&)      = delete;
+  auto operator=(program const&) -> program& = delete;
+  auto operator=(program&&) -> program& = delete;
 
   /// Destructor terminating mpi
-  ~mpi_program();
+  ~program();
   //============================================================================
   // Methods
   //============================================================================
@@ -156,12 +156,11 @@ struct mpi_program {
   template <typename T, typename ReceiveHandler>
   auto gather_neighbors(std::vector<T> const& outgoing,
                         ReceiveHandler&&      receive_handler) -> void {
-    namespace mpi = boost::mpi;
-    auto sendreqs = std::vector<mpi::request>{};
-    auto recvreqs = std::map<int, mpi::request>{};
+    auto sendreqs = std::vector<boost::mpi::request>{};
+    auto recvreqs = std::map<int, boost::mpi::request>{};
     auto incoming = std::map<int, std::vector<T>>{};
 
-    for (auto const& [rank, coords] : mpi::neighbors(
+    for (auto const& [rank, coords] : cartesian_neighbors(
              m_mpi_communicator->coordinates(m_mpi_communicator->rank()),
              *m_mpi_communicator)) {
       incoming[rank] = std::vector<T>{};
@@ -182,7 +181,44 @@ struct mpi_program {
     }
 
     // wait for send requests to finish
-    mpi::wait_all(begin(sendreqs), end(sendreqs));
+    boost::mpi::wait_all(begin(sendreqs), end(sendreqs));
+  }
+  //----------------------------------------------------------------------------
+ private:
+  template <size_t I, typename... Dimensions>
+  constexpr auto local_grid_set_i(grid<Dimensions...> const& global_grid,
+                        grid<Dimensions...>&       local_grid) {
+    auto const& global_dim = global_grid.template dimension<I>();
+    auto&       local_dim  = local_grid.template dimension<I>();
+    using global_dim_t     = std::decay_t<decltype(global_dim)>;
+    using local_dim_t      = std::decay_t<decltype(local_dim)>;
+    if constexpr (is_linspace<local_dim_t>) {
+      local_dim = local_dim_t{global_dim[process_begin(I)],
+                              global_dim[process_end(I) - 1],
+                              static_cast<size_t>(process_size(I))};
+    } else {
+      local_dim = local_dim_t(begin(global_dim) + process_begin(I),
+                              begin(global_dim) = process_end(I));
+    }
+  }
+  //----------------------------------------------------------------------------
+  template <typename... Dimensions, size_t... Is>
+  constexpr auto local_grid_set(grid<Dimensions...> const& global_grid,
+                      grid<Dimensions...>&       local_grid,
+                      std::index_sequence<Is...> /*seq*/) {
+    (local_grid_set_i<Is>(global_grid, local_grid), ...);
+  }
+  //----------------------------------------------------------------------------
+ public:
+  template <typename ... Dimensions>
+  constexpr auto local_grid(grid<Dimensions...>const& global_grid) {
+    grid<Dimensions...> local_grid;
+
+    constexpr auto num_dims = sizeof...(Dimensions);
+    using seq_t             = std::make_index_sequence<num_dims>;
+    local_grid_set(global_grid, local_grid, seq_t{});
+
+    return local_grid;
   }
 };
 //==============================================================================
