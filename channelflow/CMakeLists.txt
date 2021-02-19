@@ -14,6 +14,7 @@ endif()
 #===============================================================================
 add_executable(channelflow.pv.mpi pv_mpi.cpp)
 target_link_libraries(channelflow.pv.mpi PUBLIC tatooine tatooine.insitu)
+target_compile_options(channelflow.pv.mpi PUBLIC -rdynamic -Wl,--rpath,/usr/lib64/psm2-compat/)
 add_custom_target(
   channelflow.pv.mpi.run
   COMMAND ./channelflow.pv.mpi
