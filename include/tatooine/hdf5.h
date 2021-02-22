@@ -442,16 +442,11 @@ class dataset {
     return std::vector<size_t>(size.get(), size.get() + n);
   }
   //----------------------------------------------------------------------------
-  //  auto name() const {
-  //    std::lock_guard lock{*m_mutex};
-  //    return m_dataset.getName();
-  //  }
   auto read_lazy(std::vector<size_t> const& chunk_size) {
     return lazy_reader<this_t>{*this, chunk_size};
   }
   //----------------------------------------------------------------------------
   auto name() const -> auto const& { return m_name; }
-  //----------------------------------------------------------------------------
 };
 //==============================================================================
 class group {

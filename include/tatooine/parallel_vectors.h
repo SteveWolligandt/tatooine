@@ -381,8 +381,8 @@ template <typename V, typename W, typename VReal, typename WReal,
 template <
     typename V, typename W, typename VReal, typename WReal, typename TReal,
     typename XDomain, typename YDomain, typename ZDomain, typename... Preds,
-    enable_if<is_arithmetic<TReal>,
-              is_invocable<Preds, vec<common_type<VReal, WReal>, 3>>...> = true>
+    enable_if<is_arithmetic<TReal> &&
+              (is_invocable<Preds, vec<common_type<VReal, WReal>, 3>>&&...)> = true>
 #endif
 auto parallel_vectors(field<V, VReal, 3, 3> const&           vf,
                       field<W, WReal, 3, 3> const&           wf,
@@ -442,7 +442,7 @@ auto parallel_vectors(field<V, VReal, 3, 3> const& v,
                       field<W, WReal, 3, 3> const& w, linspace<XReal> const& x,
                       linspace<YReal> const& y, linspace<ZReal> const& z,
                       TReal const t, Preds&&... preds)
-    -> std::vector<line<common_type<VReal, WReal>, 3> {
+    -> std::vector<line<common_type<VReal, WReal>, 3>> {
   return parallel_vectors(v, w, grid{x, y, z}, t,
                           std::forward<Preds>(preds)...);
 }

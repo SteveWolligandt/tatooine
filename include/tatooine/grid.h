@@ -1574,11 +1574,12 @@ class grid {
   auto print_dim(std::ostream& out) const {
     auto const& dim = dimension<I>();
     if constexpr (is_linspace<std::decay_t<decltype(dim)>>) {
-      out << dim << '\n';
+      out << dim;
     } else {
-      out << dim.front() << ", " << dim[1] << ", ..., " << dim.back()
-                 << '\n';
+      out << dim.front() << ", " << dim[1] << ", ..., " << dim.back();
     }
+
+    out << "[" << dim.size() << "]\n";
   }
   template <size_t... Seq>
   auto print(std::ostream& out, std::index_sequence<Seq...> /*seq*/) const
