@@ -442,7 +442,7 @@ auto parallel_vectors(field<V, VReal, 3, 3> const& v,
                       field<W, WReal, 3, 3> const& w, linspace<XReal> const& x,
                       linspace<YReal> const& y, linspace<ZReal> const& z,
                       TReal const t, Preds&&... preds)
-    -> std::vector<line<common_type<VReal, WReal>, 3>> {
+    -> std::vector<line<common_type<VReal, WReal>, 3> {
   return parallel_vectors(v, w, grid{x, y, z}, t,
                           std::forward<Preds>(preds)...);
 }

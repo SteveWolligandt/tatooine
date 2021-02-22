@@ -3,7 +3,7 @@
 //==============================================================================
 #include <mpi.h>
 #include <tatooine/grid.h>
-#include <tatooine/mpi/cartesian_neighbors.h>
+// #include <tatooine/mpi/cartesian_neighbors.h>
 
 #include <boost/range/adaptors.hpp>
 #include <boost/range/algorithm.hpp>
@@ -31,7 +31,7 @@ struct program {
   //============================================================================
   MPI_Comm                                            m_communicator;
   MPI_Fint                                            m_communicator_fint;
-  std::unique_ptr<boost::mpi::cartesian_communicator> m_mpi_communicator;
+  // std::unique_ptr<boost::mpi::cartesian_communicator> m_mpi_communicator;
   int                                                 m_rank           = 0;
   int                                                 m_num_processes  = 0;
   int                                                 m_num_dimensions = 0;
@@ -126,63 +126,63 @@ struct program {
                          std::unique_ptr<size_t[]>&& global_grid_dimensions)
       -> void;
   //----------------------------------------------------------------------------
-  template <typename T>
-  auto gather(T const& in, int const root) const {
-    std::vector<T> out;
-    boost::mpi::gather(*m_mpi_communicator, in, out, root);
-    return out;
-  }
-  //----------------------------------------------------------------------------
-  template <typename T, typename ReceiveHandler>
-  auto all_gather(std::vector<T> const& outgoing,
-                  ReceiveHandler&&      receive_handler) const {
-    std::vector<std::vector<T>> received_data;
-    boost::mpi::all_gather(*m_mpi_communicator, outgoing, received_data);
+  //template <typename T>
+  //auto gather(T const& in, int const root) const {
+  //  std::vector<T> out;
+  //  boost::mpi::gather(*m_mpi_communicator, in, out, root);
+  //  return out;
+  //}
+  ////----------------------------------------------------------------------------
+  //template <typename T, typename ReceiveHandler>
+  //auto all_gather(std::vector<T> const& outgoing,
+  //                ReceiveHandler&&      receive_handler) const {
+  //  std::vector<std::vector<T>> received_data;
+  //  boost::mpi::all_gather(*m_mpi_communicator, outgoing, received_data);
 
-    for (auto const& rec : received_data) {
-      boost::for_each(rec, receive_handler);
-    }
-  }
-  /// \brief Communicate a number of elements with all neighbor processes
-  /// \details Sends a number of \p outgoing elements to all neighbors in the
-  ///      given \p communicator. Receives a number of elements of the same type
-  ///      from all neighbors. Calls the \p receive_handler for each received
-  ///      element.
-  ///
-  /// \param outgoing Collection of elements to send to all neighbors
-  /// \param comm Communicator for the communication
-  /// \param receive_handler Functor that is called with each received element
-  ///
-  template <typename T, typename ReceiveHandler>
-  auto gather_neighbors(std::vector<T> const& outgoing,
-                        ReceiveHandler&&      receive_handler) -> void {
-    auto sendreqs = std::vector<boost::mpi::request>{};
-    auto recvreqs = std::map<int, boost::mpi::request>{};
-    auto incoming = std::map<int, std::vector<T>>{};
+  //  for (auto const& rec : received_data) {
+  //    boost::for_each(rec, receive_handler);
+  //  }
+  //}
+  ///// \brief Communicate a number of elements with all neighbor processes
+  ///// \details Sends a number of \p outgoing elements to all neighbors in the
+  /////      given \p communicator. Receives a number of elements of the same type
+  /////      from all neighbors. Calls the \p receive_handler for each received
+  /////      element.
+  /////
+  ///// \param outgoing Collection of elements to send to all neighbors
+  ///// \param comm Communicator for the communication
+  ///// \param receive_handler Functor that is called with each received element
+  /////
+  //template <typename T, typename ReceiveHandler>
+  //auto gather_neighbors(std::vector<T> const& outgoing,
+  //                      ReceiveHandler&&      receive_handler) -> void {
+  //  auto sendreqs = std::vector<boost::mpi::request>{};
+  //  auto recvreqs = std::map<int, boost::mpi::request>{};
+  //  auto incoming = std::map<int, std::vector<T>>{};
 
-    for (auto const& [rank, coords] : cartesian_neighbors(
-             m_mpi_communicator->coordinates(m_mpi_communicator->rank()),
-             *m_mpi_communicator)) {
-      incoming[rank] = std::vector<T>{};
-      recvreqs[rank] = m_mpi_communicator->irecv(rank, rank, incoming[rank]);
-      sendreqs.push_back(m_mpi_communicator->isend(
-          rank, m_mpi_communicator->rank(), outgoing));
-    }
+  //  for (auto const& [rank, coords] : cartesian_neighbors(
+  //           m_mpi_communicator->coordinates(m_mpi_communicator->rank()),
+  //           *m_mpi_communicator)) {
+  //    incoming[rank] = std::vector<T>{};
+  //    recvreqs[rank] = m_mpi_communicator->irecv(rank, rank, incoming[rank]);
+  //    sendreqs.push_back(m_mpi_communicator->isend(
+  //        rank, m_mpi_communicator->rank(), outgoing));
+  //  }
 
-    // wait for and handle receive requests
-    while (!recvreqs.empty()) {
-      for (auto& [key, req] : recvreqs) {
-        if (req.test()) {
-          boost::for_each(incoming[key], receive_handler);
-          recvreqs.erase(key);
-          break;
-        }
-      }
-    }
+  //  // wait for and handle receive requests
+  //  while (!recvreqs.empty()) {
+  //    for (auto& [key, req] : recvreqs) {
+  //      if (req.test()) {
+  //        boost::for_each(incoming[key], receive_handler);
+  //        recvreqs.erase(key);
+  //        break;
+  //      }
+  //    }
+  //  }
 
-    // wait for send requests to finish
-    boost::mpi::wait_all(begin(sendreqs), end(sendreqs));
-  }
+  //  // wait for send requests to finish
+  //  boost::mpi::wait_all(begin(sendreqs), end(sendreqs));
+  //}
   //----------------------------------------------------------------------------
  private:
   template <size_t I, typename... Dimensions>

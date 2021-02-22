@@ -103,9 +103,9 @@ auto program::init_communicator(
 
   m_communicator_fint = MPI_Comm_c2f(m_communicator);
 
-  m_mpi_communicator = std::unique_ptr<boost::mpi::cartesian_communicator>{
-      new boost::mpi::cartesian_communicator{MPI_Comm_f2c(m_communicator_fint),
-                                             boost::mpi::comm_attach}};
+  //m_mpi_communicator = std::unique_ptr<boost::mpi::cartesian_communicator>{
+  //    new boost::mpi::cartesian_communicator{MPI_Comm_f2c(m_communicator_fint),
+  //                                           boost::mpi::comm_attach}};
   for (int i = 0; i < m_num_dimensions; ++i) {
     m_is_single_cell[i] = m_num_processes_per_dimension[i] == 1;
     m_process_size[i] =

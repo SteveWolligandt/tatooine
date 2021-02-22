@@ -1,7 +1,7 @@
 #include <tatooine/analytical/fields/numerical/doublegyre.h>
-#include <tatooine/differentiated_field.h>
 #include <tatooine/mpi/program.h>
-#include <tatooine/parallel_vectors.h>
+#include <tatooine/differentiated_field.h>
+// #include <tatooine/parallel_vectors.h>
 #include <tatooine/spacetime_vectorfield.h>
 
 namespace tat = tatooine;
@@ -19,26 +19,14 @@ auto main(int argc, char** argv) -> int {
   auto const local_grid = mpi.local_grid(global_grid);
   auto const halo_grid  = [&local_grid, &global_grid] {
     auto halo_grid = local_grid;
-    //if (local_grid.dimension<0>().front() !=
-    //    global_grid.dimension<0>().front()) {
-    //  halo_grid.dimension<0>().push_front();
-    //}
     if (local_grid.dimension<0>().back() !=
         global_grid.dimension<0>().back()) {
       halo_grid.dimension<0>().push_back();
     }
-    //if (local_grid.dimension<1>().front() !=
-    //    global_grid.dimension<1>().front()) {
-    //  halo_grid.dimension<1>().push_front();
-    //}
     if (local_grid.dimension<1>().back() !=
         global_grid.dimension<1>().back()) {
       halo_grid.dimension<1>().push_back();
     }
-    //if (local_grid.dimension<2>().front() !=
-    //    global_grid.dimension<2>().front()) {
-    //  halo_grid.dimension<2>().push_front();
-    //}
     if (local_grid.dimension<2>().back() !=
         global_grid.dimension<2>().back()) {
       halo_grid.dimension<2>().push_back();
@@ -53,9 +41,9 @@ auto main(int argc, char** argv) -> int {
   //------------------------------------------------------------------------------
   doublegyre dg;
   auto       v = spacetime(dg);
-  auto       J = diff(v, 1e-10);
-  auto       a = J * v;
+  //auto       J = diff(v, 1e-10);
+  //auto       a = J * v;
 
-  auto const pv = parallel_vectors(v, a, halo_grid);
-  write_vtk(pv, "pv_stdg_mpi_rank_" + std::to_string(mpi.rank()) + ".vtk");
+  //auto const pv = parallel_vectors(v, a, halo_grid);
+  //write_vtk(pv, "pv_stdg_mpi_rank_" + std::to_string(mpi.rank()) + ".vtk");
 }
