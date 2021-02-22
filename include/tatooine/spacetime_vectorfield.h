@@ -14,7 +14,7 @@ struct spacetime_vectorfield
   using parent_t = vectorfield<this_t, Real, N>;
   using typename parent_t::pos_t;
   using typename parent_t::tensor_t;
-  static constexpr auto holds_field_pointer = std::is_pointer_v<V>;
+  static constexpr auto holds_field_pointer = is_pointer<V>;
 
   static_assert(
     std::remove_pointer_t<std::decay_t<V>>::tensor_t::num_dimensions() == 1);
@@ -47,15 +47,28 @@ struct spacetime_vectorfield
   //============================================================================
   // ctors
   //============================================================================
-  template <typename V_ = V> requires std::is_pointer_v<V_>
+#ifdef __cpp_concepts
+  template <typename = void> requires std::is_pointer<V>
+#else
+  template <typename V_ = V, enable_if<is_pointer<V_>, is_same<V_, V>> = true>
+#endif
   constexpr spacetime_vectorfield() : m_v{nullptr} {}
   //----------------------------------------------------------------------------
-  template <typename V_ = V> requires std::is_pointer_v<V_>
+#ifdef __cpp_concepts
+  template <typename = void> requires std::is_pointer<V>
+#else
+  template <typename V_ = V, enable_if<is_pointer<V_>, is_same<V_, V>>>
+#endif
   constexpr spacetime_vectorfield(parent::vectorfield<Real, N - 1> const* v)
     : m_v{v} {}
   //----------------------------------------------------------------------------
-  template <std::convertible_to<V> W, typename V_ = V>
-    requires (!std::is_pointer_v<V_>)
+#ifdef __cpp_concepts
+  template <std::convertible_to<V> W>
+    requires (!is_pointer<V>)
+#else
+  template <typename W, typename V_ = V,
+            enable_if<is_convertible<W, V_>, is_same<V_, V>> = true>
+#endif
   constexpr spacetime_vectorfield(vectorfield<W, Real, N - 1> const& w)
     : m_v{w.as_derived()} {}
   //============================================================================
@@ -88,20 +101,32 @@ struct spacetime_vectorfield
     return v().in_domain(spatial_position, temporal_position);
   }
   //----------------------------------------------------------------------------
+#ifdef __cpp_concepts
   template <typename W>
-  requires std::is_pointer_v<V>
+  requires is_pointer<V>
+#else
+  template <typename W, typename V_ = V, enable_if<is_pointer<V_>, is_same<V_, V>> = true>
+#endif
   void set_field(vectorfield<W, Real, N - 1> const& v) {
     m_v = &v;
   }
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-  template <typename = void>
-  requires std::is_pointer_v<V>
+#ifdef __cpp_concepts
+  template <typename =void>
+  requires is_pointer<V>
+#else
+  template <typename V_ = V, enable_if<is_pointer<V_>, is_same<V_, V>> = true>
+#endif
   void set_field(parent::vectorfield<Real, N - 1> const& v) {
     m_v = &v;
   }
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-  template <typename = void>
-  requires std::is_pointer_v<V>
+#ifdef __cpp_concepts
+  template <typename =void>
+  requires is_pointer<V>
+#else
+  template <typename V_ = V, enable_if<is_pointer<V_>, is_same<V_, V>> = true>
+#endif
   void set_field(parent::vectorfield<Real, N - 1> const* v) {
     m_v = v;
   }
