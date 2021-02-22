@@ -22,28 +22,28 @@ class direct_cartesian_neighbor_iterator
           direct_cartesian_neighbor_iterator, std::pair<int, std::vector<int>>,
           boost::forward_traversal_tag, std::pair<int, std::vector<int>> const&,
           int> {
-  mutable std::pair<int, std::vector<int>>  current;
-  boost::mpi::cartesian_communicator const* comm;
+  mutable std::pair<int, std::vector<int>>  m_current;
+  boost::mpi::cartesian_communicator const* m_comm;
   std::vector<int>                          center;
   int                                       index;
-
+  //============================================================================
  public:
-  direct_cartesian_neighbor_iterator() : comm(nullptr), index(-1) {}
-
+  direct_cartesian_neighbor_iterator() : m_comm{nullptr}, index{-1} {}
+  //----------------------------------------------------------------------------
   direct_cartesian_neighbor_iterator(
       boost::mpi::cartesian_communicator const& comm,
       std::vector<int> const& coordinates, int index = 0)
-      : comm(&comm), center(coordinates), index(index) {
+      : m_comm{&comm}, center(coordinates), index{index} {
     ensure_valid_index();
   }
-
+  //----------------------------------------------------------------------------
  protected:
   friend class boost::iterator_core_access;
   //----------------------------------------------------------------------------
   auto dereference() const -> std::pair<int, std::vector<int>> const& {
-    current.second = index_to_coord(index);
-    current.first  = comm->rank(current.second);
-    return current;
+    m_current.second = index_to_coord(index);
+    m_current.first  = m_comm->rank(m_current.second);
+    return m_current;
   }
   //----------------------------------------------------------------------------
   auto equal(direct_cartesian_neighbor_iterator const& other) const -> bool {
@@ -58,10 +58,10 @@ class direct_cartesian_neighbor_iterator
   /// Check if the coordinates are valid inside the communicator. Newer MPI
   /// versions raise an error instead of returning MPI_PROC_NULL for out-of-
   /// range coordinates in nonperiodic directions, so better be safe.
-  auto valid_index(int index) -> bool {
-    auto const dims   = comm->topology().stl();
+  auto valid_index(int const index) -> bool {
+    auto const dims   = m_comm->topology().stl();
     auto const coords = index_to_coord(index);
-    for (std::size_t i = 0; int(i) < comm->ndims(); ++i) {
+    for (std::size_t i = 0; int(i) < m_comm->ndims(); ++i) {
       if (!dims[i].periodic && (coords[i] < 0 || coords[i] >= dims[i].size)) {
         return false;
       }
@@ -78,8 +78,8 @@ class direct_cartesian_neighbor_iterator
       index = -1;
     }
   }
-
-  auto index_to_coord(int index) const -> std::vector<int> {
+  //----------------------------------------------------------------------------
+  auto index_to_coord(int const index) const -> std::vector<int> {
     // which dimension?
     int dim = index / 2;
     // which direction?
@@ -88,8 +88,8 @@ class direct_cartesian_neighbor_iterator
     result[dim] += dir;
     return result;
   }
-
-  auto max_index() const -> int { return comm->ndims() * 2; }
+  //----------------------------------------------------------------------------
+  auto max_index() const -> int { return m_comm->ndims() * 2; }
 };
 
 /// \brief Iterator over neighbor processes (Moore neighborhood) of a process
@@ -99,28 +99,29 @@ class cartesian_neighbor_iterator
           cartesian_neighbor_iterator, std::pair<int, std::vector<int>>,
           boost::forward_traversal_tag, std::pair<int, std::vector<int>> const&,
           int> {
-  mutable std::pair<int, std::vector<int>>  current;
-  boost::mpi::cartesian_communicator const* comm;
+  mutable std::pair<int, std::vector<int>>  m_current;
+  boost::mpi::cartesian_communicator const* m_comm;
   std::vector<int>                          center;
   int                                       index;
 
+  //============================================================================
  public:
-  cartesian_neighbor_iterator() : comm{nullptr}, index{-1} {}
-
+  cartesian_neighbor_iterator() : m_comm{nullptr}, index{-1} {}
+  //----------------------------------------------------------------------------
   cartesian_neighbor_iterator(boost::mpi::cartesian_communicator const& comm,
                               std::vector<int> const& coordinates,
                               int                     index = 0)
-      : comm(&comm), center(coordinates), index(index) {
+      : m_comm(&comm), center(coordinates), index(index) {
     ensure_valid_index();
   }
-
+  //----------------------------------------------------------------------------
  protected:
   friend class boost::iterator_core_access;
   //----------------------------------------------------------------------------
   auto dereference() const -> std::pair<int, std::vector<int>> const& {
-    current.second = index_to_coord(index);
-    current.first  = comm->rank(current.second);
-    return current;
+    m_current.second = index_to_coord(index);
+    m_current.first  = m_comm->rank(m_current.second);
+    return m_current;
   }
   //----------------------------------------------------------------------------
   auto equal(cartesian_neighbor_iterator const& other) const -> bool {
@@ -135,10 +136,10 @@ class cartesian_neighbor_iterator
   /// Check if the coordinates are valid inside the communicator. Newer MPI
   /// versions raise an error instead of returning MPI_PROC_NULL for out-of-
   /// range coordinates in nonperiodic directions, so better be safe.
-  auto valid_index(int index) const -> bool {
-    auto const dims   = comm->topology().stl();
+  auto valid_index(int const index) const -> bool {
+    auto const dims   = m_comm->topology().stl();
     auto const coords = index_to_coord(index);
-    for (std::size_t i = 0; int(i) < comm->ndims(); ++i) {
+    for (std::size_t i = 0; int(i) < m_comm->ndims(); ++i) {
       if (!dims[i].periodic && (coords[i] < 0 || coords[i] >= dims[i].size)) {
         return false;
       }
@@ -157,9 +158,9 @@ class cartesian_neighbor_iterator
     }
   }
   //----------------------------------------------------------------------------
-  auto index_to_coord(int index) const -> std::vector<int> {
+  auto index_to_coord(int const index) const -> std::vector<int> {
     // coordinate centered at 0
-    std::vector<int> result(comm->ndims());
+    std::vector<int> result(m_comm->ndims());
     int              dim_prod = 1;
     for (std::size_t i = 0; i < result.size(); ++i) {
       result[i] = (index / dim_prod) % 3 - 1;
@@ -170,7 +171,7 @@ class cartesian_neighbor_iterator
   }
   //----------------------------------------------------------------------------
   auto max_index() const -> int {
-    double power = std::pow(3, comm->ndims());
+    double power = std::pow(3, m_comm->ndims());
     if (power > std::numeric_limits<int>::max()) {
       throw std::overflow_error("Communicator has too many dimensions");
     }
