@@ -27,11 +27,12 @@ template <typename Real, invocable<vec<Real, 3>>... Preds>
 template <typename Real, typename... Preds,
           enable_if<is_invocable<Preds, vec<Real, 3>>...> = true>
 #endif
-auto pv_on_tri(
-    vec<Real, 3> const& p0, vec<Real, 3> const& v0, vec<Real, 3> const& w0,
-    vec<Real, 3> const& p1, vec<Real, 3> const& v1, vec<Real, 3> const& w1,
-    vec<Real, 3> const& p2, vec<Real, 3> const& v2, vec<Real, 3> const& w2,
-    Preds&&... preds) -> std::optional<vec<Real, 3>> {
+auto pv_on_tri(vec<Real, 3> const& p0, vec<Real, 3> const& v0,
+               vec<Real, 3> const& w0, vec<Real, 3> const& p1,
+               vec<Real, 3> const& v1, vec<Real, 3> const& w1,
+               vec<Real, 3> const& p2, vec<Real, 3> const& v2,
+               vec<Real, 3> const& w2, Preds&&... preds)
+    -> std::optional<vec<Real, 3>> {
   mat<Real, 3, 3> V, W, M;
   V.col(0) = v0;
   V.col(1) = v1;
@@ -40,7 +41,7 @@ auto pv_on_tri(
   W.col(1) = w1;
   W.col(2) = w2;
 
-  //openblas_set_num_threads(1);
+  // openblas_set_num_threads(1);
   if (std::abs(det(V)) > 0) {
     M = solve(V, W);
   } else if (std::abs(det(W)) > 0) {
@@ -70,7 +71,9 @@ auto pv_on_tri(
     auto pos = barycentric_coords.front()(0) * p0 +
                barycentric_coords.front()(1) * p1 +
                barycentric_coords.front()(2) * p2;
-    if ((preds(pos) && ...)) { return pos; }
+    if ((preds(pos) && ...)) {
+      return pos;
+    }
     return {};
 
   } else {
@@ -100,10 +103,18 @@ static auto check_tet(std::optional<vec<Real, 3>> const& tri0,
                       std::optional<vec<Real, 3>> const& tri2,
                       std::optional<vec<Real, 3>> const& tri3) {
   std::vector<std::optional<vec<Real, 3>> const*> tris;
-  if (tri0) { tris.push_back(&tri0); }
-  if (tri1) { tris.push_back(&tri1); }
-  if (tri2) { tris.push_back(&tri2); }
-  if (tri3) { tris.push_back(&tri3); }
+  if (tri0) {
+    tris.push_back(&tri0);
+  }
+  if (tri1) {
+    tris.push_back(&tri1);
+  }
+  if (tri2) {
+    tris.push_back(&tri2);
+  }
+  if (tri3) {
+    tris.push_back(&tri3);
+  }
 
   std::vector<line<Real, 3>> lines;
   if (tris.size() == 1) {
@@ -126,8 +137,12 @@ auto turned(size_t const ix, size_t const iy, size_t const iz) -> bool {
   bool const zodd = iz % 2 == 0;
 
   bool turned = xodd;
-  if (yodd) { turned = !turned; }
-  if (zodd) { turned = !turned; }
+  if (yodd) {
+    turned = !turned;
+  }
+  if (zodd) {
+    turned = !turned;
+  }
   return turned;
 }
 //------------------------------------------------------------------------------
@@ -140,12 +155,12 @@ template <typename Real, typename GetV, typename GetW, indexable_space XDomain,
           invocable<vec<Real, 3>>... Preds>
 #else
 template <typename Real, typename GetV, typename GetW, typename XDomain,
-          typename YDomain, typename ZDomain,
-          typename... Preds,
+          typename YDomain, typename ZDomain, typename... Preds,
           enable_if<is_invocable<Preds, vec<Real, 3>>...> = true>
 #endif
-auto calc_parallel_vectors(GetV&& getv, GetW&& getw, grid<XDomain, YDomain, ZDomain> const& g,
-          Preds&&... preds) {
+auto calc_parallel_vectors(GetV&& getv, GetW&& getw,
+                           grid<XDomain, YDomain, ZDomain> const& g,
+                           Preds&&... preds) -> std::vector<line<Real, 3>> {
   std::vector<line<Real, 3>> line_segments;
 
 #ifdef NDEBUG
@@ -164,37 +179,69 @@ auto calc_parallel_vectors(GetV&& getv, GetW&& getw, grid<XDomain, YDomain, ZDom
         g(ix, iy + 1, iz + 1), g(ix + 1, iy + 1, iz + 1),
     };
     decltype(auto) v0 = getv(ix, iy, iz, p[0]);
-    if (isnan(v0)) { return; }
+    if (isnan(v0)) {
+      return;
+    }
     decltype(auto) v1 = getv(ix + 1, iy, iz, p[1]);
-    if (isnan(v1)) { return; }
+    if (isnan(v1)) {
+      return;
+    }
     decltype(auto) v2 = getv(ix, iy + 1, iz, p[2]);
-    if (isnan(v2)) { return; }
+    if (isnan(v2)) {
+      return;
+    }
     decltype(auto) v3 = getv(ix + 1, iy + 1, iz, p[3]);
-    if (isnan(v3)) { return; }
+    if (isnan(v3)) {
+      return;
+    }
     decltype(auto) v4 = getv(ix, iy, iz + 1, p[4]);
-    if (isnan(v4)) { return; }
+    if (isnan(v4)) {
+      return;
+    }
     decltype(auto) v5 = getv(ix + 1, iy, iz + 1, p[5]);
-    if (isnan(v5)) { return; }
+    if (isnan(v5)) {
+      return;
+    }
     decltype(auto) v6 = getv(ix, iy + 1, iz + 1, p[6]);
-    if (isnan(v6)) { return; }
+    if (isnan(v6)) {
+      return;
+    }
     decltype(auto) v7 = getv(ix + 1, iy + 1, iz + 1, p[7]);
-    if (isnan(v7)) { return; }
+    if (isnan(v7)) {
+      return;
+    }
     decltype(auto) w0 = getw(ix, iy, iz, p[0]);
-    if (isnan(w0)) { return; }
+    if (isnan(w0)) {
+      return;
+    }
     decltype(auto) w1 = getw(ix + 1, iy, iz, p[1]);
-    if (isnan(w1)) { return; }
+    if (isnan(w1)) {
+      return;
+    }
     decltype(auto) w2 = getw(ix, iy + 1, iz, p[2]);
-    if (isnan(w2)) { return; }
+    if (isnan(w2)) {
+      return;
+    }
     decltype(auto) w3 = getw(ix + 1, iy + 1, iz, p[3]);
-    if (isnan(w3)) { return; }
+    if (isnan(w3)) {
+      return;
+    }
     decltype(auto) w4 = getw(ix, iy, iz + 1, p[4]);
-    if (isnan(w4)) { return; }
+    if (isnan(w4)) {
+      return;
+    }
     decltype(auto) w5 = getw(ix + 1, iy, iz + 1, p[5]);
-    if (isnan(w5)) { return; }
+    if (isnan(w5)) {
+      return;
+    }
     decltype(auto) w6 = getw(ix, iy + 1, iz + 1, p[6]);
-    if (isnan(w6)) { return; }
+    if (isnan(w6)) {
+      return;
+    }
     decltype(auto) w7 = getw(ix + 1, iy + 1, iz + 1, p[7]);
-    if (isnan(w7)) { return; }
+    if (isnan(w7)) {
+      return;
+    }
     if (turned(ix, iy, iz)) {
       // check if there are parallel vectors on any of the tet's triangles
       auto pv012 = detail::pv_on_tri(p[0], v0, w0, p[1], v1, w1, p[2], v2, w2,
@@ -313,15 +360,12 @@ auto calc_parallel_vectors(GetV&& getv, GetW&& getw, grid<XDomain, YDomain, ZDom
     }
   };
 #ifdef NDEBUG
-  tatooine::parallel_for_loop(check_cell,
-                              g.template size<0>() - 1,
+  tatooine::parallel_for_loop(check_cell, g.template size<0>() - 1,
                               g.template size<1>() - 1,
                               g.template size<2>() - 1);
 #else
-  tatooine::for_loop(check_cell,
-                     g.template size<0>() - 1,
-                     g.template size<1>() - 1,
-                     g.template size<2>() - 1);
+  tatooine::for_loop(check_cell, g.template size<0>() - 1,
+                     g.template size<1>() - 1, g.template size<2>() - 1);
 #endif
   return merge(line_segments);
 }
@@ -330,22 +374,21 @@ auto calc_parallel_vectors(GetV&& getv, GetW&& getw, grid<XDomain, YDomain, ZDom
 //==============================================================================
 #ifdef __cpp_concepts
 template <typename V, typename W, typename VReal, typename WReal,
-          typename XDomain, typename YDomain,
-          typename ZDomain, arithmetic TReal,
+          typename XDomain, typename YDomain, typename ZDomain,
+          arithmetic TReal,
           invocable<vec<common_type<VReal, WReal>, 3>>... Preds>
 #else
-template <typename V, typename W, typename VReal, typename WReal,
-          typename TReal,
-          typename XDomain, typename YDomain,
-          typename ZDomain, typename ...Preds,
-          enable_if<
-            is_arithmetic<TReal>,
-            is_invocable<Preds, vec<common_type<VReal, WReal>, 3>>...> = true>
+template <
+    typename V, typename W, typename VReal, typename WReal, typename TReal,
+    typename XDomain, typename YDomain, typename ZDomain, typename... Preds,
+    enable_if<is_arithmetic<TReal>,
+              is_invocable<Preds, vec<common_type<VReal, WReal>, 3>>...> = true>
 #endif
 auto parallel_vectors(field<V, VReal, 3, 3> const&           vf,
                       field<W, WReal, 3, 3> const&           wf,
-                      grid<XDomain, YDomain, ZDomain> const& g,
-                      TReal const t, Preds&&... preds) {
+                      grid<XDomain, YDomain, ZDomain> const& g, TReal const t,
+                      Preds&&... preds)
+    -> std::vector<line<common_type<VReal, WReal>, 3>> {
   return detail::calc_parallel_vectors<common_type<VReal, WReal>>(
       // get v data by evaluating V field
       [&vf, t](auto /*ix*/, auto /*iy*/, auto /*iz*/, auto const& p) {
@@ -367,20 +410,20 @@ auto parallel_vectors(field<V, VReal, 3, 3> const&           vf,
 }
 //------------------------------------------------------------------------------
 #ifdef __cpp_concepts
-template <
-    typename V, typename W, typename VReal, typename WReal,
-    typename XDomain, typename YDomain, typename ZDomain,
-    invocable<vec<common_type<VReal, WReal>, 3>>... Preds>
+template <typename V, typename W, typename VReal, typename WReal,
+          typename XDomain, typename YDomain, typename ZDomain,
+          invocable<vec<common_type<VReal, WReal>, 3>>... Preds>
 #else
 template <
-    typename V, typename W, typename VReal, typename WReal,
-    typename XDomain, typename YDomain, typename ZDomain,
-    typename... Preds,
+    typename V, typename W, typename VReal, typename WReal, typename XDomain,
+    typename YDomain, typename ZDomain, typename... Preds,
     enable_if<is_invocable<Preds, vec<common_type<VReal, WReal>, 3>>...> = true>
 #endif
-auto parallel_vectors(
-        field<V, VReal, 3, 3> const& v, field<W, WReal, 3, 3> const& w,
-        grid<XDomain, YDomain, ZDomain> const& g, Preds&&... preds) {
+auto parallel_vectors(field<V, VReal, 3, 3> const&           v,
+                      field<W, WReal, 3, 3> const&           w,
+                      grid<XDomain, YDomain, ZDomain> const& g,
+                      Preds&&... preds)
+    -> std::vector<line<common_type<VReal, WReal>, 3>> {
   return parallel_vectors(v, w, g, 0, std::forward<Preds>(preds)...);
 }
 //------------------------------------------------------------------------------
@@ -389,15 +432,17 @@ template <typename V, typename W, typename VReal, typename WReal,
           typename XReal, typename YReal, typename ZReal, arithmetic TReal,
           invocable<vec<common_type<VReal, WReal>, 3>>... Preds>
 #else
-template <typename V, typename W, typename VReal, typename WReal,
-          typename XReal, typename YReal, typename ZReal, typename TReal,
-          typename... Preds,
-          enable_if<is_arithmetic<TReal>, is_invocable<Preds, vec<common_type<VReal, WReal>, 3>>...> = true>
+template <
+    typename V, typename W, typename VReal, typename WReal, typename XReal,
+    typename YReal, typename ZReal, typename TReal, typename... Preds,
+    enable_if<is_arithmetic<TReal>,
+              is_invocable<Preds, vec<common_type<VReal, WReal>, 3>>...> = true>
 #endif
 auto parallel_vectors(field<V, VReal, 3, 3> const& v,
                       field<W, WReal, 3, 3> const& w, linspace<XReal> const& x,
                       linspace<YReal> const& y, linspace<ZReal> const& z,
-                      TReal const t, Preds&&... preds) {
+                      TReal const t, Preds&&... preds)
+    -> std::vector<line<common_type<VReal, WReal>, 3>> {
   return parallel_vectors(v, w, grid{x, y, z}, t,
                           std::forward<Preds>(preds)...);
 }
@@ -407,15 +452,16 @@ template <typename V, typename W, typename VReal, typename WReal,
           typename XReal, typename YReal, typename ZReal,
           invocable<vec<common_type<VReal, WReal>, 3>>... Preds>
 #else
-template <typename V, typename W, typename VReal, typename WReal,
-          typename XReal, typename YReal, typename ZReal,
-          typename... Preds,
-          enable_if<is_invocable<Preds, vec<common_type<VReal, WReal>, 3>>...> = true>
+template <
+    typename V, typename W, typename VReal, typename WReal, typename XReal,
+    typename YReal, typename ZReal, typename... Preds,
+    enable_if<is_invocable<Preds, vec<common_type<VReal, WReal>, 3>>...> = true>
 #endif
 auto parallel_vectors(field<V, VReal, 3, 3> const& v,
                       field<W, WReal, 3, 3> const& w, linspace<XReal> const& x,
                       linspace<YReal> const& y, linspace<ZReal> const& z,
-                      Preds&&... preds) {
+                      Preds&&... preds)
+    -> std::vector<line<common_type<VReal, WReal>, 3>> {
   return parallel_vectors(v, w, grid{x, y, z}, 0,
                           std::forward<Preds>(preds)...);
 }
@@ -425,15 +471,16 @@ template <typename VReal, typename VIndexing, typename WReal,
           typename WIndexing, typename AABBReal,
           invocable<vec<common_type<VReal, WReal>, 3>>... Preds>
 #else
-template <typename VReal, typename VIndexing, typename WReal,
-          typename WIndexing, typename AABBReal,
-          typename... Preds,
-          enable_if<is_invocable<Preds, vec<common_type<VReal, WReal>, 3>>...> = true>
+template <
+    typename VReal, typename VIndexing, typename WReal, typename WIndexing,
+    typename AABBReal, typename... Preds,
+    enable_if<is_invocable<Preds, vec<common_type<VReal, WReal>, 3>>...> = true>
 #endif
 auto parallel_vectors(
     dynamic_multidim_array<vec<VReal, 3>, VIndexing> const& vf,
     dynamic_multidim_array<vec<WReal, 3>, WIndexing> const& wf,
-    axis_aligned_bounding_box<AABBReal, 3> const& bb, Preds&&... preds) {
+    axis_aligned_bounding_box<AABBReal, 3> const& bb, Preds&&... preds)
+    -> std::vector<line<common_type<VReal, WReal>, 3>> {
   assert(vf.num_dimensions() == 3);
   assert(wf.num_dimensions() == 3);
   assert(vf.size(0) == wf.size(0));
@@ -441,10 +488,10 @@ auto parallel_vectors(
   assert(vf.size(2) == wf.size(2));
 
   return detail::calc_parallel_vectors<common_type<VReal, WReal>>(
-      [&vf](auto ix, auto iy, auto iz, auto const & /*p*/) -> auto const& {
+      [&vf](auto ix, auto iy, auto iz, auto const& /*p*/) -> auto const& {
         return vf(ix, iy, iz);
       },
-      [&wf](auto ix, auto iy, auto iz, auto const & /*p*/) -> auto const& {
+      [&wf](auto ix, auto iy, auto iz, auto const& /*p*/) -> auto const& {
         return wf(ix, iy, iz);
       },
       grid{linspace{bb.min(0), bb.max(0), vf.size(0)},
