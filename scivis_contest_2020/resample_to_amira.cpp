@@ -1,13 +1,12 @@
 #include <tatooine/fields/scivis_contest_2020_ensemble_member.h>
+#include <tatooine/filesystem.h>
 #include <tatooine/grid.h>
 #include <tatooine/linspace.h>
-
-#include <filesystem>
 int main(int argc, char** argv) {
   if (argc < 2) { throw std::runtime_error{"specify ensemble file path"}; }
 
   using namespace tatooine;
-  namespace fs = std::filesystem;
+  namespace fs = filesystem;
   fields::scivis_contest_2020_ensemble_member v{argv[1]};
   auto x_domain = v.xc_axis;
   x_domain.pop_back();

@@ -9,7 +9,6 @@ macro(create_benchmark NAME)
   list(APPEND ALL_BENCH_CPPS "${NAME}.cpp")
   add_executable (${NAME}.benchmark ${NAME}.cpp main.cpp)
   target_link_libraries(${NAME}.benchmark tatooine benchmark)
-  target_compile_features(${NAME}.benchmark PUBLIC cxx_std_20)
   target_compile_options(${NAME}.benchmark PRIVATE
     -Wall -Wextra -pedantic -Wno-missing-braces -Wno-unused-lambda-capture)
   add_custom_target (${NAME}.benchmark.run COMMAND ./${NAME}.benchmark DEPENDS ${NAME}.benchmark)
@@ -50,7 +49,6 @@ endforeach()
 #- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 add_executable (benchmarks main.cpp ${ALL_BENCH_CPPS})
 target_link_libraries(benchmarks tatooine benchmark)
-target_compile_features(benchmarks PUBLIC cxx_std_20)
 target_compile_options(benchmarks PRIVATE -Wall -Wextra -pedantic
   -Wno-missing-braces -Wno-unused-lambda-capture)
 add_custom_target (benchmarks.run COMMAND ./benchmarks DEPENDS benchmarks)

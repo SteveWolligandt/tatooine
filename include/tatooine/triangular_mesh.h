@@ -15,7 +15,8 @@
 #include <tatooine/vtk_legacy.h>
 
 #include <boost/range/algorithm/copy.hpp>
-#include <filesystem>
+#include <boost/range/adaptor/transformed.hpp>
+#include <tatooine/filesystem.h>
 #include <vector>
 //==============================================================================
 namespace tatooine {
@@ -229,7 +230,7 @@ class triangular_mesh : public pointset<Real, N> {
     }
   }
   //----------------------------------------------------------------------------
-  triangular_mesh(std::filesystem::path const& file) { read(file); }
+  triangular_mesh(filesystem::path const& file) { read(file); }
   //============================================================================
   auto operator[](face_handle const t) const { return face_at(t.i); }
   auto operator[](face_handle const t) { return face_at(t.i); }
@@ -483,7 +484,7 @@ class triangular_mesh : public pointset<Real, N> {
     }
   }
   //----------------------------------------------------------------------------
-  auto read(std::filesystem::path const& path) {
+  auto read(filesystem::path const& path) {
     auto const ext = path.extension();
     if constexpr (N == 2 || N == 3) {
       if (ext == ".vtk") {
@@ -498,7 +499,7 @@ class triangular_mesh : public pointset<Real, N> {
 #else
   template <size_t _N = N, enable_if<(_N == 2 || _N == 3)> = true>
 #endif
-  auto read_vtk(std::filesystem::path const& path) {
+  auto read_vtk(filesystem::path const& path) {
     struct listener_t : vtk::legacy_file_listener {
       triangular_mesh& mesh;
 

@@ -91,13 +91,13 @@ add_library(tatooine SHARED
   src/vtk_legacy.cpp
   src/parse.cpp
 )
-target_compile_features(tatooine PUBLIC cxx_std_20)
+target_compile_features(tatooine PUBLIC cxx_std_17)
 
 # force coloring
 if ("${CMAKE_CXX_COMPILER_ID}" STREQUAL "Clang")
-  target_compile_options(tatooine PRIVATE "-fcolor-diagnostics")
+  target_compile_options(tatooine PUBLIC "-fcolor-diagnostics")
 elseif ("${CMAKE_CXX_COMPILER_ID}" STREQUAL "GNU")
-  target_compile_options(tatooine PRIVATE  "-fdiagnostics-color=always")
+  target_compile_options(tatooine PUBLIC  "-fdiagnostics-color=always")
 endif()
 
 #enable warnings
@@ -108,13 +108,22 @@ target_compile_options(tatooine PRIVATE
   -Wno-tautological-undefined-compare -Wno-gnu-zero-variadic-macro-arguments)
 endif()
 
+try_compile(TATOOINE_STD_FILESYSTEM_AVAILABLE "${CMAKE_BINARY_DIR}/temp" 
+            "${CMAKE_CURRENT_SOURCE_DIR}/src/test_has_filesystem.cpp" 
+            CMAKE_FLAGS -DCMAKE_CXX_STANDARD=17 -DCMAKE_CXX_STANDARD_REQUIRED=ON
+            LINK_LIBRARIES stdc++fs)
+
 #===============================================================================
 # Required Packages
 #===============================================================================
 find_package(BLAS REQUIRED)
 find_package(LAPACK REQUIRED)
 find_package(LAPACKE REQUIRED)
-find_package(Boost REQUIRED COMPONENTS program_options)
+if(TATOOINE_STD_FILESYSTEM_AVAILABLE)
+  find_package(Boost REQUIRED COMPONENTS program_options)
+else()
+  find_package(Boost REQUIRED COMPONENTS program_options filesystem)
+endif()
 find_package(vcode REQUIRED)
 
 option(TATOOINE_INCLUDE_MKL_LAPACKE "If ON mkl_lapacke.h will be include instead of lapacke.h")
@@ -133,17 +142,26 @@ target_include_directories(tatooine
     ${CMAKE_CURRENT_SOURCE_DIR}/external/tomlplusplus/include
     ${LAPACKE_INCLUDE_DIRS}
     ${vcode_DIR}/../..
+    ${Boost_INCLUDE_DIRS}
+/lrz/sys/intel/studio2019_u5/compilers_and_libraries_2019.5.281/linux/mkl/include
 )
 #- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 #set libs 
 target_link_libraries(tatooine
   PUBLIC
-    stdc++fs
     ${BLAS_LIBRARIES}
     ${LAPACK_LIBRARIES}
     ${LAPACKE_LIBRARIES}
+    ${Boost_PROGRAM_OPTIONS_LIBRARY}
 )
 
+if (TATOOINE_STD_FILESYSTEM_AVAILABLE)
+  target_link_libraries(tatooine PUBLIC stdc++fs)
+  target_compile_definitions(tatooine PUBLIC TATOOINE_STD_FILESYSTEM_AVAILABLE)
+else()
+target_link_libraries(tatooine PUBLIC
+  ${Boost_FILESYSTEM_LIBRARY} ${Boost_SYSTEM_LIBRARY})
+endif()
 #===============================================================================
 # Optional Packages
 #===============================================================================
@@ -157,6 +175,7 @@ if(PNG_FOUND)
     target_compile_definitions(tatooine PUBLIC TATOOINE_HAS_PNG_SUPPORT)
     target_include_directories(tatooine PUBLIC ${PNG_INCLUDE_DIRS} ${PNG++_INCLUDE_DIRS})
     target_link_libraries(tatooine PUBLIC ${PNG_LIBRARIES} ${PNG++_LIBRARIES})
+    message(STATUS "Compiling with PNG support")
   endif()
 endif()
 #- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -200,13 +219,15 @@ if(HDF5_FOUND)
   target_include_directories(tatooine PUBLIC
     ${HDF5_INCLUDE_DIRS} ${HDF5_CXX_INCLUDE_DIRS})
 
-  add_executable(hdf5_create src/hdf5_create.cpp)
-  target_link_libraries(hdf5_create PUBLIC tatooine)
-  add_custom_target(hdf5_create.run COMMAND ./hdf5_create DEPENDS hdf5_create)
+  #add_executable(hdf5_create src/hdf5_create.cpp)
+  #target_link_libraries(hdf5_create PUBLIC tatooine)
+  #add_custom_target(hdf5_create.run COMMAND ./hdf5_create DEPENDS hdf5_create)
 
-  add_executable(hdf5_readdata src/hdf5_readdata.cpp)
-  target_link_libraries(hdf5_readdata PUBLIC tatooine)
-  add_custom_target(hdf5_readdata.run COMMAND ./hdf5_readdata DEPENDS hdf5_readdata)
+  #add_executable(hdf5_readdata src/hdf5_readdata.cpp)
+  #target_link_libraries(hdf5_readdata PUBLIC tatooine)
+  #add_custom_target(hdf5_readdata.run COMMAND ./hdf5_readdata DEPENDS hdf5_readdata)
+else()
+  message(STATUS "HDF5 not available")
 endif()
 
 #- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -258,6 +279,7 @@ endif()
 configure_file(${CMAKE_CURRENT_SOURCE_DIR}/include/tatooine/packages.h.in
                ${CMAKE_CURRENT_BINARY_DIR}/include/tatooine/packages.h)
 
+set(TATOOINE_EXPORTING_TARGETS tatooine)
 #-------------------------------------------------------------------------------
 # Subdirectories
 #-------------------------------------------------------------------------------
@@ -272,12 +294,22 @@ if (${yavin_FOUND})
 endif()
 add_subdirectory(autonomous_particles)
 add_subdirectory(smearing_scalar_field)
-add_subdirectory(insitu)
-add_subdirectory(channelflow)
+
+option(TATOOINE_BUILD_MPI "Builds MPI-related projecs")
+if (TATOOINE_BUILD_MPI)
+  add_subdirectory(mpi)
+  add_subdirectory(insitu)
+  add_subdirectory(channelflow)
+endif()
+
+option(TATOOINE_BUILD_EXAMPLES "")
+if (TATOOINE_BUILD_EXAMPLES)
+  add_subdirectory(examples)
+endif()
 
 #- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 # This makes the project importable from the build directory
-export(TARGETS tatooine insitu_interface
+export(TARGETS ${TATOOINE_EXPORTING_TARGETS}
        FILE tatooineConfig.cmake
        NAMESPACE tatooine::)
 export(PACKAGE tatooine)

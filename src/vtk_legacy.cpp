@@ -128,7 +128,7 @@ auto legacy_file::add_listener(legacy_file_listener &listener) -> void {
   m_listeners.push_back(&listener);
 }
 //===========================================================================
-legacy_file::legacy_file(std::filesystem::path const &path) : m_path(path) {}
+legacy_file::legacy_file(filesystem::path const &path) : m_path(path) {}
 //---------------------------------------------------------------------------
 auto legacy_file::read() -> void {
   read_header();
@@ -397,7 +397,11 @@ auto legacy_file::consume_trailing_break(std::ifstream &file) -> void {
 }
 //-----------------------------------------------------------------------------------------------
 auto legacy_file::read_header() -> void {
+#ifdef TATOOINE_STD_FILESYSTEM_AVAILABLE
   std::ifstream file(m_path, std::ifstream::binary);
+#else
+  std::ifstream file(m_path.string(), std::ifstream::binary);
+#endif
   if (file.is_open()) {
     // read part1 # vtk DataFile Version x.x
     std::string part1 = vtk::read_binaryline(file, buffer);
@@ -441,7 +445,11 @@ auto legacy_file::read_header() -> void {
 }
 //-----------------------------------------------------------------------------
 auto legacy_file::read_data() -> void {
-  std::ifstream file{m_path, std::ifstream::binary};
+#ifdef TATOOINE_STD_FILESYSTEM_AVAILABLE
+  std::ifstream file(m_path, std::ifstream::binary);
+#else
+  std::ifstream file(m_path.string(), std::ifstream::binary);
+#endif
   if (file.is_open()) {
     file.seekg(m_begin_of_data, file.beg);
     std::string keyword;
@@ -532,7 +540,7 @@ auto legacy_file::read_origin(std::ifstream &file) -> void {
     l->on_origin(origin[0], origin[1], origin[2]);
   }
 }
-//-----------------------------------------------------------------------------------------------
+//------------------------------------------------------------------------------
 auto legacy_file::read_points(std::ifstream &file) -> void {
   auto const num_points_str = vtk::read_word(file, buffer);
   auto const n              = parse<size_t>(num_points_str);
@@ -637,11 +645,15 @@ auto legacy_file::read_scalars(std::ifstream &file) -> void {
   }
 }
 //------------------------------------------------------------------------------
-legacy_file_writer::legacy_file_writer(std::filesystem::path const &path,
+legacy_file_writer::legacy_file_writer(filesystem::path const &path,
                                        dataset_type type, unsigned short major,
                                        unsigned short     minor,
                                        std::string const &title)
+#ifdef TATOOINE_STD_FILESYSTEM_AVAILABLE
     : m_file{path, std::ofstream::binary},
+#else
+    : m_file{path.string(), std::ofstream::binary},
+#endif
       m_major_version{major},
       m_minor_version{minor},
       m_dataset_type{type},

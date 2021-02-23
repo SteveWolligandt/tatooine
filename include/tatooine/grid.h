@@ -19,7 +19,7 @@
 #include <tatooine/hdf5.h>
 #include <tatooine/lazy_reader.h>
 
-#include <filesystem>
+#include <tatooine/filesystem.h>
 #include <map>
 #include <memory>
 #include <tuple>
@@ -92,8 +92,9 @@ class grid {
         m_diff_stencil_coefficients_n1_0{
             other.m_diff_stencil_coefficients_n1_0} {
     for (auto const& [name, prop] : other.m_vertex_properties) {
-      auto & emplaced_prop = m_vertex_properties.emplace(name, prop->clone());
-      emplaced_prop.set_grid(*this);
+      auto& emplaced_prop =
+          m_vertex_properties.emplace(name, prop->clone()).first->second;
+      emplaced_prop->set_grid(*this);
     }
   }
   constexpr grid(grid&& other) noexcept
@@ -163,7 +164,7 @@ class grid {
     assert(((size >= 0) && ...));
   }
   //----------------------------------------------------------------------------
-  grid(std::filesystem::path const& path) { read(path); }
+  grid(filesystem::path const& path) { read(path); }
   //----------------------------------------------------------------------------
   ~grid() = default;
   //============================================================================
@@ -866,7 +867,7 @@ class grid {
   //}
   //----------------------------------------------------------------------------
   template <typename T>
-  auto add_lazy_vertex_property(std::filesystem::path const& path,
+  auto add_lazy_vertex_property(filesystem::path const& path,
                          std::string const&           dataset_name)
       -> typed_property_t<T, false>& {
     auto const ext = path.extension();
@@ -923,7 +924,7 @@ class grid {
   }
   //----------------------------------------------------------------------------
   template <typename T>
-  auto add_hdf5_lazy_vertex_property(std::filesystem::path const& path,
+  auto add_hdf5_lazy_vertex_property(filesystem::path const& path,
                                      std::string const& dataset_name) -> auto& {
     hdf5::file f{path, H5F_ACC_RDONLY};
     return add_lazy_vertex_property<T>(f.dataset<T>(dataset_name));
@@ -967,7 +968,7 @@ class grid {
 #ifdef TATOOINE_HAS_NETCDF_SUPPORT
   //----------------------------------------------------------------------------
   template <typename T>
-  auto add_netcdf_lazy_vertex_property(std::filesystem::path const& path,
+  auto add_netcdf_lazy_vertex_property(filesystem::path const& path,
                                 std::string const& dataset_name) -> auto& {
     netcdf::file f{path, netCDF::NcFile::read};
     return add_lazy_vertex_property<T>(f.variable<T>(dataset_name));
@@ -1018,7 +1019,7 @@ class grid {
     return prop;
   }
   //============================================================================
-  auto read(std::filesystem::path const& path) {
+  auto read(filesystem::path const& path) {
 #ifdef TATOOINE_HAS_NETCDF_SUPPORT
     if (path.extension() == ".nc") {
       read_netcdf(path);
@@ -1195,7 +1196,7 @@ class grid {
   template <size_t _N = num_dimensions(),
             enable_if<(_N == 2) || (_N == 3)> = true>
 #endif
-  auto read_vtk(std::filesystem::path const& path) {
+  auto read_vtk(filesystem::path const& path) {
     bool             is_structured_points = false;
     vec3             spacing;
     vtk_listener     listener{*this, is_structured_points, spacing};
@@ -1243,7 +1244,7 @@ class grid {
   template <size_t _N = num_dimensions(),
             enable_if<(_N == 2) || (_N == 3)> = true>
 #endif
-  auto read_amira(std::filesystem::path const& path) {
+  auto read_amira(filesystem::path const& path) {
     auto const  am        = amira::read<real_t>(path);
     auto const& data      = std::get<0>(am);
     auto const& dims      = std::get<1>(am);
@@ -1321,7 +1322,7 @@ class grid {
   }
   //----------------------------------------------------------------------------
 #ifdef TATOOINE_HAS_NETCDF_SUPPORT
-  auto read_netcdf(std::filesystem::path const& path) {
+  auto read_netcdf(filesystem::path const& path) {
     read_netcdf(path, std::make_index_sequence<num_dimensions()>{});
   }
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -1374,7 +1375,7 @@ class grid {
   }
   /// this only reads scalar types
   template <size_t... Seq>
-  auto read_netcdf(std::filesystem::path const& path,
+  auto read_netcdf(filesystem::path const& path,
                    std::index_sequence<Seq...>   seq) {
     netcdf::file f{path, netCDF::NcFile::read};
     bool         first = true;
@@ -1448,7 +1449,7 @@ class grid {
   }
 
  public:
-  auto write(std::filesystem::path const& path) const {
+  auto write(filesystem::path const& path) const {
     auto const ext = path.extension();
 
     if constexpr (num_dimensions() == 1 || num_dimensions() == 2 ||
@@ -1471,7 +1472,7 @@ class grid {
                       (num_dimensions() == 2) ||
                       (num_dimensions() == 3)> = true>
 #endif
-  void write_vtk(std::filesystem::path const& path,
+  void write_vtk(filesystem::path const& path,
                  std::string const& description = "tatooine grid") const {
     auto writer = [this, &path, &description] {
       if constexpr (is_uniform) {
@@ -1569,20 +1570,20 @@ class grid {
   }
 
  private:
+  template <size_t I>
+  auto print_dim(std::ostream& out) const {
+    auto const& dim = dimension<I>();
+    if constexpr (is_linspace<std::decay_t<decltype(dim)>>) {
+      out << dim << '\n';
+    } else {
+      out << dim.front() << ", " << dim[1] << ", ..., " << dim.back()
+                 << '\n';
+    }
+  }
   template <size_t... Seq>
   auto print(std::ostream& out, std::index_sequence<Seq...> /*seq*/) const
       -> auto& {
-    (
-        [&]() -> decltype(auto) {
-          auto const& dim = dimension<Seq>();
-          if constexpr (is_linspace<std::decay_t<decltype(dim)>>) {
-            return out << dim << '\n';
-          } else {
-            return out << dim.front() << ", " << dim[1] << ", ..., " << dim.back()
-                       << '\n';
-          }
-        }(),
-        ...);
+    (print_dim<Seq>(out), ...);
     return out;
   }
 

@@ -49,7 +49,7 @@ class polynomial_line {
   requires (is_polynomial<Polynomials> && ...)
 #else
   template <typename... Polynomials,
-  enable_if_polynomial<Polynomials...> = true>
+  enable_if<(is_polynomial<Polynomials>&&...)> = true>
 #endif
   constexpr polynomial_line(Polynomials&&... polynomials)
       : m_polynomials{std::forward<Polynomials>(polynomials)...} {}

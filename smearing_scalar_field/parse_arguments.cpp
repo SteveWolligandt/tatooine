@@ -7,7 +7,7 @@ namespace tatooine::smearing {
 auto parse_arguments(int argc, char const** argv) -> std::optional<arguments> {
   namespace po = boost::program_options;
 
-  std::filesystem::path    input_file, output_file;
+  filesystem::path    input_file, output_file;
   double                   t0 = 0;
   std::vector<double>      starting_point;
   std::vector<double>      end_point;

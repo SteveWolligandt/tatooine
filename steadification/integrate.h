@@ -16,13 +16,13 @@ auto integrate(
     const grid<Real, 2>& domain, const Real min_t, const Real max_t,
     const Real min_btau, const Real max_ftau, const size_t seed_res,
     const Real stepsize) {
-  if (!std::filesystem::exists("pathsurfaces")) {
-    std::filesystem::create_directory("pathsurfaces");
+  if (!filesystem::exists("pathsurfaces")) {
+    filesystem::create_directory("pathsurfaces");
   }
 
   const auto pathsurface_dir = +"pathsurfaces/" + dataset_name + "/";
-  if (!std::filesystem::exists(pathsurface_dir)) {
-    std::filesystem::create_directory(pathsurface_dir);
+  if (!filesystem::exists(pathsurface_dir)) {
+    filesystem::create_directory(pathsurface_dir);
   }
 
   std::atomic_size_t progress_counter = 0;
@@ -60,7 +60,7 @@ auto integrate(
                     std::to_string(ftau) + "_" + std::to_string(seed_res) +
                     "_" + std::to_string(stepsize) + "_" +
                     std::to_string(edge_idx) + ".vtk";
-    if (!std::filesystem::exists(filename_vtk)) {
+    if (!filesystem::exists(filename_vtk)) {
       simple_tri_mesh<Real, 2> psf =
           pathsurface(v, *edge_it, t0, btau, ftau, seed_res, stepsize)
               .first;
@@ -78,13 +78,13 @@ auto integrate(const vectorfield<V, Real, 2>& v, const std::string& dataset_name
                const grid<Real, 3>& domain, const Real btau,
                const Real ftau, const size_t seed_res,
                const Real stepsize) {
-  if (!std::filesystem::exists("pathsurfaces")) {
-    std::filesystem::create_directory("pathsurfaces");
+  if (!filesystem::exists("pathsurfaces")) {
+    filesystem::create_directory("pathsurfaces");
   }
 
   const auto pathsurface_dir = +"pathsurfaces/" + dataset_name + "/";
-  if (!std::filesystem::exists(pathsurface_dir)) {
-    std::filesystem::create_directory(pathsurface_dir);
+  if (!filesystem::exists(pathsurface_dir)) {
+    filesystem::create_directory(pathsurface_dir);
   }
 
   std::string        filename_vtk;
@@ -124,7 +124,7 @@ auto integrate(const vectorfield<V, Real, 2>& v, const std::string& dataset_name
                     "_" + std::to_string(seed_res) + "_" +
                     std::to_string(stepsize) + "_" + std::to_string(edge_idx) +
                     ".vtk";
-    if (!std::filesystem::exists(filename_vtk)) {
+    if (!filesystem::exists(filename_vtk)) {
       simple_tri_mesh<Real, 2> psf =
           pathsurface(v, *edge_it, btau, ftau, seed_res, stepsize).first;
       psf.write_vtk(filename_vtk);

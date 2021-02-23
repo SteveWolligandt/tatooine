@@ -60,7 +60,7 @@ struct autonomous_particles_flowmap : renderable<autonomous_particles_flowmap> {
     return changed;
     return changed;
   }
-  auto load(std::filesystem::path const& path) -> void {
+  auto load(filesystem::path const& path) -> void {
     std::cerr << "loading ... ";
     m_currently_read_path = path;
     m_mesh                = std::make_unique<triangular_mesh<double, 2>>(path);

@@ -2,9 +2,8 @@
 #define TATOOINE_STEADIFICATION_STEADIFICATION_H
 
 #include <tatooine/chrono.h>
+#include <tatooine/filesystem.h>
 #include <tatooine/for_loop.h>
-
-#include <cstdlib>
 #include <tatooine/html.h>
 #include <tatooine/integration/vclibs/rungekutta43.h>
 #include <tatooine/interpolation.h>
@@ -17,16 +16,15 @@
 #include <cmath>
 #include <cstdlib>
 #include <execution>
-#include <filesystem>
 #include <mutex>
 #include <vector>
 #include <yavin>
 
+#include "integrate.h"
+#include "pathsurface.h"
 #include "renderers.h"
 #include "settings.h"
 #include "shaders.h"
-#include "integrate.h"
-#include "pathsurface.h"
 
 //==============================================================================
 namespace tatooine::steadification {
@@ -323,7 +321,7 @@ class steadification {
                          const double neighbor_weight, const float penalty,
                          const float max_curvature, const bool use_tau,
                          const bool normalize_weight) {
-    using namespace std::filesystem;
+    using namespace filesystem;
     auto working_dir = std::string{settings<V>::name} + "/domain_res_";
     for (size_t i = 0; i < 2; ++i) {
       working_dir += std::to_string(domain.size(i)) + "_";
@@ -395,7 +393,7 @@ class steadification {
                         const bool use_tau, const bool normalize_weight)
       -> std::string {
     using namespace std::string_literals;
-    using namespace std::filesystem;
+    using namespace filesystem;
     const real_t t_center = (min_t + max_t) * 0.5;
     m_weight_shader.set_t_center(t_center);
     auto   best_weight  = -std::numeric_limits<float>::max();

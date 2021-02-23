@@ -4,7 +4,7 @@
 #include <tatooine/lagrangian_Q_field.h>
 #include <tatooine/perspective_camera.h>
 
-#include <filesystem>
+#include <tatooine/filesystem.h>
 
 #include "eddy_props.h"
 #include "ensemble_file_paths.h"
@@ -15,7 +15,7 @@
 //==============================================================================
 using namespace tatooine;
 using namespace tatooine::scivis_contest_2020;
-namespace fs = std::filesystem;
+namespace fs = filesystem;
 using V      = ensemble_member<interpolation::cubic>;
 //==============================================================================
 int main() {

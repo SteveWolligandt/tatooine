@@ -1,10 +1,10 @@
 #include <tatooine/fields/scivis_contest_2020_ensemble_member.h>
 #include <tatooine/parallel_vectors.h>
-#include <filesystem>
+#include <tatooine/filesystem.h>
 //==============================================================================
 int main(int argc, char** argv) {
   using namespace tatooine;
-  namespace fs = std::filesystem;
+  namespace fs = filesystem;
   if (argc < 2) { throw std::runtime_error{"specify ensemble file path"}; }
 
   fields::scivis_contest_2020_ensemble_member v{argv[1]};

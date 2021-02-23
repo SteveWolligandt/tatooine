@@ -2,7 +2,7 @@
 #define TATOOINE_INSITU_BASE_INTERFACE_H
 //==============================================================================
 #include <tatooine/grid.h>
-#include <tatooine/insitu/boost_mpi.h>
+#include <tatooine/mpi/cartesian_neighbors.h>
 #include <tatooine/netcdf.h>
 
 #include <boost/range/adaptors.hpp>
@@ -12,7 +12,7 @@
 #include <boost/serialization/variant.hpp>
 #include <boost/serialization/vector.hpp>
 #include <chrono>
-#include <filesystem>
+#include <tatooine/filesystem.h>
 #include <fstream>
 #include <iomanip>
 #include <iostream>
@@ -119,7 +119,7 @@ struct base_interface {
   // METHODS
   //============================================================================
   auto initialize_memory_file(bool const                   restart,
-                              std::filesystem::path const& filepath) -> void {
+                              filesystem::path const& filepath) -> void {
     m_base_pmused = pm_used();
     m_base_vmused = vm_used();
 
@@ -327,7 +327,7 @@ struct base_interface {
     auto recvreqs = std::map<int, mpi::request>{};
     auto incoming = std::map<int, std::vector<T>>{};
 
-    for (auto const& [rank, coords] : mpi::neighbors(
+    for (auto const& [rank, coords] : tatooine::mpi::cartesian_neighbors(
              m_mpi_communicator->coordinates(m_mpi_communicator->rank()),
              *m_mpi_communicator)) {
       incoming[rank] = std::vector<T>{};
