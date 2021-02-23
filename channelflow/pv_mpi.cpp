@@ -1,7 +1,7 @@
 #include <tatooine/analytical/fields/numerical/doublegyre.h>
 #include <tatooine/mpi/program.h>
 #include <tatooine/differentiated_field.h>
-// #include <tatooine/parallel_vectors.h>
+#include <tatooine/parallel_vectors.h>
 #include <tatooine/spacetime_vectorfield.h>
 
 namespace tat = tatooine;
@@ -44,6 +44,6 @@ auto main(int argc, char** argv) -> int {
   //auto       J = diff(v, 1e-10);
   //auto       a = J * v;
 
-  //auto const pv = parallel_vectors(v, a, halo_grid);
+  auto const pv = parallel_vectors(v, a, halo_grid);
   //write_vtk(pv, "pv_stdg_mpi_rank_" + std::to_string(mpi.rank()) + ".vtk");
 }
