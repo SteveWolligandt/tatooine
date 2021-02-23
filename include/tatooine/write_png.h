@@ -12,7 +12,7 @@ namespace tatooine {
 #ifdef __cpp_concepts
 template <arithmetic T>
 #else
-template <typename T, enable_if_arithmetic<T> = true>
+template <typename T, enable_if<is_arithmetic<T>> = true>
 #endif
 void write_png(filesystem::path const& path,
                std::vector<T> const& data, size_t width, size_t height) {
