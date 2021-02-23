@@ -1746,8 +1746,8 @@ auto diff(const parameterized_line<Real, N, InterpolationKernel>& l) {
 //==============================================================================
 /// \brief      merge line strips
 template <typename Real, size_t N>
-void merge_lines(std::vector<line<Real, N>>& lines0,
-                 std::vector<line<Real, N>>& lines1) {
+auto merge(std::vector<line<Real, N>>& lines0,
+           std::vector<line<Real, N>>& lines1) -> void {
   const Real eps = 1e-7;
   // move line1 pairs to line0 pairs
   const size_t size_before = size(lines0);
@@ -1778,19 +1778,17 @@ void merge_lines(std::vector<line<Real, N>>& lines0,
           // [LINE1FRONT, ..., line1back] -> [LINE0FRONT, ..., line0back]
         } else if (approx_equal(line1->front_vertex(), line0->front_vertex(),
                                 eps)) {
-          boost::reverse(line1->vertices());
           // -> [line1back, ..., LINE1FRONT] -> [LINE0FRONT, ..., line0back]
-          for (size_t i = 1; i < line0->num_vertices(); ++i) {
-            line1->push_back(line0->vertex_at(i));
+          for (size_t i = line0->num_vertices(); i > 0; --i) {
+            line1->push_front(line0->vertex_at(i));
           }
           line0->clear();
 
           // [line0front, ..., LINE0BACK] -> [line1front,..., LINE1BACK]
         } else if (approx_equal(line0->back_vertex(), line1->back_vertex(),
                                 eps)) {
-          boost::reverse(line0->vertices());
           // -> [line1front, ..., LINE1BACK] -> [LINE0BACK, ..., line0front]
-          for (size_t i = 1; i < line0->num_vertices(); ++i) {
+          for (size_t i = line0->num_vertices(); i > 0 ; --i) {
             line1->push_back(line0->vertex_at(i));
           }
           line0->clear();
@@ -1838,7 +1836,7 @@ auto line_segments_to_line_strips(
       auto left  = j;
       auto right = j + offset;
       if (right < line_segments.size()) {
-        merge_lines(merged_strips[left], merged_strips[right]);
+        merge(merged_strips[left], merged_strips[right]);
       }
     }
   }
@@ -1846,7 +1844,7 @@ auto line_segments_to_line_strips(
 }
 //------------------------------------------------------------------------------
 template <typename Real, size_t N>
-auto merge_lines(const std::vector<line<Real, N>>& lines) {
+auto merge(const std::vector<line<Real, N>>& lines) {
   std::vector<line<Real, N>> merged_lines;
   if (!lines.empty()) {
     auto line_strips = line_segments_to_line_strips(lines);
