@@ -56,7 +56,7 @@ struct tensor : base_tensor<tensor<T, Dims...>, T, Dims...>,  // NOLINT
   template <typename = void>
   requires is_arithmetic<T>
 #else
-  template <typename = void, enable_if<is_arithmetic<T>> = true>
+  template <typename T_ = T, enable_if<is_arithmetic<T_>> = true>
 #endif
   explicit constexpr tensor(tag::zeros_t zeros) : array_parent_t{zeros} {}
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -64,7 +64,7 @@ struct tensor : base_tensor<tensor<T, Dims...>, T, Dims...>,  // NOLINT
   template <typename = void>
   requires is_arithmetic<T>
 #else
-  template <typename = void, enable_if<is_arithmetic<T>> = true>
+  template <typename T_ = T, enable_if<is_arithmetic<T_>> = true>
 #endif
   explicit constexpr tensor(tag::ones_t ones) : array_parent_t{ones} {}
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -72,7 +72,7 @@ struct tensor : base_tensor<tensor<T, Dims...>, T, Dims...>,  // NOLINT
   template <typename FillReal>
   requires is_arithmetic<T>
 #else
-  template <typename FillReal, enable_if<is_arithmetic<T>> = true>
+  template <typename FillReal, typename T_ = T, enable_if<is_arithmetic<T_>> = true>
 #endif
   explicit constexpr tensor(tag::fill<FillReal> f) : array_parent_t{f} {}
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -81,7 +81,8 @@ struct tensor : base_tensor<tensor<T, Dims...>, T, Dims...>,  // NOLINT
   requires is_arithmetic<T>
 #else
   template <typename RandomReal, typename Engine,
-            enable_if<is_arithmetic<T>> = true>
+            typename T_ = T,
+            enable_if<is_arithmetic<T_>> = true>
 #endif
   explicit constexpr tensor(random_uniform<RandomReal, Engine>&& rand)
     : array_parent_t{std::move(rand)} {}
@@ -100,7 +101,8 @@ struct tensor : base_tensor<tensor<T, Dims...>, T, Dims...>,  // NOLINT
   requires is_arithmetic<T>
 #else
   template <typename RandomReal, typename Engine,
-            enable_if<is_arithmetic<T, RandomReal>> = true>
+            typename T_ = T,
+            enable_if<is_arithmetic<T_, RandomReal>> = true>
 #endif
   explicit constexpr tensor(random_normal<RandomReal, Engine>&& rand)
       : array_parent_t{std::move(rand)} {}
@@ -110,7 +112,8 @@ struct tensor : base_tensor<tensor<T, Dims...>, T, Dims...>,  // NOLINT
   requires is_arithmetic<T>
 #else
   template <typename RandomReal, typename Engine,
-            enable_if<is_arithmetic<T, RandomReal>> = true>
+            typename T_ = T,
+            enable_if<is_arithmetic<T_, RandomReal>> = true>
 #endif
   explicit constexpr tensor(random_normal<RandomReal, Engine>& rand)
       : array_parent_t{rand} {}

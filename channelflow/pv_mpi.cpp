@@ -41,9 +41,8 @@ auto main(int argc, char** argv) -> int {
   //------------------------------------------------------------------------------
   doublegyre dg;
   auto       v = spacetime(dg);
-  //auto       J = diff(v, 1e-10);
-  //auto       a = J * v;
-
+  auto       J = diff(v, 1e-10);
+  auto       a = J * v;
   auto const pv = parallel_vectors(v, a, halo_grid);
   //write_vtk(pv, "pv_stdg_mpi_rank_" + std::to_string(mpi.rank()) + ".vtk");
 }
