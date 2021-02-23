@@ -18,13 +18,13 @@ window::window()
       20.0f * m_ui_scale_factor);
   imgui_render_backend().create_fonts_texture();
 
-  if (std::filesystem::exists("scene.toml")) {
+  if (filesystem::exists("scene.toml")) {
     m_scene.read("scene.toml");
   }
   start();
 }
 //------------------------------------------------------------------------------
-window::window(std::filesystem::path const& path)
+window::window(filesystem::path const& path)
     : m_scene{camera_controller(), this, path},
       m_aabb2d_icon_tex{icons_directory() / "aabb2d.png"},
       m_aabb3d_icon_tex{icons_directory() / "aabb3d.png"} {
@@ -39,7 +39,7 @@ window::window(std::filesystem::path const& path)
       20.0f * m_ui_scale_factor);
   imgui_render_backend().create_fonts_texture();
 
-  if (std::filesystem::exists("scene.toml")) {
+  if (filesystem::exists("scene.toml")) {
     m_scene.read("scene.toml");
   }
   start();

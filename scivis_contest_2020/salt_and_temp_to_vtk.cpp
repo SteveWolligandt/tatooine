@@ -1,19 +1,19 @@
 #include <tatooine/field.h>
+#include <tatooine/filesystem.h>
 #include <tatooine/grid.h>
 #include <tatooine/lazy_netcdf_reader.h>
 #include <tatooine/netcdf.h>
 
 #include <chrono>
 #include <thread>
-#include <filesystem>
 
 #include "ensemble_file_paths.h"
 
 int main(int , char const** argv) {
   size_t const ensemble_index = std::stoi(argv[1]);
-  std::filesystem::path dir_path{"salt_and_temp_" + argv[1]};
-  if (!std::filesystem::exists(dir_path)) {
-    std::filesystem::create_directory(dir_path);
+  filesystem::path dir_path{"salt_and_temp_" + argv[1]};
+  if (!filesystem::exists(dir_path)) {
+    filesystem::create_directory(dir_path);
   }
   using namespace tatooine;
   using namespace tatooine::scivis_contest_2020;

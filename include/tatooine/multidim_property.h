@@ -5,6 +5,7 @@
 #include <tatooine/invoke_unpacked.h>
 #include <tatooine/finite_differences_coefficients.h>
 #include <tatooine/write_png.h>
+#include <tatooine/interpolation.h>
 #include <tatooine/sampler.h>
 #include <tatooine/type_traits.h>
 //==============================================================================
@@ -104,6 +105,7 @@ struct typed_multidim_property : multidim_property<Grid> {
     return typeid(value_type);
   }
   //----------------------------------------------------------------------------
+ private:
   template <template <typename> typename InterpolationKernel>
   auto sampler_() const {
     using sampler_t =
@@ -113,6 +115,7 @@ struct typed_multidim_property : multidim_property<Grid> {
     return sampler_t{*this};
   }
   //----------------------------------------------------------------------------
+ public:
   template <template <typename> typename... InterpolationKernels>
   auto sampler() const {
     if (!grid().diff_stencil_coefficients_created_once()) {
@@ -137,6 +140,10 @@ struct typed_multidim_property : multidim_property<Grid> {
       grid().update_diff_stencil_coefficients();
       return sampler_t{*this};
     }
+  }
+  //----------------------------------------------------------------------------
+  auto linear_sampler() ->decltype(auto) {
+    return sampler<interpolation::linear>();
   }
   //----------------------------------------------------------------------------
   // data access
@@ -205,7 +212,7 @@ struct typed_multidim_property : multidim_property<Grid> {
   virtual auto resize(std::array<size_t, num_dimensions()> const& size)
       -> void = 0;
   //----------------------------------------------------------------------------
-#if TATOOINE_HAS_PNG_SUPPORT
+#ifdef TATOOINE_HAS_PNG_SUPPORT
 #ifdef __cpp_concepts
   template <typename = void>
   requires (num_dimensions() == 2) &&
@@ -215,7 +222,7 @@ struct typed_multidim_property : multidim_property<Grid> {
             enable_if<(_N == 2) && (is_floating_point<ValueType> ||
                                     is_vec<ValueType>)> = true>
 #endif
-  auto write_png(std::filesystem::path const& path) const -> void {
+  auto write_png(filesystem::path const& path) const -> void {
     png::image<png::rgb_pixel> image{
         static_cast<png::uint_32>(this->grid().size(0)),
         static_cast<png::uint_32>(this->grid().size(1))};
@@ -257,13 +264,13 @@ struct typed_multidim_property : multidim_property<Grid> {
 template <typename Grid, typename ValueType, bool HasNonConstReference>
 auto write_png(
     typed_multidim_property<Grid, ValueType, HasNonConstReference> const& prop,
-    std::filesystem::path const& path) -> void {
+    filesystem::path const& path) -> void {
   prop.write_png(path);
 }
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 template <typename Grid, typename ValueType, bool HasNonConstReference>
 auto write_png(
-    std::filesystem::path const&                                          path,
+    filesystem::path const&                                          path,
     typed_multidim_property<Grid, ValueType, HasNonConstReference> const& prop)
     -> void {
   prop.write_png(path);

@@ -8,12 +8,12 @@
 //==============================================================================
 namespace tatooine::insitu {
 //==============================================================================
-std::filesystem::path interface::m_output_path = "tatooine_insitu_interface";
-std::filesystem::path interface::m_isosurface_output_path =
+filesystem::path interface::m_output_path = "tatooine_insitu_interface";
+filesystem::path interface::m_isosurface_output_path =
     interface::m_output_path / "isosurfaces";
-std::filesystem::path interface::m_tracers_output_path =
+filesystem::path interface::m_tracers_output_path =
     interface::m_output_path / "tracers";
-std::filesystem::path interface::m_tracers_tmp_path =
+filesystem::path interface::m_tracers_tmp_path =
     interface::m_tracers_output_path / "tmp";
 //==============================================================================
 auto interface::initialize_grid(
@@ -125,6 +125,11 @@ auto interface::initialize_grid(
       m_worker_halo_grid.dimension<2>().push_back();
     }
   }
+  if (m_mpi_communicator->rank() == 7) {
+    std::cout << "m_global_grid: \n" << m_global_grid << '\n';
+    std::cout << "m_worker_grid: \n" << m_worker_grid << '\n';
+    std::cout << "m_worker_halo_grid: \n" << m_worker_halo_grid << '\n';
+  }
 
   m_halo_level    = halo_level;
   m_is_periodic_x = is_periodic_x;
@@ -174,7 +179,7 @@ auto interface::initialize_parameters(double const time, double const prev_time,
 }
 //----------------------------------------------------------------------------
 auto interface::initialize(bool const restart) -> void {
-  namespace fs = std::filesystem;
+  namespace fs = filesystem;
   initialize_memory_file(restart, m_memory_fname);
   // create output directory
   fs::create_directories(m_output_path);
@@ -198,8 +203,8 @@ auto interface::initialize(bool const restart) -> void {
       m_worker_halo_grid, *m_velocity_x, *m_velocity_y, *m_velocity_z);
   m_phase = phase::initialized;
 
-  //extract_isosurfaces();
-  advect_tracers();
+  extract_isosurfaces();
+  //advect_tracers();
 }
 //----------------------------------------------------------------------------
 auto interface::update_velocity_x(double const* var) -> void {
@@ -233,7 +238,7 @@ auto interface::update(int const iteration, double const time) -> void {
   }
 
   //extract_isosurfaces();
-  advect_tracers();
+  //advect_tracers();
 
   if (m_mpi_communicator->rank() == 0) {
     create_tracer_vtk();
@@ -347,7 +352,7 @@ auto interface::advect_tracers() -> void {
 }
 //------------------------------------------------------------------------------
 auto interface::create_tracer_vtk() -> void {
-  namespace fs = std::filesystem;
+  namespace fs = filesystem;
   vtk::legacy_file_writer tracer_collector{
       m_tracers_output_path / "tracers.vtk", vtk::dataset_type::polydata};
 
@@ -418,7 +423,7 @@ auto interface::extract_isosurfaces() -> void {
 }
 //------------------------------------------------------------------------------
 auto interface::extract_isosurfaces_velocity_magnitude() -> void {
-  namespace fs = std::filesystem;
+  namespace fs = filesystem;
   auto isogrid = m_worker_grid;
   // if (std::abs(isogrid.dimension<0>().back() -
   //             m_global_grid.dimension<0>().back()) > 1e-6) {

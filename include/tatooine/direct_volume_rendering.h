@@ -1,6 +1,7 @@
 #ifndef TATOOINE_DIRECT_VOLUME_RENDERING_H
 #define TATOOINE_DIRECT_VOLUME_RENDERING_H
 //==============================================================================
+#include <omp.h>
 #include <tatooine/demangling.h>
 #include <tatooine/field.h>
 #include <tatooine/grid.h>
@@ -8,7 +9,9 @@
 //==============================================================================
 namespace tatooine {
 //==============================================================================
+#ifdef __cpp_concepts
 template <
+arithmetic Min, arithmetic Max, arithmetic DistOnRay,
     arithmetic CameraReal, arithmetic AABBReal,
     regular_invocable<vec<AABBReal, 3>> DataEvaluator,
     regular_invocable<vec<AABBReal, 3>> DomainCheck,
@@ -16,12 +19,27 @@ template <
         ColorScale,
     regular_invocable<std::invoke_result_t<DataEvaluator, vec<AABBReal, 3>>>
         AlphaScale>
+#else
+template <
+    typename Min, typename Max, typename DistOnRay,
+    typename CameraReal, typename AABBReal,
+    typename DataEvaluator, typename DomainCheck,
+    typename ColorScale, typename AlphaScale
+//    , enable_if<
+//      is_arithmetic<Min, Max, CameraReal,  AABBReal, DistOnRay>,
+//      is_invocable<DataEvaluator, vec<AABBReal, 3>>,
+//      is_invocable<DomainCheck, vec<AABBReal, 3>>
+//      is_invocable<ColorScale, std::invoke_result_t<DataEvaluator, vec<AABBReal, 3>>>,
+//      is_invocable<AlphaScale, std::invoke_result_t<DataEvaluator, vec<AABBReal, 3>>>
+//    > = true
+>
+#endif
 auto direct_volume_rendering(
     rendering::camera<CameraReal> const&          cam,
     axis_aligned_bounding_box<AABBReal, 3> const& aabb,
     DataEvaluator&& data_evaluator, DomainCheck&& domain_check,
-    arithmetic auto const min, arithmetic auto const max,
-    arithmetic auto const distance_on_ray, ColorScale&& color_scale,
+    Min const min, Max const max,
+    DistOnRay const distance_on_ray, ColorScale&& color_scale,
     AlphaScale&& alpha_scale,
     std::invoke_result_t<
         ColorScale,
@@ -54,6 +72,7 @@ auto direct_volume_rendering(
       }
     }
   }
+  omp_set_num_threads(6);
 #pragma omp parallel for
   for (size_t i = 0; i < rays.size(); ++i) {
     auto const [r, t, x, y]      = rays[i];
@@ -88,15 +107,22 @@ auto direct_volume_rendering(
   return rendered_image;
 }
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-template <arithmetic CameraReal, arithmetic      AABBReal, typename S,
+#ifdef __cpp_concepts
+template <arithmetic TReal, arithmetic Min, arithmetic Max, arithmetic DistOnRay, arithmetic CameraReal, arithmetic      AABBReal, typename S,
           typename SReal, regular_invocable<SReal> ColorScale,
           regular_invocable<SReal> AlphaScale>
+#else
+template <typename TReal, typename Min, typename Max, typename DistOnRay, typename CameraReal, typename      AABBReal, typename S,
+          typename SReal, typename ColorScale,
+          typename AlphaScale, 
+          enable_if<is_arithmetic<TReal, Min, Max, DistOnRay, CameraReal, AABBReal>, is_invocable<ColorScale,SReal>, is_invocable<AlphaScale, SReal>> = true>
+#endif
 auto direct_volume_rendering(
     rendering::camera<CameraReal> const&          cam,
     axis_aligned_bounding_box<AABBReal, 3> const& aabb,
-    scalarfield<S, SReal, 3> const& s, arithmetic auto const t,
-    arithmetic auto const min, arithmetic auto const max,
-    arithmetic auto const distance_on_ray, ColorScale&& color_scale,
+    scalarfield<S, SReal, 3> const& s, TReal const t,
+    Min const min, Max const max,
+    DistOnRay const distance_on_ray, ColorScale&& color_scale,
     AlphaScale&&                                   alpha_scale,
     std::invoke_result_t<ColorScale, SReal> const& bg_color = {}) {
   return direct_volume_rendering(
@@ -106,15 +132,22 @@ auto direct_volume_rendering(
       std::forward<AlphaScale>(alpha_scale), bg_color);
 }
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-template <arithmetic CameraReal, typename Grid, typename ValueType,
+#ifdef __cpp_concepts
+template <arithmetic Min, arithmetic Max, arithmetic DistOnRay, arithmetic CameraReal, typename Grid, typename ValueType,
           bool HasNonConstReference, regular_invocable<double> ColorScale,
           regular_invocable<double> AlphaScale>
+#else
+template <typename Min, typename Max, typename DistOnRay, typename CameraReal, typename Grid, typename ValueType,
+          bool HasNonConstReference, typename ColorScale,
+          typename AlphaScale, 
+          enable_if<is_arithmetic<Min, Max, DistOnRay, CameraReal>, is_invocable<ColorScale,double>, is_invocable<AlphaScale, double>> = true>
+#endif
 auto direct_volume_rendering(
     rendering::camera<CameraReal> const&                                  cam,
     typed_multidim_property<Grid, ValueType, HasNonConstReference> const& prop,
-    std::convertible_to<ValueType> auto const                             min,
-    std::convertible_to<ValueType> auto const                             max,
-    arithmetic auto const distance_on_ray, ColorScale&& color_scale,
+    Min const                             min,
+    Max const                             max,
+    DistOnRay const distance_on_ray, ColorScale&& color_scale,
     AlphaScale&&                                       alpha_scale,
     std::invoke_result_t<ColorScale, ValueType> const& bg_color = {}) {
   auto sampler = prop.template sampler<interpolation::cubic>();

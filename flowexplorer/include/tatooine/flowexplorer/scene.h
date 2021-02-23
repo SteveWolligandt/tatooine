@@ -45,7 +45,7 @@ struct scene {
   //============================================================================
   scene(rendering::camera_controller<float>& ctrl, flowexplorer::window* w);
   scene(rendering::camera_controller<float>& ctrl, flowexplorer::window* w,
-        std::filesystem::path const& path);
+        filesystem::path const& path);
   ~scene();
   //============================================================================
   auto render(std::chrono::duration<double> const& dt) -> void;
@@ -83,10 +83,10 @@ struct scene {
                         size_t const width, size_t const height,
                         bool& show) -> void;
   //----------------------------------------------------------------------------
-  auto write(std::filesystem::path const& filepath) const -> void;
-  auto read(std::filesystem::path const& filepath) -> void;
+  auto write(filesystem::path const& filepath) const -> void;
+  auto read(filesystem::path const& filepath) -> void;
   //----------------------------------------------------------------------------
-  auto open_file(std::filesystem::path const& filepath) -> void;
+  auto open_file(filesystem::path const& filepath) -> void;
   //----------------------------------------------------------------------------
   template <typename F>
   auto do_in_context(F&& f) const -> decltype(auto) {

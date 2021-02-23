@@ -1,4 +1,5 @@
-#include <filesystem>
+#include <tatooine/filesystem.h>
+
 #include <mutex>
 
 #include "ensemble_file_paths.h"
@@ -6,7 +7,7 @@
 #include "integrate_pathline.h"
 #include "positions_in_domain.h"
 //==============================================================================
-namespace fs = std::filesystem;
+namespace fs = filesystem;
 //==============================================================================
 namespace tatooine::scivis_contest_2020 {
 //==============================================================================

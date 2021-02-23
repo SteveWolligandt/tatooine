@@ -2,7 +2,7 @@
 #define TATOOINE_INDEX_ORDERING_H
 //==============================================================================
 #include <array>
-#include <boost/range/adaptors.hpp>
+#include <boost/range/adaptor/reversed.hpp>
 #include <numeric>
 #include <vector>
 
