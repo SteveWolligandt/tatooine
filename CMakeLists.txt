@@ -181,15 +181,17 @@ endif()
 #- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 # OpenMP
 #- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-find_package(OpenMP QUIET COMPONENTS CXX)
-if (OpenMP_CXX_FOUND)
+find_package(OpenMP QUIET)
+if (OpenMP_C_FOUND)
   option(TATOOINE_COMPILE_WITH_OPENMP "" ON)
   if (TATOOINE_COMPILE_WITH_OPENMP)
     set(TATOOINE_OPENMP_AVAILABLE 1)
-    target_link_libraries(tatooine PUBLIC OpenMP::OpenMP_CXX)
+    target_link_libraries(tatooine PUBLIC ${OpenMP_C_LIBRARY} ${OpenMP_C_LIBRARIES} ${OpenMP_CXX_LIBRARY} ${OpenMP_CXX_LIBRARIES})
+    target_compile_options(tatooine PUBLIC ${OpenMP_C_FLAGS} ${OpenMP_C_FLAGS} ${OpenMP_CXX_FLAGS} ${OpenMP_CXX_FLAGS})
     message(STATUS "Compiling with OpenMP")
   else()
     set(TATOOINE_OPENMP_AVAILABLE 0)
+    message(STATUS "OpenMP not available")
   endif()
 endif()
 #- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -

@@ -2,6 +2,7 @@
 #define TATOOINE_LINE_H
 //==============================================================================
 #include <boost/range/adaptor/reversed.hpp>
+#include <set>
 #include <boost/range/algorithm/copy.hpp>
 #include <boost/range/algorithm/reverse.hpp>
 #include <boost/range/algorithm_ext/iota.hpp>
@@ -12,12 +13,13 @@
 #include <map>
 #include <stdexcept>
 
-#include "handle.h"
-#include "linspace.h"
-#include "property.h"
-#include "tags.h"
-#include "tensor.h"
-#include "vtk_legacy.h"
+#include <tatooine/handle.h>
+#include <tatooine/linspace.h>
+#include <tatooine/property.h>
+#include <tatooine/tags.h>
+#include <tatooine/tensor.h>
+#include <tatooine/vtk_legacy.h>
+#include <tatooine/demangling.h>
 //==============================================================================
 namespace tatooine {
 //==============================================================================
@@ -470,7 +472,7 @@ struct line {
             enable_if<is_arithmetic<Components...>> = true,
             enable_if<(sizeof...(Components) == N)> = true>
 #endif
-      auto push_back(Components... comps) {
+  auto push_back(Components... comps) {
     m_vertices.push_back(pos_t{static_cast<Real>(comps)...});
     for (auto& [name, prop] : m_vertex_properties) {
       prop->push_back();
@@ -509,7 +511,7 @@ struct line {
             enable_if<is_arithmetic<Components...>> = true,
             enable_if<(sizeof...(Components) == N)> = true>
 #endif
-      auto push_front(Components... comps) {
+  auto push_front(Components... comps) {
     m_vertices.push_front(pos_t{static_cast<Real>(comps)...});
     for (auto& [name, prop] : m_vertex_properties) {
       prop->push_front();
@@ -706,14 +708,22 @@ struct line {
   template <typename T>
   auto& vertex_property(const std::string& name) {
     auto prop = m_vertex_properties.at(name).get();
-    assert(typeid(T) == prop->type());
+    if(typeid(T) != prop->type()) {
+      throw std::runtime_error{
+          "[tatooine::line::vertex_property] Queried vertex property type does "
+          "not match present type."};
+    }
     return *dynamic_cast<vertex_property_t<T>*>(prop);
   }
   //----------------------------------------------------------------------------
   template <typename T>
   const auto& vertex_property(const std::string& name) const {
     auto prop = m_vertex_properties.at(name).get();
-    assert(typeid(T) == prop->type_info());
+    if(typeid(T) != prop->type()) {
+      throw std::runtime_error{
+          "[tatooine::line::vertex_property] Queried vertex property type does "
+          "not match present type."};
+    }
     return *dynamic_cast<const vertex_property_t<T>*>(prop);
   }
   //----------------------------------------------------------------------------
@@ -726,7 +736,9 @@ struct line {
     return *prop;
   }
   //----------------------------------------------------------------------------
-  bool has_vertex_property(const std::string& name) const {
+  auto vertex_properties() const->auto const& { return m_vertex_properties; }
+  //----------------------------------------------------------------------------
+  auto  has_vertex_property(const std::string& name) const -> bool {
     return m_vertex_properties.find(name) != end(m_vertex_properties);
   }
   //----------------------------------------------------------------------------
@@ -878,11 +890,36 @@ std::vector<line<Real, N>> line<Real, N>::filter(Pred&& pred) const {
   }
   return filtered_lines;
 }
-
+//==============================================================================
 namespace detail {
+//==============================================================================
+template <typename T, typename Writer, typename Names, typename Lines>
+auto write_line_container_properties_to_vtk(Writer& writer, Names const& names,
+                                            Lines const& lines) -> void {
+  std::vector<T> prop_collector;
+  for (auto const& [name_to_search, type_to_search] : names) {
+    prop_collector.clear();
+    for (auto const& l : lines) {
+      if (l.has_vertex_property(name_to_search)) {
+        try {
+          auto const& prop      = l.template vertex_property<T>(name_to_search);
+          auto const& prop_data = prop.container();
+          std::copy(begin(prop_data), end(prop_data),
+                    std::back_inserter(prop_collector));
+        } catch (...) {
+          for (size_t i = 0; i < l.num_vertices(); ++i) {
+            prop_collector.push_back(0.0 / 0.0);
+          }
+        }
+      }
+    }
+    writer.write_scalars(name_to_search, prop_collector);
+  }
+}
+//------------------------------------------------------------------------------
 template <typename LineCont>
-void write_line_container_to_vtk(const LineCont& lines, const std::string& path,
-                                 const std::string& title) {
+void write_line_container_to_vtk(LineCont const& lines, std::string const& path,
+                                 std::string const& title) {
   vtk::legacy_file_writer writer(path, vtk::dataset_type::polydata);
   if (writer.is_open()) {
     size_t num_pts = 0;
@@ -919,6 +956,15 @@ void write_line_container_to_vtk(const LineCont& lines, const std::string& path,
     writer.write_points(points);
     writer.write_lines(line_seqs);
     writer.write_point_data(num_pts);
+
+    std::set<std::pair<std::string, std::type_info const*>> names;
+    // collect names
+    for (const auto& l : lines) {
+      for (auto const& [name, prop] : l.vertex_properties()) {
+        names.insert(std::pair{name, &prop->type()});
+      }
+    }
+    write_line_container_properties_to_vtk<double>(writer, names, lines);
     writer.close();
   }
 }
@@ -1021,8 +1067,9 @@ auto filter_length(Lines const& lines, Real length) {
   }
   return filtered;
 }
+//==============================================================================
 }  // namespace detail
-//------------------------------------------------------------------------------
+//==============================================================================
 template <typename Real, size_t N>
 void write_vtk(const std::vector<line<Real, N>>& lines, const std::string& path,
                const std::string& title = "tatooine lines") {

@@ -86,8 +86,8 @@ class perspective_camera : public camera<Real> {
  private:
   void setup() override {
     vec3 const   view_dir = normalize(lookat() - eye());
-    vec3 const   u        = cross(up(), view_dir);
-    vec3 const   v        = cross(view_dir, u);
+    vec3 const   u        = cross(view_dir, up());
+    vec3 const   v        = cross(u, view_dir);
     Real const plane_half_width =
         std::tan(m_fov / Real(2) * Real(M_PI) / Real(180)) ;
     Real const plane_half_height = plane_half_width / this->aspect_ratio();

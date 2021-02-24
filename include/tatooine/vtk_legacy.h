@@ -607,14 +607,14 @@ class legacy_file_writer {
   //----------------------------------------------------------------------------
 #ifdef __cpp_concepts
   template <typename Data>
-  requires (std::is_same_v<Data, double>) ||
-           (std::is_same_v<Data, float>) ||
-           (std::is_same_v<Data, int>)
+  requires (is_same<Data, double>) ||
+           (is_same<Data, float>) ||
+           (is_same<Data, int>)
 #else
   template <typename Data,
-            enable_if<((std::is_same_v<Data, double>) ||
-                       (std::is_same_v<Data, float>) ||
-                       (std::is_same_v<Data, int>))> = true>
+            enable_if<((is_same<Data, double>) ||
+                       (is_same<Data, float>) ||
+                       (is_same<Data, int>))> = true>
 #endif
   auto write_scalars(std::string const &      name,
                      std::vector<Data> const &data,
@@ -622,14 +622,14 @@ class legacy_file_writer {
   //----------------------------------------------------------------------------
 #ifdef __cpp_concepts
   template <typename Data>
-  requires (std::is_same_v<Data, double>) ||
-           (std::is_same_v<Data, float>) ||
-           (std::is_same_v<Data, int>)
+  requires (is_same<Data, double>) ||
+           (is_same<Data, float>) ||
+           (is_same<Data, int>)
 #else
   template <typename Data,
-            enable_if<((std::is_same_v<Data, double>) ||
-                       (std::is_same_v<Data, float>) ||
-                       (std::is_same_v<Data, int>))> = true>
+            enable_if<((is_same<Data, double>) ||
+                       (is_same<Data, float>) ||
+                       (is_same<Data, int>))> = true>
 #endif
   auto write_scalars(std::string const &                   name,
                      std::vector<std::vector<Data>> const &data,
@@ -637,14 +637,14 @@ class legacy_file_writer {
   //----------------------------------------------------------------------------
 #ifdef __cpp_concepts
   template <typename Data, size_t N>
-  requires (std::is_same_v<Data, double>) ||
-           (std::is_same_v<Data, float>) ||
-           (std::is_same_v<Data, int>)
+  requires (is_same<Data, double>) ||
+           (is_same<Data, float>) ||
+           (is_same<Data, int>)
 #else
   template <typename Data, size_t N,
-            enable_if<((std::is_same_v<Data, double>) ||
-                       (std::is_same_v<Data, float>) ||
-                       (std::is_same_v<Data, int>))> = true>
+            enable_if<((is_same<Data, double>) ||
+                       (is_same<Data, float>) ||
+                       (is_same<Data, int>))> = true>
 #endif
   auto write_scalars(std::string const &                     name,
                      std::vector<std::array<Data, N>> const &data,
@@ -663,14 +663,14 @@ class legacy_file_writer {
   //----------------------------------------------------------------------------
 #ifdef __cpp_concepts
   template <typename Data, size_t N>
-  requires (std::is_same_v<Data, double>) ||
-           (std::is_same_v<Data, float>) ||
-           (std::is_same_v<Data, int>)
+  requires (is_same<Data, double>) ||
+           (is_same<Data, float>) ||
+           (is_same<Data, int>)
 #else
   template <typename Data, size_t N,
-            enable_if<((std::is_same_v<Data, double>) ||
-                       (std::is_same_v<Data, float>) ||
-                       (std::is_same_v<Data, int>))> = true>
+            enable_if<((is_same<Data, double>) ||
+                       (is_same<Data, float>) ||
+                       (is_same<Data, int>))> = true>
 #endif
   auto write_scalars(std::string const &              name,
                      std::vector<vec<Data, N>> const &data,
@@ -690,14 +690,14 @@ class legacy_file_writer {
   //----------------------------------------------------------------------------
 #ifdef __cpp_concepts
   template <typename Real, size_t N>
-  requires (std::is_same_v<Real, double>) ||
-           (std::is_same_v<Real, float>) ||
-           (std::is_same_v<Real, int>)
+  requires (is_same<Real, double>) ||
+           (is_same<Real, float>) ||
+           (is_same<Real, int>)
 #else
   template <typename Real, size_t N,
-            enable_if<((std::is_same_v<Real, double>) ||
-                       (std::is_same_v<Real, float>) ||
-                       (std::is_same_v<Real, int>))> = true>
+            enable_if<((is_same<Real, double>) ||
+                       (is_same<Real, float>) ||
+                       (is_same<Real, int>))> = true>
 #endif
   auto write_scalars(std::string const &                 name,
                      std::vector<tensor<Real, N>> const &data,
@@ -873,14 +873,14 @@ auto legacy_file_writer::write_tensors(
 //-----------------------------------------------------------------------------
 #ifdef __cpp_concepts
   template <typename Data>
-  requires (std::is_same_v<Data, double>) ||
-           (std::is_same_v<Data, float>) ||
-           (std::is_same_v<Data, int>)
+  requires (is_same<Data, double>) ||
+           (is_same<Data, float>) ||
+           (is_same<Data, int>)
 #else
   template <typename Data,
-            enable_if<((std::is_same_v<Data, double>) ||
-                       (std::is_same_v<Data, float>) ||
-                       (std::is_same_v<Data, int>))>>
+            enable_if<((is_same<Data, double>) ||
+                       (is_same<Data, float>) ||
+                       (is_same<Data, int>))>>
 #endif
 auto legacy_file_writer::write_scalars(std::string const &      name,
                                        std::vector<Data> const &data,
@@ -898,17 +898,18 @@ auto legacy_file_writer::write_scalars(std::string const &      name,
 //------------------------------------------------------------------------------
 #ifdef __cpp_concepts
   template <typename Data>
-  requires (std::is_same_v<Data, double>) ||
-           (std::is_same_v<Data, float>) ||
-           (std::is_same_v<Data, int>)
+  requires (is_same<Data, double>) ||
+           (is_same<Data, float>) ||
+           (is_same<Data, int>)
 #else
   template <typename Data,
-            enable_if<((std::is_same_v<Data, double>) ||
-                       (std::is_same_v<Data, float>) ||
-                       (std::is_same_v<Data, int>))>>
+            enable_if<((is_same<Data, double>) ||
+                       (is_same<Data, float>) ||
+                       (is_same<Data, int>))>>
 #endif
 auto legacy_file_writer::write_scalars(
-    std::string const &name, std::vector<std::vector<Data>> const &data,
+    std::string const &name,
+    std::vector<std::vector<Data>> const &data,
     std::string const &lookup_table_name) -> void {
   std::stringstream ss;
   ss << "\nSCALARS " << name << ' ' << type_to_str<Data>()

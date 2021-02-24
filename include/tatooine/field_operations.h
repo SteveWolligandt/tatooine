@@ -71,32 +71,23 @@ constexpr auto operator*(const ScalarReal                         scalar,
                          const field<V, VReal, N, TensorDims...>& f) {
   return V{f.as_derived()} | [scalar](auto const& t) { return t * scalar; };
 }
-//├──────────────────────────────────────────────────────────────────────────┤
-// template <typename Tensor, typename TensorReal, typename ScalarReal,
-//          size_t... Dims,
-//          enable_if<std::is_arithmetic_v<ScalarReal> ||
-//                           is_complex_v<ScalarReal> ||
-//                           std::is_same_v<ScalarReal, GiNaC::ex>>...>
-// constexpr auto operator/(const base_tensor<Tensor, TensorReal, Dims...>&
-// t,
-//                         const ScalarReal scalar) {
-//  return unary_operation(
-//      [scalar](const auto& component) { return component / scalar; }, t);
-//}
-//├──────────────────────────────────────────────────────────────────────────┤
-// template <typename Tensor, typename TensorReal, typename ScalarReal,
-//          size_t... Dims,
-//          enable_if<std::is_arithmetic_v<ScalarReal> ||
-//                           is_complex_v<ScalarReal> ||
-//                           std::is_same_v<ScalarReal, GiNaC::ex>>...>
-// constexpr auto operator/(
-//    const ScalarReal                                  scalar,
-//    const base_tensor<Tensor, TensorReal, Dims...>& t) {
-//  return unary_operation(
-//      [scalar](const auto& component) { return scalar / component; }, t);
-//}
-//
-//├──────────────────────────────────────────────────────────────────────────┤
+//------------------------------------------------------------------------------
+template <typename V, typename VReal, size_t N, typename ScalarReal,
+          size_t... TensorDims,
+          enable_if<is_arithmetic<ScalarReal> || is_complex<ScalarReal>> = true>
+constexpr auto operator/(field<V, VReal, N, TensorDims...> const& f,
+                         ScalarReal const                         scalar) {
+  return V{f.as_derived()} | [scalar](auto const& t) { return t / scalar; };
+}
+// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+template <typename V, typename VReal, size_t N, typename ScalarReal,
+          size_t... TensorDims,
+          enable_if<is_arithmetic<ScalarReal> || is_complex<ScalarReal>> = true>
+constexpr auto operator/(ScalarReal const                         scalar,
+                         field<V, VReal, N, TensorDims...> const& f) {
+  return V{f.as_derived()} | [scalar](auto const& t) { return scalar / t; };
+}
+//------------------------------------------------------------------------------
 // template <typename lhs_tensor_t, typename Real0,
 //          typename rhs_tensor_t, typename Real1,
 //          size_t... Dims>

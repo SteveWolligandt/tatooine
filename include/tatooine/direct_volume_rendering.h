@@ -72,7 +72,6 @@ auto direct_volume_rendering(
       }
     }
   }
-  omp_set_num_threads(6);
 #pragma omp parallel for
   for (size_t i = 0; i < rays.size(); ++i) {
     auto const [r, t, x, y]      = rays[i];

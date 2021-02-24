@@ -679,8 +679,13 @@ struct pointset {
     // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
     ~moving_least_squares_sampler_t() = default;
     //==========================================================================
+#ifdef __cpp_concepts
     template <typename = void>
     requires (num_dimensions() == 2) || (num_dimensions() == 3)
+#else
+    template <size_t N_ = num_dimensions(),
+              enable_if<N_ == 2 || N_ == 3> = true>
+#endif
     auto sample(pos_t const& q) const {
       if constexpr (num_dimensions() == 2) {
         return sample2d(q);
@@ -690,8 +695,13 @@ struct pointset {
     }
 
    private:
+#ifdef __cpp_concepts
     template <typename = void>
-    requires(num_dimensions() == 2)
+    requires (num_dimensions() == 2)
+#else
+    template <size_t N_ = num_dimensions(),
+              enable_if<N_ == 2> = true>
+#endif
     auto sample2d(pos_t const& q) const -> T {
       auto const  nn = m_pointset.nearest_neighbors_radius_raw(q, m_radius);
       auto const& indices       = nn.first;
@@ -795,8 +805,13 @@ struct pointset {
           return ret;
         }
       }
+#ifdef __cpp_concepts
     template <typename = void>
-    requires(num_dimensions() == 3)
+    requires (num_dimensions() == 3)
+#else
+    template <size_t N_ = num_dimensions(),
+              enable_if<N_ == 3> = true>
+#endif
     auto sample3d(pos_t const& q) const -> T {
       auto const  nn = m_pointset.nearest_neighbors_radius_raw(q, m_radius);
       auto const& indices       = nn.first;
@@ -942,14 +957,27 @@ struct pointset {
     }
 
    public:
+#ifdef __cpp_concepts
     template <arithmetic... Components>
-    requires(sizeof...(Components) ==
-             N) auto sample(Components const... components) const {
+    requires(sizeof...(Components) == N)
+#else
+    template <typename... Components, size_t N_ = N,
+              enable_if<is_arithmetic<Components...>,
+                        sizeof...(Components) == N_> = true>
+#endif
+    auto sample(Components const... components) const {
       return sample(pos_t{components...});
     }
+    //--------------------------------------------------------------------------
+#ifdef __cpp_concepts
     template <arithmetic... Components>
-    requires(sizeof...(Components) == N) auto operator()(
-        Components const... components) const {
+    requires(sizeof...(Components) == N)
+#else
+    template <typename... Components, size_t N_ = N,
+              enable_if<is_arithmetic<Components...>,
+                        sizeof...(Components) == N_> = true>
+#endif
+    auto operator()(Components const... components) const {
       return sample(pos_t{components...});
     }
     auto operator()(pos_t const& x) const { return sample(x); }

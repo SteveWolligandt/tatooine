@@ -163,7 +163,7 @@ auto calc_parallel_vectors(GetV&& getv, GetW&& getw,
                            Preds&&... preds) -> std::vector<line<Real, 3>> {
   std::vector<line<Real, 3>> line_segments;
 
-#ifdef NDEBUG
+#if defined(NDEBUG) && defined(TATOOINE_OPENMP_AVAILABLE)
   std::mutex mutex;
 
   auto check_cell = [&line_segments, &getv, &getw, &g, &mutex, &preds...](
@@ -277,7 +277,7 @@ auto calc_parallel_vectors(GetV&& getv, GetW&& getw,
       auto pv237 = detail::pv_on_tri(p[2], v2, w2, p[3], v3, w3, p[7], v7, w7,
                                      std::forward<Preds>(preds)...);
 
-#ifdef NDEBUG
+#if defined(NDEBUG) && defined(TATOOINE_OPENMP_AVAILABLE)
       {
         std::lock_guard lock{mutex};
 #endif
@@ -297,7 +297,7 @@ auto calc_parallel_vectors(GetV&& getv, GetW&& getw,
         // 1247
         copy(detail::check_tet(pv124, pv127, pv147, pv247),
              std::back_inserter(line_segments));
-#ifdef NDEBUG
+#if defined(NDEBUG) && defined(TATOOINE_OPENMP_AVAILABLE)
       }
 #endif
     } else {
@@ -334,7 +334,7 @@ auto calc_parallel_vectors(GetV&& getv, GetW&& getw,
                                      std::forward<Preds>(preds)...);
       auto pv456 = detail::pv_on_tri(p[4], v4, w4, p[5], v5, w5, p[6], v6, w6,
                                      std::forward<Preds>(preds)...);
-#ifdef NDEBUG
+#if defined(NDEBUG) && defined(TATOOINE_OPENMP_AVAILABLE)
       {
         std::lock_guard lock{mutex};
 #endif
@@ -354,12 +354,13 @@ auto calc_parallel_vectors(GetV&& getv, GetW&& getw,
         // 0356
         copy(detail::check_tet(pv035, pv036, pv056, pv356),
              std::back_inserter(line_segments));
-#ifdef NDEBUG
+#if defined(NDEBUG) && defined(TATOOINE_OPENMP_AVAILABLE)
       }
 #endif
     }
   };
-#ifdef NDEBUG
+#if defined(NDEBUG) && defined(TATOOINE_OPENMP_AVAILABLE)
+  //omp_set_num_threads(20);
   tatooine::parallel_for_loop(check_cell, g.template size<0>() - 1,
                               g.template size<1>() - 1,
                               g.template size<2>() - 1);
