@@ -328,6 +328,79 @@ class grid {
     return dimension<I>().back();
   }
   //----------------------------------------------------------------------------
+  template <size_t I>
+  constexpr auto dim_center() {
+    return (dimension<I>().back() + dimension<I>().front()) / 2;
+  }
+  // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+ private:
+  template <size_t... Is>
+  constexpr auto center(std::index_sequence<Is...> /*seq*/) {
+    return vec{dim_center<Is>()...};
+  }
+  // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+ public:
+  constexpr auto center() {
+    return center(std::make_index_sequence<num_dimensions()>{});
+  }
+  // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+  constexpr auto center(size_t const i) {
+    if (i == 0) {
+      return dim_center<0>();
+    }
+    if constexpr (num_dimensions() > 1) {
+      if (i == 1) {
+        return dim_center<1>();
+      }
+    }
+    if constexpr (num_dimensions() > 2) {
+      if (i == 2) {
+        return dim_center<2>();
+      }
+    }
+    if constexpr (num_dimensions() > 3) {
+      if (i == 3) {
+        return dim_center<3>();
+      }
+    }
+    if constexpr (num_dimensions() > 4) {
+      if (i == 4) {
+        return dim_center<4>();
+      }
+    }
+    if constexpr (num_dimensions() > 5) {
+      if (i == 5) {
+        return dim_center<5>();
+      }
+    }
+    if constexpr (num_dimensions() > 6) {
+      if (i == 6) {
+        return dim_center<6>();
+      }
+    }
+    if constexpr (num_dimensions() > 7) {
+      if (i == 7) {
+        return dim_center<7>();
+      }
+    }
+    if constexpr (num_dimensions() > 8) {
+      if (i == 8) {
+        return dim_center<8>();
+      }
+    }
+    if constexpr (num_dimensions() > 9) {
+      if (i == 9) {
+        return dim_center<9>();
+      }
+    }
+    if constexpr (num_dimensions() > 10) {
+      if (i == 10) {
+        return dim_center<10>();
+      }
+    }
+    return std::numeric_limits<size_t>::max();
+  }
+  //----------------------------------------------------------------------------
 #ifdef __cpp_concepts
   template <arithmetic... Comps, size_t... Seq>
   requires(num_dimensions() == sizeof...(Comps))
@@ -1574,11 +1647,11 @@ class grid {
   auto print_dim(std::ostream& out) const {
     auto const& dim = dimension<I>();
     if constexpr (is_linspace<std::decay_t<decltype(dim)>>) {
-      out << dim << '\n';
+      out << dim;
     } else {
-      out << dim.front() << ", " << dim[1] << ", ..., " << dim.back()
-                 << '\n';
+      out << dim.front() << ", " << dim[1] << ", ..., " << dim.back();
     }
+    out << " [" << dim.size() << "]\n";
   }
   template <size_t... Seq>
   auto print(std::ostream& out, std::index_sequence<Seq...> /*seq*/) const

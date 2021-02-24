@@ -86,6 +86,21 @@ template <>
 struct internal_value_type_impl<unsigned long long> {
   using type = unsigned long long;
 };
+// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+template <>
+struct internal_value_type_impl<float> {
+  using type = float;
+};
+// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+template <>
+struct internal_value_type_impl<double> {
+  using type = double;
+};
+// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+template <>
+struct internal_value_type_impl<long double> {
+  using type = long double;
+};
 #endif
 //==============================================================================
 }  // namespace tatooine

@@ -186,12 +186,27 @@ class triangular_mesh : public pointset<Real, N> {
   auto operator           =(triangular_mesh&& other) noexcept
       -> triangular_mesh& = default;
   //----------------------------------------------------------------------------
+ private:
+  template <typename T, typename Prop, typename Grid>
+  auto copy_prop(std::string const& name, Prop const& prop, Grid const& g) {
+    if (prop->type() == typeid(T)) {
+      auto const& grid_prop = g.template vertex_property<T>(name);
+      auto&       tri_prop  = this->template add_vertex_property<T>(name);
+      g.loop_over_vertex_indices([&](auto const... is) {
+        std::array is_arr{is...};
+        tri_prop[vertex_handle{is_arr[0] + is_arr[1] * g.size(0)}] =
+            grid_prop(is...);
+      });
+    }
+  }
+
+ public:
 #ifdef __cpp_concepts
   template <indexable_space DimX, indexable_space DimY>
   requires(N == 2)
 #else
-  template <typename DimX, typename DimY, size_t _N = N,
-            enable_if<_N == 2> = true>
+  template <typename DimX, typename DimY, size_t N_ = N,
+            enable_if<N_ == 2> = true>
 #endif
   triangular_mesh(grid<DimX, DimY> const& g) {
     for (auto v : g.vertices()) {
@@ -207,26 +222,15 @@ class triangular_mesh : public pointset<Real, N> {
                     vertex_handle{i + (j + 1) * g.size(0)});
       }
     }
-    auto copy_prop = [&]<typename T>(auto const& name, auto const& prop) {
-      if (prop->type() == typeid(T)) {
-        auto const& grid_prop = g.template vertex_property<T>(name);
-        auto&       tri_prop  = this->template add_vertex_property<T>(name);
-        g.loop_over_vertex_indices([&](auto const... is) {
-          std::array is_arr{is...};
-          tri_prop[vertex_handle{is_arr[0] + is_arr[1] * g.size(0)}] =
-              grid_prop(is...);
-        });
-      }
-    };
     for (auto const& [name, prop] : g.vertex_properties()) {
-      copy_prop.template operator()<vec4d>(name, prop);
-      copy_prop.template operator()<vec3d>(name, prop);
-      copy_prop.template operator()<vec2d>(name, prop);
-      copy_prop.template operator()<vec4f>(name, prop);
-      copy_prop.template operator()<vec3f>(name, prop);
-      copy_prop.template operator()<vec2f>(name, prop);
-      copy_prop.template operator()<double>(name, prop);
-      copy_prop.template operator()<float>(name, prop);
+      copy_prop<vec4d>(name, prop, g);
+      copy_prop<vec3d>(name, prop, g);
+      copy_prop<vec2d>(name, prop, g);
+      copy_prop<vec4f>(name, prop, g);
+      copy_prop<vec3f>(name, prop, g);
+      copy_prop<vec2f>(name, prop, g);
+      copy_prop<double>(name, prop, g);
+      copy_prop<float>(name, prop, g);
     }
   }
   //----------------------------------------------------------------------------
@@ -320,7 +324,11 @@ class triangular_mesh : public pointset<Real, N> {
   auto num_faces() const { return m_face_indices.size() / 3; }
   //----------------------------------------------------------------------------
 #ifdef TATOOINE_HAS_CGAL_SUPPORT
+#ifdef __cpp_concepts
   template <typename = void> requires(N == 2)
+#else
+  template <size_t N_ = N, enable_if<N_ == 2> = true>
+#endif
   auto triangulate_delaunay() -> void {
     m_face_indices.clear();
     //using Kernel = CGAL::Cartesian<Real>;
@@ -357,7 +365,7 @@ class triangular_mesh : public pointset<Real, N> {
   template <typename = void>
   requires(N == 2 || N == 3)
 #else
-  template <size_t _N = N, enable_if<(_N == 2 || _N == 3)> = true>
+  template <size_t N_ = N, enable_if<(N_ == 2 || N_ == 3)> = true>
 #endif
   auto build_hierarchy() const {
     clear_hierarchy();
@@ -374,7 +382,7 @@ class triangular_mesh : public pointset<Real, N> {
   template <typename = void>
   requires(N == 2 || N == 3)
 #else
-  template <size_t _N = N, enable_if<(_N == 2 || _N == 3)> = true>
+  template <size_t N_ = N, enable_if<(N_ == 2 || N_ == 3)> = true>
 #endif
   auto clear_hierarchy() const {
     m_hierarchy.reset();
@@ -384,7 +392,7 @@ class triangular_mesh : public pointset<Real, N> {
   template <typename = void>
   requires(N == 2 || N == 3)
 #else
-  template <size_t _N = N, enable_if<(_N == 2 || _N == 3)> = true>
+  template <size_t N_ = N, enable_if<(N_ == 2 || N_ == 3)> = true>
 #endif
   auto hierarchy() const -> auto& {
     if (m_hierarchy == nullptr) {
@@ -422,7 +430,7 @@ class triangular_mesh : public pointset<Real, N> {
   template <typename = void>
   requires(N == 2 || N == 3)
 #else
-  template <size_t _N = N, enable_if<(_N == 2 || _N == 3)> = true>
+  template <size_t N_ = N, enable_if<(N_ == 2 || N_ == 3)> = true>
 #endif
   auto write_vtk(std::string const& path,
                  std::string const& title = "tatooine triangular mesh") const
@@ -497,7 +505,7 @@ class triangular_mesh : public pointset<Real, N> {
   template <typename = void>
   requires(N == 2 || N == 3)
 #else
-  template <size_t _N = N, enable_if<(_N == 2 || _N == 3)> = true>
+  template <size_t N_ = N, enable_if<(N_ == 2 || N_ == 3)> = true>
 #endif
   auto read_vtk(filesystem::path const& path) {
     struct listener_t : vtk::legacy_file_listener {
