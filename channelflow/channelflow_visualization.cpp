@@ -8,9 +8,6 @@
 #include <tatooine/isosurface.h>
 #include <tatooine/rendering/perspective_camera.h>
 //==============================================================================
-constexpr std::array<size_t, 3> small_domain_offset{0, 0, 0};
-constexpr std::array<size_t, 3> small_domain_size{512, 64, 64};
-//==============================================================================
 namespace tat = tatooine;
 template <typename Sampler>
 struct scalarfield : tat::scalarfield<scalarfield<Sampler>, double, 3> {
@@ -248,40 +245,28 @@ auto main() -> int {
                              H5F_ACC_RDONLY};
   tat::hdf5::file axis2_file{"/home/vcuser/channel_flow/axis2.h5",
                              H5F_ACC_RDONLY};
-  auto const      full_domain_z =
+  auto const      axis0 =
       axis0_file.group("CartGrid").dataset<double>("axis0").read_as_vector();
-  auto const full_domain_y =
+  auto const axis1 =
       axis1_file.group("CartGrid").dataset<double>("axis1").read_as_vector();
-  auto const full_domain_x =
+  auto const axis2 =
       axis2_file.group("CartGrid").dataset<double>("axis2").read_as_vector();
-  tat::grid full_domain{full_domain_x, full_domain_y, full_domain_z};
+  tat::grid full_domain{axis2, axis1, axis0};
   std::cerr << "full_domain:\n" << full_domain << '\n';
 
-  // generate a small part from domain
-  std::vector<double> small_domain_x(
-      begin(full_domain_z) + small_domain_offset[0],
-      begin(full_domain_z) + small_domain_offset[0] + small_domain_size[0]);
-  std::vector<double> small_domain_y(
-      begin(full_domain_y) + small_domain_offset[1],
-      begin(full_domain_y) + small_domain_offset[1] + small_domain_size[1]);
-  std::vector<double> small_domain_z(
-      begin(full_domain_x) + small_domain_offset[2],
-      begin(full_domain_x) + small_domain_offset[2] + small_domain_size[2]);
-  tat::grid small_domain{small_domain_x, small_domain_y, small_domain_z};
-  std::cerr << "small_domain:\n" << small_domain << '\n';
 
   // generate the 3dpart domain
-  std::vector<double> threedpart_domain_x(begin(full_domain_z),
-                                          begin(full_domain_z) + 512);
-  std::vector<double> threedpart_domain_z(begin(full_domain_x),
-                                          begin(full_domain_x) + 256);
-  tat::grid           threedpart_domain{threedpart_domain_x, full_domain_y,
+  std::vector<double> threedpart_domain_x(begin(axis0),
+                                          begin(axis0) + 512);
+  std::vector<double> threedpart_domain_z(begin(axis2),
+                                          begin(axis2) + 256);
+  tat::grid           threedpart_domain{threedpart_domain_x, axis1,
                               threedpart_domain_z};
   std::cerr << "3dpart_domain:\n" << threedpart_domain << '\n';
 
   // generate the pod domain
-  std::vector<double> pod_domain_y(begin(full_domain_y),
-                                   begin(full_domain_y) + 1024);
+  std::vector<double> pod_domain_y(begin(axis1),
+                                   begin(axis1) + 1024);
   tat::grid pod_domain{threedpart_domain_x, pod_domain_y, threedpart_domain_z};
   std::cerr << "pod_domain:\n" << pod_domain << '\n';
 
@@ -323,7 +308,7 @@ auto main() -> int {
   auto& velz_122 = threedpart_domain.add_lazy_vertex_property(
       channelflow_122_file.group("variables").dataset<double>("Vz"), "Vz_122");
   auto& Q_122 = threedpart_domain.add_lazy_vertex_property(
-      channelflow_122_file.group("variables").dataset<double>("Q_steve"),
+      channelflow_122_file.group("variables").dataset<double>("Q"),
       "Q_122");
   auto& temporal_diff_x_122 = threedpart_domain.add_lazy_vertex_property(
       channelflow_122_file.group("variables").dataset<double>("dvdt_x"),
@@ -472,38 +457,77 @@ auto main() -> int {
   //              .vertex_property<tat::vec3>("rendering"));
 
   auto J_122_field       = diff(vel_122_field, 1e-7);
-  auto vortex_core_lines = tat::detail::calc_parallel_vectors<double>(
-      [&](auto ix, auto iy, auto iz, auto const& /*p*/) {
-        ix += small_domain_offset[0];
-        iy += small_domain_offset[1];
-        iz += small_domain_offset[2];
-        return tat::vec3{velx_122(ix, iy, iz), vely_122(ix, iy, iz),
-                         velz_122(ix, iy, iz)};
-      },
-      [&](auto ix, auto iy, auto iz, auto const& /*p*/) {
-        ix += small_domain_offset[0];
-        iy += small_domain_offset[1];
-        iz += small_domain_offset[2];
-        return tat::vec3{accx_122(ix, iy, iz), accy_122(ix, iy, iz),
-                         accz_122(ix, iy, iz)};
-      },
-      small_domain,
-      [&](auto const& x) {
-        auto const eig = eigenvalues(J_122_field(x, 0));
-        return std::abs(eig(0).imag()) > 0 || std::abs(eig(1).imag()) > 0 ||
-               std::abs(eig(2).imag()) > 0;
-      });
 
-  for (auto & core : vortex_core_lines) {
-    using core_t = std::decay_t<decltype(core)>;
-    using vertex_handle = core_t::vertex_idx;
-    auto& line_pod0 = core.add_vertex_property<double>("pod0");
-    auto& line_Q = core.add_vertex_property<double>("Q");
-    for (size_t i = 0; i < core.num_vertices(); ++i) {
-      vertex_handle v{i};
-      line_pod0[v] = pod0_vely_field(core[v], 0);
-      line_Q[v] = Q_122_field(core[v], 0);
+  constexpr std::array<size_t, 3> pv_domain_size{64, 64, 64};
+  std::array<size_t, 3> counts{
+      (pod_domain.size(0) - 1) / (pv_domain_size[0] - 1),
+      (pod_domain.size(1) - 1) / (pv_domain_size[1] - 1),
+      (pod_domain.size(2) - 1) / (pv_domain_size[2] - 1)};
+  size_t i = 0;
+  std::array<size_t, 3>           pv_domain_offset{0, 0, 0};
+  for (size_t iz = 0; iz < counts[2]; ++iz) {
+    for (size_t iy = 0; iy < counts[1]; ++iy) {
+      for (size_t ix = 0; ix < counts[0]; ++ix, ++i) {
+        pv_domain_offset = {ix * (pv_domain_size[0] - 1),
+                            iy * (pv_domain_size[1] - 1),
+                            iz * (pv_domain_size[2] - 1)};
+        std::array<size_t, 3> cur_size{
+            std::min(
+                pv_domain_size[0],
+                pod_domain.size(0) - pv_domain_offset[0]),
+            std::min(
+                pv_domain_size[1],
+                pod_domain.size(1) - pv_domain_offset[1]),
+            std::min(
+                pv_domain_size[2],
+                pod_domain.size(2) - pv_domain_offset[2])};
+        std::vector<double> pv_domain_x(
+            begin(axis0) + pv_domain_offset[0],
+            begin(axis0) + pv_domain_offset[0] + pv_domain_size[0]);
+        std::vector<double> pv_domain_y(
+            begin(axis1) + pv_domain_offset[1],
+            begin(axis1) + pv_domain_offset[1] + pv_domain_size[1]);
+        std::vector<double> pv_domain_z(
+            begin(axis2) + pv_domain_offset[2],
+            begin(axis2) + pv_domain_offset[2] + pv_domain_size[2]);
+        tat::grid pv_domain{pv_domain_x, pv_domain_y, pv_domain_z};
+
+        auto vortex_core_lines = tat::detail::calc_parallel_vectors<double>(
+            [&](auto ix, auto iy, auto iz, auto const& /*p*/) {
+              ix += pv_domain_offset[0];
+              iy += pv_domain_offset[1];
+              iz += pv_domain_offset[2];
+              return tat::vec3{velx_122(ix, iy, iz), vely_122(ix, iy, iz),
+                               velz_122(ix, iy, iz)};
+            },
+            [&](auto ix, auto iy, auto iz, auto const& /*p*/) {
+              ix += pv_domain_offset[0];
+              iy += pv_domain_offset[1];
+              iz += pv_domain_offset[2];
+              return tat::vec3{accx_122(ix, iy, iz), accy_122(ix, iy, iz),
+                               accz_122(ix, iy, iz)};
+            },
+            pv_domain,
+            [&](auto const& x) {
+              auto const eig = eigenvalues(J_122_field(x, 0));
+              return std::abs(eig(0).imag()) > 0 ||
+                     std::abs(eig(1).imag()) > 0 || std::abs(eig(2).imag()) > 0;
+            });
+
+        for (auto& core : vortex_core_lines) {
+          using core_t        = std::decay_t<decltype(core)>;
+          using vertex_handle = core_t::vertex_idx;
+          auto& line_pod0     = core.add_vertex_property<double>("pod0");
+          auto& line_Q        = core.add_vertex_property<double>("Q");
+          for (size_t i = 0; i < core.num_vertices(); ++i) {
+            vertex_handle v{i};
+            line_pod0[v] = pod0_vely_field(core[v], 0);
+            line_Q[v]    = Q_122_field(core[v], 0);
+          }
+        }
+        write_vtk(vortex_core_lines,
+                  "vortex_core_lines_122_part" + std::to_string(i) + ".vtk");
+      }
     }
   }
-  write_vtk(vortex_core_lines, "vortex_core_lines_122.vtk");
 }
