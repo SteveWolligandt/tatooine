@@ -382,8 +382,8 @@ template <typename V, typename W, typename VReal, typename WReal,
 template <
     typename V, typename W, typename VReal, typename WReal, typename TReal,
     typename XDomain, typename YDomain, typename ZDomain, typename... Preds,
-    enable_if<is_arithmetic<TReal>,
-              is_invocable<Preds, vec<common_type<VReal, WReal>, 3>>...> = true>
+    enable_if<is_arithmetic<TReal> &&
+              (is_invocable<Preds, vec<common_type<VReal, WReal>, 3>>&&...)> = true>
 #endif
 auto parallel_vectors(field<V, VReal, 3, 3> const&           vf,
                       field<W, WReal, 3, 3> const&           wf,

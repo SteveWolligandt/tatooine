@@ -15,14 +15,14 @@ struct common_type_impl<T> : common_type_impl<T, T> {};
  
 //////// two types
 template <typename T1, typename T2>
-using cond_t = decltype(false ? std::declval<T1>() : std::declval<T2>());
+using common_type_cond_t = decltype(false ? std::declval<T1>() : std::declval<T2>());
  
 template <typename T1, typename T2, typename=void>
 struct common_type_2_impl {};
  
 template <typename T1, typename T2>
-struct common_type_2_impl<T1, T2, void_t<cond_t<T1, T2>>> {
-    using type = typename std::decay<cond_t<T1, T2>>::type;
+struct common_type_2_impl<T1, T2, void_t<common_type_cond_t<T1, T2>>> {
+    using type = typename std::decay<common_type_cond_t<T1, T2>>::type;
 };
  
 template <typename T1, typename T2>
