@@ -86,7 +86,8 @@ class static_multidim_array
   template <typename RandEng = std::mt19937_64>
   requires arithmetic<T>
 #else
-  template <typename RandEng = std::mt19937_64, typename T_ = T,
+  template <typename RandEng = std::mt19937_64,
+            typename T_ = T,
             enable_if<is_arithmetic<T_>> = true>
 #endif
   static auto randn(T mean = 0, T stddev = 1,
@@ -174,7 +175,7 @@ class static_multidim_array
   template <typename = void>
   requires std::is_same_v<MemLoc, tag::stack>
 #else
-  template <typename = void, enable_if<is_same<MemLoc, tag::stack>> = true>
+  template <typename MemLoc_= MemLoc, enable_if<is_same<MemLoc_, tag::stack>> = true>
 #endif
   explicit constexpr static_multidim_array(std::array<T, num_components()>&& data)
       : m_data(std::move(data)) {}
@@ -183,7 +184,7 @@ class static_multidim_array
   template <typename = void>
   requires std::is_same_v<MemLoc, tag::heap>
 #else
-  template <typename _Mem = MemLoc, enable_if<is_same<_Mem, tag::heap>> = true>
+  template <typename MemLoc_ = MemLoc, enable_if<is_same<MemLoc_, tag::heap>> = true>
 #endif
   explicit constexpr static_multidim_array(std::vector<T>&& data)
       : m_data(std::move(data)) {
@@ -1357,11 +1358,7 @@ auto interpolate(dynamic_multidim_array<T0, Indexing0> const& arr0,
 //}
 //
 #ifdef TATOOINE_HAS_PNG_SUPPORT
-#ifdef __cpp_concepts
-template <arithmetic Real>
-#else
-template <typename Real, enable_if<is_arithmetic<Real>> = true>
-#endif
+template <floating_point Real>
 void write_png(dynamic_multidim_array<Real> const& arr,
                std::string const&                  filepath) {
   if (arr.num_dimensions() != 2) {
