@@ -198,7 +198,7 @@ struct program {
                               static_cast<size_t>(process_size(I))};
     } else {
       local_dim = local_dim_t(begin(global_dim) + process_begin(I),
-                              begin(global_dim) = process_end(I));
+                              begin(global_dim) + process_end(I));
     }
   }
   //----------------------------------------------------------------------------
