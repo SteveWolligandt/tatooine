@@ -2,7 +2,7 @@
 #ifndef TATOOINE_HDF5_H
 #define TATOOINE_HDF5_H
 //==============================================================================
-#include <H5Cpp.h>
+#include <hdf5.h>
 #include <tatooine/chunked_multidim_array.h>
 #include <tatooine/lazy_reader.h>
 #include <tatooine/concepts.h>
@@ -23,17 +23,17 @@ struct h5_type;
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 template <>
 struct h5_type<int> {
-  static auto value() { return H5::PredType::NATIVE_INT; }
+  static auto value() { return H5T_NATIVE_INT; }
 };
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 template <>
 struct h5_type<float> {
-  static auto value() { return H5::PredType::NATIVE_FLOAT; }
+  static auto value() { return H5T_NATIVE_FLOAT; }
 };
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 template <>
 struct h5_type<double> {
-  static auto value() { return H5::PredType::NATIVE_DOUBLE; }
+  static auto value() { return H5T_NATIVE_DOUBLE; }
 };
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 template <typename T, size_t M, size_t N>
@@ -51,37 +51,37 @@ struct h5_type<tensor<T, Dims...>> {
   static auto value() { return h5_type<T>::value(); }
 };
 //==============================================================================
-class attribute {
- public:
-  using this_t = attribute;
-
- private:
-  mutable std::shared_ptr<H5::H5File> m_file;
-  mutable std::shared_ptr<std::mutex> m_mutex;
-  H5::Attribute                       m_attribute;
-  std::string                         m_name;
-
- public:
-  attribute(std::shared_ptr<H5::H5File>& file,
-            std::shared_ptr<std::mutex>& mutex, H5::Attribute const& attribute,
-            std::string const& name)
-      : m_file{file}, m_mutex{mutex}, m_attribute{attribute}, m_name{name} {}
-  //----------------------------------------------------------------------------
-  attribute(attribute const&)     = default;
-  attribute(attribute&&) noexcept = default;
-  //----------------------------------------------------------------------------
-  auto operator=(attribute const&) -> attribute& = default;
-  auto operator=(attribute&&) noexcept -> attribute& = default;
-  //============================================================================
-  template <typename T>
-  auto read() {
-    std::vector<T> t;
-    auto           s = m_attribute.getInMemDataSize();
-    t.resize(s / sizeof(T));
-    m_attribute.read(h5_type<T>::value(), t.data());
-    return t;
-  }
-};
+//class attribute {
+// public:
+//  using this_t = attribute;
+//
+// private:
+//  mutable std::shared_ptr<H5::H5File> m_file_id;
+//  mutable std::shared_ptr<std::mutex> m_mutex;
+//  H5::Attribute                       m_attribute;
+//  std::string                         m_name;
+//
+// public:
+//  attribute(std::shared_ptr<H5::H5File>& file_id,
+//            std::shared_ptr<std::mutex>& mutex, H5::Attribute const& attribute,
+//            std::string const& name)
+//      : m_file_im_file_id{file_id}, m_mutex{mutex}, m_attribute{attribute}, m_name{name} {}
+//  //----------------------------------------------------------------------------
+//  attribute(attribute const&)     = default;
+//  attribute(attribute&&) noexcept = default;
+//  //----------------------------------------------------------------------------
+//  auto operator=(attribute const&) -> attribute& = default;
+//  auto operator=(attribute&&) noexcept -> attribute& = default;
+//  //============================================================================
+//  template <typename T>
+//  auto read() {
+//    std::vector<T> t;
+//    auto           s = m_attribute.getInMemDataSize();
+//    t.resize(s / sizeof(T));
+//    m_attribute.read(h5_type<T>::value(), t.data());
+//    return t;
+//  }
+//};
 //==============================================================================
 template <typename T>
 class dataset {
@@ -90,52 +90,40 @@ class dataset {
   using value_type = T;
 
  private:
-  mutable std::shared_ptr<H5::H5File> m_file;
   mutable std::shared_ptr<std::mutex> m_mutex;
-  H5::DataSet                         m_dataset;
+  hid_t                               m_dataset_id;
   std::string                         m_name;
   //============================================================================
  public:
-  dataset(std::shared_ptr<H5::H5File>& file, std::shared_ptr<std::mutex>& mutex,
-          H5::DataSet const& var, std::string const& name)
-      : m_file{file}, m_mutex{mutex}, m_dataset{var}, m_name{name} {}
+  dataset(std::shared_ptr<std::mutex>& mutex,
+          hid_t const dataset_id, std::string const& name)
+      :  m_mutex{mutex}, m_dataset_id{dataset_id}, m_name{name} {}
   //----------------------------------------------------------------------------
   dataset(dataset const&)     = default;
   dataset(dataset&&) noexcept = default;
   //----------------------------------------------------------------------------
   auto operator=(dataset const&) -> dataset& = default;
   auto operator=(dataset&&) noexcept -> dataset& = default;
+  //----------------------------------------------------------------------------
+  ~dataset() { H5Dclose(m_dataset_id); }
   //============================================================================
-  //auto write(std::vector<size_t> const& is, T const& t) {
-  //  std::lock_guard lock{*m_mutex};
-  //  m_dataset.putVar(is, t);
-  //}
-  //auto write(std::vector<size_t> const& is, std::vector<size_t> const& count,
-  //           T const* const arr) {
-  //  std::lock_guard lock{*m_mutex};
-  //  // std::reverse(begin(is), end(is));
-  //  // std::reverse(begin(count), end(count));
-  //  return m_dataset.putVar(is, count, arr);
-  //}
-  //auto write(T const* const arr) {
-  //  std::lock_guard lock{*m_mutex};
-  //  return m_dataset.putVar(arr);
-  //}
-  // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
   auto write(T const* data) {
     std::lock_guard lock{*m_mutex};
-    return m_dataset.write(data);
+     H5Dwrite(m_dataset_id, h5_type<T>::value(), H5S_ALL, H5S_ALL, H5P_DEFAULT,
+              data);
   }
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
   auto write(std::vector<T> const& data) {
     std::lock_guard lock{*m_mutex};
-    return m_dataset.write(data.data(), h5_type<T>::value());
+    H5Dwrite(m_dataset_id, h5_type<T>::value(), H5S_ALL, H5S_ALL, H5P_DEFAULT,
+             data.data());
   }
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
   template <size_t N>
   auto write(std::array<T, N> const& data) {
     std::lock_guard lock{*m_mutex};
-    return m_dataset.write(data.data(), h5_type<T>::value());
+    H5Dwrite(m_dataset_id, h5_type<T>::value(), H5S_ALL, H5S_ALL, H5P_DEFAULT,
+             data.data());
   }
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 #ifdef __cpp_concepts
@@ -154,10 +142,10 @@ class dataset {
   }
   //----------------------------------------------------------------------------
   auto read(dynamic_multidim_array<T, x_fastest>& arr) const {
-    auto const   ds       = data_space();
-    size_t const num_dims = ds.getSimpleExtentNdims();
-    auto    size     = std::make_unique<hsize_t[]>(num_dims);
-    ds.getSimpleExtentDims(size.get());
+    hid_t      dspace = H5Dget_space(m_dataset_id);
+    auto const num_dims      = H5Sget_simple_extent_ndims(dspace);
+    auto       size   = std::make_unique<hsize_t[]>(num_dims);
+    H5Sget_simple_extent_dims(dspace, size.get(), nullptr);
     std::reverse(size.get(), size.get() + num_dims);
     bool must_resize = num_dims != arr.num_dimensions();
     if (!must_resize) {
@@ -173,7 +161,8 @@ class dataset {
     }
 
     std::lock_guard lock{*m_mutex};
-    m_dataset.read(arr.data_ptr(), h5_type<T>::value());
+    H5Dread(m_dataset_id, h5_type<T>::value(), H5S_ALL, H5S_ALL, H5P_DEFAULT,
+            arr.data_ptr());
   }
   //----------------------------------------------------------------------------
   auto read_as_vector() const {
@@ -183,10 +172,10 @@ class dataset {
   }
   //----------------------------------------------------------------------------
   auto read(std::vector<T>& data) const {
-    auto const ds       = data_space();
-    auto const num_dims = ds.getSimpleExtentNdims();
-    auto       size     = std::make_unique<hsize_t[]>(num_dims);
-    ds.getSimpleExtentDims(size.get());
+    hid_t      dspace = H5Dget_space(m_dataset_id);
+    auto const num_dims      = H5Sget_simple_extent_ndims(dspace);
+    auto       size   = std::make_unique<hsize_t[]>(num_dims);
+    H5Sget_simple_extent_dims(dspace, size.get(), nullptr);
     size_t num_entries = 1;
     for (size_t i = 0; i < num_dims; ++i) {
       num_entries *= size[i];
@@ -196,7 +185,8 @@ class dataset {
     }
 
     std::lock_guard lock{*m_mutex};
-    m_dataset.read(data.data(), h5_type<T>::value());
+    H5Dread(m_dataset_id, h5_type<T>::value(), H5S_ALL, H5S_ALL, H5P_DEFAULT,
+            data.data());
   }
   //----------------------------------------------------------------------------
   //  auto read_chunked(size_t const chunk_size = 10) const {
@@ -267,7 +257,7 @@ class dataset {
   //    assert(sizeof...(Resolution) == num_dimensions());
   //    assert(std::vector{Resolution...} == size());
   //    std::lock_guard lock{*m_mutex};
-  //    m_dataset.getVar(arr.data_ptr());
+  //    m_dataset_id.getVar(arr.data_ptr());
   //  }
   //  //----------------------------------------------------------------------------
   //  auto read(std::vector<T>& arr) const {
@@ -275,18 +265,18 @@ class dataset {
   //      arr.resize(n);
   //    }
   //    std::lock_guard lock{*m_mutex};
-  //    m_dataset.getVar(arr.data());
+  //    m_dataset_id.getVar(arr.data());
   //  }
   //  //----------------------------------------------------------------------------
   //  auto read(T* const ptr) const {
   //    std::lock_guard lock{*m_mutex};
-  //    m_dataset.getVar(ptr);
+  //    m_dataset_id.getVar(ptr);
   //  }
   //  //----------------------------------------------------------------------------
   //  auto read_as_vector() const {
   //    std::vector<T>  arr(num_components());
   //    std::lock_guard lock{*m_mutex};
-  //    m_dataset.getVar(arr.data());
+  //    m_dataset_id.getVar(arr.data());
   //    return arr;
   //  }
   //  //----------------------------------------------------------------------------
@@ -294,7 +284,7 @@ class dataset {
   //    assert(size(offset) == num_dimensions());
   //    T               t;
   //    std::lock_guard lock{*m_mutex};
-  //    m_dataset.getVar(offset, std::vector<size_t>(num_dimensions(),
+  //    m_dataset_id.getVar(offset, std::vector<size_t>(num_dimensions(),
   //    1), &t); return t;
   //  }
   //  //----------------------------------------------------------------------------
@@ -307,7 +297,7 @@ class dataset {
   //    assert(num_dimensions() == sizeof...(is));
   //    T               t;
   //    std::lock_guard lock{*m_mutex};
-  //    m_dataset.getVar({static_cast<size_t>(is)...}, {((void)is,
+  //    m_dataset_id.getVar({static_cast<size_t>(is)...}, {((void)is,
   //    size_t(1))...}, &t); return t;
   //  }
   //----------------------------------------------------------------------------
@@ -342,8 +332,9 @@ class dataset {
     std::lock_guard lock{*m_mutex};
     assert(offset.size() == count.size());
 
-    auto      dataspace = m_dataset.getSpace();
-    int const rank      = dataspace.getSimpleExtentNdims();
+    hid_t      dspace = H5Dget_space(m_dataset_id);
+    auto const rank      = H5Sget_simple_extent_ndims(dspace);
+    auto       size   = std::make_unique<hsize_t[]>(rank);
     if (static_cast<unsigned int>(rank) != arr.num_dimensions()) {
       arr.resize(count);
     } else {
@@ -356,9 +347,11 @@ class dataset {
     }
     std::reverse(begin(count), end(count));
     std::reverse(begin(offset), end(offset));
-    dataspace.selectHyperslab(H5S_SELECT_SET, count.data(), offset.data());
-    H5::DataSpace memspace(rank, count.data());
-    m_dataset.read(arr.data_ptr(), h5_type<T>::value(), memspace, dataspace);
+    H5Sselect_hyperslab(dspace, H5S_SELECT_SET, offset.data(), nullptr,
+                        count.data(), nullptr);
+    auto memspace = H5Screate_simple(rank, count.data(), nullptr);
+    H5Dread(m_dataset_id, h5_type<T>::value(), memspace, dspace, H5P_DEFAULT,
+            arr.data_ptr());
     return arr;
   }
   //----------------------------------------------------------------------------
@@ -371,7 +364,7 @@ class dataset {
   //    // std::reverse(begin(offset), end(offset));
   //    // std::reverse(begin(count), end(count));
   //    std::lock_guard lock{*m_mutex};
-  //    m_dataset.getVar(offset, count, ptr);
+  //    m_dataset_id.getVar(offset, count, ptr);
   //  }
   //----------------------------------------------------------------------------
   //#ifdef __cpp_concepts
@@ -388,7 +381,7 @@ class dataset {
   //    static_assert(sizeof...(offset) == sizeof...(Resolution));
   //    assert(sizeof...(Resolution) == num_dimensions());
   //    std::lock_guard lock{*m_mutex};
-  //    m_dataset.getVar(std::vector{static_cast<size_t>(offset)...},
+  //    m_dataset_id.getVar(std::vector{static_cast<size_t>(offset)...},
   //                 std::vector{Resolution...}, arr.data_ptr());
   //  }
   //  //----------------------------------------------------------------------------
@@ -397,7 +390,7 @@ class dataset {
   //      std::vector<size_t> const& offset, static_multidim_array<T,
   //      x_fastest, MemLoc, Resolution...>& arr) const {
   //    std::lock_guard lock{*m_mutex};
-  //    m_dataset.getVar(offset, std::vector{Resolution...},
+  //    m_dataset_id.getVar(offset, std::vector{Resolution...},
   //    arr.data_ptr());
   //  }
   //  //----------------------------------------------------------------------------
@@ -410,139 +403,174 @@ class dataset {
   //      arr.resize(n);
   //    }
   //    std::lock_guard lock{*m_mutex};
-  //    m_dataset.getVar(offset, count, arr.data());
+  //    m_dataset_id.getVar(offset, count, arr.data());
   //  }
   //  //----------------------------------------------------------------------------
   //  auto is_null() const {
   //    std::lock_guard lock{*m_mutex};
-  //    return m_dataset.isNull();
+  //    return m_dataset_id.isNull();
   //  }
   //----------------------------------------------------------------------------
-  auto data_space() const {
-    std::lock_guard lock{*m_mutex};
-    return m_dataset.getSpace();
+  auto num_dimensions() const {
+    return H5Sget_simple_extent_ndims(H5Dget_space(m_dataset_id));
   }
-  //----------------------------------------------------------------------------
-  auto num_dimensions() const { return data_space().getSimpleExtentNdims(); }
   //----------------------------------------------------------------------------
   auto size(size_t i) const {
     return size()[i];
   }
   //----------------------------------------------------------------------------
   auto size() const {
-    auto const n = data_space().getSimpleExtentNdims();
-    auto size =  std::make_unique<hsize_t[]>(n);
-    data_space().getSimpleExtentDims(size.get());
-    return std::vector<size_t>(size.get(), size.get() + n);
+    hid_t      dspace = H5Dget_space(m_dataset_id);
+    auto const num_dims      = H5Sget_simple_extent_ndims(dspace);
+    auto       size   = std::make_unique<hsize_t[]>(num_dims);
+    H5Sget_simple_extent_dims(dspace, size.get(), nullptr);
+    return std::vector<size_t>(size.get(), size.get() + num_dims);
   }
   //----------------------------------------------------------------------------
-  auto read_lazy(std::vector<size_t> const& chunk_size) {
-    return lazy_reader<this_t>{*this, chunk_size};
-  }
+  //auto read_lazy(std::vector<size_t> const& chunk_size) {
+  //  return lazy_reader<this_t>{*this, chunk_size};
+  //}
   //----------------------------------------------------------------------------
   auto name() const -> auto const& { return m_name; }
 };
 //==============================================================================
-class group {
- public:
-  using this_t = group;
-
- private:
-  mutable std::shared_ptr<H5::H5File> m_file;
-  mutable std::shared_ptr<std::mutex> m_mutex;
-  H5::Group                           m_group;
-  std::string                         m_name;
-
- public:
-  group(std::shared_ptr<H5::H5File>& file, std::shared_ptr<std::mutex>& mutex,
-          H5::Group const& group, std::string const& name)
-      : m_file{file}, m_mutex{mutex}, m_group{group}, m_name{name} {}
-  //----------------------------------------------------------------------------
-  group(group const&)     = default;
-  group(group&&) noexcept = default;
-  //----------------------------------------------------------------------------
-  auto operator=(group const&) -> group& = default;
-  auto operator=(group&&) noexcept -> group& = default;
-  //============================================================================
-  auto attribute(std::string const& attribute_name) {
-    return hdf5::attribute{
-        m_file, m_mutex, m_group.openAttribute(attribute_name), attribute_name};
-  }
-  //============================================================================
-  template <typename T>
-  auto dataset(std::string const& dataset_name) {
-    return hdf5::dataset<T>{
-        m_file, m_mutex, m_group.openDataSet(dataset_name), dataset_name};
-  }
-  //----------------------------------------------------------------------------
-#ifdef __cpp_concepts
-  template <typename T, integral... Size>
-#else
-  template <typename T, typename... Size, enable_if<is_integral<Size...>> = true>
-#endif
-  auto add_dataset(std::string const& dataset_name, Size... size) {
-    H5::AtomType data_type{h5_type<T>::value()};
-    hsize_t      dimsf[]{static_cast<hsize_t>(size)...};  // data set dimensions
-    std::reverse(dimsf, dimsf + sizeof...(Size));
-    return hdf5::dataset<T>{
-        m_file, m_mutex,
-        m_group.createDataSet(dataset_name, data_type,
-                              H5::DataSpace{sizeof...(Size), dimsf}),
-        dataset_name};
-  }
-};
+//class group {
+// publicN:
+//  using this_t = group;
+//
+// private:
+//  mutable std::shared_ptr<H5::H5File> m_file_id;
+//  mutable std::shared_ptr<std::mutex> m_mutex;
+//  H5::Group                           m_group;
+//  std::string                         m_name;
+//
+// public:
+//  group(std::shared_ptr<H5::H5File>& file_id, std::shared_ptr<std::mutex>& mutex,
+//          H5::Group const& group, std::string const& name)
+//      : m_file_id{file_id}, m_mutex{mutex}, m_group{group}, m_name{name} {}
+//  //----------------------------------------------------------------------------
+//  group(group const&)     = default;
+//  group(group&&) noexcept = default;
+//  //----------------------------------------------------------------------------
+//  auto operator=(group const&) -> group& = default;
+//  auto operator=(group&&) noexcept -> group& = default;
+//  //============================================================================
+//  auto attribute(std::string const& attribute_name) {
+//    return hdf5::attribute{
+//        m_file_id, m_mutex, m_group.openAttribute(attribute_name), attribute_name};
+//  }
+//  //============================================================================
+//  template <typename T>
+//  auto dataset(std::string const& dataset_name) {
+//    return hdf5::dataset<T>{
+//        m_file_id, m_mutex, m_group.openDataSet(dataset_name), dataset_name};
+//  }
+//  //----------------------------------------------------------------------------
+//#ifdef __cpp_concepts
+//  template <typename T, integral... Size>
+//#else
+//  template <typename T, typename... Size, enable_if<is_integral<Size...>> = true>
+//#endif
+//  auto add_dataset(std::string const& dataset_name, Size... size) {
+//    H5::AtomType data_type{h5_type<T>::value()};
+//    hsize_t      dimsf[]{static_cast<hsize_t>(size)...};  // data set dimensions
+//    std::reverse(dimsf, dimsf + sizeof...(Size));
+//    return hdf5::dataset<T>{
+//        m_file_id, m_mutex,
+//        m_group.createDataSet(dataset_name, data_type,
+//                              H5::DataSpace{sizeof...(Size), dimsf}),
+//        dataset_name};
+//  }
+//};
 //==============================================================================
 class file {
-  mutable std::shared_ptr<H5::H5File> m_file;
+  hid_t m_file_id;
   mutable std::shared_ptr<std::mutex> m_mutex;
   //============================================================================
  public:
   template <typename... Ts>
   file(filesystem::path const& path, Ts&&... ts)
-      : m_file{new H5::H5File(path.string(), std::forward<Ts>(ts)...)},
-        m_mutex{std::make_shared<std::mutex>()} {}
+      : m_mutex{std::make_shared<std::mutex>()} {
+    if constexpr (sizeof...(Ts) == 0) {
+      try {
+        m_file_id =
+            H5Fopen(path.string().c_str(), H5F_ACC_RDWR, H5P_DEFAULT);
+      } catch (...) {
+        m_file_id =
+            H5Fcreate(path.string().c_str(), H5F_ACC_EXCL, H5P_DEFAULT, H5P_DEFAULT);
+      }
+    } else {
+      m_file_id =
+          H5Fcreate(path.string().c_str(), ts..., H5P_DEFAULT, H5P_DEFAULT);
+    }
+  }
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
   template <typename... Ts>
   file(std::string const& path, Ts&&... ts)
-      : m_file{new H5::H5File(path, std::forward<Ts>(ts)...)},
-        m_mutex{std::make_shared<std::mutex>()} {}
+      : m_mutex{std::make_shared<std::mutex>()} {
+    if constexpr (sizeof...(Ts) == 0) {
+      try {
+        m_file_id =
+            H5Fopen(path.c_str(), H5F_ACC_RDWR, H5P_DEFAULT);
+      } catch (...) {
+        m_file_id =
+            H5Fcreate(path.c_str(), H5F_ACC_EXCL, H5P_DEFAULT, H5P_DEFAULT);
+      }
+    } else {
+      m_file_id = H5Fcreate(path.c_str(), ts..., H5P_DEFAULT, H5P_DEFAULT);
+    }
+  }
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
   template <typename... Ts>
-  file(char const* path, Ts&&... ts)
-      : m_file{new H5::H5File(path, std::forward<Ts>(ts)...)},
-        m_mutex{std::make_shared<std::mutex>()} {}
-  //============================================================================
-  auto group(std::string const& group_name) {
-    return hdf5::group{m_file, m_mutex, m_file->openGroup(group_name),
-                       group_name};
+  file(char const* path, Ts&&... ts) : m_mutex{std::make_shared<std::mutex>()} {
+    if constexpr (sizeof...(Ts) == 0) {
+      try {
+        m_file_id =
+            H5Fopen(path, H5F_ACC_RDWR, H5P_DEFAULT);
+      } catch (...) {
+        m_file_id =
+            H5Fcreate(path, H5F_ACC_EXCL, H5P_DEFAULT, H5P_DEFAULT);
+      }
+    } else {
+      m_file_id = H5Fcreate(path, ts..., H5P_DEFAULT, H5P_DEFAULT);
+    }
   }
+  // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+  ~file() { H5Fclose(m_file_id); }
+  //============================================================================
+  // auto group(std::string const& group_name) {
+  //  return hdf5::group{m_file_id, m_mutex, m_file_id->openGroup(group_name),
+  //                     group_name};
+  //}
   //============================================================================
 #ifdef __cpp_concepts
   template <typename T, integral... Size>
 #else
-  template <typename T, typename... Size, enable_if<is_integral<Size...>> = true>
+  template <typename T, typename... Size,
+            enable_if<is_integral<Size...>> = true>
 #endif
   auto add_dataset(std::string const& dataset_name, Size... size) {
-    H5::AtomType data_type{h5_type<T>::value()};
-    hsize_t      dimsf[]{static_cast<hsize_t>(size)...};  // data set dimensions
+    hsize_t dimsf[]{static_cast<hsize_t>(size)...};  // data set dimensions
     std::reverse(dimsf, dimsf + sizeof...(Size));
     return hdf5::dataset<T>{
-        m_file, m_mutex,
-        m_file->createDataSet(dataset_name, data_type,
-                              H5::DataSpace{sizeof...(Size), dimsf}),
+        m_mutex,
+        H5Dcreate2(m_file_id, dataset_name.c_str(), H5T_STD_I32BE,
+                   H5Screate_simple(sizeof...(Size), dimsf, nullptr),
+                   H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT),
         dataset_name};
   }
   //----------------------------------------------------------------------------
   template <typename T>
   auto dataset(char const* dataset_name) const {
-    return hdf5::dataset<T>{m_file, m_mutex, m_file->openDataSet(dataset_name),
-                            dataset_name};
+    return hdf5::dataset<T>{
+        m_mutex, H5Dopen(m_file_id, dataset_name, H5P_DEFAULT), dataset_name};
   }
   //----------------------------------------------------------------------------
   template <typename T>
   auto dataset(std::string const& dataset_name) const {
-    return hdf5::dataset<T>{m_file, m_mutex, m_file->openDataSet(dataset_name),
-                            dataset_name};
+    return hdf5::dataset<T>{
+        m_mutex, H5Dopen(m_file_id, dataset_name.c_str(), H5P_DEFAULT),
+        dataset_name};
   }
 };
 //==============================================================================

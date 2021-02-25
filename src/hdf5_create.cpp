@@ -13,75 +13,61 @@
 /*
  *  This example writes a dataset to a new HDF5 file.
  */
-#ifdef OLD_HEADER_FILENAME
-#include <iostream.h>
-#else
 #include <iostream>
-#endif
-#include <string>
-#include "H5Cpp.h"
-using namespace H5;
-const H5std_string  FILE_NAME( "SDS.h5" );
-const H5std_string  DATASET_NAME( "IntArray" );
+#include <tatooine/hdf5.h>
+const std::string  FILE_NAME( "SDS.h5" );
+const std::string  DATASET_NAME( "IntArray" );
 const int   NX = 4;                    // dataset dimensions
 const int   NY = 3;
 const int   RANK = 2;
-int main (void)
-{
-   /*
-    * Data initialization.
-    */
-   int i, j, k = 1;
-   int data[NY][NX];          // buffer for data to write
-   for (j = 0; j < NY; j++) {
-     for (i = 0; i < NX; i++) {
-       data[j][i] = k++;
-     }
-   }
-   for (j = 0; j < NY; j++) {
-     for (i = 0; i < NX; i++) {
-       std:: cout << data[NY-1-j][i] << ' ';
-     }
-     std::cout << '\n';
-   }
-   /*
-    * 0 1 2 3 4 5
-    * 1 2 3 4 5 6
-    * 2 3 4 5 6 7
-    * 3 4 5 6 7 8
-    * 4 5 6 7 8 9
-    */
-   // Try block to detect exceptions raised by any of the calls inside it
-      /*
-       * Create a new file using H5F_ACC_TRUNC access,
-       * default file creation properties, and default file
-       * access properties.
-       */
-      H5File file( FILE_NAME, H5F_ACC_TRUNC );
-      /*
-       * Define the size of the array and create the data space for fixed
-       * size dataset.
-       */
-      hsize_t     dimsf[2];              // dataset dimensions
-      dimsf[0] = NY;
-      dimsf[1] = NX;
-      DataSpace dataspace( RANK, dimsf );
-      /*
-       * Define datatype for the data in the file.
-       * We will store little endian INT numbers.
-       */
-      IntType datatype( PredType::NATIVE_INT );
-      datatype.setOrder( H5T_ORDER_LE );
-      /*
-       * Create a new dataset within the file using defined dataspace and
-       * datatype and default dataset creation properties.
-       */
-      DataSet dataset = file.createDataSet( DATASET_NAME, datatype, dataspace );
-      /*
-       * Write the data to the dataset using default memory space, file
-       * space, and transfer properties.
-       */
-      dataset.write( data, PredType::NATIVE_INT );
-   return 0;  // successfully terminated
+
+int main() {
+  /*
+   * Data initialization.
+   */
+  int i, j, k = 1;
+  tatooine::dynamic_multidim_array<int> data{NX, NY};
+  for (j = 0; j < NY; j++) {
+    for (i = 0; i < NX; i++) {
+      data(i, j) = k++;
+    }
+  }
+  for (j = 0; j < NY; j++) {
+    for (i = 0; i < NX; i++) {
+      std::cout << data(i, NY - 1 - j) << ' ';
+    }
+    std::cout << '\n';
+  }
+  /*
+   * 0 1 2 3 4 5
+   * 1 2 3 4 5 6
+   * 2 3 4 5 6 7
+   * 3 4 5 6 7 8
+   * 4 5 6 7 8 9
+   */
+  // Try block to detect exceptions raised by any of the calls inside it
+  /*
+   * Create a new file using H5F_ACC_TRUNC access,
+   * default file creation properties, and default file
+   * access properties.
+   */
+  tatooine::hdf5::file file{FILE_NAME, H5F_ACC_TRUNC};
+
+  auto dataset = file.add_dataset<int>(DATASET_NAME, NX, NY);
+  /*
+   * Write the data to the dataset using default memory space, file
+   * space, and transfer properties.
+   */
+  dataset.write(data.data_ptr());
+
+  auto const chunk = dataset.read_chunk(std::vector<size_t>{1,1},std::vector<size_t> {2,2});
+
+  for (j = 0; j < 2; j++) {
+    for (i = 0; i < 2; i++) {
+      std::cout << chunk(i, 2 - 1 - j) << ' ';
+    }
+    std::cout << '\n';
+  }
+  return 0;  // successfully terminated
 }
 

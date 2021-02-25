@@ -18,14 +18,14 @@ TEST_CASE("hdf5_read_chunk", "[hdf5][read][chunk]") {
   std::generate(begin(data_src), end(data_src), [&rand]() { return rand(); });
   {
     auto out = hdf5::file{filepath, H5F_ACC_TRUNC};
-    auto arr_out =
-        out.add_dataset<value_type>(array_name, full_size[0], full_size[1], full_size[2]);
+    auto arr_out = out.add_dataset<value_type>(array_name, full_size[0],
+                                               full_size[1], full_size[2]);
     arr_out.write(data_src);
   }
 
-  auto in     = hdf5::file{filepath, H5F_ACC_RDONLY};
-  auto arr_in = in.dataset<value_type>(filesystem::path{array_name});
-
+  auto in     = hdf5::file{filepath};
+  auto arr_in = in.dataset<value_type>("Array");
+  //
   auto const full_data = arr_in.read();
   SECTION("Full Data check") {
     REQUIRE(full_data.num_dimensions() == 3);

@@ -208,7 +208,7 @@ endif()
 #- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 # HDF5
 #- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-find_package(HDF5 QUIET COMPONENTS CXX HL)
+find_package(HDF5 QUIET COMPONENTS C)
 if(HDF5_FOUND)
   if (HDF5_IS_PARALLEL)
     message(STATUS "HDF5 available with parallel support")
@@ -216,15 +216,15 @@ if(HDF5_FOUND)
     message(STATUS "HDF5 available without parallel support")
   endif()
   target_compile_definitions(tatooine PUBLIC
-    TATOOINE_HAS_HDF5_SUPPORT ${HDF5_DEFINITIONS} ${HDF5_CXX_DEFINITIONS})
+    TATOOINE_HAS_HDF5_SUPPORT ${HDF5_DEFINITIONS} ${HDF5_C_DEFINITIONS})
   target_link_libraries(tatooine PUBLIC
-    ${HDF5_LIBRARIES} ${HDF5_HL_LIBRARIES} ${HDF5_CXX_LIBRARIES} ${HDF5_CXX_HL_LIBRARIES})
+    ${HDF5_LIBRARIES})
   target_include_directories(tatooine PUBLIC
-    ${HDF5_INCLUDE_DIRS} ${HDF5_CXX_INCLUDE_DIRS})
+    ${HDF5_INCLUDE_DIRS})
 
-  #add_executable(hdf5_create src/hdf5_create.cpp)
-  #target_link_libraries(hdf5_create PUBLIC tatooine)
-  #add_custom_target(hdf5_create.run COMMAND ./hdf5_create DEPENDS hdf5_create)
+  add_executable(hdf5_create src/hdf5_create.cpp)
+  target_link_libraries(hdf5_create PUBLIC tatooine)
+  add_custom_target(hdf5_create.run COMMAND ./hdf5_create DEPENDS hdf5_create)
 
   #add_executable(hdf5_readdata src/hdf5_readdata.cpp)
   #target_link_libraries(hdf5_readdata PUBLIC tatooine)
