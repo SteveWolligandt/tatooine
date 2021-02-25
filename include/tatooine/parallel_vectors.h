@@ -1,7 +1,7 @@
 #ifndef TATOOINE_PARALLEL_VECTORS_H
 #define TATOOINE_PARALLEL_VECTORS_H
 //==============================================================================
-#ifdef NDEBUG
+#if defined(NDEBUG) && defined(TATOOINE_OPENMP_AVAILABLE)
 #include <mutex>
 #endif
 #include <tatooine/field.h>
@@ -41,7 +41,6 @@ auto pv_on_tri(vec<Real, 3> const& p0, vec<Real, 3> const& v0,
   W.col(1) = w1;
   W.col(2) = w2;
 
-  // openblas_set_num_threads(1);
   if (std::abs(det(V)) > 0) {
     M = solve(V, W);
   } else if (std::abs(det(W)) > 0) {
@@ -71,22 +70,25 @@ auto pv_on_tri(vec<Real, 3> const& p0, vec<Real, 3> const& v0,
     auto pos = barycentric_coords.front()(0) * p0 +
                barycentric_coords.front()(1) * p1 +
                barycentric_coords.front()(2) * p2;
-    if ((preds(pos) && ...)) {
+    if constexpr (sizeof...(Preds) > 0) {
+      if ((preds(pos) && ...)) {
+        return pos;
+      }
+      return {};
+    } else {
       return pos;
     }
-    return {};
-
   } else {
     // check if all found barycentric coordinates are the same
-    // Real const       eps = 1e-5;
-    // for (unsigned int i = 1; i < barycentric_coords.size(); i++) {
-    //  for (unsigned int j = 0; j < i; j++) {
-    //    if (!approx_equal(barycentric_coords[i], barycentric_coords[j],
-    //                      eps)) {
-    //      return {};
-    //    }
-    //  }
-    //}
+     Real const       eps = 1e-5;
+     for (unsigned int i = 1; i < barycentric_coords.size(); i++) {
+      for (unsigned int j = 0; j < i; j++) {
+        if (!approx_equal(barycentric_coords[i], barycentric_coords[j],
+                          eps)) {
+          return {};
+        }
+      }
+    }
     auto const pos = barycentric_coords.front()(0) * p0 +
                      barycentric_coords.front()(1) * p1 +
                      barycentric_coords.front()(2) * p2;
@@ -101,7 +103,8 @@ template <typename Real>
 static auto check_tet(std::optional<vec<Real, 3>> const& tri0,
                       std::optional<vec<Real, 3>> const& tri1,
                       std::optional<vec<Real, 3>> const& tri2,
-                      std::optional<vec<Real, 3>> const& tri3) {
+                      std::optional<vec<Real, 3>> const& tri3,
+                      std::vector<line<Real, 3>> & lines) {
   std::vector<std::optional<vec<Real, 3>> const*> tris;
   if (tri0) {
     tris.push_back(&tri0);
@@ -116,7 +119,6 @@ static auto check_tet(std::optional<vec<Real, 3>> const& tri0,
     tris.push_back(&tri3);
   }
 
-  std::vector<line<Real, 3>> lines;
   if (tris.size() == 1) {
     // std::cerr << "only 1 point\n";
   } else if (tris.size() == 2) {
@@ -128,7 +130,6 @@ static auto check_tet(std::optional<vec<Real, 3>> const& tri0,
   } else if (tris.size() == 4) {
     // std::cerr << "several solutions\n";
   }
-  return lines;
 }
 //------------------------------------------------------------------------------
 auto turned(size_t const ix, size_t const iy, size_t const iz) -> bool {
@@ -283,20 +284,15 @@ auto calc_parallel_vectors(GetV&& getv, GetW&& getw,
 #endif
         // check the tets themselves
         // 0124
-        copy(detail::check_tet(pv012, pv014, pv024, pv124),
-             std::back_inserter(line_segments));
+        detail::check_tet(pv012, pv014, pv024, pv124, line_segments);
         // 2467
-        copy(detail::check_tet(pv246, pv247, pv267, pv467),
-             std::back_inserter(line_segments));
+        detail::check_tet(pv246, pv247, pv267, pv467, line_segments);
         // 1457
-        copy(detail::check_tet(pv145, pv147, pv157, pv457),
-             std::back_inserter(line_segments));
+        detail::check_tet(pv145, pv147, pv157, pv457, line_segments);
         // 1237
-        copy(detail::check_tet(pv123, pv127, pv137, pv237),
-             std::back_inserter(line_segments));
+        detail::check_tet(pv123, pv127, pv137, pv237, line_segments);
         // 1247
-        copy(detail::check_tet(pv124, pv127, pv147, pv247),
-             std::back_inserter(line_segments));
+        detail::check_tet(pv124, pv127, pv147, pv247, line_segments);
 #if defined(NDEBUG) && defined(TATOOINE_OPENMP_AVAILABLE)
       }
 #endif
@@ -340,35 +336,35 @@ auto calc_parallel_vectors(GetV&& getv, GetW&& getw,
 #endif
         // check the tets themselves
         // 0236
-        copy(detail::check_tet(pv023, pv026, pv036, pv236),
-             std::back_inserter(line_segments));
+        detail::check_tet(pv023, pv026, pv036, pv236, line_segments);
         // 0135
-        copy(detail::check_tet(pv013, pv015, pv035, pv135),
-             std::back_inserter(line_segments));
+        detail::check_tet(pv013, pv015, pv035, pv135, line_segments);
         // 3567
-        copy(detail::check_tet(pv356, pv357, pv367, pv567),
-             std::back_inserter(line_segments));
+        detail::check_tet(pv356, pv357, pv367, pv567, line_segments);
         // 0456
-        copy(detail::check_tet(pv045, pv046, pv056, pv456),
-             std::back_inserter(line_segments));
+        detail::check_tet(pv045, pv046, pv056, pv456, line_segments);
         // 0356
-        copy(detail::check_tet(pv035, pv036, pv056, pv356),
-             std::back_inserter(line_segments));
+        detail::check_tet(pv035, pv036, pv056, pv356, line_segments);
 #if defined(NDEBUG) && defined(TATOOINE_OPENMP_AVAILABLE)
       }
 #endif
     }
   };
 #if defined(NDEBUG) && defined(TATOOINE_OPENMP_AVAILABLE)
-  //omp_set_num_threads(20);
-  tatooine::parallel_for_loop(check_cell, g.template size<0>() - 1,
-                              g.template size<1>() - 1,
-                              g.template size<2>() - 1);
-#else
-  tatooine::for_loop(check_cell, g.template size<0>() - 1,
-                     g.template size<1>() - 1, g.template size<2>() - 1);
+//#pragma omp parallel for collapse(3)
 #endif
-  return merge(line_segments);
+  for (size_t iz = 0; iz < g.size(2) - 1; ++iz) {
+    for (size_t iy = 0; iy < g.size(1) - 1; ++iy) {
+      for (size_t ix = 0; ix < g.size(0) - 1; ++ix) {
+        check_cell(ix, iy, iz);
+      }
+    }
+  }
+  // tatooine::parallel_for_loop(check_cell, g.template size<0>() - 1,
+  //                            g.template size<1>() - 1,
+  //                            g.template size<2>() - 1);
+  return line_segments;
+  //return merge(line_segments);
 }
 //==============================================================================
 }  // namespace detail

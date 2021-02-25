@@ -477,7 +477,7 @@ struct sampler_view
 #else
   template <typename... Is, enable_if<is_integral<Is...>> = true>
 #endif
-  constexpr auto data_at(Is const... is) const -> value_type const& {
+  constexpr auto data_at(Is const... is) const -> decltype(auto) {
     static_assert(sizeof...(is) == num_dimensions(),
                   "Number of indices is not equal to number of dimensions.");
     return m_top_sampler.data_at(m_fixed_index, is...);

@@ -2,7 +2,6 @@
 #define TATOOINE_LAZY_READER_H
 //==============================================================================
 #include <tatooine/chunked_multidim_array.h>
-
 //==============================================================================
 namespace tatooine {
 //==============================================================================
@@ -34,7 +33,8 @@ struct lazy_reader : chunked_multidim_array<typename DataSet::value_type> {
     init(std::move(chunk_size));
   }
   //----------------------------------------------------------------------------
-  lazy_reader(lazy_reader const& other) : parent_t{other}, m_dataset{other.m_dataset} {
+  lazy_reader(lazy_reader const& other)
+      : parent_t{other}, m_dataset{other.m_dataset} {
     if constexpr (is_arithmetic<value_type>) {
       m_read.resize(this->num_chunks(), false);
     }
@@ -78,21 +78,20 @@ struct lazy_reader : chunked_multidim_array<typename DataSet::value_type> {
       if (this->chunk_at_is_null(plain_index)) {
         if (!m_read[plain_index]) {
           m_read[plain_index] = true;
-          if (size(m_chunks_loaded) >= m_max_num_chunks_loaded) {
-            auto const it_begin = begin(m_chunks_loaded);
-            auto const it_end = it_begin + (m_max_num_chunks_loaded - m_delete_size);
-            for (auto it = it_begin; it != it_end; ++it) {
-              this->destroy_chunk_at(*it);
-            }
-            m_chunks_loaded.erase(it_begin, it_end);
-          }
+          //if (size(m_chunks_loaded) >= m_max_num_chunks_loaded) {
+          //  auto const it_begin = begin(m_chunks_loaded);
+          //  auto const it_end = it_begin + (m_max_num_chunks_loaded - m_delete_size);
+          //  for (auto it = it_begin; it != it_end; ++it) {
+          //    this->destroy_chunk_at(*it);
+          //    m_read[*it] = false;
+          //  }
+          //  m_chunks_loaded.erase(it_begin, it_end);
+          //}
           this->create_chunk_at(plain_index);
           m_chunks_loaded.push_back(plain_index);
           auto offset = this->global_indices_from_chunk_indices(
               this->chunk_indices_from_global_indices(indices...));
           auto s = this->internal_chunk_size();
-          std::cout << "reading chunk at [" << offset[0] << ", "
-                    << offset[1] << ", " << offset[2] << "]\n";
           m_dataset.read_chunk(offset, s, *chunk_at(plain_index));
 
           if (is_chunk_filled_with_zeros(plain_index)) {

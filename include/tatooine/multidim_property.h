@@ -142,11 +142,21 @@ struct typed_multidim_property : multidim_property<Grid> {
     }
   }
   //----------------------------------------------------------------------------
-  auto linear_sampler() ->decltype(auto) {
+  auto linear_sampler() const -> decltype(auto) {
     return sampler<interpolation::linear>();
   }
   //----------------------------------------------------------------------------
   // data access
+  //----------------------------------------------------------------------------
+  constexpr auto operator()(
+      std::array<size_t, num_dimensions()> const& is) const -> decltype(auto) {
+    return at(is);
+  }
+  // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+  constexpr auto operator()(std::array<size_t, num_dimensions()> const& is)
+      -> decltype(auto) {
+    return at(is);
+  }
   //----------------------------------------------------------------------------
 #ifdef __cpp_concepts
   template <integral... Is>
@@ -192,10 +202,10 @@ struct typed_multidim_property : multidim_property<Grid> {
     return at(std::array{static_cast<size_t>(is)...});
   }
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-  virtual auto at(std::array<size_t, num_dimensions()> const& size) const
+  virtual auto at(std::array<size_t, num_dimensions()> const& is) const
       -> const_reference = 0;
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-  virtual auto at(std::array<size_t, num_dimensions()> const& size)
+  virtual auto at(std::array<size_t, num_dimensions()> const& is)
       -> reference = 0;
   //----------------------------------------------------------------------------
 #ifdef __cpp_concepts
@@ -205,7 +215,7 @@ struct typed_multidim_property : multidim_property<Grid> {
   template <typename... Size, enable_if<is_integral<Size...>> = true,
             enable_if<(sizeof...(Size) == Grid::num_dimensions())> = true>
 #endif
-      auto resize(Size const... size) -> decltype(auto) {
+  auto resize(Size const... size) -> decltype(auto) {
     return resize(std::array{static_cast<size_t>(size)...});
   }
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -491,6 +501,158 @@ struct typed_multidim_property_impl
 //    return typeid(m_f);
 //  }
 //};
+//==============================================================================
+template <typename Grid, typename ValueType>
+struct multidim_proper_derived_type_impl;
+template <typename Grid, typename ValueType>
+// = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = =
+using multidim_proper_derived_type =
+    typename multidim_proper_derived_type_impl<Grid, ValueType>::type;
+// = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = =
+template <typename Grid>
+struct multidim_proper_derived_type_impl<Grid, float> {
+  using type = vec<float, Grid::num_dimensions()>;
+};
+// = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = =
+template <typename Grid>
+struct multidim_proper_derived_type_impl<Grid, double> {
+  using type = vec<double, Grid::num_dimensions()>;
+};
+// = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = =
+template <typename Grid>
+struct multidim_proper_derived_type_impl<Grid, long double> {
+  using type = vec<long double, Grid::num_dimensions()>;
+};
+//==============================================================================
+template <typename Grid, typename PropValueType, bool PropHasNonConstReference>
+struct derived_typed_multidim_property {
+  using this_t = derived_typed_multidim_property<Grid, PropValueType,
+                                                 PropHasNonConstReference>;
+  using prop_t =
+      typed_multidim_property<Grid, PropValueType, PropHasNonConstReference>;
+  using value_type = multidim_proper_derived_type<Grid, PropValueType>;
+  using grid_t     = Grid;
+  //----------------------------------------------------------------------------
+  static constexpr auto num_dimensions() { return Grid::num_dimensions(); }
+  //----------------------------------------------------------------------------
+  prop_t const& m_prop;
+  auto          grid() const -> auto const& { return m_prop.grid(); }
+  //----------------------------------------------------------------------------
+  // data access
+  //----------------------------------------------------------------------------
+#ifdef __cpp_concepts
+  template <integral... Is>
+  requires(sizeof...(Is) == Grid::num_dimensions())
+#else
+  template <typename... Is, enable_if<is_integral<Is...>> = true,
+            enable_if<(sizeof...(Is) == Grid::num_dimensions())> = true>
+#endif
+  constexpr auto operator()(Is const... is) const -> value_type {
+    return at(is...);
+  }
+  //----------------------------------------------------------------------------
+#ifdef __cpp_concepts
+  template <integral... Is>
+  requires(sizeof...(Is) == Grid::num_dimensions())
+#else
+  template <typename... Is, enable_if<is_integral<Is...>> = true,
+            enable_if<(sizeof...(Is) == Grid::num_dimensions())> = true>
+#endif
+  auto at(Is const... is) const -> value_type {
+    return at(std::make_index_sequence<Grid::num_dimensions()>{}, is...);
+  }
+  //----------------------------------------------------------------------------
+ private:
+  template <size_t... Seq, typename... Is>
+  auto at(std::index_sequence<Seq...> /*seq*/, Is const... is) const
+      -> value_type {
+    std::array<size_t, sizeof...(Is)> indices{static_cast<size_t>(is)...};
+    if constexpr (is_vec<value_type>) {
+      return value_type{[&](auto const dim, auto const index) {
+        if (index == 0) {
+          auto const coeffs =
+              grid().diff_stencil_coefficients_0_p1_p2(dim, index);
+          auto p1 = indices;
+          auto p2 = indices;
+          p1[dim] += 1;
+          p2[dim] += 2;
+          return m_prop(indices) * coeffs[0] +
+                 m_prop(p1) * coeffs[1] +
+                 m_prop(p2) * coeffs[2];
+        } else if (index == grid().size(dim) - 1) {
+          auto const coeffs =
+              grid().diff_stencil_coefficients_n2_n1_0(dim, index);
+          auto n1 = indices;
+          auto n2 = indices;
+          n1[dim] -= 1;
+          n2[dim] -= 2;
+          return m_prop(n2) * coeffs[0] +
+                 m_prop(n1) * coeffs[1] +
+                 m_prop(indices) * coeffs[2];
+        } else {
+          auto const coeffs =
+              grid().diff_stencil_coefficients_n1_0_p1(dim, index);
+          auto n1 = indices;
+          auto p1 = indices;
+          n1[dim] -= 1;
+          p1[dim] += 1;
+          return m_prop(n1) * coeffs[0] +
+                 m_prop(indices) * coeffs[1] +
+                 m_prop(p1) * coeffs[2];
+        }
+      }(Seq, is)...};
+    } else {
+      return value_type{};
+    }
+  }
+  //----------------------------------------------------------------------------
+  template <template <typename> typename InterpolationKernel>
+  auto sampler_() const {
+    using sampler_t =
+        default_multidim_property_sampler_t<num_dimensions(),
+                                            InterpolationKernel, this_t>;
+    grid().update_diff_stencil_coefficients();
+    return sampler_t{*this};
+  }
+  //----------------------------------------------------------------------------
+ public:
+  template <template <typename> typename... InterpolationKernels>
+  auto sampler() const {
+    if (!grid().diff_stencil_coefficients_created_once()) {
+      grid().update_diff_stencil_coefficients();
+    }
+    static_assert(
+        sizeof...(InterpolationKernels) == 0 ||
+        sizeof...(InterpolationKernels) == 1 ||
+            sizeof...(InterpolationKernels) == num_dimensions(),
+        "Number of interpolation kernels does not match number of dimensions.");
+
+    if constexpr (sizeof...(InterpolationKernels) == 0) {
+      using sampler_t =
+          default_multidim_property_sampler_t<num_dimensions(),
+                                              interpolation::cubic, this_t>;
+      grid().update_diff_stencil_coefficients();
+      return sampler_t{*this};
+    } else if constexpr (sizeof...(InterpolationKernels) == 1) {
+      return sampler_<InterpolationKernels...>();
+    } else {
+      using sampler_t = tatooine::sampler<this_t, InterpolationKernels...>;
+      grid().update_diff_stencil_coefficients();
+      return sampler_t{*this};
+    }
+  }
+  //----------------------------------------------------------------------------
+  auto linear_sampler() const -> decltype(auto) {
+    return sampler<interpolation::linear>();
+  }
+};
+//==============================================================================
+template <typename Grid, typename ValueType, bool HasNonConstReference>
+auto diff(typed_multidim_property<Grid, ValueType, HasNonConstReference> const&
+              prop) {
+  return derived_typed_multidim_property<Grid, ValueType, HasNonConstReference>{
+      prop};
+}
 //==============================================================================
 }  // namespace tatooine
 //==============================================================================
