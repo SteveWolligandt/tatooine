@@ -137,59 +137,59 @@ auto calc_pv(DomainGrid const& domain_grid, Axis0 const& axis0,
   auto const vely_122_sampler = vely_122.linear_sampler();
   auto const vely_pod0_sampler = vely_pod0.linear_sampler();
 
-  //constexpr std::array<size_t, 3>   partial_size{512, 1024, 256};
-  //std::vector<tat::line<double, 3>> vortex_core_lines;
-  //std::array<size_t, 3>             offset{0, 0, 0};
-  // std::array<size_t, 3>           counts{
-  //    (size_t)std::ceil(double(domain_grid.size(0) - 1) /
-  //                      (partial_size[0] - 1)),
-  //    (size_t)std::ceil(double(domain_grid.size(1) - 1) /
-  //                      (partial_size[1] - 1)),
-  //    (size_t)std::ceil(double(domain_grid.size(2) - 1) /
-  //                      (partial_size[2] - 1))};
+  constexpr std::array<size_t, 3>   partial_size{512, 64, 64};
+  std::vector<tat::line<double, 3>> vortex_core_lines;
+  std::array<size_t, 3>             offset{0, 0, 0};
+   std::array<size_t, 3>           counts{
+      (size_t)std::ceil(double(domain_grid.size(0) - 1) /
+                        (partial_size[0] - 1)),
+      (size_t)std::ceil(double(domain_grid.size(1) - 1) /
+                        (partial_size[1] - 1)),
+      (size_t)std::ceil(double(domain_grid.size(2) - 1) /
+                        (partial_size[2] - 1))};
   std::cout << "calulating...\n";
-  //std::cout << "counts = [" << counts[0] << ", " << counts[1] << ", "
-  //          << counts[2] << "]\n";
-  //for (size_t iz = 0; iz < counts[2]; ++iz) {
-  //  for (size_t iy = 0; iy < counts[1]; ++iy) {
-  //    for (size_t ix = 0; ix < counts[0]; ++ix) {
-  //      offset[0] = ix * (partial_size[0] - 1);
-  //      offset[2] = iz * (partial_size[2] - 1);
-  //      offset[1] = iy * (partial_size[1] - 1);
-  //      std::array<size_t, 3> cur_size{
-  //          std::min(partial_size[0], domain_grid.size(0) - offset[0]),
-  //          std::min(partial_size[1], domain_grid.size(1) - offset[1]),
-  //          std::min(partial_size[2], domain_grid.size(2) - offset[2])};
-  //      std::vector<double> cur_domain_x(
-  //          begin(axis0) + offset[0],
-  //          begin(axis0) + offset[0] + cur_size[0]);
-  //      std::vector<double> cur_domain_y(
-  //          begin(axis1) + offset[1],
-  //          begin(axis1) + offset[1] + cur_size[1]);
-  //      std::vector<double> cur_domain_z(
-  //          begin(axis2) + offset[2],
-  //          begin(axis2) + offset[2] + cur_size[2]);
-  //      tat::grid cur_domain{cur_domain_x, cur_domain_y, cur_domain_z};
-  //
-  //      std::cout << "indices = [" << ix << ", " << iy << ", " << iz << "]\n";
-  //      std::cout << "offset = [" << offset[0] << ", " << offset[1] << ", "
-  //                << offset[2] << "]\n";
-  //      std::cout << "cur_size = [" << cur_size[0] << ", " << cur_size[1] << ", "
-  //                << cur_size[2] << "]\n";
-  //      std::cout << "cur_domain:\n" << cur_domain;
+  std::cout << "counts = [" << counts[0] << ", " << counts[1] << ", "
+            << counts[2] << "]\n";
+    for (size_t iy = 0; iy < counts[1]; ++iy) {
+  for (size_t iz = 0; iz < counts[2]; ++iz) {
+      for (size_t ix = 0; ix < counts[0]; ++ix) {
+        offset[0] = ix * (partial_size[0] - 1);
+        offset[2] = iz * (partial_size[2] - 1);
+        offset[1] = iy * (partial_size[1] - 1);
+        std::array<size_t, 3> cur_size{
+            std::min(partial_size[0], domain_grid.size(0) - offset[0]),
+            std::min(partial_size[1], domain_grid.size(1) - offset[1]),
+            std::min(partial_size[2], domain_grid.size(2) - offset[2])};
+        std::vector<double> cur_domain_x(
+            begin(axis0) + offset[0],
+            begin(axis0) + offset[0] + cur_size[0]);
+        std::vector<double> cur_domain_y(
+            begin(axis1) + offset[1],
+            begin(axis1) + offset[1] + cur_size[1]);
+        std::vector<double> cur_domain_z(
+            begin(axis2) + offset[2],
+            begin(axis2) + offset[2] + cur_size[2]);
+        tat::grid cur_domain{cur_domain_x, cur_domain_y, cur_domain_z};
+
+        std::cout << "indices = [" << ix << ", " << iy << ", " << iz << "]\n";
+        std::cout << "offset = [" << offset[0] << ", " << offset[1] << ", "
+                  << offset[2] << "]\n";
+        std::cout << "cur_size = [" << cur_size[0] << ", " << cur_size[1] << ", "
+                  << cur_size[2] << "]\n";
+        std::cout << "cur_domain:\n" << cur_domain;
         auto new_vortex_core_lines = tat::detail::calc_parallel_vectors<double>(
             [&](auto vix, auto viy, auto viz, auto const& /*p*/) {
-              //vix += offset[0];
-              //viy += offset[1];
-              //viz += offset[2];
+              vix += offset[0];
+              viy += offset[1];
+              viz += offset[2];
               return tat::vec3{velx(vix, viy, viz),
                                vely(vix, viy, viz),
                                velz(vix, viy, viz)};
             },
             [&](auto wix, auto wiy, auto wiz, auto const& /*p*/) {
-              //wix += offset[0];
-              //wiy += offset[1];
-              //wiz += offset[2];
+              wix += offset[0];
+              wiy += offset[1];
+              wiz += offset[2];
               auto const vel =
                   tat::vec3{velx(wix, wiy, wiz),
                             vely(wix, wiy, wiz),
@@ -198,8 +198,7 @@ auto calc_pv(DomainGrid const& domain_grid, Axis0 const& axis0,
                                dot(diff_vely(wix, wiy, wiz), vel),
                                dot(diff_velz(wix, wiy, wiz), vel)};
             },
-            domain_grid
-            //cur_domain
+            cur_domain
             //, [&](auto const& x) {
             //  auto J         = tat::mat3::zeros();
             //  J.row(0)       = diff_velx_sampler(x);
@@ -211,7 +210,7 @@ auto calc_pv(DomainGrid const& domain_grid, Axis0 const& axis0,
             //         std::abs(eig(2).imag()) > 0;
             //}
         );
-        //std::cout << size(vortex_core_lines) << '\n';
+        std::cout << size(vortex_core_lines) << '\n';
         std::cout << size(new_vortex_core_lines) << '\n';
         for (auto& core : new_vortex_core_lines) {
           using core_t        = std::decay_t<decltype(core)>;
@@ -228,30 +227,27 @@ auto calc_pv(DomainGrid const& domain_grid, Axis0 const& axis0,
             line_vely_122[v]  = vely_122_sampler(core[v]);
           }
         }
-        //std::move(begin(new_vortex_core_lines), end(new_vortex_core_lines),
-        //          std::back_inserter(vortex_core_lines));
-        //std::cout << size(vortex_core_lines) << '\n';
+        std::move(begin(new_vortex_core_lines), end(new_vortex_core_lines),
+                  std::back_inserter(vortex_core_lines));
+        std::cout << size(vortex_core_lines) << '\n';
         std::cout << "writing...\n";
-        write_vtk(new_vortex_core_lines, pathout);
-  //    }
-  //  }
-  //}
+        write_vtk(vortex_core_lines, pathout);
+      }
+    }
+  }
 }
 //==============================================================================
 auto main() -> int {
   // read full domain axes
-  tat::hdf5::file axis0_file{"/home/vcuser/channel_flow/axis0.h5",
-                             H5F_ACC_RDONLY};
-  tat::hdf5::file axis1_file{"/home/vcuser/channel_flow/axis1.h5",
-                             H5F_ACC_RDONLY};
-  tat::hdf5::file axis2_file{"/home/vcuser/channel_flow/axis2.h5",
-                             H5F_ACC_RDONLY};
+  tat::hdf5::file axis0_file{"/home/vcuser/channel_flow/axis0.h5"};
+  tat::hdf5::file axis1_file{"/home/vcuser/channel_flow/axis1.h5"};
+  tat::hdf5::file axis2_file{"/home/vcuser/channel_flow/axis2.h5"};
   auto const      axis0 =
-      axis0_file.group("CartGrid").dataset<double>("axis0").read_as_vector();
+      axis0_file/*.group("CartGrid")*/.dataset<double>("CartGrid/axis0").read_as_vector();
   auto const axis1 =
-      axis1_file.group("CartGrid").dataset<double>("axis1").read_as_vector();
+      axis1_file/*.group("CartGrid")*/.dataset<double>("CartGrid/axis1").read_as_vector();
   auto const axis2 =
-      axis2_file.group("CartGrid").dataset<double>("axis2").read_as_vector();
+      axis2_file/*.group("CartGrid")*/.dataset<double>("CartGrid/axis2").read_as_vector();
   tat::grid full_domain{axis2, axis1, axis0};
   std::cerr << "full_domain:\n" << full_domain << '\n';
 
@@ -273,42 +269,41 @@ auto main() -> int {
 
   // open hdf5 files
   tat::hdf5::file channelflow_121_file{
-      "/home/vcuser/channel_flow/dino_res_121000.h5", H5F_ACC_RDWR};
+      "/home/vcuser/channel_flow/dino_res_121000.h5"};
   tat::hdf5::file channelflow_122_file{
-      "/home/vcuser/channel_flow/dino_res_122000.h5", H5F_ACC_RDWR};
+      "/home/vcuser/channel_flow/dino_res_122000.h5"};
   tat::hdf5::file channelflow_123_file{
-      "/home/vcuser/channel_flow/dino_res_123000.h5", H5F_ACC_RDWR};
-  tat::hdf5::file pod0_file{"/home/vcuser/channel_flow/pod_0.h5",
-                            H5F_ACC_RDONLY};
+      "/home/vcuser/channel_flow/dino_res_123000.h5"};
+  tat::hdf5::file pod0_file{"/home/vcuser/channel_flow/pod_0.h5"};
 
   // create grid properties of pod
   auto& velx_pod0 = pod0_domain.add_lazy_vertex_property(
-      pod0_file.group("variables").dataset<double>("Vx"));
+      pod0_file/*.group("variables")*/.dataset<double>("variables/Vx"));
   auto& vely_pod0 = pod0_domain.add_lazy_vertex_property(
-      pod0_file.group("variables").dataset<double>("Vy"));
+      pod0_file/*.group("variables")*/.dataset<double>("variables/Vy"));
   auto& velz_pod0 = pod0_domain.add_lazy_vertex_property(
-      pod0_file.group("variables").dataset<double>("Vz"));
+      pod0_file/*.group("variables")*/.dataset<double>("variables/Vz"));
   auto& pod0_Q = pod0_domain.add_lazy_vertex_property(
-      pod0_file.group("variables").dataset<double>("Q"));
+      pod0_file/*.group("variables")*/.dataset<double>("variables/Q"));
 
    // create grid properties of 121000 time step
    auto& velx_121 = threedpart_domain.add_lazy_vertex_property(
-       channelflow_121_file.group("variables").dataset<double>("Vx"), "Vx_121");
+       channelflow_121_file/*.group("variables")*/.dataset<double>("variables/Vx"), "Vx_121");
    auto& vely_121 = threedpart_domain.add_lazy_vertex_property(
-       channelflow_121_file.group("variables").dataset<double>("Vy"), "Vy_121");
+       channelflow_121_file/*.group("variables")*/.dataset<double>("variables/Vy"), "Vy_121");
    auto& velz_121 = threedpart_domain.add_lazy_vertex_property(
-       channelflow_121_file.group("variables").dataset<double>("Vz"), "Vz_121");
+       channelflow_121_file/*.group("variables")*/.dataset<double>("variables/Vz"), "Vz_121");
    // auto& Q_121 = threedpart_domain.add_lazy_vertex_property(
    //    channelflow_121_file.group("variables").dataset<double>("Q"), "Q_121");
    // scalarfield Q_121_field{Q_121.sampler<tat::interpolation::linear>()};
 
    // create grid properties of 122000 time step
    auto& velx_122 = threedpart_domain.add_lazy_vertex_property(
-       channelflow_122_file.group("variables").dataset<double>("Vx"), "Vx_122");
+       channelflow_122_file/*.group("variables")*/.dataset<double>("variables/Vx"), "Vx_122");
    auto& vely_122 = threedpart_domain.add_lazy_vertex_property(
-       channelflow_122_file.group("variables").dataset<double>("Vy"), "Vy_122");
+       channelflow_122_file/*.group("variables")*/.dataset<double>("variables/Vy"), "Vy_122");
    auto& velz_122 = threedpart_domain.add_lazy_vertex_property(
-       channelflow_122_file.group("variables").dataset<double>("Vz"), "Vz_122");
+       channelflow_122_file/*.group("variables")*/.dataset<double>("variables/Vz"), "Vz_122");
 
    auto velx_122_sampler = velx_122.linear_sampler();
    auto vely_122_sampler = vely_122.linear_sampler();
@@ -325,7 +320,7 @@ auto main() -> int {
    auto const diff_velz_122_sampler = diff_velz_122.sampler();
 
    auto& Q_122 = threedpart_domain.add_lazy_vertex_property(
-       channelflow_122_file.group("variables").dataset<double>("Q"), "Q_122");
+       channelflow_122_file/*.group("variables")*/.dataset<double>("variables/Q"), "Q_122");
    auto Q_122_sampler = Q_122.linear_sampler();
    auto Q_122_field   = scalarfield{Q_122_sampler};
 

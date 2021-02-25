@@ -91,38 +91,54 @@ class dataset {
 
  private:
   mutable std::shared_ptr<std::mutex> m_mutex;
-  hid_t                               m_dataset_id;
+  std::unique_ptr<hid_t>              m_dataset_id;
   std::string                         m_name;
   //============================================================================
  public:
-  dataset(std::shared_ptr<std::mutex>& mutex,
-          hid_t const dataset_id, std::string const& name)
-      :  m_mutex{mutex}, m_dataset_id{dataset_id}, m_name{name} {}
+  dataset(std::shared_ptr<std::mutex>& mutex, hid_t const dataset_id,
+          std::string const& name)
+      : m_mutex{mutex},
+        m_dataset_id{std::make_unique<hid_t>(dataset_id)},
+        m_name{name} {}
   //----------------------------------------------------------------------------
-  dataset(dataset const&)     = default;
+  dataset(dataset const& other)
+      : m_mutex{other.m_mutex},
+        m_dataset_id{std::make_unique<hid_t>(*other.m_dataset_id)},
+        m_name{other.m_name} {
+    H5Iinc_ref(*m_dataset_id);
+  }
   dataset(dataset&&) noexcept = default;
   //----------------------------------------------------------------------------
-  auto operator=(dataset const&) -> dataset& = default;
+  auto operator=(dataset const&other) -> dataset& {
+    m_mutex      = other.m_mutex;
+    m_dataset_id = std::make_unique<hid_t>(*other.m_dataset_id);
+    m_name       = other.m_name;
+    H5Iinc_ref(*m_dataset_id);
+  }
   auto operator=(dataset&&) noexcept -> dataset& = default;
   //----------------------------------------------------------------------------
-  ~dataset() { H5Dclose(m_dataset_id); }
+  ~dataset() {
+    if (m_dataset_id != nullptr) {
+      H5Dclose(*m_dataset_id);
+    }
+  }
   //============================================================================
   auto write(T const* data) {
     std::lock_guard lock{*m_mutex};
-     H5Dwrite(m_dataset_id, h5_type<T>::value(), H5S_ALL, H5S_ALL, H5P_DEFAULT,
+     H5Dwrite(*m_dataset_id, h5_type<T>::value(), H5S_ALL, H5S_ALL, H5P_DEFAULT,
               data);
   }
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
   auto write(std::vector<T> const& data) {
     std::lock_guard lock{*m_mutex};
-    H5Dwrite(m_dataset_id, h5_type<T>::value(), H5S_ALL, H5S_ALL, H5P_DEFAULT,
+    H5Dwrite(*m_dataset_id, h5_type<T>::value(), H5S_ALL, H5S_ALL, H5P_DEFAULT,
              data.data());
   }
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
   template <size_t N>
   auto write(std::array<T, N> const& data) {
     std::lock_guard lock{*m_mutex};
-    H5Dwrite(m_dataset_id, h5_type<T>::value(), H5S_ALL, H5S_ALL, H5P_DEFAULT,
+    H5Dwrite(*m_dataset_id, h5_type<T>::value(), H5S_ALL, H5S_ALL, H5P_DEFAULT,
              data.data());
   }
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -142,7 +158,7 @@ class dataset {
   }
   //----------------------------------------------------------------------------
   auto read(dynamic_multidim_array<T, x_fastest>& arr) const {
-    hid_t      dspace = H5Dget_space(m_dataset_id);
+    hid_t      dspace = H5Dget_space(*m_dataset_id);
     auto const num_dims      = H5Sget_simple_extent_ndims(dspace);
     auto       size   = std::make_unique<hsize_t[]>(num_dims);
     H5Sget_simple_extent_dims(dspace, size.get(), nullptr);
@@ -161,7 +177,7 @@ class dataset {
     }
 
     std::lock_guard lock{*m_mutex};
-    H5Dread(m_dataset_id, h5_type<T>::value(), H5S_ALL, H5S_ALL, H5P_DEFAULT,
+    H5Dread(*m_dataset_id, h5_type<T>::value(), H5S_ALL, H5S_ALL, H5P_DEFAULT,
             arr.data_ptr());
   }
   //----------------------------------------------------------------------------
@@ -172,7 +188,7 @@ class dataset {
   }
   //----------------------------------------------------------------------------
   auto read(std::vector<T>& data) const {
-    hid_t      dspace = H5Dget_space(m_dataset_id);
+    hid_t      dspace = H5Dget_space(*m_dataset_id);
     auto const num_dims      = H5Sget_simple_extent_ndims(dspace);
     auto       size   = std::make_unique<hsize_t[]>(num_dims);
     H5Sget_simple_extent_dims(dspace, size.get(), nullptr);
@@ -185,7 +201,7 @@ class dataset {
     }
 
     std::lock_guard lock{*m_mutex};
-    H5Dread(m_dataset_id, h5_type<T>::value(), H5S_ALL, H5S_ALL, H5P_DEFAULT,
+    H5Dread(*m_dataset_id, h5_type<T>::value(), H5S_ALL, H5S_ALL, H5P_DEFAULT,
             data.data());
   }
   //----------------------------------------------------------------------------
@@ -332,7 +348,7 @@ class dataset {
     std::lock_guard lock{*m_mutex};
     assert(offset.size() == count.size());
 
-    hid_t      dspace = H5Dget_space(m_dataset_id);
+    hid_t      dspace = H5Dget_space(*m_dataset_id);
     auto const rank      = H5Sget_simple_extent_ndims(dspace);
     auto       size   = std::make_unique<hsize_t[]>(rank);
     if (static_cast<unsigned int>(rank) != arr.num_dimensions()) {
@@ -350,7 +366,7 @@ class dataset {
     H5Sselect_hyperslab(dspace, H5S_SELECT_SET, offset.data(), nullptr,
                         count.data(), nullptr);
     auto memspace = H5Screate_simple(rank, count.data(), nullptr);
-    H5Dread(m_dataset_id, h5_type<T>::value(), memspace, dspace, H5P_DEFAULT,
+    H5Dread(*m_dataset_id, h5_type<T>::value(), memspace, dspace, H5P_DEFAULT,
             arr.data_ptr());
     return arr;
   }
@@ -412,7 +428,7 @@ class dataset {
   //  }
   //----------------------------------------------------------------------------
   auto num_dimensions() const {
-    return H5Sget_simple_extent_ndims(H5Dget_space(m_dataset_id));
+    return H5Sget_simple_extent_ndims(H5Dget_space(*m_dataset_id));
   }
   //----------------------------------------------------------------------------
   auto size(size_t i) const {
@@ -420,7 +436,7 @@ class dataset {
   }
   //----------------------------------------------------------------------------
   auto size() const {
-    hid_t      dspace = H5Dget_space(m_dataset_id);
+    hid_t      dspace = H5Dget_space(*m_dataset_id);
     auto const num_dims      = H5Sget_simple_extent_ndims(dspace);
     auto       size   = std::make_unique<hsize_t[]>(num_dims);
     H5Sget_simple_extent_dims(dspace, size.get(), nullptr);
