@@ -351,7 +351,7 @@ auto calc_parallel_vectors(GetV&& getv, GetW&& getw,
     }
   };
 #if defined(NDEBUG) && defined(TATOOINE_OPENMP_AVAILABLE)
-//#pragma omp parallel for collapse(3)
+#pragma omp parallel for collapse(3)
 #endif
   for (size_t iz = 0; iz < g.size(2) - 1; ++iz) {
     for (size_t iy = 0; iy < g.size(1) - 1; ++iy) {
