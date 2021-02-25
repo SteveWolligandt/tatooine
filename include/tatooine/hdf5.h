@@ -337,16 +337,13 @@ class dataset {
   }
   //----------------------------------------------------------------------------
   template <typename Ordering>
-  auto read_chunk(std::vector<hsize_t>            offset,
-                  std::vector<hsize_t>            count,
+  auto read_chunk(std::vector<hsize_t> offset, std::vector<hsize_t> count,
                   dynamic_multidim_array<T, Ordering>& arr) const {
+    std::lock_guard lock{*m_mutex};
     assert(offset.size() == count.size());
 
-    auto dataspace = [this]() {
-      std::lock_guard lock{*m_mutex};
-      return m_dataset.getSpace();
-    }();
-    int rank = dataspace.getSimpleExtentNdims();
+    auto      dataspace = m_dataset.getSpace();
+    int const rank      = dataspace.getSimpleExtentNdims();
     if (static_cast<unsigned int>(rank) != arr.num_dimensions()) {
       arr.resize(count);
     } else {
@@ -359,12 +356,9 @@ class dataset {
     }
     std::reverse(begin(count), end(count));
     std::reverse(begin(offset), end(offset));
-    {
-      dataspace.selectHyperslab(H5S_SELECT_SET, count.data(), offset.data());
-      H5::DataSpace   memspace(rank, count.data());
-      std::lock_guard lock{*m_mutex};
-      m_dataset.read(arr.data_ptr(), h5_type<T>::value(), memspace, dataspace);
-    }
+    dataspace.selectHyperslab(H5S_SELECT_SET, count.data(), offset.data());
+    H5::DataSpace memspace(rank, count.data());
+    m_dataset.read(arr.data_ptr(), h5_type<T>::value(), memspace, dataspace);
     return arr;
   }
   //----------------------------------------------------------------------------
@@ -550,17 +544,6 @@ class file {
     return hdf5::dataset<T>{m_file, m_mutex, m_file->openDataSet(dataset_name),
                             dataset_name};
   }
-  //----------------------------------------------------------------------------
-  // template <typename T>
-  // auto datasets() const {
-  //  std::map<std::string, hdf5::dataset<T>> vars;
-  //  for (auto& [name, var] : m_file->getDataSets()) {
-  //    if (var.getType() == h5_type<T>::value()) {
-  //      vars[name] = hdf5::dataset<T>{m_file, m_mutex, std::move(var)};
-  //    }
-  //  }
-  //  return vars;
-  //}
 };
 //==============================================================================
 }  // namespace tatooine::hdf5
