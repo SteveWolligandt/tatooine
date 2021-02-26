@@ -31,8 +31,8 @@ struct scalarfield : tat::scalarfield<scalarfield<Sampler>, double, 3> {
   }
 };
 // = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = =
-// template <typename Sampler>
-// scalarfield(Sampler) -> scalarfield<std::decay_t<Sampler>>;
+template <typename Sampler>
+scalarfield(Sampler) -> scalarfield<std::decay_t<Sampler>>;
 //==============================================================================
 template <typename SamplerX, typename SamplerY, typename SamplerZ>
 struct vectorfield
@@ -230,11 +230,11 @@ auto calc_pv(DomainGrid const& domain_grid, Axis0 const& axis0,
         std::move(begin(new_vortex_core_lines), end(new_vortex_core_lines),
                   std::back_inserter(vortex_core_lines));
         std::cout << size(vortex_core_lines) << '\n';
-        std::cout << "writing...\n";
-        write_vtk(vortex_core_lines, pathout);
       }
     }
   }
+  std::cout << "writing...\n";
+  write_vtk(vortex_core_lines, pathout);
 }
 //==============================================================================
 auto main() -> int {
@@ -308,9 +308,6 @@ auto main() -> int {
    auto velx_122_sampler = velx_122.linear_sampler();
    auto vely_122_sampler = vely_122.linear_sampler();
    auto velz_122_sampler = velz_122.linear_sampler();
-   auto vely_122_field   = scalarfield{vely_122_sampler};
-   auto vel_122_field =
-       vectorfield{velx_122_sampler, vely_122_sampler, velz_122_sampler};
    auto const diff_velx_122 = tat::diff(velx_122);
    static_assert(tat::is_vec<decltype(diff_velx_122)::value_type>);
    auto const diff_velx_122_sampler = diff_velx_122.sampler();
@@ -431,6 +428,8 @@ auto main() -> int {
    //                                       tat::vec3::ones())
    //              .vertex_property<tat::vec3>("rendering"));
 
+   //auto vel_122_field =
+   //    vectorfield{velx_122_sampler, vely_122_sampler, velz_122_sampler};
    // write_png("direct_volume_channelflow_velmag_pod0_domain.png",
    //          tat::direct_volume_rendering(pod0_cam, pod0_boundingbox,
    //          length(vel_122_field),
@@ -445,6 +444,7 @@ auto main() -> int {
    //                                       alpha, tat::vec3::ones())
    //              .vertex_property<tat::vec3>("rendering"));
 
+   //auto vely_122_field   = scalarfield{vely_122_sampler};
    // write_png("direct_volume_channelflow_vely.png",
    //          tat::direct_volume_rendering(threedpart_cam,
    //          threedpart_boundingbox, vely_122_field,
