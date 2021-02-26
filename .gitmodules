@@ -10,3 +10,6 @@
 [submodule "external/tomlplusplus"]
 	path = external/tomlplusplus
 	url = https://github.com/marzer/tomlplusplus.git
+[submodule "external/hdf5"]
+	path = external/hdf5
+	url = https://github.com/HDFGroup/hdf5.git

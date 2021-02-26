@@ -243,11 +243,11 @@ auto main() -> int {
   tat::hdf5::file axis1_file{"/home/vcuser/channel_flow/axis1.h5"};
   tat::hdf5::file axis2_file{"/home/vcuser/channel_flow/axis2.h5"};
   auto const      axis0 =
-      axis0_file/*.group("CartGrid")*/.dataset<double>("CartGrid/axis0").read_as_vector();
+      axis0_file.dataset<double>("CartGrid/axis0").read_as_vector();
   auto const axis1 =
-      axis1_file/*.group("CartGrid")*/.dataset<double>("CartGrid/axis1").read_as_vector();
+      axis1_file.dataset<double>("CartGrid/axis1").read_as_vector();
   auto const axis2 =
-      axis2_file/*.group("CartGrid")*/.dataset<double>("CartGrid/axis2").read_as_vector();
+      axis2_file.dataset<double>("CartGrid/axis2").read_as_vector();
   tat::grid full_domain{axis2, axis1, axis0};
   std::cerr << "full_domain:\n" << full_domain << '\n';
 
@@ -278,32 +278,32 @@ auto main() -> int {
 
   // create grid properties of pod
   auto& velx_pod0 = pod0_domain.add_lazy_vertex_property(
-      pod0_file/*.group("variables")*/.dataset<double>("variables/Vx"));
+      pod0_file.dataset<double>("variables/Vx"));
   auto& vely_pod0 = pod0_domain.add_lazy_vertex_property(
-      pod0_file/*.group("variables")*/.dataset<double>("variables/Vy"));
+      pod0_file.dataset<double>("variables/Vy"));
   auto& velz_pod0 = pod0_domain.add_lazy_vertex_property(
-      pod0_file/*.group("variables")*/.dataset<double>("variables/Vz"));
+      pod0_file.dataset<double>("variables/Vz"));
   auto& pod0_Q = pod0_domain.add_lazy_vertex_property(
-      pod0_file/*.group("variables")*/.dataset<double>("variables/Q"));
+      pod0_file.dataset<double>("variables/Q"));
 
    // create grid properties of 121000 time step
    auto& velx_121 = threedpart_domain.add_lazy_vertex_property(
-       channelflow_121_file/*.group("variables")*/.dataset<double>("variables/Vx"), "Vx_121");
+       channelflow_121_file.dataset<double>("variables/Vx"), "Vx_121");
    auto& vely_121 = threedpart_domain.add_lazy_vertex_property(
-       channelflow_121_file/*.group("variables")*/.dataset<double>("variables/Vy"), "Vy_121");
+       channelflow_121_file.dataset<double>("variables/Vy"), "Vy_121");
    auto& velz_121 = threedpart_domain.add_lazy_vertex_property(
-       channelflow_121_file/*.group("variables")*/.dataset<double>("variables/Vz"), "Vz_121");
+       channelflow_121_file.dataset<double>("variables/Vz"), "Vz_121");
    // auto& Q_121 = threedpart_domain.add_lazy_vertex_property(
-   //    channelflow_121_file.group("variables").dataset<double>("Q"), "Q_121");
+   //    channelflow_121_file.dataset<double>("variables/Q"), "Q_121");
    // scalarfield Q_121_field{Q_121.sampler<tat::interpolation::linear>()};
 
    // create grid properties of 122000 time step
    auto& velx_122 = threedpart_domain.add_lazy_vertex_property(
-       channelflow_122_file/*.group("variables")*/.dataset<double>("variables/Vx"), "Vx_122");
+       channelflow_122_file.dataset<double>("variables/Vx"), "Vx_122");
    auto& vely_122 = threedpart_domain.add_lazy_vertex_property(
-       channelflow_122_file/*.group("variables")*/.dataset<double>("variables/Vy"), "Vy_122");
+       channelflow_122_file.dataset<double>("variables/Vy"), "Vy_122");
    auto& velz_122 = threedpart_domain.add_lazy_vertex_property(
-       channelflow_122_file/*.group("variables")*/.dataset<double>("variables/Vz"), "Vz_122");
+       channelflow_122_file.dataset<double>("variables/Vz"), "Vz_122");
 
    auto velx_122_sampler = velx_122.linear_sampler();
    auto vely_122_sampler = vely_122.linear_sampler();
@@ -311,7 +311,7 @@ auto main() -> int {
    auto vely_122_field   = scalarfield{vely_122_sampler};
    auto vel_122_field =
        vectorfield{velx_122_sampler, vely_122_sampler, velz_122_sampler};
-   auto const diff_velx_122 = diff(velx_122);
+   auto const diff_velx_122 = tat::diff(velx_122);
    static_assert(tat::is_vec<decltype(diff_velx_122)::value_type>);
    auto const diff_velx_122_sampler = diff_velx_122.sampler();
    auto const diff_vely_122         = diff(vely_122);
@@ -320,22 +320,22 @@ auto main() -> int {
    auto const diff_velz_122_sampler = diff_velz_122.sampler();
 
    auto& Q_122 = threedpart_domain.add_lazy_vertex_property(
-       channelflow_122_file/*.group("variables")*/.dataset<double>("variables/Q"), "Q_122");
+       channelflow_122_file.dataset<double>("variables/Q"), "Q_122");
    auto Q_122_sampler = Q_122.linear_sampler();
    auto Q_122_field   = scalarfield{Q_122_sampler};
 
    // create grid properties of 123000 time step
    // auto& velx_123 = threedpart_domain.add_lazy_vertex_property(
-   //    channelflow_123_file.group("variables").dataset<double>("Vx"),
+   //    channelflow_123_file.dataset<double>("variables/Vx"),
    //    "Vx_123");
    // auto& vely_123 = threedpart_domain.add_lazy_vertex_property(
-   //    channelflow_123_file.group("variables").dataset<double>("Vy"),
+   //    channelflow_123_file.dataset<double>("variables/Vy"),
    //    "Vy_123");
    // auto& velz_123 = threedpart_domain.add_lazy_vertex_property(
-   //    channelflow_123_file.group("variables").dataset<double>("Vz"),
+   //    channelflow_123_file.dataset<double>("variables/Vz"),
    //    "Vz_123");
    // auto& Q_123 = threedpart_domain.add_lazy_vertex_property<double>(
-   //    channelflow_123_file.group("variables").dataset<double>("Q"), "Q_123");
+   //    channelflow_123_file.dataset<double>("variables/Q"), "Q_123");
    // scalarfield Q_123_field{Q_123.sampler<tat::interpolation::linear>()};
 
    // add_temporal_derivative(full_domain, threedpart_domain,

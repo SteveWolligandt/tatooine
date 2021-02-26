@@ -51,7 +51,7 @@ int main() {
    * default file creation properties, and default file
    * access properties.
    */
-  tatooine::hdf5::file file{FILE_NAME, H5F_ACC_TRUNC};
+  tatooine::hdf5::file file{FILE_NAME};
 
   auto dataset = file.add_dataset<int>(DATASET_NAME, NX, NY);
   /*

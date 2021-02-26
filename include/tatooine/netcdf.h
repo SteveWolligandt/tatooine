@@ -1,4 +1,4 @@
-#ifdef TATOOINE_HAS_NETCDF_SUPPORT
+#ifdef TATOOINE_NETCDF_AVAILABLE
 #ifndef TATOOINE_NETCDF_H
 #define TATOOINE_NETCDF_H
 //==============================================================================
