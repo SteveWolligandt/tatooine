@@ -23,6 +23,7 @@ struct lazy_reader : chunked_multidim_array<typename DataSet::value_type> {
   mutable std::vector<size_t> m_chunks_loaded;
   size_t                      m_delete_size           = 64;
   size_t                      m_max_num_chunks_loaded = 128;
+  mutable std::mutex          m_mutex;
 
  public:
   lazy_reader(DataSet const& file, std::vector<size_t> chunk_size)
@@ -42,6 +43,7 @@ struct lazy_reader : chunked_multidim_array<typename DataSet::value_type> {
   //----------------------------------------------------------------------------
  private:
   void init(std::vector<size_t> chunk_size) {
+    std::lock_guard lock{m_mutex};
     auto s = m_dataset.size();
     std::reverse(begin(s), end(s));
     this->resize(s, chunk_size);
@@ -57,6 +59,7 @@ struct lazy_reader : chunked_multidim_array<typename DataSet::value_type> {
 #endif
   auto read_chunk(size_t& plain_index, Indices const... indices) const
       -> auto const& {
+    std::lock_guard lock{m_mutex};
 #ifndef NDEBUG
     if (!this->in_range(indices...)) {
       std::cerr << "not in range: ";
@@ -78,15 +81,15 @@ struct lazy_reader : chunked_multidim_array<typename DataSet::value_type> {
       if (this->chunk_at_is_null(plain_index)) {
         if (!m_read[plain_index]) {
           m_read[plain_index] = true;
-          //if (size(m_chunks_loaded) >= m_max_num_chunks_loaded) {
-          //  auto const it_begin = begin(m_chunks_loaded);
-          //  auto const it_end = it_begin + (m_max_num_chunks_loaded - m_delete_size);
-          //  for (auto it = it_begin; it != it_end; ++it) {
-          //    this->destroy_chunk_at(*it);
-          //    m_read[*it] = false;
-          //  }
-          //  m_chunks_loaded.erase(it_begin, it_end);
-          //}
+          if (size(m_chunks_loaded) >= m_max_num_chunks_loaded) {
+            auto const it_begin = begin(m_chunks_loaded);
+            auto const it_end = it_begin + (m_max_num_chunks_loaded - m_delete_size);
+            for (auto it = it_begin; it != it_end; ++it) {
+              m_read[*it] = false;
+              this->destroy_chunk_at(*it);
+            }
+            m_chunks_loaded.erase(it_begin, it_end);
+          }
           this->create_chunk_at(plain_index);
           m_chunks_loaded.push_back(plain_index);
           auto offset = this->global_indices_from_chunk_indices(
