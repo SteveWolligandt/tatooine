@@ -136,11 +136,20 @@ else()
 endif()
 find_package(vcode REQUIRED)
 
-option(TATOOINE_INCLUDE_MKL_LAPACKE "If ON mkl_lapacke.h will be include instead of lapacke.h")
+#- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+# check if mkl_lapacke.h can be used
+get_target_property(TATOOINE_INCLUDE_DIRS tatooine INCLUDE_DIRECTORIES)
+set(TATOOINE_INCLUDE_MKL_LAPACKE ON)
+foreach(dir ${TATOOINE_INCLUDE_DIRS})
+  if(EXISTS "${dir}/lapacke.h")
+    set(TATOOINE_INCLUDE_MKL_LAPACKE OFF)
+    break()
+  endif()
+endforeach()
 if (TATOOINE_INCLUDE_MKL_LAPACKE)
   target_compile_definitions(tatooine PUBLIC TATOOINE_INCLUDE_MKL_LAPACKE)
 endif()
-
+unset(TATOOINE_INCLUDE_DIRS)
 #- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 # set include dirs
 target_include_directories(tatooine
