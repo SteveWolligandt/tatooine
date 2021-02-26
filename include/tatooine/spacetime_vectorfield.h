@@ -48,14 +48,14 @@ struct spacetime_vectorfield
   // ctors
   //============================================================================
 #ifdef __cpp_concepts
-  template <typename = void> requires std::is_pointer<V>
+  template <typename = void> requires is_pointer<V>
 #else
-  template <typename V_ = V, enable_if<is_pointer<V_>, is_same<V_, V>> = true>
+  template <typename V_ = V, enable_if<is_pointer<V_>> = true>
 #endif
   constexpr spacetime_vectorfield() : m_v{nullptr} {}
   //----------------------------------------------------------------------------
 #ifdef __cpp_concepts
-  template <typename = void> requires std::is_pointer<V>
+  template <typename = void> requires is_pointer<V>
 #else
   template <typename V_ = V, enable_if<is_pointer<V_>, is_same<V_, V>>>
 #endif

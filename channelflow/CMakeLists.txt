@@ -12,16 +12,8 @@ elseif ("${CMAKE_CXX_COMPILER_ID}" STREQUAL "GNU")
   target_compile_options(channelflow_visualization PRIVATE  "-fdiagnostics-color=always")
 endif()
 #===============================================================================
-option(TATOOINE_COMPILE_FOR_SUPERMUC "This adds the psm2 compatibility library to the linker" OFF)
-if (TATOOINE_COMPILE_FOR_SUPERMUC)
-  link_directories(/usr/lib64/psm2-compat)
-endif()
-
 add_executable(channelflow.pv.mpi pv_mpi.cpp)
 
-if (TATOOINE_COMPILE_FOR_SUPERMUC)
-  target_link_libraries(channelflow.pv.mpi PUBLIC /usr/lib64/psm2-compat/libpsm_infinipath.so.1)
-endif()
 target_link_libraries(channelflow.pv.mpi PUBLIC tatooine tatooine.mpi)
 add_custom_target(channelflow.pv.mpi.run
   mpirun -np 8 --host localhost:8 ./channelflow.pv.mpi
