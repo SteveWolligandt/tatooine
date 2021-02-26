@@ -15,21 +15,21 @@ auto main(int argc, char** argv) -> int {
   constexpr auto eps = 1e-5;
   //------------------------------------------------------------------------------
   tat::hdf5::file channelflow_150_file{
-    "/p/project/dnschannelfspp/project/channelf/data_hdf5/dino_res_150000.h5",
-    H5F_ACC_RDONLY};
+      "/p/project/dnschannelfspp/project/channelf/data_hdf5/"
+      "dino_res_150000.h5"};
   auto full_domain_x =
-    channelflow_150_file.group("CartGrid").dataset<double>("axis0").read_as_vector();
+    channelflow_150_file.dataset<double>("CartGrid/axis0").read_as_vector();
   auto full_domain_y =
-    channelflow_150_file.group("CartGrid").dataset<double>("axis1").read_as_vector();
+    channelflow_150_file.dataset<double>("CartGrid/axis1").read_as_vector();
   auto full_domain_z =
-    channelflow_150_file.group("CartGrid").dataset<double>("axis2").read_as_vector();
+    channelflow_150_file.dataset<double>("CartGrid/axis2").read_as_vector();
   full_domain_z.pop_back();
   auto const xvel_150 = 
-    channelflow_150_file.group("velocity").dataset<double>("xvel").read_lazy({2,2,2});
+    channelflow_150_file.dataset<double>("xvelocity/vel").read_lazy({2,2,2});
   auto const yvel_150 = 
-    channelflow_150_file.group("velocity").dataset<double>("yvel").read_lazy({2,2,2});
+    channelflow_150_file.dataset<double>("yvelocity/vel").read_lazy({2,2,2});
   auto const zvel_150 = 
-    channelflow_150_file.group("velocity").dataset<double>("zvel").read_lazy({2,2,2});
+    channelflow_150_file.dataset<double>("velocity/zvel").read_lazy({2,2,2});
   tat::non_uniform_grid<double, 3> full_domain_grid{full_domain_x, full_domain_y, full_domain_z}; 
   full_domain_grid.update_diff_stencil_coefficients();
   mpi.init_communicator(full_domain_grid);
