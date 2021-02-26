@@ -944,12 +944,12 @@ class grid {
                          std::string const&           dataset_name)
       -> typed_property_t<T, false>& {
     auto const ext = path.extension();
-#ifdef TATOOINE_HAS_HDF5_SUPPORT
+#ifdef TATOOINE_HDF5_AVAILABLE
     if (ext == ".h5") {
       return add_hdf5_lazy_vertex_property<T>(path, dataset_name);
     }
 #endif
-#ifdef TATOOINE_HAS_NETCDF_SUPPORT
+#ifdef TATOOINE_NETCDF_AVAILABLE
     if (ext == ".nc") {
 
       return add_netcdf_lazy_vertex_property<T>(path, dataset_name);
@@ -959,7 +959,7 @@ class grid {
         "[grid::add_lazy_vertex_property] - unknown file extension"};
   }
   //----------------------------------------------------------------------------
-#ifdef TATOOINE_HAS_HDF5_SUPPORT
+#ifdef TATOOINE_HDF5_AVAILABLE
   template <typename T>
   auto add_vertex_property(hdf5::dataset<T> const& dataset) -> auto& {
     return add_vertex_property(dataset, dataset.name());
@@ -1038,7 +1038,7 @@ class grid {
         name, dataset, std::vector<size_t>(num_dimensions(), 16));
   }
 #endif
-#ifdef TATOOINE_HAS_NETCDF_SUPPORT
+#ifdef TATOOINE_NETCDF_AVAILABLE
   //----------------------------------------------------------------------------
   template <typename T>
   auto add_netcdf_lazy_vertex_property(filesystem::path const& path,
@@ -1093,7 +1093,7 @@ class grid {
   }
   //============================================================================
   auto read(filesystem::path const& path) {
-#ifdef TATOOINE_HAS_NETCDF_SUPPORT
+#ifdef TATOOINE_NETCDF_AVAILABLE
     if (path.extension() == ".nc") {
       read_netcdf(path);
       return;
@@ -1394,7 +1394,7 @@ class grid {
     }
   }
   //----------------------------------------------------------------------------
-#ifdef TATOOINE_HAS_NETCDF_SUPPORT
+#ifdef TATOOINE_NETCDF_AVAILABLE
   auto read_netcdf(filesystem::path const& path) {
     read_netcdf(path, std::make_index_sequence<num_dimensions()>{});
   }

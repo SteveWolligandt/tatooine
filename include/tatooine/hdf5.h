@@ -1,4 +1,4 @@
-#ifdef TATOOINE_HAS_HDF5_SUPPORT
+#ifdef TATOOINE_HDF5_AVAILABLE
 #ifndef TATOOINE_HDF5_H
 #define TATOOINE_HDF5_H
 //==============================================================================
@@ -451,4 +451,6 @@ class file {
 }  // namespace tatooine::hdf5
 //==============================================================================
 #endif
+#else
+#pragma message(including <tatooine/hdf5.h> without HDF5 support.)
 #endif

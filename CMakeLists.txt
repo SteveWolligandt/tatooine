@@ -6,6 +6,7 @@ list(APPEND CMAKE_MODULE_PATH "${CMAKE_SOURCE_DIR}/cmake/modules/")
 #- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - 
 set(TATOOINE_PP_NUM_MAX_INDICES "100" CACHE STRING "")
 include(preprocessor_setup)
+include(target_link_libraries_system)
 #- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - 
 # git submodules
 #- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - 
@@ -201,36 +202,87 @@ endif()
 find_package(NetCDF QUIET)
 if (NETCDF_FOUND)
   message(STATUS "NetCDF available")
-  target_compile_definitions(tatooine PUBLIC TATOOINE_HAS_NETCDF_SUPPORT)
+  target_compile_definitions(tatooine PUBLIC TATOOINE_NETCDF_AVAILABLE)
   target_link_libraries(tatooine PUBLIC ${NETCDF_LIBRARIES})
   target_include_directories(tatooine PUBLIC ${NETCDF_INCLUDES})
 endif()
 #- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+# MPI
+#- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+option(TATOOINE_BUILD_MPI "Builds MPI-related projecs")
+if (TATOOINE_BUILD_MPI)
+  find_package(MPI COMPONENTS C CXX)
+  if (MPI_C_FOUND)
+    set(TATOOINE_MPI_AVAILABLE 1)
+  else()
+    set(TATOOINE_MPI_AVAILABLE 0)
+  endif()
+else()
+  set(TATOOINE_MPI_AVAILABLE 0)
+endif()
+#- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 # HDF5
 #- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-find_package(HDF5 QUIET COMPONENTS C)
-if(HDF5_FOUND)
-  if (HDF5_IS_PARALLEL)
-    message(STATUS "HDF5 available with parallel support")
-  else()
-    message(STATUS "HDF5 available without parallel support")
-  endif()
-  target_compile_definitions(tatooine PUBLIC
-    TATOOINE_HAS_HDF5_SUPPORT ${HDF5_DEFINITIONS} ${HDF5_C_DEFINITIONS})
-  target_link_libraries(tatooine PUBLIC
-    ${HDF5_LIBRARIES})
-  target_include_directories(tatooine PUBLIC
-    ${HDF5_INCLUDE_DIRS})
+option(TATOOINE_USE_SYSTEM_HDF5_LIBS "By setting this to ON tatooine will not compile HDF5 on its own." OFF)
+if (TATOOINE_USE_SYSTEM_HDF5_LIBS) 
+  find_package(HDF5 QUIET COMPONENTS C)
+  if(HDF5_FOUND)
+    if (HDF5_IS_PARALLEL)
+      message(STATUS "HDF5 available with MPI support")
+    else()
+      message(STATUS "HDF5 available without MPI support")
+    endif()
+    target_compile_definitions(tatooine PUBLIC
+      TATOOINE_HDF5_AVAILABLE ${HDF5_DEFINITIONS} ${HDF5_C_DEFINITIONS})
+    target_link_libraries(tatooine PUBLIC
+      ${HDF5_LIBRARIES})
+    target_include_directories(tatooine PUBLIC
+      ${HDF5_INCLUDE_DIRS})
 
+    add_executable(hdf5_create src/hdf5_create.cpp)
+    target_link_libraries(hdf5_create PUBLIC tatooine)
+    add_custom_target(hdf5_create.run COMMAND ./hdf5_create DEPENDS hdf5_create)
+  else()
+    message(STATUS "HDF5 not available")
+  endif()
+endif()
+if ((NOT TATOOINE_USE_SYSTEM_HDF5_LIBS) OR
+    (TATOOINE_USE_SYSTEM_HDF5_LIBS AND NOT HDF5_FOUND))
+  set(HDF5_BUILD_CPP_LIB     OFF CACHE BOOL "Build HDF5 C++ Library")
+  set(HDF5_BUILD_HL_LIB      OFF CACHE BOOL "Build HIGH Level HDF5 Library")
+  set(HDF5_BUILD_JAVA        OFF CACHE BOOL "Build Java HDF5 Library")
+  set(HDF5_BUILD_TOOLS       OFF CACHE BOOL "Build HDF5 Tools")
+  set(HDF5_BUILD_UTILS       OFF CACHE BOOL "Build HDF5 Utils")
+  set(HDF5_BUILD_EXAMPLES    OFF CACHE BOOL "Build HDF5 Library Examples")
+  set(HDF5_ENABLE_COVERAGE   OFF CACHE BOOL "Enable code coverage for Libraries and Programs")
+  set(HDF5_ENABLE_THREADSAFE ON  CACHE BOOL "Enable thread-safety")
+  if (TATOOINE_MPI_AVAILABLE)
+    message(STATUS "Building HDF5 with thread-safety and MPI support.")
+    set(ALLOW_UNSUPPORTED ON)
+    set(HDF5_ENABLE_PARALLEL   ON  CACHE BOOL "Enable parallel build (requires MPI)")
+  else()
+    message(STATUS "Building HDF5 with thread-safety but without MPI support.")
+    set(HDF5_ENABLE_PARALLEL   OFF  CACHE BOOL "Enable parallel build (requires MPI)")
+  endif()
+  add_subdirectory(external/hdf5)
+  target_compile_options(hdf5-static PRIVATE
+    -Wno-missing-field-initializers
+    -Wno-cast-qual
+    -Wno-stringop-overflow
+    -Wno-maybe-uninitialized
+    -Wno-discarded-qualifiers
+    -Wno-unused-function
+    -Wno-unused-variable
+    -Wno-unused-parameter
+    -Wno-cast-function-type
+    -Wno-stringop-truncation)
   add_executable(hdf5_create src/hdf5_create.cpp)
   target_link_libraries(hdf5_create PUBLIC tatooine)
   add_custom_target(hdf5_create.run COMMAND ./hdf5_create DEPENDS hdf5_create)
 
-  #add_executable(hdf5_readdata src/hdf5_readdata.cpp)
-  #target_link_libraries(hdf5_readdata PUBLIC tatooine)
-  #add_custom_target(hdf5_readdata.run COMMAND ./hdf5_readdata DEPENDS hdf5_readdata)
-else()
-  message(STATUS "HDF5 not available")
+  target_link_libraries(tatooine PUBLIC hdf5-static)
+  target_compile_definitions(tatooine PUBLIC TATOOINE_HDF5_AVAILABLE)
+  list(APPEND TATOOINE_EXPORTING_TARGETS hdf5-static)
 endif()
 
 #- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -301,14 +353,10 @@ endif()
 add_subdirectory(autonomous_particles)
 add_subdirectory(smearing_scalar_field)
 
-find_package(MPI COMPONENTS C CXX)
-if (MPI_C_FOUND)
-  option(TATOOINE_BUILD_MPI "Builds MPI-related projecs")
-  if (TATOOINE_BUILD_MPI)
-    add_subdirectory(mpi)
-    add_subdirectory(insitu)
-    add_subdirectory(channelflow)
-  endif()
+if (TATOOINE_MPI_AVAILABLE)
+  add_subdirectory(mpi)
+  add_subdirectory(insitu)
+  add_subdirectory(channelflow)
 endif()
 
 option(TATOOINE_BUILD_EXAMPLES "")
