@@ -137,7 +137,7 @@ auto calc_pv(DomainGrid const& domain_grid, Axis0 const& axis0,
   auto const vely_122_sampler = vely_122.linear_sampler();
   auto const vely_pod0_sampler = vely_pod0.linear_sampler();
 
-  constexpr std::array<size_t, 3>   partial_size{512, 64, 64};
+  constexpr std::array<size_t, 3>   partial_size{512, 16, 16};
   std::vector<tat::line<double, 3>> vortex_core_lines;
   std::array<size_t, 3>             offset{0, 0, 0};
    std::array<size_t, 3>           counts{

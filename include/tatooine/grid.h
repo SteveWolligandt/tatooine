@@ -999,7 +999,7 @@ class grid {
   template <typename T>
   auto add_hdf5_lazy_vertex_property(filesystem::path const& path,
                                      std::string const& dataset_name) -> auto& {
-    hdf5::file f{path, H5F_ACC_RDONLY};
+    hdf5::file f{path};
     return add_lazy_vertex_property<T>(f.dataset<T>(dataset_name));
   }
   //----------------------------------------------------------------------------
