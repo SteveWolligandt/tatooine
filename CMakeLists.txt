@@ -4,6 +4,13 @@ list(APPEND CMAKE_MODULE_PATH "${CMAKE_SOURCE_DIR}/cmake/modules/")
 #- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - 
 # preprocessor lib
 #- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - 
+set(TATOOINE_SOURCE_DIR ${CMAKE_SOURCE_DIR})
+set(TATOOINE_CURRENT_SOURCE_DIR ${CMAKE_CURRENT_SOURCE_DIR})
+set(TATOOINE_BINARY_DIR ${CMAKE_BINARY_DIR})
+set(TATOOINE_CURRENT_BINARY_DIR ${CMAKE_CURRENT_BINARY_DIR})
+#- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - 
+# preprocessor lib
+#- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - 
 set(TATOOINE_PP_NUM_MAX_INDICES "100" CACHE STRING "")
 include(preprocessor_setup)
 include(target_link_libraries_system)
@@ -11,17 +18,19 @@ include(target_link_libraries_system)
 # git submodules
 #- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - 
 find_package(Git QUIET)
-#if(GIT_FOUND AND EXISTS "${PROJECT_SOURCE_DIR}/.git")
-  ## Update submodules as needed
-  #execute_process(COMMAND ${GIT_EXECUTABLE} submodule update --init --recursive
-                  #WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
-                  #RESULT_VARIABLE GIT_SUBMOD_RESULT)
-  #if(NOT GIT_SUBMOD_RESULT EQUAL "0")
-    #message(FATAL_ERROR
-      #"git submodule update --init failed with ${GIT_SUBMOD_RESULT}, please checkout submodules")
-  #endif()
-#endif()
+if(GIT_FOUND AND EXISTS "${PROJECT_SOURCE_DIR}/.git")
+  # Update submodules as needed
+  execute_process(COMMAND ${GIT_EXECUTABLE} submodule update --init --recursive
+                  WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
+                  RESULT_VARIABLE GIT_SUBMOD_RESULT)
+  if(NOT GIT_SUBMOD_RESULT EQUAL "0")
+    message(FATAL_ERROR
+      "git submodule update --init failed with ${GIT_SUBMOD_RESULT}, please checkout submodules")
+  endif()
+endif()
 #- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+set(BENCHMARK_ENABLE_INSTALL OFF CACHE BOOL
+    "Enable installation of benchmark. (Projects embedding benchmark may want to turn this OFF.)")
 set(BENCHMARK_ENABLE_GTEST_TESTS OFF CACHE BOOL
     "Enable building the unit tests which depend on gtest")
 set(BENCHMARK_ENABLE_TESTING OFF CACHE BOOL
@@ -209,15 +218,22 @@ endif()
 #- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 # MPI
 #- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-option(TATOOINE_BUILD_MPI "Builds MPI-related projecs")
-if (TATOOINE_BUILD_MPI)
-  find_package(MPI COMPONENTS C CXX)
+get_filename_component(C_COMPILER_EXECUTABLE ${CMAKE_C_COMPILER} NAME)
+get_filename_component(CXX_COMPILER_EXECUTABLE ${CMAKE_CXX_COMPILER} NAME)
+if ("${CXX_COMPILER_EXECUTABLE}" STREQUAL "mpicxx")
+  find_package(MPI COMPONENTS C QUIET)
   if (MPI_C_FOUND)
-    set(TATOOINE_MPI_AVAILABLE 1)
+    option(TATOOINE_BUILD_MPI "Builds MPI-related projecs" ON)
+    if (TATOOINE_BUILD_MPI)
+      set(TATOOINE_MPI_AVAILABLE 1)
+    else()
+      set(TATOOINE_MPI_AVAILABLE 0)
+    endif()
   else()
     set(TATOOINE_MPI_AVAILABLE 0)
   endif()
 else()
+  message(STATUS "MPI can only be used if CXX_COMPILER_EXECUTABLE is mpicxx. Current: ${CXX_COMPILER_EXECUTABLE}")
   set(TATOOINE_MPI_AVAILABLE 0)
 endif()
 #- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -248,6 +264,8 @@ if (TATOOINE_USE_SYSTEM_HDF5_LIBS)
 endif()
 if ((NOT TATOOINE_USE_SYSTEM_HDF5_LIBS) OR
     (TATOOINE_USE_SYSTEM_HDF5_LIBS AND NOT HDF5_FOUND))
+  set(HDF5_EXTERNALLY_CONFIGURED 1)
+  set(HDF5_EXTERNAL_LIB_PREFIX "tatooine" CACHE STRING "Use prefix for custom library naming.")
   set(HDF5_BUILD_CPP_LIB     OFF CACHE BOOL "Build HDF5 C++ Library")
   set(HDF5_BUILD_HL_LIB      OFF CACHE BOOL "Build HIGH Level HDF5 Library")
   set(HDF5_BUILD_JAVA        OFF CACHE BOOL "Build Java HDF5 Library")
@@ -256,26 +274,50 @@ if ((NOT TATOOINE_USE_SYSTEM_HDF5_LIBS) OR
   set(HDF5_BUILD_EXAMPLES    OFF CACHE BOOL "Build HDF5 Library Examples")
   set(HDF5_ENABLE_COVERAGE   OFF CACHE BOOL "Enable code coverage for Libraries and Programs")
   set(HDF5_ENABLE_THREADSAFE ON  CACHE BOOL "Enable thread-safety")
-  if (TATOOINE_MPI_AVAILABLE)
+  if (("${C_COMPILER_EXECUTABLE}" STREQUAL "mpicc" OR
+       "${C_COMPILER_EXECUTABLE}" STREQUAL "mpiicc") AND TATOOINE_MPI_AVAILABLE)
     message(STATUS "Building HDF5 with thread-safety and MPI support.")
     set(ALLOW_UNSUPPORTED ON)
-    set(HDF5_ENABLE_PARALLEL   ON  CACHE BOOL "Enable parallel build (requires MPI)")
+    set(HDF5_ENABLE_PARALLEL ON  CACHE BOOL "Enable parallel build (requires MPI)")
+    set(HDF5_ENABLE_PARALLEL ON)
   else()
     message(STATUS "Building HDF5 with thread-safety but without MPI support.")
-    set(HDF5_ENABLE_PARALLEL   OFF  CACHE BOOL "Enable parallel build (requires MPI)")
+    set(HDF5_ENABLE_PARALLEL OFF  CACHE BOOL "Enable parallel build (requires MPI)")
+    set(HDF5_ENABLE_PARALLEL OFF)
   endif()
-  add_subdirectory(external/hdf5)
-  target_compile_options(hdf5-static PRIVATE
-    -Wno-missing-field-initializers
-    -Wno-cast-qual
-    -Wno-stringop-overflow
-    -Wno-maybe-uninitialized
-    -Wno-discarded-qualifiers
-    -Wno-unused-function
-    -Wno-unused-variable
-    -Wno-unused-parameter
-    -Wno-cast-function-type
-    -Wno-stringop-truncation)
+  add_subdirectory(external/hdf5 EXCLUDE_FROM_ALL)
+  set(${CMAKE_SOURCE_DIR} TATOOINE_SOURCE_DIR)
+  set(${CMAKE_CURRENT_SOURCE_DIR} TATOOINE_CURRENT_SOURCE_DIR)
+  set(${CMAKE_BINARY_DIR} TATOOINE_BINARY_DIR)
+  set(${CMAKE_CURRENT_BINARY_DIR} TATOOINE_CURRENT_BINARY_DIR)
+  if ("${CMAKE_CXX_COMPILER_ID}" STREQUAL "GNU" OR
+      "${CMAKE_CXX_COMPILER_ID}" STREQUAL "Clang")
+    set(TATOOINE_HDF5_WNOS
+      -Wno-missing-field-initializers
+      -Wno-cast-qual
+      -Wno-sign-conversion
+      -Wno-unused-function
+      -Wno-unused-variable
+      -Wno-unused-parameter
+      -Wno-unused-label)
+    if ("${CMAKE_CXX_COMPILER_ID}" STREQUAL "GNU")
+      list(APPEND TATOOINE_HDF5_WNOS
+        -Wno-stringop-overflow
+        -Wno-maybe-uninitialized
+        -Wno-discarded-qualifiers
+        -Wno-cast-function-type
+        -Wno-stringop-truncation)
+    elseif("${CMAKE_CXX_COMPILER_ID}" STREQUAL "Clang")
+      list(APPEND TATOOINE_HDF5_WNOS
+        -Wno-double-promotion
+        -Wno-misleading-indentation
+        -Wno-incompatible-pointer-types-discards-qualifiers
+        -Wno-format-pedantic
+        -Wno-implicit-fallthrough)
+    endif()
+    target_compile_options(hdf5-static PRIVATE ${TATOOINE_HDF5_WNOS})
+  endif()
+
   add_executable(hdf5_create src/hdf5_create.cpp)
   target_link_libraries(hdf5_create PUBLIC tatooine)
   add_custom_target(hdf5_create.run COMMAND ./hdf5_create DEPENDS hdf5_create)
@@ -339,16 +381,16 @@ set(TATOOINE_EXPORTING_TARGETS tatooine)
 # Subdirectories
 #-------------------------------------------------------------------------------
 add_subdirectory(test)
-add_subdirectory(scivis_contest_2020)
+add_subdirectory(scivis_contest_2020 EXCLUDE_FROM_ALL)
 add_subdirectory(benchmarks)
-add_subdirectory(doc)
-add_subdirectory(material_science)
+add_subdirectory(doc EXCLUDE_FROM_ALL)
+add_subdirectory(material_science EXCLUDE_FROM_ALL)
 if (yavin_FOUND) 
-  add_subdirectory(steadification)
+  add_subdirectory(steadification EXCLUDE_FROM_ALL)
 endif()
 option(TATOOINE_BUILD_FLOWEXPLORER "Builds Flow Explorer" OFF)
 if (TATOOINE_BUILD_FLOWEXPLORER AND yavin_FOUND) 
-  add_subdirectory(steadification)
+  add_subdirectory(flowexplorer)
 endif()
 add_subdirectory(autonomous_particles)
 add_subdirectory(smearing_scalar_field)
@@ -356,6 +398,11 @@ add_subdirectory(smearing_scalar_field)
 if (TATOOINE_MPI_AVAILABLE)
   add_subdirectory(mpi)
   add_subdirectory(insitu)
+endif()
+
+option(TATOOINE_BUILD_CHANNELFLOW_VISUALIZATION
+       "creates targets to make visualizations for the channelflow" ON)
+if(TATOOINE_BUILD_CHANNELFLOW_VISUALIZATION)
   add_subdirectory(channelflow)
 endif()
 
@@ -366,7 +413,7 @@ endif()
 
 #- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 # This makes the project importable from the build directory
-export(TARGETS ${TATOOINE_EXPORTING_TARGETS}
-       FILE tatooineConfig.cmake
-       NAMESPACE tatooine::)
+#export(TARGETS ${TATOOINE_EXPORTING_TARGETS}
+#       FILE tatooineConfig.cmake
+#       NAMESPACE tatooine::)
 export(PACKAGE tatooine)
