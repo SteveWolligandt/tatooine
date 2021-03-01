@@ -22,8 +22,8 @@ struct lazy_reader : chunked_multidim_array<typename DataSet::value_type> {
   DataSet                     m_dataset;
   mutable std::vector<bool>   m_read;
   mutable std::vector<size_t> m_chunks_loaded;
-  size_t                      m_delete_size           = 64;
-  size_t                      m_max_num_chunks_loaded = 128;
+  size_t                      m_max_num_chunks_loaded   = 1024;
+  bool                        m_limit_num_chunks_loaded = false;
   mutable std::mutex          m_mutex;
 
  public:
@@ -60,7 +60,6 @@ struct lazy_reader : chunked_multidim_array<typename DataSet::value_type> {
 #endif
   auto read_chunk(size_t& plain_index, Indices const... indices) const
       -> auto const& {
-    std::lock_guard lock{m_mutex};
 #ifndef NDEBUG
     if (!this->in_range(indices...)) {
       std::cerr << "not in range: ";
@@ -78,38 +77,33 @@ struct lazy_reader : chunked_multidim_array<typename DataSet::value_type> {
     assert(this->in_range(indices...));
     plain_index = this->plain_chunk_index_from_global_indices(indices...);
 
-    if constexpr (is_arithmetic<value_type>) {
-      if (this->chunk_at_is_null(plain_index)) {
-        if (!m_read[plain_index]) {
-          //if (size(m_chunks_loaded) >= m_max_num_chunks_loaded) {
-          //  auto const it_begin = begin(m_chunks_loaded);
-          //  auto const it_end = it_begin + (m_max_num_chunks_loaded - m_delete_size);
-          //  for (auto it = it_begin; it != it_end; ++it) {
-          //    m_read[*it] = false;
-          //    this->destroy_chunk_at(*it);
-          //  }
-          //  m_chunks_loaded.erase(it_begin, it_end);
-          //}
-          this->create_chunk_at(plain_index);
-          m_read[plain_index] = true;
-          m_chunks_loaded.push_back(plain_index);
-          auto offset = this->global_indices_from_chunk_indices(
-              this->chunk_indices_from_global_indices(indices...));
-          auto s = this->internal_chunk_size();
-          m_dataset.read_chunk(offset, s, *chunk_at(plain_index));
-
-          if (is_chunk_filled_with_zeros(plain_index)) {
-            this->destroy_chunk_at(plain_index);
-          }
+    if (this->chunk_at_is_null(plain_index) && !m_read[plain_index]) {
+      // keep the number of loaded chunks between max_num_chunks_loaded/2 and
+      // max_num_chunks_loaded
+      if (m_limit_num_chunks_loaded &&
+          size(m_chunks_loaded) > m_max_num_chunks_loaded) {
+        auto const it_begin = begin(m_chunks_loaded);
+        auto const it_end   = it_begin + (m_max_num_chunks_loaded / 2);
+        for (auto it = it_begin; it != it_end; ++it) {
+          m_read[*it] = false;
+          this->destroy_chunk_at(*it);
         }
+        m_chunks_loaded.erase(it_begin, it_end);
       }
-    } else {
-      if (this->chunk_at_is_null(plain_index)) {
-        this->create_chunk_at(plain_index);
-        std::vector offset{static_cast<size_t>(indices)...};
-        auto        s = this->internal_chunk_size();
-        m_dataset.read_chunk(offset, this->internal_chunk_size());
-      }
+
+      this->create_chunk_at(plain_index);
+      m_read[plain_index] = true;
+      m_chunks_loaded.push_back(plain_index);
+      auto const offset = this->global_indices_from_chunk_indices(
+          this->chunk_indices_from_global_indices(indices...));
+      auto const s = this->internal_chunk_size();
+      m_dataset.read_chunk(offset, s, *chunk_at(plain_index));
+
+      //if constexpr (is_arithmetic<value_type>) {
+      //  if (is_chunk_filled_with_zeros(plain_index)) {
+      //    this->destroy_chunk_at(plain_index);
+      //  }
+      //}
     }
     return this->chunk_at(plain_index);
   }
@@ -121,6 +115,7 @@ struct lazy_reader : chunked_multidim_array<typename DataSet::value_type> {
   template <typename... Indices, enable_if<is_integral<Indices...>> = true>
 #endif
   auto at(Indices const... indices) const -> value_type const& {
+    std::lock_guard lock{m_mutex};
     size_t      plain_index = 0;
     auto const& chunk       = read_chunk(plain_index, indices...);
 
@@ -129,11 +124,10 @@ struct lazy_reader : chunked_multidim_array<typename DataSet::value_type> {
           this->plain_internal_chunk_index_from_global_indices(plain_index,
                                                                indices...);
       return (*chunk)[plain_internal_index];
-    } else {
-      auto& t = default_value();
-      t       = value_type{};
-      return t;
     }
+    auto& t = default_value();
+    t       = value_type{};
+    return t;
   }
 
  private:
@@ -188,6 +182,14 @@ struct lazy_reader : chunked_multidim_array<typename DataSet::value_type> {
 #endif
       auto is_chunk_filled_with_zeros(size_t const plain_index) const -> bool {
     return is_chunk_filled_with_value(plain_index, 0);
+  }
+  //----------------------------------------------------------------------------
+  auto set_max_num_chunks_loaded(size_t const max_num_chunks_loaded) {
+    m_max_num_chunks_loaded = max_num_chunks_loaded;
+  }
+  //----------------------------------------------------------------------------
+  auto limit_num_chunks_loaded(bool const l = true) {
+    m_limit_num_chunks_loaded = l;
   }
 };
 //==============================================================================

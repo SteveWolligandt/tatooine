@@ -1531,8 +1531,8 @@ struct parameterized_line : line<Real, N> {
   template <typename T0, typename T1, typename... Ts>
   auto resample_properties(linspace<Real> const& ts, this_t& resampled) const
       -> void {
-    resample_properties<T0>(resampled);
-    resample_properties<T1, Ts...>(resampled);
+    resample_properties<T0>(ts, resampled);
+    resample_properties<T1, Ts...>(ts, resampled);
   }
 
  public:

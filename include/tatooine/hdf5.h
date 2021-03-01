@@ -102,7 +102,9 @@ class dataset {
       : m_mutex{mutex},
         m_file_id{std::make_unique<hid_t>(*file_id)},
         m_dataset_id{std::make_unique<hid_t>(dataset_id)},
-        m_name{name} {}
+        m_name{name} {
+    H5Iinc_ref(*m_file_id);
+  }
   //----------------------------------------------------------------------------
   dataset(dataset const& other)
       : m_mutex{other.m_mutex},
@@ -355,39 +357,17 @@ class file {
   mutable std::shared_ptr<std::mutex> m_mutex;
   //============================================================================
  public:
-  file(filesystem::path const& path) : m_mutex{std::make_shared<std::mutex>()} {
-    try {
-      m_file_id = std::make_unique<hid_t>(
-          H5Fopen(path.string().c_str(), H5F_ACC_RDWR, H5P_DEFAULT));
-    } catch (...) {
-      m_file_id = std::make_unique<hid_t>(H5Fcreate(
-          path.string().c_str(), H5F_ACC_EXCL, H5P_DEFAULT, H5P_DEFAULT));
-    }
-  }
+  file(filesystem::path const& path) : file{path.c_str()} {}
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-  file(std::string const& path) : m_mutex{std::make_shared<std::mutex>()} {
-    try {
-      m_file_id = std::make_unique<hid_t>(
-          H5Fopen(path.c_str(), H5F_ACC_RDWR, H5P_DEFAULT));
-    } catch (...) {
-      m_file_id = std::make_unique<hid_t>(
-          H5Fcreate(path.c_str(), H5F_ACC_EXCL, H5P_DEFAULT, H5P_DEFAULT));
-    }
-  }
+  file(std::string const& path) : file{path.c_str()} {}
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
   file(char const* path) : m_mutex{std::make_shared<std::mutex>()} {
-    try {
-      m_file_id =
-          std::make_unique<hid_t>(H5Fopen(path, H5F_ACC_RDWR, H5P_DEFAULT));
-    } catch (...) {
-      m_file_id = std::make_unique<hid_t>(
-          H5Fcreate(path, H5F_ACC_EXCL, H5P_DEFAULT, H5P_DEFAULT));
-    }
+    open(path);
   }
   //----------------------------------------------------------------------------
   file(file const& other)
-      : m_mutex{other.m_mutex},
-        m_file_id{std::make_unique<hid_t>(*other.m_file_id)} {
+      : m_file_id{std::make_unique<hid_t>(*other.m_file_id)},
+        m_mutex{other.m_mutex} {
     H5Iinc_ref(*m_file_id);
   }
   //----------------------------------------------------------------------------
@@ -410,6 +390,17 @@ class file {
       H5Fclose(*m_file_id);
     }
   }
+ private:
+  auto open(char const* path) -> void {
+    if (filesystem::exists(filesystem::path{path})) {
+      m_file_id =
+          std::make_unique<hid_t>(H5Fopen(path, H5F_ACC_RDWR, H5P_DEFAULT));
+    } else {
+      m_file_id = std::make_unique<hid_t>(
+          H5Fcreate(path, H5F_ACC_EXCL, H5P_DEFAULT, H5P_DEFAULT));
+    }
+  }
+ public:
   //============================================================================
   // auto group(std::string const& group_name) {
   //  return hdf5::group{m_file_id, m_mutex, m_file_id->openGroup(group_name),
