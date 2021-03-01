@@ -319,10 +319,15 @@ if ((NOT TATOOINE_USE_SYSTEM_HDF5_LIBS) OR
     elseif("${CMAKE_CXX_COMPILER_ID}" STREQUAL "Clang")
       list(APPEND TATOOINE_HDF5_WNOS
         -Wno-double-promotion
+        -Wno-discarded-qualifiers
         -Wno-misleading-indentation
         -Wno-incompatible-pointer-types-discards-qualifiers
         -Wno-format-pedantic
-        -Wno-implicit-fallthrough)
+        -Wno-implicit-fallthrough
+        -Wno-cast-function-type
+        -Wno-maybe-uninitialized
+        -Wno-stringop-truncation
+        -Wno-stringop-overflow)
     endif()
     target_compile_options(hdf5-static PRIVATE ${TATOOINE_HDF5_WNOS})
   endif()
