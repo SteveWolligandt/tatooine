@@ -2,6 +2,7 @@
 #include <tatooine/color_scales/viridis.h>
 #include <tatooine/parallel_vectors.h>
 #include <tatooine/direct_volume_rendering.h>
+#include <tatooine/isosurface.h>
 #include <tatooine/field.h>
 #include <tatooine/grid.h>
 #include <tatooine/hdf5.h>
@@ -114,6 +115,37 @@ auto add_Q_steve(FullDomain const& full_domain,
 }
 //------------------------------------------------------------------------------
 template <typename DomainGrid, typename Axis0, typename Axis1, typename Axis2,
+          typename ScalarField, typename QField, typename POD0VelY,
+          typename Vel122Y>
+auto calc_iso_surface(DomainGrid const& domain_grid, Axis0 const& axis0,
+                      Axis1 const& axis1, Axis2 const& axis2,
+                      ScalarField const& s, QField const& Q,
+                      POD0VelY const& vely_pod0, Vel122Y const& vely_122,
+                      std::string const& pathout) {
+  auto const Q_sampler = Q.linear_sampler();
+  auto const vely_122_sampler = vely_122.linear_sampler();
+  auto const vely_pod0_sampler = vely_pod0.linear_sampler();
+
+  auto isosurface = tat::isosurface(
+      [&](auto const vix, auto const viy, auto const viz, auto const& /*p*/) {
+        return s(vix, viy, viz);
+      },
+      domain_grid, 5e6);
+  auto& Q_prop = isosurface.template add_vertex_property<double>("Q");
+  auto& vely_pod0_prop =
+      isosurface.template add_vertex_property<double>("vely_pod0");
+  auto& vely_122_prop = isosurface.template add_vertex_property<double>("vely_122");
+  for (auto v : isosurface.vertices()) {
+    Q_prop[v]         = Q_sampler(isosurface[v]);
+    vely_pod0_prop[v] = vely_pod0_sampler(isosurface[v]);
+    vely_122_prop[v]  = vely_122_sampler(isosurface[v]);
+  }
+
+  std::cout << "writing...\n";
+  isosurface.write_vtk(pathout);
+}
+//------------------------------------------------------------------------------
+template <typename DomainGrid, typename Axis0, typename Axis1, typename Axis2,
           typename VelX, typename VelY, typename VelZ, typename QField,
           typename POD0VelY, typename Vel122Y>
 auto calc_pv(DomainGrid const& domain_grid, Axis0 const& axis0,
@@ -121,11 +153,6 @@ auto calc_pv(DomainGrid const& domain_grid, Axis0 const& axis0,
              VelY const& vely, VelZ const& velz, QField const& Q,
              POD0VelY const& vely_pod0, Vel122Y const& vely_122,
              std::string const& pathout) {
-  auto       velx_sampler = velx.linear_sampler();
-  auto       vely_sampler = vely.linear_sampler();
-  auto       velz_sampler = velz.linear_sampler();
-  auto       vely_field   = scalarfield{vely_sampler};
-  auto       vel_field = vectorfield{velx_sampler, vely_sampler, velz_sampler};
   auto const diff_velx = diff(velx);
   auto const diff_velx_sampler = diff_velx.sampler();
   auto const diff_vely         = diff(vely);
@@ -452,9 +479,10 @@ auto main() -> int {
    //                                       alpha, tat::vec3::ones())
    //              .vertex_property<tat::vec3>("rendering"));
 
-   // std::array<size_t, 3>           counts{1, 2, 2};
-   calc_pv(pod0_domain, axis0, axis1, axis2, velx_122, vely_122, velz_122,
-           Q_122, vely_pod0, vely_122, "vortex_core_lines_122.vtk");
-   calc_pv(pod0_domain, axis0, axis1, axis2, velx_pod0, vely_pod0, velz_pod0,
-           pod0_Q, vely_pod0, vely_122, "vortex_core_lines_pod.vtk");
+   calc_iso_surface(pod0_domain, axis0, axis1, axis2, Q_122, Q_122, vely_pod0,
+                    vely_122, "Q_iso_5e6.vtk");
+   //calc_pv(pod0_domain, axis0, axis1, axis2, velx_122, vely_122, velz_122,
+   //        Q_122, vely_pod0, vely_122, "vortex_core_lines_122.vtk");
+   //calc_pv(pod0_domain, axis0, axis1, axis2, velx_pod0, vely_pod0, velz_pod0,
+   //        pod0_Q, vely_pod0, vely_122, "vortex_core_lines_pod.vtk");
 }
