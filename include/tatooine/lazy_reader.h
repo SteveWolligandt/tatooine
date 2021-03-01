@@ -81,17 +81,17 @@ struct lazy_reader : chunked_multidim_array<typename DataSet::value_type> {
     if constexpr (is_arithmetic<value_type>) {
       if (this->chunk_at_is_null(plain_index)) {
         if (!m_read[plain_index]) {
-          m_read[plain_index] = true;
-          if (size(m_chunks_loaded) >= m_max_num_chunks_loaded) {
-            auto const it_begin = begin(m_chunks_loaded);
-            auto const it_end = it_begin + (m_max_num_chunks_loaded - m_delete_size);
-            for (auto it = it_begin; it != it_end; ++it) {
-              m_read[*it] = false;
-              this->destroy_chunk_at(*it);
-            }
-            m_chunks_loaded.erase(it_begin, it_end);
-          }
+          //if (size(m_chunks_loaded) >= m_max_num_chunks_loaded) {
+          //  auto const it_begin = begin(m_chunks_loaded);
+          //  auto const it_end = it_begin + (m_max_num_chunks_loaded - m_delete_size);
+          //  for (auto it = it_begin; it != it_end; ++it) {
+          //    m_read[*it] = false;
+          //    this->destroy_chunk_at(*it);
+          //  }
+          //  m_chunks_loaded.erase(it_begin, it_end);
+          //}
           this->create_chunk_at(plain_index);
+          m_read[plain_index] = true;
           m_chunks_loaded.push_back(plain_index);
           auto offset = this->global_indices_from_chunk_indices(
               this->chunk_indices_from_global_indices(indices...));
