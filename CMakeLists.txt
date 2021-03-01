@@ -139,10 +139,10 @@ find_package(vcode REQUIRED)
 #- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 # check if mkl_lapacke.h can be used
 get_target_property(TATOOINE_INCLUDE_DIRS tatooine INCLUDE_DIRECTORIES)
-set(TATOOINE_INCLUDE_MKL_LAPACKE ON)
+set(TATOOINE_INCLUDE_MKL_LAPACKE OFF)
 foreach(dir ${TATOOINE_INCLUDE_DIRS})
-  if(EXISTS "${dir}/lapacke.h")
-    set(TATOOINE_INCLUDE_MKL_LAPACKE OFF)
+  if(EXISTS "${dir}/mkl_lapacke.h")
+    set(TATOOINE_INCLUDE_MKL_LAPACKE ON)
     break()
   endif()
 endforeach()
