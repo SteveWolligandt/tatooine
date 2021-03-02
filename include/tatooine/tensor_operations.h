@@ -631,6 +631,12 @@ constexpr auto operator*(base_tensor<Tensor0, T0, M> const&    lhs,
   }
   return product;
 }
+//------------------------------------------------------------------------------
+template <typename T0, typename T1>
+constexpr auto reflect(vec<T0, 3> const& incidentVec,
+                       vec<T1, 3> const& normal) {
+  return incidentVec - 2 * dot(incidentVec, normal) * normal;
+}
 //==============================================================================
 }  // namespace tatooine
 //==============================================================================

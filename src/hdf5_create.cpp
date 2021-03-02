@@ -51,6 +51,9 @@ int main() {
    * default file creation properties, and default file
    * access properties.
    */
+  if (tatooine::filesystem::exists(tatooine::filesystem::path{FILE_NAME})) {
+    tatooine::filesystem::remove(tatooine::filesystem::path{FILE_NAME});
+  }
   tatooine::hdf5::file file{FILE_NAME};
 
   auto dataset = file.add_dataset<int>(DATASET_NAME, NX, NY);
@@ -65,6 +68,15 @@ int main() {
   for (j = 0; j < 2; j++) {
     for (i = 0; i < 2; i++) {
       std::cout << chunk(i, 2 - 1 - j) << ' ';
+    }
+    std::cout << '\n';
+  }
+  dataset.write(std::vector<int>{10, 20, 30, 40}, std::vector<size_t>{1, 1},
+                std::vector<size_t>{2, 2});
+  auto const chunk2 = dataset.read_chunk(std::vector<size_t>{1,1},std::vector<size_t> {2,2});
+  for (j = 0; j < 2; j++) {
+    for (i = 0; i < 2; i++) {
+      std::cout << chunk2(i, 2 - 1 - j) << ' ';
     }
     std::cout << '\n';
   }
