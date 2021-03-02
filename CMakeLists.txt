@@ -318,6 +318,7 @@ if ((NOT TATOOINE_USE_SYSTEM_HDF5_LIBS) OR
         -Wno-stringop-truncation)
     elseif("${CMAKE_CXX_COMPILER_ID}" STREQUAL "Clang")
       list(APPEND TATOOINE_HDF5_WNOS
+        -Wno-unknown-warning-option
         -Wno-double-promotion
         -Wno-discarded-qualifiers
         -Wno-misleading-indentation

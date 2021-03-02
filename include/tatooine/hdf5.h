@@ -172,6 +172,59 @@ class dataset {
     write(std::vector(begin(r), end(r)));
   }
   //----------------------------------------------------------------------------
+#ifdef __cpp_concepts
+  template <integral... Is>
+#else
+  template <typename... Is, enable_if<is_arithmetic<Is...>> = true>
+#endif
+  auto write(T const& data, Is const... is) -> void {
+    write(&data, std::vector<hsize_t>{static_cast<hsize_t>(is)...},
+          std::vector<hsize_t>(sizeof...(Is), 1));
+  }
+  //----------------------------------------------------------------------------
+  auto write(T const& data, std::vector<size_t> const& offset) -> void {
+    write(&data, std::vector<hsize_t>(begin(offset), end(offset)),
+          std::vector<hsize_t>(size(offset), 1));
+  }
+  //----------------------------------------------------------------------------
+  auto write(T const& data, std::vector<hsize_t> offset) -> void {
+    write(&data, std::move(offset), std::vector<hsize_t>(size(offset), 1));
+  }
+  //----------------------------------------------------------------------------
+  auto write(std::vector<T> const& data, std::vector<size_t> const& offset,
+             std::vector<size_t> const& count) -> void {
+    write(data.data(), std::vector<hsize_t>(begin(offset), end(offset)),
+          std::vector<hsize_t>(begin(count), end(count)));
+  }
+  //----------------------------------------------------------------------------
+  auto write(T const* data, std::vector<size_t> const& offset,
+             std::vector<size_t> const& count) -> void {
+    write(data, std::vector<hsize_t>(begin(offset), end(offset)),
+          std::vector<hsize_t>(begin(count), end(count)));
+  }
+  //----------------------------------------------------------------------------
+  auto write(std::vector<T> const& data, std::vector<hsize_t>  offset,
+             std::vector<hsize_t>  count) -> void {
+    write(data.data(), std::move(offset), std::move(count));
+  }
+  //----------------------------------------------------------------------------
+  auto write(T const* data, std::vector<hsize_t> offset,
+             std::vector<hsize_t> count) -> void {
+    std::lock_guard lock{*m_mutex};
+    assert(offset.size() == count.size());
+
+    hid_t      dspace = H5Dget_space(*m_dataset_id);
+    auto const rank   = H5Sget_simple_extent_ndims(dspace);
+    auto       size   = std::make_unique<hsize_t[]>(rank);
+    std::reverse(begin(count), end(count));
+    std::reverse(begin(offset), end(offset));
+    H5Sselect_hyperslab(dspace, H5S_SELECT_SET, offset.data(), nullptr,
+                        count.data(), nullptr);
+    auto memspace = H5Screate_simple(rank, count.data(), nullptr);
+    H5Dwrite(*m_dataset_id, h5_type<T>::value(), memspace, dspace, H5P_DEFAULT,
+             data);
+  }
+  //----------------------------------------------------------------------------
   auto read() const {
     dynamic_multidim_array<T, x_fastest> arr;
     read(arr);

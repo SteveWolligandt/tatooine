@@ -114,6 +114,49 @@ auto add_Q_steve(FullDomain const& full_domain,
   return add_scalar_prop(threedpart_domain, channelflow_file, calc_Q, "Q_steve");
 }
 //------------------------------------------------------------------------------
+template <typename Domain, typename OutputDomain, typename File,
+          typename Vx, typename Vy, typename Vz>
+auto add_Q_cheng(Domain const& domain, File& channelflow_file,
+                 Vx const& velx, Vy const& vely, Vz const& velz) {
+  auto calc_Q = [&](auto ix, auto iy, auto iz) {
+    tat::mat3  J;
+    auto const ixpos = ix == domain.size(0) - 1 ? ix : ix + 1;
+    auto const ixneg = ix == 0 ? ix : ix - 1;
+    auto const iypos = iy == domain.size(1) - 1 ? iy : iy + 1;
+    auto const iyneg = iy == 0 ? iy : iy - 1;
+    auto const izpos = iz == domain.size(2) - 1 ? iz : iz + 1;
+    auto const izneg = iz == 0 ? iz : iz - 1;
+
+    auto const dx = 1 / (domain.template dimension<0>()[ixpos] -
+                         domain.template dimension<0>()[ixneg]);
+    auto const dy = 1 / (domain.template dimension<1>()[iypos] -
+                         domain.template dimension<1>()[iyneg]);
+    auto const dz = 1 / (domain.template dimension<2>()[izpos] -
+                         domain.template dimension<2>()[izneg]);
+
+    J.col(0) = tat::vec3{(velx(ixpos, iy, iz) - velx(ixneg, iy, iz)),
+                         (vely(ixpos, iy, iz) - vely(ixneg, iy, iz)),
+                         (velz(ixpos, iy, iz) - velz(ixneg, iy, iz))} *
+               dx;
+    J.col(1) = tat::vec3{(velx(ix, iypos, iz) - velx(ix, iyneg, iz)),
+                         (vely(ix, iypos, iz) - vely(ix, iyneg, iz)),
+                         (velz(ix, iypos, iz) - velz(ix, iyneg, iz))} *
+               dy;
+    J.col(2) = tat::vec3{(velx(ix, iy, izpos) - velx(ix, iy, izneg)),
+                         (vely(ix, iy, izpos) - vely(ix, iy, izneg)),
+                         (velz(ix, iy, izpos) - velz(ix, iy, izneg))} *
+               dz;
+
+    return 0.5 * (J(0, 0) + J(1, 1) + J(2, 2)) * (J(0, 0) + J(1, 1) + J(2, 2)) -
+           0.5 * (J(0, 0) * J(0, 0) + J(1, 1) * J(1, 1) + J(2, 2) * J(2, 2)) -
+           J(0, 1) * J(1, 0) - J(0, 2) * J(2, 0) - J(1, 2) * J(2, 1);
+  };
+  auto Q = channelflow_file.template add_dataset<double>(
+      "variables/Q_cheng", domain.size(0), domain.size(1), domain.size(2));
+  domain.parallel_loop_over_vertex_indices(
+      [&](auto const... is) { Q.write(calc_Q(is...), is...); });
+}
+//------------------------------------------------------------------------------
 template <typename DomainGrid, typename Axis0, typename Axis1, typename Axis2,
           typename ScalarField, typename QField, typename POD0VelY,
           typename Vel122Y>
@@ -137,7 +180,11 @@ auto calc_iso_surface(DomainGrid const& domain_grid, Axis0 const& axis0,
   auto& vely_122_prop = isosurface.template add_vertex_property<double>("vely_122");
   for (auto v : isosurface.vertices()) {
     Q_prop[v]         = Q_sampler(isosurface[v]);
-    vely_pod0_prop[v] = vely_pod0_sampler(isosurface[v]);
+    if (vely_pod0.grid().is_inside(isosurface[v])) {
+      vely_pod0_prop[v] = vely_pod0_sampler(isosurface[v]);
+    } else {
+      vely_pod0_prop[v] = 0.0 / 0.0;
+    }
     vely_122_prop[v]  = vely_122_sampler(isosurface[v]);
   }
 
@@ -327,10 +374,13 @@ auto main() -> int {
    // create grid properties of 122000 time step
    auto& velx_122 = threedpart_domain.add_lazy_vertex_property(
        channelflow_122_file.dataset<double>("variables/Vx"), "Vx_122");
+   velx_122.limit_num_chunks_loaded();
    auto& vely_122 = threedpart_domain.add_lazy_vertex_property(
        channelflow_122_file.dataset<double>("variables/Vy"), "Vy_122");
+   vely_122.limit_num_chunks_loaded();
    auto& velz_122 = threedpart_domain.add_lazy_vertex_property(
        channelflow_122_file.dataset<double>("variables/Vz"), "Vz_122");
+   velz_122.limit_num_chunks_loaded();
 
    auto velx_122_sampler = velx_122.linear_sampler();
    auto vely_122_sampler = vely_122.linear_sampler();
@@ -343,10 +393,6 @@ auto main() -> int {
    auto const diff_velz_122         = diff(velz_122);
    auto const diff_velz_122_sampler = diff_velz_122.sampler();
 
-   auto& Q_122 = threedpart_domain.add_lazy_vertex_property(
-       channelflow_122_file.dataset<double>("variables/Q"), "Q_122");
-   auto Q_122_sampler = Q_122.linear_sampler();
-   auto Q_122_field   = scalarfield{Q_122_sampler};
 
    // create grid properties of 123000 time step
    // auto& velx_123 = threedpart_domain.add_lazy_vertex_property(
@@ -479,7 +525,17 @@ auto main() -> int {
    //                                       alpha, tat::vec3::ones())
    //              .vertex_property<tat::vec3>("rendering"));
 
-   calc_iso_surface(pod0_domain, axis0, axis1, axis2, Q_122, Q_122, vely_pod0,
+   std::cout << "adding Q...\n";
+   add_Q_cheng(full_domain, channelflow_122_file, velx_122, vely_122, velz_122);
+   std::cout << "calculating iso surface Q...\n";
+
+   auto& Q_122 = full_domain.add_lazy_vertex_property(
+       channelflow_122_file.dataset<double>("variables/Q_cheng"), "Q_122");
+   Q_122.limit_num_chunks_loaded();
+   auto Q_122_sampler = Q_122.linear_sampler();
+   auto Q_122_field   = scalarfield{Q_122_sampler};
+
+   calc_iso_surface(full_domain, axis0, axis1, axis2, Q_122, Q_122, vely_pod0,
                     vely_122, "Q_iso_5e6.vtk");
    //calc_pv(pod0_domain, axis0, axis1, axis2, velx_122, vely_122, velz_122,
    //        Q_122, vely_pod0, vely_122, "vortex_core_lines_122.vtk");
