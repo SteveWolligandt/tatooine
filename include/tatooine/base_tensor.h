@@ -6,7 +6,7 @@
 #endif
 #include <tatooine/type_traits.h>
 #include <tatooine/crtp.h>
-#include <tatooine/index_ordering.h>
+#include <tatooine/index_order.h>
 #include <tatooine/multidim_size.h>
 #include <tatooine/template_helper.h>
 #include <boost/archive/text_oarchive.hpp>

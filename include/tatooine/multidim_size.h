@@ -4,7 +4,7 @@
 #include <tatooine/concepts.h>
 #include <tatooine/for_loop.h>
 #include <tatooine/functional.h>
-#include <tatooine/index_ordering.h>
+#include <tatooine/index_order.h>
 #include <tatooine/multidim.h>
 #include <tatooine/template_helper.h>
 #include <tatooine/type_traits.h>
@@ -18,7 +18,7 @@
 //==============================================================================
 namespace tatooine {
 //==============================================================================
-template <typename Indexing, size_t... Resolution>
+template <typename IndexOrder, size_t... Resolution>
 struct static_multidim_size {
   static constexpr auto num_dimensions() { return sizeof...(Resolution); }
   static constexpr auto num_components() { return (Resolution * ...); }
@@ -61,7 +61,7 @@ struct static_multidim_size {
   static constexpr auto plain_index(Is const... is) {
     static_assert(sizeof...(is) == num_dimensions(),
                   "number of indices does not match number of dimensions");
-    return Indexing::plain_index(size(), is...);
+    return IndexOrder::plain_index(size(), is...);
   }
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 #ifdef __cpp_concepts
@@ -74,13 +74,13 @@ struct static_multidim_size {
                   "index range must hold integral type");
     assert(is.size() == num_dimensions() &&
            "number of indices does not match number of dimensions");
-    return Indexing::plain_index(size(), is);
+    return IndexOrder::plain_index(size(), is);
   }
   //----------------------------------------------------------------------------
   static constexpr auto indices() { return static_multidim{Resolution...}; }
 };
 //==============================================================================
-template <typename Indexing>
+template <typename IndexOrder>
 class dynamic_multidim_size {
   //----------------------------------------------------------------------------
   // members
@@ -238,7 +238,7 @@ class dynamic_multidim_size {
   constexpr auto plain_index(Is const... is) const {
     assert(sizeof...(is) == num_dimensions());
     assert(in_range(is...));
-    return Indexing::plain_index(m_size, is...);
+    return IndexOrder::plain_index(m_size, is...);
   }
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 #ifdef __cpp_concepts
@@ -251,11 +251,11 @@ class dynamic_multidim_size {
                   "index range must hold integral type");
     assert(is.size() == num_dimensions());
     assert(in_range(is));
-    return Indexing::plain_index(m_size, is);
+    return IndexOrder::plain_index(m_size, is);
   }
   //----------------------------------------------------------------------------
   constexpr auto multi_index(size_t const gi) const {
-    return Indexing::multi_index(m_size, gi);
+    return IndexOrder::multi_index(m_size, gi);
   }
   //----------------------------------------------------------------------------
   constexpr auto indices() const {
@@ -266,12 +266,12 @@ class dynamic_multidim_size {
 // deduction guides
 //==============================================================================
 dynamic_multidim_size()->dynamic_multidim_size<x_fastest>;
-template <typename Indexing>
-dynamic_multidim_size(dynamic_multidim_size<Indexing> const&)
-    -> dynamic_multidim_size<Indexing>;
-template <typename Indexing>
-dynamic_multidim_size(dynamic_multidim_size<Indexing> &&)
-    -> dynamic_multidim_size<Indexing>;
+template <typename IndexOrder>
+dynamic_multidim_size(dynamic_multidim_size<IndexOrder> const&)
+    -> dynamic_multidim_size<IndexOrder>;
+template <typename IndexOrder>
+dynamic_multidim_size(dynamic_multidim_size<IndexOrder> &&)
+    -> dynamic_multidim_size<IndexOrder>;
 template <typename... Resolution>
 dynamic_multidim_size(Resolution...) -> dynamic_multidim_size<x_fastest>;
 //==============================================================================

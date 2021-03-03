@@ -4,7 +4,7 @@
 #ifdef __cpp_concepts
 #include <tatooine/concepts.h>
 #endif
-#include <tatooine/index_ordering.h>
+#include <tatooine/index_order.h>
 #include <tatooine/type_traits.h>
 #include <tatooine/linspace.h>
 #include <tatooine/multidim.h>
@@ -19,9 +19,9 @@
 //==============================================================================
 namespace tatooine {
 //==============================================================================
-template <typename T, typename Indexing, typename MemLoc, size_t... Resolution>
+template <typename T, typename IndexOrder, typename MemLoc, size_t... Resolution>
 class static_multidim_array
-    : public static_multidim_size<Indexing, Resolution...> {
+    : public static_multidim_size<IndexOrder, Resolution...> {
   //============================================================================
   // assertions
   //============================================================================
@@ -34,8 +34,8 @@ class static_multidim_array
   //============================================================================
  public:
   using value_type = T;
-  using this_t     = static_multidim_array<T, Indexing, MemLoc, Resolution...>;
-  using parent_t   = static_multidim_size<Indexing, Resolution...>;
+  using this_t     = static_multidim_array<T, IndexOrder, MemLoc, Resolution...>;
+  using parent_t   = static_multidim_size<IndexOrder, Resolution...>;
   using parent_t::in_range;
   using parent_t::indices;
   using parent_t::num_dimensions;
@@ -382,15 +382,15 @@ class static_multidim_array
 };
 
 //==============================================================================
-template <typename T, typename Indexing = x_fastest>
-class dynamic_multidim_array : public dynamic_multidim_size<Indexing> {
+template <typename T, typename IndexOrder = x_fastest>
+class dynamic_multidim_array : public dynamic_multidim_size<IndexOrder> {
   //============================================================================
   // typedefs
   //============================================================================
  public:
   using value_type = T;
-  using this_t     = dynamic_multidim_array<T, Indexing>;
-  using parent_t   = dynamic_multidim_size<Indexing>;
+  using this_t     = dynamic_multidim_array<T, IndexOrder>;
+  using parent_t   = dynamic_multidim_size<IndexOrder>;
   using parent_t::in_range;
   using parent_t::indices;
   using parent_t::num_dimensions;
@@ -1080,13 +1080,13 @@ class dynamic_multidim_array : public dynamic_multidim_size<Indexing> {
 //==============================================================================
 // deduction guides
 //==============================================================================
-template <typename T, typename Indexing>
-dynamic_multidim_array(dynamic_multidim_array<T, Indexing> const&)
-    -> dynamic_multidim_array<T, Indexing>;
+template <typename T, typename IndexOrder>
+dynamic_multidim_array(dynamic_multidim_array<T, IndexOrder> const&)
+    -> dynamic_multidim_array<T, IndexOrder>;
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-template <typename T, typename Indexing>
-dynamic_multidim_array(dynamic_multidim_array<T, Indexing> &&)
-    -> dynamic_multidim_array<T, Indexing>;
+template <typename T, typename IndexOrder>
+dynamic_multidim_array(dynamic_multidim_array<T, IndexOrder> &&)
+    -> dynamic_multidim_array<T, IndexOrder>;
 //----------------------------------------------------------------------------
 template <typename T, typename UInt>
 dynamic_multidim_array(std::vector<UInt> const&, T const& initial)
@@ -1112,15 +1112,15 @@ template <typename T, typename UInt, size_t N>
 dynamic_multidim_array(std::array<UInt, N> const&, std::vector<T> &&)
     -> dynamic_multidim_array<T, x_fastest>;
 //==============================================================================
-template <typename T, typename Indexing = x_fastest>
-class non_owning_multidim_array : public dynamic_multidim_size<Indexing> {
+template <typename T, typename IndexOrder = x_fastest>
+class non_owning_multidim_array : public dynamic_multidim_size<IndexOrder> {
   //============================================================================
   // typedefs
   //============================================================================
  public:
   using value_type = T;
-  using this_t     = non_owning_multidim_array<T, Indexing>;
-  using parent_t   = dynamic_multidim_size<Indexing>;
+  using this_t     = non_owning_multidim_array<T, IndexOrder>;
+  using parent_t   = dynamic_multidim_size<IndexOrder>;
   using parent_t::in_range;
   using parent_t::indices;
   using parent_t::num_dimensions;
@@ -1314,9 +1314,9 @@ auto interpolate(dynamic_multidim_array<T0, Indexing0> const& arr0,
                                   (t - ts.front()) / (ts.back() - ts.front()));
 }
 //#include "vtk_legacy.h"
-// template <typename T, typename Indexing, typename MemLoc, size_t...
+// template <typename T, typename IndexOrder, typename MemLoc, size_t...
 // Resolution> void write_vtk(
-//    static_multidim_array<T, Indexing, MemLoc, Resolution...> const& arr,
+//    static_multidim_array<T, IndexOrder, MemLoc, Resolution...> const& arr,
 //    std::string const& filepath, vec<double, 3> const& origin,
 //    vec<double, 3> const& spacing,
 //    std::string const&    data_name = "tatooine data") {
@@ -1336,8 +1336,8 @@ auto interpolate(dynamic_multidim_array<T0, Indexing0> const& arr0,
 //  }
 //}
 ////------------------------------------------------------------------------------
-// template <typename T, typename Indexing>
-// void write_vtk(dynamic_multidim_array<T, Indexing> const& arr,
+// template <typename T, typename IndexOrder>
+// void write_vtk(dynamic_multidim_array<T, IndexOrder> const& arr,
 //               std::string const& filepath, vec<double, 3> const& origin,
 //               vec<double, 3> const& spacing,
 //               std::string const&    data_name = "tatooine data") {
