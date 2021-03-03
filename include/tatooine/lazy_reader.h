@@ -2,15 +2,18 @@
 #define TATOOINE_LAZY_READER_H
 //==============================================================================
 #include <tatooine/chunked_multidim_array.h>
+#include <tatooine/index_order.h>
 #include <mutex>
 //==============================================================================
 namespace tatooine {
 //==============================================================================
-template <typename DataSet>
-struct lazy_reader : chunked_multidim_array<typename DataSet::value_type> {
-  using this_t     = lazy_reader<DataSet>;
+template <typename DataSet, typename GlobalIndexOrder = x_fastest,
+          typename LocalIndexOrder = GlobalIndexOrder>
+struct lazy_reader
+    : chunked_multidim_array<typename DataSet::value_type, GlobalIndexOrder, LocalIndexOrder> {
+  using this_t     = lazy_reader<DataSet, GlobalIndexOrder, LocalIndexOrder>;
   using value_type = typename DataSet::value_type;
-  using parent_t   = chunked_multidim_array<value_type>;
+  using parent_t   = chunked_multidim_array<value_type, GlobalIndexOrder, LocalIndexOrder>;
   using parent_t::chunk_at;
 
   static auto default_value() -> value_type& {
@@ -28,9 +31,7 @@ struct lazy_reader : chunked_multidim_array<typename DataSet::value_type> {
 
  public:
   lazy_reader(DataSet const& file, std::vector<size_t> chunk_size)
-      : chunked_multidim_array<value_type>{std::vector<size_t>(
-                                               chunk_size.size(), 0),
-                                           chunk_size},
+      : parent_t{std::vector<size_t>(chunk_size.size(), 0), chunk_size},
         m_dataset{file} {
     init(std::move(chunk_size));
   }
@@ -46,7 +47,9 @@ struct lazy_reader : chunked_multidim_array<typename DataSet::value_type> {
   void init(std::vector<size_t> chunk_size) {
     std::lock_guard lock{m_mutex};
     auto s = m_dataset.size();
-    std::reverse(begin(s), end(s));
+    if constexpr (is_same<GlobalIndexOrder, x_fastest>) {
+      std::reverse(begin(s), end(s));
+    }
     this->resize(s, chunk_size);
     if constexpr (is_arithmetic<value_type>) {
       m_read.resize(this->num_chunks(), false);

@@ -939,20 +939,23 @@ class grid {
   //      name, std::forward<F>(f));
   //}
   //----------------------------------------------------------------------------
-  template <typename T>
+  template <typename T, typename GlobalIndexOrder = x_fastest,
+            typename LocalIndexOrder = GlobalIndexOrder>
   auto add_lazy_vertex_property(filesystem::path const& path,
-                         std::string const&           dataset_name)
+                                std::string const&      dataset_name)
       -> typed_property_t<T, false>& {
     auto const ext = path.extension();
 #ifdef TATOOINE_HDF5_AVAILABLE
     if (ext == ".h5") {
-      return add_hdf5_lazy_vertex_property<T>(path, dataset_name);
+      return add_hdf5_lazy_vertex_property<T, GlobalIndexOrder,
+                                           LocalIndexOrder>(path, dataset_name);
     }
 #endif
 #ifdef TATOOINE_NETCDF_AVAILABLE
     if (ext == ".nc") {
-
-      return add_netcdf_lazy_vertex_property<T>(path, dataset_name);
+      return add_netcdf_lazy_vertex_property<T, GlobalIndexOrder,
+                                             LocalIndexOrder>(path,
+                                                              dataset_name);
     }
 #endif
     throw std::runtime_error{
@@ -996,19 +999,23 @@ class grid {
     return prop;
   }
   //----------------------------------------------------------------------------
-  template <typename T>
+  template <typename T, typename GlobalIndexOrder = x_fastest,
+            typename LocalIndexOrder = GlobalIndexOrder>
   auto add_hdf5_lazy_vertex_property(filesystem::path const& path,
                                      std::string const& dataset_name) -> auto& {
     hdf5::file f{path};
-    return add_lazy_vertex_property<T>(f.dataset<T>(dataset_name));
+    return add_lazy_vertex_property<GlobalIndexOrder, LocalIndexOrder>(f.dataset<T>(dataset_name));
   }
   //----------------------------------------------------------------------------
-  template <typename T>
+  template <typename GlobalIndexOrder = x_fastest,
+            typename LocalIndexOrder  = GlobalIndexOrder, typename T>
   auto add_lazy_vertex_property(hdf5::dataset<T> const& dataset) -> auto& {
-    return add_lazy_vertex_property(dataset, dataset.name());
+    return add_lazy_vertex_property<GlobalIndexOrder, LocalIndexOrder>(
+        dataset, dataset.name());
   }
   //----------------------------------------------------------------------------
-  template <typename T>
+  template <typename GlobalIndexOrder = x_fastest,
+            typename LocalIndexOrder  = GlobalIndexOrder, typename T>
   auto add_lazy_vertex_property(hdf5::dataset<T> const& dataset,
                                 std::string const&      name) -> auto& {
     auto num_dims_dataset = dataset.num_dimensions();
@@ -1017,7 +1024,9 @@ class grid {
           "Number of dimensions do not match for HDF5 dataset and grid."};
     }
     auto size_dataset = dataset.size();
-    std::reverse(begin(size_dataset), end(size_dataset));
+    if constexpr (is_same<x_fastest, GlobalIndexOrder>) {
+      std::reverse(begin(size_dataset), end(size_dataset));
+    }
     for (size_t i = 0; i < num_dimensions(); ++i) {
       if (size_dataset[i] != size(i)) {
         std::stringstream ss;
@@ -1034,22 +1043,28 @@ class grid {
         throw std::runtime_error{ss.str()};
       }
     }
-    return create_vertex_property<lazy_reader<hdf5::dataset<T>>>(
+    return create_vertex_property<
+        lazy_reader<hdf5::dataset<T>, GlobalIndexOrder, LocalIndexOrder>>(
         name, dataset, std::vector<size_t>(num_dimensions(), 16));
   }
 #endif
 #ifdef TATOOINE_NETCDF_AVAILABLE
   //----------------------------------------------------------------------------
-  template <typename T>
+  template <typename T, typename GlobalIndexOrder = x_fastest,
+            typename LocalIndexOrder = GlobalIndexOrder>
   auto add_netcdf_lazy_vertex_property(filesystem::path const& path,
-                                std::string const& dataset_name) -> auto& {
+                                       std::string const&      dataset_name)
+      -> auto& {
     netcdf::file f{path, netCDF::NcFile::read};
-    return add_lazy_vertex_property<T>(f.variable<T>(dataset_name));
+    return add_lazy_vertex_property<GlobalIndexOrder, LocalIndexOrder, T>(
+        f.variable<T>(dataset_name));
   }
   //----------------------------------------------------------------------------
-  template <typename T>
+  template <typename GlobalIndexOrder = x_fastest,
+            typename LocalIndexOrder  = GlobalIndexOrder, typename T>
   auto add_lazy_vertex_property(netcdf::variable<T> const& dataset) -> auto& {
-    return create_vertex_property<lazy_reader<netcdf::variable<T>>>(
+    return create_vertex_property<
+        lazy_reader<netcdf::variable<T>, GlobalIndexOrder, LocalIndexOrder>>(
         dataset.name(), dataset, std::vector<size_t>{2, 2});
   }
 #endif

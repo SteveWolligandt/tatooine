@@ -21,19 +21,22 @@
 //==============================================================================
 namespace tatooine {
 //==============================================================================
-template <typename T, typename Indexing = x_fastest>
+template <typename T, typename GlobalIndexOrder = x_fastest,
+          typename LocalIndexOrder = GlobalIndexOrder>
 struct chunked_multidim_array {
   //============================================================================
   using value_type        = T;
-  using this_t            = chunked_multidim_array<T, Indexing>;
-  using chunk_t           = dynamic_multidim_array<T, Indexing>;
+  using this_t            = chunked_multidim_array<T, GlobalIndexOrder, LocalIndexOrder>;
+  using chunk_t           = dynamic_multidim_array<T, LocalIndexOrder>;
   using chunk_ptr_t       = std::unique_ptr<chunk_t>;
   using chunk_ptr_field_t = std::vector<chunk_ptr_t>;
+  using global_index_order_t = GlobalIndexOrder;
+  using local_index_order_t  = LocalIndexOrder;
   //----------------------------------------------------------------------------
  private:
-  dynamic_multidim_size<Indexing> m_data_structure;
-  std::vector<size_t>             m_internal_chunk_size;
-  dynamic_multidim_size<Indexing> m_chunk_structure;
+  dynamic_multidim_size<GlobalIndexOrder> m_data_structure;
+  std::vector<size_t>               m_internal_chunk_size;
+  dynamic_multidim_size<LocalIndexOrder> m_chunk_structure;
 
  protected:
   mutable chunk_ptr_field_t m_chunks;

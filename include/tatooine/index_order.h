@@ -1,14 +1,14 @@
-#ifndef TATOOINE_INDEX_ORDERING_H
-#define TATOOINE_INDEX_ORDERING_H
+#ifndef TATOOINE_INDEX_ORDER_H
+#define TATOOINE_INDEX_ORDER_H
 //==============================================================================
 #include <array>
 #include <boost/range/adaptor/reversed.hpp>
 #include <numeric>
 #include <vector>
 
-#include "concepts.h"
-#include "type_traits.h"
-#include "utility.h"
+#include <tatooine/concepts.h>
+#include <tatooine/type_traits.h>
+#include <tatooine/utility.h>
 //==============================================================================
 namespace tatooine {
 //==============================================================================

@@ -72,18 +72,22 @@ TEST_CASE("lazy_reader_hdf5", "[lazy_reader][hdf5]") {
 
   auto in     = hdf5::file{filepath};
   auto arr_in = in.dataset<value_type>(array_name);
-  auto arr_lazy = arr_in.read_lazy({2, 2, 2});
-  arr_lazy.set_max_num_chunks_loaded(8);
-  //arr_lazy.limit_num_chunks_loaded();
+  auto arr_lazy_x_fastest = arr_in.read_lazy<x_fastest>({2, 8, 4});
+  auto arr_lazy_x_slowest = arr_in.read_lazy<x_slowest>({2, 4, 4});
+  REQUIRE(arr_lazy_x_slowest.size(0) == arr_lazy_x_fastest.size(2));
+  REQUIRE(arr_lazy_x_slowest.size(2) == arr_lazy_x_fastest.size(0));
+  arr_lazy_x_fastest.set_max_num_chunks_loaded(8);
+  //arr_lazy_x_fastest.limit_num_chunks_loaded();
 
   for (size_t i = 0; i < 3; ++i) {
-    //#pragma omp parallel for collapse(3)
+    #pragma omp parallel for collapse(3)
     for (size_t z = 0; z < full_size[2]; ++z) {
       for (size_t y = 0; y < full_size[1]; ++y) {
         for (size_t x = 0; x < full_size[0]; ++x) {
           auto const j = x + y * full_size[0] + z * full_size[0] * full_size[1];
           // CAPTURE(i, j, x, y, z);
-          REQUIRE(data_src[j] == arr_lazy(x, y, z));
+          REQUIRE(data_src[j] == arr_lazy_x_fastest(x, y, z));
+          REQUIRE(arr_lazy_x_fastest(x, y, z) == arr_lazy_x_slowest(z, y, x));
         }
       }
     }

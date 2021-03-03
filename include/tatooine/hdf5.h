@@ -173,13 +173,14 @@ class dataset {
   }
   //----------------------------------------------------------------------------
 #ifdef __cpp_concepts
-  template <integral... Is>
+  template <typename IndexOrder = x_fastest, integral... Is>
 #else
-  template <typename... Is, enable_if<is_arithmetic<Is...>> = true>
+  template <typename IndexOrder             = x_fastest, typename... Is,
+            enable_if<is_arithmetic<Is...>> = true>
 #endif
   auto write(T const& data, Is const... is) -> void {
-    write(&data, std::vector<hsize_t>{static_cast<hsize_t>(is)...},
-          std::vector<hsize_t>(sizeof...(Is), 1));
+    write<IndexOrder>(&data, std::vector<hsize_t>{static_cast<hsize_t>(is)...},
+                      std::vector<hsize_t>(sizeof...(Is), 1));
   }
   //----------------------------------------------------------------------------
   auto write(T const& data, std::vector<size_t> const& offset) -> void {
@@ -208,6 +209,7 @@ class dataset {
     write(data.data(), std::move(offset), std::move(count));
   }
   //----------------------------------------------------------------------------
+  template <typename IndexOrder = x_fastest>
   auto write(T const* data, std::vector<hsize_t> offset,
              std::vector<hsize_t> count) -> void {
     std::lock_guard lock{*m_mutex};
@@ -216,8 +218,10 @@ class dataset {
     hid_t      dspace = H5Dget_space(*m_dataset_id);
     auto const rank   = H5Sget_simple_extent_ndims(dspace);
     auto       size   = std::make_unique<hsize_t[]>(rank);
-    std::reverse(begin(count), end(count));
-    std::reverse(begin(offset), end(offset));
+    if constexpr (is_same<x_fastest, IndexOrder>) {
+      std::reverse(begin(count), end(count));
+      std::reverse(begin(offset), end(offset));
+    }
     H5Sselect_hyperslab(dspace, H5S_SELECT_SET, offset.data(), nullptr,
                         count.data(), nullptr);
     auto memspace = H5Screate_simple(rank, count.data(), nullptr);
@@ -225,21 +229,25 @@ class dataset {
              data);
   }
   //----------------------------------------------------------------------------
+  template <typename IndexOrder = x_fastest>
   auto read() const {
-    dynamic_multidim_array<T, x_fastest> arr;
+    dynamic_multidim_array<T, IndexOrder> arr;
     read(arr);
     return arr;
   }
   //----------------------------------------------------------------------------
-  auto read(dynamic_multidim_array<T, x_fastest>& arr) const {
+  template <typename IndexOrder>
+  auto read(dynamic_multidim_array<T, IndexOrder>& arr) const {
     hid_t      dspace = H5Dget_space(*m_dataset_id);
     auto const num_dims      = H5Sget_simple_extent_ndims(dspace);
     auto       size   = std::make_unique<hsize_t[]>(num_dims);
     H5Sget_simple_extent_dims(dspace, size.get(), nullptr);
-    std::reverse(size.get(), size.get() + num_dims);
+    if constexpr (is_same<IndexOrder, x_fastest>) {
+      std::reverse(size.get(), size.get() + num_dims);
+    }
     bool must_resize = num_dims != arr.num_dimensions();
     if (!must_resize) {
-      for (size_t i = 0; i < num_dims; ++i) {
+      for (int i = 0; i < num_dims; ++i) {
         if (arr.size(i) != size[i]) {
           must_resize = true;
           break;
@@ -279,39 +287,39 @@ class dataset {
             data.data());
   }
   //----------------------------------------------------------------------------
-  template <typename Ordering>
+  template <typename IndexOrder>
   auto read_chunk(std::vector<size_t> const&            offset,
                   std::vector<size_t> const&            count,
-                  dynamic_multidim_array<T, Ordering>& arr) const {
+                  dynamic_multidim_array<T, IndexOrder>& arr) const {
     read_chunk(std::vector<hsize_t>(begin(offset), end(offset)),
                std::vector<hsize_t>(begin(count), end(count)), arr);
     return arr;
   }
   //----------------------------------------------------------------------------
-  template <typename Ordering = x_fastest>
+  template <typename IndexOrder = x_fastest>
   auto read_chunk(std::vector<size_t> const& offset,
                   std::vector<size_t> const& count) const {
-    return read_chunk<Ordering>(
+    return read_chunk<IndexOrder>(
         std::vector<hsize_t>(begin(offset), end(offset)),
         std::vector<hsize_t>(begin(count), end(count)));
   }
   //----------------------------------------------------------------------------
-  template <typename Ordering = x_fastest>
+  template <typename IndexOrder = x_fastest>
   auto read_chunk(std::vector<hsize_t> const& offset,
                   std::vector<hsize_t> const& count) const {
-    dynamic_multidim_array<T, Ordering> arr;
+    dynamic_multidim_array<T, IndexOrder> arr;
     read_chunk(offset, count, arr);
     return arr;
   }
   //----------------------------------------------------------------------------
-  template <typename Ordering>
+  template <typename IndexOrder>
   auto read_chunk(std::vector<hsize_t> offset, std::vector<hsize_t> count,
-                  dynamic_multidim_array<T, Ordering>& arr) const {
+                  dynamic_multidim_array<T, IndexOrder>& arr) const {
     std::lock_guard lock{*m_mutex};
     assert(offset.size() == count.size());
 
     hid_t      dspace = H5Dget_space(*m_dataset_id);
-    auto const rank      = H5Sget_simple_extent_ndims(dspace);
+    auto const rank   = H5Sget_simple_extent_ndims(dspace);
     auto       size   = std::make_unique<hsize_t[]>(rank);
     if (static_cast<unsigned int>(rank) != arr.num_dimensions()) {
       arr.resize(count);
@@ -323,8 +331,10 @@ class dataset {
         }
       }
     }
-    std::reverse(begin(count), end(count));
-    std::reverse(begin(offset), end(offset));
+    if constexpr (is_same<IndexOrder, x_fastest>) {
+      std::reverse(begin(count), end(count));
+      std::reverse(begin(offset), end(offset));
+    }
     H5Sselect_hyperslab(dspace, H5S_SELECT_SET, offset.data(), nullptr,
                         count.data(), nullptr);
     auto memspace = H5Screate_simple(rank, count.data(), nullptr);
@@ -349,8 +359,9 @@ class dataset {
     return std::vector<size_t>(size.get(), size.get() + num_dims);
   }
   //----------------------------------------------------------------------------
+  template <typename IndexOrder = x_fastest>
   auto read_lazy(std::vector<size_t> const& chunk_size) {
-    return lazy_reader<this_t>{*this, chunk_size};
+    return lazy_reader<this_t, IndexOrder>{*this, chunk_size};
   }
   //----------------------------------------------------------------------------
   auto name() const -> auto const& { return m_name; }
@@ -461,14 +472,16 @@ class file {
   //}
   //============================================================================
 #ifdef __cpp_concepts
-  template <typename T, integral... Size>
+  template <typename T, typename IndexOrder = x_fastest, integral... Size>
 #else
-  template <typename T, typename... Size,
+  template <typename T, typename IndexOrder = x_fastest, typename... Size,
             enable_if<is_integral<Size...>> = true>
 #endif
   auto add_dataset(std::string const& dataset_name, Size... size) {
     hsize_t dimsf[]{static_cast<hsize_t>(size)...};  // data set dimensions
-    std::reverse(dimsf, dimsf + sizeof...(Size));
+    if constexpr (is_same<x_fastest, IndexOrder>) {
+      std::reverse(dimsf, dimsf + sizeof...(Size));
+    }
     return hdf5::dataset<T>{
         m_mutex, m_file_id,
         H5Dcreate2(*m_file_id, dataset_name.c_str(), H5T_STD_I32BE,
