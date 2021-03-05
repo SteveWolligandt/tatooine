@@ -24,7 +24,7 @@ struct lazy_reader
  private:
   DataSet                     m_dataset;
   mutable std::vector<bool>   m_read;
-  mutable std::vector<size_t> m_chunks_loaded;
+  mutable std::list<size_t>   m_chunks_loaded;
   size_t                      m_max_num_chunks_loaded   = 1024;
   bool                        m_limit_num_chunks_loaded = false;
   mutable std::mutex          m_mutex;
@@ -37,19 +37,17 @@ struct lazy_reader
   }
   //----------------------------------------------------------------------------
   lazy_reader(lazy_reader const& other)
-      : parent_t{other}, m_dataset{other.m_dataset} {
-    if constexpr (is_arithmetic<value_type>) {
-      m_read.resize(this->num_chunks(), false);
-    }
+      : parent_t{other},
+        m_dataset{other.m_dataset},
+        m_read{other.m_read},
+        m_max_num_chunks_loaded{other.m_max_num_chunks_loaded},
+        m_limit_num_chunks_loaded{other.m_limit_num_chunks_loaded} {
   }
   //----------------------------------------------------------------------------
  private:
   void init(std::vector<size_t> chunk_size) {
     std::lock_guard lock{m_mutex};
     auto s = m_dataset.size();
-    if constexpr (is_same<GlobalIndexOrder, x_fastest>) {
-      std::reverse(begin(s), end(s));
-    }
     this->resize(s, chunk_size);
     if constexpr (is_arithmetic<value_type>) {
       m_read.resize(this->num_chunks(), false);
@@ -84,9 +82,9 @@ struct lazy_reader
       // keep the number of loaded chunks between max_num_chunks_loaded/2 and
       // max_num_chunks_loaded
       if (m_limit_num_chunks_loaded &&
-          size(m_chunks_loaded) > m_max_num_chunks_loaded) {
+          num_chunks_loaded() > 0) {
         auto const it_begin = begin(m_chunks_loaded);
-        auto const it_end   = it_begin + (m_max_num_chunks_loaded / 2);
+        auto const it_end   = next(it_begin, m_max_num_chunks_loaded / 2);
         for (auto it = it_begin; it != it_end; ++it) {
           m_read[*it] = false;
           this->destroy_chunk_at(*it);
@@ -107,6 +105,11 @@ struct lazy_reader
       //    this->destroy_chunk_at(plain_index);
       //  }
       //}
+    } else {
+      // this will move the current adressed chunked at the end of loaded chunks
+      m_chunks_loaded.splice(
+          end(m_chunks_loaded), m_chunks_loaded,
+          std::find(begin(m_chunks_loaded), end(m_chunks_loaded), plain_index));
     }
     return this->chunk_at(plain_index);
   }
@@ -193,6 +196,10 @@ struct lazy_reader
   //----------------------------------------------------------------------------
   auto limit_num_chunks_loaded(bool const l = true) {
     m_limit_num_chunks_loaded = l;
+  }
+  //----------------------------------------------------------------------------
+  auto num_chunks_loaded() const {
+    return size(m_chunks_loaded);
   }
 };
 //==============================================================================

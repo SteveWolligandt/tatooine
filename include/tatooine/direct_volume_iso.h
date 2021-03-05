@@ -1,5 +1,5 @@
-#ifndef TATOOINE_DIRECT_VOLUME_RENDERING_H
-#define TATOOINE_DIRECT_VOLUME_RENDERING_H
+#ifndef TATOOINE_DIRECT_VOLUME_ISO_H
+#define TATOOINE_DIRECT_VOLUME_ISO_H
 //==============================================================================
 #include <omp.h>
 #include <tatooine/demangling.h>

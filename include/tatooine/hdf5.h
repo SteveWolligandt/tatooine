@@ -4,15 +4,15 @@
 //==============================================================================
 #include <hdf5.h>
 #include <tatooine/chunked_multidim_array.h>
-#include <tatooine/lazy_reader.h>
 #include <tatooine/concepts.h>
+#include <tatooine/filesystem.h>
+#include <tatooine/lazy_reader.h>
 #include <tatooine/multidim.h>
 #include <tatooine/multidim_array.h>
 
+#include <boost/range/algorithm/reverse.hpp>
 #include <cassert>
-#include <tatooine/filesystem.h>
 #include <memory>
-#include <mutex>
 #include <numeric>
 #include <vector>
 //==============================================================================
@@ -21,6 +21,10 @@ namespace tatooine::hdf5 {
 template <typename T>
 struct h5_type;
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+template <>
+struct h5_type<char> {
+  static auto value() { return H5T_NATIVE_CHAR; }
+};
 template <>
 struct h5_type<int> {
   static auto value() { return H5T_NATIVE_INT; }
@@ -51,21 +55,21 @@ struct h5_type<tensor<T, Dims...>> {
   static auto value() { return h5_type<T>::value(); }
 };
 //==============================================================================
-//class attribute {
+// class attribute {
 // public:
 //  using this_t = attribute;
 //
 // private:
 //  mutable std::shared_ptr<H5::H5File> m_file_id;
-//  mutable std::shared_ptr<std::mutex> m_mutex;
 //  H5::Attribute                       m_attribute;
 //  std::string                         m_name;
 //
 // public:
 //  attribute(std::shared_ptr<H5::H5File>& file_id,
-//            std::shared_ptr<std::mutex>& mutex, H5::Attribute const& attribute,
-//            std::string const& name)
-//      : m_file_im_file_id{file_id}, m_mutex{mutex}, m_attribute{attribute}, m_name{name} {}
+//            H5::Attribute const&
+//            attribute, std::string const& name)
+//      : m_file_im_file_id{file_id}, m_attribute{attribute},
+//      m_name{name} {}
 //  //----------------------------------------------------------------------------
 //  attribute(attribute const&)     = default;
 //  attribute(attribute&&) noexcept = default;
@@ -90,25 +94,50 @@ class dataset {
   using value_type = T;
 
  private:
-  mutable std::shared_ptr<std::mutex> m_mutex;
   std::unique_ptr<hid_t>              m_file_id;
   std::unique_ptr<hid_t>              m_dataset_id;
   std::string                         m_name;
   //============================================================================
  public:
-  dataset(std::shared_ptr<std::mutex>&  mutex,
-          std::unique_ptr<hid_t> const& file_id, hid_t const dataset_id,
+  dataset(std::unique_ptr<hid_t> const& file_id, hid_t const dataset_id,
           std::string const& name)
-      : m_mutex{mutex},
-        m_file_id{std::make_unique<hid_t>(*file_id)},
+      : m_file_id{std::make_unique<hid_t>(*file_id)},
         m_dataset_id{std::make_unique<hid_t>(dataset_id)},
         m_name{name} {
     H5Iinc_ref(*m_file_id);
+    // std::cout << name << "\n";
+    // auto const num_attrs =
+    //    static_cast<unsigned int>(H5Aget_num_attrs(*m_dataset_id));
+    // for (unsigned int i = 0; i < num_attrs; ++i) {
+    //  auto attr_id = H5Aopen_idx(*m_dataset_id, i);
+    //
+    //  auto        name_size = H5Aget_name(attr_id, 0, nullptr);
+    //  std::string name;
+    //  name.resize(name_size);
+    //  H5Aget_name(attr_id, name_size + 1, &name[0]);
+    //
+    //  std::cout << "  " << name << '\n';
+    //  auto const type_id = H5Aget_type(attr_id);
+    //  if (name == "vsIndexOrder" && H5Tget_class(type_id) == H5T_STRING) {
+    //    auto const size = H5Tget_size(type_id);
+    //
+    //    std::string val;
+    //    val.resize(size);
+    //    H5Aread(attr_id, H5Tget_native_type(type_id, H5T_DIR_ASCEND),
+    //    &val[0]);
+    //    // std::cout << "    " << val << '\n';
+    //
+    //    if (val == "compMinorF") {
+    //      m_index_order = index_order::Fortran;
+    //    }
+    //  }
+    //  H5Tclose(type_id);
+    //  H5Aclose(attr_id);
+    //}
   }
   //----------------------------------------------------------------------------
   dataset(dataset const& other)
-      : m_mutex{other.m_mutex},
-        m_file_id{std::make_unique<hid_t>(*other.m_file_id)},
+      : m_file_id{std::make_unique<hid_t>(*other.m_file_id)},
         m_dataset_id{std::make_unique<hid_t>(*other.m_dataset_id)},
         m_name{other.m_name} {
     H5Iinc_ref(*m_file_id);
@@ -117,8 +146,7 @@ class dataset {
   //----------------------------------------------------------------------------
   dataset(dataset&&) noexcept = default;
   //----------------------------------------------------------------------------
-  auto operator=(dataset const&other) -> dataset& {
-    m_mutex      = other.m_mutex;
+  auto operator=(dataset const& other) -> dataset& {
     if (m_file_id != nullptr) {
       H5Fclose(*m_file_id);
     }
@@ -145,20 +173,17 @@ class dataset {
   }
   //============================================================================
   auto write(T const* data) {
-    std::lock_guard lock{*m_mutex};
-     H5Dwrite(*m_dataset_id, h5_type<T>::value(), H5S_ALL, H5S_ALL, H5P_DEFAULT,
-              data);
+    H5Dwrite(*m_dataset_id, h5_type<T>::value(), H5S_ALL, H5S_ALL, H5P_DEFAULT,
+             data);
   }
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
   auto write(std::vector<T> const& data) {
-    std::lock_guard lock{*m_mutex};
     H5Dwrite(*m_dataset_id, h5_type<T>::value(), H5S_ALL, H5S_ALL, H5P_DEFAULT,
              data.data());
   }
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
   template <size_t N>
   auto write(std::array<T, N> const& data) {
-    std::lock_guard lock{*m_mutex};
     H5Dwrite(*m_dataset_id, h5_type<T>::value(), H5S_ALL, H5S_ALL, H5P_DEFAULT,
              data.data());
   }
@@ -171,7 +196,31 @@ class dataset {
   auto write(Range r) {
     write(std::vector(begin(r), end(r)));
   }
-  //----------------------------------------------------------------------------
+//----------------------------------------------------------------------------
+#ifdef __cpp_concepts
+  template <typename IndexOrder>
+#else
+  template <typename IndexOrder>
+#endif
+  auto write(dynamic_multidim_array<T, IndexOrder> const& data) -> void {
+    write(data.data_ptr());
+  }
+//  //----------------------------------------------------------------------------
+//#ifdef __cpp_concepts
+//  template <typename IndexOrder, integral... Is>
+//#else
+//  template <typename IndexOrder, typename... Is,
+//            enable_if<is_arithmetic<Is...>> = true>
+//#endif
+//  auto write(dynamic_multidim_array<T, IndexOrder> const& data, Is const...
+//  is)
+//      -> void {
+//    auto const s = data.size();
+//    write<IndexOrder>(data.data_ptr(),
+//                      std::vector<hsize_t>{static_cast<hsize_t>(is)...},
+//                      std::vector<hsize_t>(begin(s), end(s)));
+//  }
+//----------------------------------------------------------------------------
 #ifdef __cpp_concepts
   template <typename IndexOrder = x_fastest, integral... Is>
 #else
@@ -204,29 +253,27 @@ class dataset {
           std::vector<hsize_t>(begin(count), end(count)));
   }
   //----------------------------------------------------------------------------
-  auto write(std::vector<T> const& data, std::vector<hsize_t>  offset,
-             std::vector<hsize_t>  count) -> void {
+  auto write(std::vector<T> const& data, std::vector<hsize_t> offset,
+             std::vector<hsize_t> count) -> void {
     write(data.data(), std::move(offset), std::move(count));
   }
   //----------------------------------------------------------------------------
   template <typename IndexOrder = x_fastest>
   auto write(T const* data, std::vector<hsize_t> offset,
              std::vector<hsize_t> count) -> void {
-    std::lock_guard lock{*m_mutex};
     assert(offset.size() == count.size());
 
     hid_t      dspace = H5Dget_space(*m_dataset_id);
     auto const rank   = H5Sget_simple_extent_ndims(dspace);
-    auto       size   = std::make_unique<hsize_t[]>(rank);
-    if constexpr (is_same<x_fastest, IndexOrder>) {
-      std::reverse(begin(count), end(count));
-      std::reverse(begin(offset), end(offset));
-    }
+    boost::reverse(offset);
+    boost::reverse(count);
     H5Sselect_hyperslab(dspace, H5S_SELECT_SET, offset.data(), nullptr,
                         count.data(), nullptr);
     auto memspace = H5Screate_simple(rank, count.data(), nullptr);
     H5Dwrite(*m_dataset_id, h5_type<T>::value(), memspace, dspace, H5P_DEFAULT,
              data);
+    H5Sclose(memspace);
+    H5Sclose(dspace);
   }
   //----------------------------------------------------------------------------
   template <typename IndexOrder = x_fastest>
@@ -238,14 +285,12 @@ class dataset {
   //----------------------------------------------------------------------------
   template <typename IndexOrder>
   auto read(dynamic_multidim_array<T, IndexOrder>& arr) const {
-    hid_t      dspace = H5Dget_space(*m_dataset_id);
-    auto const num_dims      = H5Sget_simple_extent_ndims(dspace);
-    auto       size   = std::make_unique<hsize_t[]>(num_dims);
+    hid_t      dspace   = H5Dget_space(*m_dataset_id);
+    auto const num_dims = H5Sget_simple_extent_ndims(dspace);
+    auto       size     = std::make_unique<hsize_t[]>(num_dims);
     H5Sget_simple_extent_dims(dspace, size.get(), nullptr);
-    if constexpr (is_same<IndexOrder, x_fastest>) {
-      std::reverse(size.get(), size.get() + num_dims);
-    }
-    bool must_resize = num_dims != arr.num_dimensions();
+    std::reverse(size.get(), size.get() + num_dims);
+    bool must_resize = (unsigned int)num_dims != arr.num_dimensions();
     if (!must_resize) {
       for (int i = 0; i < num_dims; ++i) {
         if (arr.size(i) != size[i]) {
@@ -258,9 +303,9 @@ class dataset {
       arr.resize(std::vector<size_t>(size.get(), size.get() + num_dims));
     }
 
-    std::lock_guard lock{*m_mutex};
     H5Dread(*m_dataset_id, h5_type<T>::value(), H5S_ALL, H5S_ALL, H5P_DEFAULT,
             arr.data_ptr());
+    H5Sclose(dspace);
   }
   //----------------------------------------------------------------------------
   auto read_as_vector() const {
@@ -269,27 +314,29 @@ class dataset {
     return data;
   }
   //----------------------------------------------------------------------------
+  template <typename IndexOrder = x_fastest>
   auto read(std::vector<T>& data) const {
-    hid_t      dspace = H5Dget_space(*m_dataset_id);
-    auto const num_dims      = H5Sget_simple_extent_ndims(dspace);
-    auto       size   = std::make_unique<hsize_t[]>(num_dims);
+    hid_t      dspace   = H5Dget_space(*m_dataset_id);
+    auto const num_dims = H5Sget_simple_extent_ndims(dspace);
+    auto       size     = std::make_unique<hsize_t[]>(num_dims);
     H5Sget_simple_extent_dims(dspace, size.get(), nullptr);
+    std::reverse(size.get(), size.get() + num_dims);
     size_t num_entries = 1;
-    for (size_t i = 0; i < num_dims; ++i) {
+    for (int i = 0; i < num_dims; ++i) {
       num_entries *= size[i];
     }
     if (data.size() != num_entries) {
       data.resize(num_entries);
     }
 
-    std::lock_guard lock{*m_mutex};
     H5Dread(*m_dataset_id, h5_type<T>::value(), H5S_ALL, H5S_ALL, H5P_DEFAULT,
             data.data());
+    H5Sclose(dspace);
   }
   //----------------------------------------------------------------------------
   template <typename IndexOrder>
-  auto read_chunk(std::vector<size_t> const&            offset,
-                  std::vector<size_t> const&            count,
+  auto read_chunk(std::vector<size_t> const&             offset,
+                  std::vector<size_t> const&             count,
                   dynamic_multidim_array<T, IndexOrder>& arr) const {
     read_chunk(std::vector<hsize_t>(begin(offset), end(offset)),
                std::vector<hsize_t>(begin(count), end(count)), arr);
@@ -315,12 +362,11 @@ class dataset {
   template <typename IndexOrder>
   auto read_chunk(std::vector<hsize_t> offset, std::vector<hsize_t> count,
                   dynamic_multidim_array<T, IndexOrder>& arr) const {
-    std::lock_guard lock{*m_mutex};
     assert(offset.size() == count.size());
 
     hid_t      dspace = H5Dget_space(*m_dataset_id);
     auto const rank   = H5Sget_simple_extent_ndims(dspace);
-    auto       size   = std::make_unique<hsize_t[]>(rank);
+
     if (static_cast<unsigned int>(rank) != arr.num_dimensions()) {
       arr.resize(count);
     } else {
@@ -331,32 +377,65 @@ class dataset {
         }
       }
     }
-    if constexpr (is_same<IndexOrder, x_fastest>) {
-      std::reverse(begin(count), end(count));
-      std::reverse(begin(offset), end(offset));
-    }
+    boost::reverse(offset);
+    boost::reverse(count);
     H5Sselect_hyperslab(dspace, H5S_SELECT_SET, offset.data(), nullptr,
                         count.data(), nullptr);
+
     auto memspace = H5Screate_simple(rank, count.data(), nullptr);
     H5Dread(*m_dataset_id, h5_type<T>::value(), memspace, dspace, H5P_DEFAULT,
             arr.data_ptr());
+    H5Sclose(dspace);
+    H5Sclose(memspace);
     return arr;
   }
   //----------------------------------------------------------------------------
-  auto num_dimensions() const {
-    return H5Sget_simple_extent_ndims(H5Dget_space(*m_dataset_id));
-  }
-  //----------------------------------------------------------------------------
-  auto size(size_t i) const {
-    return size()[i];
-  }
-  //----------------------------------------------------------------------------
-  auto size() const {
+#ifdef __cpp_concepts
+  template <integral... Is>
+#else
+  template <typename... Is, enable_if<is_integral<Is...>> = true>
+#endif
+  auto read(Is const... is) const {
+    std::vector<hsize_t> offset{static_cast<hsize_t>(is)...};
+    std::vector<hsize_t> count(sizeof...(Is), 1);
+
     hid_t      dspace = H5Dget_space(*m_dataset_id);
-    auto const num_dims      = H5Sget_simple_extent_ndims(dspace);
-    auto       size   = std::make_unique<hsize_t[]>(num_dims);
+    auto const rank   = H5Sget_simple_extent_ndims(dspace);
+    auto       size   = std::make_unique<hsize_t[]>(rank);
+    boost::reverse(offset);
+    H5Sselect_hyperslab(dspace, H5S_SELECT_SET, offset.data(), nullptr,
+                        count.data(), nullptr);
+    auto memspace = H5Screate_simple(rank, count.data(), nullptr);
+    T    data;
+    H5Dread(*m_dataset_id, h5_type<T>::value(), memspace, dspace, H5P_DEFAULT,
+            &data);
+    H5Sclose(dspace);
+    H5Sclose(memspace);
+    return data;
+  }
+  //----------------------------------------------------------------------------
+  auto num_dimensions() const {
+    auto dspace = H5Dget_space(*m_dataset_id);
+    auto ndims  = H5Sget_simple_extent_ndims(dspace);
+    H5Sclose(dspace);
+    return ndims;
+  }
+  //----------------------------------------------------------------------------
+  template <typename IndexOrder = x_fastest>
+  auto size(size_t i) const {
+    return size<IndexOrder>()[i];
+  }
+  //----------------------------------------------------------------------------
+  template <typename IndexOrder = x_fastest>
+  auto size() const {
+    hid_t      dspace   = H5Dget_space(*m_dataset_id);
+    auto const num_dims = H5Sget_simple_extent_ndims(dspace);
+    auto       size     = std::make_unique<hsize_t[]>(num_dims);
     H5Sget_simple_extent_dims(dspace, size.get(), nullptr);
-    return std::vector<size_t>(size.get(), size.get() + num_dims);
+    std::vector<size_t> s(size.get(), size.get() + num_dims);
+    boost::reverse(s);
+    H5Sclose(dspace);
+    return s;
   }
   //----------------------------------------------------------------------------
   template <typename IndexOrder = x_fastest>
@@ -367,20 +446,19 @@ class dataset {
   auto name() const -> auto const& { return m_name; }
 };
 //==============================================================================
-//class group {
+// class group {
 // publicN:
 //  using this_t = group;
 //
 // private:
 //  mutable std::shared_ptr<H5::H5File> m_file_id;
-//  mutable std::shared_ptr<std::mutex> m_mutex;
 //  H5::Group                           m_group;
 //  std::string                         m_name;
 //
 // public:
-//  group(std::shared_ptr<H5::H5File>& file_id, std::shared_ptr<std::mutex>& mutex,
+//  group(std::shared_ptr<H5::H5File>& file_id, 
 //          H5::Group const& group, std::string const& name)
-//      : m_file_id{file_id}, m_mutex{mutex}, m_group{group}, m_name{name} {}
+//      : m_file_id{file_id}, m_group{group}, m_name{name} {}
 //  //----------------------------------------------------------------------------
 //  group(group const&)     = default;
 //  group(group&&) noexcept = default;
@@ -390,26 +468,28 @@ class dataset {
 //  //============================================================================
 //  auto attribute(std::string const& attribute_name) {
 //    return hdf5::attribute{
-//        m_file_id, m_mutex, m_group.openAttribute(attribute_name), attribute_name};
+//        m_file_id, m_group.openAttribute(attribute_name),
+//        attribute_name};
 //  }
 //  //============================================================================
 //  template <typename T>
 //  auto dataset(std::string const& dataset_name) {
 //    return hdf5::dataset<T>{
-//        m_file_id, m_mutex, m_group.openDataSet(dataset_name), dataset_name};
+//        m_file_id, m_group.openDataSet(dataset_name), dataset_name};
 //  }
 //  //----------------------------------------------------------------------------
 //#ifdef __cpp_concepts
 //  template <typename T, integral... Size>
 //#else
-//  template <typename T, typename... Size, enable_if<is_integral<Size...>> = true>
+//  template <typename T, typename... Size, enable_if<is_integral<Size...>> =
+//  true>
 //#endif
 //  auto add_dataset(std::string const& dataset_name, Size... size) {
 //    H5::AtomType data_type{h5_type<T>::value()};
-//    hsize_t      dimsf[]{static_cast<hsize_t>(size)...};  // data set dimensions
-//    std::reverse(dimsf, dimsf + sizeof...(Size));
-//    return hdf5::dataset<T>{
-//        m_file_id, m_mutex,
+//    hsize_t      dimsf[]{static_cast<hsize_t>(size)...};  // data set
+//    dimensions std::reverse(dimsf, dimsf + sizeof...(Size)); return
+//    hdf5::dataset<T>{
+//        m_file_id,
 //        m_group.createDataSet(dataset_name, data_type,
 //                              H5::DataSpace{sizeof...(Size), dimsf}),
 //        dataset_name};
@@ -417,32 +497,29 @@ class dataset {
 //};
 //==============================================================================
 class file {
-  std::unique_ptr<hid_t> m_file_id;
-  mutable std::shared_ptr<std::mutex> m_mutex;
+  std::unique_ptr<hid_t>              m_file_id;
   //============================================================================
  public:
   file(filesystem::path const& path) : file{path.c_str()} {}
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
   file(std::string const& path) : file{path.c_str()} {}
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-  file(char const* path) : m_mutex{std::make_shared<std::mutex>()} {
+  file(char const* path) {
     open(path);
   }
   //----------------------------------------------------------------------------
   file(file const& other)
-      : m_file_id{std::make_unique<hid_t>(*other.m_file_id)},
-        m_mutex{other.m_mutex} {
+      : m_file_id{std::make_unique<hid_t>(*other.m_file_id)} {
     H5Iinc_ref(*m_file_id);
   }
   //----------------------------------------------------------------------------
   file(file&&) noexcept = default;
   //----------------------------------------------------------------------------
-  auto operator=(file const&other) -> file& {
-    m_mutex      = other.m_mutex;
+  auto operator=(file const& other) -> file& {
     if (m_file_id != nullptr) {
       H5Fclose(*m_file_id);
     }
-    m_file_id    = std::make_unique<hid_t>(*other.m_file_id);
+    m_file_id = std::make_unique<hid_t>(*other.m_file_id);
     H5Iinc_ref(*m_file_id);
     return *this;
   }
@@ -454,6 +531,7 @@ class file {
       H5Fclose(*m_file_id);
     }
   }
+
  private:
   auto open(char const* path) -> void {
     if (filesystem::exists(filesystem::path{path})) {
@@ -464,10 +542,11 @@ class file {
           H5Fcreate(path, H5F_ACC_EXCL, H5P_DEFAULT, H5P_DEFAULT));
     }
   }
+
  public:
   //============================================================================
   // auto group(std::string const& group_name) {
-  //  return hdf5::group{m_file_id, m_mutex, m_file_id->openGroup(group_name),
+  //  return hdf5::group{m_file_id, m_file_id->openGroup(group_name),
   //                     group_name};
   //}
   //============================================================================
@@ -479,20 +558,19 @@ class file {
 #endif
   auto add_dataset(std::string const& dataset_name, Size... size) {
     hsize_t dimsf[]{static_cast<hsize_t>(size)...};  // data set dimensions
-    if constexpr (is_same<x_fastest, IndexOrder>) {
-      std::reverse(dimsf, dimsf + sizeof...(Size));
-    }
-    return hdf5::dataset<T>{
-        m_mutex, m_file_id,
-        H5Dcreate2(*m_file_id, dataset_name.c_str(), H5T_STD_I32BE,
-                   H5Screate_simple(sizeof...(Size), dimsf, nullptr),
-                   H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT),
-        dataset_name};
+    std::reverse(dimsf, dimsf + sizeof...(size));
+    auto dspace = H5Screate_simple(sizeof...(Size), dimsf, nullptr);
+    auto dataset_id =
+        H5Dcreate2(*m_file_id, dataset_name.c_str(), H5T_STD_I32BE, dspace,
+                   H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT);
+
+    H5Sclose(dspace);
+    return hdf5::dataset<T>{m_file_id, dataset_id, dataset_name};
   }
   //----------------------------------------------------------------------------
   template <typename T>
   auto dataset(char const* dataset_name) const {
-    return hdf5::dataset<T>{m_mutex, m_file_id,
+    return hdf5::dataset<T>{m_file_id,
                             H5Dopen(*m_file_id, dataset_name, H5P_DEFAULT),
                             dataset_name};
   }
@@ -500,7 +578,7 @@ class file {
   template <typename T>
   auto dataset(std::string const& dataset_name) const {
     return hdf5::dataset<T>{
-        m_mutex, m_file_id,
+        m_file_id,
         H5Dopen(*m_file_id, dataset_name.c_str(), H5P_DEFAULT), dataset_name};
   }
 };
@@ -509,5 +587,5 @@ class file {
 //==============================================================================
 #endif
 #else
-#pragma message(including <tatooine/hdf5.h> without HDF5 support.)
+#pragma message(including <tatooine / hdf5.h> without HDF5 support.)
 #endif

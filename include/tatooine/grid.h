@@ -867,50 +867,50 @@ class grid {
   auto vertex_properties() const -> auto const& { return m_vertex_properties; }
   auto vertex_properties() -> auto& { return m_vertex_properties; }
   //----------------------------------------------------------------------------
-  template <typename T, typename Indexing = x_fastest>
+  template <typename T, typename IndexOrder = x_fastest>
   auto add_vertex_property(std::string const& name) -> auto& {
-    return add_contiguous_vertex_property<T, Indexing>(name);
+    return add_contiguous_vertex_property<T, IndexOrder>(name);
   }
   //----------------------------------------------------------------------------
-  template <typename T, typename Indexing = x_fastest>
+  template <typename T, typename IndexOrder = x_fastest>
   auto add_contiguous_vertex_property(std::string const& name) -> auto& {
-    return create_vertex_property<dynamic_multidim_array<T, Indexing>>(name,
+    return create_vertex_property<dynamic_multidim_array<T, IndexOrder>>(name,
                                                                        size());
   }
   //----------------------------------------------------------------------------
-  template <typename T, typename Indexing = x_fastest>
+  template <typename T, typename IndexOrder = x_fastest>
   auto add_chunked_vertex_property(std::string const&         name,
                                    std::vector<size_t> const& chunk_size)
       -> auto& {
-    return create_vertex_property<chunked_multidim_array<T, Indexing>>(
+    return create_vertex_property<chunked_multidim_array<T, IndexOrder>>(
         name, size(), chunk_size);
   }
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-  template <typename T, typename Indexing = x_fastest>
+  template <typename T, typename IndexOrder = x_fastest>
   auto add_chunked_vertex_property(
       std::string const&                          name,
       std::array<size_t, num_dimensions()> const& chunk_size) -> auto& {
-    return create_vertex_property<chunked_multidim_array<T, Indexing>>(
+    return create_vertex_property<chunked_multidim_array<T, IndexOrder>>(
         name, size(), chunk_size);
   }
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 #ifdef __cpp_concepts
-  template <typename T, typename Indexing = x_fastest, integral... ChunkSize>
+  template <typename T, typename IndexOrder = x_fastest, integral... ChunkSize>
   requires(sizeof...(ChunkSize) == num_dimensions())
 #else
-  template <typename T, typename Indexing = x_fastest, typename... ChunkSize,
+  template <typename T, typename IndexOrder = x_fastest, typename... ChunkSize,
             enable_if<is_integral<ChunkSize...>>                      = true,
             enable_if<(sizeof...(ChunkSize) == num_dimensions())> = true>
 #endif
   auto add_chunked_vertex_property(
       std::string const& name, ChunkSize const... chunk_size) -> auto& {
-    return create_vertex_property<chunked_multidim_array<T, Indexing>>(
+    return create_vertex_property<chunked_multidim_array<T, IndexOrder>>(
         name, size(), std::vector<size_t>{static_cast<size_t>(chunk_size)...});
   }
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-  template <typename T, typename Indexing = x_fastest>
+  template <typename T, typename IndexOrder = x_fastest>
   auto add_chunked_vertex_property(std::string const& name) -> auto& {
-    return create_vertex_property<chunked_multidim_array<T, Indexing>>(
+    return create_vertex_property<chunked_multidim_array<T, IndexOrder>>(
         name, size(), make_array<num_dimensions()>(size_t(10)));
   }
   //----------------------------------------------------------------------------
@@ -963,12 +963,12 @@ class grid {
   }
   //----------------------------------------------------------------------------
 #ifdef TATOOINE_HDF5_AVAILABLE
-  template <typename T>
+  template <typename IndexOrder = x_fastest, typename T>
   auto add_vertex_property(hdf5::dataset<T> const& dataset) -> auto& {
-    return add_vertex_property(dataset, dataset.name());
+    return add_vertex_property<IndexOrder>(dataset, dataset.name());
   }
   //----------------------------------------------------------------------------
-  template <typename T>
+  template <typename IndexOrder = x_fastest, typename T>
   auto add_vertex_property(hdf5::dataset<T> const& dataset,
                            std::string const&      name) -> auto& {
     auto num_dims_dataset = dataset.num_dimensions();
@@ -977,7 +977,6 @@ class grid {
           "Number of dimensions do not match for HDF5 dataset and grid."};
     }
     auto size_dataset = dataset.size();
-    std::reverse(begin(size_dataset), end(size_dataset));
     for (size_t i = 0; i < num_dimensions(); ++i) {
       if (size_dataset[i] != size(i)) {
         std::stringstream ss;
@@ -994,7 +993,7 @@ class grid {
         throw std::runtime_error{ss.str()};
       }
     }
-    auto& prop = add_vertex_property<T>(name);
+    auto& prop = add_vertex_property<T, IndexOrder>(name);
     dataset.read(prop);
     return prop;
   }
@@ -1024,14 +1023,11 @@ class grid {
           "Number of dimensions do not match for HDF5 dataset and grid."};
     }
     auto size_dataset = dataset.size();
-    if constexpr (is_same<x_fastest, GlobalIndexOrder>) {
-      std::reverse(begin(size_dataset), end(size_dataset));
-    }
     for (size_t i = 0; i < num_dimensions(); ++i) {
       if (size_dataset[i] != size(i)) {
         std::stringstream ss;
-        ss << "Resolution of grid and HDF5 DataSet do not match. grid("
-           << size(0);
+        ss << "Resolution of grid and HDF5 DataSet (\"" << name
+           << "\")do not match. grid(" << size(0);
         for (size_t i = 1; i < num_dimensions(); ++i) {
           ss << ", " << size(i);
         }
@@ -1045,7 +1041,7 @@ class grid {
     }
     return create_vertex_property<
         lazy_reader<hdf5::dataset<T>, GlobalIndexOrder, LocalIndexOrder>>(
-        name, dataset, std::vector<size_t>(num_dimensions(), 16));
+        name, dataset, std::vector<size_t>(num_dimensions(), 64));
   }
 #endif
 #ifdef TATOOINE_NETCDF_AVAILABLE

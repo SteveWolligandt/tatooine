@@ -25,11 +25,11 @@ template <typename T, typename GlobalIndexOrder = x_fastest,
           typename LocalIndexOrder = GlobalIndexOrder>
 struct chunked_multidim_array {
   //============================================================================
-  using value_type        = T;
-  using this_t            = chunked_multidim_array<T, GlobalIndexOrder, LocalIndexOrder>;
-  using chunk_t           = dynamic_multidim_array<T, LocalIndexOrder>;
-  using chunk_ptr_t       = std::unique_ptr<chunk_t>;
-  using chunk_ptr_field_t = std::vector<chunk_ptr_t>;
+  using value_type = T;
+  using this_t  = chunked_multidim_array<T, GlobalIndexOrder, LocalIndexOrder>;
+  using chunk_t = dynamic_multidim_array<T, LocalIndexOrder>;
+  using chunk_ptr_t          = std::unique_ptr<chunk_t>;
+  using chunk_ptr_field_t    = std::vector<chunk_ptr_t>;
   using global_index_order_t = GlobalIndexOrder;
   using local_index_order_t  = LocalIndexOrder;
   //----------------------------------------------------------------------------

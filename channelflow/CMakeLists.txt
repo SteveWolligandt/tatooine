@@ -1,6 +1,18 @@
+add_executable(channelflow.data_check data_check.cpp)
+target_link_libraries(channelflow.data_check PUBLIC tatooine)
+add_custom_target(
+  channelflow.data_check.run
+  COMMAND ./channelflow.data_check
+  DEPENDS channelflow.data_check)
+# force coloring
+if ("${CMAKE_CXX_COMPILER_ID}" STREQUAL "Clang")
+  target_compile_options(channelflow.data_check PRIVATE "-fcolor-diagnostics")
+elseif ("${CMAKE_CXX_COMPILER_ID}" STREQUAL "GNU")
+  target_compile_options(channelflow.data_check PRIVATE  "-fdiagnostics-color=always")
+endif()
+#===============================================================================
 add_executable(channelflow_visualization channelflow_visualization.cpp)
 target_link_libraries(channelflow_visualization PUBLIC tatooine)
-
 add_custom_target(
   channelflow_visualization.run
   COMMAND ./channelflow_visualization
