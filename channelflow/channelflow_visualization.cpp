@@ -154,6 +154,8 @@ auto add_Q_cheng(Domain const& domain, File& channelflow_file, Vx const& velx,
   std::atomic_size_t cnt  = 0;
   size_t const       max  = domain.num_vertices();
   bool               stop = false;
+  tat::dynamic_multidim_array<double> Q_data{domain.size(0) - 1, domain.size(1),
+                                             domain.size(2)};
   std::thread            watcher{[&cnt, &stop, max] {
     while (cnt < max && !stop) {
       std::cerr << std::setprecision(2) << double(cnt) / max * 100
@@ -161,8 +163,6 @@ auto add_Q_cheng(Domain const& domain, File& channelflow_file, Vx const& velx,
       std::this_thread::sleep_for(std::chrono::milliseconds{100});
     }
   }};
-  tat::dynamic_multidim_array<double> Q_data{domain.size(0) - 1, domain.size(1),
-                                             domain.size(2)};
   domain.parallel_loop_over_vertex_indices(
       [&](auto const ix, auto const iy, auto const iz) {
         if (ix < domain.size(0) - 2) {
@@ -343,6 +343,7 @@ auto main() -> int {
   auto const axis2 =
       axis2_file.dataset<double>("CartGrid/axis2").read_as_vector();
   tat::grid full_domain{axis0, axis1, axis2};
+  full_domain.set_chunk_size_for_lazy_properties(256);
   std::cerr << "full_domain:\n" << full_domain << '\n';
 
 
