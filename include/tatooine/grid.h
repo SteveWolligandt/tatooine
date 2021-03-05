@@ -5,21 +5,20 @@
 #include <tatooine/axis_aligned_bounding_box.h>
 #include <tatooine/chunked_multidim_array.h>
 #include <tatooine/concepts.h>
+#include <tatooine/filesystem.h>
 #include <tatooine/for_loop.h>
 #include <tatooine/grid_vertex_container.h>
 #include <tatooine/grid_vertex_iterator.h>
+#include <tatooine/hdf5.h>
 #include <tatooine/interpolation.h>
+#include <tatooine/lazy_reader.h>
 #include <tatooine/linspace.h>
 #include <tatooine/multidim_property.h>
+#include <tatooine/netcdf.h>
 #include <tatooine/random.h>
 #include <tatooine/template_helper.h>
 #include <tatooine/vec.h>
 
-#include <tatooine/netcdf.h>
-#include <tatooine/hdf5.h>
-#include <tatooine/lazy_reader.h>
-
-#include <tatooine/filesystem.h>
 #include <map>
 #include <memory>
 #include <tuple>
@@ -55,7 +54,8 @@ class grid {
   // general property types
   using property_t = multidim_property<this_t>;
   template <typename ValueType, bool HasNonConstReference>
-  using typed_property_t = typed_multidim_property<this_t, ValueType, HasNonConstReference>;
+  using typed_property_t =
+      typed_multidim_property<this_t, ValueType, HasNonConstReference>;
   template <typename Container>
   using typed_property_impl_t =
       typed_multidim_property_impl<this_t, typename Container::value_type,
@@ -76,6 +76,7 @@ class grid {
       m_diff_stencil_coefficients_n1_0_p1, m_diff_stencil_coefficients_n2_n1_0,
       m_diff_stencil_coefficients_0_p1_p2, m_diff_stencil_coefficients_0_p1,
       m_diff_stencil_coefficients_n1_0;
+  size_t m_chunk_size_for_lazy_properties = 2;
   //============================================================================
  public:
   constexpr grid() = default;
@@ -123,14 +124,13 @@ class grid {
 #ifdef __cpp_concepts
   template <typename... _Dimensions>
       requires(sizeof...(_Dimensions) == sizeof...(Dimensions)) &&
-      (indexable_space<std::decay_t<_Dimensions>> &&
-       ...)
+      (indexable_space<std::decay_t<_Dimensions>> && ...)
 #else
   template <typename... _Dimensions,
             enable_if<(sizeof...(_Dimensions) == sizeof...(Dimensions))> = true,
             enable_if<is_indexable<std::decay_t<_Dimensions>...>>        = true>
 #endif
-  constexpr grid(_Dimensions&&... dimensions)
+          constexpr grid(_Dimensions&&... dimensions)
       : m_dimensions{std::forward<_Dimensions>(dimensions)...} {
     static_assert(sizeof...(_Dimensions) == num_dimensions(),
                   "Number of given dimensions does not match number of "
@@ -266,36 +266,56 @@ class grid {
     if (i == 0) {
       return size<0>();
     }
-    if constexpr (num_dimensions() > 1) { if (i == 1) {
-      return size<1>();
-    }}
-    if constexpr (num_dimensions() > 2) { if (i == 2) {
-      return size<2>();
-    }}
-    if constexpr (num_dimensions() > 3) { if (i == 3) {
-      return size<3>();
-    }}
-    if constexpr (num_dimensions() > 4) { if (i == 4) {
-      return size<4>();
-    }}
-    if constexpr (num_dimensions() > 5) { if (i == 5) {
-      return size<5>();
-    }}
-    if constexpr (num_dimensions() > 6) { if (i == 6) {
-      return size<6>();
-    }}
-    if constexpr (num_dimensions() > 7) { if (i == 7) {
-      return size<7>();
-    }}
-    if constexpr (num_dimensions() > 8) { if (i == 8) {
-      return size<8>();
-    }}
-    if constexpr (num_dimensions() > 9) { if (i == 9) {
-      return size<9>();
-    }}
-    if constexpr (num_dimensions() > 10) { if (i == 10) {
-      return size<10>();
-    }}
+    if constexpr (num_dimensions() > 1) {
+      if (i == 1) {
+        return size<1>();
+      }
+    }
+    if constexpr (num_dimensions() > 2) {
+      if (i == 2) {
+        return size<2>();
+      }
+    }
+    if constexpr (num_dimensions() > 3) {
+      if (i == 3) {
+        return size<3>();
+      }
+    }
+    if constexpr (num_dimensions() > 4) {
+      if (i == 4) {
+        return size<4>();
+      }
+    }
+    if constexpr (num_dimensions() > 5) {
+      if (i == 5) {
+        return size<5>();
+      }
+    }
+    if constexpr (num_dimensions() > 6) {
+      if (i == 6) {
+        return size<6>();
+      }
+    }
+    if constexpr (num_dimensions() > 7) {
+      if (i == 7) {
+        return size<7>();
+      }
+    }
+    if constexpr (num_dimensions() > 8) {
+      if (i == 8) {
+        return size<8>();
+      }
+    }
+    if constexpr (num_dimensions() > 9) {
+      if (i == 9) {
+        return size<9>();
+      }
+    }
+    if constexpr (num_dimensions() > 10) {
+      if (i == 10) {
+        return size<10>();
+      }
+    }
     return std::numeric_limits<size_t>::max();
   }
   //----------------------------------------------------------------------------
@@ -306,7 +326,9 @@ class grid {
   template <size_t I, enable_if<std::is_reference_v<
                           template_helper::get_t<I, Dimensions...>>> = true>
 #endif
-      constexpr auto size() -> auto& { return dimension<I>().size(); }
+      constexpr auto size() -> auto& {
+    return dimension<I>().size();
+  }
   //----------------------------------------------------------------------------
   template <size_t I>
   constexpr auto front() const {
@@ -406,11 +428,11 @@ class grid {
   requires(num_dimensions() == sizeof...(Comps))
 #else
   template <typename... Comps, size_t... Seq,
-            enable_if<is_arithmetic<Comps...>>                    = true,
+            enable_if<is_arithmetic<Comps...>>                = true,
             enable_if<(num_dimensions() == sizeof...(Comps))> = true>
 #endif
-  constexpr auto is_inside(
-      std::index_sequence<Seq...> /*seq*/, Comps const... comps) const {
+      constexpr auto is_inside(std::index_sequence<Seq...> /*seq*/,
+                               Comps const... comps) const {
     return ((front<Seq>() <= comps || comps <= back<Seq>()) || ...);
   }
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -421,7 +443,7 @@ class grid {
   template <typename... Comps, enable_if<is_arithmetic<Comps...>> = true,
             enable_if<(num_dimensions() == sizeof...(Comps))> = true>
 #endif
-  constexpr auto is_inside(Comps const... comps) const {
+      constexpr auto is_inside(Comps const... comps) const {
     return is_inside(std::make_index_sequence<num_dimensions()>{}, comps...);
   }
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -439,7 +461,8 @@ class grid {
 #ifdef __cpp_concepts
   template <size_t... Seq, arithmetic... Xs>
 #else
-  template <size_t... Seq, typename... Xs, enable_if<is_arithmetic<Xs...>> = true>
+  template <size_t... Seq, typename... Xs,
+            enable_if<is_arithmetic<Xs...>> = true>
 #endif
   constexpr auto in_domain(std::index_sequence<Seq...> /*seq*/,
                            Xs const... xs) const {
@@ -454,7 +477,8 @@ class grid {
 #ifdef __cpp_concepts
   template <size_t... Is, arithmetic... Xs>
 #else
-  template <size_t... Is, typename... Xs, enable_if<is_arithmetic<Xs...>> = true>
+  template <size_t... Is, typename... Xs,
+            enable_if<is_arithmetic<Xs...>> = true>
 #endif
   constexpr auto in_domain(Xs const... xs) const {
     static_assert(sizeof...(xs) == num_dimensions(),
@@ -480,7 +504,8 @@ class grid {
 #ifdef __cpp_concepts
   template <size_t DimensionIndex, arithmetic X>
 #else
-  template <size_t DimensionIndex, typename X, enable_if<is_arithmetic<X>> = true>
+  template <size_t DimensionIndex, typename X,
+            enable_if<is_arithmetic<X>> = true>
 #endif
   auto cell_index(X const x) const -> std::pair<size_t, double> {
     auto const& dim = dimension<DimensionIndex>();
@@ -734,15 +759,14 @@ class grid {
   //----------------------------------------------------------------------------
  private:
 #ifdef __cpp_concepts
-  template <invocable<decltype(((void)std::declval<Dimensions>(),
-                                        size_t{}))...>
+  template <invocable<decltype(((void)std::declval<Dimensions>(), size_t{}))...>
                 Iteration,
             size_t... Ds>
 #else
-  template <
-      typename Iteration, size_t... Ds,
-      enable_if<is_invocable<Iteration, decltype(((void)std::declval<Dimensions>(),
-                                               size_t{}))...>> = true>
+  template <typename Iteration, size_t... Ds,
+            enable_if<is_invocable<Iteration,
+                                   decltype(((void)std::declval<Dimensions>(),
+                                             size_t{}))...>> = true>
 #endif
   auto loop_over_vertex_indices(Iteration&& iteration,
                                 std::index_sequence<Ds...>) const
@@ -755,10 +779,10 @@ class grid {
   template <invocable<decltype(((void)std::declval<Dimensions>(), size_t{}))...>
                 Iteration>
 #else
-  template <
-      typename Iteration,
-      enable_if<is_invocable<Iteration, decltype(((void)std::declval<Dimensions>(),
-                                               size_t{}))...>> = true>
+  template <typename Iteration,
+            enable_if<is_invocable<Iteration,
+                                   decltype(((void)std::declval<Dimensions>(),
+                                             size_t{}))...>> = true>
 #endif
   auto loop_over_vertex_indices(Iteration&& iteration) const -> decltype(auto) {
     return loop_over_vertex_indices(
@@ -768,15 +792,14 @@ class grid {
   //----------------------------------------------------------------------------
  private:
 #ifdef __cpp_concepts
-  template <invocable<decltype(((void)std::declval<Dimensions>(),
-                                        size_t{}))...>
+  template <invocable<decltype(((void)std::declval<Dimensions>(), size_t{}))...>
                 Iteration,
             size_t... Ds>
 #else
-  template <
-      typename Iteration, size_t... Ds,
-      enable_if<is_invocable<Iteration, decltype(((void)std::declval<Dimensions>(),
-                                               size_t{}))...>> = true>
+  template <typename Iteration, size_t... Ds,
+            enable_if<is_invocable<Iteration,
+                                   decltype(((void)std::declval<Dimensions>(),
+                                             size_t{}))...>> = true>
 #endif
   auto parallel_loop_over_vertex_indices(Iteration&& iteration,
                                          std::index_sequence<Ds...>) const
@@ -789,10 +812,10 @@ class grid {
   template <invocable<decltype(((void)std::declval<Dimensions>(), size_t{}))...>
                 Iteration>
 #else
-  template <
-      typename Iteration,
-      enable_if<is_invocable<Iteration, decltype(((void)std::declval<Dimensions>(),
-                                               size_t{}))...>> = true>
+  template <typename Iteration,
+            enable_if<is_invocable<Iteration,
+                                   decltype(((void)std::declval<Dimensions>(),
+                                             size_t{}))...>> = true>
 #endif
   auto parallel_loop_over_vertex_indices(Iteration&& iteration) const
       -> decltype(auto) {
@@ -874,8 +897,8 @@ class grid {
   //----------------------------------------------------------------------------
   template <typename T, typename IndexOrder = x_fastest>
   auto add_contiguous_vertex_property(std::string const& name) -> auto& {
-    return create_vertex_property<dynamic_multidim_array<T, IndexOrder>>(name,
-                                                                       size());
+    return create_vertex_property<dynamic_multidim_array<T, IndexOrder>>(
+        name, size());
   }
   //----------------------------------------------------------------------------
   template <typename T, typename IndexOrder = x_fastest>
@@ -899,11 +922,11 @@ class grid {
   requires(sizeof...(ChunkSize) == num_dimensions())
 #else
   template <typename T, typename IndexOrder = x_fastest, typename... ChunkSize,
-            enable_if<is_integral<ChunkSize...>>                      = true,
+            enable_if<is_integral<ChunkSize...>>                  = true,
             enable_if<(sizeof...(ChunkSize) == num_dimensions())> = true>
 #endif
-  auto add_chunked_vertex_property(
-      std::string const& name, ChunkSize const... chunk_size) -> auto& {
+      auto add_chunked_vertex_property(std::string const& name,
+                                       ChunkSize const... chunk_size) -> auto& {
     return create_vertex_property<chunked_multidim_array<T, IndexOrder>>(
         name, size(), std::vector<size_t>{static_cast<size_t>(chunk_size)...});
   }
@@ -926,14 +949,15 @@ class grid {
             boost::core::demangle(it->second->type().name()) +
             ") does not match specified type " + type_name<T>() + "."};
       }
-      return *dynamic_cast<typed_property_t<T, HasNonConstReference> const*>(it->second.get());
+      return *dynamic_cast<typed_property_t<T, HasNonConstReference> const*>(
+          it->second.get());
     }
   }
   //----------------------------------------------------------------------------
-  //template <invocable<decltype(((void)std::declval<Dimensions>(),
+  // template <invocable<decltype(((void)std::declval<Dimensions>(),
   //                              std::declval<size_t>()))...>
   //              F>
-  //auto add_vertex_property(std::string const& name, F&& f) -> auto& {
+  // auto add_vertex_property(std::string const& name, F&& f) -> auto& {
   //  return create_vertex_property<
   //      typed_multidim_property_lambda<this_t, std::decay_t<F>>>(
   //      name, std::forward<F>(f));
@@ -1003,7 +1027,8 @@ class grid {
   auto add_hdf5_lazy_vertex_property(filesystem::path const& path,
                                      std::string const& dataset_name) -> auto& {
     hdf5::file f{path};
-    return add_lazy_vertex_property<GlobalIndexOrder, LocalIndexOrder>(f.dataset<T>(dataset_name));
+    return add_lazy_vertex_property<GlobalIndexOrder, LocalIndexOrder>(
+        f.dataset<T>(dataset_name));
   }
   //----------------------------------------------------------------------------
   template <typename GlobalIndexOrder = x_fastest,
@@ -1041,7 +1066,9 @@ class grid {
     }
     return create_vertex_property<
         lazy_reader<hdf5::dataset<T>, GlobalIndexOrder, LocalIndexOrder>>(
-        name, dataset, std::vector<size_t>(num_dimensions(), 64));
+        name, dataset,
+        std::vector<size_t>(num_dimensions(),
+                            m_chunk_size_for_lazy_properties));
   }
 #endif
 #ifdef TATOOINE_NETCDF_AVAILABLE
@@ -1061,7 +1088,9 @@ class grid {
   auto add_lazy_vertex_property(netcdf::variable<T> const& dataset) -> auto& {
     return create_vertex_property<
         lazy_reader<netcdf::variable<T>, GlobalIndexOrder, LocalIndexOrder>>(
-        dataset.name(), dataset, std::vector<size_t>{2, 2});
+        dataset.name(), dataset,
+        std::vector<size_t>(num_dimensions(),
+                            m_chunk_size_for_lazy_properties));
   }
 #endif
   //----------------------------------------------------------------------------
@@ -1077,7 +1106,8 @@ class grid {
             boost::core::demangle(it->second->type().name()) +
             ") does not match specified type " + type_name<T>() + "."};
       }
-      return *dynamic_cast<typed_property_t<T, HasNonConstReference>*>(it->second.get());
+      return *dynamic_cast<typed_property_t<T, HasNonConstReference>*>(
+          it->second.get());
     }
   }
   //============================================================================
@@ -1166,12 +1196,15 @@ class grid {
         gr.dimension<2>().resize(z);
       }
     }
-    auto on_x_coordinates(std::vector<float> const& /*xs*/) -> void override {}
-    auto on_x_coordinates(std::vector<double> const& /*xs*/) -> void override {}
-    auto on_y_coordinates(std::vector<float> const& /*ys*/) -> void override {}
-    auto on_y_coordinates(std::vector<double> const& /*ys*/) -> void override {}
-    auto on_z_coordinates(std::vector<float> const& /*zs*/) -> void override {}
-    auto on_z_coordinates(std::vector<double> const& /*zs*/) -> void override {}
+    auto on_x_coordinates(std::vector<float> const & /*xs*/) -> void override {}
+    auto on_x_coordinates(std::vector<double> const & /*xs*/) -> void override {
+    }
+    auto on_y_coordinates(std::vector<float> const & /*ys*/) -> void override {}
+    auto on_y_coordinates(std::vector<double> const & /*ys*/) -> void override {
+    }
+    auto on_z_coordinates(std::vector<float> const & /*zs*/) -> void override {}
+    auto on_z_coordinates(std::vector<double> const & /*zs*/) -> void override {
+    }
 
     // index data
     auto on_cells(std::vector<int> const&) -> void override {}
@@ -1275,12 +1308,13 @@ class grid {
   };
 #ifdef __cpp_concepts
   template <typename = void>
-  requires(num_dimensions() == 2) || (num_dimensions() == 3) 
+      requires(num_dimensions() == 2) ||
+      (num_dimensions() == 3)
 #else
-  template <size_t _N = num_dimensions(),
+  template <size_t _N                         = num_dimensions(),
             enable_if<(_N == 2) || (_N == 3)> = true>
 #endif
-  auto read_vtk(filesystem::path const& path) {
+          auto read_vtk(filesystem::path const& path) {
     bool             is_structured_points = false;
     vec3             spacing;
     vtk_listener     listener{*this, is_structured_points, spacing};
@@ -1323,12 +1357,13 @@ class grid {
   //----------------------------------------------------------------------------
 #ifdef __cpp_concepts
   template <typename = void>
-  requires(num_dimensions() == 2) || (num_dimensions() == 3) 
+      requires(num_dimensions() == 2) ||
+      (num_dimensions() == 3)
 #else
-  template <size_t _N = num_dimensions(),
+  template <size_t _N                         = num_dimensions(),
             enable_if<(_N == 2) || (_N == 3)> = true>
 #endif
-  auto read_amira(filesystem::path const& path) {
+          auto read_amira(filesystem::path const& path) {
     auto const  am        = amira::read<real_t>(path);
     auto const& data      = std::get<0>(am);
     auto const& dims      = std::get<1>(am);
@@ -1453,14 +1488,16 @@ class grid {
          ...);
         first = false;
       }
-      create_vertex_property<lazy_reader<T>>(v.name(), v,
-                                                     std::vector<size_t>{2, 2});
+      create_vertex_property<lazy_reader<T>>(
+          v.name(), v,
+          std::vector<size_t>(num_dimensions(),
+                              m_chunk_size_for_lazy_properties));
     }
   }
   /// this only reads scalar types
   template <size_t... Seq>
-  auto read_netcdf(filesystem::path const& path,
-                   std::index_sequence<Seq...>   seq) {
+  auto read_netcdf(filesystem::path const&     path,
+                   std::index_sequence<Seq...> seq) {
     netcdf::file f{path, netCDF::NcFile::read};
     bool         first = true;
     add_variables_of_type<double>(f, first, seq);
@@ -1475,8 +1512,8 @@ class grid {
 #else
   template <typename T, size_t _N = num_dimensions(), enable_if<_N == 3> = true>
 #endif
- void write_amira(std::string const& path,
-                               std::string const& vertex_property_name) const {
+      void write_amira(std::string const& path,
+                       std::string const& vertex_property_name) const {
     write_amira(path, vertex_property<T>(vertex_property_name));
   }
   //----------------------------------------------------------------------------
@@ -1488,9 +1525,9 @@ class grid {
   template <typename T, bool HasNonConstReference, bool U = is_uniform,
             size_t _N = num_dimensions(), enable_if<(U && (_N == 3))> = true>
 #endif
-  void write_amira(
-      std::string const&                               path,
-      typed_property_t<T, HasNonConstReference> const& prop) const {
+          void write_amira(
+              std::string const&                               path,
+              typed_property_t<T, HasNonConstReference> const& prop) const {
     std::ofstream     outfile{path, std::ofstream::binary};
     std::stringstream header;
 
@@ -1503,7 +1540,7 @@ class grid {
            << back<2>() << ",\n";
     header << "    CoordType \"uniform\"\n";
     header << "}\n";
-    if constexpr (num_components < T >> 1) {
+    if constexpr (num_components<T> > 1) {
       header << "Lattice { " << type_name<internal_data_type_t<T>>() << "["
              << num_components<T> << "] Data } @1\n\n";
     } else {
@@ -1524,8 +1561,9 @@ class grid {
   //----------------------------------------------------------------------------
  private:
   template <typename T, bool HasNonConstReference>
-  void write_prop_vtk(vtk::legacy_file_writer& writer, std::string const& name,
-                      typed_property_t<T, HasNonConstReference> const& prop) const {
+  void write_prop_vtk(
+      vtk::legacy_file_writer& writer, std::string const& name,
+      typed_property_t<T, HasNonConstReference> const& prop) const {
     std::vector<T> data;
     loop_over_vertex_indices(
         [&](auto const... is) { data.push_back(prop(is...)); });
@@ -1547,17 +1585,16 @@ class grid {
   //----------------------------------------------------------------------------
 #ifdef __cpp_concepts
   template <typename = void>
-  requires (num_dimensions() == 1) ||
-           (num_dimensions() == 2) ||
-           (num_dimensions() == 3)
+      requires(num_dimensions() == 1) || (num_dimensions() == 2) ||
+      (num_dimensions() == 3)
 #else
-  template <size_t _N = num_dimensions(),
-            enable_if<(num_dimensions() == 1) ||
-                      (num_dimensions() == 2) ||
+  template <size_t _N                          = num_dimensions(),
+            enable_if<(num_dimensions() == 1) || (num_dimensions() == 2) ||
                       (num_dimensions() == 3)> = true>
 #endif
-  void write_vtk(filesystem::path const& path,
-                 std::string const& description = "tatooine grid") const {
+          void write_vtk(
+              filesystem::path const& path,
+              std::string const&      description = "tatooine grid") const {
     auto writer = [this, &path, &description] {
       if constexpr (is_uniform) {
         vtk::legacy_file_writer writer{path,
@@ -1615,8 +1652,9 @@ class grid {
     writer.write_point_data(num_vertices());
     for (const auto& [name, prop] : this->m_vertex_properties) {
       if (prop->type() == typeid(int)) {
-        write_prop_vtk(writer, name,
-                       *dynamic_cast<const typed_property_t<int, true>*>(prop.get()));
+        write_prop_vtk(
+            writer, name,
+            *dynamic_cast<const typed_property_t<int, true>*>(prop.get()));
       } else if (prop->type() == typeid(float)) {
         write_prop_vtk(
             writer, name,
@@ -1675,6 +1713,14 @@ class grid {
   auto print(std::ostream& out = std::cout) const -> auto& {
     return print(out, std::make_index_sequence<num_dimensions()>{});
   }
+  //----------------------------------------------------------------------------
+  auto chunk_size_for_lazy_properties() {
+    return m_chunk_size_for_lazy_properties;
+  }
+  // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+  auto set_chunk_size_for_lazy_properties(size_t const val) -> void {
+    m_chunk_size_for_lazy_properties = val;
+  }
 };
 //==============================================================================
 // free functions
@@ -1706,9 +1752,9 @@ grid(axis_aligned_bounding_box<Real, N> const& bb,
     -> grid<decltype(((void)Seq, std::declval<linspace<Real>()>))...>;
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 #ifdef __cpp_concepts
-  template <integral... Size>
+template <integral... Size>
 #else
-  template <typename... Size, enable_if<is_integral<Size...>> = true>
+template <typename... Size, enable_if<is_integral<Size...>> = true>
 #endif
 grid(Size const...)
     -> grid<linspace<std::conditional_t<true, double, Size>>...>;

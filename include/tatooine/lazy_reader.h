@@ -4,6 +4,7 @@
 #include <tatooine/chunked_multidim_array.h>
 #include <tatooine/index_order.h>
 #include <mutex>
+#include <list>
 //==============================================================================
 namespace tatooine {
 //==============================================================================
@@ -82,7 +83,7 @@ struct lazy_reader
       // keep the number of loaded chunks between max_num_chunks_loaded/2 and
       // max_num_chunks_loaded
       if (m_limit_num_chunks_loaded &&
-          num_chunks_loaded() > 0) {
+          num_chunks_loaded() > m_max_num_chunks_loaded) {
         auto const it_begin = begin(m_chunks_loaded);
         auto const it_end   = next(it_begin, m_max_num_chunks_loaded / 2);
         for (auto it = it_begin; it != it_end; ++it) {
@@ -111,6 +112,7 @@ struct lazy_reader
           end(m_chunks_loaded), m_chunks_loaded,
           std::find(begin(m_chunks_loaded), end(m_chunks_loaded), plain_index));
     }
+
     return this->chunk_at(plain_index);
   }
   //----------------------------------------------------------------------------
@@ -121,8 +123,8 @@ struct lazy_reader
   template <typename... Indices, enable_if<is_integral<Indices...>> = true>
 #endif
   auto at(Indices const... indices) const -> value_type const& {
-    std::lock_guard lock{m_mutex};
     size_t      plain_index = 0;
+      std::lock_guard lock{m_mutex};
     auto const& chunk       = read_chunk(plain_index, indices...);
 
     if (chunk != nullptr) {
