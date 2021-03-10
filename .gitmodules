@@ -8,8 +8,14 @@
 	path = external/indicators
 	url = https://github.com/p-ranav/indicators.git
 [submodule "external/tomlplusplus"]
-	path = external/tomlplusplus
+	path = flowexplorer/external/tomlplusplus
 	url = https://github.com/marzer/tomlplusplus.git
 [submodule "external/hdf5"]
 	path = external/hdf5
 	url = https://github.com/HDFGroup/hdf5.git
+[submodule "external/netcdf4-c"]
+	path = external/netcdf4-c
+	url = https://github.com/Unidata/netcdf-c.git
+[submodule "external/netcdf4-cxx"]
+	path = external/netcdf4-cxx
+	url = https://github.com/Unidata/netcdf-cxx4.git

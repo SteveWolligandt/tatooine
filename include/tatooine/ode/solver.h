@@ -10,21 +10,27 @@
 namespace tatooine::ode {
 //==============================================================================
 template <typename F, typename Real, size_t N>
-struct is_stepper_callback_invocable_impl : std::integral_constant<bool, 
-    std::is_invocable_v<F, vec<Real, N> const&, Real, vec<Real, N> const&> ||
-    std::is_invocable_v<F, vec<Real, N> const&, Real>>{};
+struct is_stepper_callback_invocable_impl
+    : std::integral_constant<
+          bool, std::is_invocable_v<F, vec<Real, N> const&, Real,
+                                    vec<Real, N> const&> ||
+                    std::is_invocable_v<F, vec<Real, N> const&, Real>> {};
 template <typename F, typename Real, size_t N>
-static constexpr is_stepper_callback_invocable = is_stepper_callback_invocable_impl<F, Real, N>::value;
+static constexpr auto is_stepper_callback_invocable =
+    is_stepper_callback_invocable_impl<F, Real, N>::value;
 template <typename F, typename Real, size_t N>
-struct is_stepper_evaluator_impl : std::integral_constant<bool,
-    !std::is_base_of_v<parent::field<Real, N, N>, std::decay_t<F>> &&
-    std::is_invocable_v<F, vec<Real, N> const&, Real> &&
-    (std::is_same_v<vec<Real, N>,
-                    std::invoke_result_t<F, vec<Real, N>, Real>> ||
-     std::is_same_v<std::optional<vec<Real, N>>,
-                    std::invoke_result_t<F, vec<Real, N>, Real>>)>{};
+struct is_stepper_evaluator_impl
+    : std::integral_constant<
+          bool,
+          !std::is_base_of_v<parent::field<Real, N, N>, std::decay_t<F>> &&
+              std::is_invocable_v<F, vec<Real, N> const&, Real> &&
+              (std::is_same_v<vec<Real, N>,
+                              std::invoke_result_t<F, vec<Real, N>, Real>> ||
+               std::is_same_v<std::optional<vec<Real, N>>,
+                              std::invoke_result_t<F, vec<Real, N>, Real>>)> {};
 template <typename F, typename Real, size_t N>
-static constexpr is_stepper_evaluator = is_stepper_evaluator_impl<F, Real, N>::value;
+static constexpr auto is_stepper_evaluator =
+    is_stepper_evaluator_impl<F, Real, N>::value;
 #ifdef __cpp_concepts
 template <typename F, typename Real, size_t N>
 concept stepper_callback_invocable =

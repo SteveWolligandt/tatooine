@@ -6,6 +6,7 @@
 #include <tatooine/flowexplorer/ui/node.h>
 #include <tatooine/flowexplorer/ui/pin.h>
 #include <tatooine/rendering/camera_controller.h>
+#include <tatooine/filesystem.h>
 
 #include <memory>
 #include <vector>

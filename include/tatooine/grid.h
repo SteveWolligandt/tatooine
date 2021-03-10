@@ -1488,7 +1488,7 @@ class grid {
          ...);
         first = false;
       }
-      create_vertex_property<lazy_reader<T>>(
+      create_vertex_property<lazy_reader<netcdf::variable<T>>>(
           v.name(), v,
           std::vector<size_t>(num_dimensions(),
                               m_chunk_size_for_lazy_properties));

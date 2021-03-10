@@ -2,7 +2,7 @@
 #ifndef TATOOINE_HDF5_H
 #define TATOOINE_HDF5_H
 //==============================================================================
-#include <hdf5.h>
+#include <@TATOOINE_HDF5_HEADER@>
 #include <tatooine/chunked_multidim_array.h>
 #include <tatooine/concepts.h>
 #include <tatooine/filesystem.h>

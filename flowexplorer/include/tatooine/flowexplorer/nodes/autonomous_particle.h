@@ -10,17 +10,10 @@
 //==============================================================================
 namespace tatooine::flowexplorer::nodes {
 //==============================================================================
-struct autonomous_particle
-    : tatooine::autonomous_particle<
-          parent::vectorfield<real_t, 2>*,
-          numerical_flowmap_field_pointer<real_t, 2, ode::vclibs::rungekutta43,
-                                          interpolation::cubic>>,
-      renderable<autonomous_particle> {
+struct autonomous_particle : tatooine::autonomous_particle<real_t, 2>,
+                             renderable<autonomous_particle> {
   using this_t   = autonomous_particle;
-  using parent_t = tatooine::autonomous_particle<
-      parent::vectorfield<real_t, 2>*,
-      numerical_flowmap_field_pointer<real_t, 2, ode::vclibs::rungekutta43,
-                                      interpolation::cubic>>;
+  using parent_t      = tatooine::autonomous_particle<real_t, 2>;
   using gpu_vec3      = vec<GLfloat, 3>;
   using vbo_t         = yavin::vertexbuffer<gpu_vec3>;
   using vectorfield_t = parent::vectorfield<real_t, 2>;
@@ -35,6 +28,7 @@ struct autonomous_particle
   line_shader  m_line_shader;
   point_shader m_point_shader;
 
+  vectorfield_t* m_v;
   yavin::indexeddata<gpu_vec3> m_initial_circle;
   yavin::indexeddata<gpu_vec3> m_advected_ellipses;
   yavin::indexeddata<gpu_vec3> m_initial_ellipses_back_calculation;

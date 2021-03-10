@@ -8,6 +8,7 @@ set(TATOOINE_SOURCE_DIR ${CMAKE_SOURCE_DIR})
 set(TATOOINE_CURRENT_SOURCE_DIR ${CMAKE_CURRENT_SOURCE_DIR})
 set(TATOOINE_BINARY_DIR ${CMAKE_BINARY_DIR})
 set(TATOOINE_CURRENT_BINARY_DIR ${CMAKE_CURRENT_BINARY_DIR})
+set(TATOOINE_EXTERNAL ${CMAKE_SOURCE_DIR}/external)
 #- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - 
 # preprocessor lib
 #- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - 
@@ -17,17 +18,20 @@ include(target_link_libraries_system)
 #- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - 
 # git submodules
 #- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - 
-find_package(Git QUIET)
-if(GIT_FOUND AND EXISTS "${PROJECT_SOURCE_DIR}/.git")
-  # Update submodules as needed
-  execute_process(COMMAND ${GIT_EXECUTABLE} submodule update --init --recursive
+find_package(Git REQUIRED)
+function(update_git_submodule dir)
+  execute_process(COMMAND ${GIT_EXECUTABLE} submodule update --init --recursive ${dir}
                   WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
                   RESULT_VARIABLE GIT_SUBMOD_RESULT)
   if(NOT GIT_SUBMOD_RESULT EQUAL "0")
     message(FATAL_ERROR
       "git submodule update --init failed with ${GIT_SUBMOD_RESULT}, please checkout submodules")
   endif()
-endif()
+endfunction()
+set(TATOOINE_MANDATORY_GIT_SUBMODULES indicators)
+foreach(SUBMODULE ${TATOOINE_MANDATORY_GIT_SUBMODULES})
+  update_git_submodule(${TATOOINE_EXTERNAL}/${SUBMODULE})
+endforeach()
 #- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 set(BENCHMARK_ENABLE_INSTALL OFF CACHE BOOL
     "Enable installation of benchmark. (Projects embedding benchmark may want to turn this OFF.)")
@@ -35,7 +39,6 @@ set(BENCHMARK_ENABLE_GTEST_TESTS OFF CACHE BOOL
     "Enable building the unit tests which depend on gtest")
 set(BENCHMARK_ENABLE_TESTING OFF CACHE BOOL
     "Enable testing of the benchmark library.")
-add_subdirectory(external/google-benchmark)
 #- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - 
 # configure files
 #- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - 
@@ -158,7 +161,6 @@ target_include_directories(tatooine
     ${CMAKE_CURRENT_SOURCE_DIR}/single_include
     ${CMAKE_CURRENT_BINARY_DIR}/include
     ${CMAKE_CURRENT_SOURCE_DIR}/external/indicators/include
-    ${CMAKE_CURRENT_SOURCE_DIR}/external/tomlplusplus/include
     ${LAPACKE_INCLUDE_DIRS}
     ${vcode_DIR}/../..
     ${Boost_INCLUDE_DIRS}
@@ -215,16 +217,6 @@ if (OpenMP_C_FOUND)
   endif()
 endif()
 #- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-# NetCDF
-#- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-find_package(NetCDF QUIET)
-if (NETCDF_FOUND)
-  message(STATUS "NetCDF available")
-  target_compile_definitions(tatooine PUBLIC TATOOINE_NETCDF_AVAILABLE)
-  target_link_libraries(tatooine PUBLIC ${NETCDF_LIBRARIES})
-  target_include_directories(tatooine PUBLIC ${NETCDF_INCLUDES})
-endif()
-#- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 # MPI
 #- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 get_filename_component(C_COMPILER_EXECUTABLE ${CMAKE_C_COMPILER} NAME)
@@ -270,9 +262,15 @@ if (TATOOINE_USE_SYSTEM_HDF5_LIBS)
   else()
     message(STATUS "HDF5 not available")
   endif()
+  set(TATOOINE_HDF5_HEADER hdf5.h)
 endif()
 if ((NOT TATOOINE_USE_SYSTEM_HDF5_LIBS) OR
     (TATOOINE_USE_SYSTEM_HDF5_LIBS AND NOT HDF5_FOUND))
+  update_git_submodule(${TATOOINE_EXTERNAL}/hdf5)
+  if(NOT GIT_SUBMOD_RESULT EQUAL "0")
+    message(FATAL_ERROR
+      "git submodule update --init failed with ${GIT_SUBMOD_RESULT}, please checkout submodules")
+  endif()
   set(HDF5_EXTERNALLY_CONFIGURED 1)
   set(HDF5_EXTERNAL_LIB_PREFIX "tatooine" CACHE STRING "Use prefix for custom library naming.")
   set(HDF5_BUILD_CPP_LIB     OFF CACHE BOOL "Build HDF5 C++ Library")
@@ -295,10 +293,6 @@ if ((NOT TATOOINE_USE_SYSTEM_HDF5_LIBS) OR
     set(HDF5_ENABLE_PARALLEL OFF)
   endif()
   add_subdirectory(external/hdf5 EXCLUDE_FROM_ALL)
-  set(${CMAKE_SOURCE_DIR} TATOOINE_SOURCE_DIR)
-  set(${CMAKE_CURRENT_SOURCE_DIR} TATOOINE_CURRENT_SOURCE_DIR)
-  set(${CMAKE_BINARY_DIR} TATOOINE_BINARY_DIR)
-  set(${CMAKE_CURRENT_BINARY_DIR} TATOOINE_CURRENT_BINARY_DIR)
   if ("${CMAKE_CXX_COMPILER_ID}" STREQUAL "GNU" OR
       "${CMAKE_CXX_COMPILER_ID}" STREQUAL "Clang")
     set(TATOOINE_HDF5_WNOS
@@ -340,6 +334,32 @@ if ((NOT TATOOINE_USE_SYSTEM_HDF5_LIBS) OR
   target_link_libraries(tatooine PUBLIC hdf5-static)
   target_compile_definitions(tatooine PUBLIC TATOOINE_HDF5_AVAILABLE)
   list(APPEND TATOOINE_EXPORTING_TARGETS hdf5-static)
+  target_compile_definitions(tatooine PUBLIC TATOOINE_USE_SYSTEM_HDF5_LIBS=0)
+  set(TATOOINE_HDF5_HEADER ${CMAKE_CURRENT_SOURCE_DIR}/external/hdf5/src/hdf5.h)
+endif()
+configure_file(${CMAKE_CURRENT_SOURCE_DIR}/include/tatooine/hdf5.h.in
+               ${CMAKE_CURRENT_BINARY_DIR}/include/tatooine/hdf5.h)
+#- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+# NetCDF
+#- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+if(TATOOINE_USE_SYSTEM_HDF5_LIBS)
+  option(TATOOINE_USE_SYSTEM_NETCDF_LIBS "By setting this to ON tatooine will not compile NetCDF on its own." OFF)
+  if (TATOOINE_USE_SYSTEM_NETCDF_LIBS) 
+    find_package(NetCDF QUIET)
+    if (NETCDF_FOUND)
+      message(STATUS "NetCDF available")
+      target_compile_definitions(tatooine PUBLIC TATOOINE_NETCDF_AVAILABLE)
+      target_link_libraries(tatooine PUBLIC ${NETCDF_LIBRARIES})
+      target_include_directories(tatooine PUBLIC ${NETCDF_INCLUDES})
+    endif()
+  endif()
+endif()
+if ((NOT TATOOINE_USE_SYSTEM_NETCDF_LIBS) OR
+  (TATOOINE_USE_SYSTEM_NETCDF_LIBS AND NOT NETCDF_FOUND))
+  update_git_submodule(${TATOOINE_EXTERNAL}/netcdf4-c)
+  update_git_submodule(${TATOOINE_EXTERNAL}/netcdf4-cxx)
+  add_subdirectory(external/netcdf4-c EXCLUDE_FROM_ALL)
+  add_subdirectory(external/netcdf4-cxx EXCLUDE_FROM_ALL)
 endif()
 
 #- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -398,14 +418,16 @@ set(TATOOINE_EXPORTING_TARGETS tatooine)
 add_subdirectory(test)
 add_subdirectory(scivis_contest_2020 EXCLUDE_FROM_ALL)
 add_subdirectory(benchmarks)
-add_subdirectory(doc EXCLUDE_FROM_ALL)
+add_subdirectory(doc)
 add_subdirectory(material_science EXCLUDE_FROM_ALL)
 if (yavin_FOUND) 
   add_subdirectory(steadification EXCLUDE_FROM_ALL)
 endif()
-option(TATOOINE_BUILD_FLOWEXPLORER "Builds Flow Explorer" OFF)
-if (TATOOINE_BUILD_FLOWEXPLORER AND yavin_FOUND) 
-  add_subdirectory(flowexplorer)
+if (yavin_FOUND) 
+  option(TATOOINE_BUILD_FLOWEXPLORER "Builds Flow Explorer" OFF)
+  if (TATOOINE_BUILD_FLOWEXPLORER) 
+    add_subdirectory(flowexplorer)
+  endif()
 endif()
 add_subdirectory(autonomous_particles)
 add_subdirectory(smearing_scalar_field)
