@@ -18,8 +18,8 @@ struct sampled_grid_property_field
   using typename parent_t::pos_t;
   using typename parent_t::real_t;
   using typename parent_t::tensor_t;
-  using tensor_prop_t = typename grid_t::template typed_property_t<tensor_t>;
-  using real_prop_t   = typename grid_t::template typed_property_t<real_t>;
+  using tensor_prop_t = typename grid_t::template typed_property_t<tensor_t, true>;
+  using real_prop_t   = typename grid_t::template typed_property_t<real_t, true>;
   using parent_t::num_dimensions;
   static_assert(num_dimensions() == grid_t::num_dimensions() ||
                 num_dimensions() == grid_t::num_dimensions() - 1);

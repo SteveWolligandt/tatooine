@@ -44,7 +44,7 @@ void autonomous_particle::render(mat4f const& projection_matrix,
 //----------------------------------------------------------------------------
 auto autonomous_particle::on_property_changed() -> void {
   if (m_x0 != nullptr) {
-    //update_initial_circle();
+    update_initial_circle();
     advect();
   }
 }
@@ -90,23 +90,23 @@ void autonomous_particle::advect() {
   this->x1() = *m_x0;
 
   auto run = [node = this] {
-    //node->advect_points_in_initial_circle();
-    //node->upload_advected_points_in_initial_circle();
+    node->advect_points_in_initial_circle();
+    node->upload_advected_points_in_initial_circle();
 
-    auto const particles = [&node] {
+    auto const particles = [node] {
       switch (node->m_num_splits) {
         //case 2:
         //  return node->advect_with_2_splits(node->m_taustep, node->m_max_t,
         //                                    node->m_stop_thread);
         case 3:
-          return node->advect_with_3_splits(node->m_taustep, node->m_max_t,
-                                            node->m_stop_thread);
-        //case 5:
-        //  return node->advect_with_5_splits(node->m_taustep, node->m_max_t,
-        //                                    node->m_stop_thread);
-        //case 7:
-        //  return node->advect_with_7_splits(node->m_taustep, node->m_max_t,
-        //                                    node->m_stop_thread);
+          return node->advect_with_3_splits(flowmap(*node->m_v), node->m_taustep,
+                                            node->m_max_t, node->m_stop_thread);
+          // case 5:
+          //  return node->advect_with_5_splits(node->m_taustep, node->m_max_t,
+          //                                    node->m_stop_thread);
+          // case 7:
+          //  return node->advect_with_7_splits(node->m_taustep, node->m_max_t,
+          //                                    node->m_stop_thread);
       }
       return parent_t::container_t{};
     }();
@@ -204,15 +204,19 @@ void autonomous_particle::advect() {
 
           ++index;
 
+          auto phi = flowmap(*node->m_v);
+          if constexpr (is_cacheable(phi)) {
+            phi.use_caching(false);
+          }
           while (t + tau < particle.t1()) {
-            y = node->phi()(y, t, tau);
+            y = phi(y, t, tau);
             t += tau;
             node->m_pathlines.vertexbuffer().push_back(gpu_vec3{y(0), y(1), t});
             node->m_pathlines.indexbuffer().push_back(index - 1);
             node->m_pathlines.indexbuffer().push_back(index);
             ++index;
           }
-          y = node->phi()(y, t, particle.t1() - t);
+          y = phi(y, t, particle.t1() - t);
           node->m_pathlines.vertexbuffer().push_back(
               gpu_vec3{y(0), y(1), particle.t1()});
           node->m_pathlines.indexbuffer().push_back(index - 1);
@@ -224,8 +228,8 @@ void autonomous_particle::advect() {
     node->m_currently_advecting = false;
   };
 
-  this->scene().window().do_async(run);
-  //run();
+  //this->scene().window().do_async(run);
+  run();
 }
 //----------------------------------------------------------------------------
 auto autonomous_particle::draw_properties() -> bool {
@@ -299,7 +303,7 @@ auto autonomous_particle::draw_properties() -> bool {
         break;
     }
   }
-  if (do_advect && m_x0 != nullptr && &this->phi().vectorfield() != nullptr) {
+  if (do_advect && m_x0 != nullptr && m_v != nullptr) {
     advect();
   }
   return false;
@@ -313,11 +317,11 @@ void autonomous_particle::on_pin_connected(ui::input_pin& /*this_pin*/,
     m_x0 = dynamic_cast<vec<double, 2>*>(&other_pin.node());
     x0() = *m_x0;
     x1() = *m_x0;
-    if (&this->phi().vectorfield() != nullptr) {
+    if (m_v != nullptr) {
       update_initial_circle();
     }
   } else if ((other_pin.type() == typeid(vectorfield_t))) {
-    set_vectorfield(dynamic_cast<vectorfield_t*>(&other_pin.node()));
+    m_v = dynamic_cast<vectorfield_t*>(&other_pin.node());
     if (m_x0 != nullptr) {
       update_initial_circle();
     }
@@ -341,12 +345,16 @@ void autonomous_particle::generate_points_in_initial_circle(
 //------------------------------------------------------------------------------
 void autonomous_particle::advect_points_in_initial_circle() {
   m_advected_points_on_initial_circle.clear();
+  auto phi = flowmap(*m_v);
+  if constexpr (is_cacheable(phi)) {
+    phi.use_caching(false);
+  }
   for (auto const& x : m_points_on_initial_circle) {
     if (m_stop_thread) {
       break;
     }
     m_advected_points_on_initial_circle.push_back(
-        phi()(x, m_t0, m_max_t - m_t0));
+        phi(x, m_t0, m_max_t - m_t0));
   }
 }
 //------------------------------------------------------------------------------

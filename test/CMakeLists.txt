@@ -1,5 +1,6 @@
 option(TATOOINE_BUILD_TESTS "Tests shall be built?")
 if(${TATOOINE_BUILD_TESTS})
+update_git_submodule(external/catch2)
 add_subdirectory(external/catch2 EXCLUDE_FROM_ALL)
 list(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/external/catch2/contrib/")
 set(TATOOINE_TEST_USE_FAST_MATH false CACHE BOOL

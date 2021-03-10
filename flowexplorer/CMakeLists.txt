@@ -1,3 +1,5 @@
+update_git_submodule(external/tomlplusplus)
+#- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 set(TATFE_SRC_DIR ${CMAKE_CURRENT_SOURCE_DIR}/src)
 set(TATFE_BIN_SRC_DIR ${CMAKE_CURRENT_BINARY_DIR}/src)
 set(TATFE_INCLUDE_DIR ${CMAKE_CURRENT_SOURCE_DIR}/include)
@@ -59,9 +61,10 @@ target_compile_features(flowexplorer PUBLIC cxx_std_17)
 target_compile_options(flowexplorer PRIVATE
   -Wall -Wextra -pedantic
   -Wno-tautological-undefined-compare -Wno-gnu-zero-variadic-macro-arguments)
-target_include_directories(
-  flowexplorer
-  PUBLIC ${TATFE_INCLUDE_DIR} ${TATFE_BIN_INCLUDE_DIR})
+target_include_directories(flowexplorer
+ PUBLIC
+  ${TATFE_INCLUDE_DIR} ${TATFE_BIN_INCLUDE_DIR}
+  ${CMAKE_CURRENT_SOURCE_DIR}/external/tomlplusplus/include)
 
 add_custom_target(flowexplorer.run ./flowexplorer DEPENDS tatooine flowexplorer)
 #- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -

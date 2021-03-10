@@ -1,3 +1,8 @@
+option(TATOOINE_BUILD_BENCHMARKS "Benchmarks shall be built?")
+if(${TATOOINE_BUILD_BENCHMARKS})
+update_git_submodule(external/google-benchmark)
+add_subdirectory(external/google-benchmark)
+#- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 if ("${CMAKE_CXX_COMPILER_ID}" STREQUAL "Clang")
   set(CMAKE_CXX_FLAGS "-fcolor-diagnostics")
 elseif ("${CMAKE_CXX_COMPILER_ID}" STREQUAL "GNU")
@@ -72,3 +77,4 @@ add_custom_target (benchmarks.callgrind.dot
                    COMMAND gprof2dot --format=callgrind --output=benchmarks.dot benchmarks.callgrind
                    COMMAND dot -Tsvg benchmarks.dot -o benchmarks-graph.svg
                    DEPENDS benchmarks.callgrind)
+endif()

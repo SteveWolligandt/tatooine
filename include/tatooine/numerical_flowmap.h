@@ -294,13 +294,14 @@ struct numerical_flowmap {
 //==============================================================================
 template <typename V, typename Real, size_t N>
 numerical_flowmap(vectorfield<V, Real, N> const&)
-    -> numerical_flowmap<V, ode::vclibs::rungekutta43, interpolation::cubic>;
+    -> numerical_flowmap<V const&, ode::vclibs::rungekutta43,
+                         interpolation::cubic>;
 //-> numerical_flowmap<V, ode::boost::rungekuttafehlberg78, interpolation::cubic>;
 //------------------------------------------------------------------------------
 template <typename V, typename Real, size_t N,
           template <typename, size_t> typename ODESolver>
 numerical_flowmap(vectorfield<V, Real, N> const&, ODESolver<Real, N> const&)
-    -> numerical_flowmap<V, ODESolver, interpolation::cubic>;
+    -> numerical_flowmap<V const&, ODESolver, interpolation::cubic>;
 //==============================================================================
 template <
     //template <typename, size_t> typename ODESolver = ode::boost::rungekuttafehlberg78,
@@ -308,7 +309,7 @@ template <typename, size_t> typename ODESolver = ode::vclibs::rungekutta43,
     template <typename> typename InterpolationKernel = interpolation::cubic,
     typename V, typename Real, size_t N>
 auto flowmap(vectorfield<V, Real, N> const& v, tag::numerical_t /*tag*/) {
-  return numerical_flowmap<V, ODESolver, InterpolationKernel>{v};
+  return numerical_flowmap<V const&, ODESolver, InterpolationKernel>{v};
 }
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 template <
@@ -317,7 +318,17 @@ template <
     template <typename> typename InterpolationKernel = interpolation::cubic,
     typename V, typename Real, size_t N>
 auto flowmap(vectorfield<V, Real, N> const& v) {
-  return numerical_flowmap<V, ODESolver, InterpolationKernel>(v);
+  return numerical_flowmap<V const&, ODESolver, InterpolationKernel>(v);
+}
+// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+template <
+    //template <typename, size_t> typename ODESolver = ode::boost::rungekuttafehlberg78,
+    template <typename, size_t> typename ODESolver = ode::vclibs::rungekutta43,
+    template <typename> typename InterpolationKernel = interpolation::cubic,
+    typename Real, size_t N>
+auto flowmap(parent::vectorfield<Real, N> const& v) {
+  return numerical_flowmap<parent::vectorfield<Real, N> const*, ODESolver,
+                           InterpolationKernel>(&v);
 }
 //==============================================================================
 }  // namespace tatooine
