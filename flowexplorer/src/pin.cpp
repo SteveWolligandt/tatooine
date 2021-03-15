@@ -11,9 +11,8 @@ input_pin::input_pin(base::node& n, std::vector<std::type_info const*> types,
                      std::string const& title)
     : base_pin{n, pinkind::input, title}, m_types{types} {}
 //------------------------------------------------------------------------------
-output_pin::output_pin(base::node& n, std::type_info const& type,
-                       std::string const& title)
-    : base_pin{n, pinkind::output, title}, m_type{type} {}
+output_pin::output_pin(base::node& n, std::string const& title)
+    : base_pin{n, pinkind::output, title} {}
 //------------------------------------------------------------------------------
 auto input_pin::set_link(struct link& l) -> void {
   if (m_link != nullptr) {

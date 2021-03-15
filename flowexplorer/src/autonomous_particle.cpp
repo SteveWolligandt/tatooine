@@ -198,8 +198,33 @@ void autonomous_particle::advect() {
           }
 
           auto const tau = 0.05;
-          auto       y   = particle.x0();
-          auto       t   = node->m_t0;
+      
+          //// forward
+          //auto       y   = particle.x0();
+          //auto       t   = node->m_t0;
+          //node->m_pathlines.vertexbuffer().push_back(gpu_vec3{y(0), y(1), t});
+          //
+          //++index;
+          //
+          //auto phi = flowmap(*node->m_v);
+          //if constexpr (is_cacheable(phi)) {
+          //  phi.use_caching(false);
+          //}
+          //while (t + tau < particle.t1()) {
+          //  y = phi(y, t, tau);
+          //  t += tau;
+          //  node->m_pathlines.vertexbuffer().push_back(gpu_vec3{y(0), y(1), t});
+          //  node->m_pathlines.indexbuffer().push_back(index - 1);
+          //  node->m_pathlines.indexbuffer().push_back(index);
+          //  ++index;
+          //}
+          //y = phi(y, t, particle.t1() - t);
+          //node->m_pathlines.vertexbuffer().push_back(
+          //    gpu_vec3{y(0), y(1), particle.t1()});
+
+          // backward
+          auto       y   = particle.x1();
+          auto       t   = particle.t1();
           node->m_pathlines.vertexbuffer().push_back(gpu_vec3{y(0), y(1), t});
 
           ++index;
@@ -208,17 +233,18 @@ void autonomous_particle::advect() {
           if constexpr (is_cacheable(phi)) {
             phi.use_caching(false);
           }
-          while (t + tau < particle.t1()) {
-            y = phi(y, t, tau);
-            t += tau;
+          while (t - tau > node->m_t0) {
+            y = phi(y, t, -tau);
+            t -= tau;
             node->m_pathlines.vertexbuffer().push_back(gpu_vec3{y(0), y(1), t});
             node->m_pathlines.indexbuffer().push_back(index - 1);
             node->m_pathlines.indexbuffer().push_back(index);
             ++index;
           }
-          y = phi(y, t, particle.t1() - t);
+          y = phi(y, t, node->m_t0 - t);
           node->m_pathlines.vertexbuffer().push_back(
-              gpu_vec3{y(0), y(1), particle.t1()});
+              gpu_vec3{y(0), y(1), node->m_t0});
+
           node->m_pathlines.indexbuffer().push_back(index - 1);
           node->m_pathlines.indexbuffer().push_back(index);
           ++index;

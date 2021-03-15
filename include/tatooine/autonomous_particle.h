@@ -289,7 +289,7 @@ struct autonomous_particle {
         break;
       }
       advected_particles->clear();
-      //#pragma omp parallel for
+//#pragma omp parallel for
       for (size_t i = 0; i < particles_to_be_advected->size(); ++i) {
         if (!stop) {
           particles_to_be_advected->at(i).advect_until_split(

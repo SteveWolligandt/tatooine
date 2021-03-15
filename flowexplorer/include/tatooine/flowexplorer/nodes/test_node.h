@@ -39,7 +39,7 @@ struct test_node : ui::node<test_node> {
   //============================================================================
   test_node(flowexplorer::scene& s) : node<test_node>{"Test", s} {
     insert_input_pin<test_node>("input");
-    insert_output_pin<test_node>("output");
+    insert_output_pin("output", *this);
   }
 
  public:

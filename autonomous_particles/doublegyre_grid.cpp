@@ -44,19 +44,19 @@ auto create_initial_particles(args_t const& args) {
   }
 
   // overlapping particles
-  //initial_distribution_grid.front<0>() +=
-  //    initial_distribution_grid.dimension<0>().spacing() / 2;
-  //initial_distribution_grid.back<0>() +=
-  //    initial_distribution_grid.dimension<0>().spacing() / 2;
-  //initial_distribution_grid.front<1>() +=
-  //    initial_distribution_grid.dimension<1>().spacing() / 2;
-  //initial_distribution_grid.back<1>() +=
-  //    initial_distribution_grid.dimension<1>().spacing() / 2;
-  //initial_distribution_grid.dimension<0>().pop_back();
-  //initial_distribution_grid.dimension<1>().pop_back();
-  //for (auto const& x : initial_distribution_grid.vertices()) {
-  //  initial_particles.emplace_back(v, x, args.t0, r0).phi().use_caching(false);
-  //}
+  initial_distribution_grid.front<0>() +=
+      initial_distribution_grid.dimension<0>().spacing() / 2;
+  initial_distribution_grid.back<0>() +=
+      initial_distribution_grid.dimension<0>().spacing() / 2;
+  initial_distribution_grid.front<1>() +=
+      initial_distribution_grid.dimension<1>().spacing() / 2;
+  initial_distribution_grid.back<1>() +=
+      initial_distribution_grid.dimension<1>().spacing() / 2;
+  initial_distribution_grid.dimension<0>().pop_back();
+  initial_distribution_grid.dimension<1>().pop_back();
+  for (auto const& x : initial_distribution_grid.vertices()) {
+    initial_particles.emplace_back(x, args.t0, r0);
+  }
   
   return initial_particles;
 }

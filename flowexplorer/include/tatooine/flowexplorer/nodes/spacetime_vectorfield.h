@@ -16,7 +16,7 @@ struct spacetime_vectorfield
     this->template insert_input_pin<parent::vectorfield<real_t, 2>>(
         "2D Vector Field");
     this->template insert_output_pin<parent::vectorfield<real_t, 3>>(
-        "3D Vector Field");
+        "3D Vector Field", *this);
   }
   //----------------------------------------------------------------------------
   void on_pin_connected(ui::input_pin& /*this_pin*/,

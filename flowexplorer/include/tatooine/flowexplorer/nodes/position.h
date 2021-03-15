@@ -38,12 +38,18 @@ struct position : tatooine::vec<double, N>, renderable<position<N>> {
   constexpr auto operator=(position&&) noexcept -> position& = default;
   //============================================================================
   constexpr position(flowexplorer::scene& s)
-      : renderable<position>{"Position", s, typeid(this_t)} {
+      : renderable<position>{"Position", s,
+                             *dynamic_cast<tatooine::vec<double, N>*>(this)} {
+    create_indexed_data();
+  }
+  //----------------------------------------------------------------------------
+  constexpr position(std::string const& name, flowexplorer::scene& s)
+      : renderable<position>{name, s, typeid(this_t)} {
     create_indexed_data();
   }
   //============================================================================
-  void render(mat<GLfloat, 4, 4> const& projection_matrix,
-              mat<GLfloat, 4, 4> const& view_matrix) override {
+  void render(mat4f const& projection_matrix,
+              mat4f const& view_matrix) override {
     set_vbo_data();
     m_shader.bind();
     m_shader.set_color(m_color[0], m_color[1], m_color[2], m_color[3]);

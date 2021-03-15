@@ -9,8 +9,9 @@ namespace tatooine::flowexplorer::nodes {
 struct doublegyre : tatooine::analytical::fields::numerical::doublegyre<double>,
                     ui::node<doublegyre> {
   doublegyre(flowexplorer::scene& s)
-      : ui::node<doublegyre>{"Double Gyre", s,
-                             typeid(parent::vectorfield<double, 2>)} {
+      : ui::node<doublegyre>{
+            "Double Gyre", s,
+            *dynamic_cast<parent::vectorfield<double, 2>*>(this)} {
     this->set_infinite_domain(true);
   }
   virtual ~doublegyre() = default;

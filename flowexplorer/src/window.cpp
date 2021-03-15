@@ -125,7 +125,7 @@ void window::on_cursor_moved(double x, double y) {
           }
         }
         for (auto& output_pin : r->output_pins()) {
-          for (auto l : output_pin.links()) {
+          for (auto l : output_pin->links()) {
             l->input().node().on_property_changed();
           }
         }
