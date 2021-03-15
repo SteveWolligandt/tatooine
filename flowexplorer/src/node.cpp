@@ -129,18 +129,18 @@ auto node::draw_node() -> void {
 
   for (auto& input : input_pins()) {
     auto alpha = ImGui::GetStyle().Alpha;
-    if (scene().new_link() && !scene().can_create_new_link(input)) {
+   if (scene().new_link() && !scene().can_create_new_link(*input)) {
       alpha = alpha * 48.0f / 255.0f;
     }
 
-    builder.input(input.get_id());
+    builder.input(input->get_id());
     ImGui::PushStyleVar(ImGuiStyleVar_Alpha, alpha);
     icon(ImVec2(25 * scene().window().ui_scale_factor(),
                 25 * scene().window().ui_scale_factor()),
-        icon_type::flow, input.is_connected(), icon_color(input, alpha));
+        icon_type::flow, input->is_connected(), icon_color(*input, alpha));
     ImGui::Spring(0);
-    if (!input.title().empty()) {
-      ImGui::TextUnformatted(input.title().c_str());
+    if (!input->title().empty()) {
+      ImGui::TextUnformatted(input->title().c_str());
       ImGui::Spring(0);
     }
     ImGui::PopStyleVar();

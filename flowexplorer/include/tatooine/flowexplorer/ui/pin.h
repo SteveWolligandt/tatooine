@@ -32,7 +32,7 @@ struct base_pin : uuid_holder<ax::NodeEditor::PinId> {
 struct input_pin : base_pin {
  private:
   std::vector<std::type_info const*> m_types;
-  struct link*                 m_link = nullptr;
+  struct link*                       m_link = nullptr;
 
  public:
   input_pin(base::node& n, std::vector<std::type_info const*> types,
@@ -44,6 +44,11 @@ struct input_pin : base_pin {
   auto link() -> auto& { return *m_link; }
   auto set_link(struct link & l) -> void;
   auto unset_link() -> void;
+  template <typename T>
+  auto linked_object_as() -> T&;
+  template <typename T>
+  auto linked_object_as() const -> T const&;
+  auto linked_type() const -> std::type_info const&;
 };
 //==============================================================================
 struct output_pin : base_pin {
@@ -64,6 +69,7 @@ struct output_pin : base_pin {
   template <typename T>
   auto get() -> T&;
 };
+//==============================================================================
 template <typename T>
 struct output_pin_impl : output_pin {
  private:
@@ -89,9 +95,21 @@ auto output_pin::get() -> T& {
   return dynamic_cast<output_pin_impl<T>*>(this)->get();
 }
 //==============================================================================
+template <typename T>
+auto input_pin::linked_object_as() -> T& {
+  return link().output().get<T>();
+}
+//------------------------------------------------------------------------------
+template <typename T>
+auto input_pin::linked_object_as() const -> T const& {
+  return link().output().get<T>();
+}
+//==============================================================================
 template <typename... Ts>
-auto make_input_pin(base::node& n, std::string const& title) {
-  return input_pin{n, std::vector{&typeid(std::decay_t<Ts>)...}, title};
+auto make_input_pin(base::node& n, std::string const& title)
+    -> std::unique_ptr<input_pin> {
+  return std::make_unique<input_pin>(
+      n, std::vector{&typeid(std::decay_t<Ts>)...}, title);
 }
 //------------------------------------------------------------------------------
 template <typename T>
