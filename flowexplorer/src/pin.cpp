@@ -27,6 +27,10 @@ auto input_pin::unset_link() -> void {
   node().on_pin_disconnected(*this);
 }
 //------------------------------------------------------------------------------
+auto input_pin::linked_type() const -> std::type_info const& {
+  return link().output().type();
+}
+//------------------------------------------------------------------------------
 auto output_pin::insert_link(struct link& l) -> void {
   m_links.push_back(&l);
   node().on_pin_connected(*this, l.input());

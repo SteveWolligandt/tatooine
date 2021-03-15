@@ -179,15 +179,15 @@ auto scene::find_node(size_t const id) -> ui::base::node* {
 auto scene::find_input_pin(size_t const id) -> ui::input_pin* {
   for (auto& r : m_renderables) {
     for (auto& p : r->input_pins()) {
-      if (p.get_id_number() == id) {
-        return &p;
+      if (p->get_id_number() == id) {
+        return p.get();
       }
     }
   }
   for (auto& n : m_nodes) {
     for (auto& p : n->input_pins()) {
-      if (p.get_id_number() == id) {
-        return &p;
+      if (p->get_id_number() == id) {
+        return p.get();
       }
     }
   }
@@ -397,9 +397,9 @@ void scene::remove_link() {
             [node_id](auto& node) { return node->get_id() == node_id; });
         if (node_it != end(m_nodes)) {
           for (auto& input : node_it->get()->input_pins()) {
-            if (input.is_connected()) {
-              input.link().output().node().on_pin_disconnected(
-                  input.link().output());
+            if (input->is_connected()) {
+              input->link().output().node().on_pin_disconnected(
+                  input->link().output());
             }
           }
           for (auto& output : node_it->get()->output_pins()) {
@@ -418,10 +418,10 @@ void scene::remove_link() {
                              return renderable->get_id() == node_id;
                            });
           if (renderable_it != end(m_renderables)) {
-            for (auto input : renderable_it->get()->input_pins()) {
-              if (input.is_connected()) {
-                input.link().output().node().on_pin_disconnected(
-                    input.link().output());
+            for (auto& input : renderable_it->get()->input_pins()) {
+              if (input->is_connected()) {
+                input->link().output().node().on_pin_disconnected(
+                    input->link().output());
               }
             }
             for (auto& output : renderable_it->get()->output_pins()) {
@@ -502,7 +502,7 @@ void scene::write(filesystem::path const& filepath) const {
       auto        pos             = node->node_position();
       toml::array input_pin_ids, output_pin_ids;
       for (auto const& input_pin : node->input_pins()) {
-        input_pin_ids.push_back(long(input_pin.get_id_number()));
+        input_pin_ids.push_back(long(input_pin->get_id_number()));
       }
       for (auto const& output_pin : node->output_pins()) {
         output_pin_ids.push_back(long(output_pin->get_id_number()));
@@ -589,7 +589,7 @@ void scene::read(filesystem::path const& filepath) {
           *serialized_node["output_pin_ids"].as_array();
       size_t i = 0;
       for (auto& input_pin : n->input_pins()) {
-        input_pin.set_id(size_t(input_pin_ids[i++].as_integer()->get()));
+        input_pin->set_id(size_t(input_pin_ids[i++].as_integer()->get()));
       }
       i = 0;
       for (auto& output_pin : n->output_pins()) {

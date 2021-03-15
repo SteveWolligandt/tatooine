@@ -1,11 +1,11 @@
 #ifndef TATOOINE_FLOWEXPLORER_NODES_SINGLE_PATHLINE_H
 #define TATOOINE_FLOWEXPLORER_NODES_SINGLE_PATHLINE_H
 //==============================================================================
-#include <tatooine/flowexplorer/nodes/axis_aligned_bounding_box.h>
-#include <tatooine/flowexplorer/renderable.h>
-#include <tatooine/flowexplorer/nodes/position.h>
-#include <tatooine/gpu/line_renderer.h>
 #include <tatooine/flowexplorer/line_shader.h>
+#include <tatooine/flowexplorer/nodes/axis_aligned_bounding_box.h>
+#include <tatooine/flowexplorer/nodes/position.h>
+#include <tatooine/flowexplorer/renderable.h>
+#include <tatooine/gpu/line_renderer.h>
 #include <tatooine/ode/vclibs/rungekutta43.h>
 
 #include <mutex>
@@ -21,11 +21,12 @@ struct single_pathline : renderable<single_pathline<N>> {
   using integrator_t  = ode::vclibs::rungekutta43<double, N>;
   //----------------------------------------------------------------------------
 
-  vectorfield_t const*                                    m_v  = nullptr;
-  position<N> const*                                      m_x0 = nullptr;
-  integrator_t                                            m_integrator;
-  line_shader                                             m_shader;
-  yavin::indexeddata<vec<float, 3>, vec<float, 3>, float> m_gpu_data;
+  ui::input_pin&                              m_v_pin;
+  ui::input_pin&                              m_x0_pin;
+  vec<real_t, N>                          m_x_neg, m_x_pos;
+  integrator_t                            m_integrator;
+  line_shader                             m_shader;
+  yavin::indexeddata<vec3f, vec3f, float> m_gpu_data;
 
   double                 m_t0   = 0;
   double                 m_btau = -5, m_ftau = 5;
@@ -34,9 +35,11 @@ struct single_pathline : renderable<single_pathline<N>> {
   bool                   m_integration_going_on = false;
   //----------------------------------------------------------------------------
   single_pathline(flowexplorer::scene& s)
-      : renderable<single_pathline<N>>{"Path Line", s} {
-    this->template insert_input_pin<vectorfield_t>("Vector Field");
-    this->template insert_input_pin<position<N>>("x0");
+      : renderable<single_pathline<N>>{"Path Line", s},
+        m_v_pin{this->template insert_input_pin<vectorfield_t>("Vector Field")},
+        m_x0_pin{this->template insert_input_pin<vec<real_t, 2>>("x0")} {
+    this->template insert_output_pin("negative end", m_x_neg);
+    this->template insert_output_pin("positive end", m_x_pos);
   }
   //----------------------------------------------------------------------------
   void render(mat<float, 4, 4> const& projection_matrix,
@@ -65,9 +68,10 @@ struct single_pathline : renderable<single_pathline<N>> {
       return;
     }
     auto worker = [node = this] {
-      size_t index          = 0;
-      bool   insert_segment = false;
-      auto   callback       = [node, &index, &insert_segment](
+      size_t          index          = 0;
+      bool            insert_segment = false;
+      vec<real_t, N>* cur_end_point  = nullptr;
+      auto callback = [&cur_end_point, node, &index, &insert_segment](
                           auto const& y, auto const t, auto const& dy) {
         std::lock_guard lock{node->m_gpu_data.mutex()};
         if constexpr (N == 3) {
@@ -80,14 +84,12 @@ struct single_pathline : renderable<single_pathline<N>> {
                               static_cast<GLfloat>(dy(2))},
               static_cast<GLfloat>(t));
         } else if constexpr (N == 2) {
-        node->m_gpu_data.vertexbuffer().push_back(
-            vec<GLfloat, 3>{static_cast<GLfloat>(y(0)),
-                            static_cast<GLfloat>(y(1)),
-                            0.0f},
-            vec<GLfloat, 3>{static_cast<GLfloat>(dy(0)),
-                            static_cast<GLfloat>(dy(1)),
-                            0.0f},
-            static_cast<GLfloat>(t));
+          node->m_gpu_data.vertexbuffer().push_back(
+              vec<GLfloat, 3>{static_cast<GLfloat>(y(0)),
+                              static_cast<GLfloat>(y(1)), 0.0f},
+              vec<GLfloat, 3>{static_cast<GLfloat>(dy(0)),
+                              static_cast<GLfloat>(dy(1)), 0.0f},
+              static_cast<GLfloat>(t));
         }
         if (insert_segment) {
           node->m_gpu_data.indexbuffer().push_back(index - 1);
@@ -96,25 +98,30 @@ struct single_pathline : renderable<single_pathline<N>> {
           insert_segment = true;
         }
         ++index;
+        *cur_end_point = y;
       };
       node->m_gpu_data.clear();
-      insert_segment  = false;
-      node->m_integrator.solve(*node->m_v, *node->m_x0, node->m_t0, node->m_btau, callback);
       insert_segment = false;
-      node->m_integrator.solve(*node->m_v, *node->m_x0, node->m_t0, node->m_ftau, callback);
+      cur_end_point  = &node->m_x_neg;
+      node->m_integrator.solve(
+          node->m_v_pin.template linked_object_as<vectorfield_t>(),
+          node->m_x0_pin.template linked_object_as<vec<real_t, N>>(), node->m_t0,
+          node->m_btau, callback);
+      insert_segment = false;
+      cur_end_point  = &node->m_x_pos;
+      node->m_integrator.solve(
+          node->m_v_pin.template linked_object_as<vectorfield_t>(),
+          node->m_x0_pin.template linked_object_as<vec<real_t, N>>(),
+          node->m_t0, node->m_ftau, callback);
       node->m_integration_going_on = false;
     };
     worker();
-    //this->scene().window().do_async(worker);
+    // this->scene().window().do_async(worker);
   }
   //----------------------------------------------------------------------------
-  void on_pin_connected(ui::input_pin& /*this_pin*/, ui::output_pin& other_pin) override {
-    if (other_pin.type() == typeid(position<N>)) {
-      m_x0 = dynamic_cast<position<N>*>(&other_pin.node());
-    } else if ((other_pin.type() == typeid(vectorfield_t))) {
-      m_v = dynamic_cast<vectorfield_t*>(&other_pin.node());
-    }
-    if (m_x0 != nullptr && m_v != nullptr) {
+  void on_pin_connected(ui::input_pin& /*this_pin*/,
+                        ui::output_pin& /*other_pin*/) override {
+    if (m_x0_pin.is_connected() && m_v_pin.is_connected()) {
       integrate_lines();
     }
   }
@@ -124,14 +131,12 @@ struct single_pathline : renderable<single_pathline<N>> {
   }
   //----------------------------------------------------------------------------
   void on_property_changed() override {
-    if (m_x0 != nullptr && m_v != nullptr) {
+    if (m_x0_pin.is_connected() && m_v_pin.is_connected()) {
       integrate_lines();
     }
   }
   //----------------------------------------------------------------------------
-  bool is_transparent() const override {
-    return m_line_color[3] < 1;
-  }
+  bool is_transparent() const override { return m_line_color[3] < 1; }
 };
 using single_pathlines2d = single_pathline<2>;
 using single_pathlines3d = single_pathline<3>;

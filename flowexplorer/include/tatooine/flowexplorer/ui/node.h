@@ -23,7 +23,7 @@ struct node : uuid_holder<ax::NodeEditor::NodeId>, serializable  {
  private:
   std::string                              m_title;
   flowexplorer::scene*                     m_scene;
-  std::vector<input_pin>                   m_input_pins;
+  std::vector<std::unique_ptr<input_pin>>  m_input_pins;
   std::vector<std::unique_ptr<output_pin>> m_output_pins;
   bool                                     m_enabled  = true;
   std::unique_ptr<output_pin>              m_self_pin = nullptr;
@@ -45,13 +45,15 @@ struct node : uuid_holder<ax::NodeEditor::NodeId>, serializable  {
   virtual ~node() = default;
   //============================================================================
   template <typename... Ts>
-  auto insert_input_pin(std::string const& title) {
+  auto insert_input_pin(std::string const& title) -> auto& {
     m_input_pins.push_back(make_input_pin<Ts...>(*this, title));
+    return *m_input_pins.back();
   }
   //----------------------------------------------------------------------------
   template <typename T>
-  auto insert_output_pin(std::string const& title, T& ref) {
+  auto insert_output_pin(std::string const& title, T& ref) -> auto& {
     m_output_pins.push_back(make_output_pin(*this, title, ref));
+    return *m_output_pins.back();
   }
   //----------------------------------------------------------------------------
   auto title() const -> auto const& { return m_title; }
