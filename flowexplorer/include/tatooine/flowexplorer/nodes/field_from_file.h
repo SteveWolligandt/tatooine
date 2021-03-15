@@ -30,7 +30,7 @@ struct field_from_file
   field_from_file(flowexplorer::scene& s)
       : ui::node<field_from_file>{"Field", s} {
     this->template insert_output_pin<parent::field<double, N, TensorDims...>>(
-        "Field Out");
+        "Field Out", *this);
   }
   //----------------------------------------------------------------------------
   virtual ~field_from_file() = default;

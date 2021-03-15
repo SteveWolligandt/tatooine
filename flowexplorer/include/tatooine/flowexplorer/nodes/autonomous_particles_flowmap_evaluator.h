@@ -12,26 +12,27 @@ namespace tatooine::flowexplorer::nodes {
 struct autonomous_particles_flowmap_evaluator
     : renderable<autonomous_particles_flowmap_evaluator> {
   static std::vector<std::string> const items;
+  using gpu_vec  = vec<GLfloat, 3>;
 
-  yavin::indexeddata<vec3f>             m_gpu_data;
-  point_shader                          m_shader;
-  position<2>*                          m_x0      = nullptr;
-  autonomous_particles_flowmap*         m_flowmap = nullptr;
-  std::array<GLfloat, 4>                m_color;
-  int                                   m_point_size     = 1;
-  bool                                  m_is_evaluatable = false;
-  unsigned int                          m_current_item   = 0;
+  autonomous_particles_flowmap* m_flowmap        = nullptr;
+  position<2>*                  m_x0             = nullptr;
+  bool                          m_is_evaluatable = false;
+  unsigned int                  m_current_item   = 0;
+
+  vec2                        m_x1;
+  yavin::indexeddata<gpu_vec> m_gpu_data;
+  point_shader                m_shader;
+  int                         m_pointsize = 1;
+  std::array<GLfloat, 4>      m_color{0.0f, 0.0f, 0.0f, 1.0f};
   //----------------------------------------------------------------------------
   autonomous_particles_flowmap_evaluator(flowexplorer::scene& s);
   //----------------------------------------------------------------------------
   virtual ~autonomous_particles_flowmap_evaluator() = default;
   //============================================================================
-  auto render(mat4f const& projection_matrix, mat4f const& view_matrix)
-      -> void override;
-  //----------------------------------------------------------------------------
-  auto is_transparent() const -> bool override;
-  //----------------------------------------------------------------------------
   auto draw_properties() -> bool override;
+  //----------------------------------------------------------------------------
+  auto render(mat<GLfloat, 4, 4> const& projection_matrix,
+              mat<GLfloat, 4, 4> const& view_matrix) -> void override;
   //----------------------------------------------------------------------------
   auto on_pin_connected(ui::input_pin& this_pin, ui::output_pin& other_pin)
       -> void override;
@@ -39,13 +40,22 @@ struct autonomous_particles_flowmap_evaluator
   auto on_property_changed() -> void override;
   //----------------------------------------------------------------------------
   auto evaluate() -> void;
-};
+  //----------------------------------------------------------------------------
+  auto on_mouse_drag(int /*offset_x*/, int /*offset_y*/) -> bool override {
+    return false;
+  }
+  //----------------------------------------------------------------------------
+  auto set_vbo_data() -> void;
+  auto create_indexed_data() -> void;
+  //----------------------------------------------------------------------------
+  auto is_transparent() const -> bool override { return m_color[3] < 1; }
+  };
 //==============================================================================
 }  // namespace tatooine::flowexplorer::nodes
 //==============================================================================
 TATOOINE_FLOWEXPLORER_REGISTER_RENDERABLE(
     tatooine::flowexplorer::nodes::autonomous_particles_flowmap_evaluator,
-    TATOOINE_REFLECTION_INSERT_METHOD(point_size, m_point_size),
+    TATOOINE_REFLECTION_INSERT_METHOD(point_size, m_pointsize),
     TATOOINE_REFLECTION_INSERT_METHOD(color, m_color),
     TATOOINE_REFLECTION_INSERT_METHOD(current_item, m_current_item))
 #endif

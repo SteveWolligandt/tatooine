@@ -48,20 +48,46 @@ struct input_pin : base_pin {
 //==============================================================================
 struct output_pin : base_pin {
  private:
-  std::type_info const&     m_type;
   std::vector<struct link*> m_links;
 
  public:
-  output_pin(base::node& n, std::type_info const& type,
-             std::string const& title);
+  output_pin(base::node& n, std::string const& title);
+  virtual ~output_pin() = default;
 
   auto insert_link(struct link & l) -> void;
   auto remove_link(struct link & l) -> void;
-  auto type() const -> auto const& { return m_type; }
   auto is_connected() const { return !m_links.empty(); }
   auto links() const -> auto const& { return m_links; }
   auto links() -> auto& { return m_links; }
+  virtual auto type() const -> std::type_info const& = 0;
+
+  template <typename T>
+  auto get() -> T&;
 };
+template <typename T>
+struct output_pin_impl : output_pin {
+ private:
+  T& m_ref;
+
+ public:
+  output_pin_impl(base::node& n, std::string const& title, T& ref)
+      : output_pin{n, title}, m_ref{ref} {}
+  virtual ~output_pin_impl() = default;
+  auto type() const -> std::type_info const& override {
+    return typeid(T);
+  }
+
+  auto get() -> T& { return m_ref; }
+  auto get() const -> T const& { return m_ref; }
+};
+//==============================================================================
+template <typename T>
+auto output_pin::get() -> T& {
+  if (typeid(T) != this->type()) {
+    throw std::runtime_error{"Types do not match."};
+  }
+  return dynamic_cast<output_pin_impl<T>*>(this)->get();
+}
 //==============================================================================
 template <typename... Ts>
 auto make_input_pin(base::node& n, std::string const& title) {
@@ -69,8 +95,9 @@ auto make_input_pin(base::node& n, std::string const& title) {
 }
 //------------------------------------------------------------------------------
 template <typename T>
-auto make_output_pin(base::node& n, std::string const& title) {
-  return output_pin{n, typeid(std::decay_t<T>), title};
+auto make_output_pin(base::node& n, std::string const& title, T& t)
+    -> std::unique_ptr<output_pin> {
+  return std::make_unique<output_pin_impl<T>>(n, title, t);
 }
 //==============================================================================
 }  // namespace tatooine::flowexplorer::ui

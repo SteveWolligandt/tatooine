@@ -11,8 +11,9 @@ struct doublegyre3d
     : tatooine::analytical::fields::numerical::doublegyre3d<real_t>,
       ui::node<doublegyre3d> {
   doublegyre3d(flowexplorer::scene& s)
-      : ui::node<doublegyre3d>{"Double Gyre 3D", s,
-                               typeid(parent::vectorfield<double, 3>)} {}
+      : ui::node<doublegyre3d>{
+            "Double Gyre 3D", s,
+            *dynamic_cast<parent::vectorfield<real_t, 3>*>(this)} {}
   virtual ~doublegyre3d() = default;
 };
 //==============================================================================

@@ -200,8 +200,8 @@ auto scene::find_output_pin(size_t const id) -> ui::output_pin* {
       return &r->self_pin();
     }
     for (auto& p : r->output_pins()) {
-      if (p.get_id_number() == id) {
-        return &p;
+      if (p->get_id_number() == id) {
+        return p.get();
       }
     }
   }
@@ -210,8 +210,8 @@ auto scene::find_output_pin(size_t const id) -> ui::output_pin* {
       return &n->self_pin();
     }
     for (auto& p : n->output_pins()) {
-      if (p.get_id_number() == id) {
-        return &p;
+      if (p->get_id_number() == id) {
+        return p.get();
       }
     }
   }
@@ -396,14 +396,14 @@ void scene::remove_link() {
             begin(m_nodes), end(m_nodes),
             [node_id](auto& node) { return node->get_id() == node_id; });
         if (node_it != end(m_nodes)) {
-          for (auto input : node_it->get()->input_pins()) {
+          for (auto& input : node_it->get()->input_pins()) {
             if (input.is_connected()) {
               input.link().output().node().on_pin_disconnected(
                   input.link().output());
             }
           }
-          for (auto output : node_it->get()->output_pins()) {
-            for (auto link : output.links()) {
+          for (auto& output : node_it->get()->output_pins()) {
+            for (auto& link : output->links()) {
               link->input().node().on_pin_disconnected(link->input());
             }
           }
@@ -424,8 +424,8 @@ void scene::remove_link() {
                     input.link().output());
               }
             }
-            for (auto output : renderable_it->get()->output_pins()) {
-              for (auto link : output.links()) {
+            for (auto& output : renderable_it->get()->output_pins()) {
+              for (auto& link : output->links()) {
                 link->input().node().on_pin_disconnected(link->input());
               }
             }
@@ -505,7 +505,7 @@ void scene::write(filesystem::path const& filepath) const {
         input_pin_ids.push_back(long(input_pin.get_id_number()));
       }
       for (auto const& output_pin : node->output_pins()) {
-        output_pin_ids.push_back(long(output_pin.get_id_number()));
+        output_pin_ids.push_back(long(output_pin->get_id_number()));
       }
       serialized_node.insert("kind", kind);
       serialized_node.insert("input_pin_ids", input_pin_ids);
@@ -593,7 +593,7 @@ void scene::read(filesystem::path const& filepath) {
       }
       i = 0;
       for (auto& output_pin : n->output_pins()) {
-        output_pin.set_id(size_t(output_pin_ids[i++].as_integer()->get()));
+        output_pin->set_id(size_t(output_pin_ids[i++].as_integer()->get()));
       }
 
       // set node position

@@ -32,7 +32,7 @@ struct axis_aligned_bounding_box
                                                        vec<double, N>{
                                                            tag::fill{1}}},
         renderable<axis_aligned_bounding_box>{"Axis Aligned Bounding Box", s,
-                                              typeid(this_t)} {
+                                              *this} {
     create_indexed_data();
   }
   axis_aligned_bounding_box(const axis_aligned_bounding_box&)     = default;
@@ -93,6 +93,7 @@ struct axis_aligned_bounding_box
   auto line_color() -> auto& { return m_line_color; }
   auto line_color() const -> auto const& { return m_line_color; }
 };
+//==============================================================================
 using aabb2d = axis_aligned_bounding_box<2>;
 using aabb3d = axis_aligned_bounding_box<3>;
 //==============================================================================

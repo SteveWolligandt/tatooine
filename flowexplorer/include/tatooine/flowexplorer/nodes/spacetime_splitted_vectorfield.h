@@ -18,7 +18,7 @@ struct spacetime_splitted_vectorfield
     this->template insert_input_pin<parent::vectorfield<double, 3>>(
         "3D Vector Field");
     this->template insert_output_pin<parent::vectorfield<double, 2>>(
-        "2D Vector Field");
+        "2D Vector Field", *this);
   }
   //----------------------------------------------------------------------------
   auto on_pin_connected(ui::input_pin& /*this_pin*/, ui::output_pin& other_pin)

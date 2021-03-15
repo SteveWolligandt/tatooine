@@ -11,18 +11,8 @@ namespace tatooine::flowexplorer::ui::base {
 //==============================================================================
 node::node(flowexplorer::scene& s) : m_title{""}, m_scene{&s} {}
 //------------------------------------------------------------------------------
-node::node(flowexplorer::scene& s, std::type_info const& type) : node{s} {
-  m_self_pin = std::make_unique<output_pin>(*this, type, "");
-}
-//------------------------------------------------------------------------------
 node::node(std::string const& title, flowexplorer::scene& s)
     : m_title{title}, m_scene{&s} {}
-//------------------------------------------------------------------------------
-node::node(std::string const& title, flowexplorer::scene& s,
-           std::type_info const& type)
-    : node{title, s} {
-  m_self_pin = std::make_unique<output_pin>(*this, type, "");
-}
 //------------------------------------------------------------------------------
 auto node::node_position() const -> ImVec2 {
   ImVec2 pos;
@@ -176,7 +166,7 @@ auto node::draw_node() -> void {
         }
       }
       for (auto& p : m_output_pins) {
-        for (auto l : p.links()) {
+        for (auto l : p->links()) {
           l->input().node().on_property_changed();
         }
       }
@@ -187,20 +177,20 @@ auto node::draw_node() -> void {
 
   for (auto& output : output_pins()) {
     auto alpha = ImGui::GetStyle().Alpha;
-    if (scene().new_link() && !scene().can_create_new_link(output)) {
+    if (scene().new_link() && !scene().can_create_new_link(*output)) {
       alpha = alpha * 48.0f / 255.0f;
     }
 
     ImGui::PushStyleVar(ImGuiStyleVar_Alpha, alpha);
-    builder.output(output.get_id());
-    if (!output.title().empty()) {
+    builder.output(output->get_id());
+    if (!output->title().empty()) {
       ImGui::Spring(0);
-      ImGui::TextUnformatted(output.title().c_str());
+      ImGui::TextUnformatted(output->title().c_str());
     }
     ImGui::Spring(0);
     icon(ImVec2(25 * scene().window().ui_scale_factor(),
                 25 * scene().window().ui_scale_factor()),
-         icon_type::flow, output.is_connected(), icon_color(output, alpha));
+         icon_type::flow, output->is_connected(), icon_color(*output, alpha));
     ImGui::PopStyleVar();
     builder.end_output();
   }

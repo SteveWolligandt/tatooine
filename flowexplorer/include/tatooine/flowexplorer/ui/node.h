@@ -1,7 +1,6 @@
 #ifndef TATOOINE_FLOWEXPLORER_UI_NODE_H
 #define TATOOINE_FLOWEXPLORER_UI_NODE_H
 //==============================================================================
-
 #include <imgui-node-editor/imgui_node_editor.h>
 #include <tatooine/demangling.h>
 #include <tatooine/flowexplorer/serializable.h>
@@ -22,18 +21,27 @@ namespace tatooine::flowexplorer::ui {
 namespace base {
 struct node : uuid_holder<ax::NodeEditor::NodeId>, serializable  {
  private:
-  std::string                 m_title;
-  flowexplorer::scene*        m_scene;
-  std::vector<input_pin>      m_input_pins;
-  std::vector<output_pin>     m_output_pins;
-  bool                        m_enabled = true;
-  std::unique_ptr<output_pin> m_self_pin = nullptr;
+  std::string                              m_title;
+  flowexplorer::scene*                     m_scene;
+  std::vector<input_pin>                   m_input_pins;
+  std::vector<std::unique_ptr<output_pin>> m_output_pins;
+  bool                                     m_enabled  = true;
+  std::unique_ptr<output_pin>              m_self_pin = nullptr;
 
  public:
   node(flowexplorer::scene& s);
   node(std::string const& title, flowexplorer::scene& s);
-  node(flowexplorer::scene& s, std::type_info const&);
-  node(std::string const& title, flowexplorer::scene& s, std::type_info const&);
+  template <typename T>
+  node(flowexplorer::scene& s, T& ref) : node{s} {
+    m_self_pin = make_output_pin(*this, "", ref);
+  }
+  //------------------------------------------------------------------------------
+  template <typename T>
+  node(std::string const& title, flowexplorer::scene& s, T& ref)
+      : node{title, s} {
+    m_self_pin = make_output_pin(*this, "", ref);
+  }
+  //------------------------------------------------------------------------------
   virtual ~node() = default;
   //============================================================================
   template <typename... Ts>
@@ -42,8 +50,8 @@ struct node : uuid_holder<ax::NodeEditor::NodeId>, serializable  {
   }
   //----------------------------------------------------------------------------
   template <typename T>
-  auto insert_output_pin(std::string const& title) {
-    m_output_pins.push_back(make_output_pin<T>(*this, title));
+  auto insert_output_pin(std::string const& title, T& ref) {
+    m_output_pins.push_back(make_output_pin(*this, title, ref));
   }
   //----------------------------------------------------------------------------
   auto title() const -> auto const& { return m_title; }
@@ -70,7 +78,6 @@ struct node : uuid_holder<ax::NodeEditor::NodeId>, serializable  {
   //----------------------------------------------------------------------------
   auto output_pins() const -> auto const& { return m_output_pins; }
   auto output_pins() -> auto& { return m_output_pins; }
-  //----------------------------------------------------------------------------
   virtual auto draw_properties() -> bool = 0;
   virtual auto on_property_changed() -> void {}
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -

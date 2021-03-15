@@ -28,7 +28,8 @@ struct vectorfield_to_gpu : ui::node<vectorfield_to_gpu>, yavin::tex2rg32f {
   auto time() -> auto& { return m_t; }
   //----------------------------------------------------------------------------
   vectorfield_to_gpu(flowexplorer::scene& s)
-      : ui::node<vectorfield_to_gpu>{"Vectorfield to GPU", s, typeid(vectorfield_to_gpu)},
+      : ui::node<vectorfield_to_gpu>{"Vectorfield to GPU", s,
+                                     *dynamic_cast<vectorfield_to_gpu*>(this)},
         m_res{100, 100} {
     insert_input_pin<vectorfield_t>("2D Vector Field");
     insert_input_pin<bb_t>("2D Bounding Box");
