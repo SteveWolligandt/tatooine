@@ -127,11 +127,11 @@ scene::scene(rendering::camera_controller<float>& cam, flowexplorer::window* w,
 //------------------------------------------------------------------------------
 scene::~scene() { ax::NodeEditor::DestroyEditor(m_node_editor_context); }
 //------------------------------------------------------------------------------
-void scene::render(std::chrono::duration<double> const& dt) {
+auto scene::render(std::chrono::duration<double> const& dt) -> void {
   yavin::gl::clear_color(255, 255, 255, 255);
   yavin::clear_color_depth_buffer();
   for (auto& r : m_renderables) {
-    if (r->is_enabled()) {
+    if (r->is_active()) {
       r->update(dt);
     }
   }
@@ -140,7 +140,7 @@ void scene::render(std::chrono::duration<double> const& dt) {
   yavin::enable_depth_write();
   yavin::disable_blending();
   for (auto& r : m_renderables) {
-    if (r->is_enabled()) {
+    if (r->is_active()) {
       if (!r->is_transparent()) {
         r->render(m_cam->projection_matrix(), m_cam->view_matrix());
       }
@@ -152,7 +152,7 @@ void scene::render(std::chrono::duration<double> const& dt) {
   yavin::enable_blending();
   yavin::blend_func_alpha();
   for (auto& r : m_renderables) {
-    if (r->is_enabled()) {
+    if (r->is_active()) {
       if (r->is_transparent()) {
         r->render(m_cam->projection_matrix(), m_cam->view_matrix());
       }
@@ -218,7 +218,7 @@ auto scene::find_output_pin(size_t const id) -> ui::output_pin* {
   return nullptr;
 }
 //------------------------------------------------------------------------------
-void scene::draw_nodes() {
+auto scene::draw_nodes() -> void {
   namespace ed = ax::NodeEditor;
   size_t i     = 0;
 
@@ -234,7 +234,7 @@ void scene::draw_nodes() {
   }
 }
 //------------------------------------------------------------------------------
-void scene::draw_links() {
+auto scene::draw_links() -> void {
   namespace ed = ax::NodeEditor;
   for (auto& link_info : m_links) {
     ed::Link(link_info.get_id(), link_info.input().get_id(),
@@ -275,7 +275,7 @@ auto scene::can_create_new_link(ui::output_pin const& pin) -> bool {
   return can_create_link(pin, *m_new_link_start_input);
 }
 //------------------------------------------------------------------------------
-void scene::create_link() {
+auto scene::query_link_creation() -> void {
   namespace ed = ax::NodeEditor;
   if (ed::BeginCreate()) {
     ed::PinId pin_id0, pin_id1;
@@ -315,7 +315,9 @@ void scene::create_link() {
           show_label(msg.c_str(), ImColor(45, 32, 32, 180));
           ed::RejectNewItem(ImColor(255, 0, 0), 2.0f);
         } else if (ed::AcceptNewItem()) {
-          // remove old input link if present
+
+          // For all links check if the queried input pin already is linked. If
+          // so remove old input.
           for (auto link_it = begin(m_links); link_it != end(m_links);
                ++link_it) {
             auto present_input_pin =
@@ -323,17 +325,15 @@ void scene::create_link() {
             if (present_input_pin->get_id() == input_pin->get_id()) {
               auto present_output_pin =
                   find_output_pin(link_it->output().get_id_number());
-              present_input_pin->node().on_pin_disconnected(*present_input_pin);
-              present_output_pin->node().on_pin_disconnected(
-                  *present_output_pin);
-              m_links.erase(link_it);
+              present_input_pin->unlink();
               break;
             }
           }
 
+          // Insert the new link
           auto& l = m_links.emplace_back(*input_pin, *output_pin);
-          input_pin->set_link(l);
-          output_pin->insert_link(l);
+          input_pin->link(l);
+          output_pin->link(l);
 
           ed::Link(l.get_id(), l.input().get_id(), l.output().get_id());
         }
@@ -364,7 +364,7 @@ void scene::create_link() {
   ed::EndCreate();
 }
 //------------------------------------------------------------------------------
-void scene::remove_link() {
+auto scene::query_link_and_node_deletions() -> void {
   namespace ed = ax::NodeEditor;
   // Handle deletion action
   if (ed::BeginDelete()) {
@@ -381,9 +381,7 @@ void scene::remove_link() {
                 find_input_pin(link_it->input().get_id_number());
             ui::output_pin* output_pin =
                 find_output_pin(link_it->output().get_id_number());
-            input_pin->unset_link();
-            output_pin->remove_link(*link_it);
-            m_links.erase(link_it);
+            input_pin->unlink();
             break;
           }
         }
@@ -396,44 +394,27 @@ void scene::remove_link() {
             begin(m_nodes), end(m_nodes),
             [node_id](auto& node) { return node->get_id() == node_id; });
         if (node_it != end(m_nodes)) {
-          for (auto& input : node_it->get()->input_pins()) {
-            if (input->is_connected()) {
-              input->link().output().node().on_pin_disconnected(
-                  input->link().output());
-            }
+          for (auto& pin : node_it->get()->input_pins()) {
+            pin->unlink();
           }
-          for (auto& output : node_it->get()->output_pins()) {
-            for (auto& link : output->links()) {
-              link->input().node().on_pin_disconnected(link->input());
-            }
+          for (auto& pin : node_it->get()->output_pins()) {
+            pin->unlink_all();
           }
-
-          std::cerr << size(m_nodes) << '\n';
           m_nodes.erase(node_it);
-          std::cerr << size(m_nodes) << '\n';
+
         } else {
           auto renderable_it =
               std::find_if(begin(m_renderables), end(m_renderables),
                            [node_id](auto& renderable) {
                              return renderable->get_id() == node_id;
                            });
-          if (renderable_it != end(m_renderables)) {
-            for (auto& input : renderable_it->get()->input_pins()) {
-              if (input->is_connected()) {
-                input->link().output().node().on_pin_disconnected(
-                    input->link().output());
-              }
-            }
-            for (auto& output : renderable_it->get()->output_pins()) {
-              for (auto& link : output->links()) {
-                link->input().node().on_pin_disconnected(link->input());
-              }
-            }
-
-            std::cerr << size(m_renderables) << '\n';
-            m_renderables.erase(renderable_it);
-            std::cerr << size(m_renderables) << '\n';
+          for (auto& pin : renderable_it->get()->input_pins()) {
+            pin->unlink();
           }
+          for (auto& pin : renderable_it->get()->output_pins()) {
+            pin->unlink_all();
+          }
+          m_renderables.erase(renderable_it);
         }
       }
     }
@@ -457,8 +438,8 @@ void scene::draw_node_editor(size_t const pos_x, size_t const pos_y,
   ed::Begin("My Editor", ImVec2(0.0, 0.0f));
   draw_nodes();
   draw_links();
-  create_link();
-  remove_link();
+  query_link_creation();
+  query_link_and_node_deletions();
   ed::End();
   ed::SetCurrentEditor(nullptr);
   window().pop_font();
@@ -469,12 +450,14 @@ void scene::node_creators(size_t const width) {
   ImGui::BeginVertical("nodecreators1");
   ImGui::BeginHorizontal("nodecreators2");
 
-  ImTextureID aabb2d_id = reinterpret_cast<ImTextureID>(window().aabb2d_icon_tex().id());
+  ImTextureID aabb2d_id =
+      reinterpret_cast<ImTextureID>(window().aabb2d_icon_tex().id());
   if (ImGui::ImageButton(aabb2d_id, ImVec2(50 * window().ui_scale_factor(),
                                            50 * window().ui_scale_factor()))) {
     m_renderables.emplace_back(new nodes::aabb2d{*this});
   }
-  ImTextureID aabb3d_id = reinterpret_cast<ImTextureID>(window().aabb3d_icon_tex().id());
+  ImTextureID aabb3d_id =
+      reinterpret_cast<ImTextureID>(window().aabb3d_icon_tex().id());
   if (ImGui::ImageButton(aabb3d_id, ImVec2(50 * window().ui_scale_factor(),
                                            50 * window().ui_scale_factor()))) {
     m_renderables.emplace_back(new nodes::aabb3d{*this});
@@ -500,22 +483,28 @@ void scene::write(filesystem::path const& filepath) const {
     for (auto const& node : field) {
       auto        serialized_node = node->serialize();
       auto        pos             = node->node_position();
-      toml::array input_pin_ids, output_pin_ids;
-      for (auto const& input_pin : node->input_pins()) {
-        input_pin_ids.push_back(long(input_pin->get_id_number()));
+      toml::array serialized_input_pins, serialized_output_pins;
+      for (auto const& pin : node->input_pins()) {
+        toml::table serialized_pin;
+        serialized_pin.insert("active", pin->is_active());
+        serialized_pin.insert("id", long(pin->get_id_number()));
+        serialized_input_pins.push_back(serialized_pin);
       }
-      for (auto const& output_pin : node->output_pins()) {
-        output_pin_ids.push_back(long(output_pin->get_id_number()));
+      for (auto const& pin : node->output_pins()) {
+        toml::table serialized_pin;
+        serialized_pin.insert("active", pin->is_active());
+        serialized_pin.insert("id", long(pin->get_id_number()));
+        serialized_output_pins.push_back(serialized_pin);
       }
       serialized_node.insert("kind", kind);
-      serialized_node.insert("input_pin_ids", input_pin_ids);
-      serialized_node.insert("output_pin_ids", output_pin_ids);
+      serialized_node.insert("input_pins", serialized_input_pins);
+      serialized_node.insert("output_pins", serialized_output_pins);
       serialized_node.insert("node_position",
                              toml::array{pos[0] / window().ui_scale_factor(),
                                          pos[1] / window().ui_scale_factor()});
       serialized_node.insert("node_title", node->title());
       serialized_node.insert("node_type", node->type_name());
-      serialized_node.insert("enabled", node->is_enabled());
+      serialized_node.insert("active", node->is_active());
       if (node->has_self_pin()) {
         serialized_node.insert("self_pin",
                                long(node->self_pin().get_id_number()));
@@ -584,16 +573,21 @@ void scene::read(filesystem::path const& filepath) {
       size_t            id;
       id_stream >> id;
       n->set_id(id);
-      auto const& input_pin_ids = *serialized_node["input_pin_ids"].as_array();
-      auto const& output_pin_ids =
-          *serialized_node["output_pin_ids"].as_array();
+      auto const& serialized_input_pins =
+          *serialized_node["input_pins"].as_array();
+      auto const& serialized_output_pins =
+          *serialized_node["output_pins"].as_array();
       size_t i = 0;
-      for (auto& input_pin : n->input_pins()) {
-        input_pin->set_id(size_t(input_pin_ids[i++].as_integer()->get()));
+      for (auto& pin : n->input_pins()) {
+        auto& serialized_pin = *serialized_input_pins[i++].as_table();
+        pin->set_id(size_t(serialized_pin["id"].as_integer()->get()));
+        pin->set_active(serialized_pin["active"].as_boolean()->get());
       }
       i = 0;
-      for (auto& output_pin : n->output_pins()) {
-        output_pin->set_id(size_t(output_pin_ids[i++].as_integer()->get()));
+      for (auto& pin : n->output_pins()) {
+        auto& serialized_pin = *serialized_output_pins[i++].as_table();
+        pin->set_id(size_t(serialized_pin["id"].as_integer()->get()));
+        pin->set_active(serialized_pin["active"].as_boolean()->get());
       }
 
       // set node position
@@ -612,8 +606,8 @@ void scene::read(filesystem::path const& filepath) {
       n->set_title(title);
 
       // enable or disable
-      auto const enabled = serialized_node["enabled"].as_boolean()->get();
-      n->enable(enabled);
+      auto const active = serialized_node["active"].as_boolean()->get();
+      n->set_active(active);
 
       // enable or disable
       if (n->has_self_pin()) {
@@ -640,8 +634,8 @@ void scene::read(filesystem::path const& filepath) {
       assert(input_pin != nullptr);
       assert(output_pin != nullptr);
       auto& l = m_links.emplace_back(id, *input_pin, *output_pin);
-      input_pin->set_link(l);
-      output_pin->insert_link(l);
+      input_pin->link(l);
+      output_pin->link(l);
       // ax::NodeEditor::Link(l.get_id(), l.input().get_id(),
       // l.output().get_id());
     }
@@ -699,6 +693,12 @@ void scene::open_file(filesystem::path const& filepath) {
   } else if (ext == ".vtk" || ext == "vtk") {
     // TODO add vtk reader
   }
+}
+//----------------------------------------------------------------------------
+auto scene::clear() -> void {
+  m_nodes.clear();
+  m_renderables.clear();
+  m_links.clear();
 }
 //==============================================================================
 }  // namespace tatooine::flowexplorer

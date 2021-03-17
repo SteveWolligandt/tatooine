@@ -76,7 +76,7 @@ auto node::draw_node() -> void {
 
   ImGui::Dummy(ImVec2(10, 0));
   builder.header();
-  ImGui::Checkbox("", &m_enabled);
+  ImGui::Checkbox("", &is_active());
   ImGui::Spring(0);
 
   auto alpha = ImGui::GetStyle().Alpha;
@@ -112,7 +112,7 @@ auto node::draw_node() -> void {
     }
     icon(ImVec2(25 * scene().window().ui_scale_factor(),
                 25 * scene().window().ui_scale_factor()),
-         icon_type::flow, m_self_pin->is_connected(),
+         icon_type::flow, m_self_pin->is_linked(),
          icon_color(*m_self_pin, alpha));
     ImGui::Spring(0, ImGui::GetStyle().ItemSpacing.x / 2);
     ImGui::EndHorizontal();
@@ -137,7 +137,7 @@ auto node::draw_node() -> void {
     ImGui::PushStyleVar(ImGuiStyleVar_Alpha, alpha);
     icon(ImVec2(25 * scene().window().ui_scale_factor(),
                 25 * scene().window().ui_scale_factor()),
-        icon_type::flow, input->is_connected(), icon_color(*input, alpha));
+        icon_type::flow, input->is_linked(), icon_color(*input, alpha));
     ImGui::Spring(0);
     if (!input->title().empty()) {
       ImGui::TextUnformatted(input->title().c_str());
@@ -176,23 +176,25 @@ auto node::draw_node() -> void {
   }
 
   for (auto& output : output_pins()) {
-    auto alpha = ImGui::GetStyle().Alpha;
-    if (scene().new_link() && !scene().can_create_new_link(*output)) {
-      alpha = alpha * 48.0f / 255.0f;
-    }
+    if (output->is_active()) {
+      auto alpha = ImGui::GetStyle().Alpha;
+      if (scene().new_link() && !scene().can_create_new_link(*output)) {
+        alpha = alpha * 48.0f / 255.0f;
+      }
 
-    ImGui::PushStyleVar(ImGuiStyleVar_Alpha, alpha);
-    builder.output(output->get_id());
-    if (!output->title().empty()) {
+      ImGui::PushStyleVar(ImGuiStyleVar_Alpha, alpha);
+      builder.output(output->get_id());
+      if (!output->title().empty()) {
+        ImGui::Spring(0);
+        ImGui::TextUnformatted(output->title().c_str());
+      }
       ImGui::Spring(0);
-      ImGui::TextUnformatted(output->title().c_str());
+      icon(ImVec2(25 * scene().window().ui_scale_factor(),
+                  25 * scene().window().ui_scale_factor()),
+           icon_type::flow, output->is_linked(), icon_color(*output, alpha));
+      ImGui::PopStyleVar();
+      builder.end_output();
     }
-    ImGui::Spring(0);
-    icon(ImVec2(25 * scene().window().ui_scale_factor(),
-                25 * scene().window().ui_scale_factor()),
-         icon_type::flow, output->is_connected(), icon_color(*output, alpha));
-    ImGui::PopStyleVar();
-    builder.end_output();
   }
   builder.end();
 }

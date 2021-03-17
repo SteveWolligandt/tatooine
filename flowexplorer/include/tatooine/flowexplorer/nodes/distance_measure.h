@@ -16,7 +16,7 @@ struct distance_measure : ui::node<distance_measure> {
   virtual ~distance_measure() = default;
   //============================================================================
   auto draw_properties() -> bool override {
-    if (m_x0_pin.is_connected() && m_x1_pin.is_connected()) {
+    if (m_x0_pin.is_linked() && m_x1_pin.is_linked()) {
       ImGui::Text("distance = %f", distance(m_x0_pin.linked_object_as<vec2>(),
                                             m_x1_pin.linked_object_as<vec2>()));
     }

@@ -29,7 +29,7 @@ add_executable(
   ${TATFE_SRC_DIR}/saddle.cpp
   ${TATFE_SRC_DIR}/position.cpp
   ${TATFE_SRC_DIR}/duffing_oscillator.cpp
-  ${TATFE_SRC_DIR}/single_pathline.cpp
+  ${TATFE_SRC_DIR}/pathline.cpp
   ${TATFE_SRC_DIR}/autonomous_particles_flowmap.cpp
   ${TATFE_SRC_DIR}/autonomous_particles_flowmap_evaluator.cpp
   ${TATFE_SRC_DIR}/random_pathlines.cpp

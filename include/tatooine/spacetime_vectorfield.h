@@ -17,7 +17,7 @@ struct spacetime_vectorfield
   static constexpr auto holds_field_pointer = is_pointer<V>;
 
   static_assert(
-    std::remove_pointer_t<std::decay_t<V>>::tensor_t::num_dimensions() == 1);
+    std::remove_pointer_t<std::decay_t<V>>::tensor_t::rank() == 1);
   static_assert(
     std::remove_pointer_t<std::decay_t<V>>::num_dimensions() == N - 1);
 

@@ -30,8 +30,17 @@ struct scene {
 
  public:
   //============================================================================
-  auto nodes() const -> auto const& { return m_nodes; }
-  auto nodes() -> auto& { return m_nodes; }
+  scene(rendering::camera_controller<float>& ctrl, flowexplorer::window* w);
+  scene(rendering::camera_controller<float>& ctrl, flowexplorer::window* w,
+        filesystem::path const& path);
+  ~scene();
+  //============================================================================
+  auto links()             const -> auto const& { return m_links; }
+  auto links()                   -> auto& { return m_links; }
+  auto new_link()          const -> bool  { return m_new_link; }
+  //------------------------------------------------------------------------------
+  auto nodes()             const -> auto const& { return m_nodes; }
+  auto nodes()                   -> auto& { return m_nodes; }
   //------------------------------------------------------------------------------
   auto renderables()       const -> auto const& { return m_renderables; }
   auto renderables()             -> auto&       { return m_renderables; }
@@ -41,14 +50,15 @@ struct scene {
   //----------------------------------------------------------------------------
   auto camera_controller() const -> auto const& { return *m_cam; }
   auto camera_controller()       -> auto&       { return *m_cam; }
-  //----------------------------------------------------------------------------
-  auto new_link() const  { return m_new_link; }
   //============================================================================
-  scene(rendering::camera_controller<float>& ctrl, flowexplorer::window* w);
-  scene(rendering::camera_controller<float>& ctrl, flowexplorer::window* w,
-        filesystem::path const& path);
-  ~scene();
-  //============================================================================
+  auto remove_link_without_notification(ui::link const& link_to_remove)
+      -> void {
+    auto same_id = [&link_to_remove](auto const& present_link) {
+      return link_to_remove.get_id_number() == present_link.get_id_number();
+    };
+    m_links.erase(std::remove_if(begin(m_links), end(m_links), same_id),
+                  end(m_links));
+  }
   auto render(std::chrono::duration<double> const& dt) -> void;
   //----------------------------------------------------------------------------
   auto find_node(size_t const id) -> ui::base::node*;
@@ -76,9 +86,8 @@ struct scene {
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
   auto can_create_new_link(ui::output_pin const&) -> bool;
   //----------------------------------------------------------------------------
-  auto create_link() -> void;
-  //----------------------------------------------------------------------------
-  auto remove_link() -> void;
+  auto query_link_creation() -> void;
+  auto query_link_and_node_deletions() -> void;
   //----------------------------------------------------------------------------
   auto draw_node_editor(size_t const pos_x, size_t const pos_y,
                         size_t const width, size_t const height,
@@ -102,11 +111,7 @@ struct scene {
     }
   }
   //----------------------------------------------------------------------------
-  auto clear() -> void {
-    m_nodes.clear();
-    m_renderables.clear();
-    m_links.clear();
-  }
+  auto clear() -> void;
 };
 //==============================================================================
 }  // namespace tatooine::flowexplorer

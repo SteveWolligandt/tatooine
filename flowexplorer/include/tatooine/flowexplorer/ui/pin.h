@@ -5,6 +5,7 @@
 #include <tatooine/flowexplorer/ui/link.h>
 #include <tatooine/flowexplorer/ui/pinkind.h>
 #include <tatooine/flowexplorer/uuid_holder.h>
+#include <tatooine/flowexplorer/toggleable.h>
 //==============================================================================
 namespace tatooine::flowexplorer::ui {
 //==============================================================================
@@ -13,7 +14,7 @@ struct node;
 }
 struct link;
 //==============================================================================
-struct base_pin : uuid_holder<ax::NodeEditor::PinId> {
+struct base_pin : uuid_holder<ax::NodeEditor::PinId>, toggleable {
  private:
   std::string m_title;
   base::node& m_node;
@@ -27,9 +28,12 @@ struct base_pin : uuid_holder<ax::NodeEditor::PinId> {
   auto title() -> auto& { return m_title; }
   auto title() const -> auto const& { return m_title; }
   auto kind() const { return m_kind; }
+
 };
 //==============================================================================
+struct output_pin;
 struct input_pin : base_pin {
+  friend struct output_pin;
  private:
   std::vector<std::type_info const*> m_types;
   struct link*                       m_link = nullptr;
@@ -37,21 +41,27 @@ struct input_pin : base_pin {
  public:
   input_pin(base::node& n, std::vector<std::type_info const*> types,
             std::string const& title);
+  virtual ~input_pin() = default;
 
   auto types() const -> auto const& { return m_types; }
-  auto is_connected() const { return m_link != nullptr; }
+  auto is_linked() const { return m_link != nullptr; }
   auto link() const -> auto const& { return *m_link; }
   auto link() -> auto& { return *m_link; }
-  auto set_link(struct link & l) -> void;
-  auto unset_link() -> void;
+  auto link(struct link & l) -> void;
+  auto unlink() -> void;
+ private:
+  auto unlink_from_output() -> void;
+ public:
   template <typename T>
   auto linked_object_as() -> T&;
   template <typename T>
   auto linked_object_as() const -> T const&;
   auto linked_type() const -> std::type_info const&;
+  auto set_active(bool active = true) -> void override;
 };
 //==============================================================================
 struct output_pin : base_pin {
+  friend struct input_pin;
  private:
   std::vector<struct link*> m_links;
 
@@ -59,15 +69,22 @@ struct output_pin : base_pin {
   output_pin(base::node& n, std::string const& title);
   virtual ~output_pin() = default;
 
-  auto insert_link(struct link & l) -> void;
-  auto remove_link(struct link & l) -> void;
-  auto is_connected() const { return !m_links.empty(); }
+  auto link(struct link & l) -> void;
+  auto unlink(struct link& l) -> void;
+  auto unlink_all() -> void;
+
+ private:
+  auto unlink_from_input(struct link & l) -> void;
+ public:
+  auto is_linked() const { return !m_links.empty(); }
   auto links() const -> auto const& { return m_links; }
   auto links() -> auto& { return m_links; }
   virtual auto type() const -> std::type_info const& = 0;
 
   template <typename T>
   auto get() -> T&;
+
+  auto set_active(bool active = true) -> void override;
 };
 //==============================================================================
 template <typename T>
