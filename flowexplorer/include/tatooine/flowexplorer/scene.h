@@ -18,14 +18,14 @@ struct scene {
  private:
   static std::set<std::string_view>              items;
   static bool                                    items_created;
-  std::vector<std::unique_ptr<ui::base::node>>   m_nodes;
-  std::vector<std::unique_ptr<base::renderable>> m_renderables;
-  std::list<ui::link>                            m_links;
+  std::list<std::unique_ptr<ui::base::node>>     m_nodes;
+  std::list<std::unique_ptr<base::renderable>>   m_renderables;
+  std::list<std::unique_ptr<ui::link>>           m_links;
   ax::NodeEditor::EditorContext*       m_node_editor_context = nullptr;
   rendering::camera_controller<float>* m_cam;
   flowexplorer::window*                m_window;
-  bool                                 m_new_link             = false;
-  ui::input_pin*                       m_new_link_start_input = nullptr;
+  bool                                 m_new_link              = false;
+  ui::input_pin*                       m_new_link_start_input  = nullptr;
   ui::output_pin*                      m_new_link_start_output = nullptr;
 
  public:
@@ -51,26 +51,21 @@ struct scene {
   auto camera_controller() const -> auto const& { return *m_cam; }
   auto camera_controller()       -> auto&       { return *m_cam; }
   //============================================================================
-  auto remove_link_without_notification(ui::link const& link_to_remove)
-      -> void {
-    auto same_id = [&link_to_remove](auto const& present_link) {
-      return link_to_remove.get_id_number() == present_link.get_id_number();
-    };
-    m_links.erase(std::remove_if(begin(m_links), end(m_links), same_id),
-                  end(m_links));
-  }
+  auto remove_link(ui::link const& link_to_remove) -> void;
   auto render(std::chrono::duration<double> const& dt) -> void;
   //----------------------------------------------------------------------------
   auto find_node(size_t const id) -> ui::base::node*;
   //----------------------------------------------------------------------------
-  auto find_input_pin(size_t const id) -> ui::input_pin*;
-  auto find_output_pin(size_t const id) -> ui::output_pin*;
+  auto find_input_pin(ax::NodeEditor::PinId const& id) -> ui::input_pin*;
+  auto find_output_pin(ax::NodeEditor::PinId const& id) -> ui::output_pin*;
   //----------------------------------------------------------------------------
   auto node_creators(size_t const width) -> void;
   //----------------------------------------------------------------------------
   auto draw_nodes() -> void;
   //----------------------------------------------------------------------------
   auto draw_links() -> void;
+  //----------------------------------------------------------------------------
+  auto link(ui::input_pin& in, ui::output_pin& out) -> ui::link&;
   //----------------------------------------------------------------------------
   auto can_create_link(ui::input_pin const& , ui::input_pin const& )
       -> bool;

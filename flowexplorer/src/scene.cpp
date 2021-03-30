@@ -15,7 +15,7 @@ namespace tatooine::flowexplorer {
 //==============================================================================
 bool scene::items_created = false;
 std::set<std::string_view> scene::items;
-
+//==============================================================================
 auto show_label(const char* label, ImColor color) {
   ImGui::SetCursorPosY(ImGui::GetCursorPosY() - ImGui::GetTextLineHeight());
   auto size = ImGui::CalcTextSize(label);
@@ -127,6 +127,14 @@ scene::scene(rendering::camera_controller<float>& cam, flowexplorer::window* w,
 //------------------------------------------------------------------------------
 scene::~scene() { ax::NodeEditor::DestroyEditor(m_node_editor_context); }
 //------------------------------------------------------------------------------
+auto scene::remove_link(ui::link const& link_to_remove) -> void {
+  auto same_id = [&link_to_remove](auto const& present_link) {
+    return link_to_remove.get_id_number() == present_link->get_id_number();
+  };
+  m_links.erase(std::remove_if(begin(m_links), end(m_links), same_id),
+                end(m_links));
+}
+//------------------------------------------------------------------------------
 auto scene::render(std::chrono::duration<double> const& dt) -> void {
   yavin::gl::clear_color(255, 255, 255, 255);
   yavin::clear_color_depth_buffer();
@@ -176,44 +184,48 @@ auto scene::find_node(size_t const id) -> ui::base::node* {
   return nullptr;
 }
 //------------------------------------------------------------------------------
-auto scene::find_input_pin(size_t const id) -> ui::input_pin* {
-  for (auto& r : m_renderables) {
-    for (auto& p : r->input_pins()) {
-      if (p->get_id_number() == id) {
-        return p.get();
+auto scene::find_input_pin(ax::NodeEditor::PinId const& id) -> ui::input_pin* {
+  auto find = [&id](auto& cont) -> ui::input_pin* {
+    for (auto& n : cont) {
+      for (auto& p : n->input_pins()) {
+        if (*p == id) {
+          return p.get();
+        }
       }
     }
+    return nullptr;
+  };
+
+  if (auto ptr = find(m_renderables); ptr != nullptr) {
+    return ptr;
   }
-  for (auto& n : m_nodes) {
-    for (auto& p : n->input_pins()) {
-      if (p->get_id_number() == id) {
-        return p.get();
-      }
-    }
+  if (auto ptr = find(m_nodes); ptr != nullptr) {
+    return ptr;
   }
   return nullptr;
 }
 //------------------------------------------------------------------------------
-auto scene::find_output_pin(size_t const id) -> ui::output_pin* {
-  for (auto& r : m_renderables) {
-    if (r->has_self_pin() && r->self_pin().get_id_number() == id) {
-      return &r->self_pin();
-    }
-    for (auto& p : r->output_pins()) {
-      if (p->get_id_number() == id) {
-        return p.get();
+auto scene::find_output_pin(ax::NodeEditor::PinId const& id)
+    -> ui::output_pin* {
+  auto find = [&id](auto& cont) -> ui::output_pin* {
+    for (auto& n : cont) {
+      if (n->has_self_pin() && n->self_pin() == id) {
+        return &n->self_pin();
+      }
+      for (auto& p : n->output_pins()) {
+        if (*p == id) {
+          return p.get();
+        }
       }
     }
+    return nullptr;
+  };
+
+  if (auto ptr = find(m_renderables); ptr != nullptr) {
+    return ptr;
   }
-  for (auto& n : m_nodes) {
-    if (n->has_self_pin() && n->self_pin().get_id_number() == id) {
-      return &n->self_pin();
-    }
-    for (auto& p : n->output_pins()) {
-      if (p->get_id_number() == id) {
-        return p.get();
-      }
-    }
+  if (auto ptr = find(m_nodes); ptr != nullptr) {
+    return ptr;
   }
   return nullptr;
 }
@@ -236,14 +248,25 @@ auto scene::draw_nodes() -> void {
 //------------------------------------------------------------------------------
 auto scene::draw_links() -> void {
   namespace ed = ax::NodeEditor;
-  for (auto& link_info : m_links) {
-    ed::Link(link_info.get_id(), link_info.input().get_id(),
-             link_info.output().get_id());
+  for (auto& link : m_links) {
+    ed::Link(link->get_id(), link->input().get_id(), link->output().get_id());
   }
 }
 //------------------------------------------------------------------------------
+auto scene::link(ui::input_pin& in, ui::output_pin& out) -> ui::link& {
+  auto& l = m_links.emplace_back(std::make_unique<ui::link>(in, out));
+  in.link(*l);
+  out.link(*l);
+
+  namespace ed = ax::NodeEditor;
+  ed::Link(l->get_id(), in.get_id(), out.get_id());
+  return *l;
+}
+//------------------------------------------------------------------------------
 auto scene::can_create_link(ui::input_pin const& /*pin0*/,
-                            ui::input_pin const& /*pin1*/) -> bool {return false;}
+                            ui::input_pin const& /*pin1*/) -> bool {
+  return false;
+}
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 auto scene::can_create_link(ui::output_pin const& /*pin0*/,
                             ui::output_pin const& /*pin1*/) -> bool {
@@ -282,10 +305,25 @@ auto scene::query_link_creation() -> void {
     if (ed::QueryNewLink(&pin_id0, &pin_id1)) {
       if (pin_id0 && pin_id1) {  // both are valid, let's accept link
 
-        auto input_pin0  = find_input_pin(pin_id0.Get());
-        auto output_pin0 = find_output_pin(pin_id0.Get());
-        auto input_pin1  = find_input_pin(pin_id1.Get());
-        auto output_pin1 = find_output_pin(pin_id1.Get());
+        auto input_pin0  = find_input_pin(pin_id0);
+        auto output_pin0 = find_output_pin(pin_id0);
+        auto input_pin1  = find_input_pin(pin_id1);
+        auto output_pin1 = find_output_pin(pin_id1);
+
+        size_t num_found_pins = 0;
+        if (input_pin0 != nullptr) {
+          ++num_found_pins;
+        }
+        if (input_pin1 != nullptr) {
+          ++num_found_pins;
+        }
+        if (output_pin0 != nullptr) {
+          ++num_found_pins;
+        }
+        if (output_pin1 != nullptr) {
+          ++num_found_pins;
+        }
+        assert(num_found_pins == 2);
 
         auto pins = [&]() -> std::pair<ui::input_pin*, ui::output_pin*> {
           if (input_pin0 != nullptr && output_pin1 != nullptr) {
@@ -321,21 +359,14 @@ auto scene::query_link_creation() -> void {
           for (auto link_it = begin(m_links); link_it != end(m_links);
                ++link_it) {
             auto present_input_pin =
-                find_input_pin(link_it->input().get_id_number());
-            if (present_input_pin->get_id() == input_pin->get_id()) {
-              auto present_output_pin =
-                  find_output_pin(link_it->output().get_id_number());
+                find_input_pin((*link_it)->input().get_id());
+            if (*present_input_pin == *input_pin) {
               present_input_pin->unlink();
               break;
             }
           }
 
-          // Insert the new link
-          auto& l = m_links.emplace_back(*input_pin, *output_pin);
-          input_pin->link(l);
-          output_pin->link(l);
-
-          ed::Link(l.get_id(), l.input().get_id(), l.output().get_id());
+          link(*input_pin, *output_pin);
         }
       }
     }
@@ -369,53 +400,56 @@ auto scene::query_link_and_node_deletions() -> void {
   // Handle deletion action
   if (ed::BeginDelete()) {
     // There may be many links marked for deletion, let's loop over them.
-    ed::LinkId deletedLinkId;
-    while (ed::QueryDeletedLink(&deletedLinkId)) {
+    ed::LinkId deleted_link_id;
+    while (ed::QueryDeletedLink(&deleted_link_id)) {
       // If you agree that link can be deleted, accept deletion.
       if (ed::AcceptDeletedItem()) {
         // Then remove link from your data.
-        for (auto link_it = begin(m_links); link_it != end(m_links);
-             ++link_it) {
-          if (link_it->get_id() == deletedLinkId) {
-            ui::input_pin* input_pin =
-                find_input_pin(link_it->input().get_id_number());
-            ui::output_pin* output_pin =
-                find_output_pin(link_it->output().get_id_number());
-            input_pin->unlink();
-            break;
-          }
+        auto link_it = std::find_if(begin(m_links), end(m_links),
+            [&](auto const& l){return *l == deleted_link_id;} );
+        if (link_it != end(m_links)) {
+          auto input_pin  = find_input_pin((*link_it)->input().get_id_number());
+          input_pin->unlink();
+          break;
         }
       }
     }
-    ed::NodeId node_id = 0;
-    while (ed::QueryDeletedNode(&node_id)) {
-      if (ed::AcceptDeletedItem()) {
-        auto node_it = std::find_if(
-            begin(m_nodes), end(m_nodes),
-            [node_id](auto& node) { return node->get_id() == node_id; });
-        if (node_it != end(m_nodes)) {
-          for (auto& pin : node_it->get()->input_pins()) {
+  }
+  ed::NodeId node_id = 0;
+  while (ed::QueryDeletedNode(&node_id)) {
+    if (ed::AcceptDeletedItem()) {
+      auto node_it = std::find_if(
+          begin(m_nodes), end(m_nodes),
+          [node_id](auto& node) { return node->get_id() == node_id; });
+      if (node_it != end(m_nodes)) {
+        for (auto& pin : node_it->get()->input_pins()) {
+          if (pin->is_linked()) {
+            m_links.erase(std::remove_if(begin(m_links), end(m_links),
+                                         [&](auto const& l) {
+                                           return *l == pin->link();
+                                         }),
+                          end(m_links));
             pin->unlink();
           }
-          for (auto& pin : node_it->get()->output_pins()) {
-            pin->unlink_all();
-          }
-          m_nodes.erase(node_it);
-
-        } else {
-          auto renderable_it =
-              std::find_if(begin(m_renderables), end(m_renderables),
-                           [node_id](auto& renderable) {
-                             return renderable->get_id() == node_id;
-                           });
-          for (auto& pin : renderable_it->get()->input_pins()) {
-            pin->unlink();
-          }
-          for (auto& pin : renderable_it->get()->output_pins()) {
-            pin->unlink_all();
-          }
-          m_renderables.erase(renderable_it);
         }
+        for (auto& pin : node_it->get()->output_pins()) {
+          pin->unlink_all();
+        }
+        m_nodes.erase(node_it);
+
+      } else {
+        auto renderable_it =
+            std::find_if(begin(m_renderables), end(m_renderables),
+                         [node_id](auto& renderable) {
+                           return renderable->get_id() == node_id;
+                         });
+        for (auto& pin : renderable_it->get()->input_pins()) {
+          pin->unlink();
+        }
+        for (auto& pin : renderable_it->get()->output_pins()) {
+          pin->unlink_all();
+        }
+        m_renderables.erase(renderable_it);
       }
     }
   }
@@ -517,10 +551,10 @@ void scene::write(filesystem::path const& filepath) const {
 
   for (auto const& link : m_links) {
     toml::table serialized_link;
-    serialized_link.insert("input", long(link.input().get_id_number()));
-    serialized_link.insert("output", long(link.output().get_id_number()));
+    serialized_link.insert("input", long(link->input().get_id_number()));
+    serialized_link.insert("output", long(link->output().get_id_number()));
     serialized_link.insert("kind", "link");
-    toml_scene.insert(std::to_string(link.get_id_number()), serialized_link);
+    toml_scene.insert(std::to_string(link->get_id_number()), serialized_link);
   }
 
   // write camera
@@ -633,9 +667,10 @@ void scene::read(filesystem::path const& filepath) {
       auto         output_pin = find_output_pin(output_id);
       assert(input_pin != nullptr);
       assert(output_pin != nullptr);
-      auto& l = m_links.emplace_back(id, *input_pin, *output_pin);
-      input_pin->link(l);
-      output_pin->link(l);
+      auto& l = m_links.emplace_back(
+          std::make_unique<ui::link>(id, *input_pin, *output_pin));
+      input_pin->link(*l);
+      output_pin->link(*l);
       // ax::NodeEditor::Link(l.get_id(), l.input().get_id(),
       // l.output().get_id());
     }

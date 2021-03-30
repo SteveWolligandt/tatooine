@@ -296,6 +296,7 @@ if ((NOT TATOOINE_USE_SYSTEM_HDF5_LIBS) OR
   if ("${CMAKE_CXX_COMPILER_ID}" STREQUAL "GNU" OR
       "${CMAKE_CXX_COMPILER_ID}" STREQUAL "Clang")
     set(TATOOINE_HDF5_WNOS
+      "-Wno-#warnings"
       -Wno-missing-field-initializers
       -Wno-cast-qual
       -Wno-sign-conversion
