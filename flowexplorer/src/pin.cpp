@@ -27,7 +27,7 @@ auto input_pin::unlink() -> void {
   if (is_linked()) {
     m_link->output().unlink_from_input(*m_link);
     node().on_pin_disconnected(*this);
-    node().scene().remove_link_without_notification(*m_link);
+    node().scene().remove_link(*m_link);
     m_link = nullptr;
   }
 }
@@ -35,8 +35,8 @@ auto input_pin::unlink() -> void {
 auto input_pin::unlink_from_output() -> void {
   if (is_linked()) {
     node().on_pin_disconnected(*this);
-    m_link = nullptr;
   }
+  m_link = nullptr;
 }
 //------------------------------------------------------------------------------
 auto input_pin::linked_type() const -> std::type_info const& {
@@ -52,7 +52,7 @@ auto output_pin::unlink(struct link& l) -> void {
   auto it = std::find(begin(m_links), end(m_links), &l);
   if (it != end(m_links)) {
     (*it)->input().unlink_from_output();
-    node().scene().remove_link_without_notification(**it);
+    node().scene().remove_link(**it);
     node().on_pin_disconnected(*this);
     m_links.erase(it);
   }
@@ -61,8 +61,10 @@ auto output_pin::unlink(struct link& l) -> void {
 auto output_pin::unlink_all() -> void {
   for (auto& l : m_links) {
     l->input().unlink_from_output();
-    node().scene().remove_link_without_notification(*l);
     node().on_pin_disconnected(*this);
+  }
+  for (auto& l : m_links) {
+    node().scene().remove_link(*l);
   }
   m_links.clear();
 }

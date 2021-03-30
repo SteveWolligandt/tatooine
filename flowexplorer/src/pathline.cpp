@@ -142,10 +142,21 @@ auto pathline::on_pin_connected(ui::input_pin& /*this_pin*/,
 //----------------------------------------------------------------------------
 auto pathline::on_pin_disconnected(ui::input_pin& /*this_pin*/) -> void {
   m_gpu_data.clear();
-  m_neg2_pin.deactivate();
-  m_pos2_pin.deactivate();
-  m_neg3_pin.deactivate();
-  m_pos3_pin.deactivate();
+  if (m_neg2_pin.is_active()) {
+    m_neg2_pin.deactivate();
+  }
+
+  if (m_pos2_pin.is_active()) {
+    m_pos2_pin.deactivate();
+  }
+
+  if (m_neg3_pin.is_active()) {
+    m_neg3_pin.deactivate();
+  }
+
+  if (m_pos3_pin.is_active()) {
+    m_pos3_pin.deactivate();
+  }
 }
 //----------------------------------------------------------------------------
 auto pathline::on_property_changed() -> void {

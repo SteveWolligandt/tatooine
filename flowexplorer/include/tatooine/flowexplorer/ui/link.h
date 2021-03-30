@@ -9,7 +9,8 @@ namespace tatooine::flowexplorer::ui {
 struct output_pin;
 struct input_pin;
 //==============================================================================
-struct link : uuid_holder<ax::NodeEditor::LinkId> {
+using link_uuid = uuid_holder<ax::NodeEditor::LinkId>;
+struct link : link_uuid {
  private:
   input_pin*  m_input_pin;
   output_pin* m_output_pin;
