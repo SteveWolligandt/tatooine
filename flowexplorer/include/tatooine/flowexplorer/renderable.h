@@ -22,7 +22,6 @@ struct renderable : ui::base::node {
   //auto operator=(renderable&& w) noexcept -> renderable& = default;
   virtual ~renderable()                                  = default;
 
-  virtual auto update(std::chrono::duration<double> const& /*dt*/) -> void {}
   virtual auto render(mat<float, 4, 4> const& projection_matrix,
                       mat<float, 4, 4> const& view_matrix) -> void = 0;
   virtual auto is_transparent() const -> bool { return false; }

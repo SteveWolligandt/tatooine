@@ -12,19 +12,20 @@
 namespace tatooine::flowexplorer::nodes {
 //==============================================================================
 template <size_t N>
-struct position : tatooine::vec<double, N>, renderable<position<N>> {
+struct position : tatooine::vec<real_t, N>, renderable<position<N>> {
   using this_t   = position<N>;
-  using parent_t = tatooine::vec<double, N>;
+  using parent_t = tatooine::vec<real_t, N>;
   using gpu_vec  = vec<GLfloat, 3>;
   using parent_t::at;
   //============================================================================
-  yavin::indexeddata<gpu_vec> m_gpu_data;
-  point_shader                m_shader;
-  int                         m_pointsize = 1;
-  std::array<GLfloat, 4>      m_color{0.0f, 0.0f, 0.0f, 1.0f};
+  yavin::indexeddata<gpu_vec>   m_gpu_data;
+  point_shader                  m_shader;
+  int                           m_pointsize = 1;
+  std::array<GLfloat, 4>        m_color{0.0f, 0.0f, 0.0f, 1.0f};
+  std::array<ui::input_pin*, N> m_input_pins;
   //============================================================================
-  auto pos()       -> vec<double, N>& { return *this; }
-  auto pos() const -> vec<double, N> const& { return *this; }
+  auto pos()       -> vec<real_t, N>& { return *this; }
+  auto pos() const -> vec<real_t, N> const& { return *this; }
   //----------------------------------------------------------------------------
   auto point_size()       -> auto& { return m_pointsize; }
   auto point_size() const -> auto const& { return m_pointsize; }
@@ -39,17 +40,15 @@ struct position : tatooine::vec<double, N>, renderable<position<N>> {
   //============================================================================
   constexpr position(flowexplorer::scene& s)
       : renderable<position>{"Position", s,
-                             *dynamic_cast<tatooine::vec<double, N>*>(this)} {
+                             *dynamic_cast<tatooine::vec<real_t, N>*>(this)} {
     create_indexed_data();
-  }
-  //----------------------------------------------------------------------------
-  constexpr position(std::string const& name, flowexplorer::scene& s)
-      : renderable<position>{name, s, typeid(this_t)} {
-    create_indexed_data();
+    for (size_t i = 0; i < N; ++i) {
+      m_input_pins[i] = &this->template insert_input_pin<real_t>("");
+    }
   }
   //============================================================================
-  void render(mat4f const& projection_matrix,
-              mat4f const& view_matrix) override {
+  auto render(mat4f const& projection_matrix, mat4f const& view_matrix)
+      -> void override {
     set_vbo_data();
     m_shader.bind();
     m_shader.set_color(m_color[0], m_color[1], m_color[2], m_color[3]);
@@ -91,9 +90,9 @@ struct position : tatooine::vec<double, N>, renderable<position<N>> {
 
     auto x = [this] {
       if constexpr (N == 2) {
-        return vec<double, 4>{at(0), at(1), 0, 1};
+        return vec<real_t, 4>{at(0), at(1), 0, 1};
       } else {
-        return vec<double, 4>{at(0), at(1), at(2), 1};
+        return vec<real_t, 4>{at(0), at(1), at(2), 1};
       }
     }();
 
@@ -113,13 +112,52 @@ struct position : tatooine::vec<double, N>, renderable<position<N>> {
     return true;
   }
   //----------------------------------------------------------------------------
+  auto draw_properties() -> bool override {
+    bool changed = false;
+    constexpr auto label   = [](size_t const i) {
+      switch (i) {
+        case 0:
+          return "x";
+        case 1:
+          return "y";
+        case 2:
+          return "z";
+        case 3:
+          return "w";
+        default:
+          return "";
+      }
+    };
+    for (size_t i = 0; i < N; ++i) {
+      changed |= ImGui::DragDouble(label(i), &at(i), 0.01);
+    }
+    changed |= ImGui::DragInt("point size", &m_pointsize, 0, 20);
+    changed |= ImGui::ColorEdit3("color", m_color.data());
+    return changed;
+  }
+  //----------------------------------------------------------------------------
+  auto update(std::chrono::duration<double> const& /*dt*/) -> void override {
+    size_t i = 0;
+    for (auto& pin : m_input_pins) {
+      if (pin->is_linked()) {
+        if (at(i) != pin->template get_linked_as<real_t>()) {
+          at(i) = pin->template get_linked_as<real_t>();
+          for (auto l : this->self_pin().links()) {
+            l->input().node().on_property_changed();
+          }
+        }
+      }
+      ++i;
+    }
+  }
+  //----------------------------------------------------------------------------
   auto check_intersection(ray<float, 3> const& r) const -> bool override {
     if constexpr (N == 3) {
-      geometry::sphere<double, 3> s{0.01, vec3{at(0), at(1), at(2)}};
-      return s.check_intersection(ray<double, 3>{r}).has_value();
+      geometry::sphere<real_t, 3> s{0.01, vec3{at(0), at(1), at(2)}};
+      return s.check_intersection(ray<real_t, 3>{r}).has_value();
     } else if constexpr (N == 2) {
-      geometry::sphere<double, 3> s{0.01, vec3{at(0), at(1), 0}};
-      return s.check_intersection(ray<double, 3>{r}).has_value();
+      geometry::sphere<real_t, 3> s{0.01, vec3{at(0), at(1), 0}};
+      return s.check_intersection(ray<real_t, 3>{r}).has_value();
     }
     return false;
   }

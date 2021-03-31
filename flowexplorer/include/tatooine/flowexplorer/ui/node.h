@@ -90,6 +90,7 @@ struct node : uuid_holder<ax::NodeEditor::NodeId>, serializable, toggleable {
   virtual auto on_pin_disconnected(input_pin& /*this_pin*/) -> void {}
   virtual auto on_pin_disconnected(output_pin& /*this_pin*/) -> void {}
   virtual auto type_name() const -> std::string_view = 0;
+  virtual auto update(std::chrono::duration<double> const& /*dt*/) -> void {}
 };
 //==============================================================================
 }  // namespace base
@@ -447,3 +448,4 @@ auto insert_registered_element(scene& s, std::string_view const& name)
 }  // namespace tatooine::flowexplorer
 //==============================================================================
 #endif
+

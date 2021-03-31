@@ -138,6 +138,11 @@ auto scene::remove_link(ui::link const& link_to_remove) -> void {
 auto scene::render(std::chrono::duration<double> const& dt) -> void {
   yavin::gl::clear_color(255, 255, 255, 255);
   yavin::clear_color_depth_buffer();
+  for (auto& n : m_nodes) {
+    if (n->is_active()) {
+      n->update(dt);
+    }
+  }
   for (auto& r : m_renderables) {
     if (r->is_active()) {
       r->update(dt);
