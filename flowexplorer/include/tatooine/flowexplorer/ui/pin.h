@@ -53,9 +53,9 @@ struct input_pin : base_pin {
   auto unlink_from_output() -> void;
  public:
   template <typename T>
-  auto linked_object_as() -> T&;
+  auto get_linked_as() -> T&;
   template <typename T>
-  auto linked_object_as() const -> T const&;
+  auto get_linked_as() const -> T const&;
   auto linked_type() const -> std::type_info const&;
   auto set_active(bool active = true) -> void override;
 };
@@ -82,7 +82,7 @@ struct output_pin : base_pin {
   virtual auto type() const -> std::type_info const& = 0;
 
   template <typename T>
-  auto get() -> T&;
+  auto get_as() -> T&;
 
   auto set_active(bool active = true) -> void override;
 };
@@ -100,26 +100,26 @@ struct output_pin_impl : output_pin {
     return typeid(T);
   }
 
-  auto get() -> T& { return m_ref; }
-  auto get() const -> T const& { return m_ref; }
+  auto get_as() -> T& { return m_ref; }
+  auto get_as() const -> T const& { return m_ref; }
 };
 //==============================================================================
 template <typename T>
-auto output_pin::get() -> T& {
+auto output_pin::get_as() -> T& {
   if (typeid(T) != this->type()) {
     throw std::runtime_error{"Types do not match."};
   }
-  return dynamic_cast<output_pin_impl<T>*>(this)->get();
+  return dynamic_cast<output_pin_impl<T>*>(this)->get_as();
 }
 //==============================================================================
 template <typename T>
-auto input_pin::linked_object_as() -> T& {
-  return link().output().get<T>();
+auto input_pin::get_linked_as() -> T& {
+  return link().output().get_as<T>();
 }
 //------------------------------------------------------------------------------
 template <typename T>
-auto input_pin::linked_object_as() const -> T const& {
-  return link().output().get<T>();
+auto input_pin::get_linked_as() const -> T const& {
+  return link().output().get_as<T>();
 }
 //==============================================================================
 template <typename... Ts>

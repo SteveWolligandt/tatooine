@@ -15,6 +15,7 @@ add_executable(
   flowexplorer
   ${TATFE_BIN_SRC_DIR}/directories.cpp
   ${TATFE_SRC_DIR}/distance_measure.cpp
+  ${TATFE_SRC_DIR}/scalar.cpp
   ${TATFE_SRC_DIR}/vectorfield_to_gpu.cpp
   ${TATFE_SRC_DIR}/node_builder.cpp
   ${TATFE_SRC_DIR}/draw_icon.cpp

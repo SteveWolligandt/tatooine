@@ -40,9 +40,11 @@ auto pathline::draw_properties() -> bool {
   if (m_x0_pin.is_linked() && m_v_pin.is_linked()) {
     if ((m_x0_pin.linked_type() == typeid(vec2) &&
          m_v_pin.linked_type() == typeid(vectorfield3_t)) ||
-        (m_x0_pin.linked_type() == typeid(vec3) ||
+        (m_x0_pin.linked_type() == typeid(vec3) &&
          m_v_pin.linked_type() == typeid(vectorfield2_t))) {
+      ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(ImColor(255, 0, 0)));
       ImGui::Text("Position and vector fields number of dimensions differ.");
+      ImGui::PopStyleColor();
     }
   }
   return changed;
@@ -93,8 +95,8 @@ auto pathline::integrate_lines() -> void {
 
     if (N == 2) {
       integrator2_t  integrator;
-      decltype(auto) v  = node->m_v_pin.linked_object_as<vectorfield2_t>();
-      decltype(auto) x0 = node->m_x0_pin.linked_object_as<vec2>();
+      decltype(auto) v  = node->m_v_pin.get_linked_as<vectorfield2_t>();
+      decltype(auto) x0 = node->m_x0_pin.get_linked_as<vec2>();
 
       cur_end_point2 = &node->m_x_neg2;
       integrator.solve(v, x0, node->m_t0, node->m_btau, callback);
@@ -106,8 +108,8 @@ auto pathline::integrate_lines() -> void {
 
     } else if (N == 3) {
       integrator3_t  integrator;
-      decltype(auto) v  = node->m_v_pin.linked_object_as<vectorfield3_t>();
-      decltype(auto) x0 = node->m_x0_pin.linked_object_as<vec3>();
+      decltype(auto) v  = node->m_v_pin.get_linked_as<vectorfield3_t>();
+      decltype(auto) x0 = node->m_x0_pin.get_linked_as<vec3>();
 
       cur_end_point3 = &node->m_x_neg3;
       integrator.solve(v, x0, node->m_t0, node->m_btau, callback);

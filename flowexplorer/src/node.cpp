@@ -70,6 +70,7 @@ auto icon_color(ui::input_pin const& pin, float const alpha) -> ImVec4 {
 }
 //------------------------------------------------------------------------------
 auto node::draw_node() -> void {
+  size_t const icon_size = 20 * scene().window().ui_scale_factor();
   namespace ed = ax::NodeEditor;
   node_builder builder;
   builder.begin(get_id());
@@ -84,10 +85,15 @@ auto node::draw_node() -> void {
       !scene().can_create_new_link(*m_self_pin)) {
     alpha = alpha * 48.0f / 255.0f;
   }
-  ImGui::PushStyleVar(ImGuiStyleVar_Alpha, alpha);
 
+  // draw editable title
+  ImGui::PushStyleVar(ImGuiStyleVar_Alpha, alpha);
   scene().window().push_bold_font();
-  ImGui::TextUnformatted(title().c_str());
+  ImGui::PushStyleColor(ImGuiCol_FrameBg, ImVec4(0,0,0,0));
+  ImGui::PushItemWidth(200);
+  ImGui::InputText("##title", &title());
+  ImGui::PopItemWidth();
+  ImGui::PopStyleColor();
   scene().window().pop_font();
   ImGui::PopStyleVar();
 
@@ -110,9 +116,7 @@ auto node::draw_node() -> void {
       ImGui::TextUnformatted(m_self_pin->title().c_str());
       ImGui::Spring(0);
     }
-    icon(ImVec2(25 * scene().window().ui_scale_factor(),
-                25 * scene().window().ui_scale_factor()),
-         icon_type::flow, m_self_pin->is_linked(),
+    icon(ImVec2(icon_size, icon_size), icon_type::flow, m_self_pin->is_linked(),
          icon_color(*m_self_pin, alpha));
     ImGui::Spring(0, ImGui::GetStyle().ItemSpacing.x / 2);
     ImGui::EndHorizontal();
@@ -135,8 +139,7 @@ auto node::draw_node() -> void {
 
     builder.input(input->get_id());
     ImGui::PushStyleVar(ImGuiStyleVar_Alpha, alpha);
-    icon(ImVec2(25 * scene().window().ui_scale_factor(),
-                25 * scene().window().ui_scale_factor()),
+    icon(ImVec2(icon_size, icon_size),
         icon_type::flow, input->is_linked(), icon_color(*input, alpha));
     ImGui::Spring(0);
     if (!input->title().empty()) {
@@ -189,8 +192,7 @@ auto node::draw_node() -> void {
         ImGui::TextUnformatted(output->title().c_str());
       }
       ImGui::Spring(0);
-      icon(ImVec2(25 * scene().window().ui_scale_factor(),
-                  25 * scene().window().ui_scale_factor()),
+      icon(ImVec2(icon_size, icon_size),
            icon_type::flow, output->is_linked(), icon_color(*output, alpha));
       ImGui::PopStyleVar();
       builder.end_output();
