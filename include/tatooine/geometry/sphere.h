@@ -80,10 +80,10 @@ struct sphere : primitive<Real, N> {
       auto const cos_theta = std::cos(theta);
       auto const sin_phi   = std::sin(phi);
       auto const cos_phi   = std::cos(phi);
-      auto const x         = r * sin_phi * cos_theta + m_center(0);
-      auto const y         = r * sin_phi * sin_theta + m_center(1);
-      auto const z         = r * cos_phi + m_center(2);
-      ps.emplace_back(x, y, z);
+      auto const x         = r * sin_phi * cos_theta;
+      auto const y         = r * sin_phi * sin_theta;
+      auto const z         = r * cos_phi;
+      ps.emplace_back(x + m_center(0), y + m_center(1), z + m_center(2));
     }
     return ps;
   }

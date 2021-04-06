@@ -12,6 +12,8 @@ struct random_points : renderable<random_points>{
   std::vector<vec3>         m_points3d;
   yavin::indexeddata<vec3f> m_points_gpu;
   ui::input_pin&            m_input;
+  ui::output_pin&            m_out2d;
+  ui::output_pin&            m_out3d;
   //============================================================================
   int m_num_points = 10;
   //============================================================================

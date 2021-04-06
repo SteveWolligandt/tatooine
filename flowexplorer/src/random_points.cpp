@@ -8,7 +8,9 @@ namespace tatooine::flowexplorer::nodes {
 //==============================================================================
 random_points::random_points(flowexplorer::scene& s)
     : renderable<random_points>{"Random Points", s, *this},
-      m_input{insert_input_pin<geometry::sphere<real_t, 3>>("domain")} {}
+      m_input{insert_input_pin<geometry::sphere<real_t, 3>>("domain")},
+      m_out2d{insert_output_pin("", m_points2d)},
+      m_out3d{insert_output_pin("", m_points3d)} {}
 auto random_points::render(mat4f const& P, mat4f const& V) -> void {
   point_shader::get().bind();
   point_shader::get().set_modelview_matrix(V);
@@ -29,6 +31,8 @@ auto random_points::update_points() -> void {
   m_points3d.clear();
   m_points_gpu.clear();
   if (m_input.linked_type() == typeid(geometry::sphere<real_t, 3>)) {
+    m_out2d.deactivate();
+    m_out3d.activate();
     auto const& sphere = m_input.get_linked_as<geometry::sphere<real_t, 3>>();
     m_points3d = sphere.random_points(m_num_points);
     for (int i = 0; i < m_num_points; ++i) {
