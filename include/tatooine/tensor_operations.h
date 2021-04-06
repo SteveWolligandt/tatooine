@@ -520,6 +520,27 @@ constexpr auto binary_operation(F&&                                      f,
   return t_out;
 }
 //------------------------------------------------------------------------------
+template <typename TensorLhs, typename TensorRhs, typename T, size_t... Dims>
+constexpr auto operator==(base_tensor<TensorLhs, T, Dims...> const& lhs,
+                          base_tensor<TensorRhs, T, Dims...> const& rhs) {
+  bool equal = true;
+  for_loop(
+      [&](auto const... is) {
+        if (lhs(is...) != rhs(is...)) {
+          equal = false;
+          return;
+        }
+      },
+      Dims...);
+  return equal;
+}
+//------------------------------------------------------------------------------
+template <typename TensorLhs, typename TensorRhs, typename T, size_t... Dims>
+constexpr auto operator!=(base_tensor<TensorLhs, T, Dims...> const& lhs,
+                          base_tensor<TensorRhs, T, Dims...> const& rhs) {
+  return !(lhs == rhs);
+}
+//------------------------------------------------------------------------------
 template <typename Tensor, typename T, size_t... Dims>
 constexpr auto operator-(base_tensor<Tensor, T, Dims...> const& t) {
   return unary_operation([](auto const& c) { return -c; }, t);

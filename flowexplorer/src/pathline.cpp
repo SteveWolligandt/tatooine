@@ -7,12 +7,14 @@ namespace tatooine::flowexplorer::nodes {
 //==============================================================================
 pathline::pathline(flowexplorer::scene& s)
     : renderable<pathline>{"Path Line", s},
+      m_t0_pin{insert_input_pin<real_t>("t0")},
       m_v_pin{insert_input_pin<vectorfield2_t, vectorfield3_t>("Vector Field")},
       m_x0_pin{insert_input_pin<vec2, vec3>("x0")},
       m_neg2_pin{insert_output_pin("negative end", m_x_neg2)},
       m_pos2_pin{insert_output_pin("positive end", m_x_pos2)},
       m_neg3_pin{insert_output_pin("negative end", m_x_neg3)},
       m_pos3_pin{insert_output_pin("positive end", m_x_pos3)} {
+  insert_input_pin_property_link(m_t0_pin, m_t0);
   m_neg2_pin.deactivate();
   m_pos2_pin.deactivate();
   m_neg3_pin.deactivate();

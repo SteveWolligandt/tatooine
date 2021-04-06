@@ -14,6 +14,22 @@ node::node(flowexplorer::scene& s) : m_title{""}, m_scene{&s} {}
 node::node(std::string const& title, flowexplorer::scene& s)
     : m_title{title}, m_scene{&s} {}
 //------------------------------------------------------------------------------
+auto node::notify_property_changed(bool const notify_self) -> void {
+  if (notify_self) {
+    on_property_changed();
+  }
+  if (has_self_pin()) {
+    for (auto l : m_self_pin->links()) {
+      l->input().node().on_property_changed();
+    }
+  }
+  for (auto& p : m_output_pins) {
+    for (auto l : p->links()) {
+      l->input().node().on_property_changed();
+    }
+  }
+}
+//------------------------------------------------------------------------------
 auto node::node_position() const -> ImVec2 {
   ImVec2 pos;
   m_scene->do_in_context(
@@ -162,17 +178,7 @@ auto node::draw_node() -> void {
     auto const changed = draw_properties();
     //ed::Resume();
     if (changed) {
-      on_property_changed();
-      if (has_self_pin()) {
-        for (auto l : m_self_pin->links()) {
-          l->input().node().on_property_changed();
-        }
-      }
-      for (auto& p : m_output_pins) {
-        for (auto l : p->links()) {
-          l->input().node().on_property_changed();
-        }
-      }
+      notify_property_changed();
     }
     ImGui::PopItemWidth();
     ImGui::PopStyleVar();

@@ -47,6 +47,46 @@ struct sphere : primitive<Real, N> {
   //----------------------------------------------------------------------------
   constexpr auto center() const -> auto const& { return m_center; }
   constexpr auto center() -> auto& { return m_center; }
+  //----------------------------------------------------------------------------
+  template <typename RandomEngine = std::mt19937_64>
+  auto random_point() const {
+    auto       rand     = random_uniform<Real, RandomEngine>{};
+    auto const u         = rand();
+    auto const v         = rand();
+    auto const theta     = u * 2 * M_PI;
+    auto const phi       = std::acos(2 * v - 1);
+    auto const r         = std::cbrt(rand()) * m_radius;
+    auto const sin_theta = std::sin(theta);
+    auto const cos_theta = std::cos(theta);
+    auto const sin_phi   = std::sin(phi);
+    auto const cos_phi   = std::cos(phi);
+    auto const x         = r * sin_phi * cos_theta + m_center(0);
+    auto const y         = r * sin_phi * sin_theta + m_center(1);
+    auto const z         = r * cos_phi + m_center(2);
+    return vec{x, y, z};
+  }
+  //----------------------------------------------------------------------------
+  template <typename RandomEngine = std::mt19937_64>
+  auto random_points(size_t const n) const {
+    std::vector<vec<Real, N>> ps;
+    auto                      rand = random_uniform<Real, RandomEngine>{};
+    for (size_t i = 0; i < n; ++i) {
+      auto const u         = rand();
+      auto const v         = rand();
+      auto const theta     = u * 2 * M_PI;
+      auto const phi       = std::acos(2 * v - 1);
+      auto const r         = std::cbrt(rand()) * m_radius / 2;
+      auto const sin_theta = std::sin(theta);
+      auto const cos_theta = std::cos(theta);
+      auto const sin_phi   = std::sin(phi);
+      auto const cos_phi   = std::cos(phi);
+      auto const x         = r * sin_phi * cos_theta + m_center(0);
+      auto const y         = r * sin_phi * sin_theta + m_center(1);
+      auto const z         = r * cos_phi + m_center(2);
+      ps.emplace_back(x, y, z);
+    }
+    return ps;
+  }
 };
 //------------------------------------------------------------------------------
 template <floating_point Real0, floating_point Real1, size_t N>

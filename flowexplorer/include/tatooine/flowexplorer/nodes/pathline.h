@@ -21,6 +21,7 @@ struct pathline : renderable<pathline> {
   using integrator2_t  = ode::vclibs::rungekutta43<real_t, 2>;
   using integrator3_t  = ode::vclibs::rungekutta43<real_t, 3>;
   //----------------------------------------------------------------------------
+  ui::input_pin&                          m_t0_pin;
   ui::input_pin&                          m_v_pin;
   ui::input_pin&                          m_x0_pin;
   ui::output_pin&                         m_neg2_pin;
@@ -32,8 +33,8 @@ struct pathline : renderable<pathline> {
   line_shader                             m_shader;
   yavin::indexeddata<vec3f, vec3f, float> m_gpu_data;
 
-  double                 m_t0   = 0;
-  double                 m_btau = -5, m_ftau = 5;
+  real_t                 m_t0   = 0;
+  real_t                 m_btau = -5, m_ftau = 5;
   std::array<GLfloat, 4> m_line_color{0.0f, 0.0f, 0.0f, 1.0f};
   int                    m_line_width           = 1;
   bool                   m_integration_going_on = false;

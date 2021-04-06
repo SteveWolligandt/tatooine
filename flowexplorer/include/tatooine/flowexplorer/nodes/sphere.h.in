@@ -1,0 +1,42 @@
+#ifndef TATOOINE_FLOWEXPLORER_NODES_SPHERE_H
+#define TATOOINE_FLOWEXPLORER_NODES_SPHERE_H
+//==============================================================================
+#include <tatooine/flowexplorer/renderable.h>
+#include <tatooine/geometry/sphere.h>
+#include <yavin/indexeddata.h>
+#include <yavin/shader.h>
+//==============================================================================
+namespace tatooine::flowexplorer::nodes {
+//==============================================================================
+struct sphere_shader : yavin::shader {
+  static constexpr std::string_view vertex_shader_path =
+      "@FLOWEXPLORER_SPHERE_VERT@";
+  static constexpr std::string_view fragment_shader_path =
+      "@FLOWEXPLORER_SPHERE_FRAG@";
+  //============================================================================
+  sphere_shader();
+  auto set_color(std::array<GLfloat, 4> const&) -> void;
+  auto set_projection_matrix(mat4f const&) -> void;
+  auto set_modelview_matrix(mat4f const&) -> void;
+};
+//==============================================================================
+struct sphere : renderable<sphere>, tatooine::geometry::sphere<real_t, 3> {
+  static auto shader() -> sphere_shader&;
+  yavin::indexeddata<vec3f> m_gpu_data;
+  std::array<GLfloat, 4> m_color{0.0f, 0.0f, 0.0f, 1.0f};
+
+  sphere(flowexplorer::scene& s);
+  virtual ~sphere() = default;
+  auto render(mat4f const& projection_matrix, mat4f const& view_matrix)
+      -> void override;
+  auto is_transparent() const -> bool override;
+};
+//==============================================================================
+}  // namespace tatooine::flowexplorer::nodes
+//==============================================================================
+TATOOINE_FLOWEXPLORER_REGISTER_RENDERABLE(
+    tatooine::flowexplorer::nodes::sphere,
+    TATOOINE_REFLECTION_INSERT_GETTER(radius),
+    TATOOINE_REFLECTION_INSERT_GETTER(center),
+    TATOOINE_REFLECTION_INSERT_METHOD(color, m_color))
+#endif
