@@ -15,12 +15,12 @@ auto sphere_shader::set_color(std::array<GLfloat, 4> const& col) -> void {
   set_uniform("color", col[0], col[1], col[2], col[3]);
 }
 //------------------------------------------------------------------------------
-auto sphere_shader::set_projection_matrix(mat4f const& p) -> void {
-  set_uniform_mat4("projection", p.data_ptr());
+auto sphere_shader::set_projection_matrix(mat4f const& P) -> void {
+  set_uniform_mat4("projection", P.data_ptr());
 }
 //------------------------------------------------------------------------------
-auto sphere_shader::set_modelview_matrix(mat4f const& mv) -> void {
-  set_uniform_mat4("modelview", mv.data_ptr());
+auto sphere_shader::set_modelview_matrix(mat4f const& MV) -> void {
+  set_uniform_mat4("modelview", MV.data_ptr());
 }
 //==============================================================================
 auto sphere::shader() -> sphere_shader& {
@@ -51,10 +51,12 @@ sphere::sphere(flowexplorer::scene& s)
 auto sphere::render(mat4f const& P, mat4f const& V) -> void {
   auto MV = V;
   float r  = radius();
+  MV       = MV * mat4f{
+                  {1.0f, 0.0f, 0.0f, (float)center()(0)},
+                  {0.0f, 1.0f, 0.0f, (float)center()(1)},
+                  {0.0f, 0.0f, 1.0f, (float)center()(2)},
+                  {0.0f, 0.0f, 0.0f, 1.0f}};
   MV       = MV * diag(vec4f{r, r, r, 1});
-  MV(0, 3) += center()(0);
-  MV(1, 3) += center()(1);
-  MV(2, 3) += center()(2);
   shader().set_projection_matrix(P);
   shader().set_modelview_matrix(MV);
   shader().set_color(m_color);

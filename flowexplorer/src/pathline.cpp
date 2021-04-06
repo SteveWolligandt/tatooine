@@ -2,6 +2,7 @@
 #include <tatooine/flowexplorer/window.h>
 //------------------------------------------------------------------------------
 #include <tatooine/flowexplorer/nodes/pathline.h>
+#include <tatooine/flowexplorer/nodes/random_points.h>
 //==============================================================================
 namespace tatooine::flowexplorer::nodes {
 //==============================================================================
@@ -9,7 +10,9 @@ pathline::pathline(flowexplorer::scene& s)
     : renderable<pathline>{"Path Line", s},
       m_t0_pin{insert_input_pin<real_t>("t0")},
       m_v_pin{insert_input_pin<vectorfield2_t, vectorfield3_t>("Vector Field")},
-      m_x0_pin{insert_input_pin<vec2, vec3>("x0")},
+      m_x0_pin{
+          insert_input_pin<vec2, vec3, std::vector<vec2>, std::vector<vec3>>(
+              "x0")},
       m_neg2_pin{insert_output_pin("negative end", m_x_neg2)},
       m_pos2_pin{insert_output_pin("positive end", m_x_pos2)},
       m_neg3_pin{insert_output_pin("negative end", m_x_neg3)},
@@ -97,29 +100,46 @@ auto pathline::integrate_lines() -> void {
 
     if (N == 2) {
       integrator2_t  integrator;
-      decltype(auto) v  = node->m_v_pin.get_linked_as<vectorfield2_t>();
-      decltype(auto) x0 = node->m_x0_pin.get_linked_as<vec2>();
+      decltype(auto) v         = node->m_v_pin.get_linked_as<vectorfield2_t>();
+      auto           integrate = [&](auto const& x0) {
+        cur_end_point2 = &node->m_x_neg2;
+        integrator.solve(v, x0, node->m_t0, node->m_btau, callback);
+        insert_segment = false;
 
-      cur_end_point2 = &node->m_x_neg2;
-      integrator.solve(v, x0, node->m_t0, node->m_btau, callback);
-      insert_segment = false;
-
-      cur_end_point2 = &node->m_x_pos2;
-      integrator.solve(v, x0, node->m_t0, node->m_ftau, callback);
-      node->m_integration_going_on = false;
-
+        cur_end_point2 = &node->m_x_pos2;
+        integrator.solve(v, x0, node->m_t0, node->m_ftau, callback);
+        node->m_integration_going_on = false;
+      };
+      if (node->m_x0_pin.linked_type() == typeid(vec2)) {
+        decltype(auto) x0 = node->m_x0_pin.get_linked_as<vec2>();
+        integrate(x0);
+      } else if (node->m_x0_pin.linked_type() == typeid(std::vector<vec2>)) {
+        decltype(auto) x0s = node->m_x0_pin.get_linked_as<std::vector<vec2>>();
+        for (auto const& x0 : x0s) {
+          integrate(x0);
+        }
+      }
     } else if (N == 3) {
       integrator3_t  integrator;
-      decltype(auto) v  = node->m_v_pin.get_linked_as<vectorfield3_t>();
-      decltype(auto) x0 = node->m_x0_pin.get_linked_as<vec3>();
+      decltype(auto) v         = node->m_v_pin.get_linked_as<vectorfield3_t>();
+      auto           integrate = [&](auto const& x0) {
+        cur_end_point3 = &node->m_x_neg3;
+        integrator.solve(v, x0, node->m_t0, node->m_btau, callback);
+        insert_segment = false;
 
-      cur_end_point3 = &node->m_x_neg3;
-      integrator.solve(v, x0, node->m_t0, node->m_btau, callback);
-      insert_segment = false;
-
-      cur_end_point3 = &node->m_x_pos3;
-      integrator.solve(v, x0, node->m_t0, node->m_ftau, callback);
-      node->m_integration_going_on = false;
+        cur_end_point3 = &node->m_x_pos3;
+        integrator.solve(v, x0, node->m_t0, node->m_ftau, callback);
+        node->m_integration_going_on = false;
+      };
+      if (node->m_x0_pin.linked_type() == typeid(vec3)) {
+        decltype(auto) x0 = node->m_x0_pin.get_linked_as<vec3>();
+        integrate(x0);
+      } else if (node->m_x0_pin.linked_type() == typeid(std::vector<vec3>)) {
+        decltype(auto) x0s = node->m_x0_pin.get_linked_as<std::vector<vec3>>();
+        for (auto const& x0 : x0s) {
+          integrate(x0);
+        }
+      }
     }
   };
   worker();
@@ -130,15 +150,26 @@ auto pathline::on_pin_connected(ui::input_pin& /*this_pin*/,
                                 ui::output_pin& /*other_pin*/) -> void {
   if (all_pins_linked() && link_configuration_is_valid()) {
     if (num_dimensions() == 2) {
-      m_neg2_pin.activate();
-      m_pos2_pin.activate();
+      if (m_x0_pin.linked_type() == typeid(vec2)) {
+        m_neg2_pin.activate();
+        m_pos2_pin.activate();
+      } else {
+        m_neg2_pin.deactivate();
+        m_pos2_pin.deactivate();
+      }
       m_neg3_pin.deactivate();
       m_pos3_pin.deactivate();
-    } else if (num_dimensions() == 3) {
+    } else if (num_dimensions() == 3 &&
+               m_x0_pin.linked_type() == typeid(vec3)) {
       m_neg2_pin.deactivate();
       m_pos2_pin.deactivate();
-      m_neg3_pin.activate();
-      m_pos3_pin.activate();
+      if (m_x0_pin.linked_type() == typeid(vec3)) {
+        m_neg3_pin.activate();
+        m_pos3_pin.activate();
+      } else {
+        m_neg3_pin.activate();
+        m_pos3_pin.activate();
+      }
     }
   }
   on_property_changed();
@@ -174,17 +205,21 @@ auto pathline::all_pins_linked() const -> bool {
 }
 //----------------------------------------------------------------------------
 auto pathline::link_configuration_is_valid() const -> bool {
-  return (m_x0_pin.linked_type() == typeid(vec2) &&
+  return ((m_x0_pin.linked_type() == typeid(vec2) ||
+           m_x0_pin.linked_type() == typeid(std::vector<vec2>)) &&
           m_v_pin.linked_type() == typeid(vectorfield2_t)) ||
-         (m_x0_pin.linked_type() == typeid(vec3) &&
+         ((m_x0_pin.linked_type() == typeid(vec3) ||
+           m_x0_pin.linked_type() == typeid(std::vector<vec3>)) &&
           m_v_pin.linked_type() == typeid(vectorfield3_t));
 }
 //----------------------------------------------------------------------------
 auto pathline::num_dimensions() const -> size_t {
-  if ((m_x0_pin.linked_type() == typeid(vec2) &&
+  if (((m_x0_pin.linked_type() == typeid(vec2) ||
+        m_x0_pin.linked_type() == typeid(std::vector<vec2>)) &&
        m_v_pin.linked_type() == typeid(vectorfield2_t))) {
     return 2;
-  } else if ((m_x0_pin.linked_type() == typeid(vec3) &&
+  } else if (((m_x0_pin.linked_type() == typeid(vec3) ||
+               m_x0_pin.linked_type() == typeid(std::vector<vec3>)) &&
               m_v_pin.linked_type() == typeid(vectorfield3_t))) {
     return 3;
   }
