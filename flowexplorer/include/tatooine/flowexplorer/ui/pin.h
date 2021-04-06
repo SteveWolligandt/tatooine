@@ -60,6 +60,33 @@ struct input_pin : base_pin {
   auto set_active(bool active = true) -> void override;
 };
 //==============================================================================
+struct input_pin_property_link {
+  input_pin & m_pin;
+  input_pin_property_link(input_pin& pin) : m_pin{pin} {}
+  virtual ~input_pin_property_link() = default;
+  virtual auto update() -> bool      = 0;
+};
+// = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = =
+template <typename Prop>
+struct input_pin_property_link_impl : input_pin_property_link {
+  Prop& m_property;
+  input_pin_property_link_impl(input_pin& pin, Prop& prop)
+      : input_pin_property_link{pin}, m_property{prop} {}
+  virtual ~input_pin_property_link_impl() = default;
+  virtual auto update() -> bool {
+    bool changed = false;
+    if (m_pin.is_linked()) {
+      auto const& linked = m_pin.get_linked_as<Prop>();
+
+      if (linked != m_property) {
+        m_property = linked;
+        changed    = true;
+      }
+    }
+    return changed;
+  }
+};
+//==============================================================================
 struct output_pin : base_pin {
   friend struct input_pin;
  private:
@@ -127,6 +154,12 @@ auto make_input_pin(base::node& n, std::string const& title)
     -> std::unique_ptr<input_pin> {
   return std::make_unique<input_pin>(
       n, std::vector{&typeid(std::decay_t<Ts>)...}, title);
+}
+//------------------------------------------------------------------------------
+template <typename Prop>
+auto make_input_pin_property_link(input_pin& pin, Prop& prop)
+    -> std::unique_ptr<input_pin_property_link> {
+  return std::make_unique<input_pin_property_link_impl<Prop>>(pin, prop);
 }
 //------------------------------------------------------------------------------
 template <typename T>

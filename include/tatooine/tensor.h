@@ -160,11 +160,6 @@ struct tensor : base_tensor<tensor<T, Dims...>, T, Dims...>,  // NOLINT
   }
   //----------------------------------------------------------------------------
   template <typename OtherT>
-  auto operator==(tensor<OtherT, Dims...> const& other) const {
-    return this->data() == other.data();
-  }
-  //----------------------------------------------------------------------------
-  template <typename OtherT>
   auto operator<(tensor<OtherT, Dims...> const& other) const {
     return this->data() < other.data();
   }

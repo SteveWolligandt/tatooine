@@ -4,7 +4,6 @@
 #include <tatooine/autonomous_particle.h>
 #include <tatooine/flowexplorer/line_shader.h>
 #include <tatooine/flowexplorer/nodes/position.h>
-#include <tatooine/flowexplorer/point_shader.h>
 #include <tatooine/flowexplorer/renderable.h>
 #include <tatooine/numerical_flowmap.h>
 //==============================================================================
@@ -26,7 +25,6 @@ struct autonomous_particle : tatooine::autonomous_particle<real_t, 2>,
   real_t          m_t0      = 0;
 
   line_shader  m_line_shader;
-  point_shader m_point_shader;
 
   vectorfield_t* m_v;
   yavin::indexeddata<gpu_vec3> m_initial_circle;

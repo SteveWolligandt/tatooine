@@ -16,14 +16,14 @@ struct renderable : ui::base::node {
   template <typename T>
   renderable(std::string const& title, flowexplorer::scene& s, T& ref)
       : ui::base::node{title, s, ref} {}
-  //renderable(renderable const& w)                        = default;
-  //renderable(renderable&& w) noexcept                    = default;
-  //auto operator=(renderable const& w) -> renderable&     = default;
-  //auto operator=(renderable&& w) noexcept -> renderable& = default;
+  renderable(renderable const& w)                        = delete;
+  renderable(renderable&& w) noexcept                    = delete;
+  auto operator=(renderable const& w) -> renderable&     = delete;
+  auto operator=(renderable&& w) noexcept -> renderable& = delete;
   virtual ~renderable()                                  = default;
 
-  virtual auto render(mat<float, 4, 4> const& projection_matrix,
-                      mat<float, 4, 4> const& view_matrix) -> void = 0;
+  virtual auto render(mat4f const& projection_matrix,
+                      mat4f const& view_matrix) -> void = 0;
   virtual auto is_transparent() const -> bool { return false; }
   virtual auto on_mouse_drag(int /*offset_x*/, int /*offset_y*/) -> bool {
     return false;

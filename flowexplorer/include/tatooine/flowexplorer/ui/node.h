@@ -22,11 +22,12 @@ namespace tatooine::flowexplorer::ui {
 namespace base {
 struct node : uuid_holder<ax::NodeEditor::NodeId>, serializable, toggleable {
  private:
-  std::string                              m_title;
-  flowexplorer::scene*                     m_scene;
-  std::vector<std::unique_ptr<input_pin>>  m_input_pins;
-  std::vector<std::unique_ptr<output_pin>> m_output_pins;
-  std::unique_ptr<output_pin>              m_self_pin = nullptr;
+  std::string                                           m_title;
+  flowexplorer::scene*                                  m_scene;
+  std::vector<std::unique_ptr<input_pin>>               m_input_pins;
+  std::vector<std::unique_ptr<output_pin>>              m_output_pins;
+  std::vector<std::unique_ptr<input_pin_property_link>> m_property_links;
+  std::unique_ptr<output_pin>                           m_self_pin = nullptr;
 
  public:
   node(flowexplorer::scene& s);
@@ -48,6 +49,12 @@ struct node : uuid_holder<ax::NodeEditor::NodeId>, serializable, toggleable {
   auto insert_input_pin(std::string const& title) -> auto& {
     m_input_pins.push_back(make_input_pin<Ts...>(*this, title));
     return *m_input_pins.back();
+  }
+  //----------------------------------------------------------------------------
+  template <typename Prop>
+  auto insert_input_pin_property_link(input_pin& pin, Prop& prop) -> auto& {
+    m_property_links.push_back(make_input_pin_property_link<Prop>(pin, prop));
+    return *m_property_links.back();
   }
   //----------------------------------------------------------------------------
   template <typename T>
@@ -78,6 +85,18 @@ struct node : uuid_holder<ax::NodeEditor::NodeId>, serializable, toggleable {
   auto draw_node() -> void;
   //----------------------------------------------------------------------------
   auto node_position() const -> ImVec2;
+  //----------------------------------------------------------------------------
+  auto notify_property_changed(bool const notify_self = true) -> void;
+  //----------------------------------------------------------------------------
+  auto update_property_links() -> void {
+    bool changed = false;
+    for (auto& prop_link : m_property_links) {
+      changed |= prop_link->update();
+    }
+    if (changed) {
+      notify_property_changed();
+    }
+  }
   //----------------------------------------------------------------------------
   // virtual methods
   //----------------------------------------------------------------------------

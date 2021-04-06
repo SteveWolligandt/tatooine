@@ -14,7 +14,11 @@ configure_file(${TATFE_SRC_DIR}/directories.cpp.in
 add_executable(
   flowexplorer
   ${TATFE_BIN_SRC_DIR}/directories.cpp
+  ${TATFE_SRC_DIR}/random_points.cpp
   ${TATFE_SRC_DIR}/distance_measure.cpp
+  ${TATFE_SRC_DIR}/unary_scalar_operation.cpp
+  ${TATFE_SRC_DIR}/binary_scalar_operation.cpp
+  ${TATFE_SRC_DIR}/sphere.cpp
   ${TATFE_SRC_DIR}/scalar.cpp
   ${TATFE_SRC_DIR}/vectorfield_to_gpu.cpp
   ${TATFE_SRC_DIR}/node_builder.cpp
@@ -69,6 +73,11 @@ target_include_directories(flowexplorer
   ${CMAKE_CURRENT_SOURCE_DIR}/external/tomlplusplus/include)
 
 add_custom_target(flowexplorer.run ./flowexplorer DEPENDS tatooine flowexplorer)
+#- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+set (FLOWEXPLORER_SPHERE_VERT ${TATFE_SHADER_DIR}/sphere/sphere.vert)
+set (FLOWEXPLORER_SPHERE_FRAG ${TATFE_SHADER_DIR}/sphere/sphere.frag)
+configure_file(${TATFE_INCLUDE_DIR}/tatooine/flowexplorer/nodes/sphere.h.in
+               ${TATFE_BIN_INCLUDE_DIR}/tatooine/flowexplorer/nodes/sphere.h)
 #- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 set (FLOWEXPLORER_LINE_VERT ${TATFE_SHADER_DIR}/line/line.vert)
 set (FLOWEXPLORER_LINE_FRAG ${TATFE_SHADER_DIR}/line/line.frag)

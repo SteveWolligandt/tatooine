@@ -5,6 +5,7 @@
 #include <tatooine/geometry/sphere.h>
 #include <tatooine/random.h>
 #include <tatooine/rendering/yavin_interop.h>
+#include <tatooine/flowexplorer/point_shader.h>
 //==============================================================================
 namespace tatooine::flowexplorer::nodes {
 //==============================================================================

@@ -44,10 +44,10 @@ auto autonomous_particles_flowmap_evaluator::render(
     mat<GLfloat, 4, 4> const& view_matrix) -> void {
   if (m_x0 != nullptr && m_flowmap != nullptr) {
     set_vbo_data();
-    m_shader.bind();
-    m_shader.set_color(m_color[0], m_color[1], m_color[2], m_color[3]);
-    m_shader.set_projection_matrix(projection_matrix);
-    m_shader.set_modelview_matrix(view_matrix);
+    point_shader::get().bind();
+    point_shader::get().set_color(m_color[0], m_color[1], m_color[2], m_color[3]);
+    point_shader::get().set_projection_matrix(projection_matrix);
+    point_shader::get().set_modelview_matrix(view_matrix);
     yavin::gl::point_size(m_pointsize);
     m_gpu_data.draw_points();
   }

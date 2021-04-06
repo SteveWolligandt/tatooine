@@ -19,7 +19,6 @@ struct position : tatooine::vec<real_t, N>, renderable<position<N>> {
   using parent_t::at;
   //============================================================================
   yavin::indexeddata<gpu_vec>   m_gpu_data;
-  point_shader                  m_shader;
   int                           m_pointsize = 1;
   std::array<GLfloat, 4>        m_color{0.0f, 0.0f, 0.0f, 1.0f};
   std::array<ui::input_pin*, N> m_input_pins;
@@ -43,17 +42,18 @@ struct position : tatooine::vec<real_t, N>, renderable<position<N>> {
                              *dynamic_cast<tatooine::vec<real_t, N>*>(this)} {
     create_indexed_data();
     for (size_t i = 0; i < N; ++i) {
-      m_input_pins[i] = &this->template insert_input_pin<real_t>("");
+      this->insert_input_pin_property_link(
+          this->template insert_input_pin<real_t>(""), at(i));
     }
   }
   //============================================================================
   auto render(mat4f const& projection_matrix, mat4f const& view_matrix)
       -> void override {
     set_vbo_data();
-    m_shader.bind();
-    m_shader.set_color(m_color[0], m_color[1], m_color[2], m_color[3]);
-    m_shader.set_projection_matrix(projection_matrix);
-    m_shader.set_modelview_matrix(view_matrix);
+    point_shader::get().bind();
+    point_shader::get().set_color(m_color[0], m_color[1], m_color[2], m_color[3]);
+    point_shader::get().set_projection_matrix(projection_matrix);
+    point_shader::get().set_modelview_matrix(view_matrix);
     yavin::gl::point_size(m_pointsize);
     m_gpu_data.draw_points();
   }
@@ -73,7 +73,7 @@ struct position : tatooine::vec<real_t, N>, renderable<position<N>> {
     }();
   }
   //----------------------------------------------------------------------------
-  void create_indexed_data() {
+  auto create_indexed_data() -> void {
     m_gpu_data.vertexbuffer().resize(1);
     m_gpu_data.indexbuffer().resize(1);
     set_vbo_data();
@@ -106,8 +106,13 @@ struct position : tatooine::vec<real_t, N>, renderable<position<N>> {
     x     = *inv(V) * *inv(P) * x;
     at(0) = x(0);
     at(1) = x(1);
+
     if constexpr (N == 3) {
       at(2) = x(2);
+    }
+
+    for (auto l : this->self_pin().links()) {
+      l->input().node().on_property_changed();
     }
     return true;
   }
@@ -134,21 +139,6 @@ struct position : tatooine::vec<real_t, N>, renderable<position<N>> {
     changed |= ImGui::DragInt("point size", &m_pointsize, 0, 20);
     changed |= ImGui::ColorEdit3("color", m_color.data());
     return changed;
-  }
-  //----------------------------------------------------------------------------
-  auto update(std::chrono::duration<double> const& /*dt*/) -> void override {
-    size_t i = 0;
-    for (auto& pin : m_input_pins) {
-      if (pin->is_linked()) {
-        if (at(i) != pin->template get_linked_as<real_t>()) {
-          at(i) = pin->template get_linked_as<real_t>();
-          for (auto l : this->self_pin().links()) {
-            l->input().node().on_property_changed();
-          }
-        }
-      }
-      ++i;
-    }
   }
   //----------------------------------------------------------------------------
   auto check_intersection(ray<float, 3> const& r) const -> bool override {

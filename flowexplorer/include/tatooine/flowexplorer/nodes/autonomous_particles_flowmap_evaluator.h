@@ -21,7 +21,6 @@ struct autonomous_particles_flowmap_evaluator
 
   vec2                        m_x1;
   yavin::indexeddata<gpu_vec> m_gpu_data;
-  point_shader                m_shader;
   int                         m_pointsize = 1;
   std::array<GLfloat, 4>      m_color{0.0f, 0.0f, 0.0f, 1.0f};
   //----------------------------------------------------------------------------
