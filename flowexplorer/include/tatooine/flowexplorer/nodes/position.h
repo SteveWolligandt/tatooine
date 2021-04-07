@@ -88,11 +88,11 @@ struct position : tatooine::vec<real_t, N>, renderable<position<N>> {
     auto const P = this->scene().camera_controller().projection_matrix();
     auto const V = this->scene().camera_controller().view_matrix();
 
-    auto x = [this] {
+    auto x = [this]() -> vec4 {
       if constexpr (N == 2) {
-        return vec<real_t, 4>{at(0), at(1), 0, 1};
-      } else {
-        return vec<real_t, 4>{at(0), at(1), at(2), 1};
+        return {at(0), at(1), 0, 1};
+      } else if constexpr (N == 3) {
+        return {at(0), at(1), at(2), 1};
       }
     }();
 
@@ -103,10 +103,10 @@ struct position : tatooine::vec<real_t, N>, renderable<position<N>> {
     x(0) = x(0) / (this->scene().window().width() - 1) * 2 - 1;
     x(1) = x(1) / (this->scene().window().height() - 1) * 2 - 1;
 
-    x     = *inv(V) * *inv(P) * x;
+    x = *inv(V) * *inv(P) * x;
+
     at(0) = x(0);
     at(1) = x(1);
-
     if constexpr (N == 3) {
       at(2) = x(2);
     }
@@ -141,15 +141,16 @@ struct position : tatooine::vec<real_t, N>, renderable<position<N>> {
     return changed;
   }
   //----------------------------------------------------------------------------
-  auto check_intersection(ray<float, 3> const& r) const -> bool override {
+  auto check_intersection(ray<float, 3> const& r) const
+      -> std::optional<intersection<double, 3>> override {
     if constexpr (N == 3) {
       geometry::sphere<real_t, 3> s{0.01, vec3{at(0), at(1), at(2)}};
-      return s.check_intersection(ray<real_t, 3>{r}).has_value();
+      return s.check_intersection(ray<real_t, 3>{r});
     } else if constexpr (N == 2) {
       geometry::sphere<real_t, 3> s{0.01, vec3{at(0), at(1), 0}};
-      return s.check_intersection(ray<real_t, 3>{r}).has_value();
+      return s.check_intersection(ray<real_t, 3>{r});
     }
-    return false;
+    return {};
   }
 };
 using position2 = position<2>;

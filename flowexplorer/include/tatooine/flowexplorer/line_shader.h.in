@@ -11,10 +11,14 @@ namespace tatooine::flowexplorer {
 struct line_shader : yavin::shader {
   static constexpr std::string_view vertpath = "@FLOWEXPLORER_LINE_VERT@";
   static constexpr std::string_view fragpath = "@FLOWEXPLORER_LINE_FRAG@";
+  static auto get() -> line_shader&;
+  private:
   line_shader();
-  void set_modelview_matrix(const tatooine::mat<float, 4, 4>& mvmat);
-  void set_projection_matrix(const tatooine::mat<float, 4, 4>& projmat);
-  void set_color(GLfloat r, GLfloat g, GLfloat b, GLfloat a);
+  public:
+   auto set_modelview_matrix(const tatooine::mat<float, 4, 4>& mvmat) -> void;
+   auto set_projection_matrix(const tatooine::mat<float, 4, 4>& projmat)
+       -> void;
+   auto set_color(GLfloat r, GLfloat g, GLfloat b, GLfloat a) -> void;
 };
 //==============================================================================
 }  // namespace tatooine::flowexplorer

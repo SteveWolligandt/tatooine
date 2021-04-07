@@ -7,7 +7,7 @@
 namespace tatooine::flowexplorer::nodes {
 //==============================================================================
 random_points::random_points(flowexplorer::scene& s)
-    : renderable<random_points>{"Random Points", s, *this},
+    : renderable<random_points>{"Random Points", s},
       m_input{insert_input_pin<geometry::sphere<real_t, 3>>("domain")},
       m_out2d{insert_output_pin("", m_points2d)},
       m_out3d{insert_output_pin("", m_points3d)} {}
@@ -43,6 +43,7 @@ auto random_points::update_points() -> void {
       m_points_gpu.indexbuffer().push_back(i);
     }
   }
+  notify_property_changed(false);
 }
 //==============================================================================
 }  // namespace tatooine::flowexplorer

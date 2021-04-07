@@ -1,5 +1,5 @@
-#ifndef TATOOINE_GEOMETRY_INTERSECTION_H
-#define TATOOINE_GEOMETRY_INTERSECTION_H
+#ifndef TATOOINE_INTERSECTION_H
+#define TATOOINE_INTERSECTION_H
 //==============================================================================
 #include <tatooine/concepts.h>
 #include <tatooine/ray.h>

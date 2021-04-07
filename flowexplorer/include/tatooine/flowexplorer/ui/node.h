@@ -46,20 +46,23 @@ struct node : uuid_holder<ax::NodeEditor::NodeId>, serializable, toggleable {
   virtual ~node() = default;
   //============================================================================
   template <typename... Ts>
-  auto insert_input_pin(std::string const& title) -> auto& {
-    m_input_pins.push_back(make_input_pin<Ts...>(*this, title));
+  auto insert_input_pin(std::string const& title,
+                        icon_type const    t = icon_type::flow) -> auto& {
+    m_input_pins.push_back(make_input_pin<Ts...>(*this, title, t));
     return *m_input_pins.back();
   }
   //----------------------------------------------------------------------------
   template <typename Prop>
   auto insert_input_pin_property_link(input_pin& pin, Prop& prop) -> auto& {
+    pin.set_icon_type(icon_type::grid);
     m_property_links.push_back(make_input_pin_property_link<Prop>(pin, prop));
     return *m_property_links.back();
   }
   //----------------------------------------------------------------------------
   template <typename T>
-  auto insert_output_pin(std::string const& title, T& ref) -> auto& {
-    m_output_pins.push_back(make_output_pin(*this, title, ref));
+  auto insert_output_pin(std::string const& title, T& ref,
+                        icon_type const    t = icon_type::flow) -> auto& {
+    m_output_pins.push_back(make_output_pin(*this, title, ref, t));
     return *m_output_pins.back();
   }
   //----------------------------------------------------------------------------
@@ -122,7 +125,9 @@ struct node_serializer {
     reflection::for_each(t, [&serialized_node](auto const& name,
                                                auto const& var) {
       using var_t = std::decay_t<decltype(var)>;
-      if constexpr (is_same<std::string, var_t>) {
+      if constexpr (is_same<size_t, var_t>) {
+        serialized_node.insert(name, (int)var);
+      } else if constexpr (is_same<std::string, var_t>) {
         serialized_node.insert(name, var);
       } else if constexpr (std::is_arithmetic_v<var_t>) {
         serialized_node.insert(name, var);
@@ -182,7 +187,9 @@ struct node_serializer {
   auto deserialize(T& t, toml::table const& serialized_node) -> void {
     reflection::for_each(t, [&serialized_node](auto const& name, auto& var) {
       using var_t = std::decay_t<decltype(var)>;
-      if constexpr (is_same<std::string, var_t>) {
+      if constexpr (is_same<size_t, var_t>) {
+        var = (size_t)serialized_node[name].as_integer()->get();
+      } else if constexpr (is_same<std::string, var_t>) {
         var = serialized_node[name].as_string()->get();
       } else if constexpr (is_same<bool, var_t>) {
         var = serialized_node[name].as_boolean()->get();
@@ -310,6 +317,8 @@ struct node_serializer {
         changed |= ImGui::InputText(name, &var);
 
         // float
+      } else if constexpr (is_same<size_t, var_t>) {
+        changed |= ImGui::DragSizeT(name, &var);
       } else if constexpr (is_same<float, var_t>) {
         changed |= ImGui::DragFloat(name, &var, 0.1f);
       } else if constexpr (is_same<std::array<float, 2>, var_t>) {
