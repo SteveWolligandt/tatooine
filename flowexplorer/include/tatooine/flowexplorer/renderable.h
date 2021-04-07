@@ -4,6 +4,7 @@
 #include <chrono>
 #include <tatooine/flowexplorer/ui/node.h>
 #include <tatooine/ray.h>
+#include <tatooine/intersection.h>
 #include <tatooine/mat.h>
 //==============================================================================
 namespace tatooine::flowexplorer {
@@ -31,8 +32,9 @@ struct renderable : ui::base::node {
   auto         on_mouse_clicked() -> void { m_picked = true; }
   auto         on_mouse_released() -> void { m_picked = false; }
   auto         is_picked() -> bool { return m_picked; }
-  virtual auto check_intersection(ray<float, 3> const& /*r*/) const -> bool {
-    return false;
+  virtual auto check_intersection(ray<float, 3> const& /*r*/) const
+      -> std::optional<intersection<double, 3>> {
+    return {};
   }
 };
 }  // namespace base

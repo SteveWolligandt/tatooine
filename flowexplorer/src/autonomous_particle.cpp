@@ -6,6 +6,7 @@
 #include <tatooine/random.h>
 #include <tatooine/rendering/yavin_interop.h>
 #include <tatooine/flowexplorer/point_shader.h>
+#include <tatooine/flowexplorer/line_shader.h>
 //==============================================================================
 namespace tatooine::flowexplorer::nodes {
 //==============================================================================
@@ -21,24 +22,25 @@ autonomous_particle::autonomous_particle(flowexplorer::scene& s)
 void autonomous_particle::render(mat4f const& projection_matrix,
                                  mat4f const& view_matrix) {
   if (!m_currently_advecting) {
-    m_line_shader.set_projection_matrix(projection_matrix);
-    m_line_shader.set_modelview_matrix(view_matrix);
-    m_line_shader.bind();
-    m_line_shader.set_color(m_ellipses_color[0], m_ellipses_color[1],
-                            m_ellipses_color[2], m_ellipses_color[3]);
+    auto& shader = line_shader::get();
+    shader.set_projection_matrix(projection_matrix);
+    shader.set_modelview_matrix(view_matrix);
+    shader.bind();
+    shader.set_color(m_ellipses_color[0], m_ellipses_color[1],
+                     m_ellipses_color[2], m_ellipses_color[3]);
 
-    m_line_shader.set_color(0.7, 0.7, 0.7, 1);
+    shader.set_color(0.7, 0.7, 0.7, 1);
     m_initial_circle.draw_lines();
-    m_line_shader.set_color(0, 0, 0, 1);
+    shader.set_color(0, 0, 0, 1);
     yavin::gl::line_width(2);
     m_advected_ellipses.draw_lines();
     yavin::gl::line_width(1);
-    m_line_shader.set_color(0.2, 0.8, 0.2, 1);
+    shader.set_color(0.2, 0.8, 0.2, 1);
     m_initial_ellipses_back_calculation.draw_lines();
-    m_line_shader.set_color(0.5, 0.5, 0.5, 1);
+    shader.set_color(0.5, 0.5, 0.5, 1);
     m_gpu_advected_points_on_initial_circle.draw_lines();
 
-    m_line_shader.set_color(0.5, 1, 0.5, 1);
+    shader.set_color(0.5, 1, 0.5, 1);
     m_pathlines.draw_lines();
   }
 }

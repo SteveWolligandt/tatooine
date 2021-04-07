@@ -1,7 +1,6 @@
 #ifndef TATOOINE_FLOWEXPLORER_NODES_PATHLINE_H
 #define TATOOINE_FLOWEXPLORER_NODES_PATHLINE_H
 //==============================================================================
-#include <tatooine/flowexplorer/line_shader.h>
 #include <tatooine/flowexplorer/nodes/axis_aligned_bounding_box.h>
 #include <tatooine/flowexplorer/nodes/position.h>
 #include <tatooine/flowexplorer/renderable.h>
@@ -30,7 +29,6 @@ struct pathline : renderable<pathline> {
   ui::output_pin&                         m_pos3_pin;
   vec2                                    m_x_neg2, m_x_pos2;
   vec3                                    m_x_neg3, m_x_pos3;
-  line_shader                             m_shader;
   yavin::indexeddata<vec3f, vec3f, float> m_gpu_data;
 
   real_t                 m_t0   = 0;

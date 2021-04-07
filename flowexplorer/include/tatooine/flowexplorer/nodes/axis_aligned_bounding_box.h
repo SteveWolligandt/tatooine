@@ -22,7 +22,6 @@ struct axis_aligned_bounding_box
   using parent_t::min;
   //============================================================================
   yavin::indexeddata<vec<float, N>> m_gpu_data;
-  line_shader                       m_shader;
   int                               m_line_width = 1;
   std::array<GLfloat, 4>            m_line_color{0.0f, 0.0f, 0.0f, 1.0f};
   //============================================================================
@@ -42,14 +41,14 @@ struct axis_aligned_bounding_box
   auto operator                     =(axis_aligned_bounding_box&&) noexcept
       -> axis_aligned_bounding_box& = default;
   //============================================================================
-  void render(mat<float, 4, 4> const& projection_matrix,
-              mat<float, 4, 4> const& view_matrix) override {
+  void render(mat4f const& P, mat4f const& V) override {
     set_vbo_data();
-    m_shader.bind();
-    m_shader.set_color(m_line_color[0], m_line_color[1], m_line_color[2],
-                       m_line_color[3]);
-    m_shader.set_projection_matrix(projection_matrix);
-    m_shader.set_modelview_matrix(view_matrix);
+    auto& shader = line_shader::get();
+    shader.bind();
+    shader.set_color(m_line_color[0], m_line_color[1], m_line_color[2],
+                     m_line_color[3]);
+    shader.set_projection_matrix(P);
+    shader.set_modelview_matrix(V);
     yavin::gl::line_width(m_line_width);
     m_gpu_data.draw_lines();
   }

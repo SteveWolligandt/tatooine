@@ -108,6 +108,7 @@ struct linspace {
   constexpr auto end() const { return const_iterator{this, m_size}; }
   //----------------------------------------------------------------------------
   constexpr auto size() const { return m_size; }
+  constexpr auto size() -> auto& { return m_size; }
   constexpr auto front() const { return m_min; }
   constexpr auto front() -> auto& { return m_min; }
   constexpr auto back() const { return m_max; }

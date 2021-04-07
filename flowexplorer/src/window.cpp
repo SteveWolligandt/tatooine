@@ -83,10 +83,19 @@ void window::on_button_pressed(yavin::button b) {
     m_left_button_down = true;
     auto const ray =
         m_scene.camera_controller().ray(m_mouse_x, height() - m_mouse_y - 1);
+
+    auto max_dist = std::numeric_limits<double>::max();
+    base::renderable* nearest  = nullptr;
     for (auto& r : m_scene.renderables()) {
-      if (r->check_intersection(ray)) {
-        r->on_mouse_clicked();
+      if (auto const isect = r->check_intersection(ray); isect) {
+        if (isect->t < max_dist) {
+          max_dist = isect->t;
+          nearest  = r.get();
+        }
       }
+    }
+    if (nearest != nullptr) {
+      nearest->on_mouse_clicked();
     }
   }
 }

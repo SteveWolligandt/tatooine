@@ -1,6 +1,7 @@
 #include <tatooine/flowexplorer/scene.h>
 #include <tatooine/flowexplorer/window.h>
 //------------------------------------------------------------------------------
+#include <tatooine/flowexplorer/line_shader.h>
 #include <tatooine/flowexplorer/nodes/pathline.h>
 #include <tatooine/flowexplorer/nodes/random_points.h>
 //==============================================================================
@@ -24,13 +25,13 @@ pathline::pathline(flowexplorer::scene& s)
   m_pos3_pin.deactivate();
 }
 //============================================================================
-auto pathline::render(mat4f const& projection_matrix, mat4f const& view_matrix)
-    -> void {
-  m_shader.bind();
-  m_shader.set_color(m_line_color[0], m_line_color[1], m_line_color[2],
+auto pathline::render(mat4f const& P, mat4f const& V) -> void {
+  auto & shader = line_shader::get();
+  shader.bind();
+  shader.set_color(m_line_color[0], m_line_color[1], m_line_color[2],
                      m_line_color[3]);
-  m_shader.set_projection_matrix(projection_matrix);
-  m_shader.set_modelview_matrix(view_matrix);
+  shader.set_projection_matrix(P);
+  shader.set_modelview_matrix(V);
   yavin::gl::line_width(m_line_width);
   m_gpu_data.draw_lines();
 }
@@ -108,7 +109,7 @@ auto pathline::integrate_lines() -> void {
 
         cur_end_point2 = &node->m_x_pos2;
         integrator.solve(v, x0, node->m_t0, node->m_ftau, callback);
-        node->m_integration_going_on = false;
+        insert_segment = false;
       };
       if (node->m_x0_pin.linked_type() == typeid(vec2)) {
         decltype(auto) x0 = node->m_x0_pin.get_linked_as<vec2>();
@@ -129,7 +130,7 @@ auto pathline::integrate_lines() -> void {
 
         cur_end_point3 = &node->m_x_pos3;
         integrator.solve(v, x0, node->m_t0, node->m_ftau, callback);
-        node->m_integration_going_on = false;
+        insert_segment = false;
       };
       if (node->m_x0_pin.linked_type() == typeid(vec3)) {
         decltype(auto) x0 = node->m_x0_pin.get_linked_as<vec3>();
@@ -141,6 +142,7 @@ auto pathline::integrate_lines() -> void {
         }
       }
     }
+    node->m_integration_going_on = false;
   };
   worker();
   // this->scene().window().do_async(worker);

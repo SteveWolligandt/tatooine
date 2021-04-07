@@ -14,7 +14,9 @@ configure_file(${TATFE_SRC_DIR}/directories.cpp.in
 add_executable(
   flowexplorer
   ${TATFE_BIN_SRC_DIR}/directories.cpp
+  ${TATFE_SRC_DIR}/linspace.cpp
   ${TATFE_SRC_DIR}/random_points.cpp
+  ${TATFE_SRC_DIR}/grid.cpp
   ${TATFE_SRC_DIR}/distance_measure.cpp
   ${TATFE_SRC_DIR}/unary_scalar_operation.cpp
   ${TATFE_SRC_DIR}/binary_scalar_operation.cpp

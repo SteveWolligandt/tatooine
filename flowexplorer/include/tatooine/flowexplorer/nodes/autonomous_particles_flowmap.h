@@ -14,7 +14,6 @@ struct autonomous_particles_flowmap : renderable<autonomous_particles_flowmap> {
   yavin::indexeddata<vec3f>                   m_edges;
   int                                         m_line_width = 1;
   std::array<GLfloat, 4> m_line_color{0.0f, 0.0f, 0.0f, 1.0f};
-  line_shader            m_line_shader;
   //============================================================================
   autonomous_particles_flowmap(flowexplorer::scene& s)
       : renderable<autonomous_particles_flowmap>{
@@ -87,12 +86,13 @@ struct autonomous_particles_flowmap : renderable<autonomous_particles_flowmap> {
   //------------------------------------------------------------------------------
   auto render(mat4f const& P, mat4f const& V) -> void override {
     if (m_edges.indexbuffer().size() > 0) {
-      m_line_shader.bind();
-      m_line_shader.set_projection_matrix(P);
-      m_line_shader.set_modelview_matrix(V);
+      auto& shader = line_shader::get();
+      shader.bind();
+      shader.set_projection_matrix(P);
+      shader.set_modelview_matrix(V);
       yavin::gl::line_width(m_line_width);
-      m_line_shader.set_color(m_line_color[0], m_line_color[1], m_line_color[2],
-                              m_line_color[3]);
+      shader.set_color(m_line_color[0], m_line_color[1], m_line_color[2],
+                       m_line_color[3]);
       m_edges.draw_lines();
     }
   }
