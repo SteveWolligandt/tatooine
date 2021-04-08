@@ -45,6 +45,9 @@ struct scene {
   auto renderables()       const -> auto const& { return m_renderables; }
   auto renderables()             -> auto&       { return m_renderables; }
   //----------------------------------------------------------------------------
+  auto camera()            const -> auto const& { return *m_cam; }
+  auto camera()                  -> auto&       { return *m_cam; }
+  //----------------------------------------------------------------------------
   auto window()            const -> auto const& { return *m_window; }
   auto window()                  -> auto&       { return *m_window; }
   //----------------------------------------------------------------------------
