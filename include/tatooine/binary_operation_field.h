@@ -55,11 +55,33 @@ struct binary_operation_field
   //├──────────────────────────────────────────────────────────────────────┤
   //├╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌┤
   constexpr auto evaluate(const pos_t& x, Real t) const -> tensor_t final {
-    return m_op(m_v0(x, t), m_v1(x, t));
+    return m_op(v0()(x, t), v1()(x, t));
   }
   //├╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌┤
   constexpr auto in_domain(const pos_t& x, Real t) const -> bool final {
-    return m_v0.in_domain(x, t) && m_v1.in_domain(x, t);
+    return v0().in_domain(x, t) && v1().in_domain(x, t);
+  }
+  auto v0() const -> auto const& {
+    if constexpr (is_pointer<V0>) {
+      return *m_v0;
+    } else {
+      return m_v0;
+    }
+  }
+  auto v1() const -> auto const& {
+    if constexpr (is_pointer<V1>) {
+      return *m_v1;
+    } else {
+      return m_v1;
+    }
+  }
+  template <bool Cond = is_pointer<V0>, enable_if<Cond> = true>
+  auto set_v0(V0 v0) -> void {
+    m_v0 = v0;
+  }
+  template <bool Cond = is_pointer<V1>, enable_if<Cond> = true>
+  auto set_v1(V1 v1) -> void {
+    m_v1 = v1;
   }
 };
 //╘══════════════════════════════════════════════════════════════════════════╛
@@ -174,6 +196,28 @@ constexpr auto make_binary_operation_field(
                                 field<V1, Real1, N1, TensorDims1...>, Op,
                                 RealOut, NOut, TensorDimsOut...>{
       std::move(lhs), std::move(rhs), std::move(op)};
+}
+//├╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌┤
+template <typename RealOut, size_t NOut, size_t... TensorDimsOut,
+          typename Real0, size_t   N0, size_t... TensorDims0, typename Real1,
+          size_t N1, size_t... TensorDims1, typename Op>
+constexpr auto make_binary_operation_field(
+    parent::field<Real0, N0, TensorDims0...> const* lhs,
+    parent::field<Real1, N1, TensorDims1...> const* rhs, Op op) {
+  return binary_operation_field<parent::field<Real0, N0, TensorDims0...> const*,
+                                parent::field<Real1, N1, TensorDims1...> const*,
+                                Op, RealOut, NOut, TensorDimsOut...>{
+      lhs, rhs, std::move(op)};
+}
+//├╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌┤
+template <typename RealOut, size_t NOut, size_t... TensorDimsOut,
+          typename Real0, size_t   N0, size_t... TensorDims0, typename Real1,
+          size_t N1, size_t... TensorDims1, typename Op>
+constexpr auto make_binary_operation_field(
+    parent::field<Real0, N0, TensorDims0...>const & lhs,
+    parent::field<Real1, N1, TensorDims1...>const & rhs, Op op) {
+  return make_binary_operation_field<RealOut, NOut, TensorDimsOut...>(
+      &lhs, &rhs, std::forward<Op>(op));
 }
 //==============================================================================
 }  // namespace tatooine

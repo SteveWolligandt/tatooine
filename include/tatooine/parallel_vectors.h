@@ -370,6 +370,42 @@ auto calc_parallel_vectors(GetV&& getv, GetW&& getw,
 }  // namespace detail
 //==============================================================================
 #ifdef __cpp_concepts
+template <typename VReal, typename WReal, typename XDomain, typename YDomain,
+          typename ZDomain, arithmetic TReal,
+          invocable<vec<common_type<VReal, WReal>, 3>>... Preds>
+#else
+template <typename VReal, typename WReal, typename TReal, typename XDomain,
+          typename YDomain, typename ZDomain, typename... Preds,
+          enable_if<is_arithmetic<TReal> &&
+                    (is_invocable<Preds, vec<common_type<VReal, WReal>, 3>> &&
+                     ...)> = true>
+#endif
+auto parallel_vectors(parent::vectorfield<VReal, 3> const&   vf,
+                      parent::vectorfield<WReal, 3> const&   wf,
+                      grid<XDomain, YDomain, ZDomain> const& g, TReal const t,
+                      Preds&&... preds)
+    -> std::vector<line<common_type<VReal, WReal>, 3>> {
+  return detail::calc_parallel_vectors<common_type<VReal, WReal>>(
+      // get v data by evaluating V field
+      [&vf, t](auto /*ix*/, auto /*iy*/, auto /*iz*/, auto const& p) {
+        if (vf.in_domain(p, t)) {
+          return vf(p, t);
+        }
+        return typename std::decay_t<decltype(vf)>::tensor_t{
+            tag::fill{VReal(0) / VReal(0)}};
+      },
+      // get w data by evaluating W field
+      [&wf, t](auto /*ix*/, auto /*iy*/, auto /*iz*/, auto const& p) {
+        if (wf.in_domain(p, t)) {
+          return wf(p, t);
+        }
+        return typename std::decay_t<decltype(wf)>::tensor_t{
+            tag::fill{WReal(0) / WReal(0)}};
+      },
+      g, std::forward<Preds>(preds)...);
+}
+//------------------------------------------------------------------------------
+#ifdef __cpp_concepts
 template <typename V, typename W, typename VReal, typename WReal,
           typename XDomain, typename YDomain, typename ZDomain,
           arithmetic TReal,
@@ -379,10 +415,11 @@ template <
     typename V, typename W, typename VReal, typename WReal, typename TReal,
     typename XDomain, typename YDomain, typename ZDomain, typename... Preds,
     enable_if<is_arithmetic<TReal> &&
-              (is_invocable<Preds, vec<common_type<VReal, WReal>, 3>>&&...)> = true>
+              (is_invocable<Preds, vec<common_type<VReal, WReal>, 3>> && ...)> =
+        true>
 #endif
-auto parallel_vectors(field<V, VReal, 3, 3> const&           vf,
-                      field<W, WReal, 3, 3> const&           wf,
+auto parallel_vectors(vectorfield<V, VReal, 3> const&        vf,
+                      vectorfield<W, WReal, 3> const&        wf,
                       grid<XDomain, YDomain, ZDomain> const& g, TReal const t,
                       Preds&&... preds)
     -> std::vector<line<common_type<VReal, WReal>, 3>> {
