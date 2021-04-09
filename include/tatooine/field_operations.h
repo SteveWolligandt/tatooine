@@ -31,6 +31,13 @@ constexpr auto operator+(
       lhs, rhs, [](const auto& lhs, const auto& rhs) { return lhs + rhs; });
 }
 //├──────────────────────────────────────────────────────────────────────────┤
+template <typename Real0, typename Real1, size_t N, size_t TM, size_t TN>
+constexpr auto operator*(parent::field<Real0, N, TM, TN> const& lhs,
+                         parent::field<Real1, N, TN> const&     rhs) {
+  return make_binary_operation_field<common_type<Real0, Real1>, N, TM>(
+      lhs, rhs, [](const auto& lhs, const auto& rhs) { return lhs * rhs; });
+}
+//├──────────────────────────────────────────────────────────────────────────┤
 template <typename V0, typename Real0, typename V1,
           typename Real1, size_t N, size_t TM, size_t TN>
 constexpr auto operator*(const field<V0, Real0, N, TM, TN>& lhs,
