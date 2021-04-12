@@ -431,6 +431,14 @@ struct grid : renderable<grid<N>>, grid_renderer<N> {
   }
   //----------------------------------------------------------------------------
   auto render(mat4f const& P, mat4f const& V) -> void override {
+    if (!all_pins_linked()) {
+      return;
+    }
+    for (size_t i = 0; i < N; ++i) {
+      if (dimension(i).size() < 1) {
+        return;
+      }
+    }
     if constexpr (N == 3) {
       grid_renderer<N>::render(P, V, this->scene().camera().eye());
     } else {
@@ -480,6 +488,11 @@ struct grid : renderable<grid<N>>, grid_renderer<N> {
       ++i;
     }
     if (all_pins_linked()) {
+      for (size_t i = 0; i < N; ++i) {
+        if (dimension(i).size() < 1) {
+          return;
+        }
+      }
       this->update_geometry();
       this->notify_property_changed(false);
     }
@@ -499,6 +512,11 @@ struct grid : renderable<grid<N>>, grid_renderer<N> {
     }
 
     if (all_pins_linked()) {
+      for (size_t i = 0; i < N; ++i) {
+        if (dimension(i).size() < 1) {
+          return;
+        }
+      }
       this->update_geometry();
       this->notify_property_changed(false);
     }

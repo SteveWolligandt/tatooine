@@ -20,12 +20,12 @@ include(target_link_libraries_system)
 #- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - 
 find_package(Git REQUIRED)
 function(update_git_submodule dir)
-  execute_process(COMMAND ${GIT_EXECUTABLE} submodule update --init --recursive ${dir}
+  execute_process(COMMAND ${GIT_EXECUTABLE} submodule update --init --recursive -- ${dir}
                   WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
                   RESULT_VARIABLE GIT_SUBMOD_RESULT)
   if(NOT GIT_SUBMOD_RESULT EQUAL "0")
     message(FATAL_ERROR
-      "git submodule update --init failed with ${GIT_SUBMOD_RESULT}, please checkout submodules")
+      "When updating submodule ${dir}:\n  git submodule update --init --recursive -- ${dir}\nfailed with ${GIT_SUBMOD_RESULT}, please checkout submodules.")
   endif()
 endfunction()
 set(TATOOINE_MANDATORY_GIT_SUBMODULES indicators)
@@ -267,10 +267,6 @@ endif()
 if ((NOT TATOOINE_USE_SYSTEM_HDF5_LIBS) OR
     (TATOOINE_USE_SYSTEM_HDF5_LIBS AND NOT HDF5_FOUND))
   update_git_submodule(${TATOOINE_EXTERNAL}/hdf5)
-  if(NOT GIT_SUBMOD_RESULT EQUAL "0")
-    message(FATAL_ERROR
-      "git submodule update --init failed with ${GIT_SUBMOD_RESULT}, please checkout submodules")
-  endif()
   set(HDF5_EXTERNALLY_CONFIGURED 1)
   set(HDF5_EXTERNAL_LIB_PREFIX "tatooine" CACHE STRING "Use prefix for custom library naming.")
   set(HDF5_BUILD_CPP_LIB     OFF CACHE BOOL "Build HDF5 C++ Library")

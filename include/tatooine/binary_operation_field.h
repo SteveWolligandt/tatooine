@@ -75,13 +75,20 @@ struct binary_operation_field
       return m_v1;
     }
   }
+  //----------------------------------------------------------------------------
   template <bool Cond = is_pointer<V0>, enable_if<Cond> = true>
   auto set_v0(V0 v0) -> void {
     m_v0 = v0;
   }
+  //----------------------------------------------------------------------------
   template <bool Cond = is_pointer<V1>, enable_if<Cond> = true>
   auto set_v1(V1 v1) -> void {
     m_v1 = v1;
+  }
+  //----------------------------------------------------------------------------
+  template <bool Cond = is_pointer<V0>, enable_if<Cond> = true>
+  auto fields_available() const -> bool {
+    return m_v0 != nullptr && m_v1 != nullptr;
   }
 };
 //╘══════════════════════════════════════════════════════════════════════════╛

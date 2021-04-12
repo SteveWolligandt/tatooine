@@ -18,7 +18,6 @@ binary_operation::binary_operation(flowexplorer::scene& s)
 }
 //------------------------------------------------------------------------------
 auto binary_operation::draw_properties() -> bool {
-  ImGui::TextUnformatted(std::to_string(m_scalar_value).c_str());
   bool changed = false;
   if (m_input0.is_linked() && m_input1.is_linked()) {
     if (m_input0.linked_type() == typeid(real_t) &&
@@ -31,6 +30,7 @@ auto binary_operation::draw_properties() -> bool {
                                     (int)operation_t::multiplication);
       changed |= ImGui::RadioButton("division", &m_operation,
                                     (int)operation_t::division);
+      ImGui::TextUnformatted(std::to_string(m_scalar_value).c_str());
     }
   }
   return changed;
