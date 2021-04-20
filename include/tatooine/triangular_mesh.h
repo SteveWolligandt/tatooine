@@ -2,7 +2,7 @@
 #define TATOOINE_TRIANGULAR_MESH_H
 //==============================================================================
 #ifdef TATOOINE_HAS_CGAL_SUPPORT
-#include <CGAL/Exact_predicates_inexact_constructions_kernel.h>
+#include <CGAL/Exact_predicates_exact_constructions_kernel.h>
 #include <CGAL/Delaunay_triangulation_2.h>
 #include <CGAL/Triangulation_vertex_base_with_info_2.h>
 #endif
@@ -27,7 +27,7 @@ class triangular_mesh : public pointset<Real, N> {
   using this_t   = triangular_mesh<Real, N>;
   using parent_t = pointset<Real, N>;
   using parent_t::at;
-  using parent_t::num_vertices;
+  using parent_t::vertices;
   using parent_t::vertex_data;
   using parent_t::vertex_properties;
   using typename parent_t::vertex_handle;
@@ -140,9 +140,8 @@ class triangular_mesh : public pointset<Real, N> {
       return vi;
     }
 
-    auto end() const {
-      return face_iterator{face_handle{m_mesh->num_faces()}, m_mesh};
-    }
+    auto end() const { return face_iterator{face_handle{size()}, m_mesh}; }
+    auto size() const { return m_mesh->m_face_indices.size() / 3; }
   };
   //----------------------------------------------------------------------------
   template <typename T>
@@ -154,9 +153,9 @@ class triangular_mesh : public pointset<Real, N> {
                          std::conditional_t<N == 3, octree<Real>, void>>;
   //============================================================================
  private:
-  std::vector<vertex_handle>            m_face_indices;
-  std::vector<face_handle>          m_invalid_faces;
-  face_property_container_t        m_face_properties;
+  std::vector<vertex_handle>           m_face_indices;
+  std::vector<face_handle>             m_invalid_faces;
+  face_property_container_t            m_face_properties;
   mutable std::unique_ptr<hierarchy_t> m_hierarchy;
 
  public:
@@ -303,7 +302,7 @@ class triangular_mesh : public pointset<Real, N> {
       prop->push_back();
     }
     if (m_hierarchy != nullptr) {
-      if (!m_hierarchy->insert_face(*this, ti.i)) {
+      if (!m_hierarchy->insert_triangle(*this, ti.i)) {
         build_hierarchy();
       }
     }
@@ -321,7 +320,7 @@ class triangular_mesh : public pointset<Real, N> {
   //----------------------------------------------------------------------------
   auto faces() const { return face_container{this}; }
   //----------------------------------------------------------------------------
-  auto num_faces() const { return m_face_indices.size() / 3; }
+  auto face_data() const -> auto const& { return m_face_indices; }
   //----------------------------------------------------------------------------
 #ifdef TATOOINE_HAS_CGAL_SUPPORT
 #ifdef __cpp_concepts
@@ -329,17 +328,17 @@ class triangular_mesh : public pointset<Real, N> {
 #else
   template <size_t N_ = N, enable_if<N_ == 2> = true>
 #endif
-  auto triangulate_delaunay() -> void {
+  auto build_delaunay_mesh() -> void {
     m_face_indices.clear();
     //using Kernel = CGAL::Cartesian<Real>;
-    using Kernel = CGAL::Exact_predicates_inexact_constructions_kernel;
+    using Kernel = CGAL::Exact_predicates_exact_constructions_kernel;
     using Vb     = CGAL::Triangulation_vertex_base_with_info_2<vertex_handle, Kernel>;
     using Tds    = CGAL::Triangulation_data_structure_2<Vb>;
     using Triangulation = CGAL::Delaunay_triangulation_2<Kernel, Tds>;
     using Point         = typename Kernel::Point_2;
     std::vector<std::pair<Point, vertex_handle>> points;
-    points.reserve(this->num_vertices());
-    for (auto v : this->vertices()) {
+    points.reserve(vertices().size());
+    for (auto v : vertices()) {
       points.emplace_back(Point{at(v)(0), at(v)(1)}, v);
     }
 
@@ -370,7 +369,7 @@ class triangular_mesh : public pointset<Real, N> {
   auto build_hierarchy() const {
     clear_hierarchy();
     auto& h = hierarchy();
-    for (auto v : this->vertices()) {
+    for (auto v : vertices()) {
       h.insert_vertex(*this, v.i);
     }
     for (auto t : faces()) {
@@ -398,7 +397,7 @@ class triangular_mesh : public pointset<Real, N> {
     if (m_hierarchy == nullptr) {
       auto min = pos_t::ones() * std::numeric_limits<Real>::infinity();
       auto max = -pos_t::ones() * std::numeric_limits<Real>::infinity();
-      for (auto v : this->vertices()) {
+      for (auto v : vertices()) {
         for (size_t i = 0; i < N; ++i) {
           min(i) = std::min(min(i), at(v)(i));
           max(i) = std::max(max(i), at(v)(i));
@@ -445,7 +444,7 @@ class triangular_mesh : public pointset<Real, N> {
         auto three_dims = [](vec<Real, 2> const& v2) {
           return vec<Real, 3>{v2(0), v2(1), 0};
         };
-        std::vector<vec<Real, 3>> v3s(num_vertices());
+        std::vector<vec<Real, 3>> v3s(vertices().size());
         auto                      three_dimensional = transformed(three_dims);
         copy(vertex_data() | three_dimensional, begin(v3s));
         writer.write_points(v3s);
@@ -455,7 +454,7 @@ class triangular_mesh : public pointset<Real, N> {
       }
 
       std::vector<std::vector<size_t>> polygons;
-      polygons.reserve(num_faces());
+      polygons.reserve(faces().size());
       for (size_t i = 0; i < size(m_face_indices); i += 3) {
         polygons.push_back(std::vector{m_face_indices[i].i,
                                        m_face_indices[i + 1].i,
@@ -464,7 +463,7 @@ class triangular_mesh : public pointset<Real, N> {
       writer.write_polygons(polygons);
 
       // write vertex_handle data
-      writer.write_point_data(this->num_vertices());
+      writer.write_point_data(vertices().size());
       for (auto const& [name, prop] : vertex_properties()) {
         if (prop->type() == typeid(vec<Real, 4>)) {
           auto const& casted_prop =
@@ -618,7 +617,7 @@ class triangular_mesh : public pointset<Real, N> {
     auto [it, suc] = m_face_properties.insert(
         std::pair{name, std::make_unique<face_property_t<T>>(value)});
     auto fprop = dynamic_cast<face_property_t<T>*>(it->second.get());
-    fprop->resize(num_faces());
+    fprop->resize(faces().size());
     return *fprop;
   }
   //----------------------------------------------------------------------------
@@ -640,7 +639,7 @@ auto write_mesh_container_to_vtk(MeshCont const&    meshes,
     size_t num_pts   = 0;
     size_t cur_first = 0;
     for (auto const& m : meshes) {
-      num_pts += m.num_vertices();
+      num_pts += m.vertices().size();
     }
     std::vector<std::array<typename MeshCont::value_type::real_t, 3>> points;
     std::vector<std::vector<size_t>>                                  faces;
@@ -660,7 +659,7 @@ auto write_mesh_container_to_vtk(MeshCont const&    meshes,
         faces.back().push_back(cur_first + m[t][1].i);
         faces.back().push_back(cur_first + m[t][2].i);
       }
-      cur_first += m.num_vertices();
+      cur_first += m.vertices().size();
     }
 
     // write

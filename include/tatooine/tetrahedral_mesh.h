@@ -1,26 +1,42 @@
 #ifndef TATOOINE_TETRAHEDRAL_MESH_H
 #define TATOOINE_TETRAHEDRAL_MESH_H
 //==============================================================================
+#ifdef TATOOINE_HAS_CGAL_SUPPORT
+#include <CGAL/Exact_predicates_inexact_constructions_kernel.h>
+#include <CGAL/Delaunay_triangulation_3.h>
+#include <CGAL/Triangulation_vertex_base_with_info_3.h>
+#endif
+
+#include <tatooine/grid.h>
 #include <tatooine/pointset.h>
 #include <tatooine/property.h>
 #include <tatooine/vtk_legacy.h>
 
 #include <boost/range/algorithm/copy.hpp>
+#include <boost/range/adaptor/transformed.hpp>
 #include <vector>
 //==============================================================================
 namespace tatooine {
 //==============================================================================
 template <typename Real, size_t N>
 class tetrahedral_mesh : public pointset<Real, N> {
+  static_assert(N >= 3, "Tetrahedal mesh needs to have at least 3 dimensions.");
+
  public:
   using this_t   = tetrahedral_mesh<Real, N>;
   using parent_t = pointset<Real, N>;
   using parent_t::at;
   using typename parent_t::vertex_handle;
+  using typename parent_t::pos_t;
   using parent_t::operator[];
   using parent_t::is_valid;
+  using parent_t::vertices;
+  using parent_t::vertex_data;
+  using parent_t::vertex_properties;
+  using parent_t::insert_vertex;
   template <typename T>
   using vertex_property_t = typename parent_t::template vertex_property_t<T>;
+  using hierarchy_t       = std::conditional_t<(N == 3), octree<Real>, void>;
   //----------------------------------------------------------------------------
   struct tetrahedron_index : handle {
     using handle::handle;
@@ -73,9 +89,9 @@ class tetrahedral_mesh : public pointset<Real, N> {
   struct tetrahedron_container {
     using iterator       = tetrahedron_iterator;
     using const_iterator = tetrahedron_iterator;
-
+    //--------------------------------------------------------------------------
     tetrahedral_mesh const* m_mesh;
-
+    //--------------------------------------------------------------------------
     auto begin() const {
       tetrahedron_iterator vi{tetrahedron_index{0}, m_mesh};
       if (!m_mesh->is_valid(*vi)) {
@@ -83,11 +99,13 @@ class tetrahedral_mesh : public pointset<Real, N> {
       }
       return vi;
     }
-
+    //--------------------------------------------------------------------------
     auto end() const {
       return tetrahedron_iterator{
-          tetrahedron_index{m_mesh->m_tetrahedrons.size()}, m_mesh};
+          tetrahedron_index{size()}, m_mesh};
     }
+    //--------------------------------------------------------------------------
+    auto size() const { return m_mesh->m_tet_indices.size() / 4; }
   };
   //----------------------------------------------------------------------------
   template <typename T>
@@ -97,9 +115,10 @@ class tetrahedral_mesh : public pointset<Real, N> {
                std::unique_ptr<vector_property<tetrahedron_index>>>;
   //============================================================================
  private:
-  std::vector<std::array<vertex_handle, 4>> m_tetrahedrons;
-  std::vector<tetrahedron_index>            m_invalid_tetrahedrons;
-  tetrahedron_property_container_t          m_tetrahedron_properties;
+  std::vector<vertex_handle>           m_tet_indices;
+  std::vector<tetrahedron_index>       m_invalid_tetrahedrons;
+  tetrahedron_property_container_t     m_tetrahedron_properties;
+  mutable std::unique_ptr<hierarchy_t> m_hierarchy;
 
  public:
   //============================================================================
@@ -107,9 +126,9 @@ class tetrahedral_mesh : public pointset<Real, N> {
   //============================================================================
  public:
   tetrahedral_mesh(tetrahedral_mesh const& other)
-      : parent_t{other}, m_tetrahedrons{other.m_tetrahedrons} {
-    for (auto const& [key, fprop] : other.m_tetrahedron_properties) {
-      m_tetrahedron_properties.insert(std::pair{key, fprop->clone()});
+      : parent_t{other}, m_tet_indices{other.m_tet_indices} {
+    for (auto const& [key, prop] : other.m_tetrahedron_properties) {
+      m_tetrahedron_properties.insert(std::pair{key, prop->clone()});
     }
   }
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -118,94 +137,279 @@ class tetrahedral_mesh : public pointset<Real, N> {
   auto operator=(tetrahedral_mesh const& other) -> tetrahedral_mesh& {
     parent_t::operator=(other);
     m_tetrahedron_properties.clear();
-    m_tetrahedrons = other.m_tetrahedrons;
-    for (auto const& [key, fprop] : other.m_tetrahedron_properties) {
-      m_tetrahedron_properties.insert(std::pair{key, fprop->clone()});
+    m_tet_indices = other.m_tet_indices;
+    for (auto const& [key, prop] : other.m_tetrahedron_properties) {
+      m_tetrahedron_properties.insert(std::pair{key, prop->clone()});
     }
     return *this;
   }
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-  auto operator            =(tetrahedral_mesh&& other) noexcept
+  auto operator=(tetrahedral_mesh&& other) noexcept
       -> tetrahedral_mesh& = default;
   //----------------------------------------------------------------------------
   tetrahedral_mesh(std::string const& file) { read(file); }
+  //----------------------------------------------------------------------------
+  tetrahedral_mesh(std::vector<vec<Real, N>> const& positions) : parent_t{positions} {}
+  tetrahedral_mesh(std::vector<vec<Real, N>>&& positions)
+      : parent_t{std::move(positions)} {}
+  //----------------------------------------------------------------------------
+ private:
+  //template <typename T, typename Prop, typename Grid>
+  //auto copy_prop(std::string const& name, Prop const& prop, Grid const& g) {
+  //  if (prop->type() == typeid(T)) {
+  //    auto const& grid_prop = g.template vertex_property<T>(name);
+  //    auto&       tri_prop  = this->template add_vertex_property<T>(name);
+  //    g.loop_over_vertex_indices([&](auto const... is) {
+  //      std::array is_arr{is...};
+  //      tri_prop[vertex_handle{is_arr[0] + is_arr[1] * g.size(0)}] =
+  //          grid_prop(is...);
+  //    });
+  //  }
+  //}
+
+ public:
+#ifdef __cpp_concepts
+  template <indexable_space DimX, indexable_space DimY, indexable_space DimZ>
+  requires(N == 3)
+#else
+  template <typename DimX, typename DimY, typename DimZ, size_t N_ = N,
+            enable_if<N_ == 3> = true>
+#endif
+      tetrahedral_mesh(grid<DimX, DimY, DimZ> const& g) {
+
+    constexpr auto turned = [](size_t const ix, size_t const iy,
+                     size_t const iz) -> bool {
+      bool const xodd = ix % 2 == 0;
+      bool const yodd = iy % 2 == 0;
+      bool const zodd = iz % 2 == 0;
+
+      bool turned = xodd;
+      if (yodd) {
+        turned = !turned;
+      }
+      if (zodd) {
+        turned = !turned;
+      }
+      return turned;
+    };
+
+    for (auto v : g.vertices()) {
+      insert_vertex(v);
+    }
+    for (size_t k = 0; k < g.size(2) - 1; ++k) {
+      for (size_t j = 0; j < g.size(1) - 1; ++j) {
+        for (size_t i = 0; i < g.size(0) - 1; ++i) {
+          auto const le_bo_fr =
+              vertex_handle{i + j * g.size(0) + k * g.size(0) * g.size(1)};
+          auto const ri_bo_fr =
+            vertex_handle{(i + 1) + j * g.size(0) + k * g.size(0) * g.size(1)};
+          auto const le_to_fr =
+              vertex_handle{i + (j+1) * g.size(0) + k * g.size(0) * g.size(1)};
+          auto const ri_to_fr =
+            vertex_handle{(i + 1) + (j+1) * g.size(0) + k * g.size(0) * g.size(1)};
+          auto const le_bo_ba =
+              vertex_handle{i + j * g.size(0) + (k+1) * g.size(0) * g.size(1)};
+          auto const ri_bo_ba =
+            vertex_handle{(i + 1) + j * g.size(0) + (k+1) * g.size(0) * g.size(1)};
+          auto const le_to_ba =
+              vertex_handle{i + (j+1) * g.size(0) + (k+1) * g.size(0) * g.size(1)};
+          auto const ri_to_ba =
+            vertex_handle{(i + 1) + (j+1) * g.size(0) + (k+1) * g.size(0) * g.size(1)};
+          if (turned(i, j, k)) {
+            insert_tetrahedron(
+                le_bo_fr, ri_bo_ba, ri_to_fr, le_to_ba);  // inner
+            insert_tetrahedron(
+                le_bo_fr, ri_bo_fr, ri_to_fr, ri_bo_ba);  // right front
+            insert_tetrahedron(
+                le_bo_fr, ri_to_fr, le_to_fr, le_to_ba);  // left front
+            insert_tetrahedron(
+                ri_to_fr, ri_bo_ba, ri_to_ba, le_to_ba);  // right back
+            insert_tetrahedron(
+                le_bo_fr, le_bo_ba, ri_bo_ba, le_to_ba);  // left back
+          } else {
+            insert_tetrahedron(
+                le_to_fr, ri_bo_fr, le_bo_ba, ri_to_ba);  // inner
+            insert_tetrahedron(
+                le_bo_fr, ri_bo_fr, le_to_fr, le_bo_ba);  // left front
+            insert_tetrahedron(
+                ri_bo_fr, ri_to_fr, le_to_fr, ri_to_ba);  // right front
+            insert_tetrahedron(
+                le_to_fr, le_to_ba, ri_to_ba, le_bo_ba);  // left back
+            insert_tetrahedron(
+                ri_bo_fr, ri_bo_ba, ri_to_ba, le_bo_ba);  // right back
+          }
+        }
+      }
+    }
+    //for (auto const& [name, prop] : g.vertex_properties()) {
+    //  copy_prop<vec4d>(name, prop, g);
+    //  copy_prop<vec3d>(name, prop, g);
+    //  copy_prop<vec2d>(name, prop, g);
+    //  copy_prop<vec4f>(name, prop, g);
+    //  copy_prop<vec3f>(name, prop, g);
+    //  copy_prop<vec2f>(name, prop, g);
+    //  copy_prop<double>(name, prop, g);
+    //  copy_prop<float>(name, prop, g);
+    //}
+  }
   //============================================================================
-  auto operator[](tetrahedron_index t) const -> auto const& {
-    return m_tetrahedrons[t.i];
+  auto operator[](tetrahedron_index t) const -> auto {
+    return tetrahedron_at(t.i);
   }
-  auto operator[](tetrahedron_index t) -> auto& { return m_tetrahedrons[t.i]; }
+  auto operator[](tetrahedron_index t) -> auto { return tetrahedron_at(t.i); }
   //----------------------------------------------------------------------------
-  auto at(tetrahedron_index t) const -> auto const& {
-    return m_tetrahedrons[t.i];
+  auto at(tetrahedron_index t) const -> auto { return tetrahedron_at(t.i); }
+  auto at(tetrahedron_index t) -> auto { return tetrahedron_at(t.i); }
+  //----------------------------------------------------------------------------
+  auto tetrahedron_at(tetrahedron_index t) const -> auto {
+    return tetrahedron_at(t.i);
   }
-  auto at(tetrahedron_index t) -> auto& { return m_tetrahedrons[t.i]; }
+  auto tetrahedron_at(tetrahedron_index t) -> auto {
+    return tetrahedron_at(t.i);
+  }
   //----------------------------------------------------------------------------
-  auto insert_tetrahedron(vertex_handle v0, vertex_handle v1, vertex_handle v2,
-                          vertex_handle v3) {
-    m_tetrahedrons.push_back(std::array{v0, v1, v2, v3});
+  auto tetrahedron_at(size_t const i) const
+      -> std::tuple<vertex_handle const&, vertex_handle const&,
+                    vertex_handle const&, vertex_handle const&> {
+    return {m_tet_indices[i * 4], m_tet_indices[i * 4 + 1],
+            m_tet_indices[i * 4 + 2], m_tet_indices[i * 4 + 3]};
+  }
+  auto tetrahedron_at(size_t const i)
+      -> std::tuple<vertex_handle&, vertex_handle&, vertex_handle&,
+                    vertex_handle&> {
+    return {m_tet_indices[i * 4], m_tet_indices[i * 4 + 1],
+            m_tet_indices[i * 4 + 2], m_tet_indices[i * 4 + 3]};
+  }
+  //----------------------------------------------------------------------------
+#ifdef __cpp_concepts
+  template <arithmetic... Ts>
+  requires(sizeof...(Ts) == N)
+#else
+  template <typename... Ts, enable_if<is_arithmetic<Ts...>> = true,
+            enable_if<sizeof...(Ts) == N> = true>
+#endif
+  auto insert_vertex(Ts const... ts) {
+    auto const vi = parent_t::insert_vertex(ts...);
+    if (m_hierarchy != nullptr) {
+      if (!m_hierarchy->insert_vertex(*this, vi.i)) {
+        build_hierarchy();
+      }
+    }
+    return vi;
+  }
+  //----------------------------------------------------------------------------
+  auto insert_vertex(pos_t const& v) {
+    auto const vi = parent_t::insert_vertex(v);
+    if (m_hierarchy != nullptr) {
+      if (!m_hierarchy->insert_vertex(*this, vi.i)) {
+        build_hierarchy();
+      }
+    }
+    return vi;
+  }
+  //----------------------------------------------------------------------------
+  auto insert_vertex(pos_t&& v) {
+    auto const vi = parent_t::insert_vertex(std::move(v));
+    if (m_hierarchy != nullptr) {
+      if (!m_hierarchy->insert_vertex(*this, vi.i)) {
+        build_hierarchy();
+      }
+    }
+    return vi;
+  }
+  //----------------------------------------------------------------------------
+  auto insert_tetrahedron(vertex_handle const v0, vertex_handle const v1,
+                          vertex_handle const v2, vertex_handle const v3) {
+    m_tet_indices.push_back(v0);
+    m_tet_indices.push_back(v1);
+    m_tet_indices.push_back(v2);
+    m_tet_indices.push_back(v3);
     for (auto& [key, prop] : m_tetrahedron_properties) {
       prop->push_back();
     }
-    return tetrahedron_index{m_tetrahedrons.size() - 1};
+    tetrahedron_index ti{tetrahedrons().size() - 1};
+    if (m_hierarchy != nullptr) {
+      if (!m_hierarchy->insert_tetrahedron(*this, ti.i)) {
+        build_hierarchy();
+      }
+    }
+    return ti;
   }
   //----------------------------------------------------------------------------
-  auto insert_tetrahedron(size_t v0, size_t v1, size_t v2, size_t v3) {
+  auto insert_tetrahedron(size_t const v0, size_t const v1, size_t const v2,
+                          size_t const v3) {
     return insert_tetrahedron(vertex_handle{v0}, vertex_handle{v1},
                               vertex_handle{v2}, vertex_handle{v3});
   }
   //----------------------------------------------------------------------------
   auto insert_tetrahedron(std::array<vertex_handle, 4> const& t) {
-    m_tetrahedrons.push_back(t);
-    for (auto& [key, prop] : m_tetrahedron_properties) {
-      prop->push_back();
-    }
-    return tetrahedron_index{m_tetrahedrons.size() - 1};
+    return insert_tetrahedron(vertex_handle{t[0]}, vertex_handle{t[1]},
+                              vertex_handle{t[2]}, vertex_handle{t[3]});
   }
   //----------------------------------------------------------------------------
   auto clear() {
     parent_t::clear();
-    m_tetrahedrons.clear();
+    m_tet_indices.clear();
   }
   //----------------------------------------------------------------------------
   auto tetrahedrons() const { return tetrahedron_container{this}; }
   //----------------------------------------------------------------------------
-  auto num_tetrahedrons() const { return m_tetrahedrons.size(); }
+#ifdef TATOOINE_HAS_CGAL_SUPPORT
+#ifdef __cpp_concepts
+  template <typename = void> requires(N == 3)
+#else
+  template <size_t N_ = N, enable_if<N_ == 3> = true>
+#endif
+  auto build_delaunay_mesh() -> void {
+    m_tet_indices.clear();
+    using Kernel = CGAL::Exact_predicates_inexact_constructions_kernel;
+    using Vb =
+        CGAL::Triangulation_vertex_base_with_info_3<vertex_handle, Kernel>;
+    using Tds           = CGAL::Triangulation_data_structure_3<Vb>;
+    using Triangulation = CGAL::Delaunay_triangulation_3<Kernel, Tds>;
+    using Point         = typename Kernel::Point_3;
+    std::vector<std::pair<Point, vertex_handle>> points;
+    points.reserve(vertices().size());
+    for (auto v : vertices()) {
+      points.emplace_back(Point{at(v)(0), at(v)(1), at(v)(2)}, v);
+    }
+
+    Triangulation dt{begin(points), end(points)};
+    for (auto it = dt.finite_cells_begin(); it != dt.finite_cells_end(); ++it) {
+      insert_tetrahedron(vertex_handle{it->vertex(0)->info()},
+                         vertex_handle{it->vertex(1)->info()},
+                         vertex_handle{it->vertex(2)->info()},
+                         vertex_handle{it->vertex(3)->info()});
+    }
+  }
+#endif
   //----------------------------------------------------------------------------
-  template <size_t _N = N, enable_if<_N == 2 || _N == 3> = true>
+  template <size_t _N = N, enable_if<_N == 3> = true>
   auto write_vtk(std::string const& path,
                  std::string const& title = "tatooine tetrahedral mesh") const
       -> bool {
     using boost::copy;
     using boost::adaptors::transformed;
-    vtk::legacy_file_writer writer(path, vtk::dataset_type::polydata);
+    vtk::legacy_file_writer writer(path, vtk::dataset_type::unstructured_grid);
     if (writer.is_open()) {
       writer.set_title(title);
       writer.write_header();
-      if constexpr (N == 2) {
-        auto three_dims = [](vec<Real, 2> const& v2) {
-          return vec<Real, 3>{v2(0), v2(1), 0};
-        };
-        std::vector<vec<Real, 3>> v3s(this->m_vertices.size());
-        auto                      three_dimensional = transformed(three_dims);
-        copy(this->m_vertices | three_dimensional, begin(v3s));
-        writer.write_points(v3s);
-
-      } else if constexpr (N == 3) {
-        writer.write_points(this->m_vertices);
-      }
+      writer.write_points(vertex_data());
 
       std::vector<std::vector<size_t>> polygons;
-      polygons.reserve(num_tetrahedrons());
-      for (auto const& tetrahedron_index : m_tetrahedrons) {
-        polygons.push_back(
-            std::vector{tetrahedron_index[0].i, tetrahedron_index[1].i,
-                        tetrahedron_index[2].i, tetrahedron_index[3].i});
+      polygons.reserve(tetrahedrons().size());
+      std::vector<vtk::cell_type>      polygon_types(tetrahedrons().size(),
+                                                vtk::cell_type::tetra);
+      for (auto const t : tetrahedrons()) {
+        auto const [v0, v1, v2, v3] = at(t);
+        polygons.push_back(std::vector{v0.i, v1.i, v2.i, v3.i});
       }
-      writer.write_polygons(polygons);
+      writer.write_cells(polygons);
+      writer.write_cell_types(polygon_types);
 
       // write vertex_handle data
-      writer.write_point_data(this->num_vertices());
-      for (auto const& [name, prop] : this->m_vertex_properties) {
+      writer.write_point_data(vertices().size());
+      for (auto const& [name, prop] : vertex_properties()) {
         if (prop->type() == typeid(vec<Real, 4>)) {
         } else if (prop->type() == typeid(vec<Real, 3>)) {
         } else if (prop->type() == typeid(vec<Real, 2>)) {
@@ -228,14 +432,14 @@ class tetrahedral_mesh : public pointset<Real, N> {
   //----------------------------------------------------------------------------
   auto read(std::string const& path) {
     auto ext = path.substr(path.find_last_of(".") + 1);
-    if constexpr (N == 2 || N == 3) {
+    if constexpr (N == 3) {
       if (ext == "vtk") {
         read_vtk(path);
       }
     }
   }
   //----------------------------------------------------------------------------
-  template <size_t _N = N, enable_if<_N == 2 || _N == 3> = true>
+  template <size_t _N = N, enable_if<_N == 3> = true>
   auto read_vtk(std::string const& path) {
     struct listener_t : vtk::legacy_file_listener {
       tetrahedral_mesh& mesh;
@@ -334,19 +538,70 @@ class tetrahedral_mesh : public pointset<Real, N> {
       -> auto& {
     auto [it, suc] = m_tetrahedron_properties.insert(
         std::pair{name, std::make_unique<tetrahedron_property_t<T>>(value)});
-    auto fprop = dynamic_cast<tetrahedron_property_t<T>*>(it->second.get());
-    fprop->resize(m_tetrahedrons.size());
-    return *fprop;
+    auto prop = dynamic_cast<tetrahedron_property_t<T>*>(it->second.get());
+    prop->resize(m_tet_indices.size());
+    return *prop;
   }
   //----------------------------------------------------------------------------
   constexpr bool is_valid(tetrahedron_index t) const {
     return boost::find(m_invalid_tetrahedrons, t) ==
            end(m_invalid_tetrahedrons);
   }
+  //----------------------------------------------------------------------------
+#ifdef __cpp_concepts
+  template <typename = void>
+  requires(N == 3)
+#else
+  template <size_t N_ = N, enable_if<(N_ == 3)> = true>
+#endif
+  auto build_hierarchy() const {
+    clear_hierarchy();
+    auto& h = hierarchy();
+    for (auto v : vertices()) {
+      h.insert_vertex(*this, v.i);
+    }
+    for (auto t : tetrahedrons()) {
+      h.insert_tetrahedron(*this, t.i);
+    }
+  }
+  //----------------------------------------------------------------------------
+#ifdef __cpp_concepts
+  template <typename = void>
+  requires(N == 3)
+#else
+  template <size_t N_ = N, enable_if<(N_ == 3)> = true>
+#endif
+  auto clear_hierarchy() const {
+    m_hierarchy.reset();
+  }
+  //----------------------------------------------------------------------------
+#ifdef __cpp_concepts
+  template <typename = void>
+  requires(N == 3)
+#else
+  template <size_t N_ = N, enable_if<(N_ == 3)> = true>
+#endif
+  auto hierarchy() const -> auto& {
+    if (m_hierarchy == nullptr) {
+      auto min = pos_t::ones() * std::numeric_limits<Real>::infinity();
+      auto max = -pos_t::ones() * std::numeric_limits<Real>::infinity();
+      for (auto v : vertices()) {
+        for (size_t i = 0; i < N; ++i) {
+          min(i) = std::min(min(i), at(v)(i));
+          max(i) = std::max(max(i), at(v)(i));
+        }
+      }
+      m_hierarchy = std::make_unique<hierarchy_t>(min, max);
+    }
+    return *m_hierarchy;
+  }
 };
 //==============================================================================
 tetrahedral_mesh()->tetrahedral_mesh<double, 3>;
 tetrahedral_mesh(std::string const&)->tetrahedral_mesh<double, 3>;
+template <typename... Dims>
+tetrahedral_mesh(grid<Dims...> const& g)
+    -> tetrahedral_mesh<typename grid<Dims...>::real_t, sizeof...(Dims)>;
 //==============================================================================
 // namespace detail {
 // template <typename MeshCont>

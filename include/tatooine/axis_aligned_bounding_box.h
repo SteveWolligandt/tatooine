@@ -143,7 +143,7 @@ struct axis_aligned_bounding_box : ray_intersectable<Real, N> {
                                     vec<Real, 3> x1,
                                     vec<Real, 3> x2) const {
     auto const c = center();
-    auto const e = extents();
+    auto const e = extents() / 2;
 
     x0 -= c;
     x1 -= c;
@@ -161,8 +161,9 @@ struct axis_aligned_bounding_box : ray_intersectable<Real, N> {
       auto const p0 = dot(x0, axis);
       auto const p1 = dot(x1, axis);
       auto const p2 = dot(x2, axis);
-      auto       r  = e(0) * abs(dot(u0, axis)) + e(1) * abs(dot(u1, axis)) +
-               e(2) * abs(dot(u2, axis));
+      auto       r  = e(0) * std::abs(dot(u0, axis)) +
+                      e(1) * std::abs(dot(u1, axis)) +
+                      e(2) * std::abs(dot(u2, axis));
       if (tatooine::max(-tatooine::max(p0, p1, p2), tatooine::min(p0, p1, p2)) >
           r) {
         return true;
@@ -207,6 +208,125 @@ struct axis_aligned_bounding_box : ray_intersectable<Real, N> {
       return false;
     }
     if (is_separating_axis(cross(f0, f1))) {
+      return false;
+    }
+    return true;
+  }
+  //----------------------------------------------------------------------------
+#ifdef __cpp_concepts
+  template <typename = void>
+  requires(N == 3)
+#else
+  template <size_t _N = N, enable_if<(_N == 3)> = true>
+#endif
+      constexpr auto is_tetrahedron_inside(vec<Real, 3> x0,
+                                           vec<Real, 3> x1,
+                                           vec<Real, 3> x2,
+                                           vec<Real, 3> x3) const {
+    auto const c = center();
+    auto const e = extents() / 2;
+
+    x0 -= c;
+    x1 -= c;
+    x2 -= c;
+    x3 -= c;
+
+    auto const f0 = x1 - x0;
+    auto const f1 = x2 - x1;
+    auto const f2 = x0 - x2;
+    auto const f3 = x3 - x1;
+    auto const f4 = x2 - x3;
+    auto const f5 = x3 - x0;
+
+    vec_t const u0{1, 0, 0};
+    vec_t const u1{0, 1, 0};
+    vec_t const u2{0, 0, 1};
+
+    auto is_separating_axis = [&](auto const axis) {
+      auto const p0 = dot(x0, axis);
+      auto const p1 = dot(x1, axis);
+      auto const p2 = dot(x2, axis);
+      auto const p3 = dot(x3, axis);
+      auto       r  = e.x() * std::abs(dot(u0, axis)) +
+                      e.y() * std::abs(dot(u1, axis)) +
+                      e.z() * std::abs(dot(u2, axis));
+      return tatooine::max(-tatooine::max(p0, p1, p2, p3),
+                           tatooine::min(p0, p1, p2, p3)) > r;
+    };
+
+    if (is_separating_axis(cross(u0, f0))) {
+      return false;
+    }
+    if (is_separating_axis(cross(u0, f1))) {
+      return false;
+    }
+    if (is_separating_axis(cross(u0, f2))) {
+      return false;
+    }
+    if (is_separating_axis(cross(u0, f3))) {
+      return false;
+    }
+    if (is_separating_axis(cross(u0, f4))) {
+      return false;
+    }
+    if (is_separating_axis(cross(u0, f5))) {
+      return false;
+    }
+    if (is_separating_axis(cross(u1, f0))) {
+      return false;
+    }
+    if (is_separating_axis(cross(u1, f1))) {
+      return false;
+    }
+    if (is_separating_axis(cross(u1, f2))) {
+      return false;
+    }
+    if (is_separating_axis(cross(u1, f3))) {
+      return false;
+    }
+    if (is_separating_axis(cross(u1, f4))) {
+      return false;
+    }
+    if (is_separating_axis(cross(u1, f5))) {
+      return false;
+    }
+    if (is_separating_axis(cross(u2, f0))) {
+      return false;
+    }
+    if (is_separating_axis(cross(u2, f1))) {
+      return false;
+    }
+    if (is_separating_axis(cross(u2, f2))) {
+      return false;
+    }
+    if (is_separating_axis(cross(u2, f3))) {
+      return false;
+    }
+    if (is_separating_axis(cross(u2, f4))) {
+      return false;
+    }
+    if (is_separating_axis(cross(u2, f5))) {
+      return false;
+    }
+    if (is_separating_axis(u0)) {
+      return false;
+    }
+    if (is_separating_axis(u1)) {
+      return false;
+    }
+    if (is_separating_axis(u2)) {
+      return false;
+    }
+    if (is_separating_axis(cross(f0, f1))) {
+      return false;
+    }
+    if (is_separating_axis(cross(f3, f4))) {
+      return false;
+    }
+    if (is_separating_axis(cross(-f0, f5))) {
+      return false;
+    }
+    if (is_separating_axis(cross(f5, -f2))) {
       return false;
     }
     return true;

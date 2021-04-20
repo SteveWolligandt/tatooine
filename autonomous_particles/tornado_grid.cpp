@@ -1,11 +1,11 @@
-#include <tatooine/analytical/fields/numerical/doublegyre.h>
+#include <tatooine/analytical/fields/numerical/tornado.h>
 #include <tatooine/autonomous_particle.h>
 #include <tatooine/chrono.h>
 #include <tatooine/flowmap_agranovsky.h>
 #include <tatooine/grid.h>
 #include <tatooine/netcdf.h>
 #include <tatooine/progress_bars.h>
-#include <tatooine/triangular_mesh.h>
+#include <tatooine/tetrahedral_mesh.h>
 #include <tatooine/vtk_legacy.h>
 
 #include <iomanip>
@@ -21,8 +21,9 @@ double const really_bad_threshold        = 1e-4;
 double const really_really_bad_threshold = 1e-3;
 //==============================================================================
 auto create_initial_distribution(args_t const& args) {
-  grid initial_distribution_grid{linspace{0, 2.0, args.width + 1},
-                                 linspace{0, 1.0, args.height + 1}};
+  grid initial_distribution_grid{linspace{-1.0, 1.0, args.width + 1},
+                                 linspace{-1.0, 1.0, args.height + 1},
+                                 linspace{-1.0, 1.0, args.depth + 1}};
   initial_distribution_grid.dimension<0>().pop_front();
   initial_distribution_grid.dimension<1>().pop_front();
   auto const spacing_x = initial_distribution_grid.dimension<0>().spacing();
@@ -37,7 +38,7 @@ auto create_initial_distribution(args_t const& args) {
 auto create_initial_particles(args_t const& args) {
   auto       initial_distribution_grid = create_initial_distribution(args);
   auto const r0 = initial_distribution_grid.dimension<0>().spacing() / 2;
-  typename autonomous_particle<real_t, 2>::container_t
+  typename autonomous_particle<real_t, 3>::container_t
       initial_particles;
   for (auto const& x : initial_distribution_grid.vertices()) {
     initial_particles.emplace_back(x, args.t0, r0);
@@ -62,9 +63,9 @@ auto create_initial_particles(args_t const& args) {
 }
 //------------------------------------------------------------------------------
 auto create_autonomous_mesh(range auto const& advected_particles) {
-  triangular_mesh<double, 2> autonomous_mesh;
+  tetrahedral_mesh<double, 3> autonomous_mesh;
   auto&                      autonomous_flowmap_mesh_prop =
-      autonomous_mesh.add_vertex_property<vec2>("flowmap");
+      autonomous_mesh.add_vertex_property<vec3>("flowmap");
   autonomous_mesh.vertex_data().reserve(autonomous_mesh.num_vertices() +
                                         size(advected_particles));
   for (auto const& p : advected_particles) {
@@ -81,8 +82,8 @@ auto create_agranovsky_flowmap(auto&& v, size_t const grid_min_extent,
                             args.t0,
                             args.tau,
                             agranovsky_delta_t,
-                            vec2{0, 0},
-                            vec2{2, 1},
+                            vec3{-1, -1, -1},
+                            vec3{1, 1, 1},
                             grid_min_extent * 2,
                             grid_min_extent};
 }
@@ -109,7 +110,7 @@ auto compare_direct_forward(auto const& advected_particles,
     if (dist_autonomous > really_really_bad_threshold) {
       ++num_autonomous_really_really_bad_forward;
     }
-    vec2 agranovsky_sample;
+    vec3 agranovsky_sample;
     try {
       agranovsky_sample = agranovsky.evaluate_full_forward(p.x1());
     } catch (std::exception&) {
@@ -186,7 +187,7 @@ auto compare_direct_backward(auto const& advected_particles,
     if (dist_autonomous > really_really_bad_threshold) {
       ++num_autonomous_really_really_bad_backward;
     }
-    vec2 agranovsky_sample;
+    vec3 agranovsky_sample;
     try {
       agranovsky_sample = agranovsky.evaluate_full_backward(p.x1());
     } catch (std::exception&) {
@@ -255,8 +256,7 @@ auto main(int argc, char** argv) -> int {
   auto args = *args_opt;
   report << "t0: " << args.t0 << '\n' << "tau: " << args.tau << '\n';
 
-  analytical::fields::numerical::doublegyre v;
-  v.set_infinite_domain(true);
+  analytical::fields::numerical::tornado v;
 
   auto calc_particles = [&args, &v](auto const& initial_particles) ->
       typename std::decay_t<decltype(initial_particles.front())>::container_t {
@@ -299,21 +299,21 @@ auto main(int argc, char** argv) -> int {
     
     indicator.set_text("Writing ellipses to NetCDF");
     if (args.write_ellipses_to_netcdf) {
-      write_x1(initial_particles, "doublegyre_grid_initial.nc");
-      write_x1(advected_particles, "doublegyre_grid_advected.nc");
-      write_x0(advected_particles, "doublegyre_grid_back_calculation.nc");
+      write_x1(initial_particles, "tornado_grid_initial.nc");
+      write_x1(advected_particles, "tornado_grid_advected.nc");
+      write_x0(advected_particles, "tornado_grid_back_calculation.nc");
     }
 
     indicator.set_text("Inserting particles into mesh");
     auto  autonomous_mesh = create_autonomous_mesh(advected_particles);
     auto& autonomous_flowmap_mesh_prop =
-        autonomous_mesh.vertex_property<vec2>("flowmap");
+        autonomous_mesh.vertex_property<vec3>("flowmap");
 
-    indicator.set_text("Building delaunay triangulation");
+    indicator.set_text("Building delaunay mesh");
     autonomous_mesh.build_delaunay_mesh();
 
-    indicator.set_text("Writing delaunay triangulated flowmap");
-    autonomous_mesh.write_vtk("doublegyre_autonomous_forward_flowmap.vtk");
+    indicator.set_text("Writing delaunay meshed flowmap");
+    autonomous_mesh.write_vtk("tornado_autonomous_forward_flowmap.vtk");
 
     indicator.set_text("Creating Sampler");
     // auto flowmap_sampler_autonomous_particles =
@@ -360,15 +360,15 @@ auto main(int argc, char** argv) -> int {
     grid  uniform_grid{linspace{0.0, 2.0, grid_min_extent * 2},
                       linspace{0.0, 1.0, grid_min_extent}};
     auto& regular_flowmap_grid_prop =
-        uniform_grid.add_vertex_property<vec2, x_fastest>("flowmap");
+        uniform_grid.add_vertex_property<vec3, x_fastest>("flowmap");
     uniform_grid.loop_over_vertex_indices([&](auto const... is) {
       regular_flowmap_grid_prop(is...) =
           numerical_flowmap(uniform_grid(is...), args.t0, args.tau);
     });
-    triangular_mesh<double, 2> regular_mesh{uniform_grid};
+    tetrahedral_mesh<double, 3> regular_mesh{uniform_grid};
     auto&                      regular_flowmap_mesh_prop =
-        regular_mesh.vertex_property<vec2>("flowmap");
-    regular_mesh.write_vtk("doublegyre_regular_forward_flowmap.vtk");
+        regular_mesh.vertex_property<vec3>("flowmap");
+    regular_mesh.write_vtk("tornado_regular_forward_flowmap.vtk");
 
     // auto flowmap_sampler_regular =
     //    regular_mesh.sampler(regular_flowmap_mesh_prop);
@@ -487,7 +487,7 @@ auto main(int argc, char** argv) -> int {
       std::swap(autonomous_mesh[v](1), autonomous_flowmap_mesh_prop[v](1));
     }
      autonomous_mesh.build_delaunay_mesh();
-     autonomous_mesh.write_vtk("doublegyre_autonomous_backward_flowmap.vtk");
+     autonomous_mesh.write_vtk("tornado_autonomous_backward_flowmap.vtk");
      autonomous_mesh.rebuild_kd_tree();
     //autonomous_mesh.build_hierarchy();
 
@@ -498,7 +498,7 @@ auto main(int argc, char** argv) -> int {
      regular_mesh.build_delaunay_mesh();
      regular_mesh.build_hierarchy();
      regular_mesh.rebuild_kd_tree();
-     regular_mesh.write_vtk("doublegyre_regular_backward_flowmap.vtk");
+     regular_mesh.write_vtk("tornado_regular_backward_flowmap.vtk");
 
     //////----------------------------------------------------------------------------
     ////// Compare with backward advection
@@ -619,7 +619,7 @@ auto main(int argc, char** argv) -> int {
                    mean_agranovsky_backward_error) {
       report << "agranovsky is better in backward direction\n";
     }
-     sampler_check_grid.write("doublegyre_grid_errors.vtk");
+     sampler_check_grid.write("tornado_grid_errors.vtk");
 
   });
   std::cerr << report.str();
