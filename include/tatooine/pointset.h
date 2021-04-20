@@ -13,6 +13,7 @@
 #include <vector>
 
 #include <tatooine/handle.h>
+#include <tatooine/octree.h>
 #include <tatooine/property.h>
 #include <tatooine/polynomial.h>
 #include <tatooine/tensor.h>

@@ -49,7 +49,7 @@ class triangular_mesh : public pointset<Real, N> {
     [[nodiscard]] auto operator()(pos_t const& x) const { return sample(x); }
     [[nodiscard]] auto sample(Real x, Real y) const { return sample(pos_t{x, y}); }
     [[nodiscard]] auto sample(pos_t const& x) const -> T {
-      auto face_handles = m_mesh.hierarchy().nearby_faces(x);
+      auto face_handles = m_mesh.hierarchy().nearby_triangles(x);
       if (face_handles.empty()) {
         throw std::runtime_error{
             "[vertex_property_sampler_t::sample] out of domain"};

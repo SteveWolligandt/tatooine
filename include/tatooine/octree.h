@@ -326,6 +326,27 @@ struct octree : aabb<Real, 3> {
       child->insert_tetrahedron(mesh, tet_idx);
     }
   }
+  //----------------------------------------------------------------------------
+  auto nearby_tetrahedrons(vec_t const& x) const -> std::set<size_t> {
+    std::set<size_t> collector;
+    nearby_tetrahedrons(x, collector);
+    return collector;
+  }
+  // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+  auto nearby_tetrahedrons(vec_t const& x, std::set<size_t>& collector) const
+      -> void {
+    if (!is_inside(x)) {
+      return;
+    }
+    if (is_splitted()) {
+      for (auto const& child : m_children) {
+        child->nearby_tetrahedrons(x, collector);
+      }
+    } else {
+      std::copy(begin(m_triangle_handles), end(m_triangle_handles),
+                std::inserter(collector, end(collector)));
+    }
+  }
 };
 //==============================================================================
 }  // namespace tatooine
