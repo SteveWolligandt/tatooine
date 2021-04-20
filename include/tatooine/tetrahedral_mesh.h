@@ -38,6 +38,57 @@ class tetrahedral_mesh : public pointset<Real, N> {
   using vertex_property_t = typename parent_t::template vertex_property_t<T>;
   using hierarchy_t       = std::conditional_t<(N == 3), octree<Real>, void>;
   //----------------------------------------------------------------------------
+  template <typename T>
+  struct vertex_property_sampler_t {
+    this_t const&               m_mesh;
+    vertex_property_t<T> const& m_prop;
+    //--------------------------------------------------------------------------
+    auto mesh() const -> auto const& { return m_mesh; }
+    auto property() const -> auto const& { return m_prop; }
+    //--------------------------------------------------------------------------
+    [[nodiscard]] auto operator()(Real x, Real y, Real z) const {
+      return sample(pos_t{x, y, z});
+    }
+    [[nodiscard]] auto operator()(pos_t const& x) const { return sample(x); }
+    [[nodiscard]] auto sample(Real x, Real y, Real z) const {
+      return sample(pos_t{x, y, z});
+    }
+    [[nodiscard]] auto sample(pos_t const& x) const -> T {
+      auto tet_handles = m_mesh.hierarchy().nearby_tetrahedrons(x);
+      if (tet_handles.empty()) {
+        throw std::runtime_error{
+            "[vertex_property_sampler_t::sample] out of domain"};
+      }
+      for (auto t : tet_handles) {
+        auto const [vi0, vi1, vi2, vi3] = m_mesh.tetrahedron_at(t);
+
+        auto const& v0 = m_mesh.vertex_at(vi0);
+        auto const& v1 = m_mesh.vertex_at(vi1);
+        auto const& v2 = m_mesh.vertex_at(vi2);
+        auto const& v3 = m_mesh.vertex_at(vi3);
+
+        mat<Real, 4, 4> const A{{v0(0), v1(0), v2(0), v3(0)},
+                                {v0(1), v1(1), v2(1), v3(1)},
+                                {v0(2), v1(2), v2(2), v3(2)},
+                                {Real(1), Real(1), Real(1), Real(1)}};
+        vec<Real, 4> const    b{x(0), x(1), x(2), 1};
+        auto const            abcd = solve(A, b);
+        if (abcd(0) >= -1e-6 && abcd(0) <= 1 + 1e-6 &&
+            abcd(1) >= -1e-6 && abcd(1) <= 1 + 1e-6 &&
+            abcd(2) >= -1e-6 && abcd(2) <= 1 + 1e-6 &&
+            abcd(3) >= -1e-6 && abcd(3) <= 1 + 1e-6) {
+          return m_prop[vi0] * abcd(0) +
+                 m_prop[vi1] * abcd(1) +
+                 m_prop[vi2] * abcd(2) +
+                 m_prop[vi3] * abcd(3);
+        }
+      }
+      throw std::runtime_error{
+          "[vertex_property_sampler_t::sample] out of domain"};
+      return T{};
+    }
+  };
+  //----------------------------------------------------------------------------
   struct tetrahedron_index : handle {
     using handle::handle;
     constexpr bool operator==(tetrahedron_index other) const {
@@ -594,6 +645,23 @@ class tetrahedral_mesh : public pointset<Real, N> {
       m_hierarchy = std::make_unique<hierarchy_t>(min, max);
     }
     return *m_hierarchy;
+  }
+  //----------------------------------------------------------------------------
+  template <typename T>
+  auto sampler(vertex_property_t<T> const& prop) const {
+    if (m_hierarchy == nullptr) {
+      build_hierarchy();
+    }
+    return vertex_property_sampler_t<T>{*this, prop};
+  }
+  //----------------------------------------------------------------------------
+  template <typename T>
+  auto vertex_property_sampler(std::string const& name) const {
+    if (m_hierarchy == nullptr) {
+      build_hierarchy();
+    }
+    return vertex_property_sampler_t<T>{
+        *this, this->template vertex_property<T>(name)};
   }
 };
 //==============================================================================
