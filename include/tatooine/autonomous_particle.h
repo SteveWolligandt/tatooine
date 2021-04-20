@@ -36,58 +36,22 @@ struct autonomous_particle {
   // ctors
   //----------------------------------------------------------------------------
  public:
-  autonomous_particle(autonomous_particle const& other)
-      : m_x0{other.m_x0},
-        m_x1{other.m_x1},
-        m_t1{other.m_t1},
-        m_nabla_phi1{other.m_nabla_phi1},
-        m_S{other.m_S} {}
-  // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-  autonomous_particle(autonomous_particle&& other) noexcept
-      : m_x0{std::move(other.m_x0)},
-        m_x1{std::move(other.m_x1)},
-        m_t1{other.m_t1},
-        m_nabla_phi1{std::move(other.m_nabla_phi1)},
-        m_S{std::move(other.m_S)} {}
-
+  autonomous_particle(autonomous_particle const& other);
+  autonomous_particle(autonomous_particle&& other) noexcept;
   //----------------------------------------------------------------------------
-  auto operator=(autonomous_particle const& other) -> autonomous_particle& {
-    m_x0         = other.m_x0;
-    m_x1         = other.m_x1;
-    m_t1         = other.m_t1;
-    m_nabla_phi1 = other.m_nabla_phi1;
-    m_S          = other.m_S;
-    return *this;
-  }
-  // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-  auto operator=(autonomous_particle&& other) noexcept -> autonomous_particle& {
-    m_x0         = std::move(other.m_x0);
-    m_x1         = std::move(other.m_x1);
-    m_t1         = other.m_t1;
-    m_nabla_phi1 = std::move(other.m_nabla_phi1);
-    m_S          = std::move(other.m_S);
-    return *this;
-  }
+  auto operator=(autonomous_particle const& other) -> autonomous_particle&;
+  auto operator=(autonomous_particle&& other) noexcept -> autonomous_particle&;
   //----------------------------------------------------------------------------
   ~autonomous_particle() = default;
   //----------------------------------------------------------------------------
   autonomous_particle() : m_nabla_phi1{mat_t::eye()} {}
-  //----------------------------------------------------------------------------
-  autonomous_particle(pos_t const& x0, real_t const t0, real_t const r0)
-      : m_x0{x0},
-        m_x1{x0},
-        m_t1{t0},
-        m_nabla_phi1{mat_t::eye()},
-        m_S{mat_t::eye() * r0} {}
-
-  //----------------------------------------------------------------------------
+  // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+  autonomous_particle(pos_t const& x0, real_t const t0, real_t const r0);
+  // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
   autonomous_particle(pos_t const& x0, pos_t const& x1, real_t const t1,
-                      mat_t const& nabla_phi1, mat_t const& S)
-      : m_x0{x0}, m_x1{x1}, m_t1{t1}, m_nabla_phi1{nabla_phi1}, m_S{S} {}
+                      mat_t const& nabla_phi1, mat_t const& S);
   //----------------------------------------------------------------------------
- public:
-  //----------------------------------------------------------------------------
-  // getter
+  // getters / setters
   //----------------------------------------------------------------------------
   auto x0() -> auto& { return m_x0; }
   auto x0() const -> auto const& { return m_x0; }
@@ -170,22 +134,43 @@ struct autonomous_particle {
                                    container_t  particles,
                                    bool const&  stop = false) {
     [[maybe_unused]] static real_t const x5 = 0.4830517593887872;
-    return advect(
-        phi, tau_step, max_t, 4, max_num_particles,
-        std::array{vec_t{real_t(1), real_t(1) / real_t(2)},
-                   vec_t{real_t(1) / real_t(2), real_t(1) / real_t(4)},
-                   vec_t{real_t(1) / real_t(2), real_t(1) / real_t(4)}},
-        std::array{vec_t{0, 0}, vec_t{0, real_t(3) / 4},
-                   vec_t{0, -real_t(3) / 4}},
-        // std::array{vec_t{x5, x5 / 2}, vec_t{x5, x5 / 2}, vec_t{x5, x5 / 2},
-        //           vec_t{x5, x5 / 2},
-        //           vec_t{real_t(1) / real_t(2), real_t(1) / real_t(4)},
-        //           vec_t{real_t(1) / real_t(2), real_t(1) / real_t(4)}},
-        // std::array{vec_t{-x5, -x5 / 2}, vec_t{x5, -x5 / 2}, vec_t{-x5, x5 /
-        // 2},
-        //           vec_t{x5, x5 / 2}, vec_t{0, real_t(3) / 4},
-        //           vec_t{0, -real_t(3) / 4}},
-        std::move(particles), stop);
+    if constexpr (N == 2) {
+      return advect(
+          phi, tau_step, max_t, 4, max_num_particles,
+          std::array{vec_t{real_t(1), real_t(1) / real_t(2)},
+                     vec_t{real_t(1) / real_t(2), real_t(1) / real_t(4)},
+                     vec_t{real_t(1) / real_t(2), real_t(1) / real_t(4)}},
+          std::array{vec_t{0, 0}, vec_t{0, real_t(3) / 4},
+                     vec_t{0, -real_t(3) / 4}},
+          // std::array{vec_t{x5, x5 / 2}, vec_t{x5, x5 / 2}, vec_t{x5, x5 / 2},
+          //           vec_t{x5, x5 / 2},
+          //           vec_t{real_t(1) / real_t(2), real_t(1) / real_t(4)},
+          //           vec_t{real_t(1) / real_t(2), real_t(1) / real_t(4)}},
+          // std::array{vec_t{-x5, -x5 / 2}, vec_t{x5, -x5 / 2}, vec_t{-x5, x5 /
+          // 2},
+          //           vec_t{x5, x5 / 2}, vec_t{0, real_t(3) / 4},
+          //           vec_t{0, -real_t(3) / 4}},
+          std::move(particles), stop);
+    } else if constexpr (N == 3) {
+      return advect(
+          phi, tau_step, max_t, 4, max_num_particles,
+          std::array{
+              vec_t{real_t(1), real_t(0), real_t(1) / real_t(2)},
+              vec_t{real_t(1) / real_t(2), real_t(0), real_t(1) / real_t(4)},
+              vec_t{real_t(1) / real_t(2), real_t(0), real_t(1) / real_t(4)}},
+          std::array{vec_t{real_t(0), real_t(0), real_t(0)},
+                     vec_t{real_t(0), real_t(0), real_t(3) / real_t(4)},
+                     vec_t{real_t(0), real_t(0), -real_t(3) / real_t(4)}},
+          // std::array{vec_t{x5, x5 / 2}, vec_t{x5, x5 / 2}, vec_t{x5, x5 / 2},
+          //           vec_t{x5, x5 / 2},
+          //           vec_t{real_t(1) / real_t(2), real_t(1) / real_t(4)},
+          //           vec_t{real_t(1) / real_t(2), real_t(1) / real_t(4)}},
+          // std::array{vec_t{-x5, -x5 / 2}, vec_t{x5, -x5 / 2}, vec_t{-x5, x5 /
+          // 2},
+          //           vec_t{x5, x5 / 2}, vec_t{0, real_t(3) / 4},
+          //           vec_t{0, -real_t(3) / 4}},
+          std::move(particles), stop);
+    }
   }
   ////----------------------------------------------------------------------------
   // auto advect_with_5_splits(real_t const tau_step, real_t const max_t,
@@ -466,6 +451,66 @@ struct autonomous_particle {
     }
   }
 };
+//==============================================================================
+template <typename Real, size_t N>
+autonomous_particle<Real, N>::autonomous_particle(
+    autonomous_particle const& other)
+    : m_x0{other.m_x0},
+      m_x1{other.m_x1},
+      m_t1{other.m_t1},
+      m_nabla_phi1{other.m_nabla_phi1},
+      m_S{other.m_S} {}
+// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+template <typename Real, size_t N>
+autonomous_particle<Real, N>::autonomous_particle(
+    autonomous_particle&& other) noexcept
+    : m_x0{std::move(other.m_x0)},
+      m_x1{std::move(other.m_x1)},
+      m_t1{other.m_t1},
+      m_nabla_phi1{std::move(other.m_nabla_phi1)},
+      m_S{std::move(other.m_S)} {}
+
+//----------------------------------------------------------------------------
+template <typename Real, size_t N>
+auto autonomous_particle<Real, N>::operator=(autonomous_particle const& other)
+    -> autonomous_particle& {
+  m_x0         = other.m_x0;
+  m_x1         = other.m_x1;
+  m_t1         = other.m_t1;
+  m_nabla_phi1 = other.m_nabla_phi1;
+  m_S          = other.m_S;
+  return *this;
+}
+// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+template <typename Real, size_t N>
+auto autonomous_particle<Real, N>::operator=(
+    autonomous_particle&& other) noexcept -> autonomous_particle& {
+  m_x0         = std::move(other.m_x0);
+  m_x1         = std::move(other.m_x1);
+  m_t1         = other.m_t1;
+  m_nabla_phi1 = std::move(other.m_nabla_phi1);
+  m_S          = std::move(other.m_S);
+  return *this;
+}
+//----------------------------------------------------------------------------
+template <typename Real, size_t N>
+autonomous_particle<Real, N>::autonomous_particle(pos_t const& x0,
+                                                  real_t const t0,
+                                                  real_t const r0)
+    : m_x0{x0},
+      m_x1{x0},
+      m_t1{t0},
+      m_nabla_phi1{mat_t::eye()},
+      m_S{mat_t::eye() * r0} {}
+
+//----------------------------------------------------------------------------
+template <typename Real, size_t N>
+autonomous_particle<Real, N>::autonomous_particle(pos_t const& x0,
+                                                  pos_t const& x1,
+                                                  real_t const t1,
+                                                  mat_t const& nabla_phi1,
+                                                  mat_t const& S)
+    : m_x0{x0}, m_x1{x1}, m_t1{t1}, m_nabla_phi1{nabla_phi1}, m_S{S} {}
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 // deduction guides
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -

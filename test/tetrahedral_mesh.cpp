@@ -1,4 +1,5 @@
 #include <tatooine/tetrahedral_mesh.h>
+#include <tatooine/geometry/sphere.h>
 #include <catch2/catch.hpp>
 //==============================================================================
 namespace tatooine::test {
@@ -52,10 +53,32 @@ TEST_CASE("tetrahedral_mesh_copy", "[tetrahedral_mesh][copy]"){
     REQUIRE(vertex_prop[v0] == copied_vertex_prop[v0]);
 
     auto& copied_tet_prop = copied_mesh.tetrahedron_property<double>("tet_prop");
-    REQUIRE(mesh[t0] == copied_mesh[t0]);
+    auto const [v0, v1, v2, v3] = mesh[t0];
+    auto const [cv0, cv1, cv2, cv3] = copied_mesh[t0];
+    REQUIRE(v0.i == cv0.i);
+    REQUIRE(v1.i == cv1.i);
+    REQUIRE(v2.i == cv2.i);
+    REQUIRE(v3.i == cv3.i);
     REQUIRE(tet_prop[t0] == copied_tet_prop[t0]);
   }
 }
+//==============================================================================
+TEST_CASE("tetrahedral_mesh_from_grid", "[tetrahedral_mesh][grid]"){
+  auto const g = grid{linspace{0.0, 1.0, 5},
+                      linspace{0.0, 1.0, 5},
+                      linspace{0.0, 1.0, 5}};
+  tetrahedral_mesh mesh{g};
+  mesh.write_vtk("tetrahedral_mesh_from_3d_grid.vtk");
+}
+//==============================================================================
+#ifdef TATOOINE_HAS_CGAL_SUPPORT
+TEST_CASE("tetrahedral_mesh_delaunay", "[tetrahedral_mesh][delaunay]"){
+  geometry::sphere<double, 3> s{1.0};
+  tetrahedral_mesh mesh{s.random_points(30)};
+  mesh.build_delaunay_mesh();
+  mesh.write_vtk("tetrahedral_mesh_delaunay.vtk");
+}
+#endif
 //==============================================================================
 }  // namespace tatooine::test
 //==============================================================================

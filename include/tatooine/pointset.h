@@ -91,6 +91,11 @@ struct pointset {
       return vertex_iterator{vertex_handle{m_pointset->m_vertices.size()},
                              m_pointset};
     }
+    //--------------------------------------------------------------------------
+    auto size() const {
+      return m_pointset->m_vertices.size() -
+             m_pointset->m_invalid_vertices.size();
+    }
   };
   //----------------------------------------------------------------------------
   template <typename T>
@@ -139,6 +144,10 @@ struct pointset {
       : m_vertices(std::move(other.m_vertices)),
         m_invalid_vertices(std::move(other.m_invalid_vertices)),
         m_vertex_properties(std::move(other.m_vertex_properties)) {}
+  //----------------------------------------------------------------------------
+  pointset(std::vector<pos_t> const& vertices) : m_vertices(vertices) {}
+  //----------------------------------------------------------------------------
+  pointset(std::vector<pos_t>&& vertices) : m_vertices(std::move(vertices)) {}
   //----------------------------------------------------------------------------
   auto operator=(pointset const& other) -> pointset& {
     m_vertex_properties.clear();
@@ -242,10 +251,6 @@ struct pointset {
   auto clear() { clear_vertices(); }
 
   //----------------------------------------------------------------------------
-  auto num_vertices() const {
-    return m_vertices.size() - m_invalid_vertices.size();
-  }
-  //----------------------------------------------------------------------------
   auto join(this_t const& other) {
     for (auto v : other.vertices()) {
       insert_vertex(other[v]);
@@ -268,7 +273,7 @@ struct pointset {
   //  auto to_triangle_io() const {
   //    triangle::io in;
   //    size_t       i    = 0;
-  //    in.numberofpoints = num_vertices();
+  //    in.numberofpoints = vertices().size();
   //    in.pointlist      = new triangle::Real[in.numberofpoints *
   //    triangle_dims]; for (auto v : vertices()) {
   //      for (size_t j = 0; j < triangle_dims; ++j) {
@@ -285,7 +290,7 @@ struct pointset {
   //  auto to_triangle_io(vertex_cont_t const& vertices) const {
   //    triangle::io in;
   //    size_t       i    = 0;
-  //    in.numberofpoints = num_vertices();
+  //    in.numberofpoints = vertices().size();
   //    in.pointlist      = new triangle::Real[in.numberofpoints *
   //    triangle_dims]; for (auto v : vertices()) {
   //      for (size_t j = 0; j < triangle_dims; ++j) {
@@ -302,7 +307,7 @@ struct pointset {
   // requires (N == tetgen_dims)
   // void to_tetgen_io(tetgenio& in) const {
   //   size_t i           = 0;
-  //   in.numberofpoints  = num_vertices();
+  //   in.numberofpoints  = vertices().size();
   //   in.pointlist       = new tetgen::Real[in.numberofpoints * tetgen_dims];
   //   in.pointmarkerlist = new int[in.numberofpoints];
   //   in.numberofpointattributes = 1;
@@ -426,7 +431,7 @@ struct pointset {
   auto kd_tree() const -> auto& {
     if (m_kd_tree == nullptr) {
       flann::Matrix<double> dataset{
-          const_cast<Real*>(m_vertices.front().data_ptr()), num_vertices(),
+          const_cast<Real*>(m_vertices.front().data_ptr()), vertices().size(),
           num_dimensions()};
       m_kd_tree = std::make_unique<flann_index_t>(
           dataset, flann::KDTreeSingleIndexParams{});
@@ -986,6 +991,11 @@ struct pointset {
 };
 //==============================================================================
 template <typename Real, size_t N>
+auto vertices(pointset<Real, N> const& ps) {
+  return ps.vertices();
+}
+//------------------------------------------------------------------------------
+template <typename Real, size_t N>
 auto begin(typename pointset<Real, N>::vertex_container const& verts) {
   return verts.begin();
 }
@@ -993,6 +1003,11 @@ auto begin(typename pointset<Real, N>::vertex_container const& verts) {
 template <typename Real, size_t N>
 auto end(typename pointset<Real, N>::vertex_container const& verts) {
   return verts.end();
+}
+//------------------------------------------------------------------------------
+template <typename Real, size_t N>
+auto size(typename pointset<Real, N>::vertex_container const& verts) {
+  return verts.size();
 }
 //==============================================================================
 }  // namespace tatooine
