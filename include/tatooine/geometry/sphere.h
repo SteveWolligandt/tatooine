@@ -51,7 +51,7 @@ struct sphere : primitive<Real, N> {
   template <typename RandomEngine = std::mt19937_64>
   auto random_point(RandomEngine&& eng = RandomEngine{
                         std::random_device{}()}) const {
-    auto       rand     = random_uniform<Real, RandomEngine>{};
+    auto       rand = random_uniform<Real, std::decay_t<RandomEngine>>{eng};
     auto const u         = rand();
     auto const v         = rand();
     auto const theta     = u * 2 * M_PI;

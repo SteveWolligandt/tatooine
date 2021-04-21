@@ -15,8 +15,9 @@ struct ray_intersectable{
   using intersection_t = intersection<Real, N>;
   //============================================================================
  public:
-  virtual std::optional<intersection<Real, N>> check_intersection(
-      const ray<Real, N>& r, const Real min_t = 0) const = 0;
+  virtual auto check_intersection(ray<Real, N> const& r,
+                                  Real const          min_t = 0) const
+      -> std::optional<intersection<Real, N>> = 0;
 };
 //==============================================================================
 }  // namespace tatooine
