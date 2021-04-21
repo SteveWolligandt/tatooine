@@ -46,11 +46,13 @@ class tetrahedral_mesh : public pointset<Real, N> {
     auto mesh() const -> auto const& { return m_mesh; }
     auto property() const -> auto const& { return m_prop; }
     //--------------------------------------------------------------------------
-    [[nodiscard]] auto operator()(Real x, Real y, Real z) const {
+    [[nodiscard]] auto operator()(Real const x, Real const y,
+                                  Real const z) const {
       return sample(pos_t{x, y, z});
     }
     [[nodiscard]] auto operator()(pos_t const& x) const { return sample(x); }
-    [[nodiscard]] auto sample(Real x, Real y, Real z) const {
+    //--------------------------------------------------------------------------
+    [[nodiscard]] auto sample(Real const x, Real const y, Real const z) const {
       return sample(pos_t{x, y, z});
     }
     [[nodiscard]] auto sample(pos_t const& x) const -> T {
@@ -73,10 +75,10 @@ class tetrahedral_mesh : public pointset<Real, N> {
                                 {Real(1), Real(1), Real(1), Real(1)}};
         vec<Real, 4> const    b{x(0), x(1), x(2), 1};
         auto const            abcd = solve(A, b);
-        if (abcd(0) >= -1e-6 && abcd(0) <= 1 + 1e-6 &&
-            abcd(1) >= -1e-6 && abcd(1) <= 1 + 1e-6 &&
-            abcd(2) >= -1e-6 && abcd(2) <= 1 + 1e-6 &&
-            abcd(3) >= -1e-6 && abcd(3) <= 1 + 1e-6) {
+        if (abcd(0) >= -1e-8 && abcd(0) <= 1 + 1e-8 &&
+            abcd(1) >= -1e-8 && abcd(1) <= 1 + 1e-8 &&
+            abcd(2) >= -1e-8 && abcd(2) <= 1 + 1e-8 &&
+            abcd(3) >= -1e-8 && abcd(3) <= 1 + 1e-8) {
           return m_prop[vi0] * abcd(0) +
                  m_prop[vi1] * abcd(1) +
                  m_prop[vi2] * abcd(2) +

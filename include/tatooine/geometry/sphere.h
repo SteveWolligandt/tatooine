@@ -49,7 +49,8 @@ struct sphere : primitive<Real, N> {
   constexpr auto center() -> auto& { return m_center; }
   //----------------------------------------------------------------------------
   template <typename RandomEngine = std::mt19937_64>
-  auto random_point() const {
+  auto random_point(RandomEngine&& eng = RandomEngine{
+                        std::random_device{}()}) const {
     auto       rand     = random_uniform<Real, RandomEngine>{};
     auto const u         = rand();
     auto const v         = rand();
@@ -67,9 +68,11 @@ struct sphere : primitive<Real, N> {
   }
   //----------------------------------------------------------------------------
   template <typename RandomEngine = std::mt19937_64>
-  auto random_points(size_t const n) const {
+  auto random_points(size_t const n, RandomEngine&& eng = RandomEngine{
+                                         std::random_device{}()}) const {
     std::vector<vec<Real, N>> ps;
-    auto                      rand = random_uniform<Real, RandomEngine>{};
+    auto rand = random_uniform<Real, std::decay_t<RandomEngine>>{
+        std::forward<RandomEngine>(eng)};
     for (size_t i = 0; i < n; ++i) {
       auto const u         = rand();
       auto const v         = rand();
