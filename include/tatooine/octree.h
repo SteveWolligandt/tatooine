@@ -29,7 +29,7 @@ struct octree : aabb<Real, 3> {
   std::vector<size_t>                      m_triangle_handles;
   std::vector<size_t>                      m_tet_handles;
   std::array<std::unique_ptr<octree>, 8>   m_children;
-  static constexpr size_t                  default_max_depth = 10;
+  static constexpr size_t                  default_max_depth = 4;
   //============================================================================
   octree()                                     = default;
   octree(octree const&)                        = default;
@@ -343,7 +343,7 @@ struct octree : aabb<Real, 3> {
         child->nearby_tetrahedrons(x, collector);
       }
     } else {
-      std::copy(begin(m_triangle_handles), end(m_triangle_handles),
+      std::copy(begin(m_tet_handles), end(m_tet_handles),
                 std::inserter(collector, end(collector)));
     }
   }
