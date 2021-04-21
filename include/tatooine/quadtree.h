@@ -242,7 +242,8 @@ struct quadtree : aabb<Real, 2> {
     cur_idx += 4;
     if (is_splitted()) {
       for (auto& child : m_children) {
-        cur_idx = child->write_vtk_collect_positions_and_indices(positions, indices, cur_idx);
+        cur_idx = child->write_vtk_collect_positions_and_indices(
+            positions, indices, cur_idx);
       }
     }
     return cur_idx;

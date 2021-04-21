@@ -525,7 +525,7 @@ class triangular_mesh
 #else
   template <size_t N_ = N, enable_if<(N_ == 2 || N_ == 3)> = true>
 #endif
-  auto read_vtk(filesystem::path const& path) {
+  auto read_vtk(filesystem::path const& path) -> void {
     struct listener_t : vtk::legacy_file_listener {
       triangular_mesh& mesh;
 
@@ -648,10 +648,57 @@ class triangular_mesh
   template <size_t _N = N, enable_if<_N == 3> = true>
   auto _check_intersection(ray<Real, N> const& r, Real const min_t = 0) const
       -> std::optional<intersection<Real, N>> {
-    if (m_hierarchy) {
+    real_t global_min_t = std::numeric_limits<real_t>::max();
+    std::optional<intersection<real_t, 3>> inters;
+    if (!m_hierarchy) {
       build_hierarchy();
     }
-    return {};
+    auto const possible_intersections =
+        m_hierarchy->collect_possible_intersections(r);
+    for (auto const f : possible_intersections) {
+    //for (auto const f : faces()) {
+      auto const [vi0, vi1, vi2] = face_at(f);
+      auto const v0 = at(vi0);
+      auto const v1 = at(vi1);
+      auto const v2 = at(vi2);
+      constexpr double eps  = 1e-6;
+      auto             v0v1 = v1 - v0;
+      auto             v0v2 = v2 - v0;
+      auto             pvec = cross(r.direction(), v0v2);
+      auto             det  = dot(v0v1, pvec);
+      // r and triangle are parallel if det is close to 0
+      if (std::abs(det) < eps) {
+        continue;
+      }
+      auto inv_det = 1 / det;
+
+      vec3 tvec = r.origin() - v0;
+      auto u    = dot(tvec, pvec) * inv_det;
+      if (u < 0 || u > 1) {
+        continue;
+      }
+
+      vec3 qvec = cross(tvec, v0v1);
+      auto v    = dot(r.direction(), qvec) * inv_det;
+      if (v < 0 || u + v > 1) {
+        continue;
+      }
+
+      const auto t = dot(v0v2, qvec) * inv_det;
+      const vec3 barycentric_coord{1 - u - v, u, v};
+      if (t > min_t) {
+        vec3 pos = barycentric_coord(0) * v0 + barycentric_coord(1) * v1 +
+                   barycentric_coord(2) * v2;
+
+        if (t < global_min_t) {
+          global_min_t = t;
+          inters       = intersection<real_t, 3>{
+              this, r, t, pos, normalize(cross(v0v1, v2 - v1)), vec2{0, 0}};
+        }
+      }
+    }
+
+    return inters;
   }
 };
 //==============================================================================

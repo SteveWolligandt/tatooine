@@ -143,7 +143,7 @@ struct axis_aligned_bounding_box : ray_intersectable<Real, N> {
                                     vec<Real, 3> x1,
                                     vec<Real, 3> x2) const {
     auto const c = center();
-    auto const e = extents() / 2;
+    auto const e = extents();
 
     x0 -= c;
     x1 -= c;
@@ -157,18 +157,15 @@ struct axis_aligned_bounding_box : ray_intersectable<Real, N> {
     vec_t const u1{0, 1, 0};
     vec_t const u2{0, 0, 1};
 
-    auto is_separating_axis = [&](auto const axis) {
+    auto is_separating_axis = [&](auto const& axis) {
       auto const p0 = dot(x0, axis);
       auto const p1 = dot(x1, axis);
       auto const p2 = dot(x2, axis);
-      auto       r  = e(0) * std::abs(dot(u0, axis)) +
-                      e(1) * std::abs(dot(u1, axis)) +
-                      e(2) * std::abs(dot(u2, axis));
-      if (tatooine::max(-tatooine::max(p0, p1, p2), tatooine::min(p0, p1, p2)) >
-          r) {
-        return true;
-      }
-      return false;
+      auto r = e.x() * std::abs(dot(u0, axis)) +
+               e.y() * std::abs(dot(u1, axis)) +
+               e.z() * std::abs(dot(u2, axis));
+      return tatooine::max(-tatooine::max(p0, p1, p2),
+                           tatooine::min(p0, p1, p2)) > r;
     };
 
     if (is_separating_axis(cross(u0, f0))) {

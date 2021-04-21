@@ -31,7 +31,7 @@ struct octree : aabb<typename Mesh::real_t, 3> {
   std::vector<size_t>                    m_triangle_handles;
   std::vector<size_t>                    m_tet_handles;
   std::array<std::unique_ptr<octree>, 8> m_children;
-  static constexpr size_t                default_max_depth = 4;
+  static constexpr size_t                default_max_depth = 3;
   //============================================================================
   octree()                  = default;
   octree(octree const&)     = default;
@@ -351,8 +351,75 @@ struct octree : aabb<typename Mesh::real_t, 3> {
     }
   }
   //============================================================================
-  auto check_intersection(ray<real_t, 3> const& r, real_t const min_t = 0) const
-      -> std::optional<intersection<real_t, 3>> override {return {};}
+  auto collect_possible_intersections(
+      ray<real_t, 3> const& r, std::set<size_t>& possible_collisions) const
+      -> void {
+    if (parent_t::check_intersection(r)) {
+      if (is_splitted()) {
+        for (auto const& child : m_children) {
+          child->collect_possible_intersections(r, possible_collisions);
+        }
+      } else {
+        std::copy(begin(m_triangle_handles), end(m_triangle_handles),
+                  std::inserter(possible_collisions, end(possible_collisions)));
+      }
+    }
+  }
+  //----------------------------------------------------------------------------
+  auto collect_possible_intersections(ray<real_t, 3> const& r) const {
+    std::set<size_t> possible_collisions;
+    collect_possible_intersections(r, possible_collisions);
+    return possible_collisions;
+  }
+  //----------------------------------------------------------------------------
+  //auto check_intersection(ray<real_t, 3> const& r, real_t const min_t = 0) const
+  //    -> std::optional<intersection<real_t, 3>> override {
+  //  std::set<size_t> possible_collisions;
+  //  collect_possible_intersections(r, possible_collisions);
+  //
+  //}
+  //----------------------------------------------------------------------------
+ public:
+  auto write_vtk(filesystem::path const& path) {
+    vtk::legacy_file_writer f{path, vtk::dataset_type::polydata};
+    f.write_header();
+    std::vector<vec<real_t, 3>>        positions;
+    std::vector<std::vector<size_t>> indices;
+    write_vtk_collect_positions_and_indices(positions, indices);
+    f.write_points(positions);
+    f.write_lines(indices);
+  }
+  // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+ private:
+  auto write_vtk_collect_positions_and_indices(
+      std::vector<vec<real_t, 3>>&        positions,
+      std::vector<std::vector<size_t>>& indices, size_t cur_idx = 0)
+      -> size_t {
+    positions.push_back(vec{min(0), min(1), min(2)});
+    positions.push_back(vec{max(0), min(1), min(2)});
+    positions.push_back(vec{max(0), max(1), min(2)});
+    positions.push_back(vec{min(0), max(1), min(2)});
+    positions.push_back(vec{min(0), min(1), max(2)});
+    positions.push_back(vec{max(0), min(1), max(2)});
+    positions.push_back(vec{max(0), max(1), max(2)});
+    positions.push_back(vec{min(0), max(1), max(2)});
+    indices.push_back(
+        {cur_idx, cur_idx + 1, cur_idx + 2, cur_idx + 3, cur_idx});
+    indices.push_back(
+        {cur_idx + 4, cur_idx + 5, cur_idx + 6, cur_idx + 7, cur_idx + 4});
+    indices.push_back({cur_idx, cur_idx + 4});
+    indices.push_back({cur_idx + 1, cur_idx + 5});
+    indices.push_back({cur_idx + 2, cur_idx + 6});
+    indices.push_back({cur_idx + 3, cur_idx + 7});
+    cur_idx += 8;
+    if (is_splitted()) {
+      for (auto& child : m_children) {
+        cur_idx = child->write_vtk_collect_positions_and_indices(
+            positions, indices, cur_idx);
+      }
+    }
+    return cur_idx;
+  }
 };
 //==============================================================================
 }  // namespace tatooine
