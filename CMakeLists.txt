@@ -426,6 +426,7 @@ if (yavin_FOUND)
     add_subdirectory(flowexplorer)
   endif()
 endif()
+add_subdirectory(raytracer)
 add_subdirectory(autonomous_particles)
 add_subdirectory(smearing_scalar_field)
 

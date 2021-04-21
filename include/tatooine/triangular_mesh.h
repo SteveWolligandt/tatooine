@@ -21,8 +21,23 @@
 //==============================================================================
 namespace tatooine {
 //==============================================================================
+template <typename Real, size_t N, typename Mesh>
+class base_triangular_mesh : public pointset<Real, N> {};
+//==============================================================================
+template <typename Real, typename Mesh>
+class base_triangular_mesh<Real, 3, Mesh> : public pointset<Real, 3>,
+                                            public ray_intersectable<Real, 3> {
+ public:
+  auto check_intersection(ray<Real, 3> const& r, Real const min_t = 0) const
+      -> std::optional<intersection<Real, 3>> override {
+    return dynamic_cast<Mesh const*>(this)->_check_intersection(r, min_t);
+  }
+};
+//==============================================================================
 template <typename Real, size_t N>
-class triangular_mesh : public pointset<Real, N> {
+class triangular_mesh
+    : public base_triangular_mesh<Real, N, triangular_mesh<Real, N>> {
+  friend class base_triangular_mesh<Real, N, triangular_mesh<Real, N>>;
  public:
   using this_t   = triangular_mesh<Real, N>;
   using parent_t = pointset<Real, N>;
@@ -150,7 +165,7 @@ class triangular_mesh : public pointset<Real, N> {
       std::map<std::string, std::unique_ptr<vector_property<face_handle>>>;
   using hierarchy_t =
       std::conditional_t<N == 2, quadtree<Real>,
-                         std::conditional_t<N == 3, octree<Real>, void>>;
+                         std::conditional_t<N == 3, octree<this_t>, void>>;
   //============================================================================
  private:
   std::vector<vertex_handle>           m_face_indices;
@@ -266,7 +281,7 @@ class triangular_mesh : public pointset<Real, N> {
   auto insert_vertex(Ts const... ts) {
     auto const vi = parent_t::insert_vertex(ts...);
     if (m_hierarchy != nullptr) {
-      if (!m_hierarchy->insert_vertex(*this, vi.i)) {
+      if (!m_hierarchy->insert_vertex(vi.i)) {
         build_hierarchy();
       }
     }
@@ -276,7 +291,7 @@ class triangular_mesh : public pointset<Real, N> {
   auto insert_vertex(pos_t const& v) {
     auto const vi = parent_t::insert_vertex(v);
     if (m_hierarchy != nullptr) {
-      if (!m_hierarchy->insert_vertex(*this, vi.i)) {
+      if (!m_hierarchy->insert_vertex(vi.i)) {
         build_hierarchy();
       }
     }
@@ -286,7 +301,7 @@ class triangular_mesh : public pointset<Real, N> {
   auto insert_vertex(pos_t&& v) {
     auto const vi = parent_t::insert_vertex(std::move(v));
     if (m_hierarchy != nullptr) {
-      if (!m_hierarchy->insert_vertex(*this, vi.i)) {
+      if (!m_hierarchy->insert_vertex(vi.i)) {
         build_hierarchy();
       }
     }
@@ -302,7 +317,7 @@ class triangular_mesh : public pointset<Real, N> {
       prop->push_back();
     }
     if (m_hierarchy != nullptr) {
-      if (!m_hierarchy->insert_triangle(*this, ti.i)) {
+      if (!m_hierarchy->insert_triangle(ti.i)) {
         build_hierarchy();
       }
     }
@@ -370,10 +385,10 @@ class triangular_mesh : public pointset<Real, N> {
     clear_hierarchy();
     auto& h = hierarchy();
     for (auto v : vertices()) {
-      h.insert_vertex(*this, v.i);
+      h.insert_vertex(v.i);
     }
     for (auto t : faces()) {
-      h.insert_face(*this, t.i);
+      h.insert_triangle(t.i);
     }
   }
   //----------------------------------------------------------------------------
@@ -403,7 +418,11 @@ class triangular_mesh : public pointset<Real, N> {
           max(i) = std::max(max(i), at(v)(i));
         }
       }
-      m_hierarchy = std::make_unique<hierarchy_t>(min, max);
+      if constexpr (N == 3) {
+        m_hierarchy = std::make_unique<hierarchy_t>(*this, min, max);
+      } else {
+        m_hierarchy = std::make_unique<hierarchy_t>(min, max);
+      }
     }
     return *m_hierarchy;
   }
@@ -623,6 +642,16 @@ class triangular_mesh : public pointset<Real, N> {
   //----------------------------------------------------------------------------
   constexpr bool is_valid(face_handle t) const {
     return boost::find(m_invalid_faces, t) == end(m_invalid_faces);
+  }
+  //----------------------------------------------------------------------------
+ private:
+  template <size_t _N = N, enable_if<_N == 3> = true>
+  auto _check_intersection(ray<Real, N> const& r, Real const min_t = 0) const
+      -> std::optional<intersection<Real, N>> {
+    if (m_hierarchy) {
+      build_hierarchy();
+    }
+    return {};
   }
 };
 //==============================================================================
