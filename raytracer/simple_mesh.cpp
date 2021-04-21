@@ -1,4 +1,5 @@
 #include<tatooine/triangular_mesh.h>
+#include<tatooine/geometry/sphere.h>
 #include<tatooine/rendering/perspective_camera.h>
 #include<tatooine/grid.h>
 //==============================================================================
@@ -14,18 +15,21 @@ auto main(int const argc, char const** argv) -> int {
                          resolution_x,    resolution_y};
   grid image{resolution_x, resolution_y};
   auto& rendered_mesh = image.add_vertex_property<vec3>("rendered mesh");
-  mesh_t const mesh{argv[1]};
-  //
-  //#pragma omp parallel for collapse(2)
-  //  for (std::size_t y = 0; y < resolution_y; ++y) {
-  //    for (std::size_t x = 0; x < resolution_x; ++x) {
-  //      //auto intersection = mesh.check_intersection(cam.ray(x, y));
-  //      //if (intersection) {
-  //      //  rendered_mesh(x, y) = vec3::ones();
-  //      //} else {
-  //      //  rendered_mesh(x, y) = vec3::zeros();
-  //      //}
-  //    }
-  //  }
-  //  write_png(rendered_mesh, argv[2]);
+  auto const mesh          = discretize(geometry::sphere3{1}, 3);
+  mesh.write_vtk("/home/steve/sphere.vtk");
+  mesh.build_hierarchy();
+  mesh.hierarchy().write_vtk("/home/steve/sphere_hierarchy.vtk");
+
+#pragma omp parallel for collapse(2)
+  for (std::size_t y = 0; y < resolution_y; ++y) {
+    for (std::size_t x = 0; x < resolution_x; ++x) {
+      auto intersection = mesh.check_intersection(cam.ray(x, y));
+      if (intersection) {
+        rendered_mesh(x, y) = vec3::ones();
+      } else {
+        rendered_mesh(x, y) = vec3::zeros();
+      }
+    }
+  }
+  write_png(rendered_mesh, argv[2]);
 }

@@ -407,6 +407,9 @@ endif()
 
 configure_file(${CMAKE_CURRENT_SOURCE_DIR}/include/tatooine/packages.h.in
                ${CMAKE_CURRENT_BINARY_DIR}/include/tatooine/packages.h)
+get_target_property(defs tatooine COMPILE_DEFINITIONS)
+list(REMOVE_ITEM defs _FORTIFY_SOURCE)
+set_property(TARGET tatooine PROPERTY COMPILE_DEFINITIONS ${defs})
 
 set(TATOOINE_EXPORTING_TARGETS tatooine)
 #-------------------------------------------------------------------------------
