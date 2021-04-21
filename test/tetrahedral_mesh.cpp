@@ -74,35 +74,41 @@ TEST_CASE("tetrahedral_mesh_from_grid", "[tetrahedral_mesh][grid]"){
 #ifdef TATOOINE_HAS_CGAL_SUPPORT
 TEST_CASE("tetrahedral_mesh_vertex_property_sampler",
           "[tetrahedral_mesh][vertex_property][sampler]") {
-  geometry::sphere<double, 3> s{1.0};
-  size_t const num_points = 100;
-  tetrahedral_mesh mesh{s.random_points(num_points, std::mt19937_64{1234})};
+  size_t const num_points  = 100;
+  size_t const random_seed = 1234;
+  real_t const radius      = 1;
+  auto const   s           = geometry::sphere<real_t, 3>{radius};
+  auto         mesh        = tetrahedral_mesh{
+      s.random_points(num_points, std::mt19937_64{random_seed})};
+  using v = decltype(mesh)::vertex_handle;
+
   mesh.build_delaunay_mesh();
-  auto& prop        = mesh.add_vertex_property<double>("prop");
-  using vi = decltype(mesh)::vertex_handle;
+  auto& prop = mesh.add_vertex_property<double>("prop");
   for (size_t i = 0; i < num_points; ++i) {
-    prop[vi{i}] = i;
+    prop[v{i}] = i;
   }
-  mesh.write_vtk("tetrahedral_mesh_delaunay.vtk");
   auto prop_sampler = mesh.sampler(prop);
-  REQUIRE(prop_sampler(mesh[vi{0}]) == Approx(prop[vi{0}]));
-  REQUIRE(prop_sampler(mesh[vi{1}]) == Approx(prop[vi{1}]));
-  REQUIRE(prop_sampler(mesh[vi{2}]) == Approx(prop[vi{2}]));
-  REQUIRE(prop_sampler(mesh[vi{3}]) == Approx(prop[vi{3}]));
-  for (auto tet : mesh.tetrahedrons()) {
-    auto const [v0, v1, v2, v3] = mesh[tet];
-    REQUIRE(prop_sampler(mesh[v0] * 0.1 +
-                         mesh[v1] * 0.2 +
-                         mesh[v2] * 0.3 +
-                         mesh[v3] * 0.4) ==
-            Approx(prop[v0] * 0.1 +
-                   prop[v1] * 0.2 +
-                   prop[v2] * 0.3 +
-                   prop[v3] * 0.4).margin(1e-6));
+  SECTION("Vertex Identities") {
+    for (auto v : mesh.vertices()) {
+      REQUIRE(prop_sampler(mesh[v]) == Approx(prop[v]));
+    }
+  }
+  SECTION("Interpolated Property") {
+    for (auto tet : mesh.tetrahedrons()) {
+      auto const [v0, v1, v2, v3] = mesh[tet];
+      REQUIRE(prop_sampler(mesh[v0] * 0.1 +
+                           mesh[v1] * 0.2 +
+                           mesh[v2] * 0.3 +
+                           mesh[v3] * 0.4) ==
+              Approx(prop[v0] * 0.1 +
+                     prop[v1] * 0.2 +
+                     prop[v2] * 0.3 +
+                     prop[v3] * 0.4)
+                  .margin(1e-6));
+    }
   }
 }
 #endif
-//==============================================================================
 //==============================================================================
 }  // namespace tatooine::test
 //==============================================================================
