@@ -1,0 +1,177 @@
+#ifndef TATOOINE_KDTREE_H
+#define TATOOINE_KDTREE_H
+//==============================================================================
+#include <tatooine/axis_aligned_bounding_box.h>
+#include <tatooine/vtk_legacy.h>
+
+#include <functional>
+#include <set>
+//==============================================================================
+namespace tatooine {
+//==============================================================================
+template <typename Mesh>
+struct kdtree : aabb<typename Mesh::real_t, Mesh::num_dimensions()> {
+  static constexpr auto num_dimensions() { return Mesh::num_dimensions(); }
+  using real_t   = typename Mesh::real_t;
+  using this_t   = kdtree<Mesh>;
+  using parent_t = aabb<real_t, num_dimensions()>;
+  using parent_t::center;
+  using parent_t::is_inside;
+  using parent_t::max;
+  using parent_t::min;
+  using typename parent_t::vec_t;
+  using vertex_handle = typename Mesh::vertex_handle;
+  friend class std::unique_ptr<this_t>;
+
+ private:
+  Mesh const*                            m_mesh;
+  size_t                                 m_level;
+  size_t                                 m_max_depth;
+  std::vector<vertex_handle>             m_vertex_handles;
+  std::array<std::unique_ptr<kdtree>, 2> m_children;
+  static constexpr size_t                default_max_depth = 8;
+
+ public:
+  explicit kdtree(Mesh const& mesh, size_t const max_depth = default_max_depth)
+      : m_mesh{&mesh}, m_level{0}, m_max_depth{max_depth} {
+    auto min = vec_t::ones() * std::numeric_limits<real_t>::infinity();
+    auto max = -vec_t::ones() * std::numeric_limits<real_t>::infinity();
+    for (auto v : mesh.vertices()) {
+      for (size_t i = 0; i < num_dimensions(); ++i) {
+        min(i) = std::min(min(i), mesh[v](i));
+        max(i) = std::max(max(i), mesh[v](i));
+      }
+    }
+    this->min() = min;
+    this->max() = max;
+
+    m_vertex_handles.resize(mesh.vertices().size());
+    std::iota(begin(m_vertex_handles), end(m_vertex_handles), vertex_handle{0});
+    if (num_vertex_handles() > 1 && !is_at_max_depth()) {
+      split();
+    }
+  }
+  virtual ~kdtree() = default;
+
+ private:
+  // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+  kdtree(Mesh const& mesh, vec_t const& min, vec_t const& max,
+         size_t const level, size_t const max_depth)
+      : parent_t{min, max},
+        m_mesh{&mesh},
+        m_level{level},
+        m_max_depth{max_depth} {}
+
+ public:
+  auto mesh() const -> auto const& { return *m_mesh; }
+  //------------------------------------------------------------------------------
+  auto num_vertex_handles() const { return size(m_vertex_handles); }
+  //------------------------------------------------------------------------------
+  //auto insert_vertex(size_t const vertex_idx) -> bool {
+  //  if (!is_inside(mesh().vertex_at(vertex_idx))) {
+  //    return false;
+  //  }
+  //  if (is_splitted()) {
+  //    if ()
+  //  } else {
+  //    m_vertex_handles.push_back(vertex_idx);
+  //    split_if_necessary();
+  //  }
+  //  return true;
+  //}
+  //----------------------------------------------------------------------------
+  auto split_if_necessary() -> void{
+    if (num_vertex_handles() > 1) {
+      if (!is_at_max_depth()) {
+        split();
+      }
+    }
+  }
+  //----------------------------------------------------------------------------
+  constexpr auto is_splitted() const { return m_children.front() != nullptr; }
+  constexpr auto holds_vertices() const { return !m_vertex_handles.empty(); }
+  constexpr auto is_at_max_depth() const { return m_level == m_max_depth; }
+
+ private:
+  //----------------------------------------------------------------------------
+  auto distribute_vertices(size_t const split_index, size_t const pos) {
+    for (auto const v : m_vertex_handles) {
+      if (mesh()[v](split_index) <= pos) {
+        m_children[0]->m_vertex_handles.push_back(v);
+      }
+      if (mesh()[v](split_index) >= pos) {
+        m_children[1]->m_vertex_handles.push_back(v);
+      }
+    }
+    m_vertex_handles.clear();
+  }
+  //----------------------------------------------------------------------------
+  auto split() {
+    vec_t min0 = this->min();
+    vec_t max0 = this->max();
+    vec_t min1 = this->min();
+    vec_t max1 = this->max();
+
+    size_t split_index = std::numeric_limits<size_t>::max();
+    real_t max_space   = 0;
+    std::vector<real_t> dim_positions;
+    for (size_t i = 0; i < num_dimensions(); ++i) {
+      for (auto const v : m_vertex_handles) {
+        dim_positions.push_back(mesh()[v](i));
+      }
+      std::sort(begin(dim_positions), end(dim_positions));
+      if (auto const space = max(i) - min(i); space > max_space) {
+        max_space   = space;
+        split_index = i;
+      }
+      dim_positions.clear();
+    }
+    auto const c      = center(split_index);
+    max0(split_index) = c;
+    min1(split_index) = c;
+
+    m_children[0] = std::unique_ptr<this_t>(
+        new this_t{mesh(), min0, max0, m_level + 1, m_max_depth});
+    m_children[1] = std::unique_ptr<this_t>(
+        new this_t{mesh(), min1, max1, m_level + 1, m_max_depth});
+    distribute_vertices(split_index, c);
+    m_children[0]->split_if_necessary();
+    m_children[1]->split_if_necessary();
+  }
+  //----------------------------------------------------------------------------
+   public:
+   auto write_vtk(filesystem::path const& path) {
+     vtk::legacy_file_writer f{path, vtk::dataset_type::polydata};
+     f.write_header();
+     std::vector<vec<real_t, num_dimensions()>>        positions;
+     std::vector<std::vector<size_t>> indices;
+     write_vtk_collect_positions_and_indices(positions, indices);
+     f.write_points(positions);
+     f.write_lines(indices);
+   }
+   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+   private:
+   auto write_vtk_collect_positions_and_indices(
+       std::vector<vec<real_t, num_dimensions()>>&        positions,
+       std::vector<std::vector<size_t>>& indices, size_t cur_idx = 0)
+       -> size_t {
+     positions.push_back(vec{min(0), min(1)});
+     positions.push_back(vec{max(0), min(1)});
+     positions.push_back(vec{max(0), max(1)});
+     positions.push_back(vec{min(0), max(1)});
+     indices.push_back(
+         {cur_idx, cur_idx + 1, cur_idx + 2, cur_idx + 3, cur_idx});
+     cur_idx += 4;
+     if (is_splitted()) {
+       for (auto& child : m_children) {
+         cur_idx = child->write_vtk_collect_positions_and_indices(
+             positions, indices, cur_idx);
+       }
+     }
+     return cur_idx;
+   }
+};
+//==============================================================================
+}  // namespace tatooine
+//==============================================================================
+#endif
