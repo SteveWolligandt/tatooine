@@ -9,12 +9,13 @@
 //==============================================================================
 namespace tatooine {
 //==============================================================================
-template <typename Real>
-struct quadtree : aabb<Real, 2> {
+template <typename Mesh>
+struct quadtree : aabb<typename Mesh::real_t, 2> {
   enum class dim_x : std::uint8_t { left = 0, right = 1 };
   enum class dim_y : std::uint8_t { bottom = 0, top = 2 };
-  using this_t   = quadtree<Real>;
-  using parent_t = aabb<Real, 2>;
+  using real_t   = typename Mesh::real_t;
+  using this_t   = quadtree<Mesh>;
+  using parent_t = aabb<real_t, 2>;
   using parent_t::center;
   using parent_t::is_triangle_inside;
   using parent_t::is_inside;
@@ -24,6 +25,7 @@ struct quadtree : aabb<Real, 2> {
   friend class std::unique_ptr<this_t>;
 
  private:
+  Mesh const*                              m_mesh;
   size_t                                   m_level;
   size_t                                   m_max_depth;
   std::vector<size_t>                      m_vertex_handles;
@@ -32,39 +34,44 @@ struct quadtree : aabb<Real, 2> {
   static constexpr size_t                  default_max_depth = 10;
 
  public:
-  quadtree(vec_t const& min, vec_t const& max,
+  quadtree(Mesh const& mesh, vec_t const& min, vec_t const& max,
            size_t const max_depth = default_max_depth)
-      : parent_t{min, max}, m_level{0}, m_max_depth{max_depth} {}
+      : parent_t{min, max}, m_mesh{&mesh}, m_level{0}, m_max_depth{max_depth} {}
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-  explicit quadtree(size_t const max_depth = default_max_depth)
-      : m_level{0}, m_max_depth{max_depth} {}
+  explicit quadtree(Mesh const&  mesh,
+                    size_t const max_depth = default_max_depth)
+      : m_mesh{&mesh}, m_level{0}, m_max_depth{max_depth} {}
   virtual ~quadtree() = default;
 
  private:
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-  quadtree(vec_t const& min, vec_t const& max, size_t const level,
-           size_t const max_depth)
-      : parent_t{min, max}, m_level{level}, m_max_depth{max_depth} {}
+  quadtree(Mesh const& mesh, vec_t const& min, vec_t const& max,
+           size_t const level, size_t const max_depth)
+      : parent_t{min, max},
+        m_mesh{&mesh},
+        m_level{level},
+        m_max_depth{max_depth} {}
 
  public:
+  auto mesh() const -> auto const& { return *m_mesh; }
+  //------------------------------------------------------------------------------
   auto num_vertex_handles() const { return size(m_vertex_handles); }
   auto num_triangle_handles() const { return size(m_triangle_handles); }
   //------------------------------------------------------------------------------
-  template <typename Mesh>
-  auto insert_vertex(Mesh const& mesh, size_t const vertex_idx) -> bool {
-    if (!is_inside(mesh.vertex_at(vertex_idx))) {
+  auto insert_vertex(size_t const vertex_idx) -> bool {
+    if (!is_inside(mesh().vertex_at(vertex_idx))) {
       return false;
     }
     if (holds_vertices()) {
       if (is_at_max_depth()) {
         m_vertex_handles.push_back(vertex_idx);
       } else {
-        split_and_distribute(mesh);
-        distribute_vertex(mesh, vertex_idx);
+        split_and_distribute();
+        distribute_vertex(vertex_idx);
       }
     } else {
       if (is_splitted()) {
-        distribute_vertex(mesh, vertex_idx);
+        distribute_vertex(vertex_idx);
       } else {
         m_vertex_handles.push_back(vertex_idx);
       }
@@ -72,22 +79,21 @@ struct quadtree : aabb<Real, 2> {
     return true;
   }
   //------------------------------------------------------------------------------
-  template <typename TriangularMesh>
-  auto insert_triangle(TriangularMesh const& mesh, size_t const triangle_idx) -> bool {
-    auto [vi0, vi1, vi2] = mesh.triangle_at(triangle_idx);
-    if (!is_triangle_inside(mesh[vi0], mesh[vi1], mesh[vi2])) {
+  auto insert_triangle(size_t const triangle_idx) -> bool {
+    auto [vi0, vi1, vi2] = mesh().triangle_at(triangle_idx);
+    if (!is_triangle_inside(mesh()[vi0], mesh()[vi1], mesh()[vi2])) {
       return false;
     }
     if (holds_triangles()) {
       if (is_at_max_depth()) {
         m_triangle_handles.push_back(triangle_idx);
       } else {
-        split_and_distribute(mesh);
-        distribute_triangle(mesh, triangle_idx);
+        split_and_distribute();
+        distribute_triangle(triangle_idx);
       }
     } else {
       if (is_splitted()) {
-        distribute_triangle(mesh, triangle_idx);
+        distribute_triangle(triangle_idx);
       } else {
         m_triangle_handles.push_back(triangle_idx);
       }
@@ -164,25 +170,26 @@ struct quadtree : aabb<Real, 2> {
   //----------------------------------------------------------------------------
   auto create_bottom_left() {
     bottom_left() = std::unique_ptr<this_t>(
-        new this_t{min(), center(), m_level + 1, m_max_depth});
+        new this_t{mesh(), min(), center(), m_level + 1, m_max_depth});
   }
   //----------------------------------------------------------------------------
   auto create_bottom_right() {
     bottom_right() = std::unique_ptr<this_t>(
-        new this_t{vec_t{center(0), min(1)}, vec_t{max(0), center(1)},
+        new this_t{mesh(), vec_t{center(0), min(1)}, vec_t{max(0), center(1)},
                    m_level + 1, m_max_depth});
   }
   //----------------------------------------------------------------------------
   auto create_top_left() {
-    top_left() = std::unique_ptr<this_t>(new this_t{vec_t{min(0), center(1)},
-                                                    vec_t{center(0), max(1)},
-                                                    m_level + 1, m_max_depth});
+    top_left() = std::unique_ptr<this_t>(
+        new this_t{mesh(), vec_t{min(0), center(1)}, vec_t{center(0), max(1)},
+                   m_level + 1, m_max_depth});
   }
   //----------------------------------------------------------------------------
   auto create_top_right() {
     top_right() = std::unique_ptr<this_t>(
-        new this_t{center(), max(), m_level + 1, m_max_depth});
+        new this_t{mesh(), center(), max(), m_level + 1, m_max_depth});
   }
+  //----------------------------------------------------------------------------
   auto create_children() {
     create_bottom_left();
     create_bottom_right();
@@ -190,29 +197,26 @@ struct quadtree : aabb<Real, 2> {
     create_top_right();
   }
   //----------------------------------------------------------------------------
-  template <typename Mesh>
-  auto distribute_vertex(Mesh const& mesh, size_t const vertex_idx) {
+  auto distribute_vertex(size_t const vertex_idx) {
     for (auto& child : m_children) {
-      child->insert_vertex(mesh, vertex_idx);
+      child->insert_vertex(vertex_idx);
     }
   }
   //----------------------------------------------------------------------------
-  template <typename Mesh>
-  auto distribute_triangle(Mesh const& mesh, size_t const triangle_idx) {
+  auto distribute_triangle(size_t const triangle_idx) {
     for (auto& child : m_children) {
-      child->insert_triangle(mesh, triangle_idx);
+      child->insert_triangle(triangle_idx);
     }
   }
   //----------------------------------------------------------------------------
-  template <typename Mesh>
-  auto split_and_distribute(Mesh const& mesh) {
+  auto split_and_distribute() {
     create_children();
     if (!m_vertex_handles.empty()) {
-      distribute_vertex(mesh, m_vertex_handles.front());
+      distribute_vertex(m_vertex_handles.front());
       m_vertex_handles.clear();
     }
     if (!m_triangle_handles.empty()) {
-      distribute_triangle(mesh, m_triangle_handles.front());
+      distribute_triangle(m_triangle_handles.front());
       m_triangle_handles.clear();
     }
   }
@@ -221,7 +225,7 @@ struct quadtree : aabb<Real, 2> {
   auto write_vtk(filesystem::path const& path) {
     vtk::legacy_file_writer f{path, vtk::dataset_type::polydata};
     f.write_header();
-    std::vector<vec<Real, 2>>        positions;
+    std::vector<vec<real_t, 2>>        positions;
     std::vector<std::vector<size_t>> indices;
     write_vtk_collect_positions_and_indices(positions, indices);
     f.write_points(positions);
@@ -230,7 +234,7 @@ struct quadtree : aabb<Real, 2> {
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
  private:
   auto write_vtk_collect_positions_and_indices(
-      std::vector<vec<Real, 2>>&        positions,
+      std::vector<vec<real_t, 2>>&        positions,
       std::vector<std::vector<size_t>>& indices, size_t cur_idx = 0)
       -> size_t {
     positions.push_back(vec{min(0), min(1)});

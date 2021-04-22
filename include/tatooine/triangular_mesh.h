@@ -25,23 +25,32 @@ namespace tatooine {
 template <typename Real, size_t N, typename Mesh>
 class base_triangular_mesh : public pointset<Real, N> {
  public:
+  using parent_t = pointset<Real, N>;
   using hierarchy_t = void;
-  using pointset<Real, N>::pointset;
+  using parent_t::parent_t;
+  using typename parent_t::pos_t;
+  using typename parent_t::vertex_handle;
 };
 //==============================================================================
 template <typename Real, typename Mesh>
-class base_triangular_mesh<Real, 2, Mesh> : public pointset<Real, 3> {
+class base_triangular_mesh<Real, 2, Mesh> : public pointset<Real, 2> {
  public:
+  using parent_t = pointset<Real, 2>;
   using hierarchy_t = quadtree<Real>;
-  using pointset<Real, 2>::pointset;
+  using parent_t::parent_t;
+  using typename parent_t::pos_t;
+  using typename parent_t::vertex_handle;
 };
 //==============================================================================
 template <typename Real, typename Mesh>
 class base_triangular_mesh<Real, 3, Mesh> : public pointset<Real, 3>,
                                             public ray_intersectable<Real, 3> {
  public:
+  using parent_t = pointset<Real, 3>;
   using hierarchy_t = octree<Mesh>;
-  using pointset<Real, 3>::pointset;
+  using parent_t::parent_t;
+  using typename parent_t::pos_t;
+  using typename parent_t::vertex_handle;
   auto check_intersection(ray<Real, 3> const& r, Real const min_t = 0) const
       -> std::optional<intersection<Real, 3>> override {
     return dynamic_cast<Mesh const*>(this)->_check_intersection(r, min_t);
@@ -64,7 +73,7 @@ class triangular_mesh
   using parent_t::is_valid;
   template <typename T>
   using vertex_property_t = typename parent_t::template vertex_property_t<T>;
-  using typename pointset<Real, 3>::pos_t;
+  using typename parent_t::pos_t;
 
   template <typename T>
   struct vertex_property_sampler_t {
@@ -303,9 +312,11 @@ class triangular_mesh
   //----------------------------------------------------------------------------
   auto insert_vertex(pos_t const& v) {
     auto const vi = parent_t::insert_vertex(v);
-    if (m_hierarchy != nullptr) {
-      if (!m_hierarchy->insert_vertex(vi.i)) {
-        build_hierarchy();
+    if constexpr (!is_same<hierarchy_t, void>) {
+      if (m_hierarchy != nullptr) {
+        if (!m_hierarchy->insert_vertex(vi.i)) {
+          build_hierarchy();
+        }
       }
     }
     return vi;
@@ -313,9 +324,11 @@ class triangular_mesh
   //----------------------------------------------------------------------------
   auto insert_vertex(pos_t&& v) {
     auto const vi = parent_t::insert_vertex(std::move(v));
-    if (m_hierarchy != nullptr) {
-      if (!m_hierarchy->insert_vertex(vi.i)) {
-        build_hierarchy();
+    if constexpr (!is_same<hierarchy_t, void>) {
+      if (m_hierarchy != nullptr) {
+        if (!m_hierarchy->insert_vertex(vi.i)) {
+          build_hierarchy();
+        }
       }
     }
     return vi;
@@ -329,9 +342,11 @@ class triangular_mesh
     for (auto& [key, prop] : m_face_properties) {
       prop->push_back();
     }
-    if (m_hierarchy != nullptr) {
-      if (!m_hierarchy->insert_triangle(ti.i)) {
-        build_hierarchy();
+    if constexpr (!is_same<hierarchy_t, void>) {
+      if (m_hierarchy != nullptr) {
+        if (!m_hierarchy->insert_triangle(ti.i)) {
+          build_hierarchy();
+        }
       }
     }
     return ti;
@@ -435,11 +450,7 @@ class triangular_mesh
           max(i) = std::max(max(i), at(v)(i));
         }
       }
-      if constexpr (N == 3) {
-        m_hierarchy = std::make_unique<hierarchy_t>(*this, min, max);
-      } else {
-        m_hierarchy = std::make_unique<hierarchy_t>(min, max);
-      }
+      m_hierarchy = std::make_unique<hierarchy_t>(*this, min, max);
     }
     return *m_hierarchy;
   }
