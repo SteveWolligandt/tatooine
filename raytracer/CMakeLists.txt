@@ -1,2 +1,5 @@
-add_executable(raytracer.simple_mesh simple_mesh.cpp)
-target_link_libraries(raytracer.simple_mesh tatooine)
+add_executable(raytracer.render_sphere render_sphere.cpp)
+target_link_libraries(raytracer.render_sphere tatooine)
+
+add_executable(raytracer.render_streamsurface render_streamsurface.cpp)
+target_link_libraries(raytracer.render_streamsurface tatooine)

@@ -31,7 +31,7 @@ struct octree : aabb<typename Mesh::real_t, 3> {
   std::vector<size_t>                    m_triangle_handles;
   std::vector<size_t>                    m_tet_handles;
   std::array<std::unique_ptr<octree>, 8> m_children;
-  static constexpr size_t                default_max_depth = 3;
+  static constexpr size_t                default_max_depth = 6;
   //============================================================================
   octree()                  = default;
   octree(octree const&)     = default;
