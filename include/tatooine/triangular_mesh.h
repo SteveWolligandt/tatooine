@@ -18,16 +18,30 @@
 #include <boost/range/adaptor/transformed.hpp>
 #include <tatooine/filesystem.h>
 #include <vector>
+#include <mutex>
 //==============================================================================
 namespace tatooine {
 //==============================================================================
 template <typename Real, size_t N, typename Mesh>
-class base_triangular_mesh : public pointset<Real, N> {};
+class base_triangular_mesh : public pointset<Real, N> {
+ public:
+  using hierarchy_t = void;
+  using pointset<Real, N>::pointset;
+};
+//==============================================================================
+template <typename Real, typename Mesh>
+class base_triangular_mesh<Real, 2, Mesh> : public pointset<Real, 3> {
+ public:
+  using hierarchy_t = quadtree<Real>;
+  using pointset<Real, 2>::pointset;
+};
 //==============================================================================
 template <typename Real, typename Mesh>
 class base_triangular_mesh<Real, 3, Mesh> : public pointset<Real, 3>,
                                             public ray_intersectable<Real, 3> {
  public:
+  using hierarchy_t = octree<Mesh>;
+  using pointset<Real, 3>::pointset;
   auto check_intersection(ray<Real, 3> const& r, Real const min_t = 0) const
       -> std::optional<intersection<Real, 3>> override {
     return dynamic_cast<Mesh const*>(this)->_check_intersection(r, min_t);
@@ -40,7 +54,7 @@ class triangular_mesh
   friend class base_triangular_mesh<Real, N, triangular_mesh<Real, N>>;
  public:
   using this_t   = triangular_mesh<Real, N>;
-  using parent_t = pointset<Real, N>;
+  using parent_t = base_triangular_mesh<Real, N, triangular_mesh<Real, N>>;
   using parent_t::at;
   using parent_t::vertices;
   using parent_t::vertex_data;
@@ -50,7 +64,7 @@ class triangular_mesh
   using parent_t::is_valid;
   template <typename T>
   using vertex_property_t = typename parent_t::template vertex_property_t<T>;
-  using typename parent_t::pos_t;
+  using typename pointset<Real, 3>::pos_t;
 
   template <typename T>
   struct vertex_property_sampler_t {
@@ -163,15 +177,14 @@ class triangular_mesh
   using face_property_t = vector_property_impl<face_handle, T>;
   using face_property_container_t =
       std::map<std::string, std::unique_ptr<vector_property<face_handle>>>;
-  using hierarchy_t =
-      std::conditional_t<N == 2, quadtree<Real>,
-                         std::conditional_t<N == 3, octree<this_t>, void>>;
+  using typename parent_t::hierarchy_t;
   //============================================================================
  private:
   std::vector<vertex_handle>           m_face_indices;
   std::vector<face_handle>             m_invalid_faces;
   face_property_container_t            m_face_properties;
   mutable std::unique_ptr<hierarchy_t> m_hierarchy;
+  mutable std::mutex                   m_hierarchy_mutex;
 
  public:
   //============================================================================
@@ -384,6 +397,7 @@ class triangular_mesh
   auto build_hierarchy() const {
     clear_hierarchy();
     auto& h = hierarchy();
+    std::lock_guard lock{m_hierarchy_mutex};
     for (auto v : vertices()) {
       h.insert_vertex(v.i);
     }
@@ -399,6 +413,7 @@ class triangular_mesh
   template <size_t N_ = N, enable_if<(N_ == 2 || N_ == 3)> = true>
 #endif
   auto clear_hierarchy() const {
+    std::lock_guard lock{m_hierarchy_mutex};
     m_hierarchy.reset();
   }
   //----------------------------------------------------------------------------
@@ -409,7 +424,9 @@ class triangular_mesh
   template <size_t N_ = N, enable_if<(N_ == 2 || N_ == 3)> = true>
 #endif
   auto hierarchy() const -> auto& {
+    std::lock_guard lock{m_hierarchy_mutex};
     if (m_hierarchy == nullptr) {
+
       auto min = pos_t::ones() * std::numeric_limits<Real>::infinity();
       auto max = -pos_t::ones() * std::numeric_limits<Real>::infinity();
       for (auto v : vertices()) {
@@ -656,7 +673,6 @@ class triangular_mesh
     auto const possible_intersections =
         m_hierarchy->collect_possible_intersections(r);
     for (auto const f : possible_intersections) {
-    //for (auto const f : faces()) {
       auto const [vi0, vi1, vi2] = face_at(f);
       auto const v0 = at(vi0);
       auto const v1 = at(vi1);

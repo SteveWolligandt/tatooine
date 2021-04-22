@@ -143,7 +143,7 @@ struct axis_aligned_bounding_box : ray_intersectable<Real, N> {
                                     vec<Real, 3> x1,
                                     vec<Real, 3> x2) const {
     auto const c = center();
-    auto const e = extents();
+    auto const e = extents() / 2;
 
     x0 -= c;
     x1 -= c;
