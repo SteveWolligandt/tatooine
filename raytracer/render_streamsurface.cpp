@@ -13,11 +13,11 @@ using cam_t  = rendering::perspective_camera<real_t>;
 auto main(int const argc, char const** argv) -> int {
   auto const resolution_x = std::size_t(1920);
   auto const resolution_y = std::size_t(1080);
-  auto const fov          = 50.0;
+  auto const fov          = 30.0;
   auto const near         = 0.1;
   auto const far          = 100.0;
-  auto const eye          = vec3{3, 2.5, 15};
-  auto const lookat       = vec3{1, 0.2, 5};
+  auto const eye          = vec3{4.106644042631196, 2.3456801502763103, 15.671478391087849};
+  auto const lookat       = vec3{-0.13426537562576765, -0.28287604628028545, 5.681056140184295};
   auto const cam =
       cam_t{eye, lookat, fov, near, far, resolution_x, resolution_y};
 
