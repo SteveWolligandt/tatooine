@@ -22,12 +22,14 @@ struct kdtree : aabb<typename Mesh::real_t, Mesh::num_dimensions()> {
   using typename parent_t::vec_t;
   using vertex_handle = typename Mesh::vertex_handle;
   friend class std::unique_ptr<this_t>;
+  using parent_t::is_triangle_inside;
 
  private:
   Mesh const*                            m_mesh;
   size_t                                 m_level;
   size_t                                 m_max_depth;
   std::vector<vertex_handle>             m_vertex_handles;
+  std::vector<size_t>                    m_triangle_handles;
   std::array<std::unique_ptr<kdtree>, 2> m_children;
   static constexpr size_t                default_max_depth = 64;
 
@@ -66,6 +68,7 @@ struct kdtree : aabb<typename Mesh::real_t, Mesh::num_dimensions()> {
   auto mesh() const -> auto const& { return *m_mesh; }
   //------------------------------------------------------------------------------
   auto num_vertex_handles() const { return size(m_vertex_handles); }
+  auto num_triangle_handles() const { return size(m_triangle_handles); }
   //------------------------------------------------------------------------------
   //auto insert_vertex(size_t const vertex_idx) -> bool {
   //  if (!is_inside(mesh().vertex_at(vertex_idx))) {
@@ -81,10 +84,8 @@ struct kdtree : aabb<typename Mesh::real_t, Mesh::num_dimensions()> {
   //}
   //----------------------------------------------------------------------------
   auto split_if_necessary() -> void{
-    if (num_vertex_handles() > 1) {
-      if (!is_at_max_depth()) {
-        split();
-      }
+    if (num_vertex_handles() > 1 && !is_at_max_depth()) {
+      split();
     }
   }
   //----------------------------------------------------------------------------
@@ -126,10 +127,8 @@ struct kdtree : aabb<typename Mesh::real_t, Mesh::num_dimensions()> {
         max_space_range = space;
         split_index     = i;
 
-        size_t left_index = size(dim_positions) / 2;
-
-        split_pos =
-            (dim_positions[left_index] + dim_positions[left_index - 1]) / 2;
+        size_t const i0 = size(dim_positions) / 2;
+        split_pos       = (dim_positions[i0] + dim_positions[i0 - 1]) / 2;
       }
       dim_positions.clear();
     }
@@ -161,20 +160,47 @@ struct kdtree : aabb<typename Mesh::real_t, Mesh::num_dimensions()> {
   auto write_vtk_collect_positions_and_indices(
       std::vector<vec<real_t, num_dimensions()>>& positions,
       std::vector<std::vector<size_t>>& indices, size_t cur_idx = 0) -> size_t {
-    positions.push_back(vec{min(0), min(1)});
-    positions.push_back(vec{max(0), min(1)});
-    positions.push_back(vec{max(0), max(1)});
-    positions.push_back(vec{min(0), max(1)});
-    indices.push_back(
-        {cur_idx, cur_idx + 1, cur_idx + 2, cur_idx + 3, cur_idx});
-    cur_idx += 4;
-    if (is_splitted()) {
-      for (auto& child : m_children) {
-        cur_idx = child->write_vtk_collect_positions_and_indices(
-            positions, indices, cur_idx);
+    if constexpr (num_dimensions() == 2) {
+      positions.push_back(vec{min(0), min(1)});
+      positions.push_back(vec{max(0), min(1)});
+      positions.push_back(vec{max(0), max(1)});
+      positions.push_back(vec{min(0), max(1)});
+      indices.push_back(
+          {cur_idx, cur_idx + 1, cur_idx + 2, cur_idx + 3, cur_idx});
+      cur_idx += 4;
+      if (is_splitted()) {
+        for (auto& child : m_children) {
+          cur_idx = child->write_vtk_collect_positions_and_indices(
+              positions, indices, cur_idx);
+        }
       }
+      return cur_idx;
+    } else if constexpr (num_dimensions() == 3) {
+      positions.push_back(vec{min(0), min(1), min(2)});
+      positions.push_back(vec{max(0), min(1), min(2)});
+      positions.push_back(vec{max(0), max(1), min(2)});
+      positions.push_back(vec{min(0), max(1), min(2)});
+      positions.push_back(vec{min(0), min(1), max(2)});
+      positions.push_back(vec{max(0), min(1), max(2)});
+      positions.push_back(vec{max(0), max(1), max(2)});
+      positions.push_back(vec{min(0), max(1), max(2)});
+      indices.push_back(
+          {cur_idx, cur_idx + 1, cur_idx + 2, cur_idx + 3, cur_idx});
+      indices.push_back(
+          {cur_idx + 4, cur_idx + 5, cur_idx + 6, cur_idx + 7, cur_idx + 4});
+      indices.push_back({cur_idx, cur_idx + 4});
+      indices.push_back({cur_idx + 1, cur_idx + 5});
+      indices.push_back({cur_idx + 2, cur_idx + 6});
+      indices.push_back({cur_idx + 3, cur_idx + 7});
+      cur_idx += 8;
+      if (is_splitted()) {
+        for (auto& child : m_children) {
+          cur_idx = child->write_vtk_collect_positions_and_indices(
+              positions, indices, cur_idx);
+        }
+      }
+      return cur_idx;
     }
-    return cur_idx;
   }
 };
 //==============================================================================
