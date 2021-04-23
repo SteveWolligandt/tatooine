@@ -12,6 +12,7 @@
 #include <tatooine/pointset.h>
 #include <tatooine/property.h>
 #include <tatooine/quadtree.h>
+#include <tatooine/octree.h>
 #include <tatooine/vtk_legacy.h>
 
 #include <boost/range/algorithm/copy.hpp>
@@ -36,7 +37,7 @@ template <typename Real, typename Mesh>
 class base_triangular_mesh<Real, 2, Mesh> : public pointset<Real, 2> {
  public:
   using parent_t = pointset<Real, 2>;
-  using hierarchy_t = quadtree<Real>;
+  using hierarchy_t = quadtree<Mesh>;
   using parent_t::parent_t;
   using typename parent_t::pos_t;
   using typename parent_t::vertex_handle;

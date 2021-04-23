@@ -49,8 +49,6 @@ struct kdtree : aabb<typename Mesh::real_t, Mesh::num_dimensions()> {
 
     m_vertex_handles.resize(mesh.vertices().size());
     std::iota(begin(m_vertex_handles), end(m_vertex_handles), vertex_handle{0});
-    std::cerr << size(m_vertex_handles) << '\n';
-    std::cerr << m_vertex_handles.back().i << '\n';
     split_if_necessary();
   }
   virtual ~kdtree() = default;

@@ -80,7 +80,7 @@ struct quadtree : aabb<typename Mesh::real_t, 2> {
   }
   //------------------------------------------------------------------------------
   auto insert_triangle(size_t const triangle_idx) -> bool {
-    auto [vi0, vi1, vi2] = mesh().triangle_at(triangle_idx);
+    auto const [vi0, vi1, vi2] = mesh().face_at(triangle_idx);
     if (!is_triangle_inside(mesh()[vi0], mesh()[vi1], mesh()[vi2])) {
       return false;
     }
