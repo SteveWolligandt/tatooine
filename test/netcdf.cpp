@@ -1,6 +1,6 @@
 #include <tatooine/for_loop.h>
 #include <tatooine/grid.h>
-#include <tatooine/lazy_netcdf_reader.h>
+#include <tatooine/lazy_reader.h>
 #include <tatooine/netcdf.h>
 
 #include <catch2/catch.hpp>

@@ -36,7 +36,7 @@ class tetrahedral_mesh : public pointset<Real, N> {
   using parent_t::insert_vertex;
   template <typename T>
   using vertex_property_t = typename parent_t::template vertex_property_t<T>;
-  using hierarchy_t       = std::conditional_t<(N == 3), octree<Real>, void>;
+  using hierarchy_t       = std::conditional_t<(N == 3), octree<this_t>, void>;
   //----------------------------------------------------------------------------
   template <typename T>
   struct vertex_property_sampler_t {
@@ -344,7 +344,7 @@ class tetrahedral_mesh : public pointset<Real, N> {
   auto insert_vertex(Ts const... ts) {
     auto const vi = parent_t::insert_vertex(ts...);
     if (m_hierarchy != nullptr) {
-      if (!m_hierarchy->insert_vertex(*this, vi.i)) {
+      if (!m_hierarchy->insert_vertex(vi.i)) {
         build_hierarchy();
       }
     }
@@ -354,7 +354,7 @@ class tetrahedral_mesh : public pointset<Real, N> {
   auto insert_vertex(pos_t const& v) {
     auto const vi = parent_t::insert_vertex(v);
     if (m_hierarchy != nullptr) {
-      if (!m_hierarchy->insert_vertex(*this, vi.i)) {
+      if (!m_hierarchy->insert_vertex(vi.i)) {
         build_hierarchy();
       }
     }
@@ -364,7 +364,7 @@ class tetrahedral_mesh : public pointset<Real, N> {
   auto insert_vertex(pos_t&& v) {
     auto const vi = parent_t::insert_vertex(std::move(v));
     if (m_hierarchy != nullptr) {
-      if (!m_hierarchy->insert_vertex(*this, vi.i)) {
+      if (!m_hierarchy->insert_vertex(vi.i)) {
         build_hierarchy();
       }
     }
@@ -382,7 +382,7 @@ class tetrahedral_mesh : public pointset<Real, N> {
     }
     tetrahedron_index ti{tetrahedrons().size() - 1};
     if (m_hierarchy != nullptr) {
-      if (!m_hierarchy->insert_tetrahedron(*this, ti.i)) {
+      if (!m_hierarchy->insert_tetrahedron(ti.i)) {
         build_hierarchy();
       }
     }
@@ -611,10 +611,10 @@ class tetrahedral_mesh : public pointset<Real, N> {
     clear_hierarchy();
     auto& h = hierarchy();
     for (auto v : vertices()) {
-      h.insert_vertex(*this, v.i);
+      h.insert_vertex(v.i);
     }
     for (auto t : tetrahedrons()) {
-      h.insert_tetrahedron(*this, t.i);
+      h.insert_tetrahedron(t.i);
     }
   }
   //----------------------------------------------------------------------------
@@ -644,7 +644,7 @@ class tetrahedral_mesh : public pointset<Real, N> {
           max(i) = std::max(max(i), at(v)(i));
         }
       }
-      m_hierarchy = std::make_unique<hierarchy_t>(min, max);
+      m_hierarchy = std::make_unique<hierarchy_t>(*this, min, max);
     }
     return *m_hierarchy;
   }
@@ -659,11 +659,7 @@ class tetrahedral_mesh : public pointset<Real, N> {
   //----------------------------------------------------------------------------
   template <typename T>
   auto vertex_property_sampler(std::string const& name) const {
-    if (m_hierarchy == nullptr) {
-      build_hierarchy();
-    }
-    return vertex_property_sampler_t<T>{
-        *this, this->template vertex_property<T>(name)};
+    return sampler<T>(this->template vertex_property<T>(name));
   }
 };
 //==============================================================================

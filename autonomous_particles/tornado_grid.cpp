@@ -66,7 +66,7 @@ auto create_autonomous_mesh(range auto const& advected_particles) {
   tetrahedral_mesh<double, 3> autonomous_mesh;
   auto&                      autonomous_flowmap_mesh_prop =
       autonomous_mesh.add_vertex_property<vec3>("flowmap");
-  autonomous_mesh.vertex_data().reserve(autonomous_mesh.num_vertices() +
+  autonomous_mesh.vertex_data().reserve(autonomous_mesh.vertices().size() +
                                         size(advected_particles));
   for (auto const& p : advected_particles) {
     auto v                          = autonomous_mesh.insert_vertex(p.x0());
@@ -425,9 +425,9 @@ auto main(int argc, char** argv) -> int {
     //indicator.set_text("Comparing forward advection");
     //{
     //  std::vector<double> autonomous_errors, regular_errors, agranovsky_errors;
-    //  autonomous_errors.reserve(sampler_check_grid.num_vertices());
-    //  regular_errors.reserve(sampler_check_grid.num_vertices());
-    //  agranovsky_errors.reserve(sampler_check_grid.num_vertices());
+    //  autonomous_errors.reserve(sampler_check_grid.vertices().size());
+    //  regular_errors.reserve(sampler_check_grid.vertices().size());
+    //  agranovsky_errors.reserve(sampler_check_grid.vertices().size());
     //  sampler_check_grid.loop_over_vertex_indices([&](auto const... is) {
     //    auto x = sampler_check_grid(is...);
     //    try {
@@ -507,9 +507,9 @@ auto main(int argc, char** argv) -> int {
     //{
     //  std::vector<double> autonomous_errors, regular_errors,
     //  agranovsky_errors;
-    //  autonomous_errors.reserve(sampler_check_grid.num_vertices());
-    //  regular_errors.reserve(sampler_check_grid.num_vertices());
-    //  agranovsky_errors.reserve(sampler_check_grid.num_vertices());
+    //  autonomous_errors.reserve(sampler_check_grid.vertices().size());
+    //  regular_errors.reserve(sampler_check_grid.vertices().size());
+    //  agranovsky_errors.reserve(sampler_check_grid.vertices().size());
     //  sampler_check_grid.loop_over_vertex_indices([&](auto const... is) {
     //    auto x = sampler_check_grid(is...);
     //    try {
@@ -568,16 +568,16 @@ auto main(int argc, char** argv) -> int {
 
     indicator.mark_as_completed();
      report            << num_points_ood_forward << " / " <<
-        sampler_check_grid.num_vertices()
+        sampler_check_grid.vertices().size()
         << " out of domain in forward direction("
         << (100 * num_points_ood_forward /
-            (double)sampler_check_grid.num_vertices())
+            (double)sampler_check_grid.vertices().size())
         << "%)\n"
         << num_points_ood_backward << " / " <<
-        sampler_check_grid.num_vertices()
+        sampler_check_grid.vertices().size()
         << " out of domain in backward direction("
         << (100 * num_points_ood_backward /
-            (double)sampler_check_grid.num_vertices())
+            (double)sampler_check_grid.vertices().size())
         << "%)\n"
         << "mean error forward autonomous particles: " << std::scientific
         << mean_autonomous_forward_error << '\n'

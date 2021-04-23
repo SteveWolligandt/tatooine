@@ -124,7 +124,7 @@ struct flowmap_agranovsky {
           std::swap(backward_mesh[v](i), backward_base[v](i));
         }
       }
-      backward_mesh.triangulate_delaunay();
+      backward_mesh.build_delaunay_mesh();
       backward_mesh.build_hierarchy();
       m_backward_samplers.push_back(
           backward_mesh.sampler(backward_base));
