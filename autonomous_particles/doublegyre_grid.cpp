@@ -16,10 +16,6 @@
 //==============================================================================
 using namespace tatooine;
 //==============================================================================
-double const bad_threshold               = 1e-5;
-double const really_bad_threshold        = 1e-4;
-double const really_really_bad_threshold = 1e-3;
-//==============================================================================
 auto create_initial_distribution(args_t const& args) {
   grid initial_distribution_grid{linspace{0, 2.0, args.width + 1},
                                  linspace{0, 1.0, args.height + 1}};
@@ -37,8 +33,7 @@ auto create_initial_distribution(args_t const& args) {
 auto create_initial_particles(args_t const& args) {
   auto       initial_distribution_grid = create_initial_distribution(args);
   auto const r0 = initial_distribution_grid.dimension<0>().spacing() / 2;
-  typename autonomous_particle<real_t, 2>::container_t
-      initial_particles;
+  typename autonomous_particle<real_t, 2>::container_t initial_particles;
   for (auto const& x : initial_distribution_grid.vertices()) {
     initial_particles.emplace_back(x, args.t0, r0);
   }
@@ -57,17 +52,17 @@ auto create_initial_particles(args_t const& args) {
   for (auto const& x : initial_distribution_grid.vertices()) {
     initial_particles.emplace_back(x, args.t0, r0);
   }
-  
+
   return initial_particles;
 }
 //------------------------------------------------------------------------------
-auto create_autonomous_mesh(range auto const& advected_particles) {
+auto create_autonomous_mesh(range auto const& autonomous_particles) {
   triangular_mesh<double, 2> autonomous_mesh;
   auto&                      autonomous_flowmap_mesh_prop =
       autonomous_mesh.add_vertex_property<vec2>("flowmap");
   autonomous_mesh.vertex_data().reserve(autonomous_mesh.vertices().size() +
-                                        size(advected_particles));
-  for (auto const& p : advected_particles) {
+                                        size(autonomous_particles));
+  for (auto const& p : autonomous_particles) {
     auto v                          = autonomous_mesh.insert_vertex(p.x0());
     autonomous_flowmap_mesh_prop[v] = p.x1();
   }
@@ -87,158 +82,86 @@ auto create_agranovsky_flowmap(auto&& v, size_t const grid_min_extent,
                             grid_min_extent};
 }
 //------------------------------------------------------------------------------
-auto compare_direct_forward(auto const& advected_particles,
-                            auto&& numerical_flowmap, auto&& agranovsky,
-                            auto const& args, auto& report) {
-  size_t num_autonomous_better_forward            = 0;
-  size_t num_autonomous_bad_forward               = 0;
-  size_t num_autonomous_really_bad_forward        = 0;
-  size_t num_autonomous_really_really_bad_forward = 0;
-  size_t num_agranovsky_bad_forward               = 0;
-  size_t num_agranovsky_really_bad_forward        = 0;
-  size_t num_agranovsky_really_really_bad_forward = 0;
-  for (auto const& p : advected_particles) {
+template <typename... Flowmaps>
+auto compare_direct_forward(
+    auto const& args, auto& report, auto&& numerical_flowmap,
+    auto&& autonomous_particles,
+    std::pair<std::string, Flowmaps> const&... flowmaps) {
+  for (auto const& p : autonomous_particles) {
     auto const numerical_x0    = numerical_flowmap(p.x0(), args.t0, args.tau);
     auto const dist_autonomous = distance(numerical_x0, p.x1());
-    if (dist_autonomous > bad_threshold) {
-      ++num_autonomous_bad_forward;
-    }
-    if (dist_autonomous > really_bad_threshold) {
-      ++num_autonomous_really_bad_forward;
-    }
-    if (dist_autonomous > really_really_bad_threshold) {
-      ++num_autonomous_really_really_bad_forward;
-    }
-    vec2 agranovsky_sample;
-    try {
-      agranovsky_sample = agranovsky.evaluate_full_forward(p.x1());
-    } catch (std::exception&) {
-      ++num_autonomous_better_forward;
-      continue;
-    }
-    auto const dist_agranovsky = distance(numerical_x0, agranovsky_sample);
-    if (dist_autonomous < dist_agranovsky) {
-      ++num_autonomous_better_forward;
-    }
-    if (dist_agranovsky > bad_threshold) {
-      ++num_agranovsky_bad_forward;
-    }
-    if (dist_agranovsky > really_bad_threshold) {
-      ++num_agranovsky_really_bad_forward;
-    }
-    if (dist_agranovsky > really_really_bad_threshold) {
-      ++num_agranovsky_really_really_bad_forward;
+    std::tuple<std::string, size_t> comparisons;
+    [&]() {
+      try {
+        sample = agranovsky.evaluate_full_forward(p.x1());
+      } catch (std::exception&) {
+        ++num_autonomous_better_forward;
+        continue;
+      }
     }
   }
-  report << std::defaultfloat
-         << (double)num_autonomous_better_forward /
-                (double)advected_particles.size() * 100
-         << "% autonomous particles in forward are better\n"
-         << (double)num_autonomous_bad_forward /
-                (double)advected_particles.size() * 100
-         << "% autonomous particles in forward are bad\n"
-         << (double)num_autonomous_really_bad_forward /
-                (double)advected_particles.size() * 100
-         << "% autonomous particles in forward are really bad\n"
-         << (double)num_autonomous_really_really_bad_forward /
-                (double)advected_particles.size() * 100
-         << "% autonomous particles in forward are really, really bad\n"
-         << (double)num_agranovsky_bad_forward /
-                (double)advected_particles.size() * 100
-         << "% agranovsky in forward is bad\n"
-         << (double)num_agranovsky_really_bad_forward /
-                (double)advected_particles.size() * 100
-         << "% agranovsky in forward is really bad\n"
-         << (double)num_agranovsky_really_really_bad_forward /
-                (double)advected_particles.size() * 100
-         << "% agranovsky in forward is really, really bad\n\n";
 
-      return std::tuple{num_autonomous_better_forward,
-                        num_autonomous_bad_forward,
-                        num_autonomous_really_bad_forward,
-                        num_autonomous_really_really_bad_forward,
-                        num_agranovsky_bad_forward,
-                        num_agranovsky_really_bad_forward,
-                        num_agranovsky_really_really_bad_forward};
+  return std::tuple{};
 }
-//------------------------------------------------------------------------------
-auto compare_direct_backward(auto const& advected_particles,
-                             auto&& numerical_flowmap, auto&& agranovsky,
-                             auto const& args, auto& report) {
-  size_t num_autonomous_better_backward            = 0;
-  size_t num_autonomous_bad_backward               = 0;
-  size_t num_autonomous_really_bad_backward        = 0;
-  size_t num_autonomous_really_really_bad_backward = 0;
-  size_t num_agranovsky_bad_backward               = 0;
-  size_t num_agranovsky_really_bad_backward        = 0;
-  size_t num_agranovsky_really_really_bad_backward = 0;
-  for (auto const& p : advected_particles) {
-    auto const numerical_x0 =
-        numerical_flowmap(p.x1(), args.t0 + args.tau, -args.tau);
-    auto const dist_autonomous = distance(numerical_x0, p.x0());
-
-    if (dist_autonomous > bad_threshold) {
-      ++num_autonomous_bad_backward;
-    }
-    if (dist_autonomous > really_bad_threshold) {
-      ++num_autonomous_really_bad_backward;
-    }
-    if (dist_autonomous > really_really_bad_threshold) {
-      ++num_autonomous_really_really_bad_backward;
-    }
-    vec2 agranovsky_sample;
-    try {
-      agranovsky_sample = agranovsky.evaluate_full_backward(p.x1());
-    } catch (std::exception&) {
-      ++num_autonomous_better_backward;
-      continue;
-    }
-    auto const dist_agranovsky = distance(numerical_x0, agranovsky_sample);
-    if (dist_autonomous < dist_agranovsky) {
-      ++num_autonomous_better_backward;
-    }
-
-    if (dist_agranovsky > bad_threshold) {
-      ++num_agranovsky_bad_backward;
-    }
-    if (dist_agranovsky > really_bad_threshold) {
-      ++num_agranovsky_really_bad_backward;
-    }
-    if (dist_agranovsky > really_really_bad_threshold) {
-      ++num_agranovsky_really_really_bad_backward;
-    }
-  }
-  report << std::defaultfloat
-         << (double)num_autonomous_better_backward /
-                (double)advected_particles.size() * 100
-         << "% autonomous particles in backward are better\n"
-         << (double)num_autonomous_bad_backward /
-                (double)advected_particles.size() * 100
-         << "% autonomous particles in backward are bad\n"
-         << (double)num_autonomous_really_bad_backward /
-                (double)advected_particles.size() * 100
-         << "% autonomous particles in backward are really bad\n"
-         << (double)num_autonomous_really_really_bad_backward /
-                (double)advected_particles.size() * 100
-         << "% autonomous particles in backward are really, really bad\n"
-         << (double)num_agranovsky_bad_backward /
-                (double)advected_particles.size() * 100
-         << "% agranovsky in backward is bad\n"
-         << (double)num_agranovsky_really_bad_backward /
-                (double)advected_particles.size() * 100
-         << "% agranovsky in backward is really bad\n"
-         << (double)num_agranovsky_really_really_bad_backward /
-                (double)advected_particles.size() * 100
-         << "% agranovsky in backward is really, really bad\n\n";
-
-      return std::tuple{num_autonomous_better_backward,
-                        num_autonomous_bad_backward,
-                        num_autonomous_really_bad_backward,
-                        num_autonomous_really_really_bad_backward,
-                        num_agranovsky_bad_backward,
-                        num_agranovsky_really_bad_backward,
-                        num_agranovsky_really_really_bad_backward};
-}
+////------------------------------------------------------------------------------
+//auto compare_direct_backward(auto const& args, auto& report,
+//                             auto&& autonomous_particles,
+//                             auto&& numerical_flowmap, auto&& agranovsky) {
+//  size_t num_autonomous_better_backward            = 0;
+//  size_t num_autonomous_bad_backward               = 0;
+//  size_t num_autonomous_really_bad_backward        = 0;
+//  size_t num_autonomous_really_really_bad_backward = 0;
+//  size_t num_agranovsky_bad_backward               = 0;
+//  size_t num_agranovsky_really_bad_backward        = 0;
+//  size_t num_agranovsky_really_really_bad_backward = 0;
+//  for (auto const& p : autonomous_particles) {
+//    auto const numerical_x0 =
+//        numerical_flowmap(p.x1(), args.t0 + args.tau, -args.tau);
+//    auto const dist_autonomous = distance(numerical_x0, p.x0());
+//
+//    vec2 agranovsky_sample;
+//    try {
+//      agranovsky_sample = agranovsky.evaluate_full_backward(p.x1());
+//    } catch (std::exception&) {
+//      ++num_autonomous_better_backward;
+//      continue;
+//    }
+//    auto const dist_agranovsky = distance(numerical_x0, agranovsky_sample);
+//    if (dist_autonomous < dist_agranovsky) {
+//      ++num_autonomous_better_backward;
+//    }
+//  }
+//  report << std::defaultfloat
+//         << (double)num_autonomous_better_backward /
+//                (double)autonomous_particles.size() * 100
+//         << "% autonomous particles in backward are better\n"
+//         << (double)num_autonomous_bad_backward /
+//                (double)autonomous_particles.size() * 100
+//         << "% autonomous particles in backward are bad\n"
+//         << (double)num_autonomous_really_bad_backward /
+//                (double)autonomous_particles.size() * 100
+//         << "% autonomous particles in backward are really bad\n"
+//         << (double)num_autonomous_really_really_bad_backward /
+//                (double)autonomous_particles.size() * 100
+//         << "% autonomous particles in backward are really, really bad\n"
+//         << (double)num_agranovsky_bad_backward /
+//                (double)autonomous_particles.size() * 100
+//         << "% agranovsky in backward is bad\n"
+//         << (double)num_agranovsky_really_bad_backward /
+//                (double)autonomous_particles.size() * 100
+//         << "% agranovsky in backward is really bad\n"
+//         << (double)num_agranovsky_really_really_bad_backward /
+//                (double)autonomous_particles.size() * 100
+//         << "% agranovsky in backward is really, really bad\n\n";
+//
+//  return std::tuple{num_autonomous_better_backward,
+//                    num_autonomous_bad_backward,
+//                    num_autonomous_really_bad_backward,
+//                    num_autonomous_really_really_bad_backward,
+//                    num_agranovsky_bad_backward,
+//                    num_agranovsky_really_bad_backward,
+//                    num_agranovsky_really_really_bad_backward};
+//}
 
 //==============================================================================
 auto main(int argc, char** argv) -> int {
@@ -260,27 +183,26 @@ auto main(int argc, char** argv) -> int {
 
   auto calc_particles = [&args, &v](auto const& initial_particles) ->
       typename std::decay_t<decltype(initial_particles.front())>::container_t {
-        switch (args.num_splits) {
-          // case 2:
-          //  return initial_particles.front().advect_with_2_splits(
-          //      args.tau_step, args.t0 + args.tau, args.max_num_particles,
-          //      initial_particles);
-          case 3:
-            return initial_particles.front().advect_with_3_splits(
-                flowmap(v), args.tau_step, args.t0 + args.tau,
-                args.max_num_particles, initial_particles);
-            // case 5:
-            //  return initial_particles.front().advect_with_5_splits(
-            //      args.tau_step, args.t0 + args.tau, args.max_num_particles,
-            //      initial_particles);
-            // case 7:
-            //  return initial_particles.front().advect_with_7_splits(
-            //      args.tau_step, args.t0 + args.tau, args.max_num_particles,
-            //      initial_particles);
-        }
-        return {};
+        // switch (args.num_splits) {
+        // case 2:
+        //  return initial_particles.front().advect_with_2_splits(
+        //      args.tau_step, args.t0 + args.tau, args.max_num_particles,
+        //      initial_particles);
+        // case 3:
+        return initial_particles.front().advect_with_3_splits(
+            flowmap(v), args.tau_step, args.t0 + args.tau,
+            args.max_num_particles, initial_particles);
+        // case 5:
+        //  return initial_particles.front().advect_with_5_splits(
+        //      args.tau_step, args.t0 + args.tau, args.max_num_particles,
+        //      initial_particles);
+        // case 7:
+        //  return initial_particles.front().advect_with_7_splits(
+        //      args.tau_step, args.t0 + args.tau, args.max_num_particles,
+        //      initial_particles);
+        //}
+        //return {};
       };
-
 
   indeterminate_progress_bar([&](auto indicator) {
     indicator.set_text("Building numerical flowmap");
@@ -293,19 +215,19 @@ auto main(int argc, char** argv) -> int {
            << '\n';
 
     indicator.set_text("Advecting autonomous particles");
-    auto const advected_particles = calc_particles(initial_particles);
-    report << "number of advected particles: " << advected_particles.size()
+    auto const autonomous_particles = calc_particles(initial_particles);
+    report << "number of advected particles: " << autonomous_particles.size()
            << '\n';
-    
+
     indicator.set_text("Writing ellipses to NetCDF");
     if (args.write_ellipses_to_netcdf) {
       write_x1(initial_particles, "doublegyre_grid_initial.nc");
-      write_x1(advected_particles, "doublegyre_grid_advected.nc");
-      write_x0(advected_particles, "doublegyre_grid_back_calculation.nc");
+      write_x1(autonomous_particles, "doublegyre_grid_advected.nc");
+      write_x0(autonomous_particles, "doublegyre_grid_back_calculation.nc");
     }
 
     indicator.set_text("Inserting particles into mesh");
-    auto  autonomous_mesh = create_autonomous_mesh(advected_particles);
+    auto  autonomous_mesh = create_autonomous_mesh(autonomous_particles);
     auto& autonomous_flowmap_mesh_prop =
         autonomous_mesh.vertex_property<vec2>("flowmap");
 
@@ -321,8 +243,8 @@ auto main(int argc, char** argv) -> int {
     [[maybe_unused]] auto flowmap_sampler_autonomous_particles =
         autonomous_mesh.inverse_distance_weighting_sampler(
             autonomous_flowmap_mesh_prop);
-    auto const grid_min_extent =
-        static_cast<size_t>(std::ceil(std::sqrt(size(advected_particles) / 2)));
+    auto const grid_min_extent = static_cast<size_t>(
+        std::ceil(std::sqrt(size(autonomous_particles) / 2)));
     //----------------------------------------------------------------------------
     // build agranovsky
     //----------------------------------------------------------------------------
@@ -332,33 +254,26 @@ auto main(int argc, char** argv) -> int {
     // comparing back calculations with agranovsky
     //----------------------------------------------------------------------------
     indicator.set_text("Comparing direct positions forward");
-    [[maybe_unused]] auto const [num_autonomous_better_forward,
-                                 num_autonomous_bad_forward,
-                                 num_autonomous_really_bad_forward,
-                                 num_autonomous_really_really_bad_forward,
-                                 num_agranovsky_bad_forward,
-                                 num_agranovsky_really_bad_forward,
-                                 num_agranovsky_really_really_bad_forward] =
-        compare_direct_forward(advected_particles, numerical_flowmap,
-                               agranovsky, args, report);
+    compare_direct_forward(args, report, autonomous_particles,
+                           numerical_flowmap, agranovsky);
 
-    indicator.set_text("Comparing direct positions backward");
-    [[maybe_unused]] auto const [num_autonomous_better_backward,
-                                 num_autonomous_bad_backward,
-                                 num_autonomous_really_bad_backward,
-                                 num_autonomous_really_really_bad_backward,
-                                 num_agranovsky_bad_backward,
-                                 num_agranovsky_really_bad_backward,
-                                 num_agranovsky_really_really_bad_backward] =
-        compare_direct_backward(advected_particles, numerical_flowmap,
-                                agranovsky, args, report);
+    //indicator.set_text("Comparing direct positions backward");
+    //[[maybe_unused]] auto const [num_autonomous_better_backward,
+    //                             num_autonomous_bad_backward,
+    //                             num_autonomous_really_bad_backward,
+    //                             num_autonomous_really_really_bad_backward,
+    //                             num_agranovsky_bad_backward,
+    //                             num_agranovsky_really_bad_backward,
+    //                             num_agranovsky_really_really_bad_backward] =
+    //    compare_direct_backward(args, report, autonomous_particles,
+    //                            numerical_flowmap, agranovsky);
     //----------------------------------------------------------------------------
     // build flowmap on uniform grid that has approximately the same number of
     // vertices as particles
     //----------------------------------------------------------------------------
     indicator.set_text("Buildung regular sampled flowmap");
     grid  uniform_grid{linspace{0.0, 2.0, grid_min_extent * 2},
-                      linspace{0.0, 1.0, grid_min_extent}};
+                       linspace{0.0, 1.0, grid_min_extent}};
     auto& regular_flowmap_grid_prop =
         uniform_grid.add_vertex_property<vec2, x_fastest>("flowmap");
     uniform_grid.loop_over_vertex_indices([&](auto const... is) {
@@ -379,7 +294,7 @@ auto main(int argc, char** argv) -> int {
     //----------------------------------------------------------------------------
     // Create memory for measuring
     //----------------------------------------------------------------------------
-    grid  sampler_check_grid{linspace{0.0, 2.0, 101}, linspace{0.0, 1.0, 51}};
+    grid sampler_check_grid{linspace{0.0, 2.0, 101}, linspace{0.0, 1.0, 51}};
     [[maybe_unused]] auto& forward_errors_autonomous_prop =
         sampler_check_grid.add_vertex_property<double>(
             "forward_error_autonomous");
@@ -422,9 +337,10 @@ auto main(int argc, char** argv) -> int {
     ////----------------------------------------------------------------------------
     //// Compare forward
     ////----------------------------------------------------------------------------
-    //indicator.set_text("Comparing forward advection");
+    // indicator.set_text("Comparing forward advection");
     //{
-    //  std::vector<double> autonomous_errors, regular_errors, agranovsky_errors;
+    //  std::vector<double> autonomous_errors, regular_errors,
+    //  agranovsky_errors;
     //  autonomous_errors.reserve(sampler_check_grid.vertices().size());
     //  regular_errors.reserve(sampler_check_grid.vertices().size());
     //  agranovsky_errors.reserve(sampler_check_grid.vertices().size());
@@ -434,8 +350,9 @@ auto main(int argc, char** argv) -> int {
     //      auto const autonomous_advection =
     //          flowmap_sampler_autonomous_particles(x);
     //      auto const regular_advection    = flowmap_sampler_regular(x);
-    //      auto const agranovsky_advection = agranovsky.evaluate_full_forward(x);
-    //      auto const numerical_advection =
+    //      auto const agranovsky_advection =
+    //      agranovsky.evaluate_full_forward(x); auto const numerical_advection
+    //      =
     //          numerical_flowmap(x, args.t0, args.tau);
     //      autonomous_errors.push_back(
     //          distance(autonomous_advection, numerical_advection));
@@ -482,23 +399,23 @@ auto main(int argc, char** argv) -> int {
     // Reverse Meshes
     //----------------------------------------------------------------------------
     indicator.set_text("Reversing Meshes");
-     for (auto v : autonomous_mesh.vertices()) {
+    for (auto v : autonomous_mesh.vertices()) {
       std::swap(autonomous_mesh[v](0), autonomous_flowmap_mesh_prop[v](0));
       std::swap(autonomous_mesh[v](1), autonomous_flowmap_mesh_prop[v](1));
     }
-     autonomous_mesh.build_delaunay_mesh();
-     autonomous_mesh.write_vtk("doublegyre_autonomous_backward_flowmap.vtk");
-     autonomous_mesh.rebuild_kd_tree();
-    //autonomous_mesh.build_hierarchy();
+    autonomous_mesh.build_delaunay_mesh();
+    autonomous_mesh.write_vtk("doublegyre_autonomous_backward_flowmap.vtk");
+    autonomous_mesh.rebuild_kd_tree();
+    // autonomous_mesh.build_hierarchy();
 
-     for (auto v : regular_mesh.vertices()) {
+    for (auto v : regular_mesh.vertices()) {
       std::swap(regular_mesh[v](0), regular_flowmap_mesh_prop[v](0));
       std::swap(regular_mesh[v](1), regular_flowmap_mesh_prop[v](1));
     }
-     regular_mesh.build_delaunay_mesh();
-     regular_mesh.build_hierarchy();
-     regular_mesh.rebuild_kd_tree();
-     regular_mesh.write_vtk("doublegyre_regular_backward_flowmap.vtk");
+    regular_mesh.build_delaunay_mesh();
+    regular_mesh.build_hierarchy();
+    regular_mesh.rebuild_kd_tree();
+    regular_mesh.write_vtk("doublegyre_regular_backward_flowmap.vtk");
 
     //////----------------------------------------------------------------------------
     ////// Compare with backward advection
@@ -564,63 +481,53 @@ auto main(int argc, char** argv) -> int {
     //      size(agranovsky_errors);
     //}
 
-
-
     indicator.mark_as_completed();
-     report            << num_points_ood_forward << " / " <<
-        sampler_check_grid.vertices().size()
-        << " out of domain in forward direction("
-        << (100 * num_points_ood_forward /
-            (double)sampler_check_grid.vertices().size())
-        << "%)\n"
-        << num_points_ood_backward << " / " <<
-        sampler_check_grid.vertices().size()
-        << " out of domain in backward direction("
-        << (100 * num_points_ood_backward /
-            (double)sampler_check_grid.vertices().size())
-        << "%)\n"
-        << "mean error forward autonomous particles: " << std::scientific
-        << mean_autonomous_forward_error << '\n'
-        << "mean error forward regular grid: " << std::scientific
-        << mean_regular_forward_error << '\n'
-        << "mean error forward agranovsky grid: " << std::scientific
-        << mean_agranovsky_forward_error << '\n'
-        << "mean error backward autonomous particles: " << std::scientific
-        << mean_autonomous_backward_error << '\n'
-        << "mean error backward regular grid: " << std::scientific
-        << mean_regular_backward_error << '\n'
-        << "mean error backward agranovsky grid: " << std::scientific
-        << mean_agranovsky_backward_error << '\n';
-     if (mean_regular_forward_error > mean_autonomous_forward_error &&
+    report << num_points_ood_forward << " / "
+           << sampler_check_grid.vertices().size()
+           << " out of domain in forward direction("
+           << (100 * num_points_ood_forward /
+               (double)sampler_check_grid.vertices().size())
+           << "%)\n"
+           << num_points_ood_backward << " / "
+           << sampler_check_grid.vertices().size()
+           << " out of domain in backward direction("
+           << (100 * num_points_ood_backward /
+               (double)sampler_check_grid.vertices().size())
+           << "%)\n"
+           << "mean error forward autonomous particles: " << std::scientific
+           << mean_autonomous_forward_error << '\n'
+           << "mean error forward regular grid: " << std::scientific
+           << mean_regular_forward_error << '\n'
+           << "mean error forward agranovsky grid: " << std::scientific
+           << mean_agranovsky_forward_error << '\n'
+           << "mean error backward autonomous particles: " << std::scientific
+           << mean_autonomous_backward_error << '\n'
+           << "mean error backward regular grid: " << std::scientific
+           << mean_regular_backward_error << '\n'
+           << "mean error backward agranovsky grid: " << std::scientific
+           << mean_agranovsky_backward_error << '\n';
+    if (mean_regular_forward_error > mean_autonomous_forward_error &&
         mean_agranovsky_forward_error > mean_autonomous_forward_error) {
       report << "autonomous particles are better in forward direction\n";
-    } else if (mean_agranovsky_forward_error > mean_regular_forward_error
-    &&
-               mean_autonomous_forward_error > mean_regular_forward_error)
-               {
+    } else if (mean_agranovsky_forward_error > mean_regular_forward_error &&
+               mean_autonomous_forward_error > mean_regular_forward_error) {
       report << "regular grid is better in forward direction\n";
-    } else if (mean_regular_forward_error > mean_agranovsky_forward_error
-    &&
-               mean_autonomous_forward_error >
-               mean_agranovsky_forward_error) {
+    } else if (mean_regular_forward_error > mean_agranovsky_forward_error &&
+               mean_autonomous_forward_error > mean_agranovsky_forward_error) {
       report << "agranovsky is better in forward direction\n";
     }
-     if (mean_regular_backward_error > mean_autonomous_backward_error &&
+    if (mean_regular_backward_error > mean_autonomous_backward_error &&
         mean_agranovsky_backward_error > mean_autonomous_backward_error) {
       report << "autonomous particles are better in backward direction\n";
-    } else if (mean_agranovsky_backward_error >
-     mean_regular_backward_error &&
-               mean_autonomous_backward_error >
-               mean_regular_backward_error) {
+    } else if (mean_agranovsky_backward_error > mean_regular_backward_error &&
+               mean_autonomous_backward_error > mean_regular_backward_error) {
       report << "regular grid is better in backward direction\n";
-    } else if (mean_regular_backward_error >
-     mean_agranovsky_backward_error &&
+    } else if (mean_regular_backward_error > mean_agranovsky_backward_error &&
                mean_autonomous_backward_error >
                    mean_agranovsky_backward_error) {
       report << "agranovsky is better in backward direction\n";
     }
-     sampler_check_grid.write("doublegyre_grid_errors.vtk");
-
+    sampler_check_grid.write("doublegyre_grid_errors.vtk");
   });
   std::cerr << report.str();
 }

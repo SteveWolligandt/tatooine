@@ -90,12 +90,12 @@ struct axis_aligned_bounding_box : ray_intersectable<Real, N> {
                                     vec<Real, 2> x1,
                                     vec<Real, 2> x2) const {
      auto const c = center();
-     auto const e = extents()/2;
+     // auto const e = extents()/2;
      x0 -= c;
      x1 -= c;
      x2 -= c;
-    vec_t const u0{1, 0};
-    vec_t const u1{0, 1};
+    //vec_t const u0{1, 0};
+    //vec_t const u1{0, 1};
     auto is_separating_axis = [&](vec<Real, 2> const& n) {
       auto const p0   = dot(vec_t{m_min(0), m_min(1)}, n);
       auto const p1   = dot(vec_t{m_min(0), m_max(1)}, n);
