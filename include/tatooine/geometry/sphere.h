@@ -3,6 +3,7 @@
 //==============================================================================
 #include <tatooine/concepts.h>
 #include <tatooine/line.h>
+#include <tatooine/real.h>
 #include <tatooine/tensor.h>
 #include <tatooine/triangular_mesh.h>
 
@@ -190,9 +191,10 @@ auto discretize(sphere<Real, 3> const& s, size_t num_subdivisions = 0) {
   }
   return m;
 }
-using sphere2 = sphere<double, 2>;
-using sphere3 = sphere<double, 3>;
-using sphere4 = sphere<double, 4>;
+//==============================================================================
+using sphere2 = sphere<real_t, 2>;
+using sphere3 = sphere<real_t, 3>;
+using sphere4 = sphere<real_t, 4>;
 //==============================================================================
 }  // namespace tatooine::geometry
 //==============================================================================
