@@ -377,6 +377,7 @@ if (CGAL_FOUND)
   target_compile_definitions(tatooine PUBLIC TATOOINE_HAS_CGAL_SUPPORT)
   target_link_libraries(tatooine PUBLIC CGAL::CGAL)
   message(STATUS "CGAL available")
+  target_compile_definitions(tatooine PUBLIC -DCGAL_DISABLE_ROUNDING_MATH_CHECK)
 endif()
 #- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 # yavin

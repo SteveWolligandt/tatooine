@@ -201,6 +201,18 @@ struct kdtree : aabb<typename Mesh::real_t, Mesh::num_dimensions()> {
     }
   }
 };
+template <typename T>
+struct is_kdtree_impl : std::false_type {};
+template <typename Mesh>
+struct is_kdtree_impl<kdtree<Mesh>> : std::true_type {};
+template <typename T>
+constexpr auto is_kdtree() {
+  return is_kdtree_impl<std::decay_t<T>>::value;
+}
+template <typename T>
+constexpr auto is_kdtree(T&&) {
+  return is_kdtree<std::decay_t<T>>();
+}
 //==============================================================================
 }  // namespace tatooine
 //==============================================================================

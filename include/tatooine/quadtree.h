@@ -253,6 +253,18 @@ struct quadtree : aabb<typename Mesh::real_t, 2> {
     return cur_idx;
   }
 };
+template <typename T>
+struct is_quadtree_impl : std::false_type {};
+template <typename Mesh>
+struct is_quadtree_impl<quadtree<Mesh>> : std::true_type {};
+template <typename T>
+constexpr auto is_quadtree() {
+  return is_quadtree_impl<std::decay_t<T>>::value;
+}
+template <typename T>
+constexpr auto is_quadtree(T&&) {
+  return is_quadtree<std::decay_t<T>>();
+}
 //==============================================================================
 }  // namespace tatooine
 //==============================================================================

@@ -4,22 +4,20 @@
 #include <tatooine/concepts.h>
 #include <tatooine/line.h>
 #include <tatooine/real.h>
+#include <tatooine/geometry/sphere_ray_intersection.h>
 #include <tatooine/tensor.h>
 #include <tatooine/triangular_mesh.h>
 
 #include <boost/range/adaptor/transformed.hpp>
 #include <boost/range/algorithm/copy.hpp>
-
-#include "primitive.h"
-#include "sphere_ray_intersection.h"
 //==============================================================================
 namespace tatooine::geometry {
 //==============================================================================
 template <floating_point Real, size_t N>
-struct sphere : primitive<Real, N> {
+struct sphere : ray_intersectable<Real> {
   using this_t   = sphere<Real, N>;
-  using parent_t = primitive<Real, N>;
-  using typename parent_t::pos_t;
+  using parent_t = ray_intersectable<Real>;
+  using pos_t    = vec<Real, N>;
   //============================================================================
  private:
   Real  m_radius;
@@ -39,7 +37,7 @@ struct sphere : primitive<Real, N> {
   sphere& operator=(sphere&&) = default;
   //============================================================================
   auto check_intersection(ray<Real, N> const& r, Real const min_t = 0) const
-      -> std::optional<intersection<Real, N>> override {
+      -> std::optional<intersection<Real>> override {
     return tatooine::geometry::check_intersection(*this, r, min_t);
   }
   //----------------------------------------------------------------------------
@@ -187,7 +185,7 @@ auto discretize(sphere<Real, 3> const& s, size_t num_subdivisions = 0) {
     m.insert_vertex(std::move(vertex_handle));
   }
   for (auto& f : faces) {
-    m.insert_face(f[0], f[1], f[2]);
+    m.insert_cell(f[0], f[1], f[2]);
   }
   return m;
 }
