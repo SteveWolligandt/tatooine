@@ -294,12 +294,12 @@ struct octree : aabb<typename Mesh::real_t, 3> {
       distribute_vertex(m_vertex_handles.front());
       m_vertex_handles.clear();
     }
-    if constexpr (has_face_at_method<Mesh>()) {
+    //if constexpr (has_face_at_method<Mesh>()) {
       if (!m_triangle_handles.empty()) {
         distribute_triangle(m_triangle_handles.front());
         m_triangle_handles.clear();
       }
-    }
+    //}
     if constexpr (has_tetrahedron_at_method<Mesh>()) {
       if (!m_tet_handles.empty()) {
         distribute_tetrahedron(m_tet_handles.front());

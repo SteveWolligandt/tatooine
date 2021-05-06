@@ -65,11 +65,13 @@ struct celltree_parent<Celltree, real_t, 3, 3> : ray_intersectable<real_t> {
   }
   //----------------------------------------------------------------------------
   auto collect_possible_intersections(ray<real_t, 3> const& r) const {
-    // auto const& c        = as_celltree();
+     auto const& c        = as_celltree();
     // auto        cur_aabb = c.bounding_box();
-    auto const cur_aabb = axis_aligned_bounding_box<real_t, 3>::infinite();
+    auto const cur_aabb = axis_aligned_bounding_box<real_t, 3>{c.m_min, c.m_max};
     std::vector<size_t> possible_collisions;
-    collect_possible_intersections(r, 0, cur_aabb, possible_collisions);
+    if (cur_aabb.check_intersection(r)) {
+      collect_possible_intersections(r, 0, cur_aabb, possible_collisions);
+    }
     return possible_collisions;
   }
 };
@@ -145,9 +147,10 @@ struct celltree : detail::celltree_parent<celltree<Mesh>, typename Mesh::real_t,
 
   //============================================================================
  private:
-  Mesh const*              m_mesh;
-  std::vector<node_t>      m_nodes;
-  std::vector<std::size_t> m_cell_handles;
+  Mesh const*                   m_mesh;
+  std::vector<node_t>           m_nodes;
+  std::vector<std::size_t>      m_cell_handles;
+  vec<real_t, num_dimensions()> m_min, m_max;
 
   //============================================================================
  public:
@@ -157,8 +160,12 @@ struct celltree : detail::celltree_parent<celltree<Mesh>, typename Mesh::real_t,
   auto operator=(celltree&&) noexcept -> celltree& = default;
   ~celltree()                                      = default;
   //===========================================================================
-  celltree(Mesh const& mesh)
-      : m_mesh{&mesh}, m_cell_handles(mesh.cells().size()) {
+  celltree(Mesh const& mesh, vec<real_t, num_dimensions()> const& min,
+           vec<real_t, num_dimensions()> const& max)
+      : m_mesh{&mesh},
+        m_cell_handles(mesh.cells().size()),
+        m_min{min},
+        m_max{max} {
     std::iota(begin(m_cell_handles), end(m_cell_handles), 0);
     auto& initial_node           = m_nodes.emplace_back();
     initial_node.dim             = num_dimensions();
@@ -313,17 +320,15 @@ struct celltree : detail::celltree_parent<celltree<Mesh>, typename Mesh::real_t,
   }
   //----------------------------------------------------------------------------
   template <size_t... Seq>
-  auto split_if_necessary(
-      size_t const ni, size_t const level = 0,
-      size_t const max_level = std::numeric_limits<size_t>::max()) {
+  auto split_if_necessary(size_t const ni, size_t const level,
+                          size_t const max_level) {
     if (node(ni).type.leaf.size > 1 && level <= max_level) {
       split(ni, level, max_level);
     }
   }
   //----------------------------------------------------------------------------
   template <size_t... Seq>
-  auto split(size_t const ni, size_t const level = 0,
-      size_t const max_level = std::numeric_limits<size_t>::max()) {
+  auto split(size_t const ni, size_t const level, size_t const max_level) {
     split(ni, level, max_level,
           std::make_index_sequence<num_vertices_per_simplex()>{});
   }

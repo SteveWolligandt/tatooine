@@ -11,8 +11,8 @@ using mesh_t = triangular_mesh<real_t, 3>;
 using cam_t  = rendering::perspective_camera<real_t>;
 //==============================================================================
 auto main(int const argc, char const** argv) -> int {
-  auto const resolution_x = std::size_t(1920);
-  auto const resolution_y = std::size_t(1080);
+  auto const resolution_x = std::size_t(100);
+  auto const resolution_y = std::size_t(100);
   auto const fov          = 30.0;
   auto const near         = 0.1;
   auto const far          = 100.0;

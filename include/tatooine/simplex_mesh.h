@@ -60,12 +60,12 @@ struct simplex_mesh_hierarchy<Mesh, Real, 3, 3> {
 // = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = =
 template <typename Mesh, typename Real>
 struct simplex_mesh_hierarchy<Mesh, Real, 2, 2> {
-  using type = celltree<Mesh>;
+  using type = octree<Mesh>;
 };
 // = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = =
 template <typename Mesh, typename Real>
 struct simplex_mesh_hierarchy<Mesh, Real, 3, 2> {
-  using type = octree<Mesh>;
+  using type = celltree<Mesh>;
 };
 //==============================================================================
 template <typename Mesh, typename Real, size_t NumDimensions, size_t SimplexDim>
@@ -98,9 +98,10 @@ struct simplex_mesh_parent<Mesh, Real, 3, 2> : pointset<Real, 3>, ray_intersecta
   }
   auto check_intersection(ray_t const& r, real_t const min_t = 0) const
       -> optional_intersection_t override {
+    constexpr double        eps          = 1e-6;
     auto const& mesh         = as_mesh();
-    real_t      global_min_t = std::numeric_limits<real_t>::max();
-    optional_intersection_t inters;
+    auto                    global_min_t = std::numeric_limits<real_t>::max();
+    auto                    inters       = optional_intersection_t{};
     if (!mesh.m_hierarchy) {
       mesh.build_hierarchy();
     }
@@ -111,35 +112,33 @@ struct simplex_mesh_parent<Mesh, Real, 3, 2> : pointset<Real, 3>, ray_intersecta
       auto const&      v0        = mesh.at(vi0);
       auto const&      v1        = mesh.at(vi1);
       auto const&      v2        = mesh.at(vi2);
-      constexpr double eps  = 1e-6;
-      auto             v0v1 = v1 - v0;
-      auto             v0v2 = v2 - v0;
-      auto             pvec = cross(r.direction(), v0v2);
-      auto             det  = dot(v0v1, pvec);
+      auto const       v0v1      = v1 - v0;
+      auto const       v0v2      = v2 - v0;
+      auto const       pvec      = cross(r.direction(), v0v2);
+      auto const       det       = dot(v0v1, pvec);
       // r and triangle are parallel if det is close to 0
       if (std::abs(det) < eps) {
         continue;
       }
-      auto inv_det = 1 / det;
+      auto const inv_det = 1 / det;
 
-      vec3 tvec = r.origin() - v0;
-      auto u    = dot(tvec, pvec) * inv_det;
+      auto const tvec = r.origin() - v0;
+      auto const u    = dot(tvec, pvec) * inv_det;
       if (u < 0 || u > 1) {
         continue;
       }
 
-      vec3 qvec = cross(tvec, v0v1);
-      auto v    = dot(r.direction(), qvec) * inv_det;
+      auto const qvec = cross(tvec, v0v1);
+      auto const v    = dot(r.direction(), qvec) * inv_det;
       if (v < 0 || u + v > 1) {
         continue;
       }
 
-      const auto t = dot(v0v2, qvec) * inv_det;
-      const vec3 barycentric_coord{1 - u - v, u, v};
+      auto const t                 = dot(v0v2, qvec) * inv_det;
+      auto const barycentric_coord = vec<real_t, 3>{1 - u - v, u, v};
       if (t > min_t) {
-        vec3 pos = barycentric_coord(0) * v0 +
-                   barycentric_coord(1) * v1 +
-                   barycentric_coord(2) * v2;
+        auto const pos = barycentric_coord(0) * v0 + barycentric_coord(1) * v1 +
+                         barycentric_coord(2) * v2;
 
         if (t < global_min_t) {
           global_min_t = t;
@@ -851,8 +850,8 @@ class simplex_mesh
       for (auto v : vertices()) {
         h.insert_vertex(v.i);
       }
-      for (auto t : cells()) {
-        h.insert_triangle(t.i);
+      for (auto c : cells()) {
+        h.insert_triangle(c.i);
       }
     }
   }
@@ -861,19 +860,12 @@ class simplex_mesh
   //----------------------------------------------------------------------------
   auto hierarchy() const -> auto& {
     if (m_hierarchy == nullptr) {
-      if constexpr (is_quadtree<hierarchy_t>() || is_octree<hierarchy_t>()) {
-        auto min = pos_t::ones() * std::numeric_limits<Real>::infinity();
-        auto max = -pos_t::ones() * std::numeric_limits<Real>::infinity();
-        for (auto v : vertices()) {
-          for (size_t i = 0; i < NumDimensions; ++i) {
-            min(i) = std::min(min(i), at(v)(i));
-            max(i) = std::max(max(i), at(v)(i));
-          }
-        }
-        m_hierarchy = std::make_unique<hierarchy_t>(*this, min, max);
-      } else {
-        m_hierarchy = std::make_unique<hierarchy_t>(*this);
-      }
+      //if constexpr (is_quadtree<hierarchy_t>() || is_octree<hierarchy_t>() ||) {
+        auto const bb = bounding_box();
+        m_hierarchy = std::make_unique<hierarchy_t>(*this, bb.min(), bb.max());
+      //} else {
+      //  m_hierarchy = std::make_unique<hierarchy_t>(*this);
+      //}
     }
     return *m_hierarchy;
   }
@@ -885,7 +877,7 @@ class simplex_mesh
   //  }
   //  return vertex_property_sampler_t<T>{*this, prop};
   //}
-  ////----------------------------------------------------------------------------
+  ////--------------------------------------------------------------------------
   // template <typename T>
   // auto vertex_property_sampler(std::string const& name) const {
   //  return sampler<T>(this->template vertex_property<T>(name));
