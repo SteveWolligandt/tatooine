@@ -9,10 +9,14 @@
 #include <CGAL/Triangulation_vertex_base_with_info_3.h>
 #endif
 
+#include <tatooine/axis_aligned_bounding_box.h>
 #include <tatooine/celltree.h>
 #include <tatooine/grid.h>
+#include <tatooine/kdtree.h>
+#include <tatooine/octree.h>
 #include <tatooine/pointset.h>
 #include <tatooine/property.h>
+#include <tatooine/quadtree.h>
 #include <tatooine/vtk_legacy.h>
 
 #include <boost/range/adaptor/transformed.hpp>
@@ -21,24 +25,143 @@
 //==============================================================================
 namespace tatooine {
 //==============================================================================
-template <typename VertexHandle, size_t SimplexDim, size_t I = 0,
+template <typename VertexHandle, size_t NumVerticesPerSimplex, size_t I = 0,
           typename... Ts>
 struct simplex_mesh_cell_at_return_type_impl {
   using type = typename simplex_mesh_cell_at_return_type_impl<
-      VertexHandle, SimplexDim, I + 1, Ts..., VertexHandle>::type;
+      VertexHandle, NumVerticesPerSimplex, I + 1, Ts..., VertexHandle>::type;
 };
-template <typename VertexHandle, size_t SimplexDim, typename... Ts>
-struct simplex_mesh_cell_at_return_type_impl<VertexHandle, SimplexDim,
-                                             SimplexDim, Ts...> {
-  using type = std::tuple<Ts..., VertexHandle>;
+// = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = =
+template <typename VertexHandle, size_t NumVerticesPerSimplex, typename... Ts>
+struct simplex_mesh_cell_at_return_type_impl<VertexHandle, NumVerticesPerSimplex,
+                                             NumVerticesPerSimplex, Ts...> {
+  using type = std::tuple<Ts...>;
 };
+// = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = =
+template <typename VertexHandle, size_t NumVerticesPerSimplex>
+using simplex_mesh_cell_at_return_type =
+    typename simplex_mesh_cell_at_return_type_impl<VertexHandle,
+                                                   NumVerticesPerSimplex>::type;
+//==============================================================================
+template <typename Mesh, typename Real, size_t NumDimensions, size_t SimplexDim>
+struct simplex_mesh_hierarchy {
+  using type = void;
+};
+// = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = =
+template <typename Mesh, typename Real, size_t NumDimensions, size_t SimplexDim>
+using simplex_mesh_hierarchy_t =
+    typename simplex_mesh_hierarchy<Mesh, Real, NumDimensions,
+                                    SimplexDim>::type;
+// = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = =
+template <typename Mesh, typename Real>
+struct simplex_mesh_hierarchy<Mesh, Real, 3, 3> {
+  using type = celltree<Mesh>;
+};
+// = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = =
+template <typename Mesh, typename Real>
+struct simplex_mesh_hierarchy<Mesh, Real, 2, 2> {
+  using type = celltree<Mesh>;
+};
+// = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = =
+template <typename Mesh, typename Real>
+struct simplex_mesh_hierarchy<Mesh, Real, 3, 2> {
+  using type = octree<Mesh>;
+};
+//==============================================================================
+template <typename Mesh, typename Real, size_t NumDimensions, size_t SimplexDim>
+struct simplex_mesh_parent : pointset<Real, NumDimensions> {
+  using typename pointset<Real, NumDimensions>::vertex_handle;
+  using hierarchy_t =
+      simplex_mesh_hierarchy_t<Mesh, Real, NumDimensions, SimplexDim>;
+  using const_cell_at_return_type =
+      simplex_mesh_cell_at_return_type<vertex_handle const&, SimplexDim + 1>;
+  using cell_at_return_type =
+      simplex_mesh_cell_at_return_type<vertex_handle&, SimplexDim + 1>;
+};
+//==============================================================================
+template <typename Mesh, typename Real>
+struct simplex_mesh_parent<Mesh, Real, 3, 2> : pointset<Real, 3>, ray_intersectable<Real> {
+  using real_t = Real;
+  using typename pointset<real_t, 3>::vertex_handle;
+  using hierarchy_t = simplex_mesh_hierarchy_t<Mesh, real_t, 3, 2>;
+  using const_cell_at_return_type =
+      simplex_mesh_cell_at_return_type<vertex_handle const&, 3>;
+  using cell_at_return_type =
+      simplex_mesh_cell_at_return_type<vertex_handle&, 3>;
 
+  using typename ray_intersectable<real_t>::ray_t;
+  using typename ray_intersectable<real_t>::intersection_t;
+  using typename ray_intersectable<real_t>::optional_intersection_t;
+  //----------------------------------------------------------------------------
+  auto as_mesh() const -> auto const& {
+    return *dynamic_cast<Mesh const*>(this);
+  }
+  auto check_intersection(ray_t const& r, real_t const min_t = 0) const
+      -> optional_intersection_t override {
+    auto const& mesh         = as_mesh();
+    real_t      global_min_t = std::numeric_limits<real_t>::max();
+    optional_intersection_t inters;
+    if (!mesh.m_hierarchy) {
+      mesh.build_hierarchy();
+    }
+    auto const possible_intersections =
+        mesh.m_hierarchy->collect_possible_intersections(r);
+    for (auto const cell_handle : possible_intersections) {
+      auto const [vi0, vi1, vi2] = mesh.cell_at(cell_handle);
+      auto const&      v0        = mesh.at(vi0);
+      auto const&      v1        = mesh.at(vi1);
+      auto const&      v2        = mesh.at(vi2);
+      constexpr double eps  = 1e-6;
+      auto             v0v1 = v1 - v0;
+      auto             v0v2 = v2 - v0;
+      auto             pvec = cross(r.direction(), v0v2);
+      auto             det  = dot(v0v1, pvec);
+      // r and triangle are parallel if det is close to 0
+      if (std::abs(det) < eps) {
+        continue;
+      }
+      auto inv_det = 1 / det;
+
+      vec3 tvec = r.origin() - v0;
+      auto u    = dot(tvec, pvec) * inv_det;
+      if (u < 0 || u > 1) {
+        continue;
+      }
+
+      vec3 qvec = cross(tvec, v0v1);
+      auto v    = dot(r.direction(), qvec) * inv_det;
+      if (v < 0 || u + v > 1) {
+        continue;
+      }
+
+      const auto t = dot(v0v2, qvec) * inv_det;
+      const vec3 barycentric_coord{1 - u - v, u, v};
+      if (t > min_t) {
+        vec3 pos = barycentric_coord(0) * v0 +
+                   barycentric_coord(1) * v1 +
+                   barycentric_coord(2) * v2;
+
+        if (t < global_min_t) {
+          global_min_t = t;
+          inters       = intersection_t{
+              this, r, t, pos, normalize(cross(v0v1, v2 - v1)), vec2{0, 0}};
+        }
+      }
+    }
+
+    return inters;
+  }
+};
+//==============================================================================
 template <typename Real, size_t NumDimensions,
           size_t SimplexDim = NumDimensions>
-class simplex_mesh : public pointset<Real, NumDimensions> {
+class simplex_mesh
+    : public simplex_mesh_parent<simplex_mesh<Real, NumDimensions, SimplexDim>,
+                                 Real, NumDimensions, SimplexDim> {
  public:
-  using this_t   = simplex_mesh<Real, NumDimensions>;
-  using parent_t = pointset<Real, NumDimensions>;
+  using this_t   = simplex_mesh<Real, NumDimensions, SimplexDim>;
+  using parent_t = simplex_mesh_parent<this_t, Real, NumDimensions, SimplexDim>;
+  friend struct simplex_mesh_parent<this_t, Real, NumDimensions, SimplexDim>;
   using parent_t::at;
   using parent_t::num_dimensions;
   using typename parent_t::pos_t;
@@ -49,9 +172,14 @@ class simplex_mesh : public pointset<Real, NumDimensions> {
   using parent_t::vertex_data;
   using parent_t::vertex_properties;
   using parent_t::vertices;
+
+  using typename parent_t::cell_at_return_type;
+  using typename parent_t::const_cell_at_return_type;
+
   template <typename T>
   using vertex_property_t = typename parent_t::template vertex_property_t<T>;
-  using hierarchy_t       = celltree<this_t>;
+  using hierarchy_t =
+      simplex_mesh_hierarchy_t<this_t, Real, NumDimensions, SimplexDim>;
   static constexpr auto num_vertices_per_simplex() { return SimplexDim + 1; }
   static constexpr auto simplex_dimension() { return SimplexDim; }
   //----------------------------------------------------------------------------
@@ -179,10 +307,10 @@ class simplex_mesh : public pointset<Real, NumDimensions> {
       std::map<std::string, std::unique_ptr<vector_property<cell_handle>>>;
   //============================================================================
  private:
-  std::vector<vertex_handle> m_cell_indices;
-  std::vector<cell_handle>   m_invalid_cells;
-  cell_property_container_t  m_cell_properties;
-  // mutable std::unique_ptr<hierarchy_t> m_hierarchy;
+  std::vector<vertex_handle>           m_cell_indices;
+  std::vector<cell_handle>             m_invalid_cells;
+  cell_property_container_t            m_cell_properties;
+  mutable std::unique_ptr<hierarchy_t> m_hierarchy;
 
  public:
   //============================================================================
@@ -339,15 +467,13 @@ class simplex_mesh : public pointset<Real, NumDimensions> {
   //----------------------------------------------------------------------------
  private:
   template <size_t... Seq>
-  auto cell_at(size_t const i, std::index_sequence<Seq...> /*seq*/) const ->
-      typename simplex_mesh_cell_at_return_type_impl<vertex_handle const&,
-                                                     num_dimensions()>::type {
+  auto cell_at(size_t const i, std::index_sequence<Seq...> /*seq*/) const
+      -> const_cell_at_return_type {
     return {m_cell_indices[i * num_vertices_per_simplex() + Seq]...};
   }
   template <size_t... Seq>
-  auto cell_at(size_t const i, std::index_sequence<Seq...> /*seq*/) ->
-      typename simplex_mesh_cell_at_return_type_impl<vertex_handle&,
-                                                     num_dimensions()>::type {
+  auto cell_at(size_t const i, std::index_sequence<Seq...> /*seq*/)
+      -> cell_at_return_type {
     return {m_cell_indices[i * num_vertices_per_simplex() + Seq]...};
   }
   //----------------------------------------------------------------------------
@@ -484,7 +610,7 @@ class simplex_mesh : public pointset<Real, NumDimensions> {
   //----------------------------------------------------------------------------
  public:
   auto write_vtk(std::string const& path,
-                 std::string const& title = "tatooine mesh") {
+                 std::string const& title = "tatooine mesh") const {
     if constexpr (SimplexDim == 2) {
       write_triangular_mesh_vtk(path, title);
     } else if constexpr (SimplexDim == 3) {
@@ -718,33 +844,39 @@ class simplex_mesh : public pointset<Real, NumDimensions> {
     return boost::find(m_invalid_cells, t) == end(m_invalid_cells);
   }
   //----------------------------------------------------------------------------
-  // auto build_hierarchy() const {
-  //  clear_hierarchy();
-  //  auto& h = hierarchy();
-  //  for (auto v : vertices()) {
-  //    h.insert_vertex(v.i);
-  //  }
-  //  for (auto t : cells()) {
-  //    h.insert_cell(t.i);
-  //  }
-  //}
+  auto build_hierarchy() const {
+    clear_hierarchy();
+    auto& h = hierarchy();
+    if constexpr (is_quadtree<hierarchy_t>() || is_octree<hierarchy_t>()) {
+      for (auto v : vertices()) {
+        h.insert_vertex(v.i);
+      }
+      for (auto t : cells()) {
+        h.insert_triangle(t.i);
+      }
+    }
+  }
   //----------------------------------------------------------------------------
-  // auto clear_hierarchy() const { m_hierarchy.reset(); }
+  auto clear_hierarchy() const { m_hierarchy.reset(); }
   //----------------------------------------------------------------------------
-  // auto hierarchy() const -> auto& {
-  //  if (m_hierarchy == nullptr) {
-  //    auto min = pos_t::ones() * std::numeric_limits<Real>::infinity();
-  //    auto max = -pos_t::ones() * std::numeric_limits<Real>::infinity();
-  //    for (auto v : vertices()) {
-  //      for (size_t i = 0; i < NumDimensions; ++i) {
-  //        min(i) = std::min(min(i), at(v)(i));
-  //        max(i) = std::max(max(i), at(v)(i));
-  //      }
-  //    }
-  //    m_hierarchy = std::make_unique<hierarchy_t>(*this, min, max);
-  //  }
-  //  return *m_hierarchy;
-  //}
+  auto hierarchy() const -> auto& {
+    if (m_hierarchy == nullptr) {
+      if constexpr (is_quadtree<hierarchy_t>() || is_octree<hierarchy_t>()) {
+        auto min = pos_t::ones() * std::numeric_limits<Real>::infinity();
+        auto max = -pos_t::ones() * std::numeric_limits<Real>::infinity();
+        for (auto v : vertices()) {
+          for (size_t i = 0; i < NumDimensions; ++i) {
+            min(i) = std::min(min(i), at(v)(i));
+            max(i) = std::max(max(i), at(v)(i));
+          }
+        }
+        m_hierarchy = std::make_unique<hierarchy_t>(*this, min, max);
+      } else {
+        m_hierarchy = std::make_unique<hierarchy_t>(*this);
+      }
+    }
+    return *m_hierarchy;
+  }
   //----------------------------------------------------------------------------
   // template <typename T>
   // auto sampler(vertex_property_t<T> const& prop) const {
@@ -758,6 +890,13 @@ class simplex_mesh : public pointset<Real, NumDimensions> {
   // auto vertex_property_sampler(std::string const& name) const {
   //  return sampler<T>(this->template vertex_property<T>(name));
   //}
+  constexpr auto bounding_box() const {
+    auto bb = axis_aligned_bounding_box<Real, num_dimensions()>{};
+    for (auto const v : vertices()) {
+      bb += at(v);
+    }
+    return bb;
+  }
 };
 //==============================================================================
 simplex_mesh()->simplex_mesh<double, 3>;

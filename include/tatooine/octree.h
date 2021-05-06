@@ -239,10 +239,10 @@ struct octree : aabb<typename Mesh::real_t, 3> {
     return true;
   }
   //------------------------------------------------------------------------------
-  template <typename TriangularMesh                             = Mesh,
-            enable_if<has_face_at_method<TriangularMesh>()> = true>
+  //template <typename TriangularMesh                             = Mesh,
+  //          enable_if<has_face_at_method<TriangularMesh>()> = true>
   auto insert_triangle(size_t const triangle_idx) -> bool {
-    auto const [vi0, vi1, vi2] = mesh().face_at(triangle_idx);
+    auto const [vi0, vi1, vi2] = mesh().cell_at(triangle_idx);
     if (!is_triangle_inside(mesh()[vi0], mesh()[vi1], mesh()[vi2])) {
       return false;
     }
@@ -314,8 +314,8 @@ struct octree : aabb<typename Mesh::real_t, 3> {
     }
   }
   //----------------------------------------------------------------------------
-  template <typename TriangularMesh                             = Mesh,
-            enable_if<has_face_at_method<TriangularMesh>()> = true>
+  //template <typename TriangularMesh                             = Mesh,
+  //          enable_if<has_face_at_method<TriangularMesh>()> = true>
   auto distribute_triangle(size_t const triangle_idx) {
     for (auto& child : m_children) {
       child->insert_triangle(triangle_idx);
@@ -421,6 +421,18 @@ struct octree : aabb<typename Mesh::real_t, 3> {
     return cur_idx;
   }
 };
+template <typename T>
+struct is_octree_impl : std::false_type {};
+template <typename Mesh>
+struct is_octree_impl<octree<Mesh>> : std::true_type {};
+template <typename T>
+constexpr auto is_octree() {
+  return is_octree_impl<std::decay_t<T>>::value;
+}
+template <typename T>
+constexpr auto is_octree(T&&) {
+  return is_octree<std::decay_t<T>>();
+}
 //==============================================================================
 }  // namespace tatooine
 //==============================================================================

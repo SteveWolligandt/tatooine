@@ -31,7 +31,7 @@ auto main(int const argc, char const** argv) -> int {
   auto const    mesh = surf.discretize(100, 0.1, 0, 10);
   mesh.build_hierarchy();
   mesh.write_vtk("streamsurface.vtk");
-  mesh.hierarchy().write_vtk("streamsurface_hierarchy.vtk");
+  //mesh.hierarchy().write_vtk("streamsurface_hierarchy.vtk");
 
   auto const [rendering_duration, image] =
       measure([&] { return rendering::raytracing::render(cam, mesh); });

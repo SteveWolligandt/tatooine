@@ -19,7 +19,6 @@ struct vec : tensor<T, N> {  // NOLINT
   using parent_t::dimension;
   using parent_t::operator();
 
-  static constexpr auto num_dimensions() { return N; }
   //----------------------------------------------------------------------------
 #ifdef __cpp_concepts
   template <typename... Ts>
