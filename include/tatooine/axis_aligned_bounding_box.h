@@ -6,14 +6,105 @@
 #include <tatooine/separating_axis_theorem.h>
 #include <tatooine/tensor.h>
 #include <tatooine/type_traits.h>
+#include <tatooine/vtk_legacy.h>
 
 #include <limits>
 #include <ostream>
 //==============================================================================
 namespace tatooine {
 //==============================================================================
+namespace detail {
+// = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = =
+template <typename AABB, typename Real, size_t N>
+struct aabb_ray_intersectable_parent {};
+template <typename AABB, typename Real>
+struct aabb_ray_intersectable_parent<AABB, Real, 3> : ray_intersectable<Real> {
+  static constexpr size_t N = 3;
+  using typename ray_intersectable<Real>::ray_t;
+  using typename ray_intersectable<Real>::intersection_t;
+  using typename ray_intersectable<Real>::optional_intersection_t;
+  //============================================================================
+  // ray_intersectable overrides
+  //============================================================================
+  auto as_aabb() const -> auto const& {
+    return *dynamic_cast<AABB const*>(this);
+  }
+  auto check_intersection(ray_t const& r, Real const = 0) const
+      -> optional_intersection_t override {
+    auto const& aabb = as_aabb();
+    enum Quadrant { right, left, middle };
+    vec<Real, N>            coord;
+    bool                    inside = true;
+    std::array<Quadrant, N> quadrant;
+    size_t                  which_plane;
+    std::array<Real, N>     max_t;
+    std::array<Real, N>     candidate_plane;
+
+    // Find candidate planes; this loop can be avoided if rays cast all from the
+    // eye(assume perpsective view)
+    for (size_t i = 0; i < N; i++)
+      if (r.origin(i) < aabb.min(i)) {
+        quadrant[i]        = left;
+        candidate_plane[i] = aabb.min(i);
+        inside             = false;
+      } else if (r.origin(i) > aabb.max(i)) {
+        quadrant[i]        = right;
+        candidate_plane[i] = aabb.max(i);
+        inside             = false;
+      } else {
+        quadrant[i] = middle;
+      }
+
+    // Ray origin inside bounding box
+    if (inside) {
+      return intersection_t{this,           r,
+                            Real(0),        r.origin(),
+                            vec<Real, N>::zeros(), vec<Real, N - 1>::zeros()};
+    }
+
+    // Calculate T distances to candidate planes
+    for (size_t i = 0; i < N; i++)
+      if (quadrant[i] != middle && r.direction(i) != 0) {
+        max_t[i] = (candidate_plane[i] - r.origin(i)) / r.direction(i);
+      } else {
+        max_t[i] = -1;
+      }
+
+    // Get largest of the max_t's for final choice of intersection
+    which_plane = 0;
+    for (size_t i = 1; i < N; i++)
+      if (max_t[which_plane] < max_t[i]) {
+        which_plane = i;
+      }
+
+    // Check final candidate actually inside box
+    if (max_t[which_plane] < 0) {
+      return {};
+    }
+    for (size_t i = 0; i < N; i++)
+      if (which_plane != i) {
+        coord(i) = r.origin(i) + max_t[which_plane] * r.direction(i);
+        if (coord(i) < aabb.min(i) || coord(i) > aabb.max(i)) {
+          return {};
+        }
+      } else {
+        coord(i) = candidate_plane[i];
+      }
+    return intersection_t{this,
+                          r,
+                          max_t[which_plane],
+                          coord,
+                          vec<Real, N>::zeros(),
+                          vec<Real, N - 1>::zeros()};
+  }
+};
+// = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = =
+}  // namespace detail
+// = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = =
 template <typename Real, size_t N>
-struct axis_aligned_bounding_box : ray_intersectable<Real, N> {
+struct axis_aligned_bounding_box
+    : detail::aabb_ray_intersectable_parent<axis_aligned_bounding_box<Real, N>,
+                                            Real, N> {
   static_assert(is_arithmetic<Real>);
   //============================================================================
   using real_t = Real;
@@ -22,18 +113,24 @@ struct axis_aligned_bounding_box : ray_intersectable<Real, N> {
   using pos_t  = vec_t;
 
   static constexpr auto num_dimensions() { return N; }
+  static constexpr auto infinite() {
+    return this_t{pos_t::ones() * -std::numeric_limits<real_t>::max(),
+                  pos_t::ones() * std::numeric_limits<real_t>::max()};
+  };
   //============================================================================
  private:
   pos_t m_min;
   pos_t m_max;
   //============================================================================
  public:
-  constexpr axis_aligned_bounding_box() = default;
+  constexpr axis_aligned_bounding_box()
+      : m_min{pos_t::ones() * std::numeric_limits<real_t>::max()},
+        m_max{pos_t::ones() * -std::numeric_limits<real_t>::max()} {}
   constexpr axis_aligned_bounding_box(axis_aligned_bounding_box const& other) =
       default;
   constexpr axis_aligned_bounding_box(
       axis_aligned_bounding_box&& other) noexcept = default;
-  constexpr auto operator           =(axis_aligned_bounding_box const& other)
+  constexpr auto operator=(axis_aligned_bounding_box const& other)
       -> axis_aligned_bounding_box& = default;
   constexpr auto operator=(axis_aligned_bounding_box&& other) noexcept
       -> axis_aligned_bounding_box& = default;
@@ -332,7 +429,7 @@ struct axis_aligned_bounding_box : ray_intersectable<Real, N> {
   }
   //----------------------------------------------------------------------------
   constexpr auto operator+=(pos_t const& point) {
-    for (size_t i = 0; i < point.size(); ++i) {
+    for (size_t i = 0; i < point.num_components(); ++i) {
       m_min(i) = std::min(m_min(i), point(i));
       m_max(i) = std::max(m_max(i), point(i));
     }
@@ -367,75 +464,31 @@ struct axis_aligned_bounding_box : ray_intersectable<Real, N> {
     }
     return p;
   }
-  //============================================================================
-  // ray_intersectable overrides
-  //============================================================================
-  auto check_intersection(ray<Real, N> const& r, Real const = 0) const
-      -> std::optional<intersection<Real, N>> override {
-    enum Quadrant { right, left, middle };
-    vec_t                   coord;
-    bool                    inside = true;
-    std::array<Quadrant, N> quadrant;
-    size_t                  which_plane;
-    std::array<Real, N>     max_t;
-    std::array<Real, N>     candidate_plane;
+  //----------------------------------------------------------------------------
+  auto write_vtk(filesystem::path const& path) {
+    vtk::legacy_file_writer f{path, vtk::dataset_type::polydata};
+    f.write_header();
+    std::vector<vec<real_t, 3>>        positions;
+    std::vector<std::vector<size_t>> indices;
 
-    // Find candidate planes; this loop can be avoided if rays cast all from the
-    // eye(assume perpsective view)
-    for (size_t i = 0; i < N; i++)
-      if (r.origin(i) < min(i)) {
-        quadrant[i]        = left;
-        candidate_plane[i] = min(i);
-        inside             = false;
-      } else if (r.origin(i) > max(i)) {
-        quadrant[i]        = right;
-        candidate_plane[i] = max(i);
-        inside             = false;
-      } else {
-        quadrant[i] = middle;
-      }
-
-    // Ray origin inside bounding box
-    if (inside) {
-      return intersection<Real, N>{this,           r,
-                                   Real(0),        r.origin(),
-                                   vec_t::zeros(), vec<Real, N - 1>::zeros()};
-    }
-
-    // Calculate T distances to candidate planes
-    for (size_t i = 0; i < N; i++)
-      if (quadrant[i] != middle && r.direction(i) != 0) {
-        max_t[i] = (candidate_plane[i] - r.origin(i)) / r.direction(i);
-      } else {
-        max_t[i] = -1;
-      }
-
-    // Get largest of the max_t's for final choice of intersection
-    which_plane = 0;
-    for (size_t i = 1; i < N; i++)
-      if (max_t[which_plane] < max_t[i]) {
-        which_plane = i;
-      }
-
-    // Check final candidate actually inside box
-    if (max_t[which_plane] < 0) {
-      return {};
-    }
-    for (size_t i = 0; i < N; i++)
-      if (which_plane != i) {
-        coord(i) = r.origin(i) + max_t[which_plane] * r.direction(i);
-        if (coord(i) < min(i) || coord(i) > max(i)) {
-          return {};
-        }
-      } else {
-        coord(i) = candidate_plane[i];
-      }
-    return intersection<Real, N>{this,
-                                 r,
-                                 max_t[which_plane],
-                                 coord,
-                                 vec_t::zeros(),
-                                 vec<Real, N - 1>::zeros()};
+    positions.push_back(vec{min(0), min(1), min(2)});
+    positions.push_back(vec{max(0), min(1), min(2)});
+    positions.push_back(vec{max(0), max(1), min(2)});
+    positions.push_back(vec{min(0), max(1), min(2)});
+    positions.push_back(vec{min(0), min(1), max(2)});
+    positions.push_back(vec{max(0), min(1), max(2)});
+    positions.push_back(vec{max(0), max(1), max(2)});
+    positions.push_back(vec{min(0), max(1), max(2)});
+    indices.push_back(
+        {0,  1,  2,  3, 0});
+    indices.push_back(
+        {4, 5, 6, 7, 4});
+    indices.push_back({0, 4});
+    indices.push_back({1, 5});
+    indices.push_back({2, 6});
+    indices.push_back({3, 7});
+    f.write_points(positions);
+    f.write_lines(indices);
   }
 };
 template <typename Real, size_t N>

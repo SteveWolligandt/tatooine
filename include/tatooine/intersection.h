@@ -6,28 +6,32 @@
 //==============================================================================
 namespace tatooine {
 //==============================================================================
-template <typename Real, size_t N>
+template <typename Real>
 struct ray_intersectable;
 //==============================================================================
-template <typename Real, size_t N>
+template <typename Real>
 struct intersection {
-  static_assert(is_arithmetic<Real>);
-  using real_t = Real;
-  static constexpr size_t num_dimensions() {
-    return N;
-  }
+  static_assert(is_floating_point<Real>);
+  using real_t                  = Real;
+  using vec3_t                  = vec<real_t, 3>;
+  using vec2_t                  = vec<real_t, 2>;
+  using pos_t                   = vec3_t;
+  using uv_t                    = vec2_t;
+  using ray_t                   = ray<real_t, 3>;
+  using ray_intersectable_ptr_t = ray_intersectable<real_t>;
+  //============================================================================
   /// pointer to primitive object
-  const ray_intersectable<Real, N>* intersectable;
+  ray_intersectable_ptr_t const* intersectable;
   /// incident ray
-  ray<Real, N> incident_ray;
+  ray_t incident_ray;
   /// position on ray
-  Real t;
+  real_t t;
   /// world position of intersection
-  vec<Real, N> position;
+  vec3_t position;
   /// normal of intersection point on the primitive
-  vec<Real, N> normal;
+  vec3_t normal;
   /// uv-coordinate on the primitive
-  vec<Real, N - 1> uv;
+  vec2_t uv;
 };
 //==============================================================================
 }  // namespace tatooine

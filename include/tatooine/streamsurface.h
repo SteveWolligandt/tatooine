@@ -302,7 +302,7 @@ struct front_evolving_streamsurface_discretization
   using parent_t::at;
   using typename parent_t::pos_t;
   using parent_t::operator[];
-  using typename parent_t::face_handle;
+  using typename parent_t::cell_handle;
   using typename parent_t::vertex_handle;
 
   using vec2          = vec<real_t, 2>;
@@ -403,7 +403,7 @@ struct front_evolving_streamsurface_discretization
   //----------------------------------------------------------------------------
   void triangulate_timeline(const front_t& front) {
     for (const auto& subfront : front) {
-      std::vector<face_handle> new_face_indices;
+      std::vector<cell_handle> new_face_indices;
       const auto&                 vs = subfront.first;
       auto [left0, end0]             = subfront.second;
       auto left1                     = begin(vs);
@@ -432,14 +432,14 @@ struct front_evolving_streamsurface_discretization
 
         if (lower_edge_len < upper_edge_len) {
           new_face_indices.push_back(
-              this->insert_face(*left0, *right0, *left1));
+              this->insert_cell(*left0, *right0, *left1));
           if (next(left0) != end0) {
             ++left0;
           }
 
         } else {
           new_face_indices.push_back(
-              this->insert_face(*left0, *right1, *left1));
+              this->insert_cell(*left0, *right1, *left1));
 
           if (next(left1) != end1) {
             ++left1;
@@ -610,7 +610,7 @@ struct front_evolving_streamsurface_discretization
 //  using vertex_vec_t     = typename parent_t::vertex_vec_t;
 //  using vertex_list_t    = typename parent_t::vertex_list_t;
 //  using vertex_handle           = typename parent_t::vertex_handle;
-//  using face_handle             = typename parent_t::face_handle;
+//  using cell_handle             = typename parent_t::cell_handle;
 //  using vertex_list_it_t = typename parent_t::vertex_list_it_t;
 //  using vertex_range_t   = typename parent_t::vertex_range_t;
 //  using parent_t::at;
@@ -710,7 +710,7 @@ struct hultquist_discretization : front_evolving_streamsurface_discretization<
   using typename parent_t::front_t;
   using typename parent_t::ssf_t;
   using typename parent_t::subfront_t;
-  using typename parent_t::face_handle;
+  using typename parent_t::cell_handle;
   using typename parent_t::uv_t;
   using typename parent_t::vertex_handle;
   using typename parent_t::vertex_list_it_t;
@@ -916,7 +916,7 @@ struct schulze_discretization : front_evolving_streamsurface_discretization<
   using typename parent_t::front_t;
   using typename parent_t::ssf_t;
   using typename parent_t::subfront_t;
-  using typename parent_t::face_handle;
+  using typename parent_t::cell_handle;
   using typename parent_t::vertex_handle;
   using typename parent_t::vertex_list_it_t;
   using typename parent_t::vertex_list_t;
@@ -1014,7 +1014,7 @@ struct schulze_discretization : front_evolving_streamsurface_discretization<
   auto evolve(const front_t& front, real_t desired_spatial_dist) {
     auto integrated_front = integrate(front);
     // triangulate
-    std::vector<std::vector<face_handle>> faces;
+    std::vector<std::vector<cell_handle>> faces;
     this->subdivide(integrated_front, desired_spatial_dist);
     this->reduce(integrated_front, desired_spatial_dist);
     this->triangulate_timeline(integrated_front);
