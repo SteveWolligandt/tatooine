@@ -21,6 +21,8 @@ struct pathline : renderable<pathline> {
   using integrator3_t  = ode::vclibs::rungekutta43<real_t, 3>;
   //----------------------------------------------------------------------------
   ui::input_pin&                          m_t0_pin;
+  ui::input_pin&                          m_forward_tau_pin;
+  ui::input_pin&                          m_backward_tau_pin;
   ui::input_pin&                          m_v_pin;
   ui::input_pin&                          m_x0_pin;
   ui::output_pin&                         m_neg2_pin;
@@ -29,6 +31,7 @@ struct pathline : renderable<pathline> {
   ui::output_pin&                         m_pos3_pin;
   vec2                                    m_x_neg2, m_x_pos2;
   vec3                                    m_x_neg3, m_x_pos3;
+  line<real_t, 3>                         m_cpu_data;
   yavin::indexeddata<vec3f, vec3f, float> m_gpu_data;
 
   real_t                 m_t0   = 0;

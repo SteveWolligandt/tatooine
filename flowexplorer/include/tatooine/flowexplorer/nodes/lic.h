@@ -63,8 +63,8 @@ struct lic : renderable<lic> {
   //----------------------------------------------------------------------------
   auto setup_quad() -> void;
   //----------------------------------------------------------------------------
-  auto render(mat<float, 4, 4> const& projection_matrix,
-              mat<float, 4, 4> const& view_matrix) -> void override;
+  auto render(mat4f const& projection_matrix, mat4f const& view_matrix)
+      -> void override;
   //----------------------------------------------------------------------------
   auto on_property_changed() -> void override;
   //----------------------------------------------------------------------------

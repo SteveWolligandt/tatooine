@@ -225,14 +225,46 @@ struct typed_multidim_property : multidim_property<Grid> {
 #ifdef TATOOINE_HAS_PNG_SUPPORT
 #ifdef __cpp_concepts
   template <typename = void>
-  requires (num_dimensions() == 2) &&
-           (is_floating_point<ValueType> || is_vec<ValueType>)
+      requires(num_dimensions() == 2) &&
+      (is_vec<ValueType>)
 #else
   template <size_t _N                                   = num_dimensions(),
-            enable_if<(_N == 2) && (is_floating_point<ValueType> ||
-                                    is_vec<ValueType>)> = true>
+            enable_if<(_N == 2) && (is_vec<ValueType>)> = true>
 #endif
-  auto write_png(filesystem::path const& path) const -> void {
+          auto write_png(filesystem::path const& path) const -> void {
+    png::image<png::rgb_pixel> image{
+        static_cast<png::uint_32>(this->grid().size(0)),
+        static_cast<png::uint_32>(this->grid().size(1))};
+    for (unsigned int y = 0; y < image.get_height(); ++y) {
+      for (png::uint_32 x = 0; x < image.get_width(); ++x) {
+        auto d = at(x, y);
+        if (std::isnan(d(0))) {
+          for (auto& c : d) {
+            c = 0;
+          }
+        } else {
+          for (auto& c : d) {
+            c = std::max<typename ValueType::value_type>(
+                0, std::min<typename ValueType::value_type>(1, c));
+          }
+        }
+        image[image.get_height() - 1 - y][x].red   = d(0) * 255;
+        image[image.get_height() - 1 - y][x].green = d(1) * 255;
+        image[image.get_height() - 1 - y][x].blue  = d(2) * 255;
+      }
+    }
+    image.write(path.string());
+  }
+#ifdef __cpp_concepts
+  template <typename = void>
+      requires(num_dimensions() == 2) &&
+      (is_floating_point<ValueType>)
+#else
+  template <size_t _N                                   = num_dimensions(),
+            enable_if<(_N == 2) && (is_floating_point<ValueType>> = true>
+#endif
+  auto write_png(filesystem::path const& path, ValueType const min = 0,
+                 ValueType const max = 1) const -> void {
     png::image<png::rgb_pixel> image{
         static_cast<png::uint_32>(this->grid().size(0)),
         static_cast<png::uint_32>(this->grid().size(1))};
@@ -243,7 +275,9 @@ struct typed_multidim_property : multidim_property<Grid> {
           if (std::isnan(d)) {
             d = 0;
           } else {
-            d = std::max<ValueType>(0, std::min<ValueType>(1, d));
+            d = std::max<ValueType>(min, std::min<ValueType>(max, d));
+            d -= min;
+            d /= max - min;
           }
           image[image.get_height() - 1 - y][x].red =
           image[image.get_height() - 1 - y][x].green =
@@ -256,13 +290,47 @@ struct typed_multidim_property : multidim_property<Grid> {
           } else {
             for (auto& c : d) {
               c = std::max<typename ValueType::value_type>(
-                  0, std::min<typename ValueType::value_type>(1, c));
+                  min, std::min<typename ValueType::value_type>(max, c));
+              c -= min;
+              c /= max - min;
             }
           }
           image[image.get_height() - 1 - y][x].red   = d(0) * 255;
           image[image.get_height() - 1 - y][x].green = d(1) * 255;
           image[image.get_height() - 1 - y][x].blue  = d(2) * 255;
         }
+      }
+    }
+    image.write(path.string());
+  }
+#ifdef __cpp_concepts
+  template <typename ColorScale>
+      requires(num_dimensions() == 2) &&
+      (is_floating_point<ValueType>)
+#else
+  template <size_t _N = num_dimensions(), typename ColorScale,
+            enable_if<(_N == 2) && (is_floating_point<ValueType>)> = true>
+#endif
+          auto write_png(filesystem::path const& path, ColorScale&& color_scale,
+                         ValueType const min = 0, ValueType const max = 1) const
+      -> void {
+    png::image<png::rgb_pixel> image{
+        static_cast<png::uint_32>(this->grid().size(0)),
+        static_cast<png::uint_32>(this->grid().size(1))};
+    for (unsigned int y = 0; y < image.get_height(); ++y) {
+      for (png::uint_32 x = 0; x < image.get_width(); ++x) {
+        auto d = at(x, y);
+        if (std::isnan(d)) {
+          d = 0;
+        } else {
+          d = std::max<ValueType>(min, std::min<ValueType>(max, d));
+          d -= min;
+          d /= max - min;
+        }
+        auto const col = color_scale(d) * 255;
+        image[image.get_height() - 1 - y][x].red   = col(0);
+        image[image.get_height() - 1 - y][x].green = col(1);
+        image[image.get_height() - 1 - y][x].blue  = col(2);
       }
     }
     image.write(path.string());

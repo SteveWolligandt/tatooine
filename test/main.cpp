@@ -8,12 +8,12 @@
 //#include <reporters/catch_reporter_sonarqube.hpp>
 
 #if TATOOINE_YAVIN_AVAILABLE
-#include <yavin/context.h>
+#include <yavin/window.h>
 #endif
 //==============================================================================
 auto main(int argc, char** argv) -> int {
 # if TATOOINE_YAVIN_AVAILABLE
-  //yavin::context ctx;
+  yavin::window ctx{"test", 100, 100};
 # endif
   return Catch::Session().run(argc, argv);
 }

@@ -29,8 +29,12 @@ auto lic::write_png() -> void {
     type_name                 = type_name.substr(last_colon_pos + 1,
                                  size(type_name) - last_colon_pos - 1);
 
-    str << "lic_" << type_name << "_x_" << m_bb->min(0) << "_" << m_bb->max(0)
-        << "_y_" << m_bb->min(1) << "_" << m_bb->max(1) << "_t_" << m_v->time()
+    // str << "lic_" << type_name << "_x_" << m_bb->min(0) << "_" <<
+    // m_bb->max(0)
+    //    << "_y_" << m_bb->min(1) << "_" << m_bb->max(1) << "_t_" <<
+    //    m_v->time()
+    //    << ".png";
+    str << "lic." << std::setfill('0') << std::setw(2) << m_v->time() * 10
         << ".png";
     m_lic_tex->write_png(str.str());
   }
@@ -58,10 +62,9 @@ auto lic::setup_quad() -> void {
   m_quad.indexbuffer()[5] = 2;
 }
 //----------------------------------------------------------------------------
-auto lic::render(mat<float, 4, 4> const& projection_matrix,
-                 mat<float, 4, 4> const& view_matrix) -> void {
+auto lic::render(mat4f const& P, mat4f const& V) -> void {
   if (m_lic_tex && m_v && m_bb) {
-    update_shader(projection_matrix, view_matrix);
+    update_shader(P, V);
     m_shader->bind();
     m_shader->set_alpha(m_alpha);
     {
@@ -78,10 +81,10 @@ void lic::calculate_lic() {
     return;
   }
   m_needs_another_update = false;
-  m_calculating = true;
+  m_calculating          = true;
   this->scene().window().do_async([this] {
     std::seed_seq seed(begin(m_seed_str), end(m_seed_str));
-    auto tex =
+    auto          tex =
         gpu::lic(*m_v,
                  uniform_grid<real_t, 2>{
                      linspace{m_bb->min(0), m_bb->max(0),
@@ -103,14 +106,12 @@ auto lic::update(std::chrono::duration<double> const& /*dt*/) -> void {
   }
 }
 //----------------------------------------------------------------------------
-auto lic::update_shader(mat<float, 4, 4> const& projection_matrix,
-                        mat<float, 4, 4> const& view_matrix) -> void {
+auto lic::update_shader(mat4f const& P, mat4f const& V) -> void {
   m_shader->set_modelview_matrix(
-      view_matrix *
-      rendering::translation_matrix<float>(m_bb->min(0), m_bb->min(1), 0) *
+      V * rendering::translation_matrix<float>(m_bb->min(0), m_bb->min(1), 0) *
       rendering::scale_matrix<float>(m_bb->max(0) - m_bb->min(0),
                                      m_bb->max(1) - m_bb->min(1), 1));
-  m_shader->set_projection_matrix(projection_matrix);
+  m_shader->set_projection_matrix(P);
 }
 //----------------------------------------------------------------------------
 auto lic::on_pin_connected(ui::input_pin& /*this_pin*/,
@@ -131,7 +132,7 @@ auto lic::on_property_changed() -> void {
   }
 }
 //----------------------------------------------------------------------------
-auto lic::on_pin_disconnected(ui::input_pin & /*this_pin*/) -> void {
+auto lic::on_pin_disconnected(ui::input_pin& /*this_pin*/) -> void {
   m_lic_tex.reset();
 }
 //----------------------------------------------------------------------------

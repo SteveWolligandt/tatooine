@@ -15,6 +15,7 @@ add_executable(
   flowexplorer
   ${TATFE_BIN_SRC_DIR}/directories.cpp
   ${TATFE_SRC_DIR}/jacobian.cpp
+  ${TATFE_SRC_DIR}/vtk_line_reader.cpp
   ${TATFE_SRC_DIR}/parallel_vectors.cpp
   ${TATFE_SRC_DIR}/linspace.cpp
   ${TATFE_SRC_DIR}/random_points.cpp

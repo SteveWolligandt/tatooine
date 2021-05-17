@@ -83,9 +83,11 @@ auto lic(parent::vectorfield<VReal, 2> const&          v,
          size_t num_samples, arithmetic auto stepsize,
          vec<size_t, 2> noise_res, std::seed_seq & noise_seed)
     -> yavin::tex2rgba<GPUReal> {
+      std::cerr << "uploading..";
   auto v_tex = gpu::upload_tex<GPUReal>(sample_to_vector(v, spatial_domain, t),
                                         spatial_domain.template size<0>(),
                                         spatial_domain.template size<1>());
+      std::cerr << "done\n";
   return lic<GPUReal>(v_tex, spatial_domain, lic_tex_res, num_samples, stepsize,
                       noise_res, noise_seed);
 }
@@ -96,7 +98,7 @@ auto lic(parent::vectorfield<VReal, 2> const& v, linspace<XReal> const& xres,
          linspace<YReal> const& yres, arithmetic auto t,
          vec<size_t, 2> const& lic_tex_res, size_t num_samples,
          arithmetic auto stepsize, vec<size_t, 2> noise_res,
-         std::seed_seq & noise_seed) -> yavin::tex2rgba<GPUReal> {
+         std::seed_seq& noise_seed) -> yavin::tex2rgba<GPUReal> {
   return lic<GPUReal>(v, grid{xres, yres}, t, lic_tex_res, num_samples,
                       stepsize, noise_res, noise_seed);
 }
