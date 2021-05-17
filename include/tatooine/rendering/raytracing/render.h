@@ -13,7 +13,6 @@ auto render(camera<Real> const& cam, triangular_mesh<Real, 3> const& mesh,
             std::string const&  prop_name = "image") {
   grid  image{cam.plane_width(), cam.plane_height()};
   auto& rendered_mesh = image.template add_vertex_property<vec3>(prop_name);
-  mesh.build_hierarchy();
 
   constexpr std::array offsets{vec2{0, 0}, vec2{-0.25, -0.25},
                                vec2{0.25, -0.25}, vec2{-0.25, 0.25},
@@ -35,13 +34,13 @@ auto render(camera<Real> const& cam, triangular_mesh<Real, 3> const& mesh,
           auto       luminance     = diffuse_color;
 
           auto const illuminance = std::abs(dot(L, N));
-          if (illuminance > 0) {
-            auto       brdf     = diffuse_color;
-            auto const half_dir = normalize(V + L);
-            auto const spec_dot = std::max(dot(half_dir, N), 0.0);
-            brdf += std::pow(spec_dot, shininess);
-            luminance += brdf * illuminance;
-          }
+          //if (illuminance > 0) {
+          //  auto       brdf     = diffuse_color;
+          //  auto const half_dir = normalize(V + L);
+          //  auto const spec_dot = std::max(dot(half_dir, N), 0.0);
+          //  brdf += std::pow(spec_dot, shininess);
+          //  luminance += brdf * illuminance;
+          //}
 
           rendered_mesh(x, y) += luminance;
         } else {
