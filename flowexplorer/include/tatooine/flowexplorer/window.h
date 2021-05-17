@@ -3,6 +3,7 @@
 //==============================================================================
 #include <tatooine/rendering/first_person_window.h>
 #include <tatooine/flowexplorer/scene.h>
+#include <tatooine/flowexplorer/ui/node.h>
 //==============================================================================
 namespace tatooine::flowexplorer {
 //==============================================================================
@@ -18,11 +19,11 @@ struct window : rendering::first_person_window {
   bool                                m_left_button_down = false;
   scene                               m_scene;
   std::unique_ptr<ImGui::FileBrowser> m_file_browser;
+  ui::base::node*                     m_path_notifier = nullptr;
   ImFont*                             m_font_regular = nullptr;
   ImFont*                             m_font_bold = nullptr;
   yavin::tex2rgba32f                  m_aabb2d_icon_tex;
   yavin::tex2rgba32f                  m_aabb3d_icon_tex;
-  bool                                m_picking_file = false;
   //============================================================================
   auto ui_scale_factor() const { return m_ui_scale_factor; }
   //----------------------------------------------------------------------------
@@ -50,8 +51,10 @@ struct window : rendering::first_person_window {
   auto close_file_explorer() {
     m_file_browser->ClearSelected();
     m_file_browser->Close();
+    m_path_notifier = nullptr;
   }
   //----------------------------------------------------------------------------
+ private:
   auto open_file_explorer() {
     m_file_browser = std::make_unique<ImGui::FileBrowser>(0);
     m_file_browser->Open();
@@ -65,6 +68,26 @@ struct window : rendering::first_person_window {
   auto open_file_explorer(std::string const&              title,
                           std::vector<char const*> const& extensions) {
     open_file_explorer(title);
+    m_file_browser->SetTypeFilters(extensions);
+  }
+
+  //----------------------------------------------------------------------------
+ public:
+  auto open_file_explorer(ui::base::node& n) {
+    m_file_browser  = std::make_unique<ImGui::FileBrowser>(0);
+    m_path_notifier = &n;
+    m_file_browser->Open();
+  }
+  // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+  auto open_file_explorer(std::string const& title, ui::base::node& n) {
+    open_file_explorer(n);
+    m_file_browser->SetTitle(title);
+  }
+  // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+  auto open_file_explorer(std::string const&              title,
+                          std::vector<char const*> const& extensions,
+                          ui::base::node& n) {
+    open_file_explorer(title, n);
     m_file_browser->SetTypeFilters(extensions);
   }
   //----------------------------------------------------------------------------

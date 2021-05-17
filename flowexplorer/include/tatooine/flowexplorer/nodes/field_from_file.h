@@ -39,20 +39,18 @@ struct field_from_file
     auto& win = this->scene().window();
     if (!win.file_explorer_is_opened() && ImGui::Button("read")) {
       m_picking_file = true;
-      win.open_file_explorer("Load File", {".am", ".vtk"});
+      win.open_file_explorer("Load File", {".am", ".vtk"}, *this);
     }
     bool changed = false;
-    if (win.file_explorer_is_opened() && m_picking_file) {
-      if (win.file_explorer().HasSelected()) {
-        std::cerr << "GOT\n";
-        m_path = win.file_explorer().GetSelected().string();
-        std::cerr << m_path << '\n';
-        this->read(m_path);
-        changed = true;
-        win.close_file_explorer();
-      }
-    }
     return changed;
+  }
+  //----------------------------------------------------------------------------
+  auto on_path_selected(std::string const& path) -> void override {
+    auto& win = this->scene().window();
+    m_path    = path;
+    std::cerr << m_path << '\n';
+    this->read(m_path);
+    win.close_file_explorer();
   }
   //----------------------------------------------------------------------------
   auto deserialize(toml::table const& serialized_node) -> void override {

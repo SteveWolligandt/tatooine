@@ -63,13 +63,11 @@ void window::on_key_pressed(yavin::key k) {
     m_scene.write("scene.toml");
   } else if (k == yavin::KEY_F6) {
     if (!file_explorer_is_opened()) {
-      m_picking_file = true;
       open_file_explorer("Load File", {".toml", ".scene", ".vtk"});
     }
   } else if (k == yavin::KEY_ESCAPE) {
     if (file_explorer_is_opened()) {
       close_file_explorer();
-      m_picking_file = false;
     }
   }
 }
@@ -156,11 +154,13 @@ void window::start() {
     }
     if (m_file_browser) {
       m_file_browser->Display();
-      if (m_picking_file) {
-        if (m_file_browser->HasSelected()) {
+      if (m_file_browser->HasSelected()) {
+        if (m_path_notifier) {
+          m_path_notifier->on_path_selected(m_file_browser->GetSelected());
+        } else {
           m_scene.open_file(m_file_browser->GetSelected());
-          close_file_explorer();
         }
+        close_file_explorer();
       }
     }
   });

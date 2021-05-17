@@ -357,7 +357,7 @@ auto diff(numerical_flowmap<V, ODESolver, InterpolationKernel> const& flowmap,
 //==============================================================================
 template <typename V, template <typename, size_t> typename ODESolver,
           template <typename> typename InterpolationKernel,
-          arithmetic EpsReal = typename V::real_t>
+          arithmetic EpsReal = typename std::decay_t<V>::real_t>
 auto diff(numerical_flowmap<V, ODESolver, InterpolationKernel> const& flowmap,
           EpsReal epsilon = 1e-7) {
   return diff(flowmap, tag::central, epsilon);

@@ -65,6 +65,24 @@ template <typename Tensor, typename Real, size_t N>
 auto eigenvectors_sym(base_tensor<Tensor, Real, N, N> const& A) {
   return lapack::syev(A);
 }
+//==============================================================================
+template <typename Tensor, typename Real>
+constexpr auto eigenvalues_sym(base_tensor<Tensor, Real, 2, 2> const& A) {
+  decltype(auto) b     = A(1, 0);
+  if (b == 0) {
+    return vec<Real, 2>{A(0, 0), A(1, 1)};
+  }
+  decltype(auto) a      = A(0, 0);
+  decltype(auto) d      = A(1, 1);
+  auto const     e_sqr  = d * d - 2 * a * d + 4 * b * b + a * a;
+  auto const     e      = std::sqrt(e_sqr);
+  constexpr auto half   = 1 / Real(2);
+  auto           lambda = vec<Real, 2>{-e + d + a, e + d + a} * half;
+  if (lambda(0) > lambda(1)) {
+    std::swap(lambda(0), lambda(1));
+  }
+  return lambda;
+}
 //------------------------------------------------------------------------------
 template <typename Tensor, typename Real>
 constexpr auto eigenvalues_22(base_tensor<Tensor, Real, 2, 2> const& A)
