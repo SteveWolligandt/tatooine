@@ -2,6 +2,8 @@
 #define TATOOINE_SAMPLER_H
 //==============================================================================
 #include <tatooine/concepts.h>
+#include <tatooine/interpolation.h>
+#include <tatooine/invoke_unpacked.h>
 #include <tatooine/crtp.h>
 #include <tatooine/exceptions.h>
 #include <tatooine/internal_value_type.h>
@@ -283,17 +285,11 @@ struct base_sampler : crtp<Sampler> {
     return sample(std::make_index_sequence<num_dimensions()>{}, xs...);
   }
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-  template <typename Tensor, typename TensorReal, size_t... Is>
-  constexpr auto sample(
-      base_tensor<Tensor, TensorReal, num_dimensions()> const& x,
-      std::index_sequence<Is...>                               seq) const {
-    return sample(seq, x(Is)...);
-  }
-  // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
   template <typename Tensor, typename TensorReal>
   constexpr auto sample(
       base_tensor<Tensor, TensorReal, num_dimensions()>const& x) const {
-    return sample(x, std::make_index_sequence<num_dimensions()>{});
+    return invoke_unpacked([this](auto const... xs) { return sample(xs...); },
+                           unpack(x));
   }
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 #ifdef __cpp_concepts
@@ -507,6 +503,145 @@ struct sampler_view
   //  return m_top_sampler.stencil_coefficients(dim_index, i);
   //}
 };
+//==============================================================================
+template <typename GridVertexProperty,
+          template <typename> typename... InterpolationKernels>
+struct differentiated_sampler;
+//==============================================================================
+template <typename GridVertexProperty>
+struct differentiated_sampler<GridVertexProperty,
+                              interpolation::linear, interpolation::linear> {
+  static constexpr auto num_dimensions() { return 2; }
+
+ private:
+  sampler<GridVertexProperty, interpolation::linear,
+          interpolation::linear> const& m_sampler;
+
+ public:
+  differentiated_sampler(
+      sampler<GridVertexProperty, interpolation::linear,
+              interpolation::linear> const& sampler)
+      : m_sampler{sampler} {}
+  //----------------------------------------------------------------------------
+ public:
+  constexpr auto sample(arithmetic auto x, arithmetic auto y) const {
+    auto const [ix, u] = m_sampler.template cell_index<0>(x);
+    auto const [iy, v] = m_sampler.template cell_index<1>(y);
+    decltype(auto) a   = m_sampler.data_at(ix, iy);
+    decltype(auto) b   = m_sampler.data_at(ix + 1, iy);
+    decltype(auto) c   = m_sampler.data_at(ix, iy + 1);
+    decltype(auto) d   = m_sampler.data_at(ix + 1, iy + 1);
+
+    auto const k  = d - c - b + a;
+    auto const dx = k * v + b - a;
+    auto const dy = k * u + c - a;
+    using value_type = typename std::decay_t<decltype(m_sampler)>::value_type;
+    if constexpr (is_arithmetic<value_type>) {
+      return vec{dx, dy};
+    } else if constexpr (is_vec<value_type>) {
+      return mat{{dx(0), dy(0)},
+                 {dx(1), dy(1)}};
+    }
+  }
+  // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+  template <typename Tensor, typename TensorReal>
+  constexpr auto sample(
+      base_tensor<Tensor, TensorReal, num_dimensions()> const& x) const {
+    return invoke_unpacked([this](auto const... xs) { return sample(xs...); },
+                           unpack(x));
+  }
+  // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+  constexpr auto operator()(arithmetic auto const x, arithmetic auto const y) const {
+    return sample(x,y);
+  }
+  // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+  template <typename Tensor, typename TensorReal>
+  constexpr auto operator()(
+      base_tensor<Tensor, TensorReal, num_dimensions()> const& x) const {
+    return invoke_unpacked([this](auto const... xs) { return sample(xs...); },
+                           unpack(x));
+  }
+};
+//==============================================================================
+template <typename GridVertexProperty>
+struct differentiated_sampler<GridVertexProperty, interpolation::linear,
+                              interpolation::linear, interpolation::linear> {
+  static constexpr auto num_dimensions() { return 3; }
+
+ private:
+  sampler<GridVertexProperty, interpolation::linear, interpolation::linear,
+          interpolation::linear> const& m_sampler;
+
+ public:
+  differentiated_sampler(
+      sampler<GridVertexProperty, interpolation::linear, interpolation::linear,
+              interpolation::linear> const& sampler)
+      : m_sampler{sampler} {}
+  //----------------------------------------------------------------------------
+ public:
+  constexpr auto sample(arithmetic auto x, arithmetic auto y,
+                        arithmetic auto z) const {
+    auto const [ix, u] = m_sampler.template cell_index<0>(x);
+    auto const [iy, v] = m_sampler.template cell_index<1>(y);
+    auto const [iz, w] = m_sampler.template cell_index<2>(z);
+    decltype(auto) a   = m_sampler.data_at(ix, iy, iz);
+    decltype(auto) b   = m_sampler.data_at(ix + 1, iy, iz);
+    decltype(auto) c   = m_sampler.data_at(ix, iy + 1, iz);
+    decltype(auto) d   = m_sampler.data_at(ix + 1, iy + 1, iz);
+    decltype(auto) e   = m_sampler.data_at(ix, iy, iz + 1);
+    decltype(auto) f   = m_sampler.data_at(ix + 1, iy, iz + 1);
+    decltype(auto) g   = m_sampler.data_at(ix, iy + 1, iz + 1);
+    decltype(auto) h   = m_sampler.data_at(ix + 1, iy + 1, iz + 1);
+
+    auto const k  = h - g - f + e - d + c + b - a;
+    auto const dx = (k * v + f - e - b + a) * w + (d - c - b + a) * v + b - a;
+    auto const dy = (k * u + g - e - c + a) * w + (d - c - b + a) * u + c - a;
+    auto const dz = (k * u + g - e - c + a) * v + (f - e - b + a) * u + e - a;
+    using value_type = typename std::decay_t<decltype(m_sampler)>::value_type;
+    if constexpr (is_arithmetic<value_type>) {
+      return vec{dx, dy, dz};
+    }
+    else if constexpr (is_vec<value_type>) {
+      return mat{{dx(0), dy(0), dz(0)},
+                 {dx(1), dy(1), dz(1)},
+                 {dx(2), dy(2), dz(2)}};
+    }
+  }
+  // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+  template <typename Tensor, typename TensorReal>
+  constexpr auto sample(
+      base_tensor<Tensor, TensorReal, num_dimensions()> const& x) const {
+    return invoke_unpacked(unpack(x),
+                           [this](auto const... xs) { return sample(xs...); });
+  }
+  // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+  constexpr auto operator()(arithmetic auto const x, arithmetic auto const y, arithmetic auto const z) const {
+    return sample(x,y,z);
+  }
+  // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+  template <typename Tensor, typename TensorReal>
+  constexpr auto operator()(
+      base_tensor<Tensor, TensorReal, num_dimensions()> const& x) const {
+    return invoke_unpacked([this](auto const... xs) { return sample(xs...); },
+                           unpack(x));
+  }
+};
+//==============================================================================
+template <typename GridVertexProperty>
+auto diff(
+    sampler<GridVertexProperty, interpolation::linear, interpolation::linear,
+            interpolation::linear> const& sampler) {
+  return differentiated_sampler<GridVertexProperty, interpolation::linear,
+                                interpolation::linear, interpolation::linear>{
+      sampler};
+}
+// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+template <typename GridVertexProperty>
+auto diff(sampler<GridVertexProperty, interpolation::linear,
+                  interpolation::linear> const& sampler) {
+  return differentiated_sampler<GridVertexProperty, interpolation::linear,
+                                interpolation::linear>{sampler};
+}
 //==============================================================================
 }  // namespace tatooine
 //==============================================================================

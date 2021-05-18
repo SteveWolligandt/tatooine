@@ -22,7 +22,7 @@ struct field {
   using time_t   = Real;
   using tensor_t = std::conditional_t<sizeof...(TensorDims) == 0, Real,
                                       tensor_type<Real, TensorDims...>>;
-  static constexpr auto is_field() {return true;}
+  static constexpr auto is_field() { return true; }
   static constexpr auto is_scalarfield() { return sizeof...(TensorDims) == 0; }
   static constexpr auto is_vectorfield() { return sizeof...(TensorDims) == 1; }
   //============================================================================
@@ -34,7 +34,7 @@ struct field {
     return sizeof...(TensorDims);
   }
   //----------------------------------------------------------------------------
-  template <size_t _num_tensor_dims = sizeof...(TensorDims),
+  template <size_t _num_tensor_dims           = sizeof...(TensorDims),
             enable_if<(_num_tensor_dims > 0)> = true>
   static constexpr auto tensor_dimension(size_t i) {
     return tensor_t::dimension(i);
@@ -64,11 +64,9 @@ struct field {
   [[nodiscard]] constexpr virtual auto in_domain(pos_t const&, Real) const
       -> bool = 0;
 #else
-  [[nodiscard]] virtual auto evaluate(pos_t const& x,
-                                                Real         t = 0) const
-      -> tensor_t = 0;
-  [[nodiscard]] virtual auto in_domain(pos_t const&, Real) const
-      -> bool = 0;
+  [[nodiscard]] virtual auto evaluate(pos_t const& x, Real t = 0) const
+      -> tensor_t                                                        = 0;
+  [[nodiscard]] virtual auto in_domain(pos_t const&, Real) const -> bool = 0;
 #endif
   //============================================================================
   // methods
@@ -169,22 +167,21 @@ struct is_vectorfield<T> : std::integral_constant<bool, T::is_vectorfield()> {};
 // free functions
 //==============================================================================
 #ifdef __cpp_concpets
-template <typename V, arithmetic VReal, size_t N,
-          size_t... TensorDims, indexable_space... SpatialDimensions, arithmetc T>
+template <typename V, arithmetic VReal, size_t N, size_t... TensorDims,
+          indexable_space... SpatialDimensions, arithmetc T>
 #else
 template <typename V, typename VReal, size_t N, size_t... TensorDims,
-          typename... SpatialDimensions,
-          typename T,
+          typename... SpatialDimensions, typename T,
           enable_if<is_arithmetic<VReal, T>> = true>
 #endif
 auto sample_to_raw(field<V, VReal, N, TensorDims...> const& f,
-                   grid<SpatialDimensions...> const& g, T const t,
-                   size_t padding = 0, VReal padval = 0) {
-  auto const           nan = VReal(0) / VReal(0);
+                   grid<SpatialDimensions...> const&        discretized_domain,
+                   T const t, size_t padding = 0, VReal padval = 0) {
+  auto const         nan = VReal(0) / VReal(0);
   std::vector<VReal> raw_data;
-  auto const           num_comps = std::max<size_t>(1, (TensorDims * ...));
-  raw_data.reserve(g.num_vertices() * (num_comps + padding));
-  for (auto x : g.vertices()) {
+  auto const         num_comps = std::max<size_t>(1, (TensorDims * ...));
+  raw_data.reserve(discretized_domain.num_vertices() * (num_comps + padding));
+  for (auto x : discretized_domain.vertices()) {
     if (f.in_domain(x, t)) {
       auto sample = f(x, t);
       if constexpr (sizeof...(TensorDims) == 0) {
@@ -194,7 +191,9 @@ auto sample_to_raw(field<V, VReal, N, TensorDims...> const& f,
           raw_data.push_back(static_cast<VReal>(sample[i]));
         }
       }
-      for (size_t i = 0; i < padding; ++i) { raw_data.push_back(padval); }
+      for (size_t i = 0; i < padding; ++i) {
+        raw_data.push_back(padval);
+      }
     } else {
       for (size_t i = 0; i < num_comps + padding; ++i) {
         raw_data.push_back(nan);
@@ -205,8 +204,8 @@ auto sample_to_raw(field<V, VReal, N, TensorDims...> const& f,
 }
 //------------------------------------------------------------------------------
 #ifdef __cpp_concpets
-template <typename V, arithmetic VReal, arithmetic TReal,
-          size_t N, size_t... TensorDims, indexable_space... SpatialDimensions,
+template <typename V, arithmetic VReal, arithmetic TReal, size_t N,
+          size_t... TensorDims, indexable_space... SpatialDimensions,
           indexable_space TemporalDimension>
 #else
 template <typename V, typename VReal, typename TReal, size_t N,
@@ -215,16 +214,16 @@ template <typename V, typename VReal, typename TReal, size_t N,
           enable_if<is_arithmetic<VReal, TReal>> = true>
 #endif
 auto sample_to_raw(field<V, VReal, N, TensorDims...> const& f,
-                   grid<SpatialDimensions...> const&        g,
+                   grid<SpatialDimensions...> const&        discretized_domain,
                    TemporalDimension const& temporal_domain, size_t padding = 0,
                    VReal padval = 0) {
-  auto const           nan = VReal(0) / VReal(0);
+  auto const         nan = VReal(0) / VReal(0);
   std::vector<VReal> raw_data;
-  auto const           num_comps = std::max<size_t>(1, (TensorDims * ...));
-  raw_data.reserve(g.num_vertices() * temporal_domain.size() *
+  auto const         num_comps = std::max<size_t>(1, (TensorDims * ...));
+  raw_data.reserve(discretized_domain.num_vertices() * temporal_domain.size() *
                    (num_comps + padding));
   for (auto t : temporal_domain) {
-    for (auto v : g.vertices()) {
+    for (auto v : discretized_domain.vertices()) {
       auto const x = v.position();
       if (f.in_domain(x, t)) {
         auto sample = f(x, t);
@@ -235,7 +234,9 @@ auto sample_to_raw(field<V, VReal, N, TensorDims...> const& f,
             raw_data.push_back(static_cast<VReal>(sample[i]));
           }
         }
-        for (size_t i = 0; i < padding; ++i) { raw_data.push_back(padval); }
+        for (size_t i = 0; i < padding; ++i) {
+          raw_data.push_back(padval);
+        }
       } else {
         for (size_t i = 0; i < num_comps + padding; ++i) {
           raw_data.push_back(nan);
@@ -247,21 +248,22 @@ auto sample_to_raw(field<V, VReal, N, TensorDims...> const& f,
 }
 //------------------------------------------------------------------------------
 #ifdef __cpp_concpets
-template <arithmetic VReal, arithmetic TReal, size_t N,
-          size_t... TensorDims, indexable_space... SpatialDimensions>
+template <arithmetic VReal, arithmetic TReal, size_t N, size_t... TensorDims,
+          indexable_space... SpatialDimensions>
 #else
 template <typename VReal, typename TReal, size_t N, size_t... TensorDims,
           typename... SpatialDimensions,
           enable_if<is_arithmetic<VReal, TReal>> = true>
 #endif
 auto sample_to_vector(parent::field<VReal, N, TensorDims...> const& f,
-                   grid<SpatialDimensions...> const& g, TReal t) {
-  using V = parent::field<VReal, N, TensorDims...>;
-  using tensor_t = typename V::tensor_t;
+                      grid<SpatialDimensions...> const& discretized_domain,
+                      TReal                             t) {
+  using V                   = parent::field<VReal, N, TensorDims...>;
+  using tensor_t            = typename V::tensor_t;
   auto const            nan = VReal(0) / VReal(0);
   std::vector<tensor_t> data;
-  data.reserve(g.num_vertices());
-  for (auto x : g.vertices()) {
+  data.reserve(discretized_domain.num_vertices());
+  for (auto x : discretized_domain.vertices()) {
     if (f.in_domain(x, t)) {
       data.push_back(f(x, t));
     } else {
@@ -283,9 +285,9 @@ template <typename V, typename VReal, typename TReal, size_t N,
           size_t... TensorDims, typename... SpatialDimensions,
           enable_if<is_arithmetic<VReal, TReal>> = true>
 #endif
-auto resample(field<V, VReal, N, TensorDims...> const& f,
-              grid<SpatialDimensions...> const&        spatial_domain,
-              TReal const                   t) {
+auto discretize(field<V, VReal, N, TensorDims...> const& f,
+                grid<SpatialDimensions...>&              discretized_domain,
+                std::string const& property_name, TReal const t) -> auto& {
   auto const ood_tensor = [] {
     if constexpr (sizeof...(TensorDims) == 0) {
       return VReal(0) / VReal(0);
@@ -293,85 +295,83 @@ auto resample(field<V, VReal, N, TensorDims...> const& f,
       return tensor<VReal, TensorDims...>{tag::fill{VReal(0) / VReal(0)}};
     }
   }();
-  std::pair gn{spatial_domain.copy_without_properties(), "resampled"};
-  auto&     prop = [&]() -> decltype(auto) {
+  auto& discretized_field = [&]() -> decltype(auto) {
     if constexpr (sizeof...(TensorDims) == 0) {
-      return gn.first.template add_contiguous_vertex_property<VReal>(
-          gn.second);
+      return discretized_domain.first.template add_vertex_property<VReal>(
+          property_name);
     } else if constexpr (sizeof...(TensorDims) == 1) {
-      return gn.first
-          .template add_contiguous_vertex_property<vec<VReal, TensorDims...>>(
-              gn.second);
+      return discretized_domain
+          .template add_vertex_property<vec<VReal, TensorDims...>>(
+              property_name);
     } else if constexpr (sizeof...(TensorDims) == 2) {
-      return gn.first
-          .template add_contiguous_vertex_property<mat<VReal, TensorDims...>>(
-              gn.second);
+      return discretized_domain
+          .template add_vertex_property<mat<VReal, TensorDims...>>(
+              property_name);
     } else {
-      return gn.first
-          .template add_contiguous_vertex_property<tensor<VReal, TensorDims...>>(
-              gn.second);
+      return discretized_domain
+          .template add_vertex_property<tensor<VReal, TensorDims...>>(
+              property_name);
     }
   }();
-  spatial_domain.loop_over_vertex_indices([&](auto const... is) {
-    auto const x = spatial_domain.vertex_at(is...);
+  discretized_domain.loop_over_vertex_indices([&](auto const... is) {
+    auto const x = discretized_domain.vertex_at(is...);
     if (f.in_domain(x, t)) {
-      prop.set_data_at(f(x, t), is...);
+      discretized_field(is...) = f(x, t);
     } else {
-      prop.set_data_at(ood_tensor, is...);
+      discretized_field(is...) = ood_tensor;
     }
   });
-  return gn;
+  return discretized_field;
 }
 //------------------------------------------------------------------------------
-#ifdef __cpp_concpets
-template <typename V, arithmetic VReal, arithmetic TReal, size_t N,
-          size_t... TensorDims, indexable_space... SpatialDimensions,
-          indexable_space TemporalDomain>
-#else
-template <typename V, typename VReal, typename TReal, size_t N,
-          size_t... TensorDims, typename... SpatialDimensions,
-          typename TemporalDomain,
-          enable_if<is_arithmetic<VReal, TReal>> = true>
-#endif
-auto resample(field<V, VReal, N, TensorDims...> const& f,
-              grid<SpatialDimensions...> const&        spatial_domain,
-              TemporalDomain const&                    temporal_domain) {
-  auto const ood_tensor = [] {
-    if constexpr (sizeof...(TensorDims) == 0) {
-      return VReal(0) / VReal(0);
-    } else {
-      return tensor<VReal, TensorDims...>{tag::fill{VReal(0) / VReal(0)}};
-    }
-  }();
-  std::pair gn{spatial_domain + temporal_domain, "resampled"};
-  auto&     prop = [&]() -> decltype(auto) {
-    if constexpr (sizeof...(TensorDims) == 0) {
-      return gn.first.template add_contiguous_vertex_property<VReal>(gn.second);
-    } else if constexpr (sizeof...(TensorDims) == 1) {
-      return gn.first
-          .template add_contiguous_vertex_property<vec<VReal, TensorDims...>>(
-              gn.second);
-    } else if constexpr (sizeof...(TensorDims) == 2) {
-      return gn.first
-          .template add_contiguous_vertex_property<mat<VReal, TensorDims...>>(
-              gn.second);
-    } else {
-      return gn.first.template add_contiguous_vertex_property<
-          tensor<VReal, TensorDims...>>(gn.second);
-    }
-  }();
-  for (auto const t : temporal_domain) {
-    spatial_domain.loop_over_vertex_indices([&](auto const... is) {
-      auto const x = spatial_domain.vertex_at(is...);
-      if (f.in_domain(x, t)) {
-        prop.data_at(is...) = f(x, t);
-      } else {
-        prop.data_at(is...) = ood_tensor;
-      }
-    });
-  }
-  return gn;
-}
+//#ifdef __cpp_concpets
+//template <typename V, arithmetic VReal, arithmetic TReal, size_t N,
+//          size_t... TensorDims, indexable_space... SpatialDimensions,
+//          indexable_space TemporalDomain>
+//#else
+//template <typename V, typename VReal, typename TReal, size_t N,
+//          size_t... TensorDims, typename... SpatialDimensions,
+//          typename TemporalDomain,
+//          enable_if<is_arithmetic<VReal, TReal>> = true>
+//#endif
+//auto resample(field<V, VReal, N, TensorDims...> const& f,
+//              grid<SpatialDimensions...>&              discretized_domain,
+//              TemporalDomain const& temporal_domain) -> auto& {
+//  auto const ood_tensor = [] {
+//    if constexpr (sizeof...(TensorDims) == 0) {
+//      return VReal(0) / VReal(0);
+//    } else {
+//      return tensor<VReal, TensorDims...>{tag::fill{VReal(0) / VReal(0)}};
+//    }
+//  }();
+//  auto& discretized_field = [&]() -> decltype(auto) {
+//    if constexpr (sizeof...(TensorDims) == 0) {
+//      return gn.first.template add_contiguous_vertex_property<VReal>(gn.second);
+//    } else if constexpr (sizeof...(TensorDims) == 1) {
+//      return gn.first
+//          .template add_contiguous_vertex_property<vec<VReal, TensorDims...>>(
+//              gn.second);
+//    } else if constexpr (sizeof...(TensorDims) == 2) {
+//      return gn.first
+//          .template add_contiguous_vertex_property<mat<VReal, TensorDims...>>(
+//              gn.second);
+//    } else {
+//      return gn.first.template add_contiguous_vertex_property<
+//          tensor<VReal, TensorDims...>>(gn.second);
+//    }
+//  }();
+//  for (auto const t : temporal_domain) {
+//    discretized_domain.loop_over_vertex_indices([&](auto const... is) {
+//      auto const x = discretized_domain.vertex_at(is...);
+//      if (f.in_domain(x, t)) {
+//        discretized_field.data_at(is...) = f(x, t);
+//      } else {
+//        discretized_field.data_at(is...) = ood_tensor;
+//      }
+//    });
+//  }
+//  return discretized_field;
+//}
 //==============================================================================
 }  // namespace tatooine
 //==============================================================================
