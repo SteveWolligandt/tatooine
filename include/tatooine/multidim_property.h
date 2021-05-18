@@ -571,25 +571,40 @@ struct typed_multidim_property_impl
 //};
 //==============================================================================
 template <typename Grid, typename ValueType>
-struct multidim_proper_derived_type_impl;
+struct multidim_property_derived_type_impl;
 template <typename Grid, typename ValueType>
 // = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = =
-using multidim_proper_derived_type =
-    typename multidim_proper_derived_type_impl<Grid, ValueType>::type;
+using multidim_property_derived_type =
+    typename multidim_property_derived_type_impl<Grid, ValueType>::type;
 // = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = =
 template <typename Grid>
-struct multidim_proper_derived_type_impl<Grid, float> {
+struct multidim_property_derived_type_impl<Grid, float> {
   using type = vec<float, Grid::num_dimensions()>;
 };
 // = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = =
 template <typename Grid>
-struct multidim_proper_derived_type_impl<Grid, double> {
+struct multidim_property_derived_type_impl<Grid, double> {
   using type = vec<double, Grid::num_dimensions()>;
 };
 // = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = =
 template <typename Grid>
-struct multidim_proper_derived_type_impl<Grid, long double> {
+struct multidim_property_derived_type_impl<Grid, long double> {
   using type = vec<long double, Grid::num_dimensions()>;
+};
+// = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = =
+template <typename Grid, size_t N>
+struct multidim_property_derived_type_impl<Grid, vec<float, N>> {
+  using type = mat<float, N, Grid::num_dimensions()>;
+};
+// = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = =
+template <typename Grid, size_t N>
+struct multidim_property_derived_type_impl<Grid, vec<double, N>> {
+  using type = mat<double, N, Grid::num_dimensions()>;
+};
+// = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = =
+template <typename Grid, size_t N>
+struct multidim_property_derived_type_impl<Grid, vec<long double, N>> {
+  using type = mat<long double, N, Grid::num_dimensions()>;
 };
 //==============================================================================
 template <typename Grid, typename PropValueType, bool PropHasNonConstReference>
@@ -598,7 +613,7 @@ struct derived_typed_multidim_property {
                                                  PropHasNonConstReference>;
   using prop_t =
       typed_multidim_property<Grid, PropValueType, PropHasNonConstReference>;
-  using value_type = multidim_proper_derived_type<Grid, PropValueType>;
+  using value_type = multidim_property_derived_type<Grid, PropValueType>;
   using grid_t     = Grid;
   //----------------------------------------------------------------------------
   static constexpr auto num_dimensions() { return Grid::num_dimensions(); }
@@ -612,11 +627,15 @@ struct derived_typed_multidim_property {
   template <integral... Is>
   requires(sizeof...(Is) == Grid::num_dimensions())
 #else
-  template <typename... Is, enable_if<is_integral<Is...>> = true,
-            enable_if<(sizeof...(Is) == Grid::num_dimensions())> = true>
+  template <typename... Is>
 #endif
   constexpr auto operator()(Is const... is) const -> value_type {
-    return at(is...);
+#ifndef __cpp_concepts
+    static_assert(sizeof...(Is) == Grid::num_dimensions(),
+                  "Number of indices does not match number of dimensions.");
+    static_assert(is_integral<Is...>, "Not all index types are integral.");
+#endif
+        return at(is...);
   }
   //----------------------------------------------------------------------------
 #ifdef __cpp_concepts
@@ -634,7 +653,7 @@ struct derived_typed_multidim_property {
   template <size_t... Seq, typename... Is>
   auto at(std::index_sequence<Seq...> /*seq*/, Is const... is) const
       -> value_type {
-    std::array<size_t, sizeof...(Is)> indices{static_cast<size_t>(is)...};
+    auto const indices = std::array{static_cast<size_t>(is)...};
     if constexpr (is_vec<value_type>) {
       return value_type{[&](auto const dim, auto const index) {
         if (index == 0) {
@@ -669,6 +688,42 @@ struct derived_typed_multidim_property {
                  m_prop(p1) * coeffs[2];
         }
       }(Seq, is)...};
+    } else if constexpr (is_mat<value_type>) {
+      auto derivative = value_type{};
+
+      ([&](auto const dim, auto const index) {
+        if (index == 0) {
+          auto const coeffs =
+              grid().diff_stencil_coefficients_0_p1_p2(dim, index);
+          auto p1 = indices;
+          auto p2 = indices;
+          p1[dim] += 1;
+          p2[dim] += 2;
+          derivative.col(dim) = m_prop(indices) * coeffs[0] +
+                                m_prop(p1) * coeffs[1] + m_prop(p2) * coeffs[2];
+        } else if (index == grid().size(dim) - 1) {
+          auto const coeffs =
+              grid().diff_stencil_coefficients_n2_n1_0(dim, index);
+          auto n1 = indices;
+          auto n2 = indices;
+          n1[dim] -= 1;
+          n2[dim] -= 2;
+          derivative.col(dim) = m_prop(n2) * coeffs[0] + m_prop(n1) * coeffs[1] +
+                                m_prop(indices) * coeffs[2];
+        } else {
+          auto const coeffs =
+              grid().diff_stencil_coefficients_n1_0_p1(dim, index);
+          auto n1 = indices;
+          auto p1 = indices;
+          n1[dim] -= 1;
+          p1[dim] += 1;
+          derivative.col(dim) = m_prop(n1) * coeffs[0] +
+                                m_prop(indices) * coeffs[1] +
+                                m_prop(p1) * coeffs[2];
+        }
+      }(Seq, is), ...);
+
+      return derivative;
     } else {
       return value_type{};
     }
@@ -713,11 +768,16 @@ struct derived_typed_multidim_property {
   auto linear_sampler() const -> decltype(auto) {
     return sampler<interpolation::linear>();
   }
+  //----------------------------------------------------------------------------
+  auto cubic_sampler() const -> decltype(auto) {
+    return sampler<interpolation::cubic>();
+  }
 };
 //==============================================================================
 template <typename Grid, typename ValueType, bool HasNonConstReference>
 auto diff(typed_multidim_property<Grid, ValueType, HasNonConstReference> const&
               prop) {
+  prop.grid().update_diff_stencil_coefficients();
   return derived_typed_multidim_property<Grid, ValueType, HasNonConstReference>{
       prop};
 }

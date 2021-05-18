@@ -507,7 +507,7 @@ class grid {
   template <size_t DimensionIndex, typename X,
             enable_if<is_arithmetic<X>> = true>
 #endif
-  auto cell_index(X const x) const -> std::pair<size_t, double> {
+  auto cell_index(X const x) const -> std::pair<size_t, real_t> {
     auto const& dim = dimension<DimensionIndex>();
     if constexpr (is_linspace<std::decay_t<decltype(dim)>>) {
       // calculate
@@ -893,6 +893,41 @@ class grid {
   template <typename T, typename IndexOrder = x_fastest>
   auto add_vertex_property(std::string const& name) -> auto& {
     return add_contiguous_vertex_property<T, IndexOrder>(name);
+  }
+  //----------------------------------------------------------------------------
+  template <typename IndexOrder = x_fastest>
+  auto add_scalar_vertex_property(std::string const& name) -> auto& {
+    return add_vertex_property<tatooine::real_t, IndexOrder>(name);
+  }
+  //----------------------------------------------------------------------------
+  template <typename IndexOrder = x_fastest>
+  auto add_vec2_vertex_property(std::string const& name) -> auto& {
+    return add_vertex_property<vec2, IndexOrder>(name);
+  }
+  //----------------------------------------------------------------------------
+  template <typename IndexOrder = x_fastest>
+  auto add_vec3_vertex_property(std::string const& name) -> auto& {
+    return add_vertex_property<vec3, IndexOrder>(name);
+  }
+  //----------------------------------------------------------------------------
+  template <typename IndexOrder = x_fastest>
+  auto add_vec4_vertex_property(std::string const& name) -> auto& {
+    return add_vertex_property<vec4, IndexOrder>(name);
+  }
+  //----------------------------------------------------------------------------
+  template <typename IndexOrder = x_fastest>
+  auto add_mat2_vertex_property(std::string const& name) -> auto& {
+    return add_vertex_property<mat2, IndexOrder>(name);
+  }
+  //----------------------------------------------------------------------------
+  template <typename IndexOrder = x_fastest>
+  auto add_mat3_vertex_property(std::string const& name) -> auto& {
+    return add_vertex_property<mat3, IndexOrder>(name);
+  }
+  //----------------------------------------------------------------------------
+  template <typename IndexOrder = x_fastest>
+  auto add_mat4_vertex_property(std::string const& name) -> auto& {
+    return add_vertex_property<mat4, IndexOrder>(name);
   }
   //----------------------------------------------------------------------------
   template <typename T, typename IndexOrder = x_fastest>
