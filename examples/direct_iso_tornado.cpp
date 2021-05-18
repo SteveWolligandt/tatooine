@@ -24,7 +24,7 @@ auto direct_iso_tornado() {
   constexpr auto alpha            = [](auto const t) -> double { return 0.5; };
   auto const     t                = 0;
   auto const     min              = 0;
-  auto const     max              = 10;
+  auto const     max              = 100;
   auto const     distance_on_ray  = 0.001;
   auto const     isovalue         = 1;
   auto const     background_color = vec3::ones();
@@ -63,8 +63,10 @@ auto direct_iso_tornado() {
       cam, aabb, Q, Q_gradient, isovalue, mag, min, max,
       domain_check, distance_on_ray,
       color_scale, alpha, background_color);
+#ifdef TATOOINE_HAS_PNG_SUPPORT
   write_png("direct_iso_analytical_tornado_Q.png",
             rendering_grid.vertex_property<vec3>("rendering"));
+#endif
 }
 //==============================================================================
 }  // namespace tatooine::examples
