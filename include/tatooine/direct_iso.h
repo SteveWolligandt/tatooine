@@ -85,7 +85,15 @@ auto direct_iso(
     color_type accumulated_color{};
 
     auto t0      = t;
-    auto x0      = r(t0+1e-5);
+    auto x0      = r(t0);
+    for (size_t i = 0; i < 3; ++i) {
+      if (x0(i) < aabb.min(i)) {
+        x0(i) = aabb.min(i);
+      }
+      if (x0(i) > aabb.max(i)) {
+        x0(i) = aabb.max(i);
+      }
+    }
     auto sample0 = data_evaluator(x0);
 
     auto  t1      = t0;
@@ -108,21 +116,36 @@ auto direct_iso(
         sample1 = data_evaluator(x1);
         if ((sample0 <= isovalue && sample1 > isovalue) ||
             (sample0 >= isovalue && sample1 < isovalue)) {
-          auto const t_iso = (isovalue - sample0) / (sample1 - sample0);
+          auto cur_x0 = x0;
+          auto cur_x1 = x1;
+          auto cur_sample0 = sample0;
+          auto cur_sample1 = sample1;
+          for (size_t i = 0; i < 10; ++i) {
+            auto x_center = (cur_x0 + cur_x1) / 2;
+            auto sample_center = data_evaluator(x_center);
+            if ((cur_sample0 <= isovalue && sample_center > isovalue) ||
+                (cur_sample0 >= isovalue && sample_center < isovalue)) {
+              cur_x1 = x_center;
+              cur_sample1 = sample_center;
+            } else {
+              cur_x0 = x_center;
+              cur_sample0 = sample_center;
+            }
+          }
+          auto const t_iso = (isovalue - cur_sample0) / (cur_sample1 - cur_sample0);
           auto const iso_pos = r(t0 + t_iso * distance_on_ray);
           using pos_t = typename decltype(r)::pos_t;
 
           auto const sample_at_iso = mapped_data_evaluator(iso_pos);
-
-          auto const gradient_at_iso = normalize(gradient_data_evaluator(iso_pos));
           auto const normalized_sample =
               std::clamp<value_type>((sample_at_iso - min) / (max - min), 0, 1);
 
-          auto const diffuse = 
-                  std::abs(dot(r.direction(), gradient_at_iso));
-          auto const reflect_dir = reflect(-r.direction(), gradient_at_iso);
+          auto const gradient_at_iso = gradient_data_evaluator(iso_pos);
+          auto const normal          = normalize(gradient_at_iso);
+          auto const diffuse = std::abs(dot(r.direction(), normal));
+          auto const reflect_dir     = reflect(-r.direction(), normal);
           auto const spec_dot = std::max(dot(reflect_dir, r.direction()), 0.0);
-          auto const specular    = std::pow(spec_dot, 100);
+          auto const specular = std::pow(spec_dot, 100);
           auto const sample_color =
               color_scale(normalized_sample) * diffuse + specular;
 

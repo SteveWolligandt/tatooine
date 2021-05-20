@@ -2,6 +2,7 @@
 #define TATOOINE_TRANSPOSED_TENSOR_H
 //==============================================================================
 #include <tatooine/base_tensor.h>
+#include <tatooine/is_transposed_tensor.h>
 //==============================================================================
 namespace tatooine {
 //==============================================================================
@@ -105,11 +106,6 @@ constexpr auto transposed(
   return transposed_tensor.as_derived().internal_tensor();
 }
 //==============================================================================
-template <typename T>
-struct is_transposed_tensor : std::false_type {};
-//------------------------------------------------------------------------------
-template <typename T>
-static constexpr auto is_transposed_tensor_v = is_transposed_tensor<T>::value;
 //------------------------------------------------------------------------------
 template <typename Tensor, size_t M, size_t N>
 struct is_transposed_tensor<const_transposed_tensor<Tensor, M, N>>

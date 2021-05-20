@@ -362,6 +362,13 @@ class static_multidim_array
   [[nodiscard]] constexpr auto data() -> auto& { return m_data; }
   [[nodiscard]] constexpr auto data() const -> auto const& { return m_data; }
   //----------------------------------------------------------------------------
+  [[nodiscard]] constexpr auto data(size_t const i) -> auto& {
+    return m_data[i];
+  }
+  [[nodiscard]] constexpr auto data(size_t const i) const -> auto const& {
+    return m_data[i];
+  }
+  //----------------------------------------------------------------------------
   [[nodiscard]] constexpr auto data_ptr() -> T* { return m_data.data(); }
   [[nodiscard]] constexpr auto data_ptr() const -> T const* {
     return m_data.data();
@@ -1061,6 +1068,13 @@ class dynamic_multidim_array : public dynamic_multidim_size<IndexOrder> {
   //----------------------------------------------------------------------------
   constexpr auto data() -> auto& { return m_data; }
   constexpr auto data() const -> auto const& { return m_data; }
+  //----------------------------------------------------------------------------
+  [[nodiscard]] constexpr auto data(size_t const i) -> auto& {
+    return m_data[i];
+  }
+  [[nodiscard]] constexpr auto data(size_t const i) const -> auto const& {
+    return m_data[i];
+  }
   //----------------------------------------------------------------------------
   constexpr auto data_ptr() -> T* { return m_data.data(); }
   constexpr auto data_ptr() const -> T const* { return m_data.data(); }

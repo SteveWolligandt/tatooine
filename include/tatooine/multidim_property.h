@@ -146,6 +146,10 @@ struct typed_multidim_property : multidim_property<Grid> {
     return sampler<interpolation::linear>();
   }
   //----------------------------------------------------------------------------
+  auto cubic_sampler() const -> decltype(auto) {
+    return sampler<interpolation::cubic>();
+  }
+  //----------------------------------------------------------------------------
   // data access
   //----------------------------------------------------------------------------
   constexpr auto operator()(
@@ -658,34 +662,65 @@ struct derived_typed_multidim_property {
       return value_type{[&](auto const dim, auto const index) {
         if (index == 0) {
           auto const coeffs =
-              grid().diff_stencil_coefficients_0_p1_p2(dim, index);
-          auto p1 = indices;
-          auto p2 = indices;
-          p1[dim] += 1;
-          p2[dim] += 2;
+              grid().diff_stencil_coefficients_0_p1_p2_p3_p4(dim, index);
+          auto p1 = indices; p1[dim] += 1;
+          auto p2 = indices; p2[dim] += 2;
+          auto p3 = indices; p3[dim] += 3;
+          auto p4 = indices; p4[dim] += 4;
           return m_prop(indices) * coeffs[0] +
-                 m_prop(p1) * coeffs[1] +
-                 m_prop(p2) * coeffs[2];
+                 m_prop(p1)      * coeffs[1]  +
+                 m_prop(p2)      * coeffs[2]+
+                 m_prop(p3)      * coeffs[3] +
+                 m_prop(p4)      * coeffs[4];
+        } else if (index == 1) {
+          auto const coeffs =
+              grid().diff_stencil_coefficients_n1_0_p1_p2_p3(dim, index);
+          auto n1 = indices; n1[dim] -= 1;
+          auto p1 = indices; p1[dim] += 1;
+          auto p2 = indices; p2[dim] += 2;
+          auto p3 = indices; p3[dim] += 3;
+          return m_prop(n1)      * coeffs[0] +
+                 m_prop(indices) * coeffs[1] +
+                 m_prop(p1)      * coeffs[2] +
+                 m_prop(p2)      * coeffs[3] +
+                 m_prop(p3)      * coeffs[4];
+        } else if (index == grid().size(dim) - 2) {
+          auto const coeffs =
+              grid().diff_stencil_coefficients_n4_n3_n2_n1_0_p1(dim, index);
+          auto n3 = indices; n3[dim] -= 3;
+          auto n2 = indices; n2[dim] -= 2;
+          auto n1 = indices; n1[dim] -= 1;
+          auto p1 = indices; p1[dim] += 1;
+          return m_prop(n3)      * coeffs[0] +
+                 m_prop(n2)      * coeffs[1] +
+                 m_prop(n1)      * coeffs[2] +
+                 m_prop(indices) * coeffs[3] +
+                 m_prop(p1)      * coeffs[4];
         } else if (index == grid().size(dim) - 1) {
           auto const coeffs =
-              grid().diff_stencil_coefficients_n2_n1_0(dim, index);
-          auto n1 = indices;
-          auto n2 = indices;
-          n1[dim] -= 1;
-          n2[dim] -= 2;
-          return m_prop(n2) * coeffs[0] +
-                 m_prop(n1) * coeffs[1] +
-                 m_prop(indices) * coeffs[2];
+              grid().diff_stencil_coefficients_n4_n3_n2_n1_0(dim, index);
+          auto n4 = indices; n4[dim] -= 4;
+          auto n3 = indices; n3[dim] -= 3;
+          auto n2 = indices; n2[dim] -= 2;
+          auto n1 = indices; n1[dim] -= 1;
+          return m_prop(n4)      * coeffs[0] +
+                 m_prop(n3)      * coeffs[1] +
+                 m_prop(n2)      * coeffs[2] +
+                 m_prop(n1)      * coeffs[3] +
+                 m_prop(indices) * coeffs[4];
         } else {
           auto const coeffs =
-              grid().diff_stencil_coefficients_n1_0_p1(dim, index);
-          auto n1 = indices;
-          auto p1 = indices;
-          n1[dim] -= 1;
-          p1[dim] += 1;
-          return m_prop(n1) * coeffs[0] +
-                 m_prop(indices) * coeffs[1] +
-                 m_prop(p1) * coeffs[2];
+              grid().diff_stencil_coefficients_n2_n1_0_p1_p2(dim, index);
+          auto n2 = indices; n2[dim] -= 2;
+          auto n1 = indices; n1[dim] -= 1;
+          auto p1 = indices; p1[dim] += 1;
+          auto p2 = indices; p2[dim] += 2;
+
+          return m_prop(n2)      * coeffs[0] +
+                 m_prop(n1)      * coeffs[1] +
+                 m_prop(indices) * coeffs[2] +
+                 m_prop(p1)      * coeffs[3] +
+                 m_prop(p2)      * coeffs[4];
         }
       }(Seq, is)...};
     } else if constexpr (is_mat<value_type>) {
@@ -694,13 +729,28 @@ struct derived_typed_multidim_property {
       ([&](auto const dim, auto const index) {
         if (index == 0) {
           auto const coeffs =
-              grid().diff_stencil_coefficients_0_p1_p2(dim, index);
-          auto p1 = indices;
-          auto p2 = indices;
-          p1[dim] += 1;
-          p2[dim] += 2;
+              grid().diff_stencil_coefficients_0_p1_p2_p3_p4(dim, index);
+          auto p1 = indices; p1[dim] += 1;
+          auto p2 = indices; p2[dim] += 2;
+          auto p3 = indices; p3[dim] += 3;
+          auto p4 = indices; p4[dim] += 4;
           derivative.col(dim) = m_prop(indices) * coeffs[0] +
-                                m_prop(p1) * coeffs[1] + m_prop(p2) * coeffs[2];
+                                m_prop(p1)      * coeffs[1]  +
+                                m_prop(p2)      * coeffs[2]+
+                                m_prop(p3)      * coeffs[3] +
+                                m_prop(p4)      * coeffs[4];
+        if (index == 0) {
+          auto const coeffs =
+              grid().diff_stencil_coefficients_n1_0_p1_p2_p3(dim, index);
+          auto n1 = indices; n1[dim] -= 1;
+          auto p1 = indices; p1[dim] += 1;
+          auto p2 = indices; p2[dim] += 2;
+          auto p3 = indices; p3[dim] += 3;
+          derivative.col(dim) = m_prop(n1)      * coeffs[0] + 
+                                m_prop(indices) * coeffs[1] +
+                                m_prop(p1)      * coeffs[2]  +
+                                m_prop(p2)      * coeffs[3]+
+                                m_prop(p3)      * coeffs[4];
         } else if (index == grid().size(dim) - 1) {
           auto const coeffs =
               grid().diff_stencil_coefficients_n2_n1_0(dim, index);
@@ -763,14 +813,6 @@ struct derived_typed_multidim_property {
       grid().update_diff_stencil_coefficients();
       return sampler_t{*this};
     }
-  }
-  //----------------------------------------------------------------------------
-  auto linear_sampler() const -> decltype(auto) {
-    return sampler<interpolation::linear>();
-  }
-  //----------------------------------------------------------------------------
-  auto cubic_sampler() const -> decltype(auto) {
-    return sampler<interpolation::cubic>();
   }
 };
 //==============================================================================
