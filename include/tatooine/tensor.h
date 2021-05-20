@@ -138,9 +138,10 @@ struct tensor : base_tensor<tensor<T, Dims...>, T, Dims...>,  // NOLINT
         }
         return *this;
       }
+    } else {
+      this->assign_other_tensor(other);
+      return *this;
     }
-    this->assign_other_tensor(other);
-    return *this;
   }
   //----------------------------------------------------------------------------
   static constexpr auto zeros() { return this_t{tag::fill<T>{0}}; }

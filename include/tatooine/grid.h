@@ -72,16 +72,31 @@ class grid {
   dimensions_t         m_dimensions;
   property_container_t m_vertex_properties;
   mutable bool         m_diff_stencil_coefficients_created_once = false;
-  mutable std::array<std::vector<std::vector<double>>, num_dimensions()>
-      m_diff_stencil_coefficients_n1_0_p1, m_diff_stencil_coefficients_n2_n1_0,
-      m_diff_stencil_coefficients_0_p1_p2, m_diff_stencil_coefficients_0_p1,
-      m_diff_stencil_coefficients_n1_0;
+  mutable std::array<std::vector<std::vector<real_t>>, num_dimensions()>
+      m_diff_stencil_coefficients_0_p1_p2_p3_p4,
+      m_diff_stencil_coefficients_n1_0_p1_p2_p3,
+      m_diff_stencil_coefficients_n2_n1_0_p1_p2,
+      m_diff_stencil_coefficients_n3_n2_n1_0_p1,
+      m_diff_stencil_coefficients_n4_n3_n2_n1_0,
+      m_diff_stencil_coefficients_n1_0_p1,
+      m_diff_stencil_coefficients_n2_n1_0, m_diff_stencil_coefficients_0_p1_p2,
+      m_diff_stencil_coefficients_0_p1, m_diff_stencil_coefficients_n1_0;
   size_t m_chunk_size_for_lazy_properties = 2;
   //============================================================================
  public:
   constexpr grid() = default;
   constexpr grid(grid const& other)
       : m_dimensions{other.m_dimensions},
+        m_diff_stencil_coefficients_0_p1_p2_p3_p4{
+            other.m_diff_stencil_coefficients_0_p1_p2_p3_p4},
+        m_diff_stencil_coefficients_n1_0_p1_p2_p3{
+            other.m_diff_stencil_coefficients_n1_0_p1_p2_p3},
+        m_diff_stencil_coefficients_n2_n1_0_p1_p2{
+            other.m_diff_stencil_coefficients_n2_n1_0_p1_p2},
+        m_diff_stencil_coefficients_n3_n2_n1_0_p1{
+            other.m_diff_stencil_coefficients_n3_n2_n1_0_p1},
+        m_diff_stencil_coefficients_n4_n3_n2_n1_0{
+            other.m_diff_stencil_coefficients_n4_n3_n2_n1_0},
         m_diff_stencil_coefficients_n1_0_p1{
             other.m_diff_stencil_coefficients_n1_0_p1},
         m_diff_stencil_coefficients_n2_n1_0{
@@ -101,6 +116,16 @@ class grid {
   constexpr grid(grid&& other) noexcept
       : m_dimensions{std::move(other.m_dimensions)},
         m_vertex_properties{std::move(other.m_vertex_properties)},
+        m_diff_stencil_coefficients_0_p1_p2_p3_p4{
+            std::move(other.m_diff_stencil_coefficients_0_p1_p2_p3_p4)},
+        m_diff_stencil_coefficients_n1_0_p1_p2_p3{
+            std::move(other.m_diff_stencil_coefficients_n1_0_p1_p2_p3)},
+        m_diff_stencil_coefficients_n2_n1_0_p1_p2{
+            std::move(other.m_diff_stencil_coefficients_n2_n1_0_p1_p2)},
+        m_diff_stencil_coefficients_n3_n2_n1_0_p1{
+            std::move(other.m_diff_stencil_coefficients_n3_n2_n1_0_p1)},
+        m_diff_stencil_coefficients_n4_n3_n2_n1_0{
+            std::move(other.m_diff_stencil_coefficients_n4_n3_n2_n1_0)},
         m_diff_stencil_coefficients_n1_0_p1{
             std::move(other.m_diff_stencil_coefficients_n1_0_p1)},
         m_diff_stencil_coefficients_n2_n1_0{
@@ -433,7 +458,7 @@ class grid {
 #endif
       constexpr auto is_inside(std::index_sequence<Seq...> /*seq*/,
                                Comps const... comps) const {
-    return ((front<Seq>() <= comps || comps <= back<Seq>()) || ...);
+    return ((front<Seq>() <= comps && comps <= back<Seq>()) && ...);
   }
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 #ifdef __cpp_concepts
@@ -450,7 +475,7 @@ class grid {
   template <size_t... Seq>
   constexpr auto is_inside(pos_t const& p,
                            std::index_sequence<Seq...> /*seq*/) const {
-    return ((p(Seq) < front<Seq>() || back<Seq>() < p(Seq)) && ...);
+    return ((front<Seq>() <= p(Seq) && p(Seq) <= back<Seq>()) && ...);
   }
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
   constexpr auto is_inside(pos_t const& p) const {
@@ -514,6 +539,9 @@ class grid {
       auto pos =
           (x - dim.front()) / (dim.back() - dim.front()) * (dim.size() - 1);
       auto quantized_pos = static_cast<size_t>(std::floor(pos));
+      if (quantized_pos == dim.size() - 1) {
+        --quantized_pos;
+      }
       auto cell_position = pos - quantized_pos;
       if (quantized_pos == dim.size() - 1) {
         --quantized_pos;
@@ -557,6 +585,31 @@ class grid {
     return cell_index(seq_t{}, xs...);
   }
   //----------------------------------------------------------------------------
+  auto diff_stencil_coefficients_0_p1_p2_p3_p4(size_t dim_index, size_t i) const
+      -> auto const& {
+    return m_diff_stencil_coefficients_0_p1_p2_p3_p4[dim_index][i];
+  }
+  //----------------------------------------------------------------------------
+  auto diff_stencil_coefficients_n1_0_p1_p2_p3(size_t dim_index, size_t i) const
+      -> auto const& {
+    return m_diff_stencil_coefficients_n1_0_p1_p2_p3[dim_index][i];
+  }
+  //----------------------------------------------------------------------------
+  auto diff_stencil_coefficients_n2_n1_0_p1_p2(size_t dim_index, size_t i) const
+      -> auto const& {
+    return m_diff_stencil_coefficients_n2_n1_0_p1_p2[dim_index][i];
+  }
+  //----------------------------------------------------------------------------
+  auto diff_stencil_coefficients_n3_n2_n1_0_p1(size_t dim_index, size_t i) const
+      -> auto const& {
+    return m_diff_stencil_coefficients_n3_n2_n1_0_p1[dim_index][i];
+  }
+  //----------------------------------------------------------------------------
+  auto diff_stencil_coefficients_n4_n3_n2_n1_0(size_t dim_index, size_t i) const
+      -> auto const& {
+    return m_diff_stencil_coefficients_n4_n3_n2_n1_0[dim_index][i];
+  }
+  //----------------------------------------------------------------------------
   auto diff_stencil_coefficients_n1_0_p1(size_t dim_index, size_t i) const
       -> auto const& {
     return m_diff_stencil_coefficients_n1_0_p1[dim_index][i];
@@ -589,6 +642,11 @@ class grid {
   template <size_t... Ds>
   auto update_diff_stencil_coefficients(
       std::index_sequence<Ds...> /*seq*/) const {
+    (update_diff_stencil_coefficients_0_p1_p2_p3_p4<Ds>(), ...);
+    (update_diff_stencil_coefficients_n1_0_p1_p2_p3<Ds>(), ...);
+    (update_diff_stencil_coefficients_n2_n1_0_p1_p2<Ds>(), ...);
+    (update_diff_stencil_coefficients_n3_n2_n1_0_p1<Ds>(), ...);
+    (update_diff_stencil_coefficients_n4_n3_n2_n1_0<Ds>(), ...);
     (update_diff_stencil_coefficients_n1_0_p1<Ds>(), ...);
     (update_diff_stencil_coefficients_0_p1_p2<Ds>(), ...);
     (update_diff_stencil_coefficients_n2_n1_0<Ds>(), ...);
@@ -602,89 +660,86 @@ class grid {
         std::make_index_sequence<num_dimensions()>{});
   }
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-  template <size_t D>
-  auto update_diff_stencil_coefficients_n1_0_p1() const {
-    auto const& dim = dimension<D>();
-    m_diff_stencil_coefficients_n1_0_p1[D].resize(dim.size());
+  template <typename Dim>
+  auto update_diff_stencil_coefficients(
+      Dim const& dim, std::vector<std::vector<real_t>>& stencils,
+      size_t const stencil_size, size_t const stencil_center) const {
+    stencils.reserve(dim.size());
 
-    for (size_t i = 1; i < dim.size() - 1; ++i) {
-      vec<double, 3> xs;
-      for (size_t j = 0; j < 3; ++j) {
-        xs(j) = dim[i - 1 + j] - dim[i];
-      }
-      auto const cs = finite_differences_coefficients(1, xs);
-      m_diff_stencil_coefficients_n1_0_p1[D][i].reserve(3);
-      std::copy(begin(cs.data()), end(cs.data()),
-                std::back_inserter(m_diff_stencil_coefficients_n1_0_p1[D][i]));
+    for (size_t i = 0; i < stencil_center; ++i) {
+      stencils.emplace_back();
     }
+    for (size_t i = stencil_center;
+         i < dim.size() - (stencil_size - stencil_center - 1); ++i) {
+      std::vector<real_t> xs(stencil_size);
+      for (size_t j = 0; j < stencil_size; ++j) {
+        xs[j] = dim[i - stencil_center + j] - dim[i];
+      }
+      stencils.push_back(finite_differences_coefficients(1, xs));
+    }
+    for (size_t i = 0; i < stencil_size - stencil_center - 1; ++i) {
+      stencils.emplace_back();
+    }
+  }
+  // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+  template <size_t D>
+  auto update_diff_stencil_coefficients_0_p1_p2_p3_p4() const {
+    auto& stencils = m_diff_stencil_coefficients_0_p1_p2_p3_p4[D];
+    update_diff_stencil_coefficients(dimension<D>(), stencils, 5, 0);
+  }
+  // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+  template <size_t D>
+  auto update_diff_stencil_coefficients_n1_0_p1_p2_p3() const {
+    auto& stencils = m_diff_stencil_coefficients_n1_0_p1_p2_p3[D];
+    update_diff_stencil_coefficients(dimension<D>(), stencils, 5, 1);
+  }
+  // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+  template <size_t D>
+  auto update_diff_stencil_coefficients_n2_n1_0_p1_p2() const {
+    auto& stencils = m_diff_stencil_coefficients_n2_n1_0_p1_p2[D];
+    update_diff_stencil_coefficients(dimension<D>(), stencils, 5, 2);
+  }
+  // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+  template <size_t D>
+  auto update_diff_stencil_coefficients_n3_n2_n1_0_p1() const {
+    auto& stencils = m_diff_stencil_coefficients_n3_n2_n1_0_p1[D];
+    update_diff_stencil_coefficients(dimension<D>(), stencils, 5, 3);
+  }
+  // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+  template <size_t D>
+  auto update_diff_stencil_coefficients_n4_n3_n2_n1_0() const {
+    auto& stencils = m_diff_stencil_coefficients_n4_n3_n2_n1_0[D];
+    update_diff_stencil_coefficients(dimension<D>(), stencils, 5, 4);
   }
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
   template <size_t D>
   auto update_diff_stencil_coefficients_0_p1_p2() const {
-    auto const& dim = dimension<D>();
-    m_diff_stencil_coefficients_0_p1_p2[D].resize(dim.size());
-
-    for (size_t i = 0; i < dim.size() - 2; ++i) {
-      vec<double, 3> xs;
-      for (size_t j = 0; j < 3; ++j) {
-        xs(j) = dim[i + j] - dim[i];
-      }
-      auto const cs = finite_differences_coefficients(1, xs);
-      m_diff_stencil_coefficients_0_p1_p2[D][i].reserve(3);
-      std::copy(begin(cs.data()), end(cs.data()),
-                std::back_inserter(m_diff_stencil_coefficients_0_p1_p2[D][i]));
-    }
+    auto& stencils = m_diff_stencil_coefficients_0_p1_p2[D];
+    update_diff_stencil_coefficients(dimension<D>(), stencils, 3, 0);
+  }
+  // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+  template <size_t D>
+  auto update_diff_stencil_coefficients_n1_0_p1() const {
+    auto& stencils = m_diff_stencil_coefficients_n1_0_p1[D];
+    update_diff_stencil_coefficients(dimension<D>(), stencils, 3, 1);
   }
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
   template <size_t D>
   auto update_diff_stencil_coefficients_n2_n1_0() const {
-    auto const& dim = dimension<D>();
-    m_diff_stencil_coefficients_n2_n1_0[D].resize(dim.size());
-
-    for (size_t i = 2; i < dim.size(); ++i) {
-      vec<double, 3> xs;
-      for (size_t j = 0; j < 3; ++j) {
-        xs(j) = dim[i - 2 + j] - dim[i];
-      }
-      auto const cs = finite_differences_coefficients(1, xs);
-      m_diff_stencil_coefficients_n2_n1_0[D][i].reserve(3);
-      std::copy(begin(cs.data()), end(cs.data()),
-                std::back_inserter(m_diff_stencil_coefficients_n2_n1_0[D][i]));
-    }
+    auto& stencils = m_diff_stencil_coefficients_n2_n1_0[D];
+    update_diff_stencil_coefficients(dimension<D>(), stencils, 3, 2);
   }
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
   template <size_t D>
   auto update_diff_stencil_coefficients_0_p1() const {
-    auto const& dim = dimension<D>();
-    m_diff_stencil_coefficients_0_p1[D].resize(dim.size());
-
-    for (size_t i = 0; i < dim.size() - 1; ++i) {
-      vec<double, 2> xs;
-      for (size_t j = 0; j < 2; ++j) {
-        xs(j) = dim[i + j] - dim[i];
-      }
-      auto const cs = finite_differences_coefficients(1, xs);
-      m_diff_stencil_coefficients_0_p1[D][i].reserve(2);
-      std::copy(begin(cs.data()), end(cs.data()),
-                std::back_inserter(m_diff_stencil_coefficients_0_p1[D][i]));
-    }
+    auto& stencils = m_diff_stencil_coefficients_0_p1[D];
+    update_diff_stencil_coefficients(dimension<D>(), stencils, 2, 0);
   }
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
   template <size_t D>
   auto update_diff_stencil_coefficients_n1_0() const {
-    auto const& dim = dimension<D>();
-    m_diff_stencil_coefficients_n1_0[D].resize(dim.size());
-
-    for (size_t i = 1; i < dim.size(); ++i) {
-      vec<double, 2> xs;
-      for (size_t j = 0; j < 2; ++j) {
-        xs(j) = dim[i - 1 + j] - dim[i];
-      }
-      auto const cs = finite_differences_coefficients(1, xs);
-      m_diff_stencil_coefficients_n1_0[D][i].reserve(3);
-      std::copy(begin(cs.data()), end(cs.data()),
-                std::back_inserter(m_diff_stencil_coefficients_n1_0[D][i]));
-    }
+    auto& stencils = m_diff_stencil_coefficients_n1_0[D];
+    update_diff_stencil_coefficients(dimension<D>(), stencils, 2, 1);
   }
   //----------------------------------------------------------------------------
  private:

@@ -9,14 +9,14 @@ namespace tatooine::examples {
 auto direct_iso_discretized_tornado() {
   analytical::fields::numerical::tornado v;
   auto                                   discretized_domain =
-      grid{linspace{-1.0, 1.0, 201},
-           linspace{-1.0, 1.0, 201},
-           linspace{-1.0, 1.0, 201}};
+      grid{linspace{-1.0, 1.0, 51},
+           linspace{-1.0, 1.0, 51},
+           linspace{-1.0, 1.0, 51}};
   auto& discretized_field = discretize(v, discretized_domain, "v", 0);
   auto& discretized_Q     = discretized_domain.add_scalar_vertex_property("Q");
-  auto  discretized_Q_sampler = discretized_Q.linear_sampler();
+  auto  discretized_Q_sampler      = discretized_Q.cubic_sampler();
   auto  diff_discretized_Q_sampler = diff(discretized_Q_sampler);
-  auto  discretized_J         = diff(discretized_field);
+  auto  discretized_J              = diff(discretized_field);
 
   discretized_domain.parallel_loop_over_vertex_indices([&](auto const... is) {
     auto const J = discretized_J(is...);
@@ -34,17 +34,17 @@ auto direct_iso_discretized_tornado() {
   auto const            up                  = vec3{0, 0, 1};
   auto const            fov                 = 60;
   rendering::perspective_camera cam{eye, lookat, up, fov, width, height};
-  constexpr auto alpha        = [](auto const t) -> real_t { return 0.5; };
+  constexpr auto alpha        = [](auto const t) -> real_t { return 1; };
   auto const     t            = 0;
   auto const     min          = 0;
   auto const     max          = 1;
   auto const distance_on_ray  = discretized_domain.dimension<0>().spacing() / 10;
-  auto const isovalue         = 1;
+  auto const isovalue         = 0.1;
   auto const background_color = vec3::ones();
   auto const Q                = [&](auto const& x) -> real_t {
     return discretized_Q_sampler(x);
   };
-  auto const Q_gradient                = [&](auto const& x) -> vec3 {
+  auto const Q_gradient = [&](auto const& x) -> vec3 {
     return diff_discretized_Q_sampler(x);
   };
   auto const mag = [&](auto const& x) -> decltype(auto) {
