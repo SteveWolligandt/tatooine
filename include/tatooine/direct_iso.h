@@ -147,11 +147,15 @@ auto direct_iso(
           auto const spec_dot = std::max(dot(reflect_dir, r.direction()), 0.0);
           auto const specular = std::pow(spec_dot, 100);
           auto const sample_color =
-              color_scale(normalized_sample) * diffuse + specular;
+            //iso_pos * 0.5+0.5;
+              //color_scale(normalized_sample) * diffuse + specular;
+              //color_scale(normalized_sample) * diffuse ;
+              color_scale(normalized_sample);
 
           auto const sample_alpha =
-              std::clamp<alpha_type>(alpha_scale(normalized_sample), 0, 1) +
-              specular;
+              std::clamp<alpha_type>(alpha_scale(normalized_sample), 0, 1)
+              //+ specular
+              ;
 
           accumulated_color +=
               (1 - accumulated_alpha) * sample_alpha * sample_color;
