@@ -2,12 +2,12 @@
 #define TATOOINE_MULTIDIM_PROPERTY_H
 //==============================================================================
 #include <tatooine/concepts.h>
-#include <tatooine/invoke_unpacked.h>
 #include <tatooine/finite_differences_coefficients.h>
-#include <tatooine/write_png.h>
 #include <tatooine/interpolation.h>
+#include <tatooine/invoke_unpacked.h>
 #include <tatooine/sampler.h>
 #include <tatooine/type_traits.h>
+#include <tatooine/write_png.h>
 //==============================================================================
 namespace tatooine {
 //==============================================================================
@@ -43,10 +43,9 @@ template <typename Grid>
 struct multidim_property {
   //============================================================================
   using this_t = multidim_property<Grid>;
+  using real_t = typename Grid::real_t;
   //============================================================================
-  static constexpr auto num_dimensions() {
-    return Grid::num_dimensions();
-  }
+  static constexpr auto num_dimensions() { return Grid::num_dimensions(); }
   //============================================================================
  private:
   Grid const* m_grid;
@@ -60,17 +59,13 @@ struct multidim_property {
   virtual ~multidim_property() {}
   //----------------------------------------------------------------------------
   /// for identifying type.
-  virtual auto type() const -> std::type_info const& = 0;
+  virtual auto type() const -> std::type_info const&           = 0;
   virtual auto container_type() const -> std::type_info const& = 0;
   //----------------------------------------------------------------------------
   virtual auto clone() const -> std::unique_ptr<this_t> = 0;
   //----------------------------------------------------------------------------
-  auto grid() -> auto& {
-    return *m_grid;
-  }
-  auto grid() const -> auto const& {
-    return *m_grid;
-  }
+  auto grid() -> auto& { return *m_grid; }
+  auto grid() const -> auto const& { return *m_grid; }
   auto set_grid(Grid const& g) { m_grid = &g; }
 };
 //==============================================================================
@@ -85,15 +80,14 @@ struct typed_multidim_property : multidim_property<Grid> {
   using const_reference = ValueType const&;
   using reference =
       std::conditional_t<HasNonConstReference, ValueType&, const_reference>;
-  using grid_t        = Grid;
-  using parent_t::num_dimensions;
+  using grid_t = Grid;
   using parent_t::grid;
+  using parent_t::num_dimensions;
 
   //============================================================================
   // ctors
   //============================================================================
-  explicit typed_multidim_property(Grid const& grid)
-      : parent_t{grid} {}
+  explicit typed_multidim_property(Grid const& grid) : parent_t{grid} {}
   typed_multidim_property(typed_multidim_property const&)     = default;
   typed_multidim_property(typed_multidim_property&&) noexcept = default;
   //----------------------------------------------------------------------------
@@ -123,7 +117,7 @@ struct typed_multidim_property : multidim_property<Grid> {
     }
     static_assert(
         sizeof...(InterpolationKernels) == 0 ||
-        sizeof...(InterpolationKernels) == 1 ||
+            sizeof...(InterpolationKernels) == 1 ||
             sizeof...(InterpolationKernels) == num_dimensions(),
         "Number of interpolation kernels does not match number of dimensions.");
 
@@ -169,7 +163,8 @@ struct typed_multidim_property : multidim_property<Grid> {
   template <typename... Is, enable_if<is_integral<Is...>> = true,
             enable_if<(sizeof...(Is) == Grid::num_dimensions())> = true>
 #endif
-  constexpr auto operator()(Is const... is) const -> decltype(auto) {
+      constexpr auto
+      operator()(Is const... is) const -> decltype(auto) {
     return at(std::array{static_cast<size_t>(is)...});
   }
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -180,7 +175,8 @@ struct typed_multidim_property : multidim_property<Grid> {
   template <typename... Is, enable_if<is_integral<Is...>> = true,
             enable_if<(sizeof...(Is) == Grid::num_dimensions())> = true>
 #endif
-  constexpr auto operator()(Is const... is) -> decltype(auto) {
+      constexpr auto
+      operator()(Is const... is) -> decltype(auto) {
     return at(std::array{static_cast<size_t>(is)...});
   }
   //----------------------------------------------------------------------------
@@ -191,7 +187,7 @@ struct typed_multidim_property : multidim_property<Grid> {
   template <typename... Is, enable_if<is_integral<Is...>> = true,
             enable_if<(sizeof...(Is) == Grid::num_dimensions())> = true>
 #endif
-  auto at(Is const... is) const -> decltype(auto) {
+      auto at(Is const... is) const -> decltype(auto) {
     return at(std::array{static_cast<size_t>(is)...});
   }
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -202,7 +198,7 @@ struct typed_multidim_property : multidim_property<Grid> {
   template <typename... Is, enable_if<is_integral<Is...>> = true,
             enable_if<(sizeof...(Is) == Grid::num_dimensions())> = true>
 #endif
-  auto at(Is const... is) -> decltype(auto) {
+      auto at(Is const... is) -> decltype(auto) {
     return at(std::array{static_cast<size_t>(is)...});
   }
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -219,7 +215,7 @@ struct typed_multidim_property : multidim_property<Grid> {
   template <typename... Size, enable_if<is_integral<Size...>> = true,
             enable_if<(sizeof...(Size) == Grid::num_dimensions())> = true>
 #endif
-  auto resize(Size const... size) -> decltype(auto) {
+      auto resize(Size const... size) -> decltype(auto) {
     return resize(std::array{static_cast<size_t>(size)...});
   }
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -267,8 +263,8 @@ struct typed_multidim_property : multidim_property<Grid> {
   template <size_t _N                                   = num_dimensions(),
             enable_if<(_N == 2) && (is_floating_point<ValueType>> = true>
 #endif
-  auto write_png(filesystem::path const& path, ValueType const min = 0,
-                 ValueType const max = 1) const -> void {
+          auto write_png(filesystem::path const& path, ValueType const min = 0,
+                         ValueType const max = 1) const -> void {
     png::image<png::rgb_pixel> image{
         static_cast<png::uint_32>(this->grid().size(0)),
         static_cast<png::uint_32>(this->grid().size(1))};
@@ -284,8 +280,8 @@ struct typed_multidim_property : multidim_property<Grid> {
             d /= max - min;
           }
           image[image.get_height() - 1 - y][x].red =
-          image[image.get_height() - 1 - y][x].green =
-          image[image.get_height() - 1 - y][x].blue = d * 255;
+              image[image.get_height() - 1 - y][x].green =
+                  image[image.get_height() - 1 - y][x].blue = d * 255;
         } else if constexpr (is_vec<ValueType>) {
           if (std::isnan(d(0))) {
             for (auto& c : d) {
@@ -331,7 +327,7 @@ struct typed_multidim_property : multidim_property<Grid> {
           d -= min;
           d /= max - min;
         }
-        auto const col = color_scale(d) * 255;
+        auto const col                             = color_scale(d) * 255;
         image[image.get_height() - 1 - y][x].red   = col(0);
         image[image.get_height() - 1 - y][x].green = col(1);
         image[image.get_height() - 1 - y][x].blue  = col(2);
@@ -352,7 +348,7 @@ auto write_png(
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 template <typename Grid, typename ValueType, bool HasNonConstReference>
 auto write_png(
-    filesystem::path const&                                          path,
+    filesystem::path const&                                               path,
     typed_multidim_property<Grid, ValueType, HasNonConstReference> const& prop)
     -> void {
   prop.write_png(path);
@@ -365,8 +361,7 @@ struct typed_multidim_property_impl
           Grid, ValueType,
           std::is_convertible_v<
               decltype(std::declval<Container&>().at(
-                  std::declval<std::array<
-                      size_t, Grid::num_dimensions()>>())),
+                  std::declval<std::array<size_t, Grid::num_dimensions()>>())),
               ValueType&>>,
       Container {
   static_assert(std::is_same_v<ValueType, typename Container::value_type>);
@@ -380,11 +375,11 @@ struct typed_multidim_property_impl
       ValueType&>;
   using prop_parent_t =
       typed_multidim_property<Grid, ValueType, has_non_const_reference>;
-  using cont_parent_t = Container;
-  using value_type = typename prop_parent_t::value_type;
-  using reference = typename prop_parent_t::reference;
+  using cont_parent_t   = Container;
+  using value_type      = typename prop_parent_t::value_type;
+  using reference       = typename prop_parent_t::reference;
   using const_reference = typename prop_parent_t::const_reference;
-  using grid_t        = Grid;
+  using grid_t          = Grid;
   using prop_parent_t::num_dimensions;
   //============================================================================
   // ctors
@@ -412,10 +407,11 @@ struct typed_multidim_property_impl
   template <integral... Is>
   requires(sizeof...(Is) == Grid::num_dimensions())
 #else
-  template <typename... Is, enable_if<is_integral<Is...>> = true, 
-  enable_if<(sizeof...(Is) == Grid::num_dimensions())> = true>
+  template <typename... Is, enable_if<is_integral<Is...>> = true,
+            enable_if<(sizeof...(Is) == Grid::num_dimensions())> = true>
 #endif
-  constexpr auto operator()(Is const... is) const -> decltype(auto) {
+      constexpr auto
+      operator()(Is const... is) const -> decltype(auto) {
     return Container::at(is...);
   }
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -423,10 +419,11 @@ struct typed_multidim_property_impl
   template <integral... Is>
   requires(sizeof...(Is) == Grid::num_dimensions())
 #else
-  template <typename... Is, enable_if<is_integral<Is...>> = true, 
-  enable_if<(sizeof...(Is) == Grid::num_dimensions())> = true>
+  template <typename... Is, enable_if<is_integral<Is...>> = true,
+            enable_if<(sizeof...(Is) == Grid::num_dimensions())> = true>
 #endif
-  constexpr auto operator()(Is const... is) -> decltype(auto) {
+      constexpr auto
+      operator()(Is const... is) -> decltype(auto) {
     return Container::at(is...);
   }
   //----------------------------------------------------------------------------
@@ -434,10 +431,10 @@ struct typed_multidim_property_impl
   template <integral... Is>
   requires(sizeof...(Is) == Grid::num_dimensions())
 #else
-  template <typename... Is, enable_if<is_integral<Is...>> = true, 
-  enable_if<(sizeof...(Is) == Grid::num_dimensions())> = true>
+  template <typename... Is, enable_if<is_integral<Is...>> = true,
+            enable_if<(sizeof...(Is) == Grid::num_dimensions())> = true>
 #endif
-  auto at(Is const... is) const -> decltype(auto) {
+      auto at(Is const... is) const -> decltype(auto) {
     return Container::at(is...);
   }
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -445,10 +442,10 @@ struct typed_multidim_property_impl
   template <integral... Is>
   requires(sizeof...(Is) == Grid::num_dimensions())
 #else
-  template <typename... Is, enable_if<is_integral<Is...>> = true, 
-  enable_if<(sizeof...(Is) == Grid::num_dimensions())> = true>
+  template <typename... Is, enable_if<is_integral<Is...>> = true,
+            enable_if<(sizeof...(Is) == Grid::num_dimensions())> = true>
 #endif
-  auto at(Is const... is) -> decltype(auto) {
+      auto at(Is const... is) -> decltype(auto) {
     return Container::at(is...);
   }
   //----------------------------------------------------------------------------
@@ -480,10 +477,11 @@ struct typed_multidim_property_impl
   }
 };
 ////==============================================================================
-//template <typename Grid, typename F>
-//struct typed_multidim_property_lambda
+// template <typename Grid, typename F>
+// struct typed_multidim_property_lambda
 //    : typed_multidim_property<
-//          Grid, typename Grid::template invoke_result_with_indices<F>, false> {
+//          Grid, typename Grid::template invoke_result_with_indices<F>, false>
+//          {
 //  //============================================================================
 //  // typedefs
 //  //============================================================================
@@ -533,7 +531,8 @@ struct typed_multidim_property_impl
 //  constexpr auto operator()(Is const... is) const -> decltype(auto) {
 //    return m_f(is...);
 //  }
-//  // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+//  // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+//  -
 //#ifdef __cpp_concepts
 //  template <integral... Is>
 //  requires(sizeof...(Is) == num_dimensions())
@@ -561,8 +560,8 @@ struct typed_multidim_property_impl
 //          std::index_sequence<Is...> [>seq<]) const -> const_reference {
 //    return m_f(size[Is]...);
 //  }
-//  // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-//  auto at(std::array<size_t, num_dimensions()> const& size) const
+//  // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+//  - auto at(std::array<size_t, num_dimensions()> const& size) const
 //      -> const_reference override {
 //    return at(size, std::make_index_sequence<num_dimensions()>{});
 //  }
@@ -633,13 +632,14 @@ struct derived_typed_multidim_property {
 #else
   template <typename... Is>
 #endif
-  constexpr auto operator()(Is const... is) const -> value_type {
+      constexpr auto
+      operator()(Is const... is) const -> value_type {
 #ifndef __cpp_concepts
     static_assert(sizeof...(Is) == Grid::num_dimensions(),
                   "Number of indices does not match number of dimensions.");
     static_assert(is_integral<Is...>, "Not all index types are integral.");
 #endif
-        return at(is...);
+    return at(is...);
   }
   //----------------------------------------------------------------------------
 #ifdef __cpp_concepts
@@ -649,7 +649,7 @@ struct derived_typed_multidim_property {
   template <typename... Is, enable_if<is_integral<Is...>> = true,
             enable_if<(sizeof...(Is) == Grid::num_dimensions())> = true>
 #endif
-  auto at(Is const... is) const -> value_type {
+      auto at(Is const... is) const -> value_type {
     return at(std::make_index_sequence<Grid::num_dimensions()>{}, is...);
   }
   //----------------------------------------------------------------------------
@@ -657,126 +657,120 @@ struct derived_typed_multidim_property {
   template <size_t... Seq, typename... Is>
   auto at(std::index_sequence<Seq...> /*seq*/, Is const... is) const
       -> value_type {
-    auto const indices = std::array{static_cast<size_t>(is)...};
-    if constexpr (is_vec<value_type>) {
-      return value_type{[&](auto const dim, auto const index) {
-        if (index == 0) {
-          auto const coeffs =
-              grid().diff_stencil_coefficients_0_p1_p2_p3_p4(dim, index);
-          auto p1 = indices; p1[dim] += 1;
-          auto p2 = indices; p2[dim] += 2;
-          auto p3 = indices; p3[dim] += 3;
-          auto p4 = indices; p4[dim] += 4;
-          return m_prop(indices) * coeffs[0] +
-                 m_prop(p1)      * coeffs[1]  +
-                 m_prop(p2)      * coeffs[2]+
-                 m_prop(p3)      * coeffs[3] +
-                 m_prop(p4)      * coeffs[4];
-        } else if (index == 1) {
-          auto const coeffs =
-              grid().diff_stencil_coefficients_n1_0_p1_p2_p3(dim, index);
-          auto n1 = indices; n1[dim] -= 1;
-          auto p1 = indices; p1[dim] += 1;
-          auto p2 = indices; p2[dim] += 2;
-          auto p3 = indices; p3[dim] += 3;
-          return m_prop(n1)      * coeffs[0] +
-                 m_prop(indices) * coeffs[1] +
-                 m_prop(p1)      * coeffs[2] +
-                 m_prop(p2)      * coeffs[3] +
-                 m_prop(p3)      * coeffs[4];
-        } else if (index == grid().size(dim) - 2) {
-          auto const coeffs =
-              grid().diff_stencil_coefficients_n4_n3_n2_n1_0_p1(dim, index);
-          auto n3 = indices; n3[dim] -= 3;
-          auto n2 = indices; n2[dim] -= 2;
-          auto n1 = indices; n1[dim] -= 1;
-          auto p1 = indices; p1[dim] += 1;
-          return m_prop(n3)      * coeffs[0] +
-                 m_prop(n2)      * coeffs[1] +
-                 m_prop(n1)      * coeffs[2] +
-                 m_prop(indices) * coeffs[3] +
-                 m_prop(p1)      * coeffs[4];
-        } else if (index == grid().size(dim) - 1) {
-          auto const coeffs =
-              grid().diff_stencil_coefficients_n4_n3_n2_n1_0(dim, index);
-          auto n4 = indices; n4[dim] -= 4;
-          auto n3 = indices; n3[dim] -= 3;
-          auto n2 = indices; n2[dim] -= 2;
-          auto n1 = indices; n1[dim] -= 1;
-          return m_prop(n4)      * coeffs[0] +
-                 m_prop(n3)      * coeffs[1] +
-                 m_prop(n2)      * coeffs[2] +
-                 m_prop(n1)      * coeffs[3] +
-                 m_prop(indices) * coeffs[4];
-        } else {
-          auto const coeffs =
-              grid().diff_stencil_coefficients_n2_n1_0_p1_p2(dim, index);
-          auto n2 = indices; n2[dim] -= 2;
-          auto n1 = indices; n1[dim] -= 1;
-          auto p1 = indices; p1[dim] += 1;
-          auto p2 = indices; p2[dim] += 2;
+    value_type d{};
+    if constexpr (is_vec<value_type> || is_mat<value_type>) {
+      auto const indices = std::array{static_cast<size_t>(is)...};
+      (
+          [&](auto const dim, auto const index) {
+            if (index == 0) {
+              auto const coeffs =
+                  grid().diff_stencil_coefficients_0_p1_p2_p3_p4(dim, index);
+              auto p1 = indices;
+              p1[dim] += 1;
+              auto p2 = indices;
+              p2[dim] += 2;
+              auto p3 = indices;
+              p3[dim] += 3;
+              auto p4 = indices;
+              p4[dim] += 4;
+              if constexpr (is_vec<value_type>) {
+                d(dim) = m_prop(indices) * coeffs[0] +
+                           m_prop(p1) * coeffs[1] + m_prop(p2) * coeffs[2] +
+                           m_prop(p3) * coeffs[3] + m_prop(p4) * coeffs[4];
+              } else if constexpr (is_mat<value_type>) {
+                d.col(dim) = m_prop(indices) * coeffs[0] +
+                               m_prop(p1) * coeffs[1] + m_prop(p2) * coeffs[2] +
+                               m_prop(p3) * coeffs[3] + m_prop(p4) * coeffs[4];
+              }
+            } else if (index == 1) {
+              auto const coeffs =
+                  grid().diff_stencil_coefficients_n1_0_p1_p2_p3(dim, index);
+              auto n1 = indices;
+              n1[dim] -= 1;
+              auto p1 = indices;
+              p1[dim] += 1;
+              auto p2 = indices;
+              p2[dim] += 2;
+              auto p3 = indices;
+              p3[dim] += 3;
+              if constexpr (is_vec<value_type>) {
+                d(dim) = m_prop(n1) * coeffs[0] +
+                           m_prop(indices) * coeffs[1] +
+                           m_prop(p1) * coeffs[2] + m_prop(p2) * coeffs[3] +
+                           m_prop(p3) * coeffs[4];
+              } else if constexpr (is_mat<value_type>) {
+                d.col(dim) = m_prop(n1) * coeffs[0] +
+                               m_prop(indices) * coeffs[1] +
+                               m_prop(p1) * coeffs[2] + m_prop(p2) * coeffs[3] +
+                               m_prop(p3) * coeffs[4];
+              }
+            } else if (index == grid().size(dim) - 2) {
+              auto const coeffs =
+                  grid().diff_stencil_coefficients_n3_n2_n1_0_p1(dim, index);
+              auto n3 = indices;
+              n3[dim] -= 3;
+              auto n2 = indices;
+              n2[dim] -= 2;
+              auto n1 = indices;
+              n1[dim] -= 1;
+              auto p1 = indices;
+              p1[dim] += 1;
+              if constexpr (is_vec<value_type>) {
+                d(dim) = m_prop(n3) * coeffs[0] + m_prop(n2) * coeffs[1] +
+                           m_prop(n1) * coeffs[2] +
+                           m_prop(indices) * coeffs[3] + m_prop(p1) * coeffs[4];
+              } else if constexpr (is_mat<value_type>) {
+                d.col(dim) = m_prop(n3) * coeffs[0] + m_prop(n2) * coeffs[1] +
+                               m_prop(n1) * coeffs[2] +
+                               m_prop(indices) * coeffs[3] +
+                               m_prop(p1) * coeffs[4];
+              }
+            } else if (index == grid().size(dim) - 1) {
+              auto const coeffs =
+                  grid().diff_stencil_coefficients_n4_n3_n2_n1_0(dim, index);
+              auto n4 = indices;
+              n4[dim] -= 4;
+              auto n3 = indices;
+              n3[dim] -= 3;
+              auto n2 = indices;
+              n2[dim] -= 2;
+              auto n1 = indices;
+              n1[dim] -= 1;
+              if constexpr (is_vec<value_type>) {
+                d(dim) = m_prop(n4) * coeffs[0] + m_prop(n3) * coeffs[1] +
+                           m_prop(n2) * coeffs[2] + m_prop(n1) * coeffs[3] +
+                           m_prop(indices) * coeffs[4];
+              } else if constexpr (is_mat<value_type>) {
+                d.col(dim) = m_prop(n4) * coeffs[0] + m_prop(n3) * coeffs[1] +
+                               m_prop(n2) * coeffs[2] + m_prop(n1) * coeffs[3] +
+                               m_prop(indices) * coeffs[4];
+              }
+            } else {
+              auto const coeffs =
+                  grid().diff_stencil_coefficients_n2_n1_0_p1_p2(dim, index);
+              auto n2 = indices;
+              n2[dim] -= 2;
+              auto n1 = indices;
+              n1[dim] -= 1;
+              auto p1 = indices;
+              p1[dim] += 1;
+              auto p2 = indices;
+              p2[dim] += 2;
 
-          return m_prop(n2)      * coeffs[0] +
-                 m_prop(n1)      * coeffs[1] +
-                 m_prop(indices) * coeffs[2] +
-                 m_prop(p1)      * coeffs[3] +
-                 m_prop(p2)      * coeffs[4];
-        }
-      }(Seq, is)...};
-    } else if constexpr (is_mat<value_type>) {
-      auto derivative = value_type{};
-
-      ([&](auto const dim, auto const index) {
-        if (index == 0) {
-          auto const coeffs =
-              grid().diff_stencil_coefficients_0_p1_p2_p3_p4(dim, index);
-          auto p1 = indices; p1[dim] += 1;
-          auto p2 = indices; p2[dim] += 2;
-          auto p3 = indices; p3[dim] += 3;
-          auto p4 = indices; p4[dim] += 4;
-          derivative.col(dim) = m_prop(indices) * coeffs[0] +
-                                m_prop(p1)      * coeffs[1]  +
-                                m_prop(p2)      * coeffs[2]+
-                                m_prop(p3)      * coeffs[3] +
-                                m_prop(p4)      * coeffs[4];
-        if (index == 0) {
-          auto const coeffs =
-              grid().diff_stencil_coefficients_n1_0_p1_p2_p3(dim, index);
-          auto n1 = indices; n1[dim] -= 1;
-          auto p1 = indices; p1[dim] += 1;
-          auto p2 = indices; p2[dim] += 2;
-          auto p3 = indices; p3[dim] += 3;
-          derivative.col(dim) = m_prop(n1)      * coeffs[0] + 
-                                m_prop(indices) * coeffs[1] +
-                                m_prop(p1)      * coeffs[2]  +
-                                m_prop(p2)      * coeffs[3]+
-                                m_prop(p3)      * coeffs[4];
-        } else if (index == grid().size(dim) - 1) {
-          auto const coeffs =
-              grid().diff_stencil_coefficients_n2_n1_0(dim, index);
-          auto n1 = indices;
-          auto n2 = indices;
-          n1[dim] -= 1;
-          n2[dim] -= 2;
-          derivative.col(dim) = m_prop(n2) * coeffs[0] + m_prop(n1) * coeffs[1] +
-                                m_prop(indices) * coeffs[2];
-        } else {
-          auto const coeffs =
-              grid().diff_stencil_coefficients_n1_0_p1(dim, index);
-          auto n1 = indices;
-          auto p1 = indices;
-          n1[dim] -= 1;
-          p1[dim] += 1;
-          derivative.col(dim) = m_prop(n1) * coeffs[0] +
-                                m_prop(indices) * coeffs[1] +
-                                m_prop(p1) * coeffs[2];
-        }
-      }(Seq, is), ...);
-
-      return derivative;
-    } else {
-      return value_type{};
+              if constexpr (is_vec<value_type>) {
+                d(dim) = m_prop(n2) * coeffs[0] + m_prop(n1) * coeffs[1] +
+                           m_prop(indices) * coeffs[2] +
+                           m_prop(p1) * coeffs[3] + m_prop(p2) * coeffs[4];
+              } else if constexpr (is_mat<value_type>) {
+                d.col(dim) = m_prop(n2) * coeffs[0] + m_prop(n1) * coeffs[1] +
+                               m_prop(indices) * coeffs[2] +
+                               m_prop(p1) * coeffs[3] + m_prop(p2) * coeffs[4];
+              }
+            }
+          }(Seq, is),
+          ...);
     }
+    return d;
   }
   //----------------------------------------------------------------------------
   template <template <typename> typename InterpolationKernel>
@@ -796,7 +790,7 @@ struct derived_typed_multidim_property {
     }
     static_assert(
         sizeof...(InterpolationKernels) == 0 ||
-        sizeof...(InterpolationKernels) == 1 ||
+            sizeof...(InterpolationKernels) == 1 ||
             sizeof...(InterpolationKernels) == num_dimensions(),
         "Number of interpolation kernels does not match number of dimensions.");
 

@@ -8,7 +8,7 @@
 namespace tatooine::analytical::fields::symbolic {
 //==============================================================================
 template <typename Real>
-struct doublegyre : field<Real, 2, 2> {
+struct doublegyre : vectorfield<doublegyre<Real>, Real, 2> {
   using this_t   = doublegyre<Real>;
   using parent_t = field<Real, 2, 2>;
   using parent_t::t;

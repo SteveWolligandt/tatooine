@@ -1,18 +1,21 @@
 #ifndef TATOOINE_SAMPLER_H
 #define TATOOINE_SAMPLER_H
 //==============================================================================
+#include <tatooine/base_tensor.h>
 #include <tatooine/concepts.h>
-#include <tatooine/interpolation.h>
-#include <tatooine/invoke_unpacked.h>
 #include <tatooine/crtp.h>
 #include <tatooine/exceptions.h>
+#include <tatooine/field.h>
 #include <tatooine/internal_value_type.h>
-#include <tatooine/base_tensor.h>
+#include <tatooine/interpolation.h>
+#include <tatooine/invoke_unpacked.h>
 
 #include <vector>
 //==============================================================================
 namespace tatooine {
 //==============================================================================
+template <typename Derived, typename Real, size_t N, typename Tensor>
+struct field;
 template <typename GridVertexProperty,
           template <typename> typename... InterpolationKernels>
 struct sampler;
@@ -21,52 +24,53 @@ template <typename TopSampler, typename ValueType,
           template <typename> typename... InterpolationKernels>
 struct sampler_view;
 //==============================================================================
-template <typename Sampler, typename ValueType,
+template <typename DerivedSampler, typename ValueType,
           template <typename> typename... InterpolationKernels>
 struct base_sampler_at;
 //------------------------------------------------------------------------------
-template <typename Sampler, typename ValueType,
+template <typename DerivedSampler, typename ValueType,
           template <typename> typename InterpolationKernel0,
           template <typename> typename InterpolationKernel1,
           template <typename> typename... TailInterpolationKernels>
-struct base_sampler_at<Sampler, ValueType, InterpolationKernel0, InterpolationKernel1,
-                       TailInterpolationKernels...> {
+struct base_sampler_at<DerivedSampler, ValueType, InterpolationKernel0,
+                       InterpolationKernel1, TailInterpolationKernels...> {
   using value_type =
-      sampler_view<Sampler, ValueType, InterpolationKernel1,
+      sampler_view<DerivedSampler, ValueType, InterpolationKernel1,
                    TailInterpolationKernels...>;
 };
 //------------------------------------------------------------------------------
-template <typename Sampler, typename ValueType,
+template <typename DerivedSampler, typename ValueType,
           template <typename> typename InterpolationKernel>
-struct base_sampler_at<Sampler, ValueType, InterpolationKernel> {
-  using value_type       = std::decay_t<ValueType>&;
+struct base_sampler_at<DerivedSampler, ValueType, InterpolationKernel> {
+  using value_type = std::decay_t<ValueType>&;
 };
 //==============================================================================
-template <typename Sampler,
-         typename ValueType,
+template <typename DerivedSampler, typename ValueType,
           template <typename> typename... InterpolationKernels>
 using base_sampler_at_t =
-    typename base_sampler_at<Sampler, ValueType, InterpolationKernels...>::value_type;
+    typename base_sampler_at<DerivedSampler, ValueType,
+                             InterpolationKernels...>::value_type;
 //==============================================================================
 /// CRTP inheritance class for sampler and sampler_view
-template <typename Sampler, typename ValueType,
+template <typename DerivedSampler, typename ValueType,
           template <typename> typename HeadInterpolationKernel,
           template <typename> typename... TailInterpolationKernels>
-struct base_sampler : crtp<Sampler> {
-  template <typename, typename, template <typename> typename,
+struct base_sampler {
+  template <typename,  typename, template <typename> typename,
             template <typename> typename...>
   friend struct base_sampler;
   //----------------------------------------------------------------------------
   // typedefs
   //----------------------------------------------------------------------------
-  using this_t = base_sampler<Sampler, ValueType, HeadInterpolationKernel,
-                              TailInterpolationKernels...>;
+  using this_t =
+      base_sampler<DerivedSampler,  ValueType, HeadInterpolationKernel,
+                   TailInterpolationKernels...>;
   using indexing_t =
       base_sampler_at_t<this_t, ValueType, HeadInterpolationKernel,
                         TailInterpolationKernels...>;
-  using value_type       = ValueType;
+  using value_type = ValueType;
   static constexpr auto current_dimension_index() {
-    return Sampler::current_dimension_index();
+    return DerivedSampler::current_dimension_index();
   }
   static constexpr auto num_dimensions() {
     return sizeof...(TailInterpolationKernels) + 1;
@@ -74,11 +78,20 @@ struct base_sampler : crtp<Sampler> {
   static constexpr auto num_components() {
     return tatooine::num_components<value_type>;
   }
-  using crtp<Sampler>::as_derived;
+  //----------------------------------------------------------------------------
+  /// returns casted as_derived data
+  [[nodiscard]] constexpr auto as_derived_sampler() -> DerivedSampler& {
+    return *dynamic_cast<DerivedSampler*>(this);
+  }
+  //----------------------------------------------------------------------------
+  /// returns casted as_derived data
+  [[nodiscard]] constexpr auto as_derived_sampler() const -> DerivedSampler const& {
+    return *dynamic_cast<DerivedSampler const*>(this);
+  }
   //============================================================================
-  auto property() -> auto& { return as_derived().property(); }
+  auto property() -> auto& { return as_derived_sampler().property(); }
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-  auto property() const -> auto const& { return as_derived().property(); }
+  auto property() const -> auto const& { return as_derived_sampler().property(); }
   //----------------------------------------------------------------------------
   /// data at specified indices is...
   /// CRTP-virtual method
@@ -90,13 +103,13 @@ struct base_sampler : crtp<Sampler> {
   auto data_at(Is const... is) const -> decltype(auto) {
     static_assert(sizeof...(is) == num_dimensions(),
                   "Number of indices does not match number of dimensions.");
-    return as_derived().data_at(is...);
+    return as_derived_sampler().data_at(is...);
   }
   //----------------------------------------------------------------------------
-  auto grid() const -> auto const& { return as_derived().grid(); }
+  auto grid() const -> auto const& { return as_derived_sampler().grid(); }
   ////----------------------------------------------------------------------------
   // auto stencil_coefficients(size_t const dim_index, size_t const i) const {
-  //  return as_derived().stencil_coefficients(dim_index, i);
+  //  return as_derived_sampler().stencil_coefficients(dim_index, i);
   //}
   //----------------------------------------------------------------------------
 #ifdef __cpp_concepts
@@ -107,7 +120,7 @@ struct base_sampler : crtp<Sampler> {
   auto position_at(Is const... is) const {
     static_assert(sizeof...(is) == num_dimensions(),
                   "Number of indices does not match number of dimensions.");
-    return as_derived().position_at(is...);
+    return as_derived_sampler().position_at(is...);
   }
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
   /// indexing of data.
@@ -128,23 +141,44 @@ struct base_sampler : crtp<Sampler> {
   //    -> decltype(auto) {
   //  static_assert(sizeof...(is) == num_dimensions(),
   //                "Number of indices is not equal to number of dimensions.");
-  //  return as_derived().template diff_at<DimIndex, StencilSize>(num_diffs,
+  //  return as_derived_sampler().template diff_at<DimIndex, StencilSize>(num_diffs,
   //                                                              is...);
   //}
   //----------------------------------------------------------------------------
 #ifdef __cpp_concepts
   template <size_t DimensionIndex, arithmetic X>
 #else
-  template <size_t DimensionIndex, typename X, enable_if<is_arithmetic<X>> = true>
+  template <size_t DimensionIndex, typename X,
+            enable_if<is_arithmetic<X>> = true>
 #endif
   auto cell_index(X const x) const -> decltype(auto) {
-    return as_derived().template cell_index<DimensionIndex>(x);
+    return as_derived_sampler().template cell_index<DimensionIndex>(x);
   }
   //----------------------------------------------------------------------------
  private:
   auto diff_stencil_coefficients(size_t const vertex_index,
                                  size_t const left_index,
                                  size_t const right_index) const {
+    if (left_index == vertex_index - 4 && right_index == vertex_index) {
+      return grid().diff_stencil_coefficients_n4_n3_n2_n1_0(
+          current_dimension_index(), vertex_index);
+    }
+    if (left_index == vertex_index - 3 && right_index == vertex_index + 1) {
+      return grid().diff_stencil_coefficients_n3_n2_n1_0_p1(
+          current_dimension_index(), vertex_index);
+    }
+    if (left_index == vertex_index - 2 && right_index == vertex_index + 2) {
+      return grid().diff_stencil_coefficients_n2_n1_0_p1_p2(
+          current_dimension_index(), vertex_index);
+    }
+    if (left_index == vertex_index - 1 && right_index == vertex_index + 3) {
+      return grid().diff_stencil_coefficients_n1_0_p1_p2_p3(
+          current_dimension_index(), vertex_index);
+    }
+    if (left_index == vertex_index && right_index == vertex_index + 4) {
+      return grid().diff_stencil_coefficients_0_p1_p2_p3_p4(
+          current_dimension_index(), vertex_index);
+    }
     if (left_index == vertex_index - 1 && right_index == vertex_index + 1) {
       return grid().diff_stencil_coefficients_n1_0_p1(current_dimension_index(),
                                                       vertex_index);
@@ -205,14 +239,55 @@ struct base_sampler : crtp<Sampler> {
     auto const& dim = grid().template dimension<current_dimension_index()>();
 
     // compute indices of samples for left derivative
-    size_t left_negative_offset = left_index == 0 ? left_index : left_index - 1;
-    size_t left_positive_offset = left_index == 0 ? left_index + 2 : left_index + 1;
+    auto left_negative_offset = [&] {
+      if (left_index == 0) {
+        return left_index;
+      }
+      if (left_index == 1) {
+        return left_index - 1;
+      }
+      if (left_index == dim.size() - 2) {
+        return left_index - 3;
+      }
+      return left_index - 2;
+    }();
+    auto left_positive_offset = [&] {
+      if (left_index == 0) {
+        return left_index + 4;
+      }
+      if (left_index == 1) {
+        return left_index + 3;
+      }
+      if (left_index == dim.size() - 2) {
+        return left_index + 1;
+      }
+      return left_index + 2;
+    }();
 
-    // compute indices of samples for right derivative
-    size_t right_negative_offset =
-        right_index == dim.size() - 1 ? right_index - 2 : right_index - 1;
-    size_t right_positive_offset =
-        right_index == dim.size() - 1 ? right_index : right_index + 1;
+    auto right_negative_offset = [&] {
+      if (right_index == 1) {
+        return right_index - 1;
+      }
+      if (right_index == dim.size() - 1) {
+        return right_index - 4;
+      }
+      if (right_index == dim.size() - 2) {
+        return right_index - 3;
+      }
+      return right_index - 2;
+    }();
+    auto right_positive_offset = [&] {
+      if (right_index == 1) {
+        return right_index + 3;
+      }
+      if (right_index == dim.size() - 1) {
+        return right_index;
+      }
+      if (right_index == dim.size() - 2) {
+        return right_index + 1;
+      }
+      return right_index + 2;
+    }();
 
     // get samples for calculating derivatives
     std::vector<value_type> samples;
@@ -230,25 +305,21 @@ struct base_sampler : crtp<Sampler> {
     auto const coeffs_left = diff_stencil_coefficients(
         left_index, left_negative_offset, left_positive_offset);
     auto const dleft_dx = differentiate(
-        samples, coeffs_left,
-        0,
-        left_positive_offset - left_negative_offset);
+        samples, coeffs_left, 0, left_positive_offset - left_negative_offset);
 
     // differentiate right sample
     auto const coeffs_right = diff_stencil_coefficients(
         right_index, right_negative_offset, right_positive_offset);
     auto const dright_dx = differentiate(
-        samples, coeffs_right,
-        right_negative_offset - left_negative_offset,
+        samples, coeffs_right, right_negative_offset - left_negative_offset,
         right_positive_offset - left_negative_offset);
 
     auto const dy = dim[right_index] - dim[left_index];
     return HeadInterpolationKernel<value_type>{
         samples[left_index - left_negative_offset],
-        samples[right_index - left_negative_offset],
-        dleft_dx * dy,
+        samples[right_index - left_negative_offset], dleft_dx * dy,
         dright_dx * dy}(interpolation_factor);
-    //return HeadInterpolationKernel<value_type>{
+    // return HeadInterpolationKernel<value_type>{
     //    dim[left_index],
     //    dim[right_index],
     //    samples[left_index - left_negative_offset],
@@ -272,7 +343,8 @@ struct base_sampler : crtp<Sampler> {
 #ifdef __cpp_concepts
   template <size_t... Is, arithmetic... Xs>
 #else
-  template <size_t... Is, typename... Xs, enable_if<is_arithmetic<Xs...>> = true>
+  template <size_t... Is, typename... Xs,
+            enable_if<is_arithmetic<Xs...>> = true>
 #endif
   constexpr auto sample(std::index_sequence<Is...> /*seq*/,
                         Xs const... xs) const {
@@ -298,7 +370,7 @@ struct base_sampler : crtp<Sampler> {
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
   template <typename Tensor, typename TensorReal>
   constexpr auto sample(
-      base_tensor<Tensor, TensorReal, num_dimensions()>const& x) const {
+      base_tensor<Tensor, TensorReal, num_dimensions()> const& x) const {
     return invoke_unpacked([this](auto const... xs) { return sample(xs...); },
                            unpack(x));
   }
@@ -326,13 +398,24 @@ template <typename GridVertexProperty,
 struct sampler
     : base_sampler<sampler<GridVertexProperty, InterpolationKernels...>,
                    typename GridVertexProperty::value_type,
-                   InterpolationKernels...> {
+                   InterpolationKernels...>,
+      field<sampler<GridVertexProperty, InterpolationKernels...>,
+            typename GridVertexProperty::real_t,
+            sizeof...(InterpolationKernels),
+            typename GridVertexProperty::value_type> {
   static_assert(sizeof...(InterpolationKernels) ==
                 GridVertexProperty::num_dimensions());
   using property_t = GridVertexProperty;
   using this_t     = sampler<property_t, InterpolationKernels...>;
-  using parent_t = base_sampler<this_t, typename GridVertexProperty::value_type,
-                                InterpolationKernels...>;
+  using real_t     = typename GridVertexProperty::real_t;
+  using parent_t =
+      base_sampler<this_t, typename GridVertexProperty::value_type,
+                   InterpolationKernels...>;
+  using field_parent_t =
+      field<sampler<GridVertexProperty, InterpolationKernels...>,
+            typename GridVertexProperty::real_t,
+            sizeof...(InterpolationKernels),
+            typename GridVertexProperty::value_type>;
   using value_type = typename parent_t::value_type;
   //============================================================================
   static constexpr size_t current_dimension_index() { return 0; }
@@ -359,31 +442,25 @@ struct sampler
   //----------------------------------------------------------------------------
 #ifdef __cpp_concepts
   template <integral... Is>
-  requires(
-      sizeof...(Is) ==
-      GridVertexProperty::grid_t::num_dimensions())
+  requires(sizeof...(Is) == GridVertexProperty::grid_t::num_dimensions())
 #else
   template <typename... Is, enable_if<is_integral<Is...>> = true,
             enable_if<(sizeof...(Is) ==
                        GridVertexProperty::grid_t::num_dimensions())> = true>
 #endif
-  auto data_at(Is const... is)
-      const -> decltype(auto) {
+      auto data_at(Is const... is) const -> decltype(auto) {
     return m_property(is...);
   }
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 #ifdef __cpp_concepts
   template <integral... Is>
-  requires(
-      sizeof...(Is) ==
-      GridVertexProperty::grid_t::num_dimensions())
+  requires(sizeof...(Is) == GridVertexProperty::grid_t::num_dimensions())
 #else
   template <typename... Is, enable_if<is_integral<Is...>> = true,
             enable_if<(sizeof...(Is) ==
                        GridVertexProperty::grid_t::num_dimensions())> = true>
 #endif
-  auto data_at(Is const... is)
-      -> decltype(auto) {
+      auto data_at(Is const... is) -> decltype(auto) {
     return m_property(is...);
   }
   //----------------------------------------------------------------------------
@@ -401,28 +478,54 @@ struct sampler
 #ifdef __cpp_concepts
   template <size_t DimensionIndex, arithmetic X>
 #else
-  template <size_t DimensionIndex, typename X, enable_if<is_arithmetic<X>> = true>
+  template <size_t DimensionIndex, typename X,
+            enable_if<is_arithmetic<X>> = true>
 #endif
   auto cell_index(X const x) const -> decltype(auto) {
     return grid().template cell_index<DimensionIndex>(x);
+  }
+  // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+  constexpr auto evaluate(typename field_parent_t::pos_t const& x,
+                          typename field_parent_t::real_t const /*t*/ = 0) const ->
+      typename field_parent_t::tensor_t final {
+    return invoke_unpacked(
+        [&](auto const... xs) {
+          return sample(std::make_index_sequence<num_dimensions()>{}, xs...);
+        },
+        unpack(x));
+  }
+  // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+  using parent_t::operator();
+  template <typename Tensor, typename TensorReal>
+  constexpr auto operator()(typename field_parent_t::pos_t const& x) const {
+    return sample(x);
+  }
+  // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+  constexpr auto in_domain(typename field_parent_t::pos_t const& x,
+                           typename field_parent_t::real_t const /*t*/ = 0) const
+      -> bool final {
+    return grid().is_inside(x);
   }
 };
 //==============================================================================
 /// holds an object of type TopSampler which can either be
 /// sampler or sampler_view and a fixed index of the top
 /// sampler
-template <typename TopSampler, typename ValueType, 
+template <typename TopSampler, typename ValueType,
           template <typename> typename... InterpolationKernels>
 struct sampler_view
     : base_sampler<sampler_view<TopSampler, ValueType, InterpolationKernels...>,
-                   typename TopSampler::value_type, InterpolationKernels...> {
+                    typename TopSampler::value_type,
+                   InterpolationKernels...> {
   //============================================================================
   static constexpr auto data_is_changeable() {
     return TopSampler::data_is_changeable();
   }
-  using this_t   = sampler_view<TopSampler, ValueType, InterpolationKernels...>;
-  using parent_t = base_sampler<this_t, ValueType, InterpolationKernels...>;
+  using this_t = sampler_view<TopSampler, ValueType, InterpolationKernels...>;
+  using real_t = typename TopSampler::real_t;
   using value_type = ValueType;
+  using parent_t =
+      base_sampler<this_t, value_type, InterpolationKernels...>;
   //============================================================================
   static constexpr auto num_dimensions() {
     return TopSampler::num_dimensions() - 1;
@@ -459,7 +562,8 @@ struct sampler_view
 #ifdef __cpp_concepts
   template <size_t DimensionIndex, arithmetic X>
 #else
-  template <size_t DimensionIndex, typename X, enable_if<is_arithmetic<X>> = true>
+  template <size_t DimensionIndex, typename X,
+            enable_if<is_arithmetic<X>> = true>
 #endif
   constexpr auto cell_index(X const x) const -> decltype(auto) {
     return m_top_sampler.template cell_index<DimensionIndex>(x);
@@ -470,8 +574,10 @@ struct sampler_view
 //==============================================================================
 template <typename GridVertexProperty,
           template <typename> typename... InterpolationKernels>
-struct differentiated_sampler{
-  static constexpr auto num_dimensions() { return GridVertexProperty::num_dimensions(); }
+struct differentiated_sampler {
+  static constexpr auto num_dimensions() {
+    return GridVertexProperty::num_dimensions();
+  }
 
  private:
   sampler<GridVertexProperty, InterpolationKernels...> const& m_sampler;
@@ -484,10 +590,10 @@ struct differentiated_sampler{
   template <typename Tensor, typename TensorReal>
   constexpr auto sample(
       base_tensor<Tensor, TensorReal, num_dimensions()> const& x) const {
-    constexpr auto eps = 1e-6;
+    constexpr auto                    eps = 1e-9;
     vec<TensorReal, num_dimensions()> fw = x, bw = x;
 
-    using value_type   = typename std::decay_t<decltype(m_sampler)>::value_type;
+    using value_type = typename std::decay_t<decltype(m_sampler)>::value_type;
     if constexpr (is_arithmetic<value_type>) {
       auto gradient = vec<value_type, num_dimensions()>::zeros();
       for (size_t i = 0; i < num_dimensions(); ++i) {
@@ -506,8 +612,8 @@ struct differentiated_sampler{
         }
 
         gradient(i) = m_sampler(fw) / dx - m_sampler(bw) / dx;
-        fw(i) = x(i);
-        bw(i) = x(i);
+        fw(i)       = x(i);
+        bw(i)       = x(i);
       }
       return gradient;
     }
@@ -531,8 +637,8 @@ struct differentiated_sampler{
 };
 //==============================================================================
 template <typename GridVertexProperty>
-struct differentiated_sampler<GridVertexProperty,
-                              interpolation::linear, interpolation::linear> {
+struct differentiated_sampler<GridVertexProperty, interpolation::linear,
+                              interpolation::linear> {
   static constexpr auto num_dimensions() { return 2; }
 
  private:
@@ -540,9 +646,8 @@ struct differentiated_sampler<GridVertexProperty,
           interpolation::linear> const& m_sampler;
 
  public:
-  differentiated_sampler(
-      sampler<GridVertexProperty, interpolation::linear,
-              interpolation::linear> const& sampler)
+  differentiated_sampler(sampler<GridVertexProperty, interpolation::linear,
+                                 interpolation::linear> const& sampler)
       : m_sampler{sampler} {}
   //----------------------------------------------------------------------------
  public:
@@ -554,15 +659,14 @@ struct differentiated_sampler<GridVertexProperty,
     decltype(auto) c   = m_sampler.data_at(ix, iy + 1);
     decltype(auto) d   = m_sampler.data_at(ix + 1, iy + 1);
 
-    auto const k  = d - c - b + a;
-    auto const dx = k * v + b - a;
-    auto const dy = k * u + c - a;
+    auto const k     = d - c - b + a;
+    auto const dx    = k * v + b - a;
+    auto const dy    = k * u + c - a;
     using value_type = typename std::decay_t<decltype(m_sampler)>::value_type;
     if constexpr (is_arithmetic<value_type>) {
       return vec{dx, dy};
     } else if constexpr (is_vec<value_type>) {
-      return mat{{dx(0), dy(0)},
-                 {dx(1), dy(1)}};
+      return mat{{dx(0), dy(0)}, {dx(1), dy(1)}};
     }
   }
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -573,8 +677,9 @@ struct differentiated_sampler<GridVertexProperty,
                            unpack(x));
   }
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-  constexpr auto operator()(arithmetic auto const x, arithmetic auto const y) const {
-    return sample(x,y);
+  constexpr auto operator()(arithmetic auto const x,
+                            arithmetic auto const y) const {
+    return sample(x, y);
   }
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
   template <typename Tensor, typename TensorReal>
@@ -622,11 +727,9 @@ struct differentiated_sampler<GridVertexProperty, interpolation::linear,
     using value_type = typename std::decay_t<decltype(m_sampler)>::value_type;
     if constexpr (is_arithmetic<value_type>) {
       return vec{dx, dy, dz};
-    }
-    else if constexpr (is_vec<value_type>) {
-      return mat{{dx(0), dy(0), dz(0)},
-                 {dx(1), dy(1), dz(1)},
-                 {dx(2), dy(2), dz(2)}};
+    } else if constexpr (is_vec<value_type>) {
+      return mat{
+          {dx(0), dy(0), dz(0)}, {dx(1), dy(1), dz(1)}, {dx(2), dy(2), dz(2)}};
     }
   }
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -637,8 +740,9 @@ struct differentiated_sampler<GridVertexProperty, interpolation::linear,
                            [this](auto const... xs) { return sample(xs...); });
   }
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-  constexpr auto operator()(arithmetic auto const x, arithmetic auto const y, arithmetic auto const z) const {
-    return sample(x,y,z);
+  constexpr auto operator()(arithmetic auto const x, arithmetic auto const y,
+                            arithmetic auto const z) const {
+    return sample(x, y, z);
   }
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
   template <typename Tensor, typename TensorReal>

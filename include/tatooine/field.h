@@ -9,33 +9,45 @@
 
 #include <vector>
 //==============================================================================
-namespace tatooine::parent {
+namespace tatooine::polymorphic {
 //==============================================================================
-template <typename Real, size_t N, size_t... TensorDims>
+template <typename Real, size_t N, typename Tensor>
 struct field {
   //============================================================================
   // typedefs
   //============================================================================
   using real_t   = Real;
-  using this_t   = field<Real, N, TensorDims...>;
+  using this_t   = field<Real, N, Tensor>;
   using pos_t    = vec<Real, N>;
   using time_t   = Real;
-  using tensor_t = std::conditional_t<sizeof...(TensorDims) == 0, Real,
-                                      tensor_type<Real, TensorDims...>>;
-  static constexpr auto is_field() { return true; }
-  static constexpr auto is_scalarfield() { return sizeof...(TensorDims) == 0; }
-  static constexpr auto is_vectorfield() { return sizeof...(TensorDims) == 1; }
+  using tensor_t = Tensor;
   //============================================================================
   // static methods
   //============================================================================
+  static constexpr auto is_field() { return true; }
+  static constexpr auto is_scalarfield() { return is_arithmetic<Tensor>; }
+  static constexpr auto is_vectorfield() { return tensor_rank() == 1; }
+  static constexpr auto is_matrixfield() { return tensor_rank() == 2; }
   static constexpr auto num_dimensions() { return N; }
   //----------------------------------------------------------------------------
-  static constexpr auto num_tensor_dimensions() {
-    return sizeof...(TensorDims);
+  static constexpr auto num_tensor_components() {
+    if constexpr (is_scalarfield()) {
+      return 1;
+    } else {
+      return tensor_t::num_components();
+    }
   }
   //----------------------------------------------------------------------------
-  template <size_t _num_tensor_dims           = sizeof...(TensorDims),
-            enable_if<(_num_tensor_dims > 0)> = true>
+  static constexpr auto tensor_rank() {
+    if constexpr (is_scalarfield()) {
+      return 0;
+    } else {
+      return tensor_t::rank();
+    }
+  }
+  //----------------------------------------------------------------------------
+  template <size_t tensor_rank           = tensor_rank,
+            enable_if<(tensor_rank > 0)> = true>
   static constexpr auto tensor_dimension(size_t i) {
     return tensor_t::dimension(i);
   }
@@ -59,48 +71,61 @@ struct field {
   //============================================================================
 #ifdef __cpp_concepts
   [[nodiscard]] constexpr virtual auto evaluate(pos_t const& x,
-                                                Real         t = 0) const
+                                                Real const   t) const
       -> tensor_t = 0;
-  [[nodiscard]] constexpr virtual auto in_domain(pos_t const&, Real) const
+  [[nodiscard]] constexpr virtual auto in_domain(pos_t const&, Real const) const
       -> bool = 0;
 #else
-  [[nodiscard]] virtual auto evaluate(pos_t const& x, Real t = 0) const
-      -> tensor_t                                                        = 0;
-  [[nodiscard]] virtual auto in_domain(pos_t const&, Real) const -> bool = 0;
+  [[nodiscard]] virtual auto evaluate(pos_t const& x, Real const t) const
+      -> tensor_t = 0;
+  [[nodiscard]] virtual auto in_domain(pos_t const&, Real const) const
+      -> bool = 0;
 #endif
   //============================================================================
   // methods
   //============================================================================
-  constexpr auto operator()(pos_t const& x, Real t) const -> tensor_t {
+  constexpr auto operator()(pos_t const& x, Real const t) const -> tensor_t {
     return evaluate(x, t);
   }
 };  // field
+template <typename Real, size_t N, size_t R = N, size_t C = N>
+using matrixfield = field<Real, N, mat<Real, R, C>>;
 template <typename Real, size_t N, size_t C = N>
-using vectorfield = field<Real, N, C>;
+using vectorfield = field<Real, N, vec<Real, C>>;
+template <typename Real, size_t N>
+using scalarfield = field<Real, N, Real>;
 //==============================================================================
-}  // namespace tatooine::parent
+}  // namespace tatooine::polymorphic
 //==============================================================================
 
 //==============================================================================
 namespace tatooine {
 //==============================================================================
-template <typename Real, size_t N, size_t... TensorDims>
+template <typename Real, size_t N, typename Tensor>
 using field_list =
-    std::vector<std::unique_ptr<parent::field<Real, N, TensorDims...>>>;
-template <typename Real, size_t N, size_t D = N>
-using vectorfield_list = field_list<Real, N, D>;
-template <typename Derived, typename Real, size_t N, size_t... TensorDims>
+    std::vector<std::unique_ptr<polymorphic::field<Real, N, Tensor>>>;
+template <typename Real, size_t N, size_t C = N>
+using vectorfield_list = field_list<Real, N, vec<Real, C>>;
 //==============================================================================
-struct field : parent::field<Real, N, TensorDims...>, crtp<Derived> {
+template <typename DerivedField, typename Real, size_t N, typename Tensor>
+struct field : polymorphic::field<Real, N, Tensor> {
   //============================================================================
   // typedefs
   //============================================================================
-  using this_t        = field<Derived, Real, N, TensorDims...>;
-  using parent_crtp_t = crtp<Derived>;
-  using parent_t      = parent::field<Real, N, TensorDims...>;
-  using pos_t         = typename parent_t::pos_t;
-  using tensor_t      = typename parent_t::tensor_t;
-  using parent_crtp_t::as_derived;
+  using this_t   = field<DerivedField, Real, N, Tensor>;
+  using parent_t = polymorphic::field<Real, N, Tensor>;
+  using pos_t    = typename parent_t::pos_t;
+  using tensor_t = typename parent_t::tensor_t;
+  //----------------------------------------------------------------------------
+  /// returns casted as_derived data
+  [[nodiscard]] constexpr auto as_derived() -> DerivedField& {
+    return static_cast<DerivedField&>(*this);
+  }
+  //----------------------------------------------------------------------------
+  /// returns casted as_derived data
+  [[nodiscard]] constexpr auto as_derived() const -> DerivedField const& {
+    return static_cast<DerivedField const&>(*this);
+  }
   //============================================================================
   // ctors
   //============================================================================
@@ -119,21 +144,25 @@ struct field : parent::field<Real, N, TensorDims...>, crtp<Derived> {
   //============================================================================
   // methods
   //============================================================================
-  [[nodiscard]] auto evaluate(pos_t const& x, Real t) const
+  [[nodiscard]] auto evaluate(pos_t const& x, Real const t) const
       -> tensor_t override {
     return as_derived().evaluate(x, t);
   }
   //----------------------------------------------------------------------------
-  [[nodiscard]] auto in_domain(pos_t const& x, Real t) const -> bool override {
+  [[nodiscard]] auto in_domain(pos_t const& x, Real const t) const
+      -> bool override {
     return as_derived().in_domain(x, t);
   }
 };  // field
 //==============================================================================
+template <typename V, typename Real, size_t N, size_t R = N, size_t C = N>
+using matrixfield = field<V, Real, N, mat<Real, R, C>>;
+//------------------------------------------------------------------------------
 template <typename V, typename Real, size_t N, size_t C = N>
-using vectorfield = field<V, Real, N, C>;
+using vectorfield = field<V, Real, N, vec<Real, N>>;
 //------------------------------------------------------------------------------
 template <typename V, typename Real, size_t N>
-using scalarfield = field<V, Real, N>;
+using scalarfield = field<V, Real, N, Real>;
 //==============================================================================
 // type traits
 //==============================================================================
@@ -164,30 +193,39 @@ static constexpr bool is_vectorfield_v = is_vectorfield<T>::value;
 template <typename T>
 struct is_vectorfield<T> : std::integral_constant<bool, T::is_vectorfield()> {};
 //==============================================================================
+template <typename T, typename = void>
+struct is_matrixfield : std::false_type {};
+//------------------------------------------------------------------------------
+template <typename T>
+static constexpr bool is_matrixfield_v = is_matrixfield<T>::value;
+//------------------------------------------------------------------------------
+template <typename T>
+struct is_matrixfield<T> : std::integral_constant<bool, T::is_matrixfield()> {};
+//==============================================================================
 // free functions
 //==============================================================================
 #ifdef __cpp_concpets
-template <typename V, arithmetic VReal, size_t N, size_t... TensorDims,
+template <typename V, arithmetic VReal, size_t N, typename Tensor,
           indexable_space... SpatialDimensions, arithmetc T>
 #else
-template <typename V, typename VReal, size_t N, size_t... TensorDims,
+template <typename V, typename VReal, size_t N, typename Tensor,
           typename... SpatialDimensions, typename T,
           enable_if<is_arithmetic<VReal, T>> = true>
 #endif
-auto sample_to_raw(field<V, VReal, N, TensorDims...> const& f,
-                   grid<SpatialDimensions...> const&        discretized_domain,
+auto sample_to_raw(field<V, VReal, N, Tensor> const& f,
+                   grid<SpatialDimensions...> const& discretized_domain,
                    T const t, size_t padding = 0, VReal padval = 0) {
   auto const         nan = VReal(0) / VReal(0);
   std::vector<VReal> raw_data;
-  auto const         num_comps = std::max<size_t>(1, (TensorDims * ...));
-  raw_data.reserve(discretized_domain.num_vertices() * (num_comps + padding));
+  raw_data.reserve(discretized_domain.num_vertices() *
+                   (f.num_tensor_components() + padding));
   for (auto x : discretized_domain.vertices()) {
     if (f.in_domain(x, t)) {
       auto sample = f(x, t);
-      if constexpr (sizeof...(TensorDims) == 0) {
+      if constexpr (f.is_scalarfield()) {
         raw_data.push_back(static_cast<VReal>(sample));
       } else {
-        for (size_t i = 0; i < num_comps; ++i) {
+        for (size_t i = 0; i < f.num_tensor_components(); ++i) {
           raw_data.push_back(static_cast<VReal>(sample[i]));
         }
       }
@@ -195,7 +233,7 @@ auto sample_to_raw(field<V, VReal, N, TensorDims...> const& f,
         raw_data.push_back(padval);
       }
     } else {
-      for (size_t i = 0; i < num_comps + padding; ++i) {
+      for (size_t i = 0; i < f.num_tensor_components() + padding; ++i) {
         raw_data.push_back(nan);
       }
     }
@@ -205,32 +243,30 @@ auto sample_to_raw(field<V, VReal, N, TensorDims...> const& f,
 //------------------------------------------------------------------------------
 #ifdef __cpp_concpets
 template <typename V, arithmetic VReal, arithmetic TReal, size_t N,
-          size_t... TensorDims, indexable_space... SpatialDimensions,
+          typename Tensor, indexable_space... SpatialDimensions,
           indexable_space TemporalDimension>
 #else
-template <typename V, typename VReal, typename TReal, size_t N,
-          size_t... TensorDims, typename... SpatialDimensions,
-          typename TemporalDimension,
+template <typename V, typename VReal, typename TReal, size_t N, typename Tensor,
+          typename... SpatialDimensions, typename TemporalDimension,
           enable_if<is_arithmetic<VReal, TReal>> = true>
 #endif
-auto sample_to_raw(field<V, VReal, N, TensorDims...> const& f,
-                   grid<SpatialDimensions...> const&        discretized_domain,
+auto sample_to_raw(field<V, VReal, N, Tensor> const& f,
+                   grid<SpatialDimensions...> const& discretized_domain,
                    TemporalDimension const& temporal_domain, size_t padding = 0,
                    VReal padval = 0) {
   auto const         nan = VReal(0) / VReal(0);
   std::vector<VReal> raw_data;
-  auto const         num_comps = std::max<size_t>(1, (TensorDims * ...));
   raw_data.reserve(discretized_domain.num_vertices() * temporal_domain.size() *
-                   (num_comps + padding));
+                   (f.num_tensor_components() + padding));
   for (auto t : temporal_domain) {
     for (auto v : discretized_domain.vertices()) {
       auto const x = v.position();
       if (f.in_domain(x, t)) {
         auto sample = f(x, t);
-        if constexpr (sizeof...(TensorDims) == 0) {
+        if constexpr (f.is_scalarfield()) {
           raw_data.push_back(static_cast<VReal>(sample));
         } else {
-          for (size_t i = 0; i < num_comps; ++i) {
+          for (size_t i = 0; i < f.num_tensor_components(); ++i) {
             raw_data.push_back(static_cast<VReal>(sample[i]));
           }
         }
@@ -238,7 +274,7 @@ auto sample_to_raw(field<V, VReal, N, TensorDims...> const& f,
           raw_data.push_back(padval);
         }
       } else {
-        for (size_t i = 0; i < num_comps + padding; ++i) {
+        for (size_t i = 0; i < f.num_tensor_components() + padding; ++i) {
           raw_data.push_back(nan);
         }
       }
@@ -248,17 +284,17 @@ auto sample_to_raw(field<V, VReal, N, TensorDims...> const& f,
 }
 //------------------------------------------------------------------------------
 #ifdef __cpp_concpets
-template <arithmetic VReal, arithmetic TReal, size_t N, size_t... TensorDims,
+template <arithmetic VReal, arithmetic TReal, size_t N, typename Tensor,
           indexable_space... SpatialDimensions>
 #else
-template <typename VReal, typename TReal, size_t N, size_t... TensorDims,
+template <typename VReal, typename TReal, size_t N, typename Tensor,
           typename... SpatialDimensions,
           enable_if<is_arithmetic<VReal, TReal>> = true>
 #endif
-auto sample_to_vector(parent::field<VReal, N, TensorDims...> const& f,
+auto sample_to_vector(polymorphic::field<VReal, N, Tensor> const& f,
                       grid<SpatialDimensions...> const& discretized_domain,
                       TReal                             t) {
-  using V                   = parent::field<VReal, N, TensorDims...>;
+  using V                   = polymorphic::field<VReal, N, Tensor>;
   using tensor_t            = typename V::tensor_t;
   auto const            nan = VReal(0) / VReal(0);
   std::vector<tensor_t> data;
@@ -279,38 +315,37 @@ auto sample_to_vector(parent::field<VReal, N, TensorDims...> const& f,
 //------------------------------------------------------------------------------
 #ifdef __cpp_concpets
 template <typename V, arithmetic VReal, arithmetic TReal size_t N,
-          size_t... TensorDims, indexable_space... SpatialDimensions>
+          typename Tensor, indexable_space... SpatialDimensions>
 #else
-template <typename V, typename VReal, typename TReal, size_t N,
-          size_t... TensorDims, typename... SpatialDimensions,
+template <typename V, typename VReal, typename TReal, size_t N, typename Tensor,
+          typename... SpatialDimensions,
           enable_if<is_arithmetic<VReal, TReal>> = true>
 #endif
-auto discretize(field<V, VReal, N, TensorDims...> const& f,
-                grid<SpatialDimensions...>&              discretized_domain,
+auto discretize(field<V, VReal, N, Tensor> const& f,
+                grid<SpatialDimensions...>&       discretized_domain,
                 std::string const& property_name, TReal const t) -> auto& {
-  auto const ood_tensor = [] {
-    if constexpr (sizeof...(TensorDims) == 0) {
+  auto const ood_tensor = [&f] {
+    if constexpr (is_scalarfield_v<V>) {
       return VReal(0) / VReal(0);
     } else {
-      return tensor<VReal, TensorDims...>{tag::fill{VReal(0) / VReal(0)}};
+      return Tensor{tag::fill{VReal(0) / VReal(0)}};
     }
   }();
   auto& discretized_field = [&]() -> decltype(auto) {
-    if constexpr (sizeof...(TensorDims) == 0) {
+    if constexpr (is_scalarfield_v<V>) {
       return discretized_domain.first.template add_vertex_property<VReal>(
           property_name);
-    } else if constexpr (sizeof...(TensorDims) == 1) {
+    } else if constexpr (is_vectorfield_v<V>) {
       return discretized_domain
-          .template add_vertex_property<vec<VReal, TensorDims...>>(
+          .template add_vertex_property<vec<VReal, V::tensor_t::dimension(0)>>(
               property_name);
-    } else if constexpr (sizeof...(TensorDims) == 2) {
-      return discretized_domain
-          .template add_vertex_property<mat<VReal, TensorDims...>>(
-              property_name);
+    } else if constexpr (is_matrixfield_v<V>) {
+      return discretized_domain.template add_vertex_property<
+          mat<VReal, V::tensor_t::dimension(0), V::tensor_t::dimension(1)>>(
+          property_name);
     } else {
-      return discretized_domain
-          .template add_vertex_property<tensor<VReal, TensorDims...>>(
-              property_name);
+      return discretized_domain.template add_vertex_property<Tensor>(
+          property_name);
     }
   }();
   discretized_domain.loop_over_vertex_indices([&](auto const... is) {
@@ -325,39 +360,42 @@ auto discretize(field<V, VReal, N, TensorDims...> const& f,
 }
 //------------------------------------------------------------------------------
 //#ifdef __cpp_concpets
-//template <typename V, arithmetic VReal, arithmetic TReal, size_t N,
-//          size_t... TensorDims, indexable_space... SpatialDimensions,
+// template <typename V, arithmetic VReal, arithmetic TReal, size_t N,
+//          typename Tensor, indexable_space... SpatialDimensions,
 //          indexable_space TemporalDomain>
 //#else
-//template <typename V, typename VReal, typename TReal, size_t N,
-//          size_t... TensorDims, typename... SpatialDimensions,
+// template <typename V, typename VReal, typename TReal, size_t N,
+//          typename Tensor, typename... SpatialDimensions,
 //          typename TemporalDomain,
 //          enable_if<is_arithmetic<VReal, TReal>> = true>
 //#endif
-//auto resample(field<V, VReal, N, TensorDims...> const& f,
+// auto resample(field<V, VReal, N, Tensor> const& f,
 //              grid<SpatialDimensions...>&              discretized_domain,
 //              TemporalDomain const& temporal_domain) -> auto& {
 //  auto const ood_tensor = [] {
-//    if constexpr (sizeof...(TensorDims) == 0) {
+//    if constexpr (f.is_scalarfield()) {
 //      return VReal(0) / VReal(0);
 //    } else {
-//      return tensor<VReal, TensorDims...>{tag::fill{VReal(0) / VReal(0)}};
+//      return Tensor{tag::fill{VReal(0) / VReal(0)}};
 //    }
 //  }();
 //  auto& discretized_field = [&]() -> decltype(auto) {
-//    if constexpr (sizeof...(TensorDims) == 0) {
-//      return gn.first.template add_contiguous_vertex_property<VReal>(gn.second);
-//    } else if constexpr (sizeof...(TensorDims) == 1) {
+//    if constexpr (f.is_scalarfield()) {
+//      return gn.first.template
+//      add_contiguous_vertex_property<VReal>(gn.second);
+//    } else if constexpr (f.is_vectorfield()) {
 //      return gn.first
-//          .template add_contiguous_vertex_property<vec<VReal, TensorDims...>>(
+//          .template add_contiguous_vertex_property<vec<VReal,
+//          f.dimension(0)>>(
 //              gn.second);
-//    } else if constexpr (sizeof...(TensorDims) == 2) {
+//    } else if constexpr (f.is_matrixfield()) {
 //      return gn.first
-//          .template add_contiguous_vertex_property<mat<VReal, TensorDims...>>(
+//          .template add_contiguous_vertex_property<mat<VReal, f.dimension(0),
+//          f.dimension(1)>>(
 //              gn.second);
 //    } else {
 //      return gn.first.template add_contiguous_vertex_property<
-//          tensor<VReal, TensorDims...>>(gn.second);
+//          Tensor>(gn.second);
 //    }
 //  }();
 //  for (auto const t : temporal_domain) {
@@ -375,6 +413,7 @@ auto discretize(field<V, VReal, N, TensorDims...> const& f,
 //==============================================================================
 }  // namespace tatooine
 //==============================================================================
-#include "differentiated_field.h"
-#include "field_operations.h"
+#include <tatooine/differentiated_field.h>
+#include <tatooine/field_operations.h>
+#include <tatooine/field_type_traits.h>
 #endif

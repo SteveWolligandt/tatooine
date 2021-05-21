@@ -9,9 +9,9 @@ namespace tatooine::examples {
 auto direct_iso_discretized_tornado() {
   analytical::fields::numerical::tornado v;
   auto                                   discretized_domain =
-      grid{linspace{-1.0, 1.0, 51},
-           linspace{-1.0, 1.0, 51},
-           linspace{-1.0, 1.0, 51}};
+      grid{linspace{-1.0, 1.0, 11},
+           linspace{-1.0, 1.0, 11},
+           linspace{-1.0, 1.0, 11}};
   auto& discretized_field = discretize(v, discretized_domain, "v", 0);
   auto& discretized_Q     = discretized_domain.add_scalar_vertex_property("Q");
   auto  discretized_Q_sampler      = discretized_Q.cubic_sampler();
@@ -38,7 +38,7 @@ auto direct_iso_discretized_tornado() {
   auto const     t            = 0;
   auto const     min          = 0;
   auto const     max          = 1;
-  auto const distance_on_ray  = discretized_domain.dimension<0>().spacing() / 10;
+  auto const distance_on_ray  = 0.0001;
   auto const isovalue         = 0.1;
   auto const background_color = vec3::ones();
   auto const Q                = [&](auto const& x) -> real_t {
@@ -52,7 +52,7 @@ auto direct_iso_discretized_tornado() {
   };
   auto const rendering_grid = direct_iso(
       cam, aabb, Q, Q_gradient, isovalue, mag, min, max,
-      [&aabb](auto const& x) { return aabb.is_inside(x); }, distance_on_ray,
+      [&](auto const& x) { return aabb.is_inside(x); }, distance_on_ray,
       color_scale, alpha, background_color);
 #ifdef TATOOINE_HAS_PNG_SUPPORT
   write_png("direct_iso_discretized_tornado_Q.png",
