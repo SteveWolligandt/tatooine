@@ -13,7 +13,7 @@
 //==============================================================================
 auto main(int argc, char** argv) -> int {
 # if TATOOINE_YAVIN_AVAILABLE
-  yavin::window ctx{"test", 100, 100};
+  //yavin::window ctx{"test", 100, 100};
 # endif
   return Catch::Session().run(argc, argv);
 }
