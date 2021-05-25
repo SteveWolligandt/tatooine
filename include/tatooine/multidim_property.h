@@ -131,7 +131,9 @@ struct typed_multidim_property : multidim_property<Grid> {
       return sampler_<InterpolationKernels...>();
     } else {
       using sampler_t = tatooine::sampler<this_t, InterpolationKernels...>;
-      grid().update_diff_stencil_coefficients();
+      if (!grid().diff_stencil_coefficients_created_once()) {
+        grid().update_diff_stencil_coefficients();
+      }
       return sampler_t{*this};
     }
   }

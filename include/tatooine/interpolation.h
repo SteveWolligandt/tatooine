@@ -165,7 +165,7 @@ struct cubic : polynomial<Real, 3> {
                             {zero, one, 2 * t0, 3 * t0 * t0},
                             {zero, one, 2 * t1, 3 * t1 * t1}};
     vec<Real, 4>          b{ft0, ft1, dft0_dt, dft1_dt};
-    set_coefficients(solve(A, b).data());
+    this->set_coefficients(solve(A, b).data());
   }
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
   constexpr cubic(const Real ft0, const Real ft1, const Real dft0_dt,
