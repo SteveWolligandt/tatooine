@@ -607,6 +607,70 @@ class grid {
   //----------------------------------------------------------------------------
   /// returns cell index and factor for interpolation
 #ifdef __cpp_concepts
+  template <arithmetic X>
+#else
+  template <typename X,
+            enable_if<is_arithmetic<X>> = true>
+#endif
+  auto cell_index(size_t const dimension_index, X const x) const {
+    if (dimension_index == 0) {
+      return cell_index<0>(x);
+    }
+    if constexpr (num_dimensions() > 1) {
+      if (dimension_index == 1) {
+        return cell_index<1>(x);
+      }
+    }
+    if constexpr (num_dimensions() > 2) {
+      if (dimension_index == 2) {
+        return cell_index<2>(x);
+      }
+    }
+    if constexpr (num_dimensions() > 3) {
+      if (dimension_index == 3) {
+        return cell_index<3>(x);
+      }
+    }
+    if constexpr (num_dimensions() > 4) {
+      if (dimension_index == 4) {
+        return cell_index<4>(x);
+      }
+    }
+    if constexpr (num_dimensions() > 5) {
+      if (dimension_index == 5) {
+        return cell_index<5>(x);
+      }
+    }
+    if constexpr (num_dimensions() > 6) {
+      if (dimension_index == 6) {
+        return cell_index<6>(x);
+      }
+    }
+    if constexpr (num_dimensions() > 7) {
+      if (dimension_index == 7) {
+        return cell_index<7>(x);
+      }
+    }
+    if constexpr (num_dimensions() > 8) {
+      if (dimension_index == 8) {
+        return cell_index<8>(x);
+      }
+    }
+    if constexpr (num_dimensions() > 9) {
+      if (dimension_index == 9) {
+        return cell_index<9>(x);
+      }
+    }
+    if constexpr (num_dimensions() > 10) {
+      if (dimension_index == 10) {
+        return cell_index<10>(x);
+      }
+    }
+    return cell_index<0>(x);
+  }
+  // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+  /// returns cell index and factor for interpolation
+#ifdef __cpp_concepts
   template <size_t DimensionIndex, arithmetic X>
 #else
   template <size_t DimensionIndex, typename X,

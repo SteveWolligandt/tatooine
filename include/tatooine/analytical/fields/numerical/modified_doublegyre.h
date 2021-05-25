@@ -12,9 +12,9 @@
 namespace tatooine::analytical::fields::numerical {
 //==============================================================================
 template <typename Real>
-struct modified_doublegyre : field<modified_doublegyre<Real>, Real, 2, 2> {
+struct modified_doublegyre : vectorfield<modified_doublegyre<Real>, Real, 2> {
   using this_t   = modified_doublegyre<Real>;
-  using parent_t = field<this_t, Real, 2, 2>;
+  using parent_t = vectorfield<this_t, Real, 2>;
   using typename parent_t::pos_t;
   using typename parent_t::tensor_t;
   //============================================================================

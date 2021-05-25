@@ -84,5 +84,54 @@ TEST_CASE("polynomial_solve_quadratic", "[polynomial][solve][quadratic]") {
   }
 }
 //==============================================================================
+TEST_CASE("polynomial_solve_cubic", "[polynomial][solve][cubic]") {
+  SECTION("f(x) = x^3") {
+    polynomial f{0.0, 0.0, 0.0, 1.0};
+    auto solutions = solve(f);
+    REQUIRE(size(solutions) == 1);
+    REQUIRE(solutions[0] == Approx(0).margin(1e-10));
+  }
+  SECTION("f(x) = x^3") {
+    polynomial f{0.0, 0.0, 1.0, 1.0};
+    auto solutions = solve(f);
+    REQUIRE(size(solutions) == 2);
+    REQUIRE(solutions[0] == Approx(-1).margin(1e-10));
+    REQUIRE(solutions[1] == Approx(0).margin(1e-10));
+  }
+  SECTION("f(x) = 1 - 2x^2 + x^3") {
+    polynomial f{1.0, 0.0, -2.0, 1.0};
+    auto solutions = solve(f);
+    REQUIRE(size(solutions) == 3);
+    REQUIRE(solutions[0] == Approx(-0.61803).epsilon(1e-4));
+    REQUIRE(solutions[1] == Approx(1).epsilon(1e-10));
+    REQUIRE(solutions[2] == Approx(1.61803).epsilon(1e-4));
+  }
+}
+//==============================================================================
+TEST_CASE("polynomial_solve_quartic", "[polynomial][solve][quartic]") {
+  SECTION("f(x) = x^4") {
+    polynomial f{0.0, 0.0, 0.0, 0.0, 1.0};
+    auto solutions = solve(f);
+    REQUIRE(size(solutions) == 1);
+    REQUIRE(solutions[0] == Approx(0).margin(1e-10));
+  }
+  SECTION("f(x) = x^3 + x^4") {
+    polynomial f{0.0, 0.0, 0.0, 1.0, 1.0};
+    auto solutions = solve(f);
+    REQUIRE(size(solutions) == 2);
+    REQUIRE(solutions[0] == Approx(-1).margin(1e-10));
+    REQUIRE(solutions[1] == Approx(0).margin(1e-10));
+  }
+  SECTION("f(x) = -5 + 30*x^2 - x^4") {
+    polynomial f{-5.0, 0.0, 30.0, 0.0, -1.0};
+    auto solutions = solve(f);
+    REQUIRE(size(solutions) == 4);
+    REQUIRE(solutions[0] == Approx(-5.46190415).margin(1e-10));
+    REQUIRE(solutions[1] == Approx(-0.409393502).margin(1e-10));
+    REQUIRE(solutions[2] == Approx(0.409393502).margin(1e-10));
+    REQUIRE(solutions[3] == Approx(5.46190415).margin(1e-10));
+  }
+}
+//==============================================================================
 }  // namespace tatooine::test
 //==============================================================================
