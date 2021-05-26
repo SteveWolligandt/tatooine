@@ -16,10 +16,9 @@ struct spacetime_vectorfield
   using typename parent_t::tensor_t;
   static constexpr auto holds_field_pointer = is_pointer<V>;
 
-  static_assert(
-    std::remove_pointer_t<std::decay_t<V>>::tensor_t::rank() == 1);
-  static_assert(
-    std::remove_pointer_t<std::decay_t<V>>::num_dimensions() == N - 1);
+  static_assert(std::remove_pointer_t<std::decay_t<V>>::tensor_t::rank() == 1);
+  static_assert(std::remove_pointer_t<std::decay_t<V>>::num_dimensions() ==
+                N - 1);
 
  private:
   //============================================================================
@@ -36,10 +35,10 @@ struct spacetime_vectorfield
   //============================================================================
   // assign ops
   //============================================================================
-  auto operator=(spacetime_vectorfield const& other)
-    -> spacetime_vectorfield& = default;
-  auto operator=(spacetime_vectorfield&& other) noexcept
-    -> spacetime_vectorfield& = default;
+  auto operator                 =(spacetime_vectorfield const& other)
+      -> spacetime_vectorfield& = default;
+  auto operator                 =(spacetime_vectorfield&& other) noexcept
+      -> spacetime_vectorfield& = default;
   //============================================================================
   // dtor
   //============================================================================
@@ -48,29 +47,35 @@ struct spacetime_vectorfield
   // ctors
   //============================================================================
 #ifdef __cpp_concepts
-  template <typename = void> requires is_pointer<V>
+  template <typename = void>
+  requires is_pointer<V>
 #else
   template <typename V_ = V, enable_if<is_pointer<V_>> = true>
 #endif
-  constexpr spacetime_vectorfield() : m_v{nullptr} {}
+      constexpr spacetime_vectorfield() : m_v{nullptr} {
+  }
   //----------------------------------------------------------------------------
 #ifdef __cpp_concepts
-  template <typename = void> requires is_pointer<V>
+  template <typename = void>
+  requires is_pointer<V>
 #else
   template <typename V_ = V, enable_if<is_pointer<V_>, is_same<V_, V>>>
 #endif
-  constexpr spacetime_vectorfield(parent::vectorfield<Real, N - 1> const* v)
-    : m_v{v} {}
+      constexpr spacetime_vectorfield(
+          polymorphic::vectorfield<Real, N - 1> const* v)
+      : m_v{v} {
+  }
   //----------------------------------------------------------------------------
 #ifdef __cpp_concepts
   template <std::convertible_to<V> W>
-    requires (!is_pointer<V>)
+  requires(!is_pointer<V>)
 #else
   template <typename W, typename V_ = V,
             enable_if<is_convertible<W, V_>, is_same<V_, V>> = true>
 #endif
-  constexpr spacetime_vectorfield(vectorfield<W, Real, N - 1> const& w)
-    : m_v{w.as_derived()} {}
+      constexpr spacetime_vectorfield(vectorfield<W, Real, N - 1> const& w)
+      : m_v{w.as_derived()} {
+  }
   //============================================================================
   // methods
   //============================================================================
@@ -105,29 +110,30 @@ struct spacetime_vectorfield
   template <typename W>
   requires is_pointer<V>
 #else
-  template <typename W, typename V_ = V, enable_if<is_pointer<V_>, is_same<V_, V>> = true>
+  template <typename W, typename V_ = V,
+            enable_if<is_pointer<V_>, is_same<V_, V>> = true>
 #endif
-  void set_field(vectorfield<W, Real, N - 1> const& v) {
+      void set_field(vectorfield<W, Real, N - 1> const& v) {
     m_v = &v;
   }
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 #ifdef __cpp_concepts
-  template <typename =void>
+  template <typename = void>
   requires is_pointer<V>
 #else
   template <typename V_ = V, enable_if<is_pointer<V_>, is_same<V_, V>> = true>
 #endif
-  void set_field(parent::vectorfield<Real, N - 1> const& v) {
+      void set_field(polymorphic::vectorfield<Real, N - 1> const& v) {
     m_v = &v;
   }
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 #ifdef __cpp_concepts
-  template <typename =void>
+  template <typename = void>
   requires is_pointer<V>
 #else
   template <typename V_ = V, enable_if<is_pointer<V_>, is_same<V_, V>> = true>
 #endif
-  void set_field(parent::vectorfield<Real, N - 1> const* v) {
+      void set_field(polymorphic::vectorfield<Real, N - 1> const* v) {
     m_v = v;
   }
 
@@ -155,8 +161,9 @@ spacetime_vectorfield(vectorfield<V, Real, N> const&)
     -> spacetime_vectorfield<V, Real, N + 1>;
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 template <typename Real, size_t N>
-spacetime_vectorfield(parent::vectorfield<Real, N> const*)
-    -> spacetime_vectorfield<parent::vectorfield<Real, N> const*, Real, N + 1>;
+spacetime_vectorfield(polymorphic::vectorfield<Real, N> const*)
+    -> spacetime_vectorfield<polymorphic::vectorfield<Real, N> const*, Real,
+                             N + 1>;
 
 //==============================================================================
 // SYMBOLIC
@@ -168,7 +175,7 @@ template <typename Real, size_t N>
 struct spacetime_vectorfield<symbolic::field<Real, N - 1>, Real, N>
     : symbolic::field<Real, N> {
   //============================================================================
-  using V  = symbolic::field<Real, N - 1>;
+  using V        = symbolic::field<Real, N - 1>;
   using this_t   = spacetime_vectorfield<V, Real, N>;
   using parent_t = symbolic::field<Real, N>;
   using typename parent_t::pos_t;
@@ -200,14 +207,14 @@ auto spacetime(vectorfield<V, Real, N> const& vf) {
 }
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 template <typename V, typename Real, size_t N>
-auto spacetime(parent::vectorfield<Real, N> const* vf) {
-  return spacetime_vectorfield<parent::vectorfield<Real, N> const*, Real,
+auto spacetime(polymorphic::vectorfield<Real, N> const* vf) {
+  return spacetime_vectorfield<polymorphic::vectorfield<Real, N> const*, Real,
                                N + 1>{vf};
 }
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 template <typename V, typename Real, size_t N>
-auto spacetime(parent::vectorfield<Real, N> const& vf) {
-  return spacetime_vectorfield<parent::vectorfield<Real, N> const*, Real,
+auto spacetime(polymorphic::vectorfield<Real, N> const& vf) {
+  return spacetime_vectorfield<polymorphic::vectorfield<Real, N> const*, Real,
                                N + 1>{&vf};
 }
 //==============================================================================

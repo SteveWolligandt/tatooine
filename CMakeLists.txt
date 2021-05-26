@@ -453,10 +453,9 @@ option(TATOOINE_BUILD_EXAMPLES "")
 if (TATOOINE_BUILD_EXAMPLES)
   add_subdirectory(examples)
 endif()
-
 #- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 # This makes the project importable from the build directory
-#export(TARGETS ${TATOOINE_EXPORTING_TARGETS}
-#       FILE tatooineConfig.cmake
-#       NAMESPACE tatooine::)
+export(TARGETS ${TATOOINE_EXPORTING_TARGETS}
+       FILE tatooineConfig.cmake
+       NAMESPACE tatooine::)
 export(PACKAGE tatooine)

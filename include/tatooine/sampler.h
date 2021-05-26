@@ -145,7 +145,7 @@ struct base_sampler {
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
   auto operator[](size_t i) const -> decltype(auto) { return at(i); }
   //----------------------------------------------------------------------------
- private:
+ protected:
   auto diff_stencil_coefficients(size_t const vertex_index,
                                  int const    negative_offset,
                                  int const    positive_offset) const {
