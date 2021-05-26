@@ -274,7 +274,7 @@ auto solve(polynomial<Real, 3> const& f) {
   cb_p = p * p * p;
   D    = q * q + cb_p;
 
-  constexpr Real eps     = 1e-9;
+  constexpr Real eps     = 1e-30;
   constexpr auto is_zero = [](auto const x) {
     return ((x) > -eps && (x) < eps);
   };
@@ -331,9 +331,10 @@ auto solve(polynomial<Real, 4> const& f) -> std::vector<Real> {
   auto const sq_A = A * A;
   auto const p    = -Real(3) / 8 * sq_A + B;
   auto const q    = Real(1) / 8 * sq_A * A - Real(1) / 2 * A * B + C;
-  auto const r    = -Real(3) / 256 * sq_A * sq_A + Real(1) / 16 * sq_A * B - Real(1) / 4 * A * C + D;
+  auto const r    = -Real(3) / 256 * sq_A * sq_A + Real(1) / 16 * sq_A * B -
+                 Real(1) / 4 * A * C + D;
 
-  constexpr Real eps     = 1e-9;
+  constexpr Real eps     = 1e-30;
   constexpr auto is_zero = [](auto const x) {
     return ((x) > -eps && (x) < eps);
   };
@@ -345,8 +346,9 @@ auto solve(polynomial<Real, 4> const& f) -> std::vector<Real> {
     }
   } else {
     // solve the resolvent cubic and take the one real solution...
-    auto const z =  solve(
-        polynomial{Real(1) / 2 * r * p - Real(1) / 8 * q * q, -r, -Real(1) / 2 * p, 1}).front();
+    auto const z = solve(polynomial{Real(1) / 2 * r * p - Real(1) / 8 * q * q,
+                                    -r, -Real(1) / 2 * p, 1})
+                       .front();
 
     // ... to build two quadric equations
     auto u = z * z - r;
