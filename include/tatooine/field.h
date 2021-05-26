@@ -154,14 +154,21 @@ struct field : polymorphic::field<Real, NumDims, Tensor> {
   //============================================================================
   // methods
   //============================================================================
+  auto as_derived() -> auto& {
+    return static_cast<DerivedField&>(*this);
+  }
+  auto as_derived() const -> auto const& {
+    return static_cast<DerivedField const&>(*this);
+  }
+  //----------------------------------------------------------------------------
   [[nodiscard]] auto evaluate(pos_t const& x, real_t const t) const
       -> tensor_t override {
-    return static_cast<DerivedField const&>(*this).evaluate(x, t);
+    return as_derived().evaluate(x, t);
   }
   //----------------------------------------------------------------------------
   [[nodiscard]] auto in_domain(pos_t const& x, real_t const t) const
       -> bool override {
-    return static_cast<DerivedField const&>(*this).in_domain(x, t);
+    return as_derived().in_domain(x, t);
   }
 };
 //==============================================================================
@@ -345,7 +352,7 @@ auto discretize(field<V, VReal, NumDims, Tensor> const& f,
   }();
   auto& discretized_field = [&]() -> decltype(auto) {
     if constexpr (is_scalarfield_v<V>) {
-      return discretized_domain.first.template add_vertex_property<VReal>(
+      return discretized_domain.template add_vertex_property<VReal>(
           property_name);
     } else if constexpr (is_vectorfield_v<V>) {
       return discretized_domain
