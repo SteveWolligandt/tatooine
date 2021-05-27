@@ -19,20 +19,20 @@ TEST_CASE("direct_iso_grid_vertex_sampler") {
   auto& s       = discretize(mag_vst, g, "s", 0);
   g.write_vtk("discretized_iso_volume.vtk");
   auto iso = 1.05;
-  parameterized_line<real_t, 3, interpolation::cubic> l;
-  l.push_back(vec3{-2, 4, -2}, 0);
-  l.push_back(vec3{-6, 4, 5}, 0.5);
-  l.push_back(vec3{-2, 4, 12}, 1);
-  parameterized_line<real_t, 3, interpolation::linear> l2;
-  l2.push_back(vec3{1, 0, 3}, 0);
-  l2.push_back(vec3{1, 0, 7}, 1);
+  parameterized_line<real_t, 3, interpolation::cubic> eye;
+  eye.push_back(vec3{-2, 4, -2}, 0);
+  eye.push_back(vec3{-6, 4, 5}, 0.5);
+  eye.push_back(vec3{-2, 4, 12}, 1);
+  parameterized_line<real_t, 3, interpolation::linear> lookat;
+  lookat.push_back(vec3{1, 0, 3}, 0);
+  lookat.push_back(vec3{1, 0, 7}, 1);
 
   auto  sampler = s.linear_sampler();
   size_t i = 0;
   auto const ts = linspace{0.0, 1.0, 100};
    for (auto const t : ts)
   {
-     rendering::perspective_camera cam{l(t), l2(t), vec3{0, 1, 0},
+     rendering::perspective_camera cam{eye(t), lookat(t), vec3{0, 1, 0},
                                        60,   1920,  1080};
 
      std::stringstream ss;
