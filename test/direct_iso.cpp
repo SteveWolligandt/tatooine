@@ -27,7 +27,7 @@ TEST_CASE("direct_iso_grid_vertex_sampler") {
   //l2.push_back(vec3{1, 0.5, 10}, 1);
 
   auto g =
-      grid{linspace{0.0, 2.0, 3}, linspace{0.0, 2.0, 3}, linspace{0.0, 2.0, 3}};
+      grid{linspace{0.0, 2.0, 10}, linspace{0.0, 2.0, 10}, linspace{0.0, 2.0, 10}};
   auto& s = g.add_scalar_vertex_property("s");
   auto rand = random_uniform{-1.0, 1.0, 1234ul};
   g.loop_over_vertex_indices([&](auto const ix, auto const iy, auto const iz) {
@@ -52,8 +52,9 @@ TEST_CASE("direct_iso_grid_vertex_sampler") {
   //auto const t = ts.back();
    for (auto const t : ts)
   {
+    std::cout << t << '\n';
     rendering::perspective_camera cam{l(t), l2(t), vec3{0, 1, 0},
-                                      60,   500,           500};
+                                      60,   5,           5};
     //rendering::perspective_camera cam{vec3{11, 6, 11}, vec3{1, 0.4, 5}, vec3{0, 1, 0},
     //                                  30,   10,           10};
     
