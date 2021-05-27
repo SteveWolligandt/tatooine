@@ -352,7 +352,7 @@ auto discretize(field<V, VReal, NumDims, Tensor> const& f,
   }();
   auto& discretized_field = [&]() -> decltype(auto) {
     if constexpr (is_scalarfield_v<V>) {
-      return discretized_domain.template add_vertex_property<VReal>(
+      return discretized_domain.template add_chunked_vertex_property<VReal>(
           property_name);
     } else if constexpr (is_vectorfield_v<V>) {
       return discretized_domain

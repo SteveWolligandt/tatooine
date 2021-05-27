@@ -666,7 +666,7 @@ struct derived_typed_multidim_property {
           [&](auto const dim, auto const index) {
             if (index == 0) {
               auto const coeffs =
-                  grid().diff_stencil_coefficients_0_p1_p2_p3_p4(dim, index);
+                  grid().diff_stencil_coefficients(dim, 5, 0, index);
               auto p1 = indices;
               p1[dim] += 1;
               auto p2 = indices;
@@ -686,7 +686,7 @@ struct derived_typed_multidim_property {
               }
             } else if (index == 1) {
               auto const coeffs =
-                  grid().diff_stencil_coefficients_n1_0_p1_p2_p3(dim, index);
+                  grid().diff_stencil_coefficients(dim, 5, 1, index);
               auto n1 = indices;
               n1[dim] -= 1;
               auto p1 = indices;
@@ -708,7 +708,7 @@ struct derived_typed_multidim_property {
               }
             } else if (index == grid().size(dim) - 2) {
               auto const coeffs =
-                  grid().diff_stencil_coefficients_n3_n2_n1_0_p1(dim, index);
+                  grid().diff_stencil_coefficients(dim, 5, 3, index);
               auto n3 = indices;
               n3[dim] -= 3;
               auto n2 = indices;
@@ -729,7 +729,7 @@ struct derived_typed_multidim_property {
               }
             } else if (index == grid().size(dim) - 1) {
               auto const coeffs =
-                  grid().diff_stencil_coefficients_n4_n3_n2_n1_0(dim, index);
+                  grid().diff_stencil_coefficients(dim, 5, 4, index);
               auto n4 = indices;
               n4[dim] -= 4;
               auto n3 = indices;
@@ -749,7 +749,7 @@ struct derived_typed_multidim_property {
               }
             } else {
               auto const coeffs =
-                  grid().diff_stencil_coefficients_n2_n1_0_p1_p2(dim, index);
+                  grid().diff_stencil_coefficients(dim, 5, 2, index);
               auto n2 = indices;
               n2[dim] -= 2;
               auto n1 = indices;
@@ -815,7 +815,9 @@ struct derived_typed_multidim_property {
 template <typename Grid, typename ValueType, bool HasNonConstReference>
 auto diff(typed_multidim_property<Grid, ValueType, HasNonConstReference> const&
               prop) {
-  prop.grid().update_diff_stencil_coefficients();
+  if (!prop.grid().diff_stencil_coefficients_created_once()) {
+    prop.grid().update_diff_stencil_coefficients();
+  }
   return derived_typed_multidim_property<Grid, ValueType, HasNonConstReference>{
       prop};
 }
