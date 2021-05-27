@@ -21,6 +21,7 @@
 
 #include <map>
 #include <memory>
+#include <mutex>
 #include <tuple>
 //==============================================================================
 namespace tatooine {
@@ -72,9 +73,10 @@ class grid {
   static constexpr size_t min_stencil_size = 2;
   static constexpr size_t max_stencil_size = 5;
   static constexpr size_t num_stencils = max_stencil_size - min_stencil_size + 1;
-  dimensions_t         m_dimensions;
-  property_container_t m_vertex_properties;
-  mutable bool         m_diff_stencil_coefficients_created_once = false;
+  mutable std::mutex      m_stencil_mutex;
+  dimensions_t            m_dimensions;
+  property_container_t    m_vertex_properties;
+  mutable bool            m_diff_stencil_coefficients_created_once = false;
 
   using stencil_t      = std::vector<real_t>;
   using stencil_list_t = std::vector<stencil_t>;
@@ -676,8 +678,10 @@ class grid {
   template <size_t DimensionIndex, typename X,
             enable_if<is_arithmetic<X>> = true>
 #endif
-  auto cell_index(X const x) const -> std::pair<size_t, real_t> {
+  auto cell_index(X x) const -> std::pair<size_t, real_t> {
     auto const& dim = dimension<DimensionIndex>();
+    if (std::abs(x - dim.front()) < 1e-10) {x = dim.front();}
+    if (std::abs(x - dim.back()) < 1e-10) {x = dim.back();}
     if constexpr (is_linspace<std::decay_t<decltype(dim)>>) {
       // calculate
       auto pos =
@@ -738,11 +742,13 @@ class grid {
                                       [stencil_center][i];
   }
   //----------------------------------------------------------------------------
-  constexpr auto diff_stencil_coefficients_created_once() const {
+  auto diff_stencil_coefficients_created_once() const {
+    std::lock_guard lock{m_stencil_mutex};
     return m_diff_stencil_coefficients_created_once;
   }
   //----------------------------------------------------------------------------
   auto update_diff_stencil_coefficients() const {
+    std::lock_guard lock{m_stencil_mutex};
     for (size_t dim = 0; dim < num_dimensions(); ++dim) {
       for (size_t i = 0; i < num_stencils; ++i) {
         m_diff_stencil_coefficients[dim][i].clear();
@@ -763,7 +769,7 @@ class grid {
   //----------------------------------------------------------------------------
   template <size_t Dim>
   auto update_diff_stencil_coefficients_dim() const {
-    if constexpr (!is_linspace<std::decay_t<decltype(dimension<Dim>())>>) {
+    //if constexpr (!is_linspace<std::decay_t<decltype(dimension<Dim>())>>) {
       auto const& dim                   = dimension<Dim>();
       auto&       stencils_of_dimension = m_diff_stencil_coefficients[Dim];
       for (size_t stencil_size = min_stencil_size;
@@ -779,7 +785,7 @@ class grid {
                                            stencil_size, stencil_center);
         }
       }
-    }
+    //}
   }
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
   template <typename Dim>

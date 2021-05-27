@@ -22,18 +22,20 @@ auto direct_iso(
   auto const& dim1 = g.template dimension<1>();
   auto const& dim2 = g.template dimension<2>();
   auto const  aabb = g.bounding_box();
+  using color_t = vec3;
+  using pos_t = vec3;
   grid<linspace<CameraReal>, linspace<CameraReal>> rendered_image{
       linspace<CameraReal>{0.0, cam.plane_width() - 1, cam.plane_width()},
       linspace<CameraReal>{0.0, cam.plane_height() - 1, cam.plane_height()}};
   auto& rendering =
-      rendered_image.template add_vertex_property<vec3>("rendering");
+      rendered_image.template add_vertex_property<color_t>("rendering");
 
   std::vector<std::tuple<ray<CameraReal, 3>, double, size_t, size_t>> rays;
   std::mutex                                                          mutex;
-//#pragma omp parallel for collapse(2)
+#pragma omp parallel for collapse(2)
   for (size_t y = 0; y < cam.plane_height(); ++y) {
     for (size_t x = 0; x < cam.plane_width(); ++x) {
-      rendering(x, y) = vec3::ones();
+      rendering(x, y) = color_t::ones();
       auto r          = cam.ray(x, y);
       r.normalize();
       if (auto const i = aabb.check_intersection(r); i) {
@@ -42,7 +44,7 @@ auto direct_iso(
       }
     }
   }
-//#pragma omp parallel for
+#pragma omp parallel for
   for (size_t i = 0; i < rays.size(); ++i) {
     auto const [r, t, x, y] = rays[i];
 
@@ -56,21 +58,33 @@ auto direct_iso(
       }
     }
 
-    std::array<real_t, 3> cell_pos;
-    size_t cur_plane_dim = std::numeric_limits<size_t>::max();
-    for (size_t dim = 0; dim < 3; ++dim) {
-      auto const [ci, t] = g.cell_index(dim, entry_point(dim));
-      cell_pos[dim] = ci + t;
-      if (std::abs(t) < 1e-7 || std::abs(t - 1) < 1e-7) {
-        cur_plane_dim = dim;
-      }
-    }
-
+    auto                  cell_pos        = make_array<real_t, 3>();
     auto done = false;
+    auto                  update_cell_pos = [&](auto const& r) {
+      for (size_t dim = 0; dim < 3; ++dim) {
+        auto const [ci, t] = g.cell_index(dim, entry_point(dim));
+        if (std::abs(t) < 1e-7) {
+          cell_pos[dim] = ci;
+          if (r.direction(dim) < 0 && ci == 0) {
+            done = true;
+          }
+        } else if (std::abs(t - 1) < 1e-7) {
+          cell_pos[dim] = ci + 1;
+          if (r.direction(dim) > 0 && ci +1 == g.size(dim) - 1) {
+            done = true;
+          }
+        } else {
+          cell_pos[dim] = ci + t;
+        }
+        assert(cell_pos[dim] >= 0 && cell_pos[dim] <= g.size(dim)-1);
+      }
+    };
+    update_cell_pos(r);
+
     while (!done) {
       auto plane_indices_to_check = make_array<size_t, 3>();
       for (size_t dim = 0; dim < 3; ++dim) {
-        if (dim == cur_plane_dim) {
+        if (cell_pos[dim] - std::floor(cell_pos[dim]) == 0) {
           if (r.direction(dim) > 0) {
             plane_indices_to_check[dim] =
                 static_cast<size_t>(cell_pos[dim]) + 1;
@@ -93,17 +107,23 @@ auto direct_iso(
              plane_indices_to_check[1] != size_t(0) - 1);
       assert(plane_indices_to_check[2] < dim2.size() &&
              plane_indices_to_check[2] != size_t(0) - 1);
-      auto const t0 =
-          (dim0[plane_indices_to_check[0]] - r.origin(0)) / r.direction(0);
-      auto const t1 =
-          (dim1[plane_indices_to_check[1]] - r.origin(1)) / r.direction(1);
-      auto const t2 =
-          (dim2[plane_indices_to_check[2]] - r.origin(2)) / r.direction(2);
+      auto const t0 = r.direction(0) == 0
+                          ? std::numeric_limits<real_t>::max()
+                          : (dim0[plane_indices_to_check[0]] - r.origin(0)) /
+                                r.direction(0);
+      auto const t1 = r.direction(1) == 0
+                          ? std::numeric_limits<real_t>::max()
+                          : (dim1[plane_indices_to_check[1]] - r.origin(1)) /
+                                r.direction(1);
+      auto const t2 = r.direction(2) == 0
+                          ? std::numeric_limits<real_t>::max()
+                          : (dim2[plane_indices_to_check[2]] - r.origin(2)) /
+                                r.direction(2);
 
       std::array<size_t, 3> i0{0, 0, 0};
       std::array<size_t, 3> i1{0, 0, 0};
-      for (size_t dim = 0; i < dim; ++dim) {
-        if (cur_plane_dim == dim) {
+      for (size_t dim = 0; dim < 3; ++dim) {
+        if (cell_pos[dim] - std::floor(cell_pos[dim]) == 0) {
           if (r.direction(dim) > 0) {
             i0[dim] = static_cast<size_t>(cell_pos[dim]);
             i1[dim] = static_cast<size_t>(cell_pos[dim]) + 1;
@@ -112,19 +132,22 @@ auto direct_iso(
             i1[dim] = static_cast<size_t>(cell_pos[dim]);
           }
         } else {
-          i0[dim] = std::floor(cell_pos[dim]);
-          i1[dim] = std::ceil(cell_pos[dim]);
+          i0[dim] = static_cast<size_t>(std::floor(cell_pos[dim]));
+          i1[dim] = static_cast<size_t>(std::ceil(cell_pos[dim]));
         }
       }
+      auto const x0 = g(i0[0], i0[1], i0[2]);
+      auto const x1 = g(i1[0], i1[1], i1[2]);
+      auto const xa = r.origin();
+      auto const xb = r.direction();
 
-      auto const norm =
-          vec3{1 / (dim0[i1[0]] - dim0[i0[0]]),
-               1 / (dim1[i1[1]] - dim1[i0[1]]),
-               1 / (dim2[i1[2]] - dim2[i0[2]])};
-      auto const a0 = (g(i1[0], i1[1], i1[2]) - r.origin()) * norm;
-      auto const b0 = r.direction() * norm;
-      auto const a1 = (r.origin() - g(i0[0], i0[1], i0[2])) * norm;
-      auto const b1 = -r.direction() * norm;
+      auto const cell_extent = x1 - x0;
+      auto const inv_cell_extent =
+          vec3{1 / cell_extent(0), 1 / cell_extent(1), 1 / cell_extent(2)};
+      auto const a0 = (x1 - xa) * inv_cell_extent;
+      auto const b0 = r.direction() * inv_cell_extent;
+      auto const a1 = (xa - x0) * inv_cell_extent;
+      auto const b1 = -r.direction() * inv_cell_extent;
 
       auto const A =
           -isovalue +
@@ -194,42 +217,76 @@ auto direct_iso(
           b1(0) * b1(1) * b0(2) * linear_field.data_at(i1[0], i1[1], i0[2]) +
           b1(0) * b1(1) * b1(2) * linear_field.data_at(i1[0], i1[1], i1[2]);
 
+
       auto const s = solve(polynomial{A, B, C, D});
       if (!s.empty()) {
+        std::optional<real_t> best_t;
+        vec3                  uvw1;
         for (auto const t : s) {
-          auto const c = a0 + t * b0;
-          if (c(0) >= 1e-7 && c(0) <= 1 + 1e-7 &&  //
-              c(1) >= 1e-7 && c(1) <= 1 + 1e-7 &&  //
-              c(2) >= 1e-7 && c(2) <= 1 + 1e-7) {
-            rendering(x, y) = shader(r(t));
+          if (auto x = a0 + t* b0;
+              (-1e-7 <= x(0) && x(0) <= 1 + 1e-7 &&  //
+               -1e-7 <= x(1) && x(1) <= 1 + 1e-7 &&  //
+               -1e-7 <= x(2) && x(2) <= 1 + 1e-7) &&
+              ((best_t.has_value() && t < *best_t) || !best_t.has_value())) {
+            best_t = t;
+            uvw1  = x;
           }
+        }
+        if (best_t) {
+          auto const uvw0 = vec3{1 - uvw1(0), 1 - uvw1(1), 1 - uvw1(2)};
+          assert(uvw0(0) >= 0 && uvw0(0) <= 1);
+          assert(uvw0(1) >= 0 && uvw0(1) <= 1);
+          assert(uvw0(2) >= 0 && uvw0(2) <= 1);
+          assert(uvw1(0) >= 0 && uvw1(0) <= 1);
+          assert(uvw1(1) >= 0 && uvw1(1) <= 1);
+          assert(uvw1(2) >= 0 && uvw1(2) <= 1);
+          auto gradient =
+              vec3{// X                                                                uvw
+                   - uvw0(1) * uvw0(2) * linear_field.data_at(i0[0], i0[1], i0[2])  // 000
+                   + uvw0(1) * uvw0(2) * linear_field.data_at(i1[0], i0[1], i0[2])  // 100
+                   - uvw1(1) * uvw0(2) * linear_field.data_at(i0[0], i1[1], i0[2])  // 010
+                   + uvw1(1) * uvw0(2) * linear_field.data_at(i1[0], i1[1], i0[2])  // 110
+                   - uvw0(1) * uvw1(2) * linear_field.data_at(i0[0], i0[1], i1[2])  // 001
+                   + uvw0(1) * uvw1(2) * linear_field.data_at(i1[0], i0[1], i1[2])  // 101
+                   - uvw1(1) * uvw1(2) * linear_field.data_at(i0[0], i1[1], i1[2])  // 011
+                   + uvw1(1) * uvw1(2) * linear_field.data_at(i1[0], i1[1], i1[2]), // 111
+                   // Y
+                   - uvw0(0) * uvw0(2) * linear_field.data_at(i0[0], i0[1], i0[2])  // 000
+                   - uvw1(0) * uvw0(2) * linear_field.data_at(i1[0], i0[1], i0[2])  // 100
+                   + uvw0(0) * uvw0(2) * linear_field.data_at(i0[0], i1[1], i0[2])  // 010
+                   + uvw1(0) * uvw0(2) * linear_field.data_at(i1[0], i1[1], i0[2])  // 110
+                   - uvw0(0) * uvw1(2) * linear_field.data_at(i0[0], i0[1], i1[2])  // 001
+                   - uvw1(0) * uvw1(2) * linear_field.data_at(i1[0], i0[1], i1[2])  // 101
+                   + uvw0(0) * uvw1(2) * linear_field.data_at(i0[0], i1[1], i1[2])  // 011
+                   + uvw1(0) * uvw1(2) * linear_field.data_at(i1[0], i1[1], i1[2]), // 111
+                   // Z
+                   - uvw0(0) * uvw0(1) * linear_field.data_at(i0[0], i0[1], i0[2])  // 000
+                   - uvw1(0) * uvw0(1) * linear_field.data_at(i1[0], i0[1], i0[2])  // 100
+                   - uvw0(0) * uvw1(1) * linear_field.data_at(i0[0], i1[1], i0[2])  // 010
+                   - uvw1(0) * uvw1(1) * linear_field.data_at(i1[0], i1[1], i0[2])  // 110
+                   + uvw0(0) * uvw0(1) * linear_field.data_at(i0[0], i0[1], i1[2])  // 001
+                   + uvw1(0) * uvw0(1) * linear_field.data_at(i1[0], i0[1], i1[2])  // 101
+                   + uvw0(0) * uvw1(1) * linear_field.data_at(i0[0], i1[1], i1[2])  // 011
+                   + uvw1(0) * uvw1(1) * linear_field.data_at(i1[0], i1[1], i1[2])} // 111
+              * inv_cell_extent;
+           //auto G = diff(linear_field.property());
+           //auto gradient =
+           //        G(i0[0], i0[1], i0[2]) * uvw0(0) * uvw0(1) * uvw0(2) +
+           //        G(i0[0], i0[1], i1[2]) * uvw0(0) * uvw0(1) * uvw1(2) +
+           //        G(i0[0], i1[1], i0[2]) * uvw0(0) * uvw1(1) * uvw0(2) +
+           //        G(i0[0], i1[1], i1[2]) * uvw0(0) * uvw1(1) * uvw1(2) +
+           //        G(i1[0], i0[1], i0[2]) * uvw1(0) * uvw0(1) * uvw0(2) +
+           //        G(i1[0], i0[1], i1[2]) * uvw1(0) * uvw0(1) * uvw1(2) +
+           //        G(i1[0], i1[1], i0[2]) * uvw1(0) * uvw1(1) * uvw0(2) +
+           //        G(i1[0], i1[1], i1[2]) * uvw1(0) * uvw1(1) * uvw1(2);
+          rendering(x, y) = shader(uvw0* cell_extent + x0, gradient, r.direction(), *best_t);
+          done = true;
         }
       }
 
-      entry_point = r(tatooine::min(t0, t1, t2));
-      std::cout << tatooine::min(t0, t1, t2) << '\n';
-      std::cout << i << " - " << entry_point << '\n';
-      std::cout << i << " - " << r.direction() << '\n';
-      for (size_t dim = 0; dim < 3; ++dim) {
-        auto const [ci, t] = g.cell_index(dim, entry_point(dim));
-        if (std::abs(t) < 1e-7) {
-          cell_pos[dim] = ci;
-          cur_plane_dim = dim;
-          if ((r.direction(dim) < 0 && ci == 0) ||
-              (r.direction(dim) > 0 && ci == g.size(dim) - 2)) {
-            done = true;
-          }
-        } else if (std::abs(t - 1) < 1e-7) {
-          cell_pos[dim] = ci + 1;
-          cur_plane_dim = dim;
-          if ((r.direction(dim) < 0 && ci == 0) ||
-              (r.direction(dim) > 0 && ci == g.size(dim) - 1)) {
-            done = true;
-          }
-        } else {
-          cell_pos[dim] = ci + t;
-        }
-        assert(cell_pos[dim] >= 0 && cell_pos[dim] <= g.size(dim) - 1);
+      if (!done) {
+        entry_point = r(tatooine::min(t0, t1, t2));
+        update_cell_pos(r);
       }
     }
   }

@@ -106,6 +106,20 @@ TEST_CASE("polynomial_solve_cubic", "[polynomial][solve][cubic]") {
     REQUIRE(solutions[1] == Approx(1).epsilon(1e-10));
     REQUIRE(solutions[2] == Approx(1.61803).epsilon(1e-4));
   }
+  SECTION("f(x) = 3.86107 + 2.56786x + 0.513068x^2 + 0.0276684x^3") {
+    polynomial f{3.86107, 2.56786, 0.513068, 0.0276684};
+    auto solutions = solve(f);
+    REQUIRE(size(solutions) == 3);
+    REQUIRE(solutions[0] == Approx(-11.55859).epsilon(1e-4));
+    REQUIRE(solutions[1] == Approx(-3.8446).epsilon(1e-4));
+    REQUIRE(solutions[2] == Approx(-3.14027).epsilon(1e-4));
+  }
+  SECTION("f(x) = -2.25932 + -0.976557*x - 0.112494*x*x -0.00132014*x*x*x") {
+    polynomial f{-2.25932, -0.976557, - 0.112494, -0.00132014};
+    auto solutions = solve(f);
+    REQUIRE(size(solutions) == 1);
+    REQUIRE(solutions[0] == Approx(-75.7459461).epsilon(1e-4));
+  }
 }
 //==============================================================================
 TEST_CASE("polynomial_solve_quartic", "[polynomial][solve][quartic]") {
