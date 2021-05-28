@@ -1,5 +1,5 @@
 #include <tatooine/analytical/fields/numerical/doublegyre.h>
-#include <tatooine/direct_iso.h>
+#include <tatooine/direct_isosurface_rendering.h>
 #include <tatooine/grid.h>
 #include <tatooine/line.h>
 #include <tatooine/rendering/perspective_camera.h>
@@ -33,25 +33,26 @@ TEST_CASE("direct_iso_grid_vertex_sampler") {
    for (auto const t : ts)
   {
      rendering::perspective_camera cam{eye(t), lookat(t), vec3{0, 1, 0},
-                                       60,   1920,  1080};
+                                       60,   1000,  500};
 
      std::stringstream ss;
      ss << std::setfill('0') << std::setw(2) << i;
-     direct_iso(cam, sampler, iso,
-                [](auto const& x_iso, auto const& gradient,
-                   auto const& view_dir, auto const t) {
-
-                  auto const normal      = normalize(gradient);
-                  auto const diffuse     = std::abs(dot(view_dir, normal));
-                  auto const reflect_dir = reflect(-view_dir, normal);
-                  auto const spec_dot =
-                      std::max(std::abs(dot(reflect_dir, view_dir)), 0.0);
-                  auto const specular = std::pow(spec_dot, 100);
-                  auto const albedo = vec3{1,0,0};
-                  return  albedo  * diffuse + specular;
-                })
-         .vertex_property<vec3>("rendering")
-         .write_png("direct_iso." + ss.str() + ".png");
+     direct_isosurface_rendering(
+         cam, sampler, iso,
+         [](auto const& x_iso, auto const& gradient, auto const& view_dir) {
+           auto const normal      = normalize(gradient);
+           auto const diffuse     = std::abs(dot(view_dir, normal));
+           auto const reflect_dir = reflect(-view_dir, normal);
+           auto const spec_dot =
+               std::max(std::abs(dot(reflect_dir, view_dir)), 0.0);
+           auto const specular = std::pow(spec_dot, 100);
+           auto const albedo   = vec3{std::cos(x_iso(0) *10) * 0.5 + 0.5,
+                                    std::sin(x_iso(1) * 20) * 0.5 + 0.5, 0.1};
+           auto const col      = albedo * diffuse + specular;
+           return vec{col(0), col(1), col(2), 0.7};
+         })
+         .vertex_property<vec3>("rendered_isosurface")
+         .write_png("direct_isosurface_rendering." + ss.str() + ".png");
      ++i;
   }
 }

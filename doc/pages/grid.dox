@@ -1,5 +1,5 @@
 /**
-\page grid_doc_page Grid Documentation
+\page grid_doc_page Grid
 \tableofcontents
 \section grid_doc_sec_usage Basic usage
 \code{.cpp}

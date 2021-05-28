@@ -35,9 +35,8 @@ class Q_field
   // methods
   //============================================================================
  public:
-  constexpr auto evaluate(pos_t const& x, real_t const t) const
-      -> tensor_t final {
-    if constexpr (V::num_dimensions() == 3) {
+  constexpr auto evaluate(pos_t const& x, real_t const t) const -> tensor_t {
+    if constexpr (parent_t::num_dimensions() == 3) {
       auto J = diff(m_v, 1e-7)(x, t);
       // auto const& a =  J(0,0);
       // auto const& b =  J(0,1);
@@ -69,19 +68,21 @@ class Q_field
     }
   }
   //----------------------------------------------------------------------------
-  constexpr auto in_domain(pos_t const& x, real_t const t) const -> bool final {
+  constexpr auto in_domain(pos_t const& x, real_t const t) const -> bool {
     return m_v.in_domain(x, t);
   }
 };
 //==============================================================================
-template <typename V,
-          enable_if<is_vectorfield_v<std::decay_t<std::remove_pointer_t<V>>>>>
+template <
+    typename V,
+    enable_if<is_vectorfield_v<std::decay_t<std::remove_pointer_t<V>>>> = true>
 auto Q(V&& v) {
   return Q_field<std::decay_t<V>>{std::forward<V>(v)};
 }
 //------------------------------------------------------------------------------
-template <typename V,
-          enable_if<is_vectorfield_v<std::decay_t<std::remove_pointer_t<V>>>>>
+template <
+    typename V,
+    enable_if<is_vectorfield_v<std::decay_t<std::remove_pointer_t<V>>>> = true>
 auto Q(V const& v) {
   return Q_field<V const&>{v};
 }
