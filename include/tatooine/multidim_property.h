@@ -661,117 +661,35 @@ struct derived_typed_multidim_property {
       -> value_type {
     value_type d{};
     if constexpr (is_vec<value_type> || is_mat<value_type>) {
-      auto const indices = std::array{static_cast<size_t>(is)...};
       (
           [&](auto const dim, auto const index) {
-            if (index == 0) {
-              auto const coeffs =
-                  grid().diff_stencil_coefficients(dim, 5, 0, index);
-              auto p1 = indices;
-              p1[dim] += 1;
-              auto p2 = indices;
-              p2[dim] += 2;
-              auto p3 = indices;
-              p3[dim] += 3;
-              auto p4 = indices;
-              p4[dim] += 4;
-              if constexpr (is_vec<value_type>) {
-                d(dim) = m_prop(indices) * coeffs[0] +
-                           m_prop(p1) * coeffs[1] + m_prop(p2) * coeffs[2] +
-                           m_prop(p3) * coeffs[3] + m_prop(p4) * coeffs[4];
-              } else if constexpr (is_mat<value_type>) {
-                d.col(dim) = m_prop(indices) * coeffs[0] +
-                               m_prop(p1) * coeffs[1] + m_prop(p2) * coeffs[2] +
-                               m_prop(p3) * coeffs[3] + m_prop(p4) * coeffs[4];
-              }
-            } else if (index == 1) {
-              auto const coeffs =
-                  grid().diff_stencil_coefficients(dim, 5, 1, index);
-              auto n1 = indices;
-              n1[dim] -= 1;
-              auto p1 = indices;
-              p1[dim] += 1;
-              auto p2 = indices;
-              p2[dim] += 2;
-              auto p3 = indices;
-              p3[dim] += 3;
-              if constexpr (is_vec<value_type>) {
-                d(dim) = m_prop(n1) * coeffs[0] +
-                           m_prop(indices) * coeffs[1] +
-                           m_prop(p1) * coeffs[2] + m_prop(p2) * coeffs[3] +
-                           m_prop(p3) * coeffs[4];
-              } else if constexpr (is_mat<value_type>) {
-                d.col(dim) = m_prop(n1) * coeffs[0] +
-                               m_prop(indices) * coeffs[1] +
-                               m_prop(p1) * coeffs[2] + m_prop(p2) * coeffs[3] +
-                               m_prop(p3) * coeffs[4];
-              }
-            } else if (index == grid().size(dim) - 2) {
-              auto const coeffs =
-                  grid().diff_stencil_coefficients(dim, 5, 3, index);
-              auto n3 = indices;
-              n3[dim] -= 3;
-              auto n2 = indices;
-              n2[dim] -= 2;
-              auto n1 = indices;
-              n1[dim] -= 1;
-              auto p1 = indices;
-              p1[dim] += 1;
-              if constexpr (is_vec<value_type>) {
-                d(dim) = m_prop(n3) * coeffs[0] + m_prop(n2) * coeffs[1] +
-                           m_prop(n1) * coeffs[2] +
-                           m_prop(indices) * coeffs[3] + m_prop(p1) * coeffs[4];
-              } else if constexpr (is_mat<value_type>) {
-                d.col(dim) = m_prop(n3) * coeffs[0] + m_prop(n2) * coeffs[1] +
-                               m_prop(n1) * coeffs[2] +
-                               m_prop(indices) * coeffs[3] +
-                               m_prop(p1) * coeffs[4];
-              }
-            } else if (index == grid().size(dim) - 1) {
-              auto const coeffs =
-                  grid().diff_stencil_coefficients(dim, 5, 4, index);
-              auto n4 = indices;
-              n4[dim] -= 4;
-              auto n3 = indices;
-              n3[dim] -= 3;
-              auto n2 = indices;
-              n2[dim] -= 2;
-              auto n1 = indices;
-              n1[dim] -= 1;
-              if constexpr (is_vec<value_type>) {
-                d(dim) = m_prop(n4) * coeffs[0] + m_prop(n3) * coeffs[1] +
-                           m_prop(n2) * coeffs[2] + m_prop(n1) * coeffs[3] +
-                           m_prop(indices) * coeffs[4];
-              } else if constexpr (is_mat<value_type>) {
-                d.col(dim) = m_prop(n4) * coeffs[0] + m_prop(n3) * coeffs[1] +
-                               m_prop(n2) * coeffs[2] + m_prop(n1) * coeffs[3] +
-                               m_prop(indices) * coeffs[4];
-              }
-            } else {
-              auto const coeffs =
-                  grid().diff_stencil_coefficients(dim, 5, 2, index);
-              auto n2 = indices;
-              n2[dim] -= 2;
-              auto n1 = indices;
-              n1[dim] -= 1;
-              auto p1 = indices;
-              p1[dim] += 1;
-              auto p2 = indices;
-              p2[dim] += 2;
+            constexpr size_t targeted_stencil_size = Grid::max_stencil_size;
+            constexpr int    offset                = targeted_stencil_size / 2;
 
-              if constexpr (is_vec<value_type>) {
-                d(dim) = m_prop(n2) * coeffs[0] + m_prop(n1) * coeffs[1] +
-                           m_prop(indices) * coeffs[2] +
-                           m_prop(p1) * coeffs[3] + m_prop(p2) * coeffs[4];
-              } else if constexpr (is_mat<value_type>) {
-                d.col(dim) = m_prop(n2) * coeffs[0] + m_prop(n1) * coeffs[1] +
-                               m_prop(indices) * coeffs[2] +
-                               m_prop(p1) * coeffs[3] + m_prop(p2) * coeffs[4];
-              }
+            auto const negative_offset = index < offset ? -int(index) : -offset;
+            auto const positive_offset =
+                std::min<int>(grid().size(dim) - index - 1,
+                              targeted_stencil_size + negative_offset - 1);
+
+            auto const& coeffs = grid().diff_stencil_coefficients(
+                dim, positive_offset - negative_offset + 1, -negative_offset,
+                index);
+            auto indices = std::array{static_cast<size_t>(is)...};
+            indices[dim] += negative_offset;
+            for (size_t i = 0; i < positive_offset - negative_offset + 1; ++i) {
+              [&]() -> decltype(auto) {
+                if constexpr (is_vec<value_type>) {
+                  return d(dim);
+                } else if constexpr (is_mat<value_type>) {
+                  return d.col(dim);
+                }
+              }() += m_prop(indices) * coeffs[i];
+              ++indices[dim];
             }
           }(Seq, is),
+
           ...);
-    }
+            }
     return d;
   }
   //----------------------------------------------------------------------------

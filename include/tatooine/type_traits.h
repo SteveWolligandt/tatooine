@@ -14,14 +14,13 @@ static constexpr auto is_pointer = std::is_pointer<T>::value;
 template <typename... Ts>
 struct is_same_impl;
 template <typename T0, typename T1, typename T2, typename... Ts>
-struct is_same_impl<T0, T1, T2, Ts...> {
-  static constexpr bool value =
-      std::is_same_v<T0, T1> && is_same_impl<T1, T2, Ts...>::value;
-};
+struct is_same_impl<T0, T1, T2, Ts...>
+    : std::integral_constant<bool, is_same_impl<T0, T1>::value &&
+                                       is_same_impl<T1, T2, Ts...>::value> {};
 template <typename T0, typename T1>
-struct is_same_impl<T0, T1> {
-  static constexpr bool value = std::is_same_v<T0, T1>;
-};
+struct is_same_impl<T0, T1> : std::is_same<T0, T1> {};
+template <typename T0>
+struct is_same_impl<T0> : std::true_type {};
 template <typename... Ts>
 static constexpr auto is_same = is_same_impl<Ts...>::value;
 //==============================================================================

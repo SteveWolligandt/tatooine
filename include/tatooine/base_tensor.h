@@ -29,7 +29,8 @@ struct base_tensor : crtp<Tensor> {
   using parent_t   = crtp<Tensor>;
   using parent_t::as_derived;
   using multidim_size_t = static_multidim_size<x_fastest, Dims...>;
-  static_assert(is_arithmetic<T> || is_complex<T>);
+  static_assert(is_arithmetic<T> || is_complex<T>,
+                "A tensor can only hold real or complex values.");
   //============================================================================
   static constexpr auto rank() { return sizeof...(Dims); }
   //------------------------------------------------------------------------------

@@ -69,9 +69,9 @@ class grid {
   using property_ptr_t       = std::unique_ptr<property_t>;
   using property_container_t = std::map<std::string, property_ptr_t>;
   //============================================================================
- private:
   static constexpr size_t min_stencil_size = 2;
-  static constexpr size_t max_stencil_size = 5;
+  static constexpr size_t max_stencil_size = 11;
+ private:
   static constexpr size_t num_stencils = max_stencil_size - min_stencil_size + 1;
   mutable std::mutex      m_stencil_mutex;
   dimensions_t            m_dimensions;
