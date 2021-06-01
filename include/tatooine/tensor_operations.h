@@ -341,6 +341,23 @@ constexpr auto length(base_tensor<Tensor, T, N> const& t_in) -> T {
   return std::sqrt(sqr_length(t_in));
 }
 //------------------------------------------------------------------------------
+/// squared p-norm of a rank-2 tensor
+template <typename Tensor, typename T, size_t M, size_t N>
+constexpr auto sqr_norm(base_tensor<Tensor, T, M, N> const& A,
+                        unsigned int const                  p) {
+  if (p == 2) {
+    return eigenvalues_sym(transposed(A) * A)(N - 1);
+  }
+  return T(0) / T(0);
+}
+//------------------------------------------------------------------------------
+/// p-norm of a rank-2 tensor
+template <typename Tensor, typename T, size_t M, size_t N>
+constexpr auto norm(base_tensor<Tensor, T, M, N> const& A,
+                    unsigned int const                  p) {
+  return std::sqrt(sqr_norm(A, p));
+}
+//------------------------------------------------------------------------------
 /// squared Frobenius norm of a rank-2 tensor
 template <typename Tensor, typename T, size_t M, size_t N>
 constexpr auto sqr_norm(base_tensor<Tensor, T, M, N> const& mat,

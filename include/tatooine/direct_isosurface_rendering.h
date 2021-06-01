@@ -17,8 +17,10 @@ namespace tatooine {
 /// \param cam Camera model for casting rays
 /// \param linear_field Piece-wise trilinear field
 /// \param isovalue Iso Value of the extracted iso surface
-/// \param shader Shader for setting color at pixel. The shader takes position, gradient and view direction as parameters. It must return a RGB or a RGBA color (vec3 or vec4).
-/// \return Returns a 2D grid with a grid_vertex_property named "rendered_isosurface"
+/// \param shader Shader for setting color at pixel. The shader takes position,
+/// gradient and view direction as parameters. It must return a RGB or a RGBA
+/// color (vec3 or vec4). \return Returns a 2D grid with a grid_vertex_property
+/// named "rendered_isosurface"
 template <typename CameraReal, typename IsoReal, typename GridVertexProperty,
           typename Shader>
 auto direct_isosurface_rendering(
@@ -50,16 +52,14 @@ auto direct_isosurface_rendering(
   auto const& dim2 = g.template dimension<2>();
   auto const  aabb = g.bounding_box();
   grid<linspace<CameraReal>, linspace<CameraReal>> rendered_image{
-       linspace<CameraReal>{0.0, cam.plane_width() - 1, cam.plane_width()},
-       linspace<CameraReal>{0.0, cam.plane_height() - 1, cam.plane_height()}};
+      linspace<CameraReal>{0.0, cam.plane_width() - 1, cam.plane_width()},
+      linspace<CameraReal>{0.0, cam.plane_height() - 1, cam.plane_height()}};
   auto& rendering =
-      rendered_image
-          .template add_vertex_property<rgb_t>(
-              "rendered_isosurface");
+      rendered_image.template vertex_property<rgb_t>("rendered_isosurface");
 
   std::vector<std::tuple<ray<CameraReal, 3>, double, size_t, size_t>> rays;
   std::mutex                                                          mutex;
-  auto const bg_color = rgb_t {1,1,1};
+  auto const bg_color = rgb_t{1, 1, 1};
 #pragma omp parallel for collapse(2)
   for (size_t y = 0; y < cam.plane_height(); ++y) {
     for (size_t x = 0; x < cam.plane_width(); ++x) {
@@ -74,7 +74,10 @@ auto direct_isosurface_rendering(
   }
 #pragma omp parallel for
   for (size_t i = 0; i < rays.size(); ++i) {
-    auto accumulated_color  = rgb_t{};
+    auto accumulated_color = rgb_t{};
+    if constexpr (rgb_t::num_components() == 3) {
+      accumulated_color = bg_color;
+    }
     auto accumulated_alpha  = alpha_t{};
     auto const [r, t, x, y] = rays[i];
 
@@ -100,13 +103,13 @@ auto direct_isosurface_rendering(
           }
         } else if (std::abs(t - 1) < 1e-7) {
           cell_pos[dim] = ci + 1;
-          if (r.direction(dim) > 0 && ci +1 == g.size(dim) - 1) {
+          if (r.direction(dim) > 0 && ci + 1 == g.size(dim) - 1) {
             done = true;
           }
         } else {
           cell_pos[dim] = ci + t;
         }
-        assert(cell_pos[dim] >= 0 && cell_pos[dim] <= g.size(dim)-1);
+        assert(cell_pos[dim] >= 0 && cell_pos[dim] <= g.size(dim) - 1);
       }
     };
     update_cell_pos(r);
@@ -166,162 +169,177 @@ auto direct_isosurface_rendering(
           i1[dim] = static_cast<size_t>(std::ceil(cell_pos[dim]));
         }
       }
-      auto const x0 = g(i0[0], i0[1], i0[2]);
-      auto const x1 = g(i1[0], i1[1], i1[2]);
-      auto const xa = r.origin();
-      auto const xb = r.direction();
+      static_multidim_array<double, x_fastest, tag::stack, 2, 2, 2> cell_data;
+      cell_data(0, 0, 0) = linear_field.data_at(i0[0], i0[1], i0[2]);
+      cell_data(0, 0, 1) = linear_field.data_at(i0[0], i0[1], i1[2]);
+      cell_data(0, 1, 0) = linear_field.data_at(i0[0], i1[1], i0[2]);
+      cell_data(0, 1, 1) = linear_field.data_at(i0[0], i1[1], i1[2]);
+      cell_data(1, 0, 0) = linear_field.data_at(i1[0], i0[1], i0[2]);
+      cell_data(1, 0, 1) = linear_field.data_at(i1[0], i0[1], i1[2]);
+      cell_data(1, 1, 0) = linear_field.data_at(i1[0], i1[1], i0[2]);
+      cell_data(1, 1, 1) = linear_field.data_at(i1[0], i1[1], i1[2]);
 
-      auto const cell_extent = x1 - x0;
-      auto const inv_cell_extent =
-          pos_t{1 / cell_extent(0), 1 / cell_extent(1), 1 / cell_extent(2)};
-      auto const a0 = (x1 - xa) * inv_cell_extent;
-      auto const b0 = r.direction() * inv_cell_extent;
-      auto const a1 = (xa - x0) * inv_cell_extent;
-      auto const b1 = -r.direction() * inv_cell_extent;
+      // check if isosurface is present in current cell
+      if (!((cell_data(0, 0, 0) > isovalue && cell_data(0, 0, 1) > isovalue &&
+             cell_data(0, 1, 0) > isovalue && cell_data(0, 1, 1) > isovalue &&
+             cell_data(1, 0, 0) > isovalue && cell_data(1, 0, 1) > isovalue &&
+             cell_data(1, 1, 0) > isovalue && cell_data(1, 1, 1) > isovalue) ||
+            (cell_data(0, 0, 0) < isovalue && cell_data(0, 0, 1) < isovalue &&
+             cell_data(0, 1, 0) < isovalue && cell_data(0, 1, 1) < isovalue &&
+             cell_data(1, 0, 0) < isovalue && cell_data(1, 0, 1) < isovalue &&
+             cell_data(1, 1, 0) < isovalue && cell_data(1, 1, 1) < isovalue))) {
+        auto const  x0 = g(i0[0], i0[1], i0[2]);
+        auto const  x1 = g(i1[0], i1[1], i1[2]);
+        auto const& xa = r.origin();
+        auto const& xb = r.direction();
 
-      auto const A =
-          -isovalue +
-          a0(0) * a0(1) * a0(2) * linear_field.data_at(i0[0], i0[1], i0[2]) +
-          a0(0) * a0(1) * a1(2) * linear_field.data_at(i0[0], i0[1], i1[2]) +
-          a0(0) * a1(1) * a0(2) * linear_field.data_at(i0[0], i1[1], i0[2]) +
-          a0(0) * a1(1) * a1(2) * linear_field.data_at(i0[0], i1[1], i1[2]) +
-          a1(0) * a0(1) * a0(2) * linear_field.data_at(i1[0], i0[1], i0[2]) +
-          a1(0) * a0(1) * a1(2) * linear_field.data_at(i1[0], i0[1], i1[2]) +
-          a1(0) * a1(1) * a0(2) * linear_field.data_at(i1[0], i1[1], i0[2]) +
-          a1(0) * a1(1) * a1(2) * linear_field.data_at(i1[0], i1[1], i1[2]);
-      auto const B = (b0(0) * a0(1) * a0(2) + a0(0) * b0(1) * a0(2) +
-                      a0(0) * a0(1) * b0(2)) *
-                         linear_field.data_at(i0[0], i0[1], i0[2]) +
-                     (b0(0) * a0(1) * a1(2) + a0(0) * b0(1) * a1(2) +
-                      a0(0) * a0(1) * b1(2)) *
-                         linear_field.data_at(i0[0], i0[1], i1[2]) +
-                     (b0(0) * a1(1) * a0(2) + a0(0) * b1(1) * a0(2) +
-                      a0(0) * a1(1) * b0(2)) *
-                         linear_field.data_at(i0[0], i1[1], i0[2]) +
-                     (b0(0) * a1(1) * a1(2) + a0(0) * b1(1) * a1(2) +
-                      a0(0) * a1(1) * b1(2)) *
-                         linear_field.data_at(i0[0], i1[1], i1[2]) +
-                     (b1(0) * a0(1) * a0(2) + a1(0) * b0(1) * a0(2) +
-                      a1(0) * a0(1) * b0(2)) *
-                         linear_field.data_at(i1[0], i0[1], i0[2]) +
-                     (b1(0) * a0(1) * a1(2) + a1(0) * b0(1) * a1(2) +
-                      a1(0) * a0(1) * b1(2)) *
-                         linear_field.data_at(i1[0], i0[1], i1[2]) +
-                     (b1(0) * a1(1) * a0(2) + a1(0) * b1(1) * a0(2) +
-                      a1(0) * a1(1) * b0(2)) *
-                         linear_field.data_at(i1[0], i1[1], i0[2]) +
-                     (b1(0) * a1(1) * a1(2) + a1(0) * b1(1) * a1(2) +
-                      a1(0) * a1(1) * b1(2)) *
-                         linear_field.data_at(i1[0], i1[1], i1[2]);
-      auto const C = (a0(0) * b0(1) * b0(2) + b0(0) * a0(1) * b0(2) +
-                      b0(0) * b0(1) * a0(2)) *
-                         linear_field.data_at(i0[0], i0[1], i0[2]) +
-                     (a0(0) * b0(1) * b1(2) + b0(0) * a0(1) * b1(2) +
-                      b0(0) * b0(1) * a1(2)) *
-                         linear_field.data_at(i0[0], i0[1], i1[2]) +
-                     (a0(0) * b1(1) * b0(2) + b0(0) * a1(1) * b0(2) +
-                      b0(0) * b1(1) * a0(2)) *
-                         linear_field.data_at(i0[0], i1[1], i0[2]) +
-                     (a0(0) * b1(1) * b1(2) + b0(0) * a1(1) * b1(2) +
-                      b0(0) * b1(1) * a1(2)) *
-                         linear_field.data_at(i0[0], i1[1], i1[2]) +
-                     (a1(0) * b0(1) * b0(2) + b1(0) * a0(1) * b0(2) +
-                      b1(0) * b0(1) * a0(2)) *
-                         linear_field.data_at(i1[0], i0[1], i0[2]) +
-                     (a1(0) * b0(1) * b1(2) + b1(0) * a0(1) * b1(2) +
-                      b1(0) * b0(1) * a1(2)) *
-                         linear_field.data_at(i1[0], i0[1], i1[2]) +
-                     (a1(0) * b1(1) * b0(2) + b1(0) * a1(1) * b0(2) +
-                      b1(0) * b1(1) * a0(2)) *
-                         linear_field.data_at(i1[0], i1[1], i0[2]) +
-                     (a1(0) * b1(1) * b1(2) + b1(0) * a1(1) * b1(2) +
-                      b1(0) * b1(1) * a1(2)) *
-                         linear_field.data_at(i1[0], i1[1], i1[2]);
-      auto const D =
-          b0(0) * b0(1) * b0(2) * linear_field.data_at(i0[0], i0[1], i0[2]) +
-          b0(0) * b0(1) * b1(2) * linear_field.data_at(i0[0], i0[1], i1[2]) +
-          b0(0) * b1(1) * b0(2) * linear_field.data_at(i0[0], i1[1], i0[2]) +
-          b0(0) * b1(1) * b1(2) * linear_field.data_at(i0[0], i1[1], i1[2]) +
-          b1(0) * b0(1) * b0(2) * linear_field.data_at(i1[0], i0[1], i0[2]) +
-          b1(0) * b0(1) * b1(2) * linear_field.data_at(i1[0], i0[1], i1[2]) +
-          b1(0) * b1(1) * b0(2) * linear_field.data_at(i1[0], i1[1], i0[2]) +
-          b1(0) * b1(1) * b1(2) * linear_field.data_at(i1[0], i1[1], i1[2]);
+        auto const cell_extent = x1 - x0;
+        auto const inv_cell_extent =
+            pos_t{1 / cell_extent(0), 1 / cell_extent(1), 1 / cell_extent(2)};
+        auto const a0 = (x1 - xa) * inv_cell_extent;
+        auto const b0 = xb * inv_cell_extent;
+        auto const a1 = (xa - x0) * inv_cell_extent;
+        auto const b1 = -xb * inv_cell_extent;
 
+        auto const A = a0(0) * a0(1) * a0(2) * cell_data(0, 0, 0) +
+                       a0(0) * a0(1) * a1(2) * cell_data(0, 0, 1) +
+                       a0(0) * a1(1) * a0(2) * cell_data(0, 1, 0) +
+                       a0(0) * a1(1) * a1(2) * cell_data(0, 1, 1) +
+                       a1(0) * a0(1) * a0(2) * cell_data(1, 0, 0) +
+                       a1(0) * a0(1) * a1(2) * cell_data(1, 0, 1) +
+                       a1(0) * a1(1) * a0(2) * cell_data(1, 1, 0) +
+                       a1(0) * a1(1) * a1(2) * cell_data(1, 1, 1) - isovalue;
+        auto const B = (b0(0) * a0(1) * a0(2) + a0(0) * b0(1) * a0(2) +
+                        a0(0) * a0(1) * b0(2)) *
+                           cell_data(0, 0, 0) +
+                       (b0(0) * a0(1) * a1(2) + a0(0) * b0(1) * a1(2) +
+                        a0(0) * a0(1) * b1(2)) *
+                           cell_data(0, 0, 1) +
+                       (b0(0) * a1(1) * a0(2) + a0(0) * b1(1) * a0(2) +
+                        a0(0) * a1(1) * b0(2)) *
+                           cell_data(0, 1, 0) +
+                       (b0(0) * a1(1) * a1(2) + a0(0) * b1(1) * a1(2) +
+                        a0(0) * a1(1) * b1(2)) *
+                           cell_data(0, 1, 1) +
+                       (b1(0) * a0(1) * a0(2) + a1(0) * b0(1) * a0(2) +
+                        a1(0) * a0(1) * b0(2)) *
+                           cell_data(1, 0, 0) +
+                       (b1(0) * a0(1) * a1(2) + a1(0) * b0(1) * a1(2) +
+                        a1(0) * a0(1) * b1(2)) *
+                           cell_data(1, 0, 1) +
+                       (b1(0) * a1(1) * a0(2) + a1(0) * b1(1) * a0(2) +
+                        a1(0) * a1(1) * b0(2)) *
+                           cell_data(1, 1, 0) +
+                       (b1(0) * a1(1) * a1(2) + a1(0) * b1(1) * a1(2) +
+                        a1(0) * a1(1) * b1(2)) *
+                           cell_data(1, 1, 1);
+        auto const C = (a0(0) * b0(1) * b0(2) + b0(0) * a0(1) * b0(2) +
+                        b0(0) * b0(1) * a0(2)) *
+                           cell_data(0, 0, 0) +
+                       (a0(0) * b0(1) * b1(2) + b0(0) * a0(1) * b1(2) +
+                        b0(0) * b0(1) * a1(2)) *
+                           cell_data(0, 0, 1) +
+                       (a0(0) * b1(1) * b0(2) + b0(0) * a1(1) * b0(2) +
+                        b0(0) * b1(1) * a0(2)) *
+                           cell_data(0, 1, 0) +
+                       (a0(0) * b1(1) * b1(2) + b0(0) * a1(1) * b1(2) +
+                        b0(0) * b1(1) * a1(2)) *
+                           cell_data(0, 1, 1) +
+                       (a1(0) * b0(1) * b0(2) + b1(0) * a0(1) * b0(2) +
+                        b1(0) * b0(1) * a0(2)) *
+                           cell_data(1, 0, 0) +
+                       (a1(0) * b0(1) * b1(2) + b1(0) * a0(1) * b1(2) +
+                        b1(0) * b0(1) * a1(2)) *
+                           cell_data(1, 0, 1) +
+                       (a1(0) * b1(1) * b0(2) + b1(0) * a1(1) * b0(2) +
+                        b1(0) * b1(1) * a0(2)) *
+                           cell_data(1, 1, 0) +
+                       (a1(0) * b1(1) * b1(2) + b1(0) * a1(1) * b1(2) +
+                        b1(0) * b1(1) * a1(2)) *
+                           cell_data(1, 1, 1);
+        auto const D = b0(0) * b0(1) * b0(2) * cell_data(0, 0, 0) +
+                       b0(0) * b0(1) * b1(2) * cell_data(0, 0, 1) +
+                       b0(0) * b1(1) * b0(2) * cell_data(0, 1, 0) +
+                       b0(0) * b1(1) * b1(2) * cell_data(0, 1, 1) +
+                       b1(0) * b0(1) * b0(2) * cell_data(1, 0, 0) +
+                       b1(0) * b0(1) * b1(2) * cell_data(1, 0, 1) +
+                       b1(0) * b1(1) * b0(2) * cell_data(1, 1, 0) +
+                       b1(0) * b1(1) * b1(2) * cell_data(1, 1, 1);
 
-      auto const s = solve(polynomial{A, B, C, D});
-      if (!s.empty()) {
-        std::optional<real_t> best_t;
-        pos_t                  uvw1;
-        for (auto const t : s) {
-          if (auto x = a0 + t* b0;
-              (-1e-7 <= x(0) && x(0) <= 1 + 1e-7 &&  //
-               -1e-7 <= x(1) && x(1) <= 1 + 1e-7 &&  //
-               -1e-7 <= x(2) && x(2) <= 1 + 1e-7) &&
-              ((best_t.has_value() && t < *best_t) || !best_t.has_value())) {
-            best_t = t;
-            uvw1  = x;
+        auto const s = solve(polynomial{A, B, C, D});
+        if (!s.empty()) {
+          std::optional<real_t> best_t;
+          pos_t                 uvw1;
+          for (auto const t : s) {
+            if (auto x = a0 + t * b0;
+                - 1e-7 <= x(0) && x(0) <= 1 + 1e-7 &&  //
+                -1e-7 <= x(1) && x(1) <= 1 + 1e-7 &&   //
+                -1e-7 <= x(2) && x(2) <= 1 + 1e-7 &&   //
+                t < best_t.value_or(std::numeric_limits<real_t>::max())) {
+              best_t = t;
+              uvw1   = x;
+            }
           }
-        }
-        if (best_t) {
-          auto const uvw0 = pos_t{1 - uvw1(0), 1 - uvw1(1), 1 - uvw1(2)};
-          assert(uvw0(0) >= 0 && uvw0(0) <= 1);
-          assert(uvw0(1) >= 0 && uvw0(1) <= 1);
-          assert(uvw0(2) >= 0 && uvw0(2) <= 1);
-          assert(uvw1(0) >= 0 && uvw1(0) <= 1);
-          assert(uvw1(1) >= 0 && uvw1(1) <= 1);
-          assert(uvw1(2) >= 0 && uvw1(2) <= 1);
-          auto gradient =
-              gradient_t{// X                                                                uvw
-                   - uvw0(1) * uvw0(2) * linear_field.data_at(i0[0], i0[1], i0[2])  // 000
-                   + uvw0(1) * uvw0(2) * linear_field.data_at(i1[0], i0[1], i0[2])  // 100
-                   - uvw1(1) * uvw0(2) * linear_field.data_at(i0[0], i1[1], i0[2])  // 010
-                   + uvw1(1) * uvw0(2) * linear_field.data_at(i1[0], i1[1], i0[2])  // 110
-                   - uvw0(1) * uvw1(2) * linear_field.data_at(i0[0], i0[1], i1[2])  // 001
-                   + uvw0(1) * uvw1(2) * linear_field.data_at(i1[0], i0[1], i1[2])  // 101
-                   - uvw1(1) * uvw1(2) * linear_field.data_at(i0[0], i1[1], i1[2])  // 011
-                   + uvw1(1) * uvw1(2) * linear_field.data_at(i1[0], i1[1], i1[2]), // 111
-                   // Y
-                   - uvw0(0) * uvw0(2) * linear_field.data_at(i0[0], i0[1], i0[2])  // 000
-                   - uvw1(0) * uvw0(2) * linear_field.data_at(i1[0], i0[1], i0[2])  // 100
-                   + uvw0(0) * uvw0(2) * linear_field.data_at(i0[0], i1[1], i0[2])  // 010
-                   + uvw1(0) * uvw0(2) * linear_field.data_at(i1[0], i1[1], i0[2])  // 110
-                   - uvw0(0) * uvw1(2) * linear_field.data_at(i0[0], i0[1], i1[2])  // 001
-                   - uvw1(0) * uvw1(2) * linear_field.data_at(i1[0], i0[1], i1[2])  // 101
-                   + uvw0(0) * uvw1(2) * linear_field.data_at(i0[0], i1[1], i1[2])  // 011
-                   + uvw1(0) * uvw1(2) * linear_field.data_at(i1[0], i1[1], i1[2]), // 111
-                   // z
-                   - uvw0(0) * uvw0(1) * linear_field.data_at(i0[0], i0[1], i0[2])  // 000
-                   - uvw1(0) * uvw0(1) * linear_field.data_at(i1[0], i0[1], i0[2])  // 100
-                   - uvw0(0) * uvw1(1) * linear_field.data_at(i0[0], i1[1], i0[2])  // 010
-                   - uvw1(0) * uvw1(1) * linear_field.data_at(i1[0], i1[1], i0[2])  // 110
-                   + uvw0(0) * uvw0(1) * linear_field.data_at(i0[0], i0[1], i1[2])  // 001
-                   + uvw1(0) * uvw0(1) * linear_field.data_at(i1[0], i0[1], i1[2])  // 101
-                   + uvw0(0) * uvw1(1) * linear_field.data_at(i0[0], i1[1], i1[2])  // 011
-                   + uvw1(0) * uvw1(1) * linear_field.data_at(i1[0], i1[1], i1[2])} // 111
-              * inv_cell_extent;
-           //auto G = diff(linear_field.property());
-           //auto gradient =
-           //       G(i0[0], i0[1], i0[2]) * uvw0(0) * uvw0(1) * uvw0(2) +
-           //       G(i0[0], i0[1], i1[2]) * uvw0(0) * uvw0(1) * uvw1(2) +
-           //       G(i0[0], i1[1], i0[2]) * uvw0(0) * uvw1(1) * uvw0(2) +
-           //       G(i0[0], i1[1], i1[2]) * uvw0(0) * uvw1(1) * uvw1(2) +
-           //       G(i1[0], i0[1], i0[2]) * uvw1(0) * uvw0(1) * uvw0(2) +
-           //       G(i1[0], i0[1], i1[2]) * uvw1(0) * uvw0(1) * uvw1(2) +
-           //       G(i1[0], i1[1], i0[2]) * uvw1(0) * uvw1(1) * uvw0(2) +
-           //       G(i1[0], i1[1], i1[2]) * uvw1(0) * uvw1(1) * uvw1(2);
-          if constexpr (color_t::num_components() == 3) {
-            accumulated_color =
-                shader(uvw0 * cell_extent + x0, gradient, r.direction());
-            done = true;
-          } else if constexpr (color_t::num_components() == 4) {
-            auto const rgba =
-                shader(uvw0 * cell_extent + x0, gradient, r.direction());
-            auto const rgb   = vec{rgba(0), rgba(1), rgba(2)};
-            auto const alpha = rgba(3);
-            accumulated_color += (1 - accumulated_alpha) * alpha * rgb;
-            accumulated_alpha += (1 - accumulated_alpha) * alpha;
-            if (accumulated_alpha >= 0.95) {
-              done = true;
+          if (best_t) {
+            auto const uvw0  = pos_t{1 - uvw1(0), 1 - uvw1(1), 1 - uvw1(2)};
+            auto const x_iso = uvw0 * cell_extent + x0;
+            assert(uvw0(0) >= 0 && uvw0(0) <= 1);
+            assert(uvw0(1) >= 0 && uvw0(1) <= 1);
+            assert(uvw0(2) >= 0 && uvw0(2) <= 1);
+            assert(uvw1(0) >= 0 && uvw1(0) <= 1);
+            assert(uvw1(1) >= 0 && uvw1(1) <= 1);
+            assert(uvw1(2) >= 0 && uvw1(2) <= 1);
+            // auto const gradient =
+            //    gradient_t{- uvw0(1) * uvw0(2) * cell_data(0, 0, 0)  // 000
+            //               + uvw0(1) * uvw0(2) * cell_data(1, 0, 0)  // 100
+            //               - uvw1(1) * uvw0(2) * cell_data(0, 1, 0)  // 010
+            //               + uvw1(1) * uvw0(2) * cell_data(1, 1, 0)  // 110
+            //               - uvw0(1) * uvw1(2) * cell_data(0, 0, 1)  // 001
+            //               + uvw0(1) * uvw1(2) * cell_data(1, 0, 1)  // 101
+            //               - uvw1(1) * uvw1(2) * cell_data(0, 1, 1)  // 011
+            //               + uvw1(1) * uvw1(2) * cell_data(1, 1, 1), // 111
+            //
+            //               - uvw0(0) * uvw0(2) * cell_data(0, 0, 0)  // 000
+            //               - uvw1(0) * uvw0(2) * cell_data(1, 0, 0)  // 100
+            //               + uvw0(0) * uvw0(2) * cell_data(0, 1, 0)  // 010
+            //               + uvw1(0) * uvw0(2) * cell_data(1, 1, 0)  // 110
+            //               - uvw0(0) * uvw1(2) * cell_data(0, 0, 1)  // 001
+            //               - uvw1(0) * uvw1(2) * cell_data(1, 0, 1)  // 101
+            //               + uvw0(0) * uvw1(2) * cell_data(0, 1, 1)  // 011
+            //               + uvw1(0) * uvw1(2) * cell_data(1, 1, 1), // 111
+            //
+            //               - uvw0(0) * uvw0(1) * cell_data(0, 0, 0)  // 000
+            //               - uvw1(0) * uvw0(1) * cell_data(1, 0, 0)  // 100
+            //               - uvw0(0) * uvw1(1) * cell_data(0, 1, 0)  // 010
+            //               - uvw1(0) * uvw1(1) * cell_data(1, 1, 0)  // 110
+            //               + uvw0(0) * uvw0(1) * cell_data(0, 0, 1)  // 001
+            //               + uvw1(0) * uvw0(1) * cell_data(1, 0, 1)  // 101
+            //               + uvw0(0) * uvw1(1) * cell_data(0, 1, 1)  // 011
+            //               + uvw1(0) * uvw1(1) * cell_data(1, 1, 1)} // 111
+            //    * inv_cell_extent;
+            // auto       G        = diff(linear_field);
+            // auto const gradient = G.sample(x_iso(0), x_iso(1), x_iso(2));
+            // G(i0[0], i0[1], i0[2]) * uvw0(0) * uvw0(1) * uvw0(2) +
+            // G(i0[0], i0[1], i1[2]) * uvw0(0) * uvw0(1) * uvw1(2) +
+            // G(i0[0], i1[1], i0[2]) * uvw0(0) * uvw1(1) * uvw0(2) +
+            // G(i0[0], i1[1], i1[2]) * uvw0(0) * uvw1(1) * uvw1(2) +
+            // G(i1[0], i0[1], i0[2]) * uvw1(0) * uvw0(1) * uvw0(2) +
+            // G(i1[0], i0[1], i1[2]) * uvw1(0) * uvw0(1) * uvw1(2) +
+            // G(i1[0], i1[1], i0[2]) * uvw1(0) * uvw1(1) * uvw0(2) +
+            // G(i1[0], i1[1], i1[2]) * uvw1(0) * uvw1(1) * uvw1(2);
+            auto const gradient = diff(linear_field, 1e-7)(x_iso);
+            if constexpr (color_t::num_components() == 3) {
+              accumulated_color = shader(x_iso, gradient, r.direction());
+              done              = true;
+            } else if constexpr (color_t::num_components() == 4) {
+              auto const rgba  = shader(x_iso, gradient, r.direction());
+              auto const rgb   = vec{rgba(0), rgba(1), rgba(2)};
+              auto const alpha = rgba(3);
+              accumulated_color += (1 - accumulated_alpha) * alpha * rgb;
+              accumulated_alpha += (1 - accumulated_alpha) * alpha;
+              if (accumulated_alpha >= 0.95) {
+                done = true;
+              }
             }
           }
         }
@@ -342,130 +360,124 @@ auto direct_isosurface_rendering(
   return rendered_image;
 }
 //------------------------------------------------------------------------------
-//template <typename DistOnRay, typename CameraReal, typename AABBReal,
-//          typename DataEvaluator, typename Isovalue, typename DomainCheck,
-//          typename Shader>
-//auto direct_isosurface_rendering(
-//    rendering::camera<CameraReal> const&          cam,
-//    axis_aligned_bounding_box<AABBReal, 3> const& aabb,
-//    DataEvaluator&& data_evaluator, DomainCheck&& domain_check,
-//    Isovalue isovalue, DistOnRay const distance_on_ray, Shader&& shader) {
-//  using pos_t   = vec<AABBReal, 3>;
-//  using value_t = std::invoke_result_t<DataEvaluator, pos_t>;
-//  using color_t = std::invoke_result_t<DataEvaluator, pos_t>;
-//  using alpha_t = typename color_t::value_t;
-//  static_assert(is_floating_point<value_t>,
-//                "DataEvaluator must return scalar type.");
-//  static_assert(is_vec<color_t>,
-//                "ColorScale must return scalar type or tatooine::vec.");
-//  static_assert(
-//      color_t::num_components() == 3 || color_t::num_components() == 4,
-//      "ColorScale must return scalar type or tatooine::vec.");
-//  grid<linspace<CameraReal>, linspace<CameraReal>> rendered_image{
-//      linspace<CameraReal>{0.0, cam.plane_width() - 1, cam.plane_width()},
-//      linspace<CameraReal>{0.0, cam.plane_height() - 1, cam.plane_height()}};
-//  auto& rendering =
-//      rendered_image.template add_vertex_property<color_t>("rendered_isosurface");
-//
-//  std::vector<std::tuple<ray<CameraReal, 3>, AABBReal, size_t, size_t>> rays;
-//  std::mutex                                                            mutex;
-//#pragma omp parallel for collapse(2)
-//  for (size_t y = 0; y < cam.plane_height(); ++y) {
-//    for (size_t x = 0; x < cam.plane_width(); ++x) {
-//      rendering(x, y) = bg_color;
-//      auto r          = cam.ray(x, y);
-//      r.normalize();
-//      if (auto const i = aabb.check_intersection(r); i) {
-//        std::lock_guard lock{mutex};
-//        rays.push_back(std::tuple{r, i->t, x, y});
-//      }
-//    }
-//  }
-//#pragma omp parallel for
-//  for (size_t i = 0; i < rays.size(); ++i) {
-//    auto const [r, t, x, y]      = rays[i];
-//    alpha_t accumulated_alpha = 0;
-//    color_t accumulated_color{};
-//
-//    auto t0 = t;
-//    auto x0 = r(t0);
-//    for (size_t i = 0; i < 3; ++i) {
-//      if (x0(i) < aabb.min(i)) {
-//        x0(i) = aabb.min(i);
-//      }
-//      if (x0(i) > aabb.max(i)) {
-//        x0(i) = aabb.max(i);
-//      }
-//    }
-//    auto sample0 = data_evaluator(x0);
-//
-//    auto t1      = t0 + distance_on_ray;
-//    auto x1 = r(t1);
-//    auto sample1 = sample0;
-//
-//    // if (!aabb.is_inside(x0) || !aabb.is_inside(x1)) {
-//    //  t0 += 1e-6;
-//    //  t1 += 1e-6;
-//    //  x0 = r(t0);
-//    //  x1 = r(t1);
-//    //  sample0 = data_evaluator(x0);
-//    //  sample1 = data_evaluator(x1);
-//    //}
-//    //
-//    auto done = false;
-//    while (!done && aabb.is_inside(x1)) {
-//      if (domain_check(x1)) {
-//        sample1 = data_evaluator(x1);
-//        if ((sample0 <= isovalue && sample1 > isovalue) ||
-//            (sample0 >= isovalue && sample1 < isovalue)) {
-//          auto cur_x0      = x0;
-//          auto cur_x1      = x1;
-//          auto cur_sample0 = sample0;
-//          auto cur_sample1 = sample1;
-//          for (size_t i = 0; i < 10; ++i) {
-//            auto x_center      = (cur_x0 + cur_x1) / 2;
-//            auto sample_center = data_evaluator(x_center);
-//            if ((cur_sample0 <= isovalue && sample_center > isovalue) ||
-//                (cur_sample0 >= isovalue && sample_center < isovalue)) {
-//              cur_x1      = x_center;
-//              cur_sample1 = sample_center;
-//            } else {
-//              cur_x0      = x_center;
-//              cur_sample0 = sample_center;
-//            }
-//          }
-//          auto const t_iso =
-//              (isovalue - cur_sample0) / (cur_sample1 - cur_sample0);
-//          auto const iso_pos = r(t0 + t_iso * distance_on_ray);
-//
-//          if constexpr (color_t::num_components() == 3) {
-//            accumulated_color =
-//                shader(uvw0 * cell_extent + x0, gradient, r.direction());
-//            done = true;
-//          } else if constexpr (color_t::num_components() == 4) {
-//            auto const rgba =
-//                shader(uvw0 * cell_extent + x0, gradient, r.direction());
-//            auto const rgb   = vec{rgba(0), rgba(1), rgba(2)};
-//            auto const alpha = rgba(3);
-//            accumulated_color += (1 - accumulated_alpha) * alpha * rgb;
-//            accumulated_alpha += (1 - accumulated_alpha) * alpha;
-//            if (accumulated_alpha >= 0.95) {
-//              done = true;
-//            }
-//          }
-//        }
-//      }
-//      t0      = t1;
-//      x0      = std::move(x1);
-//      sample0 = std::move(sample1);
-//      t1 += distance_on_ray;
-//      x1 = r(t1);
-//    }
-//    rendering(x, y) = accumulated_color * accumulated_alpha +
-//                      bg_color * (1 - accumulated_alpha);
-//  }
-//  return rendered_image;
-//}
+template <typename DistOnRay, typename CameraReal, typename AABBReal,
+          typename DataEvaluator, typename Isovalue, typename DomainCheck,
+          typename Shader>
+auto direct_isosurface_rendering(
+    rendering::camera<CameraReal> const&          cam,
+    axis_aligned_bounding_box<AABBReal, 3> const& aabb,
+    DataEvaluator&& data_evaluator, DomainCheck&& domain_check,
+    Isovalue isovalue, DistOnRay const distance_on_ray, Shader&& shader) {
+  using pos_t     = vec<CameraReal, 3>;
+  using viewdir_t = vec<CameraReal, 3>;
+  static_assert(std::is_invocable_v<Shader, pos_t, viewdir_t>,
+                "Shader must be invocable with position and view direction.");
+  using value_t = std::invoke_result_t<DataEvaluator, pos_t>;
+  using color_t = std::invoke_result_t<Shader, pos_t, viewdir_t>;
+  using rgb_t   = vec<typename color_t::value_type, 3>;
+  using alpha_t = typename color_t::value_type;
+  static_assert(is_floating_point<value_t>,
+                "DataEvaluator must return scalar type.");
+  static_assert(is_vec<color_t>,
+                "ColorScale must return scalar type or tatooine::vec.");
+  static_assert(
+      color_t::num_components() == 3 || color_t::num_components() == 4,
+      "ColorScale must return scalar type or tatooine::vec.");
+  grid<linspace<CameraReal>, linspace<CameraReal>> rendered_image{
+      linspace<CameraReal>{0.0, cam.plane_width() - 1, cam.plane_width()},
+      linspace<CameraReal>{0.0, cam.plane_height() - 1, cam.plane_height()}};
+  auto& rendering =
+      rendered_image.template vertex_property<rgb_t>("rendered_isosurface");
+
+  std::vector<std::tuple<ray<CameraReal, 3>, AABBReal, size_t, size_t>> rays;
+  std::mutex                                                            mutex;
+  auto const bg_color = rgb_t{1, 1, 1};
+#pragma omp parallel for collapse(2)
+  for (size_t y = 0; y < cam.plane_height(); ++y) {
+    for (size_t x = 0; x < cam.plane_width(); ++x) {
+      rendering(x, y) = bg_color;
+      auto r          = cam.ray(x, y);
+      r.normalize();
+      if (auto const i = aabb.check_intersection(r); i) {
+        std::lock_guard lock{mutex};
+        rays.push_back(std::tuple{r, i->t, x, y});
+      }
+    }
+  }
+#pragma omp parallel for
+  for (size_t i = 0; i < rays.size(); ++i) {
+    auto const [r, t, x, y]   = rays[i];
+    alpha_t accumulated_alpha = 0;
+    rgb_t   accumulated_color{};
+
+    auto t0 = t;
+    auto x0 = r(t0);
+    for (size_t i = 0; i < 3; ++i) {
+      if (x0(i) < aabb.min(i)) {
+        x0(i) = aabb.min(i);
+      }
+      if (x0(i) > aabb.max(i)) {
+        x0(i) = aabb.max(i);
+      }
+    }
+    auto sample0 = data_evaluator(x0);
+
+    auto t1      = t0 + distance_on_ray;
+    auto x1      = r(t1);
+    auto sample1 = sample0;
+
+    auto done = false;
+    while (!done && aabb.is_inside(x1)) {
+      if (domain_check(x0) && domain_check(x1)) {
+        sample1 = data_evaluator(x1);
+        if ((sample0 <= isovalue && sample1 > isovalue) ||
+            (sample0 >= isovalue && sample1 < isovalue)) {
+          auto cur_x0      = x0;
+          auto cur_x1      = x1;
+          auto cur_sample0 = sample0;
+          auto cur_sample1 = sample1;
+          for (size_t i = 0; i < 100; ++i) {
+            auto x_center      = (cur_x0 + cur_x1) / 2;
+            auto sample_center = data_evaluator(x_center);
+            if ((cur_sample0 <= isovalue && sample_center > isovalue) ||
+                (cur_sample0 >= isovalue && sample_center < isovalue)) {
+              cur_x1      = x_center;
+              cur_sample1 = sample_center;
+            } else {
+              cur_x0      = x_center;
+              cur_sample0 = sample_center;
+            }
+          }
+          auto const t_iso =
+              (isovalue - cur_sample0) / (cur_sample1 - cur_sample0);
+          auto const iso_pos = r(t0 + t_iso * distance_on_ray);
+
+          if constexpr (color_t::num_components() == 3) {
+            accumulated_color = shader(iso_pos, r.direction());
+            done              = true;
+          } else if constexpr (color_t::num_components() == 4) {
+            auto const rgba  = shader(iso_pos, r.direction());
+            auto const rgb   = vec{rgba(0), rgba(1), rgba(2)};
+            auto const alpha = rgba(3);
+            accumulated_color += (1 - accumulated_alpha) * alpha * rgb;
+            accumulated_alpha += (1 - accumulated_alpha) * alpha;
+            if (accumulated_alpha >= 0.95) {
+              done = true;
+            }
+          }
+        }
+      }
+      t0      = t1;
+      x0      = std::move(x1);
+      sample0 = std::move(sample1);
+      t1 += distance_on_ray;
+      x1 = r(t1);
+    }
+    rendering(x, y) = accumulated_color * accumulated_alpha +
+                      bg_color * (1 - accumulated_alpha);
+  }
+  return rendered_image;
+}
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 //#ifdef __cpp_concepts
 // template <arithmetic TReal, arithmetic Min, arithmetic Max,

@@ -9,11 +9,11 @@
 #include <tatooine/for_loop.h>
 #include <tatooine/grid_vertex_container.h>
 #include <tatooine/grid_vertex_iterator.h>
+#include <tatooine/grid_vertex_property.h>
 #include <tatooine/hdf5.h>
 #include <tatooine/interpolation.h>
 #include <tatooine/lazy_reader.h>
 #include <tatooine/linspace.h>
-#include <tatooine/multidim_property.h>
 #include <tatooine/netcdf.h>
 #include <tatooine/random.h>
 #include <tatooine/template_helper.h>
@@ -53,14 +53,14 @@ class grid {
   using vertex_container = grid_vertex_container<Dimensions...>;
 
   // general property types
-  using property_t = multidim_property<this_t>;
+  using property_t = grid_vertex_property<this_t>;
   template <typename ValueType, bool HasNonConstReference>
-  using typed_property_t =
-      typed_multidim_property<this_t, ValueType, HasNonConstReference>;
+  using typed_vertex_property_interface_t =
+      typed_grid_vertex_property_interface<this_t, ValueType,
+                                           HasNonConstReference>;
   template <typename Container>
-  using typed_property_impl_t =
-      typed_multidim_property_impl<this_t, typename Container::value_type,
-                                   Container>;
+  using typed_vertex_property_t =
+      typed_vertex_property<this_t, typename Container::value_type, Container>;
   template <typename F>
   using invoke_result_with_indices =
       std::invoke_result_t<F, decltype(((void)std::declval<Dimensions>(),
@@ -71,17 +71,18 @@ class grid {
   //============================================================================
   static constexpr size_t min_stencil_size = 2;
   static constexpr size_t max_stencil_size = 11;
+
  private:
-  static constexpr size_t num_stencils = max_stencil_size - min_stencil_size + 1;
-  mutable std::mutex      m_stencil_mutex;
-  dimensions_t            m_dimensions;
-  property_container_t    m_vertex_properties;
-  mutable bool            m_diff_stencil_coefficients_created_once = false;
+  static constexpr size_t num_stencils =
+      max_stencil_size - min_stencil_size + 1;
+  mutable std::mutex   m_stencil_mutex;
+  dimensions_t         m_dimensions;
+  property_container_t m_vertex_properties;
+  mutable bool         m_diff_stencil_coefficients_created_once = false;
 
   using stencil_t      = std::vector<real_t>;
   using stencil_list_t = std::vector<stencil_t>;
-  mutable std::array<std::array<std::vector<stencil_list_t>,
-                                num_stencils>,
+  mutable std::array<std::array<std::vector<stencil_list_t>, num_stencils>,
                      num_dimensions()>
          m_diff_stencil_coefficients;
   size_t m_chunk_size_for_lazy_properties = 2;
@@ -611,8 +612,7 @@ class grid {
 #ifdef __cpp_concepts
   template <arithmetic X>
 #else
-  template <typename X,
-            enable_if<is_arithmetic<X>> = true>
+  template <typename X, enable_if<is_arithmetic<X>> = true>
 #endif
   auto cell_index(size_t const dimension_index, X const x) const {
     if (dimension_index == 0) {
@@ -680,8 +680,12 @@ class grid {
 #endif
   auto cell_index(X x) const -> std::pair<size_t, real_t> {
     auto const& dim = dimension<DimensionIndex>();
-    if (std::abs(x - dim.front()) < 1e-10) {x = dim.front();}
-    if (std::abs(x - dim.back()) < 1e-10) {x = dim.back();}
+    if (std::abs(x - dim.front()) < 1e-10) {
+      x = dim.front();
+    }
+    if (std::abs(x - dim.back()) < 1e-10) {
+      x = dim.back();
+    }
     if constexpr (is_linspace<std::decay_t<decltype(dim)>>) {
       // calculate
       auto pos =
@@ -769,22 +773,22 @@ class grid {
   //----------------------------------------------------------------------------
   template <size_t Dim>
   auto update_diff_stencil_coefficients_dim() const {
-    //if constexpr (!is_linspace<std::decay_t<decltype(dimension<Dim>())>>) {
-      auto const& dim                   = dimension<Dim>();
-      auto&       stencils_of_dimension = m_diff_stencil_coefficients[Dim];
-      for (size_t stencil_size = min_stencil_size;
-           stencil_size <= std::min(max_stencil_size, dim.size());
-           ++stencil_size) {
-        auto& stencils_of_cur_size =
-            stencils_of_dimension[stencil_size - min_stencil_size];
-        stencils_of_cur_size.resize(stencil_size);
-        for (size_t stencil_center = 0; stencil_center < stencil_size;
-             ++stencil_center) {
-          update_diff_stencil_coefficients(dim,
-                                           stencils_of_cur_size[stencil_center],
-                                           stencil_size, stencil_center);
-        }
+    // if constexpr (!is_linspace<std::decay_t<decltype(dimension<Dim>())>>) {
+    auto const& dim                   = dimension<Dim>();
+    auto&       stencils_of_dimension = m_diff_stencil_coefficients[Dim];
+    for (size_t stencil_size = min_stencil_size;
+         stencil_size <= std::min(max_stencil_size, dim.size());
+         ++stencil_size) {
+      auto& stencils_of_cur_size =
+          stencils_of_dimension[stencil_size - min_stencil_size];
+      stencils_of_cur_size.resize(stencil_size);
+      for (size_t stencil_center = 0; stencil_center < stencil_size;
+           ++stencil_center) {
+        update_diff_stencil_coefficients(dim,
+                                         stencils_of_cur_size[stencil_center],
+                                         stencil_size, stencil_center);
       }
+    }
     //}
   }
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -805,7 +809,7 @@ class grid {
       }
       stencils.push_back(finite_differences_coefficients(1, xs));
     }
-    //for (size_t i = 0; i < stencil_size - stencil_center - 1; ++i) {
+    // for (size_t i = 0; i < stencil_size - stencil_center - 1; ++i) {
     //  stencils.emplace_back();
     //}
   }
@@ -993,74 +997,71 @@ class grid {
       -> auto& {
     if (auto it = m_vertex_properties.find(name);
         it == end(m_vertex_properties)) {
-      auto new_prop = new typed_property_impl_t<Container>{
+      auto new_prop = new typed_vertex_property_t<Container>{
           *this, std::forward<Args>(args)...};
       m_vertex_properties.emplace(name, std::unique_ptr<property_t>{new_prop});
       if constexpr (sizeof...(Args) == 0) {
         new_prop->resize(size());
       }
       return *new_prop;
-    } else {
-      if (it->second->container_type() != typeid(Container)) {
-        throw std::runtime_error{
-            "Queried container type does not match already inserted property "
-            "container type."};
-      }
-      return *dynamic_cast<typed_property_impl_t<Container>*>(it->second.get());
     }
+    throw std::runtime_error{"There is already a vertex property named \"" +
+                             name + "\"."};
   }
   //----------------------------------------------------------------------------
   auto vertex_properties() const -> auto const& { return m_vertex_properties; }
   auto vertex_properties() -> auto& { return m_vertex_properties; }
   //----------------------------------------------------------------------------
   template <typename T, typename IndexOrder = x_fastest>
-  auto add_vertex_property(std::string const& name) -> auto& {
-    return add_contiguous_vertex_property<T, IndexOrder>(name);
+  auto insert_vertex_property(std::string const& name) -> auto& {
+    return insert_contiguous_vertex_property<T, IndexOrder>(name);
   }
   //----------------------------------------------------------------------------
   template <typename IndexOrder = x_fastest>
-  auto add_scalar_vertex_property(std::string const& name) -> auto& {
-    return add_vertex_property<tatooine::real_t, IndexOrder>(name);
+  auto insert_scalar_vertex_property(std::string const& name) -> auto& {
+    return insert_vertex_property<tatooine::real_t, IndexOrder>(name);
   }
   //----------------------------------------------------------------------------
   template <typename IndexOrder = x_fastest>
-  auto add_vec2_vertex_property(std::string const& name) -> auto& {
-    return add_vertex_property<vec2, IndexOrder>(name);
+  auto insert_vec2_vertex_property(std::string const& name) -> auto& {
+    return insert_vertex_property<vec2, IndexOrder>(name);
   }
   //----------------------------------------------------------------------------
   template <typename IndexOrder = x_fastest>
-  auto add_vec3_vertex_property(std::string const& name) -> auto& {
-    return add_vertex_property<vec3, IndexOrder>(name);
+  auto insert_vec3_vertex_property(std::string const& name) -> auto& {
+    return insert_vertex_property<vec3, IndexOrder>(name);
   }
   //----------------------------------------------------------------------------
   template <typename IndexOrder = x_fastest>
-  auto add_vec4_vertex_property(std::string const& name) -> auto& {
-    return add_vertex_property<vec4, IndexOrder>(name);
+  auto insert_vec4_vertex_property(std::string const& name) -> auto& {
+    return insert_vertex_property<vec4, IndexOrder>(name);
   }
   //----------------------------------------------------------------------------
   template <typename IndexOrder = x_fastest>
-  auto add_mat2_vertex_property(std::string const& name) -> auto& {
-    return add_vertex_property<mat2, IndexOrder>(name);
+  auto insert_mat2_vertex_property(std::string const& name) -> auto& {
+    return insert_vertex_property<mat2, IndexOrder>(name);
   }
   //----------------------------------------------------------------------------
   template <typename IndexOrder = x_fastest>
-  auto add_mat3_vertex_property(std::string const& name) -> auto& {
-    return add_vertex_property<mat3, IndexOrder>(name);
+  auto insert_mat3_vertex_property(std::string const& name) -> auto& {
+    return insert_vertex_property<mat3, IndexOrder>(name);
   }
   //----------------------------------------------------------------------------
   template <typename IndexOrder = x_fastest>
-  auto add_mat4_vertex_property(std::string const& name) -> auto& {
-    return add_vertex_property<mat4, IndexOrder>(name);
+  auto insert_mat4_vertex_property(std::string const& name) -> auto& {
+    return insert_vertex_property<mat4, IndexOrder>(name);
   }
+  //----------------------------------------------------------------------------
+  /// @}
   //----------------------------------------------------------------------------
   template <typename T, typename IndexOrder = x_fastest>
-  auto add_contiguous_vertex_property(std::string const& name) -> auto& {
+  auto insert_contiguous_vertex_property(std::string const& name) -> auto& {
     return create_vertex_property<dynamic_multidim_array<T, IndexOrder>>(
         name, size());
   }
   //----------------------------------------------------------------------------
   template <typename T, typename IndexOrder = x_fastest>
-  auto add_chunked_vertex_property(std::string const&         name,
+  auto insert_chunked_vertex_property(std::string const&         name,
                                    std::vector<size_t> const& chunk_size)
       -> auto& {
     return create_vertex_property<chunked_multidim_array<T, IndexOrder>>(
@@ -1068,7 +1069,7 @@ class grid {
   }
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
   template <typename T, typename IndexOrder = x_fastest>
-  auto add_chunked_vertex_property(
+  auto insert_chunked_vertex_property(
       std::string const&                          name,
       std::array<size_t, num_dimensions()> const& chunk_size) -> auto& {
     return create_vertex_property<chunked_multidim_array<T, IndexOrder>>(
@@ -1083,20 +1084,40 @@ class grid {
             enable_if<is_integral<ChunkSize...>>                  = true,
             enable_if<(sizeof...(ChunkSize) == num_dimensions())> = true>
 #endif
-      auto add_chunked_vertex_property(std::string const& name,
+      auto insert_chunked_vertex_property(std::string const& name,
                                        ChunkSize const... chunk_size) -> auto& {
     return create_vertex_property<chunked_multidim_array<T, IndexOrder>>(
         name, size(), std::vector<size_t>{static_cast<size_t>(chunk_size)...});
   }
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
   template <typename T, typename IndexOrder = x_fastest>
-  auto add_chunked_vertex_property(std::string const& name) -> auto& {
+  auto insert_chunked_vertex_property(std::string const& name) -> auto& {
     return create_vertex_property<chunked_multidim_array<T, IndexOrder>>(
         name, size(), make_array<num_dimensions()>(size_t(10)));
   }
   //----------------------------------------------------------------------------
   template <typename T, bool HasNonConstReference = true>
-  auto vertex_property(std::string const& name) const -> auto const& {
+  auto vertex_property(std::string const& name)
+      -> typed_vertex_property_interface_t<T, HasNonConstReference>& {
+    if (auto it = m_vertex_properties.find(name);
+        it == end(m_vertex_properties)) {
+      return insert_vertex_property<T>(name);
+    } else {
+      if (typeid(T) != it->second->type()) {
+        throw std::runtime_error{
+            "type of property \"" + name + "\"(" +
+            boost::core::demangle(it->second->type().name()) +
+            ") does not match specified type " + type_name<T>() + "."};
+      }
+      return *dynamic_cast<
+          typed_vertex_property_interface_t<T, HasNonConstReference>*>(
+          it->second.get());
+    }
+  }
+  //----------------------------------------------------------------------------
+  template <typename T, bool HasNonConstReference = true>
+  auto vertex_property(std::string const& name) const
+      -> typed_vertex_property_interface_t<T, HasNonConstReference> const& {
     if (auto it = m_vertex_properties.find(name);
         it == end(m_vertex_properties)) {
       throw std::runtime_error{"property \"" + name + "\" not found"};
@@ -1107,51 +1128,112 @@ class grid {
             boost::core::demangle(it->second->type().name()) +
             ") does not match specified type " + type_name<T>() + "."};
       }
-      return *dynamic_cast<typed_property_t<T, HasNonConstReference> const*>(
+      return *dynamic_cast<
+          typed_vertex_property_interface_t<T, HasNonConstReference> const*>(
           it->second.get());
     }
+  }
+  //----------------------------------------------------------------------------
+  template <bool HasNonConstReference = true>
+  auto scalar_vertex_property(std::string const& name)const -> auto const& {
+    return vertex_property<tatooine::real_t, HasNonConstReference>(name);
+  }
+  //----------------------------------------------------------------------------
+  template <bool HasNonConstReference = true>
+  auto scalar_vertex_property(std::string const& name) -> auto& {
+    return vertex_property<tatooine::real_t, HasNonConstReference>(name);
+  }
+  //----------------------------------------------------------------------------
+  template <bool HasNonConstReference = true>
+  auto vec2_vertex_property(std::string const& name)const -> auto const& {
+    return vertex_property<vec2, HasNonConstReference>(name);
+  }
+  //----------------------------------------------------------------------------
+  template <bool HasNonConstReference = true>
+  auto vec2_vertex_property(std::string const& name) -> auto& {
+    return vertex_property<vec2, HasNonConstReference>(name);
+  }
+  //----------------------------------------------------------------------------
+  template <bool HasNonConstReference = true>
+  auto vec3_vertex_property(std::string const& name)const -> auto const& {
+    return vertex_property<vec3, HasNonConstReference>(name);
+  }
+  //----------------------------------------------------------------------------
+  template <bool HasNonConstReference = true>
+  auto vec3_vertex_property(std::string const& name) -> auto& {
+    return vertex_property<vec3, HasNonConstReference>(name);
+  }
+  //----------------------------------------------------------------------------
+  template <bool HasNonConstReference = true>
+  auto vec4_vertex_property(std::string const& name)const -> auto const& {
+    return vertex_property<vec4, HasNonConstReference>(name);
+  }
+  //----------------------------------------------------------------------------
+  template <bool HasNonConstReference = true>
+  auto vec4_vertex_property(std::string const& name) -> auto& {
+    return vertex_property<vec4, HasNonConstReference>(name);
+  }
+  //----------------------------------------------------------------------------
+  template <bool HasNonConstReference = true>
+  auto mat2_vertex_property(std::string const& name)const -> auto const& {
+    return vertex_property<mat2, HasNonConstReference>(name);
+  }
+  //----------------------------------------------------------------------------
+  template <bool HasNonConstReference = true>
+  auto mat2_vertex_property(std::string const& name) -> auto& {
+    return vertex_property<mat2, HasNonConstReference>(name);
+  }
+  //----------------------------------------------------------------------------
+  template <bool HasNonConstReference = true>
+  auto mat3_vertex_property(std::string const& name)const -> auto const& {
+    return vertex_property<mat3, HasNonConstReference>(name);
+  }
+  //----------------------------------------------------------------------------
+  template <bool HasNonConstReference = true>
+  auto mat3_vertex_property(std::string const& name) -> auto& {
+    return vertex_property<mat3, HasNonConstReference>(name);
   }
   //----------------------------------------------------------------------------
   // template <invocable<decltype(((void)std::declval<Dimensions>(),
   //                              std::declval<size_t>()))...>
   //              F>
-  // auto add_vertex_property(std::string const& name, F&& f) -> auto& {
+  // auto insert_vertex_property(std::string const& name, F&& f) -> auto& {
   //  return create_vertex_property<
-  //      typed_multidim_property_lambda<this_t, std::decay_t<F>>>(
+  //      typed_grid_vertex_property_lambda<this_t, std::decay_t<F>>>(
   //      name, std::forward<F>(f));
   //}
   //----------------------------------------------------------------------------
   template <typename T, typename GlobalIndexOrder = x_fastest,
             typename LocalIndexOrder = GlobalIndexOrder>
-  auto add_lazy_vertex_property(filesystem::path const& path,
+  auto insert_lazy_vertex_property(filesystem::path const& path,
                                 std::string const&      dataset_name)
-      -> typed_property_t<T, false>& {
+      -> typed_vertex_property_interface_t<T, false>& {
     auto const ext = path.extension();
 #ifdef TATOOINE_HDF5_AVAILABLE
     if (ext == ".h5") {
-      return add_hdf5_lazy_vertex_property<T, GlobalIndexOrder,
+      return insert_hdf5_lazy_vertex_property<T, GlobalIndexOrder,
                                            LocalIndexOrder>(path, dataset_name);
     }
 #endif
 #ifdef TATOOINE_NETCDF_AVAILABLE
     if (ext == ".nc") {
-      return add_netcdf_lazy_vertex_property<T, GlobalIndexOrder,
+      return insert_netcdf_lazy_vertex_property<T, GlobalIndexOrder,
                                              LocalIndexOrder>(path,
                                                               dataset_name);
     }
 #endif
     throw std::runtime_error{
-        "[grid::add_lazy_vertex_property] - unknown file extension"};
+        "[grid::insert_lazy_vertex_property] - unknown file extension"};
   }
   //----------------------------------------------------------------------------
 #ifdef TATOOINE_HDF5_AVAILABLE
   template <typename IndexOrder = x_fastest, typename T>
-  auto add_vertex_property(hdf5::dataset<T> const& dataset) -> auto& {
-    return add_vertex_property<IndexOrder>(dataset, dataset.name());
+  auto insert_vertex_property(hdf5::dataset<T> const& dataset) -> auto& {
+    return insert_vertex_property<IndexOrder>(dataset, dataset.name());
   }
   //----------------------------------------------------------------------------
   template <typename IndexOrder = x_fastest, typename T>
-  auto add_vertex_property(hdf5::dataset<T> const& dataset,
+  auto insert_vertex_property(hdf5::dataset<T> const& dataset,
                            std::string const&      name) -> auto& {
     auto num_dims_dataset = dataset.num_dimensions();
     if (num_dimensions() != num_dims_dataset) {
@@ -1175,30 +1257,30 @@ class grid {
         throw std::runtime_error{ss.str()};
       }
     }
-    auto& prop = add_vertex_property<T, IndexOrder>(name);
+    auto& prop = insert_vertex_property<T, IndexOrder>(name);
     dataset.read(prop);
     return prop;
   }
   //----------------------------------------------------------------------------
   template <typename T, typename GlobalIndexOrder = x_fastest,
             typename LocalIndexOrder = GlobalIndexOrder>
-  auto add_hdf5_lazy_vertex_property(filesystem::path const& path,
+  auto insert_hdf5_lazy_vertex_property(filesystem::path const& path,
                                      std::string const& dataset_name) -> auto& {
     hdf5::file f{path};
-    return add_lazy_vertex_property<GlobalIndexOrder, LocalIndexOrder>(
+    return insert_lazy_vertex_property<GlobalIndexOrder, LocalIndexOrder>(
         f.dataset<T>(dataset_name));
   }
   //----------------------------------------------------------------------------
   template <typename GlobalIndexOrder = x_fastest,
             typename LocalIndexOrder  = GlobalIndexOrder, typename T>
-  auto add_lazy_vertex_property(hdf5::dataset<T> const& dataset) -> auto& {
-    return add_lazy_vertex_property<GlobalIndexOrder, LocalIndexOrder>(
+  auto insert_lazy_vertex_property(hdf5::dataset<T> const& dataset) -> auto& {
+    return insert_lazy_vertex_property<GlobalIndexOrder, LocalIndexOrder>(
         dataset, dataset.name());
   }
   //----------------------------------------------------------------------------
   template <typename GlobalIndexOrder = x_fastest,
             typename LocalIndexOrder  = GlobalIndexOrder, typename T>
-  auto add_lazy_vertex_property(hdf5::dataset<T> const& dataset,
+  auto insert_lazy_vertex_property(hdf5::dataset<T> const& dataset,
                                 std::string const&      name) -> auto& {
     auto num_dims_dataset = dataset.num_dimensions();
     if (num_dimensions() != num_dims_dataset) {
@@ -1233,17 +1315,17 @@ class grid {
   //----------------------------------------------------------------------------
   template <typename T, typename GlobalIndexOrder = x_fastest,
             typename LocalIndexOrder = GlobalIndexOrder>
-  auto add_netcdf_lazy_vertex_property(filesystem::path const& path,
+  auto insert_netcdf_lazy_vertex_property(filesystem::path const& path,
                                        std::string const&      dataset_name)
       -> auto& {
     netcdf::file f{path, netCDF::NcFile::read};
-    return add_lazy_vertex_property<GlobalIndexOrder, LocalIndexOrder, T>(
+    return insert_lazy_vertex_property<GlobalIndexOrder, LocalIndexOrder, T>(
         f.variable<T>(dataset_name));
   }
   //----------------------------------------------------------------------------
   template <typename GlobalIndexOrder = x_fastest,
             typename LocalIndexOrder  = GlobalIndexOrder, typename T>
-  auto add_lazy_vertex_property(netcdf::variable<T> const& dataset) -> auto& {
+  auto insert_lazy_vertex_property(netcdf::variable<T> const& dataset) -> auto& {
     return create_vertex_property<
         lazy_reader<netcdf::variable<T>, GlobalIndexOrder, LocalIndexOrder>>(
         dataset.name(), dataset,
@@ -1251,23 +1333,6 @@ class grid {
                             m_chunk_size_for_lazy_properties));
   }
 #endif
-  //----------------------------------------------------------------------------
-  template <typename T, bool HasNonConstReference = true>
-  auto vertex_property(std::string const& name) -> auto& {
-    if (auto it = m_vertex_properties.find(name);
-        it == end(m_vertex_properties)) {
-      throw std::runtime_error{"property \"" + name + "\" not found"};
-    } else {
-      if (typeid(T) != it->second->type()) {
-        throw std::runtime_error{
-            "type of property \"" + name + "\"(" +
-            boost::core::demangle(it->second->type().name()) +
-            ") does not match specified type " + type_name<T>() + "."};
-      }
-      return *dynamic_cast<typed_property_t<T, HasNonConstReference>*>(
-          it->second.get());
-    }
-  }
   //============================================================================
 #ifdef __cpp_concepts
   template <invocable<pos_t> F>
@@ -1276,7 +1341,7 @@ class grid {
 #endif
   auto sample_to_vertex_property(F&& f, std::string const& name) -> auto& {
     using T    = std::invoke_result_t<F, pos_t>;
-    auto& prop = add_vertex_property<T>(name);
+    auto& prop = insert_vertex_property<T>(name);
     loop_over_vertex_indices([&](auto const... is) {
       try {
         prop(is...) = f(vertex_at(is...));
@@ -1354,15 +1419,12 @@ class grid {
         gr.dimension<2>().resize(z);
       }
     }
-    auto on_x_coordinates(std::vector<float> const & /*xs*/) -> void override {}
-    auto on_x_coordinates(std::vector<double> const & /*xs*/) -> void override {
-    }
-    auto on_y_coordinates(std::vector<float> const & /*ys*/) -> void override {}
-    auto on_y_coordinates(std::vector<double> const & /*ys*/) -> void override {
-    }
-    auto on_z_coordinates(std::vector<float> const & /*zs*/) -> void override {}
-    auto on_z_coordinates(std::vector<double> const & /*zs*/) -> void override {
-    }
+    auto on_x_coordinates(std::vector<float> const& /*xs*/) -> void override {}
+    auto on_x_coordinates(std::vector<double> const& /*xs*/) -> void override {}
+    auto on_y_coordinates(std::vector<float> const& /*ys*/) -> void override {}
+    auto on_y_coordinates(std::vector<double> const& /*ys*/) -> void override {}
+    auto on_z_coordinates(std::vector<float> const& /*zs*/) -> void override {}
+    auto on_z_coordinates(std::vector<double> const& /*zs*/) -> void override {}
 
     // index data
     auto on_cells(std::vector<int> const&) -> void override {}
@@ -1401,30 +1463,30 @@ class grid {
                     vtk::reader_data) -> void override {}
 
     template <typename T>
-    auto add_prop(std::string const& prop_name, std::vector<T> const& data,
+    auto insert_prop(std::string const& prop_name, std::vector<T> const& data,
                   size_t const num_comps) {
       size_t i = 0;
       if (num_comps == 1) {
-        auto& prop = gr.add_vertex_property<T>(prop_name);
+        auto& prop = gr.insert_vertex_property<T>(prop_name);
         gr.loop_over_vertex_indices(
             [&](auto const... is) { prop(is...) = data[i++]; });
       }
       if (num_comps == 2) {
-        auto& prop = gr.add_vertex_property<vec<T, 2>>(prop_name);
+        auto& prop = gr.insert_vertex_property<vec<T, 2>>(prop_name);
         gr.loop_over_vertex_indices([&](auto const... is) {
           prop(is...) = {data[i], data[i + 1]};
           i += num_comps;
         });
       }
       if (num_comps == 3) {
-        auto& prop = gr.add_vertex_property<vec<T, 3>>(prop_name);
+        auto& prop = gr.insert_vertex_property<vec<T, 3>>(prop_name);
         gr.loop_over_vertex_indices([&](auto const... is) {
           prop(is...) = {data[i], data[i + 1], data[i + 2]};
           i += num_comps;
         });
       }
       if (num_comps == 4) {
-        auto& prop = gr.add_vertex_property<vec<T, 4>>(prop_name);
+        auto& prop = gr.insert_vertex_property<vec<T, 4>>(prop_name);
         gr.loop_over_vertex_indices([&](auto const... is) {
           prop(is...) = {data[i], data[i + 1], data[i + 2], data[i + 3]};
           i += num_comps;
@@ -1435,13 +1497,13 @@ class grid {
                     std::string const& /*lookup_table_name*/,
                     size_t const num_comps, std::vector<float> const& data,
                     vtk::reader_data) -> void override {
-      add_prop<float>(data_name, data, num_comps);
+      insert_prop<float>(data_name, data, num_comps);
     }
     auto on_scalars(std::string const& data_name,
                     std::string const& /*lookup_table_name*/,
                     size_t const num_comps, std::vector<double> const& data,
                     vtk::reader_data) -> void override {
-      add_prop<double>(data_name, data, num_comps);
+      insert_prop<double>(data_name, data, num_comps);
     }
     auto on_point_data(size_t) -> void override {}
     auto on_cell_data(size_t) -> void override {}
@@ -1449,19 +1511,19 @@ class grid {
                         std::string const       field_array_name,
                         std::vector<int> const& data, size_t num_comps,
                         size_t /*num_tuples*/) -> void override {
-      add_prop<int>(field_array_name, data, num_comps);
+      insert_prop<int>(field_array_name, data, num_comps);
     }
     auto on_field_array(std::string const /*field_name*/,
                         std::string const         field_array_name,
                         std::vector<float> const& data, size_t num_comps,
                         size_t /*num_tuples*/) -> void override {
-      add_prop<float>(field_array_name, data, num_comps);
+      insert_prop<float>(field_array_name, data, num_comps);
     }
     auto on_field_array(std::string const /*field_name*/,
                         std::string const          field_array_name,
                         std::vector<double> const& data, size_t num_comps,
                         size_t /*num_tuples*/) -> void override {
-      add_prop<double>(field_array_name, data, num_comps);
+      insert_prop<double>(field_array_name, data, num_comps);
     }
   };
 #ifdef __cpp_concepts
@@ -1580,17 +1642,17 @@ class grid {
     // copy data
     size_t i = 0;
     if (num_comps == 1) {
-      auto& prop = add_vertex_property<real_t>(path.string());
+      auto& prop = insert_vertex_property<real_t>(path.string());
       loop_over_vertex_indices(
           [&](auto const... is) { prop(is...) = data[i++]; });
     } else if (num_comps == 2) {
-      auto& prop = add_vertex_property<vec<real_t, 2>>(path.string());
+      auto& prop = insert_vertex_property<vec<real_t, 2>>(path.string());
       loop_over_vertex_indices([&](auto const... is) {
         prop(is...) = {data[i], data[i + 1]};
         i += num_comps;
       });
     } else if (num_comps == 3) {
-      auto& prop = add_vertex_property<vec<real_t, 3>>(path.string());
+      auto& prop = insert_vertex_property<vec<real_t, 3>>(path.string());
       loop_over_vertex_indices([&](auto const... is) {
         prop(is...) = {data[i], data[i + 1], data[i + 2]};
         i += num_comps;
@@ -1604,7 +1666,7 @@ class grid {
   }
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
   template <typename T, size_t... Seq>
-  auto add_variables_of_type(netcdf::file& f, bool& first,
+  auto insert_variables_of_type(netcdf::file& f, bool& first,
                              std::index_sequence<Seq...> /*seq*/) {
     for (auto v : f.variables<T>()) {
       if (v.name() == "x" || v.name() == "y" || v.name() == "z" ||
@@ -1658,9 +1720,9 @@ class grid {
                    std::index_sequence<Seq...> seq) {
     netcdf::file f{path, netCDF::NcFile::read};
     bool         first = true;
-    add_variables_of_type<double>(f, first, seq);
-    add_variables_of_type<float>(f, first, seq);
-    add_variables_of_type<int>(f, first, seq);
+    insert_variables_of_type<double>(f, first, seq);
+    insert_variables_of_type<float>(f, first, seq);
+    insert_variables_of_type<int>(f, first, seq);
   }
 #endif
   //----------------------------------------------------------------------------
@@ -1684,8 +1746,9 @@ class grid {
             size_t _N = num_dimensions(), enable_if<(U && (_N == 3))> = true>
 #endif
           void write_amira(
-              std::string const&                               path,
-              typed_property_t<T, HasNonConstReference> const& prop) const {
+              std::string const& path,
+              typed_vertex_property_interface_t<T, HasNonConstReference> const&
+                  prop) const {
     std::ofstream     outfile{path, std::ofstream::binary};
     std::stringstream header;
 
@@ -1698,7 +1761,7 @@ class grid {
            << back<2>() << ",\n";
     header << "    CoordType \"uniform\"\n";
     header << "}\n";
-    if constexpr (num_components<T> > 1) {
+    if constexpr (num_components < T >> 1) {
       header << "Lattice { " << type_name<internal_data_type_t<T>>() << "["
              << num_components<T> << "] Data } @1\n\n";
     } else {
@@ -1721,7 +1784,8 @@ class grid {
   template <typename T, bool HasNonConstReference>
   void write_prop_vtk(
       vtk::legacy_file_writer& writer, std::string const& name,
-      typed_property_t<T, HasNonConstReference> const& prop) const {
+      typed_vertex_property_interface_t<T, HasNonConstReference> const& prop)
+      const {
     std::vector<T> data;
     loop_over_vertex_indices(
         [&](auto const... is) { data.push_back(prop(is...)); });
@@ -1812,39 +1876,56 @@ class grid {
       if (prop->type() == typeid(int)) {
         write_prop_vtk(
             writer, name,
-            *dynamic_cast<const typed_property_t<int, true>*>(prop.get()));
+            *dynamic_cast<const typed_vertex_property_interface_t<int, true>*>(
+                prop.get()));
       } else if (prop->type() == typeid(float)) {
         write_prop_vtk(
             writer, name,
-            *dynamic_cast<const typed_property_t<float, true>*>(prop.get()));
+            *dynamic_cast<
+                const typed_vertex_property_interface_t<float, true>*>(
+                prop.get()));
       } else if (prop->type() == typeid(double)) {
         write_prop_vtk(
             writer, name,
-            *dynamic_cast<const typed_property_t<double, true>*>(prop.get()));
+            *dynamic_cast<
+                const typed_vertex_property_interface_t<double, true>*>(
+                prop.get()));
       } else if (prop->type() == typeid(vec2f)) {
         write_prop_vtk(
             writer, name,
-            *dynamic_cast<const typed_property_t<vec2f, true>*>(prop.get()));
+            *dynamic_cast<
+                const typed_vertex_property_interface_t<vec2f, true>*>(
+                prop.get()));
       } else if (prop->type() == typeid(vec3f)) {
         write_prop_vtk(
             writer, name,
-            *dynamic_cast<const typed_property_t<vec3f, true>*>(prop.get()));
+            *dynamic_cast<
+                const typed_vertex_property_interface_t<vec3f, true>*>(
+                prop.get()));
       } else if (prop->type() == typeid(vec4f)) {
         write_prop_vtk(
             writer, name,
-            *dynamic_cast<const typed_property_t<vec4f, true>*>(prop.get()));
+            *dynamic_cast<
+                const typed_vertex_property_interface_t<vec4f, true>*>(
+                prop.get()));
       } else if (prop->type() == typeid(vec2d)) {
         write_prop_vtk(
             writer, name,
-            *dynamic_cast<const typed_property_t<vec2d, true>*>(prop.get()));
+            *dynamic_cast<
+                const typed_vertex_property_interface_t<vec2d, true>*>(
+                prop.get()));
       } else if (prop->type() == typeid(vec3d)) {
         write_prop_vtk(
             writer, name,
-            *dynamic_cast<const typed_property_t<vec3d, true>*>(prop.get()));
+            *dynamic_cast<
+                const typed_vertex_property_interface_t<vec3d, true>*>(
+                prop.get()));
       } else if (prop->type() == typeid(vec4d)) {
         write_prop_vtk(
             writer, name,
-            *dynamic_cast<const typed_property_t<vec4d, true>*>(prop.get()));
+            *dynamic_cast<
+                const typed_vertex_property_interface_t<vec4d, true>*>(
+                prop.get()));
       }
     }
   }

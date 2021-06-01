@@ -23,19 +23,19 @@ struct magma : grid<linspace<Real>> {
   template <typename T>
   using interpolation_t = interpolation::linear<T>;
   template <typename ValueType, bool HasNonConstReference>
-  using typed_property_t =
-      typename parent_t::template typed_property_t<ValueType,
-                                                   HasNonConstReference>;
-  using prop_t          = typed_property_t<col_t, true>;
-  using sampler_t       = sampler<prop_t, interpolation::linear>;
+  using typed_vertex_property_interface_t =
+      typename parent_t::template typed_vertex_property_interface_t<
+          ValueType, HasNonConstReference>;
+  using prop_t    = typed_vertex_property_inteface_t<col_t, true>;
+  using sampler_t = sampler<prop_t, interpolation::linear>;
   //==============================================================================
-  prop_t&    m_scale_prop;
-  sampler_t  m_sampler;
+  prop_t&   m_scale_prop;
+  sampler_t m_sampler;
   //==============================================================================
   magma()
       : parent_t{dim_t{Real(0), Real(1), 256}},
         m_scale_prop{
-            this->template add_contiguous_vertex_property<col_t>("magma")},
+            this->template insert_contiguous_vertex_property<col_t>("magma")},
         m_sampler{m_scale_prop.template sampler<interpolation::linear>()} {
     m_scale_prop(0)  = {0.001462, 0.000466, 0.013866};
     m_scale_prop(1)  = {0.002258, 0.0012949999999999999, 0.018331};

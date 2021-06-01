@@ -1,9 +1,9 @@
 #ifndef TATOOINE_FIELD_OPERATIONS_H
 #define TATOOINE_FIELD_OPERATIONS_H
 //==============================================================================
-#include <tatooine/binary_operation_field.h>
 #include <tatooine/field.h>
 #include <tatooine/unary_operation_field.h>
+#include <tatooine/binary_operation_field.h>
 //==============================================================================
 namespace tatooine {
 //==============================================================================

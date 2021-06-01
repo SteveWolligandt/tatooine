@@ -356,14 +356,14 @@ auto discretize(field<V, VReal, NumDims, Tensor> const& f,
           property_name);
     } else if constexpr (is_vectorfield_v<V>) {
       return discretized_domain
-          .template add_vertex_property<vec<VReal, V::tensor_t::dimension(0)>>(
+          .template vertex_property<vec<VReal, V::tensor_t::dimension(0)>>(
               property_name);
     } else if constexpr (is_matrixfield_v<V>) {
-      return discretized_domain.template add_vertex_property<
+      return discretized_domain.template vertex_property<
           mat<VReal, V::tensor_t::dimension(0), V::tensor_t::dimension(1)>>(
           property_name);
     } else {
-      return discretized_domain.template add_vertex_property<Tensor>(
+      return discretized_domain.template vertex_property<Tensor>(
           property_name);
     }
   }();
@@ -432,7 +432,7 @@ auto discretize(field<V, VReal, NumDims, Tensor> const& f,
 //==============================================================================
 }  // namespace tatooine
 //==============================================================================
-#include <tatooine/differentiated_field.h>
+#include <tatooine/field_type_traits.h>
 #include <tatooine/field_operations.h>
 #include <tatooine/field_type_traits.h>
 #endif
