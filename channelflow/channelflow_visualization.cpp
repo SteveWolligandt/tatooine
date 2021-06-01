@@ -336,15 +336,22 @@ auto main() -> int {
   tat::hdf5::file axis0_file{"/home/vcuser/channel_flow/axis0.h5"};
   tat::hdf5::file axis1_file{"/home/vcuser/channel_flow/axis1.h5"};
   tat::hdf5::file axis2_file{"/home/vcuser/channel_flow/axis2.h5"};
-  auto const      axis0 =
+  auto const axis0 =
       axis0_file.dataset<double>("CartGrid/axis0").read_as_vector();
   auto const axis1 =
       axis1_file.dataset<double>("CartGrid/axis1").read_as_vector();
   auto const axis2 =
       axis2_file.dataset<double>("CartGrid/axis2").read_as_vector();
+
   tat::grid full_domain{axis0, axis1, axis2};
-  full_domain.set_chunk_size_for_lazy_properties(256);
+  full_domain.set_chunk_size_for_lazy_properties(2);
   std::cerr << "full_domain:\n" << full_domain << '\n';
+
+  auto axis0_Q = axis0;
+  axis0_Q.pop_back();
+  tat::grid full_domain_Q{axis0_Q, axis1, axis2};
+  full_domain_Q.set_chunk_size_for_lazy_properties(2);
+  std::cerr << "full_domain_Q:\n" << full_domain_Q << '\n';
 
 
   // generate the 3dpart domain
@@ -372,8 +379,6 @@ auto main() -> int {
   tat::hdf5::file channelflow_123_threedpart_file{
       "/home/vcuser/channel_flow/dino_res_123000.h5"};
   tat::hdf5::file pod0_file{"/home/vcuser/channel_flow/pod_0.h5"};
-   auto velx_122_full_dataset =
-       channelflow_122_full_file.dataset<double>("velocity/xvel");
 
   // create grid properties of pod
   //auto& velx_pod0 = pod0_domain.add_lazy_vertex_property(
@@ -414,255 +419,285 @@ auto main() -> int {
    //auto velx_122_threedpart_dataset =
    //    channelflow_122_threedpart_file.dataset<double>("variables/Vx");
 
-   auto ds_velx_122_full =
-       channelflow_122_full_file.dataset<double>("velocity/xvel");
-   auto& velx_122_full = full_domain.add_lazy_vertex_property<tat::x_fastest>(
-       ds_velx_122_full, "Vx_122");
-   velx_122_full.limit_num_chunks_loaded();
-   velx_122_full.set_max_num_chunks_loaded(1024);
-
-   auto ds_vely_122_full =
-       channelflow_122_full_file.dataset<double>("velocity/yvel");
-   auto& vely_122_full = full_domain.add_lazy_vertex_property<tat::x_fastest>(
-       ds_vely_122_full, "Vy_122");
-   vely_122_full.limit_num_chunks_loaded();
-   vely_122_full.set_max_num_chunks_loaded(1024);
-
-   auto ds_velz_122_full =
-       channelflow_122_full_file.dataset<double>("velocity/zvel");
-   auto& velz_122_full = full_domain.add_lazy_vertex_property<tat::x_fastest>(
-       ds_velz_122_full, "Vz_122");
-   velz_122_full.limit_num_chunks_loaded();
-   velz_122_full.set_max_num_chunks_loaded(1024);
-   //auto& velx_122_full = full_domain.add_vertex_property<tat::x_slowest>(
-   //    velx_122_full_dataset, "Vx_122");
+   //auto ds_velx_122_full =
+   //    channelflow_122_full_file.dataset<double>("velocity/xvel");
+   //auto& velx_122_full = full_domain.add_lazy_vertex_property<tat::x_fastest>(
+   //    ds_velx_122_full, "Vx_122");
+   //velx_122_full.limit_num_chunks_loaded();
+   //velx_122_full.set_max_num_chunks_loaded(128);
    //
-   //if (ds_velx_122_threedpart.read(19, 20, 1) != ds_velx_122_full.read(19, 20, 1) ||
-   //    ds_velx_122_threedpart.read(511, 4095, 255) != ds_velx_122_full.read(511, 4095, 255)) {
-   //  std::stringstream ss;
-   //  ss << "Velocities do not match: \n  "
-   //     << ds_velx_122_threedpart.read(19, 20, 1)
-   //     << "\n  " << ds_velx_122_full.read(19, 20, 1) << "\n  "
-   //     << ds_velx_122_full.read(1, 20, 19) << "\n\n  "
-   //     << ds_velx_122_threedpart.read(511, 4095, 255) << "\n  "
-   //     << ds_velx_122_full.read(511, 4095, 255) << "\n  "
-   //     << ds_velx_122_full.read(255, 4095, 511)
-   //     << "\n";
-   //  throw std::runtime_error{ss.str()};
-   //} else {
-   //  std::cout << "it works!\n";
-   //}
-   //if (velx_122_threedpart(19, 20, 1) != velx_122_full(19, 20, 1) ||
-   //    velx_122_threedpart(511, 4095, 255) != velx_122_full(511, 4095, 255)) {
-   //  std::stringstream ss;
-   //  ss << "Velocities do not match: \n  "
-   //     << velx_122_threedpart(19, 20, 1)
-   //     << "\n  " << velx_122_full(19, 20, 1) << "\n  "
-   //     << velx_122_full(1, 20, 19) << "\n\n  "
-   //     << velx_122_threedpart(511, 4095, 255) << "\n  "
-   //     << velx_122_full(511, 4095, 255) << "\n  "
-   //     << velx_122_full(255, 4095, 511)
-   //     << "\n";
-   //  throw std::runtime_error{ss.str()};
-   //} else {
-   //  std::cout << "it works!\n";
-   //}
+   //auto ds_vely_122_full =
+   //    channelflow_122_full_file.dataset<double>("velocity/yvel");
+   //auto& vely_122_full = full_domain.add_lazy_vertex_property<tat::x_fastest>(
+   //    ds_vely_122_full, "Vy_122");
+   //vely_122_full.limit_num_chunks_loaded();
+   //vely_122_full.set_max_num_chunks_loaded(128);
    //
-   //auto& vely_122_full = full_domain.add_vertex_property<tat::x_slowest>(
-   //    channelflow_122_full_file.dataset<double>("velocity/yvel"), "Vy_122");
-   //auto& velz_122_full = full_domain.add_vertex_property<tat::x_slowest>(
-   //    channelflow_122_full_file.dataset<double>("velocity/zvel"), "Vz_122");
-   //auto velx_122_full_sampler = velx_122_full.linear_sampler();
-   //auto vely_122_full_sampler = vely_122_full.linear_sampler();
-   //auto velz_122_full_sampler = velz_122_full.linear_sampler();
+   //auto ds_velz_122_full =
+   //    channelflow_122_full_file.dataset<double>("velocity/zvel");
+   //auto& velz_122_full = full_domain.add_lazy_vertex_property<tat::x_fastest>(
+   //    ds_velz_122_full, "Vz_122");
+   //velz_122_full.limit_num_chunks_loaded();
+   //velz_122_full.set_max_num_chunks_loaded(128);
 
-   // create grid properties of 122000 time step
+  // if (ds_velx_122_threedpart.read(19, 20, 1) != ds_velx_122_full.read(19, 20,
+  // 1) ||
+  //    ds_velx_122_threedpart.read(511, 4095, 255) !=
+  //    ds_velx_122_full.read(511, 4095, 255)) {
+  //  std::stringstream ss;
+  //  ss << "Velocities do not match: \n  "
+  //     << ds_velx_122_threedpart.read(19, 20, 1)
+  //     << "\n  " << ds_velx_122_full.read(19, 20, 1) << "\n  "
+  //     << ds_velx_122_full.read(1, 20, 19) << "\n\n  "
+  //     << ds_velx_122_threedpart.read(511, 4095, 255) << "\n  "
+  //     << ds_velx_122_full.read(511, 4095, 255) << "\n  "
+  //     << ds_velx_122_full.read(255, 4095, 511)
+  //     << "\n";
+  //  throw std::runtime_error{ss.str()};
+  //} else {
+  //  std::cout << "it works!\n";
+  //}
+  // if (velx_122_threedpart(19, 20, 1) != velx_122_full(19, 20, 1) ||
+  //    velx_122_threedpart(511, 4095, 255) != velx_122_full(511, 4095, 255)) {
+  //  std::stringstream ss;
+  //  ss << "Velocities do not match: \n  "
+  //     << velx_122_threedpart(19, 20, 1)
+  //     << "\n  " << velx_122_full(19, 20, 1) << "\n  "
+  //     << velx_122_full(1, 20, 19) << "\n\n  "
+  //     << velx_122_threedpart(511, 4095, 255) << "\n  "
+  //     << velx_122_full(511, 4095, 255) << "\n  "
+  //     << velx_122_full(255, 4095, 511)
+  //     << "\n";
+  //  throw std::runtime_error{ss.str()};
+  //} else {
+  //  std::cout << "it works!\n";
+  //}
+  auto velx_122_full_dataset =
+      channelflow_122_full_file.dataset<double>("velocity/xvel");
+  auto vely_122_full_dataset =
+      channelflow_122_full_file.dataset<double>("velocity/yvel");
+  auto velz_122_full_dataset =
+      channelflow_122_full_file.dataset<double>("velocity/zvel");
+  auto Q_122_full_dataset =
+      channelflow_122_full_file.dataset<double>("Q_cheng");
 
-   //auto velx_122_sampler = velx_122_threedpart.linear_sampler();
-   //auto vely_122_sampler = vely_122_threedpart.linear_sampler();
-   //auto velz_122_sampler = velz_122_threedpart.linear_sampler();
-   //auto const diff_velx_122 = tat::diff(velx_122_threedpart);
-   //static_assert(tat::is_vec<decltype(diff_velx_122)::value_type>);
-   //auto const diff_velx_122_sampler = diff_velx_122.sampler();
-   //auto const diff_vely_122         = diff(vely_122_threedpart);
-   //auto const diff_vely_122_sampler = diff_vely_122.sampler();
-   //auto const diff_velz_122         = diff(velz_122_threedpart);
-   //auto const diff_velz_122_sampler = diff_velz_122.sampler();
+  auto& velx_122_full = full_domain.add_lazy_vertex_property<tat::x_slowest>(
+      velx_122_full_dataset, "Vx_122");
+  auto& vely_122_full = full_domain.add_lazy_vertex_property<tat::x_slowest>(
+      vely_122_full_dataset, "Vy_122");
+  auto& velz_122_full = full_domain.add_lazy_vertex_property<tat::x_slowest>(
+      velz_122_full_dataset, "Vz_122");
+  auto& Q_122_full =
+      full_domain_Q.add_lazy_vertex_property(Q_122_full_dataset, "Q_122");
+  velx_122_full.limit_num_chunks_loaded();
+  velx_122_full.set_max_num_chunks_loaded(4);
+  vely_122_full.limit_num_chunks_loaded();
+  vely_122_full.set_max_num_chunks_loaded(4);
+  velz_122_full.limit_num_chunks_loaded();
+  velz_122_full.set_max_num_chunks_loaded(4);
+  Q_122_full.limit_num_chunks_loaded();
+  Q_122_full.set_max_num_chunks_loaded(4);
 
+  auto velx_122_full_sampler = velx_122_full.linear_sampler();
+  auto vely_122_full_sampler = vely_122_full.linear_sampler();
+  auto velz_122_full_sampler = velz_122_full.linear_sampler();
+  auto Q_122_full_sampler    = Q_122_full.linear_sampler();
 
-   // create grid properties of 123000 time step
-   // auto& velx_123_threedpart = threedpart_domain.add_lazy_vertex_property(
-   //    channelflow_123_threedpart_file.dataset<double>("variables/Vx"),
-   //    "Vx_123");
-   // auto& vely_123_threedpart = threedpart_domain.add_lazy_vertex_property(
-   //    channelflow_123_threedpart_file.dataset<double>("variables/Vy"),
-   //    "Vy_123");
-   // auto& velz_123_threedpart = threedpart_domain.add_lazy_vertex_property(
-   //    channelflow_123_threedpart_file.dataset<double>("variables/Vz"),
-   //    "Vz_123");
-   // auto& Q_123 = threedpart_domain.add_lazy_vertex_property<double>(
-   //    channelflow_123_threedpart_file.dataset<double>("variables/Q"), "Q_123");
-   // scalarfield Q_123_field0Q_123.sampler<tat::interpolation::linear>()};
+  // create grid properties of 122000 time step
 
-   // add_temporal_derivative(full_domain, threedpart_domain,
-   // channelflow_121_threedpart_file,
-   //                        velx_121_threedpart, vely_121_threedpart, velz_121_threedpart, channelflow_122_threedpart_file,
-   //                        channelflow_123_threedpart_file, velx_123_threedpart, vely_123_threedpart,
-   //                        velz_123_threedpart);
-   // add_acceleration(full_domain, threedpart_domain, channelflow_122_threedpart_file,
-   //                 velx_122_threedpart, vely_122, velz_122_threedpart, temporal_diff_x_122,
-   //                 temporal_diff_y_122, temporal_diff_z_122);
+  // auto velx_122_sampler = velx_122_threedpart.linear_sampler();
+  // auto vely_122_sampler = vely_122_threedpart.linear_sampler();
+  // auto velz_122_sampler = velz_122_threedpart.linear_sampler();
+  // auto const diff_velx_122 = tat::diff(velx_122_threedpart);
+  // static_assert(tat::is_vec<decltype(diff_velx_122)::value_type>);
+  // auto const diff_velx_122_sampler = diff_velx_122.sampler();
+  // auto const diff_vely_122         = diff(vely_122_threedpart);
+  // auto const diff_vely_122_sampler = diff_vely_122.sampler();
+  // auto const diff_velz_122         = diff(velz_122_threedpart);
+  // auto const diff_velz_122_sampler = diff_velz_122.sampler();
 
-   // auto Q_iso_mesh =
-   //    isosurface([&](auto const ix, auto const iy, auto const iz,
-   //                   auto const& [>p<]) { return Q_122(ix, iy, iz); },
-   //               threedpart_domain, 1e2);
-   // for (auto v : Q_iso_mesh.vertices()) {
-   //  std::swap(Q_iso_mesh[v](2), Q_iso_mesh[v](0));
-   //}
-   // Q_iso_mesh.write_vtk("Q_pod.vtk");
-   // isosurface(
-   //    [&](auto ix, auto iy, auto iz, auto const & [>p<]) -> auto const& {
-   //      return Q_122(ix, iy, iz);
-   //    },
-   //    threedpart_domain, 0)
-   //    .write_vtk("Q_122_0.vtk");
+  // create grid properties of 123000 time step
+  // auto& velx_123_threedpart = threedpart_domain.add_lazy_vertex_property(
+  //    channelflow_123_threedpart_file.dataset<double>("variables/Vx"),
+  //    "Vx_123");
+  // auto& vely_123_threedpart = threedpart_domain.add_lazy_vertex_property(
+  //    channelflow_123_threedpart_file.dataset<double>("variables/Vy"),
+  //    "Vy_123");
+  // auto& velz_123_threedpart = threedpart_domain.add_lazy_vertex_property(
+  //    channelflow_123_threedpart_file.dataset<double>("variables/Vz"),
+  //    "Vz_123");
+  // auto& Q_123 = threedpart_domain.add_lazy_vertex_property<double>(
+  //    channelflow_123_threedpart_file.dataset<double>("variables/Q"),
+  //    "Q_123");
+  // scalarfield Q_123_field0Q_123.sampler<tat::interpolation::linear>()};
 
-   tat::color_scales::viridis color_scale;
+  // add_temporal_derivative(full_domain, threedpart_domain,
+  // channelflow_121_threedpart_file,
+  //                        velx_121_threedpart, vely_121_threedpart,
+  //                        velz_121_threedpart,
+  //                        channelflow_122_threedpart_file,
+  //                        channelflow_123_threedpart_file,
+  //                        velx_123_threedpart, vely_123_threedpart,
+  //                        velz_123_threedpart);
+  // add_acceleration(full_domain, threedpart_domain,
+  // channelflow_122_threedpart_file,
+  //                 velx_122_threedpart, vely_122, velz_122_threedpart,
+  //                 temporal_diff_x_122, temporal_diff_y_122,
+  //                 temporal_diff_z_122);
 
-   auto         pod0_boundingbox        = pod0_domain.bounding_box();
-   auto         threedpart_boundingbox = threedpart_domain.bounding_box();
-   size_t const width = 1000, height = 500;
+  // auto Q_iso_mesh =
+  //    isosurface([&](auto const ix, auto const iy, auto const iz,
+  //                   auto const& [>p<]) { return Q_122(ix, iy, iz); },
+  //               threedpart_domain, 1e2);
+  // for (auto v : Q_iso_mesh.vertices()) {
+  //  std::swap(Q_iso_mesh[v](2), Q_iso_mesh[v](0));
+  //}
+  // Q_iso_mesh.write_vtk("Q_pod.vtk");
+  // isosurface(
+  //    [&](auto ix, auto iy, auto iz, auto const & [>p<]) -> auto const& {
+  //      return Q_122(ix, iy, iz);
+  //    },
+  //    threedpart_domain, 0)
+  //    .write_vtk("Q_122_0.vtk");
 
-   auto const full_domain_eye =
-       tat::vec3{0.7940901239835871, 0.04097490152128994, 0.5004262802265552};
-   auto const full_domain_lookat =
-       tat::vec3{-0.7384532106212904, 0.7745404345929863, -0.4576538576946477};
-   auto const full_domain_up =
-       tat::vec3{-0.35221800146747856, 0.3807796045093859, 0.8549557720911246};
-   tat::rendering::perspective_camera<double> full_domain_cam{
-       full_domain_eye, full_domain_lookat, full_domain_up, 60, 0.01, 1000, width, height};
+  tat::color_scales::viridis color_scale;
 
+  auto         pod0_boundingbox       = pod0_domain.bounding_box();
+  auto         threedpart_boundingbox = threedpart_domain.bounding_box();
+  size_t const width = 10000, height = 5000;
 
+  auto const full_domain_eye =
+      tat::vec3{0.7940901239835871, 0.04097490152128994, 0.5004262802265552};
+  auto const full_domain_lookat =
+      tat::vec3{-0.7384532106212904, 0.7745404345929863, -0.4576538576946477};
+  auto const full_domain_up =
+      tat::vec3{-0.35221800146747856, 0.3807796045093859, 0.8549557720911246};
+  tat::rendering::perspective_camera<double> full_domain_cam{full_domain_eye,
+                                                             full_domain_lookat,
+                                                             full_domain_up,
+                                                             60,
+                                                             0.01,
+                                                             1000,
+                                                             width,
+                                                             height};
 
+  // auto const eye = tat::vec3{-threedpart_domain.dimension<0>().back() * 2,
+  //                           -threedpart_domain.dimension<1>().back() / 2,
+  //                           threedpart_domain.dimension<2>().back() * 2};
+  auto const threedpart_eye =
+      tat::vec3{0.6545555350748051, -0.09376604401454308, 0.4996597917002379};
+  auto const threedpart_lookat =
+      tat::vec3{0.1398584798389628, 0.3012404329452348, 0.11518570840278948};
+  auto const threedpart_up =
+      tat::vec3{-0.40265911328979515, 0.3319599250288133, 0.8530347276984336};
+  tat::rendering::perspective_camera<double> threedpart_cam{
+      threedpart_eye, threedpart_lookat, threedpart_up, 60, 0.01, 1000, width,
+      height};
+  // auto const pod0_eye = tat::vec3{0.17436402903670775, -0.029368613711112865,
+  //                               0.11376422220314832};
+  auto const pod0_eye = tat::vec3{1, -1, 1} * 0.1;
+  // auto const pod0_lookat =
+  //    tat::vec3{0.03328671241261789, 0.0723694723172821,
+  //    0.033031680721043566};
+  auto const pod0_lookat = pod0_domain.center();
+  // auto const pod0_up =
+  //    tat::vec3{-0.35434985513228934, 0.2282347045784469,
+  //    0.9068324540915563};
+  auto const                                 pod0_up = tat::vec3{0, 0, 1};
+  tat::rendering::perspective_camera<double> pod0_cam{
+      pod0_eye, pod0_lookat, pod0_up, 60, 0.01, 1000, width, height};
+  auto alpha = [](auto const t) -> double {
+    auto const min = 0.0;
+    auto const max = 0.2;
+    if (t < 0) {
+      return min;
+    } else if (t > 1) {
+      return max + min;
+    } else {
+      return t * t * (max - min) + min;
+    }
+  };
+  ;
 
+  // write_png("direct_volume_channelflow_pod0_y.png",
+  //          tat::direct_volume_rendering(
+  //              pod0_cam, pod0_boundingbox, vely_pod0_field, 0,
+  //              15, 20, 0.0001, color_scale, alpha, tat::vec3::ones())
+  //              .vertex_property<tat::vec3>("rendering"));
 
-   // auto const eye = tat::vec3{-threedpart_domain.dimension<0>().back() * 2,
-   //                           -threedpart_domain.dimension<1>().back() / 2,
-   //                           threedpart_domain.dimension<2>().back() * 2};
-   auto const threedpart_eye =
-       tat::vec3{0.6545555350748051, -0.09376604401454308, 0.4996597917002379};
-   auto const threedpart_lookat =
-       tat::vec3{0.1398584798389628, 0.3012404329452348, 0.11518570840278948};
-   auto const threedpart_up =
-       tat::vec3{-0.40265911328979515, 0.3319599250288133, 0.8530347276984336};
-   tat::rendering::perspective_camera<double> threedpart_cam{
-       threedpart_eye, threedpart_lookat, threedpart_up, 60, 0.01, 1000, width,
-       height};
-   // auto const pod0_eye = tat::vec3{0.17436402903670775, -0.029368613711112865,
-   //                               0.11376422220314832};
-   auto const pod0_eye = tat::vec3{1, -1, 1} * 0.1;
-   // auto const pod0_lookat =
-   //    tat::vec3{0.03328671241261789, 0.0723694723172821,
-   //    0.033031680721043566};
-   auto const pod0_lookat = pod0_domain.center();
-   // auto const pod0_up =
-   //    tat::vec3{-0.35434985513228934, 0.2282347045784469,
-   //    0.9068324540915563};
-   auto const                                 pod0_up = tat::vec3{0, 0, 1};
-   tat::rendering::perspective_camera<double> pod0_cam{
-       pod0_eye, pod0_lookat, pod0_up, 60, 0.01, 1000, width, height};
-   auto alpha = [](auto const t) -> double {
-     auto const min = 0.0;
-     auto const max = 0.2;
-     if (t < 0) {
-       return min;
-     } else if (t > 1) {
-       return max + min;
-     } else {
-       return t * t * (max - min) + min;
-     }
-   };
-   ;
+  // write_png("direct_volume_channelflow_Q_pod0_combined.png",
+  //          tat::direct_volume_rendering(
+  //              pod0_cam, pod0_boundingbox, Q_122_field * vely_pod0_field, 0,
+  //              15e2, 60e3, 0.0001, color_scale, alpha, tat::vec3::ones())
+  //              .vertex_property<tat::vec3>("rendering"));
 
+  // write_png("direct_volume_channelflow_Q_pod0_domain.png",
+  //          tat::direct_volume_rendering(pod0_cam, pod0_boundingbox,
+  //          Q_122_field, 0, 1e2,
+  //                                       3e3, 0.0001, color_scale, alpha,
+  //                                       tat::vec3::ones())
+  //              .vertex_property<tat::vec3>("rendering"));
 
-   // write_png("direct_volume_channelflow_pod0_y.png",
-   //          tat::direct_volume_rendering(
-   //              pod0_cam, pod0_boundingbox, vely_pod0_field, 0,
-   //              15, 20, 0.0001, color_scale, alpha, tat::vec3::ones())
-   //              .vertex_property<tat::vec3>("rendering"));
+  // write_png("direct_volume_channelflow_Q.png",
+  //          tat::direct_volume_rendering(threedpart_cam,
+  //          threedpart_boundingbox, Q_122_field, 0, 1e1,
+  //                                       1e3, 0.0001, color_scale, alpha,
+  //                                       tat::vec3::ones())
+  //              .vertex_property<tat::vec3>("rendering"));
 
-   // write_png("direct_volume_channelflow_Q_pod0_combined.png",
-   //          tat::direct_volume_rendering(
-   //              pod0_cam, pod0_boundingbox, Q_122_field * vely_pod0_field, 0,
-   //              15e2, 60e3, 0.0001, color_scale, alpha, tat::vec3::ones())
-   //              .vertex_property<tat::vec3>("rendering"));
+  auto vel_122_field = vectorfield{velx_122_full_sampler, vely_122_full_sampler,
+                                   velz_122_full_sampler};
+  // write_png("direct_volume_channelflow_velmag_pod0_domain.png",
+  //         tat::direct_volume_rendering(pod0_cam, pod0_boundingbox,
+  //         length(vel_122_field),
+  //                                      0, 20, 30, 0.0001, color_scale,
+  //                                      alpha, tat::vec3::ones())
+  //             .vertex_property<tat::vec3>("rendering"));
 
-   // write_png("direct_volume_channelflow_Q_pod0_domain.png",
-   //          tat::direct_volume_rendering(pod0_cam, pod0_boundingbox,
-   //          Q_122_field, 0, 1e2,
-   //                                       3e3, 0.0001, color_scale, alpha,
-   //                                       tat::vec3::ones())
-   //              .vertex_property<tat::vec3>("rendering"));
+  // write_png("direct_volume_channelflow_velmag.png",
+  //          tat::direct_volume_rendering(threedpart_cam,
+  //          threedpart_boundingbox, length(vel_122_field),
+  //                                       0, 20, 30, 0.0001, color_scale,
+  //                                       alpha, tat::vec3::ones())
+  //              .vertex_property<tat::vec3>("rendering"));
 
-   // write_png("direct_volume_channelflow_Q.png",
-   //          tat::direct_volume_rendering(threedpart_cam,
-   //          threedpart_boundingbox, Q_122_field, 0, 1e1,
-   //                                       1e3, 0.0001, color_scale, alpha,
-   //                                       tat::vec3::ones())
-   //              .vertex_property<tat::vec3>("rendering"));
+  // auto vely_122_field   = scalarfield{vely_122_sampler};
+  // write_png("direct_volume_channelflow_vely.png",
+  //          tat::direct_volume_rendering(threedpart_cam,
+  //          threedpart_boundingbox, vely_122_field,
+  //                                       0, 20, 30, 0.0001, color_scale,
+  //                                       alpha, tat::vec3::ones())
+  //              .vertex_property<tat::vec3>("rendering"));
 
-   //auto vel_122_field =
-   //    vectorfield{velx_122_sampler, vely_122_sampler, velz_122_sampler};
-   // write_png("direct_volume_channelflow_velmag_pod0_domain.png",
-   //          tat::direct_volume_rendering(pod0_cam, pod0_boundingbox,
-   //          length(vel_122_field),
-   //                                       0, 20, 30, 0.0001, color_scale,
-   //                                       alpha, tat::vec3::ones())
-   //              .vertex_property<tat::vec3>("rendering"));
+  // std::cout << "adding Q...\n";
+  // add_Q_cheng(full_domain, channelflow_122_full_file, velx_122_full,
+  //            vely_122_full, velz_122_full);
 
-   // write_png("direct_volume_channelflow_velmag.png",
-   //          tat::direct_volume_rendering(threedpart_cam,
-   //          threedpart_boundingbox, length(vel_122_field),
-   //                                       0, 20, 30, 0.0001, color_scale,
-   //                                       alpha, tat::vec3::ones())
-   //              .vertex_property<tat::vec3>("rendering"));
+  //
+  std::cerr << "calculating iso surface Q...\n";
+  write_png("direct_volume_iso_channelflow_Q_with_velmag.png",
+            tat::direct_volume_iso(
+                threedpart_cam, threedpart_domain.bounding_box(),
+                // pod0_cam, pod0_domain.bounding_box(),
+                [&](auto const& x) -> decltype(auto) {
+                  return Q_122_full_sampler(x);
+                },
+                5e6,
+                [&](auto const& x) -> decltype(auto) {
+                  // return Q_122_full_sampler(x);
+                  return length(tat::vec3{velx_122_full_sampler(x),
+                                          vely_122_full_sampler(x),
+                                          velz_122_full_sampler(x)});
+                },
+                13, 27, [](auto const&) { return true; },
+                (axis0[1] - axis0[0]) * 0.5, color_scale,
+                [](auto const t) -> double { return 1; }, tat::vec3{1, 1, 1})
+                .vertex_property<tat::vec3>("rendering"));
 
-   //auto vely_122_field   = scalarfield{vely_122_sampler};
-   // write_png("direct_volume_channelflow_vely.png",
-   //          tat::direct_volume_rendering(threedpart_cam,
-   //          threedpart_boundingbox, vely_122_field,
-   //                                       0, 20, 30, 0.0001, color_scale,
-   //                                       alpha, tat::vec3::ones())
-   //              .vertex_property<tat::vec3>("rendering"));
-
-   std::cout << "adding Q...\n";
-   add_Q_cheng(full_domain, channelflow_122_full_file, velx_122_full,
-               vely_122_full, velz_122_full);
-   //std::cout << "calculating iso surface Q...\n";
-
-   //auto& Q_122_full= full_domain.add_lazy_vertex_property(
-   //    channelflow_122_threedpart_file.dataset<double>("Q_cheng"), "Q_122");
-   //Q_122_full.limit_num_chunks_loaded();
-   //auto Q_122_full_sampler = Q_122_full.linear_sampler();
-   //auto Q_122_full_field   = scalarfield{Q_122_full_sampler};
-   //
-   //write_png(
-   //    "direct_volume_iso_channelflow_Q_with_vely.png",
-   //    tat::direct_volume_iso(
-   //        full_domain_cam, full_domain.bounding_box(),
-   //        [&](auto const& x) -> decltype(auto) { return Q_122_full_field(x, 0); },
-   //        5e6,
-   //        [&](auto const& x) -> decltype(auto) {
-   //          return length(tat::vec3{velx_122_full_sampler(x),
-   //                                  vely_122_full_sampler(x),
-   //                                  velz_122_full_sampler(x)});
-   //        },
-   //        13, 27, [](auto const& [>x<]) { return true; }, 0.1, color_scale,
-   //        [](auto const t) { return 0.5; }, tat::vec3{1, 1, 1}).vertex_property<tat::vec3>("rendering"));
-
-   // calc_pv(pod0_domain, axis0, axis1, axis2, velx_122_threedpart, vely_122_threedpart, velz_122_threedpart,
-   //        Q_122, vely_pod0, vely_122_threedpart, "vortex_core_lines_122.vtk");
-   // calc_pv(pod0_domain, axis0, axis1, axis2, velx_pod0, vely_pod0, velz_pod0,
-   //        pod0_Q, vely_pod0, vely_122_threedpart, "vortex_core_lines_pod.vtk");
+  // calc_pv(pod0_domain, axis0, axis1, axis2, velx_122_threedpart,
+  // vely_122_threedpart, velz_122_threedpart,
+  //        Q_122, vely_pod0, vely_122_threedpart, "vortex_core_lines_122.vtk");
+  // calc_pv(pod0_domain, axis0, axis1, axis2, velx_pod0, vely_pod0, velz_pod0,
+  //        pod0_Q, vely_pod0, vely_122_threedpart,
+  //        "vortex_core_lines_pod.vtk");
 }
