@@ -19,12 +19,11 @@ requires requires(
 #endif
 constexpr auto compare_variadic(T0&& a, T1&& b, TRest&&... rest)
     -> std::conditional_t<
-        std::is_same_v<std::decay_t<T0>,
-        std::decay_t<T1>> &&
-        (std::is_same_v<std::decay_t<T0>, std::decay_t<TRest>> && ...) &&
-        std::is_lvalue_reference_v<T0> && std::is_lvalue_reference_v<T1> &&
-        std::is_lvalue_reference_v<T1> &&
-        (std::is_lvalue_reference_v<TRest> && ...),
+        std::is_same_v<std::decay_t<T0>, std::decay_t<T1>> &&
+            (std::is_same_v<std::decay_t<T0>, std::decay_t<TRest>> && ...) &&
+            std::is_lvalue_reference_v<T0> && std::is_lvalue_reference_v<T1> &&
+            std::is_lvalue_reference_v<T1> &&
+            (std::is_lvalue_reference_v<TRest> && ...),
         // if all raw types are equal and l-value references
         std::conditional_t<
             // if at least one of the types is const
@@ -40,12 +39,13 @@ constexpr auto compare_variadic(T0&& a, T1&& b, TRest&&... rest)
                            std::decay_t<TRest>...>> {
   using common_t = std::common_type_t<std::decay_t<T0>, std::decay_t<T1>>;
   if constexpr (sizeof...(TRest) == 0) {
-    return Comparator<common_t>{}(a, b) ? std::forward<T0>(a) : std::forward<T1>(b);
+    return Comparator<common_t>{}(a, b) ? std::forward<T0>(a)
+                                        : std::forward<T1>(b);
   } else {
     return tatooine::compare_variadic<Comparator>(
-        std::forward<T0>(a), tatooine::compare_variadic<Comparator>(
-                                 std::forward<T1>(b),
-                                 std::forward<TRest>(rest)...));
+        std::forward<T0>(a),
+        tatooine::compare_variadic<Comparator>(std::forward<T1>(b),
+                                               std::forward<TRest>(rest)...));
   }
 }
 //------------------------------------------------------------------------------

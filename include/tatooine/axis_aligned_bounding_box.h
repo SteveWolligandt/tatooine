@@ -6,14 +6,105 @@
 #include <tatooine/separating_axis_theorem.h>
 #include <tatooine/tensor.h>
 #include <tatooine/type_traits.h>
+#include <tatooine/vtk_legacy.h>
 
 #include <limits>
 #include <ostream>
 //==============================================================================
 namespace tatooine {
 //==============================================================================
+namespace detail {
+// = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = =
+template <typename AABB, typename Real, size_t N>
+struct aabb_ray_intersectable_parent {};
+template <typename AABB, typename Real>
+struct aabb_ray_intersectable_parent<AABB, Real, 3> : ray_intersectable<Real> {
+  static constexpr size_t N = 3;
+  using typename ray_intersectable<Real>::ray_t;
+  using typename ray_intersectable<Real>::intersection_t;
+  using typename ray_intersectable<Real>::optional_intersection_t;
+  //============================================================================
+  // ray_intersectable overrides
+  //============================================================================
+  auto as_aabb() const -> auto const& {
+    return *dynamic_cast<AABB const*>(this);
+  }
+  auto check_intersection(ray_t const& r, Real const = 0) const
+      -> optional_intersection_t override {
+    auto const& aabb = as_aabb();
+    enum Quadrant { right, left, middle };
+    vec<Real, N>            coord;
+    bool                    inside = true;
+    std::array<Quadrant, N> quadrant;
+    size_t                  which_plane;
+    std::array<Real, N>     max_t;
+    std::array<Real, N>     candidate_plane;
+
+    // Find candidate planes; this loop can be avoided if rays cast all from the
+    // eye(assume perpsective view)
+    for (size_t i = 0; i < N; i++)
+      if (r.origin(i) < aabb.min(i)) {
+        quadrant[i]        = left;
+        candidate_plane[i] = aabb.min(i);
+        inside             = false;
+      } else if (r.origin(i) > aabb.max(i)) {
+        quadrant[i]        = right;
+        candidate_plane[i] = aabb.max(i);
+        inside             = false;
+      } else {
+        quadrant[i] = middle;
+      }
+
+    // Ray origin inside bounding box
+    if (inside) {
+      return intersection_t{this,           r,
+                            Real(0),        r.origin(),
+                            vec<Real, N>::zeros(), vec<Real, N - 1>::zeros()};
+    }
+
+    // Calculate T distances to candidate planes
+    for (size_t i = 0; i < N; i++)
+      if (quadrant[i] != middle && r.direction(i) != 0) {
+        max_t[i] = (candidate_plane[i] - r.origin(i)) / r.direction(i);
+      } else {
+        max_t[i] = -1;
+      }
+
+    // Get largest of the max_t's for final choice of intersection
+    which_plane = 0;
+    for (size_t i = 1; i < N; i++)
+      if (max_t[which_plane] < max_t[i]) {
+        which_plane = i;
+      }
+
+    // Check final candidate actually inside box
+    if (max_t[which_plane] < 0) {
+      return {};
+    }
+    for (size_t i = 0; i < N; i++)
+      if (which_plane != i) {
+        coord(i) = r.origin(i) + max_t[which_plane] * r.direction(i);
+        if (coord(i) < aabb.min(i) || coord(i) > aabb.max(i)) {
+          return {};
+        }
+      } else {
+        coord(i) = candidate_plane[i];
+      }
+    return intersection_t{this,
+                          r,
+                          max_t[which_plane],
+                          coord,
+                          vec<Real, N>::zeros(),
+                          vec<Real, N - 1>::zeros()};
+  }
+};
+// = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = =
+}  // namespace detail
+// = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = =
 template <typename Real, size_t N>
-struct axis_aligned_bounding_box : ray_intersectable<Real, N> {
+struct axis_aligned_bounding_box
+    : detail::aabb_ray_intersectable_parent<axis_aligned_bounding_box<Real, N>,
+                                            Real, N> {
   static_assert(is_arithmetic<Real>);
   //============================================================================
   using real_t = Real;
@@ -22,18 +113,24 @@ struct axis_aligned_bounding_box : ray_intersectable<Real, N> {
   using pos_t  = vec_t;
 
   static constexpr auto num_dimensions() { return N; }
+  static constexpr auto infinite() {
+    return this_t{pos_t::ones() * -std::numeric_limits<real_t>::max(),
+                  pos_t::ones() * std::numeric_limits<real_t>::max()};
+  };
   //============================================================================
  private:
   pos_t m_min;
   pos_t m_max;
   //============================================================================
  public:
-  constexpr axis_aligned_bounding_box() = default;
+  constexpr axis_aligned_bounding_box()
+      : m_min{pos_t::ones() * std::numeric_limits<real_t>::max()},
+        m_max{pos_t::ones() * -std::numeric_limits<real_t>::max()} {}
   constexpr axis_aligned_bounding_box(axis_aligned_bounding_box const& other) =
       default;
   constexpr axis_aligned_bounding_box(
       axis_aligned_bounding_box&& other) noexcept = default;
-  constexpr auto operator           =(axis_aligned_bounding_box const& other)
+  constexpr auto operator=(axis_aligned_bounding_box const& other)
       -> axis_aligned_bounding_box& = default;
   constexpr auto operator=(axis_aligned_bounding_box&& other) noexcept
       -> axis_aligned_bounding_box& = default;
@@ -89,11 +186,13 @@ struct axis_aligned_bounding_box : ray_intersectable<Real, N> {
   constexpr auto is_triangle_inside(vec<Real, 2> x0,
                                     vec<Real, 2> x1,
                                     vec<Real, 2> x2) const {
-    // auto const c = center();
-    // auto const e = extents();
-    // x0 -= c;
-    // x1 -= c;
-    // x2 -= c;
+     auto const c = center();
+     // auto const e = extents()/2;
+     x0 -= c;
+     x1 -= c;
+     x2 -= c;
+    //vec_t const u0{1, 0};
+    //vec_t const u1{0, 1};
     auto is_separating_axis = [&](vec<Real, 2> const& n) {
       auto const p0   = dot(vec_t{m_min(0), m_min(1)}, n);
       auto const p1   = dot(vec_t{m_min(0), m_max(1)}, n);
@@ -114,12 +213,12 @@ struct axis_aligned_bounding_box : ray_intersectable<Real, N> {
     if (is_separating_axis(vec_t{0, 1})) {
       return false;
     }
-    if (is_separating_axis(vec_t{-1, 0})) {
-      return false;
-    }
-    if (is_separating_axis(vec_t{0, -1})) {
-      return false;
-    }
+    //if (is_separating_axis(vec_t{-1, 0})) {
+    //  return false;
+    //}
+    //if (is_separating_axis(vec_t{0, -1})) {
+    //  return false;
+    //}
     if (is_separating_axis(vec_t{x0(1) - x1(1), x1(0) - x0(0)})) {
       return false;
     }
@@ -143,7 +242,7 @@ struct axis_aligned_bounding_box : ray_intersectable<Real, N> {
                                     vec<Real, 3> x1,
                                     vec<Real, 3> x2) const {
     auto const c = center();
-    auto const e = extents();
+    auto const e = extents() / 2;
 
     x0 -= c;
     x1 -= c;
@@ -157,17 +256,15 @@ struct axis_aligned_bounding_box : ray_intersectable<Real, N> {
     vec_t const u1{0, 1, 0};
     vec_t const u2{0, 0, 1};
 
-    auto is_separating_axis = [&](auto const axis) {
+    auto is_separating_axis = [&](auto const& axis) {
       auto const p0 = dot(x0, axis);
       auto const p1 = dot(x1, axis);
       auto const p2 = dot(x2, axis);
-      auto       r  = e(0) * abs(dot(u0, axis)) + e(1) * abs(dot(u1, axis)) +
-               e(2) * abs(dot(u2, axis));
-      if (tatooine::max(-tatooine::max(p0, p1, p2), tatooine::min(p0, p1, p2)) >
-          r) {
-        return true;
-      }
-      return false;
+      auto r = e.x() * std::abs(dot(u0, axis)) +
+               e.y() * std::abs(dot(u1, axis)) +
+               e.z() * std::abs(dot(u2, axis));
+      return tatooine::max(-tatooine::max(p0, p1, p2),
+                           tatooine::min(p0, p1, p2)) > r;
     };
 
     if (is_separating_axis(cross(u0, f0))) {
@@ -212,8 +309,127 @@ struct axis_aligned_bounding_box : ray_intersectable<Real, N> {
     return true;
   }
   //----------------------------------------------------------------------------
+#ifdef __cpp_concepts
+  template <typename = void>
+  requires(N == 3)
+#else
+  template <size_t _N = N, enable_if<(_N == 3)> = true>
+#endif
+      constexpr auto is_tetrahedron_inside(vec<Real, 3> x0,
+                                           vec<Real, 3> x1,
+                                           vec<Real, 3> x2,
+                                           vec<Real, 3> x3) const {
+    auto const c = center();
+    auto const e = extents() / 2;
+
+    x0 -= c;
+    x1 -= c;
+    x2 -= c;
+    x3 -= c;
+
+    auto const f0 = x1 - x0;
+    auto const f1 = x2 - x1;
+    auto const f2 = x0 - x2;
+    auto const f3 = x3 - x1;
+    auto const f4 = x2 - x3;
+    auto const f5 = x3 - x0;
+
+    vec_t const u0{1, 0, 0};
+    vec_t const u1{0, 1, 0};
+    vec_t const u2{0, 0, 1};
+
+    auto is_separating_axis = [&](auto const axis) {
+      auto const p0 = dot(x0, axis);
+      auto const p1 = dot(x1, axis);
+      auto const p2 = dot(x2, axis);
+      auto const p3 = dot(x3, axis);
+      auto       r  = e.x() * std::abs(dot(u0, axis)) +
+                      e.y() * std::abs(dot(u1, axis)) +
+                      e.z() * std::abs(dot(u2, axis));
+      return tatooine::max(-tatooine::max(p0, p1, p2, p3),
+                           tatooine::min(p0, p1, p2, p3)) > r;
+    };
+
+    if (is_separating_axis(cross(u0, f0))) {
+      return false;
+    }
+    if (is_separating_axis(cross(u0, f1))) {
+      return false;
+    }
+    if (is_separating_axis(cross(u0, f2))) {
+      return false;
+    }
+    if (is_separating_axis(cross(u0, f3))) {
+      return false;
+    }
+    if (is_separating_axis(cross(u0, f4))) {
+      return false;
+    }
+    if (is_separating_axis(cross(u0, f5))) {
+      return false;
+    }
+    if (is_separating_axis(cross(u1, f0))) {
+      return false;
+    }
+    if (is_separating_axis(cross(u1, f1))) {
+      return false;
+    }
+    if (is_separating_axis(cross(u1, f2))) {
+      return false;
+    }
+    if (is_separating_axis(cross(u1, f3))) {
+      return false;
+    }
+    if (is_separating_axis(cross(u1, f4))) {
+      return false;
+    }
+    if (is_separating_axis(cross(u1, f5))) {
+      return false;
+    }
+    if (is_separating_axis(cross(u2, f0))) {
+      return false;
+    }
+    if (is_separating_axis(cross(u2, f1))) {
+      return false;
+    }
+    if (is_separating_axis(cross(u2, f2))) {
+      return false;
+    }
+    if (is_separating_axis(cross(u2, f3))) {
+      return false;
+    }
+    if (is_separating_axis(cross(u2, f4))) {
+      return false;
+    }
+    if (is_separating_axis(cross(u2, f5))) {
+      return false;
+    }
+    if (is_separating_axis(u0)) {
+      return false;
+    }
+    if (is_separating_axis(u1)) {
+      return false;
+    }
+    if (is_separating_axis(u2)) {
+      return false;
+    }
+    if (is_separating_axis(cross(f0, f1))) {
+      return false;
+    }
+    if (is_separating_axis(cross(f3, f4))) {
+      return false;
+    }
+    if (is_separating_axis(cross(-f0, f5))) {
+      return false;
+    }
+    if (is_separating_axis(cross(f5, -f2))) {
+      return false;
+    }
+    return true;
+  }
+  //----------------------------------------------------------------------------
   constexpr auto operator+=(pos_t const& point) {
-    for (size_t i = 0; i < point.size(); ++i) {
+    for (size_t i = 0; i < point.num_components(); ++i) {
       m_min(i) = std::min(m_min(i), point(i));
       m_max(i) = std::max(m_max(i), point(i));
     }
@@ -248,75 +464,31 @@ struct axis_aligned_bounding_box : ray_intersectable<Real, N> {
     }
     return p;
   }
-  //============================================================================
-  // ray_intersectable overrides
-  //============================================================================
-  auto check_intersection(ray<Real, N> const& r, Real const = 0) const
-      -> std::optional<intersection<Real, N>> override {
-    enum Quadrant { right, left, middle };
-    vec_t                   coord;
-    bool                    inside = true;
-    std::array<Quadrant, N> quadrant;
-    size_t                  which_plane;
-    std::array<Real, N>     max_t;
-    std::array<Real, N>     candidate_plane;
+  //----------------------------------------------------------------------------
+  auto write_vtk(filesystem::path const& path) {
+    vtk::legacy_file_writer f{path, vtk::dataset_type::polydata};
+    f.write_header();
+    std::vector<vec<real_t, 3>>        positions;
+    std::vector<std::vector<size_t>> indices;
 
-    // Find candidate planes; this loop can be avoided if rays cast all from the
-    // eye(assume perpsective view)
-    for (size_t i = 0; i < N; i++)
-      if (r.origin(i) < min(i)) {
-        quadrant[i]        = left;
-        candidate_plane[i] = min(i);
-        inside             = false;
-      } else if (r.origin(i) > max(i)) {
-        quadrant[i]        = right;
-        candidate_plane[i] = max(i);
-        inside             = false;
-      } else {
-        quadrant[i] = middle;
-      }
-
-    // Ray origin inside bounding box
-    if (inside) {
-      return intersection<Real, N>{this,           r,
-                                   Real(0),        r.origin(),
-                                   vec_t::zeros(), vec<Real, N - 1>::zeros()};
-    }
-
-    // Calculate T distances to candidate planes
-    for (size_t i = 0; i < N; i++)
-      if (quadrant[i] != middle && r.direction(i) != 0) {
-        max_t[i] = (candidate_plane[i] - r.origin(i)) / r.direction(i);
-      } else {
-        max_t[i] = -1;
-      }
-
-    // Get largest of the max_t's for final choice of intersection
-    which_plane = 0;
-    for (size_t i = 1; i < N; i++)
-      if (max_t[which_plane] < max_t[i]) {
-        which_plane = i;
-      }
-
-    // Check final candidate actually inside box
-    if (max_t[which_plane] < 0) {
-      return {};
-    }
-    for (size_t i = 0; i < N; i++)
-      if (which_plane != i) {
-        coord(i) = r.origin(i) + max_t[which_plane] * r.direction(i);
-        if (coord(i) < min(i) || coord(i) > max(i)) {
-          return {};
-        }
-      } else {
-        coord(i) = candidate_plane[i];
-      }
-    return intersection<Real, N>{this,
-                                 r,
-                                 max_t[which_plane],
-                                 coord,
-                                 vec_t::zeros(),
-                                 vec<Real, N - 1>::zeros()};
+    positions.push_back(vec{min(0), min(1), min(2)});
+    positions.push_back(vec{max(0), min(1), min(2)});
+    positions.push_back(vec{max(0), max(1), min(2)});
+    positions.push_back(vec{min(0), max(1), min(2)});
+    positions.push_back(vec{min(0), min(1), max(2)});
+    positions.push_back(vec{max(0), min(1), max(2)});
+    positions.push_back(vec{max(0), max(1), max(2)});
+    positions.push_back(vec{min(0), max(1), max(2)});
+    indices.push_back(
+        {0,  1,  2,  3, 0});
+    indices.push_back(
+        {4, 5, 6, 7, 4});
+    indices.push_back({0, 4});
+    indices.push_back({1, 5});
+    indices.push_back({2, 6});
+    indices.push_back({3, 7});
+    f.write_points(positions);
+    f.write_lines(indices);
   }
 };
 template <typename Real, size_t N>

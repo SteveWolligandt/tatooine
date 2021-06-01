@@ -7,91 +7,81 @@
 //==============================================================================
 namespace tatooine {
 //==============================================================================
-template <typename V0, typename Real0,
-          typename V1, typename Real1,
-          size_t N, size_t TN>
-constexpr auto dot(const field<V0, Real0, N, TN>& lhs,
-                   const field<V1, Real1, N, TN>& rhs) {
-  using RealOut = common_type<Real0, Real1>;
-  return make_binary_operation_field<RealOut, N>(
-      lhs, rhs,
-      [](const typename V0::tensor_t& lhs, const typename V1::tensor_t& rhs) {
-        return dot(lhs, rhs);
-      });
+template <typename V0, typename Real0, typename V1, typename Real1, size_t N,
+          size_t TN>
+constexpr auto dot(vectorfield<V0, Real0, N, TN> const& lhs,
+                   vectorfield<V1, Real1, N, TN> const& rhs) {
+  return make_binary_operation_field(lhs, rhs, &dot);
 }
 //├──────────────────────────────────────────────────────────────────────────┤
-template <typename V0, typename Real0,
-          typename V1, typename Real1,
-          size_t N, size_t... TensorDims>
-constexpr auto operator+(
-    const field<V0, Real0, N, TensorDims...>& lhs,
-    const field<V1, Real1, N, TensorDims...>& rhs) {
-  return make_binary_operation_field<common_type<Real0, Real1>, N,
-                                     TensorDims...>(
+template <typename V0, typename Real0, typename V1, typename Real1, size_t N,
+          typename Tensor>
+constexpr auto operator+(const field<V0, Real0, N, Tensor>& lhs,
+                         const field<V1, Real1, N, Tensor>& rhs) {
+  return make_binary_operation_field(
       lhs, rhs, [](const auto& lhs, const auto& rhs) { return lhs + rhs; });
 }
 //├──────────────────────────────────────────────────────────────────────────┤
 template <typename Real0, typename Real1, size_t N, size_t TM, size_t TN>
-constexpr auto operator*(parent::field<Real0, N, TM, TN> const& lhs,
-                         parent::field<Real1, N, TN> const&     rhs) {
-  return make_binary_operation_field<common_type<Real0, Real1>, N, TM>(
+constexpr auto operator*(polymorphic::matrixfield<Real0, N, TM, TN> const& lhs,
+                         polymorphic::vectorfield<Real1, N, TN> const& rhs) {
+  return make_binary_operation_field(
       lhs, rhs, [](const auto& lhs, const auto& rhs) { return lhs * rhs; });
 }
 //├──────────────────────────────────────────────────────────────────────────┤
-template <typename V0, typename Real0, typename V1,
-          typename Real1, size_t N, size_t TM, size_t TN>
-constexpr auto operator*(const field<V0, Real0, N, TM, TN>& lhs,
-                         const field<V1, Real1, N, TN>&     rhs) {
-  return make_binary_operation_field<common_type<Real0, Real1>, N, TM>(
+template <typename V0, typename Real0, typename V1, typename Real1, size_t N,
+          size_t TM, size_t TN>
+constexpr auto operator*(const matrixfield<V0, Real0, N, TM, TN>& lhs,
+                         const vectorfield<V1, Real1, N, TN>&     rhs) {
+  return make_binary_operation_field(
       lhs, rhs, [](const auto& lhs, const auto& rhs) { return lhs * rhs; });
 }
 //├──────────────────────────────────────────────────────────────────────────┤
-template <typename V0, typename Real0,
-          typename V1, typename Real1,
-          size_t N, size_t... TensorDims>
-constexpr auto operator*(const field<V0, Real0, N, TensorDims...>& lhs,
-                         const field<V1, Real1, N, TensorDims...>& rhs) {
-  return make_binary_operation_field<common_type<Real0, Real1>, N, TensorDims...>(
+template <typename V0, typename Real0, typename V1, typename Real1, size_t N,
+          typename Tensor>
+constexpr auto operator*(const field<V0, Real0, N, Tensor>& lhs,
+                         const field<V1, Real1, N, Tensor>& rhs) {
+  return make_binary_operation_field(
       lhs, rhs, [](const auto& lhs, const auto& rhs) { return lhs * rhs; });
 }
 //├──────────────────────────────────────────────────────────────────────────┤
 #ifdef __cpp_concpets
 template <typename V, arithmetic VReal, size_t N, arithmetic ScalarReal,
-          size_t... TensorDims>
+          typename Tensor>
 #else
 template <typename V, typename VReal, size_t N, typename ScalarReal,
-          size_t... TensorDims, enable_if<is_arithmetic<VReal, ScalarReal>> = true>
+          typename Tensor, enable_if<is_arithmetic<VReal, ScalarReal>> = true>
 #endif
-constexpr auto operator*(const field<V, VReal, N, TensorDims...>& f,
-                         const ScalarReal                         scalar) {
+constexpr auto operator*(const field<V, VReal, N, Tensor>& f,
+                         const ScalarReal                  scalar) {
   return V{f.as_derived()} | [scalar](auto const& t) { return t * scalar; };
 }
 //├──────────────────────────────────────────────────────────────────────────┤
 #ifdef __cpp_concpets
 template <typename V, arithmetic VReal, size_t N, arithmetic ScalarReal,
-          size_t... TensorDims>
+          typename Tensor>
 #else
 template <typename V, typename VReal, size_t N, typename ScalarReal,
-          size_t... TensorDims, enable_if<is_arithmetic<VReal, ScalarReal>> = true>
+          typename Tensor, enable_if<is_arithmetic<VReal, ScalarReal>> = true>
 #endif
-constexpr auto operator*(const ScalarReal                         scalar,
-                         const field<V, VReal, N, TensorDims...>& f) {
+constexpr auto operator*(const ScalarReal                  scalar,
+                         const field<V, VReal, N, Tensor>& f) {
   return V{f.as_derived()} | [scalar](auto const& t) { return t * scalar; };
 }
 //------------------------------------------------------------------------------
 template <typename V, typename VReal, size_t N, typename ScalarReal,
-          size_t... TensorDims,
+          typename Tensor,
           enable_if<is_arithmetic<ScalarReal> || is_complex<ScalarReal>> = true>
-constexpr auto operator/(field<V, VReal, N, TensorDims...> const& f,
-                         ScalarReal const                         scalar) {
+constexpr auto operator/(field<V, VReal, N, Tensor> const& f,
+                         ScalarReal const                  scalar) {
   return V{f.as_derived()} | [scalar](auto const& t) { return t / scalar; };
 }
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 template <typename V, typename VReal, size_t N, typename ScalarReal,
-          size_t... TensorDims,
+          typename Tensor,
           enable_if<is_arithmetic<ScalarReal> || is_complex<ScalarReal>> = true>
-constexpr auto operator/(ScalarReal const                         scalar,
-                         field<V, VReal, N, TensorDims...> const& f) {
+constexpr auto operator/(ScalarReal const                  scalar,
+                         field<V, VReal, N, Tensor> const& f) {
   return V{f.as_derived()} | [scalar](auto const& t) { return scalar / t; };
 }
 //------------------------------------------------------------------------------

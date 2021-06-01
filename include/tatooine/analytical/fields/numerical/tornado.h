@@ -9,10 +9,10 @@ namespace tatooine::analytical::fields::numerical {
 //==============================================================================
 /// From here:
 /// http://web.cse.ohio-state.edu/~crawfis.3/Data/Tornado/tornadoSrc.c
-template <typename T>
-struct tornado : vectorfield<tornado<T>, T, 3> {
-  using this_t   = tornado<T>;
-  using parent_t = vectorfield<this_t, T, 3>;
+template <typename Real>
+struct tornado : vectorfield<tornado<Real>, Real, 3> {
+  using this_t   = tornado<Real>;
+  using parent_t = vectorfield<this_t, Real, 3>;
   using typename parent_t::pos_t;
   using typename parent_t::real_t;
   using typename parent_t::tensor_t;

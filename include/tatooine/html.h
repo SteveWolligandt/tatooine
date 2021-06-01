@@ -287,7 +287,7 @@ struct chart : content {
   std::vector<Label> labels;
 
   template <typename = void>
-  requires is_arithmetic_v<Real>
+  requires is_arithmetic<Real>
   chart(const std::vector<Real>& data_, const std::string& name_,
         const std::string&        color_  = "#FF0000",
         const std::vector<Label>& labels_ = std::vector<std::string>{})

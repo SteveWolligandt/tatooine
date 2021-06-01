@@ -10,6 +10,8 @@ namespace tatooine::flowexplorer::nodes {
 pathline::pathline(flowexplorer::scene& s)
     : renderable<pathline>{"Path Line", s},
       m_t0_pin{insert_input_pin<real_t>("t0")},
+      m_forward_tau_pin{insert_input_pin<real_t>("tau +")},
+      m_backward_tau_pin{insert_input_pin<real_t>("tau -")},
       m_v_pin{insert_input_pin<vectorfield2_t, vectorfield3_t>("Vector Field")},
       m_x0_pin{
           insert_input_pin<vec2, vec3, std::vector<vec2>, std::vector<vec3>>(
@@ -19,6 +21,8 @@ pathline::pathline(flowexplorer::scene& s)
       m_neg3_pin{insert_output_pin("negative end", m_x_neg3)},
       m_pos3_pin{insert_output_pin("positive end", m_x_pos3)} {
   insert_input_pin_property_link(m_t0_pin, m_t0);
+  insert_input_pin_property_link(m_forward_tau_pin, m_ftau);
+  insert_input_pin_property_link(m_backward_tau_pin, m_btau);
   m_neg2_pin.deactivate();
   m_pos2_pin.deactivate();
   m_neg3_pin.deactivate();
@@ -43,14 +47,22 @@ auto pathline::draw_properties() -> bool {
   changed |= ImGui::DragDouble("forward tau", &m_ftau, 0.1, 0, 100);
   changed |= ImGui::SliderInt("line width", &m_line_width, 1, 50);
   changed |= ImGui::ColorEdit4("line color", m_line_color.data());
-  if (m_x0_pin.is_linked() && m_v_pin.is_linked()) {
-    if ((m_x0_pin.linked_type() == typeid(vec2) &&
-         m_v_pin.linked_type() == typeid(vectorfield3_t)) ||
-        (m_x0_pin.linked_type() == typeid(vec3) &&
-         m_v_pin.linked_type() == typeid(vectorfield2_t))) {
-      ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(ImColor(255, 0, 0)));
-      ImGui::Text("Position and vector fields number of dimensions differ.");
-      ImGui::PopStyleColor();
+  if (m_x0_pin.is_linked() && m_v_pin.is_linked() &&
+      ((m_x0_pin.linked_type() == typeid(vec2) &&
+        m_v_pin.linked_type() == typeid(vectorfield3_t)) ||
+       (m_x0_pin.linked_type() == typeid(vec3) &&
+        m_v_pin.linked_type() == typeid(vectorfield2_t)))) {
+    ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(ImColor(255, 0, 0)));
+    ImGui::Text("Position and vector fields number of dimensions differ.");
+    ImGui::PopStyleColor();
+  }
+  if (m_x0_pin.is_linked() && m_v_pin.is_linked() &&
+      ((m_x0_pin.linked_type() == typeid(vec2) &&
+        m_v_pin.linked_type() == typeid(vectorfield2_t)) ||
+       (m_x0_pin.linked_type() == typeid(vec3) &&
+        m_v_pin.linked_type() == typeid(vectorfield3_t)))) {
+    if (ImGui::Button("write vtk")) {
+      m_cpu_data.write_vtk("pathline.vtk");
     }
   }
   return changed;
@@ -63,11 +75,12 @@ auto pathline::integrate_lines() -> void {
   auto worker = [node = this] {
     size_t index          = 0;
     bool   insert_segment = false;
+    bool   forward        = true;
     vec2*  cur_end_point2 = nullptr;
     vec3*  cur_end_point3 = nullptr;
     auto   callback       = [&cur_end_point2, &cur_end_point3, node, &index,
-                     &insert_segment](auto const& y, auto const t,
-                                      auto const& dy) {
+                     &insert_segment,
+                     &forward](auto const& y, auto const t, auto const& dy) {
       constexpr auto  N = std::decay_t<decltype(y)>::num_dimensions();
       std::lock_guard lock{node->m_gpu_data.mutex()};
       if constexpr (N == 2) {
@@ -76,6 +89,13 @@ auto pathline::integrate_lines() -> void {
             vec3f{static_cast<GLfloat>(dy(0)), static_cast<GLfloat>(dy(1)),
                   0.0f},
             static_cast<GLfloat>(t));
+        if (forward) {
+          node->m_cpu_data.push_back(vec3{static_cast<GLfloat>(y(0)),
+                                          static_cast<GLfloat>(y(1)), 0.0f});
+        } else {
+          node->m_cpu_data.push_front(vec3{static_cast<GLfloat>(y(0)),
+                                           static_cast<GLfloat>(y(1)), 0.0f});
+        }
         *cur_end_point2 = y;
       } else if constexpr (N == 3) {
         node->m_gpu_data.vertexbuffer().push_back(
@@ -84,6 +104,11 @@ auto pathline::integrate_lines() -> void {
             vec3f{static_cast<GLfloat>(dy(0)), static_cast<GLfloat>(dy(1)),
                   static_cast<GLfloat>(dy(2))},
             static_cast<GLfloat>(t));
+        if (forward) {
+          node->m_cpu_data.push_back(y);
+        }else {
+          node->m_cpu_data.push_front(y);
+        }
         *cur_end_point3 = y;
       }
       if (insert_segment) {
@@ -95,6 +120,7 @@ auto pathline::integrate_lines() -> void {
       ++index;
     };
     node->m_gpu_data.clear();
+    node->m_cpu_data.clear();
     insert_segment = false;
 
     size_t const N = [&] { return node->num_dimensions(); }();
@@ -104,10 +130,12 @@ auto pathline::integrate_lines() -> void {
       decltype(auto) v         = node->m_v_pin.get_linked_as<vectorfield2_t>();
       auto           integrate = [&](auto const& x0) {
         cur_end_point2 = &node->m_x_neg2;
+        forward = false;
         integrator.solve(v, x0, node->m_t0, node->m_btau, callback);
         insert_segment = false;
 
         cur_end_point2 = &node->m_x_pos2;
+        forward = true;
         integrator.solve(v, x0, node->m_t0, node->m_ftau, callback);
         insert_segment = false;
       };
@@ -125,10 +153,12 @@ auto pathline::integrate_lines() -> void {
       decltype(auto) v         = node->m_v_pin.get_linked_as<vectorfield3_t>();
       auto           integrate = [&](auto const& x0) {
         cur_end_point3 = &node->m_x_neg3;
+        forward = false;
         integrator.solve(v, x0, node->m_t0, node->m_btau, callback);
         insert_segment = false;
 
         cur_end_point3 = &node->m_x_pos3;
+        forward = true;
         integrator.solve(v, x0, node->m_t0, node->m_ftau, callback);
         insert_segment = false;
       };
@@ -179,6 +209,7 @@ auto pathline::on_pin_connected(ui::input_pin& /*this_pin*/,
 //----------------------------------------------------------------------------
 auto pathline::on_pin_disconnected(ui::input_pin& /*this_pin*/) -> void {
   m_gpu_data.clear();
+  m_cpu_data.clear();
   if (m_neg2_pin.is_active()) {
     m_neg2_pin.deactivate();
   }

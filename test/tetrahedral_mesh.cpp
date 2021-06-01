@@ -1,4 +1,5 @@
 #include <tatooine/tetrahedral_mesh.h>
+#include <tatooine/geometry/sphere.h>
 #include <catch2/catch.hpp>
 //==============================================================================
 namespace tatooine::test {
@@ -52,10 +53,62 @@ TEST_CASE("tetrahedral_mesh_copy", "[tetrahedral_mesh][copy]"){
     REQUIRE(vertex_prop[v0] == copied_vertex_prop[v0]);
 
     auto& copied_tet_prop = copied_mesh.tetrahedron_property<double>("tet_prop");
-    REQUIRE(mesh[t0] == copied_mesh[t0]);
+    auto const [v0, v1, v2, v3] = mesh[t0];
+    auto const [cv0, cv1, cv2, cv3] = copied_mesh[t0];
+    REQUIRE(v0.i == cv0.i);
+    REQUIRE(v1.i == cv1.i);
+    REQUIRE(v2.i == cv2.i);
+    REQUIRE(v3.i == cv3.i);
     REQUIRE(tet_prop[t0] == copied_tet_prop[t0]);
   }
 }
+//==============================================================================
+TEST_CASE("tetrahedral_mesh_from_grid", "[tetrahedral_mesh][grid]"){
+  auto const g = grid{linspace{0.0, 1.0, 5},
+                      linspace{0.0, 1.0, 5},
+                      linspace{0.0, 1.0, 5}};
+  tetrahedral_mesh mesh{g};
+  mesh.write_vtk("tetrahedral_mesh_from_3d_grid.vtk");
+}
+//==============================================================================
+#ifdef TATOOINE_HAS_CGAL_SUPPORT
+TEST_CASE("tetrahedral_mesh_vertex_property_sampler",
+          "[tetrahedral_mesh][vertex_property][sampler]") {
+  size_t const num_points  = 100;
+  size_t const random_seed = 1234;
+  real_t const radius      = 1;
+  auto const   s           = geometry::sphere<real_t, 3>{radius};
+  auto         mesh        = tetrahedral_mesh{
+      s.random_points(num_points, std::mt19937_64{random_seed})};
+  using v = decltype(mesh)::vertex_handle;
+
+  mesh.build_delaunay_mesh();
+  auto& prop = mesh.add_vertex_property<double>("prop");
+  for (size_t i = 0; i < num_points; ++i) {
+    prop[v{i}] = i;
+  }
+  auto prop_sampler = mesh.sampler(prop);
+  SECTION("Vertex Identities") {
+    for (auto v : mesh.vertices()) {
+      REQUIRE(prop_sampler(mesh[v]) == Approx(prop[v]));
+    }
+  }
+  SECTION("Interpolated Property") {
+    for (auto tet : mesh.tetrahedrons()) {
+      auto const [v0, v1, v2, v3] = mesh[tet];
+      REQUIRE(prop_sampler(mesh[v0] * 0.1 +
+                           mesh[v1] * 0.2 +
+                           mesh[v2] * 0.3 +
+                           mesh[v3] * 0.4) ==
+              Approx(prop[v0] * 0.1 +
+                     prop[v1] * 0.2 +
+                     prop[v2] * 0.3 +
+                     prop[v3] * 0.4)
+                  .margin(1e-6));
+    }
+  }
+}
+#endif
 //==============================================================================
 }  // namespace tatooine::test
 //==============================================================================

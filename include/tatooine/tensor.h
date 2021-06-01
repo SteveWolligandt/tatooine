@@ -11,7 +11,7 @@
 namespace tatooine {
 //==============================================================================
 template <typename T, size_t... Dims>
-struct tensor : base_tensor<tensor<T, Dims...>, T, Dims...>,  // NOLINT
+struct tensor : base_tensor<tensor<T, Dims...>, T, Dims...>,
                 static_multidim_array<T, x_fastest, tag::stack, Dims...> {
   static_assert(is_arithmetic<T> || is_complex<T>);
   //============================================================================

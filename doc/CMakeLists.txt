@@ -1,12 +1,13 @@
 find_package(Doxygen QUIET)
 find_package(Sphinx QUIET)
 if (SPHINX_FOUND)
-  option(TATOOINE_DOC_USE_SPHINX "Use Sphinx to build documentation" TRUE)
+  option(TATOOINE_DOC_USE_SPHINX "Use Sphinx to build documentation. (This is currently failing due to C++20)" OFF)
 else()
-  set(TATOOINE_DOC_USE_SPHINX "Use Sphinx to build documentation" FALSE)
+  set(TATOOINE_DOC_USE_SPHINX "Use Sphinx to build documentation" OFF)
 endif()
 #- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 if (DOXYGEN_FOUND)
+  update_git_submodule(${CMAKE_CURRENT_SOURCE_DIR}/external/doxygen-awesome-css)
   set(TATOOINE_DOC_HTML_DIR             ${CMAKE_CURRENT_BINARY_DIR}/html      )
   set(TATOOINE_DOC_SOURCE_DOXYFILE      ${CMAKE_CURRENT_SOURCE_DIR}/Doxyfile.base.in)
   set(TATOOINE_DOC_BINARY_DOXYFILE      ${CMAKE_CURRENT_BINARY_DIR}/Doxyfile.base   )
@@ -19,10 +20,14 @@ if (DOXYGEN_FOUND)
   set(TATOOINE_DOC_DOXYGEN_HTML_MESSAGE "Building HTML documentation with Doxygen")
   set(TATOOINE_DOC_DOXYGEN_XML_MESSAGE  "Building XML documentation with Doxygen")
   set(TATOOINE_DOC_DOXYGEN_PDF_MESSAGE  "Building PDF documentation with Doxygen")
-  configure_file(${TATOOINE_DOC_SOURCE_DOXYFILE} ${TATOOINE_DOC_BINARY_DOXYFILE})
-  configure_file(${TATOOINE_DOC_SOURCE_HTML_DOXYFILE} ${TATOOINE_DOC_BINARY_HTML_DOXYFILE})
-  configure_file(${TATOOINE_DOC_SOURCE_XML_DOXYFILE} ${TATOOINE_DOC_BINARY_XML_DOXYFILE})
-  configure_file(${TATOOINE_DOC_SOURCE_PDF_DOXYFILE} ${TATOOINE_DOC_BINARY_PDF_DOXYFILE})
+  configure_file(${TATOOINE_DOC_SOURCE_DOXYFILE}
+                 ${TATOOINE_DOC_BINARY_DOXYFILE})
+  configure_file(${TATOOINE_DOC_SOURCE_HTML_DOXYFILE}
+                 ${TATOOINE_DOC_BINARY_HTML_DOXYFILE})
+  configure_file(${TATOOINE_DOC_SOURCE_XML_DOXYFILE}
+                 ${TATOOINE_DOC_BINARY_XML_DOXYFILE})
+  configure_file(${TATOOINE_DOC_SOURCE_PDF_DOXYFILE}
+                 ${TATOOINE_DOC_BINARY_PDF_DOXYFILE})
 
   add_custom_target(doc.doxygen.html ALL
     COMMAND doxygen ${TATOOINE_DOC_BINARY_HTML_DOXYFILE}

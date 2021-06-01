@@ -14,11 +14,7 @@
 //==============================================================================
 namespace tatooine::interpolation {
 //==============================================================================
-//#ifdef __cpp_concepts
-//  template <arithmetic Real>
-//#else
-  template <typename Real>
-//#endif
+template <typename Real>
 struct linear {
   //----------------------------------------------------------------------------
   // traits
@@ -30,7 +26,7 @@ struct linear {
   static constexpr size_t num_dimensions() {
     return 1;
   }
-  //static_assert(std::is_arithmetic<Real>::value);
+  static_assert(is_floating_point<Real>);
 
   //----------------------------------------------------------------------------
   // members
@@ -140,20 +136,14 @@ struct linear<vec<Real, N>> : linear<tensor<Real, N>> {
 };
 //==============================================================================
 template <typename Real>
-struct cubic {
+struct cubic : polynomial<Real, 3> {
   static constexpr size_t num_derivatives = 1;
   using real_t                            = Real;
-  using polynomial_t                      = tatooine::polynomial<Real, 3>;
+  using parent_t = polynomial<Real, 3>;
   static constexpr size_t num_dimensions() {
     return 1;
   }
-  static_assert(std::is_arithmetic<Real>::value);
-
-  //----------------------------------------------------------------------------
-  // members
-  //----------------------------------------------------------------------------
- private:
-  polynomial_t m_polynomial;
+  static_assert(is_floating_point<Real>);
 
   //----------------------------------------------------------------------------
   // ctors
@@ -167,38 +157,21 @@ struct cubic {
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
   constexpr cubic(Real const t0, Real const t1, Real const ft0, Real const ft1,
                   Real const dft0_dt, Real const dft1_dt)
-      : m_polynomial{0, 0, 0, 0} {
-    mat<Real, 4, 4> const A{{1.0, t0, t0 * t0, t0 * t0 * t0},
-                            {1.0, t1, t1 * t1, t1 * t1 * t1},
-                            {0.0, 1.0, 2 * t0, 3 * t0 * t0},
-                            {0.0, 1.0, 2 * t1, 3 * t1 * t1}};
+      : parent_t{0, 0, 0, 0} {
+    constexpr Real        zero = 0;
+    constexpr Real        one  = 1;
+    mat<Real, 4, 4> const A{{one, t0, t0 * t0, t0 * t0 * t0},
+                            {one, t1, t1 * t1, t1 * t1 * t1},
+                            {zero, one, 2 * t0, 3 * t0 * t0},
+                            {zero, one, 2 * t1, 3 * t1 * t1}};
     vec<Real, 4>          b{ft0, ft1, dft0_dt, dft1_dt};
-    m_polynomial.set_coefficients(solve(A, b).data());
+    this->set_coefficients(solve(A, b).data());
   }
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
   constexpr cubic(const Real ft0, const Real ft1, const Real dft0_dt,
                   const Real dft1_dt)
-      : m_polynomial{ft0,
-                     dft0_dt,
-                      3 * ft1 - 3 * ft0 - dft1_dt - 2 * dft0_dt,
-                     -2 * ft1 + 2 * ft0 + dft1_dt +     dft0_dt} {}
-
-  //----------------------------------------------------------------------------
-  // methods
-  //----------------------------------------------------------------------------
-  constexpr auto evaluate(Real t) const {
-    return m_polynomial(t);
-  }
-  constexpr auto operator()(Real t) const {
-    return evaluate(t);
-  }
-  //----------------------------------------------------------------------------
-  constexpr const auto& polynomial() const {
-    return m_polynomial;
-  }
-  constexpr auto& polynomial() {
-    return m_polynomial;
-  }
+      : parent_t{ft0, dft0_dt, 3 * ft1 - 3 * ft0 - dft1_dt - 2 * dft0_dt,
+                 -2 * ft1 + 2 * ft0 + dft1_dt + dft0_dt} {}
 };
 //------------------------------------------------------------------------------
 #ifdef __cpp_concepts

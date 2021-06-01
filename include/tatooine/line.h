@@ -770,9 +770,9 @@ struct line {
       std::vector<std::vector<size_t>> line_seq(
           1, std::vector<size_t>(this->num_vertices()));
       boost::iota(line_seq.front(), 0);
-      if (this->is_closed()) {
-        line_seq.front().push_back(0);
-      }
+      //if (this->is_closed()) {
+      //  line_seq.front().push_back(0);
+      //}
       writer.write_lines(line_seq);
 
       writer.write_point_data(this->num_vertices());
@@ -836,9 +836,10 @@ struct line {
 
     std::vector<line<Real, 3>> lines;
     const auto&                vs = listener.points;
-    for (size_t i = 0; i < listener.lines.size();) {
-      auto&       l    = lines.emplace_back();
-      const auto& size = listener.lines[i++];
+    size_t                     i  = 0;
+    while (i < listener.lines.size()) {
+      auto  size = listener.lines[i++];
+      auto& l    = lines.emplace_back();
       for (; i < size; ++i) {
         l.push_back({vs[i][0], vs[i][1], vs[i][2]});
       }

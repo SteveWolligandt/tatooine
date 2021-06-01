@@ -1,5 +1,5 @@
 /**
-\page grid_doc_page Grid Documentation
+\page grid_doc_page Grid
 \tableofcontents
 \section grid_doc_sec_usage Basic usage
 \code{.cpp}
@@ -31,8 +31,10 @@ auto create_uniform_grid_2d() {
 }
 \endcode
 
-Candidates for other containers describing dimensions are std::vector and
-std::array. These types can also be mixed which results.
+Candidates for other containers describing dimensions are <a
+href=https://en.cppreference.com/w/cpp/container/vector> std::vector </a> and <a
+href=https://en.cppreference.com/w/cpp/container/array> std::array </a>. These
+types can also be mixed.
 \code{.cpp}
 auto create_uniform_grid_2d() {
   tatooine::grid non_uniform_grid_3d{linspace{0.0, 1.0, 3},
@@ -52,7 +54,7 @@ because here the factors for differentiating do not have to be calculated.
 
 \section grid_doc_sec_vertex_pos Vertex Positions
 \subsection grid_doc_subsec_vertex_pos_index Indexing
-A tatooine::grid can be index with the parantheses-operator or the at method:
+A tatooine::grid can be indexed with the parantheses-operator or the at method:
 \code{.cpp}
 auto create_grid_with_vertex_property() {
   tatooine::grid uniform_grid_2d{32, 64};
@@ -67,7 +69,6 @@ index.
 
 \subsection grid_doc_subsec_vertex_pos_iter Iterating over vertices
 One can iterate in two ways over the vertices of a tatooine::grid:
-auto create_grid_with_vertex_property() {
 \code{.cpp}
 auto iterate_over_vertex_positions() {
   tatooine::grid uniform_grid_2d{32, 64};
@@ -86,17 +87,17 @@ auto iterate_over_vertex_indices() {
 }
 \endcode
 
-\section grid_doc_sec_props Properties
-For storing properties of arbitrary types "type erasure" is used.
+\section grid_doc_sec_props Vertex Properties
+For storing properties of arbitrary types <a href="https://en.wikipedia.org/wiki/Type_erasure">type erasure</a> is used.
 
-\subsection grid_doc_subsec_props_creation Adding Properties
+\subsection grid_doc_subsec_props_creation Inserting Properties
 Instances of tatooine::grid can be equipped with vertex properties that can
 hold any data type. Vertex properties can created like in the following
 example:
 \code{.cpp}
 auto create_grid_with_vertex_property() {
   tatooine::grid uniform_grid_2d{32, 64};
-  auto& prop = uniform_grid_2d.add_vertex_property<double>("property_name");
+  auto& prop = uniform_grid_2d.insert_vertex_property<double>("property_name");
   prop(11, 63) = 42.1337;
 }
 \endcode
@@ -106,14 +107,14 @@ the values of prop does not change the property that is held by
 uniform_grid_2d.
 
 uniform_grid_2d now holds a vertex property called "property_name". Internally
-add_vertex_property creates an object whose type inherits
+insert_vertex_property creates an object whose type inherits
 tatooine::dynamic_multidim_array. The code below does the same:
 
 \code{.cpp}
 auto create_grid_with_contiguous_vertex_property() {
   tatooine::grid uniform_grid_2d{32, 64};
   auto& prop =
-uniform_grid_2d.add_contiguous_vertex_property<double>("property_name");
+uniform_grid_2d.insert_contiguous_vertex_property<double>("property_name");
   prop(11, 63) = 42.1337;
 }
 \endcode
@@ -125,22 +126,20 @@ There is also a function that creates memory that is chunked:
 auto create_grid_with_chunked_vertex_property() {
   tatooine::grid uniform_grid_2d{32, 64};
   auto& prop =
-uniform_grid_2d.add_chunked_vertex_property<double>("property_name");
+uniform_grid_2d.insert_chunked_vertex_property<double>("property_name");
   prop(11, 63) = 42.1337;
 }
 \endcode
 
-NOTE: If a property is added that has the same name as specified than there
-will not be created another property. Instead the already existing one is
-returned.
+\b NOTE: If a property is inserted that has the same name as specified than an exception will be thrown.
 
 If the property already exists and another container type is queried to use an
 exception will be thrown. Example:
 \code{.cpp}
 auto create_chunked_and_contiguous_vertex_property() {
   tatooine::grid uniform_grid_2d{32, 64};
-  auto& chunked_uv = uniform_grid_2d.add_chunked_vertex_property<tatooine::vec2>("uv");
-  auto& contiguous_uv = uniform_grid_2d.add_contiguous_vertex_property<tatooine::vec2>("uv"); // here a std::runtime_error will be thrown
+  auto& chunked_uv = uniform_grid_2d.insert_chunked_vertex_property<tatooine::vec2>("uv");
+  auto& contiguous_uv = uniform_grid_2d.insert_contiguous_vertex_property<tatooine::vec2>("uv"); // here a std::runtime_error will be thrown
 }
 \endcode
 \subsection grid_doc_subsec_props_get Query Properties
@@ -165,7 +164,7 @@ A property can be sampled like that:
 auto sample_grid_property() {
   tatooine::grid g{32, 64};
   // Use reference here to avoid copying.
-  auto& property = g.add_vertex_property<double>("property_name"); 
+  auto& property = g.insert_vertex_property<double>("property_name"); 
 
   // ...
   // Create the property data.
@@ -190,7 +189,7 @@ dimension. So the following code produces the same results as the code above.
 \code{.cpp}
 auto sample_grid_property() {
   tatooine::grid g{32, 64};
-  auto& property = g.add_vertex_property<double>("property_name"); 
+  auto& property = g.insert_vertex_property<double>("property_name"); 
   // ...
   auto sampler = property.sampler<tatooine::interpolation::cubic,
                                   tatooine::interpolation::cubic>(); 
@@ -203,7 +202,7 @@ One can also mix interpolation kernels:
 \code{.cpp}
 auto sample_grid_property() {
   tatooine::grid g{32, 64};
-  auto& property = g.add_vertex_property<double>("property_name"); 
+  auto& property = g.insert_vertex_property<double>("property_name"); 
   // ...
   auto sampler = property.sampler<tatooine::interpolation::linear,
                                   tatooine::interpolation::cubic>(); 

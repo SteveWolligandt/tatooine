@@ -1,7 +1,6 @@
 #ifndef TATOOINE_VEC_H
 #define TATOOINE_VEC_H
 //==============================================================================
-#include <tatooine/real.h>
 #include <tatooine/tensor.h>
 //==============================================================================
 #include <tatooine/random.h>
@@ -19,7 +18,6 @@ struct vec : tensor<T, N> {  // NOLINT
   using parent_t::dimension;
   using parent_t::operator();
 
-  static constexpr auto num_dimensions() { return N; }
   //----------------------------------------------------------------------------
 #ifdef __cpp_concepts
   template <typename... Ts>
@@ -166,6 +164,9 @@ using vec2d = Vec2<double>;
 using vec3d = Vec3<double>;
 using vec4d = Vec4<double>;
 
+}  // namespace tatooine
+#include <tatooine/real.h>
+namespace tatooine {
 using vec2 = Vec2<real_t>;
 using vec3 = Vec3<real_t>;
 using vec4 = Vec4<real_t>;

@@ -64,14 +64,14 @@ struct autonomous_particles_flowmap : renderable<autonomous_particles_flowmap> {
     m_currently_read_path = path;
     m_mesh                = std::make_unique<triangular_mesh<double, 2>>(path);
     {
-      m_edges.vertexbuffer().resize(m_mesh->num_vertices());
+      m_edges.vertexbuffer().resize(m_mesh->vertices().size());
       auto map = m_edges.vertexbuffer().wmap();
       for (auto v : m_mesh->vertices()) {
         map[v.i] = vec3f{m_mesh->at(v)(0), m_mesh->at(v)(1), 0.0f};
       }
     }
     m_edges.indexbuffer().clear();
-    m_edges.indexbuffer().reserve(m_mesh->num_faces() * 6);
+    m_edges.indexbuffer().reserve(m_mesh->faces().size() * 6);
     for (auto f : m_mesh->faces()) {
       auto [v0, v1, v2] = m_mesh->at(f);
       m_edges.indexbuffer().push_back(v0.i);

@@ -60,6 +60,8 @@ struct flowmap_gradient_central_differences {
   auto epsilon(size_t i) -> auto& { return m_epsilon(i); }
   void set_epsilon(const vec_t& epsilon) { m_epsilon = epsilon; }
   void set_epsilon(vec_t&& epsilon) { m_epsilon = std::move(epsilon); }
+  auto flowmap() const -> auto const& { return m_flowmap; }
+  auto flowmap() -> auto& { return m_flowmap; }
 };
 // copy when having rvalue
 template <flowmap_c Flowmap>
