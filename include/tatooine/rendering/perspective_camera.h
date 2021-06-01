@@ -70,6 +70,15 @@ class perspective_camera : public camera<Real> {
       : perspective_camera(eye, lookat, vec3{0, 1, 0}, fov, 0.001, 1000, res_x,
                            res_y) {}
   //----------------------------------------------------------------------------
+  /// Constructor generates bottom left image plane pixel position and pixel
+  /// offset size.
+  template <typename EyeReal, typename LookatReal, typename UpReal,
+            typename FovReal>
+  perspective_camera(vec<EyeReal, 3> const&    eye,
+                     vec<LookatReal, 3> const& lookat, vec<UpReal, 3> const& up,
+                     FovReal const fov, size_t const res_x, size_t const res_y)
+      : perspective_camera(eye, lookat, up, fov, 0.001, 1000, res_x, res_y) {}
+  //----------------------------------------------------------------------------
   ~perspective_camera() override = default;
   //----------------------------------------------------------------------------
   // object methods
@@ -131,6 +140,35 @@ class perspective_camera : public camera<Real> {
     setup();
   }
 };
+//------------------------------------------------------------------------------
+template <typename EyeReal, typename LookatReal, typename UpReal,
+          typename FovReal, typename NearReal, typename FarReal>
+perspective_camera(vec<EyeReal, 3> const&, vec<LookatReal, 3> const&,
+                   vec<UpReal, 3> const&, FovReal const, NearReal const,
+                   FarReal const, size_t const, size_t const)
+    -> perspective_camera<
+        common_type<EyeReal, LookatReal, UpReal, FovReal, NearReal, FarReal>>;
+//------------------------------------------------------------------------------
+template <typename EyeReal, typename LookatReal, typename FovReal,
+          typename NearReal, typename FarReal>
+perspective_camera(vec<EyeReal, 3> const&, vec<LookatReal, 3> const&,
+                   FovReal const, NearReal const, FarReal const, size_t const,
+                   size_t const)
+    -> perspective_camera<
+        common_type<EyeReal, LookatReal, FovReal, NearReal, FarReal>>;
+//------------------------------------------------------------------------------
+template <typename EyeReal, typename LookatReal, typename FovReal>
+perspective_camera(vec<EyeReal, 3> const&, vec<LookatReal, 3> const&,
+                   FovReal const, size_t const, size_t const)
+    -> perspective_camera<common_type<EyeReal, LookatReal, FovReal>>;
+//------------------------------------------------------------------------------
+template <typename EyeReal, typename LookatReal, typename UpReal,
+          typename FovReal>
+perspective_camera(vec<EyeReal, 3> const&, vec<LookatReal, 3> const&,
+                   vec<UpReal, 3> const&, FovReal const, size_t const,
+                   size_t const)
+    -> perspective_camera<
+        common_type<EyeReal, LookatReal, UpReal, std::decay_t<FovReal>>>;
 //==============================================================================
 }  // namespace tatooine::rendering
 //==============================================================================

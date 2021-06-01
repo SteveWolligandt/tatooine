@@ -22,19 +22,19 @@ struct viridis : grid<linspace<Real>> {
   template <typename T>
   using interpolation_t = interpolation::linear<T>;
   template <typename ValueType, bool HasNonConstReference>
-  using typed_property_t =
-      typename parent_t::template typed_property_t<ValueType,
-                                                   HasNonConstReference>;
-  using prop_t          = typed_property_t<col_t, true>;
-  using sampler_t       = sampler<prop_t, interpolation::linear>;
+  using typed_vertex_property_interface_t =
+      typename parent_t::template typed_vertex_property_interface_t<
+          ValueType, HasNonConstReference>;
+  using prop_t    = typed_vertex_property_interface_t<col_t, true>;
+  using sampler_t = sampler<prop_t, interpolation::linear>;
   //==============================================================================
-  prop_t&    m_scale_prop;
-  sampler_t  m_sampler;
+  prop_t&   m_scale_prop;
+  sampler_t m_sampler;
   //==============================================================================
   viridis()
       : parent_t{dim_t{Real(0), Real(1), 256}},
         m_scale_prop{
-            this->template add_contiguous_vertex_property<col_t>("viridis")},
+            this->template insert_contiguous_vertex_property<col_t>("viridis")},
         m_sampler{m_scale_prop.template sampler<interpolation::linear>()} {
     m_scale_prop(0)   = {0.267004, 0.004874, 0.329415};
     m_scale_prop(1)   = {0.268510, 0.009605, 0.335427};

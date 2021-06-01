@@ -1,39 +1,45 @@
 #ifndef TATOOINE_DIFFERENTIATED_FIELD_H
 #define TATOOINE_DIFFERENTIATED_FIELD_H
 //==============================================================================
+#include <tatooine/field.h>
+#include <tatooine/field_type_traits.h>
 #include <tatooine/packages.h>
+#include <tatooine/tensor_type_operations.h>
 
-#include "field.h"
-#include "utility.h"
+#include <tatooine/utility.h>
 //==============================================================================
 namespace tatooine {
 //==============================================================================
-template <typename Field, size_t... TensorDims>
+template <typename InternalField>
 struct differentiated_field
-    : field<differentiated_field<Field, TensorDims...>,
-            typename std::decay_t<std::remove_pointer_t<Field>>::real_t,
-            std::decay_t<std::remove_pointer_t<Field>>::num_dimensions(),
-            TensorDims...> {
-  using raw_field_t = std::decay_t<std::remove_pointer_t<Field>>;
-  static constexpr auto holds_field_pointer = is_pointer<Field>;
+    : field<differentiated_field<InternalField>, field_real_t<InternalField>,
+            field_num_dimensions<InternalField>,
+            tensor_add_dimension_right_t<field_num_dimensions<InternalField>,
+                                         field_tensor_t<InternalField>>> {
+  using raw_internal_field_t =
+      std::decay_t<std::remove_pointer_t<InternalField>>;
+  static constexpr auto holds_field_pointer = is_pointer<InternalField>;
 
-  using this_t      = differentiated_field<Field, TensorDims...>;
-  using parent_t    = field<this_t, typename raw_field_t::real_t,
-                         raw_field_t::num_dimensions(), TensorDims...>;
+  using this_t   = differentiated_field<InternalField>;
+  using parent_t = field<
+      this_t, typename raw_internal_field_t::real_t,
+      raw_internal_field_t::num_dimensions(),
+      tensor_add_dimension_right_t<raw_internal_field_t::num_dimensions(),
+                                   typename raw_internal_field_t::tensor_t>>;
   using parent_t::num_dimensions;
   using typename parent_t::pos_t;
   using typename parent_t::real_t;
   using vec_t = vec<real_t, num_dimensions()>;
   using typename parent_t::tensor_t;
 
-  static_assert(raw_field_t::tensor_t::rank() == 1);
-  static_assert(tensor_t::rank() == 2);
-  static_assert(raw_field_t::tensor_t::rank() + 1 ==
-                tensor_t::rank());
+  //static_assert(raw_internal_field_t::tensor_rank() == 1);
+  //static_assert(tensor_t::rank() == 2);
+  //static_assert(raw_internal_field_t::tensor_rank() + 1 ==
+  //              parent_t::tensor_rank());
   //============================================================================
  private:
-  Field m_internal_field;
-  vec_t m_eps;
+  InternalField m_internal_field;
+  vec_t         m_eps;
   //============================================================================
  public:
 #ifdef __cpp_concpets
@@ -56,10 +62,12 @@ struct differentiated_field
 #ifdef __cpp_concpets
   template <typename Field_, arithmetic Real>
 #else
-  template <typename Field_, typename Real, enable_if<is_arithmetic<Real>> = true>
+  template <typename Field_, typename Real,
+            enable_if<is_arithmetic<Real>> = true>
 #endif
   differentiated_field(Field_&& f, vec<Real, num_dimensions()> const& eps)
-      : m_internal_field{std::forward<Field_>(f)}, m_eps{eps} {}
+      : m_internal_field{std::forward<Field_>(f)}, m_eps{eps} {
+  }
   //----------------------------------------------------------------------------
   constexpr auto evaluate(pos_t const& x, real_t const t) const
       -> tensor_t final {
@@ -70,16 +78,16 @@ struct differentiated_field
       offset(i) = m_eps(i);
       auto x0   = x - offset;
       auto x1   = x + offset;
-      auto dx   = 2 * m_eps;
+      auto dx   = 2 * m_eps(i);
       if (!internal_field().in_domain(x0, t)) {
         x0 = x;
-        dx = m_eps;
+        dx = m_eps(i);
       }
       if (!internal_field().in_domain(x1, t)) {
         x1 = x;
-        dx = m_eps;
+        dx = m_eps(i);
       }
-      derivative.template slice<sizeof...(TensorDims) - 1>(i) =
+      derivative.template slice<this->tensor_rank() - 1>(i) =
           (internal_field()(x1, t) - internal_field()(x0, t)) / dx;
       offset(i) = 0;
     }
@@ -108,89 +116,85 @@ struct differentiated_field
   }
   //----------------------------------------------------------------------------
   template <bool h = holds_field_pointer, enable_if<h> = true>
-  auto set_internal_field(Field f) -> void {
+  auto set_internal_field(InternalField f) -> void {
     m_internal_field = f;
   }
 };
 //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-template <typename Field, typename Real, size_t N, size_t... TensorDims>
-auto diff(field<Field, Real, N, TensorDims...> const& f, Real const eps) {
-  return differentiated_field<Field const&, TensorDims..., N>{f.as_derived(),
-                                                              eps};
+template <typename Field, typename Real, size_t N, typename Tensor>
+auto diff(field<Field, Real, N, Tensor> const& f, Real const eps) {
+  return differentiated_field<Field const&>{f.as_derived(), eps};
 }
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-template <typename Field, typename Real, size_t N, size_t... TensorDims>
-auto diff(field<Field, Real, N, TensorDims...>& f, Real const eps) {
-  return differentiated_field<Field&, TensorDims..., N>{f.as_derived(), eps};
+template <typename Field, typename Real, size_t N, typename Tensor>
+auto diff(field<Field, Real, N, Tensor>& f, Real const eps) {
+  return differentiated_field<Field&>{f.as_derived(), eps};
 }
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-template <typename Field, typename Real, size_t N, size_t... TensorDims>
-auto diff(field<Field, Real, N, TensorDims...>&& f, Real const eps) {
-  return differentiated_field<Field, TensorDims..., N>{
-      std::move(f.as_derived()), eps};
+template <typename Field, typename Real, size_t N, typename Tensor>
+auto diff(field<Field, Real, N, Tensor>&& f, Real const eps) {
+  return differentiated_field<Field>{std::move(f.as_derived()), eps};
 }
 //------------------------------------------------------------------------------
-template <typename Field, typename Real, size_t N, size_t... TensorDims>
-auto diff(field<Field, Real, N, TensorDims...> const& f,
-          vec<Real, N> const&                         eps) {
-  return differentiated_field<Field const&, TensorDims..., N>{f.as_derived(),
-                                                              eps};
+template <typename Field, typename Real, size_t N, typename Tensor>
+auto diff(field<Field, Real, N, Tensor> const& f, vec<Real, N> const& eps) {
+  return differentiated_field<Field const&>{f.as_derived(), eps};
 }
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-template <typename Field, typename Real, size_t N, size_t... TensorDims>
-auto diff(field<Field, Real, N, TensorDims...>& f, vec<Real, N> const& eps) {
-  return differentiated_field<Field&, TensorDims..., N>{f.as_derived(), eps};
+template <typename Field, typename Real, size_t N, typename Tensor>
+auto diff(field<Field, Real, N, Tensor>& f, vec<Real, N> const& eps) {
+  return differentiated_field<Field&>{f.as_derived(), eps};
 }
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-template <typename Field, typename Real, size_t N, size_t... TensorDims>
-auto diff(field<Field, Real, N, TensorDims...>&& f, vec<Real, N> const& eps) {
-  return differentiated_field<Field, TensorDims..., N>{
-      std::move(f.as_derived()), eps};
+template <typename Field, typename Real, size_t N, typename Tensor>
+auto diff(field<Field, Real, N, Tensor>&& f, vec<Real, N> const& eps) {
+  return differentiated_field<Field>{std::move(f.as_derived()), eps};
 }
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-template <typename Real, size_t N, size_t... TensorDims>
-auto diff(parent::field<Real, N, TensorDims...>* f, vec<Real, N> const& eps) {
-  return differentiated_field<parent::field<Real, N, TensorDims...>*,
-                              TensorDims..., N>{f, eps};
+template <typename Real, size_t N, typename Tensor>
+auto diff(polymorphic::field<Real, N, Tensor>* f, vec<Real, N> const& eps) {
+  return differentiated_field<polymorphic::field<Real, N, Tensor>*>{f, eps};
 }
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-template <typename Real, size_t N, size_t... TensorDims>
-auto diff(parent::field<Real, N, TensorDims...> const* f,
-          vec<Real, N> const&                          eps) {
-  return differentiated_field<parent::field<Real, N, TensorDims...> const*,
-                              TensorDims..., N>{f, eps};
+template <typename Real, size_t N, typename Tensor>
+auto diff(polymorphic::field<Real, N, Tensor> const* f,
+          vec<Real, N> const&                        eps) {
+  return differentiated_field<polymorphic::field<Real, N, Tensor> const*>{f,
+                                                                          eps};
 }
 //==============================================================================
-template <typename Field, size_t... TensorDims>
+template <typename InternalField>
 struct time_differentiated_field
-    : field<time_differentiated_field<Field, TensorDims...>,
-            typename std::decay_t<Field>::real_t,
-            std::decay_t<Field>::num_dimensions(), TensorDims...> {
-  using this_t   = time_differentiated_field<Field, TensorDims...>;
-  using parent_t = field<this_t, typename std::decay_t<Field>::real_t,
-                         std::decay_t<Field>::num_dimensions(), TensorDims...>;
+    : field<time_differentiated_field<InternalField>,
+            typename std::decay_t<InternalField>::real_t,
+            std::decay_t<InternalField>::num_dimensions(),
+            typename std::decay_t<InternalField>::tensor_t> {
+  using this_t   = time_differentiated_field<InternalField>;
+  using parent_t = field<this_t, typename std::decay_t<InternalField>::real_t,
+                         std::decay_t<InternalField>::num_dimensions(),
+                         typename std::decay_t<InternalField>::tensor_t>;
   using parent_t::num_dimensions;
   using typename parent_t::pos_t;
   using typename parent_t::real_t;
   using vec_t = vec<real_t, num_dimensions()>;
   using typename parent_t::tensor_t;
-  static constexpr auto holds_field_pointer = is_pointer<Field>;
+  static constexpr auto holds_field_pointer = is_pointer<InternalField>;
 
   //============================================================================
  private:
-  Field m_internal_field;
-  real_t m_eps;
+  InternalField m_internal_field;
+  real_t        m_eps;
   //============================================================================
  public:
 #ifdef __cpp_concpets
   template <typename Field_, arithmetic Eps>
 #else
-  template <typename Field_, typename Eps,
-            enable_if<is_arithmetic<Eps> > = true>
+  template <typename Field_, typename Eps, enable_if<is_arithmetic<Eps>> = true>
 #endif
   time_differentiated_field(Field_&& f, Eps const eps)
       : m_internal_field{std::forward<Field_>(f)},
-        m_eps{static_cast<real_t>(eps)} {}
+        m_eps{static_cast<real_t>(eps)} {
+  }
   //----------------------------------------------------------------------------
   constexpr auto evaluate(pos_t const& x, real_t const t) const
       -> tensor_t final {
@@ -225,26 +229,25 @@ struct time_differentiated_field
   }
 };
 //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-template <typename Field, typename Real, size_t N, size_t... TensorDims>
-auto diff_time(field<Field, Real, N, TensorDims...> const& f, Real const eps) {
-  return time_differentiated_field<Field const&, TensorDims...>{f.as_derived(), eps};
+template <typename Field, typename Real, size_t N, typename Tensor>
+auto diff_time(field<Field, Real, N, Tensor> const& f, Real const eps) {
+  return time_differentiated_field<Field const&>{f.as_derived(), eps};
 }
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-template <typename Field, typename Real, size_t N, size_t... TensorDims>
-auto diff_time(field<Field, Real, N, TensorDims...>& f, Real const eps) {
-  return time_differentiated_field<Field&, TensorDims...>{f.as_derived(), eps};
+template <typename Field, typename Real, size_t N, typename Tensor>
+auto diff_time(field<Field, Real, N, Tensor>& f, Real const eps) {
+  return time_differentiated_field<Field&>{f.as_derived(), eps};
 }
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-template <typename Field, typename Real, size_t N, size_t... TensorDims>
-auto diff_time(field<Field, Real, N, TensorDims...>&& f, Real const eps) {
-  return time_differentiated_field<Field, TensorDims...>{
-      std::move(f.as_derived()), eps};
+template <typename Field, typename Real, size_t N, typename Tensor>
+auto diff_time(field<Field, Real, N, Tensor>&& f, Real const eps) {
+  return time_differentiated_field<Field>{std::move(f.as_derived()), eps};
 }
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-template <typename Real, size_t N, size_t... TensorDims>
-auto diff_time(parent::field<Real, N, TensorDims...>const* f, Real const eps) {
-  return time_differentiated_field<parent::field<Real, N, TensorDims...> const*,
-                                   TensorDims...>{f, eps};
+template <typename Real, size_t N, typename Tensor>
+auto diff_time(polymorphic::field<Real, N, Tensor> const* f, Real const eps) {
+  return time_differentiated_field<polymorphic::field<Real, N, Tensor> const*>{
+      f, eps};
 }
 //==============================================================================
 }  // namespace tatooine

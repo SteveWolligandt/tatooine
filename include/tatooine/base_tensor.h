@@ -29,7 +29,8 @@ struct base_tensor : crtp<Tensor> {
   using parent_t   = crtp<Tensor>;
   using parent_t::as_derived;
   using multidim_size_t = static_multidim_size<x_fastest, Dims...>;
-  static_assert(is_arithmetic<T> || is_complex<T>);
+  static_assert(is_arithmetic<T> || is_complex<T>,
+                "A tensor can only hold real or complex values.");
   //============================================================================
   static constexpr auto rank() { return sizeof...(Dims); }
   //------------------------------------------------------------------------------
@@ -144,25 +145,37 @@ struct base_tensor : crtp<Tensor> {
 #endif
   constexpr decltype(auto) operator()(Is const... is) {
     static_assert(sizeof...(is) == rank(),
-                  "number of indices does not match number of dimensions");
+                  "Number of indices does not match number of dimensions.");
     return at(is...);
   }
 
   //----------------------------------------------------------------------------
   template <size_t FixedDim, size_t... Is>
-  constexpr auto slice(size_t fixed_index, std::index_sequence<Is...>) {
-    static_assert(FixedDim < rank(),
-                  "fixed dimensions must be in range of number of dimensions");
-    return tensor_slice<Tensor, T, FixedDim,
-                        dimension(sliced_indices<rank(), FixedDim>()[Is])...>{
-        &as_derived(), fixed_index};
+  constexpr auto slice(size_t fixed_index, std::index_sequence<Is...>)
+      -> decltype(auto) {
+    if constexpr (rank() > 1) {
+      static_assert(
+          FixedDim < rank(),
+          "Fixed dimensions must be in range of number of dimensions.");
+      return tensor_slice<Tensor, T, FixedDim,
+                          dimension(sliced_indices<rank(), FixedDim>()[Is])...>{
+          &as_derived(), fixed_index};
+    } else {
+      return at(fixed_index);
+    }
   }
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
   template <size_t FixedDim>
-  constexpr auto slice(size_t fixed_index) {
-    static_assert(FixedDim < rank(),
-                  "fixed dimensions must be in range of number of dimensions");
-    return slice<FixedDim>(fixed_index, std::make_index_sequence<rank() - 1>{});
+  constexpr auto slice(size_t fixed_index) -> decltype(auto) {
+    if constexpr (rank() > 1) {
+      static_assert(
+          FixedDim < rank(),
+          "Fixed dimensions must be in range of number of dimensions.");
+      return slice<FixedDim>(fixed_index,
+                             std::make_index_sequence<rank() - 1>{});
+    } else {
+      return at(fixed_index);
+    }
   }
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
   template <size_t FixedDim, size_t... Is>

@@ -15,7 +15,7 @@ struct random_uniform {
   using engine_t = Engine;
   using real_t   = T;
   using distribution_t =
-      std::conditional_t<std::is_floating_point<T>::value,
+      std::conditional_t<is_floating_point<T>,
                          std::uniform_real_distribution<T>,
                          std::uniform_int_distribution<T>>;
   //============================================================================
@@ -24,8 +24,7 @@ struct random_uniform {
   distribution_t distribution;
   //============================================================================
  public:
-  random_uniform()
-      : engine{Engine{std::random_device{}()}}, distribution{T(0), T(1)} {}
+  random_uniform() : engine{std::random_device{}()}, distribution{T(0), T(1)} {}
 
   random_uniform(const random_uniform&)     = default;
   random_uniform(random_uniform&&) noexcept = default;
@@ -35,37 +34,22 @@ struct random_uniform {
   //----------------------------------------------------------------------------
   ~random_uniform() = default;
   //----------------------------------------------------------------------------
-  explicit random_uniform(Engine _engine)
-      : engine{_engine}, distribution{T(0), T(1)} {}
+  random_uniform(T const min, T const max)
+      : engine{std::random_device{}()}, distribution{min, max} {}
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-  random_uniform(T min, T max, Engine _engine = Engine{std::random_device{}()})
-      : engine{_engine}, distribution{min, max} {}
+  template <typename... Args>
+  random_uniform(T const min, T const max, Args&&... args)
+      : engine{std::forward<Args>(args)...}, distribution{min, max} {}
   //============================================================================
   auto get() { return distribution(engine); }
   auto operator()() { return get(); }
 };
 //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 random_uniform()->random_uniform<double, std::mt19937_64>;
-
-// copy when having rvalue
-template <typename Engine>
-random_uniform(Engine &&)->random_uniform<double, Engine>;
-
-// keep reference when having lvalue
-template <typename Engine>
-random_uniform(const Engine&)->random_uniform<double, const Engine&>;
-
-// copy when having rvalue
 template <typename T>
-random_uniform(T min, T max) -> random_uniform<T, std::mt19937_64>;
-
-// copy when having rvalue
-template <typename T, typename Engine>
-random_uniform(T min, T max, Engine &&)->random_uniform<T, Engine>;
-
-// keep reference when having lvalue
-template <typename T, typename Engine>
-random_uniform(T min, T max, const Engine&)->random_uniform<T, const Engine&>;
+random_uniform(T const min, T const max) -> random_uniform<T, std::mt19937_64>;
+template <typename T, typename... Args>
+random_uniform(T const min, T const max, Args...)->random_uniform<T, std::mt19937_64>;
 //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 template <typename T, typename Engine = std::mt19937_64>
 auto random_uniform_vector(size_t n, T a = T(0), T b = T(1),

@@ -339,25 +339,25 @@ configure_file(${CMAKE_CURRENT_SOURCE_DIR}/include/tatooine/hdf5.h.in
 #- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 # NetCDF
 #- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-if(TATOOINE_USE_SYSTEM_HDF5_LIBS)
-  option(TATOOINE_USE_SYSTEM_NETCDF_LIBS "By setting this to ON tatooine will not compile NetCDF on its own." OFF)
-  if (TATOOINE_USE_SYSTEM_NETCDF_LIBS) 
-    find_package(NetCDF QUIET)
-    if (NETCDF_FOUND)
-      message(STATUS "NetCDF available")
-      target_compile_definitions(tatooine PUBLIC TATOOINE_NETCDF_AVAILABLE)
-      target_link_libraries(tatooine PUBLIC ${NETCDF_LIBRARIES})
-      target_include_directories(tatooine PUBLIC ${NETCDF_INCLUDES})
-    endif()
-  endif()
-endif()
-if ((NOT TATOOINE_USE_SYSTEM_NETCDF_LIBS) OR
-  (TATOOINE_USE_SYSTEM_NETCDF_LIBS AND NOT NETCDF_FOUND))
-  update_git_submodule(${TATOOINE_EXTERNAL}/netcdf4-c)
-  update_git_submodule(${TATOOINE_EXTERNAL}/netcdf4-cxx)
-  add_subdirectory(external/netcdf4-c EXCLUDE_FROM_ALL)
-  add_subdirectory(external/netcdf4-cxx EXCLUDE_FROM_ALL)
-endif()
+#if(TATOOINE_USE_SYSTEM_HDF5_LIBS)
+#  option(TATOOINE_USE_SYSTEM_NETCDF_LIBS "By setting this to ON tatooine will not compile NetCDF on its own." OFF)
+#  if (TATOOINE_USE_SYSTEM_NETCDF_LIBS)
+#    find_package(NetCDF QUIET)
+#    if (NETCDF_FOUND)
+#      message(STATUS "NetCDF available")
+#      target_compile_definitions(tatooine PUBLIC TATOOINE_NETCDF_AVAILABLE)
+#      target_link_libraries(tatooine PUBLIC ${NETCDF_LIBRARIES})
+#      target_include_directories(tatooine PUBLIC ${NETCDF_INCLUDES})
+#    endif()
+#  endif()
+#endif()
+#if ((NOT TATOOINE_USE_SYSTEM_NETCDF_LIBS) OR
+#  (TATOOINE_USE_SYSTEM_NETCDF_LIBS AND NOT NETCDF_FOUND))
+#  update_git_submodule(${TATOOINE_EXTERNAL}/netcdf4-c)
+#  update_git_submodule(${TATOOINE_EXTERNAL}/netcdf4-cxx)
+#  add_subdirectory(external/netcdf4-c EXCLUDE_FROM_ALL)
+#  add_subdirectory(external/netcdf4-cxx EXCLUDE_FROM_ALL)
+#endif()
 
 #- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 # FLANN
@@ -377,6 +377,7 @@ if (CGAL_FOUND)
   target_compile_definitions(tatooine PUBLIC TATOOINE_HAS_CGAL_SUPPORT)
   target_link_libraries(tatooine PUBLIC CGAL::CGAL)
   message(STATUS "CGAL available")
+  target_compile_definitions(tatooine PUBLIC -DCGAL_DISABLE_ROUNDING_MATH_CHECK)
 endif()
 #- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 # yavin
@@ -384,6 +385,7 @@ endif()
 find_package(yavin QUIET)
 if (${yavin_FOUND}) 
   set(TATOOINE_YAVIN_AVAILABLE 1)
+  target_compile_definitions(tatooine PUBLIC TATOOINE_YAVIN_AVAILABLE)
   target_link_libraries(tatooine PUBLIC yavin)
 else()
   set(TATOOINE_YAVIN_AVAILABLE 0)
@@ -407,6 +409,9 @@ endif()
 
 configure_file(${CMAKE_CURRENT_SOURCE_DIR}/include/tatooine/packages.h.in
                ${CMAKE_CURRENT_BINARY_DIR}/include/tatooine/packages.h)
+get_target_property(defs tatooine COMPILE_DEFINITIONS)
+list(REMOVE_ITEM defs _FORTIFY_SOURCE)
+set_property(TARGET tatooine PROPERTY COMPILE_DEFINITIONS ${defs})
 
 set(TATOOINE_EXPORTING_TARGETS tatooine)
 #-------------------------------------------------------------------------------
@@ -415,7 +420,10 @@ set(TATOOINE_EXPORTING_TARGETS tatooine)
 add_subdirectory(test)
 add_subdirectory(scivis_contest_2020 EXCLUDE_FROM_ALL)
 add_subdirectory(benchmarks)
-add_subdirectory(doc)
+option(TATOOINE_BUILD_DOC "Builds the documentation" OFF)
+if (TATOOINE_BUILD_DOC) 
+  add_subdirectory(doc)
+endif () 
 add_subdirectory(material_science EXCLUDE_FROM_ALL)
 if (yavin_FOUND) 
   add_subdirectory(steadification EXCLUDE_FROM_ALL)
@@ -426,6 +434,7 @@ if (yavin_FOUND)
     add_subdirectory(flowexplorer)
   endif()
 endif()
+add_subdirectory(raytracer)
 add_subdirectory(autonomous_particles)
 add_subdirectory(smearing_scalar_field)
 
@@ -444,10 +453,9 @@ option(TATOOINE_BUILD_EXAMPLES "")
 if (TATOOINE_BUILD_EXAMPLES)
   add_subdirectory(examples)
 endif()
-
 #- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 # This makes the project importable from the build directory
-#export(TARGETS ${TATOOINE_EXPORTING_TARGETS}
-#       FILE tatooineConfig.cmake
-#       NAMESPACE tatooine::)
+export(TARGETS ${TATOOINE_EXPORTING_TARGETS}
+       FILE tatooineConfig.cmake
+       NAMESPACE tatooine::)
 export(PACKAGE tatooine)

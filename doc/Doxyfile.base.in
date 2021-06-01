@@ -21,3 +21,6 @@ DOT_GRAPH_MAX_NODES    = 100
 MAX_DOT_GRAPH_DEPTH    = 0
 DOT_TRANSPARENT        = YES
 DOT_IMAGE_FORMAT       = svg
+HTML_EXTRA_STYLESHEET  = @CMAKE_CURRENT_SOURCE_DIR@/external/doxygen-awesome-css/doxygen-awesome.css
+CITE_BIB_FILES         = @CMAKE_CURRENT_SOURCE_DIR@/bibliography.bib
+
