@@ -1,12 +1,12 @@
 #ifndef TATOOINE_DIFFERENTIATED_FIELD_H
 #define TATOOINE_DIFFERENTIATED_FIELD_H
 //==============================================================================
+#include <tatooine/field.h>
 #include <tatooine/field_type_traits.h>
 #include <tatooine/packages.h>
 #include <tatooine/tensor_type_operations.h>
 
-#include "field.h"
-#include "utility.h"
+#include <tatooine/utility.h>
 //==============================================================================
 namespace tatooine {
 //==============================================================================
@@ -32,9 +32,10 @@ struct differentiated_field
   using vec_t = vec<real_t, num_dimensions()>;
   using typename parent_t::tensor_t;
 
-  static_assert(raw_internal_field_t::tensor_t::rank() == 1);
-  static_assert(tensor_t::rank() == 2);
-  static_assert(raw_internal_field_t::tensor_t::rank() + 1 == tensor_t::rank());
+  //static_assert(raw_internal_field_t::tensor_rank() == 1);
+  //static_assert(tensor_t::rank() == 2);
+  //static_assert(raw_internal_field_t::tensor_rank() + 1 ==
+  //              parent_t::tensor_rank());
   //============================================================================
  private:
   InternalField m_internal_field;
@@ -77,14 +78,14 @@ struct differentiated_field
       offset(i) = m_eps(i);
       auto x0   = x - offset;
       auto x1   = x + offset;
-      auto dx   = 2 * m_eps;
+      auto dx   = 2 * m_eps(i);
       if (!internal_field().in_domain(x0, t)) {
         x0 = x;
-        dx = m_eps;
+        dx = m_eps(i);
       }
       if (!internal_field().in_domain(x1, t)) {
         x1 = x;
-        dx = m_eps;
+        dx = m_eps(i);
       }
       derivative.template slice<this->tensor_rank() - 1>(i) =
           (internal_field()(x1, t) - internal_field()(x0, t)) / dx;
