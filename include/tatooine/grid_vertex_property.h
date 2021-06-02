@@ -668,7 +668,7 @@ struct differentiated_typed_grid_vertex_property {
       -> value_type {
     value_type d{};
     ([&](auto const dim, auto const index) {
-      constexpr size_t targeted_stencil_size = 5;
+      constexpr size_t targeted_stencil_size = 7;
       constexpr int    offset                = targeted_stencil_size / 2;
 
       auto indices = std::array{static_cast<size_t>(is)...};
@@ -676,18 +676,6 @@ struct differentiated_typed_grid_vertex_property {
       auto const positive_offset =
           std::min<int>(grid().size(dim) - index - 1,
                         targeted_stencil_size + negative_offset - 1);
-      //std::cerr << "=====================================\n";
-      //std::cerr << "target_stencil_size   :" << targeted_stencil_size << '\n';
-      //std::cerr << "actual_stencil_size   :" << positive_offset - negative_offset + 1 << '\n';
-      //std::cerr << "dimension       :" << dim << '\n';
-      //std::cerr << "negative_offset :" << negative_offset << '\n';
-      //std::cerr << "positive_offset :" << positive_offset << '\n';
-      //std::cerr << "indices         :[" << indices[0];
-      //for (size_t i = 1; i < indices.size(); ++i) {
-      //  std::cerr << ", " << indices[i];
-      //}
-      //std::cerr << "]\n";
-
       auto const& coeffs = grid().diff_stencil_coefficients(
           dim, positive_offset - negative_offset + 1, -negative_offset, index);
       indices[dim] += negative_offset;

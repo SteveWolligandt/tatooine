@@ -24,6 +24,19 @@ elseif ("${CMAKE_CXX_COMPILER_ID}" STREQUAL "GNU")
   target_compile_options(channelflow_visualization PRIVATE  "-fdiagnostics-color=always")
 endif()
 #===============================================================================
+add_executable(channelflow_visualization.add_Q_pnorm create_Q.cpp)
+target_link_libraries(channelflow_visualization.add_Q_pnorm PUBLIC tatooine)
+add_custom_target(
+  channelflow_visualization.add_Q_pnorm.run
+  COMMAND ./channelflow_visualization.add_Q_pnorm
+  DEPENDS channelflow_visualization.add_Q_pnorm)
+# force coloring
+if ("${CMAKE_CXX_COMPILER_ID}" STREQUAL "Clang")
+  target_compile_options(channelflow_visualization.add_Q_pnorm PRIVATE "-fcolor-diagnostics")
+elseif ("${CMAKE_CXX_COMPILER_ID}" STREQUAL "GNU")
+  target_compile_options(channelflow_visualization.add_Q_pnorm PRIVATE  "-fdiagnostics-color=always")
+endif()
+#===============================================================================
 if (TATOOINE_MPI_AVAILABLE)
   add_executable(channelflow.pv.mpi pv_mpi.cpp)
 

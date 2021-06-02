@@ -18,27 +18,26 @@ namespace tatooine {
 /// \param linear_field Piece-wise trilinear field
 /// \param isovalue Iso Value of the extracted iso surface
 /// \param shader Shader for setting color at pixel. The shader takes position,
-/// gradient and view direction as parameters. It must return a RGB or a RGBA
 /// color (vec3 or vec4). \return Returns a 2D grid with a grid_vertex_property
 /// named "rendered_isosurface"
-template <typename CameraReal, typename IsoReal, typename GridVertexProperty,
-          typename Shader>
-auto direct_isosurface_rendering(
-    rendering::camera<CameraReal> const&  cam,
-    sampler<GridVertexProperty, interpolation::linear, interpolation::linear,
-            interpolation::linear> const& linear_field,
-    IsoReal const isovalue, Shader&& shader) {
-  using value_t = typename GridVertexProperty::value_type;
-  static_assert(is_floating_point<value_t>);
-  using grid_real_t =
-      typename std::decay_t<decltype(linear_field.grid())>::real_t;
-  using gradient_t = vec<value_t, 3>;
-  using pos_t      = vec<grid_real_t, 3>;
-  using viewdir_t  = vec<CameraReal, 3>;
-  static_assert(
-      std::is_invocable_v<Shader, pos_t, gradient_t, viewdir_t>,
-      "Shader must be invocable with position, gradient and view direction.");
-  using color_t = std::invoke_result_t<Shader, pos_t, gradient_t, viewdir_t>;
+template <typename CameraReal, typename IsoReal, typename Dim0, typename Dim1,
+          typename Dim2, typename Field, typename Shader>
+auto direct_isosurface_rendering(rendering::camera<CameraReal> const& cam,
+                                 grid<Dim0, Dim1, Dim2> const& g, Field&& field,
+                                 IsoReal const isovalue, Shader&& shader) {
+  using grid_real_t = typename grid<Dim0, Dim1, Dim2>::real_t;
+  using pos_t       = vec<grid_real_t, 3>;
+  constexpr auto use_indices =
+      std::is_invocable_v<Field, size_t, size_t, size_t>;
+  // using value_t =
+  //    std::conditional_t<use_indices,
+  //                       std::invoke_result_t<Field, size_t, size_t, size_t>,
+  //                       std::invoke_result_t<Field, pos_t>>;
+  // static_assert(is_floating_point<value_t>);
+  using viewdir_t = vec<CameraReal, 3>;
+  static_assert(std::is_invocable_v<Shader, pos_t, pos_t, viewdir_t>,
+                "Shader must be invocable with position, gradient and view direction.");
+  using color_t = std::invoke_result_t<Shader, pos_t, pos_t, viewdir_t>;
   using rgb_t   = vec<typename color_t::value_type, 3>;
   using alpha_t = typename color_t::value_type;
   static_assert(is_vec<color_t>,
@@ -46,7 +45,6 @@ auto direct_isosurface_rendering(
   static_assert(
       color_t::num_components() == 3 || color_t::num_components() == 4,
       "Shader must return a vector with 3 or 4 components.");
-  auto const& g    = linear_field.grid();
   auto const& dim0 = g.template dimension<0>();
   auto const& dim1 = g.template dimension<1>();
   auto const& dim2 = g.template dimension<2>();
@@ -170,14 +168,25 @@ auto direct_isosurface_rendering(
         }
       }
       static_multidim_array<double, x_fastest, tag::stack, 2, 2, 2> cell_data;
-      cell_data(0, 0, 0) = linear_field.data_at(i0[0], i0[1], i0[2]);
-      cell_data(0, 0, 1) = linear_field.data_at(i0[0], i0[1], i1[2]);
-      cell_data(0, 1, 0) = linear_field.data_at(i0[0], i1[1], i0[2]);
-      cell_data(0, 1, 1) = linear_field.data_at(i0[0], i1[1], i1[2]);
-      cell_data(1, 0, 0) = linear_field.data_at(i1[0], i0[1], i0[2]);
-      cell_data(1, 0, 1) = linear_field.data_at(i1[0], i0[1], i1[2]);
-      cell_data(1, 1, 0) = linear_field.data_at(i1[0], i1[1], i0[2]);
-      cell_data(1, 1, 1) = linear_field.data_at(i1[0], i1[1], i1[2]);
+      if constexpr (use_indices) {
+        cell_data(0, 0, 0) = field(i0[0], i0[1], i0[2]);
+        cell_data(1, 0, 0) = field(i1[0], i0[1], i0[2]);
+        cell_data(0, 1, 0) = field(i0[0], i1[1], i0[2]);
+        cell_data(1, 1, 0) = field(i1[0], i1[1], i0[2]);
+        cell_data(0, 0, 1) = field(i0[0], i0[1], i1[2]);
+        cell_data(1, 0, 1) = field(i1[0], i0[1], i1[2]);
+        cell_data(0, 1, 1) = field(i0[0], i1[1], i1[2]);
+        cell_data(1, 1, 1) = field(i1[0], i1[1], i1[2]);
+      } else {
+        cell_data(0, 0, 0) = field(g(i0[0], i0[1], i0[2]));
+        cell_data(1, 0, 0) = field(g(i1[0], i0[1], i0[2]));
+        cell_data(0, 1, 0) = field(g(i0[0], i1[1], i0[2]));
+        cell_data(1, 1, 0) = field(g(i1[0], i1[1], i0[2]));
+        cell_data(0, 0, 1) = field(g(i0[0], i0[1], i1[2]));
+        cell_data(1, 0, 1) = field(g(i1[0], i0[1], i1[2]));
+        cell_data(0, 1, 1) = field(g(i0[0], i1[1], i1[2]));
+        cell_data(1, 1, 1) = field(g(i1[0], i1[1], i1[2]));
+      }
 
       // check if isosurface is present in current cell
       if (!((cell_data(0, 0, 0) > isovalue && cell_data(0, 0, 1) > isovalue &&
@@ -196,11 +205,13 @@ auto direct_isosurface_rendering(
         auto const cell_extent = x1 - x0;
         auto const inv_cell_extent =
             pos_t{1 / cell_extent(0), 1 / cell_extent(1), 1 / cell_extent(2)};
+        // create rays in different spaces
         auto const a0 = (x1 - xa) * inv_cell_extent;
         auto const b0 = xb * inv_cell_extent;
         auto const a1 = (xa - x0) * inv_cell_extent;
         auto const b1 = -xb * inv_cell_extent;
 
+        // construct coefficients of cubic polynomial A + B*t + C*t*t + D*t*t*t 
         auto const A = a0(0) * a0(1) * a0(2) * cell_data(0, 0, 0) +
                        a0(0) * a0(1) * a1(2) * cell_data(0, 0, 1) +
                        a0(0) * a1(1) * a0(2) * cell_data(0, 1, 0) +
@@ -289,45 +300,32 @@ auto direct_isosurface_rendering(
             assert(uvw1(0) >= 0 && uvw1(0) <= 1);
             assert(uvw1(1) >= 0 && uvw1(1) <= 1);
             assert(uvw1(2) >= 0 && uvw1(2) <= 1);
-            // auto const gradient =
-            //    gradient_t{- uvw0(1) * uvw0(2) * cell_data(0, 0, 0)  // 000
-            //               + uvw0(1) * uvw0(2) * cell_data(1, 0, 0)  // 100
-            //               - uvw1(1) * uvw0(2) * cell_data(0, 1, 0)  // 010
-            //               + uvw1(1) * uvw0(2) * cell_data(1, 1, 0)  // 110
-            //               - uvw0(1) * uvw1(2) * cell_data(0, 0, 1)  // 001
-            //               + uvw0(1) * uvw1(2) * cell_data(1, 0, 1)  // 101
-            //               - uvw1(1) * uvw1(2) * cell_data(0, 1, 1)  // 011
-            //               + uvw1(1) * uvw1(2) * cell_data(1, 1, 1), // 111
-            //
-            //               - uvw0(0) * uvw0(2) * cell_data(0, 0, 0)  // 000
-            //               - uvw1(0) * uvw0(2) * cell_data(1, 0, 0)  // 100
-            //               + uvw0(0) * uvw0(2) * cell_data(0, 1, 0)  // 010
-            //               + uvw1(0) * uvw0(2) * cell_data(1, 1, 0)  // 110
-            //               - uvw0(0) * uvw1(2) * cell_data(0, 0, 1)  // 001
-            //               - uvw1(0) * uvw1(2) * cell_data(1, 0, 1)  // 101
-            //               + uvw0(0) * uvw1(2) * cell_data(0, 1, 1)  // 011
-            //               + uvw1(0) * uvw1(2) * cell_data(1, 1, 1), // 111
-            //
-            //               - uvw0(0) * uvw0(1) * cell_data(0, 0, 0)  // 000
-            //               - uvw1(0) * uvw0(1) * cell_data(1, 0, 0)  // 100
-            //               - uvw0(0) * uvw1(1) * cell_data(0, 1, 0)  // 010
-            //               - uvw1(0) * uvw1(1) * cell_data(1, 1, 0)  // 110
-            //               + uvw0(0) * uvw0(1) * cell_data(0, 0, 1)  // 001
-            //               + uvw1(0) * uvw0(1) * cell_data(1, 0, 1)  // 101
-            //               + uvw0(0) * uvw1(1) * cell_data(0, 1, 1)  // 011
-            //               + uvw1(0) * uvw1(1) * cell_data(1, 1, 1)} // 111
-            //    * inv_cell_extent;
-            // auto       G        = diff(linear_field);
-            // auto const gradient = G.sample(x_iso(0), x_iso(1), x_iso(2));
-            // G(i0[0], i0[1], i0[2]) * uvw0(0) * uvw0(1) * uvw0(2) +
-            // G(i0[0], i0[1], i1[2]) * uvw0(0) * uvw0(1) * uvw1(2) +
-            // G(i0[0], i1[1], i0[2]) * uvw0(0) * uvw1(1) * uvw0(2) +
-            // G(i0[0], i1[1], i1[2]) * uvw0(0) * uvw1(1) * uvw1(2) +
-            // G(i1[0], i0[1], i0[2]) * uvw1(0) * uvw0(1) * uvw0(2) +
-            // G(i1[0], i0[1], i1[2]) * uvw1(0) * uvw0(1) * uvw1(2) +
-            // G(i1[0], i1[1], i0[2]) * uvw1(0) * uvw1(1) * uvw0(2) +
-            // G(i1[0], i1[1], i1[2]) * uvw1(0) * uvw1(1) * uvw1(2);
-            auto const gradient = diff(linear_field, 1e-7)(x_iso);
+            auto const k = cell_data(1, 1, 1) - cell_data(0, 1, 1) -
+                           cell_data(1, 0, 1) + cell_data(0, 0, 1) -
+                           cell_data(1, 1, 0) + cell_data(0, 1, 0) +
+                           cell_data(1, 0, 0) - cell_data(0, 0, 0);
+            auto const gradient =
+                vec{(k * uvw0(1) + cell_data(1, 0, 1) - cell_data(0, 0, 1) -
+                     cell_data(1, 0, 0) + cell_data(0, 0, 0)) *
+                            uvw0(2) +
+                        (cell_data(1, 1, 0) - cell_data(0, 1, 0) -
+                         cell_data(1, 0, 0) + cell_data(0, 0, 0)) *
+                            uvw0(1) +
+                        cell_data(1, 0, 0) - cell_data(0, 0, 0),
+                    (k * uvw0(0) + cell_data(0, 1, 1) - cell_data(0, 0, 1) -
+                     cell_data(0, 1, 0) + cell_data(0, 0, 0)) *
+                            uvw0(2) +
+                        (cell_data(1, 1, 0) - cell_data(0, 1, 0) -
+                         cell_data(1, 0, 0) + cell_data(0, 0, 0)) *
+                            uvw0(0) +
+                        cell_data(0, 1, 0) - cell_data(0, 0, 0),
+                    (k * uvw0(0) + cell_data(0, 1, 1) - cell_data(0, 0, 1) -
+                     cell_data(0, 1, 0) + cell_data(0, 0, 0)) *
+                            uvw0(1) +
+                        (cell_data(1, 0, 1) - cell_data(0, 0, 1) -
+                         cell_data(1, 0, 0) + cell_data(0, 0, 0)) *
+                            uvw0(0) +
+                        cell_data(0, 0, 1) - cell_data(0, 0, 0)};
             if constexpr (color_t::num_components() == 3) {
               accumulated_color = shader(x_iso, gradient, r.direction());
               done              = true;
@@ -358,6 +356,31 @@ auto direct_isosurface_rendering(
     }
   }
   return rendered_image;
+}
+//==============================================================================
+/// an implementation of \cite 10.5555/288216.288266. See also \ref
+/// isosurf_parker.
+///
+/// \param cam Camera model for casting rays
+/// \param linear_field Piece-wise trilinear field
+/// \param isovalue Iso Value of the extracted iso surface
+/// \param shader Shader for setting color at pixel. The shader takes position
+/// and view direction as parameters. It must return a RGB or a RGBA
+/// color (vec3 or vec4). \return Returns a 2D grid with a grid_vertex_property
+/// named "rendered_isosurface"
+template <typename CameraReal, typename IsoReal, typename GridVertexProperty,
+          typename Shader>
+auto direct_isosurface_rendering(
+    rendering::camera<CameraReal> const&  cam,
+    sampler<GridVertexProperty, interpolation::linear, interpolation::linear,
+            interpolation::linear> const& linear_field,
+    IsoReal const isovalue, Shader&& shader) {
+  return direct_isosurface_rendering(
+      cam, linear_field.grid(),
+      [&](size_t const ix, size_t const iy, size_t const iz) -> auto const& {
+        return linear_field.data_at(ix, iy, iz);
+      },
+      isovalue, std::forward<Shader>(shader));
 }
 //------------------------------------------------------------------------------
 template <typename DistOnRay, typename CameraReal, typename AABBReal,

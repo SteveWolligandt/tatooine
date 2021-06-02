@@ -104,7 +104,7 @@ add_library(tatooine SHARED
   src/vtk_legacy.cpp
   src/parse.cpp
 )
-target_compile_features(tatooine PUBLIC cxx_std_17)
+target_compile_features(tatooine PUBLIC cxx_std_20)
 
 # force coloring
 if ("${CMAKE_CXX_COMPILER_ID}" STREQUAL "Clang")
@@ -455,7 +455,7 @@ if (TATOOINE_BUILD_EXAMPLES)
 endif()
 #- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 # This makes the project importable from the build directory
-export(TARGETS ${TATOOINE_EXPORTING_TARGETS}
-       FILE tatooineConfig.cmake
-       NAMESPACE tatooine::)
+#export(TARGETS ${TATOOINE_EXPORTING_TARGETS}
+#       FILE tatooineConfig.cmake
+#       NAMESPACE tatooine::)
 export(PACKAGE tatooine)

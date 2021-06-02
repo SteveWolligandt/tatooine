@@ -380,8 +380,8 @@ template <typename VReal, typename WReal, typename TReal, typename XDomain,
                     (is_invocable<Preds, vec<common_type<VReal, WReal>, 3>> &&
                      ...)> = true>
 #endif
-auto parallel_vectors(parent::vectorfield<VReal, 3> const&   vf,
-                      parent::vectorfield<WReal, 3> const&   wf,
+auto parallel_vectors(polymorphic::vectorfield<VReal, 3> const&   vf,
+                      polymorphic::vectorfield<WReal, 3> const&   wf,
                       grid<XDomain, YDomain, ZDomain> const& g, TReal const t,
                       Preds&&... preds)
     -> std::vector<line<common_type<VReal, WReal>, 3>> {
@@ -453,8 +453,8 @@ template <
     typename YDomain, typename ZDomain, typename... Preds,
     enable_if<is_invocable<Preds, vec<common_type<VReal, WReal>, 3>>...> = true>
 #endif
-auto parallel_vectors(field<V, VReal, 3, 3> const&           v,
-                      field<W, WReal, 3, 3> const&           w,
+auto parallel_vectors(vectorfield<V, VReal, 3> const&           v,
+                      vectorfield<W, WReal, 3> const&           w,
                       grid<XDomain, YDomain, ZDomain> const& g,
                       Preds&&... preds)
     -> std::vector<line<common_type<VReal, WReal>, 3>> {
@@ -473,10 +473,10 @@ template <
               (is_invocable<Preds, vec<common_type<VReal, WReal>, 3>> && ...)> =
         true>
 #endif
-auto parallel_vectors(field<V, VReal, 3, 3> const& v,
-                      field<W, WReal, 3, 3> const& w, linspace<XReal> const& x,
-                      linspace<YReal> const& y, linspace<ZReal> const& z,
-                      TReal const t, Preds&&... preds)
+auto parallel_vectors(vectorfield<V, VReal, 3> const& v,
+                      vectorfield<W, WReal, 3> const& w,
+                      linspace<XReal> const& x, linspace<YReal> const& y,
+                      linspace<ZReal> const& z, TReal const t, Preds&&... preds)
     -> std::vector<line<common_type<VReal, WReal>, 3>> {
   return parallel_vectors(v, w, grid{x, y, z}, t,
                           std::forward<Preds>(preds)...);
@@ -492,10 +492,10 @@ template <typename V, typename W, typename VReal, typename WReal,
           enable_if<(is_invocable<Preds, vec<common_type<VReal, WReal>, 3>> &&
                      ...)> = true>
 #endif
-auto parallel_vectors(field<V, VReal, 3, 3> const& v,
-                      field<W, WReal, 3, 3> const& w, linspace<XReal> const& x,
-                      linspace<YReal> const& y, linspace<ZReal> const& z,
-                      Preds&&... preds)
+auto parallel_vectors(vectorfield<V, VReal, 3> const& v,
+                      vectorfield<W, WReal, 3> const& w,
+                      linspace<XReal> const& x, linspace<YReal> const& y,
+                      linspace<ZReal> const& z, Preds&&... preds)
     -> std::vector<line<common_type<VReal, WReal>, 3>> {
   return parallel_vectors(v, w, grid{x, y, z}, 0,
                           std::forward<Preds>(preds)...);
