@@ -11,30 +11,6 @@
 #include <tatooine/rendering/perspective_camera.h>
 //==============================================================================
 namespace tat = tatooine;
-template <typename Sampler>
-struct scalarfield : tat::scalarfield<scalarfield<Sampler>, double, 3> {
-  using this_t   = scalarfield<Sampler>;
-  using parent_t = tat::scalarfield<this_t, double, 3>;
-
-  using typename parent_t::pos_t;
-  using typename parent_t::real_t;
-  using typename parent_t::tensor_t;
-
-  Sampler m_sampler;
-  //============================================================================
-  scalarfield(Sampler sampler) : m_sampler{sampler} {}
-  //----------------------------------------------------------------------------
-  auto evaluate(pos_t const& x, real_t const t) const -> tensor_t final {
-    return m_sampler(x(0), x(1), x(2));
-  }
-  //----------------------------------------------------------------------------
-  auto in_domain(pos_t const& x, real_t const t) const -> bool final {
-    return m_sampler.grid().in_domain(x(0), x(1), x(2));
-  }
-};
-// = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = =
-template <typename Sampler>
-scalarfield(Sampler) -> scalarfield<std::decay_t<Sampler>>;
 //==============================================================================
 template <typename SamplerX, typename SamplerY, typename SamplerZ>
 struct vectorfield
@@ -56,12 +32,11 @@ struct vectorfield
         m_sampler_y{sampler_y},
         m_sampler_z{sampler_z} {}
   //----------------------------------------------------------------------------
-  auto evaluate(pos_t const& x, real_t const t) const -> tensor_t final {
-    return {m_sampler_x(x(0), x(1), x(2)), m_sampler_y(x(0), x(1), x(2)),
-            m_sampler_z(x(0), x(1), x(2))};
+  auto evaluate(pos_t const& x, real_t const t) const -> tensor_t {
+    return {m_sampler_x(x), m_sampler_y(x), m_sampler_z(x)};
   }
   //----------------------------------------------------------------------------
-  auto in_domain(pos_t const& x, real_t const t) const -> bool final {
+  auto in_domain(pos_t const& x, real_t const t) const -> bool {
     return m_sampler_x.grid().in_domain(x(0), x(1), x(2));
   }
 };

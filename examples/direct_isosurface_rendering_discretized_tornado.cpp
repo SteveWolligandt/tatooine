@@ -9,9 +9,9 @@ namespace tatooine::examples {
 auto direct_iso_discretized_tornado() {
   auto const v = analytical::fields::numerical::tornado{};
   auto                                   discretized_domain =
-      grid{linspace{-1.0, 1.0, 501},
-           linspace{-1.0, 1.0, 501},
-           linspace{-1.0, 1.0, 501}};
+      grid{linspace{-1.0, 1.0, 101},
+           linspace{-1.0, 1.0, 101},
+           linspace{-1.0, 1.0, 101}};
   auto&        discretized_velocity = discretize(v, discretized_domain, "v", 0);
   auto         discretized_jacobian = diff(discretized_velocity);
   auto&        discretized_Q = discretized_domain.scalar_vertex_property("Q");
@@ -57,8 +57,10 @@ auto direct_iso_discretized_tornado() {
         auto const col      = albedo * diffuse + specular;
         return vec{col(0), col(1), col(2)};
       };
-  auto const rendering_grid =
-      direct_isosurface_rendering(cam, Q_sampler, isovalue, shader);
+  auto const rendering_grid = direct_isosurface_rendering(
+      cam,
+      Q_sampler,
+      isovalue, shader);
 #ifdef TATOOINE_HAS_PNG_SUPPORT
   write_png("direct_iso_discretized_tornado_Q.png",
             rendering_grid.vec3_vertex_property("rendered_isosurface"));

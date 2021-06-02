@@ -145,8 +145,9 @@ template <typename Min, typename Max, typename DistOnRay, typename CameraReal,
                     is_invocable<AlphaScale, double>> = true>
 #endif
 auto direct_volume_rendering(
-    rendering::camera<CameraReal> const&                                  cam,
-    typed_multidim_property<Grid, ValueType, HasNonConstReference> const& prop,
+    rendering::camera<CameraReal> const&                         cam,
+    typed_grid_vertex_property_interface<Grid, ValueType,
+                                    HasNonConstReference> const& prop,
     Min const min, Max const max, DistOnRay const distance_on_ray,
     ColorScale&& color_scale, AlphaScale&& alpha_scale,
     std::invoke_result_t<ColorScale, ValueType> const& bg_color = {}) {

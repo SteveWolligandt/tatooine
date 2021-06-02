@@ -87,7 +87,8 @@ struct differentiated_field
         x1 = x;
         dx = m_eps(i);
       }
-      derivative.template slice<this->tensor_rank() - 1>(i) =
+      constexpr size_t slice_dim = tensor_t::rank() - 1;
+      derivative.template slice<slice_dim>(i) =
           (internal_field()(x1, t) - internal_field()(x0, t)) / dx;
       offset(i) = 0;
     }
