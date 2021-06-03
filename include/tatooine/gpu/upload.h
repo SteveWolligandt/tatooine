@@ -134,7 +134,7 @@ auto upload(typed_multidim_property<grid<XDomain>, Real,
   using namespace yavin;
   std::vector<GPUReal> gpu_data;
   gpu_data.reserve(sampler.grid.num_vertices());
-  sampler.grid().loop_over_vertex_indices([&](auto const... is) {
+  sampler.grid().iterate_over_vertex_indices([&](auto const... is) {
     gpu_data.push_back(static_cast<GPUReal>(sampler.data_at(is...)));
   });
 
@@ -149,7 +149,7 @@ auto upload(typed_multidim_property<grid<XDomain, YDomain>, Real,
   using namespace yavin;
   std::vector<GPUReal> gpu_data;
   gpu_data.reserve(sampler.grid.num_vertices());
-  sampler.grid().loop_over_vertex_indices([&](auto const... is) {
+  sampler.grid().iterate_over_vertex_indices([&](auto const... is) {
     gpu_data.push_back(static_cast<GPUReal>(sampler.data_at(is...)));
   });
 
@@ -165,7 +165,7 @@ auto upload(typed_multidim_property<grid<XDomain, YDomain, ZDomain>, Real,
   using namespace yavin;
   std::vector<GPUReal> gpu_data;
   gpu_data.reserve(sampler.grid.num_vertices());
-  sampler.grid().loop_over_vertex_indices([&](auto const... is) {
+  sampler.grid().iterate_over_vertex_indices([&](auto const... is) {
     gpu_data.push_back(static_cast<GPUReal>(sampler.data_at(is...)));
   });
 
@@ -181,7 +181,7 @@ auto upload(typed_multidim_property<grid<XDomain>, vec<Real, 2>,
   using namespace yavin;
   std::vector<GPUReal> gpu_data;
   gpu_data.reserve(sampler.grid.num_vertices() * 2);
-  sampler.grid().loop_over_vertex_indices([&](auto const... is) {
+  sampler.grid().iterate_over_vertex_indices([&](auto const... is) {
     auto const& v = sampler.data_at(is...);
     gpu_data.push_back(static_cast<GPUReal>(v(0)));
     gpu_data.push_back(static_cast<GPUReal>(v(1)));
@@ -198,7 +198,7 @@ auto upload(typed_multidim_property<grid<XDomain, YDomain>, vec<Real, 2>,
   using namespace yavin;
   std::vector<GPUReal> gpu_data;
   // gpu_data.reserve(data.grid().num_vertices() * 2);
-  data.grid().loop_over_vertex_indices([&](auto const... is) {
+  data.grid().iterate_over_vertex_indices([&](auto const... is) {
     auto const& v = data.data_at(is...);
     gpu_data.push_back(static_cast<GPUReal>(v(0)));
     gpu_data.push_back(static_cast<GPUReal>(v(1)));
@@ -217,7 +217,7 @@ auto upload(
   using namespace yavin;
   std::vector<GPUReal> gpu_data;
   gpu_data.reserve(sampler.grid().num_vertices() * 2);
-  sampler.grid().loop_over_vertex_indices([&](auto const... is) {
+  sampler.grid().iterate_over_vertex_indices([&](auto const... is) {
     auto const& v = sampler.data_at(is...);
     gpu_data.push_back(static_cast<GPUReal>(v(0)));
     gpu_data.push_back(static_cast<GPUReal>(v(1)));
@@ -235,7 +235,7 @@ auto upload(typed_multidim_property<grid<XDomain>, vec<Real, 3>,
   using namespace yavin;
   std::vector<GPUReal> gpu_data;
   gpu_data.reserve(sampler.grid().num_vertices() * 3);
-  sampler.grid().loop_over_vertex_indices([&](auto const... is) {
+  sampler.grid().iterate_over_vertex_indices([&](auto const... is) {
     auto const& v = sampler.data_at(is...);
     gpu_data.push_back(static_cast<GPUReal>(v(0)));
     gpu_data.push_back(static_cast<GPUReal>(v(1)));
@@ -253,7 +253,7 @@ auto upload(typed_multidim_property<grid<XDomain, YDomain>, vec<Real, 3>,
   using namespace yavin;
   std::vector<GPUReal> gpu_data;
   gpu_data.reserve(sampler.grid().num_vertices() * 3);
-  sampler.grid().loop_over_vertex_indices([&](auto const... is) {
+  sampler.grid().iterate_over_vertex_indices([&](auto const... is) {
     auto const& v = sampler.data_at(is...);
     gpu_data.push_back(static_cast<GPUReal>(v(0)));
     gpu_data.push_back(static_cast<GPUReal>(v(1)));
@@ -273,7 +273,7 @@ auto upload(
   using namespace yavin;
   std::vector<GPUReal> gpu_data;
   gpu_data.reserve(sampler.grid().num_vertices() * 3);
-  sampler.grid().loop_over_vertex_indices([&](auto const... is) {
+  sampler.grid().iterate_over_vertex_indices([&](auto const... is) {
     auto const& v = sampler.data_at(is...);
     gpu_data.push_back(static_cast<GPUReal>(v(0)));
     gpu_data.push_back(static_cast<GPUReal>(v(1)));
@@ -292,7 +292,7 @@ auto upload(typed_multidim_property<grid<XDomain>, vec<Real, 4>,
   using namespace yavin;
   std::vector<GPUReal> gpu_data;
   gpu_data.reserve(sampler.grid().num_vertices() * 4);
-  sampler.grid().loop_over_vertex_indices([&](auto const... is) {
+  sampler.grid().iterate_over_vertex_indices([&](auto const... is) {
     auto const& v = sampler.data_at(is...);
     gpu_data.push_back(static_cast<GPUReal>(v(0)));
     gpu_data.push_back(static_cast<GPUReal>(v(1)));
@@ -311,7 +311,7 @@ auto upload(typed_multidim_property<grid<XDomain, YDomain>, vec<Real, 4>,
   using namespace yavin;
   std::vector<GPUReal> gpu_data;
   gpu_data.reserve(sampler.grid().num_vertices() * 4);
-  sampler.grid().loop_over_vertex_indices([&](auto const... is) {
+  sampler.grid().iterate_over_vertex_indices([&](auto const... is) {
     auto const& v = sampler.data_at(is...);
     gpu_data.push_back(static_cast<GPUReal>(v(0)));
     gpu_data.push_back(static_cast<GPUReal>(v(1)));
@@ -332,7 +332,7 @@ auto upload(
   using namespace yavin;
   std::vector<GPUReal> gpu_data;
   sampler.reserve(gpu_data.grid().num_vertices() * 4);
-  sampler.grid().loop_over_vertex_indices([&](auto const... is) {
+  sampler.grid().iterate_over_vertex_indices([&](auto const... is) {
     auto const& v = sampler.data_at(is...);
     gpu_data.push_back(static_cast<GPUReal>(v(0)));
     gpu_data.push_back(static_cast<GPUReal>(v(1)));

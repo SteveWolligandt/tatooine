@@ -63,7 +63,7 @@ auto eddy_detection(std::vector<std::string> const& ensemble_ids) {
               &ensemble_grids[i]
                    .template add_contiguous_vertex_property<double, x_fastest>(
                        "mean_finite_Q"));
-          ensemble_grids[i].parallel_loop_over_vertex_indices(
+          ensemble_grids[i].iterate_over_vertex_indices(
               [&](auto const... is) {
                 mean_eQs[i]->container().at(is...) = 0.0 / 0.0;
                 mean_fQs[i]->container().at(is...) = 0.0 / 0.0;
@@ -94,11 +94,11 @@ auto eddy_detection(std::vector<std::string> const& ensemble_ids) {
                   .template add_contiguous_vertex_property<double, x_fastest>(
                       "finite_Q_time_0_5_days");
 
-          ensemble_member_grid.parallel_loop_over_vertex_indices(
+          ensemble_member_grid.iterate_over_vertex_indices(
               [&](auto const... is) {
                 eQ.container().at(is...) = 0.0 / 0.0;
                 fQ.container().at(is...) = 0.0 / 0.0;
-              });
+              }, tag::parallel);
 
           for (auto& z : ensemble_member_grid.dimension<2>()) {
             z *= -0.0025;

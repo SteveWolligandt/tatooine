@@ -22,11 +22,11 @@ auto read_ascii(filesystem::path const& file_path, int& res_x, int& res_y,
   double val;
   for (int i = 0; i < res_t; ++i) {
     auto& a = grids[i].add_vertex_property<double>("a");
-    grids[i].loop_over_vertex_indices([&](auto x, auto y) {
+    grids[i].iterate_over_vertex_indices([&](auto x, auto y) {
       file >> val;
       a(x, y) = val;
     });
-    grids[i].loop_over_vertex_indices([&](auto x, auto y) {
+    grids[i].iterate_over_vertex_indices([&](auto x, auto y) {
       if (std::isnan(a(x, y))) {
         double mean = 0.0;
         size_t cnt  = 0;
@@ -52,11 +52,11 @@ auto read_ascii(filesystem::path const& file_path, int& res_x, int& res_y,
   }
   for (int i = 0; i < res_t; ++i) {
     auto& b = grids[i].add_vertex_property<double>("b");
-    grids[i].loop_over_vertex_indices([&](auto const... is) {
+    grids[i].iterate_over_vertex_indices([&](auto const... is) {
       file >> val;
       b(is...) = val;
     });
-    grids[i].loop_over_vertex_indices([&](auto x, auto y) {
+    grids[i].iterate_over_vertex_indices([&](auto x, auto y) {
       if (std::isnan(b(x, y))) {
         double mean = 0.0;
         size_t cnt  = 0;
@@ -107,10 +107,10 @@ auto read_binary(filesystem::path const& file_path, int& res_x, int& res_y,
           linspace{min_y, min_y + extent_y, static_cast<size_t>(res_y)}});
   for (int i = 0; i < res_t; ++i) {
     auto& a = grids[i].add_vertex_property<double>("a");
-    grids[i].loop_over_vertex_indices([&](auto const... is) {
+    grids[i].iterate_over_vertex_indices([&](auto const... is) {
       file.read(reinterpret_cast<char*>(&a(is...)), sizeof(double));
     });
-    grids[i].loop_over_vertex_indices([&](auto x, auto y) {
+    grids[i].iterate_over_vertex_indices([&](auto x, auto y) {
       if (std::isnan(a(x, y))) {
         double mean = 0.0;
         size_t cnt  = 0;
@@ -136,10 +136,10 @@ auto read_binary(filesystem::path const& file_path, int& res_x, int& res_y,
   }
   for (int i = 0; i < res_t; ++i) {
     auto& b = grids[i].add_vertex_property<double>("b");
-    grids[i].loop_over_vertex_indices([&](auto const... is) {
+    grids[i].iterate_over_vertex_indices([&](auto const... is) {
       file.read(reinterpret_cast<char*>(&b(is...)), sizeof(double));
     });
-    grids[i].loop_over_vertex_indices([&](auto x, auto y) {
+    grids[i].iterate_over_vertex_indices([&](auto x, auto y) {
       if (std::isnan(b(x, y))) {
         double mean = 0.0;
         size_t cnt  = 0;
@@ -180,13 +180,13 @@ auto write_ascii(filesystem::path const&                     file_path,
   }
   for (auto const& g : grids) {
     auto& a = g.vertex_property<double>("a");
-    g.loop_over_vertex_indices(
+    g.iterate_over_vertex_indices(
         [&](auto const... is) { file << a(is...) << ' '; });
   }
   file << '\n';
   for (auto const& g : grids) {
     auto& b = g.vertex_property<double>("b");
-    g.loop_over_vertex_indices(
+    g.iterate_over_vertex_indices(
         [&](auto const... is) { file << b(is...) << ' '; });
   }
 }
@@ -211,13 +211,13 @@ auto write_binary(filesystem::path const&                     file_path,
   }
   for (auto const& g : grids) {
     auto& a = g.vertex_property<double>("a");
-    g.loop_over_vertex_indices([&](auto const... is) {
+    g.iterate_over_vertex_indices([&](auto const... is) {
       file.write(reinterpret_cast<char const*>(&a(is...)), sizeof(double));
     });
   }
   for (auto const& g : grids) {
     auto& b = g.vertex_property<double>("b");
-    g.loop_over_vertex_indices([&](auto const... is) {
+    g.iterate_over_vertex_indices([&](auto const... is) {
       file.write(reinterpret_cast<char const*>(&b(is...)), sizeof(double));
     });
   }

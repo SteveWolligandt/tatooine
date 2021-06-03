@@ -16,6 +16,7 @@
 #include <tatooine/linspace.h>
 #include <tatooine/netcdf.h>
 #include <tatooine/random.h>
+#include <tatooine/tags.h>
 #include <tatooine/template_helper.h>
 #include <tatooine/vec.h>
 
@@ -895,7 +896,7 @@ class grid {
                                    decltype(((void)std::declval<Dimensions>(),
                                              size_t{}))...>> = true>
 #endif
-  auto loop_over_vertex_indices(Iteration&& iteration,
+  auto iterate_over_vertex_indices(Iteration&& iteration,
                                 std::index_sequence<Ds...>) const
       -> decltype(auto) {
     return for_loop(std::forward<Iteration>(iteration), size<Ds>()...);
@@ -911,8 +912,8 @@ class grid {
                                    decltype(((void)std::declval<Dimensions>(),
                                              size_t{}))...>> = true>
 #endif
-  auto loop_over_vertex_indices(Iteration&& iteration) const -> decltype(auto) {
-    return loop_over_vertex_indices(
+  auto iterate_over_vertex_indices(Iteration&& iteration) const -> decltype(auto) {
+    return iterate_over_vertex_indices(
         std::forward<Iteration>(iteration),
         std::make_index_sequence<num_dimensions()>{});
   }
@@ -928,7 +929,7 @@ class grid {
                                    decltype(((void)std::declval<Dimensions>(),
                                              size_t{}))...>> = true>
 #endif
-  auto parallel_loop_over_vertex_indices(Iteration&& iteration,
+  auto parallel_iterate_over_vertex_indices(Iteration&& iteration,
                                          std::index_sequence<Ds...>) const
       -> decltype(auto) {
     return parallel_for_loop(std::forward<Iteration>(iteration), size<Ds>()...);
@@ -944,9 +945,9 @@ class grid {
                                    decltype(((void)std::declval<Dimensions>(),
                                              size_t{}))...>> = true>
 #endif
-  auto parallel_loop_over_vertex_indices(Iteration&& iteration) const
+  auto iterate_over_vertex_indices(Iteration&& iteration, tag::parallel_t) const
       -> decltype(auto) {
-    return parallel_loop_over_vertex_indices(
+    return parallel_iterate_over_vertex_indices(
         std::forward<Iteration>(iteration),
         std::make_index_sequence<num_dimensions()>{});
   }
@@ -1342,7 +1343,7 @@ class grid {
   auto sample_to_vertex_property(F&& f, std::string const& name) -> auto& {
     using T    = std::invoke_result_t<F, pos_t>;
     auto& prop = insert_vertex_property<T>(name);
-    loop_over_vertex_indices([&](auto const... is) {
+    iterate_over_vertex_indices([&](auto const... is) {
       try {
         prop(is...) = f(vertex_at(is...));
       } catch (std::exception&) {
@@ -1468,26 +1469,26 @@ class grid {
       size_t i = 0;
       if (num_comps == 1) {
         auto& prop = gr.insert_vertex_property<T>(prop_name);
-        gr.loop_over_vertex_indices(
+        gr.iterate_over_vertex_indices(
             [&](auto const... is) { prop(is...) = data[i++]; });
       }
       if (num_comps == 2) {
         auto& prop = gr.insert_vertex_property<vec<T, 2>>(prop_name);
-        gr.loop_over_vertex_indices([&](auto const... is) {
+        gr.iterate_over_vertex_indices([&](auto const... is) {
           prop(is...) = {data[i], data[i + 1]};
           i += num_comps;
         });
       }
       if (num_comps == 3) {
         auto& prop = gr.insert_vertex_property<vec<T, 3>>(prop_name);
-        gr.loop_over_vertex_indices([&](auto const... is) {
+        gr.iterate_over_vertex_indices([&](auto const... is) {
           prop(is...) = {data[i], data[i + 1], data[i + 2]};
           i += num_comps;
         });
       }
       if (num_comps == 4) {
         auto& prop = gr.insert_vertex_property<vec<T, 4>>(prop_name);
-        gr.loop_over_vertex_indices([&](auto const... is) {
+        gr.iterate_over_vertex_indices([&](auto const... is) {
           prop(is...) = {data[i], data[i + 1], data[i + 2], data[i + 3]};
           i += num_comps;
         });
@@ -1643,17 +1644,17 @@ class grid {
     size_t i = 0;
     if (num_comps == 1) {
       auto& prop = insert_vertex_property<real_t>(path.string());
-      loop_over_vertex_indices(
+      iterate_over_vertex_indices(
           [&](auto const... is) { prop(is...) = data[i++]; });
     } else if (num_comps == 2) {
       auto& prop = insert_vertex_property<vec<real_t, 2>>(path.string());
-      loop_over_vertex_indices([&](auto const... is) {
+      iterate_over_vertex_indices([&](auto const... is) {
         prop(is...) = {data[i], data[i + 1]};
         i += num_comps;
       });
     } else if (num_comps == 3) {
       auto& prop = insert_vertex_property<vec<real_t, 3>>(path.string());
-      loop_over_vertex_indices([&](auto const... is) {
+      iterate_over_vertex_indices([&](auto const... is) {
         prop(is...) = {data[i], data[i + 1], data[i + 2]};
         i += num_comps;
       });
@@ -1787,7 +1788,7 @@ class grid {
       typed_vertex_property_interface_t<T, HasNonConstReference> const& prop)
       const {
     std::vector<T> data;
-    loop_over_vertex_indices(
+    iterate_over_vertex_indices(
         [&](auto const... is) { data.push_back(prop(is...)); });
     writer.write_scalars(name, data);
   }

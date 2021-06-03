@@ -161,7 +161,7 @@ TEST_CASE("grid_vertex_prop_cubic", "[grid][sampler][cubic]") {
 
   auto  resample_grid = grid{linspace{0.0, 2.0, 201}, linspace{0.0, 1.0, 101}};
   auto& resampled_u   = resample_grid.add_scalar_vertex_property("u");
-  resample_grid.loop_over_vertex_indices([&](auto const... is) {
+  resample_grid.iterate_over_vertex_indices([&](auto const... is) {
     resampled_u(is...) = u_sampler(resample_grid.vertex_at(is...));
   });
 

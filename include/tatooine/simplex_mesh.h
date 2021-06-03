@@ -354,7 +354,7 @@ class simplex_mesh
   //  if (prop->type() == typeid(T)) {
   //    auto const& grid_prop = g.template vertex_property<T>(name);
   //    auto&       tri_prop  = this->template add_vertex_property<T>(name);
-  //    g.loop_over_vertex_indices([&](auto const... is) {
+  //    g.iterate_over_vertex_indices([&](auto const... is) {
   //      std::array is_arr{is...};
   //      tri_prop[vertex_handle{is_arr[0] + is_arr[1] * g.size(0)}] =
   //          grid_prop(is...);

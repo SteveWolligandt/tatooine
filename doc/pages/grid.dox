@@ -81,7 +81,7 @@ auto iterate_over_vertex_positions() {
 \code{.cpp}
 auto iterate_over_vertex_indices() {
   tatooine::grid uniform_grid_2d{32, 64};
-  uniform_grid_2d.loop_over_vertex_indices([&](auto const... indices){
+  uniform_grid_2d.iterate_over_vertex_indices([&](auto const... indices){
     auto const x = uniform_grid_2d(indices...);
   });
 }

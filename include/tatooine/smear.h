@@ -24,7 +24,7 @@ auto smear(typed_multidim_property<PingGrid, PingReal> const& ping_field,
   // create a sampler of the ping_field
   auto sampler = ping_field.template sampler<InterpolationKernel>();
 
-  ping_field.grid().parallel_loop_over_vertex_indices([&](auto const... is) {
+  ping_field.grid().iterate_over_vertex_indices([&](auto const... is) {
     if (std::abs(t0 - current_time) > temporal_range) {
       auto const sampled_current = ping_field(is...);
       pong_field(is...)          = sampled_current;
@@ -65,7 +65,7 @@ auto smear(typed_multidim_property<PingGrid, PingReal> const& ping_field,
             sampled_current * (1 - lambda) + sampled_smeared * lambda;
       }
     }
-  });
+  }, tag::parallel);
 }
 //==============================================================================
 }  // namespace tatooine

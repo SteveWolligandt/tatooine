@@ -138,13 +138,13 @@ auto add_Q_cheng(Domain const& domain, File& channelflow_file, Vx const& velx,
       std::this_thread::sleep_for(std::chrono::milliseconds{100});
     }
   }};
-  domain.parallel_loop_over_vertex_indices(
+  domain.iterate_over_vertex_indices(
       [&](auto const ix, auto const iy, auto const iz) {
         if (ix < domain.size(0) - 2) {
           Q_data(ix, iy, iz) = calc_Q(ix, iy, iz);
         }
         ++cnt;
-      });
+      }, tag::parallel);
   stop = true;
   watcher.join();
   auto Q = channelflow_file.template add_dataset<double>(

@@ -117,7 +117,7 @@ void ftle_test_vectorfield(V const& v, Grid& ftle_grid, T0 t0, Tau tau,
       ftle_grid.size(0), ftle_grid.size(1));
 
   auto max = -std::numeric_limits<real_t>::max();
-  ftle_grid.loop_over_vertex_indices(
+  ftle_grid.iterate_over_vertex_indices(
       [&](auto const... is) { max = std::max(ftle_prop(is...), max); });
   color_scales::viridis scale;
   for_loop(
