@@ -12,31 +12,18 @@
 namespace tatooine::test {
 //==============================================================================
 #ifdef TATOOINE_NETCDF_AVAILABLE
-TEST_CASE("lazy_reader_netcdf", "[lazy_reader][netcdf]") {
-  //netcdf::lazy_reader<double> cont{"simple_xy.nc", "data", {2, 2}};
-  //auto const&                 resolution = cont.size();
-  //CAPTURE(resolution);
-  //SECTION("accessing first chunk") {
-  //  SECTION("accessing first element") {
-  //    REQUIRE(cont.chunk_at_is_null(0, 0));
-  //    REQUIRE(cont(0, 0) == 0);
-  //    REQUIRE_FALSE(cont.chunk_at_is_null(0, 0));
-  //  }
-  //  SECTION("accessing second element") {
-  //    REQUIRE(cont.chunk_at_is_null(0, 0));
-  //    REQUIRE(cont(1, 0) == 1);
-  //    REQUIRE_FALSE(cont.chunk_at_is_null(0, 0));
-  //  }
-  //}
-  //SECTION("accessing last chunk") {
-  //  REQUIRE(cont.chunk_at_is_null(3, 2));
-  //  REQUIRE(cont(resolution[0] - 1, resolution[1] - 1) == 47);
-  //  REQUIRE_FALSE(cont.chunk_at_is_null(3, 2));
-  //}
-  //SECTION("correct order") {
-  //  REQUIRE(cont(resolution[0] - 1, 0) == 7);
-  //  REQUIRE(cont(0, resolution[1] - 1) == 40);
-  //}
+TEST_CASE("lazy_reader_hdf5_stress", "[lazy_reader][hdf5][stress]") {
+  auto file    = hdf5::file{"lazy_reader_hdf_stress.h5"};
+  auto dataset = file.add_dataset<double>("data", 4096, 2048, 512);
+
+    auto chunk = dynamic_multidim_array<double> {512, 512, 512};
+  for (size_t iz = 0; iz < 4096/512; ++iz) { 
+  for (size_t iy = 0; iy < 2048/512; ++iy) { 
+  for (size_t ix = 0; ix < 512/512; ++ix) { 
+    dataset.write
+  }}}
+  
+  lazy_reader<hdf5>
 }
 //==============================================================================
 TEST_CASE("lazy_reader_netcdf_grid", "[lazy_reader][netcdf][grid]") {
