@@ -276,7 +276,7 @@ auto main(int argc, char** argv) -> int {
                        linspace{0.0, 1.0, grid_min_extent}};
     auto& regular_flowmap_grid_prop =
         uniform_grid.add_vertex_property<vec2, x_fastest>("flowmap");
-    uniform_grid.loop_over_vertex_indices([&](auto const... is) {
+    uniform_grid.iterate_over_vertex_indices([&](auto const... is) {
       regular_flowmap_grid_prop(is...) =
           numerical_flowmap(uniform_grid(is...), args.t0, args.tau);
     });
@@ -344,7 +344,7 @@ auto main(int argc, char** argv) -> int {
     //  autonomous_errors.reserve(sampler_check_grid.vertices().size());
     //  regular_errors.reserve(sampler_check_grid.vertices().size());
     //  agranovsky_errors.reserve(sampler_check_grid.vertices().size());
-    //  sampler_check_grid.loop_over_vertex_indices([&](auto const... is) {
+    //  sampler_check_grid.iterate_over_vertex_indices([&](auto const... is) {
     //    auto x = sampler_check_grid(is...);
     //    try {
     //      auto const autonomous_advection =
@@ -427,7 +427,7 @@ auto main(int argc, char** argv) -> int {
     //  autonomous_errors.reserve(sampler_check_grid.vertices().size());
     //  regular_errors.reserve(sampler_check_grid.vertices().size());
     //  agranovsky_errors.reserve(sampler_check_grid.vertices().size());
-    //  sampler_check_grid.loop_over_vertex_indices([&](auto const... is) {
+    //  sampler_check_grid.iterate_over_vertex_indices([&](auto const... is) {
     //    auto x = sampler_check_grid(is...);
     //    try {
     //      // numerical backward advection

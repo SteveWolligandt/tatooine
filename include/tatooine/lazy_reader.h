@@ -23,18 +23,19 @@ struct lazy_reader
   }
 
  private:
-  DataSet                     m_dataset;
-  mutable std::vector<bool>   m_read;
-  mutable std::list<size_t>   m_chunks_loaded;
-  size_t                      m_max_num_chunks_loaded   = 1024;
-  bool                        m_limit_num_chunks_loaded = false;
-  mutable std::mutex          m_mutex;
+  DataSet                   m_dataset;
+  mutable std::vector<bool> m_read;
+  mutable std::list<size_t> m_chunks_loaded;
+  size_t                    m_max_num_chunks_loaded   = 1024;
+  bool                      m_limit_num_chunks_loaded = false;
+  mutable std::mutex        m_chunks_loaded_mutex;
+  mutable std::vector<std::unique_ptr<std::mutex>> m_mutexes;
 
  public:
-  lazy_reader(DataSet const& file, std::vector<size_t> chunk_size)
+  lazy_reader(DataSet const& file, std::vector<size_t>const& chunk_size)
       : parent_t{std::vector<size_t>(chunk_size.size(), 0), chunk_size},
         m_dataset{file} {
-    init(std::move(chunk_size));
+    init(chunk_size);
   }
   //----------------------------------------------------------------------------
   lazy_reader(lazy_reader const& other)
@@ -43,15 +44,21 @@ struct lazy_reader
         m_read{other.m_read},
         m_max_num_chunks_loaded{other.m_max_num_chunks_loaded},
         m_limit_num_chunks_loaded{other.m_limit_num_chunks_loaded} {
+    create_mutexes();
   }
   //----------------------------------------------------------------------------
  private:
-  void init(std::vector<size_t> chunk_size) {
-    std::lock_guard lock{m_mutex};
+  auto init(std::vector<size_t> const& chunk_size) -> void {
     auto s = m_dataset.size();
     this->resize(s, chunk_size);
-    if constexpr (is_arithmetic<value_type>) {
-      m_read.resize(this->num_chunks(), false);
+    m_read.resize(this->num_chunks(), false);
+    create_mutexes();
+  }
+  //----------------------------------------------------------------------------
+  auto create_mutexes() {
+    m_mutexes.resize(this->num_chunks());
+    for (auto& mutex : m_mutexes) {
+      mutex = std::make_unique<std::mutex>();
     }
   }
   //----------------------------------------------------------------------------
@@ -60,7 +67,7 @@ struct lazy_reader
 #else
   template <typename... Indices, enable_if<is_integral<Indices...>> = true>
 #endif
-  auto read_chunk(size_t& plain_index, Indices const... indices) const
+  auto read_chunk(size_t const plain_chunk_index, Indices const... indices) const
       -> auto const& {
 #ifndef NDEBUG
     if (!this->in_range(indices...)) {
@@ -77,64 +84,80 @@ struct lazy_reader
 #endif
     assert(sizeof...(indices) == this->num_dimensions());
     assert(this->in_range(indices...));
-    plain_index = this->plain_chunk_index_from_global_indices(indices...);
 
-    if (this->chunk_at_is_null(plain_index) && !m_read[plain_index]) {
+    if (this->chunk_at_is_null(plain_chunk_index) && !m_read[plain_chunk_index]) {
       // keep the number of loaded chunks between max_num_chunks_loaded/2 and
       // max_num_chunks_loaded
-      if (m_limit_num_chunks_loaded &&
-          num_chunks_loaded() > m_max_num_chunks_loaded) {
-        auto const it_begin = begin(m_chunks_loaded);
-        auto const it_end   = next(it_begin, m_max_num_chunks_loaded / 2);
-        for (auto it = it_begin; it != it_end; ++it) {
-          m_read[*it] = false;
-          this->destroy_chunk_at(*it);
+      {
+        if (m_limit_num_chunks_loaded) {
+          std::lock_guard lock{m_chunks_loaded_mutex};
+          if (num_chunks_loaded() > m_max_num_chunks_loaded) {
+            auto const it_begin = begin(m_chunks_loaded);
+            auto const it_end   = next(it_begin, m_max_num_chunks_loaded / 2);
+            for (auto it = it_begin; it != it_end; ++it) {
+              std::lock_guard lock{m_mutexes[*it]};
+              m_read[*it] = false;
+              this->destroy_chunk_at(*it);
+            }
+            m_chunks_loaded.erase(it_begin, it_end);
+          }
         }
-        m_chunks_loaded.erase(it_begin, it_end);
       }
 
-      this->create_chunk_at(plain_index);
-      m_read[plain_index] = true;
-      m_chunks_loaded.push_back(plain_index);
-      auto const offset = this->global_indices_from_chunk_indices(
+      this->create_chunk_at(plain_chunk_index);
+      auto& chunk               = *this->chunk_at(plain_chunk_index);
+      m_read[plain_chunk_index] = true;
+      auto const offset         = this->global_indices_from_chunk_indices(
           this->chunk_indices_from_global_indices(indices...));
-      auto const s = this->internal_chunk_size();
-      m_dataset.read_chunk(offset, s, *chunk_at(plain_index));
+      for (size_t i = 0; i < offset.size(); ++i) {
+#ifndef NDEBUG
+        if (offset[i] + chunk.size()[i] > this->size()[i]) {
+          std::cerr << "=====================\n";
+          std::cerr << plain_chunk_index << '\n';
+          std::cerr << i << '\n';
+          std::cerr << this->size()[i] << '\n';
+          std::cerr << offset[i] << '\n';
+          std::cerr << chunk.size()[i] << '\n';
+        }
+#endif
+        assert(offset[i] + chunk.size()[i] <= this->size()[i]);
+      }
+      m_dataset.read_chunk(offset, chunk.size(), chunk);
 
       //if constexpr (is_arithmetic<value_type>) {
-      //  if (is_chunk_filled_with_zeros(plain_index)) {
-      //    this->destroy_chunk_at(plain_index);
+      //  if (is_chunk_filled_with_zeros(plain_chunk_index)) {
+      //    this->destroy_chunk_at(plain_chunk_index);
       //  }
       //}
     } else {
+      std::lock_guard lock{m_chunks_loaded_mutex};
+      auto const it = std::find(begin(m_chunks_loaded), end(m_chunks_loaded),
+                                plain_chunk_index);
       // this will move the current adressed chunked at the end of loaded chunks
-      m_chunks_loaded.splice(
-          end(m_chunks_loaded), m_chunks_loaded,
-          std::find(begin(m_chunks_loaded), end(m_chunks_loaded), plain_index));
+      m_chunks_loaded.splice(end(m_chunks_loaded), m_chunks_loaded, it);
     }
 
-    return this->chunk_at(plain_index);
+    return this->chunk_at(plain_chunk_index);
   }
   //----------------------------------------------------------------------------
  public:
 #ifdef __cpp_concepts
   template <integral... Indices>
 #else
-  template <typename... Indices, enable_if<is_integral<Indices...>> = true>
+  template <typename... Indices, enable_if<is_integral<Indices...> > = true>
 #endif
   auto at(Indices const... indices) const -> value_type const& {
-    size_t      plain_index = 0;
-      std::lock_guard lock{m_mutex};
-    auto const& chunk       = read_chunk(plain_index, indices...);
+    auto const      plain_chunk_index =
+        this->plain_chunk_index_from_global_indices(indices...);
+    std::lock_guard lock{*m_mutexes[plain_chunk_index]};
+    auto const&       chunk = read_chunk(plain_chunk_index, indices...);
 
     if (chunk != nullptr) {
-      size_t const plain_internal_index =
-          this->plain_internal_chunk_index_from_global_indices(plain_index,
-                                                               indices...);
-      return (*chunk)[plain_internal_index];
+      return (*chunk)[this->plain_internal_chunk_index_from_global_indices(
+          plain_chunk_index, indices...)];
     }
     auto& t = default_value();
-    t       = value_type{};
+    //t       = value_type{};
     return t;
   }
 
@@ -170,9 +193,9 @@ struct lazy_reader
     return at(indices...);
   }
   //----------------------------------------------------------------------------
-  auto is_chunk_filled_with_value(size_t const      plain_index,
+  auto is_chunk_filled_with_value(size_t const      plain_chunk_index,
                                   value_type const& value) const -> bool {
-    auto const& chunk_data = chunk_at(plain_index)->data();
+    auto const& chunk_data = chunk_at(plain_chunk_index)->data();
     for (auto const& v : chunk_data) {
       if (v != value) {
         return false;
@@ -188,8 +211,9 @@ struct lazy_reader
   template <typename V                           = value_type,
             enable_if<is_arithmetic<value_type>> = true>
 #endif
-      auto is_chunk_filled_with_zeros(size_t const plain_index) const -> bool {
-    return is_chunk_filled_with_value(plain_index, 0);
+      auto is_chunk_filled_with_zeros(size_t const plain_chunk_index) const
+      -> bool {
+    return is_chunk_filled_with_value(plain_chunk_index, 0);
   }
   //----------------------------------------------------------------------------
   auto set_max_num_chunks_loaded(size_t const max_num_chunks_loaded) {

@@ -111,7 +111,7 @@ struct flowmap_agranovsky {
       // create forward flowmap
       auto& forward_grid = m_forward_grids[i];
       auto& forward_base = *m_forward_bases[i];
-      forward_grid.loop_over_vertex_indices([&](auto const... is) {
+      forward_grid.iterate_over_vertex_indices([&](auto const... is) {
         forward_base(is...) = fm(forward_grid.vertex_at(is...), t0, tau);
       });
 

@@ -167,7 +167,7 @@ auto main(int argc, char const** argv) -> int {
           [[maybe_unused]] auto& ping_field =
               grids[j].vertex_property<double>(scalar_field_name);
           auto& pong_field = grids[j].add_vertex_property<double>("pong");
-          grids[j].loop_over_vertex_indices(
+          grids[j].iterate_over_vertex_indices(
               [&](auto const... is) { pong_field(is...) = ping_field(is...); });
           auto const current_time = times[j];
           smear(ping_field, pong_field, s, inner_radius, temporal_range,
@@ -211,7 +211,7 @@ auto main(int argc, char const** argv) -> int {
         [[maybe_unused]] auto& ping_field =
             grids[j].vertex_property<double>(scalar_field_name);
         auto& pong_field = grids[j].add_vertex_property<double>("pong");
-        grids[j].loop_over_vertex_indices(
+        grids[j].iterate_over_vertex_indices(
             [&](auto const... is) { pong_field(is...) = ping_field(is...); });
         bool       ping         = true;
         auto const current_time = times[j];

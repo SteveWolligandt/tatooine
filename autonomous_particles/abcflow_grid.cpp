@@ -184,7 +184,7 @@ auto main(int argc, char** argv) -> int {
                        linspace{-1.0, 1.0, n}};
     auto& regular_sampled_flowmap =
         uniform_grid.add_vertex_property<vec3, x_fastest>("flowmap");
-    uniform_grid.loop_over_vertex_indices([&](auto const... is) {
+    uniform_grid.iterate_over_vertex_indices([&](auto const... is) {
       regular_sampled_flowmap(is...) =
           numerical_flowmap(uniform_grid(is...), args.t0, args.tau);
     });

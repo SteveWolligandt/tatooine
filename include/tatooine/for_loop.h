@@ -338,6 +338,31 @@ constexpr void parallel_for_loop(Iteration&& iteration,
   return for_loop(std::forward<Iteration>(iteration), ends...);
 #endif  // _OPENMP
 }
+
+template <typename Iteration>
+auto for_loop(Iteration&&                                   iteration,
+              std::vector<std::pair<size_t, size_t>> const& ranges) {
+  auto cur_indices = std::vector<size_t>(size(ranges));
+  std::transform(begin(ranges), end(ranges), begin(cur_indices),
+                 [](auto const& range) { return range.first; });
+  bool finished    = false;
+  while (!finished) {
+    iteration(cur_indices);
+    ++cur_indices.front();
+    for (size_t i = 0; i < size(ranges) - 1; ++i) {
+      if (cur_indices[i] == ranges[i].second) {
+        cur_indices[i] = ranges[i].first;
+        ++cur_indices[i + 1];
+        if (i == size(ranges) - 2 &&
+            cur_indices[i + 1] == ranges[i + 1].second) {
+          finished = true;
+        }
+      } else {
+        break;
+      }
+    }
+  }
+}
 //==============================================================================
 }  // namespace tatooine
 //==============================================================================

@@ -367,7 +367,7 @@ auto discretize(field<V, VReal, NumDims, Tensor> const& f,
           property_name);
     }
   }();
-  discretized_domain.loop_over_vertex_indices([&](auto const... is) {
+  discretized_domain.iterate_over_vertex_indices([&](auto const... is) {
     auto const x = discretized_domain.vertex_at(is...);
     if (f.in_domain(x, t)) {
       discretized_field(is...) = f(x, t);
@@ -418,7 +418,7 @@ auto discretize(field<V, VReal, NumDims, Tensor> const& f,
 //    }
 //  }();
 //  for (auto const t : temporal_domain) {
-//    discretized_domain.loop_over_vertex_indices([&](auto const... is) {
+//    discretized_domain.iterate_over_vertex_indices([&](auto const... is) {
 //      auto const x = discretized_domain.vertex_at(is...);
 //      if (f.in_domain(x, t)) {
 //        discretized_field.data_at(is...) = f(x, t);

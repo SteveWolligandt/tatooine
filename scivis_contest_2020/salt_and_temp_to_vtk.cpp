@@ -64,14 +64,14 @@ int main(int , char const** argv) {
       }
     }};
     std::thread salt_thread([&] {
-    grid_out.loop_over_vertex_indices(
+    grid_out.iterate_over_vertex_indices(
         [t, &salt_in, &salt_out, &cnt](auto const... is) {
           salt_out.data_at(is...) = salt_in.data_at(is..., t);
           ++cnt;
         });
     });
     std::thread temp_thread([&] {
-      grid_out.loop_over_vertex_indices(
+      grid_out.iterate_over_vertex_indices(
           [t, &temp_in, &temp_out, &cnt](auto const... is) {
             temp_out.data_at(is...) = temp_in.data_at(is..., t);
             ++cnt;

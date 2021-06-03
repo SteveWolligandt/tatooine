@@ -179,76 +179,26 @@ struct x_slowest {
     assert(is.size() == resolution.size());
     return internal_plain_index(prev(end(resolution)), is);
   }
-  // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+  //----------------------------------------------------------------------------
 #ifdef __cpp_concepts
-  template <integral Resolution>
+  template <range Resolution>
 #else
-  template <typename Resolution, enable_if<is_integral<Resolution>> = true>
+  template <typename Resolution, enable_if<is_range<Resolution>> = true>
 #endif
-  static auto multi_index(const std::vector<Resolution>& resolution,
-                          size_t /*plain_index*/) {
-    throw std::runtime_error{
-        "x_slowest::multi_index(const std::vector<size_t>&, size_t) not "
-        "implemented"};
-    std::vector<Resolution> is(resolution.size());
-    return is;
-  }
-  // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-#ifdef __cpp_concepts
-  template <size_t N, integral Resolution>
-#else
-  template <size_t N, typename Resolution,
-            enable_if<is_integral<Resolution>> = true>
-#endif
-  static constexpr auto multi_index(
-      const std::array<Resolution, N>& /*resolution*/, size_t /*plain_index*/) {
-    throw std::runtime_error{
-        "x_slowest::multi_index(const std::array<size_t, N>&, size_t) not "
-        "implemented"};
-    auto is = make_array<Resolution, N>();
+  static auto multi_index(Resolution const& resolution, size_t plain_index) {
+    std::vector<size_t> is(resolution.size());
+    size_t              multiplier = 1;
+
+    auto resolution_it = std::prev(end(resolution));
+    auto is_it = std::prev(end(is));
+    for (; resolution_it != begin(resolution); --resolution_it, --is_it) {
+      *is_it    = plain_index * multiplier;
+      plain_index -= *is_it;
+      multiplier *= *resolution_it;
+    }
     return is;
   }
 };
-//==============================================================================
-/// converts multi-dimensional index to a one dimensional index using a
-/// space-filling curve algorithm
-//struct hilbert_curve {
-//  static constexpr auto plain_index(const std::vector<size_t>& [>resolution<],
-//                                    integral auto... [>is<]) -> size_t {
-//    throw std::runtime_error{
-//        "hilbert_curve::plain_index(const std::vector<size_t>&, Is... is) not "
-//        "implemented"};
-//    return 0;
-//  }
-//  template <size_t N>
-//  static constexpr auto plain_index(const std::array<size_t, N>& [>resolution<],
-//                                    integral auto... [>is<]) -> size_t {
-//    throw std::runtime_error{
-//        "hilbert_curve::plain_index(const std::array<size_t, N>&, Is... is) "
-//        "not "
-//        "implemented"};
-//    return 0;
-//  }
-//  //----------------------------------------------------------------------------
-//  static auto multi_index(const std::vector<size_t>& resolution,
-//                          size_t [>plain_index<]) {
-//    std::vector<size_t> is(resolution.size());
-//    throw std::runtime_error{
-//        "hilbert_curve::multi_index(const std::vector<size_t>&, size_t) not "
-//        "implemented"};
-//    return is;
-//  }
-//  // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-//  template <size_t N>
-//  static constexpr auto multi_index(const std::array<size_t, N>& [>resolution<],
-//                                    size_t [>plain_index<]) {
-//    auto is = make_array<size_t, N>();
-//    throw std::runtime_error{
-//        "hilbert_curve::multi_index(const std::array<size_t, N>&, size_t) not "
-//        "implemented"};
-//    return is;
-//  }
-//};
 //==============================================================================
 }  // namespace tatooine
 //==============================================================================

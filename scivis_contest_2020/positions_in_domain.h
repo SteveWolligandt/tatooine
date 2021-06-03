@@ -26,7 +26,7 @@ auto positions_in_domain(V const& v, Grid const& g) {
   std::atomic_size_t cnt;
   monitor(
       [&] {
-        g.parallel_loop_over_vertex_indices([&](auto const... is) {
+        g.iterate_over_vertex_indices([&](auto const... is) {
           auto const x   = g.vertex_at(is...);
           auto const eps = 1e-4;
           if (v.in_domain(x, t) &&
@@ -40,7 +40,7 @@ auto positions_in_domain(V const& v, Grid const& g) {
             xiss[omp_get_thread_num()].vector.push_back(vec<size_t, 3>{is...});
           }
           ++cnt;
-        });
+        }, tag::parallel);
       },
       [&] {
         return static_cast<double>(cnt) / g.num_vertices();

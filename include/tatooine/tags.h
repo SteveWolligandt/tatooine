@@ -3,6 +3,10 @@
 //==============================================================================
 namespace tatooine::tag {
 //==============================================================================
+struct parallel_t {};
+static constexpr parallel_t parallel;
+struct sequential_t {};
+static constexpr sequential_t sequential;
 struct frobenius_t {};
 static constexpr frobenius_t frobenius;
 struct full_t {};

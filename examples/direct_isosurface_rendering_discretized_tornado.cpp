@@ -16,7 +16,7 @@ auto direct_iso_discretized_tornado() {
   auto         discretized_jacobian = diff(discretized_velocity);
   auto&        discretized_Q = discretized_domain.scalar_vertex_property("Q");
   real_t const t             = 0;
-  discretized_domain.parallel_loop_over_vertex_indices([&](auto const... is) {
+  discretized_domain.iterate_over_vertex_indices([&](auto const... is) {
     mat3 const J     = discretized_jacobian(is...);
     mat3 const S     = (J + transposed(J)) / 2;
     mat3 const Omega = (J - transposed(J)) / 2;
@@ -31,7 +31,7 @@ auto direct_iso_discretized_tornado() {
 
     // analytical Q
     // discretized_Q(is...) =Q(v)(discretized_domain(is...), t);
-  });
+  }, tag::parallel);
   color_scales::viridis         color_scale;
   size_t const                  width = 2000, height = 2000;
   auto const                    eye    = vec3{2, 2, 2};
