@@ -52,10 +52,11 @@ auto direct_iso_discretized_tornado() {
         auto const spec_dot =
             std::max(std::abs(dot(reflect_dir, view_dir)), 0.0);
         auto const specular = std::pow(spec_dot, 100);
-        auto const albedo   = color_scale(std::clamp<real_t>(
-            (length(v)(x_iso, t) - min) / (max - min), 0, 1));
+        auto const scalar = std::clamp<real_t>(
+            (length(v)(x_iso, t) - min) / (max - min), 0, 1);
+        auto const albedo   = color_scale(scalar);
         auto const col      = albedo * diffuse + specular;
-        return vec{col(0), col(1), col(2)};
+        return vec{col(0), col(1), col(2), scalar * scalar * scalar};
       };
   auto const rendering_grid = direct_isosurface_rendering(
       cam,

@@ -2,7 +2,6 @@
 #ifndef TATOOINE_HDF5_H
 #define TATOOINE_HDF5_H
 //==============================================================================
-#include <@TATOOINE_HDF5_HEADER@>
 #include <tatooine/chunked_multidim_array.h>
 #include <tatooine/concepts.h>
 #include <tatooine/filesystem.h>
@@ -10,6 +9,7 @@
 #include <tatooine/multidim.h>
 #include <tatooine/multidim_array.h>
 
+#include <@TATOOINE_HDF5_HEADER@>
 #include <boost/range/algorithm/reverse.hpp>
 #include <cassert>
 #include <memory>
@@ -23,36 +23,96 @@ struct h5_type;
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 template <>
 struct h5_type<char> {
-  static auto value() { return H5T_NATIVE_CHAR; }
+  static auto memory_type() { return H5T_NATIVE_CHAR; }
 };
+// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 template <>
-struct h5_type<int> {
-  static auto value() { return H5T_NATIVE_INT; }
+struct h5_type<std::uint16_t> {
+  static auto memory_type() { return H5T_NATIVE_USHORT; }
+  static auto file_type_little_endian() { return H5T_STD_U16LE; }
+  static auto file_type_big_endian() { return H5T_STD_U16BE; }
+};
+// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+template <>
+struct h5_type<std::int16_t> {
+  static auto memory_type() { return H5T_NATIVE_SHORT; }
+  static auto file_type_little_endian() { return H5T_STD_I16LE; }
+  static auto file_type_big_endian() { return H5T_STD_I16BE; }
+};
+// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+template <>
+struct h5_type<std::uint32_t> {
+  static auto memory_type() { return H5T_NATIVE_UINT; }
+  static auto file_type_little_endian() { return H5T_STD_U32LE; }
+  static auto file_type_big_endian() { return H5T_STD_U32BE; }
+};
+// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+template <>
+struct h5_type<std::int32_t> {
+  static auto memory_type() { return H5T_NATIVE_INT; }
+  static auto file_type_little_endian() { return H5T_STD_I32LE; }
+  static auto file_type_big_endian() { return H5T_STD_I32BE; }
+};
+// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+template <>
+struct h5_type<std::uint64_t> {
+  static auto memory_type() { return H5T_NATIVE_ULLONG; }
+  static auto file_type_little_endian() { return H5T_STD_U64LE; }
+  static auto file_type_big_endian() { return H5T_STD_U64BE; }
+};
+// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+template <>
+struct h5_type<std::int64_t> {
+  static auto memory_type() { return H5T_NATIVE_LLONG; }
+  static auto file_type_little_endian() { return H5T_STD_I64LE; }
+  static auto file_type_big_endian() { return H5T_STD_I64BE; }
 };
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 template <>
 struct h5_type<float> {
-  static auto value() { return H5T_NATIVE_FLOAT; }
+  static auto memory_type() { return H5T_NATIVE_FLOAT; }
+  static auto file_type_little_endian() { return H5T_IEEE_F32LE; }
+  static auto file_type_big_endian() { return H5T_IEEE_F32BE; }
 };
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 template <>
 struct h5_type<double> {
-  static auto value() { return H5T_NATIVE_DOUBLE; }
+  static auto memory_type() { return H5T_NATIVE_DOUBLE; }
+  static auto file_type_little_endian() { return H5T_IEEE_F64LE; }
+  static auto file_type_big_endian() { return H5T_IEEE_F64BE; }
 };
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 template <typename T, size_t M, size_t N>
 struct h5_type<mat<T, M, N>> {
-  static auto value() { return h5_type<T>::value(); }
+  static auto memory_type() { return h5_type<T>::memory_type(); }
+  static auto file_type_little_endian() {
+    return h5_type<T>::file_type_little_endian();
+  }
+  static auto file_type_big_endian() {
+    return h5_type<T>::file_type_big_endian();
+  }
 };
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 template <typename T, size_t N>
 struct h5_type<vec<T, N>> {
-  static auto value() { return h5_type<T>::value(); }
+  static auto memory_type() { return h5_type<T>::memory_type(); }
+  static auto file_type_little_endian() {
+    return h5_type<T>::file_type_little_endian();
+  }
+  static auto file_type_big_endian() {
+    return h5_type<T>::file_type_big_endian();
+  }
 };
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 template <typename T, size_t... Dims>
 struct h5_type<tensor<T, Dims...>> {
-  static auto value() { return h5_type<T>::value(); }
+  static auto memory_type() { return h5_type<T>::memory_type(); }
+  static auto file_type_little_endian() {
+    return h5_type<T>::file_type_little_endian();
+  }
+  static auto file_type_big_endian() {
+    return h5_type<T>::file_type_big_endian();
+  }
 };
 //==============================================================================
 // class attribute {
@@ -82,7 +142,7 @@ struct h5_type<tensor<T, Dims...>> {
 //    std::vector<T> t;
 //    auto           s = m_attribute.getInMemDataSize();
 //    t.resize(s / sizeof(T));
-//    m_attribute.read(h5_type<T>::value(), t.data());
+//    m_attribute.read(h5_type<T>::memory_type(), t.data());
 //    return t;
 //  }
 //};
@@ -180,20 +240,20 @@ class dataset {
   //============================================================================
   auto write(T const* data) {
     std::lock_guard lock{*m_mutex};
-    H5Dwrite(*m_dataset_id, h5_type<T>::value(), H5S_ALL, H5S_ALL, H5P_DEFAULT,
+    H5Dwrite(*m_dataset_id, h5_type<T>::memory_type(), H5S_ALL, H5S_ALL, H5P_DEFAULT,
              data);
   }
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
   auto write(std::vector<T> const& data) {
     std::lock_guard lock{*m_mutex};
-    H5Dwrite(*m_dataset_id, h5_type<T>::value(), H5S_ALL, H5S_ALL, H5P_DEFAULT,
+    H5Dwrite(*m_dataset_id, h5_type<T>::memory_type(), H5S_ALL, H5S_ALL, H5P_DEFAULT,
              data.data());
   }
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
   template <size_t N>
   auto write(std::array<T, N> const& data) {
     std::lock_guard lock{*m_mutex};
-    H5Dwrite(*m_dataset_id, h5_type<T>::value(), H5S_ALL, H5S_ALL, H5P_DEFAULT,
+    H5Dwrite(*m_dataset_id, h5_type<T>::memory_type(), H5S_ALL, H5S_ALL, H5P_DEFAULT,
              data.data());
   }
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -206,13 +266,17 @@ class dataset {
     write(std::vector(begin(r), end(r)));
   }
 //----------------------------------------------------------------------------
-#ifdef __cpp_concepts
   template <typename IndexOrder>
-#else
-  template <typename IndexOrder>
-#endif
   auto write(dynamic_multidim_array<T, IndexOrder> const& data) -> void {
     write(data.data_ptr());
+  }
+//----------------------------------------------------------------------------
+  template <typename IndexOrder>
+  auto write(dynamic_multidim_array<T, IndexOrder> const& data,
+             std::vector<size_t> const&                   offset) -> void {
+    auto const s = data.size();
+    write(data.data_ptr(), std::vector<hsize_t>(begin(offset), end(offset)),
+          std::vector<hsize_t>(begin(s), end(s)));
   }
 //  //----------------------------------------------------------------------------
 //#ifdef __cpp_concepts
@@ -280,7 +344,7 @@ class dataset {
     H5Sselect_hyperslab(dspace, H5S_SELECT_SET, offset.data(), nullptr,
                         count.data(), nullptr);
     auto memspace = H5Screate_simple(rank, count.data(), nullptr);
-    H5Dwrite(*m_dataset_id, h5_type<T>::value(), memspace, dspace, H5P_DEFAULT,
+    H5Dwrite(*m_dataset_id, h5_type<T>::memory_type(), memspace, dspace, H5P_DEFAULT,
              data);
     H5Sclose(memspace);
     H5Sclose(dspace);
@@ -314,7 +378,7 @@ class dataset {
       arr.resize(std::vector<size_t>(size.get(), size.get() + num_dims));
     }
 
-    H5Dread(*m_dataset_id, h5_type<T>::value(), H5S_ALL, H5S_ALL, H5P_DEFAULT,
+    H5Dread(*m_dataset_id, h5_type<T>::memory_type(), H5S_ALL, H5S_ALL, H5P_DEFAULT,
             arr.data_ptr());
     H5Sclose(dspace);
   }
@@ -341,7 +405,7 @@ class dataset {
       data.resize(num_entries);
     }
 
-    H5Dread(*m_dataset_id, h5_type<T>::value(), H5S_ALL, H5S_ALL, H5P_DEFAULT,
+    H5Dread(*m_dataset_id, h5_type<T>::memory_type(), H5S_ALL, H5S_ALL, H5P_DEFAULT,
             data.data());
     H5Sclose(dspace);
   }
@@ -396,7 +460,7 @@ class dataset {
                         count.data(), nullptr);
 
     auto memspace = H5Screate_simple(rank, count.data(), nullptr);
-    H5Dread(*m_dataset_id, h5_type<T>::value(), memspace, dspace, H5P_DEFAULT,
+    H5Dread(*m_dataset_id, h5_type<T>::memory_type(), memspace, dspace, H5P_DEFAULT,
             arr.data_ptr());
     H5Sclose(dspace);
     H5Sclose(memspace);
@@ -421,7 +485,7 @@ class dataset {
                         count.data(), nullptr);
     auto memspace = H5Screate_simple(rank, count.data(), nullptr);
     T    data;
-    H5Dread(*m_dataset_id, h5_type<T>::value(), memspace, dspace, H5P_DEFAULT,
+    H5Dread(*m_dataset_id, h5_type<T>::memory_type(), memspace, dspace, H5P_DEFAULT,
             &data);
     H5Sclose(dspace);
     H5Sclose(memspace);
@@ -501,7 +565,7 @@ class dataset {
 //  true>
 //#endif
 //  auto add_dataset(std::string const& dataset_name, Size... size) {
-//    H5::AtomType data_type{h5_type<T>::value()};
+//    H5::AtomType data_type{h5_type<T>::memory_type()};
 //    hsize_t      dimsf[]{static_cast<hsize_t>(size)...};  // data set
 //    dimensions std::reverse(dimsf, dimsf + sizeof...(Size)); return
 //    hdf5::dataset<T>{
@@ -578,10 +642,10 @@ class file {
     hsize_t dimsf[]{static_cast<hsize_t>(size)...};  // data set dimensions
     std::reverse(dimsf, dimsf + sizeof...(size));
     std::lock_guard lock{*m_mutex};
-    auto dspace = H5Screate_simple(sizeof...(Size), dimsf, nullptr);
-    auto dataset_id =
-        H5Dcreate2(*m_file_id, dataset_name.c_str(), H5T_STD_I32BE, dspace,
-                   H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT);
+    auto            dspace = H5Screate_simple(sizeof...(Size), dimsf, nullptr);
+    auto            dataset_id = H5Dcreate2(*m_file_id, dataset_name.c_str(),
+                                 h5_type<T>::file_type_little_endian(), dspace,
+                                 H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT);
 
     H5Sclose(dspace);
     return hdf5::dataset<T>{m_file_id, dataset_id, dataset_name, m_mutex};

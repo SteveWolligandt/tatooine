@@ -1,11 +1,14 @@
 #ifndef TATOOINE_FOR_LOOP_H
 #define TATOOINE_FOR_LOOP_H
 //==============================================================================
-#include <array>
-#include <tatooine/packages.h>
 #include <tatooine/concepts.h>
-#include "type_traits.h"
-#include "utility.h"
+#include <tatooine/packages.h>
+#include <tatooine/tags.h>
+
+#include <array>
+
+#include <tatooine/type_traits.h>
+#include <tatooine/utility.h>
 #if TATOOINE_OPENMP_AVAILABLE
 #include <omp.h>
 #endif
@@ -17,8 +20,9 @@ namespace detail {
 /// \tparam Int integer type for counting
 /// \tparam N number of nestings
 /// \tparam I current nesting number counting backwards from N to 1
-/// \tparam ParallelIndex If I and ParallelIndex are the same then the current
-///         nested loop will be executed in parallel
+/// \tparam ParallelIndex If I and ParallelIndex are the same and OpenMP is
+///                       available then the current nested loop will be
+///                       executed in parallel.
 template <typename Int, std::size_t N, std::size_t I, std::size_t ParallelIndex>
 struct for_loop_impl {
   //----------------------------------------------------------------------------
@@ -26,7 +30,8 @@ struct for_loop_impl {
   //----------------------------------------------------------------------------
  public:
   std::array<Int, N>&       m_status;
-  const std::array<Int, N>& m_ends;
+  std::array<Int, N> const& m_begins;
+  std::array<Int, N> const& m_ends;
 
   //----------------------------------------------------------------------------
   // methods
@@ -37,34 +42,35 @@ struct for_loop_impl {
   template <std::size_t... Is,
             invocable<decltype(((void)Is, Int{}))...> Iteration>
 #else
-  template <std::size_t... Is, typename Iteration,
-            enable_if<is_invocable<Iteration,
-                                   decltype(((void)Is, Int{}))...> > = true>
+  template <
+      std::size_t... Is, typename Iteration,
+      enable_if<is_invocable<Iteration, decltype(((void)Is, Int{}))...>> = true>
 #endif
   constexpr auto loop(Iteration&& iteration,
                       std::index_sequence<Is...> /*unused*/) const {
     // check if Iteration either returns bool or nothing
     using return_type =
         std::invoke_result_t<Iteration, decltype(((void)Is, Int{}))...>;
-    constexpr bool returns_void = std::is_same_v<return_type, void>;
-    constexpr bool returns_bool = std::is_same_v<return_type, bool>;
+    constexpr bool returns_void = is_same<return_type, void>;
+    constexpr bool returns_bool = is_same<return_type, bool>;
     static_assert(returns_void || returns_bool);
-
+    m_status[I - 1] = m_begins[I - 1];
     for (; m_status[I - 1] < m_ends[I - 1]; ++m_status[I - 1]) {
       if constexpr (returns_void) {
         // if if returns nothing just create another nested loop
         for_loop_impl<Int, N, I - 1, ParallelIndex>{
-            m_status, m_ends}(std::forward<Iteration>(iteration));
+            m_status, m_begins, m_ends}(std::forward<Iteration>(iteration));
       } else {
         // if iteration returns bool and the current nested iteration returns
         // false stop the whole nested for loop by recursively returning false
         if (!for_loop_impl<Int, N, I - 1, ParallelIndex>{
-                m_status, m_ends}(std::forward<Iteration>(iteration))) {
+                m_status, m_begins,
+                m_ends}(std::forward<Iteration>(iteration))) {
           return false;
         }
       }
       // reset nested status
-      m_status[I - 2] = 0;
+      m_status[I - 2] = m_begins[I - 2];
     }
     if constexpr (returns_bool) {
       // return true if iteration never returned false
@@ -90,7 +96,8 @@ struct for_loop_impl<Int, N, 1, ParallelIndex> {
   //----------------------------------------------------------------------------
  public:
   std::array<Int, N>&       m_status;
-  const std::array<Int, N>& m_ends;
+  std::array<Int, N> const& m_begins;
+  std::array<Int, N> const& m_ends;
 
   //----------------------------------------------------------------------------
   // methods
@@ -109,18 +116,21 @@ struct for_loop_impl<Int, N, 1, ParallelIndex> {
     // check if Iteration either returns bool or nothing
     using return_type =
         std::invoke_result_t<Iteration, decltype(((void)Is, Int{}))...>;
-    constexpr bool returns_void = std::is_same_v<return_type, void>;
-    constexpr bool returns_bool = std::is_same_v<return_type, bool>;
+    constexpr bool returns_void = is_same<return_type, void>;
+    constexpr bool returns_bool = is_same<return_type, bool>;
     static_assert(returns_void || returns_bool);
 
+    m_status[0] = m_begins[0];
     for (; m_status[0] < m_ends[0]; ++m_status[0]) {
       if constexpr (returns_void) {
-        // if if returns nothing just call it
+        // if returns nothing just call it
         iteration(m_status[Is]...);
       } else {
         // if iteration returns bool and the current iteration returns false
         // stop the whole nested for loop by recursively returning false
-        if (!iteration(m_status[Is]...)) { return false; }
+        if (!iteration(m_status[Is]...)) {
+          return false;
+        }
       }
     }
     if constexpr (returns_bool) {
@@ -149,7 +159,8 @@ struct for_loop_impl<Int, N, I, I> {
   //----------------------------------------------------------------------------
  public:
   std::array<Int, N>&       m_status;
-  const std::array<Int, N>& m_ends;
+  std::array<Int, N> const& m_begins;
+  std::array<Int, N> const& m_ends;
 
   //----------------------------------------------------------------------------
   // methods
@@ -169,23 +180,23 @@ struct for_loop_impl<Int, N, I, I> {
     // check if Iteration either returns bool or nothing
     using return_type =
         std::invoke_result_t<Iteration, decltype(((void)Is, Int{}))...>;
-    constexpr bool returns_void = std::is_same_v<return_type, void>;
-    constexpr bool returns_bool = std::is_same_v<return_type, bool>;
+    constexpr bool returns_void = is_same<return_type, void>;
+    constexpr bool returns_bool = is_same<return_type, bool>;
     static_assert(returns_void || returns_bool);
 
 #pragma omp parallel for
-    for (Int i = 0; i < m_ends[I - 1]; ++i) {
+    for (Int i = m_begins[I - 1]; i < m_ends[I - 1]; ++i) {
       auto status_copy   = m_status;
       status_copy[I - 1] = i;
       if constexpr (returns_void) {
         // if if returns nothing just create another nested loop
         for_loop_impl<Int, N, I - 1, I>{
-            status_copy, m_ends}(std::forward<Iteration>(iteration));
+            status_copy, m_begins, m_ends}(std::forward<Iteration>(iteration));
       } else {
         // if iteration returns bool and the current nested iteration returns
         // false stop the whole nested for loop by recursively returning false
-        const auto cont = for_loop_impl<Int, N, I - 1, I>{
-            status_copy, m_ends}(std::forward<Iteration>(iteration));
+        auto const cont = for_loop_impl<Int, N, I - 1, I>{
+            status_copy, m_begins, m_ends}(std::forward<Iteration>(iteration));
         assert(cont && "cannot break in parallel loop");
       }
     }
@@ -214,7 +225,8 @@ struct for_loop_impl<Int, N, 1, 1> {
   //----------------------------------------------------------------------------
  public:
   std::array<Int, N>&       m_status;
-  const std::array<Int, N>& m_ends;
+  std::array<Int, N> const& m_begins;
+  std::array<Int, N> const& m_ends;
 
   //----------------------------------------------------------------------------
   // methods
@@ -233,12 +245,12 @@ struct for_loop_impl<Int, N, 1, 1> {
     // check if Iteration either returns bool or nothing
     using return_type =
         std::invoke_result_t<Iteration, decltype(((void)Is, Int{}))...>;
-    constexpr bool returns_void = std::is_same_v<return_type, void>;
-    constexpr bool returns_bool = std::is_same_v<return_type, bool>;
+    constexpr bool returns_void = is_same<return_type, void>;
+    constexpr bool returns_bool = is_same<return_type, bool>;
     static_assert(returns_void || returns_bool);
 
 #pragma omp parallel for
-    for (Int i = 0; i < m_ends[0]; ++i) {
+    for (Int i = m_begins[0]; i < m_ends[0]; ++i) {
       auto status_copy = m_status;
       status_copy[0]   = i;
       if constexpr (returns_void) {
@@ -247,7 +259,7 @@ struct for_loop_impl<Int, N, 1, 1> {
       } else {
         // if iteration returns bool and the current iteration returns false
         // stop the whole nested for loop by recursively returning false
-        const auto cont = iteration(status_copy[Is]...);
+        auto const cont = iteration(status_copy[Is]...);
         assert(cont && "cannot break in parallel loop");
       }
     }
@@ -267,29 +279,31 @@ struct for_loop_impl<Int, N, 1, 1> {
 #endif  // TATOOINE_OPENMP_AVAILABLE
 //==============================================================================
 #ifdef __cpp_concepts
-template <std::size_t ParallelIndex, typename Int, Int... Is, integral... Ends,
+template <std::size_t ParallelIndex, typename Int, Int... Is,
+          integral... Ranges,
           invocable<decltype(((void)Is, Int{}))...> Iteration>
 #else
 template <
     std::size_t ParallelIndex, typename Int, Int... Is, typename Iteration,
-    typename... Ends, enable_if<is_integral<Ends...>> = true,
+    typename... Ranges, enable_if_integral<Ranges...> = true,
     enable_if<is_invocable<Iteration, decltype(((void)Is, Int{}))...>> = true>
 #endif
 constexpr auto for_loop(Iteration&& iteration,
                         std::integer_sequence<Int, Is...>,
-                        Ends const... ends) {
+                        std::pair<Ranges, Ranges> const&... ranges) {
   // check if Iteration either returns bool or nothing
   using return_type =
       std::invoke_result_t<Iteration, decltype(((void)Is, Int{}))...>;
-  constexpr bool returns_void = std::is_same_v<return_type, void>;
-  constexpr bool returns_bool = std::is_same_v<return_type, bool>;
+  constexpr bool returns_void = is_same<return_type, void>;
+  constexpr bool returns_bool = is_same<return_type, bool>;
   static_assert(returns_void || returns_bool);
 
-  std::array zeros{((void)Is, Int(0))...};
-  std::array ends_arr{static_cast<Int>(ends)...};
-  return for_loop_impl<Int, sizeof...(ends), sizeof...(ends),
+  auto       status = std::array{((void)Is, static_cast<Int>(ranges.first))...};
+  auto const begins = std::array{((void)Is, static_cast<Int>(ranges.first))...};
+  auto const ends   = std::array{static_cast<Int>(ranges.second)...};
+  return for_loop_impl<Int, sizeof...(ranges), sizeof...(ranges),
                        ParallelIndex + 1>{
-      zeros, ends_arr}(std::forward<Iteration>(iteration));
+      status, begins, ends}(std::forward<Iteration>(iteration));
 }
 //==============================================================================
 }  // namespace detail
@@ -302,18 +316,113 @@ constexpr auto for_loop(Iteration&& iteration,
 /// any state the whole nested iteration will stop. iteration must return true
 /// to continue.
 #ifdef __cpp_concepts
+template <typename Int = std::size_t, typename Iteration, integral... Ranges>
+#else
+template <typename Int = std::size_t, typename Iteration, typename... Ranges,
+          enable_if_integral<Ranges...> = true>
+#endif
+constexpr auto for_loop(Iteration&& iteration, tag::sequential_t,
+                        Ranges(&&... ranges)[2]) -> void {
+  detail::for_loop<sizeof...(ranges) + 1, Int>(
+      std::forward<Iteration>(iteration),
+      std::make_integer_sequence<Int, sizeof...(ranges)>{},
+      std::pair{ranges[0], ranges[1]}...);
+}
+// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+/// \brief Use this function for creating a sequential nested loop.
+///
+/// First Index grows fastest, then the second and so on.
+///
+/// iteration must either return bool or nothing. If iteration returns false in
+/// any state the whole nested iteration will stop. iteration must return true
+/// to continue.
+#ifdef __cpp_concepts
+template <typename Int = std::size_t, typename Iteration, integral... Ranges>
+#else
+template <typename Int = std::size_t, typename Iteration, typename... Ranges,
+          enable_if_integral<Ranges...> = true>
+#endif
+constexpr auto for_loop(Iteration&& iteration, tag::sequential_t,
+                        std::pair<Ranges, Ranges> const&... ranges) -> void {
+  detail::for_loop<sizeof...(ranges) + 1, Int>(
+      std::forward<Iteration>(iteration),
+      std::make_integer_sequence<Int, sizeof...(ranges)>{}, ranges...);
+}
+// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+/// \brief Use this function for creating a sequential nested loop.
+///
+/// First Index grows fastest, then the second and so on.
+///
+/// iteration must either return bool or nothing. If iteration returns false in
+/// any state the whole nested iteration will stop. iteration must return true
+/// to continue.
+#ifdef __cpp_concepts
 template <typename Int = std::size_t, typename Iteration, integral... Ends>
 #else
 template <typename Int = std::size_t, typename Iteration, typename... Ends,
-          enable_if<is_integral<Ends...>> = true>
+          enable_if_integral<Ends...> = true>
 #endif
-constexpr void for_loop(Iteration&& iteration, Ends const... ends) {
+constexpr auto for_loop(Iteration&& iteration, tag::sequential_t,
+                        Ends const... ends) -> void {
   detail::for_loop<sizeof...(ends) + 1, Int>(
       std::forward<Iteration>(iteration),
       std::make_integer_sequence<Int, sizeof...(ends)>{},
-      ends...);
+      std::pair{Ends(0), ends}...);
 }
 //------------------------------------------------------------------------------
+/// \brief Use this function for creating a parallel nested loop.
+///
+/// First Index grows fastest, then the second and so on.
+///
+/// iteration must either return bool or nothing. If iteration returns false in
+/// any state the whole nested iteration will stop. iteration must return true
+/// to continue.
+#ifdef __cpp_concepts
+template <typename Int = std::size_t, typename Iteration, integral... Ranges>
+#else
+template <typename Int = std::size_t, typename Iteration, typename... Ranges,
+          enable_if_integral<Ranges...> = true>
+#endif
+constexpr auto for_loop(Iteration&& iteration, tag::parallel_t,
+                        Ranges(&&... ranges)[2]) -> void {
+#ifdef _OPENMP
+  return detail::for_loop<sizeof...(ranges) - 1, Int>(
+      std::forward<Iteration>(iteration),
+      std::make_integer_sequence<Int, sizeof...(ranges)>{},
+      std::pair{ranges[0], ranges[1]}...);
+#else
+  //#pragma message "Not able to execute nested for loop in parallel because
+  // OpenMP is not available."
+  return for_loop(std::forward<Iteration>(iteration), ranges...);
+#endif  // _OPENMP
+}
+// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+/// \brief Use this function for creating a parallel nested loop.
+///
+/// First Index grows fastest, then the second and so on.
+///
+/// iteration must either return bool or nothing. If iteration returns false in
+/// any state the whole nested iteration will stop. iteration must return true
+/// to continue.
+#ifdef __cpp_concepts
+template <typename Int = std::size_t, typename Iteration, integral... Ranges>
+#else
+template <typename Int = std::size_t, typename Iteration, typename... Ranges,
+          enable_if_integral<Ranges...> = true>
+#endif
+constexpr auto for_loop(Iteration&& iteration, tag::parallel_t,
+                        std::pair<Ranges, Ranges> const&... ranges) -> void {
+#ifdef _OPENMP
+  return detail::for_loop<sizeof...(ranges) - 1, Int>(
+      std::forward<Iteration>(iteration),
+      std::make_integer_sequence<Int, sizeof...(ranges)>{}, ranges...);
+#else
+  //#pragma message "Not able to execute nested for loop in parallel because
+  // OpenMP is not available."
+  return for_loop(std::forward<Iteration>(iteration), ranges...);
+#endif  // _OPENMP
+}
+// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 /// \brief Use this function for creating a parallel nested loop.
 ///
 /// First Index grows fastest, then the second and so on.
@@ -325,27 +434,31 @@ constexpr void for_loop(Iteration&& iteration, Ends const... ends) {
 template <typename Int = std::size_t, typename Iteration, integral... Ends>
 #else
 template <typename Int = std::size_t, typename Iteration, typename... Ends,
-          enable_if<is_integral<Ends...>> = true>
+          enable_if_integral<Ends...> = true>
 #endif
-constexpr void parallel_for_loop(Iteration&& iteration,
-                                 Ends const... ends) {
+constexpr auto for_loop(Iteration&& iteration, tag::parallel_t,
+                        Ends const... ends) -> void {
 #ifdef _OPENMP
   return detail::for_loop<sizeof...(ends) - 1, Int>(
       std::forward<Iteration>(iteration),
-      std::make_integer_sequence<Int, sizeof...(ends)>{}, ends...);
+      std::make_integer_sequence<Int, sizeof...(ends)>{},
+      std::pair{Ends(0), ends}...);
 #else
-//#pragma message "Not able to execute nested for loop in parallel because OpenMP is not available."
-  return for_loop(std::forward<Iteration>(iteration), ends...);
+  //#pragma message "Not able to execute nested for loop in parallel because
+  // OpenMP is not available."
+  return for_loop(std::forward<Iteration>(iteration),
+                  std::pair{Ends(0), ends}...);
 #endif  // _OPENMP
 }
-
+//------------------------------------------------------------------------------
+/// dynamically-sized for loop
 template <typename Iteration>
-auto for_loop(Iteration&&                                   iteration,
+auto for_loop(Iteration&& iteration, tag::sequential_t,
               std::vector<std::pair<size_t, size_t>> const& ranges) {
   auto cur_indices = std::vector<size_t>(size(ranges));
   std::transform(begin(ranges), end(ranges), begin(cur_indices),
                  [](auto const& range) { return range.first; });
-  bool finished    = false;
+  bool finished = false;
   while (!finished) {
     iteration(cur_indices);
     ++cur_indices.front();
@@ -362,6 +475,60 @@ auto for_loop(Iteration&&                                   iteration,
       }
     }
   }
+}
+//==============================================================================
+/// \brief Use this function for creating a sequential nested loop.
+///
+/// First Index grows fastest, then the second and so on.
+///
+/// iteration must either return bool or nothing. If iteration returns false in
+/// any state the whole nested iteration will stop. iteration must return true
+/// to continue.
+#ifdef __cpp_concepts
+template <typename Int = std::size_t, typename Iteration, integral... Ranges>
+#else
+template <typename Int = std::size_t, typename Iteration, typename... Ranges,
+          enable_if_integral<Ranges...> = true>
+#endif
+constexpr auto for_loop(Iteration&& iteration, Ranges(&&... ranges)[2])
+    -> void {
+  for_loop(std::forward<Iteration>(iteration), tag::sequential,
+           std::pair{ranges[0], ranges[1]}...);
+}
+// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+/// \brief Use this function for creating a sequential nested loop.
+///
+/// First Index grows fastest, then the second and so on.
+///
+/// iteration must either return bool or nothing. If iteration returns false in
+/// any state the whole nested iteration will stop. iteration must return true
+/// to continue.
+#ifdef __cpp_concepts
+template <typename Int = std::size_t, typename Iteration, integral... Ranges>
+#else
+template <typename Int = std::size_t, typename Iteration, typename... Ranges,
+          enable_if_integral<Ranges...> = true>
+#endif
+constexpr auto for_loop(Iteration&& iteration,
+                        std::pair<Ranges, Ranges> const&... ranges) -> void {
+  for_loop(std::forward<Iteration>(iteration), tag::sequential, ranges...);
+}
+// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+/// \brief Use this function for creating a sequential nested loop.
+///
+/// First Index grows fastest, then the second and so on.
+///
+/// iteration must either return bool or nothing. If iteration returns false in
+/// any state the whole nested iteration will stop. iteration must return true
+/// to continue.
+#ifdef __cpp_concepts
+template <typename Int = std::size_t, typename Iteration, integral... Ends>
+#else
+template <typename Int = std::size_t, typename Iteration, typename... Ends,
+          enable_if_integral<Ends...> = true>
+#endif
+constexpr auto for_loop(Iteration&& iteration, Ends const... ends) -> void {
+  for_loop(std::forward<Iteration>(iteration), tag::sequential, ends...);
 }
 //==============================================================================
 }  // namespace tatooine
