@@ -3,40 +3,30 @@
 //==============================================================================
 namespace tat = tatooine;
 //==============================================================================
-static constexpr size_t chunk_size = 128;
+static constexpr size_t chunk_size = 256;
 //==============================================================================
-auto add_Q_pnorm(auto const& domain, auto& channelflow_file, auto const& velx,
+auto add_velocity_magnitude(auto const& domain, auto& channelflow_file, auto const& velx,
                  auto const& vely, auto const& velz) {
-  domain.update_diff_stencil_coefficients();
-  auto calc_Q = [&](auto const ix, auto const iy, auto const iz) {
-    tat::mat3 J;
-    J.col(0)              = diff(velx)(ix, iy, iz);
-    J.col(1)              = diff(vely)(ix, iy, iz);
-    J.col(2)              = diff(velz)(ix, iy, iz);
-    tat::mat3 const S     = (J + transposed(J)) / 2;
-    tat::mat3 const Omega = (J - transposed(J)) / 2;
-    return (sqr_norm(Omega, 2) - sqr_norm(S, 2)) / 2;
+  auto calc_vel_mag = [&](auto const ix, auto const iy, auto const iz) {
+    return length(
+        tat::vec{velx(ix, iy, iz), vely(ix, iy, iz), velz(ix, iy, iz)});
   };
   std::atomic_size_t cnt  = 0;
   size_t const       max  = domain.num_vertices();
   bool               stop = false;
   std::cerr << "adding dataset to hdf5 file... ";
-  auto Q = channelflow_file.template add_dataset<double>(
-      "Q_pnorm", domain.size(0) - 1, domain.size(1), domain.size(2));
+  auto vel_mag = channelflow_file.template add_dataset<double>(
+      "vel_mag", domain.size(0) - 1, domain.size(1), domain.size(2));
   std::cerr << "done.\n";
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
   std::cerr << "allocating data... ";
-  tat::dynamic_multidim_array<double> Q_data{domain.size(0) - 1, domain.size(1),
+  tat::dynamic_multidim_array<double> vel_mag_data{domain.size(0) - 1, domain.size(1),
                                              domain.size(2)};
   std::cerr << "done.\n";
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-  // std::cerr << "writing test data... ";
-  // Q.write(Q_data);
-  // std::cerr << "done.\n";
-  // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
   std::thread watcher{[&cnt, &stop, max] {
     while (cnt < max && !stop) {
-      std::cerr << "Calculating Q... " << std::setprecision(5)
+      std::cerr << "Calculating velocity magnitude... " << std::setprecision(5)
                 << double(cnt) / max * 100 << "%                \r";
       std::this_thread::sleep_for(std::chrono::milliseconds{100});
     }
@@ -66,7 +56,7 @@ auto add_Q_pnorm(auto const& domain, auto& channelflow_file, auto const& velx,
               auto const iy = chunk_iy * chunk_size + inner_iy;
               auto const iz = chunk_iz * chunk_size + inner_iz;
               if (ix < domain.size(0) - 2) {
-                Q_data(ix, iy, iz) = calc_Q(ix, iy, iz);
+                vel_mag_data(ix, iy, iz) = calc_vel_mag(ix, iy, iz);
               }
               ++cnt;
             }
@@ -78,9 +68,9 @@ auto add_Q_pnorm(auto const& domain, auto& channelflow_file, auto const& velx,
   }
   stop = true;
   watcher.join();
-  std::cerr << "Calculating Q... done.";
-  std::cerr << "writing actual Q data... ";
-  Q.write(Q_data);
+  std::cerr << "Calculating velocity magnitude... done.";
+  std::cerr << "writing actual velocity magnitude data... ";
+  vel_mag.write(vel_mag_data);
   std::cerr << "done.\n";
 }
 //==============================================================================
@@ -98,10 +88,10 @@ auto main() -> int {
   tat::grid full_domain{axis0, axis1, axis2};
   full_domain.set_chunk_size_for_lazy_properties(chunk_size);
 
-  auto axis0_Q = axis0;
-  axis0_Q.pop_back();
-  tat::grid full_domain_Q{axis0_Q, axis1, axis2};
-  full_domain_Q.set_chunk_size_for_lazy_properties(chunk_size);
+  auto axis0_vel_mag = axis0;
+  axis0_vel_mag.pop_back();
+  tat::grid full_domain_vel_mag{axis0_vel_mag, axis1, axis2};
+  full_domain_vel_mag.set_chunk_size_for_lazy_properties(chunk_size);
 
   // open hdf5 files
   tat::hdf5::file channelflow_122_full_file{
@@ -127,6 +117,6 @@ auto main() -> int {
   vely_122_full.set_max_num_chunks_loaded(30);
   velz_122_full.set_max_num_chunks_loaded(30);
 
-  add_Q_pnorm(full_domain, channelflow_122_full_file, velx_122_full,
+  add_velocity_magnitude(full_domain, channelflow_122_full_file, velx_122_full,
               vely_122_full, velz_122_full);
 }

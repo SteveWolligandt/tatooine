@@ -12,33 +12,6 @@
 namespace tatooine::test {
 //==============================================================================
 #ifdef TATOOINE_NETCDF_AVAILABLE
-TEST_CASE("lazy_reader_netcdf", "[lazy_reader][netcdf]") {
-  //netcdf::lazy_reader<double> cont{"simple_xy.nc", "data", {2, 2}};
-  //auto const&                 resolution = cont.size();
-  //CAPTURE(resolution);
-  //SECTION("accessing first chunk") {
-  //  SECTION("accessing first element") {
-  //    REQUIRE(cont.chunk_at_is_null(0, 0));
-  //    REQUIRE(cont(0, 0) == 0);
-  //    REQUIRE_FALSE(cont.chunk_at_is_null(0, 0));
-  //  }
-  //  SECTION("accessing second element") {
-  //    REQUIRE(cont.chunk_at_is_null(0, 0));
-  //    REQUIRE(cont(1, 0) == 1);
-  //    REQUIRE_FALSE(cont.chunk_at_is_null(0, 0));
-  //  }
-  //}
-  //SECTION("accessing last chunk") {
-  //  REQUIRE(cont.chunk_at_is_null(3, 2));
-  //  REQUIRE(cont(resolution[0] - 1, resolution[1] - 1) == 47);
-  //  REQUIRE_FALSE(cont.chunk_at_is_null(3, 2));
-  //}
-  //SECTION("correct order") {
-  //  REQUIRE(cont(resolution[0] - 1, 0) == 7);
-  //  REQUIRE(cont(0, resolution[1] - 1) == 40);
-  //}
-}
-//==============================================================================
 TEST_CASE("lazy_reader_netcdf_grid", "[lazy_reader][netcdf][grid]") {
   //non_uniform_grid<double, 2> g{"simple_xy.nc"};
   //auto const& prop = g.vertex_property<double>("data");
@@ -49,6 +22,74 @@ TEST_CASE("lazy_reader_netcdf_grid", "[lazy_reader][netcdf][grid]") {
 //==============================================================================
 #endif
 #ifdef TATOOINE_HDF5_AVAILABLE
+TEST_CASE("lazy_reader_hdf5_limit_num_chunks",
+          "[lazy_reader][hdf5][limit_num_chunks]") {
+  auto file_path     = std::filesystem::path{"hdf5_limit_num_chunks.h5"};
+  auto dataset_name  = std::string{"data"};
+  using dataset_type = double;
+  if (!std::filesystem::exists(file_path)) {
+    auto const data_size = size_t(256);
+    auto const chunk_size = size_t(128);
+    auto const num_chunks = data_size / chunk_size;
+    auto       file       = hdf5::file{file_path};
+    auto       dataset =
+        file.add_dataset<dataset_type>(dataset_name, data_size, data_size, data_size);
+    auto data_arr =
+        dynamic_multidim_array<dataset_type>{chunk_size, chunk_size, chunk_size};
+    auto i = size_t(0);
+    for (size_t iz = 0; iz < num_chunks; ++iz) {
+      for (size_t iy = 0; iy < num_chunks; ++iy) {
+        for (size_t ix = 0; ix < num_chunks; ++ix, ++i) {
+          // modify data_arr to write
+#pragma omp parallel for collapse(3)
+          for (size_t idz = 0; idz < chunk_size; ++idz) {
+            for (size_t idy = 0; idy < chunk_size; ++idy) {
+              for (size_t idx = 0; idx < chunk_size; ++idx) {
+                data_arr(idx, idy, idz) = i;
+              }
+            }
+          }
+
+          // write chunk
+          std::cerr << "writing " << i + 1 << " / "
+                    << num_chunks * num_chunks * num_chunks << "... ";
+          dataset.write(data_arr, std::vector{ix, iy, iz});
+          std::cerr << "done!\n";
+        }
+      }
+    }
+  }
+
+  auto file    = hdf5::file{file_path};
+  auto dataset = file.dataset<dataset_type>(dataset_name);
+  auto reader  = lazy_reader{dataset, std::vector<size_t>{32, 32, 32}};
+  reader.limit_num_chunks_loaded();
+  reader.set_max_num_chunks_loaded(2);
+
+  REQUIRE(reader.num_chunks_loaded() == 0);
+
+  reader(0,0,0);
+  REQUIRE(reader.num_chunks_loaded() == 1);
+  REQUIRE(reader.chunk_is_loaded(0));
+  reader(31,31,31);
+  REQUIRE(reader.num_chunks_loaded() == 1);
+  REQUIRE(reader.chunk_is_loaded(0));
+  reader(32,0,0);
+  REQUIRE(reader.num_chunks_loaded() == 2);
+  REQUIRE(reader.chunk_is_loaded(0));
+  REQUIRE(reader.chunk_is_loaded(1));
+  reader(64,0,0);
+  REQUIRE(reader.num_chunks_loaded() == 2);
+  REQUIRE_FALSE(reader.chunk_is_loaded(0));
+  REQUIRE(reader.chunk_is_loaded(1));
+  REQUIRE(reader.chunk_is_loaded(2));
+  reader(32,0,0);
+  reader(0,0,0);
+  REQUIRE(reader.chunk_is_loaded(0));
+  REQUIRE(reader.chunk_is_loaded(1));
+  REQUIRE_FALSE(reader.chunk_is_loaded(2));
+}
+//==============================================================================
 TEST_CASE("lazy_reader_hdf5", "[lazy_reader][hdf5]") {
   auto filepath    = filesystem::path{"unittest.lazy_reader_hdf5.h5"};
   auto array_name  = std::string{"Array"};

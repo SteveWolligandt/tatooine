@@ -25,7 +25,7 @@ TEST_CASE("grid_copy_constructor", "[grid][copy][constructor]") {
   auto const dim0 = std::array{0, 1, 2};
   auto const dim1 = std ::array{0, 1, 2};
   auto       g0 = grid{dim0, dim1};
-  auto& prop    = g0.add_scalar_vertex_property("prop");
+  auto& prop    = g0.insert_scalar_vertex_property("prop");
 
   prop(0, 0)      = 100;
   auto  g1        = g0;
@@ -97,7 +97,7 @@ TEST_CASE("grid_cell_index", "[grid][cell_index]") {
 TEST_CASE("grid_vertex_property", "[grid][property]") {
   auto g = grid{linspace{0.0, 1.0, 11}, linspace{0.0, 1.0, 11}};
   SECTION("contiguous") {
-    auto& prop = g.add_contiguous_vertex_property<double>("double_prop");
+    auto& prop = g.insert_contiguous_vertex_property<double>("double_prop");
     REQUIRE(prop.size().size() == 2);
     REQUIRE(prop.size()[0] == 11);
     REQUIRE(prop.size()[1] == 11);
@@ -106,7 +106,7 @@ TEST_CASE("grid_vertex_property", "[grid][property]") {
     REQUIRE(prop(0, 0) == 3);
   }
   SECTION("chunked") {
-    auto& prop = g.add_chunked_vertex_property<double>("double_prop");
+    auto& prop = g.insert_chunked_vertex_property<double>("double_prop");
     REQUIRE(prop.size().size() == 2);
     REQUIRE(prop.size()[0] == 11);
     REQUIRE(prop.size()[1] == 11);
@@ -118,7 +118,7 @@ TEST_CASE("grid_vertex_property", "[grid][property]") {
 //==============================================================================
 TEST_CASE("grid_vertex_property_sampler", "[grid][sampler][linear]") {
   auto  g    = grid{linspace{0.0, 10.0, 11}, linspace{0.0, 10.0, 11}};
-  auto& prop = g.add_scalar_vertex_property("double_prop");
+  auto& prop = g.insert_scalar_vertex_property("double_prop");
   prop(0, 0) = 1;
   prop(1, 0) = 2;
   prop(0, 1) = 3;
@@ -149,7 +149,7 @@ TEST_CASE("grid_vertex_prop_cubic", "[grid][sampler][cubic]") {
   auto const dim1 = std::array{0.0, 1.0};
   auto       g    = grid{dim0, dim1};
 
-  auto& u         = g.add_scalar_vertex_property("u");
+  auto& u         = g.insert_scalar_vertex_property("u");
   auto  u_sampler = u.cubic_sampler();
 
   u(0, 1) = 4;
@@ -160,7 +160,7 @@ TEST_CASE("grid_vertex_prop_cubic", "[grid][sampler][cubic]") {
   u(2, 0) = 2;
 
   auto  resample_grid = grid{linspace{0.0, 2.0, 201}, linspace{0.0, 1.0, 101}};
-  auto& resampled_u   = resample_grid.add_scalar_vertex_property("u");
+  auto& resampled_u   = resample_grid.insert_scalar_vertex_property("u");
   resample_grid.iterate_over_vertex_indices([&](auto const... is) {
     resampled_u(is...) = u_sampler(resample_grid.vertex_at(is...));
   });
@@ -180,7 +180,7 @@ TEST_CASE("grid_chunked_vertex_property", "[grid][vertex][chunked][property]") {
   auto const dim2 = linspace{0.0, 2.0, 3};
   auto       g    = grid{dim0, dim1, dim2};
 
-  auto& u_prop = g.add_chunked_vertex_property<double, x_fastest>(
+  auto& u_prop = g.insert_chunked_vertex_property<double, x_fastest>(
       "u", std::vector<size_t>{2, 2, 2});
 
   REQUIRE(u_prop(0, 0, 0) == 0);
@@ -193,9 +193,8 @@ TEST_CASE("grid_chunked_vertex_property", "[grid][vertex][chunked][property]") {
 
   REQUIRE_NOTHROW(g.vertex_property<double>("u"));
   REQUIRE_THROWS(g.vertex_property<float>("u"));
-  REQUIRE_THROWS(g.vertex_property<float>("v"));
 
-  auto& v_prop = g.add_contiguous_vertex_property<float, x_fastest>("v");
+  auto& v_prop = g.insert_contiguous_vertex_property<float, x_fastest>("v");
   REQUIRE(v_prop(0, 0, 0) == 0);
   v_prop(0, 0, 0) = 1;
   REQUIRE(v_prop(0, 0, 0) == 1);
@@ -214,7 +213,7 @@ TEST_CASE("grid_amira_write", "[grid][amira]") {
   auto const dim1  = linspace{0.0, 1.0, 3};
   auto const dim2  = linspace{0.0, 1.0, 3};
   auto       g     = grid{dim0, dim1, dim2};
-  auto&      prop  = g.add_contiguous_vertex_property<vec<double, 2>>("bla");
+  auto&      prop  = g.insert_contiguous_vertex_property<vec<double, 2>>("bla");
   prop.at(1, 1, 1) = vec{1, 1};
   g.write_amira("amira_prop.am", prop);
 }

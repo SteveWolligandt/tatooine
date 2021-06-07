@@ -77,6 +77,15 @@ struct static_multidim_size {
     return IndexOrder::plain_index(size(), is);
   }
   //----------------------------------------------------------------------------
+#ifdef __cpp_concepts
+  template <integral... Is>
+#else
+  template <typename... Is, enable_if<is_integral<Is...>> = true>
+#endif
+  constexpr auto operator()(Is const... is) const {
+    return plain_index(is...);
+  }
+  //----------------------------------------------------------------------------
   static constexpr auto indices() { return static_multidim{Resolution...}; }
 };
 //==============================================================================
