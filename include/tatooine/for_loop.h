@@ -450,32 +450,6 @@ constexpr auto for_loop(Iteration&& iteration, tag::parallel_t,
                   std::pair{Ends(0), ends}...);
 #endif  // _OPENMP
 }
-//------------------------------------------------------------------------------
-/// dynamically-sized for loop
-template <typename Iteration>
-auto for_loop(Iteration&& iteration, tag::sequential_t,
-              std::vector<std::pair<size_t, size_t>> const& ranges) {
-  auto cur_indices = std::vector<size_t>(size(ranges));
-  std::transform(begin(ranges), end(ranges), begin(cur_indices),
-                 [](auto const& range) { return range.first; });
-  bool finished = false;
-  while (!finished) {
-    iteration(cur_indices);
-    ++cur_indices.front();
-    for (size_t i = 0; i < size(ranges) - 1; ++i) {
-      if (cur_indices[i] == ranges[i].second) {
-        cur_indices[i] = ranges[i].first;
-        ++cur_indices[i + 1];
-        if (i == size(ranges) - 2 &&
-            cur_indices[i + 1] == ranges[i + 1].second) {
-          finished = true;
-        }
-      } else {
-        break;
-      }
-    }
-  }
-}
 //==============================================================================
 /// \brief Use this function for creating a sequential nested loop.
 ///
@@ -531,6 +505,39 @@ constexpr auto for_loop(Iteration&& iteration, Ends const... ends) -> void {
   for_loop(std::forward<Iteration>(iteration), tag::sequential, ends...);
 }
 //==============================================================================
+/// dynamically-sized for loop
+template <typename Iteration>
+auto for_loop(Iteration&& iteration, tag::sequential_t,
+              std::vector<std::pair<size_t, size_t>> const& ranges) {
+  auto cur_indices = std::vector<size_t>(size(ranges));
+  std::transform(begin(ranges), end(ranges), begin(cur_indices),
+                 [](auto const& range) { return range.first; });
+  bool finished = false;
+  while (!finished) {
+    iteration(cur_indices);
+    ++cur_indices.front();
+    for (size_t i = 0; i < size(ranges) - 1; ++i) {
+      if (cur_indices[i] == ranges[i].second) {
+        cur_indices[i] = ranges[i].first;
+        ++cur_indices[i + 1];
+        if (i == size(ranges) - 2 &&
+            cur_indices[i + 1] == ranges[i + 1].second) {
+          finished = true;
+        }
+      } else {
+        break;
+      }
+    }
+  }
+}
+// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+/// dynamically-sized for loop
+template <typename Iteration>
+auto for_loop(Iteration&&                                   iteration,
+              std::vector<std::pair<size_t, size_t>> const& ranges) {
+  for_loop(std::forward<Iteration>(iteration), tag::sequential, ranges);
+}
+//==============================================================================
 }  // namespace tatooine
 //==============================================================================
-#endif  // NESTED_FOR_LOOP_H
+#endif
