@@ -90,6 +90,57 @@ TEST_CASE("lazy_reader_hdf5_limit_num_chunks",
   REQUIRE_FALSE(reader.chunk_is_loaded(2));
 }
 //==============================================================================
+TEST_CASE("lazy_reader_hdf5_parallel_access",
+          "[lazy_reader][hdf5][parallel_access]") {
+  auto file_path = std::filesystem::path{"hdf5_limit_num_chunks_parallel.h5"};
+  auto dataset_name  = std::string{"data"};
+  auto const data_size = size_t(256);
+  using dataset_type = double;
+  if (!std::filesystem::exists(file_path)) {
+    auto const chunk_size = size_t(128);
+    auto const num_chunks = data_size / chunk_size;
+    auto       file       = hdf5::file{file_path};
+    auto       dataset =
+        file.add_dataset<dataset_type>(dataset_name, data_size, data_size, data_size);
+    auto data_arr =
+        dynamic_multidim_array<dataset_type>{chunk_size, chunk_size, chunk_size};
+    auto i = size_t(0);
+    for (size_t iz = 0; iz < num_chunks; ++iz) {
+      for (size_t iy = 0; iy < num_chunks; ++iy) {
+        for (size_t ix = 0; ix < num_chunks; ++ix, ++i) {
+          // modify data_arr to write
+#pragma omp parallel for collapse(3)
+          for (size_t idz = 0; idz < chunk_size; ++idz) {
+            for (size_t idy = 0; idy < chunk_size; ++idy) {
+              for (size_t idx = 0; idx < chunk_size; ++idx) {
+                data_arr(idx, idy, idz) = i;
+              }
+            }
+          }
+
+          // write chunk
+          std::cerr << "writing " << i + 1 << " / "
+                    << num_chunks * num_chunks * num_chunks << "... ";
+          dataset.write(data_arr, std::vector{ix, iy, iz});
+          std::cerr << "done!\n";
+        }
+      }
+    }
+  }
+
+  auto file    = hdf5::file{file_path};
+  auto dataset = file.dataset<dataset_type>(dataset_name);
+  auto const chunk_size = std::vector<size_t>(3, 2);
+  auto       reader     = lazy_reader{dataset, chunk_size};
+  reader.set_max_num_chunks_loaded(100);
+
+  auto iteration = [&](auto const /*i*/) {
+    auto rand = random_uniform<size_t>{0, data_size - 1};
+    reader(rand(), rand(), rand());
+  };
+  for_loop(iteration, tag::parallel, size_t(1000000000));
+}
+//==============================================================================
 TEST_CASE("lazy_reader_hdf5", "[lazy_reader][hdf5]") {
   auto filepath    = filesystem::path{"unittest.lazy_reader_hdf5.h5"};
   auto array_name  = std::string{"Array"};
