@@ -1,3 +1,4 @@
+#if TATOOINE_YAVIN_AVAILABLE
 #include <tatooine/analytical/fields/numerical/doublegyre.h>
 #include <tatooine/gpu/upload.h>
 #include <tatooine/multidim_array.h>
@@ -62,3 +63,4 @@ TEST_CASE("gpu_upload_doublegyre", "[gpu][dg][doublegyre][upload]") {
 //==============================================================================
 }  // namespace tatooine::test
 //==============================================================================
+#endif

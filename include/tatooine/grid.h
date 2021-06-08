@@ -8,7 +8,6 @@
 #include <tatooine/filesystem.h>
 #include <tatooine/for_loop.h>
 #include <tatooine/grid_vertex_container.h>
-#include <tatooine/grid_vertex_iterator.h>
 #include <tatooine/grid_vertex_property.h>
 #include <tatooine/hdf5.h>
 #include <tatooine/interpolation.h>
@@ -50,7 +49,6 @@ class grid {
 
   using dimensions_t = std::tuple<std::decay_t<Dimensions>...>;
 
-  using vertex_iterator  = grid_vertex_iterator<Dimensions...>;
   using vertex_container = grid_vertex_container<Dimensions...>;
 
   // general property types
@@ -815,160 +813,11 @@ class grid {
     //}
   }
   //----------------------------------------------------------------------------
- private:
-#ifdef __cpp_concepts
-  template <size_t... DIs, integral... Is>
-#else
-  template <size_t... DIs, typename... Is, enable_if<is_integral<Is...>> = true>
-#endif
-  auto vertex_at(std::index_sequence<DIs...>, Is const... is) const
-      -> vec<real_t, num_dimensions()> {
-    static_assert(sizeof...(DIs) == sizeof...(is));
-    static_assert(sizeof...(is) == num_dimensions());
-    return pos_t{static_cast<real_t>((std::get<DIs>(m_dimensions)[is]))...};
-  }
-  // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
- public:
-#ifdef __cpp_concepts
-  template <integral... Is>
-#else
-  template <typename... Is, enable_if<is_integral<Is...>> = true>
-#endif
-  auto vertex_at(Is const... is) const {
-    static_assert(sizeof...(is) == num_dimensions());
-    return vertex_at(seq_t{}, is...);
-  }
-  //----------------------------------------------------------------------------
-#ifdef __cpp_concepts
-  template <integral... Is>
-#else
-  template <typename... Is, enable_if<is_integral<Is...>> = true>
-#endif
-  auto operator()(Is const... is) const {
-    static_assert(sizeof...(is) == num_dimensions());
-    return vertex_at(is...);
-  }
-  //----------------------------------------------------------------------------
- private:
-  template <size_t... Is>
-  constexpr auto num_vertices(std::index_sequence<Is...> /*seq*/) const {
-    return (size<Is>() * ...);
-  }
-  // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
- public:
-  constexpr auto num_vertices() const { return num_vertices(seq_t{}); }
-  //----------------------------------------------------------------------------
   /// \return number of dimensions for one dimension dim
   // constexpr auto edges() const { return grid_edge_container{this}; }
 
   //----------------------------------------------------------------------------
- private:
-  template <size_t... Is>
-  constexpr auto vertex_begin(std::index_sequence<Is...> /*seq*/) const {
-    return vertex_iterator{this, std::array{((void)Is, size_t(0))...}};
-  }
-  //----------------------------------------------------------------------------
- public:
-  constexpr auto vertex_begin() const { return vertex_begin(seq_t{}); }
-  //----------------------------------------------------------------------------
- private:
-  template <size_t... Is>
-  constexpr auto vertex_end(std::index_sequence<Is...> /*seq*/) const {
-    return vertex_iterator{this, std::array{((void)Is, size_t(0))...,
-                                            size<num_dimensions() - 1>()}};
-  }
-  //----------------------------------------------------------------------------
- public:
-  constexpr auto vertex_end() const {
-    return vertex_end(std::make_index_sequence<num_dimensions() - 1>());
-  }
-  //----------------------------------------------------------------------------
   auto vertices() const { return vertex_container{*this}; }
-  //----------------------------------------------------------------------------
- private:
-#ifdef __cpp_concepts
-  template <invocable<decltype(((void)std::declval<Dimensions>(), size_t{}))...>
-                Iteration,
-            size_t... Ds>
-#else
-  template <typename Iteration, size_t... Ds,
-            enable_if<is_invocable<Iteration,
-                                   decltype(((void)std::declval<Dimensions>(),
-                                             size_t{}))...>> = true>
-#endif
-  auto iterate_over_vertex_indices(Iteration&& iteration, tag::sequential_t,
-                                   std::index_sequence<Ds...>) const
-      -> decltype(auto) {
-    return for_loop(std::forward<Iteration>(iteration), tag::sequential,
-                    std::pair{size_t(0), static_cast<size_t>(size<Ds>())}...);
-  }
-  //----------------------------------------------------------------------------
- public:
-#ifdef __cpp_concepts
-  template <invocable<decltype(((void)std::declval<Dimensions>(), size_t{}))...>
-                Iteration>
-#else
-  template <typename Iteration,
-            enable_if<is_invocable<Iteration,
-                                   decltype(((void)std::declval<Dimensions>(),
-                                             size_t{}))...>> = true>
-#endif
-  auto iterate_over_vertex_indices(Iteration&& iteration,
-                                   tag::sequential_t) const -> decltype(auto) {
-    return iterate_over_vertex_indices(
-        std::forward<Iteration>(iteration), tag::sequential,
-        std::make_index_sequence<num_dimensions()>{});
-  }
-  //----------------------------------------------------------------------------
- private:
-#ifdef __cpp_concepts
-  template <invocable<decltype(((void)std::declval<Dimensions>(), size_t{}))...>
-                Iteration,
-            size_t... Ds>
-#else
-  template <typename Iteration, size_t... Ds,
-            enable_if<is_invocable<Iteration,
-                                   decltype(((void)std::declval<Dimensions>(),
-                                             size_t{}))...>> = true>
-#endif
-  auto iterate_over_vertex_indices(Iteration&& iteration, tag::parallel_t,
-                                   std::index_sequence<Ds...>) const
-      -> decltype(auto) {
-    return for_loop(std::forward<Iteration>(iteration), tag::parallel,
-                    size<Ds>()...);
-  }
-  //----------------------------------------------------------------------------
- public:
-#ifdef __cpp_concepts
-  template <invocable<decltype(((void)std::declval<Dimensions>(), size_t{}))...>
-                Iteration>
-#else
-  template <typename Iteration,
-            enable_if<is_invocable<Iteration,
-                                   decltype(((void)std::declval<Dimensions>(),
-                                             size_t{}))...>> = true>
-#endif
-  auto iterate_over_vertex_indices(Iteration&& iteration, tag::parallel_t) const
-      -> decltype(auto) {
-    return iterate_over_vertex_indices(
-        std::forward<Iteration>(iteration), tag::parallel,
-        std::make_index_sequence<num_dimensions()>{});
-  }
-#ifdef __cpp_concepts
-  template <invocable<decltype(((void)std::declval<Dimensions>(), size_t{}))...>
-                Iteration>
-#else
-  template <typename Iteration,
-            enable_if<is_invocable<Iteration,
-                                   decltype(((void)std::declval<Dimensions>(),
-                                             size_t{}))...>> = true>
-#endif
-  auto iterate_over_vertex_indices(Iteration&& iteration) const
-      -> decltype(auto) {
-    return iterate_over_vertex_indices(
-        std::forward<Iteration>(iteration), tag::sequential,
-        std::make_index_sequence<num_dimensions()>{});
-  }
   //----------------------------------------------------------------------------
  private:
 #ifdef __cpp_concepts
@@ -1705,7 +1554,7 @@ class grid {
         continue;
       }
       if (v.num_dimensions() != num_dimensions() &&
-          v.size()[0] != num_vertices()) {
+          v.size()[0] != vertices().size()) {
         throw std::runtime_error{
             "[grid::read_netcdf] variable's number of dimensions does "
             "not "
@@ -1813,7 +1662,7 @@ class grid {
       typed_vertex_property_interface_t<T, HasNonConstReference> const& prop)
       const {
     std::vector<T> data;
-    iterate_over_vertex_indices(
+    vertices().iterate_indices(
         [&](auto const... is) { data.push_back(prop(is...)); });
     writer.write_scalars(name, data);
   }
@@ -1897,7 +1746,7 @@ class grid {
       }
     }();
     // write vertex data
-    writer.write_point_data(num_vertices());
+    writer.write_point_data(vertices().size());
     for (const auto& [name, prop] : this->m_vertex_properties) {
       if (prop->type() == typeid(int)) {
         write_prop_vtk(

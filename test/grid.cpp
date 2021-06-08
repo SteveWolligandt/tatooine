@@ -40,9 +40,9 @@ TEST_CASE("grid_vertex_indexing", "[grid][vertex][indexing]") {
   auto const dim1 = std::vector{0, 1, 2};
   auto const dim2 = linspace{0.0, 1.0, 11};
   auto const g    = grid{dim0, dim1, dim2};
-  auto const v000 = g.vertices().at(0, 0, 0);
-  auto const v111 = g.vertex_at(1, 1, 1);
-  auto const v221 = g.vertices().at(2, 2, 1);
+  auto const v000 = g.vertices()(0, 0, 0);
+  auto const v111 = g.vertices()(1, 1, 1);
+  auto const v221 = g.vertices()(2, 2, 1);
 
   REQUIRE(approx_equal(v000, vec{0.0, 0.0, 0.0}));
   REQUIRE(approx_equal(v111, vec{1.0, 1.0, 0.1}));
@@ -50,16 +50,16 @@ TEST_CASE("grid_vertex_indexing", "[grid][vertex][indexing]") {
 }
 //==============================================================================
 TEST_CASE("grid_vertex_iterator", "[grid][vertex][iterator]") {
-  auto const dim0 = std::array{0, 1, 2};
-  auto const dim1 = std::vector{0, 1, 2};
-  auto const dim2 = linspace{0.0, 2.0, 3};
-  auto       g    = grid{dim0, dim1, dim2};
-  auto       it   = begin(vertices(g));
-  REQUIRE(approx_equal(*it, g(0, 0, 0)));
-  REQUIRE(approx_equal(*next(it), g(1, 0, 0)));
-  REQUIRE(approx_equal(*next(it, 3), g(0, 1, 0)));
-  REQUIRE(approx_equal(*next(it, 9), g(0, 0, 1)));
-  REQUIRE(next(it, 27) == end(vertices(g)));
+  auto       g    = grid{std::array{0.0, 1.0, 2.0},
+                         std::vector{0.0, 1.0, 2.0},
+                         linspace{0.0, 2.0, 3}};
+  auto       gv   = vertices(g);
+  auto       it   = begin(gv);
+  REQUIRE(approx_equal(gv(*it), gv(0, 0, 0)));
+  REQUIRE(approx_equal(gv(*next(it)), gv(1, 0, 0)));
+  REQUIRE(approx_equal(gv(*next(it, 3)), gv(0, 1, 0)));
+  REQUIRE(approx_equal(gv(*next(it, 9)), gv(0, 0, 1)));
+  //REQUIRE(next(it, 27) == end(gv));
 }
 //==============================================================================
 TEST_CASE("grid_cell_index", "[grid][cell_index]") {
@@ -161,8 +161,8 @@ TEST_CASE("grid_vertex_prop_cubic", "[grid][sampler][cubic]") {
 
   auto  resample_grid = grid{linspace{0.0, 2.0, 201}, linspace{0.0, 1.0, 101}};
   auto& resampled_u   = resample_grid.insert_scalar_vertex_property("u");
-  resample_grid.iterate_over_vertex_indices([&](auto const... is) {
-    resampled_u(is...) = u_sampler(resample_grid.vertex_at(is...));
+  resample_grid.vertices().iterate_indices([&](auto const... is) {
+    resampled_u(is...) = u_sampler(resample_grid.vertices()(is...));
   });
 
   g.write_vtk("source_u.vtk");
