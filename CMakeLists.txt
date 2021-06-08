@@ -385,10 +385,11 @@ endif()
 find_package(yavin QUIET)
 if (${yavin_FOUND}) 
   set(TATOOINE_YAVIN_AVAILABLE 1)
-  target_compile_definitions(tatooine PUBLIC TATOOINE_YAVIN_AVAILABLE)
+  target_compile_definitions(tatooine PUBLIC TATOOINE_YAVIN_AVAILABLE=1)
   target_link_libraries(tatooine PUBLIC yavin)
 else()
   set(TATOOINE_YAVIN_AVAILABLE 0)
+  target_compile_definitions(tatooine PUBLIC TATOOINE_YAVIN_AVAILABLE=0)
 endif()
 #- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 # GINAC
