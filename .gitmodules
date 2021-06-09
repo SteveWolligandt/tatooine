@@ -16,3 +16,9 @@
 [submodule "doc/external/doxygen-awesome-css"]
 	path = doc/external/doxygen-awesome-css
 	url = https://github.com/jothepro/doxygen-awesome-css.git
+[submodule "external/netcdf-c"]
+	path = external/netcdf-c
+	url = https://github.com/Unidata/netcdf-c.git
+[submodule "external/netcdf-cxx4"]
+	path = external/netcdf-cxx4
+	url = https://github.com/Unidata/netcdf-cxx4.git
