@@ -266,11 +266,12 @@ struct typed_grid_vertex_property_interface : grid_vertex_property<Grid> {
       requires(num_dimensions() == 2) &&
       (is_floating_point<ValueType>)
 #else
-  template <size_t _N                                   = num_dimensions(),
-            enable_if<(_N == 2) && (is_floating_point<ValueType>> = true>
+  template <size_t _N = num_dimensions(),
+            enable_if<_N == 2> = true,
+            enable_if_floating_point<ValueType> = true>
 #endif
-          auto write_png(filesystem::path const& path, ValueType const min = 0,
-                         ValueType const max = 1) const -> void {
+  auto write_png(filesystem::path const& path, ValueType const min = 0,
+                 ValueType const max = 1) const -> void {
     png::image<png::rgb_pixel> image{
         static_cast<png::uint_32>(this->grid().size(0)),
         static_cast<png::uint_32>(this->grid().size(1))};

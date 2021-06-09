@@ -3,8 +3,6 @@ if(${TATOOINE_BUILD_TESTS})
 update_git_submodule(external/catch2)
 add_subdirectory(external/catch2 EXCLUDE_FROM_ALL)
 list(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/external/catch2/contrib/")
-set(TATOOINE_TEST_USE_FAST_MATH false CACHE BOOL
-    "use -ffast-math for unittests")
 option(TATOOINE_TEST_USE_FAST_MATH
     "use -ffast-math for unittests" OFF)
 #- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -44,13 +42,6 @@ set(COVERAGE_LCOV_EXCLUDES
   ${CMAKE_CURRENT_SOURCE_DIR}/external/catch2/single_include/catch2/*)
 message(STATUS ${CMAKE_CURRENT_SOURCE_DIR}/*)
 #- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-if(CLANG_TIDY_EXECUTABLE)
-  set(TATOOINE_CLANG_TIDY_CMD
-    ${CLANG_TIDY_EXECUTABLE}
-    ${TATOOINE_CLANG_TIDY_CHECKS}
-    "-header-filter=tatooine")
-endif()
-#- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 set(TATOOINE_TEST_CPPS main.cpp)
 macro(create_test NAME)
   list(APPEND TATOOINE_TEST_CPPS "${NAME}.cpp")
@@ -58,6 +49,12 @@ macro(create_test NAME)
   add_executable(
     unittests.${NAME} EXCLUDE_FROM_ALL
     ${NAME}.cpp main.cpp)
+  if(TATOOINE_USE_CLANG_TIDY)
+    set_target_properties(
+      unittests.${NAME}
+      PROPERTIES CXX_CLANG_TIDY
+      "${CLANG_TIDY_EXECUTABLE};-checks=${CLANG_TIDY_CHECKS};-header-filter='${CMAKE_SOURCE_DIR}/*';-extra-arg=-std=c++17;-line-filter=[{\"name\":\"${NAME}.cpp\",\"lines\":[[1,1]]}]")
+  endif()
   target_link_libraries(
     unittests.${NAME}
     tatooine Catch2::Catch2)
@@ -94,12 +91,6 @@ macro(create_test NAME)
       unittests.${NAME}
       PRIVATE
         -ffast-math)
-  endif()
-  if(CLANG_TIDY_EXECUTABLE AND TATOOINE_USE_CLANG_TIDY)
-    set_target_properties(
-      unittests.${NAME}
-      PROPERTIES CXX_CLANG_TIDY
-                 "${TATOOINE_CLANG_TIDY_CMD}")
   endif()
 
   if(CMAKE_BUILD_TYPE STREQUAL "Debug")
@@ -193,7 +184,14 @@ endforeach()
 #- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 add_executable (
   unittests
-  main.cpp ${TATOOINE_TEST_CPPS})
+  main.cpp
+  ${TATOOINE_TEST_CPPS})
+  if(TATOOINE_USE_CLANG_TIDY)
+    set_target_properties(
+      unittests
+      PROPERTIES CXX_CLANG_TIDY
+                 "${CLANG_TIDY_EXECUTABLE};-checks=${CLANG_TIDY_CHECKS};-header-filter='${CMAKE_SOURCE_DIR}/*'")
+  endif()
 target_link_libraries(
   unittests
   tatooine Catch2::Catch2)
