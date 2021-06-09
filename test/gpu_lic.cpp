@@ -1,3 +1,4 @@
+#if TATOOINE_YAVIN_AVAILABLE
 //#include <tatooine/analytical/fields/numerical/autonomous_particles_test_field.h>
 #include <tatooine/analytical/fields/numerical/sinuscosinus.h>
 #include <tatooine/analytical/fields/numerical/center.h>
@@ -66,3 +67,4 @@ TEST_CASE("gpu_lic_cosinussinus", "[gpu][cosinussinus][lic]") {
 //==============================================================================
 }  // namespace tatooine::gpu::test
 //==============================================================================
+#endif

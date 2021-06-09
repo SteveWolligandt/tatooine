@@ -5,6 +5,7 @@
 #include <tatooine/index_order.h>
 #include <mutex>
 #include <list>
+#include <map>
 //==============================================================================
 namespace tatooine {
 //==============================================================================
@@ -23,16 +24,24 @@ struct lazy_reader
   }
 
  private:
+  struct chunks_it_comp {
+    auto operator()(
+        std::pair<size_t, typename std::list<size_t>::iterator> const& lhs,
+        std::pair<size_t, typename std::list<size_t>::iterator> const& rhs) {
+      return lhs.first < rhs.first;
+    }
+  };
   DataSet                   m_dataset;
   mutable std::vector<bool> m_read;
   mutable std::list<size_t> m_chunks_loaded;
-  size_t                    m_max_num_chunks_loaded   = 1024;
-  bool                      m_limit_num_chunks_loaded = false;
-  mutable std::mutex        m_chunks_loaded_mutex;
+  mutable std::map<size_t, typename std::list<size_t>::iterator> m_chunks_its;
+  size_t             m_max_num_chunks_loaded   = 1024;
+  bool               m_limit_num_chunks_loaded = false;
+  mutable std::mutex m_chunks_loaded_mutex;
   mutable std::vector<std::unique_ptr<std::mutex>> m_mutexes;
 
  public:
-  lazy_reader(DataSet const& file, std::vector<size_t>const& chunk_size)
+  lazy_reader(DataSet const& file, std::vector<size_t> const& chunk_size)
       : parent_t{std::vector<size_t>(chunk_size.size(), 0), chunk_size},
         m_dataset{file} {
     init(chunk_size);
@@ -86,20 +95,29 @@ struct lazy_reader
     assert(this->in_range(indices...));
 
     if (this->chunk_at_is_null(plain_chunk_index) && !m_read[plain_chunk_index]) {
-      // keep the number of loaded chunks between max_num_chunks_loaded/2 and
-      // max_num_chunks_loaded
       {
-        if (m_limit_num_chunks_loaded) {
-          std::lock_guard lock{m_chunks_loaded_mutex};
-          if (num_chunks_loaded() > m_max_num_chunks_loaded) {
-            auto const it_begin = begin(m_chunks_loaded);
-            auto const it_end   = next(it_begin, m_max_num_chunks_loaded / 2);
-            for (auto it = it_begin; it != it_end; ++it) {
-              std::lock_guard lock{m_mutexes[*it]};
-              m_read[*it] = false;
-              this->destroy_chunk_at(*it);
+        std::lock_guard chunks_loaded_lock{m_chunks_loaded_mutex};
+        m_chunks_loaded.push_back(plain_chunk_index);
+        m_chunks_its[plain_chunk_index] = prev(end(m_chunks_loaded));
+        if (m_limit_num_chunks_loaded &&
+            num_chunks_loaded() > m_max_num_chunks_loaded) {
+          auto chunk_to_erase = begin(m_chunks_loaded);
+          bool success        = false;
+          while (!success) {
+            ++chunk_to_erase;
+            if (chunk_to_erase == end(m_chunks_loaded)) {
+              chunk_to_erase = begin(m_chunks_loaded);
             }
-            m_chunks_loaded.erase(it_begin, it_end);
+            auto chunk_to_erase_lock =
+                std::unique_lock{*m_mutexes[*chunk_to_erase], std::defer_lock};
+            auto const is_locked = chunk_to_erase_lock.try_lock();
+            if (is_locked) {
+              m_read[*chunk_to_erase] = false;
+              this->destroy_chunk_at(*chunk_to_erase);
+              m_chunks_its.erase(*chunk_to_erase);
+              m_chunks_loaded.erase(chunk_to_erase);
+              success = true;
+            }
           }
         }
       }
@@ -110,31 +128,17 @@ struct lazy_reader
       auto const offset         = this->global_indices_from_chunk_indices(
           this->chunk_indices_from_global_indices(indices...));
       for (size_t i = 0; i < offset.size(); ++i) {
-#ifndef NDEBUG
-        if (offset[i] + chunk.size()[i] > this->size()[i]) {
-          std::cerr << "=====================\n";
-          std::cerr << plain_chunk_index << '\n';
-          std::cerr << i << '\n';
-          std::cerr << this->size()[i] << '\n';
-          std::cerr << offset[i] << '\n';
-          std::cerr << chunk.size()[i] << '\n';
-        }
-#endif
         assert(offset[i] + chunk.size()[i] <= this->size()[i]);
       }
       m_dataset.read_chunk(offset, chunk.size(), chunk);
 
-      //if constexpr (is_arithmetic<value_type>) {
-      //  if (is_chunk_filled_with_zeros(plain_chunk_index)) {
-      //    this->destroy_chunk_at(plain_chunk_index);
-      //  }
-      //}
     } else {
       std::lock_guard lock{m_chunks_loaded_mutex};
-      auto const it = std::find(begin(m_chunks_loaded), end(m_chunks_loaded),
-                                plain_chunk_index);
-      // this will move the current adressed chunked at the end of loaded chunks
-      m_chunks_loaded.splice(end(m_chunks_loaded), m_chunks_loaded, it);
+      // this will move the current adressed chunked at the end of loaded
+      // chunks
+      m_chunks_loaded.splice(end(m_chunks_loaded), m_chunks_loaded,
+                             m_chunks_its[plain_chunk_index]);
+      std::cerr << "splice\n";
     }
 
     return this->chunk_at(plain_chunk_index);
@@ -152,13 +156,12 @@ struct lazy_reader
     std::lock_guard lock{*m_mutexes[plain_chunk_index]};
     auto const&       chunk = read_chunk(plain_chunk_index, indices...);
 
-    if (chunk != nullptr) {
-      return (*chunk)[this->plain_internal_chunk_index_from_global_indices(
-          plain_chunk_index, indices...)];
+    if (chunk == nullptr) {
+      auto const& t = default_value();
+      return t;
     }
-    auto& t = default_value();
-    //t       = value_type{};
-    return t;
+    return (*chunk)[this->plain_internal_chunk_index_from_global_indices(
+        plain_chunk_index, indices...)];
   }
 
  private:
@@ -217,6 +220,7 @@ struct lazy_reader
   }
   //----------------------------------------------------------------------------
   auto set_max_num_chunks_loaded(size_t const max_num_chunks_loaded) {
+    limit_num_chunks_loaded();
     m_max_num_chunks_loaded = max_num_chunks_loaded;
   }
   //----------------------------------------------------------------------------
@@ -226,6 +230,13 @@ struct lazy_reader
   //----------------------------------------------------------------------------
   auto num_chunks_loaded() const {
     return size(m_chunks_loaded);
+  }
+  //----------------------------------------------------------------------------
+  auto chunks_loaded() const -> auto const& { return m_chunks_loaded; }
+  //----------------------------------------------------------------------------
+  auto chunk_is_loaded(size_t const plain_chunk_index) const {
+    return std::find(begin(m_chunks_loaded), end(m_chunks_loaded),
+                     plain_chunk_index) != end(m_chunks_loaded);
   }
 };
 //==============================================================================

@@ -163,9 +163,9 @@ auto isosurface(GetScalars&&                           get_scalars,
 #endif
   };
 #if defined(NDEBUG) && defined(TATOOINE_OPENMP_AVAILABLE)
-  parallel_for_loop(process_cube, g.size(0) - 1, g.size(1) - 1, g.size(2) - 1);
+  for_loop(process_cube,tag::parallel, g.size(0) - 1, g.size(1) - 1, g.size(2) - 1);
 #else
-  for_loop(process_cube, g.size(0) - 1, g.size(1) - 1, g.size(2) - 1);
+  for_loop(process_cube,tag::sequential, g.size(0) - 1, g.size(1) - 1, g.size(2) - 1);
 #endif
   return iso_volume;
 }
