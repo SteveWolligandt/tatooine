@@ -129,7 +129,7 @@ endif()
 #
 # SETUP_TARGET_FOR_COVERAGE_LCOV(
 #     NAME testrunner_coverage                    # New target name
-#     EXECUTABLE testrunner -j ${PROCESSOR_COUNT} # Executable in PROJECT_BINARY_DIR
+#     EXECUTABLE testrunner -j ${PROCESSOR_COUNT} # Executable in CMAKE_CURRENT_BINARY_DIR
 #     DEPENDENCIES testrunner                     # Dependencies to build first
 # )
 function(SETUP_TARGET_FOR_COVERAGE_LCOV)
@@ -161,11 +161,18 @@ function(SETUP_TARGET_FOR_COVERAGE_LCOV)
         COMMAND ${LCOV_PATH} ${Coverage_LCOV_ARGS} --gcov-tool ${GCOV_PATH} --directory . --capture --output-file ${Coverage_NAME}.info
         # add baseline counters
         COMMAND ${LCOV_PATH} ${Coverage_LCOV_ARGS} --gcov-tool ${GCOV_PATH} -a ${Coverage_NAME}.base -a ${Coverage_NAME}.info --output-file ${Coverage_NAME}.total
-        COMMAND ${LCOV_PATH} ${Coverage_LCOV_ARGS} --gcov-tool ${GCOV_PATH} --remove ${Coverage_NAME}.total ${COVERAGE_LCOV_EXCLUDES} --output-file ${PROJECT_BINARY_DIR}/${Coverage_NAME}.info.cleaned
-        COMMAND ${GENHTML_PATH} ${Coverage_GENHTML_ARGS} -o ${Coverage_NAME} ${PROJECT_BINARY_DIR}/${Coverage_NAME}.info.cleaned
-        COMMAND ${CMAKE_COMMAND} -E remove ${Coverage_NAME}.base ${Coverage_NAME}.total ${PROJECT_BINARY_DIR}/${Coverage_NAME}.info.cleaned
+        COMMAND ${LCOV_PATH} ${Coverage_LCOV_ARGS}
+          --gcov-tool ${GCOV_PATH}
+          --remove ${Coverage_NAME}.total
+                   ${COVERAGE_LCOV_EXCLUDES}
+          --output-file ${CMAKE_CURRENT_BINARY_DIR}/${Coverage_NAME}.info.cleaned
+        COMMAND ${GENHTML_PATH} ${Coverage_GENHTML_ARGS}
+          -o ${Coverage_NAME}
+          ${CMAKE_CURRENT_BINARY_DIR}/${Coverage_NAME}.info.cleaned
+        COMMAND ${CMAKE_COMMAND}
+        -E remove ${Coverage_NAME}.base ${Coverage_NAME}.total ${CMAKE_CURRENT_BINARY_DIR}/${Coverage_NAME}.info.cleaned
 
-        WORKING_DIRECTORY ${PROJECT_BINARY_DIR}
+        WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}
         DEPENDS ${Coverage_DEPENDENCIES}
         COMMENT "Resetting code coverage counters to zero.\nProcessing code coverage counters and generating report."
     )
@@ -191,7 +198,7 @@ endfunction() # SETUP_TARGET_FOR_COVERAGE_LCOV
 #
 # SETUP_TARGET_FOR_COVERAGE_GCOVR_XML(
 #     NAME ctest_coverage                    # New target name
-#     EXECUTABLE ctest -j ${PROCESSOR_COUNT} # Executable in PROJECT_BINARY_DIR
+#     EXECUTABLE ctest -j ${PROCESSOR_COUNT} # Executable in CMAKE_CURRENT_BINARY_DIR
 #     DEPENDENCIES executable_target         # Dependencies to build first
 # )
 function(SETUP_TARGET_FOR_COVERAGE_GCOVR_XML)
@@ -225,6 +232,8 @@ function(SETUP_TARGET_FOR_COVERAGE_GCOVR_XML)
             -r ${PROJECT_SOURCE_DIR} ${GCOVR_EXCLUDES}
             --object-directory=${PROJECT_BINARY_DIR}
             -o ${Coverage_NAME}
+        COMMAND rm -rf ${CMAKE_CURRENT_BINARY_DIR}/${Coverage_NAME}
+        COMMAND mv ${Coverage_NAME} ${CMAKE_CURRENT_BINARY_DIR}
         WORKING_DIRECTORY ${PROJECT_BINARY_DIR}
         DEPENDS ${Coverage_DEPENDENCIES}
         COMMENT "Running gcovr to produce Cobertura code coverage report."
@@ -245,7 +254,7 @@ endfunction() # SETUP_TARGET_FOR_COVERAGE_GCOVR_XML
 #
 # SETUP_TARGET_FOR_COVERAGE_GCOVR_HTML(
 #     NAME ctest_coverage                    # New target name
-#     EXECUTABLE ctest -j ${PROCESSOR_COUNT} # Executable in PROJECT_BINARY_DIR
+#     EXECUTABLE ctest -j ${PROCESSOR_COUNT} # Executable in CMAKE_CURRENT_BINARY_DIR
 #     DEPENDENCIES executable_target         # Dependencies to build first
 # )
 function(SETUP_TARGET_FOR_COVERAGE_GCOVR_HTML)
@@ -275,13 +284,19 @@ function(SETUP_TARGET_FOR_COVERAGE_GCOVR_HTML)
         ${Coverage_EXECUTABLE} ${Coverage_EXECUTABLE_ARGS}
 
         # Create folder
-        COMMAND ${CMAKE_COMMAND} -E make_directory ${PROJECT_BINARY_DIR}/${Coverage_NAME}
+        COMMAND ${CMAKE_COMMAND} -E make_directory ${Coverage_NAME}
 
         # Running gcovr
-        COMMAND ${GCOVR_PATH} --html --html-details
-            -r ${PROJECT_SOURCE_DIR} ${GCOVR_EXCLUDES}
+        COMMAND ${GCOVR_PATH}
+            --html
+            --html-details
+            -r ${PROJECT_SOURCE_DIR}
+            ${GCOVR_EXCLUDES}
             --object-directory=${PROJECT_BINARY_DIR}
             -o ${Coverage_NAME}/index.html
+
+        COMMAND rm -rf ${CMAKE_CURRENT_BINARY_DIR}/${Coverage_NAME}
+        COMMAND mv ${Coverage_NAME} ${CMAKE_CURRENT_BINARY_DIR}
         WORKING_DIRECTORY ${PROJECT_BINARY_DIR}
         DEPENDS ${Coverage_DEPENDENCIES}
         COMMENT "Running gcovr to produce HTML code coverage report."

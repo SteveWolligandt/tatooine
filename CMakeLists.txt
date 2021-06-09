@@ -255,10 +255,6 @@ if (TATOOINE_USE_SYSTEM_HDF5_LIBS)
       ${HDF5_LIBRARIES})
     target_include_directories(tatooine PUBLIC
       ${HDF5_INCLUDE_DIRS})
-
-    add_executable(hdf5_create src/hdf5_create.cpp)
-    target_link_libraries(hdf5_create PUBLIC tatooine)
-    add_custom_target(hdf5_create.run COMMAND ./hdf5_create DEPENDS hdf5_create)
   else()
     message(STATUS "HDF5 not available")
   endif()
@@ -323,10 +319,6 @@ if ((NOT TATOOINE_USE_SYSTEM_HDF5_LIBS) OR
     endif()
     target_compile_options(hdf5-static PRIVATE ${TATOOINE_HDF5_WNOS})
   endif()
-
-  add_executable(hdf5_create src/hdf5_create.cpp)
-  target_link_libraries(hdf5_create PUBLIC tatooine)
-  add_custom_target(hdf5_create.run COMMAND ./hdf5_create DEPENDS hdf5_create)
 
   target_link_libraries(tatooine PUBLIC hdf5-static)
   target_compile_definitions(tatooine PUBLIC TATOOINE_HDF5_AVAILABLE)
