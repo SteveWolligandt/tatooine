@@ -73,31 +73,34 @@ configure_file("${CMAKE_CURRENT_SOURCE_DIR}/include/tatooine/gpu/reduce.h.in"
                "${CMAKE_CURRENT_BINARY_DIR}/include/tatooine/gpu/reduce.h")
 #- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 # clang-tidy
-set(TATOOINE_USE_CLANG_TIDY false CACHE BOOL
-    "use clang-tidy checks while building")
-option(TATOOINE_USE_CLANG_TIDY
-       "use clang-tidy checks while building" FALSE)
 find_program(CLANG_TIDY_EXECUTABLE NAMES "clang-tidy" DOC "Path to clang-tidy executable")
-string(CONCAT TATOOINE_CLANG_TIDY_CHECKS
-  "-checks="
-  ",cppcoreguidelines*"
-  ",-cppcoreguidelines-pro-type-reinterpret-cast"
-  ",-cppcoreguidelines-pro-bounds-pointer-arithmetic"
-  ",-cppcoreguidelines-pro-bounds-constant-array-index"
-  ",-cppcoreguidelines-avoid-magic-numbers"
-  ",-cppcoreguidelines-macro-usage"
-  ",cert*"
-  ",-cert-err34-c"
-  ",hicpp"
-  ",modernize*"
-  ",performance*"
-  ",readability*"
-  ",-readability-magic-numbers"
-  ",-readability-isolate-declaration"
-  ",-readability-static-accessed-through-instance"
-  ",-readability-named-parameter"
-  ",google-explicit-constructor"
-  )
+if (CLANG_TIDY_EXECUTABLE)
+  option(TATOOINE_USE_CLANG_TIDY
+         "use clang-tidy checks while building" FALSE)
+  string(CONCAT CLANG_TIDY_CHECKS
+    "-*"
+    ",cppcoreguidelines*"
+    ",hicpp-*"
+    ",modernize-*"
+    ",performance-*"
+    ",readability-*"
+    ",-cppcoreguidelines-pro-type-reinterpret-cast"
+    ",-cppcoreguidelines-pro-bounds-pointer-arithmetic"
+    ",-cppcoreguidelines-pro-bounds-constant-array-index"
+    ",-cppcoreguidelines-macro-usage"
+    ",-cert-err34-c"
+    ",-readability-magic-numbers"
+    ",-readability-isolate-declaration"
+    ",-readability-static-accessed-through-instance"
+    ",-readability-named-parameter"
+    )
+  set(CLANG_TIDY_DOMMAND
+    ${CLANG_TIDY_EXECUTABLE}
+    -header-filter=${CMAKE_SOURCE_DIR}
+    -checks=-*,cppcoreguidelines-*,modernize-*)
+else()
+  set(TATOOINE_USE_CLANG_TIDY FALSE)
+endif()
 #- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 # create library target
 add_library(tatooine SHARED 
@@ -319,6 +322,7 @@ if ((NOT TATOOINE_USE_SYSTEM_HDF5_LIBS) OR
     endif()
     target_compile_options(hdf5-static PRIVATE ${TATOOINE_HDF5_WNOS})
   endif()
+
 
   target_link_libraries(tatooine PUBLIC hdf5-static)
   target_compile_definitions(tatooine PUBLIC TATOOINE_HDF5_AVAILABLE)

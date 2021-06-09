@@ -68,7 +68,7 @@ struct grid_vertex_container {
 #ifdef __cpp_concepts
   template <integral Int>
 #else
-  template <typename Int, enable_if_integral<Int...> = true>
+  template <typename Int, enable_if_integral<Int> = true>
 #endif
   auto at(std::array<Int, num_dimensions()> const& is) const {
     return at(seq_t{}, is);

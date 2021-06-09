@@ -5,7 +5,10 @@
 namespace tatooine::test {
 //==============================================================================
 TEST_CASE("grid_ctor_raw_size", "[grid][ctor][raw_size]") {
-  auto g = grid{10, 11, 12};
+  size_t const res_x = 10;
+  size_t const res_y = 11;
+  size_t const res_z = 12;
+  auto         g     = grid{res_x, res_y, res_z};
   REQUIRE(g.num_dimensions() == 3);
   REQUIRE(is_linspace<std::decay_t<decltype(g.dimension(0))>>);
   REQUIRE(is_linspace<std::decay_t<decltype(g.dimension(1))>>);
@@ -22,14 +25,14 @@ TEST_CASE("grid_ctor_raw_size", "[grid][ctor][raw_size]") {
 }
 //==============================================================================
 TEST_CASE("grid_copy_constructor", "[grid][copy][constructor]") {
-  auto const dim0 = std::array{0, 1, 2};
-  auto const dim1 = std ::array{0, 1, 2};
-  auto       g0 = grid{dim0, dim1};
-  auto& prop    = g0.insert_scalar_vertex_property("prop");
-
-  prop(0, 0)      = 100;
-  auto  g1        = g0;
-  auto& prop_copy = g1.vertex_property<double>("prop");
+  auto const dim0       = std::array{0, 1, 2};
+  auto const dim1       = std ::array{0, 1, 2};
+  auto       g0         = grid{dim0, dim1};
+  auto&      prop       = g0.insert_scalar_vertex_property("prop");
+  auto const some_value = 100;
+  prop(0, 0)            = some_value;
+  auto  g1              = g0;
+  auto& prop_copy       = g1.vertex_property<double>("prop");
   REQUIRE(prop(0, 0) == prop_copy(0, 0));
   prop(0, 0) = 0;
   REQUIRE_FALSE(prop(0, 0) == prop_copy(0, 0));
@@ -50,16 +53,15 @@ TEST_CASE("grid_vertex_indexing", "[grid][vertex][indexing]") {
 }
 //==============================================================================
 TEST_CASE("grid_vertex_iterator", "[grid][vertex][iterator]") {
-  auto       g    = grid{std::array{0.0, 1.0, 2.0},
-                         std::vector{0.0, 1.0, 2.0},
-                         linspace{0.0, 2.0, 3}};
-  auto       gv   = vertices(g);
-  auto       it   = begin(gv);
+  auto g  = grid{std::array{0.0, 1.0, 2.0}, std::vector{0.0, 1.0, 2.0},
+                linspace{0.0, 2.0, 3}};
+  auto gv = vertices(g);
+  auto it = begin(gv);
   REQUIRE(approx_equal(gv(*it), gv(0, 0, 0)));
   REQUIRE(approx_equal(gv(*next(it)), gv(1, 0, 0)));
   REQUIRE(approx_equal(gv(*next(it, 3)), gv(0, 1, 0)));
   REQUIRE(approx_equal(gv(*next(it, 9)), gv(0, 0, 1)));
-  //REQUIRE(next(it, 27) == end(gv));
+  // REQUIRE(next(it, 27) == end(gv));
 }
 //==============================================================================
 TEST_CASE("grid_cell_index", "[grid][cell_index]") {
