@@ -30,7 +30,7 @@ add_executable(
   ${TATFE_SRC_DIR}/draw_icon.cpp
   ${TATFE_SRC_DIR}/spacetime_splitted_vectorfield.cpp
   ${TATFE_SRC_DIR}/spacetime_splitted_vectorfield.cpp
-  ${TATFE_SRC_DIR}/field_from_file.cpp
+  #${TATFE_SRC_DIR}/field_from_file.cpp
   ${TATFE_SRC_DIR}/axis_aligned_bounding_box.cpp
   ${TATFE_SRC_DIR}/flowexplorer.cpp
   ${TATFE_SRC_DIR}/doublegyre.cpp

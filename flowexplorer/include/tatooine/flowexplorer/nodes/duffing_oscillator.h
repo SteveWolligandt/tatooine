@@ -13,7 +13,7 @@ struct duffing_oscillator
       : tatooine::analytical::fields::numerical::duffing_oscillator<
             double>{1.0, 1.0, 1.0},
         ui::node<duffing_oscillator>{"Duffing Oscillator", s} {
-    this->template insert_output_pin<parent::vectorfield<double, 2>>(
+    this->template insert_output_pin<polymorphic::vectorfield<double, 2>>(
         "Field Out", *this);
   }
 };

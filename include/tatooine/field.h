@@ -235,9 +235,11 @@ auto sample_to_raw(field<V, VReal, NumDims, Tensor> const& f,
                    T const t, size_t padding = 0, VReal padval = 0) {
   auto const         nan = VReal(0) / VReal(0);
   std::vector<VReal> raw_data;
-  raw_data.reserve(discretized_domain.num_vertices() *
+  auto               vs = discretized_domain.vertices();
+  raw_data.reserve(vs.size() *
                    (f.num_tensor_components() + padding));
-  for (auto x : discretized_domain.vertices()) {
+  for (auto v : vs) {
+    auto const x = vs[v];
     if (f.in_domain(x, t)) {
       auto sample = f(x, t);
       if constexpr (f.is_scalarfield()) {
@@ -275,10 +277,11 @@ auto sample_to_raw(field<V, VReal, NumDims, Tensor> const& f,
                    VReal padval = 0) {
   auto const         nan = VReal(0) / VReal(0);
   std::vector<VReal> raw_data;
-  raw_data.reserve(discretized_domain.num_vertices() * temporal_domain.size() *
+  auto vs = discretized_domain.vertices();
+  raw_data.reserve(vs.size() * temporal_domain.size() *
                    (f.num_tensor_components() + padding));
   for (auto t : temporal_domain) {
-    for (auto v : discretized_domain.vertices()) {
+    for (auto v : vs) {
       auto const x = v.position();
       if (f.in_domain(x, t)) {
         auto sample = f(x, t);
@@ -317,8 +320,10 @@ auto sample_to_vector(polymorphic::field<VReal, NumDims, Tensor> const& f,
   using tensor_t            = typename V::tensor_t;
   auto const            nan = VReal(0) / VReal(0);
   std::vector<tensor_t> data;
-  data.reserve(discretized_domain.num_vertices());
-  for (auto x : discretized_domain.vertices()) {
+  auto                  vs = discretized_domain.vertices();
+  data.reserve(vs.size());
+  for (auto v : vs) {
+    auto const x = vs[v];
     if (f.in_domain(x, t)) {
       data.push_back(f(x, t));
     } else {

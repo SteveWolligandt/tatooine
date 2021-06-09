@@ -1063,6 +1063,16 @@ class grid {
     return vertex_property<mat3, HasNonConstReference>(name);
   }
   //----------------------------------------------------------------------------
+  template <bool HasNonConstReference = true>
+  auto mat4_vertex_property(std::string const& name) const -> auto const& {
+    return vertex_property<mat4, HasNonConstReference>(name);
+  }
+  //----------------------------------------------------------------------------
+  template <bool HasNonConstReference = true>
+  auto mat4_vertex_property(std::string const& name) -> auto& {
+    return vertex_property<mat4, HasNonConstReference>(name);
+  }
+  //----------------------------------------------------------------------------
   // template <invocable<decltype(((void)std::declval<Dimensions>(),
   //                              std::declval<size_t>()))...>
   //              F>

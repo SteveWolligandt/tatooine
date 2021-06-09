@@ -141,6 +141,7 @@ else()
   find_package(Boost REQUIRED COMPONENTS program_options filesystem)
 endif()
 find_package(vcode REQUIRED)
+target_compile_definitions(tatooine PUBLIC BOOST_BIND_GLOBAL_PLACEHOLDERS)
 
 #- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 # check if mkl_lapacke.h can be used
@@ -337,25 +338,28 @@ configure_file(${CMAKE_CURRENT_SOURCE_DIR}/include/tatooine/hdf5.h.in
 #- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 # NetCDF
 #- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-#if(TATOOINE_USE_SYSTEM_HDF5_LIBS)
-#  option(TATOOINE_USE_SYSTEM_NETCDF_LIBS "By setting this to ON tatooine will not compile NetCDF on its own." OFF)
-#  if (TATOOINE_USE_SYSTEM_NETCDF_LIBS)
-#    find_package(NetCDF QUIET)
-#    if (NETCDF_FOUND)
-#      message(STATUS "NetCDF available")
-#      target_compile_definitions(tatooine PUBLIC TATOOINE_NETCDF_AVAILABLE)
-#      target_link_libraries(tatooine PUBLIC ${NETCDF_LIBRARIES})
-#      target_include_directories(tatooine PUBLIC ${NETCDF_INCLUDES})
-#    endif()
-#  endif()
-#endif()
-#if ((NOT TATOOINE_USE_SYSTEM_NETCDF_LIBS) OR
-#  (TATOOINE_USE_SYSTEM_NETCDF_LIBS AND NOT NETCDF_FOUND))
-#  update_git_submodule(${TATOOINE_EXTERNAL}/netcdf4-c)
-#  update_git_submodule(${TATOOINE_EXTERNAL}/netcdf4-cxx)
-#  add_subdirectory(external/netcdf4-c EXCLUDE_FROM_ALL)
-#  add_subdirectory(external/netcdf4-cxx EXCLUDE_FROM_ALL)
-#endif()
+if(TATOOINE_USE_SYSTEM_HDF5_LIBS)
+  option(TATOOINE_USE_SYSTEM_NETCDF_LIBS "By setting this to ON tatooine will not compile NetCDF on its own." OFF)
+  if (TATOOINE_USE_SYSTEM_NETCDF_LIBS)
+    find_package(NetCDF QUIET)
+    if (NETCDF_FOUND)
+      message(STATUS "NetCDF available")
+      set(TATOOINE_NETCDF_AVAILABLE 1)
+      target_compile_definitions(tatooine PUBLIC TATOOINE_NETCDF_AVAILABLE=1)
+      target_link_libraries(tatooine PUBLIC ${NETCDF_LIBRARIES})
+      target_include_directories(tatooine PUBLIC ${NETCDF_INCLUDES})
+    endif()
+  endif()
+endif()
+if ((NOT TATOOINE_USE_SYSTEM_NETCDF_LIBS) OR
+  (TATOOINE_USE_SYSTEM_NETCDF_LIBS AND NOT NETCDF_FOUND))
+  set(TATOOINE_NETCDF_AVAILABLE 0)
+  target_compile_definitions(tatooine PUBLIC TATOOINE_NETCDF_AVAILABLE=0)
+  #update_git_submodule(${TATOOINE_EXTERNAL}/netcdf-c)
+  #update_git_submodule(${TATOOINE_EXTERNAL}/netcdf-cxx4)
+  #add_subdirectory(external/netcdf-c EXCLUDE_FROM_ALL)
+  #add_subdirectory(external/netcdf-cxx4 EXCLUDE_FROM_ALL)
+endif()
 
 #- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 # FLANN

@@ -126,33 +126,25 @@ auto diff(saddle_flowmap<Real> const& flowmap) {
 namespace tatooine {
 //==============================================================================
 template <std::floating_point Real>
-struct differentiated_field<analytical::fields::numerical::saddle<Real>, 2, 2>
-    : field<analytical::fields::numerical::saddle<Real>, Real, 2, 2, 2> {
+struct differentiated_field<analytical::fields::numerical::saddle<Real>>
+    : matrixfield<analytical::fields::numerical::saddle<Real>, Real, 2> {
   using this_t =
       differentiated_field<analytical::fields::numerical::saddle<Real>>;
-  using parent_t = field<this_t, Real, 2, 2, 2>;
+  using parent_t = matrixfield<this_t, Real, 2>;
   using typename parent_t::pos_t;
   using typename parent_t::tensor_t;
 
   //============================================================================
  public:
   constexpr auto evaluate(pos_t const& /*x*/, Real const /*t*/) const
-      -> tensor_t final {
+      -> tensor_t {
     return {{-1, 0}, {0, 1}};
   }
   //----------------------------------------------------------------------------
-  constexpr auto in_domain(pos_t const& /*x*/, Real const /*t*/) const
-      -> bool final {
+  constexpr auto in_domain(pos_t const& /*x*/, Real const /*t*/) const -> bool {
     return true;
   }
 };
-//==============================================================================
-template <typename Real>
-constexpr auto diff(
-    vectorfield<analytical::fields::numerical::saddle<Real>, Real, 2> const&) {
-  return differentiated_field<analytical::fields::numerical::saddle<Real>, 2,
-                              2>{};
-}
 //==============================================================================
 }  // namespace tatooine
 //==============================================================================

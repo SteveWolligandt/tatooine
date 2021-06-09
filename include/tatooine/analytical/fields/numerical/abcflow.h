@@ -10,9 +10,9 @@ namespace tatooine::analytical::fields::numerical {
 ///        incompressible velocity field which is an exact solution of Euler's
 ///        equation.
 template <typename real_t>
-struct abcflow : field<abcflow<real_t>, real_t, 3, 3> {
+struct abcflow : vectorfield<abcflow<real_t>, real_t, 3> {
   using this_t   = abcflow<real_t>;
-  using parent_t = field<this_t, real_t, 3, 3>;
+  using parent_t = vectorfield<this_t, real_t, 3>;
   using typename parent_t::pos_t;
   using typename parent_t::tensor_t;
 
@@ -22,7 +22,8 @@ struct abcflow : field<abcflow<real_t>, real_t, 3, 3> {
 
   //============================================================================
  public:
-  explicit constexpr abcflow(const real_t a = 1, const real_t b = 1, const real_t c = 1)
+  explicit constexpr abcflow(real_t const a = 1, real_t const b = 1,
+                             real_t const c = 1)
       : m_a{a}, m_b{b}, m_c{c} {}
   constexpr abcflow(const abcflow& other)            = default;
   constexpr abcflow(abcflow&& other)                 = default;
@@ -31,12 +32,14 @@ struct abcflow : field<abcflow<real_t>, real_t, 3, 3> {
   ~abcflow() override = default;
 
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
- [[nodiscard]]  constexpr tensor_t evaluate(const pos_t& x, real_t) const override {
+  [[nodiscard]] constexpr auto evaluate(pos_t const& x,
+                                        real_t const /*t*/) const -> tensor_t {
     return tensor_t{m_a * std::sin(x(2)) + m_c * std::cos(x(1)),
                     m_b * std::sin(x(0)) + m_a * std::cos(x(2)),
                     m_c * std::sin(x(1)) + m_b * std::cos(x(0))};
   }
-  [[nodiscard]] constexpr bool in_domain(const pos_t& /*x*/, real_t /*t*/) const override {
+  [[nodiscard]] constexpr auto in_domain(pos_t const& /*x*/,
+                                         real_t const /*t*/) const -> bool {
     return true;
   }
 };

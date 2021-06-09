@@ -71,9 +71,9 @@ struct autonomous_particles_flowmap : renderable<autonomous_particles_flowmap> {
       }
     }
     m_edges.indexbuffer().clear();
-    m_edges.indexbuffer().reserve(m_mesh->faces().size() * 6);
-    for (auto f : m_mesh->faces()) {
-      auto [v0, v1, v2] = m_mesh->at(f);
+    m_edges.indexbuffer().reserve(m_mesh->cells().size() * 6);
+    for (auto c : m_mesh->cells()) {
+      auto [v0, v1, v2] = m_mesh->at(c);
       m_edges.indexbuffer().push_back(v0.i);
       m_edges.indexbuffer().push_back(v1.i);
       m_edges.indexbuffer().push_back(v1.i);

@@ -14,7 +14,7 @@ struct autonomous_particle : tatooine::autonomous_particle<real_t, 2>,
   using parent_t      = tatooine::autonomous_particle<real_t, 2>;
   using gpu_vec3      = vec<GLfloat, 3>;
   using vbo_t         = yavin::vertexbuffer<gpu_vec3>;
-  using vectorfield_t = parent::vectorfield<real_t, 2>;
+  using vectorfield_t = polymorphic::vectorfield<real_t, 2>;
   using parent_t::advect;
   //============================================================================
   real_t          m_taustep = 0.1;

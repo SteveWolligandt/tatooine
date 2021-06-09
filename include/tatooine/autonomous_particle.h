@@ -548,6 +548,8 @@ autonomous_particle<Real, N>::autonomous_particle(pos_t const& x0,
 //                    arithmetic auto const)
 //    -> autonomous_particle<std::decay_t<V> const*,
 //                           std::decay_t<decltype(flowmap(v))>>;
+using autonomous_particle_2 = autonomous_particle<real_t, 2>;
+using autonomous_particle_3 = autonomous_particle<real_t, 3>;
 //==============================================================================
 }  // namespace tatooine
 //==============================================================================

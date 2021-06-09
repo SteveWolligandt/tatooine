@@ -11,7 +11,7 @@ struct abcflow : tatooine::analytical::fields::numerical::abcflow<double>,
   abcflow(flowexplorer::scene& s)
       : ui::node<abcflow>{
             "ABC Flow", s,
-            *dynamic_cast<parent::vectorfield<double, 3>*>(this)} {}
+            *dynamic_cast<polymorphic::vectorfield<double, 3>*>(this)} {}
   virtual ~abcflow() = default;
 };
 //==============================================================================

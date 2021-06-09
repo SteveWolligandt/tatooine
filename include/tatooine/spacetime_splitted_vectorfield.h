@@ -40,13 +40,13 @@ struct spacetime_splitted_vectorfield
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
   template <typename = void>
   requires std::is_pointer_v<V>
-  void set_field(parent::vectorfield<real_t, num_dimensions() + 1> const& v) {
+  void set_field(polymorphic::vectorfield<real_t, num_dimensions() + 1> const& v) {
     m_v = &v;
   }
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
   template <typename = void>
   requires std::is_pointer_v<V>
-  void set_field(parent::vectorfield<real_t, num_dimensions() + 1> const* v) {
+  void set_field(polymorphic::vectorfield<real_t, num_dimensions() + 1> const* v) {
     m_v = v;
   }
   //============================================================================
@@ -101,13 +101,13 @@ auto split_spacetime(vectorfield<V, VReal, N>&& v) {
 }
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 template <typename VReal, size_t N>
-auto split_spacetime(parent::vectorfield<VReal, N>* v) {
-  return spacetime_splitted_vectorfield<parent::vectorfield<VReal, N>*>{v};
+auto split_spacetime(polymorphic::vectorfield<VReal, N>* v) {
+  return spacetime_splitted_vectorfield<polymorphic::vectorfield<VReal, N>*>{v};
 }
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 template <typename VReal, size_t N>
-auto split_spacetime(parent::vectorfield<VReal, N> const* v) {
-  return spacetime_splitted_vectorfield<parent::vectorfield<VReal, N> const*>{
+auto split_spacetime(polymorphic::vectorfield<VReal, N> const* v) {
+  return spacetime_splitted_vectorfield<polymorphic::vectorfield<VReal, N> const*>{
       v};
 }
 //==============================================================================

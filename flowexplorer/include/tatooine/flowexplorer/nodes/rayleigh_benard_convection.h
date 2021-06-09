@@ -13,7 +13,7 @@ struct rayleigh_benard_convection
       ui::node<rayleigh_benard_convection> {
   rayleigh_benard_convection(flowexplorer::scene& s)
       : ui::node<rayleigh_benard_convection>{"Rayleigh Benard Convection", s} {
-    this->template insert_output_pin<parent::field<double, 3, 3>>("Field Out",
+    this->template insert_output_pin<polymorphic::vectorfield<double, 3>>("Field Out",
                                                                   *this);
   }
 };

@@ -174,10 +174,11 @@ auto calc_parallel_vectors(GetV&& getv, GetW&& getw,
                         size_t ix, size_t iy, size_t iz) {
 #endif
     using boost::copy;
+    auto gv = g.vertices();
     std::array p{
-        g(ix, iy, iz),         g(ix + 1, iy, iz),         g(ix, iy + 1, iz),
-        g(ix + 1, iy + 1, iz), g(ix, iy, iz + 1),         g(ix + 1, iy, iz + 1),
-        g(ix, iy + 1, iz + 1), g(ix + 1, iy + 1, iz + 1),
+        gv(ix, iy, iz),         gv(ix + 1, iy, iz),         gv(ix, iy + 1, iz),
+        gv(ix + 1, iy + 1, iz), gv(ix, iy, iz + 1),         gv(ix + 1, iy, iz + 1),
+        gv(ix, iy + 1, iz + 1), gv(ix + 1, iy + 1, iz + 1),
     };
     decltype(auto) v0 = getv(ix, iy, iz, p[0]);
     if (isnan(v0)) {

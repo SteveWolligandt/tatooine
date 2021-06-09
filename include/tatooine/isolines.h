@@ -111,9 +111,10 @@ auto isolines(GetScalars&& get_scalars, grid<XDomain, YDomain> const& g,
   return merge_lines(isolines);
 }
 //------------------------------------------------------------------------------
-template <typename Grid, arithmetic T>
-auto isolines(typed_multidim_property<Grid, T> const& data,
-              arithmetic auto const                  isolevel) {
+template <typename Grid, arithmetic T, bool HasNonConstReference>
+auto isolines(typed_grid_vertex_property_interface<
+                  Grid, T, HasNonConstReference> const& data,
+              arithmetic auto const                     isolevel) {
   return isolines(
       [&](auto ix, auto iy, auto const& /*ps*/) -> auto const& {
         return data(ix, iy);

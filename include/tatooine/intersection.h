@@ -9,15 +9,15 @@ namespace tatooine {
 template <typename Real>
 struct ray_intersectable;
 //==============================================================================
-template <typename Real>
+template <typename Real, size_t N = 3>
 struct intersection {
   static_assert(is_floating_point<Real>);
   using real_t                  = Real;
-  using vec3_t                  = vec<real_t, 3>;
-  using vec2_t                  = vec<real_t, 2>;
-  using pos_t                   = vec3_t;
-  using uv_t                    = vec2_t;
-  using ray_t                   = ray<real_t, 3>;
+  using vec_t                   = vec<Real, N>;
+  using pos_t                   = vec_t;
+  using normal_t                = vec_t;
+  using uv_t                    = vec<Real, 2>;
+  using ray_t                   = ray<real_t, N>;
   using ray_intersectable_ptr_t = ray_intersectable<real_t>;
   //============================================================================
   /// pointer to primitive object
@@ -27,11 +27,11 @@ struct intersection {
   /// position on ray
   real_t t;
   /// world position of intersection
-  vec3_t position;
+  pos_t position;
   /// normal of intersection point on the primitive
-  vec3_t normal;
+  normal_t normal;
   /// uv-coordinate on the primitive
-  vec2_t uv;
+  uv_t uv;
 };
 //==============================================================================
 }  // namespace tatooine

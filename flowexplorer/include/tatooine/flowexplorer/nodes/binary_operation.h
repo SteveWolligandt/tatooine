@@ -18,9 +18,8 @@ struct binary_operation : ui::node<binary_operation> {
     return lhs * rhs;
   };
   using matrix_vector_field_multiplication_t =
-      binary_operation_field<parent::field<real_t, 3, 3, 3>*,
-                             parent::field<real_t, 3, 3>*, decltype(mult),
-                             real_t, 3, 3>;
+      binary_operation_field<polymorphic::matrixfield<real_t, 3>*,
+                             polymorphic::vectorfield<real_t, 3>*, decltype(mult)>;
 
   real_t                               m_scalar_value;
   matrix_vector_field_multiplication_t m_matrix_vector_multiplication_field;

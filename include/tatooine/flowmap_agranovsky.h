@@ -22,7 +22,7 @@ struct flowmap_agranovsky {
   };
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
   using grid_t      = typename grid_type_creator<N>::type;
-  using grid_prop_t = typed_multidim_property<grid_t, pos_t, true>;
+  using grid_prop_t = typed_grid_vertex_property_interface<grid_t, pos_t, true>;
   //============================================================================
   template <size_t M, template <typename> typename... InterpolationKernels>
   struct grid_sampler_type_creator {

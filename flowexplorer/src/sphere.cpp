@@ -40,8 +40,8 @@ sphere::sphere(flowexplorer::scene& s)
                                               static_cast<float>(d[v](1)),
                                               static_cast<float>(d[v](2))});
   }
-  for (auto f : d.faces()) {
-    auto const& [v0, v1, v2] = d[f];
+  for (auto c : d.cells()) {
+    auto const& [v0, v1, v2] = d[c];
     m_gpu_data.indexbuffer().push_back(v0.i);
     m_gpu_data.indexbuffer().push_back(v1.i);
     m_gpu_data.indexbuffer().push_back(v2.i);

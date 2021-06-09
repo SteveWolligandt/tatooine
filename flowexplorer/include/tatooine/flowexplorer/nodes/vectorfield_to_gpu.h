@@ -10,14 +10,14 @@
 namespace tatooine::flowexplorer::nodes {
 //==============================================================================
 struct vectorfield_to_gpu : ui::node<vectorfield_to_gpu>, yavin::tex2rg32f {
-  using vectorfield_t = parent::vectorfield<double, 2>;
+  using vectorfield_t = polymorphic::vectorfield<double, 2>;
   using bb_t          = flowexplorer::nodes::axis_aligned_bounding_box<2>;
   using tex_t         = yavin::tex2rg32f;
   //----------------------------------------------------------------------------
   vectorfield_t* m_v  = nullptr;
   bb_t*          m_bb = nullptr;
-  vec<int, 2> m_res;
-  real_t m_t;
+  vec<int, 2>    m_res;
+  real_t         m_t;
   //----------------------------------------------------------------------------
   auto bounding_box() const { return m_bb; }
   //----------------------------------------------------------------------------
@@ -41,8 +41,8 @@ struct vectorfield_to_gpu : ui::node<vectorfield_to_gpu>, yavin::tex2rg32f {
         sample_to_vector(
             *m_v,
             uniform_grid<real_t, 2>{
-                linspace{m_bb->min(0), m_bb->max(0), static_cast<size_t>(m_res->at(0))},
-                linspace{m_bb->min(1), m_bb->max(1), static_cast<size_t>(m_res->at(1))}},
+                linspace{m_bb->min(0), m_bb->max(0), static_cast<size_t>(m_res.at(0))},
+                linspace{m_bb->min(1), m_bb->max(1), static_cast<size_t>(m_res.at(1))}},
             m_t),
         m_res(0), m_res(1));
   }
