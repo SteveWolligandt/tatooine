@@ -28,19 +28,14 @@ set(COVERAGE_EXCLUDES
     /usr/include)
 set(COVERAGE_GCOVR_EXCLUDES ${COVERAGE_EXCLUDES})
 set(COVERAGE_LCOV_EXCLUDES
-  /usr/include/c++/11/*
-  /usr/include/c++/11/bits/*
-  /usr/include/c++/11/ext/*
-  /usr/include/boost/core/*
-  /usr/include/x86_64-linux-gnu/c++/11/bits/*
+  /usr/include/boost/*/*
+  /usr/include/boost/*/*/*
   /usr/include/png++/*
-  /usr/include/boost/system/detail/*
-  /usr/include/boost/system/*
-  /usr/include/boost/serialization/*
-  /usr/include/boost/iterator/*
+  /usr/include/c++/*/*
+  /usr/include/c++/*/*/*
+  /usr/include/c++/*/*/*/*
   ${CMAKE_CURRENT_SOURCE_DIR}/*
   ${CMAKE_CURRENT_SOURCE_DIR}/external/catch2/single_include/catch2/*)
-message(STATUS ${CMAKE_CURRENT_SOURCE_DIR}/*)
 #- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 set(TATOOINE_TEST_CPPS main.cpp)
 macro(create_test NAME)

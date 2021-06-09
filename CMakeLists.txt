@@ -291,7 +291,9 @@ if ((NOT TATOOINE_USE_SYSTEM_HDF5_LIBS) OR
   if ("${CMAKE_CXX_COMPILER_ID}" STREQUAL "GNU" OR
       "${CMAKE_CXX_COMPILER_ID}" STREQUAL "Clang")
     set(TATOOINE_HDF5_WNOS
-      "-Wno-#warnings"
+      -Wno-larger-than
+      -Wno-null-dereference
+      -Wno-strict-overflow
       -Wno-missing-field-initializers
       -Wno-cast-qual
       -Wno-sign-conversion
@@ -423,7 +425,7 @@ if (TATOOINE_BUILD_DOC)
 endif () 
 add_subdirectory(material_science EXCLUDE_FROM_ALL)
 if (yavin_FOUND) 
-  add_subdirectory(steadification EXCLUDE_FROM_ALL)
+  #add_subdirectory(steadification EXCLUDE_FROM_ALL)
 endif()
 if (yavin_FOUND) 
   option(TATOOINE_BUILD_FLOWEXPLORER "Builds Flow Explorer" OFF)
