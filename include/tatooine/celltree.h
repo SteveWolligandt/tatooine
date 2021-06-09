@@ -233,7 +233,7 @@ struct celltree : detail::celltree_parent<celltree<Mesh>, typename Mesh::real_t,
   //----------------------------------------------------------------------------
   template <size_t... Seq>
   constexpr auto cell_center(size_t const cell_idx, std::uint8_t const dim,
-                             std::index_sequence<Seq...> seq) const {
+                             std::index_sequence<Seq...> /*seq*/) const {
     auto const cell_vertex_handles = mesh().cell_at(cell_idx);
     auto const min =
         tatooine::min(mesh()[std::get<Seq>(cell_vertex_handles)](dim)...);

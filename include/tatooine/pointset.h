@@ -345,19 +345,96 @@ struct pointset {
   //----------------------------------------------------------------------------
   template <typename T>
   auto vertex_property(std::string const& name) -> auto& {
-    auto prop        = m_vertex_properties.at(name).get();
-    auto casted_prop = dynamic_cast<vertex_property_t<T>*>(prop);
-    return *casted_prop;
+    if (auto it = m_vertex_properties.find(name);
+        it == end(m_vertex_properties)) {
+      return insert_vertex_property<T>(name);
+    } else {
+      if (typeid(T) != it->second->type()) {
+        throw std::runtime_error{
+            "type of property \"" + name + "\"(" +
+            boost::core::demangle(it->second->type().name()) +
+            ") does not match specified type " + type_name<T>() + "."};
+      }
+      return *dynamic_cast<vertex_property_t<T>*>(
+          m_vertex_properties.at(name).get());
+    }
   }
   //----------------------------------------------------------------------------
   template <typename T>
   auto vertex_property(std::string const& name) const -> const auto& {
-    return *dynamic_cast<vertex_property_t<T>*>(
-        m_vertex_properties.at(name).get());
+    if (auto it = m_vertex_properties.find(name);
+        it == end(m_vertex_properties)) {
+      throw std::runtime_error{"property \"" + name + "\" not found"};
+    } else {
+      if (typeid(T) != it->second->type()) {
+        throw std::runtime_error{
+            "type of property \"" + name + "\"(" +
+            boost::core::demangle(it->second->type().name()) +
+            ") does not match specified type " + type_name<T>() + "."};
+      }
+      return *dynamic_cast<vertex_property_t<T>*>(
+          m_vertex_properties.at(name).get());
+    }
+  }
+  //----------------------------------------------------------------------------
+  auto scalar_vertex_property(std::string const& name) const -> auto const& {
+    return vertex_property<tatooine::real_t>(name);
+  }
+  //----------------------------------------------------------------------------
+  auto scalar_vertex_property(std::string const& name) -> auto& {
+    return vertex_property<tatooine::real_t>(name);
+  }
+  //----------------------------------------------------------------------------
+  auto vec2_vertex_property(std::string const& name) const -> auto const& {
+    return vertex_property<vec2>(name);
+  }
+  //----------------------------------------------------------------------------
+  auto vec2_vertex_property(std::string const& name) -> auto& {
+    return vertex_property<vec2>(name);
+  }
+  //----------------------------------------------------------------------------
+  auto vec3_vertex_property(std::string const& name) const -> auto const& {
+    return vertex_property<vec3>(name);
+  }
+  //----------------------------------------------------------------------------
+  auto vec3_vertex_property(std::string const& name) -> auto& {
+    return vertex_property<vec3>(name);
+  }
+  //----------------------------------------------------------------------------
+  auto vec4_vertex_property(std::string const& name) const -> auto const& {
+    return vertex_property<vec4>(name);
+  }
+  //----------------------------------------------------------------------------
+  auto vec4_vertex_property(std::string const& name) -> auto& {
+    return vertex_property<vec4>(name);
+  }
+  //----------------------------------------------------------------------------
+  auto mat2_vertex_property(std::string const& name) const -> auto const& {
+    return vertex_property<mat2>(name);
+  }
+  //----------------------------------------------------------------------------
+  auto mat2_vertex_property(std::string const& name) -> auto& {
+    return vertex_property<mat2>(name);
+  }
+  //----------------------------------------------------------------------------
+  auto mat3_vertex_property(std::string const& name) const -> auto const& {
+    return vertex_property<mat3>(name);
+  }
+  //----------------------------------------------------------------------------
+  auto mat3_vertex_property(std::string const& name) -> auto& {
+    return vertex_property<mat3>(name);
+  }
+  //----------------------------------------------------------------------------
+  auto mat4_vertex_property(std::string const& name) const -> auto const& {
+    return vertex_property<mat4>(name);
+  }
+  //----------------------------------------------------------------------------
+  auto mat4_vertex_property(std::string const& name) -> auto& {
+    return vertex_property<mat4>(name);
   }
   //----------------------------------------------------------------------------
   template <typename T>
-  auto add_vertex_property(std::string const& name, T const& value = T{})
+  auto insert_vertex_property(std::string const& name, T const& value = T{})
       -> auto& {
     auto [it, suc] = m_vertex_properties.insert(
         std::pair{name, std::make_unique<vertex_property_t<T>>(value)});

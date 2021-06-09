@@ -126,9 +126,9 @@ struct rungekutta43 : solver<rungekutta43<Real, N>, Real, N> {
   /// if tau > 0 than it integrates forward and pushes new samples back
   /// otherwise pushes samples to front.
   template <arithmetic VReal, arithmetic Y0Real, arithmetic T0Real,
-            arithmetic                         TauReal,
+            arithmetic                          TauReal,
             stepper_callback_invocable<Real, N> StepperCallback>
-  constexpr void solve(parent::field<VReal, N, N> const& v,
+  constexpr void solve(polymorphic::vectorfield<VReal, N> const& v,
                        vec<Y0Real, N> const& y0, T0Real const t0, TauReal tau,
                        StepperCallback&& callback) const {
     // do not start integration if y0, t0 is not in domain of vectorfield

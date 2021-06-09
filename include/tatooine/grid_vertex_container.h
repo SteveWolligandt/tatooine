@@ -78,7 +78,7 @@ struct grid_vertex_container {
     return at(seq_t{}, h.indices());
   }
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-  auto operator()(handle const& h) const {
+  auto operator[](handle const& h) const {
     return at(seq_t{}, h.indices());
   }
   //----------------------------------------------------------------------------

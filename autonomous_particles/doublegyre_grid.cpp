@@ -32,10 +32,11 @@ auto create_initial_distribution(args_t const& args) {
 //------------------------------------------------------------------------------
 auto create_initial_particles(args_t const& args) {
   auto       initial_distribution_grid = create_initial_distribution(args);
+  auto       vs                        = initial_distribution_grid.vertices();
   auto const r0 = initial_distribution_grid.dimension<0>().spacing() / 2;
-  typename autonomous_particle<real_t, 2>::container_t initial_particles;
-  for (auto const& x : initial_distribution_grid.vertices()) {
-    initial_particles.emplace_back(x, args.t0, r0);
+  autonomous_particle_2::container_t initial_particles;
+  for (auto const& v : vs) {
+    initial_particles.emplace_back(vs[v], args.t0, r0);
   }
 
   // overlapping particles
@@ -49,8 +50,8 @@ auto create_initial_particles(args_t const& args) {
       initial_distribution_grid.dimension<1>().spacing() / 2;
   initial_distribution_grid.dimension<0>().pop_back();
   initial_distribution_grid.dimension<1>().pop_back();
-  for (auto const& x : initial_distribution_grid.vertices()) {
-    initial_particles.emplace_back(x, args.t0, r0);
+  for (auto const& v : vs) {
+    initial_particles.emplace_back(vs[v], args.t0, r0);
   }
 
   return initial_particles;
@@ -59,7 +60,7 @@ auto create_initial_particles(args_t const& args) {
 auto create_autonomous_mesh(range auto const& autonomous_particles) {
   triangular_mesh<double, 2> autonomous_mesh;
   auto&                      autonomous_flowmap_mesh_prop =
-      autonomous_mesh.add_vertex_property<vec2>("flowmap");
+      autonomous_mesh.vec2_vertex_property("flowmap");
   autonomous_mesh.vertex_data().reserve(autonomous_mesh.vertices().size() +
                                         size(autonomous_particles));
   for (auto const& p : autonomous_particles) {
@@ -69,40 +70,40 @@ auto create_autonomous_mesh(range auto const& autonomous_particles) {
   return autonomous_mesh;
 }
 //------------------------------------------------------------------------------
-auto create_agranovsky_flowmap(auto&& v, size_t const grid_min_extent,
-                               args_t const& args) {
-  double const agranovsky_delta_t = 1;
-  return flowmap_agranovsky{v,
-                            args.t0,
-                            args.tau,
-                            agranovsky_delta_t,
-                            vec2{0, 0},
-                            vec2{2, 1},
-                            grid_min_extent * 2,
-                            grid_min_extent};
-}
+//auto create_agranovsky_flowmap(auto&& v, size_t const grid_min_extent,
+//                               args_t const& args) {
+//  double const agranovsky_delta_t = 1;
+//  return flowmap_agranovsky{v,
+//                            args.t0,
+//                            args.tau,
+//                            agranovsky_delta_t,
+//                            vec2{0, 0},
+//                            vec2{2, 1},
+//                            grid_min_extent * 2,
+//                            grid_min_extent};
+//}
 //------------------------------------------------------------------------------
-template <typename... Flowmaps>
-auto compare_direct_forward(
-    auto const& args, auto& report, auto&& numerical_flowmap,
-    auto&& autonomous_particles,
-    std::pair<std::string, Flowmaps> const&... flowmaps) {
-  for (auto const& p : autonomous_particles) {
-    auto const numerical_x0    = numerical_flowmap(p.x0(), args.t0, args.tau);
-    auto const dist_autonomous = distance(numerical_x0, p.x1());
-    std::tuple<std::string, size_t> comparisons;
-    [&]() {
-      try {
-        sample = agranovsky.evaluate_full_forward(p.x1());
-      } catch (std::exception&) {
-        ++num_autonomous_better_forward;
-        continue;
-      }
-    }
-  }
-
-  return std::tuple{};
-}
+//template <typename... Flowmaps>
+//auto compare_direct_forward(
+//    auto const& args, auto& report, auto&& numerical_flowmap,
+//    auto&& autonomous_particles,
+//    std::pair<std::string, Flowmaps> const&... flowmaps) {
+//  for (auto const& p : autonomous_particles) {
+//    auto const numerical_x0    = numerical_flowmap(p.x0(), args.t0, args.tau);
+//    auto const dist_autonomous = distance(numerical_x0, p.x1());
+//    std::tuple<std::string, size_t> comparisons;
+//    [&]() {
+//      try {
+//        agranovsky.evaluate_full_forward(p.x1());
+//      } catch (std::exception&) {
+//        ++num_autonomous_better_forward;
+//        continue;
+//      }
+//    }
+//  }
+//
+//  return std::tuple{};
+//}
 ////------------------------------------------------------------------------------
 //auto compare_direct_backward(auto const& args, auto& report,
 //                             auto&& autonomous_particles,
@@ -237,102 +238,102 @@ auto main(int argc, char** argv) -> int {
     indicator.set_text("Writing delaunay triangulated flowmap");
     autonomous_mesh.write_vtk("doublegyre_autonomous_forward_flowmap.vtk");
 
-    indicator.set_text("Creating Sampler");
-    // auto flowmap_sampler_autonomous_particles =
-    //    autonomous_mesh.sampler(autonomous_flowmap_mesh_prop);
-    [[maybe_unused]] auto flowmap_sampler_autonomous_particles =
-        autonomous_mesh.inverse_distance_weighting_sampler(
-            autonomous_flowmap_mesh_prop);
-    auto const grid_min_extent = static_cast<size_t>(
-        std::ceil(std::sqrt(size(autonomous_particles) / 2)));
-    //----------------------------------------------------------------------------
-    // build agranovsky
-    //----------------------------------------------------------------------------
-    indicator.set_text("Building agranovsky flowmap");
-    auto agranovsky = create_agranovsky_flowmap(v, grid_min_extent, args);
-    //----------------------------------------------------------------------------
-    // comparing back calculations with agranovsky
-    //----------------------------------------------------------------------------
-    indicator.set_text("Comparing direct positions forward");
-    compare_direct_forward(args, report, autonomous_particles,
-                           numerical_flowmap, agranovsky);
-
-    //indicator.set_text("Comparing direct positions backward");
-    //[[maybe_unused]] auto const [num_autonomous_better_backward,
-    //                             num_autonomous_bad_backward,
-    //                             num_autonomous_really_bad_backward,
-    //                             num_autonomous_really_really_bad_backward,
-    //                             num_agranovsky_bad_backward,
-    //                             num_agranovsky_really_bad_backward,
-    //                             num_agranovsky_really_really_bad_backward] =
-    //    compare_direct_backward(args, report, autonomous_particles,
-    //                            numerical_flowmap, agranovsky);
-    //----------------------------------------------------------------------------
-    // build flowmap on uniform grid that has approximately the same number of
-    // vertices as particles
-    //----------------------------------------------------------------------------
-    indicator.set_text("Buildung regular sampled flowmap");
-    grid  uniform_grid{linspace{0.0, 2.0, grid_min_extent * 2},
-                       linspace{0.0, 1.0, grid_min_extent}};
-    auto& regular_flowmap_grid_prop =
-        uniform_grid.add_vertex_property<vec2, x_fastest>("flowmap");
-    uniform_grid.iterate_over_vertex_indices([&](auto const... is) {
-      regular_flowmap_grid_prop(is...) =
-          numerical_flowmap(uniform_grid(is...), args.t0, args.tau);
-    });
-    triangular_mesh<double, 2> regular_mesh{uniform_grid};
-    auto&                      regular_flowmap_mesh_prop =
-        regular_mesh.vertex_property<vec2>("flowmap");
-    regular_mesh.write_vtk("doublegyre_regular_forward_flowmap.vtk");
-
-    // auto flowmap_sampler_regular =
-    //    regular_mesh.sampler(regular_flowmap_mesh_prop);
-    [[maybe_unused]] auto flowmap_sampler_regular =
-        regular_mesh.inverse_distance_weighting_sampler(
-            regular_flowmap_mesh_prop);
-
-    //----------------------------------------------------------------------------
-    // Create memory for measuring
-    //----------------------------------------------------------------------------
-    grid sampler_check_grid{linspace{0.0, 2.0, 101}, linspace{0.0, 1.0, 51}};
-    [[maybe_unused]] auto& forward_errors_autonomous_prop =
-        sampler_check_grid.add_vertex_property<double>(
-            "forward_error_autonomous");
-    [[maybe_unused]] auto& forward_errors_regular_prop =
-        sampler_check_grid.add_vertex_property<double>("forward_error_regular");
-    [[maybe_unused]] auto& forward_errors_agranovsky_prop =
-        sampler_check_grid.add_vertex_property<double>(
-            "forward_error_agranovsky");
-    [[maybe_unused]] auto& forward_errors_diff_regular_prop =
-        sampler_check_grid.add_vertex_property<double>(
-            "forward_error_diff_regular");
-    [[maybe_unused]] auto& forward_errors_diff_agranovsky_prop =
-        sampler_check_grid.add_vertex_property<double>(
-            "forward_error_diff_agranovsky");
-
-    [[maybe_unused]] auto& backward_errors_autonomous_prop =
-        sampler_check_grid.add_vertex_property<double>(
-            "backward_error_autonomous");
-    [[maybe_unused]] auto& backward_errors_regular_prop =
-        sampler_check_grid.add_vertex_property<double>(
-            "backward_error_regular");
-    [[maybe_unused]] auto& backward_errors_diff_regular_prop =
-        sampler_check_grid.add_vertex_property<double>(
-            "backward_error_diff_regular");
-    [[maybe_unused]] auto& backward_errors_agranovsky_prop =
-        sampler_check_grid.add_vertex_property<double>(
-            "backward_error_agranovsky");
-    [[maybe_unused]] auto& backward_errors_diff_agranovsky_prop =
-        sampler_check_grid.add_vertex_property<double>(
-            "backward_error_diff_agranovsky");
-
-    double mean_autonomous_forward_error  = std::numeric_limits<double>::max(),
-           mean_regular_forward_error     = std::numeric_limits<double>::max(),
-           mean_agranovsky_forward_error  = std::numeric_limits<double>::max();
-    double mean_autonomous_backward_error = std::numeric_limits<double>::max(),
-           mean_regular_backward_error    = std::numeric_limits<double>::max(),
-           mean_agranovsky_backward_error = std::numeric_limits<double>::max();
-    size_t num_points_ood_forward = 0, num_points_ood_backward = 0;
+    //indicator.set_text("Creating Sampler");
+    //// auto flowmap_sampler_autonomous_particles =
+    ////    autonomous_mesh.sampler(autonomous_flowmap_mesh_prop);
+    //[[maybe_unused]] auto flowmap_sampler_autonomous_particles =
+    //    autonomous_mesh.inverse_distance_weighting_sampler(
+    //        autonomous_flowmap_mesh_prop);
+    //auto const grid_min_extent = static_cast<size_t>(
+    //    std::ceil(std::sqrt(size(autonomous_particles) / 2)));
+    ////----------------------------------------------------------------------------
+    //// build agranovsky
+    ////----------------------------------------------------------------------------
+    //indicator.set_text("Building agranovsky flowmap");
+    //auto agranovsky = create_agranovsky_flowmap(v, grid_min_extent, args);
+    ////----------------------------------------------------------------------------
+    //// comparing back calculations with agranovsky
+    ////----------------------------------------------------------------------------
+    //indicator.set_text("Comparing direct positions forward");
+    //compare_direct_forward(args, report, autonomous_particles,
+    //                       numerical_flowmap, agranovsky);
+    //
+    ////indicator.set_text("Comparing direct positions backward");
+    ////[[maybe_unused]] auto const [num_autonomous_better_backward,
+    ////                             num_autonomous_bad_backward,
+    ////                             num_autonomous_really_bad_backward,
+    ////                             num_autonomous_really_really_bad_backward,
+    ////                             num_agranovsky_bad_backward,
+    ////                             num_agranovsky_really_bad_backward,
+    ////                             num_agranovsky_really_really_bad_backward] =
+    ////    compare_direct_backward(args, report, autonomous_particles,
+    ////                            numerical_flowmap, agranovsky);
+    ////----------------------------------------------------------------------------
+    //// build flowmap on uniform grid that has approximately the same number of
+    //// vertices as particles
+    ////----------------------------------------------------------------------------
+    //indicator.set_text("Buildung regular sampled flowmap");
+    //grid  uniform_grid{linspace{0.0, 2.0, grid_min_extent * 2},
+    //                   linspace{0.0, 1.0, grid_min_extent}};
+    //auto& regular_flowmap_grid_prop =
+    //    uniform_grid.add_vertex_property<vec2, x_fastest>("flowmap");
+    //uniform_grid.iterate_over_vertex_indices([&](auto const... is) {
+    //  regular_flowmap_grid_prop(is...) =
+    //      numerical_flowmap(uniform_grid(is...), args.t0, args.tau);
+    //});
+    //triangular_mesh<double, 2> regular_mesh{uniform_grid};
+    //auto&                      regular_flowmap_mesh_prop =
+    //    regular_mesh.vertex_property<vec2>("flowmap");
+    //regular_mesh.write_vtk("doublegyre_regular_forward_flowmap.vtk");
+    //
+    //// auto flowmap_sampler_regular =
+    ////    regular_mesh.sampler(regular_flowmap_mesh_prop);
+    //[[maybe_unused]] auto flowmap_sampler_regular =
+    //    regular_mesh.inverse_distance_weighting_sampler(
+    //        regular_flowmap_mesh_prop);
+    //
+    ////----------------------------------------------------------------------------
+    //// Create memory for measuring
+    ////----------------------------------------------------------------------------
+    //grid sampler_check_grid{linspace{0.0, 2.0, 101}, linspace{0.0, 1.0, 51}};
+    //[[maybe_unused]] auto& forward_errors_autonomous_prop =
+    //    sampler_check_grid.add_vertex_property<double>(
+    //        "forward_error_autonomous");
+    //[[maybe_unused]] auto& forward_errors_regular_prop =
+    //    sampler_check_grid.add_vertex_property<double>("forward_error_regular");
+    //[[maybe_unused]] auto& forward_errors_agranovsky_prop =
+    //    sampler_check_grid.add_vertex_property<double>(
+    //        "forward_error_agranovsky");
+    //[[maybe_unused]] auto& forward_errors_diff_regular_prop =
+    //    sampler_check_grid.add_vertex_property<double>(
+    //        "forward_error_diff_regular");
+    //[[maybe_unused]] auto& forward_errors_diff_agranovsky_prop =
+    //    sampler_check_grid.add_vertex_property<double>(
+    //        "forward_error_diff_agranovsky");
+    //
+    //[[maybe_unused]] auto& backward_errors_autonomous_prop =
+    //    sampler_check_grid.add_vertex_property<double>(
+    //        "backward_error_autonomous");
+    //[[maybe_unused]] auto& backward_errors_regular_prop =
+    //    sampler_check_grid.add_vertex_property<double>(
+    //        "backward_error_regular");
+    //[[maybe_unused]] auto& backward_errors_diff_regular_prop =
+    //    sampler_check_grid.add_vertex_property<double>(
+    //        "backward_error_diff_regular");
+    //[[maybe_unused]] auto& backward_errors_agranovsky_prop =
+    //    sampler_check_grid.add_vertex_property<double>(
+    //        "backward_error_agranovsky");
+    //[[maybe_unused]] auto& backward_errors_diff_agranovsky_prop =
+    //    sampler_check_grid.add_vertex_property<double>(
+    //        "backward_error_diff_agranovsky");
+    //
+    //double mean_autonomous_forward_error  = std::numeric_limits<double>::max(),
+    //       mean_regular_forward_error     = std::numeric_limits<double>::max(),
+    //       mean_agranovsky_forward_error  = std::numeric_limits<double>::max();
+    //double mean_autonomous_backward_error = std::numeric_limits<double>::max(),
+    //       mean_regular_backward_error    = std::numeric_limits<double>::max(),
+    //       mean_agranovsky_backward_error = std::numeric_limits<double>::max();
+    //size_t num_points_ood_forward = 0, num_points_ood_backward = 0;
 
     ////----------------------------------------------------------------------------
     //// Compare forward
@@ -398,28 +399,28 @@ auto main(int argc, char** argv) -> int {
     //----------------------------------------------------------------------------
     // Reverse Meshes
     //----------------------------------------------------------------------------
-    indicator.set_text("Reversing Meshes");
-    for (auto v : autonomous_mesh.vertices()) {
-      std::swap(autonomous_mesh[v](0), autonomous_flowmap_mesh_prop[v](0));
-      std::swap(autonomous_mesh[v](1), autonomous_flowmap_mesh_prop[v](1));
-    }
-    autonomous_mesh.build_delaunay_mesh();
-    autonomous_mesh.write_vtk("doublegyre_autonomous_backward_flowmap.vtk");
-    autonomous_mesh.rebuild_kd_tree();
-    // autonomous_mesh.build_hierarchy();
+    //indicator.set_text("Reversing Meshes");
+    //for (auto v : autonomous_mesh.vertices()) {
+    //  std::swap(autonomous_mesh[v](0), autonomous_flowmap_mesh_prop[v](0));
+    //  std::swap(autonomous_mesh[v](1), autonomous_flowmap_mesh_prop[v](1));
+    //}
+    //autonomous_mesh.build_delaunay_mesh();
+    //autonomous_mesh.write_vtk("doublegyre_autonomous_backward_flowmap.vtk");
+    //autonomous_mesh.rebuild_kd_tree();
+    //// autonomous_mesh.build_hierarchy();
+    //
+    //for (auto v : regular_mesh.vertices()) {
+    //  std::swap(regular_mesh[v](0), regular_flowmap_mesh_prop[v](0));
+    //  std::swap(regular_mesh[v](1), regular_flowmap_mesh_prop[v](1));
+    //}
+    //regular_mesh.build_delaunay_mesh();
+    //regular_mesh.build_hierarchy();
+    //regular_mesh.rebuild_kd_tree();
+    //regular_mesh.write_vtk("doublegyre_regular_backward_flowmap.vtk");
 
-    for (auto v : regular_mesh.vertices()) {
-      std::swap(regular_mesh[v](0), regular_flowmap_mesh_prop[v](0));
-      std::swap(regular_mesh[v](1), regular_flowmap_mesh_prop[v](1));
-    }
-    regular_mesh.build_delaunay_mesh();
-    regular_mesh.build_hierarchy();
-    regular_mesh.rebuild_kd_tree();
-    regular_mesh.write_vtk("doublegyre_regular_backward_flowmap.vtk");
-
-    //////----------------------------------------------------------------------------
-    ////// Compare with backward advection
-    //////----------------------------------------------------------------------------
+    //----------------------------------------------------------------------------
+    // Compare with backward advection
+    //----------------------------------------------------------------------------
     // indicator.set_text("Comparing backward advection");
     //{
     //  std::vector<double> autonomous_errors, regular_errors,
@@ -481,53 +482,53 @@ auto main(int argc, char** argv) -> int {
     //      size(agranovsky_errors);
     //}
 
-    indicator.mark_as_completed();
-    report << num_points_ood_forward << " / "
-           << sampler_check_grid.vertices().size()
-           << " out of domain in forward direction("
-           << (100 * num_points_ood_forward /
-               (double)sampler_check_grid.vertices().size())
-           << "%)\n"
-           << num_points_ood_backward << " / "
-           << sampler_check_grid.vertices().size()
-           << " out of domain in backward direction("
-           << (100 * num_points_ood_backward /
-               (double)sampler_check_grid.vertices().size())
-           << "%)\n"
-           << "mean error forward autonomous particles: " << std::scientific
-           << mean_autonomous_forward_error << '\n'
-           << "mean error forward regular grid: " << std::scientific
-           << mean_regular_forward_error << '\n'
-           << "mean error forward agranovsky grid: " << std::scientific
-           << mean_agranovsky_forward_error << '\n'
-           << "mean error backward autonomous particles: " << std::scientific
-           << mean_autonomous_backward_error << '\n'
-           << "mean error backward regular grid: " << std::scientific
-           << mean_regular_backward_error << '\n'
-           << "mean error backward agranovsky grid: " << std::scientific
-           << mean_agranovsky_backward_error << '\n';
-    if (mean_regular_forward_error > mean_autonomous_forward_error &&
-        mean_agranovsky_forward_error > mean_autonomous_forward_error) {
-      report << "autonomous particles are better in forward direction\n";
-    } else if (mean_agranovsky_forward_error > mean_regular_forward_error &&
-               mean_autonomous_forward_error > mean_regular_forward_error) {
-      report << "regular grid is better in forward direction\n";
-    } else if (mean_regular_forward_error > mean_agranovsky_forward_error &&
-               mean_autonomous_forward_error > mean_agranovsky_forward_error) {
-      report << "agranovsky is better in forward direction\n";
-    }
-    if (mean_regular_backward_error > mean_autonomous_backward_error &&
-        mean_agranovsky_backward_error > mean_autonomous_backward_error) {
-      report << "autonomous particles are better in backward direction\n";
-    } else if (mean_agranovsky_backward_error > mean_regular_backward_error &&
-               mean_autonomous_backward_error > mean_regular_backward_error) {
-      report << "regular grid is better in backward direction\n";
-    } else if (mean_regular_backward_error > mean_agranovsky_backward_error &&
-               mean_autonomous_backward_error >
-                   mean_agranovsky_backward_error) {
-      report << "agranovsky is better in backward direction\n";
-    }
-    sampler_check_grid.write("doublegyre_grid_errors.vtk");
+  //  indicator.mark_as_completed();
+  //  report << num_points_ood_forward << " / "
+  //         << sampler_check_grid.vertices().size()
+  //         << " out of domain in forward direction("
+  //         << (100 * num_points_ood_forward /
+  //             (double)sampler_check_grid.vertices().size())
+  //         << "%)\n"
+  //         << num_points_ood_backward << " / "
+  //         << sampler_check_grid.vertices().size()
+  //         << " out of domain in backward direction("
+  //         << (100 * num_points_ood_backward /
+  //             (double)sampler_check_grid.vertices().size())
+  //         << "%)\n"
+  //         << "mean error forward autonomous particles: " << std::scientific
+  //         << mean_autonomous_forward_error << '\n'
+  //         << "mean error forward regular grid: " << std::scientific
+  //         << mean_regular_forward_error << '\n'
+  //         << "mean error forward agranovsky grid: " << std::scientific
+  //         << mean_agranovsky_forward_error << '\n'
+  //         << "mean error backward autonomous particles: " << std::scientific
+  //         << mean_autonomous_backward_error << '\n'
+  //         << "mean error backward regular grid: " << std::scientific
+  //         << mean_regular_backward_error << '\n'
+  //         << "mean error backward agranovsky grid: " << std::scientific
+  //         << mean_agranovsky_backward_error << '\n';
+  //  if (mean_regular_forward_error > mean_autonomous_forward_error &&
+  //      mean_agranovsky_forward_error > mean_autonomous_forward_error) {
+  //    report << "autonomous particles are better in forward direction\n";
+  //  } else if (mean_agranovsky_forward_error > mean_regular_forward_error &&
+  //             mean_autonomous_forward_error > mean_regular_forward_error) {
+  //    report << "regular grid is better in forward direction\n";
+  //  } else if (mean_regular_forward_error > mean_agranovsky_forward_error &&
+  //             mean_autonomous_forward_error > mean_agranovsky_forward_error) {
+  //    report << "agranovsky is better in forward direction\n";
+  //  }
+  //  if (mean_regular_backward_error > mean_autonomous_backward_error &&
+  //      mean_agranovsky_backward_error > mean_autonomous_backward_error) {
+  //    report << "autonomous particles are better in backward direction\n";
+  //  } else if (mean_agranovsky_backward_error > mean_regular_backward_error &&
+  //             mean_autonomous_backward_error > mean_regular_backward_error) {
+  //    report << "regular grid is better in backward direction\n";
+  //  } else if (mean_regular_backward_error > mean_agranovsky_backward_error &&
+  //             mean_autonomous_backward_error >
+  //                 mean_agranovsky_backward_error) {
+  //    report << "agranovsky is better in backward direction\n";
+  //  }
+  //  sampler_check_grid.write("doublegyre_grid_errors.vtk");
   });
-  std::cerr << report.str();
+  //std::cerr << report.str();
 }

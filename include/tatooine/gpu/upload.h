@@ -130,8 +130,8 @@ template <typename GPUReal = float, typename Tensor>
 //==============================================================================
 template <typename GPUReal = float, floating_point Real,
           indexable_space XDomain, bool HasNonConstReference>
-auto upload(typed_multidim_property<grid<XDomain>, Real,
-                                    HasNonConstReference> const& sampler) {
+auto upload(typed_grid_vertex_property_interface<
+            grid<XDomain>, Real, HasNonConstReference> const& sampler) {
   using namespace yavin;
   std::vector<GPUReal> gpu_data;
   gpu_data.reserve(sampler.grid.num_vertices());
@@ -145,8 +145,9 @@ auto upload(typed_multidim_property<grid<XDomain>, Real,
 template <typename GPUReal = float, floating_point Real,
           indexable_space XDomain, indexable_space YDomain,
           bool HasNonConstReference>
-auto upload(typed_multidim_property<grid<XDomain, YDomain>, Real,
-                                    HasNonConstReference> const& sampler) {
+auto upload(
+    typed_grid_vertex_property_interface<grid<XDomain, YDomain>, Real,
+                                         HasNonConstReference> const& sampler) {
   using namespace yavin;
   std::vector<GPUReal> gpu_data;
   gpu_data.reserve(sampler.grid.num_vertices());
@@ -161,8 +162,9 @@ auto upload(typed_multidim_property<grid<XDomain, YDomain>, Real,
 template <typename GPUReal = float, floating_point Real,
           indexable_space XDomain, indexable_space YDomain,
           indexable_space ZDomain, bool HasNonConstReference>
-auto upload(typed_multidim_property<grid<XDomain, YDomain, ZDomain>, Real,
-                                    HasNonConstReference> const& sampler) {
+auto upload(
+    typed_grid_vertex_property_interface<grid<XDomain, YDomain, ZDomain>, Real,
+                                         HasNonConstReference> const& sampler) {
   using namespace yavin;
   std::vector<GPUReal> gpu_data;
   gpu_data.reserve(sampler.grid.num_vertices());
@@ -177,8 +179,8 @@ auto upload(typed_multidim_property<grid<XDomain, YDomain, ZDomain>, Real,
 //==============================================================================
 template <typename GPUReal = float, floating_point Real,
           indexable_space XDomain, bool HasNonConstReference>
-auto upload(typed_multidim_property<grid<XDomain>, vec<Real, 2>,
-                                    HasNonConstReference> const& sampler) {
+auto upload(typed_grid_vertex_property_interface<
+            grid<XDomain>, vec<Real, 2>, HasNonConstReference> const& sampler) {
   using namespace yavin;
   std::vector<GPUReal> gpu_data;
   gpu_data.reserve(sampler.grid.num_vertices() * 2);
@@ -194,8 +196,9 @@ auto upload(typed_multidim_property<grid<XDomain>, vec<Real, 2>,
 template <typename GPUReal = float, floating_point Real,
           indexable_space XDomain, indexable_space YDomain,
           bool HasNonConstReference>
-auto upload(typed_multidim_property<grid<XDomain, YDomain>, vec<Real, 2>,
-                                    HasNonConstReference> const& data) {
+auto upload(
+    typed_grid_vertex_property_interface<grid<XDomain, YDomain>, vec<Real, 2>,
+                                         HasNonConstReference> const& data) {
   using namespace yavin;
   std::vector<GPUReal> gpu_data;
   // gpu_data.reserve(data.grid().num_vertices() * 2);
@@ -212,9 +215,9 @@ auto upload(typed_multidim_property<grid<XDomain, YDomain>, vec<Real, 2>,
 template <typename GPUReal = float, floating_point Real,
           indexable_space XDomain, indexable_space YDomain,
           indexable_space ZDomain, bool HasNonConstReference>
-auto upload(
-    typed_multidim_property<grid<XDomain, YDomain, ZDomain>, vec<Real, 2>,
-                            HasNonConstReference> const& sampler) {
+auto upload(typed_grid_vertex_property_interface<
+            grid<XDomain, YDomain, ZDomain>, vec<Real, 2>,
+            HasNonConstReference> const& sampler) {
   using namespace yavin;
   std::vector<GPUReal> gpu_data;
   gpu_data.reserve(sampler.grid().num_vertices() * 2);
@@ -231,8 +234,8 @@ auto upload(
 //==============================================================================
 template <typename GPUReal = float, floating_point Real,
           indexable_space XDomain, bool HasNonConstReference>
-auto upload(typed_multidim_property<grid<XDomain>, vec<Real, 3>,
-                                    HasNonConstReference> const& sampler) {
+auto upload(typed_grid_vertex_property_interface<
+            grid<XDomain>, vec<Real, 3>, HasNonConstReference> const& sampler) {
   using namespace yavin;
   std::vector<GPUReal> gpu_data;
   gpu_data.reserve(sampler.grid().num_vertices() * 3);
@@ -249,8 +252,9 @@ auto upload(typed_multidim_property<grid<XDomain>, vec<Real, 3>,
 template <typename GPUReal = float, floating_point Real,
           indexable_space XDomain, indexable_space YDomain,
           bool HasNonConstReference>
-auto upload(typed_multidim_property<grid<XDomain, YDomain>, vec<Real, 3>,
-                                    HasNonConstReference> const& sampler) {
+auto upload(
+    typed_grid_vertex_property_interface<grid<XDomain, YDomain>, vec<Real, 3>,
+                                         HasNonConstReference> const& sampler) {
   using namespace yavin;
   std::vector<GPUReal> gpu_data;
   gpu_data.reserve(sampler.grid().num_vertices() * 3);
@@ -268,9 +272,9 @@ auto upload(typed_multidim_property<grid<XDomain, YDomain>, vec<Real, 3>,
 template <typename GPUReal = float, floating_point Real,
           indexable_space XDomain, indexable_space YDomain,
           indexable_space ZDomain, bool HasNonConstReference>
-auto upload(
-    typed_multidim_property<grid<XDomain, YDomain, ZDomain>, vec<Real, 3>,
-                            HasNonConstReference> const& sampler) {
+auto upload(typed_grid_vertex_property_interface<
+            grid<XDomain, YDomain, ZDomain>, vec<Real, 3>,
+            HasNonConstReference> const& sampler) {
   using namespace yavin;
   std::vector<GPUReal> gpu_data;
   gpu_data.reserve(sampler.grid().num_vertices() * 3);
@@ -288,8 +292,8 @@ auto upload(
 //==============================================================================
 template <typename GPUReal = float, floating_point Real,
           indexable_space XDomain, bool HasNonConstReference>
-auto upload(typed_multidim_property<grid<XDomain>, vec<Real, 4>,
-                                    HasNonConstReference> const& sampler) {
+auto upload(typed_grid_vertex_property_interface<
+            grid<XDomain>, vec<Real, 4>, HasNonConstReference> const& sampler) {
   using namespace yavin;
   std::vector<GPUReal> gpu_data;
   gpu_data.reserve(sampler.grid().num_vertices() * 4);
@@ -307,8 +311,9 @@ auto upload(typed_multidim_property<grid<XDomain>, vec<Real, 4>,
 template <typename GPUReal = float, floating_point Real,
           indexable_space XDomain, indexable_space YDomain,
           bool HasNonConstReference>
-auto upload(typed_multidim_property<grid<XDomain, YDomain>, vec<Real, 4>,
-                                    HasNonConstReference> const& sampler) {
+auto upload(
+    typed_grid_vertex_property_interface<grid<XDomain, YDomain>, vec<Real, 4>,
+                                         HasNonConstReference> const& sampler) {
   using namespace yavin;
   std::vector<GPUReal> gpu_data;
   gpu_data.reserve(sampler.grid().num_vertices() * 4);
@@ -327,9 +332,9 @@ auto upload(typed_multidim_property<grid<XDomain, YDomain>, vec<Real, 4>,
 template <typename GPUReal = float, floating_point Real,
           indexable_space XDomain, indexable_space YDomain,
           indexable_space ZDomain, bool HasNonConstReference>
-auto upload(
-    typed_multidim_property<grid<XDomain, YDomain, ZDomain>, vec<Real, 4>,
-                            HasNonConstReference> const& sampler) {
+auto upload(typed_grid_vertex_property_interface<
+            grid<XDomain, YDomain, ZDomain>, vec<Real, 4>,
+            HasNonConstReference> const& sampler) {
   using namespace yavin;
   std::vector<GPUReal> gpu_data;
   sampler.reserve(gpu_data.grid().num_vertices() * 4);

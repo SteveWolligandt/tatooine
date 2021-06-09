@@ -45,11 +45,12 @@ struct random_uniform {
   auto operator()() { return get(); }
 };
 //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-random_uniform()->random_uniform<double, std::mt19937_64>;
+random_uniform()->random_uniform<real_t, std::mt19937_64>;
 template <typename T>
 random_uniform(T const min, T const max) -> random_uniform<T, std::mt19937_64>;
 template <typename T, typename... Args>
-random_uniform(T const min, T const max, Args...)->random_uniform<T, std::mt19937_64>;
+random_uniform(T const min, T const max, Args&&...)
+    -> random_uniform<T, std::mt19937_64>;
 //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 template <typename T, typename Engine = std::mt19937_64>
 auto random_uniform_vector(size_t n, T a = T(0), T b = T(1),

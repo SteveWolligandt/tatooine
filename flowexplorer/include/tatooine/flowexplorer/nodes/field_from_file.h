@@ -29,7 +29,7 @@ struct field_from_file
  public:
   field_from_file(flowexplorer::scene& s)
       : ui::node<field_from_file>{"Field", s} {
-    this->template insert_output_pin<parent::field<double, N, TensorDims...>>(
+    this->template insert_output_pin<polymorphic::field<double, N, TensorDims...>>(
         "Field Out", *this);
   }
   //----------------------------------------------------------------------------

@@ -353,7 +353,7 @@ class simplex_mesh
   // auto copy_prop(std::string const& name, Prop const& prop, Grid const& g) {
   //  if (prop->type() == typeid(T)) {
   //    auto const& grid_prop = g.template vertex_property<T>(name);
-  //    auto&       tri_prop  = this->template add_vertex_property<T>(name);
+  //    auto&       tri_prop  = this->template insert_vertex_property<T>(name);
   //    g.iterate_over_vertex_indices([&](auto const... is) {
   //      std::array is_arr{is...};
   //      tri_prop[vertex_handle{is_arr[0] + is_arr[1] * g.size(0)}] =
@@ -765,13 +765,13 @@ class simplex_mesh
                       vtk::reader_data data) override {
         if (data == vtk::reader_data::point_data) {
           if (num_comps == 1) {
-            auto& prop = mesh.template add_vertex_property<double>(data_name);
+            auto& prop = mesh.template insert_vertex_property<double>(data_name);
             for (size_t i = 0; i < prop.size(); ++i) {
               prop[i] = scalars[i];
             }
           } else if (num_comps == 2) {
             auto& prop =
-                mesh.template add_vertex_property<vec<double, 2>>(data_name);
+                mesh.template insert_vertex_property<vec<double, 2>>(data_name);
 
             for (size_t i = 0; i < prop.size(); ++i) {
               for (size_t j = 0; j < num_comps; ++j) {
@@ -780,7 +780,7 @@ class simplex_mesh
             }
           } else if (num_comps == 3) {
             auto& prop =
-                mesh.template add_vertex_property<vec<double, 3>>(data_name);
+                mesh.template insert_vertex_property<vec<double, 3>>(data_name);
             for (size_t i = 0; i < prop.size(); ++i) {
               for (size_t j = 0; j < num_comps; ++j) {
                 prop[i][j] = scalars[i * num_comps + j];
@@ -788,7 +788,7 @@ class simplex_mesh
             }
           } else if (num_comps == 4) {
             auto& prop =
-                mesh.template add_vertex_property<vec<double, 4>>(data_name);
+                mesh.template insert_vertex_property<vec<double, 4>>(data_name);
             for (size_t i = 0; i < prop.size(); ++i) {
               for (size_t j = 0; j < num_comps; ++j) {
                 prop[i][j] = scalars[i * num_comps + j];

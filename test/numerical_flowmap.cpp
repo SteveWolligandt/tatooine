@@ -28,7 +28,7 @@ TEST_CASE("numerical_flowmap_internal_pointer",
   numerical_flowmap_field_pointer<double, 2, ode::vclibs::rungekutta43,
                                   interpolation::cubic> fm;
   analytical::fields::numerical::doublegyre             v;
-  parent::vectorfield<double, 2>*                       polymorphic_field = &v;
+  polymorphic::vectorfield<double, 2>*                  polymorphic_field = &v;
   fm.set_vectorfield(polymorphic_field);
   [[maybe_unused]] auto const x010  = fm(vec{0.1, 0.1}, 0, 10);
   [[maybe_unused]] auto const x015 = fm(vec{0.1, 0.1}, 0, 15);

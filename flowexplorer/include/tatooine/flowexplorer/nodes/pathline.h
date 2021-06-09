@@ -15,8 +15,8 @@ struct pathline : renderable<pathline> {
   //----------------------------------------------------------------------------
   // typedefs
   //----------------------------------------------------------------------------
-  using vectorfield2_t = parent::vectorfield<real_t, 2>;
-  using vectorfield3_t = parent::vectorfield<real_t, 3>;
+  using vectorfield2_t = polymorphic::vectorfield<real_t, 2>;
+  using vectorfield3_t = polymorphic::vectorfield<real_t, 3>;
   using integrator2_t  = ode::vclibs::rungekutta43<real_t, 2>;
   using integrator3_t  = ode::vclibs::rungekutta43<real_t, 3>;
   //----------------------------------------------------------------------------

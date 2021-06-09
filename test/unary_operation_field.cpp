@@ -39,7 +39,7 @@ TEST_CASE("unary_operation_field_identity_ref", "[unary_operation_field][identit
 TEST_CASE("unary_operation_field_identity_ptr",
           "[unary_operation_field][identity][ptr][pointer]") {
   analytical::fields::numerical::doublegyre v;
-  parent::field<double, 2, 2>*              v_ptr = &v;
+  polymorphic::vectorfield<double, 2>*      v_ptr = &v;
   constexpr auto identity = [](auto&& p) -> decltype(auto) {
     return std::forward<decltype(p)>(p);
   };

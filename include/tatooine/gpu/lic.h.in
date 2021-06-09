@@ -47,8 +47,7 @@ auto lic(yavin::tex2rg<VReal>&                         v_tex,
   using namespace yavin;
 
   // generate noise_tex data
-  std::mt19937         rand_eng{noise_seed};
-  random_uniform       rand(GPUReal(0), GPUReal(1), rand_eng);
+  random_uniform       rand(GPUReal(0), GPUReal(1), noise_seed);
   std::vector<GPUReal> noise_data(noise_res(0) * noise_res(1));
   boost::generate(noise_data, [&rand] { return rand(); });
 
@@ -77,7 +76,7 @@ auto lic(yavin::tex2rg<VReal>&                         v_tex,
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 template <floating_point GPUReal = float, floating_point VReal,
           floating_point XReal, floating_point YReal>
-auto lic(parent::vectorfield<VReal, 2> const&          v,
+auto lic(polymorphic::vectorfield<VReal, 2> const&          v,
          grid<linspace<XReal>, linspace<YReal>> const& spatial_domain,
          arithmetic auto t, vec<size_t, 2> const& lic_tex_res,
          size_t num_samples, arithmetic auto stepsize,
@@ -94,7 +93,7 @@ auto lic(parent::vectorfield<VReal, 2> const&          v,
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 template <floating_point GPUReal = float, floating_point VReal,
           floating_point XReal, floating_point YReal>
-auto lic(parent::vectorfield<VReal, 2> const& v, linspace<XReal> const& xres,
+auto lic(polymorphic::vectorfield<VReal, 2> const& v, linspace<XReal> const& xres,
          linspace<YReal> const& yres, arithmetic auto t,
          vec<size_t, 2> const& lic_tex_res, size_t num_samples,
          arithmetic auto stepsize, vec<size_t, 2> noise_res,

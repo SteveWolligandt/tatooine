@@ -11,7 +11,7 @@ struct doublegyre : tatooine::analytical::fields::numerical::doublegyre<double>,
   doublegyre(flowexplorer::scene& s)
       : ui::node<doublegyre>{
             "Double Gyre", s,
-            *dynamic_cast<parent::vectorfield<double, 2>*>(this)} {
+            *dynamic_cast<polymorphic::vectorfield<double, 2>*>(this)} {
     this->set_infinite_domain(true);
   }
   virtual ~doublegyre() = default;

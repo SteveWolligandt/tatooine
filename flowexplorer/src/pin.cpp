@@ -9,8 +9,8 @@
 namespace tatooine::flowexplorer::ui {
 //==============================================================================
 auto icon_color(std::type_info const& type, float const alpha) -> ImVec4 {
-  if (type == typeid(parent::vectorfield<double, 2>) ||
-      type == typeid(parent::vectorfield<double, 3>)) {
+  if (type == typeid(polymorphic::vectorfield<double, 2>) ||
+      type == typeid(polymorphic::vectorfield<double, 3>)) {
     return {1, 0.5, 0.5, alpha};
   } else if (type == typeid(nodes::axis_aligned_bounding_box<2>) ||
              type == typeid(nodes::axis_aligned_bounding_box<3>)) {
@@ -23,9 +23,9 @@ auto icon_color(std::type_info const& type, float const alpha) -> ImVec4 {
 }
 //------------------------------------------------------------------------------
 auto icon_color(ui::output_pin const& pin, float const alpha) -> ImVec4 {
-  if (pin.type() == typeid(parent::vectorfield<double, 2>) ||
-      pin.type() == typeid(parent::vectorfield<double, 3>)) {
-    return icon_color(typeid(parent::vectorfield<double, 2>), alpha);
+  if (pin.type() == typeid(polymorphic::vectorfield<double, 2>) ||
+      pin.type() == typeid(polymorphic::vectorfield<double, 3>)) {
+    return icon_color(typeid(polymorphic::vectorfield<double, 2>), alpha);
   } else if (pin.type() == typeid(nodes::axis_aligned_bounding_box<2>) ||
              pin.type() == typeid(nodes::axis_aligned_bounding_box<3>)) {
     return icon_color(typeid(nodes::axis_aligned_bounding_box<2>), alpha);
@@ -38,10 +38,10 @@ auto icon_color(ui::output_pin const& pin, float const alpha) -> ImVec4 {
 //------------------------------------------------------------------------------
 auto icon_color(ui::input_pin const& pin, float const alpha) -> ImVec4 {
   if (std::any_of(begin(pin.types()), end(pin.types()), [](auto t) {
-        return *t == typeid(parent::vectorfield<double, 2>) ||
-               *t == typeid(parent::vectorfield<double, 3>);
+        return *t == typeid(polymorphic::vectorfield<double, 2>) ||
+               *t == typeid(polymorphic::vectorfield<double, 3>);
       })) {
-    return icon_color(typeid(parent::vectorfield<double, 2>), alpha);
+    return icon_color(typeid(polymorphic::vectorfield<double, 2>), alpha);
   } else if (std::any_of(begin(pin.types()), end(pin.types()), [](auto t) {
                return *t == typeid(nodes::axis_aligned_bounding_box<2>) ||
                       *t == typeid(nodes::axis_aligned_bounding_box<3>);

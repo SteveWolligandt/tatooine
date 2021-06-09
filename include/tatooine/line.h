@@ -838,7 +838,7 @@ struct line {
     const auto&                vs = listener.points;
     size_t                     i  = 0;
     while (i < listener.lines.size()) {
-      auto  size = listener.lines[i++];
+      auto const size = static_cast<size_t>(listener.lines[i++]);
       auto& l    = lines.emplace_back();
       for (; i < size; ++i) {
         l.push_back({vs[i][0], vs[i][1], vs[i][2]});

@@ -3,7 +3,7 @@
 //==============================================================================
 #include <tatooine/field.h>
 
-#include <boost/math/constants/constants.hpp>
+#define _USE_MATH_DEFINES
 #include <cmath>
 //==============================================================================
 namespace tatooine::analytical::fields::numerical {
@@ -17,7 +17,7 @@ struct doublegyre : vectorfield<doublegyre<Real>, Real, 2> {
   using typename parent_t::real_t;
   using typename parent_t::tensor_t;
   //============================================================================
-  static constexpr auto pi = boost::math::constants::pi<Real>();
+  static constexpr auto pi = M_PI;
   //============================================================================
   Real m_epsilon, m_omega, m_A;
   bool m_infinite_domain  = false;

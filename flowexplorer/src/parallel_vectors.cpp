@@ -8,8 +8,8 @@ namespace tatooine::flowexplorer::nodes {
 //==============================================================================
 parallel_vectors::parallel_vectors(flowexplorer::scene& s)
     : renderable<parallel_vectors>{"Parallel Vectors", s},
-      v_pin{insert_input_pin<parent::vectorfield<real_t, 3>>("V")},
-      w_pin{insert_input_pin<parent::vectorfield<real_t, 3>>("W")},
+      v_pin{insert_input_pin<polymorphic::vectorfield<real_t, 3>>("V")},
+      w_pin{insert_input_pin<polymorphic::vectorfield<real_t, 3>>("W")},
       grid_pin{insert_input_pin<non_uniform_grid<real_t, 3>>("grid")} {}
 //------------------------------------------------------------------------------
 auto parallel_vectors::render(mat4f const& P, mat4f const& V) -> void {
@@ -34,8 +34,8 @@ auto parallel_vectors::on_pin_connected(ui::input_pin&, ui::output_pin&)
 //------------------------------------------------------------------------------
 auto parallel_vectors::calculate() -> void {
   m_lines = tatooine::parallel_vectors(
-      v_pin.get_linked_as<parent::vectorfield<real_t, 3>>(),
-      w_pin.get_linked_as<parent::vectorfield<real_t, 3>>(),
+      v_pin.get_linked_as<polymorphic::vectorfield<real_t, 3>>(),
+      w_pin.get_linked_as<polymorphic::vectorfield<real_t, 3>>(),
       grid_pin.get_linked_as<non_uniform_grid<real_t, 3>>(), 0);
   write_vtk(m_lines, "pv.vtk");
 

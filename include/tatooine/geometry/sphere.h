@@ -65,13 +65,10 @@ struct sphere : ray_intersectable<Real> {
     auto const z         = r * cos_phi + m_center(2);
     return vec{x, y, z};
   }
-  //----------------------------------------------------------------------------
-  template <typename RandomEngine = std::mt19937_64>
-  auto random_points(size_t const n, RandomEngine&& eng = RandomEngine{
-                                         std::random_device{}()}) const {
+  template <typename RandReal, typename RandEngine>
+  auto random_points(size_t const                          n,
+                     random_uniform<RandReal, RandEngine>& rand) const {
     std::vector<vec<Real, N>> ps;
-    auto rand = random_uniform<Real, std::decay_t<RandomEngine>>{
-        std::forward<RandomEngine>(eng)};
     for (size_t i = 0; i < n; ++i) {
       auto const u         = rand();
       auto const v         = rand();
@@ -88,6 +85,12 @@ struct sphere : ray_intersectable<Real> {
       ps.emplace_back(x + m_center(0), y + m_center(1), z + m_center(2));
     }
     return ps;
+  }
+  //----------------------------------------------------------------------------
+  template <typename RandEngine = std::mt19937_64>
+  auto random_points(size_t const n) const {
+    auto rand = random_uniform<Real, RandEngine>{};
+    return random_points(n, rand);
   }
 };
 //------------------------------------------------------------------------------

@@ -16,7 +16,7 @@ struct random_pathlines : renderable<random_pathlines<N>> {
   //----------------------------------------------------------------------------
   // typedefs
   //----------------------------------------------------------------------------
-  using vectorfield_t = parent::vectorfield<double, N>;
+  using vectorfield_t = polymorphic::vectorfield<double, N>;
   using integrator_t  = ode::vclibs::rungekutta43<double, N>;
   //----------------------------------------------------------------------------
 
