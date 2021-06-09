@@ -24,6 +24,34 @@ elseif ("${CMAKE_CXX_COMPILER_ID}" STREQUAL "GNU")
   target_compile_options(channelflow_visualization PRIVATE  "-fdiagnostics-color=always")
 endif()
 #===============================================================================
+add_executable(channelflow_visualization.direct_isosurface direct_isosurface.cpp)
+target_link_libraries(channelflow_visualization.direct_isosurface PUBLIC tatooine)
+add_custom_target(
+  channelflow_visualization.direct_isosurface.run
+  COMMAND ./channelflow_visualization.direct_isosurface
+  DEPENDS channelflow_visualization.direct_isosurface)
+# force coloring
+if ("${CMAKE_CXX_COMPILER_ID}" STREQUAL "Clang")
+  target_compile_options(channelflow_visualization.direct_isosurface
+                         PRIVATE "-fcolor-diagnostics")
+elseif ("${CMAKE_CXX_COMPILER_ID}" STREQUAL "GNU")
+  target_compile_options(channelflow_visualization.direct_isosurface
+                         PRIVATE  "-fdiagnostics-color=always")
+endif()
+#===============================================================================
+add_executable(channelflow_visualization.add_velocity_magnitude create_velocity_magnitude.cpp)
+target_link_libraries(channelflow_visualization.add_velocity_magnitude PUBLIC tatooine)
+add_custom_target(
+  channelflow_visualization.add_velocity_magnitude.run
+  COMMAND ./channelflow_visualization.add_velocity_magnitude
+  DEPENDS channelflow_visualization.add_velocity_magnitude)
+# force coloring
+if ("${CMAKE_CXX_COMPILER_ID}" STREQUAL "Clang")
+  target_compile_options(channelflow_visualization.add_velocity_magnitude PRIVATE "-fcolor-diagnostics")
+elseif ("${CMAKE_CXX_COMPILER_ID}" STREQUAL "GNU")
+  target_compile_options(channelflow_visualization.add_velocity_magnitude PRIVATE  "-fdiagnostics-color=always")
+endif()
+#===============================================================================
 add_executable(channelflow_visualization.add_Q_pnorm create_Q.cpp)
 target_link_libraries(channelflow_visualization.add_Q_pnorm PUBLIC tatooine)
 add_custom_target(

@@ -334,7 +334,7 @@ auto solve(polynomial<Real, 4> const& f) -> std::vector<Real> {
   auto const r    = -Real(3) / 256 * sq_A * sq_A + Real(1) / 16 * sq_A * B -
                  Real(1) / 4 * A * C + D;
 
-  constexpr Real eps     = 1e-30;
+  constexpr Real eps     = 0;
   constexpr auto is_zero = [](auto const x) {
     return ((x) > -eps && (x) < eps);
   };

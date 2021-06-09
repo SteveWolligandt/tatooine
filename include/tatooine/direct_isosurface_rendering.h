@@ -72,12 +72,14 @@ auto direct_isosurface_rendering(rendering::camera<CameraReal> const& cam,
   }
 #pragma omp parallel for
   for (size_t i = 0; i < rays.size(); ++i) {
-    auto accumulated_color = rgb_t{};
-    if constexpr (rgb_t::num_components() == 3) {
+    auto cell_data         = std::make_unique<double[]>(8);
+    auto indexing          = static_multidim_size<x_fastest, 2, 2, 2>{};
+    auto accumulated_color = rgb_t::zeros();
+    if constexpr (color_t::num_components() == 3) {
       accumulated_color = bg_color;
     }
-    auto accumulated_alpha  = alpha_t{};
-    auto const [r, t, x, y] = rays[i];
+    auto accumulated_alpha  = alpha_t(0);
+    auto const& [r, t, x, y] = rays[i];
 
     auto entry_point = r(t);
     for (size_t i = 0; i < 3; ++i) {
@@ -167,36 +169,35 @@ auto direct_isosurface_rendering(rendering::camera<CameraReal> const& cam,
           i1[dim] = static_cast<size_t>(std::ceil(cell_pos[dim]));
         }
       }
-      static_multidim_array<double, x_fastest, tag::stack, 2, 2, 2> cell_data;
       if constexpr (use_indices) {
-        cell_data(0, 0, 0) = field(i0[0], i0[1], i0[2]);
-        cell_data(1, 0, 0) = field(i1[0], i0[1], i0[2]);
-        cell_data(0, 1, 0) = field(i0[0], i1[1], i0[2]);
-        cell_data(1, 1, 0) = field(i1[0], i1[1], i0[2]);
-        cell_data(0, 0, 1) = field(i0[0], i0[1], i1[2]);
-        cell_data(1, 0, 1) = field(i1[0], i0[1], i1[2]);
-        cell_data(0, 1, 1) = field(i0[0], i1[1], i1[2]);
-        cell_data(1, 1, 1) = field(i1[0], i1[1], i1[2]);
+        cell_data[indexing(0, 0, 0)] = field(i0[0], i0[1], i0[2]);
+        cell_data[indexing(1, 0, 0)] = field(i1[0], i0[1], i0[2]);
+        cell_data[indexing(0, 1, 0)] = field(i0[0], i1[1], i0[2]);
+        cell_data[indexing(1, 1, 0)] = field(i1[0], i1[1], i0[2]);
+        cell_data[indexing(0, 0, 1)] = field(i0[0], i0[1], i1[2]);
+        cell_data[indexing(1, 0, 1)] = field(i1[0], i0[1], i1[2]);
+        cell_data[indexing(0, 1, 1)] = field(i0[0], i1[1], i1[2]);
+        cell_data[indexing(1, 1, 1)] = field(i1[0], i1[1], i1[2]);
       } else {
-        cell_data(0, 0, 0) = field(g(i0[0], i0[1], i0[2]));
-        cell_data(1, 0, 0) = field(g(i1[0], i0[1], i0[2]));
-        cell_data(0, 1, 0) = field(g(i0[0], i1[1], i0[2]));
-        cell_data(1, 1, 0) = field(g(i1[0], i1[1], i0[2]));
-        cell_data(0, 0, 1) = field(g(i0[0], i0[1], i1[2]));
-        cell_data(1, 0, 1) = field(g(i1[0], i0[1], i1[2]));
-        cell_data(0, 1, 1) = field(g(i0[0], i1[1], i1[2]));
-        cell_data(1, 1, 1) = field(g(i1[0], i1[1], i1[2]));
+        cell_data[indexing(0, 0, 0)] = field(g(i0[0], i0[1], i0[2]));
+        cell_data[indexing(1, 0, 0)] = field(g(i1[0], i0[1], i0[2]));
+        cell_data[indexing(0, 1, 0)] = field(g(i0[0], i1[1], i0[2]));
+        cell_data[indexing(1, 1, 0)] = field(g(i1[0], i1[1], i0[2]));
+        cell_data[indexing(0, 0, 1)] = field(g(i0[0], i0[1], i1[2]));
+        cell_data[indexing(1, 0, 1)] = field(g(i1[0], i0[1], i1[2]));
+        cell_data[indexing(0, 1, 1)] = field(g(i0[0], i1[1], i1[2]));
+        cell_data[indexing(1, 1, 1)] = field(g(i1[0], i1[1], i1[2]));
       }
 
       // check if isosurface is present in current cell
-      if (!((cell_data(0, 0, 0) > isovalue && cell_data(0, 0, 1) > isovalue &&
-             cell_data(0, 1, 0) > isovalue && cell_data(0, 1, 1) > isovalue &&
-             cell_data(1, 0, 0) > isovalue && cell_data(1, 0, 1) > isovalue &&
-             cell_data(1, 1, 0) > isovalue && cell_data(1, 1, 1) > isovalue) ||
-            (cell_data(0, 0, 0) < isovalue && cell_data(0, 0, 1) < isovalue &&
-             cell_data(0, 1, 0) < isovalue && cell_data(0, 1, 1) < isovalue &&
-             cell_data(1, 0, 0) < isovalue && cell_data(1, 0, 1) < isovalue &&
-             cell_data(1, 1, 0) < isovalue && cell_data(1, 1, 1) < isovalue))) {
+      if (!((cell_data[indexing(0, 0, 0)] > isovalue && cell_data[indexing(0, 0, 1)] > isovalue &&
+             cell_data[indexing(0, 1, 0)] > isovalue && cell_data[indexing(0, 1, 1)] > isovalue &&
+             cell_data[indexing(1, 0, 0)] > isovalue && cell_data[indexing(1, 0, 1)] > isovalue &&
+             cell_data[indexing(1, 1, 0)] > isovalue && cell_data[indexing(1, 1, 1)] > isovalue) ||
+            (cell_data[indexing(0, 0, 0)] < isovalue && cell_data[indexing(0, 0, 1)] < isovalue &&
+             cell_data[indexing(0, 1, 0)] < isovalue && cell_data[indexing(0, 1, 1)] < isovalue &&
+             cell_data[indexing(1, 0, 0)] < isovalue && cell_data[indexing(1, 0, 1)] < isovalue &&
+             cell_data[indexing(1, 1, 0)] < isovalue && cell_data[indexing(1, 1, 1)] < isovalue))) {
         auto const  x0 = g(i0[0], i0[1], i0[2]);
         auto const  x1 = g(i1[0], i1[1], i1[2]);
         auto const& xa = r.origin();
@@ -212,70 +213,70 @@ auto direct_isosurface_rendering(rendering::camera<CameraReal> const& cam,
         auto const b1 = -xb * inv_cell_extent;
 
         // construct coefficients of cubic polynomial A + B*t + C*t*t + D*t*t*t 
-        auto const A = a0(0) * a0(1) * a0(2) * cell_data(0, 0, 0) +
-                       a0(0) * a0(1) * a1(2) * cell_data(0, 0, 1) +
-                       a0(0) * a1(1) * a0(2) * cell_data(0, 1, 0) +
-                       a0(0) * a1(1) * a1(2) * cell_data(0, 1, 1) +
-                       a1(0) * a0(1) * a0(2) * cell_data(1, 0, 0) +
-                       a1(0) * a0(1) * a1(2) * cell_data(1, 0, 1) +
-                       a1(0) * a1(1) * a0(2) * cell_data(1, 1, 0) +
-                       a1(0) * a1(1) * a1(2) * cell_data(1, 1, 1) - isovalue;
+        auto const A = a0(0) * a0(1) * a0(2) * cell_data[indexing(0, 0, 0)] +
+                       a0(0) * a0(1) * a1(2) * cell_data[indexing(0, 0, 1)] +
+                       a0(0) * a1(1) * a0(2) * cell_data[indexing(0, 1, 0)] +
+                       a0(0) * a1(1) * a1(2) * cell_data[indexing(0, 1, 1)] +
+                       a1(0) * a0(1) * a0(2) * cell_data[indexing(1, 0, 0)] +
+                       a1(0) * a0(1) * a1(2) * cell_data[indexing(1, 0, 1)] +
+                       a1(0) * a1(1) * a0(2) * cell_data[indexing(1, 1, 0)] +
+                       a1(0) * a1(1) * a1(2) * cell_data[indexing(1, 1, 1)] - isovalue;
         auto const B = (b0(0) * a0(1) * a0(2) + a0(0) * b0(1) * a0(2) +
                         a0(0) * a0(1) * b0(2)) *
-                           cell_data(0, 0, 0) +
+                           cell_data[indexing(0, 0, 0)] +
                        (b0(0) * a0(1) * a1(2) + a0(0) * b0(1) * a1(2) +
                         a0(0) * a0(1) * b1(2)) *
-                           cell_data(0, 0, 1) +
+                           cell_data[indexing(0, 0, 1)] +
                        (b0(0) * a1(1) * a0(2) + a0(0) * b1(1) * a0(2) +
                         a0(0) * a1(1) * b0(2)) *
-                           cell_data(0, 1, 0) +
+                           cell_data[indexing(0, 1, 0)] +
                        (b0(0) * a1(1) * a1(2) + a0(0) * b1(1) * a1(2) +
                         a0(0) * a1(1) * b1(2)) *
-                           cell_data(0, 1, 1) +
+                           cell_data[indexing(0, 1, 1)] +
                        (b1(0) * a0(1) * a0(2) + a1(0) * b0(1) * a0(2) +
                         a1(0) * a0(1) * b0(2)) *
-                           cell_data(1, 0, 0) +
+                           cell_data[indexing(1, 0, 0)] +
                        (b1(0) * a0(1) * a1(2) + a1(0) * b0(1) * a1(2) +
                         a1(0) * a0(1) * b1(2)) *
-                           cell_data(1, 0, 1) +
+                           cell_data[indexing(1, 0, 1)] +
                        (b1(0) * a1(1) * a0(2) + a1(0) * b1(1) * a0(2) +
                         a1(0) * a1(1) * b0(2)) *
-                           cell_data(1, 1, 0) +
+                           cell_data[indexing(1, 1, 0)] +
                        (b1(0) * a1(1) * a1(2) + a1(0) * b1(1) * a1(2) +
                         a1(0) * a1(1) * b1(2)) *
-                           cell_data(1, 1, 1);
+                           cell_data[indexing(1, 1, 1)];
         auto const C = (a0(0) * b0(1) * b0(2) + b0(0) * a0(1) * b0(2) +
                         b0(0) * b0(1) * a0(2)) *
-                           cell_data(0, 0, 0) +
+                           cell_data[indexing(0, 0, 0)] +
                        (a0(0) * b0(1) * b1(2) + b0(0) * a0(1) * b1(2) +
                         b0(0) * b0(1) * a1(2)) *
-                           cell_data(0, 0, 1) +
+                           cell_data[indexing(0, 0, 1)] +
                        (a0(0) * b1(1) * b0(2) + b0(0) * a1(1) * b0(2) +
                         b0(0) * b1(1) * a0(2)) *
-                           cell_data(0, 1, 0) +
+                           cell_data[indexing(0, 1, 0)] +
                        (a0(0) * b1(1) * b1(2) + b0(0) * a1(1) * b1(2) +
                         b0(0) * b1(1) * a1(2)) *
-                           cell_data(0, 1, 1) +
+                           cell_data[indexing(0, 1, 1)] +
                        (a1(0) * b0(1) * b0(2) + b1(0) * a0(1) * b0(2) +
                         b1(0) * b0(1) * a0(2)) *
-                           cell_data(1, 0, 0) +
+                           cell_data[indexing(1, 0, 0)] +
                        (a1(0) * b0(1) * b1(2) + b1(0) * a0(1) * b1(2) +
                         b1(0) * b0(1) * a1(2)) *
-                           cell_data(1, 0, 1) +
+                           cell_data[indexing(1, 0, 1)] +
                        (a1(0) * b1(1) * b0(2) + b1(0) * a1(1) * b0(2) +
                         b1(0) * b1(1) * a0(2)) *
-                           cell_data(1, 1, 0) +
+                           cell_data[indexing(1, 1, 0)] +
                        (a1(0) * b1(1) * b1(2) + b1(0) * a1(1) * b1(2) +
                         b1(0) * b1(1) * a1(2)) *
-                           cell_data(1, 1, 1);
-        auto const D = b0(0) * b0(1) * b0(2) * cell_data(0, 0, 0) +
-                       b0(0) * b0(1) * b1(2) * cell_data(0, 0, 1) +
-                       b0(0) * b1(1) * b0(2) * cell_data(0, 1, 0) +
-                       b0(0) * b1(1) * b1(2) * cell_data(0, 1, 1) +
-                       b1(0) * b0(1) * b0(2) * cell_data(1, 0, 0) +
-                       b1(0) * b0(1) * b1(2) * cell_data(1, 0, 1) +
-                       b1(0) * b1(1) * b0(2) * cell_data(1, 1, 0) +
-                       b1(0) * b1(1) * b1(2) * cell_data(1, 1, 1);
+                           cell_data[indexing(1, 1, 1)];
+        auto const D = b0(0) * b0(1) * b0(2) * cell_data[indexing(0, 0, 0)] +
+                       b0(0) * b0(1) * b1(2) * cell_data[indexing(0, 0, 1)] +
+                       b0(0) * b1(1) * b0(2) * cell_data[indexing(0, 1, 0)] +
+                       b0(0) * b1(1) * b1(2) * cell_data[indexing(0, 1, 1)] +
+                       b1(0) * b0(1) * b0(2) * cell_data[indexing(1, 0, 0)] +
+                       b1(0) * b0(1) * b1(2) * cell_data[indexing(1, 0, 1)] +
+                       b1(0) * b1(1) * b0(2) * cell_data[indexing(1, 1, 0)] +
+                       b1(0) * b1(1) * b1(2) * cell_data[indexing(1, 1, 1)];
 
         auto const s = solve(polynomial{A, B, C, D});
         if (!s.empty()) {
@@ -300,32 +301,32 @@ auto direct_isosurface_rendering(rendering::camera<CameraReal> const& cam,
             assert(uvw1(0) >= 0 && uvw1(0) <= 1);
             assert(uvw1(1) >= 0 && uvw1(1) <= 1);
             assert(uvw1(2) >= 0 && uvw1(2) <= 1);
-            auto const k = cell_data(1, 1, 1) - cell_data(0, 1, 1) -
-                           cell_data(1, 0, 1) + cell_data(0, 0, 1) -
-                           cell_data(1, 1, 0) + cell_data(0, 1, 0) +
-                           cell_data(1, 0, 0) - cell_data(0, 0, 0);
+            auto const k = cell_data[indexing(1, 1, 1)] - cell_data[indexing(0, 1, 1)] -
+                           cell_data[indexing(1, 0, 1)] + cell_data[indexing(0, 0, 1)] -
+                           cell_data[indexing(1, 1, 0)] + cell_data[indexing(0, 1, 0)] +
+                           cell_data[indexing(1, 0, 0)] - cell_data[indexing(0, 0, 0)];
             auto const gradient =
-                vec{(k * uvw0(1) + cell_data(1, 0, 1) - cell_data(0, 0, 1) -
-                     cell_data(1, 0, 0) + cell_data(0, 0, 0)) *
+                vec{(k * uvw0(1) + cell_data[indexing(1, 0, 1)] - cell_data[indexing(0, 0, 1)] -
+                     cell_data[indexing(1, 0, 0)] + cell_data[indexing(0, 0, 0)]) *
                             uvw0(2) +
-                        (cell_data(1, 1, 0) - cell_data(0, 1, 0) -
-                         cell_data(1, 0, 0) + cell_data(0, 0, 0)) *
+                        (cell_data[indexing(1, 1, 0)] - cell_data[indexing(0, 1, 0)] -
+                         cell_data[indexing(1, 0, 0)] + cell_data[indexing(0, 0, 0)]) *
                             uvw0(1) +
-                        cell_data(1, 0, 0) - cell_data(0, 0, 0),
-                    (k * uvw0(0) + cell_data(0, 1, 1) - cell_data(0, 0, 1) -
-                     cell_data(0, 1, 0) + cell_data(0, 0, 0)) *
+                        cell_data[indexing(1, 0, 0)] - cell_data[indexing(0, 0, 0)],
+                    (k * uvw0(0) + cell_data[indexing(0, 1, 1)] - cell_data[indexing(0, 0, 1)] -
+                     cell_data[indexing(0, 1, 0)] + cell_data[indexing(0, 0, 0)]) *
                             uvw0(2) +
-                        (cell_data(1, 1, 0) - cell_data(0, 1, 0) -
-                         cell_data(1, 0, 0) + cell_data(0, 0, 0)) *
+                        (cell_data[indexing(1, 1, 0)] - cell_data[indexing(0, 1, 0)] -
+                         cell_data[indexing(1, 0, 0)] + cell_data[indexing(0, 0, 0)]) *
                             uvw0(0) +
-                        cell_data(0, 1, 0) - cell_data(0, 0, 0),
-                    (k * uvw0(0) + cell_data(0, 1, 1) - cell_data(0, 0, 1) -
-                     cell_data(0, 1, 0) + cell_data(0, 0, 0)) *
+                        cell_data[indexing(0, 1, 0)] - cell_data[indexing(0, 0, 0)],
+                    (k * uvw0(0) + cell_data[indexing(0, 1, 1)] - cell_data[indexing(0, 0, 1)] -
+                     cell_data[indexing(0, 1, 0)] + cell_data[indexing(0, 0, 0)]) *
                             uvw0(1) +
-                        (cell_data(1, 0, 1) - cell_data(0, 0, 1) -
-                         cell_data(1, 0, 0) + cell_data(0, 0, 0)) *
+                        (cell_data[indexing(1, 0, 1)] - cell_data[indexing(0, 0, 1)] -
+                         cell_data[indexing(1, 0, 0)] + cell_data[indexing(0, 0, 0)]) *
                             uvw0(0) +
-                        cell_data(0, 0, 1) - cell_data(0, 0, 0)};
+                        cell_data[indexing(0, 0, 1)] - cell_data[indexing(0, 0, 0)]};
             if constexpr (color_t::num_components() == 3) {
               accumulated_color = shader(x_iso, gradient, r.direction());
               done              = true;
@@ -333,7 +334,7 @@ auto direct_isosurface_rendering(rendering::camera<CameraReal> const& cam,
               auto const rgba  = shader(x_iso, gradient, r.direction());
               auto const rgb   = vec{rgba(0), rgba(1), rgba(2)};
               auto const alpha = rgba(3);
-              accumulated_color += (1 - accumulated_alpha) * alpha * rgb;
+              accumulated_color += (1 - accumulated_alpha) *  alpha * rgb;
               accumulated_alpha += (1 - accumulated_alpha) * alpha;
               if (accumulated_alpha >= 0.95) {
                 done = true;
@@ -352,7 +353,8 @@ auto direct_isosurface_rendering(rendering::camera<CameraReal> const& cam,
       rendering(x, y) = accumulated_color;
     } else if constexpr (color_t::num_components() == 4) {
       rendering(x, y) = accumulated_color * accumulated_alpha +
-                        bg_color * (1 - accumulated_alpha);
+                        bg_color * (1 - accumulated_alpha)
+                        ;
     }
   }
   return rendered_image;
