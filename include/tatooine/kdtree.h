@@ -22,7 +22,7 @@ struct kdtree : aabb<typename Mesh::real_t, Mesh::num_dimensions()> {
   using typename parent_t::vec_t;
   using vertex_handle = typename Mesh::vertex_handle;
   friend class std::unique_ptr<this_t>;
-  using parent_t::is_triangle_inside;
+  using parent_t::is_simplex_inside;
 
  private:
   Mesh const*                            m_mesh;

@@ -62,7 +62,7 @@ struct autonomous_particles_flowmap : renderable<autonomous_particles_flowmap> {
   auto load(filesystem::path const& path) -> void {
     std::cerr << "loading ... ";
     m_currently_read_path = path;
-    m_mesh                = std::make_unique<triangular_mesh<double, 2>>(path);
+    m_mesh                = std::make_unique<triangular_mesh2>(path);
     {
       m_edges.vertexbuffer().resize(m_mesh->vertices().size());
       auto map = m_edges.vertexbuffer().wmap();

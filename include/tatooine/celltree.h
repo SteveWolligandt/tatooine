@@ -21,8 +21,8 @@ template <typename Celltree, typename Real, size_t NumDimensions,
 struct celltree_parent {};
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 template <typename Celltree, typename real_t>
-struct celltree_parent<Celltree, real_t, 3, 3> : ray_intersectable<real_t> {
-  using parent_t = ray_intersectable<real_t>;
+struct celltree_parent<Celltree, real_t, 3, 3> : ray_intersectable<real_t, 3> {
+  using parent_t = ray_intersectable<real_t, 3>;
 
   using typename parent_t::optional_intersection_t;
   using typename parent_t::ray_t;

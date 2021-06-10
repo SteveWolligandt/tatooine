@@ -13,7 +13,7 @@ namespace tatooine::flowexplorer::nodes {
 autonomous_particle::autonomous_particle(flowexplorer::scene& s)
     : renderable<autonomous_particle>{"Autonomous Particle", s} {
   this->template insert_input_pin<vectorfield_t>("2D Vector Field");
-  this->template insert_input_pin<position<2>>("x0");
+  this->template insert_input_pin<vec2>("x0");
 
   S()  = mat_t::eye() * m_radius;
   t1() = m_t0;
@@ -113,7 +113,7 @@ void autonomous_particle::advect() {
       }
       return parent_t::container_t{};
     }();
-    geometry::sphere<double, 2> ellipse{1.0};
+    geometry::sphere2           ellipse{1};
     auto                        discretized_ellipse = discretize(ellipse, 100);
     size_t                      i                   = 0;
     {

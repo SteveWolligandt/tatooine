@@ -14,9 +14,9 @@
 namespace tatooine::geometry {
 //==============================================================================
 template <floating_point Real, size_t N>
-struct sphere : ray_intersectable<Real> {
+struct sphere : ray_intersectable<Real, N> {
   using this_t   = sphere<Real, N>;
-  using parent_t = ray_intersectable<Real>;
+  using parent_t = ray_intersectable<Real, N>;
   using pos_t    = vec<Real, N>;
   //============================================================================
  private:
@@ -37,7 +37,7 @@ struct sphere : ray_intersectable<Real> {
   sphere& operator=(sphere&&) = default;
   //============================================================================
   auto check_intersection(ray<Real, N> const& r, Real const min_t = 0) const
-      -> std::optional<intersection<Real>> override {
+      -> std::optional<intersection<Real, N>> override {
     return tatooine::geometry::check_intersection(*this, r, min_t);
   }
   //----------------------------------------------------------------------------
