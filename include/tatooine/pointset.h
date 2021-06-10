@@ -13,7 +13,6 @@
 #include <vector>
 
 #include <tatooine/handle.h>
-#include <tatooine/octree.h>
 #include <tatooine/property.h>
 #include <tatooine/polynomial.h>
 #include <tatooine/tensor.h>
@@ -268,7 +267,7 @@ struct pointset {
   }
 
   //#ifdef USE_TRIANGLE
-  //  //----------------------------------------------------------------------------
+  //----------------------------------------------------------------------------
   //  template <typename = void>
   //  requires (N == triangle_dims>>
   //  auto to_triangle_io() const {
@@ -285,7 +284,7 @@ struct pointset {
   //    return in;
   //  }
   //
-  //  //----------------------------------------------------------------------------
+  //--------------------------------------------------------------------------
   //  template <typename vertex_cont_t>
   //  requires (N == triangle_dims)
   //  auto to_triangle_io(vertex_cont_t const& vertices) const {

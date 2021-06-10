@@ -15,20 +15,21 @@ namespace tatooine {
 //==============================================================================
 namespace detail {
 // = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = =
-template <typename AABB, typename Real, size_t N>
-struct aabb_ray_intersectable_parent {};
-template <typename AABB, typename Real>
-struct aabb_ray_intersectable_parent<AABB, Real, 3> : ray_intersectable<Real> {
-  static constexpr size_t N = 3;
-  using typename ray_intersectable<Real>::ray_t;
-  using typename ray_intersectable<Real>::intersection_t;
-  using typename ray_intersectable<Real>::optional_intersection_t;
-  //============================================================================
-  // ray_intersectable overrides
+//template <typename AABB, typename Real, size_t N>
+//struct aabb_ray_intersectable_parent {};
+template <typename AABB, typename Real, size_t N >
+struct aabb_ray_intersectable_parent : ray_intersectable<Real, N> {
+  using parent_t = ray_intersectable<Real, N>;
+  using typename parent_t::ray_t;
+  using typename parent_t::intersection_t;
+  using typename parent_t::optional_intersection_t;
   //============================================================================
   auto as_aabb() const -> auto const& {
     return *dynamic_cast<AABB const*>(this);
   }
+  //============================================================================
+  // ray_intersectable overrides
+  //============================================================================
   auto check_intersection(ray_t const& r, Real const = 0) const
       -> optional_intersection_t override {
     auto const& aabb = as_aabb();
@@ -57,9 +58,12 @@ struct aabb_ray_intersectable_parent<AABB, Real, 3> : ray_intersectable<Real> {
 
     // Ray origin inside bounding box
     if (inside) {
-      return intersection_t{this,           r,
-                            Real(0),        r.origin(),
-                            vec<Real, N>::zeros(), vec<Real, N - 1>::zeros()};
+      return intersection_t{this,
+                            r,
+                            Real(0),
+                            r.origin(),
+                            vec<Real, N>::zeros(),
+                            vec<Real, 2>::zeros()};
     }
 
     // Calculate T distances to candidate planes
@@ -95,7 +99,7 @@ struct aabb_ray_intersectable_parent<AABB, Real, 3> : ray_intersectable<Real> {
                           max_t[which_plane],
                           coord,
                           vec<Real, N>::zeros(),
-                          vec<Real, N - 1>::zeros()};
+                          vec<Real, 2>::zeros()};
   }
 };
 // = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = =
@@ -130,7 +134,7 @@ struct axis_aligned_bounding_box
       default;
   constexpr axis_aligned_bounding_box(
       axis_aligned_bounding_box&& other) noexcept = default;
-  constexpr auto operator=(axis_aligned_bounding_box const& other)
+  constexpr auto operator           =(axis_aligned_bounding_box const& other)
       -> axis_aligned_bounding_box& = default;
   constexpr auto operator=(axis_aligned_bounding_box&& other) noexcept
       -> axis_aligned_bounding_box& = default;
@@ -178,21 +182,22 @@ struct axis_aligned_bounding_box
     return true;
   }
   //----------------------------------------------------------------------------
-#ifdef __cpp_concepts
-  template <typename = void> requires(N == 2)
-#else
+#ifndef __cpp_concepts
   template <size_t _N = N, enable_if<(_N == 2)> = true>
 #endif
-  constexpr auto is_triangle_inside(vec<Real, 2> x0,
-                                    vec<Real, 2> x1,
-                                    vec<Real, 2> x2) const {
-     auto const c = center();
-     // auto const e = extents()/2;
-     x0 -= c;
-     x1 -= c;
-     x2 -= c;
-    //vec_t const u0{1, 0};
-    //vec_t const u1{0, 1};
+  constexpr auto is_simplex_inside(vec<Real, 2> x0, vec<Real, 2> x1,
+                                   vec<Real, 2> x2) const
+#ifdef __cpp_concepts
+      requires(N == 2)
+#endif
+  {
+    auto const c = center();
+    // auto const e = extents()/2;
+    //x0 -= c;
+    //x1 -= c;
+    //x2 -= c;
+    // vec_t const u0{1, 0};
+    // vec_t const u1{0, 1};
     auto is_separating_axis = [&](vec<Real, 2> const& n) {
       auto const p0   = dot(vec_t{m_min(0), m_min(1)}, n);
       auto const p1   = dot(vec_t{m_min(0), m_max(1)}, n);
@@ -213,12 +218,12 @@ struct axis_aligned_bounding_box
     if (is_separating_axis(vec_t{0, 1})) {
       return false;
     }
-    //if (is_separating_axis(vec_t{-1, 0})) {
-    //  return false;
-    //}
-    //if (is_separating_axis(vec_t{0, -1})) {
-    //  return false;
-    //}
+     if (is_separating_axis(vec_t{-1, 0})) {
+      return false;
+    }
+     if (is_separating_axis(vec_t{0, -1})) {
+      return false;
+    }
     if (is_separating_axis(vec_t{x0(1) - x1(1), x1(0) - x0(0)})) {
       return false;
     }
@@ -233,14 +238,15 @@ struct axis_aligned_bounding_box
   //----------------------------------------------------------------------------
   /// from here:
   /// https://gdbooks.gitbooks.io/3dcollisions/content/Chapter4/aabb-triangle.html
-#ifdef __cpp_concepts
-  template <typename = void> requires(N == 3)
-#else
+#ifndef __cpp_concepts
   template <size_t _N = N, enable_if<(_N == 3)> = true>
 #endif
-  constexpr auto is_triangle_inside(vec<Real, 3> x0,
-                                    vec<Real, 3> x1,
-                                    vec<Real, 3> x2) const {
+  constexpr auto is_simplex_inside(vec<Real, 3> x0, vec<Real, 3> x1,
+                                   vec<Real, 3> x2) const
+#ifdef __cpp_concepts
+      requires(N == 3)
+#endif
+  {
     auto const c = center();
     auto const e = extents() / 2;
 
@@ -260,7 +266,7 @@ struct axis_aligned_bounding_box
       auto const p0 = dot(x0, axis);
       auto const p1 = dot(x1, axis);
       auto const p2 = dot(x2, axis);
-      auto r = e.x() * std::abs(dot(u0, axis)) +
+      auto       r  = e.x() * std::abs(dot(u0, axis)) +
                e.y() * std::abs(dot(u1, axis)) +
                e.z() * std::abs(dot(u2, axis));
       return tatooine::max(-tatooine::max(p0, p1, p2),
@@ -309,16 +315,15 @@ struct axis_aligned_bounding_box
     return true;
   }
   //----------------------------------------------------------------------------
-#ifdef __cpp_concepts
-  template <typename = void>
-  requires(N == 3)
-#else
+#ifndef __cpp_concepts
   template <size_t _N = N, enable_if<(_N == 3)> = true>
 #endif
-      constexpr auto is_tetrahedron_inside(vec<Real, 3> x0,
-                                           vec<Real, 3> x1,
-                                           vec<Real, 3> x2,
-                                           vec<Real, 3> x3) const {
+  constexpr auto is_simplex_inside(vec<Real, 3> x0, vec<Real, 3> x1,
+                                   vec<Real, 3> x2, vec<Real, 3> x3) const
+#ifdef __cpp_concepts
+      requires(N == 3)
+#endif
+  {
     auto const c = center();
     auto const e = extents() / 2;
 
@@ -344,8 +349,8 @@ struct axis_aligned_bounding_box
       auto const p2 = dot(x2, axis);
       auto const p3 = dot(x3, axis);
       auto       r  = e.x() * std::abs(dot(u0, axis)) +
-                      e.y() * std::abs(dot(u1, axis)) +
-                      e.z() * std::abs(dot(u2, axis));
+               e.y() * std::abs(dot(u1, axis)) +
+               e.z() * std::abs(dot(u2, axis));
       return tatooine::max(-tatooine::max(p0, p1, p2, p3),
                            tatooine::min(p0, p1, p2, p3)) > r;
     };
@@ -468,7 +473,7 @@ struct axis_aligned_bounding_box
   auto write_vtk(filesystem::path const& path) {
     vtk::legacy_file_writer f{path, vtk::dataset_type::polydata};
     f.write_header();
-    std::vector<vec<real_t, 3>>        positions;
+    std::vector<vec<real_t, 3>>      positions;
     std::vector<std::vector<size_t>> indices;
 
     positions.push_back(vec{min(0), min(1), min(2)});
@@ -479,10 +484,8 @@ struct axis_aligned_bounding_box
     positions.push_back(vec{max(0), min(1), max(2)});
     positions.push_back(vec{max(0), max(1), max(2)});
     positions.push_back(vec{min(0), max(1), max(2)});
-    indices.push_back(
-        {0,  1,  2,  3, 0});
-    indices.push_back(
-        {4, 5, 6, 7, 4});
+    indices.push_back({0, 1, 2, 3, 0});
+    indices.push_back({4, 5, 6, 7, 4});
     indices.push_back({0, 4});
     indices.push_back({1, 5});
     indices.push_back({2, 6});
@@ -500,7 +503,7 @@ using aabb2  = aabb<real_t, 2>;
 
 using aabb3d = aabb<double, 3>;
 using aabb3f = aabb<float, 3>;
-using aabb3 = aabb<real_t, 3>;
+using aabb3  = aabb<real_t, 3>;
 //==============================================================================
 // deduction guides
 //==============================================================================

@@ -10,8 +10,8 @@ namespace tatooine::flowexplorer::nodes {
 pathline::pathline(flowexplorer::scene& s)
     : renderable<pathline>{"Path Line", s},
       m_t0_pin{insert_input_pin<real_t>("t0")},
-      m_forward_tau_pin{insert_input_pin<real_t>("tau +")},
       m_backward_tau_pin{insert_input_pin<real_t>("tau -")},
+      m_forward_tau_pin{insert_input_pin<real_t>("tau +")},
       m_v_pin{insert_input_pin<vectorfield2_t, vectorfield3_t>("Vector Field")},
       m_x0_pin{
           insert_input_pin<vec2, vec3, std::vector<vec2>, std::vector<vec3>>(
@@ -81,7 +81,7 @@ auto pathline::integrate_lines() -> void {
     auto   callback       = [&cur_end_point2, &cur_end_point3, node, &index,
                      &insert_segment,
                      &forward](auto const& y, auto const t, auto const& dy) {
-      constexpr auto  N = std::decay_t<decltype(y)>::num_dimensions();
+      constexpr auto  N = std::decay_t<decltype(y)>::num_components();
       std::lock_guard lock{node->m_gpu_data.mutex()};
       if constexpr (N == 2) {
         node->m_gpu_data.vertexbuffer().push_back(

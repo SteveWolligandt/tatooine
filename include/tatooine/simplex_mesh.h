@@ -13,14 +13,14 @@
 #include <tatooine/celltree.h>
 #include <tatooine/grid.h>
 #include <tatooine/kdtree.h>
-#include <tatooine/octree.h>
 #include <tatooine/pointset.h>
 #include <tatooine/property.h>
-#include <tatooine/quadtree.h>
+#include <tatooine/uniform_tree_hierarchy.h>
 #include <tatooine/vtk_legacy.h>
 
 #include <boost/range/adaptor/transformed.hpp>
 #include <boost/range/algorithm/copy.hpp>
+#include <filesystem>
 #include <vector>
 //==============================================================================
 namespace tatooine {
@@ -33,8 +33,8 @@ struct simplex_mesh_cell_at_return_type_impl {
 };
 // = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = =
 template <typename VertexHandle, size_t NumVerticesPerSimplex, typename... Ts>
-struct simplex_mesh_cell_at_return_type_impl<VertexHandle, NumVerticesPerSimplex,
-                                             NumVerticesPerSimplex, Ts...> {
+struct simplex_mesh_cell_at_return_type_impl<
+    VertexHandle, NumVerticesPerSimplex, NumVerticesPerSimplex, Ts...> {
   using type = std::tuple<Ts...>;
 };
 // = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = =
@@ -55,17 +55,17 @@ using simplex_mesh_hierarchy_t =
 // = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = =
 template <typename Mesh, typename Real>
 struct simplex_mesh_hierarchy<Mesh, Real, 3, 3> {
-  using type = celltree<Mesh>;
+  using type = uniform_tree_hierarchy<Mesh>;
 };
 // = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = =
 template <typename Mesh, typename Real>
 struct simplex_mesh_hierarchy<Mesh, Real, 2, 2> {
-  using type = celltree<Mesh>;
+  using type = uniform_tree_hierarchy<Mesh>;
 };
 // = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = =
 template <typename Mesh, typename Real>
 struct simplex_mesh_hierarchy<Mesh, Real, 3, 2> {
-  using type = celltree<Mesh>;
+  using type = uniform_tree_hierarchy<Mesh>;
 };
 //==============================================================================
 template <typename Mesh, typename Real, size_t NumDimensions, size_t SimplexDim>
@@ -80,7 +80,8 @@ struct simplex_mesh_parent : pointset<Real, NumDimensions> {
 };
 //==============================================================================
 template <typename Mesh, typename Real>
-struct simplex_mesh_parent<Mesh, Real, 3, 2> : pointset<Real, 3>, ray_intersectable<Real> {
+struct simplex_mesh_parent<Mesh, Real, 3, 2> : pointset<Real, 3>,
+                                               ray_intersectable<Real, 3> {
   using real_t = Real;
   using typename pointset<real_t, 3>::vertex_handle;
   using hierarchy_t = simplex_mesh_hierarchy_t<Mesh, real_t, 3, 2>;
@@ -89,9 +90,9 @@ struct simplex_mesh_parent<Mesh, Real, 3, 2> : pointset<Real, 3>, ray_intersecta
   using cell_at_return_type =
       simplex_mesh_cell_at_return_type<vertex_handle&, 3>;
 
-  using typename ray_intersectable<real_t>::ray_t;
-  using typename ray_intersectable<real_t>::intersection_t;
-  using typename ray_intersectable<real_t>::optional_intersection_t;
+  using typename ray_intersectable<real_t, 3>::ray_t;
+  using typename ray_intersectable<real_t, 3>::intersection_t;
+  using typename ray_intersectable<real_t, 3>::optional_intersection_t;
   //----------------------------------------------------------------------------
   auto as_mesh() const -> auto const& {
     return *dynamic_cast<Mesh const*>(this);
@@ -110,13 +111,13 @@ struct simplex_mesh_parent<Mesh, Real, 3, 2> : pointset<Real, 3>, ray_intersecta
         mesh.m_hierarchy->collect_possible_intersections(r);
     for (auto const cell_handle : possible_cells) {
       auto const [vi0, vi1, vi2] = mesh.cell_at(cell_handle);
-      auto const&      v0        = mesh.at(vi0);
-      auto const&      v1        = mesh.at(vi1);
-      auto const&      v2        = mesh.at(vi2);
-      auto const       v0v1      = v1 - v0;
-      auto const       v0v2      = v2 - v0;
-      auto const       pvec      = cross(r.direction(), v0v2);
-      auto const       det       = dot(v0v1, pvec);
+      auto const& v0             = mesh.at(vi0);
+      auto const& v1             = mesh.at(vi1);
+      auto const& v2             = mesh.at(vi2);
+      auto const  v0v1           = v1 - v0;
+      auto const  v0v2           = v2 - v0;
+      auto const  pvec           = cross(r.direction(), v0v2);
+      auto const  det            = dot(v0v1, pvec);
       // r and triangle are parallel if det is close to 0
       if (std::abs(det) < eps) {
         continue;
@@ -138,8 +139,7 @@ struct simplex_mesh_parent<Mesh, Real, 3, 2> : pointset<Real, 3>, ray_intersecta
       auto const t                 = dot(v0v2, qvec) * inv_det;
       auto const barycentric_coord = vec<real_t, 3>{1 - u - v, u, v};
       if (t > min_t) {
-        auto const pos = barycentric_coord(0) * v0 +
-                         barycentric_coord(1) * v1 +
+        auto const pos = barycentric_coord(0) * v0 + barycentric_coord(1) * v1 +
                          barycentric_coord(2) * v2;
 
         if (t < global_min_t) {
@@ -184,56 +184,69 @@ class simplex_mesh
   static constexpr auto num_vertices_per_simplex() { return SimplexDim + 1; }
   static constexpr auto simplex_dimension() { return SimplexDim; }
   //----------------------------------------------------------------------------
-  // template <typename T>
-  // struct vertex_property_sampler_t {
-  //  this_t const&               m_mesh;
-  //  vertex_property_t<T> const& m_prop;
-  //  //--------------------------------------------------------------------------
-  //  auto mesh() const -> auto const& { return m_mesh; }
-  //  auto property() const -> auto const& { return m_prop; }
-  //  //--------------------------------------------------------------------------
-  //  [[nodiscard]] auto operator()(Real const x, Real const y,
-  //                                Real const z) const {
-  //    return sample(pos_t{x, y, z});
-  //  }
-  //  [[nodiscard]] auto operator()(pos_t const& x) const { return sample(x); }
-  //  //--------------------------------------------------------------------------
-  //  [[nodiscard]] auto sample(Real const x, Real const y, Real const z) const
-  //  {
-  //    return sample(pos_t{x, y, z});
-  //  }
-  //  [[nodiscard]] auto sample(pos_t const& x) const -> T {
-  //    auto cell_handles = m_mesh.hierarchy().nearby_cells(x);
-  //    if (cell_handles.empty()) {
-  //      throw std::runtime_error{
-  //          "[vertex_property_sampler_t::sample] out of domain"};
-  //    }
-  //    for (auto t : cell_handles) {
-  //      auto const [vi0, vi1, vi2, vi3] = m_mesh.cell_at(t);
-  //
-  //      auto const& v0 = m_mesh.vertex_at(vi0);
-  //      auto const& v1 = m_mesh.vertex_at(vi1);
-  //      auto const& v2 = m_mesh.vertex_at(vi2);
-  //      auto const& v3 = m_mesh.vertex_at(vi3);
-  //
-  //      mat<Real, 4, 4> const A{{v0(0), v1(0), v2(0), v3(0)},
-  //                              {v0(1), v1(1), v2(1), v3(1)},
-  //                              {v0(2), v1(2), v2(2), v3(2)},
-  //                              {Real(1), Real(1), Real(1), Real(1)}};
-  //      vec<Real, 4> const    b{x(0), x(1), x(2), 1};
-  //      auto const            abcd = solve(A, b);
-  //      if (abcd(0) >= -1e-8 && abcd(0) <= 1 + 1e-8 && abcd(1) >= -1e-8 &&
-  //          abcd(1) <= 1 + 1e-8 && abcd(2) >= -1e-8 && abcd(2) <= 1 + 1e-8 &&
-  //          abcd(3) >= -1e-8 && abcd(3) <= 1 + 1e-8) {
-  //        return m_prop[vi0] * abcd(0) + m_prop[vi1] * abcd(1) +
-  //               m_prop[vi2] * abcd(2) + m_prop[vi3] * abcd(3);
-  //      }
-  //    }
-  //    throw std::runtime_error{
-  //        "[vertex_property_sampler_t::sample] out of domain"};
-  //    return T{};
-  //  }
-  //};
+  template <typename T>
+  struct vertex_property_sampler_t : field<vertex_property_sampler_t<T>, Real,
+                                           parent_t::num_dimensions(), T> {
+   private:
+    this_t const&               m_mesh;
+    vertex_property_t<T> const& m_prop;
+
+    //--------------------------------------------------------------------------
+   public:
+    vertex_property_sampler_t(this_t const&               mesh,
+                              vertex_property_t<T> const& prop)
+        : m_mesh{mesh}, m_prop{prop} {}
+    //--------------------------------------------------------------------------
+    auto mesh() const -> auto const& { return m_mesh; }
+    auto property() const -> auto const& { return m_prop; }
+    //--------------------------------------------------------------------------
+    [[nodiscard]] auto evaluate(pos_t const& x, real_t const /*t*/) const -> T {
+      return evaluate(x,
+                      std::make_index_sequence<num_vertices_per_simplex()>{});
+    }
+    //--------------------------------------------------------------------------
+    template <size_t... VertexSeq>
+    [[nodiscard]] auto evaluate(pos_t const& x,
+                                std::index_sequence<VertexSeq...> /*seq*/) const
+        -> T {
+      auto cell_handles = m_mesh.hierarchy().nearby_cells(x);
+      if (cell_handles.empty()) {
+        throw std::runtime_error{
+            "[vertex_property_sampler_t::sample] out of domain"};
+      }
+      for (auto t : cell_handles) {
+        auto const vs = m_mesh.cell_at(t);
+        static constexpr auto NV = num_vertices_per_simplex();
+        auto                  A  = mat<Real, NV, NV>::ones();
+        auto                  b  = vec<Real, NV>::ones();
+        for (size_t r = 0; r < num_dimensions(); ++r) {
+          (
+              [&]() {
+                if (VertexSeq > 0) {
+                  A(r, VertexSeq) = m_mesh[std::get<VertexSeq>(vs)](r) -
+                                    m_mesh[std::get<0>(vs)](r);
+                } else {
+                  ((A(r, VertexSeq) = 0), ...);
+                }
+              }(),
+              ...);
+
+          b(r) = x(r) - m_mesh[std::get<0>(vs)](r);
+        }
+        auto const   barycentric_coord = solve(A, b);
+        real_t const eps = 1e-8;
+        if (((barycentric_coord(VertexSeq) >= -eps) && ...) &&
+            ((barycentric_coord(VertexSeq) <= 1 + eps) && ...)) {
+          return (
+              (m_prop[std::get<VertexSeq>(vs)] * barycentric_coord(VertexSeq)) +
+              ...);
+        }
+      }
+      throw std::runtime_error{
+          "[vertex_property_sampler_t::sample] out of domain"};
+      return T{};
+    }
+  };
   //----------------------------------------------------------------------------
   struct cell_handle : handle {
     using handle::handle;
@@ -339,7 +352,7 @@ class simplex_mesh
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
   auto operator=(simplex_mesh&& other) noexcept -> simplex_mesh& = default;
   //----------------------------------------------------------------------------
-  // simplex_mesh(std::string const& file) { read(file); }
+  simplex_mesh(std::filesystem::path const& path) { read(path); }
   //----------------------------------------------------------------------------
   simplex_mesh(std::initializer_list<pos_t>&& vertices)
       : parent_t{std::move(vertices)} {}
@@ -598,8 +611,107 @@ class simplex_mesh
 #endif
   //----------------------------------------------------------------------------
  public:
-  auto write_vtk(std::string const& path,
-                 std::string const& title = "tatooine mesh") const {
+  template <typename T>
+  auto cell_property(std::string const& name) -> auto& {
+    if (auto it = m_cell_properties.find(name);
+        it == end(m_cell_properties)) {
+      return insert_cell_property<T>(name);
+    } else {
+      if (typeid(T) != it->second->type()) {
+        throw std::runtime_error{
+            "type of property \"" + name + "\"(" +
+            boost::core::demangle(it->second->type().name()) +
+            ") does not match specified type " + type_name<T>() + "."};
+      }
+      return *dynamic_cast<cell_property_t<T>*>(
+          m_cell_properties.at(name).get());
+    }
+  }
+  //----------------------------------------------------------------------------
+  template <typename T>
+  auto cell_property(std::string const& name) const -> const auto& {
+    if (auto it = m_cell_properties.find(name);
+        it == end(m_cell_properties)) {
+      throw std::runtime_error{"property \"" + name + "\" not found"};
+    } else {
+      if (typeid(T) != it->second->type()) {
+        throw std::runtime_error{
+            "type of property \"" + name + "\"(" +
+            boost::core::demangle(it->second->type().name()) +
+            ") does not match specified type " + type_name<T>() + "."};
+      }
+      return *dynamic_cast<cell_property_t<T>*>(
+          m_cell_properties.at(name).get());
+    }
+  }
+  //----------------------------------------------------------------------------
+  auto scalar_cell_property(std::string const& name) const -> auto const& {
+    return cell_property<tatooine::real_t>(name);
+  }
+  //----------------------------------------------------------------------------
+  auto scalar_cell_property(std::string const& name) -> auto& {
+    return cell_property<tatooine::real_t>(name);
+  }
+  //----------------------------------------------------------------------------
+  auto vec2_cell_property(std::string const& name) const -> auto const& {
+    return cell_property<vec2>(name);
+  }
+  //----------------------------------------------------------------------------
+  auto vec2_cell_property(std::string const& name) -> auto& {
+    return cell_property<vec2>(name);
+  }
+  //----------------------------------------------------------------------------
+  auto vec3_cell_property(std::string const& name) const -> auto const& {
+    return cell_property<vec3>(name);
+  }
+  //----------------------------------------------------------------------------
+  auto vec3_cell_property(std::string const& name) -> auto& {
+    return cell_property<vec3>(name);
+  }
+  //----------------------------------------------------------------------------
+  auto vec4_cell_property(std::string const& name) const -> auto const& {
+    return cell_property<vec4>(name);
+  }
+  //----------------------------------------------------------------------------
+  auto vec4_cell_property(std::string const& name) -> auto& {
+    return cell_property<vec4>(name);
+  }
+  //----------------------------------------------------------------------------
+  auto mat2_cell_property(std::string const& name) const -> auto const& {
+    return cell_property<mat2>(name);
+  }
+  //----------------------------------------------------------------------------
+  auto mat2_cell_property(std::string const& name) -> auto& {
+    return cell_property<mat2>(name);
+  }
+  //----------------------------------------------------------------------------
+  auto mat3_cell_property(std::string const& name) const -> auto const& {
+    return cell_property<mat3>(name);
+  }
+  //----------------------------------------------------------------------------
+  auto mat3_cell_property(std::string const& name) -> auto& {
+    return cell_property<mat3>(name);
+  }
+  //----------------------------------------------------------------------------
+  auto mat4_cell_property(std::string const& name) const -> auto const& {
+    return cell_property<mat4>(name);
+  }
+  //----------------------------------------------------------------------------
+  auto mat4_cell_property(std::string const& name) -> auto& {
+    return cell_property<mat4>(name);
+  }
+  //----------------------------------------------------------------------------
+  template <typename T>
+  auto insert_cell_property(std::string const& name, T const& value = T{})
+      -> auto& {
+    auto [it, suc] = m_cell_properties.insert(
+        std::pair{name, std::make_unique<cell_property_t<T>>(value)});
+    auto prop = dynamic_cast<cell_property_t<T>*>(it->second.get());
+    prop->resize(cells().size());
+    return *prop;
+  }
+  auto write_vtk(std::filesystem::path const& path,
+                 std::string const&           title = "tatooine mesh") const {
     if constexpr (SimplexDim == 2) {
       write_triangular_mesh_vtk(path, title);
     } else if constexpr (SimplexDim == 3) {
@@ -609,7 +721,7 @@ class simplex_mesh
 
  private:
   template <size_t _N = SimplexDim, enable_if<_N == 2> = true>
-  auto write_triangular_mesh_vtk(std::string const& path,
+  auto write_triangular_mesh_vtk(std::filesystem::path const& path,
                                  std::string const& title) const -> bool {
     using boost::copy;
     using boost::adaptors::transformed;
@@ -671,7 +783,7 @@ class simplex_mesh
   }
   //----------------------------------------------------------------------------
   template <size_t _N = SimplexDim, enable_if<_N == 3> = true>
-  auto write_tetrahedral_mesh_vtk(std::string const& path,
+  auto write_tetrahedral_mesh_vtk(std::filesystem::path const& path,
                                   std::string const& title) const -> bool {
     using boost::copy;
     using boost::adaptors::transformed;
@@ -716,8 +828,8 @@ class simplex_mesh
   }
   //----------------------------------------------------------------------------
  public:
-  auto read(std::string const& path) {
-    auto ext = path.substr(path.find_last_of(".") + 1);
+  auto read(std::filesystem::path const& path) {
+    auto ext = path.extension();
     if constexpr (NumDimensions == 3) {
       if (ext == "vtk") {
         read_vtk(path);
@@ -726,7 +838,7 @@ class simplex_mesh
   }
   //----------------------------------------------------------------------------
   template <size_t _N = NumDimensions, enable_if<_N == 3> = true>
-  auto read_vtk(std::string const& path) {
+  auto read_vtk(std::filesystem::path const& path) {
     struct listener_t : vtk::legacy_file_listener {
       simplex_mesh& mesh;
 
@@ -765,7 +877,8 @@ class simplex_mesh
                       vtk::reader_data data) override {
         if (data == vtk::reader_data::point_data) {
           if (num_comps == 1) {
-            auto& prop = mesh.template insert_vertex_property<double>(data_name);
+            auto& prop =
+                mesh.template insert_vertex_property<double>(data_name);
             for (size_t i = 0; i < prop.size(); ++i) {
               prop[i] = scalars[i];
             }
@@ -798,35 +911,9 @@ class simplex_mesh
         }
       }
     } listener{*this};
-    vtk::legacy_file f{path};
+    auto f = vtk::legacy_file{path};
     f.add_listener(listener);
     f.read();
-  }
-  //----------------------------------------------------------------------------
-  template <typename T>
-  auto cell_property(std::string const& name) -> auto& {
-    auto prop        = m_cell_properties.at(name).get();
-    auto casted_prop = dynamic_cast<cell_property_t<T>*>(prop);
-    assert(typeid(T) == casted_prop->type());
-    return *casted_prop;
-  }
-  //----------------------------------------------------------------------------
-  template <typename T>
-  auto cell_property(std::string const& name) const -> auto const& {
-    auto prop        = m_cell_properties.at(name).get();
-    auto casted_prop = dynamic_cast<cell_property_t<T> const*>(prop);
-    assert(typeid(T) == casted_prop->type());
-    return *casted_prop;
-  }
-  //----------------------------------------------------------------------------
-  template <typename T>
-  auto add_cell_property(std::string const& name, T const& value = T{})
-      -> auto& {
-    auto [it, suc] = m_cell_properties.insert(
-        std::pair{name, std::make_unique<cell_property_t<T>>(value)});
-    auto prop = dynamic_cast<cell_property_t<T>*>(it->second.get());
-    prop->resize(m_cell_indices.size());
-    return *prop;
   }
   //----------------------------------------------------------------------------
   constexpr bool is_valid(cell_handle t) const {
@@ -836,12 +923,12 @@ class simplex_mesh
   auto build_hierarchy() const {
     clear_hierarchy();
     auto& h = hierarchy();
-    if constexpr (is_quadtree<hierarchy_t>() || is_octree<hierarchy_t>()) {
+    if constexpr (is_uniform_tree_hierarchy<hierarchy_t>()) {
       for (auto v : vertices()) {
-        h.insert_vertex(v.i);
+        h.insert_vertex(v);
       }
       for (auto c : cells()) {
-        h.insert_triangle(c.i);
+        h.insert_cell(c);
       }
     }
   }
@@ -856,18 +943,19 @@ class simplex_mesh
     return *m_hierarchy;
   }
   //----------------------------------------------------------------------------
-  // template <typename T>
-  // auto sampler(vertex_property_t<T> const& prop) const {
-  //  if (m_hierarchy == nullptr) {
-  //    build_hierarchy();
-  //  }
-  //  return vertex_property_sampler_t<T>{*this, prop};
-  //}
-  ////--------------------------------------------------------------------------
-  // template <typename T>
-  // auto vertex_property_sampler(std::string const& name) const {
-  //  return sampler<T>(this->template vertex_property<T>(name));
-  //}
+  template <typename T>
+  auto sampler(vertex_property_t<T> const& prop) const {
+    if (m_hierarchy == nullptr) {
+      build_hierarchy();
+    }
+    return vertex_property_sampler_t<T>{*this, prop};
+  }
+  //--------------------------------------------------------------------------
+  template <typename T>
+  auto vertex_property_sampler(std::string const& name) const {
+    return sampler<T>(this->template vertex_property<T>(name));
+  }
+  //--------------------------------------------------------------------------
   constexpr auto bounding_box() const {
     auto bb = axis_aligned_bounding_box<Real, num_dimensions()>{};
     for (auto const v : vertices()) {

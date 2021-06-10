@@ -47,13 +47,13 @@ struct position : tatooine::vec<real_t, N>, renderable<position<N>> {
     }
   }
   //============================================================================
-  auto render(mat4f const& projection_matrix, mat4f const& view_matrix)
+  auto render(mat4f const& P, mat4f const& V)
       -> void override {
     set_vbo_data();
     point_shader::get().bind();
     point_shader::get().set_color(m_color[0], m_color[1], m_color[2], m_color[3]);
-    point_shader::get().set_projection_matrix(projection_matrix);
-    point_shader::get().set_modelview_matrix(view_matrix);
+    point_shader::get().set_projection_matrix(P);
+    point_shader::get().set_modelview_matrix(V);
     yavin::gl::point_size(m_pointsize);
     m_gpu_data.draw_points();
   }

@@ -24,15 +24,15 @@ TEST_CASE("separating_axis_theorem") {
   }
   SECTION("aabb class"){
     aabb<double, 2> unit_bb{vec{-1, -1}, vec{1, 1}};
-    REQUIRE(unit_bb.is_triangle_inside(vec2{2, -1}, vec2{2,2}, vec2{-1, 2}));
-    REQUIRE(unit_bb.is_triangle_inside(vec2{-2, -1}, vec2{1,2}, vec2{-2, 2}));
-    REQUIRE(unit_bb.is_triangle_inside(vec2{-2, 2}, vec2{-2, -1}, vec2{1, -1}));
-    REQUIRE(unit_bb.is_triangle_inside(vec2{-1, -2}, vec2{2, -2}, vec2{2, 1}));
+    REQUIRE(unit_bb.is_simplex_inside(vec2{2, -1}, vec2{2,2}, vec2{-1, 2}));
+    REQUIRE(unit_bb.is_simplex_inside(vec2{-2, -1}, vec2{1,2}, vec2{-2, 2}));
+    REQUIRE(unit_bb.is_simplex_inside(vec2{-2, 2}, vec2{-2, -1}, vec2{1, -1}));
+    REQUIRE(unit_bb.is_simplex_inside(vec2{-1, -2}, vec2{2, -2}, vec2{2, 1}));
 
-    REQUIRE_FALSE(unit_bb.is_triangle_inside(vec2{1, -2}, vec2{2, -2}, vec2{2, -1}));
-    REQUIRE_FALSE(unit_bb.is_triangle_inside(vec2{2, 1}, vec2{2, 2}, vec2{1, 2}));
-    REQUIRE_FALSE(unit_bb.is_triangle_inside(vec2{-1, 2}, vec2{-2, 2}, vec2{-2, -1}));
-    REQUIRE_FALSE(unit_bb.is_triangle_inside(vec2{-2, -1}, vec2{-2, -2}, vec2{-1, -2}));
+    REQUIRE_FALSE(unit_bb.is_simplex_inside(vec2{1, -2}, vec2{2, -2}, vec2{2, -1}));
+    REQUIRE_FALSE(unit_bb.is_simplex_inside(vec2{2, 1}, vec2{2, 2}, vec2{1, 2}));
+    REQUIRE_FALSE(unit_bb.is_simplex_inside(vec2{-1, 2}, vec2{-2, 2}, vec2{-2, -1}));
+    REQUIRE_FALSE(unit_bb.is_simplex_inside(vec2{-2, -1}, vec2{-2, -2}, vec2{-1, -2}));
   }
 }
 //==============================================================================

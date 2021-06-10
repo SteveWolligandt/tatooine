@@ -21,8 +21,8 @@ struct pathline : renderable<pathline> {
   using integrator3_t  = ode::vclibs::rungekutta43<real_t, 3>;
   //----------------------------------------------------------------------------
   ui::input_pin&                          m_t0_pin;
-  ui::input_pin&                          m_forward_tau_pin;
   ui::input_pin&                          m_backward_tau_pin;
+  ui::input_pin&                          m_forward_tau_pin;
   ui::input_pin&                          m_v_pin;
   ui::input_pin&                          m_x0_pin;
   ui::output_pin&                         m_neg2_pin;

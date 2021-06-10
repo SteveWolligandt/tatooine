@@ -1,21 +1,22 @@
 #include <tatooine/triangular_mesh.h>
+
 #include <catch2/catch.hpp>
 //==============================================================================
 namespace tatooine::test {
 //==============================================================================
-TEST_CASE("triangular_mesh_copy", "[triangular_mesh][copy]"){
-  triangular_mesh mesh;
+TEST_CASE("triangular_mesh_copy", "[triangular_mesh][copy]") {
+  triangular_mesh3 mesh;
   auto const       v0 = mesh.insert_vertex(0.0, 0.0, 0.0);
   auto const       v1 = mesh.insert_vertex(1.0, 0.0, 0.0);
   auto const       v2 = mesh.insert_vertex(0.0, 1.0, 0.0);
-  auto const       f0 = mesh.insert_face(v0, v1, v2);
+  auto const       f0 = mesh.insert_cell(v0, v1, v2);
 
-  auto& vertex_prop = mesh.add_vertex_property<double>("vertex_prop");
-  vertex_prop[v0] = 0;
-  vertex_prop[v1] = 1;
-  vertex_prop[v2] = 2;
-  auto& face_prop = mesh.add_face_property<double>("face_prop");
-  face_prop[f0] = 4;
+  auto& vertex_prop = mesh.scalar_vertex_property("vertex_prop");
+  vertex_prop[v0]   = 0;
+  vertex_prop[v1]   = 1;
+  vertex_prop[v2]   = 2;
+  auto& cell_prop   = mesh.scalar_cell_property("cell_prop");
+  cell_prop[f0]     = 4;
 
   auto copied_mesh = mesh;
 
@@ -26,7 +27,8 @@ TEST_CASE("triangular_mesh_copy", "[triangular_mesh][copy]"){
   REQUIRE_FALSE(mesh[v0] == copied_mesh[v0]);
 
   {
-    auto& copied_vertex_prop = copied_mesh.vertex_property<double>("vertex_prop");
+    auto& copied_vertex_prop =
+        copied_mesh.scalar_vertex_property("vertex_prop");
     REQUIRE(vertex_prop[v0] == copied_vertex_prop[v0]);
     REQUIRE(vertex_prop[v1] == copied_vertex_prop[v1]);
     REQUIRE(vertex_prop[v2] == copied_vertex_prop[v2]);
@@ -34,22 +36,23 @@ TEST_CASE("triangular_mesh_copy", "[triangular_mesh][copy]"){
     vertex_prop[v0] = 100;
     REQUIRE_FALSE(vertex_prop[v0] == copied_vertex_prop[v0]);
 
-    auto& copied_face_prop = copied_mesh.face_property<double>("face_prop");
-    REQUIRE(face_prop[f0] == copied_face_prop[f0]);
+    auto& copied_cell_prop = copied_mesh.scalar_cell_property("cell_prop");
+    REQUIRE(cell_prop[f0] == copied_cell_prop[f0]);
 
-    face_prop[f0] = 10;
-    REQUIRE_FALSE(face_prop[f0] == copied_face_prop[f0]);
+    cell_prop[f0] = 10;
+    REQUIRE_FALSE(cell_prop[f0] == copied_cell_prop[f0]);
   }
 
   copied_mesh = mesh;
   {
-    auto& copied_vertex_prop = copied_mesh.vertex_property<double>("vertex_prop");
+    auto& copied_vertex_prop =
+        copied_mesh.scalar_vertex_property("vertex_prop");
     REQUIRE(mesh[v0] == copied_mesh[v0]);
     REQUIRE(vertex_prop[v0] == copied_vertex_prop[v0]);
 
-    auto& copied_face_prop = copied_mesh.face_property<double>("face_prop");
+    auto& copied_cell_prop = copied_mesh.scalar_cell_property("cell_prop");
     REQUIRE(mesh[f0] == copied_mesh[f0]);
-    REQUIRE(face_prop[f0] == copied_face_prop[f0]);
+    REQUIRE(cell_prop[f0] == copied_cell_prop[f0]);
   }
 }
 //==============================================================================
@@ -60,15 +63,19 @@ TEST_CASE("triangular_mesh_linear_sampler",
   auto const                 v1 = mesh.insert_vertex(1.0, 0.0);
   auto const                 v2 = mesh.insert_vertex(0.0, 1.0);
   auto const                 v3 = mesh.insert_vertex(1.0, 1.0);
-  mesh.insert_face(v0, v1, v2);
-  mesh.insert_face(v1, v3, v2);
+  mesh.insert_cell(v0, v1, v2);
+  mesh.insert_cell(v1, v3, v2);
 
-  auto& prop    = mesh.add_vertex_property<double>("prop");
-  prop[v0] = 1;
-  prop[v1] = 2;
-  prop[v2] = 3;
-  prop[v3] = 4;
-  auto sampler  = mesh.sampler(prop);
+  auto& prop   = mesh.scalar_vertex_property("prop");
+  prop[v0]     = 1;
+  prop[v1]     = 2;
+  prop[v2]     = 3;
+  prop[v3]     = 4;
+  auto sampler = mesh.sampler(prop);
+  REQUIRE(sampler(mesh[v0]) == prop[v0]);
+  REQUIRE(sampler(mesh[v1]) == prop[v1]);
+  REQUIRE(sampler(mesh[v2]) == prop[v2]);
+  REQUIRE(sampler(mesh[v3]) == prop[v3]);
   REQUIRE(sampler(vec2{0.5, 0.5}) == Approx(2.5));
   REQUIRE(sampler(vec2{0.0, 0.0}) == Approx(1));
   REQUIRE(sampler(vec2{1.0, 1.0}) == Approx(4));

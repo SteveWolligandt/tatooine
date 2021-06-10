@@ -117,11 +117,14 @@ elseif ("${CMAKE_CXX_COMPILER_ID}" STREQUAL "GNU")
 endif()
 
 #enable warnings
-if ("${CMAKE_CXX_COMPILER_ID}" STREQUAL "Clang" OR
-    "${CMAKE_CXX_COMPILER_ID}" STREQUAL "GNU")
-target_compile_options(tatooine PRIVATE
-  -Wall -Wextra -pedantic
-  -Wno-tautological-undefined-compare -Wno-gnu-zero-variadic-macro-arguments)
+if ("${CMAKE_CXX_COMPILER_ID}" STREQUAL "GNU")
+  target_compile_options(tatooine PUBLIC
+    -Wall -Wextra -pedantic -Wno-cpp
+    -Wno-tautological-undefined-compare -Wno-gnu-zero-variadic-macro-arguments)
+endif()
+if ("${CMAKE_CXX_COMPILER_ID}" STREQUAL "Clang")
+  target_compile_options(tatooine PUBLIC
+    -Wall -Wextra -pedantic -Wno-cpp)
 endif()
 
 try_compile(TATOOINE_STD_FILESYSTEM_AVAILABLE "${CMAKE_BINARY_DIR}/temp" 

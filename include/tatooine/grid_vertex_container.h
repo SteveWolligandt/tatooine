@@ -106,7 +106,7 @@ struct grid_vertex_container {
   template <size_t... Is>
   constexpr auto end(std::index_sequence<Is...> /*seq*/) const {
     auto it =  iterator{
-        &m_grid, handle{std::array{((void)Is, size_t(0))...}, size() - 1}};
+        &m_grid, handle{std::array{((void)Is, size_t(0))...}, size()}};
     it->indices()[num_dimensions() - 1] =
         m_grid.template size<num_dimensions() - 1>();
     return it;

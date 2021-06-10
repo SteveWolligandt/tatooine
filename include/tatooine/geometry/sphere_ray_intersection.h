@@ -10,9 +10,19 @@ namespace tatooine::geometry {
 template <floating_point Real, size_t N>
 struct sphere;
 //==============================================================================
+template <floating_point Real, size_t N>
+auto check_intersection(ray<Real, N> const& r, sphere<Real, N> const& s,
+                        Real const min_t = 0)
+    -> std::optional<intersection<Real, N>> {
+  throw std::runtime_error{"sphere ray intersection not implemented for " +
+                           std::to_string(N) + " dimensions."};
+  return {};
+}
+//------------------------------------------------------------------------------
 template <floating_point Real>
-std::optional<intersection<Real>> check_intersection(
-    ray<Real, 3> const& r, sphere<Real, 3> const& s, Real const min_t = 0) {
+auto check_intersection(ray<Real, 3> const& r, sphere<Real, 3> const& s,
+                        Real const min_t = 0)
+    -> std::optional<intersection<Real, 3>> {
   auto const m = r.origin() - s.center();
   auto const b = dot(m, r.direction());
   auto const c = dot(m, m) - s.radius() * s.radius();
@@ -40,12 +50,13 @@ std::optional<intersection<Real>> check_intersection(
   auto const nor     = normalize(hit_pos - s.center());
   vec        uv{std::atan2(nor(0), nor(2)) / (2 * M_PI) + M_PI / 2,
          std::acos(-nor(1)) / M_PI};
-  return intersection<Real>{&s, r, t, hit_pos, nor, uv};
+  return intersection<Real, 3>{&s, r, t, hit_pos, nor, uv};
 }
 //------------------------------------------------------------------------------
 template <floating_point Real, size_t N>
-std::optional<intersection<Real>> check_intersection(
-    sphere<Real, N> const& s, ray<Real, N> const& r, Real const min_t = 0) {
+auto check_intersection(sphere<Real, N> const& s, ray<Real, N> const& r,
+                        Real const min_t = 0)
+    -> std::optional<intersection<Real, N>> {
   return check_intersection(r, s, min_t);
 }
 //==============================================================================
