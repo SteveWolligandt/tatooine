@@ -19,3 +19,6 @@
 [submodule "external/netcdf-cxx4"]
 	path = external/netcdf-cxx4
 	url = https://github.com/Unidata/netcdf-cxx4.git
+[submodule "benchmarks/external/google-benchmark"]
+	path = benchmarks/external/google-benchmark
+	url = https://github.com/google/benchmark.git
