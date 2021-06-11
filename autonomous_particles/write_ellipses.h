@@ -1,9 +1,9 @@
 #ifndef TATOOINE_AUTONOMOUS_PARTICLES_WRITE_ELLIPSES_H
 #define TATOOINE_AUTONOMOUS_PARTICLES_WRITE_ELLIPSES_H
 //==============================================================================
-#include <tatooine/autonomous_particle.h>
-
 #include <tatooine/filesystem.h>
+#include <tatooine/netcdf.h>
+#include <tatooine/real.h>
 #include <vector>
 //==============================================================================
 namespace tatooine {

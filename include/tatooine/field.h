@@ -1,7 +1,6 @@
 #ifndef TATOOINE_FIELD_H
 #define TATOOINE_FIELD_H
 //==============================================================================
-#include <tatooine/grid.h>
 #include <tatooine/tensor.h>
 #include <tatooine/tensor_type.h>
 #include <tatooine/type_traits.h>
@@ -220,7 +219,13 @@ static constexpr bool is_matrixfield_v = is_matrixfield<T>::value;
 template <typename T>
 struct is_matrixfield<T> : std::integral_constant<bool, T::is_matrixfield()> {};
 //==============================================================================
+}  // namespace tatooine
+//==============================================================================
 // free functions
+//==============================================================================
+#include <tatooine/grid.h>
+//==============================================================================
+namespace tatooine {
 //==============================================================================
 #ifdef __cpp_concpets
 template <typename V, arithmetic VReal, size_t NumDims, typename Tensor,

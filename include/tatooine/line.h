@@ -344,26 +344,18 @@ struct line {
   //============================================================================
   // Handles
   //============================================================================
-  struct vertex_idx : handle {
-    using handle::handle;
-    bool operator==(vertex_idx other) const { return this->i == other.i; }
-    bool operator!=(vertex_idx other) const { return this->i != other.i; }
-    bool operator<(vertex_idx other) const { return this->i < other.i; }
-    static constexpr auto invalid() { return vertex_idx{handle::invalid_idx}; }
+  struct vertex_handle : handle<vertex_handle> {
+    using handle<vertex_handle>::handle;
   };
-  //----------------------------------------------------------------------------
-  struct tangent_idx : handle {
-    using handle::handle;
-    bool operator==(tangent_idx other) const { return this->i == other.i; }
-    bool operator!=(tangent_idx other) const { return this->i != other.i; }
-    bool operator<(tangent_idx other) const { return this->i < other.i; }
-    static constexpr auto invalid() { return tangent_idx{handle::invalid_idx}; }
+  struct tangent_handle : handle<tangent_handle> {
+    using handle<tangent_handle>::handle;
   };
 
+
   template <typename T>
-  using vertex_property_t = deque_property_impl<vertex_idx, T>;
+  using vertex_property_t = deque_property_impl<vertex_handle, T>;
   using vertex_property_container_t =
-      std::map<std::string, std::unique_ptr<deque_property<vertex_idx>>>;
+      std::map<std::string, std::unique_ptr<deque_property<vertex_handle>>>;
 
   //============================================================================
   // static methods
@@ -449,14 +441,14 @@ struct line {
   const auto& vertex_at(size_t i) const { return m_vertices[i]; }
   auto&       vertex_at(size_t i) { return m_vertices[i]; }
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-  const auto& vertex_at(vertex_idx i) const { return m_vertices[i.i]; }
-  auto&       vertex_at(vertex_idx i) { return m_vertices[i.i]; }
+  const auto& vertex_at(vertex_handle i) const { return m_vertices[i.i]; }
+  auto&       vertex_at(vertex_handle i) { return m_vertices[i.i]; }
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-  const auto& at(vertex_idx i) const { return m_vertices[i.i]; }
-  auto&       at(vertex_idx i) { return m_vertices[i.i]; }
+  const auto& at(vertex_handle i) const { return m_vertices[i.i]; }
+  auto&       at(vertex_handle i) { return m_vertices[i.i]; }
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-  const auto& operator[](vertex_idx i) const { return m_vertices[i.i]; }
-  auto&       operator[](vertex_idx i) { return m_vertices[i.i]; }
+  const auto& operator[](vertex_handle i) const { return m_vertices[i.i]; }
+  auto&       operator[](vertex_handle i) { return m_vertices[i.i]; }
   //----------------------------------------------------------------------------
   const auto& front_vertex() const { return m_vertices.front(); }
   auto&       front_vertex() { return m_vertices.front(); }
@@ -477,21 +469,21 @@ struct line {
     for (auto& [name, prop] : m_vertex_properties) {
       prop->push_back();
     }
-    return vertex_idx{m_vertices.size() - 1};
+    return vertex_handle{m_vertices.size() - 1};
   }
   auto push_back(const pos_t& p) {
     m_vertices.push_back(p);
     for (auto& [name, prop] : m_vertex_properties) {
       prop->push_back();
     }
-    return vertex_idx{m_vertices.size() - 1};
+    return vertex_handle{m_vertices.size() - 1};
   }
   auto push_back(pos_t&& p) {
     m_vertices.emplace_back(std::move(p));
     for (auto& [name, prop] : m_vertex_properties) {
       prop->push_back();
     }
-    return vertex_idx{m_vertices.size() - 1};
+    return vertex_handle{m_vertices.size() - 1};
   }
   template <typename OtherReal>
   auto push_back(const vec<OtherReal, N>& p) {
@@ -499,7 +491,7 @@ struct line {
     for (auto& [name, prop] : m_vertex_properties) {
       prop->push_back();
     }
-    return vertex_idx{m_vertices.size() - 1};
+    return vertex_handle{m_vertices.size() - 1};
   }
   auto pop_back() { m_vertices.pop_back(); }
   //----------------------------------------------------------------------------
@@ -516,21 +508,21 @@ struct line {
     for (auto& [name, prop] : m_vertex_properties) {
       prop->push_front();
     }
-    return vertex_idx{0};
+    return vertex_handle{0};
   }
   auto push_front(const pos_t& p) {
     m_vertices.push_front(p);
     for (auto& [name, prop] : m_vertex_properties) {
       prop->push_front();
     }
-    return vertex_idx{0};
+    return vertex_handle{0};
   }
   auto push_front(pos_t&& p) {
     m_vertices.emplace_front(std::move(p));
     for (auto& [name, prop] : m_vertex_properties) {
       prop->push_front();
     }
-    return vertex_idx{0};
+    return vertex_handle{0};
   }
   template <typename OtherReal>
   auto push_front(const vec<OtherReal, N>& p) {
@@ -538,7 +530,7 @@ struct line {
     for (auto& [name, prop] : m_vertex_properties) {
       prop->push_front();
     }
-    return vertex_idx{0};
+    return vertex_handle{0};
   }
   void pop_front() { m_vertices.pop_front(); }
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -548,7 +540,7 @@ struct line {
   // tangent
   //============================================================================
   /// calculates tangent at point t with backward differences
-  auto tangent_at(const tangent_idx i, tag::forward_t tag) const {
+  auto tangent_at(const tangent_handle i, tag::forward_t tag) const {
     return tangent_at(i.i, tag);
   }
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -565,7 +557,7 @@ struct line {
 
   //----------------------------------------------------------------------------
   /// calculates tangent at point t with backward differences
-  auto tangent_at(const tangent_idx i, tag::backward_t tag) const {
+  auto tangent_at(const tangent_handle i, tag::backward_t tag) const {
     return tangent_at(i.i, tag);
   }
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -582,7 +574,7 @@ struct line {
 
   //----------------------------------------------------------------------------
   /// calculates tangent at point i with central differences
-  auto tangent_at(const tangent_idx i, tag::central_t tag) const {
+  auto tangent_at(const tangent_handle i, tag::central_t tag) const {
     return tangent_at(i.i, tag);
   }
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -604,7 +596,7 @@ struct line {
             distance(vertex_at(i), vertex_at(i + 1)));
   }
   //----------------------------------------------------------------------------
-  auto tangent_at(const tangent_idx i, tag::automatic_t tag,
+  auto tangent_at(const tangent_handle i, tag::automatic_t tag,
                   bool prefer_calc = false) const {
     return tangent_at(i.i, tag, prefer_calc);
   }
@@ -612,7 +604,7 @@ struct line {
   auto tangent_at(const size_t i, tag::automatic_t /*tag*/,
                   bool         prefer_calc = false) const {
     if (m_tangents && !prefer_calc) {
-      return m_tangents->at(vertex_idx{i});
+      return m_tangents->at(vertex_handle{i});
     }
     if (is_closed()) {
       return tangent_at(i, tag::central);
@@ -626,7 +618,7 @@ struct line {
     return tangent_at(i, tag::central);
   }
   //----------------------------------------------------------------------------
-  auto tangent_at(const tangent_idx i, bool prefer_calc = false) const {
+  auto tangent_at(const tangent_handle i, bool prefer_calc = false) const {
     return tangent_at(i, tag::automatic, prefer_calc);
   }
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -642,27 +634,27 @@ struct line {
     return tangent_at(num_vertices() - 1, prefer_calc);
   }
   //----------------------------------------------------------------------------
-  auto at(tangent_idx i, bool prefer_calc = false) const {
+  auto at(tangent_handle i, bool prefer_calc = false) const {
     return tangent_at(i.i, prefer_calc);
   }
-  auto at(tangent_idx i, tag::forward_t tag) const {
+  auto at(tangent_handle i, tag::forward_t tag) const {
     return tangent_at(i.i, tag);
   }
-  auto at(tangent_idx i, tag::backward_t tag) const {
+  auto at(tangent_handle i, tag::backward_t tag) const {
     return tangent_at(i.i, tag);
   }
-  auto at(tangent_idx i, tag::central_t tag) const {
+  auto at(tangent_handle i, tag::central_t tag) const {
     return tangent_at(i.i, tag);
   }
-  auto operator[](tangent_idx i) const { return tangent_at(i.i); }
+  auto operator[](tangent_handle i) const { return tangent_at(i.i); }
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
   using tangent_iterator =
-      const_line_vertex_iterator<this_t, Real, N, tangent_idx, vec<Real, N>,
+      const_line_vertex_iterator<this_t, Real, N, tangent_handle, vec<Real, N>,
                                  vec<Real, N>>;
   using const_tangent_container =
-      const_line_vertex_container<this_t, Real, N, tangent_idx, vec<Real, N>,
+      const_line_vertex_container<this_t, Real, N, tangent_handle, vec<Real, N>,
                                   vec<Real, N>>;
-  using tangent_container = line_vertex_container<this_t, Real, N, tangent_idx,
+  using tangent_container = line_vertex_container<this_t, Real, N, tangent_handle,
                                                   vec<Real, N>, vec<Real, N>>;
   auto tangents(bool prefer_calc = false) const {
     return const_tangent_container{*this, prefer_calc};
@@ -806,7 +798,7 @@ struct line {
   template <typename T>
   static void write_prop_to_vtk(
       vtk::legacy_file_writer& writer, const std::string& name,
-      const std::unique_ptr<deque_property<vertex_idx>>& prop) {
+      const std::unique_ptr<deque_property<vertex_handle>>& prop) {
     const auto& deque =
         dynamic_cast<vertex_property_t<T>*>(prop.get())->container();
 
@@ -1111,9 +1103,9 @@ struct parameterized_line : line<Real, N> {
   using parent_t = line<Real, N>;
   using typename parent_t::empty_exception;
   using typename parent_t::pos_t;
-  using typename parent_t::tangent_idx;
+  using typename parent_t::tangent_handle;
   using typename parent_t::vec_t;
-  using typename parent_t::vertex_idx;
+  using typename parent_t::vertex_handle;
   struct time_not_found : std::exception {};
   using interpolation_t = InterpolationKernel<vec_t>;
   static constexpr auto num_derivatives_needed =
@@ -1194,22 +1186,22 @@ struct parameterized_line : line<Real, N> {
   }
 
   //----------------------------------------------------------------------------
-  std::pair<const pos_t&, const Real&> at(vertex_idx i) const {
+  std::pair<const pos_t&, const Real&> at(vertex_handle i) const {
     return {vertex_at(i.i), parameterization_at(i.i)};
   }
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-  std::pair<pos_t&, Real&> at(vertex_idx i) {
+  std::pair<pos_t&, Real&> at(vertex_handle i) {
     return {vertex_at(i.i), parameterization_at(i.i)};
   }
   //----------------------------------------------------------------------------
-  auto operator[](vertex_idx i) const { return at(i); }
-  auto operator[](vertex_idx i) { return at(i); }
+  auto operator[](vertex_handle i) const { return at(i); }
+  auto operator[](vertex_handle i) { return at(i); }
   //----------------------------------------------------------------------------
   auto& parameterization_at(size_t i) {
-    return m_parameterization->at(vertex_idx{i});
+    return m_parameterization->at(vertex_handle{i});
   }
   const auto& parameterization_at(size_t i) const {
-    return m_parameterization->at(vertex_idx{i});
+    return m_parameterization->at(vertex_handle{i});
   }
   //----------------------------------------------------------------------------
   auto&       front_parameterization() { return m_parameterization->front(); }
@@ -1253,7 +1245,7 @@ struct parameterized_line : line<Real, N> {
   //----------------------------------------------------------------------------
   auto push_back(pos_t&& p, Real t, bool auto_compute_interpolator = true) {
     auto i                                = parent_t::push_back(std::move(p));
-    m_parameterization->at(vertex_idx{i}) = t;
+    m_parameterization->at(vertex_handle{i}) = t;
     if (num_vertices() > 1) {
       if (auto_compute_interpolator) {
         if constexpr (num_derivatives_needed == 1) {
@@ -1315,7 +1307,7 @@ struct parameterized_line : line<Real, N> {
   //----------------------------------------------------------------------------
   auto push_front(pos_t&& p, Real t, bool auto_compute_interpolator = true) {
     auto i                                = parent_t::push_front(std::move(p));
-    m_parameterization->at(vertex_idx{i}) = t;
+    m_parameterization->at(vertex_handle{i}) = t;
     if (num_vertices() > 1) {
       if (auto_compute_interpolator) {
         if constexpr (num_derivatives_needed == 1) {
@@ -1489,15 +1481,15 @@ struct parameterized_line : line<Real, N> {
     //} else {
     //  return InterpolationKernel<Prop>{prop[left], prop[left+1]}(factor);
     //}
-    return prop[vertex_idx{left}] * (1 - factor) +
-           prop[vertex_idx{left + 1}] * factor;
+    return prop[vertex_handle{left}] * (1 - factor) +
+           prop[vertex_handle{left + 1}] * factor;
   }
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
  private:
   template <typename Prop>
   void resample_property(
       const linspace<Real>& ts, this_t& resampled, const std::string& name,
-      const std::unique_ptr<deque_property<vertex_idx>>& p) const {
+      const std::unique_ptr<deque_property<vertex_handle>>& p) const {
     resample_property(ts, resampled, name,
                       *dynamic_cast<const vertex_property_t<Prop>*>(p.get()));
   }
@@ -1511,11 +1503,11 @@ struct parameterized_line : line<Real, N> {
     for (auto t : ts) {
       if constexpr (std::is_same_v<vec_t, Prop>) {
         if (&prop == this->m_tangents) {
-          resampled_prop[vertex_idx{i++}] = tangent(t);
+          resampled_prop[vertex_handle{i++}] = tangent(t);
           continue;
         }
       }
-      resampled_prop[vertex_idx{i++}] = sample(t, prop);
+      resampled_prop[vertex_handle{i++}] = sample(t, prop);
     }
   }
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -1586,7 +1578,7 @@ struct parameterized_line : line<Real, N> {
   // tangents
   //============================================================================
   /// computes tangent assuming the line is a quadratic curve
-  auto tangent_at(const tangent_idx i, tag::quadratic_t tag) const {
+  auto tangent_at(const tangent_handle i, tag::quadratic_t tag) const {
     return tangent_at(i.i, tag);
   }
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -1657,7 +1649,7 @@ struct parameterized_line : line<Real, N> {
     return tangent;
   }
   //----------------------------------------------------------------------------
-  auto tangent_at(const tangent_idx i, tag::automatic_t tag,
+  auto tangent_at(const tangent_handle i, tag::automatic_t tag,
                   bool prefer_calc = false) const {
     return tangent_at(i.i, tag, prefer_calc);
   }
@@ -1665,7 +1657,7 @@ struct parameterized_line : line<Real, N> {
   auto tangent_at(const size_t i, tag::automatic_t /*tag*/,
                   bool         prefer_calc = false) const {
     if (this->m_tangents && !prefer_calc) {
-      return this->m_tangents->at(vertex_idx{i});
+      return this->m_tangents->at(vertex_handle{i});
     }
     if (num_vertices() >= 3) {
       return tangent_at(i, tag::quadratic);
@@ -1674,7 +1666,7 @@ struct parameterized_line : line<Real, N> {
     }
   }
   //----------------------------------------------------------------------------
-  auto tangent_at(const tangent_idx i, bool prefer_calc = false) const {
+  auto tangent_at(const tangent_handle i, bool prefer_calc = false) const {
     return tangent_at(i.i, tag::automatic, prefer_calc);
   }
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -1690,11 +1682,11 @@ struct parameterized_line : line<Real, N> {
     return tangent_at(num_vertices() - 1, prefer_calc);
   }
   //----------------------------------------------------------------------------
-  auto at(tangent_idx i, bool prefer_calc = false) const {
+  auto at(tangent_handle i, bool prefer_calc = false) const {
     return tangent_at(i.i, prefer_calc);
   }
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-  auto operator[](tangent_idx i) const { return tangent_at(i.i); }
+  auto operator[](tangent_handle i) const { return tangent_at(i.i); }
   //----------------------------------------------------------------------------
   auto& tangents_to_property(bool update = false) {
     if (this->m_tangents != nullptr && !update) {
@@ -1706,7 +1698,7 @@ struct parameterized_line : line<Real, N> {
   }
   //----------------------------------------------------------------------------
   using tangent_iterator =
-      const_line_vertex_iterator<this_t, Real, N, tangent_idx, vec<Real, N>,
+      const_line_vertex_iterator<this_t, Real, N, tangent_handle, vec<Real, N>,
                                  vec<Real, N>>;
   //----------------------------------------------------------------------------
   auto segment_lengths() const {
@@ -1727,15 +1719,15 @@ struct parameterized_line : line<Real, N> {
     auto len_prev    = parameterization_at(1) - parameterization_at(0);
     auto len_next    = (parameterization_at(num_vertices() - 2) -
                      parameterization_at(num_vertices() - 1));
-    integral += len_prev * prop[vertex_idx{0}];
-    integral += len_next * prop[vertex_idx{num_vertices() - 1}];
+    integral += len_prev * prop[vertex_handle{0}];
+    integral += len_next * prop[vertex_handle{num_vertices() - 1}];
     acc_seg_len += len_prev;
     acc_seg_len += len_next;
     for (size_t i = 1; i < num_vertices() - 1; ++i) {
       len_next = parameterization_at(i + 1) - parameterization_at(i);
       acc_seg_len += len_prev;
       acc_seg_len += len_next;
-      integral += (len_prev + len_next) * prop[vertex_idx{i}];
+      integral += (len_prev + len_next) * prop[vertex_handle{i}];
       len_prev = len_next;
     }
     integral /= acc_seg_len;

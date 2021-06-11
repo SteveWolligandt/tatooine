@@ -188,12 +188,14 @@ class simplex_mesh
   struct vertex_property_sampler_t : field<vertex_property_sampler_t<T>, Real,
                                            parent_t::num_dimensions(), T> {
    private:
-    this_t const&               m_mesh;
-    vertex_property_t<T> const& m_prop;
+    using mesh_t = simplex_mesh<Real, NumDimensions, SimplexDim>;
+    using this_t = vertex_property_sampler_t<T>;
 
+    mesh_t const&               m_mesh;
+    vertex_property_t<T> const& m_prop;
     //--------------------------------------------------------------------------
    public:
-    vertex_property_sampler_t(this_t const&               mesh,
+    vertex_property_sampler_t(mesh_t const&               mesh,
                               vertex_property_t<T> const& prop)
         : m_mesh{mesh}, m_prop{prop} {}
     //--------------------------------------------------------------------------
@@ -215,7 +217,7 @@ class simplex_mesh
             "[vertex_property_sampler_t::sample] out of domain"};
       }
       for (auto t : cell_handles) {
-        auto const vs = m_mesh.cell_at(t);
+        auto const            vs = m_mesh.cell_at(t);
         static constexpr auto NV = num_vertices_per_simplex();
         auto                  A  = mat<Real, NV, NV>::ones();
         auto                  b  = vec<Real, NV>::ones();
@@ -234,7 +236,7 @@ class simplex_mesh
           b(r) = x(r) - m_mesh[std::get<0>(vs)](r);
         }
         auto const   barycentric_coord = solve(A, b);
-        real_t const eps = 1e-8;
+        real_t const eps               = 1e-8;
         if (((barycentric_coord(VertexSeq) >= -eps) && ...) &&
             ((barycentric_coord(VertexSeq) <= 1 + eps) && ...)) {
           return (
@@ -248,18 +250,8 @@ class simplex_mesh
     }
   };
   //----------------------------------------------------------------------------
-  struct cell_handle : handle {
-    using handle::handle;
-    constexpr bool operator==(cell_handle other) const {
-      return this->i == other.i;
-    }
-    constexpr bool operator!=(cell_handle other) const {
-      return this->i != other.i;
-    }
-    constexpr bool operator<(cell_handle other) const {
-      return this->i < other.i;
-    }
-    static constexpr auto invalid() { return cell_handle{handle::invalid_idx}; }
+  struct cell_handle : handle<cell_handle> {
+    using handle<cell_handle>::handle;
   };
   //----------------------------------------------------------------------------
   struct cell_iterator
@@ -362,28 +354,66 @@ class simplex_mesh
       : parent_t{std::move(positions)} {}
   //----------------------------------------------------------------------------
  private:
-  // template <typename T, typename Prop, typename Grid>
-  // auto copy_prop(std::string const& name, Prop const& prop, Grid const& g) {
-  //  if (prop->type() == typeid(T)) {
-  //    auto const& grid_prop = g.template vertex_property<T>(name);
-  //    auto&       tri_prop  = this->template insert_vertex_property<T>(name);
-  //    g.iterate_over_vertex_indices([&](auto const... is) {
-  //      std::array is_arr{is...};
-  //      tri_prop[vertex_handle{is_arr[0] + is_arr[1] * g.size(0)}] =
-  //          grid_prop(is...);
-  //    });
-  //  }
-  //}
+  template <typename... TypesToCheck, typename Prop, typename Grid>
+  auto copy_prop(std::string const& name, Prop const& prop, Grid const& g) {
+    (([&]() {
+       if (prop->type() == typeid(TypesToCheck)) {
+         auto const& grid_prop = g.template vertex_property<TypesToCheck>(name);
+         auto& mesh_prop = this->template vertex_property<TypesToCheck>(name);
+         auto  vi        = vertex_handle{0};
+         g.vertices().iterate_indices(
+             [&](auto const... is) { mesh_prop[vi++] = grid_prop(is...); });
+       }
+     }()),
+     ...);
+  }
 
  public:
 #ifdef __cpp_concepts
-  template <indexable_space DimX, indexable_space DimY, indexable_space DimZ>
-  requires(NumDimensions == 3)
+  template <indexable_space DimX, indexable_space DimY>
+  requires(NumDimensions == 2) && (SimplexDim == 2)
 #else
-  template <typename DimX, typename DimY, typename DimZ,
-            size_t N_ = NumDimensions, enable_if<N_ == 3> = true>
+  template <
+      typename DimX, typename DimY, size_t NumDimensions_ = NumDimensions,
+      size_t SimplexDim_                               = SimplexDim,
+      enable_if<NumDimensions == NumDimensions_, SimplexDim == SimplexDim_,
+                NumDimensions_ == 2, SimplexDim_ == 2> = true>
 #endif
-      simplex_mesh(grid<DimX, DimY, DimZ> const& g) {
+                                      simplex_mesh(grid<DimX, DimY> const& g) {
+    auto const gv = g.vertices();
+    for (auto v : gv) {
+      insert_vertex(gv[v]);
+    }
+    auto const gc = g.cells();
+    auto const s0 = g.size(0);
+    gc.iterate_indices([&](auto const i, auto const j) {
+      auto const le_bo = vertex_handle{i + j * s0};
+      auto const ri_bo = vertex_handle{(i + 1) + j * s0};
+      auto const le_to = vertex_handle{i + (j + 1) * s0};
+      auto const ri_to = vertex_handle{(i + 1) + (j + 1) * s0};
+      insert_cell(le_bo, ri_bo, le_to);
+      insert_cell(ri_bo, ri_to, le_to);
+    });
+    for (auto const& [name, prop] : g.vertex_properties()) {
+      copy_prop<mat4d, mat3d, mat2d, mat4f, mat3f, mat2f, vec4d, vec3d, vec2d,
+                vec4f, vec3f, vec2f, double, float, std::int8_t, std::uint8_t,
+                std::int16_t, std::uint16_t, std::int32_t, std::uint32_t,
+                std::int64_t, std::uint64_t>(name, prop, g);
+    }
+  }
+
+#ifdef __cpp_concepts
+  template <indexable_space DimX, indexable_space DimY, indexable_space DimZ>
+  requires(NumDimensions == 3) &&
+      (SimplexDim == 3)
+#else
+  template <
+      typename DimX, typename DimY, typename DimZ,
+      size_t NumDimensions_ = NumDimensions, size_t SimplexDim_ = SimplexDim,
+      enable_if<NumDimensions == NumDimensions_, SimplexDim == SimplexDim_,
+                NumDimensions_ == 3, SimplexDim_ == 3> = true>
+#endif
+          simplex_mesh(grid<DimX, DimY, DimZ> const& g) {
 
     constexpr auto turned = [](size_t const ix, size_t const iy,
                                size_t const iz) -> bool {
@@ -401,64 +431,56 @@ class simplex_mesh
       return turned;
     };
 
-    for (auto v : g.vertices()) {
-      insert_vertex(v);
+    auto const gv = g.vertices();
+    for (auto v : gv) {
+      insert_vertex(gv[v]);
     }
-    for (size_t k = 0; k < g.size(2) - 1; ++k) {
-      for (size_t j = 0; j < g.size(1) - 1; ++j) {
-        for (size_t i = 0; i < g.size(0) - 1; ++i) {
-          auto const le_bo_fr =
-              vertex_handle{i + j * g.size(0) + k * g.size(0) * g.size(1)};
-          auto const ri_bo_fr = vertex_handle{(i + 1) + j * g.size(0) +
-                                              k * g.size(0) * g.size(1)};
-          auto const le_to_fr = vertex_handle{i + (j + 1) * g.size(0) +
-                                              k * g.size(0) * g.size(1)};
-          auto const ri_to_fr = vertex_handle{(i + 1) + (j + 1) * g.size(0) +
-                                              k * g.size(0) * g.size(1)};
-          auto const le_bo_ba = vertex_handle{i + j * g.size(0) +
-                                              (k + 1) * g.size(0) * g.size(1)};
-          auto const ri_bo_ba = vertex_handle{(i + 1) + j * g.size(0) +
-                                              (k + 1) * g.size(0) * g.size(1)};
-          auto const le_to_ba = vertex_handle{i + (j + 1) * g.size(0) +
-                                              (k + 1) * g.size(0) * g.size(1)};
-          auto const ri_to_ba = vertex_handle{(i + 1) + (j + 1) * g.size(0) +
-                                              (k + 1) * g.size(0) * g.size(1)};
-          if (turned(i, j, k)) {
-            insert_cell(le_bo_fr, ri_bo_ba, ri_to_fr,
-                        le_to_ba);  // inner
-            insert_cell(le_bo_fr, ri_bo_fr, ri_to_fr,
-                        ri_bo_ba);  // right front
-            insert_cell(le_bo_fr, ri_to_fr, le_to_fr,
-                        le_to_ba);  // left front
-            insert_cell(ri_to_fr, ri_bo_ba, ri_to_ba,
-                        le_to_ba);  // right back
-            insert_cell(le_bo_fr, le_bo_ba, ri_bo_ba,
-                        le_to_ba);  // left back
-          } else {
-            insert_cell(le_to_fr, ri_bo_fr, le_bo_ba,
-                        ri_to_ba);  // inner
-            insert_cell(le_bo_fr, ri_bo_fr, le_to_fr,
-                        le_bo_ba);  // left front
-            insert_cell(ri_bo_fr, ri_to_fr, le_to_fr,
-                        ri_to_ba);  // right front
-            insert_cell(le_to_fr, le_to_ba, ri_to_ba,
-                        le_bo_ba);  // left back
-            insert_cell(ri_bo_fr, ri_bo_ba, ri_to_ba,
-                        le_bo_ba);  // right back
-          }
+    auto const gc   = g.cells();
+    auto const s0   = g.size(0);
+    auto const s1   = g.size(1);
+    auto const s0s1 = s0 * s1;
+    gc.iterate_vertices([&](auto const i, auto const j, auto const k) {
+      for (size_t i = 0; i < s0 - 1; ++i) {
+        auto const le_bo_fr = vertex_handle{i + j * s0 + k * s0s1};
+        auto const ri_bo_fr = vertex_handle{(i + 1) + j * s0 + k * s0s1};
+        auto const le_to_fr = vertex_handle{i + (j + 1) * s0 + k * s0s1};
+        auto const ri_to_fr = vertex_handle{(i + 1) + (j + 1) * s0 + k * s0s1};
+        auto const le_bo_ba = vertex_handle{i + j * s0 + (k + 1) * s0s1};
+        auto const ri_bo_ba = vertex_handle{(i + 1) + j * s0 + (k + 1) * s0s1};
+        auto const le_to_ba = vertex_handle{i + (j + 1) * s0 + (k + 1) * s0s1};
+        auto const ri_to_ba =
+            vertex_handle{(i + 1) + (j + 1) * s0 + (k + 1) * s0s1};
+        if (turned(i, j, k)) {
+          insert_cell(le_bo_fr, ri_bo_ba, ri_to_fr,
+                      le_to_ba);  // inner
+          insert_cell(le_bo_fr, ri_bo_fr, ri_to_fr,
+                      ri_bo_ba);  // right front
+          insert_cell(le_bo_fr, ri_to_fr, le_to_fr,
+                      le_to_ba);  // left front
+          insert_cell(ri_to_fr, ri_bo_ba, ri_to_ba,
+                      le_to_ba);  // right back
+          insert_cell(le_bo_fr, le_bo_ba, ri_bo_ba,
+                      le_to_ba);  // left back
+        } else {
+          insert_cell(le_to_fr, ri_bo_fr, le_bo_ba,
+                      ri_to_ba);  // inner
+          insert_cell(le_bo_fr, ri_bo_fr, le_to_fr,
+                      le_bo_ba);  // left front
+          insert_cell(ri_bo_fr, ri_to_fr, le_to_fr,
+                      ri_to_ba);  // right front
+          insert_cell(le_to_fr, le_to_ba, ri_to_ba,
+                      le_bo_ba);  // left back
+          insert_cell(ri_bo_fr, ri_bo_ba, ri_to_ba,
+                      le_bo_ba);  // right back
         }
       }
+    });
+    for (auto const& [name, prop] : g.vertex_properties()) {
+      copy_prop<mat4d, mat3d, mat2d, mat4f, mat3f, mat2f, vec4d, vec3d, vec2d,
+                vec4f, vec3f, vec2f, double, float, std::int8_t, std::uint8_t,
+                std::int16_t, std::uint16_t, std::int32_t, std::uint32_t,
+                std::int64_t, std::uint64_t>(name, prop, g);
     }
-    // for (auto const& [name, prop] : g.vertex_properties()) {
-    //  copy_prop<vec4d>(name, prop, g);
-    //  copy_prop<vec3d>(name, prop, g);
-    //  copy_prop<vec2d>(name, prop, g);
-    //  copy_prop<vec4f>(name, prop, g);
-    //  copy_prop<vec3f>(name, prop, g);
-    //  copy_prop<vec2f>(name, prop, g);
-    //  copy_prop<double>(name, prop, g);
-    //  copy_prop<float>(name, prop, g);
-    //}
   }
   //============================================================================
   auto operator[](cell_handle t) const -> auto { return cell_at(t.i); }
@@ -549,7 +571,8 @@ class simplex_mesh
   //----------------------------------------------------------------------------
 #ifdef TATOOINE_HAS_CGAL_SUPPORT
 #ifndef __cpp_concepts
-  template <size_t N_ = NumDimensions, enable_if<N_ == 2 || N_ == 3> = true>
+  template <size_t NumDimensions_ = NumDimensions,
+            enable_if<NumDimensions_ == 2 || NumDimensions_ == 3> = true>
 #endif
       auto build_delaunay_mesh() -> void
 #ifdef __cpp_concepts
@@ -563,11 +586,11 @@ class simplex_mesh
  private:
 #ifdef __cpp_concepts
   template <size_t... Seq>
-      requires(NumDimensions == 2) ||
+  requires(NumDimensions == 2) ||
       (NumDimensions == 3)
 #else
-  template <size_t... Seq, size_t N_ = NumDimensions,
-            enable_if<N_ == 2 || N_ == 3> = true>
+  template <size_t... Seq, size_t NumDimensions_ = NumDimensions,
+            enable_if<NumDimensions_ == 2 || NumDimensions_ == 3> = true>
 #endif
           auto build_delaunay_mesh(std::index_sequence<Seq...> /*seq*/)
               -> void {
@@ -613,8 +636,7 @@ class simplex_mesh
  public:
   template <typename T>
   auto cell_property(std::string const& name) -> auto& {
-    if (auto it = m_cell_properties.find(name);
-        it == end(m_cell_properties)) {
+    if (auto it = m_cell_properties.find(name); it == end(m_cell_properties)) {
       return insert_cell_property<T>(name);
     } else {
       if (typeid(T) != it->second->type()) {
@@ -630,8 +652,7 @@ class simplex_mesh
   //----------------------------------------------------------------------------
   template <typename T>
   auto cell_property(std::string const& name) const -> const auto& {
-    if (auto it = m_cell_properties.find(name);
-        it == end(m_cell_properties)) {
+    if (auto it = m_cell_properties.find(name); it == end(m_cell_properties)) {
       throw std::runtime_error{"property \"" + name + "\" not found"};
     } else {
       if (typeid(T) != it->second->type()) {
@@ -720,7 +741,7 @@ class simplex_mesh
   }
 
  private:
-  template <size_t _N = SimplexDim, enable_if<_N == 2> = true>
+  template <size_t SimplexDim_ = SimplexDim, enable_if<SimplexDim_ == 2> = true>
   auto write_triangular_mesh_vtk(std::filesystem::path const& path,
                                  std::string const& title) const -> bool {
     using boost::copy;
@@ -782,7 +803,7 @@ class simplex_mesh
     }
   }
   //----------------------------------------------------------------------------
-  template <size_t _N = SimplexDim, enable_if<_N == 3> = true>
+  template <size_t SimplexDim_ = SimplexDim, enable_if<SimplexDim_ == 3> = true>
   auto write_tetrahedral_mesh_vtk(std::filesystem::path const& path,
                                   std::string const& title) const -> bool {
     using boost::copy;
@@ -830,81 +851,146 @@ class simplex_mesh
  public:
   auto read(std::filesystem::path const& path) {
     auto ext = path.extension();
-    if constexpr (NumDimensions == 3) {
-      if (ext == "vtk") {
+    if constexpr (NumDimensions == 2 || NumDimensions == 3) {
+      if (ext == ".vtk") {
         read_vtk(path);
       }
     }
   }
   //----------------------------------------------------------------------------
-  template <size_t _N = NumDimensions, enable_if<_N == 3> = true>
+  template <size_t NumDimensions_ = NumDimensions,
+            enable_if<NumDimensions_ == 2 || NumDimensions_ == 3> = true>
   auto read_vtk(std::filesystem::path const& path) {
     struct listener_t : vtk::legacy_file_listener {
-      simplex_mesh& mesh;
+      simplex_mesh&          mesh;
+      std::vector<int>       cells;
 
       listener_t(simplex_mesh& _mesh) : mesh(_mesh) {}
-
-      void on_dataset_type(vtk::dataset_type t) override {
-        if (t != vtk::dataset_type::polydata) {
-          throw std::runtime_error{
-              "[simplex_mesh] need polydata when reading vtk legacy"};
-        }
-      }
-
-      void on_points(std::vector<std::array<float, 3>> const& ps) override {
-        for (auto& p : ps) {
-          mesh.insert_vertex(p[0], p[1], p[2]);
-        }
-      }
-      void on_points(std::vector<std::array<double, 3>> const& ps) override {
-        for (auto& p : ps) {
-          mesh.insert_vertex(p[0], p[1], p[2]);
-        }
-      }
-      void on_polygons(std::vector<int> const& ps) override {
-        for (size_t i = 0; i < ps.size();) {
-          auto const& size = ps[i++];
-          if (size == 4) {
-            mesh.insert_cell(size_t(ps[i]), size_t(ps[i + 1]),
-                             size_t(ps[i + 2]), size_t(ps[i + 2]));
+      auto add_cells(std::vector<int> const& cells) -> void {
+        size_t i = 0;
+        while (i < size(cells)) {
+          auto const num_vertices = cells[i++];
+          if (num_vertices != num_vertices_per_simplex()) {
+            throw std::runtime_error{
+                "Number of vertices in file does not match number of vertices "
+                "per simplex."};
           }
-          i += size;
+          for (size_t j = 0; j < static_cast<size_t>(num_vertices); ++j) {
+            mesh.m_cell_indices.push_back(vertex_handle{cells[i++]});
+          }
+          for (auto& [key, prop] : mesh.m_cell_properties) {
+            prop->push_back();
+          }
         }
       }
-      void on_scalars(std::string const& data_name,
+      auto on_cells(std::vector<int> const& cells) -> void override {
+        add_cells(cells);
+      }
+      auto on_dataset_type(vtk::dataset_type t) -> void override {
+        if (t != vtk::dataset_type::unstructured_grid &&
+            t != vtk::dataset_type::polydata) {
+          throw std::runtime_error{
+              "[simplex_mesh] need polydata or unstructured_grid when reading vtk legacy"};
+        }
+      }
+
+      auto on_points(std::vector<std::array<float, 3>> const& ps)
+          -> void override {
+        for (auto& p : ps) {
+          if constexpr (NumDimensions == 2) {
+            mesh.insert_vertex(static_cast<Real>(p[0]),
+                               static_cast<Real>(p[1]));
+          }
+          if constexpr (NumDimensions == 3) {
+            mesh.insert_vertex(static_cast<Real>(p[0]), static_cast<Real>(p[1]),
+                               static_cast<Real>(p[2]));
+          }
+        }
+      }
+      auto on_points(std::vector<std::array<double, 3>> const& ps)
+          -> void override {
+        for (auto& p : ps) {
+          if constexpr (NumDimensions == 2) {
+            mesh.insert_vertex(static_cast<Real>(p[0]),
+                               static_cast<Real>(p[1]));
+          }
+          if constexpr (NumDimensions == 3) {
+            mesh.insert_vertex(static_cast<Real>(p[0]), static_cast<Real>(p[1]),
+                               static_cast<Real>(p[2]));
+          }
+        }
+      }
+      auto on_polygons(std::vector<int> const& ps) -> void override {
+        add_cells(ps);
+      }
+      auto on_scalars(std::string const& data_name,
                       std::string const& /*lookup_table_name*/,
                       size_t num_comps, std::vector<double> const& scalars,
-                      vtk::reader_data data) override {
+                      vtk::reader_data data) -> void override {
         if (data == vtk::reader_data::point_data) {
           if (num_comps == 1) {
             auto& prop =
                 mesh.template insert_vertex_property<double>(data_name);
-            for (size_t i = 0; i < prop.size(); ++i) {
-              prop[i] = scalars[i];
+            for (auto v = vertex_handle{0}; v < vertex_handle{prop.size()}; ++v) {
+              prop[v] = scalars[v.i];
             }
           } else if (num_comps == 2) {
             auto& prop =
                 mesh.template insert_vertex_property<vec<double, 2>>(data_name);
 
-            for (size_t i = 0; i < prop.size(); ++i) {
+            for (auto v = vertex_handle{0}; v < vertex_handle{prop.size()}; ++v) {
               for (size_t j = 0; j < num_comps; ++j) {
-                prop[i][j] = scalars[i * num_comps + j];
+                prop[v][j] = scalars[v.i * num_comps + j];
               }
             }
           } else if (num_comps == 3) {
             auto& prop =
                 mesh.template insert_vertex_property<vec<double, 3>>(data_name);
-            for (size_t i = 0; i < prop.size(); ++i) {
+            for (auto v = vertex_handle{0}; v < vertex_handle{prop.size()}; ++v) {
               for (size_t j = 0; j < num_comps; ++j) {
-                prop[i][j] = scalars[i * num_comps + j];
+                prop[v][j] = scalars[v.i * num_comps + j];
               }
             }
           } else if (num_comps == 4) {
             auto& prop =
                 mesh.template insert_vertex_property<vec<double, 4>>(data_name);
-            for (size_t i = 0; i < prop.size(); ++i) {
+            for (auto v = vertex_handle{0}; v < vertex_handle{prop.size()}; ++v) {
               for (size_t j = 0; j < num_comps; ++j) {
-                prop[i][j] = scalars[i * num_comps + j];
+                prop[v][j] = scalars[v.i * num_comps + j];
+              }
+            }
+          }
+        }
+        else if (data == vtk::reader_data::cell_data) {
+          if (num_comps == 1) {
+            auto& prop =
+                mesh.template insert_cell_property<double>(data_name);
+            for (auto c = cell_handle{0}; c < cell_handle{prop.size()}; ++c) {
+              prop[c] = scalars[c.i];
+            }
+          } else if (num_comps == 2) {
+            auto& prop =
+                mesh.template insert_cell_property<vec<double, 2>>(data_name);
+
+            for (auto c = cell_handle{0}; c < cell_handle{prop.size()}; ++c) {
+              for (size_t j = 0; j < num_comps; ++j) {
+                prop[c][j] = scalars[c.i * num_comps + j];
+              }
+            }
+          } else if (num_comps == 3) {
+            auto& prop =
+                mesh.template insert_cell_property<vec<double, 3>>(data_name);
+            for (auto c = cell_handle{0}; c < cell_handle{prop.size()}; ++c) {
+              for (size_t j = 0; j < num_comps; ++j) {
+                prop[c][j] = scalars[c.i * num_comps + j];
+              }
+            }
+          } else if (num_comps == 4) {
+            auto& prop =
+                mesh.template insert_cell_property<vec<double, 4>>(data_name);
+            for (auto c = cell_handle{0}; c < cell_handle{prop.size()}; ++c) {
+              for (size_t j = 0; j < num_comps; ++j) {
+                prop[c][j] = scalars[c.i * num_comps + j];
               }
             }
           }
@@ -981,8 +1067,8 @@ simplex_mesh(grid<Dims...> const& g)
 //    size_t num_pts = 0;
 //    size_t cur_first = 0;
 //    for (auto const& m : meshes) { num_pts += m.num_vertices(); }
-//    std::vector<std::array<typename MeshCont::value_type::real_t, 3>> points;
-//    std::vector<std::vector<size_t>> cells; points.reserve(num_pts);
+//    std::vector<std::array<typename MeshCont::value_type::real_t, 3>>
+//    points; std::vector<std::vector<size_t>> cells; points.reserve(num_pts);
 //    cells.reserve(meshes.size());
 //
 //    for (auto const& m : meshes) {

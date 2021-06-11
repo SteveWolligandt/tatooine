@@ -2,8 +2,6 @@
 #define TATOOINE_ANALYTICAL_FIELDS_NUMERICAL_DOUBLEGYRE_H
 //==============================================================================
 #include <tatooine/field.h>
-
-#define _USE_MATH_DEFINES
 #include <cmath>
 //==============================================================================
 namespace tatooine::analytical::fields::numerical {
@@ -17,7 +15,7 @@ struct doublegyre : vectorfield<doublegyre<Real>, Real, 2> {
   using typename parent_t::real_t;
   using typename parent_t::tensor_t;
   //============================================================================
-  static constexpr auto pi = M_PI;
+  static constexpr Real pi = M_PI;
   //============================================================================
   Real m_epsilon, m_omega, m_A;
   bool m_infinite_domain  = false;
@@ -77,7 +75,7 @@ struct doublegyre : vectorfield<doublegyre<Real>, Real, 2> {
   constexpr auto set_A(Real const A) { m_A = A; }
 };
 
-doublegyre()->doublegyre<double>;
+doublegyre()->doublegyre<real_t>;
 //==============================================================================
 }  // namespace tatooine::analytical::fields::numerical
 //==============================================================================

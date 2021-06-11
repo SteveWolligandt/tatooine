@@ -8,6 +8,7 @@
 #include <tatooine/filesystem.h>
 #include <tatooine/for_loop.h>
 #include <tatooine/grid_vertex_container.h>
+#include <tatooine/grid_cell_container.h>
 #include <tatooine/grid_vertex_property.h>
 #include <tatooine/hdf5.h>
 #include <tatooine/interpolation.h>
@@ -50,6 +51,7 @@ class grid {
   using dimensions_t = std::tuple<std::decay_t<Dimensions>...>;
 
   using vertex_container = grid_vertex_container<Dimensions...>;
+  using cell_container = grid_cell_container<Dimensions...>;
 
   // general property types
   using property_t = grid_vertex_property<this_t>;
@@ -113,21 +115,21 @@ class grid {
   /// The enable if is needed due to gcc bug 80871. See here:
   /// https://stackoverflow.com/questions/46848129/variadic-deduction-guide-not-taken-by-g-taken-by-clang-who-is-correct
 #ifdef __cpp_concepts
-  template <typename... _Dimensions>
-      requires(sizeof...(_Dimensions) == sizeof...(Dimensions)) &&
-      (indexable_space<std::decay_t<_Dimensions>> && ...)
+  template <typename... Dimensions_>
+  requires(sizeof...(Dimensions_) == sizeof...(Dimensions)) &&
+      (indexable_space<std::decay_t<Dimensions_>> && ...)
 #else
-  template <typename... _Dimensions,
-            enable_if<(sizeof...(_Dimensions) == sizeof...(Dimensions))> = true,
-            enable_if<is_indexable<std::decay_t<_Dimensions>...>>        = true>
+  template <typename... Dimensions_,
+            enable_if<(sizeof...(Dimensions_) == sizeof...(Dimensions))> = true,
+            enable_if<is_indexable<std::decay_t<Dimensions_>...>>        = true>
 #endif
-          constexpr grid(_Dimensions&&... dimensions)
-      : m_dimensions{std::forward<_Dimensions>(dimensions)...} {
-    static_assert(sizeof...(_Dimensions) == num_dimensions(),
+          constexpr grid(Dimensions_&&... dimensions)
+      : m_dimensions{std::forward<Dimensions_>(dimensions)...} {
+    static_assert(sizeof...(Dimensions_) == num_dimensions(),
                   "Number of given dimensions does not match number of "
                   "specified dimensions.");
     static_assert(
-        (std::is_same_v<std::decay_t<_Dimensions>, Dimensions> && ...),
+        (std::is_same_v<std::decay_t<Dimensions_>, Dimensions> && ...),
         "Constructor dimension types differ class dimension types.");
   }
   //----------------------------------------------------------------------------
@@ -433,9 +435,7 @@ class grid {
   template <size_t I, enable_if<std::is_reference_v<
                           template_helper::get_t<I, Dimensions...>>> = true>
 #endif
-      constexpr auto size() -> auto& {
-    return dimension<I>().size();
-  }
+  constexpr auto size() -> auto& { return dimension<I>().size(); }
   //----------------------------------------------------------------------------
   template <size_t I>
   constexpr auto front() const {
@@ -818,6 +818,8 @@ class grid {
 
   //----------------------------------------------------------------------------
   auto vertices() const { return vertex_container{*this}; }
+  //----------------------------------------------------------------------------
+  auto cells() const { return cell_container{*this}; }
   //----------------------------------------------------------------------------
  private:
 #ifdef __cpp_concepts
@@ -1224,9 +1226,9 @@ class grid {
   auto sample_to_vertex_property(F&& f, std::string const& name) -> auto& {
     using T    = std::invoke_result_t<F, pos_t>;
     auto& prop = insert_vertex_property<T>(name);
-    iterate_over_vertex_indices([&](auto const... is) {
+    vertices().iterate_indices([&](auto const... is) {
       try {
-        prop(is...) = f(vertex_at(is...));
+        prop(is...) = f(vertices()(is...));
       } catch (std::exception&) {
         if constexpr (num_components<T> == 1) {
           prop(is...) = T{0.0 / 0.0};
@@ -1301,15 +1303,12 @@ class grid {
         gr.dimension<2>().resize(z);
       }
     }
-    auto on_x_coordinates(std::vector<float> const & /*xs*/) -> void override {}
-    auto on_x_coordinates(std::vector<double> const & /*xs*/) -> void override {
-    }
-    auto on_y_coordinates(std::vector<float> const & /*ys*/) -> void override {}
-    auto on_y_coordinates(std::vector<double> const & /*ys*/) -> void override {
-    }
-    auto on_z_coordinates(std::vector<float> const & /*zs*/) -> void override {}
-    auto on_z_coordinates(std::vector<double> const & /*zs*/) -> void override {
-    }
+    auto on_x_coordinates(std::vector<float> const& /*xs*/) -> void override {}
+    auto on_x_coordinates(std::vector<double> const& /*xs*/) -> void override {}
+    auto on_y_coordinates(std::vector<float> const& /*ys*/) -> void override {}
+    auto on_y_coordinates(std::vector<double> const& /*ys*/) -> void override {}
+    auto on_z_coordinates(std::vector<float> const& /*zs*/) -> void override {}
+    auto on_z_coordinates(std::vector<double> const& /*zs*/) -> void override {}
 
     // index data
     auto on_cells(std::vector<int> const&) -> void override {}
@@ -1353,26 +1352,26 @@ class grid {
       size_t i = 0;
       if (num_comps == 1) {
         auto& prop = gr.insert_vertex_property<T>(prop_name);
-        gr.iterate_over_vertex_indices(
+        gr.vertices().iterate_indices(
             [&](auto const... is) { prop(is...) = data[i++]; });
       }
       if (num_comps == 2) {
         auto& prop = gr.insert_vertex_property<vec<T, 2>>(prop_name);
-        gr.iterate_over_vertex_indices([&](auto const... is) {
+        gr.vertices().iterate_indices([&](auto const... is) {
           prop(is...) = {data[i], data[i + 1]};
           i += num_comps;
         });
       }
       if (num_comps == 3) {
         auto& prop = gr.insert_vertex_property<vec<T, 3>>(prop_name);
-        gr.iterate_over_vertex_indices([&](auto const... is) {
+        gr.vertices().iterate_indices([&](auto const... is) {
           prop(is...) = {data[i], data[i + 1], data[i + 2]};
           i += num_comps;
         });
       }
       if (num_comps == 4) {
         auto& prop = gr.insert_vertex_property<vec<T, 4>>(prop_name);
-        gr.iterate_over_vertex_indices([&](auto const... is) {
+        gr.vertices().iterate_indices([&](auto const... is) {
           prop(is...) = {data[i], data[i + 1], data[i + 2], data[i + 3]};
           i += num_comps;
         });
@@ -1413,7 +1412,7 @@ class grid {
   };
 #ifdef __cpp_concepts
   template <typename = void>
-      requires(num_dimensions() == 2) ||
+  requires(num_dimensions() == 2) ||
       (num_dimensions() == 3)
 #else
   template <size_t _N                         = num_dimensions(),
@@ -1462,7 +1461,7 @@ class grid {
   //----------------------------------------------------------------------------
 #ifdef __cpp_concepts
   template <typename = void>
-      requires(num_dimensions() == 2) ||
+  requires(num_dimensions() == 2) ||
       (num_dimensions() == 3)
 #else
   template <size_t _N                         = num_dimensions(),
@@ -1528,17 +1527,17 @@ class grid {
     size_t i = 0;
     if (num_comps == 1) {
       auto& prop = insert_vertex_property<real_t>(path.string());
-      iterate_over_vertex_indices(
+      vertices().iterate_indices(
           [&](auto const... is) { prop(is...) = data[i++]; });
     } else if (num_comps == 2) {
       auto& prop = insert_vertex_property<vec<real_t, 2>>(path.string());
-      iterate_over_vertex_indices([&](auto const... is) {
+      vertices().iterate_indices([&](auto const... is) {
         prop(is...) = {data[i], data[i + 1]};
         i += num_comps;
       });
     } else if (num_comps == 3) {
       auto& prop = insert_vertex_property<vec<real_t, 3>>(path.string());
-      iterate_over_vertex_indices([&](auto const... is) {
+      vertices().iterate_indices([&](auto const... is) {
         prop(is...) = {data[i], data[i + 1], data[i + 2]};
         i += num_comps;
       });
@@ -1624,16 +1623,15 @@ class grid {
   //----------------------------------------------------------------------------
 #ifdef __cpp_concepts
   template <typename T, bool HasNonConstReference>
-      requires is_uniform &&
-      (num_dimensions() == 3)
+  requires is_uniform &&(num_dimensions() == 3)
 #else
   template <typename T, bool HasNonConstReference, bool U = is_uniform,
             size_t _N = num_dimensions(), enable_if<(U && (_N == 3))> = true>
 #endif
-          void write_amira(
-              std::string const& path,
-              typed_vertex_property_interface_t<T, HasNonConstReference> const&
-                  prop) const {
+      void write_amira(
+          std::string const& path,
+          typed_vertex_property_interface_t<T, HasNonConstReference> const&
+              prop) const {
     std::ofstream     outfile{path, std::ofstream::binary};
     std::stringstream header;
 
@@ -1646,7 +1644,7 @@ class grid {
            << back<2>() << ",\n";
     header << "    CoordType \"uniform\"\n";
     header << "}\n";
-    if constexpr (num_components<T> > 1) {
+    if constexpr (num_components < T >> 1) {
       header << "Lattice { " << type_name<internal_data_type_t<T>>() << "["
              << num_components<T> << "] Data } @1\n\n";
     } else {
@@ -1692,7 +1690,7 @@ class grid {
   //----------------------------------------------------------------------------
 #ifdef __cpp_concepts
   template <typename = void>
-      requires(num_dimensions() == 1) || (num_dimensions() == 2) ||
+  requires(num_dimensions() == 1) || (num_dimensions() == 2) ||
       (num_dimensions() == 3)
 #else
   template <size_t _N                          = num_dimensions(),
@@ -1944,6 +1942,12 @@ template <arithmetic Real, size_t N>
 template <typename Real, size_t N>
 #endif
 using uniform_grid = grid_creator_t<linspace<Real>, N>;
+template <size_t N>
+using UniformGrid = uniform_grid<real_t, N>;
+using uniform_grid2 = UniformGrid<2>;
+using uniform_grid3 = UniformGrid<3>;
+using uniform_grid4 = UniformGrid<4>;
+using uniform_grid5 = UniformGrid<5>;
 //------------------------------------------------------------------------------
 #ifdef __cpp_concepts
 template <arithmetic Real, size_t N>
@@ -1951,6 +1955,12 @@ template <arithmetic Real, size_t N>
 template <typename Real, size_t N>
 #endif
 using non_uniform_grid = grid_creator_t<std::vector<Real>, N>;
+template <size_t N>
+using NonUniformGrid = non_uniform_grid<real_t, N>;
+using non_uniform_grid2 = NonUniformGrid<2>;
+using non_uniform_grid3 = NonUniformGrid<3>;
+using non_uniform_grid4 = NonUniformGrid<4>;
+using non_uniform_grid5 = NonUniformGrid<5>;
 //------------------------------------------------------------------------------
 #ifdef __cpp_concepts
 template <arithmetic Real, size_t... N>
@@ -1958,6 +1968,12 @@ template <arithmetic Real, size_t... N>
 template <typename Real, size_t... N>
 #endif
 using static_non_uniform_grid = grid<std::array<Real, N>...>;
+template <size_t N>
+using StaticNonUniformGrid = static_non_uniform_grid<real_t, N>;
+using static_non_uniform_grid2 = NonUniformGrid<2>;
+using static_non_uniform_grid3 = NonUniformGrid<3>;
+using static_non_uniform_grid4 = NonUniformGrid<4>;
+using static_non_uniform_grid5 = NonUniformGrid<5>;
 //==============================================================================
 }  // namespace tatooine
 //==============================================================================
