@@ -1,6 +1,7 @@
 cmake_minimum_required(VERSION 3.10)
 project(tatooine)
 list(APPEND CMAKE_MODULE_PATH "${CMAKE_SOURCE_DIR}/cmake/modules/")
+set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 #- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - 
 # preprocessor lib
 #- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - 
@@ -119,8 +120,7 @@ endif()
 #enable warnings
 if ("${CMAKE_CXX_COMPILER_ID}" STREQUAL "GNU")
   target_compile_options(tatooine PUBLIC
-    -Wall -Wextra -pedantic -Wno-cpp
-    -Wno-tautological-undefined-compare -Wno-gnu-zero-variadic-macro-arguments)
+    -Wall -Wextra -pedantic -Wno-cpp)
 endif()
 if ("${CMAKE_CXX_COMPILER_ID}" STREQUAL "Clang")
   target_compile_options(tatooine PUBLIC

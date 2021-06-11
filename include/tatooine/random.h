@@ -1,10 +1,11 @@
 #ifndef TATOOINE_RANDOM_H
 #define TATOOINE_RANDOM_H
 //==============================================================================
+#include <tatooine/real.h>
+#include <tatooine/type_traits.h>
+
 #include <boost/range/algorithm/generate.hpp>
 #include <random>
-
-#include "type_traits.h"
 //==============================================================================
 namespace tatooine {
 //==============================================================================

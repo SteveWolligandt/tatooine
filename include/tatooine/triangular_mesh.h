@@ -1,13 +1,18 @@
 #ifndef TATOOINE_TRIANGULAR_MESH_H
 #define TATOOINE_TRIANGULAR_MESH_H
+//==============================================================================
 #include <tatooine/simplex_mesh.h>
 //==============================================================================
 namespace tatooine {
 //==============================================================================
 template <typename Real, size_t N>
-using triangular_mesh  = simplex_mesh<Real, N, 2>;
-using triangular_mesh2 = triangular_mesh<real_t, 2>;
-using triangular_mesh3 = triangular_mesh<real_t, 3>;
+using triangular_mesh = simplex_mesh<Real, N, 2>;
+template <size_t N>
+using TriangularMesh   = triangular_mesh<real_t, N>;
+using triangular_mesh2 = TriangularMesh<2>;
+using triangular_mesh3 = TriangularMesh<3>;
+using triangular_mesh4 = TriangularMesh<4>;
+using triangular_mesh5 = TriangularMesh<5>;
 //==============================================================================
 namespace detail {
 //==============================================================================
