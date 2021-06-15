@@ -57,7 +57,7 @@ auto write_unlimited_mat_list() {
       f_out.add_variable<double>(variable_name, {dim_t, dim_rows, dim_cols});
   
   // create some data
-  random_uniform<double>    rand;
+  random::uniform<double>    rand;
   std::vector<size_t>       is{0, 0, 0};
   std::vector<size_t> const cnt{1, 2, 2};
   for (; is.front() < 10; ++is.front()) {

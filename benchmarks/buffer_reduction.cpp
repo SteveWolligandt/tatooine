@@ -15,7 +15,7 @@ static void buffer_reduction(::benchmark::State& state) {
     const size_t             width  = state.range(0);
     const size_t             height  = state.range(1);
     const std::vector<float> rand_data =
-        random_uniform_vector<float>(width * height, 0.0f, 1.0f, eng);
+        random::uniform_vector<float>(width * height, 0.0f, 1.0f, eng);
     const yavin::shaderstoragebuffer<float> data_tex{rand_data};
     state.ResumeTiming();  // And resume timers. They are now counting again.
 

@@ -16,7 +16,6 @@ struct intersection {
   using vec_t                   = vec<Real, N>;
   using pos_t                   = vec_t;
   using normal_t                = vec_t;
-  using uv_t                    = vec<Real, 2>;
   using ray_t                   = ray<real_t, N>;
   using ray_intersectable_ptr_t = ray_intersectable<real_t, N>;
   //============================================================================
@@ -30,8 +29,6 @@ struct intersection {
   pos_t position;
   /// normal of intersection point on the primitive
   normal_t normal;
-  /// uv-coordinate on the primitive
-  uv_t uv;
 };
 //==============================================================================
 }  // namespace tatooine

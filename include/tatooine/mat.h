@@ -49,13 +49,13 @@ struct mat : tensor<T, M, N> {
   template <typename RandEng = std::mt19937_64>
   static constexpr auto randu(T min = 0, T max = 1,
                               RandEng&& eng = RandEng{std::random_device{}()}) {
-    return this_t{random_uniform{min, max, std::forward<RandEng>(eng)}};
+    return this_t{random::uniform{min, max, std::forward<RandEng>(eng)}};
   }
   //----------------------------------------------------------------------------
   template <typename RandEng = std::mt19937_64>
   static constexpr auto randn(T mean = 0, T stddev = 1,
                               RandEng&& eng = RandEng{std::random_device{}()}) {
-    return this_t{random_normal<T>{eng, mean, stddev}};
+    return this_t{random::normal<T>{eng, mean, stddev}};
   }
 
   //============================================================================

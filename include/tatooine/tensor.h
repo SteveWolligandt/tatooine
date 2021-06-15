@@ -84,7 +84,7 @@ struct tensor : base_tensor<tensor<T, Dims...>, T, Dims...>,
             typename T_ = T,
             enable_if<is_arithmetic<T_>> = true>
 #endif
-  explicit constexpr tensor(random_uniform<RandomReal, Engine>&& rand)
+  explicit constexpr tensor(random::uniform<RandomReal, Engine>&& rand)
     : array_parent_t{std::move(rand)} {}
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 #ifdef __cpp_concepts
@@ -93,7 +93,7 @@ struct tensor : base_tensor<tensor<T, Dims...>, T, Dims...>,
   template <typename RandomReal, typename Engine,
             enable_if<is_arithmetic<RandomReal>> = true>
 #endif
-  explicit constexpr tensor(random_uniform<RandomReal, Engine>& rand)
+  explicit constexpr tensor(random::uniform<RandomReal, Engine>& rand)
       : array_parent_t{rand} {}
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 #ifdef __cpp_concepts
@@ -104,7 +104,7 @@ struct tensor : base_tensor<tensor<T, Dims...>, T, Dims...>,
             typename T_ = T,
             enable_if<is_arithmetic<T_, RandomReal>> = true>
 #endif
-  explicit constexpr tensor(random_normal<RandomReal, Engine>&& rand)
+  explicit constexpr tensor(random::normal<RandomReal, Engine>&& rand)
       : array_parent_t{std::move(rand)} {}
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 #ifdef __cpp_concepts
@@ -115,7 +115,7 @@ struct tensor : base_tensor<tensor<T, Dims...>, T, Dims...>,
             typename T_ = T,
             enable_if<is_arithmetic<T_, RandomReal>> = true>
 #endif
-  explicit constexpr tensor(random_normal<RandomReal, Engine>& rand)
+  explicit constexpr tensor(random::normal<RandomReal, Engine>& rand)
       : array_parent_t{rand} {}
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
   template <typename OtherTensor, typename OtherT>
@@ -150,13 +150,13 @@ struct tensor : base_tensor<tensor<T, Dims...>, T, Dims...>,
   template <typename RandEng = std::mt19937_64>
   static constexpr auto randu(T min = 0, T max = 1,
                               RandEng&& eng = RandEng{std::random_device{}()}) {
-    return this_t{random_uniform{min, max, std::forward<RandEng>(eng)}};
+    return this_t{random::uniform{min, max, std::forward<RandEng>(eng)}};
   }
   //----------------------------------------------------------------------------
   template <typename RandEng = std::mt19937_64>
   static constexpr auto randn(T mean = 0, T stddev = 1,
                               RandEng&& eng = RandEng{std::random_device{}()}) {
-    return this_t{random_normal<T>{eng, mean, stddev}};
+    return this_t{random::normal<T>{eng, mean, stddev}};
   }
   //----------------------------------------------------------------------------
   template <typename OtherT>

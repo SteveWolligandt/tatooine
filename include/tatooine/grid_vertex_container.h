@@ -18,41 +18,19 @@ class grid;
 //==============================================================================
 template <typename... Dimensions>
 struct grid_vertex_container {
- private:
-  grid<Dimensions...> const& m_grid;
-
- public:
-  using iterator          = grid_vertex_iterator<Dimensions...>;
-  using const_iterator    = iterator;
-  using handle    = grid_vertex_handle<Dimensions...>;
-  using pos_t = typename grid<Dimensions...>::pos_t;
-  using seq_t = typename grid<Dimensions...>::seq_t;
+  using grid_t         = grid<Dimensions...>;
+  using iterator       = grid_vertex_iterator<Dimensions...>;
+  using const_iterator = iterator;
+  using handle         = typename grid_t::vertex_handle;
+  using pos_t          = typename grid_t::pos_t;
+  using seq_t          = typename grid_t::seq_t;
   static constexpr auto num_dimensions() { return sizeof...(Dimensions); }
   //----------------------------------------------------------------------------
-  grid_vertex_container(grid<Dimensions...> const& g) : m_grid{g} {}
+ private:
+  grid_t const& m_grid;
   //----------------------------------------------------------------------------
-#ifdef __cpp_concepts
-  template <size_t... DIs, integral Int>
-#else
-  template <size_t... DIs, typename Int, enable_if_integral<Int> = true>
-#endif
-  auto at(std::index_sequence<DIs...>,
-          std::array<Int, num_dimensions()> const& is) const
-      -> vec<real_t, num_dimensions()> {
-    return pos_t{static_cast<real_t>(m_grid.template dimension<DIs>()[is[DIs]])...};
-  }
-  // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-#ifdef __cpp_concepts
-  template <size_t... DIs, integral... Is>
-#else
-  template <size_t... DIs, typename... Is, enable_if_integral<Is...> = true>
-#endif
-  auto at(std::index_sequence<DIs...>, Is const... is) const
-      -> vec<real_t, num_dimensions()> {
-    static_assert(sizeof...(DIs) == sizeof...(is));
-    static_assert(sizeof...(is) == num_dimensions());
-    return pos_t{static_cast<real_t>(m_grid.template dimension<DIs>()[is])...};
-  }
+ public:
+  grid_vertex_container(grid_t const& g) : m_grid{g} {}
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
  public:
 #ifdef __cpp_concepts
@@ -62,25 +40,12 @@ struct grid_vertex_container {
 #endif
   auto at(Is const... is) const {
     static_assert(sizeof...(is) == num_dimensions());
-    return at(seq_t{}, is...);
+    return m_grid.vertex_at(is...);
   }
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-#ifdef __cpp_concepts
-  template <integral Int>
-#else
-  template <typename Int, enable_if_integral<Int> = true>
-#endif
-  auto at(std::array<Int, num_dimensions()> const& is) const {
-    return at(seq_t{}, is);
-  }
+  auto at(handle const& h) const { return m_grid.vertex_at(h); }
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-  auto at(handle const& h) const {
-    return at(seq_t{}, h.indices());
-  }
-  // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-  auto operator[](handle const& h) const {
-    return at(seq_t{}, h.indices());
-  }
+  auto operator[](handle const& h) const { return m_grid.vertex_at(h); }
   //----------------------------------------------------------------------------
 #ifdef __cpp_concepts
   template <integral... Is>
@@ -105,8 +70,8 @@ struct grid_vertex_container {
  private:
   template <size_t... Is>
   constexpr auto end(std::index_sequence<Is...> /*seq*/) const {
-    auto it =  iterator{
-        &m_grid, handle{std::array{((void)Is, size_t(0))...}, size()}};
+    auto it =
+        iterator{&m_grid, handle{std::array{((void)Is, size_t(0))...}, size()}};
     it->indices()[num_dimensions() - 1] =
         m_grid.template size<num_dimensions() - 1>();
     return it;

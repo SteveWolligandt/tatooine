@@ -1,6 +1,6 @@
 #include <tatooine/color_scales/magma.h>
 #include <tatooine/color_scales/viridis.h>
-#include <tatooine/direct_isosurface_rendering.h>
+#include <tatooine/rendering/direct_isosurface.h>
 #include <tatooine/field.h>
 #include <tatooine/grid.h>
 #include <tatooine/hdf5.h>
@@ -142,7 +142,7 @@ auto main() -> int {
         return tat::vec{col(0), col(1), col(2),
                         scalar * scalar * scalar * scalar * scalar};
       };
-  auto const rendering_grid = direct_isosurface_rendering(
+  auto const rendering_grid = rendering::direct_isosurface(
       full_domain_cam, Q_122_full_sampler, isovalue, shader);
   write_png("channel_flow_Q_5e6_with_velocity_magnitude.png",
             rendering_grid.vec3_vertex_property("rendered_isosurface"));

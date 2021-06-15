@@ -1,7 +1,7 @@
 #include <tatooine/Q_field.h>
 #include <tatooine/analytical/fields/numerical/tornado.h>
 #include <tatooine/color_scales/viridis.h>
-#include <tatooine/direct_isosurface_rendering.h>
+#include <tatooine/rendering/direct_isosurface.h>
 #include <tatooine/rendering/perspective_camera.h>
 //==============================================================================
 namespace tatooine::examples {
@@ -58,7 +58,7 @@ auto direct_iso_discretized_tornado() {
         auto const col      = albedo * diffuse + specular;
         return vec{col(0), col(1), col(2), scalar * scalar * scalar};
       };
-  auto const rendering_grid = direct_isosurface_rendering(
+  auto const rendering_grid = rendering::direct_isosurface(
       cam,
       Q_sampler,
       isovalue, shader);

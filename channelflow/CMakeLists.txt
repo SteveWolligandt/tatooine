@@ -24,6 +24,19 @@ elseif ("${CMAKE_CXX_COMPILER_ID}" STREQUAL "GNU")
   target_compile_options(channelflow_visualization PRIVATE  "-fdiagnostics-color=always")
 endif()
 #===============================================================================
+add_executable(channelflow_visualization.direct_volume direct_volume.cpp)
+target_link_libraries(channelflow_visualization.direct_volume PUBLIC tatooine)
+add_custom_target(
+  channelflow_visualization.direct_volume.run
+  COMMAND ./channelflow_visualization.direct_volume
+  DEPENDS channelflow_visualization.direct_volume)
+# force coloring
+if ("${CMAKE_CXX_COMPILER_ID}" STREQUAL "Clang")
+  target_compile_options(channelflow_visualization.direct_volume PRIVATE "-fcolor-diagnostics")
+elseif ("${CMAKE_CXX_COMPILER_ID}" STREQUAL "GNU")
+  target_compile_options(channelflow_visualization.direct_volume PRIVATE  "-fdiagnostics-color=always")
+endif()
+#===============================================================================
 add_executable(channelflow_visualization.direct_isosurface direct_isosurface.cpp)
 target_link_libraries(channelflow_visualization.direct_isosurface PUBLIC tatooine)
 add_custom_target(

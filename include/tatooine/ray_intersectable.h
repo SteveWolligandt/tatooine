@@ -12,7 +12,6 @@ struct ray_intersectable {
   static_assert(is_floating_point<real_t>);
   using intersection_t          = intersection<real_t, N>;
   using optional_intersection_t = std::optional<intersection_t>;
-
   using ray_t = ray<real_t, N>;
   //============================================================================
   virtual auto check_intersection(ray_t const& r, real_t const min_t) const

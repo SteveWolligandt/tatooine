@@ -1,8 +1,8 @@
 #include <tatooine/color_scales/magma.h>
 #include <tatooine/color_scales/viridis.h>
 #include <tatooine/parallel_vectors.h>
-#include <tatooine/direct_volume_rendering.h>
-#include <tatooine/direct_volume_iso.h>
+#include <tatooine/rendering/direct_volume.h>
+#include <tatooine/rendering/direct_isosurface.h>
 #include <tatooine/isosurface.h>
 #include <tatooine/field.h>
 #include <tatooine/grid.h>
@@ -595,26 +595,26 @@ auto main() -> int {
   ;
 
   // write_png("direct_volume_channelflow_pod0_y.png",
-  //          tat::direct_volume_rendering(
+  //          tat::rendering::direct_volume(
   //              pod0_cam, pod0_boundingbox, vely_pod0_field, 0,
   //              15, 20, 0.0001, color_scale, alpha, tat::vec3::ones())
   //              .vertex_property<tat::vec3>("rendering"));
 
   // write_png("direct_volume_channelflow_Q_pod0_combined.png",
-  //          tat::direct_volume_rendering(
+  //          tat::rendering::direct_volume(
   //              pod0_cam, pod0_boundingbox, Q_122_field * vely_pod0_field, 0,
   //              15e2, 60e3, 0.0001, color_scale, alpha, tat::vec3::ones())
   //              .vertex_property<tat::vec3>("rendering"));
 
   // write_png("direct_volume_channelflow_Q_pod0_domain.png",
-  //          tat::direct_volume_rendering(pod0_cam, pod0_boundingbox,
+  //          tat::rendering::direct_volume(pod0_cam, pod0_boundingbox,
   //          Q_122_field, 0, 1e2,
   //                                       3e3, 0.0001, color_scale, alpha,
   //                                       tat::vec3::ones())
   //              .vertex_property<tat::vec3>("rendering"));
 
   // write_png("direct_volume_channelflow_Q.png",
-  //          tat::direct_volume_rendering(threedpart_cam,
+  //          tat::rendering::direct_volume(threedpart_cam,
   //          threedpart_boundingbox, Q_122_field, 0, 1e1,
   //                                       1e3, 0.0001, color_scale, alpha,
   //                                       tat::vec3::ones())
@@ -623,14 +623,14 @@ auto main() -> int {
   auto vel_122_field = vectorfield{velx_122_full_sampler, vely_122_full_sampler,
                                    velz_122_full_sampler};
   // write_png("direct_volume_channelflow_velmag_pod0_domain.png",
-  //         tat::direct_volume_rendering(pod0_cam, pod0_boundingbox,
+  //         tat::rendering::direct_volume(pod0_cam, pod0_boundingbox,
   //         length(vel_122_field),
   //                                      0, 20, 30, 0.0001, color_scale,
   //                                      alpha, tat::vec3::ones())
   //             .vertex_property<tat::vec3>("rendering"));
 
   // write_png("direct_volume_channelflow_velmag.png",
-  //          tat::direct_volume_rendering(threedpart_cam,
+  //          tat::rendering::direct_volume(threedpart_cam,
   //          threedpart_boundingbox, length(vel_122_field),
   //                                       0, 20, 30, 0.0001, color_scale,
   //                                       alpha, tat::vec3::ones())
@@ -638,7 +638,7 @@ auto main() -> int {
 
   // auto vely_122_field   = scalarfield{vely_122_sampler};
   // write_png("direct_volume_channelflow_vely.png",
-  //          tat::direct_volume_rendering(threedpart_cam,
+  //          tat::rendering::direct_volume(threedpart_cam,
   //          threedpart_boundingbox, vely_122_field,
   //                                       0, 20, 30, 0.0001, color_scale,
   //                                       alpha, tat::vec3::ones())

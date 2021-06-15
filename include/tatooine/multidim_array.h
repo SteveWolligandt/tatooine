@@ -79,7 +79,7 @@ class static_multidim_array
 #endif
   static auto randu(T min = 0, T max = 1,
                     RandEng&& eng = RandEng{std::random_device{}()}) {
-    return this_t{random_uniform{min, max, std::forward<RandEng>(eng)}};
+    return this_t{random::uniform{min, max, std::forward<RandEng>(eng)}};
   }
   //----------------------------------------------------------------------------
 #ifdef __cpp_concepts
@@ -92,7 +92,7 @@ class static_multidim_array
 #endif
   static auto randn(T mean = 0, T stddev = 1,
                     RandEng&& eng = RandEng{std::random_device{}()}) {
-    return this_t{random_normal{mean, stddev, std::forward<RandEng>(eng)}};
+    return this_t{random::normal{mean, stddev, std::forward<RandEng>(eng)}};
   }
   //============================================================================
   // ctors
@@ -200,7 +200,7 @@ class static_multidim_array
             enable_if<is_arithmetic<T_>> = true>
 #endif
   explicit constexpr static_multidim_array(
-      random_uniform<RandomReal, Engine>& rand)
+      random::uniform<RandomReal, Engine>& rand)
       : static_multidim_array{} {
     this->unary_operation(
         [&](auto const& /*c*/) { return static_cast<T>(rand()); });
@@ -215,7 +215,7 @@ class static_multidim_array
             enable_if<is_arithmetic<T_>> = true>
 #endif
   explicit constexpr static_multidim_array(
-      random_uniform<RandomReal, Engine>&& rand)
+      random::uniform<RandomReal, Engine>&& rand)
       : static_multidim_array{} {
     this->unary_operation(
         [&](auto const& /*c*/) { return static_cast<T>(rand()); });
@@ -230,7 +230,7 @@ class static_multidim_array
             enable_if<is_arithmetic<T_>> = true>
 #endif
   explicit constexpr static_multidim_array(
-      random_normal<RandomReal, Engine>&& rand)
+      random::normal<RandomReal, Engine>&& rand)
       : static_multidim_array{} {
     this->unary_operation(
         [&](auto const& /*c*/) { return static_cast<T>(rand()); });
@@ -245,7 +245,7 @@ class static_multidim_array
             enable_if<is_arithmetic<T_>> = true>
 #endif
   explicit constexpr static_multidim_array(
-      random_normal<RandomReal, Engine>& rand)
+      random::normal<RandomReal, Engine>& rand)
       : static_multidim_array{} {
     this->unary_operation(
         [&](auto const& /*c*/) { return static_cast<T>(rand()); });
@@ -469,7 +469,7 @@ class dynamic_multidim_array : public dynamic_multidim_size<IndexOrder> {
   // template <unsigned_integral UInt, typename RandEng = std::mt19937_64>
   // static auto randu(T min, T max, std::initializer_list<UInt>&& size,
   //                  RandEng&& eng = RandEng{std::random_device{}()}) {
-  //  return this_t{random_uniform{min, max, std::forward<RandEng>(eng)},
+  //  return this_t{random::uniform{min, max, std::forward<RandEng>(eng)},
   //                std::vector<UInt>(std::move(size))};
   //}
   //// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -478,7 +478,7 @@ class dynamic_multidim_array : public dynamic_multidim_size<IndexOrder> {
   // static auto randu(std::initializer_list<UInt>&& size, T min = 0, T
   // max = 1,
   //                  RandEng&& eng = RandEng{std::random_device{}()}) {
-  //  return this_t{random_uniform{min, max, std::forward<RandEng>(eng)},
+  //  return this_t{random::uniform{min, max, std::forward<RandEng>(eng)},
   //                std::vector<UInt>(std::move(size))};
   //}
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -491,7 +491,7 @@ class dynamic_multidim_array : public dynamic_multidim_size<IndexOrder> {
   static auto randu(T min, T max, std::vector<UInt> const& size,
                     RandEng&& eng = RandEng{std::random_device{}()}) {
     return this_t{
-        random_uniform<T, RandEng>{min, max, std::forward<RandEng>(eng)},
+      random::uniform<T, RandEng>{min, max, std::forward<RandEng>(eng)},
         size};
   }
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -504,7 +504,7 @@ class dynamic_multidim_array : public dynamic_multidim_size<IndexOrder> {
   static auto randu(std::vector<UInt> const& size, T min = 0, T max = 1,
                     RandEng&& eng = RandEng{std::random_device{}()}) {
     return this_t{
-        random_uniform<T, RandEng>{min, max, std::forward<RandEng>(eng)},
+      random::uniform<T, RandEng>{min, max, std::forward<RandEng>(eng)},
         size};
   }
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -517,7 +517,7 @@ class dynamic_multidim_array : public dynamic_multidim_size<IndexOrder> {
   static auto randu(T min, T max, std::array<UInt, N> const& size,
                     RandEng&& eng = RandEng{std::random_device{}()}) {
     return this_t{
-        random_uniform<T, RandEng>{min, max, std::forward<RandEng>(eng)},
+      random::uniform<T, RandEng>{min, max, std::forward<RandEng>(eng)},
         size};
   }
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -530,7 +530,7 @@ class dynamic_multidim_array : public dynamic_multidim_size<IndexOrder> {
   static auto randu(std::array<UInt, N> const& size, T min = 0, T max = 1,
                     RandEng&& eng = RandEng{std::random_device{}()}) {
     return this_t{
-        random_uniform<T, RandEng>{min, max, std::forward<RandEng>(eng)},
+      random::uniform<T, RandEng>{min, max, std::forward<RandEng>(eng)},
         size};
   }
   //----------------------------------------------------------------------------
@@ -540,7 +540,7 @@ class dynamic_multidim_array : public dynamic_multidim_size<IndexOrder> {
   template <typename UInt, typename RandEng,
             enable_if<is_unsigned_integral<UInt>> = true>
 #endif
-  static auto rand(random_uniform<T, RandEng> const& rand,
+  static auto rand(random::uniform<T, RandEng> const& rand,
                    std::vector<UInt> const&          size) {
     return this_t{rand, size};
   }
@@ -551,7 +551,7 @@ class dynamic_multidim_array : public dynamic_multidim_size<IndexOrder> {
   template <size_t N, typename UInt, typename RandEng,
             enable_if<is_unsigned_integral<UInt>> = true>
 #endif
-  static auto rand(random_uniform<T, RandEng> const& rand,
+  static auto rand(random::uniform<T, RandEng> const& rand,
                    std::array<UInt, N> const&        size) {
     return this_t{rand, size};
   }
@@ -562,7 +562,7 @@ class dynamic_multidim_array : public dynamic_multidim_size<IndexOrder> {
   template <typename RandEng, typename... Size,
             enable_if<is_integral<Size...>> = true>
 #endif
-  static auto rand(random_uniform<T, RandEng> const& rand,
+  static auto rand(random::uniform<T, RandEng> const& rand,
                    Size const... size) {
     return this_t{rand, std::vector{static_cast<size_t>(size)...}};
   }
@@ -573,7 +573,7 @@ class dynamic_multidim_array : public dynamic_multidim_size<IndexOrder> {
   template <typename UInt, typename RandEng,
             enable_if<is_unsigned_integral<UInt>> = true>
 #endif
-  static auto rand(random_uniform<T, RandEng>&& rand,
+  static auto rand(random::uniform<T, RandEng>&& rand,
                    std::vector<UInt> const&     size) {
     return this_t{std::move(rand), size};
   }
@@ -584,7 +584,7 @@ class dynamic_multidim_array : public dynamic_multidim_size<IndexOrder> {
   template <size_t N, typename UInt, typename RandEng,
             enable_if<is_unsigned_integral<UInt>> = true>
 #endif
-  static auto rand(random_uniform<T, RandEng>&& rand,
+  static auto rand(random::uniform<T, RandEng>&& rand,
                    std::array<UInt, N> const&   size) {
     return this_t{std::move(rand), size};
   }
@@ -595,7 +595,7 @@ class dynamic_multidim_array : public dynamic_multidim_size<IndexOrder> {
   template <typename RandEng, typename... Size,
             enable_if<is_integral<Size...>> = true>
 #endif
-  static auto rand(random_uniform<T, RandEng>&& rand,
+  static auto rand(random::uniform<T, RandEng>&& rand,
                    Size const... size) {
     return this_t{std::move(rand),
                   std::vector{static_cast<size_t>(size)...}};
@@ -607,7 +607,7 @@ class dynamic_multidim_array : public dynamic_multidim_size<IndexOrder> {
   template <typename UInt, typename RandEng,
             enable_if<is_unsigned_integral<UInt>> = true>
 #endif
-  static auto rand(random_normal<T, RandEng> const& rand,
+  static auto rand(random::normal<T, RandEng> const& rand,
                    std::vector<UInt> const&         size) {
     return this_t{rand, size};
   }
@@ -618,7 +618,7 @@ class dynamic_multidim_array : public dynamic_multidim_size<IndexOrder> {
   template <size_t N, typename UInt, typename RandEng,
             enable_if<is_unsigned_integral<UInt>> = true>
 #endif
-  static auto rand(random_normal<T, RandEng> const& rand,
+  static auto rand(random::normal<T, RandEng> const& rand,
                    std::array<UInt, N> const&       size) {
     return this_t{rand, size};
   }
@@ -629,7 +629,7 @@ class dynamic_multidim_array : public dynamic_multidim_size<IndexOrder> {
   template <typename RandEng, typename... Size,
             enable_if<is_integral<Size...>> = true>
 #endif
-  static auto rand(random_normal<T, RandEng> const& rand,
+  static auto rand(random::normal<T, RandEng> const& rand,
                    Size const... size) {
     return this_t{rand, std::vector{static_cast<size_t>(size)...}};
   }
@@ -640,7 +640,7 @@ class dynamic_multidim_array : public dynamic_multidim_size<IndexOrder> {
   template <typename UInt, typename RandEng,
             enable_if<is_unsigned_integral<UInt>> = true>
 #endif
-  static auto rand(random_normal<T, RandEng>&& rand,
+  static auto rand(random::normal<T, RandEng>&& rand,
                    std::vector<UInt> const&    size) {
     return this_t{std::move(rand), size};
   }
@@ -651,7 +651,7 @@ class dynamic_multidim_array : public dynamic_multidim_size<IndexOrder> {
   template <size_t N, typename UInt, typename RandEng,
             enable_if<is_unsigned_integral<UInt>> = true>
 #endif
-  static auto rand(random_normal<T, RandEng>&& rand,
+  static auto rand(random::normal<T, RandEng>&& rand,
                    std::array<UInt, N> const&  size) {
     return this_t{std::move(rand), size};
   }
@@ -662,7 +662,7 @@ class dynamic_multidim_array : public dynamic_multidim_size<IndexOrder> {
   template <typename RandEng, typename... Size,
             enable_if<is_integral<Size...>> = true>
 #endif
-  static auto rand(random_normal<T, RandEng>&& rand, Size... size) {
+  static auto rand(random::normal<T, RandEng>&& rand, Size... size) {
     return this_t{std::move(rand),
                   std::vector{static_cast<size_t>(size)...}};
   }
@@ -866,7 +866,7 @@ class dynamic_multidim_array : public dynamic_multidim_size<IndexOrder> {
             enable_if<is_unsigned_integral<UInt>>   = true,
             enable_if<is_arithmetic<T, RandomReal>> = true>
 #endif
-  dynamic_multidim_array(random_uniform<RandomReal, Engine> const& rand,
+  dynamic_multidim_array(random::uniform<RandomReal, Engine> const& rand,
                          std::vector<UInt> const&                  size)
       : dynamic_multidim_array{size} {
     this->unary_operation(
@@ -881,7 +881,7 @@ class dynamic_multidim_array : public dynamic_multidim_size<IndexOrder> {
             enable_if<is_unsigned_integral<RandomReal, T>> = true,
             enable_if<is_arithmetic<RandomReal, T>>        = true>
 #endif
-  dynamic_multidim_array(random_uniform<RandomReal, Engine>&& rand,
+  dynamic_multidim_array(random::uniform<RandomReal, Engine>&& rand,
                          std::vector<UInt> const&             size)
       : dynamic_multidim_array{size} {
     this->unary_operation(
@@ -896,7 +896,7 @@ class dynamic_multidim_array : public dynamic_multidim_size<IndexOrder> {
             enable_if<is_unsigned_integral<RandomReal, T>> = true,
             enable_if<is_arithmetic<RandomReal, T>>        = true>
 #endif
-  dynamic_multidim_array(random_normal<RandomReal, Engine> const& rand,
+  dynamic_multidim_array(random::normal<RandomReal, Engine> const& rand,
                          std::array<UInt, N> const&               size)
       : dynamic_multidim_array{size} {
     this->unary_operation(
@@ -911,7 +911,7 @@ class dynamic_multidim_array : public dynamic_multidim_size<IndexOrder> {
             enable_if<is_unsigned_integral<RandomReal, T>> = true,
             enable_if<is_arithmetic<RandomReal, T>>        = true>
 #endif
-  dynamic_multidim_array(random_normal<RandomReal, Engine>&& rand,
+  dynamic_multidim_array(random::normal<RandomReal, Engine>&& rand,
                          std::array<UInt, N> const&          size)
       : dynamic_multidim_array{size} {
     this->unary_operation(

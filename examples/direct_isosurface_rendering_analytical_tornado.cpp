@@ -3,7 +3,7 @@
 #include <tatooine/differentiated_field.h>
 #include <tatooine/analytical/fields/numerical/tornado.h>
 #include <tatooine/color_scales/viridis.h>
-#include <tatooine/direct_isosurface_rendering.h>
+#include <tatooine/rendering/direct_isosurface.h>
 #include <tatooine/rendering/perspective_camera.h>
 //==============================================================================
 namespace tatooine::examples {
@@ -40,7 +40,7 @@ auto direct_iso_tornado() {
         return vec{col(0), col(1), col(2), 1};
       };
   auto const rendering_grid =
-      direct_isosurface_rendering(cam, aabb, steady(Q(v), t), domain_check,
+      rendering::direct_isosurface(cam, aabb, steady(Q(v), t), domain_check,
                                   isovalue, distance_on_ray, shader);
 #ifdef TATOOINE_HAS_PNG_SUPPORT
   write_png("direct_isosurface_rendering_analytical_tornado_Q_with_velocity_magnitude.png",

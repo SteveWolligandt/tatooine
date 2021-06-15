@@ -92,7 +92,7 @@ TEST_CASE_METHOD(pointset3, "pointset_kd_tree",
 //==============================================================================
 TEST_CASE_METHOD((pointset2), "pointset_inverse_distance_weighting_sampler",
                  "[pointset][inverse_distance_weighting_sampler]") {
-  random_uniform rand{-1.0, 1.0, std::mt19937_64{1234}};  // NOLINT
+  random::uniform rand{-1.0, 1.0, std::mt19937_64{1234}};  // NOLINT
   auto&          prop = scalar_vertex_property("prop");
   for (size_t i = 0; i < 100; ++i) {
     auto v  = insert_vertex(rand(), rand());
@@ -107,7 +107,7 @@ TEST_CASE_METHOD((pointset2), "pointset_inverse_distance_weighting_sampler",
 TEST_CASE_METHOD(pointset2,
                  "pointset_moving_least_squares_sampler_2",  // NOLINT
                  "[pointset][moving_least_squares_sampler][2d][2D]") {
-  random_uniform rand{-1.0, 1.0, std::mt19937_64{1234}};  // NOLINT
+  random::uniform rand{-1.0, 1.0, std::mt19937_64{1234}};  // NOLINT
   SECTION("scalar property") {
     auto& prop = insert_scalar_vertex_property("prop");
     for (size_t i = 0; i < 100; ++i) {
@@ -144,7 +144,7 @@ TEST_CASE_METHOD(pointset2,
 //==============================================================================
 TEST_CASE_METHOD(pointset3, "pointset_moving_least_squares_sampler_3",
                  "[pointset][moving_least_squares_sampler][3d][3D]") {
-  random_uniform rand{-1.0, 1.0, std::mt19937_64{1234}};  // NOLINT
+  random::uniform rand{-1.0, 1.0, std::mt19937_64{1234}};  // NOLINT
   SECTION("scalar property") {
     auto& prop = scalar_vertex_property("prop");
     for (size_t i = 0; i < 100; ++i) {

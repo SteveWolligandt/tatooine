@@ -36,7 +36,7 @@ TEST_CASE("isolines_doublegyre_length", "[iso][isolines][numerical][doublegyre]"
 TEST_CASE("isosurface_random",
           "[iso][isosurface][static_multidim_arra][random]") {
   auto data = dynamic_multidim_array<double, x_fastest>::rand(
-      random_uniform{-1.0, 1.0, std::mt19937{1234}}, 20, 20, 20);
+      random::uniform{-1.0, 1.0, std::mt19937{1234}}, 20, 20, 20);
   isosurface(
       data, axis_aligned_bounding_box{vec3{-10, -10, -10}, vec3{10, 10, 10}}, 0)
       .write_vtk("isosurface_random.vtk");

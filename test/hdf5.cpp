@@ -16,7 +16,7 @@ TEST_CASE("hdf5_read_chunk", "[hdf5][read][chunk]") {
 
   auto                    full_size = std::vector<size_t>{32, 64, 128};
   std::vector<value_type> data_src(full_size[0] * full_size[1] * full_size[2]);
-  //auto rand = random_uniform{value_type(-1000), value_type(1000)};
+  //auto rand = random::uniform{value_type(-1000), value_type(1000)};
   //boost::generate(data_src, [&rand]() { return rand(); });
   boost::iota(data_src, 1);
   if (filesystem::exists(filepath)) {

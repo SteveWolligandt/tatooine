@@ -144,8 +144,8 @@ struct simplex_mesh_parent<Mesh, Real, 3, 2> : pointset<Real, 3>,
 
         if (t < global_min_t) {
           global_min_t = t;
-          inters       = intersection_t{
-              this, r, t, pos, normalize(cross(v0v1, v2 - v1)), vec2{0, 0}};
+          inters =
+              intersection_t{this, r, t, pos, normalize(cross(v0v1, v2 - v1))};
         }
       }
     }

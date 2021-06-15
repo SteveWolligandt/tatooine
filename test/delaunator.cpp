@@ -18,7 +18,7 @@ TEST_CASE("delaunator_unit_quad", "[delaunator][quad]"){
 //==============================================================================
 TEST_CASE("delaunator_random_triangular_mesh",
           "[delaunator][random][triangular_mesh]") {
-  random_uniform rand{0.0, 10.0};
+  random::uniform rand{0.0, 10.0};
   triangular_mesh<double, 2> mesh;
   for (size_t i = 0; i < 100; ++i) {
     mesh.insert_vertex(vec<double, 2>{rand});

@@ -15,14 +15,14 @@ namespace tatooine {
 //==============================================================================
 namespace detail {
 // = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = =
-//template <typename AABB, typename Real, size_t N>
-//struct aabb_ray_intersectable_parent {};
-template <typename AABB, typename Real, size_t N >
+// template <typename AABB, typename Real, size_t N>
+// struct aabb_ray_intersectable_parent {};
+template <typename AABB, typename Real, size_t N>
 struct aabb_ray_intersectable_parent : ray_intersectable<Real, N> {
   using parent_t = ray_intersectable<Real, N>;
-  using typename parent_t::ray_t;
   using typename parent_t::intersection_t;
   using typename parent_t::optional_intersection_t;
+  using typename parent_t::ray_t;
   //============================================================================
   auto as_aabb() const -> auto const& {
     return *dynamic_cast<AABB const*>(this);
@@ -58,12 +58,8 @@ struct aabb_ray_intersectable_parent : ray_intersectable<Real, N> {
 
     // Ray origin inside bounding box
     if (inside) {
-      return intersection_t{this,
-                            r,
-                            Real(0),
-                            r.origin(),
-                            vec<Real, N>::zeros(),
-                            vec<Real, 2>::zeros()};
+      return intersection_t{this, r, Real(0), r.origin(),
+                            vec<Real, N>::zeros()};
     }
 
     // Calculate T distances to candidate planes
@@ -94,12 +90,8 @@ struct aabb_ray_intersectable_parent : ray_intersectable<Real, N> {
       } else {
         coord(i) = candidate_plane[i];
       }
-    return intersection_t{this,
-                          r,
-                          max_t[which_plane],
-                          coord,
-                          vec<Real, N>::zeros(),
-                          vec<Real, 2>::zeros()};
+    return intersection_t{this, r, max_t[which_plane], coord,
+                          vec<Real, N>::zeros()};
   }
 };
 // = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = =
@@ -193,9 +185,9 @@ struct axis_aligned_bounding_box
   {
     auto const c = center();
     // auto const e = extents()/2;
-    //x0 -= c;
-    //x1 -= c;
-    //x2 -= c;
+    // x0 -= c;
+    // x1 -= c;
+    // x2 -= c;
     // vec_t const u0{1, 0};
     // vec_t const u1{0, 1};
     auto is_separating_axis = [&](vec<Real, 2> const& n) {
@@ -218,10 +210,10 @@ struct axis_aligned_bounding_box
     if (is_separating_axis(vec_t{0, 1})) {
       return false;
     }
-     if (is_separating_axis(vec_t{-1, 0})) {
+    if (is_separating_axis(vec_t{-1, 0})) {
       return false;
     }
-     if (is_separating_axis(vec_t{0, -1})) {
+    if (is_separating_axis(vec_t{0, -1})) {
       return false;
     }
     if (is_separating_axis(vec_t{x0(1) - x1(1), x1(0) - x0(0)})) {

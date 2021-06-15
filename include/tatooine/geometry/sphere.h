@@ -4,7 +4,6 @@
 #include <tatooine/concepts.h>
 #include <tatooine/line.h>
 #include <tatooine/real.h>
-#include <tatooine/geometry/sphere_ray_intersection.h>
 #include <tatooine/tensor.h>
 #include <tatooine/triangular_mesh.h>
 
@@ -18,6 +17,8 @@ struct sphere : ray_intersectable<Real, N> {
   using this_t   = sphere<Real, N>;
   using parent_t = ray_intersectable<Real, N>;
   using pos_t    = vec<Real, N>;
+  using typename parent_t::intersection_t;
+  using typename parent_t::optional_intersection_t;
   //============================================================================
  private:
   Real  m_radius;
@@ -37,8 +38,42 @@ struct sphere : ray_intersectable<Real, N> {
   sphere& operator=(sphere&&) = default;
   //============================================================================
   auto check_intersection(ray<Real, N> const& r, Real const min_t = 0) const
-      -> std::optional<intersection<Real, N>> override {
-    return tatooine::geometry::check_intersection(*this, r, min_t);
+      -> optional_intersection_t override {
+    if constexpr (N == 3) {
+      auto const m = r.origin() - center();
+      auto const b = dot(m, r.direction());
+      auto const c = dot(m, m) - radius() * radius();
+
+      // Exit if r’s origin outside s (c > 0) and r pointing away from s (b > 0)
+      if (c > 0 && b > 0) {
+        return {};
+      }
+      auto const discr = b * b - c;
+
+      // A negative discriminant corresponds to ray missing sphere
+      if (discr < 0) {
+        return {};
+      }
+
+      // Ray now found to intersect sphere, compute smallest t value of
+      // intersection
+      auto t = -b - std::sqrt(discr);
+
+      // If t is negative, ray started inside sphere so clamp t to zero
+      if (t < min_t) {
+        return {};
+      }
+
+      auto const hit_pos = r(t);
+      auto const nor     = normalize(hit_pos - center());
+      // vec        uv{std::atan2(nor(0), nor(2)) / (2 * M_PI) + M_PI / 2,
+      //       std::acos(-nor(1)) / M_PI};
+      return intersection_t{this, r, t, hit_pos, nor};
+    } else {
+      throw std::runtime_error{"sphere ray intersection not implemented for " +
+                               std::to_string(N) + " dimensions."};
+      return {};
+    }
   }
   //----------------------------------------------------------------------------
   constexpr auto radius() const { return m_radius; }
@@ -50,7 +85,7 @@ struct sphere : ray_intersectable<Real, N> {
   template <typename RandomEngine = std::mt19937_64>
   auto random_point(RandomEngine&& eng = RandomEngine{
                         std::random_device{}()}) const {
-    auto       rand = random_uniform<Real, std::decay_t<RandomEngine>>{eng};
+    auto       rand = random::uniform<Real, std::decay_t<RandomEngine>>{eng};
     auto const u         = rand();
     auto const v         = rand();
     auto const theta     = u * 2 * M_PI;
@@ -67,7 +102,7 @@ struct sphere : ray_intersectable<Real, N> {
   }
   template <typename RandReal, typename RandEngine>
   auto random_points(size_t const                          n,
-                     random_uniform<RandReal, RandEngine>& rand) const {
+                     random::uniform<RandReal, RandEngine>& rand) const {
     std::vector<vec<Real, N>> ps;
     for (size_t i = 0; i < n; ++i) {
       auto const u         = rand();
@@ -89,7 +124,7 @@ struct sphere : ray_intersectable<Real, N> {
   //----------------------------------------------------------------------------
   template <typename RandEngine = std::mt19937_64>
   auto random_points(size_t const n) const {
-    auto rand = random_uniform<Real, RandEngine>{};
+    auto rand = random::uniform<Real, RandEngine>{};
     return random_points(n, rand);
   }
 };
