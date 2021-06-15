@@ -447,6 +447,63 @@ class grid {
   constexpr auto front() -> auto& {
     return dimension<I>().front();
   }
+  // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+  constexpr auto front(size_t const i) -> real_t {
+    if (i == 0) {
+      return front<0>();
+    }
+    if constexpr (num_dimensions() > 1) {
+      if (i == 1) {
+        return front<1>();
+      }
+    }
+    if constexpr (num_dimensions() > 2) {
+      if (i == 2) {
+        return front<2>();
+      }
+    }
+    if constexpr (num_dimensions() > 3) {
+      if (i == 3) {
+        return front<3>();
+      }
+    }
+    if constexpr (num_dimensions() > 4) {
+      if (i == 4) {
+        return front<4>();
+      }
+    }
+    if constexpr (num_dimensions() > 5) {
+      if (i == 5) {
+        return front<5>();
+      }
+    }
+    if constexpr (num_dimensions() > 6) {
+      if (i == 6) {
+        return front<6>();
+      }
+    }
+    if constexpr (num_dimensions() > 7) {
+      if (i == 7) {
+        return front<7>();
+      }
+    }
+    if constexpr (num_dimensions() > 8) {
+      if (i == 8) {
+        return front<8>();
+      }
+    }
+    if constexpr (num_dimensions() > 9) {
+      if (i == 9) {
+        return front<9>();
+      }
+    }
+    if constexpr (num_dimensions() > 10) {
+      if (i == 10) {
+        return front<10>();
+      }
+    }
+    return std::numeric_limits<real_t>::max();
+  }
   //----------------------------------------------------------------------------
   template <size_t I>
   constexpr auto back() const {
@@ -457,16 +514,146 @@ class grid {
   constexpr auto back() -> auto& {
     return dimension<I>().back();
   }
+  // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+  constexpr auto back(size_t const i) -> real_t {
+    if (i == 0) {
+      return back<0>();
+    }
+    if constexpr (num_dimensions() > 1) {
+      if (i == 1) {
+        return back<1>();
+      }
+    }
+    if constexpr (num_dimensions() > 2) {
+      if (i == 2) {
+        return back<2>();
+      }
+    }
+    if constexpr (num_dimensions() > 3) {
+      if (i == 3) {
+        return back<3>();
+      }
+    }
+    if constexpr (num_dimensions() > 4) {
+      if (i == 4) {
+        return back<4>();
+      }
+    }
+    if constexpr (num_dimensions() > 5) {
+      if (i == 5) {
+        return back<5>();
+      }
+    }
+    if constexpr (num_dimensions() > 6) {
+      if (i == 6) {
+        return back<6>();
+      }
+    }
+    if constexpr (num_dimensions() > 7) {
+      if (i == 7) {
+        return back<7>();
+      }
+    }
+    if constexpr (num_dimensions() > 8) {
+      if (i == 8) {
+        return back<8>();
+      }
+    }
+    if constexpr (num_dimensions() > 9) {
+      if (i == 9) {
+        return back<9>();
+      }
+    }
+    if constexpr (num_dimensions() > 10) {
+      if (i == 10) {
+        return back<10>();
+      }
+    }
+    return std::numeric_limits<real_t>::max();
+  }
   //----------------------------------------------------------------------------
   template <size_t I>
-  constexpr auto dim_center() {
+  constexpr auto extent() {
+    return dimension<I>().back() - dimension<I>().front();
+  }
+  // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+ private:
+  template <size_t... Is>
+  constexpr auto extent(std::index_sequence<Is...> /*seq*/) {
+    return vec{extent<Is>()...};
+  }
+  // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+ public:
+  constexpr auto extent() {
+    return extent(std::make_index_sequence<num_dimensions()>{});
+  }
+  // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+  constexpr auto extent(size_t const i) -> real_t {
+    if (i == 0) {
+      return extent<0>();
+    }
+    if constexpr (num_dimensions() > 1) {
+      if (i == 1) {
+        return extent<1>();
+      }
+    }
+    if constexpr (num_dimensions() > 2) {
+      if (i == 2) {
+        return extent<2>();
+      }
+    }
+    if constexpr (num_dimensions() > 3) {
+      if (i == 3) {
+        return extent<3>();
+      }
+    }
+    if constexpr (num_dimensions() > 4) {
+      if (i == 4) {
+        return extent<4>();
+      }
+    }
+    if constexpr (num_dimensions() > 5) {
+      if (i == 5) {
+        return extent<5>();
+      }
+    }
+    if constexpr (num_dimensions() > 6) {
+      if (i == 6) {
+        return extent<6>();
+      }
+    }
+    if constexpr (num_dimensions() > 7) {
+      if (i == 7) {
+        return extent<7>();
+      }
+    }
+    if constexpr (num_dimensions() > 8) {
+      if (i == 8) {
+        return extent<8>();
+      }
+    }
+    if constexpr (num_dimensions() > 9) {
+      if (i == 9) {
+        return extent<9>();
+      }
+    }
+    if constexpr (num_dimensions() > 10) {
+      if (i == 10) {
+        return extent<10>();
+      }
+    }
+    return std::numeric_limits<real_t>::max();
+  }
+  //----------------------------------------------------------------------------
+  template <size_t I>
+  constexpr auto center() {
     return (dimension<I>().back() + dimension<I>().front()) / 2;
   }
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
  private:
   template <size_t... Is>
   constexpr auto center(std::index_sequence<Is...> /*seq*/) {
-    return vec{dim_center<Is>()...};
+    return vec{center<Is>()...};
   }
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
  public:
@@ -474,61 +661,61 @@ class grid {
     return center(std::make_index_sequence<num_dimensions()>{});
   }
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-  constexpr auto center(size_t const i) {
+  constexpr auto center(size_t const i) -> real_t {
     if (i == 0) {
-      return dim_center<0>();
+      return center<0>();
     }
     if constexpr (num_dimensions() > 1) {
       if (i == 1) {
-        return dim_center<1>();
+        return center<1>();
       }
     }
     if constexpr (num_dimensions() > 2) {
       if (i == 2) {
-        return dim_center<2>();
+        return center<2>();
       }
     }
     if constexpr (num_dimensions() > 3) {
       if (i == 3) {
-        return dim_center<3>();
+        return center<3>();
       }
     }
     if constexpr (num_dimensions() > 4) {
       if (i == 4) {
-        return dim_center<4>();
+        return center<4>();
       }
     }
     if constexpr (num_dimensions() > 5) {
       if (i == 5) {
-        return dim_center<5>();
+        return center<5>();
       }
     }
     if constexpr (num_dimensions() > 6) {
       if (i == 6) {
-        return dim_center<6>();
+        return center<6>();
       }
     }
     if constexpr (num_dimensions() > 7) {
       if (i == 7) {
-        return dim_center<7>();
+        return center<7>();
       }
     }
     if constexpr (num_dimensions() > 8) {
       if (i == 8) {
-        return dim_center<8>();
+        return center<8>();
       }
     }
     if constexpr (num_dimensions() > 9) {
       if (i == 9) {
-        return dim_center<9>();
+        return center<9>();
       }
     }
     if constexpr (num_dimensions() > 10) {
       if (i == 10) {
-        return dim_center<10>();
+        return center<10>();
       }
     }
-    return std::numeric_limits<size_t>::max();
+    return std::numeric_limits<real_t>::max();
   }
   //----------------------------------------------------------------------------
 #ifdef __cpp_concepts

@@ -1,48 +1,19 @@
 #include <tatooine/color_scales/magma.h>
 #include <tatooine/color_scales/viridis.h>
 #include <tatooine/field.h>
+#include <tatooine/line.h>
 #include <tatooine/grid.h>
 #include <tatooine/hdf5.h>
 #include <tatooine/rendering/direct_isosurface.h>
 #include <tatooine/rendering/perspective_camera.h>
-//==============================================================================
-template <typename SamplerX, typename SamplerY, typename SamplerZ>
-struct vectorfield
-    : tatooine::vectorfield<::vectorfield<SamplerX, SamplerY, SamplerZ>, double, 3> {
-  using this_t   = ::vectorfield<SamplerX, SamplerY, SamplerZ>;
-  using parent_t = tatooine::vectorfield<this_t, double, 3>;
 
-  using typename parent_t::pos_t;
-  using typename parent_t::real_t;
-  using typename parent_t::tensor_t;
-
-  SamplerX m_sampler_x;
-  SamplerY m_sampler_y;
-  SamplerZ m_sampler_z;
-  //============================================================================
-  template <typename _SamplerX, typename _SamplerY, typename _SamplerZ>
-  vectorfield(_SamplerX sampler_x, _SamplerY sampler_y, _SamplerZ sampler_z)
-      : m_sampler_x{sampler_x},
-        m_sampler_y{sampler_y},
-        m_sampler_z{sampler_z} {}
-  //----------------------------------------------------------------------------
-  auto evaluate(pos_t const& x, real_t const t) const -> tensor_t {
-    return {m_sampler_x(x), m_sampler_y(x), m_sampler_z(x)};
-  }
-  //----------------------------------------------------------------------------
-  auto in_domain(pos_t const& x, real_t const t) const -> bool {
-    return m_sampler_x.grid().in_domain(x(0), x(1), x(2));
-  }
-};
-//==============================================================================
-template <typename SamplerX, typename SamplerY, typename SamplerZ>
-vectorfield(SamplerX, SamplerY, SamplerZ)
-    -> vectorfield<std::decay_t<SamplerX>, std::decay_t<SamplerY>,
-                   std::decay_t<SamplerZ>>;
+#include <iomanip>
+#include <sstream>
 //==============================================================================
 auto main() -> int {
-using namespace tatooine;
+  using namespace tatooine;
   // read full domain axes
+  std::cerr << "loading axes ...";
   hdf5::file axis0_file{"/home/vcuser/channel_flow/axis0.h5"};
   hdf5::file axis1_file{"/home/vcuser/channel_flow/axis1.h5"};
   hdf5::file axis2_file{"/home/vcuser/channel_flow/axis2.h5"};
@@ -52,7 +23,9 @@ using namespace tatooine;
       axis1_file.dataset<double>("CartGrid/axis1").read_as_vector();
   auto const axis2 =
       axis2_file.dataset<double>("CartGrid/axis2").read_as_vector();
+  std::cerr << "done!\n";
 
+  std::cerr << "creating grids ...";
   grid full_domain{axis0, axis1, axis2};
   full_domain.set_chunk_size_for_lazy_properties(256);
   std::cerr << "full_domain:\n" << full_domain << '\n';
@@ -62,12 +35,16 @@ using namespace tatooine;
   grid full_domain_Q{axis0_Q, axis1, axis2};
   full_domain_Q.set_chunk_size_for_lazy_properties(256);
   std::cerr << "full_domain_Q:\n" << full_domain_Q << '\n';
+  std::cerr << "done!\n";
 
+  std::cerr << "creating files ...";
   hdf5::file channelflow_122_full_file{
       "/home/vcuser/channel_flow/dino_res_122000_full.h5"};
   hdf5::file channelflow_154_full_file{
       "/home/vcuser/channel_flow/dino_res_154000.h5"};
+  std::cerr << "done!\n";
 
+  std::cerr << "loading data ...";
   // auto& velocity_x_122_full = full_domain.insert_lazy_vertex_property(
   //    channelflow_122_full_file.dataset<double>("velocity/xvel"),
   //    "velocity_x_122");
@@ -78,7 +55,7 @@ using namespace tatooine;
   //    channelflow_122_full_file.dataset<double>("velocity/zvel"),
   //    "velocity_z_122");
   auto& velocity_y_154_full = full_domain.insert_vertex_property(
-      channelflow_154_full_file.dataset<double>("velocity/zvel"),
+      channelflow_154_full_file.dataset<double>("velocity/yvel"),
       "velocity_y_154");
   // auto& Q_122_full = full_domain_Q.insert_vertex_property(
   //    channelflow_122_full_file.dataset<double>("Q_pnorm"), "Q_122");
@@ -93,7 +70,9 @@ using namespace tatooine;
   // velocity_y_122_full.set_max_num_chunks_loaded(30);
   // velocity_z_122_full.set_max_num_chunks_loaded(30);
   // Q_122_full.set_max_num_chunks_loaded(30);
+  std::cerr << "done!\n";
 
+  std::cerr << "creating samplers ...";
   // auto velocity_x_122_full_sampler = velocity_x_122_full.linear_sampler();
   // auto velocity_y_122_full_sampler = velocity_y_122_full.linear_sampler();
   // auto velocity_z_122_full_sampler = velocity_z_122_full.linear_sampler();
@@ -104,29 +83,43 @@ using namespace tatooine;
   // auto velocity_magnitude_122_full_sampler =
   // velocity_magnitude_122_full.linear_sampler();
   auto velocity_y_154_full_sampler = velocity_y_154_full.linear_sampler();
+  std::cerr << "done!\n";
 
   color_scales::viridis color_scale;
 
+  std::cerr << "creating cameras ...";
   size_t const width = 2000, height = 1000;
 
-  auto const full_domain_eye =
-      vec3{0.7940901239835871, 0.04097490152128994, 0.5004262802265552};
-  auto const full_domain_lookat =
-      vec3{-0.7384532106212904, 0.7745404345929863, -0.4576538576946477};
-  auto const full_domain_up =
-      vec3{-0.35221800146747856, 0.3807796045093859, 0.8549557720911246};
-  auto full_domain_cam =
-      rendering::perspective_camera<double>{full_domain_eye,
-                                            full_domain_lookat,
-                                            full_domain_up,
-                                            60,
-                                            0.01,
-                                            1000,
-                                            width,
-                                            height};
-  //real_t const min      = 13;
-  //real_t const max      = 27;
-  //real_t const isovalue_Q = 5e6;
+  auto full_domain_eye = parameterized_line<double, 3, interpolation::linear>{};
+  full_domain_eye.push_back(
+      vec3{0.6,
+           full_domain.front(1) - full_domain.extent(1) / 5,
+           0.75}*2/3,
+      0);
+  full_domain_eye.push_back(
+      vec3{0.6,
+           full_domain.back(1) + full_domain.extent(1) / 5,
+           0.75}*2/3,
+      1);
+  auto full_domain_lookat =
+      parameterized_line<double, 3, interpolation::linear>{};
+  full_domain_lookat.push_back(
+      vec3{full_domain.center(0),
+           full_domain.front(1) + full_domain.extent(1) / 6,
+           full_domain.center(2)},
+      0);
+  full_domain_lookat.push_back(
+      vec3{full_domain.center(0),
+           full_domain.back(1) - full_domain.extent(1) / 6,
+           full_domain.center(2)},
+      1);
+  //auto const full_domain_up =
+  //    vec3{-0.35221800146747856, 0.3807796045093859, 0.8549557720911246};
+  auto const full_domain_up = vec3{0, 0, 1};
+  std::cerr << "done!\n";
+  // real_t const min      = 13;
+  // real_t const max      = 27;
+  // real_t const isovalue_Q = 5e6;
 
   // auto mapped_velocity_magnitude_shader = [&](auto const& x_iso,
   //                                            auto const& gradient,
@@ -151,6 +144,7 @@ using namespace tatooine;
   //                                 mapped_velocity_magnitude_shader);
   // write_png("channelflow_Q_5e6_with_velocity_magnitude.png",
   //          rendering_grid.vec3_vertex_property("rendered_isosurface"));
+  std::cerr << "calculating min and max velocity y 154 ...";
   auto min_velocity_y_154 = std::numeric_limits<double>::max();
   auto max_velocity_y_154 = -std::numeric_limits<double>::max();
 
@@ -160,17 +154,45 @@ using namespace tatooine;
     max_velocity_y_154 =
         std::max(max_velocity_y_154, velocity_y_154_full(is...));
   });
+  std::cerr << "done!\n";
   std::cerr << "data range: " << min_velocity_y_154 << " - "
             << max_velocity_y_154 << '\n';
-  auto const rendering_grid = rendering::direct_isosurface(
-      full_domain_cam, velocity_y_154_full_sampler,
-      (max_velocity_y_154 - min_velocity_y_154) / 2,
-      [&](auto const /*x_iso*/, auto const& gradient, auto const& view_dir) {
-        auto const normal  = normalize(gradient);
-        auto const diffuse = std::abs(dot(view_dir, normal));
-        auto const col     = vec3{1, 0, 0} * diffuse;
-        return vec{col(0), col(1), col(2)};
-      });
-  write_png("channelflow_velocity_y_154_half_range.png",
-            rendering_grid.vec3_vertex_property("rendered_isosurface"));
+  size_t i = 0;
+  size_t const num_frames = 100;
+  for (auto const t : linspace{0.0, 1.0, num_frames}) {
+    std::cerr << "rendering " << i+1 << " / " << num_frames << "...";
+    auto full_domain_cam =
+        rendering::perspective_camera<double>{full_domain_eye(t),
+                                              full_domain_lookat(t),
+                                              full_domain_up,
+                                              60,
+                                              0.01,
+                                              1000,
+                                              width,
+                                              height};
+    auto isovalues =
+        std::vector{(max_velocity_y_154 - min_velocity_y_154) * 2 / 3,(max_velocity_y_154 - min_velocity_y_154) * 5 / 6};
+    auto const rendering_grid = rendering::direct_isosurface(
+        full_domain_cam, velocity_y_154_full_sampler, isovalues,
+        [&](auto const /*x_iso*/, auto const isovalue, auto const& gradient,
+            auto const& view_dir) {
+          auto const normal  = normalize(gradient);
+          auto const diffuse = std::abs(dot(view_dir, normal));
+          auto const t       = (isovalue - min_velocity_y_154) /
+                         (min_velocity_y_154 + max_velocity_y_154);
+          auto const albedo = color_scale(t);
+          auto const col    = albedo * diffuse * 0.8 + albedo * 0.2;
+          return vec{col(0), col(1), col(2),
+                     isovalue < isovalues.back() - 1e-5 ? 0.1 : 0.9};
+        });
+    std::cerr << "done!\n";
+    std::cerr << "writing ...";
+    std::stringstream str;
+    str << std::setw(static_cast<size_t>(std::ceil(std::log10(num_frames))))
+        << std::setfill('0') << i;
+    write_png("channelflow_velocity_y_154." + str.str() + ".png",
+              rendering_grid.vec3_vertex_property("rendered_isosurface"));
+    std::cerr << "done!\n";
+    ++i;
+  }
 }
