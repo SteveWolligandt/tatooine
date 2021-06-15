@@ -1,343 +1,33 @@
 #ifndef TATOOINE_LINE_H
 #define TATOOINE_LINE_H
 //==============================================================================
-#include <boost/range/adaptor/reversed.hpp>
-#include <set>
-#include <boost/range/algorithm/copy.hpp>
-#include <boost/range/algorithm/reverse.hpp>
-#include <boost/range/algorithm_ext/iota.hpp>
-#include <boost/range/numeric.hpp>
-#include <cassert>
-#include <deque>
-#include <list>
-#include <map>
-#include <stdexcept>
-
+#include <tatooine/demangling.h>
 #include <tatooine/handle.h>
+#include <tatooine/line_vertex_container.h>
 #include <tatooine/linspace.h>
 #include <tatooine/property.h>
 #include <tatooine/tags.h>
 #include <tatooine/tensor.h>
 #include <tatooine/vtk_legacy.h>
-#include <tatooine/demangling.h>
+
+#include <boost/range/algorithm_ext/iota.hpp>
+#include <cassert>
+#include <deque>
+#include <list>
+#include <map>
+#include <set>
+#include <stdexcept>
 //==============================================================================
 namespace tatooine {
-//==============================================================================
-template <typename Real, size_t N>
-struct line;
-//==============================================================================
-// Iterators
-//==============================================================================
-template <typename Line, typename Real, size_t N, typename Handle,
-          typename Value, typename Reference>
-struct const_line_vertex_iterator
-    : boost::iterator_facade<
-          const_line_vertex_iterator<Line, Real, N, Handle, Value, Reference>,
-          Value, boost::bidirectional_traversal_tag, Reference> {
-  //============================================================================
-  // typedefs
-  //============================================================================
-  using this_t =
-      const_line_vertex_iterator<Line, Real, N, Handle, Value, Reference>;
-
-  //============================================================================
-  // ctors
-  //============================================================================
-  const_line_vertex_iterator(Handle handle, const Line& l, bool prefer_calc)
-      : m_handle{handle}, m_line{l}, m_prefer_calc{prefer_calc} {}
-  // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-  const_line_vertex_iterator(const const_line_vertex_iterator& other) = default;
-
-  //============================================================================
-  // members
-  //============================================================================
- private:
-  Handle      m_handle;
-  const Line& m_line;
-  bool        m_prefer_calc;
-
-  //============================================================================
-  // iterator_face
-  //============================================================================
- private:
-  friend class boost::iterator_core_access;
-  //----------------------------------------------------------------------------
-  void increment() { ++m_handle; }
-  void decrement() { --m_handle; }
-  //----------------------------------------------------------------------------
-  auto equal(const const_line_vertex_iterator& other) const {
-    return m_handle == other.m_handle;
-  }
-  //----------------------------------------------------------------------------
-  const Reference dereference() const {
-    return m_line.at(m_handle, m_prefer_calc);
-  }
-  //============================================================================
-  // methods
-  //============================================================================
- public:
-  this_t next(size_t inc = 1) const {
-    this_t n = *this;
-    n.m_handle.i += inc;
-    return n;
-  }
-  //----------------------------------------------------------------------------
-  this_t prev(size_t dec = 1) const {
-    this_t p = *this;
-    p.m_handle.i -= dec;
-    return p;
-  }
-  //----------------------------------------------------------------------------
-  auto& advance(const size_t inc = 1) const {
-    m_handle.i += inc;
-    return *this;
-  }
-};
-//~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-template <typename Line, typename Real, size_t N, typename Handle,
-          typename Value, typename Reference>
-static auto next(const const_line_vertex_iterator<Line, Real, N, Handle, Value,
-                                                  Reference>& it,
-                 size_t                                       inc = 1) {
-  return it.next(inc);
-}
-// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-template <typename Line, typename Real, size_t N, typename Handle,
-          typename Value, typename Reference>
-auto prev(const const_line_vertex_iterator<Line, Real, N, Handle, Value,
-                                           Reference>& it,
-          size_t                                       dec = 1) {
-  return it.prev(dec);
-}
-// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-template <typename Line, typename Real, size_t N, typename Handle,
-          typename Value, typename Reference>
-auto& advance(
-    const_line_vertex_iterator<Line, Real, N, Handle, Value, Reference>& it,
-    size_t inc = 1) {
-  return it.advance(inc);
-}
-//==============================================================================
-template <typename Line, typename Real, size_t N, typename Handle,
-          typename Value, typename Reference = Value&>
-struct line_vertex_iterator
-    : boost::iterator_facade<
-          line_vertex_iterator<Line, Real, N, Handle, Value, Reference>, Value,
-          boost::bidirectional_traversal_tag, Reference> {
-  //============================================================================
-  // typedefs
-  //============================================================================
-  using this_t = line_vertex_iterator<Line, Real, N, Handle, Value, Reference>;
-
-  //============================================================================
-  // ctors
-  //============================================================================
-  line_vertex_iterator(Handle handle, Line& l) : m_handle{handle}, m_line{l} {}
-  // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-  line_vertex_iterator(const line_vertex_iterator& other) = default;
-
-  //============================================================================
-  // members
-  //============================================================================
- private:
-  Handle m_handle;
-  Line&  m_line;
-  bool   m_prefer_calc;
-
-  //============================================================================
-  // iterator_facade
-  //============================================================================
- private:
-  friend class boost::iterator_core_access;
-  //----------------------------------------------------------------------------
-  void increment() { ++m_handle; }
-  void decrement() { --m_handle; }
-  //----------------------------------------------------------------------------
-  auto equal(const line_vertex_iterator& other) const {
-    return m_handle == other.m_handle;
-  }
-  //----------------------------------------------------------------------------
-  Reference dereference() { return m_line.at(m_handle, m_prefer_calc); }
-
-  //============================================================================
-  // methods
-  //============================================================================
- public:
-  this_t next(const size_t inc = 1) const {
-    this_t n = *this;
-    n.m_handle.i += inc;
-    return n;
-  }
-  this_t prev(const size_t dec = 1) const {
-    this_t p = *this;
-    p.m_handle.i -= dec;
-    return p;
-  }
-  auto& advance(const size_t inc = 1) const {
-    m_handle.i += inc;
-    return *this;
-  }
-};
-//~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-template <typename Line, typename Real, size_t N, typename Handle,
-          typename Value, typename Reference>
-auto next(
-    const line_vertex_iterator<Line, Real, N, Handle, Value, Reference>& it,
-    size_t inc = 1) {
-  return it.next(inc);
-}
-// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-template <typename Line, typename Real, size_t N, typename Handle,
-          typename Value, typename Reference>
-auto prev(
-    const line_vertex_iterator<Line, Real, N, Handle, Value, Reference>& it,
-    size_t dec = 1) {
-  return it.prev(dec);
-}
-// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-template <typename Line, typename Real, size_t N, typename Handle,
-          typename Value, typename Reference>
-auto& advance(line_vertex_iterator<Line, Real, N, Handle, Value, Reference>& it,
-              size_t inc = 1) {
-  return it.advance(inc);
-}
-//==============================================================================
-// Container
-//==============================================================================
-template <typename Line, typename Real, size_t N, typename Handle,
-          typename Value, typename Reference = Value&>
-struct const_line_vertex_container {
-  //============================================================================
-  // typedefs
-  //============================================================================
-  using iterator =
-      line_vertex_iterator<Line, Real, N, Handle, Value, Reference>;
-  using const_iterator =
-      const_line_vertex_iterator<Line, Real, N, Handle, Value, Reference>;
-
-  //============================================================================
-  // members
-  //============================================================================
-  const Line& m_line;
-  bool        m_prefer_calc;
-
-  //============================================================================
-  // methods
-  //============================================================================
-  auto begin() const {
-    return const_iterator{Handle{0}, m_line, m_prefer_calc};
-  }
-  // -  -  -  -  -  -  -  -  -  -  -  -  -  -  -  -  -  -  -  -  -  -  -  -  -
-  auto end() const {
-    return const_iterator{Handle{m_line.num_vertices()}, m_line, m_prefer_calc};
-  }
-  //--------------------------------------------------------------------------
-  const auto& front() const { return m_line.at(Handle{0}, m_prefer_calc); }
-  //--------------------------------------------------------------------------
-  const auto& back() const {
-    return m_line.at(Handle{m_line.num_vertices() - 1}, m_prefer_calc);
-  }
-  //--------------------------------------------------------------------------
-  const auto& line() const { return m_line; }
-};
-//~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-template <typename Line, typename Real, size_t N, typename Handle,
-          typename Value, typename Reference>
-auto begin(const const_line_vertex_container<Line, Real, N, Handle, Value,
-                                             Reference>& it) {
-  return it.begin();
-}
-// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-template <typename Line, typename Real, size_t N, typename Handle,
-          typename Value, typename Reference>
-auto end(const const_line_vertex_container<Line, Real, N, Handle, Value,
-                                           Reference>& it) {
-  return it.begin();
-}
-//============================================================================
-template <typename Line, typename Real, size_t N, typename Handle,
-          typename Value, typename Reference = Value&>
-struct line_vertex_container {
-  //============================================================================
-  // typedefs
-  //============================================================================
-  using iterator =
-      line_vertex_iterator<Line, Real, N, Handle, Value, Reference>;
-  using const_iterator =
-      const_line_vertex_iterator<Line, Real, N, Handle, Value, Reference>;
-
-  //============================================================================
-  // members
-  //============================================================================
-  Line& m_line;
-  bool  m_prefer_calc;
-
-  //============================================================================
-  // methods
-  //============================================================================
-  auto begin() const {
-    return const_iterator{Handle{0}, m_line, m_prefer_calc};
-  }
-  //-  -  -  -  -  -  -  -  -  -  -  -  -  -  -  -  -  -  -  -  -  -  -  -  -  -
-  auto begin() { return iterator{Handle{0}, m_line, m_prefer_calc}; }
-  //-  -  -  -  -  -  -  -  -  -  -  -  -  -  -  -  -  -  -  -  -  -  -  -  -  -
-  auto end() const {
-    return const_iterator{Handle{m_line.num_vertices()}, m_line, m_prefer_calc};
-  }
-  //-  -  -  -  -  -  -  -  -  -  -  -  -  -  -  -  -  -  -  -  -  -  -  -  -  -
-  auto end() {
-    return iterator{Handle{m_line.num_vertices()}, m_line, m_prefer_calc};
-  }
-  //----------------------------------------------------------------------------
-  const auto& front() const { return m_line.at(Handle{0}, m_prefer_calc); }
-  auto&       front() { return m_line.at(Handle{0}, m_prefer_calc); }
-  //----------------------------------------------------------------------------
-  const auto& back() const {
-    return m_line.at(Handle{m_line.num_vertices() - 1}, m_prefer_calc);
-  }
-  auto& back() {
-    return m_line.at(Handle{m_line.num_vertices() - 1}, m_prefer_calc);
-  }
-};
-//~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-template <typename Line, typename Real, size_t N, typename Handle,
-          typename Value, typename Reference>
-auto begin(
-    const line_vertex_container<Line, Real, N, Handle, Value, Reference>& it) {
-  return it.begin();
-}
-// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-template <typename Line, typename Real, size_t N, typename Handle,
-          typename Value, typename Reference>
-auto begin(line_vertex_container<Line, Real, N, Handle, Value, Reference>& it) {
-  return it.begin();
-}
-// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-template <typename Line, typename Real, size_t N, typename Handle,
-          typename Value, typename Reference>
-auto end(
-    const line_vertex_container<Line, Real, N, Handle, Value, Reference>& it) {
-  return it.begin();
-}
-// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-template <typename Line, typename Real, size_t N, typename Handle,
-          typename Value, typename Reference>
-auto end(line_vertex_container<Line, Real, N, Handle, Value, Reference>& it) {
-  return it.begin();
-}
-//============================================================================
-// line implementation
 //============================================================================
 template <typename Real, size_t N>
 struct line {
   struct empty_exception : std::exception {};
   //============================================================================
+  using this_t          = line<Real, N>;
   using real_t          = Real;
   using vec_t           = vec<Real, N>;
   using pos_t           = vec_t;
-  using vec3            = vec<Real, 3>;
-  using mat3            = mat<Real, 3, 3>;
-  using this_t          = line<Real, N>;
   using pos_container_t = std::deque<pos_t>;
   using value_type      = pos_t;
 
@@ -347,10 +37,14 @@ struct line {
   struct vertex_handle : handle<vertex_handle> {
     using handle<vertex_handle>::handle;
   };
-  struct tangent_handle : handle<tangent_handle> {
-    using handle<tangent_handle>::handle;
-  };
 
+  using vertex_container_t =
+      line_vertex_container<this_t, Real, N, vertex_handle, pos_t>;
+  friend struct line_vertex_container<this_t, Real, N, vertex_handle, pos_t>;
+  using const_vertex_container_t =
+      const_line_vertex_container<this_t, Real, N, vertex_handle, pos_t>;
+  friend struct const_line_vertex_container<this_t, Real, N, vertex_handle,
+                                            pos_t>;
 
   template <typename T>
   using vertex_property_t = deque_property_impl<vertex_handle, T>;
@@ -370,41 +64,34 @@ struct line {
   bool            m_is_closed = false;
 
  protected:
-  vertex_property_container_t      m_vertex_properties;
-  vertex_property_t<vec<Real, N>>* m_tangents = nullptr;
+  vertex_property_container_t m_vertex_properties;
 
   //============================================================================
  public:
   line() = default;
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-  line(const line& other)
+  line(line const& other)
       : m_vertices{other.m_vertices}, m_is_closed{other.m_is_closed} {
     for (auto& [name, prop] : other.m_vertex_properties) {
       m_vertex_properties[name] = prop->clone();
-    }
-    if (other.m_tangents) {
-      m_tangents = &vertex_property<vec<Real, N>>("tangents");
     }
   }
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
   line(line&& other) noexcept = default;
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-  line& operator=(const line& other) {
+  line& operator=(line const& other) {
     m_vertices  = other.m_vertices;
     m_is_closed = other.m_is_closed;
     m_vertex_properties.clear();
     for (auto& [name, prop] : other.m_vertex_properties) {
       m_vertex_properties[name] = prop->clone();
     }
-    if (other.m_tangents) {
-      m_tangents = &vertex_property<vec<Real, N>>("tangents");
-    }
     return *this;
   }
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
   line& operator=(line&& other) noexcept = default;
   //----------------------------------------------------------------------------
-  line(const pos_container_t& data, bool is_closed = false)
+  line(pos_container_t const& data, bool is_closed = false)
       : m_vertices{data}, m_is_closed{is_closed} {}
   //----------------------------------------------------------------------------
   line(pos_container_t&& data, bool is_closed = false)
@@ -438,23 +125,29 @@ struct line {
   //============================================================================
   // vertex
   //============================================================================
-  const auto& vertex_at(size_t i) const { return m_vertices[i]; }
-  auto&       vertex_at(size_t i) { return m_vertices[i]; }
+  auto vertex_at(size_t const i) const -> auto const& { return m_vertices[i]; }
+  auto vertex_at(size_t const i) -> auto& { return m_vertices[i]; }
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-  const auto& vertex_at(vertex_handle i) const { return m_vertices[i.i]; }
-  auto&       vertex_at(vertex_handle i) { return m_vertices[i.i]; }
+  auto vertex_at(vertex_handle const i) const -> auto const& {
+    return m_vertices[i.i];
+  }
+  auto vertex_at(vertex_handle const i) -> auto& { return m_vertices[i.i]; }
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-  const auto& at(vertex_handle i) const { return m_vertices[i.i]; }
-  auto&       at(vertex_handle i) { return m_vertices[i.i]; }
+  auto at(vertex_handle const i) const -> auto const& {
+    return m_vertices[i.i];
+  }
+  auto at(vertex_handle const i) -> auto& { return m_vertices[i.i]; }
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-  const auto& operator[](vertex_handle i) const { return m_vertices[i.i]; }
-  auto&       operator[](vertex_handle i) { return m_vertices[i.i]; }
+  auto operator[](vertex_handle const i) const -> auto const& {
+    return m_vertices[i.i];
+  }
+  auto operator[](vertex_handle const i) -> auto& { return m_vertices[i.i]; }
   //----------------------------------------------------------------------------
-  const auto& front_vertex() const { return m_vertices.front(); }
-  auto&       front_vertex() { return m_vertices.front(); }
+  auto front_vertex() const -> auto const& { return m_vertices.front(); }
+  auto front_vertex() -> auto& { return m_vertices.front(); }
   //----------------------------------------------------------------------------
-  const auto& back_vertex() const { return m_vertices.back(); }
-  auto&       back_vertex() { return m_vertices.back(); }
+  auto back_vertex() const -> auto const& { return m_vertices.back(); }
+  auto back_vertex() -> auto& { return m_vertices.back(); }
   //----------------------------------------------------------------------------
 #ifdef __cpp_concepts
   template <arithmetic... Components>
@@ -464,20 +157,22 @@ struct line {
             enable_if<is_arithmetic<Components...>> = true,
             enable_if<(sizeof...(Components) == N)> = true>
 #endif
-  auto push_back(Components... comps) {
+      auto push_back(Components... comps) {
     m_vertices.push_back(pos_t{static_cast<Real>(comps)...});
     for (auto& [name, prop] : m_vertex_properties) {
       prop->push_back();
     }
     return vertex_handle{m_vertices.size() - 1};
   }
-  auto push_back(const pos_t& p) {
+  // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+  auto push_back(pos_t const& p) {
     m_vertices.push_back(p);
     for (auto& [name, prop] : m_vertex_properties) {
       prop->push_back();
     }
     return vertex_handle{m_vertices.size() - 1};
   }
+  // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
   auto push_back(pos_t&& p) {
     m_vertices.emplace_back(std::move(p));
     for (auto& [name, prop] : m_vertex_properties) {
@@ -485,14 +180,16 @@ struct line {
     }
     return vertex_handle{m_vertices.size() - 1};
   }
+  // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
   template <typename OtherReal>
-  auto push_back(const vec<OtherReal, N>& p) {
+  auto push_back(vec<OtherReal, N> const& p) {
     m_vertices.push_back(p);
     for (auto& [name, prop] : m_vertex_properties) {
       prop->push_back();
     }
     return vertex_handle{m_vertices.size() - 1};
   }
+  // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
   auto pop_back() { m_vertices.pop_back(); }
   //----------------------------------------------------------------------------
 #ifdef __cpp_concepts
@@ -503,20 +200,22 @@ struct line {
             enable_if<is_arithmetic<Components...>> = true,
             enable_if<(sizeof...(Components) == N)> = true>
 #endif
-  auto push_front(Components... comps) {
+      auto push_front(Components... comps) {
     m_vertices.push_front(pos_t{static_cast<Real>(comps)...});
     for (auto& [name, prop] : m_vertex_properties) {
       prop->push_front();
     }
     return vertex_handle{0};
   }
-  auto push_front(const pos_t& p) {
+  // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+  auto push_front(pos_t const& p) {
     m_vertices.push_front(p);
     for (auto& [name, prop] : m_vertex_properties) {
       prop->push_front();
     }
     return vertex_handle{0};
   }
+  // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
   auto push_front(pos_t&& p) {
     m_vertices.emplace_front(std::move(p));
     for (auto& [name, prop] : m_vertex_properties) {
@@ -524,167 +223,20 @@ struct line {
     }
     return vertex_handle{0};
   }
+  // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
   template <typename OtherReal>
-  auto push_front(const vec<OtherReal, N>& p) {
+  auto push_front(vec<OtherReal, N> const& p) {
     m_vertices.push_front(p);
     for (auto& [name, prop] : m_vertex_properties) {
       prop->push_front();
     }
     return vertex_handle{0};
   }
+  // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
   void pop_front() { m_vertices.pop_front(); }
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-  const auto& vertices() const { return m_vertices; }
-  auto&       vertices() { return m_vertices; }
-  //============================================================================
-  // tangent
-  //============================================================================
-  /// calculates tangent at point t with backward differences
-  auto tangent_at(const tangent_handle i, tag::forward_t tag) const {
-    return tangent_at(i.i, tag);
-  }
-  // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-  /// calculates tangent at point i with forward differences
-  auto tangent_at(const size_t i, tag::forward_t /*tag*/) const {
-    assert(num_vertices() > 1);
-    if (is_closed() && i == num_vertices() - 1) {
-      return (front_vertex() - back_vertex()) /
-             distance(front_vertex(), back_vertex());
-    }
-    return (vertex_at(i + 1) - vertex_at(i)) /
-           distance(vertex_at(i), vertex_at(i + 1));
-  }
-
-  //----------------------------------------------------------------------------
-  /// calculates tangent at point t with backward differences
-  auto tangent_at(const tangent_handle i, tag::backward_t tag) const {
-    return tangent_at(i.i, tag);
-  }
-  // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-  /// calculates tangent at point i with central differences
-  auto tangent_at(const size_t i, tag::backward_t /*tag*/) const {
-    assert(num_vertices() > 1);
-    if (is_closed() && i == 0) {
-      return (front_vertex() - back_vertex()) /
-             distance(back_vertex(), front_vertex());
-    }
-    return (vertex_at(i) - vertex_at(i - 1)) /
-           distance(vertex_at(i), vertex_at(i - 1));
-  }
-
-  //----------------------------------------------------------------------------
-  /// calculates tangent at point i with central differences
-  auto tangent_at(const tangent_handle i, tag::central_t tag) const {
-    return tangent_at(i.i, tag);
-  }
-  // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-  /// calculates tangent at point i with central differences
-  auto tangent_at(const size_t i, tag::central_t /*tag*/) const {
-    if (is_closed()) {
-      if (i == 0) {
-        return (vertex_at(1) - back_vertex()) /
-               (distance(back_vertex(), front_vertex()) +
-                distance(front_vertex(), vertex_at(i + 1)));
-      } else if (i == num_vertices() - 1) {
-        return (front_vertex() - vertex_at(i - 1)) /
-               (distance(vertex_at(i - 1), back_vertex()) +
-                distance(back_vertex(), front_vertex()));
-      }
-    }
-    return (vertex_at(i + 1) - vertex_at(i - 1)) /
-           (distance(vertex_at(i - 1), vertex_at(i)) +
-            distance(vertex_at(i), vertex_at(i + 1)));
-  }
-  //----------------------------------------------------------------------------
-  auto tangent_at(const tangent_handle i, tag::automatic_t tag,
-                  bool prefer_calc = false) const {
-    return tangent_at(i.i, tag, prefer_calc);
-  }
-  // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-  auto tangent_at(const size_t i, tag::automatic_t /*tag*/,
-                  bool         prefer_calc = false) const {
-    if (m_tangents && !prefer_calc) {
-      return m_tangents->at(vertex_handle{i});
-    }
-    if (is_closed()) {
-      return tangent_at(i, tag::central);
-    }
-    if (i == 0) {
-      return tangent_at(i, tag::forward);
-    }
-    if (i == num_vertices() - 1) {
-      return tangent_at(i, tag::backward);
-    }
-    return tangent_at(i, tag::central);
-  }
-  //----------------------------------------------------------------------------
-  auto tangent_at(const tangent_handle i, bool prefer_calc = false) const {
-    return tangent_at(i, tag::automatic, prefer_calc);
-  }
-  // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-  auto tangent_at(const size_t i, bool prefer_calc = false) const {
-    return tangent_at(i, tag::automatic, prefer_calc);
-  }
-  //----------------------------------------------------------------------------
-  auto front_tangent(bool prefer_calc = false) const {
-    return tangent_at(0, prefer_calc);
-  }
-  // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-  auto back_tangent(bool prefer_calc = false) const {
-    return tangent_at(num_vertices() - 1, prefer_calc);
-  }
-  //----------------------------------------------------------------------------
-  auto at(tangent_handle i, bool prefer_calc = false) const {
-    return tangent_at(i.i, prefer_calc);
-  }
-  auto at(tangent_handle i, tag::forward_t tag) const {
-    return tangent_at(i.i, tag);
-  }
-  auto at(tangent_handle i, tag::backward_t tag) const {
-    return tangent_at(i.i, tag);
-  }
-  auto at(tangent_handle i, tag::central_t tag) const {
-    return tangent_at(i.i, tag);
-  }
-  auto operator[](tangent_handle i) const { return tangent_at(i.i); }
-  // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-  using tangent_iterator =
-      const_line_vertex_iterator<this_t, Real, N, tangent_handle, vec<Real, N>,
-                                 vec<Real, N>>;
-  using const_tangent_container =
-      const_line_vertex_container<this_t, Real, N, tangent_handle, vec<Real, N>,
-                                  vec<Real, N>>;
-  using tangent_container = line_vertex_container<this_t, Real, N, tangent_handle,
-                                                  vec<Real, N>, vec<Real, N>>;
-  auto tangents(bool prefer_calc = false) const {
-    return const_tangent_container{*this, prefer_calc};
-  }
-  auto tangents(bool prefer_calc = false) {
-    return tangent_container{*this, prefer_calc};
-  }
-  //----------------------------------------------------------------------------
-  auto& tangents_property() {
-    if (!m_tangents) {
-      m_tangents = &add_vertex_property<vec<Real, N>>("tangents");
-    }
-    return *m_tangents;
-  }
-  // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-  const auto& tangents_property() const {
-    if (!m_tangents) {
-      throw std::runtime_error{"no tangent property created"};
-    }
-    return *m_tangents;
-  }
-  //----------------------------------------------------------------------------
-  auto& tangents_to_property(bool update = false) {
-    if (m_tangents != nullptr && !update) {
-      return tangents_property();
-    }
-    auto& prop = tangents_property();
-    boost::copy(this->tangents(true), prop.begin());
-    return prop;
-  }
+  auto vertices() const { return const_vertex_container_t{this}; }
+  auto vertices() { return vertex_container_t{this}; }
   //============================================================================
   auto arc_length() const {
     Real len = 0;
@@ -696,51 +248,163 @@ struct line {
   //----------------------------------------------------------------------------
   bool is_closed() const { return m_is_closed; }
   void set_closed(bool is_closed) { m_is_closed = is_closed; }
+
   //----------------------------------------------------------------------------
   template <typename T>
-  auto& vertex_property(const std::string& name) {
-    auto prop = m_vertex_properties.at(name).get();
-    if(typeid(T) != prop->type()) {
-      throw std::runtime_error{
-          "[tatooine::line::vertex_property] Queried vertex property type does "
-          "not match present type."};
+  auto vertex_property(std::string const& name) -> auto& {
+    if (auto it = m_vertex_properties.find(name);
+        it == end(m_vertex_properties)) {
+      return insert_vertex_property<T>(name);
+    } else {
+      if (typeid(T) != it->second->type()) {
+        throw std::runtime_error{
+            "type of property \"" + name + "\"(" +
+            boost::core::demangle(it->second->type().name()) +
+            ") does not match specified type " + type_name<T>() + "."};
+      }
+      return *dynamic_cast<vertex_property_t<T>*>(
+          m_vertex_properties.at(name).get());
     }
-    return *dynamic_cast<vertex_property_t<T>*>(prop);
   }
   //----------------------------------------------------------------------------
   template <typename T>
-  const auto& vertex_property(const std::string& name) const {
-    auto prop = m_vertex_properties.at(name).get();
-    if(typeid(T) != prop->type()) {
-      throw std::runtime_error{
-          "[tatooine::line::vertex_property] Queried vertex property type does "
-          "not match present type."};
+  auto vertex_property(std::string const& name) const -> const auto& {
+    if (auto it = m_vertex_properties.find(name);
+        it == end(m_vertex_properties)) {
+      throw std::runtime_error{"property \"" + name + "\" not found"};
+    } else {
+      if (typeid(T) != it->second->type()) {
+        throw std::runtime_error{
+            "type of property \"" + name + "\"(" +
+            boost::core::demangle(it->second->type().name()) +
+            ") does not match specified type " + type_name<T>() + "."};
+      }
+      return *dynamic_cast<vertex_property_t<T>*>(
+          m_vertex_properties.at(name).get());
     }
-    return *dynamic_cast<const vertex_property_t<T>*>(prop);
+  }
+  //----------------------------------------------------------------------------
+  auto scalar_vertex_property(std::string const& name) const -> auto const& {
+    return vertex_property<tatooine::real_t>(name);
+  }
+  //----------------------------------------------------------------------------
+  auto scalar_vertex_property(std::string const& name) -> auto& {
+    return vertex_property<tatooine::real_t>(name);
+  }
+  //----------------------------------------------------------------------------
+  auto vec2_vertex_property(std::string const& name) const -> auto const& {
+    return vertex_property<vec2>(name);
+  }
+  //----------------------------------------------------------------------------
+  auto vec2_vertex_property(std::string const& name) -> auto& {
+    return vertex_property<vec2>(name);
+  }
+  //----------------------------------------------------------------------------
+  auto vec3_vertex_property(std::string const& name) const -> auto const& {
+    return vertex_property<vec3>(name);
+  }
+  //----------------------------------------------------------------------------
+  auto vec3_vertex_property(std::string const& name) -> auto& {
+    return vertex_property<vec3>(name);
+  }
+  //----------------------------------------------------------------------------
+  auto vec4_vertex_property(std::string const& name) const -> auto const& {
+    return vertex_property<vec4>(name);
+  }
+  //----------------------------------------------------------------------------
+  auto vec4_vertex_property(std::string const& name) -> auto& {
+    return vertex_property<vec4>(name);
+  }
+  //----------------------------------------------------------------------------
+  auto mat2_vertex_property(std::string const& name) const -> auto const& {
+    return vertex_property<mat2>(name);
+  }
+  //----------------------------------------------------------------------------
+  auto mat2_vertex_property(std::string const& name) -> auto& {
+    return vertex_property<mat2>(name);
+  }
+  //----------------------------------------------------------------------------
+  auto mat3_vertex_property(std::string const& name) const -> auto const& {
+    return vertex_property<mat3>(name);
+  }
+  //----------------------------------------------------------------------------
+  auto mat3_vertex_property(std::string const& name) -> auto& {
+    return vertex_property<mat3>(name);
+  }
+  //----------------------------------------------------------------------------
+  auto mat4_vertex_property(std::string const& name) const -> auto const& {
+    return vertex_property<mat4>(name);
+  }
+  //----------------------------------------------------------------------------
+  auto mat4_vertex_property(std::string const& name) -> auto& {
+    return vertex_property<mat4>(name);
   }
   //----------------------------------------------------------------------------
   template <typename T>
-  auto& add_vertex_property(const std::string& name, const T& value = T{}) {
+  auto insert_vertex_property(std::string const& name, T const& value = T{})
+      -> auto& {
     auto [it, suc] = m_vertex_properties.insert(
         std::pair{name, std::make_unique<vertex_property_t<T>>(value)});
     auto prop = dynamic_cast<vertex_property_t<T>*>(it->second.get());
-    prop->resize(num_vertices());
+    prop->resize(m_vertices.size());
     return *prop;
   }
   //----------------------------------------------------------------------------
-  auto vertex_properties() const->auto const& { return m_vertex_properties; }
+  auto insert_scalar_vertex_property(
+      std::string const&     name,
+      tatooine::real_t const value = tatooine::real_t{}) -> auto& {
+    return insert_vertex_property<tatooine::real_t>(name, value);
+  }
   //----------------------------------------------------------------------------
-  auto  has_vertex_property(const std::string& name) const -> bool {
+  auto insert_vec2_vertex_property(
+      std::string const& name, tatooine::vec2 const value = tatooine::vec2{})
+      -> auto& {
+    return insert_vertex_property<vec2>(name, value);
+  }
+  //----------------------------------------------------------------------------
+  auto insert_vec3_vertex_property(
+      std::string const& name, tatooine::vec3 const value = tatooine::vec3{})
+      -> auto& {
+    return insert_vertex_property<vec3>(name, value);
+  }
+  //----------------------------------------------------------------------------
+  auto insert_vec4_vertex_property(
+      std::string const& name, tatooine::vec4 const value = tatooine::vec4{})
+      -> auto& {
+    return insert_vertex_property<vec4>(name, value);
+  }
+  //----------------------------------------------------------------------------
+  auto insert_mat2_vertex_property(
+      std::string const& name, tatooine::mat2 const value = tatooine::mat2{})
+      -> auto& {
+    return insert_vertex_property<mat2>(name, value);
+  }
+  //----------------------------------------------------------------------------
+  auto insert_mat3_vertex_property(
+      std::string const& name, tatooine::mat3 const value = tatooine::mat3{})
+      -> auto& {
+    return insert_vertex_property<mat3>(name, value);
+  }
+  //----------------------------------------------------------------------------
+  auto insert_mat4_vertex_property(
+      std::string const& name, tatooine::mat4 const value = tatooine::mat4{})
+      -> auto& {
+    return insert_vertex_property<mat4>(name, value);
+  }
+  //----------------------------------------------------------------------------
+  auto vertex_properties() const -> auto const& { return m_vertex_properties; }
+  //----------------------------------------------------------------------------
+  auto has_vertex_property(const std::string& name) const -> bool {
     return m_vertex_properties.find(name) != end(m_vertex_properties);
   }
   //----------------------------------------------------------------------------
-  void write(const std::string& file);
+  void write(std::string const& file);
   //----------------------------------------------------------------------------
-  static void write(const std::vector<line<Real, N>>& line_set,
-                    const std::string&                file);
+  static void write(std::vector<line<Real, N>> const& line_set,
+                    std::string const&                file);
   //----------------------------------------------------------------------------
-  void write_vtk(const std::string& path,
-                 const std::string& title = "tatooine line") const {
+  void write_vtk(std::string const& path,
+                 std::string const& title = "tatooine line") const {
     vtk::legacy_file_writer writer(path, vtk::dataset_type::polydata);
     if (writer.is_open()) {
       writer.set_title(title);
@@ -749,7 +413,7 @@ struct line {
       // write points
       std::vector<std::array<Real, 3>> ps;
       ps.reserve(this->num_vertices());
-      for (const auto& p : vertices()) {
+      for (auto const& p : vertices()) {
         if constexpr (N == 3) {
           ps.push_back({p(0), p(1), p(2)});
         } else {
@@ -762,7 +426,7 @@ struct line {
       std::vector<std::vector<size_t>> line_seq(
           1, std::vector<size_t>(this->num_vertices()));
       boost::iota(line_seq.front(), 0);
-      //if (this->is_closed()) {
+      // if (this->is_closed()) {
       //  line_seq.front().push_back(0);
       //}
       writer.write_lines(line_seq);
@@ -771,7 +435,7 @@ struct line {
 
       // write properties
       for (auto& [name, prop] : m_vertex_properties) {
-        const auto& type = prop->type();
+        auto const& type = prop->type();
         if (type == typeid(float)) {
           write_prop_to_vtk<float>(writer, name, prop);
         } else if (type == typeid(vec<float, 2>)) {
@@ -797,9 +461,9 @@ struct line {
   //----------------------------------------------------------------------------
   template <typename T>
   static void write_prop_to_vtk(
-      vtk::legacy_file_writer& writer, const std::string& name,
-      const std::unique_ptr<deque_property<vertex_handle>>& prop) {
-    const auto& deque =
+      vtk::legacy_file_writer& writer, std::string const& name,
+      std::unique_ptr<deque_property<vertex_handle>> const& prop) {
+    auto const& deque =
         dynamic_cast<vertex_property_t<T>*>(prop.get())->container();
 
     writer.write_scalars(name, std::vector<T>(begin(deque), end(deque)));
@@ -811,15 +475,15 @@ struct line {
 #else
   template <size_t _N = num_dimensions(), enable_if<(_N == 3)> = true>
 #endif
-      static auto read_vtk(const std::string& filepath) {
+      static auto read_vtk(std::string const& filepath) {
     struct reader : vtk::legacy_file_listener {
       std::vector<std::array<Real, 3>> points;
       std::vector<int>                 lines;
 
-      void on_points(const std::vector<std::array<Real, 3>>& points_) override {
+      void on_points(std::vector<std::array<Real, 3>> const& points_) override {
         points = points_;
       }
-      void on_lines(const std::vector<int>& lines_) override { lines = lines_; }
+      void on_lines(std::vector<int> const& lines_) override { lines = lines_; }
     } listener;
 
     vtk::legacy_file file{filepath};
@@ -827,11 +491,11 @@ struct line {
     file.read();
 
     std::vector<line<Real, 3>> lines;
-    const auto&                vs = listener.points;
+    auto const&                vs = listener.points;
     size_t                     i  = 0;
     while (i < listener.lines.size()) {
       auto const size = static_cast<size_t>(listener.lines[i++]);
-      auto& l    = lines.emplace_back();
+      auto&      l    = lines.emplace_back();
       for (; i < size; ++i) {
         l.push_back({vs[i][0], vs[i][1], vs[i][2]});
       }
@@ -845,11 +509,13 @@ struct line {
 template <typename... Tensors, typename... Reals, size_t N>
 line(base_tensor<Tensors, Reals, N>&&... vertices)
     -> line<common_type<Reals...>, N>;
-//------------------------------------------------------------------------------
-template <typename Real, size_t N>
-auto diff(const line<Real, N>& l) {
-  return l.tangents();
-}
+
+template <size_t N>
+using Line  = line<real_t, N>;
+using line2 = Line<2>;
+using line3 = Line<3>;
+using line4 = Line<4>;
+using line5 = Line<5>;
 //==============================================================================
 template <typename Real, size_t N>
 template <typename Pred>
@@ -859,7 +525,7 @@ std::vector<line<Real, N>> line<Real, N>::filter(Pred&& pred) const {
 
   size_t i      = 0;
   bool   closed = is_closed();
-  for (const auto x : vertices()) {
+  for (auto const x : vertices()) {
     if (pred(x, i)) {
       if (need_new_strip) {
         filtered_lines.emplace_back();
@@ -884,1076 +550,7 @@ std::vector<line<Real, N>> line<Real, N>::filter(Pred&& pred) const {
   return filtered_lines;
 }
 //==============================================================================
-namespace detail {
-//==============================================================================
-template <typename T, typename Writer, typename Names, typename Lines>
-auto write_line_container_properties_to_vtk(Writer& writer, Names const& names,
-                                            Lines const& lines) -> void {
-  std::vector<T> prop_collector;
-  for (auto const& [name_to_search, type_to_search] : names) {
-    prop_collector.clear();
-    for (auto const& l : lines) {
-      if (l.has_vertex_property(name_to_search)) {
-        try {
-          auto const& prop      = l.template vertex_property<T>(name_to_search);
-          auto const& prop_data = prop.container();
-          std::copy(begin(prop_data), end(prop_data),
-                    std::back_inserter(prop_collector));
-        } catch (...) {
-          for (size_t i = 0; i < l.num_vertices(); ++i) {
-            prop_collector.push_back(0.0 / 0.0);
-          }
-        }
-      }
-    }
-    writer.write_scalars(name_to_search, prop_collector);
-  }
-}
-//------------------------------------------------------------------------------
-template <typename LineCont>
-void write_line_container_to_vtk(LineCont const& lines, std::string const& path,
-                                 std::string const& title) {
-  vtk::legacy_file_writer writer(path, vtk::dataset_type::polydata);
-  if (writer.is_open()) {
-    size_t num_pts = 0;
-    for (const auto& l : lines) {
-      num_pts += l.num_vertices();
-    }
-    std::vector<std::array<typename LineCont::value_type::real_t, 3>> points;
-    std::vector<std::vector<size_t>>                                  line_seqs;
-    points.reserve(num_pts);
-    line_seqs.reserve(lines.size());
-
-    size_t cur_first = 0;
-    for (const auto& l : lines) {
-      // add points
-      for (const auto& p : l.vertices()) {
-        if constexpr (LineCont::value_type::num_dimensions() == 3) {
-          points.push_back({p(0), p(1), p(2)});
-        } else {
-          points.push_back({p(0), p(1), 0});
-        }
-      }
-
-      // add lines
-      boost::iota(line_seqs.emplace_back(l.num_vertices()), cur_first);
-      if (l.is_closed()) {
-        line_seqs.back().push_back(cur_first);
-      }
-      cur_first += l.num_vertices();
-    }
-
-    // write
-    writer.set_title(title);
-    writer.write_header();
-    writer.write_points(points);
-    writer.write_lines(line_seqs);
-    writer.write_point_data(num_pts);
-
-    std::set<std::pair<std::string, std::type_info const*>> names;
-    // collect names
-    for (const auto& l : lines) {
-      for (auto const& [name, prop] : l.vertex_properties()) {
-        names.insert(std::pair{name, &prop->type()});
-      }
-    }
-    write_line_container_properties_to_vtk<double>(writer, names, lines);
-    writer.close();
-  }
-}
-//------------------------------------------------------------------------------
-template <typename Lines, typename MaxDist /*, typename MinAngle*/>
-auto merge_line_container(Lines   lines,
-                          MaxDist max_dist /*, MinAngle min_angle*/) {
-  using line_t = typename std::decay_t<Lines>::value_type;
-  std::list<line_t> merged;
-  merged.emplace_back(std::move(lines.back()));
-  lines.pop_back();
-
-  while (!lines.empty()) {
-    auto min_d   = std::numeric_limits<typename line_t::real_t>::max();
-    auto best_it = std::end(lines);
-    bool merged_take_front = false;
-    bool it_take_front     = false;
-    for (auto it = std::begin(lines); it != std::end(lines); ++it) {
-      if (const auto d =
-              distance(merged.back().front_vertex(), it->front_vertex());
-          d < min_d && d < max_dist) {
-        min_d             = d;
-        best_it           = it;
-        merged_take_front = true;
-        it_take_front     = true;
-      }
-      if (const auto d =
-              distance(merged.back().back_vertex(), it->front_vertex());
-          d < min_d && d < max_dist) {
-        min_d             = d;
-        best_it           = it;
-        merged_take_front = false;
-        it_take_front     = true;
-      }
-      if (const auto d =
-              distance(merged.back().front_vertex(), it->back_vertex());
-          d < min_d && d < max_dist) {
-        min_d             = d;
-        best_it           = it;
-        merged_take_front = true;
-        it_take_front     = false;
-      }
-      if (const auto d =
-              distance(merged.back().back_vertex(), it->back_vertex());
-          d < min_d && d < max_dist) {
-        min_d             = d;
-        best_it           = it;
-        merged_take_front = false;
-        it_take_front     = false;
-      }
-    }
-
-    if (best_it != end(lines)) {
-      if (merged_take_front) {
-        if (it_take_front) {
-          for (const auto& v : best_it->vertices()) {
-            merged.back().push_front(v);
-          }
-        } else {
-          for (const auto& v :
-               best_it->vertices() | boost::adaptors::reversed) {
-            merged.back().push_front(v);
-          }
-        }
-      } else {
-        if (it_take_front) {
-          for (const auto& v : best_it->vertices()) {
-            merged.back().push_back(v);
-          }
-        } else {
-          for (const auto& v :
-               best_it->vertices() | boost::adaptors::reversed) {
-            merged.back().push_back(v);
-          }
-        }
-      }
-      lines.erase(best_it);
-    } else {
-      merged.emplace_back(std::move(lines.back()));
-      lines.pop_back();
-    }
-  }
-
-  return merged;
-}
-
-//------------------------------------------------------------------------------
-#ifdef __cpp_concepts
-template <range Lines, arithmetic Real>
-#else
-template <typename Lines, typename Real,
-          enable_if<is_range<Lines>, is_arithmetic<Real>> = true>
-#endif
-auto filter_length(Lines const& lines, Real length) {
-  std::vector<typename std::decay_t<Lines>::value_type> filtered;
-  for (auto const& l : lines) {
-    if (l.arc_length() > length) {
-      filtered.push_back(l);
-    }
-  }
-  return filtered;
-}
-//==============================================================================
-}  // namespace detail
-//==============================================================================
-template <typename Real, size_t N>
-void write_vtk(const std::vector<line<Real, N>>& lines, const std::string& path,
-               const std::string& title = "tatooine lines") {
-  detail::write_line_container_to_vtk(lines, path, title);
-}
-// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-template <typename Real, size_t N>
-void write_vtk(const std::list<line<Real, N>>& lines, const std::string& path,
-               const std::string& title = "tatooine lines") {
-  detail::write_line_container_to_vtk(lines, path, title);
-}
-//------------------------------------------------------------------------------
-template <typename Real, size_t N, typename MaxDist>
-auto merge(const std::vector<line<Real, N>>& lines, MaxDist max_dist) {
-  return detail::merge_line_container(lines, max_dist);
-}
-// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-template <typename Real, size_t N, typename MaxDist>
-auto merge(const std::list<line<Real, N>>& lines, MaxDist max_dist) {
-  return detail::merge_line_container(lines, max_dist);
-}
-//------------------------------------------------------------------------------
-template <typename Real, size_t N, typename MaxDist>
-auto filter_length(const std::vector<line<Real, N>>& lines, MaxDist max_dist) {
-  return detail::filter_length(lines, max_dist);
-}
-// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-template <typename Real, size_t N, typename MaxDist>
-auto filter_length(const std::list<line<Real, N>>& lines, MaxDist max_dist) {
-  return detail::filter_length(lines, max_dist);
-}
-
-//==============================================================================
-template <typename Real, size_t N,
-          template <typename> typename InterpolationKernel>
-struct parameterized_line : line<Real, N> {
-  using this_t   = parameterized_line<Real, N, InterpolationKernel>;
-  using parent_t = line<Real, N>;
-  using typename parent_t::empty_exception;
-  using typename parent_t::pos_t;
-  using typename parent_t::tangent_handle;
-  using typename parent_t::vec_t;
-  using typename parent_t::vertex_handle;
-  struct time_not_found : std::exception {};
-  using interpolation_t = InterpolationKernel<vec_t>;
-  static constexpr auto num_derivatives_needed =
-      interpolation_t::num_derivatives;
-
-  template <typename T>
-  using vertex_property_t = typename parent_t::template vertex_property_t<T>;
-  using parent_t::back_vertex;
-  using parent_t::front_vertex;
-  using parent_t::num_vertices;
-  using parent_t::tangent_at;
-  using parent_t::vertex_at;
-  using parent_t::vertices;
-  using parent_t::operator[];
-
- private:
-  vertex_property_t<Real>*    m_parameterization;
-  std::deque<interpolation_t> m_interpolators;
-
- public:
-  parameterized_line()
-      : m_parameterization{
-            &this->template add_vertex_property<Real>("parameterization")} {}
-  // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-  parameterized_line(const parameterized_line& other)
-      : parent_t{other},
-        m_parameterization{
-            &this->template vertex_property<Real>("parameterization")},
-        m_interpolators{other.m_interpolators} {}
-  // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-  parameterized_line(parameterized_line&& other) noexcept
-      : parent_t{std::move(other)},
-        m_parameterization{
-            &this->template vertex_property<Real>("parameterization")},
-        m_interpolators{std::move(other.m_interpolators)} {}
-  // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-  parameterized_line(std::initializer_list<std::pair<pos_t, Real>>&& data)
-      : m_parameterization{
-            &this->template add_vertex_property<Real>("parameterization")} {
-    for (auto& [pos, param] : data) {
-      push_back(std::move(pos), param);
-    }
-  }
-  // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-  auto& operator=(const parameterized_line& other) {
-    parent_t::operator=(other);
-    m_parameterization =
-        &this->template vertex_property<Real>("parameterization");
-    m_interpolators = other.m_interpolators;
-    return *this;
-  }
-  // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-  auto& operator=(parameterized_line&& other) noexcept {
-    parent_t::operator=(std::move(other));
-    m_parameterization =
-        &this->template vertex_property<Real>("parameterization");
-    m_interpolators = std::move(other.m_interpolators);
-    return *this;
-  }
-  //----------------------------------------------------------------------------
-  const auto& parameterization() const { return *m_parameterization; }
-  auto&       parameterization() { return *m_parameterization; }
-  //----------------------------------------------------------------------------
-  std::pair<pos_t&, Real&> front() {
-    return {front_vertex(), front_parameterization()};
-  }
-  // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-  std::pair<const pos_t&, const Real&> front() const {
-    return {front_vertex(), front_parameterization()};
-  }
-  //----------------------------------------------------------------------------
-  std::pair<pos_t&, Real&> back() {
-    return {back_vertex(), back_parameterization()};
-  }
-  // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-  std::pair<const pos_t&, const Real&> back() const {
-    return {back_vertex(), back_parameterization()};
-  }
-
-  //----------------------------------------------------------------------------
-  std::pair<const pos_t&, const Real&> at(vertex_handle i) const {
-    return {vertex_at(i.i), parameterization_at(i.i)};
-  }
-  // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-  std::pair<pos_t&, Real&> at(vertex_handle i) {
-    return {vertex_at(i.i), parameterization_at(i.i)};
-  }
-  //----------------------------------------------------------------------------
-  auto operator[](vertex_handle i) const { return at(i); }
-  auto operator[](vertex_handle i) { return at(i); }
-  //----------------------------------------------------------------------------
-  auto& parameterization_at(size_t i) {
-    return m_parameterization->at(vertex_handle{i});
-  }
-  const auto& parameterization_at(size_t i) const {
-    return m_parameterization->at(vertex_handle{i});
-  }
-  //----------------------------------------------------------------------------
-  auto&       front_parameterization() { return m_parameterization->front(); }
-  const auto& front_parameterization() const {
-    return m_parameterization->front();
-  }
-  //----------------------------------------------------------------------------
-  auto&       back_parameterization() { return m_parameterization->back(); }
-  const auto& back_parameterization() const {
-    return m_parameterization->back();
-  }
-  //----------------------------------------------------------------------------
-  auto push_back(const pos_t& p, Real t,
-                 bool auto_compute_interpolator = true) {
-    auto i                  = parent_t::push_back(p);
-    back_parameterization() = t;
-    if (num_vertices() > 1) {
-      if (auto_compute_interpolator) {
-        if constexpr (num_derivatives_needed == 1) {
-          const auto h =
-              back_parameterization() - parameterization_at(num_vertices() - 2);
-          m_interpolators.emplace_back(
-              vertex_at(num_vertices() - 2), back_vertex(),
-              tangent_at(num_vertices() - 2) * h, back_tangent() * h);
-          if (num_vertices() >= 3) {
-            update_interpolator(num_vertices() - 3);
-          }
-        } else {
-          m_interpolators.emplace_back(vertex_at(num_vertices() - 2),
-                                       vertex_at(num_vertices() - 1));
-          if (num_vertices() >= 3) {
-            update_interpolator(num_vertices() - 3);
-          }
-        }
-      } else {
-        m_interpolators.emplace_back();
-      }
-    }
-    return i;
-  }
-  //----------------------------------------------------------------------------
-  auto push_back(pos_t&& p, Real t, bool auto_compute_interpolator = true) {
-    auto i                                = parent_t::push_back(std::move(p));
-    m_parameterization->at(vertex_handle{i}) = t;
-    if (num_vertices() > 1) {
-      if (auto_compute_interpolator) {
-        if constexpr (num_derivatives_needed == 1) {
-          const auto h =
-              back_parameterization() - parameterization_at(num_vertices() - 2);
-          m_interpolators.emplace_back(
-              vertex_at(num_vertices() - 2), back_vertex(),
-              tangent_at(num_vertices() - 2) * h, back_tangent() * h);
-          if (num_vertices() >= 3) {
-            update_interpolator(num_vertices() - 3);
-          }
-        } else {
-          m_interpolators.emplace_back(vertex_at(num_vertices() - 2),
-                                       back_vertex());
-          if (num_vertices() >= 3) {
-            update_interpolator(num_vertices() - 3);
-          }
-        }
-      } else {
-        m_interpolators.emplace_back();
-      }
-    }
-    return i;
-  }
-  //----------------------------------------------------------------------------
-  void pop_back() {
-    parent_t::pop_back();
-    m_parameterization->pop_back();
-    if (num_vertices() >= 2) {
-      m_interpolators.pop_back();
-    }
-  }
-  //----------------------------------------------------------------------------
-  auto push_front(const pos_t& p, Real t,
-                  bool auto_compute_interpolator = true) {
-    auto i                   = parent_t::push_front(p);
-    front_parameterization() = t;
-    if (num_vertices() > 1) {
-      if (auto_compute_interpolator) {
-        if constexpr (num_derivatives_needed == 1) {
-          const auto h = front_parameterization() - parameterization_at(1);
-          m_interpolators.emplace_front(front_vertex(), vertex_at(1),
-                                        front_tangent() * h, tangent_at(1) * h);
-          if (num_vertices() >= 3) {
-            update_interpolator(1);
-          }
-        } else {
-          m_interpolators.emplace_front(front_vertex(), vertex_at(1));
-          if (num_vertices() >= 3) {
-            update_interpolator(1);
-          }
-        }
-      } else {
-        m_interpolators.emplace_front();
-      }
-    }
-    return i;
-  }
-  //----------------------------------------------------------------------------
-  auto push_front(pos_t&& p, Real t, bool auto_compute_interpolator = true) {
-    auto i                                = parent_t::push_front(std::move(p));
-    m_parameterization->at(vertex_handle{i}) = t;
-    if (num_vertices() > 1) {
-      if (auto_compute_interpolator) {
-        if constexpr (num_derivatives_needed == 1) {
-          const auto h = front_parameterization() - parameterization_at(1);
-          m_interpolators.emplace_front(front_vertex(), vertex_at(1),
-                                        front_tangent() * h, tangent_at(1) * h);
-          if (num_vertices() >= 3) {
-            update_interpolator(1);
-          }
-        } else {
-          m_interpolators.emplace_front(front_vertex(), vertex_at(1));
-          if (num_vertices() >= 3) {
-            update_interpolator(1);
-          }
-        }
-      } else {
-        m_interpolators.emplace_front();
-      }
-    }
-    return i;
-  }
-  //----------------------------------------------------------------------------
-  void pop_front() {
-    parent_t::pop_front();
-    m_parameterization->pop_front();
-    if (num_vertices() >= 2) {
-      m_interpolators.pop_front();
-    }
-  }
-  //----------------------------------------------------------------------------
-  auto interpolators() const -> const auto& { return m_interpolators; }
-  //----------------------------------------------------------------------------
-  auto interpolator_at(size_t i) const -> const auto& {
-    return m_interpolators[i];
-  }
-  //----------------------------------------------------------------------------
-  void update_interpolators() {
-    for (size_t i = 0; i < num_vertices() - 1; ++i) {
-      update_interpolator(i);
-    }
-  }
-  //----------------------------------------------------------------------------
-  void update_interpolator(size_t i) {
-    if constexpr (num_derivatives_needed == 1) {
-      auto h = parameterization_at(i + 1) - parameterization_at(i);
-      m_interpolators[i] =
-          interpolation_t{vertex_at(i), vertex_at(i + 1), tangent_at(i) * h,
-                          tangent_at(i + 1) * h};
-    } else {
-      m_interpolators[i] = interpolation_t{vertex_at(i), vertex_at(i + 1)};
-    }
-  }
-  //----------------------------------------------------------------------------
-  auto binary_search_index(Real t) const {
-    if (this->empty()) {
-      throw empty_exception{};
-    }
-
-    if (t < front_parameterization() && front_parameterization() - t < 1e-7) {
-      t = front_parameterization();
-    } else if (t > back_parameterization() &&
-               t - back_parameterization() < 1e-7) {
-      t = back_parameterization();
-    }
-
-    if (t < front_parameterization() || t > back_parameterization()) {
-      throw time_not_found{};
-    }
-
-    // find the two points t is in between
-    size_t left = 0, right = num_vertices() - 1;
-
-    while (right - left > 1) {
-      size_t center = (left + right) / 2;
-      if (t < parameterization_at(center)) {
-        right = center;
-      } else {
-        left = center;
-      }
-    }
-    return left;
-  }
-  //----------------------------------------------------------------------------
-  /// sample the line via interpolation
-  auto interpolator(Real t) const -> const auto& {
-    const auto left = binary_search_index(t);
-    return m_interpolators[left];
-  }
-  //----------------------------------------------------------------------------
-  /// sample the line via interpolation
-  auto sample(Real t) const {
-    if (num_vertices() == 1) {
-      if (t == front_parameterization()) {
-        return front_vertex();
-      } else {
-        throw time_not_found{};
-      }
-    }
-    const auto left = binary_search_index(t);
-
-    // interpolate
-    const Real factor =
-        std::min<Real>(1, std::max<Real>(0, (t - parameterization_at(left)) /
-                                                (parameterization_at(left + 1) -
-                                                 parameterization_at(left))));
-    return m_interpolators[left](factor);
-  }
-  // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-  auto operator()(const Real t) const { return sample(t); }
-  //----------------------------------------------------------------------------
-  /// sample tangents
-  auto tangent(Real t) const {
-    if (num_vertices() == 1) {
-      if (t == front_parameterization()) {
-        return front_tangent();
-      } else {
-        throw time_not_found{};
-      }
-    }
-    const auto left = binary_search_index(t);
-
-    // interpolate
-    const Real factor =
-        (t - parameterization_at(left)) /
-        (parameterization_at(left + 1) - parameterization_at(left));
-    assert(0 <= factor && factor <= 1);
-    return m_interpolators[left].curve().tangent(factor);
-  }
-  //----------------------------------------------------------------------------
-  /// sample second_derivatives
-  auto second_derivative(Real t) const {
-    const auto left = binary_search_index(t);
-
-    // interpolate
-    const Real factor =
-        (t - parameterization_at(left)) /
-        (parameterization_at(left + 1) - parameterization_at(left));
-    assert(0 <= factor && factor <= 1);
-    return m_interpolators[left].curve().second_derivative(factor);
-  }
-  //----------------------------------------------------------------------------
-  /// sample curvature
-  Real curvature(Real t) const {
-    if (num_vertices() <= 1) {
-      return -1;
-    }
-    const auto left = binary_search_index(t);
-
-    // interpolate
-    const Real factor =
-        std::min<Real>(1, std::max<Real>(0, (t - parameterization_at(left)) /
-                                                (parameterization_at(left + 1) -
-                                                 parameterization_at(left))));
-    return m_interpolators[left].curve().curvature(factor);
-  }
-  // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-  /// sample a line property via interpolation
-  template <typename Prop>
-  auto sample(Real t, const vertex_property_t<Prop>& prop) const {
-    auto left = binary_search_index(t);
-
-    // interpolate
-    const Real h = parameterization_at(left + 1) - parameterization_at(left);
-    const Real factor = (t - parameterization_at(left)) / h;
-    assert(0 <= factor && factor <= 1);
-
-    // if constexpr (num_derivatives_needed == 1) {
-    //  InterpolationKernel<Prop>{prop[left], prop[left+1], tangent_at(left) *
-    //  h,
-    //                            tangent_at(left+1) * h}(factor);
-    //} else {
-    //  return InterpolationKernel<Prop>{prop[left], prop[left+1]}(factor);
-    //}
-    return prop[vertex_handle{left}] * (1 - factor) +
-           prop[vertex_handle{left + 1}] * factor;
-  }
-  // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
- private:
-  template <typename Prop>
-  void resample_property(
-      const linspace<Real>& ts, this_t& resampled, const std::string& name,
-      const std::unique_ptr<deque_property<vertex_handle>>& p) const {
-    resample_property(ts, resampled, name,
-                      *dynamic_cast<const vertex_property_t<Prop>*>(p.get()));
-  }
-  // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-  template <typename Prop>
-  void resample_property(const linspace<Real>& ts, this_t& resampled,
-                         const std::string&             name,
-                         const vertex_property_t<Prop>& prop) const {
-    auto&  resampled_prop = resampled.template add_vertex_property<Prop>(name);
-    size_t i              = 0;
-    for (auto t : ts) {
-      if constexpr (std::is_same_v<vec_t, Prop>) {
-        if (&prop == this->m_tangents) {
-          resampled_prop[vertex_handle{i++}] = tangent(t);
-          continue;
-        }
-      }
-      resampled_prop[vertex_handle{i++}] = sample(t, prop);
-    }
-  }
-  // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-  template <typename T>
-  auto resample_properties(linspace<Real> const& ts, this_t& resampled) const
-      -> void {
-    for (const auto& prop : this->m_vertex_properties) {
-      if (prop.second->type() == typeid(T)) {
-        resample_property<T>(ts, resampled, prop.first, prop.second);
-      };
-    }
-  }
-  // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-  template <typename T0, typename T1, typename... Ts>
-  auto resample_properties(linspace<Real> const& ts, this_t& resampled) const
-      -> void {
-    resample_properties<T0>(ts, resampled);
-    resample_properties<T1, Ts...>(ts, resampled);
-  }
-
- public:
-  // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-  auto resample(const linspace<Real>& ts) const {
-    this_t resampled;
-    for (auto t : ts) {
-      resampled.push_back(sample(t), t);
-    }
-    resample_properties<double, float, vec<double, 2>, vec<float, 2>,
-                        vec<double, 3>, vec<float, 3>, vec<double, 4>,
-                        vec<float, 4>>(ts, resampled);
-    return resampled;
-  }
-
-  //============================================================================
-  void uniform_parameterization(Real t0 = 0) {
-    parameterization_at(0) = t0;
-    for (size_t i = 1; i < this->num_vertices(); ++i) {
-      parameterization_at(i) = parameterization_at(i - 1) + 1;
-    }
-  }
-  // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-  void chordal_parameterization(Real t0 = 0) {
-    parameterization_at(0) = t0;
-    for (size_t i = 1; i < this->num_vertices(); ++i) {
-      parameterization_at(i) =
-          parameterization_at(i - 1) + distance(vertex_at(i), vertex_at(i - 1));
-    }
-  }
-  // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-  void centripetal_parameterization(Real t0 = 0) {
-    parameterization_at(0) = t0;
-    for (size_t i = 1; i < this->num_vertices(); ++i) {
-      parameterization_at(i) =
-          parameterization_at(i - 1) +
-          std::sqrt(distance(vertex_at(i), vertex_at(i - 1)));
-    }
-  }
-  //----------------------------------------------------------------------------
-  auto arc_length() const {
-    Real len = 0;
-    for (size_t i = 0; i < this->num_vertices() - 1; ++i) {
-      len += m_interpolators[i].curve().arc_length(linspace<Real>{0, 1, 10});
-    }
-    return len;
-  }
-
-  //============================================================================
-  // tangents
-  //============================================================================
-  /// computes tangent assuming the line is a quadratic curve
-  auto tangent_at(const tangent_handle i, tag::quadratic_t tag) const {
-    return tangent_at(i.i, tag);
-  }
-  // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-  /// computes tangent assuming the line is a quadratic curve
-  auto tangent_at(const size_t i, tag::quadratic_t /*tag*/) const {
-    const auto& x0 = [&]() {
-      if (i == 0) {
-        return vertex_at(i);
-      } else if (i == num_vertices() - 1) {
-        return vertex_at(i - 2);
-      }
-      return vertex_at(i - 1);
-    }();
-    const auto& x1 = [&]() {
-      if (i == 0) {
-        return vertex_at(i + 1);
-      } else if (i == num_vertices() - 1) {
-        return vertex_at(i - 1);
-      }
-      return vertex_at(i);
-    }();
-    const auto& x2 = [&]() {
-      if (i == 0) {
-        return vertex_at(i + 2);
-      } else if (i == num_vertices() - 1) {
-        return vertex_at(i);
-      }
-      return vertex_at(i + 1);
-    }();
-    const auto& t0 = [&]() -> const auto& {
-      if (i == 0) {
-        return parameterization_at(i);
-      } else if (i == num_vertices() - 1) {
-        return parameterization_at(i - 2);
-      }
-      return parameterization_at(i - 1);
-    }
-    ();
-    const auto& t1 = [&]() -> const auto& {
-      if (i == 0) {
-        return parameterization_at(i + 1);
-      } else if (i == num_vertices() - 1) {
-        return parameterization_at(i - 1);
-      }
-      return parameterization_at(i);
-    }
-    ();
-    const auto& t2 = [&]() -> const auto& {
-      if (i == 0) {
-        return parameterization_at(i + 2);
-      } else if (i == num_vertices() - 1) {
-        return parameterization_at(i);
-      }
-      return parameterization_at(i + 1);
-    }
-    ();
-
-    // for each dimension fit a quadratic curve through the neighbor points and
-    // the point itself and compute the derivative
-    vec_t      tangent;
-    const mat3 A{
-        {t0 * t0, t0, Real(1)}, {t1 * t1, t1, Real(1)}, {t2 * t2, t2, Real(1)}};
-    for (size_t n = 0; n < N; ++n) {
-      vec3 b{x0(n), x1(n), x2(n)};
-      auto c     = lapack::gesv(A, b);
-      tangent(n) = 2 * c(0) * parameterization_at(i) + c(1);
-    }
-    return tangent;
-  }
-  //----------------------------------------------------------------------------
-  auto tangent_at(const tangent_handle i, tag::automatic_t tag,
-                  bool prefer_calc = false) const {
-    return tangent_at(i.i, tag, prefer_calc);
-  }
-  // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-  auto tangent_at(const size_t i, tag::automatic_t /*tag*/,
-                  bool         prefer_calc = false) const {
-    if (this->m_tangents && !prefer_calc) {
-      return this->m_tangents->at(vertex_handle{i});
-    }
-    if (num_vertices() >= 3) {
-      return tangent_at(i, tag::quadratic);
-    } else /* if (num_vertices() == 2)*/ {
-      return this->tangent_at(i, tag::forward);
-    }
-  }
-  //----------------------------------------------------------------------------
-  auto tangent_at(const tangent_handle i, bool prefer_calc = false) const {
-    return tangent_at(i.i, tag::automatic, prefer_calc);
-  }
-  // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-  auto tangent_at(const size_t i, bool prefer_calc = false) const {
-    return tangent_at(i, tag::automatic, prefer_calc);
-  }
-  //----------------------------------------------------------------------------
-  auto front_tangent(bool prefer_calc = false) const {
-    return tangent_at(0, prefer_calc);
-  }
-  // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-  auto back_tangent(bool prefer_calc = false) const {
-    return tangent_at(num_vertices() - 1, prefer_calc);
-  }
-  //----------------------------------------------------------------------------
-  auto at(tangent_handle i, bool prefer_calc = false) const {
-    return tangent_at(i.i, prefer_calc);
-  }
-  // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-  auto operator[](tangent_handle i) const { return tangent_at(i.i); }
-  //----------------------------------------------------------------------------
-  auto& tangents_to_property(bool update = false) {
-    if (this->m_tangents != nullptr && !update) {
-      return this->tangents_property();
-    }
-    auto& prop = this->tangents_property();
-    boost::copy(this->tangents(true), prop.begin());
-    return prop;
-  }
-  //----------------------------------------------------------------------------
-  using tangent_iterator =
-      const_line_vertex_iterator<this_t, Real, N, tangent_handle, vec<Real, N>,
-                                 vec<Real, N>>;
-  //----------------------------------------------------------------------------
-  auto segment_lengths() const {
-    std::vector<Real> seg_lens(num_vertices() - 1);
-    for (size_t i = 0; i < num_vertices() - 1; ++i) {
-      seg_lens[i] = distance(vertex_at(i), vertex_at(i + 1));
-    }
-    return seg_lens;
-  }
-  //----------------------------------------------------------------------------
-  [[nodiscard]] auto integrate_property(const vertex_property_t<Real>& prop)
-      -> Real {
-    if (num_vertices() <= 1) {
-      return 0;
-    }
-    Real integral    = 0;
-    Real acc_seg_len = 0;
-    auto len_prev    = parameterization_at(1) - parameterization_at(0);
-    auto len_next    = (parameterization_at(num_vertices() - 2) -
-                     parameterization_at(num_vertices() - 1));
-    integral += len_prev * prop[vertex_handle{0}];
-    integral += len_next * prop[vertex_handle{num_vertices() - 1}];
-    acc_seg_len += len_prev;
-    acc_seg_len += len_next;
-    for (size_t i = 1; i < num_vertices() - 1; ++i) {
-      len_next = parameterization_at(i + 1) - parameterization_at(i);
-      acc_seg_len += len_prev;
-      acc_seg_len += len_next;
-      integral += (len_prev + len_next) * prop[vertex_handle{i}];
-      len_prev = len_next;
-    }
-    integral /= acc_seg_len;
-    return integral;
-  }
-  ////----------------------------------------------------------------------------
-  //[[nodiscard]] auto integrate_curvature() const -> Real {
-  //  if (num_vertices() == 0) {return 0;}
-  //  Real integral = 0;
-  //  Real acc_seg_len = 0;
-  //  auto len_prev    = distance(vertex_at(0), vertex_at(1));
-  //  auto len_next    = len_prev;
-  //  integral += len_prev * curvature(front_parameterization());
-  //  integral +=
-  //      distance(vertex_at(num_vertices() - 2), vertex_at(num_vertices() - 1))
-  //      * curvature(back_parameterization());
-  //  for (size_t i = 1; i < num_vertices() - 1; ++i) {
-  //    len_next = distance(vertex_at(i), vertex_at(i + 1));
-  //    acc_seg_len += len_prev;
-  //    if (i == num_vertices() - 2) { acc_seg_len += len_next; }
-  //    integral += (len_prev + len_next) * curvature(parameterization_at(i));
-  //    len_prev = len_next;
-  //  }
-  //  integral /= acc_seg_len * 2;
-  //  return integral;
-  //}
-  ////----------------------------------------------------------------------------
-  //[[nodiscard]] auto integrate_curvature(const linspace<Real>& ts) const {
-  //  std::vector<Real> seg_lens(ts.size()-1);
-  //  for (size_t i = 0; i < ts.size() - 1; ++i) {
-  //    seg_lens[i] = distance(at(ts[i]), vertex_at(ts[i + 1]));
-  //  }
-  //  Real integral = 0;
-  //  integral += seg_lens.front() * curvature(ts.front());
-  //  integral += seg_lens.back() * curvature(ts.back());
-  //  for (size_t i = 1; i < ts.size() - 1; ++i) {
-  //    integral += (seg_lens[i - 1] + seg_lens[i]) * curvature(ts[i]);
-  //  }
-  //  integral /= boost::accumulate(seg_lens, Real(0)) * 2;
-  //  return integral;
-  //}
-};
-//------------------------------------------------------------------------------
-template <typename Real, size_t N,
-          template <typename> typename InterpolationKernel>
-void write_vtk(
-    const std::vector<parameterized_line<Real, N, InterpolationKernel>>& lines,
-    const std::string& path, const std::string& title = "tatooine lines") {
-  detail::write_line_container_to_vtk(lines, path, title);
-}
-// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-template <typename Real, size_t N,
-          template <typename> typename InterpolationKernel>
-void write_vtk(
-    const std::list<parameterized_line<Real, N, InterpolationKernel>>& lines,
-    const std::string& path, const std::string& title = "tatooine lines") {
-  detail::write_line_container_to_vtk(lines, path, title);
-}
-//------------------------------------------------------------------------------
-template <typename Real, size_t N,
-          template <typename> typename InterpolationKernel>
-auto diff(const parameterized_line<Real, N, InterpolationKernel>& l) {
-  return l.tangents();
-}
-//==============================================================================
-/// \brief      merge line strips
-template <typename Real, size_t N>
-auto merge(std::vector<line<Real, N>>& lines0,
-           std::vector<line<Real, N>>& lines1) -> void {
-  Real const eps = 1e-7;
-  // move line1 pairs to line0 pairs
-  size_t const size_before = size(lines0);
-  lines0.resize(size(lines0) + size(lines1));
-  std::move(begin(lines1), end(lines1), next(begin(lines0), size_before));
-  lines1.clear();
-
-  // merge line0 side
-  for (auto line0 = begin(lines0); line0 != end(lines0); ++line0) {
-    for (auto line1 = begin(lines0); line1 != end(lines0); ++line1) {
-      if (line0 != line1 && !line0->empty() && !line1->empty()) {
-        // [line0front, ..., LINE0BACK] -> [LINE1FRONT, ..., line1back]
-        if (approx_equal(line0->back_vertex(), line1->front_vertex(), eps)) {
-          for (size_t i = line0->num_vertices() - 2; i > 0; --i) {
-            line1->push_front(line0->vertex_at(i));
-          }
-          line0->clear();
-
-          // [line1front, ..., LINE1BACK] -> [LINE0FRONT, ..., line0back]
-        } else if (approx_equal(line1->back_vertex(), line0->front_vertex(),
-                                eps)) {
-          for (size_t i = 1; i < line0->num_vertices(); ++i) {
-            line1->push_back(line0->vertex_at(i));
-          }
-          line0->clear();
-
-          // [LINE1FRONT, ..., line1back] -> [LINE0FRONT, ..., line0back]
-        } else if (approx_equal(line1->front_vertex(), line0->front_vertex(),
-                                eps)) {
-          // -> [line1back, ..., LINE1FRONT] -> [LINE0FRONT, ..., line0back]
-          for (size_t i = line0->num_vertices() - 2; i > 0; --i) {
-            line1->push_back(line0->vertex_at(i));
-          }
-          line0->clear();
-
-          // [line0front, ..., LINE0BACK] -> [line1front,..., LINE1BACK]
-        } else if (approx_equal(line0->back_vertex(), line1->back_vertex(),
-                                eps)) {
-          // -> [line1front, ..., LINE1BACK] -> [LINE0BACK, ..., line0front]
-          for (size_t i = line0->num_vertices() - 2; i > 0; --i) {
-            line1->push_back(line0->vertex_at(i));
-          }
-          line0->clear();
-        }
-      }
-    }
-  }
-
-  // move empty vectors of line0 side at end
-  for (unsigned int i = 0; i < lines0.size(); i++) {
-    for (unsigned int j = 0; j < i; j++) {
-      if (lines0[j].empty() && !lines0[i].empty()) {
-        lines0[j] = std::move(lines0[i]);
-      }
-    }
-  }
-
-  // remove empty vectors of line0 side
-  for (int i = lines0.size() - 1; i >= 0; i--) {
-    if (lines0[i].empty()) {
-      lines0.pop_back();
-    }
-  }
-}
-//----------------------------------------------------------------------------
-template <typename Real, size_t N>
-auto line_segments_to_line_strips(
-    std::vector<line<Real, N>> const& unmerged_lines) {
-  auto merged_lines =
-      std::vector<std::vector<line<Real, N>>>(unmerged_lines.size());
-
-  auto unmerged_it = begin(unmerged_lines);
-  for (auto& merged_line : merged_lines) {
-    merged_line.push_back({*unmerged_it});
-    ++unmerged_it;
-  }
-
-  auto num_merge_steps =
-      static_cast<size_t>(std::ceil(std::log2(unmerged_lines.size())));
-
-  for (size_t i = 0; i < num_merge_steps; i++) {
-    size_t offset = std::pow(2, i);
-
-#pragma omp parallel for
-    for (size_t j = 0; j < unmerged_lines.size(); j += offset * 2) {
-      auto left  = j;
-      auto right = j + offset;
-      if (right < unmerged_lines.size()) {
-        merge(merged_lines[left], merged_lines[right]);
-      }
-    }
-  }
-  return merged_lines.front();
-}
-//------------------------------------------------------------------------------
-template <typename Real, size_t N>
-auto merge(std::vector<line<Real, N>> const& lines) {
-  std::vector<line<Real, N>> merged_lines;
-  if (!lines.empty()) {
-    auto line_strips = line_segments_to_line_strips(lines);
-
-    for (const auto& line_strip : line_strips) {
-      merged_lines.emplace_back();
-      for (size_t i = 0; i < line_strip.num_vertices() - 1; i++) {
-        merged_lines.back().push_back(line_strip.vertex_at(i));
-      }
-      if (&line_strip.front_vertex() == &line_strip.back_vertex()) {
-        merged_lines.back().set_closed(true);
-      } else {
-        merged_lines.back().push_back(line_strip.back_vertex());
-      }
-    }
-  }
-  return merged_lines;
-}
-//------------------------------------------------------------------------------
-template <typename Real>
-auto intersections(const std::vector<line<Real, 2>>& lines0,
-                   const std::vector<line<Real, 2>>& lines1) {
-  static auto const         eps = 1e-6;
-  std::vector<vec<Real, 2>> xs;
-  for (auto const& l0 : lines0) {
-    for (auto const& l1 : lines1) {
-      for (size_t i = 0; i < l0.num_vertices() - 1; ++i) {
-        for (size_t j = 0; j < l1.num_vertices() - 1; ++j) {
-          auto const& p0  = l0.vertex_at(i);
-          auto const& p1  = l0.vertex_at(i + 1);
-          auto const& p2  = l1.vertex_at(j);
-          auto const& p3  = l1.vertex_at(j + 1);
-          auto const  d01 = p0 - p1;
-          auto const  d23 = p2 - p3;
-          auto const  d02 = p0 - p2;
-
-          auto const denom = d01.x() * d23.y() - d01.y() * d23.x();
-          if (std::abs(denom) < eps) {
-            continue;
-          }
-          auto const inv_denom = 1 / denom;
-
-          auto const nom_t = d02.x() * d23.y() - d02.y() * d23.x();
-          auto const t     = nom_t * inv_denom;
-          if (0 > t || t > 1) {
-            continue;
-          }
-          auto const nom_u = -(d01.x() * d02.y() - d01.y() * d02.x());
-          auto const u     = nom_u * inv_denom;
-          if (0 > u || u > 1) {
-            continue;
-          }
-          xs.push_back(p2 - u * d23);
-        }
-      }
-    }
-  }
-  return xs;
-}
-//==============================================================================
 }  // namespace tatooine
 //==============================================================================
+#include <tatooine/line_operations.h>
 #endif
