@@ -149,7 +149,7 @@ TEST_CASE("lazy_reader_hdf5_parallel_access",
   reader.set_max_num_chunks_loaded(100);
 
   auto iteration = [&](auto const /*i*/) {
-    auto rand = random_uniform<size_t>{0, data_size - 1};
+    auto rand = random::uniform<size_t>{0, data_size - 1};
     reader(rand(), rand(), rand());
   };
   for_loop(iteration, tag::parallel, size_t(1000000000));
@@ -161,7 +161,7 @@ TEST_CASE("lazy_reader_hdf5", "[lazy_reader][hdf5]") {
   auto full_size   = std::vector<size_t>{64, 64, 64};
   using value_type = int;
   std::vector<value_type> data_src(full_size[0] * full_size[1] * full_size[2]);
-  auto rand = random_uniform{value_type(-1000), value_type(1000)};
+  auto rand = random::uniform{value_type(-1000), value_type(1000)};
   std::generate(begin(data_src), end(data_src), [&rand]() { return rand(); });
   {
     if (filesystem::exists(filepath)) {

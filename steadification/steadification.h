@@ -172,7 +172,7 @@ class steadification {
     m_seedcurve_shader.set_projection(m_cam.projection_matrix());
     m_ssf_rasterization_shader.set_projection(m_cam.projection_matrix());
     m_ssf_rasterization_shader.set_width(m_render_resolution(0));
-    const auto noise_data = random_uniform_vector<float>(
+    const auto noise_data = random::uniform_vector<float>(
         render_resolution(0) * render_resolution(1), 0.0f, 1.0f, m_rand_eng);
     m_noise_tex.upload_data(noise_data, m_render_resolution(0),
                             m_render_resolution(1));

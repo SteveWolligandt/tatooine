@@ -7,10 +7,10 @@
 #include <boost/range/algorithm/generate.hpp>
 #include <random>
 //==============================================================================
-namespace tatooine {
+namespace tatooine::random {
 //==============================================================================
 template <typename T, typename Engine = std::mt19937_64>
-struct random_uniform {
+struct uniform {
   static_assert(is_arithmetic<T>);
   //============================================================================
   using engine_t = Engine;
@@ -25,38 +25,38 @@ struct random_uniform {
   distribution_t distribution;
   //============================================================================
  public:
-  random_uniform() : engine{std::random_device{}()}, distribution{T(0), T(1)} {}
+  uniform() : engine{std::random_device{}()}, distribution{T(0), T(1)} {}
 
-  random_uniform(const random_uniform&)     = default;
-  random_uniform(random_uniform&&) noexcept = default;
+  uniform(const uniform&)     = default;
+  uniform(uniform&&) noexcept = default;
   //----------------------------------------------------------------------------
-  auto operator=(const random_uniform&) noexcept ->random_uniform& = default;
-  auto operator=(random_uniform&&) noexcept -> random_uniform& = default;
+  auto operator=(const uniform&) noexcept ->uniform& = default;
+  auto operator=(uniform&&) noexcept -> uniform& = default;
   //----------------------------------------------------------------------------
-  ~random_uniform() = default;
+  ~uniform() = default;
   //----------------------------------------------------------------------------
-  random_uniform(T const min, T const max)
+  uniform(T const min, T const max)
       : engine{std::random_device{}()}, distribution{min, max} {}
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
   template <typename... Args>
-  random_uniform(T const min, T const max, Args&&... args)
+  uniform(T const min, T const max, Args&&... args)
       : engine{std::forward<Args>(args)...}, distribution{min, max} {}
   //============================================================================
   auto get() { return distribution(engine); }
   auto operator()() { return get(); }
 };
 //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-random_uniform()->random_uniform<real_t, std::mt19937_64>;
+uniform()->uniform<real_t, std::mt19937_64>;
 template <typename T>
-random_uniform(T const min, T const max) -> random_uniform<T, std::mt19937_64>;
+uniform(T const min, T const max) -> uniform<T, std::mt19937_64>;
 template <typename T, typename... Args>
-random_uniform(T const min, T const max, Args&&...)
-    -> random_uniform<T, std::mt19937_64>;
+uniform(T const min, T const max, Args&&...)
+    -> uniform<T, std::mt19937_64>;
 //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 template <typename T, typename Engine = std::mt19937_64>
-auto random_uniform_vector(size_t n, T a = T(0), T b = T(1),
+auto uniform_vector(size_t n, T a = T(0), T b = T(1),
                            Engine&& engine = Engine{std::random_device{}()}) {
-  random_uniform rand(a, b, std::forward<Engine>(engine));
+  uniform rand(a, b, std::forward<Engine>(engine));
 
   std::vector<T> rand_data(n);
   boost::generate(rand_data, [&] { return rand(); });
@@ -64,41 +64,41 @@ auto random_uniform_vector(size_t n, T a = T(0), T b = T(1),
 }
 //==============================================================================
 template <typename T, typename Engine = std::mt19937_64>
-struct random_normal {
+struct normal {
   using engine_t       = Engine;
   using real_t         = T;
   using distribution_t = std::normal_distribution<T>;
 
   //============================================================================
-  random_normal() : engine{std::random_device{}()}, distribution{0, 1} {}
-  random_normal(const random_normal&)     = default;
-  random_normal(random_normal&&) noexcept = default;
+  normal() : engine{std::random_device{}()}, distribution{0, 1} {}
+  normal(const normal&)     = default;
+  normal(normal&&) noexcept = default;
   //============================================================================
-  auto operator=(const random_normal&) -> random_normal& = default;
-  auto operator=(random_normal&&) noexcept -> random_normal& = default;
+  auto operator=(const normal&) -> normal& = default;
+  auto operator=(normal&&) noexcept -> normal& = default;
   //----------------------------------------------------------------------------
-  ~random_normal() = default;
+  ~normal() = default;
 
   //----------------------------------------------------------------------------
-  explicit random_normal(const Engine& _engine)
+  explicit normal(const Engine& _engine)
       : engine{_engine}, distribution{0, 1} {}
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-  explicit random_normal(Engine&& _engine)
+  explicit normal(Engine&& _engine)
       : engine{std::move(_engine)}, distribution{0, 1} {}
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-  random_normal(T mean, T stddev)
+  normal(T mean, T stddev)
       : engine{std::random_device{}()}, distribution{mean, stddev} {}
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-  random_normal(const Engine& _engine, T mean, T stddev)
+  normal(const Engine& _engine, T mean, T stddev)
       : engine{_engine}, distribution{mean, stddev} {}
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-  random_normal(Engine&& _engine, T mean, T stddev)
+  normal(Engine&& _engine, T mean, T stddev)
       : engine{std::move(_engine)}, distribution{mean, stddev} {}
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-  random_normal(T mean, T stddev, const Engine& _engine)
+  normal(T mean, T stddev, const Engine& _engine)
       : engine{_engine}, distribution{mean, stddev} {}
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-  random_normal(T mean, T stddev, Engine&& _engine)
+  normal(T mean, T stddev, Engine&& _engine)
       : engine{std::move(_engine)}, distribution{mean, stddev} {}
 
   //============================================================================
@@ -112,13 +112,13 @@ struct random_normal {
   auto operator()() { return get(); }
 };
 //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-random_normal()->random_normal<double, std::mt19937_64>;
+normal()->normal<double, std::mt19937_64>;
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 template <typename Engine>
-random_normal(Engine &&)->random_normal<double, Engine>;
+normal(Engine &&)->normal<double, Engine>;
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 template <typename T>
-random_normal(T mean, T stddev)->random_normal<T, std::mt19937_64>;
+normal(T mean, T stddev)->normal<T, std::mt19937_64>;
 //==============================================================================
 template <typename Iterator, typename RandomEngine>
 auto random_elem(Iterator begin, Iterator end, RandomEngine& eng) {

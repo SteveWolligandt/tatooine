@@ -3,9 +3,9 @@
 //==============================================================================
 #include <tatooine/concepts.h>
 #include <tatooine/finite_differences_coefficients.h>
+#include <tatooine/grid_vertex_property_sampler.h>
 #include <tatooine/interpolation.h>
 #include <tatooine/invoke_unpacked.h>
-#include <tatooine/sampler.h>
 #include <tatooine/type_traits.h>
 #include <tatooine/write_png.h>
 //==============================================================================
@@ -17,7 +17,8 @@ template <size_t N, template <typename> typename DefaultInterpolationKernel,
 struct default_grid_vertex_sampler {
   template <template <typename> typename... _InterpolationKernels>
   using vertex_property_t =
-      sampler<GridVertexProperty, _InterpolationKernels...>;
+      grid_vertex_property_sampler<GridVertexProperty,
+                                   _InterpolationKernels...>;
   using type = typename default_grid_vertex_sampler<
       N - 1, DefaultInterpolationKernel, GridVertexProperty,
       InterpolationKernels..., DefaultInterpolationKernel>::type;
@@ -29,7 +30,8 @@ template <template <typename> typename DefaultInterpolationKernel,
 struct default_grid_vertex_sampler<0, DefaultInterpolationKernel,
                                    GridVertexProperty,
                                    InterpolationKernels...> {
-  using type = sampler<GridVertexProperty, InterpolationKernels...>;
+  using type =
+      grid_vertex_property_sampler<GridVertexProperty, InterpolationKernels...>;
 };
 template <size_t N, template <typename> typename DefaultInterpolationKernel,
           typename GridVertexProperty,
@@ -134,7 +136,9 @@ struct typed_grid_vertex_property_interface : grid_vertex_property<Grid> {
     } else if constexpr (sizeof...(InterpolationKernels) == 1) {
       return sampler_<InterpolationKernels...>();
     } else {
-      using sampler_t = tatooine::sampler<this_t, InterpolationKernels...>;
+      using sampler_t =
+          tatooine::grid_vertex_property_sampler<this_t,
+                                                 InterpolationKernels...>;
       if (!grid().diff_stencil_coefficients_created_once()) {
         grid().update_diff_stencil_coefficients();
       }
@@ -231,7 +235,7 @@ struct typed_grid_vertex_property_interface : grid_vertex_property<Grid> {
 #ifdef TATOOINE_HAS_PNG_SUPPORT
 #ifdef __cpp_concepts
   template <typename = void>
-      requires(num_dimensions() == 2) &&
+  requires(num_dimensions() == 2) &&
       (is_vec<ValueType>)
 #else
   template <size_t _N                                   = num_dimensions(),
@@ -263,15 +267,14 @@ struct typed_grid_vertex_property_interface : grid_vertex_property<Grid> {
   }
 #ifdef __cpp_concepts
   template <typename = void>
-      requires(num_dimensions() == 2) &&
+  requires(num_dimensions() == 2) &&
       (is_floating_point<ValueType>)
 #else
-  template <size_t _N = num_dimensions(),
-            enable_if<_N == 2> = true,
+  template <size_t _N = num_dimensions(), enable_if<_N == 2> = true,
             enable_if_floating_point<ValueType> = true>
 #endif
-  auto write_png(filesystem::path const& path, ValueType const min = 0,
-                 ValueType const max = 1) const -> void {
+          auto write_png(filesystem::path const& path, ValueType const min = 0,
+                         ValueType const max = 1) const -> void {
     png::image<png::rgb_pixel> image{
         static_cast<png::uint_32>(this->grid().size(0)),
         static_cast<png::uint_32>(this->grid().size(1))};
@@ -312,7 +315,7 @@ struct typed_grid_vertex_property_interface : grid_vertex_property<Grid> {
   }
 #ifdef __cpp_concepts
   template <typename ColorScale>
-      requires(num_dimensions() == 2) &&
+  requires(num_dimensions() == 2) &&
       (is_floating_point<ValueType>)
 #else
   template <size_t _N = num_dimensions(), typename ColorScale,
@@ -668,25 +671,28 @@ struct differentiated_typed_grid_vertex_property {
   auto at(std::index_sequence<Seq...> /*seq*/, Is const... is) const
       -> value_type {
     value_type d{};
-    ([&](auto const dim, auto const index) {
-      constexpr size_t targeted_stencil_size = 7;
-      constexpr int    offset                = targeted_stencil_size / 2;
+    (
+        [&](auto const dim, auto const index) {
+          constexpr size_t targeted_stencil_size = 7;
+          constexpr int    offset                = targeted_stencil_size / 2;
 
-      auto indices = std::array{static_cast<size_t>(is)...};
-      auto const negative_offset = std::max<int>(-indices[dim], -offset);
-      auto const positive_offset =
-          std::min<int>(grid().size(dim) - index - 1,
-                        targeted_stencil_size + negative_offset - 1);
-      auto const& coeffs = grid().diff_stencil_coefficients(
-          dim, positive_offset - negative_offset + 1, -negative_offset, index);
-      indices[dim] += negative_offset;
-      for (size_t i = 0; i < positive_offset - negative_offset + 1;
-           ++i, ++indices[dim]) {
-        d.template slice<value_type::rank() - 1>(dim) +=
-            m_prop(indices) * coeffs[i];
-      }
-    }(Seq, is), ...);
-        return d;
+          auto       indices         = std::array{static_cast<size_t>(is)...};
+          auto const negative_offset = std::max<int>(-indices[dim], -offset);
+          auto const positive_offset =
+              std::min<int>(grid().size(dim) - index - 1,
+                            targeted_stencil_size + negative_offset - 1);
+          auto const& coeffs = grid().diff_stencil_coefficients(
+              dim, positive_offset - negative_offset + 1, -negative_offset,
+              index);
+          indices[dim] += negative_offset;
+          for (size_t i = 0; i < positive_offset - negative_offset + 1;
+               ++i, ++indices[dim]) {
+            d.template slice<value_type::rank() - 1>(dim) +=
+                m_prop(indices) * coeffs[i];
+          }
+        }(Seq, is),
+        ...);
+    return d;
   }
   //----------------------------------------------------------------------------
   template <template <typename> typename InterpolationKernel>
@@ -719,7 +725,9 @@ struct differentiated_typed_grid_vertex_property {
     } else if constexpr (sizeof...(InterpolationKernels) == 1) {
       return sampler_<InterpolationKernels...>();
     } else {
-      using sampler_t = tatooine::sampler<this_t, InterpolationKernels...>;
+      using sampler_t =
+          tatooine::grid_vertex_property_sampler<this_t,
+                                                 InterpolationKernels...>;
       grid().update_diff_stencil_coefficients();
       return sampler_t{*this};
     }

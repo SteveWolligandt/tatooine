@@ -1,16 +1,16 @@
 #ifndef TATOOINE_VTK_LEGACY_H
 #define TATOOINE_VTK_LEGACY_H
 //==============================================================================
-#include <tatooine/tensor.h>
-#include <tatooine/filesystem.h>
 #include <tatooine/concepts.h>
+#include <tatooine/filesystem.h>
 #include <tatooine/parse.h>
 #include <tatooine/swap_endianess.h>
+#include <tatooine/tensor.h>
 #include <tatooine/type_to_str.h>
 #include <tatooine/type_traits.h>
 
-#include <cassert>
 #include <boost/filesystem.hpp>
+#include <cassert>
 #include <cstdlib>
 #include <exception>
 #include <fstream>
@@ -239,11 +239,11 @@ class legacy_file {
   std::vector<legacy_file_listener *> m_listeners;
 
   filesystem::path m_path;
-  format                m_format;
-  reader_data           m_data = reader_data::unknown;
-  size_t                m_data_size;  // cell_data or point_data size
-  long                  m_begin_of_data;
-  char                  buffer[256];
+  format           m_format;
+  reader_data      m_data = reader_data::unknown;
+  size_t           m_data_size;  // cell_data or point_data size
+  long             m_begin_of_data;
+  char             buffer[256];
 
  public:
   auto add_listener(legacy_file_listener &listener) -> void;
@@ -253,9 +253,7 @@ class legacy_file {
   auto read() -> void;
   //---------------------------------------------------------------------------
   auto set_path(filesystem::path const &path) -> void { m_path = path; }
-  auto set_path(filesystem::path &&path) -> void {
-    m_path = std::move(path);
-  }
+  auto set_path(filesystem::path &&path) -> void { m_path = std::move(path); }
   auto path() const -> auto const & { return m_path; }
   //---------------------------------------------------------------------------
  private:
@@ -541,7 +539,7 @@ class legacy_file_writer {
 #ifdef __cpp_concepts
   template <arithmetic T>
 #else
-  template <typename T, enable_if<is_arithmetic<T>> = true>
+  template <typename T, enable_if_arithmetic<T> = true>
 #endif
   auto write_x_coordinates(std::vector<T> const &x_coordinates) -> void {
     std::stringstream ss;
@@ -557,7 +555,7 @@ class legacy_file_writer {
 #ifdef __cpp_concepts
   template <arithmetic T>
 #else
-  template <typename T, enable_if<is_arithmetic<T>> = true>
+  template <typename T, enable_if_arithmetic<T> = true>
 #endif
   auto write_y_coordinates(std::vector<T> const &y_coordinates) -> void {
     std::stringstream ss;
@@ -573,7 +571,7 @@ class legacy_file_writer {
 #ifdef __cpp_concepts
   template <arithmetic T>
 #else
-  template <typename T, enable_if<is_arithmetic<T>> = true>
+  template <typename T, enable_if_arithmetic<T> = true>
 #endif
   auto write_z_coordinates(std::vector<T> const &z_coordinates) -> void {
     std::stringstream ss;
@@ -607,48 +605,39 @@ class legacy_file_writer {
   //----------------------------------------------------------------------------
 #ifdef __cpp_concepts
   template <typename Data>
-  requires (is_same<Data, double>) ||
-           (is_same<Data, float>) ||
-           (is_same<Data, int>)
+  requires(is_double<Data> || is_float<Data> || is_int<Data>)
 #else
-  template <typename Data,
-            enable_if<((is_same<Data, double>) ||
-                       (is_same<Data, float>) ||
-                       (is_same<Data, int>))> = true>
+  template <typename Data, enable_if<((is_double<Data> || is_float<Data> ||
+                                       is_int<Data>))> = true>
 #endif
-  auto write_scalars(std::string const &      name,
-                     std::vector<Data> const &data,
-                     std::string const &lookup_table_name = "default") -> void;
+      auto write_scalars(std::string const &name, std::vector<Data> const &data,
+                         std::string const &lookup_table_name = "default")
+          -> void;
   //----------------------------------------------------------------------------
 #ifdef __cpp_concepts
   template <typename Data>
-  requires (is_same<Data, double>) ||
-           (is_same<Data, float>) ||
-           (is_same<Data, int>)
+  requires(is_double<Data> || is_float<Data> || is_int<Data>)
 #else
-  template <typename Data,
-            enable_if<((is_same<Data, double>) ||
-                       (is_same<Data, float>) ||
-                       (is_same<Data, int>))> = true>
+  template <typename Data, enable_if<((is_double<Data>) || is_float<Data> ||
+                                      is_int<Data>)> = true>
 #endif
-  auto write_scalars(std::string const &                   name,
-                     std::vector<std::vector<Data>> const &data,
-                     std::string const &lookup_table_name = "default") -> void;
+      auto write_scalars(std::string const &                   name,
+                         std::vector<std::vector<Data>> const &data,
+                         std::string const &lookup_table_name = "default")
+          -> void;
   //----------------------------------------------------------------------------
 #ifdef __cpp_concepts
   template <typename Data, size_t N>
-  requires (is_same<Data, double>) ||
-           (is_same<Data, float>) ||
-           (is_same<Data, int>)
+  requires(is_double<Data> || is_float<Data> || is_int<Data>)
 #else
-  template <typename Data, size_t N,
-            enable_if<((is_same<Data, double>) ||
-                       (is_same<Data, float>) ||
-                       (is_same<Data, int>))> = true>
+  template <
+      typename Data, size_t N,
+      enable_if<((is_double<Data> || is_float<Data> || is_int<Data>))> = true>
 #endif
-  auto write_scalars(std::string const &                     name,
-                     std::vector<std::array<Data, N>> const &data,
-                     std::string const &lookup_table_name = "default") -> void {
+      auto write_scalars(std::string const &                     name,
+                         std::vector<std::array<Data, N>> const &data,
+                         std::string const &lookup_table_name = "default")
+          -> void {
     std::stringstream ss;
     ss << "\nSCALARS " << name << ' ' << type_to_str<Data>() << ' ' << N
        << '\n';
@@ -663,18 +652,16 @@ class legacy_file_writer {
   //----------------------------------------------------------------------------
 #ifdef __cpp_concepts
   template <typename Data, size_t N>
-  requires (is_same<Data, double>) ||
-           (is_same<Data, float>) ||
-           (is_same<Data, int>)
+  requires(is_double<Data> || is_float<Data> || is_int<Data>)
 #else
-  template <typename Data, size_t N,
-            enable_if<((is_same<Data, double>) ||
-                       (is_same<Data, float>) ||
-                       (is_same<Data, int>))> = true>
+  template <
+      typename Data, size_t N,
+      enable_if<((is_double<Data> || is_float<Data> || is_int<Data>))> = true>
 #endif
-  auto write_scalars(std::string const &              name,
-                     std::vector<vec<Data, N>> const &data,
-                     std::string const &lookup_table_name = "default") -> void {
+      auto write_scalars(std::string const &              name,
+                         std::vector<vec<Data, N>> const &data,
+                         std::string const &lookup_table_name = "default")
+          -> void {
     std::stringstream ss;
     ss << "\nSCALARS " << name << ' ' << type_to_str<Data>() << ' ' << N
        << '\n';
@@ -690,18 +677,16 @@ class legacy_file_writer {
   //----------------------------------------------------------------------------
 #ifdef __cpp_concepts
   template <typename Real, size_t N>
-  requires (is_same<Real, double>) ||
-           (is_same<Real, float>) ||
-           (is_same<Real, int>)
+  requires(is_double<Real> || is_float<Real> || is_int<Real>)
 #else
-  template <typename Real, size_t N,
-            enable_if<((is_same<Real, double>) ||
-                       (is_same<Real, float>) ||
-                       (is_same<Real, int>))> = true>
+  template <
+      typename Real, size_t N,
+      enable_if<((is_double<Real> || is_float<Real> || is_int<Real>))> = true>
 #endif
-  auto write_scalars(std::string const &                 name,
-                     std::vector<tensor<Real, N>> const &data,
-                     std::string const &lookup_table_name = "default") -> void {
+      auto write_scalars(std::string const &                 name,
+                         std::vector<tensor<Real, N>> const &data,
+                         std::string const &lookup_table_name = "default")
+          -> void {
     std::stringstream ss;
     ss << "\nSCALARS " << name << ' ' << type_to_str<Real>() << ' ' << N
        << '\n';
@@ -872,20 +857,16 @@ auto legacy_file_writer::write_tensors(
 }
 //-----------------------------------------------------------------------------
 #ifdef __cpp_concepts
-  template <typename Data>
-  requires (is_same<Data, double>) ||
-           (is_same<Data, float>) ||
-           (is_same<Data, int>)
+template <typename Data>
+requires(is_double<Data> || is_float<Data> || is_int<Data>)
 #else
-  template <typename Data,
-            enable_if<((is_same<Data, double>) ||
-                       (is_same<Data, float>) ||
-                       (is_same<Data, int>))>>
+template <typename Data,
+          enable_if<((is_double<Data> || is_float<Data> || is_int<Data>))>>
 #endif
-auto legacy_file_writer::write_scalars(std::string const &      name,
-                                       std::vector<Data> const &data,
-                                       std::string const &lookup_table_name)
-    -> void {
+    auto legacy_file_writer::write_scalars(std::string const &      name,
+                                           std::vector<Data> const &data,
+                                           std::string const &lookup_table_name)
+        -> void {
   std::stringstream ss;
   ss << "\nSCALARS " << name << ' ' << type_to_str<Data>() << " 1\n";
   vtk::write_binary(m_file, ss.str());
@@ -897,20 +878,15 @@ auto legacy_file_writer::write_scalars(std::string const &      name,
 }
 //------------------------------------------------------------------------------
 #ifdef __cpp_concepts
-  template <typename Data>
-  requires (is_same<Data, double>) ||
-           (is_same<Data, float>) ||
-           (is_same<Data, int>)
+template <typename Data>
+requires(is_double<Data> || is_float<Data> || is_int<Data>)
 #else
-  template <typename Data,
-            enable_if<((is_same<Data, double>) ||
-                       (is_same<Data, float>) ||
-                       (is_same<Data, int>))>>
+template <typename Data,
+          enable_if<((is_double<Data> || is_float<Data> || is_int<Data>))>>
 #endif
-auto legacy_file_writer::write_scalars(
-    std::string const &name,
-    std::vector<std::vector<Data>> const &data,
-    std::string const &lookup_table_name) -> void {
+    auto legacy_file_writer::write_scalars(
+        std::string const &name, std::vector<std::vector<Data>> const &data,
+        std::string const &lookup_table_name) -> void {
   std::stringstream ss;
   ss << "\nSCALARS " << name << ' ' << type_to_str<Data>()
      << std::to_string(data.front().size()) + '\n';

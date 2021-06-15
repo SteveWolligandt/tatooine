@@ -35,23 +35,26 @@ auto create_initial_particles(args_t const& args) {
   auto       vs                        = initial_distribution_grid.vertices();
   auto const r0 = initial_distribution_grid.dimension<0>().spacing() / 2;
   autonomous_particle_2::container_t initial_particles;
+  real_t                             c = 0;
   for (auto const& v : vs) {
-    initial_particles.emplace_back(vs[v], args.t0, r0, 1.0);
+    initial_particles.emplace_back(vs[v], args.t0, r0, std::pair{c, c + 1});
+    c += 1;
   }
 
   // overlapping particles
-   initial_distribution_grid.front<0>() +=
+  initial_distribution_grid.front<0>() +=
       initial_distribution_grid.dimension<0>().spacing() / 2;
-   initial_distribution_grid.back<0>() +=
+  initial_distribution_grid.back<0>() +=
       initial_distribution_grid.dimension<0>().spacing() / 2;
-   initial_distribution_grid.front<1>() +=
+  initial_distribution_grid.front<1>() +=
       initial_distribution_grid.dimension<1>().spacing() / 2;
-   initial_distribution_grid.back<1>() +=
+  initial_distribution_grid.back<1>() +=
       initial_distribution_grid.dimension<1>().spacing() / 2;
-   initial_distribution_grid.dimension<0>().pop_back();
-   initial_distribution_grid.dimension<1>().pop_back();
-   for (auto const& v : vs) {
-    initial_particles.emplace_back(vs[v], args.t0, r0, 1.0);
+  initial_distribution_grid.dimension<0>().pop_back();
+  initial_distribution_grid.dimension<1>().pop_back();
+  for (auto const& v : vs) {
+    initial_particles.emplace_back(vs[v], args.t0, r0, std::pair{c, c + 1});
+    c += 1;
   }
 
   return initial_particles;

@@ -62,8 +62,7 @@ base_pin::base_pin(base::node& n, pinkind kind, std::string const& title,
 //------------------------------------------------------------------------------
 auto base_pin::draw(size_t const icon_size, float const alpha) const -> void {
   icon(ImVec2(icon_size, icon_size), m_icon_type, is_linked(),
-       //icon_color(*this, alpha));
-       ImVec4(1,1,1,1));
+       ImVec4(1, 1, 1, alpha));
 }
 //------------------------------------------------------------------------------
 input_pin::input_pin(base::node& n, std::vector<std::type_info const*> types,

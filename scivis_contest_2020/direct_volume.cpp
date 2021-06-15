@@ -1,6 +1,6 @@
 #include <tatooine/Q_field.h>
 #include <tatooine/color_scales/magma.h>
-#include <tatooine/direct_volume_rendering.h>
+#include <tatooine/rendering/direct_volume.h>
 #include <tatooine/lagrangian_Q_field.h>
 #include <tatooine/perspective_camera.h>
 
@@ -64,7 +64,7 @@ int main() {
           // double const min_btau = v.t_axis.front() - t;
           auto const btau = 0;  // std::max<double>(-tau, min_btau);
           auto const lQf  = lagrangian_Q(v, btau, ftau);
-          auto       g    = direct_volume_rendering(
+          auto       g    = rendering::direct_volume(
               cam, aabb,
               [&](auto const& pos) {
                 return lQf(vec{pos(0), pos(1), pos(2) / 0.0025}, t);

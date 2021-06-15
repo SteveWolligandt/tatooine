@@ -238,9 +238,9 @@ TEMPLATE_TEST_CASE("chunked_multidim_array_element_assignment_primitive",
   using T   = TestType;
   auto rand = []() {
     if constexpr (std::is_integral_v<T>) {
-      return random_uniform<T>{0, 100}();
+      return random::uniform<T>{0, 100}();
     } else {
-      return random_uniform<T>{0.0, 1.0}();
+      return random::uniform<T>{0.0, 1.0}();
     }
   };
   chunked_multidim_array<T> arr{std::vector<size_t>{4, 4}, std::vector<size_t>{2, 2}};

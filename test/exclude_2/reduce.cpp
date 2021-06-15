@@ -20,7 +20,7 @@ TEST_CASE("reduce0", "[gpu][reduce][texture]") {
                                                   {871, 1290}}) {
     CAPTURE(width, height, seed);
     const std::vector<float> rand_data =
-        random_uniform_vector<float>(width * height, 0.0f, 1.0f, eng);
+        random::uniform_vector<float>(width * height, 0.0f, 1.0f, eng);
     const yavin::tex2r32f data_tex{rand_data, width, height};
     const auto reduced              = reduce(data_tex, 16, 16);
     REQUIRE(reduced == Approx(boost::accumulate(rand_data, float{0})));
@@ -34,7 +34,7 @@ TEST_CASE("reduce1", "[gpu][reduce][texture]") {
   for (const auto size : res_container{1024, 2048}) {
     CAPTURE(size, seed);
     const std::vector<float> rand_data =
-        random_uniform_vector<float>(size, 0.0f, 1.0f, eng);
+        random::uniform_vector<float>(size, 0.0f, 1.0f, eng);
     const yavin::shaderstoragebuffer<float> in_buffer{rand_data};
     const auto                       reduced = reduce(in_buffer, 16*16);
     REQUIRE(reduced == Approx(boost::accumulate(rand_data, float{0})));

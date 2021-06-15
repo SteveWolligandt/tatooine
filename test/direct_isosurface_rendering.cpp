@@ -1,5 +1,5 @@
 #include <tatooine/analytical/fields/numerical/doublegyre.h>
-#include <tatooine/direct_isosurface_rendering.h>
+#include <tatooine/rendering/direct_isosurface.h>
 #include <tatooine/grid.h>
 #include <tatooine/line.h>
 #include <tatooine/rendering/perspective_camera.h>
@@ -37,7 +37,7 @@ TEST_CASE("direct_iso_grid_vertex_sampler") {
 
      std::stringstream ss;
      ss << std::setfill('0') << std::setw(2) << i;
-     direct_isosurface_rendering(
+     rendering::direct_isosurface(
          cam, sampler, iso,
          [](auto const& x_iso, auto const& gradient, auto const& view_dir) {
            auto const normal      = normalize(gradient);

@@ -1,7 +1,7 @@
-/// \file direct_isosurface_rendering.h
+/// \file direct_isosurface.h
 /// This file specifies functions for direct renderings of iso surfaces.
-#ifndef TATOOINE_DIRECT_ISOSURFACE_RENDERING_H
-#define TATOOINE_DIRECT_ISOSURFACE_RENDERING_H
+#ifndef TATOOINE_RENDERING_DIRECT_ISOSURFACE_H
+#define TATOOINE_RENDERING_DIRECT_ISOSURFACE_H
 //==============================================================================
 #include <omp.h>
 #include <tatooine/demangling.h>
@@ -9,7 +9,7 @@
 #include <tatooine/grid.h>
 #include <tatooine/rendering/camera.h>
 //==============================================================================
-namespace tatooine {
+namespace tatooine::rendering {
 //==============================================================================
 /// This is an implementation of \cite 10.5555/288216.288266. See also \ref
 /// isosurf_parker.
@@ -22,9 +22,9 @@ namespace tatooine {
 /// named "rendered_isosurface"
 template <typename CameraReal, typename IsoReal, typename Dim0, typename Dim1,
           typename Dim2, typename Field, typename Shader>
-auto direct_isosurface_rendering(rendering::camera<CameraReal> const& cam,
-                                 grid<Dim0, Dim1, Dim2> const& g, Field&& field,
-                                 IsoReal const isovalue, Shader&& shader) {
+auto direct_isosurface(camera<CameraReal> const&     cam,
+                       grid<Dim0, Dim1, Dim2> const& g, Field&& field,
+                       IsoReal const isovalue, Shader&& shader) {
   using grid_real_t = typename grid<Dim0, Dim1, Dim2>::real_t;
   using pos_t       = vec<grid_real_t, 3>;
   constexpr auto use_indices =
@@ -35,8 +35,9 @@ auto direct_isosurface_rendering(rendering::camera<CameraReal> const& cam,
   //                       std::invoke_result_t<Field, pos_t>>;
   // static_assert(is_floating_point<value_t>);
   using viewdir_t = vec<CameraReal, 3>;
-  static_assert(std::is_invocable_v<Shader, pos_t, pos_t, viewdir_t>,
-                "Shader must be invocable with position, gradient and view direction.");
+  static_assert(
+      std::is_invocable_v<Shader, pos_t, pos_t, viewdir_t>,
+      "Shader must be invocable with position, gradient and view direction.");
   using color_t = std::invoke_result_t<Shader, pos_t, pos_t, viewdir_t>;
   using rgb_t   = vec<typename color_t::value_type, 3>;
   using alpha_t = typename color_t::value_type;
@@ -78,7 +79,7 @@ auto direct_isosurface_rendering(rendering::camera<CameraReal> const& cam,
     if constexpr (color_t::num_components() == 3) {
       accumulated_color = bg_color;
     }
-    auto accumulated_alpha  = alpha_t(0);
+    auto accumulated_alpha   = alpha_t(0);
     auto const& [r, t, x, y] = rays[i];
 
     auto entry_point = r(t);
@@ -190,14 +191,22 @@ auto direct_isosurface_rendering(rendering::camera<CameraReal> const& cam,
       }
 
       // check if isosurface is present in current cell
-      if (!((cell_data[indexing(0, 0, 0)] > isovalue && cell_data[indexing(0, 0, 1)] > isovalue &&
-             cell_data[indexing(0, 1, 0)] > isovalue && cell_data[indexing(0, 1, 1)] > isovalue &&
-             cell_data[indexing(1, 0, 0)] > isovalue && cell_data[indexing(1, 0, 1)] > isovalue &&
-             cell_data[indexing(1, 1, 0)] > isovalue && cell_data[indexing(1, 1, 1)] > isovalue) ||
-            (cell_data[indexing(0, 0, 0)] < isovalue && cell_data[indexing(0, 0, 1)] < isovalue &&
-             cell_data[indexing(0, 1, 0)] < isovalue && cell_data[indexing(0, 1, 1)] < isovalue &&
-             cell_data[indexing(1, 0, 0)] < isovalue && cell_data[indexing(1, 0, 1)] < isovalue &&
-             cell_data[indexing(1, 1, 0)] < isovalue && cell_data[indexing(1, 1, 1)] < isovalue))) {
+      if (!((cell_data[indexing(0, 0, 0)] > isovalue &&
+             cell_data[indexing(0, 0, 1)] > isovalue &&
+             cell_data[indexing(0, 1, 0)] > isovalue &&
+             cell_data[indexing(0, 1, 1)] > isovalue &&
+             cell_data[indexing(1, 0, 0)] > isovalue &&
+             cell_data[indexing(1, 0, 1)] > isovalue &&
+             cell_data[indexing(1, 1, 0)] > isovalue &&
+             cell_data[indexing(1, 1, 1)] > isovalue) ||
+            (cell_data[indexing(0, 0, 0)] < isovalue &&
+             cell_data[indexing(0, 0, 1)] < isovalue &&
+             cell_data[indexing(0, 1, 0)] < isovalue &&
+             cell_data[indexing(0, 1, 1)] < isovalue &&
+             cell_data[indexing(1, 0, 0)] < isovalue &&
+             cell_data[indexing(1, 0, 1)] < isovalue &&
+             cell_data[indexing(1, 1, 0)] < isovalue &&
+             cell_data[indexing(1, 1, 1)] < isovalue))) {
         auto const  x0 = g(i0[0], i0[1], i0[2]);
         auto const  x1 = g(i1[0], i1[1], i1[2]);
         auto const& xa = r.origin();
@@ -212,7 +221,7 @@ auto direct_isosurface_rendering(rendering::camera<CameraReal> const& cam,
         auto const a1 = (xa - x0) * inv_cell_extent;
         auto const b1 = -xb * inv_cell_extent;
 
-        // construct coefficients of cubic polynomial A + B*t + C*t*t + D*t*t*t 
+        // construct coefficients of cubic polynomial A + B*t + C*t*t + D*t*t*t
         auto const A = a0(0) * a0(1) * a0(2) * cell_data[indexing(0, 0, 0)] +
                        a0(0) * a0(1) * a1(2) * cell_data[indexing(0, 0, 1)] +
                        a0(0) * a1(1) * a0(2) * cell_data[indexing(0, 1, 0)] +
@@ -220,7 +229,8 @@ auto direct_isosurface_rendering(rendering::camera<CameraReal> const& cam,
                        a1(0) * a0(1) * a0(2) * cell_data[indexing(1, 0, 0)] +
                        a1(0) * a0(1) * a1(2) * cell_data[indexing(1, 0, 1)] +
                        a1(0) * a1(1) * a0(2) * cell_data[indexing(1, 1, 0)] +
-                       a1(0) * a1(1) * a1(2) * cell_data[indexing(1, 1, 1)] - isovalue;
+                       a1(0) * a1(1) * a1(2) * cell_data[indexing(1, 1, 1)] -
+                       isovalue;
         auto const B = (b0(0) * a0(1) * a0(2) + a0(0) * b0(1) * a0(2) +
                         a0(0) * a0(1) * b0(2)) *
                            cell_data[indexing(0, 0, 0)] +
@@ -301,32 +311,43 @@ auto direct_isosurface_rendering(rendering::camera<CameraReal> const& cam,
             assert(uvw1(0) >= 0 && uvw1(0) <= 1);
             assert(uvw1(1) >= 0 && uvw1(1) <= 1);
             assert(uvw1(2) >= 0 && uvw1(2) <= 1);
-            auto const k = cell_data[indexing(1, 1, 1)] - cell_data[indexing(0, 1, 1)] -
-                           cell_data[indexing(1, 0, 1)] + cell_data[indexing(0, 0, 1)] -
-                           cell_data[indexing(1, 1, 0)] + cell_data[indexing(0, 1, 0)] +
-                           cell_data[indexing(1, 0, 0)] - cell_data[indexing(0, 0, 0)];
-            auto const gradient =
-                vec{(k * uvw0(1) + cell_data[indexing(1, 0, 1)] - cell_data[indexing(0, 0, 1)] -
-                     cell_data[indexing(1, 0, 0)] + cell_data[indexing(0, 0, 0)]) *
-                            uvw0(2) +
-                        (cell_data[indexing(1, 1, 0)] - cell_data[indexing(0, 1, 0)] -
-                         cell_data[indexing(1, 0, 0)] + cell_data[indexing(0, 0, 0)]) *
-                            uvw0(1) +
-                        cell_data[indexing(1, 0, 0)] - cell_data[indexing(0, 0, 0)],
-                    (k * uvw0(0) + cell_data[indexing(0, 1, 1)] - cell_data[indexing(0, 0, 1)] -
-                     cell_data[indexing(0, 1, 0)] + cell_data[indexing(0, 0, 0)]) *
-                            uvw0(2) +
-                        (cell_data[indexing(1, 1, 0)] - cell_data[indexing(0, 1, 0)] -
-                         cell_data[indexing(1, 0, 0)] + cell_data[indexing(0, 0, 0)]) *
-                            uvw0(0) +
-                        cell_data[indexing(0, 1, 0)] - cell_data[indexing(0, 0, 0)],
-                    (k * uvw0(0) + cell_data[indexing(0, 1, 1)] - cell_data[indexing(0, 0, 1)] -
-                     cell_data[indexing(0, 1, 0)] + cell_data[indexing(0, 0, 0)]) *
-                            uvw0(1) +
-                        (cell_data[indexing(1, 0, 1)] - cell_data[indexing(0, 0, 1)] -
-                         cell_data[indexing(1, 0, 0)] + cell_data[indexing(0, 0, 0)]) *
-                            uvw0(0) +
-                        cell_data[indexing(0, 0, 1)] - cell_data[indexing(0, 0, 0)]};
+            auto const k =
+                cell_data[indexing(1, 1, 1)] - cell_data[indexing(0, 1, 1)] -
+                cell_data[indexing(1, 0, 1)] + cell_data[indexing(0, 0, 1)] -
+                cell_data[indexing(1, 1, 0)] + cell_data[indexing(0, 1, 0)] +
+                cell_data[indexing(1, 0, 0)] - cell_data[indexing(0, 0, 0)];
+            auto const gradient = vec{
+                (k * uvw0(1) + cell_data[indexing(1, 0, 1)] -
+                 cell_data[indexing(0, 0, 1)] - cell_data[indexing(1, 0, 0)] +
+                 cell_data[indexing(0, 0, 0)]) *
+                        uvw0(2) +
+                    (cell_data[indexing(1, 1, 0)] -
+                     cell_data[indexing(0, 1, 0)] -
+                     cell_data[indexing(1, 0, 0)] +
+                     cell_data[indexing(0, 0, 0)]) *
+                        uvw0(1) +
+                    cell_data[indexing(1, 0, 0)] - cell_data[indexing(0, 0, 0)],
+                (k * uvw0(0) + cell_data[indexing(0, 1, 1)] -
+                 cell_data[indexing(0, 0, 1)] - cell_data[indexing(0, 1, 0)] +
+                 cell_data[indexing(0, 0, 0)]) *
+                        uvw0(2) +
+                    (cell_data[indexing(1, 1, 0)] -
+                     cell_data[indexing(0, 1, 0)] -
+                     cell_data[indexing(1, 0, 0)] +
+                     cell_data[indexing(0, 0, 0)]) *
+                        uvw0(0) +
+                    cell_data[indexing(0, 1, 0)] - cell_data[indexing(0, 0, 0)],
+                (k * uvw0(0) + cell_data[indexing(0, 1, 1)] -
+                 cell_data[indexing(0, 0, 1)] - cell_data[indexing(0, 1, 0)] +
+                 cell_data[indexing(0, 0, 0)]) *
+                        uvw0(1) +
+                    (cell_data[indexing(1, 0, 1)] -
+                     cell_data[indexing(0, 0, 1)] -
+                     cell_data[indexing(1, 0, 0)] +
+                     cell_data[indexing(0, 0, 0)]) *
+                        uvw0(0) +
+                    cell_data[indexing(0, 0, 1)] -
+                    cell_data[indexing(0, 0, 0)]};
             if constexpr (color_t::num_components() == 3) {
               accumulated_color = shader(x_iso, gradient, r.direction());
               done              = true;
@@ -334,7 +355,7 @@ auto direct_isosurface_rendering(rendering::camera<CameraReal> const& cam,
               auto const rgba  = shader(x_iso, gradient, r.direction());
               auto const rgb   = vec{rgba(0), rgba(1), rgba(2)};
               auto const alpha = rgba(3);
-              accumulated_color += (1 - accumulated_alpha) *  alpha * rgb;
+              accumulated_color += (1 - accumulated_alpha) * alpha * rgb;
               accumulated_alpha += (1 - accumulated_alpha) * alpha;
               if (accumulated_alpha >= 0.95) {
                 done = true;
@@ -353,8 +374,7 @@ auto direct_isosurface_rendering(rendering::camera<CameraReal> const& cam,
       rendering(x, y) = accumulated_color;
     } else if constexpr (color_t::num_components() == 4) {
       rendering(x, y) = accumulated_color * accumulated_alpha +
-                        bg_color * (1 - accumulated_alpha)
-                        ;
+                        bg_color * (1 - accumulated_alpha);
     }
   }
   return rendered_image;
@@ -372,12 +392,12 @@ auto direct_isosurface_rendering(rendering::camera<CameraReal> const& cam,
 /// named "rendered_isosurface"
 template <typename CameraReal, typename IsoReal, typename GridVertexProperty,
           typename Shader>
-auto direct_isosurface_rendering(
-    rendering::camera<CameraReal> const&  cam,
-    sampler<GridVertexProperty, interpolation::linear, interpolation::linear,
+auto direct_isosurface(
+    camera<CameraReal> const&             cam,
+    grid_vertex_property_sampler<GridVertexProperty, interpolation::linear, interpolation::linear,
             interpolation::linear> const& linear_field,
     IsoReal const isovalue, Shader&& shader) {
-  return direct_isosurface_rendering(
+  return direct_isosurface(
       cam, linear_field.grid(),
       [&](size_t const ix, size_t const iy, size_t const iz) -> auto const& {
         return linear_field.data_at(ix, iy, iz);
@@ -388,11 +408,11 @@ auto direct_isosurface_rendering(
 template <typename DistOnRay, typename CameraReal, typename AABBReal,
           typename DataEvaluator, typename Isovalue, typename DomainCheck,
           typename Shader>
-auto direct_isosurface_rendering(
-    rendering::camera<CameraReal> const&          cam,
-    axis_aligned_bounding_box<AABBReal, 3> const& aabb,
-    DataEvaluator&& data_evaluator, DomainCheck&& domain_check,
-    Isovalue isovalue, DistOnRay const distance_on_ray, Shader&& shader) {
+auto direct_isosurface(camera<CameraReal> const&                     cam,
+                       axis_aligned_bounding_box<AABBReal, 3> const& aabb,
+                       DataEvaluator&& data_evaluator,
+                       DomainCheck&& domain_check, Isovalue isovalue,
+                       DistOnRay const distance_on_ray, Shader&& shader) {
   using pos_t     = vec<CameraReal, 3>;
   using viewdir_t = vec<CameraReal, 3>;
   static_assert(std::is_invocable_v<Shader, pos_t, viewdir_t>,
@@ -503,65 +523,7 @@ auto direct_isosurface_rendering(
   }
   return rendered_image;
 }
-// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-//#ifdef __cpp_concepts
-// template <arithmetic TReal, arithmetic Min, arithmetic Max,
-//          arithmetic DistOnRay, arithmetic CameraReal, arithmetic AABBReal,
-//          typename S, typename SReal, regular_invocable<SReal>    ColorScale,
-//          regular_invocable<SReal> AlphaScale>
-//#else
-// template <
-//    typename TReal, typename Min, typename Max, typename DistOnRay,
-//    typename CameraReal, typename AABBReal, typename S, typename SReal,
-//    typename ColorScale, typename AlphaScale,
-//    enable_if<is_arithmetic<TReal, Min, Max, DistOnRay, CameraReal, AABBReal>,
-//              is_invocable<ColorScale, SReal>,
-//              is_invocable<AlphaScale, SReal>> = true>
-//#endif
-// auto direct_isosurface_rendering(
-//    rendering::camera<CameraReal> const&          cam,
-//    axis_aligned_bounding_box<AABBReal, 3> const& aabb,
-//    scalarfield<S, SReal, 3> const& s, TReal const t, Min const min,
-//    Max const max, DistOnRay const distance_on_ray, ColorScale&& color_scale,
-//    AlphaScale&&                                   alpha_scale,
-//    std::invoke_result_t<ColorScale, SReal> const& bg_color = {}) {
-//  return direct_isosurface_rendering(
-//      cam, aabb, [&](auto const& x) { return s(x, t); },
-//      [&](auto const& x) { return s.in_domain(x, t); }, min, max,
-//      distance_on_ray, std::forward<ColorScale>(color_scale),
-//      std::forward<AlphaScale>(alpha_scale), bg_color);
-//}
-//// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-///-
-//#ifdef __cpp_concepts
-// template <arithmetic Min, arithmetic Max, arithmetic DistOnRay,
-//          arithmetic CameraReal, typename Grid, typename ValueType,
-//          bool HasNonConstReference, regular_invocable<double> ColorScale,
-//          regular_invocable<double> AlphaScale>
-//#else
-// template <typename Min, typename Max, typename DistOnRay, typename
-// CameraReal,
-//          typename Grid, typename ValueType, bool HasNonConstReference,
-//          typename ColorScale, typename AlphaScale,
-//          enable_if<is_arithmetic<Min, Max, DistOnRay, CameraReal>,
-//                    is_invocable<ColorScale, double>,
-//                    is_invocable<AlphaScale, double>> = true>
-//#endif
-// auto direct_isosurface_rendering(
-//    rendering::camera<CameraReal> const&                                  cam,
-//    typed_grid_vertex_property_interface<Grid, ValueType, HasNonConstReference> const&
-//    prop, Min const min, Max const max, DistOnRay const distance_on_ray,
-//    ColorScale&& color_scale, AlphaScale&& alpha_scale,
-//    std::invoke_result_t<ColorScale, ValueType> const& bg_color = {}) {
-//  auto sampler = prop.template sampler<interpolation::cubic>();
-//  return direct_isosurface_rendering(
-//      cam, prop.grid().bounding_box(),
-//      [&](auto const& x) { return sampler(x); },
-//      [](auto const&) { return true; }, min, max, distance_on_ray,
-//      std::forward<ColorScale>(color_scale),
-//      std::forward<AlphaScale>(alpha_scale), bg_color);
-//}
 //==============================================================================
-}  // namespace tatooine
+}  // namespace tatooine::rendering
 //==============================================================================
 #endif

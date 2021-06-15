@@ -85,7 +85,7 @@ struct dynamic_tensor : dynamic_multidim_array<T> {
   // template <integral Size, typename RandEng = std::mt19937_64>
   // static auto randu(T min, T max, std::initializer_list<Size>&& size,
   //                  RandEng&& eng = RandEng{std::random_device{}()}) {
-  //  return this_t{random_uniform{min, max, std::forward<RandEng>(eng)},
+  //  return this_t{random::uniform{min, max, std::forward<RandEng>(eng)},
   //                std::vector<Size>(std::move(size))};
   //}
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -93,7 +93,7 @@ struct dynamic_tensor : dynamic_multidim_array<T> {
   // static auto randu(std::initializer_list<Size>&& size, T min = 0, T
   // max = 1,
   //                  RandEng&& eng = RandEng{std::random_device{}()}) {
-  //  return this_t{random_uniform{min, max, std::forward<RandEng>(eng)},
+  //  return this_t{random::uniform{min, max, std::forward<RandEng>(eng)},
   //                std::vector<Size>(std::move(size))};
   //}
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -106,7 +106,7 @@ struct dynamic_tensor : dynamic_multidim_array<T> {
   static auto randu(T const min, T const max, std::vector<Size> const& size,
                     RandEng&& eng = RandEng{std::random_device{}()}) {
     return this_t{
-        random_uniform<T, RandEng>{min, max, std::forward<RandEng>(eng)}, size};
+      random::uniform<T, RandEng>{min, max, std::forward<RandEng>(eng)}, size};
   }
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 #ifdef __cpp_concepts
@@ -118,7 +118,7 @@ struct dynamic_tensor : dynamic_multidim_array<T> {
   static auto randu(std::vector<Size> const& size, T min = 0, T max = 1,
                     RandEng&& eng = RandEng{std::random_device{}()}) {
     return this_t{
-        random_uniform<T, RandEng>{min, max, std::forward<RandEng>(eng)}, size};
+      random::uniform<T, RandEng>{min, max, std::forward<RandEng>(eng)}, size};
   }
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 #ifdef __cpp_concepts
@@ -131,7 +131,7 @@ struct dynamic_tensor : dynamic_multidim_array<T> {
   static auto randu(T min, T max, std::array<Size, N> const& size,
                     RandEng&& eng = RandEng{std::random_device{}()}) {
     return this_t{
-        random_uniform<T, RandEng>{min, max, std::forward<RandEng>(eng)}, size};
+      random::uniform<T, RandEng>{min, max, std::forward<RandEng>(eng)}, size};
   }
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 #ifdef __cpp_concepts
@@ -144,7 +144,7 @@ struct dynamic_tensor : dynamic_multidim_array<T> {
   static auto randu(std::array<Size, N> const& size, T min = 0, T max = 1,
                     RandEng&& eng = RandEng{std::random_device{}()}) {
     return this_t{
-        random_uniform<T, RandEng>{min, max, std::forward<RandEng>(eng)}, size};
+      random::uniform<T, RandEng>{min, max, std::forward<RandEng>(eng)}, size};
   }
   //----------------------------------------------------------------------------
 #ifdef __cpp_concepts
@@ -153,7 +153,7 @@ struct dynamic_tensor : dynamic_multidim_array<T> {
   template <typename Size, typename RandEng,
             enable_if<is_integral<Size>> = true>
 #endif
-  static auto rand(random_uniform<T, RandEng> const& rand,
+  static auto rand(random::uniform<T, RandEng> const& rand,
                    std::vector<Size> const&          size) {
     return this_t{rand, size};
   }
@@ -164,7 +164,7 @@ struct dynamic_tensor : dynamic_multidim_array<T> {
   template <size_t N, typename Size, typename RandEng,
             enable_if<is_integral<Size>> = true>
 #endif
-  static auto rand(random_uniform<T, RandEng> const& rand,
+  static auto rand(random::uniform<T, RandEng> const& rand,
                    std::array<Size, N> const&        size) {
     return this_t{rand, size};
   }
@@ -175,7 +175,7 @@ struct dynamic_tensor : dynamic_multidim_array<T> {
   template <typename RandEng, typename... Size,
             enable_if<is_integral<Size...>> = true>
 #endif
-  static auto rand(random_uniform<T, RandEng> const& rand,
+  static auto rand(random::uniform<T, RandEng> const& rand,
                    Size... size) {
     return this_t{rand, std::vector{static_cast<size_t>(size)...}};
   }
@@ -186,7 +186,7 @@ struct dynamic_tensor : dynamic_multidim_array<T> {
   template <typename Size, typename RandEng,
             enable_if<is_integral<Size>> = true>
 #endif
-  static auto rand(random_uniform<T, RandEng>&& rand,
+  static auto rand(random::uniform<T, RandEng>&& rand,
                    std::vector<Size> const&     size) {
     return this_t{std::move(rand), size};
   }
@@ -197,7 +197,7 @@ struct dynamic_tensor : dynamic_multidim_array<T> {
   template <size_t N, typename Size, typename RandEng,
             enable_if<is_integral<Size>> = true>
 #endif
-  static auto rand(random_uniform<T, RandEng>&& rand,
+  static auto rand(random::uniform<T, RandEng>&& rand,
                    std::array<Size, N> const&   size) {
     return this_t{std::move(rand), size};
   }
@@ -208,7 +208,7 @@ struct dynamic_tensor : dynamic_multidim_array<T> {
   template <typename RandEng, typename... Size,
             enable_if<is_integral<Size...>> = true>
 #endif
-  static auto rand(random_uniform<T, RandEng>&& rand, Size... size) {
+  static auto rand(random::uniform<T, RandEng>&& rand, Size... size) {
     return this_t{std::move(rand), std::vector{static_cast<size_t>(size)...}};
   }
   //----------------------------------------------------------------------------
@@ -218,7 +218,7 @@ struct dynamic_tensor : dynamic_multidim_array<T> {
   template <typename Size, typename RandEng,
             enable_if<is_integral<Size>> = true>
 #endif
-  static auto rand(random_normal<T, RandEng> const& rand,
+  static auto rand(random::normal<T, RandEng> const& rand,
                    std::vector<Size> const&         size) {
     return this_t{rand, size};
   }
@@ -229,7 +229,7 @@ struct dynamic_tensor : dynamic_multidim_array<T> {
   template <size_t N, typename Size, typename RandEng,
             enable_if<is_integral<Size>> = true>
 #endif
-  static auto rand(random_normal<T, RandEng> const& rand,
+  static auto rand(random::normal<T, RandEng> const& rand,
                    std::array<Size, N> const&       size) {
     return this_t{rand, size};
   }
@@ -240,7 +240,7 @@ struct dynamic_tensor : dynamic_multidim_array<T> {
   template <typename RandEng, typename... Size,
             enable_if<is_integral<Size...>> = true>
 #endif
-  static auto rand(random_normal<T, RandEng> const& rand,
+  static auto rand(random::normal<T, RandEng> const& rand,
                    Size... size) {
     return this_t{rand, std::vector{static_cast<size_t>(size)...}};
   }
@@ -251,7 +251,7 @@ struct dynamic_tensor : dynamic_multidim_array<T> {
   template <typename Size, typename RandEng,
             enable_if<is_integral<Size>> = true>
 #endif
-  static auto rand(random_normal<T, RandEng>&& rand,
+  static auto rand(random::normal<T, RandEng>&& rand,
                    std::vector<Size> const&    size) {
     return this_t{std::move(rand), size};
   }
@@ -262,7 +262,7 @@ struct dynamic_tensor : dynamic_multidim_array<T> {
   template <size_t N, typename Size, typename RandEng,
             enable_if<is_integral<Size>> = true>
 #endif
-  static auto rand(random_normal<T, RandEng>&& rand,
+  static auto rand(random::normal<T, RandEng>&& rand,
                    std::array<Size, N> const&  size) {
     return this_t{std::move(rand), size};
   }
@@ -273,7 +273,7 @@ struct dynamic_tensor : dynamic_multidim_array<T> {
   template <typename RandEng, typename... Size,
             enable_if<is_integral<Size...>> = true>
 #endif
-  static auto rand(random_normal<T, RandEng>&& rand, Size... size) {
+  static auto rand(random::normal<T, RandEng>&& rand, Size... size) {
     return this_t{std::move(rand), std::vector{static_cast<size_t>(size)...}};
   }
   //----------------------------------------------------------------------------

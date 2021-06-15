@@ -23,13 +23,13 @@ TEST_CASE("tensor_initializers", "[tensor][initializers]") {
     m3o.for_indices([&m3o](auto const... is) { CHECK(m3o(is...) == 1); });
     mat3 m3f{tag::fill{3}};
     m3f.for_indices([&m3f](auto const... is) { CHECK(m3f(is...) == 3); });
-    mat3 m3ru{random_uniform{}};
-    mat3 m3rn{random_normal{}};
+    mat3 m3ru{random::uniform{}};
+    mat3 m3rn{random::normal{}};
   }
 }
 //==============================================================================
 TEST_CASE("tensor_print_matrix", "[tensor][print][matrix]") {
-  // std::cerr << mat<int, 3, 3>{random_uniform{0, 9}} << '\n';
+  // std::cerr << mat<int, 3, 3>{random::uniform{0, 9}} << '\n';
 }
 //==============================================================================
 TEST_CASE("tensor_assignment", "[tensor][assignment]") {

@@ -27,7 +27,7 @@ struct magma : grid<linspace<Real>> {
       typename parent_t::template typed_vertex_property_interface_t<
           ValueType, HasNonConstReference>;
   using prop_t    = typed_vertex_property_interface_t<col_t, true>;
-  using sampler_t = sampler<prop_t, interpolation::linear>;
+  using sampler_t = grid_vertex_property_sampler<prop_t, interpolation::linear>;
   //==============================================================================
   prop_t&   m_scale_prop;
   sampler_t m_sampler;
