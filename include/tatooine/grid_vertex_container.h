@@ -137,7 +137,7 @@ struct grid_vertex_container {
   auto iterate_indices(Iteration&& iteration, tag::parallel_t,
                        std::index_sequence<Ds...>) const -> decltype(auto) {
     return for_loop(std::forward<Iteration>(iteration), tag::parallel,
-                    size<Ds>()...);
+                    m_grid.template size<Ds>()...);
   }
   //----------------------------------------------------------------------------
  public:

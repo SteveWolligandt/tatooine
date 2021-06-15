@@ -50,7 +50,7 @@ auto direct_iso_tornado() {
 //==============================================================================
 }  // namespace tatooine::examples
 //==============================================================================
-auto main(int argc, char const** argv) -> int {
+auto main() -> int {
   using namespace tatooine::examples;
   direct_iso_tornado();
 }

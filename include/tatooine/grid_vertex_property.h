@@ -685,7 +685,7 @@ struct differentiated_typed_grid_vertex_property {
               dim, positive_offset - negative_offset + 1, -negative_offset,
               index);
           indices[dim] += negative_offset;
-          for (size_t i = 0; i < positive_offset - negative_offset + 1;
+          for (size_t i = 0; i < size_t(positive_offset - negative_offset + 1);
                ++i, ++indices[dim]) {
             d.template slice<value_type::rank() - 1>(dim) +=
                 m_prop(indices) * coeffs[i];

@@ -34,12 +34,12 @@ struct aabb_ray_intersectable_parent : ray_intersectable<Real, N> {
       -> optional_intersection_t override {
     auto const& aabb = as_aabb();
     enum Quadrant { right, left, middle };
-    vec<Real, N>            coord;
-    bool                    inside = true;
-    std::array<Quadrant, N> quadrant;
-    size_t                  which_plane;
-    std::array<Real, N>     max_t;
-    std::array<Real, N>     candidate_plane;
+    auto coord           = vec<Real, N>{};
+    auto inside          = true;
+    auto quadrant        = make_array<Quadrant, N>();
+    auto which_plane     = size_t(0);
+    auto max_t           = make_array<Real, N>();
+    auto candidate_plane = make_array<Real, N>();
 
     // Find candidate planes; this loop can be avoided if rays cast all from the
     // eye(assume perpsective view)
