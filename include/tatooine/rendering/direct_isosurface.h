@@ -180,14 +180,14 @@ auto direct_isosurface(camera<CameraReal> const&     cam,
         cell_data[indexing(0, 1, 1)] = field(i0[0], i1[1], i1[2]);
         cell_data[indexing(1, 1, 1)] = field(i1[0], i1[1], i1[2]);
       } else {
-        cell_data[indexing(0, 0, 0)] = field(g(i0[0], i0[1], i0[2]));
-        cell_data[indexing(1, 0, 0)] = field(g(i1[0], i0[1], i0[2]));
-        cell_data[indexing(0, 1, 0)] = field(g(i0[0], i1[1], i0[2]));
-        cell_data[indexing(1, 1, 0)] = field(g(i1[0], i1[1], i0[2]));
-        cell_data[indexing(0, 0, 1)] = field(g(i0[0], i0[1], i1[2]));
-        cell_data[indexing(1, 0, 1)] = field(g(i1[0], i0[1], i1[2]));
-        cell_data[indexing(0, 1, 1)] = field(g(i0[0], i1[1], i1[2]));
-        cell_data[indexing(1, 1, 1)] = field(g(i1[0], i1[1], i1[2]));
+        cell_data[indexing(0, 0, 0)] = field(g.vertex_at(i0[0], i0[1], i0[2]));
+        cell_data[indexing(1, 0, 0)] = field(g.vertex_at(i1[0], i0[1], i0[2]));
+        cell_data[indexing(0, 1, 0)] = field(g.vertex_at(i0[0], i1[1], i0[2]));
+        cell_data[indexing(1, 1, 0)] = field(g.vertex_at(i1[0], i1[1], i0[2]));
+        cell_data[indexing(0, 0, 1)] = field(g.vertex_at(i0[0], i0[1], i1[2]));
+        cell_data[indexing(1, 0, 1)] = field(g.vertex_at(i1[0], i0[1], i1[2]));
+        cell_data[indexing(0, 1, 1)] = field(g.vertex_at(i0[0], i1[1], i1[2]));
+        cell_data[indexing(1, 1, 1)] = field(g.vertex_at(i1[0], i1[1], i1[2]));
       }
 
       // check if isosurface is present in current cell
@@ -207,8 +207,8 @@ auto direct_isosurface(camera<CameraReal> const&     cam,
              cell_data[indexing(1, 0, 1)] < isovalue &&
              cell_data[indexing(1, 1, 0)] < isovalue &&
              cell_data[indexing(1, 1, 1)] < isovalue))) {
-        auto const  x0 = g(i0[0], i0[1], i0[2]);
-        auto const  x1 = g(i1[0], i1[1], i1[2]);
+        auto const  x0 = g.vertex_at(i0[0], i0[1], i0[2]);
+        auto const  x1 = g.vertex_at(i1[0], i1[1], i1[2]);
         auto const& xa = r.origin();
         auto const& xb = r.direction();
 
