@@ -2,7 +2,9 @@
 #define TATOOINE_LINE_H
 //==============================================================================
 #include <tatooine/demangling.h>
+#include <tatooine/finite_differences_coefficients.h>
 #include <tatooine/handle.h>
+#include <tatooine/interpolation.h>
 #include <tatooine/line_vertex_container.h>
 #include <tatooine/linspace.h>
 #include <tatooine/property.h>
@@ -20,6 +22,9 @@
 //==============================================================================
 namespace tatooine {
 //============================================================================
+template <typename Real, size_t N, typename T,
+          template <typename> typename InterpolationKernel>
+struct line_vertex_property_sampler;
 template <typename Real, size_t N>
 struct line {
   struct empty_exception : std::exception {};
@@ -39,18 +44,20 @@ struct line {
   };
 
   using vertex_container_t =
-      line_vertex_container<this_t, Real, N, vertex_handle, pos_t>;
-  friend struct line_vertex_container<this_t, Real, N, vertex_handle, pos_t>;
-  using const_vertex_container_t =
-      const_line_vertex_container<this_t, Real, N, vertex_handle, pos_t>;
-  friend struct const_line_vertex_container<this_t, Real, N, vertex_handle,
-                                            pos_t>;
+      line_vertex_container<Real, N, vertex_handle>;
+  friend struct line_vertex_container<Real, N, vertex_handle>;
 
   template <typename T>
   using vertex_property_t = deque_property_impl<vertex_handle, T>;
   using vertex_property_container_t =
       std::map<std::string, std::unique_ptr<deque_property<vertex_handle>>>;
 
+  using parameterization_property_t = vertex_property_t<Real>;
+  using tangent_property_t = vertex_property_t<vec<Real, N>>;
+
+  template <typename T, template <typename> typename InterpolationKernel>
+  using vertex_property_sampler_t =
+      line_vertex_property_sampler<Real, N, T, InterpolationKernel>;
   //============================================================================
   // static methods
   //============================================================================
@@ -64,7 +71,9 @@ struct line {
   bool            m_is_closed = false;
 
  protected:
-  vertex_property_container_t m_vertex_properties;
+  vertex_property_container_t  m_vertex_properties;
+  parameterization_property_t* m_parameterization_property = nullptr;
+  tangent_property_t*          m_tangent_property          = nullptr;
 
   //============================================================================
  public:
@@ -74,6 +83,14 @@ struct line {
       : m_vertices{other.m_vertices}, m_is_closed{other.m_is_closed} {
     for (auto& [name, prop] : other.m_vertex_properties) {
       m_vertex_properties[name] = prop->clone();
+    }
+    if (other.m_parameterization_property) {
+      m_parameterization_property =
+          &vertex_property<Real>("parameterization");
+    }
+    if (other.m_tangent_property) {
+      m_tangent_property =
+          &vertex_property<vec<Real, N>>("tangents");
     }
   }
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -85,6 +102,13 @@ struct line {
     m_vertex_properties.clear();
     for (auto& [name, prop] : other.m_vertex_properties) {
       m_vertex_properties[name] = prop->clone();
+    }
+    if (other.m_parameterization_property) {
+      m_parameterization_property = &vertex_property<Real>("parameterization");
+    }
+    if (other.m_tangent_property) {
+      m_tangent_property =
+          &vertex_property<vec<Real, N>>("tangents");
     }
     return *this;
   }
@@ -233,10 +257,49 @@ struct line {
     return vertex_handle{0};
   }
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-  void pop_front() { m_vertices.pop_front(); }
+  auto pop_front() { m_vertices.pop_front(); }
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-  auto vertices() const { return const_vertex_container_t{this}; }
-  auto vertices() { return vertex_container_t{this}; }
+  auto vertices() const { return vertex_container_t{*this}; }
+  //----------------------------------------------------------------------------
+  template <template <typename> typename InterpolationKernel>
+  auto sampler() const {
+    return vertex_property_sampler_t<this_t, InterpolationKernel>{*this, *this};
+  }
+  //----------------------------------------------------------------------------
+  auto linear_sampler() const { return sampler<interpolation::linear>(); }
+  //----------------------------------------------------------------------------
+  auto cubic_sampler() const { return sampler<interpolation::cubic>(); }
+  //----------------------------------------------------------------------------
+  template <template <typename> typename InterpolationKernel, typename T>
+  auto sampler(vertex_property_t<T> const& prop) const {
+    return vertex_property_sampler_t<vertex_property_t<T>, InterpolationKernel>{
+        *this, prop};
+  }
+  //----------------------------------------------------------------------------
+  template <typename T>
+  auto linear_sampler(vertex_property_t<T> const& prop) const {
+    return sampler<interpolation::linear>(prop);
+  }
+  //----------------------------------------------------------------------------
+  template < typename T>
+  auto cubic_sampler(vertex_property_t<T> const& prop) const {
+    return sampler<interpolation::cubic>(prop);
+  }
+  //----------------------------------------------------------------------------
+  template <template <typename> typename InterpolationKernel, typename T>
+  auto vertex_property_sampler(std::string const& name) const {
+    return sampler<InterpolationKernel>(vertex_property<T>(name));
+  }
+  //----------------------------------------------------------------------------
+  template <typename T>
+  auto linear_vertex_property_sampler(std::string const& name) const {
+    return vertex_property_sampler<interpolation::linear, T>(name);
+  }
+  //----------------------------------------------------------------------------
+  template <typename T>
+  auto cubic_vertex_property_sampler(std::string const& name) const {
+    return vertex_property_sampler<interpolation::cubic, T>(name);
+  }
   //============================================================================
   auto arc_length() const {
     Real len = 0;
@@ -398,13 +461,110 @@ struct line {
     return m_vertex_properties.find(name) != end(m_vertex_properties);
   }
   //----------------------------------------------------------------------------
-  void write(std::string const& file);
+  auto tangents() -> auto& {
+    if (!m_tangent_property) {
+      m_tangent_property =
+          &insert_vertex_property<vec<Real, N>>("tangents");
+    }
+    return *m_tangent_property;
+  }
+  // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+  auto tangents() const -> auto const& {
+    if (!m_tangent_property) {
+      throw std::runtime_error{"no tangent property present"};
+    }
+    return *m_tangent_property;
+  }
   //----------------------------------------------------------------------------
-  static void write(std::vector<line<Real, N>> const& line_set,
-                    std::string const&                file);
+  auto compute_tangents(size_t const stencil_size = 3) {
+    auto &t = parameterization();
+    auto &tang = tangents();
+    auto const half = stencil_size / 2;
+
+    for (auto const v : vertices()) {
+      auto       lv         = half > v.i ? vertex_handle{0} : v - half;
+      auto const rv         = lv.i + stencil_size - 1 >= num_vertices()
+                                  ? vertex_handle{num_vertices() - 1}
+                                  : lv + stencil_size - 1;
+      auto const rpotential = stencil_size - (rv.i - lv.i + 1);
+      lv = rpotential > lv.i ? vertex_handle{0} : lv - rpotential;
+
+      std::vector<real_t> ts(stencil_size);
+      size_t              i = 0;
+      for (auto vi = lv; vi <= rv; ++vi, ++i) {
+        ts[i] = t[vi] - t[v];
+      }
+      auto coeffs = finite_differences_coefficients(1, ts);
+      tang[v]     = vec<Real, N>::zeros();
+      i           = 0;
+      for (auto vi = lv; vi <= rv; ++vi, ++i) {
+        tang[v] += vertex_at(vi) * coeffs[i];
+      }
+    }
+  }
   //----------------------------------------------------------------------------
-  void write_vtk(std::string const& path,
-                 std::string const& title = "tatooine line") const {
+  auto parameterization() -> auto& {
+    if (!m_parameterization_property) {
+      m_parameterization_property =
+          &insert_vertex_property<Real>("parameterization");
+    }
+    return *m_parameterization_property;
+  }
+  // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+  auto parameterization() const -> auto const& {
+    if (!m_parameterization_property) {
+      throw std::runtime_error{"no parameterization property present"};
+    }
+    return *m_parameterization_property;
+  }
+  // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+  auto compute_uniform_parameterization(Real const t0 = 0) -> void {
+    auto& t = parameterization();
+    t[vertices().front()]    = t0;
+    for (size_t i = 1; i < this->num_vertices(); ++i) {
+      t[vertex_handle{i}] = t[vertex_handle{i - 1}] + 1;
+    }
+  }
+  // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+  auto compute_chordal_parameterization(Real const t0 = 0) -> void {
+    auto& t               = parameterization();
+    t[vertices().front()] = t0;
+    for (size_t i = 1; i < this->num_vertices(); ++i) {
+      t[vertex_handle{i}] =
+          t[vertex_handle{i - 1}] + distance(vertex_at(i), vertex_at(i - 1));
+    }
+  }
+  // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+  auto compute_centripetal_parameterization(Real const t0 = 0) -> void {
+    auto& t               = parameterization();
+    t[vertices().front()] = t0;
+    for (size_t i = 1; i < this->num_vertices(); ++i) {
+      t[vertex_handle{i}] = t[vertex_handle{i - 1}] +
+                            std::sqrt(distance(vertex_at(i), vertex_at(i - 1)));
+    }
+  }
+  // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+  auto compute_parameterization(Real const t0 = 0) -> void {
+    compute_centripetal_parameterization(t0);
+  }
+  // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+  auto normalize_parameterization() -> void {
+    auto&      t    = parameterization();
+    auto const min  = t[vertices().front()];
+    auto const max  = t[vertices().back()];
+    auto const norm = 1 / (max - min);
+    for (auto const v : vertices()) {
+      t[v] = (t[v] - min) * norm;
+    }
+  }
+  //----------------------------------------------------------------------------
+  auto write(std::string const& file) -> void;
+  //----------------------------------------------------------------------------
+  static auto write(std::vector<line<Real, N>> const& line_set,
+                    std::string const&                file) -> void;
+  //----------------------------------------------------------------------------
+  auto write_vtk(std::string const& path,
+                 std::string const& title = "tatooine line") const -> void {
     vtk::legacy_file_writer writer(path, vtk::dataset_type::polydata);
     if (writer.is_open()) {
       writer.set_title(title);
@@ -413,7 +573,8 @@ struct line {
       // write points
       std::vector<std::array<Real, 3>> ps;
       ps.reserve(this->num_vertices());
-      for (auto const& p : vertices()) {
+      for (auto const& v : vertices()) {
+        auto const& p = at(v);
         if constexpr (N == 3) {
           ps.push_back({p(0), p(1), p(2)});
         } else {
@@ -460,9 +621,9 @@ struct line {
   }
   //----------------------------------------------------------------------------
   template <typename T>
-  static void write_prop_to_vtk(
+  static auto write_prop_to_vtk(
       vtk::legacy_file_writer& writer, std::string const& name,
-      std::unique_ptr<deque_property<vertex_handle>> const& prop) {
+      std::unique_ptr<deque_property<vertex_handle>> const& prop) -> void {
     auto const& deque =
         dynamic_cast<vertex_property_t<T>*>(prop.get())->container();
 
@@ -475,7 +636,7 @@ struct line {
 #else
   template <size_t _N = num_dimensions(), enable_if<(_N == 3)> = true>
 #endif
-      static auto read_vtk(std::string const& filepath) {
+  static auto read_vtk(std::string const& filepath) {
     struct reader : vtk::legacy_file_listener {
       std::vector<std::array<Real, 3>> points;
       std::vector<int>                 lines;
@@ -553,4 +714,5 @@ std::vector<line<Real, N>> line<Real, N>::filter(Pred&& pred) const {
 }  // namespace tatooine
 //==============================================================================
 #include <tatooine/line_operations.h>
+#include <tatooine/line_vertex_property_sampler.h>
 #endif

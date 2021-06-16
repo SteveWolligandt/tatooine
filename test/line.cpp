@@ -36,22 +36,68 @@ TEST_CASE("line_push_front", "[line][push_front]") {
   REQUIRE(approx_equal(l.vertex_at(0), vec{2, 0}, 0));
 }
 //==============================================================================
-TEST_CASE("line_tangent_container", "[line][property]") {
+TEST_CASE("line_property", "[line][property]") {
   line2 l;
   l.push_front(vec{0, 0});
   l.push_front(vec{1, 1});
   l.push_front(vec{2, 0});
   auto &prop = l.scalar_vertex_property("prop");
+  using handle    = line2::vertex_handle;
+  prop[handle{0}] = 1;
+  prop[handle{1}] = 2;
+  prop[handle{2}] = 3;
 }
-////==============================================================================
-//TEST_CASE("line_tangent_container", "[line][tangents][container]") {
-//  line<double, 2> l;
-//  l.push_front(vec{0, 0});
-//  l.push_front(vec{1, 1});
-//  l.push_front(vec{2, 0});
-//  std::vector<vec<double, 2>> tangents(3);
-//  boost::copy(l.tangents(), begin(tangents));
-//}
+//==============================================================================
+TEST_CASE_METHOD(line2, "line_tangents", "[line][tangents]") {
+  push_back(vec2{0, 0});
+  push_back(vec2{1, 1});
+  push_back(vec2{2, 0});
+  compute_parameterization();
+  normalize_parameterization();
+  compute_tangents();
+}
+//==============================================================================
+TEST_CASE_METHOD(line2, "line_linear_sampler", "[line][linear][sampler]") {
+  push_back(vec2{0, 0});
+  push_back(vec2{1, 1});
+  push_back(vec2{2, 0});
+  compute_uniform_parameterization();
+  auto const x = linear_sampler();
+  REQUIRE(approx_equal(x(0.0), vec2{0, 0}));
+  REQUIRE(approx_equal(x(0.5), vec2{0.5, 0.5}));
+  REQUIRE(approx_equal(x(0.75), vec2{0.75, 0.75}));
+  REQUIRE(approx_equal(x(1.0), vec2{1, 1}));
+  REQUIRE(approx_equal(x(2.0), vec2{2, 0}));
+}
+//==============================================================================
+TEST_CASE_METHOD(line2, "line_cubic_sampler", "[line][cubic][sampler]") {
+  push_back(vec2{0, 0});
+  push_back(vec2{1, 1});
+  push_back(vec2{2, 0});
+  auto &prop      = scalar_vertex_property("prop");
+  using handle    = line2::vertex_handle;
+  prop[handle{0}] = 1;
+  prop[handle{1}] = 2;
+  prop[handle{2}] = 30;
+  compute_uniform_parameterization();
+  auto const prop_sampler = cubic_sampler(prop);
+  auto const x            = cubic_sampler();
+  REQUIRE(approx_equal(x(0.0), vec2{0, 0}));
+  REQUIRE(approx_equal(x(1.0), vec2{1, 1}));
+  REQUIRE(approx_equal(x(2.0), vec2{2, 0}));
+  auto  resampled      = line2{};
+  auto &resampled_prop = resampled.scalar_vertex_property("prop");
+  auto  v              = resampled.vertices().begin();
+  for (auto const t : linspace{0.0, 2.0, 100}) {
+    resampled.push_back(x(t));
+    resampled_prop[*v] = prop_sampler(t);
+      ++v;
+  }
+  resampled.compute_parameterization();
+  resampled.normalize_parameterization();
+  resampled.compute_tangents();
+  resampled.write_vtk("line_position_cubic_resampled.vtk");
+}
 ////==============================================================================
 //TEST_CASE("line_parameterized_initialization",
 //          "[line][parameterization][initialization]") {

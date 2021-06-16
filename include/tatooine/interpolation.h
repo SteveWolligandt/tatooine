@@ -9,7 +9,7 @@
 #include <utility>
 
 #include <tatooine/polynomial.h>
-#include <tatooine/polynomial_line.h>
+//#include <tatooine/polynomial_line.h>
 #include <tatooine/tensor.h>
 //==============================================================================
 namespace tatooine::interpolation {
@@ -77,15 +77,14 @@ struct linear<tensor<Real, N>> {
   static constexpr size_t num_derivatives = 0;
   using real_t                            = Real;
   using vec_t                             = vec<Real, N>;
-  using polynomial_line_t                 = polynomial_line<Real, N, 1>;
-  static constexpr size_t num_dimensions() {
-    return N;
-  }
+  using polynomial_t                      = polynomial<Real, 1>;
+  using polynomial_array_t                = std::array<polynomial_t, N>;
+  static constexpr size_t num_dimensions() { return N; }
   //----------------------------------------------------------------------------
   // members
   //----------------------------------------------------------------------------
  public:
-  polynomial_line_t m_curve;
+  polynomial_array_t m_polynomials;
   //----------------------------------------------------------------------------
   // ctors
   //----------------------------------------------------------------------------
@@ -98,17 +97,18 @@ struct linear<tensor<Real, N>> {
   template <size_t... Is>
   constexpr linear(Real const t0, Real const t1, const vec_t& ft0,
                    const vec_t& ft1, std::index_sequence<Is...> /*seq*/)
-      : m_curve{polynomial{(ft0(Is) * t1 - ft1(Is) * t0) / (t1 - t0),
-                           (ft1(Is) - ft0(Is)) / (t1 - t0)}...} {}
+      : m_polynomials{polynomial_t{(ft0(Is) * t1 - ft1(Is) * t0) / (t1 - t0),
+                                   (ft1(Is) - ft0(Is)) / (t1 - t0)}...} {}
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-  constexpr linear(Real const t0, Real const t1,const vec_t& ft0, const vec_t& ft1)
+  constexpr linear(Real const t0, Real const t1, const vec_t& ft0,
+                   const vec_t& ft1)
       : linear{t0, t1, ft0, ft1, std::make_index_sequence<N>{}} {}
 
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
   template <size_t... Is>
   constexpr linear(const vec_t& ft0, const vec_t& ft1,
                    std::index_sequence<Is...> /*seq*/)
-      : m_curve{polynomial{ft0(Is), ft1(Is) - ft0(Is)}...} {}
+      : m_polynomials{polynomial_t{ft0(Is), ft1(Is) - ft0(Is)}...} {}
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
   constexpr linear(const vec_t& ft0, const vec_t& ft1)
       : linear{ft0, ft1, std::make_index_sequence<N>{}} {}
@@ -116,20 +116,21 @@ struct linear<tensor<Real, N>> {
   //----------------------------------------------------------------------------
   // methods
   //----------------------------------------------------------------------------
+  template <size_t ... Is>
+  constexpr auto evaluate(Real t, std::index_sequence<Is...>/*seq*/) const {
+    return vec{m_polynomials[Is](t)...};
+  }
   constexpr auto evaluate(Real t) const {
-    return m_curve(t);
+    return evaluate(t, std::make_index_sequence<N>{});
   }
   constexpr auto operator()(Real t) const {
-    return evaluate(t);
+    return evaluate(t, std::make_index_sequence<N>{});
   }
   //----------------------------------------------------------------------------
-  const auto& curve() const {
-    return m_curve;
-  }
-  auto& curve() {
-    return m_curve;
-  }
+  auto polynomial() const -> const auto& { return m_polynomials; }
+  auto polynomial() -> auto& { return m_polynomials; }
 };
+// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 template <typename Real, size_t N>
 struct linear<vec<Real, N>> : linear<tensor<Real, N>> {
   using linear<tensor<Real, N>>::linear;
@@ -187,7 +188,8 @@ struct cubic<tensor<Real, N>> {
   static constexpr size_t num_derivatives = 1;
   using real_t                            = Real;
   using vec_t                             = vec<Real, N>;
-  using polynomial_line_t                 = polynomial_line<Real, N, 3>;
+  using polynomial_t                      = polynomial<Real, 3>;
+  using polynomial_array_t                = std::array<polynomial_t, N>;
   static constexpr size_t num_dimensions() {
     return N;
   }
@@ -195,7 +197,7 @@ struct cubic<tensor<Real, N>> {
   // members
   //----------------------------------------------------------------------------
  public:
-  polynomial_line_t m_curve;
+  polynomial_array_t m_polynomials;
   //----------------------------------------------------------------------------
   // ctors
   //----------------------------------------------------------------------------
@@ -209,7 +211,7 @@ struct cubic<tensor<Real, N>> {
   template <size_t... Is>
   constexpr cubic(const vec_t& ft0, const vec_t& ft1, const vec_t& dft0_dt,
                   const vec_t& dft1_dt, std::index_sequence<Is...> /*seq*/)
-      : m_curve{polynomial{
+      : m_polynomials{polynomial_t{
             ft0(Is), dft0_dt(Is),
             3 * ft1(Is) - 3 * ft0(Is) - dft1_dt(Is) - 2 * dft0_dt(Is),
             -2 * ft1(Is) + 2 * ft0(Is) + dft1_dt(Is) + dft0_dt(Is)}...} {}
@@ -233,26 +235,26 @@ struct cubic<tensor<Real, N>> {
                             {0.0, 1.0, 2 * t1, 3 * t1 * t1}};
     const auto            C = solve(A, B);
     for (size_t i = 0; i < N; ++i) {
-      m_curve.polynomial(i).set_coefficients(C(0, i), C(1, i), C(2, i),
+      m_polynomials[i].set_coefficients(C(0, i), C(1, i), C(2, i),
                                              C(3, i));
     }
   }
   //----------------------------------------------------------------------------
   // methods
   //----------------------------------------------------------------------------
+  template <size_t ... Is>
+  constexpr auto evaluate(Real t, std::index_sequence<Is...>/*seq*/) const {
+    return vec{m_polynomials[Is](t)...};
+  }
   constexpr auto evaluate(Real t) const {
-    return m_curve(t);
+    return evaluate(t, std::make_index_sequence<N>{});
   }
   constexpr auto operator()(Real t) const {
-    return evaluate(t);
+    return evaluate(t, std::make_index_sequence<N>{});
   }
   //----------------------------------------------------------------------------
-  const auto& curve() const {
-    return m_curve;
-  }
-  auto& curve() {
-    return m_curve;
-  }
+  auto polynomial() const -> const auto& { return m_polynomials; }
+  auto polynomial() -> auto& { return m_polynomials; }
 };
 //------------------------------------------------------------------------------
 template <typename Real, size_t N>
@@ -339,116 +341,116 @@ struct quintic {
   }
 };
 //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-#ifdef __cpp_concepts
-template <arithmetic Real, size_t N>
-#else
-template <typename Real, size_t N>
-#endif
-struct quintic<tensor<Real, N>> {
-  //----------------------------------------------------------------------------
-  // traits
-  //----------------------------------------------------------------------------
- public:
-  static constexpr size_t num_derivatives = 1;
-  using real_t                            = Real;
-  using vec_t                             = vec<Real, N>;
-  using polynomial_line_t                 = polynomial_line<Real, N, 3>;
-  static constexpr size_t num_dimensions() {
-    return N;
-  }
-  //----------------------------------------------------------------------------
-  // members
-  //----------------------------------------------------------------------------
- public:
-  polynomial_line_t m_curve;
-  //----------------------------------------------------------------------------
-  // ctors
-  //----------------------------------------------------------------------------
-  constexpr quintic()               = default;
-  constexpr quintic(const quintic&) = default;
-  constexpr quintic(quintic&&)      = default;
-  constexpr quintic& operator=(const quintic&) = default;
-  constexpr quintic& operator=(quintic&&) = default;
-  //-----------------------------------------------------------------------------
- private:
-  template <size_t... Is>
-  constexpr quintic(const vec_t& ft0, const vec_t& ft1, const vec_t& dft0_dt,
-                    const vec_t& dft1_dt, const Real ddft0_dtt,
-                    const Real ddft1_dtt, std::index_sequence<Is...> /*seq*/)
-      : m_curve{polynomial{
-            ft0(Is), dft0_dt(Is), ddft0_dtt(Is) / 2,
-            (20 * ft1(Is) - 20 * ft0(Is) - 8 * dft1_dt(Is) - 12 * dft0_dt(Is) +
-             ddft1_dtt(Is) - 3 * ddft0_dtt(Is)) /
-                2,
-            -(30 * ft1(Is) - 30 * ft0(Is) - 14 * dft1_dt(Is) -
-              16 * dft0_dt(Is) + 2 * ddft1_dtt(Is) - 3 * ddft0_dtt(Is)) /
-                2,
-            (12 * ft1(Is) - 12 * ft0(Is) - 6 * dft1_dt(Is) - 6 * dft0_dt(Is) +
-             ddft1_dtt(Is) - ddft0_dtt(Is)) /
-                2}...} {}
-  // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
- public:
-  constexpr quintic(const Real ft0, const Real ft1, const Real dft0_dt,
-                    const Real dft1_dt, const Real ddft0_dtt,
-                    const Real ddft1_dtt)
-      : quintic{ft0,
-                ft1,
-                dft0_dt,
-                dft1_dt,
-                ddft0_dtt,
-                ddft1_dtt,
-                std::make_index_sequence<N>{}} {}
-  // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-  constexpr quintic(real_t const t0, real_t const t1, const vec_t& ft0,
-                    const vec_t& ft1, const vec_t& dft0_dt,
-                    const vec_t& dft1_dt, const vec_t& ddft0_dtt,
-                    const vec_t& ddft1_dtt) {
-    mat<Real, 4, N> B;
-    B.row(0) = ft0;
-    B.row(1) = ft1;
-    B.row(2) = dft0_dt;
-    B.row(3) = dft1_dt;
-    B.row(4) = ddft0_dtt;
-    B.row(5) = ddft1_dtt;
-    mat<Real, 4, 4> const A{
-        {1.0, t0, t0 * t0, t0 * t0 * t0, t0 * t0 * t0 * t0,
-         t0 * t0 * t0 * t0 * t0},
-        {1.0, t1, t1 * t1, t1 * t1 * t1, t1 * t1 * t1 * t1,
-         t1 * t1 * t1 * t1 * t1},
-        {0.0, 1.0, 2 * t0, 3 * t0 * t0, 4 * t0 * t0 * t0,
-         5 * t0 * t0 * t0 * t0},
-        {0.0, 1.0, 2 * t1, 3 * t1 * t1, 4 * t1 * t1 * t1,
-         5 * t1 * t1 * t1 * t1},
-        {0.0, 0.0, 2.0, 6 * t0, 12 * t0 * t0, 20 * t0 * t0 * t0},
-        {0.0, 0.0, 2.0, 6 * t1, 12 * t1 * t1, 20 * t1 * t1 * t1}};
-    const auto C = solve(A, B);
-    for (size_t i = 0; i < N; ++i) {
-      m_curve.polynomial(i).set_coefficients(C(0, i), C(1, i), C(2, i), C(3, i),
-                                             C(4, i), C(5, i));
-    }
-  }
-  //----------------------------------------------------------------------------
-  // methods
-  //----------------------------------------------------------------------------
-  constexpr auto evaluate(Real t) const {
-    return m_curve(t);
-  }
-  constexpr auto operator()(Real t) const {
-    return evaluate(t);
-  }
-  //----------------------------------------------------------------------------
-  const auto& curve() const {
-    return m_curve;
-  }
-  auto& curve() {
-    return m_curve;
-  }
-};
-//------------------------------------------------------------------------------
-template <typename Real, size_t N>
-struct quintic<vec<Real, N>> : quintic<tensor<Real, N>> {
-  using quintic<tensor<Real, N>>::quintic;
-};
+//#ifdef __cpp_concepts
+//template <arithmetic Real, size_t N>
+//#else
+//template <typename Real, size_t N>
+//#endif
+//struct quintic<tensor<Real, N>> {
+//  //----------------------------------------------------------------------------
+//  // traits
+//  //----------------------------------------------------------------------------
+// public:
+//  static constexpr size_t num_derivatives = 1;
+//  using real_t                            = Real;
+//  using vec_t                             = vec<Real, N>;
+//  using polynomial_line_t                 = polynomial_line<Real, N, 3>;
+//  static constexpr size_t num_dimensions() {
+//    return N;
+//  }
+//  //----------------------------------------------------------------------------
+//  // members
+//  //----------------------------------------------------------------------------
+// public:
+//  polynomial_line_t m_curve;
+//  //----------------------------------------------------------------------------
+//  // ctors
+//  //----------------------------------------------------------------------------
+//  constexpr quintic()               = default;
+//  constexpr quintic(const quintic&) = default;
+//  constexpr quintic(quintic&&)      = default;
+//  constexpr quintic& operator=(const quintic&) = default;
+//  constexpr quintic& operator=(quintic&&) = default;
+//  //-----------------------------------------------------------------------------
+// private:
+//  template <size_t... Is>
+//  constexpr quintic(const vec_t& ft0, const vec_t& ft1, const vec_t& dft0_dt,
+//                    const vec_t& dft1_dt, const Real ddft0_dtt,
+//                    const Real ddft1_dtt, std::index_sequence<Is...> [>seq<])
+//      : m_curve{polynomial{
+//            ft0(Is), dft0_dt(Is), ddft0_dtt(Is) / 2,
+//            (20 * ft1(Is) - 20 * ft0(Is) - 8 * dft1_dt(Is) - 12 * dft0_dt(Is) +
+//             ddft1_dtt(Is) - 3 * ddft0_dtt(Is)) /
+//                2,
+//            -(30 * ft1(Is) - 30 * ft0(Is) - 14 * dft1_dt(Is) -
+//              16 * dft0_dt(Is) + 2 * ddft1_dtt(Is) - 3 * ddft0_dtt(Is)) /
+//                2,
+//            (12 * ft1(Is) - 12 * ft0(Is) - 6 * dft1_dt(Is) - 6 * dft0_dt(Is) +
+//             ddft1_dtt(Is) - ddft0_dtt(Is)) /
+//                2}...} {}
+//  // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+// public:
+//  constexpr quintic(const Real ft0, const Real ft1, const Real dft0_dt,
+//                    const Real dft1_dt, const Real ddft0_dtt,
+//                    const Real ddft1_dtt)
+//      : quintic{ft0,
+//                ft1,
+//                dft0_dt,
+//                dft1_dt,
+//                ddft0_dtt,
+//                ddft1_dtt,
+//                std::make_index_sequence<N>{}} {}
+//  // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+//  constexpr quintic(real_t const t0, real_t const t1, const vec_t& ft0,
+//                    const vec_t& ft1, const vec_t& dft0_dt,
+//                    const vec_t& dft1_dt, const vec_t& ddft0_dtt,
+//                    const vec_t& ddft1_dtt) {
+//    mat<Real, 4, N> B;
+//    B.row(0) = ft0;
+//    B.row(1) = ft1;
+//    B.row(2) = dft0_dt;
+//    B.row(3) = dft1_dt;
+//    B.row(4) = ddft0_dtt;
+//    B.row(5) = ddft1_dtt;
+//    mat<Real, 4, 4> const A{
+//        {1.0, t0, t0 * t0, t0 * t0 * t0, t0 * t0 * t0 * t0,
+//         t0 * t0 * t0 * t0 * t0},
+//        {1.0, t1, t1 * t1, t1 * t1 * t1, t1 * t1 * t1 * t1,
+//         t1 * t1 * t1 * t1 * t1},
+//        {0.0, 1.0, 2 * t0, 3 * t0 * t0, 4 * t0 * t0 * t0,
+//         5 * t0 * t0 * t0 * t0},
+//        {0.0, 1.0, 2 * t1, 3 * t1 * t1, 4 * t1 * t1 * t1,
+//         5 * t1 * t1 * t1 * t1},
+//        {0.0, 0.0, 2.0, 6 * t0, 12 * t0 * t0, 20 * t0 * t0 * t0},
+//        {0.0, 0.0, 2.0, 6 * t1, 12 * t1 * t1, 20 * t1 * t1 * t1}};
+//    const auto C = solve(A, B);
+//    for (size_t i = 0; i < N; ++i) {
+//      m_curve.polynomial(i).set_coefficients(C(0, i), C(1, i), C(2, i), C(3, i),
+//                                             C(4, i), C(5, i));
+//    }
+//  }
+//  //----------------------------------------------------------------------------
+//  // methods
+//  //----------------------------------------------------------------------------
+//  constexpr auto evaluate(Real t) const {
+//    return m_curve(t);
+//  }
+//  constexpr auto operator()(Real t) const {
+//    return evaluate(t);
+//  }
+//  //----------------------------------------------------------------------------
+//  const auto& curve() const {
+//    return m_curve;
+//  }
+//  auto& curve() {
+//    return m_curve;
+//  }
+//};
+////------------------------------------------------------------------------------
+//template <typename Real, size_t N>
+//struct quintic<vec<Real, N>> : quintic<tensor<Real, N>> {
+//  using quintic<tensor<Real, N>>::quintic;
+//};
 //==============================================================================
 }  // namespace tatooine::interpolation
 //==============================================================================

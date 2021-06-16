@@ -1,9 +1,10 @@
 #ifndef TATOOINE_PROPERTY_H
 #define TATOOINE_PROPERTY_H
 //==============================================================================
+#include <cassert>
+#include <deque>
 #include <memory>
 #include <vector>
-#include <deque>
 //==============================================================================
 namespace tatooine {
 //==============================================================================
