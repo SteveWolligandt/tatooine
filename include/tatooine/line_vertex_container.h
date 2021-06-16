@@ -7,124 +7,35 @@ namespace tatooine {
 //==============================================================================
 template <typename Real, size_t N>
 struct line;
-//==============================================================================
-template <typename Line, typename Real, size_t N, typename Handle,
-          typename Value>
-struct const_line_vertex_container {
-  //============================================================================
-  // typedefs
-  //============================================================================
-  using iterator =
-      line_vertex_iterator<Line, Real, N, Handle, Value>;
-  using const_iterator =
-      const_line_vertex_iterator<Line, Real, N, Handle, Value>;
-
-  //============================================================================
-  // members
-  //============================================================================
-  Line const& m_line;
-
-  //============================================================================
-  // methods
-  //============================================================================
-  auto begin() const {
-    return const_iterator{Handle{0}, m_line};
-  }
-  // -  -  -  -  -  -  -  -  -  -  -  -  -  -  -  -  -  -  -  -  -  -  -  -  -
-  auto end() const {
-    return const_iterator{Handle{m_line.num_vertices()}, m_line};
-  }
-  //--------------------------------------------------------------------------
-  auto front() const -> auto const& {
-    return m_line.at(Handle{0});
-  }
-  //--------------------------------------------------------------------------
-  auto back() const -> auto const& {
-    return m_line.at(Handle{m_line.num_vertices() - 1});
-  }
-  //--------------------------------------------------------------------------
-  auto line() const -> auto const& { return m_line; }
-};
-//~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-template <typename Line, typename Real, size_t N, typename Handle,
-          typename Value>
-auto begin(const_line_vertex_container<Line, Real, N, Handle, Value> const& it) {
-  return it.begin();
-}
-// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-template <typename Line, typename Real, size_t N, typename Handle,
-          typename Value>
-auto end(const_line_vertex_container<Line, Real, N, Handle, Value> const& it) {
-  return it.begin();
-}
 //============================================================================
-template <typename Line, typename Real, size_t N, typename Handle,
-          typename Value>
+template <typename Real, size_t N, typename Handle>
 struct line_vertex_container {
   //============================================================================
   // typedefs
   //============================================================================
-  using iterator =
-      line_vertex_iterator<Line, Real, N, Handle, Value>;
-  using const_iterator =
-      const_line_vertex_iterator<Line, Real, N, Handle, Value>;
+  using iterator       = line_vertex_iterator<Real, N, Handle>;
 
   //============================================================================
   // members
   //============================================================================
-  Line& m_line;
+  line<Real, N> const& m_line;
 
   //============================================================================
   // methods
   //============================================================================
-  auto begin() const {
-    return const_iterator{Handle{0}, m_line};
-  }
-  //-  -  -  -  -  -  -  -  -  -  -  -  -  -  -  -  -  -  -  -  -  -  -  -  -  -
-  auto begin() { return iterator{Handle{0}, m_line}; }
-  //-  -  -  -  -  -  -  -  -  -  -  -  -  -  -  -  -  -  -  -  -  -  -  -  -  -
-  auto end() const {
-    return const_iterator{Handle{m_line.num_vertices()}, m_line};
-  }
-  //-  -  -  -  -  -  -  -  -  -  -  -  -  -  -  -  -  -  -  -  -  -  -  -  -  -
-  auto end() {
-    return iterator{Handle{m_line.num_vertices()}, m_line};
-  }
-  //----------------------------------------------------------------------------
-  auto front() const -> auto const&{ return m_line.at(Handle{0}); }
-  auto front() -> auto& { return m_line.at(Handle{0}); }
-  //----------------------------------------------------------------------------
-  auto back() const -> auto const&{
-    return m_line.at(Handle{m_line.num_vertices() - 1});
-  }
-  auto back() -> auto& {
-    return m_line.at(Handle{m_line.num_vertices() - 1});
-  }
+  auto begin() const { return iterator{Handle{0}}; }
+  auto end()   const { return iterator{Handle{m_line.num_vertices()}}; }
+  auto front() const { return Handle{0}; }
+  auto back()  const { return Handle{m_line.num_vertices() - 1}; }
 };
 //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-template <typename Line, typename Real, size_t N, typename Handle,
-          typename Value>
-auto begin(
-    line_vertex_container<Line, Real, N, Handle, Value> const& it) {
+template <typename Real, size_t N, typename Handle>
+auto begin(line_vertex_container<Real, N, Handle> const& it) {
   return it.begin();
 }
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-template <typename Line, typename Real, size_t N, typename Handle,
-          typename Value>
-auto begin(line_vertex_container<Line, Real, N, Handle, Value>& it) {
-  return it.begin();
-}
-// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-template <typename Line, typename Real, size_t N, typename Handle,
-          typename Value>
-auto end(
-    line_vertex_container<Line, Real, N, Handle, Value> const& it) {
-  return it.begin();
-}
-// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-template <typename Line, typename Real, size_t N, typename Handle,
-          typename Value>
-auto end(line_vertex_container<Line, Real, N, Handle, Value>& it) {
+template <typename Real, size_t N, typename Handle>
+auto end(line_vertex_container<Real, N, Handle> const& it) {
   return it.begin();
 }
 //==============================================================================

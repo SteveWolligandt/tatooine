@@ -3,7 +3,6 @@
 #define TATOOINE_CONCPETS_H
 //==============================================================================
 #include <concepts>
-#include <ranges>
 #include <tatooine/type_traits.h>
 #include <tatooine/invocable_with_n_types.h>
 //==============================================================================
