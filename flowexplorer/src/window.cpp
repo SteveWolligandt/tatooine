@@ -51,14 +51,6 @@ void window::on_key_pressed(yavin::key k) {
   parent_t::on_key_pressed(k);
   if (k == yavin::KEY_F1) {
     m_show_nodes_gui = !m_show_nodes_gui;
-  } else if (k == yavin::KEY_F2) {
-    camera_controller().use_perspective_camera();
-    camera_controller().use_fps_controller();
-  } else if (k == yavin::KEY_F3) {
-    camera_controller().use_orthographic_camera();
-    camera_controller().use_orthographic_controller();
-  } else if (k == yavin::KEY_F4) {
-    camera_controller().look_at({0, 0, 0}, {0, 0, -1});
   } else if (k == yavin::KEY_F5) {
     m_scene.write("scene.toml");
   } else if (k == yavin::KEY_F6) {
