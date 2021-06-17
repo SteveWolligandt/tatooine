@@ -15,3 +15,9 @@ target_link_libraries(example.direct_isosurface_rendering_discretized_tornado ta
 add_custom_target(example.direct_isosurface_rendering_discretized_tornado.run
                   COMMAND ./example.direct_isosurface_rendering_discretized_tornado
                   DEPENDS example.direct_isosurface_rendering_discretized_tornado)
+
+add_executable(example.rendering.line rendering/line.cpp)
+target_link_libraries(example.rendering.line tatooine)
+add_custom_target(example.rendering.line.run
+                  COMMAND ./example.rendering.line
+                  DEPENDS example.rendering.line)

@@ -38,7 +38,7 @@ struct first_person_window : yavin::window {
   }
   //----------------------------------------------------------------------------
   template <typename Event>
-  void render_loop(Event&& event) {
+  auto render_loop(Event&& event) {
     m_time = std::chrono::system_clock::now();
     while (!should_close()) {
       refresh();
@@ -53,7 +53,7 @@ struct first_person_window : yavin::window {
   }
   //----------------------------------------------------------------------------
   template <typename F>
-  void update(F&& f, std::chrono::duration<double> const& dt) {
+  auto update(F&& f, std::chrono::duration<double> const& dt) {
     m_cam.update(dt);
     f(dt);
   }
@@ -66,17 +66,32 @@ struct first_person_window : yavin::window {
     return m_cam.view_matrix();
   }
   //----------------------------------------------------------------------------
-  void on_resize(int w, int h) override {
+  auto on_resize(int w, int h) -> void override {
     parent_t::on_resize(w, h);
     m_width  = w;
     m_height = h;
     m_cam.on_resize(w, h);
   }
+  //----------------------------------------------------------------------------
   auto camera_controller() -> auto& {
     return m_cam;
   }
+  //----------------------------------------------------------------------------
   auto camera_controller() const -> auto const& {
     return m_cam;
+  }
+  //----------------------------------------------------------------------------
+  auto on_key_pressed(yavin::key k) -> void {
+    parent_t::on_key_pressed(k);
+    if (k == yavin::KEY_F2) {
+      camera_controller().use_orthographic_camera();
+      camera_controller().use_orthographic_controller();
+    } else if (k == yavin::KEY_F3) {
+      camera_controller().use_perspective_camera();
+      camera_controller().use_fps_controller();
+    } else if (k == yavin::KEY_F4) {
+      camera_controller().look_at({0, 0, 0}, {0, 0, -1});
+    }
   }
 };
 //==============================================================================

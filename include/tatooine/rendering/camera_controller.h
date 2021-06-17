@@ -241,7 +241,7 @@ struct fps_camera_controller : camera_controller_interface<Real> {
   bool         m_d_down            = false;
   bool         m_q_down            = false;
   bool         m_e_down            = false;
-
+  //----------------------------------------------------------------------------
   fps_camera_controller(camera_controller<Real>* controller)
       : camera_controller_interface<Real>{controller} {
     m_look_dir = {std::sin(m_phi) * std::sin(m_theta),
@@ -250,8 +250,8 @@ struct fps_camera_controller : camera_controller_interface<Real> {
     controller->look_at(controller->eye(), controller->eye() + m_look_dir);
   }
   virtual ~fps_camera_controller() = default;
-
-  void on_key_pressed(yavin::key k) override {
+  //----------------------------------------------------------------------------
+  auto on_key_pressed(yavin::key k) -> void override {
     if (k == yavin::KEY_W) {
       m_w_down = true;
     } else if (k == yavin::KEY_S) {
@@ -387,12 +387,13 @@ struct orthographic_camera_controller : camera_controller_interface<Real> {
     }
   }
   //----------------------------------------------------------------------------
-  void on_cursor_moved(double x, double y) override {
+  auto on_cursor_moved(double x, double y) -> void override {
     if (m_right_button_down) {
-      auto  offset_x = std::ceil(x) - m_mouse_pos_x;
-      auto  offset_y = std::ceil(y) - m_mouse_pos_y;
+      auto offset_x = std::ceil(x) - m_mouse_pos_x;
+      auto offset_y = std::ceil(y) - m_mouse_pos_y;
       auto new_eye  = controller().eye();
-      new_eye(0) -= static_cast<Real>(offset_x) * controller().orthographic_camera().aspect_ratio() /
+      new_eye(0) -= static_cast<Real>(offset_x) *
+                    controller().orthographic_camera().aspect_ratio() /
                     controller().orthographic_camera().plane_width() *
                     controller().orthographic_camera().height();
       new_eye(1) += static_cast<Real>(offset_y) /
@@ -405,7 +406,7 @@ struct orthographic_camera_controller : camera_controller_interface<Real> {
     m_mouse_pos_y = std::ceil(y);
   }
   //----------------------------------------------------------------------------
-  void on_wheel_down() override {
+  auto on_wheel_down() -> void override {
     controller().orthographic_camera().setup(
         controller().eye(), controller().lookat(), controller().up(),
         controller().orthographic_camera().height() / 0.9,
@@ -414,7 +415,7 @@ struct orthographic_camera_controller : camera_controller_interface<Real> {
         controller().plane_width(), controller().plane_height());
   }
   //----------------------------------------------------------------------------
-  void on_wheel_up() override {
+  auto on_wheel_up() -> void override {
     controller().orthographic_camera().setup(
         controller().eye(), controller().lookat(), controller().up(),
         controller().orthographic_camera().height() * 0.9,
