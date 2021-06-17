@@ -630,13 +630,14 @@ struct line {
     writer.write_scalars(name, std::vector<T>(begin(deque), end(deque)));
   }
   //----------------------------------------------------------------------------
-#ifdef __cpp_concepts
-  template <typename = void>
-  requires(num_dimensions() == 3)
-#else
-  template <size_t _N = num_dimensions(), enable_if<(_N == 3)> = true>
+#ifndef __cpp_concepts
+  template <size_t N_ = num_dimensions(), enable_if<(N_ == 3)> = true>
 #endif
-  static auto read_vtk(std::string const& filepath) {
+  static auto read_vtk(std::string const& filepath)
+#ifdef __cpp_concepts
+      requires(num_dimensions() == 3)
+#endif
+  {
     struct reader : vtk::legacy_file_listener {
       std::vector<std::array<Real, 3>> points;
       std::vector<int>                 lines;
@@ -663,20 +664,74 @@ struct line {
     }
     return lines;
   }
+  //----------------------------------------------------------------------------
   template <typename Pred>
   std::vector<line<Real, N>> filter(Pred&& pred) const;
-};
+  //----------------------------------------------------------------------------
+  template <template <typename> typename InterpolationKernel, typename T,
+            typename OtherReal>
+  auto resample_property(this_t& resampled_line, std::string const& name,
+                         vertex_property_t<T> const& prop,
+                         linspace<OtherReal> const&  resample_space) {
+    auto&      resampled_prop = resampled_line.insert_vertex_property<T>(name);
+    auto const prop_sampler   = sampler<InterpolationKernel>(prop);
+    auto       v              = resampled_line.vertices().front();
+    for (auto const t : resample_space) {
+      resampled_prop[v] = prop_sampler(t);
+      ++v;
+    }
+  }
+  //----------------------------------------------------------------------------
+  template <template <typename> typename InterpolationKernel, typename... Ts,
+            typename OtherReal>
+  auto resample_vertex_property(this_t& resampled_line, std::string const& name,
+                                deque_property<vertex_handle> const& prop,
+                                linspace<OtherReal> const& resample_space) {
+    ([&]{if (prop.type() == typeid(Ts)) {
+        resample_property<InterpolationKernel>(
+            resampled_line, name,
+            *dynamic_cast<vertex_property_t<Ts> const*>(&prop), resample_space);
+    }}(), ...);
+  }
+  //----------------------------------------------------------------------------
+  template <template <typename> typename InterpolationKernel,
+            typename OtherReal>
+  auto resample(linspace<OtherReal> const& resample_space) {
+    this_t     resampled_line;
+    auto&      p         = resampled_line.parameterization();
+    auto const positions = sampler<InterpolationKernel>();
 
+    for (auto const t : resample_space) {
+      auto const v = resampled_line.push_back(positions(t));
+      p[v]         = t;
+    }
+    for (auto const& [name, prop] : m_vertex_properties) {
+      resample_vertex_property<
+          InterpolationKernel, long double, double, float, vec<long double, 2>,
+          vec<double, 2>, vec<float, 2>, vec<long double, 3>, vec<double, 3>,
+          vec<float, 3>, vec<long double, 4>, vec<double, 4>, vec<float, 4>>(
+          resampled_line, name, *prop, resample_space);
+    }
+    return resampled_line;
+  }
+};
+//==============================================================================
+// deduction guides
+//==============================================================================
 template <typename... Tensors, typename... Reals, size_t N>
 line(base_tensor<Tensors, Reals, N>&&... vertices)
     -> line<common_type<Reals...>, N>;
-
+//==============================================================================
+// typedefs
+//==============================================================================
 template <size_t N>
 using Line  = line<real_t, N>;
 using line2 = Line<2>;
 using line3 = Line<3>;
 using line4 = Line<4>;
 using line5 = Line<5>;
+//==============================================================================
+// implementations
 //==============================================================================
 template <typename Real, size_t N>
 template <typename Pred>
