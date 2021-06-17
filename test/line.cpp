@@ -1,7 +1,6 @@
 //#include <tatooine/analytical/fields/numerical/doublegyre.h>
 //#include <tatooine/analytical/fields/numerical/sinuscosinus.h>
 //#include <tatooine/constant_vectorfield.h>
-//#include <tatooine/interpolation.h>
 #include <tatooine/line.h>
 //#include <tatooine/ode/vclibs/rungekutta43.h>
 
@@ -9,14 +8,22 @@
 //==============================================================================
 namespace tatooine::test {
 //==============================================================================
-TEST_CASE("line_push_back", "[line][push_back]") {
-  line2 l;
-  l.push_back(vec{0.0, 0.0});
-  l.push_back(vec{1.0, 1.0});
-  l.push_back(vec{2.0, 0.0});
-  REQUIRE(approx_equal(l.vertex_at(0), vec{0, 0}, 0));
-  REQUIRE(approx_equal(l.vertex_at(1), vec{1, 1}, 0));
-  REQUIRE(approx_equal(l.vertex_at(2), vec{2, 0}, 0));
+TEST_CASE_METHOD(line2, "line_push_back", "[line][push_back]") {
+  push_back(vec{0.0, 0.0});
+  push_back(vec{1.0, 1.0});
+  push_back(vec{2.0, 0.0});
+  REQUIRE(approx_equal(vertex_at(0), vec{0, 0}, 0));
+  REQUIRE(approx_equal(vertex_at(1), vec{1, 1}, 0));
+  REQUIRE(approx_equal(vertex_at(2), vec{2, 0}, 0));
+}
+//==============================================================================
+TEST_CASE_METHOD(line2, "line_push_front", "[line][push_front]") {
+  push_front(vec{0, 0});
+  push_front(vec{1, 1});
+  push_front(vec{2, 0});
+  REQUIRE(approx_equal(vertex_at(2), vec{0, 0}, 0));
+  REQUIRE(approx_equal(vertex_at(1), vec{1, 1}, 0));
+  REQUIRE(approx_equal(vertex_at(0), vec{2, 0}, 0));
 }
 //==============================================================================
 TEST_CASE("line_initializer_list", "[line][initializer_list]") {
@@ -26,26 +33,14 @@ TEST_CASE("line_initializer_list", "[line][initializer_list]") {
   REQUIRE(approx_equal(l.vertex_at(2), vec{2, 0}, 0));
 }
 //==============================================================================
-TEST_CASE("line_push_front", "[line][push_front]") {
-  line2 l;
-  l.push_front(vec{0, 0});
-  l.push_front(vec{1, 1});
-  l.push_front(vec{2, 0});
-  REQUIRE(approx_equal(l.vertex_at(2), vec{0, 0}, 0));
-  REQUIRE(approx_equal(l.vertex_at(1), vec{1, 1}, 0));
-  REQUIRE(approx_equal(l.vertex_at(0), vec{2, 0}, 0));
-}
-//==============================================================================
-TEST_CASE("line_property", "[line][property]") {
-  line2 l;
-  l.push_front(vec{0, 0});
-  l.push_front(vec{1, 1});
-  l.push_front(vec{2, 0});
-  auto &prop = l.scalar_vertex_property("prop");
-  using handle    = line2::vertex_handle;
-  prop[handle{0}] = 1;
-  prop[handle{1}] = 2;
-  prop[handle{2}] = 3;
+TEST_CASE_METHOD(line2, "line_property", "[line][property]") {
+  push_front(vec{0, 0});
+  push_front(vec{1, 1});
+  push_front(vec{2, 0});
+  auto &prop             = scalar_vertex_property("prop");
+  prop[vertex_handle{0}] = 1;
+  prop[vertex_handle{1}] = 2;
+  prop[vertex_handle{2}] = 3;
 }
 //==============================================================================
 TEST_CASE_METHOD(line2, "line_tangents", "[line][tangents]") {
@@ -91,7 +86,7 @@ TEST_CASE_METHOD(line2, "line_cubic_sampler", "[line][cubic][sampler]") {
   for (auto const t : linspace{0.0, 2.0, 100}) {
     resampled.push_back(x(t));
     resampled_prop[*v] = prop_sampler(t);
-      ++v;
+    ++v;
   }
   resampled.compute_parameterization();
   resampled.normalize_parameterization();
@@ -99,7 +94,7 @@ TEST_CASE_METHOD(line2, "line_cubic_sampler", "[line][cubic][sampler]") {
   resampled.write_vtk("line_position_cubic_resampled.vtk");
 }
 ////==============================================================================
-//TEST_CASE("line_parameterized_initialization",
+// TEST_CASE("line_parameterized_initialization",
 //          "[line][parameterization][initialization]") {
 //  parameterized_line<double, 2, interpolation::linear> l{
 //      {vec{1, 2}, 0}, {vec{2, 3}, 1}, {vec{3, 4}, 2}};
@@ -122,7 +117,7 @@ TEST_CASE_METHOD(line2, "line_cubic_sampler", "[line][cubic][sampler]") {
 //  REQUIRE(t2 == 2);
 //}
 ////==============================================================================
-//TEST_CASE("line_sampling_linear",
+// TEST_CASE("line_sampling_linear",
 //          "[line][parameterization][linear][sampling]") {
 //  vec                                                  v0{0.1, 0.2};
 //  vec                                                  v1{0.5, 0.9};
@@ -146,7 +141,7 @@ TEST_CASE_METHOD(line2, "line_cubic_sampler", "[line][cubic][sampler]") {
 //  REQUIRE_THROWS(l.sample(1.01));
 //}
 ////==============================================================================
-//TEST_CASE("line_sampling_cubic",
+// TEST_CASE("line_sampling_cubic",
 //          "[line][parameterization][cubic][sampling]") {
 //  vec                                                  v0{0.0, 0.0};
 //  vec                                                  v1{1.0, 1.0};
@@ -165,7 +160,7 @@ TEST_CASE_METHOD(line2, "line_cubic_sampler", "[line][cubic][sampler]") {
 //  REQUIRE_THROWS(l.sample(2.01));
 //}
 ////==============================================================================
-//TEST_CASE("line_paramaterization_quadratic_tangent",
+// TEST_CASE("line_paramaterization_quadratic_tangent",
 //          "[line][parameterization][quadratic][tangent]") {
 //  SECTION("simple") {
 //    vec                                                  v0{1.0, 1.0};
@@ -182,7 +177,7 @@ TEST_CASE_METHOD(line2, "line_cubic_sampler", "[line][cubic][sampler]") {
 //  }
 //}
 ////==============================================================================
-//TEST_CASE("line_paramaterization_uniform",
+// TEST_CASE("line_paramaterization_uniform",
 //          "[line][parameterization][uniform]") {
 //  vec                                                  v0{0.0, 0.0};
 //  vec                                                  v1{1.0, 1.0};
@@ -194,7 +189,7 @@ TEST_CASE_METHOD(line2, "line_cubic_sampler", "[line][cubic][sampler]") {
 //  l.uniform_parameterization();
 //}
 ////==============================================================================
-//TEST_CASE("line_paramaterization_chordal",
+// TEST_CASE("line_paramaterization_chordal",
 //          "[line][parameterization][chordal]") {
 //  vec                                                  v0{0.0, 0.0};
 //  vec                                                  v1{1.0, 1.0};
@@ -206,7 +201,7 @@ TEST_CASE_METHOD(line2, "line_cubic_sampler", "[line][cubic][sampler]") {
 //  l.chordal_parameterization();
 //}
 ////==============================================================================
-//TEST_CASE("line_paramaterization_centripetal",
+// TEST_CASE("line_paramaterization_centripetal",
 //          "[line][parameterization][centripetal]") {
 //  vec                                                  v0{0.0, 0.0};
 //  vec                                                  v1{1.0, 1.0};
@@ -218,7 +213,7 @@ TEST_CASE_METHOD(line2, "line_cubic_sampler", "[line][cubic][sampler]") {
 //  l.centripetal_parameterization();
 //}
 ////==============================================================================
-//TEST_CASE("line_resample", "[line][parameterization][resample]") {
+// TEST_CASE("line_resample", "[line][parameterization][resample]") {
 //  using integral_curve_t =
 //      parameterized_line<double, 2, interpolation::cubic>;
 //  using vertex_idx = integral_curve_t::vertex_idx;
@@ -263,7 +258,7 @@ TEST_CASE_METHOD(line2, "line_cubic_sampler", "[line][cubic][sampler]") {
 //  }
 //}
 ////==============================================================================
-//TEST_CASE("line_curvature", "[line][parameterization][curvature]") {
+// TEST_CASE("line_curvature", "[line][parameterization][curvature]") {
 //  parameterized_line<double, 2, interpolation::cubic> l;
 //  l.push_back(vec{0.0, 0.0}, 0);
 //  l.push_back(vec{1.0, 1.0}, 1);
@@ -276,7 +271,7 @@ TEST_CASE_METHOD(line2, "line_cubic_sampler", "[line][cubic][sampler]") {
 //  REQUIRE(!std::isinf(l.curvature(2)));
 //}
 ////==============================================================================
-//TEST_CASE("line_curvature2", "[line][parameterization][curvature1]") {
+// TEST_CASE("line_curvature2", "[line][parameterization][curvature1]") {
 //  using integral_curve_t =
 //      parameterized_line<double, 2, interpolation::cubic>;
 //  analytical::fields::numerical::doublegyre v;
@@ -302,10 +297,12 @@ TEST_CASE_METHOD(line2, "line_cubic_sampler", "[line][cubic][sampler]") {
 //    CAPTURE(integral_curve.vertex_at(i));
 //    CAPTURE(integral_curve.tangent_at(i));
 //    CAPTURE(
-//        v(integral_curve.vertex_at(i), integral_curve.parameterization_at(i)));
+//        v(integral_curve.vertex_at(i),
+//        integral_curve.parameterization_at(i)));
 //    REQUIRE(approx_equal(
 //        integral_curve.tangent_at(i),
-//        v(integral_curve.vertex_at(i), integral_curve.parameterization_at(i))));
+//        v(integral_curve.vertex_at(i),
+//        integral_curve.parameterization_at(i))));
 //  }
 //  double tfront = integral_curve.front_parameterization();
 //  double tback  = integral_curve.back_parameterization();
