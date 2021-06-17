@@ -29,13 +29,13 @@ struct first_person_window : yavin::window {
     this->add_listener(m_cam);
   }
   //============================================================================
-  auto width() const {
-    return m_width;
-  }
+  auto width() const { return m_width; }
   //----------------------------------------------------------------------------
-  auto height() const {
-    return m_height;
-  }
+  auto height() const { return m_height; }
+  //----------------------------------------------------------------------------
+  auto camera_controller() -> auto& { return m_cam; }
+  //----------------------------------------------------------------------------
+  auto camera_controller() const -> auto const& { return m_cam; }
   //----------------------------------------------------------------------------
   template <typename Event>
   auto render_loop(Event&& event) {
@@ -73,15 +73,7 @@ struct first_person_window : yavin::window {
     m_cam.on_resize(w, h);
   }
   //----------------------------------------------------------------------------
-  auto camera_controller() -> auto& {
-    return m_cam;
-  }
-  //----------------------------------------------------------------------------
-  auto camera_controller() const -> auto const& {
-    return m_cam;
-  }
-  //----------------------------------------------------------------------------
-  auto on_key_pressed(yavin::key k) -> void {
+  auto on_key_pressed(yavin::key k) -> void override {
     parent_t::on_key_pressed(k);
     if (k == yavin::KEY_F2) {
       camera_controller().use_orthographic_camera();

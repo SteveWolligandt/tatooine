@@ -93,13 +93,13 @@ class perspective_camera : public camera<Real> {
   }
   //============================================================================
  private:
-  void setup() override {
+  auto setup() -> void override {
     vec3 const   view_dir = normalize(lookat() - eye());
     vec3 const   u        = cross(view_dir, up());
     vec3 const   v        = cross(u, view_dir);
     Real const plane_half_width =
         std::tan(m_fov / Real(2) * Real(M_PI) / Real(180)) ;
-    Real const plane_half_height = plane_half_width / this->aspect_ratio();
+    Real const plane_half_height = plane_half_width * this->aspect_ratio();
     m_bottom_left =
         eye() + view_dir - u * plane_half_width - v * plane_half_height;
     m_plane_base_x = u * 2 * plane_half_width / (this->plane_width() - 1);
@@ -112,17 +112,14 @@ class perspective_camera : public camera<Real> {
   }
   //----------------------------------------------------------------------------
   auto projection_matrix() const -> mat4 override {
-    Real const plane_half_width =
-        std::tan(m_fov / Real(2) * Real(M_PI) / Real(180)) * m_near;
-    Real const r = this->aspect_ratio() * plane_half_width;
-    Real const l = -r;
-    Real const t = plane_half_width;
-    Real const b = -t;
-    return {{2 * m_near / (r - l), Real(0), (r + l) / (r - l), Real(0)},
-            {Real(0), 2 * m_near / (t - b), (t + b) / (t - b), Real(0)},
-            {Real(0), Real(0), -(m_far + m_near) / (m_far - m_near),
+    static constexpr auto z = Real(0);
+    Real const            inv_tan_fov_2 =
+        1 / std::tan(m_fov / Real(2) * Real(M_PI) / Real(180) / 2);
+    return {{inv_tan_fov_2 / this->aspect_ratio(), z, z, z},
+            {z, inv_tan_fov_2, z, z},
+            {z, z, -(m_far + m_near) / (m_far - m_near),
              -2 * m_far * m_near / (m_far - m_near)},
-            {Real(0), Real(0), Real(-1), Real(0)}};
+            {z, z, Real(-1), z}};
   }
   //----------------------------------------------------------------------------
   void set_fov(Real const fov) {
