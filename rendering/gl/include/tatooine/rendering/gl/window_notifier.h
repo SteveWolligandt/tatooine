@@ -2,13 +2,13 @@
 #define TATOOINE_RENDERING_GL_WINDOW_NOTIFIER_H
 //==============================================================================
 #include <vector>
-#include <yavin/holder.h>
+#include <tatooine/holder.h>
 #include "window_listener.h"
 //==============================================================================
 namespace tatooine::rendering::gl {
 //==============================================================================
 template <typename Event>
-struct resize_event : holder<Event>, yavin::window_listener {
+struct resize_event : holder<Event>, window_listener {
   using holder<Event>::holder;
   void on_resize(int width, int height) override {
     this->get()(width, height);
@@ -22,9 +22,9 @@ template <typename T>
 resize_event(T const&) -> resize_event<T const&>;
 //==============================================================================
 template <typename Event>
-struct key_pressed_event : holder<Event>, yavin::window_listener {
+struct key_pressed_event : holder<Event>, window_listener {
   using holder<Event>::holder;
-  void on_key_pressed(yavin::key k) override {
+  void on_key_pressed(key k) override {
     this->get()(k);
   }
 };
@@ -36,9 +36,9 @@ template <typename T>
 key_pressed_event(T const&) -> key_pressed_event<T const&>;
 //==============================================================================
 template <typename Event>
-struct key_released_event : holder<Event>, yavin::window_listener {
+struct key_released_event : holder<Event>, window_listener {
   using holder<Event>::holder;
-  void on_key_pressed(yavin::key k) override {
+  void on_key_pressed(key k) override {
     this->get()(k);
   }
 };
@@ -50,9 +50,9 @@ template <typename T>
 key_released_event(T const&) -> key_released_event<T const &>;
 //==============================================================================
 template <typename Event>
-struct button_pressed_event : holder<Event>, yavin::window_listener {
+struct button_pressed_event : holder<Event>, window_listener {
   using holder<Event>::holder;
-  void on_button_pressed(yavin::button b) override {
+  void on_button_pressed(button b) override {
     this->get()(b);
   }
 };
@@ -64,9 +64,9 @@ template <typename T>
 button_pressed_event(T const &) -> button_pressed_event<T const &>;
 //==============================================================================
 template <typename Event>
-struct button_released_event : holder<Event>, yavin::window_listener {
+struct button_released_event : holder<Event>, window_listener {
   using holder<Event>::holder;
-  void on_button_released(yavin::button b) override {
+  void on_button_released(button b) override {
     this->get()(b);
   }
 };
@@ -78,7 +78,7 @@ template <typename T>
 button_released_event(T const &) -> button_released_event<T const &>;
 //==============================================================================
 template <typename Event>
-struct wheel_up_event : holder<Event>, yavin::window_listener {
+struct wheel_up_event : holder<Event>, window_listener {
   using holder<Event>::holder;
   void on_wheel_up() override {
     this->get()();
@@ -92,7 +92,7 @@ template <typename T>
 wheel_up_event(T const &) -> wheel_up_event<T const &>;
 //==============================================================================
 template <typename Event>
-struct wheel_down_event : holder<Event>, yavin::window_listener {
+struct wheel_down_event : holder<Event>, window_listener {
   using holder<Event>::holder;
   void on_wheel_down() override {
     this->get()();
@@ -106,7 +106,7 @@ template <typename T>
 wheel_down_event(T const &) -> wheel_down_event<T const &>;
 //==============================================================================
 template <typename Event>
-struct cursor_moved_event : holder<Event>, yavin::window_listener {
+struct cursor_moved_event : holder<Event>, window_listener {
   using holder<Event>::holder;
   void on_cursor_moved(double x, double y) override {
     this->get()(x, y);
@@ -141,56 +141,56 @@ struct window_notifier {
   void add_resize_event(Event&& event) {
     m_events.push_back(std::unique_ptr<base_holder>{
         new resize_event{std::forward<Event>(event)}});
-    add_listener(*dynamic_cast<yavin::window_listener*>(m_events.back().get()));
+    add_listener(*dynamic_cast<rendering::gl::window_listener*>(m_events.back().get()));
   }
   //----------------------------------------------------------------------------
   template <typename Event>
   void add_key_pressed_event(Event&& event) {
     m_events.push_back(std::unique_ptr<base_holder>{
         new key_pressed_event{std::forward<Event>(event)}});
-    add_listener(*dynamic_cast<yavin::window_listener*>(m_events.back().get()));
+    add_listener(*dynamic_cast<rendering::gl::window_listener*>(m_events.back().get()));
   }
   //----------------------------------------------------------------------------
   template <typename Event>
   void add_key_released_event(Event&& event) {
     m_events.push_back(std::unique_ptr<base_holder>{
         new key_released_event{std::forward<Event>(event)}});
-    add_listener(*dynamic_cast<yavin::window_listener*>(m_events.back().get()));
+    add_listener(*dynamic_cast<rendering::gl::window_listener*>(m_events.back().get()));
   }
   //----------------------------------------------------------------------------
   template <typename Event>
   void add_button_pressed_event(Event&& event) {
     m_events.push_back(std::unique_ptr<base_holder>{
         new button_pressed_event{std::forward<Event>(event)}});
-    add_listener(*dynamic_cast<yavin::window_listener*>(m_events.back().get()));
+    add_listener(*dynamic_cast<rendering::gl::window_listener*>(m_events.back().get()));
   }
   //----------------------------------------------------------------------------
   template <typename Event>
   void add_button_released_event(Event&& event) {
     m_events.push_back(std::unique_ptr<base_holder>{
         new button_released_event{std::forward<Event>(event)}});
-    add_listener(*dynamic_cast<yavin::window_listener*>(m_events.back().get()));
+    add_listener(*dynamic_cast<rendering::gl::window_listener*>(m_events.back().get()));
   }
   //----------------------------------------------------------------------------
   template <typename Event>
   void add_cursor_moved_event(Event&& event) {
     m_events.push_back(std::unique_ptr<base_holder>{
         new cursor_moved_event{std::forward<Event>(event)}});
-    add_listener(*dynamic_cast<yavin::window_listener*>(m_events.back().get()));
+    add_listener(*dynamic_cast<rendering::gl::window_listener*>(m_events.back().get()));
   }
   //----------------------------------------------------------------------------
   template <typename Event>
   void add_wheel_up_event(Event&& event) {
     m_events.push_back(std::unique_ptr<base_holder>{
         new wheel_up_event{std::forward<Event>(event)}});
-    add_listener(*dynamic_cast<yavin::window_listener*>(m_events.back().get()));
+    add_listener(*dynamic_cast<rendering::gl::window_listener*>(m_events.back().get()));
   }
   //----------------------------------------------------------------------------
   template <typename Event>
   void add_wheel_down_event(Event&& event) {
     m_events.push_back(std::unique_ptr<base_holder>{
         new wheel_down_event{std::forward<Event>(event)}});
-    add_listener(*dynamic_cast<yavin::window_listener*>(m_events.back().get()));
+    add_listener(*dynamic_cast<rendering::gl::window_listener*>(m_events.back().get()));
   }
 };
 //==============================================================================

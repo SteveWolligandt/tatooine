@@ -1,8 +1,8 @@
 #ifndef TATOOINE_RENDERING_GL_GLFW_KEYS_H
 #define TATOOINE_RENDERING_GL_GLFW_KEYS_H
 //==============================================================================
-#include <yavin/glincludes.h>
-#include <yavin/keyboard.h>
+#include <tatooine/rendering/gl/glincludes.h>
+#include <tatooine/rendering/gl/keyboard.h>
 //==============================================================================
 namespace tatooine::rendering::gl {
 //==============================================================================

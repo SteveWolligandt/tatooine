@@ -1,12 +1,12 @@
 #ifndef TATOOINE_RENDERING_GL_WINDOW_H
 #define TATOOINE_RENDERING_GL_WINDOW_H
 //==============================================================================
-#include <yavin/glfw/window.h>
-#include <yavin/context.h>
-#include <yavin/glincludes.h>
-#include <yavin/imgui.h>
-#include <yavin/window_listener.h>
-#include <yavin/window_notifier.h>
+#include <tatooine/rendering/gl/glfw/window.h>
+#include <tatooine/rendering/gl/context.h>
+#include <tatooine/rendering/gl/glincludes.h>
+#include <tatooine/rendering/gl/imgui.h>
+#include <tatooine/rendering/gl/window_listener.h>
+#include <tatooine/rendering/gl/window_notifier.h>
 
 #include <array>
 #include <iostream>

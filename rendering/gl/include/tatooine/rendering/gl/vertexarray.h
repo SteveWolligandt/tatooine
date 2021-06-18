@@ -2,12 +2,12 @@
 #define TATOOINE_RENDERING_GL_VERTEXARRAY_H
 //==============================================================================
 #include <iostream>
-#include <yavin/indexbuffer.h>
-#include <yavin/primitive.h>
-#include <yavin/type.h>
-#include <yavin/vertexbuffer.h>
-#include <yavin/dllexport.h>
-#include <yavin/glfunctions.h>
+#include <tatooine/rendering/gl/indexbuffer.h>
+#include <tatooine/rendering/gl/primitive.h>
+#include <tatooine/rendering/gl/type.h>
+#include <tatooine/rendering/gl/vertexbuffer.h>
+#include <tatooine/rendering/gl/dllexport.h>
+#include <tatooine/rendering/gl/glfunctions.h>
 //==============================================================================
 namespace tatooine::rendering::gl {
 //==============================================================================

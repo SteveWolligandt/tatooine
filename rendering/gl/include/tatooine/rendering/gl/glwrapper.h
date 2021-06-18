@@ -3,9 +3,9 @@
 //==============================================================================
 #include <array>
 
-#include <yavin/dllexport.h>
-#include <yavin/errorcheck.h>
-#include <yavin/glincludes.h>
+#include <tatooine/rendering/gl/dllexport.h>
+#include <tatooine/rendering/gl/errorcheck.h>
+#include <tatooine/rendering/gl/glincludes.h>
 //==============================================================================
 namespace tatooine::rendering::gl {
 //==============================================================================

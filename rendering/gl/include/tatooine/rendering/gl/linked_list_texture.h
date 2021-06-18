@@ -4,7 +4,7 @@
 #include "atomiccounterbuffer.h"
 #include "shaderstoragebuffer.h"
 #include "pixelunpackbuffer.h"
-#include <yavin/texture.h>
+#include <tatooine/rendering/gl/texture.h>
 //==============================================================================
 namespace tatooine::rendering::gl {
 //==============================================================================

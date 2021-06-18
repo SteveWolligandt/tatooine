@@ -1,7 +1,7 @@
 #ifndef TATOOINE_RENDERING_GL_GLFW_CONTEXT_H
 #define TATOOINE_RENDERING_GL_GLFW_CONTEXT_H
 //==============================================================================
-#include <yavin/glfw/base.h>
+#include <tatooine/rendering/gl/glfw/base.h>
 //==============================================================================
 namespace tatooine::rendering::gl::glfw {
 //==============================================================================

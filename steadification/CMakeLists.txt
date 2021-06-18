@@ -51,7 +51,7 @@ set(HDF5_LIBS -lhdf5 -lhdf5_cpp -lhdf5_hl)
 #- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 add_executable (steadification main.cpp renderers.cpp shaders.cpp datasets.cpp)
 target_include_directories(steadification PRIVATE ${CMAKE_CURRENT_BINARY_DIR})
-target_link_libraries(steadification tatooine yavin)
+target_link_libraries(steadification tatooine rendering.gl)
 target_compile_features(steadification PUBLIC cxx_std_20)
 target_compile_options(steadification PRIVATE
   -Wall -Wextra -pedantic -Wno-missing-braces -Wno-unused-lambda-capture
@@ -59,7 +59,7 @@ target_compile_options(steadification PRIVATE
 #- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 add_executable (steadification.batch batch.cpp renderers.cpp shaders.cpp datasets.cpp)
 target_include_directories(steadification.batch PRIVATE ${CMAKE_CURRENT_BINARY_DIR})
-target_link_libraries(steadification.batch tatooine yavin)
+target_link_libraries(steadification.batch tatooine rendering.gl)
 target_compile_features(steadification.batch PUBLIC cxx_std_20)
 target_compile_options(steadification.batch PRIVATE
   -Wall -Wextra -pedantic -Wno-missing-braces -Wno-unused-lambda-capture
@@ -111,14 +111,14 @@ add_custom_target(steadification.doublegyre
 #- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 add_executable (boussinesq_test boussinesq_test.cpp datasets.cpp)
 target_include_directories(boussinesq_test PRIVATE ${CMAKE_CURRENT_BINARY_DIR})
-target_link_libraries(boussinesq_test tatooine yavin)
+target_link_libraries(boussinesq_test tatooine rendering.gl)
 target_compile_features(boussinesq_test PUBLIC cxx_std_20)
 target_compile_options(boussinesq_test PRIVATE
   -Wall -Wextra -pedantic -Wno-missing-braces -Wno-unused-lambda-capture)
 #- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 add_executable (random_pathlines random_pathlines.cpp datasets.cpp shaders.cpp)
 target_include_directories(random_pathlines PRIVATE ${CMAKE_CURRENT_BINARY_DIR})
-target_link_libraries(random_pathlines tatooine yavin)
+target_link_libraries(random_pathlines tatooine rendering.gl)
 target_compile_features(random_pathlines PUBLIC cxx_std_20)
 target_compile_options(random_pathlines PRIVATE
   -Wall -Wextra -pedantic -Wno-missing-braces -Wno-unused-lambda-capture)
@@ -139,7 +139,7 @@ add_custom_target(steadification.ibfv.run.sincos
 #- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 add_executable (steadification.render_grid_edge render_grid_edge.cpp renderers.cpp shaders.cpp)
 target_include_directories(steadification.render_grid_edge PRIVATE ${CMAKE_CURRENT_BINARY_DIR})
-target_link_libraries(steadification.render_grid_edge tatooine yavin)
+target_link_libraries(steadification.render_grid_edge tatooine rendering.gl)
 target_compile_features(steadification.render_grid_edge PUBLIC cxx_std_20)
 target_compile_options(steadification.render_grid_edge PRIVATE
   -Wall -Wextra -pedantic -Wno-missing-braces -Wno-unused-lambda-capture

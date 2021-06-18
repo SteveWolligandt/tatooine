@@ -59,7 +59,7 @@ int main() {
   rendering::gl::Texture2D<float, R> noise_tex(tex_width, tex_height, noise.data());
   noise_tex.bind();
 
-  using vbo_t = rendering::gl::VertexBuffer<yavin::vec3, yavin::vec2>;
+  using vbo_t = rendering::gl::VertexBuffer<vec3f, vec2f>;
 
   rendering::gl::IndexBuffer ibo(mesh.num_faces() * 3);
   vbo_t              vbo(mesh.num_vertices());

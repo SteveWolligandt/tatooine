@@ -1,7 +1,7 @@
 #ifndef TATOOINE_RENDERING_GL_GLFW_API_H
 #define TATOOINE_RENDERING_GL_GLFW_API_H
 //==============================================================================
-#include <yavin/glincludes.h>
+#include <tatooine/rendering/gl/glincludes.h>
 #include <iostream>
 #include <stdexcept>
 //==============================================================================

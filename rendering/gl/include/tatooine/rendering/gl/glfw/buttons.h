@@ -1,8 +1,8 @@
 #ifndef TATOOINE_RENDERING_GL_GLFW_BUTTONS_H
 #define TATOOINE_RENDERING_GL_GLFW_BUTTONS_H
 //==============================================================================
-#include <yavin/glincludes.h>
-#include <yavin/mouse.h>
+#include <tatooine/rendering/gl/glincludes.h>
+#include <tatooine/rendering/gl/mouse.h>
 //==============================================================================
 namespace tatooine::rendering::gl::glfw {
 //==============================================================================

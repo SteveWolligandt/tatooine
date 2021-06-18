@@ -1,8 +1,8 @@
 #ifndef TATOOINE_RENDERING_GL_IMGUI_API_BACKEND_H
 #define TATOOINE_RENDERING_GL_IMGUI_API_BACKEND_H
 //==============================================================================
-#include <yavin/glincludes.h>
-#include <yavin/imgui_includes.h>
+#include <tatooine/rendering/gl/glincludes.h>
+#include <tatooine/rendering/gl/imgui_includes.h>
 #include <chrono>
 #include "window_listener.h"
 //==============================================================================

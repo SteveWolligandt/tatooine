@@ -1,8 +1,8 @@
 #ifndef TATOOINE_RENDERING_GL_CONTEXT_H
 #define TATOOINE_RENDERING_GL_CONTEXT_H
 //==============================================================================
-#include <yavin/glfw/context.h>
-#include <yavin/glincludes.h>
+#include <tatooine/rendering/gl/glfw/context.h>
+#include <tatooine/rendering/gl/glincludes.h>
 
 #include <array>
 #include <memory>

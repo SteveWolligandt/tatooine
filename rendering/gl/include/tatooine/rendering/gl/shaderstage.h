@@ -10,11 +10,11 @@
 #include <string>
 #include <vector>
 
-#include <yavin/idholder.h>
-#include <yavin/dllexport.h>
-#include <yavin/errorcheck.h>
-#include <yavin/glincludes.h>
-#include <yavin/shaderstageparser.h>
+#include <tatooine/rendering/gl/idholder.h>
+#include <tatooine/rendering/gl/dllexport.h>
+#include <tatooine/rendering/gl/errorcheck.h>
+#include <tatooine/rendering/gl/glincludes.h>
+#include <tatooine/rendering/gl/shaderstageparser.h>
 //==============================================================================
 namespace tatooine::rendering::gl {
 //==============================================================================

@@ -1,9 +1,9 @@
 #ifndef TATOOINE_RENDERING_GL_INDEXED_DATA_H
 #define TATOOINE_RENDERING_GL_INDEXED_DATA_H
 //==============================================================================
-#include <yavin/indexbuffer.h>
-#include <yavin/vertexarray.h>
-#include <yavin/vertexbuffer.h>
+#include <tatooine/rendering/gl/indexbuffer.h>
+#include <tatooine/rendering/gl/vertexarray.h>
+#include <tatooine/rendering/gl/vertexbuffer.h>
 
 #include <mutex>
 //==============================================================================
@@ -15,8 +15,8 @@ class indexeddata {
   // TYPEDEFS
   //============================================================================
  public:
-  using vbo_t        = yavin::vertexbuffer<Ts...>;
-  using ibo_t        = yavin::indexbuffer;
+  using vbo_t        = vertexbuffer<Ts...>;
+  using ibo_t        = indexbuffer;
   using vbo_data_t   = typename vbo_t::data_t;
   using ibo_data_t   = unsigned int;
   using vbo_data_vec = std::vector<vbo_data_t>;
