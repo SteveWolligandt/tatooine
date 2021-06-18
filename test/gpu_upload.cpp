@@ -1,4 +1,4 @@
-#if TATOOINE_YAVIN_AVAILABLE
+#if TATOOINE_RENDERING_GL_AVAILABLE
 #include <tatooine/analytical/fields/numerical/doublegyre.h>
 #include <tatooine/gpu/upload.h>
 #include <tatooine/multidim_array.h>

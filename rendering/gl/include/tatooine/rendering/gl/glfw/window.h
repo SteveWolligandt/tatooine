@@ -1,12 +1,12 @@
-#ifndef YAVIN_GLFW_WINDOW_H
-#define YAVIN_GLFW_WINDOW_H
+#ifndef TATOOINE_RENDERING_GL_GLFW_WINDOW_H
+#define TATOOINE_RENDERING_GL_GLFW_WINDOW_H
 //==============================================================================
 #include <yavin/glfw/base.h>
 #include <yavin/window_notifier.h>
 
 #include <string>
 //==============================================================================
-namespace yavin::glfw {
+namespace tatooine::rendering::gl::glfw {
 //==============================================================================
 struct window : base, window_notifier {
   //============================================================================
@@ -17,6 +17,6 @@ struct window : base, window_notifier {
   auto swap_buffers() -> void;
 };
 //==============================================================================
-}  // namespace yavin::glfw
+}  // namespace tatooine::rendering::gl::glfw
 //==============================================================================
 #endif

@@ -1,5 +1,5 @@
-#ifndef YAVIN_IMGUI_RENDER_BACKEND_H
-#define YAVIN_IMGUI_RENDER_BACKEND_H
+#ifndef TATOOINE_RENDERING_GL_IMGUI_RENDER_BACKEND_H
+#define TATOOINE_RENDERING_GL_IMGUI_RENDER_BACKEND_H
 //==============================================================================
 #include "glincludes.h"
 
@@ -13,7 +13,7 @@
 #include "vertexarray.h"
 #include "vertexbuffer.h"
 //==============================================================================
-namespace yavin {
+namespace tatooine::rendering::gl {
 //==============================================================================
 struct imgui_render_backend {
   //----------------------------------------------------------------------------
@@ -66,6 +66,6 @@ struct imgui_render_backend {
   bool create_device_objects();
 };
 //==============================================================================
-}  // namespace yavin
+}  // namespace tatooine::rendering::gl
 //==============================================================================
 #endif

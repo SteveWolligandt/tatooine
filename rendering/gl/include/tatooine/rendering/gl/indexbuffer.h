@@ -1,5 +1,5 @@
-#ifndef __YAVIN_INDEXBUFFER_H__
-#define __YAVIN_INDEXBUFFER_H__
+#ifndef TATOOINE_RENDERING_GL_INDEXBUFFER_H
+#define TATOOINE_RENDERING_GL_INDEXBUFFER_H
 
 #include <initializer_list>
 #include <iostream>
@@ -9,7 +9,7 @@
 #include "errorcheck.h"
 
 //==============================================================================
-namespace yavin {
+namespace tatooine::rendering::gl {
 //==============================================================================
 
 class indexbuffer : public buffer<GL_ELEMENT_ARRAY_BUFFER, unsigned int> {
@@ -34,7 +34,7 @@ class indexbuffer : public buffer<GL_ELEMENT_ARRAY_BUFFER, unsigned int> {
 };
 
 //==============================================================================
-}  // namespace yavin
+}  // namespace tatooine::rendering::gl
 //==============================================================================
 
 #endif

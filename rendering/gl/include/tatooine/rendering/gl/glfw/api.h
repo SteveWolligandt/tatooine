@@ -1,11 +1,11 @@
-#ifndef YAVIN_GLFW_API_H
-#define YAVIN_GLFW_API_H
+#ifndef TATOOINE_RENDERING_GL_GLFW_API_H
+#define TATOOINE_RENDERING_GL_GLFW_API_H
 //==============================================================================
 #include <yavin/glincludes.h>
 #include <iostream>
 #include <stdexcept>
 //==============================================================================
-namespace yavin::glfw {
+namespace tatooine::rendering::gl::glfw {
 //==============================================================================
 struct api {
   static auto get() -> api const&;
@@ -29,6 +29,6 @@ struct api {
   ~api();
   };
 //==============================================================================
-}  // namespace yavin::glfw
+}  // namespace tatooine::rendering::gl::glfw
 //==============================================================================
 #endif

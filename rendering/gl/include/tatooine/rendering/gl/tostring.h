@@ -1,10 +1,10 @@
-#ifndef YAVIN_TO_STRING_H
-#define YAVIN_TO_STRING_H
+#ifndef TATOOINE_RENDERING_GL_TO_STRING_H
+#define TATOOINE_RENDERING_GL_TO_STRING_H
 //==============================================================================
 #include <string>
 #include "glincludes.h"
 //==============================================================================
-namespace yavin {
+namespace tatooine::rendering::gl {
 //==============================================================================
 inline auto texparami_to_string(GLint i) -> std::string {
   switch (i) {
@@ -361,6 +361,6 @@ inline auto map_access_to_string(GLbitfield b) -> std::string {
   return flags;
 }
 //==============================================================================
-}  // namespace yavin
+}  // namespace tatooine::rendering::gl
 //==============================================================================
 #endif

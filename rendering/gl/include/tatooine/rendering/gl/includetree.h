@@ -1,12 +1,12 @@
-#ifndef YAVIN_INCLUDE_TREE_H
-#define YAVIN_INCLUDE_TREE_H
+#ifndef TATOOINE_RENDERING_GL_INCLUDE_TREE_H
+#define TATOOINE_RENDERING_GL_INCLUDE_TREE_H
 //==============================================================================
 #include <filesystem>
 #include <iostream>
 #include <list>
 #include <string>
 //==============================================================================
-namespace yavin {
+namespace tatooine::rendering::gl {
 //==============================================================================
 struct include_tree {
  private:
@@ -98,6 +98,6 @@ struct include_tree {
   }
 };
 //==============================================================================
-}  // namespace yavin
+}  // namespace tatooine::rendering::gl
 //==============================================================================
 #endif

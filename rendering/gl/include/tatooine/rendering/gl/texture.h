@@ -1,5 +1,5 @@
-#ifndef YAVIN_TEXTURE_H
-#define YAVIN_TEXTURE_H
+#ifndef TATOOINE_RENDERING_GL_TEXTURE_H
+#define TATOOINE_RENDERING_GL_TEXTURE_H
 
 #include <yavin/errorcheck.h>
 #include <yavin/glfunctions.h>
@@ -18,7 +18,7 @@
 #include <type_traits>
 #include <utility>
 //==============================================================================
-namespace yavin {
+namespace tatooine::rendering::gl {
 //==============================================================================
 enum WrapMode {
   CLAMP_TO_BORDER = GL_CLAMP_TO_BORDER,
@@ -684,7 +684,7 @@ class texture : public id_holder<GLuint> {
       }
     image.write(filepath);
   }
-};  // namespace yavin
+};  // namespace tatooine::rendering::gl
 
 //==============================================================================
 template <typename T, typename C>
@@ -774,7 +774,7 @@ using texdepth24ui = tex2depth<tex::depth24>;
 using texdepth32ui = tex2depth<GLuint>;
 using texdepth32f  = tex2depth<GLfloat>;
 //==============================================================================
-}  // namespace yavin
+}  // namespace tatooine::rendering::gl
 //==============================================================================
 
 #endif

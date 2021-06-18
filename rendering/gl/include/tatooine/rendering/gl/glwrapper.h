@@ -1,5 +1,5 @@
-#ifndef YAVIN_GL_WRAPPER_H
-#define YAVIN_GL_WRAPPER_H
+#ifndef TATOOINE_RENDERING_GL_GL_WRAPPER_H
+#define TATOOINE_RENDERING_GL_GL_WRAPPER_H
 //==============================================================================
 #include <array>
 
@@ -7,7 +7,7 @@
 #include <yavin/errorcheck.h>
 #include <yavin/glincludes.h>
 //==============================================================================
-namespace yavin {
+namespace tatooine::rendering::gl {
 //==============================================================================
 DLL_API auto clear_color_buffer() -> void;
 DLL_API auto clear_depth_buffer() -> void;
@@ -86,6 +86,6 @@ DLL_API auto max_compute_image_uniforms() -> GLint;
 //==============================================================================
 DLL_API auto opengl_version() -> std::pair<GLint, GLint>;
 //==============================================================================
-}  // namespace yavin
+}  // namespace tatooine::rendering::gl
 //==============================================================================
 #endif

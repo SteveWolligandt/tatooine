@@ -1,12 +1,12 @@
-#ifndef YAVIN_TEXSETTINGS_H
-#define YAVIN_TEXSETTINGS_H
+#ifndef TATOOINE_RENDERING_GL_TEXSETTINGS_H
+#define TATOOINE_RENDERING_GL_TEXSETTINGS_H
 //==============================================================================
 #include "glincludes.h"
 
 #include "gltype.h"
 #include "texcomponents.h"
 //==============================================================================
-namespace yavin::tex {
+namespace tatooine::rendering::gl::tex {
 //==============================================================================
 template <typename T, typename format>
 struct settings;
@@ -495,6 +495,6 @@ struct settings<GLfloat, Depth> {
   static constexpr GLenum type            = gl_type_v<real_t>;
 };
 //==============================================================================
-}  // namespace yavin::tex
+}  // namespace tatooine::rendering::gl::tex
 //==============================================================================
 #endif

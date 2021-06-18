@@ -1,5 +1,5 @@
-#ifndef YAVIN_BUFFER
-#define YAVIN_BUFFER
+#ifndef TATOOINE_RENDERING_GL_BUFFER
+#define TATOOINE_RENDERING_GL_BUFFER
 //==============================================================================
 #include <mutex>
 #include <vector>
@@ -8,7 +8,7 @@
 #include "mutexhandler.h"
 #include "idholder.h"
 //==============================================================================
-namespace yavin {
+namespace tatooine::rendering::gl {
 //==============================================================================
 enum usage_t {
   STREAM_DRAW  = GL_STREAM_DRAW,
@@ -708,6 +708,6 @@ void buffer<array_type, T>::emplace_back(Ts&&... ts) {
   ++m_size;
 }
 //==============================================================================
-}  // namespace yavin
+}  // namespace tatooine::rendering::gl
 //==============================================================================
 #endif

@@ -1,4 +1,4 @@
-#if TATOOINE_YAVIN_AVAILABLE
+#if TATOOINE_RENDERING_GL_AVAILABLE
 //#include <tatooine/analytical/fields/numerical/autonomous_particles_test_field.h>
 #include <tatooine/analytical/fields/numerical/sinuscosinus.h>
 #include <tatooine/analytical/fields/numerical/center.h>

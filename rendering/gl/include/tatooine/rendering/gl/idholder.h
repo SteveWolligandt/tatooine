@@ -1,10 +1,10 @@
-#ifndef YAVIN_ID_HOLDER_H
-#define YAVIN_ID_HOLDER_H
+#ifndef TATOOINE_RENDERING_GL_ID_HOLDER_H
+#define TATOOINE_RENDERING_GL_ID_HOLDER_H
 //==============================================================================
 #include <utility>
 #include "glincludes.h"
 //==============================================================================
-namespace yavin {
+namespace tatooine::rendering::gl {
 //==============================================================================
 template <typename ID>
 struct id_holder_default_param;
@@ -70,6 +70,6 @@ void swap(id_holder<ID>& i0, id_holder<ID>& i1) {
   i0.swap(i1);
 }
 //==============================================================================
-}  // namespace yavin
+}  // namespace tatooine::rendering::gl
 //==============================================================================
 #endif

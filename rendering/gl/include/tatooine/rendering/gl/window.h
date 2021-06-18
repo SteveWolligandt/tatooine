@@ -1,5 +1,5 @@
-#ifndef YAVIN_WINDOW_H
-#define YAVIN_WINDOW_H
+#ifndef TATOOINE_RENDERING_GL_WINDOW_H
+#define TATOOINE_RENDERING_GL_WINDOW_H
 //==============================================================================
 #include <yavin/glfw/window.h>
 #include <yavin/context.h>
@@ -15,7 +15,7 @@
 #include <string>
 #include <thread>
 //==============================================================================
-namespace yavin {
+namespace tatooine::rendering::gl {
 //==============================================================================
 class window : public window_notifier, public window_listener {
  public:
@@ -143,6 +143,6 @@ class window : public window_notifier, public window_listener {
   void deinit_imgui();
 };
 //==============================================================================
-}  // namespace yavin
+}  // namespace tatooine::rendering::gl
 //==============================================================================
 #endif

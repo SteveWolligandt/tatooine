@@ -1,5 +1,5 @@
-#ifndef YAVIN_VBOHELPERS_H
-#define YAVIN_VBOHELPERS_H
+#ifndef TATOOINE_RENDERING_GL_VBOHELPERS_H
+#define TATOOINE_RENDERING_GL_VBOHELPERS_H
 
 #include <array>
 #include <initializer_list>
@@ -8,7 +8,7 @@
 #include "glincludes.h"
 #include "gltype.h"
 //==============================================================================
-namespace yavin {
+namespace tatooine::rendering::gl {
 //==============================================================================
 template <size_t num_attrs, class... Ts>
 struct attr_offset;
@@ -30,6 +30,6 @@ struct attr_offset<num_attrs, FirstAttrib, RestAttribs...> {
   }
 };
 //==============================================================================
-}  // namespace yavin
+}  // namespace tatooine::rendering::gl
 //==============================================================================
 #endif

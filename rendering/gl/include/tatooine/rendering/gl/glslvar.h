@@ -1,5 +1,5 @@
-#ifndef __YAVIN_GLSL_VAR_H__
-#define __YAVIN_GLSL_VAR_H__
+#ifndef TATOOINE_RENDERING_GL_GLSL_VAR_H
+#define TATOOINE_RENDERING_GL_GLSL_VAR_H
 
 #include <string>
 
@@ -7,7 +7,7 @@
 #include "windowsundefines.h"
 
 //==============================================================================
-namespace yavin {
+namespace tatooine::rendering::gl {
 //==============================================================================
 
 struct GLSLVar {
@@ -20,7 +20,7 @@ struct GLSLVar {
 };
 
 //==============================================================================
-}  // namespace yavin
+}  // namespace tatooine::rendering::gl
 //==============================================================================
 
 #endif

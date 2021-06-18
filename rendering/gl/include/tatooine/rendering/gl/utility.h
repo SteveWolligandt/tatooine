@@ -1,12 +1,12 @@
-#ifndef YAVIN_UTILITY_H
-#define YAVIN_UTILITY_H
+#ifndef TATOOINE_RENDERING_GL_UTILITY_H
+#define TATOOINE_RENDERING_GL_UTILITY_H
 //==============================================================================
 #include <array>
 #include <concepts>
 #include <utility>
 #include "gltype.h"
 //==============================================================================
-namespace yavin {
+namespace tatooine::rendering::gl {
 //==============================================================================
 /// creates an array of size N filled with val of type T
 template <typename T, size_t N, size_t... Is>
@@ -72,6 +72,6 @@ struct head {
 template <typename... Ts>
 using head_t = typename head<Ts...>::type;
 //==============================================================================
-}  // namespace yavin
+}  // namespace tatooine::rendering::gl
 //==============================================================================
 #endif

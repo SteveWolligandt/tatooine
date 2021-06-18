@@ -1,7 +1,7 @@
-#ifndef YAVIN_TEX_TARGET_H
-#define YAVIN_TEX_TARGET_H
+#ifndef TATOOINE_RENDERING_GL_TEX_TARGET_H
+#define TATOOINE_RENDERING_GL_TEX_TARGET_H
 //==============================================================================
-namespace yavin::tex {
+namespace tatooine::rendering::gl::tex {
 //==============================================================================
 template <unsigned int n>
 struct target;
@@ -30,7 +30,7 @@ struct target<3> {
   static constexpr GLenum binding = GL_TEXTURE_BINDING_3D;
 };
 //==============================================================================
-}  // namespace yavin::tex
+}  // namespace tatooine::rendering::gl::tex
 //==============================================================================
 
 #endif

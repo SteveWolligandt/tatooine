@@ -1,9 +1,9 @@
-#ifndef YAVIN_TEX_COMPONENTS_H
-#define YAVIN_TEX_COMPONENTS_H
+#ifndef TATOOINE_RENDERING_GL_TEX_COMPONENTS_H
+#define TATOOINE_RENDERING_GL_TEX_COMPONENTS_H
 //==============================================================================
 #include "glincludes.h"
 //==============================================================================
-namespace yavin {
+namespace tatooine::rendering::gl {
 //==============================================================================
 struct R {
   static constexpr std::size_t num_components = 1;
@@ -38,7 +38,7 @@ template <> struct is_color_component<RGBA> : std::true_type {};
 template <> struct is_color_component<BGR> : std::true_type {};
 template <> struct is_color_component<BGRA> : std::true_type {};
 //==============================================================================
-}  // namespace yavin
+}  // namespace tatooine::rendering::gl
 //==============================================================================
 
 #endif

@@ -203,9 +203,14 @@ if(PNG_FOUND)
     target_compile_definitions(tatooine PUBLIC TATOOINE_HAS_PNG_SUPPORT)
     target_include_directories(tatooine PUBLIC ${PNG_INCLUDE_DIRS} ${PNG++_INCLUDE_DIRS})
     target_link_libraries(tatooine PUBLIC ${PNG_LIBRARIES} ${PNG++_LIBRARIES})
-    message(STATUS "Compiling with PNG support")
+    set(TATOOINE_PNG_AVAILABLE 1)
+  else()
+    set(TATOOINE_PNG_AVAILABLE 0)
   endif()
+else()
+  set(TATOOINE_PNG_AVAILABLE 0)
 endif()
+target_compile_definitions(tatooine PUBLIC TATOOINE_PNG_AVAILABLE=${TATOOINE_PNG_AVAILABLE})
 #- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 # OpenMP
 #- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -384,18 +389,6 @@ if (CGAL_FOUND)
   message(STATUS "CGAL available")
   target_compile_definitions(tatooine PUBLIC -DCGAL_DISABLE_ROUNDING_MATH_CHECK)
 endif()
-##- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-## yavin
-##- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-#find_package(yavin QUIET)
-#if (${yavin_FOUND})
-#  set(TATOOINE_YAVIN_AVAILABLE 1)
-#  target_compile_definitions(tatooine PUBLIC TATOOINE_YAVIN_AVAILABLE=1)
-#  target_link_libraries(tatooine PUBLIC yavin)
-#else()
-#  set(TATOOINE_YAVIN_AVAILABLE 0)
-#  target_compile_definitions(tatooine PUBLIC TATOOINE_YAVIN_AVAILABLE=0)
-#endif()
 #- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 # GINAC
 #- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -

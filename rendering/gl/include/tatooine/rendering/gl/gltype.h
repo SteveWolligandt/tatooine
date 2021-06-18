@@ -1,9 +1,9 @@
-#ifndef YAVIN_GLTYPE_H
-#define YAVIN_GLTYPE_H
+#ifndef TATOOINE_RENDERING_GL_GLTYPE_H
+#define TATOOINE_RENDERING_GL_GLTYPE_H
 //==============================================================================
 #include "glincludes.h"
 //==============================================================================
-namespace yavin {
+namespace tatooine::rendering::gl {
 //==============================================================================
 struct gl_half;
 
@@ -63,6 +63,6 @@ struct gl_type<GLint> {
   static constexpr GLenum value = GL_INT;
 };
 //==============================================================================
-}  // namespace yavin
+}  // namespace tatooine::rendering::gl
 //==============================================================================
 #endif

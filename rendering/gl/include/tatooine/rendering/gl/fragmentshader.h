@@ -1,5 +1,5 @@
-#ifndef YAVIN_FRAGMENTSHADER_H
-#define YAVIN_FRAGMENTSHADER_H
+#ifndef TATOOINE_RENDERING_GL_FRAGMENTSHADER_H
+#define TATOOINE_RENDERING_GL_FRAGMENTSHADER_H
 //==============================================================================
 #include <string>
 #include "glincludes.h"
@@ -7,7 +7,7 @@
 #include "shaderstage.h"
 #include "dllexport.h"
 //==============================================================================
-namespace yavin {
+namespace tatooine::rendering::gl {
 //==============================================================================
 class fragmentshader : public shaderstage {
  public:
@@ -16,6 +16,6 @@ class fragmentshader : public shaderstage {
   DLL_API fragmentshader(fragmentshader&& other);
 };
 //==============================================================================
-}  // namespace yavin
+}  // namespace tatooine::rendering::gl
 //==============================================================================
 #endif

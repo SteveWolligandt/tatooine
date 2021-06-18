@@ -1,11 +1,11 @@
-#ifndef YAVIN_WINDOW_NOTIFIER_H
-#define YAVIN_WINDOW_NOTIFIER_H
+#ifndef TATOOINE_RENDERING_GL_WINDOW_NOTIFIER_H
+#define TATOOINE_RENDERING_GL_WINDOW_NOTIFIER_H
 //==============================================================================
 #include <vector>
 #include <yavin/holder.h>
 #include "window_listener.h"
 //==============================================================================
-namespace yavin {
+namespace tatooine::rendering::gl {
 //==============================================================================
 template <typename Event>
 struct resize_event : holder<Event>, yavin::window_listener {
@@ -194,6 +194,6 @@ struct window_notifier {
   }
 };
 //==============================================================================
-}  // namespace yavin
+}  // namespace tatooine::rendering::gl
 //==============================================================================
 #endif

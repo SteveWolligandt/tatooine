@@ -1,9 +1,10 @@
-#ifndef __YAVIN_PRIMITIVE_H__
-#define __YAVIN_PRIMITIVE_H__
-
+#ifndef TATOOINE_RENDERING_GL_PRIMITIVE_H
+#define TATOOINE_RENDERING_GL_PRIMITIVE_H
+//==============================================================================
 #include "glincludes.h"
-
-namespace yavin {
+//==============================================================================
+namespace tatooine::rendering::gl {
+//==============================================================================
 enum Primitive {
   POINTS                   = GL_POINTS,
   LINE_STRIP               = GL_LINE_STRIP,
@@ -18,6 +19,7 @@ enum Primitive {
   TRIANGLES_ADJACENCY      = GL_TRIANGLES_ADJACENCY,
   PATCHES                  = GL_PATCHES
 };
-}  // namespace yavin
-
+//==============================================================================
+}  // namespace tatooine::rendering::gl
+//==============================================================================
 #endif

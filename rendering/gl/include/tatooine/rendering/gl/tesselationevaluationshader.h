@@ -1,12 +1,12 @@
-#ifndef YAVIN_TESSELATIONEVALUATIONSHADER_H
-#define YAVIN_TESSELATIONEVALUATIONSHADER_H
+#ifndef TATOOINE_RENDERING_GL_TESSELATIONEVALUATIONSHADER_H
+#define TATOOINE_RENDERING_GL_TESSELATIONEVALUATIONSHADER_H
 //==============================================================================
 #include <string>
 
 #include "dllexport.h"
 #include "shaderstage.h"
 //==============================================================================
-namespace yavin {
+namespace tatooine::rendering::gl {
 //==============================================================================
 class tesselationevaluationshader : public shaderstage {
  public:
@@ -15,6 +15,6 @@ class tesselationevaluationshader : public shaderstage {
   DLL_API tesselationevaluationshader(tesselationevaluationshader&& other);
 };
 //==============================================================================
-}  // namespace yavin
+}  // namespace tatooine::rendering::gl
 //==============================================================================
 #endif

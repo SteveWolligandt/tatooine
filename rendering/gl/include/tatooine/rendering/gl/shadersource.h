@@ -1,9 +1,9 @@
-#ifndef YAVIN_SHADERSOURCE_H
-#define YAVIN_SHADERSOURCE_H
+#ifndef TATOOINE_RENDERING_GL_SHADERSOURCE_H
+#define TATOOINE_RENDERING_GL_SHADERSOURCE_H
 //==============================================================================
 #include <string>
 //==============================================================================
-namespace yavin {
+namespace tatooine::rendering::gl {
 //==============================================================================
 struct shadersource {
  private:
@@ -27,6 +27,6 @@ struct shadersource {
   auto string() -> auto& { return m_source; }
 };
 //==============================================================================
-}  // namespace yavin
+}  // namespace tatooine::rendering::gl
 //==============================================================================
 #endif

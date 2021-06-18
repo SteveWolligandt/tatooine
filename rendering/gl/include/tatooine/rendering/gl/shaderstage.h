@@ -1,5 +1,5 @@
-#ifndef YAVIN_SHADERSTAGE_H
-#define YAVIN_SHADERSTAGE_H
+#ifndef TATOOINE_RENDERING_GL_SHADERSTAGE_H
+#define TATOOINE_RENDERING_GL_SHADERSTAGE_H
 //==============================================================================
 #include <filesystem>
 #include <variant>
@@ -16,7 +16,7 @@
 #include <yavin/glincludes.h>
 #include <yavin/shaderstageparser.h>
 //==============================================================================
-namespace yavin {
+namespace tatooine::rendering::gl {
 //==============================================================================
 class shaderstage : public id_holder<GLuint> {
   using path = std::filesystem::path;
@@ -61,6 +61,6 @@ class shaderstage : public id_holder<GLuint> {
                           size_t line_number, std::ostream& os) -> void;
 };
 //==============================================================================
-}  // namespace yavin
+}  // namespace tatooine::rendering::gl
 //==============================================================================
 #endif

@@ -1,9 +1,9 @@
-#ifndef YAVIN_GLFW_BASE_H
-#define YAVIN_GLFW_BASE_H
+#ifndef TATOOINE_RENDERING_GL_GLFW_BASE_H
+#define TATOOINE_RENDERING_GL_GLFW_BASE_H
 //==============================================================================
 #include <yavin/glincludes.h>
 //==============================================================================
-namespace yavin::glfw {
+namespace tatooine::rendering::gl::glfw {
 //==============================================================================
 struct base {
  protected:
@@ -20,6 +20,6 @@ struct base {
   static auto release() -> void;
 };
 //==============================================================================
-}  // namespace yavin::glfw
+}  // namespace tatooine::rendering::gl::glfw
 //==============================================================================
 #endif

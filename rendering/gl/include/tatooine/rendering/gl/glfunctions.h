@@ -1,5 +1,5 @@
-#ifndef YAVIN_GL_FUNCTIONS_WRAPPER_H
-#define YAVIN_GL_FUNCTIONS_WRAPPER_H
+#ifndef TATOOINE_RENDERING_GL_GL_FUNCTIONS_WRAPPER_H
+#define TATOOINE_RENDERING_GL_GL_FUNCTIONS_WRAPPER_H
 //==============================================================================
 #include <yavin/glincludes.h>
 
@@ -10,7 +10,7 @@
 #include <ostream>
 #include <vector>
 //==============================================================================
-namespace yavin {
+namespace tatooine::rendering {
 //==============================================================================
 class camera;
 struct gl {
@@ -547,6 +547,6 @@ struct gl {
   DLL_API static void memory_barrier(GLbitfield barriers);
 };
 //==============================================================================
-}  // namespace yavin
+}  // namespace tatooine::rendering
 //==============================================================================
 #endif

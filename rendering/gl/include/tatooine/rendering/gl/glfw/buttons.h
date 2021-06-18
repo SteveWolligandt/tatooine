@@ -1,10 +1,10 @@
-#ifndef YAVIN_GLFW_BUTTONS_H
-#define YAVIN_GLFW_BUTTONS_H
+#ifndef TATOOINE_RENDERING_GL_GLFW_BUTTONS_H
+#define TATOOINE_RENDERING_GL_GLFW_BUTTONS_H
 //==============================================================================
 #include <yavin/glincludes.h>
 #include <yavin/mouse.h>
 //==============================================================================
-namespace yavin::glfw {
+namespace tatooine::rendering::gl::glfw {
 //==============================================================================
 inline auto convert_button(int const button) {
   switch (button) {
@@ -19,7 +19,7 @@ inline auto convert_button(int const button) {
   }
 }
 //==============================================================================
-}  // namespace yavin
+}  // namespace tatooine::rendering::gl
 //==============================================================================
 #endif
 

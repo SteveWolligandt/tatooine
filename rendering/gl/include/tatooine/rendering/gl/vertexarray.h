@@ -1,5 +1,5 @@
-#ifndef YAVIN_VERTEXARRAY_H
-#define YAVIN_VERTEXARRAY_H
+#ifndef TATOOINE_RENDERING_GL_VERTEXARRAY_H
+#define TATOOINE_RENDERING_GL_VERTEXARRAY_H
 //==============================================================================
 #include <iostream>
 #include <yavin/indexbuffer.h>
@@ -9,7 +9,7 @@
 #include <yavin/dllexport.h>
 #include <yavin/glfunctions.h>
 //==============================================================================
-namespace yavin {
+namespace tatooine::rendering::gl {
 //==============================================================================
 class vertexarray : public id_holder<GLuint> {
  public:
@@ -40,7 +40,6 @@ class vertexarray : public id_holder<GLuint> {
   DLL_API void draw_patches(size_t num_primitives) const;
 };
 //==============================================================================
-}  // namespace yavin
+}  // namespace tatooine::rendering::gl
 //==============================================================================
-
 #endif

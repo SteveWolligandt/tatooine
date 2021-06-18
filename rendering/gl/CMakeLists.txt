@@ -1,4 +1,19 @@
 #- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - 
+# find OpenGL packages
+#- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - 
+set(OpenGL_GL_PREFERENCE "GLVND")
+find_package(OpenGL COMPONENTS OpenGL EGL)
+if (OpenGL_FOUND)
+  set(TATOOINE_OPENGL_AVAILABLE 1)
+else()
+  set(TATOOINE_OPENGL_AVAILABLE 0)
+endif()
+if (TATOOINE_OPENGL_AVAILABLE) 
+  option(TATOOINE_BUILD_GL "build OpenGL wrapper" OFF)
+endif()
+if (TATOOINE_BUILD_GL)
+  set(TATOOINE_RENDERING_GL_AVAILABLE 1)
+#- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - 
 # GLFW
 #- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - 
 set(GLFW_BUILD_DOCS OFF CACHE BOOL "" FORCE)
@@ -21,11 +36,6 @@ set(TATOOINE_RENDERING_GL_IMGUI_FILES
   ${CMAKE_CURRENT_SOURCE_DIR}/external/imgui/misc/fonts/binary_to_compressed_c.cpp
   )
 
-#- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - 
-# find OpenGL packages
-#- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - 
-set(OpenGL_GL_PREFERENCE "GLVND")
-find_package(OpenGL REQUIRED COMPONENTS OpenGL EGL)
 
 #- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - 
 # source files
@@ -82,11 +92,14 @@ target_include_directories(rendering.gl
     ${CMAKE_CURRENT_SOURCE_DIR}/external/imgui
     ${CMAKE_CURRENT_SOURCE_DIR}/external/imgui-filebrowser)
 
-target_link_libraries(rendering.gl
-                       PRIVATE
-                        OpenGL::OpenGL
-                        OpenGL::EGL
-                        glfw)
+target_link_libraries(
+  rendering.gl
+   PUBLIC
+    tatooine
+   PRIVATE
+    OpenGL::OpenGL
+    OpenGL::EGL
+    glfw)
 #- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - 
 # OpenGL call output
 #- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - 
@@ -104,3 +117,7 @@ configure_file(src/glverbose.cpp.in
                src/glverbose.cpp)
 configure_file(include/tatooine/rendering/gl/texpng.h.in
                include/tatooine/rendering/gl/texpng.h)
+else()
+  set(TATOOINE_RENDERING_GL_AVAILABLE 0)
+endif()
+target_compile_definitions(tatooine PUBLIC TATOOINE_RENDERING_GL_AVAILABLE=${TATOOINE_RENDERING_GL_AVAILABLE})

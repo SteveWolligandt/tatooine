@@ -1,5 +1,5 @@
-#ifndef YAVIN_VERTEXSHADER_H
-#define YAVIN_VERTEXSHADER_H
+#ifndef TATOOINE_RENDERING_GL_VERTEXSHADER_H
+#define TATOOINE_RENDERING_GL_VERTEXSHADER_H
 //==============================================================================
 #include <string>
 #include "glincludes.h"
@@ -7,7 +7,7 @@
 #include "shaderstage.h"
 #include "dllexport.h"
 //==============================================================================
-namespace yavin {
+namespace tatooine::rendering::gl {
 //==============================================================================
 class vertexshader : public shaderstage {
  public:
@@ -16,6 +16,6 @@ class vertexshader : public shaderstage {
   DLL_API vertexshader(vertexshader&& other);
 };
 //==============================================================================
-}  // namespace yavin
+}  // namespace tatooine::rendering::gl
 //==============================================================================
 #endif
