@@ -123,7 +123,7 @@ void batch_sinuscosinus(std::vector<std::string>& working_dirs,
 }  // namespace tatooine::steadification
 //==============================================================================
 auto main() -> int {
-  yavin::context context{4, 5};
+  rendering::gl::context context{4, 5};
   using namespace tatooine::steadification;
   std::vector<std::string> working_dirs;
   std::string              random_seed = "abcd";

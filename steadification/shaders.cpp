@@ -14,11 +14,11 @@ vert_frag_shader::vert_frag_shader(const std::string_view& vert,
   create();
 }
 //------------------------------------------------------------------------------
-void vert_frag_shader::set_projection(const yavin::mat4& projection) {
+void vert_frag_shader::set_projection(const rendering::gl::mat4& projection) {
   set_uniform("projection", projection);
 }
 //------------------------------------------------------------------------------
-void vert_frag_shader::set_modelview(const yavin::mat4& modelview) {
+void vert_frag_shader::set_modelview(const rendering::gl::mat4& modelview) {
   set_uniform("modelview", modelview);
 }
 //==============================================================================

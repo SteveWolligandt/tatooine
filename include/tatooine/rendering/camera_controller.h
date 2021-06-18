@@ -3,7 +3,7 @@
 //==============================================================================
 #include <tatooine/rendering/orthographic_camera.h>
 #include <tatooine/rendering/perspective_camera.h>
-#include <yavin/window_listener.h>
+#include <tatooine/rendering/gl/window_listener.h>
 
 #include <chrono>
 //==============================================================================
@@ -19,7 +19,7 @@ template <typename Real>
 struct orthographic_camera_controller;
 //==============================================================================
 template <typename Real>
-struct camera_controller_interface : yavin::window_listener {
+struct camera_controller_interface : rendering::gl::window_listener {
  private:
   camera_controller<Real>* m_controller;
   //----------------------------------------------------------------------------
@@ -57,7 +57,7 @@ struct camera_controller_interface : yavin::window_listener {
 };
 //==============================================================================
 template <typename Real>
-struct camera_controller : yavin::window_listener {
+struct camera_controller : rendering::gl::window_listener {
   friend struct camera_controller_interface<Real>;
   class perspective_camera<Real>                     m_pcam;
   class orthographic_camera<Real>                    m_ocam;
@@ -166,22 +166,22 @@ struct camera_controller : yavin::window_listener {
   }
   auto ray(int x, int y) const { return m_active_cam->ray(x, y); }
   //------------------------------------------------------------------------------
-  void on_key_pressed(yavin::key k) override {
+  void on_key_pressed(rendering::gl::key k) override {
     if (m_controller) {
       m_controller->on_key_pressed(k);
     }
   }
-  void on_key_released(yavin::key k) override {
+  void on_key_released(rendering::gl::key k) override {
     if (m_controller) {
       m_controller->on_key_released(k);
     }
   }
-  void on_button_pressed(yavin::button b) override {
+  void on_button_pressed(rendering::gl::button b) override {
     if (m_controller) {
       m_controller->on_button_pressed(b);
     }
   }
-  void on_button_released(yavin::button b) override {
+  void on_button_released(rendering::gl::button b) override {
     if (m_controller) {
       m_controller->on_button_released(b);
     }
@@ -246,46 +246,46 @@ struct fps_camera_controller : camera_controller_interface<Real> {
   }
   virtual ~fps_camera_controller() = default;
   //----------------------------------------------------------------------------
-  auto on_key_pressed(yavin::key k) -> void override {
-    if (k == yavin::KEY_W) {
+  auto on_key_pressed(rendering::gl::key k) -> void override {
+    if (k == rendering::gl::KEY_W) {
       m_w_down = true;
-    } else if (k == yavin::KEY_S) {
+    } else if (k == rendering::gl::KEY_S) {
       m_s_down = true;
-    } else if (k == yavin::KEY_A) {
+    } else if (k == rendering::gl::KEY_A) {
       m_a_down = true;
-    } else if (k == yavin::KEY_D) {
+    } else if (k == rendering::gl::KEY_D) {
       m_d_down = true;
-    } else if (k == yavin::KEY_Q) {
+    } else if (k == rendering::gl::KEY_Q) {
       m_q_down = true;
-    } else if (k == yavin::KEY_E) {
+    } else if (k == rendering::gl::KEY_E) {
       m_e_down = true;
     }
   }
   //----------------------------------------------------------------------------
-  void on_key_released(yavin::key k) override {
-    if (k == yavin::KEY_W) {
+  void on_key_released(rendering::gl::key k) override {
+    if (k == rendering::gl::KEY_W) {
       m_w_down = false;
-    } else if (k == yavin::KEY_S) {
+    } else if (k == rendering::gl::KEY_S) {
       m_s_down = false;
-    } else if (k == yavin::KEY_A) {
+    } else if (k == rendering::gl::KEY_A) {
       m_a_down = false;
-    } else if (k == yavin::KEY_D) {
+    } else if (k == rendering::gl::KEY_D) {
       m_d_down = false;
-    } else if (k == yavin::KEY_Q) {
+    } else if (k == rendering::gl::KEY_Q) {
       m_q_down = false;
-    } else if (k == yavin::KEY_E) {
+    } else if (k == rendering::gl::KEY_E) {
       m_e_down = false;
     }
   }
   //----------------------------------------------------------------------------
-  void on_button_pressed(yavin::button b) override {
-    if (b == yavin::BUTTON_RIGHT) {
+  void on_button_pressed(rendering::gl::button b) override {
+    if (b == rendering::gl::BUTTON_RIGHT) {
       m_right_button_down = true;
     }
   }
   //----------------------------------------------------------------------------
-  void on_button_released(yavin::button b) override {
-    if (b == yavin::BUTTON_RIGHT) {
+  void on_button_released(rendering::gl::button b) override {
+    if (b == rendering::gl::BUTTON_RIGHT) {
       m_right_button_down = false;
     }
   }
@@ -384,14 +384,14 @@ struct orthographic_camera_controller : camera_controller_interface<Real> {
   //============================================================================
   // methods
   //============================================================================
-  void on_button_pressed(yavin::button b) override {
-    if (b == yavin::BUTTON_RIGHT) {
+  void on_button_pressed(rendering::gl::button b) override {
+    if (b == rendering::gl::BUTTON_RIGHT) {
       m_right_button_down = true;
     }
   }
   //----------------------------------------------------------------------------
-  void on_button_released(yavin::button b) override {
-    if (b == yavin::BUTTON_RIGHT) {
+  void on_button_released(rendering::gl::button b) override {
+    if (b == rendering::gl::BUTTON_RIGHT) {
       m_right_button_down = false;
     }
   }

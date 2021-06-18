@@ -3,47 +3,46 @@
 //==============================================================================
 #include <tatooine/flowexplorer/renderable.h>
 #include <tatooine/rendering/matrices.h>
-#include <tatooine/rendering/yavin_interop.h>
 #include <tatooine/flowexplorer/line_shader.h>
 #include <tatooine/vtk_legacy.h>
 #include <tatooine/line.h>
+#include <tatooine/rendering/gl/indexeddata.h>
 
 #include <mutex>
-#include <yavin>
 //==============================================================================
 namespace tatooine::flowexplorer::nodes {
 //==============================================================================
 struct vtk_line_reader : renderable<vtk_line_reader> {
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
   // internal
-  private:
-   yavin::indexeddata<vec3f> m_gpu_data;
-   line<real_t, 3>           m_line3;
+ private:
+  rendering::gl::indexeddata<vec3f> m_gpu_data;
+  line<real_t, 3>                   m_line3;
 
-   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-   // user data
-   std::string            m_path;
-   std::array<GLfloat, 4> m_line_color{0.0f, 0.0f, 0.0f, 1.0f};
-   int                    m_line_width = 1;
+  // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+  // user data
+  std::string            m_path;
+  std::array<GLfloat, 4> m_line_color{0.0f, 0.0f, 0.0f, 1.0f};
+  int                    m_line_width = 1;
 
-  public:
-   //----------------------------------------------------------------------------
-   // ctors
-   //----------------------------------------------------------------------------
-   vtk_line_reader(flowexplorer::scene& s) : renderable{"VTK Line Reader", s} {}
+ public:
+  //----------------------------------------------------------------------------
+  // ctors
+  //----------------------------------------------------------------------------
+  vtk_line_reader(flowexplorer::scene& s) : renderable{"VTK Line Reader", s} {}
 
-   //----------------------------------------------------------------------------
-   // methods
-   //----------------------------------------------------------------------------
-   auto render(mat4f const& P, mat4f const& V) -> void override {
-     auto& shader = line_shader::get();
-     shader.bind();
-     shader.set_color(m_line_color[0], m_line_color[1], m_line_color[2],
-                      m_line_color[3]);
-     shader.set_projection_matrix(P);
-     shader.set_modelview_matrix(V);
-     yavin::gl::line_width(m_line_width);
-     m_gpu_data.draw_lines();
+  //----------------------------------------------------------------------------
+  // methods
+  //----------------------------------------------------------------------------
+  auto render(mat4f const& P, mat4f const& V) -> void override {
+    auto& shader = line_shader::get();
+    shader.bind();
+    shader.set_color(m_line_color[0], m_line_color[1], m_line_color[2],
+                     m_line_color[3]);
+    shader.set_projection_matrix(P);
+    shader.set_modelview_matrix(V);
+    rendering::gl::line_width(m_line_width);
+    m_gpu_data.draw_lines();
    }
    //----------------------------------------------------------------------------
    // setters / getters

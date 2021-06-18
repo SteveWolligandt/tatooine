@@ -3,8 +3,6 @@
 //==============================================================================
 #include <tatooine/analytical/fields/numerical/rayleigh_benard_convection.h>
 #include <tatooine/flowexplorer/renderable.h>
-
-#include <yavin>
 //==============================================================================
 namespace tatooine::flowexplorer::nodes {
 //==============================================================================

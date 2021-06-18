@@ -3,8 +3,7 @@
 //==============================================================================
 #include <tatooine/flowexplorer/renderable.h>
 #include <tatooine/line.h>
-#include <yavin/indexeddata.h>
-#include <tatooine/rendering/yavin_interop.h>
+#include <tatooine/rendering/gl/indexeddata.h>
 //==============================================================================
 namespace tatooine::flowexplorer::nodes {
 //==============================================================================
@@ -15,7 +14,7 @@ struct parallel_vectors : renderable<parallel_vectors> {
   ui::input_pin&               w_pin;
   ui::input_pin&               grid_pin;
   std::vector<line<real_t, 3>> m_lines;
-  yavin::indexeddata<vec3f> m_geometry;
+  rendering::gl::indexeddata<vec3f> m_geometry;
   //============================================================================
   parallel_vectors(flowexplorer::scene& s);
   ~parallel_vectors() = default;

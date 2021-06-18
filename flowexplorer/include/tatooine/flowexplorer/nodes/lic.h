@@ -6,11 +6,11 @@
 #include <tatooine/gpu/lic.h>
 #include <tatooine/gpu/texture_shader.h>
 #include <tatooine/rendering/matrices.h>
-#include <tatooine/rendering/yavin_interop.h>
 #include <tatooine/flowexplorer/nodes/vectorfield_to_gpu.h>
+#include <tatooine/rendering/gl/texture.h>
+#include <tatooine/rendering/gl/indexdata.h>
 
 #include <mutex>
-#include <yavin>
 //==============================================================================
 namespace tatooine::flowexplorer::nodes {
 //==============================================================================
@@ -32,12 +32,12 @@ struct lic : renderable<lic> {
 
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
   // internal
-  bool                                    m_calculating          = false;
-  bool                                    m_needs_another_update = false;
-  std::unique_ptr<gpu::texture_shader>    m_shader;
-  std::unique_ptr<yavin::tex2rgba<float>> m_lic_tex;
-  yavin::indexeddata<vec<float, 2>, vec<float, 2>, float> m_quad;
-  std::mutex                                              m_mutex;
+  bool                                 m_calculating          = false;
+  bool                                 m_needs_another_update = false;
+  std::unique_ptr<gpu::texture_shader> m_shader;
+  std::unique_ptr<rendering::gl::tex2rgba<float>>                 m_lic_tex;
+  rendering::gl::indexeddata<vec<float, 2>, vec<float, 2>, float> m_quad;
+  std::mutex                                                      m_mutex;
 
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
   // user data

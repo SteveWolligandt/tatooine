@@ -3,7 +3,6 @@
 #include <Tatooine/regular_grid.h>
 #include <Tatooine/spacetime_vectorfield.h>
 #include <Tatooine/streamsurface.h>
-#include <yavin>
 #include "shaders.h"
 
 using namespace tatooine;
@@ -48,8 +47,8 @@ int main() {
       noise(tex_width, tex_height);
   noise.fill_random();
 
-  yavin::Window             w("foo", window_width, window_height);
-  yavin::OrthographicCamera cam(0, 2, 0, 1, -10000, 100000, window_width,
+  rendering::gl::Window             w("foo", window_width, window_height);
+  rendering::gl::OrthographicCamera cam(0, 2, 0, 1, -10000, 100000, window_width,
                                 window_height);
   // cam.transform().look_at({1, 1, 1}, {0, 0, 0}, {0, 1, 0});
   MeshViewerShader shader;
@@ -57,12 +56,12 @@ int main() {
   shader.set_projection(cam.projection_matrix());
   shader.set_modelview(cam.view_matrix());
 
-  yavin::Texture2D<float, R> noise_tex(tex_width, tex_height, noise.data());
+  rendering::gl::Texture2D<float, R> noise_tex(tex_width, tex_height, noise.data());
   noise_tex.bind();
 
-  using vbo_t = yavin::VertexBuffer<yavin::vec3, yavin::vec2>;
+  using vbo_t = rendering::gl::VertexBuffer<yavin::vec3, yavin::vec2>;
 
-  yavin::IndexBuffer ibo(mesh.num_faces() * 3);
+  rendering::gl::IndexBuffer ibo(mesh.num_faces() * 3);
   vbo_t              vbo(mesh.num_vertices());
 
   {
@@ -82,7 +81,7 @@ int main() {
                   {(float)new_uv_prop[v](0), (float)new_uv_prop[v](1)}};
   }
 
-  yavin::VertexArray vao;
+  rendering::gl::VertexArray vao;
 
   vao.bind();
   vbo.bind();
@@ -90,8 +89,8 @@ int main() {
   vbo.activate_attributes();
 
   w.set_render_function([&] {
-    yavin::clear_color_depth_buffer();
-    yavin::gl::viewport(0, 0, window_width, window_height);
+      rendering::gl::clear_color_depth_buffer();
+      rendering::gl::viewport(0, 0, window_width, window_height);
     vao.draw_triangles(mesh.num_faces() * 3);
   });
 

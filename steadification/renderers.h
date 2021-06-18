@@ -3,17 +3,15 @@
 
 #include <tatooine/streamsurface.h>
 
-#include <yavin>
-
 //==============================================================================
 namespace tatooine::steadification {
 //==============================================================================
 struct streamsurface_renderer
-    : yavin::indexeddata<yavin::vec2, yavin::vec2, yavin::scalar, yavin::scalar,
-                         yavin::scalar> {
+    : rendering::gl::indexeddata<vec2f, vec2f, float, float,
+                         float> {
   //============================================================================
-  using parent_t = yavin::indexeddata<yavin::vec2, yavin::vec2, yavin::scalar,
-                                      yavin::scalar, yavin::scalar>;
+  using parent_t = rendering::gl::indexeddata<vec2f, vec2f, float,
+                                      float, float>;
   using typename parent_t::ibo_data_vec;
   using typename parent_t::vbo_data_vec;
   //============================================================================
@@ -40,8 +38,8 @@ struct streamsurface_renderer
     boost::transform(
         mesh.vertices(), std::back_inserter(vbo_data), [&](auto v) {
           return vbo_data_t{
-              yavin::vec2{float(mesh[v](0)), float(mesh[v](1))},
-              yavin::vec2{float(vf_prop[v](0)), float(vf_prop[v](1))},
+              vec2f{float(mesh[v](0)), float(mesh[v](1))},
+              vec2f{float(vf_prop[v](0)), float(vf_prop[v](1))},
               float(uv_prop[v](1)), t0, float(curvature_prop[v])};
         });
 
@@ -67,15 +65,15 @@ struct streamsurface_renderer
   void draw() const;
 };
 template <size_t N>
-struct line_renderer : yavin::indexeddata<yavin::vec<float, N>> {
+struct line_renderer : rendering::gl::indexeddata<vec<float, N>> {
   //============================================================================
-  using parent_t = yavin::indexeddata<yavin::vec<float, N>>;
+  using parent_t = rendering::gl::indexeddata<vec<float, N>>;
   using typename parent_t::ibo_data_vec;
   using typename parent_t::vbo_data_vec;
   //============================================================================
   template <typename Real>
   line_renderer(const std::vector<line<Real, N>>& lines)
-      : yavin::indexeddata<yavin::vec<float, N>>{to_vbo_data(lines), to_ibo_data(lines)} {}
+      : rendering::gl::indexeddata<vec<float, N>>{to_vbo_data(lines), to_ibo_data(lines)} {}
   //----------------------------------------------------------------------------
   line_renderer(const line_renderer& other) = default;
   //----------------------------------------------------------------------------

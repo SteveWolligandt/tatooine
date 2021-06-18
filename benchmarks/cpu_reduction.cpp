@@ -1,5 +1,5 @@
 //#include <tatooine/random.h>
-#include <yavin/texture.h>
+#include <tatooine/rendering/gl/texture.h>
 #include <execution>
 #include <numeric>
 
@@ -15,7 +15,7 @@ static void cpu_reduction(::benchmark::State& state) {
     const size_t             height = state.range(1);
     const std::vector<float> rand_data(width * height, 0.5f);
     //= random::uniform_vector<float>(width * height, 0.0f, 1.0f, eng);
-    const yavin::tex2r32f data_tex{rand_data, width, height};
+    const rendering::gl::tex2r32f data_tex{rand_data, width, height};
     state.ResumeTiming();  // And resume timers. They are now counting again.
 
     auto downloaded_data = data_tex.download_data();

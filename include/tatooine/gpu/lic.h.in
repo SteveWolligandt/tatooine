@@ -3,17 +3,17 @@
 //==============================================================================
 #include <tatooine/gpu/upload.h>
 #include <tatooine/random.h>
-#include <yavin/glfunctions.h>
-#include <yavin/shader.h>
+#include <tatooine/rendering/gl/glfunctions.h>
+#include <tatooine/rendering/gl/shader.h>
 
 #include <boost/range/algorithm/generate.hpp>
 //==============================================================================
 namespace tatooine::gpu {
 //==============================================================================
-struct lic_shader : yavin::shader {
+struct lic_shader : rendering::gl::shader {
   //----------------------------------------------------------------------------
   lic_shader() {
-    add_stage<yavin::computeshader>("@TATOOINE_LIC_COMP_SHADER@");
+    add_stage<rendering::gl::computeshader>("@TATOOINE_LIC_COMP_SHADER@");
     create();
     set_noise_tex_bind_point(0);
     set_v_tex_bind_point(1);
@@ -23,7 +23,7 @@ struct lic_shader : yavin::shader {
     bind();
     static vec<size_t, 2> const num_threads{32, 32};
     auto                        num_blocks = resolution / num_threads + 1;
-    yavin::gl::dispatch_compute(num_blocks(0), num_blocks(1), 1);
+    rendering::gl::dispatch_compute(num_blocks(0), num_blocks(1), 1);
   }
   void set_domain_min(GLfloat x, GLfloat y) { set_uniform("domain_min", x, y); }
   void set_domain_max(GLfloat x, GLfloat y) { set_uniform("domain_max", x, y); }
@@ -39,12 +39,12 @@ struct lic_shader : yavin::shader {
 //==============================================================================
 template <floating_point GPUReal = float, floating_point VReal,
           floating_point XReal, floating_point YReal>
-auto lic(yavin::tex2rg<VReal>&                         v_tex,
+auto lic(rendering::gl::tex2rg<VReal>&                         v_tex,
          grid<linspace<XReal>, linspace<YReal>> const& spatial_domain,
          vec<size_t, 2> const& lic_tex_res, size_t num_samples,
          arithmetic auto stepsize, vec<size_t, 2> noise_res /* = {256, 256}*/,
-         std::seed_seq & noise_seed) -> yavin::tex2rgba<GPUReal> {
-  using namespace yavin;
+         std::seed_seq & noise_seed) -> rendering::gl::tex2rgba<GPUReal> {
+  using namespace rendering::gl;
 
   // generate noise_tex data
   random::uniform       rand(GPUReal(0), GPUReal(1), noise_seed);
@@ -81,7 +81,7 @@ auto lic(polymorphic::vectorfield<VReal, 2> const&          v,
          arithmetic auto t, vec<size_t, 2> const& lic_tex_res,
          size_t num_samples, arithmetic auto stepsize,
          vec<size_t, 2> noise_res, std::seed_seq & noise_seed)
-    -> yavin::tex2rgba<GPUReal> {
+    -> rendering::gl::tex2rgba<GPUReal> {
       std::cerr << "uploading..";
   auto v_tex = gpu::upload_tex<GPUReal>(sample_to_vector(v, spatial_domain, t),
                                         spatial_domain.template size<0>(),
@@ -97,7 +97,7 @@ auto lic(polymorphic::vectorfield<VReal, 2> const& v, linspace<XReal> const& xre
          linspace<YReal> const& yres, arithmetic auto t,
          vec<size_t, 2> const& lic_tex_res, size_t num_samples,
          arithmetic auto stepsize, vec<size_t, 2> noise_res,
-         std::seed_seq& noise_seed) -> yavin::tex2rgba<GPUReal> {
+         std::seed_seq& noise_seed) -> rendering::gl::tex2rgba<GPUReal> {
   return lic<GPUReal>(v, grid{xres, yres}, t, lic_tex_res, num_samples,
                       stepsize, noise_res, noise_seed);
 }

@@ -36,7 +36,7 @@ auto pathline::render(mat4f const& P, mat4f const& V) -> void {
                      m_line_color[3]);
   shader.set_projection_matrix(P);
   shader.set_modelview_matrix(V);
-  yavin::gl::line_width(m_line_width);
+  rendering::gl::line_width(m_line_width);
   m_gpu_data.draw_lines();
 }
 //----------------------------------------------------------------------------

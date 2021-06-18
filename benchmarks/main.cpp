@@ -1,4 +1,4 @@
 #include <benchmark/benchmark.h>
-#include <yavin/context.h>
-yavin::context ctx;
+#include <tatooine/rendering/gl/context.h>
+tatooine::rendering::gl::context ctx;
 BENCHMARK_MAIN();

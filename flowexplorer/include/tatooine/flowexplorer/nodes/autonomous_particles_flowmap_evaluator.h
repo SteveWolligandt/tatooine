@@ -5,7 +5,7 @@
 #include <tatooine/flowexplorer/nodes/position.h>
 #include <tatooine/flowexplorer/point_shader.h>
 #include <tatooine/flowexplorer/renderable.h>
-#include <yavin/indexeddata.h>
+#include <tatooine/rendering/gl/indexeddata.h>
 //==============================================================================
 namespace tatooine::flowexplorer::nodes {
 //==============================================================================
@@ -20,7 +20,7 @@ struct autonomous_particles_flowmap_evaluator
   unsigned int                  m_current_item   = 0;
 
   vec2                        m_x1;
-  yavin::indexeddata<gpu_vec> m_gpu_data;
+  rendering::gl::indexeddata<gpu_vec> m_gpu_data;
   int                         m_pointsize = 1;
   std::array<GLfloat, 4>      m_color{0.0f, 0.0f, 0.0f, 1.0f};
   //----------------------------------------------------------------------------

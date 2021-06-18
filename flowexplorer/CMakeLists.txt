@@ -67,7 +67,7 @@ if ("${CMAKE_CXX_COMPILER_ID}" STREQUAL "Clang")
 elseif ("${CMAKE_CXX_COMPILER_ID}" STREQUAL "GNU")
   target_compile_options(flowexplorer PRIVATE  "-fdiagnostics-color=always")
 endif()
-target_link_libraries(flowexplorer tatooine yavin)
+target_link_libraries(flowexplorer tatooine gl.rendering)
 target_compile_features(flowexplorer PUBLIC cxx_std_17)
 target_include_directories(flowexplorer
  PUBLIC

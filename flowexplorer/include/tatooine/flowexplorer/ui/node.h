@@ -9,7 +9,7 @@
 #include <tatooine/flowexplorer/uuid_holder.h>
 #include <tatooine/reflection.h>
 #include <tatooine/vec.h>
-#include <yavin/imgui.h>
+#include <tatooine/rendering/gl/imgui.h>
 //==============================================================================
 namespace tatooine::flowexplorer {
 //==============================================================================

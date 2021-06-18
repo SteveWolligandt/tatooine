@@ -1,5 +1,4 @@
 #include <Tatooine/doublegyre.h>
-#include <yavin>
 #include "steadification.h"
 #include "datasets.h"
 #include "real_t.h"
