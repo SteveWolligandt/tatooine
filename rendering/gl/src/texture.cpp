@@ -1,9 +1,7 @@
-#include <yavin/texture.h>
-
+#include <tatooine/rendering/gl/texture.h>
 //==============================================================================
-namespace yavin {
+namespace tatooine::rendering::gl {
 //==============================================================================
-
 template class texture<1, int8_t, R>;
 template class texture<1, int8_t, RG>;
 template class texture<1, int8_t, RGB>;
@@ -153,7 +151,6 @@ template class texture<3, float, RGB>;
 template class texture<3, float, RGBA>;
 template class texture<3, float, BGR>;
 template class texture<3, float, BGRA>;
-
 //==============================================================================
-}  // namespace yavin
+}  // namespace tatooine::rendering::gl
 //==============================================================================

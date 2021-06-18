@@ -15,8 +15,8 @@ class indexeddata {
   // TYPEDEFS
   //============================================================================
  public:
-  using vbo_t        = vertexbuffer<Ts...>;
-  using ibo_t        = indexbuffer;
+  using vbo_t        = gl::vertexbuffer<Ts...>;
+  using ibo_t        = gl::indexbuffer;
   using vbo_data_t   = typename vbo_t::data_t;
   using ibo_data_t   = unsigned int;
   using vbo_data_vec = std::vector<vbo_data_t>;

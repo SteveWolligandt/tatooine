@@ -1,7 +1,7 @@
-#include <yavin/window_notifier.h>
+#include <tatooine/rendering/gl/window_notifier.h>
 #include <iostream>
 //==============================================================================
-namespace yavin {
+namespace tatooine::rendering::gl {
 //==============================================================================
 void window_notifier::add_listener(window_listener &l) {
   m_window_listeners.push_back(&l);
@@ -49,5 +49,5 @@ void window_notifier::notify_close() {
   }
 }
 //==============================================================================
-}  // namespace yavin
+}  // namespace tatooine::rendering::gl
 //==============================================================================

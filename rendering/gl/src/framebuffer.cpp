@@ -1,6 +1,6 @@
-#include <yavin/framebuffer.h>
+#include <tatooine/rendering/gl/framebuffer.h>
 //==============================================================================
-namespace yavin {
+namespace tatooine::rendering::gl {
 //==============================================================================
 framebuffer::framebuffer() {
   gl::create_framebuffers(1, &id_ref());
@@ -99,5 +99,5 @@ template GLenum framebuffer::attach<uint32_t>(const tex2<uint32_t, Depth>&);
 template GLenum framebuffer::attach<float>(const tex2<float, Depth>&);
 
 //==============================================================================
-}  // namespace yavin
+}  // namespace tatooine::rendering::gl
 //==============================================================================

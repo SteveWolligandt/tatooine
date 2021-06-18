@@ -1,9 +1,9 @@
-#include <yavin/indexbuffer.h>
+#include <tatooine/rendering/gl/indexbuffer.h>
 
-#include <yavin/glincludes.h>
+#include <tatooine/rendering/gl/glincludes.h>
 
 //==============================================================================
-namespace yavin {
+namespace tatooine::rendering::gl {
 //==============================================================================
 
 indexbuffer::indexbuffer(usage_t usage) : buffer(usage) {}
@@ -50,5 +50,5 @@ indexbuffer::indexbuffer(std::initializer_list<unsigned int>&& list)
     : buffer(std::move(list), default_usage) {}
 
 //==============================================================================
-}  // namespace yavin
+}  // namespace tatooine::rendering::gl
 //==============================================================================

@@ -1,6 +1,6 @@
-#include <yavin/glfw/context.h>
+#include <tatooine/rendering/gl/glfw/context.h>
 //==============================================================================
-namespace yavin::glfw{
+namespace tatooine::rendering::gl::glfw{
 //==============================================================================
 context::context() {
   glfwWindowHint(GLFW_VISIBLE, GLFW_FALSE);
@@ -14,5 +14,5 @@ context::context(base& parent) {
                                    nullptr, parent.get());
 }
 //==============================================================================
-}  // namespace yavin::glfw
+}  // namespace tatooine::rendering::gl::glfw
 //==============================================================================

@@ -1,10 +1,9 @@
-#include "yavin/atomiccounterbuffer.h"
-
-#include <yavin/glincludes.h>
+#include <tatooine/rendering/gl/atomiccounterbuffer.h>
+#include <tatooine/rendering/gl/glincludes.h>
 
 #include <cstring>
 //==============================================================================
-namespace yavin {
+namespace tatooine::rendering::gl {
 //==============================================================================
 atomiccounterbuffer::atomiccounterbuffer(usage_t usage) : buffer(usage) {}
 //------------------------------------------------------------------------------
@@ -38,5 +37,5 @@ void atomiccounterbuffer::unbind(size_t i) {
   gl::bind_buffer_base(GL_ATOMIC_COUNTER_BUFFER, i, 0);
 }
 //==============================================================================
-}  // namespace yavin
+}  // namespace tatooine::rendering::gl
 //==============================================================================

@@ -1,8 +1,8 @@
-#include <yavin/shaderstageparser.h>
+#include <tatooine/rendering/gl/shaderstageparser.h>
 
 #include <sstream>
 //==============================================================================
-namespace yavin {
+namespace tatooine::rendering::gl {
 //==============================================================================
 std::regex const shaderstageparser::regex_var{
     R"((layout\s*\(location\s*=\s*\d+\s*\))?\s*(in|out|uniform)\s*(float|double|int|uint|bool|sampler\dD|mat\d|vec\d|ivec\d|uvec\d|bvec\d|dvec\d)\s*(.*)[;])"};
@@ -63,5 +63,5 @@ auto shaderstageparser::parse_include(std::string const& line)
   return {};
 }
 //==============================================================================
-}  // namespace yavin
+}  // namespace tatooine::rendering::gl
 //==============================================================================

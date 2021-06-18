@@ -2,6 +2,8 @@
 #define TATOOINE_NUM_COMPONENTS_H
 //==============================================================================
 #include <tatooine/type_traits.h>
+
+#include <array>
 //==============================================================================
 namespace tatooine {
 //==============================================================================
@@ -62,6 +64,10 @@ template <>
 struct num_components_impl<unsigned long long>
     : std::integral_constant<size_t, 1> {};
 #endif
+// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+template <typename T, size_t N>
+struct num_components_impl<std::array<T, N>>
+    : std::integral_constant<size_t, N> {};
 //==============================================================================
 }  // namespace tatooine
 //==============================================================================

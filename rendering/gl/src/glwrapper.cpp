@@ -1,7 +1,7 @@
-#include <yavin/glwrapper.h>
-#include <yavin/glfunctions.h>
+#include <tatooine/rendering/gl/glwrapper.h>
+#include <tatooine/rendering/gl/glfunctions.h>
 //==============================================================================
-namespace yavin {
+namespace tatooine::rendering::gl {
 //==============================================================================
 void clear_color_buffer() {
   gl::clear(GL_COLOR_BUFFER_BIT);
@@ -302,5 +302,5 @@ std::pair<GLint, GLint> opengl_version() {
   return version;
 }
 //==============================================================================
-}  // namespace yavin
+}  // namespace tatooine::rendering::gl
 //==============================================================================

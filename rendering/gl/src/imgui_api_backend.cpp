@@ -1,9 +1,9 @@
-#include <yavin/imgui_api_backend.h>
-#include <yavin/keyboard.h>
+#include <tatooine/rendering/gl/imgui_api_backend.h>
+#include <tatooine/rendering/gl/keyboard.h>
 #include <memory>
 #include <iostream>
 //==============================================================================
-namespace yavin {
+namespace tatooine::rendering::gl {
 //==============================================================================
 std::chrono::time_point<std::chrono::system_clock> imgui_api_backend::time =
     std::chrono::system_clock::now();
@@ -18,7 +18,7 @@ imgui_api_backend::imgui_api_backend() {
       ImGuiBackendFlags_HasSetMousePos;  // We can honor io.WantSetMousePos
                                          // requests (optional, rarely used)
 
-  io.BackendPlatformName = "imgui_impl_yavin";
+  io.BackendPlatformName = "imgui_impl_tatooine";
 
   io.KeyMap[ImGuiKey_Tab]         = KEY_TAB;
   io.KeyMap[ImGuiKey_LeftArrow]   = KEY_LEFT;
@@ -148,5 +148,5 @@ void imgui_api_backend::on_mouse_wheel(int dir) {
   }
 }
 //==============================================================================
-}  // namespace yavin
+}  // namespace tatooine::rendering::gl
 //==============================================================================

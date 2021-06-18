@@ -1,7 +1,7 @@
-#include <yavin/glslvar.h>
+#include <tatooine/rendering/gl/glslvar.h>
 
 //==============================================================================
-namespace yavin {
+namespace tatooine::rendering::gl {
 //==============================================================================
 
 auto GLSLVar::modifier_to_string(const GLSLVar::modifier_t& modifier) {
@@ -14,5 +14,5 @@ auto GLSLVar::modifier_to_string(const GLSLVar::modifier_t& modifier) {
 }
 
 //==============================================================================
-}  // namespace yavin
+}  // namespace tatooine::rendering::gl
 //==============================================================================

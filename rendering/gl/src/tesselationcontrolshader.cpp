@@ -1,7 +1,7 @@
-#include <yavin/glincludes.h>
-#include <yavin/tesselationcontrolshader.h>
+#include <tatooine/rendering/gl/glincludes.h>
+#include <tatooine/rendering/gl/tesselationcontrolshader.h>
 //==============================================================================
-namespace yavin {
+namespace tatooine::rendering::gl {
 //==============================================================================
 tesselationcontrolshader::tesselationcontrolshader(
     std::filesystem::path const& sourcepath)
@@ -14,5 +14,5 @@ tesselationcontrolshader::tesselationcontrolshader(
     tesselationcontrolshader&& other)
     : shaderstage{std::move(other)} {}
 //==============================================================================
-}  // namespace yavin
+}  // namespace tatooine::rendering::gl
 //==============================================================================
