@@ -23,10 +23,11 @@ struct line_shader : rendering::gl::shader {
         "}\n"});
     add_stage<rendering::gl::fragmentshader>(rendering::gl::shadersource{
         "#version 330 core\n"
+        "uniform vec3 color;\n"
         "layout(location = 0) out vec4 fragout;\n"
         "//------------------------------------------------------------------\n"
         "void main() {\n"
-        "  fragout = vec4(0, 0, 0, 1);\n"
+        "  fragout = vec4(color, 1);\n"
         "}\n"});
     create();
   }
@@ -35,6 +36,9 @@ struct line_shader : rendering::gl::shader {
   }
   auto set_modelview_matrix(mat4f const& MV) {
     set_uniform_mat4("modelview_matrix", MV.data_ptr());
+  }
+  auto set_color(GLfloat const r, GLfloat const g, GLfloat const b) {
+    set_uniform("color", r, g, b);
   }
 };
 template <typename Real>
@@ -113,11 +117,14 @@ auto interactive(std::vector<line<Real, N>> const& lines) {
   shader.bind();
   shader.set_projection_matrix(win.camera_controller().projection_matrix());
   rendering::gl::clear_color(255, 255, 255, 255);
-  bool my_tool_active = true;
-  win.render_loop([&](auto const dt) {
-      rendering::gl::clear_color_depth_buffer();
+  vec3f col;
+  win.render_loop([&](auto const /*dt*/) {
+    rendering::gl::clear_color_depth_buffer();
     shader.set_modelview_matrix(win.camera_controller().view_matrix());
     shader.set_projection_matrix(win.camera_controller().projection_matrix());
+    if (ImGui::ColorEdit3("color", col.data_ptr())) {
+      shader.set_color(col(0), col(1), col(2));
+    }
     gpu_data.draw_lines();
   });
 }
