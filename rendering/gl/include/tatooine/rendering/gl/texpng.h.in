@@ -4,7 +4,7 @@
 #include <png++/png.hpp>
 #include <cmath>
 
-#include <yavin/texcomponents.h>
+#include <tatooine/rendering/gl/texcomponents.h>
 
 //==============================================================================
 namespace tatooine::rendering::gl {

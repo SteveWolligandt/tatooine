@@ -4,9 +4,9 @@
 #include <initializer_list>
 #include <iostream>
 #include <vector>
-#include <yavin/buffer.h>
-#include <yavin/dllexport.h>
-#include <yavin/errorcheck.h>
+#include <tatooine/rendering/gl/buffer.h>
+#include <tatooine/rendering/gl/dllexport.h>
+#include <tatooine/rendering/gl/errorcheck.h>
 //==============================================================================
 namespace tatooine::rendering::gl {
 //==============================================================================

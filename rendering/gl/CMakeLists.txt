@@ -113,10 +113,10 @@ endif()
 #- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - 
 # configure files
 #- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - 
-configure_file(src/glverbose.cpp.in
-               src/glverbose.cpp)
-configure_file(include/tatooine/rendering/gl/texpng.h.in
-               include/tatooine/rendering/gl/texpng.h)
+configure_file(${CMAKE_CURRENT_SOURCE_DIR}/src/glverbose.cpp.in
+               ${CMAKE_CURRENT_BINARY_DIR}/src/glverbose.cpp)
+configure_file(${CMAKE_CURRENT_SOURCE_DIR}/include/tatooine/rendering/gl/texpng.h.in
+               ${CMAKE_CURRENT_BINARY_DIR}/include/tatooine/rendering/gl/texpng.h)
 else()
   set(TATOOINE_RENDERING_GL_AVAILABLE 0)
 endif()

@@ -1,8 +1,8 @@
 #ifndef TATOOINE_RENDERING_GL_IMGUI_H
 #define TATOOINE_RENDERING_GL_IMGUI_H
 //==============================================================================
-#include <yavin/dllexport.h>
-#include <yavin/imgui_includes.h>
+#include <tatooine/rendering/gl/dllexport.h>
+#include <tatooine/rendering/gl/imgui_includes.h>
 //==============================================================================
 namespace ImGui {
 //==============================================================================
@@ -187,7 +187,7 @@ DLL_API bool Spinner(const char* label, float radius, int thickness,
 //==============================================================================
 }  // namespace ImGui
 //==============================================================================
-#include <yavin/imgui_api_backend.h>
-#include <yavin/imgui_render_backend.h>
+#include <tatooine/rendering/gl/imgui_api_backend.h>
+#include <tatooine/rendering/gl/imgui_render_backend.h>
 //==============================================================================
 #endif

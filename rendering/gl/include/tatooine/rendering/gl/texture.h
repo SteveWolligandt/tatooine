@@ -1,16 +1,16 @@
 #ifndef TATOOINE_RENDERING_GL_TEXTURE_H
 #define TATOOINE_RENDERING_GL_TEXTURE_H
 
-#include <yavin/errorcheck.h>
-#include <yavin/glfunctions.h>
-#include <yavin/idholder.h>
-#include <yavin/pixelunpackbuffer.h>
-#include <yavin/texcomponents.h>
-#include <yavin/texpng.h>
-#include <yavin/texsettings.h>
-#include <yavin/textarget.h>
-#include <yavin/type.h>
-#include <yavin/glwrapper.h>
+#include <tatooine/rendering/gl/errorcheck.h>
+#include <tatooine/rendering/gl/glfunctions.h>
+#include <tatooine/rendering/gl/idholder.h>
+#include <tatooine/rendering/gl/pixelunpackbuffer.h>
+#include <tatooine/rendering/gl/texcomponents.h>
+#include <tatooine/rendering/gl/texpng.h>
+#include <tatooine/rendering/gl/texsettings.h>
+#include <tatooine/rendering/gl/textarget.h>
+#include <tatooine/rendering/gl/type.h>
+#include <tatooine/rendering/gl/glwrapper.h>
 
 #include <boost/range/algorithm/copy.hpp>
 #include <boost/range/algorithm/transform.hpp>

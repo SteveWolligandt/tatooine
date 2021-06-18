@@ -7,10 +7,10 @@
 #include <optional>
 #include <regex>
 
-#include <yavin/dllexport.h>
-#include <yavin/glslvar.h>
-#include <yavin/includetree.h>
-#include <yavin/shadersource.h>
+#include <tatooine/rendering/gl/dllexport.h>
+#include <tatooine/rendering/gl/glslvar.h>
+#include <tatooine/rendering/gl/includetree.h>
+#include <tatooine/rendering/gl/shadersource.h>
 //==============================================================================
 namespace tatooine::rendering::gl {
 //==============================================================================

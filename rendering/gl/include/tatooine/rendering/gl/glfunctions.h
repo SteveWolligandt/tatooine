@@ -1,11 +1,11 @@
 #ifndef TATOOINE_RENDERING_GL_GL_FUNCTIONS_WRAPPER_H
 #define TATOOINE_RENDERING_GL_GL_FUNCTIONS_WRAPPER_H
 //==============================================================================
-#include <yavin/glincludes.h>
+#include <tatooine/rendering/gl/glincludes.h>
 
-#include <yavin/errorcheck.h>
-#include <yavin/mutexhandler.h>
-#include <yavin/tostring.h>
+#include <tatooine/rendering/gl/errorcheck.h>
+#include <tatooine/rendering/gl/mutexhandler.h>
+#include <tatooine/rendering/gl/tostring.h>
 
 #include <ostream>
 #include <vector>
