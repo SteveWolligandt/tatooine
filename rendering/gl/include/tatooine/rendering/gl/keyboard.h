@@ -1,9 +1,9 @@
-#ifndef YAVIN_KEYBOARD_H
-#define YAVIN_KEYBOARD_H
+#ifndef TATOOINE_RENDERING_GL_KEYBOARD_H
+#define TATOOINE_RENDERING_GL_KEYBOARD_H
 //==============================================================================
 #include <string>
 //==============================================================================
-namespace yavin {
+namespace tatooine::rendering::gl {
 //==============================================================================
 enum key {
   KEY_0,
@@ -124,6 +124,6 @@ struct keyboard_listener {
   virtual void on_key_released(key /*k*/) {}
 };
 //==============================================================================
-}  // namespace yavin
+}  // namespace tatooine::rendering::gl
 //==============================================================================
 #endif

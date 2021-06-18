@@ -1,9 +1,9 @@
-#ifndef YAVIN_ANSI_FORMAT_H
-#define YAVIN_ANSI_FORMAT_H
+#ifndef TATOOINE_RENDERING_GL_ANSI_FORMAT_H
+#define TATOOINE_RENDERING_GL_ANSI_FORMAT_H
 //==============================================================================
 #include <string>
 //==============================================================================
-namespace yavin::ansi {
+namespace tatooine::rendering::gl::ansi {
 //==============================================================================
 static constexpr std::string_view black   = "\033[30m";
 static constexpr std::string_view red     = "\033[31m";
@@ -31,6 +31,6 @@ static constexpr std::string_view bold_off      = "\033[21m";
 static constexpr std::string_view underline_off = "\033[24m";
 static constexpr std::string_view inverse_off   = "\033[27m";
 //==============================================================================
-}  // namespace yavin::ansi
+}  // namespace tatooine::rendering::gl::ansi
 //==============================================================================
 #endif

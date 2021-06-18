@@ -1,5 +1,5 @@
-#ifndef YAVIN_ERROR_CHECK_H
-#define YAVIN_ERROR_CHECK_H
+#ifndef TATOOINE_RENDERING_GL_ERROR_CHECK_H
+#define TATOOINE_RENDERING_GL_ERROR_CHECK_H
 
 #include "glincludes.h"
 #include <stdexcept>
@@ -8,7 +8,7 @@
 #include "dllexport.h"
 
 //==============================================================================
-namespace yavin {
+namespace tatooine::rendering::gl {
 //==============================================================================
 
 class gl_error : public std::runtime_error {
@@ -28,6 +28,6 @@ DLL_API auto gl_framebuffer_error_to_string(GLenum status) -> std::string;
 DLL_API void gl_error_check(std::string_view function);
 DLL_API void gl_framebuffer_not_complete_check(GLuint fbo_id);
 //==============================================================================
-}  // namespace yavin
+}  // namespace tatooine::rendering::gl
 //==============================================================================
 #endif

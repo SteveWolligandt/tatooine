@@ -3,7 +3,7 @@
 #include <tatooine/doublegyre.h>
 
 //==============================================================================
-using namespace yavin;
+using namespace tatooine::rendering::gl;
 context ctx;
 //==============================================================================
 static const std::array<std::string_view, 4> filenames{

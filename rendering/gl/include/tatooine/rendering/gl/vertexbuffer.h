@@ -1,5 +1,5 @@
-#ifndef YAVIN_VERTEXBUFFER_H
-#define YAVIN_VERTEXBUFFER_H
+#ifndef TATOOINE_RENDERING_GL_VERTEXBUFFER_H
+#define TATOOINE_RENDERING_GL_VERTEXBUFFER_H
 //==============================================================================
 #include <initializer_list>
 #include <iostream>
@@ -13,7 +13,7 @@
 #include "utility.h"
 #include "vbohelpers.h"
 //==============================================================================
-namespace yavin {
+namespace tatooine::rendering::gl {
 //==============================================================================
 template <typename... Ts>
 class vertexbuffer
@@ -110,7 +110,7 @@ class vertexbuffer
 };
 
 //==============================================================================
-}  // namespace yavin
+}  // namespace tatooine::rendering::gl
 //==============================================================================
 
 #endif

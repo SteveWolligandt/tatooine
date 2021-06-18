@@ -1,5 +1,5 @@
-#ifndef YAVIN_GL_INCLUDES_H
-#define YAVIN_GL_INCLUDES_H
+#ifndef TATOOINE_RENDERING_GL_GL_INCLUDES_H
+#define TATOOINE_RENDERING_GL_GL_INCLUDES_H
 //==============================================================================
 #define GLFW_INCLUDE_NONE
 #include <glad/glad.h>

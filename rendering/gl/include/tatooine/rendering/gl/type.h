@@ -1,10 +1,9 @@
-#ifndef __YAVIN_TYPE_H__
-#define __YAVIN_TYPE_H__
-
-#include "glincludes.h"
-
+#ifndef TATOOINE_RENDERING_GL_TYPE_H
+#define TATOOINE_RENDERING_GL_TYPE_H
 //==============================================================================
-namespace yavin {
+#include "glincludes.h"
+//==============================================================================
+namespace tatooine::rendering::gl {
 //==============================================================================
 enum Type {
   UBYTE          = GL_UNSIGNED_BYTE,
@@ -28,7 +27,6 @@ enum Type {
   UINT2101010REV = GL_UNSIGNED_INT_2_10_10_10_REV
 };
 //==============================================================================
-}  // namespace yavin
+}  // namespace tatooine::rendering::gl
 //==============================================================================
-
 #endif

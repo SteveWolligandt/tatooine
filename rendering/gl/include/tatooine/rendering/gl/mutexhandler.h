@@ -1,15 +1,15 @@
-#ifndef YAVIN_MUTEX_HANDLER_H
-#define YAVIN_MUTEX_HANDLER_H
+#ifndef TATOOINE_RENDERING_GL_MUTEX_HANDLER_H
+#define TATOOINE_RENDERING_GL_MUTEX_HANDLER_H
 //==============================================================================
 #include <mutex>
 //==============================================================================
-namespace yavin::detail {
+namespace tatooine::rendering::gl::detail {
 //==============================================================================
 struct mutex {
   static std::mutex buffer;
   static std::mutex gl_call;
 };
 //==============================================================================
-}  // namespace yavin::detail
+}  // namespace tatooine::rendering::gl::detail
 //==============================================================================
 #endif

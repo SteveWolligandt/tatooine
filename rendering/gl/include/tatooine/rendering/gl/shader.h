@@ -1,5 +1,5 @@
-#ifndef YAVIN_SHADER_H
-#define YAVIN_SHADER_H
+#ifndef TATOOINE_RENDERING_GL_SHADER_H
+#define TATOOINE_RENDERING_GL_SHADER_H
 //==============================================================================
 #include <string>
 #include <array>
@@ -18,7 +18,7 @@
 
 #include "windowsundefines.h"
 //==============================================================================
-namespace yavin {
+namespace tatooine::rendering::gl {
 //==============================================================================
 class shader : public id_holder<GLuint> {
  public:
@@ -111,7 +111,6 @@ class shader : public id_holder<GLuint> {
 };
 
 //==============================================================================
-}  // namespace yavin
+}  // namespace tatooine::rendering::gl
 //==============================================================================
-
 #endif

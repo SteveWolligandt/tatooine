@@ -1,5 +1,5 @@
-#ifndef YAVIN_SHADERSTAGEPARSER_H
-#define YAVIN_SHADERSTAGEPARSER_H
+#ifndef TATOOINE_RENDERING_GL_SHADERSTAGEPARSER_H
+#define TATOOINE_RENDERING_GL_SHADERSTAGEPARSER_H
 //==============================================================================
 #include <exception>
 #include <fstream>
@@ -12,7 +12,7 @@
 #include <yavin/includetree.h>
 #include <yavin/shadersource.h>
 //==============================================================================
-namespace yavin {
+namespace tatooine::rendering::gl {
 //==============================================================================
 class shaderstageparser {
  private:
@@ -61,6 +61,6 @@ class shaderstageparser {
   }
 };
 //==============================================================================
-}  // namespace yavin
+}  // namespace tatooine::rendering::gl
 //==============================================================================
 #endif

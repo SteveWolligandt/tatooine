@@ -1,15 +1,12 @@
-#ifndef YAVIN_FRAMEBUFFER_H
-#define YAVIN_FRAMEBUFFER_H
-
+#ifndef TATOOINE_RENDERING_GL_FRAMEBUFFER_H
+#define TATOOINE_RENDERING_GL_FRAMEBUFFER_H
+//==============================================================================
 #include "errorcheck.h"
-
 #include "dllexport.h"
 #include <yavin/texture.h>
-
 //==============================================================================
-namespace yavin {
+namespace tatooine::rendering::gl {
 //==============================================================================
-
 class framebuffer : public id_holder<GLuint> {
  public:
   DLL_API framebuffer();
@@ -70,9 +67,7 @@ class framebuffer : public id_holder<GLuint> {
     return (ts + ...);
   }
 };
-
 //==============================================================================
-}  // namespace yavin
+}  // namespace tatooine::rendering::gl
 //==============================================================================
-
 #endif

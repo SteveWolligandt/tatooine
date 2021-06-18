@@ -1,12 +1,12 @@
-#ifndef YAVIN_LINKED_LIST_TEXTURE_LIST
-#define YAVIN_LINKED_LIST_TEXTURE_LIST
+#ifndef TATOOINE_RENDERING_GL_LINKED_LIST_TEXTURE_LIST
+#define TATOOINE_RENDERING_GL_LINKED_LIST_TEXTURE_LIST
 //==============================================================================
 #include "atomiccounterbuffer.h"
 #include "shaderstoragebuffer.h"
 #include "pixelunpackbuffer.h"
 #include <yavin/texture.h>
 //==============================================================================
-namespace yavin {
+namespace tatooine::rendering::gl {
 //==============================================================================
 template <typename Node>
 class linked_list_texture {
@@ -87,6 +87,6 @@ class linked_list_texture {
   const auto& counter() const { return m_atomic_counter; }
 };
 //==============================================================================
-}  // namespace yavin
+}  // namespace tatooine::rendering::gl
 //==============================================================================
 #endif

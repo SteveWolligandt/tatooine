@@ -1,5 +1,5 @@
-#ifndef YAVIN_PIXEL_UNPACK_BUFFER_H
-#define YAVIN_PIXEL_UNPACK_BUFFER_H
+#ifndef TATOOINE_RENDERING_GL_PIXEL_UNPACK_BUFFER_H
+#define TATOOINE_RENDERING_GL_PIXEL_UNPACK_BUFFER_H
 
 #include <initializer_list>
 #include <iostream>
@@ -10,7 +10,7 @@
 #include "glincludes.h"
 
 //==============================================================================
-namespace yavin {
+namespace tatooine::rendering::gl {
 //==============================================================================
 
 template <typename T>
@@ -58,7 +58,7 @@ class pixelunpackbuffer : public buffer<GL_PIXEL_UNPACK_BUFFER, T> {
 };
 
 //==============================================================================
-}  // namespace yavin
+}  // namespace tatooine::rendering::gl
 //==============================================================================
 
 #endif

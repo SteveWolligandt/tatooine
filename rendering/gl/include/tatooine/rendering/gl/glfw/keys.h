@@ -1,10 +1,10 @@
-#ifndef YAVIN_GLFW_KEYS_H
-#define YAVIN_GLFW_KEYS_H
+#ifndef TATOOINE_RENDERING_GL_GLFW_KEYS_H
+#define TATOOINE_RENDERING_GL_GLFW_KEYS_H
 //==============================================================================
 #include <yavin/glincludes.h>
 #include <yavin/keyboard.h>
 //==============================================================================
-namespace yavin {
+namespace tatooine::rendering::gl {
 //==============================================================================
 inline auto convert_key(int key) {
   switch (key) {
@@ -98,6 +98,6 @@ inline auto convert_key(int key) {
   }
 }
 //==============================================================================
-}  // namespace yavin
+}  // namespace tatooine::rendering::gl
 //==============================================================================
 #endif

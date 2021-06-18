@@ -1,6 +1,5 @@
-#ifndef YAVIN_TEX_PNG_H
-#define YAVIN_TEX_PNG_H
-#define YAVIN_HAS_PNG_SUPPORT @YAVIN_HAS_PNG_SUPPORT@
+#ifndef TATOOINE_RENDERING_GL_TEX_PNG_H
+#define TATOOINE_RENDERING_GL_TEX_PNG_H
 
 #include <png++/png.hpp>
 #include <cmath>
@@ -8,13 +7,12 @@
 #include <yavin/texcomponents.h>
 
 //==============================================================================
-namespace yavin {
+namespace tatooine::rendering::gl {
 //==============================================================================
 constexpr bool has_png_support() {
-  return @YAVIN_HAS_PNG_SUPPORT@;
+  return @TATOOINE_PNG_AVAILABLE@;
 }
 
-//#if YAVIN_AVAILABLE
 template <typename type, typename tex_t>
 struct tex_png;
 
@@ -272,6 +270,6 @@ struct tex_png<type, BGRA> {
 };
 //#endif
 //==============================================================================
-}  // namespace yavin
+}  // namespace tatooine::rendering::gl
 //==============================================================================
 #endif

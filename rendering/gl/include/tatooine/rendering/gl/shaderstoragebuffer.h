@@ -1,5 +1,5 @@
-#ifndef YAVIN_SHADER_STORAGE_BUFFER_H
-#define YAVIN_SHADER_STORAGE_BUFFER_H
+#ifndef TATOOINE_RENDERING_GL_SHADER_STORAGE_BUFFER_H
+#define TATOOINE_RENDERING_GL_SHADER_STORAGE_BUFFER_H
 
 #include <initializer_list>
 #include <iostream>
@@ -9,7 +9,7 @@
 #include "errorcheck.h"
 #include "glincludes.h"
 //==============================================================================
-namespace yavin {
+namespace tatooine::rendering::gl {
 //==============================================================================
 template <typename T>
 class shaderstoragebuffer : public buffer<GL_SHADER_STORAGE_BUFFER, T> {
@@ -56,7 +56,7 @@ class shaderstoragebuffer : public buffer<GL_SHADER_STORAGE_BUFFER, T> {
 };
 
 //==============================================================================
-}  // namespace yavin
+}  // namespace tatooine::rendering::gl
 //==============================================================================
 
 #endif

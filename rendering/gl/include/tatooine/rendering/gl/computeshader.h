@@ -1,12 +1,12 @@
-#ifndef YAVIN_COMPUTESHADER_H
-#define YAVIN_COMPUTESHADER_H
+#ifndef TATOOINE_RENDERING_GL_COMPUTESHADER_H
+#define TATOOINE_RENDERING_GL_COMPUTESHADER_H
 //==============================================================================
 #include <string>
 
 #include "shaderstage.h"
 #include "dllexport.h"
 //==============================================================================
-namespace yavin {
+namespace tatooine::rendering::gl {
 //==============================================================================
 class computeshader : public shaderstage {
  public:
@@ -15,6 +15,6 @@ class computeshader : public shaderstage {
   DLL_API computeshader(computeshader&& other);
 };
 //==============================================================================
-}  // namespace yavin
+}  // namespace tatooine::rendering::gl
 //==============================================================================
 #endif

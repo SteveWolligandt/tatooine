@@ -1,5 +1,5 @@
-#ifndef YAVIN_IMGUI_H
-#define YAVIN_IMGUI_H
+#ifndef TATOOINE_RENDERING_GL_IMGUI_H
+#define TATOOINE_RENDERING_GL_IMGUI_H
 //==============================================================================
 #include <yavin/dllexport.h>
 #include <yavin/imgui_includes.h>

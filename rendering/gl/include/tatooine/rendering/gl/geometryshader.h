@@ -1,12 +1,12 @@
-#ifndef YAVIN_GEOMETRYSHADER_H
-#define YAVIN_GEOMETRYSHADER_H
+#ifndef TATOOINE_RENDERING_GL_GEOMETRYSHADER_H
+#define TATOOINE_RENDERING_GL_GEOMETRYSHADER_H
 //==============================================================================
 #include <string>
 
 #include "dllexport.h"
 #include "shaderstage.h"
 //==============================================================================
-namespace yavin {
+namespace tatooine::rendering::gl {
 //==============================================================================
 class geometryshader : public shaderstage {
  public:
@@ -15,6 +15,6 @@ class geometryshader : public shaderstage {
   DLL_API geometryshader(geometryshader&& other);
 };
 //==============================================================================
-}  // namespace yavin
+}  // namespace tatooine::rendering::gl
 //==============================================================================
 #endif

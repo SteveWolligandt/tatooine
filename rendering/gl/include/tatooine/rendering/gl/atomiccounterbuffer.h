@@ -1,5 +1,5 @@
-#ifndef YAVIN_ATOMIC_COUNTER_BUFFER_H
-#define YAVIN_ATOMIC_COUNTER_BUFFER_H
+#ifndef TATOOINE_RENDERING_GL_ATOMIC_COUNTER_BUFFER_H
+#define TATOOINE_RENDERING_GL_ATOMIC_COUNTER_BUFFER_H
 //==============================================================================
 #include <initializer_list>
 #include <iostream>
@@ -8,7 +8,7 @@
 #include <yavin/dllexport.h>
 #include <yavin/errorcheck.h>
 //==============================================================================
-namespace yavin {
+namespace tatooine::rendering::gl {
 //==============================================================================
 class atomiccounterbuffer
     : public buffer<GL_ATOMIC_COUNTER_BUFFER, GLuint> {
@@ -40,6 +40,6 @@ class atomiccounterbuffer
   DLL_API static void unbind(size_t i);
 };
 //==============================================================================
-}  // namespace yavin
+}  // namespace tatooine::rendering::gl
 //==============================================================================
 #endif

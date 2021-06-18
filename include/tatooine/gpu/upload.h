@@ -1,4 +1,4 @@
-#if TATOOINE_YAVIN_AVAILABLE
+#if TATOOINE_RENDERING_GL_AVAILABLE
 #ifndef TATOOINE_GPU_UPLOAD_H
 #define TATOOINE_GPU_UPLOAD_H
 //==============================================================================

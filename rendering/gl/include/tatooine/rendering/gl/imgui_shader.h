@@ -1,9 +1,9 @@
-#ifndef YAVIN_IMGUI_SHADER_H
-#define YAVIN_IMGUI_SHADER_H
+#ifndef TATOOINE_RENDERING_GL_IMGUI_SHADER_H
+#define TATOOINE_RENDERING_GL_IMGUI_SHADER_H
 //==============================================================================
 #include "shader.h"
 //==============================================================================
-namespace yavin{
+namespace tatooine::rendering::gl {
 //==============================================================================
 struct imgui_shader : shader {
   static const std::string_view vert_source;
@@ -13,6 +13,6 @@ struct imgui_shader : shader {
   void set_texture_slot(int s);
 };
 //==============================================================================
-}  // namespace yavin
+}  // namespace tatooine::rendering::gl
 //==============================================================================
 #endif

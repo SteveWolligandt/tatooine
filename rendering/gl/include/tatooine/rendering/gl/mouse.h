@@ -1,9 +1,9 @@
-#ifndef YAVIN_MOUSE_H
-#define YAVIN_MOUSE_H
+#ifndef TATOOINE_RENDERING_GL_MOUSE_H
+#define TATOOINE_RENDERING_GL_MOUSE_H
 //==============================================================================
 #include <string>
 //==============================================================================
-namespace yavin {
+namespace tatooine::rendering::gl {
 //==============================================================================
 enum button {
   BUTTON_LEFT,
@@ -27,6 +27,6 @@ struct button_listener {
   virtual void on_wheel_right() {}
 };
 //==============================================================================
-}  // namespace yavin
+}  // namespace tatooine::rendering::gl
 //==============================================================================
 #endif

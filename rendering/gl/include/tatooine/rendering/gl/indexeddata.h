@@ -1,5 +1,5 @@
-#ifndef YAVIN_INDEXED_DATA_H
-#define YAVIN_INDEXED_DATA_H
+#ifndef TATOOINE_RENDERING_GL_INDEXED_DATA_H
+#define TATOOINE_RENDERING_GL_INDEXED_DATA_H
 //==============================================================================
 #include <yavin/indexbuffer.h>
 #include <yavin/vertexarray.h>
@@ -7,7 +7,7 @@
 
 #include <mutex>
 //==============================================================================
-namespace yavin {
+namespace tatooine::rendering::gl {
 //==============================================================================
 template <typename... Ts>
 class indexeddata {
@@ -152,6 +152,6 @@ class indexeddata {
   auto mutex() const -> auto const& { return m_mutex; }
 };
 //==============================================================================
-}  // namespace yavin
+}  // namespace tatooine::rendering::gl
 //==============================================================================
 #endif

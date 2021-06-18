@@ -1,11 +1,11 @@
-#ifndef YAVIN_WINDOW_LISTENER_H
-#define YAVIN_WINDOW_LISTENER_H
+#ifndef TATOOINE_RENDERING_GL_WINDOW_LISTENER_H
+#define TATOOINE_RENDERING_GL_WINDOW_LISTENER_H
 //==============================================================================
 #include "keyboard.h"
 #include <iostream>
 #include "mouse.h"
 //==============================================================================
-namespace yavin {
+namespace tatooine::rendering::gl {
 //==============================================================================
 struct window_listener : keyboard_listener, button_listener {
   virtual void on_cursor_moved(double /*x*/, double /*y*/) {}
@@ -13,6 +13,6 @@ struct window_listener : keyboard_listener, button_listener {
   virtual void on_close() { std::cerr << "close\n"; }
 };
 //==============================================================================
-}  // namespace yavin
+}  // namespace tatooine::rendering::gl
 //==============================================================================
 #endif

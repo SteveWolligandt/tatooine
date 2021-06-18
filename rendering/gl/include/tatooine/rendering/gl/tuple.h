@@ -1,10 +1,10 @@
-#ifndef YAVIN_TUPLE_H
-#define YAVIN_TUPLE_H
+#ifndef TATOOINE_RENDERING_GL_TUPLE_H
+#define TATOOINE_RENDERING_GL_TUPLE_H
 //==============================================================================
 #include <utility>
 #include <concepts>
 //==============================================================================
-namespace yavin {
+namespace tatooine::rendering::gl {
 //==============================================================================
 template <typename... Ts>
 struct tuple;
@@ -87,6 +87,6 @@ constexpr auto get(tuple<Ts...>& t) -> auto& {
   return _tuple_get_t<Idx, Ts...>::get(t);
 }
 //==============================================================================
-}  // namespace yavin
+}  // namespace tatooine::rendering::gl
 //==============================================================================
 #endif

@@ -1,5 +1,5 @@
-#ifndef YAVIN_CONTEXT_H
-#define YAVIN_CONTEXT_H
+#ifndef TATOOINE_RENDERING_GL_CONTEXT_H
+#define TATOOINE_RENDERING_GL_CONTEXT_H
 //==============================================================================
 #include <yavin/glfw/context.h>
 #include <yavin/glincludes.h>
@@ -10,7 +10,7 @@
 #include <list>
 #include <string>
 //==============================================================================
-namespace yavin {
+namespace tatooine::rendering::gl {
 //==============================================================================
 class window;
 class context {
@@ -42,6 +42,6 @@ class context {
   auto    get() const -> auto const& { return *m_glfw_context; }
 };
 //==============================================================================
-}  // namespace yavin
+}  // namespace tatooine::rendering::gl
 //==============================================================================
 #endif
