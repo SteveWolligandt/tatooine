@@ -21,7 +21,7 @@ auto parallel_vectors::render(mat4f const& P, mat4f const& V) -> void {
                    m_line_color[1],
                    m_line_color[2],
                    m_line_color[3]);
-  yavin::gl::line_width(m_line_width);
+  rendering::gl::line_width(m_line_width);
   m_geometry.draw_lines();
 }
 //------------------------------------------------------------------------------

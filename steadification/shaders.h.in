@@ -2,17 +2,16 @@
 #define TATOOINE_STEADIFICATION_SHADERS_H
 //==============================================================================
 #include <string>
-#include <yavin>
 //==============================================================================
 namespace tatooine::steadification {
 //==============================================================================
-struct vert_frag_shader : yavin::shader {
+struct vert_frag_shader : rendering::gl::shader {
   vert_frag_shader(const std::string_view& vert, const std::string_view& frag);
-  void set_projection(const yavin::mat4&);
-  void set_modelview(const yavin::mat4&);
+  void set_projection(const rendering::gl::mat4&);
+  void set_modelview(const rendering::gl::mat4&);
 };
 //==============================================================================
-struct comp_shader : yavin::shader {
+struct comp_shader : rendering::gl::shader {
   comp_shader(const std::string_view& comp);
   void dispatch(GLuint w, GLuint h);
 };

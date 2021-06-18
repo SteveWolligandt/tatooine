@@ -95,7 +95,8 @@ void lic::calculate_lic() {
                  m_stepsize, {256, 256}, seed);
 
     std::lock_guard lock{m_mutex};
-    m_lic_tex     = std::make_unique<yavin::tex2rgba<float>>(std::move(tex));
+    m_lic_tex =
+        std::make_unique<rendering::gl::tex2rgba<float>>(std::move(tex));
     m_calculating = false;
   });
 }

@@ -3,13 +3,11 @@
 #include <tatooine/flowexplorer/scene.h>
 #include <tatooine/flowexplorer/window.h>
 #include <tatooine/interpolation.h>
-#include <tatooine/rendering/yavin_interop.h>
 #include <tatooine/flowexplorer/ui/pinkind.h>
 #include <tatooine/flowexplorer/nodes/axis_aligned_bounding_box.h>
 #include <toml++/toml.h>
 
 #include <fstream>
-#include <yavin>
 //==============================================================================
 namespace tatooine::flowexplorer {
 //==============================================================================
@@ -136,8 +134,8 @@ auto scene::remove_link(ui::link const& link_to_remove) -> void {
 }
 //------------------------------------------------------------------------------
 auto scene::render(std::chrono::duration<double> const& dt) -> void {
-  yavin::gl::clear_color(255, 255, 255, 255);
-  yavin::clear_color_depth_buffer();
+  rendering::gl::clear_color(255, 255, 255, 255);
+  rendering::gl::clear_color_depth_buffer();
   for (auto& n : m_nodes) {
     n->update_property_links();
     if (n->is_active()) {
@@ -152,8 +150,8 @@ auto scene::render(std::chrono::duration<double> const& dt) -> void {
   }
 
   // render non-transparent objects
-  yavin::enable_depth_write();
-  yavin::disable_blending();
+  rendering::gl::enable_depth_write();
+  rendering::gl::disable_blending();
   for (auto& r : m_renderables) {
     if (r->is_active()) {
       if (!r->is_transparent()) {
@@ -163,9 +161,9 @@ auto scene::render(std::chrono::duration<double> const& dt) -> void {
   }
 
   // render transparent objects
-  yavin::disable_depth_write();
-  yavin::enable_blending();
-  yavin::blend_func_alpha();
+  rendering::gl::disable_depth_write();
+  rendering::gl::enable_blending();
+  rendering::gl::blend_func_alpha();
   for (auto& r : m_renderables) {
     if (r->is_active()) {
       if (r->is_transparent()) {
@@ -173,8 +171,8 @@ auto scene::render(std::chrono::duration<double> const& dt) -> void {
       }
     }
   }
-  yavin::enable_depth_test();
-  yavin::enable_depth_write();
+  rendering::gl::enable_depth_test();
+  rendering::gl::enable_depth_write();
 }
 //------------------------------------------------------------------------------
 auto scene::find_node(size_t const id) -> ui::base::node* {

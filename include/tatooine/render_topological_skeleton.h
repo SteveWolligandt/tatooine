@@ -6,21 +6,21 @@
 #include <tatooine/topological_skeleton.h>
 #include <tatooine/grid_sampler.h>
 #include <tatooine/sampled_field.h>
-#include <yavin/context.h>
-#include <yavin/framebuffer.h>
-#include <yavin/glwrapper.h>
-#include <yavin/indexbuffer.h>
-#include <yavin/indexeddata.h>
-#include <yavin/orthographiccamera.h>
-#include <yavin/vertexarray.h>
-#include <yavin/vertexbuffer.h>
+#include <tatooine/rendering/gl/context.h>
+#include <tatooine/rendering/gl/framebuffer.h>
+#include <tatooine/rendering/gl/glwrapper.h>
+#include <tatooine/rendering/gl/indexbuffer.h>
+#include <tatooine/rendering/gl/indexeddata.h>
+#include <tatooine/rendering/gl/orthographiccamera.h>
+#include <tatooine/rendering/gl/vertexarray.h>
+#include <tatooine/rendering/gl/vertexbuffer.h>
 
 #include <boost/range/adaptor/transformed.hpp>
 #include <boost/range/algorithm/copy.hpp>
 //==============================================================================
 namespace tatooine {
 //==============================================================================
-/// you need a yavin::context for this
+/// you need a rendering::gl::context for this
 template <typename Real, typename Integrator,
           template <typename> typename Interpolator>
 auto render_topological_skeleton(
@@ -32,7 +32,7 @@ auto render_topological_skeleton(
                           integrator,
     const vec<size_t, 2>& resolution,
     const Real tau = 100, const Real eps = 1e-7) {
-  using namespace yavin;
+  using namespace rendering::gl;
   struct point_shader : shader {
     point_shader() {
       add_stage<vertexshader>(
@@ -127,8 +127,8 @@ auto render_topological_skeleton(
     void set_projection(const glm::mat4x4& p) { set_uniform("projection", p); }
   };
   using namespace interpolation;
-  using gpu_point_data_t = indexeddata<yavin::vec2, yavin::vec3>;
-  using gpu_line_data_t  = indexeddata<yavin::vec2>;
+  using gpu_point_data_t = indexeddata<vec2f, vec3f>;
+  using gpu_line_data_t  = indexeddata<vec2f>;
   using sampler_t = grid_sampler<double, 2, vec<double, 2>, linear, linear>;
 
   gpu_point_data_t::vbo_data_vec vbo_point_data;
@@ -201,13 +201,13 @@ auto render_topological_skeleton(
   // render separatrices and critical points over lic image
   framebuffer fbo{image};
   fbo.bind();
-  yavin::gl::viewport(cam.viewport());
+  rendering::gl::viewport(cam.viewport());
   {
     // render lines
     line_shader shader;
     shader.bind();
     shader.set_projection(cam.projection_matrix());
-    yavin::gl::line_width(3);
+    rendering::gl::line_width(3);
     gpu_line_data.draw_lines();
   }
   {

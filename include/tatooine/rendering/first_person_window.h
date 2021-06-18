@@ -4,28 +4,28 @@
 #include <tatooine/holder.h>
 #include <tatooine/ray.h>
 #include <tatooine/rendering/camera_controller.h>
-#include <yavin/glwrapper.h>
-#include <yavin/window.h>
+#include <tatooine/rendering/gl/glwrapper.h>
+#include <tatooine/rendering/gl/window.h>
 
 #include <chrono>
 #include <cmath>
 //==============================================================================
 namespace tatooine::rendering {
 //==============================================================================
-struct first_person_window : yavin::window {
-  using parent_t = yavin::window;
+struct first_person_window : rendering::gl::window {
+  using parent_t = rendering::gl::window;
   size_t                    m_width, m_height;
   struct camera_controller<float>                    m_cam;
   std::chrono::time_point<std::chrono::system_clock> m_time =
       std::chrono::system_clock::now();
   //============================================================================
   first_person_window(size_t width = 800, size_t height = 600)
-      : yavin::window{"tatooine first person window", width, height},
+      : rendering::gl::window{"tatooine first person window", width, height},
         m_width{width},
         m_height{height},
         m_cam{width, height},
         m_time{std::chrono::system_clock::now()} {
-    yavin::enable_depth_test();
+          rendering::gl::enable_depth_test();
     this->add_listener(m_cam);
   }
   //============================================================================
@@ -42,7 +42,7 @@ struct first_person_window : yavin::window {
     m_time = std::chrono::system_clock::now();
     while (!should_close()) {
       refresh();
-      yavin::gl::viewport(0, 0, m_width, m_height);
+      rendering::gl::viewport(0, 0, m_width, m_height);
       auto const before = std::chrono::system_clock::now();
       update(std::forward<Event>(event),
              std::chrono::system_clock::now() - m_time);
@@ -73,15 +73,15 @@ struct first_person_window : yavin::window {
     m_cam.on_resize(w, h);
   }
   //----------------------------------------------------------------------------
-  auto on_key_pressed(yavin::key k) -> void override {
+  auto on_key_pressed(rendering::gl::key k) -> void override {
     parent_t::on_key_pressed(k);
-    if (k == yavin::KEY_F2) {
+    if (k == rendering::gl::KEY_F2) {
       camera_controller().use_orthographic_camera();
       camera_controller().use_orthographic_controller();
-    } else if (k == yavin::KEY_F3) {
+    } else if (k == rendering::gl::KEY_F3) {
       camera_controller().use_perspective_camera();
       camera_controller().use_fps_controller();
-    } else if (k == yavin::KEY_F4) {
+    } else if (k == rendering::gl::KEY_F4) {
       camera_controller().look_at({0, 0, 0}, {0, 0, -1});
     }
   }

@@ -2,8 +2,8 @@
 #define TATOOINE_FLOWEXPLORER_NODES_AUTONOMOUS_PARTICLES_RENDERER_H
 //==============================================================================
 #include <tatooine/flowexplorer/renderable.h>
-#include <yavin/glfunctions.h>
-#include <yavin/vertexbuffer.h>
+#include <tatooine/gl/glfunctions.h>
+#include <tatooine/gl/vertexbuffer.h>
 
 #include <memory>
 #include <thread>
@@ -12,7 +12,7 @@ namespace tatooine::flowexplorer::nodes {
 //==============================================================================
 struct autonomous_particles_renderer2d
     : renderable<autonomous_particles_renderer2d> {
-  struct shader : yavin::shader {
+  struct shader : rendering::gl::shader {
     shader();
     //------------------------------------------------------------------------------
     void set_view_projection_matrix(mat4f const& A);
@@ -27,8 +27,8 @@ struct autonomous_particles_renderer2d
   static constexpr std::string_view fragment_shader_path =
       "@TATOOINE_FLOWEXPLORER_SHADERS_AUTONOMOUS_PARTICLES_RENDERER_2D_FRAG@";
   //============================================================================
-  yavin::vertexbuffer<vec2f, vec2f, vec2f> m_gpu_Ss;
-  yavin::indexbuffer                       m_gpu_Is;
+  rendering::gl::vertexbuffer<vec2f, vec2f, vec2f> m_gpu_Ss;
+  rendering::gl::indexbuffer                       m_gpu_Is;
   shader                                   m_shader;
   bool                                     m_currently_reading = false;
   std::mutex                               m_gpu_data_mutex;
@@ -52,7 +52,7 @@ struct autonomous_particles_renderer2d
 //==============================================================================
 struct autonomous_particles_renderer3d
     : renderable<autonomous_particles_renderer3d> {
-  struct shader : yavin::shader {
+  struct shader : rendering::gl::shader {
     shader();
     //------------------------------------------------------------------------------
     void set_view_projection_matrix(mat4f const& A);
@@ -65,8 +65,8 @@ struct autonomous_particles_renderer3d
   static constexpr std::string_view fragment_shader_path =
       "@TATOOINE_FLOWEXPLORER_SHADERS_AUTONOMOUS_PARTICLES_RENDERER_3D_FRAG@";
   //============================================================================
-  yavin::vertexbuffer<vec3f, vec3f, vec3f, vec3f> m_gpu_Ss;
-  yavin::indexbuffer                              m_gpu_Is;
+  rendering::gl::vertexbuffer<vec3f, vec3f, vec3f, vec3f> m_gpu_Ss;
+  rendering::gl::indexbuffer                              m_gpu_Is;
   shader                                          m_shader;
   bool                                            m_currently_reading = false;
   std::mutex                                      m_gpu_data_mutex;

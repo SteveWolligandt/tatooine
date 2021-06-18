@@ -10,7 +10,7 @@ static void texture_reduction(::benchmark::State& state) {
     const size_t             width  = state.range(0);
     const size_t             height = state.range(1);
     const std::vector<float> rand_data(width*height, 0.5f);
-    const yavin::tex2r32f data_tex{rand_data, width, height};
+    const rendering::gl::tex2r32f data_tex{rand_data, width, height};
     state.ResumeTiming();  // And resume timers. They are now counting again.
     gpu::reduce(data_tex, state.range(2), state.range(3));
   }

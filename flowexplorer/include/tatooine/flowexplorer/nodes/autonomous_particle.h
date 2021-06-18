@@ -13,7 +13,7 @@ struct autonomous_particle : tatooine::autonomous_particle<real_t, 2>,
   using this_t   = autonomous_particle;
   using parent_t      = tatooine::autonomous_particle<real_t, 2>;
   using gpu_vec3      = vec<GLfloat, 3>;
-  using vbo_t         = yavin::vertexbuffer<gpu_vec3>;
+  using vbo_t         = rendering::gl::vertexbuffer<gpu_vec3>;
   using vectorfield_t = polymorphic::vectorfield<real_t, 2>;
   using parent_t::advect;
   //============================================================================
@@ -25,10 +25,10 @@ struct autonomous_particle : tatooine::autonomous_particle<real_t, 2>,
 
 
   vectorfield_t* m_v;
-  yavin::indexeddata<gpu_vec3> m_initial_circle;
-  yavin::indexeddata<gpu_vec3> m_advected_ellipses;
-  yavin::indexeddata<gpu_vec3> m_initial_ellipses_back_calculation;
-  yavin::indexeddata<gpu_vec3> m_pathlines;
+  rendering::gl::indexeddata<gpu_vec3> m_initial_circle;
+  rendering::gl::indexeddata<gpu_vec3> m_advected_ellipses;
+  rendering::gl::indexeddata<gpu_vec3> m_initial_ellipses_back_calculation;
+  rendering::gl::indexeddata<gpu_vec3> m_pathlines;
   std::array<GLfloat, 4>       m_ellipses_color{0.0f, 0.0f, 0.0f, 1.0f};
   bool                         m_currently_advecting  = false;
   bool                         m_needs_another_update = false;
@@ -36,7 +36,7 @@ struct autonomous_particle : tatooine::autonomous_particle<real_t, 2>,
   int                          m_num_splits           = 3;
   std::vector<vec_t>           m_points_on_initial_circle;
   std::vector<vec_t>           m_advected_points_on_initial_circle;
-  yavin::indexeddata<gpu_vec3> m_gpu_advected_points_on_initial_circle;
+  rendering::gl::indexeddata<gpu_vec3> m_gpu_advected_points_on_initial_circle;
   // phong_shader                      m_phong_shader;
   // int                               m_integral_curve_width = 1;
   // std::array<GLfloat, 4> m_integral_curve_color{0.0f, 0.0f, 0.0f, 1.0f};

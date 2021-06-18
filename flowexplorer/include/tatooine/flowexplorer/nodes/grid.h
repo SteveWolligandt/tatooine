@@ -5,8 +5,7 @@
 #include <tatooine/flowexplorer/renderable.h>
 #include <tatooine/grid.h>
 #include <tatooine/linspace.h>
-#include <tatooine/rendering/yavin_interop.h>
-#include <yavin/indexeddata.h>
+#include <tatooine/rendering/gl/indexeddata.h>
 //==============================================================================
 namespace tatooine::flowexplorer::nodes {
 //==============================================================================
@@ -14,8 +13,8 @@ template <size_t N>
 struct grid_renderer;
 template <>
 struct grid_renderer<2> : tatooine::non_uniform_grid<real_t, 2> {
-  yavin::indexeddata<vec3f> m_inner_geometry;
-  yavin::indexeddata<vec3f> m_outer_geometry;
+  rendering::gl::indexeddata<vec3f> m_inner_geometry;
+  rendering::gl::indexeddata<vec3f> m_outer_geometry;
   //----------------------------------------------------------------------------
   auto render(mat4f const& P, mat4f const& V) -> void {
     auto& shader = line_shader::get();
@@ -95,13 +94,13 @@ struct grid_renderer<2> : tatooine::non_uniform_grid<real_t, 2> {
 };
 template <>
 struct grid_renderer<3> : tatooine::non_uniform_grid<real_t, 3> {
-  yavin::indexeddata<vec3f> m_outer_geometry;
-  yavin::indexeddata<vec3f> m_left_geometry;
-  yavin::indexeddata<vec3f> m_right_geometry;
-  yavin::indexeddata<vec3f> m_top_geometry;
-  yavin::indexeddata<vec3f> m_bottom_geometry;
-  yavin::indexeddata<vec3f> m_front_geometry;
-  yavin::indexeddata<vec3f> m_back_geometry;
+  rendering::gl::indexeddata<vec3f> m_outer_geometry;
+  rendering::gl::indexeddata<vec3f> m_left_geometry;
+  rendering::gl::indexeddata<vec3f> m_right_geometry;
+  rendering::gl::indexeddata<vec3f> m_top_geometry;
+  rendering::gl::indexeddata<vec3f> m_bottom_geometry;
+  rendering::gl::indexeddata<vec3f> m_front_geometry;
+  rendering::gl::indexeddata<vec3f> m_back_geometry;
   //----------------------------------------------------------------------------
   auto render(mat4f const& P, mat4f const& V, vec3f const& eye) -> void {
     auto& shader = line_shader::get();

@@ -1,6 +1,6 @@
 #include "start.h"
 auto main(int argc, char** argv) -> int {
-  yavin::context context{4, 5};
+  rendering::gl::context context{4, 5};
   using namespace tatooine;
   using namespace steadification;
   using namespace numerical;

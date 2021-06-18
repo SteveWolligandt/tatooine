@@ -5,33 +5,33 @@
 #include <tatooine/field.h>
 #include <tatooine/grid.h>
 #include <tatooine/rank.h>
-#include <yavin/texture.h>
+#include <tatooine/rendering/gl/texture.h>
 //==============================================================================
 namespace tatooine::gpu {
 //==============================================================================
 template <typename GPUReal>
-auto download(const yavin::texture<2, GPUReal, yavin::R>& tex) {
+auto download(const rendering::gl::texture<2, GPUReal, rendering::gl::R>& tex) {
   dynamic_multidim_array<GPUReal> data(tex.width(), tex.height());
   tex.download_data(data.data());
   return data;
 }
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 template <typename GPUReal>
-auto download(const yavin::texture<2, GPUReal, yavin::RG>& tex) {
+auto download(const rendering::gl::texture<2, GPUReal, rendering::gl::RG>& tex) {
   dynamic_multidim_array<vec<GPUReal, 2>> data(tex.width(), tex.height());
   tex.download_data(reinterpret_cast<GPUReal*>(data.data().data()));
   return data;
 }
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 template <typename GPUReal>
-auto download(const yavin::texture<2, GPUReal, yavin::RGB>& tex) {
+auto download(const rendering::gl::texture<2, GPUReal, rendering::gl::RGB>& tex) {
   dynamic_multidim_array<vec<GPUReal, 3>> data(tex.width(), tex.height());
   tex.download_data(data.data());
   return data;
 }
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 template <typename GPUReal>
-auto download(const yavin::texture<2, GPUReal, yavin::RGBA>& tex) {
+auto download(const rendering::gl::texture<2, GPUReal, rendering::gl::RGBA>& tex) {
   dynamic_multidim_array<vec<GPUReal, 4>> data(tex.width(), tex.height());
   tex.download_data(data.data());
   return data;
@@ -41,7 +41,7 @@ template <floating_point GPUReal = float, typename Tensor>
     requires std::is_floating_point_v<Tensor> ||
     is_vec<Tensor> auto upload_tex(std::vector<Tensor> const& data,
                                    integral auto... res) {
-  using namespace yavin;
+  using namespace rendering::gl;
   std::vector<GPUReal> gpu_data;
   for (auto const& d : data) {
     if constexpr (std::is_floating_point_v<Tensor>) {
@@ -84,7 +84,7 @@ template <typename GPUReal = float, typename Tensor>
     requires std::is_floating_point_v<Tensor> ||
     is_vec<Tensor> auto upload_tex1d(
         const dynamic_multidim_array<Tensor>& data) {
-  using namespace yavin;
+  using namespace rendering::gl;
   if constexpr (rank<Tensor>() == 0) {
     return upload_tex<1, R, GPUReal>(data);
   } else if constexpr (rank<Tensor>() == 1) {
@@ -100,7 +100,7 @@ template <typename GPUReal = float, typename Tensor>
     requires std::is_floating_point_v<Tensor> ||
     is_vec<Tensor> auto upload_tex2d(
         const dynamic_multidim_array<Tensor>& data) {
-  using namespace yavin;
+  using namespace rendering::gl;
   if constexpr (rank<Tensor>() == 0) {
     return upload_tex<2, R, GPUReal>(data);
   } else if constexpr (rank<Tensor>() == 1) {
@@ -116,7 +116,7 @@ template <typename GPUReal = float, typename Tensor>
     requires std::is_floating_point_v<Tensor> ||
     is_vec<Tensor> auto upload_tex3d(
         const dynamic_multidim_array<Tensor>& data) {
-  using namespace yavin;
+  using namespace rendering::gl;
   if constexpr (rank<Tensor>() == 0) {
     return upload_tex<3, R, GPUReal>(data);
   } else if constexpr (rank<Tensor>() == 1) {
@@ -132,7 +132,7 @@ template <typename GPUReal = float, floating_point Real,
           indexable_space XDomain, bool HasNonConstReference>
 auto upload(typed_grid_vertex_property_interface<
             grid<XDomain>, Real, HasNonConstReference> const& sampler) {
-  using namespace yavin;
+  using namespace rendering::gl;
   std::vector<GPUReal> gpu_data;
   gpu_data.reserve(sampler.grid.num_vertices());
   sampler.grid().iterate_over_vertex_indices([&](auto const... is) {
@@ -148,7 +148,7 @@ template <typename GPUReal = float, floating_point Real,
 auto upload(
     typed_grid_vertex_property_interface<grid<XDomain, YDomain>, Real,
                                          HasNonConstReference> const& sampler) {
-  using namespace yavin;
+  using namespace rendering::gl;
   std::vector<GPUReal> gpu_data;
   gpu_data.reserve(sampler.grid.num_vertices());
   sampler.grid().iterate_over_vertex_indices([&](auto const... is) {
@@ -165,7 +165,7 @@ template <typename GPUReal = float, floating_point Real,
 auto upload(
     typed_grid_vertex_property_interface<grid<XDomain, YDomain, ZDomain>, Real,
                                          HasNonConstReference> const& sampler) {
-  using namespace yavin;
+  using namespace rendering::gl;
   std::vector<GPUReal> gpu_data;
   gpu_data.reserve(sampler.grid.num_vertices());
   sampler.grid().iterate_over_vertex_indices([&](auto const... is) {
@@ -181,7 +181,7 @@ template <typename GPUReal = float, floating_point Real,
           indexable_space XDomain, bool HasNonConstReference>
 auto upload(typed_grid_vertex_property_interface<
             grid<XDomain>, vec<Real, 2>, HasNonConstReference> const& sampler) {
-  using namespace yavin;
+  using namespace rendering::gl;
   std::vector<GPUReal> gpu_data;
   gpu_data.reserve(sampler.grid.num_vertices() * 2);
   sampler.grid().iterate_over_vertex_indices([&](auto const... is) {
@@ -199,7 +199,7 @@ template <typename GPUReal = float, floating_point Real,
 auto upload(
     typed_grid_vertex_property_interface<grid<XDomain, YDomain>, vec<Real, 2>,
                                          HasNonConstReference> const& data) {
-  using namespace yavin;
+  using namespace rendering::gl;
   std::vector<GPUReal> gpu_data;
   // gpu_data.reserve(data.grid().num_vertices() * 2);
   data.grid().iterate_over_vertex_indices([&](auto const... is) {
@@ -218,7 +218,7 @@ template <typename GPUReal = float, floating_point Real,
 auto upload(typed_grid_vertex_property_interface<
             grid<XDomain, YDomain, ZDomain>, vec<Real, 2>,
             HasNonConstReference> const& sampler) {
-  using namespace yavin;
+  using namespace rendering::gl;
   std::vector<GPUReal> gpu_data;
   gpu_data.reserve(sampler.grid().num_vertices() * 2);
   sampler.grid().iterate_over_vertex_indices([&](auto const... is) {
@@ -236,7 +236,7 @@ template <typename GPUReal = float, floating_point Real,
           indexable_space XDomain, bool HasNonConstReference>
 auto upload(typed_grid_vertex_property_interface<
             grid<XDomain>, vec<Real, 3>, HasNonConstReference> const& sampler) {
-  using namespace yavin;
+  using namespace rendering::gl;
   std::vector<GPUReal> gpu_data;
   gpu_data.reserve(sampler.grid().num_vertices() * 3);
   sampler.grid().iterate_over_vertex_indices([&](auto const... is) {
@@ -255,7 +255,7 @@ template <typename GPUReal = float, floating_point Real,
 auto upload(
     typed_grid_vertex_property_interface<grid<XDomain, YDomain>, vec<Real, 3>,
                                          HasNonConstReference> const& sampler) {
-  using namespace yavin;
+  using namespace rendering::gl;
   std::vector<GPUReal> gpu_data;
   gpu_data.reserve(sampler.grid().num_vertices() * 3);
   sampler.grid().iterate_over_vertex_indices([&](auto const... is) {
@@ -275,7 +275,7 @@ template <typename GPUReal = float, floating_point Real,
 auto upload(typed_grid_vertex_property_interface<
             grid<XDomain, YDomain, ZDomain>, vec<Real, 3>,
             HasNonConstReference> const& sampler) {
-  using namespace yavin;
+  using namespace rendering::gl;
   std::vector<GPUReal> gpu_data;
   gpu_data.reserve(sampler.grid().num_vertices() * 3);
   sampler.grid().iterate_over_vertex_indices([&](auto const... is) {
@@ -294,7 +294,7 @@ template <typename GPUReal = float, floating_point Real,
           indexable_space XDomain, bool HasNonConstReference>
 auto upload(typed_grid_vertex_property_interface<
             grid<XDomain>, vec<Real, 4>, HasNonConstReference> const& sampler) {
-  using namespace yavin;
+  using namespace rendering::gl;
   std::vector<GPUReal> gpu_data;
   gpu_data.reserve(sampler.grid().num_vertices() * 4);
   sampler.grid().iterate_over_vertex_indices([&](auto const... is) {
@@ -314,7 +314,7 @@ template <typename GPUReal = float, floating_point Real,
 auto upload(
     typed_grid_vertex_property_interface<grid<XDomain, YDomain>, vec<Real, 4>,
                                          HasNonConstReference> const& sampler) {
-  using namespace yavin;
+  using namespace rendering::gl;
   std::vector<GPUReal> gpu_data;
   gpu_data.reserve(sampler.grid().num_vertices() * 4);
   sampler.grid().iterate_over_vertex_indices([&](auto const... is) {
@@ -335,7 +335,7 @@ template <typename GPUReal = float, floating_point Real,
 auto upload(typed_grid_vertex_property_interface<
             grid<XDomain, YDomain, ZDomain>, vec<Real, 4>,
             HasNonConstReference> const& sampler) {
-  using namespace yavin;
+  using namespace rendering::gl;
   std::vector<GPUReal> gpu_data;
   sampler.reserve(gpu_data.grid().num_vertices() * 4);
   sampler.grid().iterate_over_vertex_indices([&](auto const... is) {

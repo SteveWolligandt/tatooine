@@ -2,7 +2,7 @@
 #define TATOOINE_RENDERING_YAVIN_INTEROP_H
 //==============================================================================
 #include <tatooine/vec.h>
-#include <yavin/utility.h>
+#include <tatooine/rendering/gl/utility.h>
 //==============================================================================
 namespace yavin {
 //==============================================================================

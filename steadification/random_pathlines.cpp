@@ -3,7 +3,6 @@
 #include <tatooine/integration/vclibs/rungekutta43.h>
 
 #include <random>
-#include <yavin>
 
 #include "datasets.h"
 #include "random_seed.h"
@@ -11,7 +10,7 @@
 #include "shaders.h"
 
 //==============================================================================
-using namespace yavin;
+using namespace tatooine::rendering::gl;
 //==============================================================================
 namespace tatooine::steadification {
 //==============================================================================
@@ -81,8 +80,8 @@ seedcurve_shader  line_shader;
 //==============================================================================
 void draw_line(float x0, float y0, float z0, float x1, float y1, float z1,
                float r = 0, float g = 0, float b = 0, float a = 0.8) {
-  using indexeddata_t = indexeddata<yavin::vec3>;
-  indexeddata_t line(typename indexeddata_t::vbo_data_vec{{yavin::vec3{x0, y0, z0}}, {yavin::vec3{x1, y1, z1}}}, {0, 1});
+  using indexeddata_t = indexeddata<vec3f>;
+  indexeddata_t line(typename indexeddata_t::vbo_data_vec{{vec3f{x0, y0, z0}}, {vec3f{x1, y1, z1}}}, {0, 1});
   gl::line_width(3);
   line_shader.bind();
   line_shader.set_color(r, g, b, a);

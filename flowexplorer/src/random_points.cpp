@@ -15,7 +15,7 @@ auto random_points::render(mat4f const& P, mat4f const& V) -> void {
   point_shader::get().bind();
   point_shader::get().set_modelview_matrix(V);
   point_shader::get().set_projection_matrix(P);
-  yavin::gl::point_size(5);
+  rendering::gl::point_size(5);
   m_points_gpu.draw_points();
 }
 //------------------------------------------------------------------------------
