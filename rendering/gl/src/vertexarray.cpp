@@ -1,6 +1,6 @@
-#include <yavin/vertexarray.h>
+#include <tatooine/rendering/gl/vertexarray.h>
 //==============================================================================
-namespace yavin {
+namespace tatooine::rendering::gl {
 //==============================================================================
 vertexarray::vertexarray() { gl::create_vertex_arrays(1, id_ptr()); }
 //------------------------------------------------------------------------------
@@ -65,5 +65,5 @@ void vertexarray::draw_patches(size_t num_primitives) const {
   draw(PATCHES, num_primitives);
 }
 //==============================================================================
-}  // namespace yavin
+}  // namespace tatooine::rendering::gl
 //==============================================================================

@@ -1,9 +1,9 @@
-#include <yavin/glfw/api.h>
-#include <yavin/glfw/window.h>
-#include <yavin/glfw/buttons.h>
-#include <yavin/glfw/keys.h>
+#include <tatooine/rendering/gl/glfw/api.h>
+#include <tatooine/rendering/gl/glfw/window.h>
+#include <tatooine/rendering/gl/glfw/buttons.h>
+#include <tatooine/rendering/gl/glfw/keys.h>
 //==============================================================================
-namespace yavin::glfw {
+namespace tatooine::rendering::gl::glfw {
 //==============================================================================
 api::api() {
   glfwSetErrorCallback(api::on_error);
@@ -80,5 +80,5 @@ auto api::on_key(GLFWwindow* w, int key, int /*scancode*/, int action,
   }
 }
 //==============================================================================
-}  // namespace yavin::glfw
+}  // namespace tatooine::rendering::gl::glfw
 //==============================================================================

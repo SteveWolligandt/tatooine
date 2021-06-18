@@ -1,6 +1,6 @@
-#include <yavin/mouse.h>
+#include <tatooine/rendering/gl/mouse.h>
 //==============================================================================
-namespace yavin {
+namespace tatooine::rendering::gl {
 //==============================================================================
 std::string to_string(button b) {
   switch (b) {
@@ -15,5 +15,5 @@ std::string to_string(button b) {
   }
 }
 //==============================================================================
-}  // namespace yavin
+}  // namespace tatooine::rendering::gl
 //==============================================================================

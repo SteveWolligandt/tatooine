@@ -1,6 +1,6 @@
-#include <yavin/glfw/base.h>
+#include <tatooine/rendering/gl/glfw/base.h>
 //==============================================================================
-namespace yavin::glfw {
+namespace tatooine::rendering::gl::glfw {
 //==============================================================================
 base::base() {
   glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 4);
@@ -19,5 +19,5 @@ auto base::make_current() -> void {
 //------------------------------------------------------------------------------
 auto base::release() -> void { glfwMakeContextCurrent(nullptr); }
 //==============================================================================
-}  // namespace yavin::glfw
+}  // namespace tatooine::rendering::gl::glfw
 //==============================================================================

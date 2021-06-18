@@ -1,8 +1,8 @@
-#include <yavin/imgui_render_backend.h>
+#include <tatooine/rendering/gl/imgui_render_backend.h>
 
 #include <iostream>
 //==============================================================================
-namespace yavin {
+namespace tatooine::rendering::gl {
 //==============================================================================
 imgui_render_backend::imgui_render_backend() {
   // Query for GL version
@@ -11,7 +11,7 @@ imgui_render_backend::imgui_render_backend() {
 
   // Setup back-end capabilities flags
   ImGuiIO& io            = ImGui::GetIO();
-  io.BackendRendererName = "yavin";
+  io.BackendRendererName = "tatooine";
 
   if (m_gl_version >= 3200) {
     io.BackendFlags |=
@@ -340,5 +340,5 @@ bool imgui_render_backend::create_device_objects() {
   return true;
 }
 //==============================================================================
-}  // namespace yavin
+}  // namespace tatooine::rendering::gl
 //==============================================================================

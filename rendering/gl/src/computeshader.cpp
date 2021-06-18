@@ -1,7 +1,7 @@
-#include <yavin/glincludes.h>
-#include <yavin/computeshader.h>
+#include <tatooine/rendering/gl/glincludes.h>
+#include <tatooine/rendering/gl/computeshader.h>
 //==============================================================================
-namespace yavin {
+namespace tatooine::rendering::gl {
 //==============================================================================
 computeshader::computeshader(std::filesystem::path const& sourcepath)
     : shaderstage{GL_COMPUTE_SHADER, sourcepath} {}
@@ -12,5 +12,5 @@ computeshader::computeshader(shadersource const& source)
 computeshader::computeshader(computeshader&& other)
     : shaderstage(std::move(other)) {}
 //==============================================================================
-}  // namespace yavin
+}  // namespace tatooine::rendering::gl
 //==============================================================================

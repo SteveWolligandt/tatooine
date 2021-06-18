@@ -1,9 +1,9 @@
-#include <yavin/glfw/api.h>
-#include <yavin/glfw/window.h>
+#include <tatooine/rendering/gl/glfw/api.h>
+#include <tatooine/rendering/gl/glfw/window.h>
 
 #include <stdexcept>
 //==============================================================================
-namespace yavin::glfw{
+namespace tatooine::rendering::gl::glfw{
 //==============================================================================
 window::window(size_t const width,size_t const height,
                std::string const& title) {
@@ -30,5 +30,5 @@ auto window::should_close() const -> bool {
 //------------------------------------------------------------------------------
 auto window::swap_buffers() -> void { glfwSwapBuffers(m_glfw_window); }
 //==============================================================================
-}  // namespace yavin::glfw
+}  // namespace tatooine::rendering::gl::glfw
 //==============================================================================

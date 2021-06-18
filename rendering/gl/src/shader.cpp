@@ -1,8 +1,8 @@
-#include <yavin/glfunctions.h>
-#include <yavin/glwrapper.h>
-#include <yavin/shader.h>
+#include <tatooine/rendering/gl/glfunctions.h>
+#include <tatooine/rendering/gl/glwrapper.h>
+#include <tatooine/rendering/gl/shader.h>
 //==============================================================================
-namespace yavin {
+namespace tatooine::rendering::gl {
 //==============================================================================
 void shader::create() {
   delete_shader();
@@ -228,5 +228,5 @@ std::optional<std::string> shader::info_log() {
   return l;
 }
 //==============================================================================
-}  // namespace yavin
+}  // namespace tatooine::rendering::gl
 //==============================================================================

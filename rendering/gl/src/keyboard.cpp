@@ -1,6 +1,6 @@
-#include <yavin/keyboard.h>
+#include <tatooine/rendering/gl/keyboard.h>
 //==============================================================================
-namespace yavin {
+namespace tatooine::rendering::gl {
 //==============================================================================
 std::string to_string(key k) {
   switch (k) {
@@ -101,5 +101,5 @@ std::string to_string(key k) {
   }
 }
 //==============================================================================
-}  // namespace yavin
+}  // namespace tatooine::rendering::gl
 //==============================================================================

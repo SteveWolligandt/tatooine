@@ -1,11 +1,11 @@
-#include <yavin/ansiformat.h>
-#include <yavin/errorcheck.h>
+#include <tatooine/rendering/gl/ansiformat.h>
+#include <tatooine/rendering/gl/errorcheck.h>
 #include <iostream>
 #include <sstream>
 
-#include <yavin/glfunctions.h>
+#include <tatooine/rendering/gl/glfunctions.h>
 //==============================================================================
-namespace yavin {
+namespace tatooine::rendering::gl {
 //==============================================================================
 gl_error::gl_error(const std::string& function_name, const std::string& message)
     : std::runtime_error(std::string{ansi::red} + std::string{ansi::bold} +
@@ -66,5 +66,5 @@ void gl_framebuffer_not_complete_check(const GLuint fbo_id) {
 }
 
 //==============================================================================
-}  // namespace yavin
+}  // namespace tatooine::rendering::gl
 //==============================================================================

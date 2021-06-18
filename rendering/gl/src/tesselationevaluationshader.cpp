@@ -1,7 +1,7 @@
-#include <yavin/glincludes.h>
-#include <yavin/tesselationevaluationshader.h>
+#include <tatooine/rendering/gl/glincludes.h>
+#include <tatooine/rendering/gl/tesselationevaluationshader.h>
 //==============================================================================
-namespace yavin {
+namespace tatooine::rendering::gl {
 //==============================================================================
 tesselationevaluationshader::tesselationevaluationshader(
     std::filesystem::path const& sourcepath)
@@ -15,5 +15,5 @@ tesselationevaluationshader::tesselationevaluationshader(
     tesselationevaluationshader&& other)
     : shaderstage(std::move(other)) {}
 //==============================================================================
-}  // namespace yavin
+}  // namespace tatooine::rendering::gl
 //==============================================================================

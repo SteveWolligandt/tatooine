@@ -1,9 +1,9 @@
-#include <yavin/context.h>
-#include <yavin/window.h>
+#include <tatooine/rendering/gl/context.h>
+#include <tatooine/rendering/gl/window.h>
 #include <thread>
 #include <chrono>
 //==============================================================================
-namespace yavin {
+namespace tatooine::rendering::gl {
 //==============================================================================
 context::context() {
   m_glfw_context = std::make_unique<glfw::context>();
@@ -32,5 +32,5 @@ void context::release() {
   m_glfw_context->release();
 }
 //==============================================================================
-}  // namespace yavin
+}  // namespace tatooine::rendering::gl
 //==============================================================================

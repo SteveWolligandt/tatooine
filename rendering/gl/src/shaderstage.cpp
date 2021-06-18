@@ -1,10 +1,10 @@
-#include <yavin/ansiformat.h>
-#include <yavin/glfunctions.h>
-#include <yavin/shaderstage.h>
+#include <tatooine/rendering/gl/ansiformat.h>
+#include <tatooine/rendering/gl/glfunctions.h>
+#include <tatooine/rendering/gl/shaderstage.h>
 
 #include <memory>
 //==============================================================================
-namespace yavin {
+namespace tatooine::rendering::gl {
 //==============================================================================
 std::regex const shaderstage::regex_nvidia_compiler_error(
     R"(\d+\((\d+)\)\s*:\s*(error|warning)\s*\w*:\s*(.*))");
@@ -164,5 +164,5 @@ auto shaderstage::print_line(std::filesystem::path const &path,
   }
 }
 //==============================================================================
-}  // namespace yavin
+}  // namespace tatooine::rendering::gl
 //==============================================================================

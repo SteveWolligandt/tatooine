@@ -416,8 +416,8 @@ set(TATOOINE_EXPORTING_TARGETS tatooine)
 #-------------------------------------------------------------------------------
 # Subdirectories
 #-------------------------------------------------------------------------------
-add_subdirectory(test)
 add_subdirectory(rendering)
+add_subdirectory(test)
 add_subdirectory(scivis_contest_2020 EXCLUDE_FROM_ALL)
 add_subdirectory(benchmarks)
 option(TATOOINE_BUILD_DOC "Builds the documentation" OFF)

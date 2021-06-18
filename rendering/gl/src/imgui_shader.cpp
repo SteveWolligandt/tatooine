@@ -1,6 +1,6 @@
-#include <yavin/imgui_shader.h>
+#include <tatooine/rendering/gl/imgui_shader.h>
 //==============================================================================
-namespace yavin {
+namespace tatooine::rendering::gl {
 //==============================================================================
 const std::string_view imgui_shader::vert_source =
     "#version 430\n"
@@ -40,5 +40,5 @@ void imgui_shader::set_texture_slot(int s) {
   set_uniform("tex", s);
 }
 //==============================================================================
-}  // namespace yavin
+}  // namespace tatooine::rendering::gl
 //==============================================================================

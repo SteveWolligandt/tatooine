@@ -1,12 +1,12 @@
-#include <yavin/mutexhandler.h>
+#include <tatooine/rendering/gl/mutexhandler.h>
 
 //==============================================================================
-namespace yavin::detail {
+namespace tatooine::rendering::gl::detail {
 //==============================================================================
 
 std::mutex mutex::buffer;
 std::mutex mutex::gl_call;
 
 //==============================================================================
-}  // namespace yavin::detail
+}  // namespace tatooine::rendering::gl::detail
 //==============================================================================
