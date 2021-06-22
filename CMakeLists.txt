@@ -108,13 +108,14 @@ add_library(tatooine SHARED
   src/vtk_legacy.cpp
   src/parse.cpp
 )
+target_compile_options(tatooine PUBLIC -Wno-inconsistent-missing-override)
 target_compile_features(tatooine PUBLIC cxx_std_20)
 
 # force coloring
 if ("${CMAKE_CXX_COMPILER_ID}" STREQUAL "Clang")
-  target_compile_options(tatooine PUBLIC "-fcolor-diagnostics")
+  target_compile_options(tatooine PUBLIC -fcolor-diagnostics)
 elseif ("${CMAKE_CXX_COMPILER_ID}" STREQUAL "GNU")
-  target_compile_options(tatooine PUBLIC  "-fdiagnostics-color=always")
+  target_compile_options(tatooine PUBLIC -fdiagnostics-color=always)
 endif()
 
 #enable warnings
@@ -416,7 +417,8 @@ set(TATOOINE_EXPORTING_TARGETS tatooine)
 #-------------------------------------------------------------------------------
 # Subdirectories
 #-------------------------------------------------------------------------------
-add_subdirectory(rendering)
+add_subdirectory(gl)
+target_compile_definitions(tatooine PUBLIC TATOOINE_GL_AVAILABLE=${TATOOINE_GL_AVAILABLE})
 add_subdirectory(test)
 add_subdirectory(scivis_contest_2020 EXCLUDE_FROM_ALL)
 add_subdirectory(benchmarks)
@@ -425,7 +427,7 @@ if (TATOOINE_BUILD_DOC)
   add_subdirectory(doc)
 endif () 
 add_subdirectory(material_science EXCLUDE_FROM_ALL)
-if (TATOOINE_RENDERING_GL_AVAILABLE)
+if (TATOOINE_GL_AVAILABLE)
   #add_subdirectory(steadification EXCLUDE_FROM_ALL)
 
   option(TATOOINE_BUILD_FLOWEXPLORER "Builds Flow Explorer" OFF)

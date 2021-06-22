@@ -16,11 +16,11 @@ struct axis_aligned_bounding_box
   using this_t   = axis_aligned_bounding_box<N>;
   using parent_t = tatooine::axis_aligned_bounding_box<double, N>;
   using gpu_vec  = vec<float, N>;
-  using vbo_t    = rendering::gl::vertexbuffer<gpu_vec>;
+  using vbo_t    = gl::vertexbuffer<gpu_vec>;
   using parent_t::max;
   using parent_t::min;
   //============================================================================
-  rendering::gl::indexeddata<vec<float, N>> m_gpu_data;
+  gl::indexeddata<vec<float, N>> m_gpu_data;
   int                               m_line_width = 1;
   std::array<GLfloat, 4>            m_line_color{0.0f, 0.0f, 0.0f, 1.0f};
   //============================================================================
@@ -48,7 +48,7 @@ struct axis_aligned_bounding_box
                      m_line_color[3]);
     shader.set_projection_matrix(P);
     shader.set_modelview_matrix(V);
-    rendering::gl::line_width(m_line_width);
+    gl::line_width(m_line_width);
     m_gpu_data.draw_lines();
   }
   //============================================================================

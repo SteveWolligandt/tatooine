@@ -96,7 +96,7 @@ void lic::calculate_lic() {
 
     std::lock_guard lock{m_mutex};
     m_lic_tex =
-        std::make_unique<rendering::gl::tex2rgba<float>>(std::move(tex));
+        std::make_unique<gl::tex2rgba<float>>(std::move(tex));
     m_calculating = false;
   });
 }

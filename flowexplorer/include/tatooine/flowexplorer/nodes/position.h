@@ -5,8 +5,8 @@
 #include <tatooine/geometry/sphere.h>
 #include <tatooine/flowexplorer/renderable.h>
 #include <tatooine/vec.h>
-#include <tatooine/rendering/gl/imgui.h>
-#include <tatooine/rendering/gl/indexeddata.h>
+#include <tatooine/gl/imgui.h>
+#include <tatooine/gl/indexeddata.h>
 //==============================================================================
 namespace tatooine::flowexplorer::nodes {
 //==============================================================================
@@ -17,7 +17,7 @@ struct position : tatooine::vec<real_t, N>, renderable<position<N>> {
   using gpu_vec  = vec<GLfloat, 3>;
   using parent_t::at;
   //============================================================================
-  rendering::gl::indexeddata<gpu_vec>   m_gpu_data;
+  gl::indexeddata<gpu_vec>   m_gpu_data;
   int                           m_pointsize = 1;
   std::array<GLfloat, 4>        m_color{0.0f, 0.0f, 0.0f, 1.0f};
   std::array<ui::input_pin*, N> m_input_pins;
@@ -53,7 +53,7 @@ struct position : tatooine::vec<real_t, N>, renderable<position<N>> {
     point_shader::get().set_color(m_color[0], m_color[1], m_color[2], m_color[3]);
     point_shader::get().set_projection_matrix(P);
     point_shader::get().set_modelview_matrix(V);
-    rendering::gl::point_size(m_pointsize);
+    gl::point_size(m_pointsize);
     m_gpu_data.draw_points();
   }
   //============================================================================

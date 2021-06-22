@@ -1,10 +1,10 @@
 #ifndef TATOOINE_GPU_REDUCE_H
 #define TATOOINE_GPU_REDUCE_H
 //==============================================================================
-#include <tatooine/rendering/gl/glwrapper.h>
-#include <tatooine/rendering/gl/shader.h>
-#include <tatooine/rendering/gl/shaderstoragebuffer.h>
-#include <tatooine/rendering/gl/texture.h>
+#include <tatooine/gl/glwrapper.h>
+#include <tatooine/gl/shader.h>
+#include <tatooine/gl/shaderstoragebuffer.h>
+#include <tatooine/gl/texture.h>
 
 #include <boost/range/numeric.hpp>
 #include <chrono>
@@ -19,7 +19,7 @@ template <typename T>
 struct reduce_tex_shader;
 
 template <>
-struct reduce_tex_shader<rendering::gl::tex2r32f> : rendering::gl::shader {
+struct reduce_tex_shader<gl::tex2r32f> : gl::shader {
   //----------------------------------------------------------------------------
   private:
   //----------------------------------------------------------------------------
@@ -45,7 +45,7 @@ struct reduce_tex_shader<rendering::gl::tex2r32f> : rendering::gl::shader {
       return *compiled_shaders
                   .insert(std::pair{
                       std::pair{workgroup_size_x, workgroup_size_y},
-                      std::unique_ptr<reduce_tex_shader<rendering::gl::tex2r32f>>{
+                      std::unique_ptr<reduce_tex_shader<gl::tex2r32f>>{
                           new reduce_tex_shader{workgroup_size_x,
                                                 workgroup_size_y}}})
                   .first->second;
@@ -62,7 +62,7 @@ struct reduce_tex_shader<rendering::gl::tex2r32f> : rendering::gl::shader {
   reduce_tex_shader(unsigned int workgroup_size_x,
                     unsigned int workgroup_size_y) {
     const auto max_invocations =
-        static_cast<size_t>(rendering::gl::max_compute_work_group_invocations());
+        static_cast<size_t>(gl::max_compute_work_group_invocations());
     if (workgroup_size_x * workgroup_size_y > max_invocations) {
       workgroup_size_x = workgroup_size_y =
           size_t(1) << static_cast<unsigned int>(
@@ -83,8 +83,8 @@ struct reduce_tex_shader<rendering::gl::tex2r32f> : rendering::gl::shader {
       throw std::runtime_error{"could not open file: " +
                                std::string{comp_shader_path}};
     }
-    add_stage<rendering::gl::computeshader>(shadersourcestream.str(),
-                                    rendering::gl::shaderstageparser::SOURCE);
+    add_stage<gl::computeshader>(shadersourcestream.str(),
+                                    gl::shaderstageparser::SOURCE);
     create();
   }
   //----------------------------------------------------------------------------
@@ -97,8 +97,8 @@ struct reduce_tex_shader<rendering::gl::tex2r32f> : rendering::gl::shader {
 template <typename T>
 struct reduce_buffer_shader;
 template <>
-struct reduce_buffer_shader<rendering::gl::shaderstoragebuffer<float>>
-    : rendering::gl::shader {
+struct reduce_buffer_shader<gl::shaderstoragebuffer<float>>
+    : gl::shader {
   static constexpr std::string_view comp_shader_path =
       "@TATOOINE_GPU_REDUCE_SHADERSTORAGE_COMP_SHADER_PATH@";
   inline static std::map<unsigned int, std::unique_ptr<reduce_buffer_shader>>
@@ -115,7 +115,7 @@ struct reduce_buffer_shader<rendering::gl::shaderstoragebuffer<float>>
                   .insert(
                       std::pair{workgroup_size,
                                 std::unique_ptr<reduce_buffer_shader<
-                                    rendering::gl::shaderstoragebuffer<float>>>{
+                                    gl::shaderstoragebuffer<float>>>{
                                     new reduce_buffer_shader{workgroup_size}}})
                   .first->second;
     } else {
@@ -128,7 +128,7 @@ struct reduce_buffer_shader<rendering::gl::shaderstoragebuffer<float>>
  private:
   reduce_buffer_shader(size_t workgroup_size) {
     const auto max_invocations =
-        static_cast<size_t>(rendering::gl::max_compute_work_group_invocations());
+        static_cast<size_t>(gl::max_compute_work_group_invocations());
     if (workgroup_size > max_invocations) {
       workgroup_size =
           size_t(1) << static_cast<unsigned int>(floor(log2(max_invocations)));
@@ -148,8 +148,8 @@ struct reduce_buffer_shader<rendering::gl::shaderstoragebuffer<float>>
       throw std::runtime_error{"could not open file: " +
                                std::string{comp_shader_path}};
     }
-    add_stage<rendering::gl::computeshader>(shadersourcestream.str(),
-                                    rendering::gl::shaderstageparser::SOURCE);
+    add_stage<gl::computeshader>(shadersourcestream.str(),
+                                    gl::shaderstageparser::SOURCE);
     create();
   }
   //----------------------------------------------------------------------------
@@ -157,13 +157,13 @@ struct reduce_buffer_shader<rendering::gl::shaderstoragebuffer<float>>
   void set_data_size(GLuint size) { set_uniform("data_size", size); }
 };
 //==============================================================================
-inline float reduce(const rendering::gl::shaderstoragebuffer<float>& in_buffer,
+inline float reduce(const gl::shaderstoragebuffer<float>& in_buffer,
                     const size_t           workgroup_size);
 //==============================================================================
-inline float reduce(const rendering::gl::tex2r32f& in_buffer,
+inline float reduce(const gl::tex2r32f& in_buffer,
                     const size_t           workgroup_size_x,
                     const size_t           workgroup_size_y) {
-  auto& shader = reduce_tex_shader<rendering::gl::tex2r32f>::get(workgroup_size_x,
+  auto& shader = reduce_tex_shader<gl::tex2r32f>::get(workgroup_size_x,
                                                          workgroup_size_y);
   const size_t res_x            = in_buffer.width();
   const size_t res_y            = in_buffer.height();
@@ -172,23 +172,23 @@ inline float reduce(const rendering::gl::tex2r32f& in_buffer,
   const size_t num_workgroups_y =
       res_y / workgroup_size_y + (res_y % workgroup_size_y > 0 ? 1 : 0);
   shader.set_resolution(res_x, res_y);
-  rendering::gl::shaderstoragebuffer<float> out_buffer(num_workgroups_x *
+  gl::shaderstoragebuffer<float> out_buffer(num_workgroups_x *
                                                num_workgroups_y);
   out_buffer.bind(0);
   in_buffer.bind_image_texture(0);
   shader.bind();
-  rendering::gl::dispatch_compute(num_workgroups_x, num_workgroups_y, 1);
+  gl::dispatch_compute(num_workgroups_x, num_workgroups_y, 1);
   if (num_workgroups_x * num_workgroups_y > 1) {
-    rendering::gl::shader_storage_barrier();
+    gl::shader_storage_barrier();
     return reduce(out_buffer, workgroup_size_x * workgroup_size_y);
   } else {
     return out_buffer[0];
   }
 }
 //==============================================================================
-inline float reduce(const rendering::gl::shaderstoragebuffer<float>& in_buffer,
+inline float reduce(const gl::shaderstoragebuffer<float>& in_buffer,
                     const size_t           workgroup_size) {
-  auto& shader = reduce_buffer_shader<rendering::gl::shaderstoragebuffer<float>>::get(
+  auto& shader = reduce_buffer_shader<gl::shaderstoragebuffer<float>>::get(
       workgroup_size);
   size_t       size           = in_buffer.size();
   const size_t num_workgroups =
@@ -196,11 +196,11 @@ inline float reduce(const rendering::gl::shaderstoragebuffer<float>& in_buffer,
   shader.bind();
   shader.set_data_size(size);
   in_buffer.bind(0);
-  rendering::gl::shaderstoragebuffer<float> out_buffer(num_workgroups);
+  gl::shaderstoragebuffer<float> out_buffer(num_workgroups);
   out_buffer.bind(1);
-  rendering::gl::dispatch_compute(num_workgroups, 1, 1);
+  gl::dispatch_compute(num_workgroups, 1, 1);
   if (num_workgroups > 1) {
-    rendering::gl::shader_storage_barrier();
+    gl::shader_storage_barrier();
     return reduce(out_buffer, workgroup_size);
   } else {
     return out_buffer[0];

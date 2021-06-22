@@ -8,7 +8,7 @@
 #include <tatooine/streamsurface.h>
 
 #include <vector>
-#include <tatooine/rendering/gl/shaderstoragebuffer.h>
+#include <tatooine/gl/shaderstoragebuffer.h>
 
 #include "renderers.h"
 #include "settings.h"
@@ -60,11 +60,11 @@ class renderer {
   const V&                           m_v;
   ivec2                              m_render_resolution;
   orthographiccamera          m_cam;
-  rendering::gl::tex2rgb32f                  m_color_scale;
-  rendering::gl::tex2r32f                    m_noise_tex;
-  rendering::gl::tex2r32f                    m_fbotex;
-  rendering::gl::tex2rgba32f                 m_seedcurvetex;
-  rendering::gl::framebuffer                 m_fbo;
+  gl::tex2rgb32f                  m_color_scale;
+  gl::tex2r32f                    m_noise_tex;
+  gl::tex2r32f                    m_fbotex;
+  gl::tex2rgba32f                 m_seedcurvetex;
+  gl::framebuffer                 m_fbo;
   ssf_rasterization_shader           m_ssf_rasterization_shader;
   tex_rasterization_to_buffer_shader m_tex_rasterization_to_buffer_shader;
   lic_shader                         m_lic_shader;
@@ -74,30 +74,30 @@ class renderer {
   combine_rasterizations_shader      m_combine_rasterizations_shader;
   seedcurve_shader                   m_seedcurve_shader;
  public:
-  rendering::gl::tex2rgba32f  m_front_v_t_t0;
-  rendering::gl::tex2r32f     m_front_curvature;
-  rendering::gl::tex2rg32ui   m_front_renderindex_layer;
-  rendering::gl::texdepth32ui m_front_depth;
-  rendering::gl::framebuffer  m_front_fbo;
+  gl::tex2rgba32f  m_front_v_t_t0;
+  gl::tex2r32f     m_front_curvature;
+  gl::tex2rg32ui   m_front_renderindex_layer;
+  gl::texdepth32ui m_front_depth;
+  gl::framebuffer  m_front_fbo;
 
-  rendering::gl::tex2rgba32f  m_back_v_t_t0;
-  rendering::gl::tex2r32f     m_back_curvature;
-  rendering::gl::tex2rg32ui   m_back_renderindex_layer;
-  rendering::gl::texdepth32ui m_back_depth;
-  rendering::gl::framebuffer  m_back_fbo;
+  gl::tex2rgba32f  m_back_v_t_t0;
+  gl::tex2r32f     m_back_curvature;
+  gl::tex2rg32ui   m_back_renderindex_layer;
+  gl::texdepth32ui m_back_depth;
+  gl::framebuffer  m_back_fbo;
 
-  rendering::gl::tex2rgba32f m_lic_tex;
-  rendering::gl::tex2rgba32f m_curvature_lic_tex;
-  rendering::gl::tex2rgba32f m_color_lic_tex;
-  rendering::gl::tex2rgba32f m_v_tex;
+  gl::tex2rgba32f m_lic_tex;
+  gl::tex2rgba32f m_curvature_lic_tex;
+  gl::tex2rgba32f m_color_lic_tex;
+  gl::tex2rgba32f m_v_tex;
 
-  rendering::gl::shaderstoragebuffer<node>    m_result_rasterization;
-  rendering::gl::shaderstoragebuffer<node>    m_working_rasterization;
-  rendering::gl::shaderstoragebuffer<GLuint>  m_result_list_size;
-  rendering::gl::shaderstoragebuffer<GLuint>  m_working_list_size;
+  gl::shaderstoragebuffer<node>    m_result_rasterization;
+  gl::shaderstoragebuffer<node>    m_working_rasterization;
+  gl::shaderstoragebuffer<GLuint>  m_result_list_size;
+  gl::shaderstoragebuffer<GLuint>  m_working_list_size;
 
-  rendering::gl::atomiccounterbuffer m_num_overall_covered_pixels{0};
-  rendering::gl::atomiccounterbuffer m_num_newly_covered_pixels{0};
+  gl::atomiccounterbuffer m_num_overall_covered_pixels{0};
+  gl::atomiccounterbuffer m_num_newly_covered_pixels{0};
 
   //============================================================================
   // ctor
@@ -116,8 +116,8 @@ class renderer {
               100000,
               render_resolution(0),
               render_resolution(1)},
-        m_color_scale{rendering::gl::LINEAR, rendering::gl::CLAMP_TO_EDGE, "color_scale.png"},
-        m_noise_tex{rendering::gl::LINEAR, rendering::gl::REPEAT, render_resolution(0),
+        m_color_scale{gl::LINEAR, gl::CLAMP_TO_EDGE, "color_scale.png"},
+        m_noise_tex{gl::LINEAR, gl::REPEAT, render_resolution(0),
                     render_resolution(1)},
         m_fbotex{render_resolution(0), render_resolution(1)},
         m_seedcurvetex{render_resolution(0), render_resolution(1)},
@@ -154,7 +154,7 @@ class renderer {
         m_working_list_size(m_render_resolution(0) * m_render_resolution(1), 0),
         m_num_overall_covered_pixels{0},
         m_num_newly_covered_pixels{0} {
-          rendering::gl::disable_multisampling();
+          gl::disable_multisampling();
 
     m_seedcurve_shader.set_projection(m_cam.projection_matrix());
     m_ssf_rasterization_shader.set_projection(m_cam.projection_matrix());
@@ -189,8 +189,8 @@ class renderer {
     m_lic_shader.set_v_tex_bind_point(0);
     m_lic_shader.set_noise_tex_bind_point(1);
     m_lic_shader.set_color_scale_bind_point(2);
-    rendering::gl::viewport(m_cam);
-    rendering::gl::enable_depth_test();
+    gl::viewport(m_cam);
+    gl::enable_depth_test();
   }
   //============================================================================
   // methods
@@ -209,28 +209,28 @@ class renderer {
 
     m_working_list_size.upload_data(0);
     m_front_fbo.bind();
-    rendering::gl::clear_color_depth_buffer();
-    rendering::gl::depth_func_less();
+    gl::clear_color_depth_buffer();
+    gl::depth_func_less();
     m_ssf_rasterization_shader.set_count(true);
-    rendering::gl::barrier();
+    gl::barrier();
     gpu_mesh.draw();
-    rendering::gl::barrier();
+    gl::barrier();
 
     m_back_fbo.bind();
-    rendering::gl::clear_color_depth_buffer();
+    gl::clear_color_depth_buffer();
     m_back_depth.clear(1e5);
-    rendering::gl::depth_func_greater();
+    gl::depth_func_greater();
     m_ssf_rasterization_shader.set_count(false);
-    rendering::gl::barrier();
+    gl::barrier();
     gpu_mesh.draw();
-    rendering::gl::barrier();
+    gl::barrier();
   }
   //----------------------------------------------------------------------------
   void to_shaderstoragebuffer() {
-    rendering::gl::barrier();
+    gl::barrier();
     m_tex_rasterization_to_buffer_shader.dispatch(
         m_render_resolution(0) / 32.0 + 1, m_render_resolution(1) / 32.0 + 1);
-    rendering::gl::barrier();
+    gl::barrier();
   }
   //----------------------------------------------------------------------------
   void result_to_lic_tex(const grid_t& domain, const real_t min_t,
@@ -259,10 +259,10 @@ class renderer {
   }
   //----------------------------------------------------------------------------
   auto result_to_v_tex() {
-    rendering::gl::barrier();
+    gl::barrier();
     m_result_to_v_tex_shader.dispatch(m_render_resolution(0) / 32.0 + 1,
                                       m_render_resolution(1) / 32.0 + 1);
-    rendering::gl::barrier();
+    gl::barrier();
   }
   //----------------------------------------------------------------------------
   /// rast1 gets written in rast0. rast0 must have additional space to be able
@@ -270,11 +270,11 @@ class renderer {
   void combine() {
     m_combine_rasterizations_shader.dispatch(m_render_resolution(0) / 32.0 + 1,
                                              m_render_resolution(1) / 32.0 + 1);
-    rendering::gl::barrier();
+    gl::barrier();
   }
-  void render_grid(rendering::gl::tex2rgba32f& tex, const grid_t& domain) {
-    rendering::gl::disable_depth_test();
-    rendering::gl::framebuffer fbo{tex};
+  void render_grid(gl::tex2rgba32f& tex, const grid_t& domain) {
+    gl::disable_depth_test();
+    gl::framebuffer fbo{tex};
     fbo.bind();
     m_seedcurve_shader.bind();
     std::vector<line<real_t, 3>> domain_edges;
@@ -301,18 +301,18 @@ class renderer {
     auto domain_edges_gpu = line_renderer(domain_edges);
     m_seedcurve_shader.use_color_scale(false);
     m_seedcurve_shader.set_color(0.0f, 0.0f, 0.0f, 0.8f);
-    rendering::gl::line_width(2);
-    rendering::gl::enable_blending();
-    rendering::gl::blend_func_alpha();
+    gl::line_width(2);
+    gl::enable_blending();
+    gl::blend_func_alpha();
     domain_edges_gpu.draw();
-    rendering::gl::enable_depth_test();
-    rendering::gl::disable_blending();
+    gl::enable_depth_test();
+    gl::disable_blending();
   }
-  void render_seedcurve(rendering::gl::tex2rgba32f&                 tex,
+  void render_seedcurve(gl::tex2rgba32f&                 tex,
                          line<real_t, 2>& seed,
                          GLfloat t0, GLfloat min_t, GLfloat max_t) {
-    rendering::gl::disable_depth_test();
-    rendering::gl::framebuffer fbo{tex};
+    gl::disable_depth_test();
+    gl::framebuffer fbo{tex};
     fbo.bind();
     m_seedcurve_shader.bind();
 
@@ -322,9 +322,9 @@ class renderer {
     m_seedcurve_shader.set_t0(t0);
     //m_seedcurve_shader.use_color_scale(true);
     m_seedcurve_shader.set_color(1.0f, 0.0f, 0.0f, 1.0f);
-    rendering::gl::line_width(4);
+    gl::line_width(4);
     renderer.draw();
-    rendering::gl::enable_depth_test();
+    gl::enable_depth_test();
   }
   //----------------------------------------------------------------------------
   auto render(const grid_t& domain, const typename grid_t::edge& edge,
@@ -354,7 +354,7 @@ class renderer {
 //==============================================================================
 
 int main(int , char** argv) {
-  rendering::gl::context ctx{4, 5};
+  gl::context ctx{4, 5};
   using namespace tatooine;
   using namespace steadification;
   using namespace numerical;

@@ -7,8 +7,8 @@
 #include <tatooine/gpu/texture_shader.h>
 #include <tatooine/rendering/matrices.h>
 #include <tatooine/flowexplorer/nodes/vectorfield_to_gpu.h>
-#include <tatooine/rendering/gl/texture.h>
-#include <tatooine/rendering/gl/indexdata.h>
+#include <tatooine/gl/texture.h>
+#include <tatooine/gl/indexdata.h>
 
 #include <mutex>
 //==============================================================================
@@ -35,8 +35,8 @@ struct lic : renderable<lic> {
   bool                                 m_calculating          = false;
   bool                                 m_needs_another_update = false;
   std::unique_ptr<gpu::texture_shader> m_shader;
-  std::unique_ptr<rendering::gl::tex2rgba<float>>                 m_lic_tex;
-  rendering::gl::indexeddata<vec<float, 2>, vec<float, 2>, float> m_quad;
+  std::unique_ptr<gl::tex2rgba<float>>                 m_lic_tex;
+  gl::indexeddata<vec<float, 2>, vec<float, 2>, float> m_quad;
   std::mutex                                                      m_mutex;
 
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -

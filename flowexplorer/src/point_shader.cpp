@@ -3,8 +3,8 @@
 namespace tatooine::flowexplorer {
 //==============================================================================
 point_shader::point_shader() {
-  add_stage<rendering::gl::vertexshader>(vertpath);
-  add_stage<rendering::gl::fragmentshader>(fragpath);
+  add_stage<gl::vertexshader>(vertpath);
+  add_stage<gl::fragmentshader>(fragpath);
   create();
 }
 //------------------------------------------------------------------------------

@@ -1,47 +1,47 @@
-#if TATOOINE_RENDERING_GL_AVAILABLE
+#if TATOOINE_GL_AVAILABLE
 #ifndef TATOOINE_GPU_UPLOAD_H
 #define TATOOINE_GPU_UPLOAD_H
 //==============================================================================
 #include <tatooine/field.h>
+#include <tatooine/gl/texture.h>
 #include <tatooine/grid.h>
 #include <tatooine/rank.h>
-#include <tatooine/rendering/gl/texture.h>
 //==============================================================================
 namespace tatooine::gpu {
 //==============================================================================
 template <typename GPUReal>
-auto download(const rendering::gl::texture<2, GPUReal, rendering::gl::R>& tex) {
+auto download(gl::texture<2, GPUReal, gl::R> const& tex) {
   dynamic_multidim_array<GPUReal> data(tex.width(), tex.height());
   tex.download_data(data.data());
   return data;
 }
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 template <typename GPUReal>
-auto download(const rendering::gl::texture<2, GPUReal, rendering::gl::RG>& tex) {
+auto download(gl::texture<2, GPUReal, gl::RG> const& tex) {
   dynamic_multidim_array<vec<GPUReal, 2>> data(tex.width(), tex.height());
   tex.download_data(reinterpret_cast<GPUReal*>(data.data().data()));
   return data;
 }
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 template <typename GPUReal>
-auto download(const rendering::gl::texture<2, GPUReal, rendering::gl::RGB>& tex) {
+auto download(gl::texture<2, GPUReal, gl::RGB> const& tex) {
   dynamic_multidim_array<vec<GPUReal, 3>> data(tex.width(), tex.height());
   tex.download_data(data.data());
   return data;
 }
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 template <typename GPUReal>
-auto download(const rendering::gl::texture<2, GPUReal, rendering::gl::RGBA>& tex) {
+auto download(gl::texture<2, GPUReal, gl::RGBA> const& tex) {
   dynamic_multidim_array<vec<GPUReal, 4>> data(tex.width(), tex.height());
   tex.download_data(data.data());
   return data;
 }
 //==============================================================================
 template <floating_point GPUReal = float, typename Tensor>
-    requires std::is_floating_point_v<Tensor> ||
-    is_vec<Tensor> auto upload_tex(std::vector<Tensor> const& data,
-                                   integral auto... res) {
-  using namespace rendering::gl;
+auto upload_tex(std::vector<Tensor> const& data,
+                integral auto const... res) requires
+    std::is_floating_point_v<Tensor> || is_vec<Tensor> {
+  using namespace gl;
   std::vector<GPUReal> gpu_data;
   for (auto const& d : data) {
     if constexpr (std::is_floating_point_v<Tensor>) {
@@ -65,26 +65,25 @@ template <floating_point GPUReal = float, typename Tensor>
 //------------------------------------------------------------------------------
 template <size_t Dimensions, typename TexComps, floating_point GPUReal = float,
           typename Tensor, size_t... Is>
-    requires std::is_floating_point_v<Tensor> ||
-    is_vec<Tensor> auto upload_tex(const dynamic_multidim_array<Tensor>& data,
-                                   std::index_sequence<Is...> /*seq*/) {
+auto upload_tex(dynamic_multidim_array<Tensor> const& data,
+                std::index_sequence<Is...> /*seq*/) requires
+    std::is_floating_point_v<Tensor> || is_vec<Tensor> {
   return upload_tex<TexComps, GPUReal>(data.data(), data.size(Is)...);
 }
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 template <size_t Dimensions, typename TexComps, typename GPUReal = float,
           typename Tensor>
-    requires std::is_floating_point_v<Tensor> ||
-    is_vec<Tensor> auto upload_tex(const dynamic_multidim_array<Tensor>& data) {
+auto upload_tex(dynamic_multidim_array<Tensor> const& data) requires
+    std::is_floating_point_v<Tensor> || is_vec<Tensor> {
   static_assert(Dimensions >= 1 && Dimensions <= 3);
   return upload_tex<Dimensions, TexComps, GPUReal>(
       data, std::make_index_sequence<Dimensions>{});
 }
 //------------------------------------------------------------------------------
 template <typename GPUReal = float, typename Tensor>
-    requires std::is_floating_point_v<Tensor> ||
-    is_vec<Tensor> auto upload_tex1d(
-        const dynamic_multidim_array<Tensor>& data) {
-  using namespace rendering::gl;
+auto upload_tex1d(dynamic_multidim_array<Tensor> const& data) requires
+    std::is_floating_point_v<Tensor> || is_vec<Tensor> {
+  using namespace gl;
   if constexpr (rank<Tensor>() == 0) {
     return upload_tex<1, R, GPUReal>(data);
   } else if constexpr (rank<Tensor>() == 1) {
@@ -97,10 +96,9 @@ template <typename GPUReal = float, typename Tensor>
 }
 //------------------------------------------------------------------------------
 template <typename GPUReal = float, typename Tensor>
-    requires std::is_floating_point_v<Tensor> ||
-    is_vec<Tensor> auto upload_tex2d(
-        const dynamic_multidim_array<Tensor>& data) {
-  using namespace rendering::gl;
+auto upload_tex2d(const dynamic_multidim_array<Tensor>& data) requires
+    std::is_floating_point_v<Tensor> || is_vec<Tensor> {
+  using namespace gl;
   if constexpr (rank<Tensor>() == 0) {
     return upload_tex<2, R, GPUReal>(data);
   } else if constexpr (rank<Tensor>() == 1) {
@@ -113,10 +111,9 @@ template <typename GPUReal = float, typename Tensor>
 }
 //------------------------------------------------------------------------------
 template <typename GPUReal = float, typename Tensor>
-    requires std::is_floating_point_v<Tensor> ||
-    is_vec<Tensor> auto upload_tex3d(
-        const dynamic_multidim_array<Tensor>& data) {
-  using namespace rendering::gl;
+auto upload_tex3d(const dynamic_multidim_array<Tensor>& data) requires
+    std::is_floating_point_v<Tensor> || is_vec<Tensor> {
+  using namespace gl;
   if constexpr (rank<Tensor>() == 0) {
     return upload_tex<3, R, GPUReal>(data);
   } else if constexpr (rank<Tensor>() == 1) {
@@ -130,67 +127,81 @@ template <typename GPUReal = float, typename Tensor>
 //==============================================================================
 template <typename GPUReal = float, floating_point Real,
           indexable_space XDomain, bool HasNonConstReference>
-auto upload(typed_grid_vertex_property_interface<
-            grid<XDomain>, Real, HasNonConstReference> const& sampler) {
-  using namespace rendering::gl;
+auto upload(typed_grid_vertex_property_interface<grid<XDomain>, Real,
+                                                 HasNonConstReference> const&
+                grid_vertex_property) {
+  using namespace gl;
   std::vector<GPUReal> gpu_data;
-  gpu_data.reserve(sampler.grid.num_vertices());
-  sampler.grid().iterate_over_vertex_indices([&](auto const... is) {
-    gpu_data.push_back(static_cast<GPUReal>(sampler.data_at(is...)));
+  gpu_data.reserve(grid_vertex_property.grid().vertices().size());
+  grid_vertex_property.grid().vertices().iterate_indices([&](auto const... is) {
+    gpu_data.push_back(static_cast<GPUReal>(grid_vertex_property(is...)));
   });
 
-  return texture<1, GPUReal, R>(gpu_data, sampler.grid().template size<0>());
+  auto tex =  texture<1, GPUReal, R>(gpu_data,
+                                grid_vertex_property.grid().template size<0>());
+  tex.set_wrap_mode(gl::CLAMP_TO_EDGE);
+  return tex;
 }
 //------------------------------------------------------------------------------
 template <typename GPUReal = float, floating_point Real,
           indexable_space XDomain, indexable_space YDomain,
           bool HasNonConstReference>
-auto upload(
-    typed_grid_vertex_property_interface<grid<XDomain, YDomain>, Real,
-                                         HasNonConstReference> const& sampler) {
-  using namespace rendering::gl;
+auto upload(typed_grid_vertex_property_interface<grid<XDomain, YDomain>, Real,
+                                                 HasNonConstReference> const&
+                grid_vertex_property) {
+  using namespace gl;
   std::vector<GPUReal> gpu_data;
-  gpu_data.reserve(sampler.grid.num_vertices());
-  sampler.grid().iterate_over_vertex_indices([&](auto const... is) {
-    gpu_data.push_back(static_cast<GPUReal>(sampler.data_at(is...)));
+  gpu_data.reserve(grid_vertex_property.grid().vertices().size());
+  grid_vertex_property.grid().vertices().iterate_indices([&](auto const... is) {
+    gpu_data.push_back(static_cast<GPUReal>(grid_vertex_property(is...)));
   });
 
-  return texture<2, GPUReal, R>(gpu_data, sampler.grid().template size<0>(),
-                                sampler.grid().template size<1>());
+  auto tex =  texture<2, GPUReal, R>(gpu_data,
+                                grid_vertex_property.grid().template size<0>(),
+                                grid_vertex_property.grid().template size<1>());
+  tex.set_wrap_mode(gl::CLAMP_TO_EDGE);
+  return tex;
 }
 //------------------------------------------------------------------------------
 template <typename GPUReal = float, floating_point Real,
           indexable_space XDomain, indexable_space YDomain,
           indexable_space ZDomain, bool HasNonConstReference>
-auto upload(
-    typed_grid_vertex_property_interface<grid<XDomain, YDomain, ZDomain>, Real,
-                                         HasNonConstReference> const& sampler) {
-  using namespace rendering::gl;
+auto upload(typed_grid_vertex_property_interface<
+            grid<XDomain, YDomain, ZDomain>, Real, HasNonConstReference> const&
+                grid_vertex_property) {
+  using namespace gl;
   std::vector<GPUReal> gpu_data;
-  gpu_data.reserve(sampler.grid.num_vertices());
-  sampler.grid().iterate_over_vertex_indices([&](auto const... is) {
-    gpu_data.push_back(static_cast<GPUReal>(sampler.data_at(is...)));
+  gpu_data.reserve(grid_vertex_property.grid().vertices().size());
+  grid_vertex_property.grid().vertices().iterate_indices([&](auto const... is) {
+    gpu_data.push_back(static_cast<GPUReal>(grid_vertex_property(is...)));
   });
 
-  return texture<3, GPUReal, R>(gpu_data, sampler.grid().template size<0>(),
-                                sampler.grid().template size<1>(),
-                                sampler.template size<2>());
+  auto tex =  texture<3, GPUReal, R>(gpu_data,
+                                grid_vertex_property.grid().template size<0>(),
+                                grid_vertex_property.grid().template size<1>(),
+                                grid_vertex_property.grid().template size<2>());
+  tex.set_wrap_mode(gl::CLAMP_TO_EDGE);
+  return tex;
 }
 //==============================================================================
 template <typename GPUReal = float, floating_point Real,
           indexable_space XDomain, bool HasNonConstReference>
-auto upload(typed_grid_vertex_property_interface<
-            grid<XDomain>, vec<Real, 2>, HasNonConstReference> const& sampler) {
-  using namespace rendering::gl;
+auto upload(typed_grid_vertex_property_interface<grid<XDomain>, vec<Real, 2>,
+                                                 HasNonConstReference> const&
+                grid_vertex_property) {
+  using namespace gl;
   std::vector<GPUReal> gpu_data;
-  gpu_data.reserve(sampler.grid.num_vertices() * 2);
-  sampler.grid().iterate_over_vertex_indices([&](auto const... is) {
-    auto const& v = sampler.data_at(is...);
+  gpu_data.reserve(grid_vertex_property.grid().vertices().size() * 2);
+  grid_vertex_property.grid().vertices().iterate_indices([&](auto const... is) {
+    auto const& v = grid_vertex_property(is...);
     gpu_data.push_back(static_cast<GPUReal>(v(0)));
     gpu_data.push_back(static_cast<GPUReal>(v(1)));
   });
 
-  return texture<1, GPUReal, RG>(gpu_data, sampler.grid().template size<0>());
+  auto tex =  texture<1, GPUReal, RG>(
+      gpu_data, grid_vertex_property.grid().template size<0>());
+  tex.set_wrap_mode(gl::CLAMP_TO_EDGE);
+  return tex;
 }
 //------------------------------------------------------------------------------
 template <typename GPUReal = float, floating_point Real,
@@ -199,17 +210,19 @@ template <typename GPUReal = float, floating_point Real,
 auto upload(
     typed_grid_vertex_property_interface<grid<XDomain, YDomain>, vec<Real, 2>,
                                          HasNonConstReference> const& data) {
-  using namespace rendering::gl;
+  using namespace gl;
   std::vector<GPUReal> gpu_data;
-  // gpu_data.reserve(data.grid().num_vertices() * 2);
-  data.grid().iterate_over_vertex_indices([&](auto const... is) {
-    auto const& v = data.data_at(is...);
+  // gpu_data.reserve(data.grid().vertices().size() * 2);
+  data.grid().vertices().iterate_indices([&](auto const... is) {
+    auto const& v = data(is...);
     gpu_data.push_back(static_cast<GPUReal>(v(0)));
     gpu_data.push_back(static_cast<GPUReal>(v(1)));
   });
 
-  return texture<2, GPUReal, RG>(gpu_data, data.grid().template size<0>(),
-                                 data.grid().template size<1>());
+  auto tex = texture<2, GPUReal, RG>(gpu_data, data.grid().template size<0>(),
+                                     data.grid().template size<1>());
+  tex.set_wrap_mode(gl::CLAMP_TO_EDGE);
+  return tex;
 }
 //------------------------------------------------------------------------------
 template <typename GPUReal = float, floating_point Real,
@@ -217,56 +230,66 @@ template <typename GPUReal = float, floating_point Real,
           indexable_space ZDomain, bool HasNonConstReference>
 auto upload(typed_grid_vertex_property_interface<
             grid<XDomain, YDomain, ZDomain>, vec<Real, 2>,
-            HasNonConstReference> const& sampler) {
-  using namespace rendering::gl;
+            HasNonConstReference> const& grid_vertex_property) {
+  using namespace gl;
   std::vector<GPUReal> gpu_data;
-  gpu_data.reserve(sampler.grid().num_vertices() * 2);
-  sampler.grid().iterate_over_vertex_indices([&](auto const... is) {
-    auto const& v = sampler.data_at(is...);
+  gpu_data.reserve(grid_vertex_property.grid().vertices().size() * 2);
+  grid_vertex_property.grid().vertices().iterate_indices([&](auto const... is) {
+    auto const& v = grid_vertex_property(is...);
     gpu_data.push_back(static_cast<GPUReal>(v(0)));
     gpu_data.push_back(static_cast<GPUReal>(v(1)));
   });
 
-  return texture<3, GPUReal, RG>(gpu_data, sampler.grid().template size<0>(),
-                                 sampler.grid().template size<1>(),
-                                 sampler.grid().template size<2>());
+  auto tex =  texture<3, GPUReal, RG>(
+      gpu_data, grid_vertex_property.grid().template size<0>(),
+      grid_vertex_property.grid().template size<1>(),
+      grid_vertex_property.grid().template size<2>());
+  tex.set_wrap_mode(gl::CLAMP_TO_EDGE);
+  return tex;
 }
 //==============================================================================
 template <typename GPUReal = float, floating_point Real,
           indexable_space XDomain, bool HasNonConstReference>
-auto upload(typed_grid_vertex_property_interface<
-            grid<XDomain>, vec<Real, 3>, HasNonConstReference> const& sampler) {
-  using namespace rendering::gl;
+auto upload(typed_grid_vertex_property_interface<grid<XDomain>, vec<Real, 3>,
+                                                 HasNonConstReference> const&
+                grid_vertex_property) {
+  using namespace gl;
   std::vector<GPUReal> gpu_data;
-  gpu_data.reserve(sampler.grid().num_vertices() * 3);
-  sampler.grid().iterate_over_vertex_indices([&](auto const... is) {
-    auto const& v = sampler.data_at(is...);
+  gpu_data.reserve(grid_vertex_property.grid().vertices().size() * 3);
+  grid_vertex_property.grid().vertices().iterate_indices([&](auto const... is) {
+    auto const& v = grid_vertex_property(is...);
     gpu_data.push_back(static_cast<GPUReal>(v(0)));
     gpu_data.push_back(static_cast<GPUReal>(v(1)));
     gpu_data.push_back(static_cast<GPUReal>(v(2)));
   });
 
-  return texture<1, GPUReal, RGB>(gpu_data, sampler.grid().template size<0>());
+  auto tex =  texture<1, GPUReal, RGB>(
+      gpu_data, grid_vertex_property.grid().template size<0>());
+  tex.set_wrap_mode(gl::CLAMP_TO_EDGE);
+  return tex;
 }
 //------------------------------------------------------------------------------
 template <typename GPUReal = float, floating_point Real,
           indexable_space XDomain, indexable_space YDomain,
           bool HasNonConstReference>
-auto upload(
-    typed_grid_vertex_property_interface<grid<XDomain, YDomain>, vec<Real, 3>,
-                                         HasNonConstReference> const& sampler) {
-  using namespace rendering::gl;
+auto upload(typed_grid_vertex_property_interface<
+            grid<XDomain, YDomain>, vec<Real, 3>, HasNonConstReference> const&
+                grid_vertex_property) {
+  using namespace gl;
   std::vector<GPUReal> gpu_data;
-  gpu_data.reserve(sampler.grid().num_vertices() * 3);
-  sampler.grid().iterate_over_vertex_indices([&](auto const... is) {
-    auto const& v = sampler.data_at(is...);
+  gpu_data.reserve(grid_vertex_property.grid().vertices().size() * 3);
+  grid_vertex_property.grid().vertices().iterate_indices([&](auto const... is) {
+    auto const& v = grid_vertex_property(is...);
     gpu_data.push_back(static_cast<GPUReal>(v(0)));
     gpu_data.push_back(static_cast<GPUReal>(v(1)));
     gpu_data.push_back(static_cast<GPUReal>(v(2)));
   });
 
-  return texture<2, GPUReal, RGB>(gpu_data, sampler.grid().template size<0>(),
-                                  sampler.template size<1>());
+  auto tex = texture<2, GPUReal, RGB>(
+      gpu_data, grid_vertex_property.grid().template size<0>(),
+      grid_vertex_property.grid().template size<1>());
+  tex.set_wrap_mode(gl::CLAMP_TO_EDGE);
+  return tex;
 }
 //------------------------------------------------------------------------------
 template <typename GPUReal = float, floating_point Real,
@@ -274,59 +297,69 @@ template <typename GPUReal = float, floating_point Real,
           indexable_space ZDomain, bool HasNonConstReference>
 auto upload(typed_grid_vertex_property_interface<
             grid<XDomain, YDomain, ZDomain>, vec<Real, 3>,
-            HasNonConstReference> const& sampler) {
-  using namespace rendering::gl;
+            HasNonConstReference> const& grid_vertex_property) {
+  using namespace gl;
   std::vector<GPUReal> gpu_data;
-  gpu_data.reserve(sampler.grid().num_vertices() * 3);
-  sampler.grid().iterate_over_vertex_indices([&](auto const... is) {
-    auto const& v = sampler.data_at(is...);
+  gpu_data.reserve(grid_vertex_property.grid().vertices().size() * 3);
+  grid_vertex_property.grid().vertices().iterate_indices([&](auto const... is) {
+    auto const& v = grid_vertex_property(is...);
     gpu_data.push_back(static_cast<GPUReal>(v(0)));
     gpu_data.push_back(static_cast<GPUReal>(v(1)));
     gpu_data.push_back(static_cast<GPUReal>(v(2)));
   });
 
-  return texture<3, GPUReal, RGB>(gpu_data, sampler.grid().template size<0>(),
-                                  sampler.grid().template size<1>(),
-                                  sampler.grid().template size<2>());
+  auto tex =  texture<3, GPUReal, RGB>(
+      gpu_data, grid_vertex_property.grid().template size<0>(),
+      grid_vertex_property.grid().template size<1>(),
+      grid_vertex_property.grid().template size<2>());
+  tex.set_wrap_mode(gl::CLAMP_TO_EDGE);
+  return tex;
 }
 //==============================================================================
 template <typename GPUReal = float, floating_point Real,
           indexable_space XDomain, bool HasNonConstReference>
-auto upload(typed_grid_vertex_property_interface<
-            grid<XDomain>, vec<Real, 4>, HasNonConstReference> const& sampler) {
-  using namespace rendering::gl;
+auto upload(typed_grid_vertex_property_interface<grid<XDomain>, vec<Real, 4>,
+                                                 HasNonConstReference> const&
+                grid_vertex_property) {
+  using namespace gl;
   std::vector<GPUReal> gpu_data;
-  gpu_data.reserve(sampler.grid().num_vertices() * 4);
-  sampler.grid().iterate_over_vertex_indices([&](auto const... is) {
-    auto const& v = sampler.data_at(is...);
+  gpu_data.reserve(grid_vertex_property.grid().vertices().size() * 4);
+  grid_vertex_property.grid().vertices().iterate_indices([&](auto const... is) {
+    auto const& v = grid_vertex_property(is...);
     gpu_data.push_back(static_cast<GPUReal>(v(0)));
     gpu_data.push_back(static_cast<GPUReal>(v(1)));
     gpu_data.push_back(static_cast<GPUReal>(v(2)));
     gpu_data.push_back(static_cast<GPUReal>(v(3)));
   });
 
-  return texture<1, GPUReal, RGBA>(gpu_data, sampler.grid().template size<0>());
+  auto tex =  texture<1, GPUReal, RGBA>(
+      gpu_data, grid_vertex_property.grid().template size<0>());
+  tex.set_wrap_mode(gl::CLAMP_TO_EDGE);
+  return tex;
 }
 //------------------------------------------------------------------------------
 template <typename GPUReal = float, floating_point Real,
           indexable_space XDomain, indexable_space YDomain,
           bool HasNonConstReference>
-auto upload(
-    typed_grid_vertex_property_interface<grid<XDomain, YDomain>, vec<Real, 4>,
-                                         HasNonConstReference> const& sampler) {
-  using namespace rendering::gl;
+auto upload(typed_grid_vertex_property_interface<
+            grid<XDomain, YDomain>, vec<Real, 4>, HasNonConstReference> const&
+                grid_vertex_property) {
+  using namespace gl;
   std::vector<GPUReal> gpu_data;
-  gpu_data.reserve(sampler.grid().num_vertices() * 4);
-  sampler.grid().iterate_over_vertex_indices([&](auto const... is) {
-    auto const& v = sampler.data_at(is...);
+  gpu_data.reserve(grid_vertex_property.grid().vertices().size() * 4);
+  grid_vertex_property.grid().vertices().iterate_indices([&](auto const... is) {
+    auto const& v = grid_vertex_property(is...);
     gpu_data.push_back(static_cast<GPUReal>(v(0)));
     gpu_data.push_back(static_cast<GPUReal>(v(1)));
     gpu_data.push_back(static_cast<GPUReal>(v(2)));
     gpu_data.push_back(static_cast<GPUReal>(v(3)));
   });
 
-  return texture<2, GPUReal, RGBA>(gpu_data, sampler.grid().template size<0>(),
-                                   sampler.template size<1>());
+  auto tex =  texture<2, GPUReal, RGBA>(
+      gpu_data, grid_vertex_property.grid().template size<0>(),
+      grid_vertex_property.grid().template size<1>());
+  tex.set_wrap_mode(gl::CLAMP_TO_EDGE);
+  return tex;
 }
 //------------------------------------------------------------------------------
 template <typename GPUReal = float, floating_point Real,
@@ -334,21 +367,24 @@ template <typename GPUReal = float, floating_point Real,
           indexable_space ZDomain, bool HasNonConstReference>
 auto upload(typed_grid_vertex_property_interface<
             grid<XDomain, YDomain, ZDomain>, vec<Real, 4>,
-            HasNonConstReference> const& sampler) {
-  using namespace rendering::gl;
+            HasNonConstReference> const& grid_vertex_property) {
+  using namespace gl;
   std::vector<GPUReal> gpu_data;
-  sampler.reserve(gpu_data.grid().num_vertices() * 4);
-  sampler.grid().iterate_over_vertex_indices([&](auto const... is) {
-    auto const& v = sampler.data_at(is...);
+  grid_vertex_property.reserve(gpu_data.grid().vertices().size() * 4);
+  grid_vertex_property.grid().vertices().iterate_indices([&](auto const... is) {
+    auto const& v = grid_vertex_property(is...);
     gpu_data.push_back(static_cast<GPUReal>(v(0)));
     gpu_data.push_back(static_cast<GPUReal>(v(1)));
     gpu_data.push_back(static_cast<GPUReal>(v(2)));
     gpu_data.push_back(static_cast<GPUReal>(v(3)));
   });
 
-  return texture<3, GPUReal, RGBA>(gpu_data, sampler.grid().template size<0>(),
-                                   sampler.template size<1>(),
-                                   sampler.template size<2>());
+  auto tex =  texture<3, GPUReal, RGBA>(
+      gpu_data, grid_vertex_property.grid().template size<0>(),
+      grid_vertex_property.grid().template size<1>(),
+      grid_vertex_property.grid().template size<2>());
+  tex.set_wrap_mode(gl::CLAMP_TO_EDGE);
+  return tex;
 }
 //==============================================================================
 }  // namespace tatooine::gpu

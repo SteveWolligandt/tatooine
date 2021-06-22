@@ -3,12 +3,12 @@
 //==============================================================================
 #include <tatooine/flowexplorer/renderable.h>
 #include <tatooine/geometry/sphere.h>
-#include <tatooine/rendering/gl/indexeddata.h>
-#include <tatooine/rendering/gl/shader.h>
+#include <tatooine/gl/indexeddata.h>
+#include <tatooine/gl/shader.h>
 //==============================================================================
 namespace tatooine::flowexplorer::nodes {
 //==============================================================================
-struct sphere_shader : rendering::gl::shader {
+struct sphere_shader : gl::shader {
   static constexpr std::string_view vertex_shader_path =
       "@FLOWEXPLORER_SPHERE_VERT@";
   static constexpr std::string_view fragment_shader_path =
@@ -22,7 +22,7 @@ struct sphere_shader : rendering::gl::shader {
 //==============================================================================
 struct sphere : renderable<sphere>, tatooine::geometry::sphere<real_t, 3> {
   static auto shader() -> sphere_shader&;
-  rendering::gl::indexeddata<vec3f> m_gpu_data;
+  gl::indexeddata<vec3f> m_gpu_data;
   std::array<GLfloat, 4> m_color{0.0f, 0.0f, 0.0f, 1.0f};
 
   sphere(flowexplorer::scene& s);

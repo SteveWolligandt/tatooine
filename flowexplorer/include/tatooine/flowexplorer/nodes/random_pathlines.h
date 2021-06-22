@@ -24,7 +24,7 @@ struct random_pathlines : renderable<random_pathlines<N>> {
   axis_aligned_bounding_box<N>*     m_boundingbox = nullptr;
   integrator_t                      m_integrator;
   std::unique_ptr<gpu::line_shader> m_shader;
-  rendering::gl::indexeddata<vec<float, 3>, vec<float, 3>, float> m_gpu_data;
+  gl::indexeddata<vec<float, 3>, vec<float, 3>, float> m_gpu_data;
 
   double m_btau, m_ftau;
   int    m_num_pathlines;

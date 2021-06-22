@@ -5,13 +5,13 @@
 //==============================================================================
 namespace tatooine::steadification {
 //==============================================================================
-struct vert_frag_shader : rendering::gl::shader {
+struct vert_frag_shader : gl::shader {
   vert_frag_shader(const std::string_view& vert, const std::string_view& frag);
-  void set_projection(const rendering::gl::mat4&);
-  void set_modelview(const rendering::gl::mat4&);
+  void set_projection(const gl::mat4&);
+  void set_modelview(const gl::mat4&);
 };
 //==============================================================================
-struct comp_shader : rendering::gl::shader {
+struct comp_shader : gl::shader {
   comp_shader(const std::string_view& comp);
   void dispatch(GLuint w, GLuint h);
 };

@@ -7,10 +7,10 @@
 namespace tatooine::steadification {
 //==============================================================================
 struct streamsurface_renderer
-    : rendering::gl::indexeddata<vec2f, vec2f, float, float,
+    : gl::indexeddata<vec2f, vec2f, float, float,
                          float> {
   //============================================================================
-  using parent_t = rendering::gl::indexeddata<vec2f, vec2f, float,
+  using parent_t = gl::indexeddata<vec2f, vec2f, float,
                                       float, float>;
   using typename parent_t::ibo_data_vec;
   using typename parent_t::vbo_data_vec;
@@ -65,15 +65,15 @@ struct streamsurface_renderer
   void draw() const;
 };
 template <size_t N>
-struct line_renderer : rendering::gl::indexeddata<vec<float, N>> {
+struct line_renderer : gl::indexeddata<vec<float, N>> {
   //============================================================================
-  using parent_t = rendering::gl::indexeddata<vec<float, N>>;
+  using parent_t = gl::indexeddata<vec<float, N>>;
   using typename parent_t::ibo_data_vec;
   using typename parent_t::vbo_data_vec;
   //============================================================================
   template <typename Real>
   line_renderer(const std::vector<line<Real, N>>& lines)
-      : rendering::gl::indexeddata<vec<float, N>>{to_vbo_data(lines), to_ibo_data(lines)} {}
+      : gl::indexeddata<vec<float, N>>{to_vbo_data(lines), to_ibo_data(lines)} {}
   //----------------------------------------------------------------------------
   line_renderer(const line_renderer& other) = default;
   //----------------------------------------------------------------------------

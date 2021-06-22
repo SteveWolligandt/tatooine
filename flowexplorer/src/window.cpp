@@ -47,29 +47,29 @@ window::window(filesystem::path const& path)
 //------------------------------------------------------------------------------
 window::~window() { m_scene.write("scene.toml"); }
 //==============================================================================
-void window::on_key_pressed(rendering::gl::key k) {
+void window::on_key_pressed(gl::key k) {
   parent_t::on_key_pressed(k);
-  if (k == rendering::gl::KEY_F1) {
+  if (k == gl::KEY_F1) {
     m_show_nodes_gui = !m_show_nodes_gui;
-  } else if (k == rendering::gl::KEY_F5) {
+  } else if (k == gl::KEY_F5) {
     m_scene.write("scene.toml");
-  } else if (k == rendering::gl::KEY_F6) {
+  } else if (k == gl::KEY_F6) {
     if (!file_explorer_is_opened()) {
       open_file_explorer("Load File", {".toml", ".scene", ".vtk"});
     }
-  } else if (k == rendering::gl::KEY_ESCAPE) {
+  } else if (k == gl::KEY_ESCAPE) {
     if (file_explorer_is_opened()) {
       close_file_explorer();
     }
   }
 }
 //------------------------------------------------------------------------------
-void window::on_button_pressed(rendering::gl::button b) {
+void window::on_button_pressed(gl::button b) {
   parent_t::on_button_pressed(b);
   if (ImGui::GetIO().WantCaptureMouse) {
     return;
   }
-  if (b == rendering::gl::BUTTON_LEFT) {
+  if (b == gl::BUTTON_LEFT) {
     m_left_button_down = true;
     auto const ray =
         m_scene.camera_controller().ray(m_mouse_x, height() - m_mouse_y - 1);
@@ -90,12 +90,12 @@ void window::on_button_pressed(rendering::gl::button b) {
   }
 }
 //------------------------------------------------------------------------------
-void window::on_button_released(rendering::gl::button b) {
+void window::on_button_released(gl::button b) {
   parent_t::on_button_released(b);
   if (ImGui::GetIO().WantCaptureMouse) {
     return;
   }
-  if (b == rendering::gl::BUTTON_LEFT) {
+  if (b == gl::BUTTON_LEFT) {
     m_left_button_down = true;
     for (auto& r : m_scene.renderables()) {
       if (r->is_picked()) {
