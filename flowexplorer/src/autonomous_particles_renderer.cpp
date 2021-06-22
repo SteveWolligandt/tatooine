@@ -7,9 +7,9 @@
 namespace tatooine::flowexplorer::nodes {
 //==============================================================================
 autonomous_particles_renderer2d::shader::shader() {
-  add_stage<rendering::gl::vertexshader>(vertex_shader_path);
-  add_stage<rendering::gl::geometryshader>(geometry_shader_path);
-  add_stage<rendering::gl::fragmentshader>(fragment_shader_path);
+  add_stage<gl::vertexshader>(vertex_shader_path);
+  add_stage<gl::geometryshader>(geometry_shader_path);
+  add_stage<gl::fragmentshader>(fragment_shader_path);
   create();
 }
 //------------------------------------------------------------------------------
@@ -37,8 +37,8 @@ void autonomous_particles_renderer2d::render(mat4f const& P, mat4f const& V) {
     m_shader.set_view_projection_matrix(P * V);
     m_shader.set_color(m_line_color[0], m_line_color[1], m_line_color[2],
                        m_line_color[3]);
-    rendering::gl::line_width(m_line_width);
-    rendering::gl::vertexarray vao;
+    gl::line_width(m_line_width);
+    gl::vertexarray vao;
     vao.bind();
     m_gpu_Ss.bind();
     m_gpu_Ss.activate_attributes();
@@ -128,9 +128,9 @@ auto autonomous_particles_renderer2d::is_transparent() const -> bool {
 }
 //==============================================================================
 autonomous_particles_renderer3d::shader::shader() {
-  add_stage<rendering::gl::vertexshader>(vertex_shader_path);
-  add_stage<rendering::gl::geometryshader>(geometry_shader_path);
-  add_stage<rendering::gl::fragmentshader>(fragment_shader_path);
+  add_stage<gl::vertexshader>(vertex_shader_path);
+  add_stage<gl::geometryshader>(geometry_shader_path);
+  add_stage<gl::fragmentshader>(fragment_shader_path);
   create();
 }
 //------------------------------------------------------------------------------
@@ -151,7 +151,7 @@ void autonomous_particles_renderer3d::render(mat4f const& P, mat4f const& V) {
   if (!m_gpu_Ss.empty()) {
     m_shader.bind();
     m_shader.set_view_projection_matrix(P * V);
-    rendering::gl::vertexarray vao;
+    gl::vertexarray vao;
     vao.bind();
     m_gpu_Ss.bind();
     m_gpu_Ss.activate_attributes();

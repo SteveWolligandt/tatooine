@@ -353,7 +353,7 @@ template <typename V, typename VReal, typename TReal, size_t NumDims,
 auto discretize(field<V, VReal, NumDims, Tensor> const& f,
                 grid<SpatialDimensions...>&             discretized_domain,
                 std::string const& property_name, TReal const t) -> auto& {
-  auto const ood_tensor = [&f] {
+  auto const ood_tensor = [] {
     if constexpr (is_scalarfield_v<V>) {
       return VReal(0) / VReal(0);
     } else {
@@ -362,7 +362,7 @@ auto discretize(field<V, VReal, NumDims, Tensor> const& f,
   }();
   auto& discretized_field = [&]() -> decltype(auto) {
     if constexpr (is_scalarfield_v<V>) {
-      return discretized_domain.template add_chunked_vertex_property<VReal>(
+      return discretized_domain.template insert_chunked_vertex_property<VReal>(
           property_name);
     } else if constexpr (is_vectorfield_v<V>) {
       return discretized_domain

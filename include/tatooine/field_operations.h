@@ -119,4 +119,6 @@ constexpr auto length(vectorfield<V, VReal, N>&& v) {
 //==============================================================================
 }  // namespace tatooine
 //==============================================================================
+#include <tatooine/spacetime_vectorfield.h>
+#include <tatooine/Q_field.h>
 #endif

@@ -5,14 +5,14 @@
 #include <tatooine/rendering/first_person_window.h>
 #include <tatooine/axis_aligned_bounding_box.h>
 #include <tatooine/vec.h>
-#include <tatooine/rendering/gl/indexeddata.h>
-#include <tatooine/rendering/gl/shader.h>
+#include <tatooine/gl/indexeddata.h>
+#include <tatooine/gl/shader.h>
 //==============================================================================
 namespace tatooine::rendering  {
 //==============================================================================
-struct line_shader : rendering::gl::shader {
+struct line_shader : gl::shader {
   line_shader() {
-    add_stage<rendering::gl::vertexshader>(rendering::gl::shadersource{
+    add_stage<gl::vertexshader>(gl::shadersource{
         "#version 330 core\n"
         "layout(location = 0) in vec3 pos;\n"
         "uniform mat4 projection_matrix;\n"
@@ -21,7 +21,7 @@ struct line_shader : rendering::gl::shader {
         "void main() {\n"
         "  gl_Position = projection_matrix * modelview_matrix * vec4(pos, 1);\n"
         "}\n"});
-    add_stage<rendering::gl::fragmentshader>(rendering::gl::shadersource{
+    add_stage<gl::fragmentshader>(gl::shadersource{
         "#version 330 core\n"
         "uniform vec3 color;\n"
         "layout(location = 0) out vec4 fragout;\n"
@@ -43,7 +43,7 @@ struct line_shader : rendering::gl::shader {
 };
 template <typename Real>
 auto to_gpu(line<Real, 3> const& l) {
-  rendering::gl::indexeddata<vec3f> gpu_data;
+  gl::indexeddata<vec3f> gpu_data;
   gpu_data.vertexbuffer().resize(l.num_vertices());
   {
     auto gpu_mapping = gpu_data.vertexbuffer().wmap();
@@ -65,7 +65,7 @@ auto to_gpu(line<Real, 3> const& l) {
 //------------------------------------------------------------------------------
 template <typename Real>
 auto to_gpu(std::vector<line<Real, 3>> const& lines) {
-  rendering::gl::indexeddata<vec3f> gpu_data;
+  gl::indexeddata<vec3f> gpu_data;
   size_t                    num_vertices = 0;
   size_t                    num_indices = 0;
   for (auto const& l : lines) {
@@ -116,10 +116,10 @@ auto interactive(std::vector<line<Real, N>> const& lines) {
   win.camera_controller().look_at(center_pos + vec{2, 2, 2}, center_pos);
   shader.bind();
   shader.set_projection_matrix(win.camera_controller().projection_matrix());
-  rendering::gl::clear_color(255, 255, 255, 255);
+  gl::clear_color(255, 255, 255, 255);
   vec3f col;
   win.render_loop([&](auto const /*dt*/) {
-    rendering::gl::clear_color_depth_buffer();
+    gl::clear_color_depth_buffer();
     shader.set_modelview_matrix(win.camera_controller().view_matrix());
     shader.set_projection_matrix(win.camera_controller().projection_matrix());
     if (ImGui::ColorEdit3("color", col.data_ptr())) {
@@ -143,10 +143,10 @@ auto interactive(line<Real, N> const& l) {
   win.camera_controller().look_at(center_pos + vec{2, 2, 2}, center_pos);
   shader.bind();
   shader.set_projection_matrix(win.camera_controller().projection_matrix());
-  rendering::gl::clear_color(255, 255, 255, 255);
+  gl::clear_color(255, 255, 255, 255);
   bool my_tool_active = true;
   win.render_loop([&](auto const dt) {
-      rendering::gl::clear_color_depth_buffer();
+      gl::clear_color_depth_buffer();
     shader.set_modelview_matrix(win.camera_controller().view_matrix());
     shader.set_projection_matrix(win.camera_controller().projection_matrix());
     gpu_data.draw_lines();

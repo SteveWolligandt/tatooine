@@ -2,6 +2,9 @@
 #define TATOOINE_COLOR_SCALES_VIRIDIS_H
 //==============================================================================
 #include <tatooine/concepts.h>
+#if TATOOINE_GL_AVAILABLE
+#include <tatooine/gl/texture.h>
+#endif
 
 #include <memory>
 //==============================================================================
@@ -165,6 +168,28 @@ struct viridis  {
                    m_data[i * 3 + 2] * (1 - t) + m_data[(i + 1) * 3 + 2] * t};
   }
   auto operator()(real_t const t) const { return sample(t); }
+  //----------------------------------------------------------------------------
+#if TATOOINE_GL_AVAILABLE
+  auto to_gpu_tex() {
+    auto tex = gl::tex1rgb32f{m_data.get(), 256};
+    tex.set_wrap_mode(gl::CLAMP_TO_EDGE);
+    return tex;
+  }
+ //----------------------------------------------------------------------------
+  auto to_gpu_tex2d(size_t const height = 2) {
+    auto tex_data = std::vector<float>(256 * 3 * height);
+    for (size_t i = 0; i < 256; ++i) {
+      for (size_t j = 0; j < height; ++j) {
+        tex_data[i * 3     + 256 * 3 * j] = m_data[i * 3];
+        tex_data[i * 3 + 1 + 256 * 3 * j] = m_data[i * 3 + 1];
+        tex_data[i * 3 + 2 + 256 * 3 * j] = m_data[i * 3 + 2];
+      }
+    }
+    auto tex = gl::tex2rgb32f{tex_data, 256, height};
+    tex.set_wrap_mode(gl::CLAMP_TO_EDGE);
+    return tex;
+  }
+#endif
 };
 //==============================================================================
 viridis()->viridis<double>;

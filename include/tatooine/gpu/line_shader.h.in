@@ -1,7 +1,7 @@
 #ifndef TATOOINE_LINE_SHADER_H
 #define TATOOINE_LINE_SHADER_H
 //==============================================================================
-#include <tatooine/rendering/gl/shader.h>
+#include <tatooine/gl/shader.h>
 #include <tatooine/mat.h>
 
 #include <string_view>
@@ -9,7 +9,7 @@
 //==============================================================================
 namespace tatooine::gpu {
 //==============================================================================
-struct line_shader : rendering::gl::shader {
+struct line_shader : gl::shader {
   static constexpr std::string_view vert_shader_path =
       "@TATOOINE_LINE_SHADER_VERT_PATH@";
   static constexpr std::string_view geom_shader_path =
@@ -28,9 +28,9 @@ struct line_shader : rendering::gl::shader {
       : vert_last_write{filesystem::last_write_time(vert_shader_path)},
         geom_last_write{filesystem::last_write_time(geom_shader_path)},
         frag_last_write{filesystem::last_write_time(frag_shader_path)} {
-    add_stage<rendering::gl::vertexshader>(vert_shader_path.data());
-    add_stage<rendering::gl::geometryshader>(geom_shader_path.data());
-    add_stage<rendering::gl::fragmentshader>(frag_shader_path.data());
+    add_stage<gl::vertexshader>(vert_shader_path.data());
+    add_stage<gl::geometryshader>(geom_shader_path.data());
+    add_stage<gl::fragmentshader>(frag_shader_path.data());
     create();
     set_line_color(lr, lg, lb);
     set_contour_color(cr, cg, cb);

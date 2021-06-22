@@ -5,7 +5,7 @@
 #include <tatooine/flowexplorer/renderable.h>
 #include <tatooine/grid.h>
 #include <tatooine/linspace.h>
-#include <tatooine/rendering/gl/indexeddata.h>
+#include <tatooine/gl/indexeddata.h>
 //==============================================================================
 namespace tatooine::flowexplorer::nodes {
 //==============================================================================
@@ -13,8 +13,8 @@ template <size_t N>
 struct grid_renderer;
 template <>
 struct grid_renderer<2> : tatooine::non_uniform_grid<real_t, 2> {
-  rendering::gl::indexeddata<vec3f> m_inner_geometry;
-  rendering::gl::indexeddata<vec3f> m_outer_geometry;
+  gl::indexeddata<vec3f> m_inner_geometry;
+  gl::indexeddata<vec3f> m_outer_geometry;
   //----------------------------------------------------------------------------
   auto render(mat4f const& P, mat4f const& V) -> void {
     auto& shader = line_shader::get();
@@ -94,13 +94,13 @@ struct grid_renderer<2> : tatooine::non_uniform_grid<real_t, 2> {
 };
 template <>
 struct grid_renderer<3> : tatooine::non_uniform_grid<real_t, 3> {
-  rendering::gl::indexeddata<vec3f> m_outer_geometry;
-  rendering::gl::indexeddata<vec3f> m_left_geometry;
-  rendering::gl::indexeddata<vec3f> m_right_geometry;
-  rendering::gl::indexeddata<vec3f> m_top_geometry;
-  rendering::gl::indexeddata<vec3f> m_bottom_geometry;
-  rendering::gl::indexeddata<vec3f> m_front_geometry;
-  rendering::gl::indexeddata<vec3f> m_back_geometry;
+  gl::indexeddata<vec3f> m_outer_geometry;
+  gl::indexeddata<vec3f> m_left_geometry;
+  gl::indexeddata<vec3f> m_right_geometry;
+  gl::indexeddata<vec3f> m_top_geometry;
+  gl::indexeddata<vec3f> m_bottom_geometry;
+  gl::indexeddata<vec3f> m_front_geometry;
+  gl::indexeddata<vec3f> m_back_geometry;
   //----------------------------------------------------------------------------
   auto render(mat4f const& P, mat4f const& V, vec3f const& eye) -> void {
     auto& shader = line_shader::get();

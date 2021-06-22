@@ -4,14 +4,14 @@
 #include <tatooine/flowexplorer/line_shader.h>
 #include <tatooine/flowexplorer/renderable.h>
 #include <tatooine/triangular_mesh.h>
-#include <tatooine/rendering/gl/indexeddata.h>
+#include <tatooine/gl/indexeddata.h>
 //==============================================================================
 namespace tatooine::flowexplorer::nodes {
 //==============================================================================
 struct autonomous_particles_flowmap : renderable<autonomous_particles_flowmap> {
   std::string                                 m_currently_read_path;
   std::unique_ptr<triangular_mesh<double, 2>> m_mesh;
-  rendering::gl::indexeddata<vec3f>           m_edges;
+  gl::indexeddata<vec3f>           m_edges;
   int                                         m_line_width = 1;
   std::array<GLfloat, 4> m_line_color{0.0f, 0.0f, 0.0f, 1.0f};
   //============================================================================
@@ -90,7 +90,7 @@ struct autonomous_particles_flowmap : renderable<autonomous_particles_flowmap> {
       shader.bind();
       shader.set_projection_matrix(P);
       shader.set_modelview_matrix(V);
-      rendering::gl::line_width(m_line_width);
+      gl::line_width(m_line_width);
       shader.set_color(m_line_color[0], m_line_color[1], m_line_color[2],
                        m_line_color[3]);
       m_edges.draw_lines();

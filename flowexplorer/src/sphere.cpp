@@ -5,8 +5,8 @@
 namespace tatooine::flowexplorer::nodes {
 //==============================================================================
 sphere_shader::sphere_shader() {
-  add_stage<rendering::gl::vertexshader>(vertex_shader_path);
-  add_stage<rendering::gl::fragmentshader>(fragment_shader_path);
+  add_stage<gl::vertexshader>(vertex_shader_path);
+  add_stage<gl::fragmentshader>(fragment_shader_path);
   create();
 }
 //------------------------------------------------------------------------------

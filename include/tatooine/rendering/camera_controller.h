@@ -3,7 +3,7 @@
 //==============================================================================
 #include <tatooine/rendering/orthographic_camera.h>
 #include <tatooine/rendering/perspective_camera.h>
-#include <tatooine/rendering/gl/window_listener.h>
+#include <tatooine/gl/window_listener.h>
 
 #include <chrono>
 //==============================================================================
@@ -19,7 +19,7 @@ template <typename Real>
 struct orthographic_camera_controller;
 //==============================================================================
 template <typename Real>
-struct camera_controller_interface : rendering::gl::window_listener {
+struct camera_controller_interface : gl::window_listener {
  private:
   camera_controller<Real>* m_controller;
   //----------------------------------------------------------------------------
@@ -57,7 +57,7 @@ struct camera_controller_interface : rendering::gl::window_listener {
 };
 //==============================================================================
 template <typename Real>
-struct camera_controller : rendering::gl::window_listener {
+struct camera_controller : gl::window_listener {
   friend struct camera_controller_interface<Real>;
   class perspective_camera<Real>                     m_pcam;
   class orthographic_camera<Real>                    m_ocam;
@@ -166,22 +166,22 @@ struct camera_controller : rendering::gl::window_listener {
   }
   auto ray(int x, int y) const { return m_active_cam->ray(x, y); }
   //------------------------------------------------------------------------------
-  void on_key_pressed(rendering::gl::key k) override {
+  void on_key_pressed(gl::key k) override {
     if (m_controller) {
       m_controller->on_key_pressed(k);
     }
   }
-  void on_key_released(rendering::gl::key k) override {
+  void on_key_released(gl::key k) override {
     if (m_controller) {
       m_controller->on_key_released(k);
     }
   }
-  void on_button_pressed(rendering::gl::button b) override {
+  void on_button_pressed(gl::button b) override {
     if (m_controller) {
       m_controller->on_button_pressed(b);
     }
   }
-  void on_button_released(rendering::gl::button b) override {
+  void on_button_released(gl::button b) override {
     if (m_controller) {
       m_controller->on_button_released(b);
     }
@@ -234,6 +234,8 @@ struct fps_camera_controller : camera_controller_interface<Real> {
   double       m_mouse_pos_x, m_mouse_pos_y;
   bool         m_right_button_down = false;
   bool         m_w_down            = false;
+  bool         m_shift_down        = false;
+  bool         m_ctrl_down         = false;
   bool         m_s_down            = false;
   bool         m_a_down            = false;
   bool         m_d_down            = false;
@@ -246,46 +248,68 @@ struct fps_camera_controller : camera_controller_interface<Real> {
   }
   virtual ~fps_camera_controller() = default;
   //----------------------------------------------------------------------------
-  auto on_key_pressed(rendering::gl::key k) -> void override {
-    if (k == rendering::gl::KEY_W) {
+  auto on_key_pressed(gl::key k) -> void override {
+    if (k == gl::KEY_CTRL_L || k == gl::KEY_CTRL_R) {
+      m_ctrl_down = true;
+    }
+    if (k == gl::KEY_SHIFT_L || k == gl::KEY_SHIFT_R) {
+      m_shift_down = true;
+    }
+    if (k == gl::KEY_W) {
       m_w_down = true;
-    } else if (k == rendering::gl::KEY_S) {
+    }
+    if (k == gl::KEY_S) {
       m_s_down = true;
-    } else if (k == rendering::gl::KEY_A) {
+    }
+    if (k == gl::KEY_A) {
       m_a_down = true;
-    } else if (k == rendering::gl::KEY_D) {
+    }
+    if (k == gl::KEY_D) {
       m_d_down = true;
-    } else if (k == rendering::gl::KEY_Q) {
+    }
+    if (k == gl::KEY_Q) {
       m_q_down = true;
-    } else if (k == rendering::gl::KEY_E) {
+    }
+    if (k == gl::KEY_E) {
       m_e_down = true;
     }
   }
   //----------------------------------------------------------------------------
-  void on_key_released(rendering::gl::key k) override {
-    if (k == rendering::gl::KEY_W) {
+  void on_key_released(gl::key k) override {
+    if (k == gl::KEY_CTRL_L || k == gl::KEY_CTRL_R) {
+      m_ctrl_down = false;
+    }
+    if (k == gl::KEY_SHIFT_L || k == gl::KEY_SHIFT_R) {
+      m_shift_down = false;
+    }
+    if (k == gl::KEY_W) {
       m_w_down = false;
-    } else if (k == rendering::gl::KEY_S) {
+    }
+    if (k == gl::KEY_S) {
       m_s_down = false;
-    } else if (k == rendering::gl::KEY_A) {
+    }
+    if (k == gl::KEY_A) {
       m_a_down = false;
-    } else if (k == rendering::gl::KEY_D) {
+    }
+    if (k == gl::KEY_D) {
       m_d_down = false;
-    } else if (k == rendering::gl::KEY_Q) {
+    }
+    if (k == gl::KEY_Q) {
       m_q_down = false;
-    } else if (k == rendering::gl::KEY_E) {
+    }
+    if (k == gl::KEY_E) {
       m_e_down = false;
     }
   }
   //----------------------------------------------------------------------------
-  void on_button_pressed(rendering::gl::button b) override {
-    if (b == rendering::gl::BUTTON_RIGHT) {
+  void on_button_pressed(gl::button b) override {
+    if (b == gl::BUTTON_RIGHT) {
       m_right_button_down = true;
     }
   }
   //----------------------------------------------------------------------------
-  void on_button_released(rendering::gl::button b) override {
-    if (b == rendering::gl::BUTTON_RIGHT) {
+  void on_button_released(gl::button b) override {
+    if (b == gl::BUTTON_RIGHT) {
       m_right_button_down = false;
     }
   }
@@ -314,43 +338,60 @@ struct fps_camera_controller : camera_controller_interface<Real> {
     m_mouse_pos_x = std::ceil(x);
     m_mouse_pos_y = std::ceil(y);
   }
+  auto speed() const {
+    if (m_shift_down) {
+      return Real(1) / 250;
+    }
+    if (m_ctrl_down) {
+      return Real(1) / 1000;
+    }
+    return Real(1) / 500;
+  }
   //----------------------------------------------------------------------------
   void update(std::chrono::duration<double> const& dt) override {
     auto const ms = static_cast<Real>(
         std::chrono::duration_cast<std::chrono::milliseconds>(dt).count());
 
     if (m_w_down) {
-      auto const look_dir = normalize(controller().lookat() - controller().eye());
-      auto const new_eye  = controller().eye() + look_dir * ms / 1000;
+      auto const look_dir =
+          normalize(controller().lookat() - controller().eye());
+      auto const new_eye = controller().eye() + look_dir * ms * speed();
       controller().look_at(new_eye, new_eye + look_dir);
     }
     if (m_s_down) {
-      auto const look_dir = normalize(controller().lookat() - controller().eye());
-      auto const new_eye = controller().eye() - look_dir * ms / 1000;
+      auto const look_dir =
+          normalize(controller().lookat() - controller().eye());
+      auto const new_eye = controller().eye() - look_dir * ms * speed();
       controller().look_at(new_eye, new_eye + look_dir);
     }
     if (m_q_down) {
-      auto const look_dir = normalize(controller().lookat() - controller().eye());
+      auto const look_dir =
+          normalize(controller().lookat() - controller().eye());
       auto const& old_eye = controller().eye();
-      auto const new_eye = vec{old_eye(0), old_eye(1) + 1 * ms / 1000, old_eye(2)};
+      auto const  new_eye =
+          vec{old_eye(0), old_eye(1) + 1 * ms * speed(), old_eye(2)};
       controller().look_at(new_eye, new_eye + look_dir);
     }
     if (m_e_down) {
-      auto const look_dir = normalize(controller().lookat() - controller().eye());
+      auto const look_dir =
+          normalize(controller().lookat() - controller().eye());
       auto const& old_eye = controller().eye();
-      auto const new_eye = vec{old_eye(0), old_eye(1) - 1 * ms / 1000, old_eye(2)};
+      auto const  new_eye =
+          vec{old_eye(0), old_eye(1) - 1 * ms * speed(), old_eye(2)};
       controller().look_at(new_eye, new_eye + look_dir);
     }
     if (m_a_down) {
-      auto const look_dir = normalize(controller().lookat() - controller().eye());
+      auto const look_dir =
+          normalize(controller().lookat() - controller().eye());
       auto const right   = cross(vec{0, 1, 0}, -look_dir);
-      auto const new_eye = controller().eye() - right * ms / 1000;
+      auto const new_eye = controller().eye() - right * ms * speed();
       controller().look_at(new_eye, new_eye + look_dir);
     }
     if (m_d_down) {
-      auto const look_dir = normalize(controller().lookat() - controller().eye());
+      auto const look_dir =
+          normalize(controller().lookat() - controller().eye());
       auto const right   = cross(vec{0, 1, 0}, -look_dir);
-      auto const new_eye = controller().eye() + right * ms / 1000;
+      auto const new_eye = controller().eye() + right * ms * speed();
       controller().look_at(new_eye, new_eye + look_dir);
     }
   }
@@ -384,14 +425,14 @@ struct orthographic_camera_controller : camera_controller_interface<Real> {
   //============================================================================
   // methods
   //============================================================================
-  void on_button_pressed(rendering::gl::button b) override {
-    if (b == rendering::gl::BUTTON_RIGHT) {
+  void on_button_pressed(gl::button b) override {
+    if (b == gl::BUTTON_RIGHT) {
       m_right_button_down = true;
     }
   }
   //----------------------------------------------------------------------------
-  void on_button_released(rendering::gl::button b) override {
-    if (b == rendering::gl::BUTTON_RIGHT) {
+  void on_button_released(gl::button b) override {
+    if (b == gl::BUTTON_RIGHT) {
       m_right_button_down = false;
     }
   }

@@ -1,4 +1,4 @@
-#if TATOOINE_RENDERING_GL_AVAILABLE
+#if TATOOINE_GL_AVAILABLE
 #include <tatooine/analytical/fields/numerical/doublegyre.h>
 #include <tatooine/gpu/upload.h>
 #include <tatooine/multidim_array.h>
@@ -19,7 +19,7 @@ TEST_CASE("gpu_upload_doublegyre", "[gpu][dg][doublegyre][upload]") {
   REQUIRE(v_gpu.width() == xdomain.size());
   REQUIRE(v_gpu.height() == ydomain.size());
   CAPTURE(type_name(v_gpu));
-  REQUIRE(std::is_same_v<decltype(v_gpu), rendering::gl::tex2rg<float>>);
+  REQUIRE(std::is_same_v<decltype(v_gpu), gl::tex2rg<float>>);
 
   // download
   auto v_cpu = download(v_gpu);
@@ -50,7 +50,7 @@ TEST_CASE("gpu_upload_doublegyre", "[gpu][dg][doublegyre][upload]") {
 //  REQUIRE(v_sampled.size<1>() == ydomain.size());
 //  auto  v_gpu     = gpu::upload(v_sampled);
 //  //CAPTURE(type_name(v_gpu));
-//  //REQUIRE(std::is_same_v<decltype(v_gpu), rendering::gl::tex2rg<float>>);
+//  //REQUIRE(std::is_same_v<decltype(v_gpu), gl::tex2rg<float>>);
 //  //auto v_cpu = download(v_gpu);
 //  //
 //  //for (size_t iy = 0; iy < ydomain.size(); ++iy) {

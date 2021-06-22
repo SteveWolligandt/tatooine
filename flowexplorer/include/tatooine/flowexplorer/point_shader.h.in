@@ -2,13 +2,13 @@
 #define TATOOINE_FLOWEXPLORER_POINT_SHADER_H
 //==============================================================================
 #include <tatooine/mat.h>
-#include <tatooine/rendering/gl/shader.h>
-#include <tatooine/rendering/gl/vertexshader.h>
-#include <tatooine/rendering/gl/fragmentshader.h>
+#include <tatooine/gl/shader.h>
+#include <tatooine/gl/vertexshader.h>
+#include <tatooine/gl/fragmentshader.h>
 //==============================================================================
 namespace tatooine::flowexplorer {
 //==============================================================================
-struct point_shader : rendering::gl::shader {
+struct point_shader : gl::shader {
   static constexpr std::string_view vertpath = "@FLOWEXPLORER_POINT_VERT@";
   static constexpr std::string_view fragpath = "@FLOWEXPLORER_POINT_FRAG@";
 

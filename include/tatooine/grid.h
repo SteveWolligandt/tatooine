@@ -573,22 +573,22 @@ class grid {
   }
   //----------------------------------------------------------------------------
   template <size_t I>
-  constexpr auto extent() {
+  constexpr auto extent() const {
     return dimension<I>().back() - dimension<I>().front();
   }
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
  private:
   template <size_t... Is>
-  constexpr auto extent(std::index_sequence<Is...> /*seq*/) {
+  constexpr auto extent(std::index_sequence<Is...> /*seq*/) const {
     return vec{extent<Is>()...};
   }
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
  public:
-  constexpr auto extent() {
+  constexpr auto extent() const {
     return extent(std::make_index_sequence<num_dimensions()>{});
   }
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-  constexpr auto extent(size_t const i) -> real_t {
+  constexpr auto extent(size_t const i) -> real_t const {
     if (i == 0) {
       return extent<0>();
     }
@@ -646,22 +646,22 @@ class grid {
   }
   //----------------------------------------------------------------------------
   template <size_t I>
-  constexpr auto center() {
+  constexpr auto center() const {
     return (dimension<I>().back() + dimension<I>().front()) / 2;
   }
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
  private:
   template <size_t... Is>
-  constexpr auto center(std::index_sequence<Is...> /*seq*/) {
+  constexpr auto center(std::index_sequence<Is...> /*seq*/) const {
     return vec{center<Is>()...};
   }
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
  public:
-  constexpr auto center() {
+  constexpr auto center() const {
     return center(std::make_index_sequence<num_dimensions()>{});
   }
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-  constexpr auto center(size_t const i) -> real_t {
+  constexpr auto center(size_t const i) -> real_t const {
     if (i == 0) {
       return center<0>();
     }

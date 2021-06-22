@@ -1,7 +1,7 @@
 #ifndef TATOOINE_TEXTURE_SHADER_H
 #define TATOOINE_TEXTURE_SHADER_H
 //==============================================================================
-#include <tatooine/rendering/gl/shader.h>
+#include <tatooine/gl/shader.h>
 #include <tatooine/mat.h>
 
 #include <string_view>
@@ -9,7 +9,7 @@
 //==============================================================================
 namespace tatooine::gpu {
 //==============================================================================
-struct texture_shader : rendering::gl::shader {
+struct texture_shader : gl::shader {
   static constexpr std::string_view vert_shader_path =
       "@TATOOINE_TEXTURE_SHADER_VERT_PATH@";
   static constexpr std::string_view frag_shader_path =
@@ -20,8 +20,8 @@ struct texture_shader : rendering::gl::shader {
   explicit texture_shader(GLint texture_binding = 0)
       : vert_last_write{filesystem::last_write_time(vert_shader_path)},
         frag_last_write{filesystem::last_write_time(frag_shader_path)} {
-    add_stage<rendering::gl::vertexshader>(vert_shader_path.data());
-    add_stage<rendering::gl::fragmentshader>(frag_shader_path.data());
+    add_stage<gl::vertexshader>(vert_shader_path.data());
+    add_stage<gl::fragmentshader>(frag_shader_path.data());
     create();
     set_alpha(1);
     set_texture_binding(texture_binding);

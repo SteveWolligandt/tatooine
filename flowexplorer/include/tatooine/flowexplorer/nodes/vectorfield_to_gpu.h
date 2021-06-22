@@ -8,10 +8,10 @@
 //==============================================================================
 namespace tatooine::flowexplorer::nodes {
 //==============================================================================
-struct vectorfield_to_gpu : ui::node<vectorfield_to_gpu>, rendering::gl::tex2rg32f {
+struct vectorfield_to_gpu : ui::node<vectorfield_to_gpu>, gl::tex2rg32f {
   using vectorfield_t = polymorphic::vectorfield<double, 2>;
   using bb_t          = flowexplorer::nodes::axis_aligned_bounding_box<2>;
-  using tex_t         = rendering::gl::tex2rg32f;
+  using tex_t         = gl::tex2rg32f;
   //----------------------------------------------------------------------------
   vectorfield_t* m_v  = nullptr;
   bb_t*          m_bb = nullptr;

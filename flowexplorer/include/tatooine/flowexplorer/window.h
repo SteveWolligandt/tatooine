@@ -22,8 +22,8 @@ struct window : rendering::first_person_window {
   ui::base::node*                     m_path_notifier = nullptr;
   ImFont*                             m_font_regular = nullptr;
   ImFont*                             m_font_bold = nullptr;
-  rendering::gl::tex2rgba32f          m_aabb2d_icon_tex;
-  rendering::gl::tex2rgba32f                  m_aabb3d_icon_tex;
+  gl::tex2rgba32f          m_aabb2d_icon_tex;
+  gl::tex2rgba32f                  m_aabb3d_icon_tex;
   //============================================================================
   auto ui_scale_factor() const { return m_ui_scale_factor; }
   //----------------------------------------------------------------------------
@@ -38,9 +38,9 @@ struct window : rendering::first_person_window {
   //----------------------------------------------------------------------------
   ~window();
   //============================================================================
-  void on_key_pressed(rendering::gl::key k) override;
-  void on_button_pressed(rendering::gl::button b) override;
-  void on_button_released(rendering::gl::button b) override;
+  void on_key_pressed(gl::key k) override;
+  void on_button_pressed(gl::button b) override;
+  void on_button_released(gl::button b) override;
   void on_cursor_moved(double /*x*/, double /*y*/) override;
   void start();
   //=============================================================================

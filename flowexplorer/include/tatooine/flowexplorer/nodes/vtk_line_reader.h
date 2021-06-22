@@ -6,7 +6,7 @@
 #include <tatooine/flowexplorer/line_shader.h>
 #include <tatooine/vtk_legacy.h>
 #include <tatooine/line.h>
-#include <tatooine/rendering/gl/indexeddata.h>
+#include <tatooine/gl/indexeddata.h>
 
 #include <mutex>
 //==============================================================================
@@ -16,7 +16,7 @@ struct vtk_line_reader : renderable<vtk_line_reader> {
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
   // internal
  private:
-  rendering::gl::indexeddata<vec3f> m_gpu_data;
+  gl::indexeddata<vec3f> m_gpu_data;
   line<real_t, 3>                   m_line3;
 
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -41,7 +41,7 @@ struct vtk_line_reader : renderable<vtk_line_reader> {
                      m_line_color[3]);
     shader.set_projection_matrix(P);
     shader.set_modelview_matrix(V);
-    rendering::gl::line_width(m_line_width);
+    gl::line_width(m_line_width);
     m_gpu_data.draw_lines();
    }
    //----------------------------------------------------------------------------

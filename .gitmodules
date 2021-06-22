@@ -23,11 +23,11 @@
 	path = benchmarks/external/google-benchmark
 	url = https://github.com/google/benchmark.git
 [submodule "rendering/external/imgui"]
-	path = rendering/gl/external/imgui
+	path = gl/external/imgui
 	url = https://github.com/ocornut/imgui.git
 [submodule "rendering/external/imgui-filebrowser"]
-	path = rendering/gl/external/imgui-filebrowser
+	path = gl/external/imgui-filebrowser
 	url = https://github.com/AirGuanZ/imgui-filebrowser.git
 [submodule "rendering/external/glfw"]
-	path = rendering/gl/external/glfw
+	path = gl/external/glfw
 	url = https://github.com/glfw/glfw

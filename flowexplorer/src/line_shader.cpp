@@ -7,8 +7,8 @@ auto line_shader::get() -> line_shader& {
   return s;
 }
 line_shader::line_shader() {
-  add_stage<rendering::gl::vertexshader>(std::string{vertpath});
-  add_stage<rendering::gl::fragmentshader>(std::string{fragpath});
+  add_stage<gl::vertexshader>(std::string{vertpath});
+  add_stage<gl::fragmentshader>(std::string{fragpath});
   create();
 }
 auto line_shader::set_modelview_matrix(const tatooine::mat4f& modelview)

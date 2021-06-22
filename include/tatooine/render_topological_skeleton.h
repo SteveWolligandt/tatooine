@@ -6,21 +6,21 @@
 #include <tatooine/topological_skeleton.h>
 #include <tatooine/grid_sampler.h>
 #include <tatooine/sampled_field.h>
-#include <tatooine/rendering/gl/context.h>
-#include <tatooine/rendering/gl/framebuffer.h>
-#include <tatooine/rendering/gl/glwrapper.h>
-#include <tatooine/rendering/gl/indexbuffer.h>
-#include <tatooine/rendering/gl/indexeddata.h>
-#include <tatooine/rendering/gl/orthographiccamera.h>
-#include <tatooine/rendering/gl/vertexarray.h>
-#include <tatooine/rendering/gl/vertexbuffer.h>
+#include <tatooine/gl/context.h>
+#include <tatooine/gl/framebuffer.h>
+#include <tatooine/gl/glwrapper.h>
+#include <tatooine/gl/indexbuffer.h>
+#include <tatooine/gl/indexeddata.h>
+#include <tatooine/gl/orthographiccamera.h>
+#include <tatooine/gl/vertexarray.h>
+#include <tatooine/gl/vertexbuffer.h>
 
 #include <boost/range/adaptor/transformed.hpp>
 #include <boost/range/algorithm/copy.hpp>
 //==============================================================================
 namespace tatooine {
 //==============================================================================
-/// you need a rendering::gl::context for this
+/// you need a gl::context for this
 template <typename Real, typename Integrator,
           template <typename> typename Interpolator>
 auto render_topological_skeleton(
@@ -32,7 +32,7 @@ auto render_topological_skeleton(
                           integrator,
     const vec<size_t, 2>& resolution,
     const Real tau = 100, const Real eps = 1e-7) {
-  using namespace rendering::gl;
+  using namespace gl;
   struct point_shader : shader {
     point_shader() {
       add_stage<vertexshader>(
@@ -201,13 +201,13 @@ auto render_topological_skeleton(
   // render separatrices and critical points over lic image
   framebuffer fbo{image};
   fbo.bind();
-  rendering::gl::viewport(cam.viewport());
+  gl::viewport(cam.viewport());
   {
     // render lines
     line_shader shader;
     shader.bind();
     shader.set_projection(cam.projection_matrix());
-    rendering::gl::line_width(3);
+    gl::line_width(3);
     gpu_line_data.draw_lines();
   }
   {

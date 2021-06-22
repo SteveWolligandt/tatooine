@@ -2,13 +2,13 @@
 #define TATOOINE_LINE_RENDERER_H
 //==============================================================================
 #include <tatooine/line.h>
-#include <tatooine/rendering/gl/indexeddata.h>
+#include <tatooine/gl/indexeddata.h>
 //==============================================================================
 namespace tatooine::gpu {
 //==============================================================================
 template <typename Real, size_t N, template <typename> typename Interpolator>
 auto upload(const parameterized_line<Real, N, Interpolator>& l) {
-  using gpu_t = rendering::gl::indexeddata<vec<float, N>, vec<float, N>, float>;
+  using gpu_t = gl::indexeddata<vec<float, N>, vec<float, N>, float>;
   typename gpu_t::vbo_data_vec vbo_data;
   vbo_data.reserve(l.num_vertices());
   typename gpu_t::ibo_data_vec ibo_data;
@@ -35,7 +35,7 @@ auto upload(const parameterized_line<Real, N, Interpolator>& l) {
 //------------------------------------------------------------------------------
 template <typename Real, size_t N, template <typename> typename Interpolator>
 auto upload(const std::vector<parameterized_line<Real, N, Interpolator>>& ls) {
-  using gpu_t = rendering::gl::indexeddata<vec<float, N>, vec<float, N>, float>;
+  using gpu_t = gl::indexeddata<vec<float, N>, vec<float, N>, float>;
   std::vector<gpu_t> uploads;
   uploads.reserve(ls.size());
   for (const auto& l : ls) { uploads.push_back(upload(l)); }

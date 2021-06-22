@@ -220,10 +220,10 @@ class GPUMemCache : public std::map<key_t, value_t> {
       }
     }
 
-    size_t usage = rendering::gl::get_total_available_memory() -
-                   rendering::gl::get_current_available_memory();
+    size_t usage = gl::get_total_available_memory() -
+                   gl::get_current_available_memory();
     // std::cout << "gpu mem: " << usage / 1024.0 / 1024.0 << " / "
-    //           << rendering::gl::get_total_available_memory() / 1024.0 / 1024.0 <<
+    //           << gl::get_total_available_memory() / 1024.0 / 1024.0 <<
     //           '\n';
     if (usage >= m_max_gpu_memory_usage) {
       // std::cout << "========================= gpumem exceeded: "
@@ -232,8 +232,8 @@ class GPUMemCache : public std::map<key_t, value_t> {
       while (usage > m_max_gpu_memory_usage && m_queue.size() > 1) {
         parent_t::erase(m_queue.front());
         m_queue.pop_front();
-        usage = rendering::gl::get_total_available_memory() -
-                rendering::gl::get_current_available_memory();
+        usage = gl::get_total_available_memory() -
+                gl::get_current_available_memory();
         // std::cout << "========================= gpu delete: "
         //           << usage / 1024.0 / 1024.0 << '\n';
         // std::cout << "m_queue.size(): " << m_queue.size() << '\n';

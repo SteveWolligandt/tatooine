@@ -31,9 +31,9 @@ void autonomous_particle::render(mat4f const& projection_matrix,
     shader.set_color(0.7, 0.7, 0.7, 1);
     m_initial_circle.draw_lines();
     shader.set_color(0, 0, 0, 1);
-    rendering::gl::line_width(2);
+    gl::line_width(2);
     m_advected_ellipses.draw_lines();
-    rendering::gl::line_width(1);
+    gl::line_width(1);
     shader.set_color(0.2, 0.8, 0.2, 1);
     m_initial_ellipses_back_calculation.draw_lines();
     shader.set_color(0.5, 0.5, 0.5, 1);

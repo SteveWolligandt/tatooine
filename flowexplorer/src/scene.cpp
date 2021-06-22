@@ -134,8 +134,8 @@ auto scene::remove_link(ui::link const& link_to_remove) -> void {
 }
 //------------------------------------------------------------------------------
 auto scene::render(std::chrono::duration<double> const& dt) -> void {
-  rendering::gl::clear_color(255, 255, 255, 255);
-  rendering::gl::clear_color_depth_buffer();
+  gl::clear_color(255, 255, 255, 255);
+  gl::clear_color_depth_buffer();
   for (auto& n : m_nodes) {
     n->update_property_links();
     if (n->is_active()) {
@@ -150,8 +150,8 @@ auto scene::render(std::chrono::duration<double> const& dt) -> void {
   }
 
   // render non-transparent objects
-  rendering::gl::enable_depth_write();
-  rendering::gl::disable_blending();
+  gl::enable_depth_write();
+  gl::disable_blending();
   for (auto& r : m_renderables) {
     if (r->is_active()) {
       if (!r->is_transparent()) {
@@ -161,9 +161,9 @@ auto scene::render(std::chrono::duration<double> const& dt) -> void {
   }
 
   // render transparent objects
-  rendering::gl::disable_depth_write();
-  rendering::gl::enable_blending();
-  rendering::gl::blend_func_alpha();
+  gl::disable_depth_write();
+  gl::enable_blending();
+  gl::blend_func_alpha();
   for (auto& r : m_renderables) {
     if (r->is_active()) {
       if (r->is_transparent()) {
@@ -171,8 +171,8 @@ auto scene::render(std::chrono::duration<double> const& dt) -> void {
       }
     }
   }
-  rendering::gl::enable_depth_test();
-  rendering::gl::enable_depth_write();
+  gl::enable_depth_test();
+  gl::enable_depth_write();
 }
 //------------------------------------------------------------------------------
 auto scene::find_node(size_t const id) -> ui::base::node* {
