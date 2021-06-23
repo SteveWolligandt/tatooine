@@ -189,5 +189,6 @@ DLL_API bool Spinner(const char* label, float radius, int thickness,
 //==============================================================================
 #include <tatooine/gl/imgui_api_backend.h>
 #include <tatooine/gl/imgui_render_backend.h>
+#include <tatooine/gl/bezier_widget.h>
 //==============================================================================
 #endif

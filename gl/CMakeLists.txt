@@ -44,6 +44,7 @@ target_include_directories(imgui PUBLIC ${TATOOINE_GL_IMGUI_DIR})
 #- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - 
 set(TATOOINE_GL_SOURCES
   ${CMAKE_CURRENT_SOURCE_DIR}/src/atomiccounterbuffer.cpp
+  ${CMAKE_CURRENT_SOURCE_DIR}/src/bezier_widget.cpp
   ${CMAKE_CURRENT_SOURCE_DIR}/src/computeshader.cpp
   ${CMAKE_CURRENT_SOURCE_DIR}/src/errorcheck.cpp
   ${CMAKE_CURRENT_SOURCE_DIR}/src/fragmentshader.cpp
