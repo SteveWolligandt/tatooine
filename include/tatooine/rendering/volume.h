@@ -24,7 +24,7 @@ auto interactive(
                  color_scales::viridis<float>{}.to_gpu_tex2d()},
       std::tuple{"Magma", color_scales::magma<float>{}.to_gpu_tex(),
                  color_scales::magma<float>{}.to_gpu_tex2d()}};
-  decltype(color_scales)::value_type const* current_color_scale =
+  typename decltype(color_scales)::value_type const* current_color_scale =
       &color_scales.front();
   auto       cube_data = gl::indexeddata<vec3f>{};
   cube_data.vertexbuffer().resize(8);

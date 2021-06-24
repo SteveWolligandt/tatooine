@@ -6,12 +6,12 @@
 namespace ImGui {
 //==============================================================================
 auto BezierValue(float dt01, float v0[4], float v1[4]) -> float {
-  enum { STEPS = 256 };
+  auto const steps = 256;
   ImVec2 Q[4] = {
       {v0[0], v0[1]}, {v0[2], v0[3]}, {v1[0], v1[1]}, {v1[2], v1[3]}};
-  ImVec2 results[STEPS + 1];
-  BezierTable<STEPS>(Q, results);
-  return results[(int)((dt01 < 0 ? 0 : dt01 > 1 ? 1 : dt01) * STEPS)].y;
+  ImVec2 results[steps + 1];
+  BezierTable<steps>(Q, results);
+  return results[(int)((dt01 < 0 ? 0 : dt01 > 1 ? 1 : dt01) * 256)].y;
 }
 //------------------------------------------------------------------------------
 auto Bezier(const char* label, float v0[4], float v1[4]) -> int {
@@ -24,14 +24,13 @@ auto Bezier(const char* label, float v0[4], float v1[4]) -> int {
   size_t const grab_border = 2;  // handlers: circle border width
 
   const ImGuiStyle& Style    = GetStyle();
-  const ImGuiIO&    IO       = GetIO();
   ImDrawList*       DrawList = GetWindowDrawList();
   ImGuiWindow*      Window   = GetCurrentWindow();
   if (Window->SkipItems) return false;
 
   // int changed = SliderFloat4(label, P, 0, 1, "%.3f", 1.0f);
   int changed = 0;
-  int hovered = IsItemActive() || IsItemHovered();  // IsItemDragged() ?
+  //int hovered = IsItemActive() || IsItemHovered();  // IsItemDragged() ?
   Dummy(ImVec2(0, 3));
 
   // prepare canvas
