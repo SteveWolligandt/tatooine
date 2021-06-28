@@ -77,13 +77,14 @@ set(TATOOINE_GL_SOURCES
   ${CMAKE_CURRENT_SOURCE_DIR}/src/context.cpp
   ${CMAKE_CURRENT_SOURCE_DIR}/src/window.cpp
 )
-add_library(rendering.gl STATIC ${TATOOINE_GL_SOURCES})
-target_compile_features(rendering.gl PUBLIC cxx_std_20)
-target_compile_definitions(rendering.gl PRIVATE DLL_EXPORT)
-target_compile_options(rendering.gl PRIVATE
+add_library(gl STATIC ${TATOOINE_GL_SOURCES})
+target_compile_definitions(gl PUBLIC TATOOINE_GL_AVAILABLE=${TATOOINE_GL_AVAILABLE})
+target_compile_features(gl PUBLIC cxx_std_20)
+target_compile_definitions(gl PRIVATE DLL_EXPORT)
+target_compile_options(gl PRIVATE
                        -Wall -Wextra -pedantic)
 
-target_include_directories(rendering.gl
+target_include_directories(gl
   PUBLIC 
     ${CMAKE_CURRENT_SOURCE_DIR}/include
     ${CMAKE_CURRENT_SOURCE_DIR}/single_include
@@ -94,7 +95,7 @@ target_include_directories(rendering.gl
     ${CMAKE_CURRENT_SOURCE_DIR}/external/imgui-filebrowser)
 
 target_link_libraries(
-  rendering.gl
+  gl
    PUBLIC
     tatooine
     glad
@@ -108,9 +109,9 @@ target_link_libraries(
 #- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - 
 option(TATOOINE_GL_VERBOSE "verbose OpenGL calls" OFF)
 if (TATOOINE_GL_VERBOSE)
-  target_compile_definitions(rendering.gl PUBLIC TATOOINE_GL_VERBOSE=1)
+  target_compile_definitions(gl PUBLIC TATOOINE_GL_VERBOSE=1)
 else()
-  target_compile_definitions(rendering.gl PUBLIC TATOOINE_GL_VERBOSE=0)
+  target_compile_definitions(gl PUBLIC TATOOINE_GL_VERBOSE=0)
 endif()
 
 #- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - 

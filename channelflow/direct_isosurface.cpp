@@ -90,29 +90,27 @@ auto main() -> int {
   std::cerr << "creating cameras ...";
   size_t const width = 2000, height = 1000;
 
-  auto full_domain_eye = parameterized_line<double, 3, interpolation::linear>{};
-  full_domain_eye.push_back(
-      vec3{0.6,
-           full_domain.front(1) - full_domain.extent(1) / 5,
-           0.75}*2/3,
-      0);
-  full_domain_eye.push_back(
-      vec3{0.6,
-           full_domain.back(1) + full_domain.extent(1) / 5,
-           0.75}*2/3,
-      1);
-  auto full_domain_lookat =
-      parameterized_line<double, 3, interpolation::linear>{};
-  full_domain_lookat.push_back(
-      vec3{full_domain.center(0),
-           full_domain.front(1) + full_domain.extent(1) / 6,
-           full_domain.center(2)},
-      0);
-  full_domain_lookat.push_back(
-      vec3{full_domain.center(0),
-           full_domain.back(1) - full_domain.extent(1) / 6,
-           full_domain.center(2)},
-      1);
+  auto  full_domain_eye                  = line3{};
+  auto& full_domain_eye_parameterization = full_domain_eye.parameterization();
+  auto  const veye0                            = full_domain_eye.push_back(
+      vec3{0.6, full_domain.front(1) - full_domain.extent(1) / 5, 0.75} * 2 /
+      3);
+  auto const veye1 = full_domain_eye.push_back(
+      vec3{0.6, full_domain.back(1) + full_domain.extent(1) / 5, 0.75} * 2 / 3);
+  auto  full_domain_eye_sampler                  = full_domain_eye.linear_sampler();
+  full_domain_eye_parameterization[veye0] = 0;
+  full_domain_eye_parameterization[veye1] = 1;
+  auto full_domain_lookat                 = line3{};
+  auto & full_domain_lookat_parameterization = full_domain_lookat.parameterization();
+  auto const vla0 = full_domain_lookat.push_back(vec3{
+      full_domain.center(0), full_domain.front(1) + full_domain.extent(1) / 6,
+      full_domain.center(2)});
+  auto const vla1 = full_domain_lookat.push_back(vec3{
+      full_domain.center(0), full_domain.back(1) - full_domain.extent(1) / 6,
+      full_domain.center(2)});
+  full_domain_lookat_parameterization[vla0] = 0;
+  full_domain_lookat_parameterization[vla1] = 1;
+  auto  full_domain_lookat_sampler                  = full_domain_lookat.linear_sampler();
   //auto const full_domain_up =
   //    vec3{-0.35221800146747856, 0.3807796045093859, 0.8549557720911246};
   auto const full_domain_up = vec3{0, 0, 1};
@@ -162,8 +160,8 @@ auto main() -> int {
   for (auto const t : linspace{0.0, 1.0, num_frames}) {
     std::cerr << "rendering " << i+1 << " / " << num_frames << "...";
     auto full_domain_cam =
-        rendering::perspective_camera<double>{full_domain_eye(t),
-                                              full_domain_lookat(t),
+        rendering::perspective_camera<double>{full_domain_eye_sampler(t),
+                                              full_domain_lookat_sampler(t),
                                               full_domain_up,
                                               60,
                                               0.01,
