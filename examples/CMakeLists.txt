@@ -18,13 +18,13 @@ add_custom_target(example.direct_isosurface_rendering_discretized_tornado.run
 
 if (TATOOINE_GL_AVAILABLE)
   add_executable(example.rendering.line rendering/line.cpp)
-  target_link_libraries(example.rendering.line tatooine rendering.gl)
+  target_link_libraries(example.rendering.line tatooine gl)
   add_custom_target(example.rendering.line.run
                     COMMAND ./example.rendering.line
                     DEPENDS example.rendering.line)
                   
   add_executable(example.rendering.direct_volume rendering/direct_volume.cpp)
-  target_link_libraries(example.rendering.direct_volume tatooine rendering.gl)
+  target_link_libraries(example.rendering.direct_volume tatooine gl)
   add_custom_target(example.rendering.direct_volume.run
                     COMMAND ./example.rendering.direct_volume
                     DEPENDS example.rendering.direct_volume)
