@@ -442,13 +442,8 @@ class grid {
   constexpr auto front() const {
     return dimension<I>().front();
   }
-  //----------------------------------------------------------------------------
-  template <size_t I>
-  constexpr auto front() -> auto& {
-    return dimension<I>().front();
-  }
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-  constexpr auto front(size_t const i) -> real_t {
+  constexpr auto front(size_t const i) const -> real_t {
     if (i == 0) {
       return front<0>();
     }
@@ -509,13 +504,8 @@ class grid {
   constexpr auto back() const {
     return dimension<I>().back();
   }
-  //----------------------------------------------------------------------------
-  template <size_t I>
-  constexpr auto back() -> auto& {
-    return dimension<I>().back();
-  }
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-  constexpr auto back(size_t const i) -> real_t {
+  constexpr auto back(size_t const i) const -> real_t {
     if (i == 0) {
       return back<0>();
     }
@@ -588,7 +578,7 @@ class grid {
     return extent(std::make_index_sequence<num_dimensions()>{});
   }
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-  constexpr auto extent(size_t const i) -> real_t const {
+  constexpr auto extent(size_t const i) const -> real_t {
     if (i == 0) {
       return extent<0>();
     }
@@ -661,7 +651,7 @@ class grid {
     return center(std::make_index_sequence<num_dimensions()>{});
   }
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-  constexpr auto center(size_t const i) -> real_t const {
+  constexpr auto center(size_t const i) const -> real_t {
     if (i == 0) {
       return center<0>();
     }

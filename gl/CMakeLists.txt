@@ -6,17 +6,17 @@ find_package(OpenGL COMPONENTS OpenGL EGL)
 if (OpenGL_FOUND) 
   option(TATOOINE_BUILD_GL "build OpenGL wrapper" ON)
 if (TATOOINE_BUILD_GL)
-  set(TATOOINE_GL_AVAILABLE 1 PARENT_SCOPE)
-  message(STATUS "OpenGL available")
+update_git_submodule(external/glfw)
+update_git_submodule(external/imgui)
+update_git_submodule(external/imgui-filebrowser)
+set(TATOOINE_GL_AVAILABLE 1 PARENT_SCOPE)
+message(STATUS "OpenGL available")
 #- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - 
 # GLFW
 #- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - 
 set(GLFW_BUILD_DOCS OFF CACHE BOOL "" FORCE)
 set(GLFW_BUILD_TESTS OFF CACHE BOOL "" FORCE)
-#set(GLFW_BUILD_EXAMPLES OFF CACHE BOOL "" FORCE)
-update_git_submodule(external/glfw)
-update_git_submodule(external/imgui)
-update_git_submodule(external/imgui-filebrowser)
+set(GLFW_INSTALL OFF CACHE BOOL "Generate installation target" FORCE)
 add_subdirectory(external/glfw)
 #- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - 
 # build glad
