@@ -28,4 +28,10 @@ if (TATOOINE_GL_AVAILABLE)
   add_custom_target(example.rendering.direct_volume.run
                     COMMAND ./example.rendering.direct_volume
                     DEPENDS example.rendering.direct_volume)
+                  
+  add_executable(example.rendering.gl_context rendering/gl_context.cpp)
+  target_link_libraries(example.rendering.gl_context tatooine gl)
+  add_custom_target(example.rendering.gl_context.run
+                    COMMAND ./example.rendering.gl_context
+                    DEPENDS example.rendering.gl_context)
 endif()
