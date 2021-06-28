@@ -418,6 +418,7 @@ set(TATOOINE_EXPORTING_TARGETS tatooine)
 # Subdirectories
 #-------------------------------------------------------------------------------
 add_subdirectory(gl)
+target_compile_definitions(tatooine PUBLIC TATOOINE_GL_AVAILABLE=${TATOOINE_GL_AVAILABLE})
 add_subdirectory(test)
 add_subdirectory(scivis_contest_2020 EXCLUDE_FROM_ALL)
 add_subdirectory(benchmarks)

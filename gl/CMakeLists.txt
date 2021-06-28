@@ -78,7 +78,6 @@ set(TATOOINE_GL_SOURCES
   ${CMAKE_CURRENT_SOURCE_DIR}/src/window.cpp
 )
 add_library(gl STATIC ${TATOOINE_GL_SOURCES})
-target_compile_definitions(gl PUBLIC TATOOINE_GL_AVAILABLE=${TATOOINE_GL_AVAILABLE})
 target_compile_features(gl PUBLIC cxx_std_20)
 target_compile_definitions(gl PRIVATE DLL_EXPORT)
 target_compile_options(gl PRIVATE

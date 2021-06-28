@@ -3,12 +3,12 @@
 
 #include <stdexcept>
 //==============================================================================
-namespace tatooine::gl::glfw{
+namespace tatooine::gl::glfw {
 //==============================================================================
-window::window(size_t const width,size_t const height,
+window::window(size_t const width, size_t const height,
                std::string const& title) {
   api::get();
-  glfwWindowHint(GLFW_EGL_CONTEXT_API);
+  glfwWindowHint(GLFW_CONTEXT_CREATION_API, GLFW_EGL_CONTEXT_API);
   m_glfw_window =
       glfwCreateWindow(width, height, title.c_str(), nullptr, nullptr);
   if (!m_glfw_window) {
