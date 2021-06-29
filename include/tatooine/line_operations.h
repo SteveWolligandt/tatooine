@@ -48,7 +48,8 @@ void write_line_container_to_vtk(LineCont const& lines, std::string const& path,
     size_t cur_first = 0;
     for (const auto& l : lines) {
       // add points
-      for (const auto& p : l.vertices()) {
+      for (const auto v : l.vertices()) {
+        auto const& p = l[v];
         if constexpr (LineCont::value_type::num_dimensions() == 3) {
           points.push_back({p(0), p(1), p(2)});
         } else {

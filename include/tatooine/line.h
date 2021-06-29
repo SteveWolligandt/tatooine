@@ -627,7 +627,7 @@ struct line {
     auto const& deque =
         dynamic_cast<vertex_property_t<T>*>(prop.get())->container();
 
-    writer.write_scalars(name, std::vector<T>(begin(deque), end(deque)));
+    writer.write_scalars(name, deque);
   }
   //----------------------------------------------------------------------------
 #ifndef __cpp_concepts

@@ -1,6 +1,8 @@
 #include <tatooine/gl/context.h>
 #include <tatooine/gl/indexbuffer.h>
+//==============================================================================
 using namespace tatooine;
+//==============================================================================
 auto main() -> int {
   auto ctx     = gl::context{};
   auto indices = gl::indexbuffer{3};

@@ -12,6 +12,7 @@
 #include <boost/filesystem.hpp>
 #include <cassert>
 #include <cstdlib>
+#include <deque>
 #include <exception>
 #include <fstream>
 #include <future>
@@ -618,6 +619,17 @@ class legacy_file_writer {
   template <typename Data>
   requires(is_double<Data> || is_float<Data> || is_int<Data>)
 #else
+  template <typename Data, enable_if<((is_double<Data> || is_float<Data> ||
+                                       is_int<Data>))> = true>
+#endif
+      auto write_scalars(std::string const &name, std::deque<Data> const &data,
+                         std::string const &lookup_table_name = "default")
+          -> void;
+  //----------------------------------------------------------------------------
+#ifdef __cpp_concepts
+  template <typename Data>
+  requires(is_double<Data> || is_float<Data> || is_int<Data>)
+#else
   template <typename Data, enable_if<((is_double<Data>) || is_float<Data> ||
                                       is_int<Data>)> = true>
 #endif
@@ -660,6 +672,31 @@ class legacy_file_writer {
 #endif
       auto write_scalars(std::string const &              name,
                          std::vector<vec<Data, N>> const &data,
+                         std::string const &lookup_table_name = "default")
+          -> void {
+    std::stringstream ss;
+    ss << "\nSCALARS " << name << ' ' << type_to_str<Data>() << ' ' << N
+       << '\n';
+    vtk::write_binary(m_file, ss.str());
+    vtk::write_binary(m_file, "\nLOOKUP_TABLE " + lookup_table_name + '\n');
+    Data d;
+    for (auto const &v : data)
+      for (size_t i = 0; i < N; ++i) {
+        d = swap_endianess(v(i));
+        m_file.write((char *)(&d), sizeof(Data));
+      }
+  }
+  //----------------------------------------------------------------------------
+#ifdef __cpp_concepts
+  template <typename Data, size_t N>
+  requires(is_double<Data> || is_float<Data> || is_int<Data>)
+#else
+  template <
+      typename Data, size_t N,
+      enable_if<((is_double<Data> || is_float<Data> || is_int<Data>))> = true>
+#endif
+      auto write_scalars(std::string const &              name,
+                         std::deque<vec<Data, N>> const &data,
                          std::string const &lookup_table_name = "default")
           -> void {
     std::stringstream ss;
@@ -865,6 +902,27 @@ template <typename Data,
 #endif
     auto legacy_file_writer::write_scalars(std::string const &      name,
                                            std::vector<Data> const &data,
+                                           std::string const &lookup_table_name)
+        -> void {
+  std::stringstream ss;
+  ss << "\nSCALARS " << name << ' ' << type_to_str<Data>() << " 1\n";
+  vtk::write_binary(m_file, ss.str());
+  vtk::write_binary(m_file, "\nLOOKUP_TABLE " + lookup_table_name + '\n');
+  for (auto comp : data) {
+    comp = swap_endianess(comp);
+    m_file.write((char *)(&comp), sizeof(Data));
+  }
+}
+//-----------------------------------------------------------------------------
+#ifdef __cpp_concepts
+template <typename Data>
+requires(is_double<Data> || is_float<Data> || is_int<Data>)
+#else
+template <typename Data,
+          enable_if<((is_double<Data> || is_float<Data> || is_int<Data>))>>
+#endif
+    auto legacy_file_writer::write_scalars(std::string const &      name,
+                                           std::deque<Data> const &data,
                                            std::string const &lookup_table_name)
         -> void {
   std::stringstream ss;

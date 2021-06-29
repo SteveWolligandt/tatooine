@@ -454,6 +454,7 @@ option(TATOOINE_BUILD_EXAMPLES "")
 if (TATOOINE_BUILD_EXAMPLES)
   add_subdirectory(examples)
 endif()
+add_subdirectory(doktorandentag)
 #- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 # This makes the project importable from the build directory
 #export(TARGETS ${TATOOINE_EXPORTING_TARGETS}
