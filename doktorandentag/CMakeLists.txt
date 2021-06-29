@@ -1,2 +1,2 @@
 add_executable(doktorandentag.random_vectorfield random_vectorfield.cpp)
-target_link_libraries(doktorandentag.random_vectorfield PUBLIC tatooine)
+target_link_libraries(doktorandentag.random_vectorfield PUBLIC tatooine gl)

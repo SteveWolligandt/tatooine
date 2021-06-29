@@ -1,10 +1,10 @@
 #ifndef TATOOINE_GPU_LIC_H
 #define TATOOINE_GPU_LIC_H
 //==============================================================================
-#include <tatooine/gpu/upload.h>
-#include <tatooine/random.h>
 #include <tatooine/gl/glfunctions.h>
 #include <tatooine/gl/shader.h>
+#include <tatooine/gpu/upload.h>
+#include <tatooine/random.h>
 
 #include <boost/range/algorithm/generate.hpp>
 //==============================================================================
@@ -39,15 +39,15 @@ struct lic_shader : gl::shader {
 //==============================================================================
 template <floating_point GPUReal = float, floating_point VReal,
           floating_point XReal, floating_point YReal>
-auto lic(gl::tex2rg<VReal>&                         v_tex,
+auto lic(gl::tex2rg<VReal>&                            v_tex,
          grid<linspace<XReal>, linspace<YReal>> const& spatial_domain,
          vec<size_t, 2> const& lic_tex_res, size_t num_samples,
-         arithmetic auto stepsize, vec<size_t, 2> noise_res /* = {256, 256}*/,
-         std::seed_seq & noise_seed) -> gl::tex2rgba<GPUReal> {
+         arithmetic auto stepsize, vec<size_t, 2> noise_res = {256, 256})
+    -> gl::tex2rgba<GPUReal> {
   using namespace gl;
 
   // generate noise_tex data
-  random::uniform       rand(GPUReal(0), GPUReal(1), noise_seed);
+  random::uniform      rand(GPUReal(0), GPUReal(1));
   std::vector<GPUReal> noise_data(noise_res(0) * noise_res(1));
   boost::generate(noise_data, [&rand] { return rand(); });
 
@@ -74,32 +74,61 @@ auto lic(gl::tex2rg<VReal>&                         v_tex,
   return lic_tex;
 }
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-template <floating_point GPUReal = float, floating_point VReal,
-          floating_point XReal, floating_point YReal>
-auto lic(polymorphic::vectorfield<VReal, 2> const&          v,
-         grid<linspace<XReal>, linspace<YReal>> const& spatial_domain,
-         arithmetic auto t, vec<size_t, 2> const& lic_tex_res,
-         size_t num_samples, arithmetic auto stepsize,
-         vec<size_t, 2> noise_res, std::seed_seq & noise_seed)
+template <floating_point GPUReal = float, typename Grid,
+          bool HasNonConstReference, floating_point VReal>
+auto lic(typed_grid_vertex_property_interface<Grid, vec<VReal, 2>,
+                                              HasNonConstReference> const& v,
+         vec<size_t, 2> const& lic_tex_res, size_t num_samples,
+         arithmetic auto stepsize, vec<size_t, 2> noise_res = {256, 256})
     -> gl::tex2rgba<GPUReal> {
-      std::cerr << "uploading..";
-  auto v_tex = gpu::upload_tex<GPUReal>(sample_to_vector(v, spatial_domain, t),
-                                        spatial_domain.template size<0>(),
-                                        spatial_domain.template size<1>());
-      std::cerr << "done\n";
-  return lic<GPUReal>(v_tex, spatial_domain, lic_tex_res, num_samples, stepsize,
-                      noise_res, noise_seed);
+  auto data = std::vector<vec<GPUReal, 2>>{};
+  data.reserve(v.grid().vertices().size() * 2);
+  v.grid().vertices().iterate_indices([&](auto const... is) {
+    data.push_back(v(is...));
+  });
+  auto v_tex = gpu::upload_tex<GPUReal>(data, v.grid().template size<0>(),
+                                        v.grid().template size<1>());
+  return lic<GPUReal>(v_tex, v.grid(), lic_tex_res, num_samples, stepsize,
+                      noise_res);
+}
+// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+template <floating_point GPUReal = float, typename Grid,
+          bool HasNonConstReference, floating_point VReal>
+auto lic(grid_vertex_property_sampler<
+             typed_grid_vertex_property_interface<Grid, vec<VReal, 2>,
+                                                  HasNonConstReference>,
+             interpolation::linear, interpolation::linear> const& v,
+         vec<size_t, 2> const& lic_tex_res, size_t num_samples,
+         arithmetic auto stepsize, vec<size_t, 2> noise_res = {256, 256})
+    -> gl::tex2rgba<GPUReal> {
+  return lic(v.property(), lic_tex_res, num_samples, stepsize, noise_res);
 }
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 template <floating_point GPUReal = float, floating_point VReal,
           floating_point XReal, floating_point YReal>
-auto lic(polymorphic::vectorfield<VReal, 2> const& v, linspace<XReal> const& xres,
-         linspace<YReal> const& yres, arithmetic auto t,
-         vec<size_t, 2> const& lic_tex_res, size_t num_samples,
-         arithmetic auto stepsize, vec<size_t, 2> noise_res,
-         std::seed_seq& noise_seed) -> gl::tex2rgba<GPUReal> {
+auto lic(polymorphic::vectorfield<VReal, 2> const&     v,
+         grid<linspace<XReal>, linspace<YReal>> const& spatial_domain,
+         arithmetic auto t, vec<size_t, 2> const& lic_tex_res,
+         size_t num_samples, arithmetic auto stepsize, vec<size_t, 2> noise_res)
+    -> gl::tex2rgba<GPUReal> {
+  std::cerr << "uploading..";
+  auto v_tex = gpu::upload_tex<GPUReal>(sample_to_vector(v, spatial_domain, t),
+                                        spatial_domain.template size<0>(),
+                                        spatial_domain.template size<1>());
+  std::cerr << "done\n";
+  return lic<GPUReal>(v_tex, spatial_domain, lic_tex_res, num_samples, stepsize,
+                      noise_res);
+}
+// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+template <floating_point GPUReal = float, floating_point VReal,
+          floating_point XReal, floating_point YReal>
+auto lic(polymorphic::vectorfield<VReal, 2> const& v,
+         linspace<XReal> const& xres, linspace<YReal> const& yres,
+         arithmetic auto t, vec<size_t, 2> const& lic_tex_res,
+         size_t num_samples, arithmetic auto stepsize, vec<size_t, 2> noise_res)
+    -> gl::tex2rgba<GPUReal> {
   return lic<GPUReal>(v, grid{xres, yres}, t, lic_tex_res, num_samples,
-                      stepsize, noise_res, noise_seed);
+                      stepsize, noise_res);
 }
 //==============================================================================
 }  // namespace tatooine::gpu

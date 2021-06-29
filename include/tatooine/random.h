@@ -35,9 +35,6 @@ struct uniform {
   //----------------------------------------------------------------------------
   ~uniform() = default;
   //----------------------------------------------------------------------------
-  uniform(T const min, T const max)
-      : engine{std::random_device{}()}, distribution{min, max} {}
-  // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
   template <typename... Args>
   uniform(T const min, T const max, Args&&... args)
       : engine{std::forward<Args>(args)...}, distribution{min, max} {}

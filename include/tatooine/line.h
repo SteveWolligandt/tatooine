@@ -165,7 +165,8 @@ struct line {
   auto operator[](vertex_handle const i) const -> auto const& {
     return m_vertices[i.i];
   }
-  auto operator[](vertex_handle const i) -> auto& { return m_vertices[i.i]; }
+  auto operator[](vertex_handle const i) -> auto& {
+    return m_vertices[i.i]; }
   //----------------------------------------------------------------------------
   auto front_vertex() const -> auto const& { return m_vertices.front(); }
   auto front_vertex() -> auto& { return m_vertices.front(); }
@@ -694,7 +695,8 @@ struct line {
     }}(), ...);
   }
   //----------------------------------------------------------------------------
-  template <template <typename> typename InterpolationKernel,
+  template <template <typename>
+            typename InterpolationKernel = interpolation::cubic,
             typename OtherReal>
   auto resample(linspace<OtherReal> const& resample_space) {
     this_t     resampled_line;
@@ -702,7 +704,9 @@ struct line {
     auto const positions = sampler<InterpolationKernel>();
 
     for (auto const t : resample_space) {
-      auto const v = resampled_line.push_back(positions(t));
+      auto const sampled_pos = positions(t);
+      //std::cerr << sampled_pos << '\n';
+      auto const v = resampled_line.push_back(sampled_pos);
       p[v]         = t;
     }
     for (auto const& [name, prop] : m_vertex_properties) {
@@ -713,6 +717,14 @@ struct line {
           resampled_line, name, *prop, resample_space);
     }
     return resampled_line;
+  }
+  //----------------------------------------------------------------------------
+  template <template <typename>
+            typename InterpolationKernel = interpolation::cubic>
+  auto resample(size_t const num_samples) {
+    return resample<InterpolationKernel>(
+        linspace{parameterization()[vertices().front()],
+                 parameterization()[vertices().back()], num_samples});
   }
 };
 //==============================================================================

@@ -105,5 +105,5 @@ void main() {
   out_val /= cnt;
   out_val = clamp(out_val * 3 - 0.8, 0, 1);
 
-  imageStore(lic_tex, ivec2(idx), vec4(out_val, out_val, out_val, 1));
+  imageStore(lic_tex, ivec2(idx), vec4(vec3(out_val), 1));
 }
