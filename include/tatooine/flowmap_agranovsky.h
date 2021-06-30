@@ -33,11 +33,14 @@ struct flowmap_agranovsky {
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
   template <template <typename> typename... InterpolationKernels>
   struct grid_sampler_type_creator<0, InterpolationKernels...> {
-    using type = tatooine::sampler<grid_prop_t, InterpolationKernels...>;
+    using type =
+        tatooine::grid_vertex_property_sampler<grid_prop_t,
+                                               InterpolationKernels...>;
   };
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-  using grid_sampler_t = typename grid_sampler_type_creator<N>::type;
-  using mesh_t         = triangular_mesh<Real, 2>;
+  using grid_vertex_property_sampler_t =
+      typename grid_sampler_type_creator<N>::type;
+  using mesh_t = triangular_mesh<Real, 2>;
   using mesh_prop_t =
       typename triangular_mesh<Real, 2>::template vertex_property_t<pos_t>;
   using mesh_sampler_t =
@@ -46,9 +49,9 @@ struct flowmap_agranovsky {
   //============================================================================
   std::vector<Real> m_t0s;
 
-  std::vector<grid_t>         m_forward_grids;
-  std::vector<grid_prop_t*>   m_forward_bases;
-  std::vector<grid_sampler_t> m_forward_samplers;
+  std::vector<grid_t>                         m_forward_grids;
+  std::vector<grid_prop_t*>                   m_forward_bases;
+  std::vector<grid_vertex_property_sampler_t> m_forward_samplers;
 
   std::vector<mesh_t>         m_backward_meshes;
   std::vector<mesh_sampler_t> m_backward_samplers;
@@ -98,7 +101,7 @@ struct flowmap_agranovsky {
     // create grids for forward integration
     for (auto& forward_base : m_forward_grids) {
       auto& flowmap_prop =
-          forward_base.template add_vertex_property<pos_t>("flowmap");
+          forward_base.template insert_vertex_property<pos_t>("flowmap");
       m_forward_bases.push_back(&flowmap_prop);
       m_forward_samplers.push_back(
           flowmap_prop.template sampler<interpolation::linear>());

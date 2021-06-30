@@ -199,41 +199,4 @@ auto size(grid_vertex_container<Dimensions...> const& c) {
 //==============================================================================
 }  // namespace tatooine
 //==============================================================================
-namespace std::ranges {
-//==============================================================================
-#ifdef __cpp_concepts
-template <tatooine::indexable_space... Dimensions>
-#else
-template <typename... Dimensions>
-#endif
-constexpr auto begin(tatooine::grid_vertex_container<Dimensions...>& r) {
-  r.begin();
-}
-#ifdef __cpp_concepts
-template <tatooine::indexable_space... Dimensions>
-#else
-template <typename... Dimensions>
-#endif
-constexpr auto end(tatooine::grid_vertex_container<Dimensions...>& r) {
-  r.end();
-}
-#ifdef __cpp_concepts
-template <tatooine::indexable_space... Dimensions>
-#else
-template <typename... Dimensions>
-#endif
-constexpr auto begin(tatooine::grid_vertex_container<Dimensions...> const& r) {
-  r.begin();
-}
-#ifdef __cpp_concepts
-template <tatooine::indexable_space... Dimensions>
-#else
-template <typename... Dimensions>
-#endif
-constexpr auto end(tatooine::grid_vertex_container<Dimensions...> const& r) {
-  r.end();
-}
-//==============================================================================
-}  // namespace std::ranges
-//==============================================================================
 #endif

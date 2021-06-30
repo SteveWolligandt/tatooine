@@ -18,10 +18,12 @@ auto node_builder::begin(ax::NodeEditor::NodeId id) -> void {
   ImGui::PushID(id.AsPointer());
   m_cur_node_id = id;
 
+  ImGui::Columns(3, "##cols");
   set_stage(stage::begin);
 }
 //------------------------------------------------------------------------------
 auto node_builder::end() -> void {
+  ImGui::Columns();
   namespace ed = ax::NodeEditor;
   set_stage(stage::end);
 
@@ -87,17 +89,17 @@ auto node_builder::input(ax::NodeEditor::PinId id) -> void {
 
   set_stage(stage::input);
 
-  if (applyPadding) {
-    ImGui::Spring(0);
-  }
+  //if (applyPadding) {
+  //  ImGui::Spring(0);
+  //}
 
   pin(id, ax::NodeEditor::PinKind::Input);
 
-  ImGui::BeginHorizontal(id.AsPointer());
+  //ImGui::BeginHorizontal(id.AsPointer());
 }
 //------------------------------------------------------------------------------
 auto node_builder::end_input() -> void {
-  ImGui::EndHorizontal();
+  //ImGui::EndHorizontal();
   ax::NodeEditor::EndPin();
 }
 //------------------------------------------------------------------------------
@@ -118,17 +120,17 @@ auto node_builder::output(ax::NodeEditor::PinId id) -> void {
 
   set_stage(stage::output);
 
-  if (applyPadding) {
-    ImGui::Spring(0);
-  }
+  //if (applyPadding) {
+  //  ImGui::Spring(0);
+  //}
 
   pin(id, ax::NodeEditor::PinKind::Output);
 
-  ImGui::BeginHorizontal(id.AsPointer());
+  //ImGui::BeginHorizontal(id.AsPointer());
 }
 //------------------------------------------------------------------------------
 auto node_builder::end_output() -> void {
-  ImGui::EndHorizontal();
+  //ImGui::EndHorizontal();
 
   ax::NodeEditor::EndPin();
 }
@@ -148,12 +150,12 @@ auto node_builder::set_stage(stage stage) -> bool {
       break;
 
     case stage::header:
-      ImGui::EndHorizontal();
+      //ImGui::EndHorizontal();
       //m_header_min = ImGui::GetItemRectMin();
       //m_header_max = ImGui::GetItemRectMax();
 
       // spacing between header and content
-      ImGui::Spring(0, ImGui::GetStyle().ItemSpacing.y * 2.0f);
+      //ImGui::Spring(0, ImGui::GetStyle().ItemSpacing.y * 2.0f);
 
       break;
 
@@ -163,21 +165,21 @@ auto node_builder::set_stage(stage stage) -> bool {
     case stage::input:
       ed::PopStyleVar(2);
 
-      ImGui::Spring(1, 0);
-      ImGui::EndVertical();
+      //ImGui::Spring(1, 0);
+      //ImGui::EndVertical();
 
       break;
 
     case stage::middle:
-      ImGui::EndVertical();
+      //ImGui::EndVertical();
 
       break;
 
     case stage::output:
       ed::PopStyleVar(2);
 
-      ImGui::Spring(1, 0);
-      ImGui::EndVertical();
+      //ImGui::Spring(1, 0);
+      //ImGui::EndVertical();
 
       break;
 
@@ -190,68 +192,68 @@ auto node_builder::set_stage(stage stage) -> bool {
 
   switch (stage) {
     case stage::begin:
-      ImGui::BeginVertical("node");
+      //ImGui::BeginVertical("node");
       break;
 
     case stage::header:
       m_has_header = true;
 
-      ImGui::BeginHorizontal("header");
+      //ImGui::BeginHorizontal("header");
       break;
 
     case stage::content:
       if (oldStage == stage::begin) {
-        ImGui::Spring(0);
+        //ImGui::Spring(0);
       }
 
-      ImGui::BeginHorizontal("content");
-      ImGui::Spring(0, 0);
+      //ImGui::BeginHorizontal("content");
+      //ImGui::Spring(0, 0);
       break;
 
     case stage::input:
-      ImGui::BeginVertical("inputs", ImVec2{0, 0}, 0.0f);
+      //ImGui::BeginVertical("inputs", ImVec2{0, 0}, 0.0f);
 
       ed::PushStyleVar(ed::StyleVar_PivotAlignment, ImVec2{0, 0.5f});
       ed::PushStyleVar(ed::StyleVar_PivotSize, ImVec2{0, 0});
 
       if (!m_has_header) {
-        ImGui::Spring(1, 0);
+        //ImGui::Spring(1, 0);
       }
       break;
 
     case stage::middle:
-      ImGui::Spring(1);
-      ImGui::BeginVertical("middle", ImVec2{0, 0}, 1.0f);
+      //ImGui::Spring(1);
+      //ImGui::BeginVertical("middle", ImVec2{0, 0}, 1.0f);
       break;
 
     case stage::output:
       if (oldStage == stage::middle || oldStage == stage::input) {
-        ImGui::Spring(1);
+        //ImGui::Spring(1);
       } else {
-        ImGui::Spring(1, 0);
+        //ImGui::Spring(1, 0);
       }
-      ImGui::BeginVertical("outputs", ImVec2{0, 0}, 1.0f);
+      //ImGui::BeginVertical("outputs", ImVec2{0, 0}, 1.0f);
 
       ed::PushStyleVar(ed::StyleVar_PivotAlignment, ImVec2{1.0f, 0.5f});
       ed::PushStyleVar(ed::StyleVar_PivotSize, ImVec2{0, 0});
 
       if (!m_has_header) {
-        ImGui::Spring(1, 0);
+        //ImGui::Spring(1, 0);
       }
       break;
 
     case stage::end:
       if (oldStage == stage::input) {
-        ImGui::Spring(1, 0);
+        //ImGui::Spring(1, 0);
       }
       if (oldStage != stage::begin) {
-        ImGui::EndHorizontal();
+        //ImGui::EndHorizontal();
       }
       m_content_min = ImGui::GetItemRectMin();
       m_content_max = ImGui::GetItemRectMax();
 
       // ImGui::Spring(0);
-      ImGui::EndVertical();
+      //ImGui::EndVertical();
       m_node_min = ImGui::GetItemRectMin();
       m_node_max = ImGui::GetItemRectMax();
       break;

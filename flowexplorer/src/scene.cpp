@@ -486,8 +486,8 @@ void scene::draw_node_editor(size_t const pos_x, size_t const pos_y,
 }
 //------------------------------------------------------------------------------
 void scene::node_creators(size_t const width) {
-  ImGui::BeginVertical("nodecreators1");
-  ImGui::BeginHorizontal("nodecreators2");
+  //ImGui::BeginVertical("nodecreators1");
+  //ImGui::BeginHorizontal("nodecreators2");
 
   ImTextureID aabb2d_id =
       reinterpret_cast<ImTextureID>(window().aabb2d_icon_tex().id());
@@ -495,13 +495,14 @@ void scene::node_creators(size_t const width) {
                                            50 * window().ui_scale_factor()))) {
     m_renderables.emplace_back(new nodes::aabb2d{*this});
   }
+  ImGui::SameLine();
   ImTextureID aabb3d_id =
       reinterpret_cast<ImTextureID>(window().aabb3d_icon_tex().id());
   if (ImGui::ImageButton(aabb3d_id, ImVec2(50 * window().ui_scale_factor(),
                                            50 * window().ui_scale_factor()))) {
     m_renderables.emplace_back(new nodes::aabb3d{*this});
   }
-  ImGui::EndHorizontal();
+  //ImGui::EndHorizontal();
   ImGui::PushItemWidth(width);
   if (ImGui::BeginCombo("##combo", nullptr)) {
     for (auto const& item : items) {
@@ -512,7 +513,7 @@ void scene::node_creators(size_t const width) {
     ImGui::EndCombo();
   }
   ImGui::PopItemWidth();
-  ImGui::EndVertical();
+  //ImGui::EndVertical();
 }
 //------------------------------------------------------------------------------
 void scene::write(filesystem::path const& filepath) const {
