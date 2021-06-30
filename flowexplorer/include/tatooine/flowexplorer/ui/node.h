@@ -318,8 +318,8 @@ struct node_serializer {
         changed |= ImGui::InputText(name, &var);
 
         // float
-      } else if constexpr (is_same<size_t, var_t>) {
-        changed |= ImGui::DragSizeT(name, &var);
+      //} else if constexpr (is_same<size_t, var_t>) {
+      //  changed |= ImGui::DragSizeT(name, &var);
       } else if constexpr (is_same<float, var_t>) {
         changed |= ImGui::DragFloat(name, &var, 0.1f);
       } else if constexpr (is_same<std::array<float, 2>, var_t>) {

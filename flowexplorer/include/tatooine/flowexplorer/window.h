@@ -66,7 +66,7 @@ struct window : rendering::first_person_window {
   }
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
   auto open_file_explorer(std::string const&              title,
-                          std::vector<char const*> const& extensions) {
+                          std::vector<std::string> const& extensions) {
     open_file_explorer(title);
     m_file_browser->SetTypeFilters(extensions);
   }
@@ -85,7 +85,7 @@ struct window : rendering::first_person_window {
   }
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
   auto open_file_explorer(std::string const&              title,
-                          std::vector<char const*> const& extensions,
+                          std::vector<std::string> const& extensions,
                           ui::base::node& n) {
     open_file_explorer(title, n);
     m_file_browser->SetTypeFilters(extensions);

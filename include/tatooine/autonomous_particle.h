@@ -412,8 +412,8 @@ struct autonomous_particle {
       if ((cond_HHt >= objective_cond &&
            cond_HHt <= objective_cond + max_cond_overshoot) ||
           tau_should_have_changed_but_did_not) {
-        std::cout << "===[" << m_propability_range.first << ", "
-                  << m_propability_range.second << "[\n";
+        //std::cout << "===[" << m_propability_range.first << ", "
+        //          << m_propability_range.second << "[\n";
         real_t       c = m_propability_range.first;
         real_t const s = m_propability_range.second - m_propability_range.first;
         real_t       acc_radii = 0;
@@ -431,8 +431,8 @@ struct autonomous_particle {
           if (i == size(radii) - 1) {
             propability_range.second = m_propability_range.second;
           }
-          std::cout << "[" << propability_range.first << ", "
-                    << propability_range.second << "[\n";
+          //std::cout << "[" << propability_range.first << ", "
+          //          << propability_range.second << "[\n";
           c += prop;
           out.emplace_back(m_x0 + offset0, advected_center + offset2, t2,
                            fmg2fmg1, new_S, propability_range);

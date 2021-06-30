@@ -21,10 +21,9 @@ struct numerical_flowmap {
   static constexpr auto num_dimensions() {
     return raw_field_t::num_dimensions();
   }
-  using vec_t = vec<real_t, num_dimensions()>;
-  using pos_t = vec_t;
-  using integral_curve_t =
-      parameterized_line<real_t, num_dimensions(), InterpolationKernel>;
+  using vec_t            = vec<real_t, num_dimensions()>;
+  using pos_t            = vec_t;
+  using integral_curve_t = line<real_t, num_dimensions()>;
   using cache_t = tatooine::cache<std::pair<real_t, pos_t>, integral_curve_t>;
   using ode_solver_t = ODESolver<real_t, num_dimensions()>;
   static constexpr auto holds_field_pointer = std::is_pointer_v<V>;
@@ -121,21 +120,29 @@ struct numerical_flowmap {
     constexpr real_t security_eps   = 1e-7;
     auto const&      integral_curve = cached_curve(y0, t0, tau);
     auto             t              = t0 + tau;
-    if (tau < 0 && t < integral_curve.front_parameterization()) {
-      if (t + security_eps < integral_curve.front_parameterization()) {
-        t = integral_curve.front_parameterization();
+    if (tau < 0 &&
+        t < integral_curve
+                .parameterization()[integral_curve.vertices().front()]) {
+      if (t + security_eps <
+          integral_curve
+              .parameterization()[integral_curve.vertices().front()]) {
+        t = integral_curve
+                .parameterization()[integral_curve.vertices().front()];
       } else {
         throw out_of_domain_error{};
       }
     }
-    if (tau > 0 && t > integral_curve.back_parameterization()) {
-      if (t - security_eps < integral_curve.back_parameterization()) {
-        t = integral_curve.back_parameterization();
+    if (tau > 0 &&
+        t > integral_curve
+                .parameterization()[integral_curve.vertices().back()]) {
+      if (t - security_eps <
+          integral_curve.parameterization()[integral_curve.vertices().back()]) {
+        t = integral_curve.parameterization()[integral_curve.vertices().back()];
       } else {
         throw out_of_domain_error{};
       }
     }
-    return integral_curve(t);
+    return integral_curve.template sampler<InterpolationKernel>()(t);
   }
   //----------------------------------------------------------------------------
   [[nodiscard]] constexpr auto operator()(pos_t const& y0, real_t const t0,
@@ -146,7 +153,8 @@ struct numerical_flowmap {
   auto integral_curve(pos_t const& y0, real_t const t0,
                       real_t const tau) const {
     integral_curve_t c;
-    c.push_back(y0, t0);
+    auto const       v          = c.push_back(y0);
+    c.parameterization()[v]     = t0;
     auto const full_integration = continue_integration(c, tau);
     return std::pair{std::move(c), full_integration};
   }
@@ -154,7 +162,8 @@ struct numerical_flowmap {
   auto integral_curve(pos_t const& y0, real_t const t0, real_t const btau,
                       real_t const ftau) const {
     integral_curve_t c;
-    c.push_back(y0, t0);
+    auto const       v      = c.push_back(y0);
+    c.parameterization()[v] = t0;
 
     bool const backward_full = [this, &c, btau] {
       if (btau < 0) {
@@ -176,42 +185,45 @@ struct numerical_flowmap {
   /// If tau < 0 it takes back of integral_curve as start position and time.
   /// \return true if could integrate all tau, false if hit domain border or
   /// something else went wrong.
-  bool continue_integration(integral_curve_t& integral_curve,
-                            real_t            tau) const {
-    auto& tangents = integral_curve.tangents_property();
-
+  auto continue_integration(integral_curve_t& integral_curve, real_t const tau) const
+      -> bool {
+    auto& tangents         = integral_curve.tangents();
+    auto& parameterization = integral_curve.parameterization();
     auto const& y0 = [&integral_curve, tau] {
       if (tau > 0) {
         return integral_curve.back_vertex();
       }
       return integral_curve.front_vertex();
     }();
-    auto const& t0 = [&integral_curve, tau] {
+    auto const& t0 = [&integral_curve, &parameterization, tau] {
       if (tau > 0) {
-        return integral_curve.back_parameterization();
+        return parameterization[integral_curve.vertices().back()];
       }
-      return integral_curve.front_parameterization();
+      return parameterization[integral_curve.vertices().front()];
     }();
-    auto callback = [&integral_curve, &tangents, tau](
+    auto callback = [&integral_curve, &parameterization, &tangents, tau](
                         const auto& y, auto const t, const auto& dy) {
       if (integral_curve.num_vertices() > 0 &&
-          std::abs(integral_curve.back_parameterization() - t) < 1e-13) {
+          std::abs(parameterization[integral_curve.vertices().back()] - t) <
+              1e-13) {
         return;
       }
-      if (tau < 0) {
-        integral_curve.push_front(y, t, false);
-        tangents.front() = dy;
-      } else {
-        integral_curve.push_back(y, t, false);
-        tangents.back() = dy;
-      }
+      auto const v = [&] {
+        if (tau < 0) {
+          return integral_curve.push_front(y);
+        }
+        return integral_curve.push_back(y);
+      }();
+      parameterization[v] = t;
+      tangents[v]         = dy;
     };
 
     m_ode_solver.solve(vectorfield(), y0, t0, tau, callback);
-    integral_curve.update_interpolators();
     if (!integral_curve.empty()) {
-      if ((tau > 0 && integral_curve.back_parameterization() < t0 + tau) ||
-          (tau < 0 && integral_curve.front_parameterization() < t0 + tau)) {
+      if ((tau > 0 &&
+           parameterization[integral_curve.vertices().back()] < t0 + tau) ||
+          (tau < 0 &&
+           parameterization[integral_curve.vertices().front()] < t0 + tau)) {
         return false;
       }
     }
@@ -246,13 +258,13 @@ struct numerical_flowmap {
       if (btau > ftau) {
         std::swap(btau, ftau);
       }
-      if (auto const tf = curve.front_parameterization();
+      if (auto const tf = curve.parameterization()[curve.vertices().front()];
           btau < 0 && tf > t0 + btau && !backward_on_border) {
         // continue integration in backward time
         bool const full    = continue_integration(curve, t0 + btau - tf);
         backward_on_border = !full;
       }
-      if (auto const tb = curve.back_parameterization();
+      if (auto const tb = curve.parameterization()[curve.vertices().back()];
           ftau > 0 && tb < t0 + ftau && !forward_on_border) {
         // continue integration in forward time
         bool const full   = continue_integration(curve, t0 + ftau - tb);
@@ -303,7 +315,7 @@ numerical_flowmap(vectorfield<V, Real, N> const&)
     -> numerical_flowmap<V const&, ode::vclibs::rungekutta43,
                          interpolation::cubic>;
 //-> numerical_flowmap<V, ode::boost::rungekuttafehlberg78,
-//interpolation::cubic>;
+// interpolation::cubic>;
 //------------------------------------------------------------------------------
 template <typename V, typename Real, size_t N,
           template <typename, size_t> typename ODESolver>
