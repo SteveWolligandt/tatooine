@@ -43,6 +43,8 @@ set(BENCHMARK_ENABLE_TESTING OFF CACHE BOOL
 #- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - 
 # configure files
 #- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - 
+configure_file("${CMAKE_CURRENT_SOURCE_DIR}/include/tatooine/available_libraries.h.in"
+               "${CMAKE_CURRENT_BINARY_DIR}/include/tatooine/available_libraries.h")
 set(TATOOINE_LIC_COMP_SHADER
     ${CMAKE_CURRENT_SOURCE_DIR}/include/tatooine/gpu/lic.comp)
 configure_file("${CMAKE_CURRENT_SOURCE_DIR}/include/tatooine/gpu/lic.h.in"
@@ -375,9 +377,11 @@ endif()
 #- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 find_package(FLANN QUIET)
 if (FLANN_FOUND)
-  target_compile_definitions(tatooine PUBLIC TATOOINE_HAS_FLANN_SUPPORT)
+  target_compile_definitions(tatooine PUBLIC TATOOINE_FLANN_AVAILABLE=1)
   target_link_libraries(tatooine PUBLIC FLANN::FLANN)
   message(STATUS "FLANN available")
+else()
+  target_compile_definitions(tatooine PUBLIC TATOOINE_FLANN_AVAILABLE=0)
 endif()
 #- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 # CGAL

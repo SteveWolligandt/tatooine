@@ -13,7 +13,7 @@
 //==============================================================================
 auto main(int argc, char** argv) -> int {
 # if TATOOINE_GL_AVAILABLE
-  gl::window ctx{"test", 100, 100};
+  auto ctx = tatooine::gl::context{};
 # endif
   return Catch::Session().run(argc, argv);
 }

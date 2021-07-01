@@ -6,7 +6,7 @@
 #include <tatooine/random.h>
 #include <tatooine/tensor.h>
 
-#include <ranges>
+#include <tatooine/concepts.h>
 //==============================================================================
 namespace tatooine {
 //==============================================================================
@@ -253,8 +253,8 @@ struct autonomous_particle {
   template <typename Flowmap>
   auto advect(Flowmap& phi, real_t const tau_step, real_t const max_t,
               real_t const objective_cond, size_t const max_num_particles,
-              std::ranges::range auto const  radii,
-              std::ranges::range auto const& offsets,
+              range auto const  radii,
+              range auto const& offsets,
               bool const&                    stop = false) const {
     return advect(phi, tau_step, max_t, objective_cond, max_num_particles,
                   radii, offsets, {*this}, stop);
@@ -264,8 +264,8 @@ struct autonomous_particle {
   static auto advect(Flowmap& phi, real_t const tau_step, real_t const max_t,
                      real_t const                   objective_cond,
                      size_t const                   max_num_particles,
-                     std::ranges::range auto const  radii,
-                     std::ranges::range auto const& offsets,
+                     range auto const  radii,
+                     range auto const& offsets,
                      container_t input_particles, bool const& stop = false) {
     auto finished_particles_mutex = std::mutex{};
     auto advected_particles_mutex = std::mutex{};
@@ -316,8 +316,8 @@ struct autonomous_particle {
   template <typename Flowmap>
   auto advect_until_split(Flowmap& phi, real_t const tau_step,
                           real_t const max_t, real_t const objective_cond,
-                          std::ranges::range auto const  radii,
-                          std::ranges::range auto const& offsets) const
+                          range auto const  radii,
+                          range auto const& offsets) const
       -> container_t {
     auto advected = container_t{};
     auto mut      = std::mutex{};
@@ -331,10 +331,10 @@ struct autonomous_particle {
   template <typename Flowmap>
   auto advect_until_split(Flowmap& phi, real_t tau_step, real_t const max_t,
                           real_t const                   objective_cond,
-                          std::ranges::range auto const  radii,
-                          std::ranges::range auto const& offsets,
-                          std::ranges::range auto& out, auto& out_mutex,
-                          std::ranges::range auto& finished_particles,
+                          range auto const  radii,
+                          range auto const& offsets,
+                          range auto& out, auto& out_mutex,
+                          range auto& finished_particles,
                           auto& finished_particles_mutex) const {
     bool                    tau_should_have_changed_but_did_not = false;
     static constexpr real_t min_tau_step                        = 1e-8;

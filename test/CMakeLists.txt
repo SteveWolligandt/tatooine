@@ -52,7 +52,7 @@ macro(create_test NAME)
   endif()
   target_link_libraries(
     unittests.${NAME}
-    tatooine Catch2::Catch2)
+    tatooine gl Catch2::Catch2)
   target_include_directories(
     unittests.${NAME}
     PRIVATE
@@ -131,7 +131,7 @@ macro(create_test NAME)
         main.cpp ${NAME}.cpp)
       target_link_libraries(
         unittests.${NAME}.gcov
-        tatooine Catch2::Catch2 gcov)
+        tatooine gl Catch2::Catch2 gcov)
       target_compile_options(
         unittests.${NAME}.gcov
         PRIVATE
@@ -189,7 +189,7 @@ add_executable (
   endif()
 target_link_libraries(
   unittests
-  tatooine Catch2::Catch2)
+  tatooine gl Catch2::Catch2)
 target_include_directories(
   unittests
   PRIVATE
@@ -254,7 +254,7 @@ if(CMAKE_BUILD_TYPE STREQUAL "Debug")
       main.cpp ${TATOOINE_TEST_CPPS})
     target_link_libraries(
       unittests.gcov
-      tatooine Catch2::Catch2 gcov)
+      tatooine gl Catch2::Catch2 gcov)
     target_compile_options(
       unittests.gcov
       PRIVATE
