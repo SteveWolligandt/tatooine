@@ -1,0 +1,16 @@
+#ifndef TATOOINE_AVAILABLE_LIBRARIES_H
+#define TATOOINE_AVAILABLE_LIBRARIES_H
+//==============================================================================
+namespace tatooine {
+//==============================================================================
+static constexpr auto flann_available() {
+#if TATOOINE_FLANN_AVAILABLE
+  return true;
+#else
+  return false;
+#endif
+}
+//==============================================================================
+}  // namespace tatooine
+//==============================================================================
+#endif

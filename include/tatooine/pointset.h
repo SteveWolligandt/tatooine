@@ -2,8 +2,9 @@
 #define TATOOINE_POINTSET_H
 //==============================================================================
 #include <boost/iterator/iterator_facade.hpp>
+#include <tatooine/available_libraries.h>
 #include <boost/range/algorithm/find.hpp>
-#ifdef TATOOINE_HAS_FLANN_SUPPORT
+#if TATOOINE_FLANN_AVAILABLE
 #include <flann/flann.hpp>
 #include <tatooine/dynamic_tensor.h>
 #endif
@@ -33,7 +34,7 @@ struct pointset {
   using real_t = Real;
   using this_t = pointset<Real, N>;
   using pos_t  = vec<Real, N>;
-#ifdef TATOOINE_HAS_FLANN_SUPPORT
+#if TATOOINE_FLANN_AVAILABLE
   using flann_index_t = flann::Index<flann::L2<Real>>;
 #endif
   //----------------------------------------------------------------------------
@@ -104,7 +105,7 @@ struct pointset {
   std::vector<pos_t>                             m_vertices;
   std::vector<vertex_handle>                     m_invalid_vertices;
   vertex_property_container_t                    m_vertex_properties;
-#ifdef TATOOINE_HAS_FLANN_SUPPORT
+#if TATOOINE_FLANN_AVAILABLE
   mutable std::unique_ptr<flann_index_t>         m_kd_tree;
 #endif
   //============================================================================
@@ -544,7 +545,7 @@ struct pointset {
       writer.close();
     }
   }
-#ifdef TATOOINE_HAS_FLANN_SUPPORT
+#if TATOOINE_FLANN_AVAILABLE
   auto rebuild_kd_tree() {
     m_kd_tree.reset();
     kd_tree();
@@ -623,7 +624,6 @@ struct pointset {
   }
 #endif
   //============================================================================
-#ifdef TATOOINE_HAS_FLANN_SUPPORT
   template <typename T>
   auto inverse_distance_weighting_sampler(std::string const& prop_name) const {
     return inverse_distance_weighting_sampler_t<T>{
@@ -652,7 +652,9 @@ struct pointset {
   template <typename T>
   struct inverse_distance_weighting_sampler_t
       : field<inverse_distance_weighting_sampler_t<T>, Real, N, T> {
-    using this_t   = inverse_distance_weighting_sampler_t<T>;
+    static_assert(flann_available(),
+                  "Inverse Distance Weighting Sampler needs FLANN!");
+    using this_t     = inverse_distance_weighting_sampler_t<T>;
     using parent_t   = field<this_t, Real, N, T>;
     using pointset_t = pointset<Real, N>;
     using typename parent_t::tensor_t;
@@ -710,9 +712,7 @@ struct pointset {
       return accumulated_prop_val / accumulated_weight;
     }
   };
-#endif
   //============================================================================
-#ifdef TATOOINE_HAS_FLANN_SUPPORT
   template <typename T
 #ifndef __cpp_concepts
             ,
@@ -776,6 +776,8 @@ struct pointset {
   template <typename T>
   struct moving_least_squares_sampler_t
       : field<moving_least_squares_sampler_t<T>, Real, N, T> {
+    static_assert(flann_available(),
+                  "Moving Least Squares Sampler needs FLANN!");
     using this_t     = moving_least_squares_sampler_t<T>;
     using parent_t   = field<this_t, Real, N, T>;
     using pointset_t = pointset<Real, N>;
@@ -808,16 +810,7 @@ struct pointset {
     // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
     ~moving_least_squares_sampler_t() = default;
     //==========================================================================
-#ifndef __cpp_concepts
-    template <size_t N_ = N, enable_if<N_ == N, (N_ == 2 || N_ == 3)> = true>
-#endif
-        auto evaluate(pos_t const& q, real_t const /*t*/) const -> tensor_t
-
-#ifdef __cpp_concepts
-        requires(num_dimensions() == 2) ||
-        (num_dimensions() == 3)
-#endif
-    {
+    auto evaluate(pos_t const& q, real_t const /*t*/) const -> tensor_t {
       if constexpr (num_dimensions() == 2) {
         return evaluate_2d(q);
       } else if constexpr (num_dimensions() == 3) {
@@ -1088,7 +1081,6 @@ struct pointset {
         }
       }
   };
-#endif
 };
 //==============================================================================
 template <typename Real, size_t N>
