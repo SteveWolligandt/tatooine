@@ -361,7 +361,7 @@ struct autonomous_particle {
     auto   old_ghosts          = ghosts;
     auto   old_cond_HHt        = cond_HHt;
     bool   first               = true;
-    if constexpr (is_cacheable_v<Flowmap>) {
+    if constexpr (is_cacheable(phi)) {
       phi.use_caching(false);
     }
 

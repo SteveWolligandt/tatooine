@@ -1,3 +1,16 @@
+add_executable(channelflow.cutting_planes cutting_planes.cpp)
+target_link_libraries(channelflow.cutting_planes PUBLIC tatooine)
+add_custom_target(
+  channelflow.cutting_planes.run
+  COMMAND ./channelflow.cutting_planes
+  DEPENDS channelflow.cutting_planes)
+# force coloring
+if ("${CMAKE_CXX_COMPILER_ID}" STREQUAL "Clang")
+  target_compile_options(channelflow.cutting_planes PRIVATE "-fcolor-diagnostics")
+elseif ("${CMAKE_CXX_COMPILER_ID}" STREQUAL "GNU")
+  target_compile_options(channelflow.cutting_planes PRIVATE  "-fdiagnostics-color=always")
+endif()
+#===============================================================================
 add_executable(channelflow.data_check data_check.cpp)
 target_link_libraries(channelflow.data_check PUBLIC tatooine)
 add_custom_target(
