@@ -57,10 +57,28 @@ auto main() -> int {
   auto velocity_y_154_full_sampler = velocity_y_154_full.linear_sampler();
   std::cerr << "done!\n";
 
-  auto const basis = mat<real_t, 2, 3>{};
+  auto basis = mat<real_t, 2, 3>{};
   basis.col(0)     = vec{0, 1, 0};
   basis.col(1)     = vec{0, 0, 1};
-  auto d = discretize(stv, basis, vec3{axis0[511], 0, 0}, vec2{axis1.back(), axis2.back()},
-                      size(axis1), size(axis2), "512", 0);
-  d.write_vtk("cutting_plane_512.vtk", basis);
+
+  {
+    auto d = discretize(stv, basis, vec3{axis0[511], 0, 0},
+                        vec2{axis1.back(), axis2.back()}, size(axis1),
+                        size(axis2), "512", 0);
+    d.write_vtk("cutting_plane_512.vtk", basis);
+  }
+
+  {
+    auto d = discretize(stv, basis, vec3{axis0[255], 0, 0},
+                        vec2{axis1.back(), axis2.back()}, size(axis1),
+                        size(axis2), "256", 0);
+    d.write_vtk("cutting_plane_256.vtk", basis);
+  }
+
+  {
+    auto d = discretize(stv, basis, vec3{axis0[127], 0, 0},
+                        vec2{axis1.back(), axis2.back()}, size(axis1),
+                        size(axis2), "128", 0);
+    d.write_vtk("cutting_plane_128.vtk", basis);
+  }
 }
