@@ -149,27 +149,39 @@ auto end(vec<T, N> const& v) {return v.ned();}
 template <typename... Ts>
 vec(const Ts&...) -> vec<common_type<Ts...>, sizeof...(Ts)>;
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-template <typename T>
-using Vec2 = vec<T, 2>;
-template <typename T>
-using Vec3 = vec<T, 3>;
-template <typename T>
-using Vec4 = vec<T, 4>;
+template <size_t N>
+using Vec = vec<real_t, N>;
 
-using vec2f = Vec2<float>;
-using vec3f = Vec3<float>;
-using vec4f = Vec4<float>;
+using vec2 = Vec<2>;
+using vec3 = Vec<3>;
+using vec4 = Vec<4>;
+using vec5 = Vec<5>;
+using vec6 = Vec<6>;
+using vec7 = Vec<7>;
+using vec8 = Vec<8>;
+using vec9 = Vec<9>;
 
-using vec2d = Vec2<double>;
-using vec3d = Vec3<double>;
-using vec4d = Vec4<double>;
+template <size_t N>
+using VecF = vec<float, N>;
+using vec2f = VecF<2>;
+using vec3f = VecF<3>;
+using vec4f = VecF<4>;
+using vec5f = VecF<5>;
+using vec6f = VecF<6>;
+using vec7f = VecF<7>;
+using vec8f = VecF<8>;
+using vec9f = VecF<9>;
 
-}  // namespace tatooine
-#include <tatooine/real.h>
-namespace tatooine {
-using vec2 = Vec2<real_t>;
-using vec3 = Vec3<real_t>;
-using vec4 = Vec4<real_t>;
+template <size_t N>
+using VecD = vec<double, N>;
+using vec2d = VecD<2>;
+using vec3d = VecD<3>;
+using vec4d = VecD<4>;
+using vec5d = VecD<5>;
+using vec6d = VecD<6>;
+using vec7d = VecD<7>;
+using vec8d = VecD<8>;
+using vec9d = VecD<9>;
 //==============================================================================
 }  // namespace tatooine
 //==============================================================================
