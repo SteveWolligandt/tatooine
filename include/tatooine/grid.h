@@ -2037,7 +2037,6 @@ class grid {
       }
     }
   }
-
  private:
   template <size_t I>
   auto print_dim(std::ostream& out) const {

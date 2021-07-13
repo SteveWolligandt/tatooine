@@ -184,40 +184,82 @@ using scalarfield = field<V, Real, NumDims, Real>;
 // type traits
 //==============================================================================
 template <typename T, typename = void>
-struct is_field : std::false_type {};
+struct is_field_impl : std::false_type {};
 //------------------------------------------------------------------------------
 template <typename T>
-static constexpr bool is_field_v = is_field<T>::value;
+struct is_field_impl<T> : std::integral_constant<bool, T::is_field()> {};
 //------------------------------------------------------------------------------
 template <typename T>
-struct is_field<T> : std::integral_constant<bool, T::is_field()> {};
+static constexpr bool is_field_v = is_field_impl<T>::value;
+//------------------------------------------------------------------------------
+template <typename T>
+static constexpr auto is_field(T&&) {
+  return is_field_v<std::decay_t<T>>;
+}
+//------------------------------------------------------------------------------
+template <typename T>
+static constexpr auto is_field() {
+  return is_field_v<T>;
+}
 //==============================================================================
 template <typename T, typename = void>
-struct is_scalarfield : std::false_type {};
+struct is_scalarfield_impl : std::false_type {};
 //------------------------------------------------------------------------------
 template <typename T>
-static constexpr bool is_scalarfield_v = is_scalarfield<T>::value;
+struct is_scalarfield_impl<T> : std::integral_constant<bool, T::is_scalarfield()> {};
 //------------------------------------------------------------------------------
 template <typename T>
-struct is_scalarfield<T> : std::integral_constant<bool, T::is_scalarfield()> {};
+static constexpr bool is_scalarfield_v = is_scalarfield_impl<T>::value;
+//------------------------------------------------------------------------------
+template <typename T>
+static constexpr auto is_scalarfield(T&&) {
+  return is_scalarfield_v<std::decay_t<T>>;
+}
+//------------------------------------------------------------------------------
+template <typename T>
+static constexpr auto is_scalarfield() {
+  return is_scalarfield_v<T>;
+}
 //==============================================================================
 template <typename T, typename = void>
-struct is_vectorfield : std::false_type {};
+struct is_vectorfield_impl : std::false_type {};
 //------------------------------------------------------------------------------
 template <typename T>
-static constexpr bool is_vectorfield_v = is_vectorfield<T>::value;
+static constexpr bool is_vectorfield_v = is_vectorfield_impl<T>::value;
 //------------------------------------------------------------------------------
 template <typename T>
-struct is_vectorfield<T> : std::integral_constant<bool, T::is_vectorfield()> {};
+struct is_vectorfield_impl<T>
+    : std::integral_constant<bool, T::is_vectorfield()> {};
+//------------------------------------------------------------------------------
+template <typename T>
+static constexpr auto is_vectorfield(T&&) {
+  return is_vectorfield_v<std::decay_t<T>>;
+}
+//------------------------------------------------------------------------------
+template <typename T>
+static constexpr auto is_vectorfield() {
+  return is_vectorfield_v<T>;
+}
 //==============================================================================
 template <typename T, typename = void>
-struct is_matrixfield : std::false_type {};
+struct is_matrixfield_impl : std::false_type {};
 //------------------------------------------------------------------------------
 template <typename T>
-static constexpr bool is_matrixfield_v = is_matrixfield<T>::value;
+struct is_matrixfield_impl<T>
+    : std::integral_constant<bool, T::is_matrixfield()> {};
 //------------------------------------------------------------------------------
 template <typename T>
-struct is_matrixfield<T> : std::integral_constant<bool, T::is_matrixfield()> {};
+static constexpr auto is_matrixfield_v = is_matrixfield_impl<T>::value;
+//------------------------------------------------------------------------------
+template <typename T>
+static constexpr auto is_matrixfield(T&&) {
+  return is_matrixfield_v<std::decay_t<T>>;
+}
+//------------------------------------------------------------------------------
+template <typename T>
+static constexpr auto is_matrixfield() {
+  return is_matrixfield_v<T>;
+}
 //==============================================================================
 }  // namespace tatooine
 //==============================================================================
@@ -353,22 +395,22 @@ template <typename V, typename VReal, typename TReal, size_t NumDims,
 auto discretize(field<V, VReal, NumDims, Tensor> const& f,
                 grid<SpatialDimensions...>&             discretized_domain,
                 std::string const& property_name, TReal const t) -> auto& {
-  auto const ood_tensor = [] {
-    if constexpr (is_scalarfield_v<V>) {
+  auto const ood_tensor = [&f] {
+    if constexpr (is_scalarfield<V>()) {
       return VReal(0) / VReal(0);
     } else {
       return Tensor{tag::fill{VReal(0) / VReal(0)}};
     }
   }();
   auto& discretized_field = [&]() -> decltype(auto) {
-    if constexpr (is_scalarfield_v<V>) {
+    if constexpr (is_scalarfield<V>()) {
       return discretized_domain.template insert_chunked_vertex_property<VReal>(
           property_name);
-    } else if constexpr (is_vectorfield_v<V>) {
+    } else if constexpr (is_vectorfield<V>()) {
       return discretized_domain
           .template vertex_property<vec<VReal, V::tensor_t::dimension(0)>>(
               property_name);
-    } else if constexpr (is_matrixfield_v<V>) {
+    } else if constexpr (is_matrixfield<V>()) {
       return discretized_domain.template vertex_property<
           mat<VReal, V::tensor_t::dimension(0), V::tensor_t::dimension(1)>>(
           property_name);
@@ -386,6 +428,60 @@ auto discretize(field<V, VReal, NumDims, Tensor> const& f,
     }
   });
   return discretized_field;
+}
+//------------------------------------------------------------------------------
+/// Discretizes to a cutting plane of a field.
+/// \param basis Spatial Basis of cutting plane
+template <typename V, typename VReal, typename TReal, size_t NumDims,
+          typename Tensor, typename BasisReal, typename X0Real,
+          typename X1Real, enable_if<is_arithmetic<VReal, TReal>> = true>
+auto discretize(field<V, VReal, NumDims, Tensor> const& f,
+                mat<BasisReal, NumDims, 2> const& basis,
+                vec<X0Real, NumDims> const& x0, vec<X1Real, 2> const& spatial_size,
+                size_t const res0, size_t const res1,
+                std::string const& property_name, TReal const t) {
+
+  auto const extent =
+      vec<VReal, 2>{spatial_size(0) / (res0 - 1), spatial_size(1) / (res1 - 1)};
+  auto discretized_domain =
+      uniform_grid<VReal, 2>{linspace<VReal>{0, spatial_size(0), res0},
+                             linspace<VReal>{0, spatial_size(1), res1}};
+
+  auto const ood_tensor = [] {
+    if constexpr (is_scalarfield<V>()) {
+      return VReal(0) / VReal(0);
+    } else {
+      return Tensor{tag::fill{VReal(0) / VReal(0)}};
+    }
+  }();
+  auto& discretized_field = [&]() -> decltype(auto) {
+    if constexpr (is_scalarfield<V>()) {
+      return discretized_domain.template insert_chunked_vertex_property<VReal>(
+          property_name);
+    } else if constexpr (is_vectorfield<V>()) {
+      return discretized_domain
+          .template vertex_property<vec<VReal, V::tensor_t::dimension(0)>>(
+              property_name);
+    } else if constexpr (is_matrixfield<V>()) {
+      return discretized_domain.template vertex_property<
+          mat<VReal, V::tensor_t::dimension(0), V::tensor_t::dimension(1)>>(
+          property_name);
+    } else {
+      return discretized_domain.template vertex_property<Tensor>(
+          property_name);
+    }
+  }();
+  for (size_t i1 = 0; i1 < res1; ++i1) {
+    for (size_t i0 = 0; i0 < res0; ++i0) {
+      auto const x = x0 + normalized_basis * vec{extent(0) * i0, extent(1) * i1};
+      if (f.in_domain(x, t)) {
+        discretized_field(i0, i1) = f(x, t);
+      } else {
+        discretized_field(i0, i1) = ood_tensor;
+      }
+    }
+  }
+  return discretized_domain;
 }
 //------------------------------------------------------------------------------
 //#ifdef __cpp_concpets

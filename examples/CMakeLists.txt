@@ -16,6 +16,12 @@ add_custom_target(example.direct_isosurface_rendering_discretized_tornado.run
                   COMMAND ./example.direct_isosurface_rendering_discretized_tornado
                   DEPENDS example.direct_isosurface_rendering_discretized_tornado)
 
+add_executable(example.cutting_plane_doublegyre cutting_plane_doublegyre.cpp)
+target_link_libraries(example.cutting_plane_doublegyre tatooine)
+add_custom_target(example.cutting_plane_doublegyre.run
+                  COMMAND ./example.cutting_plane_doublegyre
+                  DEPENDS example.cutting_plane_doublegyre)
+
 if (TATOOINE_GL_AVAILABLE)
   add_executable(example.rendering.line rendering/line.cpp)
   target_link_libraries(example.rendering.line tatooine gl)
