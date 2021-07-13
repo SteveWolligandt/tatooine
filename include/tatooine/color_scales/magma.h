@@ -2,8 +2,10 @@
 #define TATOOINE_COLOR_SCALES_MAGMA_H
 //==============================================================================
 #include <tatooine/concepts.h>
-#include <tatooine/grid.h>
-#include <tatooine/interpolation.h>
+#include <tatooine/vec.h>
+#if TATOOINE_GL_AVAILABLE
+#include <tatooine/gl/texture.h>
+#endif
 //==============================================================================
 namespace tatooine::color_scales {
 //==============================================================================

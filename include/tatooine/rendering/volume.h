@@ -18,6 +18,7 @@ auto interactive(
                                          HasNonConstReference> const& prop)
     -> void {
   auto       win = rendering::first_person_window{};
+  bool       menu_open  = true;
   auto const gpu_tex   = gpu::upload(prop);
   auto const color_scales = std::array{
       std::tuple{"Viridis", color_scales::viridis<float>{}.to_gpu_tex(),
@@ -280,7 +281,7 @@ auto interactive(
   auto  specular_color = vec3f{0.1f, 0.1f, 0.1f};
   float range_min       = 0.0f;
   float range_max       = 1.0f;
-  float ray_offset      = 0.001f;
+  float ray_offset      = 0.01f;
   float shininess       = 100.0f;
   size_t const       num_alpha_samples = 100;
   auto               alpha_tex         = gl::tex1r32f{num_alpha_samples};
@@ -364,84 +365,106 @@ auto interactive(
     alpha_tex.bind(2);
     screenspace_quad_data.draw_triangles();
 
-    ImGui::Begin("Settings");
-    if (ImGui::Button("Volume")) {
-      dvr_shader.set_mode(0);
-    }
-    ImGui::SameLine();
-    if (ImGui::Button("Front")) {
-      dvr_shader.set_mode(1);
-    }
-    ImGui::SameLine();
-    if (ImGui::Button("Back")) {
-      dvr_shader.set_mode(2);
-    }
-    ImGui::SameLine();
-    if (ImGui::Button("Map")) {
-      dvr_shader.set_mode(3);
-    }
-    if (ImGui::DragFloat("Ray Offset", &ray_offset, 0.001f, 0.0001f, 0.1f)) {
-      dvr_shader.set_ray_offset(ray_offset);
-    }
-    if (ImGui::DragFloat("Min", &range_min, 0.001f,
-                         -std::numeric_limits<float>::max(), range_max)) {
-      dvr_shader.set_range_min(range_min);
-    }
-    if (ImGui::DragFloat("Max", &range_max, 0.001f, range_min,
-                         std::numeric_limits<float>::max())) {
-      dvr_shader.set_range_max(range_max);
-    }
-    if (ImGui::DragFloat("Shininess", &shininess, 5.0f)) {
-      dvr_shader.set_shininess(shininess);
-    }
-    if (ImGui::ColorEdit3("Specular Color", specular_color.data_ptr())) {
-      dvr_shader.set_specular_color(specular_color);
-    }
-    ImGui::Bezier("alpha", v0, v1);
+    if (menu_open) {
+      float width = std::min<float>(400, win.width() / 2);
+      ImGui::SetNextWindowSize(ImVec2{width, float(win.height())});
+      ImGui::SetNextWindowPos(ImVec2{win.width() - width , 0});
+      ImGui::Begin("", &menu_open,
+                   ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoCollapse |
+                       ImGuiWindowFlags_NoMove);
 
-    ImGuiStyle& style     = ImGui::GetStyle();
-    float       w         = ImGui::CalcItemWidth();
-    float       spacing   = style.ItemInnerSpacing.x;
-    float       button_sz = ImGui::GetFrameHeight();
-    ImVec2 combo_pos = ImGui::GetCursorScreenPos();
-    ImGui::PushItemWidth(w - spacing * 2.0f - button_sz * 2.0f);
-    if (ImGui::BeginCombo("##custom combo", "")) {
-      size_t i = 0;
-      for (auto const& color_scale : color_scales) {
-        bool is_selected = (current_color_scale == &color_scale);
-        ImGui::PushID(i++);
-        if (ImGui::Selectable("##foo", is_selected)) {
-          current_color_scale = &color_scale;
-        }
-        ImGui::PopID();
-        ImGui::SameLine();
-        ImGui::Image((void*)(intptr_t)std::get<2>(color_scale).id(), ImVec2(100, 10));
-        ImGui::SameLine();
-        ImGui::SetCursorPosX(ImGui::GetCursorPosX() + ImGui::GetColumnWidth() -
-                             ImGui::CalcTextSize(std::get<0>(color_scale)).x -
-                             ImGui::GetScrollX() -
-                             2 * ImGui::GetStyle().ItemSpacing.x);
-        ImGui::TextUnformatted(std::get<0>(color_scale));
-        if (is_selected) {
-          ImGui::SetItemDefaultFocus();
-        }
+      if (ImGui::Button("Volume")) {
+        dvr_shader.set_mode(0);
       }
-      ImGui::EndCombo();
+      ImGui::SameLine();
+      if (ImGui::Button("Front")) {
+        dvr_shader.set_mode(1);
+      }
+      ImGui::SameLine();
+      if (ImGui::Button("Back")) {
+        dvr_shader.set_mode(2);
+      }
+      ImGui::SameLine();
+      if (ImGui::Button("Map")) {
+        dvr_shader.set_mode(3);
+      }
+      if (ImGui::DragFloat("Ray Offset", &ray_offset, 0.001f, 0.0001f, 0.1f)) {
+        dvr_shader.set_ray_offset(ray_offset);
+      }
+      if (ImGui::DragFloat("Min", &range_min, 0.001f,
+                           -std::numeric_limits<float>::max(), range_max)) {
+        dvr_shader.set_range_min(range_min);
+      }
+      if (ImGui::DragFloat("Max", &range_max, 0.001f, range_min,
+                           std::numeric_limits<float>::max())) {
+        dvr_shader.set_range_max(range_max);
+      }
+      if (ImGui::DragFloat("Shininess", &shininess, 5.0f)) {
+        dvr_shader.set_shininess(shininess);
+      }
+      if (ImGui::ColorEdit3("Specular Color", specular_color.data_ptr())) {
+        dvr_shader.set_specular_color(specular_color);
+      }
+      ImGui::Bezier("alpha", v0, v1);
+
+      ImGuiStyle& style     = ImGui::GetStyle();
+      float       w         = ImGui::CalcItemWidth();
+      float       spacing   = style.ItemInnerSpacing.x;
+      float       button_sz = ImGui::GetFrameHeight();
+      ImVec2      combo_pos = ImGui::GetCursorScreenPos();
+      ImGui::PushItemWidth(w - spacing * 2.0f - button_sz * 2.0f);
+      if (ImGui::BeginCombo("##custom combo", "")) {
+        size_t i = 0;
+        for (auto const& color_scale : color_scales) {
+          bool is_selected = (current_color_scale == &color_scale);
+          ImGui::PushID(i++);
+          if (ImGui::Selectable("##foo", is_selected)) {
+            current_color_scale = &color_scale;
+          }
+          ImGui::PopID();
+          ImGui::SameLine();
+          ImGui::Image((void*)(intptr_t)std::get<2>(color_scale).id(),
+                       ImVec2(100, 10));
+          ImGui::SameLine();
+          ImGui::SetCursorPosX(
+              ImGui::GetCursorPosX() + ImGui::GetColumnWidth() -
+              ImGui::CalcTextSize(std::get<0>(color_scale)).x -
+              ImGui::GetScrollX() - 2 * ImGui::GetStyle().ItemSpacing.x);
+          ImGui::TextUnformatted(std::get<0>(color_scale));
+          if (is_selected) {
+            ImGui::SetItemDefaultFocus();
+          }
+        }
+        ImGui::EndCombo();
+      }
+      ImGui::PopItemWidth();
+      ImGui::SameLine(0, style.ItemInnerSpacing.x);
+      ImVec2 backup_pos = ImGui::GetCursorScreenPos();
+      ImGui::SetCursorScreenPos(
+          ImVec2(combo_pos.x + style.FramePadding.x, combo_pos.y));
+      ImGui::Image((void*)(intptr_t)std::get<2>(*current_color_scale).id(),
+                   ImVec2(100, 10));
+      ImGui::SetCursorScreenPos(backup_pos);
+      ImGui::SameLine();
+      ImGui::SetCursorPosX(
+          ImGui::GetCursorPosX() + ImGui::GetColumnWidth() -
+          ImGui::CalcTextSize(std::get<0>(*current_color_scale)).x -
+          ImGui::GetScrollX() - 2 * ImGui::GetStyle().ItemSpacing.x);
+      ImGui::TextUnformatted(std::get<0>(*current_color_scale));
+      ImGui::End();
     }
-    ImGui::PopItemWidth();
-    ImGui::SameLine(0, style.ItemInnerSpacing.x);
-    ImVec2      backup_pos = ImGui::GetCursorScreenPos();
-    ImGui::SetCursorScreenPos(
-        ImVec2(combo_pos.x + style.FramePadding.x, combo_pos.y));
-    ImGui::Image((void*)(intptr_t)std::get<2>(*current_color_scale).id(), ImVec2(100, 10));
-    ImGui::SetCursorScreenPos(backup_pos);
-    ImGui::SameLine();
-        ImGui::SetCursorPosX(ImGui::GetCursorPosX() + ImGui::GetColumnWidth() -
-                             ImGui::CalcTextSize(std::get<0>(*current_color_scale)).x -
-                             ImGui::GetScrollX() -
-                             2 * ImGui::GetStyle().ItemSpacing.x);
-    ImGui::TextUnformatted(std::get<0>(*current_color_scale));
-    ImGui::End();
+    else {
+      ImGui::SetNextWindowSize(ImVec2{50, 50});
+      ImGui::SetNextWindowPos(ImVec2{float(win.width() - 50), 0.0f});
+      ImGui::Begin("", nullptr,
+                   ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoResize |
+                       ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoBackground);
+      if (ImGui::Button("<", ImGui::GetWindowContentRegionMax() -
+                                 ImGui::GetWindowContentRegionMin())) {
+        menu_open = true;
+      }
+      ImGui::End();
+    }
   });
 }
 //==============================================================================

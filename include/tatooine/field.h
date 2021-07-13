@@ -433,19 +433,19 @@ auto discretize(field<V, VReal, NumDims, Tensor> const& f,
 /// Discretizes to a cutting plane of a field.
 /// \param basis Spatial Basis of cutting plane
 template <typename V, typename VReal, typename TReal, size_t NumDims,
-          typename Tensor, typename BasisReal, typename X0Real,
-          typename X1Real, enable_if<is_arithmetic<VReal, TReal>> = true>
+          typename Tensor, typename BasisReal, typename X0Real, typename X1Real,
+          enable_if<is_arithmetic<VReal, TReal>> = true>
 auto discretize(field<V, VReal, NumDims, Tensor> const& f,
-                mat<BasisReal, NumDims, 2> const& basis,
-                vec<X0Real, NumDims> const& x0, vec<X1Real, 2> const& spatial_size,
-                size_t const res0, size_t const res1,
-                std::string const& property_name, TReal const t) {
-
+                vec<X0Real, NumDims> const&             x0,
+                mat<BasisReal, NumDims, 2> const&       basis,
+                vec<X1Real, 2> const& spatial_size, size_t const res0,
+                size_t const res1, std::string const& property_name,
+                TReal const t) {
   auto const extent =
       vec<VReal, 2>{spatial_size(0) / (res0 - 1), spatial_size(1) / (res1 - 1)};
   auto discretized_domain =
-      uniform_grid<VReal, 2>{linspace<VReal>{0, spatial_size(0), res0},
-                             linspace<VReal>{0, spatial_size(1), res1}};
+      grid{linspace<VReal>{0, length(basis * vec{spatial_size(0), 0}), res0},
+           linspace<VReal>{0, length(basis * vec{0, spatial_size(1)}), res1}};
 
   auto const ood_tensor = [] {
     if constexpr (is_scalarfield<V>()) {
@@ -473,7 +473,7 @@ auto discretize(field<V, VReal, NumDims, Tensor> const& f,
   }();
   for (size_t i1 = 0; i1 < res1; ++i1) {
     for (size_t i0 = 0; i0 < res0; ++i0) {
-      auto const x = x0 + normalized_basis * vec{extent(0) * i0, extent(1) * i1};
+      auto const x = x0 + basis * vec{extent(0) * i0, extent(1) * i1};
       if (f.in_domain(x, t)) {
         discretized_field(i0, i1) = f(x, t);
       } else {
@@ -482,6 +482,33 @@ auto discretize(field<V, VReal, NumDims, Tensor> const& f,
     }
   }
   return discretized_domain;
+}
+//------------------------------------------------------------------------------
+template <typename V, typename VReal, typename TReal, size_t NumDims,
+          typename Tensor, typename BasisReal, typename X0Real,
+          enable_if<is_arithmetic<VReal, TReal>> = true>
+auto discretize(field<V, VReal, NumDims, Tensor> const& f,
+                mat<BasisReal, NumDims, 2> const& basis,
+                vec<X0Real, NumDims> const& x0,
+                size_t const res0, size_t const res1,
+                std::string const& property_name, TReal const t) {
+  return discretize(f, x0,basis,  vec<BasisReal, 2>::ones(), res0, res1,
+                    property_name, t);
+}
+//------------------------------------------------------------------------------
+template <typename V, typename VReal, typename TReal, size_t NumDims,
+          typename Tensor, typename BasisReal, typename X0Real,
+          enable_if<is_arithmetic<VReal, TReal>> = true>
+auto discretize(field<V, VReal, NumDims, Tensor> const& f,
+                vec<BasisReal, NumDims> const& extent0,
+                vec<BasisReal, NumDims> const& extent1,
+                vec<X0Real, NumDims> const& x0,
+                size_t const res0, size_t const res1,
+                std::string const& property_name, TReal const t) {
+  auto basis = mat<BasisReal, NumDims, 2>{};
+  basis.col(0) = extent0;
+  basis.col(1) = extent1;
+  return discretize(f, basis,res0, res1, property_name, t);
 }
 //------------------------------------------------------------------------------
 //#ifdef __cpp_concpets

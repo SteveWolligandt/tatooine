@@ -24,19 +24,19 @@ add_custom_target(example.cutting_plane_doublegyre.run
 
 if (TATOOINE_GL_AVAILABLE)
   add_executable(example.rendering.line rendering/line.cpp)
-  target_link_libraries(example.rendering.line tatooine gl)
+  target_link_libraries(example.rendering.line tatooine)
   add_custom_target(example.rendering.line.run
                     COMMAND ./example.rendering.line
                     DEPENDS example.rendering.line)
                   
   add_executable(example.rendering.direct_volume rendering/direct_volume.cpp)
-  target_link_libraries(example.rendering.direct_volume tatooine gl)
+  target_link_libraries(example.rendering.direct_volume tatooine)
   add_custom_target(example.rendering.direct_volume.run
                     COMMAND ./example.rendering.direct_volume
                     DEPENDS example.rendering.direct_volume)
                   
   add_executable(example.rendering.gl_context rendering/gl_context.cpp)
-  target_link_libraries(example.rendering.gl_context tatooine gl)
+  target_link_libraries(example.rendering.gl_context tatooine)
   add_custom_target(example.rendering.gl_context.run
                     COMMAND ./example.rendering.gl_context
                     DEPENDS example.rendering.gl_context)

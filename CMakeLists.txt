@@ -106,7 +106,7 @@ else()
 endif()
 #- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 # create library target
-add_library(tatooine SHARED 
+add_library(tatooine STATIC
   src/vtk_legacy.cpp
   src/parse.cpp
 )
@@ -423,6 +423,9 @@ set(TATOOINE_EXPORTING_TARGETS tatooine)
 #-------------------------------------------------------------------------------
 add_subdirectory(gl)
 target_compile_definitions(tatooine PUBLIC TATOOINE_GL_AVAILABLE=${TATOOINE_GL_AVAILABLE})
+if (TATOOINE_GL_AVAILABLE)
+  target_link_libraries(tatooine PUBLIC gl)
+endif()
 add_subdirectory(test)
 add_subdirectory(scivis_contest_2020 EXCLUDE_FROM_ALL)
 add_subdirectory(benchmarks)
