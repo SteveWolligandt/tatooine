@@ -285,8 +285,11 @@ auto interactive(
   float shininess       = 100.0f;
   size_t const       num_alpha_samples = 100;
   auto               alpha_tex         = gl::tex1r32f{num_alpha_samples};
-  float v0[] = {0.0f, 0.0f, 0.5f, 0.0f};
-  float v1[] = {1.0f, 1.0f, 1.0f, 0.5f};
+  std::vector<float> handles{0.0f, 0.0f, 0.1f, 0.0f,
+                             0.45f, 0.0f, 0.45f, 0.0f,
+                             0.5f, 1.0f, 0.5f, 1.0f,
+                             0.55f, 0.0f, 0.55f, 0.0f,
+                             1.0f, 0.0f, 0.9f, 0.0f};
   alpha_tex.set_wrap_mode(gl::CLAMP_TO_EDGE);
   std::vector<float> alpha_data(num_alpha_samples);
   dvr_shader.set_volume_data_sampler_unit(0);
@@ -359,7 +362,7 @@ auto interactive(
 
     for (size_t i = 0; i < num_alpha_samples; ++i) {
       float const pos = i / (float)(num_alpha_samples - 1);
-      alpha_data[i]   = ImGui::BezierValue(pos, v0, v1);
+      alpha_data[i]   = ImGui::BezierValue(pos, handles);
     }
     alpha_tex.upload_data(alpha_data, num_alpha_samples);
     alpha_tex.bind(2);
@@ -405,7 +408,7 @@ auto interactive(
       if (ImGui::ColorEdit3("Specular Color", specular_color.data_ptr())) {
         dvr_shader.set_specular_color(specular_color);
       }
-      ImGui::Bezier("alpha", v0, v1);
+      ImGui::Bezier("alpha", handles);
 
       ImGuiStyle& style     = ImGui::GetStyle();
       float       w         = ImGui::CalcItemWidth();

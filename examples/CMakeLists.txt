@@ -1,3 +1,16 @@
+add_executable(example.naive_flowmap_discretization naive_flowmap_discretization.cpp)
+target_link_libraries(example.naive_flowmap_discretization tatooine)
+add_custom_target(example.naive_flowmap_discretization.run
+                  COMMAND ./example.naive_flowmap_discretization
+                  DEPENDS example.naive_flowmap_discretization)
+
+add_executable(example.agranovsky_flowmap_discretization
+                       agranovsky_flowmap_discretization.cpp)
+target_link_libraries(example.agranovsky_flowmap_discretization tatooine)
+add_custom_target(example.agranovsky_flowmap_discretization.run
+                  COMMAND ./example.agranovsky_flowmap_discretization
+                  DEPENDS example.agranovsky_flowmap_discretization)
+
 add_executable(example.direct_volume direct_volume.cpp)
 target_link_libraries(example.direct_volume tatooine)
 add_custom_target(example.direct_volume.run
