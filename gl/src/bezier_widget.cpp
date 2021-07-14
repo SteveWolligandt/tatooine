@@ -5,16 +5,45 @@
 //==============================================================================
 namespace ImGui {
 //==============================================================================
-auto BezierValue(float dt01, float v0[4], float v1[4]) -> float {
-  auto const steps = 256;
+auto BezierValue(float dt01, std::vector<float> const& handles) -> float {
+  int const    steps = 256;
+  float const* v0    = nullptr;
+  float const* v1    = nullptr;
+
+  size_t const num_handles = size(handles) / 4;
+  size_t const num_curves  = num_handles - 1;
+  bool         negate_tangent = true;
+
+  for (size_t i = 0; i < num_curves; ++i) {
+    if (handles[i * 4] <= dt01 && dt01 <= handles[(i + 1) * 4]) {
+      v0 = &handles[i * 4];
+      v1 = &handles[(i + 1) * 4];
+      if (i == num_curves - 1) {
+        negate_tangent = false;
+      }
+      break;
+    }
+  }
+  if (v0 == nullptr) {
+    return 0.0f / 0.0f;
+  }
+  if (negate_tangent) {
+    ImVec2 Q[4] = {{v0[0], v0[1]},
+                   {v0[2], v0[3]},
+                   {v1[0], v1[1]},
+                   {v1[0] - v1[2] + v1[0], v1[1] - v1[3] + v1[1]}};
+    ImVec2 results[steps + 1];
+    BezierTable<steps>(Q, results);
+    return results[(int)((dt01 < v0[0] ? 0 : dt01 > v1[0] ? 1 : dt01) * 255)].y;
+  }
   ImVec2 Q[4] = {
       {v0[0], v0[1]}, {v0[2], v0[3]}, {v1[0], v1[1]}, {v1[2], v1[3]}};
   ImVec2 results[steps + 1];
   BezierTable<steps>(Q, results);
-  return results[(int)((dt01 < 0 ? 0 : dt01 > 1 ? 1 : dt01) * 256)].y;
+  return results[(int)((dt01 < v0[0] ? 0 : dt01 > v1[0] ? 1 : dt01) * 255)].y;
 }
 //------------------------------------------------------------------------------
-auto Bezier(const char* label, float v0[4], float v1[4]) -> int {
+auto Bezier(const char* label, std::vector<float>& handles) -> int {
   // visuals
   size_t const smoothness = 64;  // curve smoothness: the higher number of
                                  // segments, the smoother curve
@@ -35,8 +64,9 @@ auto Bezier(const char* label, float v0[4], float v1[4]) -> int {
 
   // prepare canvas
   const float avail = GetContentRegionAvailWidth();
-  const float dim   = ImMin(avail, 128.f);
-  ImVec2      Canvas(dim, dim);
+  //const float dim   = ImMin(avail, 128.f);
+  const float dim   = avail;
+  ImVec2      Canvas(dim, 128.f);
 
   ImRect bb(Window->DC.CursorPos, Window->DC.CursorPos + Canvas);
 
@@ -55,13 +85,26 @@ auto Bezier(const char* label, float v0[4], float v1[4]) -> int {
                       GetColorU32(ImGuiCol_TextDisabled));
   }
 
+  size_t const num_handles = size(handles) / 4;
+  size_t const num_curves  = num_handles - 1;
   // eval curve
-  ImVec2 Q[4] = {
-      {v0[0], v0[1]}, {v0[2], v0[3]}, {v1[0], v1[1]}, {v1[2], v1[3]}};
-  ImVec2 results[smoothness + 1];
-  BezierTable<smoothness>(Q, results);
+  auto results = std::vector<ImVec2[smoothness + 1]>(num_curves);
+  for (size_t i = 0; i < num_curves; ++i) {
+    float * v0 = &handles[i * 4];
+    float * v1 = &handles[(i+1) * 4];
+    if (i == num_curves - 1) {
+      ImVec2 Q[4] = {
+          {v0[0], v0[1]}, {v0[2], v0[3]}, {v1[0], v1[1]}, {v1[2], v1[3]}};
+      BezierTable<smoothness>(Q, results[i]);
+    } else {
+      ImVec2 Q[4] = {{v0[0], v0[1]},
+                     {v0[2], v0[3]},
+                     {v1[0], v1[1]},
+                     {v1[0] - v1[2] + v1[0], v1[1] - v1[3] + v1[1]}};
+      BezierTable<smoothness>(Q, results[i]);
+    }
+  }
 
-  // control points: 2 lines and 2 circles
   {
     char buf[128];
     sprintf(buf, "0##%s", label);
@@ -97,43 +140,48 @@ auto Bezier(const char* label, float v0[4], float v1[4]) -> int {
         changed = true;
       }
     };
-    handle_grabber(v0 + 2);
-    handle_grabber(v1 + 2);
-    handle_grabber_fixed(v0);
-    handle_grabber_fixed(v1);
+    for (size_t i = 0; i < num_handles; ++i) {
+      if (i == 0 || i == num_handles - 1) {
+        handle_grabber_fixed(&handles[i * 4]);
+      } else {
+        handle_grabber(&handles[i * 4]);
+      }
+      handle_grabber(&handles[i * 4 + 2]);
+    }
 
     // draw curve
     {
       ImColor color(GetStyle().Colors[ImGuiCol_PlotLines]);
-      for (size_t i = 0; i < smoothness; ++i) {
-        ImVec2 p = {results[i + 0].x, 1 - results[i + 0].y};
-        ImVec2 q = {results[i + 1].x, 1 - results[i + 1].y};
-        ImVec2 r(p.x * (bb.Max.x - bb.Min.x) + bb.Min.x,
-                 p.y * (bb.Max.y - bb.Min.y) + bb.Min.y);
-        ImVec2 s(q.x * (bb.Max.x - bb.Min.x) + bb.Min.x,
-                 q.y * (bb.Max.y - bb.Min.y) + bb.Min.y);
-        DrawList->AddLine(r, s, color, curve_width);
+      for (auto& result : results) {
+        for (size_t i = 0; i < smoothness; ++i) {
+          ImVec2 p = {result[i + 0].x, 1 - result[i + 0].y};
+          ImVec2 q = {result[i + 1].x, 1 - result[i + 1].y};
+          ImVec2 r(p.x * (bb.Max.x - bb.Min.x) + bb.Min.x,
+                   p.y * (bb.Max.y - bb.Min.y) + bb.Min.y);
+          ImVec2 s(q.x * (bb.Max.x - bb.Min.x) + bb.Min.x,
+                   q.y * (bb.Max.y - bb.Min.y) + bb.Min.y);
+          DrawList->AddLine(r, s, color, curve_width);
+        }
       }
     }
 
     // draw lines and grabbers
     float  luma = IsItemActive() || IsItemHovered() ? 0.5f : 1.0f;
-    ImVec4 pink(1.00f, 0.00f, 0.75f, luma), cyan(0.00f, 0.75f, 1.00f, luma);
+    ImVec4 cyan(0.00f, 0.75f, 1.00f, luma);
     ImVec4 white(GetStyle().Colors[ImGuiCol_Text]);
-    ImVec2 p00 = ImVec2(v0[0], 1 - v0[1]) * (bb.Max - bb.Min) + bb.Min;
-    ImVec2 p01 = ImVec2(v0[2], 1 - v0[3]) * (bb.Max - bb.Min) + bb.Min;
-    ImVec2 p10 = ImVec2(v1[0], 1 - v1[1]) * (bb.Max - bb.Min) + bb.Min;
-    ImVec2 p11 = ImVec2(v1[2], 1 - v1[3]) * (bb.Max - bb.Min) + bb.Min;
-    DrawList->AddLine(p00, p01, ImColor(white), line_width);
-    DrawList->AddLine(p10, p11, ImColor(white), line_width);
-    DrawList->AddCircleFilled(p00, grab_radius, ImColor(white));
-    DrawList->AddCircleFilled(p00, grab_radius - grab_border, ImColor(pink));
-    DrawList->AddCircleFilled(p01, grab_radius, ImColor(white));
-    DrawList->AddCircleFilled(p01, grab_radius - grab_border, ImColor(pink));
-    DrawList->AddCircleFilled(p10, grab_radius, ImColor(white));
-    DrawList->AddCircleFilled(p10, grab_radius - grab_border, ImColor(cyan));
-    DrawList->AddCircleFilled(p11, grab_radius, ImColor(white));
-    DrawList->AddCircleFilled(p11, grab_radius - grab_border, ImColor(cyan));
+    for (size_t i = 0; i < num_handles; ++i) {
+      ImVec2 p00 =
+          ImVec2(handles[i * 4], 1 - handles[i * 4 + 1]) * (bb.Max - bb.Min) +
+          bb.Min;
+      ImVec2 p01 = ImVec2(handles[i * 4 + 2], 1 - handles[i * 4 + 3]) *
+                       (bb.Max - bb.Min) +
+                   bb.Min;
+      DrawList->AddLine(p00, p01, ImColor(white), line_width);
+      DrawList->AddCircleFilled(p00, grab_radius, ImColor(white));
+      DrawList->AddCircleFilled(p00, grab_radius - grab_border, ImColor(cyan));
+      DrawList->AddCircleFilled(p01, grab_radius, ImColor(white));
+      DrawList->AddCircleFilled(p01, grab_radius - grab_border, ImColor(cyan));
+    }
 
     // restore cursor pos
     SetCursorScreenPos(ImVec2(bb.Min.x, bb.Max.y + grab_radius));  // :P

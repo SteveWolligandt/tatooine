@@ -1,26 +1,21 @@
-#ifndef BEZIER_WIDGET
-#define BEZIER_WIDGET
-// ImGui Bezier widget. @r-lyeh, public domain
-// v1.02: add BezierValue(); comments; usage
-// v1.01: out-of-bounds coord snapping; custom border width; spacing; cosmetics
-// v1.00: initial version
-//
-// [ref] http://robnapier.net/faster-bezier
-// [ref] http://easings.net/es#easeInSine
-//
-// Usage:
-// {  static float v[] = { 0.390f, 0.575f, 0.565f, 1.000f };
-//    ImGui::Bezier( "easeOutSine", v );       // draw
-//    float y = ImGui::BezierValue( 0.5f, v ); // x delta in [0..1] range
-// }
+#ifndef TATOOINE_BEZIER_WIDGET
+#define TATOOINE_BEZIER_WIDGET
+#include <vector>
+/// \example
+/// {  static auto v = std::vector<float>{ 0.390f, 0.575f, 0.565f, 1.000f };
+///    ImGui::Bezier( "easeOutSine", v );       // draw
+///    float y = ImGui::BezierValue( 0.5f, v ); // x delta in [0..1] range
+/// }
 #define IMGUI_DEFINE_MATH_OPERATORS
 #include <imgui.h>
 
 //==============================================================================
 namespace ImGui {
 //==============================================================================
-auto BezierValue(float dt01, float v0[4], float v1[4]) -> float;
-auto Bezier(const char* label, float v0[4], float v1[4]) -> int;
+auto BezierValue(float dt01, std::vector<float> const& handles) -> float;
+//------------------------------------------------------------------------------
+auto Bezier(const char* label, std::vector<float>& handles) -> int;
+//------------------------------------------------------------------------------
 template <int steps>
 auto BezierTable(ImVec2 P[4], ImVec2 results[steps + 1]) -> void {
   static float C[(steps + 1) * 4], *K = 0;

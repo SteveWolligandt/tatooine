@@ -1,7 +1,7 @@
 #include <tatooine/analytical/fields/numerical/doublegyre.h>
 #include <tatooine/autonomous_particle.h>
 #include <tatooine/chrono.h>
-#include <tatooine/flowmap_agranovsky.h>
+#include <tatooine/agranovsky_flowmap_sampler.h>
 #include <tatooine/grid.h>
 #include <tatooine/netcdf.h>
 #include <tatooine/progress_bars.h>
@@ -76,7 +76,7 @@ auto create_autonomous_mesh(range auto const& autonomous_particles) {
 auto create_agranovsky_flowmap(auto&& v, size_t const grid_min_extent,
                                args_t const& args) {
   double const agranovsky_delta_t = 1;
-  return flowmap_agranovsky{v,
+  return agranovsky_flowmap_sampler{v,
                             args.t0,
                             args.tau,
                             agranovsky_delta_t,
