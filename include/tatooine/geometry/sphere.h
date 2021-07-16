@@ -16,21 +16,15 @@ template <floating_point Real, size_t N>
 struct sphere : ray_intersectable<Real, N> {
   using this_t   = sphere<Real, N>;
   using parent_t = ray_intersectable<Real, N>;
-  using pos_t    = vec<Real, N>;
   using typename parent_t::intersection_t;
   using typename parent_t::optional_intersection_t;
   //============================================================================
  private:
   Real  m_radius;
-  pos_t m_center;
   //============================================================================
  public:
-  sphere() : m_radius{Real(0.5)}, m_center{pos_t::zeros()} {}
-  explicit sphere(Real radius) : m_radius{radius}, m_center{pos_t::zeros()} {}
-  sphere(Real radius, pos_t&& center)
-      : m_radius{radius}, m_center{std::move(center)} {}
-  sphere(Real radius, pos_t const& center)
-      : m_radius{radius}, m_center{center} {}
+  sphere() : m_radius{Real(1)} {}
+  explicit sphere(Real radius) : m_radius{radius} {}
   //----------------------------------------------------------------------------
   sphere(sphere const&) = default;
   sphere(sphere&&)      = default;
@@ -40,7 +34,7 @@ struct sphere : ray_intersectable<Real, N> {
   auto check_intersection(ray<Real, N> const& r, Real const min_t = 0) const
       -> optional_intersection_t override {
     if constexpr (N == 3) {
-      auto const m = r.origin() - center();
+      auto const m = r.origin();
       auto const b = dot(m, r.direction());
       auto const c = dot(m, m) - radius() * radius();
 
@@ -65,7 +59,7 @@ struct sphere : ray_intersectable<Real, N> {
       }
 
       auto const hit_pos = r(t);
-      auto const nor     = normalize(hit_pos - center());
+      auto const nor     = normalize(hit_pos);
       // vec        uv{std::atan2(nor(0), nor(2)) / (2 * M_PI) + M_PI / 2,
       //       std::acos(-nor(1)) / M_PI};
       return intersection_t{this, r, t, hit_pos, nor};
@@ -78,9 +72,6 @@ struct sphere : ray_intersectable<Real, N> {
   //----------------------------------------------------------------------------
   constexpr auto radius() const { return m_radius; }
   constexpr auto radius() -> auto& { return m_radius; }
-  //----------------------------------------------------------------------------
-  constexpr auto center() const -> auto const& { return m_center; }
-  constexpr auto center() -> auto& { return m_center; }
   //----------------------------------------------------------------------------
   template <typename RandomEngine = std::mt19937_64>
   auto random_point(RandomEngine&& eng = RandomEngine{
@@ -95,9 +86,9 @@ struct sphere : ray_intersectable<Real, N> {
     auto const cos_theta = std::cos(theta);
     auto const sin_phi   = std::sin(phi);
     auto const cos_phi   = std::cos(phi);
-    auto const x         = r * sin_phi * cos_theta + m_center(0);
-    auto const y         = r * sin_phi * sin_theta + m_center(1);
-    auto const z         = r * cos_phi + m_center(2);
+    auto const x         = r * sin_phi * cos_theta;
+    auto const y         = r * sin_phi * sin_theta;
+    auto const z         = r * cos_phi;
     return vec{x, y, z};
   }
   template <typename RandReal, typename RandEngine>
@@ -117,7 +108,7 @@ struct sphere : ray_intersectable<Real, N> {
       auto const x         = r * sin_phi * cos_theta;
       auto const y         = r * sin_phi * sin_theta;
       auto const z         = r * cos_phi;
-      ps.emplace_back(x + m_center(0), y + m_center(1), z + m_center(2));
+      ps.emplace_back(x, y, z);
     }
     return ps;
   }
@@ -145,7 +136,7 @@ auto discretize(sphere<Real, 2> const& s, size_t const num_vertices) {
 
   line<Real, 2> ellipse;
   auto          radian_to_cartesian = [&s](auto const t) {
-    return vec{std::cos(t) * s.radius(), std::sin(t) * s.radius()} + s.center();
+    return vec{std::cos(t) * s.radius(), std::sin(t) * s.radius()};
   };
   auto out_it = std::back_inserter(ellipse);
   copy(radial | transformed(radian_to_cartesian), out_it);
@@ -216,7 +207,6 @@ auto discretize(sphere<Real, 3> const& s, size_t num_subdivisions = 0) {
   }
   for (auto& v : vertices) {
     v *= s.radius();
-    v += s.center();
   }
   mesh_t m;
   for (auto& vertex_handle : vertices) {

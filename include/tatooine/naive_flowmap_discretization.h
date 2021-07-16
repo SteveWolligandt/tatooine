@@ -4,10 +4,12 @@
 #include <tatooine/field.h>
 #include <tatooine/grid.h>
 #include <tatooine/particle.h>
+#include <tatooine/interpolation.h>
 #include <tatooine/triangular_mesh.h>
 //==============================================================================
 namespace tatooine {
 //==============================================================================
+/// Samples a flow map by advecting particles from a uniform rectilinear grid.
 template <typename Real, size_t N>
 struct naive_flowmap_discretization {
   using vec_t = vec<Real, N>;
@@ -21,10 +23,11 @@ struct naive_flowmap_discretization {
   struct grid_type_creator<0, Ts...> {
     using type = grid<Ts...>;
   };
-  // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-  using grid_t      = typename grid_type_creator<N>::type;
-  using grid_prop_t = typed_grid_vertex_property_interface<grid_t, pos_t, true>;
-  //============================================================================
+  //----------------------------------------------------------------------------
+  using grid_t = typename grid_type_creator<N>::type;
+  using grid_vertex_property_t =
+      typed_grid_vertex_property_interface<grid_t, pos_t, true>;
+  //----------------------------------------------------------------------------
   template <size_t M, template <typename> typename... InterpolationKernels>
   struct grid_sampler_type_creator {
     using type =
@@ -35,36 +38,53 @@ struct naive_flowmap_discretization {
   template <template <typename> typename... InterpolationKernels>
   struct grid_sampler_type_creator<0, InterpolationKernels...> {
     using type =
-        tatooine::grid_vertex_property_sampler<grid_prop_t,
+        tatooine::grid_vertex_property_sampler<grid_vertex_property_t,
                                                InterpolationKernels...>;
   };
-  // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
   using grid_vertex_property_sampler_t =
       typename grid_sampler_type_creator<N>::type;
-  using mesh_t = triangular_mesh<Real, 2>;
-  using mesh_prop_t =
-      typename triangular_mesh<Real, 2>::template vertex_property_t<pos_t>;
-  using mesh_sampler_t =
-      typename triangular_mesh<Real,
-                               2>::template vertex_property_sampler_t<pos_t>;
+
+  using mesh_t = simplex_mesh<Real, N, N>;
+  using mesh_vertex_property_t =
+      typename mesh_t::template vertex_property_t<pos_t>;
+  using mesh_vertex_property_sampler_t =
+      typename mesh_t::template vertex_property_sampler_t<pos_t>;
   //============================================================================
  private:
   Real m_t0;
+  Real m_t1;
   Real m_tau;
 
   grid_t m_forward_grid;
-  mesh_t m_backward_mesh;
+  grid_vertex_property_t* m_forward_discretization;
+  grid_vertex_property_sampler_t m_forward_sampler;
+
+  mesh_t m_backward_grid;
+  mesh_vertex_property_t* m_backward_discretization;
+  mesh_vertex_property_sampler_t m_backward_sampler;
   //============================================================================
  private:
   template <typename Flowmap, size_t... Is>
-  naive_flowmap_discretization(std::index_sequence<Is...> /*seq*/, Flowmap&& flowmap,
-                        arithmetic auto const t0, arithmetic auto const tau,
-                        pos_t const& min, pos_t const& max,
-                        integral auto const... resolution)
+  naive_flowmap_discretization(std::index_sequence<Is...> /*seq*/,
+                               Flowmap&& flowmap, arithmetic auto const t0,
+                               arithmetic auto const tau, pos_t const& min,
+                               pos_t const& max,
+                               integral auto const... resolution)
       : m_t0{real_t(t0)},
+        m_t1{real_t(t0 + tau)},
         m_tau{real_t(tau)},
         m_forward_grid{linspace<Real>{min(Is), max(Is),
-                                      static_cast<size_t>(resolution)}...} {
+                                      static_cast<size_t>(resolution)}...},
+        m_forward_discretization{
+            &m_forward_grid.template vertex_property<pos_t>(
+                "forward_discretization")},
+        m_forward_sampler{m_forward_discretization->linear_sampler()},
+        m_backward_grid{m_forward_grid},
+        m_backward_discretization{
+            &m_backward_grid.template vertex_property<pos_t>(
+                "backward_discretization")},
+        m_backward_sampler{
+            m_backward_grid.sampler(*m_backward_discretization)} {
     fill(std::forward<Flowmap>(flowmap));
   }
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -90,30 +110,89 @@ struct naive_flowmap_discretization {
   //----------------------------------------------------------------------------
   template <typename Flowmap>
   auto fill(Flowmap&& flowmap) -> void {
-    auto& discretized_flowmap =
-        m_forward_grid.template insert_vertex_property<pos_t>("flowmap");
     m_forward_grid.vertices().iterate_indices([&](auto const... is) {
-      discretized_flowmap(is...) =
+      m_forward_discretization->at(is...) =
           flowmap(m_forward_grid.vertex_at(is...), m_t0, m_tau);
     });
 
-    // create backward flowmap
-    m_backward_mesh = mesh_t{m_forward_grid};
-    auto& backward_base =
-        m_backward_mesh.template vertex_property<pos_t>("flowmap");
-    for (auto v : m_backward_mesh.vertices()) {
+    for (auto v : m_forward_grid.vertices()) {
+      m_backward_discretization->at(typename mesh_t::vertex_handle{
+          v.plain_index()}) = m_forward_discretization->at(v);
+    }
+    for (auto v : m_backward_grid.vertices()) {
       for (size_t i = 0; i < N; ++i) {
-        std::swap(m_backward_mesh[v](i), backward_base[v](i));
+        std::swap(m_backward_discretization->at(v)(i), m_backward_grid[v](i));
       }
     }
-    m_backward_mesh.build_delaunay_mesh();
-    m_backward_mesh.build_hierarchy();
+    m_backward_grid.build_delaunay_mesh();
+    m_backward_grid.build_hierarchy();
   }
   //----------------------------------------------------------------------------
-  auto forward_mesh() const -> auto const& { return m_forward_grid; }
-  auto forward_mesh() -> auto& { return m_forward_grid; }
-  auto backward_mesh() const -> auto const& { return m_backward_mesh; }
-  auto backward_mesh() -> auto& { return m_backward_mesh; }
+  auto forward_grid() const -> auto const& { return m_forward_grid; }
+  auto forward_grid() -> auto& { return m_forward_grid; }
+  auto backward_grid() const -> auto const& { return m_backward_grid; }
+  auto backward_grid() -> auto& { return m_backward_grid; }
+  //----------------------------------------------------------------------------
+  auto forward_sampler() const -> auto const& { return *m_forward_sampler; }
+  auto forward_sampler() -> auto& { return *m_forward_sampler; }
+  auto backward_sampler() const -> auto const& { return *m_backward_sampler; }
+  auto backward_sampler() -> auto& { return *m_backward_sampler; }
+  //----------------------------------------------------------------------------
+  /// evaluates flow map
+  auto operator()(pos_t const& x, real_t const t, real_t const tau) const {
+    if (t + tau < m_t0 || t + tau > m_t1) {
+      throw std::runtime_error{"Flow map out of domain!"};
+    }
+    if (t == m_t0 && tau > 0) {
+      return sample_forward(x, tau);
+    } else if (t == m_t1 && tau < 0) {
+      return sample_backward(x, tau);
+    }
+    return sample_forward(find_position_at_t0(x, t), t - m_t0 + tau);
+  }
+  //----------------------------------------------------------------------------
+  /// Evaluates flow map in forward direction at time t0 with maximal available
+  /// advection time.
+  /// \param x position
+  /// \returns phi(x, t0, t1 - t0)
+  auto sample_forward(pos_t const& x) const {
+    return m_forward_sampler(x);
+  }
+  // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+  /// Evaluates flow map in forward direction at time t0 with an advection time
+  /// of tau.
+  /// \param x position
+  /// \param tau advection time (needs to be positive)
+  /// \returns phi(x, t0, tau)
+  auto sample_forward(pos_t const& x, real_t const tau) const {
+    assert(tau > 0);
+    return interpolation::linear{
+        x, m_forward_sampler(x)}((tau - m_t0) / (m_t1 - m_t0));
+  }
+  //----------------------------------------------------------------------------
+  /// Evaluates flow map in backward direction at time t1 with maximal available
+  /// advection time.
+  /// \param x position
+  /// \returns phi(x, t0, t0 - t1)
+  auto sample_backward(pos_t const& x) const {
+    return m_backward_sampler(x);
+  }
+  // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+  /// Evaluates flow map in backward direction at time t1 with an advection time
+  /// of tau.
+  /// \param x position
+  /// \param tau advection time (needs to be negative)
+  /// \returns phi(x, t1, tau)
+  auto sample_backward(pos_t const& x, real_t const tau) const {
+    assert(tau < 0);
+    return interpolation::linear{
+        x, m_backward_sampler(x)}((-tau - m_t0) / (m_t1 - m_t0));
+  }
+  //----------------------------------------------------------------------------
+  /// TODO Implement!
+  auto find_position_at_t0(pos_t const& /*x*/, real_t const /*t*/) const {
+    return pos_t::fill(real_t(0) / real_t(0));
+  }
 };
 //==============================================================================
 }  // namespace tatooine

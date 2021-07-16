@@ -502,7 +502,7 @@ template <typename V, typename VReal, typename TReal, size_t NumDims,
 auto discretize(field<V, VReal, NumDims, Tensor> const& f,
                 vec<BasisReal, NumDims> const& extent0,
                 vec<BasisReal, NumDims> const& extent1,
-                vec<X0Real, NumDims> const& x0,
+                vec<X0Real, NumDims> const& /*x0*/,
                 size_t const res0, size_t const res1,
                 std::string const& property_name, TReal const t) {
   auto basis = mat<BasisReal, NumDims, 2>{};

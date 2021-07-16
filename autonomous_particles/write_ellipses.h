@@ -22,7 +22,6 @@ auto write_x0(std::ranges::range auto const& particles,
         *inv(p.nabla_phi1()) * p.S() * p.S() * *inv(transposed(p.nabla_phi1()));
     auto [eig_vecs, eig_vals] = eigenvectors_sym(sqrS);
     eig_vals = {std::sqrt(eig_vals(0)), std::sqrt(eig_vals(1))};
-    transposed(eig_vecs);
 
     auto   Sback = eig_vecs * diag(eig_vals) * transposed(eig_vecs);
     mat23f T{{Sback(0, 0), Sback(0, 1), p.x0()(0)},

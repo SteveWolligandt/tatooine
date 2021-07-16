@@ -4,6 +4,7 @@
 #include <tatooine/base_tensor.h>
 //==============================================================================
 #include <tatooine/math.h>
+#include <tatooine/is_transposed_tensor.h>
 #include <tatooine/multidim_array.h>
 #include <tatooine/tags.h>
 #include <tatooine/utility.h>

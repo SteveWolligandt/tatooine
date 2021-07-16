@@ -51,7 +51,7 @@ class grid {
   using dimensions_t = std::tuple<std::decay_t<Dimensions>...>;
 
   using vertex_container = grid_vertex_container<Dimensions...>;
-  using vertex_handle    = grid_vertex_handle<Dimensions...>;
+  using vertex_handle    = grid_vertex_handle<sizeof...(Dimensions)>;
   using cell_container   = grid_cell_container<Dimensions...>;
 
   // general property types

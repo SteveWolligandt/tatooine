@@ -44,8 +44,9 @@ using default_grid_vertex_sampler_t =
 template <typename Grid>
 struct grid_vertex_property {
   //============================================================================
-  using this_t = grid_vertex_property<Grid>;
-  using real_t = typename Grid::real_t;
+  using this_t        = grid_vertex_property<Grid>;
+  using real_t        = typename Grid::real_t;
+  using vertex_handle = typename Grid::vertex_handle;
   //============================================================================
   static constexpr auto num_dimensions() { return Grid::num_dimensions(); }
   //============================================================================
@@ -86,6 +87,7 @@ struct typed_grid_vertex_property_interface : grid_vertex_property<Grid> {
   using grid_t = Grid;
   using parent_t::grid;
   using parent_t::num_dimensions;
+  using typename parent_t::vertex_handle;
 
   //============================================================================
   // ctors
@@ -156,6 +158,14 @@ struct typed_grid_vertex_property_interface : grid_vertex_property<Grid> {
   //----------------------------------------------------------------------------
   // data access
   //----------------------------------------------------------------------------
+  constexpr auto operator[](vertex_handle const& h) const -> decltype(auto) {
+    return at(h);
+  }
+  // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+  constexpr auto operator[](vertex_handle const& h) -> decltype(auto) {
+    return at(h);
+  }
+  // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
   constexpr auto operator()(
       std::array<size_t, num_dimensions()> const& is) const -> decltype(auto) {
     return at(is);
@@ -190,6 +200,29 @@ struct typed_grid_vertex_property_interface : grid_vertex_property<Grid> {
     return at(std::array{static_cast<size_t>(is)...});
   }
   //----------------------------------------------------------------------------
+  constexpr auto at(vertex_handle const& h) const -> decltype(auto) {
+    return at(h, std::make_index_sequence<num_dimensions()>{});
+  }
+  // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+  constexpr auto at(vertex_handle const& h) -> decltype(auto) {
+    return at(h, std::make_index_sequence<num_dimensions()>{});
+  }
+  // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+ private:
+  template <size_t... Is>
+  constexpr auto at(vertex_handle const& h,
+                    std::index_sequence<Is...> /*seq*/) const
+      -> decltype(auto) {
+    return at(h.index(Is)...);
+  }
+  // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+  template <size_t... Is>
+  constexpr auto at(vertex_handle const& h, std::index_sequence<Is...> /*seq*/)
+      -> decltype(auto) {
+    return at(h.index(Is)...);
+  }
+  //----------------------------------------------------------------------------
+ public:
 #ifdef __cpp_concepts
   template <integral... Is>
   requires(sizeof...(Is) == Grid::num_dimensions())

@@ -1,12 +1,11 @@
 #ifndef TATOOINE_AUTONOMOUS_PARTICLES
 #define TATOOINE_AUTONOMOUS_PARTICLES
 //==============================================================================
+#include <tatooine/tensor.h>
 #include <tatooine/concepts.h>
 #include <tatooine/numerical_flowmap.h>
 #include <tatooine/random.h>
-#include <tatooine/tensor.h>
-
-#include <tatooine/concepts.h>
+#include <tatooine/geometry/hyper_ellipse.h>
 //==============================================================================
 namespace tatooine {
 //==============================================================================
@@ -24,15 +23,15 @@ struct autonomous_particle {
   using mat_t                = mat<real_t, N, N>;
   using pos_t                = vec_t;
   using container_t          = std::deque<autonomous_particle<Real, N>>;
+  using ellipse_t            = geometry::hyper_ellipse<Real, N>;
   //----------------------------------------------------------------------------
   // members
   //----------------------------------------------------------------------------
  private:
-  pos_t                     m_x0, m_x1;
-  real_t                    m_t1;
-  mat_t                     m_nabla_phi1;
-  mat_t                     m_S;
-  std::pair<real_t, real_t> m_propability_range;
+  pos_t     m_x0, m_x1;
+  real_t    m_t1;
+  mat_t     m_nabla_phi1;
+  ellipse_t m_ellipse;
 
   //----------------------------------------------------------------------------
   // ctors
@@ -48,12 +47,10 @@ struct autonomous_particle {
   //----------------------------------------------------------------------------
   autonomous_particle() : m_nabla_phi1{mat_t::eye()} {}
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-  autonomous_particle(pos_t const& x0, real_t t0, real_t r0,
-                      std::pair<real_t, real_t> const& propability_range);
+  autonomous_particle(pos_t const& x0, real_t const t0, real_t const r0);
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-  autonomous_particle(pos_t const& x0, pos_t const& x1, real_t t1,
-                      mat_t const& nabla_phi1, mat_t const& S,
-                      std::pair<real_t, real_t> const& propability_range);
+  autonomous_particle(pos_t const& x0, pos_t const& x1, real_t const t1,
+                      mat_t const& nabla_phi1, ellipse_t const& ell);
   //----------------------------------------------------------------------------
   // getters / setters
   //----------------------------------------------------------------------------
@@ -66,8 +63,10 @@ struct autonomous_particle {
   auto t1() -> auto& { return m_t1; }
   auto t1() const { return m_t1; }
   auto nabla_phi1() const -> auto const& { return m_nabla_phi1; }
-  auto S() -> auto& { return m_S; }
-  auto S() const -> auto const& { return m_S; }
+  auto S() -> auto& { return ellipse().S(); }
+  auto S() const -> auto const& { return ellipse().S(); }
+  auto ellipse() -> auto& { return m_ellipse; }
+  auto ellipse() const -> auto const& { return m_ellipse; }
 
   //----------------------------------------------------------------------------
   // methods
@@ -253,20 +252,18 @@ struct autonomous_particle {
   template <typename Flowmap>
   auto advect(Flowmap& phi, real_t const tau_step, real_t const max_t,
               real_t const objective_cond, size_t const max_num_particles,
-              range auto const  radii,
-              range auto const& offsets,
-              bool const&                    stop = false) const {
+              range auto const radii, range auto const& offsets,
+              bool const& stop = false) const {
     return advect(phi, tau_step, max_t, objective_cond, max_num_particles,
                   radii, offsets, {*this}, stop);
   }
   //----------------------------------------------------------------------------
   template <typename Flowmap>
   static auto advect(Flowmap& phi, real_t const tau_step, real_t const max_t,
-                     real_t const                   objective_cond,
-                     size_t const                   max_num_particles,
-                     range auto const  radii,
-                     range auto const& offsets,
-                     container_t input_particles, bool const& stop = false) {
+                     real_t const objective_cond,
+                     size_t const max_num_particles, range auto const radii,
+                     range auto const& offsets, container_t input_particles,
+                     bool const& stop = false) {
     auto finished_particles_mutex = std::mutex{};
     auto advected_particles_mutex = std::mutex{};
     auto finished_particles       = container_t{};
@@ -317,8 +314,7 @@ struct autonomous_particle {
   auto advect_until_split(Flowmap& phi, real_t const tau_step,
                           real_t const max_t, real_t const objective_cond,
                           range auto const  radii,
-                          range auto const& offsets) const
-      -> container_t {
+                          range auto const& offsets) const -> container_t {
     auto advected = container_t{};
     auto mut      = std::mutex{};
 
@@ -329,17 +325,15 @@ struct autonomous_particle {
   }
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
   template <typename Flowmap>
-  auto advect_until_split(Flowmap& phi, real_t tau_step, real_t const max_t,
-                          real_t const                   objective_cond,
-                          range auto const  radii,
-                          range auto const& offsets,
-                          range auto& out, auto& out_mutex,
-                          range auto& finished_particles,
+  auto advect_until_split(Flowmap&& phi, real_t tau_step, real_t const max_t,
+                          real_t const objective_cond, range auto const radii,
+                          range auto const& offsets, range auto& out,
+                          auto& out_mutex, range auto& finished_particles,
                           auto& finished_particles_mutex) const {
     bool                    tau_should_have_changed_but_did_not = false;
     static constexpr real_t min_tau_step                        = 1e-8;
     static constexpr real_t max_cond_overshoot                  = 1e-6;
-    auto const [Q, lambdas] = eigenvectors_sym(m_S);
+    auto const [Q, lambdas] = eigenvectors_sym(S());
     auto const Sigma        = diag(lambdas);
     auto const B            = Q * Sigma;  // current main axes
 
@@ -361,7 +355,7 @@ struct autonomous_particle {
     auto   old_ghosts          = ghosts;
     auto   old_cond_HHt        = cond_HHt;
     bool   first               = true;
-    if constexpr (is_cacheable(phi)) {
+    if constexpr (is_cacheable<std::decay_t<decltype(phi)>>()) {
       phi.use_caching(false);
     }
 
@@ -406,17 +400,13 @@ struct autonomous_particle {
       if (t2 == max_t && cond_HHt <= objective_cond + max_cond_overshoot) {
         auto lock = std::lock_guard{finished_particles_mutex};
         finished_particles.emplace_back(m_x0, advected_center, t2, fmg2fmg1,
-                                        cur_S, m_propability_range);
+                                        cur_S);
         return;
       }
       if ((cond_HHt >= objective_cond &&
            cond_HHt <= objective_cond + max_cond_overshoot) ||
           tau_should_have_changed_but_did_not) {
-        //std::cout << "===[" << m_propability_range.first << ", "
-        //          << m_propability_range.second << "[\n";
-        real_t       c = m_propability_range.first;
-        real_t const s = m_propability_range.second - m_propability_range.first;
-        real_t       acc_radii = 0;
+        real_t acc_radii = 0;
         for (auto const& radius : radii) {
           acc_radii += radius(0) * radius(1);
         }
@@ -426,22 +416,14 @@ struct autonomous_particle {
           auto const      offset2 = cur_B * offsets[i];
           auto const      offset0 = *inv(fmg2fmg1) * offset2;
           std::lock_guard lock{out_mutex};
-          auto const      prop = s * radii[i](0) * radii[i](1) / acc_radii;
-          auto            propability_range = std::pair{c, c + prop};
-          if (i == size(radii) - 1) {
-            propability_range.second = m_propability_range.second;
-          }
-          //std::cout << "[" << propability_range.first << ", "
-          //          << propability_range.second << "[\n";
-          c += prop;
           out.emplace_back(m_x0 + offset0, advected_center + offset2, t2,
-                           fmg2fmg1, new_S, propability_range);
+                           fmg2fmg1, new_S);
           // std::lock_guard lock2{finished_particles_mutex};
           // finished_particles.push_back(out.back());
         }
         // std::lock_guard lock{finished_particles_mutex};
         // finished_particles.emplace_back(m_x0, advected_center, t2,
-        // fmg2fmg1, cur_S, m_propability_range);
+        // fmg2fmg1, cur_S);
         return;
       }
       if (cond_HHt > objective_cond + max_cond_overshoot) {
@@ -472,6 +454,17 @@ struct autonomous_particle {
       }
     }
   }
+  //----------------------------------------------------------------------------
+  auto initial_ellipse() const {
+    auto sqrS = *inv(nabla_phi1()) * S() * S() * *inv(transposed(nabla_phi1()));
+    auto [eig_vecs, eig_vals] = eigenvectors_sym(sqrS);
+    for (size_t i = 0; i < N; ++i) {
+      eig_vals(i) = std::sqrt(eig_vals(i));
+    }
+    ellipse_t ell;
+    ell.S() = eig_vecs * diag(eig_vals) * transposed(eig_vecs);
+    return ell;
+  }
 };
 //==============================================================================
 template <typename Real, size_t N>
@@ -481,8 +474,7 @@ autonomous_particle<Real, N>::autonomous_particle(
       m_x1{other.m_x1},
       m_t1{other.m_t1},
       m_nabla_phi1{other.m_nabla_phi1},
-      m_S{other.m_S},
-      m_propability_range{other.m_propability_range} {}
+      m_ellipse{other.m_ellipse} {}
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 template <typename Real, size_t N>
 autonomous_particle<Real, N>::autonomous_particle(
@@ -491,8 +483,7 @@ autonomous_particle<Real, N>::autonomous_particle(
       m_x1{std::move(other.m_x1)},
       m_t1{other.m_t1},
       m_nabla_phi1{std::move(other.m_nabla_phi1)},
-      m_S{std::move(other.m_S)},
-      m_propability_range{std::move(other.m_propability_range)} {}
+      m_ellipse{std::move(other.m_ellipse)} {}
 
 //----------------------------------------------------------------------------
 template <typename Real, size_t N>
@@ -501,49 +492,39 @@ auto autonomous_particle<Real, N>::operator=(autonomous_particle const& other)
   if (&other == this) {
     return *this;
   };
-  m_x0                = other.m_x0;
-  m_x1                = other.m_x1;
-  m_t1                = other.m_t1;
-  m_nabla_phi1        = other.m_nabla_phi1;
-  m_S                 = other.m_S;
-  m_propability_range = other.m_propability_range;
+  m_x0         = other.m_x0;
+  m_x1         = other.m_x1;
+  m_t1         = other.m_t1;
+  m_nabla_phi1 = other.m_nabla_phi1;
+  m_ellipse    = other.m_ellipse;
   return *this;
 }
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 template <typename Real, size_t N>
 auto autonomous_particle<Real, N>::operator=(
     autonomous_particle&& other) noexcept -> autonomous_particle& {
-  m_x0                = std::move(other.m_x0);
-  m_x1                = std::move(other.m_x1);
-  m_t1                = other.m_t1;
-  m_nabla_phi1        = std::move(other.m_nabla_phi1);
-  m_S                 = std::move(other.m_S);
-  m_propability_range = std::move(other.m_propability_range);
+  m_x0         = std::move(other.m_x0);
+  m_x1         = std::move(other.m_x1);
+  m_t1         = other.m_t1;
+  m_nabla_phi1 = std::move(other.m_nabla_phi1);
+  m_ellipse    = std::move(other.m_ellipse);
   return *this;
 }
 //----------------------------------------------------------------------------
 template <typename Real, size_t N>
-autonomous_particle<Real, N>::autonomous_particle(
-    pos_t const& x0, real_t const t0, real_t const r0,
-    std::pair<real_t, real_t> const& propability_range)
-    : m_x0{x0},
-      m_x1{x0},
-      m_t1{t0},
-      m_nabla_phi1{mat_t::eye()},
-      m_S{mat_t::eye() * r0},
-      m_propability_range{propability_range} {}
+autonomous_particle<Real, N>::autonomous_particle(pos_t const& x0,
+                                                  real_t const t0,
+                                                  real_t const r0)
+    : m_x0{x0}, m_x1{x0}, m_t1{t0}, m_nabla_phi1{mat_t::eye()}, m_ellipse{r0} {}
 
 //----------------------------------------------------------------------------
 template <typename Real, size_t N>
-autonomous_particle<Real, N>::autonomous_particle(
-    pos_t const& x0, pos_t const& x1, real_t const t1, mat_t const& nabla_phi1,
-    mat_t const& S, std::pair<real_t, real_t> const& propability_range)
-    : m_x0{x0},
-      m_x1{x1},
-      m_t1{t1},
-      m_nabla_phi1{nabla_phi1},
-      m_S{S},
-      m_propability_range{propability_range} {}
+autonomous_particle<Real, N>::autonomous_particle(pos_t const&     x0,
+                                                  pos_t const&     x1,
+                                                  real_t const     t1,
+                                                  mat_t const&     nabla_phi1,
+                                                  ellipse_t const& ell)
+    : m_x0{x0}, m_x1{x1}, m_t1{t1}, m_nabla_phi1{nabla_phi1}, m_ellipse{ell} {}
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 // deduction guides
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
