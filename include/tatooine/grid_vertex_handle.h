@@ -6,14 +6,14 @@
 //==============================================================================
 namespace tatooine {
 //==============================================================================
-template <typename... Dimensions>
+template <size_t NumDimensions>
 struct grid_vertex_handle {
  private:
-  std::array<size_t, sizeof...(Dimensions)> m_indices;
+  std::array<size_t, NumDimensions> m_indices;
   size_t m_plain_index;
 
  public:
-  static constexpr auto num_dimensions() { return sizeof...(Dimensions); }
+  static constexpr auto num_dimensions() { return NumDimensions; }
   //----------------------------------------------------------------------------
 #ifdef __cpp_concepts
   template <integral... Is>
@@ -40,6 +40,9 @@ struct grid_vertex_handle {
   //----------------------------------------------------------------------------
   constexpr auto indices() const -> auto const& { return m_indices; }
   constexpr auto indices() -> auto& { return m_indices; }
+  //----------------------------------------------------------------------------
+  constexpr auto index(size_t const i) const -> auto const& { return m_indices[i]; }
+  constexpr auto index(size_t const i) -> auto& { return m_indices[i]; }
   //----------------------------------------------------------------------------
   constexpr auto plain_index() const -> auto const& { return m_plain_index; }
   constexpr auto plain_index() -> auto& { return m_plain_index; }

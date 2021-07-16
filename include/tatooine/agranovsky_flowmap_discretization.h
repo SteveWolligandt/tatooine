@@ -21,7 +21,7 @@ struct agranovsky_flowmap_discretization {
                                     pos_t const& min, pos_t const& max,
                                     integral auto const... resolution) {
     auto cur_t0 = t0;
-    while (cur_t0 + delta_t < t0 + tau) {
+    while (cur_t0 < t0 + tau) {
       auto cur_tau = delta_t;
       if (cur_t0 + cur_tau > t0 + tau) {
         cur_tau = t0 + tau - cur_t0;
@@ -33,10 +33,37 @@ struct agranovsky_flowmap_discretization {
     }
   }
   //----------------------------------------------------------------------------
-  auto steps() const -> auto const& {
+  auto stepped_flowmap_discretizations() const -> auto const& {
     return m_stepped_flowmap_discretizations;
   }
-  auto steps() -> auto& { return m_stepped_flowmap_discretizations; }
+  // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+  auto stepped_flowmap_discretizations() -> auto& {
+    return m_stepped_flowmap_discretizations;
+  }
+  //----------------------------------------------------------------------------
+  /// Evaluates flow map in forward direction at time t0 with maximal available
+  /// advection time.
+  /// \param x position
+  /// \returns phi(x, t0, t1 - t0)
+  auto sample_forward(pos_t x) const {
+    for (auto const& step : m_stepped_flowmap_discretizations) {
+      x = step.sample_forward(x);
+    }
+    return x;
+  }
+  //----------------------------------------------------------------------------
+  /// Evaluates flow map in forward direction at time t0 with maximal available
+  /// advection time.
+  /// \param x position
+  /// \returns phi(x, t0, t1 - t0)
+  auto sample_backward(pos_t x) const {
+    for (auto it = m_stepped_flowmap_discretizations.rbegin();
+         it != m_stepped_flowmap_discretizations.rend(); ++it) {
+      auto const& step = *it;
+      x = step.sample_backward(x);
+    }
+    return x;
+  }
 };
 //==============================================================================
 }  // namespace tatooine

@@ -259,8 +259,8 @@ template <typename T>
 struct is_tensor_impl<T, std::void_t<decltype(std::decay_t<T>::is_tensor())>>
     : std::integral_constant<bool, std::decay_t<T>::is_tensor()> {};
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-template <typename T>
-using enable_if_tensor = enable_if<is_tensor<T>>;
+template <typename... Ts>
+using enable_if_tensor = enable_if<is_tensor<Ts>...>;
 //------------------------------------------------------------------------------
 template <typename T, typename Void = void>
 struct is_vec_impl : std::false_type {};
@@ -272,8 +272,8 @@ template <typename T>
 struct is_vec_impl<T, std::void_t<decltype(std::decay_t<T>::is_vec())>>
     : std::integral_constant<bool, std::decay_t<T>::is_vec()> {};
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-template <typename T>
-using enable_if_vec = enable_if<is_vec<T>>;
+template <typename... Ts>
+using enable_if_vec = enable_if<is_vec<Ts>...>;
 //==============================================================================
 template <typename T, typename Void = void>
 struct is_mat_impl : std::false_type {};
@@ -285,8 +285,8 @@ template <typename T>
 struct is_mat_impl<T, std::void_t<decltype(std::decay_t<T>::is_mat())>>
     : std::integral_constant<bool, std::decay_t<T>::is_mat()> {};
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-template <typename T>
-using enable_if_mat = enable_if<is_mat<T>>;
+template <typename... Ts>
+using enable_if_mat = enable_if<is_mat<Ts>...>;
 //==============================================================================
 template <typename T, typename Void = void>
 struct is_quadratic_mat_impl : std::false_type {};
@@ -312,7 +312,7 @@ struct vec;
 }  // namespace tatooine
 //==============================================================================
 #include <tatooine/tensor_utility.h>
-#include <tatooine/transposed_tensor.h>
+//#include <tatooine/transposed_tensor.h>
 //==============================================================================
 #include <tatooine/tensor.h>
 //==============================================================================

@@ -587,9 +587,9 @@ struct line {
       std::vector<std::vector<size_t>> line_seq(
           1, std::vector<size_t>(this->num_vertices()));
       boost::iota(line_seq.front(), 0);
-      // if (this->is_closed()) {
-      //  line_seq.front().push_back(0);
-      //}
+       if (this->is_closed()) {
+        line_seq.front().push_back(0);
+      }
       writer.write_lines(line_seq);
 
       writer.write_point_data(this->num_vertices());

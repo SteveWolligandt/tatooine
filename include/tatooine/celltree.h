@@ -29,7 +29,7 @@ struct celltree_parent<Celltree, real_t, 3, 3> : ray_intersectable<real_t, 3> {
   auto as_celltree() const -> auto const& {
     return *dynamic_cast<Celltree const*>(this);
   }
-  auto check_intersection(ray_t const& r, real_t const min_t = 0) const
+  auto check_intersection(ray_t const& /*r*/, real_t const /*min_t*/ = 0) const
       -> optional_intersection_t override {
     auto const& c        = as_celltree();
     auto        cur_aabb = c.bounding_box();

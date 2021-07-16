@@ -140,10 +140,12 @@ macro(create_test NAME)
           -fno-inline-small-functions -fno-default-inline
           -Wno-missing-braces -Wno-unused-lambda-capture)
 
-      SETUP_TARGET_FOR_COVERAGE_LCOV(
-        NAME unittests.${NAME}.lcov
-        EXECUTABLE unittests.${NAME}.gcov
-        DEPENDENCIES unittests.${NAME}.gcov)
+      if(LCOV_PATH)
+        SETUP_TARGET_FOR_COVERAGE_LCOV(
+          NAME unittests.${NAME}.lcov
+          EXECUTABLE unittests.${NAME}.gcov
+          DEPENDENCIES unittests.${NAME}.gcov)
+      endif()
 
       SETUP_TARGET_FOR_COVERAGE_GCOVR_HTML(
         NAME unittests.${NAME}.gcovr.html
@@ -263,10 +265,12 @@ if(CMAKE_BUILD_TYPE STREQUAL "Debug")
         -fno-inline-small-functions -fno-default-inline
         -Wno-missing-braces -Wno-unused-lambda-capture)
 
-    SETUP_TARGET_FOR_COVERAGE_LCOV(
-      NAME unittests.lcov
-      EXECUTABLE unittests.gcov
-      DEPENDENCIES unittests.gcov)
+    if(LCOV_PATH)
+      SETUP_TARGET_FOR_COVERAGE_LCOV(
+        NAME unittests.lcov
+        EXECUTABLE unittests.gcov
+        DEPENDENCIES unittests.gcov)
+    endif()
 
     SETUP_TARGET_FOR_COVERAGE_GCOVR_HTML(
       NAME unittests.gcovr.html

@@ -21,12 +21,13 @@ class grid;
 //==============================================================================
 template <typename... Dimensions>
 struct grid_vertex_iterator
-    : boost::iterator_facade<grid_vertex_iterator<Dimensions...>, grid_vertex_handle<Dimensions...>,
+    : boost::iterator_facade<grid_vertex_iterator<Dimensions...>,
+                             grid_vertex_handle<sizeof...(Dimensions)>,
                              boost::bidirectional_traversal_tag> {
   static constexpr auto num_dimensions() { return sizeof...(Dimensions); }
   using difference_type   = size_t;
   using grid_t            = grid<Dimensions...>;
-  using value_type        = grid_vertex_handle<Dimensions...>;
+  using value_type        = grid_vertex_handle<num_dimensions()>;
   using pointer           = value_type*;
   using reference         = value_type&;
   using iterator_category = std::bidirectional_iterator_tag;
@@ -34,11 +35,11 @@ struct grid_vertex_iterator
   //============================================================================
  private:
   grid_t const* const                       m_grid;
-  mutable grid_vertex_handle<Dimensions...> m_handle;
+  mutable grid_vertex_handle<num_dimensions()> m_handle;
   //============================================================================
  public:
   grid_vertex_iterator(grid_t const* const                      g,
-                       grid_vertex_handle<Dimensions...> const& h)
+                       grid_vertex_handle<num_dimensions()> const& h)
       : m_grid{g}, m_handle{h} {}
   //----------------------------------------------------------------------------
   grid_vertex_iterator(grid_vertex_iterator const &) = default;

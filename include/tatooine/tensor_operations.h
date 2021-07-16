@@ -2,6 +2,7 @@
 #define TATOOINE_TENSOR_OPERATIONS_H
 //==============================================================================
 #include <tatooine/tensor.h>
+#include <tatooine/transposed_tensor.h>
 
 #include <optional>
 //==============================================================================
@@ -686,10 +687,44 @@ template <typename Real, size_t M, size_t N>
 auto solve(tensor<Real, M, N> const& A, tensor<Real, N> const& b) {
   return lapack::gesv(A, b);
 }
-//------------------------------------------------------------------------------
+// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+template <typename T0, typename T1, typename Real, size_t M, size_t N>
+auto solve(base_tensor<T0, Real, M, N> const& A,
+           base_tensor<T1, Real, N> const&    b) {
+  return solve(mat<Real, M, N>{A}, vec<Real, N>{b});
+}
+// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+template <typename T1, typename Real, size_t M, size_t N>
+auto solve(tensor<Real, M, N> const& A, base_tensor<T1, Real, N> const& b) {
+  return solve(A, vec<Real, N>{b});
+}
+// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+template <typename T0, typename Real, size_t M, size_t N>
+auto solve(base_tensor<T0, Real, M, N> const& A, tensor<Real, N> const& b) {
+  return solve(mat<Real, M, N>{A}, b);
+}
+// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 template <typename Real, size_t M, size_t N, size_t O>
 auto solve(tensor<Real, M, N> const& A, tensor<Real, N, O> const& B) {
   return lapack::gesv(A, B);
+}
+// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+template <typename T0, typename T1, typename Real, size_t M, size_t N, size_t O>
+auto solve(base_tensor<T0, Real, M, N> const& A,
+           base_tensor<T1, Real, N, O> const&    b) {
+  return solve(mat<Real, M, N>{A}, mat<Real, N, O>{b});
+}
+// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+template < typename T1, typename Real, size_t M, size_t N, size_t O>
+auto solve(tensor<Real, M, N> const& A,
+           base_tensor<T1, Real, N, O> const&    b) {
+  return solve(A, mat<Real, N, O>{b});
+}
+// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+template <typename T0, typename Real, size_t M, size_t N, size_t O>
+auto solve(base_tensor<T0, Real, M, N> const& A,
+           tensor<Real, N, O> const& b) {
+  return solve(mat<Real, M, N>{A}, b);
 }
 //------------------------------------------------------------------------------
 template <typename Tensor, typename TensorT, size_t... Dims>

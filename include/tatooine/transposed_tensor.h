@@ -106,7 +106,6 @@ constexpr auto transposed(
   return transposed_tensor.as_derived().internal_tensor();
 }
 //==============================================================================
-//------------------------------------------------------------------------------
 template <typename Tensor, size_t M, size_t N>
 struct is_transposed_tensor<const_transposed_tensor<Tensor, M, N>>
     : std::true_type {};

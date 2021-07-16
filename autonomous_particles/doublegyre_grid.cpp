@@ -1,7 +1,7 @@
 #include <tatooine/analytical/fields/numerical/doublegyre.h>
 #include <tatooine/autonomous_particle.h>
 #include <tatooine/chrono.h>
-#include <tatooine/agranovsky_flowmap_sampler.h>
+#include <tatooine/agranovsky_flowmap_discretization.h>
 #include <tatooine/grid.h>
 #include <tatooine/netcdf.h>
 #include <tatooine/progress_bars.h>
@@ -35,10 +35,8 @@ auto create_initial_particles(args_t const& args) {
   auto       vs                        = initial_distribution_grid.vertices();
   auto const r0 = initial_distribution_grid.dimension<0>().spacing() / 2;
   autonomous_particle_2::container_t initial_particles;
-  real_t                             c = 0;
   for (auto const& v : vs) {
-    initial_particles.emplace_back(vs[v], args.t0, r0, std::pair{c, c + 1});
-    c += 1;
+    initial_particles.emplace_back(vs[v], args.t0, r0);
   }
 
   // overlapping particles
@@ -76,14 +74,14 @@ auto create_autonomous_mesh(range auto const& autonomous_particles) {
 auto create_agranovsky_flowmap(auto&& v, size_t const grid_min_extent,
                                args_t const& args) {
   double const agranovsky_delta_t = 1;
-  return agranovsky_flowmap_sampler{v,
-                            args.t0,
-                            args.tau,
-                            agranovsky_delta_t,
-                            vec2{0, 0},
-                            vec2{2, 1},
-                            grid_min_extent * 2,
-                            grid_min_extent};
+  return agranovsky_flowmap_discretization{v,
+                                           args.t0,
+                                           args.tau,
+                                           agranovsky_delta_t,
+                                           vec2{0, 0},
+                                           vec2{2, 1},
+                                           grid_min_extent * 2,
+                                           grid_min_extent};
 }
 //------------------------------------------------------------------------------
 // template <typename... Flowmaps>

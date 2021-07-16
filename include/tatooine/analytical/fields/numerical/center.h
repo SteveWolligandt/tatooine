@@ -136,9 +136,9 @@ namespace tatooine {
 //==============================================================================
 template <typename Real>
 struct differentiated_field<analytical::fields::numerical::center<Real>>
-    : field<analytical::fields::numerical::center<Real>, Real, 2, 2, 2> {
+    : matrixfield<analytical::fields::numerical::center<Real>, Real, 2> {
   using this_t   = differentiated_field<analytical::fields::numerical::center<Real>>;
-  using parent_t = field<this_t, Real, 2, 2, 2>;
+  using parent_t = matrixfield<this_t, Real, 2>;
   using typename parent_t::pos_t;
   using typename parent_t::tensor_t;
 
@@ -170,15 +170,13 @@ struct differentiated_field<analytical::fields::numerical::center<Real>>
 //==============================================================================
 template <typename Real>
 constexpr auto diff(analytical::fields::numerical::center<Real>&) {
-  return differentiated_field<analytical::fields::numerical::center<Real>, 2,
-                              2>{};
+  return differentiated_field<analytical::fields::numerical::center<Real>>{};
 }
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 template <typename Real>
 constexpr auto diff(
     vectorfield<analytical::fields::numerical::center<Real>, Real, 2> const&) {
-  return differentiated_field<analytical::fields::numerical::center<Real>, 2,
-                              2>{};
+  return differentiated_field<analytical::fields::numerical::center<Real>>{};
 }
 //==============================================================================
 }  // namespace tatooine
