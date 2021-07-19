@@ -6,8 +6,91 @@
 #include <tatooine/numerical_flowmap.h>
 #include <tatooine/random.h>
 #include <tatooine/geometry/hyper_ellipse.h>
+#include <tatooine/tags.h>
 //==============================================================================
 namespace tatooine {
+//==============================================================================
+template <typename Real, size_t N>
+struct autonomous_particle_sampler {
+  using vec_t = vec<Real, N>;
+  using pos_t = vec_t;
+  using mat_t = mat<Real, N, N>;
+
+  private:
+  vec_t m_x0, m_x1;
+  mat_t m_B0, m_B1;
+  mat_t m_forward_transformation, m_backward_transformation;
+
+  public:
+   autonomous_particle_sampler(autonomous_particle_sampler const&) = default;
+   autonomous_particle_sampler(autonomous_particle_sampler&&) noexcept =
+       default;
+   auto operator=(autonomous_particle_sampler const&)
+       -> autonomous_particle_sampler& = default;
+   auto operator=(autonomous_particle_sampler&&) noexcept
+       -> autonomous_particle_sampler& = default;
+   autonomous_particle_sampler(vec_t const& x0, vec_t const& x1,
+                               mat_t const& B0, mat_t const& B1,
+                               mat_t const& F,  mat_t const& B)
+       : m_x0{x0},
+         m_x1{x1},
+         m_B0{B0},
+         m_B1{B1},
+         m_forward_transformation{F},
+         m_backward_transformation{B} {}
+
+   auto x0() const -> auto const& { return m_x0; }
+   auto x1() const -> auto const& { return m_x1; }
+   auto B0() const -> auto const& { return m_B0; }
+   auto B1() const -> auto const& { return m_B1; }
+   auto forward_transformation() const -> auto const& {
+     return m_forward_transformation;
+  }
+  auto backward_transformation() const -> auto const& {
+    return m_backward_transformation;
+  }
+
+  auto sample_forward(pos_t const& x) const {
+    return m_forward_transformation * (x - m_x0) + m_x1;
+  }
+  auto operator()(pos_t const& x, tag::forward_t /*tag*/) const {
+    return sample_forward(x);
+  }
+  auto sample_backward(pos_t const& x) const {
+    return m_backward_transformation * (x - m_x1) + m_x0;
+  }
+  auto operator()(pos_t const& x, tag::backward_t /*tag*/) const {
+    return sample_backward(x);
+  }
+  auto is_inside0(pos_t const& x) const {
+    auto const local_x = x - m_x0;
+    return sqr_length(local_x) <=
+           sqr_length(m_B0 * normalize(*inv(m_B0) * local_x));
+  }
+  auto is_inside1(pos_t const& x) const {
+    auto const local_x = x - m_x0;
+    return sqr_length(local_x) <=
+           sqr_length(m_B1 * normalize(*inv(m_B1) * local_x));
+  }
+  auto S0() const {
+    auto Q = m_B0;
+    auto Sig = vec_t{};
+    for (size_t i = 0; i < N; ++i) {
+      Sig(i) = length(Q.col(i));
+      Q.col(i) = Q.col(i) / Sig(i);
+    }
+    return Q * diag(Sig) * transposed(Q);
+  }
+  auto S1() const {
+    auto Q = m_B1;
+    auto Sig = vec_t{};
+    for (size_t i = 0; i < N; ++i) {
+      Sig(i) = length(Q.col(i));
+      Q.col(i) = Q.col(i) / Sig(i);
+    }
+    return Q * diag(Sig) * transposed(Q);
+  }
+};
 //==============================================================================
 template <typename Real, size_t N>
 struct autonomous_particle {
@@ -63,10 +146,25 @@ struct autonomous_particle {
   auto t1() -> auto& { return m_t1; }
   auto t1() const { return m_t1; }
   auto nabla_phi1() const -> auto const& { return m_nabla_phi1; }
-  auto S() -> auto& { return ellipse().S(); }
-  auto S() const -> auto const& { return ellipse().S(); }
+  //----------------------------------------------------------------------------
+  auto S0() const { return initial_ellipse().S(); }
+  //----------------------------------------------------------------------------
+  auto S1() -> auto& { return initial_ellipse().S(); }
+  auto S1() const -> auto const& { return ellipse().S(); }
+  //----------------------------------------------------------------------------
   auto ellipse() -> auto& { return m_ellipse; }
   auto ellipse() const -> auto const& { return m_ellipse; }
+  //----------------------------------------------------------------------------
+  auto initial_ellipse() const {
+    auto sqrS = *inv(nabla_phi1()) * S1() * S1() * *inv(transposed(nabla_phi1()));
+    auto [eig_vecs, eig_vals] = eigenvectors_sym(sqrS);
+    for (size_t i = 0; i < N; ++i) {
+      eig_vals(i) = std::sqrt(eig_vals(i));
+    }
+    ellipse_t ell;
+    ell.S() = eig_vecs * diag(eig_vals) * transposed(eig_vecs);
+    return ell;
+  }
 
   //----------------------------------------------------------------------------
   // methods
@@ -333,7 +431,7 @@ struct autonomous_particle {
     bool                    tau_should_have_changed_but_did_not = false;
     static constexpr real_t min_tau_step                        = 1e-8;
     static constexpr real_t max_cond_overshoot                  = 1e-6;
-    auto const [Q, lambdas] = eigenvectors_sym(S());
+    auto const [Q, lambdas] = eigenvectors_sym(S1());
     auto const Sigma        = diag(lambdas);
     auto const B            = Q * Sigma;  // current main axes
 
@@ -454,16 +552,22 @@ struct autonomous_particle {
       }
     }
   }
-  //----------------------------------------------------------------------------
-  auto initial_ellipse() const {
-    auto sqrS = *inv(nabla_phi1()) * S() * S() * *inv(transposed(nabla_phi1()));
-    auto [eig_vecs, eig_vals] = eigenvectors_sym(sqrS);
+  auto sampler() const {
+    static constexpr auto I = mat_t::eye();
+    auto [Q0, Sig0] = eigenvectors_sym(S0());
+    auto [Q1, Sig1] = eigenvectors_sym(S1());
     for (size_t i = 0; i < N; ++i) {
-      eig_vals(i) = std::sqrt(eig_vals(i));
+      if (dot(Q0.col(i), I.col(i)) < 0) {
+        Q0.col(i) = -1 * Q0.col(i);
+      }
+      if (dot(Q1.col(i), I.col(i)) < 0) {
+        Q1.col(i) = -1 * Q1.col(i);
+      }
     }
-    ellipse_t ell;
-    ell.S() = eig_vecs * diag(eig_vals) * transposed(eig_vecs);
-    return ell;
+    auto const B0 = Q0 * diag(Sig0);
+    auto const B1 = Q1 * diag(Sig1);
+    return autonomous_particle_sampler<Real, N>{
+        m_x0, m_x1, B0, B1, B1 * *inv(B0), B0 * *inv(B1)};
   }
 };
 //==============================================================================

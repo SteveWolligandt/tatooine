@@ -2,6 +2,9 @@
 #define TATOOINE_AUTONOMOUS_PARTICLE_FLOWMAP_DISCRETIZATION_H
 //==============================================================================
 #include <tatooine/autonomous_particle.h>
+
+#include <boost/range/adaptor/transformed.hpp>
+#include <boost/range/algorithm/copy.hpp>
 //==============================================================================
 namespace tatooine {
 //==============================================================================
@@ -9,105 +12,86 @@ template <typename Real, size_t N>
 struct autonomous_particle_flowmap_discretization {
   using vec_t = vec<Real, N>;
   using pos_t = vec_t;
-  template <size_t M, typename... Ts>
-  struct grid_type_creator {
-    using type = typename grid_type_creator<M - 1, linspace<Real>, Ts...>::type;
-  };
-  // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-  template <typename... Ts>
-  struct grid_type_creator<0, Ts...> {
-    using type = grid<Ts...>;
-  };
-  //----------------------------------------------------------------------------
-  using grid_t = typename grid_type_creator<N>::type;
-  using grid_vertex_property_t =
-      typed_grid_vertex_property_interface<grid_t, pos_t, true>;
-  //----------------------------------------------------------------------------
-  template <size_t M, template <typename> typename... InterpolationKernels>
-  struct grid_sampler_type_creator {
-    using type =
-        typename grid_sampler_type_creator<M - 1, interpolation::linear,
-                                           InterpolationKernels...>::type;
-  };
-  // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-  template <template <typename> typename... InterpolationKernels>
-  struct grid_sampler_type_creator<0, InterpolationKernels...> {
-    using type =
-        tatooine::grid_vertex_property_sampler<grid_vertex_property_t,
-                                               InterpolationKernels...>;
-  };
-  using grid_vertex_property_sampler_t =
-      typename grid_sampler_type_creator<N>::type;
-
-  using mesh_t = simplex_mesh<Real, N, N>;
-  using mesh_vertex_property_t =
-      typename mesh_t::template vertex_property_t<pos_t>;
-  using mesh_vertex_property_sampler_t =
-      typename mesh_t::template vertex_property_sampler_t<pos_t>;
   //============================================================================
  private:
-  Real m_t0;
-  Real m_t1;
-  Real m_tau;
-
-  grid_t m_initial_particle_setup;
-  std::vector<autonomous_particle<Real, N>> m_particles;
+  std::vector<autonomous_particle_sampler<Real, N>> m_samplers;
   //============================================================================
- private:
-  template <typename Flowmap, size_t... Is>
-  autonomous_particle_flowmap_discretization(std::index_sequence<Is...> /*seq*/,
-                                             Flowmap&&             flowmap,
-                                             arithmetic auto const t0,
-                                             arithmetic auto const tau,
-                                             pos_t const& min, pos_t const& max,
-                                             integral auto const... resolution)
-      : m_t0{real_t(t0)},
-        m_t1{real_t(t0 + tau)},
-        m_tau{real_t(tau)},
-        m_initial_particle_distribution{linspace<Real>{
-            min(Is), max(Is), static_cast<size_t>(resolution)}...} {
-    setup_initial_particle_distribution(std::make_index_sequence<N>{});
-  }
-  // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-  template <size_t... Is>
-  auto setup_initial_particle_distribution(std::index_sequence<Is...> /*seq*/) {
-    (setup_initial_particle_distribution<Is>(), ...);
-  }
-  // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-  template <size_t I>
-  auto setup_initial_particle_distribution() {
-    m_initial_particle_distribution.dimension<I>().pop_front();
-    auto const spacing =
-        m_initial_particle_distribution.dimension<I>().spacing();
-    m_initial_particle_distribution.dimension<I>().front() -= spacing / 2;
-    m_initial_particle_distribution.dimension<I>().back() -= spacing / 2;
-  }
-  // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
  public:
   template <typename Flowmap>
   autonomous_particle_flowmap_discretization(Flowmap&&             flowmap,
                                              arithmetic auto const t0,
-                                             arithmetic auto const tau,
-                                             pos_t const& min, pos_t const& max,
-                                             integral auto const... resolution)
-      : autonomous_particle_flowmap_discretization{
-            std::make_index_sequence<N>{},
-            std::forward<Flowmap>(flowmap),
-            t0,
-            tau,
-            min,
-            max,
-            resolution...} {
-    static_assert(
-        sizeof...(resolution) == N,
-        "Number of resolution components does not match number of dimensions.");
+                                             arithmetic auto const t1,
+                                             arithmetic auto const tau_step,
+                                             uniform_grid<Real, N> const& g) {
     static_assert(
         std::decay_t<Flowmap>::num_dimensions() == N,
         "Number of dimensions of flowmap does not match number of dimensions.");
+    auto  initial_particle_distribution = g.copy_without_properties();
+    for (size_t i = 0; i < N; ++i) {
+      initial_particle_distribution.dimension(i).pop_front();
+      auto const spacing = initial_particle_distribution.dimension(i).spacing();
+      initial_particle_distribution.dimension(i).front() -= spacing / 2;
+      initial_particle_distribution.dimension(i).back() -= spacing / 2;
+    }
+    std::deque<autonomous_particle<Real, N>> particles;
+    particles.reserve(initial_particle_distribution.vertices().size());
+    initial_particle_distribution.vertices().iterate_indices(
+        [&](auto const... is) {
+          particles.emplace_back(
+              initial_particle_distribution.vertex_at(is...), t0,
+              initial_particle_distribution.dimension(0).spacing());
+        });
+    fill(std::forward<Flowmap>(flowmap), particles, t1, tau_step);
+  }
+  // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+  template <typename Flowmap>
+  autonomous_particle_flowmap_discretization(
+      Flowmap&& flowmap, arithmetic auto const t1,
+      arithmetic auto const                            tau_step,
+      std::deque<autonomous_particle<Real, N>> const& initial_particles) {
+    static_assert(
+        std::decay_t<Flowmap>::num_dimensions() == N,
+        "Number of dimensions of flowmap does not match number of dimensions.");
+    fill(std::forward<Flowmap>(flowmap), initial_particles, t1, tau_step);
   }
   //----------------------------------------------------------------------------
-  auto sample_forward(pos_t const& x) const{
-
+  template <typename Flowmap>
+  auto fill(Flowmap&&                                       flowmap,
+            std::deque<autonomous_particle<Real, N>> const& initial_particles,
+            arithmetic auto const t1, arithmetic auto const tau_step) {
+    auto const advected_particles =
+        autonomous_particle<Real, N>::advect_with_3_splits(
+            std::forward<Flowmap>(flowmap), tau_step, t1, initial_particles);
+    m_samplers.reserve(size(advected_particles));
+    boost::copy(
+        advected_particles | boost::adaptors::transformed(
+                                 [](auto const& p) { return p.sampler(); }),
+        std::back_inserter(m_samplers));
+  }
+  //----------------------------------------------------------------------------
+  auto sample_forward(pos_t const& x) const {
+    for (auto const& sampler : m_samplers) {
+      if (sampler.is_inside0(x)) {
+        return sampler.sample_forward(x);
+      }
+    }
+    throw std::runtime_error{"out of domain"};
+  }
+  //----------------------------------------------------------------------------
+  auto operator()(pos_t const& x, tag::forward_t /*tag*/) const {
+    return sample_forward(x);
+  }
+  //----------------------------------------------------------------------------
+  auto sample_backward(pos_t const& x) const {
+    for (auto const& sampler : m_samplers) {
+      if (sampler.is_inside0(x)) {
+        return sampler.sample_backward(x);
+      }
+    }
+  }
+  //----------------------------------------------------------------------------
+  auto operator()(pos_t const& x, tag::backward_t /*tag*/) const {
+    return sample_backward(x);
   }
 };
 //==============================================================================
