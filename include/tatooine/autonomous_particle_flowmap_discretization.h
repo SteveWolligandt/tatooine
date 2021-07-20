@@ -34,7 +34,6 @@ struct autonomous_particle_flowmap_discretization {
       initial_particle_distribution.dimension(i).back() -= spacing / 2;
     }
     std::deque<autonomous_particle<Real, N>> particles;
-    particles.reserve(initial_particle_distribution.vertices().size());
     initial_particle_distribution.vertices().iterate_indices(
         [&](auto const... is) {
           particles.emplace_back(
@@ -94,6 +93,13 @@ struct autonomous_particle_flowmap_discretization {
     return sample_backward(x);
   }
 };
+template <size_t N>
+using AutonomousParticleFlowmapDiscretization =
+    autonomous_particle_flowmap_discretization<real_t, N>;
+using autonomous_particle_flowmap_discretization2 =
+    AutonomousParticleFlowmapDiscretization<2>;
+using autonomous_particle_flowmap_discretization3 =
+    AutonomousParticleFlowmapDiscretization<3>;
 //==============================================================================
 }  // namespace tatooine
 //==============================================================================

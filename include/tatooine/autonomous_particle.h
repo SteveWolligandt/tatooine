@@ -15,11 +15,11 @@ struct autonomous_particle_sampler {
   using vec_t = vec<Real, N>;
   using pos_t = vec_t;
   using mat_t = mat<Real, N, N>;
+  using ellipse_t = geometry::hyper_ellipse<Real, N>;
 
   private:
-  vec_t m_x0, m_x1;
-  mat_t m_B0, m_B1;
-  mat_t m_forward_transformation, m_backward_transformation;
+  ellipse_t m_ellipse0, m_ellipse1;
+   mat_t                  m_forward_transformation, m_backward_transformation;
 
   public:
    autonomous_particle_sampler(autonomous_particle_sampler const&) = default;
@@ -29,71 +29,43 @@ struct autonomous_particle_sampler {
        -> autonomous_particle_sampler& = default;
    auto operator=(autonomous_particle_sampler&&) noexcept
        -> autonomous_particle_sampler& = default;
-   autonomous_particle_sampler(vec_t const& x0, vec_t const& x1,
-                               mat_t const& B0, mat_t const& B1,
-                               mat_t const& F,  mat_t const& B)
-       : m_x0{x0},
-         m_x1{x1},
-         m_B0{B0},
-         m_B1{B1},
+   autonomous_particle_sampler(ellipse_t const& e0,
+                               ellipse_t const& e1, mat_t const& F,
+                               mat_t const& B)
+       : m_ellipse0{e0},
+         m_ellipse1{e1},
          m_forward_transformation{F},
          m_backward_transformation{B} {}
 
-   auto x0() const -> auto const& { return m_x0; }
-   auto x1() const -> auto const& { return m_x1; }
-   auto B0() const -> auto const& { return m_B0; }
-   auto B1() const -> auto const& { return m_B1; }
+   auto ellipse0() const -> auto const& { return m_ellipse0; }
+   auto ellipse1() const -> auto const& { return m_ellipse1; }
    auto forward_transformation() const -> auto const& {
      return m_forward_transformation;
-  }
-  auto backward_transformation() const -> auto const& {
-    return m_backward_transformation;
-  }
+   }
+   auto backward_transformation() const -> auto const& {
+     return m_backward_transformation;
+   }
 
-  auto sample_forward(pos_t const& x) const {
-    return m_forward_transformation * (x - m_x0) + m_x1;
-  }
-  auto operator()(pos_t const& x, tag::forward_t /*tag*/) const {
-    return sample_forward(x);
-  }
-  auto sample_backward(pos_t const& x) const {
-    return m_backward_transformation * (x - m_x1) + m_x0;
-  }
-  auto operator()(pos_t const& x, tag::backward_t /*tag*/) const {
-    return sample_backward(x);
-  }
-  auto is_inside0(pos_t const& x) const {
-    auto const local_x = x - m_x0;
-    return sqr_length(local_x) <=
-           sqr_length(m_B0 * normalize(*inv(m_B0) * local_x));
-  }
-  auto is_inside1(pos_t const& x) const {
-    auto const local_x = x - m_x0;
-    return sqr_length(local_x) <=
-           sqr_length(m_B1 * normalize(*inv(m_B1) * local_x));
-  }
-  auto S0() const {
-    auto Q = m_B0;
-    auto Sig = vec_t{};
-    for (size_t i = 0; i < N; ++i) {
-      Sig(i) = length(Q.col(i));
-      Q.col(i) = Q.col(i) / Sig(i);
-    }
-    return Q * diag(Sig) * transposed(Q);
-  }
-  auto S1() const {
-    auto Q = m_B1;
-    auto Sig = vec_t{};
-    for (size_t i = 0; i < N; ++i) {
-      Sig(i) = length(Q.col(i));
-      Q.col(i) = Q.col(i) / Sig(i);
-    }
-    return Q * diag(Sig) * transposed(Q);
-  }
+   auto sample_forward(pos_t const& x) const {
+     return m_forward_transformation * (x - m_ellipse0.center()) +
+            m_ellipse1.center();
+   }
+   auto operator()(pos_t const& x, tag::forward_t /*tag*/) const {
+     return sample_forward(x);
+   }
+   auto sample_backward(pos_t const& x) const {
+     return m_backward_transformation * (x - m_ellipse1.center()) +
+            m_ellipse0.center();
+   }
+   auto operator()(pos_t const& x, tag::backward_t /*tag*/) const {
+     return sample_backward(x);
+   }
+   auto is_inside0(pos_t const& x) const { return m_ellipse0.is_inside(x); }
+   auto is_inside1(pos_t const& x) const { return m_ellipse1.is_inside(x); }
 };
 //==============================================================================
 template <typename Real, size_t N>
-struct autonomous_particle {
+struct autonomous_particle : geometry::hyper_ellipse<Real, N> {
   static constexpr auto num_dimensions() { return N; }
   //----------------------------------------------------------------------------
   // typedefs
@@ -107,14 +79,14 @@ struct autonomous_particle {
   using pos_t                = vec_t;
   using container_t          = std::deque<autonomous_particle<Real, N>>;
   using ellipse_t            = geometry::hyper_ellipse<Real, N>;
+  using parent_t             = ellipse_t;
   //----------------------------------------------------------------------------
   // members
   //----------------------------------------------------------------------------
  private:
-  pos_t     m_x0, m_x1;
-  real_t    m_t1;
-  mat_t     m_nabla_phi1;
-  ellipse_t m_ellipse;
+  pos_t  m_x0;
+  real_t m_t1;
+  mat_t  m_nabla_phi1;
 
   //----------------------------------------------------------------------------
   // ctors
@@ -132,39 +104,35 @@ struct autonomous_particle {
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
   autonomous_particle(pos_t const& x0, real_t const t0, real_t const r0);
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-  autonomous_particle(pos_t const& x0, pos_t const& x1, real_t const t1,
-                      mat_t const& nabla_phi1, ellipse_t const& ell);
+  autonomous_particle(pos_t const& x0, real_t const t1, mat_t const& nabla_phi1,
+                      ellipse_t const& ell);
   //----------------------------------------------------------------------------
   // getters / setters
   //----------------------------------------------------------------------------
   auto x0() -> auto& { return m_x0; }
   auto x0() const -> auto const& { return m_x0; }
   auto x0(size_t i) const { return m_x0(i); }
-  auto x1() -> auto& { return m_x1; }
-  auto x1() const -> auto const& { return m_x1; }
-  auto x1(size_t i) const { return m_x1(i); }
+  auto x1() -> auto& { return parent_t::center(); }
+  auto x1() const -> auto const& { return parent_t::center(); }
+  auto x1(size_t i) const { return parent_t::center()(i); }
   auto t1() -> auto& { return m_t1; }
   auto t1() const { return m_t1; }
   auto nabla_phi1() const -> auto const& { return m_nabla_phi1; }
   //----------------------------------------------------------------------------
-  auto S0() const { return initial_ellipse().S(); }
-  //----------------------------------------------------------------------------
-  auto S1() -> auto& { return initial_ellipse().S(); }
-  auto S1() const -> auto const& { return ellipse().S(); }
-  //----------------------------------------------------------------------------
-  auto ellipse() -> auto& { return m_ellipse; }
-  auto ellipse() const -> auto const& { return m_ellipse; }
-  //----------------------------------------------------------------------------
-  auto initial_ellipse() const {
-    auto sqrS = *inv(nabla_phi1()) * S1() * S1() * *inv(transposed(nabla_phi1()));
+  auto S0() const {
+    auto sqrS =
+        *inv(nabla_phi1()) * S1() * S1() * *inv(transposed(nabla_phi1()));
     auto [eig_vecs, eig_vals] = eigenvectors_sym(sqrS);
     for (size_t i = 0; i < N; ++i) {
       eig_vals(i) = std::sqrt(eig_vals(i));
     }
-    ellipse_t ell;
-    ell.S() = eig_vecs * diag(eig_vals) * transposed(eig_vecs);
-    return ell;
+    return eig_vecs * diag(eig_vals) * transposed(eig_vecs);
   }
+  //----------------------------------------------------------------------------
+  auto S1() -> auto& { return parent_t::S(); }
+  auto S1() const -> auto const& { return parent_t::S(); }
+  //----------------------------------------------------------------------------
+  auto initial_ellipse() const { return ellipse_t{m_x0, S0()}; }
 
   //----------------------------------------------------------------------------
   // methods
@@ -435,20 +403,20 @@ struct autonomous_particle {
     auto const Sigma        = diag(lambdas);
     auto const B            = Q * Sigma;  // current main axes
 
-    mat_t                   H, HHt, nabla_phi2, fmg2fmg1, cur_B, cur_S;
+    mat_t                   H, HHt, nabla_phi2, fmg2fmg1, cur_B;
+    ellipse_t               advected_ellipse = *this;
     vec_t                   current_radii;
     std::pair<mat_t, vec_t> eig_HHt;
-    real_t                  cond_HHt        = 1;
-    auto const&             cur_Q           = eig_HHt.first;
-    auto const&             cur_lambdas     = eig_HHt.second;
-    vec_t                   advected_center = m_x1;
+    real_t                  cond_HHt    = 1;
+    auto const&             cur_Q       = eig_HHt.first;
+    auto const&             cur_lambdas = eig_HHt.second;
     auto                    ghosts = make_array<vec_t, num_dimensions() * 2>();
     for (size_t i = 0; i < num_dimensions(); ++i) {
-      ghosts[i * 2]     = m_x1 + B.col(i);
-      ghosts[i * 2 + 1] = m_x1 - B.col(i);
+      ghosts[i * 2]     = x1() + B.col(i);
+      ghosts[i * 2 + 1] = x1() - B.col(i);
     }
     real_t t2                  = m_t1;
-    auto   old_advected_center = advected_center;
+    auto   old_advected_center = advected_ellipse.center();
     auto   old_t2              = t2;
     auto   old_ghosts          = ghosts;
     auto   old_cond_HHt        = cond_HHt;
@@ -461,7 +429,7 @@ struct autonomous_particle {
       if (!tau_should_have_changed_but_did_not) {
         if (!first) {
           old_ghosts          = ghosts;
-          old_advected_center = advected_center;
+          old_advected_center = advected_ellipse.center();
           old_cond_HHt        = cond_HHt;
           old_t2              = t2;
         } else {
@@ -475,7 +443,8 @@ struct autonomous_particle {
           t2 += tau_step;
         }
 
-        advected_center = phi(advected_center, old_t2, t2 - old_t2);
+        advected_ellipse.center() =
+            phi(advected_ellipse.center(), old_t2, t2 - old_t2);
         for (size_t i = 0; i < num_dimensions(); ++i) {
           ghosts[i * 2]     = phi(ghosts[i * 2], old_t2, t2 - old_t2);
           ghosts[i * 2 + 1] = phi(ghosts[i * 2 + 1], old_t2, t2 - old_t2);
@@ -490,15 +459,14 @@ struct autonomous_particle {
         nabla_phi2 = H * *inv(Sigma) * transposed(Q);
         fmg2fmg1   = nabla_phi2 * m_nabla_phi1;
 
-        current_radii = sqrt(cur_lambdas);
-        cur_B         = cur_Q * diag(current_radii);
-        cur_S         = cur_B * transposed(cur_Q);
+        current_radii        = sqrt(cur_lambdas);
+        cur_B                = cur_Q * diag(current_radii);
+        advected_ellipse.S() = cur_B * transposed(cur_Q);
       }
 
       if (t2 == max_t && cond_HHt <= objective_cond + max_cond_overshoot) {
         auto lock = std::lock_guard{finished_particles_mutex};
-        finished_particles.emplace_back(m_x0, advected_center, t2, fmg2fmg1,
-                                        cur_S);
+        finished_particles.emplace_back(m_x0, t2, fmg2fmg1, advected_ellipse);
         return;
       }
       if ((cond_HHt >= objective_cond &&
@@ -509,13 +477,14 @@ struct autonomous_particle {
           acc_radii += radius(0) * radius(1);
         }
         for (size_t i = 0; i < size(radii); ++i) {
-          auto const      new_eigvals = current_radii * radii[i];
-          auto const      new_S = cur_Q * diag(new_eigvals) * transposed(cur_Q);
-          auto const      offset2 = cur_B * offsets[i];
-          auto const      offset0 = *inv(fmg2fmg1) * offset2;
+          auto const new_eigvals = current_radii * radii[i];
+          auto const offset2     = cur_B * offsets[i];
+          auto const offset0     = *inv(fmg2fmg1) * offset2;
+          auto       offset_ellipse =
+              ellipse_t{advected_ellipse.center() + offset2,
+                        cur_Q * diag(new_eigvals) * transposed(cur_Q)};
           std::lock_guard lock{out_mutex};
-          out.emplace_back(m_x0 + offset0, advected_center + offset2, t2,
-                           fmg2fmg1, new_S);
+          out.emplace_back(m_x0 + offset0, t2, fmg2fmg1, offset_ellipse);
           // std::lock_guard lock2{finished_particles_mutex};
           // finished_particles.push_back(out.back());
         }
@@ -539,10 +508,10 @@ struct autonomous_particle {
         }
 
         if (!tau_should_have_changed_but_did_not) {
-          cond_HHt        = old_cond_HHt;
-          ghosts          = old_ghosts;
-          t2              = old_t2;
-          advected_center = old_advected_center;
+          cond_HHt                  = old_cond_HHt;
+          ghosts                    = old_ghosts;
+          t2                        = old_t2;
+          advected_ellipse.center() = old_advected_center;
         }
         //} else {
         //   auto const _t =
@@ -553,41 +522,26 @@ struct autonomous_particle {
     }
   }
   auto sampler() const {
-    static constexpr auto I = mat_t::eye();
-    auto [Q0, Sig0] = eigenvectors_sym(S0());
-    auto [Q1, Sig1] = eigenvectors_sym(S1());
-    for (size_t i = 0; i < N; ++i) {
-      if (dot(Q0.col(i), I.col(i)) < 0) {
-        Q0.col(i) = -1 * Q0.col(i);
-      }
-      if (dot(Q1.col(i), I.col(i)) < 0) {
-        Q1.col(i) = -1 * Q1.col(i);
-      }
-    }
-    auto const B0 = Q0 * diag(Sig0);
-    auto const B1 = Q1 * diag(Sig1);
     return autonomous_particle_sampler<Real, N>{
-        m_x0, m_x1, B0, B1, B1 * *inv(B0), B0 * *inv(B1)};
+        initial_ellipse(), *this, S1() * *inv(S0()), S0() * *inv(S1())};
   }
 };
 //==============================================================================
 template <typename Real, size_t N>
 autonomous_particle<Real, N>::autonomous_particle(
     autonomous_particle const& other)
-    : m_x0{other.m_x0},
-      m_x1{other.m_x1},
+    : parent_t{other},
+      m_x0{other.m_x0},
       m_t1{other.m_t1},
-      m_nabla_phi1{other.m_nabla_phi1},
-      m_ellipse{other.m_ellipse} {}
+      m_nabla_phi1{other.m_nabla_phi1} {}
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 template <typename Real, size_t N>
 autonomous_particle<Real, N>::autonomous_particle(
     autonomous_particle&& other) noexcept
-    : m_x0{std::move(other.m_x0)},
-      m_x1{std::move(other.m_x1)},
+    : parent_t{std::move(other)},
+      m_x0{std::move(other.m_x0)},
       m_t1{other.m_t1},
-      m_nabla_phi1{std::move(other.m_nabla_phi1)},
-      m_ellipse{std::move(other.m_ellipse)} {}
+      m_nabla_phi1{std::move(other.m_nabla_phi1)} {}
 
 //----------------------------------------------------------------------------
 template <typename Real, size_t N>
@@ -596,22 +550,20 @@ auto autonomous_particle<Real, N>::operator=(autonomous_particle const& other)
   if (&other == this) {
     return *this;
   };
-  m_x0         = other.m_x0;
-  m_x1         = other.m_x1;
-  m_t1         = other.m_t1;
-  m_nabla_phi1 = other.m_nabla_phi1;
-  m_ellipse    = other.m_ellipse;
+  parent_t::operator=(other);
+  m_x0              = other.m_x0;
+  m_t1              = other.m_t1;
+  m_nabla_phi1      = other.m_nabla_phi1;
   return *this;
 }
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 template <typename Real, size_t N>
 auto autonomous_particle<Real, N>::operator=(
     autonomous_particle&& other) noexcept -> autonomous_particle& {
-  m_x0         = std::move(other.m_x0);
-  m_x1         = std::move(other.m_x1);
-  m_t1         = other.m_t1;
-  m_nabla_phi1 = std::move(other.m_nabla_phi1);
-  m_ellipse    = std::move(other.m_ellipse);
+  parent_t::operator=(std::move(other));
+  m_x0              = std::move(other.m_x0);
+  m_t1              = other.m_t1;
+  m_nabla_phi1      = std::move(other.m_nabla_phi1);
   return *this;
 }
 //----------------------------------------------------------------------------
@@ -619,16 +571,15 @@ template <typename Real, size_t N>
 autonomous_particle<Real, N>::autonomous_particle(pos_t const& x0,
                                                   real_t const t0,
                                                   real_t const r0)
-    : m_x0{x0}, m_x1{x0}, m_t1{t0}, m_nabla_phi1{mat_t::eye()}, m_ellipse{r0} {}
+    : parent_t{x0, r0}, m_x0{x0}, m_t1{t0}, m_nabla_phi1{mat_t::eye()} {}
 
 //----------------------------------------------------------------------------
 template <typename Real, size_t N>
 autonomous_particle<Real, N>::autonomous_particle(pos_t const&     x0,
-                                                  pos_t const&     x1,
                                                   real_t const     t1,
                                                   mat_t const&     nabla_phi1,
                                                   ellipse_t const& ell)
-    : m_x0{x0}, m_x1{x1}, m_t1{t1}, m_nabla_phi1{nabla_phi1}, m_ellipse{ell} {}
+    : parent_t{ell}, m_x0{x0}, m_t1{t1}, m_nabla_phi1{nabla_phi1} {}
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 // deduction guides
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -666,8 +617,11 @@ autonomous_particle<Real, N>::autonomous_particle(pos_t const&     x0,
 //                    arithmetic auto const)
 //    -> autonomous_particle<std::decay_t<V> const*,
 //                           std::decay_t<decltype(flowmap(v))>>;
-using autonomous_particle_2 = autonomous_particle<real_t, 2>;
-using autonomous_particle_3 = autonomous_particle<real_t, 3>;
+//==============================================================================
+template <size_t N>
+using AutonomousParticle   = autonomous_particle<real_t, N>;
+using autonomous_particle2 = AutonomousParticle<2>;
+using autonomous_particle3 = AutonomousParticle<3>;
 //==============================================================================
 }  // namespace tatooine
 //==============================================================================
