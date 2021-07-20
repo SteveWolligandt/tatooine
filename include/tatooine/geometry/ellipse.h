@@ -2,8 +2,11 @@
 #define TATOOINE_GEOMETRY_ELLIPSOID_H
 //==============================================================================
 #include <tatooine/geometry/hyper_ellipse.h>
-#include <tatooine/geometry/sphere.h>
+#include <tatooine/linspace.h>
 #include <tatooine/real.h>
+
+#include <boost/range/adaptor/transformed.hpp>
+#include <boost/range/algorithm/copy.hpp>
 //==============================================================================
 namespace tatooine::geometry {
 //==============================================================================
@@ -26,11 +29,22 @@ ellipse(vec<Real0, 3> const&, vec<Real1, 3> const&)
 //==============================================================================
 template <typename Real>
 auto discretize(hyper_ellipse<Real, 2> const& e, size_t const num_vertices) {
-  auto d = discretize(sphere<Real, 2>{}, num_vertices);
-  for (auto const v : d.vertices()) {
-    d[v] = e.S() * d[v];
+  using namespace boost;
+  using namespace adaptors;
+  linspace<Real> radial{0.0, M_PI * 2, num_vertices};
+  radial.pop_back();
+
+  line<Real, 2> discretization;
+  auto          radian_to_cartesian = [](auto const t) {
+    return vec{std::cos(t), std::sin(t)};
+  };
+  auto out_it = std::back_inserter(discretization);
+  copy(radial | transformed(radian_to_cartesian), out_it);
+  discretization.set_closed(true);
+  for (auto const v : discretization.vertices()) {
+    discretization[v] = e.S() * discretization[v] + e.center();
   }
-  return d;
+  return discretization;
 }
 //==============================================================================
 }  // namespace tatooine
