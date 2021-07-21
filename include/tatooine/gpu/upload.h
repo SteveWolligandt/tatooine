@@ -4,7 +4,7 @@
 //==============================================================================
 #include <tatooine/field.h>
 #include <tatooine/gl/texture.h>
-#include <tatooine/grid.h>
+#include <tatooine/rectilinear_grid.h>
 #include <tatooine/rank.h>
 //==============================================================================
 namespace tatooine::gpu {
@@ -127,7 +127,7 @@ auto upload_tex3d(const dynamic_multidim_array<Tensor>& data) requires
 //==============================================================================
 template <typename GPUReal = float, floating_point Real,
           indexable_space XDomain, bool HasNonConstReference>
-auto upload(typed_grid_vertex_property_interface<grid<XDomain>, Real,
+auto upload(typed_grid_vertex_property_interface<rectilinear_grid<XDomain>, Real,
                                                  HasNonConstReference> const&
                 grid_vertex_property) {
   using namespace gl;
@@ -146,7 +146,7 @@ auto upload(typed_grid_vertex_property_interface<grid<XDomain>, Real,
 template <typename GPUReal = float, floating_point Real,
           indexable_space XDomain, indexable_space YDomain,
           bool HasNonConstReference>
-auto upload(typed_grid_vertex_property_interface<grid<XDomain, YDomain>, Real,
+auto upload(typed_grid_vertex_property_interface<rectilinear_grid<XDomain, YDomain>, Real,
                                                  HasNonConstReference> const&
                 grid_vertex_property) {
   using namespace gl;
@@ -167,7 +167,7 @@ template <typename GPUReal = float, floating_point Real,
           indexable_space XDomain, indexable_space YDomain,
           indexable_space ZDomain, bool HasNonConstReference>
 auto upload(typed_grid_vertex_property_interface<
-            grid<XDomain, YDomain, ZDomain>, Real, HasNonConstReference> const&
+            rectilinear_grid<XDomain, YDomain, ZDomain>, Real, HasNonConstReference> const&
                 grid_vertex_property) {
   using namespace gl;
   std::vector<GPUReal> gpu_data;
@@ -186,7 +186,7 @@ auto upload(typed_grid_vertex_property_interface<
 //==============================================================================
 template <typename GPUReal = float, floating_point Real,
           indexable_space XDomain, bool HasNonConstReference>
-auto upload(typed_grid_vertex_property_interface<grid<XDomain>, vec<Real, 2>,
+auto upload(typed_grid_vertex_property_interface<rectilinear_grid<XDomain>, vec<Real, 2>,
                                                  HasNonConstReference> const&
                 grid_vertex_property) {
   using namespace gl;
@@ -208,7 +208,7 @@ template <typename GPUReal = float, floating_point Real,
           indexable_space XDomain, indexable_space YDomain,
           bool HasNonConstReference>
 auto upload(
-    typed_grid_vertex_property_interface<grid<XDomain, YDomain>, vec<Real, 2>,
+    typed_grid_vertex_property_interface<rectilinear_grid<XDomain, YDomain>, vec<Real, 2>,
                                          HasNonConstReference> const& data) {
   using namespace gl;
   std::vector<GPUReal> gpu_data;
@@ -229,7 +229,7 @@ template <typename GPUReal = float, floating_point Real,
           indexable_space XDomain, indexable_space YDomain,
           indexable_space ZDomain, bool HasNonConstReference>
 auto upload(typed_grid_vertex_property_interface<
-            grid<XDomain, YDomain, ZDomain>, vec<Real, 2>,
+            rectilinear_grid<XDomain, YDomain, ZDomain>, vec<Real, 2>,
             HasNonConstReference> const& grid_vertex_property) {
   using namespace gl;
   std::vector<GPUReal> gpu_data;
@@ -250,7 +250,7 @@ auto upload(typed_grid_vertex_property_interface<
 //==============================================================================
 template <typename GPUReal = float, floating_point Real,
           indexable_space XDomain, bool HasNonConstReference>
-auto upload(typed_grid_vertex_property_interface<grid<XDomain>, vec<Real, 3>,
+auto upload(typed_grid_vertex_property_interface<rectilinear_grid<XDomain>, vec<Real, 3>,
                                                  HasNonConstReference> const&
                 grid_vertex_property) {
   using namespace gl;
@@ -273,7 +273,7 @@ template <typename GPUReal = float, floating_point Real,
           indexable_space XDomain, indexable_space YDomain,
           bool HasNonConstReference>
 auto upload(typed_grid_vertex_property_interface<
-            grid<XDomain, YDomain>, vec<Real, 3>, HasNonConstReference> const&
+            rectilinear_grid<XDomain, YDomain>, vec<Real, 3>, HasNonConstReference> const&
                 grid_vertex_property) {
   using namespace gl;
   std::vector<GPUReal> gpu_data;
@@ -296,7 +296,7 @@ template <typename GPUReal = float, floating_point Real,
           indexable_space XDomain, indexable_space YDomain,
           indexable_space ZDomain, bool HasNonConstReference>
 auto upload(typed_grid_vertex_property_interface<
-            grid<XDomain, YDomain, ZDomain>, vec<Real, 3>,
+            rectilinear_grid<XDomain, YDomain, ZDomain>, vec<Real, 3>,
             HasNonConstReference> const& grid_vertex_property) {
   using namespace gl;
   std::vector<GPUReal> gpu_data;
@@ -366,7 +366,7 @@ template <typename GPUReal = float, floating_point Real,
           indexable_space XDomain, indexable_space YDomain,
           indexable_space ZDomain, bool HasNonConstReference>
 auto upload(typed_grid_vertex_property_interface<
-            grid<XDomain, YDomain, ZDomain>, vec<Real, 4>,
+            rectilinear_grid<XDomain, YDomain, ZDomain>, vec<Real, 4>,
             HasNonConstReference> const& grid_vertex_property) {
   using namespace gl;
   std::vector<GPUReal> gpu_data;

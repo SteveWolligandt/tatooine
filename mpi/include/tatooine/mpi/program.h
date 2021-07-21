@@ -2,7 +2,7 @@
 #define TATOOINE_MPI_PROGRAM_H
 //==============================================================================
 #include <mpi.h>
-#include <tatooine/grid.h>
+#include <tatooine/rectilinear_grid.h>
 // #include <tatooine/mpi/cartesian_neighbors.h>
 
 #include <boost/range/adaptors.hpp>
@@ -104,7 +104,7 @@ struct program {
 
   //----------------------------------------------------------------------------
   template <typename... Dimensions>
-  auto init_communicator(grid<Dimensions...> const& g) -> void {
+  auto init_communicator(rectilinear_grid<Dimensions...> const& g) -> void {
     auto global_grid_dimensions =
         std::unique_ptr<size_t[]>{new size_t[g.num_dimensions()]};
     for (unsigned int i = 0; i < g.num_dimensions(); ++i) {
@@ -186,8 +186,8 @@ struct program {
   //----------------------------------------------------------------------------
  private:
   template <size_t I, typename... Dimensions>
-  constexpr auto local_grid_set_i(grid<Dimensions...> const& global_grid,
-                        grid<Dimensions...>&       local_grid) {
+  constexpr auto local_grid_set_i(rectilinear_grid<Dimensions...> const& global_grid,
+                        rectilinear_grid<Dimensions...>&       local_grid) {
     auto const& global_dim = global_grid.template dimension<I>();
     auto&       local_dim  = local_grid.template dimension<I>();
     using global_dim_t     = std::decay_t<decltype(global_dim)>;
@@ -203,16 +203,16 @@ struct program {
   }
   //----------------------------------------------------------------------------
   template <typename... Dimensions, size_t... Is>
-  constexpr auto local_grid_set(grid<Dimensions...> const& global_grid,
-                      grid<Dimensions...>&       local_grid,
+  constexpr auto local_grid_set(rectilinear_grid<Dimensions...> const& global_grid,
+                      rectilinear_grid<Dimensions...>&       local_grid,
                       std::index_sequence<Is...> /*seq*/) {
     (local_grid_set_i<Is>(global_grid, local_grid), ...);
   }
   //----------------------------------------------------------------------------
  public:
   template <typename ... Dimensions>
-  constexpr auto local_grid(grid<Dimensions...>const& global_grid) {
-    grid<Dimensions...> local_grid;
+  constexpr auto local_grid(rectilinear_grid<Dimensions...>const& global_grid) {
+    rectilinear_grid<Dimensions...> local_grid;
 
     constexpr auto num_dims = sizeof...(Dimensions);
     using seq_t             = std::make_index_sequence<num_dims>;

@@ -1,6 +1,6 @@
 #include <tatooine/field.h>
 #include <tatooine/filesystem.h>
-#include <tatooine/grid.h>
+#include <tatooine/rectilinear_grid.h>
 #include <tatooine/lazy_netcdf_reader.h>
 #include <tatooine/netcdf.h>
 
@@ -34,8 +34,8 @@ int main(int , char const** argv) {
   linspace<double>    t_axis = linspace{
       t_ax_var.read_single(0), t_ax_var.read_single(59), t_ax_var.size(0)};
 
-  grid grid_in{xc_axis, yc_axis, z_axis, t_axis};
-  grid grid_out{xc_axis, yc_axis, z_axis};
+  rectilinear_grid grid_in{xc_axis, yc_axis, z_axis, t_axis};
+  rectilinear_grid grid_out{xc_axis, yc_axis, z_axis};
   for (auto& z : grid_out.dimension<2>()) { z *= -0.0025; }
 
   size_t const chunk_size = 10;

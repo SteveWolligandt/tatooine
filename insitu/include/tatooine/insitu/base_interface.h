@@ -1,7 +1,7 @@
 #ifndef TATOOINE_INSITU_BASE_INTERFACE_H
 #define TATOOINE_INSITU_BASE_INTERFACE_H
 //==============================================================================
-#include <tatooine/grid.h>
+#include <tatooine/rectilinear_grid.h>
 #include <tatooine/mpi/cartesian_neighbors.h>
 #include <tatooine/netcdf.h>
 

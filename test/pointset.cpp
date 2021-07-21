@@ -1,4 +1,4 @@
-#include <tatooine/grid.h>
+#include <tatooine/rectilinear_grid.h>
 #include <tatooine/pointset.h>
 #include <tatooine/random.h>
 
@@ -116,7 +116,7 @@ TEST_CASE_METHOD(pointset2,
     }
 
     auto sampler = moving_least_squares_sampler(prop, 0.1);
-    grid gr{linspace{-1.0, 1.0, 500}, linspace{-1.0, 1.0, 500}};
+    rectilinear_grid gr{linspace{-1.0, 1.0, 500}, linspace{-1.0, 1.0, 500}};
     gr.sample_to_vertex_property(sampler, "interpolated_data");
     gr.write_vtk("moving_least_squares_sampler_2d_scalar.vtk");
     for (auto v : vertices()) {
@@ -153,7 +153,7 @@ TEST_CASE_METHOD(pointset3, "pointset_moving_least_squares_sampler_3",
     }
 
     auto sampler = moving_least_squares_sampler(prop, 0.1);
-    grid gr{linspace{-1.0, 1.0, 500}, linspace{-1.0, 1.0, 500},
+    rectilinear_grid gr{linspace{-1.0, 1.0, 500}, linspace{-1.0, 1.0, 500},
             linspace{-1.0, 1.0, 500}};
     gr.sample_to_vertex_property(sampler, "interpolated_data");
     gr.write_vtk("moving_least_squares_sampler_3d.vtk");

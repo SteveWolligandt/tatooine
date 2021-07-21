@@ -1,5 +1,5 @@
-#ifndef TATOOINE_GRID_H
-#define TATOOINE_GRID_H
+#ifndef TATOOINE_RECTILINEAR_GRID_H
+#define TATOOINE_RECTILINEAR_GRID_H
 //==============================================================================
 #include <tatooine/amira_file.h>
 #include <tatooine/axis_aligned_bounding_box.h>
@@ -34,7 +34,7 @@ template <indexable_space... Dimensions>
 #else
 template <typename... Dimensions>
 #endif
-class grid {
+class rectilinear_grid {
   static_assert(sizeof...(Dimensions) > 0,
                 "Grid needs at least one dimension.");
 
@@ -42,7 +42,7 @@ class grid {
   static constexpr bool is_uniform =
       (is_linspace<std::decay_t<Dimensions>> && ...);
   static constexpr auto num_dimensions() { return sizeof...(Dimensions); }
-  using this_t = grid<Dimensions...>;
+  using this_t = rectilinear_grid<Dimensions...>;
   using real_t = common_type<typename Dimensions::value_type...>;
   using vec_t  = vec<real_t, num_dimensions()>;
   using pos_t  = vec_t;
@@ -90,8 +90,8 @@ class grid {
   size_t m_chunk_size_for_lazy_properties = 2;
   //============================================================================
  public:
-  constexpr grid() = default;
-  constexpr grid(grid const& other)
+  constexpr rectilinear_grid() = default;
+  constexpr rectilinear_grid(rectilinear_grid const& other)
       : m_dimensions{other.m_dimensions},
         m_diff_stencil_coefficients{other.m_diff_stencil_coefficients} {
     for (auto const& [name, prop] : other.m_vertex_properties) {
@@ -100,7 +100,7 @@ class grid {
       emplaced_prop->set_grid(*this);
     }
   }
-  constexpr grid(grid&& other) noexcept
+  constexpr rectilinear_grid(rectilinear_grid&& other) noexcept
       : m_dimensions{std::move(other.m_dimensions)},
         m_vertex_properties{std::move(other.m_vertex_properties)},
         m_diff_stencil_coefficients{
@@ -124,7 +124,7 @@ class grid {
             enable_if<(sizeof...(Dimensions_) == sizeof...(Dimensions))> = true,
             enable_if<is_indexable<std::decay_t<Dimensions_>...>>        = true>
 #endif
-          constexpr grid(Dimensions_&&... dimensions)
+          constexpr rectilinear_grid(Dimensions_&&... dimensions)
       : m_dimensions{std::forward<Dimensions_>(dimensions)...} {
     static_assert(sizeof...(Dimensions_) == num_dimensions(),
                   "Number of given dimensions does not match number of "
@@ -136,31 +136,33 @@ class grid {
   //----------------------------------------------------------------------------
  private:
   template <typename Real, size_t... Seq>
-  constexpr grid(axis_aligned_bounding_box<Real, num_dimensions()> const& bb,
-                 std::array<size_t, num_dimensions()> const&              res,
-                 std::index_sequence<Seq...> /*seq*/)
+  constexpr rectilinear_grid(
+      axis_aligned_bounding_box<Real, num_dimensions()> const& bb,
+      std::array<size_t, num_dimensions()> const&              res,
+      std::index_sequence<Seq...> /*seq*/)
       : m_dimensions{linspace<real_t>{real_t(bb.min(Seq)), real_t(bb.max(Seq)),
                                       res[Seq]}...} {}
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
  public:
   template <typename Real>
-  constexpr grid(axis_aligned_bounding_box<Real, num_dimensions()> const& bb,
-                 std::array<size_t, num_dimensions()> const&              res)
-      : grid{bb, res, seq_t{}} {}
+  constexpr rectilinear_grid(
+      axis_aligned_bounding_box<Real, num_dimensions()> const& bb,
+      std::array<size_t, num_dimensions()> const&              res)
+      : rectilinear_grid{bb, res, seq_t{}} {}
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 #ifdef __cpp_concepts
   template <integral... Size>
 #else
   template <typename... Size, enable_if_integral<Size...> = true>
 #endif
-  constexpr grid(Size const... size)
-      : grid{linspace{0.0, 1.0, static_cast<size_t>(size)}...} {
+  constexpr rectilinear_grid(Size const... size)
+      : rectilinear_grid{linspace{0.0, 1.0, static_cast<size_t>(size)}...} {
     assert(((size >= 0) && ...));
   }
   //----------------------------------------------------------------------------
-  grid(filesystem::path const& path) { read(path); }
+  rectilinear_grid(filesystem::path const& path) { read(path); }
   //----------------------------------------------------------------------------
-  ~grid() = default;
+  ~rectilinear_grid() = default;
   //============================================================================
  private:
   template <size_t... Ds>
@@ -175,8 +177,10 @@ class grid {
         std::make_index_sequence<num_dimensions()>{});
   }
   //============================================================================
-  constexpr auto operator=(grid const& other) -> grid& = default;
-  constexpr auto operator=(grid&& other) noexcept -> grid& = default;
+  constexpr auto operator  =(rectilinear_grid const& other)
+      -> rectilinear_grid& = default;
+  constexpr auto operator  =(rectilinear_grid&& other) noexcept
+      -> rectilinear_grid& = default;
   //----------------------------------------------------------------------------
   template <size_t I>
   constexpr auto dimension() -> auto& {
@@ -1054,7 +1058,7 @@ class grid {
 #endif
   auto add_dimension(AdditionalDimension&& additional_dimension,
                      std::index_sequence<Is...> /*seq*/) const {
-    return grid<Dimensions..., std::decay_t<AdditionalDimension>>{
+    return rectilinear_grid<Dimensions..., std::decay_t<AdditionalDimension>>{
         dimension<Is>()...,
         std::forward<AdditionalDimension>(additional_dimension)};
   }
@@ -1330,7 +1334,8 @@ class grid {
     }
 #endif
     throw std::runtime_error{
-        "[grid::insert_lazy_vertex_property] - unknown file extension"};
+        "[rectilinear_grid::insert_lazy_vertex_property] - unknown file "
+        "extension"};
   }
   //----------------------------------------------------------------------------
 #ifdef TATOOINE_HDF5_AVAILABLE
@@ -1345,13 +1350,15 @@ class grid {
     auto num_dims_dataset = dataset.num_dimensions();
     if (num_dimensions() != num_dims_dataset) {
       throw std::runtime_error{
-          "Number of dimensions do not match for HDF5 dataset and grid."};
+          "Number of dimensions do not match for HDF5 dataset and "
+          "rectilinear_grid."};
     }
     auto size_dataset = dataset.size();
     for (size_t i = 0; i < num_dimensions(); ++i) {
       if (size_dataset[i] != size(i)) {
         std::stringstream ss;
-        ss << "Resolution of grid and HDF5 DataSet do not match. grid("
+        ss << "Resolution of rectilinear_grid and HDF5 DataSet do not match. "
+              "rectilinear_grid("
            << size(0);
         for (size_t i = 1; i < num_dimensions(); ++i) {
           ss << ", " << size(i);
@@ -1393,14 +1400,15 @@ class grid {
     auto num_dims_dataset = dataset.num_dimensions();
     if (num_dimensions() != num_dims_dataset) {
       throw std::runtime_error{
-          "Number of dimensions do not match for HDF5 dataset and grid."};
+          "Number of dimensions do not match for HDF5 dataset and "
+          "rectilinear_grid."};
     }
     auto size_dataset = dataset.size();
     for (size_t i = 0; i < num_dimensions(); ++i) {
       if (size_dataset[i] != size(i)) {
         std::stringstream ss;
-        ss << "Resolution of grid and HDF5 DataSet (\"" << name
-           << "\")do not match. grid(" << size(0);
+        ss << "Resolution of rectilinear_grid and HDF5 DataSet (\"" << name
+           << "\")do not match. rectilinear_grid(" << size(0);
         for (size_t i = 1; i < num_dimensions(); ++i) {
           ss << ", " << size(i);
         }
@@ -1482,7 +1490,8 @@ class grid {
         return;
       }
     }
-    throw std::runtime_error{"[grid::read] Unknown file extension."};
+    throw std::runtime_error{
+        "[rectilinear_grid::read] Unknown file extension."};
   }
   //----------------------------------------------------------------------------
   struct vtk_listener : vtk::legacy_file_listener {
@@ -1506,7 +1515,8 @@ class grid {
       gr.front<1>() = y;
       if (num_dimensions() < 3 && z > 1) {
         throw std::runtime_error{
-            "[grid::read_vtk] number of dimensions is < 3 but got third "
+            "[rectilinear_grid::read_vtk] number of dimensions is < 3 but got "
+            "third "
             "dimension."};
       }
       if constexpr (num_dimensions() > 3) {
@@ -1521,7 +1531,8 @@ class grid {
       gr.dimension<1>().resize(y);
       if (num_dimensions() < 3 && z > 1) {
         throw std::runtime_error{
-            "[grid::read_vtk] number of dimensions is < 3 but got third "
+            "[rectilinear_grid::read_vtk] number of dimensions is < 3 but got "
+            "third "
             "dimension."};
       }
       if constexpr (num_dimensions() > 2) {
@@ -1700,15 +1711,17 @@ class grid {
     auto const& num_comps = std::get<3>(am);
     if (dims[2] == 1 && num_dimensions() == 3) {
       throw std::runtime_error{
-          "[grid::read_amira] file contains 2-dimensional data. Cannot "
+          "[rectilinear_grid::read_amira] file contains 2-dimensional data. "
+          "Cannot "
           "read "
-          "into 3-dimensional grid"};
+          "into 3-dimensional rectilinear_grid"};
     }
     if (dims[2] > 1 && num_dimensions() == 2) {
       throw std::runtime_error{
-          "[grid::read_amira] file contains 3-dimensional data. Cannot "
+          "[rectilinear_grid::read_amira] file contains 3-dimensional data. "
+          "Cannot "
           "read "
-          "into 2-dimensional grid"};
+          "into 2-dimensional rectilinear_grid"};
     }
     // set dimensions
 
@@ -1790,9 +1803,11 @@ class grid {
       if (v.num_dimensions() != num_dimensions() &&
           v.size()[0] != vertices().size()) {
         throw std::runtime_error{
-            "[grid::read_netcdf] variable's number of dimensions does "
+            "[rectilinear_grid::read_netcdf] variable's number of dimensions "
+            "does "
             "not "
-            "match grid's number of dimensions:\nnumber of grid "
+            "match rectilinear_grid's number of dimensions:\nnumber of "
+            "rectilinear_grid "
             "dimensions: " +
             std::to_string(num_dimensions()) + "\nnumber of data dimensions: " +
             std::to_string(v.num_dimensions()) +
@@ -1801,11 +1816,12 @@ class grid {
       if (!first) {
         auto check = [this, &v](size_t i) {
           if (v.size(i) != size(i)) {
-            throw std::runtime_error{"[grid::read_netcdf] variable's size(" +
-                                     std::to_string(i) +
-                                     ") does not "
-                                     "match grid's size(" +
-                                     std::to_string(i) + ")"};
+            throw std::runtime_error{
+                "[rectilinear_grid::read_netcdf] variable's size(" +
+                std::to_string(i) +
+                ") does not "
+                "match rectilinear_grid's size(" +
+                std::to_string(i) + ")"};
           }
         };
         (check(Seq), ...);
@@ -1922,9 +1938,9 @@ class grid {
             enable_if<(num_dimensions() == 1) || (num_dimensions() == 2) ||
                       (num_dimensions() == 3)> = true>
 #endif
-          void write_vtk(
-              filesystem::path const& path,
-              std::string const&      description = "tatooine grid") const {
+          void write_vtk(filesystem::path const& path,
+                         std::string const&      description =
+                             "tatooine rectilinear_grid") const {
     auto writer = [this, &path, &description] {
       if constexpr (is_uniform) {
         vtk::legacy_file_writer writer{path,
@@ -2037,6 +2053,7 @@ class grid {
       }
     }
   }
+
  private:
   template <size_t I>
   auto print_dim(std::ostream& out) const {
@@ -2072,7 +2089,8 @@ class grid {
 // free functions
 //==============================================================================
 template <typename... Dimensions>
-auto operator<<(std::ostream& out, grid<Dimensions...> const& g) -> auto& {
+auto operator<<(std::ostream& out, rectilinear_grid<Dimensions...> const& g)
+    -> auto& {
   return g.print(out);
 }
 #ifdef __cpp_concepts
@@ -2080,30 +2098,33 @@ template <indexable_space... Dimensions>
 #else
 template <typename... Dimensions>
 #endif
-auto vertices(grid<Dimensions...> const& g) {
+auto vertices(rectilinear_grid<Dimensions...> const& g) {
   return g.vertices();
 }
 //==============================================================================
 // deduction guides
 //==============================================================================
 template <typename... Dimensions>
-grid(Dimensions&&...) -> grid<std::decay_t<Dimensions>...>;
+rectilinear_grid(Dimensions&&...)
+    -> rectilinear_grid<std::decay_t<Dimensions>...>;
 // additional, for g++
 template <typename Dim0, typename... Dims>
-grid(Dim0&&, Dims&&...) -> grid<std::decay_t<Dim0>, std::decay_t<Dims>...>;
+rectilinear_grid(Dim0&&, Dims&&...)
+    -> rectilinear_grid<std::decay_t<Dim0>, std::decay_t<Dims>...>;
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 template <typename Real, size_t N, size_t... Seq>
-grid(axis_aligned_bounding_box<Real, N> const& bb,
-     std::array<size_t, N> const&              res, std::index_sequence<Seq...>)
-    -> grid<decltype(((void)Seq, std::declval<linspace<Real>()>))...>;
+rectilinear_grid(axis_aligned_bounding_box<Real, N> const& bb,
+                 std::array<size_t, N> const& res, std::index_sequence<Seq...>)
+    -> rectilinear_grid<decltype(((void)Seq,
+                                  std::declval<linspace<Real>()>))...>;
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 #ifdef __cpp_concepts
 template <integral... Size>
 #else
 template <typename... Size, enable_if_integral<Size...> = true>
 #endif
-grid(Size const...)
-    -> grid<linspace<std::conditional_t<true, double, Size>>...>;
+rectilinear_grid(Size const...)
+    -> rectilinear_grid<linspace<std::conditional_t<true, double, Size>>...>;
 //==============================================================================
 // operators
 //==============================================================================
@@ -2112,9 +2133,9 @@ template <indexable_space... Dimensions, indexable_space AdditionalDimension>
 #else
 template <typename... Dimensions, typename AdditionalDimension>
 #endif
-auto operator+(grid<Dimensions...> const& grid,
-               AdditionalDimension&&      additional_dimension) {
-  return grid.add_dimension(
+auto operator+(rectilinear_grid<Dimensions...> const& rectilinear_grid,
+               AdditionalDimension&&                  additional_dimension) {
+  return rectilinear_grid.add_dimension(
       std::forward<AdditionalDimension>(additional_dimension));
 }
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -2123,9 +2144,9 @@ template <indexable_space... Dimensions, indexable_space AdditionalDimension>
 #else
 template <typename... Dimensions, typename AdditionalDimension>
 #endif
-auto operator+(AdditionalDimension&&      additional_dimension,
-               grid<Dimensions...> const& grid) {
-  return grid.add_dimension(
+auto operator+(AdditionalDimension&&                  additional_dimension,
+               rectilinear_grid<Dimensions...> const& rectilinear_grid) {
+  return rectilinear_grid.add_dimension(
       std::forward<AdditionalDimension>(additional_dimension));
 }
 //==============================================================================
@@ -2136,12 +2157,13 @@ template <indexable_space IndexableSpace, size_t N>
 #else
 template <typename IndexableSpace, size_t N>
 #endif
-struct grid_creator {
+struct rectilinear_grid_creator {
  private:
   template <typename... Args, size_t... Seq>
   static constexpr auto create(std::index_sequence<Seq...> /*seq*/,
                                Args&&... args) {
-    return grid<decltype((static_cast<void>(Seq), IndexableSpace{}))...>{
+    return rectilinear_grid<decltype((static_cast<void>(Seq),
+                                      IndexableSpace{}))...>{
         std::forward<Args>(args)...};
   }
   template <typename... Args>
@@ -2158,14 +2180,15 @@ template <indexable_space IndexableSpace, size_t N>
 #else
 template <typename IndexableSpace, size_t N>
 #endif
-using grid_creator_t = typename grid_creator<IndexableSpace, N>::type;
+using rectilinear_grid_creator_t =
+    typename rectilinear_grid_creator<IndexableSpace, N>::type;
 //==============================================================================
 #ifdef __cpp_concepts
 template <arithmetic Real, size_t N>
 #else
 template <typename Real, size_t N>
 #endif
-using uniform_grid = grid_creator_t<linspace<Real>, N>;
+using uniform_grid = rectilinear_grid_creator_t<linspace<Real>, N>;
 template <size_t N>
 using UniformGrid   = uniform_grid<real_t, N>;
 using uniform_grid2 = UniformGrid<2>;
@@ -2178,7 +2201,7 @@ template <arithmetic Real, size_t N>
 #else
 template <typename Real, size_t N>
 #endif
-using non_uniform_grid = grid_creator_t<std::vector<Real>, N>;
+using non_uniform_grid = rectilinear_grid_creator_t<std::vector<Real>, N>;
 template <size_t N>
 using NonUniformGrid    = non_uniform_grid<real_t, N>;
 using non_uniform_grid2 = NonUniformGrid<2>;
@@ -2191,7 +2214,7 @@ template <arithmetic Real, size_t... N>
 #else
 template <typename Real, size_t... N>
 #endif
-using static_non_uniform_grid = grid<std::array<Real, N>...>;
+using static_non_uniform_grid = rectilinear_grid<std::array<Real, N>...>;
 template <size_t N>
 using StaticNonUniformGrid     = static_non_uniform_grid<real_t, N>;
 using static_non_uniform_grid2 = NonUniformGrid<2>;

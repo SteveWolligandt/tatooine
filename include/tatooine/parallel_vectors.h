@@ -6,7 +6,7 @@
 #endif
 #include <tatooine/field.h>
 #include <tatooine/for_loop.h>
-#include <tatooine/grid.h>
+#include <tatooine/rectilinear_grid.h>
 #include <tatooine/line.h>
 //#include <tatooine/openblas.h>
 #include <tatooine/type_traits.h>
@@ -160,7 +160,7 @@ template <typename Real, typename GetV, typename GetW, typename XDomain,
           enable_if<is_invocable<Preds, vec<Real, 3>>...> = true>
 #endif
 auto calc_parallel_vectors(GetV&& getv, GetW&& getw,
-                           grid<XDomain, YDomain, ZDomain> const& g,
+                           rectilinear_grid<XDomain, YDomain, ZDomain> const& g,
                            Preds&&... preds) -> std::vector<line<Real, 3>> {
   std::vector<line<Real, 3>> line_segments;
 
@@ -383,7 +383,7 @@ template <typename VReal, typename WReal, typename TReal, typename XDomain,
 #endif
 auto parallel_vectors(polymorphic::vectorfield<VReal, 3> const&   vf,
                       polymorphic::vectorfield<WReal, 3> const&   wf,
-                      grid<XDomain, YDomain, ZDomain> const& g, TReal const t,
+                      rectilinear_grid<XDomain, YDomain, ZDomain> const& g, TReal const t,
                       Preds&&... preds)
     -> std::vector<line<common_type<VReal, WReal>, 3>> {
   return detail::calc_parallel_vectors<common_type<VReal, WReal>>(
@@ -421,7 +421,7 @@ template <
 #endif
 auto parallel_vectors(vectorfield<V, VReal, 3> const&        vf,
                       vectorfield<W, WReal, 3> const&        wf,
-                      grid<XDomain, YDomain, ZDomain> const& g, TReal const t,
+                      rectilinear_grid<XDomain, YDomain, ZDomain> const& g, TReal const t,
                       Preds&&... preds)
     -> std::vector<line<common_type<VReal, WReal>, 3>> {
   return detail::calc_parallel_vectors<common_type<VReal, WReal>>(
@@ -456,7 +456,7 @@ template <
 #endif
 auto parallel_vectors(vectorfield<V, VReal, 3> const&           v,
                       vectorfield<W, WReal, 3> const&           w,
-                      grid<XDomain, YDomain, ZDomain> const& g,
+                      rectilinear_grid<XDomain, YDomain, ZDomain> const& g,
                       Preds&&... preds)
     -> std::vector<line<common_type<VReal, WReal>, 3>> {
   return parallel_vectors(v, w, g, 0, std::forward<Preds>(preds)...);
@@ -479,7 +479,7 @@ auto parallel_vectors(vectorfield<V, VReal, 3> const& v,
                       linspace<XReal> const& x, linspace<YReal> const& y,
                       linspace<ZReal> const& z, TReal const t, Preds&&... preds)
     -> std::vector<line<common_type<VReal, WReal>, 3>> {
-  return parallel_vectors(v, w, grid{x, y, z}, t,
+  return parallel_vectors(v, w, rectilinear_grid{x, y, z}, t,
                           std::forward<Preds>(preds)...);
 }
 //------------------------------------------------------------------------------
@@ -498,7 +498,7 @@ auto parallel_vectors(vectorfield<V, VReal, 3> const& v,
                       linspace<XReal> const& x, linspace<YReal> const& y,
                       linspace<ZReal> const& z, Preds&&... preds)
     -> std::vector<line<common_type<VReal, WReal>, 3>> {
-  return parallel_vectors(v, w, grid{x, y, z}, 0,
+  return parallel_vectors(v, w, rectilinear_grid{x, y, z}, 0,
                           std::forward<Preds>(preds)...);
 }
 //------------------------------------------------------------------------------
@@ -530,7 +530,7 @@ auto parallel_vectors(
       [&wf](auto ix, auto iy, auto iz, auto const& /*p*/) -> auto const& {
         return wf(ix, iy, iz);
       },
-      grid{linspace{bb.min(0), bb.max(0), vf.size(0)},
+      rectilinear_grid{linspace{bb.min(0), bb.max(0), vf.size(0)},
            linspace{bb.min(1), bb.max(1), vf.size(1)},
            linspace{bb.min(2), bb.max(2), vf.size(2)}},
       std::forward<Preds>(preds)...);

@@ -1,7 +1,7 @@
 #ifndef TATOOINE_RENDERING_RAYTRACING_RENDER_H
 #define TATOOINE_RENDERING_RAYTRACING_RENDER_H
 //==============================================================================
-#include <tatooine/grid.h>
+#include <tatooine/rectilinear_grid.h>
 #include <tatooine/rendering/camera.h>
 #include <tatooine/triangular_mesh.h>
 //==============================================================================
@@ -11,7 +11,7 @@ template <typename Real>
 auto render(camera<Real> const& cam, triangular_mesh<Real, 3> const& mesh,
             vec<Real, 3> const& bg_color  = vec<Real, 3>::ones(),
             std::string const&  prop_name = "image") {
-  grid  image{cam.plane_width(), cam.plane_height()};
+  rectilinear_grid  image{cam.plane_width(), cam.plane_height()};
   auto& rendered_mesh = image.template add_vertex_property<vec3>(prop_name);
 
   constexpr std::array offsets{vec2{0, 0}, vec2{-0.25, -0.25},

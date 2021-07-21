@@ -1,7 +1,7 @@
 #include <tatooine/color_scales/magma.h>
 #include <tatooine/color_scales/viridis.h>
 #include <tatooine/field.h>
-#include <tatooine/grid.h>
+#include <tatooine/rectilinear_grid.h>
 #include <tatooine/hdf5.h>
 #include <tatooine/line.h>
 #include <tatooine/rendering/direct_isosurface.h>
@@ -95,13 +95,13 @@ auto main() -> int {
   std::cerr << "done!\n";
 
   std::cerr << "creating grids ...";
-  grid full_domain{axis0, axis1, axis2};
+  rectilinear_grid full_domain{axis0, axis1, axis2};
   full_domain.set_chunk_size_for_lazy_properties(256);
   std::cerr << "full_domain:\n" << full_domain << '\n';
 
   auto axis0_Q = axis0;
   axis0_Q.pop_back();
-  grid full_domain_Q{axis0_Q, axis1, axis2};
+  rectilinear_grid full_domain_Q{axis0_Q, axis1, axis2};
   full_domain_Q.set_chunk_size_for_lazy_properties(256);
   std::cerr << "full_domain_Q:\n" << full_domain_Q << '\n';
   std::cerr << "done!\n";

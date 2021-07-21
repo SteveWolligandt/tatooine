@@ -111,7 +111,7 @@ struct hyper_ellipse {
   /// Computes the main axes of the ellipse.
   /// \returns main axes
   template <typename V, typename VReal>
-  constexpr auto project_point_on_hull(
+  constexpr auto nearest_point_on_boundary(
       base_tensor<V, VReal, N> const& x) const {
     return m_S * normalize(solve(m_S, x - m_center)) + m_center;
   }
@@ -126,12 +126,12 @@ struct hyper_ellipse {
   /// Checks if a point x is inside the ellipse.
   /// \param x point to check
   /// \returns true if x is inside ellipse.
-  constexpr auto distance_to_hull(vec<Real, N> const& x) const {
+  constexpr auto distance_to_boundary(vec<Real, N> const& x) const {
     auto const local_coordinate        = solve(m_S, x - m_center);
     auto const local_distance_to_point = length(local_coordinate);
-    auto const local_point_on_hull = local_coordinate / local_distance_to_point;
-    auto const local_offset_to_hull    = local_coordinate - local_point_on_hull;
-    return length(m_S * local_offset_to_hull);
+    auto const local_point_on_boundary = local_coordinate / local_distance_to_point;
+    auto const local_offset_to_boundary    = local_coordinate - local_point_on_boundary;
+    return length(m_S * local_offset_to_boundary);
   }
 };
 //==============================================================================

@@ -3,7 +3,7 @@
 //==============================================================================
 #include <tatooine/flowexplorer/line_shader.h>
 #include <tatooine/flowexplorer/renderable.h>
-#include <tatooine/grid.h>
+#include <tatooine/rectilinear_grid.h>
 #include <tatooine/linspace.h>
 #include <tatooine/gl/indexeddata.h>
 //==============================================================================
@@ -416,11 +416,11 @@ struct grid_renderer<3> : tatooine::non_uniform_grid<real_t, 3> {
   }
 };
 template <size_t N>
-struct grid : renderable<grid<N>>, grid_renderer<N> {
+struct rectilinear_grid : renderable<rectilinear_grid<N>>, grid_renderer<N> {
   std::array<ui::input_pin*, N> m_input_pins;
   //============================================================================
-  grid(flowexplorer::scene& s)
-      : renderable<grid<N>>{
+  rectilinear_grid(flowexplorer::scene& s)
+      : renderable<rectilinear_grid<N>>{
             "Grid", s,
             *dynamic_cast<tatooine::non_uniform_grid<real_t, N>*>(this)} {
     for (size_t i = 0; i < N; ++i) {
@@ -522,11 +522,13 @@ struct grid : renderable<grid<N>>, grid_renderer<N> {
   }
 };
 //==============================================================================
-using grid2 = grid<2>;
-using grid3 = grid<3>;
+using rectilinear_grid2 = rectilinear_grid<2>;
+using rectilinear_grid3 = rectilinear_grid<3>;
 //==============================================================================
 }  // namespace tatooine::flowexplorer::nodes
 //==============================================================================
-TATOOINE_FLOWEXPLORER_REGISTER_RENDERABLE(tatooine::flowexplorer::nodes::grid2)
-TATOOINE_FLOWEXPLORER_REGISTER_RENDERABLE(tatooine::flowexplorer::nodes::grid3)
+TATOOINE_FLOWEXPLORER_REGISTER_RENDERABLE(
+    tatooine::flowexplorer::nodes::rectilinear_grid2)
+TATOOINE_FLOWEXPLORER_REGISTER_RENDERABLE(
+    tatooine::flowexplorer::nodes::rectilinear_grid3)
 #endif

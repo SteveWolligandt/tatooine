@@ -6,7 +6,7 @@
 #include <omp.h>
 #include <tatooine/demangling.h>
 #include <tatooine/field.h>
-#include <tatooine/grid.h>
+#include <tatooine/rectilinear_grid.h>
 #include <tatooine/rendering/camera.h>
 //==============================================================================
 namespace tatooine::rendering {
@@ -18,14 +18,14 @@ namespace tatooine::rendering {
 /// \param linear_field Piece-wise trilinear field
 /// \param isovalue Iso Value of the extracted iso surface
 /// \param shader Shader for setting color at pixel. The shader takes position,
-/// color (vec3 or vec4). \return Returns a 2D grid with a grid_vertex_property
-/// named "rendered_isosurface"
+/// color (vec3 or vec4). \return Returns a 2D rectilinear grid with a
+/// grid_vertex_property named "rendered_isosurface"
 template <typename CameraReal, typename IsoReal, typename Dim0, typename Dim1,
           typename Dim2, typename Field, typename Shader>
 auto direct_isosurface(camera<CameraReal> const&     cam,
-                       grid<Dim0, Dim1, Dim2> const& g, Field&& field,
+                       rectilinear_grid<Dim0, Dim1, Dim2> const& g, Field&& field,
                        std::vector<IsoReal> const& isovalues, Shader&& shader) {
-  using grid_real_t = typename grid<Dim0, Dim1, Dim2>::real_t;
+  using grid_real_t = typename rectilinear_grid<Dim0, Dim1, Dim2>::real_t;
   using pos_t       = vec<grid_real_t, 3>;
   constexpr auto use_indices =
       std::is_invocable_v<Field, size_t, size_t, size_t>;
@@ -51,7 +51,7 @@ auto direct_isosurface(camera<CameraReal> const&     cam,
   auto const& dim1 = g.template dimension<1>();
   auto const& dim2 = g.template dimension<2>();
   auto const  aabb = g.bounding_box();
-  grid<linspace<CameraReal>, linspace<CameraReal>> rendered_image{
+  rectilinear_grid<linspace<CameraReal>, linspace<CameraReal>> rendered_image{
       linspace<CameraReal>{0.0, cam.plane_width() - 1, cam.plane_width()},
       linspace<CameraReal>{0.0, cam.plane_height() - 1, cam.plane_height()}};
   auto& rendering =
@@ -383,7 +383,7 @@ auto direct_isosurface(camera<CameraReal> const&     cam,
 template <typename CameraReal, typename IsoReal, typename Dim0, typename Dim1,
           typename Dim2, typename Field, typename Shader>
 auto direct_isosurface(camera<CameraReal> const&     cam,
-                       grid<Dim0, Dim1, Dim2> const& g, Field&& field,
+                       rectilinear_grid<Dim0, Dim1, Dim2> const& g, Field&& field,
                        IsoReal const isovalue, Shader&& shader) {
   return direct_isosurface(cam, g, std::forward<Field>(field),
                            std::vector{isovalue}, std::forward<Shader>(shader));
@@ -437,7 +437,7 @@ auto direct_isosurface(camera<CameraReal> const&                     cam,
   static_assert(
       color_t::num_components() == 3 || color_t::num_components() == 4,
       "ColorScale must return scalar type or tatooine::vec.");
-  grid<linspace<CameraReal>, linspace<CameraReal>> rendered_image{
+  rectilinear_grid<linspace<CameraReal>, linspace<CameraReal>> rendered_image{
       linspace<CameraReal>{0.0, cam.plane_width() - 1, cam.plane_width()},
       linspace<CameraReal>{0.0, cam.plane_height() - 1, cam.plane_height()}};
   auto& rendering =

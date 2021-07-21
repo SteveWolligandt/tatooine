@@ -1,6 +1,6 @@
 #include <tatooine/analytical/fields/numerical/doublegyre.h>
 #include <tatooine/geometry/sphere.h>
-#include <tatooine/grid.h>
+#include <tatooine/rectilinear_grid.h>
 #include <tatooine/ode/vclibs/rungekutta43.h>
 #include <tatooine/sampled_grid_property_field.h>
 #include <tatooine/spacetime_splitted_vectorfield.h>

@@ -6,7 +6,7 @@
 #include <tatooine/color_scales/magma.h>
 #include <tatooine/gl/indexeddata.h>
 #include <tatooine/gpu/upload.h>
-#include <tatooine/grid.h>
+#include <tatooine/rectilinear_grid.h>
 #include <tatooine/rendering/first_person_window.h>
 //==============================================================================
 namespace tatooine::rendering {
@@ -14,7 +14,7 @@ namespace tatooine::rendering {
 template <typename DimX, typename DimY, typename DimZ, floating_point ValueType,
           bool HasNonConstReference>
 auto interactive(
-    typed_grid_vertex_property_interface<grid<DimX, DimY, DimZ>, ValueType,
+    typed_grid_vertex_property_interface<rectilinear_grid<DimX, DimY, DimZ>, ValueType,
                                          HasNonConstReference> const& prop)
     -> void {
   auto       win = rendering::first_person_window{};

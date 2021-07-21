@@ -2,7 +2,7 @@
 #define TATOOINE_SCIVIS_CONTEST_2020_ENSEMBLE_MEMBER_H
 //==============================================================================
 #include <tatooine/field.h>
-#include <tatooine/grid.h>
+#include <tatooine/rectilinear_grid.h>
 #include <tatooine/lazy_netcdf_reader.h>
 #include <tatooine/netcdf.h>
 //==============================================================================
@@ -16,7 +16,7 @@ struct ensemble_member
   using typename parent_t::pos_t;
   using typename parent_t::real_t;
   using typename parent_t::tensor_t;
-  using component_grid_t = grid<linspace<double>, linspace<double>,
+  using component_grid_t = rectilinear_grid<linspace<double>, linspace<double>,
                                 std::vector<double>, linspace<double>>;
   using chunked_grid_property_t =
       typed_multidim_property<component_grid_t, double>;

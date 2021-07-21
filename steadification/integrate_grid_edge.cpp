@@ -1,6 +1,6 @@
 #include <tatooine/integration/vclibs/rungekutta43.h>
 #include <tatooine/streamsurface.h>
-#include <tatooine/grid.h>
+#include <tatooine/rectilinear_grid.h>
 #include "settings.h"
 #include "datasets.h"
 
@@ -37,7 +37,7 @@ void calc3(const field<V, Real, 2, 2>& v, int argc, char** argv) {
   const std::string outname   = argv[13];
 
   using s = settings<V>;
-  grid<Real, 3> g{s::domain.add_dimension(u0t0, u1t0),
+  rectilinear_grid<Real, 3> g{s::domain.add_dimension(u0t0, u1t0),
                   std::array{grid_res_x, grid_res_y, grid_res_z}};
   auto          e  = g.edge_at(edge_idx);
   auto          x30 = e.first.position();
@@ -61,7 +61,7 @@ void calc2(const field<V, Real, 2, 2>& v, int argc, char** argv) {
   const std::string outname    = argv[11];
 
   using s = settings<V>;
-  grid<Real, 2> g{s::domain, std::array{grid_res_x, grid_res_y}};
+  rectilinear_grid<Real, 2> g{s::domain, std::array{grid_res_x, grid_res_y}};
   auto          e  = g.edge_at(edge_idx);
   auto          x0 = e.first.position();
   auto          x1 = e.second.position();

@@ -11,7 +11,7 @@
 
 #include <tatooine/axis_aligned_bounding_box.h>
 #include <tatooine/celltree.h>
-#include <tatooine/grid.h>
+#include <tatooine/rectilinear_grid.h>
 #include <tatooine/kdtree.h>
 #include <tatooine/pointset.h>
 #include <tatooine/property.h>
@@ -379,7 +379,7 @@ class simplex_mesh
       enable_if<NumDimensions == NumDimensions_, SimplexDim == SimplexDim_,
                 NumDimensions_ == 2, SimplexDim_ == 2> = true>
 #endif
-                                      simplex_mesh(grid<DimX, DimY> const& g) {
+                                      simplex_mesh(rectilinear_grid<DimX, DimY> const& g) {
     auto const gv = g.vertices();
     for (auto v : gv) {
       insert_vertex(gv[v]);
@@ -413,7 +413,7 @@ class simplex_mesh
       enable_if<NumDimensions == NumDimensions_, SimplexDim == SimplexDim_,
                 NumDimensions_ == 3, SimplexDim_ == 3> = true>
 #endif
-          simplex_mesh(grid<DimX, DimY, DimZ> const& g) {
+          simplex_mesh(rectilinear_grid<DimX, DimY, DimZ> const& g) {
 
     constexpr auto turned = [](size_t const ix, size_t const iy,
                                size_t const iz) -> bool {
@@ -439,40 +439,38 @@ class simplex_mesh
     auto const s0   = g.size(0);
     auto const s1   = g.size(1);
     auto const s0s1 = s0 * s1;
-    gc.iterate_vertices([&](auto const i, auto const j, auto const k) {
-      for (size_t i = 0; i < s0 - 1; ++i) {
-        auto const le_bo_fr = vertex_handle{i + j * s0 + k * s0s1};
-        auto const ri_bo_fr = vertex_handle{(i + 1) + j * s0 + k * s0s1};
-        auto const le_to_fr = vertex_handle{i + (j + 1) * s0 + k * s0s1};
-        auto const ri_to_fr = vertex_handle{(i + 1) + (j + 1) * s0 + k * s0s1};
-        auto const le_bo_ba = vertex_handle{i + j * s0 + (k + 1) * s0s1};
-        auto const ri_bo_ba = vertex_handle{(i + 1) + j * s0 + (k + 1) * s0s1};
-        auto const le_to_ba = vertex_handle{i + (j + 1) * s0 + (k + 1) * s0s1};
-        auto const ri_to_ba =
-            vertex_handle{(i + 1) + (j + 1) * s0 + (k + 1) * s0s1};
-        if (turned(i, j, k)) {
-          insert_cell(le_bo_fr, ri_bo_ba, ri_to_fr,
-                      le_to_ba);  // inner
-          insert_cell(le_bo_fr, ri_bo_fr, ri_to_fr,
-                      ri_bo_ba);  // right front
-          insert_cell(le_bo_fr, ri_to_fr, le_to_fr,
-                      le_to_ba);  // left front
-          insert_cell(ri_to_fr, ri_bo_ba, ri_to_ba,
-                      le_to_ba);  // right back
-          insert_cell(le_bo_fr, le_bo_ba, ri_bo_ba,
-                      le_to_ba);  // left back
-        } else {
-          insert_cell(le_to_fr, ri_bo_fr, le_bo_ba,
-                      ri_to_ba);  // inner
-          insert_cell(le_bo_fr, ri_bo_fr, le_to_fr,
-                      le_bo_ba);  // left front
-          insert_cell(ri_bo_fr, ri_to_fr, le_to_fr,
-                      ri_to_ba);  // right front
-          insert_cell(le_to_fr, le_to_ba, ri_to_ba,
-                      le_bo_ba);  // left back
-          insert_cell(ri_bo_fr, ri_bo_ba, ri_to_ba,
-                      le_bo_ba);  // right back
-        }
+    gc.iterate_vertices([&](auto const ix, auto const iy, auto const iz) {
+      auto const le_bo_fr = vertex_handle{ix + iy * s0 + iz * s0s1};
+      auto const ri_bo_fr = vertex_handle{(ix + 1) + iy * s0 + iz * s0s1};
+      auto const le_to_fr = vertex_handle{ix + (iy + 1) * s0 + iz * s0s1};
+      auto const ri_to_fr = vertex_handle{(ix + 1) + (iy + 1) * s0 + iz * s0s1};
+      auto const le_bo_ba = vertex_handle{ix + iy * s0 + (iz + 1) * s0s1};
+      auto const ri_bo_ba = vertex_handle{(ix + 1) + iy * s0 + (iz + 1) * s0s1};
+      auto const le_to_ba = vertex_handle{ix + (iy + 1) * s0 + (iz + 1) * s0s1};
+      auto const ri_to_ba =
+          vertex_handle{(ix + 1) + (iy + 1) * s0 + (iz + 1) * s0s1};
+      if (turned(ix, iy, iz)) {
+        insert_cell(le_bo_fr, ri_bo_ba, ri_to_fr,
+                    le_to_ba);  // inner
+        insert_cell(le_bo_fr, ri_bo_fr, ri_to_fr,
+                    ri_bo_ba);  // right front
+        insert_cell(le_bo_fr, ri_to_fr, le_to_fr,
+                    le_to_ba);  // left front
+        insert_cell(ri_to_fr, ri_bo_ba, ri_to_ba,
+                    le_to_ba);  // right back
+        insert_cell(le_bo_fr, le_bo_ba, ri_bo_ba,
+                    le_to_ba);  // left back
+      } else {
+        insert_cell(le_to_fr, ri_bo_fr, le_bo_ba,
+                    ri_to_ba);  // inner
+        insert_cell(le_bo_fr, ri_bo_fr, le_to_fr,
+                    le_bo_ba);  // left front
+        insert_cell(ri_bo_fr, ri_to_fr, le_to_fr,
+                    ri_to_ba);  // right front
+        insert_cell(le_to_fr, le_to_ba, ri_to_ba,
+                    le_bo_ba);  // left back
+        insert_cell(ri_bo_fr, ri_bo_ba, ri_to_ba,
+                    le_bo_ba);  // right back
       }
     });
     for (auto const& [name, prop] : g.vertex_properties()) {
@@ -1054,8 +1052,8 @@ class simplex_mesh
 simplex_mesh()->simplex_mesh<double, 3>;
 simplex_mesh(std::string const&)->simplex_mesh<double, 3>;
 template <typename... Dims>
-simplex_mesh(grid<Dims...> const& g)
-    -> simplex_mesh<typename grid<Dims...>::real_t, sizeof...(Dims)>;
+simplex_mesh(rectilinear_grid<Dims...> const& g)
+    -> simplex_mesh<typename rectilinear_grid<Dims...>::real_t, sizeof...(Dims)>;
 //==============================================================================
 // namespace detail {
 // template <typename MeshCont>

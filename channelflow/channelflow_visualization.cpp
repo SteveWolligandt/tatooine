@@ -5,7 +5,7 @@
 #include <tatooine/rendering/direct_isosurface.h>
 #include <tatooine/isosurface.h>
 #include <tatooine/field.h>
-#include <tatooine/grid.h>
+#include <tatooine/rectilinear_grid.h>
 #include <tatooine/hdf5.h>
 #include <tatooine/isosurface.h>
 #include <tatooine/rendering/perspective_camera.h>
@@ -238,7 +238,7 @@ auto calc_pv(DomainGrid const& domain_grid, Axis0 const& axis0,
         std::vector<double> cur_domain_z(
             begin(axis2) + offset[2],
             begin(axis2) + offset[2] + cur_size[2]);
-        tat::grid cur_domain{cur_domain_x, cur_domain_y, cur_domain_z};
+        tat::rectilinear_grid cur_domain{cur_domain_x, cur_domain_y, cur_domain_z};
 
         std::cout << "indices = [" << ix << ", " << iy << ", " << iz << "]\n";
         std::cout << "offset = [" << offset[0] << ", " << offset[1] << ", "
@@ -318,13 +318,13 @@ auto main() -> int {
   auto const axis2 =
       axis2_file.dataset<double>("CartGrid/axis2").read_as_vector();
 
-  tat::grid full_domain{axis0, axis1, axis2};
+  tat::rectilinear_grid full_domain{axis0, axis1, axis2};
   full_domain.set_chunk_size_for_lazy_properties(2);
   std::cerr << "full_domain:\n" << full_domain << '\n';
 
   auto axis0_Q = axis0;
   axis0_Q.pop_back();
-  tat::grid full_domain_Q{axis0_Q, axis1, axis2};
+  tat::rectilinear_grid full_domain_Q{axis0_Q, axis1, axis2};
   full_domain_Q.set_chunk_size_for_lazy_properties(2);
   std::cerr << "full_domain_Q:\n" << full_domain_Q << '\n';
 
@@ -334,14 +334,14 @@ auto main() -> int {
                                           begin(axis0) + 512);
   std::vector<double> threedpart_domain_z(begin(axis2),
                                           begin(axis2) + 256);
-  tat::grid           threedpart_domain{threedpart_domain_x, axis1,
+  tat::rectilinear_grid           threedpart_domain{threedpart_domain_x, axis1,
                               threedpart_domain_z};
   std::cerr << "3dpart_domain:\n" << threedpart_domain << '\n';
 
   // generate the pod domain
   std::vector<double> pod0_domain_y(begin(axis1),
                                    begin(axis1) + 1024);
-  tat::grid pod0_domain{threedpart_domain_x, pod0_domain_y, threedpart_domain_z};
+  tat::rectilinear_grid pod0_domain{threedpart_domain_x, pod0_domain_y, threedpart_domain_z};
   std::cerr << "pod0_domain:\n" << pod0_domain << '\n';
 
   // open hdf5 files

@@ -1,11 +1,11 @@
 #include<tatooine/sampler.h>
-#include<tatooine/grid.h>
+#include<tatooine/rectilinear_grid.h>
 #include<catch2/catch.hpp>
 //==============================================================================
 namespace tatooine::test {
 //==============================================================================
 TEST_CASE("sampler_bilinear_scalar", "[sampler][bilinear][scalar]") {
-  grid<linspace<double>, linspace<double>> g{linspace{0.0, 10.0, 11},
+  rectilinear_grid<linspace<double>, linspace<double>> g{linspace{0.0, 10.0, 11},
                                              linspace{0.0, 10.0, 11}};
   auto& prop = g.add_scalar_vertex_property("prop");
   auto  s    = prop.linear_sampler();
@@ -38,7 +38,7 @@ TEST_CASE("sampler_bilinear_scalar", "[sampler][bilinear][scalar]") {
 }
 //==============================================================================
 TEST_CASE("sampler_trilinear_scalar", "[sampler][trilinear][diff]") {
-  auto  g    = grid{linspace{0.0, 10.0, 11},
+  auto  g    = rectilinear_grid{linspace{0.0, 10.0, 11},
                     linspace{0.0, 10.0, 11},
                     linspace{0.0, 10.0, 11}};
   auto& prop = g.add_scalar_vertex_property("prop");

@@ -6,7 +6,7 @@
 #include <tatooine/doublegyre.h>
 #include <tatooine/field.h>
 #include <tatooine/fixed_time_field.h>
-#include <tatooine/grid.h>
+#include <tatooine/rectilinear_grid.h>
 #include <tatooine/grid_sampler.h>
 #include <tatooine/interpolation.h>
 #include <tatooine/sinuscosinus.h>
@@ -47,7 +47,7 @@ struct cavity : field<cavity, double, 2, 2> {
                               interpolation::hermite, interpolation::linear>;
   grid_t                            sampler;
   static constexpr vec<size_t, 3>   res{256, 96, 100};
-  static constexpr grid             domain{linspace{-1.0, 8.1164, res(0)},
+  static constexpr rectilinear_grid             domain{linspace{-1.0, 8.1164, res(0)},
                                            linspace{-1.0,    1.5, res(1)},
                                            linspace{ 0.0,   10.0, res(2)}};
 
@@ -85,7 +85,7 @@ struct rbc : field<rbc, double, 2, 2> {
   using grid_t = grid_sampler<real_t, 2, vec<real_t, 2>, interpolation::linear,
                               interpolation::linear>;
   static constexpr std::array dim{512ul, 128ul, 201ul};
-  static constexpr grid       domain{linspace{0.00390625, 3.99609375, dim[0]},
+  static constexpr rectilinear_grid       domain{linspace{0.00390625, 3.99609375, dim[0]},
                                linspace{0.00390625, 0.99609375, dim[1]},
                                linspace{2000.0, 2020.0, dim[2]}};
   //============================================================================
@@ -139,7 +139,7 @@ struct rbc : field<rbc, double, 2, 2> {
 //  using parent_t::real_t;
 //  using parent_t::tensor_t;
 //  static constexpr vec res{560, 160, 61};
-//  static constexpr grid domain{linspace{0.0, 559.0, res[0]},
+//  static constexpr rectilinear_grid domain{linspace{0.0, 559.0, res[0]},
 //                                         linspace{0.0, 159.0, res[1]},
 //                                         linspace{0.0, 60.0, res[2]}};
 //

@@ -1,5 +1,5 @@
 #include <tatooine/hdf5.h>
-#include <tatooine/grid.h>
+#include <tatooine/rectilinear_grid.h>
 #include <iomanip>
 //==============================================================================
 namespace tat = tatooine;
@@ -34,7 +34,7 @@ auto main() -> int {
   auto const axis2_full = tat::hdf5::file{"/home/vcuser/channel_flow/axis2.h5"}
                               .dataset<double>("CartGrid/axis2")
                               .read_as_vector();
-  tat::grid full_domain{axis0_full, axis1_full, axis2_full};
+  tat::rectilinear_grid full_domain{axis0_full, axis1_full, axis2_full};
   std::cerr << "full_domain:\n" << full_domain << '\n';
   auto const axis0_part =
       std::vector<double>(begin(axis0_full), begin(axis0_full) + part_res_x);
@@ -42,7 +42,7 @@ auto main() -> int {
       std::vector<double>(begin(axis1_full), begin(axis1_full) + part_res_y);
   auto const axis2_part =
       std::vector<double>(begin(axis2_full), begin(axis2_full) + part_res_z);
-  tat::grid part_domain{axis0_part, axis1_part, axis2_part};
+  tat::rectilinear_grid part_domain{axis0_part, axis1_part, axis2_part};
   std::cerr << "3dpart_domain:\n" << part_domain << '\n';
 
   auto const velx_122_full = velx_122_full_dataset.read_chunk(

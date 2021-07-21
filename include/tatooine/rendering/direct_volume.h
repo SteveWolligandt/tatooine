@@ -3,7 +3,7 @@
 //==============================================================================
 #include <omp.h>
 #include <tatooine/demangling.h>
-#include <tatooine/grid.h>
+#include <tatooine/rectilinear_grid.h>
 #include <tatooine/rendering/camera.h>
 //==============================================================================
 namespace tatooine::rendering {
@@ -26,7 +26,7 @@ auto direct_volume(camera<CameraReal> const&                     cam,
   using alpha_t   = typename color_t::value_type;
   static_assert(is_vec<color_t> && color_t::num_components() == 4,
                 "Shader must return a vector with 4 components.");
-  grid<linspace<CameraReal>, linspace<CameraReal>> rendered_image{
+  rectilinear_grid<linspace<CameraReal>, linspace<CameraReal>> rendered_image{
       linspace<CameraReal>{0.0, cam.plane_width() - 1, cam.plane_width()},
       linspace<CameraReal>{0.0, cam.plane_height() - 1, cam.plane_height()}};
   auto& rendering =

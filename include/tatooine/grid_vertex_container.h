@@ -3,7 +3,7 @@
 //==============================================================================
 #include <tatooine/concepts.h>
 #include <tatooine/for_loop.h>
-#include <tatooine/grid.h>
+#include <tatooine/rectilinear_grid.h>
 #include <tatooine/grid_vertex_handle.h>
 #include <tatooine/grid_vertex_iterator.h>
 //==============================================================================
@@ -14,11 +14,11 @@ template <indexable_space... Dimensions>
 #else
 template <typename... Dimensions>
 #endif
-class grid;
+class rectilinear_grid;
 //==============================================================================
 template <typename... Dimensions>
 struct grid_vertex_container {
-  using grid_t         = grid<Dimensions...>;
+  using grid_t         = rectilinear_grid<Dimensions...>;
   using iterator       = grid_vertex_iterator<Dimensions...>;
   using const_iterator = iterator;
   using handle         = typename grid_t::vertex_handle;
