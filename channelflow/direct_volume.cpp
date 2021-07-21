@@ -1,6 +1,6 @@
 #include <tatooine/color_scales/magma.h>
 #include <tatooine/color_scales/viridis.h>
-#include <tatooine/grid.h>
+#include <tatooine/rectilinear_grid.h>
 #include <tatooine/rendering/direct_volume.h>
 #include <tatooine/rendering/perspective_camera.h>
 //==============================================================================
@@ -17,14 +17,14 @@ auto main() -> int {
   auto const axis2 =
       axis2_file.dataset<double>("CartGrid/axis2").read_as_vector();
 
-  auto full_domain = grid{axis0, axis1, axis2};
+  auto full_domain = rectilinear_grid{axis0, axis1, axis2};
   std::cerr << "full_domain:\n" << full_domain << '\n';
 
   // generate the pod domain
   auto pod_domain_x = std::vector<double>(begin(axis0), begin(axis0) + 512);
   auto pod_domain_y = std::vector<double>(begin(axis1), begin(axis1) + 1024);
   auto pod_domain_z = std::vector<double>(begin(axis2), begin(axis2) + 256);
-  auto pod_domain   = grid{pod_domain_x, pod_domain_y, pod_domain_z};
+  auto pod_domain   = rectilinear_grid{pod_domain_x, pod_domain_y, pod_domain_z};
   std::cerr << "pod_domain:\n" << pod_domain << '\n';
 
   // open hdf5 files

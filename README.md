@@ -1,10 +1,11 @@
 # Grid
 #### Basic usage
 ``` c++
-#include <tatooine/grid.h>
-void use_linearly_spaced_grid() {
-  tatooine::grid gr{64, 64, 64};  // This creates a three-dimensional grid with
-                                  // a resolution of 64x64x64. It ranges in [0,1]x[0,1]x[0,1]
+#include <tatooine/rectilinear_grid.h>
+void use_linearly_spaced_rectilinear_grid() {
+  tatooine::rectilinear_grid gr{
+      64, 64, 64};  // This creates a three-dimensional rectilinear grid with
+                    // a resolution of 64x64x64. It ranges in [0,1]x[0,1]x[0,1]
 }
 ```
 

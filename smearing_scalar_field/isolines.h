@@ -1,7 +1,7 @@
 #ifndef TATOOINE_SMEARING_ISOLINES_H
 #define TATOOINE_SMEARING_ISOLINES_H
 //==============================================================================
-#include <tatooine/grid.h>
+#include <tatooine/rectilinear_grid.h>
 #include <tatooine/line.h>
 
 #include <vector>

@@ -1,5 +1,5 @@
 #include <tatooine/for_loop.h>
-#include <tatooine/grid.h>
+#include <tatooine/rectilinear_grid.h>
 #include <tatooine/lazy_reader.h>
 #include <tatooine/netcdf.h>
 
@@ -25,7 +25,7 @@ std::string const file_path_xyzt          = "simple_xyzt.nc";
 using namespace netCDF::exceptions;
 //==============================================================================
 auto write_simple_xy() {
-  // 2D data, a 8 x 6 grid.
+  // 2D data, a 8 x 6 rectilinear grid.
   std::vector<double> data_out(NX * NY);
   // create some data
   for (size_t j = 0; j < NY; ++j) {
@@ -71,7 +71,7 @@ auto write_unlimited_mat_list() {
 }
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 auto write_simple_xyz() {
-  // 3D data, a 8 x 6 x 4 grid.
+  // 3D data, a 8 x 6 x 4 rectilinear grid.
   std::vector<double> data_out(NX * NY * NZ);
   // create some data
   for (size_t k = 0; k < NZ; ++k) {

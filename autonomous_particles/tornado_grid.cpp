@@ -2,7 +2,7 @@
 #include <tatooine/autonomous_particle.h>
 #include <tatooine/chrono.h>
 #include <tatooine/flowmap_agranovsky.h>
-#include <tatooine/grid.h>
+#include <tatooine/rectilinear_grid.h>
 #include <tatooine/netcdf.h>
 #include <tatooine/progress_bars.h>
 #include <tatooine/tetrahedral_mesh.h>
@@ -21,7 +21,7 @@ double const really_bad_threshold        = 1e-4;
 double const really_really_bad_threshold = 1e-3;
 //==============================================================================
 auto create_initial_distribution(args_t const& args) {
-  grid initial_distribution_grid{linspace{-1.0, 1.0, args.width + 1},
+  rectilinear_grid initial_distribution_grid{linspace{-1.0, 1.0, args.width + 1},
                                  linspace{-1.0, 1.0, args.height + 1},
                                  linspace{-1.0, 1.0, args.depth + 1}};
   initial_distribution_grid.dimension<0>().pop_front();
@@ -357,7 +357,7 @@ auto main(int argc, char** argv) -> int {
     // vertices as particles
     //----------------------------------------------------------------------------
     indicator.set_text("Buildung regular sampled flowmap");
-    grid  uniform_grid{linspace{0.0, 2.0, grid_min_extent * 2},
+    rectilinear_grid  uniform_grid{linspace{0.0, 2.0, grid_min_extent * 2},
                       linspace{0.0, 1.0, grid_min_extent}};
     auto& regular_flowmap_grid_prop =
         uniform_grid.add_vertex_property<vec3, x_fastest>("flowmap");
@@ -379,7 +379,7 @@ auto main(int argc, char** argv) -> int {
     //----------------------------------------------------------------------------
     // Create memory for measuring
     //----------------------------------------------------------------------------
-    grid  sampler_check_grid{linspace{0.0, 2.0, 101}, linspace{0.0, 1.0, 51}};
+    rectilinear_grid  sampler_check_grid{linspace{0.0, 2.0, 101}, linspace{0.0, 1.0, 51}};
     [[maybe_unused]] auto& forward_errors_autonomous_prop =
         sampler_check_grid.add_vertex_property<double>(
             "forward_error_autonomous");

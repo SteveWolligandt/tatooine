@@ -6,7 +6,7 @@
 #include <tatooine/field.h>
 #include <tatooine/ftle.h>
 #include <tatooine/functional.h>
-#include <tatooine/grid.h>
+#include <tatooine/rectilinear_grid.h>
 #include <tatooine/grid_edge.h>
 #include <tatooine/grid_sampler.h>
 #include <tatooine/grid_vertex.h>

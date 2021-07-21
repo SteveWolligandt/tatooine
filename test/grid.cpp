@@ -1,14 +1,14 @@
-#include <tatooine/grid.h>
+#include <tatooine/rectilinear_grid.h>
 
 #include <catch2/catch.hpp>
 //==============================================================================
 namespace tatooine::test {
 //==============================================================================
-TEST_CASE("grid_ctor_raw_size", "[grid][ctor][raw_size]") {
+TEST_CASE("grid_ctor_raw_size", "[rectilinear_grid][ctor][raw_size]") {
   size_t const res_x = 10;
   size_t const res_y = 11;
   size_t const res_z = 12;
-  auto         g     = grid{res_x, res_y, res_z};
+  auto         g     = rectilinear_grid{res_x, res_y, res_z};
   REQUIRE(g.num_dimensions() == 3);
   REQUIRE(is_linspace<std::decay_t<decltype(g.dimension(0))>>);
   REQUIRE(is_linspace<std::decay_t<decltype(g.dimension(1))>>);
@@ -24,10 +24,10 @@ TEST_CASE("grid_ctor_raw_size", "[grid][ctor][raw_size]") {
   REQUIRE(g.dimension(2).size() == 12);
 }
 //==============================================================================
-TEST_CASE("grid_copy_constructor", "[grid][copy][constructor]") {
+TEST_CASE("grid_copy_constructor", "[rectilinear_grid][copy][constructor]") {
   auto const dim0       = std::array{0, 1, 2};
   auto const dim1       = std ::array{0, 1, 2};
-  auto       g0         = grid{dim0, dim1};
+  auto       g0         = rectilinear_grid{dim0, dim1};
   auto&      prop       = g0.insert_scalar_vertex_property("prop");
   auto const some_value = 100;
   prop(0, 0)            = some_value;
@@ -38,11 +38,11 @@ TEST_CASE("grid_copy_constructor", "[grid][copy][constructor]") {
   REQUIRE_FALSE(prop(0, 0) == prop_copy(0, 0));
 }
 //==============================================================================
-TEST_CASE("grid_vertex_indexing", "[grid][vertex][indexing]") {
+TEST_CASE("grid_vertex_indexing", "[rectilinear_grid][vertex][indexing]") {
   auto const dim0 = std::array{0, 1, 2};
   auto const dim1 = std::vector{0, 1, 2};
   auto const dim2 = linspace{0.0, 1.0, 11};
-  auto const g    = grid{dim0, dim1, dim2};
+  auto const g    = rectilinear_grid{dim0, dim1, dim2};
   auto const v000 = g.vertex_at(0, 0, 0);
   auto const v111 = g.vertex_at(1, 1, 1);
   auto const v221 = g.vertex_at(2, 2, 1);
@@ -52,8 +52,8 @@ TEST_CASE("grid_vertex_indexing", "[grid][vertex][indexing]") {
   REQUIRE(approx_equal(v221, vec{2.0, 2.0, 0.1}));
 }
 //==============================================================================
-TEST_CASE("grid_vertex_iterator", "[grid][vertex][iterator]") {
-  auto g  = grid{std::array{0.0, 1.0, 2.0}, std::vector{0.0, 1.0, 2.0},
+TEST_CASE("grid_vertex_iterator", "[rectilinear_grid][vertex][iterator]") {
+  auto g  = rectilinear_grid{std::array{0.0, 1.0, 2.0}, std::vector{0.0, 1.0, 2.0},
                 linspace{0.0, 2.0, 3}};
   auto it = begin(vertices(g));
   REQUIRE(approx_equal(g[*it], g.vertex_at(0, 0, 0)));
@@ -63,12 +63,12 @@ TEST_CASE("grid_vertex_iterator", "[grid][vertex][iterator]") {
   // REQUIRE(next(it, 27) == end(gv));
 }
 //==============================================================================
-TEST_CASE("grid_cell_index", "[grid][cell_index]") {
+TEST_CASE("grid_cell_index", "[rectilinear_grid][cell_index]") {
   auto const dim0            = std::array{0.0, 1.2, 1.3};
   auto const dim1            = std::vector{0, 1, 2, 4};
   auto const dim2            = linspace{0.0, 2.0, 3};
   auto const dim3            = linspace{0.0, 1.0, 25};
-  auto       g               = grid{dim0, dim1, dim2, dim3};
+  auto       g               = rectilinear_grid{dim0, dim1, dim2, dim3};
   auto const [idx0, factor0] = g.cell_index<0>(1.25);
   REQUIRE(idx0 == 1);
   REQUIRE(factor0 == 0.5);
@@ -95,8 +95,8 @@ TEST_CASE("grid_cell_index", "[grid][cell_index]") {
   // REQUIRE(factor6 == 1);
 }
 //==============================================================================
-TEST_CASE("grid_vertex_property", "[grid][property]") {
-  auto g = grid{linspace{0.0, 1.0, 11}, linspace{0.0, 1.0, 11}};
+TEST_CASE("grid_vertex_property", "[rectilinear_grid][property]") {
+  auto g = rectilinear_grid{linspace{0.0, 1.0, 11}, linspace{0.0, 1.0, 11}};
   SECTION("contiguous") {
     auto& prop = g.insert_contiguous_vertex_property<double>("double_prop");
     REQUIRE(prop.size().size() == 2);
@@ -117,8 +117,8 @@ TEST_CASE("grid_vertex_property", "[grid][property]") {
   }
 }
 //==============================================================================
-TEST_CASE("grid_vertex_property_sampler", "[grid][sampler][linear]") {
-  auto  g    = grid{linspace{0.0, 10.0, 11}, linspace{0.0, 10.0, 11}};
+TEST_CASE("grid_vertex_property_sampler", "[rectilinear_grid][sampler][linear]") {
+  auto  g    = rectilinear_grid{linspace{0.0, 10.0, 11}, linspace{0.0, 10.0, 11}};
   auto& prop = g.insert_scalar_vertex_property("double_prop");
   prop(0, 0) = 1;
   prop(1, 0) = 2;
@@ -145,10 +145,10 @@ TEST_CASE("grid_vertex_property_sampler", "[grid][sampler][linear]") {
   REQUIRE(sampler(0.5, 0.5) == 2.5);
 }
 //==============================================================================
-TEST_CASE("grid_vertex_prop_cubic", "[grid][sampler][cubic]") {
+TEST_CASE("grid_vertex_prop_cubic", "[rectilinear_grid][sampler][cubic]") {
   auto const dim0 = std::array{0.0, 1.0, 2.0};
   auto const dim1 = std::array{0.0, 1.0};
-  auto       g    = grid{dim0, dim1};
+  auto       g    = rectilinear_grid{dim0, dim1};
 
   auto& u         = g.insert_scalar_vertex_property("u");
   auto  u_sampler = u.cubic_sampler();
@@ -160,7 +160,7 @@ TEST_CASE("grid_vertex_prop_cubic", "[grid][sampler][cubic]") {
   u(1, 0) = 6;
   u(2, 0) = 2;
 
-  auto  resample_grid = grid{linspace{0.0, 2.0, 201}, linspace{0.0, 1.0, 101}};
+  auto  resample_grid = rectilinear_grid{linspace{0.0, 2.0, 201}, linspace{0.0, 1.0, 101}};
   auto& resampled_u   = resample_grid.insert_scalar_vertex_property("u");
   resample_grid.vertices().iterate_indices([&](auto const... is) {
     resampled_u(is...) = u_sampler(resample_grid.vertex_at(is...));
@@ -175,11 +175,11 @@ TEST_CASE("grid_vertex_prop_cubic", "[grid][sampler][cubic]") {
   REQUIRE(u_sampler(2, y) == Approx(2.5));
 }
 //==============================================================================
-TEST_CASE("grid_chunked_vertex_property", "[grid][vertex][chunked][property]") {
+TEST_CASE("grid_chunked_vertex_property", "[rectilinear_grid][vertex][chunked][property]") {
   auto const dim0 = std::array{0, 1, 2};
   auto const dim1 = std::vector{0, 1, 2};
   auto const dim2 = linspace{0.0, 2.0, 3};
-  auto       g    = grid{dim0, dim1, dim2};
+  auto       g    = rectilinear_grid{dim0, dim1, dim2};
 
   auto& u_prop = g.insert_chunked_vertex_property<double, x_fastest>(
       "u", std::vector<size_t>{2, 2, 2});
@@ -209,11 +209,11 @@ TEST_CASE("grid_chunked_vertex_property", "[grid][vertex][chunked][property]") {
   REQUIRE_THROWS(g.vertex_property<double>("v"));
 }
 //==============================================================================
-TEST_CASE("grid_amira_write", "[grid][amira]") {
+TEST_CASE("grid_amira_write", "[rectilinear_grid][amira]") {
   auto const dim0  = linspace{0.0, 1.0, 3};
   auto const dim1  = linspace{0.0, 1.0, 3};
   auto const dim2  = linspace{0.0, 1.0, 3};
-  auto       g     = grid{dim0, dim1, dim2};
+  auto       g     = rectilinear_grid{dim0, dim1, dim2};
   auto&      prop  = g.insert_contiguous_vertex_property<vec<double, 2>>("bla");
   prop.at(1, 1, 1) = vec{1, 1};
   g.write_amira("amira_prop.am", prop);

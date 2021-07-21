@@ -183,7 +183,7 @@ struct axis_aligned_bounding_box
       requires(N == 2)
 #endif
   {
-    auto const c = center();
+    //auto const c = center();
     // auto const e = extents()/2;
     // x0 -= c;
     // x1 -= c;

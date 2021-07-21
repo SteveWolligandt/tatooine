@@ -1,16 +1,16 @@
-#include <tatooine/grid.h>
+#include <tatooine/rectilinear_grid.h>
 #include <tatooine/vtk_legacy.h>
 #include <catch2/catch.hpp>
 //==============================================================================
 namespace tatooine::test {
 //==============================================================================
-TEST_CASE("grid_edge_max_num_edges_per_cell", "[grid][grid_edge]")  {
+TEST_CASE("grid_edge_max_num_edges_per_cell", "[rectilinear_grid][grid_edge]")  {
   REQUIRE(grid_edge_iterator<double, 2>::max_num_edges_per_cell == 4);
   REQUIRE(grid_edge_iterator<double, 3>::max_num_edges_per_cell == 13);
   REQUIRE(grid_edge_iterator<double, 4>::max_num_edges_per_cell == 40);
 }
 //==============================================================================
-TEST_CASE("grid_edge_neighbor_dirs", "[grid][grid_edge]") {
+TEST_CASE("grid_edge_neighbor_dirs", "[rectilinear_grid][grid_edge]") {
   auto dirs2 = grid_edge_iterator<double, 2>::edge_dirs;
   auto bases2 = grid_edge_iterator<double, 2>::bases;
   for (size_t i = 0; i < grid_edge_iterator<double, 2>::max_num_edges_per_cell;
@@ -24,9 +24,9 @@ TEST_CASE("grid_edge_neighbor_dirs", "[grid][grid_edge]") {
   }
 }
 //==============================================================================
-TEST_CASE("grid_edge_iteration2", "[grid][grid_edge]") {
+TEST_CASE("grid_edge_iteration2", "[rectilinear_grid][grid_edge]") {
   size_t counter = 0;
-  grid g{linspace{0.0, 2.0, 3}, linspace{0.0, 2.0, 3}};
+  rectilinear_grid g{linspace{0.0, 2.0, 3}, linspace{0.0, 2.0, 3}};
   for (auto [v0, v1]: g.edges()) {
     std::cerr << v0.indices() << '\n';
     std::cerr << v1.indices() << '\n';
@@ -36,9 +36,9 @@ TEST_CASE("grid_edge_iteration2", "[grid][grid_edge]") {
   REQUIRE(counter == 20);
 }
 //==============================================================================
-TEST_CASE("grid_edge_iteration3", "[grid][grid_edge]") {
+TEST_CASE("grid_edge_iteration3", "[rectilinear_grid][grid_edge]") {
   size_t counter = 0;
-  grid g{linspace{0.0, 2.0, 3}, linspace{0.0, 2.0, 3}, linspace{0.0, 2.0, 3}};
+  rectilinear_grid g{linspace{0.0, 2.0, 3}, linspace{0.0, 2.0, 3}, linspace{0.0, 2.0, 3}};
   std::vector<vec<double,3>> positions;
   std::vector<std::vector<size_t>> lines;
   size_t idx = 0;

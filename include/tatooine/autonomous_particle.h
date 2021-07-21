@@ -37,6 +37,8 @@ struct autonomous_particle_sampler {
          m_forward_transformation{F},
          m_backward_transformation{B} {}
 
+   auto ellipse(tag::forward_t) const -> auto const& { return m_ellipse0; }
+   auto ellipse(tag::backward_t) const -> auto const& { return m_ellipse1; }
    auto ellipse0() const -> auto const& { return m_ellipse0; }
    auto ellipse1() const -> auto const& { return m_ellipse1; }
    auto forward_transformation() const -> auto const& {
@@ -53,15 +55,27 @@ struct autonomous_particle_sampler {
    auto operator()(pos_t const& x, tag::forward_t /*tag*/) const {
      return sample_forward(x);
    }
+   auto sample(pos_t const& x, tag::forward_t /*tag*/) const {
+     return sample_forward(x);
+   }
    auto sample_backward(pos_t const& x) const {
      return m_backward_transformation * (x - m_ellipse1.center()) +
             m_ellipse0.center();
+   }
+   auto sample(pos_t const& x, tag::backward_t /*tag*/) const {
+     return sample_backward(x);
    }
    auto operator()(pos_t const& x, tag::backward_t /*tag*/) const {
      return sample_backward(x);
    }
    auto is_inside0(pos_t const& x) const { return m_ellipse0.is_inside(x); }
+   auto is_inside(pos_t const& x, tag::forward_t) const {
+     return is_inside0(x);
+   }
    auto is_inside1(pos_t const& x) const { return m_ellipse1.is_inside(x); }
+   auto is_inside(pos_t const& x, tag::backward_t) const {
+     return is_inside1(x);
+   }
 };
 //==============================================================================
 template <typename Real, size_t N>
@@ -103,6 +117,7 @@ struct autonomous_particle : geometry::hyper_ellipse<Real, N> {
   autonomous_particle() : m_nabla_phi1{mat_t::eye()} {}
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
   autonomous_particle(pos_t const& x0, real_t const t0, real_t const r0);
+  autonomous_particle(ellipse_t const& ell, real_t const t0);
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
   autonomous_particle(pos_t const& x0, real_t const t1, mat_t const& nabla_phi1,
                       ellipse_t const& ell);
@@ -568,11 +583,15 @@ auto autonomous_particle<Real, N>::operator=(
 }
 //----------------------------------------------------------------------------
 template <typename Real, size_t N>
+autonomous_particle<Real, N>::autonomous_particle(ellipse_t const& ell,
+                                                  real_t const     t0)
+    : parent_t{ell}, m_x0{ell.center()}, m_t1{t0}, m_nabla_phi1{mat_t::eye()} {}
+//----------------------------------------------------------------------------
+template <typename Real, size_t N>
 autonomous_particle<Real, N>::autonomous_particle(pos_t const& x0,
                                                   real_t const t0,
                                                   real_t const r0)
     : parent_t{x0, r0}, m_x0{x0}, m_t1{t0}, m_nabla_phi1{mat_t::eye()} {}
-
 //----------------------------------------------------------------------------
 template <typename Real, size_t N>
 autonomous_particle<Real, N>::autonomous_particle(pos_t const&     x0,

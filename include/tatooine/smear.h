@@ -2,7 +2,7 @@
 #define TATOOINE_SMEAR_H
 //==============================================================================
 #include <tatooine/geometry/sphere.h>
-#include <tatooine/grid.h>
+#include <tatooine/rectilinear_grid.h>
 #include <tatooine/interpolation.h>
 //==============================================================================
 namespace tatooine {

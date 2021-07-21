@@ -1,7 +1,7 @@
 #ifndef TATOOINE_GRID_VERTEX_ITERATOR_H
 #define TATOOINE_GRID_VERTEX_ITERATOR_H
 //==============================================================================
-#include <tatooine/grid.h>
+#include <tatooine/rectilinear_grid.h>
 #include <tatooine/grid_vertex_handle.h>
 
 #include <boost/iterator/iterator_facade.hpp>
@@ -17,7 +17,7 @@ template <indexable_space... Dimensions>
 #else
 template <typename... Dimensions>
 #endif
-class grid;
+class rectilinear_grid;
 //==============================================================================
 template <typename... Dimensions>
 struct grid_vertex_iterator
@@ -26,7 +26,7 @@ struct grid_vertex_iterator
                              boost::bidirectional_traversal_tag> {
   static constexpr auto num_dimensions() { return sizeof...(Dimensions); }
   using difference_type   = size_t;
-  using grid_t            = grid<Dimensions...>;
+  using grid_t            = rectilinear_grid<Dimensions...>;
   using value_type        = grid_vertex_handle<num_dimensions()>;
   using pointer           = value_type*;
   using reference         = value_type&;

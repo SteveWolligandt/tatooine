@@ -5,7 +5,7 @@
 #include <tatooine/color_scales/viridis.h>
 #include <tatooine/for_loop.h>
 #include <tatooine/ftle_field.h>
-#include <tatooine/grid.h>
+#include <tatooine/rectilinear_grid.h>
 #include <tatooine/gpu/lic.h>
 //#include <tatooine/ode/boost/rungekuttafehlberg78.h>
 #include <tatooine/ode/vclibs/rungekutta43.h>
@@ -31,7 +31,7 @@ void ftle_test_flowmap_gradient(FlowmapGradient const& flowmap_gradient,
 TEST_CASE("ftle_doublegyre", "[ftle][doublegyre][dg]") {
   doublegyre v;
   v.set_infinite_domain(true);
-  grid   sample_grid{linspace{0.0, 2.0, 1000}, linspace{0.0, 1.0, 500}};
+  rectilinear_grid   sample_grid{linspace{0.0, 2.0, 1000}, linspace{0.0, 1.0, 500}};
   real_t tau = 10;
   real_t t0  = 0;
   //ftle_test_vectorfield(
@@ -47,7 +47,7 @@ TEST_CASE("ftle_doublegyre", "[ftle][doublegyre][dg]") {
 //==============================================================================
 TEST_CASE("ftle_modified_doublegyre", "[ftle][modified_doublegyre][mdg]") {
   modified_doublegyre v;
-  grid sample_grid{linspace{0.0, 2.0, 200}, linspace{-1.0, 1.0, 100}};
+  rectilinear_grid sample_grid{linspace{0.0, 2.0, 200}, linspace{-1.0, 1.0, 100}};
   for (auto t0 : linspace(1.0, 3.0, 3)) {
     for (auto tau : std::array{-20, 20}) {
       ftle_test_vectorfield(
@@ -59,7 +59,7 @@ TEST_CASE("ftle_modified_doublegyre", "[ftle][modified_doublegyre][mdg]") {
 //==============================================================================
 TEST_CASE("ftle_counterexample_sadlo", "[ftle][counterexample_sadlo]") {
   counterexample_sadlo v;
-  grid sample_grid{linspace{-3.0, 3.0, 200}, linspace{-3.0, 3.0, 200}};
+  rectilinear_grid sample_grid{linspace{-3.0, 3.0, 200}, linspace{-3.0, 3.0, 200}};
   ftle_test_vectorfield(v, sample_grid, 0.0, 10.0,
                         "ftle_counterexample_sadlo_ftle_tau_" +
                             std::to_string(10.0) + "_t0_" +
@@ -68,7 +68,7 @@ TEST_CASE("ftle_counterexample_sadlo", "[ftle][counterexample_sadlo]") {
 //==============================================================================
 TEST_CASE("ftle_saddle", "[ftle][saddle]") {
   saddle                                   v;
-  grid<linspace<real_t>, linspace<real_t>> ftle_grid{linspace{-1.0, 1.0, 200},
+  rectilinear_grid<linspace<real_t>, linspace<real_t>> ftle_grid{linspace{-1.0, 1.0, 200},
                                                      linspace{-1.0, 1.0, 200}};
   auto& ftle_prop = ftle_grid.insert_scalar_vertex_property("ftle");
   auto const t0   = 0;

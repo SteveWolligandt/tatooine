@@ -1,7 +1,7 @@
 #include <tatooine/analytical/fields/numerical/abcflow.h>
 #include <tatooine/autonomous_particle.h>
 #include <tatooine/chrono.h>
-#include <tatooine/grid.h>
+#include <tatooine/rectilinear_grid.h>
 #include <tatooine/triangular_mesh.h>
 #include <tatooine/netcdf.h>
 #include <tatooine/progress_bars.h>
@@ -57,7 +57,7 @@ auto main(int argc, char** argv) -> int {
                           back_calculation_file.add_dimension("row", 3),
                           back_calculation_file.add_dimension("column", 4)});
 
-  grid initial_autonomous_particles_grid{linspace{-1.0, 1.0, args.width + 1},
+  rectilinear_grid initial_autonomous_particles_grid{linspace{-1.0, 1.0, args.width + 1},
                                          linspace{-1.0, 1.0, args.height + 1},
                                          linspace{-1.0, 1.0, args.depth + 1}};
   initial_autonomous_particles_grid.dimension<0>().pop_front();
@@ -179,7 +179,7 @@ auto main(int argc, char** argv) -> int {
     indicator.set_text("Buildung regular sampled flowmap");
     auto const n = static_cast<size_t>(
         std::ceil(std::pow(size(advected_particles), 1.0 / 3.0)));
-    grid  uniform_grid{linspace{-1.0, 1.0, n},
+    rectilinear_grid  uniform_grid{linspace{-1.0, 1.0, n},
                        linspace{-1.0, 1.0, n},
                        linspace{-1.0, 1.0, n}};
     auto& regular_sampled_flowmap =
@@ -196,7 +196,7 @@ auto main(int argc, char** argv) -> int {
     //----------------------------------------------------------------------------
     // Compare with regular sampled flowmap
     //----------------------------------------------------------------------------
-    grid sampler_check_grid = initial_autonomous_particles_grid;
+    rectilinear_grid sampler_check_grid = initial_autonomous_particles_grid;
     sampler_check_grid.dimension<0>().resize(1001);
     sampler_check_grid.dimension<1>().resize(1001);
     sampler_check_grid.dimension<2>().resize(1001);

@@ -1,6 +1,6 @@
 #include <tatooine/fields/scivis_contest_2020_ensemble_member.h>
 #include <tatooine/filesystem.h>
-#include <tatooine/grid.h>
+#include <tatooine/rectilinear_grid.h>
 #include <tatooine/linspace.h>
 int main(int argc, char** argv) {
   if (argc < 2) { throw std::runtime_error{"specify ensemble file path"}; }
@@ -17,7 +17,7 @@ int main(int argc, char** argv) {
   zn          = v.z_axis.size() * 2;
   linspace z_domain{v.z_axis.front(), v.z_axis.back(), zn};
 
-  grid  resample_grid{x_domain, y_domain, z_domain};
+  rectilinear_grid  resample_grid{x_domain, y_domain, z_domain};
   auto& vel =
       resample_grid.add_contiguous_vertex_property<vec<double, 3>, x_fastest>(
           "velocity");

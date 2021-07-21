@@ -1,5 +1,5 @@
 #if TATOOINE_HDF5_AVAILABLE
-#include <tatooine/grid.h>
+#include <tatooine/rectilinear_grid.h>
 #include <tatooine/isosurface.h>
 #include <boost/range/algorithm/generate.hpp>
 #include <boost/range/algorithm_ext/iota.hpp>

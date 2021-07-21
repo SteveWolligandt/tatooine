@@ -6,7 +6,7 @@
 
 #include <tatooine/critical_points_bilinear.h>
 #include <tatooine/field.h>
-#include <tatooine/grid.h>
+#include <tatooine/rectilinear_grid.h>
 #include <tatooine/interpolation.h>
 #include <tatooine/sampled_field.h>
 //==============================================================================

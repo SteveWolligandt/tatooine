@@ -1,5 +1,5 @@
 #include <tatooine/lazy_reader.h>
-#include <tatooine/grid.h>
+#include <tatooine/rectilinear_grid.h>
 
 #ifdef TATOOINE_NETCDF_AVAILABLE
 #include <tatooine/netcdf.h>
@@ -26,7 +26,7 @@ TEST_CASE("lazy_reader_hdf5_stress", "[lazy_reader][hdf5][stress]") {
   lazy_reader<hdf5>
 }
 //==============================================================================
-TEST_CASE("lazy_reader_netcdf_grid", "[lazy_reader][netcdf][grid]") {
+TEST_CASE("lazy_reader_netcdf_grid", "[lazy_reader][netcdf][rectilinear_grid]") {
   //non_uniform_grid<double, 2> g{"simple_xy.nc"};
   //auto const& prop = g.vertex_property<double>("data");
   //

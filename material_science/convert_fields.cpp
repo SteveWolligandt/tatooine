@@ -6,7 +6,7 @@
 #include <string>
 #include <tatooine/multidim_array.h>
 #include <tatooine/make_array.h>
-#include <tatooine/grid.h>
+#include <tatooine/rectilinear_grid.h>
 #include <tatooine/vtk_legacy.h>
 #include <tatooine/tensor.h>
 #include <tatooine/interpolation.h>
@@ -49,7 +49,7 @@ int main() {
         }
       }
       // build discrete domain
-      grid domain{linspace{data['x'](0, 0), data['x'](data['x'].size(0) - 1, 0),
+      rectilinear_grid domain{linspace{data['x'](0, 0), data['x'](data['x'].size(0) - 1, 0),
                     data['x'].size(0)},
            linspace{data['y'](0, 0), data['y'](0, data['y'].size(1) - 1),
                     data['y'].size(1)}};

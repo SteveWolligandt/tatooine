@@ -74,5 +74,5 @@ struct grid_vertex_handle {
 //==============================================================================
 }  // namespace tatooine
 //==============================================================================
-#include <tatooine/grid.h>
+#include <tatooine/rectilinear_grid.h>
 #endif

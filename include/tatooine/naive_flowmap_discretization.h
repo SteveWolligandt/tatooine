@@ -2,7 +2,7 @@
 #define TATOOINE_NAIVE_FLOWMAP_DISCRETIZATION_H
 //==============================================================================
 #include <tatooine/field.h>
-#include <tatooine/grid.h>
+#include <tatooine/rectilinear_grid.h>
 #include <tatooine/particle.h>
 #include <tatooine/interpolation.h>
 #include <tatooine/triangular_mesh.h>
@@ -21,7 +21,7 @@ struct naive_flowmap_discretization {
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
   template <typename... Ts>
   struct grid_type_creator<0, Ts...> {
-    using type = grid<Ts...>;
+    using type = rectilinear_grid<Ts...>;
   };
   //----------------------------------------------------------------------------
   using grid_t = typename grid_type_creator<N>::type;

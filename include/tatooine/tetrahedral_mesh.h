@@ -7,7 +7,7 @@
 //#include <CGAL/Triangulation_vertex_base_with_info_3.h>
 //#endif
 //
-//#include <tatooine/grid.h>
+//#include <tatooine/rectilinear_grid.h>
 //#include <tatooine/pointset.h>
 //#include <tatooine/property.h>
 //#include <tatooine/vtk_legacy.h>
@@ -235,7 +235,7 @@ using tetrahedral_mesh3 = tetrahedral_mesh<real_t, 3>;
 //  template <typename DimX, typename DimY, typename DimZ, size_t N_ = N,
 //            enable_if<N_ == 3> = true>
 //#endif
-//      tetrahedral_mesh(grid<DimX, DimY, DimZ> const& g) {
+//      tetrahedral_mesh(rectilinear_grid<DimX, DimY, DimZ> const& g) {
 //
 //    constexpr auto turned = [](size_t const ix, size_t const iy,
 //                     size_t const iz) -> bool {
@@ -673,8 +673,8 @@ using tetrahedral_mesh3 = tetrahedral_mesh<real_t, 3>;
 //tetrahedral_mesh()->tetrahedral_mesh<double, 3>;
 //tetrahedral_mesh(std::string const&)->tetrahedral_mesh<double, 3>;
 //template <typename... Dims>
-//tetrahedral_mesh(grid<Dims...> const& g)
-//    -> tetrahedral_mesh<typename grid<Dims...>::real_t, sizeof...(Dims)>;
+//tetrahedral_mesh(rectilinear_grid<Dims...> const& g)
+//    -> tetrahedral_mesh<typename rectilinear_grid<Dims...>::real_t, sizeof...(Dims)>;
 //==============================================================================
 // namespace detail {
 // template <typename MeshCont>

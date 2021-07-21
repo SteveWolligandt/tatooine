@@ -265,7 +265,7 @@ static constexpr auto is_matrixfield() {
 //==============================================================================
 // free functions
 //==============================================================================
-#include <tatooine/grid.h>
+#include <tatooine/rectilinear_grid.h>
 //==============================================================================
 namespace tatooine {
 //==============================================================================
@@ -278,7 +278,7 @@ template <typename V, typename VReal, size_t NumDims, typename Tensor,
           enable_if<is_arithmetic<VReal, T>> = true>
 #endif
 auto sample_to_raw(field<V, VReal, NumDims, Tensor> const& f,
-                   grid<SpatialDimensions...> const&       discretized_domain,
+                   rectilinear_grid<SpatialDimensions...> const&       discretized_domain,
                    T const t, size_t padding = 0, VReal padval = 0) {
   auto const         nan = VReal(0) / VReal(0);
   std::vector<VReal> raw_data;
@@ -319,7 +319,7 @@ template <typename V, typename VReal, typename TReal, size_t NumDims,
           enable_if<is_arithmetic<VReal, TReal>> = true>
 #endif
 auto sample_to_raw(field<V, VReal, NumDims, Tensor> const& f,
-                   grid<SpatialDimensions...> const&       discretized_domain,
+                   rectilinear_grid<SpatialDimensions...> const&       discretized_domain,
                    TemporalDimension const& temporal_domain, size_t padding = 0,
                    VReal padval = 0) {
   auto const         nan = VReal(0) / VReal(0);
@@ -361,7 +361,7 @@ template <typename VReal, typename TReal, size_t NumDims, typename Tensor,
           enable_if<is_arithmetic<VReal, TReal>> = true>
 #endif
 auto sample_to_vector(polymorphic::field<VReal, NumDims, Tensor> const& f,
-                      grid<SpatialDimensions...> const& discretized_domain,
+                      rectilinear_grid<SpatialDimensions...> const& discretized_domain,
                       TReal                             t) {
   using V                   = polymorphic::field<VReal, NumDims, Tensor>;
   using tensor_t            = typename V::tensor_t;
@@ -393,7 +393,7 @@ template <typename V, typename VReal, typename TReal, size_t NumDims,
           enable_if<is_arithmetic<VReal, TReal>> = true>
 #endif
 auto discretize(field<V, VReal, NumDims, Tensor> const& f,
-                grid<SpatialDimensions...>&             discretized_domain,
+                rectilinear_grid<SpatialDimensions...>&             discretized_domain,
                 std::string const& property_name, TReal const t) -> auto& {
   auto const ood_tensor = [&f] {
     if constexpr (is_scalarfield<V>()) {
@@ -444,7 +444,7 @@ auto discretize(field<V, VReal, NumDims, Tensor> const& f,
   auto const extent =
       vec<VReal, 2>{spatial_size(0) / (res0 - 1), spatial_size(1) / (res1 - 1)};
   auto discretized_domain =
-      grid{linspace<VReal>{0, length(basis * vec{spatial_size(0), 0}), res0},
+      rectilinear_grid{linspace<VReal>{0, length(basis * vec{spatial_size(0), 0}), res0},
            linspace<VReal>{0, length(basis * vec{0, spatial_size(1)}), res1}};
 
   auto const ood_tensor = [] {
@@ -522,7 +522,7 @@ auto discretize(field<V, VReal, NumDims, Tensor> const& f,
 //          enable_if<is_arithmetic<VReal, TReal>> = true>
 //#endif
 // auto resample(field<V, VReal, NumDims, Tensor> const& f,
-//              grid<SpatialDimensions...>&              discretized_domain,
+//              rectilinear_grid<SpatialDimensions...>&              discretized_domain,
 //              TemporalDomain const& temporal_domain) -> auto& {
 //  auto const ood_tensor = [] {
 //    if constexpr (f.is_scalarfield()) {

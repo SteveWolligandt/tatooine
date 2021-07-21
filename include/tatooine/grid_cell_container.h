@@ -3,7 +3,7 @@
 //==============================================================================
 #include <tatooine/concepts.h>
 #include <tatooine/for_loop.h>
-#include <tatooine/grid.h>
+#include <tatooine/rectilinear_grid.h>
 //#include <tatooine/grid_cell_handle.h>
 //#include <tatooine/grid_cell_iterator.h>
 //==============================================================================
@@ -14,22 +14,22 @@ template <indexable_space... Dimensions>
 #else
 template <typename... Dimensions>
 #endif
-class grid;
+class rectilinear_grid;
 //==============================================================================
 template <typename... Dimensions>
 struct grid_cell_container {
  private:
-  grid<Dimensions...> const& m_grid;
+  rectilinear_grid<Dimensions...> const& m_grid;
 
  public:
   //using iterator          = grid_cell_iterator<Dimensions...>;
   //using const_iterator    = iterator;
   //using handle    = grid_cell_handle<Dimensions...>;
-  //using pos_t = typename grid<Dimensions...>::pos_t;
-  using seq_t = typename grid<Dimensions...>::seq_t;
+  //using pos_t = typename rectilinear_grid<Dimensions...>::pos_t;
+  using seq_t = typename rectilinear_grid<Dimensions...>::seq_t;
   static constexpr auto num_dimensions() { return sizeof...(Dimensions); }
   //----------------------------------------------------------------------------
-  grid_cell_container(grid<Dimensions...> const& g) : m_grid{g} {}
+  grid_cell_container(rectilinear_grid<Dimensions...> const& g) : m_grid{g} {}
   //----------------------------------------------------------------------------
 //#ifdef __cpp_concepts
 //  template <size_t... DIs, integral Int>

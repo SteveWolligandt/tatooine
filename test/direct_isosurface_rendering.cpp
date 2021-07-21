@@ -1,6 +1,6 @@
 #include <tatooine/analytical/fields/numerical/doublegyre.h>
 #include <tatooine/rendering/direct_isosurface.h>
-#include <tatooine/grid.h>
+#include <tatooine/rectilinear_grid.h>
 #include <tatooine/line.h>
 #include <tatooine/rendering/perspective_camera.h>
 #include <tatooine/spacetime_vectorfield.h>
@@ -15,7 +15,7 @@ TEST_CASE("direct_iso_grid_vertex_sampler") {
   auto mag_vst = length(vst);
 
   auto g =
-      grid{linspace{0.0, 2.0, 200}, linspace{0.0, 1.0, 100}, linspace{0.0, 10.0, 1000}};
+      rectilinear_grid{linspace{0.0, 2.0, 200}, linspace{0.0, 1.0, 100}, linspace{0.0, 10.0, 1000}};
   auto& s       = discretize(mag_vst, g, "s", 0);
   g.write_vtk("discretized_iso_volume.vtk");
   auto iso = 1.05;

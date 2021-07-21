@@ -2,7 +2,7 @@
 #define TATOOINE_AGRANOVSKY_FLOWMAP_DISCRETIZATION_H
 //==============================================================================
 #include <tatooine/field.h>
-#include <tatooine/grid.h>
+#include <tatooine/rectilinear_grid.h>
 #include <tatooine/naive_flowmap_discretization.h>
 //==============================================================================
 namespace tatooine {
