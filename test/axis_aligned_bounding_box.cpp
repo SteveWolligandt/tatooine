@@ -44,5 +44,12 @@ TEST_CASE("axis_aligned_bounding_box_tetrahderon_inside",
                                -vec3{1.9, 1.8, 1.2}, -vec3{1.2, 1.9, 1.8}));
 }
 //==============================================================================
+TEST_CASE("axis_aligned_bounding_box_rectangle_inside",
+          "[axis_aligned_bounding_box][rectangle][intersection]") {
+  axis_aligned_bounding_box bb{vec2::zeros(), vec2::ones()};
+  REQUIRE_FALSE(bb.is_rectangle_inside(vec2{1.5, 1.0}, vec2{2.0, 1.5},
+                                       vec2{1.0, 2.5}, vec2{0.5, 2.0}));
+}
+//==============================================================================
 }  // namespace tatooine::test
 //==============================================================================

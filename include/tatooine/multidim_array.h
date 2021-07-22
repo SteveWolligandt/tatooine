@@ -70,6 +70,11 @@ class static_multidim_array
   //------------------------------------------------------------------------------
   static constexpr auto ones() { return this_t{tag::ones}; }
   //------------------------------------------------------------------------------
+  template <typename S>
+  static constexpr auto fill(S&& s) {
+    return this_t{tag::fill<std::decay_t<S>>{std::forward<S>(s)}};
+  }
+  //------------------------------------------------------------------------------
 #ifdef __cpp_concepts
   template <typename RandEng = std::mt19937_64>
   requires arithmetic<T>

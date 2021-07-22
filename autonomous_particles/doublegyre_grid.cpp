@@ -41,7 +41,6 @@ auto main(int argc, char** argv) -> int {
     auto phi = flowmap(v);
     phi.use_caching(false);
 
-
     //----------------------------------------------------------------------------
     indicator.set_text("Advecting autonomous particles");
     auto autonomous_disc = autonomous_particle_flowmap_discretization2{
@@ -70,12 +69,12 @@ auto main(int argc, char** argv) -> int {
     //----------------------------------------------------------------------------
     // Create memory for measuring
     //----------------------------------------------------------------------------
-    rectilinear_grid sampler_check_grid{linspace{0.0, 2.0, 2001}, linspace{0.0, 1.0, 1001}};
+    rectilinear_grid       sampler_check_grid{linspace{0.0, 2.0, 201},
+                                        linspace{0.0, 1.0, 101}};
     [[maybe_unused]] auto& autonomous_flowmap_forward_prop =
         sampler_check_grid.vec2_vertex_property("autonomous_flowmap_forward");
     [[maybe_unused]] auto& autonomous_flowmap_backward_prop =
-        sampler_check_grid.vec2_vertex_property(
-            "autonomous_flowmap_backward");
+        sampler_check_grid.vec2_vertex_property("autonomous_flowmap_backward");
     [[maybe_unused]] auto& forward_errors_autonomous_prop =
         sampler_check_grid.scalar_vertex_property("forward_error_autonomous");
     [[maybe_unused]] auto& forward_errors_naive_prop =
@@ -111,119 +110,128 @@ auto main(int argc, char** argv) -> int {
     //----------------------------------------------------------------------------
     // Compare forward flow map
     //----------------------------------------------------------------------------
-    indicator.set_text("Comparing forward flow map");
-    {
-      std::vector<real_t> autonomous_errors, naive_errors, agranovsky_errors;
-      autonomous_errors.reserve(sampler_check_grid.vertices().size());
-      naive_errors.reserve(sampler_check_grid.vertices().size());
-      agranovsky_errors.reserve(sampler_check_grid.vertices().size());
-      sampler_check_grid.vertices().iterate_indices([&](auto const... is) {
-        auto const x0           = sampler_check_grid.vertex_at(is...);
-        auto const numerical_x1 = phi(x0, args.t0, args.tau);
-        try {
-          auto const autonomous_x1 = autonomous_disc.sample_forward(x0);
-          autonomous_flowmap_forward_prop(is...) = autonomous_x1;
-          autonomous_errors.push_back(
-              distance(autonomous_x1, numerical_x1));
-          forward_errors_autonomous_prop(is...) = autonomous_errors.back();
-
-        } catch (std::exception const& e) {
-          forward_errors_autonomous_prop(is...) = 0.0 / 0.0;
-        }
-        try {
-          auto const naive_x1 = naive_disc.sample_forward(x0);
-          naive_errors.push_back(distance(naive_x1, numerical_x1));
-          forward_errors_naive_prop(is...) = naive_errors.back();
-
-        } catch (std::exception const& e) {
-          autonomous_flowmap_forward_prop(is...) = 0.0 / 0.0;
-          forward_errors_naive_prop(is...) = 0.0 / 0.0;
-        }
-        try {
-          auto const agranovksy_x1 =
-              agranovsky_disc.sample_forward(x0);
-          agranovsky_errors.push_back(
-              distance(agranovksy_x1, numerical_x1));
-          forward_errors_agranovsky_prop(is...) = agranovsky_errors.back();
-
-        } catch (std::exception const& e) {
-          forward_errors_agranovsky_prop(is...) = 0.0 / 0.0;
-        }
-        forward_errors_diff_naive_prop(is...) =
-            forward_errors_naive_prop(is...) -
-            forward_errors_autonomous_prop(is...);
-        forward_errors_diff_agranovsky_prop(is...) =
-            forward_errors_agranovsky_prop(is...) -
-            forward_errors_autonomous_prop(is...);
-      });
-      mean_autonomous_forward_error =
-          std::accumulate(begin(autonomous_errors), end(autonomous_errors),
-                          real_t(0)) /
-          size(autonomous_errors);
-      mean_naive_forward_error =
-          std::accumulate(begin(naive_errors), end(naive_errors), real_t(0)) /
-          size(naive_errors);
-      mean_agranovsky_forward_error =
-          std::accumulate(begin(agranovsky_errors), end(agranovsky_errors),
-                          real_t(0)) /
-          size(agranovsky_errors);
-    }
+    //indicator.set_text("Comparing forward flow map");
+    //{
+    //  std::vector<real_t> autonomous_errors, naive_errors, agranovsky_errors;
+    //  autonomous_errors.reserve(sampler_check_grid.vertices().size());
+    //  naive_errors.reserve(sampler_check_grid.vertices().size());
+    //  agranovsky_errors.reserve(sampler_check_grid.vertices().size());
+    //  sampler_check_grid.vertices().iterate_indices(
+    //      [&](auto const... is) {
+    //        auto const x0           = sampler_check_grid.vertex_at(is...);
+    //        auto const numerical_x1 = phi(x0, args.t0, args.tau);
+    //        try {
+    //          auto const autonomous_x1 = autonomous_disc.sample_forward(x0);
+    //          autonomous_flowmap_forward_prop(is...) = autonomous_x1;
+    //          autonomous_errors.push_back(
+    //              distance(autonomous_x1, numerical_x1));
+    //          forward_errors_autonomous_prop(is...) = autonomous_errors.back();
+    //
+    //        } catch (std::exception const& e) {
+    //          autonomous_flowmap_forward_prop(is...) = vec2::ones() * 0.0 / 0.0;
+    //          forward_errors_autonomous_prop(is...) = 0.0 / 0.0;
+    //        }
+    //        try {
+    //          auto const naive_x1 = naive_disc.sample_forward(x0);
+    //          naive_errors.push_back(distance(naive_x1, numerical_x1));
+    //          forward_errors_naive_prop(is...) = naive_errors.back();
+    //
+    //        } catch (std::exception const& e) {
+    //          forward_errors_naive_prop(is...)       = 0.0 / 0.0;
+    //        }
+    //        try {
+    //          auto const agranovksy_x1 = agranovsky_disc.sample_forward(x0);
+    //          agranovsky_errors.push_back(
+    //              distance(agranovksy_x1, numerical_x1));
+    //          forward_errors_agranovsky_prop(is...) = agranovsky_errors.back();
+    //
+    //        } catch (std::exception const& e) {
+    //          forward_errors_agranovsky_prop(is...) = 0.0 / 0.0;
+    //        }
+    //        forward_errors_diff_naive_prop(is...) =
+    //            forward_errors_naive_prop(is...) -
+    //            forward_errors_autonomous_prop(is...);
+    //        forward_errors_diff_agranovsky_prop(is...) =
+    //            forward_errors_agranovsky_prop(is...) -
+    //            forward_errors_autonomous_prop(is...);
+    //      },
+    //      tag::parallel);
+    //  mean_autonomous_forward_error =
+    //      std::accumulate(begin(autonomous_errors), end(autonomous_errors),
+    //                      real_t(0)) /
+    //      size(autonomous_errors);
+    //  mean_naive_forward_error =
+    //      std::accumulate(begin(naive_errors), end(naive_errors), real_t(0)) /
+    //      size(naive_errors);
+    //  mean_agranovsky_forward_error =
+    //      std::accumulate(begin(agranovsky_errors), end(agranovsky_errors),
+    //                      real_t(0)) /
+    //      size(agranovsky_errors);
+    //}
     //----------------------------------------------------------------------------
     // Compare backward flow map
     //----------------------------------------------------------------------------
+    static std::mutex mut;
     indicator.set_text("Comparing backward flow map");
     {
       std::vector<real_t> autonomous_errors, naive_errors, agranovsky_errors;
       autonomous_errors.reserve(sampler_check_grid.vertices().size());
       naive_errors.reserve(sampler_check_grid.vertices().size());
       agranovsky_errors.reserve(sampler_check_grid.vertices().size());
-      sampler_check_grid.vertices().iterate_indices([&](auto const... is) {
-        auto const x1           = sampler_check_grid.vertex_at(is...);
-        auto const numerical_x0 = phi(x1, args.t0, args.tau);
-        try {
-          auto const autonomous_x0 = autonomous_disc.sample_backward(x1);
-          autonomous_flowmap_backward_prop(is...) = autonomous_x0;
-          autonomous_errors.push_back(distance(autonomous_x0, numerical_x0));
-          backward_errors_autonomous_prop(is...) = autonomous_errors.back();
+      sampler_check_grid.vertices().iterate_indices(
+          [&](auto const... is) {
+            auto const x1           = sampler_check_grid.vertex_at(is...);
+            auto const numerical_x0 = [&] {
+              static std::mutex m;
+              std::lock_guard   l{m};
+              return phi(x1, args.t0 + args.tau, -args.tau);
+            }();
+            try {
+              auto const autonomous_x0 = autonomous_disc.sample_backward(x1);
+              autonomous_flowmap_backward_prop(is...) = autonomous_x0;
+              backward_errors_autonomous_prop(is...) =
+                  distance(autonomous_x0, numerical_x0);
 
-        } catch (std::exception const& e) {
-          autonomous_flowmap_backward_prop(is...) = 0.0 / 0.0;
-          backward_errors_autonomous_prop(is...) = 0.0 / 0.0;
-        }
-        try {
-          auto const naive_x0 = naive_disc.sample_backward(x1);
-          naive_errors.push_back(distance(naive_x0, numerical_x0));
-          backward_errors_naive_prop(is...) = naive_errors.back();
+            } catch (std::exception const& e) {
+              autonomous_flowmap_backward_prop(is...) =
+                  vec2::ones() * 0.0 / 0.0;
+              backward_errors_autonomous_prop(is...) = 0.0 / 0.0;
+            }
+            // try {
+            //  auto const naive_x0 = naive_disc.sample_backward(x1);
+            //  backward_errors_naive_prop(is...) = distance(naive_x0,
+            //  numerical_x0);
+            //
+            //} catch (std::exception const& e) {
+            //  backward_errors_naive_prop(is...) = 0.0 / 0.0;
+            //}
+            try {
+              auto const agranovksy_x0 = agranovsky_disc.sample_backward(x1);
+              backward_errors_agranovsky_prop(is...) =
+                  distance(agranovksy_x0, numerical_x0);
 
-        } catch (std::exception const& e) {
-          backward_errors_naive_prop(is...) = 0.0 / 0.0;
-        }
-        try {
-          auto const agranovksy_x0 = agranovsky_disc.sample_backward(x1);
-          agranovsky_errors.push_back(distance(agranovksy_x0, numerical_x0));
-          backward_errors_agranovsky_prop(is...) = agranovsky_errors.back();
-
-        } catch (std::exception const& e) {
-          backward_errors_agranovsky_prop(is...) = 0.0 / 0.0;
-        }
-        backward_errors_diff_naive_prop(is...) =
-            backward_errors_naive_prop(is...) -
-            backward_errors_autonomous_prop(is...);
-        backward_errors_diff_agranovsky_prop(is...) =
-            backward_errors_agranovsky_prop(is...) -
-            backward_errors_autonomous_prop(is...);
-      });
-      mean_autonomous_backward_error =
-          std::accumulate(begin(autonomous_errors), end(autonomous_errors),
-                          real_t(0)) /
-          size(autonomous_errors);
-      mean_naive_backward_error =
-          std::accumulate(begin(naive_errors), end(naive_errors), real_t(0)) /
-          size(naive_errors);
-      mean_agranovsky_backward_error =
-          std::accumulate(begin(agranovsky_errors), end(agranovsky_errors),
-                          real_t(0)) /
-          size(agranovsky_errors);
+            } catch (std::exception const& e) {
+              backward_errors_agranovsky_prop(is...) = 0.0 / 0.0;
+            }
+            //backward_errors_diff_naive_prop(is...) =
+            //    backward_errors_naive_prop(is...) -
+            //    backward_errors_autonomous_prop(is...);
+            backward_errors_diff_agranovsky_prop(is...) =
+                backward_errors_agranovsky_prop(is...) -
+                backward_errors_autonomous_prop(is...);
+          },
+          tag::parallel);
+      //mean_autonomous_backward_error =
+      //    std::accumulate(begin(autonomous_errors), end(autonomous_errors),
+      //                    real_t(0)) /
+      //    size(autonomous_errors);
+      //mean_naive_backward_error =
+      //    std::accumulate(begin(naive_errors), end(naive_errors), real_t(0)) /
+      //    size(naive_errors);
+      //mean_agranovsky_backward_error =
+      //    std::accumulate(begin(agranovsky_errors), end(agranovsky_errors),
+      //                    real_t(0)) /
+      //    size(agranovsky_errors);
     }
 
     indicator.mark_as_completed();
