@@ -174,6 +174,73 @@ struct axis_aligned_bounding_box
     return true;
   }
   //----------------------------------------------------------------------------
+  /// x3 +--------------+ x2
+  ///    |              |
+  ///    |              |
+  /// x0 +--------------+ x1
+#ifndef __cpp_concepts
+  template <size_t _N = N, enable_if<(_N == 2)> = true>
+#endif
+  constexpr auto is_rectangle_inside(vec<Real, 2> x0, vec<Real, 2> x1,
+                                     vec<Real, 2> x2, vec<Real, 2> x3) const
+#ifdef __cpp_concepts
+      requires(N == 2)
+#endif
+  {
+    auto const c = center();
+    auto const e = extents() / 2;
+
+    x0 -= c;
+    x1 -= c;
+    x2 -= c;
+    x3 -= c;
+
+    // edges of rectangle
+    auto const f0 = x1 - x0;
+    auto const f1 = x3 - x0;
+
+    // normals of aabb
+    vec_t const u0{1, 0};
+    vec_t const u1{0, 1};
+
+    auto is_separating_axis = [&](auto const& axis) {
+      // Project all 4 vertices of the rectangle onto the seperating axis
+      auto const p0 = dot(x0, axis);
+      auto const p1 = dot(x1, axis);
+      auto const p2 = dot(x2, axis);
+      auto const p3 = dot(x3, axis);
+      // Project the AABB onto the seperating axis.
+      // We don't care about the end points of the projection just the length of
+      // the half-size of the aabb. That is, we're only casting the extents onto
+      // the seperating axis, not the aabb center. We don't need to cast the
+      // center, because we know that the aabb is at origin compared to the
+      // triangle!
+      auto       r  = e.x() * std::abs(dot(u0, axis)) +
+                      e.y() * std::abs(dot(u1, axis));
+      return tatooine::max(-tatooine::max(p0, p1, p2, p3),
+                            tatooine::min(p0, p1, p2, p3)) > r;
+    };
+    if (is_separating_axis(cross(u0, f0))) {
+      return false;
+    }
+    if (is_separating_axis(cross(u0, f1))) {
+      return false;
+    }
+    if (is_separating_axis(cross(u1, f0))) {
+      return false;
+    }
+    if (is_separating_axis(cross(u1, f1))) {
+      return false;
+    }
+    if (is_separating_axis(u0)) {
+      return false;
+    }
+    if (is_separating_axis(u1)) {
+      return false;
+    }
+    return true;
+  }
+  //----------------------------------------------------------------------------
 #ifndef __cpp_concepts
   template <size_t _N = N, enable_if<(_N == 2)> = true>
 #endif
@@ -306,7 +373,7 @@ struct axis_aligned_bounding_box
     }
     return true;
   }
-  //----------------------------------------------------------------------------
+  //------------------  //----------------------------------------------------------------------------
 #ifndef __cpp_concepts
   template <size_t _N = N, enable_if<(_N == 3)> = true>
 #endif

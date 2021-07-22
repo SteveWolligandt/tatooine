@@ -19,38 +19,26 @@ struct autonomous_particle_sampler {
 
   private:
   ellipse_t m_ellipse0, m_ellipse1;
-   mat_t                  m_forward_transformation, m_backward_transformation;
+  mat_t     m_nabla_phi;
 
-  public:
-   autonomous_particle_sampler(autonomous_particle_sampler const&) = default;
-   autonomous_particle_sampler(autonomous_particle_sampler&&) noexcept =
-       default;
-   auto operator=(autonomous_particle_sampler const&)
-       -> autonomous_particle_sampler& = default;
-   auto operator=(autonomous_particle_sampler&&) noexcept
-       -> autonomous_particle_sampler& = default;
-   autonomous_particle_sampler(ellipse_t const& e0,
-                               ellipse_t const& e1, mat_t const& F,
-                               mat_t const& B)
-       : m_ellipse0{e0},
-         m_ellipse1{e1},
-         m_forward_transformation{F},
-         m_backward_transformation{B} {}
+ public:
+  autonomous_particle_sampler(autonomous_particle_sampler const&)     = default;
+  autonomous_particle_sampler(autonomous_particle_sampler&&) noexcept = default;
+  auto operator                       =(autonomous_particle_sampler const&)
+      -> autonomous_particle_sampler& = default;
+  auto operator                       =(autonomous_particle_sampler&&) noexcept
+      -> autonomous_particle_sampler& = default;
+  autonomous_particle_sampler(ellipse_t const& e0, ellipse_t const& e1,
+                              mat_t const& nabla_phi)
+      : m_ellipse0{e0}, m_ellipse1{e1}, m_nabla_phi{nabla_phi} {}
 
-   auto ellipse(tag::forward_t) const -> auto const& { return m_ellipse0; }
-   auto ellipse(tag::backward_t) const -> auto const& { return m_ellipse1; }
-   auto ellipse0() const -> auto const& { return m_ellipse0; }
-   auto ellipse1() const -> auto const& { return m_ellipse1; }
-   auto forward_transformation() const -> auto const& {
-     return m_forward_transformation;
-   }
-   auto backward_transformation() const -> auto const& {
-     return m_backward_transformation;
-   }
+  auto ellipse(tag::forward_t) const -> auto const& { return m_ellipse0; }
+  auto ellipse(tag::backward_t) const -> auto const& { return m_ellipse1; }
+  auto ellipse0() const -> auto const& { return m_ellipse0; }
+  auto ellipse1() const -> auto const& { return m_ellipse1; }
 
    auto sample_forward(pos_t const& x) const {
-     return m_forward_transformation * (x - m_ellipse0.center()) +
-            m_ellipse1.center();
+     return ellipse1().center() + m_nabla_phi * (x - ellipse0().center());
    }
    auto operator()(pos_t const& x, tag::forward_t /*tag*/) const {
      return sample_forward(x);
@@ -59,8 +47,7 @@ struct autonomous_particle_sampler {
      return sample_forward(x);
    }
    auto sample_backward(pos_t const& x) const {
-     return m_backward_transformation * (x - m_ellipse1.center()) +
-            m_ellipse0.center();
+     return ellipse0().center() + *inv(m_nabla_phi) * (x - ellipse1().center());
    }
    auto sample(pos_t const& x, tag::backward_t /*tag*/) const {
      return sample_backward(x);
@@ -537,8 +524,8 @@ struct autonomous_particle : geometry::hyper_ellipse<Real, N> {
     }
   }
   auto sampler() const {
-    return autonomous_particle_sampler<Real, N>{
-        initial_ellipse(), *this, S1() * *inv(S0()), S0() * *inv(S1())};
+    return autonomous_particle_sampler<Real, N>{initial_ellipse(), *this,
+                                                m_nabla_phi1};
   }
 };
 //==============================================================================

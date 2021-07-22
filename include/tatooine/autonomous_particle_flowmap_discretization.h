@@ -90,12 +90,30 @@ struct autonomous_particle_flowmap_discretization {
     m_mesh1_samplers =
         &m_mesh1.template vertex_property<sampler_t const*>("samplers");
 
+    auto const ts = linspace{0.0, 2 * M_PI, 17};
     for (auto const& sampler : samplers()) {
-      auto const fv = m_mesh0.insert_vertex(sampler.ellipse0().center());
-      m_mesh0_samplers->at(fv) = &sampler;
-      
-      auto const bv = m_mesh1.insert_vertex(sampler.ellipse1().center());
-      m_mesh1_samplers->at(bv) = &sampler;
+      {auto const v = m_mesh0.insert_vertex(sampler.ellipse0().center());
+      m_mesh0_samplers->at(v) = &sampler;}
+
+      {auto const v = m_mesh1.insert_vertex(sampler.ellipse1().center());
+        m_mesh1_samplers->at(v) = &sampler;
+      }
+
+      for (auto t_it = begin(ts); t_it != prev(end(ts)); ++t_it) {
+        auto const t = *t_it;
+        auto const y = vec{std::cos(t), std::sin(t)};
+        {
+          auto const v = m_mesh0.insert_vertex(sampler.ellipse0().center() +
+                                               sampler.ellipse0().S() * y);
+          m_mesh0_samplers->at(v) = &sampler;
+        }
+
+        {
+          auto const v = m_mesh1.insert_vertex(sampler.ellipse1().center() +
+                                               sampler.ellipse1().S() * y);
+          m_mesh1_samplers->at(v) = &sampler;
+        }
+      }
     }
 
     m_mesh0.build_delaunay_mesh();
@@ -120,6 +138,7 @@ struct autonomous_particle_flowmap_discretization {
 
     // try to find mesh cell that includes x
     for (auto c : mesh.hierarchy().nearby_cells(x)) {
+    //for (auto c : mesh.cells()) {
       auto const            vs = mesh.cell_at(c);
       auto                  A  = mat<Real, N + 1, N + 1>::ones();
       auto                  b  = vec<Real, N + 1>::ones();
@@ -142,35 +161,35 @@ struct autonomous_particle_flowmap_discretization {
           ((barycentric_coord(VertexSeq) <= 1 + eps) && ...)) {
         auto const samplers =
             std::array{vertex_samplers[std::get<VertexSeq>(vs)]...};
-        auto const inner_cell =
-            std::array{vertex_samplers[std::get<VertexSeq>(vs)]
-                           ->ellipse(tag)
-                           .nearest_point_on_boundary(x)...};
-        auto weights =
-            vec{distance(inner_cell[VertexSeq],
-                         samplers[VertexSeq]->ellipse(tag).center())...};
-
-        auto inner_A = mat<Real, N + 1, N + 1>::ones();
-        auto inner_b = vec<Real, N + 1>::ones();
-        for (size_t r = 0; r < N; ++r) {
-          (
-              [&]() {
-                inner_A(r, VertexSeq) =
-                    VertexSeq > 0 ? inner_cell[VertexSeq](r) - inner_cell[0](r)
-                                  : 0;
-              }(),
-              ...);
-
-          inner_b(r) = x(r) - inner_cell[0](r);
-        }
-
-        auto inner_barycentric_coords = solve(inner_A, inner_b);
-        weights = weights * inner_barycentric_coords;
-        weights = weights / sum(weights);
-        //weights = inner_barycentric_coords;
+      //  auto const inner_cell =
+      //      std::array{vertex_samplers[std::get<VertexSeq>(vs)]
+      //                     ->ellipse(tag)
+      //                     .nearest_point_on_boundary(x)...};
+      //  auto weights =
+      //      vec{distance(inner_cell[VertexSeq],
+      //                   samplers[VertexSeq]->ellipse(tag).center())...};
+      //
+      //  auto inner_A = mat<Real, N + 1, N + 1>::ones();
+      //  auto inner_b = vec<Real, N + 1>::ones();
+      //  for (size_t r = 0; r < N; ++r) {
+      //    (
+      //        [&]() {
+      //          inner_A(r, VertexSeq) =
+      //              VertexSeq > 0 ? inner_cell[VertexSeq](r) - inner_cell[0](r)
+      //                            : 0;
+      //        }(),
+      //        ...);
+      //
+      //    inner_b(r) = x(r) - inner_cell[0](r);
+      //  }
+      //
+      //  auto inner_barycentric_coords = solve(inner_A, inner_b);
+      //  //weights = weights * inner_barycentric_coords;
+      //  //weights = weights / sum(weights);
+      //  weights = inner_barycentric_coords;
         auto       map                     = pos_t::zeros();
         for (size_t i = 0; i < N + 1; ++i) {
-          map += samplers[i]->sample(x, tag) * weights[i];
+          map += samplers[i]->sample(x, tag) * barycentric_coord[i];
         }
         return map;
       }
