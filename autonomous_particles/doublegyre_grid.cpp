@@ -69,8 +69,8 @@ auto main(int argc, char** argv) -> int {
     //----------------------------------------------------------------------------
     // Create memory for measuring
     //----------------------------------------------------------------------------
-    rectilinear_grid       sampler_check_grid{linspace{0.0, 2.0, 201},
-                                        linspace{0.0, 1.0, 101}};
+    rectilinear_grid sampler_check_grid{linspace{0.0, 2.0, args.output_res_x},
+                                        linspace{0.0, 1.0, args.output_res_y}};
     [[maybe_unused]] auto& autonomous_flowmap_forward_prop =
         sampler_check_grid.vec2_vertex_property("autonomous_flowmap_forward");
     [[maybe_unused]] auto& autonomous_flowmap_backward_prop =
@@ -171,7 +171,6 @@ auto main(int argc, char** argv) -> int {
     //----------------------------------------------------------------------------
     // Compare backward flow map
     //----------------------------------------------------------------------------
-    static std::mutex mut;
     indicator.set_text("Comparing backward flow map");
     {
       std::vector<real_t> autonomous_errors, naive_errors, agranovsky_errors;

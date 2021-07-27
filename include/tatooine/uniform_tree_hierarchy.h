@@ -3,6 +3,8 @@
 //==============================================================================
 #include <tatooine/axis_aligned_bounding_box.h>
 #include <tatooine/for_loop.h>
+#include <tatooine/geometry/ellipse.h>
+#include <vector>
 #include <tatooine/math.h>
 
 #include <set>
@@ -10,84 +12,67 @@
 namespace tatooine {
 //==============================================================================
 /// For octrees and quadtrees
-template <typename Mesh>
-struct uniform_tree_hierarchy
-    : aabb<typename Mesh::real_t, Mesh::num_dimensions()> {
-  template <std::size_t N>
+template <typename Real, size_t NumDims, typename Derived>
+struct base_uniform_tree_hierarchy : aabb<Real, NumDims> {
+  template <std::size_t I>
   struct dim {
-    enum e : std::uint8_t { left = 0, right = 1 << N };
+    enum e : std::uint8_t { left = 0, right = 1 << I };
   };
-  using mesh_t   = Mesh;
-  using real_t   = typename mesh_t::real_t;
-  using this_t   = uniform_tree_hierarchy<mesh_t>;
-  using parent_t = aabb<real_t, mesh_t::num_dimensions()>;
+  using real_t   = Real;
+  using this_t   = base_uniform_tree_hierarchy<Real, NumDims, Derived>;
+  using parent_t = aabb<Real, NumDims>;
   using parent_t::center;
   using parent_t::is_inside;
-  using parent_t::is_simplex_inside;
   using parent_t::max;
   using parent_t::min;
   using typename parent_t::vec_t;
-  using vertex_handle = typename mesh_t::vertex_handle;
-  using cell_handle   = typename mesh_t::cell_handle;
   friend class std::unique_ptr<this_t>;
-  static constexpr auto num_dimensions() { return mesh_t::num_dimensions(); }
+  static constexpr auto num_dimensions() { return NumDims; }
   static constexpr auto num_children() {
-    return ipow(2, mesh_t::num_dimensions());
+    return ipow(2, NumDims);
   }
 
-  mesh_t const*              m_mesh;
   size_t                     m_level;
   size_t                     m_max_depth;
-  std::vector<vertex_handle> m_vertex_handles;
-  std::vector<cell_handle>   m_cell_handles;
-  std::array<std::unique_ptr<uniform_tree_hierarchy>, num_children()>
-                          m_children;
+  std::array<std::unique_ptr<Derived>, num_children()> m_children;
   static constexpr size_t default_max_depth = 2;
   //============================================================================
-  uniform_tree_hierarchy()                                  = default;
-  uniform_tree_hierarchy(uniform_tree_hierarchy const&)     = default;
-  uniform_tree_hierarchy(uniform_tree_hierarchy&&) noexcept = default;
-  auto operator=(uniform_tree_hierarchy const&)
-      -> uniform_tree_hierarchy&                            = default;
-  auto operator=(uniform_tree_hierarchy&&) noexcept
-      -> uniform_tree_hierarchy&                            = default;
-  virtual ~uniform_tree_hierarchy()                         = default;
+  base_uniform_tree_hierarchy()                                       = default;
+  base_uniform_tree_hierarchy(base_uniform_tree_hierarchy const&)     = default;
+  base_uniform_tree_hierarchy(base_uniform_tree_hierarchy&&) noexcept = default;
+  auto operator=(base_uniform_tree_hierarchy const&)
+      -> base_uniform_tree_hierarchy& = default;
+  auto operator=(base_uniform_tree_hierarchy&&) noexcept
+      -> base_uniform_tree_hierarchy& = default;
+  virtual ~base_uniform_tree_hierarchy() = default;
   //----------------------------------------------------------------------------
-  explicit uniform_tree_hierarchy(size_t const max_depth = default_max_depth)
+  explicit base_uniform_tree_hierarchy(size_t const max_depth = default_max_depth)
       : m_level{1}, m_max_depth{max_depth} {}
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-  explicit uniform_tree_hierarchy(Mesh const&  mesh,
-                                  size_t const max_depth = default_max_depth)
-      : parent_t{vec<real_t, num_dimensions()>::zeros(),
-                 vec<real_t, num_dimensions()>::zeros()},
-        m_mesh{&mesh},
-        m_level{1},
-        m_max_depth{max_depth} {
-    parent_t::operator=(mesh.bounding_box());
-  }
-  // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-  uniform_tree_hierarchy(Mesh const& mesh, vec_t const& min, vec_t const& max,
+  base_uniform_tree_hierarchy(vec_t const& min, vec_t const& max,
                          size_t const max_depth = default_max_depth)
-      : parent_t{min, max}, m_mesh{&mesh}, m_level{1}, m_max_depth{max_depth} {}
+      : parent_t{min, max}, m_level{1}, m_max_depth{max_depth} {}
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
- private:
-  uniform_tree_hierarchy(Mesh const& mesh, vec_t const& min, vec_t const& max,
+ protected:
+  base_uniform_tree_hierarchy(vec_t const& min, vec_t const& max,
                          size_t const level, size_t const max_depth)
       : parent_t{min, max},
-        m_mesh{&mesh},
         m_level{level},
         m_max_depth{max_depth} {}
   //============================================================================
  public:
-  auto mesh() const -> auto const& { return *m_mesh; }
-  //----------------------------------------------------------------------------
-  auto num_vertex_handles() const { return size(m_vertex_handles); }
-  auto num_cell_handles() const { return size(m_cell_handles); }
-  //----------------------------------------------------------------------------
   constexpr auto is_splitted() const { return m_children.front() != nullptr; }
-  constexpr auto holds_vertices() const { return !m_vertex_handles.empty(); }
-  constexpr auto holds_cells() const { return !m_cell_handles.empty(); }
-  constexpr auto is_at_max_depth() const { return m_level == m_max_depth; }
+  constexpr auto level() const { return m_level; }
+  constexpr auto is_at_max_depth() const { return level() == m_max_depth; }
+  auto children() const -> auto const&{ return m_children; }
+  //----------------------------------------------------------------------------
+ private:
+  auto as_derived() -> auto& {
+    return *static_cast<Derived*>(this);
+  }
+  auto as_derived() const -> auto const& {
+    return *static_cast<Derived const*>(this);
+  }
   //----------------------------------------------------------------------------
  private:
   template <size_t... Seq, typename... Is>
@@ -99,20 +84,20 @@ struct uniform_tree_hierarchy
  public:
   template <typename... Is, enable_if_integral<Is...> = true>
   static constexpr auto index(Is const... is) {
-    static_assert(sizeof...(Is) == num_dimensions(),
+    static_assert(sizeof...(Is) == NumDims,
                   "Number of indices does not match number of dimensions.");
-    return index(std::make_index_sequence<num_dimensions()>{}, is...);
+    return index(std::make_index_sequence<NumDims>{}, is...);
   }
   //------------------------------------------------------------------------------
   template <typename... Is, enable_if_integral<Is...> = true>
   auto child_at(Is const... is) const -> auto const& {
-    static_assert(sizeof...(Is) == num_dimensions(),
+    static_assert(sizeof...(Is) == NumDims,
                   "Number of indices does not match number of dimensions.");
     return m_children[index(is...)];
   }
   //------------------------------------------------------------------------------
   template <size_t... Seq>
-  auto create_children(std::index_sequence<Seq...> seq) {
+  auto split(std::index_sequence<Seq...> seq) {
     auto const c  = center();
     auto       it = [&](auto const... is) {
       auto   cur_min = min();
@@ -126,17 +111,102 @@ struct uniform_tree_hierarchy
         }
         ++dim;
       }
-      m_children[index(seq, is...)] = std::unique_ptr<this_t>(
-          new this_t{mesh(), cur_min, cur_max, m_level + 1, m_max_depth});
+      m_children[index(seq, is...)] =
+          construct(cur_min, cur_max, level() + 1, m_max_depth);
     };
     for_loop(it, ((void)Seq, 2)...);
   }
   //------------------------------------------------------------------------------
-  auto create_children() {
-    create_children(std::make_index_sequence<num_dimensions()>{});
+  template <typename... Args>
+  auto split() {
+    split(std::make_index_sequence<NumDims>{});
   }
   //------------------------------------------------------------------------------
+  auto distribute() {
+    as_derived().distribute();
+  }
+  //------------------------------------------------------------------------------
+  template <typename... Args>
+  auto construct(vec_t const& min, vec_t const& max, size_t const level,
+                 size_t const max_depth) const -> std::unique_ptr<Derived> {
+    return as_derived().construct(min, max, level, max_depth);
+  }
+  //------------------------------------------------------------------------------
+  auto split_and_distribute() {
+    split();
+    distribute();
+  }
+};
+//==============================================================================
+/// For octrees and quadtrees
+template <typename Geometry>
+struct uniform_tree_hierarchy;
+//==============================================================================
+template <typename Real, size_t NumDimensions,
+          size_t SimplexDim>
+class simplex_mesh;
+// = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = =
+template <typename Real, size_t NumDims, size_t SimplexDim>
+struct uniform_tree_hierarchy<simplex_mesh<Real, NumDims, SimplexDim>>
+    : base_uniform_tree_hierarchy<
+          Real, NumDims,
+          uniform_tree_hierarchy<simplex_mesh<Real, NumDims, SimplexDim>>> {
+  using mesh_t   = simplex_mesh<Real, NumDims, SimplexDim>;
+  using this_t   = uniform_tree_hierarchy<mesh_t>;
+  using parent_t = base_uniform_tree_hierarchy<Real, NumDims, this_t>;
+  using real_t   = typename parent_t::real_t;
+  using parent_t::center;
+  using parent_t::is_inside;
+  using parent_t::is_simplex_inside;
+  using parent_t::max;
+  using parent_t::min;
+  using parent_t::is_at_max_depth;
+  using parent_t::is_splitted;
+  using parent_t::split_and_distribute;
+  using parent_t::children;
+
+  using typename parent_t::vec_t;
+  using vertex_handle = typename mesh_t::vertex_handle;
+  using cell_handle   = typename mesh_t::cell_handle;
+
+  mesh_t const*              m_mesh;
+  std::vector<vertex_handle> m_vertex_handles;
+  std::vector<cell_handle>   m_cell_handles;
+  //============================================================================
+  uniform_tree_hierarchy()                                  = default;
+  uniform_tree_hierarchy(uniform_tree_hierarchy const&)     = default;
+  uniform_tree_hierarchy(uniform_tree_hierarchy&&) noexcept = default;
+  auto operator=(uniform_tree_hierarchy const&)
+      -> uniform_tree_hierarchy&                            = default;
+  auto operator=(uniform_tree_hierarchy&&) noexcept
+      -> uniform_tree_hierarchy&                            = default;
+  virtual ~uniform_tree_hierarchy()                         = default;
+  //----------------------------------------------------------------------------
+  explicit uniform_tree_hierarchy(
+      mesh_t const& mesh, size_t const max_depth = parent_t::default_max_depth)
+      : parent_t{vec<Real, NumDims>::zeros(), vec<Real, NumDims>::zeros(), 1,
+                 max_depth},
+        m_mesh{&mesh} {
+    parent_t::operator=(mesh.bounding_box());
+  }
+  // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+  uniform_tree_hierarchy(vec_t const& min, vec_t const& max, mesh_t const& mesh,
+                         size_t const max_depth = parent_t::default_max_depth)
+      : parent_t{min, max, 1, max_depth}, m_mesh{&mesh} {}
+  // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+ private:
+  uniform_tree_hierarchy(vec_t const& min, vec_t const& max, size_t const level,
+                         size_t const max_depth, mesh_t const& mesh)
+      : parent_t{min, max, level, max_depth}, m_mesh{&mesh} {}
+  //============================================================================
  public:
+  auto mesh() const -> auto const& { return *m_mesh; }
+  auto constexpr holds_vertices() const { return !m_vertex_handles.empty(); }
+  auto constexpr holds_cells() const { return !m_cell_handles.empty(); }
+  //----------------------------------------------------------------------------
+  auto num_vertex_handles() const { return size(m_vertex_handles); }
+  auto num_cell_handles() const { return size(m_cell_handles); }
+  //----------------------------------------------------------------------------
   auto insert_vertex(vertex_handle const v) -> bool {
     if (!is_inside(mesh().vertex_at(v))) {
       return false;
@@ -189,8 +259,7 @@ struct uniform_tree_hierarchy
         c, std::make_index_sequence<mesh_t::num_vertices_per_simplex()>{});
   }
   //----------------------------------------------------------------------------
-  auto split_and_distribute() {
-    create_children();
+  auto distribute() {
     if (!m_vertex_handles.empty()) {
       distribute_vertex(m_vertex_handles.front());
       m_vertex_handles.clear();
@@ -200,25 +269,31 @@ struct uniform_tree_hierarchy
       m_cell_handles.clear();
     }
   }
+  //------------------------------------------------------------------------------
+  auto construct(vec_t const& min, vec_t const& max, size_t const level,
+                 size_t const max_depth) const {
+    return std::unique_ptr<this_t>{
+        new this_t{min, max, level, max_depth, mesh()}};
+  }
   //----------------------------------------------------------------------------
   auto distribute_vertex(vertex_handle const v) {
-    for (auto& child : m_children) {
+    for (auto& child : children()) {
       child->insert_vertex(v);
     }
   }
   //----------------------------------------------------------------------------
   auto distribute_cell(cell_handle const c) {
-    for (auto& child : m_children) {
+    for (auto& child : children()) {
       child->insert_cell(c);
     }
   }
   //============================================================================
   auto collect_possible_intersections(
-      ray<real_t, num_dimensions()> const& r,
+      ray<Real, NumDims> const& r,
       std::set<cell_handle>&               possible_collisions) const -> void {
     if (parent_t::check_intersection(r)) {
       if (is_splitted()) {
-        for (auto const& child : m_children) {
+        for (auto const& child : children()) {
           child->collect_possible_intersections(r, possible_collisions);
         }
       } else {
@@ -228,17 +303,17 @@ struct uniform_tree_hierarchy
     }
   }
   //----------------------------------------------------------------------------
-  auto collect_possible_intersections(ray<real_t, num_dimensions()> const& r) const {
+  auto collect_possible_intersections(ray<Real, NumDims> const& r) const {
     std::set<cell_handle> possible_collisions;
     collect_possible_intersections(r, possible_collisions);
     return possible_collisions;
   }
   //----------------------------------------------------------------------------
-  auto collect_nearby_cells(vec<real_t, num_dimensions()> const& pos,
+  auto collect_nearby_cells(vec<Real, NumDims> const& pos,
                             std::set<cell_handle>& cells) const -> void {
     if (is_inside(pos)) {
       if (is_splitted()) {
-        for (auto const& child : m_children) {
+        for (auto const& child : children()) {
           child->collect_nearby_cells(pos, cells);
         }
       } else {
@@ -250,10 +325,146 @@ struct uniform_tree_hierarchy
     }
   }
   //----------------------------------------------------------------------------
-  auto nearby_cells(vec<real_t, num_dimensions()> const& pos) const {
+  auto nearby_cells(vec<Real, NumDims> const& pos) const {
     std::set<cell_handle> cells;
     collect_nearby_cells(pos, cells);
     return cells;
+  }
+};
+//==============================================================================
+template <typename Real>
+struct uniform_tree_hierarchy<std::vector<geometry::ellipse<Real>>>
+    : base_uniform_tree_hierarchy<
+          Real, 2,
+          uniform_tree_hierarchy<std::vector<geometry::ellipse<Real>>>> {
+  using ellipse_t           = geometry::ellipse<Real>;
+  using ellipse_container_t = std::vector<ellipse_t>;
+  using this_t              = uniform_tree_hierarchy<ellipse_container_t>;
+  using parent_t            = base_uniform_tree_hierarchy<Real, 2, this_t>;
+  using real_t              = typename parent_t::real_t;
+  using parent_t::center;
+  using parent_t::children;
+  using parent_t::is_at_max_depth;
+  using parent_t::is_inside;
+  using parent_t::is_simplex_inside;
+  using parent_t::is_splitted;
+  using parent_t::max;
+  using parent_t::min;
+  using parent_t::split_and_distribute;
+  using typename parent_t::vec_t;
+  using pos_t = vec_t;
+
+  //============================================================================
+ private:
+  ellipse_container_t const* m_ellipses = nullptr;
+  std::vector<size_t>        m_indices;
+  //============================================================================
+ public:
+  uniform_tree_hierarchy()                                  = default;
+  uniform_tree_hierarchy(uniform_tree_hierarchy const&)     = default;
+  uniform_tree_hierarchy(uniform_tree_hierarchy&&) noexcept = default;
+  auto operator=(uniform_tree_hierarchy const&)
+      -> uniform_tree_hierarchy&                            = default;
+  auto operator=(uniform_tree_hierarchy&&) noexcept
+      -> uniform_tree_hierarchy&                            = default;
+  virtual ~uniform_tree_hierarchy()                         = default;
+  //----------------------------------------------------------------------------
+  explicit uniform_tree_hierarchy(
+      ellipse_container_t const& ellipses,
+      size_t const               max_depth = parent_t::default_max_depth)
+      : parent_t{pos_t::ones() * -std::numeric_limits<real_t>::max(),
+                 pos_t::ones() * std::numeric_limits<real_t>::max(),
+                 max_depth},
+        m_ellipses{&ellipses} {
+    for (size_t i = 0; i < size(ellipses); ++i) {
+      insert_ellipse(i);
+    }
+  }
+  // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+  uniform_tree_hierarchy(vec_t const& min, vec_t const& max,
+                         ellipse_container_t const& ellipses,
+                         size_t const max_depth = parent_t::default_max_depth)
+      : parent_t{min, max, 1, max_depth}, m_ellipses{&ellipses} {
+    for (size_t i = 0; i < size(ellipses); ++i) {
+      insert_ellipse(i);
+    }
+  }
+  // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+ private:
+  uniform_tree_hierarchy(vec_t const& min, vec_t const& max, size_t const level,
+                         size_t const max_depth, ellipse_container_t const& ellipses)
+      : parent_t{min, max, level, max_depth}, m_ellipses{&ellipses} {}
+  //============================================================================
+ public:
+  auto ellipses() const -> auto const& { return *m_ellipses; }
+  auto ellipses_in_node() const -> auto const& { return m_indices; }
+  auto ellipse(size_t const i) const -> auto const& { return m_ellipses->at(i); }
+  auto constexpr holds_ellipses() const { return !m_indices.empty(); }
+  //----------------------------------------------------------------------------
+  auto insert_ellipse(size_t const i) -> bool {
+    auto const& e = ellipse(i);
+    if (!this->is_rectangle_inside(e.center() + e.S() * vec_t{-1, -1},
+                             e.center() + e.S() * vec_t{1, -1},
+                             e.center() + e.S() * vec_t{1, 1},
+                             e.center() + e.S() * vec_t{-1, 1})) {
+      return false;
+    }
+    if (holds_ellipses()) {
+      if (is_at_max_depth()) {
+        m_indices.push_back(i);
+      } else {
+        split_and_distribute();
+        distribute_ellipse(i);
+      }
+    } else {
+      if (is_splitted()) {
+        distribute_ellipse(i);
+      } else {
+        m_indices.push_back(i);
+      }
+    }
+    return true;
+  }
+  //----------------------------------------------------------------------------
+  auto distribute() {
+    if (!m_indices.empty()) {
+      distribute_ellipse(m_indices.front());
+      m_indices.clear();
+    }
+  }
+  //------------------------------------------------------------------------------
+  auto construct(vec_t const& min, vec_t const& max, size_t const level,
+                 size_t const max_depth) const {
+    return std::unique_ptr<this_t>{
+        new this_t{min, max, level, max_depth, ellipses()}};
+  }
+  //----------------------------------------------------------------------------
+  auto distribute_ellipse(size_t const i) {
+    for (auto& child : children()) {
+      child->insert_ellipse(i);
+    }
+  }
+  //----------------------------------------------------------------------------
+  auto collect_nearby_ellipses(pos_t const& pos,
+                            std::set<size_t>& cells) const -> void {
+    if (is_inside(pos)) {
+      if (is_splitted()) {
+        for (auto const& child : children()) {
+          child->collect_nearby_ellipses(pos, cells);
+        }
+      } else {
+        if (!m_indices.empty()) {
+          std::copy(begin(m_indices), end(m_indices),
+                    std::inserter(cells, end(cells)));
+        }
+      }
+    }
+  }
+  //----------------------------------------------------------------------------
+  auto nearby_ellipses(pos_t const& pos) const {
+    std::set<size_t> indices;
+    collect_nearby_ellipses(pos, indices);
+    return indices;
   }
 };
 //==============================================================================

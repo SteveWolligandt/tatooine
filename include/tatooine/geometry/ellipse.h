@@ -27,6 +27,12 @@ ellipse(vec<Real0, 3> const&, vec<Real1, 3> const&)
     -> ellipse<common_type<Real0, Real1>>;
 
 //==============================================================================
+}  // namespace tatooine::geometry
+//==============================================================================
+#include <tatooine/line.h>
+//==============================================================================
+namespace tatooine::geometry {
+//==============================================================================
 template <typename Real>
 auto discretize(hyper_ellipse<Real, 2> const& e, size_t const num_vertices) {
   using namespace boost;
