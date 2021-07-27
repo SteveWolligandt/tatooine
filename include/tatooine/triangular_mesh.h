@@ -9,10 +9,10 @@ template <typename Real, size_t N>
 using triangular_mesh = simplex_mesh<Real, N, 2>;
 template <size_t N>
 using TriangularMesh   = triangular_mesh<real_t, N>;
-using triangular_mesh2 = TriangularMesh<2>;
-using triangular_mesh3 = TriangularMesh<3>;
-using triangular_mesh4 = TriangularMesh<4>;
-using triangular_mesh5 = TriangularMesh<5>;
+using triangular_mesh_2 = TriangularMesh<2>;
+using triangular_mesh_3 = TriangularMesh<3>;
+using triangular_mesh_4 = TriangularMesh<4>;
+using triangular_mesh_5 = TriangularMesh<5>;
 //==============================================================================
 namespace detail {
 //==============================================================================

@@ -4,7 +4,7 @@
 namespace tatooine::test{
 //==============================================================================
 TEST_CASE("simplex_mesh_triangular_2d", "[simplex_mesh][triangular_mesh][2d]"){
-  auto       mesh = triangular_mesh2{};
+  auto       mesh = triangular_mesh_2{};
   auto const v1   = mesh.insert_vertex(vec2{0, 0});
   auto const v2   = mesh.insert_vertex(vec2{1, 0});
   auto const v3   = mesh.insert_vertex(vec2{0, 1});
@@ -26,7 +26,7 @@ TEST_CASE("simplex_mesh_triangular_2d", "[simplex_mesh][triangular_mesh][2d]"){
 }
 //==============================================================================
 TEST_CASE("simplex_mesh_tetrahedral_3d", "[simplex_mesh][tetrahedral_mesh][3d]"){
-  auto       mesh = tetrahedral_mesh3{};
+  auto       mesh = tetrahedral_mesh_3{};
   auto const v1   = mesh.insert_vertex(vec3{0, 0, 0});
   auto const v2   = mesh.insert_vertex(vec3{1, 0, 0});
   auto const v3   = mesh.insert_vertex(vec3{0, 1, 0});

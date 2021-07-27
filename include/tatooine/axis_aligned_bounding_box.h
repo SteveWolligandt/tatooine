@@ -147,25 +147,25 @@ struct axis_aligned_bounding_box
                                       base_tensor<Tensor1, Real1, N> const& max)
       : m_min{min}, m_max{max} {}
   //============================================================================
-  constexpr auto min() const -> auto const& { return m_min; }
-  constexpr auto min() -> auto& { return m_min; }
-  constexpr auto min(size_t i) const -> auto const& { return m_min(i); }
-  constexpr auto min(size_t i) -> auto& { return m_min(i); }
+  auto constexpr  min() const -> auto const& { return m_min; }
+  auto constexpr  min() -> auto& { return m_min; }
+  auto constexpr  min(size_t i) const -> auto const& { return m_min(i); }
+  auto constexpr  min(size_t i) -> auto& { return m_min(i); }
   //----------------------------------------------------------------------------
-  constexpr auto max() const -> auto const& { return m_max; }
-  constexpr auto max() -> auto& { return m_max; }
-  constexpr auto max(size_t i) const -> auto const& { return m_max(i); }
-  constexpr auto max(size_t i) -> auto& { return m_max(i); }
+  auto constexpr  max() const -> auto const& { return m_max; }
+  auto constexpr  max() -> auto& { return m_max; }
+  auto constexpr  max(size_t i) const -> auto const& { return m_max(i); }
+  auto constexpr  max(size_t i) -> auto& { return m_max(i); }
   //----------------------------------------------------------------------------
-  constexpr auto extents() const { return m_max - m_min; }
-  constexpr auto extent(size_t i) const { return m_max(i) - m_min(i); }
+  auto constexpr  extents() const { return m_max - m_min; }
+  auto constexpr  extent(size_t i) const { return m_max(i) - m_min(i); }
   //----------------------------------------------------------------------------
-  constexpr auto center() const { return (m_max + m_min) * Real(0.5); }
-  constexpr auto center(size_t const i) const {
+  auto constexpr  center() const { return (m_max + m_min) * Real(0.5); }
+  auto constexpr  center(size_t const i) const {
     return (m_max(i) + m_min(i)) * Real(0.5);
   }
   //----------------------------------------------------------------------------
-  constexpr auto is_inside(pos_t const& p) const {
+  auto constexpr  is_inside(pos_t const& p) const {
     for (size_t i = 0; i < N; ++i) {
       if (p(i) < m_min(i) || m_max(i) < p(i)) {
         return false;
@@ -196,12 +196,12 @@ struct axis_aligned_bounding_box
     x3 -= c;
 
     // edges of rectangle
-    auto const f0 = x1 - x0;
-    auto const f1 = x3 - x0;
+    auto const f0 = x1 - x0; // normal of f1
+    auto const f1 = x3 - x0; // normal of f0
 
     // normals of aabb
-    vec_t const u0{1, 0};
-    vec_t const u1{0, 1};
+    vec_t constexpr u0{1, 0};
+    vec_t constexpr u1{0, 1};
 
     auto is_separating_axis = [&](auto const& axis) {
       // Project all 4 vertices of the rectangle onto the seperating axis
@@ -220,22 +220,16 @@ struct axis_aligned_bounding_box
       return tatooine::max(-tatooine::max(p0, p1, p2, p3),
                             tatooine::min(p0, p1, p2, p3)) > r;
     };
-    if (is_separating_axis(cross(u0, f0))) {
-      return false;
-    }
-    if (is_separating_axis(cross(u0, f1))) {
-      return false;
-    }
-    if (is_separating_axis(cross(u1, f0))) {
-      return false;
-    }
-    if (is_separating_axis(cross(u1, f1))) {
-      return false;
-    }
     if (is_separating_axis(u0)) {
       return false;
     }
     if (is_separating_axis(u1)) {
+      return false;
+    }
+    if (is_separating_axis(f0)) {
+      return false;
+    }
+    if (is_separating_axis(f1)) {
       return false;
     }
     return true;
@@ -250,37 +244,33 @@ struct axis_aligned_bounding_box
       requires(N == 2)
 #endif
   {
-    //auto const c = center();
-    // auto const e = extents()/2;
-    // x0 -= c;
-    // x1 -= c;
-    // x2 -= c;
-    // vec_t const u0{1, 0};
-    // vec_t const u1{0, 1};
-    auto is_separating_axis = [&](vec<Real, 2> const& n) {
-      auto const p0   = dot(vec_t{m_min(0), m_min(1)}, n);
-      auto const p1   = dot(vec_t{m_min(0), m_max(1)}, n);
-      auto const p2   = dot(vec_t{m_max(0), m_min(1)}, n);
-      auto const p3   = dot(vec_t{m_max(0), m_max(1)}, n);
-      auto const p4   = dot(x0, n);
-      auto const p5   = dot(x1, n);
-      auto const p6   = dot(x2, n);
-      auto const min0 = tatooine::min(p0, p1, p2, p3);
-      auto const max0 = tatooine::max(p0, p1, p2, p3);
-      auto const min1 = tatooine::min(p4, p5, p6);
-      auto const max1 = tatooine::max(p4, p5, p6);
-      return !(max0 >= min1 && max1 >= min0);
+    auto const c = center();
+    auto const e = extents() / 2;
+    x0 -= c;
+    x1 -= c;
+    x2 -= c;
+    vec_t constexpr u0{1, 0};
+    vec_t constexpr u1{0, 1};
+    auto is_separating_axis = [&](auto const& axis) {
+      // Project all 4 vertices of the rectangle onto the seperating axis
+      auto const p0 = dot(x0, axis);
+      auto const p1 = dot(x1, axis);
+      auto const p2 = dot(x2, axis);
+      // Project the AABB onto the seperating axis.
+      // We don't care about the end points of the projection just the length of
+      // the half-size of the aabb. That is, we're only casting the extents onto
+      // the seperating axis, not the aabb center. We don't need to cast the
+      // center, because we know that the aabb is at origin compared to the
+      // triangle!
+      auto       r  = e.x() * std::abs(dot(u0, axis)) +
+                      e.y() * std::abs(dot(u1, axis));
+      return tatooine::max(-tatooine::max(p0, p1, p2),
+                            tatooine::min(p0, p1, p2)) > r;
     };
-    if (is_separating_axis(vec_t{1, 0})) {
+    if (is_separating_axis(u0)) {
       return false;
     }
-    if (is_separating_axis(vec_t{0, 1})) {
-      return false;
-    }
-    if (is_separating_axis(vec_t{-1, 0})) {
-      return false;
-    }
-    if (is_separating_axis(vec_t{0, -1})) {
+    if (is_separating_axis(u1)) {
       return false;
     }
     if (is_separating_axis(vec_t{x0(1) - x1(1), x1(0) - x0(0)})) {
@@ -317,9 +307,9 @@ struct axis_aligned_bounding_box
     auto const f1 = x2 - x1;
     auto const f2 = x0 - x2;
 
-    vec_t const u0{1, 0, 0};
-    vec_t const u1{0, 1, 0};
-    vec_t const u2{0, 0, 1};
+    vec_t constexpr u0{1, 0, 0};
+    vec_t constexpr u1{0, 1, 0};
+    vec_t constexpr u2{0, 0, 1};
 
     auto is_separating_axis = [&](auto const& axis) {
       auto const p0 = dot(x0, axis);
@@ -398,9 +388,9 @@ struct axis_aligned_bounding_box
     auto const f4 = x2 - x3;
     auto const f5 = x3 - x0;
 
-    vec_t const u0{1, 0, 0};
-    vec_t const u1{0, 1, 0};
-    vec_t const u2{0, 0, 1};
+    vec_t constexpr u0{1, 0, 0};
+    vec_t constexpr u1{0, 1, 0};
+    vec_t constexpr u2{0, 0, 1};
 
     auto is_separating_axis = [&](auto const axis) {
       auto const p0 = dot(x0, axis);

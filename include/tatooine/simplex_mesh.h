@@ -1022,7 +1022,7 @@ class simplex_mesh
   auto hierarchy() const -> auto& {
     if (m_hierarchy == nullptr) {
       auto const bb = bounding_box();
-      m_hierarchy   = std::make_unique<hierarchy_t>(*this, bb.min(), bb.max());
+      m_hierarchy   = std::make_unique<hierarchy_t>(bb.min(), bb.max(), *this);
     }
     return *m_hierarchy;
   }
@@ -1104,5 +1104,8 @@ simplex_mesh(rectilinear_grid<Dims...> const& g)
 //}
 //==============================================================================
 }  // namespace tatooine
+//==============================================================================
+#include<tatooine/triangular_mesh.h>
+#include<tatooine/tetrahedral_mesh.h>
 //==============================================================================
 #endif

@@ -4,7 +4,8 @@
 #include <optional>
 //==============================================================================
 struct args_t {
-  size_t width, height, depth, num_splits, max_num_particles;
+  size_t width, height, depth, num_splits, max_num_particles, output_res_x,
+      output_res_y;
   double t0, tau, tau_step, min_cond;
   bool write_ellipses_to_netcdf;
 };

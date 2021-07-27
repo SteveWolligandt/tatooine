@@ -21,7 +21,11 @@ namespace tatooine {
 //==============================================================================
 template <typename Real, size_t N>
 using tetrahedral_mesh  = simplex_mesh<Real, N, 3>;
-using tetrahedral_mesh3 = tetrahedral_mesh<real_t, 3>;
+using tetrahedral_mesh_3 = tetrahedral_mesh<real_t, 3>;
+using tetrahedral_mesh_4 = tetrahedral_mesh<real_t, 4>;
+using tetrahedral_mesh_5 = tetrahedral_mesh<real_t, 5>;
+using tetrahedral_mesh_6 = tetrahedral_mesh<real_t, 6>;
+using tetrahedral_mesh_7 = tetrahedral_mesh<real_t, 7>;
 //template <typename Real, size_t N>
 //class tetrahedral_mesh : public pointset<Real, N> {
 //  static_assert(N >= 3, "Tetrahedal mesh needs to have at least 3 dimensions.");
