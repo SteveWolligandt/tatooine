@@ -395,7 +395,7 @@ template <typename V, typename VReal, typename TReal, size_t NumDims,
 auto discretize(field<V, VReal, NumDims, Tensor> const& f,
                 rectilinear_grid<SpatialDimensions...>&             discretized_domain,
                 std::string const& property_name, TReal const t) -> auto& {
-  auto const ood_tensor = [&f] {
+  auto const ood_tensor = [] {
     if constexpr (is_scalarfield<V>()) {
       return VReal(0) / VReal(0);
     } else {
