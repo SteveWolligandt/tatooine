@@ -1,0 +1,235 @@
+/**
+\page rectilinear_grid_doc_page Rectilinear Grid
+\tableofcontents
+\section grid_doc_sec_usage Basic usage
+\code{.cpp}
+auto create_uniform_grid_2d() {
+  tatooine::rectilinear_grid uniform_grid_2d{32, 64};
+  // uniform_grid_2d is of type
+  // tatooine::rectilinear_grid<tatooine::linspace<double>,
+  //                            tatooine::linspace<double>>
+
+  // ...
+}
+\endcode
+This creates a 2-dimensional uniform rectilinear grid with resultion 32x64. It
+is in the domain [0,0]x[1,1];
+
+tatooine::rectilinear_grid is a templated class and for each dimension holds a
+container of coordinates. When giving the constructor integral types (that must
+be > 0) a deduction guide will be used to create an object of type
+tatooine::rectilinear_grid<tatooine::linspace<double>,
+tatooine::linspace<double>>. So in the example above uniform_grid_2d holds two
+instances of \ref tatooine::linspace "tatooine::linspace<double>". The code
+above creates the following as here:
+\code{.cpp}
+auto create_uniform_grid_2d() {
+  tatooine::rectilinear_grid uniform_grid_2d{tatooine::linspace{0.0, 1.0, 32},
+                                             tatooine::linspace{0.0, 1.0, 64}};
+
+  // ...
+}
+\endcode
+
+Candidates for other containers describing dimensions are <a
+href=https://en.cppreference.com/w/cpp/container/vector> std::vector </a> and <a
+href=https://en.cppreference.com/w/cpp/container/array> std::array </a>. These
+types can also be mixed.
+\code{.cpp}
+auto create_uniform_grid_2d() {
+  tatooine::rectilinear_grid non_uniform_grid_3d{linspace{0.0, 1.0, 3},
+                                                 std::array{0.0, 0.9, 1.0},
+                                                 std::vector{0.5, 0.6, 1.0}};
+  // non_uniform_grid_3d is of type
+  // tatooine::rectilinear_grid<tatooine::linspace<double>,
+  //                            std::array<double, 3>,
+  //                            std::vector<double>>
+
+  // ...
+}
+\endcode
+This code creates a three-dimensional rectilinear_grid that is described by three
+dimensions of mixed types. If possible tatooine::linspace should be taken
+because here the factors for differentiating do not have to be calculated.
+
+\section grid_doc_sec_vertex_pos Vertex Positions
+\subsection grid_doc_subsec_vertex_pos_index Indexing
+A tatooine::rectilinear_grid can be indexed with the parantheses-operator or the at method:
+\code{.cpp}
+auto create_grid_with_vertex_property() {
+  tatooine::rectilinear_grid uniform_grid_2d{32, 64};
+  auto const x_0_0 = uniform_grid_2d.vertex_at(0, 0); // == tatooine::vec{0.0, 0.0} in this example
+  auto const x_31_63 = uniform_grid_2d.at(31, 63);// == tatooine::vec{1.0, 1.0} in this example
+}
+\endcode
+These methods return a tatooine::vec that represents the position of the rectilinear_grid
+index.
+
+\subsection grid_doc_subsec_vertex_pos_iter Iterating over vertices
+One can iterate in two ways over the vertices of a tatooine::rectilinear_grid:
+\code{.cpp}
+auto iterate_over_vertex_positions() {
+  tatooine::rectilinear_grid uniform_grid_2d{32, 64};
+  for (auto const x : uniform_grid_2d.vertices()) {
+    // x is an instance tatooine::vec
+  }
+}
+\endcode
+
+\code{.cpp}
+auto iterate_over_vertex_indices() {
+  tatooine::rectilinear_grid uniform_grid_2d{32, 64};
+  uniform_grid_2d.vertices().iterate_indices([&](auto const... indices){
+    auto const x = uniform_grid_2d.vertex_at(indices...);
+  });
+}
+\endcode
+
+\section grid_doc_sec_props Vertex Properties
+For storing properties of arbitrary types <a href="https://en.wikipedia.org/wiki/Type_erasure">type erasure</a> is used.
+
+\subsection grid_doc_subsec_props_creation Inserting Properties
+Instances of tatooine::rectilinear_grid can be equipped with vertex properties
+that can hold any data type. Vertex properties can be created as in the
+following example:
+\code{.cpp}
+auto create_grid_with_vertex_property() {
+  tatooine::rectilinear_grid uniform_grid_2d{32, 64};
+  auto& prop = uniform_grid_2d.vertex_property<double>("property_name");
+  prop(11, 63) = 42.1337;
+}
+\endcode
+
+\note <b>`prop` has to be a reference!</b> Otherwise you are working on a copy of the property.
+
+uniform_grid_2d now holds a vertex property called "property_name". Internally
+the method `vertex_property` creates an object whose type inherits
+tatooine::dynamic_multidim_array. 
+
+If `vertex_prop` is called again with the same name and the same type you will
+get a reference to same property.
+
+If `vertex_prop` is called again with the same name and the \b another type an
+exception is thrown.
+
+When calling `vertex_prop` with a name that has not been used before
+tatooine::rectilinear_grid::insert_vertex_property is called which then calls
+tatooine::rectilinear_grid::insert_contiguous_vertex_property. Hence the
+following code produces the same when "property_name" has not been used before
+as an argument on that grid:
+
+\code{.cpp}
+auto create_grid_with_contiguous_vertex_property() {
+  tatooine::rectilinear_grid uniform_grid_2d{32, 64};
+  auto& prop = uniform_grid_2d.insert_contiguous_vertex_property<double>("property_name");
+  prop(11, 63) = 42.1337;
+}
+\endcode
+
+So these functions create containers that keep their memory in linear memory.
+There is also a function that creates memory that is chunked:
+
+\code{.cpp}
+auto create_grid_with_chunked_vertex_property() {
+  tatooine::rectilinear_grid uniform_grid_2d{32, 64};
+  auto& prop = uniform_grid_2d.insert_chunked_vertex_property<double>("property_name", 2, 2);
+  prop(11, 63) = 42.1337;
+}
+\endcode
+
+With this the data of `prop` is  stored in 2x2 blocks in memory to ensure a
+spatial memory coherence.
+
+If the property already exists and another container type is queried to use an
+exception will be thrown. Example:
+\code{.cpp}
+auto create_chunked_and_contiguous_vertex_property() {
+  tatooine::rectilinear_grid uniform_grid_2d{32, 64};
+  auto& chunked_uv = uniform_grid_2d.insert_chunked_vertex_property<tatooine::vec2>("uv", 2, 2);
+  auto& contiguous_uv = uniform_grid_2d.insert_contiguous_vertex_property<tatooine::vec2>("uv"); // here a std::runtime_error will be thrown
+}
+\endcode
+
+\subsection grid_doc_subsec_props_get Query Properties
+Because the internal type is hidden by "type erasure" one has to specify the
+type again as template parameter when querying a property.
+\code{.cpp}
+template <typename... Dimensions>
+auto query_grid_property(tatooine::rectilinear_grid<Dimensions...> const& g) {
+  auto& property = g.vertex_property<double>("property_name");
+}
+\endcode
+The function above receives a rectilinear_grid with an arbitrary number of dimensions with
+arbitrary types.
+
+An exception will be thrown if no property with name "property_name" can be
+found or if a property can be found but the specified and the stored types do
+not match.
+
+There are some helper methods to make the code more readable or at least to hide templates:
+
+\code{.cpp}
+auto create_a_rectilinear_grid_and_some_props() {
+  auto g = tatooine::rectilinear_grid{64, 64};
+  // create a vertex property that holds tatooine::real_t instances per vertex
+  auto& scalar_prop = g.scalar_vertex_property("scalar_prop"); 
+  // create a vertex property that holds vec2 instances per vertex
+  auto& vec2_prop = g.vec2_vertex_property("vec2_prop"); 
+  // create a vertex property that holds vec2 instances per vertex
+  auto& vec3_prop = g.vec3_vertex_property("vec3_prop"); 
+  // create a vertex property that holds vec2 instances per vertex
+  auto& mat4_prop = g.mat4_vertex_property("mat4_prop"); 
+}
+\endcode
+
+\subsection  grid_doc_subsec_props_sampler Sampling Properties
+A property can be sampled like that:
+\code{.cpp}
+auto sample_grid_property() {
+  auto g = tatooine::rectilinear_grid{32, 64};
+  auto& property = g.scalar_vertex_property("property_name"); 
+
+  // ...
+  // Create the property data.
+  // ...
+
+  // Do not use a reference here.
+  auto sampler = property.sampler(); 
+  auto const sample = sampler(0.5, 0.5);
+}
+\endcode
+
+\note tatooine::typed_grid_vertex_property_interface::sampler returns an object of type tatooine::grid_vertex_property that stores a reference to its corresponding tatooine::rectilinear_grid and a reference to the property so one must not use a reference!
+
+The returned object is derived by tatooine::field so every available algorithm can be applied the the sampler.
+
+The tatooine::rectilinear_grid::sampler method is a template function that can get interpolation kernels as
+template parameters. By default cubic interpolation kernels are used for every
+dimension. So the following code produces the same results as the code above.
+
+\code{.cpp}
+auto sample_grid_property() {
+  tatooine::rectilinear_grid g{32, 64};
+  auto& property = g.scalar_vertex_property("property_name"); 
+  // ...
+  auto sampler = property.sampler<interpolation::cubic>(); 
+  auto const sample = sampler(0.5, 0.5);
+}
+\endcode
+
+One can also mix interpolation kernels:
+
+\code{.cpp}
+auto sample_grid_property() {
+  tatooine::rectilinear_grid g{32, 64};
+  auto& property = g.scalar_vertex_property("property_name"); 
+  // ...
+  auto sampler = property.sampler<tatooine::interpolation::linear,
+                                  tatooine::interpolation::cubic>(); 
+  auto const sample = sampler(0.5, 0.5);
+}
+\endcode
+
+Here the sampler interpolates linearly in the first dimension and cubicly in
+the second dimension.
+*/
