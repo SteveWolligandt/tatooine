@@ -36,12 +36,14 @@ auto vector_construction() {
   // is used so it explicitly uses double as internal type.                                                                    
   auto const v_double_3 = vec3d{1, 2}  
 }
-//==============================================================================
+\endcode
+\code{.cpp}
 auto vector_factories() {
   auto const v0 = vec2::ones(); // constructs the vector [1,1]
   auto const v1 = vec4::zeros(); // constructs the vector [0,0,0,0]
 }
-//==============================================================================
+\endcode
+\code{.cpp}
 auto matrix_construction() {
   // Uses a template deduction guide to deduct template parameters of
   // tatooine::mat.  It uses tatooine::common_type to deduct the type and counts
@@ -62,7 +64,8 @@ auto matrix_construction() {
                                  {4, 5, 6},
                                  {7, 8, 9}};
 }
-//==============================================================================
+\endcode
+\code{.cpp}
 auto matrix_factories() {
   auto const m0 = mat2::ones();  // constructs the matrix [1,1; 1,1]
   auto const m1 = mat4::zeros(); // constructs the matrix [0,0,0,0; 0,0,0,0; 0,0,0,0; 0,0,0,0]
@@ -84,27 +87,31 @@ auto vector_basic_usage() {
   auto const vw_subtracted = v - w;
   auto const vw_component_wise_multiplication = v * w;
 }
-//==============================================================================
+\endcode
+\code{.cpp}
 auto matrix_vector_multiplication() {
   auto const A = mat2{{1,2},
                       {3,4}};
   auto const x = vec2{1,2};
   auto const b = A * x;
 }
-//==============================================================================
+\endcode
+\code{.cpp}
 auto matrix_matrix_multiplication() {
   auto const A = mat2{{1,2},
                       {3,4}}; 
   auto const X = mat2::eye();
   auto const B = A * X;
 }
-//==============================================================================
+\endcode
+\code{.cpp}
 auto transposing_a_matrix() {
   auto const A = mat2{{1,2},
                       {3,4}};
   auto const At = transposed(A);
 }
-//==============================================================================
+\endcode
+\code{.cpp}
 auto inverting_a_matrix() {
   auto const A = mat2{{1,2},
                       {3,4}};
@@ -112,7 +119,8 @@ auto inverting_a_matrix() {
   // If a matrix A is not invertible the returned value of inv is empty.
   auto const Ainv = inv(A); 
 }
-//==============================================================================
+\endcode
+\code{.cpp}
 auto solving_a_linear_system() {
   auto const A = mat2{{1,2},
                       {3,4}};
@@ -127,14 +135,16 @@ auto solving_a_linear_system() {
                       {7,8}};
   auto const X = solve(A, B);
 }
-//==============================================================================
+\endcode
+\code{.cpp}
 auto solving_a_linear_system() {
   auto const A = mat2{{1,2},
                       {3,4}};
   auto const b = vec2{5,6};
   auto const x = solve(A, b);
 }
-//==============================================================================
+\endcode
+\code{.cpp}
 auto compute_eigenvalues() {
   auto const A = mat2{{1,2},
                       {3,4}};
@@ -145,7 +155,8 @@ auto compute_eigenvalues() {
   // lambda_AAt is of type vec<tatooine::real_t, 2>.
   auto const lambda_AAt = eigenvalues_sym(A);
 }
-//==============================================================================
+\endcode
+\code{.cpp}
 auto compute_eigenvectors() {
   auto const A = mat2{{1,2},
                       {3,4}};
