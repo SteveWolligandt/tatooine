@@ -370,6 +370,7 @@ auto calc_parallel_vectors(GetV&& getv, GetW&& getw,
 //==============================================================================
 }  // namespace detail
 //==============================================================================
+/// This is an implementation of \cite Peikert1999TheV.
 #ifdef __cpp_concepts
 template <typename VReal, typename WReal, typename XDomain, typename YDomain,
           typename ZDomain, arithmetic TReal,
@@ -406,6 +407,7 @@ auto parallel_vectors(polymorphic::vectorfield<VReal, 3> const&   vf,
       g, std::forward<Preds>(preds)...);
 }
 //------------------------------------------------------------------------------
+/// This is an implementation of \cite Peikert1999TheV.
 #ifdef __cpp_concepts
 template <typename V, typename W, typename VReal, typename WReal,
           typename XDomain, typename YDomain, typename ZDomain,
@@ -444,6 +446,7 @@ auto parallel_vectors(vectorfield<V, VReal, 3> const&        vf,
       g, std::forward<Preds>(preds)...);
 }
 //------------------------------------------------------------------------------
+/// This is an implementation of \cite Peikert1999TheV.
 #ifdef __cpp_concepts
 template <typename V, typename W, typename VReal, typename WReal,
           typename XDomain, typename YDomain, typename ZDomain,
@@ -462,6 +465,7 @@ auto parallel_vectors(vectorfield<V, VReal, 3> const&           v,
   return parallel_vectors(v, w, g, 0, std::forward<Preds>(preds)...);
 }
 //------------------------------------------------------------------------------
+/// This is an implementation of \cite Peikert1999TheV.
 #ifdef __cpp_concepts
 template <typename V, typename W, typename VReal, typename WReal,
           typename XReal, typename YReal, typename ZReal, arithmetic TReal,
@@ -483,6 +487,7 @@ auto parallel_vectors(vectorfield<V, VReal, 3> const& v,
                           std::forward<Preds>(preds)...);
 }
 //------------------------------------------------------------------------------
+/// This is an implementation of \cite Peikert1999TheV.
 #ifdef __cpp_concepts
 template <typename V, typename W, typename VReal, typename WReal,
           typename XReal, typename YReal, typename ZReal,
@@ -502,6 +507,7 @@ auto parallel_vectors(vectorfield<V, VReal, 3> const& v,
                           std::forward<Preds>(preds)...);
 }
 //------------------------------------------------------------------------------
+/// This is an implementation of \cite Peikert1999TheV.
 #ifdef __cpp_concepts
 template <typename VReal, typename VIndexing, typename WReal,
           typename WIndexing, typename AABBReal,
