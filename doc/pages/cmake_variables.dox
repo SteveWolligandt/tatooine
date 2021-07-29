@@ -1,0 +1,71 @@
+/**
+\page cmake_variables_page CMake Variables
+There are several flags that can be turned on or off to enable or disable features or targets.
+
+\subsubsection TATOOINE_BUILD_BENCHMARKS
+
+Creates build targets for benchmarks.
+
+\subsubsection TATOOINE_BUILD_CHANNELFLOW_VIS
+
+Creates build targets for channel flow visualization.
+
+\subsubsection TATOOINE_BUILD_DOC
+
+Creates build target for building this documentation
+
+\subsubsection TATOOINE_BUILD_EXAMPLES
+
+Creates build target for some examples
+
+\subsubsection TATOOINE_BUILD_TESTS
+
+Creates build targets for unit tests
+
+\subsubsection TATOOINE_BUILD_FLOWEXPLORER
+
+Creates build target for flow explorer
+
+\subsubsection TATOOINE_BUILD_GL
+
+Enables OpenGL features
+
+\subsubsection TATOOINE_COMPILE_WITH_OPENMP
+
+En-/Disables OpenMP
+
+\subsubsection TATOOINE_DOC_USE_SPHINX
+
+Sphinx will be used to generate this documentation.
+\note This is experimental and probalby will not work :(
+
+\subsubsection TATOOINE_GL_VERBOSE
+
+Enables printing OpenGL calls. This is useful for debugging OpenGL related code.
+
+\subsubsection TATOOINE_PP_NUM_MAX_INDICES
+
+Maximal number of indices for preprocessor library
+
+\subsubsection TATOOINE_TEST_USE_FAST_MATH
+
+When this is turned on unit tests will be compiled with gcc's fast math flag
+
+\subsubsection TATOOINE_USE_CLANG_TIDY
+
+Use clang tidy when compiling. Compiling will take much longer!
+
+\subsubsection TATOOINE_USE_GINAC
+
+Enable this for enabling symbolic fields and tensors.
+
+\subsubsection TATOOINE_USE_SYSTEM_HDF5_LIBS
+
+Enable this for using systems's installed HDF5 Libraries
+
+\subsubsection TATOOINE_USE_SYSTEM_NETCDF_LIB
+
+Enable this for using systems's installed NetCDF Libraries. 
+\note This is experimental und should be turned on. 
+
+*/
