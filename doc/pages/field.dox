@@ -1,3 +1,136 @@
 /**
 \page fields_page Fields
+\tableofcontents
+\section fields_intro_sec Introduction
+
+Fields are functors that map a spatio-temporal domain to a tensor.
+
+There is tatooine::polymorphic::field that every field is derived from. Use
+references or pointers of this type to be able to write generic code that
+involves fields.
+
+Then there is tatooine::field that uses <a
+href="https://en.wikipedia.org/wiki/Curiously_recurring_template_pattern">CRTP</a>
+to provide some more compile-time-optimization.
+
+Every field should be derived from tatooine::field.
+
+\section fields_analytical_fields Analytical Fields
+
+For each analytical field exists a numerical and a symbolic version. The
+symbolic versions use <a href="https://www.ginac.de/">GiNaC</a>. The numerical
+versions simply use functions from the cmath header and tatooine::vec,
+tatooine::mat or tatooine::tensor and its \ref tensors_examples_basic_ops_sec
+and.
+
+\see tatooine::analytical::fields::numerical::doublegyre
+\see tatooine::analytical::fields::symbolic::doublegyre
+\see tatooine::analytical::fields::numerical::abcflow
+\see tatooine::analytical::fields::symbolic::abcflow
+
+\section field_minimal_example_sec Minimal Example
+
+The following example shows how to define an easy vector field.
+When creating a field two methods have to be provided:
+- `in_domain` and
+- `evaluate`.
+
+Both methods get a position and a time. `in_domain` defines the domain of a
+field. In this example the domain is unbounded. `evaluate` returns a tensor. In
+this case parent_t::tensor_t is tatooine::vec2.
+The methods do not need to be marked virtual or override. The CRTP mechanism
+just needs those two methods with the correct signature.
+
+\code{.cpp}
+#include <tatooine/field.h>
+//==============================================================================
+using namespace tatooine;
+//==============================================================================
+struct my_vectorfield : vectorfield<my_vectorfield, tatooine::real_t, 2> {
+  using this_t = my_vectorfield;
+  using parent_t = vectorfield<my_vectorfield, tatooine::real_t, 2>;
+  using parent_t::real_t;
+  using parent_t::pos_t;
+  using parent_t::tensor_t;
+
+  auto constexpr in_domain(pos_t const& x, real_t const t) const -> bool {
+    return true;
+  }
+
+  auto constexpr evaluate(pos_t const& x, real_t const t) const -> tensor_t {
+    return x * t;
+  }
+};
+
+auto main() -> int {
+  auto v      = my_vectorfield{};
+  // evaluates the field at position [1,2] and at time 0
+  auto sample = v({1, 2}, 0);
+}
+\endcode
+
+\section fields_typedefs_sec Typedefs
+There are some typedefs that should be used due to their shortness.
+\see tatooine::polymorphic::vectorfield
+\see tatooine::polymorphic::matrixfield
+\see tatooine::vectorfield
+\see tatooine::matrixfield
+
+\section fields_diff_sec Differentiation
+Fields can be derived using the `tatooine::diff` operator. This function
+creates a `tatooine::differentiated_field` that computes the derivative by
+using central differences.
+
+using `tatooine::diff(<scalarfield>)` you will get the gradient of field.
+
+using `tatooine::diff(<vectorfield>)` you will get the jacobian of field.
+
+using `tatooine::diff(<matrixfield>)` you will get a field that evaluates to a
+rank-3 tensor that describes the derivative of this rank-2 tensor field.
+
+In some specific cases one can specialize tatooine::differentiated_field.
+Checkout center.h for example.
+
+\section fields_flowmap_sec Flowmaps of Vector Fields
+Flow Maps of vector fields can be created by using the `tatooine::flowmap`
+operator.
+
+By default a numerical integration is used to perform this action.
+
+`tatooine::flowmap` is a templated function that can use a specific ODE solver.
+By default tatooine::ode::vclibs::rungekutta43 is used.
+
+\subsection fields_flowmap_example_sec Example using the Double Gyre Dataset
+
+\code{.cpp}
+#include <tatooine/analytical/fields/numerical/doublegyre.h>
+//==============================================================================
+using namespace tatooine;
+//==============================================================================
+auto main() -> int {
+  auto v   = analytical::fields::numerical::doublegyre{};
+  auto phi = flowmap(v);
+  auto x0  = vec2{0.1, 0.1};
+  auto t0  = 0.0;
+  auto tau = 10.0;
+
+  // performs a numerical integration from t0 up to t0 + tau
+  auto x10  = phi(x0, t0, tau);
+
+  // starts integration starting from t = t0 + tau because this integral curve is cached until t0 + tau
+  auto x20  = phi(x0, t0, tau * 2); 
+
+  // uses an interpolated position of the cached line
+  auto x5  = phi(x0, t0, tau / 2); 
+
+  // Check if phi is actually cacheable. This might not be the case for some
+  // predefined linear fields.
+  if constexpr (is_cacheable<decltype(phi)>()) {
+    phi.use_caching(false);
+  }
+
+  // uses phi's ode solver starting from t0 up to tau/2
+  auto x5_uncached  = phi(x0, t0, tau / 2); }
+\endcode
+
 */
