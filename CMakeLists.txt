@@ -105,11 +105,12 @@ else()
   set(TATOOINE_USE_CLANG_TIDY FALSE)
 endif()
 #- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-# create library target
-add_library(tatooine STATIC
+set(TATOOINE_SRC_FILES 
   src/vtk_legacy.cpp
   src/parse.cpp
 )
+# create library target
+add_library(tatooine STATIC ${TATOOINE_SRC_FILES})
 target_compile_options(tatooine PUBLIC -Wno-inconsistent-missing-override)
 target_compile_features(tatooine PUBLIC cxx_std_20)
 

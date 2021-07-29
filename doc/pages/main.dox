@@ -1,11 +1,15 @@
 /** \mainpage Tatooine
 
-\section tensors_sec Linear Algebra and Tensors
+\section main_tensors_sec Linear Algebra and Tensors
 - \ref tensors_page 
 
-\section datastructures_sec Data Structures
+\section main_datastructures_sec Data Structures
 
 - \ref fields_page 
+\subsection main_geometry_sec Geometry
+- \ref pointset_page
+- \ref unstructured_grid_page
+- \ref line_page
 - \ref rectilinear_grid_page
 
 \section algorithms_sec Algorithms
@@ -14,6 +18,7 @@
 
 - tatooine::parallel_vectors
 
-\subsection algorithms_rendering_sec Rendering
-
+\subsection main_algorithms_rendering_sec Rendering
+- \ref rendering_rasterizer_sec
+- \ref rendering_raytracer_sec
 */

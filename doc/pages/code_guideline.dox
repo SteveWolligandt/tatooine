@@ -1,0 +1,10 @@
+/**
+\page code_guideline_page Code Guidelines
+
+- Use the provided `.clang-format` to let your code be formatted automatically.
+However for example when constructing matrices by rows clang-format tends to
+destroy a well looking layout. Feel free to format these parts of your code by
+hand.
+- Use trailing return types!
+- Use right-hand-side `const`s
+*/
