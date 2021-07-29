@@ -35,7 +35,7 @@ struct base_uniform_tree_hierarchy : aabb<Real, NumDims> {
   size_t                     m_level;
   size_t                     m_max_depth;
   std::array<std::unique_ptr<Derived>, num_children()> m_children;
-  static constexpr size_t default_max_depth = 2;
+  static constexpr size_t default_max_depth = 4;
   //============================================================================
   base_uniform_tree_hierarchy()                                       = default;
   base_uniform_tree_hierarchy(base_uniform_tree_hierarchy const&)     = default;

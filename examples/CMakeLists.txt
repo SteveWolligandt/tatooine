@@ -1,3 +1,9 @@
+add_executable(example.constrained_delaunay constrained_delaunay.cpp)
+target_link_libraries(example.constrained_delaunay tatooine)
+add_custom_target(example.constrained_delaunay.run
+                  COMMAND ./example.constrained_delaunay
+                  DEPENDS example.constrained_delaunay)
+
 add_executable(example.naive_flowmap_discretization naive_flowmap_discretization.cpp)
 target_link_libraries(example.naive_flowmap_discretization tatooine)
 add_custom_target(example.naive_flowmap_discretization.run

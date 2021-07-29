@@ -4,6 +4,7 @@
 #ifdef TATOOINE_HAS_CGAL_SUPPORT
 #include <CGAL/Delaunay_triangulation_2.h>
 #include <CGAL/Delaunay_triangulation_3.h>
+#include <CGAL/Constrained_Delaunay_triangulation_2.h>
 #include <CGAL/Exact_predicates_inexact_constructions_kernel.h>
 #include <CGAL/Triangulation_vertex_base_with_info_2.h>
 #include <CGAL/Triangulation_vertex_base_with_info_3.h>
@@ -572,7 +573,7 @@ class simplex_mesh
   template <size_t NumDimensions_ = NumDimensions,
             enable_if<NumDimensions_ == 2 || NumDimensions_ == 3> = true>
 #endif
-      auto build_delaunay_mesh() -> void
+  auto build_delaunay_mesh() -> void
 #ifdef __cpp_concepts
       requires(NumDimensions == 2) ||
       (NumDimensions == 3)
@@ -590,8 +591,8 @@ class simplex_mesh
   template <size_t... Seq, size_t NumDimensions_ = NumDimensions,
             enable_if<NumDimensions_ == 2 || NumDimensions_ == 3> = true>
 #endif
-          auto build_delaunay_mesh(std::index_sequence<Seq...> /*seq*/)
-              -> void {
+  auto build_delaunay_mesh(std::index_sequence<Seq...> /*seq*/)
+      -> void {
     m_cell_indices.clear();
     using Kernel = CGAL::Exact_predicates_inexact_constructions_kernel;
     using Vb     = std::conditional_t<
@@ -627,6 +628,59 @@ class simplex_mesh
         insert_cell(vertex_handle{it->vertex(0)->info()},
                     vertex_handle{it->vertex(Seq + 1)->info()}...);
       }
+    }
+  }
+ public:
+#ifndef __cpp_concepts
+  template <size_t NumDimensions_ = NumDimensions,
+            enable_if<NumDimensions_ == 2 || NumDimensions_ == 3> = true>
+#endif
+      auto build_constrained_delaunay_mesh(
+          std::vector<std::pair<vertex_handle, vertex_handle>> const& constraints)
+          -> void
+#ifdef __cpp_concepts
+      requires(NumDimensions == 2) ||
+      (NumDimensions == 3)
+#endif
+  {
+    build_constrained_delaunay_mesh(constraints, std::make_index_sequence<NumDimensions>{});
+  }
+
+ private:
+#ifdef __cpp_concepts
+  template <size_t... Seq>
+  requires (NumDimensions == 2) /*|| (NumDimensions == 3)*/
+#else
+  template <size_t... Seq, size_t NumDimensions_ = NumDimensions,
+            enable_if<NumDimensions_ == 2 /*|| NumDimensions_ == 3*/> = true>
+#endif
+  auto build_constrained_delaunay_mesh(
+      std::vector<std::pair<vertex_handle, vertex_handle>> const& constraints,
+      std::index_sequence<Seq...> /*seq*/) -> void {
+    m_cell_indices.clear();
+    using Kernel = CGAL::Exact_predicates_inexact_constructions_kernel;
+    using Vb =
+        CGAL::Triangulation_vertex_base_with_info_2<vertex_handle, Kernel>;
+    using Tds           = CGAL::Triangulation_data_structure_2<Vb>;
+    using Itag          = CGAL::Exact_predicates_tag;
+    using Triangulation =
+        CGAL::Constrained_Delaunay_triangulation_2<Kernel, Tds, Itag>;
+    using Point = typename Triangulation::Point;
+    using Edge  = typename Triangulation::Edge;
+
+    std::vector<std::pair<Point, vertex_handle>> points;
+    points.reserve(vertices().size());
+    for (auto v : vertices()) {
+      points.emplace_back(Point{at(v)(Seq)...}, v);
+    }
+
+    auto dt = Triangulation{};
+    for (auto const& [v0, v1] : constraints) {
+      dt.insert_constraint(at(v0), at(v1));
+    }
+    for (auto it = dt.finite_faces_begin(); it != dt.finite_faces_end(); ++it) {
+      insert_cell(vertex_handle{it->vertex(0)->info()},
+                  vertex_handle{it->vertex(Seq + 1)->info()}...);
     }
   }
 #endif
@@ -1105,7 +1159,7 @@ simplex_mesh(rectilinear_grid<Dims...> const& g)
 //==============================================================================
 }  // namespace tatooine
 //==============================================================================
-#include<tatooine/triangular_mesh.h>
-#include<tatooine/tetrahedral_mesh.h>
+#include <tatooine/tetrahedral_mesh.h>
+#include <tatooine/triangular_mesh.h>
 //==============================================================================
 #endif

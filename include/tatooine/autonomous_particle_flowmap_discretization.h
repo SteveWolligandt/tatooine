@@ -10,14 +10,14 @@
 //==============================================================================
 namespace tatooine {
 //==============================================================================
-template <typename Real, size_t NumDims>
-struct autonomous_particle_sampler_forward_hierarchy
+template <typename Derived, typename Real, size_t NumDims>
+struct autonomous_particle_sampler_hierarchy
     : base_uniform_tree_hierarchy<
           Real, NumDims,
-          autonomous_particle_sampler_forward_hierarchy<Real, NumDims>> {
+          autonomous_particle_sampler_hierarchy<Derived, Real, NumDims>> {
   using ellipse_t           = autonomous_particle_sampler<Real, NumDims>;
   using ellipse_container_t = std::vector<ellipse_t>;
-  using this_t   = autonomous_particle_sampler_forward_hierarchy<Real, NumDims>;
+  using this_t = autonomous_particle_sampler_hierarchy<Derived, Real, NumDims>;
   using parent_t = base_uniform_tree_hierarchy<Real, NumDims, this_t>;
   using real_t   = typename parent_t::real_t;
   using parent_t::center;
@@ -38,18 +38,18 @@ struct autonomous_particle_sampler_forward_hierarchy
   std::vector<size_t>        m_indices;
   //============================================================================
  public:
-  autonomous_particle_sampler_forward_hierarchy() = default;
-  autonomous_particle_sampler_forward_hierarchy(
-      autonomous_particle_sampler_forward_hierarchy const&) = default;
-  autonomous_particle_sampler_forward_hierarchy(
-      autonomous_particle_sampler_forward_hierarchy&&) noexcept = default;
-  auto operator=(autonomous_particle_sampler_forward_hierarchy const&)
-      -> autonomous_particle_sampler_forward_hierarchy& = default;
-  auto operator=(autonomous_particle_sampler_forward_hierarchy&&) noexcept
-      -> autonomous_particle_sampler_forward_hierarchy&    = default;
-  virtual ~autonomous_particle_sampler_forward_hierarchy() = default;
+  autonomous_particle_sampler_hierarchy() = default;
+  autonomous_particle_sampler_hierarchy(
+      autonomous_particle_sampler_hierarchy const&) = default;
+  autonomous_particle_sampler_hierarchy(
+      autonomous_particle_sampler_hierarchy&&) noexcept = default;
+  auto operator=(autonomous_particle_sampler_hierarchy const&)
+      -> autonomous_particle_sampler_hierarchy& = default;
+  auto operator=(autonomous_particle_sampler_hierarchy&&) noexcept
+      -> autonomous_particle_sampler_hierarchy&    = default;
+  virtual ~autonomous_particle_sampler_hierarchy() = default;
   //----------------------------------------------------------------------------
-  explicit autonomous_particle_sampler_forward_hierarchy(
+  explicit autonomous_particle_sampler_hierarchy(
       ellipse_container_t const& ellipses,
       size_t const               max_depth = parent_t::default_max_depth)
       : parent_t{pos_t::ones() * -std::numeric_limits<real_t>::max(),
@@ -60,7 +60,7 @@ struct autonomous_particle_sampler_forward_hierarchy
     }
   }
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-  autonomous_particle_sampler_forward_hierarchy(
+  autonomous_particle_sampler_hierarchy(
       vec_t const& min, vec_t const& max, ellipse_container_t const& ellipses,
       size_t const max_depth = parent_t::default_max_depth)
       : parent_t{min, max, 1, max_depth}, m_ellipses{&ellipses} {
@@ -70,16 +70,16 @@ struct autonomous_particle_sampler_forward_hierarchy
   }
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
  private:
-  autonomous_particle_sampler_forward_hierarchy(
+  autonomous_particle_sampler_hierarchy(
       vec_t const& min, vec_t const& max, size_t const level,
       size_t const max_depth, ellipse_container_t const& ellipses)
       : parent_t{min, max, level, max_depth}, m_ellipses{&ellipses} {}
   //============================================================================
  public:
   auto ellipses() const -> auto const& { return *m_ellipses; }
-  auto ellipses_in_node() const -> auto const& { return m_indices; }
+  auto ellipse_indices_in_node() const -> auto const& { return m_indices; }
   auto ellipse(size_t const i) const -> auto const& {
-    return m_ellipses->at(i).ellipse0();
+    return static_cast<Derived const*>(this)->ellipse(i);
   }
   auto constexpr holds_ellipses() const { return !m_indices.empty(); }
   //----------------------------------------------------------------------------
@@ -127,7 +127,7 @@ struct autonomous_particle_sampler_forward_hierarchy
     }
   }
   //----------------------------------------------------------------------------
-  auto collect_nearby_ellipses(pos_t const& pos, std::set<size_t>& cells) const
+  auto collect_nearby_ellipses(pos_t const& pos, std::unordered_set<size_t>& cells) const
       -> void {
     if (is_inside(pos)) {
       if (is_splitted()) {
@@ -144,9 +144,33 @@ struct autonomous_particle_sampler_forward_hierarchy
   }
   //----------------------------------------------------------------------------
   auto nearby_ellipses(pos_t const& pos) const {
-    std::set<size_t> indices;
+    std::unordered_set<size_t> indices;
     collect_nearby_ellipses(pos, indices);
     return indices;
+  }
+};
+//==============================================================================
+template <typename Real, size_t N>
+struct forward_autonomous_particle_sampler_hierarchy
+    : autonomous_particle_sampler_hierarchy<
+          forward_autonomous_particle_sampler_hierarchy<Real, N>, Real, N> {
+  using parent_t = autonomous_particle_sampler_hierarchy<
+      forward_autonomous_particle_sampler_hierarchy<Real, N>, Real, N>;
+  using parent_t::parent_t;
+  auto ellipse(size_t const i) const -> auto const& {
+    return this->ellipses().at(i).ellipse1();
+  }
+};
+//==============================================================================
+template <typename Real, size_t N>
+struct backward_autonomous_particle_sampler_hierarchy
+    : autonomous_particle_sampler_hierarchy<
+          backward_autonomous_particle_sampler_hierarchy<Real, N>, Real, N> {
+  using parent_t = autonomous_particle_sampler_hierarchy<
+      backward_autonomous_particle_sampler_hierarchy<Real, N>, Real, N>;
+  using parent_t::parent_t;
+  auto ellipse(size_t const i) const -> auto const& {
+    return this->ellipses().at(i).ellipse1();
   }
 };
 //==============================================================================
@@ -166,8 +190,10 @@ struct autonomous_particle_flowmap_discretization {
   mesh_t              m_mesh1;
   mesh_prop_t*        m_mesh0_samplers;
   mesh_prop_t*        m_mesh1_samplers;
-  std::unique_ptr<autonomous_particle_sampler_forward_hierarchy<Real, NumDims>>
+  std::unique_ptr<forward_autonomous_particle_sampler_hierarchy<Real, NumDims>>
       m_hierarchy0;
+  std::unique_ptr<backward_autonomous_particle_sampler_hierarchy<Real, NumDims>>
+      m_hierarchy1;
   //============================================================================
  public:
   template <typename Flowmap>
@@ -222,52 +248,57 @@ struct autonomous_particle_flowmap_discretization {
         autonomous_particle<Real, NumDims>::advect_with_3_splits(
             std::forward<Flowmap>(flowmap), tau_step, t1, initial_particles);
     m_samplers.reserve(size(advected_particles));
-    boost::copy(
-        advected_particles | boost::adaptors::transformed(
-                                 [](auto const& p) { return p.sampler(); }),
-        std::back_inserter(m_samplers));
+    using boost::copy;
+    using boost::adaptors::transformed;
+    auto constexpr sampler = [](auto const& p) { return p.sampler(); };
+    copy(advected_particles | transformed(sampler),
+         std::back_inserter(m_samplers));
     m_hierarchy0 = std::make_unique<
-        autonomous_particle_sampler_forward_hierarchy<Real, NumDims>>(m_samplers);
+        forward_autonomous_particle_sampler_hierarchy<Real, NumDims>>(
+        vec2{-10,-10}, vec2{10,10}, m_samplers, 10);
+    m_hierarchy1 = std::make_unique<
+        backward_autonomous_particle_sampler_hierarchy<Real, NumDims>>(
+        vec2{-10,-10}, vec2{10,10}, m_samplers, 10);
 
-    //m_mesh0_samplers =
-    //    &m_mesh0.template vertex_property<sampler_t const*>("samplers");
-    //m_mesh1_samplers =
-    //    &m_mesh1.template vertex_property<sampler_t const*>("samplers");
-    //
-    //auto const ts = linspace{0.0, 2 * M_PI, 17};
-    //for (auto const& sampler : samplers()) {
-    //  {
-    //    auto const v = m_mesh0.insert_vertex(sampler.ellipse0().center());
-    //    m_mesh0_samplers->at(v) = &sampler;
-    //  }
-    //
-    //  {
-    //    auto const v = m_mesh1.insert_vertex(sampler.ellipse1().center());
-    //    m_mesh1_samplers->at(v) = &sampler;
-    //  }
-    //
-    //  for (auto t_it = begin(ts); t_it != prev(end(ts)); ++t_it) {
-    //    auto const t = *t_it;
-    //    auto const y = vec{std::cos(t), std::sin(t)};
-    //    {
-    //      auto const v = m_mesh0.insert_vertex(sampler.ellipse0().center() +
-    //                                           sampler.ellipse0().S() * y);
-    //      m_mesh0_samplers->at(v) = &sampler;
-    //    }
-    //
-    //    {
-    //      auto const v = m_mesh1.insert_vertex(sampler.ellipse1().center() +
-    //                                           sampler.ellipse1().S() * y);
-    //      m_mesh1_samplers->at(v) = &sampler;
-    //    }
-    //  }
-    //}
-    //
-    //m_mesh0.build_delaunay_mesh();
-    //m_mesh0.build_hierarchy();
-    //
-    //m_mesh1.build_delaunay_mesh();
-    //m_mesh1.build_hierarchy();
+    m_mesh0_samplers =
+        &m_mesh0.template vertex_property<sampler_t const*>("samplers");
+    m_mesh1_samplers =
+        &m_mesh1.template vertex_property<sampler_t const*>("samplers");
+
+    auto const ts = linspace{0.0, 2 * M_PI, 17};
+    for (auto const& sampler : samplers()) {
+      {
+        auto const v = m_mesh0.insert_vertex(sampler.ellipse0().center());
+        m_mesh0_samplers->at(v) = &sampler;
+      }
+
+      {
+        auto const v = m_mesh1.insert_vertex(sampler.ellipse1().center());
+        m_mesh1_samplers->at(v) = &sampler;
+      }
+
+      for (auto t_it = begin(ts); t_it != prev(end(ts)); ++t_it) {
+        auto const t = *t_it;
+        auto const y = vec{std::cos(t), std::sin(t)};
+        {
+          auto const v = m_mesh0.insert_vertex(sampler.ellipse0().center() +
+                                               sampler.ellipse0().S() * y);
+          m_mesh0_samplers->at(v) = &sampler;
+        }
+
+        {
+          auto const v = m_mesh1.insert_vertex(sampler.ellipse1().center() +
+                                               sampler.ellipse1().S() * y);
+          m_mesh1_samplers->at(v) = &sampler;
+        }
+      }
+    }
+
+    m_mesh0.build_delaunay_mesh();
+    m_mesh0.build_hierarchy();
+
+    m_mesh1.build_delaunay_mesh();
+    m_mesh1.build_hierarchy();
   }
   //----------------------------------------------------------------------------
  private:
@@ -276,103 +307,103 @@ struct autonomous_particle_flowmap_discretization {
                             mesh_prop_t const& vertex_samplers, Tag const tag,
                             std::index_sequence<VertexSeq...> /*seq*/) const {
     // try to find ellipse that includes x
-    if constexpr(is_same<Tag, tag::forward_t>){
-      for (auto const& sampler : m_hierarchy0->nearby_ellipses(x)) {
-        if (sampler.is_inside(x, tag)) {
-          return sampler(x, tag);
-        }
+    auto const possible_cells = [&] {
+      if constexpr (is_same<Tag, tag::forward_t>) {
+        return m_hierarchy0->nearby_ellipses(x);
+      } else {
+        return m_hierarchy1->nearby_ellipses(x);
       }
-    } else {
-      for (auto const& sampler : m_samplers) {
-        if (sampler.is_inside(x, tag)) {
-          return sampler(x, tag);
-        }
+    }();
+    for (auto const i : possible_cells) {
+      auto const& sampler = m_samplers[i];
+      if (sampler.is_inside(x, tag)) {
+        return sampler(x, tag);
       }
     }
 
-    //// try to find mesh cell that includes x
-    // for (auto c : mesh.hierarchy().nearby_cells(x)) {
-    //  auto const            vs = mesh.cell_at(c);
-    //  auto                  A  = mat<Real, NumDims + 1, NumDims + 1>::ones();
-    //  auto                  b  = vec<Real, NumDims + 1>::ones();
-    //  for (size_t r = 0; r < NumDims; ++r) {
-    //    (
-    //        [&]() {
-    //          A(r, VertexSeq) = VertexSeq > 0
-    //                                ? mesh[std::get<VertexSeq>(vs)](r) -
-    //                                      mesh[std::get<0>(vs)](r)
-    //                                : 0;
-    //        }(),
-    //        ...);
-    //
-    //    b(r) = x(r) - mesh[std::get<0>(vs)](r);
-    //  }
-    //
-    //  static real_t constexpr eps               = 1e-10;
-    //  auto const   barycentric_coord = solve(A, b);
-    //  if (((barycentric_coord(VertexSeq) >= -eps) && ...) &&
-    //      ((barycentric_coord(VertexSeq) <= 1 + eps) && ...)) {
-    //    auto const samplers =
-    //        std::array{vertex_samplers[std::get<VertexSeq>(vs)]...};
-    //    std::unordered_set<typename decltype(samplers)::value_type>
-    //        unique_samplers;
-    //    boost::copy(samplers,
-    //                std::inserter(unique_samplers, end(unique_samplers)));
-    //
-    //    if (size(unique_samplers) == 3) {
-    //      auto const inner_cell =
-    //          std::array{vertex_samplers[std::get<VertexSeq>(vs)]
-    //                         ->ellipse(tag)
-    //                         .nearest_point_on_boundary(x)...};
-    //      //auto weights =
-    //      //    vec{distance(inner_cell[VertexSeq],
-    //      //                 samplers[VertexSeq]->ellipse(tag).center())...};
-    //
-    //      auto inner_A = mat<Real, NumDims + 1, NumDims + 1>::ones();
-    //      auto inner_b = vec<Real, NumDims + 1>::ones();
-    //      for (size_t r = 0; r < NumDims; ++r) {
-    //        (
-    //            [&]() {
-    //              inner_A(r, VertexSeq) =
-    //                  VertexSeq > 0
-    //                      ? inner_cell[VertexSeq](r) - inner_cell[0](r)
-    //                      : 0;
-    //            }(),
-    //            ...);
-    //
-    //        inner_b(r) = x(r) - inner_cell[0](r);
-    //      }
-    //
-    //      auto inner_barycentric_coords = solve(inner_A, inner_b);
-    //      //// weights = weights * inner_barycentric_coords;
-    //      //// weights = weights / sum(weights);
-    //      //weights  = inner_barycentric_coords;
-    //      auto map = pos_t::zeros();
-    //      for (size_t i = 0; i < NumDims + 1; ++i) {
-    //        map += samplers[i]->sample(x, tag) * inner_barycentric_coords[i];
-    //      }
-    //      return map;
-    //    //} else if (size(unique_samplers) == 2) {
-    //    //  auto points_on_boundary = make_array<vec<Real, NumDims>, 2>();
-    //    //  boost::transform(
-    //    //      unique_samplers, begin(points_on_boundary),
-    //    //      [&](auto const sampler) {
-    //    //        return sampler->ellipse(tag).nearest_point_on_boundary(x);
-    //    //      });
-    //    //  for (size_t i = 0; i < NumDims + 1; ++i) {
-    //    //    map += samplers[i]->sample(x, tag) *
-    //    inner_barycentric_coords[i];
-    //    //  }
-    //    //  return map;
-    //    }
-    //
-    //    auto       map                     = pos_t::zeros();
-    //    for (size_t i = 0; i < NumDims + 1; ++i) {
-    //      map += samplers[i]->sample(x, tag) * barycentric_coord[i];
-    //    }
-    //    return map;
-    //  }
-    //}
+    // try to find mesh cell that includes x
+     for (auto c : mesh.hierarchy().nearby_cells(x)) {
+      auto const            vs = mesh[c];
+      auto                  A  = mat<Real, NumDims + 1, NumDims + 1>::ones();
+      auto                  b  = vec<Real, NumDims + 1>::ones();
+      for (size_t r = 0; r < NumDims; ++r) {
+        (
+            [&]() {
+              A(r, VertexSeq) = VertexSeq > 0
+                                    ? mesh[std::get<VertexSeq>(vs)](r) -
+                                          mesh[std::get<0>(vs)](r)
+                                    : 0;
+            }(),
+            ...);
+
+        b(r) = x(r) - mesh[std::get<0>(vs)](r);
+      }
+
+      static real_t constexpr eps               = 1e-10;
+      auto const   barycentric_coord = solve(A, b);
+      if (((barycentric_coord(VertexSeq) >= -eps) && ...) &&
+          ((barycentric_coord(VertexSeq) <= 1 + eps) && ...)) {
+        auto const samplers =
+            std::array{vertex_samplers[std::get<VertexSeq>(vs)]...};
+        std::unordered_set<typename decltype(samplers)::value_type>
+            unique_samplers;
+
+        using boost::copy;
+        copy(samplers,
+                    std::inserter(unique_samplers, end(unique_samplers)));
+
+        auto map = pos_t::zeros();
+        if (size(unique_samplers) == 3) {
+          auto const inner_cell =
+              std::array{vertex_samplers[std::get<VertexSeq>(vs)]
+                             ->ellipse(tag)
+                             .nearest_point_on_boundary(x)...};
+          //auto weights =
+          //    vec{distance(inner_cell[VertexSeq],
+          //                 samplers[VertexSeq]->ellipse(tag).center())...};
+
+          auto inner_A = mat<Real, NumDims + 1, NumDims + 1>::ones();
+          auto inner_b = vec<Real, NumDims + 1>::ones();
+          for (size_t r = 0; r < NumDims; ++r) {
+            (
+                [&]() {
+                  inner_A(r, VertexSeq) =
+                      VertexSeq > 0
+                          ? inner_cell[VertexSeq](r) - inner_cell[0](r)
+                          : 0;
+                }(),
+                ...);
+
+            inner_b(r) = x(r) - inner_cell[0](r);
+          }
+
+          auto inner_barycentric_coords = solve(inner_A, inner_b);
+          //// weights = weights * inner_barycentric_coords;
+          //// weights = weights / sum(weights);
+          //weights  = inner_barycentric_coords;
+          for (size_t i = 0; i < NumDims + 1; ++i) {
+            map += samplers[i]->sample(x, tag) * inner_barycentric_coords[i];
+          }
+          return map;
+        //} else if (size(unique_samplers) == 2) {
+        //  auto points_on_boundary = make_array<vec<Real, NumDims>, 2>();
+        //  boost::transform(
+        //      unique_samplers, begin(points_on_boundary),
+        //      [&](auto const sampler) {
+        //        return sampler->ellipse(tag).nearest_point_on_boundary(x);
+        //      });
+        //  for (size_t i = 0; i < NumDims + 1; ++i) {
+        //    map += samplers[i]->sample(x, tag) * inner_barycentric_coords[i];
+        //  }
+        //  return map;
+        }
+
+        for (size_t i = 0; i < NumDims + 1; ++i) {
+          map += samplers[i]->sample(x, tag) * barycentric_coord[i];
+        }
+        return map;
+      }
+    }
 
     // if point is not included by anything throw exception
     throw std::runtime_error{"out of domain"};
