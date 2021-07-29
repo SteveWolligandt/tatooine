@@ -1,0 +1,205 @@
+/**
+\page tensors_page Linear Algebra and Tensors
+\tableofcontents
+\section tensors_intro_sec Introduction
+
+Tatooine provides basic linear algebra data structures and operations.
+
+There are template classes `tatooine::vec` and `tatooine::mat` that are
+derived of `tatooine::tensor`. The latter represents a generically sized
+Tensor.
+
+These types are mostly usable in a constexpr context. There is also
+`tatooine::dynamic_tensor` for dynamically resizable vectors, matrices and
+tensors.
+
+\section tensors_examples_sec Examples
+\subsection tensors_examples_construction_sec  Construction
+\code{.cpp}
+#include <tatoine/vec.h>
+#include <tatoine/mat.h>
+//==============================================================================
+using namespace tatooine;
+//==============================================================================
+auto vector_construction() {
+  // Uses a template deduction guide to deduct template parameters of
+  // tatooine::vec.  It uses tatooine::common_type to deduct the type and
+  // counts the number of arguments of the constructor to figure out the number
+  // of componts. In this case v_int_4 is of type tatooine::vec<int, 4>.
+  auto const v_int_4 = vec{1, 2, 3, 4};
+
+  // The common type of double and int is double so v_double_2 is of type
+  // vec<double, 2>.
+  auto const v_double_2 = vec{1.0, 2}  
+                                       
+  // Here only ints are provided as arguments but the typedef tatooine::vec3d
+  // is used so it explicitly uses double as internal type.                                                                    
+  auto const v_double_3 = vec3d{1, 2}  
+}
+//==============================================================================
+auto vector_factories() {
+  auto const v0 = vec2::ones(); // constructs the vector [1,1]
+  auto const v1 = vec4::zeros(); // constructs the vector [0,0,0,0]
+}
+//==============================================================================
+auto matrix_construction() {
+  // Uses a template deduction guide to deduct template parameters of
+  // tatooine::mat.  It uses tatooine::common_type to deduct the type and counts
+  // the number of rows and the number of each element of the rows to figure out
+  // the number of componts. In this case m_int_2_2 is of type
+  // tatooine::mat<int, 2, 2>.
+  auto const m_int_2_2 = mat{{1,2},  
+                             {3,4}}; 
+                                     
+  // Each element of a row needs to have the same type because these are
+  // interpreted as c-arrays. However different rows can have different types.
+  // The main type is again deducted by using tatooine::common_type.
+  auto const m_double_2_3 = mat{{1.0, 2.0, 3.0},  
+                                {  1,   2,   3}}; 
+
+  // By using a typedef one can explicitley forcing a size and a type
+  auto const m_double_3_3 = mat3{{1, 2, 3},
+                                 {4, 5, 6},
+                                 {7, 8, 9}};
+}
+//==============================================================================
+auto matrix_factories() {
+  auto const m0 = mat2::ones();  // constructs the matrix [1,1; 1,1]
+  auto const m1 = mat4::zeros(); // constructs the matrix [0,0,0,0; 0,0,0,0; 0,0,0,0; 0,0,0,0]
+  auto const m1 = mat3::eye();   // constructs the matrix [1,0,0; 0,1,0; 0,0,1]
+}
+\endcode
+
+\subsection tensors_examples_basic_ops_sec Basic Operations
+\code{.cpp}
+#include <tatoine/vec.h>
+#include <tatoine/mat.h>
+//==============================================================================
+using namespace tatooine;
+//==============================================================================
+auto vector_basic_usage() {
+  auto const v             = vec2{1,2};
+  auto const w             = vec2{2,3};
+  auto const vw_added      = v + w;
+  auto const vw_subtracted = v - w;
+  auto const vw_component_wise_multiplication = v * w;
+}
+//==============================================================================
+auto matrix_vector_multiplication() {
+  auto const A = mat2{{1,2},
+                      {3,4}};
+  auto const x = vec2{1,2};
+  auto const b = A * x;
+}
+//==============================================================================
+auto matrix_matrix_multiplication() {
+  auto const A = mat2{{1,2},
+                      {3,4}}; 
+  auto const X = mat2::eye();
+  auto const B = A * X;
+}
+//==============================================================================
+auto transposing_a_matrix() {
+  auto const A = mat2{{1,2},
+                      {3,4}};
+  auto const At = transposed(A);
+}
+//==============================================================================
+auto inverting_a_matrix() {
+  auto const A = mat2{{1,2},
+                      {3,4}};
+  // inv(A) returns a std::optional<mat2>.
+  // If a matrix A is not invertible the returned value of inv is empty.
+  auto const Ainv = inv(A); 
+}
+//==============================================================================
+auto solving_a_linear_system() {
+  auto const A = mat2{{1,2},
+                      {3,4}};
+  auto const b = vec2{5,6};
+  auto const x = solve(A, b);
+}
+// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+auto solving_a_linear_system() {
+  auto const A = mat2{{1,2},
+                      {3,4}};
+  auto const B = mat2{{5,6},
+                      {7,8}};
+  auto const X = solve(A, B);
+}
+//==============================================================================
+auto solving_a_linear_system() {
+  auto const A = mat2{{1,2},
+                      {3,4}};
+  auto const b = vec2{5,6};
+  auto const x = solve(A, b);
+}
+//==============================================================================
+auto compute_eigenvalues() {
+  auto const A = mat2{{1,2},
+                      {3,4}};
+  // lambda_A is of type vec<std::complex<tatooine::real_t>, 2>.
+  auto const lambda_A = eigenvalues(A);
+
+  auto const AAt = A * transposed(A);
+  // lambda_AAt is of type vec<tatooine::real_t, 2>.
+  auto const lambda_AAt = eigenvalues_sym(A);
+}
+//==============================================================================
+auto compute_eigenvectors() {
+  auto const A = mat2{{1,2},
+                      {3,4}};
+  // Sigma_A is of type mat<std::complex<tatooine::real_t>, 2, 2>.
+  // It holds the complex eigenvectors as columns.
+  // lambda_A is of type vec<std::complex<tatooine::real_t>, 2>.
+  auto const [Sigma_A, lambda_A] = eigenvectors(A);
+
+  auto const AAt = A * transposed(A);
+  // Sigma_AAt is of type mat<tatooine::real_t, 2, 2>.
+  // It holds the real eigenvectors as columns.
+  // lambda_AAt is of type vec<tatooine::real_t, 2>.
+  auto const [Sigma_AAt, lambda_AAt] = eigenvectors_sym(AAt);
+}
+\endcode
+
+\section tensors_typedefs_sec Typedefs
+\subsection tensors_typedefs_vec_sec Vectors
+For `tatooine::vec` with `tatooine::real_t`:
+
+templated size `tatooine::Vec`,
+
+`tatooine::vec2`, `tatooine::vec3`, ..., `tatooine::vec9`
+
+For `tatooine::vec` with explicit `float`:
+
+templated size `tatooine::VecF`,
+
+`tatooine::vec2f`, `tatooine::vec3f`, ..., `tatooine::vec9f`
+
+For `tatooine::vec` with explicit `double`:
+
+templated size `tatooine::VecD`,
+
+`tatooine::vec2d`, `tatooine::vec3d`, ..., `tatooine::vec9d`
+
+\subsection tensors_typedefs_mat_sec Matrices
+
+For `tatooine::mat` with `tatooine::real_t`:
+
+`tatooine::mat2`, `tatooine::mat3`, ..., `tatooine::mat9`,
+
+`tatooine::mat23`, `tatooine::mat24`, ..., `tatooine::mat99`
+
+For `tatooine::mat` with explicit `float`:
+
+`tatooine::mat2f`, `tatooine::mat3f`, ..., `tatooine::mat9f`,
+
+`tatooine::mat23f`, `tatooine::mat24f`, ..., `tatooine::mat99f`
+
+For `tatooine::mat` with explicit `double`:
+
+`tatooine::mat2d`, `tatooine::mat3d`, ..., `tatooine::mat9d`,
+
+`tatooine::mat22d`, `tatooine::mat24d`, ..., `tatooine::mat99d`
+
+*/

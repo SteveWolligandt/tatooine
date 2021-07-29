@@ -1,5 +1,8 @@
 /** \mainpage Tatooine
 
+\section tensors_sec Linear Algebra and Tensors
+- \ref tensors_page 
+
 \section datastructures_sec Data Structures
 
 - \ref fields_page 
@@ -9,8 +12,7 @@
 \subsection algorithms_feature_extraction_sec Feature Extraction
 \subsubsection algorithms_feature_extraction_vectorfields_sec Vectorfields
 
-Parallel Vectors
-
+- tatooine::parallel_vectors
 
 \subsection algorithms_rendering_sec Rendering
 
