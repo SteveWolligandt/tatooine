@@ -1,12 +1,17 @@
-/*! \mainpage My Personal Index Page
- *
- * \section intro_sec Introduction
- *
- * This is the introduction.
- *
- * \section install_sec Installation
- *
- * \subsection step1 Step 1: Opening the box
- *
- * etc...
- */
+/** \mainpage Tatooine
+
+\section datastructures_sec Data Structures
+
+- \ref fields_page 
+- \ref rectilinear_grid_page
+
+\section algorithms_sec Algorithms
+\subsection algorithms_feature_extraction_sec Feature Extraction
+\subsubsection algorithms_feature_extraction_vectorfields_sec Vectorfields
+
+Parallel Vectors
+
+
+\subsection algorithms_rendering_sec Rendering
+
+*/

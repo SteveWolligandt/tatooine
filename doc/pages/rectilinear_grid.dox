@@ -1,5 +1,5 @@
 /**
-\page rectilinear_grid_doc_page Rectilinear Grid
+\page rectilinear_grid_page Rectilinear Grid
 \tableofcontents
 \section grid_doc_sec_usage Basic usage
 \code{.cpp}
