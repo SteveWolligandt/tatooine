@@ -73,7 +73,7 @@ auto matrix_factories() {
 }
 \endcode
 
-\subsection tensors_examples_basic_ops_sec Basic Operations
+\subsection tensors_examples_basic_ops_sec Operations
 \code{.cpp}
 #include <tatoine/vec.h>
 #include <tatoine/mat.h>
