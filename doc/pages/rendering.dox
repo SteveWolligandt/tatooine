@@ -1,0 +1,8 @@
+/**
+\page rendering_page Rendering
+\tableofcontents
+\section rendering_rasterizer_sec Rasterizer
+Using OpenGL.
+\section rendering_raytracer_sec Raytracer
+\todo Write documentation of rendering!
+*/

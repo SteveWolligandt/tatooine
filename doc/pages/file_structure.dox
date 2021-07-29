@@ -1,0 +1,28 @@
+/**
+\page file_structure File Structure
+
+Include files go into `include/tatooine/`.
+
+Potential Source Files belong into `src`. The newly created files `.cpp`-files
+need to be added the variable TATOOINE_SRC_FILES in CMakeLists.txt.
+
+When you are creating a new directory use a similar file structure:
+\code
+tatooine
+├── CMakeLists.txt
+├── include
+│   └── tatooine
+│       └── <.h files>
+├── src
+│   └── <.cpp files>
+├── my_new_directory
+│   ├── CMakeLists.txt
+│   ├── include
+│   │   └── tatooine
+│   │       └── my_new_directory
+│   │           └── <.h files>
+│   └── src/
+│       └── <.cpp files>
+└─── ...
+\endcode
+*/
