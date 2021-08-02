@@ -5,7 +5,7 @@
 #include <tatooine/rectilinear_grid.h>
 #include <tatooine/netcdf.h>
 #include <tatooine/progress_bars.h>
-#include <tatooine/tetrahedral_mesh.h>
+#include <tatooine/unstructured_tetrahedral_grid.h>
 #include <tatooine/vtk_legacy.h>
 
 #include <iomanip>
@@ -63,7 +63,7 @@ auto create_initial_particles(args_t const& args) {
 }
 //------------------------------------------------------------------------------
 auto create_autonomous_mesh(range auto const& advected_particles) {
-  tetrahedral_mesh<double, 3> autonomous_mesh;
+  unstructured_tetrahedral_grid<double, 3> autonomous_mesh;
   auto&                      autonomous_flowmap_mesh_prop =
       autonomous_mesh.add_vertex_property<vec3>("flowmap");
   autonomous_mesh.vertex_data().reserve(autonomous_mesh.vertices().size() +
@@ -365,7 +365,7 @@ auto main(int argc, char** argv) -> int {
       regular_flowmap_grid_prop(is...) =
           numerical_flowmap(uniform_grid(is...), args.t0, args.tau);
     });
-    tetrahedral_mesh<double, 3> regular_mesh{uniform_grid};
+    unstructured_tetrahedral_grid<double, 3> regular_mesh{uniform_grid};
     auto&                      regular_flowmap_mesh_prop =
         regular_mesh.vertex_property<vec3>("flowmap");
     regular_mesh.write_vtk("tornado_regular_forward_flowmap.vtk");

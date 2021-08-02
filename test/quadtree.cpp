@@ -1,5 +1,5 @@
 #include <tatooine/quadtree.h>
-#include <tatooine/triangular_mesh.h>
+#include <tatooine/unstrucutured_triangular_grid.h>
 #include <tatooine/vtk_legacy.h>
 #include <catch2/catch.hpp>
 //==============================================================================
@@ -7,7 +7,7 @@ namespace tatooine::test {
 //==============================================================================
 TEST_CASE("quadtree", "[quadtree]") {
   quadtree<double>    qt{vec2::zeros(), vec2::ones() * 4, 2};
-  triangular_mesh<double, 2> mesh;
+  unstructured_triangular_grid_2 mesh;
 
   REQUIRE_FALSE(qt.is_splitted());
   REQUIRE_FALSE(qt.holds_vertices());

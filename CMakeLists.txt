@@ -254,6 +254,21 @@ else()
   set(TATOOINE_MPI_AVAILABLE 0)
 endif()
 #- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+# CDT
+#- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+option(TATOOINE_USE_DDT "By setting this to ON tatooine will checkout CDT from github and compile it." OFF)
+if (TATOOINE_USE_DDT)
+  update_git_submodule(${TATOOINE_EXTERNAL}/CDT)
+  target_compile_definitions(tatooine PUBLIC TATOOINE_CDT_AVAILABLE=1)
+  set(CDT_USE_AS_COMPILED_LIBRARY ON CACHE BOOL "If enabled templates for float and double will be instantiated and compiled into a library")
+  set(CDT_USE_BOOST ON CACHE BOOL "If enabled Boost::rtree can be used for finding the nearest point; boost::flat_set is used for better performance")
+  set(HDF5_BUILD_CPP_LIB  ON CACHE BOOL "If enabled templates for float and double will be instantiated and compiled into a library")
+  add_subdirectory(${TATOOINE_EXTERNAL}/CDT/CDT)
+  target_link_libraries(tatooine PUBLIC CDT)
+else()
+  target_compile_definitions(tatooine PUBLIC TATOOINE_CDT_AVAILABLE=0)
+endif()
+#- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 # HDF5
 #- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 option(TATOOINE_USE_SYSTEM_HDF5_LIBS "By setting this to ON tatooine will not compile HDF5 on its own." OFF)

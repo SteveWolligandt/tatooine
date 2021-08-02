@@ -2,16 +2,18 @@
 #define TATOOINE_NAIVE_FLOWMAP_DISCRETIZATION_H
 //==============================================================================
 #include <tatooine/field.h>
-#include <tatooine/rectilinear_grid.h>
-#include <tatooine/particle.h>
 #include <tatooine/interpolation.h>
-#include <tatooine/triangular_mesh.h>
+#include <tatooine/particle.h>
+#include <tatooine/rectilinear_grid.h>
+#include <tatooine/unstructured_triangular_grid.h>
 //==============================================================================
 namespace tatooine {
 //==============================================================================
 /// Samples a flow map by advecting particles from a uniform rectilinear grid.
 template <typename Real, size_t N>
 struct naive_flowmap_discretization {
+  using real_t = Real;
+  static auto constexpr num_dimensions() { return N; }
   using vec_t = vec<Real, N>;
   using pos_t = vec_t;
   template <size_t M, typename... Ts>
@@ -24,9 +26,9 @@ struct naive_flowmap_discretization {
     using type = rectilinear_grid<Ts...>;
   };
   //----------------------------------------------------------------------------
-  using grid_t = typename grid_type_creator<N>::type;
+  using forward_grid_t = typename grid_type_creator<N>::type;
   using grid_vertex_property_t =
-      typed_grid_vertex_property_interface<grid_t, pos_t, true>;
+      typed_grid_vertex_property_interface<forward_grid_t, pos_t, true>;
   //----------------------------------------------------------------------------
   template <size_t M, template <typename> typename... InterpolationKernels>
   struct grid_sampler_type_creator {
@@ -44,23 +46,23 @@ struct naive_flowmap_discretization {
   using grid_vertex_property_sampler_t =
       typename grid_sampler_type_creator<N>::type;
 
-  using mesh_t = simplex_mesh<Real, N, N>;
+  using backward_grid_t = unstructured_simplex_grid<Real, N, N>;
   using mesh_vertex_property_t =
-      typename mesh_t::template vertex_property_t<pos_t>;
+      typename backward_grid_t::template vertex_property_t<pos_t>;
   using mesh_vertex_property_sampler_t =
-      typename mesh_t::template vertex_property_sampler_t<pos_t>;
+      typename backward_grid_t::template vertex_property_sampler_t<pos_t>;
   //============================================================================
  private:
   Real m_t0;
   Real m_t1;
   Real m_tau;
 
-  grid_t m_forward_grid;
-  grid_vertex_property_t* m_forward_discretization;
+  forward_grid_t                 m_forward_grid;
+  grid_vertex_property_t*        m_forward_discretization;
   grid_vertex_property_sampler_t m_forward_sampler;
 
-  mesh_t m_backward_grid;
-  mesh_vertex_property_t* m_backward_discretization;
+  backward_grid_t                m_backward_grid;
+  mesh_vertex_property_t*        m_backward_discretization;
   mesh_vertex_property_sampler_t m_backward_sampler;
   //============================================================================
  private:
@@ -91,15 +93,16 @@ struct naive_flowmap_discretization {
  public:
   template <typename Flowmap>
   naive_flowmap_discretization(Flowmap&& flowmap, arithmetic auto const t0,
-                        arithmetic auto const tau, pos_t const& min,
-                        pos_t const& max, integral auto const... resolution)
+                               arithmetic auto const tau, pos_t const& min,
+                               pos_t const& max,
+                               integral auto const... resolution)
       : naive_flowmap_discretization{std::make_index_sequence<N>{},
-                              std::forward<Flowmap>(flowmap),
-                              t0,
-                              tau,
-                              min,
-                              max,
-                              resolution...} {
+                                     std::forward<Flowmap>(flowmap),
+                                     t0,
+                                     tau,
+                                     min,
+                                     max,
+                                     resolution...} {
     static_assert(
         sizeof...(resolution) == N,
         "Number of resolution components does not match number of dimensions.");
@@ -116,7 +119,7 @@ struct naive_flowmap_discretization {
     });
 
     for (auto v : m_forward_grid.vertices()) {
-      m_backward_discretization->at(typename mesh_t::vertex_handle{
+      m_backward_discretization->at(typename backward_grid_t::vertex_handle{
           v.plain_index()}) = m_forward_discretization->at(v);
     }
     for (auto v : m_backward_grid.vertices()) {
@@ -155,9 +158,7 @@ struct naive_flowmap_discretization {
   /// advection time.
   /// \param x position
   /// \returns phi(x, t0, t1 - t0)
-  auto sample_forward(pos_t const& x) const {
-    return m_forward_sampler(x);
-  }
+  auto sample_forward(pos_t const& x) const { return m_forward_sampler(x); }
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
   /// Evaluates flow map in forward direction at time t0 with an advection time
   /// of tau.
@@ -174,9 +175,7 @@ struct naive_flowmap_discretization {
   /// advection time.
   /// \param x position
   /// \returns phi(x, t0, t0 - t1)
-  auto sample_backward(pos_t const& x) const {
-    return m_backward_sampler(x);
-  }
+  auto sample_backward(pos_t const& x) const { return m_backward_sampler(x); }
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
   /// Evaluates flow map in backward direction at time t1 with an advection time
   /// of tau.

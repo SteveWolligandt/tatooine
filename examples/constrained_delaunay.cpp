@@ -1,13 +1,13 @@
-#include <tatooine/triangular_mesh.h>
+#include <tatooine/unstructured_triangular_grid.h>
 //==============================================================================
 using namespace tatooine;
 //==============================================================================
 auto main() -> int {
-  auto mesh           = triangular_mesh_2{};
+  auto mesh           = unstructured_triangular_grid_2{};
   auto ts             = linspace{0.0, 2 * M_PI, 9};
-  auto constraints    = std::vector<std::pair<triangular_mesh_2::vertex_handle,
-                                           triangular_mesh_2::vertex_handle>>{};
-  auto circle_handles = std::vector<triangular_mesh_2::vertex_handle>{};
+  auto constraints    = std::vector<std::pair<unstructured_triangular_grid_2::vertex_handle,
+                                           unstructured_triangular_grid_2::vertex_handle>>{};
+  auto circle_handles = std::vector<unstructured_triangular_grid_2::vertex_handle>{};
   for (auto t_it = begin(ts); t_it != prev(end(ts)); ++t_it) {
     auto const t = *t_it;
     circle_handles.push_back(mesh.insert_vertex(std::cos(t), std::sin(t)));
@@ -19,6 +19,6 @@ auto main() -> int {
   mesh.insert_vertex(2, -2);
   mesh.insert_vertex(-2, 2);
   mesh.insert_vertex(2, 2);
-  mesh.build_constrained_delaunay_mesh(constraints);
+  mesh.build_delaunay_mesh(constraints);
   mesh.write_vtk("constrained_delaunay.vtk");
 }

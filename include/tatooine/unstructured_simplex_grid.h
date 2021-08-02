@@ -1,10 +1,12 @@
-#ifndef TATOOINE_SIMPLEX_MESH_H
-#define TATOOINE_SIMPLEX_MESH_H
+#ifndef TATOOINE_UNSTRUCTURED_SIMPLEX_GRID_H
+#define TATOOINE_UNSTRUCTURED_SIMPLEX_GRID_H
 //==============================================================================
+#ifdef TATOOINE_CDT_AVAILABLE
+#include <CDT.h>
+#endif
 #ifdef TATOOINE_HAS_CGAL_SUPPORT
 #include <CGAL/Delaunay_triangulation_2.h>
 #include <CGAL/Delaunay_triangulation_3.h>
-#include <CGAL/Constrained_Delaunay_triangulation_2.h>
 #include <CGAL/Exact_predicates_inexact_constructions_kernel.h>
 #include <CGAL/Triangulation_vertex_base_with_info_2.h>
 #include <CGAL/Triangulation_vertex_base_with_info_3.h>
@@ -12,10 +14,10 @@
 
 #include <tatooine/axis_aligned_bounding_box.h>
 #include <tatooine/celltree.h>
-#include <tatooine/rectilinear_grid.h>
 #include <tatooine/kdtree.h>
 #include <tatooine/pointset.h>
 #include <tatooine/property.h>
+#include <tatooine/rectilinear_grid.h>
 #include <tatooine/uniform_tree_hierarchy.h>
 #include <tatooine/vtk_legacy.h>
 
@@ -28,68 +30,71 @@ namespace tatooine {
 //==============================================================================
 template <typename VertexHandle, size_t NumVerticesPerSimplex, size_t I = 0,
           typename... Ts>
-struct simplex_mesh_cell_at_return_type_impl {
-  using type = typename simplex_mesh_cell_at_return_type_impl<
+struct unstructured_simplex_grid_cell_at_return_type_impl {
+  using type = typename unstructured_simplex_grid_cell_at_return_type_impl<
       VertexHandle, NumVerticesPerSimplex, I + 1, Ts..., VertexHandle>::type;
 };
 // = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = =
 template <typename VertexHandle, size_t NumVerticesPerSimplex, typename... Ts>
-struct simplex_mesh_cell_at_return_type_impl<
+struct unstructured_simplex_grid_cell_at_return_type_impl<
     VertexHandle, NumVerticesPerSimplex, NumVerticesPerSimplex, Ts...> {
   using type = std::tuple<Ts...>;
 };
 // = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = =
 template <typename VertexHandle, size_t NumVerticesPerSimplex>
-using simplex_mesh_cell_at_return_type =
-    typename simplex_mesh_cell_at_return_type_impl<VertexHandle,
-                                                   NumVerticesPerSimplex>::type;
+using unstructured_simplex_grid_cell_at_return_type =
+    typename unstructured_simplex_grid_cell_at_return_type_impl<
+        VertexHandle, NumVerticesPerSimplex>::type;
 //==============================================================================
 template <typename Mesh, typename Real, size_t NumDimensions, size_t SimplexDim>
-struct simplex_mesh_hierarchy {
+struct unstructured_simplex_grid_hierarchy {
   using type = void;
 };
 // = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = =
 template <typename Mesh, typename Real, size_t NumDimensions, size_t SimplexDim>
-using simplex_mesh_hierarchy_t =
-    typename simplex_mesh_hierarchy<Mesh, Real, NumDimensions,
-                                    SimplexDim>::type;
+using unstructured_simplex_grid_hierarchy_t =
+    typename unstructured_simplex_grid_hierarchy<Mesh, Real, NumDimensions,
+                                                 SimplexDim>::type;
 // = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = =
 template <typename Mesh, typename Real>
-struct simplex_mesh_hierarchy<Mesh, Real, 3, 3> {
+struct unstructured_simplex_grid_hierarchy<Mesh, Real, 3, 3> {
   using type = uniform_tree_hierarchy<Mesh>;
 };
 // = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = =
 template <typename Mesh, typename Real>
-struct simplex_mesh_hierarchy<Mesh, Real, 2, 2> {
+struct unstructured_simplex_grid_hierarchy<Mesh, Real, 2, 2> {
   using type = uniform_tree_hierarchy<Mesh>;
 };
 // = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = =
 template <typename Mesh, typename Real>
-struct simplex_mesh_hierarchy<Mesh, Real, 3, 2> {
+struct unstructured_simplex_grid_hierarchy<Mesh, Real, 3, 2> {
   using type = uniform_tree_hierarchy<Mesh>;
 };
 //==============================================================================
 template <typename Mesh, typename Real, size_t NumDimensions, size_t SimplexDim>
-struct simplex_mesh_parent : pointset<Real, NumDimensions> {
+struct unstructured_simplex_grid_parent : pointset<Real, NumDimensions> {
   using typename pointset<Real, NumDimensions>::vertex_handle;
   using hierarchy_t =
-      simplex_mesh_hierarchy_t<Mesh, Real, NumDimensions, SimplexDim>;
+      unstructured_simplex_grid_hierarchy_t<Mesh, Real, NumDimensions,
+                                            SimplexDim>;
   using const_cell_at_return_type =
-      simplex_mesh_cell_at_return_type<vertex_handle const&, SimplexDim + 1>;
+      unstructured_simplex_grid_cell_at_return_type<vertex_handle const&,
+                                                    SimplexDim + 1>;
   using cell_at_return_type =
-      simplex_mesh_cell_at_return_type<vertex_handle&, SimplexDim + 1>;
+      unstructured_simplex_grid_cell_at_return_type<vertex_handle&,
+                                                    SimplexDim + 1>;
 };
 //==============================================================================
 template <typename Mesh, typename Real>
-struct simplex_mesh_parent<Mesh, Real, 3, 2> : pointset<Real, 3>,
-                                               ray_intersectable<Real, 3> {
+struct unstructured_simplex_grid_parent<Mesh, Real, 3, 2>
+    : pointset<Real, 3>, ray_intersectable<Real, 3> {
   using real_t = Real;
   using typename pointset<real_t, 3>::vertex_handle;
-  using hierarchy_t = simplex_mesh_hierarchy_t<Mesh, real_t, 3, 2>;
+  using hierarchy_t = unstructured_simplex_grid_hierarchy_t<Mesh, real_t, 3, 2>;
   using const_cell_at_return_type =
-      simplex_mesh_cell_at_return_type<vertex_handle const&, 3>;
+      unstructured_simplex_grid_cell_at_return_type<vertex_handle const&, 3>;
   using cell_at_return_type =
-      simplex_mesh_cell_at_return_type<vertex_handle&, 3>;
+      unstructured_simplex_grid_cell_at_return_type<vertex_handle&, 3>;
 
   using typename ray_intersectable<real_t, 3>::ray_t;
   using typename ray_intersectable<real_t, 3>::intersection_t;
@@ -157,13 +162,16 @@ struct simplex_mesh_parent<Mesh, Real, 3, 2> : pointset<Real, 3>,
 //==============================================================================
 template <typename Real, size_t NumDimensions,
           size_t SimplexDim = NumDimensions>
-class simplex_mesh
-    : public simplex_mesh_parent<simplex_mesh<Real, NumDimensions, SimplexDim>,
-                                 Real, NumDimensions, SimplexDim> {
+class unstructured_simplex_grid
+    : public unstructured_simplex_grid_parent<
+          unstructured_simplex_grid<Real, NumDimensions, SimplexDim>, Real,
+          NumDimensions, SimplexDim> {
  public:
-  using this_t   = simplex_mesh<Real, NumDimensions, SimplexDim>;
-  using parent_t = simplex_mesh_parent<this_t, Real, NumDimensions, SimplexDim>;
-  friend struct simplex_mesh_parent<this_t, Real, NumDimensions, SimplexDim>;
+  using this_t = unstructured_simplex_grid<Real, NumDimensions, SimplexDim>;
+  using parent_t =
+      unstructured_simplex_grid_parent<this_t, Real, NumDimensions, SimplexDim>;
+  friend struct unstructured_simplex_grid_parent<this_t, Real, NumDimensions,
+                                                 SimplexDim>;
   using parent_t::at;
   using parent_t::num_dimensions;
   using typename parent_t::pos_t;
@@ -181,7 +189,8 @@ class simplex_mesh
   template <typename T>
   using vertex_property_t = typename parent_t::template vertex_property_t<T>;
   using hierarchy_t =
-      simplex_mesh_hierarchy_t<this_t, Real, NumDimensions, SimplexDim>;
+      unstructured_simplex_grid_hierarchy_t<this_t, Real, NumDimensions,
+                                            SimplexDim>;
   static constexpr auto num_vertices_per_simplex() { return SimplexDim + 1; }
   static constexpr auto simplex_dimension() { return SimplexDim; }
   //----------------------------------------------------------------------------
@@ -189,7 +198,7 @@ class simplex_mesh
   struct vertex_property_sampler_t : field<vertex_property_sampler_t<T>, Real,
                                            parent_t::num_dimensions(), T> {
    private:
-    using mesh_t = simplex_mesh<Real, NumDimensions, SimplexDim>;
+    using mesh_t = unstructured_simplex_grid<Real, NumDimensions, SimplexDim>;
     using this_t = vertex_property_sampler_t<T>;
 
     mesh_t const&               m_mesh;
@@ -214,8 +223,11 @@ class simplex_mesh
         -> T {
       auto cell_handles = m_mesh.hierarchy().nearby_cells(x);
       if (cell_handles.empty()) {
-        throw std::runtime_error{
-            "[vertex_property_sampler_t::sample] out of domain"};
+        std::stringstream ss;
+        ss << "[unstructured_simplex_grid::vertex_property_sampler_t::sample]"
+              "\n"; ss
+        << "  out of domain: " << x;
+        throw std::runtime_error{ss.str()};
       }
       for (auto t : cell_handles) {
         auto const            vs = m_mesh.cell_at(t);
@@ -245,8 +257,11 @@ class simplex_mesh
               ...);
         }
       }
-      throw std::runtime_error{
-          "[vertex_property_sampler_t::sample] out of domain"};
+      std::stringstream ss;
+      ss << "[unstructured_simplex_grid::vertex_property_sampler_t::sample]"
+            "\n";
+      ss << "  out of domain: " << x;
+      throw std::runtime_error{ss.str()};
       return T{};
     }
   };
@@ -259,14 +274,14 @@ class simplex_mesh
       : boost::iterator_facade<cell_iterator, cell_handle,
                                boost::bidirectional_traversal_tag,
                                cell_handle> {
-    cell_iterator(cell_handle i, simplex_mesh const* mesh)
+    cell_iterator(cell_handle i, unstructured_simplex_grid const* mesh)
         : m_index{i}, m_mesh{mesh} {}
     cell_iterator(cell_iterator const& other)
         : m_index{other.m_index}, m_mesh{other.m_mesh} {}
 
    private:
-    cell_handle         m_index;
-    simplex_mesh const* m_mesh;
+    cell_handle                      m_index;
+    unstructured_simplex_grid const* m_mesh;
 
     friend class boost::iterator_core_access;
 
@@ -291,7 +306,7 @@ class simplex_mesh
     using iterator       = cell_iterator;
     using const_iterator = cell_iterator;
     //--------------------------------------------------------------------------
-    simplex_mesh const* m_mesh;
+    unstructured_simplex_grid const* m_mesh;
     //--------------------------------------------------------------------------
     auto begin() const {
       cell_iterator vi{cell_handle{0}, m_mesh};
@@ -321,19 +336,21 @@ class simplex_mesh
 
  public:
   //============================================================================
-  constexpr simplex_mesh() = default;
+  constexpr unstructured_simplex_grid() = default;
   //============================================================================
  public:
-  simplex_mesh(simplex_mesh const& other)
+  unstructured_simplex_grid(unstructured_simplex_grid const& other)
       : parent_t{other}, m_cell_indices{other.m_cell_indices} {
     for (auto const& [key, prop] : other.m_cell_properties) {
       m_cell_properties.insert(std::pair{key, prop->clone()});
     }
   }
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-  simplex_mesh(simplex_mesh&& other) noexcept = default;
+  unstructured_simplex_grid(unstructured_simplex_grid&& other) noexcept =
+      default;
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-  auto operator=(simplex_mesh const& other) -> simplex_mesh& {
+  auto operator=(unstructured_simplex_grid const& other)
+      -> unstructured_simplex_grid& {
     parent_t::operator=(other);
     m_cell_properties.clear();
     m_cell_indices = other.m_cell_indices;
@@ -343,15 +360,17 @@ class simplex_mesh
     return *this;
   }
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-  auto operator=(simplex_mesh&& other) noexcept -> simplex_mesh& = default;
+  auto operator=(unstructured_simplex_grid&& other) noexcept
+      -> unstructured_simplex_grid& = default;
   //----------------------------------------------------------------------------
-  simplex_mesh(std::filesystem::path const& path) { read(path); }
+  unstructured_simplex_grid(std::filesystem::path const& path) { read(path); }
   //----------------------------------------------------------------------------
-  simplex_mesh(std::initializer_list<pos_t>&& vertices)
+  unstructured_simplex_grid(std::initializer_list<pos_t>&& vertices)
       : parent_t{std::move(vertices)} {}
-  simplex_mesh(std::vector<vec<Real, NumDimensions>> const& positions)
+  unstructured_simplex_grid(
+      std::vector<vec<Real, NumDimensions>> const& positions)
       : parent_t{positions} {}
-  simplex_mesh(std::vector<vec<Real, NumDimensions>>&& positions)
+  unstructured_simplex_grid(std::vector<vec<Real, NumDimensions>>&& positions)
       : parent_t{std::move(positions)} {}
   //----------------------------------------------------------------------------
  private:
@@ -372,7 +391,8 @@ class simplex_mesh
  public:
 #ifdef __cpp_concepts
   template <indexable_space DimX, indexable_space DimY>
-  requires(NumDimensions == 2) && (SimplexDim == 2)
+  requires(NumDimensions == 2) &&
+      (SimplexDim == 2)
 #else
   template <
       typename DimX, typename DimY, size_t NumDimensions_ = NumDimensions,
@@ -380,7 +400,7 @@ class simplex_mesh
       enable_if<NumDimensions == NumDimensions_, SimplexDim == SimplexDim_,
                 NumDimensions_ == 2, SimplexDim_ == 2> = true>
 #endif
-                                      simplex_mesh(rectilinear_grid<DimX, DimY> const& g) {
+          unstructured_simplex_grid(rectilinear_grid<DimX, DimY> const& g) {
     auto const gv = g.vertices();
     for (auto v : gv) {
       insert_vertex(gv[v]);
@@ -414,7 +434,8 @@ class simplex_mesh
       enable_if<NumDimensions == NumDimensions_, SimplexDim == SimplexDim_,
                 NumDimensions_ == 3, SimplexDim_ == 3> = true>
 #endif
-          simplex_mesh(rectilinear_grid<DimX, DimY, DimZ> const& g) {
+          unstructured_simplex_grid(
+              rectilinear_grid<DimX, DimY, DimZ> const& g) {
 
     constexpr auto turned = [](size_t const ix, size_t const iy,
                                size_t const iz) -> bool {
@@ -573,7 +594,7 @@ class simplex_mesh
   template <size_t NumDimensions_ = NumDimensions,
             enable_if<NumDimensions_ == 2 || NumDimensions_ == 3> = true>
 #endif
-  auto build_delaunay_mesh() -> void
+      auto build_delaunay_mesh() -> void
 #ifdef __cpp_concepts
       requires(NumDimensions == 2) ||
       (NumDimensions == 3)
@@ -591,96 +612,100 @@ class simplex_mesh
   template <size_t... Seq, size_t NumDimensions_ = NumDimensions,
             enable_if<NumDimensions_ == 2 || NumDimensions_ == 3> = true>
 #endif
-  auto build_delaunay_mesh(std::index_sequence<Seq...> /*seq*/)
-      -> void {
+          auto build_delaunay_mesh(std::index_sequence<Seq...> /*seq*/)
+              -> void {
     m_cell_indices.clear();
-    using Kernel = CGAL::Exact_predicates_inexact_constructions_kernel;
-    using Vb     = std::conditional_t<
+    using kernel_t      = CGAL::Exact_predicates_inexact_constructions_kernel;
+    using vertex_base_t = std::conditional_t<
         NumDimensions == 2,
-        CGAL::Triangulation_vertex_base_with_info_2<vertex_handle, Kernel>,
-        CGAL::Triangulation_vertex_base_with_info_3<vertex_handle, Kernel>>;
-    using Tds = std::conditional_t<NumDimensions == 2,
-                                   CGAL::Triangulation_data_structure_2<Vb>,
-                                   CGAL::Triangulation_data_structure_3<Vb>>;
-    using Triangulation =
+        CGAL::Triangulation_vertex_base_with_info_2<vertex_handle, kernel_t>,
+        CGAL::Triangulation_vertex_base_with_info_3<vertex_handle, kernel_t>>;
+    using triangulation_data_t =
         std::conditional_t<NumDimensions == 2,
-                           CGAL::Delaunay_triangulation_2<Kernel, Tds>,
-                           CGAL::Delaunay_triangulation_3<Kernel, Tds>>;
-    using Point =
-        std::conditional_t<NumDimensions == 2, typename Kernel::Point_2,
-                           typename Kernel::Point_3>;
-    std::vector<std::pair<Point, vertex_handle>> points;
+                           CGAL::Triangulation_data_structure_2<vertex_base_t>,
+                           CGAL::Triangulation_data_structure_3<vertex_base_t>>;
+    using triangulation_t = std::conditional_t<
+        NumDimensions == 2,
+        CGAL::Delaunay_triangulation_2<kernel_t, triangulation_data_t>,
+        CGAL::Delaunay_triangulation_3<kernel_t, triangulation_data_t>>;
+    using point_t = typename triangulation_t::Point;
+    std::vector<std::pair<point_t, vertex_handle>> points;
     points.reserve(vertices().size());
     for (auto v : vertices()) {
-      points.emplace_back(Point{at(v)(Seq)...}, v);
+      points.emplace_back(point_t{at(v)(Seq)...}, v);
     }
 
-    Triangulation dt{begin(points), end(points)};
+    triangulation_t triangulation{begin(points), end(points)};
     if constexpr (NumDimensions == 2) {
-      for (auto it = dt.finite_faces_begin(); it != dt.finite_faces_end();
-           ++it) {
+      for (auto it = triangulation.finite_faces_begin();
+           it != triangulation.finite_faces_end(); ++it) {
         insert_cell(vertex_handle{it->vertex(0)->info()},
                     vertex_handle{it->vertex(Seq + 1)->info()}...);
       }
     } else if constexpr (NumDimensions == 3) {
-      for (auto it = dt.finite_cells_begin(); it != dt.finite_cells_end();
-           ++it) {
+      for (auto it = triangulation.finite_cells_begin();
+           it != triangulation.finite_cells_end(); ++it) {
         insert_cell(vertex_handle{it->vertex(0)->info()},
                     vertex_handle{it->vertex(Seq + 1)->info()}...);
       }
     }
   }
+#endif
+
+#if TATOOINE_CDT_AVAILABLE
  public:
 #ifndef __cpp_concepts
   template <size_t NumDimensions_ = NumDimensions,
             enable_if<NumDimensions_ == 2 || NumDimensions_ == 3> = true>
 #endif
-      auto build_constrained_delaunay_mesh(
-          std::vector<std::pair<vertex_handle, vertex_handle>> const& constraints)
-          -> void
+      auto build_delaunay_mesh(
+          std::vector<std::pair<vertex_handle, vertex_handle>> const&
+              constraints) -> void
 #ifdef __cpp_concepts
       requires(NumDimensions == 2) ||
       (NumDimensions == 3)
 #endif
   {
-    build_constrained_delaunay_mesh(constraints, std::make_index_sequence<NumDimensions>{});
+    build_delaunay_mesh(constraints, std::make_index_sequence<NumDimensions>{});
   }
 
  private:
 #ifdef __cpp_concepts
   template <size_t... Seq>
-  requires (NumDimensions == 2) /*|| (NumDimensions == 3)*/
+  requires(NumDimensions == 2) /*|| (NumDimensions == 3)*/
 #else
   template <size_t... Seq, size_t NumDimensions_ = NumDimensions,
             enable_if<NumDimensions_ == 2 /*|| NumDimensions_ == 3*/> = true>
 #endif
-  auto build_constrained_delaunay_mesh(
-      std::vector<std::pair<vertex_handle, vertex_handle>> const& constraints,
-      std::index_sequence<Seq...> /*seq*/) -> void {
+      auto build_delaunay_mesh(
+          std::vector<std::pair<vertex_handle, vertex_handle>> const&
+              constraints,
+          std::index_sequence<Seq...> /*seq*/) -> void {
     m_cell_indices.clear();
-    using Kernel = CGAL::Exact_predicates_inexact_constructions_kernel;
-    using Vb =
-        CGAL::Triangulation_vertex_base_with_info_2<vertex_handle, Kernel>;
-    using Tds           = CGAL::Triangulation_data_structure_2<Vb>;
-    using Itag          = CGAL::Exact_predicates_tag;
-    using Triangulation =
-        CGAL::Constrained_Delaunay_triangulation_2<Kernel, Tds, Itag>;
-    using Point = typename Triangulation::Point;
-    using Edge  = typename Triangulation::Edge;
+    std::vector<CDT::Edge> edges; edges.reserve(size(constraints));
+    boost::transform(constraints, std::back_inserter(edges),
+                     [](auto const& c) -> CDT::Edge {
+                       return {c.first.i, c.second.i};
+                     });
+    auto triangulation =
+        CDT::Triangulation<Real>{CDT::FindingClosestPoint::BoostRTree};
 
-    std::vector<std::pair<Point, vertex_handle>> points;
-    points.reserve(vertices().size());
-    for (auto v : vertices()) {
-      points.emplace_back(Point{at(v)(Seq)...}, v);
-    }
+    triangulation.insertVertices(
+        vertices().begin(), vertices().end(),
+        [this](auto const& v) { return this->vertex_at(v)(0); },
+        [this](auto const& v) { return this->vertex_at(v)(1); });
+    auto const duplicates_info = CDT::RemoveDuplicatesAndRemapEdges<Real>(
+        triangulation.vertices, edges,
+        [this](auto const& v) { return v.pos.x; },
+        [this](auto const& v) { return v.pos.y; });
 
-    auto dt = Triangulation{};
-    for (auto const& [v0, v1] : constraints) {
-      dt.insert_constraint(at(v0), at(v1));
-    }
-    for (auto it = dt.finite_faces_begin(); it != dt.finite_faces_end(); ++it) {
-      insert_cell(vertex_handle{it->vertex(0)->info()},
-                  vertex_handle{it->vertex(Seq + 1)->info()}...);
+    triangulation.insertEdges(edges);
+    triangulation.eraseSuperTriangle();
+    //triangulation.eraseOuterTrianglesAndHoles();
+    for (auto const& tri : triangulation.triangles) {
+      insert_cell(vertex_handle{tri.vertices[0]},
+                  vertex_handle{tri.vertices[1]},
+                  vertex_handle{tri.vertices[2]});
     }
   }
 #endif
@@ -785,17 +810,16 @@ class simplex_mesh
   }
   auto write_vtk(std::filesystem::path const& path,
                  std::string const&           title = "tatooine mesh") const {
-    if constexpr (SimplexDim == 2) {
-      write_triangular_mesh_vtk(path, title);
-    } else if constexpr (SimplexDim == 3) {
-      write_tetrahedral_mesh_vtk(path, title);
+    if constexpr (SimplexDim == 2 || SimplexDim == 3) {
+      write_unstructured_triangular_grid_vtk(path, title);
     }
   }
 
  private:
   template <size_t SimplexDim_ = SimplexDim, enable_if<SimplexDim_ == 2> = true>
-  auto write_triangular_mesh_vtk(std::filesystem::path const& path,
-                                 std::string const& title) const -> bool {
+  auto write_unstructured_triangular_grid_vtk(std::filesystem::path const& path,
+                                              std::string const& title) const
+      -> bool {
     using boost::copy;
     using boost::adaptors::transformed;
     vtk::legacy_file_writer writer(path, vtk::dataset_type::unstructured_grid);
@@ -856,8 +880,9 @@ class simplex_mesh
   }
   //----------------------------------------------------------------------------
   template <size_t SimplexDim_ = SimplexDim, enable_if<SimplexDim_ == 3> = true>
-  auto write_tetrahedral_mesh_vtk(std::filesystem::path const& path,
-                                  std::string const& title) const -> bool {
+  auto write_unstructured_tetrahedral_grid_vtk(
+      std::filesystem::path const& path, std::string const& title) const
+      -> bool {
     using boost::copy;
     using boost::adaptors::transformed;
     vtk::legacy_file_writer writer(path, vtk::dataset_type::unstructured_grid);
@@ -914,10 +939,10 @@ class simplex_mesh
             enable_if<NumDimensions_ == 2 || NumDimensions_ == 3> = true>
   auto read_vtk(std::filesystem::path const& path) {
     struct listener_t : vtk::legacy_file_listener {
-      simplex_mesh&          mesh;
-      std::vector<int>       cells;
+      unstructured_simplex_grid& mesh;
+      std::vector<int>           cells;
 
-      listener_t(simplex_mesh& _mesh) : mesh(_mesh) {}
+      listener_t(unstructured_simplex_grid& _mesh) : mesh(_mesh) {}
       auto add_cells(std::vector<int> const& cells) -> void {
         size_t i = 0;
         while (i < size(cells)) {
@@ -942,7 +967,8 @@ class simplex_mesh
         if (t != vtk::dataset_type::unstructured_grid &&
             t != vtk::dataset_type::polydata) {
           throw std::runtime_error{
-              "[simplex_mesh] need polydata or unstructured_grid when reading vtk legacy"};
+              "[unstructured_simplex_grid] need polydata or unstructured_grid "
+              "when reading vtk legacy"};
         }
       }
 
@@ -983,14 +1009,16 @@ class simplex_mesh
           if (num_comps == 1) {
             auto& prop =
                 mesh.template insert_vertex_property<double>(data_name);
-            for (auto v = vertex_handle{0}; v < vertex_handle{prop.size()}; ++v) {
+            for (auto v = vertex_handle{0}; v < vertex_handle{prop.size()};
+                 ++v) {
               prop[v] = scalars[v.i];
             }
           } else if (num_comps == 2) {
             auto& prop =
                 mesh.template insert_vertex_property<vec<double, 2>>(data_name);
 
-            for (auto v = vertex_handle{0}; v < vertex_handle{prop.size()}; ++v) {
+            for (auto v = vertex_handle{0}; v < vertex_handle{prop.size()};
+                 ++v) {
               for (size_t j = 0; j < num_comps; ++j) {
                 prop[v][j] = scalars[v.i * num_comps + j];
               }
@@ -998,7 +1026,8 @@ class simplex_mesh
           } else if (num_comps == 3) {
             auto& prop =
                 mesh.template insert_vertex_property<vec<double, 3>>(data_name);
-            for (auto v = vertex_handle{0}; v < vertex_handle{prop.size()}; ++v) {
+            for (auto v = vertex_handle{0}; v < vertex_handle{prop.size()};
+                 ++v) {
               for (size_t j = 0; j < num_comps; ++j) {
                 prop[v][j] = scalars[v.i * num_comps + j];
               }
@@ -1006,17 +1035,16 @@ class simplex_mesh
           } else if (num_comps == 4) {
             auto& prop =
                 mesh.template insert_vertex_property<vec<double, 4>>(data_name);
-            for (auto v = vertex_handle{0}; v < vertex_handle{prop.size()}; ++v) {
+            for (auto v = vertex_handle{0}; v < vertex_handle{prop.size()};
+                 ++v) {
               for (size_t j = 0; j < num_comps; ++j) {
                 prop[v][j] = scalars[v.i * num_comps + j];
               }
             }
           }
-        }
-        else if (data == vtk::reader_data::cell_data) {
+        } else if (data == vtk::reader_data::cell_data) {
           if (num_comps == 1) {
-            auto& prop =
-                mesh.template insert_cell_property<double>(data_name);
+            auto& prop = mesh.template insert_cell_property<double>(data_name);
             for (auto c = cell_handle{0}; c < cell_handle{prop.size()}; ++c) {
               prop[c] = scalars[c.i];
             }
@@ -1103,11 +1131,13 @@ class simplex_mesh
   }
 };
 //==============================================================================
-simplex_mesh()->simplex_mesh<double, 3>;
-simplex_mesh(std::string const&)->simplex_mesh<double, 3>;
+unstructured_simplex_grid()->unstructured_simplex_grid<double, 3>;
+unstructured_simplex_grid(std::string const&)
+    ->unstructured_simplex_grid<double, 3>;
 template <typename... Dims>
-simplex_mesh(rectilinear_grid<Dims...> const& g)
-    -> simplex_mesh<typename rectilinear_grid<Dims...>::real_t, sizeof...(Dims)>;
+unstructured_simplex_grid(rectilinear_grid<Dims...> const& g)
+    -> unstructured_simplex_grid<typename rectilinear_grid<Dims...>::real_t,
+                                 sizeof...(Dims)>;
 //==============================================================================
 // namespace detail {
 // template <typename MeshCont>
@@ -1151,7 +1181,7 @@ simplex_mesh(rectilinear_grid<Dims...> const& g)
 //}  // namespace detail
 ////==============================================================================
 // template <typename Real>
-// auto write_vtk(std::vector<simplex_mesh<Real, 3>> const& meshes,
+// auto write_vtk(std::vector<unstructured_simplex_grid<Real, 3>> const& meshes,
 // std::string const& path,
 //               std::string const& title = "tatooine meshes") {
 //  detail::write_mesh_container_to_vtk(meshes, path, title);
@@ -1159,7 +1189,7 @@ simplex_mesh(rectilinear_grid<Dims...> const& g)
 //==============================================================================
 }  // namespace tatooine
 //==============================================================================
-#include <tatooine/tetrahedral_mesh.h>
-#include <tatooine/triangular_mesh.h>
+#include <tatooine/unstructured_tetrahedral_grid.h>
+#include <tatooine/unstructured_triangular_grid.h>
 //==============================================================================
 #endif

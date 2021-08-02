@@ -3,12 +3,12 @@
 //==============================================================================
 #include <tatooine/rectilinear_grid.h>
 #include <tatooine/rendering/camera.h>
-#include <tatooine/triangular_mesh.h>
+#include <tatooine/unstructured_triangular_grid.h>
 //==============================================================================
 namespace tatooine::rendering::raytracing {
 //==============================================================================
 template <typename Real>
-auto render(camera<Real> const& cam, triangular_mesh<Real, 3> const& mesh,
+auto render(camera<Real> const& cam, unstructured_triangular_grid<Real, 3> const& mesh,
             vec<Real, 3> const& bg_color  = vec<Real, 3>::ones(),
             std::string const&  prop_name = "image") {
   rectilinear_grid  image{cam.plane_width(), cam.plane_height()};

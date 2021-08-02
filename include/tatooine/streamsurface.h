@@ -10,7 +10,7 @@
 #include <tatooine/numerical_flowmap.h>
 #include <tatooine/ode/solver.h>
 #include <tatooine/tensor.h>
-#include <tatooine/triangular_mesh.h>
+#include <tatooine/unstructured_triangular_grid.h>
 
 #include <algorithm>
 #include <boost/functional.hpp>
@@ -286,7 +286,7 @@ streamsurface(Flowmap&&,
 template <typename Flowmap,
           template <typename> typename SeedcurveInterpolationKernel>
 struct front_evolving_streamsurface_discretization
-    : public triangular_mesh<typename Flowmap::real_t,
+    : public unstructured_triangular_grid<typename Flowmap::real_t,
                              Flowmap::num_dimensions()> {
   //============================================================================
   // typedefs
@@ -298,7 +298,7 @@ struct front_evolving_streamsurface_discretization
   using this_t =
       front_evolving_streamsurface_discretization<Flowmap,
                                                   SeedcurveInterpolationKernel>;
-  using parent_t = triangular_mesh<real_t, num_dimensions()>;
+  using parent_t = unstructured_triangular_grid<real_t, num_dimensions()>;
   using parent_t::at;
   using typename parent_t::pos_t;
   using parent_t::operator[];

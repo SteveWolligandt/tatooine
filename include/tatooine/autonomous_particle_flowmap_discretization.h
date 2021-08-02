@@ -2,7 +2,7 @@
 #define TATOOINE_AUTONOMOUS_PARTICLE_FLOWMAP_DISCRETIZATION_H
 //==============================================================================
 #include <tatooine/autonomous_particle.h>
-#include <tatooine/simplex_mesh.h>
+#include <tatooine/unstructured_simplex_grid.h>
 #include <tatooine/uniform_tree_hierarchy.h>
 
 #include <boost/range/adaptor/transformed.hpp>
@@ -180,7 +180,7 @@ struct autonomous_particle_flowmap_discretization {
   using pos_t               = vec_t;
   using sampler_t           = autonomous_particle_sampler<Real, NumDims>;
   using sampler_container_t = std::vector<sampler_t>;
-  using mesh_t              = simplex_mesh<Real, NumDims>;
+  using mesh_t              = unstructured_simplex_grid<Real, NumDims>;
   using mesh_prop_t =
       typename mesh_t::template vertex_property_t<sampler_t const*>;
   //============================================================================
@@ -265,7 +265,13 @@ struct autonomous_particle_flowmap_discretization {
     m_mesh1_samplers =
         &m_mesh1.template vertex_property<sampler_t const*>("samplers");
 
-    auto const ts = linspace{0.0, 2 * M_PI, 17};
+    size_t const num_vertices = 15;
+    auto const   ts           = linspace{0.0, 2 * M_PI, num_vertices + 1};
+    std::vector<std::pair<typename mesh_t::vertex_handle,
+                          typename mesh_t::vertex_handle>>
+                                                constraints0, constraints1;
+    std::vector<typename mesh_t::vertex_handle> vertices_of_ellipse0(num_vertices);
+    std::vector<typename mesh_t::vertex_handle> vertices_of_ellipse1(num_vertices);
     for (auto const& sampler : samplers()) {
       {
         auto const v = m_mesh0.insert_vertex(sampler.ellipse0().center());
@@ -277,27 +283,45 @@ struct autonomous_particle_flowmap_discretization {
         m_mesh1_samplers->at(v) = &sampler;
       }
 
-      for (auto t_it = begin(ts); t_it != prev(end(ts)); ++t_it) {
+
+      auto vit0 = vertices_of_ellipse0.begin();
+      auto vit1 = vertices_of_ellipse1.begin();
+      for (auto t_it = begin(ts); t_it != prev(end(ts));
+           ++t_it, ++vit0, ++vit1) {
         auto const t = *t_it;
         auto const y = vec{std::cos(t), std::sin(t)};
         {
           auto const v = m_mesh0.insert_vertex(sampler.ellipse0().center() +
                                                sampler.ellipse0().S() * y);
+          *vit0 = v;
           m_mesh0_samplers->at(v) = &sampler;
         }
 
         {
           auto const v = m_mesh1.insert_vertex(sampler.ellipse1().center() +
                                                sampler.ellipse1().S() * y);
+          *vit1 = v;
           m_mesh1_samplers->at(v) = &sampler;
         }
       }
+      for (size_t i = 0; i < num_vertices - 1; ++i) {
+        constraints0.emplace_back(vertices_of_ellipse0[i],
+                                 vertices_of_ellipse0[i + 1]);
+      }
+      constraints0.emplace_back(vertices_of_ellipse1[num_vertices - 1],
+                               vertices_of_ellipse1[0]);
+      for (size_t i = 0; i < num_vertices - 1; ++i) {
+        constraints1.emplace_back(vertices_of_ellipse1[i],
+                                 vertices_of_ellipse1[i + 1]);
+      }
+      constraints1.emplace_back(vertices_of_ellipse0[num_vertices - 1],
+                               vertices_of_ellipse0[0]);
     }
 
-    m_mesh0.build_delaunay_mesh();
+    m_mesh0.build_delaunay_mesh(constraints0);
     m_mesh0.build_hierarchy();
 
-    m_mesh1.build_delaunay_mesh();
+    m_mesh1.build_delaunay_mesh(constraints1);
     m_mesh1.build_hierarchy();
   }
   //----------------------------------------------------------------------------

@@ -31,3 +31,6 @@
 [submodule "rendering/external/glfw"]
 	path = gl/external/glfw
 	url = https://github.com/glfw/glfw
+[submodule "external/CDT"]
+	path = external/CDT
+	url = https://github.com/artem-ogre/CDT.git

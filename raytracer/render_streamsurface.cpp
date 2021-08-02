@@ -7,7 +7,7 @@
 //==============================================================================
 using namespace tatooine;
 //==============================================================================
-using mesh_t = triangular_mesh<real_t, 3>;
+using mesh_t = unstructured_triangular_grid<real_t, 3>;
 using cam_t  = rendering::perspective_camera<real_t>;
 //==============================================================================
 auto main(int const argc, char const** argv) -> int {

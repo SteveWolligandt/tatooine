@@ -2,7 +2,7 @@
 #include <tatooine/autonomous_particle.h>
 #include <tatooine/chrono.h>
 #include <tatooine/rectilinear_grid.h>
-#include <tatooine/triangular_mesh.h>
+#include <tatooine/unstructured_triangular_grid.h>
 #include <tatooine/netcdf.h>
 #include <tatooine/progress_bars.h>
 #include <tatooine/vtk_legacy.h>
@@ -77,7 +77,7 @@ auto main(int argc, char** argv) -> int {
   initial_autonomous_particles_grid.dimension<2>().back()  -= spacing_z / 2;
   double const r0 =
       initial_autonomous_particles_grid.dimension<0>().spacing() / 2;
-  triangular_mesh<double, 3> mesh;
+  unstructured_triangular_grid<double, 3> mesh;
   auto& flowmap_prop = mesh.add_vertex_property<vec<double, 3>>("flowmap");
 
   analytical::fields::numerical::abcflow v;

@@ -1,6 +1,6 @@
 #include <tatooine/delaunator.h>
 #include <catch2/catch.hpp>
-#include <tatooine/triangular_mesh.h>
+#include <tatooine/unstructured_triangular_grid.h>
 //==============================================================================
 namespace tatooine {
 //==============================================================================
@@ -16,12 +16,12 @@ TEST_CASE("delaunator_unit_quad", "[delaunator][quad]"){
   }
 }
 //==============================================================================
-TEST_CASE("delaunator_random_triangular_mesh",
-          "[delaunator][random][triangular_mesh]") {
+TEST_CASE("delaunator_random_unstructured_triangular_grid",
+          "[delaunator][random][unstructured_triangular_grid]") {
   random::uniform rand{0.0, 10.0};
-  triangular_mesh<double, 2> mesh;
+  unstructured_triangular_grid_2 mesh;
   for (size_t i = 0; i < 100; ++i) {
-    mesh.insert_vertex(vec<double, 2>{rand});
+    mesh.insert_vertex(vec2{rand});
   }
 
   mesh.triangulate_delaunay();

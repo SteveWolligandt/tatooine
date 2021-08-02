@@ -3,14 +3,14 @@
 //==============================================================================
 #include <tatooine/flowexplorer/line_shader.h>
 #include <tatooine/flowexplorer/renderable.h>
-#include <tatooine/triangular_mesh.h>
+#include <tatooine/unstructured_triangular_grid.h>
 #include <tatooine/gl/indexeddata.h>
 //==============================================================================
 namespace tatooine::flowexplorer::nodes {
 //==============================================================================
 struct autonomous_particles_flowmap : renderable<autonomous_particles_flowmap> {
   std::string                                 m_currently_read_path;
-  std::unique_ptr<triangular_mesh<double, 2>> m_mesh;
+  std::unique_ptr<unstructured_triangular_grid<double, 2>> m_mesh;
   gl::indexeddata<vec3f>           m_edges;
   int                                         m_line_width = 1;
   std::array<GLfloat, 4> m_line_color{0.0f, 0.0f, 0.0f, 1.0f};
@@ -62,7 +62,7 @@ struct autonomous_particles_flowmap : renderable<autonomous_particles_flowmap> {
   auto load(filesystem::path const& path) -> void {
     std::cerr << "loading ... ";
     m_currently_read_path = path;
-    m_mesh                = std::make_unique<triangular_mesh2>(path);
+    m_mesh                = std::make_unique<unstructured_triangular_grid_2>(path);
     {
       m_edges.vertexbuffer().resize(m_mesh->vertices().size());
       auto map = m_edges.vertexbuffer().wmap();
