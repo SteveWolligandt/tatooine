@@ -5,7 +5,7 @@
 #include <tatooine/line.h>
 #include <tatooine/real.h>
 #include <tatooine/tensor.h>
-#include <tatooine/triangular_mesh.h>
+#include <tatooine/unstructured_triangular_grid.h>
 
 #include <boost/range/adaptor/transformed.hpp>
 #include <boost/range/algorithm/copy.hpp>
@@ -146,7 +146,7 @@ auto discretize(sphere<Real, 2> const& s, size_t const num_vertices) {
 //------------------------------------------------------------------------------
 template <floating_point Real>
 auto discretize(sphere<Real, 3> const& s, size_t num_subdivisions = 0) {
-  using mesh_t        = triangular_mesh<Real, 3>;
+  using mesh_t        = unstructured_triangular_grid<Real, 3>;
   using vertex_handle = typename mesh_t::vertex_handle;
   // Real const  X = 0.525731112119133606;
   // Real const  Z = 0.850650808352039932;

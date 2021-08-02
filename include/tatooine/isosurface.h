@@ -13,7 +13,7 @@
 #include <tatooine/marchingcubeslookuptable.h>
 #include <tatooine/multidim_array.h>
 #include <tatooine/tensor.h>
-#include <tatooine/triangular_mesh.h>
+#include <tatooine/unstructured_triangular_grid.h>
 #include <tatooine/utility.h>
 //==============================================================================
 namespace tatooine {
@@ -41,7 +41,7 @@ auto isosurface(GetScalars&&                           get_scalars,
                 Isolevel const                         isolevel) {
   using real_t = typename grid<XDomain, YDomain, ZDomain>::real_t;
   using pos_t = vec<real_t, 3>;
-  triangular_mesh<real_t, 3> iso_volume;
+  unstructured_triangular_grid<real_t, 3> iso_volume;
 
 #if defined(NDEBUG) && defined(TATOOINE_OPENMP_AVAILABLE)
   std::mutex mutex;

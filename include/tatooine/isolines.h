@@ -13,7 +13,7 @@
 #include <tatooine/marchingcubeslookuptable.h>
 #include <tatooine/multidim_array.h>
 #include <tatooine/tensor.h>
-#include <tatooine/triangular_mesh.h>
+#include <tatooine/unstructured_triangular_grid.h>
 #include <tatooine/utility.h>
 //==============================================================================
 namespace tatooine {

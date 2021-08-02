@@ -1,25 +1,25 @@
-#ifndef TATOOINE_TRIANGULAR_MESH_H
-#define TATOOINE_TRIANGULAR_MESH_H
+#ifndef TATOOINE_UNSTRUCTURED_TRIANGULAR_GRID_H
+#define TATOOINE_UNSTRUCTURED_TRIANGULAR_GRID_H
 //==============================================================================
-#include <tatooine/simplex_mesh.h>
+#include <tatooine/unstructured_simplex_grid.h>
 //==============================================================================
 namespace tatooine {
 //==============================================================================
 template <typename Real, size_t N>
-using triangular_mesh = simplex_mesh<Real, N, 2>;
+using unstructured_triangular_grid = unstructured_simplex_grid<Real, N, 2>;
 template <size_t N>
-using TriangularMesh   = triangular_mesh<real_t, N>;
-using triangular_mesh_2 = TriangularMesh<2>;
-using triangular_mesh_3 = TriangularMesh<3>;
-using triangular_mesh_4 = TriangularMesh<4>;
-using triangular_mesh_5 = TriangularMesh<5>;
+using UnstructuredTriangularGird     = unstructured_triangular_grid<real_t, N>;
+using unstructured_triangular_grid_2 = UnstructuredTriangularGird<2>;
+using unstructured_triangular_grid_3 = UnstructuredTriangularGird<3>;
+using unstructured_triangular_grid_4 = UnstructuredTriangularGird<4>;
+using unstructured_triangular_grid_5 = UnstructuredTriangularGird<5>;
 //==============================================================================
 namespace detail {
 //==============================================================================
 template <typename MeshCont>
-auto write_mesh_container_to_vtk(MeshCont const&              meshes,
-                                 std::filesystem::path const& path,
-                                 std::string const&           title) {
+auto write_unstructured_triangular_grid_container_to_vtk(
+    MeshCont const& meshes, std::filesystem::path const& path,
+    std::string const& title) {
   vtk::legacy_file_writer writer(path, vtk::dataset_type::polydata);
   if (writer.is_open()) {
     size_t num_pts   = 0;
@@ -60,10 +60,11 @@ auto write_mesh_container_to_vtk(MeshCont const&              meshes,
 }  // namespace detail
 //==============================================================================
 template <typename Real>
-auto write_vtk(std::vector<triangular_mesh<Real, 3>> const& meshes,
-               std::string const&                           path,
+auto write_vtk(std::vector<unstructured_triangular_grid<Real, 3>> const& meshes,
+               std::string const&                                        path,
                std::string const& title = "tatooine meshes") {
-  detail::write_mesh_container_to_vtk(meshes, path, title);
+  detail::write_unstructured_triangular_grid_container_to_vtk(meshes, path,
+                                                              title);
 }
 //==============================================================================
 }  // namespace tatooine

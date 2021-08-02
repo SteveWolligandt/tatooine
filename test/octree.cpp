@@ -1,4 +1,4 @@
-#include <tatooine/triangular_mesh.h>
+#include <tatooine/unstructured_triangular_grid.h>
 #include <tatooine/uniform_tree_hierarchy.h>
 
 #include <catch2/catch.hpp>
@@ -6,10 +6,10 @@
 namespace tatooine::test {
 //==============================================================================
 TEST_CASE("uniform_tree_hierarchy", "[uniform_tree_hierarchy]") {
-  triangular_mesh3 mesh;
+  unstrucutured_triangular_grid_3 mesh;
   auto             v0 = mesh.insert_vertex(0.5, 0.5, 0.5);
-  uniform_tree_hierarchy<triangular_mesh3> hierarchy{mesh, vec3::zeros(),
-                                                     vec3::ones() * 4, 2};
+  uniform_tree_hierarchy<unstrucutured_triangular_grid_3> hierarchy{
+      mesh, vec3::zeros(), vec3::ones() * 4, 2};
 
   REQUIRE_FALSE(hierarchy.is_splitted());
   REQUIRE_FALSE(hierarchy.holds_vertices());

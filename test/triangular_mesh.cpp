@@ -1,11 +1,11 @@
-#include <tatooine/triangular_mesh.h>
+#include <tatooine/unstructured_triangular_grid.h>
 
 #include <catch2/catch.hpp>
 //==============================================================================
 namespace tatooine::test {
 //==============================================================================
-TEST_CASE("triangular_mesh_copy", "[triangular_mesh][copy]") {
-  triangular_mesh3 mesh;
+TEST_CASE("unstructured_triangular_grid_copy", "[unstructured_triangular_grid][copy]") {
+  unstructured_triangular_grid_3 mesh;
   auto const       v0 = mesh.insert_vertex(0.0, 0.0, 0.0);
   auto const       v1 = mesh.insert_vertex(1.0, 0.0, 0.0);
   auto const       v2 = mesh.insert_vertex(0.0, 1.0, 0.0);
@@ -56,9 +56,9 @@ TEST_CASE("triangular_mesh_copy", "[triangular_mesh][copy]") {
   }
 }
 //==============================================================================
-TEST_CASE("triangular_mesh_linear_sampler",
-          "[triangular_mesh][linear_sampler]") {
-  triangular_mesh<double, 2> mesh;
+TEST_CASE("unstructured_triangular_grid_linear_sampler",
+          "[unstructured_triangular_grid][linear_sampler]") {
+  unstructured_triangular_grid_2 mesh;
   auto const                 v0 = mesh.insert_vertex(0.0, 0.0);
   auto const                 v1 = mesh.insert_vertex(1.0, 0.0);
   auto const                 v2 = mesh.insert_vertex(0.0, 1.0);

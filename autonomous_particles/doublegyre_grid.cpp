@@ -7,7 +7,7 @@
 #include <tatooine/netcdf.h>
 #include <tatooine/progress_bars.h>
 #include <tatooine/rectilinear_grid.h>
-#include <tatooine/triangular_mesh.h>
+#include <tatooine/unstructured_triangular_grid.h>
 #include <tatooine/vtk_legacy.h>
 
 #include <iomanip>
@@ -40,6 +40,24 @@ auto main(int argc, char** argv) -> int {
     indicator.set_text("Building numerical flowmap");
     auto phi = flowmap(v);
     phi.use_caching(false);
+    //----------------------------------------------------------------------------
+    //indicator.set_text("Naive");
+    //auto naive_disc = naive_flowmap_discretization<real_t, 2>{
+    //    phi,        args.t0,    args.tau,   vec2{0, 0},
+    //    vec2{2, 1}, args.width, args.height};
+    //----------------------------------------------------------------------------
+    indicator.set_text("Building agranovsky flowmap");
+    real_t const agranovsky_delta_t = 0.1;
+    auto         agranovsky_disc    = AgranovskyFlowmapDiscretization<2>{
+        phi,        args.t0,    args.tau,   agranovsky_delta_t,
+        vec2{0, 0}, vec2{2, 1}, args.width, args.height};
+    {
+      size_t i = 0;
+      for (auto const& step : agranovsky_disc.steps()) {
+        step.backward_grid().write_vtk("agranovsky_backward_" +
+                                       std::to_string(i++) + ".vtk");
+      }
+    }
 
     //----------------------------------------------------------------------------
     indicator.set_text("Advecting autonomous particles");
@@ -54,18 +72,6 @@ auto main(int argc, char** argv) -> int {
     //  write_x1(autonomous_particles, "doublegyre_grid_advected.nc");
     //  write_x0(autonomous_particles, "doublegyre_grid_back_calculation.nc");
     //}
-    //----------------------------------------------------------------------------
-    indicator.set_text("Naive");
-    auto naive_disc = naive_flowmap_discretization<real_t, 2>{
-        phi,        args.t0,    args.tau,   vec2{0, 0},
-        vec2{2, 1}, args.width, args.height};
-
-    //----------------------------------------------------------------------------
-    indicator.set_text("Building agranovsky flowmap");
-    real_t const agranovsky_delta_t = 1;
-    auto         agranovsky_disc    = agranovsky_flowmap_discretization{
-        phi,        args.t0,    args.tau,   agranovsky_delta_t,
-        vec2{0, 0}, vec2{2, 1}, args.width, args.height};
     //----------------------------------------------------------------------------
     // Create memory for measuring
     //----------------------------------------------------------------------------
@@ -211,6 +217,7 @@ auto main(int argc, char** argv) -> int {
 
             } catch (std::exception const& e) {
               backward_errors_agranovsky_prop(is...) = 0.0 / 0.0;
+              std::cerr << e.what() << '\n';
             }
             //backward_errors_diff_naive_prop(is...) =
             //    backward_errors_naive_prop(is...) -

@@ -1,13 +1,13 @@
 #include <catch2/catch.hpp>
 #include <tatooine/celltree.h>
-#include <tatooine/triangular_mesh.h>
-#include <tatooine/tetrahedral_mesh.h>
+#include <tatooine/unstructured_triangular_grid.h>
+#include <tatooine/unstructured_tetrahedral_grid.h>
 #include <tatooine/geometry/sphere.h>
 //==============================================================================
 namespace tatooine::test {
 //==============================================================================
 TEST_CASE("celltree_node_copy", "[celltree][node][copy]") {
-  auto mesh      = tetrahedral_mesh3{};
+  auto mesh      = unstructured_tetrahedral_grid3{};
   auto hierarchy = celltree{mesh};
   decltype(hierarchy)::node_t n;
   n.type.leaf.size = 100;
@@ -20,7 +20,7 @@ TEST_CASE("celltree_2d_triangle", "[celltree][2d][triangles][construction]") {
   auto const num_queries  = std::size_t(1000);
   auto const domain       = aabb2{vec2{0, 0}, vec2{1, 1}};
 
-  auto mesh = triangular_mesh2{};
+  auto mesh = unstructured_triangular_grid_2{};
   for (std::size_t i = 0; i < num_vertices; ++i) {
     mesh.insert_vertex(domain.random_point());
   }
