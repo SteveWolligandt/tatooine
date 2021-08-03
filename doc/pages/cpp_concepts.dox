@@ -1,0 +1,92 @@
+/**
+\page cpp_concepts_page C++20 Concepts
+
+Tatooine tries to use as much C++20 features as possible. However in some cases
+C++20 and its concepts feature is not available (e.g. on supercomputers
+(SuperMUC or JUWELS Cluster)).  In these cases the traditional `enable_if` <a
+href="https://de.wikipedia.org/wiki/Substitution_failure_is_not_an_error#:~:text=Substitution%20failure%20is%20not%20an%20error%20(SFINAE)%20ist%20eine%20Programmiertechnik,Template%2DArgumenten%20keinen%20Kompilierfehler%20erzeugt.">SFINAE</a>
+test has to be performed. Tatooine uses some wrapper tatooine::enable_if. Thats
+why in some cases these code patterns occur:
+
+\code{.cpp}
+namespace tatooine {
+template <typename Real, size_t NumDimensions>
+struct S {
+  #ifndef __cpp_concepts
+  template <size_t N_ = NumDimensions,
+            enable_if<(NumDimensions == NumDimensions)> = true,
+            enable_if<(N_ == 3)> = true>
+  #endif
+  auto some_method_for_3_dimensions() 
+  #ifdef __cpp_concepts
+  requires (NumDimensions == 3)
+  #endif
+  {
+    // algorithm for 3D
+  }
+};
+}
+\endcode
+
+Let's take a look at this in a bit more detail. First we define a basic `struct`:
+
+\code{.cpp}
+template <typename Real, size_t NumDimensions>
+struct S {
+  // ...
+};
+\endcode
+
+`struct`s in tatooine have at least 2 template parameters: a `Real` type that
+describes a real number and `NumDimensions` (or sometimes just `N` or
+`NumDims`) for the number of dimensions. Sometimes an algorithm is only
+available for a specific number of dimensions. In this example our algorithm is
+only available in 3 dimensions. That's why we want to hide the method that
+performs our algorithm in specializations that have fewer or more dimensions.
+Before C++20 this had to be done with the <a
+href="https://en.cppreference.com/w/cpp/types/enable_if">`enable_if`</a> SFINAE
+pattern. For this we need some template argument that defaults to the number of
+dimensions `NumDimensions`.:
+
+\code{.cpp}
+template <size_t N_ = NumDimensions>
+auto some_method_for_3_dimensions() 
+{ /* algorithm for 3D */ }
+\endcode
+
+Now this method is only created by the compiler when it is actually called.
+We further want to assure that a compiler error is thrown when the method is
+called when `N_ =/= 3`.
+
+\code{.cpp}
+template <size_t N_ = NumDimensions,
+          enable_if<N_ == 3> = true> // here we guarantee that 3D must be used
+auto some_method_for_3_dimensions() 
+{ /* algorithm for 3D */ }
+\endcode
+
+Additionally we want to assure that the default parameter is actually used:
+\code{.cpp}
+template <size_t N_ = NumDimensions,
+          enable_if<N_ == NuDimenions> = true,
+          enable_if<N_ == 3> = true> // here we guarantee that 3D must be used
+auto some_method_for_3_dimensions() 
+{ /* algorithm for 3D */ }
+\endcode
+
+
+With C++20 we got <a
+href="https://en.cppreference.com/w/cpp/language/constraints">concepts</a>.
+These make `enable_if` obsolete because of better readable code and compiler
+errors:
+
+\code{.cpp}
+auto some_method_for_3_dimensions() 
+requires (NumDimensions == 3) // This is the only thing needed
+{ /* algorithm for 3D */ }
+\endcode
+
+To be able to use concepts when available whe use a precompiler if else branch
+as can be seen in the first code snippet.
+
+*/
