@@ -91,6 +91,13 @@ using const_method_ptr = Ret (T::*)(Args...) const;
 template <typename T, typename Ret, typename ... Args>
 using non_const_method_ptr = Ret (T::*)(Args...);
 //==============================================================================
+template <typename F, typename... Args>
+auto repeat(size_t const n, F&& f, Args&&... args) {
+  for (size_t i = 0; i < n; ++i) {
+    f(std::forward<Args>(args)...);
+  }
+}
+//==============================================================================
 }  // namespace tatooine
 //==============================================================================
 #endif
