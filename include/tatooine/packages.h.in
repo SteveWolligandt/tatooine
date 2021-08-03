@@ -4,18 +4,34 @@
 namespace tatooine {
 //==============================================================================
 static constexpr inline bool openmp_available() {
-#ifdef TATOOINE_HAS_OPENMP_SUPPORT
-  return 1;
+#if TATOOINE_OPENMP_AVAILABLE
+  return true;
 #else
-  return 0;
+  return false;
 #endif
 }
 //------------------------------------------------------------------------------
 static constexpr inline bool png_available() {
-#ifdef TATOOINE_HAS_PNG_SUPPORT
-  return 1;
+#if TATOOINE_PNG_AVAILABLE
+  return true;
 #else
-  return 0;
+  return false;
+#endif
+}
+//------------------------------------------------------------------------------
+static constexpr inline bool cdt_available() {
+#if TATOOINE_CDT_AVAILABLE
+  return true;
+#else
+  return false;
+#endif
+}
+//------------------------------------------------------------------------------
+static constexpr inline bool cgal_available() {
+#if TATOOINE_CGAL_AVAILABLE
+  return true;
+#else
+  return false;
 #endif
 }
 //==============================================================================
