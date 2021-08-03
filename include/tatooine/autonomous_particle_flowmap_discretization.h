@@ -384,6 +384,16 @@ struct autonomous_particle_flowmap_discretization {
       auto const barycentric_coord = solve(A, b);
       if (((barycentric_coord(VertexSeq) >= -eps) && ...) &&
           ((barycentric_coord(VertexSeq) <= 1 + eps) && ...)) {
+        if constexpr (NumDimensions == 2) {
+          if (distance(mesh[std::get<0>(vs)], mesh[std::get<1>(vs)]) >
+                  0.2 ||
+              distance(mesh[std::get<1>(vs)], mesh[std::get<2>(vs)]) >
+                  0.2 ||
+              distance(mesh[std::get<0>(vs)], mesh[std::get<2>(vs)]) >
+                  0.2) {
+            continue;
+          }
+        }
         auto const samplers =
             std::array{vertex_samplers[std::get<VertexSeq>(vs)]...};
         std::unordered_set<typename decltype(samplers)::value_type>
@@ -426,18 +436,31 @@ struct autonomous_particle_flowmap_discretization {
             map += samplers[i]->sample(x, tag) * inner_barycentric_coords[i];
           }
           return map;
-          //} else if (size(unique_samplers) == 2) {
-          //  auto points_on_boundary = make_array<vec<Real, NumDimensions>,
-          //  2>(); boost::transform(
-          //      unique_samplers, begin(points_on_boundary),
-          //      [&](auto const sampler) {
-          //        return sampler->ellipse(tag).nearest_point_on_boundary(x);
-          //      });
-          //  for (size_t i = 0; i < NumDimensions + 1; ++i) {
-          //    map += samplers[i]->sample(x, tag) *
-          //    inner_barycentric_coords[i];
-          //  }
-          //  return map;
+        } else if (size(unique_samplers) == 2) {
+          auto points_on_boundary = make_array<vec<Real, NumDimensions>, 2>();
+          auto distances          = make_array<Real, 2>();
+          auto weights            = make_array<Real, 2>();
+          auto samples            = make_array<vec<Real, NumDimensions>, 2>();
+          using boost::transform;
+          transform(unique_samplers, begin(points_on_boundary),
+                    [&](auto const sampler) {
+                      return sampler->ellipse(tag).nearest_point_on_boundary(x);
+                    });
+          transform(
+              points_on_boundary, begin(distances),
+              [&](auto const on_boundary) { return distance(x, on_boundary); });
+          auto const inv_absolute_length = 1 / (distances[0] + distances[1]);
+          transform(distances, begin(weights), [&](auto const dist) {
+            return 1 - dist * inv_absolute_length;
+          });
+          transform(unique_samplers, begin(samples), [&](auto const sampler) {
+            return sampler->sample(x, tag);
+          });
+          auto weights_it  = begin(weights);
+          auto samplers_it = begin(samples);
+          repeat(2, [&] { map += *weights_it++ * *samplers_it++; });
+
+          return map;
         }
 
         for (size_t i = 0; i < NumDimensions + 1; ++i) {
