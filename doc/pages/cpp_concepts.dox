@@ -37,7 +37,7 @@ struct S {
 };
 \endcode
 
-`struct`s in tatooine have at least 2 template parameters: a `Real` type that
+`structs` in tatooine have at least 2 template parameters: a `Real` type that
 describes a real number and `NumDimensions` (or sometimes just `N` or
 `NumDims`) for the number of dimensions. Sometimes an algorithm is only
 available for a specific number of dimensions. In this example our algorithm is
