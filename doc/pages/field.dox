@@ -133,4 +133,7 @@ auto main() -> int {
   auto x5_uncached  = phi(x0, t0, tau / 2); }
 \endcode
 
+\section fields_example_fields_sec Examples of fields:
+\see \ref grid_doc_subsec_props_sampler of Rectilinear Grids
+\see \ref unstructured_grid_page
 */
