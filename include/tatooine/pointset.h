@@ -1,39 +1,41 @@
 #ifndef TATOOINE_POINTSET_H
 #define TATOOINE_POINTSET_H
 //==============================================================================
-#include <boost/iterator/iterator_facade.hpp>
 #include <tatooine/available_libraries.h>
+
+#include <boost/iterator/iterator_facade.hpp>
 #include <boost/range/algorithm/find.hpp>
 #if TATOOINE_FLANN_AVAILABLE
-#include <flann/flann.hpp>
 #include <tatooine/dynamic_tensor.h>
+
+#include <flann/flann.hpp>
 #endif
+#include <tatooine/field.h>
+#include <tatooine/handle.h>
+#include <tatooine/polynomial.h>
+#include <tatooine/property.h>
+#include <tatooine/tensor.h>
+#include <tatooine/type_traits.h>
+#include <tatooine/vtk_legacy.h>
+
 #include <fstream>
 #include <limits>
 #include <unordered_set>
 #include <vector>
-
-#include <tatooine/handle.h>
-#include <tatooine/field.h>
-#include <tatooine/property.h>
-#include <tatooine/polynomial.h>
-#include <tatooine/tensor.h>
-#include <tatooine/type_traits.h>
-#include <tatooine/vtk_legacy.h>
 
 // #include "tetgen_inc.h"
 // #include "triangle_inc.h"
 //==============================================================================
 namespace tatooine {
 //==============================================================================
-template <typename Real, size_t N>
+template <typename Real, size_t NumDimensions>
 struct pointset {
   // static constexpr size_t triangle_dims = 2;
   // static constexpr size_t tetgen_dims = 3;
-  static constexpr auto num_dimensions() { return N; }
+  static constexpr auto num_dimensions() { return NumDimensions; }
   using real_t = Real;
-  using this_t = pointset<Real, N>;
-  using pos_t  = vec<Real, N>;
+  using this_t = pointset<Real, NumDimensions>;
+  using pos_t  = vec<Real, NumDimensions>;
 #if TATOOINE_FLANN_AVAILABLE
   using flann_index_t = flann::Index<flann::L2<Real>>;
 #endif
@@ -51,8 +53,8 @@ struct pointset {
     vertex_iterator(vertex_iterator const& other) : v{other.v}, ps{other.ps} {}
 
    private:
-    vertex_handle    v;
-    pointset const*  ps;
+    vertex_handle   v;
+    pointset const* ps;
 
     friend class boost::iterator_core_access;
 
@@ -102,15 +104,15 @@ struct pointset {
       std::map<std::string, std::unique_ptr<vector_property<vertex_handle>>>;
   //============================================================================
  private:
-  std::vector<pos_t>                             m_vertices;
-  std::vector<vertex_handle>                     m_invalid_vertices;
-  vertex_property_container_t                    m_vertex_properties;
+  std::vector<pos_t>          m_vertices;
+  std::vector<vertex_handle>  m_invalid_vertices;
+  vertex_property_container_t m_vertex_properties;
 #if TATOOINE_FLANN_AVAILABLE
-  mutable std::unique_ptr<flann_index_t>         m_kd_tree;
+  mutable std::unique_ptr<flann_index_t> m_kd_tree;
 #endif
   //============================================================================
  public:
-  pointset() = default;
+  pointset()  = default;
   ~pointset() = default;
   //----------------------------------------------------------------------------
   pointset(std::initializer_list<pos_t>&& vertices)
@@ -124,7 +126,7 @@ struct pointset {
   // #endif
 
   // template <typename = void>
-  // requires (N == 3)
+  // requires (NumDimensions == 3)
   // pointset(const tetgenio& io) {
   //   for (int i = 0; i < io.numberofpoints; ++i)
   //     insert_vertex(io.pointlist[i * 3], io.pointlist[i * 3 + 1],
@@ -166,7 +168,9 @@ struct pointset {
   auto vertex_properties() const -> auto const& { return m_vertex_properties; }
   //----------------------------------------------------------------------------
   auto at(vertex_handle const v) -> auto& { return m_vertices[v.i]; }
-  auto at(vertex_handle const v) const -> auto const& { return m_vertices[v.i]; }
+  auto at(vertex_handle const v) const -> auto const& {
+    return m_vertices[v.i];
+  }
   //----------------------------------------------------------------------------
   auto vertex_at(vertex_handle const v) -> auto& { return m_vertices[v.i]; }
   auto vertex_at(vertex_handle const v) const -> auto const& {
@@ -186,12 +190,12 @@ struct pointset {
   //----------------------------------------------------------------------------
 #ifdef __cpp_concepts
   template <arithmetic... Ts>
-  requires(sizeof...(Ts) == N)
+  requires(sizeof...(Ts) == NumDimensions)
 #else
   template <typename... Ts, enable_if<is_arithmetic<Ts...>> = true,
-            enable_if<sizeof...(Ts) == N> = true>
+            enable_if<sizeof...(Ts) == NumDimensions> = true>
 #endif
-  auto insert_vertex(Ts const... ts) {
+      auto insert_vertex(Ts const... ts) {
     m_vertices.push_back(pos_t{static_cast<Real>(ts)...});
     for (auto& [key, prop] : m_vertex_properties) {
       prop->push_back();
@@ -271,7 +275,7 @@ struct pointset {
   //#ifdef USE_TRIANGLE
   //----------------------------------------------------------------------------
   //  template <typename = void>
-  //  requires (N == triangle_dims>>
+  //  requires (NumDimensions == triangle_dims>>
   //  auto to_triangle_io() const {
   //    triangle::io in;
   //    size_t       i    = 0;
@@ -288,7 +292,7 @@ struct pointset {
   //
   //--------------------------------------------------------------------------
   //  template <typename vertex_cont_t>
-  //  requires (N == triangle_dims)
+  //  requires (NumDimensions == triangle_dims)
   //  auto to_triangle_io(vertex_cont_t const& vertices) const {
   //    triangle::io in;
   //    size_t       i    = 0;
@@ -306,7 +310,7 @@ struct pointset {
 
   //----------------------------------------------------------------------------
   // template <typename = void>
-  // requires (N == tetgen_dims)
+  // requires (NumDimensions == tetgen_dims)
   // void to_tetgen_io(tetgenio& in) const {
   //   size_t i           = 0;
   //   in.numberofpoints  = vertices().size();
@@ -450,45 +454,54 @@ struct pointset {
     return insert_vertex_property<tatooine::real_t>(name, value);
   }
   //----------------------------------------------------------------------------
-  auto insert_vec2_vertex_property(std::string const& name,
-      tatooine::vec2 const value = tatooine::vec2{}) -> auto& {
+  auto insert_vec2_vertex_property(
+      std::string const& name, tatooine::vec2 const value = tatooine::vec2{})
+      -> auto& {
     return insert_vertex_property<vec2>(name, value);
   }
   //----------------------------------------------------------------------------
-  auto insert_vec3_vertex_property(std::string const& name,
-      tatooine::vec3 const value = tatooine::vec3{}) -> auto& {
+  auto insert_vec3_vertex_property(
+      std::string const& name, tatooine::vec3 const value = tatooine::vec3{})
+      -> auto& {
     return insert_vertex_property<vec3>(name, value);
   }
   //----------------------------------------------------------------------------
-  auto insert_vec4_vertex_property(std::string const& name,
-      tatooine::vec4 const value = tatooine::vec4{}) -> auto& {
+  auto insert_vec4_vertex_property(
+      std::string const& name, tatooine::vec4 const value = tatooine::vec4{})
+      -> auto& {
     return insert_vertex_property<vec4>(name, value);
   }
   //----------------------------------------------------------------------------
-  auto insert_mat2_vertex_property(std::string const& name,
-      tatooine::mat2 const value = tatooine::mat2{}) -> auto& {
+  auto insert_mat2_vertex_property(
+      std::string const& name, tatooine::mat2 const value = tatooine::mat2{})
+      -> auto& {
     return insert_vertex_property<mat2>(name, value);
   }
   //----------------------------------------------------------------------------
-  auto insert_mat3_vertex_property(std::string const& name,
-      tatooine::mat3 const value = tatooine::mat3{}) -> auto& {
+  auto insert_mat3_vertex_property(
+      std::string const& name, tatooine::mat3 const value = tatooine::mat3{})
+      -> auto& {
     return insert_vertex_property<mat3>(name, value);
   }
   //----------------------------------------------------------------------------
-  auto insert_mat4_vertex_property(std::string const& name,
-      tatooine::mat4 const value = tatooine::mat4{}) -> auto& {
+  auto insert_mat4_vertex_property(
+      std::string const& name, tatooine::mat4 const value = tatooine::mat4{})
+      -> auto& {
     return insert_vertex_property<mat4>(name, value);
   }
   //----------------------------------------------------------------------------
 #ifndef __cpp_concepts
-  template <size_t N_ = N, enable_if<N_ == N(N_ == 3 || N_ == 2)> = true>
+  template <
+      size_t NumDimensions_ = NumDimensions,
+      enable_if<NumDimensions_ == NumDimensions(NumDimensions_ == 3 ||
+                                                NumDimensions_ == 2)> = true>
 #endif
-      auto write_vtk(std::string const& path,
-                     std::string const& title = "Tatooine pointset") -> void 
+  auto write_vtk(std::string const& path,
+                 std::string const& title = "Tatooine pointset") -> void
 #ifdef __cpp_concepts
-  requires(N == 3 || N == 2)
+      requires(NumDimensions == 3 || NumDimensions == 2)
 #endif
-      {
+  {
     vtk::legacy_file_writer writer(path, vtk::dataset_type::polydata);
     if (writer.is_open()) {
       writer.set_title(title);
@@ -499,7 +512,7 @@ struct pointset {
       points.reserve(m_vertices.size());
       size_t i = 0;
       for (auto const& p : m_vertices) {
-        if constexpr (N == 3) {
+        if constexpr (NumDimensions == 3) {
           points.push_back({p(0), p(1), p(2)});
         } else {
           points.push_back({p(0), p(1), 0});
@@ -651,12 +664,12 @@ struct pointset {
   //============================================================================
   template <typename T>
   struct inverse_distance_weighting_sampler_t
-      : field<inverse_distance_weighting_sampler_t<T>, Real, N, T> {
+      : field<inverse_distance_weighting_sampler_t<T>, Real, NumDimensions, T> {
     static_assert(flann_available(),
                   "Inverse Distance Weighting Sampler needs FLANN!");
     using this_t     = inverse_distance_weighting_sampler_t<T>;
-    using parent_t   = field<this_t, Real, N, T>;
-    using pointset_t = pointset<Real, N>;
+    using parent_t   = field<this_t, Real, NumDimensions, T>;
+    using pointset_t = pointset<Real, NumDimensions>;
     using typename parent_t::tensor_t;
     //==========================================================================
     pointset_t const&           m_pointset;
@@ -669,10 +682,8 @@ struct pointset {
     // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
     inverse_distance_weighting_sampler_t(pointset_t const&           ps,
                                          vertex_property_t<T> const& property,
-                                         Real const radius)
-        : m_pointset{ps},
-          m_property{property},
-          m_radius{radius} {}
+                                         Real const                  radius)
+        : m_pointset{ps}, m_property{property}, m_radius{radius} {}
     //--------------------------------------------------------------------------
     inverse_distance_weighting_sampler_t(
         inverse_distance_weighting_sampler_t const&) = default;
@@ -686,7 +697,7 @@ struct pointset {
     auto operator=(inverse_distance_weighting_sampler_t&&) noexcept
         -> inverse_distance_weighting_sampler_t& = default;
     // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-    ~inverse_distance_weighting_sampler_t()      = default;
+    ~inverse_distance_weighting_sampler_t() = default;
     //==========================================================================
     auto evaluate(pos_t const& x, real_t const /*t*/) const -> tensor_t {
       auto [indices, distances] =
@@ -705,7 +716,7 @@ struct pointset {
         if (*dist_it == 0) {
           return property_value;
         };
-        auto const  weight         = 1 / *dist_it;
+        auto const weight = 1 / *dist_it;
         accumulated_prop_val += property_value * weight;
         accumulated_weight += weight;
       }
@@ -716,12 +727,14 @@ struct pointset {
   template <typename T
 #ifndef __cpp_concepts
             ,
-            size_t N_ = N, enable_if<N_ == N && (N_ == 3 || N_ == 2)> = true
+            size_t NumDimensions_ = NumDimensions,
+            enable_if<NumDimensions_ == NumDimensions &&
+                      (NumDimensions_ == 3 || NumDimensions_ == 2)> = true
 #endif
             >
   auto moving_least_squares_sampler(std::string const& prop_name) const
 #ifdef __cpp_concepts
-      requires(N == 3 || N == 2)
+      requires(NumDimensions == 3 || NumDimensions == 2)
 #endif
   {
     return moving_least_squares_sampler_t<T>{*this,
@@ -731,12 +744,14 @@ struct pointset {
   template <typename T
 #ifndef __cpp_concepts
             ,
-            size_t N_ = N, enable_if<N_ == N && (N_ == 3 || N_ == 2)> = true
+            size_t NumDimensions_ = NumDimensions,
+            enable_if<NumDimensions_ == NumDimensions &&
+                      (NumDimensions_ == 3 || NumDimensions_ == 2)> = true
 #endif
             >
   auto moving_least_squares_sampler(vertex_property_t<T> const& prop) const
 #ifdef __cpp_concepts
-      requires(N == 3 || N == 2)
+      requires(NumDimensions == 3 || NumDimensions == 2)
 #endif
   {
     return moving_least_squares_sampler_t<T>{*this, prop};
@@ -745,13 +760,15 @@ struct pointset {
   template <typename T
 #ifndef __cpp_concepts
             ,
-            size_t N_ = N, enable_if<N_ == N && (N_ == 3 || N_ == 2)> = true
+            size_t NumDimensions_ = NumDimensions,
+            enable_if<NumDimensions_ == NumDimensions &&
+                      (NumDimensions_ == 3 || NumDimensions_ == 2)> = true
 #endif
             >
   auto moving_least_squares_sampler(std::string const& prop_name,
                                     Real const         radius) const
 #ifdef __cpp_concepts
-      requires(N == 3 || N == 2)
+      requires(NumDimensions == 3 || NumDimensions == 2)
 #endif
   {
     return moving_least_squares_sampler_t<T>{
@@ -760,13 +777,16 @@ struct pointset {
   //----------------------------------------------------------------------------
   template <typename T
 #ifndef __cpp_concepts
-            , size_t N_ = N, enable_if<N_ == N && (N_ == 3 || N_ == 2)> = true
+            ,
+            size_t NumDimensions_ = NumDimensions,
+            enable_if<NumDimensions_ == NumDimensions &&
+                      (NumDimensions_ == 3 || NumDimensions_ == 2)> = true
 #endif
             >
   auto moving_least_squares_sampler(vertex_property_t<T> const& prop,
                                     Real const                  radius) const
 #ifdef __cpp_concepts
-      requires(N == 3 || N == 2)
+      requires(NumDimensions == 3 || NumDimensions == 2)
 #endif
 
   {
@@ -775,12 +795,12 @@ struct pointset {
   //============================================================================
   template <typename T>
   struct moving_least_squares_sampler_t
-      : field<moving_least_squares_sampler_t<T>, Real, N, T> {
+      : field<moving_least_squares_sampler_t<T>, Real, NumDimensions, T> {
     static_assert(flann_available(),
                   "Moving Least Squares Sampler needs FLANN!");
     using this_t     = moving_least_squares_sampler_t<T>;
-    using parent_t   = field<this_t, Real, N, T>;
-    using pointset_t = pointset<Real, N>;
+    using parent_t   = field<this_t, Real, NumDimensions, T>;
+    using pointset_t = pointset<Real, NumDimensions>;
     using typename parent_t::tensor_t;
     //==========================================================================
     pointset_t const&           m_pointset;
@@ -821,12 +841,12 @@ struct pointset {
    private:
 #ifdef __cpp_concepts
     template <typename = void>
-    requires (num_dimensions() == 2)
+    requires(num_dimensions() == 2)
 #else
-    template <size_t N_ = num_dimensions(),
-              enable_if<N_ == 2> = true>
+    template <size_t NumDimensions_          = num_dimensions(),
+              enable_if<NumDimensions_ == 2> = true>
 #endif
-    auto evaluate_2d(pos_t const& q) const -> T {
+        auto evaluate_2d(pos_t const& q) const -> T {
       auto const  nn = m_pointset.nearest_neighbors_radius_raw(q, m_radius);
       auto const& indices       = nn.first;
       auto const& distances     = nn.second;
@@ -879,232 +899,236 @@ struct pointset {
         for (size_t i = 0; i < num_neighbors; ++i) {
           B(i, 2) = m_pointset.vertex_at(indices[i]).y() - q.y();
         }
+      }
+      if (num_neighbors >= 6) {
+        for (size_t i = 0; i < num_neighbors; ++i) {
+          B(i, 3) = (m_pointset.vertex_at(indices[i]).x() - q.x()) *
+                    (m_pointset.vertex_at(indices[i]).x() - q.x());
         }
-        if (num_neighbors >= 6) {
-          for (size_t i = 0; i < num_neighbors; ++i) {
-            B(i, 3) = (m_pointset.vertex_at(indices[i]).x() - q.x()) *
-                      (m_pointset.vertex_at(indices[i]).x() - q.x());
-          }
-          for (size_t i = 0; i < num_neighbors; ++i) {
-            B(i, 4) = (m_pointset.vertex_at(indices[i]).x() - q.x()) *
-                      (m_pointset.vertex_at(indices[i]).y() - q.y());
-          }
-          for (size_t i = 0; i < num_neighbors; ++i) {
-            B(i, 5) = (m_pointset.vertex_at(indices[i]).y() - q.y()) *
-                      (m_pointset.vertex_at(indices[i]).y() - q.y());
-          }
+        for (size_t i = 0; i < num_neighbors; ++i) {
+          B(i, 4) = (m_pointset.vertex_at(indices[i]).x() - q.x()) *
+                    (m_pointset.vertex_at(indices[i]).y() - q.y());
         }
-        if (num_neighbors >= 10) {
-          for (size_t i = 0; i < num_neighbors; ++i) {
-            B(i, 6) = (m_pointset.vertex_at(indices[i]).x() - q.x()) *
-                      (m_pointset.vertex_at(indices[i]).x() - q.x()) *
-                      (m_pointset.vertex_at(indices[i]).x() - q.x());
-          }
-          for (size_t i = 0; i < num_neighbors; ++i) {
-            B(i, 7) = (m_pointset.vertex_at(indices[i]).x() - q.x()) *
-                      (m_pointset.vertex_at(indices[i]).x() - q.x()) *
-                      (m_pointset.vertex_at(indices[i]).y() - q.y());
-          }
-          for (size_t i = 0; i < num_neighbors; ++i) {
-            B(i, 8) = (m_pointset.vertex_at(indices[i]).x() - q.x()) *
-                      (m_pointset.vertex_at(indices[i]).y() - q.y()) *
-                      (m_pointset.vertex_at(indices[i]).y() - q.y());
-          }
-          for (size_t i = 0; i < num_neighbors; ++i) {
-            B(i, 9) = (m_pointset.vertex_at(indices[i]).y() - q.y()) *
-                      (m_pointset.vertex_at(indices[i]).y() - q.y()) *
-                      (m_pointset.vertex_at(indices[i]).y() - q.y());
-          }
-        }
-        auto const BtW = transposed(B) * diag(w);
-
-        if constexpr (num_components<T> == 1) {
-          return solve(BtW * B, BtW * F)(0);
-        } else {
-          T    ret{};
-          auto C = solve(BtW * B, BtW * F);
-          for (size_t i = 0; i < num_components<T>; ++i) {
-            ret(i) = C(0, i);
-          }
-          return ret;
+        for (size_t i = 0; i < num_neighbors; ++i) {
+          B(i, 5) = (m_pointset.vertex_at(indices[i]).y() - q.y()) *
+                    (m_pointset.vertex_at(indices[i]).y() - q.y());
         }
       }
+      if (num_neighbors >= 10) {
+        for (size_t i = 0; i < num_neighbors; ++i) {
+          B(i, 6) = (m_pointset.vertex_at(indices[i]).x() - q.x()) *
+                    (m_pointset.vertex_at(indices[i]).x() - q.x()) *
+                    (m_pointset.vertex_at(indices[i]).x() - q.x());
+        }
+        for (size_t i = 0; i < num_neighbors; ++i) {
+          B(i, 7) = (m_pointset.vertex_at(indices[i]).x() - q.x()) *
+                    (m_pointset.vertex_at(indices[i]).x() - q.x()) *
+                    (m_pointset.vertex_at(indices[i]).y() - q.y());
+        }
+        for (size_t i = 0; i < num_neighbors; ++i) {
+          B(i, 8) = (m_pointset.vertex_at(indices[i]).x() - q.x()) *
+                    (m_pointset.vertex_at(indices[i]).y() - q.y()) *
+                    (m_pointset.vertex_at(indices[i]).y() - q.y());
+        }
+        for (size_t i = 0; i < num_neighbors; ++i) {
+          B(i, 9) = (m_pointset.vertex_at(indices[i]).y() - q.y()) *
+                    (m_pointset.vertex_at(indices[i]).y() - q.y()) *
+                    (m_pointset.vertex_at(indices[i]).y() - q.y());
+        }
+      }
+      auto const BtW = transposed(B) * diag(w);
+
+      if constexpr (num_components<T> == 1) {
+        return solve(BtW * B, BtW * F)(0);
+      } else {
+        T    ret{};
+        auto C = solve(BtW * B, BtW * F);
+        for (size_t i = 0; i < num_components<T>; ++i) {
+          ret(i) = C(0, i);
+        }
+        return ret;
+      }
+    }
 #ifndef __cpp_concepts
-      template <size_t N_ = num_dimensions(), enable_if<N_ == 3> = true>
+    template <size_t NumDimensions_          = num_dimensions(),
+              enable_if<NumDimensions_ == 3> = true>
 #endif
-      auto evaluate_3d(pos_t const& q) const -> T
+    auto evaluate_3d(pos_t const& q) const -> T
 
 #ifdef __cpp_concepts
-          requires(num_dimensions() == 3)
+        requires(num_dimensions() == 3)
 #endif
-      {
-        auto const  nn = m_pointset.nearest_neighbors_radius_raw(q, m_radius);
-        auto const& indices       = nn.first;
-        auto const& distances     = nn.second;
-        auto const  num_neighbors = size(indices);
-        if (num_neighbors == 0) {
-          throw std::runtime_error{"ood"};
-        }
-        if (num_neighbors == 1) {
-          return m_property[vertex_handle{indices[0]}];
-        }
+    {
+      auto const  nn = m_pointset.nearest_neighbors_radius_raw(q, m_radius);
+      auto const& indices       = nn.first;
+      auto const& distances     = nn.second;
+      auto const  num_neighbors = size(indices);
+      if (num_neighbors == 0) {
+        throw std::runtime_error{"ood"};
+      }
+      if (num_neighbors == 1) {
+        return m_property[vertex_handle{indices[0]}];
+      }
 
-        auto w = dynamic_tensor<Real>::zeros(num_neighbors);
-        auto F = dynamic_tensor<Real>::zeros(num_neighbors, num_components<T>);
-        auto B = [&] {
-          if (num_neighbors >= 20) {
-            return dynamic_tensor<Real>::ones(num_neighbors, 20);
-          } else if (num_neighbors >= 10) {
-            return dynamic_tensor<Real>::ones(num_neighbors, 10);
-          } else if (num_neighbors >= 4) {
-            return dynamic_tensor<Real>::ones(num_neighbors, 4);
-          }
-          return dynamic_tensor<Real>::ones(1, 1);
-        }();
-        // build w
-        for (size_t i = 0; i < num_neighbors; ++i) {
-          if (distances[i] == 0) {
-            return m_property[vertex_handle{indices[i]}];
-          }
-          w(i) = 1 / distances[i] - 1 / m_radius;
-        }
-        // build f
-        for (size_t i = 0; i < num_neighbors; ++i) {
-          if constexpr (num_components<T> == 1) {
-            F(i, 0) = m_property[vertex_handle{indices[i]}];
-          } else {
-            for (size_t j = 0; j < num_components<T>; ++j) {
-              F(i, j) = m_property[vertex_handle{indices[i]}](j);
-            }
-          }
-        }
-        // build B
-        if (num_neighbors >= 4) {
-          for (size_t i = 0; i < num_neighbors; ++i) {
-            B(i, 1) = m_pointset.vertex_at(indices[i]).x() - q.x();
-          }
-          for (size_t i = 0; i < num_neighbors; ++i) {
-            B(i, 2) = m_pointset.vertex_at(indices[i]).y() - q.y();
-          }
-          for (size_t i = 0; i < num_neighbors; ++i) {
-            B(i, 3) = m_pointset.vertex_at(indices[i]).z() - q.z();
-          }
-        }
-        if (num_neighbors >= 10) {
-          for (size_t i = 0; i < num_neighbors; ++i) {
-            B(i, 4) = (m_pointset.vertex_at(indices[i]).x() - q.x()) *
-                      (m_pointset.vertex_at(indices[i]).x() - q.x());
-          }
-          for (size_t i = 0; i < num_neighbors; ++i) {
-            B(i, 5) = (m_pointset.vertex_at(indices[i]).y() - q.y()) *
-                      (m_pointset.vertex_at(indices[i]).y() - q.y());
-          }
-          for (size_t i = 0; i < num_neighbors; ++i) {
-            B(i, 6) = (m_pointset.vertex_at(indices[i]).z() - q.z()) *
-                      (m_pointset.vertex_at(indices[i]).z() - q.z());
-          }
-          for (size_t i = 0; i < num_neighbors; ++i) {
-            B(i, 7) = (m_pointset.vertex_at(indices[i]).x() - q.x()) *
-                      (m_pointset.vertex_at(indices[i]).y() - q.y());
-          }
-          for (size_t i = 0; i < num_neighbors; ++i) {
-            B(i, 8) = (m_pointset.vertex_at(indices[i]).x() - q.x()) *
-                      (m_pointset.vertex_at(indices[i]).z() - q.z());
-          }
-          for (size_t i = 0; i < num_neighbors; ++i) {
-            B(i, 9) = (m_pointset.vertex_at(indices[i]).y() - q.y()) *
-                      (m_pointset.vertex_at(indices[i]).z() - q.z());
-          }
-        }
+      auto w = dynamic_tensor<Real>::zeros(num_neighbors);
+      auto F = dynamic_tensor<Real>::zeros(num_neighbors, num_components<T>);
+      auto B = [&] {
         if (num_neighbors >= 20) {
-          for (size_t i = 0; i < num_neighbors; ++i) {
-            B(i, 10) = (m_pointset.vertex_at(indices[i]).x() - q.x()) *
-                       (m_pointset.vertex_at(indices[i]).x() - q.x()) *
-                       (m_pointset.vertex_at(indices[i]).x() - q.x());
-          }
-          for (size_t i = 0; i < num_neighbors; ++i) {
-            B(i, 11) = (m_pointset.vertex_at(indices[i]).y() - q.y()) *
-                       (m_pointset.vertex_at(indices[i]).y() - q.y()) *
-                       (m_pointset.vertex_at(indices[i]).y() - q.y());
-          }
-          for (size_t i = 0; i < num_neighbors; ++i) {
-            B(i, 12) = (m_pointset.vertex_at(indices[i]).z() - q.z()) *
-                       (m_pointset.vertex_at(indices[i]).z() - q.z()) *
-                       (m_pointset.vertex_at(indices[i]).z() - q.z());
-          }
-          for (size_t i = 0; i < num_neighbors; ++i) {
-            B(i, 13) = (m_pointset.vertex_at(indices[i]).x() - q.x()) *
-                       (m_pointset.vertex_at(indices[i]).x() - q.x()) *
-                       (m_pointset.vertex_at(indices[i]).y() - q.y());
-          }
-          for (size_t i = 0; i < num_neighbors; ++i) {
-            B(i, 14) = (m_pointset.vertex_at(indices[i]).x() - q.x()) *
-                       (m_pointset.vertex_at(indices[i]).x() - q.x()) *
-                       (m_pointset.vertex_at(indices[i]).z() - q.z());
-          }
-          for (size_t i = 0; i < num_neighbors; ++i) {
-            B(i, 15) = (m_pointset.vertex_at(indices[i]).x() - q.x()) *
-                       (m_pointset.vertex_at(indices[i]).y() - q.y()) *
-                       (m_pointset.vertex_at(indices[i]).y() - q.y());
-          }
-          for (size_t i = 0; i < num_neighbors; ++i) {
-            B(i, 16) = (m_pointset.vertex_at(indices[i]).y() - q.y()) *
-                       (m_pointset.vertex_at(indices[i]).y() - q.y()) *
-                       (m_pointset.vertex_at(indices[i]).z() - q.z());
-          }
-          for (size_t i = 0; i < num_neighbors; ++i) {
-            B(i, 17) = (m_pointset.vertex_at(indices[i]).x() - q.x()) *
-                       (m_pointset.vertex_at(indices[i]).z() - q.z()) *
-                       (m_pointset.vertex_at(indices[i]).z() - q.z());
-          }
-          for (size_t i = 0; i < num_neighbors; ++i) {
-            B(i, 18) = (m_pointset.vertex_at(indices[i]).y() - q.y()) *
-                       (m_pointset.vertex_at(indices[i]).z() - q.z()) *
-                       (m_pointset.vertex_at(indices[i]).z() - q.z());
-          }
-          for (size_t i = 0; i < num_neighbors; ++i) {
-            B(i, 19) = (m_pointset.vertex_at(indices[i]).x() - q.x()) *
-                       (m_pointset.vertex_at(indices[i]).y() - q.y()) *
-                       (m_pointset.vertex_at(indices[i]).z() - q.z());
-          }
+          return dynamic_tensor<Real>::ones(num_neighbors, 20);
+        } else if (num_neighbors >= 10) {
+          return dynamic_tensor<Real>::ones(num_neighbors, 10);
+        } else if (num_neighbors >= 4) {
+          return dynamic_tensor<Real>::ones(num_neighbors, 4);
         }
-        auto const BtW = transposed(B) * diag(w);
+        return dynamic_tensor<Real>::ones(1, 1);
+      }();
+      // build w
+      for (size_t i = 0; i < num_neighbors; ++i) {
+        if (distances[i] == 0) {
+          return m_property[vertex_handle{indices[i]}];
+        }
+        w(i) = 1 / distances[i] - 1 / m_radius;
+      }
+      // build f
+      for (size_t i = 0; i < num_neighbors; ++i) {
         if constexpr (num_components<T> == 1) {
-          return solve(BtW * B, BtW * F)(0);
+          F(i, 0) = m_property[vertex_handle{indices[i]}];
         } else {
-          T    ret{};
-          auto C = solve(BtW * B, BtW * F);
-          for (size_t i = 0; i < num_components<T>; ++i) {
-            ret(i) = C(0, i);
+          for (size_t j = 0; j < num_components<T>; ++j) {
+            F(i, j) = m_property[vertex_handle{indices[i]}](j);
           }
-          return ret;
         }
       }
+      // build B
+      if (num_neighbors >= 4) {
+        for (size_t i = 0; i < num_neighbors; ++i) {
+          B(i, 1) = m_pointset.vertex_at(indices[i]).x() - q.x();
+        }
+        for (size_t i = 0; i < num_neighbors; ++i) {
+          B(i, 2) = m_pointset.vertex_at(indices[i]).y() - q.y();
+        }
+        for (size_t i = 0; i < num_neighbors; ++i) {
+          B(i, 3) = m_pointset.vertex_at(indices[i]).z() - q.z();
+        }
+      }
+      if (num_neighbors >= 10) {
+        for (size_t i = 0; i < num_neighbors; ++i) {
+          B(i, 4) = (m_pointset.vertex_at(indices[i]).x() - q.x()) *
+                    (m_pointset.vertex_at(indices[i]).x() - q.x());
+        }
+        for (size_t i = 0; i < num_neighbors; ++i) {
+          B(i, 5) = (m_pointset.vertex_at(indices[i]).y() - q.y()) *
+                    (m_pointset.vertex_at(indices[i]).y() - q.y());
+        }
+        for (size_t i = 0; i < num_neighbors; ++i) {
+          B(i, 6) = (m_pointset.vertex_at(indices[i]).z() - q.z()) *
+                    (m_pointset.vertex_at(indices[i]).z() - q.z());
+        }
+        for (size_t i = 0; i < num_neighbors; ++i) {
+          B(i, 7) = (m_pointset.vertex_at(indices[i]).x() - q.x()) *
+                    (m_pointset.vertex_at(indices[i]).y() - q.y());
+        }
+        for (size_t i = 0; i < num_neighbors; ++i) {
+          B(i, 8) = (m_pointset.vertex_at(indices[i]).x() - q.x()) *
+                    (m_pointset.vertex_at(indices[i]).z() - q.z());
+        }
+        for (size_t i = 0; i < num_neighbors; ++i) {
+          B(i, 9) = (m_pointset.vertex_at(indices[i]).y() - q.y()) *
+                    (m_pointset.vertex_at(indices[i]).z() - q.z());
+        }
+      }
+      if (num_neighbors >= 20) {
+        for (size_t i = 0; i < num_neighbors; ++i) {
+          B(i, 10) = (m_pointset.vertex_at(indices[i]).x() - q.x()) *
+                     (m_pointset.vertex_at(indices[i]).x() - q.x()) *
+                     (m_pointset.vertex_at(indices[i]).x() - q.x());
+        }
+        for (size_t i = 0; i < num_neighbors; ++i) {
+          B(i, 11) = (m_pointset.vertex_at(indices[i]).y() - q.y()) *
+                     (m_pointset.vertex_at(indices[i]).y() - q.y()) *
+                     (m_pointset.vertex_at(indices[i]).y() - q.y());
+        }
+        for (size_t i = 0; i < num_neighbors; ++i) {
+          B(i, 12) = (m_pointset.vertex_at(indices[i]).z() - q.z()) *
+                     (m_pointset.vertex_at(indices[i]).z() - q.z()) *
+                     (m_pointset.vertex_at(indices[i]).z() - q.z());
+        }
+        for (size_t i = 0; i < num_neighbors; ++i) {
+          B(i, 13) = (m_pointset.vertex_at(indices[i]).x() - q.x()) *
+                     (m_pointset.vertex_at(indices[i]).x() - q.x()) *
+                     (m_pointset.vertex_at(indices[i]).y() - q.y());
+        }
+        for (size_t i = 0; i < num_neighbors; ++i) {
+          B(i, 14) = (m_pointset.vertex_at(indices[i]).x() - q.x()) *
+                     (m_pointset.vertex_at(indices[i]).x() - q.x()) *
+                     (m_pointset.vertex_at(indices[i]).z() - q.z());
+        }
+        for (size_t i = 0; i < num_neighbors; ++i) {
+          B(i, 15) = (m_pointset.vertex_at(indices[i]).x() - q.x()) *
+                     (m_pointset.vertex_at(indices[i]).y() - q.y()) *
+                     (m_pointset.vertex_at(indices[i]).y() - q.y());
+        }
+        for (size_t i = 0; i < num_neighbors; ++i) {
+          B(i, 16) = (m_pointset.vertex_at(indices[i]).y() - q.y()) *
+                     (m_pointset.vertex_at(indices[i]).y() - q.y()) *
+                     (m_pointset.vertex_at(indices[i]).z() - q.z());
+        }
+        for (size_t i = 0; i < num_neighbors; ++i) {
+          B(i, 17) = (m_pointset.vertex_at(indices[i]).x() - q.x()) *
+                     (m_pointset.vertex_at(indices[i]).z() - q.z()) *
+                     (m_pointset.vertex_at(indices[i]).z() - q.z());
+        }
+        for (size_t i = 0; i < num_neighbors; ++i) {
+          B(i, 18) = (m_pointset.vertex_at(indices[i]).y() - q.y()) *
+                     (m_pointset.vertex_at(indices[i]).z() - q.z()) *
+                     (m_pointset.vertex_at(indices[i]).z() - q.z());
+        }
+        for (size_t i = 0; i < num_neighbors; ++i) {
+          B(i, 19) = (m_pointset.vertex_at(indices[i]).x() - q.x()) *
+                     (m_pointset.vertex_at(indices[i]).y() - q.y()) *
+                     (m_pointset.vertex_at(indices[i]).z() - q.z());
+        }
+      }
+      auto const BtW = transposed(B) * diag(w);
+      if constexpr (num_components<T> == 1) {
+        return solve(BtW * B, BtW * F)(0);
+      } else {
+        T    ret{};
+        auto C = solve(BtW * B, BtW * F);
+        for (size_t i = 0; i < num_components<T>; ++i) {
+          ret(i) = C(0, i);
+        }
+        return ret;
+      }
+    }
   };
 };
 //==============================================================================
-template <typename Real, size_t N>
-auto vertices(pointset<Real, N> const& ps) {
+template <typename Real, size_t NumDimensions>
+auto vertices(pointset<Real, NumDimensions> const& ps) {
   return ps.vertices();
 }
 //------------------------------------------------------------------------------
-template <typename Real, size_t N>
-auto begin(typename pointset<Real, N>::vertex_container const& verts) {
+template <typename Real, size_t NumDimensions>
+auto begin(
+    typename pointset<Real, NumDimensions>::vertex_container const& verts) {
   return verts.begin();
 }
 //------------------------------------------------------------------------------
-template <typename Real, size_t N>
-auto end(typename pointset<Real, N>::vertex_container const& verts) {
+template <typename Real, size_t NumDimensions>
+auto end(
+    typename pointset<Real, NumDimensions>::vertex_container const& verts) {
   return verts.end();
 }
 //------------------------------------------------------------------------------
-template <typename Real, size_t N>
-auto size(typename pointset<Real, N>::vertex_container const& verts) {
+template <typename Real, size_t NumDimensions>
+auto size(
+    typename pointset<Real, NumDimensions>::vertex_container const& verts) {
   return verts.size();
 }
 //==============================================================================
-template <size_t N>
-using Pointset  = pointset<real_t, N>;
+template <size_t NumDimensions>
+using Pointset  = pointset<real_t, NumDimensions>;
 using pointset2 = Pointset<2>;
 using pointset3 = Pointset<3>;
 using pointset4 = Pointset<4>;
