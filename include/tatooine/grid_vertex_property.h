@@ -265,7 +265,7 @@ struct typed_grid_vertex_property_interface : grid_vertex_property<Grid> {
   virtual auto resize(std::array<size_t, num_dimensions()> const& size)
       -> void = 0;
   //----------------------------------------------------------------------------
-#ifdef TATOOINE_HAS_PNG_SUPPORT
+#if TATOOINE_PNG_AVAILABLE
 #ifdef __cpp_concepts
   template <typename = void>
   requires(num_dimensions() == 2) &&
@@ -381,7 +381,7 @@ struct typed_grid_vertex_property_interface : grid_vertex_property<Grid> {
 #endif
 };
 //==============================================================================
-#if TATOOINE_HAS_PNG_SUPPORT
+#if TATOOINE_PNG_AVAILABLE
 template <typename Grid, typename ValueType, bool HasNonConstReference>
 auto write_png(typed_grid_vertex_property_interface<
                    Grid, ValueType, HasNonConstReference> const& prop,

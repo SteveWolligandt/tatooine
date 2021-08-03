@@ -18,6 +18,33 @@
 //==============================================================================
 namespace tatooine::hdf5 {
 //==============================================================================
+struct api {
+ private:
+  H5E_auto1_t m_old_func        = nullptr;
+  void*        m_old_client_data = nullptr;
+  //----------------------------------------------------------------------------
+  api() {
+    H5Eget_auto1(&m_old_func, &m_old_client_data);
+  }
+
+ public:
+  //----------------------------------------------------------------------------
+  auto disable_error_printing() -> void { H5Eset_auto1(nullptr, nullptr); }
+  //----------------------------------------------------------------------------
+  auto enable_error_printing() -> void {
+    H5Eset_auto1(m_old_func, m_old_client_data);
+  }
+  //----------------------------------------------------------------------------
+  static auto get() -> auto& {
+    static auto obj = api{};
+    return obj;
+  }
+  //----------------------------------------------------------------------------
+  static auto my_hdf5_error_handler(void* /*error_data*/) -> herr_t {
+    std::cerr << "An HDF5 error was detected. Bye.\n";
+    exit(1);
+  }
+};
 template <typename T>
 struct h5_type;
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -253,7 +280,7 @@ class dataset {
 #else
   template <typename Range, enable_if<is_range<Range>> = true>
 #endif
-  auto write(Range r) {
+  auto write(Range const& r) {
     write(std::vector(begin(r), end(r)));
   }
   //----------------------------------------------------------------------------
@@ -510,25 +537,59 @@ class dataset {
   auto name() const -> auto const& { return m_name; }
 };
 //==============================================================================
-// class group {
-// publicN:
-//  using this_t = group;
-//
-// private:
-//  mutable std::shared_ptr<H5::H5File> m_file_id;
-//  H5::Group                           m_group;
-//  std::string                         m_name;
-//
-// public:
-//  group(std::shared_ptr<H5::H5File>& file_id,
-//          H5::Group const& group, std::string const& name)
-//      : m_file_id{file_id}, m_group{group}, m_name{name} {}
-//  //----------------------------------------------------------------------------
-//  group(group const&)     = default;
-//  group(group&&) noexcept = default;
-//  //----------------------------------------------------------------------------
-//  auto operator=(group const&) -> group& = default;
-//  auto operator=(group&&) noexcept -> group& = default;
+ class group {
+ public:
+  using this_t     = group;
+
+ private:
+  std::unique_ptr<hid_t> m_file_id;
+  std::unique_ptr<hid_t> m_group_id;
+  std::string            m_name;
+  //============================================================================
+ public:
+  group(std::unique_ptr<hid_t> const& file_id, hid_t const group_id,
+          std::string const& name)
+      : m_file_id{std::make_unique<hid_t>(*file_id)},
+        m_group_id{std::make_unique<hid_t>(group_id)},
+        m_name{name} {
+    H5Iinc_ref(*m_file_id);
+  }
+  //----------------------------------------------------------------------------
+  group(group const& other)
+      : m_file_id{std::make_unique<hid_t>(*other.m_file_id)},
+        m_group_id{std::make_unique<hid_t>(*other.m_group_id)},
+        m_name{other.m_name} {
+    H5Iinc_ref(*m_file_id);
+    H5Iinc_ref(*m_group_id);
+  }
+  //----------------------------------------------------------------------------
+  group(group&&) noexcept = default;
+  //----------------------------------------------------------------------------
+  auto operator=(group const& other) -> group& {
+    if (m_file_id != nullptr) {
+      H5Fclose(*m_file_id);
+    }
+    if (m_group_id != nullptr) {
+      H5Gclose(*m_group_id);
+    }
+    m_file_id    = std::make_unique<hid_t>(*other.m_file_id);
+    m_group_id = std::make_unique<hid_t>(*other.m_group_id);
+    m_name       = other.m_name;
+    H5Iinc_ref(*m_file_id);
+    H5Iinc_ref(*m_group_id);
+    return *this;
+  }
+  //----------------------------------------------------------------------------
+  auto operator=(group&&) noexcept -> group& = default;
+  //----------------------------------------------------------------------------
+  ~group() {
+    if (m_file_id != nullptr) {
+      H5Fclose(*m_file_id);
+    }
+    if (m_group_id != nullptr) {
+      H5Gclose(*m_group_id);
+    }
+  }
 //  //============================================================================
 //  auto attribute(std::string const& attribute_name) {
 //    return hdf5::attribute{
@@ -558,7 +619,7 @@ class dataset {
 //                              H5::DataSpace{sizeof...(Size), dimsf}),
 //        dataset_name};
 //  }
-//};
+};
 //==============================================================================
 class file {
   std::unique_ptr<hid_t> m_file_id;
@@ -619,15 +680,21 @@ class file {
             enable_if<is_integral<Size...>> = true>
 #endif
   auto add_dataset(std::string const& dataset_name, Size... size) {
+    static_assert(sizeof...(Size) > 0,
+                  "hdf5::dataset needs at least 1 dimension.");
     hsize_t dimsf[]{static_cast<hsize_t>(size)...};  // data set dimensions
     std::reverse(dimsf, dimsf + sizeof...(size));
     auto dspace     = H5Screate_simple(sizeof...(Size), dimsf, nullptr);
-    auto dataset_id = H5Dcreate2(*m_file_id, dataset_name.c_str(),
+    api::get().disable_error_printing();
+    hid_t dataset_id = H5Dcreate2(*m_file_id, dataset_name.c_str(),
                                  h5_type<T>::file_type_little_endian(), dspace,
                                  H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT);
-
+    api::get().enable_error_printing();
     H5Sclose(dspace);
-    return hdf5::dataset<T>{m_file_id, dataset_id, dataset_name};
+    if (dataset_id >= 0) {
+      return hdf5::dataset<T>{m_file_id, dataset_id, dataset_name};
+    }
+    return dataset<T>(dataset_name);
   }
   //----------------------------------------------------------------------------
   template <typename T>
@@ -643,6 +710,28 @@ class file {
         m_file_id, H5Dopen(*m_file_id, dataset_name.c_str(), H5P_DEFAULT),
         dataset_name};
   }
+  //============================================================================
+  auto add_group(char const* name) {
+    hid_t group_id;
+    api::get().disable_error_printing();
+    group_id =
+        H5Gcreate2(*m_file_id, name, H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT);
+    api::get().enable_error_printing();
+    if (group_id <= 0) {
+      group_id = H5Gopen2(*m_file_id, name, H5P_DEFAULT);
+    }
+    return hdf5::group{m_file_id, group_id, name};
+  }
+  //----------------------------------------------------------------------------
+  auto add_group(std::string const& name) { return add_group(name.c_str()); }
+  //----------------------------------------------------------------------------
+  auto group(char const* name) const {
+    return hdf5::group{m_file_id,
+                            H5Gopen2(*m_file_id, name, H5P_DEFAULT),
+                            name};
+  }
+  //----------------------------------------------------------------------------
+  auto group(std::string const& name) const { return group(name.c_str()); }
 };
 //==============================================================================
 }  // namespace tatooine::hdf5

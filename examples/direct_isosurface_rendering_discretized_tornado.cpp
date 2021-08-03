@@ -50,7 +50,7 @@ auto direct_iso_discretized_tornado() {
   };
   auto const rendering_grid =
       rendering::direct_isosurface(cam, Q_sampler, isovalue, shader);
-#ifdef TATOOINE_HAS_PNG_SUPPORT
+#ifdef TATOOINE_PNG_AVAILABLE
   write_png("direct_iso_discretized_tornado_Q.png",
             rendering_grid.vec3_vertex_property("rendered_isosurface"));
 #endif

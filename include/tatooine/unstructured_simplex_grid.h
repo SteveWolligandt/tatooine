@@ -15,6 +15,7 @@
 #include <tatooine/axis_aligned_bounding_box.h>
 #include <tatooine/celltree.h>
 #include <tatooine/kdtree.h>
+#include <tatooine/packages.h>
 #include <tatooine/pointset.h>
 #include <tatooine/property.h>
 #include <tatooine/rectilinear_grid.h>
@@ -1186,6 +1187,14 @@ unstructured_simplex_grid(rectilinear_grid<Dims...> const& g)
 //               std::string const& title = "tatooine meshes") {
 //  detail::write_mesh_container_to_vtk(meshes, path, title);
 //}
+//------------------------------------------------------------------------------
+static constexpr inline bool constrained_delaunay_available(size_t const N) {
+  if (N == 2) {
+    return cdt_available();
+  } else {
+    return false;
+  }
+}
 //==============================================================================
 }  // namespace tatooine
 //==============================================================================

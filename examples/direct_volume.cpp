@@ -40,7 +40,7 @@ auto direct_volume_rendering_tornado() {
         auto const rgb = color_scale(t);
         return vec4{rgb(0), rgb(1), rgb(2), alpha(t)};
       });
-#ifdef TATOOINE_HAS_PNG_SUPPORT
+#if TATOOINE_PNG_AVAILABLE
   write_png("direct_volume_tornado_Q.png",
             rendering_grid.vertex_property<vec<double, 3>>("rendering"));
 #endif

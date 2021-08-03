@@ -8,7 +8,7 @@
 //==============================================================================
 namespace tatooine {
 //==============================================================================
-#if TATOOINE_HAS_PNG_SUPPORT
+#if TATOOINE_PNG_AVAILABLE
 #ifdef __cpp_concepts
 template <arithmetic T>
 #else

@@ -42,7 +42,7 @@ auto direct_iso_tornado() {
   auto const rendering_grid =
       rendering::direct_isosurface(cam, aabb, steady(Q(v), t), domain_check,
                                   isovalue, distance_on_ray, shader);
-#ifdef TATOOINE_HAS_PNG_SUPPORT
+#if TATOOINE_PNG_AVAILABLE
   write_png("direct_isosurface_rendering_analytical_tornado_Q_with_velocity_magnitude.png",
             rendering_grid.vertex_property<vec3>("rendered_isosurface"));
 #endif

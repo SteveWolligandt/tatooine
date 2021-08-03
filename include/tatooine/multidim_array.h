@@ -1376,7 +1376,7 @@ auto interpolate(dynamic_multidim_array<T0, Indexing0> const& arr0,
 //  }
 //}
 //
-#ifdef TATOOINE_HAS_PNG_SUPPORT
+#if TATOOINE_PNG_AVAILABLE
 #ifdef __cpp_concepts
 template <arithmetic Real>
 #else

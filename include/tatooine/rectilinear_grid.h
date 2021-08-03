@@ -55,7 +55,7 @@ class rectilinear_grid {
   using cell_container   = grid_cell_container<Dimensions...>;
 
   // general property types
-  using property_t = grid_vertex_property<this_t>;
+  using vertex_property_t = grid_vertex_property<this_t>;
   template <typename ValueType, bool HasNonConstReference>
   using typed_vertex_property_interface_t =
       typed_grid_vertex_property_interface<this_t, ValueType,
@@ -68,7 +68,7 @@ class rectilinear_grid {
       std::invoke_result_t<F, decltype(((void)std::declval<Dimensions>(),
                                         std::declval<size_t>()))...>;
 
-  using property_ptr_t       = std::unique_ptr<property_t>;
+  using property_ptr_t       = std::unique_ptr<vertex_property_t>;
   using property_container_t = std::map<std::string, property_ptr_t>;
   //============================================================================
   static constexpr size_t min_stencil_size = 2;
@@ -1098,7 +1098,8 @@ class rectilinear_grid {
         it == end(m_vertex_properties)) {
       auto new_prop = new typed_vertex_property_t<Container>{
           *this, std::forward<Args>(args)...};
-      m_vertex_properties.emplace(name, std::unique_ptr<property_t>{new_prop});
+      m_vertex_properties.emplace(name,
+                                  std::unique_ptr<vertex_property_t>{new_prop});
       if constexpr (sizeof...(Args) == 0) {
         new_prop->resize(size());
       }
@@ -1926,6 +1927,10 @@ class rectilinear_grid {
         write_vtk(path);
         return;
       }
+      if (ext == ".h5") {
+        write_hdf5(path);
+        return;
+      }
     }
   }
   //----------------------------------------------------------------------------
@@ -2052,6 +2057,66 @@ class rectilinear_grid {
                 prop.get()));
       }
     }
+  }
+  //----------------------------------------------------------------------------
+ private:
+  template <typename T, bool HasNonConstReference, size_t... Is>
+  void write_prop_hdf5(
+      hdf5::file& f, std::string const& name,
+      typed_vertex_property_interface_t<T, HasNonConstReference> const& prop,
+      std::index_sequence<Is...> /*seq*/) const {
+    f.add_group("vertex_properties");
+    auto dataset = f.add_dataset<T>("vertex_properties/" + name, size<Is>()...);
+
+    auto data = std::vector<T>{};
+    data.reserve(vertices().size());
+    vertices().iterate_indices(
+        [&](auto const... is) { data.push_back(prop(is...)); });
+    dataset.write(data);
+  }
+  template <typename... Ts, size_t... Is>
+  void write_prop_hdf5_wrapper(hdf5::file& f, std::string const& name,
+                               vertex_property_t const&   prop,
+                               std::index_sequence<Is...> seq) const {
+    (
+        [&] {
+          if (prop.type() == typeid(Ts)) {
+            write_prop_hdf5(
+                f, name,
+                *dynamic_cast<
+                    const typed_vertex_property_interface_t<Ts, true>*>(&prop),
+                seq);
+            return;
+          }
+        }(),
+        ...);
+  }
+
+  template <size_t... Is>
+  auto write_hdf5(filesystem::path const&    path,
+                  std::index_sequence<Is...> seq) const -> void {
+    auto f = hdf5::file{path};
+    f.add_group("dimensions");
+    (
+        [&] {
+          using dim_type =
+              typename std::decay_t<decltype(dimension<Is>())>::value_type;
+          auto dim = f.add_dataset<dim_type>("dimensions/" + std::to_string(Is),
+                                             size<Is>());
+          dim.write(dimension<Is>());
+        }(),
+        ...);
+
+    for (const auto& [name, prop] : this->m_vertex_properties) {
+      write_prop_hdf5_wrapper< std::uint16_t, std::uint32_t,
+                               std::int16_t, std::int32_t, float,
+                              double>(f, name, *prop, seq);
+    }
+  }
+  //----------------------------------------------------------------------------
+ public:
+  auto write_hdf5(filesystem::path const& path) const -> void {
+    write_hdf5(path, std::make_index_sequence<num_dimensions()>{});
   }
 
  private:

@@ -1,3 +1,9 @@
+add_executable(example.rectilinear_grid rectilinear_grid.cpp)
+target_link_libraries(example.rectilinear_grid tatooine)
+add_custom_target(example.rectilinear_grid.run
+                  COMMAND ./example.rectilinear_grid
+                  DEPENDS example.rectilinear_grid)
+
 add_executable(example.constrained_delaunay constrained_delaunay.cpp)
 target_link_libraries(example.constrained_delaunay tatooine)
 add_custom_target(example.constrained_delaunay.run
