@@ -27,7 +27,7 @@ TEST_CASE("lazy_reader_hdf5_stress", "[lazy_reader][hdf5][stress]") {
 }
 //==============================================================================
 TEST_CASE("lazy_reader_netcdf_grid", "[lazy_reader][netcdf][rectilinear_grid]") {
-  //non_uniform_grid<double, 2> g{"simple_xy.nc"};
+  //nonuniform_rectilinear_grid<double, 2> g{"simple_xy.nc"};
   //auto const& prop = g.vertex_property<double>("data");
   //
   //REQUIRE(prop(7, 0) == Approx(7));

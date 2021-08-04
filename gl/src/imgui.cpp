@@ -20,6 +20,12 @@ bool InputDouble4(const char* label, double v[4], const char* format,
                       format, flags);
 }
 //------------------------------------------------------------------------------
+bool DragSizeT(char const* label, size_t* v, size_t v_speed, size_t v_min,
+               size_t v_max) {
+  return DragScalar(label, ImGuiDataTypeTraits<size_t>::value, v, v_speed,
+                    &v_min, &v_max, ImGuiDataTypeTraits<size_t>::format);
+}
+//------------------------------------------------------------------------------
 bool DragDouble(const char* label, double* v, double v_speed, double v_min,
                 double v_max, const char* format, float power) {
   return DragScalar(label, ImGuiDataType_Double, v, v_speed, &v_min, &v_max,

@@ -14,9 +14,8 @@ struct linspace : ui::node<linspace>, tatooine::linspace<real_t> {
 }  // namespace tatooine::flowexplorer::nodes
 //==============================================================================
 TATOOINE_FLOWEXPLORER_REGISTER_NODE(
-    tatooine::flowexplorer::nodes::linspace
-    , TATOOINE_REFLECTION_INSERT_METHOD(front, front())
-    , TATOOINE_REFLECTION_INSERT_METHOD(back, back())
-    , TATOOINE_REFLECTION_INSERT_METHOD(size, size())
-    );
+    tatooine::flowexplorer::nodes::linspace,
+    TATOOINE_REFLECTION_INSERT_METHOD(front, front()),
+    TATOOINE_REFLECTION_INSERT_METHOD(back, back()),
+    TATOOINE_REFLECTION_INSERT_METHOD(size, size()));
 #endif

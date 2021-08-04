@@ -357,15 +357,18 @@ auto main(int argc, char** argv) -> int {
     // vertices as particles
     //----------------------------------------------------------------------------
     indicator.set_text("Buildung regular sampled flowmap");
-    rectilinear_grid  uniform_grid{linspace{0.0, 2.0, grid_min_extent * 2},
-                      linspace{0.0, 1.0, grid_min_extent}};
+    rectilinear_grid uniform_rectilinear_grid{
+        linspace{0.0, 2.0, grid_min_extent * 2},
+        linspace{0.0, 1.0, grid_min_extent}};
     auto& regular_flowmap_grid_prop =
-        uniform_grid.add_vertex_property<vec3, x_fastest>("flowmap");
-    uniform_grid.iterate_over_vertex_indices([&](auto const... is) {
+        uniform_rectilinear_grid.add_vertex_property<vec3, x_fastest>(
+            "flowmap");
+    uniform_rectilinear_grid.iterate_over_vertex_indices([&](auto const... is) {
       regular_flowmap_grid_prop(is...) =
-          numerical_flowmap(uniform_grid(is...), args.t0, args.tau);
+          numerical_flowmap(uniform_rectilinear_grid(is...), args.t0, args.tau);
     });
-    unstructured_tetrahedral_grid<double, 3> regular_mesh{uniform_grid};
+    unstructured_tetrahedral_grid<double, 3> regular_mesh{
+        uniform_rectilinear_grid};
     auto&                      regular_flowmap_mesh_prop =
         regular_mesh.vertex_property<vec3>("flowmap");
     regular_mesh.write_vtk("tornado_regular_forward_flowmap.vtk");

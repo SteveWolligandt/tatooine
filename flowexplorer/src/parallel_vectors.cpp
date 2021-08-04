@@ -10,7 +10,7 @@ parallel_vectors::parallel_vectors(flowexplorer::scene& s)
     : renderable<parallel_vectors>{"Parallel Vectors", s},
       v_pin{insert_input_pin<polymorphic::vectorfield<real_t, 3>>("V")},
       w_pin{insert_input_pin<polymorphic::vectorfield<real_t, 3>>("W")},
-      grid_pin{insert_input_pin<non_uniform_grid<real_t, 3>>("grid")} {}
+      grid_pin{insert_input_pin<nonuniform_rectilinear_grid<real_t, 3>>("grid")} {}
 //------------------------------------------------------------------------------
 auto parallel_vectors::render(mat4f const& P, mat4f const& V) -> void {
   auto &shader = line_shader::get();
@@ -36,7 +36,7 @@ auto parallel_vectors::calculate() -> void {
   m_lines = tatooine::parallel_vectors(
       v_pin.get_linked_as<polymorphic::vectorfield<real_t, 3>>(),
       w_pin.get_linked_as<polymorphic::vectorfield<real_t, 3>>(),
-      grid_pin.get_linked_as<non_uniform_grid<real_t, 3>>(), 0);
+      grid_pin.get_linked_as<nonuniform_rectilinear_grid<real_t, 3>>(), 0);
   write_vtk(m_lines, "pv.vtk");
 
   m_geometry.clear();

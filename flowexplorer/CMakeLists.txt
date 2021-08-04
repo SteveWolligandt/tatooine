@@ -16,9 +16,10 @@ add_executable(
   #${TATFE_SRC_DIR}/jacobian.cpp
   #${TATFE_SRC_DIR}/vtk_line_reader.cpp
   #${TATFE_SRC_DIR}/parallel_vectors.cpp
-  #${TATFE_SRC_DIR}/linspace.cpp
+  ${TATFE_SRC_DIR}/sampler.cpp
+  ${TATFE_SRC_DIR}/linspace.cpp
   #${TATFE_SRC_DIR}/random_points.cpp
-  #${TATFE_SRC_DIR}/grid.cpp
+  ${TATFE_SRC_DIR}/rectilinear_grid.cpp
   #${TATFE_SRC_DIR}/distance_measure.cpp
   #${TATFE_SRC_DIR}/unary_scalar_operation.cpp
   #${TATFE_SRC_DIR}/binary_operation.cpp
@@ -28,22 +29,22 @@ add_executable(
   #${TATFE_SRC_DIR}/spacetime_splitted_vectorfield.cpp
   #${TATFE_SRC_DIR}/field_from_file.cpp
   #${TATFE_SRC_DIR}/axis_aligned_bounding_box.cpp
-  #${TATFE_SRC_DIR}/position.cpp
-  #${TATFE_SRC_DIR}/duffing_oscillator.cpp
+  #${TATFE_SRC_DIR}/iECTILINEAR_position.cpp
+  #${TATFE_SRC_DIR}/RECTILINEAR_duffing_oscillator.cpp
   #${TATFE_SRC_DIR}/pathline.cpp
   #${TATFE_SRC_DIR}/random_pathlines.cpp
   #${TATFE_SRC_DIR}/spacetime_vectorfield.cpp
   #${TATFE_SRC_DIR}/lic.cpp
 
-  #${TATFE_SRC_DIR}/doublegyre.cpp
+  ${TATFE_SRC_DIR}/doublegyre.cpp
   #${TATFE_SRC_DIR}/doublegyre3d.cpp
   #${TATFE_SRC_DIR}/abcflow.cpp
   #${TATFE_SRC_DIR}/saddle.cpp
   #${TATFE_SRC_DIR}/rayleigh_benard_convection.cpp
 
-  ${TATFE_SRC_DIR}/autonomous_particles_flowmap.cpp
-  ${TATFE_SRC_DIR}/autonomous_particles_flowmap_evaluator.cpp
-  ${TATFE_SRC_DIR}/autonomous_particles_renderer.cpp
+  #${TATFE_SRC_DIR}/autonomous_particles_flowmap.cpp
+  #${TATFE_SRC_DIR}/autonomous_particles_flowmap_evaluator.cpp
+  #${TATFE_SRC_DIR}/autonomous_particles_renderer.cpp
   #${TATFE_SRC_DIR}/autonomous_particle.cpp
 
   ${TATFE_SRC_DIR}/line_shader.cpp 

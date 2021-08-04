@@ -30,7 +30,7 @@ auto main(int argc, char** argv) -> int {
     channelflow_150_file.dataset<double>("yvelocity/vel").read_lazy({2,2,2});
   auto const zvel_150 = 
     channelflow_150_file.dataset<double>("velocity/zvel").read_lazy({2,2,2});
-  tat::non_uniform_grid<double, 3> full_domain_grid{full_domain_x, full_domain_y, full_domain_z}; 
+  tat::nonuniform_rectilinear_grid<double, 3> full_domain_grid{full_domain_x, full_domain_y, full_domain_z}; 
   full_domain_grid.update_diff_stencil_coefficients();
   mpi.init_communicator(full_domain_grid);
 
@@ -38,7 +38,7 @@ auto main(int argc, char** argv) -> int {
   auto const local_grid = mpi.local_grid(full_domain_grid);
   // halo_grid covers all grid cells exactly once distributed over all processes
   // with some redundant grid vertices.
-  tat::non_uniform_grid<double, 3> halo_grid = local_grid;
+  tat::nonuniform_rectilinear_grid<double, 3> halo_grid = local_grid;
   if (halo_grid.dimension<0>().back() !=
       full_domain_grid.dimension<0>().back()) {
     halo_grid.dimension<0>().push_back(

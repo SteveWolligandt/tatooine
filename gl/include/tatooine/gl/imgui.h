@@ -6,6 +6,48 @@
 //==============================================================================
 namespace ImGui {
 //==============================================================================
+// Infer ImGuiDataType enum based on actual type
+template <typename T>
+struct ImGuiDataTypeTraits {
+  static const ImGuiDataType value;  // link error
+  static const char*         format;
+};
+
+template <>
+struct ImGuiDataTypeTraits<int> {
+  static constexpr ImGuiDataType value  = ImGuiDataType_S32;
+  static constexpr const char*   format = "%d";
+};
+
+template <>
+struct ImGuiDataTypeTraits<unsigned int> {
+  static constexpr ImGuiDataType value  = ImGuiDataType_U32;
+  static constexpr const char*   format = "%u";
+};
+
+template <>
+struct ImGuiDataTypeTraits<long> {
+  static constexpr ImGuiDataType value  = ImGuiDataType_S64;
+  static constexpr const char*   format = "%lld";
+};
+
+template <>
+struct ImGuiDataTypeTraits<unsigned long> {
+  static constexpr ImGuiDataType value  = ImGuiDataType_U64;
+  static constexpr const char*   format = "%llu";
+};
+
+template <>
+struct ImGuiDataTypeTraits<float> {
+  static constexpr ImGuiDataType value  = ImGuiDataType_Float;
+  static constexpr const char*   format = "%.3f";
+};
+
+template <>
+struct ImGuiDataTypeTraits<double> {
+  static constexpr ImGuiDataType value  = ImGuiDataType_Double;
+  static constexpr const char*   format = "%.6f";
+};
 DLL_API bool InputDouble2(const char* label, double v[2],
                           const char*         format = "%.3lf",
                           ImGuiInputTextFlags flags  = 0);
@@ -16,6 +58,9 @@ DLL_API bool InputDouble4(const char* label, double v[4],
                           const char*         format = "%.3lf",
                           ImGuiInputTextFlags flags  = 0);
 
+DLL_API bool DragSizeT(char const* label, size_t* v, size_t v_speed = 1,
+                       size_t v_min = 0,
+                       size_t v_max = std::numeric_limits<size_t>::max());
 DLL_API bool DragDouble(const char* label, double* v, double v_speed = 1.0,
                         double v_min = 0.0, double v_max = 0.0,
                         const char* format = "%.3lf", float power = 1.0);

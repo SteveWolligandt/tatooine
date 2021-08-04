@@ -18,12 +18,10 @@ auto node_builder::begin(ax::NodeEditor::NodeId id) -> void {
   ImGui::PushID(id.AsPointer());
   m_cur_node_id = id;
 
-  ImGui::Columns(3, "##cols");
   set_stage(stage::begin);
 }
 //------------------------------------------------------------------------------
 auto node_builder::end() -> void {
-  ImGui::Columns();
   namespace ed = ax::NodeEditor;
   set_stage(stage::end);
 

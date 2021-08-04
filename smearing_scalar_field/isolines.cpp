@@ -4,7 +4,7 @@
 //==============================================================================
 namespace tatooine::smearing {
 //==============================================================================
-auto create_iso_lines(std::vector<uniform_grid_2d<double>> const& grids,
+auto create_iso_lines(std::vector<uniform_rectilinear_grid_2d<double>> const& grids,
                       double const isolevel, std::string const& name)
     -> std::vector<std::vector<line<double, 2>>> {
   std::vector<std::vector<line<double, 2>>> ls;
@@ -15,13 +15,13 @@ auto create_iso_lines(std::vector<uniform_grid_2d<double>> const& grids,
   return ls;
 }
 //------------------------------------------------------------------------------
-auto create_iso_lines_a(std::vector<uniform_grid_2d<double>> const& grids,
+auto create_iso_lines_a(std::vector<uniform_rectilinear_grid_2d<double>> const& grids,
                         double const                                isolevel)
     -> std::vector<std::vector<line<double, 2>>> {
   return create_iso_lines(grids, isolevel, "a");
 }
 //------------------------------------------------------------------------------
-auto create_iso_lines_b(std::vector<uniform_grid_2d<double>> const& grids,
+auto create_iso_lines_b(std::vector<uniform_rectilinear_grid_2d<double>> const& grids,
                         double const                                isolevel)
     -> std::vector<std::vector<line<double, 2>>> {
   return create_iso_lines(grids, isolevel, "b");

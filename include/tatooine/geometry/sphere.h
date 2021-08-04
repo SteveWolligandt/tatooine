@@ -16,15 +16,21 @@ template <floating_point Real, size_t N>
 struct sphere : ray_intersectable<Real, N> {
   using this_t   = sphere<Real, N>;
   using parent_t = ray_intersectable<Real, N>;
+  using vec_t    = vec<Real, N>;
   using typename parent_t::intersection_t;
   using typename parent_t::optional_intersection_t;
   //============================================================================
  private:
-  Real  m_radius;
+  vec_t m_center = vec_t::zeros();
+  Real  m_radius = 1;
   //============================================================================
  public:
-  sphere() : m_radius{Real(1)} {}
-  explicit sphere(Real radius) : m_radius{radius} {}
+  sphere() = default;
+  explicit sphere(Real const radius) : m_radius{radius} {}
+  sphere(Real const radius, vec_t const& center)
+      : m_center{center}, m_radius{radius} {}
+  sphere(vec_t const& center, Real const radius)
+      : m_center{center}, m_radius{radius} {}
   //----------------------------------------------------------------------------
   sphere(sphere const&) = default;
   sphere(sphere&&)      = default;
@@ -69,6 +75,9 @@ struct sphere : ray_intersectable<Real, N> {
       return {};
     }
   }
+  //----------------------------------------------------------------------------
+  constexpr auto center() const -> auto const& { return m_center; }
+  constexpr auto center() -> auto& { return m_center; }
   //----------------------------------------------------------------------------
   constexpr auto radius() const { return m_radius; }
   constexpr auto radius() -> auto& { return m_radius; }

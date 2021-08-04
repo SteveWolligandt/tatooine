@@ -7,16 +7,16 @@ namespace tatooine::smearing {
 auto read_ascii(filesystem::path const& file_path, int& res_x, int& res_y,
                 int& res_t, double& min_x, double& min_y, double& min_t,
                 double& extent_x, double& extent_y, double& extent_t)
-    -> std::vector<uniform_grid_2d<double>> {
+    -> std::vector<uniform_rectilinear_grid_2d<double>> {
   std::ifstream file{file_path};
   if (!file.is_open()) {
     throw std::runtime_error{"Could not open file."};
   }
   file >> res_x >> res_y >> res_t >> min_x >> min_y >> min_t >> extent_x >>
       extent_y >> extent_t;
-  std::vector<uniform_grid_2d<double>> grids(
+  std::vector<uniform_rectilinear_grid_2d<double>> grids(
       res_t,
-      uniform_grid_2d<double>{
+      uniform_rectilinear_grid_2d<double>{
           linspace{min_x, min_x + extent_x, static_cast<size_t>(res_x)},
           linspace{min_y, min_y + extent_y, static_cast<size_t>(res_y)}});
   double val;
@@ -86,7 +86,7 @@ auto read_ascii(filesystem::path const& file_path, int& res_x, int& res_y,
 auto read_binary(filesystem::path const& file_path, int& res_x, int& res_y,
                  int& res_t, double& min_x, double& min_y, double& min_t,
                  double& extent_x, double& extent_y, double& extent_t)
-    -> std::vector<uniform_grid_2d<double>> {
+    -> std::vector<uniform_rectilinear_grid_2d<double>> {
   std::ifstream file{file_path};
   if (!file.is_open()) {
     throw std::runtime_error{"Could not open file."};
@@ -100,9 +100,9 @@ auto read_binary(filesystem::path const& file_path, int& res_x, int& res_y,
   file.read(reinterpret_cast<char*>(&extent_x), sizeof(double));
   file.read(reinterpret_cast<char*>(&extent_y), sizeof(double));
   file.read(reinterpret_cast<char*>(&extent_t), sizeof(double));
-  std::vector<uniform_grid_2d<double>> grids(
+  std::vector<uniform_rectilinear_grid_2d<double>> grids(
       res_t,
-      uniform_grid_2d<double>{
+      uniform_rectilinear_grid_2d<double>{
           linspace{min_x, min_x + extent_x, static_cast<size_t>(res_x)},
           linspace{min_y, min_y + extent_y, static_cast<size_t>(res_y)}});
   for (int i = 0; i < res_t; ++i) {
@@ -167,7 +167,7 @@ auto read_binary(filesystem::path const& file_path, int& res_x, int& res_y,
 }
 //------------------------------------------------------------------------------
 auto write_ascii(filesystem::path const&                     file_path,
-                 std::vector<uniform_grid_2d<double>> const& grids,
+                 std::vector<uniform_rectilinear_grid_2d<double>> const& grids,
                  int const res_x, int const res_y, int const res_t,
                  double const min_x, double const min_y, double const min_t,
                  double const extent_x, double const extent_y,
@@ -192,7 +192,7 @@ auto write_ascii(filesystem::path const&                     file_path,
 }
 //------------------------------------------------------------------------------
 auto write_binary(filesystem::path const&                     file_path,
-                  std::vector<uniform_grid_2d<double>> const& grids,
+                  std::vector<uniform_rectilinear_grid_2d<double>> const& grids,
                   int const res_x, int const res_y, int const res_t,
                   double const min_x, double const min_y, double const min_t,
                   double const extent_x, double const extent_y,

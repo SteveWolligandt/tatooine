@@ -105,6 +105,7 @@ struct node : uuid_holder<ax::NodeEditor::NodeId>, serializable, toggleable {
   //----------------------------------------------------------------------------
   virtual auto draw_properties() -> bool = 0;
   virtual auto on_property_changed() -> void {}
+  virtual auto on_title_changed(std::string const& /*old_title*/) -> void {}
   virtual auto on_pin_connected(input_pin& /*this_pin*/,
                                 output_pin& /*other_pin*/) -> void {}
   virtual auto on_pin_connected(output_pin& /*this_pin*/,
@@ -317,9 +318,10 @@ struct node_serializer {
       if constexpr (is_same<std::string, var_t>) {
         changed |= ImGui::InputText(name, &var);
 
+      } else if constexpr (is_same<size_t, var_t>) {
+        changed |= ImGui::DragSizeT(name, &var);
+        
         // float
-      //} else if constexpr (is_same<size_t, var_t>) {
-      //  changed |= ImGui::DragSizeT(name, &var);
       } else if constexpr (is_same<float, var_t>) {
         changed |= ImGui::DragFloat(name, &var, 0.1f);
       } else if constexpr (is_same<std::array<float, 2>, var_t>) {

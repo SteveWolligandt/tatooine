@@ -104,9 +104,9 @@ struct base_interface {
   long                                                m_base_pmused = 0;
   std::ofstream                                       m_memory_file;
   std::chrono::time_point<std::chrono::system_clock>  m_last_end_time;
-  uniform_grid<double, 3>                             m_global_grid;
-  uniform_grid<double, 3>                             m_worker_grid;
-  uniform_grid<double, 3>                             m_worker_halo_grid;
+  uniform_rectilinear_grid<double, 3>                             m_global_grid;
+  uniform_rectilinear_grid<double, 3>                             m_worker_grid;
+  uniform_rectilinear_grid<double, 3>                             m_worker_halo_grid;
   int                                                 m_halo_level = 0;
   double                                              m_time       = 0;
   double                                              m_prev_time  = 0;

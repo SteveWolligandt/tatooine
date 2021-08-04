@@ -13,7 +13,7 @@ struct interface : base_interface<interface> {
 
   using scalar_arr_t = non_owning_multidim_array<double, x_fastest>;
   using grid_prop_t =
-      uniform_grid<double, 3>::typed_property_impl_t<scalar_arr_t>;
+      uniform_rectilinear_grid<double, 3>::typed_property_impl_t<scalar_arr_t>;
   using tracer_t           = std::pair<size_t, pos_t>;
   using tracer_container_t = std::vector<tracer_t>;
 
@@ -24,12 +24,12 @@ struct interface : base_interface<interface> {
     using parent_t::real_t;
     using parent_t::tensor_t;
 
-    uniform_grid<double, 3> const& m_worker_halo_grid;
+    uniform_rectilinear_grid<double, 3> const& m_worker_halo_grid;
     grid_prop_t const&             m_x;
     grid_prop_t const&             m_y;
     grid_prop_t const&             m_z;
 
-    velocity_field(uniform_grid<double, 3> const& worker_halo_grid,
+    velocity_field(uniform_rectilinear_grid<double, 3> const& worker_halo_grid,
                    grid_prop_t const& x, grid_prop_t const& y,
                    grid_prop_t const& z)
         : m_worker_halo_grid{worker_halo_grid}, m_x{x}, m_y{y}, m_z{z} {}

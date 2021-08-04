@@ -385,34 +385,34 @@ auto sample_to_vector(polymorphic::field<VReal, NumDims, Tensor> const& f,
 }
 //------------------------------------------------------------------------------
 #ifdef __cpp_concpets
-template <typename V, arithmetic VReal, arithmetic TReal size_t NumDims,
-          typename Tensor, indexable_space... SpatialDimensions>
+template <arithmetic VReal, arithmetic TReal size_t NumDims, typename Tensor,
+          indexable_space... SpatialDimensions>
 #else
-template <typename V, typename VReal, typename TReal, size_t NumDims,
-          typename Tensor, typename... SpatialDimensions,
+template <typename VReal, typename TReal, size_t NumDims, typename Tensor,
+          typename... SpatialDimensions,
           enable_if<is_arithmetic<VReal, TReal>> = true>
 #endif
-auto discretize(field<V, VReal, NumDims, Tensor> const& f,
-                rectilinear_grid<SpatialDimensions...>&             discretized_domain,
+auto discretize(polymorphic::field<VReal, NumDims, Tensor> const& f,
+                rectilinear_grid<SpatialDimensions...>& discretized_domain,
                 std::string const& property_name, TReal const t) -> auto& {
   auto const ood_tensor = [] {
-    if constexpr (is_scalarfield<V>()) {
+    if constexpr (is_arithmetic<Tensor>) {
       return VReal(0) / VReal(0);
     } else {
       return Tensor{tag::fill{VReal(0) / VReal(0)}};
     }
   }();
   auto& discretized_field = [&]() -> decltype(auto) {
-    if constexpr (is_scalarfield<V>()) {
+    if constexpr (is_arithmetic<Tensor>) {
       return discretized_domain.template insert_chunked_vertex_property<VReal>(
           property_name);
-    } else if constexpr (is_vectorfield<V>()) {
-      return discretized_domain
-          .template vertex_property<vec<VReal, V::tensor_t::dimension(0)>>(
-              property_name);
-    } else if constexpr (is_matrixfield<V>()) {
+    } else if constexpr (is_vec<Tensor>) {
       return discretized_domain.template vertex_property<
-          mat<VReal, V::tensor_t::dimension(0), V::tensor_t::dimension(1)>>(
+          vec<VReal, Tensor::dimension(0)>>(
+          property_name);
+    } else if constexpr (is_mat<Tensor>) {
+      return discretized_domain.template vertex_property<
+          mat<VReal, Tensor::dimension(0), Tensor::dimension(1)>>(
           property_name);
     } else {
       return discretized_domain.template vertex_property<Tensor>(
