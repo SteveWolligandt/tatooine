@@ -214,7 +214,7 @@ struct autonomous_particle_flowmap_discretization {
   autonomous_particle_flowmap_discretization(
       Flowmap&& flowmap, arithmetic auto const t0, arithmetic auto const tau,
       arithmetic auto const                    tau_step,
-      uniform_grid<Real, NumDimensions> const& g) {
+      uniform_rectilinear_grid<Real, NumDimensions> const& g) {
     static_assert(
         std::decay_t<Flowmap>::num_dimensions() == NumDimensions,
         "Number of dimensions of flowmap does not match number of dimensions.");

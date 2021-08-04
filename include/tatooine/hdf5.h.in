@@ -49,11 +49,6 @@ template <typename T>
 struct h5_type;
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 template <>
-struct h5_type<char> {
-  static auto memory_type() { return H5T_NATIVE_CHAR; }
-};
-// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-template <>
 struct h5_type<std::uint16_t> {
   static auto memory_type() { return H5T_NATIVE_USHORT; }
   static auto file_type_little_endian() { return H5T_STD_U16LE; }
@@ -93,6 +88,28 @@ struct h5_type<std::int64_t> {
   static auto memory_type() { return H5T_NATIVE_LLONG; }
   static auto file_type_little_endian() { return H5T_STD_I64LE; }
   static auto file_type_big_endian() { return H5T_STD_I64BE; }
+};
+// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+template <>
+struct h5_type<char> {
+  static auto memory_type() { return H5T_NATIVE_CHAR; }
+  static auto file_type_little_endian() {
+    return h5_type<std::int32_t>::file_type_little_endian();
+  }
+  static auto file_type_big_endian() {
+    return h5_type<std::int32_t>::file_type_big_endian();
+  }
+};
+// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+template <>
+struct h5_type<unsigned char> {
+  static auto memory_type() { return H5T_NATIVE_UCHAR; }
+  static auto file_type_little_endian() {
+    return h5_type<std::uint32_t>::file_type_little_endian();
+  }
+  static auto file_type_big_endian() {
+    return h5_type<std::uint32_t>::file_type_big_endian();
+  }
 };
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 template <>
@@ -141,38 +158,99 @@ struct h5_type<tensor<T, Dims...>> {
     return h5_type<T>::file_type_big_endian();
   }
 };
+// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+template <typename Char>
+struct h5_type<std::basic_string<Char>> {
+  static auto memory_type() { return H5T_STRING; }
+  static auto file_type_little_endian() {
+    return h5_type<typename std::basic_string<Char>::value_type>::
+        file_type_little_endian();
+  }
+  static auto file_type_big_endian() {
+    return h5_type<
+        typename std::basic_string<Char>::value_type>::file_type_big_endian();
+  }
+};
 //==============================================================================
-// class attribute {
-// public:
-//  using this_t = attribute;
-//
-// private:
-//  mutable std::shared_ptr<H5::H5File> m_file_id;
-//  H5::Attribute                       m_attribute;
-//  std::string                         m_name;
-//
-// public:
-//  attribute(std::shared_ptr<H5::H5File>& file_id,
-//            H5::Attribute const&
-//            attribute, std::string const& name)
-//      : m_file_im_file_id{file_id}, m_attribute{attribute},
-//      m_name{name} {}
-//  //----------------------------------------------------------------------------
-//  attribute(attribute const&)     = default;
-//  attribute(attribute&&) noexcept = default;
-//  //----------------------------------------------------------------------------
-//  auto operator=(attribute const&) -> attribute& = default;
-//  auto operator=(attribute&&) noexcept -> attribute& = default;
-//  //============================================================================
-//  template <typename T>
-//  auto read() {
-//    std::vector<T> t;
-//    auto           s = m_attribute.getInMemDataSize();
-//    t.resize(s / sizeof(T));
-//    m_attribute.read(h5_type<T>::memory_type(), t.data());
-//    return t;
-//  }
-//};
+class attribute {
+ public:
+  using this_t     = attribute;
+
+ private:
+  std::unique_ptr<hid_t> m_parent_id;
+  std::string            m_name;
+
+ public:
+  attribute(std::unique_ptr<hid_t> const& file_id,
+            std::string const& name)
+      : 
+        m_parent_id{std::make_unique<hid_t>(*file_id)},
+        m_name{name} {
+    //H5Iinc_ref(*m_parent_id);
+  }
+  //----------------------------------------------------------------------------
+  attribute(attribute const& other)
+      : 
+        m_parent_id{std::make_unique<hid_t>(*other.m_parent_id)},
+        m_name{other.m_name} {
+    //H5Iinc_ref(*m_parent_id);
+  }
+  //----------------------------------------------------------------------------
+  attribute(attribute&&) noexcept = default;
+  //----------------------------------------------------------------------------
+  auto operator=(attribute const& other) -> attribute& {
+    //if (m_parent_id != nullptr) {
+    //  H5Fclose(*m_parent_id);
+    //}
+    m_parent_id    = std::make_unique<hid_t>(*other.m_parent_id);
+    m_name       = other.m_name;
+    //H5Iinc_ref(*m_parent_id);
+    return *this;
+  }
+  //----------------------------------------------------------------------------
+  auto operator=(attribute&&) noexcept -> attribute& = default;
+  //----------------------------------------------------------------------------
+  ~attribute() {
+    //if (m_parent_id != nullptr) {
+    //  H5Fclose(*m_parent_id);
+    //}
+  }
+  //============================================================================
+  auto read() {
+    //T data;
+    //auto           s = m_attribute.getInMemDataSize();
+    //t.resize(s / sizeof(T));
+    //m_attribute.read(h5_type<T>::memory_type(), t.data());
+    //return t;
+  }
+  //============================================================================
+  auto write(std::string const& s) {
+    auto dataspace_id = H5Screate(H5S_SCALAR);
+    auto type_id      = H5Tcopy(H5T_C_S1);
+    H5Tset_size(type_id, s.size());
+    api::get().disable_error_printing();
+    auto attribute_id = H5Acreate(*m_parent_id, m_name.data(), type_id, dataspace_id,
+                                  H5P_DEFAULT, H5P_DEFAULT);
+    api::get().enable_error_printing();
+    if (attribute_id <= 0) {
+      attribute_id = H5Aopen(*m_parent_id, m_name.data(), H5P_DEFAULT);
+    }
+
+    if (attribute_id >= 0) {
+      H5Awrite(attribute_id, type_id, s.data());
+      H5Aclose(attribute_id);
+    }
+
+    H5Sclose(dataspace_id);
+    H5Tclose(type_id);
+
+  }
+  //----------------------------------------------------------------------------
+  auto operator=(std::string const& s) -> attribute& {
+    write(s);
+    return *this;
+  }
+};
 //==============================================================================
 template <typename T>
 class dataset {
@@ -542,40 +620,42 @@ class dataset {
   using this_t     = group;
 
  private:
-  std::unique_ptr<hid_t> m_file_id;
+  std::unique_ptr<hid_t> m_parent_id;
   std::unique_ptr<hid_t> m_group_id;
   std::string            m_name;
   //============================================================================
  public:
   group(std::unique_ptr<hid_t> const& file_id, hid_t const group_id,
           std::string const& name)
-      : m_file_id{std::make_unique<hid_t>(*file_id)},
+      : 
+        m_parent_id{std::make_unique<hid_t>(*file_id)},
         m_group_id{std::make_unique<hid_t>(group_id)},
         m_name{name} {
-    H5Iinc_ref(*m_file_id);
+    //H5Iinc_ref(*m_parent_id);
   }
   //----------------------------------------------------------------------------
   group(group const& other)
-      : m_file_id{std::make_unique<hid_t>(*other.m_file_id)},
+      :
+        m_parent_id{std::make_unique<hid_t>(*other.m_parent_id)},
         m_group_id{std::make_unique<hid_t>(*other.m_group_id)},
         m_name{other.m_name} {
-    H5Iinc_ref(*m_file_id);
+    //H5Iinc_ref(*m_parent_id);
     H5Iinc_ref(*m_group_id);
   }
   //----------------------------------------------------------------------------
   group(group&&) noexcept = default;
   //----------------------------------------------------------------------------
   auto operator=(group const& other) -> group& {
-    if (m_file_id != nullptr) {
-      H5Fclose(*m_file_id);
-    }
+    //if (m_parent_id != nullptr) {
+    //  H5Fclose(*m_parent_id);
+    //}
     if (m_group_id != nullptr) {
       H5Gclose(*m_group_id);
     }
-    m_file_id    = std::make_unique<hid_t>(*other.m_file_id);
+    m_parent_id    = std::make_unique<hid_t>(*other.m_parent_id);
     m_group_id = std::make_unique<hid_t>(*other.m_group_id);
     m_name       = other.m_name;
-    H5Iinc_ref(*m_file_id);
+    //H5Iinc_ref(*m_parent_id);
     H5Iinc_ref(*m_group_id);
     return *this;
   }
@@ -583,42 +663,41 @@ class dataset {
   auto operator=(group&&) noexcept -> group& = default;
   //----------------------------------------------------------------------------
   ~group() {
-    if (m_file_id != nullptr) {
-      H5Fclose(*m_file_id);
-    }
+    //if (m_parent_id != nullptr) {
+    //  H5Fclose(*m_parent_id);
+    //}
     if (m_group_id != nullptr) {
       H5Gclose(*m_group_id);
     }
   }
-//  //============================================================================
-//  auto attribute(std::string const& attribute_name) {
-//    return hdf5::attribute{
-//        m_file_id, m_group.openAttribute(attribute_name),
-//        attribute_name};
-//  }
-//  //============================================================================
-//  template <typename T>
-//  auto dataset(std::string const& dataset_name) {
-//    return hdf5::dataset<T>{
-//        m_file_id, m_group.openDataSet(dataset_name), dataset_name};
-//  }
-//  //----------------------------------------------------------------------------
-//#ifdef __cpp_concepts
-//  template <typename T, integral... Size>
-//#else
-//  template <typename T, typename... Size, enable_if<is_integral<Size...>> =
-//  true>
-//#endif
-//  auto add_dataset(std::string const& dataset_name, Size... size) {
-//    H5::AtomType data_type{h5_type<T>::memory_type()};
-//    hsize_t      dimsf[]{static_cast<hsize_t>(size)...};  // data set
-//    dimensions std::reverse(dimsf, dimsf + sizeof...(Size)); return
-//    hdf5::dataset<T>{
-//        m_file_id,
-//        m_group.createDataSet(dataset_name, data_type,
-//                              H5::DataSpace{sizeof...(Size), dimsf}),
-//        dataset_name};
-//  }
+  auto attribute(std::string const& name) const {
+    return hdf5::attribute{m_group_id, name};
+  }
+  //============================================================================
+  auto add_sub_group(char const* name) {
+    hid_t group_id;
+    api::get().disable_error_printing();
+    group_id =
+        H5Gcreate2(*m_group_id, name, H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT);
+    api::get().enable_error_printing();
+    if (group_id <= 0) {
+      group_id = H5Gopen2(*m_group_id, name, H5P_DEFAULT);
+    }
+    return hdf5::group{m_group_id, group_id, name};
+  }
+  //----------------------------------------------------------------------------
+  auto add_sub_group(std::string const& name) {
+    return add_sub_group(name.data());
+  }
+  //----------------------------------------------------------------------------
+  auto sub_group(char const* name) const {
+    return hdf5::group{m_group_id, H5Gopen2(*m_group_id, name, H5P_DEFAULT),
+                       name};
+  }
+  //----------------------------------------------------------------------------
+  auto sub_group(std::string const& name) const {
+    return sub_group(name.data());
+  }
 };
 //==============================================================================
 class file {
@@ -627,7 +706,7 @@ class file {
  public:
   file(filesystem::path const& path) : file{path.c_str()} {}
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-  file(std::string const& path) : file{path.c_str()} {}
+  file(std::string const& path) : file{path.data()} {}
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
   file(char const* path) { open(path); }
   //----------------------------------------------------------------------------
@@ -686,7 +765,7 @@ class file {
     std::reverse(dimsf, dimsf + sizeof...(size));
     auto dspace     = H5Screate_simple(sizeof...(Size), dimsf, nullptr);
     api::get().disable_error_printing();
-    hid_t dataset_id = H5Dcreate2(*m_file_id, dataset_name.c_str(),
+    auto dataset_id = H5Dcreate2(*m_file_id, dataset_name.data(),
                                  h5_type<T>::file_type_little_endian(), dspace,
                                  H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT);
     api::get().enable_error_printing();
@@ -707,7 +786,7 @@ class file {
   template <typename T>
   auto dataset(std::string const& dataset_name) const {
     return hdf5::dataset<T>{
-        m_file_id, H5Dopen(*m_file_id, dataset_name.c_str(), H5P_DEFAULT),
+        m_file_id, H5Dopen(*m_file_id, dataset_name.data(), H5P_DEFAULT),
         dataset_name};
   }
   //============================================================================
@@ -723,7 +802,7 @@ class file {
     return hdf5::group{m_file_id, group_id, name};
   }
   //----------------------------------------------------------------------------
-  auto add_group(std::string const& name) { return add_group(name.c_str()); }
+  auto add_group(std::string const& name) { return add_group(name.data()); }
   //----------------------------------------------------------------------------
   auto group(char const* name) const {
     return hdf5::group{m_file_id,
@@ -731,7 +810,11 @@ class file {
                             name};
   }
   //----------------------------------------------------------------------------
-  auto group(std::string const& name) const { return group(name.c_str()); }
+  auto group(std::string const& name) const { return group(name.data()); }
+  //============================================================================
+  auto attribute(std::string const& name) const {
+    return hdf5::attribute{m_file_id, name};
+  }
 };
 //==============================================================================
 }  // namespace tatooine::hdf5

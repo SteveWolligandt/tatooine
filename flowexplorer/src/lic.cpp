@@ -86,7 +86,7 @@ void lic::calculate_lic() {
     std::seed_seq seed(begin(m_seed_str), end(m_seed_str));
     auto          tex =
         gpu::lic(*m_v,
-                 uniform_grid<real_t, 2>{
+                 uniform_rectilinear_grid<real_t, 2>{
                      linspace{m_bb->min(0), m_bb->max(0),
                               static_cast<size_t>(m_v->resolution()(0))},
                      linspace{m_bb->min(1), m_bb->max(1),

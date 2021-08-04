@@ -57,7 +57,7 @@ struct scene {
   auto remove_link(ui::link const& link_to_remove) -> void;
   auto render(std::chrono::duration<double> const& dt) -> void;
   //----------------------------------------------------------------------------
-  auto find_node(size_t const id) -> ui::base::node*;
+  auto find_node(ax::NodeEditor::NodeId const& id) -> ui::base::node*;
   //----------------------------------------------------------------------------
   auto find_input_pin(ax::NodeEditor::PinId const& id) -> ui::input_pin*;
   auto find_output_pin(ax::NodeEditor::PinId const& id) -> ui::output_pin*;

@@ -175,14 +175,14 @@ auto scene::render(std::chrono::duration<double> const& dt) -> void {
   gl::enable_depth_write();
 }
 //------------------------------------------------------------------------------
-auto scene::find_node(size_t const id) -> ui::base::node* {
+auto scene::find_node(ax::NodeEditor::NodeId const& id) -> ui::base::node* {
   for (auto& n : m_nodes) {
-    if (n->get_id_number() == id) {
+    if (*n == id) {
       return n.get();
     }
   }
   for (auto& r : m_renderables) {
-    if (r->get_id_number() == id) {
+    if (*r == id) {
       return r.get();
     }
   }
@@ -467,28 +467,52 @@ void scene::draw_node_editor(size_t const pos_x, size_t const pos_y,
   namespace ed = ax::NodeEditor;
   window().push_regular_font();
   ImGui::SetNextWindowPos(ImVec2(pos_x, pos_y));
-  ImGui::SetNextWindowSize(ImVec2(width, height));
-  ImGui::Begin("Node Editor", &show,
+  ImGui::SetNextWindowSize(ImVec2(window().width()*2/3.0, height));
+
+  ed::SetCurrentEditor(m_node_editor_context);
+  ImGui::Begin("Scene", &show,
                ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoMove |
                    ImGuiWindowFlags_NoBringToFrontOnFocus |
                    ImGuiWindowFlags_NoTitleBar);
   node_creators(width - 20);
-  ed::SetCurrentEditor(m_node_editor_context);
   ed::Begin("My Editor", ImVec2(0.0, 0.0f));
   draw_nodes();
   draw_links();
   query_link_creation();
   query_link_and_node_deletions();
   ed::End();
+  ImGui::End();
+
+  ImGui::SetNextWindowPos(ImVec2(window().width() * 2 / 3.0, pos_y));
+  ImGui::SetNextWindowSize(ImVec2(window().width() / 3.0, height));
+  ImGui::Begin("NodeDetail", &show,
+               ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoMove |
+                   ImGuiWindowFlags_NoBringToFrontOnFocus |
+                   ImGuiWindowFlags_NoTitleBar);
+  ed::NodeId selected_node_id;
+  if (ed::GetSelectedNodes(&selected_node_id, 1) == 1) {
+    auto selected_node = find_node(selected_node_id);
+    window().push_bold_font();
+    ImGui::PushStyleColor(ImGuiCol_FrameBg, ImVec4(0, 0, 0, 0));
+    auto const old_title = selected_node->title();
+    if (ImGui::InputText("##title", &selected_node->title())) {
+      selected_node->on_title_changed(old_title);
+    }
+    ImGui::PopStyleColor();
+    window().pop_font();
+    auto const changed = selected_node->draw_properties();
+    if (changed) {
+      selected_node->notify_property_changed();
+    }
+
+  }
+
+  ImGui::End();
   ed::SetCurrentEditor(nullptr);
   window().pop_font();
-  ImGui::End();
 }
 //------------------------------------------------------------------------------
 void scene::node_creators(size_t const width) {
-  //ImGui::BeginVertical("nodecreators1");
-  //ImGui::BeginHorizontal("nodecreators2");
-
   ImTextureID aabb2d_id =
       reinterpret_cast<ImTextureID>(window().aabb2d_icon_tex().id());
   if (ImGui::ImageButton(aabb2d_id, ImVec2(50 * window().ui_scale_factor(),
@@ -502,7 +526,6 @@ void scene::node_creators(size_t const width) {
                                            50 * window().ui_scale_factor()))) {
     m_renderables.emplace_back(new nodes::aabb3d{*this});
   }
-  //ImGui::EndHorizontal();
   ImGui::PushItemWidth(width);
   if (ImGui::BeginCombo("##combo", nullptr)) {
     for (auto const& item : items) {
@@ -513,7 +536,6 @@ void scene::node_creators(size_t const width) {
     ImGui::EndCombo();
   }
   ImGui::PopItemWidth();
-  //ImGui::EndVertical();
 }
 //------------------------------------------------------------------------------
 void scene::write(filesystem::path const& filepath) const {

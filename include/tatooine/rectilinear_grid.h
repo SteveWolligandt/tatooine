@@ -2065,15 +2065,39 @@ class rectilinear_grid {
       hdf5::file& f, std::string const& name,
       typed_vertex_property_interface_t<T, HasNonConstReference> const& prop,
       std::index_sequence<Is...> /*seq*/) const {
-    f.add_group("vertex_properties");
-    auto dataset = f.add_dataset<T>("vertex_properties/" + name, size<Is>()...);
+    if constexpr (is_arithmetic<T>) {
+      auto dataset = f.add_dataset<T>(name, size<Is>()...);
 
-    auto data = std::vector<T>{};
-    data.reserve(vertices().size());
-    vertices().iterate_indices(
-        [&](auto const... is) { data.push_back(prop(is...)); });
-    dataset.write(data);
+      auto data = std::vector<T>{};
+      data.reserve(vertices().size());
+      vertices().iterate_indices(
+          [&](auto const... is) { data.push_back(prop(is...)); });
+      dataset.write(data);
+    } else if constexpr (is_vec<T>) {
+      auto g = f.add_group(name);
+      auto gg = g.add_sub_group(name);
+      std::stringstream ss;
+      ss << "{";
+      ss << "<" + name + "/ comp0>";
+      for (size_t i = 1; i < T::dimension(0); ++i) {
+        ss << ",<" + name + "/ comp" << i << ">";
+      }
+      ss << "}";
+      gg.attribute(name)     = ss.str();
+      gg.attribute("vsType") = "vsVars";
+
+      for (size_t i = 0; i < T::dimension(0); ++i) {
+        auto dataset = f.add_dataset<typename T::value_type>(
+            "comp" + std::to_string(0), size<Is>()...);
+        auto data = std::vector<typename T::value_type>{};
+        data.reserve(vertices().size());
+        vertices().iterate_indices(
+            [&](auto const... is) { data.push_back(prop(is...)(i)); });
+        dataset.write(data);
+      }
+    }
   }
+  //----------------------------------------------------------------------------
   template <typename... Ts, size_t... Is>
   void write_prop_hdf5_wrapper(hdf5::file& f, std::string const& name,
                                vertex_property_t const&   prop,
@@ -2096,21 +2120,22 @@ class rectilinear_grid {
   auto write_hdf5(filesystem::path const&    path,
                   std::index_sequence<Is...> seq) const -> void {
     auto f = hdf5::file{path};
-    f.add_group("dimensions");
+    f.add_group("CartGrid");
     (
         [&] {
           using dim_type =
               typename std::decay_t<decltype(dimension<Is>())>::value_type;
-          auto dim = f.add_dataset<dim_type>("dimensions/" + std::to_string(Is),
+          auto dim = f.add_dataset<dim_type>("CartGrid/axis" + std::to_string(Is),
                                              size<Is>());
           dim.write(dimension<Is>());
         }(),
         ...);
 
     for (const auto& [name, prop] : this->m_vertex_properties) {
-      write_prop_hdf5_wrapper< std::uint16_t, std::uint32_t,
-                               std::int16_t, std::int32_t, float,
-                              double>(f, name, *prop, seq);
+      write_prop_hdf5_wrapper<std::uint16_t, std::uint32_t, std::int16_t,
+                              std::int32_t, float, double, vec2f, vec2d, vec2f,
+                              vec2d, vec4f, vec4d, vec5f, vec5d>(f, name, *prop,
+                                                                 seq);
     }
   }
   //----------------------------------------------------------------------------
@@ -2253,39 +2278,39 @@ template <arithmetic Real, size_t N>
 #else
 template <typename Real, size_t N>
 #endif
-using uniform_grid = rectilinear_grid_creator_t<linspace<Real>, N>;
+using uniform_rectilinear_grid = rectilinear_grid_creator_t<linspace<Real>, N>;
 template <size_t N>
-using UniformGrid   = uniform_grid<real_t, N>;
-using uniform_grid2 = UniformGrid<2>;
-using uniform_grid3 = UniformGrid<3>;
-using uniform_grid4 = UniformGrid<4>;
-using uniform_grid5 = UniformGrid<5>;
+using UniformRectilinearGrid    = uniform_rectilinear_grid<real_t, N>;
+using uniform_rectilinear_grid2 = UniformRectilinearGrid<2>;
+using uniform_rectilinear_grid3 = UniformRectilinearGrid<3>;
+using uniform_rectilinear_grid4 = UniformRectilinearGrid<4>;
+using uniform_rectilinear_grid5 = UniformRectilinearGrid<5>;
 //------------------------------------------------------------------------------
 #ifdef __cpp_concepts
 template <arithmetic Real, size_t N>
 #else
 template <typename Real, size_t N>
 #endif
-using non_uniform_grid = rectilinear_grid_creator_t<std::vector<Real>, N>;
+using nonuniform_rectilinear_grid = rectilinear_grid_creator_t<std::vector<Real>, N>;
 template <size_t N>
-using NonUniformGrid    = non_uniform_grid<real_t, N>;
-using non_uniform_grid2 = NonUniformGrid<2>;
-using non_uniform_grid3 = NonUniformGrid<3>;
-using non_uniform_grid4 = NonUniformGrid<4>;
-using non_uniform_grid5 = NonUniformGrid<5>;
+using NonuniformRectilinearGrid    = nonuniform_rectilinear_grid<real_t, N>;
+using nonuniform_rectilinear_grid2 = NonuniformRectilinearGrid<2>;
+using nonuniform_rectilinear_grid3 = NonuniformRectilinearGrid<3>;
+using nonuniform_rectilinear_grid4 = NonuniformRectilinearGrid<4>;
+using nonuniform_rectilinear_grid5 = NonuniformRectilinearGrid<5>;
 //------------------------------------------------------------------------------
 #ifdef __cpp_concepts
 template <arithmetic Real, size_t... N>
 #else
 template <typename Real, size_t... N>
 #endif
-using static_non_uniform_grid = rectilinear_grid<std::array<Real, N>...>;
+using static_nonuniform_rectilinear_grid = rectilinear_grid<std::array<Real, N>...>;
 template <size_t N>
-using StaticNonUniformGrid     = static_non_uniform_grid<real_t, N>;
-using static_non_uniform_grid2 = NonUniformGrid<2>;
-using static_non_uniform_grid3 = NonUniformGrid<3>;
-using static_non_uniform_grid4 = NonUniformGrid<4>;
-using static_non_uniform_grid5 = NonUniformGrid<5>;
+using StaticNonUniformGrid     = static_nonuniform_rectilinear_grid<real_t, N>;
+using static_nonuniform_rectilinear_grid2 = NonuniformRectilinearGrid<2>;
+using static_nonuniform_rectilinear_grid3 = NonuniformRectilinearGrid<3>;
+using static_nonuniform_rectilinear_grid4 = NonuniformRectilinearGrid<4>;
+using static_nonuniform_rectilinear_grid5 = NonuniformRectilinearGrid<5>;
 //==============================================================================
 }  // namespace tatooine
 //==============================================================================

@@ -128,7 +128,7 @@ TEST_CASE_METHOD(autonomous_particle_fixture,
 // TEST_CASE("autonomous_particle_saddle",
 //          "[autonomous_particle][2d][2D][saddle][until_split]") {
 //  saddle                  v;
-//  uniform_grid<real_t, 2> g{linspace{-1.0, 1.0, 10}, linspace{-1.0, 1.0,
+//  uniform_rectilinear_grid<real_t, 2> g{linspace{-1.0, 1.0, 10}, linspace{-1.0, 1.0,
 //  10}}; error_estimation(v, g);
 //}
 //==============================================================================

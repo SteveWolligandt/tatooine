@@ -44,7 +44,7 @@ auto node::draw_node() -> void {
   ImGui::Dummy(ImVec2(10, 0));
   builder.header();
   ImGui::Checkbox("", &is_active());
-  //ImGui::Spring(0);
+  ImGui::SameLine();
 
   auto alpha = ImGui::GetStyle().Alpha;
   if (m_self_pin != nullptr && scene().new_link() &&
@@ -55,19 +55,15 @@ auto node::draw_node() -> void {
   // draw editable title
   ImGui::PushStyleVar(ImGuiStyleVar_Alpha, alpha);
   scene().window().push_bold_font();
-  ImGui::PushStyleColor(ImGuiCol_FrameBg, ImVec4(0,0,0,0));
   ImGui::PushItemWidth(200);
-  ImGui::InputText("##title", &title());
+  ImGui::TextUnformatted(title().c_str());
   ImGui::PopItemWidth();
-  ImGui::PopStyleColor();
   scene().window().pop_font();
   ImGui::PopStyleVar();
 
-  //ImGui::Spring(1);
 
   if (m_self_pin != nullptr) {
-    //ImGui::BeginVertical("delegates", ImVec2(0, 0));
-    //ImGui::Spring(1, 0);
+    ImGui::SameLine();
     auto alpha = ImGui::GetStyle().Alpha;
     if (scene().new_link() && !scene().can_create_new_link(*m_self_pin)) {
       alpha = alpha * 48.0f / 255.0f;
@@ -76,62 +72,36 @@ auto node::draw_node() -> void {
     ed::BeginPin(m_self_pin->get_id(), ed::PinKind::Output);
     ed::PinPivotAlignment(ImVec2(1.0f, 0.5f));
     ed::PinPivotSize(ImVec2(0, 0));
-    //ImGui::BeginHorizontal(m_self_pin->get_id().AsPointer());
     ImGui::PushStyleVar(ImGuiStyleVar_Alpha, alpha);
     if (!m_self_pin->title().empty()) {
       ImGui::TextUnformatted(m_self_pin->title().c_str());
-      //ImGui::Spring(0);
     }
     m_self_pin->draw(icon_size, alpha);
-    //ImGui::Spring(0, ImGui::GetStyle().ItemSpacing.x / 2);
-    //ImGui::EndHorizontal();
     ImGui::PopStyleVar();
     ed::EndPin();
 
-    //ImGui::Spring(1, 0);
-    //ImGui::EndVertical();
-    //ImGui::Spring(0, ImGui::GetStyle().ItemSpacing.x / 2);
-  } else {
-    //ImGui::Spring(0);
   }
   builder.end_header();
 
+  ImGui::Columns(2);
   for (auto& input : input_pins()) {
     auto alpha = ImGui::GetStyle().Alpha;
-   if (scene().new_link() && !scene().can_create_new_link(*input)) {
+    if (scene().new_link() && !scene().can_create_new_link(*input)) {
       alpha = alpha * 48.0f / 255.0f;
     }
 
     builder.input(input->get_id());
     ImGui::PushStyleVar(ImGuiStyleVar_Alpha, alpha);
     input->draw(icon_size, alpha);
-    //ImGui::Spring(0);
     if (!input->title().empty()) {
+      ImGui::SameLine();
       ImGui::TextUnformatted(input->title().c_str());
-      //ImGui::Spring(0);
     }
     ImGui::PopStyleVar();
     builder.end_input();
   }
-  // ImGui::Spring(0);
-  {
-    auto alpha = ImGui::GetStyle().Alpha;
-    if (scene().new_link()) {
-      alpha = alpha * 48.0f / 255.0f;
-    }
-    builder.middle();
-    ImGui::PushStyleVar(ImGuiStyleVar_Alpha, alpha);
-    ImGui::PushItemWidth(200 * scene().window().ui_scale_factor());
-    //ed::Suspend();
-    auto const changed = draw_properties();
-    //ed::Resume();
-    if (changed) {
-      notify_property_changed();
-    }
-    ImGui::PopItemWidth();
-    ImGui::PopStyleVar();
-  }
 
+  ImGui::NextColumn();
   for (auto& output : output_pins()) {
     if (output->is_active()) {
       auto alpha = ImGui::GetStyle().Alpha;
@@ -142,15 +112,15 @@ auto node::draw_node() -> void {
       ImGui::PushStyleVar(ImGuiStyleVar_Alpha, alpha);
       builder.output(output->get_id());
       if (!output->title().empty()) {
-        //ImGui::Spring(0);
         ImGui::TextUnformatted(output->title().c_str());
+        ImGui::SameLine();
       }
-      //ImGui::Spring(0);
       output->draw(icon_size, alpha);
       ImGui::PopStyleVar();
       builder.end_output();
     }
   }
+  ImGui::Columns(1);
   builder.end();
 }
 //==============================================================================

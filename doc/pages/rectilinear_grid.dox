@@ -3,9 +3,9 @@
 \tableofcontents
 \section grid_doc_sec_usage Basic usage
 \code{.cpp}
-auto create_uniform_grid_2d() {
-  auto uniform_grid_2d = tatooine::rectilinear_grid{32, 64};
-  // uniform_grid_2d is of type
+auto create_uniform_rectilinear_grid_2d() {
+  auto uniform_rectilinear_grid_2d = tatooine::rectilinear_grid{32, 64};
+  // uniform_rectilinear_grid_2d is of type
   // tatooine::rectilinear_grid<tatooine::linspace<double>,
   //                            tatooine::linspace<double>>
 
@@ -19,14 +19,14 @@ tatooine::rectilinear_grid is a templated class and for each dimension holds a
 container of coordinates. When giving the constructor integral types (that must
 be > 0) a deduction guide will be used to create an object of type
 tatooine::rectilinear_grid<tatooine::linspace<double>,
-tatooine::linspace<double>>. So in the example above uniform_grid_2d holds two
+tatooine::linspace<double>>. So in the example above uniform_rectilinear_grid_2d holds two
 instances of \ref tatooine::linspace "tatooine::linspace<double>". The code
 above creates the following as here:
 \code{.cpp}
-auto create_uniform_grid_2d() {
-  auto uniform_grid_2d = tatooine::rectilinear_grid {
-                           tatooine::linspace{0.0, 1.0, 32},
-                           tatooine::linspace{0.0, 1.0, 64}};
+auto create_uniform_rectilinear_grid_2d() {
+  auto uniform_rectilinear_grid_2d = tatooine::rectilinear_grid {
+                                     tatooine::linspace{0.0, 1.0, 32},
+                                     tatooine::linspace{0.0, 1.0, 64}};
 
   // ...
 }
@@ -37,12 +37,12 @@ href=https://en.cppreference.com/w/cpp/container/vector> std::vector </a> and <a
 href=https://en.cppreference.com/w/cpp/container/array> std::array </a>. These
 types can also be mixed.
 \code{.cpp}
-auto create_uniform_grid_2d() {
-  auto non_uniform_grid_3d = tatooine::rectilinear_grid{
+auto create_uniform_rectilinear_grid_2d() {
+  auto nonuniform_rectilinear_grid_3d = tatooine::rectilinear_grid{
                                linspace{0.0, 1.0, 3},
                                std::array{0.0, 0.9, 1.0},
                                std::vector{0.5, 0.6, 1.0}};
-  // non_uniform_grid_3d is of type
+  // nonuniform_rectilinear_grid_3d is of type
   // tatooine::rectilinear_grid<tatooine::linspace<double>,
   //                            std::array<double, 3>,
   //                            std::vector<double>>
@@ -59,9 +59,9 @@ because here the factors for differentiating do not have to be calculated.
 A tatooine::rectilinear_grid can be indexed with the parantheses-operator or the at method:
 \code{.cpp}
 auto create_grid_with_vertex_property() {
-  auto uniform_grid_2d = tatooine::rectilinear_grid {32, 64};
-  auto const x_0_0     = uniform_grid_2d.vertex_at(0, 0); // == tatooine::vec{0.0, 0.0} in this example
-  auto const x_31_63   = uniform_grid_2d.at(31, 63);// == tatooine::vec{1.0, 1.0} in this example
+  auto uniform_rectilinear_grid_2d = tatooine::rectilinear_grid {32, 64};
+  auto const x_0_0     = uniform_rectilinear_grid_2d.vertex_at(0, 0); // == tatooine::vec{0.0, 0.0} in this example
+  auto const x_31_63   = uniform_rectilinear_grid_2d.at(31, 63);// == tatooine::vec{1.0, 1.0} in this example
 }
 \endcode
 These methods return a tatooine::vec that represents the position of the rectilinear_grid
@@ -71,8 +71,8 @@ index.
 One can iterate in two ways over the vertices of a tatooine::rectilinear_grid:
 \code{.cpp}
 auto iterate_over_vertex_positions() {
-  auto uniform_grid_2d = tatooine::rectilinear_grid{32, 64};
-  for (auto const x : uniform_grid_2d.vertices()) {
+  auto uniform_rectilinear_grid_2d = tatooine::rectilinear_grid{32, 64};
+  for (auto const x : uniform_rectilinear_grid_2d.vertices()) {
     // x is an instance tatooine::vec
   }
 }
@@ -80,9 +80,9 @@ auto iterate_over_vertex_positions() {
 
 \code{.cpp}
 auto iterate_over_vertex_indices() {
-  auto uniform_grid_2d = tatooine::rectilinear_grid{32, 64};
-  uniform_grid_2d.vertices().iterate_indices([&](auto const... indices){
-    auto const x = uniform_grid_2d.vertex_at(indices...);
+  auto uniform_rectilinear_grid_2d = tatooine::rectilinear_grid{32, 64};
+  uniform_rectilinear_grid_2d.vertices().iterate_indices([&](auto const... indices){
+    auto const x = uniform_rectilinear_grid_2d.vertex_at(indices...);
   });
 }
 \endcode
@@ -96,15 +96,15 @@ that can hold any data type. Vertex properties can be created as in the
 following example:
 \code{.cpp}
 auto create_grid_with_vertex_property() {
-  auto uniform_grid_2d = tatooine::rectilinear_grid{32, 64};
-  auto& prop           = uniform_grid_2d.vertex_property<double>("property_name");
+  auto uniform_rectilinear_grid_2d = tatooine::rectilinear_grid{32, 64};
+  auto& prop           = uniform_rectilinear_grid_2d.vertex_property<double>("property_name");
   prop(11, 63)         = 42.1337;
 }
 \endcode
 
 \note <b>`prop` has to be a reference!</b> Otherwise you are working on a copy of the property.
 
-uniform_grid_2d now holds a vertex property called "property_name". Internally
+uniform_rectilinear_grid_2d now holds a vertex property called "property_name". Internally
 the method `vertex_property` creates an object whose type inherits
 tatooine::dynamic_multidim_array. 
 
@@ -122,8 +122,8 @@ as an argument on that grid:
 
 \code{.cpp}
 auto create_grid_with_contiguous_vertex_property() {
-  auto uniform_grid_2d = tatooine::rectilinear_grid{32, 64};
-  auto& prop           = uniform_grid_2d.insert_contiguous_vertex_property<double>("property_name");
+  auto uniform_rectilinear_grid_2d = tatooine::rectilinear_grid{32, 64};
+  auto& prop           = uniform_rectilinear_grid_2d.insert_contiguous_vertex_property<double>("property_name");
   prop(11, 63)         = 42.1337;
 }
 \endcode
@@ -133,8 +133,8 @@ There is also a function that creates memory that is chunked:
 
 \code{.cpp}
 auto create_grid_with_chunked_vertex_property() {
-  auto uniform_grid_2d = tatooine::rectilinear_grid {32, 64};
-  auto& prop           = uniform_grid_2d.insert_chunked_vertex_property<double>("property_name", 2, 2);
+  auto uniform_rectilinear_grid_2d = tatooine::rectilinear_grid {32, 64};
+  auto& prop           = uniform_rectilinear_grid_2d.insert_chunked_vertex_property<double>("property_name", 2, 2);
   prop(11, 63)         = 42.1337;
 }
 \endcode
@@ -146,9 +146,9 @@ If the property already exists and another container type is queried to use an
 exception will be thrown. Example:
 \code{.cpp}
 auto create_chunked_and_contiguous_vertex_property() {
-  auto uniform_grid_2d = tatooine::rectilinear_grid{32, 64};
-  auto& chunked_uv     = uniform_grid_2d.insert_chunked_vertex_property<tatooine::vec2>("uv", 2, 2);
-  auto& contiguous_uv  = uniform_grid_2d.insert_contiguous_vertex_property<tatooine::vec2>("uv"); // here a std::runtime_error will be thrown
+  auto uniform_rectilinear_grid_2d = tatooine::rectilinear_grid{32, 64};
+  auto& chunked_uv     = uniform_rectilinear_grid_2d.insert_chunked_vertex_property<tatooine::vec2>("uv", 2, 2);
+  auto& contiguous_uv  = uniform_rectilinear_grid_2d.insert_contiguous_vertex_property<tatooine::vec2>("uv"); // here a std::runtime_error will be thrown
 }
 \endcode
 

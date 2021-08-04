@@ -179,14 +179,14 @@ auto main(int argc, char** argv) -> int {
     indicator.set_text("Buildung regular sampled flowmap");
     auto const n = static_cast<size_t>(
         std::ceil(std::pow(size(advected_particles), 1.0 / 3.0)));
-    rectilinear_grid  uniform_grid{linspace{-1.0, 1.0, n},
+    rectilinear_grid  uniform_rectilinear_grid{linspace{-1.0, 1.0, n},
                        linspace{-1.0, 1.0, n},
                        linspace{-1.0, 1.0, n}};
     auto& regular_sampled_flowmap =
-        uniform_grid.add_vertex_property<vec3, x_fastest>("flowmap");
-    uniform_grid.iterate_over_vertex_indices([&](auto const... is) {
+        uniform_rectilinear_grid.add_vertex_property<vec3, x_fastest>("flowmap");
+    uniform_rectilinear_grid.iterate_over_vertex_indices([&](auto const... is) {
       regular_sampled_flowmap(is...) =
-          numerical_flowmap(uniform_grid(is...), args.t0, args.tau);
+          numerical_flowmap(uniform_rectilinear_grid(is...), args.t0, args.tau);
     });
     //auto regular_flowmap_sampler =
     //    regular_sampled_flowmap

@@ -1,18 +1,19 @@
-#ifndef TATOOINE_FLOWEXPLORER_NODES_GRID_H
-#define TATOOINE_FLOWEXPLORER_NODES_GRID_H
+#ifndef TATOOINE_FLOWEXPLORER_NODES_RECTILINEAR_GRID_H
+#define TATOOINE_FLOWEXPLORER_NODES_RECTILINEAR_GRID_H
 //==============================================================================
 #include <tatooine/flowexplorer/line_shader.h>
 #include <tatooine/flowexplorer/renderable.h>
-#include <tatooine/rectilinear_grid.h>
-#include <tatooine/linspace.h>
 #include <tatooine/gl/indexeddata.h>
+#include <tatooine/linspace.h>
+#include <tatooine/rectilinear_grid.h>
 //==============================================================================
 namespace tatooine::flowexplorer::nodes {
 //==============================================================================
 template <size_t N>
-struct grid_renderer;
+struct rectilinear_grid_renderer;
 template <>
-struct grid_renderer<2> : tatooine::non_uniform_grid<real_t, 2> {
+struct rectilinear_grid_renderer<2>
+    : tatooine::nonuniform_rectilinear_grid<real_t, 2> {
   gl::indexeddata<vec3f> m_inner_geometry;
   gl::indexeddata<vec3f> m_outer_geometry;
   //----------------------------------------------------------------------------
@@ -93,7 +94,8 @@ struct grid_renderer<2> : tatooine::non_uniform_grid<real_t, 2> {
   }
 };
 template <>
-struct grid_renderer<3> : tatooine::non_uniform_grid<real_t, 3> {
+struct rectilinear_grid_renderer<3>
+    : tatooine::nonuniform_rectilinear_grid<real_t, 3> {
   gl::indexeddata<vec3f> m_outer_geometry;
   gl::indexeddata<vec3f> m_left_geometry;
   gl::indexeddata<vec3f> m_right_geometry;
@@ -108,30 +110,23 @@ struct grid_renderer<3> : tatooine::non_uniform_grid<real_t, 3> {
     shader.set_projection_matrix(P);
     shader.set_modelview_matrix(V);
 
-
     shader.set_color(0.8, 0.8, 0.8, 1);
-    auto const&            dim0 = this->template dimension<0>();
-    auto const&            dim1 = this->template dimension<1>();
-    auto const&            dim2 = this->template dimension<2>();
+    auto const& dim0 = this->template dimension<0>();
+    auto const& dim1 = this->template dimension<1>();
+    auto const& dim2 = this->template dimension<2>();
 
-    vec3f left{dim0.front(),
-               (dim1.front() + dim1.back()) * 2,
+    vec3f left{dim0.front(), (dim1.front() + dim1.back()) * 2,
                (dim2.front() + dim2.back()) * 2};
-    vec3f right{dim0.back(),
-                (dim1.front() + dim1.back()) * 2,
+    vec3f right{dim0.back(), (dim1.front() + dim1.back()) * 2,
                 (dim2.front() + dim2.back()) * 2};
-    vec3f bottom{(dim0.front() + dim0.back()) * 2,
-                 dim1.front(),
+    vec3f bottom{(dim0.front() + dim0.back()) * 2, dim1.front(),
                  (dim2.front() + dim2.back()) * 2};
-    vec3f top{(dim0.front() + dim0.back()) * 2,
-               dim1.back(),
+    vec3f top{(dim0.front() + dim0.back()) * 2, dim1.back(),
               (dim2.front() + dim2.back()) * 2};
     vec3f front{(dim0.front() + dim0.back()) * 2,
-                (dim1.front() + dim1.back()) * 2,
-                dim2.front()};
+                (dim1.front() + dim1.back()) * 2, dim2.front()};
     vec3f back{(dim0.front() + dim0.back()) * 2,
-               (dim1.front() + dim1.back()) * 2,
-               dim2.back()};
+               (dim1.front() + dim1.back()) * 2, dim2.back()};
     if (dot(normalize(left - eye), vec3f{-1, 0, 0}) < 0) {
       m_left_geometry.draw_lines();
     }
@@ -416,13 +411,15 @@ struct grid_renderer<3> : tatooine::non_uniform_grid<real_t, 3> {
   }
 };
 template <size_t N>
-struct rectilinear_grid : renderable<rectilinear_grid<N>>, grid_renderer<N> {
+struct rectilinear_grid : renderable<rectilinear_grid<N>>,
+                          rectilinear_grid_renderer<N> {
   std::array<ui::input_pin*, N> m_input_pins;
   //============================================================================
   rectilinear_grid(flowexplorer::scene& s)
       : renderable<rectilinear_grid<N>>{
-            "Grid", s,
-            *dynamic_cast<tatooine::non_uniform_grid<real_t, N>*>(this)} {
+            "Rectilinear Grid", s,
+            *dynamic_cast<tatooine::nonuniform_rectilinear_grid<real_t, N>*>(
+                this)} {
     for (size_t i = 0; i < N; ++i) {
       m_input_pins[i] =
           &this->template insert_input_pin<linspace<real_t>>("dim");
@@ -439,9 +436,9 @@ struct rectilinear_grid : renderable<rectilinear_grid<N>>, grid_renderer<N> {
       }
     }
     if constexpr (N == 3) {
-      grid_renderer<N>::render(P, V, this->scene().camera().eye());
+      rectilinear_grid_renderer<N>::render(P, V, this->scene().camera().eye());
     } else {
-      grid_renderer<N>::render(P, V);
+      rectilinear_grid_renderer<N>::render(P, V);
     }
   }
   //----------------------------------------------------------------------------
@@ -456,7 +453,7 @@ struct rectilinear_grid : renderable<rectilinear_grid<N>>, grid_renderer<N> {
     return all_linked;
   }
   //----------------------------------------------------------------------------
-  using non_uniform_grid<real_t, N>::dimension;
+  using nonuniform_rectilinear_grid<real_t, N>::dimension;
   auto dimension(size_t i) -> auto& {
     if (i == 0) {
       return this->template dimension<0>();
@@ -481,7 +478,7 @@ struct rectilinear_grid : renderable<rectilinear_grid<N>>, grid_renderer<N> {
           auto& data = pin.template get_linked_as<linspace<real_t>>();
           auto& d    = dimension(i);
           d.clear();
-          std::copy(begin(data), end(data), std::back_inserter(d));
+          boost::copy(data, std::back_inserter(d));
         }
       }
       ++i;
@@ -504,7 +501,7 @@ struct rectilinear_grid : renderable<rectilinear_grid<N>>, grid_renderer<N> {
           auto& data = p.get_linked_as<linspace<real_t>>();
           auto& d    = dimension(i);
           d.clear();
-          std::copy(begin(data), end(data), std::back_inserter(d));
+          boost::copy(data, std::back_inserter(d));
         }
         break;
       }
@@ -519,6 +516,13 @@ struct rectilinear_grid : renderable<rectilinear_grid<N>>, grid_renderer<N> {
       this->update_geometry();
       this->notify_property_changed(false);
     }
+  }
+  //----------------------------------------------------------------------------
+  auto draw_properties() -> bool override {
+    if (ImGui::Button("write HDF5")) {
+      this->write_hdf5("grid.h5");
+    }
+    return false;
   }
 };
 //==============================================================================
