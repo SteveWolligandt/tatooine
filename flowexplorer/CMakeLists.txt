@@ -1,4 +1,5 @@
 update_git_submodule(external/tomlplusplus)
+update_git_submodule(external/imgui-node-editor)
 #- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 set(TATFE_SRC_DIR ${CMAKE_CURRENT_SOURCE_DIR}/src)
 set(TATFE_BIN_SRC_DIR ${CMAKE_CURRENT_BINARY_DIR}/src)
@@ -61,10 +62,10 @@ add_executable(
   ${TATFE_SRC_DIR}/scene.cpp 
   ${TATFE_SRC_DIR}/pin.cpp
 
-  src/imgui-node-editor/crude_json.cpp
-  src/imgui-node-editor/imgui_canvas.cpp
-  src/imgui-node-editor/imgui_node_editor_api.cpp
-  src/imgui-node-editor/imgui_node_editor.cpp)
+  external/imgui-node-editor/crude_json.cpp
+  external/imgui-node-editor/imgui_canvas.cpp
+  external/imgui-node-editor/imgui_node_editor_api.cpp
+  external/imgui-node-editor/imgui_node_editor.cpp)
 
 if ("${CMAKE_CXX_COMPILER_ID}" STREQUAL "Clang")
   target_compile_options(flowexplorer PRIVATE "-fcolor-diagnostics")
@@ -76,7 +77,8 @@ target_compile_features(flowexplorer PUBLIC cxx_std_17)
 target_include_directories(flowexplorer
  PUBLIC
   ${TATFE_INCLUDE_DIR} ${TATFE_BIN_INCLUDE_DIR}
-  ${CMAKE_CURRENT_SOURCE_DIR}/external/tomlplusplus/include)
+  ${CMAKE_CURRENT_SOURCE_DIR}/external/tomlplusplus/include
+  ${CMAKE_CURRENT_SOURCE_DIR}/external)
 
 add_custom_target(flowexplorer.run ./flowexplorer DEPENDS tatooine flowexplorer)
 #- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
