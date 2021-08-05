@@ -1,82 +1,159 @@
 #ifndef TATOOINE_FLOWEXPLORER_SAMPLER_H
 #define TATOOINE_FLOWEXPLORER_SAMPLER_H
 //==============================================================================
+#include <tatooine/field.h>
 #include <tatooine/flowexplorer/ui/node.h>
 #include <tatooine/rectilinear_grid.h>
-#include <tatooine/field.h>
+#include <tatooine/visit.h>
 //==============================================================================
-namespace tatooine::flowexplorer::nodes{
+namespace tatooine::flowexplorer::nodes {
 //==============================================================================
-template <size_t N>
-struct sampler : ui::node<sampler<N>> {
+struct sample_to_grid : ui::node<sample_to_grid> {
  private:
-  nonuniform_rectilinear_grid<real_t, N>* m_discretized_domain = nullptr;
-  polymorphic::vectorfield<real_t, 2>*    m_field              = nullptr;
-  real_t                                  m_time               = 0.0;
-  ui::input_pin*                          m_discretized_domain_pin;
-  ui::input_pin*                          m_field_pin;
+  std::variant<std::monostate,
+               nonuniform_rectilinear_grid<real_t, 2>*,
+               nonuniform_rectilinear_grid<real_t, 3>*>
+      m_discretized_domain;
+  std::variant<std::monostate,
+               polymorphic::scalarfield<real_t, 2>*,
+               polymorphic::scalarfield<real_t, 3>*,
+               polymorphic::vectorfield<real_t, 2>*,
+               polymorphic::vectorfield<real_t, 3>*>
+                 m_field;
+  real_t         m_time = 0.0;
+  ui::input_pin* m_discretized_domain_pin;
+  ui::input_pin* m_field_pin;
 
  public:
-  sampler(flowexplorer::scene& s)
-      : ui::node<sampler<N>>{"Field Sampler", s},
+  sample_to_grid(flowexplorer::scene& s)
+      : ui::node<sample_to_grid>{"Field Sampler", s},
         m_discretized_domain_pin{&this->template insert_input_pin<
-            nonuniform_rectilinear_grid<real_t, N>>("Discretized Domain")},
+            nonuniform_rectilinear_grid<real_t, 2>,
+            nonuniform_rectilinear_grid<real_t, 3>>("Discretized Domain")},
         m_field_pin{&this->template insert_input_pin<
-            polymorphic::vectorfield<real_t, 2>>("2D Vector Field")} {}
+            polymorphic::scalarfield<real_t, 2>,
+            polymorphic::scalarfield<real_t, 3>,
+            polymorphic::vectorfield<real_t, 2>,
+            polymorphic::vectorfield<real_t, 3>>("Field")} {}
   //----------------------------------------------------------------------------
-  virtual ~sampler() = default;
+  virtual ~sample_to_grid() = default;
   //----------------------------------------------------------------------------
   auto time() const -> auto const& { return m_time; }
   auto time() -> auto& { return m_time; }
   //----------------------------------------------------------------------------
-  auto on_pin_connected(ui::input_pin& /*this_pin*/, ui::output_pin& other_pin)
-      -> void {
-    if (other_pin.type() == typeid(polymorphic::vectorfield<real_t, 2>)) {
-      m_field =
-          dynamic_cast<polymorphic::vectorfield<real_t, 2>*>(&other_pin.node());
-    } else if ((other_pin.type() ==
-                typeid(nonuniform_rectilinear_grid<real_t, N>))) {
-      m_discretized_domain =
-          dynamic_cast<nonuniform_rectilinear_grid<real_t, N>*>(
-              &other_pin.node());
-    }
-    if (m_discretized_domain != nullptr && m_field != nullptr) {
-      sample();
-    }
+  template <typename... Ts>
+  auto set_field(ui::output_pin& other_pin) {
+    (
+        [&] {
+          if (other_pin.type() == typeid(Ts)) {
+            m_field = dynamic_cast<Ts*>(&other_pin.node());
+          }
+        }(),
+        ...);
   }
   //----------------------------------------------------------------------------
+  auto on_pin_connected(ui::input_pin& this_pin, ui::output_pin& other_pin)
+      -> void {
+    if (this_pin == *m_field_pin) {
+      set_field<polymorphic::scalarfield<real_t, 2>,
+                polymorphic::scalarfield<real_t, 3>,
+                polymorphic::vectorfield<real_t, 2>,
+                polymorphic::vectorfield<real_t, 3>>(other_pin);
+    } else if (this_pin == *m_discretized_domain_pin) {
+      if (other_pin.type() == typeid(nonuniform_rectilinear_grid<real_t, 2>)) {
+        m_discretized_domain =
+            dynamic_cast<nonuniform_rectilinear_grid<real_t, 2>*>(
+                &other_pin.node());
+      } else if (other_pin.type() ==
+                 typeid(nonuniform_rectilinear_grid<real_t, 3>)) {
+        m_discretized_domain =
+            dynamic_cast<nonuniform_rectilinear_grid<real_t, 3>*>(
+                &other_pin.node());
+      }
+    }
+    if (m_discretized_domain.index() > 0 && m_field.index() > 0) {
+      sample();
+    }
+}
+  //----------------------------------------------------------------------------
   auto sample() -> void {
-    discretize(*m_field, *m_discretized_domain, this->title(), time());
+    field_domain_do([&](auto& field, auto& domain) {
+      using field_t  = std::decay_t<decltype(field)>;
+      using domain_t = std::decay_t<decltype(domain)>;
+      if constexpr (field_t::num_dimensions() == domain_t::num_dimensions()) {
+        std::cerr << "discretize " << this->title() << "\n";
+        std::cerr << &field<<'\n';
+        std::cerr << &domain<<'\n';
+        discretize(field, domain, this->title(), time());
+      }
+    });
   }
   //----------------------------------------------------------------------------
   auto on_property_changed() -> void {
-    if (m_field != nullptr && m_discretized_domain != nullptr) {
+    if (m_field.index() > 0 && m_discretized_domain.index() > 0) {
       sample();
     }
   }
   //----------------------------------------------------------------------------
+  template <typename F>
+  auto domain_do(F&& f) {
+    visit(
+        [&](auto domain) {
+          if constexpr (!is_same<std::monostate,
+                                 std::decay_t<decltype(domain)>>) {
+            f(*domain);
+          }
+        },
+        m_discretized_domain);
+  }
+  //----------------------------------------------------------------------------
+  template <typename F>
+  auto field_do(F&& f) {
+    visit(
+        [&](auto field) {
+          if constexpr (!is_same<std::monostate,
+                                 std::decay_t<decltype(field)>>) {
+            f(*field);
+          }
+        },
+        m_field);
+  }
+  //----------------------------------------------------------------------------
+  template <typename F>
+  auto field_domain_do(F&& f) -> void {
+    visit(
+        [&](auto field, auto domain) {
+          if constexpr (!is_same<std::monostate, decltype(field)> &&
+                        !is_same<std::monostate, decltype(domain)>) {
+            f(*field, *domain);
+          }
+        },
+        m_field, m_discretized_domain);
+  }
+  //----------------------------------------------------------------------------
   auto on_title_changed(std::string const& old_title) -> void override {
-    if (m_field != nullptr && m_discretized_domain != nullptr) {
-      m_discretized_domain->rename_vertex_property(old_title, this->title());
+    if (m_field.index() > 0 && m_discretized_domain.index() > 0) {
+      domain_do([&](auto& domain) {
+        domain.rename_vertex_property(old_title, this->title());
+      });
     }
   }
   //----------------------------------------------------------------------------
   auto on_pin_disconnected(ui::input_pin& pin) -> void {
-    if (m_discretized_domain != nullptr && m_field != nullptr) {
-      m_discretized_domain->remove_vertex_property(this->title());
-    }
+    domain_do([&](auto& domain) {
+      domain.remove_vertex_property(this->title());
+    });
     if (&pin == m_field_pin) {
-      m_field = nullptr;
+      m_field = std::monostate{};
     } else if (&pin == m_discretized_domain_pin) {
-      m_discretized_domain = nullptr;
+      m_discretized_domain = std::monostate{};
     }
   }
 };
-using sampler_2 = sampler<2>;
 //==============================================================================
 }  // namespace tatooine::flowexplorer::nodes
 //==============================================================================
 TATOOINE_FLOWEXPLORER_REGISTER_NODE(
-    tatooine::flowexplorer::nodes::sampler_2,
+    tatooine::flowexplorer::nodes::sample_to_grid,
     TATOOINE_REFLECTION_INSERT_METHOD(time, time()));
 #endif

@@ -2067,9 +2067,12 @@ class rectilinear_grid {
       typed_vertex_property_interface_t<T, HasNonConstReference> const& prop,
       std::index_sequence<Is...> /*seq*/) const {
     if constexpr (is_arithmetic<T>) {
-      auto dataset = f.add_dataset<T>(name, size<Is>()...);
-
-      auto data = std::vector<T>{};
+      auto dataset                      = f.add_dataset<T>(name, size<Is>()...);
+      dataset.attribute("vsMesh")       = "/rectilinear_grid";
+      dataset.attribute("vsCentering")  = "nodal";
+      dataset.attribute("vsType")       = "variable";
+      dataset.attribute("vsIndexOrder") = "compMinorF";
+      auto data = std::vector<typename vec_t::value_type>{};
       data.reserve(vertices().size());
       vertices().iterate_indices(
           [&](auto const... is) { data.push_back(prop(is...)); });
@@ -2090,7 +2093,7 @@ class rectilinear_grid {
 
       for (size_t i = 0; i < vec_t::dimension(0); ++i) {
         auto dataset = g.add_dataset<typename vec_t::value_type>(
-            "/" + name + "_" + std::to_string(i), size<Is>()...);
+            name + "_" + std::to_string(i), size<Is>()...);
         dataset.attribute("vsMesh")       = "/rectilinear_grid";
         dataset.attribute("vsCentering")  = "nodal";
         dataset.attribute("vsType")       = "variable";

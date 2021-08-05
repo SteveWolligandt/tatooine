@@ -13,7 +13,7 @@ constexpr auto dot(vectorfield<V0, Real0, N, TN> const& lhs,
                    vectorfield<V1, Real1, N, TN> const& rhs) {
   return make_binary_operation_field(lhs, rhs, &dot);
 }
-//├──────────────────────────────────────────────────────────────────────────┤
+//------------------------------------------------------------------------------
 template <typename V0, typename Real0, typename V1, typename Real1, size_t N,
           typename Tensor>
 constexpr auto operator+(const field<V0, Real0, N, Tensor>& lhs,
@@ -21,14 +21,14 @@ constexpr auto operator+(const field<V0, Real0, N, Tensor>& lhs,
   return make_binary_operation_field(
       lhs, rhs, [](const auto& lhs, const auto& rhs) { return lhs + rhs; });
 }
-//├──────────────────────────────────────────────────────────────────────────┤
+//------------------------------------------------------------------------------
 template <typename Real0, typename Real1, size_t N, size_t TM, size_t TN>
 constexpr auto operator*(polymorphic::matrixfield<Real0, N, TM, TN> const& lhs,
                          polymorphic::vectorfield<Real1, N, TN> const& rhs) {
   return make_binary_operation_field(
       lhs, rhs, [](const auto& lhs, const auto& rhs) { return lhs * rhs; });
 }
-//├──────────────────────────────────────────────────────────────────────────┤
+//------------------------------------------------------------------------------
 template <typename V0, typename Real0, typename V1, typename Real1, size_t N,
           size_t TM, size_t TN>
 constexpr auto operator*(const matrixfield<V0, Real0, N, TM, TN>& lhs,
@@ -36,7 +36,7 @@ constexpr auto operator*(const matrixfield<V0, Real0, N, TM, TN>& lhs,
   return make_binary_operation_field(
       lhs, rhs, [](const auto& lhs, const auto& rhs) { return lhs * rhs; });
 }
-//├──────────────────────────────────────────────────────────────────────────┤
+//------------------------------------------------------------------------------
 template <typename V0, typename Real0, typename V1, typename Real1, size_t N,
           typename Tensor>
 constexpr auto operator*(const field<V0, Real0, N, Tensor>& lhs,
@@ -44,7 +44,7 @@ constexpr auto operator*(const field<V0, Real0, N, Tensor>& lhs,
   return make_binary_operation_field(
       lhs, rhs, [](const auto& lhs, const auto& rhs) { return lhs * rhs; });
 }
-//├──────────────────────────────────────────────────────────────────────────┤
+//------------------------------------------------------------------------------
 #ifdef __cpp_concpets
 template <typename V, arithmetic VReal, size_t N, arithmetic ScalarReal,
           typename Tensor>
@@ -56,7 +56,7 @@ constexpr auto operator*(const field<V, VReal, N, Tensor>& f,
                          const ScalarReal                  scalar) {
   return V{f.as_derived()} | [scalar](auto const& t) { return t * scalar; };
 }
-//├──────────────────────────────────────────────────────────────────────────┤
+//------------------------------------------------------------------------------
 #ifdef __cpp_concpets
 template <typename V, arithmetic VReal, size_t N, arithmetic ScalarReal,
           typename Tensor>
@@ -95,7 +95,7 @@ constexpr auto operator/(ScalarReal const                  scalar,
 //                          rhs);
 //}
 //
-//├──────────────────────────────────────────────────────────────────────────┤
+//------------------------------------------------------------------------------
 ///// matrix-vector-multiplication
 // template <typename lhs_tensor_t, typename Real0,
 //          typename rhs_tensor_t, typename Real1, size_t M, size_t N>
