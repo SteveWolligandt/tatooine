@@ -3,6 +3,7 @@
 //==============================================================================
 #include <tatooine/amira_file.h>
 #include <tatooine/axis_aligned_bounding_box.h>
+#include <tatooine/cartesian_axis_labels.h>
 #include <tatooine/chunked_multidim_array.h>
 #include <tatooine/concepts.h>
 #include <tatooine/filesystem.h>
@@ -2074,22 +2075,27 @@ class rectilinear_grid {
           [&](auto const... is) { data.push_back(prop(is...)); });
       dataset.write(data);
     } else if constexpr (is_vec<T>) {
-      auto g = f.add_group(name);
-      auto gg = g.add_sub_group(name);
+      using vec_t         = T;
+      auto g = f.group(name);
+      auto gg = g.sub_group(name);
       std::stringstream ss;
       ss << "{";
-      ss << "<" + name + "/ comp0>";
-      for (size_t i = 1; i < T::dimension(0); ++i) {
-        ss << ",<" + name + "/ comp" << i << ">";
+      ss << "<" + name + "/" << name << "_0>";
+      for (size_t i = 1; i < vec_t::dimension(0); ++i) {
+        ss << ",<" + name + "/" << name << "_" << i << ">";
       }
       ss << "}";
       gg.attribute(name)     = ss.str();
       gg.attribute("vsType") = "vsVars";
 
-      for (size_t i = 0; i < T::dimension(0); ++i) {
-        auto dataset = f.add_dataset<typename T::value_type>(
-            "comp" + std::to_string(0), size<Is>()...);
-        auto data = std::vector<typename T::value_type>{};
+      for (size_t i = 0; i < vec_t::dimension(0); ++i) {
+        auto dataset = g.add_dataset<typename vec_t::value_type>(
+            "/" + name + "_" + std::to_string(i), size<Is>()...);
+        dataset.attribute("vsMesh")       = "/rectilinear_grid";
+        dataset.attribute("vsCentering")  = "nodal";
+        dataset.attribute("vsType")       = "variable";
+        dataset.attribute("vsIndexOrder") = "compMinorF";
+        auto data = std::vector<typename vec_t::value_type>{};
         data.reserve(vertices().size());
         vertices().iterate_indices(
             [&](auto const... is) { data.push_back(prop(is...)(i)); });
@@ -2099,9 +2105,9 @@ class rectilinear_grid {
   }
   //----------------------------------------------------------------------------
   template <typename... Ts, size_t... Is>
-  void write_prop_hdf5_wrapper(hdf5::file& f, std::string const& name,
+  auto write_prop_hdf5_wrapper(hdf5::file& f, std::string const& name,
                                vertex_property_t const&   prop,
-                               std::index_sequence<Is...> seq) const {
+                               std::index_sequence<Is...> seq) const -> void {
     (
         [&] {
           if (prop.type() == typeid(Ts)) {
@@ -2115,18 +2121,35 @@ class rectilinear_grid {
         }(),
         ...);
   }
-
+  //----------------------------------------------------------------------------
   template <size_t... Is>
   auto write_hdf5(filesystem::path const&    path,
                   std::index_sequence<Is...> seq) const -> void {
     auto f = hdf5::file{path};
-    f.add_group("CartGrid");
+    auto group = f.group("rectilinear_grid");
+
+    std::stringstream axis_labels_stream;
+    (
+        [&] {
+          if constexpr (Is == 0) {
+            axis_labels_stream << cartesian_axis_label<Is>;
+          } else {
+            axis_labels_stream << ", " << cartesian_axis_label<Is>;
+          }
+        }(),
+        ...);
+    group.attribute("vsAxisLabels") = axis_labels_stream.str();
+    group.attribute("vsKind")       = "rectilinear";
+    group.attribute("vsType")       = "mesh";
+    group.attribute("vsIndexOrder") = "compMinorF";
     (
         [&] {
           using dim_type =
               typename std::decay_t<decltype(dimension<Is>())>::value_type;
-          auto dim = f.add_dataset<dim_type>("CartGrid/axis" + std::to_string(Is),
-                                             size<Is>());
+          group.attribute("vsAxis" + std::to_string(Is)) =
+              "axis" + std::to_string(Is);
+          auto dim = f.add_dataset<dim_type>(
+              "rectilinear_grid/axis" + std::to_string(Is), size<Is>());
           dim.write(dimension<Is>());
         }(),
         ...);
