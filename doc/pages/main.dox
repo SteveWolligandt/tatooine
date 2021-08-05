@@ -7,10 +7,10 @@
 
 - \ref fields_page 
 \subsection main_geometry_sec Geometry
-- \ref pointset_page
-- \ref unstructured_grid_page
-- \ref line_page
 - \ref rectilinear_grid_page
+- \ref unstructured_grid_page
+- \ref pointset_page
+- \ref line_page
 
 \section algorithms_sec Algorithms
 \subsection algorithms_feature_extraction_sec Feature Extraction

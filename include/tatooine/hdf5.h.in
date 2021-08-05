@@ -259,69 +259,40 @@ class dataset {
   using value_type = T;
 
  private:
-  std::unique_ptr<hid_t> m_file_id;
+  std::unique_ptr<hid_t> m_parent_id;
   std::unique_ptr<hid_t> m_dataset_id;
   std::string            m_name;
   //============================================================================
  public:
   dataset(std::unique_ptr<hid_t> const& file_id, hid_t const dataset_id,
           std::string const& name)
-      : m_file_id{std::make_unique<hid_t>(*file_id)},
+      : m_parent_id{std::make_unique<hid_t>(*file_id)},
         m_dataset_id{std::make_unique<hid_t>(dataset_id)},
         m_name{name} {
-    H5Iinc_ref(*m_file_id);
-    // std::cout << name << "\n";
-    // auto const num_attrs =
-    //    static_cast<unsigned int>(H5Aget_num_attrs(*m_dataset_id));
-    // for (unsigned int i = 0; i < num_attrs; ++i) {
-    //  auto attr_id = H5Aopen_idx(*m_dataset_id, i);
-    //
-    //  auto        name_size = H5Aget_name(attr_id, 0, nullptr);
-    //  std::string name;
-    //  name.resize(name_size);
-    //  H5Aget_name(attr_id, name_size + 1, &name[0]);
-    //
-    //  std::cout << "  " << name << '\n';
-    //  auto const type_id = H5Aget_type(attr_id);
-    //  if (name == "vsIndexOrder" && H5Tget_class(type_id) == H5T_STRING) {
-    //    auto const size = H5Tget_size(type_id);
-    //
-    //    std::string val;
-    //    val.resize(size);
-    //    H5Aread(attr_id, H5Tget_native_type(type_id, H5T_DIR_ASCEND),
-    //    &val[0]);
-    //    // std::cout << "    " << val << '\n';
-    //
-    //    if (val == "compMinorF") {
-    //      m_index_order = index_order::Fortran;
-    //    }
-    //  }
-    //  H5Tclose(type_id);
-    //  H5Aclose(attr_id);
-    //}
+    //H5Iinc_ref(*m_parent_id);
   }
   //----------------------------------------------------------------------------
   dataset(dataset const& other)
-      : m_file_id{std::make_unique<hid_t>(*other.m_file_id)},
+      : m_parent_id{std::make_unique<hid_t>(*other.m_parent_id)},
         m_dataset_id{std::make_unique<hid_t>(*other.m_dataset_id)},
         m_name{other.m_name} {
-    H5Iinc_ref(*m_file_id);
+    //H5Iinc_ref(*m_parent_id);
     H5Iinc_ref(*m_dataset_id);
   }
   //----------------------------------------------------------------------------
   dataset(dataset&&) noexcept = default;
   //----------------------------------------------------------------------------
   auto operator=(dataset const& other) -> dataset& {
-    if (m_file_id != nullptr) {
-      H5Fclose(*m_file_id);
-    }
+    //if (m_parent_id != nullptr) {
+    //  H5Fclose(*m_parent_id);
+    //}
     if (m_dataset_id != nullptr) {
       H5Dclose(*m_dataset_id);
     }
-    m_file_id    = std::make_unique<hid_t>(*other.m_file_id);
+    m_parent_id    = std::make_unique<hid_t>(*other.m_parent_id);
     m_dataset_id = std::make_unique<hid_t>(*other.m_dataset_id);
     m_name       = other.m_name;
-    H5Iinc_ref(*m_file_id);
+    //H5Iinc_ref(*m_parent_id);
     H5Iinc_ref(*m_dataset_id);
     return *this;
   }
@@ -329,9 +300,9 @@ class dataset {
   auto operator=(dataset&&) noexcept -> dataset& = default;
   //----------------------------------------------------------------------------
   ~dataset() {
-    if (m_file_id != nullptr) {
-      H5Fclose(*m_file_id);
-    }
+    //if (m_parent_id != nullptr) {
+    //  H5Fclose(*m_parent_id);
+    //}
     if (m_dataset_id != nullptr) {
       H5Dclose(*m_dataset_id);
     }
@@ -613,6 +584,10 @@ class dataset {
   }
   //----------------------------------------------------------------------------
   auto name() const -> auto const& { return m_name; }
+  //----------------------------------------------------------------------------
+  auto attribute(std::string const& name) const {
+    return hdf5::attribute{m_dataset_id, name};
+  }
 };
 //==============================================================================
  class group {
@@ -674,7 +649,38 @@ class dataset {
     return hdf5::attribute{m_group_id, name};
   }
   //============================================================================
-  auto add_sub_group(char const* name) {
+#ifdef __cpp_concepts
+  template <typename T, typename IndexOrder = x_fastest, integral... Size>
+#else
+  template <typename T, typename IndexOrder = x_fastest, typename... Size,
+            enable_if<is_integral<Size...>> = true>
+#endif
+  auto add_dataset(std::string const& dataset_name, Size... size) {
+    static_assert(sizeof...(Size) > 0,
+                  "hdf5::dataset needs at least 1 dimension.");
+    hsize_t dimsf[]{static_cast<hsize_t>(size)...};  // data set dimensions
+    std::reverse(dimsf, dimsf + sizeof...(size));
+    auto dspace     = H5Screate_simple(sizeof...(Size), dimsf, nullptr);
+    api::get().disable_error_printing();
+    auto dataset_id = H5Dcreate2(*m_group_id, dataset_name.data(),
+                                 h5_type<T>::file_type_little_endian(), dspace,
+                                 H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT);
+    api::get().enable_error_printing();
+    H5Sclose(dspace);
+    if (dataset_id >= 0) {
+      return hdf5::dataset<T>{m_group_id, dataset_id, dataset_name};
+    }
+    return dataset<T>(dataset_name.data());
+  }
+  //----------------------------------------------------------------------------
+  template <typename T>
+  auto dataset(char const* dataset_name) const {
+    return hdf5::dataset<T>{m_group_id,
+                            H5Dopen(*m_group_id, dataset_name, H5P_DEFAULT),
+                            dataset_name};
+  }
+  //============================================================================
+  auto sub_group(char const* name) {
     hid_t group_id;
     api::get().disable_error_printing();
     group_id =
@@ -686,16 +692,7 @@ class dataset {
     return hdf5::group{m_group_id, group_id, name};
   }
   //----------------------------------------------------------------------------
-  auto add_sub_group(std::string const& name) {
-    return add_sub_group(name.data());
-  }
-  //----------------------------------------------------------------------------
-  auto sub_group(char const* name) const {
-    return hdf5::group{m_group_id, H5Gopen2(*m_group_id, name, H5P_DEFAULT),
-                       name};
-  }
-  //----------------------------------------------------------------------------
-  auto sub_group(std::string const& name) const {
+  auto sub_group(std::string const& name) {
     return sub_group(name.data());
   }
 };
@@ -790,7 +787,7 @@ class file {
         dataset_name};
   }
   //============================================================================
-  auto add_group(char const* name) {
+  auto group(char const* name) {
     hid_t group_id;
     api::get().disable_error_printing();
     group_id =
@@ -802,15 +799,7 @@ class file {
     return hdf5::group{m_file_id, group_id, name};
   }
   //----------------------------------------------------------------------------
-  auto add_group(std::string const& name) { return add_group(name.data()); }
-  //----------------------------------------------------------------------------
-  auto group(char const* name) const {
-    return hdf5::group{m_file_id,
-                            H5Gopen2(*m_file_id, name, H5P_DEFAULT),
-                            name};
-  }
-  //----------------------------------------------------------------------------
-  auto group(std::string const& name) const { return group(name.data()); }
+  auto group(std::string const& name) { return group(name.data()); }
   //============================================================================
   auto attribute(std::string const& name) const {
     return hdf5::attribute{m_file_id, name};
