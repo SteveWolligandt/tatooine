@@ -35,6 +35,16 @@ auto node::node_position() const -> ImVec2 {
   return pos;
 }
 //------------------------------------------------------------------------------
+void ImGuiEx_BeginColumn() { ImGui::BeginGroup(); }
+//------------------------------------------------------------------------------
+void ImGuiEx_NextColumn() {
+  ImGui::EndGroup();
+  ImGui::SameLine();
+  ImGui::BeginGroup();
+}
+//------------------------------------------------------------------------------
+void ImGuiEx_EndColumn() { ImGui::EndGroup(); }
+//------------------------------------------------------------------------------
 auto node::draw_node() -> void {
   size_t const icon_size = 20 * scene().window().ui_scale_factor();
   namespace ed = ax::NodeEditor;
@@ -83,7 +93,7 @@ auto node::draw_node() -> void {
   }
   builder.end_header();
 
-  ImGui::Columns(2);
+  ImGuiEx_BeginColumn();
   for (auto& input : input_pins()) {
     auto alpha = ImGui::GetStyle().Alpha;
     if (scene().new_link() && !scene().can_create_new_link(*input)) {
@@ -101,7 +111,7 @@ auto node::draw_node() -> void {
     builder.end_input();
   }
 
-  ImGui::NextColumn();
+  ImGuiEx_NextColumn();
   for (auto& output : output_pins()) {
     if (output->is_active()) {
       auto alpha = ImGui::GetStyle().Alpha;
@@ -120,7 +130,7 @@ auto node::draw_node() -> void {
       builder.end_output();
     }
   }
-  ImGui::Columns(1);
+  ImGuiEx_EndColumn();
   builder.end();
 }
 //==============================================================================

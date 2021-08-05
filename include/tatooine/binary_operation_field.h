@@ -12,7 +12,8 @@ struct binary_operation_field
             common_type<field_real_t<LHSInternalField>,
                         field_real_t<RHSInternalField>>,
             field_num_dimensions<LHSInternalField>,
-            std::invoke_result_t<Op, field_tensor_t<LHSInternalField>,
+            std::invoke_result_t<Op,
+                                 field_tensor_t<LHSInternalField>,
                                  field_tensor_t<RHSInternalField>>> {
   static_assert(field_num_dimensions<LHSInternalField> ==
                 field_num_dimensions<RHSInternalField>);
@@ -34,7 +35,7 @@ struct binary_operation_field
   //├──────────────────────────────────────────────────────────────────────┤
  private:
   LHSInternalField m_lhs;
-  RHSInternalField m_v1;
+  RHSInternalField m_rhs;
   Op               m_op;
   //┌──────────────────────────────────────────────────────────────────────┐
   //│ ctors                                                                │
@@ -47,7 +48,7 @@ struct binary_operation_field
   template <typename LHS, typename Rhs, typename Op_>
   constexpr binary_operation_field(LHS&& lhs, Rhs&& rhs, Op_&& op)
       : m_lhs{std::forward<LHSInternalField>(lhs)},
-        m_v1{std::forward<RHSInternalField>(rhs)},
+        m_rhs{std::forward<RHSInternalField>(rhs)},
         m_op{std::forward<Op>(op)} {}
   //┌──────────────────────────────────────────────────────────────────────┐
   //│ assignment operators                                                 │
@@ -84,9 +85,9 @@ struct binary_operation_field
   }
   auto rhs() const -> auto const& {
     if constexpr (is_pointer<RHSInternalField>) {
-      return *m_v1;
+      return *m_rhs;
     } else {
-      return m_v1;
+      return m_rhs;
     }
   }
   //----------------------------------------------------------------------------
@@ -97,12 +98,12 @@ struct binary_operation_field
   //----------------------------------------------------------------------------
   template <bool Cond = is_pointer<RHSInternalField>, enable_if<Cond> = true>
   auto set_v1(RHSInternalField rhs) -> void {
-    m_v1 = rhs;
+    m_rhs = rhs;
   }
   //----------------------------------------------------------------------------
   template <bool Cond = is_pointer<LHSInternalField>, enable_if<Cond> = true>
   auto fields_available() const -> bool {
-    return m_lhs != nullptr && m_v1 != nullptr;
+    return m_lhs != nullptr && m_rhs != nullptr;
   }
 };
 //==============================================================================
@@ -138,7 +139,8 @@ constexpr auto make_binary_operation_field(
     field<RHSInternalField, RHSReal, N, RHSTensor>&& rhs, const Op& op) {
   return binary_operation_field<
       const field<LHSInternalField, LHSReal, N, LHSTensor>&,
-      field<RHSInternalField, RHSReal, N, RHSTensor>, const Op&>{lhs, std::move(rhs), op};
+      field<RHSInternalField, RHSReal, N, RHSTensor>, const Op&>{
+      lhs, std::move(rhs), op};
 }
 //├╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌┤
 template <typename LHSInternalField, typename LHSReal, size_t N,
@@ -149,8 +151,7 @@ constexpr auto make_binary_operation_field(
     field<RHSInternalField, RHSReal, N, RHSTensor>&& rhs, const Op& op) {
   return binary_operation_field<field<LHSInternalField, LHSReal, N, LHSTensor>,
                                 field<RHSInternalField, RHSReal, N, RHSTensor>,
-                                const Op&>{
-      std::move(lhs), std::move(rhs), op};
+                                const Op&>{std::move(lhs), std::move(rhs), op};
 }
 //├╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌┤
 template <typename LHSInternalField, typename LHSReal, size_t N,
@@ -161,7 +162,8 @@ constexpr auto make_binary_operation_field(
     const field<RHSInternalField, RHSReal, N, RHSTensor>& rhs, Op&& op) {
   return binary_operation_field<
       const field<LHSInternalField, LHSReal, N, LHSTensor>&,
-      const field<RHSInternalField, RHSReal, N, RHSTensor>&, Op>{lhs, rhs, std::move(op)};
+      const field<RHSInternalField, RHSReal, N, RHSTensor>&, Op>{lhs, rhs,
+                                                                 std::move(op)};
 }
 //├╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌┤
 template <typename LHSInternalField, typename LHSReal, size_t N,
@@ -172,7 +174,8 @@ constexpr auto make_binary_operation_field(
     const field<RHSInternalField, RHSReal, N, RHSTensor>& rhs, Op&& op) {
   return binary_operation_field<
       field<LHSInternalField, LHSReal, N, LHSTensor>,
-      const field<RHSInternalField, RHSReal, N, RHSTensor>&, Op>{std::move(lhs), rhs, std::move(op)};
+      const field<RHSInternalField, RHSReal, N, RHSTensor>&, Op>{
+      std::move(lhs), rhs, std::move(op)};
 }
 //├╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌┤
 template <typename LHSInternalField, typename LHSReal, size_t N,
@@ -183,7 +186,8 @@ constexpr auto make_binary_operation_field(
     field<RHSInternalField, RHSReal, N, RHSTensor>&& rhs, Op op) {
   return binary_operation_field<
       const field<LHSInternalField, LHSReal, N, LHSTensor>&,
-      field<RHSInternalField, RHSReal, N, RHSTensor>, Op>{lhs, std::move(rhs), std::move(op)};
+      field<RHSInternalField, RHSReal, N, RHSTensor>, Op>{lhs, std::move(rhs),
+                                                          std::move(op)};
 }
 //├╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌┤
 template <typename LHSInternalField, typename LHSReal, size_t N,
@@ -194,8 +198,8 @@ constexpr auto make_binary_operation_field(
     field<RHSInternalField, RHSReal, N, RHSTensor>&& rhs, Op op) {
   return binary_operation_field<field<LHSInternalField, LHSReal, N, LHSTensor>,
                                 field<RHSInternalField, RHSReal, N, RHSTensor>,
-                                Op>{
-      std::move(lhs), std::move(rhs), std::move(op)};
+                                Op>{std::move(lhs), std::move(rhs),
+                                    std::move(op)};
 }
 //├╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌┤
 template <typename LHSReal, size_t N, typename LHSTensor, typename RHSReal,
@@ -205,7 +209,8 @@ constexpr auto make_binary_operation_field(
     polymorphic::field<RHSReal, N, RHSTensor> const* rhs, Op op) {
   return binary_operation_field<
       polymorphic::field<LHSReal, N, LHSTensor> const*,
-      polymorphic::field<RHSReal, N, RHSTensor> const*, Op>{lhs, rhs, std::move(op)};
+      polymorphic::field<RHSReal, N, RHSTensor> const*, Op>{lhs, rhs,
+                                                            std::move(op)};
 }
 //├╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌┤
 template <typename RealOut, size_t NOut, size_t... TensorDimsOut,

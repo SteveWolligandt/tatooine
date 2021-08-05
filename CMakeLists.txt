@@ -364,7 +364,9 @@ configure_file(${CMAKE_CURRENT_SOURCE_DIR}/include/tatooine/hdf5.h.in
 # NetCDF
 #- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 if(TATOOINE_USE_SYSTEM_HDF5_LIBS)
-#  option(TATOOINE_USE_SYSTEM_NETCDF_LIBS "By setting this to ON tatooine will not compile NetCDF on its own." OFF)
+#  option(TATOOINE_USE_SYSTEM_NETCDF_LIBS
+#         "By setting this to ON tatooine will not compile NetCDF on its own."
+#         OFF)
 #  if (TATOOINE_USE_SYSTEM_NETCDF_LIBS)
     find_package(NetCDF QUIET)
     if (NETCDF_FOUND)

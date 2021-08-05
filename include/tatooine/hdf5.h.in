@@ -308,18 +308,18 @@ class dataset {
     }
   }
   //============================================================================
-  auto write(T const* data) {
+  auto write(T const* data) -> void {
     H5Dwrite(*m_dataset_id, h5_type<T>::memory_type(), H5S_ALL, H5S_ALL,
              H5P_DEFAULT, data);
   }
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-  auto write(std::vector<T> const& data) {
+  auto write(std::vector<T> const& data) -> void {
     H5Dwrite(*m_dataset_id, h5_type<T>::memory_type(), H5S_ALL, H5S_ALL,
              H5P_DEFAULT, data.data());
   }
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
   template <size_t N>
-  auto write(std::array<T, N> const& data) {
+  auto write(std::array<T, N> const& data) -> void {
     H5Dwrite(*m_dataset_id, h5_type<T>::memory_type(), H5S_ALL, H5S_ALL,
              H5P_DEFAULT, data.data());
   }
@@ -327,9 +327,9 @@ class dataset {
 #ifdef __cpp_concepts
   template <range Range>
 #else
-  template <typename Range, enable_if<is_range<Range>> = true>
+  template <typename Range, enable_if_range<Range> = true>
 #endif
-  auto write(Range const& r) {
+  auto write(Range const& r) -> void {
     write(std::vector(begin(r), end(r)));
   }
   //----------------------------------------------------------------------------

@@ -23,7 +23,7 @@ add_executable(
   ${TATFE_SRC_DIR}/rectilinear_grid.cpp
   #${TATFE_SRC_DIR}/distance_measure.cpp
   #${TATFE_SRC_DIR}/unary_scalar_operation.cpp
-  #${TATFE_SRC_DIR}/binary_operation.cpp
+  ${TATFE_SRC_DIR}/binary_operation.cpp
   #${TATFE_SRC_DIR}/sphere.cpp
   ${TATFE_SRC_DIR}/scalar.cpp
   #${TATFE_SRC_DIR}/vectorfield_to_gpu.cpp
