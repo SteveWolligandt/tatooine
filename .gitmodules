@@ -34,3 +34,6 @@
 [submodule "external/CDT"]
 	path = external/CDT
 	url = https://github.com/artem-ogre/CDT.git
+[submodule "flowexplorer/external/imgui-node-editor"]
+	path = flowexplorer/external/imgui-node-editor
+	url = https://github.com/thedmd/imgui-node-editor.git
