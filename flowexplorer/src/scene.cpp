@@ -492,14 +492,16 @@ void scene::draw_node_editor(size_t const pos_x, size_t const pos_y,
   ed::NodeId selected_node_id;
   if (ed::GetSelectedNodes(&selected_node_id, 1) == 1) {
     auto selected_node = find_node(selected_node_id);
-    window().push_bold_font();
     ImGui::PushStyleColor(ImGuiCol_FrameBg, ImVec4(0, 0, 0, 0));
     auto const old_title = selected_node->title();
+
+    window().push_header1_font();
     if (ImGui::InputText("##title", &selected_node->title())) {
       selected_node->on_title_changed(old_title);
     }
-    ImGui::PopStyleColor();
     window().pop_font();
+    ImGui::PopStyleColor();
+    ImGui::Separator();
     auto const changed = selected_node->draw_properties();
     if (changed) {
       selected_node->notify_property_changed();

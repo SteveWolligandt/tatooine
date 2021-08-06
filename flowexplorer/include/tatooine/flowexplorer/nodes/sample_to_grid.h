@@ -1,5 +1,5 @@
-#ifndef TATOOINE_FLOWEXPLORER_SAMPLER_H
-#define TATOOINE_FLOWEXPLORER_SAMPLER_H
+#ifndef TATOOINE_FLOWEXPLORER_SAMPLE_TO_GRID_H
+#define TATOOINE_FLOWEXPLORER_SAMPLE_TO_GRID_H
 //==============================================================================
 #include <tatooine/field.h>
 #include <tatooine/flowexplorer/ui/node.h>
@@ -46,7 +46,7 @@ struct sample_to_grid : ui::node<sample_to_grid> {
     (
         [&] {
           if (other_pin.type() == typeid(Ts)) {
-            m_field = dynamic_cast<Ts*>(&other_pin.node());
+            m_field = dynamic_cast<Ts*>(&other_pin.get_as<Ts>());
           }
         }(),
         ...);
@@ -81,10 +81,9 @@ struct sample_to_grid : ui::node<sample_to_grid> {
       using field_t  = std::decay_t<decltype(field)>;
       using domain_t = std::decay_t<decltype(domain)>;
       if constexpr (field_t::num_dimensions() == domain_t::num_dimensions()) {
-        std::cerr << "discretize " << this->title() << "\n";
-        std::cerr << &field<<'\n';
-        std::cerr << &domain<<'\n';
-        discretize(field, domain, this->title(), time());
+        if (domain.vertices().size() > 0) {
+          discretize(field, domain, this->title(), time());
+        }
       }
     });
   }

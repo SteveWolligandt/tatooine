@@ -56,22 +56,22 @@ auto icon_color(ui::input_pin const& pin, float const alpha) -> ImVec4 {
   return {1, 1, 1, alpha};
 }
 //------------------------------------------------------------------------------
-base_pin::base_pin(base::node& n, pinkind kind, std::string const& title,
+pin::pin(base::node& n, pinkind kind, std::string const& title,
                    icon_type t)
     : m_title{title}, m_node{n}, m_kind{kind}, m_icon_type{t} {}
 //------------------------------------------------------------------------------
-auto base_pin::draw(size_t const icon_size, float const alpha) const -> void {
+auto pin::draw(size_t const icon_size, float const alpha) const -> void {
   icon(ImVec2(icon_size, icon_size), m_icon_type, is_linked(),
        ImVec4(1, 1, 1, alpha));
 }
 //------------------------------------------------------------------------------
 input_pin::input_pin(base::node& n, std::vector<std::type_info const*> types,
                      std::string const& title, icon_type const t)
-    : base_pin{n, pinkind::input, title, t}, m_types{types} {}
+    : pin{n, pinkind::input, title, t}, m_types{types} {}
 //------------------------------------------------------------------------------
 output_pin::output_pin(base::node& n, std::string const& title,
                        icon_type const t)
-    : base_pin{n, pinkind::output, title, t} {}
+    : pin{n, pinkind::output, title, t} {}
 //------------------------------------------------------------------------------
 auto input_pin::link(struct link& l) -> void {
   if (m_link != nullptr) {

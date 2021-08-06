@@ -519,10 +519,41 @@ struct rectilinear_grid : renderable<rectilinear_grid<N>>,
   }
   //----------------------------------------------------------------------------
   auto draw_properties() -> bool override {
-    if (ImGui::Button("write HDF5")) {
-      this->write_hdf5("grid.h5");
+    if (!this->vertex_properties().empty()) {
+      ImGui::BeginGroup();
+      this->scene().window().push_header2_font();
+      ImGui::Text("Vertex Properties");
+      this->scene().window().pop_font();
+      for (auto const& [name, prop] : this->vertex_properties()) {
+        ImGui::TextUnformatted(name.data());
+      }
+      ImGui::EndGroup();
+      ImGui::Separator();
+    }
+
+    if (all_pins_linked() && this->vertices().size() > 0) {
+      ImGui::BeginGroup();
+      this->scene().window().push_header2_font();
+      ImGui::Text("Write to file");
+      this->scene().window().pop_font();
+      bool write_pushed = ImGui::Button("write to file");
+      if (write_pushed) {
+        this->scene().window().open_file_explorer_write(*this);
+      }
+      ImGui::EndGroup();
     }
     return false;
+  }
+  auto on_path_selected(std::string const& path) -> void override {
+    this->write(path);
+  }
+  auto all_input_pins_linked() -> bool {
+    for (auto pin : m_input_pins) {
+      if (!pin->is_linked()) {
+        return false;
+      }
+    }
+    return true;
   }
 };
 //==============================================================================

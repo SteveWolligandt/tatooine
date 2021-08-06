@@ -21,8 +21,8 @@ struct axis_aligned_bounding_box
   using parent_t::min;
   //============================================================================
   gl::indexeddata<vec<float, N>> m_gpu_data;
-  int                               m_line_width = 1;
-  std::array<GLfloat, 4>            m_line_color{0.0f, 0.0f, 0.0f, 1.0f};
+  int                            m_line_width = 1;
+  std::array<GLfloat, 4>         m_line_color{0.0f, 0.0f, 0.0f, 1.0f};
   //============================================================================
   axis_aligned_bounding_box(flowexplorer::scene& s)
       : tatooine::axis_aligned_bounding_box<double, N>{vec<double, N>{
@@ -40,7 +40,7 @@ struct axis_aligned_bounding_box
   auto operator                     =(axis_aligned_bounding_box&&) noexcept
       -> axis_aligned_bounding_box& = default;
   //============================================================================
-  void render(mat4f const& P, mat4f const& V) override {
+  auto render(mat4f const& P, mat4f const& V) -> void override {
     set_vbo_data();
     auto& shader = line_shader::get();
     shader.bind();
@@ -52,7 +52,7 @@ struct axis_aligned_bounding_box
     m_gpu_data.draw_lines();
   }
   //============================================================================
-  void set_vbo_data() {
+  auto set_vbo_data() -> void {
     auto vbomap = m_gpu_data.vertexbuffer().map();
     if constexpr (N == 3) {
       vbomap[0] = gpu_vec{float(min(0)), float(min(1)), float(min(2))};
@@ -75,7 +75,7 @@ struct axis_aligned_bounding_box
     }
   }
   //----------------------------------------------------------------------------
-  void create_indexed_data() {
+  auto create_indexed_data() -> void {
     m_gpu_data.vertexbuffer().resize(8);
     m_gpu_data.indexbuffer().resize(24);
     set_vbo_data();

@@ -16,6 +16,12 @@ window::window()
   m_font_bold = ImGui::GetIO().Fonts->AddFontFromFileTTF(
       (fonts_directory() / "Roboto-Bold.ttf").c_str(),
       20.0f * m_ui_scale_factor);
+  m_font_header1 = ImGui::GetIO().Fonts->AddFontFromFileTTF(
+      (fonts_directory() / "Roboto-Bold.ttf").c_str(),
+    30.0f * m_ui_scale_factor);
+  m_font_header2 = ImGui::GetIO().Fonts->AddFontFromFileTTF(
+      (fonts_directory() / "Roboto-Bold.ttf").c_str(),
+    25.0f * m_ui_scale_factor);
   imgui_render_backend().create_fonts_texture();
 
   if (filesystem::exists("scene.toml")) {
