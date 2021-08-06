@@ -15,7 +15,7 @@ struct node;
 }
 struct link;
 //==============================================================================
-struct base_pin : uuid_holder<ax::NodeEditor::PinId>, toggleable {
+struct pin : uuid_holder<ax::NodeEditor::PinId>, toggleable {
  private:
   std::string m_title;
   base::node& m_node;
@@ -23,7 +23,7 @@ struct base_pin : uuid_holder<ax::NodeEditor::PinId>, toggleable {
   icon_type   m_icon_type;
 
  public:
-  base_pin(base::node& n, pinkind kind, std::string const& title,
+  pin(base::node& n, pinkind kind, std::string const& title,
            icon_type const t = icon_type::flow);
 
   auto node() const -> auto const& { return m_node; }
@@ -38,7 +38,7 @@ struct base_pin : uuid_holder<ax::NodeEditor::PinId>, toggleable {
 };
 //==============================================================================
 struct output_pin;
-struct input_pin : base_pin {
+struct input_pin : pin {
   friend struct output_pin;
  private:
   std::vector<std::type_info const*> m_types;
@@ -93,7 +93,7 @@ struct input_pin_property_link_impl : input_pin_property_link {
   }
 };
 //==============================================================================
-struct output_pin : base_pin {
+struct output_pin : pin {
   friend struct input_pin;
  private:
   std::vector<struct link*> m_links;

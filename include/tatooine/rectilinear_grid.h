@@ -2128,6 +2128,9 @@ class rectilinear_grid {
   template <size_t... Is>
   auto write_hdf5(filesystem::path const&    path,
                   std::index_sequence<Is...> seq) const -> void {
+    if (filesystem::exists(path)) {
+      filesystem::remove(path);
+    }
     auto f = hdf5::file{path};
     auto group = f.group("rectilinear_grid");
 

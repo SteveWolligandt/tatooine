@@ -21,6 +21,8 @@ struct window : rendering::first_person_window {
   std::unique_ptr<ImGui::FileBrowser> m_file_browser;
   ui::base::node*                     m_path_notifier = nullptr;
   ImFont*                             m_font_regular = nullptr;
+  ImFont*                             m_font_header1 = nullptr;
+  ImFont*                             m_font_header2 = nullptr;
   ImFont*                             m_font_bold = nullptr;
   gl::tex2rgba32f          m_aabb2d_icon_tex;
   gl::tex2rgba32f                  m_aabb3d_icon_tex;
@@ -45,6 +47,8 @@ struct window : rendering::first_person_window {
   void start();
   //=============================================================================
   auto push_regular_font() -> void { ImGui::PushFont(m_font_regular); }
+  auto push_header1_font() -> void { ImGui::PushFont(m_font_header1); }
+  auto push_header2_font() -> void { ImGui::PushFont(m_font_header2); }
   auto push_bold_font() -> void { ImGui::PushFont(m_font_bold); }
   auto pop_font() -> void { ImGui::PopFont(); }
   //----------------------------------------------------------------------------
@@ -88,6 +92,24 @@ struct window : rendering::first_person_window {
                           std::vector<std::string> const& extensions,
                           ui::base::node& n) {
     open_file_explorer(title, n);
+    m_file_browser->SetTypeFilters(extensions);
+  }
+  //----------------------------------------------------------------------------
+  auto open_file_explorer_write(ui::base::node& n) {
+    m_file_browser  = std::make_unique<ImGui::FileBrowser>(ImGuiFileBrowserFlags_EnterNewFilename);
+    m_path_notifier = &n;
+    m_file_browser->Open();
+  }
+  // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+  auto open_file_explorer_write(std::string const& title, ui::base::node& n) {
+    open_file_explorer_write(n);
+    m_file_browser->SetTitle(title);
+  }
+  // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+  auto open_file_explorer_write(std::string const&              title,
+                          std::vector<std::string> const& extensions,
+                          ui::base::node& n) {
+    open_file_explorer_write(title, n);
     m_file_browser->SetTypeFilters(extensions);
   }
   //----------------------------------------------------------------------------

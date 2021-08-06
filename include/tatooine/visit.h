@@ -5,26 +5,23 @@
 //==============================================================================
 namespace tatooine {
 //==============================================================================
-template <typename F, typename Variant>
-constexpr auto visit(F&& f, Variant&& variant) -> decltype(auto) {
-  std::visit(std::forward<F>(f), std::forward<Variant>(variant));
-}
+using std::visit;
 //==============================================================================
-template <typename F, typename Variant0, typename Variant1,
-          typename... RestVariants>
-constexpr auto visit(F&& f, Variant0&& variant0, Variant1&& variant1,
-                     RestVariants&&... rest) -> void {
-  visit(
-      [&](auto&& visitor0) {
-        visit(
-            [&](auto&&... visitors) {
-              f(std::forward<decltype(visitor0)>(visitor0),
-                std::forward<decltype(visitors)>(visitors)...);
-            },
-            std::forward<Variant1>(variant1),
-            std::forward<RestVariants>(rest)...);
-      },
-      std::forward<Variant0>(variant0));
+/// Visit implementation that wraps stored value of std::variants to function
+/// parameters.
+template <typename Visitor, typename Variant0, typename Variant1,
+          typename... Variants>
+constexpr auto visit(Visitor&& visitor, Variant0&& variant0,
+                     Variant1&& variant1, Variants&&... variants) -> void {
+  auto nested_visitor = [&](auto&& value0) {
+    visit(
+        [&](auto&&... rest_of_values) {
+          visitor(std::forward<decltype(value0)>(value0),
+                  std::forward<decltype(rest_of_values)>(rest_of_values)...);
+        },
+        std::forward<Variant1>(variant1), std::forward<Variants>(variants)...);
+  };
+  visit(nested_visitor, std::forward<Variant0>(variant0));
 }
 //==============================================================================
 }  // namespace tatooine

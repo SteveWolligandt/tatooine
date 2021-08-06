@@ -17,7 +17,8 @@ add_executable(
   #${TATFE_SRC_DIR}/jacobian.cpp
   #${TATFE_SRC_DIR}/vtk_line_reader.cpp
   #${TATFE_SRC_DIR}/parallel_vectors.cpp
-  ${TATFE_SRC_DIR}/sampler.cpp
+  ${TATFE_SRC_DIR}/sample_to_grid.cpp
+  ${TATFE_SRC_DIR}/rectilinear_grid_vertex_property_renderer.cpp
   ${TATFE_SRC_DIR}/linspace.cpp
   #${TATFE_SRC_DIR}/random_points.cpp
   ${TATFE_SRC_DIR}/rectilinear_grid.cpp
@@ -79,6 +80,13 @@ target_include_directories(flowexplorer
   ${TATFE_INCLUDE_DIR} ${TATFE_BIN_INCLUDE_DIR}
   ${CMAKE_CURRENT_SOURCE_DIR}/external/tomlplusplus/include
   ${CMAKE_CURRENT_SOURCE_DIR}/external)
+
+
+if ("${CMAKE_CXX_COMPILER_ID}" STREQUAL "GNU" OR
+    "${CMAKE_CXX_COMPILER_ID}" STREQUAL "Clang")
+  target_compile_options(tatooine PUBLIC
+    -Wno-gnu-zero-variadic-macro-arguments)
+endif()
 
 add_custom_target(flowexplorer.run ./flowexplorer DEPENDS tatooine flowexplorer)
 #- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -

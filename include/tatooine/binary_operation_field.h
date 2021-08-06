@@ -30,49 +30,60 @@ struct binary_operation_field
   using typename parent_t::pos_t;
   using typename parent_t::real_t;
   using typename parent_t::tensor_t;
-  //┌──────────────────────────────────────────────────────────────────────┐
-  //│ members                                                              │
-  //├──────────────────────────────────────────────────────────────────────┤
+  //----------------------------------------------------------------------------
+  // members
+  //----------------------------------------------------------------------------
  private:
   LHSInternalField m_lhs;
   RHSInternalField m_rhs;
   Op               m_op;
-  //┌──────────────────────────────────────────────────────────────────────┐
-  //│ ctors                                                                │
-  //├──────────────────────────────────────────────────────────────────────┤
+  //----------------------------------------------------------------------------
+  // ctors
+  //----------------------------------------------------------------------------
  public:
-  constexpr binary_operation_field(const binary_operation_field&) = default;
-  //├╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌┤
-  constexpr binary_operation_field(binary_operation_field&&) noexcept = default;
-  //├╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌┤
+  constexpr binary_operation_field(binary_operation_field const& other)
+      : m_lhs{other.m_lhs}, m_rhs{other.m_rhs}, m_op{other.m_op} {}
+  //----------------------------------------------------------------------------
+  constexpr binary_operation_field(binary_operation_field&& other) noexcept
+      : m_lhs{std::move(other.m_lhs)},
+        m_rhs{std::move(other.m_rhs)},
+        m_op{std::move(other.m_op)} {}
+  //----------------------------------------------------------------------------
   template <typename LHS, typename Rhs, typename Op_>
   constexpr binary_operation_field(LHS&& lhs, Rhs&& rhs, Op_&& op)
       : m_lhs{std::forward<LHSInternalField>(lhs)},
         m_rhs{std::forward<RHSInternalField>(rhs)},
         m_op{std::forward<Op>(op)} {}
-  //┌──────────────────────────────────────────────────────────────────────┐
-  //│ assignment operators                                                 │
-  //├──────────────────────────────────────────────────────────────────────┤
+  //----------------------------------------------------------------------------
+  // assignement operators
+  //----------------------------------------------------------------------------
  public:
-  constexpr auto operator        =(const binary_operation_field&)
-      -> binary_operation_field& = default;
-  constexpr auto operator        =(binary_operation_field&&) noexcept
-      -> binary_operation_field& = default;
+  constexpr auto operator=(binary_operation_field const& other)
+      -> binary_operation_field& {
+    m_lhs = other.m_lhs;
+    m_rhs = other.m_rhs;
+    return *this;
+  }
+  constexpr auto operator=(binary_operation_field&& other) noexcept
+      -> binary_operation_field& {
+    m_lhs = std::move(other.m_lhs);
+    m_rhs = std::move(other.m_rhs);
+    return *this;
+  }
 
  public:
-  //┌──────────────────────────────────────────────────────────────────────┐
-  //│ dtor                                                                 │
-  //├──────────────────────────────────────────────────────────────────────┤
+  //----------------------------------------------------------------------------
+  // dtor
+  //----------------------------------------------------------------------------
   ~binary_operation_field() override = default;
-  //┌──────────────────────────────────────────────────────────────────────┐
-  //│ methods                                                              │
-  //├──────────────────────────────────────────────────────────────────────┤
-  //├╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌┤
+  //----------------------------------------------------------------------------
+  // methods
+  //----------------------------------------------------------------------------
   constexpr auto evaluate(pos_t const& x, real_t const t) const
       -> tensor_t final {
     return m_op(lhs()(x, t), rhs()(x, t));
   }
-  //├╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌┤
+  //----------------------------------------------------------------------------
   constexpr auto in_domain(pos_t const& x, real_t const t) const -> bool final {
     return lhs().in_domain(x, t) && rhs().in_domain(x, t);
   }
@@ -118,7 +129,7 @@ constexpr auto make_binary_operation_field(
       const field<RHSInternalField, RHSReal, N, RHSTensor>&, const Op&>{
       lhs, rhs, op};
 }
-//├╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌┤
+//------------------------------------------------------------------------------
 template <typename LHSInternalField, typename LHSReal, size_t N,
           typename LHSTensor, typename RHSInternalField, typename RHSReal,
           typename RHSTensor, typename Op>
@@ -130,7 +141,7 @@ constexpr auto make_binary_operation_field(
       const field<RHSInternalField, RHSReal, N, RHSTensor>&, const Op&>{
       std::move(lhs), rhs, op};
 }
-//├╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌┤
+//------------------------------------------------------------------------------
 template <typename LHSInternalField, typename LHSReal, size_t N,
           typename LHSTensor, typename RHSInternalField, typename RHSReal,
           typename RHSTensor, typename Op>
@@ -142,7 +153,7 @@ constexpr auto make_binary_operation_field(
       field<RHSInternalField, RHSReal, N, RHSTensor>, const Op&>{
       lhs, std::move(rhs), op};
 }
-//├╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌┤
+//------------------------------------------------------------------------------
 template <typename LHSInternalField, typename LHSReal, size_t N,
           typename LHSTensor, typename RHSInternalField, typename RHSReal,
           typename RHSTensor, typename Op>
@@ -153,7 +164,7 @@ constexpr auto make_binary_operation_field(
                                 field<RHSInternalField, RHSReal, N, RHSTensor>,
                                 const Op&>{std::move(lhs), std::move(rhs), op};
 }
-//├╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌┤
+//------------------------------------------------------------------------------
 template <typename LHSInternalField, typename LHSReal, size_t N,
           typename LHSTensor, typename RHSInternalField, typename RHSReal,
           typename RHSTensor, typename Op>
@@ -165,7 +176,7 @@ constexpr auto make_binary_operation_field(
       const field<RHSInternalField, RHSReal, N, RHSTensor>&, Op>{lhs, rhs,
                                                                  std::move(op)};
 }
-//├╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌┤
+//------------------------------------------------------------------------------
 template <typename LHSInternalField, typename LHSReal, size_t N,
           typename LHSTensor, typename RHSInternalField, typename RHSReal,
           typename RHSTensor, typename Op>
@@ -177,7 +188,7 @@ constexpr auto make_binary_operation_field(
       const field<RHSInternalField, RHSReal, N, RHSTensor>&, Op>{
       std::move(lhs), rhs, std::move(op)};
 }
-//├╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌┤
+//------------------------------------------------------------------------------
 template <typename LHSInternalField, typename LHSReal, size_t N,
           typename LHSTensor, typename RHSInternalField, typename RHSReal,
           typename RHSTensor, typename Op>
@@ -189,7 +200,7 @@ constexpr auto make_binary_operation_field(
       field<RHSInternalField, RHSReal, N, RHSTensor>, Op>{lhs, std::move(rhs),
                                                           std::move(op)};
 }
-//├╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌┤
+//------------------------------------------------------------------------------
 template <typename LHSInternalField, typename LHSReal, size_t N,
           typename LHSTensor, typename RHSInternalField, typename RHSReal,
           typename RHSTensor, typename Op>
@@ -201,7 +212,7 @@ constexpr auto make_binary_operation_field(
                                 Op>{std::move(lhs), std::move(rhs),
                                     std::move(op)};
 }
-//├╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌┤
+//------------------------------------------------------------------------------
 template <typename LHSReal, size_t N, typename LHSTensor, typename RHSReal,
           typename RHSTensor, typename Op>
 constexpr auto make_binary_operation_field(
@@ -212,7 +223,7 @@ constexpr auto make_binary_operation_field(
       polymorphic::field<RHSReal, N, RHSTensor> const*, Op>{lhs, rhs,
                                                             std::move(op)};
 }
-//├╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌┤
+//------------------------------------------------------------------------------
 template <typename RealOut, size_t NOut, size_t... TensorDimsOut,
           typename LHSReal, size_t N, typename LHSTensor, typename RHSReal,
           typename RHSTensor, typename Op>

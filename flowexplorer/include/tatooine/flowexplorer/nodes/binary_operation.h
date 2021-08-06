@@ -35,25 +35,31 @@ struct binary_operation : ui::node<binary_operation> {
   };
 
   template <size_t N>
-  using mat_vec_field_mult_t  = op_field_mat_vec<N, N, decltype(mult)>;
-  using mat_vec_field_mult2_t = mat_vec_field_mult_t<2>;
-  using mat_vec_field_mult3_t = mat_vec_field_mult_t<3>;
+  using mat_vec_mult_field_t  = op_field_mat_vec<N, N, decltype(mult)>;
+  using mat_vec_mult_field2_t = mat_vec_mult_field_t<2>;
+  using mat_vec_mult_field3_t = mat_vec_mult_field_t<3>;
   template <size_t N>
   using dot_field_t  = op_field_vec_vec<N, N, decltype(dot)>;
   using dot_field2_t = dot_field_t<2>;
   using dot_field3_t = dot_field_t<3>;
 
   // output data
-  real_t                m_scalar_value;
-  dot_field2_t          m_dot_field2;
-  mat_vec_field_mult3_t m_mat_vec_mult_field3;
+  std::variant<std::monostate,
+               real_t,
+               dot_field2_t,
+               dot_field3_t,
+               mat_vec_mult_field2_t,
+               mat_vec_mult_field3_t>
+      m_output_data;
 
   int             m_operation = 0;
   ui::input_pin&  m_input0;
   ui::input_pin&  m_input1;
   ui::output_pin& m_scalar_pin_out;
   ui::output_pin& m_dot_field2_pin_out;
-  ui::output_pin& m_vectorfield3_pin_out;
+  ui::output_pin& m_dot_field3_pin_out;
+  ui::output_pin& m_mat_vec_mult_field2_pin_out;
+  ui::output_pin& m_mat_vec_mult_field3_pin_out;
 
   binary_operation(flowexplorer::scene& s);
   virtual ~binary_operation() = default;
