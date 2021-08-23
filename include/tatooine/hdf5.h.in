@@ -21,11 +21,9 @@ namespace tatooine::hdf5 {
 struct api {
  private:
   H5E_auto1_t m_old_func        = nullptr;
-  void*        m_old_client_data = nullptr;
+  void*       m_old_client_data = nullptr;
   //----------------------------------------------------------------------------
-  api() {
-    H5Eget_auto1(&m_old_func, &m_old_client_data);
-  }
+  api() { H5Eget_auto1(&m_old_func, &m_old_client_data); }
 
  public:
   //----------------------------------------------------------------------------
@@ -174,54 +172,50 @@ struct h5_type<std::basic_string<Char>> {
 //==============================================================================
 class attribute {
  public:
-  using this_t     = attribute;
+  using this_t = attribute;
 
  private:
   std::unique_ptr<hid_t> m_parent_id;
   std::string            m_name;
 
  public:
-  attribute(std::unique_ptr<hid_t> const& file_id,
-            std::string const& name)
-      : 
-        m_parent_id{std::make_unique<hid_t>(*file_id)},
-        m_name{name} {
-    //H5Iinc_ref(*m_parent_id);
+  attribute(std::unique_ptr<hid_t> const& file_id, std::string const& name)
+      : m_parent_id{std::make_unique<hid_t>(*file_id)}, m_name{name} {
+    // H5Iinc_ref(*m_parent_id);
   }
   //----------------------------------------------------------------------------
   attribute(attribute const& other)
-      : 
-        m_parent_id{std::make_unique<hid_t>(*other.m_parent_id)},
+      : m_parent_id{std::make_unique<hid_t>(*other.m_parent_id)},
         m_name{other.m_name} {
-    //H5Iinc_ref(*m_parent_id);
+    // H5Iinc_ref(*m_parent_id);
   }
   //----------------------------------------------------------------------------
   attribute(attribute&&) noexcept = default;
   //----------------------------------------------------------------------------
   auto operator=(attribute const& other) -> attribute& {
-    //if (m_parent_id != nullptr) {
+    // if (m_parent_id != nullptr) {
     //  H5Fclose(*m_parent_id);
     //}
-    m_parent_id    = std::make_unique<hid_t>(*other.m_parent_id);
-    m_name       = other.m_name;
-    //H5Iinc_ref(*m_parent_id);
+    m_parent_id = std::make_unique<hid_t>(*other.m_parent_id);
+    m_name      = other.m_name;
+    // H5Iinc_ref(*m_parent_id);
     return *this;
   }
   //----------------------------------------------------------------------------
   auto operator=(attribute&&) noexcept -> attribute& = default;
   //----------------------------------------------------------------------------
   ~attribute() {
-    //if (m_parent_id != nullptr) {
+    // if (m_parent_id != nullptr) {
     //  H5Fclose(*m_parent_id);
     //}
   }
   //============================================================================
   auto read() {
-    //T data;
-    //auto           s = m_attribute.getInMemDataSize();
-    //t.resize(s / sizeof(T));
-    //m_attribute.read(h5_type<T>::memory_type(), t.data());
-    //return t;
+    // T data;
+    // auto           s = m_attribute.getInMemDataSize();
+    // t.resize(s / sizeof(T));
+    // m_attribute.read(h5_type<T>::memory_type(), t.data());
+    // return t;
   }
   //============================================================================
   auto write(std::string const& s) {
@@ -229,8 +223,8 @@ class attribute {
     auto type_id      = H5Tcopy(H5T_C_S1);
     H5Tset_size(type_id, s.size());
     api::get().disable_error_printing();
-    auto attribute_id = H5Acreate(*m_parent_id, m_name.data(), type_id, dataspace_id,
-                                  H5P_DEFAULT, H5P_DEFAULT);
+    auto attribute_id = H5Acreate(*m_parent_id, m_name.data(), type_id,
+                                  dataspace_id, H5P_DEFAULT, H5P_DEFAULT);
     api::get().enable_error_printing();
     if (attribute_id <= 0) {
       attribute_id = H5Aopen(*m_parent_id, m_name.data(), H5P_DEFAULT);
@@ -243,7 +237,6 @@ class attribute {
 
     H5Sclose(dataspace_id);
     H5Tclose(type_id);
-
   }
   //----------------------------------------------------------------------------
   auto operator=(std::string const& s) -> attribute& {
@@ -269,30 +262,30 @@ class dataset {
       : m_parent_id{std::make_unique<hid_t>(*file_id)},
         m_dataset_id{std::make_unique<hid_t>(dataset_id)},
         m_name{name} {
-    //H5Iinc_ref(*m_parent_id);
+    // H5Iinc_ref(*m_parent_id);
   }
   //----------------------------------------------------------------------------
   dataset(dataset const& other)
       : m_parent_id{std::make_unique<hid_t>(*other.m_parent_id)},
         m_dataset_id{std::make_unique<hid_t>(*other.m_dataset_id)},
         m_name{other.m_name} {
-    //H5Iinc_ref(*m_parent_id);
+    // H5Iinc_ref(*m_parent_id);
     H5Iinc_ref(*m_dataset_id);
   }
   //----------------------------------------------------------------------------
   dataset(dataset&&) noexcept = default;
   //----------------------------------------------------------------------------
   auto operator=(dataset const& other) -> dataset& {
-    //if (m_parent_id != nullptr) {
+    // if (m_parent_id != nullptr) {
     //  H5Fclose(*m_parent_id);
     //}
     if (m_dataset_id != nullptr) {
       H5Dclose(*m_dataset_id);
     }
-    m_parent_id    = std::make_unique<hid_t>(*other.m_parent_id);
+    m_parent_id  = std::make_unique<hid_t>(*other.m_parent_id);
     m_dataset_id = std::make_unique<hid_t>(*other.m_dataset_id);
     m_name       = other.m_name;
-    //H5Iinc_ref(*m_parent_id);
+    // H5Iinc_ref(*m_parent_id);
     H5Iinc_ref(*m_dataset_id);
     return *this;
   }
@@ -300,7 +293,7 @@ class dataset {
   auto operator=(dataset&&) noexcept -> dataset& = default;
   //----------------------------------------------------------------------------
   ~dataset() {
-    //if (m_parent_id != nullptr) {
+    // if (m_parent_id != nullptr) {
     //  H5Fclose(*m_parent_id);
     //}
     if (m_dataset_id != nullptr) {
@@ -403,17 +396,17 @@ class dataset {
              std::vector<hsize_t> count) -> void {
     assert(offset.size() == count.size());
 
-    hid_t      dspace = H5Dget_space(*m_dataset_id);
-    auto const rank   = H5Sget_simple_extent_ndims(dspace);
+    hid_t      dataset_space = H5Dget_space(*m_dataset_id);
+    auto const rank          = H5Sget_simple_extent_ndims(dataset_space);
     boost::reverse(offset);
     boost::reverse(count);
-    H5Sselect_hyperslab(dspace, H5S_SELECT_SET, offset.data(), nullptr,
+    H5Sselect_hyperslab(dataset_space, H5S_SELECT_SET, offset.data(), nullptr,
                         count.data(), nullptr);
-    auto memspace = H5Screate_simple(rank, count.data(), nullptr);
-    H5Dwrite(*m_dataset_id, h5_type<T>::memory_type(), memspace, dspace,
-             H5P_DEFAULT, data);
-    H5Sclose(memspace);
-    H5Sclose(dspace);
+    auto memory_space = H5Screate_simple(rank, count.data(), nullptr);
+    H5Dwrite(*m_dataset_id, h5_type<T>::memory_type(), memory_space,
+             dataset_space, H5P_DEFAULT, data);
+    H5Sclose(memory_space);
+    H5Sclose(dataset_space);
   }
   //----------------------------------------------------------------------------
   template <typename IndexOrder = x_fastest>
@@ -425,10 +418,10 @@ class dataset {
   //----------------------------------------------------------------------------
   template <typename IndexOrder>
   auto read(dynamic_multidim_array<T, IndexOrder>& arr) const {
-    hid_t      dspace   = H5Dget_space(*m_dataset_id);
-    auto const num_dims = H5Sget_simple_extent_ndims(dspace);
-    auto       size     = std::make_unique<hsize_t[]>(num_dims);
-    H5Sget_simple_extent_dims(dspace, size.get(), nullptr);
+    hid_t      dataset_space = H5Dget_space(*m_dataset_id);
+    auto const num_dims      = H5Sget_simple_extent_ndims(dataset_space);
+    auto       size          = std::make_unique<hsize_t[]>(num_dims);
+    H5Sget_simple_extent_dims(dataset_space, size.get(), nullptr);
     std::reverse(size.get(), size.get() + num_dims);
     bool must_resize = (unsigned int)num_dims != arr.num_dimensions();
     if (!must_resize) {
@@ -445,7 +438,7 @@ class dataset {
 
     H5Dread(*m_dataset_id, h5_type<T>::memory_type(), H5S_ALL, H5S_ALL,
             H5P_DEFAULT, arr.data_ptr());
-    H5Sclose(dspace);
+    H5Sclose(dataset_space);
   }
   //----------------------------------------------------------------------------
   auto read_as_vector() const {
@@ -456,10 +449,10 @@ class dataset {
   //----------------------------------------------------------------------------
   template <typename IndexOrder = x_fastest>
   auto read(std::vector<T>& data) const {
-    hid_t      dspace   = H5Dget_space(*m_dataset_id);
-    auto const num_dims = H5Sget_simple_extent_ndims(dspace);
-    auto       size     = std::make_unique<hsize_t[]>(num_dims);
-    H5Sget_simple_extent_dims(dspace, size.get(), nullptr);
+    hid_t      dataset_space = H5Dget_space(*m_dataset_id);
+    auto const num_dims      = H5Sget_simple_extent_ndims(dataset_space);
+    auto       size          = std::make_unique<hsize_t[]>(num_dims);
+    H5Sget_simple_extent_dims(dataset_space, size.get(), nullptr);
     std::reverse(size.get(), size.get() + num_dims);
     size_t num_entries = 1;
     for (int i = 0; i < num_dims; ++i) {
@@ -471,7 +464,7 @@ class dataset {
 
     H5Dread(*m_dataset_id, h5_type<T>::memory_type(), H5S_ALL, H5S_ALL,
             H5P_DEFAULT, data.data());
-    H5Sclose(dspace);
+    H5Sclose(dataset_space);
   }
   //----------------------------------------------------------------------------
   template <typename IndexOrder>
@@ -504,29 +497,43 @@ class dataset {
                   dynamic_multidim_array<T, IndexOrder>& arr) const -> auto& {
     assert(offset.size() == count.size());
 
-    hid_t      dspace = H5Dget_space(*m_dataset_id);
-    auto const rank   = H5Sget_simple_extent_ndims(dspace);
+    std::vector<hsize_t> count_without_ones;
 
-    if (static_cast<unsigned int>(rank) != arr.num_dimensions()) {
+    hid_t  dataset_space = H5Dget_space(*m_dataset_id);
+    size_t rank          = 0;
+    for (size_t i = 0; i < count.size(); ++i) {
+      if (count[i] > 1) {
+        ++rank;
+        count_without_ones.push_back(count[i]);
+      }
+    }
+    size_t num_dimensions = 0;
+    for (size_t i = 0; i < arr.num_dimensions(); ++i) {
+      if (arr.size(i) > 1) {
+        ++num_dimensions;
+      }
+    }
+
+    if (rank != num_dimensions) {
       arr.resize(count);
     } else {
-      for (int i = 0; i < rank; ++i) {
-        if (arr.size(i) != count[i]) {
-          arr.resize(count);
+      for (size_t i = 0; i < rank; ++i) {
+        if (arr.size(i) != count_without_ones[i]) {
+          arr.resize(count_without_ones);
           break;
         }
       }
     }
     boost::reverse(offset);
     boost::reverse(count);
-    H5Sselect_hyperslab(dspace, H5S_SELECT_SET, offset.data(), nullptr,
+    H5Sselect_hyperslab(dataset_space, H5S_SELECT_SET, offset.data(), nullptr,
                         count.data(), nullptr);
 
-    auto memspace = H5Screate_simple(rank, count.data(), nullptr);
-    H5Dread(*m_dataset_id, h5_type<T>::memory_type(), memspace, dspace,
-            H5P_DEFAULT, arr.data_ptr());
-    H5Sclose(dspace);
-    H5Sclose(memspace);
+    auto memory_space = H5Screate_simple(static_cast<int>(rank), count.data(), nullptr);
+    H5Dread(*m_dataset_id, h5_type<T>::memory_type(), memory_space,
+            dataset_space, H5P_DEFAULT, arr.data_ptr());
+    H5Sclose(dataset_space);
+    H5Sclose(memory_space);
     return arr;
   }
   //----------------------------------------------------------------------------
@@ -539,25 +546,25 @@ class dataset {
     std::vector<hsize_t> offset{static_cast<hsize_t>(is)...};
     std::vector<hsize_t> count(sizeof...(Is), 1);
 
-    hid_t      dspace = H5Dget_space(*m_dataset_id);
-    auto const rank   = H5Sget_simple_extent_ndims(dspace);
-    auto       size   = std::make_unique<hsize_t[]>(rank);
+    hid_t      dataset_space = H5Dget_space(*m_dataset_id);
+    auto const rank          = H5Sget_simple_extent_ndims(dataset_space);
+    auto       size          = std::make_unique<hsize_t[]>(rank);
     boost::reverse(offset);
-    H5Sselect_hyperslab(dspace, H5S_SELECT_SET, offset.data(), nullptr,
+    H5Sselect_hyperslab(dataset_space, H5S_SELECT_SET, offset.data(), nullptr,
                         count.data(), nullptr);
-    auto memspace = H5Screate_simple(rank, count.data(), nullptr);
+    auto memory_space = H5Screate_simple(rank, count.data(), nullptr);
     T    data;
-    H5Dread(*m_dataset_id, h5_type<T>::memory_type(), memspace, dspace,
-            H5P_DEFAULT, &data);
-    H5Sclose(dspace);
-    H5Sclose(memspace);
+    H5Dread(*m_dataset_id, h5_type<T>::memory_type(), memory_space,
+            dataset_space, H5P_DEFAULT, &data);
+    H5Sclose(dataset_space);
+    H5Sclose(memory_space);
     return data;
   }
   //----------------------------------------------------------------------------
   auto num_dimensions() const {
-    auto dspace = H5Dget_space(*m_dataset_id);
-    auto ndims  = H5Sget_simple_extent_ndims(dspace);
-    H5Sclose(dspace);
+    auto dataset_space = H5Dget_space(*m_dataset_id);
+    auto ndims         = H5Sget_simple_extent_ndims(dataset_space);
+    H5Sclose(dataset_space);
     return ndims;
   }
   //----------------------------------------------------------------------------
@@ -568,13 +575,13 @@ class dataset {
   //----------------------------------------------------------------------------
   template <typename IndexOrder = x_fastest>
   auto size() const {
-    hid_t      dspace   = H5Dget_space(*m_dataset_id);
-    auto const num_dims = H5Sget_simple_extent_ndims(dspace);
-    auto       size     = std::make_unique<hsize_t[]>(num_dims);
-    H5Sget_simple_extent_dims(dspace, size.get(), nullptr);
+    hid_t      dataset_space = H5Dget_space(*m_dataset_id);
+    auto const num_dims      = H5Sget_simple_extent_ndims(dataset_space);
+    auto       size          = std::make_unique<hsize_t[]>(num_dims);
+    H5Sget_simple_extent_dims(dataset_space, size.get(), nullptr);
     std::vector<size_t> s(size.get(), size.get() + num_dims);
     boost::reverse(s);
-    H5Sclose(dspace);
+    H5Sclose(dataset_space);
     return s;
   }
   //----------------------------------------------------------------------------
@@ -590,9 +597,9 @@ class dataset {
   }
 };
 //==============================================================================
- class group {
+class group {
  public:
-  using this_t     = group;
+  using this_t = group;
 
  private:
   std::unique_ptr<hid_t> m_parent_id;
@@ -601,36 +608,34 @@ class dataset {
   //============================================================================
  public:
   group(std::unique_ptr<hid_t> const& file_id, hid_t const group_id,
-          std::string const& name)
-      : 
-        m_parent_id{std::make_unique<hid_t>(*file_id)},
+        std::string const& name)
+      : m_parent_id{std::make_unique<hid_t>(*file_id)},
         m_group_id{std::make_unique<hid_t>(group_id)},
         m_name{name} {
-    //H5Iinc_ref(*m_parent_id);
+    // H5Iinc_ref(*m_parent_id);
   }
   //----------------------------------------------------------------------------
   group(group const& other)
-      :
-        m_parent_id{std::make_unique<hid_t>(*other.m_parent_id)},
+      : m_parent_id{std::make_unique<hid_t>(*other.m_parent_id)},
         m_group_id{std::make_unique<hid_t>(*other.m_group_id)},
         m_name{other.m_name} {
-    //H5Iinc_ref(*m_parent_id);
+    // H5Iinc_ref(*m_parent_id);
     H5Iinc_ref(*m_group_id);
   }
   //----------------------------------------------------------------------------
   group(group&&) noexcept = default;
   //----------------------------------------------------------------------------
   auto operator=(group const& other) -> group& {
-    //if (m_parent_id != nullptr) {
+    // if (m_parent_id != nullptr) {
     //  H5Fclose(*m_parent_id);
     //}
     if (m_group_id != nullptr) {
       H5Gclose(*m_group_id);
     }
-    m_parent_id    = std::make_unique<hid_t>(*other.m_parent_id);
-    m_group_id = std::make_unique<hid_t>(*other.m_group_id);
-    m_name       = other.m_name;
-    //H5Iinc_ref(*m_parent_id);
+    m_parent_id = std::make_unique<hid_t>(*other.m_parent_id);
+    m_group_id  = std::make_unique<hid_t>(*other.m_group_id);
+    m_name      = other.m_name;
+    // H5Iinc_ref(*m_parent_id);
     H5Iinc_ref(*m_group_id);
     return *this;
   }
@@ -638,7 +643,7 @@ class dataset {
   auto operator=(group&&) noexcept -> group& = default;
   //----------------------------------------------------------------------------
   ~group() {
-    //if (m_parent_id != nullptr) {
+    // if (m_parent_id != nullptr) {
     //  H5Fclose(*m_parent_id);
     //}
     if (m_group_id != nullptr) {
@@ -660,13 +665,13 @@ class dataset {
                   "hdf5::dataset needs at least 1 dimension.");
     hsize_t dimsf[]{static_cast<hsize_t>(size)...};  // data set dimensions
     std::reverse(dimsf, dimsf + sizeof...(size));
-    auto dspace     = H5Screate_simple(sizeof...(Size), dimsf, nullptr);
+    auto dataset_space = H5Screate_simple(sizeof...(Size), dimsf, nullptr);
     api::get().disable_error_printing();
-    auto dataset_id = H5Dcreate2(*m_group_id, dataset_name.data(),
-                                 h5_type<T>::file_type_little_endian(), dspace,
-                                 H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT);
+    auto dataset_id = H5Dcreate2(
+        *m_group_id, dataset_name.data(), h5_type<T>::file_type_little_endian(),
+        dataset_space, H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT);
     api::get().enable_error_printing();
-    H5Sclose(dspace);
+    H5Sclose(dataset_space);
     if (dataset_id >= 0) {
       return hdf5::dataset<T>{m_group_id, dataset_id, dataset_name};
     }
@@ -692,9 +697,7 @@ class dataset {
     return hdf5::group{m_group_id, group_id, name};
   }
   //----------------------------------------------------------------------------
-  auto sub_group(std::string const& name) {
-    return sub_group(name.data());
-  }
+  auto sub_group(std::string const& name) { return sub_group(name.data()); }
 };
 //==============================================================================
 class file {
@@ -760,13 +763,13 @@ class file {
                   "hdf5::dataset needs at least 1 dimension.");
     hsize_t dimsf[]{static_cast<hsize_t>(size)...};  // data set dimensions
     std::reverse(dimsf, dimsf + sizeof...(size));
-    auto dspace     = H5Screate_simple(sizeof...(Size), dimsf, nullptr);
+    auto dataset_space = H5Screate_simple(sizeof...(Size), dimsf, nullptr);
     api::get().disable_error_printing();
-    auto dataset_id = H5Dcreate2(*m_file_id, dataset_name.data(),
-                                 h5_type<T>::file_type_little_endian(), dspace,
-                                 H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT);
+    auto dataset_id = H5Dcreate2(
+        *m_file_id, dataset_name.data(), h5_type<T>::file_type_little_endian(),
+        dataset_space, H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT);
     api::get().enable_error_printing();
-    H5Sclose(dspace);
+    H5Sclose(dataset_space);
     if (dataset_id >= 0) {
       return hdf5::dataset<T>{m_file_id, dataset_id, dataset_name};
     }
@@ -810,5 +813,5 @@ class file {
 //==============================================================================
 #endif
 #else
-#pragma message(including <tatooine/hdf5.h> without HDF5 support.)
+#pragma message(including <tatooine / hdf5.h> without HDF5 support.)
 #endif
