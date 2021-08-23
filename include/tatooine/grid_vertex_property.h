@@ -266,48 +266,73 @@ struct typed_grid_vertex_property_interface : grid_vertex_property<Grid> {
       -> void = 0;
   //----------------------------------------------------------------------------
 #if TATOOINE_PNG_AVAILABLE
-#ifdef __cpp_concepts
-  template <typename = void>
-  requires(num_dimensions() == 2) &&
-      (is_vec<ValueType>)
-#else
-  template <size_t _N                                   = num_dimensions(),
-            enable_if<(_N == 2) && (is_vec<ValueType>)> = true>
+#ifndef __cpp_concepts
+  template <size_t _N = num_dimensions(),
+            enable_if<(_N == 2) &&
+                      ((is_vec<ValueType>) || is_arithmetic<ValueType>)> = true>
 #endif
-          auto write_png(filesystem::path const& path) const -> void {
-    png::image<png::rgb_pixel> image{
-        static_cast<png::uint_32>(this->grid().size(0)),
-        static_cast<png::uint_32>(this->grid().size(1))};
-    for (unsigned int y = 0; y < image.get_height(); ++y) {
-      for (png::uint_32 x = 0; x < image.get_width(); ++x) {
-        auto d = at(x, y);
-        if (std::isnan(d(0))) {
-          for (auto& c : d) {
-            c = 0;
+      auto write_png(filesystem::path const& path) const -> void
+#ifdef __cpp_concepts
+      requires(num_dimensions() == 2) &&
+      ((is_vec<ValueType>) || (is_arithmetic<ValueType>))
+#endif
+  {
+    if constexpr (is_vec<ValueType>) {
+      png::image<png::rgb_pixel> image{
+          static_cast<png::uint_32>(this->grid().size(0)),
+          static_cast<png::uint_32>(this->grid().size(1))};
+      for (unsigned int y = 0; y < image.get_height(); ++y) {
+        for (png::uint_32 x = 0; x < image.get_width(); ++x) {
+          auto d = at(x, y);
+          if (std::isnan(d(0))) {
+            for (auto& c : d) {
+              c = 0;
+            }
+          } else {
+            for (auto& c : d) {
+              c = std::max<typename ValueType::value_type>(
+                  0, std::min<typename ValueType::value_type>(1, c));
+            }
           }
-        } else {
-          for (auto& c : d) {
-            c = std::max<typename ValueType::value_type>(
-                0, std::min<typename ValueType::value_type>(1, c));
-          }
+          image[image.get_height() - 1 - y][x].red   = d(0) * 255;
+          image[image.get_height() - 1 - y][x].green = d(1) * 255;
+          image[image.get_height() - 1 - y][x].blue  = d(2) * 255;
         }
-        image[image.get_height() - 1 - y][x].red   = d(0) * 255;
-        image[image.get_height() - 1 - y][x].green = d(1) * 255;
-        image[image.get_height() - 1 - y][x].blue  = d(2) * 255;
       }
+      image.write(path.string());
+    } else if constexpr (is_arithmetic<ValueType>) {
+      png::image<png::rgb_pixel> image{
+          static_cast<png::uint_32>(this->grid().size(0)),
+          static_cast<png::uint_32>(this->grid().size(1))};
+      for (unsigned int y = 0; y < image.get_height(); ++y) {
+        for (png::uint_32 x = 0; x < image.get_width(); ++x) {
+          auto d = at(x, y);
+          if (std::isnan(d)) {
+            d = 0;
+          } else {
+              d = std::max<typename ValueType::value_type>(
+                  0, std::min<typename ValueType::value_type>(1, d));
+          }
+          image[image.get_height() - 1 - y][x].red   = d * 255;
+          image[image.get_height() - 1 - y][x].green = d * 255;
+          image[image.get_height() - 1 - y][x].blue  = d * 255;
+        }
+      }
+      image.write(path.string());
     }
-    image.write(path.string());
   }
-#ifdef __cpp_concepts
-  template <typename = void>
-  requires(num_dimensions() == 2) &&
-      (is_floating_point<ValueType>)
-#else
-  template <size_t _N = num_dimensions(), enable_if<_N == 2> = true,
-            enable_if_floating_point<ValueType> = true>
+#ifndef __cpp_concepts
+  template <size_t _N = num_dimensions(),
+            enable_if<(_N == 2) &&
+                      ((is_vec<ValueType>) || is_arithmetic<ValueType>)> = true>
 #endif
-          auto write_png(filesystem::path const& path, ValueType const min = 0,
-                         ValueType const max = 1) const -> void {
+      auto write_png(filesystem::path const& path, ValueType const min = 0,
+                     ValueType const max = 1) const -> void
+#ifdef __cpp_concepts
+      requires(num_dimensions() == 2) &&
+      ((is_vec<ValueType>) || (is_arithmetic<ValueType>))
+#endif
+  {
     png::image<png::rgb_pixel> image{
         static_cast<png::uint_32>(this->grid().size(0)),
         static_cast<png::uint_32>(this->grid().size(1))};
@@ -348,20 +373,24 @@ struct typed_grid_vertex_property_interface : grid_vertex_property<Grid> {
   }
 #ifdef __cpp_concepts
   template <typename ColorScale>
-  requires(num_dimensions() == 2) &&
-      (is_floating_point<ValueType>)
 #else
-  template <size_t _N = num_dimensions(), typename ColorScale,
-            enable_if<(_N == 2) && (is_floating_point<ValueType>)> = true>
+  template <typename ColorScale, size_t _N = num_dimensions(),
+            enable_if<(_N == 2), (is_floating_point<ValueType>)> = true>
 #endif
-          auto write_png(filesystem::path const& path, ColorScale&& color_scale,
-                         ValueType const min = 0, ValueType const max = 1) const
-      -> void {
+      auto write_png(filesystem::path const& path, ColorScale&& color_scale,
+                     ValueType const min = 0, ValueType const max = 1) const
+      -> void
+#ifdef __cpp_concepts
+      requires(num_dimensions() == 2) &&
+      (is_floating_point<ValueType>)
+#endif
+  {
     png::image<png::rgb_pixel> image{
         static_cast<png::uint_32>(this->grid().size(0)),
         static_cast<png::uint_32>(this->grid().size(1))};
     for (unsigned int y = 0; y < image.get_height(); ++y) {
       for (png::uint_32 x = 0; x < image.get_width(); ++x) {
+
         auto d = at(x, y);
         if (std::isnan(d)) {
           d = 0;

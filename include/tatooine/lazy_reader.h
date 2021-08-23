@@ -138,7 +138,6 @@ struct lazy_reader
       // chunks
       m_chunks_loaded.splice(end(m_chunks_loaded), m_chunks_loaded,
                              m_chunks_its[plain_chunk_index]);
-      std::cerr << "splice\n";
     }
 
     return this->chunk_at(plain_chunk_index);

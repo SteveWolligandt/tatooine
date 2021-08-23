@@ -153,9 +153,7 @@ struct field : polymorphic::field<Real, NumDims, Tensor> {
   //============================================================================
   // methods
   //============================================================================
-  auto as_derived() -> auto& {
-    return static_cast<DerivedField&>(*this);
-  }
+  auto as_derived() -> auto& { return static_cast<DerivedField&>(*this); }
   auto as_derived() const -> auto const& {
     return static_cast<DerivedField const&>(*this);
   }
@@ -206,7 +204,8 @@ template <typename T, typename = void>
 struct is_scalarfield_impl : std::false_type {};
 //------------------------------------------------------------------------------
 template <typename T>
-struct is_scalarfield_impl<T> : std::integral_constant<bool, T::is_scalarfield()> {};
+struct is_scalarfield_impl<T>
+    : std::integral_constant<bool, T::is_scalarfield()> {};
 //------------------------------------------------------------------------------
 template <typename T>
 static constexpr bool is_scalarfield_v = is_scalarfield_impl<T>::value;
@@ -277,14 +276,14 @@ template <typename V, typename VReal, size_t NumDims, typename Tensor,
           typename... SpatialDimensions, typename T,
           enable_if<is_arithmetic<VReal, T>> = true>
 #endif
-auto sample_to_raw(field<V, VReal, NumDims, Tensor> const& f,
-                   rectilinear_grid<SpatialDimensions...> const&       discretized_domain,
-                   T const t, size_t padding = 0, VReal padval = 0) {
+auto sample_to_raw(
+    field<V, VReal, NumDims, Tensor> const&       f,
+    rectilinear_grid<SpatialDimensions...> const& discretized_domain, T const t,
+    size_t padding = 0, VReal padval = 0) {
   auto const         nan = VReal(0) / VReal(0);
   std::vector<VReal> raw_data;
   auto               vs = discretized_domain.vertices();
-  raw_data.reserve(vs.size() *
-                   (f.num_tensor_components() + padding));
+  raw_data.reserve(vs.size() * (f.num_tensor_components() + padding));
   for (auto v : vs) {
     auto const x = vs[v];
     if (f.in_domain(x, t)) {
@@ -318,13 +317,14 @@ template <typename V, typename VReal, typename TReal, size_t NumDims,
           typename TemporalDimension,
           enable_if<is_arithmetic<VReal, TReal>> = true>
 #endif
-auto sample_to_raw(field<V, VReal, NumDims, Tensor> const& f,
-                   rectilinear_grid<SpatialDimensions...> const&       discretized_domain,
-                   TemporalDimension const& temporal_domain, size_t padding = 0,
-                   VReal padval = 0) {
+auto sample_to_raw(
+    field<V, VReal, NumDims, Tensor> const&       f,
+    rectilinear_grid<SpatialDimensions...> const& discretized_domain,
+    TemporalDimension const& temporal_domain, size_t padding = 0,
+    VReal padval = 0) {
   auto const         nan = VReal(0) / VReal(0);
   std::vector<VReal> raw_data;
-  auto vs = discretized_domain.vertices();
+  auto               vs = discretized_domain.vertices();
   raw_data.reserve(vs.size() * temporal_domain.size() *
                    (f.num_tensor_components() + padding));
   for (auto t : temporal_domain) {
@@ -360,9 +360,9 @@ template <typename VReal, typename TReal, size_t NumDims, typename Tensor,
           typename... SpatialDimensions,
           enable_if<is_arithmetic<VReal, TReal>> = true>
 #endif
-auto sample_to_vector(polymorphic::field<VReal, NumDims, Tensor> const& f,
-                      rectilinear_grid<SpatialDimensions...> const& discretized_domain,
-                      TReal                             t) {
+auto sample_to_vector(
+    polymorphic::field<VReal, NumDims, Tensor> const& f,
+    rectilinear_grid<SpatialDimensions...> const& discretized_domain, TReal t) {
   using V                   = polymorphic::field<VReal, NumDims, Tensor>;
   using tensor_t            = typename V::tensor_t;
   auto const            nan = VReal(0) / VReal(0);
@@ -407,16 +407,15 @@ auto discretize(polymorphic::field<VReal, NumDims, Tensor> const& f,
       return discretized_domain.template insert_chunked_vertex_property<VReal>(
           property_name);
     } else if constexpr (is_vec<Tensor>) {
-      return discretized_domain.template vertex_property<
-          vec<VReal, Tensor::dimension(0)>>(
-          property_name);
+      return discretized_domain
+          .template vertex_property<vec<VReal, Tensor::dimension(0)>>(
+              property_name);
     } else if constexpr (is_mat<Tensor>) {
       return discretized_domain.template vertex_property<
           mat<VReal, Tensor::dimension(0), Tensor::dimension(1)>>(
           property_name);
     } else {
-      return discretized_domain.template vertex_property<Tensor>(
-          property_name);
+      return discretized_domain.template vertex_property<Tensor>(property_name);
     }
   }();
   discretized_domain.vertices().iterate_indices([&](auto const... is) {
@@ -431,7 +430,7 @@ auto discretize(polymorphic::field<VReal, NumDims, Tensor> const& f,
 }
 //------------------------------------------------------------------------------
 /// Discretizes to a cutting plane of a field.
-/// \param basis Spatial Basis of cutting plane
+/// \param basis spatial basis of cutting plane
 template <typename V, typename VReal, typename TReal, size_t NumDims,
           typename Tensor, typename BasisReal, typename X0Real, typename X1Real,
           enable_if<is_arithmetic<VReal, TReal>> = true>
@@ -441,11 +440,14 @@ auto discretize(field<V, VReal, NumDims, Tensor> const& f,
                 vec<X1Real, 2> const& spatial_size, size_t const res0,
                 size_t const res1, std::string const& property_name,
                 TReal const t) {
-  auto const extent =
+  auto const cell_extent =
       vec<VReal, 2>{spatial_size(0) / (res0 - 1), spatial_size(1) / (res1 - 1)};
-  auto discretized_domain =
-      rectilinear_grid{linspace<VReal>{0, length(basis * vec{spatial_size(0), 0}), res0},
-           linspace<VReal>{0, length(basis * vec{0, spatial_size(1)}), res1}};
+  std::cerr << x0 << '\n';
+  std::cerr << spatial_size << '\n';
+  std::cerr << cell_extent << '\n';
+  auto discretized_domain = rectilinear_grid{
+      linspace<VReal>{0, length(basis * vec{spatial_size(0), 0}), res0},
+      linspace<VReal>{0, length(basis * vec{0, spatial_size(1)}), res1}};
 
   auto const ood_tensor = [] {
     if constexpr (is_scalarfield<V>()) {
@@ -467,13 +469,12 @@ auto discretize(field<V, VReal, NumDims, Tensor> const& f,
           mat<VReal, V::tensor_t::dimension(0), V::tensor_t::dimension(1)>>(
           property_name);
     } else {
-      return discretized_domain.template vertex_property<Tensor>(
-          property_name);
+      return discretized_domain.template vertex_property<Tensor>(property_name);
     }
   }();
   for (size_t i1 = 0; i1 < res1; ++i1) {
     for (size_t i0 = 0; i0 < res0; ++i0) {
-      auto const x = x0 + basis * vec{extent(0) * i0, extent(1) * i1};
+      auto const x = x0 + basis * vec{cell_extent(0) * i0, cell_extent(1) * i1};
       if (f.in_domain(x, t)) {
         discretized_field(i0, i1) = f(x, t);
       } else {
@@ -484,88 +485,39 @@ auto discretize(field<V, VReal, NumDims, Tensor> const& f,
   return discretized_domain;
 }
 //------------------------------------------------------------------------------
+/// Discretizes to a cutting plane of a field.
+/// \param basis spatial basis of cutting plane
 template <typename V, typename VReal, typename TReal, size_t NumDims,
           typename Tensor, typename BasisReal, typename X0Real,
           enable_if<is_arithmetic<VReal, TReal>> = true>
 auto discretize(field<V, VReal, NumDims, Tensor> const& f,
-                mat<BasisReal, NumDims, 2> const& basis,
-                vec<X0Real, NumDims> const& x0,
-                size_t const res0, size_t const res1,
-                std::string const& property_name, TReal const t) {
-  return discretize(f, x0,basis,  vec<BasisReal, 2>::ones(), res0, res1,
+                mat<BasisReal, NumDims, 2> const&       basis,
+                vec<X0Real, NumDims> const& x0, size_t const res0,
+                size_t const res1, std::string const& property_name,
+                TReal const t) {
+  return discretize(f, x0, basis, vec<BasisReal, 2>::ones(), res0, res1,
                     property_name, t);
 }
 //------------------------------------------------------------------------------
+/// Discretizes to a cutting plane of a field.
+/// \param basis spatial basis of cutting plane
 template <typename V, typename VReal, typename TReal, size_t NumDims,
           typename Tensor, typename BasisReal, typename X0Real,
           enable_if<is_arithmetic<VReal, TReal>> = true>
 auto discretize(field<V, VReal, NumDims, Tensor> const& f,
-                vec<BasisReal, NumDims> const& extent0,
-                vec<BasisReal, NumDims> const& extent1,
-                vec<X0Real, NumDims> const& /*x0*/,
-                size_t const res0, size_t const res1,
-                std::string const& property_name, TReal const t) {
-  auto basis = mat<BasisReal, NumDims, 2>{};
+                vec<BasisReal, NumDims> const&          extent0,
+                vec<BasisReal, NumDims> const&          extent1,
+                vec<X0Real, NumDims> const& /*x0*/, size_t const res0,
+                size_t const res1, std::string const& property_name,
+                TReal const t) {
+  auto basis   = mat<BasisReal, NumDims, 2>{};
   basis.col(0) = extent0;
   basis.col(1) = extent1;
-  return discretize(f, basis,res0, res1, property_name, t);
+  return discretize(f, basis, res0, res1, property_name, t);
 }
-//------------------------------------------------------------------------------
-//#ifdef __cpp_concpets
-// template <typename V, arithmetic VReal, arithmetic TReal, size_t NumDims,
-//          typename Tensor, indexable_space... SpatialDimensions,
-//          indexable_space TemporalDomain>
-//#else
-// template <typename V, typename VReal, typename TReal, size_t NumDims,
-//          typename Tensor, typename... SpatialDimensions,
-//          typename TemporalDomain,
-//          enable_if<is_arithmetic<VReal, TReal>> = true>
-//#endif
-// auto resample(field<V, VReal, NumDims, Tensor> const& f,
-//              rectilinear_grid<SpatialDimensions...>&              discretized_domain,
-//              TemporalDomain const& temporal_domain) -> auto& {
-//  auto const ood_tensor = [] {
-//    if constexpr (f.is_scalarfield()) {
-//      return VReal(0) / VReal(0);
-//    } else {
-//      return Tensor{tag::fill{VReal(0) / VReal(0)}};
-//    }
-//  }();
-//  auto& discretized_field = [&]() -> decltype(auto) {
-//    if constexpr (f.is_scalarfield()) {
-//      return gn.first.template
-//      add_contiguous_vertex_property<VReal>(gn.second);
-//    } else if constexpr (f.is_vectorfield()) {
-//      return gn.first
-//          .template add_contiguous_vertex_property<vec<VReal,
-//          f.dimension(0)>>(
-//              gn.second);
-//    } else if constexpr (f.is_matrixfield()) {
-//      return gn.first
-//          .template add_contiguous_vertex_property<mat<VReal, f.dimension(0),
-//          f.dimension(1)>>(
-//              gn.second);
-//    } else {
-//      return gn.first.template add_contiguous_vertex_property<
-//          Tensor>(gn.second);
-//    }
-//  }();
-//  for (auto const t : temporal_domain) {
-//    discretized_domain.vertices().iterate_indices([&](auto const... is) {
-//      auto const x = discretized_domain.vertex_at(is...);
-//      if (f.in_domain(x, t)) {
-//        discretized_field.data_at(is...) = f(x, t);
-//      } else {
-//        discretized_field.data_at(is...) = ood_tensor;
-//      }
-//    });
-//  }
-//  return discretized_field;
-//}
 //==============================================================================
 }  // namespace tatooine
 //==============================================================================
 #include <tatooine/field_type_traits.h>
 #include <tatooine/field_operations.h>
-#include <tatooine/field_type_traits.h>
 #endif
