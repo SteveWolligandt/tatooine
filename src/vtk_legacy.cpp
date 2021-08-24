@@ -12,6 +12,7 @@
 #include <istream>
 #include <map>
 #include <sstream>
+#include <utility>
 #include <vector>
 //=============================================================================
 namespace tatooine::vtk {
@@ -22,7 +23,8 @@ auto read_until(std::istream &stream, char const terminator_char, char *buffer)
     -> std::string {
   size_t idx = 0;
   do {
-    if (!stream.eof()) stream.read(&buffer[idx], sizeof(char));
+    if (!stream.eof()) { stream.read(&buffer[idx], sizeof(char));
+}
     idx++;
   } while (buffer[idx - 1] != terminator_char && !stream.eof());
   buffer[idx] = '\0';
@@ -40,7 +42,8 @@ auto read_binaryline(std::istream &stream, char *buffer) -> std::string {
 auto read_word(std::istream &stream, char *buffer) -> std::string {
   size_t idx = 0;
   do {
-    if (!stream.eof()) stream.read(&buffer[idx], sizeof(char));
+    if (!stream.eof()) { stream.read(&buffer[idx], sizeof(char));
+}
 
     idx++;
   } while ((buffer[idx - 1] != ' ') && (buffer[idx - 1] != '\n') &&
@@ -49,11 +52,13 @@ auto read_word(std::istream &stream, char *buffer) -> std::string {
   std::string word(buffer);
 
   do {
-    if (!stream.eof()) stream.read(buffer, sizeof(char));
+    if (!stream.eof()) { stream.read(buffer, sizeof(char));
+}
   } while ((buffer[0] == ' ' || buffer[0] == '\n' || buffer[0] == '\t') &&
            !stream.eof());
-  if (!stream.eof())
+  if (!stream.eof()) {
     stream.seekg(stream.tellg() - std::streampos(1), stream.beg);
+}
   return word;
 }
 //-----------------------------------------------------------------------------
@@ -68,9 +73,9 @@ auto write_binary(std::ostream &stream, char const c) -> void {
 auto parse_dataset_type(std::string const &type) -> dataset_type {
   if (type == "STRUCTURED_POINTS") {
     return dataset_type::structured_points;
-  } else if (type == "STRUCTURED_GRID") {
+  } if (type == "STRUCTURED_GRID") {
     return dataset_type::structured_grid;
-  } else if (type == "UNSTRUCTURED_GRID") {
+  } if (type == "UNSTRUCTURED_GRID") {
     return dataset_type::unstructured_grid;
   } else if (type == "POLYDATA") {
     return dataset_type::polydata;
@@ -85,7 +90,7 @@ auto parse_dataset_type(std::string const &type) -> dataset_type {
 auto parse_format(std::string const &f) -> format {
   if (f == to_string_view(format::ascii)) {
     return format::ascii;
-  } else if (f == to_string_view(format::binary)) {
+  } if (f == to_string_view(format::binary)) {
     return format::binary;
   }
   return format::unknown;
@@ -94,9 +99,9 @@ auto parse_format(std::string const &f) -> format {
 auto parse_cell_type(std::string const &ct) -> cell_type {
   if (ct == "VERTEX") {
     return cell_type::vertex;
-  } else if (ct == "POLY_VERTEX") {
+  } if (ct == "POLY_VERTEX") {
     return cell_type::poly_vertex;
-  } else if (ct == "LINE") {
+  } if (ct == "LINE") {
     return cell_type::line;
   } else if (ct == "POLY_LINE") {
     return cell_type::poly_line;
@@ -128,7 +133,7 @@ auto legacy_file::add_listener(legacy_file_listener &listener) -> void {
   m_listeners.push_back(&listener);
 }
 //===========================================================================
-legacy_file::legacy_file(filesystem::path const &path) : m_path(path) {}
+legacy_file::legacy_file(filesystem::path path) : m_path(std::move(path)) {}
 //---------------------------------------------------------------------------
 auto legacy_file::read() -> void {
   read_header();
@@ -172,12 +177,14 @@ auto legacy_file::read_x_coordinates(std::ifstream &file) -> void {
   auto const &type   = header.second;
   if (type == "float") {
     auto c = read_coordinates<float>(file, n);
-    for (auto l : m_listeners)
+    for (auto *l : m_listeners) {
       l->on_x_coordinates(c);
+}
   } else if (type == "double") {
     auto c = read_coordinates<double>(file, n);
-    for (auto l : m_listeners)
+    for (auto *l : m_listeners) {
       l->on_x_coordinates(c);
+}
   }
 }
 //----------------------------------------------------------------------------
@@ -187,12 +194,14 @@ auto legacy_file::read_y_coordinates(std::ifstream &file) -> void {
   auto const &type   = header.second;
   if (type == "float") {
     auto c = read_coordinates<float>(file, n);
-    for (auto l : m_listeners)
+    for (auto *l : m_listeners) {
       l->on_y_coordinates(c);
+}
   } else if (type == "double") {
     auto c = read_coordinates<double>(file, n);
-    for (auto l : m_listeners)
+    for (auto *l : m_listeners) {
       l->on_y_coordinates(c);
+}
   }
 }
 //----------------------------------------------------------------------------
@@ -202,47 +211,49 @@ auto legacy_file::read_z_coordinates(std::ifstream &file) -> void {
   auto const &type   = header.second;
   if (type == "float") {
     auto c = read_coordinates<float>(file, n);
-    for (auto l : m_listeners)
+    for (auto *l : m_listeners) {
       l->on_z_coordinates(c);
+}
   } else if (type == "double") {
     auto c = read_coordinates<double>(file, n);
-    for (auto l : m_listeners)
+    for (auto *l : m_listeners) {
       l->on_z_coordinates(c);
+}
   }
 }
 //----------------------------------------------------------------------------
 // index data
 auto legacy_file::read_cells(std::ifstream &file) -> void {
   auto i = read_indices(file);
-  for (auto l : m_listeners) {
+  for (auto *l : m_listeners) {
     l->on_cells(i);
   }
 }
 //----------------------------------------------------------------------------
 auto legacy_file::read_vertices(std::ifstream &file) -> void {
   auto const i = read_indices(file);
-  for (auto l : m_listeners) {
+  for (auto *l : m_listeners) {
     l->on_vertices(i);
   }
 }
 //----------------------------------------------------------------------------
 auto legacy_file::read_lines(std::ifstream &file) -> void {
   auto const i = read_indices(file);
-  for (auto l : m_listeners) {
+  for (auto *l : m_listeners) {
     l->on_lines(i);
   }
 }
 //----------------------------------------------------------------------------
 auto legacy_file::read_polygons(std::ifstream &file) -> void {
   auto const i = read_indices(file);
-  for (auto l : m_listeners) {
+  for (auto *l : m_listeners) {
     l->on_polygons(i);
   }
 }
 //----------------------------------------------------------------------------
 auto legacy_file::read_triangle_strips(std::ifstream &file) -> void {
   auto const i = read_indices(file);
-  for (auto l : m_listeners) {
+  for (auto *l : m_listeners) {
     l->on_triangle_strips(i);
   }
 }
@@ -254,12 +265,14 @@ auto legacy_file::read_vectors(std::ifstream &file) -> void {
   auto const &type   = header.second;
   if (type == "float") {
     auto data = read_data<float, 3>(file);
-    for (auto l : m_listeners)
+    for (auto *l : m_listeners) {
       l->on_vectors(name, data, m_data);
+}
   } else if (type == "double") {
     auto data = read_data<double, 3>(file);
-    for (auto l : m_listeners)
+    for (auto *l : m_listeners) {
       l->on_vectors(name, data, m_data);
+}
   }
 }
 //----------------------------------------------------------------------------
@@ -269,12 +282,14 @@ auto legacy_file::read_normals(std::ifstream &file) -> void {
   auto const &type   = header.second;
   if (type == "float") {
     auto data = read_data<float, 3>(file);
-    for (auto l : m_listeners)
+    for (auto *l : m_listeners) {
       l->on_normals(name, data, m_data);
+}
   } else if (type == "double") {
     auto data = read_data<double, 3>(file);
-    for (auto l : m_listeners)
+    for (auto *l : m_listeners) {
       l->on_normals(name, data, m_data);
+}
   }
 }
 //----------------------------------------------------------------------------
@@ -284,12 +299,14 @@ auto legacy_file::read_texture_coordinates(std::ifstream &file) -> void {
   auto const &type   = header.second;
   if (type == "float") {
     auto data = read_data<float, 2>(file);
-    for (auto l : m_listeners)
+    for (auto *l : m_listeners) {
       l->on_texture_coordinates(name, data, m_data);
+}
   } else if (type == "double") {
     auto data = read_data<double, 2>(file);
-    for (auto l : m_listeners)
+    for (auto *l : m_listeners) {
       l->on_texture_coordinates(name, data, m_data);
+}
   }
 }
 //----------------------------------------------------------------------------
@@ -299,12 +316,14 @@ auto legacy_file::read_tensors(std::ifstream &file) -> void {
   auto const &type   = header.second;
   if (type == "float") {
     auto data = read_data<float, 9>(file);
-    for (auto l : m_listeners)
+    for (auto *l : m_listeners) {
       l->on_tensors(name, data, m_data);
+}
   } else if (type == "double") {
     auto data = read_data<double, 9>(file);
-    for (auto l : m_listeners)
+    for (auto *l : m_listeners) {
       l->on_tensors(name, data, m_data);
+}
   }
 }
 //----------------------------------------------------------------------------
@@ -332,7 +351,7 @@ auto legacy_file::read_field_array_header(std::ifstream &file)
       field_array_params_stream >> array_name;
     }
   }
-  size_t num_comps, num_tuples;
+  size_t num_comps = 0, num_tuples = 0;
   std::string datatype_str;
   field_array_params_stream >> num_comps >> num_tuples >> datatype_str;
   return {array_name, num_comps, num_tuples, datatype_str};
@@ -349,19 +368,19 @@ auto legacy_file::read_field(std::ifstream &file) -> void {
     if (m_format == format::ascii) {
       if (datatype_str == "int") {
         auto data = read_field_array_ascii<int>(file, num_comps, num_tuples);
-        for (auto l : m_listeners) {
+        for (auto *l : m_listeners) {
           l->on_field_array(field_name, field_array_name, data, num_comps,
                             num_tuples);
         }
       } else if (datatype_str == "float") {
         auto data = read_field_array_ascii<float>(file, num_comps, num_tuples);
-        for (auto l : m_listeners) {
+        for (auto *l : m_listeners) {
           l->on_field_array(field_name, field_array_name, data, num_comps,
                             num_tuples);
         }
       } else if (datatype_str == "double") {
         auto data = read_field_array_ascii<double>(file, num_comps, num_tuples);
-        for (auto l : m_listeners) {
+        for (auto *l : m_listeners) {
           l->on_field_array(field_name, field_array_name, data, num_comps,
                             num_tuples);
         }
@@ -369,20 +388,20 @@ auto legacy_file::read_field(std::ifstream &file) -> void {
     } else if (m_format == format::binary) {
       if (datatype_str == "int") {
         auto data = read_field_array_binary<int>(file, num_comps, num_tuples);
-        for (auto l : m_listeners) {
+        for (auto *l : m_listeners) {
           l->on_field_array(field_name, field_array_name, data, num_comps,
                             num_tuples);
         }
       } else if (datatype_str == "float") {
         auto data = read_field_array_binary<float>(file, num_comps, num_tuples);
-        for (auto l : m_listeners) {
+        for (auto *l : m_listeners) {
           l->on_field_array(field_name, field_array_name, data, num_comps,
                             num_tuples);
         }
       } else if (datatype_str == "double") {
         auto data =
             read_field_array_binary<double>(file, num_comps, num_tuples);
-        for (auto l : m_listeners) {
+        for (auto *l : m_listeners) {
           l->on_field_array(field_name, field_array_name, data, num_comps,
                             num_tuples);
         }
@@ -392,7 +411,7 @@ auto legacy_file::read_field(std::ifstream &file) -> void {
 }
 //------------------------------------------------------------------------------
 auto legacy_file::consume_trailing_break(std::ifstream &file) -> void {
-  char consumer;
+  char consumer = 0;
   file.read(&consumer, sizeof(char));
 }
 //-----------------------------------------------------------------------------------------------
@@ -405,13 +424,14 @@ auto legacy_file::read_header() -> void {
   if (file.is_open()) {
     // read part1 # vtk DataFile Version x.x
     std::string part1 = vtk::read_binaryline(file, buffer);
-    for (auto listener : m_listeners)
+    for (auto *listener : m_listeners) {
       listener->on_version((unsigned short)(atoi(&buffer[23])),
                            (unsigned short)(atoi(&buffer[25])));
+}
 
     // read part2 maximal 256 characters
     std::string part2 = vtk::read_binaryline(file, buffer);
-    for (auto listener : m_listeners) {
+    for (auto *listener : m_listeners) {
       listener->on_title(part2);
     }
 
@@ -425,14 +445,15 @@ auto legacy_file::read_header() -> void {
       m_format = format::unknown;
     }
 
-    for (auto listener : m_listeners)
+    for (auto *listener : m_listeners) {
       listener->on_format(m_format);
+}
 
     // read part4 STRUCTURED_POINTS | STRUCTURED_GRID | UNSTRUCTURED_GRID |
     // POLYDATA | RECTILINEAR_GRID | FIELD
     file.read(buffer, sizeof(char) * 8);  // consume "DATASET "
     auto part4 = parse_dataset_type(vtk::read_binaryline(file, buffer));
-    for (auto listener : m_listeners) {
+    for (auto *listener : m_listeners) {
       listener->on_dataset_type(part4);
     }
 
@@ -485,14 +506,15 @@ auto legacy_file::read_data() -> void {
           auto const word = vtk::read_word(file, buffer);
           m_data_size     = size_t(parse<int>(word));
           m_data          = reader_data::point_data;
-          for (auto l : m_listeners) {
+          for (auto *l : m_listeners) {
             l->on_point_data(m_data_size);
           }
         } else if (keyword == "CELL_DATA") {
           m_data_size = size_t(parse<int>(vtk::read_word(file, buffer)));
           m_data      = reader_data::point_data;
-          for (auto l : m_listeners)
+          for (auto *l : m_listeners) {
             l->on_cell_data(m_data_size);
+}
         } else if (keyword == "SCALARS") {
           read_scalars(file);
         } else if (keyword == "VECTORS") {
@@ -509,16 +531,17 @@ auto legacy_file::read_data() -> void {
         }
       }
     }
-  } else
+  } else {
     throw std::runtime_error{
         "[tatooine::vtk::legacy_file] could not open file " + m_path.string()};
+};
 }
 //------------------------------------------------------------------------------
 auto legacy_file::read_spacing(std::ifstream &file) -> void {
   std::array<double, 3> spacing{parse<double>(vtk::read_word(file, buffer)),
                                 parse<double>(vtk::read_word(file, buffer)),
                                 parse<double>(vtk::read_word(file, buffer))};
-  for (auto l : m_listeners) {
+  for (auto *l : m_listeners) {
     l->on_spacing(spacing[0], spacing[1], spacing[2]);
   }
 }
@@ -527,7 +550,7 @@ auto legacy_file::read_dimensions(std::ifstream &file) -> void {
   std::array<size_t, 3> dims{parse<size_t>(vtk::read_word(file, buffer)),
                              parse<size_t>(vtk::read_word(file, buffer)),
                              parse<size_t>(vtk::read_word(file, buffer))};
-  for (auto l : m_listeners) {
+  for (auto *l : m_listeners) {
     l->on_dimensions(dims[0], dims[1], dims[2]);
   }
 }
@@ -536,7 +559,7 @@ auto legacy_file::read_origin(std::ifstream &file) -> void {
   std::array<double, 3> origin{parse<double>(vtk::read_word(file, buffer)),
                                parse<double>(vtk::read_word(file, buffer)),
                                parse<double>(vtk::read_word(file, buffer))};
-  for (auto l : m_listeners) {
+  for (auto *l : m_listeners) {
     l->on_origin(origin[0], origin[1], origin[2]);
   }
 }
@@ -547,15 +570,17 @@ auto legacy_file::read_points(std::ifstream &file) -> void {
   auto const datatype_str   = vtk::read_word(file, buffer);
 
   if (m_format == format::ascii) {
-    if (datatype_str == "float")
+    if (datatype_str == "float") {
       read_points_ascii<float>(file, n);
-    else if (datatype_str == "double")
+    } else if (datatype_str == "double") {
       read_points_ascii<double>(file, n);
+}
   } else if (m_format == format::binary) {
-    if (datatype_str == "float")
+    if (datatype_str == "float") {
       read_points_binary<float>(file, n);
-    else if (datatype_str == "double")
+    } else if (datatype_str == "double") {
       read_points_binary<double>(file, n);
+}
   }
 }
 //-----------------------------------------------------------------------------------------------
@@ -563,10 +588,11 @@ auto legacy_file::read_cell_types(std::ifstream &file) -> void {
   auto num_cell_types_str = vtk::read_word(file, buffer);
   auto num_cell_types     = parse<size_t>(num_cell_types_str);
 
-  if (m_format == format::ascii)
+  if (m_format == format::ascii) {
     read_cell_types_ascii(file, num_cell_types);
-  else if (m_format == format::binary)
+  } else if (m_format == format::binary) {
     read_cell_types_binary(file, num_cell_types);
+}
 }
 //-----------------------------------------------------------------------------------------------
 auto legacy_file::read_cell_types_ascii(std::ifstream &file,
@@ -577,8 +603,9 @@ auto legacy_file::read_cell_types_ascii(std::ifstream &file,
     cell_type_str = vtk::read_word(file, buffer);
     cell_types.push_back((cell_type)parse<int>(cell_type_str));
   }
-  for (auto listener : m_listeners)
+  for (auto *listener : m_listeners) {
     listener->on_cell_types(cell_types);
+}
 }
 //-----------------------------------------------------------------------------
 auto legacy_file::read_cell_types_binary(std::ifstream &file,
@@ -586,8 +613,9 @@ auto legacy_file::read_cell_types_binary(std::ifstream &file,
   std::vector<cell_type> cell_types(num_cell_types);
   file.read((char *)cell_types.data(), sizeof(int) * num_cell_types);
   swap_endianess(cell_types);
-  for (auto listener : m_listeners)
+  for (auto *listener : m_listeners) {
     listener->on_cell_types(cell_types);
+}
   consume_trailing_break(file);
 }
 //-----------------------------------------------------------------------------------------------
@@ -600,10 +628,9 @@ auto legacy_file::read_indices(std::ifstream &file) -> std::vector<int> {
 
   if (m_format == format::ascii) {
     return read_indices_ascii(file, size);
-  } else
-  /* if (m_format == format::binary) */ {
-    return read_indices_binary(file, size);
   }
+  /* if (m_format == format::binary) */     return read_indices_binary(file, size);
+
 }
 //-----------------------------------------------------------------------------
 auto legacy_file::read_indices_ascii(std::ifstream & /*file*/,
@@ -648,7 +675,7 @@ auto legacy_file::read_scalars(std::ifstream &file) -> void {
 legacy_file_writer::legacy_file_writer(filesystem::path const &path,
                                        dataset_type type, unsigned short major,
                                        unsigned short     minor,
-                                       std::string const &title)
+                                       std::string title)
 #ifdef TATOOINE_STD_FILESYSTEM_AVAILABLE
     : m_file{path, std::ofstream::binary},
 #else
@@ -657,7 +684,7 @@ legacy_file_writer::legacy_file_writer(filesystem::path const &path,
       m_major_version{major},
       m_minor_version{minor},
       m_dataset_type{type},
-      m_title{title} {}
+      m_title{std::move(title)} {}
 
 auto legacy_file_writer::is_open() -> bool { return m_file.is_open(); }
 auto legacy_file_writer::close() -> void { m_file.close(); }
@@ -739,7 +766,7 @@ auto legacy_file_writer::write_cell_types(
     std::vector<cell_type> const &cell_types) -> void {
   vtk::write_binary(m_file,
                     "\nCELL_TYPES " + std::to_string(cell_types.size()) + '\n');
-  int ict;
+  int ict = 0;
   for (auto ct : cell_types) {
     ict = swap_endianess(static_cast<int>(ct));
     m_file.write((char *)(&ict), sizeof(int));
