@@ -2,6 +2,7 @@
 #define TATOOINE_POLYGON_H
 //==============================================================================
 #include <tatooine/vec.h>
+#include <tatooine/vtk_legacy.h>
 
 #include <boost/range/adaptor/transformed.hpp>
 #include <boost/range/algorithm/copy.hpp>
@@ -33,6 +34,7 @@ struct polygon {
   auto operator=(polygon&&) noexcept -> polygon& = default;
   //----------------------------------------------------------------------------
   auto num_vertices() const { return size(m_vertices); }
+  auto vertices() const -> auto const& { return m_vertices; }
   auto vertex(size_t const i) const -> auto const& { return m_vertices[i]; }
   //----------------------------------------------------------------------------
   auto previous_index(auto const i) const -> size_t {
@@ -87,19 +89,20 @@ struct polygon {
     auto direction_to_vertices = pos_list(nv, {0, 0});
 
     // formula to compute weight of one vertex
-    auto weight_of_vertex =
-        [&distances_to_vertices, &triangle_areas, &dot_products](
-            auto const prev_idx, auto const i, auto const next_idx) -> real_t {
+    auto weight_of_vertex = [&distances_to_vertices, &triangle_areas,
+                             &dot_products](auto const prev_idx,
+                                            auto const cur_idx,
+                                            auto const next_idx) -> real_t {
       auto weight = real_t(0);
       if (std::abs(triangle_areas[prev_idx]) > eps) {
         weight += (distances_to_vertices[prev_idx] -
-                   dot_products[prev_idx] / distances_to_vertices[i]) /
+                   dot_products[prev_idx] / distances_to_vertices[cur_idx]) /
                   triangle_areas[prev_idx];
       }
-      if (std::abs(triangle_areas[i]) > eps) {
+      if (std::abs(triangle_areas[cur_idx]) > eps) {
         weight += (distances_to_vertices[next_idx] -
-                   dot_products[i] / distances_to_vertices[i]) /
-                  triangle_areas[i];
+                   dot_products[cur_idx] / distances_to_vertices[cur_idx]) /
+                  triangle_areas[cur_idx];
       }
       return weight;
     };
@@ -153,7 +156,43 @@ struct polygon {
     copy(weights | transformed(normalize_w), begin(weights));
     return weights;
   }
+  //------------------------------------------------------------------------------
+  auto write_vtk(filesystem::path const& path) const {
+    using boost::copy;
+    using boost::adaptors::transformed;
+    auto writer = vtk::legacy_file_writer{path, vtk::dataset_type::polydata};
+    if (writer.is_open()) {
+      writer.set_title("");
+      writer.write_header();
+      if constexpr (num_dimensions() == 2) {
+        auto three_dims = [](vec<Real, 2> const& v2) {
+          return vec<Real, 3>{v2(0), v2(1), 0};
+        };
+        std::vector<vec<Real, 3>> v3s(num_vertices());
+        auto                      three_dimensional = transformed(three_dims);
+        copy(m_vertices | three_dimensional, begin(v3s));
+        writer.write_points(v3s);
+
+      } else if constexpr (num_dimensions() == 3) {
+        writer.write_points(m_vertices);
+      }
+
+      std::vector<std::vector<size_t>> lines;
+      auto& line = lines.emplace_back();
+      line.reserve(m_vertices.size() * 2);
+      for (size_t i = 0; i < num_vertices(); ++i) {
+        line.push_back(i);
+        line.push_back(next_index(i));
+      }
+      writer.write_lines(lines);
+
+      writer.close();
+      return true;
+    }
+    return false;
+  }
 };
+//==============================================================================
 template <size_t N>
 using Polygon  = polygon<real_t, N>;
 using polygon2 = Polygon<2>;

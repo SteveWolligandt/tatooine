@@ -241,14 +241,14 @@ class legacy_file {
   filesystem::path m_path;
   format           m_format;
   reader_data      m_data = reader_data::unknown;
-  size_t           m_data_size;  // cell_data or point_data size
-  long             m_begin_of_data;
-  char             buffer[256];
+  size_t           m_data_size{};  // cell_data or point_data size
+  long             m_begin_of_data{};
+  char             buffer[256]{};
 
  public:
   auto add_listener(legacy_file_listener &listener) -> void;
   //---------------------------------------------------------------------------
-  legacy_file(filesystem::path const &path);
+  legacy_file(filesystem::path path);
   //---------------------------------------------------------------------------
   auto read() -> void;
   //---------------------------------------------------------------------------
@@ -275,9 +275,9 @@ class legacy_file {
   auto read_cell_types_binary(std::ifstream &file, size_t const n) -> void;
 
   auto read_indices(std::ifstream &file) -> std::vector<int>;
-  auto read_indices_ascii(std::ifstream &file, size_t const size)
+  static auto read_indices_ascii(std::ifstream &file, size_t const size)
       -> std::vector<int>;
-  auto read_indices_binary(std::ifstream &file, size_t const size)
+  static auto read_indices_binary(std::ifstream &file, size_t const size)
       -> std::vector<int>;
 
   auto read_scalars_header(std::ifstream &file);
@@ -341,7 +341,7 @@ class legacy_file {
   auto read_field_array_ascii(std::ifstream &file, size_t num_comps,
                               size_t num_tuples) -> std::vector<Real>;
 
-  auto consume_trailing_break(std::ifstream &file) -> void;
+  static auto consume_trailing_break(std::ifstream &file) -> void;
 };
 //------------------------------------------------------------------------------
 template <typename Real>
@@ -500,7 +500,7 @@ class legacy_file_writer {
  public:
   legacy_file_writer(filesystem::path const &path, dataset_type type,
                      unsigned short major = 2, unsigned short minor = 0,
-                     std::string const &title = "");
+                     std::string title = "");
   auto is_open() -> bool;
   auto close() -> void;
   //---------------------------------------------------------------------------
@@ -534,7 +534,7 @@ class legacy_file_writer {
   auto write_polygons(std::vector<std::array<size_t, N>> const &polygons)
       -> void;
   auto write_triangle_strips(
-      std::vector<std::vector<size_t>> const &triangle_strips) -> void;
+      std::vector<std::vector<size_t>> const &lines) -> void;
 
 #ifdef __cpp_concepts
   template <arithmetic T>
