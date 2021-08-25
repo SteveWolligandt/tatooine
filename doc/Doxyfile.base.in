@@ -10,6 +10,10 @@ EXTRACT_ALL            = YES
 EXTRACT_PRIVATE        = YES
 EXTRACT_STATIC         = YES
 
+#ENABLE_PREPROCESSING   = YES
+#MACRO_EXPANSION        = YES
+#PREDEFINED             = __cpp_concepts=1
+
 CLASS_DIAGRAMS         = YES
 HIDE_UNDOC_RELATIONS   = NO
 HAVE_DOT               = YES
