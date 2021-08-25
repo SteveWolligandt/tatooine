@@ -287,14 +287,14 @@ class unstructured_simplex_grid
     friend class boost::iterator_core_access;
 
     auto increment() {
-      do
+      do {
         ++m_index;
-      while (!m_mesh->is_valid(m_index));
+      } while (!m_mesh->is_valid(m_index));
     }
     auto decrement() {
-      do
+      do {
         --m_index;
-      while (!m_mesh->is_valid(m_index));
+      } while (!m_mesh->is_valid(m_index));
     }
 
     auto equal(cell_iterator const& other) const {
@@ -339,7 +339,7 @@ class unstructured_simplex_grid
   //============================================================================
   constexpr unstructured_simplex_grid() = default;
   //============================================================================
- public:
+
   unstructured_simplex_grid(unstructured_simplex_grid const& other)
       : parent_t{other}, m_cell_indices{other.m_cell_indices} {
     for (auto const& [key, prop] : other.m_cell_properties) {
@@ -364,14 +364,14 @@ class unstructured_simplex_grid
   auto operator=(unstructured_simplex_grid&& other) noexcept
       -> unstructured_simplex_grid& = default;
   //----------------------------------------------------------------------------
-  unstructured_simplex_grid(std::filesystem::path const& path) { read(path); }
+  explicit unstructured_simplex_grid(std::filesystem::path const& path) { read(path); }
   //----------------------------------------------------------------------------
   unstructured_simplex_grid(std::initializer_list<pos_t>&& vertices)
       : parent_t{std::move(vertices)} {}
-  unstructured_simplex_grid(
+  explicit unstructured_simplex_grid(
       std::vector<vec<Real, NumDimensions>> const& positions)
       : parent_t{positions} {}
-  unstructured_simplex_grid(std::vector<vec<Real, NumDimensions>>&& positions)
+  explicit unstructured_simplex_grid(std::vector<vec<Real, NumDimensions>>&& positions)
       : parent_t{std::move(positions)} {}
   //----------------------------------------------------------------------------
  private:
@@ -401,7 +401,7 @@ class unstructured_simplex_grid
       enable_if<NumDimensions == NumDimensions_, SimplexDim == SimplexDim_,
                 NumDimensions_ == 2, SimplexDim_ == 2> = true>
 #endif
-          unstructured_simplex_grid(rectilinear_grid<DimX, DimY> const& g) {
+          explicit unstructured_simplex_grid(rectilinear_grid<DimX, DimY> const& g) {
     auto const gv = g.vertices();
     for (auto v : gv) {
       insert_vertex(gv[v]);
@@ -435,7 +435,7 @@ class unstructured_simplex_grid
       enable_if<NumDimensions == NumDimensions_, SimplexDim == SimplexDim_,
                 NumDimensions_ == 3, SimplexDim_ == 3> = true>
 #endif
-          unstructured_simplex_grid(
+          explicit unstructured_simplex_grid(
               rectilinear_grid<DimX, DimY, DimZ> const& g) {
 
     constexpr auto turned = [](size_t const ix, size_t const iy,
@@ -714,10 +714,10 @@ class unstructured_simplex_grid
  public:
   template <typename T>
   auto cell_property(std::string const& name) -> auto& {
-    if (auto it = m_cell_properties.find(name); it == end(m_cell_properties)) {
+    auto it = m_cell_properties.find(name);
+if ( it == end(m_cell_properties)) {
       return insert_cell_property<T>(name);
-    } else {
-      if (typeid(T) != it->second->type()) {
+    }       if (typeid(T) != it->second->type()) {
         throw std::runtime_error{
             "type of property \"" + name + "\"(" +
             boost::core::demangle(it->second->type().name()) +
@@ -725,15 +725,15 @@ class unstructured_simplex_grid
       }
       return *dynamic_cast<cell_property_t<T>*>(
           m_cell_properties.at(name).get());
-    }
+
   }
   //----------------------------------------------------------------------------
   template <typename T>
   auto cell_property(std::string const& name) const -> const auto& {
-    if (auto it = m_cell_properties.find(name); it == end(m_cell_properties)) {
+    auto it = m_cell_properties.find(name);
+if ( it == end(m_cell_properties)) {
       throw std::runtime_error{"property \"" + name + "\" not found"};
-    } else {
-      if (typeid(T) != it->second->type()) {
+    }       if (typeid(T) != it->second->type()) {
         throw std::runtime_error{
             "type of property \"" + name + "\"(" +
             boost::core::demangle(it->second->type().name()) +
@@ -741,7 +741,7 @@ class unstructured_simplex_grid
       }
       return *dynamic_cast<cell_property_t<T>*>(
           m_cell_properties.at(name).get());
-    }
+
   }
   //----------------------------------------------------------------------------
   auto scalar_cell_property(std::string const& name) const -> auto const& {
@@ -875,9 +875,8 @@ class unstructured_simplex_grid
 
       writer.close();
       return true;
-    } else {
-      return false;
-    }
+    }       return false;
+
   }
   //----------------------------------------------------------------------------
   template <size_t SimplexDim_ = SimplexDim, enable_if<SimplexDim_ == 3> = true>
@@ -921,9 +920,8 @@ class unstructured_simplex_grid
 
       writer.close();
       return true;
-    } else {
-      return false;
-    }
+    }       return false;
+
   }
   //----------------------------------------------------------------------------
  public:
@@ -943,7 +941,7 @@ class unstructured_simplex_grid
       unstructured_simplex_grid& mesh;
       std::vector<int>           cells;
 
-      listener_t(unstructured_simplex_grid& _mesh) : mesh(_mesh) {}
+      explicit listener_t(unstructured_simplex_grid& _mesh) : mesh(_mesh) {}
       auto add_cells(std::vector<int> const& cells) -> void {
         size_t i = 0;
         while (i < size(cells)) {
@@ -975,7 +973,7 @@ class unstructured_simplex_grid
 
       auto on_points(std::vector<std::array<float, 3>> const& ps)
           -> void override {
-        for (auto& p : ps) {
+        for (const auto& p : ps) {
           if constexpr (NumDimensions == 2) {
             mesh.insert_vertex(static_cast<Real>(p[0]),
                                static_cast<Real>(p[1]));
@@ -988,7 +986,7 @@ class unstructured_simplex_grid
       }
       auto on_points(std::vector<std::array<double, 3>> const& ps)
           -> void override {
-        for (auto& p : ps) {
+        for (const auto& p : ps) {
           if constexpr (NumDimensions == 2) {
             mesh.insert_vertex(static_cast<Real>(p[0]),
                                static_cast<Real>(p[1]));
@@ -1083,7 +1081,7 @@ class unstructured_simplex_grid
     f.read();
   }
   //----------------------------------------------------------------------------
-  constexpr bool is_valid(cell_handle t) const {
+  constexpr auto is_valid(cell_handle t) const -> bool {
     return boost::find(m_invalid_cells, t) == end(m_invalid_cells);
   }
   //----------------------------------------------------------------------------
@@ -1188,12 +1186,11 @@ unstructured_simplex_grid(rectilinear_grid<Dims...> const& g)
 //  detail::write_mesh_container_to_vtk(meshes, path, title);
 //}
 //------------------------------------------------------------------------------
-static constexpr inline bool constrained_delaunay_available(size_t const N) {
+static constexpr inline auto constrained_delaunay_available(size_t const N) -> bool {
   if (N == 2) {
     return cdt_available();
-  } else {
-    return false;
-  }
+  }     return false;
+
 }
 //==============================================================================
 }  // namespace tatooine
