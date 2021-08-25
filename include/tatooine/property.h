@@ -12,14 +12,14 @@ template <typename Handle>
 struct vector_property {
   using this_t = vector_property<Handle>;
   //============================================================================
-  vector_property()                                  = default;
-  vector_property(const vector_property& other)      = default;
-  vector_property(vector_property&& other)           = default;
-  vector_property& operator=(const vector_property&) = default;
-  vector_property& operator=(vector_property&&)      = default;
+  vector_property()                                 = default;
+  vector_property(const vector_property& other)     = default;
+  vector_property(vector_property&& other) noexcept = default;
+  auto operator=(const vector_property&) -> vector_property& = default;
+  auto operator=(vector_property&&)  noexcept -> vector_property& = default;
   //============================================================================
   /// Destructor.
-  virtual ~vector_property() {}
+  virtual ~vector_property() = default;
   //----------------------------------------------------------------------------
   /// Reserve memory for n elements.
   virtual void reserve(size_t n) = 0;
@@ -37,9 +37,9 @@ struct vector_property {
   virtual void clear() = 0;
   //----------------------------------------------------------------------------
   /// for identifying type.
-  virtual const std::type_info& type() const = 0;
+  [[nodiscard]] virtual auto type() const -> const std::type_info& = 0;
   //----------------------------------------------------------------------------
-  virtual std::unique_ptr<this_t> clone() const = 0;
+  virtual auto clone() const -> std::unique_ptr<this_t> = 0;
 };
 //==============================================================================
 template <typename Handle, typename T>
@@ -65,24 +65,24 @@ struct vector_property_impl : vector_property<Handle> {
   T           m_value;
   //============================================================================
  public:
-  vector_property_impl(const T& value = T{}) : m_value{value} {}
+  explicit vector_property_impl(const T& value = T{}) : m_value{value} {}
   //----------------------------------------------------------------------------
   vector_property_impl(const vector_property_impl& other)
       : parent_t{other}, m_data{other.m_data}, m_value{other.m_value} {}
   //----------------------------------------------------------------------------
   vector_property_impl(vector_property_impl&& other)
-      : parent_t{std::move(other)},
+ noexcept       : parent_t{std::move(other)},
         m_data{std::move(other.m_data)},
         m_value{std::move(other.m_value)} {}
   //----------------------------------------------------------------------------
-  auto& operator=(const vector_property_impl& other) {
+  auto operator=(const vector_property_impl& other) -> auto& {
     parent_t::operator=(other);
     m_data  = other.m_data;
     m_value = other.m_value;
     return *this;
   }
   //----------------------------------------------------------------------------
-  auto& operator=(vector_property_impl&& other) {
+  auto operator=(vector_property_impl&& other) noexcept -> auto& {
     parent_t::operator=(std::move(other));
     m_data  = std::move(other.m_data);
     m_value = std::move(other.m_value);
@@ -98,11 +98,11 @@ struct vector_property_impl : vector_property<Handle> {
   void push_back() override { m_data.push_back(m_value); }
   void push_back(const T& value) { m_data.push_back(value); }
   //----------------------------------------------------------------------------
-  auto&       front() { return m_data.front(); }
-  const auto& front() const { return m_data.front(); }
+  auto       front() -> auto& { return m_data.front(); }
+  auto front() const -> const auto& { return m_data.front(); }
   //----------------------------------------------------------------------------
-  auto&       back() { return m_data.back(); }
-  const auto& back() const { return m_data.back(); }
+  auto       back() -> auto& { return m_data.back(); }
+  auto back() const -> const auto& { return m_data.back(); }
   //----------------------------------------------------------------------------
   auto erase(iterator pos) { return m_data.erase(pos); }
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -134,39 +134,37 @@ struct vector_property_impl : vector_property<Handle> {
     m_data.shrink_to_fit();
   }
   //----------------------------------------------------------------------------
-  const auto& container() const { return m_data; }
-  //----------------------------------------------------------------------------
-  auto data() const { return m_data.data(); }
+  auto data() const -> auto const& { return m_data; }
   //----------------------------------------------------------------------------
   auto size() const { return m_data.size(); }
   //----------------------------------------------------------------------------
   /// Access the i'th element.
-  auto& at(Handle handle) {
+  auto at(Handle handle) -> auto& {
     assert(handle.i < m_data.size());
     return m_data.at(handle.i);
   }
   //----------------------------------------------------------------------------
   /// Const access to the i'th element.
-  const auto& at(Handle handle) const {
+  auto at(Handle handle) const -> const auto& {
     assert(handle.i < m_data.size());
     return m_data.at(handle.i);
   }
   //----------------------------------------------------------------------------
   /// Access the i'th element.
-  auto& operator[](Handle handle) {
+  auto operator[](Handle handle) -> auto& {
     assert(handle.i < m_data.size());
     return m_data[handle.i];
   }
   //----------------------------------------------------------------------------
   /// Const access to the i'th element.
-  const auto& operator[](Handle handle) const {
+  auto operator[](Handle handle) const -> const auto& {
     assert(handle.i < m_data.size());
     return m_data[handle.i];
   }
   //----------------------------------------------------------------------------
-  const std::type_info& type() const override { return typeid(T); }
+  [[nodiscard]] auto type() const -> const std::type_info& override { return typeid(T); }
   //----------------------------------------------------------------------------
-  virtual std::unique_ptr<parent_t> clone() const override {
+  auto clone() const -> std::unique_ptr<parent_t> override {
     return std::unique_ptr<this_t>{new this_t{*this}};
   }
 };
@@ -177,12 +175,12 @@ struct deque_property {
   //============================================================================
   deque_property()                                 = default;
   deque_property(const deque_property& other)      = default;
-  deque_property(deque_property&& other)           = default;
-  deque_property& operator=(const deque_property&) = default;
-  deque_property& operator=(deque_property&&)      = default;
+  deque_property(deque_property&& other)            noexcept = default;
+  auto operator=(const deque_property&) -> deque_property& = default;
+  auto operator=(deque_property&&) noexcept -> deque_property&;
   //============================================================================
   /// Destructor.
-  virtual ~deque_property() {}
+  virtual ~deque_property() = default;
   //----------------------------------------------------------------------------
   /// Resize storage to hold n elements.
   virtual void resize(size_t n) = 0;
@@ -200,9 +198,9 @@ struct deque_property {
   virtual void clear() = 0;
   //----------------------------------------------------------------------------
   /// for identifying type.
-  virtual const std::type_info& type() const = 0;
+  [[nodiscard]] virtual auto type() const -> const std::type_info& = 0;
   //----------------------------------------------------------------------------
-  virtual std::unique_ptr<this_t> clone() const = 0;
+  virtual auto clone() const -> std::unique_ptr<this_t> = 0;
 };
 //==============================================================================
 template <typename Handle, typename T>
@@ -228,24 +226,24 @@ struct deque_property_impl : deque_property<Handle> {
   T           m_value;
   //============================================================================
  public:
-  deque_property_impl(const T& value = T{}) : m_value{value} {}
+  explicit deque_property_impl(const T& value = T{}) : m_value{value} {}
   //----------------------------------------------------------------------------
   deque_property_impl(const deque_property_impl& other)
       : parent_t{other}, m_data{other.m_data}, m_value{other.m_value} {}
   //----------------------------------------------------------------------------
   deque_property_impl(deque_property_impl&& other)
-      : parent_t{std::move(other)},
+ noexcept       : parent_t{std::move(other)},
         m_data{std::move(other.m_data)},
         m_value{std::move(other.m_value)} {}
   //----------------------------------------------------------------------------
-  auto& operator=(const deque_property_impl& other) {
+  auto operator=(const deque_property_impl& other) -> auto& {
     parent_t::operator=(other);
     m_data  = other.m_data;
     m_value = other.m_value;
     return *this;
   }
   //----------------------------------------------------------------------------
-  auto& operator=(deque_property_impl&& other) {
+  auto operator=(deque_property_impl&& other)  noexcept -> auto& {
     parent_t::operator=(std::move(other));
     m_data  = std::move(other.m_data);
     m_value = std::move(other.m_value);
@@ -263,11 +261,11 @@ struct deque_property_impl : deque_property<Handle> {
   void push_front() override { m_data.push_front(m_value); }
   void push_front(const T& value) { m_data.push_front(value); }
   //----------------------------------------------------------------------------
-  auto&       front() { return m_data.front(); }
-  const auto& front() const { return m_data.front(); }
+  auto front() -> auto& { return m_data.front(); }
+  auto front() const -> const auto& { return m_data.front(); }
   //----------------------------------------------------------------------------
-  auto&       back() { return m_data.back(); }
-  const auto& back() const { return m_data.back(); }
+  auto back() -> auto& { return m_data.back(); }
+  auto back() const -> const auto& { return m_data.back(); }
   //----------------------------------------------------------------------------
   auto erase(iterator pos) { return m_data.erase(pos); }
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -299,39 +297,39 @@ struct deque_property_impl : deque_property<Handle> {
     m_data.shrink_to_fit();
   }
   //----------------------------------------------------------------------------
-  const auto& container() const { return m_data; }
+  auto container() const -> const auto& { return m_data; }
   //----------------------------------------------------------------------------
   auto data() const { return m_data.data(); }
   //----------------------------------------------------------------------------
   auto size() const { return m_data.size(); }
   //----------------------------------------------------------------------------
   /// Access the i'th element.
-  auto& at(Handle handle) {
+  auto at(Handle handle) -> auto& {
     assert(handle.i < m_data.size());
     return m_data.at(handle.i);
   }
   //----------------------------------------------------------------------------
   /// Const access to the i'th element.
-  const auto& at(Handle handle) const {
+  auto at(Handle handle) const -> const auto& {
     assert(handle.i < m_data.size());
     return m_data.at(handle.i);
   }
   //----------------------------------------------------------------------------
   /// Access the i'th element.
-  auto& operator[](Handle handle) {
+  auto operator[](Handle handle) -> auto& {
     assert(handle.i < m_data.size());
     return m_data[handle.i];
   }
   //----------------------------------------------------------------------------
   /// Const access to the i'th element.
-  const auto& operator[](Handle handle) const {
+  auto operator[](Handle handle) const -> const auto& {
     assert(handle.i < m_data.size());
     return m_data[handle.i];
   }
   //----------------------------------------------------------------------------
-  const std::type_info& type() const override { return typeid(T); }
+  [[nodiscard]] auto type() const -> const std::type_info& override { return typeid(T); }
   //----------------------------------------------------------------------------
-  virtual std::unique_ptr<parent_t> clone() const override {
+  auto clone() const -> std::unique_ptr<parent_t> override {
     return std::unique_ptr<this_t>{new this_t{*this}};
   }
 };
