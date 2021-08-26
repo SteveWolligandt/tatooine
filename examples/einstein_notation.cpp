@@ -2,8 +2,20 @@
 
 #include <iostream>
 #include <tuple>
+//==============================================================================
 using namespace tatooine;
+//==============================================================================
+template <size_t I, size_t CurNum, size_t... RestNums>
+struct ith_num {
+  static auto constexpr value = ith_num<I + 1, RestNums...>::value;
+};
+template <size_t CurNum, size_t... RestNums>
+struct ith_num<0, CurNum, RestNums...> {
+  static auto constexpr value = CurNum;
+};
+//==============================================================================
 namespace index {
+//==============================================================================
 template <size_t I, size_t J>
 struct index_pair {
   static auto constexpr i = I;
@@ -45,6 +57,7 @@ static auto constexpr j = base_t<1>{};
 static auto constexpr k = base_t<2>{};
 static auto constexpr l = base_t<3>{};
 
+//==============================================================================
 // LHS_I < size(LHS)- 1
 // RHS_I < size(RHS)- 1
 // Different Types
@@ -58,7 +71,7 @@ struct contraction {
     RHS, RHS_Type_I, RHS_I,
     CollectedIndices...>::type;
 };
-
+//==============================================================================
 // LHS_I < size(LHS)- 1
 // RHS_I < size(RHS)- 1
 // Same Types
@@ -75,7 +88,7 @@ struct contraction<LHS, SameType, LHS_I,
     RHS, SameType, RHS_I, CollectedIndices...,
     index_pair<LHS_I, RHS_I>>::type;
 };
-
+//==============================================================================
 // LHS_I == size(LHS)- 1
 // RHS_I < size(RHS)- 1
 // Different Types
@@ -91,7 +104,7 @@ struct contraction<LHS, LHS_Type_I, std::tuple_size_v<LHS> - 1,
       RHS, std::tuple_element_t<RHS_I + 1, RHS>, RHS_I + 1,
       CollectedIndices...>::type;
 };
-
+//==============================================================================
 // LHS_I == size(LHS)- 1
 // RHS_I < size(RHS)- 1
 // Same Types
@@ -108,7 +121,7 @@ struct contraction<LHS, SameType, std::tuple_size_v<LHS> - 1,
     RHS, std::tuple_element_t<RHS_I + 1, RHS>, RHS_I + 1,
     CollectedIndices..., index_pair<std::tuple_size_v<LHS> - 1, RHS_I>>::type;
 };
-
+//==============================================================================
 // LHS_I == size(LHS)- 1
 // RHS_I == size(RHS)- 1
 // Different Types
@@ -121,7 +134,7 @@ struct contraction<LHS, LHS_Type_I, std::tuple_size_v<LHS> - 1,
                    CollectedIndices...> {
   using type = std::tuple<CollectedIndices...>;
 };
-
+//==============================================================================
 // LHS_I == size(LHS)- 1
 // RHS_I == size(RHS)- 1
 // Same Types
@@ -137,7 +150,7 @@ struct contraction<LHS, SameType, std::tuple_size_v<LHS> - 1,
                           index_pair<std::tuple_size_v<LHS> - 1,
                                      std::tuple_size_v<RHS> - 1>>;
 };
-
+//==============================================================================
 template <typename IndexedTensorLHS, typename IndexedTensorRHS>
 struct contracted_tensor {
   using LHSIndexTuple      = typename IndexedTensorLHS::index_tuple;
@@ -146,23 +159,16 @@ struct contracted_tensor {
       LHSIndexTuple, std::tuple_element_t<0, LHSIndexTuple>, 0, RHSIndexTuple,
       std::tuple_element_t<0, RHSIndexTuple>, 0>::type;
 };
+//==============================================================================
 template <typename Tensor, typename... Indices>
 struct tensor {
   using index_tuple = std::tuple<Indices...>;
   template <typename LHS, typename RHS>
-  auto operator=(index::contracted_tensor<LHS, RHS>) -> tensor& {}
+  auto operator=(index::contracted_tensor<LHS, RHS> /*unused*/) -> tensor& {}
 };
+//==============================================================================
 }  // namespace index
-
-template <size_t I, size_t CurNum, size_t... RestNums>
-struct ith_num {
-  static auto constexpr value = ith_num<I + 1, RestNums...>::value;
-};
-template <size_t CurNum, size_t... RestNums>
-struct ith_num<0, CurNum, RestNums...> {
-  static auto constexpr value = CurNum;
-};
-
+//==============================================================================
 template <typename Tensor, size_t I>
 struct tensor_size;
 
@@ -175,7 +181,7 @@ struct tensor {
     return tensor_size<tensor, I>::value;
   }
   template <typename... Indices>
-  auto operator()(Indices...) {
+  auto operator()(Indices... /*unused*/) {
     return index::tensor<this_t, Indices...>{};
   }
 };
@@ -186,15 +192,15 @@ struct tensor_size<tensor<Dimensions...>, I> : ith_num<I, Dimensions...> {};
 
 template <typename TensorLHS, typename... IndicesLHS, typename TensorRHS,
           typename... IndicesRHS>
-auto operator*(index::tensor<TensorLHS, IndicesLHS...>,
-               index::tensor<TensorRHS, IndicesRHS...>) {
+auto operator*(index::tensor<TensorLHS, IndicesLHS...> /*unused*/,
+               index::tensor<TensorRHS, IndicesRHS...> /*unused*/) {
   return index::contracted_tensor<index::tensor<TensorLHS, IndicesLHS...>,
                                   index::tensor<TensorRHS, IndicesRHS...>>{};
 }
 
 auto main() -> int {
   using namespace index;
-  auto T33  = tensor<3, 3>{};
-  auto T333 = tensor<3, 3, 3>{};
+  auto T33  = ::tensor<3, 3>{};
+  auto T333 = ::tensor<3, 3, 3>{};
   T33(i, k) * T333(i, k, j);
 }
