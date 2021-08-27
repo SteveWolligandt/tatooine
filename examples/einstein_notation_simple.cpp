@@ -29,53 +29,24 @@ using ith_type_t = typename ith_type<I, Types...>::type;
 //==============================================================================
 namespace index {
 //==============================================================================
-template <typename Index, size_t N>
-struct index_number_pair {
-  static auto constexpr value = N;
-};
-template <typename Counter, typename Index>
-struct increase_if_equal_impl;
-template <typename Index, size_t N, typename OtherIndex>
-struct increase_if_equal_impl<index_number_pair<Index, N>, OtherIndex> {
-  using type = index_number_pair<Index, N>;
-};
-template <typename Index, size_t N>
-struct increase_if_equal_impl<index_number_pair<Index, N>, Index> {
-  using type = index_number_pair<Index, N + 1>;
-};
-template <typename Counter, typename Index>
-using increase_if_equal = typename increase_if_equal_impl<Counter, Index>::type;
-
-template <typename... Counters>
-struct index_counter{
-  using counters = std::tuple<Counters...>;
+template <size_t... Indices>
+struct tuple {
+  static auto constexpr size = sizeof...(Indices);
+  static auto constexpr as_array() { return std::array{Indices...}; }
 };
 
-template <typename Counter>
-struct insert_index;
-template <typename... Counters>
-struct insert_index<index_counter<Counters...>>{
-// TODO add index counters
+template <size_t I, size_t Index, size_t... Indices>
+struct get_impl {
+  static auto constexpr value = get_impl<I - 1, Indices...>::value;
 };
-
-// template <size_t... Indices>
-// struct num_tuple {
-//  static auto constexpr size = sizeof...(Indices);
-//  static auto constexpr as_array() { return std::array{Indices...}; }
-//};
-//
-// template <size_t I, size_t Index, size_t... Indices>
-// struct get_impl {
-//  static auto constexpr value = get_impl<I - 1, Indices...>::value;
-//};
-// template <size_t Index, size_t... Indices>
-// struct get_impl<0, Index, Indices...> {
-//  static auto constexpr value = Index;
-//};
-// template <size_t I, size_t... Indices>
-// static auto constexpr get(num_tuple<Indices...>) {
-//  return get_impl<I, Indices...>::value;
-//}
+template <size_t Index, size_t... Indices>
+struct get_impl<0, Index, Indices...> {
+  static auto constexpr value = Index;
+};
+template <size_t I, size_t... Indices>
+static auto constexpr get(tuple<Indices...>) {
+  return get_impl<I, Indices...>::value;
+}
 
 template <size_t I, size_t J>
 struct index_pair {
@@ -106,7 +77,7 @@ struct index_pairs_as_array_impl<std::tuple<Pairs...>> {
                            second_of_index_pair<Pairs>::value}...};
 };
 template <typename T>
-[[maybe_unused]] static auto constexpr index_pairs_as_array =
+static auto constexpr index_pairs_as_array =
     index_pairs_as_array_impl<T>::value;
 
 template <typename IndexPairTuple, size_t I = 0>
@@ -299,10 +270,10 @@ struct mapping_impl<LHS, LHS_N, LHS_I, SameType, RHS, RHS_N, RHS_I, SameType,
   using LHS_Next = std::tuple_element_t<LHS_J, LHS>;
   using RHS_Next = std::tuple_element_t<RHS_J, RHS>;
 
-  using new_map_t = index_pair<LHS_I, RHS_I>;
+  using NewMap = index_pair<LHS_I, RHS_I>;
 
   using type = typename mapping_impl<LHS, LHS_N, LHS_J, LHS_Next, RHS, RHS_N,
-                                     RHS_J, RHS_Next, Maps..., new_map_t>::type;
+                                     RHS_J, RHS_Next, Maps..., NewMap>::type;
 };
 //==============================================================================
 /// LHS_I == LHS_N-1
@@ -318,10 +289,10 @@ struct mapping_impl<LHS, LHS_N, LHS_I, SameType, RHS, RHS_N, RHS_N - 1,
   using LHS_Next = std::tuple_element_t<LHS_J, LHS>;
   using RHS_Next = std::tuple_element_t<RHS_J, RHS>;
 
-  using new_map_t = index_pair<LHS_I, RHS_N - 1>;
+  using NewMap = index_pair<LHS_I, RHS_N - 1>;
 
   using type = typename mapping_impl<LHS, LHS_N, LHS_J, LHS_Next, RHS, RHS_N,
-                                     RHS_J, RHS_Next, Maps..., new_map_t>::type;
+                                     RHS_J, RHS_Next, Maps..., NewMap>::type;
 };
 //==============================================================================
 /// LHS_I == LHS_N-1
@@ -332,8 +303,8 @@ template <typename LHS, size_t LHS_N, typename RHS, size_t RHS_N,
           typename SameType, typename... Maps>
 struct mapping_impl<LHS, LHS_N, LHS_N - 1, SameType, RHS, RHS_N, RHS_N - 1,
                     SameType, Maps...> {
-  using new_map_t = index_pair<LHS_N - 1, RHS_N - 1>;
-  using type      = std::tuple<Maps..., new_map_t>;
+  using NewMap = index_pair<LHS_N - 1, RHS_N - 1>;
+  using type   = std::tuple<Maps..., NewMap>;
 };
 
 template <typename LHS, typename RHS>
@@ -341,15 +312,11 @@ using mapping = typename mapping_impl<
     LHS, std::tuple_size_v<LHS>, 0, std::tuple_element_t<0, LHS>, RHS,
     std::tuple_size_v<RHS>, 0, std::tuple_element_t<0, RHS>>::type;
 //==============================================================================
-template <typename... IndexedTensors>
+template <typename IndexedTensorLHS, typename IndexedTensorRHS>
 struct contracted_tensor {
-  using index_tuples_t = std::tuple<typename IndexedTensors::index_tuple...>;
-  template <size_t I>
-  using index_tuple_at = std::tuple_element_t<I, index_tuples_t>;
-  template <size_t I, size_t J>
-  using contracted_indices =
-      binary_contraction<std::tuple_element_t<I, index_tuples_t>,
-                         std::tuple_element_t<J, index_tuples_t>>;
+  using LHSIndexTuple      = typename IndexedTensorLHS::index_tuple;
+  using RHSIndexTuple      = typename IndexedTensorRHS::index_tuple;
+  using contracted_indices = binary_contraction<LHSIndexTuple, RHSIndexTuple>;
 };
 //==============================================================================
 template <typename Tensor, typename... Indices>
@@ -365,150 +332,129 @@ struct tensor {
     return Tensor::template size<I>();
   }
   //============================================================================
-  template <typename... IndexedTensors, size_t... FreeIndexSequence
-            //, size_t... ContractedIndexSequence
-            >
-  auto assign(index::contracted_tensor<IndexedTensors...> /*unused*/,
-              std::index_sequence<FreeIndexSequence...>
-              //, std::index_sequence<ContractedIndexSequence...>
-              ) -> tensor& {
-    using contracted_tensor = index::contracted_tensor<IndexedTensors...>;
-    using index_tuples      = typename contracted_tensor::index_tuples_t;
-    //  using contractions    = typename contracted_tensor::contracted_indices;
-    //  auto lhs_index_map    = index_pairs_as_array<mapping<lhs_index_tuple>>;
-    //  auto rhs_index_map    = index_pairs_as_array<mapping<rhs_index_tuple>>;
-    //
-    //  auto lhs_index_array = std::array<size_t, LHSIndexedTensor::rank()>{};
-    //  auto rhs_index_array = std::array<size_t, RHSIndexedTensor::rank()>{};
-    //  for_loop(
-    //      [&](auto const... free_indices) {
-    //        auto const free_index_array = std::array{free_indices...};
-    //        for (auto const& [l, rl] : lhs_index_map) {
-    //          lhs_index_array[rl] = free_index_array[l];
-    //        }
-    //        for (auto const& [l, rr] : rhs_index_map) {
-    //          rhs_index_array[rr] = free_index_array[l];
-    //        }
-    //
-    //        for_loop(
-    //            [&](auto const... contracted_indices) {
-    //              auto const contracted_index_array =
-    //                  std::array{contracted_indices...};
-    //              (
-    //                  [&] {
-    //                    lhs_index_array[first_of_index_pair<std::tuple_element_t<
-    //                        ContractedIndexSequence, contractions>>::value] =
-    //                        contracted_index_array[ContractedIndexSequence];
-    //                  }(),
-    //                  ...);
-    //              (
-    //                  [&] {
-    //                    rhs_index_array[second_of_index_pair<std::tuple_element_t<
-    //                        ContractedIndexSequence, contractions>>::value] =
-    //                        contracted_index_array[ContractedIndexSequence];
-    //                  }(),
-    //                  ...);
-    //              std::cerr << "(";
-    //              std::cerr << free_index_array.front();
-    //              for (size_t i = 1; i < free_index_array.size(); ++i) {
-    //                std::cerr << ", " << free_index_array[i];
-    //              }
-    //              std::cerr << ") += (";
-    //              std::cerr << lhs_index_array.front();
-    //              for (size_t i = 1; i < lhs_index_array.size(); ++i) {
-    //                std::cerr << ", " << lhs_index_array[i];
-    //              }
-    //              std::cerr << ") * (";
-    //              std::cerr << rhs_index_array.front();
-    //              for (size_t i = 1; i < rhs_index_array.size(); ++i) {
-    //                std::cerr << ", " << rhs_index_array[i];
-    //              }
-    //              std::cerr << ")\n";
-    //            },
-    //            LHSIndexedTensor::template size<
-    //                first_of_index_pair<std::tuple_element_t<
-    //                    ContractedIndexSequence, contractions>>::value>()...);
-    //      },
-    //      Tensor::template size<FreeIndexSequence>()...);
+  template <typename LHSIndexedTensor, typename RHSIndexedTensor,
+            size_t... FreeIndexSequence, size_t... ContractedIndexSequence>
+  auto assign(
+      index::contracted_tensor<LHSIndexedTensor, RHSIndexedTensor> /*unused*/,
+      std::index_sequence<FreeIndexSequence...>,
+      std::index_sequence<ContractedIndexSequence...>) -> tensor& {
+    using contracted_tensor =
+        index::contracted_tensor<LHSIndexedTensor, RHSIndexedTensor>;
+    using lhs_index_tuple = typename LHSIndexedTensor::index_tuple;
+    using rhs_index_tuple = typename RHSIndexedTensor::index_tuple;
+    using contractions    = typename contracted_tensor::contracted_indices;
+    auto lhs_index_map    = index_pairs_as_array<mapping<lhs_index_tuple>>;
+    auto rhs_index_map    = index_pairs_as_array<mapping<rhs_index_tuple>>;
+
+    auto lhs_index_array = std::array<size_t, LHSIndexedTensor::rank()>{};
+    auto rhs_index_array = std::array<size_t, RHSIndexedTensor::rank()>{};
+    for_loop(
+        [&](auto const... free_indices) {
+          auto const free_index_array = std::array{free_indices...};
+          for (auto const& [l, rl] : lhs_index_map) {
+            lhs_index_array[rl] = free_index_array[l];
+          }
+          for (auto const& [l, rr] : rhs_index_map) {
+            rhs_index_array[rr] = free_index_array[l];
+          }
+
+          for_loop(
+              [&](auto const... contracted_indices) {
+                auto const contracted_index_array =
+                    std::array{contracted_indices...};
+                (
+                    [&] {
+                      lhs_index_array[first_of_index_pair<std::tuple_element_t<
+                          ContractedIndexSequence, contractions>>::value] =
+                          contracted_index_array[ContractedIndexSequence];
+                    }(),
+                    ...);
+                (
+                    [&] {
+                      rhs_index_array[second_of_index_pair<std::tuple_element_t<
+                          ContractedIndexSequence, contractions>>::value] =
+                          contracted_index_array[ContractedIndexSequence];
+                    }(),
+                    ...);
+                std::cerr << "(";
+                std::cerr << free_index_array.front();
+                for (size_t i = 1; i < free_index_array.size(); ++i) {
+                  std::cerr << ", " << free_index_array[i];
+                }
+                std::cerr << ") += (";
+                std::cerr << lhs_index_array.front();
+                for (size_t i = 1; i < lhs_index_array.size(); ++i) {
+                  std::cerr << ", " << lhs_index_array[i];
+                }
+                std::cerr << ") * (";
+                std::cerr << rhs_index_array.front();
+                for (size_t i = 1; i < rhs_index_array.size(); ++i) {
+                  std::cerr << ", " << rhs_index_array[i];
+                }
+                std::cerr << ")\n";
+              },
+              LHSIndexedTensor::template size<
+                  first_of_index_pair<std::tuple_element_t<
+                      ContractedIndexSequence, contractions>>::value>()...);
+        },
+        Tensor::template size<FreeIndexSequence>()...);
     return *this;
   }
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-  // template <typename OtherTensor, typename... OtherIndices,
-  //          size_t... IndexSequence>
-  // auto assign(index::tensor<OtherTensor, OtherIndices...> [>unused<],
-  //            std::index_sequence<IndexSequence...>) -> auto& {
-  //  using other_index_tuple = std::tuple<OtherIndices...>;
-  //  using index_map_t       = mapping<other_index_tuple>;
-  //
-  //  // print_index_pairs<index_map_t>();
-  //  static auto constexpr index_map = index_pairs_as_array<index_map_t>;
-  //
-  //  for_loop(
-  //      [](auto const... indices) {
-  //        auto const lhs_indices = std::array{indices...};
-  //        auto const rhs_indices = [&] {
-  //          auto rhs_indices = std::array<size_t, OtherTensor::rank()>{};
-  //          for (auto const& [l, r] : index_map) {
-  //            rhs_indices[r] = lhs_indices[l];
-  //          }
-  //          return rhs_indices;
-  //        }();
-  //
-  //        // std::cerr << "lhs(";
-  //        // std::cerr << lhs_indices.front();
-  //        // for (size_t i = 1; i < lhs_indices.size(); ++i) {
-  //        //  std::cerr << ", " << lhs_indices[i];
-  //        //}
-  //        // std::cerr << ") = rhs(";
-  //        // std::cerr << rhs_indices.front();
-  //        // for (size_t i = 1; i < rhs_indices.size(); ++i) {
-  //        //  std::cerr << ", " << rhs_indices[i];
-  //        //}
-  //        // std::cerr << ")\n";
-  //      },
-  //      Tensor::template size<IndexSequence>()...);
-  //
-  //  return *this;
-  //}
+  template <typename OtherTensor, typename... OtherIndices,
+            size_t... IndexSequence>
+  auto assign(index::tensor<OtherTensor, OtherIndices...> /*unused*/,
+              std::index_sequence<IndexSequence...>) -> auto& {
+    using other_index_tuple = std::tuple<OtherIndices...>;
+    using index_map_t       = mapping<other_index_tuple>;
+
+    // print_index_pairs<index_map_t>();
+    static auto constexpr index_map = index_pairs_as_array<index_map_t>;
+
+    for_loop(
+        [](auto const... indices) {
+          auto const lhs_indices = std::array{indices...};
+          auto const rhs_indices = [&] {
+            auto rhs_indices = std::array<size_t, OtherTensor::rank()>{};
+            for (auto const& [l, r] : index_map) {
+              rhs_indices[r] = lhs_indices[l];
+            }
+            return rhs_indices;
+          }();
+
+          // std::cerr << "lhs(";
+          // std::cerr << lhs_indices.front();
+          // for (size_t i = 1; i < lhs_indices.size(); ++i) {
+          //  std::cerr << ", " << lhs_indices[i];
+          //}
+          // std::cerr << ") = rhs(";
+          // std::cerr << rhs_indices.front();
+          // for (size_t i = 1; i < rhs_indices.size(); ++i) {
+          //  std::cerr << ", " << rhs_indices[i];
+          //}
+          // std::cerr << ")\n";
+        },
+        Tensor::template size<IndexSequence>()...);
+
+    return *this;
+  }
   //----------------------------------------------------------------------------
-  // template <typename OtherTensor, typename... OtherIndices>
-  // auto operator=(index::tensor<OtherTensor, OtherIndices...> other) ->
-  // tensor& {
-  //  return assign(other, std::make_index_sequence<Tensor::rank()>{});
-  //}
+  template <typename OtherTensor, typename... OtherIndices>
+  auto operator=(index::tensor<OtherTensor, OtherIndices...> other) -> tensor& {
+    return assign(other, std::make_index_sequence<Tensor::rank()>{});
+  }
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-  template <typename... IndexedTensors>
-  auto operator=(index::contracted_tensor<IndexedTensors...> other) -> tensor& {
-    // using contractions =
-    //    typename index::contracted_tensor<LHSIndexedTensor,
-    //                                      RHSIndexedTensor>::contracted_indices;
-    return assign(
-        other, std::make_index_sequence<Tensor::rank()>{}
-        //, std::make_index_sequence<std::tuple_size_v<contractions>>{}
-    );
+  template <typename LHSIndexedTensor, typename RHSIndexedTensor>
+  auto operator=(
+      index::contracted_tensor<LHSIndexedTensor, RHSIndexedTensor> other)
+      -> tensor& {
+    using contractions =
+        typename index::contracted_tensor<LHSIndexedTensor,
+                                          RHSIndexedTensor>::contracted_indices;
+    return assign(other, std::make_index_sequence<Tensor::rank()>{},
+                  std::make_index_sequence<std::tuple_size_v<contractions>>{});
   }
 };
-template <typename TensorLHS, typename... IndicesLHS, typename TensorRHS,
-          typename... IndicesRHS>
-auto operator*(tensor<TensorLHS, IndicesLHS...> /*unused*/,
-               tensor<TensorRHS, IndicesRHS...> /*unused*/) {
-  return contracted_tensor<tensor<TensorLHS, IndicesLHS...>,
-                           tensor<TensorRHS, IndicesRHS...>>{};
-}
-template <typename... IndexedTensorLHS, typename TensorRHS,
-          typename... IndicesRHS>
-auto operator*(contracted_tensor<IndexedTensorLHS...> /*unused*/,
-               tensor<TensorRHS, IndicesRHS...> /*unused*/) {
-  return contracted_tensor<IndexedTensorLHS...,
-                           tensor<TensorRHS, IndicesRHS...>>{};
-}
-template <typename... IndicesLHS, typename TensorLHS,
-          typename... IndexedTensorRHS>
-auto operator*(tensor<TensorLHS, IndicesLHS...> /*unused*/,
-               contracted_tensor<IndexedTensorRHS...> /*unused*/) {
-  return contracted_tensor<tensor<TensorLHS, IndicesLHS...>,
-                           contracted_tensor<IndexedTensorRHS...>>{};
-}
 //==============================================================================
 }  // namespace index
 //==============================================================================
@@ -525,8 +471,6 @@ struct tensor {
   }
   template <typename... Indices>
   auto operator()(Indices... /*unused*/) {
-    static_assert(sizeof...(Indices) == rank(),
-                  "Number of indices differs from tensor rank.");
     return index::tensor<this_t, Indices...>{};
   }
 };
@@ -534,14 +478,21 @@ struct tensor {
 template <size_t I, size_t... Dimensions>
 struct tensor_size<tensor<Dimensions...>, I> : ith_num<I, Dimensions...> {};
 
+template <typename TensorLHS, typename... IndicesLHS, typename TensorRHS,
+          typename... IndicesRHS>
+auto operator*(index::tensor<TensorLHS, IndicesLHS...> /*unused*/,
+               index::tensor<TensorRHS, IndicesRHS...> /*unused*/) {
+  return index::contracted_tensor<index::tensor<TensorLHS, IndicesLHS...>,
+                                  index::tensor<TensorRHS, IndicesRHS...>>{};
+}
+
 auto main() -> int {
   using namespace index;
   [[maybe_unused]] auto T3   = ::tensor<2>{};
   [[maybe_unused]] auto T33  = ::tensor<2, 2>{};
   [[maybe_unused]] auto T333 = ::tensor<2, 2, 2>{};
   // T33(i, j) = T33(i, k) * T33(j, k);
-  // std::cerr << "A(i, l) = B(i, j, k) * C(l, j, k)\n";
-  // T33(i, l)  = T333(i, j, k) * T333(l, j, k);
-  T333(j, k, l) = T3(i) * T33(i, j) * T333(i, k, l);
+  std::cerr << "A(i, l) = B(i, j, k) * C(l, j, k)\n";
+  T33(i, l) = T333(i, j, k) * T333(l, j, k);
   // T3(i) = T333(i, j, k) * T33(j, k);
 }
