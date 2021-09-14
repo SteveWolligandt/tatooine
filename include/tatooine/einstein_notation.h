@@ -1,13 +1,13 @@
 #ifndef TATOOINE_EINSTEIN_NOTATION_H
 #define TATOOINE_EINSTEIN_NOTATION_H
 //==============================================================================
-#include <tatooine/count_types.h>
+#include <tatooine/type_counter.h>
 //==============================================================================
 namespace tatooine::einstein_notation {
 //==============================================================================
 template <std::size_t I>
 struct index {
-  static auto constexpr i = I;
+  static auto constexpr get() { return I; }
 };
 using i_t = index<0>;
 using j_t = index<1>;
@@ -25,102 +25,34 @@ using o_t = index<6>;
 [[maybe_unused]] static auto constexpr inline n = n_t{};
 [[maybe_unused]] static auto constexpr inline o = o_t{};
 //==============================================================================
-template <typename IndexCounter, typename... FreeIndices>
-struct free_indices_impl;
-//------------------------------------------------------------------------------
-template <typename... Indices>
-using free_indices = typename free_indices_impl<count_types<Indices...>>::type;
-//------------------------------------------------------------------------------
-template <typename CurIndex, std::size_t N, typename... Counts,
-          typename... FreeIndices>
-struct free_indices_impl<
-    type_counter_impl<type_number_pair<CurIndex, N>, Counts...>,
-    FreeIndices...> {
-  using type = std::conditional_t<
-      (N == 1),
-      typename free_indices_impl<type_counter_impl<Counts...>, FreeIndices...,
-                                 CurIndex>::type,
-      typename free_indices_impl<type_counter_impl<Counts...>,
-                                 FreeIndices...>::type>;
-};
-//------------------------------------------------------------------------------
-template <typename... FreeIndices>
-struct free_indices_impl<type_counter_impl<>, FreeIndices...> {
-  using type = static_type_set<FreeIndices...>;
-};
-//==============================================================================
-template <typename IndexCounter, typename... FreeIndices>
-struct contracted_indices_impl;
-//------------------------------------------------------------------------------
-template <typename... Indices>
-using contracted_indices =
-    typename contracted_indices_impl<count_types<Indices...>>::type;
-//------------------------------------------------------------------------------
-template <typename CurIndex, std::size_t N, typename... Counts,
-          typename... FreeIndices>
-struct contracted_indices_impl<
-    type_counter_impl<type_number_pair<CurIndex, N>, Counts...>,
-    FreeIndices...> {
-  using type = std::conditional_t<
-      (N != 1),
-      typename contracted_indices_impl<type_counter_impl<Counts...>,
-                                       FreeIndices..., CurIndex>::type,
-      typename contracted_indices_impl<type_counter_impl<Counts...>,
-                                       FreeIndices...>::type>;
-};
-//------------------------------------------------------------------------------
-template <typename... FreeIndices>
-struct contracted_indices_impl<type_counter_impl<>, FreeIndices...> {
-  using type = static_type_set<FreeIndices...>;
-};
-//==============================================================================
 template <typename Tensor, typename... Indices>
 struct indexed_tensor {
-
-};
-//==============================================================================
-template <typename... IndexedTensors>
-struct contracted_tensor {
-  using index_tuples_t = std::tuple<typename IndexedTensors::index_tuple...>;
-  template <size_t I>
-  using index_tuple_at = std::tuple_element_t<I, index_tuples_t>;
-  template <size_t I, size_t J>
-  using contracted_indices =
-      binary_contraction<std::tuple_element_t<I, index_tuples_t>,
-                         std::tuple_element_t<J, index_tuples_t>>;
-  using contracted_indices =
-      binary_contraction<std::tuple_element_t<I, index_tuples_t>,
-                         std::tuple_element_t<J, index_tuples_t>>;
-};
-//==============================================================================
-template <typename Tensor, typename... Indices>
-struct tensor {
-  using index_tuple = std::tuple<Indices...>;
+  using indices = type_list<Indices...>;
   template <typename OtherIndexTuple>
-  using mapping = index::mapping<index_tuple, OtherIndexTuple>;
+  using mapping = index::mapping<indices, OtherIndexTuple>;
 
   static auto constexpr rank() { return Tensor::rank(); }
 
-  template <size_t I>
+  template <std::size_t I>
   static auto constexpr size() {
     return Tensor::template size<I>();
   }
   //============================================================================
-  template <typename... IndexedTensors, size_t... FreeIndexSequence
-            //, size_t... ContractedIndexSequence
+  template <typename... IndexedTensors, std::size_t... FreeIndexSequence
+            //, std::size_t... ContractedIndexSequence
             >
   auto assign(index::contracted_tensor<IndexedTensors...> /*unused*/,
               std::index_sequence<FreeIndexSequence...>
               //, std::index_sequence<ContractedIndexSequence...>
               ) -> tensor& {
     using contracted_tensor = index::contracted_tensor<IndexedTensors...>;
-    using index_tuples      = typename contracted_tensor::index_tuples_t;
+    using index_tuples      = typename contracted_tensor::indices_per_tensor;
     //  using contractions    = typename contracted_tensor::contracted_indices;
     //  auto lhs_index_map    = index_pairs_as_array<mapping<lhs_index_tuple>>;
     //  auto rhs_index_map    = index_pairs_as_array<mapping<rhs_index_tuple>>;
     //
-    //  auto lhs_index_array = std::array<size_t, LHSIndexedTensor::rank()>{};
-    //  auto rhs_index_array = std::array<size_t, RHSIndexedTensor::rank()>{};
+    //  auto lhs_index_array = std::array<std::size_t, LHSIndexedTensor::rank()>{};
+    //  auto rhs_index_array = std::array<std::size_t, RHSIndexedTensor::rank()>{};
     //  for_loop(
     //      [&](auto const... free_indices) {
     //        auto const free_index_array = std::array{free_indices...};
@@ -151,17 +83,17 @@ struct tensor {
     //                  ...);
     //              std::cerr << "(";
     //              std::cerr << free_index_array.front();
-    //              for (size_t i = 1; i < free_index_array.size(); ++i) {
+    //              for (std::size_t i = 1; i < free_index_array.size(); ++i) {
     //                std::cerr << ", " << free_index_array[i];
     //              }
     //              std::cerr << ") += (";
     //              std::cerr << lhs_index_array.front();
-    //              for (size_t i = 1; i < lhs_index_array.size(); ++i) {
+    //              for (std::size_t i = 1; i < lhs_index_array.size(); ++i) {
     //                std::cerr << ", " << lhs_index_array[i];
     //              }
     //              std::cerr << ") * (";
     //              std::cerr << rhs_index_array.front();
-    //              for (size_t i = 1; i < rhs_index_array.size(); ++i) {
+    //              for (std::size_t i = 1; i < rhs_index_array.size(); ++i) {
     //                std::cerr << ", " << rhs_index_array[i];
     //              }
     //              std::cerr << ")\n";
@@ -175,7 +107,7 @@ struct tensor {
   }
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
   // template <typename OtherTensor, typename... OtherIndices,
-  //          size_t... IndexSequence>
+  //          std::size_t... IndexSequence>
   // auto assign(index::tensor<OtherTensor, OtherIndices...> [>unused<],
   //            std::index_sequence<IndexSequence...>) -> auto& {
   //  using other_index_tuple = std::tuple<OtherIndices...>;
@@ -188,7 +120,7 @@ struct tensor {
   //      [](auto const... indices) {
   //        auto const lhs_indices = std::array{indices...};
   //        auto const rhs_indices = [&] {
-  //          auto rhs_indices = std::array<size_t, OtherTensor::rank()>{};
+  //          auto rhs_indices = std::array<std::size_t, OtherTensor::rank()>{};
   //          for (auto const& [l, r] : index_map) {
   //            rhs_indices[r] = lhs_indices[l];
   //          }
@@ -197,12 +129,12 @@ struct tensor {
   //
   //        // std::cerr << "lhs(";
   //        // std::cerr << lhs_indices.front();
-  //        // for (size_t i = 1; i < lhs_indices.size(); ++i) {
+  //        // for (std::size_t i = 1; i < lhs_indices.size(); ++i) {
   //        //  std::cerr << ", " << lhs_indices[i];
   //        //}
   //        // std::cerr << ") = rhs(";
   //        // std::cerr << rhs_indices.front();
-  //        // for (size_t i = 1; i < rhs_indices.size(); ++i) {
+  //        // for (std::size_t i = 1; i < rhs_indices.size(); ++i) {
   //        //  std::cerr << ", " << rhs_indices[i];
   //        //}
   //        // std::cerr << ")\n";
@@ -228,6 +160,72 @@ struct tensor {
         //, std::make_index_sequence<std::tuple_size_v<contractions>>{}
     );
   }
+};
+//==============================================================================
+template <typename IndexCounter, typename... FreeIndices>
+struct free_indices_impl;
+//------------------------------------------------------------------------------
+template <typename... Indices>
+using free_indices = typename free_indices_impl<count_types<Indices...>>::type;
+//------------------------------------------------------------------------------
+template <typename CurIndex, std::size_t N, typename... Counts,
+          typename... FreeIndices>
+struct free_indices_impl<
+    type_list<type_number_pair<CurIndex, N>, Counts...>,
+    FreeIndices...> {
+  using type = std::conditional_t<
+      (N == 1),
+      typename free_indices_impl<type_list<Counts...>, FreeIndices...,
+                                 CurIndex>::type,
+      typename free_indices_impl<type_list<Counts...>,
+                                 FreeIndices...>::type>;
+};
+//------------------------------------------------------------------------------
+template <typename... FreeIndices>
+struct free_indices_impl<type_list<>, FreeIndices...> {
+  using type = type_set<FreeIndices...>;
+};
+//==============================================================================
+template <typename IndexCounter, typename... FreeIndices>
+struct contracted_indices_impl;
+//------------------------------------------------------------------------------
+template <typename... Indices>
+using contracted_indices =
+    typename contracted_indices_impl<count_types<Indices...>>::type;
+//------------------------------------------------------------------------------
+template <typename CurIndex, std::size_t N, typename... Counts,
+          typename... FreeIndices>
+struct contracted_indices_impl<
+    type_list<type_number_pair<CurIndex, N>, Counts...>,
+    FreeIndices...> {
+  using type = std::conditional_t<
+      (N != 1),
+      typename contracted_indices_impl<type_list<Counts...>,
+                                       FreeIndices..., CurIndex>::type,
+      typename contracted_indices_impl<type_list<Counts...>,
+                                       FreeIndices...>::type>;
+};
+//------------------------------------------------------------------------------
+template <typename... FreeIndices>
+struct contracted_indices_impl<type_list<>, FreeIndices...> {
+  using type = type_set<FreeIndices...>;
+};
+//==============================================================================
+template <typename... IndexedTensors>
+struct contracted_tensor {
+  using indices_per_tensor = type_list<typename IndexedTensors::indices...>;
+  template <std::size_t I>
+  using indices_of_tensor = type_list_at<indices_per_tensor, I>;
+  //template <std::size_t... Is>
+  //using free_indices =
+  //    tatooine::free_indices<IndexedTensors::indices...>;
+  //using contracted_indices =
+  //    binary_contraction<std::tuple_element_t<I, indices_per_tensor>,
+  //                       std::tuple_element_t<J, indices_per_tensor>>;
+};
+//==============================================================================
+template <typename Tensor, typename... Indices>
+struct tensor {
 };
 template <typename TensorLHS, typename... IndicesLHS, typename TensorRHS,
           typename... IndicesRHS>

@@ -6,26 +6,28 @@
 namespace tatooine::variadic {
 //==============================================================================
 template <typename T, typename... Ts>
-struct front_type_impl {
+struct front_impl {
   using type = T;
 };
+//------------------------------------------------------------------------------
 template <typename... Ts>
-using front_type = typename front_type_impl<Ts...>::type;
+using front = typename front_impl<Ts...>::type;
 //==============================================================================
 template <typename... T>
-struct back_type_impl;
+struct back_impl;
 //------------------------------------------------------------------------------
 template <typename T>
-struct back_type_t_impl<T> {
+struct back_impl<T> {
   using type = T;
 };
 //------------------------------------------------------------------------------
 template <typename T, typename... Ts>
-struct back_type_impl<T, Ts...> {
-  using type = typename back_type_impl<Ts...>::type;
+struct back_impl<T, Ts...> {
+  using type = typename back_impl<Ts...>::type;
 };
+//------------------------------------------------------------------------------
 template <typename... Ts>
-using back_type = typename back_type_impl<Ts...>::type;
+using back = typename back_impl<Ts...>::type;
 //==============================================================================
 template <std::size_t I, std::size_t CurNum, std::size_t... RestNums>
 struct ith_num_impl {
