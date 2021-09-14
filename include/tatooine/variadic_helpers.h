@@ -1,31 +1,55 @@
 #ifndef TATOOINE_VARIADIC_HELPERS_H
 #define TATOOINE_VARIADIC_HELPERS_H
-
 //==============================================================================
-namespace tatooine {
+#include <cstdint>
+//==============================================================================
+namespace tatooine::variadic {
 //==============================================================================
 template <typename T, typename... Ts>
-struct front_t_impl {
+struct front_type_impl {
   using type = T;
 };
 template <typename... Ts>
-using front_t = typename front_t_impl<Ts...>::type;
-
+using front_type = typename front_type_impl<Ts...>::type;
 //==============================================================================
 template <typename... T>
-struct back_t_impl;
+struct back_type_impl;
+//------------------------------------------------------------------------------
 template <typename T>
-struct back_t_impl<T> {
+struct back_type_t_impl<T> {
   using type = T;
 };
+//------------------------------------------------------------------------------
 template <typename T, typename... Ts>
-struct back_t_impl<T, Ts...> {
-  using type = typename back_t_impl<Ts...>::type;
+struct back_type_impl<T, Ts...> {
+  using type = typename back_type_impl<Ts...>::type;
 };
 template <typename... Ts>
-using back_t = typename back_t_impl<Ts...>::type;
-
+using back_type = typename back_type_impl<Ts...>::type;
 //==============================================================================
-}  // namespace tatooine
+template <std::size_t I, std::size_t CurNum, std::size_t... RestNums>
+struct ith_num_impl {
+  static auto constexpr value = ith_num_impl<I - 1, RestNums...>::value;
+};
+template <std::size_t CurNum, std::size_t... RestNums>
+struct ith_num_impl<0, CurNum, RestNums...> {
+  static auto constexpr value = CurNum;
+};
+template <std::size_t I, std::size_t... Nums>
+[[maybe_unused]] static auto constexpr ith_num =
+    ith_num_impl<I, Nums...>::value;
+//==============================================================================
+template <std::size_t I, typename CurType, typename... RestTypes>
+struct ith_type_impl {
+  using type = typename ith_type_impl<I - 1, RestTypes...>::type;
+};
+template <typename CurType, typename... RestTypes>
+struct ith_type_impl<0, CurType, RestTypes...> {
+  using type = CurType;
+};
+template <std::size_t I, typename... Types>
+using ith_type = typename ith_type_impl<I, Types...>::type;
+//==============================================================================
+}  // namespace tatooine::variadic
 //==============================================================================
 #endif
