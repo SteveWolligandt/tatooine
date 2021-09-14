@@ -26,7 +26,7 @@ TEST_CASE("type_list", "[type_list]") {
     REQUIRE(is_same<l2::at<0>, float>);
     REQUIRE(is_same<l2::at<1>, int>);
     //REQUIRE(is_same<type_list_at<l2, 2>,
-    //                int>);  // This must yield in a compiler-error.
+    //                int>);  // This must yield a compiler-error.
   }
   SECTION("pop_back") {
     SECTION("l1") {

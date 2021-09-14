@@ -249,7 +249,7 @@ struct type_list {
   template <std::size_t I>
   using at = type_list_at<this_t, I>;
   template <typename T>
-  static auto constexpr contains = type_list_contains<this_t, T>;
+  static bool constexpr contains = type_list_contains<this_t, T>;
 
   static auto constexpr size = type_list_size<this_t>;
 };
