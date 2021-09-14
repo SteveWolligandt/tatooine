@@ -1,87 +1,89 @@
-#ifndef TATOOINE_COUNT_TYPES_H
-#define TATOOINE_COUNT_TYPES_H
+#ifndef TATOOINE_TYPE_COUNTER_H
+#define TATOOINE_TYPE_COUNTER_H
 //==============================================================================
-#include <tatooine/static_set.h>
 #include <tatooine/type_number_pair.h>
+#include <tatooine/type_set.h>
 //==============================================================================
 namespace tatooine {
 //==============================================================================
-template <typename... Counters>
-struct type_counter_impl {};
+/// \addtogroup type_counting Type Counting
+/// \ingroup template_meta_programming
+///
+/// This module is for counting types of a variadic list.
+/// \{
 //==============================================================================
 template <typename Counter, typename T>
-struct get_count_impl;
+struct type_counter_get_count_impl;
 //------------------------------------------------------------------------------
 template <typename Counter, typename T>
-static auto constexpr get_count = get_count_impl<Counter, T>::value;
+static auto constexpr type_counter_get_count = type_counter_get_count_impl<Counter, T>::value;
 //------------------------------------------------------------------------------
 template <typename HeadCounter, typename... Counters, typename T>
-struct get_count_impl<type_counter_impl<HeadCounter, Counters...>, T> {
+struct type_counter_get_count_impl<type_list<HeadCounter, Counters...>, T> {
   static auto constexpr value =
-      get_count_impl<type_counter_impl<Counters...>, T>::value;
+      type_counter_get_count_impl<type_list<Counters...>, T>::value;
 };
 //------------------------------------------------------------------------------
 template <std::size_t N, typename... Counters, typename T>
-struct get_count_impl<type_counter_impl<type_number_pair<T, N>, Counters...>,
+struct type_counter_get_count_impl<type_list<type_number_pair<T, N>, Counters...>,
                       T> {
   static auto constexpr value = N;
 };
 //------------------------------------------------------------------------------
 template <typename T>
-struct get_count_impl<type_counter_impl<>, T> {
+struct type_counter_get_count_impl<type_list<>, T> {
   // static_assert(false, "T not found in counter.");
   static auto constexpr value = 0;
 };
 //==============================================================================
 template <typename Counter, typename T>
-struct increase_type_counter_if_equal_impl;
+struct type_counter_increase_if_equal_impl;
 //------------------------------------------------------------------------------
-template <typename T, std::size_t N, typename OtherIndex>
-struct increase_type_counter_if_equal_impl<type_number_pair<T, N>, OtherIndex> {
+template <typename T, std::size_t N, typename OtherT>
+struct type_counter_increase_if_equal_impl<type_number_pair<T, N>, OtherT> {
   using type = type_number_pair<T, N>;
 };
 //------------------------------------------------------------------------------
 template <typename T, std::size_t N>
-struct increase_type_counter_if_equal_impl<type_number_pair<T, N>, T> {
+struct type_counter_increase_if_equal_impl<type_number_pair<T, N>, T> {
   using type = type_number_pair<T, N + 1>;
 };
 //------------------------------------------------------------------------------
 template <typename Counter, typename T>
-using increase_if_equal =
-    typename increase_type_counter_if_equal_impl<Counter, T>::type;
+using type_counter_increase_if_equal =
+    typename type_counter_increase_if_equal_impl<Counter, T>::type;
 //==============================================================================
-template <typename Counter, typename... Indices>
-struct insert_types_into_counter_impl;
+template <typename Counter, typename... Ts>
+struct type_counter_insert_impl;
 
-template <typename... Counters, typename HeadIndex, typename... Indices>
-struct insert_types_into_counter_impl<type_counter_impl<Counters...>, HeadIndex,
-                                      Indices...> {
-  using type = typename insert_types_into_counter_impl<
-      type_counter_impl<increase_if_equal<Counters, HeadIndex>...>,
-      Indices...>::type;
+template <typename... Counters, typename Head, typename... Rest>
+struct type_counter_insert_impl<type_list<Counters...>, Head,
+                                      Rest...> {
+  using type = typename type_counter_insert_impl<
+      type_list<type_counter_increase_if_equal<Counters, Head>...>,
+      Rest...>::type;
 };
 
 template <typename... Counters>
-struct insert_types_into_counter_impl<type_counter_impl<Counters...>> {
-  using type = type_counter_impl<Counters...>;
+struct type_counter_insert_impl<type_list<Counters...>> {
+  using type = type_list<Counters...>;
 };
 
-template <typename Counter, typename... Indices>
-using insert_types_into_counter =
-    typename insert_types_into_counter_impl<Counter, Indices...>::type;
+template <typename Counter, typename... Ts>
+using type_counter_insert =
+    typename type_counter_insert_impl<Counter, Ts...>::type;
 //==============================================================================
-template <typename StaticTypeSet, typename... Indices>
+template <typename StaticTypeSet, typename... Ts>
 struct count_types_impl;
 
-template <typename... SetTypes, typename... Indices>
-struct count_types_impl<static_type_set_impl<SetTypes...>, Indices...> {
-  using type = insert_types_into_counter<
-      type_counter_impl<type_number_pair<SetTypes, 0>...>, Indices...>;
+template <typename... UniqueTypes, typename... Ts>
+struct count_types_impl<type_list<UniqueTypes...>, Ts...> {
+  using type = type_counter_insert<
+      type_list<type_number_pair<UniqueTypes, 0>...>, Ts...>;
 };
-
-template <typename... Indices>
-using count_types =
-    typename count_types_impl<static_type_set<Indices...>, Indices...>::type;
+template <typename... Ts>
+using count_types = typename count_types_impl<type_set<Ts...>, Ts...>::type;
+/// \}
 //==============================================================================
 }  // namespace tatooine
 //==============================================================================

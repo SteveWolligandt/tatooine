@@ -24,7 +24,7 @@ template <size_t Begin, size_t End, typename... Ts>
 constexpr auto extract(Ts&&... ts) {
   static_assert(Begin <= End);
   auto extracted_data =
-      make_array<std::decay_t<front_t<Ts...>>, End - Begin + 1>();
+      make_array<std::decay_t<variadic::front<Ts...>>, End - Begin + 1>();
   return extract<0, Begin, End>(extracted_data, std::forward<Ts>(ts)...);
 }
 //==============================================================================
