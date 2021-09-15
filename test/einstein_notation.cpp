@@ -55,17 +55,18 @@ TEST_CASE("einstein_notation_index_map",
   using Tjk = indexed_tensor<mat2, j_t, k_t>;
   auto map  = Tjk::index_map();
 
-  REQUIRE(map[j_t::get()] == 0);
-  REQUIRE(map[k_t::get()] == 1);
+  REQUIRE(map[0] == j_t::get());
+  REQUIRE(map[1] == k_t::get());
 }
 //==============================================================================
 TEST_CASE("einstein_notation_contraction",
           "[einstein_notation][contraction]") {
-  using Tij = indexed_tensor<mat2, i_t, j_t>;
-  using Tjk = indexed_tensor<mat2, j_t, k_t>;
-  using Tkl = indexed_tensor<mat2, k_t, l_t>;
+  mat2 A;
+  auto Tij = indexed_tensor<mat2, i_t, j_t>{A};
+  auto Tjk = indexed_tensor<mat2, j_t, k_t>{A};
+  auto Tkl = indexed_tensor<mat2, k_t, l_t>{A};
 
-  auto contracted_tensor = Tij{} * Tjk{} * Tkl{};
+  auto contracted_tensor = Tij * Tjk * Tkl;
 
   using fi = decltype(contracted_tensor)::free_indices;
   using ci = decltype(contracted_tensor)::contracted_indices;
@@ -81,12 +82,51 @@ TEST_CASE("einstein_notation_contraction",
 //==============================================================================
 TEST_CASE("einstein_notation_contracted_assignement",
           "[einstein_notation][contracted_assignement]") {
-  using Tij = indexed_tensor<mat2, i_t, j_t>;
-  using Tjk = indexed_tensor<mat2, j_t, k_t>;
-  using Tkl = indexed_tensor<mat2, k_t, l_t>;
-  using Til = indexed_tensor<mat2, k_t, l_t>;
+  mat2 A;
+  mat2 B{{1, 2},
+         {3, 4}};
+  mat2 C{{2, 3},
+         {4, 5}};
+  mat2 D{{3, 4},
+         {5, 6}};
 
-   Til{} = Tij{} * Tjk{} * Tkl{};
+  auto Bij = indexed_tensor<mat2, i_t, j_t>{B};
+  auto Cjk = indexed_tensor<mat2, j_t, k_t>{C};
+  auto Ckj = indexed_tensor<mat2, k_t, j_t>{C};
+  auto Dkl = indexed_tensor<mat2, k_t, l_t>{D};
+  auto Ail = indexed_tensor<mat2, k_t, l_t>{A};
+  auto Aik = indexed_tensor<mat2, i_t, k_t>{A};
+
+  SECTION("Aik = Bij * Cjk - standard matrix-matrix multiplication"){
+    Aik = Bij * Cjk;
+    auto const Amatrix = B*C;
+
+    for_loop(
+        [&](auto const... indices) {
+          REQUIRE(A(indices...) == Approx(Amatrix(indices...)));
+        },
+        2, 2);
+  }
+  SECTION("Aik = Bij * Ckj - matrix- transposed matrix multiplication") {
+    Aik                = Bij * Ckj;
+    auto const Amatrix = B * transposed(C);
+
+    for_loop(
+        [&](auto const... indices) {
+          REQUIRE(A(indices...) == Approx(Amatrix(indices...)));
+        },
+        2, 2);
+  }
+  SECTION("Ail = Bij * Cjk * Dkl - matrix-matrix-matrix multiplication") {
+    Ail                = Bij * Cjk * Dkl;
+    auto const Amatrix = B * C * D;
+
+    for_loop(
+        [&](auto const... indices) {
+          REQUIRE(A(indices...) == Approx(Amatrix(indices...)));
+        },
+        2, 2);
+  }
 }
 //==============================================================================
 }  // namespace tatooine::einstein_notation::test
