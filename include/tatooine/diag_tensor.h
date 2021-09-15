@@ -203,15 +203,16 @@ constexpr auto operator*(diag_tensor<TensorA, M, M> const&     A,
   return ret;
 }
 //------------------------------------------------------------------------------
-template <typename TensorA, typename TensorB, typename BReal, size_t M, size_t N>
+template <typename TensorA, typename TensorB, typename BReal, size_t M,
+          size_t N>
 constexpr auto operator*(base_tensor<TensorB, BReal, M, N> const& B,
-                         diag_tensor<TensorA, N, N> const&     A) 
+                         diag_tensor<TensorA, N, N> const&        A)
     -> mat<
         std::common_type_t<typename std::decay_t<TensorA>::value_type, BReal>,
         M, N> {
-  mat<std::common_type_t<typename std::decay_t<TensorA>::value_type, BReal>, M,
-      N>
-      ret = B;
+  using common_type =
+      common_type<typename std::decay_t<TensorA>::value_type, BReal>;
+  auto ret = mat<common_type, M, N>{B};
   for (size_t i = 0; i < N; ++i) {
     ret.col(i) *= A.internal_tensor()(i);
   }

@@ -132,12 +132,12 @@ struct rungekutta43 : solver<rungekutta43<Real, N>, Real, N> {
                        vec<Y0Real, N> const& y0, T0Real const t0, TauReal tau,
                        StepperCallback&& callback) const {
     // do not start integration if y0, t0 is not in domain of vectorfield
-    if (!v.in_domain(y0, t0)) {
+    if (v(y0, t0).isnan()) {
       return;
     }
 
     auto dy = [&v](pos_t const& y, Real const t) -> maybe_vec {
-      if (!v.in_domain(y, t)) {
+      if (v(y, t).isnan()) {
         return out_of_domain;
       }
       return v(y, t);
