@@ -252,6 +252,24 @@ struct type_list {
   static bool constexpr contains = type_list_contains<this_t, T>;
 
   static auto constexpr size = type_list_size<this_t>;
+  static bool constexpr empty = size == 0;
+};
+template <>
+struct type_list<> {
+  using this_t = type_list<>;
+
+  template <typename T>
+  using push_back = type_list_push_back<this_t, T>;
+  template <typename T>
+  using push_front = type_list_push_front<this_t, T>;
+
+  template <std::size_t I>
+  using at = type_list_at<this_t, I>;
+  template <typename T>
+  static bool constexpr contains = type_list_contains<this_t, T>;
+
+  static auto constexpr size = 0;
+  static bool constexpr empty = true;
 };
 /// \}
 //==============================================================================
