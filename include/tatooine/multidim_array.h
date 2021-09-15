@@ -291,7 +291,7 @@ class static_multidim_array
     static_assert(is_integral<typename Indices::value_type>,
                   "index range must hold integral type");
     assert(indices.size() == num_dimensions());
-    m_data[plain_index(indices)];
+    return m_data[plain_index(indices)];
   }
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 #ifdef __cpp_concepts
