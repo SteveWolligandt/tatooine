@@ -69,7 +69,7 @@ struct indexed_tensor {
   Tensor m_tensor;
 
  public:
-  indexed_tensor(Tensor t) : m_tensor{t} {}
+  explicit indexed_tensor(Tensor t) : m_tensor{t} {}
 
   auto tensor() const -> auto const& { return m_tensor; }
   auto tensor() -> auto& { return m_tensor; }
@@ -112,7 +112,7 @@ struct indexed_tensor {
             typename Tensor_                                       = Tensor,
             enable_if<!is_const<std::remove_reference_t<Tensor_>>> = true>
   auto assign(added_contracted_tensor<ContractedTensors...> other,
-              std::index_sequence<Seq...>) {
+              std::index_sequence<Seq...>/*seq*/) {
     ([&] { *this += other.template at<Seq>(); }(), ...);
   }
   //----------------------------------------------------------------------------
@@ -121,10 +121,9 @@ struct indexed_tensor {
             std::size_t... ContractedTensorsSequence, typename Tensor_ = Tensor,
             enable_if<!is_const<std::remove_reference_t<Tensor_>>> = true>
   auto add(contracted_tensor<IndexedTensors...> other,
-           std::index_sequence<FreeIndexSequence...>,
-           std::index_sequence<ContractedIndexSequence...>,
-           std::index_sequence<ContractedTensorsSequence...>)
-      -> indexed_tensor& {
+           std::index_sequence<FreeIndexSequence...> /*seq*/,
+           std::index_sequence<ContractedIndexSequence...> /*seq*/,
+           std::index_sequence<ContractedTensorsSequence...> /*seq*/) {
     using map_t              = std::map<std::size_t, std::size_t>;
     using contracted_tensor  = contracted_tensor<IndexedTensors...>;
     using free_indices       = typename contracted_tensor::free_indices;
@@ -211,7 +210,6 @@ struct indexed_tensor {
           }
         },
         std::decay_t<Tensor>::dimension(FreeIndexSequence)...);
-    return *this;
   }
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
   // template <typename OtherTensor, typename... OtherIndices,
@@ -258,29 +256,27 @@ struct indexed_tensor {
   //  return assign(other, std::make_index_sequence<std::decay_t<Tensor>::rank()>{});
   //}
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-  template <typename... IndexedTensors, 
-            typename Tensor_ = Tensor,
+  template <typename... IndexedTensors, typename Tensor_ = Tensor,
             enable_if<!is_const<std::remove_reference_t<Tensor_>>> = true>
   auto operator+=(contracted_tensor<IndexedTensors...> other)
       -> indexed_tensor& {
-    return add(
-        other, std::make_index_sequence<rank()>{},
+    add(other, std::make_index_sequence<rank()>{},
         std::make_index_sequence<
             contracted_tensor<IndexedTensors...>::contracted_indices::size>{},
         std::make_index_sequence<sizeof...(IndexedTensors)>{});
+    return *this;
   }
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-  template <typename... IndexedTensors, 
-            typename Tensor_ = Tensor,
+  template <typename... IndexedTensors, typename Tensor_ = Tensor,
             enable_if<!is_const<std::remove_reference_t<Tensor_>>> = true>
   auto operator=(contracted_tensor<IndexedTensors...> other)
       -> indexed_tensor& {
     m_tensor = std::decay_t<Tensor>{tag::fill{0}};
-    return add(
-        other, std::make_index_sequence<rank()>{},
+    add(other, std::make_index_sequence<rank()>{},
         std::make_index_sequence<
             contracted_tensor<IndexedTensors...>::contracted_indices::size>{},
         std::make_index_sequence<sizeof...(IndexedTensors)>{});
+    return *this;
   }
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
   template <typename... ContractedTensors, typename Tensor_ = Tensor,
@@ -454,8 +450,9 @@ struct contracted_tensor {
             std::size_t... ContractedTensorsSequence,
             bool free_indices_empty       = free_indices::empty,
             enable_if<free_indices_empty> = true>
-  auto to_scalar(std::index_sequence<ContractedIndexSequence...>,
-                 std::index_sequence<ContractedTensorsSequence...>) const {
+  auto to_scalar(
+      std::index_sequence<ContractedIndexSequence...> /*seq*/,
+      std::index_sequence<ContractedTensorsSequence...> /*seq*/) const {
     using map_t              = std::map<std::size_t, std::size_t>;
     using contracted_tensor  = contracted_tensor<IndexedTensors...>;
     using contracted_indices = typename contracted_tensor::contracted_indices;
@@ -508,8 +505,8 @@ struct contracted_tensor {
   //----------------------------------------------------------------------------
   operator real_t() const {
     if constexpr (free_indices::empty){
-    return to_scalar(std::make_index_sequence<contracted_indices::size>{},
-                     std::make_index_sequence<sizeof...(IndexedTensors)>{});
+      return to_scalar(std::make_index_sequence<contracted_indices::size>{},
+                       std::make_index_sequence<sizeof...(IndexedTensors)>{});
     } else {
       return real_t(0) / real_t(0);
     }
