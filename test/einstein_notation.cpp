@@ -89,17 +89,9 @@ TEST_CASE("einstein_notation_contracted_assignement",
          {4, 5}};
   mat2 D{{3, 4},
          {5, 6}};
-
-  auto Bij = indexed_tensor<mat2, i_t, j_t>{B};
-  auto Cjk = indexed_tensor<mat2, j_t, k_t>{C};
-  auto Ckj = indexed_tensor<mat2, k_t, j_t>{C};
-  auto Dkl = indexed_tensor<mat2, k_t, l_t>{D};
-  auto Ail = indexed_tensor<mat2, k_t, l_t>{A};
-  auto Aik = indexed_tensor<mat2, i_t, k_t>{A};
-
-  SECTION("Aik = Bij * Cjk - standard matrix-matrix multiplication"){
-    Aik = Bij * Cjk;
-    auto const Amatrix = B*C;
+  SECTION("A(i, k) = B(i, j) * C(j, k) - standard matrix-matrix multiplication"){
+    A(i, k)            = B(i, j) * C(j, k);
+    auto const Amatrix = B * C;
 
     for_loop(
         [&](auto const... indices) {
@@ -107,8 +99,8 @@ TEST_CASE("einstein_notation_contracted_assignement",
         },
         2, 2);
   }
-  SECTION("Aik = Bij * Ckj - matrix- transposed matrix multiplication") {
-    Aik                = Bij * Ckj;
+  SECTION("A(i, k) = B(i, j) * C(k, j) - matrix- transposed matrix multiplication") {
+    A(i, k)            = B(i, j) * C(k, j);
     auto const Amatrix = B * transposed(C);
 
     for_loop(
@@ -117,8 +109,8 @@ TEST_CASE("einstein_notation_contracted_assignement",
         },
         2, 2);
   }
-  SECTION("Ail = Bij * Cjk * Dkl - matrix-matrix-matrix multiplication") {
-    Ail                = Bij * Cjk * Dkl;
+  SECTION("A(i, l) = B(i, j) * C(j, k) * D(k, l) - matrix-matrix-matrix multiplication") {
+    A(i, l)            = B(i, j) * C(j, k) * D(k, l);
     auto const Amatrix = B * C * D;
 
     for_loop(

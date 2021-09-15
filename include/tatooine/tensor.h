@@ -26,10 +26,6 @@ struct tensor : base_tensor<tensor<T, Dims...>, T, Dims...>,
   using tensor_parent_t::num_components;
   using tensor_parent_t::rank;
   using tensor_parent_t::tensor_parent_t;
-
-  using array_parent_t::at;
-  using array_parent_t::operator();
-
   //============================================================================
  public:
   constexpr tensor()                        = default;
@@ -40,6 +36,33 @@ struct tensor : base_tensor<tensor<T, Dims...>, T, Dims...>,
   ~tensor()                                                    = default;
   //============================================================================
  public:
+  //----------------------------------------------------------------------------
+  template <typename... Is>
+  auto constexpr at(Is const... is) -> decltype(auto) {
+    if constexpr (einstein_notation::is_index<Is...>) {
+      return tensor_parent_t::at(is...);
+    } else {
+      return array_parent_t::at(is...);
+    }
+  }
+  template <typename... Is>
+  auto constexpr at(Is const... is) const -> decltype(auto) {
+    if constexpr (einstein_notation::is_index<Is...>) {
+      return tensor_parent_t::at(is...);
+    } else {
+      return array_parent_t::at(is...);
+    }
+  }
+  //----------------------------------------------------------------------------
+  template <typename... Is>
+  auto constexpr operator()(Is const... is) -> decltype(auto) {
+    return at(is...);
+  }
+  template <typename... Is>
+  auto constexpr operator()(Is const... is) const -> decltype(auto) {
+    return at(is...);
+  }
+  //----------------------------------------------------------------------------
 #ifdef __cpp_concepts
   template <convertible_to<T>... Ts>
   requires (tensor_parent_t::rank() == 1) &&
